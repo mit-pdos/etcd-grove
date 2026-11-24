@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/AlarmType__String.lean`, over
 protoc-gen-go's `AlarmType.String` (`TrustedCode/go_etcd_io/etcd/api/v3/etcdserverpb.lean`,
 etcd-grove#39, 2026-11-23): the lookup in `AlarmType_name`, which `etcdserverpb`'s package fact holds
 read-only (`etcdserverpb.alarmTypeNames`), else `strconv.Itoa`; the call through the pointer reads
-`*p` (goose's `ptr_String_unfold`). (Until 2026-11-23 a trust-boundary axiom.)
+`*p` (goose's `ptr_unfold'String`). (Until 2026-11-23 a trust-boundary axiom.)
 -/
 module
 

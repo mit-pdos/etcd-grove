@@ -3031,7 +3031,7 @@ noncomputable instance InBucket.zero_val [GooseExts] : ZeroVal InBucket :=
 @[irreducible] noncomputable def InBucket.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InBucket.fieldsUnsealed
 
-noncomputable instance equals_unfold_InBucket [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'InBucket [GooseExts] [GoGlobalContext] :
     EqualsUnfold InBucket.fields InBucket.fieldsUnsealed :=
   ⟨by unfold InBucket.fields; rfl⟩
 
@@ -3041,35 +3041,35 @@ noncomputable instance equals_unfold_InBucket [GooseExts] [GoGlobalContext] :
 class InBucket.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InBucket.underlying InBucket
   underlying : go.UnderlyingDirectedEq InBucket.ty InBucket.underlying
-  get_root : ∀ (x : InBucket), go.IsGoStepPureDetTagged under (StructFieldGet InBucket.underlying go!"root") #x (Val #(x.root'))
-  set_root : ∀ (x : InBucket) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet InBucket.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : InBucket)))
-  get_sequence : ∀ (x : InBucket), go.IsGoStepPureDetTagged under (StructFieldGet InBucket.underlying go!"sequence") #x (Val #(x.sequence'))
-  set_sequence : ∀ (x : InBucket) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet InBucket.underlying go!"sequence") (PairV #x #y) (Val #(({ x with sequence' := y } : InBucket)))
+  get'root : ∀ (x : InBucket), go.IsGoStepPureDetTagged under (StructFieldGet InBucket.underlying go!"root") #x (Val #(x.root'))
+  set'root : ∀ (x : InBucket) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet InBucket.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : InBucket)))
+  get'sequence : ∀ (x : InBucket), go.IsGoStepPureDetTagged under (StructFieldGet InBucket.underlying go!"sequence") #x (Val #(x.sequence'))
+  set'sequence : ∀ (x : InBucket) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet InBucket.underlying go!"sequence") (PairV #x #y) (Val #(({ x with sequence' := y } : InBucket)))
   method_set : go.MethodSetIs InBucket.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType InBucket.ty) [(go!"InSequence", (some (go.signature.Signature [] false [go.uint64]))), (go!"IncSequence", (some (go.signature.Signature [] false []))), (go!"InlinePage", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType Page.ty)]))), (go!"RootPage", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"SetInSequence", (some (go.signature.Signature [go.uint64] false []))), (go!"SetRootPage", (some (go.signature.Signature [Pgid.ty] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_InSequence_unfold : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"InSequence" InBucket.InSequence.impl
-  ptr_IncSequence_unfold : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"IncSequence" InBucket.IncSequence.impl
-  ptr_InlinePage_unfold : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"InlinePage" InBucket.InlinePage.impl
-  ptr_RootPage_unfold : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"RootPage" InBucket.RootPage.impl
-  ptr_SetInSequence_unfold : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"SetInSequence" InBucket.SetInSequence.impl
-  ptr_SetRootPage_unfold : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"SetRootPage" InBucket.SetRootPage.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"String" InBucket.String.impl
+  ptr_unfold'InSequence : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"InSequence" InBucket.InSequence.impl
+  ptr_unfold'IncSequence : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"IncSequence" InBucket.IncSequence.impl
+  ptr_unfold'InlinePage : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"InlinePage" InBucket.InlinePage.impl
+  ptr_unfold'RootPage : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"RootPage" InBucket.RootPage.impl
+  ptr_unfold'SetInSequence : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"SetInSequence" InBucket.SetInSequence.impl
+  ptr_unfold'SetRootPage : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"SetRootPage" InBucket.SetRootPage.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType InBucket.ty) go!"String" InBucket.String.impl
 
 attribute [instance] InBucket.TypeAssumptions.type_repr
   InBucket.TypeAssumptions.underlying
-  InBucket.TypeAssumptions.get_root
-  InBucket.TypeAssumptions.set_root
-  InBucket.TypeAssumptions.get_sequence
-  InBucket.TypeAssumptions.set_sequence
+  InBucket.TypeAssumptions.get'root
+  InBucket.TypeAssumptions.set'root
+  InBucket.TypeAssumptions.get'sequence
+  InBucket.TypeAssumptions.set'sequence
   InBucket.TypeAssumptions.method_set
   InBucket.TypeAssumptions.ptr_method_set
-  InBucket.TypeAssumptions.ptr_InSequence_unfold
-  InBucket.TypeAssumptions.ptr_IncSequence_unfold
-  InBucket.TypeAssumptions.ptr_InlinePage_unfold
-  InBucket.TypeAssumptions.ptr_RootPage_unfold
-  InBucket.TypeAssumptions.ptr_SetInSequence_unfold
-  InBucket.TypeAssumptions.ptr_SetRootPage_unfold
-  InBucket.TypeAssumptions.ptr_String_unfold
+  InBucket.TypeAssumptions.ptr_unfold'InSequence
+  InBucket.TypeAssumptions.ptr_unfold'IncSequence
+  InBucket.TypeAssumptions.ptr_unfold'InlinePage
+  InBucket.TypeAssumptions.ptr_unfold'RootPage
+  InBucket.TypeAssumptions.ptr_unfold'SetInSequence
+  InBucket.TypeAssumptions.ptr_unfold'SetRootPage
+  InBucket.TypeAssumptions.ptr_unfold'String
 
 structure Inode [GooseExts] where
   mk ::
@@ -3090,7 +3090,7 @@ noncomputable instance Inode.zero_val [GooseExts] : ZeroVal Inode :=
 @[irreducible] noncomputable def Inode.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Inode.fieldsUnsealed
 
-noncomputable instance equals_unfold_Inode [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Inode [GooseExts] [GoGlobalContext] :
     EqualsUnfold Inode.fields Inode.fieldsUnsealed :=
   ⟨by unfold Inode.fields; rfl⟩
 
@@ -3100,45 +3100,45 @@ noncomputable instance equals_unfold_Inode [GooseExts] [GoGlobalContext] :
 class Inode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Inode.underlying Inode
   underlying : go.UnderlyingDirectedEq Inode.ty Inode.underlying
-  get_flags : ∀ (x : Inode), go.IsGoStepPureDetTagged under (StructFieldGet Inode.underlying go!"flags") #x (Val #(x.flags'))
-  set_flags : ∀ (x : Inode) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Inode.underlying go!"flags") (PairV #x #y) (Val #(({ x with flags' := y } : Inode)))
-  get_pgid : ∀ (x : Inode), go.IsGoStepPureDetTagged under (StructFieldGet Inode.underlying go!"pgid") #x (Val #(x.pgid'))
-  set_pgid : ∀ (x : Inode) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet Inode.underlying go!"pgid") (PairV #x #y) (Val #(({ x with pgid' := y } : Inode)))
-  get_key : ∀ (x : Inode), go.IsGoStepPureDetTagged under (StructFieldGet Inode.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : Inode) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Inode.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : Inode)))
-  get_value : ∀ (x : Inode), go.IsGoStepPureDetTagged under (StructFieldGet Inode.underlying go!"value") #x (Val #(x.value'))
-  set_value : ∀ (x : Inode) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Inode.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : Inode)))
+  get'flags : ∀ (x : Inode), go.IsGoStepPureDetTagged under (StructFieldGet Inode.underlying go!"flags") #x (Val #(x.flags'))
+  set'flags : ∀ (x : Inode) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Inode.underlying go!"flags") (PairV #x #y) (Val #(({ x with flags' := y } : Inode)))
+  get'pgid : ∀ (x : Inode), go.IsGoStepPureDetTagged under (StructFieldGet Inode.underlying go!"pgid") #x (Val #(x.pgid'))
+  set'pgid : ∀ (x : Inode) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet Inode.underlying go!"pgid") (PairV #x #y) (Val #(({ x with pgid' := y } : Inode)))
+  get'key : ∀ (x : Inode), go.IsGoStepPureDetTagged under (StructFieldGet Inode.underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : Inode) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Inode.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : Inode)))
+  get'value : ∀ (x : Inode), go.IsGoStepPureDetTagged under (StructFieldGet Inode.underlying go!"value") #x (Val #(x.value'))
+  set'value : ∀ (x : Inode) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Inode.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : Inode)))
   method_set : go.MethodSetIs Inode.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Inode.ty) [(go!"Flags", (some (go.signature.Signature [] false [go.uint32]))), (go!"Key", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Pgid", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"SetFlags", (some (go.signature.Signature [go.uint32] false []))), (go!"SetKey", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"SetPgid", (some (go.signature.Signature [Pgid.ty] false []))), (go!"SetValue", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"Value", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)])))]
-  ptr_Flags_unfold : MethodUnfold (go.GoType.PointerType Inode.ty) go!"Flags" Inode.Flags.impl
-  ptr_Key_unfold : MethodUnfold (go.GoType.PointerType Inode.ty) go!"Key" Inode.Key.impl
-  ptr_Pgid_unfold : MethodUnfold (go.GoType.PointerType Inode.ty) go!"Pgid" Inode.Pgid.impl
-  ptr_SetFlags_unfold : MethodUnfold (go.GoType.PointerType Inode.ty) go!"SetFlags" Inode.SetFlags.impl
-  ptr_SetKey_unfold : MethodUnfold (go.GoType.PointerType Inode.ty) go!"SetKey" Inode.SetKey.impl
-  ptr_SetPgid_unfold : MethodUnfold (go.GoType.PointerType Inode.ty) go!"SetPgid" Inode.SetPgid.impl
-  ptr_SetValue_unfold : MethodUnfold (go.GoType.PointerType Inode.ty) go!"SetValue" Inode.SetValue.impl
-  ptr_Value_unfold : MethodUnfold (go.GoType.PointerType Inode.ty) go!"Value" Inode.Value.impl
+  ptr_unfold'Flags : MethodUnfold (go.GoType.PointerType Inode.ty) go!"Flags" Inode.Flags.impl
+  ptr_unfold'Key : MethodUnfold (go.GoType.PointerType Inode.ty) go!"Key" Inode.Key.impl
+  ptr_unfold'Pgid : MethodUnfold (go.GoType.PointerType Inode.ty) go!"Pgid" Inode.Pgid.impl
+  ptr_unfold'SetFlags : MethodUnfold (go.GoType.PointerType Inode.ty) go!"SetFlags" Inode.SetFlags.impl
+  ptr_unfold'SetKey : MethodUnfold (go.GoType.PointerType Inode.ty) go!"SetKey" Inode.SetKey.impl
+  ptr_unfold'SetPgid : MethodUnfold (go.GoType.PointerType Inode.ty) go!"SetPgid" Inode.SetPgid.impl
+  ptr_unfold'SetValue : MethodUnfold (go.GoType.PointerType Inode.ty) go!"SetValue" Inode.SetValue.impl
+  ptr_unfold'Value : MethodUnfold (go.GoType.PointerType Inode.ty) go!"Value" Inode.Value.impl
 
 attribute [instance] Inode.TypeAssumptions.type_repr
   Inode.TypeAssumptions.underlying
-  Inode.TypeAssumptions.get_flags
-  Inode.TypeAssumptions.set_flags
-  Inode.TypeAssumptions.get_pgid
-  Inode.TypeAssumptions.set_pgid
-  Inode.TypeAssumptions.get_key
-  Inode.TypeAssumptions.set_key
-  Inode.TypeAssumptions.get_value
-  Inode.TypeAssumptions.set_value
+  Inode.TypeAssumptions.get'flags
+  Inode.TypeAssumptions.set'flags
+  Inode.TypeAssumptions.get'pgid
+  Inode.TypeAssumptions.set'pgid
+  Inode.TypeAssumptions.get'key
+  Inode.TypeAssumptions.set'key
+  Inode.TypeAssumptions.get'value
+  Inode.TypeAssumptions.set'value
   Inode.TypeAssumptions.method_set
   Inode.TypeAssumptions.ptr_method_set
-  Inode.TypeAssumptions.ptr_Flags_unfold
-  Inode.TypeAssumptions.ptr_Key_unfold
-  Inode.TypeAssumptions.ptr_Pgid_unfold
-  Inode.TypeAssumptions.ptr_SetFlags_unfold
-  Inode.TypeAssumptions.ptr_SetKey_unfold
-  Inode.TypeAssumptions.ptr_SetPgid_unfold
-  Inode.TypeAssumptions.ptr_SetValue_unfold
-  Inode.TypeAssumptions.ptr_Value_unfold
+  Inode.TypeAssumptions.ptr_unfold'Flags
+  Inode.TypeAssumptions.ptr_unfold'Key
+  Inode.TypeAssumptions.ptr_unfold'Pgid
+  Inode.TypeAssumptions.ptr_unfold'SetFlags
+  Inode.TypeAssumptions.ptr_unfold'SetKey
+  Inode.TypeAssumptions.ptr_unfold'SetPgid
+  Inode.TypeAssumptions.ptr_unfold'SetValue
+  Inode.TypeAssumptions.ptr_unfold'Value
 
 abbrev Inodes [GooseExts] : Type := GoSlice
 
@@ -3197,7 +3197,7 @@ noncomputable instance Meta.zero_val [GooseExts] : ZeroVal Meta :=
 @[irreducible] noncomputable def Meta.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Meta.fieldsUnsealed
 
-noncomputable instance equals_unfold_Meta [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Meta [GooseExts] [GoGlobalContext] :
     EqualsUnfold Meta.fields Meta.fieldsUnsealed :=
   ⟨by unfold Meta.fields; rfl⟩
 
@@ -3207,101 +3207,101 @@ noncomputable instance equals_unfold_Meta [GooseExts] [GoGlobalContext] :
 class Meta.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Meta.underlying Meta
   underlying : go.UnderlyingDirectedEq Meta.ty Meta.underlying
-  get_magic : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"magic") #x (Val #(x.magic'))
-  set_magic : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"magic") (PairV #x #y) (Val #(({ x with magic' := y } : Meta)))
-  get_version : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"version") #x (Val #(x.version'))
-  set_version : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"version") (PairV #x #y) (Val #(({ x with version' := y } : Meta)))
-  get_pageSize : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"pageSize") #x (Val #(x.pageSize'))
-  set_pageSize : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"pageSize") (PairV #x #y) (Val #(({ x with pageSize' := y } : Meta)))
-  get_flags : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"flags") #x (Val #(x.flags'))
-  set_flags : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"flags") (PairV #x #y) (Val #(({ x with flags' := y } : Meta)))
-  get_root : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"root") #x (Val #(x.root'))
-  set_root : ∀ (x : Meta) (y : InBucket), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : Meta)))
-  get_freelist : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"freelist") #x (Val #(x.freelist'))
-  set_freelist : ∀ (x : Meta) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"freelist") (PairV #x #y) (Val #(({ x with freelist' := y } : Meta)))
-  get_pgid : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"pgid") #x (Val #(x.pgid'))
-  set_pgid : ∀ (x : Meta) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"pgid") (PairV #x #y) (Val #(({ x with pgid' := y } : Meta)))
-  get_txid : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"txid") #x (Val #(x.txid'))
-  set_txid : ∀ (x : Meta) (y : Txid), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"txid") (PairV #x #y) (Val #(({ x with txid' := y } : Meta)))
-  get_checksum : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"checksum") #x (Val #(x.checksum'))
-  set_checksum : ∀ (x : Meta) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"checksum") (PairV #x #y) (Val #(({ x with checksum' := y } : Meta)))
+  get'magic : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"magic") #x (Val #(x.magic'))
+  set'magic : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"magic") (PairV #x #y) (Val #(({ x with magic' := y } : Meta)))
+  get'version : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"version") #x (Val #(x.version'))
+  set'version : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"version") (PairV #x #y) (Val #(({ x with version' := y } : Meta)))
+  get'pageSize : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"pageSize") #x (Val #(x.pageSize'))
+  set'pageSize : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"pageSize") (PairV #x #y) (Val #(({ x with pageSize' := y } : Meta)))
+  get'flags : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"flags") #x (Val #(x.flags'))
+  set'flags : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"flags") (PairV #x #y) (Val #(({ x with flags' := y } : Meta)))
+  get'root : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"root") #x (Val #(x.root'))
+  set'root : ∀ (x : Meta) (y : InBucket), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : Meta)))
+  get'freelist : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"freelist") #x (Val #(x.freelist'))
+  set'freelist : ∀ (x : Meta) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"freelist") (PairV #x #y) (Val #(({ x with freelist' := y } : Meta)))
+  get'pgid : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"pgid") #x (Val #(x.pgid'))
+  set'pgid : ∀ (x : Meta) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"pgid") (PairV #x #y) (Val #(({ x with pgid' := y } : Meta)))
+  get'txid : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"txid") #x (Val #(x.txid'))
+  set'txid : ∀ (x : Meta) (y : Txid), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"txid") (PairV #x #y) (Val #(({ x with txid' := y } : Meta)))
+  get'checksum : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"checksum") #x (Val #(x.checksum'))
+  set'checksum : ∀ (x : Meta) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"checksum") (PairV #x #y) (Val #(({ x with checksum' := y } : Meta)))
   method_set : go.MethodSetIs Meta.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Meta.ty) [(go!"Checksum", (some (go.signature.Signature [] false [go.uint64]))), (go!"Copy", (some (go.signature.Signature [(go.GoType.PointerType Meta.ty)] false []))), (go!"DecTxid", (some (go.signature.Signature [] false []))), (go!"Flags", (some (go.signature.Signature [] false [go.uint32]))), (go!"Freelist", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"IncTxid", (some (go.signature.Signature [] false []))), (go!"IsFreelistPersisted", (some (go.signature.Signature [] false [go.bool]))), (go!"Magic", (some (go.signature.Signature [] false [go.uint32]))), (go!"PageSize", (some (go.signature.Signature [] false [go.uint32]))), (go!"Pgid", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"Print", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"RootBucket", (some (go.signature.Signature [] false [(go.GoType.PointerType InBucket.ty)]))), (go!"SetChecksum", (some (go.signature.Signature [go.uint64] false []))), (go!"SetFlags", (some (go.signature.Signature [go.uint32] false []))), (go!"SetFreelist", (some (go.signature.Signature [Pgid.ty] false []))), (go!"SetMagic", (some (go.signature.Signature [go.uint32] false []))), (go!"SetPageSize", (some (go.signature.Signature [go.uint32] false []))), (go!"SetPgid", (some (go.signature.Signature [Pgid.ty] false []))), (go!"SetRootBucket", (some (go.signature.Signature [InBucket.ty] false []))), (go!"SetTxid", (some (go.signature.Signature [Txid.ty] false []))), (go!"SetVersion", (some (go.signature.Signature [go.uint32] false []))), (go!"Sum64", (some (go.signature.Signature [] false [go.uint64]))), (go!"Txid", (some (go.signature.Signature [] false [Txid.ty]))), (go!"Validate", (some (go.signature.Signature [] false [go.error]))), (go!"Version", (some (go.signature.Signature [] false [go.uint32]))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType Page.ty)] false [])))]
-  ptr_Checksum_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Checksum" Meta.Checksum.impl
-  ptr_Copy_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Copy" Meta.Copy.impl
-  ptr_DecTxid_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"DecTxid" Meta.DecTxid.impl
-  ptr_Flags_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Flags" Meta.Flags.impl
-  ptr_Freelist_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Freelist" Meta.Freelist.impl
-  ptr_IncTxid_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"IncTxid" Meta.IncTxid.impl
-  ptr_IsFreelistPersisted_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"IsFreelistPersisted" Meta.IsFreelistPersisted.impl
-  ptr_Magic_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Magic" Meta.Magic.impl
-  ptr_PageSize_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"PageSize" Meta.PageSize.impl
-  ptr_Pgid_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Pgid" Meta.Pgid.impl
-  ptr_Print_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Print" Meta.Print.impl
-  ptr_RootBucket_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"RootBucket" Meta.RootBucket.impl
-  ptr_SetChecksum_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetChecksum" Meta.SetChecksum.impl
-  ptr_SetFlags_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetFlags" Meta.SetFlags.impl
-  ptr_SetFreelist_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetFreelist" Meta.SetFreelist.impl
-  ptr_SetMagic_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetMagic" Meta.SetMagic.impl
-  ptr_SetPageSize_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetPageSize" Meta.SetPageSize.impl
-  ptr_SetPgid_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetPgid" Meta.SetPgid.impl
-  ptr_SetRootBucket_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetRootBucket" Meta.SetRootBucket.impl
-  ptr_SetTxid_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetTxid" Meta.SetTxid.impl
-  ptr_SetVersion_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetVersion" Meta.SetVersion.impl
-  ptr_Sum64_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Sum64" Meta.Sum64.impl
-  ptr_Txid_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Txid" Meta.Txid.impl
-  ptr_Validate_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Validate" Meta.Validate.impl
-  ptr_Version_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Version" Meta.Version.impl
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Write" Meta.Write.impl
+  ptr_unfold'Checksum : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Checksum" Meta.Checksum.impl
+  ptr_unfold'Copy : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Copy" Meta.Copy.impl
+  ptr_unfold'DecTxid : MethodUnfold (go.GoType.PointerType Meta.ty) go!"DecTxid" Meta.DecTxid.impl
+  ptr_unfold'Flags : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Flags" Meta.Flags.impl
+  ptr_unfold'Freelist : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Freelist" Meta.Freelist.impl
+  ptr_unfold'IncTxid : MethodUnfold (go.GoType.PointerType Meta.ty) go!"IncTxid" Meta.IncTxid.impl
+  ptr_unfold'IsFreelistPersisted : MethodUnfold (go.GoType.PointerType Meta.ty) go!"IsFreelistPersisted" Meta.IsFreelistPersisted.impl
+  ptr_unfold'Magic : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Magic" Meta.Magic.impl
+  ptr_unfold'PageSize : MethodUnfold (go.GoType.PointerType Meta.ty) go!"PageSize" Meta.PageSize.impl
+  ptr_unfold'Pgid : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Pgid" Meta.Pgid.impl
+  ptr_unfold'Print : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Print" Meta.Print.impl
+  ptr_unfold'RootBucket : MethodUnfold (go.GoType.PointerType Meta.ty) go!"RootBucket" Meta.RootBucket.impl
+  ptr_unfold'SetChecksum : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetChecksum" Meta.SetChecksum.impl
+  ptr_unfold'SetFlags : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetFlags" Meta.SetFlags.impl
+  ptr_unfold'SetFreelist : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetFreelist" Meta.SetFreelist.impl
+  ptr_unfold'SetMagic : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetMagic" Meta.SetMagic.impl
+  ptr_unfold'SetPageSize : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetPageSize" Meta.SetPageSize.impl
+  ptr_unfold'SetPgid : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetPgid" Meta.SetPgid.impl
+  ptr_unfold'SetRootBucket : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetRootBucket" Meta.SetRootBucket.impl
+  ptr_unfold'SetTxid : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetTxid" Meta.SetTxid.impl
+  ptr_unfold'SetVersion : MethodUnfold (go.GoType.PointerType Meta.ty) go!"SetVersion" Meta.SetVersion.impl
+  ptr_unfold'Sum64 : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Sum64" Meta.Sum64.impl
+  ptr_unfold'Txid : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Txid" Meta.Txid.impl
+  ptr_unfold'Validate : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Validate" Meta.Validate.impl
+  ptr_unfold'Version : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Version" Meta.Version.impl
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType Meta.ty) go!"Write" Meta.Write.impl
 
 attribute [instance] Meta.TypeAssumptions.type_repr
   Meta.TypeAssumptions.underlying
-  Meta.TypeAssumptions.get_magic
-  Meta.TypeAssumptions.set_magic
-  Meta.TypeAssumptions.get_version
-  Meta.TypeAssumptions.set_version
-  Meta.TypeAssumptions.get_pageSize
-  Meta.TypeAssumptions.set_pageSize
-  Meta.TypeAssumptions.get_flags
-  Meta.TypeAssumptions.set_flags
-  Meta.TypeAssumptions.get_root
-  Meta.TypeAssumptions.set_root
-  Meta.TypeAssumptions.get_freelist
-  Meta.TypeAssumptions.set_freelist
-  Meta.TypeAssumptions.get_pgid
-  Meta.TypeAssumptions.set_pgid
-  Meta.TypeAssumptions.get_txid
-  Meta.TypeAssumptions.set_txid
-  Meta.TypeAssumptions.get_checksum
-  Meta.TypeAssumptions.set_checksum
+  Meta.TypeAssumptions.get'magic
+  Meta.TypeAssumptions.set'magic
+  Meta.TypeAssumptions.get'version
+  Meta.TypeAssumptions.set'version
+  Meta.TypeAssumptions.get'pageSize
+  Meta.TypeAssumptions.set'pageSize
+  Meta.TypeAssumptions.get'flags
+  Meta.TypeAssumptions.set'flags
+  Meta.TypeAssumptions.get'root
+  Meta.TypeAssumptions.set'root
+  Meta.TypeAssumptions.get'freelist
+  Meta.TypeAssumptions.set'freelist
+  Meta.TypeAssumptions.get'pgid
+  Meta.TypeAssumptions.set'pgid
+  Meta.TypeAssumptions.get'txid
+  Meta.TypeAssumptions.set'txid
+  Meta.TypeAssumptions.get'checksum
+  Meta.TypeAssumptions.set'checksum
   Meta.TypeAssumptions.method_set
   Meta.TypeAssumptions.ptr_method_set
-  Meta.TypeAssumptions.ptr_Checksum_unfold
-  Meta.TypeAssumptions.ptr_Copy_unfold
-  Meta.TypeAssumptions.ptr_DecTxid_unfold
-  Meta.TypeAssumptions.ptr_Flags_unfold
-  Meta.TypeAssumptions.ptr_Freelist_unfold
-  Meta.TypeAssumptions.ptr_IncTxid_unfold
-  Meta.TypeAssumptions.ptr_IsFreelistPersisted_unfold
-  Meta.TypeAssumptions.ptr_Magic_unfold
-  Meta.TypeAssumptions.ptr_PageSize_unfold
-  Meta.TypeAssumptions.ptr_Pgid_unfold
-  Meta.TypeAssumptions.ptr_Print_unfold
-  Meta.TypeAssumptions.ptr_RootBucket_unfold
-  Meta.TypeAssumptions.ptr_SetChecksum_unfold
-  Meta.TypeAssumptions.ptr_SetFlags_unfold
-  Meta.TypeAssumptions.ptr_SetFreelist_unfold
-  Meta.TypeAssumptions.ptr_SetMagic_unfold
-  Meta.TypeAssumptions.ptr_SetPageSize_unfold
-  Meta.TypeAssumptions.ptr_SetPgid_unfold
-  Meta.TypeAssumptions.ptr_SetRootBucket_unfold
-  Meta.TypeAssumptions.ptr_SetTxid_unfold
-  Meta.TypeAssumptions.ptr_SetVersion_unfold
-  Meta.TypeAssumptions.ptr_Sum64_unfold
-  Meta.TypeAssumptions.ptr_Txid_unfold
-  Meta.TypeAssumptions.ptr_Validate_unfold
-  Meta.TypeAssumptions.ptr_Version_unfold
-  Meta.TypeAssumptions.ptr_Write_unfold
+  Meta.TypeAssumptions.ptr_unfold'Checksum
+  Meta.TypeAssumptions.ptr_unfold'Copy
+  Meta.TypeAssumptions.ptr_unfold'DecTxid
+  Meta.TypeAssumptions.ptr_unfold'Flags
+  Meta.TypeAssumptions.ptr_unfold'Freelist
+  Meta.TypeAssumptions.ptr_unfold'IncTxid
+  Meta.TypeAssumptions.ptr_unfold'IsFreelistPersisted
+  Meta.TypeAssumptions.ptr_unfold'Magic
+  Meta.TypeAssumptions.ptr_unfold'PageSize
+  Meta.TypeAssumptions.ptr_unfold'Pgid
+  Meta.TypeAssumptions.ptr_unfold'Print
+  Meta.TypeAssumptions.ptr_unfold'RootBucket
+  Meta.TypeAssumptions.ptr_unfold'SetChecksum
+  Meta.TypeAssumptions.ptr_unfold'SetFlags
+  Meta.TypeAssumptions.ptr_unfold'SetFreelist
+  Meta.TypeAssumptions.ptr_unfold'SetMagic
+  Meta.TypeAssumptions.ptr_unfold'SetPageSize
+  Meta.TypeAssumptions.ptr_unfold'SetPgid
+  Meta.TypeAssumptions.ptr_unfold'SetRootBucket
+  Meta.TypeAssumptions.ptr_unfold'SetTxid
+  Meta.TypeAssumptions.ptr_unfold'SetVersion
+  Meta.TypeAssumptions.ptr_unfold'Sum64
+  Meta.TypeAssumptions.ptr_unfold'Txid
+  Meta.TypeAssumptions.ptr_unfold'Validate
+  Meta.TypeAssumptions.ptr_unfold'Version
+  Meta.TypeAssumptions.ptr_unfold'Write
 
 structure Page [GooseExts] where
   mk ::
@@ -3322,7 +3322,7 @@ noncomputable instance Page.zero_val [GooseExts] : ZeroVal Page :=
 @[irreducible] noncomputable def Page.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Page.fieldsUnsealed
 
-noncomputable instance equals_unfold_Page [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Page [GooseExts] [GoGlobalContext] :
     EqualsUnfold Page.fields Page.fieldsUnsealed :=
   ⟨by unfold Page.fields; rfl⟩
 
@@ -3332,79 +3332,79 @@ noncomputable instance equals_unfold_Page [GooseExts] [GoGlobalContext] :
 class Page.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Page.underlying Page
   underlying : go.UnderlyingDirectedEq Page.ty Page.underlying
-  get_id : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : Page) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : Page)))
-  get_flags : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"flags") #x (Val #(x.flags'))
-  set_flags : ∀ (x : Page) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"flags") (PairV #x #y) (Val #(({ x with flags' := y } : Page)))
-  get_count : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"count") #x (Val #(x.count'))
-  set_count : ∀ (x : Page) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : Page)))
-  get_overflow : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"overflow") #x (Val #(x.overflow'))
-  set_overflow : ∀ (x : Page) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"overflow") (PairV #x #y) (Val #(({ x with overflow' := y } : Page)))
+  get'id : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : Page) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : Page)))
+  get'flags : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"flags") #x (Val #(x.flags'))
+  set'flags : ∀ (x : Page) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"flags") (PairV #x #y) (Val #(({ x with flags' := y } : Page)))
+  get'count : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"count") #x (Val #(x.count'))
+  set'count : ∀ (x : Page) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : Page)))
+  get'overflow : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"overflow") #x (Val #(x.overflow'))
+  set'overflow : ∀ (x : Page) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"overflow") (PairV #x #y) (Val #(({ x with overflow' := y } : Page)))
   method_set : go.MethodSetIs Page.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Page.ty) [(go!"BranchPageElement", (some (go.signature.Signature [go.uint16] false [(go.GoType.PointerType branchPageElement.ty)]))), (go!"BranchPageElements", (some (go.signature.Signature [] false [(go.GoType.SliceType branchPageElement.ty)]))), (go!"Count", (some (go.signature.Signature [] false [go.uint16]))), (go!"FastCheck", (some (go.signature.Signature [Pgid.ty] false []))), (go!"Flags", (some (go.signature.Signature [] false [go.uint16]))), (go!"FreelistPageCount", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"FreelistPageIds", (some (go.signature.Signature [] false [(go.GoType.SliceType Pgid.ty)]))), (go!"Id", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"IsBranchPage", (some (go.signature.Signature [] false [go.bool]))), (go!"IsFreelistPage", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLeafPage", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMetaPage", (some (go.signature.Signature [] false [go.bool]))), (go!"IsValidPage", (some (go.signature.Signature [] false [go.bool]))), (go!"LeafPageElement", (some (go.signature.Signature [go.uint16] false [(go.GoType.PointerType leafPageElement.ty)]))), (go!"LeafPageElements", (some (go.signature.Signature [] false [(go.GoType.SliceType leafPageElement.ty)]))), (go!"Meta", (some (go.signature.Signature [] false [(go.GoType.PointerType Meta.ty)]))), (go!"Overflow", (some (go.signature.Signature [] false [go.uint32]))), (go!"PageElementSize", (some (go.signature.Signature [] false [go.uintptr]))), (go!"SetCount", (some (go.signature.Signature [go.uint16] false []))), (go!"SetFlags", (some (go.signature.Signature [go.uint16] false []))), (go!"SetId", (some (go.signature.Signature [Pgid.ty] false []))), (go!"SetOverflow", (some (go.signature.Signature [go.uint32] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Typ", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/bbolt/internal/common.hexdump", (some (go.signature.Signature [go.int] false [])))]
-  ptr_BranchPageElement_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"BranchPageElement" Page.BranchPageElement.impl
-  ptr_BranchPageElements_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"BranchPageElements" Page.BranchPageElements.impl
-  ptr_Count_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"Count" Page.Count.impl
-  ptr_FastCheck_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"FastCheck" Page.FastCheck.impl
-  ptr_Flags_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"Flags" Page.Flags.impl
-  ptr_FreelistPageCount_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"FreelistPageCount" Page.FreelistPageCount.impl
-  ptr_FreelistPageIds_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"FreelistPageIds" Page.FreelistPageIds.impl
-  ptr_Id_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"Id" Page.Id.impl
-  ptr_IsBranchPage_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"IsBranchPage" Page.IsBranchPage.impl
-  ptr_IsFreelistPage_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"IsFreelistPage" Page.IsFreelistPage.impl
-  ptr_IsLeafPage_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"IsLeafPage" Page.IsLeafPage.impl
-  ptr_IsMetaPage_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"IsMetaPage" Page.IsMetaPage.impl
-  ptr_IsValidPage_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"IsValidPage" Page.IsValidPage.impl
-  ptr_LeafPageElement_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"LeafPageElement" Page.LeafPageElement.impl
-  ptr_LeafPageElements_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"LeafPageElements" Page.LeafPageElements.impl
-  ptr_Meta_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"Meta" Page.Meta.impl
-  ptr_Overflow_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"Overflow" Page.Overflow.impl
-  ptr_PageElementSize_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"PageElementSize" Page.PageElementSize.impl
-  ptr_SetCount_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"SetCount" Page.SetCount.impl
-  ptr_SetFlags_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"SetFlags" Page.SetFlags.impl
-  ptr_SetId_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"SetId" Page.SetId.impl
-  ptr_SetOverflow_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"SetOverflow" Page.SetOverflow.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"String" Page.String.impl
-  ptr_Typ_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"Typ" Page.Typ.impl
-  ptr_hexdump_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"hexdump" Page.hexdump.impl
+  ptr_unfold'BranchPageElement : MethodUnfold (go.GoType.PointerType Page.ty) go!"BranchPageElement" Page.BranchPageElement.impl
+  ptr_unfold'BranchPageElements : MethodUnfold (go.GoType.PointerType Page.ty) go!"BranchPageElements" Page.BranchPageElements.impl
+  ptr_unfold'Count : MethodUnfold (go.GoType.PointerType Page.ty) go!"Count" Page.Count.impl
+  ptr_unfold'FastCheck : MethodUnfold (go.GoType.PointerType Page.ty) go!"FastCheck" Page.FastCheck.impl
+  ptr_unfold'Flags : MethodUnfold (go.GoType.PointerType Page.ty) go!"Flags" Page.Flags.impl
+  ptr_unfold'FreelistPageCount : MethodUnfold (go.GoType.PointerType Page.ty) go!"FreelistPageCount" Page.FreelistPageCount.impl
+  ptr_unfold'FreelistPageIds : MethodUnfold (go.GoType.PointerType Page.ty) go!"FreelistPageIds" Page.FreelistPageIds.impl
+  ptr_unfold'Id : MethodUnfold (go.GoType.PointerType Page.ty) go!"Id" Page.Id.impl
+  ptr_unfold'IsBranchPage : MethodUnfold (go.GoType.PointerType Page.ty) go!"IsBranchPage" Page.IsBranchPage.impl
+  ptr_unfold'IsFreelistPage : MethodUnfold (go.GoType.PointerType Page.ty) go!"IsFreelistPage" Page.IsFreelistPage.impl
+  ptr_unfold'IsLeafPage : MethodUnfold (go.GoType.PointerType Page.ty) go!"IsLeafPage" Page.IsLeafPage.impl
+  ptr_unfold'IsMetaPage : MethodUnfold (go.GoType.PointerType Page.ty) go!"IsMetaPage" Page.IsMetaPage.impl
+  ptr_unfold'IsValidPage : MethodUnfold (go.GoType.PointerType Page.ty) go!"IsValidPage" Page.IsValidPage.impl
+  ptr_unfold'LeafPageElement : MethodUnfold (go.GoType.PointerType Page.ty) go!"LeafPageElement" Page.LeafPageElement.impl
+  ptr_unfold'LeafPageElements : MethodUnfold (go.GoType.PointerType Page.ty) go!"LeafPageElements" Page.LeafPageElements.impl
+  ptr_unfold'Meta : MethodUnfold (go.GoType.PointerType Page.ty) go!"Meta" Page.Meta.impl
+  ptr_unfold'Overflow : MethodUnfold (go.GoType.PointerType Page.ty) go!"Overflow" Page.Overflow.impl
+  ptr_unfold'PageElementSize : MethodUnfold (go.GoType.PointerType Page.ty) go!"PageElementSize" Page.PageElementSize.impl
+  ptr_unfold'SetCount : MethodUnfold (go.GoType.PointerType Page.ty) go!"SetCount" Page.SetCount.impl
+  ptr_unfold'SetFlags : MethodUnfold (go.GoType.PointerType Page.ty) go!"SetFlags" Page.SetFlags.impl
+  ptr_unfold'SetId : MethodUnfold (go.GoType.PointerType Page.ty) go!"SetId" Page.SetId.impl
+  ptr_unfold'SetOverflow : MethodUnfold (go.GoType.PointerType Page.ty) go!"SetOverflow" Page.SetOverflow.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType Page.ty) go!"String" Page.String.impl
+  ptr_unfold'Typ : MethodUnfold (go.GoType.PointerType Page.ty) go!"Typ" Page.Typ.impl
+  ptr_unfold'hexdump : MethodUnfold (go.GoType.PointerType Page.ty) go!"hexdump" Page.hexdump.impl
 
 attribute [instance] Page.TypeAssumptions.type_repr
   Page.TypeAssumptions.underlying
-  Page.TypeAssumptions.get_id
-  Page.TypeAssumptions.set_id
-  Page.TypeAssumptions.get_flags
-  Page.TypeAssumptions.set_flags
-  Page.TypeAssumptions.get_count
-  Page.TypeAssumptions.set_count
-  Page.TypeAssumptions.get_overflow
-  Page.TypeAssumptions.set_overflow
+  Page.TypeAssumptions.get'id
+  Page.TypeAssumptions.set'id
+  Page.TypeAssumptions.get'flags
+  Page.TypeAssumptions.set'flags
+  Page.TypeAssumptions.get'count
+  Page.TypeAssumptions.set'count
+  Page.TypeAssumptions.get'overflow
+  Page.TypeAssumptions.set'overflow
   Page.TypeAssumptions.method_set
   Page.TypeAssumptions.ptr_method_set
-  Page.TypeAssumptions.ptr_BranchPageElement_unfold
-  Page.TypeAssumptions.ptr_BranchPageElements_unfold
-  Page.TypeAssumptions.ptr_Count_unfold
-  Page.TypeAssumptions.ptr_FastCheck_unfold
-  Page.TypeAssumptions.ptr_Flags_unfold
-  Page.TypeAssumptions.ptr_FreelistPageCount_unfold
-  Page.TypeAssumptions.ptr_FreelistPageIds_unfold
-  Page.TypeAssumptions.ptr_Id_unfold
-  Page.TypeAssumptions.ptr_IsBranchPage_unfold
-  Page.TypeAssumptions.ptr_IsFreelistPage_unfold
-  Page.TypeAssumptions.ptr_IsLeafPage_unfold
-  Page.TypeAssumptions.ptr_IsMetaPage_unfold
-  Page.TypeAssumptions.ptr_IsValidPage_unfold
-  Page.TypeAssumptions.ptr_LeafPageElement_unfold
-  Page.TypeAssumptions.ptr_LeafPageElements_unfold
-  Page.TypeAssumptions.ptr_Meta_unfold
-  Page.TypeAssumptions.ptr_Overflow_unfold
-  Page.TypeAssumptions.ptr_PageElementSize_unfold
-  Page.TypeAssumptions.ptr_SetCount_unfold
-  Page.TypeAssumptions.ptr_SetFlags_unfold
-  Page.TypeAssumptions.ptr_SetId_unfold
-  Page.TypeAssumptions.ptr_SetOverflow_unfold
-  Page.TypeAssumptions.ptr_String_unfold
-  Page.TypeAssumptions.ptr_Typ_unfold
-  Page.TypeAssumptions.ptr_hexdump_unfold
+  Page.TypeAssumptions.ptr_unfold'BranchPageElement
+  Page.TypeAssumptions.ptr_unfold'BranchPageElements
+  Page.TypeAssumptions.ptr_unfold'Count
+  Page.TypeAssumptions.ptr_unfold'FastCheck
+  Page.TypeAssumptions.ptr_unfold'Flags
+  Page.TypeAssumptions.ptr_unfold'FreelistPageCount
+  Page.TypeAssumptions.ptr_unfold'FreelistPageIds
+  Page.TypeAssumptions.ptr_unfold'Id
+  Page.TypeAssumptions.ptr_unfold'IsBranchPage
+  Page.TypeAssumptions.ptr_unfold'IsFreelistPage
+  Page.TypeAssumptions.ptr_unfold'IsLeafPage
+  Page.TypeAssumptions.ptr_unfold'IsMetaPage
+  Page.TypeAssumptions.ptr_unfold'IsValidPage
+  Page.TypeAssumptions.ptr_unfold'LeafPageElement
+  Page.TypeAssumptions.ptr_unfold'LeafPageElements
+  Page.TypeAssumptions.ptr_unfold'Meta
+  Page.TypeAssumptions.ptr_unfold'Overflow
+  Page.TypeAssumptions.ptr_unfold'PageElementSize
+  Page.TypeAssumptions.ptr_unfold'SetCount
+  Page.TypeAssumptions.ptr_unfold'SetFlags
+  Page.TypeAssumptions.ptr_unfold'SetId
+  Page.TypeAssumptions.ptr_unfold'SetOverflow
+  Page.TypeAssumptions.ptr_unfold'String
+  Page.TypeAssumptions.ptr_unfold'Typ
+  Page.TypeAssumptions.ptr_unfold'hexdump
 
 abbrev Pages [GooseExts] : Type := GoSlice
 
@@ -3415,25 +3415,25 @@ class Pages.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   underlying : go.UnderlyingDirectedEq Pages.ty Pages.underlying
   method_set : go.MethodSetIs Pages.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Pages.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold Pages.ty go!"Len" Pages.Len.impl
-  Less_unfold : MethodUnfold Pages.ty go!"Less" Pages.Less.impl
-  Swap_unfold : MethodUnfold Pages.ty go!"Swap" Pages.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType Pages.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold Pages.ty go!"Len" Pages.Len.impl
+  unfold'Less : MethodUnfold Pages.ty go!"Less" Pages.Less.impl
+  unfold'Swap : MethodUnfold Pages.ty go!"Swap" Pages.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType Pages.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Pages.ty go!"Len"))) (App (Val (GoInstruction (GoLoad Pages.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType Pages.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType Pages.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Pages.ty go!"Less"))) (App (Val (GoInstruction (GoLoad Pages.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType Pages.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType Pages.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Pages.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad Pages.ty))) (Var "$r"))))
 
 attribute [instance] Pages.TypeAssumptions.underlying
   Pages.TypeAssumptions.method_set
   Pages.TypeAssumptions.ptr_method_set
-  Pages.TypeAssumptions.Len_unfold
-  Pages.TypeAssumptions.Less_unfold
-  Pages.TypeAssumptions.Swap_unfold
-  Pages.TypeAssumptions.ptr_Len_unfold
-  Pages.TypeAssumptions.ptr_Less_unfold
-  Pages.TypeAssumptions.ptr_Swap_unfold
+  Pages.TypeAssumptions.unfold'Len
+  Pages.TypeAssumptions.unfold'Less
+  Pages.TypeAssumptions.unfold'Swap
+  Pages.TypeAssumptions.ptr_unfold'Len
+  Pages.TypeAssumptions.ptr_unfold'Less
+  Pages.TypeAssumptions.ptr_unfold'Swap
 
 structure branchPageElement [GooseExts] where
   mk ::
@@ -3452,7 +3452,7 @@ noncomputable instance branchPageElement.zero_val [GooseExts] : ZeroVal branchPa
 @[irreducible] noncomputable def branchPageElement.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   branchPageElement.fieldsUnsealed
 
-noncomputable instance equals_unfold_branchPageElement [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'branchPageElement [GooseExts] [GoGlobalContext] :
     EqualsUnfold branchPageElement.fields branchPageElement.fieldsUnsealed :=
   ⟨by unfold branchPageElement.fields; rfl⟩
 
@@ -3462,39 +3462,39 @@ noncomputable instance equals_unfold_branchPageElement [GooseExts] [GoGlobalCont
 class branchPageElement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying branchPageElement.underlying branchPageElement
   underlying : go.UnderlyingDirectedEq branchPageElement.ty branchPageElement.underlying
-  get_pos : ∀ (x : branchPageElement), go.IsGoStepPureDetTagged under (StructFieldGet branchPageElement.underlying go!"pos") #x (Val #(x.pos'))
-  set_pos : ∀ (x : branchPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet branchPageElement.underlying go!"pos") (PairV #x #y) (Val #(({ x with pos' := y } : branchPageElement)))
-  get_ksize : ∀ (x : branchPageElement), go.IsGoStepPureDetTagged under (StructFieldGet branchPageElement.underlying go!"ksize") #x (Val #(x.ksize'))
-  set_ksize : ∀ (x : branchPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet branchPageElement.underlying go!"ksize") (PairV #x #y) (Val #(({ x with ksize' := y } : branchPageElement)))
-  get_pgid : ∀ (x : branchPageElement), go.IsGoStepPureDetTagged under (StructFieldGet branchPageElement.underlying go!"pgid") #x (Val #(x.pgid'))
-  set_pgid : ∀ (x : branchPageElement) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet branchPageElement.underlying go!"pgid") (PairV #x #y) (Val #(({ x with pgid' := y } : branchPageElement)))
+  get'pos : ∀ (x : branchPageElement), go.IsGoStepPureDetTagged under (StructFieldGet branchPageElement.underlying go!"pos") #x (Val #(x.pos'))
+  set'pos : ∀ (x : branchPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet branchPageElement.underlying go!"pos") (PairV #x #y) (Val #(({ x with pos' := y } : branchPageElement)))
+  get'ksize : ∀ (x : branchPageElement), go.IsGoStepPureDetTagged under (StructFieldGet branchPageElement.underlying go!"ksize") #x (Val #(x.ksize'))
+  set'ksize : ∀ (x : branchPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet branchPageElement.underlying go!"ksize") (PairV #x #y) (Val #(({ x with ksize' := y } : branchPageElement)))
+  get'pgid : ∀ (x : branchPageElement), go.IsGoStepPureDetTagged under (StructFieldGet branchPageElement.underlying go!"pgid") #x (Val #(x.pgid'))
+  set'pgid : ∀ (x : branchPageElement) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet branchPageElement.underlying go!"pgid") (PairV #x #y) (Val #(({ x with pgid' := y } : branchPageElement)))
   method_set : go.MethodSetIs branchPageElement.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType branchPageElement.ty) [(go!"Key", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Ksize", (some (go.signature.Signature [] false [go.uint32]))), (go!"Pgid", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"Pos", (some (go.signature.Signature [] false [go.uint32]))), (go!"SetKsize", (some (go.signature.Signature [go.uint32] false []))), (go!"SetPgid", (some (go.signature.Signature [Pgid.ty] false []))), (go!"SetPos", (some (go.signature.Signature [go.uint32] false [])))]
-  ptr_Key_unfold : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"Key" branchPageElement.Key.impl
-  ptr_Ksize_unfold : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"Ksize" branchPageElement.Ksize.impl
-  ptr_Pgid_unfold : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"Pgid" branchPageElement.Pgid.impl
-  ptr_Pos_unfold : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"Pos" branchPageElement.Pos.impl
-  ptr_SetKsize_unfold : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"SetKsize" branchPageElement.SetKsize.impl
-  ptr_SetPgid_unfold : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"SetPgid" branchPageElement.SetPgid.impl
-  ptr_SetPos_unfold : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"SetPos" branchPageElement.SetPos.impl
+  ptr_unfold'Key : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"Key" branchPageElement.Key.impl
+  ptr_unfold'Ksize : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"Ksize" branchPageElement.Ksize.impl
+  ptr_unfold'Pgid : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"Pgid" branchPageElement.Pgid.impl
+  ptr_unfold'Pos : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"Pos" branchPageElement.Pos.impl
+  ptr_unfold'SetKsize : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"SetKsize" branchPageElement.SetKsize.impl
+  ptr_unfold'SetPgid : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"SetPgid" branchPageElement.SetPgid.impl
+  ptr_unfold'SetPos : MethodUnfold (go.GoType.PointerType branchPageElement.ty) go!"SetPos" branchPageElement.SetPos.impl
 
 attribute [instance] branchPageElement.TypeAssumptions.type_repr
   branchPageElement.TypeAssumptions.underlying
-  branchPageElement.TypeAssumptions.get_pos
-  branchPageElement.TypeAssumptions.set_pos
-  branchPageElement.TypeAssumptions.get_ksize
-  branchPageElement.TypeAssumptions.set_ksize
-  branchPageElement.TypeAssumptions.get_pgid
-  branchPageElement.TypeAssumptions.set_pgid
+  branchPageElement.TypeAssumptions.get'pos
+  branchPageElement.TypeAssumptions.set'pos
+  branchPageElement.TypeAssumptions.get'ksize
+  branchPageElement.TypeAssumptions.set'ksize
+  branchPageElement.TypeAssumptions.get'pgid
+  branchPageElement.TypeAssumptions.set'pgid
   branchPageElement.TypeAssumptions.method_set
   branchPageElement.TypeAssumptions.ptr_method_set
-  branchPageElement.TypeAssumptions.ptr_Key_unfold
-  branchPageElement.TypeAssumptions.ptr_Ksize_unfold
-  branchPageElement.TypeAssumptions.ptr_Pgid_unfold
-  branchPageElement.TypeAssumptions.ptr_Pos_unfold
-  branchPageElement.TypeAssumptions.ptr_SetKsize_unfold
-  branchPageElement.TypeAssumptions.ptr_SetPgid_unfold
-  branchPageElement.TypeAssumptions.ptr_SetPos_unfold
+  branchPageElement.TypeAssumptions.ptr_unfold'Key
+  branchPageElement.TypeAssumptions.ptr_unfold'Ksize
+  branchPageElement.TypeAssumptions.ptr_unfold'Pgid
+  branchPageElement.TypeAssumptions.ptr_unfold'Pos
+  branchPageElement.TypeAssumptions.ptr_unfold'SetKsize
+  branchPageElement.TypeAssumptions.ptr_unfold'SetPgid
+  branchPageElement.TypeAssumptions.ptr_unfold'SetPos
 
 structure leafPageElement [GooseExts] where
   mk ::
@@ -3515,7 +3515,7 @@ noncomputable instance leafPageElement.zero_val [GooseExts] : ZeroVal leafPageEl
 @[irreducible] noncomputable def leafPageElement.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   leafPageElement.fieldsUnsealed
 
-noncomputable instance equals_unfold_leafPageElement [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'leafPageElement [GooseExts] [GoGlobalContext] :
     EqualsUnfold leafPageElement.fields leafPageElement.fieldsUnsealed :=
   ⟨by unfold leafPageElement.fields; rfl⟩
 
@@ -3525,53 +3525,53 @@ noncomputable instance equals_unfold_leafPageElement [GooseExts] [GoGlobalContex
 class leafPageElement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying leafPageElement.underlying leafPageElement
   underlying : go.UnderlyingDirectedEq leafPageElement.ty leafPageElement.underlying
-  get_flags : ∀ (x : leafPageElement), go.IsGoStepPureDetTagged under (StructFieldGet leafPageElement.underlying go!"flags") #x (Val #(x.flags'))
-  set_flags : ∀ (x : leafPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet leafPageElement.underlying go!"flags") (PairV #x #y) (Val #(({ x with flags' := y } : leafPageElement)))
-  get_pos : ∀ (x : leafPageElement), go.IsGoStepPureDetTagged under (StructFieldGet leafPageElement.underlying go!"pos") #x (Val #(x.pos'))
-  set_pos : ∀ (x : leafPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet leafPageElement.underlying go!"pos") (PairV #x #y) (Val #(({ x with pos' := y } : leafPageElement)))
-  get_ksize : ∀ (x : leafPageElement), go.IsGoStepPureDetTagged under (StructFieldGet leafPageElement.underlying go!"ksize") #x (Val #(x.ksize'))
-  set_ksize : ∀ (x : leafPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet leafPageElement.underlying go!"ksize") (PairV #x #y) (Val #(({ x with ksize' := y } : leafPageElement)))
-  get_vsize : ∀ (x : leafPageElement), go.IsGoStepPureDetTagged under (StructFieldGet leafPageElement.underlying go!"vsize") #x (Val #(x.vsize'))
-  set_vsize : ∀ (x : leafPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet leafPageElement.underlying go!"vsize") (PairV #x #y) (Val #(({ x with vsize' := y } : leafPageElement)))
+  get'flags : ∀ (x : leafPageElement), go.IsGoStepPureDetTagged under (StructFieldGet leafPageElement.underlying go!"flags") #x (Val #(x.flags'))
+  set'flags : ∀ (x : leafPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet leafPageElement.underlying go!"flags") (PairV #x #y) (Val #(({ x with flags' := y } : leafPageElement)))
+  get'pos : ∀ (x : leafPageElement), go.IsGoStepPureDetTagged under (StructFieldGet leafPageElement.underlying go!"pos") #x (Val #(x.pos'))
+  set'pos : ∀ (x : leafPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet leafPageElement.underlying go!"pos") (PairV #x #y) (Val #(({ x with pos' := y } : leafPageElement)))
+  get'ksize : ∀ (x : leafPageElement), go.IsGoStepPureDetTagged under (StructFieldGet leafPageElement.underlying go!"ksize") #x (Val #(x.ksize'))
+  set'ksize : ∀ (x : leafPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet leafPageElement.underlying go!"ksize") (PairV #x #y) (Val #(({ x with ksize' := y } : leafPageElement)))
+  get'vsize : ∀ (x : leafPageElement), go.IsGoStepPureDetTagged under (StructFieldGet leafPageElement.underlying go!"vsize") #x (Val #(x.vsize'))
+  set'vsize : ∀ (x : leafPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet leafPageElement.underlying go!"vsize") (PairV #x #y) (Val #(({ x with vsize' := y } : leafPageElement)))
   method_set : go.MethodSetIs leafPageElement.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType leafPageElement.ty) [(go!"Bucket", (some (go.signature.Signature [] false [(go.GoType.PointerType InBucket.ty)]))), (go!"Flags", (some (go.signature.Signature [] false [go.uint32]))), (go!"IsBucketEntry", (some (go.signature.Signature [] false [go.bool]))), (go!"Key", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Ksize", (some (go.signature.Signature [] false [go.uint32]))), (go!"Pos", (some (go.signature.Signature [] false [go.uint32]))), (go!"SetFlags", (some (go.signature.Signature [go.uint32] false []))), (go!"SetKsize", (some (go.signature.Signature [go.uint32] false []))), (go!"SetPos", (some (go.signature.Signature [go.uint32] false []))), (go!"SetVsize", (some (go.signature.Signature [go.uint32] false []))), (go!"Value", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Vsize", (some (go.signature.Signature [] false [go.uint32])))]
-  ptr_Bucket_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Bucket" leafPageElement.Bucket.impl
-  ptr_Flags_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Flags" leafPageElement.Flags.impl
-  ptr_IsBucketEntry_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"IsBucketEntry" leafPageElement.IsBucketEntry.impl
-  ptr_Key_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Key" leafPageElement.Key.impl
-  ptr_Ksize_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Ksize" leafPageElement.Ksize.impl
-  ptr_Pos_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Pos" leafPageElement.Pos.impl
-  ptr_SetFlags_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"SetFlags" leafPageElement.SetFlags.impl
-  ptr_SetKsize_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"SetKsize" leafPageElement.SetKsize.impl
-  ptr_SetPos_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"SetPos" leafPageElement.SetPos.impl
-  ptr_SetVsize_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"SetVsize" leafPageElement.SetVsize.impl
-  ptr_Value_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Value" leafPageElement.Value.impl
-  ptr_Vsize_unfold : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Vsize" leafPageElement.Vsize.impl
+  ptr_unfold'Bucket : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Bucket" leafPageElement.Bucket.impl
+  ptr_unfold'Flags : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Flags" leafPageElement.Flags.impl
+  ptr_unfold'IsBucketEntry : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"IsBucketEntry" leafPageElement.IsBucketEntry.impl
+  ptr_unfold'Key : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Key" leafPageElement.Key.impl
+  ptr_unfold'Ksize : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Ksize" leafPageElement.Ksize.impl
+  ptr_unfold'Pos : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Pos" leafPageElement.Pos.impl
+  ptr_unfold'SetFlags : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"SetFlags" leafPageElement.SetFlags.impl
+  ptr_unfold'SetKsize : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"SetKsize" leafPageElement.SetKsize.impl
+  ptr_unfold'SetPos : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"SetPos" leafPageElement.SetPos.impl
+  ptr_unfold'SetVsize : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"SetVsize" leafPageElement.SetVsize.impl
+  ptr_unfold'Value : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Value" leafPageElement.Value.impl
+  ptr_unfold'Vsize : MethodUnfold (go.GoType.PointerType leafPageElement.ty) go!"Vsize" leafPageElement.Vsize.impl
 
 attribute [instance] leafPageElement.TypeAssumptions.type_repr
   leafPageElement.TypeAssumptions.underlying
-  leafPageElement.TypeAssumptions.get_flags
-  leafPageElement.TypeAssumptions.set_flags
-  leafPageElement.TypeAssumptions.get_pos
-  leafPageElement.TypeAssumptions.set_pos
-  leafPageElement.TypeAssumptions.get_ksize
-  leafPageElement.TypeAssumptions.set_ksize
-  leafPageElement.TypeAssumptions.get_vsize
-  leafPageElement.TypeAssumptions.set_vsize
+  leafPageElement.TypeAssumptions.get'flags
+  leafPageElement.TypeAssumptions.set'flags
+  leafPageElement.TypeAssumptions.get'pos
+  leafPageElement.TypeAssumptions.set'pos
+  leafPageElement.TypeAssumptions.get'ksize
+  leafPageElement.TypeAssumptions.set'ksize
+  leafPageElement.TypeAssumptions.get'vsize
+  leafPageElement.TypeAssumptions.set'vsize
   leafPageElement.TypeAssumptions.method_set
   leafPageElement.TypeAssumptions.ptr_method_set
-  leafPageElement.TypeAssumptions.ptr_Bucket_unfold
-  leafPageElement.TypeAssumptions.ptr_Flags_unfold
-  leafPageElement.TypeAssumptions.ptr_IsBucketEntry_unfold
-  leafPageElement.TypeAssumptions.ptr_Key_unfold
-  leafPageElement.TypeAssumptions.ptr_Ksize_unfold
-  leafPageElement.TypeAssumptions.ptr_Pos_unfold
-  leafPageElement.TypeAssumptions.ptr_SetFlags_unfold
-  leafPageElement.TypeAssumptions.ptr_SetKsize_unfold
-  leafPageElement.TypeAssumptions.ptr_SetPos_unfold
-  leafPageElement.TypeAssumptions.ptr_SetVsize_unfold
-  leafPageElement.TypeAssumptions.ptr_Value_unfold
-  leafPageElement.TypeAssumptions.ptr_Vsize_unfold
+  leafPageElement.TypeAssumptions.ptr_unfold'Bucket
+  leafPageElement.TypeAssumptions.ptr_unfold'Flags
+  leafPageElement.TypeAssumptions.ptr_unfold'IsBucketEntry
+  leafPageElement.TypeAssumptions.ptr_unfold'Key
+  leafPageElement.TypeAssumptions.ptr_unfold'Ksize
+  leafPageElement.TypeAssumptions.ptr_unfold'Pos
+  leafPageElement.TypeAssumptions.ptr_unfold'SetFlags
+  leafPageElement.TypeAssumptions.ptr_unfold'SetKsize
+  leafPageElement.TypeAssumptions.ptr_unfold'SetPos
+  leafPageElement.TypeAssumptions.ptr_unfold'SetVsize
+  leafPageElement.TypeAssumptions.ptr_unfold'Value
+  leafPageElement.TypeAssumptions.ptr_unfold'Vsize
 
 structure PageInfo [GooseExts] where
   mk ::
@@ -3592,7 +3592,7 @@ noncomputable instance PageInfo.zero_val [GooseExts] : ZeroVal PageInfo :=
 @[irreducible] noncomputable def PageInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PageInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_PageInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PageInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold PageInfo.fields PageInfo.fieldsUnsealed :=
   ⟨by unfold PageInfo.fields; rfl⟩
 
@@ -3602,27 +3602,27 @@ noncomputable instance equals_unfold_PageInfo [GooseExts] [GoGlobalContext] :
 class PageInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PageInfo.underlying PageInfo
   underlying : go.UnderlyingDirectedEq PageInfo.ty PageInfo.underlying
-  get_ID : ∀ (x : PageInfo), go.IsGoStepPureDetTagged under (StructFieldGet PageInfo.underlying go!"ID") #x (Val #(x.ID'))
-  set_ID : ∀ (x : PageInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageInfo.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : PageInfo)))
-  get_Type : ∀ (x : PageInfo), go.IsGoStepPureDetTagged under (StructFieldGet PageInfo.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : PageInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PageInfo.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : PageInfo)))
-  get_Count : ∀ (x : PageInfo), go.IsGoStepPureDetTagged under (StructFieldGet PageInfo.underlying go!"Count") #x (Val #(x.Count'))
-  set_Count : ∀ (x : PageInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageInfo.underlying go!"Count") (PairV #x #y) (Val #(({ x with Count' := y } : PageInfo)))
-  get_OverflowCount : ∀ (x : PageInfo), go.IsGoStepPureDetTagged under (StructFieldGet PageInfo.underlying go!"OverflowCount") #x (Val #(x.OverflowCount'))
-  set_OverflowCount : ∀ (x : PageInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageInfo.underlying go!"OverflowCount") (PairV #x #y) (Val #(({ x with OverflowCount' := y } : PageInfo)))
+  get'ID : ∀ (x : PageInfo), go.IsGoStepPureDetTagged under (StructFieldGet PageInfo.underlying go!"ID") #x (Val #(x.ID'))
+  set'ID : ∀ (x : PageInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageInfo.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : PageInfo)))
+  get'Type : ∀ (x : PageInfo), go.IsGoStepPureDetTagged under (StructFieldGet PageInfo.underlying go!"Type") #x (Val #(x.Type'))
+  set'Type : ∀ (x : PageInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PageInfo.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : PageInfo)))
+  get'Count : ∀ (x : PageInfo), go.IsGoStepPureDetTagged under (StructFieldGet PageInfo.underlying go!"Count") #x (Val #(x.Count'))
+  set'Count : ∀ (x : PageInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageInfo.underlying go!"Count") (PairV #x #y) (Val #(({ x with Count' := y } : PageInfo)))
+  get'OverflowCount : ∀ (x : PageInfo), go.IsGoStepPureDetTagged under (StructFieldGet PageInfo.underlying go!"OverflowCount") #x (Val #(x.OverflowCount'))
+  set'OverflowCount : ∀ (x : PageInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageInfo.underlying go!"OverflowCount") (PairV #x #y) (Val #(({ x with OverflowCount' := y } : PageInfo)))
   method_set : go.MethodSetIs PageInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PageInfo.ty) []
 
 attribute [instance] PageInfo.TypeAssumptions.type_repr
   PageInfo.TypeAssumptions.underlying
-  PageInfo.TypeAssumptions.get_ID
-  PageInfo.TypeAssumptions.set_ID
-  PageInfo.TypeAssumptions.get_Type
-  PageInfo.TypeAssumptions.set_Type
-  PageInfo.TypeAssumptions.get_Count
-  PageInfo.TypeAssumptions.set_Count
-  PageInfo.TypeAssumptions.get_OverflowCount
-  PageInfo.TypeAssumptions.set_OverflowCount
+  PageInfo.TypeAssumptions.get'ID
+  PageInfo.TypeAssumptions.set'ID
+  PageInfo.TypeAssumptions.get'Type
+  PageInfo.TypeAssumptions.set'Type
+  PageInfo.TypeAssumptions.get'Count
+  PageInfo.TypeAssumptions.set'Count
+  PageInfo.TypeAssumptions.get'OverflowCount
+  PageInfo.TypeAssumptions.set'OverflowCount
   PageInfo.TypeAssumptions.method_set
   PageInfo.TypeAssumptions.ptr_method_set
 
@@ -3635,30 +3635,30 @@ class Pgids.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   underlying : go.UnderlyingDirectedEq Pgids.ty Pgids.underlying
   method_set : go.MethodSetIs Pgids.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Merge", (some (go.signature.Signature [Pgids.ty] false [Pgids.ty]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Pgids.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Merge", (some (go.signature.Signature [Pgids.ty] false [Pgids.ty]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold Pgids.ty go!"Len" Pgids.Len.impl
-  Less_unfold : MethodUnfold Pgids.ty go!"Less" Pgids.Less.impl
-  Merge_unfold : MethodUnfold Pgids.ty go!"Merge" Pgids.Merge.impl
-  Swap_unfold : MethodUnfold Pgids.ty go!"Swap" Pgids.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType Pgids.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold Pgids.ty go!"Len" Pgids.Len.impl
+  unfold'Less : MethodUnfold Pgids.ty go!"Less" Pgids.Less.impl
+  unfold'Merge : MethodUnfold Pgids.ty go!"Merge" Pgids.Merge.impl
+  unfold'Swap : MethodUnfold Pgids.ty go!"Swap" Pgids.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType Pgids.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Pgids.ty go!"Len"))) (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType Pgids.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType Pgids.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Pgids.ty go!"Less"))) (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "$r"))))
-  ptr_Merge_unfold : MethodUnfold (go.GoType.PointerType Pgids.ty) go!"Merge" (LamV "$r"
+  ptr_unfold'Merge : MethodUnfold (go.GoType.PointerType Pgids.ty) go!"Merge" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Pgids.ty go!"Merge"))) (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType Pgids.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType Pgids.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Pgids.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "$r"))))
 
 attribute [instance] Pgids.TypeAssumptions.underlying
   Pgids.TypeAssumptions.method_set
   Pgids.TypeAssumptions.ptr_method_set
-  Pgids.TypeAssumptions.Len_unfold
-  Pgids.TypeAssumptions.Less_unfold
-  Pgids.TypeAssumptions.Merge_unfold
-  Pgids.TypeAssumptions.Swap_unfold
-  Pgids.TypeAssumptions.ptr_Len_unfold
-  Pgids.TypeAssumptions.ptr_Less_unfold
-  Pgids.TypeAssumptions.ptr_Merge_unfold
-  Pgids.TypeAssumptions.ptr_Swap_unfold
+  Pgids.TypeAssumptions.unfold'Len
+  Pgids.TypeAssumptions.unfold'Less
+  Pgids.TypeAssumptions.unfold'Merge
+  Pgids.TypeAssumptions.unfold'Swap
+  Pgids.TypeAssumptions.ptr_unfold'Len
+  Pgids.TypeAssumptions.ptr_unfold'Less
+  Pgids.TypeAssumptions.ptr_unfold'Merge
+  Pgids.TypeAssumptions.ptr_unfold'Swap
 
 abbrev VerificationType [GooseExts] : Type := GoString
 
@@ -3675,95 +3675,95 @@ attribute [instance] VerificationType.TypeAssumptions.underlying
   VerificationType.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  InBucket_instance : InBucket.TypeAssumptions
-  Inode_instance : Inode.TypeAssumptions
-  Inodes_instance : Inodes.TypeAssumptions
-  Meta_instance : Meta.TypeAssumptions
-  Pgid_instance : Pgid.TypeAssumptions
-  Page_instance : Page.TypeAssumptions
-  Pages_instance : Pages.TypeAssumptions
-  branchPageElement_instance : branchPageElement.TypeAssumptions
-  leafPageElement_instance : leafPageElement.TypeAssumptions
-  PageInfo_instance : PageInfo.TypeAssumptions
-  Pgids_instance : Pgids.TypeAssumptions
-  Txid_instance : Txid.TypeAssumptions
-  VerificationType_instance : VerificationType.TypeAssumptions
-  NewInBucket_unfold : FuncUnfold NewInBucket [] NewInBucket.impl
-  ReadInodeFromPage_unfold : FuncUnfold ReadInodeFromPage [] ReadInodeFromPage.impl
-  WriteInodeToPage_unfold : FuncUnfold WriteInodeToPage [] WriteInodeToPage.impl
-  UsedSpaceInPage_unfold : FuncUnfold UsedSpaceInPage [] UsedSpaceInPage.impl
-  NewPage_unfold : FuncUnfold NewPage [] NewPage.impl
-  NewLeafPageElement_unfold : FuncUnfold NewLeafPageElement [] NewLeafPageElement.impl
-  Mergepgids_unfold : FuncUnfold Mergepgids [] Mergepgids.impl
-  UnsafeAdd_unfold : FuncUnfold UnsafeAdd [] UnsafeAdd.impl
-  UnsafeIndex_unfold : FuncUnfold UnsafeIndex [] UnsafeIndex.impl
-  UnsafeByteSlice_unfold : FuncUnfold UnsafeByteSlice [] UnsafeByteSlice.impl
-  LoadBucket_unfold : FuncUnfold LoadBucket [] LoadBucket.impl
-  LoadPage_unfold : FuncUnfold LoadPage [] LoadPage.impl
-  LoadPageMeta_unfold : FuncUnfold LoadPageMeta [] LoadPageMeta.impl
-  CopyFile_unfold : FuncUnfold CopyFile [] CopyFile.impl
-  getEnvVerify_unfold : FuncUnfold getEnvVerify [] getEnvVerify.impl
-  IsVerificationEnabled_unfold : FuncUnfold IsVerificationEnabled [] IsVerificationEnabled.impl
-  EnableVerifications_unfold : FuncUnfold EnableVerifications [] EnableVerifications.impl
-  EnableAllVerifications_unfold : FuncUnfold EnableAllVerifications [] EnableAllVerifications.impl
-  DisableVerifications_unfold : FuncUnfold DisableVerifications [] DisableVerifications.impl
-  Verify_unfold : FuncUnfold Verify [] Verify.impl
-  Assert_unfold : FuncUnfold Assert [] Assert.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_unsafe_Assumption : _root_.Perennial.«unsafe».Assumptions
-  import_fnv_Assumption : _root_.Perennial.hash.fnv.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_errors_Assumption : _root_.Perennial.go_etcd_io.bbolt.errors.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_sort_Assumption : _root_.Perennial.sort.Assumptions
-  import_runtime_Assumption : _root_.Perennial.runtime.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
+  instance'InBucket : InBucket.TypeAssumptions
+  instance'Inode : Inode.TypeAssumptions
+  instance'Inodes : Inodes.TypeAssumptions
+  instance'Meta : Meta.TypeAssumptions
+  instance'Pgid : Pgid.TypeAssumptions
+  instance'Page : Page.TypeAssumptions
+  instance'Pages : Pages.TypeAssumptions
+  instance'branchPageElement : branchPageElement.TypeAssumptions
+  instance'leafPageElement : leafPageElement.TypeAssumptions
+  instance'PageInfo : PageInfo.TypeAssumptions
+  instance'Pgids : Pgids.TypeAssumptions
+  instance'Txid : Txid.TypeAssumptions
+  instance'VerificationType : VerificationType.TypeAssumptions
+  unfold'NewInBucket : FuncUnfold NewInBucket [] NewInBucket.impl
+  unfold'ReadInodeFromPage : FuncUnfold ReadInodeFromPage [] ReadInodeFromPage.impl
+  unfold'WriteInodeToPage : FuncUnfold WriteInodeToPage [] WriteInodeToPage.impl
+  unfold'UsedSpaceInPage : FuncUnfold UsedSpaceInPage [] UsedSpaceInPage.impl
+  unfold'NewPage : FuncUnfold NewPage [] NewPage.impl
+  unfold'NewLeafPageElement : FuncUnfold NewLeafPageElement [] NewLeafPageElement.impl
+  unfold'Mergepgids : FuncUnfold Mergepgids [] Mergepgids.impl
+  unfold'UnsafeAdd : FuncUnfold UnsafeAdd [] UnsafeAdd.impl
+  unfold'UnsafeIndex : FuncUnfold UnsafeIndex [] UnsafeIndex.impl
+  unfold'UnsafeByteSlice : FuncUnfold UnsafeByteSlice [] UnsafeByteSlice.impl
+  unfold'LoadBucket : FuncUnfold LoadBucket [] LoadBucket.impl
+  unfold'LoadPage : FuncUnfold LoadPage [] LoadPage.impl
+  unfold'LoadPageMeta : FuncUnfold LoadPageMeta [] LoadPageMeta.impl
+  unfold'CopyFile : FuncUnfold CopyFile [] CopyFile.impl
+  unfold'getEnvVerify : FuncUnfold getEnvVerify [] getEnvVerify.impl
+  unfold'IsVerificationEnabled : FuncUnfold IsVerificationEnabled [] IsVerificationEnabled.impl
+  unfold'EnableVerifications : FuncUnfold EnableVerifications [] EnableVerifications.impl
+  unfold'EnableAllVerifications : FuncUnfold EnableAllVerifications [] EnableAllVerifications.impl
+  unfold'DisableVerifications : FuncUnfold DisableVerifications [] DisableVerifications.impl
+  unfold'Verify : FuncUnfold Verify [] Verify.impl
+  unfold'Assert : FuncUnfold Assert [] Assert.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'unsafe : _root_.Perennial.«unsafe».Assumptions
+  import'fnv : _root_.Perennial.hash.fnv.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'errors : _root_.Perennial.go_etcd_io.bbolt.errors.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'sort : _root_.Perennial.sort.Assumptions
+  import'runtime : _root_.Perennial.runtime.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
 
-attribute [instance] Assumptions.InBucket_instance
-  Assumptions.Inode_instance
-  Assumptions.Inodes_instance
-  Assumptions.Meta_instance
-  Assumptions.Pgid_instance
-  Assumptions.Page_instance
-  Assumptions.Pages_instance
-  Assumptions.branchPageElement_instance
-  Assumptions.leafPageElement_instance
-  Assumptions.PageInfo_instance
-  Assumptions.Pgids_instance
-  Assumptions.Txid_instance
-  Assumptions.VerificationType_instance
-  Assumptions.NewInBucket_unfold
-  Assumptions.ReadInodeFromPage_unfold
-  Assumptions.WriteInodeToPage_unfold
-  Assumptions.UsedSpaceInPage_unfold
-  Assumptions.NewPage_unfold
-  Assumptions.NewLeafPageElement_unfold
-  Assumptions.Mergepgids_unfold
-  Assumptions.UnsafeAdd_unfold
-  Assumptions.UnsafeIndex_unfold
-  Assumptions.UnsafeByteSlice_unfold
-  Assumptions.LoadBucket_unfold
-  Assumptions.LoadPage_unfold
-  Assumptions.LoadPageMeta_unfold
-  Assumptions.CopyFile_unfold
-  Assumptions.getEnvVerify_unfold
-  Assumptions.IsVerificationEnabled_unfold
-  Assumptions.EnableVerifications_unfold
-  Assumptions.EnableAllVerifications_unfold
-  Assumptions.DisableVerifications_unfold
-  Assumptions.Verify_unfold
-  Assumptions.Assert_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_unsafe_Assumption
-  Assumptions.import_fnv_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_sort_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_strings_Assumption
+attribute [instance] Assumptions.instance'InBucket
+  Assumptions.instance'Inode
+  Assumptions.instance'Inodes
+  Assumptions.instance'Meta
+  Assumptions.instance'Pgid
+  Assumptions.instance'Page
+  Assumptions.instance'Pages
+  Assumptions.instance'branchPageElement
+  Assumptions.instance'leafPageElement
+  Assumptions.instance'PageInfo
+  Assumptions.instance'Pgids
+  Assumptions.instance'Txid
+  Assumptions.instance'VerificationType
+  Assumptions.unfold'NewInBucket
+  Assumptions.unfold'ReadInodeFromPage
+  Assumptions.unfold'WriteInodeToPage
+  Assumptions.unfold'UsedSpaceInPage
+  Assumptions.unfold'NewPage
+  Assumptions.unfold'NewLeafPageElement
+  Assumptions.unfold'Mergepgids
+  Assumptions.unfold'UnsafeAdd
+  Assumptions.unfold'UnsafeIndex
+  Assumptions.unfold'UnsafeByteSlice
+  Assumptions.unfold'LoadBucket
+  Assumptions.unfold'LoadPage
+  Assumptions.unfold'LoadPageMeta
+  Assumptions.unfold'CopyFile
+  Assumptions.unfold'getEnvVerify
+  Assumptions.unfold'IsVerificationEnabled
+  Assumptions.unfold'EnableVerifications
+  Assumptions.unfold'EnableAllVerifications
+  Assumptions.unfold'DisableVerifications
+  Assumptions.unfold'Verify
+  Assumptions.unfold'Assert
+  Assumptions.import'fmt
+  Assumptions.import'unsafe
+  Assumptions.import'fnv
+  Assumptions.import'io
+  Assumptions.import'errors
+  Assumptions.import'os
+  Assumptions.import'sort
+  Assumptions.import'runtime
+  Assumptions.import'time
+  Assumptions.import'strings
 
 end go_etcd_io.bbolt.internal.common
 

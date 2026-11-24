@@ -1042,30 +1042,30 @@ noncomputable def expectDuration.impl [GooseExts] [GoGlobalContext] : val :=
   (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
 
 /-- go: config.go:318:6 -/
-noncomputable def expect.impl [GooseExts] [GoGlobalContext] (R : go.GoType) : val :=
+noncomputable def expect.impl [GooseExts] [GoGlobalContext] (R₀ : go.GoType) : val :=
   (LamV "ws"
   (Lam "f"
   (Lam "none"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc R))) (App (Val (GoInstruction (GoZeroVal R))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc R₀))) (App (Val (GoInstruction (GoZeroVal R₀))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "none" (App (Val (GoInstruction (GoAlloc R))) (Var "none"))
-  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.string] false [R, go.error]))))) (Var "f"))
+  (Let "none" (App (Val (GoInstruction (GoAlloc R₀))) (Var "none"))
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.string] false [R₀, go.error]))))) (Var "f"))
   (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "ws"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "ws")) (Val #(W64 1)))))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.string] false [R, go.error]))))) (Var "f")) (Var "$a0")))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.string] false [R₀, go.error]))))) (Var "f")) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "i" (App (Val (GoInstruction (GoAlloc R))) (App (Val (GoInstruction (GoZeroVal R))) (Val #())))
+  (Let "i" (App (Val (GoInstruction (GoAlloc R₀))) (App (Val (GoInstruction (GoZeroVal R₀))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad R))) (Var "i"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad R₀))) (Var "i"))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1074,9 +1074,9 @@ noncomputable def expect.impl [GooseExts] [GoGlobalContext] (R : go.GoType) : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore R))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore R₀))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad R))) (Var "i"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad R₀))) (Var "i"))
   (Let "$r1" (App (Val (GoInstruction (Convert (go.GoType.PointerType Error.ty) go.error))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "ws")) (Val #(W64 0)))))
   (Let "$a1" (Val #(go!"Invalid argument"))
   (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
@@ -1089,18 +1089,18 @@ noncomputable def expect.impl [GooseExts] [GoGlobalContext] (R : go.GoType) : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore R))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore R₀))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore R))) (Pair (Var "i") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore R₀))) (Pair (Var "i") (Var "$r0"))))))))))))))
   (If (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "ws"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 2)))) (Val #true) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "ws")) (Val #(W64 1)))))
   (Let "$a1" (Val #(go!"//"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.HasPrefix []))) (Val #())) (Var "$a0")) (Var "$a1")))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad R))) (Var "none"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad R₀))) (Var "none"))
   (Let "$r1" (App (Val (GoInstruction (Convert (go.GoType.PointerType Error.ty) go.error))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "ws")) (Val #(W64 0)))))
   (Let "$a1" (Val #(go!"Missing argument"))
   (Let "$a2" (Val #slice.nil)
@@ -1112,12 +1112,12 @@ noncomputable def expect.impl [GooseExts] [GoGlobalContext] (R : go.GoType) : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore R))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore R₀))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "ws")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.string)))) (Val UntypedNil)))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "ws"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad R))) (Var "none"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad R₀))) (Var "none"))
   (Let "$r1" (App (Val (GoInstruction (Convert (go.GoType.PointerType Error.ty) go.error))) (Let "$a0" (Val #(go!""))
   (Let "$a1" (Val #(go!"Missing field"))
   (Let "$a2" (Val #slice.nil)
@@ -1129,10 +1129,10 @@ noncomputable def expect.impl [GooseExts] [GoGlobalContext] (R : go.GoType) : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore R))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore R₀))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))))
-  (Pair (App (Val (GoInstruction (GoLoad R))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+  (Pair (App (Val (GoInstruction (GoLoad R₀))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
 /-- go: proxy.go:19:6 -/
 noncomputable def ReadProxyInfo.impl [GooseExts] [GoGlobalContext] : val :=
@@ -1603,7 +1603,7 @@ noncomputable instance Error.zero_val [GooseExts] : ZeroVal Error :=
 @[irreducible] noncomputable def Error.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Error.fieldsUnsealed
 
-noncomputable instance equals_unfold_Error [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Error [GooseExts] [GoGlobalContext] :
     EqualsUnfold Error.fields Error.fieldsUnsealed :=
   ⟨by unfold Error.fields; rfl⟩
 
@@ -1613,27 +1613,27 @@ noncomputable instance equals_unfold_Error [GooseExts] [GoGlobalContext] :
 class Error.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Error.underlying Error
   underlying : go.UnderlyingDirectedEq Error.ty Error.underlying
-  get_errs : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"errs") #x (Val #(x.errs'))
-  set_errs : ∀ (x : Error) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"errs") (PairV #x #y) (Val #(({ x with errs' := y } : Error)))
-  get_field : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"field") #x (Val #(x.field'))
-  set_field : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"field") (PairV #x #y) (Val #(({ x with field' := y } : Error)))
-  get_comment : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"comment") #x (Val #(x.comment'))
-  set_comment : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"comment") (PairV #x #y) (Val #(({ x with comment' := y } : Error)))
+  get'errs : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"errs") #x (Val #(x.errs'))
+  set'errs : ∀ (x : Error) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"errs") (PairV #x #y) (Val #(({ x with errs' := y } : Error)))
+  get'field : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"field") #x (Val #(x.field'))
+  set'field : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"field") (PairV #x #y) (Val #(({ x with field' := y } : Error)))
+  get'comment : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"comment") #x (Val #(x.comment'))
+  set'comment : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"comment") (PairV #x #y) (Val #(({ x with comment' := y } : Error)))
   method_set : go.MethodSetIs Error.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Error.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType Error.ty) go!"Error" Error.Error.impl
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType Error.ty) go!"Error" Error.Error.impl
 
 attribute [instance] Error.TypeAssumptions.type_repr
   Error.TypeAssumptions.underlying
-  Error.TypeAssumptions.get_errs
-  Error.TypeAssumptions.set_errs
-  Error.TypeAssumptions.get_field
-  Error.TypeAssumptions.set_field
-  Error.TypeAssumptions.get_comment
-  Error.TypeAssumptions.set_comment
+  Error.TypeAssumptions.get'errs
+  Error.TypeAssumptions.set'errs
+  Error.TypeAssumptions.get'field
+  Error.TypeAssumptions.set'field
+  Error.TypeAssumptions.get'comment
+  Error.TypeAssumptions.set'comment
   Error.TypeAssumptions.method_set
   Error.TypeAssumptions.ptr_method_set
-  Error.TypeAssumptions.ptr_Error_unfold
+  Error.TypeAssumptions.ptr_unfold'Error
 
 abbrev Machine [GooseExts] : Type := w64
 
@@ -1716,7 +1716,7 @@ noncomputable instance Config.zero_val [GooseExts] : ZeroVal Config :=
 @[irreducible] noncomputable def Config.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Config.fieldsUnsealed
 
-noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Config [GooseExts] [GoGlobalContext] :
     EqualsUnfold Config.fields Config.fieldsUnsealed :=
   ⟨by unfold Config.fields; rfl⟩
 
@@ -1726,129 +1726,129 @@ noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
 class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
-  get_Protocol : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Protocol") #x (Val #(x.Protocol'))
-  set_Protocol : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Protocol") (PairV #x #y) (Val #(({ x with Protocol' := y } : Config)))
-  get_Alias : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Alias") #x (Val #(x.Alias'))
-  set_Alias : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Alias") (PairV #x #y) (Val #(({ x with Alias' := y } : Config)))
-  get_MachineType : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"MachineType") #x (Val #(x.MachineType'))
-  set_MachineType : ∀ (x : Config) (y : Machine), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"MachineType") (PairV #x #y) (Val #(({ x with MachineType' := y } : Config)))
-  get_Port : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Port") #x (Val #(x.Port'))
-  set_Port : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Port") (PairV #x #y) (Val #(({ x with Port' := y } : Config)))
-  get_ClientAddrs : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ClientAddrs") #x (Val #(x.ClientAddrs'))
-  set_ClientAddrs : ∀ (x : Config) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ClientAddrs") (PairV #x #y) (Val #(({ x with ClientAddrs' := y } : Config)))
-  get_ReplicaAddrs : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ReplicaAddrs") #x (Val #(x.ReplicaAddrs'))
-  set_ReplicaAddrs : ∀ (x : Config) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ReplicaAddrs") (PairV #x #y) (Val #(({ x with ReplicaAddrs' := y } : Config)))
-  get_MasterAlias : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"MasterAlias") #x (Val #(x.MasterAlias'))
-  set_MasterAlias : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"MasterAlias") (PairV #x #y) (Val #(({ x with MasterAlias' := y } : Config)))
-  get_MasterPort : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"MasterPort") #x (Val #(x.MasterPort'))
-  set_MasterPort : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"MasterPort") (PairV #x #y) (Val #(({ x with MasterPort' := y } : Config)))
-  get_MasterAddr : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"MasterAddr") #x (Val #(x.MasterAddr'))
-  set_MasterAddr : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"MasterAddr") (PairV #x #y) (Val #(({ x with MasterAddr' := y } : Config)))
-  get_Noop : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Noop") #x (Val #(x.Noop'))
-  set_Noop : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Noop") (PairV #x #y) (Val #(({ x with Noop' := y } : Config)))
-  get_Thrifty : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Thrifty") #x (Val #(x.Thrifty'))
-  set_Thrifty : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Thrifty") (PairV #x #y) (Val #(({ x with Thrifty' := y } : Config)))
-  get_Optread : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Optread") #x (Val #(x.Optread'))
-  set_Optread : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Optread") (PairV #x #y) (Val #(({ x with Optread' := y } : Config)))
-  get_Leaderless : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Leaderless") #x (Val #(x.Leaderless'))
-  set_Leaderless : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Leaderless") (PairV #x #y) (Val #(({ x with Leaderless' := y } : Config)))
-  get_Fast : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Fast") #x (Val #(x.Fast'))
-  set_Fast : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Fast") (PairV #x #y) (Val #(({ x with Fast' := y } : Config)))
-  get_Leader : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Leader") #x (Val #(x.Leader'))
-  set_Leader : ∀ (x : Config) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Leader") (PairV #x #y) (Val #(({ x with Leader' := y } : Config)))
-  get_Reqs : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Reqs") #x (Val #(x.Reqs'))
-  set_Reqs : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Reqs") (PairV #x #y) (Val #(({ x with Reqs' := y } : Config)))
-  get_RunTime : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"RunTime") #x (Val #(x.RunTime'))
-  set_RunTime : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"RunTime") (PairV #x #y) (Val #(({ x with RunTime' := y } : Config)))
-  get_Writes : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Writes") #x (Val #(x.Writes'))
-  set_Writes : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Writes") (PairV #x #y) (Val #(({ x with Writes' := y } : Config)))
-  get_Conflicts : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Conflicts") #x (Val #(x.Conflicts'))
-  set_Conflicts : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Conflicts") (PairV #x #y) (Val #(({ x with Conflicts' := y } : Config)))
-  get_CommandSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"CommandSize") #x (Val #(x.CommandSize'))
-  set_CommandSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"CommandSize") (PairV #x #y) (Val #(({ x with CommandSize' := y } : Config)))
-  get_Clones : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Clones") #x (Val #(x.Clones'))
-  set_Clones : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Clones") (PairV #x #y) (Val #(({ x with Clones' := y } : Config)))
-  get_WaitClosest : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"WaitClosest") #x (Val #(x.WaitClosest'))
-  set_WaitClosest : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"WaitClosest") (PairV #x #y) (Val #(({ x with WaitClosest' := y } : Config)))
-  get_Pipeline : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Pipeline") #x (Val #(x.Pipeline'))
-  set_Pipeline : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Pipeline") (PairV #x #y) (Val #(({ x with Pipeline' := y } : Config)))
-  get_Syncs : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Syncs") #x (Val #(x.Syncs'))
-  set_Syncs : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Syncs") (PairV #x #y) (Val #(({ x with Syncs' := y } : Config)))
-  get_Pendings : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Pendings") #x (Val #(x.Pendings'))
-  set_Pendings : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Pendings") (PairV #x #y) (Val #(({ x with Pendings' := y } : Config)))
-  get_Key : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Config)))
-  get_Quorum : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Quorum") #x (Val #(x.Quorum'))
-  set_Quorum : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Quorum") (PairV #x #y) (Val #(({ x with Quorum' := y } : Config)))
-  get_Proxy : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Proxy") #x (Val #(x.Proxy'))
-  set_Proxy : ∀ (x : Config) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Proxy") (PairV #x #y) (Val #(({ x with Proxy' := y } : Config)))
+  get'Protocol : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Protocol") #x (Val #(x.Protocol'))
+  set'Protocol : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Protocol") (PairV #x #y) (Val #(({ x with Protocol' := y } : Config)))
+  get'Alias : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Alias") #x (Val #(x.Alias'))
+  set'Alias : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Alias") (PairV #x #y) (Val #(({ x with Alias' := y } : Config)))
+  get'MachineType : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"MachineType") #x (Val #(x.MachineType'))
+  set'MachineType : ∀ (x : Config) (y : Machine), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"MachineType") (PairV #x #y) (Val #(({ x with MachineType' := y } : Config)))
+  get'Port : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Port") #x (Val #(x.Port'))
+  set'Port : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Port") (PairV #x #y) (Val #(({ x with Port' := y } : Config)))
+  get'ClientAddrs : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ClientAddrs") #x (Val #(x.ClientAddrs'))
+  set'ClientAddrs : ∀ (x : Config) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ClientAddrs") (PairV #x #y) (Val #(({ x with ClientAddrs' := y } : Config)))
+  get'ReplicaAddrs : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ReplicaAddrs") #x (Val #(x.ReplicaAddrs'))
+  set'ReplicaAddrs : ∀ (x : Config) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ReplicaAddrs") (PairV #x #y) (Val #(({ x with ReplicaAddrs' := y } : Config)))
+  get'MasterAlias : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"MasterAlias") #x (Val #(x.MasterAlias'))
+  set'MasterAlias : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"MasterAlias") (PairV #x #y) (Val #(({ x with MasterAlias' := y } : Config)))
+  get'MasterPort : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"MasterPort") #x (Val #(x.MasterPort'))
+  set'MasterPort : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"MasterPort") (PairV #x #y) (Val #(({ x with MasterPort' := y } : Config)))
+  get'MasterAddr : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"MasterAddr") #x (Val #(x.MasterAddr'))
+  set'MasterAddr : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"MasterAddr") (PairV #x #y) (Val #(({ x with MasterAddr' := y } : Config)))
+  get'Noop : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Noop") #x (Val #(x.Noop'))
+  set'Noop : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Noop") (PairV #x #y) (Val #(({ x with Noop' := y } : Config)))
+  get'Thrifty : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Thrifty") #x (Val #(x.Thrifty'))
+  set'Thrifty : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Thrifty") (PairV #x #y) (Val #(({ x with Thrifty' := y } : Config)))
+  get'Optread : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Optread") #x (Val #(x.Optread'))
+  set'Optread : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Optread") (PairV #x #y) (Val #(({ x with Optread' := y } : Config)))
+  get'Leaderless : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Leaderless") #x (Val #(x.Leaderless'))
+  set'Leaderless : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Leaderless") (PairV #x #y) (Val #(({ x with Leaderless' := y } : Config)))
+  get'Fast : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Fast") #x (Val #(x.Fast'))
+  set'Fast : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Fast") (PairV #x #y) (Val #(({ x with Fast' := y } : Config)))
+  get'Leader : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Leader") #x (Val #(x.Leader'))
+  set'Leader : ∀ (x : Config) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Leader") (PairV #x #y) (Val #(({ x with Leader' := y } : Config)))
+  get'Reqs : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Reqs") #x (Val #(x.Reqs'))
+  set'Reqs : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Reqs") (PairV #x #y) (Val #(({ x with Reqs' := y } : Config)))
+  get'RunTime : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"RunTime") #x (Val #(x.RunTime'))
+  set'RunTime : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"RunTime") (PairV #x #y) (Val #(({ x with RunTime' := y } : Config)))
+  get'Writes : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Writes") #x (Val #(x.Writes'))
+  set'Writes : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Writes") (PairV #x #y) (Val #(({ x with Writes' := y } : Config)))
+  get'Conflicts : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Conflicts") #x (Val #(x.Conflicts'))
+  set'Conflicts : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Conflicts") (PairV #x #y) (Val #(({ x with Conflicts' := y } : Config)))
+  get'CommandSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"CommandSize") #x (Val #(x.CommandSize'))
+  set'CommandSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"CommandSize") (PairV #x #y) (Val #(({ x with CommandSize' := y } : Config)))
+  get'Clones : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Clones") #x (Val #(x.Clones'))
+  set'Clones : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Clones") (PairV #x #y) (Val #(({ x with Clones' := y } : Config)))
+  get'WaitClosest : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"WaitClosest") #x (Val #(x.WaitClosest'))
+  set'WaitClosest : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"WaitClosest") (PairV #x #y) (Val #(({ x with WaitClosest' := y } : Config)))
+  get'Pipeline : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Pipeline") #x (Val #(x.Pipeline'))
+  set'Pipeline : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Pipeline") (PairV #x #y) (Val #(({ x with Pipeline' := y } : Config)))
+  get'Syncs : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Syncs") #x (Val #(x.Syncs'))
+  set'Syncs : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Syncs") (PairV #x #y) (Val #(({ x with Syncs' := y } : Config)))
+  get'Pendings : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Pendings") #x (Val #(x.Pendings'))
+  set'Pendings : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Pendings") (PairV #x #y) (Val #(({ x with Pendings' := y } : Config)))
+  get'Key : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Config)))
+  get'Quorum : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Quorum") #x (Val #(x.Quorum'))
+  set'Quorum : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Quorum") (PairV #x #y) (Val #(({ x with Quorum' := y } : Config)))
+  get'Proxy : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Proxy") #x (Val #(x.Proxy'))
+  set'Proxy : ∀ (x : Config) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Proxy") (PairV #x #y) (Val #(({ x with Proxy' := y } : Config)))
   method_set : go.MethodSetIs Config.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) [(go!"MapClientToIP", (some (go.signature.Signature [go.string, go.string] false []))), (go!"MapReplicaToIP", (some (go.signature.Signature [go.string, go.string] false [])))]
-  ptr_MapClientToIP_unfold : MethodUnfold (go.GoType.PointerType Config.ty) go!"MapClientToIP" Config.MapClientToIP.impl
-  ptr_MapReplicaToIP_unfold : MethodUnfold (go.GoType.PointerType Config.ty) go!"MapReplicaToIP" Config.MapReplicaToIP.impl
+  ptr_unfold'MapClientToIP : MethodUnfold (go.GoType.PointerType Config.ty) go!"MapClientToIP" Config.MapClientToIP.impl
+  ptr_unfold'MapReplicaToIP : MethodUnfold (go.GoType.PointerType Config.ty) go!"MapReplicaToIP" Config.MapReplicaToIP.impl
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
-  Config.TypeAssumptions.get_Protocol
-  Config.TypeAssumptions.set_Protocol
-  Config.TypeAssumptions.get_Alias
-  Config.TypeAssumptions.set_Alias
-  Config.TypeAssumptions.get_MachineType
-  Config.TypeAssumptions.set_MachineType
-  Config.TypeAssumptions.get_Port
-  Config.TypeAssumptions.set_Port
-  Config.TypeAssumptions.get_ClientAddrs
-  Config.TypeAssumptions.set_ClientAddrs
-  Config.TypeAssumptions.get_ReplicaAddrs
-  Config.TypeAssumptions.set_ReplicaAddrs
-  Config.TypeAssumptions.get_MasterAlias
-  Config.TypeAssumptions.set_MasterAlias
-  Config.TypeAssumptions.get_MasterPort
-  Config.TypeAssumptions.set_MasterPort
-  Config.TypeAssumptions.get_MasterAddr
-  Config.TypeAssumptions.set_MasterAddr
-  Config.TypeAssumptions.get_Noop
-  Config.TypeAssumptions.set_Noop
-  Config.TypeAssumptions.get_Thrifty
-  Config.TypeAssumptions.set_Thrifty
-  Config.TypeAssumptions.get_Optread
-  Config.TypeAssumptions.set_Optread
-  Config.TypeAssumptions.get_Leaderless
-  Config.TypeAssumptions.set_Leaderless
-  Config.TypeAssumptions.get_Fast
-  Config.TypeAssumptions.set_Fast
-  Config.TypeAssumptions.get_Leader
-  Config.TypeAssumptions.set_Leader
-  Config.TypeAssumptions.get_Reqs
-  Config.TypeAssumptions.set_Reqs
-  Config.TypeAssumptions.get_RunTime
-  Config.TypeAssumptions.set_RunTime
-  Config.TypeAssumptions.get_Writes
-  Config.TypeAssumptions.set_Writes
-  Config.TypeAssumptions.get_Conflicts
-  Config.TypeAssumptions.set_Conflicts
-  Config.TypeAssumptions.get_CommandSize
-  Config.TypeAssumptions.set_CommandSize
-  Config.TypeAssumptions.get_Clones
-  Config.TypeAssumptions.set_Clones
-  Config.TypeAssumptions.get_WaitClosest
-  Config.TypeAssumptions.set_WaitClosest
-  Config.TypeAssumptions.get_Pipeline
-  Config.TypeAssumptions.set_Pipeline
-  Config.TypeAssumptions.get_Syncs
-  Config.TypeAssumptions.set_Syncs
-  Config.TypeAssumptions.get_Pendings
-  Config.TypeAssumptions.set_Pendings
-  Config.TypeAssumptions.get_Key
-  Config.TypeAssumptions.set_Key
-  Config.TypeAssumptions.get_Quorum
-  Config.TypeAssumptions.set_Quorum
-  Config.TypeAssumptions.get_Proxy
-  Config.TypeAssumptions.set_Proxy
+  Config.TypeAssumptions.get'Protocol
+  Config.TypeAssumptions.set'Protocol
+  Config.TypeAssumptions.get'Alias
+  Config.TypeAssumptions.set'Alias
+  Config.TypeAssumptions.get'MachineType
+  Config.TypeAssumptions.set'MachineType
+  Config.TypeAssumptions.get'Port
+  Config.TypeAssumptions.set'Port
+  Config.TypeAssumptions.get'ClientAddrs
+  Config.TypeAssumptions.set'ClientAddrs
+  Config.TypeAssumptions.get'ReplicaAddrs
+  Config.TypeAssumptions.set'ReplicaAddrs
+  Config.TypeAssumptions.get'MasterAlias
+  Config.TypeAssumptions.set'MasterAlias
+  Config.TypeAssumptions.get'MasterPort
+  Config.TypeAssumptions.set'MasterPort
+  Config.TypeAssumptions.get'MasterAddr
+  Config.TypeAssumptions.set'MasterAddr
+  Config.TypeAssumptions.get'Noop
+  Config.TypeAssumptions.set'Noop
+  Config.TypeAssumptions.get'Thrifty
+  Config.TypeAssumptions.set'Thrifty
+  Config.TypeAssumptions.get'Optread
+  Config.TypeAssumptions.set'Optread
+  Config.TypeAssumptions.get'Leaderless
+  Config.TypeAssumptions.set'Leaderless
+  Config.TypeAssumptions.get'Fast
+  Config.TypeAssumptions.set'Fast
+  Config.TypeAssumptions.get'Leader
+  Config.TypeAssumptions.set'Leader
+  Config.TypeAssumptions.get'Reqs
+  Config.TypeAssumptions.set'Reqs
+  Config.TypeAssumptions.get'RunTime
+  Config.TypeAssumptions.set'RunTime
+  Config.TypeAssumptions.get'Writes
+  Config.TypeAssumptions.set'Writes
+  Config.TypeAssumptions.get'Conflicts
+  Config.TypeAssumptions.set'Conflicts
+  Config.TypeAssumptions.get'CommandSize
+  Config.TypeAssumptions.set'CommandSize
+  Config.TypeAssumptions.get'Clones
+  Config.TypeAssumptions.set'Clones
+  Config.TypeAssumptions.get'WaitClosest
+  Config.TypeAssumptions.set'WaitClosest
+  Config.TypeAssumptions.get'Pipeline
+  Config.TypeAssumptions.set'Pipeline
+  Config.TypeAssumptions.get'Syncs
+  Config.TypeAssumptions.set'Syncs
+  Config.TypeAssumptions.get'Pendings
+  Config.TypeAssumptions.set'Pendings
+  Config.TypeAssumptions.get'Key
+  Config.TypeAssumptions.set'Key
+  Config.TypeAssumptions.get'Quorum
+  Config.TypeAssumptions.set'Quorum
+  Config.TypeAssumptions.get'Proxy
+  Config.TypeAssumptions.set'Proxy
   Config.TypeAssumptions.method_set
   Config.TypeAssumptions.ptr_method_set
-  Config.TypeAssumptions.ptr_MapClientToIP_unfold
-  Config.TypeAssumptions.ptr_MapReplicaToIP_unfold
+  Config.TypeAssumptions.ptr_unfold'MapClientToIP
+  Config.TypeAssumptions.ptr_unfold'MapReplicaToIP
 
 abbrev expectRet [GooseExts] : Type := GoInterface
 
@@ -1881,7 +1881,7 @@ noncomputable instance ProxyInfo.zero_val [GooseExts] : ZeroVal ProxyInfo :=
 @[irreducible] noncomputable def ProxyInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProxyInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProxyInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProxyInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProxyInfo.fields ProxyInfo.fieldsUnsealed :=
   ⟨by unfold ProxyInfo.fields; rfl⟩
 
@@ -1891,80 +1891,80 @@ noncomputable instance equals_unfold_ProxyInfo [GooseExts] [GoGlobalContext] :
 class ProxyInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProxyInfo.underlying ProxyInfo
   underlying : go.UnderlyingDirectedEq ProxyInfo.ty ProxyInfo.underlying
-  get_locals : ∀ (x : ProxyInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProxyInfo.underlying go!"locals") #x (Val #(x.locals'))
-  set_locals : ∀ (x : ProxyInfo) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ProxyInfo.underlying go!"locals") (PairV #x #y) (Val #(({ x with locals' := y } : ProxyInfo)))
-  get_proxies : ∀ (x : ProxyInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProxyInfo.underlying go!"proxies") #x (Val #(x.proxies'))
-  set_proxies : ∀ (x : ProxyInfo) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ProxyInfo.underlying go!"proxies") (PairV #x #y) (Val #(({ x with proxies' := y } : ProxyInfo)))
-  get_servers : ∀ (x : ProxyInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProxyInfo.underlying go!"servers") #x (Val #(x.servers'))
-  set_servers : ∀ (x : ProxyInfo) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ProxyInfo.underlying go!"servers") (PairV #x #y) (Val #(({ x with servers' := y } : ProxyInfo)))
+  get'locals : ∀ (x : ProxyInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProxyInfo.underlying go!"locals") #x (Val #(x.locals'))
+  set'locals : ∀ (x : ProxyInfo) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ProxyInfo.underlying go!"locals") (PairV #x #y) (Val #(({ x with locals' := y } : ProxyInfo)))
+  get'proxies : ∀ (x : ProxyInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProxyInfo.underlying go!"proxies") #x (Val #(x.proxies'))
+  set'proxies : ∀ (x : ProxyInfo) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ProxyInfo.underlying go!"proxies") (PairV #x #y) (Val #(({ x with proxies' := y } : ProxyInfo)))
+  get'servers : ∀ (x : ProxyInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProxyInfo.underlying go!"servers") #x (Val #(x.servers'))
+  set'servers : ∀ (x : ProxyInfo) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ProxyInfo.underlying go!"servers") (PairV #x #y) (Val #(({ x with servers' := y } : ProxyInfo)))
   method_set : go.MethodSetIs ProxyInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProxyInfo.ty) [(go!"Clients", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"IsLocal", (some (go.signature.Signature [go.string, go.string] false [go.bool]))), (go!"IsProxy", (some (go.signature.Signature [go.string, go.string] false [go.bool]))), (go!"LocalWith", (some (go.signature.Signature [go.string] false [go.string]))), (go!"ProxyOf", (some (go.signature.Signature [go.string] false [go.string]))), (go!"ServerClients", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"Servers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
-  ptr_Clients_unfold : MethodUnfold (go.GoType.PointerType ProxyInfo.ty) go!"Clients" ProxyInfo.Clients.impl
-  ptr_IsLocal_unfold : MethodUnfold (go.GoType.PointerType ProxyInfo.ty) go!"IsLocal" ProxyInfo.IsLocal.impl
-  ptr_IsProxy_unfold : MethodUnfold (go.GoType.PointerType ProxyInfo.ty) go!"IsProxy" ProxyInfo.IsProxy.impl
-  ptr_LocalWith_unfold : MethodUnfold (go.GoType.PointerType ProxyInfo.ty) go!"LocalWith" ProxyInfo.LocalWith.impl
-  ptr_ProxyOf_unfold : MethodUnfold (go.GoType.PointerType ProxyInfo.ty) go!"ProxyOf" ProxyInfo.ProxyOf.impl
-  ptr_ServerClients_unfold : MethodUnfold (go.GoType.PointerType ProxyInfo.ty) go!"ServerClients" ProxyInfo.ServerClients.impl
-  ptr_Servers_unfold : MethodUnfold (go.GoType.PointerType ProxyInfo.ty) go!"Servers" ProxyInfo.Servers.impl
+  ptr_unfold'Clients : MethodUnfold (go.GoType.PointerType ProxyInfo.ty) go!"Clients" ProxyInfo.Clients.impl
+  ptr_unfold'IsLocal : MethodUnfold (go.GoType.PointerType ProxyInfo.ty) go!"IsLocal" ProxyInfo.IsLocal.impl
+  ptr_unfold'IsProxy : MethodUnfold (go.GoType.PointerType ProxyInfo.ty) go!"IsProxy" ProxyInfo.IsProxy.impl
+  ptr_unfold'LocalWith : MethodUnfold (go.GoType.PointerType ProxyInfo.ty) go!"LocalWith" ProxyInfo.LocalWith.impl
+  ptr_unfold'ProxyOf : MethodUnfold (go.GoType.PointerType ProxyInfo.ty) go!"ProxyOf" ProxyInfo.ProxyOf.impl
+  ptr_unfold'ServerClients : MethodUnfold (go.GoType.PointerType ProxyInfo.ty) go!"ServerClients" ProxyInfo.ServerClients.impl
+  ptr_unfold'Servers : MethodUnfold (go.GoType.PointerType ProxyInfo.ty) go!"Servers" ProxyInfo.Servers.impl
 
 attribute [instance] ProxyInfo.TypeAssumptions.type_repr
   ProxyInfo.TypeAssumptions.underlying
-  ProxyInfo.TypeAssumptions.get_locals
-  ProxyInfo.TypeAssumptions.set_locals
-  ProxyInfo.TypeAssumptions.get_proxies
-  ProxyInfo.TypeAssumptions.set_proxies
-  ProxyInfo.TypeAssumptions.get_servers
-  ProxyInfo.TypeAssumptions.set_servers
+  ProxyInfo.TypeAssumptions.get'locals
+  ProxyInfo.TypeAssumptions.set'locals
+  ProxyInfo.TypeAssumptions.get'proxies
+  ProxyInfo.TypeAssumptions.set'proxies
+  ProxyInfo.TypeAssumptions.get'servers
+  ProxyInfo.TypeAssumptions.set'servers
   ProxyInfo.TypeAssumptions.method_set
   ProxyInfo.TypeAssumptions.ptr_method_set
-  ProxyInfo.TypeAssumptions.ptr_Clients_unfold
-  ProxyInfo.TypeAssumptions.ptr_IsLocal_unfold
-  ProxyInfo.TypeAssumptions.ptr_IsProxy_unfold
-  ProxyInfo.TypeAssumptions.ptr_LocalWith_unfold
-  ProxyInfo.TypeAssumptions.ptr_ProxyOf_unfold
-  ProxyInfo.TypeAssumptions.ptr_ServerClients_unfold
-  ProxyInfo.TypeAssumptions.ptr_Servers_unfold
+  ProxyInfo.TypeAssumptions.ptr_unfold'Clients
+  ProxyInfo.TypeAssumptions.ptr_unfold'IsLocal
+  ProxyInfo.TypeAssumptions.ptr_unfold'IsProxy
+  ProxyInfo.TypeAssumptions.ptr_unfold'LocalWith
+  ProxyInfo.TypeAssumptions.ptr_unfold'ProxyOf
+  ProxyInfo.TypeAssumptions.ptr_unfold'ServerClients
+  ProxyInfo.TypeAssumptions.ptr_unfold'Servers
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Error_instance : Error.TypeAssumptions
-  Machine_instance : Machine.TypeAssumptions
-  Config_instance : Config.TypeAssumptions
-  expectRet_instance : expectRet.TypeAssumptions
-  ProxyInfo_instance : ProxyInfo.TypeAssumptions
-  Err_unfold : FuncUnfold Err [] Err.impl
-  Read_unfold : FuncUnfold Read [] Read.impl
-  expectInt_unfold : FuncUnfold expectInt [] expectInt.impl
-  expectString_unfold : FuncUnfold expectString [] expectString.impl
-  expectBool_unfold : FuncUnfold expectBool [] expectBool.impl
-  expectDuration_unfold : FuncUnfold expectDuration [] expectDuration.impl
-  expect_unfold : ∀ (R : go.GoType), FuncUnfold expect [R] (expect.impl R)
-  ReadProxyInfo_unfold : FuncUnfold ReadProxyInfo [] ReadProxyInfo.impl
-  import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'Error : Error.TypeAssumptions
+  instance'Machine : Machine.TypeAssumptions
+  instance'Config : Config.TypeAssumptions
+  instance'expectRet : expectRet.TypeAssumptions
+  instance'ProxyInfo : ProxyInfo.TypeAssumptions
+  unfold'Err : FuncUnfold Err [] Err.impl
+  unfold'Read : FuncUnfold Read [] Read.impl
+  unfold'expectInt : FuncUnfold expectInt [] expectInt.impl
+  unfold'expectString : FuncUnfold expectString [] expectString.impl
+  unfold'expectBool : FuncUnfold expectBool [] expectBool.impl
+  unfold'expectDuration : FuncUnfold expectDuration [] expectDuration.impl
+  unfold'expect : ∀ (R₀ : go.GoType), FuncUnfold expect [R₀] (expect.impl R₀)
+  unfold'ReadProxyInfo : FuncUnfold ReadProxyInfo [] ReadProxyInfo.impl
+  import'bufio : _root_.Perennial.bufio.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.Error_instance
-  Assumptions.Machine_instance
-  Assumptions.Config_instance
-  Assumptions.expectRet_instance
-  Assumptions.ProxyInfo_instance
-  Assumptions.Err_unfold
-  Assumptions.Read_unfold
-  Assumptions.expectInt_unfold
-  Assumptions.expectString_unfold
-  Assumptions.expectBool_unfold
-  Assumptions.expectDuration_unfold
-  Assumptions.expect_unfold
-  Assumptions.ReadProxyInfo_unfold
-  Assumptions.import_bufio_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'Error
+  Assumptions.instance'Machine
+  Assumptions.instance'Config
+  Assumptions.instance'expectRet
+  Assumptions.instance'ProxyInfo
+  Assumptions.unfold'Err
+  Assumptions.unfold'Read
+  Assumptions.unfold'expectInt
+  Assumptions.unfold'expectString
+  Assumptions.unfold'expectBool
+  Assumptions.unfold'expectDuration
+  Assumptions.unfold'expect
+  Assumptions.unfold'ReadProxyInfo
+  Assumptions.import'bufio
+  Assumptions.import'fmt
+  Assumptions.import'os
+  Assumptions.import'strconv
+  Assumptions.import'strings
+  Assumptions.import'time
 
 end github_com.imdea_software.swiftpaxos_epaxos.config
 

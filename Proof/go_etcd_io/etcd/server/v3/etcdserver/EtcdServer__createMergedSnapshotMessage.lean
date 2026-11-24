@@ -151,7 +151,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
           (try wp_auto)
           (try simp only [hb, decide_false, Bool.not_false, intoVal_eq_iff, ↓reduceIte])
           (try wp_auto)
-          rw [replayTerms.TypeAssumptions.ptr_covers_unfold.method_unfold]
+          rw [replayTerms.TypeAssumptions.ptr_unfold'covers.method_unfold]
           (try wp_auto)
           wp_apply hCovers terms runs ci $$ [$Hpkg $Hruns]
           (try wp_auto)
@@ -166,7 +166,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
         simp only [↓reduceIte]
         icases Ht with ⟨%runs, %run, #Hruns, %hfound⟩
         (try wp_auto)
-        rw [replayTerms.TypeAssumptions.ptr_termAt_unfold.method_unfold]
+        rw [replayTerms.TypeAssumptions.ptr_unfold'termAt.method_unfold]
         (try wp_auto)
         wp_apply hTermAt terms runs ci run hfound.1 $$ [$Hpkg $Hruns]
         (try wp_auto)
@@ -185,7 +185,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
             simp only [↓reduceIte]
             icases Ht with ⟨%runs, %run, #Hruns, %hfound⟩
             (try wp_auto)
-            rw [replayTerms.TypeAssumptions.ptr_termAt_unfold.method_unfold]
+            rw [replayTerms.TypeAssumptions.ptr_unfold'termAt.method_unfold]
             (try wp_auto)
             wp_apply hTermAt terms runs ci run hfound.1 $$ [$Hpkg $Hruns]
             (try wp_auto)

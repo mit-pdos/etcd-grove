@@ -274,9 +274,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc IsQualifiedName (go.GoType.FunctionType (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)])))) (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  import_content_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.api.validate.content.Assumptions
+  import'content : _root_.Perennial.k8s_io.apimachinery.pkg.api.validate.content.Assumptions
 
-attribute [instance] Assumptions.import_content_Assumption
+attribute [instance] Assumptions.import'content
 
 end k8s_io.apimachinery.pkg.util.validation
 

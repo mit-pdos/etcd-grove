@@ -109,8 +109,8 @@ noncomputable def isCTL.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "b"))
-  (let del := #(127 : Int);
-  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (Val #(W8 32)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (App (Val (GoInstruction (Convert go.untypedInt go.byte))) (Val del)))))
+  (let del₀ := #(127 : Int);
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (Val #(W8 32)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (App (Val (GoInstruction (Convert go.untypedInt go.byte))) (Val del₀)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -357,15 +357,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc isTokenTable (go.GoType.ArrayType 256 go.bool))) (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  isLWS_unfold : FuncUnfold isLWS [] isLWS.impl
-  isCTL_unfold : FuncUnfold isCTL [] isCTL.impl
-  ValidHeaderFieldName_unfold : FuncUnfold ValidHeaderFieldName [] ValidHeaderFieldName.impl
-  ValidHeaderFieldValue_unfold : FuncUnfold ValidHeaderFieldValue [] ValidHeaderFieldValue.impl
+  unfold'isLWS : FuncUnfold isLWS [] isLWS.impl
+  unfold'isCTL : FuncUnfold isCTL [] isCTL.impl
+  unfold'ValidHeaderFieldName : FuncUnfold ValidHeaderFieldName [] ValidHeaderFieldName.impl
+  unfold'ValidHeaderFieldValue : FuncUnfold ValidHeaderFieldValue [] ValidHeaderFieldValue.impl
 
-attribute [instance] Assumptions.isLWS_unfold
-  Assumptions.isCTL_unfold
-  Assumptions.ValidHeaderFieldName_unfold
-  Assumptions.ValidHeaderFieldValue_unfold
+attribute [instance] Assumptions.unfold'isLWS
+  Assumptions.unfold'isCTL
+  Assumptions.unfold'ValidHeaderFieldName
+  Assumptions.unfold'ValidHeaderFieldValue
 
 end vendor.golang_org.x.net.http.httpguts
 

@@ -279,7 +279,7 @@ noncomputable instance Counter.zero_val [GooseExts] : ZeroVal Counter :=
 @[irreducible] noncomputable def Counter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Counter.fieldsUnsealed
 
-noncomputable instance equals_unfold_Counter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Counter [GooseExts] [GoGlobalContext] :
     EqualsUnfold Counter.fields Counter.fieldsUnsealed :=
   ⟨by unfold Counter.fields; rfl⟩
 
@@ -289,44 +289,44 @@ noncomputable instance equals_unfold_Counter [GooseExts] [GoGlobalContext] :
 class Counter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Counter.underlying Counter
   underlying : go.UnderlyingDirectedEq Counter.ty Counter.underlying
-  get_mu : ∀ (x : Counter), go.IsGoStepPureDetTagged under (StructFieldGet Counter.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : Counter) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Counter.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Counter)))
-  get_n : ∀ (x : Counter), go.IsGoStepPureDetTagged under (StructFieldGet Counter.underlying go!"n") #x (Val #(x.n'))
-  set_n : ∀ (x : Counter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Counter.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : Counter)))
+  get'mu : ∀ (x : Counter), go.IsGoStepPureDetTagged under (StructFieldGet Counter.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : Counter) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Counter.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Counter)))
+  get'n : ∀ (x : Counter), go.IsGoStepPureDetTagged under (StructFieldGet Counter.underlying go!"n") #x (Val #(x.n'))
+  set'n : ∀ (x : Counter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Counter.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : Counter)))
   method_set : go.MethodSetIs Counter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Counter.ty) [(go!"Apply", (some (go.signature.Signature [go.any] false [go.any])))]
-  ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType Counter.ty) go!"Apply" Counter.Apply.impl
+  ptr_unfold'Apply : MethodUnfold (go.GoType.PointerType Counter.ty) go!"Apply" Counter.Apply.impl
 
 attribute [instance] Counter.TypeAssumptions.type_repr
   Counter.TypeAssumptions.underlying
-  Counter.TypeAssumptions.get_mu
-  Counter.TypeAssumptions.set_mu
-  Counter.TypeAssumptions.get_n
-  Counter.TypeAssumptions.set_n
+  Counter.TypeAssumptions.get'mu
+  Counter.TypeAssumptions.set'mu
+  Counter.TypeAssumptions.get'n
+  Counter.TypeAssumptions.set'n
   Counter.TypeAssumptions.method_set
   Counter.TypeAssumptions.ptr_method_set
-  Counter.TypeAssumptions.ptr_Apply_unfold
+  Counter.TypeAssumptions.ptr_unfold'Apply
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Counter_instance : Counter.TypeAssumptions
-  Model_unfold : FuncUnfold Model [] Model.impl
-  New_unfold : FuncUnfold New [] New.impl
-  Check_unfold : FuncUnfold Check [] Check.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
-  import_lintest_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
+  instance'Counter : Counter.TypeAssumptions
+  unfold'Model : FuncUnfold Model [] Model.impl
+  unfold'New : FuncUnfold New [] New.impl
+  unfold'Check : FuncUnfold Check [] Check.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'porcupine : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
+  import'lintest : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
 
-attribute [instance] Assumptions.Counter_instance
-  Assumptions.Model_unfold
-  Assumptions.New_unfold
-  Assumptions.Check_unfold
-  Assumptions.Main_unfold
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_porcupine_Assumption
-  Assumptions.import_lintest_Assumption
+attribute [instance] Assumptions.instance'Counter
+  Assumptions.unfold'Model
+  Assumptions.unfold'New
+  Assumptions.unfold'Check
+  Assumptions.unfold'Main
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'porcupine
+  Assumptions.import'lintest
 
 end github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter
 

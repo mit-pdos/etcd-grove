@@ -1,5 +1,5 @@
 /-
-The proof of `(*time.Duration).Nanoseconds()`: goose's pointer-method wrapper (`ptr_Nanoseconds_unfold`
+The proof of `(*time.Duration).Nanoseconds()`: goose's pointer-method wrapper (`ptr_unfold'Nanoseconds`
 in the method set of `*Duration`: load `*l`, call the value method), over Perennial's proof of the
 value method `Duration.Nanoseconds` (`int64(d)`). Lean-first.
 -/

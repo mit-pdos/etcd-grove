@@ -49,22 +49,22 @@ theorem VoteFact.wp_proof (wp_from : Msg.«from».spec (GF := GF) (hG := hG))
   rw [h1, h2, h3, h4] at Hf
   cases Hf
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_from_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'from.method_unfold]
   try wp_auto
   wp_apply wp_from g m src $$ [Hm]
   · iframe Hm; ipureintro; exact h1
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
   try wp_auto
   wp_apply wp_term g m t $$ [Hm] as %ut %Hut
   · iframe Hm; ipureintro; exact h2
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_index_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'index.method_unfold]
   try wp_auto
   wp_apply wp_index g m k $$ [Hm] as %uk %Huk
   · iframe Hm; ipureintro; exact h3
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_logTerm_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'logTerm.method_unfold]
   try wp_auto
   wp_apply wp_logTerm g m lt $$ [Hm] as %ul %Hul
   · iframe Hm; ipureintro; exact h4

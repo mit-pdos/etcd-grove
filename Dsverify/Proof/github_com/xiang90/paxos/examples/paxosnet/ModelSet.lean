@@ -358,10 +358,10 @@ variable [package_sem : github_com.xiang90.paxos.examples.paxosnet.Assumptions]
 
 /-- `Out`'s values are injective (`Unknown` and `V` are read off by deterministic steps). -/
 theorem out_intoVal_inj {x y : Out} (h : (#x : val) = #y) : x = y := by
-  have hV := (Out.TypeAssumptions.get_V x).isGoStep_det_internal.isGoStep_pure_det
-  have hV' := (Out.TypeAssumptions.get_V y).isGoStep_det_internal.isGoStep_pure_det
-  have hU := (Out.TypeAssumptions.get_Unknown x).isGoStep_det_internal.isGoStep_pure_det
-  have hU' := (Out.TypeAssumptions.get_Unknown y).isGoStep_det_internal.isGoStep_pure_det
+  have hV := (Out.TypeAssumptions.get'V x).isGoStep_det_internal.isGoStep_pure_det
+  have hV' := (Out.TypeAssumptions.get'V y).isGoStep_det_internal.isGoStep_pure_det
+  have hU := (Out.TypeAssumptions.get'Unknown x).isGoStep_det_internal.isGoStep_pure_det
+  have hU' := (Out.TypeAssumptions.get'Unknown y).isGoStep_det_internal.isGoStep_pure_det
   rw [h, hV'] at hV
   rw [h, hU'] at hU
   have eV : Val #x.V' = Val #y.V' := (congrFun hV (Val #y.V')) ▸ rfl

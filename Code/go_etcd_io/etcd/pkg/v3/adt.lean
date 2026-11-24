@@ -2128,7 +2128,7 @@ noncomputable instance Interval.zero_val [GooseExts] : ZeroVal Interval :=
 @[irreducible] noncomputable def Interval.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Interval.fieldsUnsealed
 
-noncomputable instance equals_unfold_Interval [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Interval [GooseExts] [GoGlobalContext] :
     EqualsUnfold Interval.fields Interval.fieldsUnsealed :=
   ⟨by unfold Interval.fields; rfl⟩
 
@@ -2138,23 +2138,23 @@ noncomputable instance equals_unfold_Interval [GooseExts] [GoGlobalContext] :
 class Interval.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Interval.underlying Interval
   underlying : go.UnderlyingDirectedEq Interval.ty Interval.underlying
-  get_Begin : ∀ (x : Interval), go.IsGoStepPureDetTagged under (StructFieldGet Interval.underlying go!"Begin") #x (Val #(x.Begin'))
-  set_Begin : ∀ (x : Interval) (y : Comparable), go.IsGoStepPureDetTagged under (StructFieldSet Interval.underlying go!"Begin") (PairV #x #y) (Val #(({ x with Begin' := y } : Interval)))
-  get_End : ∀ (x : Interval), go.IsGoStepPureDetTagged under (StructFieldGet Interval.underlying go!"End") #x (Val #(x.End'))
-  set_End : ∀ (x : Interval) (y : Comparable), go.IsGoStepPureDetTagged under (StructFieldSet Interval.underlying go!"End") (PairV #x #y) (Val #(({ x with End' := y } : Interval)))
+  get'Begin : ∀ (x : Interval), go.IsGoStepPureDetTagged under (StructFieldGet Interval.underlying go!"Begin") #x (Val #(x.Begin'))
+  set'Begin : ∀ (x : Interval) (y : Comparable), go.IsGoStepPureDetTagged under (StructFieldSet Interval.underlying go!"Begin") (PairV #x #y) (Val #(({ x with Begin' := y } : Interval)))
+  get'End : ∀ (x : Interval), go.IsGoStepPureDetTagged under (StructFieldGet Interval.underlying go!"End") #x (Val #(x.End'))
+  set'End : ∀ (x : Interval) (y : Comparable), go.IsGoStepPureDetTagged under (StructFieldSet Interval.underlying go!"End") (PairV #x #y) (Val #(({ x with End' := y } : Interval)))
   method_set : go.MethodSetIs Interval.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Interval.ty) [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
-  ptr_Compare_unfold : MethodUnfold (go.GoType.PointerType Interval.ty) go!"Compare" Interval.Compare.impl
+  ptr_unfold'Compare : MethodUnfold (go.GoType.PointerType Interval.ty) go!"Compare" Interval.Compare.impl
 
 attribute [instance] Interval.TypeAssumptions.type_repr
   Interval.TypeAssumptions.underlying
-  Interval.TypeAssumptions.get_Begin
-  Interval.TypeAssumptions.set_Begin
-  Interval.TypeAssumptions.get_End
-  Interval.TypeAssumptions.set_End
+  Interval.TypeAssumptions.get'Begin
+  Interval.TypeAssumptions.set'Begin
+  Interval.TypeAssumptions.get'End
+  Interval.TypeAssumptions.set'End
   Interval.TypeAssumptions.method_set
   Interval.TypeAssumptions.ptr_method_set
-  Interval.TypeAssumptions.ptr_Compare_unfold
+  Interval.TypeAssumptions.ptr_unfold'Compare
 
 structure IntervalValue [GooseExts] where
   mk ::
@@ -2171,7 +2171,7 @@ noncomputable instance IntervalValue.zero_val [GooseExts] : ZeroVal IntervalValu
 @[irreducible] noncomputable def IntervalValue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   IntervalValue.fieldsUnsealed
 
-noncomputable instance equals_unfold_IntervalValue [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'IntervalValue [GooseExts] [GoGlobalContext] :
     EqualsUnfold IntervalValue.fields IntervalValue.fieldsUnsealed :=
   ⟨by unfold IntervalValue.fields; rfl⟩
 
@@ -2181,19 +2181,19 @@ noncomputable instance equals_unfold_IntervalValue [GooseExts] [GoGlobalContext]
 class IntervalValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying IntervalValue.underlying IntervalValue
   underlying : go.UnderlyingDirectedEq IntervalValue.ty IntervalValue.underlying
-  get_Ivl : ∀ (x : IntervalValue), go.IsGoStepPureDetTagged under (StructFieldGet IntervalValue.underlying go!"Ivl") #x (Val #(x.Ivl'))
-  set_Ivl : ∀ (x : IntervalValue) (y : Interval), go.IsGoStepPureDetTagged under (StructFieldSet IntervalValue.underlying go!"Ivl") (PairV #x #y) (Val #(({ x with Ivl' := y } : IntervalValue)))
-  get_Val : ∀ (x : IntervalValue), go.IsGoStepPureDetTagged under (StructFieldGet IntervalValue.underlying go!"Val") #x (Val #(x.Val'))
-  set_Val : ∀ (x : IntervalValue) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet IntervalValue.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : IntervalValue)))
+  get'Ivl : ∀ (x : IntervalValue), go.IsGoStepPureDetTagged under (StructFieldGet IntervalValue.underlying go!"Ivl") #x (Val #(x.Ivl'))
+  set'Ivl : ∀ (x : IntervalValue) (y : Interval), go.IsGoStepPureDetTagged under (StructFieldSet IntervalValue.underlying go!"Ivl") (PairV #x #y) (Val #(({ x with Ivl' := y } : IntervalValue)))
+  get'Val : ∀ (x : IntervalValue), go.IsGoStepPureDetTagged under (StructFieldGet IntervalValue.underlying go!"Val") #x (Val #(x.Val'))
+  set'Val : ∀ (x : IntervalValue) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet IntervalValue.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : IntervalValue)))
   method_set : go.MethodSetIs IntervalValue.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType IntervalValue.ty) []
 
 attribute [instance] IntervalValue.TypeAssumptions.type_repr
   IntervalValue.TypeAssumptions.underlying
-  IntervalValue.TypeAssumptions.get_Ivl
-  IntervalValue.TypeAssumptions.set_Ivl
-  IntervalValue.TypeAssumptions.get_Val
-  IntervalValue.TypeAssumptions.set_Val
+  IntervalValue.TypeAssumptions.get'Ivl
+  IntervalValue.TypeAssumptions.set'Ivl
+  IntervalValue.TypeAssumptions.get'Val
+  IntervalValue.TypeAssumptions.set'Val
   IntervalValue.TypeAssumptions.method_set
   IntervalValue.TypeAssumptions.ptr_method_set
 
@@ -2220,7 +2220,7 @@ noncomputable instance intervalNode.zero_val [GooseExts] : ZeroVal intervalNode 
 @[irreducible] noncomputable def intervalNode.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   intervalNode.fieldsUnsealed
 
-noncomputable instance equals_unfold_intervalNode [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'intervalNode [GooseExts] [GoGlobalContext] :
     EqualsUnfold intervalNode.fields intervalNode.fieldsUnsealed :=
   ⟨by unfold intervalNode.fields; rfl⟩
 
@@ -2230,49 +2230,49 @@ noncomputable instance equals_unfold_intervalNode [GooseExts] [GoGlobalContext] 
 class intervalNode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying intervalNode.underlying intervalNode
   underlying : go.UnderlyingDirectedEq intervalNode.ty intervalNode.underlying
-  get_iv : ∀ (x : intervalNode), go.IsGoStepPureDetTagged under (StructFieldGet intervalNode.underlying go!"iv") #x (Val #(x.iv'))
-  set_iv : ∀ (x : intervalNode) (y : IntervalValue), go.IsGoStepPureDetTagged under (StructFieldSet intervalNode.underlying go!"iv") (PairV #x #y) (Val #(({ x with iv' := y } : intervalNode)))
-  get_max : ∀ (x : intervalNode), go.IsGoStepPureDetTagged under (StructFieldGet intervalNode.underlying go!"max") #x (Val #(x.max'))
-  set_max : ∀ (x : intervalNode) (y : Comparable), go.IsGoStepPureDetTagged under (StructFieldSet intervalNode.underlying go!"max") (PairV #x #y) (Val #(({ x with max' := y } : intervalNode)))
-  get_left : ∀ (x : intervalNode), go.IsGoStepPureDetTagged under (StructFieldGet intervalNode.underlying go!"left") #x (Val #(x.left'))
-  set_left : ∀ (x : intervalNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet intervalNode.underlying go!"left") (PairV #x #y) (Val #(({ x with left' := y } : intervalNode)))
-  get_right : ∀ (x : intervalNode), go.IsGoStepPureDetTagged under (StructFieldGet intervalNode.underlying go!"right") #x (Val #(x.right'))
-  set_right : ∀ (x : intervalNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet intervalNode.underlying go!"right") (PairV #x #y) (Val #(({ x with right' := y } : intervalNode)))
-  get_parent : ∀ (x : intervalNode), go.IsGoStepPureDetTagged under (StructFieldGet intervalNode.underlying go!"parent") #x (Val #(x.parent'))
-  set_parent : ∀ (x : intervalNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet intervalNode.underlying go!"parent") (PairV #x #y) (Val #(({ x with parent' := y } : intervalNode)))
-  get_c : ∀ (x : intervalNode), go.IsGoStepPureDetTagged under (StructFieldGet intervalNode.underlying go!"c") #x (Val #(x.c'))
-  set_c : ∀ (x : intervalNode) (y : rbcolor), go.IsGoStepPureDetTagged under (StructFieldSet intervalNode.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : intervalNode)))
+  get'iv : ∀ (x : intervalNode), go.IsGoStepPureDetTagged under (StructFieldGet intervalNode.underlying go!"iv") #x (Val #(x.iv'))
+  set'iv : ∀ (x : intervalNode) (y : IntervalValue), go.IsGoStepPureDetTagged under (StructFieldSet intervalNode.underlying go!"iv") (PairV #x #y) (Val #(({ x with iv' := y } : intervalNode)))
+  get'max : ∀ (x : intervalNode), go.IsGoStepPureDetTagged under (StructFieldGet intervalNode.underlying go!"max") #x (Val #(x.max'))
+  set'max : ∀ (x : intervalNode) (y : Comparable), go.IsGoStepPureDetTagged under (StructFieldSet intervalNode.underlying go!"max") (PairV #x #y) (Val #(({ x with max' := y } : intervalNode)))
+  get'left : ∀ (x : intervalNode), go.IsGoStepPureDetTagged under (StructFieldGet intervalNode.underlying go!"left") #x (Val #(x.left'))
+  set'left : ∀ (x : intervalNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet intervalNode.underlying go!"left") (PairV #x #y) (Val #(({ x with left' := y } : intervalNode)))
+  get'right : ∀ (x : intervalNode), go.IsGoStepPureDetTagged under (StructFieldGet intervalNode.underlying go!"right") #x (Val #(x.right'))
+  set'right : ∀ (x : intervalNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet intervalNode.underlying go!"right") (PairV #x #y) (Val #(({ x with right' := y } : intervalNode)))
+  get'parent : ∀ (x : intervalNode), go.IsGoStepPureDetTagged under (StructFieldGet intervalNode.underlying go!"parent") #x (Val #(x.parent'))
+  set'parent : ∀ (x : intervalNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet intervalNode.underlying go!"parent") (PairV #x #y) (Val #(({ x with parent' := y } : intervalNode)))
+  get'c : ∀ (x : intervalNode), go.IsGoStepPureDetTagged under (StructFieldGet intervalNode.underlying go!"c") #x (Val #(x.c'))
+  set'c : ∀ (x : intervalNode) (y : rbcolor), go.IsGoStepPureDetTagged under (StructFieldSet intervalNode.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : intervalNode)))
   method_set : go.MethodSetIs intervalNode.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType intervalNode.ty) [(go!"go.etcd.io/etcd/pkg/v3/adt.color", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false [rbcolor.ty]))), (go!"go.etcd.io/etcd/pkg/v3/adt.height", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false [go.int]))), (go!"go.etcd.io/etcd/pkg/v3/adt.min", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false [(go.GoType.PointerType intervalNode.ty)]))), (go!"go.etcd.io/etcd/pkg/v3/adt.successor", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false [(go.GoType.PointerType intervalNode.ty)]))), (go!"go.etcd.io/etcd/pkg/v3/adt.updateMax", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false []))), (go!"go.etcd.io/etcd/pkg/v3/adt.visit", (some (go.signature.Signature [(go.GoType.PointerType Interval.ty), (go.GoType.PointerType intervalNode.ty), nodeVisitor.ty] false [go.bool])))]
-  ptr_color_unfold : MethodUnfold (go.GoType.PointerType intervalNode.ty) go!"color" intervalNode.color.impl
-  ptr_height_unfold : MethodUnfold (go.GoType.PointerType intervalNode.ty) go!"height" intervalNode.height.impl
-  ptr_min_unfold : MethodUnfold (go.GoType.PointerType intervalNode.ty) go!"min" intervalNode.min.impl
-  ptr_successor_unfold : MethodUnfold (go.GoType.PointerType intervalNode.ty) go!"successor" intervalNode.successor.impl
-  ptr_updateMax_unfold : MethodUnfold (go.GoType.PointerType intervalNode.ty) go!"updateMax" intervalNode.updateMax.impl
-  ptr_visit_unfold : MethodUnfold (go.GoType.PointerType intervalNode.ty) go!"visit" intervalNode.visit.impl
+  ptr_unfold'color : MethodUnfold (go.GoType.PointerType intervalNode.ty) go!"color" intervalNode.color.impl
+  ptr_unfold'height : MethodUnfold (go.GoType.PointerType intervalNode.ty) go!"height" intervalNode.height.impl
+  ptr_unfold'min : MethodUnfold (go.GoType.PointerType intervalNode.ty) go!"min" intervalNode.min.impl
+  ptr_unfold'successor : MethodUnfold (go.GoType.PointerType intervalNode.ty) go!"successor" intervalNode.successor.impl
+  ptr_unfold'updateMax : MethodUnfold (go.GoType.PointerType intervalNode.ty) go!"updateMax" intervalNode.updateMax.impl
+  ptr_unfold'visit : MethodUnfold (go.GoType.PointerType intervalNode.ty) go!"visit" intervalNode.visit.impl
 
 attribute [instance] intervalNode.TypeAssumptions.type_repr
   intervalNode.TypeAssumptions.underlying
-  intervalNode.TypeAssumptions.get_iv
-  intervalNode.TypeAssumptions.set_iv
-  intervalNode.TypeAssumptions.get_max
-  intervalNode.TypeAssumptions.set_max
-  intervalNode.TypeAssumptions.get_left
-  intervalNode.TypeAssumptions.set_left
-  intervalNode.TypeAssumptions.get_right
-  intervalNode.TypeAssumptions.set_right
-  intervalNode.TypeAssumptions.get_parent
-  intervalNode.TypeAssumptions.set_parent
-  intervalNode.TypeAssumptions.get_c
-  intervalNode.TypeAssumptions.set_c
+  intervalNode.TypeAssumptions.get'iv
+  intervalNode.TypeAssumptions.set'iv
+  intervalNode.TypeAssumptions.get'max
+  intervalNode.TypeAssumptions.set'max
+  intervalNode.TypeAssumptions.get'left
+  intervalNode.TypeAssumptions.set'left
+  intervalNode.TypeAssumptions.get'right
+  intervalNode.TypeAssumptions.set'right
+  intervalNode.TypeAssumptions.get'parent
+  intervalNode.TypeAssumptions.set'parent
+  intervalNode.TypeAssumptions.get'c
+  intervalNode.TypeAssumptions.set'c
   intervalNode.TypeAssumptions.method_set
   intervalNode.TypeAssumptions.ptr_method_set
-  intervalNode.TypeAssumptions.ptr_color_unfold
-  intervalNode.TypeAssumptions.ptr_height_unfold
-  intervalNode.TypeAssumptions.ptr_min_unfold
-  intervalNode.TypeAssumptions.ptr_successor_unfold
-  intervalNode.TypeAssumptions.ptr_updateMax_unfold
-  intervalNode.TypeAssumptions.ptr_visit_unfold
+  intervalNode.TypeAssumptions.ptr_unfold'color
+  intervalNode.TypeAssumptions.ptr_unfold'height
+  intervalNode.TypeAssumptions.ptr_unfold'min
+  intervalNode.TypeAssumptions.ptr_unfold'successor
+  intervalNode.TypeAssumptions.ptr_unfold'updateMax
+  intervalNode.TypeAssumptions.ptr_unfold'visit
 
 abbrev nodeVisitor [GooseExts] : Type := GoFunc
 
@@ -2319,7 +2319,7 @@ noncomputable instance intervalTree.zero_val [GooseExts] : ZeroVal intervalTree 
 @[irreducible] noncomputable def intervalTree.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   intervalTree.fieldsUnsealed
 
-noncomputable instance equals_unfold_intervalTree [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'intervalTree [GooseExts] [GoGlobalContext] :
     EqualsUnfold intervalTree.fields intervalTree.fieldsUnsealed :=
   ⟨by unfold intervalTree.fields; rfl⟩
 
@@ -2329,59 +2329,59 @@ noncomputable instance equals_unfold_intervalTree [GooseExts] [GoGlobalContext] 
 class intervalTree.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying intervalTree.underlying intervalTree
   underlying : go.UnderlyingDirectedEq intervalTree.ty intervalTree.underlying
-  get_root : ∀ (x : intervalTree), go.IsGoStepPureDetTagged under (StructFieldGet intervalTree.underlying go!"root") #x (Val #(x.root'))
-  set_root : ∀ (x : intervalTree) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet intervalTree.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : intervalTree)))
-  get_count : ∀ (x : intervalTree), go.IsGoStepPureDetTagged under (StructFieldGet intervalTree.underlying go!"count") #x (Val #(x.count'))
-  set_count : ∀ (x : intervalTree) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet intervalTree.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : intervalTree)))
-  get_sentinel : ∀ (x : intervalTree), go.IsGoStepPureDetTagged under (StructFieldGet intervalTree.underlying go!"sentinel") #x (Val #(x.sentinel'))
-  set_sentinel : ∀ (x : intervalTree) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet intervalTree.underlying go!"sentinel") (PairV #x #y) (Val #(({ x with sentinel' := y } : intervalTree)))
+  get'root : ∀ (x : intervalTree), go.IsGoStepPureDetTagged under (StructFieldGet intervalTree.underlying go!"root") #x (Val #(x.root'))
+  set'root : ∀ (x : intervalTree) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet intervalTree.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : intervalTree)))
+  get'count : ∀ (x : intervalTree), go.IsGoStepPureDetTagged under (StructFieldGet intervalTree.underlying go!"count") #x (Val #(x.count'))
+  set'count : ∀ (x : intervalTree) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet intervalTree.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : intervalTree)))
+  get'sentinel : ∀ (x : intervalTree), go.IsGoStepPureDetTagged under (StructFieldGet intervalTree.underlying go!"sentinel") #x (Val #(x.sentinel'))
+  set'sentinel : ∀ (x : intervalTree) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet intervalTree.underlying go!"sentinel") (PairV #x #y) (Val #(({ x with sentinel' := y } : intervalTree)))
   method_set : go.MethodSetIs intervalTree.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType intervalTree.ty) [(go!"Contains", (some (go.signature.Signature [Interval.ty] false [go.bool]))), (go!"Delete", (some (go.signature.Signature [Interval.ty] false [go.bool]))), (go!"Find", (some (go.signature.Signature [Interval.ty] false [(go.GoType.PointerType IntervalValue.ty)]))), (go!"Height", (some (go.signature.Signature [] false [go.int]))), (go!"Insert", (some (go.signature.Signature [Interval.ty, go.any] false []))), (go!"Intersects", (some (go.signature.Signature [Interval.ty] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"MaxHeight", (some (go.signature.Signature [] false [go.int]))), (go!"Stab", (some (go.signature.Signature [Interval.ty] false [(go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))]))), (go!"Union", (some (go.signature.Signature [IntervalTree.ty, Interval.ty] false []))), (go!"Visit", (some (go.signature.Signature [Interval.ty, IntervalVisitor.ty] false []))), (go!"go.etcd.io/etcd/pkg/v3/adt.createIntervalNode", (some (go.signature.Signature [Interval.ty, go.any] false [(go.GoType.PointerType intervalNode.ty)]))), (go!"go.etcd.io/etcd/pkg/v3/adt.deleteFixup", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false []))), (go!"go.etcd.io/etcd/pkg/v3/adt.find", (some (go.signature.Signature [Interval.ty] false [(go.GoType.PointerType intervalNode.ty)]))), (go!"go.etcd.io/etcd/pkg/v3/adt.insertFixup", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false []))), (go!"go.etcd.io/etcd/pkg/v3/adt.replaceParent", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty), (go.GoType.PointerType intervalNode.ty)] false []))), (go!"go.etcd.io/etcd/pkg/v3/adt.rotateLeft", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false []))), (go!"go.etcd.io/etcd/pkg/v3/adt.rotateRight", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false []))), (go!"go.etcd.io/etcd/pkg/v3/adt.visitLevel", (some (go.signature.Signature [] false [(go.GoType.SliceType visitedInterval.ty)])))]
-  ptr_Contains_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Contains" intervalTree.Contains.impl
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Delete" intervalTree.Delete.impl
-  ptr_Find_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Find" intervalTree.Find.impl
-  ptr_Height_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Height" intervalTree.Height.impl
-  ptr_Insert_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Insert" intervalTree.Insert.impl
-  ptr_Intersects_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Intersects" intervalTree.Intersects.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Len" intervalTree.Len.impl
-  ptr_Stab_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Stab" intervalTree.Stab.impl
-  ptr_Union_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Union" intervalTree.Union.impl
-  ptr_Visit_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Visit" intervalTree.Visit.impl
-  ptr_createIntervalNode_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"createIntervalNode" intervalTree.createIntervalNode.impl
-  ptr_deleteFixup_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"deleteFixup" intervalTree.deleteFixup.impl
-  ptr_find_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"find" intervalTree.find.impl
-  ptr_insertFixup_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"insertFixup" intervalTree.insertFixup.impl
-  ptr_replaceParent_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"replaceParent" intervalTree.replaceParent.impl
-  ptr_rotateLeft_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"rotateLeft" intervalTree.rotateLeft.impl
-  ptr_rotateRight_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"rotateRight" intervalTree.rotateRight.impl
+  ptr_unfold'Contains : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Contains" intervalTree.Contains.impl
+  ptr_unfold'Delete : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Delete" intervalTree.Delete.impl
+  ptr_unfold'Find : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Find" intervalTree.Find.impl
+  ptr_unfold'Height : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Height" intervalTree.Height.impl
+  ptr_unfold'Insert : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Insert" intervalTree.Insert.impl
+  ptr_unfold'Intersects : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Intersects" intervalTree.Intersects.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Len" intervalTree.Len.impl
+  ptr_unfold'Stab : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Stab" intervalTree.Stab.impl
+  ptr_unfold'Union : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Union" intervalTree.Union.impl
+  ptr_unfold'Visit : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Visit" intervalTree.Visit.impl
+  ptr_unfold'createIntervalNode : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"createIntervalNode" intervalTree.createIntervalNode.impl
+  ptr_unfold'deleteFixup : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"deleteFixup" intervalTree.deleteFixup.impl
+  ptr_unfold'find : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"find" intervalTree.find.impl
+  ptr_unfold'insertFixup : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"insertFixup" intervalTree.insertFixup.impl
+  ptr_unfold'replaceParent : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"replaceParent" intervalTree.replaceParent.impl
+  ptr_unfold'rotateLeft : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"rotateLeft" intervalTree.rotateLeft.impl
+  ptr_unfold'rotateRight : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"rotateRight" intervalTree.rotateRight.impl
 
 attribute [instance] intervalTree.TypeAssumptions.type_repr
   intervalTree.TypeAssumptions.underlying
-  intervalTree.TypeAssumptions.get_root
-  intervalTree.TypeAssumptions.set_root
-  intervalTree.TypeAssumptions.get_count
-  intervalTree.TypeAssumptions.set_count
-  intervalTree.TypeAssumptions.get_sentinel
-  intervalTree.TypeAssumptions.set_sentinel
+  intervalTree.TypeAssumptions.get'root
+  intervalTree.TypeAssumptions.set'root
+  intervalTree.TypeAssumptions.get'count
+  intervalTree.TypeAssumptions.set'count
+  intervalTree.TypeAssumptions.get'sentinel
+  intervalTree.TypeAssumptions.set'sentinel
   intervalTree.TypeAssumptions.method_set
   intervalTree.TypeAssumptions.ptr_method_set
-  intervalTree.TypeAssumptions.ptr_Contains_unfold
-  intervalTree.TypeAssumptions.ptr_Delete_unfold
-  intervalTree.TypeAssumptions.ptr_Find_unfold
-  intervalTree.TypeAssumptions.ptr_Height_unfold
-  intervalTree.TypeAssumptions.ptr_Insert_unfold
-  intervalTree.TypeAssumptions.ptr_Intersects_unfold
-  intervalTree.TypeAssumptions.ptr_Len_unfold
-  intervalTree.TypeAssumptions.ptr_Stab_unfold
-  intervalTree.TypeAssumptions.ptr_Union_unfold
-  intervalTree.TypeAssumptions.ptr_Visit_unfold
-  intervalTree.TypeAssumptions.ptr_createIntervalNode_unfold
-  intervalTree.TypeAssumptions.ptr_deleteFixup_unfold
-  intervalTree.TypeAssumptions.ptr_find_unfold
-  intervalTree.TypeAssumptions.ptr_insertFixup_unfold
-  intervalTree.TypeAssumptions.ptr_replaceParent_unfold
-  intervalTree.TypeAssumptions.ptr_rotateLeft_unfold
-  intervalTree.TypeAssumptions.ptr_rotateRight_unfold
+  intervalTree.TypeAssumptions.ptr_unfold'Contains
+  intervalTree.TypeAssumptions.ptr_unfold'Delete
+  intervalTree.TypeAssumptions.ptr_unfold'Find
+  intervalTree.TypeAssumptions.ptr_unfold'Height
+  intervalTree.TypeAssumptions.ptr_unfold'Insert
+  intervalTree.TypeAssumptions.ptr_unfold'Intersects
+  intervalTree.TypeAssumptions.ptr_unfold'Len
+  intervalTree.TypeAssumptions.ptr_unfold'Stab
+  intervalTree.TypeAssumptions.ptr_unfold'Union
+  intervalTree.TypeAssumptions.ptr_unfold'Visit
+  intervalTree.TypeAssumptions.ptr_unfold'createIntervalNode
+  intervalTree.TypeAssumptions.ptr_unfold'deleteFixup
+  intervalTree.TypeAssumptions.ptr_unfold'find
+  intervalTree.TypeAssumptions.ptr_unfold'insertFixup
+  intervalTree.TypeAssumptions.ptr_unfold'replaceParent
+  intervalTree.TypeAssumptions.ptr_unfold'rotateLeft
+  intervalTree.TypeAssumptions.ptr_unfold'rotateRight
 
 abbrev IntervalVisitor [GooseExts] : Type := GoFunc
 
@@ -2418,7 +2418,7 @@ noncomputable instance visitedInterval.zero_val [GooseExts] : ZeroVal visitedInt
 @[irreducible] noncomputable def visitedInterval.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   visitedInterval.fieldsUnsealed
 
-noncomputable instance equals_unfold_visitedInterval [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'visitedInterval [GooseExts] [GoGlobalContext] :
     EqualsUnfold visitedInterval.fields visitedInterval.fieldsUnsealed :=
   ⟨by unfold visitedInterval.fields; rfl⟩
 
@@ -2428,31 +2428,31 @@ noncomputable instance equals_unfold_visitedInterval [GooseExts] [GoGlobalContex
 class visitedInterval.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying visitedInterval.underlying visitedInterval
   underlying : go.UnderlyingDirectedEq visitedInterval.ty visitedInterval.underlying
-  get_root : ∀ (x : visitedInterval), go.IsGoStepPureDetTagged under (StructFieldGet visitedInterval.underlying go!"root") #x (Val #(x.root'))
-  set_root : ∀ (x : visitedInterval) (y : Interval), go.IsGoStepPureDetTagged under (StructFieldSet visitedInterval.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : visitedInterval)))
-  get_left : ∀ (x : visitedInterval), go.IsGoStepPureDetTagged under (StructFieldGet visitedInterval.underlying go!"left") #x (Val #(x.left'))
-  set_left : ∀ (x : visitedInterval) (y : Interval), go.IsGoStepPureDetTagged under (StructFieldSet visitedInterval.underlying go!"left") (PairV #x #y) (Val #(({ x with left' := y } : visitedInterval)))
-  get_right : ∀ (x : visitedInterval), go.IsGoStepPureDetTagged under (StructFieldGet visitedInterval.underlying go!"right") #x (Val #(x.right'))
-  set_right : ∀ (x : visitedInterval) (y : Interval), go.IsGoStepPureDetTagged under (StructFieldSet visitedInterval.underlying go!"right") (PairV #x #y) (Val #(({ x with right' := y } : visitedInterval)))
-  get_color : ∀ (x : visitedInterval), go.IsGoStepPureDetTagged under (StructFieldGet visitedInterval.underlying go!"color") #x (Val #(x.color'))
-  set_color : ∀ (x : visitedInterval) (y : rbcolor), go.IsGoStepPureDetTagged under (StructFieldSet visitedInterval.underlying go!"color") (PairV #x #y) (Val #(({ x with color' := y } : visitedInterval)))
-  get_depth : ∀ (x : visitedInterval), go.IsGoStepPureDetTagged under (StructFieldGet visitedInterval.underlying go!"depth") #x (Val #(x.depth'))
-  set_depth : ∀ (x : visitedInterval) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet visitedInterval.underlying go!"depth") (PairV #x #y) (Val #(({ x with depth' := y } : visitedInterval)))
+  get'root : ∀ (x : visitedInterval), go.IsGoStepPureDetTagged under (StructFieldGet visitedInterval.underlying go!"root") #x (Val #(x.root'))
+  set'root : ∀ (x : visitedInterval) (y : Interval), go.IsGoStepPureDetTagged under (StructFieldSet visitedInterval.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : visitedInterval)))
+  get'left : ∀ (x : visitedInterval), go.IsGoStepPureDetTagged under (StructFieldGet visitedInterval.underlying go!"left") #x (Val #(x.left'))
+  set'left : ∀ (x : visitedInterval) (y : Interval), go.IsGoStepPureDetTagged under (StructFieldSet visitedInterval.underlying go!"left") (PairV #x #y) (Val #(({ x with left' := y } : visitedInterval)))
+  get'right : ∀ (x : visitedInterval), go.IsGoStepPureDetTagged under (StructFieldGet visitedInterval.underlying go!"right") #x (Val #(x.right'))
+  set'right : ∀ (x : visitedInterval) (y : Interval), go.IsGoStepPureDetTagged under (StructFieldSet visitedInterval.underlying go!"right") (PairV #x #y) (Val #(({ x with right' := y } : visitedInterval)))
+  get'color : ∀ (x : visitedInterval), go.IsGoStepPureDetTagged under (StructFieldGet visitedInterval.underlying go!"color") #x (Val #(x.color'))
+  set'color : ∀ (x : visitedInterval) (y : rbcolor), go.IsGoStepPureDetTagged under (StructFieldSet visitedInterval.underlying go!"color") (PairV #x #y) (Val #(({ x with color' := y } : visitedInterval)))
+  get'depth : ∀ (x : visitedInterval), go.IsGoStepPureDetTagged under (StructFieldGet visitedInterval.underlying go!"depth") #x (Val #(x.depth'))
+  set'depth : ∀ (x : visitedInterval) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet visitedInterval.underlying go!"depth") (PairV #x #y) (Val #(({ x with depth' := y } : visitedInterval)))
   method_set : go.MethodSetIs visitedInterval.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType visitedInterval.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] visitedInterval.TypeAssumptions.type_repr
   visitedInterval.TypeAssumptions.underlying
-  visitedInterval.TypeAssumptions.get_root
-  visitedInterval.TypeAssumptions.set_root
-  visitedInterval.TypeAssumptions.get_left
-  visitedInterval.TypeAssumptions.set_left
-  visitedInterval.TypeAssumptions.get_right
-  visitedInterval.TypeAssumptions.set_right
-  visitedInterval.TypeAssumptions.get_color
-  visitedInterval.TypeAssumptions.set_color
-  visitedInterval.TypeAssumptions.get_depth
-  visitedInterval.TypeAssumptions.set_depth
+  visitedInterval.TypeAssumptions.get'root
+  visitedInterval.TypeAssumptions.set'root
+  visitedInterval.TypeAssumptions.get'left
+  visitedInterval.TypeAssumptions.set'left
+  visitedInterval.TypeAssumptions.get'right
+  visitedInterval.TypeAssumptions.set'right
+  visitedInterval.TypeAssumptions.get'color
+  visitedInterval.TypeAssumptions.set'color
+  visitedInterval.TypeAssumptions.get'depth
+  visitedInterval.TypeAssumptions.set'depth
   visitedInterval.TypeAssumptions.method_set
   visitedInterval.TypeAssumptions.ptr_method_set
 
@@ -2465,15 +2465,15 @@ class StringComparable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   underlying : go.UnderlyingDirectedEq StringComparable.ty StringComparable.underlying
   method_set : go.MethodSetIs StringComparable.ty [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType StringComparable.ty) [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
-  Compare_unfold : MethodUnfold StringComparable.ty go!"Compare" StringComparable.Compare.impl
-  ptr_Compare_unfold : MethodUnfold (go.GoType.PointerType StringComparable.ty) go!"Compare" (LamV "$r"
+  unfold'Compare : MethodUnfold StringComparable.ty go!"Compare" StringComparable.Compare.impl
+  ptr_unfold'Compare : MethodUnfold (go.GoType.PointerType StringComparable.ty) go!"Compare" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve StringComparable.ty go!"Compare"))) (App (Val (GoInstruction (GoLoad StringComparable.ty))) (Var "$r"))))
 
 attribute [instance] StringComparable.TypeAssumptions.underlying
   StringComparable.TypeAssumptions.method_set
   StringComparable.TypeAssumptions.ptr_method_set
-  StringComparable.TypeAssumptions.Compare_unfold
-  StringComparable.TypeAssumptions.ptr_Compare_unfold
+  StringComparable.TypeAssumptions.unfold'Compare
+  StringComparable.TypeAssumptions.ptr_unfold'Compare
 
 abbrev StringAffineComparable [GooseExts] : Type := GoString
 
@@ -2484,15 +2484,15 @@ class StringAffineComparable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLo
   underlying : go.UnderlyingDirectedEq StringAffineComparable.ty StringAffineComparable.underlying
   method_set : go.MethodSetIs StringAffineComparable.ty [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType StringAffineComparable.ty) [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
-  Compare_unfold : MethodUnfold StringAffineComparable.ty go!"Compare" StringAffineComparable.Compare.impl
-  ptr_Compare_unfold : MethodUnfold (go.GoType.PointerType StringAffineComparable.ty) go!"Compare" (LamV "$r"
+  unfold'Compare : MethodUnfold StringAffineComparable.ty go!"Compare" StringAffineComparable.Compare.impl
+  ptr_unfold'Compare : MethodUnfold (go.GoType.PointerType StringAffineComparable.ty) go!"Compare" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve StringAffineComparable.ty go!"Compare"))) (App (Val (GoInstruction (GoLoad StringAffineComparable.ty))) (Var "$r"))))
 
 attribute [instance] StringAffineComparable.TypeAssumptions.underlying
   StringAffineComparable.TypeAssumptions.method_set
   StringAffineComparable.TypeAssumptions.ptr_method_set
-  StringAffineComparable.TypeAssumptions.Compare_unfold
-  StringAffineComparable.TypeAssumptions.ptr_Compare_unfold
+  StringAffineComparable.TypeAssumptions.unfold'Compare
+  StringAffineComparable.TypeAssumptions.ptr_unfold'Compare
 
 abbrev Int64Comparable [GooseExts] : Type := w64
 
@@ -2503,15 +2503,15 @@ class Int64Comparable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   underlying : go.UnderlyingDirectedEq Int64Comparable.ty Int64Comparable.underlying
   method_set : go.MethodSetIs Int64Comparable.ty [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Int64Comparable.ty) [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
-  Compare_unfold : MethodUnfold Int64Comparable.ty go!"Compare" Int64Comparable.Compare.impl
-  ptr_Compare_unfold : MethodUnfold (go.GoType.PointerType Int64Comparable.ty) go!"Compare" (LamV "$r"
+  unfold'Compare : MethodUnfold Int64Comparable.ty go!"Compare" Int64Comparable.Compare.impl
+  ptr_unfold'Compare : MethodUnfold (go.GoType.PointerType Int64Comparable.ty) go!"Compare" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Int64Comparable.ty go!"Compare"))) (App (Val (GoInstruction (GoLoad Int64Comparable.ty))) (Var "$r"))))
 
 attribute [instance] Int64Comparable.TypeAssumptions.underlying
   Int64Comparable.TypeAssumptions.method_set
   Int64Comparable.TypeAssumptions.ptr_method_set
-  Int64Comparable.TypeAssumptions.Compare_unfold
-  Int64Comparable.TypeAssumptions.ptr_Compare_unfold
+  Int64Comparable.TypeAssumptions.unfold'Compare
+  Int64Comparable.TypeAssumptions.ptr_unfold'Compare
 
 abbrev BytesAffineComparable [GooseExts] : Type := GoSlice
 
@@ -2522,74 +2522,74 @@ class BytesAffineComparable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   underlying : go.UnderlyingDirectedEq BytesAffineComparable.ty BytesAffineComparable.underlying
   method_set : go.MethodSetIs BytesAffineComparable.ty [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType BytesAffineComparable.ty) [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
-  Compare_unfold : MethodUnfold BytesAffineComparable.ty go!"Compare" BytesAffineComparable.Compare.impl
-  ptr_Compare_unfold : MethodUnfold (go.GoType.PointerType BytesAffineComparable.ty) go!"Compare" (LamV "$r"
+  unfold'Compare : MethodUnfold BytesAffineComparable.ty go!"Compare" BytesAffineComparable.Compare.impl
+  ptr_unfold'Compare : MethodUnfold (go.GoType.PointerType BytesAffineComparable.ty) go!"Compare" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve BytesAffineComparable.ty go!"Compare"))) (App (Val (GoInstruction (GoLoad BytesAffineComparable.ty))) (Var "$r"))))
 
 attribute [instance] BytesAffineComparable.TypeAssumptions.underlying
   BytesAffineComparable.TypeAssumptions.method_set
   BytesAffineComparable.TypeAssumptions.ptr_method_set
-  BytesAffineComparable.TypeAssumptions.Compare_unfold
-  BytesAffineComparable.TypeAssumptions.ptr_Compare_unfold
+  BytesAffineComparable.TypeAssumptions.unfold'Compare
+  BytesAffineComparable.TypeAssumptions.ptr_unfold'Compare
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Comparable_instance : Comparable.TypeAssumptions
-  rbcolor_instance : rbcolor.TypeAssumptions
-  Interval_instance : Interval.TypeAssumptions
-  intervalNode_instance : intervalNode.TypeAssumptions
-  nodeVisitor_instance : nodeVisitor.TypeAssumptions
-  IntervalValue_instance : IntervalValue.TypeAssumptions
-  IntervalTree_instance : IntervalTree.TypeAssumptions
-  intervalTree_instance : intervalTree.TypeAssumptions
-  IntervalVisitor_instance : IntervalVisitor.TypeAssumptions
-  visitedInterval_instance : visitedInterval.TypeAssumptions
-  StringComparable_instance : StringComparable.TypeAssumptions
-  StringAffineComparable_instance : StringAffineComparable.TypeAssumptions
-  Int64Comparable_instance : Int64Comparable.TypeAssumptions
-  BytesAffineComparable_instance : BytesAffineComparable.TypeAssumptions
-  NewIntervalTree_unfold : FuncUnfold NewIntervalTree [] NewIntervalTree.impl
-  NewStringInterval_unfold : FuncUnfold NewStringInterval [] NewStringInterval.impl
-  NewStringPoint_unfold : FuncUnfold NewStringPoint [] NewStringPoint.impl
-  NewStringAffineInterval_unfold : FuncUnfold NewStringAffineInterval [] NewStringAffineInterval.impl
-  NewStringAffinePoint_unfold : FuncUnfold NewStringAffinePoint [] NewStringAffinePoint.impl
-  NewInt64Interval_unfold : FuncUnfold NewInt64Interval [] NewInt64Interval.impl
-  newInt64EmptyInterval_unfold : FuncUnfold newInt64EmptyInterval [] newInt64EmptyInterval.impl
-  NewInt64Point_unfold : FuncUnfold NewInt64Point [] NewInt64Point.impl
-  NewBytesAffineInterval_unfold : FuncUnfold NewBytesAffineInterval [] NewBytesAffineInterval.impl
-  NewBytesAffinePoint_unfold : FuncUnfold NewBytesAffinePoint [] NewBytesAffinePoint.impl
-  import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_math_Assumption : _root_.Perennial.math.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
+  instance'Comparable : Comparable.TypeAssumptions
+  instance'rbcolor : rbcolor.TypeAssumptions
+  instance'Interval : Interval.TypeAssumptions
+  instance'intervalNode : intervalNode.TypeAssumptions
+  instance'nodeVisitor : nodeVisitor.TypeAssumptions
+  instance'IntervalValue : IntervalValue.TypeAssumptions
+  instance'IntervalTree : IntervalTree.TypeAssumptions
+  instance'intervalTree : intervalTree.TypeAssumptions
+  instance'IntervalVisitor : IntervalVisitor.TypeAssumptions
+  instance'visitedInterval : visitedInterval.TypeAssumptions
+  instance'StringComparable : StringComparable.TypeAssumptions
+  instance'StringAffineComparable : StringAffineComparable.TypeAssumptions
+  instance'Int64Comparable : Int64Comparable.TypeAssumptions
+  instance'BytesAffineComparable : BytesAffineComparable.TypeAssumptions
+  unfold'NewIntervalTree : FuncUnfold NewIntervalTree [] NewIntervalTree.impl
+  unfold'NewStringInterval : FuncUnfold NewStringInterval [] NewStringInterval.impl
+  unfold'NewStringPoint : FuncUnfold NewStringPoint [] NewStringPoint.impl
+  unfold'NewStringAffineInterval : FuncUnfold NewStringAffineInterval [] NewStringAffineInterval.impl
+  unfold'NewStringAffinePoint : FuncUnfold NewStringAffinePoint [] NewStringAffinePoint.impl
+  unfold'NewInt64Interval : FuncUnfold NewInt64Interval [] NewInt64Interval.impl
+  unfold'newInt64EmptyInterval : FuncUnfold newInt64EmptyInterval [] newInt64EmptyInterval.impl
+  unfold'NewInt64Point : FuncUnfold NewInt64Point [] NewInt64Point.impl
+  unfold'NewBytesAffineInterval : FuncUnfold NewBytesAffineInterval [] NewBytesAffineInterval.impl
+  unfold'NewBytesAffinePoint : FuncUnfold NewBytesAffinePoint [] NewBytesAffinePoint.impl
+  import'bytes : _root_.Perennial.bytes.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'math : _root_.Perennial.math.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
 
-attribute [instance] Assumptions.Comparable_instance
-  Assumptions.rbcolor_instance
-  Assumptions.Interval_instance
-  Assumptions.intervalNode_instance
-  Assumptions.nodeVisitor_instance
-  Assumptions.IntervalValue_instance
-  Assumptions.IntervalTree_instance
-  Assumptions.intervalTree_instance
-  Assumptions.IntervalVisitor_instance
-  Assumptions.visitedInterval_instance
-  Assumptions.StringComparable_instance
-  Assumptions.StringAffineComparable_instance
-  Assumptions.Int64Comparable_instance
-  Assumptions.BytesAffineComparable_instance
-  Assumptions.NewIntervalTree_unfold
-  Assumptions.NewStringInterval_unfold
-  Assumptions.NewStringPoint_unfold
-  Assumptions.NewStringAffineInterval_unfold
-  Assumptions.NewStringAffinePoint_unfold
-  Assumptions.NewInt64Interval_unfold
-  Assumptions.newInt64EmptyInterval_unfold
-  Assumptions.NewInt64Point_unfold
-  Assumptions.NewBytesAffineInterval_unfold
-  Assumptions.NewBytesAffinePoint_unfold
-  Assumptions.import_bytes_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_math_Assumption
-  Assumptions.import_strings_Assumption
+attribute [instance] Assumptions.instance'Comparable
+  Assumptions.instance'rbcolor
+  Assumptions.instance'Interval
+  Assumptions.instance'intervalNode
+  Assumptions.instance'nodeVisitor
+  Assumptions.instance'IntervalValue
+  Assumptions.instance'IntervalTree
+  Assumptions.instance'intervalTree
+  Assumptions.instance'IntervalVisitor
+  Assumptions.instance'visitedInterval
+  Assumptions.instance'StringComparable
+  Assumptions.instance'StringAffineComparable
+  Assumptions.instance'Int64Comparable
+  Assumptions.instance'BytesAffineComparable
+  Assumptions.unfold'NewIntervalTree
+  Assumptions.unfold'NewStringInterval
+  Assumptions.unfold'NewStringPoint
+  Assumptions.unfold'NewStringAffineInterval
+  Assumptions.unfold'NewStringAffinePoint
+  Assumptions.unfold'NewInt64Interval
+  Assumptions.unfold'newInt64EmptyInterval
+  Assumptions.unfold'NewInt64Point
+  Assumptions.unfold'NewBytesAffineInterval
+  Assumptions.unfold'NewBytesAffinePoint
+  Assumptions.import'bytes
+  Assumptions.import'fmt
+  Assumptions.import'math
+  Assumptions.import'strings
 
 end go_etcd_io.etcd.pkg.v3.adt
 

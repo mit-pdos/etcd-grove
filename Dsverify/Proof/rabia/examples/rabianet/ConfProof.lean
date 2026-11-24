@@ -177,7 +177,7 @@ theorem wp_configure (D : KitNetDeps (GF := GF)) (ps : GoSlice) (cf : RCfg) (hc 
   wp_apply batchMs.wp_proof cf hc.2.2.1
   ihave Hc : globalAddr rabia.internal.config.Conf ↦ confPre cf ps $$ [-HΦ c conf]
   · iapply typedPointsto_combine _ _ _ Hnn
-    dsimp only [TypedPointsto.typedPointstoDef, rabia.internal.config.Config.Config_typed_pointsto,
+    dsimp only [TypedPointsto.typedPointstoDef, rabia.internal.config.Config.typed_pointsto'Config,
       confPre]
     iFrameNamed
   wp_apply D.calcConstants (globalAddr rabia.internal.config.Conf) (confPre cf ps) $$ [Hc] as Hc
@@ -187,7 +187,7 @@ theorem wp_configure (D : KitNetDeps (GF := GF)) (ps : GoSlice) (cf : RCfg) (hc 
   iapply HΦ
   rw [← confVal_eq cf hc ps]
   iapply typedPointsto_combine _ _ _ Hnn
-  dsimp only [TypedPointsto.typedPointstoDef, rabia.internal.config.Config.Config_typed_pointsto,
+  dsimp only [TypedPointsto.typedPointstoDef, rabia.internal.config.Config.typed_pointsto'Config,
     confPre]
   iFrameNamed
   iExactEq NClientRequests

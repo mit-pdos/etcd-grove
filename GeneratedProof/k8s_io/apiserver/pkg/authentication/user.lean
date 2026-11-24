@@ -24,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.authentication.user.Assumptions]
 
-noncomputable instance DefaultInfo_typed_pointsto :
+noncomputable instance typed_pointsto'DefaultInfo :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.authentication.user.DefaultInfo where
   typedPointstoDef l v dq := iprop(
     "Name" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Name" l) v.Name' dq ∗
@@ -36,11 +36,11 @@ noncomputable instance DefaultInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance DefaultInfo_into_val_typed :
+noncomputable instance into_val_typed'DefaultInfo :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.authentication.user.DefaultInfo k8s_io.apiserver.pkg.authentication.user.DefaultInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance DefaultInfo_access_load_Name (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (dq : DFrac) :
+noncomputable instance access_load'DefaultInfo'Name (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Name" l) v.Name' dq)
@@ -48,7 +48,7 @@ noncomputable instance DefaultInfo_access_load_Name (l : Loc) (v : k8s_io.apiser
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultInfo_access_store_Name (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (y : GoString) :
+noncomputable instance access_store'DefaultInfo'Name (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Name" l) y (DFrac.own 1))
@@ -56,7 +56,7 @@ noncomputable instance DefaultInfo_access_store_Name (l : Loc) (v : k8s_io.apise
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultInfo_access_load_UID (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (dq : DFrac) :
+noncomputable instance access_load'DefaultInfo'UID (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"UID" l) v.UID' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"UID" l) v.UID' dq)
@@ -64,7 +64,7 @@ noncomputable instance DefaultInfo_access_load_UID (l : Loc) (v : k8s_io.apiserv
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultInfo_access_store_UID (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (y : GoString) :
+noncomputable instance access_store'DefaultInfo'UID (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"UID" l) v.UID' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"UID" l) y (DFrac.own 1))
@@ -72,7 +72,7 @@ noncomputable instance DefaultInfo_access_store_UID (l : Loc) (v : k8s_io.apiser
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultInfo_access_load_Groups (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (dq : DFrac) :
+noncomputable instance access_load'DefaultInfo'Groups (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Groups" l) v.Groups' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Groups" l) v.Groups' dq)
@@ -80,7 +80,7 @@ noncomputable instance DefaultInfo_access_load_Groups (l : Loc) (v : k8s_io.apis
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultInfo_access_store_Groups (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (y : GoSlice) :
+noncomputable instance access_store'DefaultInfo'Groups (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Groups" l) v.Groups' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Groups" l) y (DFrac.own 1))
@@ -88,7 +88,7 @@ noncomputable instance DefaultInfo_access_store_Groups (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultInfo_access_load_Extra (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (dq : DFrac) :
+noncomputable instance access_load'DefaultInfo'Extra (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Extra" l) v.Extra' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Extra" l) v.Extra' dq)
@@ -96,7 +96,7 @@ noncomputable instance DefaultInfo_access_load_Extra (l : Loc) (v : k8s_io.apise
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultInfo_access_store_Extra (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (y : GoMap) :
+noncomputable instance access_store'DefaultInfo'Extra (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Extra" l) v.Extra' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Extra" l) y (DFrac.own 1))

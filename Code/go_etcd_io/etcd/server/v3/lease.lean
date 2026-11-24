@@ -1571,7 +1571,7 @@ noncomputable def lessor.Leases.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType Lease.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert leasesByExpiry.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType Lease.ty))))) (Var "ls")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le")))) (Val #()))))))
   (App (Val doExecute)
@@ -1696,7 +1696,7 @@ noncomputable def lessor.Promote.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "baseWindow") (Var "$r0")))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert leasesByExpiry.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType Lease.ty))))) (Var "leases")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType Lease.ty))))) (Pair (Var "leases") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseID.ty (go.GoType.PointerType Lease.ty))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"leaseMap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "le"))))
@@ -2849,7 +2849,7 @@ noncomputable instance Lease.zero_val [GooseExts] : ZeroVal Lease :=
 @[irreducible] noncomputable def Lease.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Lease.fieldsUnsealed
 
-noncomputable instance equals_unfold_Lease [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Lease [GooseExts] [GoGlobalContext] :
     EqualsUnfold Lease.fields Lease.fieldsUnsealed :=
   ⟨by unfold Lease.fields; rfl⟩
 
@@ -2859,61 +2859,61 @@ noncomputable instance equals_unfold_Lease [GooseExts] [GoGlobalContext] :
 class Lease.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Lease.underlying Lease
   underlying : go.UnderlyingDirectedEq Lease.ty Lease.underlying
-  get_ID : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"ID") #x (Val #(x.ID'))
-  set_ID : ∀ (x : Lease) (y : LeaseID), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : Lease)))
-  get_ttl : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"ttl") #x (Val #(x.ttl'))
-  set_ttl : ∀ (x : Lease) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"ttl") (PairV #x #y) (Val #(({ x with ttl' := y } : Lease)))
-  get_remainingTTL : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"remainingTTL") #x (Val #(x.remainingTTL'))
-  set_remainingTTL : ∀ (x : Lease) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"remainingTTL") (PairV #x #y) (Val #(({ x with remainingTTL' := y } : Lease)))
-  get_expiryMu : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"expiryMu") #x (Val #(x.expiryMu'))
-  set_expiryMu : ∀ (x : Lease) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"expiryMu") (PairV #x #y) (Val #(({ x with expiryMu' := y } : Lease)))
-  get_expiry : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"expiry") #x (Val #(x.expiry'))
-  set_expiry : ∀ (x : Lease) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"expiry") (PairV #x #y) (Val #(({ x with expiry' := y } : Lease)))
-  get_mu : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : Lease) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Lease)))
-  get_itemSet : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"itemSet") #x (Val #(x.itemSet'))
-  set_itemSet : ∀ (x : Lease) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"itemSet") (PairV #x #y) (Val #(({ x with itemSet' := y } : Lease)))
-  get_revokec : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"revokec") #x (Val #(x.revokec'))
-  set_revokec : ∀ (x : Lease) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"revokec") (PairV #x #y) (Val #(({ x with revokec' := y } : Lease)))
+  get'ID : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"ID") #x (Val #(x.ID'))
+  set'ID : ∀ (x : Lease) (y : LeaseID), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : Lease)))
+  get'ttl : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"ttl") #x (Val #(x.ttl'))
+  set'ttl : ∀ (x : Lease) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"ttl") (PairV #x #y) (Val #(({ x with ttl' := y } : Lease)))
+  get'remainingTTL : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"remainingTTL") #x (Val #(x.remainingTTL'))
+  set'remainingTTL : ∀ (x : Lease) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"remainingTTL") (PairV #x #y) (Val #(({ x with remainingTTL' := y } : Lease)))
+  get'expiryMu : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"expiryMu") #x (Val #(x.expiryMu'))
+  set'expiryMu : ∀ (x : Lease) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"expiryMu") (PairV #x #y) (Val #(({ x with expiryMu' := y } : Lease)))
+  get'expiry : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"expiry") #x (Val #(x.expiry'))
+  set'expiry : ∀ (x : Lease) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"expiry") (PairV #x #y) (Val #(({ x with expiry' := y } : Lease)))
+  get'mu : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : Lease) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Lease)))
+  get'itemSet : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"itemSet") #x (Val #(x.itemSet'))
+  set'itemSet : ∀ (x : Lease) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"itemSet") (PairV #x #y) (Val #(({ x with itemSet' := y } : Lease)))
+  get'revokec : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"revokec") #x (Val #(x.revokec'))
+  set'revokec : ∀ (x : Lease) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"revokec") (PairV #x #y) (Val #(({ x with revokec' := y } : Lease)))
   method_set : go.MethodSetIs Lease.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Lease.ty) [(go!"Demoted", (some (go.signature.Signature [] false [go.bool]))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Remaining", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"SetLeaseItem", (some (go.signature.Signature [LeaseItem.ty] false []))), (go!"TTL", (some (go.signature.Signature [] false [go.int64]))), (go!"go.etcd.io/etcd/server/v3/lease.expired", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/lease.forever", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/lease.getRemainingTTL", (some (go.signature.Signature [] false [go.int64]))), (go!"go.etcd.io/etcd/server/v3/lease.persistTo", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty] false []))), (go!"go.etcd.io/etcd/server/v3/lease.refresh", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [])))]
-  ptr_Keys_unfold : MethodUnfold (go.GoType.PointerType Lease.ty) go!"Keys" Lease.Keys.impl
-  ptr_Remaining_unfold : MethodUnfold (go.GoType.PointerType Lease.ty) go!"Remaining" Lease.Remaining.impl
-  ptr_TTL_unfold : MethodUnfold (go.GoType.PointerType Lease.ty) go!"TTL" Lease.TTL.impl
-  ptr_expired_unfold : MethodUnfold (go.GoType.PointerType Lease.ty) go!"expired" Lease.expired.impl
-  ptr_forever_unfold : MethodUnfold (go.GoType.PointerType Lease.ty) go!"forever" Lease.forever.impl
-  ptr_getRemainingTTL_unfold : MethodUnfold (go.GoType.PointerType Lease.ty) go!"getRemainingTTL" Lease.getRemainingTTL.impl
-  ptr_persistTo_unfold : MethodUnfold (go.GoType.PointerType Lease.ty) go!"persistTo" Lease.persistTo.impl
-  ptr_refresh_unfold : MethodUnfold (go.GoType.PointerType Lease.ty) go!"refresh" Lease.refresh.impl
+  ptr_unfold'Keys : MethodUnfold (go.GoType.PointerType Lease.ty) go!"Keys" Lease.Keys.impl
+  ptr_unfold'Remaining : MethodUnfold (go.GoType.PointerType Lease.ty) go!"Remaining" Lease.Remaining.impl
+  ptr_unfold'TTL : MethodUnfold (go.GoType.PointerType Lease.ty) go!"TTL" Lease.TTL.impl
+  ptr_unfold'expired : MethodUnfold (go.GoType.PointerType Lease.ty) go!"expired" Lease.expired.impl
+  ptr_unfold'forever : MethodUnfold (go.GoType.PointerType Lease.ty) go!"forever" Lease.forever.impl
+  ptr_unfold'getRemainingTTL : MethodUnfold (go.GoType.PointerType Lease.ty) go!"getRemainingTTL" Lease.getRemainingTTL.impl
+  ptr_unfold'persistTo : MethodUnfold (go.GoType.PointerType Lease.ty) go!"persistTo" Lease.persistTo.impl
+  ptr_unfold'refresh : MethodUnfold (go.GoType.PointerType Lease.ty) go!"refresh" Lease.refresh.impl
 
 attribute [instance] Lease.TypeAssumptions.type_repr
   Lease.TypeAssumptions.underlying
-  Lease.TypeAssumptions.get_ID
-  Lease.TypeAssumptions.set_ID
-  Lease.TypeAssumptions.get_ttl
-  Lease.TypeAssumptions.set_ttl
-  Lease.TypeAssumptions.get_remainingTTL
-  Lease.TypeAssumptions.set_remainingTTL
-  Lease.TypeAssumptions.get_expiryMu
-  Lease.TypeAssumptions.set_expiryMu
-  Lease.TypeAssumptions.get_expiry
-  Lease.TypeAssumptions.set_expiry
-  Lease.TypeAssumptions.get_mu
-  Lease.TypeAssumptions.set_mu
-  Lease.TypeAssumptions.get_itemSet
-  Lease.TypeAssumptions.set_itemSet
-  Lease.TypeAssumptions.get_revokec
-  Lease.TypeAssumptions.set_revokec
+  Lease.TypeAssumptions.get'ID
+  Lease.TypeAssumptions.set'ID
+  Lease.TypeAssumptions.get'ttl
+  Lease.TypeAssumptions.set'ttl
+  Lease.TypeAssumptions.get'remainingTTL
+  Lease.TypeAssumptions.set'remainingTTL
+  Lease.TypeAssumptions.get'expiryMu
+  Lease.TypeAssumptions.set'expiryMu
+  Lease.TypeAssumptions.get'expiry
+  Lease.TypeAssumptions.set'expiry
+  Lease.TypeAssumptions.get'mu
+  Lease.TypeAssumptions.set'mu
+  Lease.TypeAssumptions.get'itemSet
+  Lease.TypeAssumptions.set'itemSet
+  Lease.TypeAssumptions.get'revokec
+  Lease.TypeAssumptions.set'revokec
   Lease.TypeAssumptions.method_set
   Lease.TypeAssumptions.ptr_method_set
-  Lease.TypeAssumptions.ptr_Keys_unfold
-  Lease.TypeAssumptions.ptr_Remaining_unfold
-  Lease.TypeAssumptions.ptr_TTL_unfold
-  Lease.TypeAssumptions.ptr_expired_unfold
-  Lease.TypeAssumptions.ptr_forever_unfold
-  Lease.TypeAssumptions.ptr_getRemainingTTL_unfold
-  Lease.TypeAssumptions.ptr_persistTo_unfold
-  Lease.TypeAssumptions.ptr_refresh_unfold
+  Lease.TypeAssumptions.ptr_unfold'Keys
+  Lease.TypeAssumptions.ptr_unfold'Remaining
+  Lease.TypeAssumptions.ptr_unfold'TTL
+  Lease.TypeAssumptions.ptr_unfold'expired
+  Lease.TypeAssumptions.ptr_unfold'forever
+  Lease.TypeAssumptions.ptr_unfold'getRemainingTTL
+  Lease.TypeAssumptions.ptr_unfold'persistTo
+  Lease.TypeAssumptions.ptr_unfold'refresh
 
 structure LeaseItem [GooseExts] where
   mk ::
@@ -2928,7 +2928,7 @@ noncomputable instance LeaseItem.zero_val [GooseExts] : ZeroVal LeaseItem :=
 @[irreducible] noncomputable def LeaseItem.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LeaseItem.fieldsUnsealed
 
-noncomputable instance equals_unfold_LeaseItem [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LeaseItem [GooseExts] [GoGlobalContext] :
     EqualsUnfold LeaseItem.fields LeaseItem.fieldsUnsealed :=
   ⟨by unfold LeaseItem.fields; rfl⟩
 
@@ -2938,15 +2938,15 @@ noncomputable instance equals_unfold_LeaseItem [GooseExts] [GoGlobalContext] :
 class LeaseItem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseItem.underlying LeaseItem
   underlying : go.UnderlyingDirectedEq LeaseItem.ty LeaseItem.underlying
-  get_Key : ∀ (x : LeaseItem), go.IsGoStepPureDetTagged under (StructFieldGet LeaseItem.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : LeaseItem) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LeaseItem.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : LeaseItem)))
+  get'Key : ∀ (x : LeaseItem), go.IsGoStepPureDetTagged under (StructFieldGet LeaseItem.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : LeaseItem) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LeaseItem.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : LeaseItem)))
   method_set : go.MethodSetIs LeaseItem.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseItem.ty) []
 
 attribute [instance] LeaseItem.TypeAssumptions.type_repr
   LeaseItem.TypeAssumptions.underlying
-  LeaseItem.TypeAssumptions.get_Key
-  LeaseItem.TypeAssumptions.set_Key
+  LeaseItem.TypeAssumptions.get'Key
+  LeaseItem.TypeAssumptions.set'Key
   LeaseItem.TypeAssumptions.method_set
   LeaseItem.TypeAssumptions.ptr_method_set
 
@@ -2959,25 +2959,25 @@ class leasesByExpiry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq leasesByExpiry.ty leasesByExpiry.underlying
   method_set : go.MethodSetIs leasesByExpiry.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType leasesByExpiry.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold leasesByExpiry.ty go!"Len" leasesByExpiry.Len.impl
-  Less_unfold : MethodUnfold leasesByExpiry.ty go!"Less" leasesByExpiry.Less.impl
-  Swap_unfold : MethodUnfold leasesByExpiry.ty go!"Swap" leasesByExpiry.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType leasesByExpiry.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold leasesByExpiry.ty go!"Len" leasesByExpiry.Len.impl
+  unfold'Less : MethodUnfold leasesByExpiry.ty go!"Less" leasesByExpiry.Less.impl
+  unfold'Swap : MethodUnfold leasesByExpiry.ty go!"Swap" leasesByExpiry.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType leasesByExpiry.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve leasesByExpiry.ty go!"Len"))) (App (Val (GoInstruction (GoLoad leasesByExpiry.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType leasesByExpiry.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType leasesByExpiry.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve leasesByExpiry.ty go!"Less"))) (App (Val (GoInstruction (GoLoad leasesByExpiry.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType leasesByExpiry.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType leasesByExpiry.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve leasesByExpiry.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad leasesByExpiry.ty))) (Var "$r"))))
 
 attribute [instance] leasesByExpiry.TypeAssumptions.underlying
   leasesByExpiry.TypeAssumptions.method_set
   leasesByExpiry.TypeAssumptions.ptr_method_set
-  leasesByExpiry.TypeAssumptions.Len_unfold
-  leasesByExpiry.TypeAssumptions.Less_unfold
-  leasesByExpiry.TypeAssumptions.Swap_unfold
-  leasesByExpiry.TypeAssumptions.ptr_Len_unfold
-  leasesByExpiry.TypeAssumptions.ptr_Less_unfold
-  leasesByExpiry.TypeAssumptions.ptr_Swap_unfold
+  leasesByExpiry.TypeAssumptions.unfold'Len
+  leasesByExpiry.TypeAssumptions.unfold'Less
+  leasesByExpiry.TypeAssumptions.unfold'Swap
+  leasesByExpiry.TypeAssumptions.ptr_unfold'Len
+  leasesByExpiry.TypeAssumptions.ptr_unfold'Less
+  leasesByExpiry.TypeAssumptions.ptr_unfold'Swap
 
 structure LeaseWithTime [GooseExts] where
   mk ::
@@ -2996,7 +2996,7 @@ noncomputable instance LeaseWithTime.zero_val [GooseExts] : ZeroVal LeaseWithTim
 @[irreducible] noncomputable def LeaseWithTime.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LeaseWithTime.fieldsUnsealed
 
-noncomputable instance equals_unfold_LeaseWithTime [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LeaseWithTime [GooseExts] [GoGlobalContext] :
     EqualsUnfold LeaseWithTime.fields LeaseWithTime.fieldsUnsealed :=
   ⟨by unfold LeaseWithTime.fields; rfl⟩
 
@@ -3006,23 +3006,23 @@ noncomputable instance equals_unfold_LeaseWithTime [GooseExts] [GoGlobalContext]
 class LeaseWithTime.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseWithTime.underlying LeaseWithTime
   underlying : go.UnderlyingDirectedEq LeaseWithTime.ty LeaseWithTime.underlying
-  get_id : ∀ (x : LeaseWithTime), go.IsGoStepPureDetTagged under (StructFieldGet LeaseWithTime.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : LeaseWithTime) (y : LeaseID), go.IsGoStepPureDetTagged under (StructFieldSet LeaseWithTime.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : LeaseWithTime)))
-  get_time : ∀ (x : LeaseWithTime), go.IsGoStepPureDetTagged under (StructFieldGet LeaseWithTime.underlying go!"time") #x (Val #(x.time'))
-  set_time : ∀ (x : LeaseWithTime) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet LeaseWithTime.underlying go!"time") (PairV #x #y) (Val #(({ x with time' := y } : LeaseWithTime)))
-  get_index : ∀ (x : LeaseWithTime), go.IsGoStepPureDetTagged under (StructFieldGet LeaseWithTime.underlying go!"index") #x (Val #(x.index'))
-  set_index : ∀ (x : LeaseWithTime) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LeaseWithTime.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : LeaseWithTime)))
+  get'id : ∀ (x : LeaseWithTime), go.IsGoStepPureDetTagged under (StructFieldGet LeaseWithTime.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : LeaseWithTime) (y : LeaseID), go.IsGoStepPureDetTagged under (StructFieldSet LeaseWithTime.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : LeaseWithTime)))
+  get'time : ∀ (x : LeaseWithTime), go.IsGoStepPureDetTagged under (StructFieldGet LeaseWithTime.underlying go!"time") #x (Val #(x.time'))
+  set'time : ∀ (x : LeaseWithTime) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet LeaseWithTime.underlying go!"time") (PairV #x #y) (Val #(({ x with time' := y } : LeaseWithTime)))
+  get'index : ∀ (x : LeaseWithTime), go.IsGoStepPureDetTagged under (StructFieldGet LeaseWithTime.underlying go!"index") #x (Val #(x.index'))
+  set'index : ∀ (x : LeaseWithTime) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LeaseWithTime.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : LeaseWithTime)))
   method_set : go.MethodSetIs LeaseWithTime.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseWithTime.ty) []
 
 attribute [instance] LeaseWithTime.TypeAssumptions.type_repr
   LeaseWithTime.TypeAssumptions.underlying
-  LeaseWithTime.TypeAssumptions.get_id
-  LeaseWithTime.TypeAssumptions.set_id
-  LeaseWithTime.TypeAssumptions.get_time
-  LeaseWithTime.TypeAssumptions.set_time
-  LeaseWithTime.TypeAssumptions.get_index
-  LeaseWithTime.TypeAssumptions.set_index
+  LeaseWithTime.TypeAssumptions.get'id
+  LeaseWithTime.TypeAssumptions.set'id
+  LeaseWithTime.TypeAssumptions.get'time
+  LeaseWithTime.TypeAssumptions.set'time
+  LeaseWithTime.TypeAssumptions.get'index
+  LeaseWithTime.TypeAssumptions.set'index
   LeaseWithTime.TypeAssumptions.method_set
   LeaseWithTime.TypeAssumptions.ptr_method_set
 
@@ -3035,29 +3035,29 @@ class LeaseQueue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq LeaseQueue.ty LeaseQueue.underlying
   method_set : go.MethodSetIs LeaseQueue.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseQueue.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Pop", (some (go.signature.Signature [] false [go.any]))), (go!"Push", (some (go.signature.Signature [go.any] false []))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold LeaseQueue.ty go!"Len" LeaseQueue.Len.impl
-  Less_unfold : MethodUnfold LeaseQueue.ty go!"Less" LeaseQueue.Less.impl
-  Swap_unfold : MethodUnfold LeaseQueue.ty go!"Swap" LeaseQueue.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType LeaseQueue.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold LeaseQueue.ty go!"Len" LeaseQueue.Len.impl
+  unfold'Less : MethodUnfold LeaseQueue.ty go!"Less" LeaseQueue.Less.impl
+  unfold'Swap : MethodUnfold LeaseQueue.ty go!"Swap" LeaseQueue.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType LeaseQueue.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve LeaseQueue.ty go!"Len"))) (App (Val (GoInstruction (GoLoad LeaseQueue.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType LeaseQueue.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType LeaseQueue.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve LeaseQueue.ty go!"Less"))) (App (Val (GoInstruction (GoLoad LeaseQueue.ty))) (Var "$r"))))
-  ptr_Pop_unfold : MethodUnfold (go.GoType.PointerType LeaseQueue.ty) go!"Pop" LeaseQueue.Pop.impl
-  ptr_Push_unfold : MethodUnfold (go.GoType.PointerType LeaseQueue.ty) go!"Push" LeaseQueue.Push.impl
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType LeaseQueue.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Pop : MethodUnfold (go.GoType.PointerType LeaseQueue.ty) go!"Pop" LeaseQueue.Pop.impl
+  ptr_unfold'Push : MethodUnfold (go.GoType.PointerType LeaseQueue.ty) go!"Push" LeaseQueue.Push.impl
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType LeaseQueue.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve LeaseQueue.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad LeaseQueue.ty))) (Var "$r"))))
 
 attribute [instance] LeaseQueue.TypeAssumptions.underlying
   LeaseQueue.TypeAssumptions.method_set
   LeaseQueue.TypeAssumptions.ptr_method_set
-  LeaseQueue.TypeAssumptions.Len_unfold
-  LeaseQueue.TypeAssumptions.Less_unfold
-  LeaseQueue.TypeAssumptions.Swap_unfold
-  LeaseQueue.TypeAssumptions.ptr_Len_unfold
-  LeaseQueue.TypeAssumptions.ptr_Less_unfold
-  LeaseQueue.TypeAssumptions.ptr_Pop_unfold
-  LeaseQueue.TypeAssumptions.ptr_Push_unfold
-  LeaseQueue.TypeAssumptions.ptr_Swap_unfold
+  LeaseQueue.TypeAssumptions.unfold'Len
+  LeaseQueue.TypeAssumptions.unfold'Less
+  LeaseQueue.TypeAssumptions.unfold'Swap
+  LeaseQueue.TypeAssumptions.ptr_unfold'Len
+  LeaseQueue.TypeAssumptions.ptr_unfold'Less
+  LeaseQueue.TypeAssumptions.ptr_unfold'Pop
+  LeaseQueue.TypeAssumptions.ptr_unfold'Push
+  LeaseQueue.TypeAssumptions.ptr_unfold'Swap
 
 structure LeaseExpiredNotifier [GooseExts] where
   mk ::
@@ -3074,7 +3074,7 @@ noncomputable instance LeaseExpiredNotifier.zero_val [GooseExts] : ZeroVal Lease
 @[irreducible] noncomputable def LeaseExpiredNotifier.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LeaseExpiredNotifier.fieldsUnsealed
 
-noncomputable instance equals_unfold_LeaseExpiredNotifier [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LeaseExpiredNotifier [GooseExts] [GoGlobalContext] :
     EqualsUnfold LeaseExpiredNotifier.fields LeaseExpiredNotifier.fieldsUnsealed :=
   ⟨by unfold LeaseExpiredNotifier.fields; rfl⟩
 
@@ -3084,31 +3084,31 @@ noncomputable instance equals_unfold_LeaseExpiredNotifier [GooseExts] [GoGlobalC
 class LeaseExpiredNotifier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseExpiredNotifier.underlying LeaseExpiredNotifier
   underlying : go.UnderlyingDirectedEq LeaseExpiredNotifier.ty LeaseExpiredNotifier.underlying
-  get_m : ∀ (x : LeaseExpiredNotifier), go.IsGoStepPureDetTagged under (StructFieldGet LeaseExpiredNotifier.underlying go!"m") #x (Val #(x.m'))
-  set_m : ∀ (x : LeaseExpiredNotifier) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet LeaseExpiredNotifier.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : LeaseExpiredNotifier)))
-  get_queue : ∀ (x : LeaseExpiredNotifier), go.IsGoStepPureDetTagged under (StructFieldGet LeaseExpiredNotifier.underlying go!"queue") #x (Val #(x.queue'))
-  set_queue : ∀ (x : LeaseExpiredNotifier) (y : LeaseQueue), go.IsGoStepPureDetTagged under (StructFieldSet LeaseExpiredNotifier.underlying go!"queue") (PairV #x #y) (Val #(({ x with queue' := y } : LeaseExpiredNotifier)))
+  get'm : ∀ (x : LeaseExpiredNotifier), go.IsGoStepPureDetTagged under (StructFieldGet LeaseExpiredNotifier.underlying go!"m") #x (Val #(x.m'))
+  set'm : ∀ (x : LeaseExpiredNotifier) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet LeaseExpiredNotifier.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : LeaseExpiredNotifier)))
+  get'queue : ∀ (x : LeaseExpiredNotifier), go.IsGoStepPureDetTagged under (StructFieldGet LeaseExpiredNotifier.underlying go!"queue") #x (Val #(x.queue'))
+  set'queue : ∀ (x : LeaseExpiredNotifier) (y : LeaseQueue), go.IsGoStepPureDetTagged under (StructFieldSet LeaseExpiredNotifier.underlying go!"queue") (PairV #x #y) (Val #(({ x with queue' := y } : LeaseExpiredNotifier)))
   method_set : go.MethodSetIs LeaseExpiredNotifier.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseExpiredNotifier.ty) [(go!"Init", (some (go.signature.Signature [] false []))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Peek", (some (go.signature.Signature [] false [(go.GoType.PointerType LeaseWithTime.ty)]))), (go!"RegisterOrUpdate", (some (go.signature.Signature [(go.GoType.PointerType LeaseWithTime.ty)] false []))), (go!"Unregister", (some (go.signature.Signature [] false [(go.GoType.PointerType LeaseWithTime.ty)])))]
-  ptr_Init_unfold : MethodUnfold (go.GoType.PointerType LeaseExpiredNotifier.ty) go!"Init" LeaseExpiredNotifier.Init.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType LeaseExpiredNotifier.ty) go!"Len" LeaseExpiredNotifier.Len.impl
-  ptr_Peek_unfold : MethodUnfold (go.GoType.PointerType LeaseExpiredNotifier.ty) go!"Peek" LeaseExpiredNotifier.Peek.impl
-  ptr_RegisterOrUpdate_unfold : MethodUnfold (go.GoType.PointerType LeaseExpiredNotifier.ty) go!"RegisterOrUpdate" LeaseExpiredNotifier.RegisterOrUpdate.impl
-  ptr_Unregister_unfold : MethodUnfold (go.GoType.PointerType LeaseExpiredNotifier.ty) go!"Unregister" LeaseExpiredNotifier.Unregister.impl
+  ptr_unfold'Init : MethodUnfold (go.GoType.PointerType LeaseExpiredNotifier.ty) go!"Init" LeaseExpiredNotifier.Init.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType LeaseExpiredNotifier.ty) go!"Len" LeaseExpiredNotifier.Len.impl
+  ptr_unfold'Peek : MethodUnfold (go.GoType.PointerType LeaseExpiredNotifier.ty) go!"Peek" LeaseExpiredNotifier.Peek.impl
+  ptr_unfold'RegisterOrUpdate : MethodUnfold (go.GoType.PointerType LeaseExpiredNotifier.ty) go!"RegisterOrUpdate" LeaseExpiredNotifier.RegisterOrUpdate.impl
+  ptr_unfold'Unregister : MethodUnfold (go.GoType.PointerType LeaseExpiredNotifier.ty) go!"Unregister" LeaseExpiredNotifier.Unregister.impl
 
 attribute [instance] LeaseExpiredNotifier.TypeAssumptions.type_repr
   LeaseExpiredNotifier.TypeAssumptions.underlying
-  LeaseExpiredNotifier.TypeAssumptions.get_m
-  LeaseExpiredNotifier.TypeAssumptions.set_m
-  LeaseExpiredNotifier.TypeAssumptions.get_queue
-  LeaseExpiredNotifier.TypeAssumptions.set_queue
+  LeaseExpiredNotifier.TypeAssumptions.get'm
+  LeaseExpiredNotifier.TypeAssumptions.set'm
+  LeaseExpiredNotifier.TypeAssumptions.get'queue
+  LeaseExpiredNotifier.TypeAssumptions.set'queue
   LeaseExpiredNotifier.TypeAssumptions.method_set
   LeaseExpiredNotifier.TypeAssumptions.ptr_method_set
-  LeaseExpiredNotifier.TypeAssumptions.ptr_Init_unfold
-  LeaseExpiredNotifier.TypeAssumptions.ptr_Len_unfold
-  LeaseExpiredNotifier.TypeAssumptions.ptr_Peek_unfold
-  LeaseExpiredNotifier.TypeAssumptions.ptr_RegisterOrUpdate_unfold
-  LeaseExpiredNotifier.TypeAssumptions.ptr_Unregister_unfold
+  LeaseExpiredNotifier.TypeAssumptions.ptr_unfold'Init
+  LeaseExpiredNotifier.TypeAssumptions.ptr_unfold'Len
+  LeaseExpiredNotifier.TypeAssumptions.ptr_unfold'Peek
+  LeaseExpiredNotifier.TypeAssumptions.ptr_unfold'RegisterOrUpdate
+  LeaseExpiredNotifier.TypeAssumptions.ptr_unfold'Unregister
 
 abbrev TxnDelete [GooseExts] : Type := GoInterface
 
@@ -3229,7 +3229,7 @@ noncomputable instance lessor.zero_val [GooseExts] : ZeroVal lessor :=
 @[irreducible] noncomputable def lessor.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   lessor.fieldsUnsealed
 
-noncomputable instance equals_unfold_lessor [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'lessor [GooseExts] [GoGlobalContext] :
     EqualsUnfold lessor.fields lessor.fieldsUnsealed :=
   ⟨by unfold lessor.fields; rfl⟩
 
@@ -3239,145 +3239,145 @@ noncomputable instance equals_unfold_lessor [GooseExts] [GoGlobalContext] :
 class lessor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lessor.underlying lessor
   underlying : go.UnderlyingDirectedEq lessor.ty lessor.underlying
-  get_mu : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : lessor) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : lessor)))
-  get_demotec : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"demotec") #x (Val #(x.demotec'))
-  set_demotec : ∀ (x : lessor) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"demotec") (PairV #x #y) (Val #(({ x with demotec' := y } : lessor)))
-  get_leaseMap : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"leaseMap") #x (Val #(x.leaseMap'))
-  set_leaseMap : ∀ (x : lessor) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"leaseMap") (PairV #x #y) (Val #(({ x with leaseMap' := y } : lessor)))
-  get_leaseExpiredNotifier : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"leaseExpiredNotifier") #x (Val #(x.leaseExpiredNotifier'))
-  set_leaseExpiredNotifier : ∀ (x : lessor) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"leaseExpiredNotifier") (PairV #x #y) (Val #(({ x with leaseExpiredNotifier' := y } : lessor)))
-  get_leaseCheckpointHeap : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"leaseCheckpointHeap") #x (Val #(x.leaseCheckpointHeap'))
-  set_leaseCheckpointHeap : ∀ (x : lessor) (y : LeaseQueue), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"leaseCheckpointHeap") (PairV #x #y) (Val #(({ x with leaseCheckpointHeap' := y } : lessor)))
-  get_itemMap : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"itemMap") #x (Val #(x.itemMap'))
-  set_itemMap : ∀ (x : lessor) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"itemMap") (PairV #x #y) (Val #(({ x with itemMap' := y } : lessor)))
-  get_rd : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"rd") #x (Val #(x.rd'))
-  set_rd : ∀ (x : lessor) (y : RangeDeleter), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"rd") (PairV #x #y) (Val #(({ x with rd' := y } : lessor)))
-  get_cp : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"cp") #x (Val #(x.cp'))
-  set_cp : ∀ (x : lessor) (y : Checkpointer), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"cp") (PairV #x #y) (Val #(({ x with cp' := y } : lessor)))
-  get_b : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"b") #x (Val #(x.b'))
-  set_b : ∀ (x : lessor) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"b") (PairV #x #y) (Val #(({ x with b' := y } : lessor)))
-  get_minLeaseTTL : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"minLeaseTTL") #x (Val #(x.minLeaseTTL'))
-  set_minLeaseTTL : ∀ (x : lessor) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"minLeaseTTL") (PairV #x #y) (Val #(({ x with minLeaseTTL' := y } : lessor)))
-  get_leaseRevokeRate : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"leaseRevokeRate") #x (Val #(x.leaseRevokeRate'))
-  set_leaseRevokeRate : ∀ (x : lessor) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"leaseRevokeRate") (PairV #x #y) (Val #(({ x with leaseRevokeRate' := y } : lessor)))
-  get_expiredC : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"expiredC") #x (Val #(x.expiredC'))
-  set_expiredC : ∀ (x : lessor) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"expiredC") (PairV #x #y) (Val #(({ x with expiredC' := y } : lessor)))
-  get_stopC : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"stopC") #x (Val #(x.stopC'))
-  set_stopC : ∀ (x : lessor) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"stopC") (PairV #x #y) (Val #(({ x with stopC' := y } : lessor)))
-  get_doneC : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"doneC") #x (Val #(x.doneC'))
-  set_doneC : ∀ (x : lessor) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"doneC") (PairV #x #y) (Val #(({ x with doneC' := y } : lessor)))
-  get_lg : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : lessor) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : lessor)))
-  get_checkpointInterval : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"checkpointInterval") #x (Val #(x.checkpointInterval'))
-  set_checkpointInterval : ∀ (x : lessor) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"checkpointInterval") (PairV #x #y) (Val #(({ x with checkpointInterval' := y } : lessor)))
-  get_expiredLeaseRetryInterval : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"expiredLeaseRetryInterval") #x (Val #(x.expiredLeaseRetryInterval'))
-  set_expiredLeaseRetryInterval : ∀ (x : lessor) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"expiredLeaseRetryInterval") (PairV #x #y) (Val #(({ x with expiredLeaseRetryInterval' := y } : lessor)))
-  get_checkpointPersist : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"checkpointPersist") #x (Val #(x.checkpointPersist'))
-  set_checkpointPersist : ∀ (x : lessor) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"checkpointPersist") (PairV #x #y) (Val #(({ x with checkpointPersist' := y } : lessor)))
-  get_cluster : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"cluster") #x (Val #(x.cluster'))
-  set_cluster : ∀ (x : lessor) (y : cluster), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"cluster") (PairV #x #y) (Val #(({ x with cluster' := y } : lessor)))
+  get'mu : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : lessor) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : lessor)))
+  get'demotec : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"demotec") #x (Val #(x.demotec'))
+  set'demotec : ∀ (x : lessor) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"demotec") (PairV #x #y) (Val #(({ x with demotec' := y } : lessor)))
+  get'leaseMap : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"leaseMap") #x (Val #(x.leaseMap'))
+  set'leaseMap : ∀ (x : lessor) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"leaseMap") (PairV #x #y) (Val #(({ x with leaseMap' := y } : lessor)))
+  get'leaseExpiredNotifier : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"leaseExpiredNotifier") #x (Val #(x.leaseExpiredNotifier'))
+  set'leaseExpiredNotifier : ∀ (x : lessor) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"leaseExpiredNotifier") (PairV #x #y) (Val #(({ x with leaseExpiredNotifier' := y } : lessor)))
+  get'leaseCheckpointHeap : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"leaseCheckpointHeap") #x (Val #(x.leaseCheckpointHeap'))
+  set'leaseCheckpointHeap : ∀ (x : lessor) (y : LeaseQueue), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"leaseCheckpointHeap") (PairV #x #y) (Val #(({ x with leaseCheckpointHeap' := y } : lessor)))
+  get'itemMap : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"itemMap") #x (Val #(x.itemMap'))
+  set'itemMap : ∀ (x : lessor) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"itemMap") (PairV #x #y) (Val #(({ x with itemMap' := y } : lessor)))
+  get'rd : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"rd") #x (Val #(x.rd'))
+  set'rd : ∀ (x : lessor) (y : RangeDeleter), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"rd") (PairV #x #y) (Val #(({ x with rd' := y } : lessor)))
+  get'cp : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"cp") #x (Val #(x.cp'))
+  set'cp : ∀ (x : lessor) (y : Checkpointer), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"cp") (PairV #x #y) (Val #(({ x with cp' := y } : lessor)))
+  get'b : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"b") #x (Val #(x.b'))
+  set'b : ∀ (x : lessor) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"b") (PairV #x #y) (Val #(({ x with b' := y } : lessor)))
+  get'minLeaseTTL : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"minLeaseTTL") #x (Val #(x.minLeaseTTL'))
+  set'minLeaseTTL : ∀ (x : lessor) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"minLeaseTTL") (PairV #x #y) (Val #(({ x with minLeaseTTL' := y } : lessor)))
+  get'leaseRevokeRate : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"leaseRevokeRate") #x (Val #(x.leaseRevokeRate'))
+  set'leaseRevokeRate : ∀ (x : lessor) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"leaseRevokeRate") (PairV #x #y) (Val #(({ x with leaseRevokeRate' := y } : lessor)))
+  get'expiredC : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"expiredC") #x (Val #(x.expiredC'))
+  set'expiredC : ∀ (x : lessor) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"expiredC") (PairV #x #y) (Val #(({ x with expiredC' := y } : lessor)))
+  get'stopC : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"stopC") #x (Val #(x.stopC'))
+  set'stopC : ∀ (x : lessor) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"stopC") (PairV #x #y) (Val #(({ x with stopC' := y } : lessor)))
+  get'doneC : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"doneC") #x (Val #(x.doneC'))
+  set'doneC : ∀ (x : lessor) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"doneC") (PairV #x #y) (Val #(({ x with doneC' := y } : lessor)))
+  get'lg : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : lessor) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : lessor)))
+  get'checkpointInterval : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"checkpointInterval") #x (Val #(x.checkpointInterval'))
+  set'checkpointInterval : ∀ (x : lessor) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"checkpointInterval") (PairV #x #y) (Val #(({ x with checkpointInterval' := y } : lessor)))
+  get'expiredLeaseRetryInterval : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"expiredLeaseRetryInterval") #x (Val #(x.expiredLeaseRetryInterval'))
+  set'expiredLeaseRetryInterval : ∀ (x : lessor) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"expiredLeaseRetryInterval") (PairV #x #y) (Val #(({ x with expiredLeaseRetryInterval' := y } : lessor)))
+  get'checkpointPersist : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"checkpointPersist") #x (Val #(x.checkpointPersist'))
+  set'checkpointPersist : ∀ (x : lessor) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"checkpointPersist") (PairV #x #y) (Val #(({ x with checkpointPersist' := y } : lessor)))
+  get'cluster : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"cluster") #x (Val #(x.cluster'))
+  set'cluster : ∀ (x : lessor) (y : cluster), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"cluster") (PairV #x #y) (Val #(({ x with cluster' := y } : lessor)))
   method_set : go.MethodSetIs lessor.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType lessor.ty) [(go!"Attach", (some (go.signature.Signature [LeaseID.ty, (go.GoType.SliceType LeaseItem.ty)] false [go.error]))), (go!"Checkpoint", (some (go.signature.Signature [LeaseID.ty, go.int64] false [go.error]))), (go!"Demote", (some (go.signature.Signature [] false []))), (go!"Detach", (some (go.signature.Signature [LeaseID.ty, (go.GoType.SliceType LeaseItem.ty)] false [go.error]))), (go!"ExpiredLeasesC", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.SliceType (go.GoType.PointerType Lease.ty)))]))), (go!"GetLease", (some (go.signature.Signature [LeaseItem.ty] false [LeaseID.ty]))), (go!"Grant", (some (go.signature.Signature [LeaseID.ty, go.int64] false [(go.GoType.PointerType Lease.ty), go.error]))), (go!"Leases", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Lease.ty))]))), (go!"Lookup", (some (go.signature.Signature [LeaseID.ty] false [(go.GoType.PointerType Lease.ty)]))), (go!"Promote", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"Recover", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty, RangeDeleter.ty] false []))), (go!"Renew", (some (go.signature.Signature [LeaseID.ty] false [go.int64, go.error]))), (go!"Revoke", (some (go.signature.Signature [LeaseID.ty] false [go.error]))), (go!"SetCheckpointer", (some (go.signature.Signature [Checkpointer.ty] false []))), (go!"SetRangeDeleter", (some (go.signature.Signature [RangeDeleter.ty] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/lease.checkpointScheduledLeases", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/lease.clearLeaseExpiredNotifier", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/lease.clearScheduledLeasesCheckpoints", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/lease.expireExists", (some (go.signature.Signature [] false [(go.GoType.PointerType Lease.ty), go.bool]))), (go!"go.etcd.io/etcd/server/v3/lease.findDueScheduledCheckpoints", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint.ty))]))), (go!"go.etcd.io/etcd/server/v3/lease.findExpiredLeases", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType (go.GoType.PointerType Lease.ty))]))), (go!"go.etcd.io/etcd/server/v3/lease.initAndRecover", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/lease.isPrimary", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/lease.revokeExpiredLeases", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/lease.runLoop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/lease.scheduleCheckpointIfNeeded", (some (go.signature.Signature [(go.GoType.PointerType Lease.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/lease.shouldPersistCheckpoints", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/lease.unsafeLeases", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Lease.ty))])))]
-  ptr_Attach_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Attach" lessor.Attach.impl
-  ptr_Checkpoint_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Checkpoint" lessor.Checkpoint.impl
-  ptr_Demote_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Demote" lessor.Demote.impl
-  ptr_Detach_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Detach" lessor.Detach.impl
-  ptr_ExpiredLeasesC_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"ExpiredLeasesC" lessor.ExpiredLeasesC.impl
-  ptr_GetLease_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"GetLease" lessor.GetLease.impl
-  ptr_Grant_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Grant" lessor.Grant.impl
-  ptr_Leases_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Leases" lessor.Leases.impl
-  ptr_Lookup_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Lookup" lessor.Lookup.impl
-  ptr_Promote_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Promote" lessor.Promote.impl
-  ptr_Recover_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Recover" lessor.Recover.impl
-  ptr_Renew_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Renew" lessor.Renew.impl
-  ptr_Revoke_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Revoke" lessor.Revoke.impl
-  ptr_SetRangeDeleter_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"SetRangeDeleter" lessor.SetRangeDeleter.impl
-  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Stop" lessor.Stop.impl
-  ptr_checkpointScheduledLeases_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"checkpointScheduledLeases" lessor.checkpointScheduledLeases.impl
-  ptr_clearLeaseExpiredNotifier_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"clearLeaseExpiredNotifier" lessor.clearLeaseExpiredNotifier.impl
-  ptr_clearScheduledLeasesCheckpoints_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"clearScheduledLeasesCheckpoints" lessor.clearScheduledLeasesCheckpoints.impl
-  ptr_expireExists_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"expireExists" lessor.expireExists.impl
-  ptr_findDueScheduledCheckpoints_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"findDueScheduledCheckpoints" lessor.findDueScheduledCheckpoints.impl
-  ptr_findExpiredLeases_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"findExpiredLeases" lessor.findExpiredLeases.impl
-  ptr_initAndRecover_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"initAndRecover" lessor.initAndRecover.impl
-  ptr_isPrimary_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"isPrimary" lessor.isPrimary.impl
-  ptr_revokeExpiredLeases_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"revokeExpiredLeases" lessor.revokeExpiredLeases.impl
-  ptr_runLoop_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"runLoop" lessor.runLoop.impl
-  ptr_scheduleCheckpointIfNeeded_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"scheduleCheckpointIfNeeded" lessor.scheduleCheckpointIfNeeded.impl
-  ptr_shouldPersistCheckpoints_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"shouldPersistCheckpoints" lessor.shouldPersistCheckpoints.impl
-  ptr_unsafeLeases_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"unsafeLeases" lessor.unsafeLeases.impl
+  ptr_unfold'Attach : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Attach" lessor.Attach.impl
+  ptr_unfold'Checkpoint : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Checkpoint" lessor.Checkpoint.impl
+  ptr_unfold'Demote : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Demote" lessor.Demote.impl
+  ptr_unfold'Detach : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Detach" lessor.Detach.impl
+  ptr_unfold'ExpiredLeasesC : MethodUnfold (go.GoType.PointerType lessor.ty) go!"ExpiredLeasesC" lessor.ExpiredLeasesC.impl
+  ptr_unfold'GetLease : MethodUnfold (go.GoType.PointerType lessor.ty) go!"GetLease" lessor.GetLease.impl
+  ptr_unfold'Grant : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Grant" lessor.Grant.impl
+  ptr_unfold'Leases : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Leases" lessor.Leases.impl
+  ptr_unfold'Lookup : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Lookup" lessor.Lookup.impl
+  ptr_unfold'Promote : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Promote" lessor.Promote.impl
+  ptr_unfold'Recover : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Recover" lessor.Recover.impl
+  ptr_unfold'Renew : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Renew" lessor.Renew.impl
+  ptr_unfold'Revoke : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Revoke" lessor.Revoke.impl
+  ptr_unfold'SetRangeDeleter : MethodUnfold (go.GoType.PointerType lessor.ty) go!"SetRangeDeleter" lessor.SetRangeDeleter.impl
+  ptr_unfold'Stop : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Stop" lessor.Stop.impl
+  ptr_unfold'checkpointScheduledLeases : MethodUnfold (go.GoType.PointerType lessor.ty) go!"checkpointScheduledLeases" lessor.checkpointScheduledLeases.impl
+  ptr_unfold'clearLeaseExpiredNotifier : MethodUnfold (go.GoType.PointerType lessor.ty) go!"clearLeaseExpiredNotifier" lessor.clearLeaseExpiredNotifier.impl
+  ptr_unfold'clearScheduledLeasesCheckpoints : MethodUnfold (go.GoType.PointerType lessor.ty) go!"clearScheduledLeasesCheckpoints" lessor.clearScheduledLeasesCheckpoints.impl
+  ptr_unfold'expireExists : MethodUnfold (go.GoType.PointerType lessor.ty) go!"expireExists" lessor.expireExists.impl
+  ptr_unfold'findDueScheduledCheckpoints : MethodUnfold (go.GoType.PointerType lessor.ty) go!"findDueScheduledCheckpoints" lessor.findDueScheduledCheckpoints.impl
+  ptr_unfold'findExpiredLeases : MethodUnfold (go.GoType.PointerType lessor.ty) go!"findExpiredLeases" lessor.findExpiredLeases.impl
+  ptr_unfold'initAndRecover : MethodUnfold (go.GoType.PointerType lessor.ty) go!"initAndRecover" lessor.initAndRecover.impl
+  ptr_unfold'isPrimary : MethodUnfold (go.GoType.PointerType lessor.ty) go!"isPrimary" lessor.isPrimary.impl
+  ptr_unfold'revokeExpiredLeases : MethodUnfold (go.GoType.PointerType lessor.ty) go!"revokeExpiredLeases" lessor.revokeExpiredLeases.impl
+  ptr_unfold'runLoop : MethodUnfold (go.GoType.PointerType lessor.ty) go!"runLoop" lessor.runLoop.impl
+  ptr_unfold'scheduleCheckpointIfNeeded : MethodUnfold (go.GoType.PointerType lessor.ty) go!"scheduleCheckpointIfNeeded" lessor.scheduleCheckpointIfNeeded.impl
+  ptr_unfold'shouldPersistCheckpoints : MethodUnfold (go.GoType.PointerType lessor.ty) go!"shouldPersistCheckpoints" lessor.shouldPersistCheckpoints.impl
+  ptr_unfold'unsafeLeases : MethodUnfold (go.GoType.PointerType lessor.ty) go!"unsafeLeases" lessor.unsafeLeases.impl
 
 attribute [instance] lessor.TypeAssumptions.type_repr
   lessor.TypeAssumptions.underlying
-  lessor.TypeAssumptions.get_mu
-  lessor.TypeAssumptions.set_mu
-  lessor.TypeAssumptions.get_demotec
-  lessor.TypeAssumptions.set_demotec
-  lessor.TypeAssumptions.get_leaseMap
-  lessor.TypeAssumptions.set_leaseMap
-  lessor.TypeAssumptions.get_leaseExpiredNotifier
-  lessor.TypeAssumptions.set_leaseExpiredNotifier
-  lessor.TypeAssumptions.get_leaseCheckpointHeap
-  lessor.TypeAssumptions.set_leaseCheckpointHeap
-  lessor.TypeAssumptions.get_itemMap
-  lessor.TypeAssumptions.set_itemMap
-  lessor.TypeAssumptions.get_rd
-  lessor.TypeAssumptions.set_rd
-  lessor.TypeAssumptions.get_cp
-  lessor.TypeAssumptions.set_cp
-  lessor.TypeAssumptions.get_b
-  lessor.TypeAssumptions.set_b
-  lessor.TypeAssumptions.get_minLeaseTTL
-  lessor.TypeAssumptions.set_minLeaseTTL
-  lessor.TypeAssumptions.get_leaseRevokeRate
-  lessor.TypeAssumptions.set_leaseRevokeRate
-  lessor.TypeAssumptions.get_expiredC
-  lessor.TypeAssumptions.set_expiredC
-  lessor.TypeAssumptions.get_stopC
-  lessor.TypeAssumptions.set_stopC
-  lessor.TypeAssumptions.get_doneC
-  lessor.TypeAssumptions.set_doneC
-  lessor.TypeAssumptions.get_lg
-  lessor.TypeAssumptions.set_lg
-  lessor.TypeAssumptions.get_checkpointInterval
-  lessor.TypeAssumptions.set_checkpointInterval
-  lessor.TypeAssumptions.get_expiredLeaseRetryInterval
-  lessor.TypeAssumptions.set_expiredLeaseRetryInterval
-  lessor.TypeAssumptions.get_checkpointPersist
-  lessor.TypeAssumptions.set_checkpointPersist
-  lessor.TypeAssumptions.get_cluster
-  lessor.TypeAssumptions.set_cluster
+  lessor.TypeAssumptions.get'mu
+  lessor.TypeAssumptions.set'mu
+  lessor.TypeAssumptions.get'demotec
+  lessor.TypeAssumptions.set'demotec
+  lessor.TypeAssumptions.get'leaseMap
+  lessor.TypeAssumptions.set'leaseMap
+  lessor.TypeAssumptions.get'leaseExpiredNotifier
+  lessor.TypeAssumptions.set'leaseExpiredNotifier
+  lessor.TypeAssumptions.get'leaseCheckpointHeap
+  lessor.TypeAssumptions.set'leaseCheckpointHeap
+  lessor.TypeAssumptions.get'itemMap
+  lessor.TypeAssumptions.set'itemMap
+  lessor.TypeAssumptions.get'rd
+  lessor.TypeAssumptions.set'rd
+  lessor.TypeAssumptions.get'cp
+  lessor.TypeAssumptions.set'cp
+  lessor.TypeAssumptions.get'b
+  lessor.TypeAssumptions.set'b
+  lessor.TypeAssumptions.get'minLeaseTTL
+  lessor.TypeAssumptions.set'minLeaseTTL
+  lessor.TypeAssumptions.get'leaseRevokeRate
+  lessor.TypeAssumptions.set'leaseRevokeRate
+  lessor.TypeAssumptions.get'expiredC
+  lessor.TypeAssumptions.set'expiredC
+  lessor.TypeAssumptions.get'stopC
+  lessor.TypeAssumptions.set'stopC
+  lessor.TypeAssumptions.get'doneC
+  lessor.TypeAssumptions.set'doneC
+  lessor.TypeAssumptions.get'lg
+  lessor.TypeAssumptions.set'lg
+  lessor.TypeAssumptions.get'checkpointInterval
+  lessor.TypeAssumptions.set'checkpointInterval
+  lessor.TypeAssumptions.get'expiredLeaseRetryInterval
+  lessor.TypeAssumptions.set'expiredLeaseRetryInterval
+  lessor.TypeAssumptions.get'checkpointPersist
+  lessor.TypeAssumptions.set'checkpointPersist
+  lessor.TypeAssumptions.get'cluster
+  lessor.TypeAssumptions.set'cluster
   lessor.TypeAssumptions.method_set
   lessor.TypeAssumptions.ptr_method_set
-  lessor.TypeAssumptions.ptr_Attach_unfold
-  lessor.TypeAssumptions.ptr_Checkpoint_unfold
-  lessor.TypeAssumptions.ptr_Demote_unfold
-  lessor.TypeAssumptions.ptr_Detach_unfold
-  lessor.TypeAssumptions.ptr_ExpiredLeasesC_unfold
-  lessor.TypeAssumptions.ptr_GetLease_unfold
-  lessor.TypeAssumptions.ptr_Grant_unfold
-  lessor.TypeAssumptions.ptr_Leases_unfold
-  lessor.TypeAssumptions.ptr_Lookup_unfold
-  lessor.TypeAssumptions.ptr_Promote_unfold
-  lessor.TypeAssumptions.ptr_Recover_unfold
-  lessor.TypeAssumptions.ptr_Renew_unfold
-  lessor.TypeAssumptions.ptr_Revoke_unfold
-  lessor.TypeAssumptions.ptr_SetRangeDeleter_unfold
-  lessor.TypeAssumptions.ptr_Stop_unfold
-  lessor.TypeAssumptions.ptr_checkpointScheduledLeases_unfold
-  lessor.TypeAssumptions.ptr_clearLeaseExpiredNotifier_unfold
-  lessor.TypeAssumptions.ptr_clearScheduledLeasesCheckpoints_unfold
-  lessor.TypeAssumptions.ptr_expireExists_unfold
-  lessor.TypeAssumptions.ptr_findDueScheduledCheckpoints_unfold
-  lessor.TypeAssumptions.ptr_findExpiredLeases_unfold
-  lessor.TypeAssumptions.ptr_initAndRecover_unfold
-  lessor.TypeAssumptions.ptr_isPrimary_unfold
-  lessor.TypeAssumptions.ptr_revokeExpiredLeases_unfold
-  lessor.TypeAssumptions.ptr_runLoop_unfold
-  lessor.TypeAssumptions.ptr_scheduleCheckpointIfNeeded_unfold
-  lessor.TypeAssumptions.ptr_shouldPersistCheckpoints_unfold
-  lessor.TypeAssumptions.ptr_unsafeLeases_unfold
+  lessor.TypeAssumptions.ptr_unfold'Attach
+  lessor.TypeAssumptions.ptr_unfold'Checkpoint
+  lessor.TypeAssumptions.ptr_unfold'Demote
+  lessor.TypeAssumptions.ptr_unfold'Detach
+  lessor.TypeAssumptions.ptr_unfold'ExpiredLeasesC
+  lessor.TypeAssumptions.ptr_unfold'GetLease
+  lessor.TypeAssumptions.ptr_unfold'Grant
+  lessor.TypeAssumptions.ptr_unfold'Leases
+  lessor.TypeAssumptions.ptr_unfold'Lookup
+  lessor.TypeAssumptions.ptr_unfold'Promote
+  lessor.TypeAssumptions.ptr_unfold'Recover
+  lessor.TypeAssumptions.ptr_unfold'Renew
+  lessor.TypeAssumptions.ptr_unfold'Revoke
+  lessor.TypeAssumptions.ptr_unfold'SetRangeDeleter
+  lessor.TypeAssumptions.ptr_unfold'Stop
+  lessor.TypeAssumptions.ptr_unfold'checkpointScheduledLeases
+  lessor.TypeAssumptions.ptr_unfold'clearLeaseExpiredNotifier
+  lessor.TypeAssumptions.ptr_unfold'clearScheduledLeasesCheckpoints
+  lessor.TypeAssumptions.ptr_unfold'expireExists
+  lessor.TypeAssumptions.ptr_unfold'findDueScheduledCheckpoints
+  lessor.TypeAssumptions.ptr_unfold'findExpiredLeases
+  lessor.TypeAssumptions.ptr_unfold'initAndRecover
+  lessor.TypeAssumptions.ptr_unfold'isPrimary
+  lessor.TypeAssumptions.ptr_unfold'revokeExpiredLeases
+  lessor.TypeAssumptions.ptr_unfold'runLoop
+  lessor.TypeAssumptions.ptr_unfold'scheduleCheckpointIfNeeded
+  lessor.TypeAssumptions.ptr_unfold'shouldPersistCheckpoints
+  lessor.TypeAssumptions.ptr_unfold'unsafeLeases
 
 structure LessorConfig [GooseExts] where
   mk ::
@@ -3400,7 +3400,7 @@ noncomputable instance LessorConfig.zero_val [GooseExts] : ZeroVal LessorConfig 
 @[irreducible] noncomputable def LessorConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LessorConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_LessorConfig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LessorConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold LessorConfig.fields LessorConfig.fieldsUnsealed :=
   ⟨by unfold LessorConfig.fields; rfl⟩
 
@@ -3410,31 +3410,31 @@ noncomputable instance equals_unfold_LessorConfig [GooseExts] [GoGlobalContext] 
 class LessorConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LessorConfig.underlying LessorConfig
   underlying : go.UnderlyingDirectedEq LessorConfig.ty LessorConfig.underlying
-  get_MinLeaseTTL : ∀ (x : LessorConfig), go.IsGoStepPureDetTagged under (StructFieldGet LessorConfig.underlying go!"MinLeaseTTL") #x (Val #(x.MinLeaseTTL'))
-  set_MinLeaseTTL : ∀ (x : LessorConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LessorConfig.underlying go!"MinLeaseTTL") (PairV #x #y) (Val #(({ x with MinLeaseTTL' := y } : LessorConfig)))
-  get_CheckpointInterval : ∀ (x : LessorConfig), go.IsGoStepPureDetTagged under (StructFieldGet LessorConfig.underlying go!"CheckpointInterval") #x (Val #(x.CheckpointInterval'))
-  set_CheckpointInterval : ∀ (x : LessorConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet LessorConfig.underlying go!"CheckpointInterval") (PairV #x #y) (Val #(({ x with CheckpointInterval' := y } : LessorConfig)))
-  get_ExpiredLeasesRetryInterval : ∀ (x : LessorConfig), go.IsGoStepPureDetTagged under (StructFieldGet LessorConfig.underlying go!"ExpiredLeasesRetryInterval") #x (Val #(x.ExpiredLeasesRetryInterval'))
-  set_ExpiredLeasesRetryInterval : ∀ (x : LessorConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet LessorConfig.underlying go!"ExpiredLeasesRetryInterval") (PairV #x #y) (Val #(({ x with ExpiredLeasesRetryInterval' := y } : LessorConfig)))
-  get_CheckpointPersist : ∀ (x : LessorConfig), go.IsGoStepPureDetTagged under (StructFieldGet LessorConfig.underlying go!"CheckpointPersist") #x (Val #(x.CheckpointPersist'))
-  set_CheckpointPersist : ∀ (x : LessorConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet LessorConfig.underlying go!"CheckpointPersist") (PairV #x #y) (Val #(({ x with CheckpointPersist' := y } : LessorConfig)))
-  get_leaseRevokeRate : ∀ (x : LessorConfig), go.IsGoStepPureDetTagged under (StructFieldGet LessorConfig.underlying go!"leaseRevokeRate") #x (Val #(x.leaseRevokeRate'))
-  set_leaseRevokeRate : ∀ (x : LessorConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LessorConfig.underlying go!"leaseRevokeRate") (PairV #x #y) (Val #(({ x with leaseRevokeRate' := y } : LessorConfig)))
+  get'MinLeaseTTL : ∀ (x : LessorConfig), go.IsGoStepPureDetTagged under (StructFieldGet LessorConfig.underlying go!"MinLeaseTTL") #x (Val #(x.MinLeaseTTL'))
+  set'MinLeaseTTL : ∀ (x : LessorConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LessorConfig.underlying go!"MinLeaseTTL") (PairV #x #y) (Val #(({ x with MinLeaseTTL' := y } : LessorConfig)))
+  get'CheckpointInterval : ∀ (x : LessorConfig), go.IsGoStepPureDetTagged under (StructFieldGet LessorConfig.underlying go!"CheckpointInterval") #x (Val #(x.CheckpointInterval'))
+  set'CheckpointInterval : ∀ (x : LessorConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet LessorConfig.underlying go!"CheckpointInterval") (PairV #x #y) (Val #(({ x with CheckpointInterval' := y } : LessorConfig)))
+  get'ExpiredLeasesRetryInterval : ∀ (x : LessorConfig), go.IsGoStepPureDetTagged under (StructFieldGet LessorConfig.underlying go!"ExpiredLeasesRetryInterval") #x (Val #(x.ExpiredLeasesRetryInterval'))
+  set'ExpiredLeasesRetryInterval : ∀ (x : LessorConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet LessorConfig.underlying go!"ExpiredLeasesRetryInterval") (PairV #x #y) (Val #(({ x with ExpiredLeasesRetryInterval' := y } : LessorConfig)))
+  get'CheckpointPersist : ∀ (x : LessorConfig), go.IsGoStepPureDetTagged under (StructFieldGet LessorConfig.underlying go!"CheckpointPersist") #x (Val #(x.CheckpointPersist'))
+  set'CheckpointPersist : ∀ (x : LessorConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet LessorConfig.underlying go!"CheckpointPersist") (PairV #x #y) (Val #(({ x with CheckpointPersist' := y } : LessorConfig)))
+  get'leaseRevokeRate : ∀ (x : LessorConfig), go.IsGoStepPureDetTagged under (StructFieldGet LessorConfig.underlying go!"leaseRevokeRate") #x (Val #(x.leaseRevokeRate'))
+  set'leaseRevokeRate : ∀ (x : LessorConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LessorConfig.underlying go!"leaseRevokeRate") (PairV #x #y) (Val #(({ x with leaseRevokeRate' := y } : LessorConfig)))
   method_set : go.MethodSetIs LessorConfig.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LessorConfig.ty) []
 
 attribute [instance] LessorConfig.TypeAssumptions.type_repr
   LessorConfig.TypeAssumptions.underlying
-  LessorConfig.TypeAssumptions.get_MinLeaseTTL
-  LessorConfig.TypeAssumptions.set_MinLeaseTTL
-  LessorConfig.TypeAssumptions.get_CheckpointInterval
-  LessorConfig.TypeAssumptions.set_CheckpointInterval
-  LessorConfig.TypeAssumptions.get_ExpiredLeasesRetryInterval
-  LessorConfig.TypeAssumptions.set_ExpiredLeasesRetryInterval
-  LessorConfig.TypeAssumptions.get_CheckpointPersist
-  LessorConfig.TypeAssumptions.set_CheckpointPersist
-  LessorConfig.TypeAssumptions.get_leaseRevokeRate
-  LessorConfig.TypeAssumptions.set_leaseRevokeRate
+  LessorConfig.TypeAssumptions.get'MinLeaseTTL
+  LessorConfig.TypeAssumptions.set'MinLeaseTTL
+  LessorConfig.TypeAssumptions.get'CheckpointInterval
+  LessorConfig.TypeAssumptions.set'CheckpointInterval
+  LessorConfig.TypeAssumptions.get'ExpiredLeasesRetryInterval
+  LessorConfig.TypeAssumptions.set'ExpiredLeasesRetryInterval
+  LessorConfig.TypeAssumptions.get'CheckpointPersist
+  LessorConfig.TypeAssumptions.set'CheckpointPersist
+  LessorConfig.TypeAssumptions.get'leaseRevokeRate
+  LessorConfig.TypeAssumptions.set'leaseRevokeRate
   LessorConfig.TypeAssumptions.method_set
   LessorConfig.TypeAssumptions.ptr_method_set
 
@@ -3451,7 +3451,7 @@ noncomputable instance FakeLessor.zero_val [GooseExts] : ZeroVal FakeLessor :=
 @[irreducible] noncomputable def FakeLessor.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FakeLessor.fieldsUnsealed
 
-noncomputable instance equals_unfold_FakeLessor [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FakeLessor [GooseExts] [GoGlobalContext] :
     EqualsUnfold FakeLessor.fields FakeLessor.fieldsUnsealed :=
   ⟨by unfold FakeLessor.fields; rfl⟩
 
@@ -3461,15 +3461,15 @@ noncomputable instance equals_unfold_FakeLessor [GooseExts] [GoGlobalContext] :
 class FakeLessor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FakeLessor.underlying FakeLessor
   underlying : go.UnderlyingDirectedEq FakeLessor.ty FakeLessor.underlying
-  get_LeaseSet : ∀ (x : FakeLessor), go.IsGoStepPureDetTagged under (StructFieldGet FakeLessor.underlying go!"LeaseSet") #x (Val #(x.LeaseSet'))
-  set_LeaseSet : ∀ (x : FakeLessor) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet FakeLessor.underlying go!"LeaseSet") (PairV #x #y) (Val #(({ x with LeaseSet' := y } : FakeLessor)))
+  get'LeaseSet : ∀ (x : FakeLessor), go.IsGoStepPureDetTagged under (StructFieldGet FakeLessor.underlying go!"LeaseSet") #x (Val #(x.LeaseSet'))
+  set'LeaseSet : ∀ (x : FakeLessor) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet FakeLessor.underlying go!"LeaseSet") (PairV #x #y) (Val #(({ x with LeaseSet' := y } : FakeLessor)))
   method_set : go.MethodSetIs FakeLessor.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FakeLessor.ty) [(go!"Attach", (some (go.signature.Signature [LeaseID.ty, (go.GoType.SliceType LeaseItem.ty)] false [go.error]))), (go!"Checkpoint", (some (go.signature.Signature [LeaseID.ty, go.int64] false [go.error]))), (go!"Demote", (some (go.signature.Signature [] false []))), (go!"Detach", (some (go.signature.Signature [LeaseID.ty, (go.GoType.SliceType LeaseItem.ty)] false [go.error]))), (go!"ExpiredLeasesC", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.SliceType (go.GoType.PointerType Lease.ty)))]))), (go!"GetLease", (some (go.signature.Signature [LeaseItem.ty] false [LeaseID.ty]))), (go!"Grant", (some (go.signature.Signature [LeaseID.ty, go.int64] false [(go.GoType.PointerType Lease.ty), go.error]))), (go!"Leases", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Lease.ty))]))), (go!"Lookup", (some (go.signature.Signature [LeaseID.ty] false [(go.GoType.PointerType Lease.ty)]))), (go!"Promote", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"Recover", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty, RangeDeleter.ty] false []))), (go!"Renew", (some (go.signature.Signature [LeaseID.ty] false [go.int64, go.error]))), (go!"Revoke", (some (go.signature.Signature [LeaseID.ty] false [go.error]))), (go!"SetCheckpointer", (some (go.signature.Signature [Checkpointer.ty] false []))), (go!"SetRangeDeleter", (some (go.signature.Signature [RangeDeleter.ty] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] FakeLessor.TypeAssumptions.type_repr
   FakeLessor.TypeAssumptions.underlying
-  FakeLessor.TypeAssumptions.get_LeaseSet
-  FakeLessor.TypeAssumptions.set_LeaseSet
+  FakeLessor.TypeAssumptions.get'LeaseSet
+  FakeLessor.TypeAssumptions.set'LeaseSet
   FakeLessor.TypeAssumptions.method_set
   FakeLessor.TypeAssumptions.ptr_method_set
 
@@ -3486,7 +3486,7 @@ noncomputable instance FakeTxnDelete.zero_val [GooseExts] : ZeroVal FakeTxnDelet
 @[irreducible] noncomputable def FakeTxnDelete.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FakeTxnDelete.fieldsUnsealed
 
-noncomputable instance equals_unfold_FakeTxnDelete [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FakeTxnDelete [GooseExts] [GoGlobalContext] :
     EqualsUnfold FakeTxnDelete.fields FakeTxnDelete.fieldsUnsealed :=
   ⟨by unfold FakeTxnDelete.fields; rfl⟩
 
@@ -3496,94 +3496,94 @@ noncomputable instance equals_unfold_FakeTxnDelete [GooseExts] [GoGlobalContext]
 class FakeTxnDelete.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FakeTxnDelete.underlying FakeTxnDelete
   underlying : go.UnderlyingDirectedEq FakeTxnDelete.ty FakeTxnDelete.underlying
-  get_BatchTx : ∀ (x : FakeTxnDelete), go.IsGoStepPureDetTagged under (StructFieldGet FakeTxnDelete.underlying go!"BatchTx") #x (Val #(x.BatchTx'))
-  set_BatchTx : ∀ (x : FakeTxnDelete) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx), go.IsGoStepPureDetTagged under (StructFieldSet FakeTxnDelete.underlying go!"BatchTx") (PairV #x #y) (Val #(({ x with BatchTx' := y } : FakeTxnDelete)))
+  get'BatchTx : ∀ (x : FakeTxnDelete), go.IsGoStepPureDetTagged under (StructFieldGet FakeTxnDelete.underlying go!"BatchTx") #x (Val #(x.BatchTx'))
+  set'BatchTx : ∀ (x : FakeTxnDelete) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx), go.IsGoStepPureDetTagged under (StructFieldSet FakeTxnDelete.underlying go!"BatchTx") (PairV #x #y) (Val #(({ x with BatchTx' := y } : FakeTxnDelete)))
   method_set : go.MethodSetIs FakeTxnDelete.ty [(go!"Commit", (some (go.signature.Signature [] false []))), (go!"CommitAndStop", (some (go.signature.Signature [] false []))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"LockInsideApply", (some (go.signature.Signature [] false []))), (go!"LockOutsideApply", (some (go.signature.Signature [] false []))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"UnsafeCreateBucket", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty] false []))), (go!"UnsafeDelete", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeDeleteBucket", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty] false []))), (go!"UnsafeForEach", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"UnsafePut", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeRange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))]))), (go!"UnsafeSeqPut", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FakeTxnDelete.ty) [(go!"Commit", (some (go.signature.Signature [] false []))), (go!"CommitAndStop", (some (go.signature.Signature [] false []))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int64, go.int64]))), (go!"End", (some (go.signature.Signature [] false []))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"LockInsideApply", (some (go.signature.Signature [] false []))), (go!"LockOutsideApply", (some (go.signature.Signature [] false []))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"UnsafeCreateBucket", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty] false []))), (go!"UnsafeDelete", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeDeleteBucket", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty] false []))), (go!"UnsafeForEach", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"UnsafePut", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeRange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))]))), (go!"UnsafeSeqPut", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [])))]
 
 attribute [instance] FakeTxnDelete.TypeAssumptions.type_repr
   FakeTxnDelete.TypeAssumptions.underlying
-  FakeTxnDelete.TypeAssumptions.get_BatchTx
-  FakeTxnDelete.TypeAssumptions.set_BatchTx
+  FakeTxnDelete.TypeAssumptions.get'BatchTx
+  FakeTxnDelete.TypeAssumptions.set'BatchTx
   FakeTxnDelete.TypeAssumptions.method_set
   FakeTxnDelete.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Lease_instance : Lease.TypeAssumptions
-  LeaseItem_instance : LeaseItem.TypeAssumptions
-  leasesByExpiry_instance : leasesByExpiry.TypeAssumptions
-  LeaseWithTime_instance : LeaseWithTime.TypeAssumptions
-  LeaseQueue_instance : LeaseQueue.TypeAssumptions
-  LeaseExpiredNotifier_instance : LeaseExpiredNotifier.TypeAssumptions
-  TxnDelete_instance : TxnDelete.TypeAssumptions
-  RangeDeleter_instance : RangeDeleter.TypeAssumptions
-  Checkpointer_instance : Checkpointer.TypeAssumptions
-  LeaseID_instance : LeaseID.TypeAssumptions
-  Lessor_instance : Lessor.TypeAssumptions
-  lessor_instance : lessor.TypeAssumptions
-  cluster_instance : cluster.TypeAssumptions
-  LessorConfig_instance : LessorConfig.TypeAssumptions
-  FakeLessor_instance : FakeLessor.TypeAssumptions
-  FakeTxnDelete_instance : FakeTxnDelete.TypeAssumptions
-  NewLease_unfold : FuncUnfold NewLease [] NewLease.impl
-  newLeaseExpiredNotifier_unfold : FuncUnfold newLeaseExpiredNotifier [] newLeaseExpiredNotifier.impl
-  NewLessor_unfold : FuncUnfold NewLessor [] NewLessor.impl
-  newLessor_unfold : FuncUnfold newLessor [] newLessor.impl
-  greaterOrEqual_unfold : FuncUnfold greaterOrEqual [] greaterOrEqual.impl
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  import_math_Assumption : _root_.Perennial.math.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_leasepb_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.Assumptions
-  import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
-  import_schema_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Assumptions
-  import_heap_Assumption : _root_.Perennial.container.heap.Assumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_sort_Assumption : _root_.Perennial.sort.Assumptions
-  import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_version_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.version.Assumptions
-  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  instance'Lease : Lease.TypeAssumptions
+  instance'LeaseItem : LeaseItem.TypeAssumptions
+  instance'leasesByExpiry : leasesByExpiry.TypeAssumptions
+  instance'LeaseWithTime : LeaseWithTime.TypeAssumptions
+  instance'LeaseQueue : LeaseQueue.TypeAssumptions
+  instance'LeaseExpiredNotifier : LeaseExpiredNotifier.TypeAssumptions
+  instance'TxnDelete : TxnDelete.TypeAssumptions
+  instance'RangeDeleter : RangeDeleter.TypeAssumptions
+  instance'Checkpointer : Checkpointer.TypeAssumptions
+  instance'LeaseID : LeaseID.TypeAssumptions
+  instance'Lessor : Lessor.TypeAssumptions
+  instance'lessor : lessor.TypeAssumptions
+  instance'cluster : cluster.TypeAssumptions
+  instance'LessorConfig : LessorConfig.TypeAssumptions
+  instance'FakeLessor : FakeLessor.TypeAssumptions
+  instance'FakeTxnDelete : FakeTxnDelete.TypeAssumptions
+  unfold'NewLease : FuncUnfold NewLease [] NewLease.impl
+  unfold'newLeaseExpiredNotifier : FuncUnfold newLeaseExpiredNotifier [] newLeaseExpiredNotifier.impl
+  unfold'NewLessor : FuncUnfold NewLessor [] NewLessor.impl
+  unfold'newLessor : FuncUnfold newLessor [] newLessor.impl
+  unfold'greaterOrEqual : FuncUnfold greaterOrEqual [] greaterOrEqual.impl
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  import'math : _root_.Perennial.math.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'leasepb : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.Assumptions
+  import'backend : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
+  import'schema : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Assumptions
+  import'heap : _root_.Perennial.container.heap.Assumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'sort : _root_.Perennial.sort.Assumptions
+  import'semver : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'version : _root_.Perennial.go_etcd_io.etcd.api.v3.version.Assumptions
+  import'prometheus : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
 
-attribute [instance] Assumptions.Lease_instance
-  Assumptions.LeaseItem_instance
-  Assumptions.leasesByExpiry_instance
-  Assumptions.LeaseWithTime_instance
-  Assumptions.LeaseQueue_instance
-  Assumptions.LeaseExpiredNotifier_instance
-  Assumptions.TxnDelete_instance
-  Assumptions.RangeDeleter_instance
-  Assumptions.Checkpointer_instance
-  Assumptions.LeaseID_instance
-  Assumptions.Lessor_instance
-  Assumptions.lessor_instance
-  Assumptions.cluster_instance
-  Assumptions.LessorConfig_instance
-  Assumptions.FakeLessor_instance
-  Assumptions.FakeTxnDelete_instance
-  Assumptions.NewLease_unfold
-  Assumptions.newLeaseExpiredNotifier_unfold
-  Assumptions.NewLessor_unfold
-  Assumptions.newLessor_unfold
-  Assumptions.greaterOrEqual_unfold
-  Assumptions.«init.0_unfold»
-  Assumptions.import_math_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_leasepb_Assumption
-  Assumptions.import_backend_Assumption
-  Assumptions.import_schema_Assumption
-  Assumptions.import_heap_Assumption
-  Assumptions.import_context_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_sort_Assumption
-  Assumptions.import_semver_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_version_Assumption
-  Assumptions.import_prometheus_Assumption
+attribute [instance] Assumptions.instance'Lease
+  Assumptions.instance'LeaseItem
+  Assumptions.instance'leasesByExpiry
+  Assumptions.instance'LeaseWithTime
+  Assumptions.instance'LeaseQueue
+  Assumptions.instance'LeaseExpiredNotifier
+  Assumptions.instance'TxnDelete
+  Assumptions.instance'RangeDeleter
+  Assumptions.instance'Checkpointer
+  Assumptions.instance'LeaseID
+  Assumptions.instance'Lessor
+  Assumptions.instance'lessor
+  Assumptions.instance'cluster
+  Assumptions.instance'LessorConfig
+  Assumptions.instance'FakeLessor
+  Assumptions.instance'FakeTxnDelete
+  Assumptions.unfold'NewLease
+  Assumptions.unfold'newLeaseExpiredNotifier
+  Assumptions.unfold'NewLessor
+  Assumptions.unfold'newLessor
+  Assumptions.unfold'greaterOrEqual
+  Assumptions.«unfold'init.0»
+  Assumptions.import'math
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'leasepb
+  Assumptions.import'backend
+  Assumptions.import'schema
+  Assumptions.import'heap
+  Assumptions.import'context
+  Assumptions.import'errors
+  Assumptions.import'sort
+  Assumptions.import'semver
+  Assumptions.import'zap
+  Assumptions.import'etcdserverpb
+  Assumptions.import'version
+  Assumptions.import'prometheus
 
 end go_etcd_io.etcd.server.v3.lease
 

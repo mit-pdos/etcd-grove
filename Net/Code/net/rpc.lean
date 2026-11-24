@@ -3335,15 +3335,15 @@ class ServerError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq ServerError.ty ServerError.underlying
   method_set : go.MethodSetIs ServerError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
-  Error_unfold : MethodUnfold ServerError.ty go!"Error" ServerError.Error.impl
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType ServerError.ty) go!"Error" (LamV "$r"
+  unfold'Error : MethodUnfold ServerError.ty go!"Error" ServerError.Error.impl
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType ServerError.ty) go!"Error" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ServerError.ty go!"Error"))) (App (Val (GoInstruction (GoLoad ServerError.ty))) (Var "$r"))))
 
 attribute [instance] ServerError.TypeAssumptions.underlying
   ServerError.TypeAssumptions.method_set
   ServerError.TypeAssumptions.ptr_method_set
-  ServerError.TypeAssumptions.Error_unfold
-  ServerError.TypeAssumptions.ptr_Error_unfold
+  ServerError.TypeAssumptions.unfold'Error
+  ServerError.TypeAssumptions.ptr_unfold'Error
 
 structure Call [GooseExts] where
   mk ::
@@ -3366,7 +3366,7 @@ noncomputable instance Call.zero_val [GooseExts] : ZeroVal Call :=
 @[irreducible] noncomputable def Call.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Call.fieldsUnsealed
 
-noncomputable instance equals_unfold_Call [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Call [GooseExts] [GoGlobalContext] :
     EqualsUnfold Call.fields Call.fieldsUnsealed :=
   ⟨by unfold Call.fields; rfl⟩
 
@@ -3376,35 +3376,35 @@ noncomputable instance equals_unfold_Call [GooseExts] [GoGlobalContext] :
 class Call.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Call.underlying Call
   underlying : go.UnderlyingDirectedEq Call.ty Call.underlying
-  get_ServiceMethod : ∀ (x : Call), go.IsGoStepPureDetTagged under (StructFieldGet Call.underlying go!"ServiceMethod") #x (Val #(x.ServiceMethod'))
-  set_ServiceMethod : ∀ (x : Call) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Call.underlying go!"ServiceMethod") (PairV #x #y) (Val #(({ x with ServiceMethod' := y } : Call)))
-  get_Args : ∀ (x : Call), go.IsGoStepPureDetTagged under (StructFieldGet Call.underlying go!"Args") #x (Val #(x.Args'))
-  set_Args : ∀ (x : Call) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Call.underlying go!"Args") (PairV #x #y) (Val #(({ x with Args' := y } : Call)))
-  get_Reply : ∀ (x : Call), go.IsGoStepPureDetTagged under (StructFieldGet Call.underlying go!"Reply") #x (Val #(x.Reply'))
-  set_Reply : ∀ (x : Call) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Call.underlying go!"Reply") (PairV #x #y) (Val #(({ x with Reply' := y } : Call)))
-  get_Error : ∀ (x : Call), go.IsGoStepPureDetTagged under (StructFieldGet Call.underlying go!"Error") #x (Val #(x.Error'))
-  set_Error : ∀ (x : Call) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Call.underlying go!"Error") (PairV #x #y) (Val #(({ x with Error' := y } : Call)))
-  get_Done : ∀ (x : Call), go.IsGoStepPureDetTagged under (StructFieldGet Call.underlying go!"Done") #x (Val #(x.Done'))
-  set_Done : ∀ (x : Call) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Call.underlying go!"Done") (PairV #x #y) (Val #(({ x with Done' := y } : Call)))
+  get'ServiceMethod : ∀ (x : Call), go.IsGoStepPureDetTagged under (StructFieldGet Call.underlying go!"ServiceMethod") #x (Val #(x.ServiceMethod'))
+  set'ServiceMethod : ∀ (x : Call) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Call.underlying go!"ServiceMethod") (PairV #x #y) (Val #(({ x with ServiceMethod' := y } : Call)))
+  get'Args : ∀ (x : Call), go.IsGoStepPureDetTagged under (StructFieldGet Call.underlying go!"Args") #x (Val #(x.Args'))
+  set'Args : ∀ (x : Call) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Call.underlying go!"Args") (PairV #x #y) (Val #(({ x with Args' := y } : Call)))
+  get'Reply : ∀ (x : Call), go.IsGoStepPureDetTagged under (StructFieldGet Call.underlying go!"Reply") #x (Val #(x.Reply'))
+  set'Reply : ∀ (x : Call) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Call.underlying go!"Reply") (PairV #x #y) (Val #(({ x with Reply' := y } : Call)))
+  get'Error : ∀ (x : Call), go.IsGoStepPureDetTagged under (StructFieldGet Call.underlying go!"Error") #x (Val #(x.Error'))
+  set'Error : ∀ (x : Call) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Call.underlying go!"Error") (PairV #x #y) (Val #(({ x with Error' := y } : Call)))
+  get'Done : ∀ (x : Call), go.IsGoStepPureDetTagged under (StructFieldGet Call.underlying go!"Done") #x (Val #(x.Done'))
+  set'Done : ∀ (x : Call) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Call.underlying go!"Done") (PairV #x #y) (Val #(({ x with Done' := y } : Call)))
   method_set : go.MethodSetIs Call.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Call.ty) [(go!"net/rpc.done", (some (go.signature.Signature [] false [])))]
-  ptr_done_unfold : MethodUnfold (go.GoType.PointerType Call.ty) go!"done" Call.done.impl
+  ptr_unfold'done : MethodUnfold (go.GoType.PointerType Call.ty) go!"done" Call.done.impl
 
 attribute [instance] Call.TypeAssumptions.type_repr
   Call.TypeAssumptions.underlying
-  Call.TypeAssumptions.get_ServiceMethod
-  Call.TypeAssumptions.set_ServiceMethod
-  Call.TypeAssumptions.get_Args
-  Call.TypeAssumptions.set_Args
-  Call.TypeAssumptions.get_Reply
-  Call.TypeAssumptions.set_Reply
-  Call.TypeAssumptions.get_Error
-  Call.TypeAssumptions.set_Error
-  Call.TypeAssumptions.get_Done
-  Call.TypeAssumptions.set_Done
+  Call.TypeAssumptions.get'ServiceMethod
+  Call.TypeAssumptions.set'ServiceMethod
+  Call.TypeAssumptions.get'Args
+  Call.TypeAssumptions.set'Args
+  Call.TypeAssumptions.get'Reply
+  Call.TypeAssumptions.set'Reply
+  Call.TypeAssumptions.get'Error
+  Call.TypeAssumptions.set'Error
+  Call.TypeAssumptions.get'Done
+  Call.TypeAssumptions.set'Done
   Call.TypeAssumptions.method_set
   Call.TypeAssumptions.ptr_method_set
-  Call.TypeAssumptions.ptr_done_unfold
+  Call.TypeAssumptions.ptr_unfold'done
 
 abbrev ClientCodec [GooseExts] : Type := GoInterface
 
@@ -3437,7 +3437,7 @@ noncomputable instance Request.zero_val [GooseExts] : ZeroVal Request :=
 @[irreducible] noncomputable def Request.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Request.fieldsUnsealed
 
-noncomputable instance equals_unfold_Request [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Request [GooseExts] [GoGlobalContext] :
     EqualsUnfold Request.fields Request.fieldsUnsealed :=
   ⟨by unfold Request.fields; rfl⟩
 
@@ -3447,23 +3447,23 @@ noncomputable instance equals_unfold_Request [GooseExts] [GoGlobalContext] :
 class Request.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Request.underlying Request
   underlying : go.UnderlyingDirectedEq Request.ty Request.underlying
-  get_ServiceMethod : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"ServiceMethod") #x (Val #(x.ServiceMethod'))
-  set_ServiceMethod : ∀ (x : Request) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"ServiceMethod") (PairV #x #y) (Val #(({ x with ServiceMethod' := y } : Request)))
-  get_Seq : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"Seq") #x (Val #(x.Seq'))
-  set_Seq : ∀ (x : Request) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"Seq") (PairV #x #y) (Val #(({ x with Seq' := y } : Request)))
-  get_next : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"next") #x (Val #(x.next'))
-  set_next : ∀ (x : Request) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"next") (PairV #x #y) (Val #(({ x with next' := y } : Request)))
+  get'ServiceMethod : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"ServiceMethod") #x (Val #(x.ServiceMethod'))
+  set'ServiceMethod : ∀ (x : Request) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"ServiceMethod") (PairV #x #y) (Val #(({ x with ServiceMethod' := y } : Request)))
+  get'Seq : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"Seq") #x (Val #(x.Seq'))
+  set'Seq : ∀ (x : Request) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"Seq") (PairV #x #y) (Val #(({ x with Seq' := y } : Request)))
+  get'next : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"next") #x (Val #(x.next'))
+  set'next : ∀ (x : Request) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"next") (PairV #x #y) (Val #(({ x with next' := y } : Request)))
   method_set : go.MethodSetIs Request.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Request.ty) []
 
 attribute [instance] Request.TypeAssumptions.type_repr
   Request.TypeAssumptions.underlying
-  Request.TypeAssumptions.get_ServiceMethod
-  Request.TypeAssumptions.set_ServiceMethod
-  Request.TypeAssumptions.get_Seq
-  Request.TypeAssumptions.set_Seq
-  Request.TypeAssumptions.get_next
-  Request.TypeAssumptions.set_next
+  Request.TypeAssumptions.get'ServiceMethod
+  Request.TypeAssumptions.set'ServiceMethod
+  Request.TypeAssumptions.get'Seq
+  Request.TypeAssumptions.set'Seq
+  Request.TypeAssumptions.get'next
+  Request.TypeAssumptions.set'next
   Request.TypeAssumptions.method_set
   Request.TypeAssumptions.ptr_method_set
 
@@ -3494,7 +3494,7 @@ noncomputable instance Client.zero_val [GooseExts] : ZeroVal Client :=
 @[irreducible] noncomputable def Client.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Client.fieldsUnsealed
 
-noncomputable instance equals_unfold_Client [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Client [GooseExts] [GoGlobalContext] :
     EqualsUnfold Client.fields Client.fieldsUnsealed :=
   ⟨by unfold Client.fields; rfl⟩
 
@@ -3504,55 +3504,55 @@ noncomputable instance equals_unfold_Client [GooseExts] [GoGlobalContext] :
 class Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Client.underlying Client
   underlying : go.UnderlyingDirectedEq Client.ty Client.underlying
-  get_codec : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"codec") #x (Val #(x.codec'))
-  set_codec : ∀ (x : Client) (y : ClientCodec), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"codec") (PairV #x #y) (Val #(({ x with codec' := y } : Client)))
-  get_reqMutex : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"reqMutex") #x (Val #(x.reqMutex'))
-  set_reqMutex : ∀ (x : Client) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"reqMutex") (PairV #x #y) (Val #(({ x with reqMutex' := y } : Client)))
-  get_request : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"request") #x (Val #(x.request'))
-  set_request : ∀ (x : Client) (y : Request), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"request") (PairV #x #y) (Val #(({ x with request' := y } : Client)))
-  get_mutex : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"mutex") #x (Val #(x.mutex'))
-  set_mutex : ∀ (x : Client) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"mutex") (PairV #x #y) (Val #(({ x with mutex' := y } : Client)))
-  get_seq : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"seq") #x (Val #(x.seq'))
-  set_seq : ∀ (x : Client) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"seq") (PairV #x #y) (Val #(({ x with seq' := y } : Client)))
-  get_pending : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"pending") #x (Val #(x.pending'))
-  set_pending : ∀ (x : Client) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"pending") (PairV #x #y) (Val #(({ x with pending' := y } : Client)))
-  get_closing : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"closing") #x (Val #(x.closing'))
-  set_closing : ∀ (x : Client) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"closing") (PairV #x #y) (Val #(({ x with closing' := y } : Client)))
-  get_shutdown : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"shutdown") #x (Val #(x.shutdown'))
-  set_shutdown : ∀ (x : Client) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"shutdown") (PairV #x #y) (Val #(({ x with shutdown' := y } : Client)))
+  get'codec : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"codec") #x (Val #(x.codec'))
+  set'codec : ∀ (x : Client) (y : ClientCodec), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"codec") (PairV #x #y) (Val #(({ x with codec' := y } : Client)))
+  get'reqMutex : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"reqMutex") #x (Val #(x.reqMutex'))
+  set'reqMutex : ∀ (x : Client) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"reqMutex") (PairV #x #y) (Val #(({ x with reqMutex' := y } : Client)))
+  get'request : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"request") #x (Val #(x.request'))
+  set'request : ∀ (x : Client) (y : Request), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"request") (PairV #x #y) (Val #(({ x with request' := y } : Client)))
+  get'mutex : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"mutex") #x (Val #(x.mutex'))
+  set'mutex : ∀ (x : Client) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"mutex") (PairV #x #y) (Val #(({ x with mutex' := y } : Client)))
+  get'seq : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"seq") #x (Val #(x.seq'))
+  set'seq : ∀ (x : Client) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"seq") (PairV #x #y) (Val #(({ x with seq' := y } : Client)))
+  get'pending : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"pending") #x (Val #(x.pending'))
+  set'pending : ∀ (x : Client) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"pending") (PairV #x #y) (Val #(({ x with pending' := y } : Client)))
+  get'closing : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"closing") #x (Val #(x.closing'))
+  set'closing : ∀ (x : Client) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"closing") (PairV #x #y) (Val #(({ x with closing' := y } : Client)))
+  get'shutdown : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"shutdown") #x (Val #(x.shutdown'))
+  set'shutdown : ∀ (x : Client) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"shutdown") (PairV #x #y) (Val #(({ x with shutdown' := y } : Client)))
   method_set : go.MethodSetIs Client.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Client.ty) [(go!"Call", (some (go.signature.Signature [go.string, go.any, go.any] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Go", (some (go.signature.Signature [go.string, go.any, go.any, (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType Call.ty))] false [(go.GoType.PointerType Call.ty)]))), (go!"net/rpc.input", (some (go.signature.Signature [] false []))), (go!"net/rpc.send", (some (go.signature.Signature [(go.GoType.PointerType Call.ty)] false [])))]
-  ptr_Call_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Call" Client.Call.impl
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Close" Client.Close.impl
-  ptr_Go_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Go" Client.Go.impl
-  ptr_input_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"input" Client.input.impl
-  ptr_send_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"send" Client.send.impl
+  ptr_unfold'Call : MethodUnfold (go.GoType.PointerType Client.ty) go!"Call" Client.Call.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType Client.ty) go!"Close" Client.Close.impl
+  ptr_unfold'Go : MethodUnfold (go.GoType.PointerType Client.ty) go!"Go" Client.Go.impl
+  ptr_unfold'input : MethodUnfold (go.GoType.PointerType Client.ty) go!"input" Client.input.impl
+  ptr_unfold'send : MethodUnfold (go.GoType.PointerType Client.ty) go!"send" Client.send.impl
 
 attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.underlying
-  Client.TypeAssumptions.get_codec
-  Client.TypeAssumptions.set_codec
-  Client.TypeAssumptions.get_reqMutex
-  Client.TypeAssumptions.set_reqMutex
-  Client.TypeAssumptions.get_request
-  Client.TypeAssumptions.set_request
-  Client.TypeAssumptions.get_mutex
-  Client.TypeAssumptions.set_mutex
-  Client.TypeAssumptions.get_seq
-  Client.TypeAssumptions.set_seq
-  Client.TypeAssumptions.get_pending
-  Client.TypeAssumptions.set_pending
-  Client.TypeAssumptions.get_closing
-  Client.TypeAssumptions.set_closing
-  Client.TypeAssumptions.get_shutdown
-  Client.TypeAssumptions.set_shutdown
+  Client.TypeAssumptions.get'codec
+  Client.TypeAssumptions.set'codec
+  Client.TypeAssumptions.get'reqMutex
+  Client.TypeAssumptions.set'reqMutex
+  Client.TypeAssumptions.get'request
+  Client.TypeAssumptions.set'request
+  Client.TypeAssumptions.get'mutex
+  Client.TypeAssumptions.set'mutex
+  Client.TypeAssumptions.get'seq
+  Client.TypeAssumptions.set'seq
+  Client.TypeAssumptions.get'pending
+  Client.TypeAssumptions.set'pending
+  Client.TypeAssumptions.get'closing
+  Client.TypeAssumptions.set'closing
+  Client.TypeAssumptions.get'shutdown
+  Client.TypeAssumptions.set'shutdown
   Client.TypeAssumptions.method_set
   Client.TypeAssumptions.ptr_method_set
-  Client.TypeAssumptions.ptr_Call_unfold
-  Client.TypeAssumptions.ptr_Close_unfold
-  Client.TypeAssumptions.ptr_Go_unfold
-  Client.TypeAssumptions.ptr_input_unfold
-  Client.TypeAssumptions.ptr_send_unfold
+  Client.TypeAssumptions.ptr_unfold'Call
+  Client.TypeAssumptions.ptr_unfold'Close
+  Client.TypeAssumptions.ptr_unfold'Go
+  Client.TypeAssumptions.ptr_unfold'input
+  Client.TypeAssumptions.ptr_unfold'send
 
 structure Method [GooseExts] where
   mk ::
@@ -3571,7 +3571,7 @@ noncomputable instance Method.zero_val [GooseExts] : ZeroVal Method :=
 @[irreducible] noncomputable def Method.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Method.fieldsUnsealed
 
-noncomputable instance equals_unfold_Method [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Method [GooseExts] [GoGlobalContext] :
     EqualsUnfold Method.fields Method.fieldsUnsealed :=
   ⟨by unfold Method.fields; rfl⟩
 
@@ -3581,23 +3581,23 @@ noncomputable instance equals_unfold_Method [GooseExts] [GoGlobalContext] :
 class Method.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Method.underlying Method
   underlying : go.UnderlyingDirectedEq Method.ty Method.underlying
-  get_NewArg : ∀ (x : Method), go.IsGoStepPureDetTagged under (StructFieldGet Method.underlying go!"NewArg") #x (Val #(x.NewArg'))
-  set_NewArg : ∀ (x : Method) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Method.underlying go!"NewArg") (PairV #x #y) (Val #(({ x with NewArg' := y } : Method)))
-  get_NewReply : ∀ (x : Method), go.IsGoStepPureDetTagged under (StructFieldGet Method.underlying go!"NewReply") #x (Val #(x.NewReply'))
-  set_NewReply : ∀ (x : Method) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Method.underlying go!"NewReply") (PairV #x #y) (Val #(({ x with NewReply' := y } : Method)))
-  get_Call : ∀ (x : Method), go.IsGoStepPureDetTagged under (StructFieldGet Method.underlying go!"Call") #x (Val #(x.Call'))
-  set_Call : ∀ (x : Method) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Method.underlying go!"Call") (PairV #x #y) (Val #(({ x with Call' := y } : Method)))
+  get'NewArg : ∀ (x : Method), go.IsGoStepPureDetTagged under (StructFieldGet Method.underlying go!"NewArg") #x (Val #(x.NewArg'))
+  set'NewArg : ∀ (x : Method) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Method.underlying go!"NewArg") (PairV #x #y) (Val #(({ x with NewArg' := y } : Method)))
+  get'NewReply : ∀ (x : Method), go.IsGoStepPureDetTagged under (StructFieldGet Method.underlying go!"NewReply") #x (Val #(x.NewReply'))
+  set'NewReply : ∀ (x : Method) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Method.underlying go!"NewReply") (PairV #x #y) (Val #(({ x with NewReply' := y } : Method)))
+  get'Call : ∀ (x : Method), go.IsGoStepPureDetTagged under (StructFieldGet Method.underlying go!"Call") #x (Val #(x.Call'))
+  set'Call : ∀ (x : Method) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Method.underlying go!"Call") (PairV #x #y) (Val #(({ x with Call' := y } : Method)))
   method_set : go.MethodSetIs Method.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Method.ty) []
 
 attribute [instance] Method.TypeAssumptions.type_repr
   Method.TypeAssumptions.underlying
-  Method.TypeAssumptions.get_NewArg
-  Method.TypeAssumptions.set_NewArg
-  Method.TypeAssumptions.get_NewReply
-  Method.TypeAssumptions.set_NewReply
-  Method.TypeAssumptions.get_Call
-  Method.TypeAssumptions.set_Call
+  Method.TypeAssumptions.get'NewArg
+  Method.TypeAssumptions.set'NewArg
+  Method.TypeAssumptions.get'NewReply
+  Method.TypeAssumptions.set'NewReply
+  Method.TypeAssumptions.get'Call
+  Method.TypeAssumptions.set'Call
   Method.TypeAssumptions.method_set
   Method.TypeAssumptions.ptr_method_set
 
@@ -3622,7 +3622,7 @@ noncomputable instance Receiver.zero_val [GooseExts] : ZeroVal Receiver :=
 @[irreducible] noncomputable def Receiver.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Receiver.fieldsUnsealed
 
-noncomputable instance equals_unfold_Receiver [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Receiver [GooseExts] [GoGlobalContext] :
     EqualsUnfold Receiver.fields Receiver.fieldsUnsealed :=
   ⟨by unfold Receiver.fields; rfl⟩
 
@@ -3632,31 +3632,31 @@ noncomputable instance equals_unfold_Receiver [GooseExts] [GoGlobalContext] :
 class Receiver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Receiver.underlying Receiver
   underlying : go.UnderlyingDirectedEq Receiver.ty Receiver.underlying
-  get_Name : ∀ (x : Receiver), go.IsGoStepPureDetTagged under (StructFieldGet Receiver.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : Receiver) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Receiver.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Receiver)))
-  get_NilPtr : ∀ (x : Receiver), go.IsGoStepPureDetTagged under (StructFieldGet Receiver.underlying go!"NilPtr") #x (Val #(x.NilPtr'))
-  set_NilPtr : ∀ (x : Receiver) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Receiver.underlying go!"NilPtr") (PairV #x #y) (Val #(({ x with NilPtr' := y } : Receiver)))
-  get_Type : ∀ (x : Receiver), go.IsGoStepPureDetTagged under (StructFieldGet Receiver.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : Receiver) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Receiver.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Receiver)))
-  get_Methods : ∀ (x : Receiver), go.IsGoStepPureDetTagged under (StructFieldGet Receiver.underlying go!"Methods") #x (Val #(x.Methods'))
-  set_Methods : ∀ (x : Receiver) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Receiver.underlying go!"Methods") (PairV #x #y) (Val #(({ x with Methods' := y } : Receiver)))
-  get_PtrHasMethods : ∀ (x : Receiver), go.IsGoStepPureDetTagged under (StructFieldGet Receiver.underlying go!"PtrHasMethods") #x (Val #(x.PtrHasMethods'))
-  set_PtrHasMethods : ∀ (x : Receiver) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Receiver.underlying go!"PtrHasMethods") (PairV #x #y) (Val #(({ x with PtrHasMethods' := y } : Receiver)))
+  get'Name : ∀ (x : Receiver), go.IsGoStepPureDetTagged under (StructFieldGet Receiver.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : Receiver) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Receiver.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Receiver)))
+  get'NilPtr : ∀ (x : Receiver), go.IsGoStepPureDetTagged under (StructFieldGet Receiver.underlying go!"NilPtr") #x (Val #(x.NilPtr'))
+  set'NilPtr : ∀ (x : Receiver) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Receiver.underlying go!"NilPtr") (PairV #x #y) (Val #(({ x with NilPtr' := y } : Receiver)))
+  get'Type : ∀ (x : Receiver), go.IsGoStepPureDetTagged under (StructFieldGet Receiver.underlying go!"Type") #x (Val #(x.Type'))
+  set'Type : ∀ (x : Receiver) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Receiver.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Receiver)))
+  get'Methods : ∀ (x : Receiver), go.IsGoStepPureDetTagged under (StructFieldGet Receiver.underlying go!"Methods") #x (Val #(x.Methods'))
+  set'Methods : ∀ (x : Receiver) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Receiver.underlying go!"Methods") (PairV #x #y) (Val #(({ x with Methods' := y } : Receiver)))
+  get'PtrHasMethods : ∀ (x : Receiver), go.IsGoStepPureDetTagged under (StructFieldGet Receiver.underlying go!"PtrHasMethods") #x (Val #(x.PtrHasMethods'))
+  set'PtrHasMethods : ∀ (x : Receiver) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Receiver.underlying go!"PtrHasMethods") (PairV #x #y) (Val #(({ x with PtrHasMethods' := y } : Receiver)))
   method_set : go.MethodSetIs Receiver.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Receiver.ty) []
 
 attribute [instance] Receiver.TypeAssumptions.type_repr
   Receiver.TypeAssumptions.underlying
-  Receiver.TypeAssumptions.get_Name
-  Receiver.TypeAssumptions.set_Name
-  Receiver.TypeAssumptions.get_NilPtr
-  Receiver.TypeAssumptions.set_NilPtr
-  Receiver.TypeAssumptions.get_Type
-  Receiver.TypeAssumptions.set_Type
-  Receiver.TypeAssumptions.get_Methods
-  Receiver.TypeAssumptions.set_Methods
-  Receiver.TypeAssumptions.get_PtrHasMethods
-  Receiver.TypeAssumptions.set_PtrHasMethods
+  Receiver.TypeAssumptions.get'Name
+  Receiver.TypeAssumptions.set'Name
+  Receiver.TypeAssumptions.get'NilPtr
+  Receiver.TypeAssumptions.set'NilPtr
+  Receiver.TypeAssumptions.get'Type
+  Receiver.TypeAssumptions.set'Type
+  Receiver.TypeAssumptions.get'Methods
+  Receiver.TypeAssumptions.set'Methods
+  Receiver.TypeAssumptions.get'PtrHasMethods
+  Receiver.TypeAssumptions.set'PtrHasMethods
   Receiver.TypeAssumptions.method_set
   Receiver.TypeAssumptions.ptr_method_set
 
@@ -3677,7 +3677,7 @@ noncomputable instance Codec.zero_val [GooseExts] : ZeroVal Codec :=
 @[irreducible] noncomputable def Codec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Codec.fieldsUnsealed
 
-noncomputable instance equals_unfold_Codec [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Codec [GooseExts] [GoGlobalContext] :
     EqualsUnfold Codec.fields Codec.fieldsUnsealed :=
   ⟨by unfold Codec.fields; rfl⟩
 
@@ -3687,23 +3687,23 @@ noncomputable instance equals_unfold_Codec [GooseExts] [GoGlobalContext] :
 class Codec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Codec.underlying Codec
   underlying : go.UnderlyingDirectedEq Codec.ty Codec.underlying
-  get_Encode : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Encode") #x (Val #(x.Encode'))
-  set_Encode : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Encode") (PairV #x #y) (Val #(({ x with Encode' := y } : Codec)))
-  get_Decode : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Decode") #x (Val #(x.Decode'))
-  set_Decode : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Decode") (PairV #x #y) (Val #(({ x with Decode' := y } : Codec)))
-  get_Receiver : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Receiver") #x (Val #(x.Receiver'))
-  set_Receiver : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Receiver") (PairV #x #y) (Val #(({ x with Receiver' := y } : Codec)))
+  get'Encode : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Encode") #x (Val #(x.Encode'))
+  set'Encode : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Encode") (PairV #x #y) (Val #(({ x with Encode' := y } : Codec)))
+  get'Decode : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Decode") #x (Val #(x.Decode'))
+  set'Decode : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Decode") (PairV #x #y) (Val #(({ x with Decode' := y } : Codec)))
+  get'Receiver : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Receiver") #x (Val #(x.Receiver'))
+  set'Receiver : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Receiver") (PairV #x #y) (Val #(({ x with Receiver' := y } : Codec)))
   method_set : go.MethodSetIs Codec.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Codec.ty) []
 
 attribute [instance] Codec.TypeAssumptions.type_repr
   Codec.TypeAssumptions.underlying
-  Codec.TypeAssumptions.get_Encode
-  Codec.TypeAssumptions.set_Encode
-  Codec.TypeAssumptions.get_Decode
-  Codec.TypeAssumptions.set_Decode
-  Codec.TypeAssumptions.get_Receiver
-  Codec.TypeAssumptions.set_Receiver
+  Codec.TypeAssumptions.get'Encode
+  Codec.TypeAssumptions.set'Encode
+  Codec.TypeAssumptions.get'Decode
+  Codec.TypeAssumptions.set'Decode
+  Codec.TypeAssumptions.get'Receiver
+  Codec.TypeAssumptions.set'Receiver
   Codec.TypeAssumptions.method_set
   Codec.TypeAssumptions.ptr_method_set
 
@@ -3716,15 +3716,15 @@ class notModelled.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq notModelled.ty notModelled.underlying
   method_set : go.MethodSetIs notModelled.ty [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType notModelled.ty) [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
-  NotModelled_unfold : MethodUnfold notModelled.ty go!"NotModelled" notModelled.NotModelled.impl
-  ptr_NotModelled_unfold : MethodUnfold (go.GoType.PointerType notModelled.ty) go!"NotModelled" (LamV "$r"
+  unfold'NotModelled : MethodUnfold notModelled.ty go!"NotModelled" notModelled.NotModelled.impl
+  ptr_unfold'NotModelled : MethodUnfold (go.GoType.PointerType notModelled.ty) go!"NotModelled" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve notModelled.ty go!"NotModelled"))) (App (Val (GoInstruction (GoLoad notModelled.ty))) (Var "$r"))))
 
 attribute [instance] notModelled.TypeAssumptions.underlying
   notModelled.TypeAssumptions.method_set
   notModelled.TypeAssumptions.ptr_method_set
-  notModelled.TypeAssumptions.NotModelled_unfold
-  notModelled.TypeAssumptions.ptr_NotModelled_unfold
+  notModelled.TypeAssumptions.unfold'NotModelled
+  notModelled.TypeAssumptions.ptr_unfold'NotModelled
 
 structure clientCodec [GooseExts] where
   mk ::
@@ -3741,7 +3741,7 @@ noncomputable instance clientCodec.zero_val [GooseExts] : ZeroVal clientCodec :=
 @[irreducible] noncomputable def clientCodec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   clientCodec.fieldsUnsealed
 
-noncomputable instance equals_unfold_clientCodec [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'clientCodec [GooseExts] [GoGlobalContext] :
     EqualsUnfold clientCodec.fields clientCodec.fieldsUnsealed :=
   ⟨by unfold clientCodec.fields; rfl⟩
 
@@ -3751,29 +3751,29 @@ noncomputable instance equals_unfold_clientCodec [GooseExts] [GoGlobalContext] :
 class clientCodec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying clientCodec.underlying clientCodec
   underlying : go.UnderlyingDirectedEq clientCodec.ty clientCodec.underlying
-  get_rwc : ∀ (x : clientCodec), go.IsGoStepPureDetTagged under (StructFieldGet clientCodec.underlying go!"rwc") #x (Val #(x.rwc'))
-  set_rwc : ∀ (x : clientCodec) (y : _root_.Perennial.io.ReadWriteCloser), go.IsGoStepPureDetTagged under (StructFieldSet clientCodec.underlying go!"rwc") (PairV #x #y) (Val #(({ x with rwc' := y } : clientCodec)))
-  get_werr : ∀ (x : clientCodec), go.IsGoStepPureDetTagged under (StructFieldGet clientCodec.underlying go!"werr") #x (Val #(x.werr'))
-  set_werr : ∀ (x : clientCodec) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet clientCodec.underlying go!"werr") (PairV #x #y) (Val #(({ x with werr' := y } : clientCodec)))
+  get'rwc : ∀ (x : clientCodec), go.IsGoStepPureDetTagged under (StructFieldGet clientCodec.underlying go!"rwc") #x (Val #(x.rwc'))
+  set'rwc : ∀ (x : clientCodec) (y : _root_.Perennial.io.ReadWriteCloser), go.IsGoStepPureDetTagged under (StructFieldSet clientCodec.underlying go!"rwc") (PairV #x #y) (Val #(({ x with rwc' := y } : clientCodec)))
+  get'werr : ∀ (x : clientCodec), go.IsGoStepPureDetTagged under (StructFieldGet clientCodec.underlying go!"werr") #x (Val #(x.werr'))
+  set'werr : ∀ (x : clientCodec) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet clientCodec.underlying go!"werr") (PairV #x #y) (Val #(({ x with werr' := y } : clientCodec)))
   method_set : go.MethodSetIs clientCodec.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientCodec.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"ReadResponseBody", (some (go.signature.Signature [go.any] false [go.error]))), (go!"ReadResponseHeader", (some (go.signature.Signature [(go.GoType.PointerType Response.ty)] false [go.error]))), (go!"WriteRequest", (some (go.signature.Signature [(go.GoType.PointerType Request.ty), go.any] false [go.error])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType clientCodec.ty) go!"Close" clientCodec.Close.impl
-  ptr_ReadResponseBody_unfold : MethodUnfold (go.GoType.PointerType clientCodec.ty) go!"ReadResponseBody" clientCodec.ReadResponseBody.impl
-  ptr_ReadResponseHeader_unfold : MethodUnfold (go.GoType.PointerType clientCodec.ty) go!"ReadResponseHeader" clientCodec.ReadResponseHeader.impl
-  ptr_WriteRequest_unfold : MethodUnfold (go.GoType.PointerType clientCodec.ty) go!"WriteRequest" clientCodec.WriteRequest.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType clientCodec.ty) go!"Close" clientCodec.Close.impl
+  ptr_unfold'ReadResponseBody : MethodUnfold (go.GoType.PointerType clientCodec.ty) go!"ReadResponseBody" clientCodec.ReadResponseBody.impl
+  ptr_unfold'ReadResponseHeader : MethodUnfold (go.GoType.PointerType clientCodec.ty) go!"ReadResponseHeader" clientCodec.ReadResponseHeader.impl
+  ptr_unfold'WriteRequest : MethodUnfold (go.GoType.PointerType clientCodec.ty) go!"WriteRequest" clientCodec.WriteRequest.impl
 
 attribute [instance] clientCodec.TypeAssumptions.type_repr
   clientCodec.TypeAssumptions.underlying
-  clientCodec.TypeAssumptions.get_rwc
-  clientCodec.TypeAssumptions.set_rwc
-  clientCodec.TypeAssumptions.get_werr
-  clientCodec.TypeAssumptions.set_werr
+  clientCodec.TypeAssumptions.get'rwc
+  clientCodec.TypeAssumptions.set'rwc
+  clientCodec.TypeAssumptions.get'werr
+  clientCodec.TypeAssumptions.set'werr
   clientCodec.TypeAssumptions.method_set
   clientCodec.TypeAssumptions.ptr_method_set
-  clientCodec.TypeAssumptions.ptr_Close_unfold
-  clientCodec.TypeAssumptions.ptr_ReadResponseBody_unfold
-  clientCodec.TypeAssumptions.ptr_ReadResponseHeader_unfold
-  clientCodec.TypeAssumptions.ptr_WriteRequest_unfold
+  clientCodec.TypeAssumptions.ptr_unfold'Close
+  clientCodec.TypeAssumptions.ptr_unfold'ReadResponseBody
+  clientCodec.TypeAssumptions.ptr_unfold'ReadResponseHeader
+  clientCodec.TypeAssumptions.ptr_unfold'WriteRequest
 
 structure serverCodec [GooseExts] where
   mk ::
@@ -3794,7 +3794,7 @@ noncomputable instance serverCodec.zero_val [GooseExts] : ZeroVal serverCodec :=
 @[irreducible] noncomputable def serverCodec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   serverCodec.fieldsUnsealed
 
-noncomputable instance equals_unfold_serverCodec [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'serverCodec [GooseExts] [GoGlobalContext] :
     EqualsUnfold serverCodec.fields serverCodec.fieldsUnsealed :=
   ⟨by unfold serverCodec.fields; rfl⟩
 
@@ -3804,37 +3804,37 @@ noncomputable instance equals_unfold_serverCodec [GooseExts] [GoGlobalContext] :
 class serverCodec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverCodec.underlying serverCodec
   underlying : go.UnderlyingDirectedEq serverCodec.ty serverCodec.underlying
-  get_rwc : ∀ (x : serverCodec), go.IsGoStepPureDetTagged under (StructFieldGet serverCodec.underlying go!"rwc") #x (Val #(x.rwc'))
-  set_rwc : ∀ (x : serverCodec) (y : _root_.Perennial.io.ReadWriteCloser), go.IsGoStepPureDetTagged under (StructFieldSet serverCodec.underlying go!"rwc") (PairV #x #y) (Val #(({ x with rwc' := y } : serverCodec)))
-  get_werr : ∀ (x : serverCodec), go.IsGoStepPureDetTagged under (StructFieldGet serverCodec.underlying go!"werr") #x (Val #(x.werr'))
-  set_werr : ∀ (x : serverCodec) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet serverCodec.underlying go!"werr") (PairV #x #y) (Val #(({ x with werr' := y } : serverCodec)))
-  get_rerr : ∀ (x : serverCodec), go.IsGoStepPureDetTagged under (StructFieldGet serverCodec.underlying go!"rerr") #x (Val #(x.rerr'))
-  set_rerr : ∀ (x : serverCodec) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet serverCodec.underlying go!"rerr") (PairV #x #y) (Val #(({ x with rerr' := y } : serverCodec)))
-  get_closed : ∀ (x : serverCodec), go.IsGoStepPureDetTagged under (StructFieldGet serverCodec.underlying go!"closed") #x (Val #(x.closed'))
-  set_closed : ∀ (x : serverCodec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverCodec.underlying go!"closed") (PairV #x #y) (Val #(({ x with closed' := y } : serverCodec)))
+  get'rwc : ∀ (x : serverCodec), go.IsGoStepPureDetTagged under (StructFieldGet serverCodec.underlying go!"rwc") #x (Val #(x.rwc'))
+  set'rwc : ∀ (x : serverCodec) (y : _root_.Perennial.io.ReadWriteCloser), go.IsGoStepPureDetTagged under (StructFieldSet serverCodec.underlying go!"rwc") (PairV #x #y) (Val #(({ x with rwc' := y } : serverCodec)))
+  get'werr : ∀ (x : serverCodec), go.IsGoStepPureDetTagged under (StructFieldGet serverCodec.underlying go!"werr") #x (Val #(x.werr'))
+  set'werr : ∀ (x : serverCodec) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet serverCodec.underlying go!"werr") (PairV #x #y) (Val #(({ x with werr' := y } : serverCodec)))
+  get'rerr : ∀ (x : serverCodec), go.IsGoStepPureDetTagged under (StructFieldGet serverCodec.underlying go!"rerr") #x (Val #(x.rerr'))
+  set'rerr : ∀ (x : serverCodec) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet serverCodec.underlying go!"rerr") (PairV #x #y) (Val #(({ x with rerr' := y } : serverCodec)))
+  get'closed : ∀ (x : serverCodec), go.IsGoStepPureDetTagged under (StructFieldGet serverCodec.underlying go!"closed") #x (Val #(x.closed'))
+  set'closed : ∀ (x : serverCodec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverCodec.underlying go!"closed") (PairV #x #y) (Val #(({ x with closed' := y } : serverCodec)))
   method_set : go.MethodSetIs serverCodec.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverCodec.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"ReadRequestBody", (some (go.signature.Signature [go.any] false [go.error]))), (go!"ReadRequestHeader", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [go.error]))), (go!"WriteResponse", (some (go.signature.Signature [(go.GoType.PointerType Response.ty), go.any] false [go.error])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType serverCodec.ty) go!"Close" serverCodec.Close.impl
-  ptr_ReadRequestBody_unfold : MethodUnfold (go.GoType.PointerType serverCodec.ty) go!"ReadRequestBody" serverCodec.ReadRequestBody.impl
-  ptr_ReadRequestHeader_unfold : MethodUnfold (go.GoType.PointerType serverCodec.ty) go!"ReadRequestHeader" serverCodec.ReadRequestHeader.impl
-  ptr_WriteResponse_unfold : MethodUnfold (go.GoType.PointerType serverCodec.ty) go!"WriteResponse" serverCodec.WriteResponse.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType serverCodec.ty) go!"Close" serverCodec.Close.impl
+  ptr_unfold'ReadRequestBody : MethodUnfold (go.GoType.PointerType serverCodec.ty) go!"ReadRequestBody" serverCodec.ReadRequestBody.impl
+  ptr_unfold'ReadRequestHeader : MethodUnfold (go.GoType.PointerType serverCodec.ty) go!"ReadRequestHeader" serverCodec.ReadRequestHeader.impl
+  ptr_unfold'WriteResponse : MethodUnfold (go.GoType.PointerType serverCodec.ty) go!"WriteResponse" serverCodec.WriteResponse.impl
 
 attribute [instance] serverCodec.TypeAssumptions.type_repr
   serverCodec.TypeAssumptions.underlying
-  serverCodec.TypeAssumptions.get_rwc
-  serverCodec.TypeAssumptions.set_rwc
-  serverCodec.TypeAssumptions.get_werr
-  serverCodec.TypeAssumptions.set_werr
-  serverCodec.TypeAssumptions.get_rerr
-  serverCodec.TypeAssumptions.set_rerr
-  serverCodec.TypeAssumptions.get_closed
-  serverCodec.TypeAssumptions.set_closed
+  serverCodec.TypeAssumptions.get'rwc
+  serverCodec.TypeAssumptions.set'rwc
+  serverCodec.TypeAssumptions.get'werr
+  serverCodec.TypeAssumptions.set'werr
+  serverCodec.TypeAssumptions.get'rerr
+  serverCodec.TypeAssumptions.set'rerr
+  serverCodec.TypeAssumptions.get'closed
+  serverCodec.TypeAssumptions.set'closed
   serverCodec.TypeAssumptions.method_set
   serverCodec.TypeAssumptions.ptr_method_set
-  serverCodec.TypeAssumptions.ptr_Close_unfold
-  serverCodec.TypeAssumptions.ptr_ReadRequestBody_unfold
-  serverCodec.TypeAssumptions.ptr_ReadRequestHeader_unfold
-  serverCodec.TypeAssumptions.ptr_WriteResponse_unfold
+  serverCodec.TypeAssumptions.ptr_unfold'Close
+  serverCodec.TypeAssumptions.ptr_unfold'ReadRequestBody
+  serverCodec.TypeAssumptions.ptr_unfold'ReadRequestHeader
+  serverCodec.TypeAssumptions.ptr_unfold'WriteResponse
 
 structure debugHTTP [GooseExts] where
   mk ::
@@ -3849,7 +3849,7 @@ noncomputable instance debugHTTP.zero_val [GooseExts] : ZeroVal debugHTTP :=
 @[irreducible] noncomputable def debugHTTP.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   debugHTTP.fieldsUnsealed
 
-noncomputable instance equals_unfold_debugHTTP [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'debugHTTP [GooseExts] [GoGlobalContext] :
     EqualsUnfold debugHTTP.fields debugHTTP.fieldsUnsealed :=
   ⟨by unfold debugHTTP.fields; rfl⟩
 
@@ -3859,112 +3859,112 @@ noncomputable instance equals_unfold_debugHTTP [GooseExts] [GoGlobalContext] :
 class debugHTTP.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying debugHTTP.underlying debugHTTP
   underlying : go.UnderlyingDirectedEq debugHTTP.ty debugHTTP.underlying
-  get_Server : ∀ (x : debugHTTP), go.IsGoStepPureDetTagged under (StructFieldGet debugHTTP.underlying go!"Server") #x (Val #(x.Server'))
-  set_Server : ∀ (x : debugHTTP) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet debugHTTP.underlying go!"Server") (PairV #x #y) (Val #(({ x with Server' := y } : debugHTTP)))
+  get'Server : ∀ (x : debugHTTP), go.IsGoStepPureDetTagged under (StructFieldGet debugHTTP.underlying go!"Server") #x (Val #(x.Server'))
+  set'Server : ∀ (x : debugHTTP) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet debugHTTP.underlying go!"Server") (PairV #x #y) (Val #(({ x with Server' := y } : debugHTTP)))
   method_set : go.MethodSetIs debugHTTP.ty [(go!"Accept", (some (go.signature.Signature [_root_.Perennial.net.Listener.ty] false []))), (go!"HandleHTTP", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Register", (some (go.signature.Signature [go.any] false [go.error]))), (go!"RegisterName", (some (go.signature.Signature [go.string, go.any] false [go.error]))), (go!"ServeCodec", (some (go.signature.Signature [ServerCodec.ty] false []))), (go!"ServeConn", (some (go.signature.Signature [_root_.Perennial.io.ReadWriteCloser.ty] false []))), (go!"ServeHTTP", (some (go.signature.Signature [_root_.Perennial.net.http.ResponseWriter.ty, (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)] false []))), (go!"ServeRequest", (some (go.signature.Signature [ServerCodec.ty] false [go.error]))), (go!"net/rpc.freeRequest", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false []))), (go!"net/rpc.freeResponse", (some (go.signature.Signature [(go.GoType.PointerType Response.ty)] false []))), (go!"net/rpc.getRequest", (some (go.signature.Signature [] false [(go.GoType.PointerType Request.ty)]))), (go!"net/rpc.getResponse", (some (go.signature.Signature [] false [(go.GoType.PointerType Response.ty)]))), (go!"net/rpc.readRequest", (some (go.signature.Signature [ServerCodec.ty] false [(go.GoType.PointerType service.ty), (go.GoType.PointerType methodType.ty), (go.GoType.PointerType Request.ty), go.any, go.any, go.bool, go.error]))), (go!"net/rpc.readRequestHeader", (some (go.signature.Signature [ServerCodec.ty] false [(go.GoType.PointerType service.ty), (go.GoType.PointerType methodType.ty), (go.GoType.PointerType Request.ty), go.bool, go.error]))), (go!"net/rpc.register", (some (go.signature.Signature [go.any, go.string, go.bool] false [go.error]))), (go!"net/rpc.sendResponse", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.sync.Mutex.ty), (go.GoType.PointerType Request.ty), go.any, ServerCodec.ty, go.string] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType debugHTTP.ty) [(go!"Accept", (some (go.signature.Signature [_root_.Perennial.net.Listener.ty] false []))), (go!"HandleHTTP", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Register", (some (go.signature.Signature [go.any] false [go.error]))), (go!"RegisterName", (some (go.signature.Signature [go.string, go.any] false [go.error]))), (go!"ServeCodec", (some (go.signature.Signature [ServerCodec.ty] false []))), (go!"ServeConn", (some (go.signature.Signature [_root_.Perennial.io.ReadWriteCloser.ty] false []))), (go!"ServeHTTP", (some (go.signature.Signature [_root_.Perennial.net.http.ResponseWriter.ty, (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)] false []))), (go!"ServeRequest", (some (go.signature.Signature [ServerCodec.ty] false [go.error]))), (go!"net/rpc.freeRequest", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false []))), (go!"net/rpc.freeResponse", (some (go.signature.Signature [(go.GoType.PointerType Response.ty)] false []))), (go!"net/rpc.getRequest", (some (go.signature.Signature [] false [(go.GoType.PointerType Request.ty)]))), (go!"net/rpc.getResponse", (some (go.signature.Signature [] false [(go.GoType.PointerType Response.ty)]))), (go!"net/rpc.readRequest", (some (go.signature.Signature [ServerCodec.ty] false [(go.GoType.PointerType service.ty), (go.GoType.PointerType methodType.ty), (go.GoType.PointerType Request.ty), go.any, go.any, go.bool, go.error]))), (go!"net/rpc.readRequestHeader", (some (go.signature.Signature [ServerCodec.ty] false [(go.GoType.PointerType service.ty), (go.GoType.PointerType methodType.ty), (go.GoType.PointerType Request.ty), go.bool, go.error]))), (go!"net/rpc.register", (some (go.signature.Signature [go.any, go.string, go.bool] false [go.error]))), (go!"net/rpc.sendResponse", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.sync.Mutex.ty), (go.GoType.PointerType Request.ty), go.any, ServerCodec.ty, go.string] false [])))]
-  Accept_unfold : MethodUnfold debugHTTP.ty go!"Accept" (LamV "$r"
+  unfold'Accept : MethodUnfold debugHTTP.ty go!"Accept" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"Accept"))) (App (Val (GoInstruction (StructFieldGet debugHTTP.ty go!"Server"))) (Var "$r"))))
-  HandleHTTP_unfold : MethodUnfold debugHTTP.ty go!"HandleHTTP" (LamV "$r"
+  unfold'HandleHTTP : MethodUnfold debugHTTP.ty go!"HandleHTTP" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"HandleHTTP"))) (App (Val (GoInstruction (StructFieldGet debugHTTP.ty go!"Server"))) (Var "$r"))))
-  Register_unfold : MethodUnfold debugHTTP.ty go!"Register" (LamV "$r"
+  unfold'Register : MethodUnfold debugHTTP.ty go!"Register" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"Register"))) (App (Val (GoInstruction (StructFieldGet debugHTTP.ty go!"Server"))) (Var "$r"))))
-  RegisterName_unfold : MethodUnfold debugHTTP.ty go!"RegisterName" (LamV "$r"
+  unfold'RegisterName : MethodUnfold debugHTTP.ty go!"RegisterName" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"RegisterName"))) (App (Val (GoInstruction (StructFieldGet debugHTTP.ty go!"Server"))) (Var "$r"))))
-  ServeCodec_unfold : MethodUnfold debugHTTP.ty go!"ServeCodec" (LamV "$r"
+  unfold'ServeCodec : MethodUnfold debugHTTP.ty go!"ServeCodec" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"ServeCodec"))) (App (Val (GoInstruction (StructFieldGet debugHTTP.ty go!"Server"))) (Var "$r"))))
-  ServeConn_unfold : MethodUnfold debugHTTP.ty go!"ServeConn" (LamV "$r"
+  unfold'ServeConn : MethodUnfold debugHTTP.ty go!"ServeConn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"ServeConn"))) (App (Val (GoInstruction (StructFieldGet debugHTTP.ty go!"Server"))) (Var "$r"))))
-  ServeHTTP_unfold : MethodUnfold debugHTTP.ty go!"ServeHTTP" debugHTTP.ServeHTTP.impl
-  ServeRequest_unfold : MethodUnfold debugHTTP.ty go!"ServeRequest" (LamV "$r"
+  unfold'ServeHTTP : MethodUnfold debugHTTP.ty go!"ServeHTTP" debugHTTP.ServeHTTP.impl
+  unfold'ServeRequest : MethodUnfold debugHTTP.ty go!"ServeRequest" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"ServeRequest"))) (App (Val (GoInstruction (StructFieldGet debugHTTP.ty go!"Server"))) (Var "$r"))))
-  freeRequest_unfold : MethodUnfold debugHTTP.ty go!"freeRequest" (LamV "$r"
+  unfold'freeRequest : MethodUnfold debugHTTP.ty go!"freeRequest" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"freeRequest"))) (App (Val (GoInstruction (StructFieldGet debugHTTP.ty go!"Server"))) (Var "$r"))))
-  freeResponse_unfold : MethodUnfold debugHTTP.ty go!"freeResponse" (LamV "$r"
+  unfold'freeResponse : MethodUnfold debugHTTP.ty go!"freeResponse" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"freeResponse"))) (App (Val (GoInstruction (StructFieldGet debugHTTP.ty go!"Server"))) (Var "$r"))))
-  getRequest_unfold : MethodUnfold debugHTTP.ty go!"getRequest" (LamV "$r"
+  unfold'getRequest : MethodUnfold debugHTTP.ty go!"getRequest" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"getRequest"))) (App (Val (GoInstruction (StructFieldGet debugHTTP.ty go!"Server"))) (Var "$r"))))
-  getResponse_unfold : MethodUnfold debugHTTP.ty go!"getResponse" (LamV "$r"
+  unfold'getResponse : MethodUnfold debugHTTP.ty go!"getResponse" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"getResponse"))) (App (Val (GoInstruction (StructFieldGet debugHTTP.ty go!"Server"))) (Var "$r"))))
-  readRequest_unfold : MethodUnfold debugHTTP.ty go!"readRequest" (LamV "$r"
+  unfold'readRequest : MethodUnfold debugHTTP.ty go!"readRequest" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"readRequest"))) (App (Val (GoInstruction (StructFieldGet debugHTTP.ty go!"Server"))) (Var "$r"))))
-  readRequestHeader_unfold : MethodUnfold debugHTTP.ty go!"readRequestHeader" (LamV "$r"
+  unfold'readRequestHeader : MethodUnfold debugHTTP.ty go!"readRequestHeader" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"readRequestHeader"))) (App (Val (GoInstruction (StructFieldGet debugHTTP.ty go!"Server"))) (Var "$r"))))
-  register_unfold : MethodUnfold debugHTTP.ty go!"register" (LamV "$r"
+  unfold'register : MethodUnfold debugHTTP.ty go!"register" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"register"))) (App (Val (GoInstruction (StructFieldGet debugHTTP.ty go!"Server"))) (Var "$r"))))
-  sendResponse_unfold : MethodUnfold debugHTTP.ty go!"sendResponse" (LamV "$r"
+  unfold'sendResponse : MethodUnfold debugHTTP.ty go!"sendResponse" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"sendResponse"))) (App (Val (GoInstruction (StructFieldGet debugHTTP.ty go!"Server"))) (Var "$r"))))
-  ptr_Accept_unfold : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"Accept" (LamV "$r"
+  ptr_unfold'Accept : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"Accept" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"Accept"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (StructFieldRef debugHTTP.ty go!"Server"))) (Var "$r")))))
-  ptr_HandleHTTP_unfold : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"HandleHTTP" (LamV "$r"
+  ptr_unfold'HandleHTTP : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"HandleHTTP" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"HandleHTTP"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (StructFieldRef debugHTTP.ty go!"Server"))) (Var "$r")))))
-  ptr_Register_unfold : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"Register" (LamV "$r"
+  ptr_unfold'Register : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"Register" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"Register"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (StructFieldRef debugHTTP.ty go!"Server"))) (Var "$r")))))
-  ptr_RegisterName_unfold : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"RegisterName" (LamV "$r"
+  ptr_unfold'RegisterName : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"RegisterName" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"RegisterName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (StructFieldRef debugHTTP.ty go!"Server"))) (Var "$r")))))
-  ptr_ServeCodec_unfold : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"ServeCodec" (LamV "$r"
+  ptr_unfold'ServeCodec : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"ServeCodec" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"ServeCodec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (StructFieldRef debugHTTP.ty go!"Server"))) (Var "$r")))))
-  ptr_ServeConn_unfold : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"ServeConn" (LamV "$r"
+  ptr_unfold'ServeConn : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"ServeConn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"ServeConn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (StructFieldRef debugHTTP.ty go!"Server"))) (Var "$r")))))
-  ptr_ServeHTTP_unfold : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"ServeHTTP" (LamV "$r"
+  ptr_unfold'ServeHTTP : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"ServeHTTP" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve debugHTTP.ty go!"ServeHTTP"))) (App (Val (GoInstruction (GoLoad debugHTTP.ty))) (Var "$r"))))
-  ptr_ServeRequest_unfold : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"ServeRequest" (LamV "$r"
+  ptr_unfold'ServeRequest : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"ServeRequest" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"ServeRequest"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (StructFieldRef debugHTTP.ty go!"Server"))) (Var "$r")))))
-  ptr_freeRequest_unfold : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"freeRequest" (LamV "$r"
+  ptr_unfold'freeRequest : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"freeRequest" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"freeRequest"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (StructFieldRef debugHTTP.ty go!"Server"))) (Var "$r")))))
-  ptr_freeResponse_unfold : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"freeResponse" (LamV "$r"
+  ptr_unfold'freeResponse : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"freeResponse" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"freeResponse"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (StructFieldRef debugHTTP.ty go!"Server"))) (Var "$r")))))
-  ptr_getRequest_unfold : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"getRequest" (LamV "$r"
+  ptr_unfold'getRequest : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"getRequest" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"getRequest"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (StructFieldRef debugHTTP.ty go!"Server"))) (Var "$r")))))
-  ptr_getResponse_unfold : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"getResponse" (LamV "$r"
+  ptr_unfold'getResponse : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"getResponse" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"getResponse"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (StructFieldRef debugHTTP.ty go!"Server"))) (Var "$r")))))
-  ptr_readRequest_unfold : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"readRequest" (LamV "$r"
+  ptr_unfold'readRequest : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"readRequest" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"readRequest"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (StructFieldRef debugHTTP.ty go!"Server"))) (Var "$r")))))
-  ptr_readRequestHeader_unfold : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"readRequestHeader" (LamV "$r"
+  ptr_unfold'readRequestHeader : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"readRequestHeader" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"readRequestHeader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (StructFieldRef debugHTTP.ty go!"Server"))) (Var "$r")))))
-  ptr_register_unfold : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"register" (LamV "$r"
+  ptr_unfold'register : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"register" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"register"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (StructFieldRef debugHTTP.ty go!"Server"))) (Var "$r")))))
-  ptr_sendResponse_unfold : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"sendResponse" (LamV "$r"
+  ptr_unfold'sendResponse : MethodUnfold (go.GoType.PointerType debugHTTP.ty) go!"sendResponse" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"sendResponse"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (StructFieldRef debugHTTP.ty go!"Server"))) (Var "$r")))))
 
 attribute [instance] debugHTTP.TypeAssumptions.type_repr
   debugHTTP.TypeAssumptions.underlying
-  debugHTTP.TypeAssumptions.get_Server
-  debugHTTP.TypeAssumptions.set_Server
+  debugHTTP.TypeAssumptions.get'Server
+  debugHTTP.TypeAssumptions.set'Server
   debugHTTP.TypeAssumptions.method_set
   debugHTTP.TypeAssumptions.ptr_method_set
-  debugHTTP.TypeAssumptions.Accept_unfold
-  debugHTTP.TypeAssumptions.HandleHTTP_unfold
-  debugHTTP.TypeAssumptions.Register_unfold
-  debugHTTP.TypeAssumptions.RegisterName_unfold
-  debugHTTP.TypeAssumptions.ServeCodec_unfold
-  debugHTTP.TypeAssumptions.ServeConn_unfold
-  debugHTTP.TypeAssumptions.ServeHTTP_unfold
-  debugHTTP.TypeAssumptions.ServeRequest_unfold
-  debugHTTP.TypeAssumptions.freeRequest_unfold
-  debugHTTP.TypeAssumptions.freeResponse_unfold
-  debugHTTP.TypeAssumptions.getRequest_unfold
-  debugHTTP.TypeAssumptions.getResponse_unfold
-  debugHTTP.TypeAssumptions.readRequest_unfold
-  debugHTTP.TypeAssumptions.readRequestHeader_unfold
-  debugHTTP.TypeAssumptions.register_unfold
-  debugHTTP.TypeAssumptions.sendResponse_unfold
-  debugHTTP.TypeAssumptions.ptr_Accept_unfold
-  debugHTTP.TypeAssumptions.ptr_HandleHTTP_unfold
-  debugHTTP.TypeAssumptions.ptr_Register_unfold
-  debugHTTP.TypeAssumptions.ptr_RegisterName_unfold
-  debugHTTP.TypeAssumptions.ptr_ServeCodec_unfold
-  debugHTTP.TypeAssumptions.ptr_ServeConn_unfold
-  debugHTTP.TypeAssumptions.ptr_ServeHTTP_unfold
-  debugHTTP.TypeAssumptions.ptr_ServeRequest_unfold
-  debugHTTP.TypeAssumptions.ptr_freeRequest_unfold
-  debugHTTP.TypeAssumptions.ptr_freeResponse_unfold
-  debugHTTP.TypeAssumptions.ptr_getRequest_unfold
-  debugHTTP.TypeAssumptions.ptr_getResponse_unfold
-  debugHTTP.TypeAssumptions.ptr_readRequest_unfold
-  debugHTTP.TypeAssumptions.ptr_readRequestHeader_unfold
-  debugHTTP.TypeAssumptions.ptr_register_unfold
-  debugHTTP.TypeAssumptions.ptr_sendResponse_unfold
+  debugHTTP.TypeAssumptions.unfold'Accept
+  debugHTTP.TypeAssumptions.unfold'HandleHTTP
+  debugHTTP.TypeAssumptions.unfold'Register
+  debugHTTP.TypeAssumptions.unfold'RegisterName
+  debugHTTP.TypeAssumptions.unfold'ServeCodec
+  debugHTTP.TypeAssumptions.unfold'ServeConn
+  debugHTTP.TypeAssumptions.unfold'ServeHTTP
+  debugHTTP.TypeAssumptions.unfold'ServeRequest
+  debugHTTP.TypeAssumptions.unfold'freeRequest
+  debugHTTP.TypeAssumptions.unfold'freeResponse
+  debugHTTP.TypeAssumptions.unfold'getRequest
+  debugHTTP.TypeAssumptions.unfold'getResponse
+  debugHTTP.TypeAssumptions.unfold'readRequest
+  debugHTTP.TypeAssumptions.unfold'readRequestHeader
+  debugHTTP.TypeAssumptions.unfold'register
+  debugHTTP.TypeAssumptions.unfold'sendResponse
+  debugHTTP.TypeAssumptions.ptr_unfold'Accept
+  debugHTTP.TypeAssumptions.ptr_unfold'HandleHTTP
+  debugHTTP.TypeAssumptions.ptr_unfold'Register
+  debugHTTP.TypeAssumptions.ptr_unfold'RegisterName
+  debugHTTP.TypeAssumptions.ptr_unfold'ServeCodec
+  debugHTTP.TypeAssumptions.ptr_unfold'ServeConn
+  debugHTTP.TypeAssumptions.ptr_unfold'ServeHTTP
+  debugHTTP.TypeAssumptions.ptr_unfold'ServeRequest
+  debugHTTP.TypeAssumptions.ptr_unfold'freeRequest
+  debugHTTP.TypeAssumptions.ptr_unfold'freeResponse
+  debugHTTP.TypeAssumptions.ptr_unfold'getRequest
+  debugHTTP.TypeAssumptions.ptr_unfold'getResponse
+  debugHTTP.TypeAssumptions.ptr_unfold'readRequest
+  debugHTTP.TypeAssumptions.ptr_unfold'readRequestHeader
+  debugHTTP.TypeAssumptions.ptr_unfold'register
+  debugHTTP.TypeAssumptions.ptr_unfold'sendResponse
 
 structure methodType [GooseExts] where
   mk ::
@@ -3983,7 +3983,7 @@ noncomputable instance methodType.zero_val [GooseExts] : ZeroVal methodType :=
 @[irreducible] noncomputable def methodType.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   methodType.fieldsUnsealed
 
-noncomputable instance equals_unfold_methodType [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'methodType [GooseExts] [GoGlobalContext] :
     EqualsUnfold methodType.fields methodType.fieldsUnsealed :=
   ⟨by unfold methodType.fields; rfl⟩
 
@@ -3993,36 +3993,36 @@ noncomputable instance equals_unfold_methodType [GooseExts] [GoGlobalContext] :
 class methodType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying methodType.underlying methodType
   underlying : go.UnderlyingDirectedEq methodType.ty methodType.underlying
-  get_Mutex : ∀ (x : methodType), go.IsGoStepPureDetTagged under (StructFieldGet methodType.underlying go!"Mutex") #x (Val #(x.Mutex'))
-  set_Mutex : ∀ (x : methodType) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet methodType.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : methodType)))
-  get_m : ∀ (x : methodType), go.IsGoStepPureDetTagged under (StructFieldGet methodType.underlying go!"m") #x (Val #(x.m'))
-  set_m : ∀ (x : methodType) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet methodType.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : methodType)))
-  get_numCalls : ∀ (x : methodType), go.IsGoStepPureDetTagged under (StructFieldGet methodType.underlying go!"numCalls") #x (Val #(x.numCalls'))
-  set_numCalls : ∀ (x : methodType) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet methodType.underlying go!"numCalls") (PairV #x #y) (Val #(({ x with numCalls' := y } : methodType)))
+  get'Mutex : ∀ (x : methodType), go.IsGoStepPureDetTagged under (StructFieldGet methodType.underlying go!"Mutex") #x (Val #(x.Mutex'))
+  set'Mutex : ∀ (x : methodType) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet methodType.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : methodType)))
+  get'm : ∀ (x : methodType), go.IsGoStepPureDetTagged under (StructFieldGet methodType.underlying go!"m") #x (Val #(x.m'))
+  set'm : ∀ (x : methodType) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet methodType.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : methodType)))
+  get'numCalls : ∀ (x : methodType), go.IsGoStepPureDetTagged under (StructFieldGet methodType.underlying go!"numCalls") #x (Val #(x.numCalls'))
+  set'numCalls : ∀ (x : methodType) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet methodType.underlying go!"numCalls") (PairV #x #y) (Val #(({ x with numCalls' := y } : methodType)))
   method_set : go.MethodSetIs methodType.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType methodType.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"NumCalls", (some (go.signature.Signature [] false [go.uint]))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false [])))]
-  ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType methodType.ty) go!"Lock" (LamV "$r"
+  ptr_unfold'Lock : MethodUnfold (go.GoType.PointerType methodType.ty) go!"Lock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef methodType.ty go!"Mutex"))) (Var "$r"))))
-  ptr_NumCalls_unfold : MethodUnfold (go.GoType.PointerType methodType.ty) go!"NumCalls" methodType.NumCalls.impl
-  ptr_TryLock_unfold : MethodUnfold (go.GoType.PointerType methodType.ty) go!"TryLock" (LamV "$r"
+  ptr_unfold'NumCalls : MethodUnfold (go.GoType.PointerType methodType.ty) go!"NumCalls" methodType.NumCalls.impl
+  ptr_unfold'TryLock : MethodUnfold (go.GoType.PointerType methodType.ty) go!"TryLock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"TryLock"))) (App (Val (GoInstruction (StructFieldRef methodType.ty go!"Mutex"))) (Var "$r"))))
-  ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType methodType.ty) go!"Unlock" (LamV "$r"
+  ptr_unfold'Unlock : MethodUnfold (go.GoType.PointerType methodType.ty) go!"Unlock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef methodType.ty go!"Mutex"))) (Var "$r"))))
 
 attribute [instance] methodType.TypeAssumptions.type_repr
   methodType.TypeAssumptions.underlying
-  methodType.TypeAssumptions.get_Mutex
-  methodType.TypeAssumptions.set_Mutex
-  methodType.TypeAssumptions.get_m
-  methodType.TypeAssumptions.set_m
-  methodType.TypeAssumptions.get_numCalls
-  methodType.TypeAssumptions.set_numCalls
+  methodType.TypeAssumptions.get'Mutex
+  methodType.TypeAssumptions.set'Mutex
+  methodType.TypeAssumptions.get'm
+  methodType.TypeAssumptions.set'm
+  methodType.TypeAssumptions.get'numCalls
+  methodType.TypeAssumptions.set'numCalls
   methodType.TypeAssumptions.method_set
   methodType.TypeAssumptions.ptr_method_set
-  methodType.TypeAssumptions.ptr_Lock_unfold
-  methodType.TypeAssumptions.ptr_NumCalls_unfold
-  methodType.TypeAssumptions.ptr_TryLock_unfold
-  methodType.TypeAssumptions.ptr_Unlock_unfold
+  methodType.TypeAssumptions.ptr_unfold'Lock
+  methodType.TypeAssumptions.ptr_unfold'NumCalls
+  methodType.TypeAssumptions.ptr_unfold'TryLock
+  methodType.TypeAssumptions.ptr_unfold'Unlock
 
 structure service [GooseExts] where
   mk ::
@@ -4041,7 +4041,7 @@ noncomputable instance service.zero_val [GooseExts] : ZeroVal service :=
 @[irreducible] noncomputable def service.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   service.fieldsUnsealed
 
-noncomputable instance equals_unfold_service [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'service [GooseExts] [GoGlobalContext] :
     EqualsUnfold service.fields service.fieldsUnsealed :=
   ⟨by unfold service.fields; rfl⟩
 
@@ -4051,27 +4051,27 @@ noncomputable instance equals_unfold_service [GooseExts] [GoGlobalContext] :
 class service.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying service.underlying service
   underlying : go.UnderlyingDirectedEq service.ty service.underlying
-  get_name : ∀ (x : service), go.IsGoStepPureDetTagged under (StructFieldGet service.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : service) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet service.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : service)))
-  get_rcvr : ∀ (x : service), go.IsGoStepPureDetTagged under (StructFieldGet service.underlying go!"rcvr") #x (Val #(x.rcvr'))
-  set_rcvr : ∀ (x : service) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet service.underlying go!"rcvr") (PairV #x #y) (Val #(({ x with rcvr' := y } : service)))
-  get_method : ∀ (x : service), go.IsGoStepPureDetTagged under (StructFieldGet service.underlying go!"method") #x (Val #(x.method'))
-  set_method : ∀ (x : service) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet service.underlying go!"method") (PairV #x #y) (Val #(({ x with method' := y } : service)))
+  get'name : ∀ (x : service), go.IsGoStepPureDetTagged under (StructFieldGet service.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : service) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet service.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : service)))
+  get'rcvr : ∀ (x : service), go.IsGoStepPureDetTagged under (StructFieldGet service.underlying go!"rcvr") #x (Val #(x.rcvr'))
+  set'rcvr : ∀ (x : service) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet service.underlying go!"rcvr") (PairV #x #y) (Val #(({ x with rcvr' := y } : service)))
+  get'method : ∀ (x : service), go.IsGoStepPureDetTagged under (StructFieldGet service.underlying go!"method") #x (Val #(x.method'))
+  set'method : ∀ (x : service) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet service.underlying go!"method") (PairV #x #y) (Val #(({ x with method' := y } : service)))
   method_set : go.MethodSetIs service.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType service.ty) [(go!"net/rpc.call", (some (go.signature.Signature [(go.GoType.PointerType Server.ty), (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty), (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty), (go.GoType.PointerType methodType.ty), (go.GoType.PointerType Request.ty), go.any, go.any, ServerCodec.ty] false [])))]
-  ptr_call_unfold : MethodUnfold (go.GoType.PointerType service.ty) go!"call" service.call.impl
+  ptr_unfold'call : MethodUnfold (go.GoType.PointerType service.ty) go!"call" service.call.impl
 
 attribute [instance] service.TypeAssumptions.type_repr
   service.TypeAssumptions.underlying
-  service.TypeAssumptions.get_name
-  service.TypeAssumptions.set_name
-  service.TypeAssumptions.get_rcvr
-  service.TypeAssumptions.set_rcvr
-  service.TypeAssumptions.get_method
-  service.TypeAssumptions.set_method
+  service.TypeAssumptions.get'name
+  service.TypeAssumptions.set'name
+  service.TypeAssumptions.get'rcvr
+  service.TypeAssumptions.set'rcvr
+  service.TypeAssumptions.get'method
+  service.TypeAssumptions.set'method
   service.TypeAssumptions.method_set
   service.TypeAssumptions.ptr_method_set
-  service.TypeAssumptions.ptr_call_unfold
+  service.TypeAssumptions.ptr_unfold'call
 
 structure Response [GooseExts] where
   mk ::
@@ -4092,7 +4092,7 @@ noncomputable instance Response.zero_val [GooseExts] : ZeroVal Response :=
 @[irreducible] noncomputable def Response.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Response.fieldsUnsealed
 
-noncomputable instance equals_unfold_Response [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Response [GooseExts] [GoGlobalContext] :
     EqualsUnfold Response.fields Response.fieldsUnsealed :=
   ⟨by unfold Response.fields; rfl⟩
 
@@ -4102,27 +4102,27 @@ noncomputable instance equals_unfold_Response [GooseExts] [GoGlobalContext] :
 class Response.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Response.underlying Response
   underlying : go.UnderlyingDirectedEq Response.ty Response.underlying
-  get_ServiceMethod : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"ServiceMethod") #x (Val #(x.ServiceMethod'))
-  set_ServiceMethod : ∀ (x : Response) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"ServiceMethod") (PairV #x #y) (Val #(({ x with ServiceMethod' := y } : Response)))
-  get_Seq : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"Seq") #x (Val #(x.Seq'))
-  set_Seq : ∀ (x : Response) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"Seq") (PairV #x #y) (Val #(({ x with Seq' := y } : Response)))
-  get_Error : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"Error") #x (Val #(x.Error'))
-  set_Error : ∀ (x : Response) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"Error") (PairV #x #y) (Val #(({ x with Error' := y } : Response)))
-  get_next : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"next") #x (Val #(x.next'))
-  set_next : ∀ (x : Response) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"next") (PairV #x #y) (Val #(({ x with next' := y } : Response)))
+  get'ServiceMethod : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"ServiceMethod") #x (Val #(x.ServiceMethod'))
+  set'ServiceMethod : ∀ (x : Response) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"ServiceMethod") (PairV #x #y) (Val #(({ x with ServiceMethod' := y } : Response)))
+  get'Seq : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"Seq") #x (Val #(x.Seq'))
+  set'Seq : ∀ (x : Response) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"Seq") (PairV #x #y) (Val #(({ x with Seq' := y } : Response)))
+  get'Error : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"Error") #x (Val #(x.Error'))
+  set'Error : ∀ (x : Response) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"Error") (PairV #x #y) (Val #(({ x with Error' := y } : Response)))
+  get'next : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"next") #x (Val #(x.next'))
+  set'next : ∀ (x : Response) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"next") (PairV #x #y) (Val #(({ x with next' := y } : Response)))
   method_set : go.MethodSetIs Response.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Response.ty) []
 
 attribute [instance] Response.TypeAssumptions.type_repr
   Response.TypeAssumptions.underlying
-  Response.TypeAssumptions.get_ServiceMethod
-  Response.TypeAssumptions.set_ServiceMethod
-  Response.TypeAssumptions.get_Seq
-  Response.TypeAssumptions.set_Seq
-  Response.TypeAssumptions.get_Error
-  Response.TypeAssumptions.set_Error
-  Response.TypeAssumptions.get_next
-  Response.TypeAssumptions.set_next
+  Response.TypeAssumptions.get'ServiceMethod
+  Response.TypeAssumptions.set'ServiceMethod
+  Response.TypeAssumptions.get'Seq
+  Response.TypeAssumptions.set'Seq
+  Response.TypeAssumptions.get'Error
+  Response.TypeAssumptions.set'Error
+  Response.TypeAssumptions.get'next
+  Response.TypeAssumptions.set'next
   Response.TypeAssumptions.method_set
   Response.TypeAssumptions.ptr_method_set
 
@@ -4149,7 +4149,7 @@ noncomputable instance Server.zero_val [GooseExts] : ZeroVal Server :=
 @[irreducible] noncomputable def Server.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Server.fieldsUnsealed
 
-noncomputable instance equals_unfold_Server [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Server [GooseExts] [GoGlobalContext] :
     EqualsUnfold Server.fields Server.fieldsUnsealed :=
   ⟨by unfold Server.fields; rfl⟩
 
@@ -4159,69 +4159,69 @@ noncomputable instance equals_unfold_Server [GooseExts] [GoGlobalContext] :
 class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Server.underlying Server
   underlying : go.UnderlyingDirectedEq Server.ty Server.underlying
-  get_mapLock : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"mapLock") #x (Val #(x.mapLock'))
-  set_mapLock : ∀ (x : Server) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"mapLock") (PairV #x #y) (Val #(({ x with mapLock' := y } : Server)))
-  get_serviceMap : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"serviceMap") #x (Val #(x.serviceMap'))
-  set_serviceMap : ∀ (x : Server) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"serviceMap") (PairV #x #y) (Val #(({ x with serviceMap' := y } : Server)))
-  get_reqLock : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"reqLock") #x (Val #(x.reqLock'))
-  set_reqLock : ∀ (x : Server) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"reqLock") (PairV #x #y) (Val #(({ x with reqLock' := y } : Server)))
-  get_freeReq : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"freeReq") #x (Val #(x.freeReq'))
-  set_freeReq : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"freeReq") (PairV #x #y) (Val #(({ x with freeReq' := y } : Server)))
-  get_respLock : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"respLock") #x (Val #(x.respLock'))
-  set_respLock : ∀ (x : Server) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"respLock") (PairV #x #y) (Val #(({ x with respLock' := y } : Server)))
-  get_freeResp : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"freeResp") #x (Val #(x.freeResp'))
-  set_freeResp : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"freeResp") (PairV #x #y) (Val #(({ x with freeResp' := y } : Server)))
+  get'mapLock : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"mapLock") #x (Val #(x.mapLock'))
+  set'mapLock : ∀ (x : Server) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"mapLock") (PairV #x #y) (Val #(({ x with mapLock' := y } : Server)))
+  get'serviceMap : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"serviceMap") #x (Val #(x.serviceMap'))
+  set'serviceMap : ∀ (x : Server) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"serviceMap") (PairV #x #y) (Val #(({ x with serviceMap' := y } : Server)))
+  get'reqLock : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"reqLock") #x (Val #(x.reqLock'))
+  set'reqLock : ∀ (x : Server) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"reqLock") (PairV #x #y) (Val #(({ x with reqLock' := y } : Server)))
+  get'freeReq : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"freeReq") #x (Val #(x.freeReq'))
+  set'freeReq : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"freeReq") (PairV #x #y) (Val #(({ x with freeReq' := y } : Server)))
+  get'respLock : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"respLock") #x (Val #(x.respLock'))
+  set'respLock : ∀ (x : Server) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"respLock") (PairV #x #y) (Val #(({ x with respLock' := y } : Server)))
+  get'freeResp : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"freeResp") #x (Val #(x.freeResp'))
+  set'freeResp : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"freeResp") (PairV #x #y) (Val #(({ x with freeResp' := y } : Server)))
   method_set : go.MethodSetIs Server.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"Accept", (some (go.signature.Signature [_root_.Perennial.net.Listener.ty] false []))), (go!"HandleHTTP", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Register", (some (go.signature.Signature [go.any] false [go.error]))), (go!"RegisterName", (some (go.signature.Signature [go.string, go.any] false [go.error]))), (go!"ServeCodec", (some (go.signature.Signature [ServerCodec.ty] false []))), (go!"ServeConn", (some (go.signature.Signature [_root_.Perennial.io.ReadWriteCloser.ty] false []))), (go!"ServeHTTP", (some (go.signature.Signature [_root_.Perennial.net.http.ResponseWriter.ty, (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)] false []))), (go!"ServeRequest", (some (go.signature.Signature [ServerCodec.ty] false [go.error]))), (go!"net/rpc.freeRequest", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false []))), (go!"net/rpc.freeResponse", (some (go.signature.Signature [(go.GoType.PointerType Response.ty)] false []))), (go!"net/rpc.getRequest", (some (go.signature.Signature [] false [(go.GoType.PointerType Request.ty)]))), (go!"net/rpc.getResponse", (some (go.signature.Signature [] false [(go.GoType.PointerType Response.ty)]))), (go!"net/rpc.readRequest", (some (go.signature.Signature [ServerCodec.ty] false [(go.GoType.PointerType service.ty), (go.GoType.PointerType methodType.ty), (go.GoType.PointerType Request.ty), go.any, go.any, go.bool, go.error]))), (go!"net/rpc.readRequestHeader", (some (go.signature.Signature [ServerCodec.ty] false [(go.GoType.PointerType service.ty), (go.GoType.PointerType methodType.ty), (go.GoType.PointerType Request.ty), go.bool, go.error]))), (go!"net/rpc.register", (some (go.signature.Signature [go.any, go.string, go.bool] false [go.error]))), (go!"net/rpc.sendResponse", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.sync.Mutex.ty), (go.GoType.PointerType Request.ty), go.any, ServerCodec.ty, go.string] false [])))]
-  ptr_Accept_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"Accept" Server.Accept.impl
-  ptr_HandleHTTP_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"HandleHTTP" Server.HandleHTTP.impl
-  ptr_Register_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"Register" Server.Register.impl
-  ptr_RegisterName_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"RegisterName" Server.RegisterName.impl
-  ptr_ServeCodec_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"ServeCodec" Server.ServeCodec.impl
-  ptr_ServeConn_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"ServeConn" Server.ServeConn.impl
-  ptr_ServeHTTP_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"ServeHTTP" Server.ServeHTTP.impl
-  ptr_ServeRequest_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"ServeRequest" Server.ServeRequest.impl
-  ptr_freeRequest_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"freeRequest" Server.freeRequest.impl
-  ptr_freeResponse_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"freeResponse" Server.freeResponse.impl
-  ptr_getRequest_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"getRequest" Server.getRequest.impl
-  ptr_getResponse_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"getResponse" Server.getResponse.impl
-  ptr_readRequest_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"readRequest" Server.readRequest.impl
-  ptr_readRequestHeader_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"readRequestHeader" Server.readRequestHeader.impl
-  ptr_register_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"register" Server.register.impl
-  ptr_sendResponse_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"sendResponse" Server.sendResponse.impl
+  ptr_unfold'Accept : MethodUnfold (go.GoType.PointerType Server.ty) go!"Accept" Server.Accept.impl
+  ptr_unfold'HandleHTTP : MethodUnfold (go.GoType.PointerType Server.ty) go!"HandleHTTP" Server.HandleHTTP.impl
+  ptr_unfold'Register : MethodUnfold (go.GoType.PointerType Server.ty) go!"Register" Server.Register.impl
+  ptr_unfold'RegisterName : MethodUnfold (go.GoType.PointerType Server.ty) go!"RegisterName" Server.RegisterName.impl
+  ptr_unfold'ServeCodec : MethodUnfold (go.GoType.PointerType Server.ty) go!"ServeCodec" Server.ServeCodec.impl
+  ptr_unfold'ServeConn : MethodUnfold (go.GoType.PointerType Server.ty) go!"ServeConn" Server.ServeConn.impl
+  ptr_unfold'ServeHTTP : MethodUnfold (go.GoType.PointerType Server.ty) go!"ServeHTTP" Server.ServeHTTP.impl
+  ptr_unfold'ServeRequest : MethodUnfold (go.GoType.PointerType Server.ty) go!"ServeRequest" Server.ServeRequest.impl
+  ptr_unfold'freeRequest : MethodUnfold (go.GoType.PointerType Server.ty) go!"freeRequest" Server.freeRequest.impl
+  ptr_unfold'freeResponse : MethodUnfold (go.GoType.PointerType Server.ty) go!"freeResponse" Server.freeResponse.impl
+  ptr_unfold'getRequest : MethodUnfold (go.GoType.PointerType Server.ty) go!"getRequest" Server.getRequest.impl
+  ptr_unfold'getResponse : MethodUnfold (go.GoType.PointerType Server.ty) go!"getResponse" Server.getResponse.impl
+  ptr_unfold'readRequest : MethodUnfold (go.GoType.PointerType Server.ty) go!"readRequest" Server.readRequest.impl
+  ptr_unfold'readRequestHeader : MethodUnfold (go.GoType.PointerType Server.ty) go!"readRequestHeader" Server.readRequestHeader.impl
+  ptr_unfold'register : MethodUnfold (go.GoType.PointerType Server.ty) go!"register" Server.register.impl
+  ptr_unfold'sendResponse : MethodUnfold (go.GoType.PointerType Server.ty) go!"sendResponse" Server.sendResponse.impl
 
 attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.underlying
-  Server.TypeAssumptions.get_mapLock
-  Server.TypeAssumptions.set_mapLock
-  Server.TypeAssumptions.get_serviceMap
-  Server.TypeAssumptions.set_serviceMap
-  Server.TypeAssumptions.get_reqLock
-  Server.TypeAssumptions.set_reqLock
-  Server.TypeAssumptions.get_freeReq
-  Server.TypeAssumptions.set_freeReq
-  Server.TypeAssumptions.get_respLock
-  Server.TypeAssumptions.set_respLock
-  Server.TypeAssumptions.get_freeResp
-  Server.TypeAssumptions.set_freeResp
+  Server.TypeAssumptions.get'mapLock
+  Server.TypeAssumptions.set'mapLock
+  Server.TypeAssumptions.get'serviceMap
+  Server.TypeAssumptions.set'serviceMap
+  Server.TypeAssumptions.get'reqLock
+  Server.TypeAssumptions.set'reqLock
+  Server.TypeAssumptions.get'freeReq
+  Server.TypeAssumptions.set'freeReq
+  Server.TypeAssumptions.get'respLock
+  Server.TypeAssumptions.set'respLock
+  Server.TypeAssumptions.get'freeResp
+  Server.TypeAssumptions.set'freeResp
   Server.TypeAssumptions.method_set
   Server.TypeAssumptions.ptr_method_set
-  Server.TypeAssumptions.ptr_Accept_unfold
-  Server.TypeAssumptions.ptr_HandleHTTP_unfold
-  Server.TypeAssumptions.ptr_Register_unfold
-  Server.TypeAssumptions.ptr_RegisterName_unfold
-  Server.TypeAssumptions.ptr_ServeCodec_unfold
-  Server.TypeAssumptions.ptr_ServeConn_unfold
-  Server.TypeAssumptions.ptr_ServeHTTP_unfold
-  Server.TypeAssumptions.ptr_ServeRequest_unfold
-  Server.TypeAssumptions.ptr_freeRequest_unfold
-  Server.TypeAssumptions.ptr_freeResponse_unfold
-  Server.TypeAssumptions.ptr_getRequest_unfold
-  Server.TypeAssumptions.ptr_getResponse_unfold
-  Server.TypeAssumptions.ptr_readRequest_unfold
-  Server.TypeAssumptions.ptr_readRequestHeader_unfold
-  Server.TypeAssumptions.ptr_register_unfold
-  Server.TypeAssumptions.ptr_sendResponse_unfold
+  Server.TypeAssumptions.ptr_unfold'Accept
+  Server.TypeAssumptions.ptr_unfold'HandleHTTP
+  Server.TypeAssumptions.ptr_unfold'Register
+  Server.TypeAssumptions.ptr_unfold'RegisterName
+  Server.TypeAssumptions.ptr_unfold'ServeCodec
+  Server.TypeAssumptions.ptr_unfold'ServeConn
+  Server.TypeAssumptions.ptr_unfold'ServeHTTP
+  Server.TypeAssumptions.ptr_unfold'ServeRequest
+  Server.TypeAssumptions.ptr_unfold'freeRequest
+  Server.TypeAssumptions.ptr_unfold'freeResponse
+  Server.TypeAssumptions.ptr_unfold'getRequest
+  Server.TypeAssumptions.ptr_unfold'getResponse
+  Server.TypeAssumptions.ptr_unfold'readRequest
+  Server.TypeAssumptions.ptr_unfold'readRequestHeader
+  Server.TypeAssumptions.ptr_unfold'register
+  Server.TypeAssumptions.ptr_unfold'sendResponse
 
 abbrev ServerCodec [GooseExts] : Type := GoInterface
 
@@ -4238,105 +4238,105 @@ attribute [instance] ServerCodec.TypeAssumptions.underlying
   ServerCodec.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ServerError_instance : ServerError.TypeAssumptions
-  Call_instance : Call.TypeAssumptions
-  Client_instance : Client.TypeAssumptions
-  ClientCodec_instance : ClientCodec.TypeAssumptions
-  Method_instance : Method.TypeAssumptions
-  Receiver_instance : Receiver.TypeAssumptions
-  Codec_instance : Codec.TypeAssumptions
-  notModelled_instance : notModelled.TypeAssumptions
-  clientCodec_instance : clientCodec.TypeAssumptions
-  serverCodec_instance : serverCodec.TypeAssumptions
-  debugHTTP_instance : debugHTTP.TypeAssumptions
-  methodType_instance : methodType.TypeAssumptions
-  service_instance : service.TypeAssumptions
-  Request_instance : Request.TypeAssumptions
-  Response_instance : Response.TypeAssumptions
-  Server_instance : Server.TypeAssumptions
-  ServerCodec_instance : ServerCodec.TypeAssumptions
-  NewClient_unfold : FuncUnfold NewClient [] NewClient.impl
-  NewClientWithCodec_unfold : FuncUnfold NewClientWithCodec [] NewClientWithCodec.impl
-  DialHTTP_unfold : FuncUnfold DialHTTP [] DialHTTP.impl
-  DialHTTPPath_unfold : FuncUnfold DialHTTPPath [] DialHTTPPath.impl
-  Dial_unfold : FuncUnfold Dial [] Dial.impl
-  SetCodec_unfold : FuncUnfold SetCodec [] SetCodec.impl
-  getCodec_unfold : FuncUnfold getCodec [] getCodec.impl
-  putU64_unfold : FuncUnfold putU64 [] putU64.impl
-  getU64_unfold : FuncUnfold getU64 [] getU64.impl
-  putString_unfold : FuncUnfold putString [] putString.impl
-  putFrame_unfold : FuncUnfold putFrame [] putFrame.impl
-  readFull_unfold : FuncUnfold readFull [] readFull.impl
-  readFrame_unfold : FuncUnfold readFrame [] readFrame.impl
-  getString_unfold : FuncUnfold getString [] getString.impl
-  newClientCodec_unfold : FuncUnfold newClientCodec [] newClientCodec.impl
-  newServerCodec_unfold : FuncUnfold newServerCodec [] newServerCodec.impl
-  NewServer_unfold : FuncUnfold NewServer [] NewServer.impl
-  Register_unfold : FuncUnfold Register [] Register.impl
-  RegisterName_unfold : FuncUnfold RegisterName [] RegisterName.impl
-  ServeConn_unfold : FuncUnfold ServeConn [] ServeConn.impl
-  ServeCodec_unfold : FuncUnfold ServeCodec [] ServeCodec.impl
-  ServeRequest_unfold : FuncUnfold ServeRequest [] ServeRequest.impl
-  Accept_unfold : FuncUnfold Accept [] Accept.impl
-  HandleHTTP_unfold : FuncUnfold HandleHTTP [] HandleHTTP.impl
-  import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_log_Assumption : _root_.Perennial.log.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_http_Assumption : _root_.Perennial.net.http.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_token_Assumption : _root_.Perennial.go.token.Assumptions
+  instance'ServerError : ServerError.TypeAssumptions
+  instance'Call : Call.TypeAssumptions
+  instance'Client : Client.TypeAssumptions
+  instance'ClientCodec : ClientCodec.TypeAssumptions
+  instance'Method : Method.TypeAssumptions
+  instance'Receiver : Receiver.TypeAssumptions
+  instance'Codec : Codec.TypeAssumptions
+  instance'notModelled : notModelled.TypeAssumptions
+  instance'clientCodec : clientCodec.TypeAssumptions
+  instance'serverCodec : serverCodec.TypeAssumptions
+  instance'debugHTTP : debugHTTP.TypeAssumptions
+  instance'methodType : methodType.TypeAssumptions
+  instance'service : service.TypeAssumptions
+  instance'Request : Request.TypeAssumptions
+  instance'Response : Response.TypeAssumptions
+  instance'Server : Server.TypeAssumptions
+  instance'ServerCodec : ServerCodec.TypeAssumptions
+  unfold'NewClient : FuncUnfold NewClient [] NewClient.impl
+  unfold'NewClientWithCodec : FuncUnfold NewClientWithCodec [] NewClientWithCodec.impl
+  unfold'DialHTTP : FuncUnfold DialHTTP [] DialHTTP.impl
+  unfold'DialHTTPPath : FuncUnfold DialHTTPPath [] DialHTTPPath.impl
+  unfold'Dial : FuncUnfold Dial [] Dial.impl
+  unfold'SetCodec : FuncUnfold SetCodec [] SetCodec.impl
+  unfold'getCodec : FuncUnfold getCodec [] getCodec.impl
+  unfold'putU64 : FuncUnfold putU64 [] putU64.impl
+  unfold'getU64 : FuncUnfold getU64 [] getU64.impl
+  unfold'putString : FuncUnfold putString [] putString.impl
+  unfold'putFrame : FuncUnfold putFrame [] putFrame.impl
+  unfold'readFull : FuncUnfold readFull [] readFull.impl
+  unfold'readFrame : FuncUnfold readFrame [] readFrame.impl
+  unfold'getString : FuncUnfold getString [] getString.impl
+  unfold'newClientCodec : FuncUnfold newClientCodec [] newClientCodec.impl
+  unfold'newServerCodec : FuncUnfold newServerCodec [] newServerCodec.impl
+  unfold'NewServer : FuncUnfold NewServer [] NewServer.impl
+  unfold'Register : FuncUnfold Register [] Register.impl
+  unfold'RegisterName : FuncUnfold RegisterName [] RegisterName.impl
+  unfold'ServeConn : FuncUnfold ServeConn [] ServeConn.impl
+  unfold'ServeCodec : FuncUnfold ServeCodec [] ServeCodec.impl
+  unfold'ServeRequest : FuncUnfold ServeRequest [] ServeRequest.impl
+  unfold'Accept : FuncUnfold Accept [] Accept.impl
+  unfold'HandleHTTP : FuncUnfold HandleHTTP [] HandleHTTP.impl
+  import'bufio : _root_.Perennial.bufio.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'log : _root_.Perennial.log.Assumptions
+  import'net : _root_.Perennial.net.Assumptions
+  import'http : _root_.Perennial.net.http.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'token : _root_.Perennial.go.token.Assumptions
 
-attribute [instance] Assumptions.ServerError_instance
-  Assumptions.Call_instance
-  Assumptions.Client_instance
-  Assumptions.ClientCodec_instance
-  Assumptions.Method_instance
-  Assumptions.Receiver_instance
-  Assumptions.Codec_instance
-  Assumptions.notModelled_instance
-  Assumptions.clientCodec_instance
-  Assumptions.serverCodec_instance
-  Assumptions.debugHTTP_instance
-  Assumptions.methodType_instance
-  Assumptions.service_instance
-  Assumptions.Request_instance
-  Assumptions.Response_instance
-  Assumptions.Server_instance
-  Assumptions.ServerCodec_instance
-  Assumptions.NewClient_unfold
-  Assumptions.NewClientWithCodec_unfold
-  Assumptions.DialHTTP_unfold
-  Assumptions.DialHTTPPath_unfold
-  Assumptions.Dial_unfold
-  Assumptions.SetCodec_unfold
-  Assumptions.getCodec_unfold
-  Assumptions.putU64_unfold
-  Assumptions.getU64_unfold
-  Assumptions.putString_unfold
-  Assumptions.putFrame_unfold
-  Assumptions.readFull_unfold
-  Assumptions.readFrame_unfold
-  Assumptions.getString_unfold
-  Assumptions.newClientCodec_unfold
-  Assumptions.newServerCodec_unfold
-  Assumptions.NewServer_unfold
-  Assumptions.Register_unfold
-  Assumptions.RegisterName_unfold
-  Assumptions.ServeConn_unfold
-  Assumptions.ServeCodec_unfold
-  Assumptions.ServeRequest_unfold
-  Assumptions.Accept_unfold
-  Assumptions.HandleHTTP_unfold
-  Assumptions.import_bufio_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_log_Assumption
-  Assumptions.import_net_Assumption
-  Assumptions.import_http_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_token_Assumption
+attribute [instance] Assumptions.instance'ServerError
+  Assumptions.instance'Call
+  Assumptions.instance'Client
+  Assumptions.instance'ClientCodec
+  Assumptions.instance'Method
+  Assumptions.instance'Receiver
+  Assumptions.instance'Codec
+  Assumptions.instance'notModelled
+  Assumptions.instance'clientCodec
+  Assumptions.instance'serverCodec
+  Assumptions.instance'debugHTTP
+  Assumptions.instance'methodType
+  Assumptions.instance'service
+  Assumptions.instance'Request
+  Assumptions.instance'Response
+  Assumptions.instance'Server
+  Assumptions.instance'ServerCodec
+  Assumptions.unfold'NewClient
+  Assumptions.unfold'NewClientWithCodec
+  Assumptions.unfold'DialHTTP
+  Assumptions.unfold'DialHTTPPath
+  Assumptions.unfold'Dial
+  Assumptions.unfold'SetCodec
+  Assumptions.unfold'getCodec
+  Assumptions.unfold'putU64
+  Assumptions.unfold'getU64
+  Assumptions.unfold'putString
+  Assumptions.unfold'putFrame
+  Assumptions.unfold'readFull
+  Assumptions.unfold'readFrame
+  Assumptions.unfold'getString
+  Assumptions.unfold'newClientCodec
+  Assumptions.unfold'newServerCodec
+  Assumptions.unfold'NewServer
+  Assumptions.unfold'Register
+  Assumptions.unfold'RegisterName
+  Assumptions.unfold'ServeConn
+  Assumptions.unfold'ServeCodec
+  Assumptions.unfold'ServeRequest
+  Assumptions.unfold'Accept
+  Assumptions.unfold'HandleHTTP
+  Assumptions.import'bufio
+  Assumptions.import'errors
+  Assumptions.import'io
+  Assumptions.import'log
+  Assumptions.import'net
+  Assumptions.import'http
+  Assumptions.import'sync
+  Assumptions.import'token
 
 end net.rpc
 

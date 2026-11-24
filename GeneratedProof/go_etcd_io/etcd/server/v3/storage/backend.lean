@@ -41,7 +41,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-noncomputable instance txReadBufferCache_typed_pointsto :
+noncomputable instance typed_pointsto'txReadBufferCache :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache where
   typedPointstoDef l v dq := iprop(
     "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache go!"mu" l) v.mu' dq ∗
@@ -52,11 +52,11 @@ noncomputable instance txReadBufferCache_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance txReadBufferCache_into_val_typed :
+noncomputable instance into_val_typed'txReadBufferCache :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance txReadBufferCache_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache) (dq : DFrac) :
+noncomputable instance access_load'txReadBufferCache'mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache go!"mu" l) v.mu' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache go!"mu" l) v.mu' dq)
@@ -64,7 +64,7 @@ noncomputable instance txReadBufferCache_access_load_mu (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance txReadBufferCache_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'txReadBufferCache'mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache go!"mu" l) y (DFrac.own 1))
@@ -72,7 +72,7 @@ noncomputable instance txReadBufferCache_access_store_mu (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance txReadBufferCache_access_load_buf (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache) (dq : DFrac) :
+noncomputable instance access_load'txReadBufferCache'buf (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache go!"buf" l) v.buf' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache go!"buf" l) v.buf' dq)
@@ -80,7 +80,7 @@ noncomputable instance txReadBufferCache_access_load_buf (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance txReadBufferCache_access_store_buf (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache) (y : Loc) :
+noncomputable instance access_store'txReadBufferCache'buf (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache go!"buf" l) v.buf' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache go!"buf" l) y (DFrac.own 1))
@@ -88,7 +88,7 @@ noncomputable instance txReadBufferCache_access_store_buf (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance txReadBufferCache_access_load_bufVersion (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache) (dq : DFrac) :
+noncomputable instance access_load'txReadBufferCache'bufVersion (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache go!"bufVersion" l) v.bufVersion' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache go!"bufVersion" l) v.bufVersion' dq)
@@ -96,7 +96,7 @@ noncomputable instance txReadBufferCache_access_load_bufVersion (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance txReadBufferCache_access_store_bufVersion (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache) (y : w64) :
+noncomputable instance access_store'txReadBufferCache'bufVersion (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache go!"bufVersion" l) v.bufVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache go!"bufVersion" l) y (DFrac.own 1))
@@ -115,7 +115,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-noncomputable instance backend_typed_pointsto :
+noncomputable instance typed_pointsto'backend :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.backend where
   typedPointstoDef l v dq := iprop(
     "size" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"size" l) v.size' dq ∗
@@ -144,11 +144,11 @@ noncomputable instance backend_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance backend_into_val_typed :
+noncomputable instance into_val_typed'backend :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.backend go_etcd_io.etcd.server.v3.storage.backend.backend.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance backend_access_load_size (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'size (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"size" l) v.size' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"size" l) v.size' dq)
@@ -156,7 +156,7 @@ noncomputable instance backend_access_load_size (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_size (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : w64) :
+noncomputable instance access_store'backend'size (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"size" l) v.size' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"size" l) y (DFrac.own 1))
@@ -164,7 +164,7 @@ noncomputable instance backend_access_store_size (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_sizeInUse (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'sizeInUse (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"sizeInUse" l) v.sizeInUse' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"sizeInUse" l) v.sizeInUse' dq)
@@ -172,7 +172,7 @@ noncomputable instance backend_access_load_sizeInUse (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_sizeInUse (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : w64) :
+noncomputable instance access_store'backend'sizeInUse (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"sizeInUse" l) v.sizeInUse' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"sizeInUse" l) y (DFrac.own 1))
@@ -180,7 +180,7 @@ noncomputable instance backend_access_store_sizeInUse (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_commits (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'commits (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"commits" l) v.commits' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"commits" l) v.commits' dq)
@@ -188,7 +188,7 @@ noncomputable instance backend_access_load_commits (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_commits (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : w64) :
+noncomputable instance access_store'backend'commits (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"commits" l) v.commits' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"commits" l) y (DFrac.own 1))
@@ -196,7 +196,7 @@ noncomputable instance backend_access_store_commits (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_openReadTxN (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'openReadTxN (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"openReadTxN" l) v.openReadTxN' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"openReadTxN" l) v.openReadTxN' dq)
@@ -204,7 +204,7 @@ noncomputable instance backend_access_load_openReadTxN (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_openReadTxN (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : w64) :
+noncomputable instance access_store'backend'openReadTxN (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"openReadTxN" l) v.openReadTxN' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"openReadTxN" l) y (DFrac.own 1))
@@ -212,7 +212,7 @@ noncomputable instance backend_access_store_openReadTxN (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_mlock (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'mlock (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"mlock" l) v.mlock' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"mlock" l) v.mlock' dq)
@@ -220,7 +220,7 @@ noncomputable instance backend_access_load_mlock (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_mlock (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : Bool) :
+noncomputable instance access_store'backend'mlock (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"mlock" l) v.mlock' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"mlock" l) y (DFrac.own 1))
@@ -228,7 +228,7 @@ noncomputable instance backend_access_store_mlock (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"mu" l) v.mu' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"mu" l) v.mu' dq)
@@ -236,7 +236,7 @@ noncomputable instance backend_access_load_mu (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'backend'mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"mu" l) y (DFrac.own 1))
@@ -244,7 +244,7 @@ noncomputable instance backend_access_store_mu (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_bopts (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'bopts (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"bopts" l) v.bopts' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"bopts" l) v.bopts' dq)
@@ -252,7 +252,7 @@ noncomputable instance backend_access_load_bopts (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_bopts (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : Loc) :
+noncomputable instance access_store'backend'bopts (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"bopts" l) v.bopts' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"bopts" l) y (DFrac.own 1))
@@ -260,7 +260,7 @@ noncomputable instance backend_access_store_bopts (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_db (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'db (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"db" l) v.db' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"db" l) v.db' dq)
@@ -268,7 +268,7 @@ noncomputable instance backend_access_load_db (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_db (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : Loc) :
+noncomputable instance access_store'backend'db (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"db" l) v.db' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"db" l) y (DFrac.own 1))
@@ -276,7 +276,7 @@ noncomputable instance backend_access_store_db (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_batchInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'batchInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"batchInterval" l) v.batchInterval' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"batchInterval" l) v.batchInterval' dq)
@@ -284,7 +284,7 @@ noncomputable instance backend_access_load_batchInterval (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_batchInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'backend'batchInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"batchInterval" l) v.batchInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"batchInterval" l) y (DFrac.own 1))
@@ -292,7 +292,7 @@ noncomputable instance backend_access_store_batchInterval (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_batchLimit (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'batchLimit (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"batchLimit" l) v.batchLimit' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"batchLimit" l) v.batchLimit' dq)
@@ -300,7 +300,7 @@ noncomputable instance backend_access_load_batchLimit (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_batchLimit (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : w64) :
+noncomputable instance access_store'backend'batchLimit (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"batchLimit" l) v.batchLimit' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"batchLimit" l) y (DFrac.own 1))
@@ -308,7 +308,7 @@ noncomputable instance backend_access_store_batchLimit (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_batchTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'batchTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"batchTx" l) v.batchTx' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"batchTx" l) v.batchTx' dq)
@@ -316,7 +316,7 @@ noncomputable instance backend_access_load_batchTx (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_batchTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : Loc) :
+noncomputable instance access_store'backend'batchTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"batchTx" l) v.batchTx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"batchTx" l) y (DFrac.own 1))
@@ -324,7 +324,7 @@ noncomputable instance backend_access_store_batchTx (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_readTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'readTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"readTx" l) v.readTx' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"readTx" l) v.readTx' dq)
@@ -332,7 +332,7 @@ noncomputable instance backend_access_load_readTx (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_readTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : Loc) :
+noncomputable instance access_store'backend'readTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"readTx" l) v.readTx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"readTx" l) y (DFrac.own 1))
@@ -340,7 +340,7 @@ noncomputable instance backend_access_store_readTx (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_txReadBufferCache (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'txReadBufferCache (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"txReadBufferCache" l) v.txReadBufferCache' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"txReadBufferCache" l) v.txReadBufferCache' dq)
@@ -348,7 +348,7 @@ noncomputable instance backend_access_load_txReadBufferCache (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_txReadBufferCache (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache) :
+noncomputable instance access_store'backend'txReadBufferCache (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"txReadBufferCache" l) v.txReadBufferCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"txReadBufferCache" l) y (DFrac.own 1))
@@ -356,7 +356,7 @@ noncomputable instance backend_access_store_txReadBufferCache (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_stopc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'stopc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"stopc" l) v.stopc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"stopc" l) v.stopc' dq)
@@ -364,7 +364,7 @@ noncomputable instance backend_access_load_stopc (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_stopc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : GoChan) :
+noncomputable instance access_store'backend'stopc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"stopc" l) v.stopc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"stopc" l) y (DFrac.own 1))
@@ -372,7 +372,7 @@ noncomputable instance backend_access_store_stopc (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_donec (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'donec (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"donec" l) v.donec' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"donec" l) v.donec' dq)
@@ -380,7 +380,7 @@ noncomputable instance backend_access_load_donec (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_donec (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : GoChan) :
+noncomputable instance access_store'backend'donec (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"donec" l) v.donec' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"donec" l) y (DFrac.own 1))
@@ -388,7 +388,7 @@ noncomputable instance backend_access_store_donec (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_nonBlockingDefrag (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'nonBlockingDefrag (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"nonBlockingDefrag" l) v.nonBlockingDefrag' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"nonBlockingDefrag" l) v.nonBlockingDefrag' dq)
@@ -396,7 +396,7 @@ noncomputable instance backend_access_load_nonBlockingDefrag (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_nonBlockingDefrag (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : Bool) :
+noncomputable instance access_store'backend'nonBlockingDefrag (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"nonBlockingDefrag" l) v.nonBlockingDefrag' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"nonBlockingDefrag" l) y (DFrac.own 1))
@@ -404,7 +404,7 @@ noncomputable instance backend_access_store_nonBlockingDefrag (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_defragMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'defragMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"defragMu" l) v.defragMu' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"defragMu" l) v.defragMu' dq)
@@ -412,7 +412,7 @@ noncomputable instance backend_access_load_defragMu (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_defragMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'backend'defragMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"defragMu" l) v.defragMu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"defragMu" l) y (DFrac.own 1))
@@ -420,7 +420,7 @@ noncomputable instance backend_access_store_defragMu (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_safeRangeDeleteMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'safeRangeDeleteMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"safeRangeDeleteMu" l) v.safeRangeDeleteMu' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"safeRangeDeleteMu" l) v.safeRangeDeleteMu' dq)
@@ -428,7 +428,7 @@ noncomputable instance backend_access_load_safeRangeDeleteMu (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_safeRangeDeleteMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'backend'safeRangeDeleteMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"safeRangeDeleteMu" l) v.safeRangeDeleteMu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"safeRangeDeleteMu" l) y (DFrac.own 1))
@@ -436,7 +436,7 @@ noncomputable instance backend_access_store_safeRangeDeleteMu (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_hooks (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'hooks (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"hooks" l) v.hooks' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"hooks" l) v.hooks' dq)
@@ -444,7 +444,7 @@ noncomputable instance backend_access_load_hooks (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_hooks (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : go_etcd_io.etcd.server.v3.storage.backend.Hooks) :
+noncomputable instance access_store'backend'hooks (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : go_etcd_io.etcd.server.v3.storage.backend.Hooks) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"hooks" l) v.hooks' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"hooks" l) y (DFrac.own 1))
@@ -452,7 +452,7 @@ noncomputable instance backend_access_store_hooks (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_txPostLockInsideApplyHook (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'txPostLockInsideApplyHook (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"txPostLockInsideApplyHook" l) v.txPostLockInsideApplyHook' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"txPostLockInsideApplyHook" l) v.txPostLockInsideApplyHook' dq)
@@ -460,7 +460,7 @@ noncomputable instance backend_access_load_txPostLockInsideApplyHook (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_txPostLockInsideApplyHook (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : GoFunc) :
+noncomputable instance access_store'backend'txPostLockInsideApplyHook (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"txPostLockInsideApplyHook" l) v.txPostLockInsideApplyHook' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"txPostLockInsideApplyHook" l) y (DFrac.own 1))
@@ -468,7 +468,7 @@ noncomputable instance backend_access_store_txPostLockInsideApplyHook (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
+noncomputable instance access_load'backend'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"lg" l) v.lg' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"lg" l) v.lg' dq)
@@ -476,7 +476,7 @@ noncomputable instance backend_access_load_lg (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance backend_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : Loc) :
+noncomputable instance access_store'backend'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.backend) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"lg" l) v.lg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.backend go!"lg" l) y (DFrac.own 1))
@@ -495,7 +495,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-noncomputable instance BackendConfig_typed_pointsto :
+noncomputable instance typed_pointsto'BackendConfig :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.BackendConfig where
   typedPointstoDef l v dq := iprop(
     "Path" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Path" l) v.Path' dq ∗
@@ -514,11 +514,11 @@ noncomputable instance BackendConfig_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance BackendConfig_into_val_typed :
+noncomputable instance into_val_typed'BackendConfig :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go_etcd_io.etcd.server.v3.storage.backend.BackendConfig.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance BackendConfig_access_load_Path (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
+noncomputable instance access_load'BackendConfig'Path (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Path" l) v.Path' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Path" l) v.Path' dq)
@@ -526,7 +526,7 @@ noncomputable instance BackendConfig_access_load_Path (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_store_Path (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : GoString) :
+noncomputable instance access_store'BackendConfig'Path (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Path" l) v.Path' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Path" l) y (DFrac.own 1))
@@ -534,7 +534,7 @@ noncomputable instance BackendConfig_access_store_Path (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_load_BatchInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
+noncomputable instance access_load'BackendConfig'BatchInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"BatchInterval" l) v.BatchInterval' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"BatchInterval" l) v.BatchInterval' dq)
@@ -542,7 +542,7 @@ noncomputable instance BackendConfig_access_load_BatchInterval (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_store_BatchInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'BackendConfig'BatchInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"BatchInterval" l) v.BatchInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"BatchInterval" l) y (DFrac.own 1))
@@ -550,7 +550,7 @@ noncomputable instance BackendConfig_access_store_BatchInterval (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_load_BatchLimit (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
+noncomputable instance access_load'BackendConfig'BatchLimit (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"BatchLimit" l) v.BatchLimit' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"BatchLimit" l) v.BatchLimit' dq)
@@ -558,7 +558,7 @@ noncomputable instance BackendConfig_access_load_BatchLimit (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_store_BatchLimit (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : w64) :
+noncomputable instance access_store'BackendConfig'BatchLimit (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"BatchLimit" l) v.BatchLimit' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"BatchLimit" l) y (DFrac.own 1))
@@ -566,7 +566,7 @@ noncomputable instance BackendConfig_access_store_BatchLimit (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_load_BackendFreelistType (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
+noncomputable instance access_load'BackendConfig'BackendFreelistType (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"BackendFreelistType" l) v.BackendFreelistType' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"BackendFreelistType" l) v.BackendFreelistType' dq)
@@ -574,7 +574,7 @@ noncomputable instance BackendConfig_access_load_BackendFreelistType (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_store_BackendFreelistType (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : _root_.Perennial.go_etcd_io.bbolt.FreelistType) :
+noncomputable instance access_store'BackendConfig'BackendFreelistType (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : _root_.Perennial.go_etcd_io.bbolt.FreelistType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"BackendFreelistType" l) v.BackendFreelistType' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"BackendFreelistType" l) y (DFrac.own 1))
@@ -582,7 +582,7 @@ noncomputable instance BackendConfig_access_store_BackendFreelistType (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_load_MmapSize (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
+noncomputable instance access_load'BackendConfig'MmapSize (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"MmapSize" l) v.MmapSize' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"MmapSize" l) v.MmapSize' dq)
@@ -590,7 +590,7 @@ noncomputable instance BackendConfig_access_load_MmapSize (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_store_MmapSize (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : w64) :
+noncomputable instance access_store'BackendConfig'MmapSize (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"MmapSize" l) v.MmapSize' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"MmapSize" l) y (DFrac.own 1))
@@ -598,7 +598,7 @@ noncomputable instance BackendConfig_access_store_MmapSize (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_load_NonBlockingDefrag (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
+noncomputable instance access_load'BackendConfig'NonBlockingDefrag (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"NonBlockingDefrag" l) v.NonBlockingDefrag' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"NonBlockingDefrag" l) v.NonBlockingDefrag' dq)
@@ -606,7 +606,7 @@ noncomputable instance BackendConfig_access_load_NonBlockingDefrag (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_store_NonBlockingDefrag (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : Bool) :
+noncomputable instance access_store'BackendConfig'NonBlockingDefrag (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"NonBlockingDefrag" l) v.NonBlockingDefrag' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"NonBlockingDefrag" l) y (DFrac.own 1))
@@ -614,7 +614,7 @@ noncomputable instance BackendConfig_access_store_NonBlockingDefrag (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_load_Logger (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
+noncomputable instance access_load'BackendConfig'Logger (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Logger" l) v.Logger' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Logger" l) v.Logger' dq)
@@ -622,7 +622,7 @@ noncomputable instance BackendConfig_access_load_Logger (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_store_Logger (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : Loc) :
+noncomputable instance access_store'BackendConfig'Logger (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Logger" l) v.Logger' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Logger" l) y (DFrac.own 1))
@@ -630,7 +630,7 @@ noncomputable instance BackendConfig_access_store_Logger (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_load_UnsafeNoFsync (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
+noncomputable instance access_load'BackendConfig'UnsafeNoFsync (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"UnsafeNoFsync" l) v.UnsafeNoFsync' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"UnsafeNoFsync" l) v.UnsafeNoFsync' dq)
@@ -638,7 +638,7 @@ noncomputable instance BackendConfig_access_load_UnsafeNoFsync (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_store_UnsafeNoFsync (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : Bool) :
+noncomputable instance access_store'BackendConfig'UnsafeNoFsync (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"UnsafeNoFsync" l) v.UnsafeNoFsync' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"UnsafeNoFsync" l) y (DFrac.own 1))
@@ -646,7 +646,7 @@ noncomputable instance BackendConfig_access_store_UnsafeNoFsync (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_load_Mlock (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
+noncomputable instance access_load'BackendConfig'Mlock (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Mlock" l) v.Mlock' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Mlock" l) v.Mlock' dq)
@@ -654,7 +654,7 @@ noncomputable instance BackendConfig_access_load_Mlock (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_store_Mlock (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : Bool) :
+noncomputable instance access_store'BackendConfig'Mlock (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Mlock" l) v.Mlock' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Mlock" l) y (DFrac.own 1))
@@ -662,7 +662,7 @@ noncomputable instance BackendConfig_access_store_Mlock (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_load_Timeout (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
+noncomputable instance access_load'BackendConfig'Timeout (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Timeout" l) v.Timeout' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Timeout" l) v.Timeout' dq)
@@ -670,7 +670,7 @@ noncomputable instance BackendConfig_access_load_Timeout (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_store_Timeout (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'BackendConfig'Timeout (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Timeout" l) v.Timeout' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Timeout" l) y (DFrac.own 1))
@@ -678,7 +678,7 @@ noncomputable instance BackendConfig_access_store_Timeout (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_load_Hooks (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
+noncomputable instance access_load'BackendConfig'Hooks (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Hooks" l) v.Hooks' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Hooks" l) v.Hooks' dq)
@@ -686,7 +686,7 @@ noncomputable instance BackendConfig_access_load_Hooks (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackendConfig_access_store_Hooks (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : go_etcd_io.etcd.server.v3.storage.backend.Hooks) :
+noncomputable instance access_store'BackendConfig'Hooks (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (y : go_etcd_io.etcd.server.v3.storage.backend.Hooks) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Hooks" l) v.Hooks' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.BackendConfig go!"Hooks" l) y (DFrac.own 1))
@@ -705,7 +705,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-noncomputable instance snapshot_typed_pointsto :
+noncomputable instance typed_pointsto'snapshot :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.snapshot where
   typedPointstoDef l v dq := iprop(
     "Tx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.snapshot go!"Tx" l) v.Tx' dq ∗
@@ -716,11 +716,11 @@ noncomputable instance snapshot_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance snapshot_into_val_typed :
+noncomputable instance into_val_typed'snapshot :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.snapshot go_etcd_io.etcd.server.v3.storage.backend.snapshot.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance snapshot_access_load_Tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.snapshot) (dq : DFrac) :
+noncomputable instance access_load'snapshot'Tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.snapshot go!"Tx" l) v.Tx' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.snapshot go!"Tx" l) v.Tx' dq)
@@ -728,7 +728,7 @@ noncomputable instance snapshot_access_load_Tx (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapshot_access_store_Tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.snapshot) (y : Loc) :
+noncomputable instance access_store'snapshot'Tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.snapshot) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.snapshot go!"Tx" l) v.Tx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.snapshot go!"Tx" l) y (DFrac.own 1))
@@ -736,7 +736,7 @@ noncomputable instance snapshot_access_store_Tx (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapshot_access_load_stopc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.snapshot) (dq : DFrac) :
+noncomputable instance access_load'snapshot'stopc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.snapshot go!"stopc" l) v.stopc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.snapshot go!"stopc" l) v.stopc' dq)
@@ -744,7 +744,7 @@ noncomputable instance snapshot_access_load_stopc (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapshot_access_store_stopc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.snapshot) (y : GoChan) :
+noncomputable instance access_store'snapshot'stopc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.snapshot) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.snapshot go!"stopc" l) v.stopc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.snapshot go!"stopc" l) y (DFrac.own 1))
@@ -752,7 +752,7 @@ noncomputable instance snapshot_access_store_stopc (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapshot_access_load_donec (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.snapshot) (dq : DFrac) :
+noncomputable instance access_load'snapshot'donec (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.snapshot go!"donec" l) v.donec' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.snapshot go!"donec" l) v.donec' dq)
@@ -760,7 +760,7 @@ noncomputable instance snapshot_access_load_donec (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapshot_access_store_donec (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.snapshot) (y : GoChan) :
+noncomputable instance access_store'snapshot'donec (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.snapshot) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.snapshot go!"donec" l) v.donec' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.snapshot go!"donec" l) y (DFrac.own 1))
@@ -779,7 +779,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-noncomputable instance zapBoltLogger_typed_pointsto :
+noncomputable instance typed_pointsto'zapBoltLogger :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.zapBoltLogger where
   typedPointstoDef l v dq := iprop(
     "SugaredLogger" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.zapBoltLogger go!"SugaredLogger" l) v.SugaredLogger' dq ∗
@@ -788,11 +788,11 @@ noncomputable instance zapBoltLogger_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance zapBoltLogger_into_val_typed :
+noncomputable instance into_val_typed'zapBoltLogger :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.zapBoltLogger go_etcd_io.etcd.server.v3.storage.backend.zapBoltLogger.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance zapBoltLogger_access_load_SugaredLogger (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.zapBoltLogger) (dq : DFrac) :
+noncomputable instance access_load'zapBoltLogger'SugaredLogger (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.zapBoltLogger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.zapBoltLogger go!"SugaredLogger" l) v.SugaredLogger' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.zapBoltLogger go!"SugaredLogger" l) v.SugaredLogger' dq)
@@ -800,7 +800,7 @@ noncomputable instance zapBoltLogger_access_load_SugaredLogger (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance zapBoltLogger_access_store_SugaredLogger (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.zapBoltLogger) (y : Loc) :
+noncomputable instance access_store'zapBoltLogger'SugaredLogger (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.zapBoltLogger) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.zapBoltLogger go!"SugaredLogger" l) v.SugaredLogger' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.zapBoltLogger go!"SugaredLogger" l) y (DFrac.own 1))
@@ -819,7 +819,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-noncomputable instance batchTx_typed_pointsto :
+noncomputable instance typed_pointsto'batchTx :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.batchTx where
   typedPointstoDef l v dq := iprop(
     "Mutex" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"Mutex" l) v.Mutex' dq ∗
@@ -831,11 +831,11 @@ noncomputable instance batchTx_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance batchTx_into_val_typed :
+noncomputable instance into_val_typed'batchTx :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.batchTx go_etcd_io.etcd.server.v3.storage.backend.batchTx.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance batchTx_access_load_Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTx) (dq : DFrac) :
+noncomputable instance access_load'batchTx'Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTx) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"Mutex" l) v.Mutex' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"Mutex" l) v.Mutex' dq)
@@ -843,7 +843,7 @@ noncomputable instance batchTx_access_load_Mutex (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance batchTx_access_store_Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTx) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'batchTx'Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTx) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"Mutex" l) v.Mutex' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"Mutex" l) y (DFrac.own 1))
@@ -851,7 +851,7 @@ noncomputable instance batchTx_access_store_Mutex (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance batchTx_access_load_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTx) (dq : DFrac) :
+noncomputable instance access_load'batchTx'tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTx) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"tx" l) v.tx' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"tx" l) v.tx' dq)
@@ -859,7 +859,7 @@ noncomputable instance batchTx_access_load_tx (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance batchTx_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTx) (y : Loc) :
+noncomputable instance access_store'batchTx'tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTx) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"tx" l) v.tx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"tx" l) y (DFrac.own 1))
@@ -867,7 +867,7 @@ noncomputable instance batchTx_access_store_tx (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance batchTx_access_load_backend (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTx) (dq : DFrac) :
+noncomputable instance access_load'batchTx'backend (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTx) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"backend" l) v.backend' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"backend" l) v.backend' dq)
@@ -875,7 +875,7 @@ noncomputable instance batchTx_access_load_backend (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance batchTx_access_store_backend (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTx) (y : Loc) :
+noncomputable instance access_store'batchTx'backend (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTx) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"backend" l) v.backend' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"backend" l) y (DFrac.own 1))
@@ -883,7 +883,7 @@ noncomputable instance batchTx_access_store_backend (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance batchTx_access_load_pending (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTx) (dq : DFrac) :
+noncomputable instance access_load'batchTx'pending (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTx) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"pending" l) v.pending' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"pending" l) v.pending' dq)
@@ -891,7 +891,7 @@ noncomputable instance batchTx_access_load_pending (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance batchTx_access_store_pending (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTx) (y : w64) :
+noncomputable instance access_store'batchTx'pending (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTx) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"pending" l) v.pending' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"pending" l) y (DFrac.own 1))
@@ -910,7 +910,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-noncomputable instance txBuffer_typed_pointsto :
+noncomputable instance typed_pointsto'txBuffer :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.txBuffer where
   typedPointstoDef l v dq := iprop(
     "buckets" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txBuffer go!"buckets" l) v.buckets' dq ∗
@@ -919,11 +919,11 @@ noncomputable instance txBuffer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance txBuffer_into_val_typed :
+noncomputable instance into_val_typed'txBuffer :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.txBuffer go_etcd_io.etcd.server.v3.storage.backend.txBuffer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance txBuffer_access_load_buckets (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txBuffer) (dq : DFrac) :
+noncomputable instance access_load'txBuffer'buckets (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txBuffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txBuffer go!"buckets" l) v.buckets' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txBuffer go!"buckets" l) v.buckets' dq)
@@ -931,7 +931,7 @@ noncomputable instance txBuffer_access_load_buckets (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance txBuffer_access_store_buckets (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txBuffer) (y : GoMap) :
+noncomputable instance access_store'txBuffer'buckets (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txBuffer) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txBuffer go!"buckets" l) v.buckets' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txBuffer go!"buckets" l) y (DFrac.own 1))
@@ -950,7 +950,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-noncomputable instance txWriteBuffer_typed_pointsto :
+noncomputable instance typed_pointsto'txWriteBuffer :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer where
   typedPointstoDef l v dq := iprop(
     "txBuffer" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer go!"txBuffer" l) v.txBuffer' dq ∗
@@ -960,11 +960,11 @@ noncomputable instance txWriteBuffer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance txWriteBuffer_into_val_typed :
+noncomputable instance into_val_typed'txWriteBuffer :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance txWriteBuffer_access_load_txBuffer (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer) (dq : DFrac) :
+noncomputable instance access_load'txWriteBuffer'txBuffer (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer go!"txBuffer" l) v.txBuffer' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer go!"txBuffer" l) v.txBuffer' dq)
@@ -972,7 +972,7 @@ noncomputable instance txWriteBuffer_access_load_txBuffer (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance txWriteBuffer_access_store_txBuffer (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer) (y : go_etcd_io.etcd.server.v3.storage.backend.txBuffer) :
+noncomputable instance access_store'txWriteBuffer'txBuffer (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer) (y : go_etcd_io.etcd.server.v3.storage.backend.txBuffer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer go!"txBuffer" l) v.txBuffer' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer go!"txBuffer" l) y (DFrac.own 1))
@@ -980,7 +980,7 @@ noncomputable instance txWriteBuffer_access_store_txBuffer (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance txWriteBuffer_access_load_bucket2seq (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer) (dq : DFrac) :
+noncomputable instance access_load'txWriteBuffer'bucket2seq (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer go!"bucket2seq" l) v.bucket2seq' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer go!"bucket2seq" l) v.bucket2seq' dq)
@@ -988,7 +988,7 @@ noncomputable instance txWriteBuffer_access_load_bucket2seq (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance txWriteBuffer_access_store_bucket2seq (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer) (y : GoMap) :
+noncomputable instance access_store'txWriteBuffer'bucket2seq (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer go!"bucket2seq" l) v.bucket2seq' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer go!"bucket2seq" l) y (DFrac.own 1))
@@ -1007,7 +1007,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-noncomputable instance batchTxBuffered_typed_pointsto :
+noncomputable instance typed_pointsto'batchTxBuffered :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered where
   typedPointstoDef l v dq := iprop(
     "batchTx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered go!"batchTx" l) v.batchTx' dq ∗
@@ -1018,11 +1018,11 @@ noncomputable instance batchTxBuffered_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance batchTxBuffered_into_val_typed :
+noncomputable instance into_val_typed'batchTxBuffered :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance batchTxBuffered_access_load_batchTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered) (dq : DFrac) :
+noncomputable instance access_load'batchTxBuffered'batchTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered go!"batchTx" l) v.batchTx' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered go!"batchTx" l) v.batchTx' dq)
@@ -1030,7 +1030,7 @@ noncomputable instance batchTxBuffered_access_load_batchTx (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance batchTxBuffered_access_store_batchTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered) (y : go_etcd_io.etcd.server.v3.storage.backend.batchTx) :
+noncomputable instance access_store'batchTxBuffered'batchTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered) (y : go_etcd_io.etcd.server.v3.storage.backend.batchTx) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered go!"batchTx" l) v.batchTx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered go!"batchTx" l) y (DFrac.own 1))
@@ -1038,7 +1038,7 @@ noncomputable instance batchTxBuffered_access_store_batchTx (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance batchTxBuffered_access_load_buf (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered) (dq : DFrac) :
+noncomputable instance access_load'batchTxBuffered'buf (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered go!"buf" l) v.buf' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered go!"buf" l) v.buf' dq)
@@ -1046,7 +1046,7 @@ noncomputable instance batchTxBuffered_access_load_buf (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance batchTxBuffered_access_store_buf (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered) (y : go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer) :
+noncomputable instance access_store'batchTxBuffered'buf (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered) (y : go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered go!"buf" l) v.buf' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered go!"buf" l) y (DFrac.own 1))
@@ -1054,7 +1054,7 @@ noncomputable instance batchTxBuffered_access_store_buf (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance batchTxBuffered_access_load_pendingDeleteOperations (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered) (dq : DFrac) :
+noncomputable instance access_load'batchTxBuffered'pendingDeleteOperations (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered go!"pendingDeleteOperations" l) v.pendingDeleteOperations' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered go!"pendingDeleteOperations" l) v.pendingDeleteOperations' dq)
@@ -1062,7 +1062,7 @@ noncomputable instance batchTxBuffered_access_load_pendingDeleteOperations (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance batchTxBuffered_access_store_pendingDeleteOperations (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered) (y : w64) :
+noncomputable instance access_store'batchTxBuffered'pendingDeleteOperations (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered go!"pendingDeleteOperations" l) v.pendingDeleteOperations' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered go!"pendingDeleteOperations" l) y (DFrac.own 1))
@@ -1081,7 +1081,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-noncomputable instance hooks_typed_pointsto :
+noncomputable instance typed_pointsto'hooks :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.hooks where
   typedPointstoDef l v dq := iprop(
     "onPreCommitUnsafe" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.hooks go!"onPreCommitUnsafe" l) v.onPreCommitUnsafe' dq ∗
@@ -1090,11 +1090,11 @@ noncomputable instance hooks_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance hooks_into_val_typed :
+noncomputable instance into_val_typed'hooks :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.hooks go_etcd_io.etcd.server.v3.storage.backend.hooks.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance hooks_access_load_onPreCommitUnsafe (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.hooks) (dq : DFrac) :
+noncomputable instance access_load'hooks'onPreCommitUnsafe (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.hooks) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.hooks go!"onPreCommitUnsafe" l) v.onPreCommitUnsafe' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.hooks go!"onPreCommitUnsafe" l) v.onPreCommitUnsafe' dq)
@@ -1102,7 +1102,7 @@ noncomputable instance hooks_access_load_onPreCommitUnsafe (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance hooks_access_store_onPreCommitUnsafe (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.hooks) (y : go_etcd_io.etcd.server.v3.storage.backend.HookFunc) :
+noncomputable instance access_store'hooks'onPreCommitUnsafe (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.hooks) (y : go_etcd_io.etcd.server.v3.storage.backend.HookFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.hooks go!"onPreCommitUnsafe" l) v.onPreCommitUnsafe' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.hooks go!"onPreCommitUnsafe" l) y (DFrac.own 1))
@@ -1121,7 +1121,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-noncomputable instance txReadBuffer_typed_pointsto :
+noncomputable instance typed_pointsto'txReadBuffer :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer where
   typedPointstoDef l v dq := iprop(
     "txBuffer" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer go!"txBuffer" l) v.txBuffer' dq ∗
@@ -1131,11 +1131,11 @@ noncomputable instance txReadBuffer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance txReadBuffer_into_val_typed :
+noncomputable instance into_val_typed'txReadBuffer :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance txReadBuffer_access_load_txBuffer (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer) (dq : DFrac) :
+noncomputable instance access_load'txReadBuffer'txBuffer (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer go!"txBuffer" l) v.txBuffer' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer go!"txBuffer" l) v.txBuffer' dq)
@@ -1143,7 +1143,7 @@ noncomputable instance txReadBuffer_access_load_txBuffer (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance txReadBuffer_access_store_txBuffer (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer) (y : go_etcd_io.etcd.server.v3.storage.backend.txBuffer) :
+noncomputable instance access_store'txReadBuffer'txBuffer (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer) (y : go_etcd_io.etcd.server.v3.storage.backend.txBuffer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer go!"txBuffer" l) v.txBuffer' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer go!"txBuffer" l) y (DFrac.own 1))
@@ -1151,7 +1151,7 @@ noncomputable instance txReadBuffer_access_store_txBuffer (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance txReadBuffer_access_load_bufVersion (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer) (dq : DFrac) :
+noncomputable instance access_load'txReadBuffer'bufVersion (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer go!"bufVersion" l) v.bufVersion' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer go!"bufVersion" l) v.bufVersion' dq)
@@ -1159,7 +1159,7 @@ noncomputable instance txReadBuffer_access_load_bufVersion (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance txReadBuffer_access_store_bufVersion (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer) (y : w64) :
+noncomputable instance access_store'txReadBuffer'bufVersion (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer go!"bufVersion" l) v.bufVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer go!"bufVersion" l) y (DFrac.own 1))
@@ -1178,7 +1178,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-noncomputable instance baseReadTx_typed_pointsto :
+noncomputable instance typed_pointsto'baseReadTx :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.baseReadTx where
   typedPointstoDef l v dq := iprop(
     "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"mu" l) v.mu' dq ∗
@@ -1192,11 +1192,11 @@ noncomputable instance baseReadTx_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance baseReadTx_into_val_typed :
+noncomputable instance into_val_typed'baseReadTx :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go_etcd_io.etcd.server.v3.storage.backend.baseReadTx.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance baseReadTx_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (dq : DFrac) :
+noncomputable instance access_load'baseReadTx'mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"mu" l) v.mu' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"mu" l) v.mu' dq)
@@ -1204,7 +1204,7 @@ noncomputable instance baseReadTx_access_load_mu (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance baseReadTx_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'baseReadTx'mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"mu" l) y (DFrac.own 1))
@@ -1212,7 +1212,7 @@ noncomputable instance baseReadTx_access_store_mu (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance baseReadTx_access_load_buf (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (dq : DFrac) :
+noncomputable instance access_load'baseReadTx'buf (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"buf" l) v.buf' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"buf" l) v.buf' dq)
@@ -1220,7 +1220,7 @@ noncomputable instance baseReadTx_access_load_buf (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance baseReadTx_access_store_buf (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (y : go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer) :
+noncomputable instance access_store'baseReadTx'buf (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (y : go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"buf" l) v.buf' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"buf" l) y (DFrac.own 1))
@@ -1228,7 +1228,7 @@ noncomputable instance baseReadTx_access_store_buf (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance baseReadTx_access_load_txMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (dq : DFrac) :
+noncomputable instance access_load'baseReadTx'txMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txMu" l) v.txMu' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txMu" l) v.txMu' dq)
@@ -1236,7 +1236,7 @@ noncomputable instance baseReadTx_access_load_txMu (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance baseReadTx_access_store_txMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (y : Loc) :
+noncomputable instance access_store'baseReadTx'txMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txMu" l) v.txMu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txMu" l) y (DFrac.own 1))
@@ -1244,7 +1244,7 @@ noncomputable instance baseReadTx_access_store_txMu (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance baseReadTx_access_load_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (dq : DFrac) :
+noncomputable instance access_load'baseReadTx'tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"tx" l) v.tx' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"tx" l) v.tx' dq)
@@ -1252,7 +1252,7 @@ noncomputable instance baseReadTx_access_load_tx (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance baseReadTx_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (y : Loc) :
+noncomputable instance access_store'baseReadTx'tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"tx" l) v.tx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"tx" l) y (DFrac.own 1))
@@ -1260,7 +1260,7 @@ noncomputable instance baseReadTx_access_store_tx (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance baseReadTx_access_load_buckets (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (dq : DFrac) :
+noncomputable instance access_load'baseReadTx'buckets (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"buckets" l) v.buckets' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"buckets" l) v.buckets' dq)
@@ -1268,7 +1268,7 @@ noncomputable instance baseReadTx_access_load_buckets (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance baseReadTx_access_store_buckets (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (y : GoMap) :
+noncomputable instance access_store'baseReadTx'buckets (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"buckets" l) v.buckets' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"buckets" l) y (DFrac.own 1))
@@ -1276,7 +1276,7 @@ noncomputable instance baseReadTx_access_store_buckets (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance baseReadTx_access_load_txWg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (dq : DFrac) :
+noncomputable instance access_load'baseReadTx'txWg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txWg" l) v.txWg' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txWg" l) v.txWg' dq)
@@ -1284,7 +1284,7 @@ noncomputable instance baseReadTx_access_load_txWg (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance baseReadTx_access_store_txWg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (y : Loc) :
+noncomputable instance access_store'baseReadTx'txWg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txWg" l) v.txWg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txWg" l) y (DFrac.own 1))
@@ -1303,7 +1303,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-noncomputable instance readTx_typed_pointsto :
+noncomputable instance typed_pointsto'readTx :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.readTx where
   typedPointstoDef l v dq := iprop(
     "baseReadTx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.readTx go!"baseReadTx" l) v.baseReadTx' dq ∗
@@ -1312,11 +1312,11 @@ noncomputable instance readTx_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance readTx_into_val_typed :
+noncomputable instance into_val_typed'readTx :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.readTx go_etcd_io.etcd.server.v3.storage.backend.readTx.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance readTx_access_load_baseReadTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.readTx) (dq : DFrac) :
+noncomputable instance access_load'readTx'baseReadTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.readTx) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.readTx go!"baseReadTx" l) v.baseReadTx' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.readTx go!"baseReadTx" l) v.baseReadTx' dq)
@@ -1324,7 +1324,7 @@ noncomputable instance readTx_access_load_baseReadTx (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance readTx_access_store_baseReadTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.readTx) (y : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) :
+noncomputable instance access_store'readTx'baseReadTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.readTx) (y : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.readTx go!"baseReadTx" l) v.baseReadTx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.readTx go!"baseReadTx" l) y (DFrac.own 1))
@@ -1343,7 +1343,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-noncomputable instance concurrentReadTx_typed_pointsto :
+noncomputable instance typed_pointsto'concurrentReadTx :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx where
   typedPointstoDef l v dq := iprop(
     "baseReadTx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx go!"baseReadTx" l) v.baseReadTx' dq ∗
@@ -1352,11 +1352,11 @@ noncomputable instance concurrentReadTx_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance concurrentReadTx_into_val_typed :
+noncomputable instance into_val_typed'concurrentReadTx :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance concurrentReadTx_access_load_baseReadTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx) (dq : DFrac) :
+noncomputable instance access_load'concurrentReadTx'baseReadTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx go!"baseReadTx" l) v.baseReadTx' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx go!"baseReadTx" l) v.baseReadTx' dq)
@@ -1364,7 +1364,7 @@ noncomputable instance concurrentReadTx_access_load_baseReadTx (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance concurrentReadTx_access_store_baseReadTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx) (y : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) :
+noncomputable instance access_store'concurrentReadTx'baseReadTx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx) (y : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx go!"baseReadTx" l) v.baseReadTx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx go!"baseReadTx" l) y (DFrac.own 1))
@@ -1383,7 +1383,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-noncomputable instance kv_typed_pointsto :
+noncomputable instance typed_pointsto'kv :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.kv where
   typedPointstoDef l v dq := iprop(
     "key" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.kv go!"key" l) v.key' dq ∗
@@ -1393,11 +1393,11 @@ noncomputable instance kv_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance kv_into_val_typed :
+noncomputable instance into_val_typed'kv :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.kv go_etcd_io.etcd.server.v3.storage.backend.kv.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance kv_access_load_key (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.kv) (dq : DFrac) :
+noncomputable instance access_load'kv'key (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.kv) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.kv go!"key" l) v.key' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.kv go!"key" l) v.key' dq)
@@ -1405,7 +1405,7 @@ noncomputable instance kv_access_load_key (l : Loc) (v : go_etcd_io.etcd.server.
  by
   solve_pointsto_access_struct
 
-noncomputable instance kv_access_store_key (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.kv) (y : GoSlice) :
+noncomputable instance access_store'kv'key (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.kv) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.kv go!"key" l) v.key' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.kv go!"key" l) y (DFrac.own 1))
@@ -1413,7 +1413,7 @@ noncomputable instance kv_access_store_key (l : Loc) (v : go_etcd_io.etcd.server
  by
   solve_pointsto_access_struct
 
-noncomputable instance kv_access_load_val (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.kv) (dq : DFrac) :
+noncomputable instance access_load'kv'val (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.kv) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.kv go!"val" l) v.val' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.kv go!"val" l) v.val' dq)
@@ -1421,7 +1421,7 @@ noncomputable instance kv_access_load_val (l : Loc) (v : go_etcd_io.etcd.server.
  by
   solve_pointsto_access_struct
 
-noncomputable instance kv_access_store_val (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.kv) (y : GoSlice) :
+noncomputable instance access_store'kv'val (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.kv) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.kv go!"val" l) v.val' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.kv go!"val" l) y (DFrac.own 1))
@@ -1440,7 +1440,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-noncomputable instance bucketBuffer_typed_pointsto :
+noncomputable instance typed_pointsto'bucketBuffer :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer where
   typedPointstoDef l v dq := iprop(
     "buf" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer go!"buf" l) v.buf' dq ∗
@@ -1450,11 +1450,11 @@ noncomputable instance bucketBuffer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance bucketBuffer_into_val_typed :
+noncomputable instance into_val_typed'bucketBuffer :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance bucketBuffer_access_load_buf (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer) (dq : DFrac) :
+noncomputable instance access_load'bucketBuffer'buf (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer go!"buf" l) v.buf' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer go!"buf" l) v.buf' dq)
@@ -1462,7 +1462,7 @@ noncomputable instance bucketBuffer_access_load_buf (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance bucketBuffer_access_store_buf (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer) (y : GoSlice) :
+noncomputable instance access_store'bucketBuffer'buf (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer go!"buf" l) v.buf' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer go!"buf" l) y (DFrac.own 1))
@@ -1470,7 +1470,7 @@ noncomputable instance bucketBuffer_access_store_buf (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance bucketBuffer_access_load_used (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer) (dq : DFrac) :
+noncomputable instance access_load'bucketBuffer'used (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer go!"used" l) v.used' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer go!"used" l) v.used' dq)
@@ -1478,7 +1478,7 @@ noncomputable instance bucketBuffer_access_load_used (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance bucketBuffer_access_store_used (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer) (y : w64) :
+noncomputable instance access_store'bucketBuffer'used (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer go!"used" l) v.used' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer go!"used" l) y (DFrac.own 1))

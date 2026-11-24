@@ -60,7 +60,7 @@ noncomputable instance Attributes.zero_val [GooseExts] : ZeroVal Attributes :=
 @[irreducible] noncomputable def Attributes.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Attributes.fieldsUnsealed
 
-noncomputable instance equals_unfold_Attributes [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Attributes [GooseExts] [GoGlobalContext] :
     EqualsUnfold Attributes.fields Attributes.fieldsUnsealed :=
   ⟨by unfold Attributes.fields; rfl⟩
 
@@ -70,30 +70,30 @@ noncomputable instance equals_unfold_Attributes [GooseExts] [GoGlobalContext] :
 class Attributes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Attributes.underlying Attributes
   underlying : go.UnderlyingDirectedEq Attributes.ty Attributes.underlying
-  get_parent : ∀ (x : Attributes), go.IsGoStepPureDetTagged under (StructFieldGet Attributes.underlying go!"parent") #x (Val #(x.parent'))
-  set_parent : ∀ (x : Attributes) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"parent") (PairV #x #y) (Val #(({ x with parent' := y } : Attributes)))
-  get_key : ∀ (x : Attributes), go.IsGoStepPureDetTagged under (StructFieldGet Attributes.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : Attributes) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : Attributes)))
-  get_value : ∀ (x : Attributes), go.IsGoStepPureDetTagged under (StructFieldGet Attributes.underlying go!"value") #x (Val #(x.value'))
-  set_value : ∀ (x : Attributes) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : Attributes)))
+  get'parent : ∀ (x : Attributes), go.IsGoStepPureDetTagged under (StructFieldGet Attributes.underlying go!"parent") #x (Val #(x.parent'))
+  set'parent : ∀ (x : Attributes) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"parent") (PairV #x #y) (Val #(({ x with parent' := y } : Attributes)))
+  get'key : ∀ (x : Attributes), go.IsGoStepPureDetTagged under (StructFieldGet Attributes.underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : Attributes) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : Attributes)))
+  get'value : ∀ (x : Attributes), go.IsGoStepPureDetTagged under (StructFieldGet Attributes.underlying go!"value") #x (Val #(x.value'))
+  set'value : ∀ (x : Attributes) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : Attributes)))
   method_set : go.MethodSetIs Attributes.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Attributes.ty) [(go!"Equal", (some (go.signature.Signature [(go.GoType.PointerType Attributes.ty)] false [go.bool]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any]))), (go!"WithValue", (some (go.signature.Signature [go.any, go.any] false [(go.GoType.PointerType Attributes.ty)]))), (go!"google.golang.org/grpc/attributes.all", (some (go.signature.Signature [] false [(go.GoType.Named go!"iter.Seq2" [go.any, go.any])])))]
 
 attribute [instance] Attributes.TypeAssumptions.type_repr
   Attributes.TypeAssumptions.underlying
-  Attributes.TypeAssumptions.get_parent
-  Attributes.TypeAssumptions.set_parent
-  Attributes.TypeAssumptions.get_key
-  Attributes.TypeAssumptions.set_key
-  Attributes.TypeAssumptions.get_value
-  Attributes.TypeAssumptions.set_value
+  Attributes.TypeAssumptions.get'parent
+  Attributes.TypeAssumptions.set'parent
+  Attributes.TypeAssumptions.get'key
+  Attributes.TypeAssumptions.set'key
+  Attributes.TypeAssumptions.get'value
+  Attributes.TypeAssumptions.set'value
   Attributes.TypeAssumptions.method_set
   Attributes.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Attributes_instance : Attributes.TypeAssumptions
+  instance'Attributes : Attributes.TypeAssumptions
 
-attribute [instance] Assumptions.Attributes_instance
+attribute [instance] Assumptions.instance'Attributes
 
 end google_golang_org.grpc.attributes
 

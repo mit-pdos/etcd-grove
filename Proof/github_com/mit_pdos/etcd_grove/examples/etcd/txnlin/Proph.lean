@@ -31,9 +31,9 @@ takes those specs as its callee specs, applies them with them.
 
 goose's `primitive` package has `NewProph() ProphId` and `(ProphId) ResolveBool(b)`,
 `(ProphId) ResolveU64(x)` (no-op stubs in Go). Perennial (since `ca6988bb0`/`e81f4a6ce`) binds
-them: `primitive.Assumptions.NewProph_unfold` (`NewProph.impl`), `ProphId.TypeAssumptions`'s
-`ResolveBool_unfold`/`ResolveU64_unfold` (`ProphId.ResolveBool.impl`: `ResolveProph p b`), and
-the generated pointer-receiver wrappers `ptr_ResolveBool_unfold`/`ptr_ResolveU64_unfold` (load
+them: `primitive.Assumptions.unfold'NewProph` (`NewProph.impl`), `ProphId.TypeAssumptions`'s
+`unfold'ResolveBool`/`unfold'ResolveU64` (`ProphId.ResolveBool.impl`: `ResolveProph p b`), and
+the generated pointer-receiver wrappers `ptr_unfold'ResolveBool`/`ptr_unfold'ResolveU64` (load
 the `ProphId`, then call the value method), with the specs `primitive.wp_NewProph` and
 `ProphId.wp_ResolveBool`/`wp_ResolveU64` over the untyped `proph p pvs`. The Go program
 (`examples/linkv/linkv.go`, `Apply`, and since `examples/etcd/txnlin/etcd_txnlin.go`) calls `p := primitive.NewProph()`, keeps `p` in a local

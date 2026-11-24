@@ -37,7 +37,7 @@ theorem TxStats.IncRebalanceTime.wp_proof : TxStats.IncRebalanceTime.spec (GF :=
   · iexact Hpkg
   imod stats_open K tx r m q ⊤ CoPset.subseteq_top $$ [Ht] with ⟨%s, Hs, Hcl⟩
   · iframe Hc Hreg Ht
-  icases (TxStats.TxStats_access_store_RebalanceTime _ s (s.RebalanceTime' + d)).access_strict $$ Hs
+  icases (TxStats.access_store'TxStats'RebalanceTime _ s (s.RebalanceTime' + d)).access_strict $$ Hs
     with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask

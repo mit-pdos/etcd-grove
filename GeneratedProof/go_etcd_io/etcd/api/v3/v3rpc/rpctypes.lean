@@ -26,7 +26,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
 
-noncomputable instance EtcdError_typed_pointsto :
+noncomputable instance typed_pointsto'EtcdError :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError where
   typedPointstoDef l v dq := iprop(
     "code" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' dq ∗
@@ -36,11 +36,11 @@ noncomputable instance EtcdError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance EtcdError_into_val_typed :
+noncomputable instance into_val_typed'EtcdError :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance EtcdError_access_load_code (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (dq : DFrac) :
+noncomputable instance access_load'EtcdError'code (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' dq)
@@ -48,7 +48,7 @@ noncomputable instance EtcdError_access_load_code (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance EtcdError_access_store_code (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (y : _root_.Perennial.google_golang_org.grpc.codes.Code) :
+noncomputable instance access_store'EtcdError'code (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (y : _root_.Perennial.google_golang_org.grpc.codes.Code) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) y (DFrac.own 1))
@@ -56,7 +56,7 @@ noncomputable instance EtcdError_access_store_code (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance EtcdError_access_load_desc (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (dq : DFrac) :
+noncomputable instance access_load'EtcdError'desc (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) v.desc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) v.desc' dq)
@@ -64,7 +64,7 @@ noncomputable instance EtcdError_access_load_desc (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance EtcdError_access_store_desc (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (y : GoString) :
+noncomputable instance access_store'EtcdError'desc (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) v.desc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) y (DFrac.own 1))
@@ -83,7 +83,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
 
-noncomputable instance TokenFieldNameGRPCKey_typed_pointsto :
+noncomputable instance typed_pointsto'TokenFieldNameGRPCKey :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPCKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -91,7 +91,7 @@ noncomputable instance TokenFieldNameGRPCKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance TokenFieldNameGRPCKey_into_val_typed :
+noncomputable instance into_val_typed'TokenFieldNameGRPCKey :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPCKey go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPCKey.underlying := by
   solve_into_val_typed_struct
 

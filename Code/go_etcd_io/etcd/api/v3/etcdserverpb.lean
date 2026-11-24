@@ -21,415 +21,415 @@ noncomputable section
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Metadata_instance : Metadata.TypeAssumptions
-  RequestHeader_instance : RequestHeader.TypeAssumptions
-  InternalRaftRequest_instance : InternalRaftRequest.TypeAssumptions
-  EmptyResponse_instance : EmptyResponse.TypeAssumptions
-  InternalAuthenticateRequest_instance : InternalAuthenticateRequest.TypeAssumptions
-  InternalRaftStringer_instance : InternalRaftStringer.TypeAssumptions
-  txnRequestStringer_instance : txnRequestStringer.TypeAssumptions
-  requestOpStringer_instance : requestOpStringer.TypeAssumptions
-  loggableValueCompare_instance : loggableValueCompare.TypeAssumptions
-  loggablePutRequest_instance : loggablePutRequest.TypeAssumptions
-  AlarmType_instance : AlarmType.TypeAssumptions
-  RangeRequest_SortOrder_instance : RangeRequest_SortOrder.TypeAssumptions
-  RangeRequest_SortTarget_instance : RangeRequest_SortTarget.TypeAssumptions
-  Compare_CompareResult_instance : Compare_CompareResult.TypeAssumptions
-  Compare_CompareTarget_instance : Compare_CompareTarget.TypeAssumptions
-  WatchCreateRequest_FilterType_instance : WatchCreateRequest_FilterType.TypeAssumptions
-  AlarmRequest_AlarmAction_instance : AlarmRequest_AlarmAction.TypeAssumptions
-  DowngradeRequest_DowngradeAction_instance : DowngradeRequest_DowngradeAction.TypeAssumptions
-  ResponseHeader_instance : ResponseHeader.TypeAssumptions
-  RangeRequest_instance : RangeRequest.TypeAssumptions
-  RangeResponse_instance : RangeResponse.TypeAssumptions
-  PutRequest_instance : PutRequest.TypeAssumptions
-  PutResponse_instance : PutResponse.TypeAssumptions
-  DeleteRangeRequest_instance : DeleteRangeRequest.TypeAssumptions
-  DeleteRangeResponse_instance : DeleteRangeResponse.TypeAssumptions
-  RequestOp_instance : RequestOp.TypeAssumptions
-  isRequestOp_Request_instance : isRequestOp_Request.TypeAssumptions
-  RequestOp_RequestRange_instance : RequestOp_RequestRange.TypeAssumptions
-  RequestOp_RequestPut_instance : RequestOp_RequestPut.TypeAssumptions
-  RequestOp_RequestDeleteRange_instance : RequestOp_RequestDeleteRange.TypeAssumptions
-  RequestOp_RequestTxn_instance : RequestOp_RequestTxn.TypeAssumptions
-  ResponseOp_instance : ResponseOp.TypeAssumptions
-  isResponseOp_Response_instance : isResponseOp_Response.TypeAssumptions
-  ResponseOp_ResponseRange_instance : ResponseOp_ResponseRange.TypeAssumptions
-  ResponseOp_ResponsePut_instance : ResponseOp_ResponsePut.TypeAssumptions
-  ResponseOp_ResponseDeleteRange_instance : ResponseOp_ResponseDeleteRange.TypeAssumptions
-  ResponseOp_ResponseTxn_instance : ResponseOp_ResponseTxn.TypeAssumptions
-  Compare_instance : Compare.TypeAssumptions
-  isCompare_TargetUnion_instance : isCompare_TargetUnion.TypeAssumptions
-  Compare_Version_instance : Compare_Version.TypeAssumptions
-  Compare_CreateRevision_instance : Compare_CreateRevision.TypeAssumptions
-  Compare_ModRevision_instance : Compare_ModRevision.TypeAssumptions
-  Compare_Value_instance : Compare_Value.TypeAssumptions
-  Compare_Lease_instance : Compare_Lease.TypeAssumptions
-  TxnRequest_instance : TxnRequest.TypeAssumptions
-  TxnResponse_instance : TxnResponse.TypeAssumptions
-  CompactionRequest_instance : CompactionRequest.TypeAssumptions
-  CompactionResponse_instance : CompactionResponse.TypeAssumptions
-  HashRequest_instance : HashRequest.TypeAssumptions
-  HashKVRequest_instance : HashKVRequest.TypeAssumptions
-  HashKVResponse_instance : HashKVResponse.TypeAssumptions
-  HashResponse_instance : HashResponse.TypeAssumptions
-  SnapshotRequest_instance : SnapshotRequest.TypeAssumptions
-  SnapshotResponse_instance : SnapshotResponse.TypeAssumptions
-  WatchRequest_instance : WatchRequest.TypeAssumptions
-  isWatchRequest_RequestUnion_instance : isWatchRequest_RequestUnion.TypeAssumptions
-  WatchRequest_CreateRequest_instance : WatchRequest_CreateRequest.TypeAssumptions
-  WatchRequest_CancelRequest_instance : WatchRequest_CancelRequest.TypeAssumptions
-  WatchRequest_ProgressRequest_instance : WatchRequest_ProgressRequest.TypeAssumptions
-  WatchCreateRequest_instance : WatchCreateRequest.TypeAssumptions
-  WatchCancelRequest_instance : WatchCancelRequest.TypeAssumptions
-  WatchProgressRequest_instance : WatchProgressRequest.TypeAssumptions
-  WatchResponse_instance : WatchResponse.TypeAssumptions
-  LeaseGrantRequest_instance : LeaseGrantRequest.TypeAssumptions
-  LeaseGrantResponse_instance : LeaseGrantResponse.TypeAssumptions
-  LeaseRevokeRequest_instance : LeaseRevokeRequest.TypeAssumptions
-  LeaseRevokeResponse_instance : LeaseRevokeResponse.TypeAssumptions
-  LeaseCheckpoint_instance : LeaseCheckpoint.TypeAssumptions
-  LeaseCheckpointRequest_instance : LeaseCheckpointRequest.TypeAssumptions
-  LeaseCheckpointResponse_instance : LeaseCheckpointResponse.TypeAssumptions
-  LeaseKeepAliveRequest_instance : LeaseKeepAliveRequest.TypeAssumptions
-  LeaseKeepAliveResponse_instance : LeaseKeepAliveResponse.TypeAssumptions
-  LeaseTimeToLiveRequest_instance : LeaseTimeToLiveRequest.TypeAssumptions
-  LeaseTimeToLiveResponse_instance : LeaseTimeToLiveResponse.TypeAssumptions
-  LeaseLeasesRequest_instance : LeaseLeasesRequest.TypeAssumptions
-  LeaseStatus_instance : LeaseStatus.TypeAssumptions
-  LeaseLeasesResponse_instance : LeaseLeasesResponse.TypeAssumptions
-  Member_instance : Member.TypeAssumptions
-  MemberAddRequest_instance : MemberAddRequest.TypeAssumptions
-  MemberAddResponse_instance : MemberAddResponse.TypeAssumptions
-  MemberRemoveRequest_instance : MemberRemoveRequest.TypeAssumptions
-  MemberRemoveResponse_instance : MemberRemoveResponse.TypeAssumptions
-  MemberUpdateRequest_instance : MemberUpdateRequest.TypeAssumptions
-  MemberUpdateResponse_instance : MemberUpdateResponse.TypeAssumptions
-  MemberListRequest_instance : MemberListRequest.TypeAssumptions
-  MemberListResponse_instance : MemberListResponse.TypeAssumptions
-  MemberPromoteRequest_instance : MemberPromoteRequest.TypeAssumptions
-  MemberPromoteResponse_instance : MemberPromoteResponse.TypeAssumptions
-  DefragmentRequest_instance : DefragmentRequest.TypeAssumptions
-  DefragmentResponse_instance : DefragmentResponse.TypeAssumptions
-  MoveLeaderRequest_instance : MoveLeaderRequest.TypeAssumptions
-  MoveLeaderResponse_instance : MoveLeaderResponse.TypeAssumptions
-  AlarmRequest_instance : AlarmRequest.TypeAssumptions
-  AlarmMember_instance : AlarmMember.TypeAssumptions
-  AlarmResponse_instance : AlarmResponse.TypeAssumptions
-  DowngradeRequest_instance : DowngradeRequest.TypeAssumptions
-  DowngradeResponse_instance : DowngradeResponse.TypeAssumptions
-  DowngradeVersionTestRequest_instance : DowngradeVersionTestRequest.TypeAssumptions
-  StatusRequest_instance : StatusRequest.TypeAssumptions
-  StatusResponse_instance : StatusResponse.TypeAssumptions
-  DowngradeInfo_instance : DowngradeInfo.TypeAssumptions
-  AuthEnableRequest_instance : AuthEnableRequest.TypeAssumptions
-  AuthDisableRequest_instance : AuthDisableRequest.TypeAssumptions
-  AuthStatusRequest_instance : AuthStatusRequest.TypeAssumptions
-  AuthenticateRequest_instance : AuthenticateRequest.TypeAssumptions
-  AuthUserAddRequest_instance : AuthUserAddRequest.TypeAssumptions
-  AuthUserGetRequest_instance : AuthUserGetRequest.TypeAssumptions
-  AuthUserDeleteRequest_instance : AuthUserDeleteRequest.TypeAssumptions
-  AuthUserChangePasswordRequest_instance : AuthUserChangePasswordRequest.TypeAssumptions
-  AuthUserGrantRoleRequest_instance : AuthUserGrantRoleRequest.TypeAssumptions
-  AuthUserRevokeRoleRequest_instance : AuthUserRevokeRoleRequest.TypeAssumptions
-  AuthRoleAddRequest_instance : AuthRoleAddRequest.TypeAssumptions
-  AuthRoleGetRequest_instance : AuthRoleGetRequest.TypeAssumptions
-  AuthUserListRequest_instance : AuthUserListRequest.TypeAssumptions
-  AuthRoleListRequest_instance : AuthRoleListRequest.TypeAssumptions
-  AuthRoleDeleteRequest_instance : AuthRoleDeleteRequest.TypeAssumptions
-  AuthRoleGrantPermissionRequest_instance : AuthRoleGrantPermissionRequest.TypeAssumptions
-  AuthRoleRevokePermissionRequest_instance : AuthRoleRevokePermissionRequest.TypeAssumptions
-  AuthEnableResponse_instance : AuthEnableResponse.TypeAssumptions
-  AuthDisableResponse_instance : AuthDisableResponse.TypeAssumptions
-  AuthStatusResponse_instance : AuthStatusResponse.TypeAssumptions
-  AuthenticateResponse_instance : AuthenticateResponse.TypeAssumptions
-  AuthUserAddResponse_instance : AuthUserAddResponse.TypeAssumptions
-  AuthUserGetResponse_instance : AuthUserGetResponse.TypeAssumptions
-  AuthUserDeleteResponse_instance : AuthUserDeleteResponse.TypeAssumptions
-  AuthUserChangePasswordResponse_instance : AuthUserChangePasswordResponse.TypeAssumptions
-  AuthUserGrantRoleResponse_instance : AuthUserGrantRoleResponse.TypeAssumptions
-  AuthUserRevokeRoleResponse_instance : AuthUserRevokeRoleResponse.TypeAssumptions
-  AuthRoleAddResponse_instance : AuthRoleAddResponse.TypeAssumptions
-  AuthRoleGetResponse_instance : AuthRoleGetResponse.TypeAssumptions
-  AuthRoleListResponse_instance : AuthRoleListResponse.TypeAssumptions
-  AuthUserListResponse_instance : AuthUserListResponse.TypeAssumptions
-  AuthRoleDeleteResponse_instance : AuthRoleDeleteResponse.TypeAssumptions
-  AuthRoleGrantPermissionResponse_instance : AuthRoleGrantPermissionResponse.TypeAssumptions
-  AuthRoleRevokePermissionResponse_instance : AuthRoleRevokePermissionResponse.TypeAssumptions
-  RangeStreamResponse_instance : RangeStreamResponse.TypeAssumptions
-  KVClient_instance : KVClient.TypeAssumptions
-  kVClient_instance : kVClient.TypeAssumptions
-  KVServer_instance : KVServer.TypeAssumptions
-  UnimplementedKVServer_instance : UnimplementedKVServer.TypeAssumptions
-  UnsafeKVServer_instance : UnsafeKVServer.TypeAssumptions
-  WatchClient_instance : WatchClient.TypeAssumptions
-  watchClient_instance : watchClient.TypeAssumptions
-  WatchServer_instance : WatchServer.TypeAssumptions
-  UnimplementedWatchServer_instance : UnimplementedWatchServer.TypeAssumptions
-  UnsafeWatchServer_instance : UnsafeWatchServer.TypeAssumptions
-  LeaseClient_instance : LeaseClient.TypeAssumptions
-  leaseClient_instance : leaseClient.TypeAssumptions
-  LeaseServer_instance : LeaseServer.TypeAssumptions
-  UnimplementedLeaseServer_instance : UnimplementedLeaseServer.TypeAssumptions
-  UnsafeLeaseServer_instance : UnsafeLeaseServer.TypeAssumptions
-  ClusterClient_instance : ClusterClient.TypeAssumptions
-  clusterClient_instance : clusterClient.TypeAssumptions
-  ClusterServer_instance : ClusterServer.TypeAssumptions
-  UnimplementedClusterServer_instance : UnimplementedClusterServer.TypeAssumptions
-  UnsafeClusterServer_instance : UnsafeClusterServer.TypeAssumptions
-  MaintenanceClient_instance : MaintenanceClient.TypeAssumptions
-  maintenanceClient_instance : maintenanceClient.TypeAssumptions
-  MaintenanceServer_instance : MaintenanceServer.TypeAssumptions
-  UnimplementedMaintenanceServer_instance : UnimplementedMaintenanceServer.TypeAssumptions
-  UnsafeMaintenanceServer_instance : UnsafeMaintenanceServer.TypeAssumptions
-  AuthClient_instance : AuthClient.TypeAssumptions
-  authClient_instance : authClient.TypeAssumptions
-  AuthServer_instance : AuthServer.TypeAssumptions
-  UnimplementedAuthServer_instance : UnimplementedAuthServer.TypeAssumptions
-  UnsafeAuthServer_instance : UnsafeAuthServer.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
-  «init.2_unfold» : FuncUnfold init.«2» [] init.«2».impl
-  NewKVClient_unfold : FuncUnfold NewKVClient [] NewKVClient.impl
-  RegisterKVServer_unfold : FuncUnfold RegisterKVServer [] RegisterKVServer.impl
-  _KV_Range_Handler_unfold : FuncUnfold _KV_Range_Handler [] _KV_Range_Handler.impl
-  _KV_Put_Handler_unfold : FuncUnfold _KV_Put_Handler [] _KV_Put_Handler.impl
-  _KV_DeleteRange_Handler_unfold : FuncUnfold _KV_DeleteRange_Handler [] _KV_DeleteRange_Handler.impl
-  _KV_Txn_Handler_unfold : FuncUnfold _KV_Txn_Handler [] _KV_Txn_Handler.impl
-  _KV_Compact_Handler_unfold : FuncUnfold _KV_Compact_Handler [] _KV_Compact_Handler.impl
-  NewWatchClient_unfold : FuncUnfold NewWatchClient [] NewWatchClient.impl
-  RegisterWatchServer_unfold : FuncUnfold RegisterWatchServer [] RegisterWatchServer.impl
-  _Watch_Watch_Handler_unfold : FuncUnfold _Watch_Watch_Handler [] _Watch_Watch_Handler.impl
-  NewLeaseClient_unfold : FuncUnfold NewLeaseClient [] NewLeaseClient.impl
-  RegisterLeaseServer_unfold : FuncUnfold RegisterLeaseServer [] RegisterLeaseServer.impl
-  _Lease_LeaseGrant_Handler_unfold : FuncUnfold _Lease_LeaseGrant_Handler [] _Lease_LeaseGrant_Handler.impl
-  _Lease_LeaseRevoke_Handler_unfold : FuncUnfold _Lease_LeaseRevoke_Handler [] _Lease_LeaseRevoke_Handler.impl
-  _Lease_LeaseKeepAlive_Handler_unfold : FuncUnfold _Lease_LeaseKeepAlive_Handler [] _Lease_LeaseKeepAlive_Handler.impl
-  _Lease_LeaseTimeToLive_Handler_unfold : FuncUnfold _Lease_LeaseTimeToLive_Handler [] _Lease_LeaseTimeToLive_Handler.impl
-  _Lease_LeaseLeases_Handler_unfold : FuncUnfold _Lease_LeaseLeases_Handler [] _Lease_LeaseLeases_Handler.impl
-  NewClusterClient_unfold : FuncUnfold NewClusterClient [] NewClusterClient.impl
-  RegisterClusterServer_unfold : FuncUnfold RegisterClusterServer [] RegisterClusterServer.impl
-  NewMaintenanceClient_unfold : FuncUnfold NewMaintenanceClient [] NewMaintenanceClient.impl
-  RegisterMaintenanceServer_unfold : FuncUnfold RegisterMaintenanceServer [] RegisterMaintenanceServer.impl
-  NewAuthClient_unfold : FuncUnfold NewAuthClient [] NewAuthClient.impl
-  RegisterAuthServer_unfold : FuncUnfold RegisterAuthServer [] RegisterAuthServer.impl
-  _Auth_AuthEnable_Handler_unfold : FuncUnfold _Auth_AuthEnable_Handler [] _Auth_AuthEnable_Handler.impl
-  _Auth_Authenticate_Handler_unfold : FuncUnfold _Auth_Authenticate_Handler [] _Auth_Authenticate_Handler.impl
-  _Auth_UserAdd_Handler_unfold : FuncUnfold _Auth_UserAdd_Handler [] _Auth_UserAdd_Handler.impl
-  _Auth_UserGrantRole_Handler_unfold : FuncUnfold _Auth_UserGrantRole_Handler [] _Auth_UserGrantRole_Handler.impl
-  _Auth_RoleAdd_Handler_unfold : FuncUnfold _Auth_RoleAdd_Handler [] _Auth_RoleAdd_Handler.impl
-  _Auth_RoleGrantPermission_Handler_unfold : FuncUnfold _Auth_RoleGrantPermission_Handler [] _Auth_RoleGrantPermission_Handler.impl
-  import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
-  import_membershippb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.Assumptions
-  import_authpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
-  import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
+  instance'Metadata : Metadata.TypeAssumptions
+  instance'RequestHeader : RequestHeader.TypeAssumptions
+  instance'InternalRaftRequest : InternalRaftRequest.TypeAssumptions
+  instance'EmptyResponse : EmptyResponse.TypeAssumptions
+  instance'InternalAuthenticateRequest : InternalAuthenticateRequest.TypeAssumptions
+  instance'InternalRaftStringer : InternalRaftStringer.TypeAssumptions
+  instance'txnRequestStringer : txnRequestStringer.TypeAssumptions
+  instance'requestOpStringer : requestOpStringer.TypeAssumptions
+  instance'loggableValueCompare : loggableValueCompare.TypeAssumptions
+  instance'loggablePutRequest : loggablePutRequest.TypeAssumptions
+  instance'AlarmType : AlarmType.TypeAssumptions
+  instance'RangeRequest_SortOrder : RangeRequest_SortOrder.TypeAssumptions
+  instance'RangeRequest_SortTarget : RangeRequest_SortTarget.TypeAssumptions
+  instance'Compare_CompareResult : Compare_CompareResult.TypeAssumptions
+  instance'Compare_CompareTarget : Compare_CompareTarget.TypeAssumptions
+  instance'WatchCreateRequest_FilterType : WatchCreateRequest_FilterType.TypeAssumptions
+  instance'AlarmRequest_AlarmAction : AlarmRequest_AlarmAction.TypeAssumptions
+  instance'DowngradeRequest_DowngradeAction : DowngradeRequest_DowngradeAction.TypeAssumptions
+  instance'ResponseHeader : ResponseHeader.TypeAssumptions
+  instance'RangeRequest : RangeRequest.TypeAssumptions
+  instance'RangeResponse : RangeResponse.TypeAssumptions
+  instance'PutRequest : PutRequest.TypeAssumptions
+  instance'PutResponse : PutResponse.TypeAssumptions
+  instance'DeleteRangeRequest : DeleteRangeRequest.TypeAssumptions
+  instance'DeleteRangeResponse : DeleteRangeResponse.TypeAssumptions
+  instance'RequestOp : RequestOp.TypeAssumptions
+  instance'isRequestOp_Request : isRequestOp_Request.TypeAssumptions
+  instance'RequestOp_RequestRange : RequestOp_RequestRange.TypeAssumptions
+  instance'RequestOp_RequestPut : RequestOp_RequestPut.TypeAssumptions
+  instance'RequestOp_RequestDeleteRange : RequestOp_RequestDeleteRange.TypeAssumptions
+  instance'RequestOp_RequestTxn : RequestOp_RequestTxn.TypeAssumptions
+  instance'ResponseOp : ResponseOp.TypeAssumptions
+  instance'isResponseOp_Response : isResponseOp_Response.TypeAssumptions
+  instance'ResponseOp_ResponseRange : ResponseOp_ResponseRange.TypeAssumptions
+  instance'ResponseOp_ResponsePut : ResponseOp_ResponsePut.TypeAssumptions
+  instance'ResponseOp_ResponseDeleteRange : ResponseOp_ResponseDeleteRange.TypeAssumptions
+  instance'ResponseOp_ResponseTxn : ResponseOp_ResponseTxn.TypeAssumptions
+  instance'Compare : Compare.TypeAssumptions
+  instance'isCompare_TargetUnion : isCompare_TargetUnion.TypeAssumptions
+  instance'Compare_Version : Compare_Version.TypeAssumptions
+  instance'Compare_CreateRevision : Compare_CreateRevision.TypeAssumptions
+  instance'Compare_ModRevision : Compare_ModRevision.TypeAssumptions
+  instance'Compare_Value : Compare_Value.TypeAssumptions
+  instance'Compare_Lease : Compare_Lease.TypeAssumptions
+  instance'TxnRequest : TxnRequest.TypeAssumptions
+  instance'TxnResponse : TxnResponse.TypeAssumptions
+  instance'CompactionRequest : CompactionRequest.TypeAssumptions
+  instance'CompactionResponse : CompactionResponse.TypeAssumptions
+  instance'HashRequest : HashRequest.TypeAssumptions
+  instance'HashKVRequest : HashKVRequest.TypeAssumptions
+  instance'HashKVResponse : HashKVResponse.TypeAssumptions
+  instance'HashResponse : HashResponse.TypeAssumptions
+  instance'SnapshotRequest : SnapshotRequest.TypeAssumptions
+  instance'SnapshotResponse : SnapshotResponse.TypeAssumptions
+  instance'WatchRequest : WatchRequest.TypeAssumptions
+  instance'isWatchRequest_RequestUnion : isWatchRequest_RequestUnion.TypeAssumptions
+  instance'WatchRequest_CreateRequest : WatchRequest_CreateRequest.TypeAssumptions
+  instance'WatchRequest_CancelRequest : WatchRequest_CancelRequest.TypeAssumptions
+  instance'WatchRequest_ProgressRequest : WatchRequest_ProgressRequest.TypeAssumptions
+  instance'WatchCreateRequest : WatchCreateRequest.TypeAssumptions
+  instance'WatchCancelRequest : WatchCancelRequest.TypeAssumptions
+  instance'WatchProgressRequest : WatchProgressRequest.TypeAssumptions
+  instance'WatchResponse : WatchResponse.TypeAssumptions
+  instance'LeaseGrantRequest : LeaseGrantRequest.TypeAssumptions
+  instance'LeaseGrantResponse : LeaseGrantResponse.TypeAssumptions
+  instance'LeaseRevokeRequest : LeaseRevokeRequest.TypeAssumptions
+  instance'LeaseRevokeResponse : LeaseRevokeResponse.TypeAssumptions
+  instance'LeaseCheckpoint : LeaseCheckpoint.TypeAssumptions
+  instance'LeaseCheckpointRequest : LeaseCheckpointRequest.TypeAssumptions
+  instance'LeaseCheckpointResponse : LeaseCheckpointResponse.TypeAssumptions
+  instance'LeaseKeepAliveRequest : LeaseKeepAliveRequest.TypeAssumptions
+  instance'LeaseKeepAliveResponse : LeaseKeepAliveResponse.TypeAssumptions
+  instance'LeaseTimeToLiveRequest : LeaseTimeToLiveRequest.TypeAssumptions
+  instance'LeaseTimeToLiveResponse : LeaseTimeToLiveResponse.TypeAssumptions
+  instance'LeaseLeasesRequest : LeaseLeasesRequest.TypeAssumptions
+  instance'LeaseStatus : LeaseStatus.TypeAssumptions
+  instance'LeaseLeasesResponse : LeaseLeasesResponse.TypeAssumptions
+  instance'Member : Member.TypeAssumptions
+  instance'MemberAddRequest : MemberAddRequest.TypeAssumptions
+  instance'MemberAddResponse : MemberAddResponse.TypeAssumptions
+  instance'MemberRemoveRequest : MemberRemoveRequest.TypeAssumptions
+  instance'MemberRemoveResponse : MemberRemoveResponse.TypeAssumptions
+  instance'MemberUpdateRequest : MemberUpdateRequest.TypeAssumptions
+  instance'MemberUpdateResponse : MemberUpdateResponse.TypeAssumptions
+  instance'MemberListRequest : MemberListRequest.TypeAssumptions
+  instance'MemberListResponse : MemberListResponse.TypeAssumptions
+  instance'MemberPromoteRequest : MemberPromoteRequest.TypeAssumptions
+  instance'MemberPromoteResponse : MemberPromoteResponse.TypeAssumptions
+  instance'DefragmentRequest : DefragmentRequest.TypeAssumptions
+  instance'DefragmentResponse : DefragmentResponse.TypeAssumptions
+  instance'MoveLeaderRequest : MoveLeaderRequest.TypeAssumptions
+  instance'MoveLeaderResponse : MoveLeaderResponse.TypeAssumptions
+  instance'AlarmRequest : AlarmRequest.TypeAssumptions
+  instance'AlarmMember : AlarmMember.TypeAssumptions
+  instance'AlarmResponse : AlarmResponse.TypeAssumptions
+  instance'DowngradeRequest : DowngradeRequest.TypeAssumptions
+  instance'DowngradeResponse : DowngradeResponse.TypeAssumptions
+  instance'DowngradeVersionTestRequest : DowngradeVersionTestRequest.TypeAssumptions
+  instance'StatusRequest : StatusRequest.TypeAssumptions
+  instance'StatusResponse : StatusResponse.TypeAssumptions
+  instance'DowngradeInfo : DowngradeInfo.TypeAssumptions
+  instance'AuthEnableRequest : AuthEnableRequest.TypeAssumptions
+  instance'AuthDisableRequest : AuthDisableRequest.TypeAssumptions
+  instance'AuthStatusRequest : AuthStatusRequest.TypeAssumptions
+  instance'AuthenticateRequest : AuthenticateRequest.TypeAssumptions
+  instance'AuthUserAddRequest : AuthUserAddRequest.TypeAssumptions
+  instance'AuthUserGetRequest : AuthUserGetRequest.TypeAssumptions
+  instance'AuthUserDeleteRequest : AuthUserDeleteRequest.TypeAssumptions
+  instance'AuthUserChangePasswordRequest : AuthUserChangePasswordRequest.TypeAssumptions
+  instance'AuthUserGrantRoleRequest : AuthUserGrantRoleRequest.TypeAssumptions
+  instance'AuthUserRevokeRoleRequest : AuthUserRevokeRoleRequest.TypeAssumptions
+  instance'AuthRoleAddRequest : AuthRoleAddRequest.TypeAssumptions
+  instance'AuthRoleGetRequest : AuthRoleGetRequest.TypeAssumptions
+  instance'AuthUserListRequest : AuthUserListRequest.TypeAssumptions
+  instance'AuthRoleListRequest : AuthRoleListRequest.TypeAssumptions
+  instance'AuthRoleDeleteRequest : AuthRoleDeleteRequest.TypeAssumptions
+  instance'AuthRoleGrantPermissionRequest : AuthRoleGrantPermissionRequest.TypeAssumptions
+  instance'AuthRoleRevokePermissionRequest : AuthRoleRevokePermissionRequest.TypeAssumptions
+  instance'AuthEnableResponse : AuthEnableResponse.TypeAssumptions
+  instance'AuthDisableResponse : AuthDisableResponse.TypeAssumptions
+  instance'AuthStatusResponse : AuthStatusResponse.TypeAssumptions
+  instance'AuthenticateResponse : AuthenticateResponse.TypeAssumptions
+  instance'AuthUserAddResponse : AuthUserAddResponse.TypeAssumptions
+  instance'AuthUserGetResponse : AuthUserGetResponse.TypeAssumptions
+  instance'AuthUserDeleteResponse : AuthUserDeleteResponse.TypeAssumptions
+  instance'AuthUserChangePasswordResponse : AuthUserChangePasswordResponse.TypeAssumptions
+  instance'AuthUserGrantRoleResponse : AuthUserGrantRoleResponse.TypeAssumptions
+  instance'AuthUserRevokeRoleResponse : AuthUserRevokeRoleResponse.TypeAssumptions
+  instance'AuthRoleAddResponse : AuthRoleAddResponse.TypeAssumptions
+  instance'AuthRoleGetResponse : AuthRoleGetResponse.TypeAssumptions
+  instance'AuthRoleListResponse : AuthRoleListResponse.TypeAssumptions
+  instance'AuthUserListResponse : AuthUserListResponse.TypeAssumptions
+  instance'AuthRoleDeleteResponse : AuthRoleDeleteResponse.TypeAssumptions
+  instance'AuthRoleGrantPermissionResponse : AuthRoleGrantPermissionResponse.TypeAssumptions
+  instance'AuthRoleRevokePermissionResponse : AuthRoleRevokePermissionResponse.TypeAssumptions
+  instance'RangeStreamResponse : RangeStreamResponse.TypeAssumptions
+  instance'KVClient : KVClient.TypeAssumptions
+  instance'kVClient : kVClient.TypeAssumptions
+  instance'KVServer : KVServer.TypeAssumptions
+  instance'UnimplementedKVServer : UnimplementedKVServer.TypeAssumptions
+  instance'UnsafeKVServer : UnsafeKVServer.TypeAssumptions
+  instance'WatchClient : WatchClient.TypeAssumptions
+  instance'watchClient : watchClient.TypeAssumptions
+  instance'WatchServer : WatchServer.TypeAssumptions
+  instance'UnimplementedWatchServer : UnimplementedWatchServer.TypeAssumptions
+  instance'UnsafeWatchServer : UnsafeWatchServer.TypeAssumptions
+  instance'LeaseClient : LeaseClient.TypeAssumptions
+  instance'leaseClient : leaseClient.TypeAssumptions
+  instance'LeaseServer : LeaseServer.TypeAssumptions
+  instance'UnimplementedLeaseServer : UnimplementedLeaseServer.TypeAssumptions
+  instance'UnsafeLeaseServer : UnsafeLeaseServer.TypeAssumptions
+  instance'ClusterClient : ClusterClient.TypeAssumptions
+  instance'clusterClient : clusterClient.TypeAssumptions
+  instance'ClusterServer : ClusterServer.TypeAssumptions
+  instance'UnimplementedClusterServer : UnimplementedClusterServer.TypeAssumptions
+  instance'UnsafeClusterServer : UnsafeClusterServer.TypeAssumptions
+  instance'MaintenanceClient : MaintenanceClient.TypeAssumptions
+  instance'maintenanceClient : maintenanceClient.TypeAssumptions
+  instance'MaintenanceServer : MaintenanceServer.TypeAssumptions
+  instance'UnimplementedMaintenanceServer : UnimplementedMaintenanceServer.TypeAssumptions
+  instance'UnsafeMaintenanceServer : UnsafeMaintenanceServer.TypeAssumptions
+  instance'AuthClient : AuthClient.TypeAssumptions
+  instance'authClient : authClient.TypeAssumptions
+  instance'AuthServer : AuthServer.TypeAssumptions
+  instance'UnimplementedAuthServer : UnimplementedAuthServer.TypeAssumptions
+  instance'UnsafeAuthServer : UnsafeAuthServer.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  «unfold'init.1» : FuncUnfold init.«1» [] init.«1».impl
+  «unfold'init.2» : FuncUnfold init.«2» [] init.«2».impl
+  unfold'NewKVClient : FuncUnfold NewKVClient [] NewKVClient.impl
+  unfold'RegisterKVServer : FuncUnfold RegisterKVServer [] RegisterKVServer.impl
+  unfold'_KV_Range_Handler : FuncUnfold _KV_Range_Handler [] _KV_Range_Handler.impl
+  unfold'_KV_Put_Handler : FuncUnfold _KV_Put_Handler [] _KV_Put_Handler.impl
+  unfold'_KV_DeleteRange_Handler : FuncUnfold _KV_DeleteRange_Handler [] _KV_DeleteRange_Handler.impl
+  unfold'_KV_Txn_Handler : FuncUnfold _KV_Txn_Handler [] _KV_Txn_Handler.impl
+  unfold'_KV_Compact_Handler : FuncUnfold _KV_Compact_Handler [] _KV_Compact_Handler.impl
+  unfold'NewWatchClient : FuncUnfold NewWatchClient [] NewWatchClient.impl
+  unfold'RegisterWatchServer : FuncUnfold RegisterWatchServer [] RegisterWatchServer.impl
+  unfold'_Watch_Watch_Handler : FuncUnfold _Watch_Watch_Handler [] _Watch_Watch_Handler.impl
+  unfold'NewLeaseClient : FuncUnfold NewLeaseClient [] NewLeaseClient.impl
+  unfold'RegisterLeaseServer : FuncUnfold RegisterLeaseServer [] RegisterLeaseServer.impl
+  unfold'_Lease_LeaseGrant_Handler : FuncUnfold _Lease_LeaseGrant_Handler [] _Lease_LeaseGrant_Handler.impl
+  unfold'_Lease_LeaseRevoke_Handler : FuncUnfold _Lease_LeaseRevoke_Handler [] _Lease_LeaseRevoke_Handler.impl
+  unfold'_Lease_LeaseKeepAlive_Handler : FuncUnfold _Lease_LeaseKeepAlive_Handler [] _Lease_LeaseKeepAlive_Handler.impl
+  unfold'_Lease_LeaseTimeToLive_Handler : FuncUnfold _Lease_LeaseTimeToLive_Handler [] _Lease_LeaseTimeToLive_Handler.impl
+  unfold'_Lease_LeaseLeases_Handler : FuncUnfold _Lease_LeaseLeases_Handler [] _Lease_LeaseLeases_Handler.impl
+  unfold'NewClusterClient : FuncUnfold NewClusterClient [] NewClusterClient.impl
+  unfold'RegisterClusterServer : FuncUnfold RegisterClusterServer [] RegisterClusterServer.impl
+  unfold'NewMaintenanceClient : FuncUnfold NewMaintenanceClient [] NewMaintenanceClient.impl
+  unfold'RegisterMaintenanceServer : FuncUnfold RegisterMaintenanceServer [] RegisterMaintenanceServer.impl
+  unfold'NewAuthClient : FuncUnfold NewAuthClient [] NewAuthClient.impl
+  unfold'RegisterAuthServer : FuncUnfold RegisterAuthServer [] RegisterAuthServer.impl
+  unfold'_Auth_AuthEnable_Handler : FuncUnfold _Auth_AuthEnable_Handler [] _Auth_AuthEnable_Handler.impl
+  unfold'_Auth_Authenticate_Handler : FuncUnfold _Auth_Authenticate_Handler [] _Auth_Authenticate_Handler.impl
+  unfold'_Auth_UserAdd_Handler : FuncUnfold _Auth_UserAdd_Handler [] _Auth_UserAdd_Handler.impl
+  unfold'_Auth_UserGrantRole_Handler : FuncUnfold _Auth_UserGrantRole_Handler [] _Auth_UserGrantRole_Handler.impl
+  unfold'_Auth_RoleAdd_Handler : FuncUnfold _Auth_RoleAdd_Handler [] _Auth_RoleAdd_Handler.impl
+  unfold'_Auth_RoleGrantPermission_Handler : FuncUnfold _Auth_RoleGrantPermission_Handler [] _Auth_RoleGrantPermission_Handler.impl
+  import'protoimpl : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
+  import'membershippb : _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.Assumptions
+  import'authpb : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
+  import'mvccpb : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'grpc : _root_.Perennial.google_golang_org.grpc.Assumptions
 
-attribute [instance] Assumptions.Metadata_instance
-  Assumptions.RequestHeader_instance
-  Assumptions.InternalRaftRequest_instance
-  Assumptions.EmptyResponse_instance
-  Assumptions.InternalAuthenticateRequest_instance
-  Assumptions.InternalRaftStringer_instance
-  Assumptions.txnRequestStringer_instance
-  Assumptions.requestOpStringer_instance
-  Assumptions.loggableValueCompare_instance
-  Assumptions.loggablePutRequest_instance
-  Assumptions.AlarmType_instance
-  Assumptions.RangeRequest_SortOrder_instance
-  Assumptions.RangeRequest_SortTarget_instance
-  Assumptions.Compare_CompareResult_instance
-  Assumptions.Compare_CompareTarget_instance
-  Assumptions.WatchCreateRequest_FilterType_instance
-  Assumptions.AlarmRequest_AlarmAction_instance
-  Assumptions.DowngradeRequest_DowngradeAction_instance
-  Assumptions.ResponseHeader_instance
-  Assumptions.RangeRequest_instance
-  Assumptions.RangeResponse_instance
-  Assumptions.PutRequest_instance
-  Assumptions.PutResponse_instance
-  Assumptions.DeleteRangeRequest_instance
-  Assumptions.DeleteRangeResponse_instance
-  Assumptions.RequestOp_instance
-  Assumptions.isRequestOp_Request_instance
-  Assumptions.RequestOp_RequestRange_instance
-  Assumptions.RequestOp_RequestPut_instance
-  Assumptions.RequestOp_RequestDeleteRange_instance
-  Assumptions.RequestOp_RequestTxn_instance
-  Assumptions.ResponseOp_instance
-  Assumptions.isResponseOp_Response_instance
-  Assumptions.ResponseOp_ResponseRange_instance
-  Assumptions.ResponseOp_ResponsePut_instance
-  Assumptions.ResponseOp_ResponseDeleteRange_instance
-  Assumptions.ResponseOp_ResponseTxn_instance
-  Assumptions.Compare_instance
-  Assumptions.isCompare_TargetUnion_instance
-  Assumptions.Compare_Version_instance
-  Assumptions.Compare_CreateRevision_instance
-  Assumptions.Compare_ModRevision_instance
-  Assumptions.Compare_Value_instance
-  Assumptions.Compare_Lease_instance
-  Assumptions.TxnRequest_instance
-  Assumptions.TxnResponse_instance
-  Assumptions.CompactionRequest_instance
-  Assumptions.CompactionResponse_instance
-  Assumptions.HashRequest_instance
-  Assumptions.HashKVRequest_instance
-  Assumptions.HashKVResponse_instance
-  Assumptions.HashResponse_instance
-  Assumptions.SnapshotRequest_instance
-  Assumptions.SnapshotResponse_instance
-  Assumptions.WatchRequest_instance
-  Assumptions.isWatchRequest_RequestUnion_instance
-  Assumptions.WatchRequest_CreateRequest_instance
-  Assumptions.WatchRequest_CancelRequest_instance
-  Assumptions.WatchRequest_ProgressRequest_instance
-  Assumptions.WatchCreateRequest_instance
-  Assumptions.WatchCancelRequest_instance
-  Assumptions.WatchProgressRequest_instance
-  Assumptions.WatchResponse_instance
-  Assumptions.LeaseGrantRequest_instance
-  Assumptions.LeaseGrantResponse_instance
-  Assumptions.LeaseRevokeRequest_instance
-  Assumptions.LeaseRevokeResponse_instance
-  Assumptions.LeaseCheckpoint_instance
-  Assumptions.LeaseCheckpointRequest_instance
-  Assumptions.LeaseCheckpointResponse_instance
-  Assumptions.LeaseKeepAliveRequest_instance
-  Assumptions.LeaseKeepAliveResponse_instance
-  Assumptions.LeaseTimeToLiveRequest_instance
-  Assumptions.LeaseTimeToLiveResponse_instance
-  Assumptions.LeaseLeasesRequest_instance
-  Assumptions.LeaseStatus_instance
-  Assumptions.LeaseLeasesResponse_instance
-  Assumptions.Member_instance
-  Assumptions.MemberAddRequest_instance
-  Assumptions.MemberAddResponse_instance
-  Assumptions.MemberRemoveRequest_instance
-  Assumptions.MemberRemoveResponse_instance
-  Assumptions.MemberUpdateRequest_instance
-  Assumptions.MemberUpdateResponse_instance
-  Assumptions.MemberListRequest_instance
-  Assumptions.MemberListResponse_instance
-  Assumptions.MemberPromoteRequest_instance
-  Assumptions.MemberPromoteResponse_instance
-  Assumptions.DefragmentRequest_instance
-  Assumptions.DefragmentResponse_instance
-  Assumptions.MoveLeaderRequest_instance
-  Assumptions.MoveLeaderResponse_instance
-  Assumptions.AlarmRequest_instance
-  Assumptions.AlarmMember_instance
-  Assumptions.AlarmResponse_instance
-  Assumptions.DowngradeRequest_instance
-  Assumptions.DowngradeResponse_instance
-  Assumptions.DowngradeVersionTestRequest_instance
-  Assumptions.StatusRequest_instance
-  Assumptions.StatusResponse_instance
-  Assumptions.DowngradeInfo_instance
-  Assumptions.AuthEnableRequest_instance
-  Assumptions.AuthDisableRequest_instance
-  Assumptions.AuthStatusRequest_instance
-  Assumptions.AuthenticateRequest_instance
-  Assumptions.AuthUserAddRequest_instance
-  Assumptions.AuthUserGetRequest_instance
-  Assumptions.AuthUserDeleteRequest_instance
-  Assumptions.AuthUserChangePasswordRequest_instance
-  Assumptions.AuthUserGrantRoleRequest_instance
-  Assumptions.AuthUserRevokeRoleRequest_instance
-  Assumptions.AuthRoleAddRequest_instance
-  Assumptions.AuthRoleGetRequest_instance
-  Assumptions.AuthUserListRequest_instance
-  Assumptions.AuthRoleListRequest_instance
-  Assumptions.AuthRoleDeleteRequest_instance
-  Assumptions.AuthRoleGrantPermissionRequest_instance
-  Assumptions.AuthRoleRevokePermissionRequest_instance
-  Assumptions.AuthEnableResponse_instance
-  Assumptions.AuthDisableResponse_instance
-  Assumptions.AuthStatusResponse_instance
-  Assumptions.AuthenticateResponse_instance
-  Assumptions.AuthUserAddResponse_instance
-  Assumptions.AuthUserGetResponse_instance
-  Assumptions.AuthUserDeleteResponse_instance
-  Assumptions.AuthUserChangePasswordResponse_instance
-  Assumptions.AuthUserGrantRoleResponse_instance
-  Assumptions.AuthUserRevokeRoleResponse_instance
-  Assumptions.AuthRoleAddResponse_instance
-  Assumptions.AuthRoleGetResponse_instance
-  Assumptions.AuthRoleListResponse_instance
-  Assumptions.AuthUserListResponse_instance
-  Assumptions.AuthRoleDeleteResponse_instance
-  Assumptions.AuthRoleGrantPermissionResponse_instance
-  Assumptions.AuthRoleRevokePermissionResponse_instance
-  Assumptions.RangeStreamResponse_instance
-  Assumptions.KVClient_instance
-  Assumptions.kVClient_instance
-  Assumptions.KVServer_instance
-  Assumptions.UnimplementedKVServer_instance
-  Assumptions.UnsafeKVServer_instance
-  Assumptions.WatchClient_instance
-  Assumptions.watchClient_instance
-  Assumptions.WatchServer_instance
-  Assumptions.UnimplementedWatchServer_instance
-  Assumptions.UnsafeWatchServer_instance
-  Assumptions.LeaseClient_instance
-  Assumptions.leaseClient_instance
-  Assumptions.LeaseServer_instance
-  Assumptions.UnimplementedLeaseServer_instance
-  Assumptions.UnsafeLeaseServer_instance
-  Assumptions.ClusterClient_instance
-  Assumptions.clusterClient_instance
-  Assumptions.ClusterServer_instance
-  Assumptions.UnimplementedClusterServer_instance
-  Assumptions.UnsafeClusterServer_instance
-  Assumptions.MaintenanceClient_instance
-  Assumptions.maintenanceClient_instance
-  Assumptions.MaintenanceServer_instance
-  Assumptions.UnimplementedMaintenanceServer_instance
-  Assumptions.UnsafeMaintenanceServer_instance
-  Assumptions.AuthClient_instance
-  Assumptions.authClient_instance
-  Assumptions.AuthServer_instance
-  Assumptions.UnimplementedAuthServer_instance
-  Assumptions.UnsafeAuthServer_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.«init.1_unfold»
-  Assumptions.«init.2_unfold»
-  Assumptions.NewKVClient_unfold
-  Assumptions.RegisterKVServer_unfold
-  Assumptions._KV_Range_Handler_unfold
-  Assumptions._KV_Put_Handler_unfold
-  Assumptions._KV_DeleteRange_Handler_unfold
-  Assumptions._KV_Txn_Handler_unfold
-  Assumptions._KV_Compact_Handler_unfold
-  Assumptions.NewWatchClient_unfold
-  Assumptions.RegisterWatchServer_unfold
-  Assumptions._Watch_Watch_Handler_unfold
-  Assumptions.NewLeaseClient_unfold
-  Assumptions.RegisterLeaseServer_unfold
-  Assumptions._Lease_LeaseGrant_Handler_unfold
-  Assumptions._Lease_LeaseRevoke_Handler_unfold
-  Assumptions._Lease_LeaseKeepAlive_Handler_unfold
-  Assumptions._Lease_LeaseTimeToLive_Handler_unfold
-  Assumptions._Lease_LeaseLeases_Handler_unfold
-  Assumptions.NewClusterClient_unfold
-  Assumptions.RegisterClusterServer_unfold
-  Assumptions.NewMaintenanceClient_unfold
-  Assumptions.RegisterMaintenanceServer_unfold
-  Assumptions.NewAuthClient_unfold
-  Assumptions.RegisterAuthServer_unfold
-  Assumptions._Auth_AuthEnable_Handler_unfold
-  Assumptions._Auth_Authenticate_Handler_unfold
-  Assumptions._Auth_UserAdd_Handler_unfold
-  Assumptions._Auth_UserGrantRole_Handler_unfold
-  Assumptions._Auth_RoleAdd_Handler_unfold
-  Assumptions._Auth_RoleGrantPermission_Handler_unfold
-  Assumptions.import_protoimpl_Assumption
-  Assumptions.import_membershippb_Assumption
-  Assumptions.import_authpb_Assumption
-  Assumptions.import_mvccpb_Assumption
-  Assumptions.import_context_Assumption
-  Assumptions.import_grpc_Assumption
+attribute [instance] Assumptions.instance'Metadata
+  Assumptions.instance'RequestHeader
+  Assumptions.instance'InternalRaftRequest
+  Assumptions.instance'EmptyResponse
+  Assumptions.instance'InternalAuthenticateRequest
+  Assumptions.instance'InternalRaftStringer
+  Assumptions.instance'txnRequestStringer
+  Assumptions.instance'requestOpStringer
+  Assumptions.instance'loggableValueCompare
+  Assumptions.instance'loggablePutRequest
+  Assumptions.instance'AlarmType
+  Assumptions.instance'RangeRequest_SortOrder
+  Assumptions.instance'RangeRequest_SortTarget
+  Assumptions.instance'Compare_CompareResult
+  Assumptions.instance'Compare_CompareTarget
+  Assumptions.instance'WatchCreateRequest_FilterType
+  Assumptions.instance'AlarmRequest_AlarmAction
+  Assumptions.instance'DowngradeRequest_DowngradeAction
+  Assumptions.instance'ResponseHeader
+  Assumptions.instance'RangeRequest
+  Assumptions.instance'RangeResponse
+  Assumptions.instance'PutRequest
+  Assumptions.instance'PutResponse
+  Assumptions.instance'DeleteRangeRequest
+  Assumptions.instance'DeleteRangeResponse
+  Assumptions.instance'RequestOp
+  Assumptions.instance'isRequestOp_Request
+  Assumptions.instance'RequestOp_RequestRange
+  Assumptions.instance'RequestOp_RequestPut
+  Assumptions.instance'RequestOp_RequestDeleteRange
+  Assumptions.instance'RequestOp_RequestTxn
+  Assumptions.instance'ResponseOp
+  Assumptions.instance'isResponseOp_Response
+  Assumptions.instance'ResponseOp_ResponseRange
+  Assumptions.instance'ResponseOp_ResponsePut
+  Assumptions.instance'ResponseOp_ResponseDeleteRange
+  Assumptions.instance'ResponseOp_ResponseTxn
+  Assumptions.instance'Compare
+  Assumptions.instance'isCompare_TargetUnion
+  Assumptions.instance'Compare_Version
+  Assumptions.instance'Compare_CreateRevision
+  Assumptions.instance'Compare_ModRevision
+  Assumptions.instance'Compare_Value
+  Assumptions.instance'Compare_Lease
+  Assumptions.instance'TxnRequest
+  Assumptions.instance'TxnResponse
+  Assumptions.instance'CompactionRequest
+  Assumptions.instance'CompactionResponse
+  Assumptions.instance'HashRequest
+  Assumptions.instance'HashKVRequest
+  Assumptions.instance'HashKVResponse
+  Assumptions.instance'HashResponse
+  Assumptions.instance'SnapshotRequest
+  Assumptions.instance'SnapshotResponse
+  Assumptions.instance'WatchRequest
+  Assumptions.instance'isWatchRequest_RequestUnion
+  Assumptions.instance'WatchRequest_CreateRequest
+  Assumptions.instance'WatchRequest_CancelRequest
+  Assumptions.instance'WatchRequest_ProgressRequest
+  Assumptions.instance'WatchCreateRequest
+  Assumptions.instance'WatchCancelRequest
+  Assumptions.instance'WatchProgressRequest
+  Assumptions.instance'WatchResponse
+  Assumptions.instance'LeaseGrantRequest
+  Assumptions.instance'LeaseGrantResponse
+  Assumptions.instance'LeaseRevokeRequest
+  Assumptions.instance'LeaseRevokeResponse
+  Assumptions.instance'LeaseCheckpoint
+  Assumptions.instance'LeaseCheckpointRequest
+  Assumptions.instance'LeaseCheckpointResponse
+  Assumptions.instance'LeaseKeepAliveRequest
+  Assumptions.instance'LeaseKeepAliveResponse
+  Assumptions.instance'LeaseTimeToLiveRequest
+  Assumptions.instance'LeaseTimeToLiveResponse
+  Assumptions.instance'LeaseLeasesRequest
+  Assumptions.instance'LeaseStatus
+  Assumptions.instance'LeaseLeasesResponse
+  Assumptions.instance'Member
+  Assumptions.instance'MemberAddRequest
+  Assumptions.instance'MemberAddResponse
+  Assumptions.instance'MemberRemoveRequest
+  Assumptions.instance'MemberRemoveResponse
+  Assumptions.instance'MemberUpdateRequest
+  Assumptions.instance'MemberUpdateResponse
+  Assumptions.instance'MemberListRequest
+  Assumptions.instance'MemberListResponse
+  Assumptions.instance'MemberPromoteRequest
+  Assumptions.instance'MemberPromoteResponse
+  Assumptions.instance'DefragmentRequest
+  Assumptions.instance'DefragmentResponse
+  Assumptions.instance'MoveLeaderRequest
+  Assumptions.instance'MoveLeaderResponse
+  Assumptions.instance'AlarmRequest
+  Assumptions.instance'AlarmMember
+  Assumptions.instance'AlarmResponse
+  Assumptions.instance'DowngradeRequest
+  Assumptions.instance'DowngradeResponse
+  Assumptions.instance'DowngradeVersionTestRequest
+  Assumptions.instance'StatusRequest
+  Assumptions.instance'StatusResponse
+  Assumptions.instance'DowngradeInfo
+  Assumptions.instance'AuthEnableRequest
+  Assumptions.instance'AuthDisableRequest
+  Assumptions.instance'AuthStatusRequest
+  Assumptions.instance'AuthenticateRequest
+  Assumptions.instance'AuthUserAddRequest
+  Assumptions.instance'AuthUserGetRequest
+  Assumptions.instance'AuthUserDeleteRequest
+  Assumptions.instance'AuthUserChangePasswordRequest
+  Assumptions.instance'AuthUserGrantRoleRequest
+  Assumptions.instance'AuthUserRevokeRoleRequest
+  Assumptions.instance'AuthRoleAddRequest
+  Assumptions.instance'AuthRoleGetRequest
+  Assumptions.instance'AuthUserListRequest
+  Assumptions.instance'AuthRoleListRequest
+  Assumptions.instance'AuthRoleDeleteRequest
+  Assumptions.instance'AuthRoleGrantPermissionRequest
+  Assumptions.instance'AuthRoleRevokePermissionRequest
+  Assumptions.instance'AuthEnableResponse
+  Assumptions.instance'AuthDisableResponse
+  Assumptions.instance'AuthStatusResponse
+  Assumptions.instance'AuthenticateResponse
+  Assumptions.instance'AuthUserAddResponse
+  Assumptions.instance'AuthUserGetResponse
+  Assumptions.instance'AuthUserDeleteResponse
+  Assumptions.instance'AuthUserChangePasswordResponse
+  Assumptions.instance'AuthUserGrantRoleResponse
+  Assumptions.instance'AuthUserRevokeRoleResponse
+  Assumptions.instance'AuthRoleAddResponse
+  Assumptions.instance'AuthRoleGetResponse
+  Assumptions.instance'AuthRoleListResponse
+  Assumptions.instance'AuthUserListResponse
+  Assumptions.instance'AuthRoleDeleteResponse
+  Assumptions.instance'AuthRoleGrantPermissionResponse
+  Assumptions.instance'AuthRoleRevokePermissionResponse
+  Assumptions.instance'RangeStreamResponse
+  Assumptions.instance'KVClient
+  Assumptions.instance'kVClient
+  Assumptions.instance'KVServer
+  Assumptions.instance'UnimplementedKVServer
+  Assumptions.instance'UnsafeKVServer
+  Assumptions.instance'WatchClient
+  Assumptions.instance'watchClient
+  Assumptions.instance'WatchServer
+  Assumptions.instance'UnimplementedWatchServer
+  Assumptions.instance'UnsafeWatchServer
+  Assumptions.instance'LeaseClient
+  Assumptions.instance'leaseClient
+  Assumptions.instance'LeaseServer
+  Assumptions.instance'UnimplementedLeaseServer
+  Assumptions.instance'UnsafeLeaseServer
+  Assumptions.instance'ClusterClient
+  Assumptions.instance'clusterClient
+  Assumptions.instance'ClusterServer
+  Assumptions.instance'UnimplementedClusterServer
+  Assumptions.instance'UnsafeClusterServer
+  Assumptions.instance'MaintenanceClient
+  Assumptions.instance'maintenanceClient
+  Assumptions.instance'MaintenanceServer
+  Assumptions.instance'UnimplementedMaintenanceServer
+  Assumptions.instance'UnsafeMaintenanceServer
+  Assumptions.instance'AuthClient
+  Assumptions.instance'authClient
+  Assumptions.instance'AuthServer
+  Assumptions.instance'UnimplementedAuthServer
+  Assumptions.instance'UnsafeAuthServer
+  Assumptions.«unfold'init.0»
+  Assumptions.«unfold'init.1»
+  Assumptions.«unfold'init.2»
+  Assumptions.unfold'NewKVClient
+  Assumptions.unfold'RegisterKVServer
+  Assumptions.unfold'_KV_Range_Handler
+  Assumptions.unfold'_KV_Put_Handler
+  Assumptions.unfold'_KV_DeleteRange_Handler
+  Assumptions.unfold'_KV_Txn_Handler
+  Assumptions.unfold'_KV_Compact_Handler
+  Assumptions.unfold'NewWatchClient
+  Assumptions.unfold'RegisterWatchServer
+  Assumptions.unfold'_Watch_Watch_Handler
+  Assumptions.unfold'NewLeaseClient
+  Assumptions.unfold'RegisterLeaseServer
+  Assumptions.unfold'_Lease_LeaseGrant_Handler
+  Assumptions.unfold'_Lease_LeaseRevoke_Handler
+  Assumptions.unfold'_Lease_LeaseKeepAlive_Handler
+  Assumptions.unfold'_Lease_LeaseTimeToLive_Handler
+  Assumptions.unfold'_Lease_LeaseLeases_Handler
+  Assumptions.unfold'NewClusterClient
+  Assumptions.unfold'RegisterClusterServer
+  Assumptions.unfold'NewMaintenanceClient
+  Assumptions.unfold'RegisterMaintenanceServer
+  Assumptions.unfold'NewAuthClient
+  Assumptions.unfold'RegisterAuthServer
+  Assumptions.unfold'_Auth_AuthEnable_Handler
+  Assumptions.unfold'_Auth_Authenticate_Handler
+  Assumptions.unfold'_Auth_UserAdd_Handler
+  Assumptions.unfold'_Auth_UserGrantRole_Handler
+  Assumptions.unfold'_Auth_RoleAdd_Handler
+  Assumptions.unfold'_Auth_RoleGrantPermission_Handler
+  Assumptions.import'protoimpl
+  Assumptions.import'membershippb
+  Assumptions.import'authpb
+  Assumptions.import'mvccpb
+  Assumptions.import'context
+  Assumptions.import'grpc
 
 end go_etcd_io.etcd.api.v3.etcdserverpb
 

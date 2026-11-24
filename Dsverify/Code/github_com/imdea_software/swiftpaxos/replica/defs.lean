@@ -4004,7 +4004,7 @@ noncomputable instance RegisterArgs.zero_val [GooseExts] : ZeroVal RegisterArgs 
 @[irreducible] noncomputable def RegisterArgs.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RegisterArgs.fieldsUnsealed
 
-noncomputable instance equals_unfold_RegisterArgs [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RegisterArgs [GooseExts] [GoGlobalContext] :
     EqualsUnfold RegisterArgs.fields RegisterArgs.fieldsUnsealed :=
   ⟨by unfold RegisterArgs.fields; rfl⟩
 
@@ -4014,19 +4014,19 @@ noncomputable instance equals_unfold_RegisterArgs [GooseExts] [GoGlobalContext] 
 class RegisterArgs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RegisterArgs.underlying RegisterArgs
   underlying : go.UnderlyingDirectedEq RegisterArgs.ty RegisterArgs.underlying
-  get_Addr : ∀ (x : RegisterArgs), go.IsGoStepPureDetTagged under (StructFieldGet RegisterArgs.underlying go!"Addr") #x (Val #(x.Addr'))
-  set_Addr : ∀ (x : RegisterArgs) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RegisterArgs.underlying go!"Addr") (PairV #x #y) (Val #(({ x with Addr' := y } : RegisterArgs)))
-  get_Port : ∀ (x : RegisterArgs), go.IsGoStepPureDetTagged under (StructFieldGet RegisterArgs.underlying go!"Port") #x (Val #(x.Port'))
-  set_Port : ∀ (x : RegisterArgs) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RegisterArgs.underlying go!"Port") (PairV #x #y) (Val #(({ x with Port' := y } : RegisterArgs)))
+  get'Addr : ∀ (x : RegisterArgs), go.IsGoStepPureDetTagged under (StructFieldGet RegisterArgs.underlying go!"Addr") #x (Val #(x.Addr'))
+  set'Addr : ∀ (x : RegisterArgs) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RegisterArgs.underlying go!"Addr") (PairV #x #y) (Val #(({ x with Addr' := y } : RegisterArgs)))
+  get'Port : ∀ (x : RegisterArgs), go.IsGoStepPureDetTagged under (StructFieldGet RegisterArgs.underlying go!"Port") #x (Val #(x.Port'))
+  set'Port : ∀ (x : RegisterArgs) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RegisterArgs.underlying go!"Port") (PairV #x #y) (Val #(({ x with Port' := y } : RegisterArgs)))
   method_set : go.MethodSetIs RegisterArgs.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RegisterArgs.ty) []
 
 attribute [instance] RegisterArgs.TypeAssumptions.type_repr
   RegisterArgs.TypeAssumptions.underlying
-  RegisterArgs.TypeAssumptions.get_Addr
-  RegisterArgs.TypeAssumptions.set_Addr
-  RegisterArgs.TypeAssumptions.get_Port
-  RegisterArgs.TypeAssumptions.set_Port
+  RegisterArgs.TypeAssumptions.get'Addr
+  RegisterArgs.TypeAssumptions.set'Addr
+  RegisterArgs.TypeAssumptions.get'Port
+  RegisterArgs.TypeAssumptions.set'Port
   RegisterArgs.TypeAssumptions.method_set
   RegisterArgs.TypeAssumptions.ptr_method_set
 
@@ -4049,7 +4049,7 @@ noncomputable instance RegisterReply.zero_val [GooseExts] : ZeroVal RegisterRepl
 @[irreducible] noncomputable def RegisterReply.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RegisterReply.fieldsUnsealed
 
-noncomputable instance equals_unfold_RegisterReply [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RegisterReply [GooseExts] [GoGlobalContext] :
     EqualsUnfold RegisterReply.fields RegisterReply.fieldsUnsealed :=
   ⟨by unfold RegisterReply.fields; rfl⟩
 
@@ -4059,27 +4059,27 @@ noncomputable instance equals_unfold_RegisterReply [GooseExts] [GoGlobalContext]
 class RegisterReply.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RegisterReply.underlying RegisterReply
   underlying : go.UnderlyingDirectedEq RegisterReply.ty RegisterReply.underlying
-  get_ReplicaId : ∀ (x : RegisterReply), go.IsGoStepPureDetTagged under (StructFieldGet RegisterReply.underlying go!"ReplicaId") #x (Val #(x.ReplicaId'))
-  set_ReplicaId : ∀ (x : RegisterReply) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RegisterReply.underlying go!"ReplicaId") (PairV #x #y) (Val #(({ x with ReplicaId' := y } : RegisterReply)))
-  get_NodeList : ∀ (x : RegisterReply), go.IsGoStepPureDetTagged under (StructFieldGet RegisterReply.underlying go!"NodeList") #x (Val #(x.NodeList'))
-  set_NodeList : ∀ (x : RegisterReply) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RegisterReply.underlying go!"NodeList") (PairV #x #y) (Val #(({ x with NodeList' := y } : RegisterReply)))
-  get_Ready : ∀ (x : RegisterReply), go.IsGoStepPureDetTagged under (StructFieldGet RegisterReply.underlying go!"Ready") #x (Val #(x.Ready'))
-  set_Ready : ∀ (x : RegisterReply) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RegisterReply.underlying go!"Ready") (PairV #x #y) (Val #(({ x with Ready' := y } : RegisterReply)))
-  get_IsLeader : ∀ (x : RegisterReply), go.IsGoStepPureDetTagged under (StructFieldGet RegisterReply.underlying go!"IsLeader") #x (Val #(x.IsLeader'))
-  set_IsLeader : ∀ (x : RegisterReply) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RegisterReply.underlying go!"IsLeader") (PairV #x #y) (Val #(({ x with IsLeader' := y } : RegisterReply)))
+  get'ReplicaId : ∀ (x : RegisterReply), go.IsGoStepPureDetTagged under (StructFieldGet RegisterReply.underlying go!"ReplicaId") #x (Val #(x.ReplicaId'))
+  set'ReplicaId : ∀ (x : RegisterReply) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RegisterReply.underlying go!"ReplicaId") (PairV #x #y) (Val #(({ x with ReplicaId' := y } : RegisterReply)))
+  get'NodeList : ∀ (x : RegisterReply), go.IsGoStepPureDetTagged under (StructFieldGet RegisterReply.underlying go!"NodeList") #x (Val #(x.NodeList'))
+  set'NodeList : ∀ (x : RegisterReply) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RegisterReply.underlying go!"NodeList") (PairV #x #y) (Val #(({ x with NodeList' := y } : RegisterReply)))
+  get'Ready : ∀ (x : RegisterReply), go.IsGoStepPureDetTagged under (StructFieldGet RegisterReply.underlying go!"Ready") #x (Val #(x.Ready'))
+  set'Ready : ∀ (x : RegisterReply) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RegisterReply.underlying go!"Ready") (PairV #x #y) (Val #(({ x with Ready' := y } : RegisterReply)))
+  get'IsLeader : ∀ (x : RegisterReply), go.IsGoStepPureDetTagged under (StructFieldGet RegisterReply.underlying go!"IsLeader") #x (Val #(x.IsLeader'))
+  set'IsLeader : ∀ (x : RegisterReply) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RegisterReply.underlying go!"IsLeader") (PairV #x #y) (Val #(({ x with IsLeader' := y } : RegisterReply)))
   method_set : go.MethodSetIs RegisterReply.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RegisterReply.ty) []
 
 attribute [instance] RegisterReply.TypeAssumptions.type_repr
   RegisterReply.TypeAssumptions.underlying
-  RegisterReply.TypeAssumptions.get_ReplicaId
-  RegisterReply.TypeAssumptions.set_ReplicaId
-  RegisterReply.TypeAssumptions.get_NodeList
-  RegisterReply.TypeAssumptions.set_NodeList
-  RegisterReply.TypeAssumptions.get_Ready
-  RegisterReply.TypeAssumptions.set_Ready
-  RegisterReply.TypeAssumptions.get_IsLeader
-  RegisterReply.TypeAssumptions.set_IsLeader
+  RegisterReply.TypeAssumptions.get'ReplicaId
+  RegisterReply.TypeAssumptions.set'ReplicaId
+  RegisterReply.TypeAssumptions.get'NodeList
+  RegisterReply.TypeAssumptions.set'NodeList
+  RegisterReply.TypeAssumptions.get'Ready
+  RegisterReply.TypeAssumptions.set'Ready
+  RegisterReply.TypeAssumptions.get'IsLeader
+  RegisterReply.TypeAssumptions.set'IsLeader
   RegisterReply.TypeAssumptions.method_set
   RegisterReply.TypeAssumptions.ptr_method_set
 
@@ -4095,7 +4095,7 @@ noncomputable instance GetLeaderArgs.zero_val [GooseExts] : ZeroVal GetLeaderArg
 @[irreducible] noncomputable def GetLeaderArgs.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GetLeaderArgs.fieldsUnsealed
 
-noncomputable instance equals_unfold_GetLeaderArgs [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'GetLeaderArgs [GooseExts] [GoGlobalContext] :
     EqualsUnfold GetLeaderArgs.fields GetLeaderArgs.fieldsUnsealed :=
   ⟨by unfold GetLeaderArgs.fields; rfl⟩
 
@@ -4126,7 +4126,7 @@ noncomputable instance GetLeaderReply.zero_val [GooseExts] : ZeroVal GetLeaderRe
 @[irreducible] noncomputable def GetLeaderReply.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GetLeaderReply.fieldsUnsealed
 
-noncomputable instance equals_unfold_GetLeaderReply [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'GetLeaderReply [GooseExts] [GoGlobalContext] :
     EqualsUnfold GetLeaderReply.fields GetLeaderReply.fieldsUnsealed :=
   ⟨by unfold GetLeaderReply.fields; rfl⟩
 
@@ -4136,15 +4136,15 @@ noncomputable instance equals_unfold_GetLeaderReply [GooseExts] [GoGlobalContext
 class GetLeaderReply.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GetLeaderReply.underlying GetLeaderReply
   underlying : go.UnderlyingDirectedEq GetLeaderReply.ty GetLeaderReply.underlying
-  get_LeaderId : ∀ (x : GetLeaderReply), go.IsGoStepPureDetTagged under (StructFieldGet GetLeaderReply.underlying go!"LeaderId") #x (Val #(x.LeaderId'))
-  set_LeaderId : ∀ (x : GetLeaderReply) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet GetLeaderReply.underlying go!"LeaderId") (PairV #x #y) (Val #(({ x with LeaderId' := y } : GetLeaderReply)))
+  get'LeaderId : ∀ (x : GetLeaderReply), go.IsGoStepPureDetTagged under (StructFieldGet GetLeaderReply.underlying go!"LeaderId") #x (Val #(x.LeaderId'))
+  set'LeaderId : ∀ (x : GetLeaderReply) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet GetLeaderReply.underlying go!"LeaderId") (PairV #x #y) (Val #(({ x with LeaderId' := y } : GetLeaderReply)))
   method_set : go.MethodSetIs GetLeaderReply.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GetLeaderReply.ty) []
 
 attribute [instance] GetLeaderReply.TypeAssumptions.type_repr
   GetLeaderReply.TypeAssumptions.underlying
-  GetLeaderReply.TypeAssumptions.get_LeaderId
-  GetLeaderReply.TypeAssumptions.set_LeaderId
+  GetLeaderReply.TypeAssumptions.get'LeaderId
+  GetLeaderReply.TypeAssumptions.set'LeaderId
   GetLeaderReply.TypeAssumptions.method_set
   GetLeaderReply.TypeAssumptions.ptr_method_set
 
@@ -4160,7 +4160,7 @@ noncomputable instance GetReplicaListArgs.zero_val [GooseExts] : ZeroVal GetRepl
 @[irreducible] noncomputable def GetReplicaListArgs.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GetReplicaListArgs.fieldsUnsealed
 
-noncomputable instance equals_unfold_GetReplicaListArgs [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'GetReplicaListArgs [GooseExts] [GoGlobalContext] :
     EqualsUnfold GetReplicaListArgs.fields GetReplicaListArgs.fieldsUnsealed :=
   ⟨by unfold GetReplicaListArgs.fields; rfl⟩
 
@@ -4195,7 +4195,7 @@ noncomputable instance GetReplicaListReply.zero_val [GooseExts] : ZeroVal GetRep
 @[irreducible] noncomputable def GetReplicaListReply.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GetReplicaListReply.fieldsUnsealed
 
-noncomputable instance equals_unfold_GetReplicaListReply [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'GetReplicaListReply [GooseExts] [GoGlobalContext] :
     EqualsUnfold GetReplicaListReply.fields GetReplicaListReply.fieldsUnsealed :=
   ⟨by unfold GetReplicaListReply.fields; rfl⟩
 
@@ -4205,23 +4205,23 @@ noncomputable instance equals_unfold_GetReplicaListReply [GooseExts] [GoGlobalCo
 class GetReplicaListReply.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GetReplicaListReply.underlying GetReplicaListReply
   underlying : go.UnderlyingDirectedEq GetReplicaListReply.ty GetReplicaListReply.underlying
-  get_ReplicaList : ∀ (x : GetReplicaListReply), go.IsGoStepPureDetTagged under (StructFieldGet GetReplicaListReply.underlying go!"ReplicaList") #x (Val #(x.ReplicaList'))
-  set_ReplicaList : ∀ (x : GetReplicaListReply) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet GetReplicaListReply.underlying go!"ReplicaList") (PairV #x #y) (Val #(({ x with ReplicaList' := y } : GetReplicaListReply)))
-  get_AliveList : ∀ (x : GetReplicaListReply), go.IsGoStepPureDetTagged under (StructFieldGet GetReplicaListReply.underlying go!"AliveList") #x (Val #(x.AliveList'))
-  set_AliveList : ∀ (x : GetReplicaListReply) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet GetReplicaListReply.underlying go!"AliveList") (PairV #x #y) (Val #(({ x with AliveList' := y } : GetReplicaListReply)))
-  get_Ready : ∀ (x : GetReplicaListReply), go.IsGoStepPureDetTagged under (StructFieldGet GetReplicaListReply.underlying go!"Ready") #x (Val #(x.Ready'))
-  set_Ready : ∀ (x : GetReplicaListReply) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet GetReplicaListReply.underlying go!"Ready") (PairV #x #y) (Val #(({ x with Ready' := y } : GetReplicaListReply)))
+  get'ReplicaList : ∀ (x : GetReplicaListReply), go.IsGoStepPureDetTagged under (StructFieldGet GetReplicaListReply.underlying go!"ReplicaList") #x (Val #(x.ReplicaList'))
+  set'ReplicaList : ∀ (x : GetReplicaListReply) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet GetReplicaListReply.underlying go!"ReplicaList") (PairV #x #y) (Val #(({ x with ReplicaList' := y } : GetReplicaListReply)))
+  get'AliveList : ∀ (x : GetReplicaListReply), go.IsGoStepPureDetTagged under (StructFieldGet GetReplicaListReply.underlying go!"AliveList") #x (Val #(x.AliveList'))
+  set'AliveList : ∀ (x : GetReplicaListReply) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet GetReplicaListReply.underlying go!"AliveList") (PairV #x #y) (Val #(({ x with AliveList' := y } : GetReplicaListReply)))
+  get'Ready : ∀ (x : GetReplicaListReply), go.IsGoStepPureDetTagged under (StructFieldGet GetReplicaListReply.underlying go!"Ready") #x (Val #(x.Ready'))
+  set'Ready : ∀ (x : GetReplicaListReply) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet GetReplicaListReply.underlying go!"Ready") (PairV #x #y) (Val #(({ x with Ready' := y } : GetReplicaListReply)))
   method_set : go.MethodSetIs GetReplicaListReply.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GetReplicaListReply.ty) []
 
 attribute [instance] GetReplicaListReply.TypeAssumptions.type_repr
   GetReplicaListReply.TypeAssumptions.underlying
-  GetReplicaListReply.TypeAssumptions.get_ReplicaList
-  GetReplicaListReply.TypeAssumptions.set_ReplicaList
-  GetReplicaListReply.TypeAssumptions.get_AliveList
-  GetReplicaListReply.TypeAssumptions.set_AliveList
-  GetReplicaListReply.TypeAssumptions.get_Ready
-  GetReplicaListReply.TypeAssumptions.set_Ready
+  GetReplicaListReply.TypeAssumptions.get'ReplicaList
+  GetReplicaListReply.TypeAssumptions.set'ReplicaList
+  GetReplicaListReply.TypeAssumptions.get'AliveList
+  GetReplicaListReply.TypeAssumptions.set'AliveList
+  GetReplicaListReply.TypeAssumptions.get'Ready
+  GetReplicaListReply.TypeAssumptions.set'Ready
   GetReplicaListReply.TypeAssumptions.method_set
   GetReplicaListReply.TypeAssumptions.ptr_method_set
 
@@ -4244,7 +4244,7 @@ noncomputable instance Propose.zero_val [GooseExts] : ZeroVal Propose :=
 @[irreducible] noncomputable def Propose.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Propose.fieldsUnsealed
 
-noncomputable instance equals_unfold_Propose [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Propose [GooseExts] [GoGlobalContext] :
     EqualsUnfold Propose.fields Propose.fieldsUnsealed :=
   ⟨by unfold Propose.fields; rfl⟩
 
@@ -4254,35 +4254,35 @@ noncomputable instance equals_unfold_Propose [GooseExts] [GoGlobalContext] :
 class Propose.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Propose.underlying Propose
   underlying : go.UnderlyingDirectedEq Propose.ty Propose.underlying
-  get_CommandId : ∀ (x : Propose), go.IsGoStepPureDetTagged under (StructFieldGet Propose.underlying go!"CommandId") #x (Val #(x.CommandId'))
-  set_CommandId : ∀ (x : Propose) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Propose.underlying go!"CommandId") (PairV #x #y) (Val #(({ x with CommandId' := y } : Propose)))
-  get_ClientId : ∀ (x : Propose), go.IsGoStepPureDetTagged under (StructFieldGet Propose.underlying go!"ClientId") #x (Val #(x.ClientId'))
-  set_ClientId : ∀ (x : Propose) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Propose.underlying go!"ClientId") (PairV #x #y) (Val #(({ x with ClientId' := y } : Propose)))
-  get_Command : ∀ (x : Propose), go.IsGoStepPureDetTagged under (StructFieldGet Propose.underlying go!"Command") #x (Val #(x.Command'))
-  set_Command : ∀ (x : Propose) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command), go.IsGoStepPureDetTagged under (StructFieldSet Propose.underlying go!"Command") (PairV #x #y) (Val #(({ x with Command' := y } : Propose)))
-  get_Timestamp : ∀ (x : Propose), go.IsGoStepPureDetTagged under (StructFieldGet Propose.underlying go!"Timestamp") #x (Val #(x.Timestamp'))
-  set_Timestamp : ∀ (x : Propose) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Propose.underlying go!"Timestamp") (PairV #x #y) (Val #(({ x with Timestamp' := y } : Propose)))
+  get'CommandId : ∀ (x : Propose), go.IsGoStepPureDetTagged under (StructFieldGet Propose.underlying go!"CommandId") #x (Val #(x.CommandId'))
+  set'CommandId : ∀ (x : Propose) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Propose.underlying go!"CommandId") (PairV #x #y) (Val #(({ x with CommandId' := y } : Propose)))
+  get'ClientId : ∀ (x : Propose), go.IsGoStepPureDetTagged under (StructFieldGet Propose.underlying go!"ClientId") #x (Val #(x.ClientId'))
+  set'ClientId : ∀ (x : Propose) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Propose.underlying go!"ClientId") (PairV #x #y) (Val #(({ x with ClientId' := y } : Propose)))
+  get'Command : ∀ (x : Propose), go.IsGoStepPureDetTagged under (StructFieldGet Propose.underlying go!"Command") #x (Val #(x.Command'))
+  set'Command : ∀ (x : Propose) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command), go.IsGoStepPureDetTagged under (StructFieldSet Propose.underlying go!"Command") (PairV #x #y) (Val #(({ x with Command' := y } : Propose)))
+  get'Timestamp : ∀ (x : Propose), go.IsGoStepPureDetTagged under (StructFieldGet Propose.underlying go!"Timestamp") #x (Val #(x.Timestamp'))
+  set'Timestamp : ∀ (x : Propose) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Propose.underlying go!"Timestamp") (PairV #x #y) (Val #(({ x with Timestamp' := y } : Propose)))
   method_set : go.MethodSetIs Propose.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Propose.ty) [(go!"BinarySize", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_BinarySize_unfold : MethodUnfold (go.GoType.PointerType Propose.ty) go!"BinarySize" Propose.BinarySize.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType Propose.ty) go!"Marshal" Propose.Marshal.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType Propose.ty) go!"Unmarshal" Propose.Unmarshal.impl
+  ptr_unfold'BinarySize : MethodUnfold (go.GoType.PointerType Propose.ty) go!"BinarySize" Propose.BinarySize.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType Propose.ty) go!"Marshal" Propose.Marshal.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType Propose.ty) go!"Unmarshal" Propose.Unmarshal.impl
 
 attribute [instance] Propose.TypeAssumptions.type_repr
   Propose.TypeAssumptions.underlying
-  Propose.TypeAssumptions.get_CommandId
-  Propose.TypeAssumptions.set_CommandId
-  Propose.TypeAssumptions.get_ClientId
-  Propose.TypeAssumptions.set_ClientId
-  Propose.TypeAssumptions.get_Command
-  Propose.TypeAssumptions.set_Command
-  Propose.TypeAssumptions.get_Timestamp
-  Propose.TypeAssumptions.set_Timestamp
+  Propose.TypeAssumptions.get'CommandId
+  Propose.TypeAssumptions.set'CommandId
+  Propose.TypeAssumptions.get'ClientId
+  Propose.TypeAssumptions.set'ClientId
+  Propose.TypeAssumptions.get'Command
+  Propose.TypeAssumptions.set'Command
+  Propose.TypeAssumptions.get'Timestamp
+  Propose.TypeAssumptions.set'Timestamp
   Propose.TypeAssumptions.method_set
   Propose.TypeAssumptions.ptr_method_set
-  Propose.TypeAssumptions.ptr_BinarySize_unfold
-  Propose.TypeAssumptions.ptr_Marshal_unfold
-  Propose.TypeAssumptions.ptr_Unmarshal_unfold
+  Propose.TypeAssumptions.ptr_unfold'BinarySize
+  Propose.TypeAssumptions.ptr_unfold'Marshal
+  Propose.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure ProposeReply [GooseExts] where
   mk ::
@@ -4299,7 +4299,7 @@ noncomputable instance ProposeReply.zero_val [GooseExts] : ZeroVal ProposeReply 
 @[irreducible] noncomputable def ProposeReply.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposeReply.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposeReply [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposeReply [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposeReply.fields ProposeReply.fieldsUnsealed :=
   ⟨by unfold ProposeReply.fields; rfl⟩
 
@@ -4309,27 +4309,27 @@ noncomputable instance equals_unfold_ProposeReply [GooseExts] [GoGlobalContext] 
 class ProposeReply.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposeReply.underlying ProposeReply
   underlying : go.UnderlyingDirectedEq ProposeReply.ty ProposeReply.underlying
-  get_OK : ∀ (x : ProposeReply), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReply.underlying go!"OK") #x (Val #(x.OK'))
-  set_OK : ∀ (x : ProposeReply) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReply.underlying go!"OK") (PairV #x #y) (Val #(({ x with OK' := y } : ProposeReply)))
-  get_CommandId : ∀ (x : ProposeReply), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReply.underlying go!"CommandId") #x (Val #(x.CommandId'))
-  set_CommandId : ∀ (x : ProposeReply) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReply.underlying go!"CommandId") (PairV #x #y) (Val #(({ x with CommandId' := y } : ProposeReply)))
+  get'OK : ∀ (x : ProposeReply), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReply.underlying go!"OK") #x (Val #(x.OK'))
+  set'OK : ∀ (x : ProposeReply) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReply.underlying go!"OK") (PairV #x #y) (Val #(({ x with OK' := y } : ProposeReply)))
+  get'CommandId : ∀ (x : ProposeReply), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReply.underlying go!"CommandId") #x (Val #(x.CommandId'))
+  set'CommandId : ∀ (x : ProposeReply) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReply.underlying go!"CommandId") (PairV #x #y) (Val #(({ x with CommandId' := y } : ProposeReply)))
   method_set : go.MethodSetIs ProposeReply.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposeReply.ty) [(go!"BinarySize", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_BinarySize_unfold : MethodUnfold (go.GoType.PointerType ProposeReply.ty) go!"BinarySize" ProposeReply.BinarySize.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType ProposeReply.ty) go!"Marshal" ProposeReply.Marshal.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType ProposeReply.ty) go!"Unmarshal" ProposeReply.Unmarshal.impl
+  ptr_unfold'BinarySize : MethodUnfold (go.GoType.PointerType ProposeReply.ty) go!"BinarySize" ProposeReply.BinarySize.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType ProposeReply.ty) go!"Marshal" ProposeReply.Marshal.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType ProposeReply.ty) go!"Unmarshal" ProposeReply.Unmarshal.impl
 
 attribute [instance] ProposeReply.TypeAssumptions.type_repr
   ProposeReply.TypeAssumptions.underlying
-  ProposeReply.TypeAssumptions.get_OK
-  ProposeReply.TypeAssumptions.set_OK
-  ProposeReply.TypeAssumptions.get_CommandId
-  ProposeReply.TypeAssumptions.set_CommandId
+  ProposeReply.TypeAssumptions.get'OK
+  ProposeReply.TypeAssumptions.set'OK
+  ProposeReply.TypeAssumptions.get'CommandId
+  ProposeReply.TypeAssumptions.set'CommandId
   ProposeReply.TypeAssumptions.method_set
   ProposeReply.TypeAssumptions.ptr_method_set
-  ProposeReply.TypeAssumptions.ptr_BinarySize_unfold
-  ProposeReply.TypeAssumptions.ptr_Marshal_unfold
-  ProposeReply.TypeAssumptions.ptr_Unmarshal_unfold
+  ProposeReply.TypeAssumptions.ptr_unfold'BinarySize
+  ProposeReply.TypeAssumptions.ptr_unfold'Marshal
+  ProposeReply.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure ProposeReplyTS [GooseExts] where
   mk ::
@@ -4350,7 +4350,7 @@ noncomputable instance ProposeReplyTS.zero_val [GooseExts] : ZeroVal ProposeRepl
 @[irreducible] noncomputable def ProposeReplyTS.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposeReplyTS.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposeReplyTS [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposeReplyTS [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposeReplyTS.fields ProposeReplyTS.fieldsUnsealed :=
   ⟨by unfold ProposeReplyTS.fields; rfl⟩
 
@@ -4360,35 +4360,35 @@ noncomputable instance equals_unfold_ProposeReplyTS [GooseExts] [GoGlobalContext
 class ProposeReplyTS.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposeReplyTS.underlying ProposeReplyTS
   underlying : go.UnderlyingDirectedEq ProposeReplyTS.ty ProposeReplyTS.underlying
-  get_OK : ∀ (x : ProposeReplyTS), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReplyTS.underlying go!"OK") #x (Val #(x.OK'))
-  set_OK : ∀ (x : ProposeReplyTS) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReplyTS.underlying go!"OK") (PairV #x #y) (Val #(({ x with OK' := y } : ProposeReplyTS)))
-  get_CommandId : ∀ (x : ProposeReplyTS), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReplyTS.underlying go!"CommandId") #x (Val #(x.CommandId'))
-  set_CommandId : ∀ (x : ProposeReplyTS) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReplyTS.underlying go!"CommandId") (PairV #x #y) (Val #(({ x with CommandId' := y } : ProposeReplyTS)))
-  get_Value : ∀ (x : ProposeReplyTS), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReplyTS.underlying go!"Value") #x (Val #(x.Value'))
-  set_Value : ∀ (x : ProposeReplyTS) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Value), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReplyTS.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : ProposeReplyTS)))
-  get_Timestamp : ∀ (x : ProposeReplyTS), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReplyTS.underlying go!"Timestamp") #x (Val #(x.Timestamp'))
-  set_Timestamp : ∀ (x : ProposeReplyTS) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReplyTS.underlying go!"Timestamp") (PairV #x #y) (Val #(({ x with Timestamp' := y } : ProposeReplyTS)))
+  get'OK : ∀ (x : ProposeReplyTS), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReplyTS.underlying go!"OK") #x (Val #(x.OK'))
+  set'OK : ∀ (x : ProposeReplyTS) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReplyTS.underlying go!"OK") (PairV #x #y) (Val #(({ x with OK' := y } : ProposeReplyTS)))
+  get'CommandId : ∀ (x : ProposeReplyTS), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReplyTS.underlying go!"CommandId") #x (Val #(x.CommandId'))
+  set'CommandId : ∀ (x : ProposeReplyTS) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReplyTS.underlying go!"CommandId") (PairV #x #y) (Val #(({ x with CommandId' := y } : ProposeReplyTS)))
+  get'Value : ∀ (x : ProposeReplyTS), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReplyTS.underlying go!"Value") #x (Val #(x.Value'))
+  set'Value : ∀ (x : ProposeReplyTS) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Value), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReplyTS.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : ProposeReplyTS)))
+  get'Timestamp : ∀ (x : ProposeReplyTS), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReplyTS.underlying go!"Timestamp") #x (Val #(x.Timestamp'))
+  set'Timestamp : ∀ (x : ProposeReplyTS) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReplyTS.underlying go!"Timestamp") (PairV #x #y) (Val #(({ x with Timestamp' := y } : ProposeReplyTS)))
   method_set : go.MethodSetIs ProposeReplyTS.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposeReplyTS.ty) [(go!"BinarySize", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_BinarySize_unfold : MethodUnfold (go.GoType.PointerType ProposeReplyTS.ty) go!"BinarySize" ProposeReplyTS.BinarySize.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType ProposeReplyTS.ty) go!"Marshal" ProposeReplyTS.Marshal.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType ProposeReplyTS.ty) go!"Unmarshal" ProposeReplyTS.Unmarshal.impl
+  ptr_unfold'BinarySize : MethodUnfold (go.GoType.PointerType ProposeReplyTS.ty) go!"BinarySize" ProposeReplyTS.BinarySize.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType ProposeReplyTS.ty) go!"Marshal" ProposeReplyTS.Marshal.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType ProposeReplyTS.ty) go!"Unmarshal" ProposeReplyTS.Unmarshal.impl
 
 attribute [instance] ProposeReplyTS.TypeAssumptions.type_repr
   ProposeReplyTS.TypeAssumptions.underlying
-  ProposeReplyTS.TypeAssumptions.get_OK
-  ProposeReplyTS.TypeAssumptions.set_OK
-  ProposeReplyTS.TypeAssumptions.get_CommandId
-  ProposeReplyTS.TypeAssumptions.set_CommandId
-  ProposeReplyTS.TypeAssumptions.get_Value
-  ProposeReplyTS.TypeAssumptions.set_Value
-  ProposeReplyTS.TypeAssumptions.get_Timestamp
-  ProposeReplyTS.TypeAssumptions.set_Timestamp
+  ProposeReplyTS.TypeAssumptions.get'OK
+  ProposeReplyTS.TypeAssumptions.set'OK
+  ProposeReplyTS.TypeAssumptions.get'CommandId
+  ProposeReplyTS.TypeAssumptions.set'CommandId
+  ProposeReplyTS.TypeAssumptions.get'Value
+  ProposeReplyTS.TypeAssumptions.set'Value
+  ProposeReplyTS.TypeAssumptions.get'Timestamp
+  ProposeReplyTS.TypeAssumptions.set'Timestamp
   ProposeReplyTS.TypeAssumptions.method_set
   ProposeReplyTS.TypeAssumptions.ptr_method_set
-  ProposeReplyTS.TypeAssumptions.ptr_BinarySize_unfold
-  ProposeReplyTS.TypeAssumptions.ptr_Marshal_unfold
-  ProposeReplyTS.TypeAssumptions.ptr_Unmarshal_unfold
+  ProposeReplyTS.TypeAssumptions.ptr_unfold'BinarySize
+  ProposeReplyTS.TypeAssumptions.ptr_unfold'Marshal
+  ProposeReplyTS.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure Read [GooseExts] where
   mk ::
@@ -4405,7 +4405,7 @@ noncomputable instance Read.zero_val [GooseExts] : ZeroVal Read :=
 @[irreducible] noncomputable def Read.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Read.fieldsUnsealed
 
-noncomputable instance equals_unfold_Read [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Read [GooseExts] [GoGlobalContext] :
     EqualsUnfold Read.fields Read.fieldsUnsealed :=
   ⟨by unfold Read.fields; rfl⟩
 
@@ -4415,27 +4415,27 @@ noncomputable instance equals_unfold_Read [GooseExts] [GoGlobalContext] :
 class Read.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Read.underlying Read
   underlying : go.UnderlyingDirectedEq Read.ty Read.underlying
-  get_CommandId : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"CommandId") #x (Val #(x.CommandId'))
-  set_CommandId : ∀ (x : Read) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"CommandId") (PairV #x #y) (Val #(({ x with CommandId' := y } : Read)))
-  get_Key : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : Read) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Key), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Read)))
+  get'CommandId : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"CommandId") #x (Val #(x.CommandId'))
+  set'CommandId : ∀ (x : Read) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"CommandId") (PairV #x #y) (Val #(({ x with CommandId' := y } : Read)))
+  get'Key : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : Read) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Key), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Read)))
   method_set : go.MethodSetIs Read.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Read.ty) [(go!"BinarySize", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_BinarySize_unfold : MethodUnfold (go.GoType.PointerType Read.ty) go!"BinarySize" Read.BinarySize.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType Read.ty) go!"Marshal" Read.Marshal.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType Read.ty) go!"Unmarshal" Read.Unmarshal.impl
+  ptr_unfold'BinarySize : MethodUnfold (go.GoType.PointerType Read.ty) go!"BinarySize" Read.BinarySize.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType Read.ty) go!"Marshal" Read.Marshal.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType Read.ty) go!"Unmarshal" Read.Unmarshal.impl
 
 attribute [instance] Read.TypeAssumptions.type_repr
   Read.TypeAssumptions.underlying
-  Read.TypeAssumptions.get_CommandId
-  Read.TypeAssumptions.set_CommandId
-  Read.TypeAssumptions.get_Key
-  Read.TypeAssumptions.set_Key
+  Read.TypeAssumptions.get'CommandId
+  Read.TypeAssumptions.set'CommandId
+  Read.TypeAssumptions.get'Key
+  Read.TypeAssumptions.set'Key
   Read.TypeAssumptions.method_set
   Read.TypeAssumptions.ptr_method_set
-  Read.TypeAssumptions.ptr_BinarySize_unfold
-  Read.TypeAssumptions.ptr_Marshal_unfold
-  Read.TypeAssumptions.ptr_Unmarshal_unfold
+  Read.TypeAssumptions.ptr_unfold'BinarySize
+  Read.TypeAssumptions.ptr_unfold'Marshal
+  Read.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure ReadReply [GooseExts] where
   mk ::
@@ -4452,7 +4452,7 @@ noncomputable instance ReadReply.zero_val [GooseExts] : ZeroVal ReadReply :=
 @[irreducible] noncomputable def ReadReply.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReadReply.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReadReply [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ReadReply [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReadReply.fields ReadReply.fieldsUnsealed :=
   ⟨by unfold ReadReply.fields; rfl⟩
 
@@ -4462,27 +4462,27 @@ noncomputable instance equals_unfold_ReadReply [GooseExts] [GoGlobalContext] :
 class ReadReply.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReadReply.underlying ReadReply
   underlying : go.UnderlyingDirectedEq ReadReply.ty ReadReply.underlying
-  get_CommandId : ∀ (x : ReadReply), go.IsGoStepPureDetTagged under (StructFieldGet ReadReply.underlying go!"CommandId") #x (Val #(x.CommandId'))
-  set_CommandId : ∀ (x : ReadReply) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ReadReply.underlying go!"CommandId") (PairV #x #y) (Val #(({ x with CommandId' := y } : ReadReply)))
-  get_Value : ∀ (x : ReadReply), go.IsGoStepPureDetTagged under (StructFieldGet ReadReply.underlying go!"Value") #x (Val #(x.Value'))
-  set_Value : ∀ (x : ReadReply) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Value), go.IsGoStepPureDetTagged under (StructFieldSet ReadReply.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : ReadReply)))
+  get'CommandId : ∀ (x : ReadReply), go.IsGoStepPureDetTagged under (StructFieldGet ReadReply.underlying go!"CommandId") #x (Val #(x.CommandId'))
+  set'CommandId : ∀ (x : ReadReply) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ReadReply.underlying go!"CommandId") (PairV #x #y) (Val #(({ x with CommandId' := y } : ReadReply)))
+  get'Value : ∀ (x : ReadReply), go.IsGoStepPureDetTagged under (StructFieldGet ReadReply.underlying go!"Value") #x (Val #(x.Value'))
+  set'Value : ∀ (x : ReadReply) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Value), go.IsGoStepPureDetTagged under (StructFieldSet ReadReply.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : ReadReply)))
   method_set : go.MethodSetIs ReadReply.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReadReply.ty) [(go!"BinarySize", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_BinarySize_unfold : MethodUnfold (go.GoType.PointerType ReadReply.ty) go!"BinarySize" ReadReply.BinarySize.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType ReadReply.ty) go!"Marshal" ReadReply.Marshal.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType ReadReply.ty) go!"Unmarshal" ReadReply.Unmarshal.impl
+  ptr_unfold'BinarySize : MethodUnfold (go.GoType.PointerType ReadReply.ty) go!"BinarySize" ReadReply.BinarySize.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType ReadReply.ty) go!"Marshal" ReadReply.Marshal.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType ReadReply.ty) go!"Unmarshal" ReadReply.Unmarshal.impl
 
 attribute [instance] ReadReply.TypeAssumptions.type_repr
   ReadReply.TypeAssumptions.underlying
-  ReadReply.TypeAssumptions.get_CommandId
-  ReadReply.TypeAssumptions.set_CommandId
-  ReadReply.TypeAssumptions.get_Value
-  ReadReply.TypeAssumptions.set_Value
+  ReadReply.TypeAssumptions.get'CommandId
+  ReadReply.TypeAssumptions.set'CommandId
+  ReadReply.TypeAssumptions.get'Value
+  ReadReply.TypeAssumptions.set'Value
   ReadReply.TypeAssumptions.method_set
   ReadReply.TypeAssumptions.ptr_method_set
-  ReadReply.TypeAssumptions.ptr_BinarySize_unfold
-  ReadReply.TypeAssumptions.ptr_Marshal_unfold
-  ReadReply.TypeAssumptions.ptr_Unmarshal_unfold
+  ReadReply.TypeAssumptions.ptr_unfold'BinarySize
+  ReadReply.TypeAssumptions.ptr_unfold'Marshal
+  ReadReply.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure ProposeAndRead [GooseExts] where
   mk ::
@@ -4501,7 +4501,7 @@ noncomputable instance ProposeAndRead.zero_val [GooseExts] : ZeroVal ProposeAndR
 @[irreducible] noncomputable def ProposeAndRead.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposeAndRead.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposeAndRead [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposeAndRead [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposeAndRead.fields ProposeAndRead.fieldsUnsealed :=
   ⟨by unfold ProposeAndRead.fields; rfl⟩
 
@@ -4511,31 +4511,31 @@ noncomputable instance equals_unfold_ProposeAndRead [GooseExts] [GoGlobalContext
 class ProposeAndRead.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposeAndRead.underlying ProposeAndRead
   underlying : go.UnderlyingDirectedEq ProposeAndRead.ty ProposeAndRead.underlying
-  get_CommandId : ∀ (x : ProposeAndRead), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndRead.underlying go!"CommandId") #x (Val #(x.CommandId'))
-  set_CommandId : ∀ (x : ProposeAndRead) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndRead.underlying go!"CommandId") (PairV #x #y) (Val #(({ x with CommandId' := y } : ProposeAndRead)))
-  get_Command : ∀ (x : ProposeAndRead), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndRead.underlying go!"Command") #x (Val #(x.Command'))
-  set_Command : ∀ (x : ProposeAndRead) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndRead.underlying go!"Command") (PairV #x #y) (Val #(({ x with Command' := y } : ProposeAndRead)))
-  get_Key : ∀ (x : ProposeAndRead), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndRead.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : ProposeAndRead) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Key), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndRead.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : ProposeAndRead)))
+  get'CommandId : ∀ (x : ProposeAndRead), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndRead.underlying go!"CommandId") #x (Val #(x.CommandId'))
+  set'CommandId : ∀ (x : ProposeAndRead) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndRead.underlying go!"CommandId") (PairV #x #y) (Val #(({ x with CommandId' := y } : ProposeAndRead)))
+  get'Command : ∀ (x : ProposeAndRead), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndRead.underlying go!"Command") #x (Val #(x.Command'))
+  set'Command : ∀ (x : ProposeAndRead) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndRead.underlying go!"Command") (PairV #x #y) (Val #(({ x with Command' := y } : ProposeAndRead)))
+  get'Key : ∀ (x : ProposeAndRead), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndRead.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : ProposeAndRead) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Key), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndRead.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : ProposeAndRead)))
   method_set : go.MethodSetIs ProposeAndRead.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposeAndRead.ty) [(go!"BinarySize", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_BinarySize_unfold : MethodUnfold (go.GoType.PointerType ProposeAndRead.ty) go!"BinarySize" ProposeAndRead.BinarySize.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType ProposeAndRead.ty) go!"Marshal" ProposeAndRead.Marshal.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType ProposeAndRead.ty) go!"Unmarshal" ProposeAndRead.Unmarshal.impl
+  ptr_unfold'BinarySize : MethodUnfold (go.GoType.PointerType ProposeAndRead.ty) go!"BinarySize" ProposeAndRead.BinarySize.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType ProposeAndRead.ty) go!"Marshal" ProposeAndRead.Marshal.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType ProposeAndRead.ty) go!"Unmarshal" ProposeAndRead.Unmarshal.impl
 
 attribute [instance] ProposeAndRead.TypeAssumptions.type_repr
   ProposeAndRead.TypeAssumptions.underlying
-  ProposeAndRead.TypeAssumptions.get_CommandId
-  ProposeAndRead.TypeAssumptions.set_CommandId
-  ProposeAndRead.TypeAssumptions.get_Command
-  ProposeAndRead.TypeAssumptions.set_Command
-  ProposeAndRead.TypeAssumptions.get_Key
-  ProposeAndRead.TypeAssumptions.set_Key
+  ProposeAndRead.TypeAssumptions.get'CommandId
+  ProposeAndRead.TypeAssumptions.set'CommandId
+  ProposeAndRead.TypeAssumptions.get'Command
+  ProposeAndRead.TypeAssumptions.set'Command
+  ProposeAndRead.TypeAssumptions.get'Key
+  ProposeAndRead.TypeAssumptions.set'Key
   ProposeAndRead.TypeAssumptions.method_set
   ProposeAndRead.TypeAssumptions.ptr_method_set
-  ProposeAndRead.TypeAssumptions.ptr_BinarySize_unfold
-  ProposeAndRead.TypeAssumptions.ptr_Marshal_unfold
-  ProposeAndRead.TypeAssumptions.ptr_Unmarshal_unfold
+  ProposeAndRead.TypeAssumptions.ptr_unfold'BinarySize
+  ProposeAndRead.TypeAssumptions.ptr_unfold'Marshal
+  ProposeAndRead.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure ProposeAndReadReply [GooseExts] where
   mk ::
@@ -4554,7 +4554,7 @@ noncomputable instance ProposeAndReadReply.zero_val [GooseExts] : ZeroVal Propos
 @[irreducible] noncomputable def ProposeAndReadReply.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposeAndReadReply.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposeAndReadReply [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposeAndReadReply [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposeAndReadReply.fields ProposeAndReadReply.fieldsUnsealed :=
   ⟨by unfold ProposeAndReadReply.fields; rfl⟩
 
@@ -4564,31 +4564,31 @@ noncomputable instance equals_unfold_ProposeAndReadReply [GooseExts] [GoGlobalCo
 class ProposeAndReadReply.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposeAndReadReply.underlying ProposeAndReadReply
   underlying : go.UnderlyingDirectedEq ProposeAndReadReply.ty ProposeAndReadReply.underlying
-  get_OK : ∀ (x : ProposeAndReadReply), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndReadReply.underlying go!"OK") #x (Val #(x.OK'))
-  set_OK : ∀ (x : ProposeAndReadReply) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndReadReply.underlying go!"OK") (PairV #x #y) (Val #(({ x with OK' := y } : ProposeAndReadReply)))
-  get_CommandId : ∀ (x : ProposeAndReadReply), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndReadReply.underlying go!"CommandId") #x (Val #(x.CommandId'))
-  set_CommandId : ∀ (x : ProposeAndReadReply) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndReadReply.underlying go!"CommandId") (PairV #x #y) (Val #(({ x with CommandId' := y } : ProposeAndReadReply)))
-  get_Value : ∀ (x : ProposeAndReadReply), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndReadReply.underlying go!"Value") #x (Val #(x.Value'))
-  set_Value : ∀ (x : ProposeAndReadReply) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Value), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndReadReply.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : ProposeAndReadReply)))
+  get'OK : ∀ (x : ProposeAndReadReply), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndReadReply.underlying go!"OK") #x (Val #(x.OK'))
+  set'OK : ∀ (x : ProposeAndReadReply) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndReadReply.underlying go!"OK") (PairV #x #y) (Val #(({ x with OK' := y } : ProposeAndReadReply)))
+  get'CommandId : ∀ (x : ProposeAndReadReply), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndReadReply.underlying go!"CommandId") #x (Val #(x.CommandId'))
+  set'CommandId : ∀ (x : ProposeAndReadReply) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndReadReply.underlying go!"CommandId") (PairV #x #y) (Val #(({ x with CommandId' := y } : ProposeAndReadReply)))
+  get'Value : ∀ (x : ProposeAndReadReply), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndReadReply.underlying go!"Value") #x (Val #(x.Value'))
+  set'Value : ∀ (x : ProposeAndReadReply) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Value), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndReadReply.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : ProposeAndReadReply)))
   method_set : go.MethodSetIs ProposeAndReadReply.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposeAndReadReply.ty) [(go!"BinarySize", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_BinarySize_unfold : MethodUnfold (go.GoType.PointerType ProposeAndReadReply.ty) go!"BinarySize" ProposeAndReadReply.BinarySize.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType ProposeAndReadReply.ty) go!"Marshal" ProposeAndReadReply.Marshal.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType ProposeAndReadReply.ty) go!"Unmarshal" ProposeAndReadReply.Unmarshal.impl
+  ptr_unfold'BinarySize : MethodUnfold (go.GoType.PointerType ProposeAndReadReply.ty) go!"BinarySize" ProposeAndReadReply.BinarySize.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType ProposeAndReadReply.ty) go!"Marshal" ProposeAndReadReply.Marshal.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType ProposeAndReadReply.ty) go!"Unmarshal" ProposeAndReadReply.Unmarshal.impl
 
 attribute [instance] ProposeAndReadReply.TypeAssumptions.type_repr
   ProposeAndReadReply.TypeAssumptions.underlying
-  ProposeAndReadReply.TypeAssumptions.get_OK
-  ProposeAndReadReply.TypeAssumptions.set_OK
-  ProposeAndReadReply.TypeAssumptions.get_CommandId
-  ProposeAndReadReply.TypeAssumptions.set_CommandId
-  ProposeAndReadReply.TypeAssumptions.get_Value
-  ProposeAndReadReply.TypeAssumptions.set_Value
+  ProposeAndReadReply.TypeAssumptions.get'OK
+  ProposeAndReadReply.TypeAssumptions.set'OK
+  ProposeAndReadReply.TypeAssumptions.get'CommandId
+  ProposeAndReadReply.TypeAssumptions.set'CommandId
+  ProposeAndReadReply.TypeAssumptions.get'Value
+  ProposeAndReadReply.TypeAssumptions.set'Value
   ProposeAndReadReply.TypeAssumptions.method_set
   ProposeAndReadReply.TypeAssumptions.ptr_method_set
-  ProposeAndReadReply.TypeAssumptions.ptr_BinarySize_unfold
-  ProposeAndReadReply.TypeAssumptions.ptr_Marshal_unfold
-  ProposeAndReadReply.TypeAssumptions.ptr_Unmarshal_unfold
+  ProposeAndReadReply.TypeAssumptions.ptr_unfold'BinarySize
+  ProposeAndReadReply.TypeAssumptions.ptr_unfold'Marshal
+  ProposeAndReadReply.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure Beacon [GooseExts] where
   mk ::
@@ -4603,7 +4603,7 @@ noncomputable instance Beacon.zero_val [GooseExts] : ZeroVal Beacon :=
 @[irreducible] noncomputable def Beacon.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Beacon.fieldsUnsealed
 
-noncomputable instance equals_unfold_Beacon [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Beacon [GooseExts] [GoGlobalContext] :
     EqualsUnfold Beacon.fields Beacon.fieldsUnsealed :=
   ⟨by unfold Beacon.fields; rfl⟩
 
@@ -4613,23 +4613,23 @@ noncomputable instance equals_unfold_Beacon [GooseExts] [GoGlobalContext] :
 class Beacon.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Beacon.underlying Beacon
   underlying : go.UnderlyingDirectedEq Beacon.ty Beacon.underlying
-  get_Timestamp : ∀ (x : Beacon), go.IsGoStepPureDetTagged under (StructFieldGet Beacon.underlying go!"Timestamp") #x (Val #(x.Timestamp'))
-  set_Timestamp : ∀ (x : Beacon) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Beacon.underlying go!"Timestamp") (PairV #x #y) (Val #(({ x with Timestamp' := y } : Beacon)))
+  get'Timestamp : ∀ (x : Beacon), go.IsGoStepPureDetTagged under (StructFieldGet Beacon.underlying go!"Timestamp") #x (Val #(x.Timestamp'))
+  set'Timestamp : ∀ (x : Beacon) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Beacon.underlying go!"Timestamp") (PairV #x #y) (Val #(({ x with Timestamp' := y } : Beacon)))
   method_set : go.MethodSetIs Beacon.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Beacon.ty) [(go!"BinarySize", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_BinarySize_unfold : MethodUnfold (go.GoType.PointerType Beacon.ty) go!"BinarySize" Beacon.BinarySize.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType Beacon.ty) go!"Marshal" Beacon.Marshal.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType Beacon.ty) go!"Unmarshal" Beacon.Unmarshal.impl
+  ptr_unfold'BinarySize : MethodUnfold (go.GoType.PointerType Beacon.ty) go!"BinarySize" Beacon.BinarySize.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType Beacon.ty) go!"Marshal" Beacon.Marshal.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType Beacon.ty) go!"Unmarshal" Beacon.Unmarshal.impl
 
 attribute [instance] Beacon.TypeAssumptions.type_repr
   Beacon.TypeAssumptions.underlying
-  Beacon.TypeAssumptions.get_Timestamp
-  Beacon.TypeAssumptions.set_Timestamp
+  Beacon.TypeAssumptions.get'Timestamp
+  Beacon.TypeAssumptions.set'Timestamp
   Beacon.TypeAssumptions.method_set
   Beacon.TypeAssumptions.ptr_method_set
-  Beacon.TypeAssumptions.ptr_BinarySize_unfold
-  Beacon.TypeAssumptions.ptr_Marshal_unfold
-  Beacon.TypeAssumptions.ptr_Unmarshal_unfold
+  Beacon.TypeAssumptions.ptr_unfold'BinarySize
+  Beacon.TypeAssumptions.ptr_unfold'Marshal
+  Beacon.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure BeaconReply [GooseExts] where
   mk ::
@@ -4644,7 +4644,7 @@ noncomputable instance BeaconReply.zero_val [GooseExts] : ZeroVal BeaconReply :=
 @[irreducible] noncomputable def BeaconReply.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   BeaconReply.fieldsUnsealed
 
-noncomputable instance equals_unfold_BeaconReply [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'BeaconReply [GooseExts] [GoGlobalContext] :
     EqualsUnfold BeaconReply.fields BeaconReply.fieldsUnsealed :=
   ⟨by unfold BeaconReply.fields; rfl⟩
 
@@ -4654,23 +4654,23 @@ noncomputable instance equals_unfold_BeaconReply [GooseExts] [GoGlobalContext] :
 class BeaconReply.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BeaconReply.underlying BeaconReply
   underlying : go.UnderlyingDirectedEq BeaconReply.ty BeaconReply.underlying
-  get_Timestamp : ∀ (x : BeaconReply), go.IsGoStepPureDetTagged under (StructFieldGet BeaconReply.underlying go!"Timestamp") #x (Val #(x.Timestamp'))
-  set_Timestamp : ∀ (x : BeaconReply) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BeaconReply.underlying go!"Timestamp") (PairV #x #y) (Val #(({ x with Timestamp' := y } : BeaconReply)))
+  get'Timestamp : ∀ (x : BeaconReply), go.IsGoStepPureDetTagged under (StructFieldGet BeaconReply.underlying go!"Timestamp") #x (Val #(x.Timestamp'))
+  set'Timestamp : ∀ (x : BeaconReply) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BeaconReply.underlying go!"Timestamp") (PairV #x #y) (Val #(({ x with Timestamp' := y } : BeaconReply)))
   method_set : go.MethodSetIs BeaconReply.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType BeaconReply.ty) [(go!"BinarySize", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_BinarySize_unfold : MethodUnfold (go.GoType.PointerType BeaconReply.ty) go!"BinarySize" BeaconReply.BinarySize.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType BeaconReply.ty) go!"Marshal" BeaconReply.Marshal.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType BeaconReply.ty) go!"Unmarshal" BeaconReply.Unmarshal.impl
+  ptr_unfold'BinarySize : MethodUnfold (go.GoType.PointerType BeaconReply.ty) go!"BinarySize" BeaconReply.BinarySize.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType BeaconReply.ty) go!"Marshal" BeaconReply.Marshal.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType BeaconReply.ty) go!"Unmarshal" BeaconReply.Unmarshal.impl
 
 attribute [instance] BeaconReply.TypeAssumptions.type_repr
   BeaconReply.TypeAssumptions.underlying
-  BeaconReply.TypeAssumptions.get_Timestamp
-  BeaconReply.TypeAssumptions.set_Timestamp
+  BeaconReply.TypeAssumptions.get'Timestamp
+  BeaconReply.TypeAssumptions.set'Timestamp
   BeaconReply.TypeAssumptions.method_set
   BeaconReply.TypeAssumptions.ptr_method_set
-  BeaconReply.TypeAssumptions.ptr_BinarySize_unfold
-  BeaconReply.TypeAssumptions.ptr_Marshal_unfold
-  BeaconReply.TypeAssumptions.ptr_Unmarshal_unfold
+  BeaconReply.TypeAssumptions.ptr_unfold'BinarySize
+  BeaconReply.TypeAssumptions.ptr_unfold'Marshal
+  BeaconReply.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure PingArgs [GooseExts] where
   mk ::
@@ -4685,7 +4685,7 @@ noncomputable instance PingArgs.zero_val [GooseExts] : ZeroVal PingArgs :=
 @[irreducible] noncomputable def PingArgs.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PingArgs.fieldsUnsealed
 
-noncomputable instance equals_unfold_PingArgs [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PingArgs [GooseExts] [GoGlobalContext] :
     EqualsUnfold PingArgs.fields PingArgs.fieldsUnsealed :=
   ⟨by unfold PingArgs.fields; rfl⟩
 
@@ -4695,23 +4695,23 @@ noncomputable instance equals_unfold_PingArgs [GooseExts] [GoGlobalContext] :
 class PingArgs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PingArgs.underlying PingArgs
   underlying : go.UnderlyingDirectedEq PingArgs.ty PingArgs.underlying
-  get_ActAsLeader : ∀ (x : PingArgs), go.IsGoStepPureDetTagged under (StructFieldGet PingArgs.underlying go!"ActAsLeader") #x (Val #(x.ActAsLeader'))
-  set_ActAsLeader : ∀ (x : PingArgs) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet PingArgs.underlying go!"ActAsLeader") (PairV #x #y) (Val #(({ x with ActAsLeader' := y } : PingArgs)))
+  get'ActAsLeader : ∀ (x : PingArgs), go.IsGoStepPureDetTagged under (StructFieldGet PingArgs.underlying go!"ActAsLeader") #x (Val #(x.ActAsLeader'))
+  set'ActAsLeader : ∀ (x : PingArgs) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet PingArgs.underlying go!"ActAsLeader") (PairV #x #y) (Val #(({ x with ActAsLeader' := y } : PingArgs)))
   method_set : go.MethodSetIs PingArgs.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PingArgs.ty) [(go!"BinarySize", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_BinarySize_unfold : MethodUnfold (go.GoType.PointerType PingArgs.ty) go!"BinarySize" PingArgs.BinarySize.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType PingArgs.ty) go!"Marshal" PingArgs.Marshal.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType PingArgs.ty) go!"Unmarshal" PingArgs.Unmarshal.impl
+  ptr_unfold'BinarySize : MethodUnfold (go.GoType.PointerType PingArgs.ty) go!"BinarySize" PingArgs.BinarySize.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType PingArgs.ty) go!"Marshal" PingArgs.Marshal.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType PingArgs.ty) go!"Unmarshal" PingArgs.Unmarshal.impl
 
 attribute [instance] PingArgs.TypeAssumptions.type_repr
   PingArgs.TypeAssumptions.underlying
-  PingArgs.TypeAssumptions.get_ActAsLeader
-  PingArgs.TypeAssumptions.set_ActAsLeader
+  PingArgs.TypeAssumptions.get'ActAsLeader
+  PingArgs.TypeAssumptions.set'ActAsLeader
   PingArgs.TypeAssumptions.method_set
   PingArgs.TypeAssumptions.ptr_method_set
-  PingArgs.TypeAssumptions.ptr_BinarySize_unfold
-  PingArgs.TypeAssumptions.ptr_Marshal_unfold
-  PingArgs.TypeAssumptions.ptr_Unmarshal_unfold
+  PingArgs.TypeAssumptions.ptr_unfold'BinarySize
+  PingArgs.TypeAssumptions.ptr_unfold'Marshal
+  PingArgs.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure PingReply [GooseExts] where
   mk ::
@@ -4725,7 +4725,7 @@ noncomputable instance PingReply.zero_val [GooseExts] : ZeroVal PingReply :=
 @[irreducible] noncomputable def PingReply.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PingReply.fieldsUnsealed
 
-noncomputable instance equals_unfold_PingReply [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PingReply [GooseExts] [GoGlobalContext] :
     EqualsUnfold PingReply.fields PingReply.fieldsUnsealed :=
   ⟨by unfold PingReply.fields; rfl⟩
 
@@ -4737,17 +4737,17 @@ class PingReply.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq PingReply.ty PingReply.underlying
   method_set : go.MethodSetIs PingReply.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PingReply.ty) [(go!"BinarySize", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_BinarySize_unfold : MethodUnfold (go.GoType.PointerType PingReply.ty) go!"BinarySize" PingReply.BinarySize.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType PingReply.ty) go!"Marshal" PingReply.Marshal.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType PingReply.ty) go!"Unmarshal" PingReply.Unmarshal.impl
+  ptr_unfold'BinarySize : MethodUnfold (go.GoType.PointerType PingReply.ty) go!"BinarySize" PingReply.BinarySize.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType PingReply.ty) go!"Marshal" PingReply.Marshal.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType PingReply.ty) go!"Unmarshal" PingReply.Unmarshal.impl
 
 attribute [instance] PingReply.TypeAssumptions.type_repr
   PingReply.TypeAssumptions.underlying
   PingReply.TypeAssumptions.method_set
   PingReply.TypeAssumptions.ptr_method_set
-  PingReply.TypeAssumptions.ptr_BinarySize_unfold
-  PingReply.TypeAssumptions.ptr_Marshal_unfold
-  PingReply.TypeAssumptions.ptr_Unmarshal_unfold
+  PingReply.TypeAssumptions.ptr_unfold'BinarySize
+  PingReply.TypeAssumptions.ptr_unfold'Marshal
+  PingReply.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure BeTheLeaderArgs [GooseExts] where
   mk ::
@@ -4761,7 +4761,7 @@ noncomputable instance BeTheLeaderArgs.zero_val [GooseExts] : ZeroVal BeTheLeade
 @[irreducible] noncomputable def BeTheLeaderArgs.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   BeTheLeaderArgs.fieldsUnsealed
 
-noncomputable instance equals_unfold_BeTheLeaderArgs [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'BeTheLeaderArgs [GooseExts] [GoGlobalContext] :
     EqualsUnfold BeTheLeaderArgs.fields BeTheLeaderArgs.fieldsUnsealed :=
   ⟨by unfold BeTheLeaderArgs.fields; rfl⟩
 
@@ -4773,17 +4773,17 @@ class BeTheLeaderArgs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   underlying : go.UnderlyingDirectedEq BeTheLeaderArgs.ty BeTheLeaderArgs.underlying
   method_set : go.MethodSetIs BeTheLeaderArgs.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType BeTheLeaderArgs.ty) [(go!"BinarySize", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_BinarySize_unfold : MethodUnfold (go.GoType.PointerType BeTheLeaderArgs.ty) go!"BinarySize" BeTheLeaderArgs.BinarySize.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType BeTheLeaderArgs.ty) go!"Marshal" BeTheLeaderArgs.Marshal.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType BeTheLeaderArgs.ty) go!"Unmarshal" BeTheLeaderArgs.Unmarshal.impl
+  ptr_unfold'BinarySize : MethodUnfold (go.GoType.PointerType BeTheLeaderArgs.ty) go!"BinarySize" BeTheLeaderArgs.BinarySize.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType BeTheLeaderArgs.ty) go!"Marshal" BeTheLeaderArgs.Marshal.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType BeTheLeaderArgs.ty) go!"Unmarshal" BeTheLeaderArgs.Unmarshal.impl
 
 attribute [instance] BeTheLeaderArgs.TypeAssumptions.type_repr
   BeTheLeaderArgs.TypeAssumptions.underlying
   BeTheLeaderArgs.TypeAssumptions.method_set
   BeTheLeaderArgs.TypeAssumptions.ptr_method_set
-  BeTheLeaderArgs.TypeAssumptions.ptr_BinarySize_unfold
-  BeTheLeaderArgs.TypeAssumptions.ptr_Marshal_unfold
-  BeTheLeaderArgs.TypeAssumptions.ptr_Unmarshal_unfold
+  BeTheLeaderArgs.TypeAssumptions.ptr_unfold'BinarySize
+  BeTheLeaderArgs.TypeAssumptions.ptr_unfold'Marshal
+  BeTheLeaderArgs.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure BeTheLeaderReply [GooseExts] where
   mk ::
@@ -4800,7 +4800,7 @@ noncomputable instance BeTheLeaderReply.zero_val [GooseExts] : ZeroVal BeTheLead
 @[irreducible] noncomputable def BeTheLeaderReply.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   BeTheLeaderReply.fieldsUnsealed
 
-noncomputable instance equals_unfold_BeTheLeaderReply [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'BeTheLeaderReply [GooseExts] [GoGlobalContext] :
     EqualsUnfold BeTheLeaderReply.fields BeTheLeaderReply.fieldsUnsealed :=
   ⟨by unfold BeTheLeaderReply.fields; rfl⟩
 
@@ -4810,29 +4810,29 @@ noncomputable instance equals_unfold_BeTheLeaderReply [GooseExts] [GoGlobalConte
 class BeTheLeaderReply.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BeTheLeaderReply.underlying BeTheLeaderReply
   underlying : go.UnderlyingDirectedEq BeTheLeaderReply.ty BeTheLeaderReply.underlying
-  get_Leader : ∀ (x : BeTheLeaderReply), go.IsGoStepPureDetTagged under (StructFieldGet BeTheLeaderReply.underlying go!"Leader") #x (Val #(x.Leader'))
-  set_Leader : ∀ (x : BeTheLeaderReply) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet BeTheLeaderReply.underlying go!"Leader") (PairV #x #y) (Val #(({ x with Leader' := y } : BeTheLeaderReply)))
-  get_NextLeader : ∀ (x : BeTheLeaderReply), go.IsGoStepPureDetTagged under (StructFieldGet BeTheLeaderReply.underlying go!"NextLeader") #x (Val #(x.NextLeader'))
-  set_NextLeader : ∀ (x : BeTheLeaderReply) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet BeTheLeaderReply.underlying go!"NextLeader") (PairV #x #y) (Val #(({ x with NextLeader' := y } : BeTheLeaderReply)))
+  get'Leader : ∀ (x : BeTheLeaderReply), go.IsGoStepPureDetTagged under (StructFieldGet BeTheLeaderReply.underlying go!"Leader") #x (Val #(x.Leader'))
+  set'Leader : ∀ (x : BeTheLeaderReply) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet BeTheLeaderReply.underlying go!"Leader") (PairV #x #y) (Val #(({ x with Leader' := y } : BeTheLeaderReply)))
+  get'NextLeader : ∀ (x : BeTheLeaderReply), go.IsGoStepPureDetTagged under (StructFieldGet BeTheLeaderReply.underlying go!"NextLeader") #x (Val #(x.NextLeader'))
+  set'NextLeader : ∀ (x : BeTheLeaderReply) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet BeTheLeaderReply.underlying go!"NextLeader") (PairV #x #y) (Val #(({ x with NextLeader' := y } : BeTheLeaderReply)))
   method_set : go.MethodSetIs BeTheLeaderReply.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType BeTheLeaderReply.ty) [(go!"BinarySize", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"IsDefault", (some (go.signature.Signature [] false [go.bool]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_BinarySize_unfold : MethodUnfold (go.GoType.PointerType BeTheLeaderReply.ty) go!"BinarySize" BeTheLeaderReply.BinarySize.impl
-  ptr_IsDefault_unfold : MethodUnfold (go.GoType.PointerType BeTheLeaderReply.ty) go!"IsDefault" BeTheLeaderReply.IsDefault.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType BeTheLeaderReply.ty) go!"Marshal" BeTheLeaderReply.Marshal.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType BeTheLeaderReply.ty) go!"Unmarshal" BeTheLeaderReply.Unmarshal.impl
+  ptr_unfold'BinarySize : MethodUnfold (go.GoType.PointerType BeTheLeaderReply.ty) go!"BinarySize" BeTheLeaderReply.BinarySize.impl
+  ptr_unfold'IsDefault : MethodUnfold (go.GoType.PointerType BeTheLeaderReply.ty) go!"IsDefault" BeTheLeaderReply.IsDefault.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType BeTheLeaderReply.ty) go!"Marshal" BeTheLeaderReply.Marshal.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType BeTheLeaderReply.ty) go!"Unmarshal" BeTheLeaderReply.Unmarshal.impl
 
 attribute [instance] BeTheLeaderReply.TypeAssumptions.type_repr
   BeTheLeaderReply.TypeAssumptions.underlying
-  BeTheLeaderReply.TypeAssumptions.get_Leader
-  BeTheLeaderReply.TypeAssumptions.set_Leader
-  BeTheLeaderReply.TypeAssumptions.get_NextLeader
-  BeTheLeaderReply.TypeAssumptions.set_NextLeader
+  BeTheLeaderReply.TypeAssumptions.get'Leader
+  BeTheLeaderReply.TypeAssumptions.set'Leader
+  BeTheLeaderReply.TypeAssumptions.get'NextLeader
+  BeTheLeaderReply.TypeAssumptions.set'NextLeader
   BeTheLeaderReply.TypeAssumptions.method_set
   BeTheLeaderReply.TypeAssumptions.ptr_method_set
-  BeTheLeaderReply.TypeAssumptions.ptr_BinarySize_unfold
-  BeTheLeaderReply.TypeAssumptions.ptr_IsDefault_unfold
-  BeTheLeaderReply.TypeAssumptions.ptr_Marshal_unfold
-  BeTheLeaderReply.TypeAssumptions.ptr_Unmarshal_unfold
+  BeTheLeaderReply.TypeAssumptions.ptr_unfold'BinarySize
+  BeTheLeaderReply.TypeAssumptions.ptr_unfold'IsDefault
+  BeTheLeaderReply.TypeAssumptions.ptr_unfold'Marshal
+  BeTheLeaderReply.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure GPropose [GooseExts] where
   mk ::
@@ -4855,7 +4855,7 @@ noncomputable instance GPropose.zero_val [GooseExts] : ZeroVal GPropose :=
 @[irreducible] noncomputable def GPropose.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GPropose.fieldsUnsealed
 
-noncomputable instance equals_unfold_GPropose [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'GPropose [GooseExts] [GoGlobalContext] :
     EqualsUnfold GPropose.fields GPropose.fieldsUnsealed :=
   ⟨by unfold GPropose.fields; rfl⟩
 
@@ -4865,51 +4865,51 @@ noncomputable instance equals_unfold_GPropose [GooseExts] [GoGlobalContext] :
 class GPropose.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GPropose.underlying GPropose
   underlying : go.UnderlyingDirectedEq GPropose.ty GPropose.underlying
-  get_Propose : ∀ (x : GPropose), go.IsGoStepPureDetTagged under (StructFieldGet GPropose.underlying go!"Propose") #x (Val #(x.Propose'))
-  set_Propose : ∀ (x : GPropose) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet GPropose.underlying go!"Propose") (PairV #x #y) (Val #(({ x with Propose' := y } : GPropose)))
-  get_Reply : ∀ (x : GPropose), go.IsGoStepPureDetTagged under (StructFieldGet GPropose.underlying go!"Reply") #x (Val #(x.Reply'))
-  set_Reply : ∀ (x : GPropose) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet GPropose.underlying go!"Reply") (PairV #x #y) (Val #(({ x with Reply' := y } : GPropose)))
-  get_Mutex : ∀ (x : GPropose), go.IsGoStepPureDetTagged under (StructFieldGet GPropose.underlying go!"Mutex") #x (Val #(x.Mutex'))
-  set_Mutex : ∀ (x : GPropose) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet GPropose.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : GPropose)))
-  get_Proxy : ∀ (x : GPropose), go.IsGoStepPureDetTagged under (StructFieldGet GPropose.underlying go!"Proxy") #x (Val #(x.Proxy'))
-  set_Proxy : ∀ (x : GPropose) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet GPropose.underlying go!"Proxy") (PairV #x #y) (Val #(({ x with Proxy' := y } : GPropose)))
-  get_Addr : ∀ (x : GPropose), go.IsGoStepPureDetTagged under (StructFieldGet GPropose.underlying go!"Addr") #x (Val #(x.Addr'))
-  set_Addr : ∀ (x : GPropose) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GPropose.underlying go!"Addr") (PairV #x #y) (Val #(({ x with Addr' := y } : GPropose)))
+  get'Propose : ∀ (x : GPropose), go.IsGoStepPureDetTagged under (StructFieldGet GPropose.underlying go!"Propose") #x (Val #(x.Propose'))
+  set'Propose : ∀ (x : GPropose) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet GPropose.underlying go!"Propose") (PairV #x #y) (Val #(({ x with Propose' := y } : GPropose)))
+  get'Reply : ∀ (x : GPropose), go.IsGoStepPureDetTagged under (StructFieldGet GPropose.underlying go!"Reply") #x (Val #(x.Reply'))
+  set'Reply : ∀ (x : GPropose) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet GPropose.underlying go!"Reply") (PairV #x #y) (Val #(({ x with Reply' := y } : GPropose)))
+  get'Mutex : ∀ (x : GPropose), go.IsGoStepPureDetTagged under (StructFieldGet GPropose.underlying go!"Mutex") #x (Val #(x.Mutex'))
+  set'Mutex : ∀ (x : GPropose) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet GPropose.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : GPropose)))
+  get'Proxy : ∀ (x : GPropose), go.IsGoStepPureDetTagged under (StructFieldGet GPropose.underlying go!"Proxy") #x (Val #(x.Proxy'))
+  set'Proxy : ∀ (x : GPropose) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet GPropose.underlying go!"Proxy") (PairV #x #y) (Val #(({ x with Proxy' := y } : GPropose)))
+  get'Addr : ∀ (x : GPropose), go.IsGoStepPureDetTagged under (StructFieldGet GPropose.underlying go!"Addr") #x (Val #(x.Addr'))
+  set'Addr : ∀ (x : GPropose) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GPropose.underlying go!"Addr") (PairV #x #y) (Val #(({ x with Addr' := y } : GPropose)))
   method_set : go.MethodSetIs GPropose.ty [(go!"BinarySize", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GPropose.ty) [(go!"BinarySize", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  BinarySize_unfold : MethodUnfold GPropose.ty go!"BinarySize" (LamV "$r"
+  unfold'BinarySize : MethodUnfold GPropose.ty go!"BinarySize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Propose.ty) go!"BinarySize"))) (App (Val (GoInstruction (StructFieldGet GPropose.ty go!"Propose"))) (Var "$r"))))
-  Marshal_unfold : MethodUnfold GPropose.ty go!"Marshal" (LamV "$r"
+  unfold'Marshal : MethodUnfold GPropose.ty go!"Marshal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Propose.ty) go!"Marshal"))) (App (Val (GoInstruction (StructFieldGet GPropose.ty go!"Propose"))) (Var "$r"))))
-  Unmarshal_unfold : MethodUnfold GPropose.ty go!"Unmarshal" (LamV "$r"
+  unfold'Unmarshal : MethodUnfold GPropose.ty go!"Unmarshal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Propose.ty) go!"Unmarshal"))) (App (Val (GoInstruction (StructFieldGet GPropose.ty go!"Propose"))) (Var "$r"))))
-  ptr_BinarySize_unfold : MethodUnfold (go.GoType.PointerType GPropose.ty) go!"BinarySize" (LamV "$r"
+  ptr_unfold'BinarySize : MethodUnfold (go.GoType.PointerType GPropose.ty) go!"BinarySize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Propose.ty) go!"BinarySize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Propose.ty)))) (App (Val (GoInstruction (StructFieldRef GPropose.ty go!"Propose"))) (Var "$r")))))
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType GPropose.ty) go!"Marshal" (LamV "$r"
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType GPropose.ty) go!"Marshal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Propose.ty) go!"Marshal"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Propose.ty)))) (App (Val (GoInstruction (StructFieldRef GPropose.ty go!"Propose"))) (Var "$r")))))
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType GPropose.ty) go!"Unmarshal" (LamV "$r"
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType GPropose.ty) go!"Unmarshal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Propose.ty) go!"Unmarshal"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Propose.ty)))) (App (Val (GoInstruction (StructFieldRef GPropose.ty go!"Propose"))) (Var "$r")))))
 
 attribute [instance] GPropose.TypeAssumptions.type_repr
   GPropose.TypeAssumptions.underlying
-  GPropose.TypeAssumptions.get_Propose
-  GPropose.TypeAssumptions.set_Propose
-  GPropose.TypeAssumptions.get_Reply
-  GPropose.TypeAssumptions.set_Reply
-  GPropose.TypeAssumptions.get_Mutex
-  GPropose.TypeAssumptions.set_Mutex
-  GPropose.TypeAssumptions.get_Proxy
-  GPropose.TypeAssumptions.set_Proxy
-  GPropose.TypeAssumptions.get_Addr
-  GPropose.TypeAssumptions.set_Addr
+  GPropose.TypeAssumptions.get'Propose
+  GPropose.TypeAssumptions.set'Propose
+  GPropose.TypeAssumptions.get'Reply
+  GPropose.TypeAssumptions.set'Reply
+  GPropose.TypeAssumptions.get'Mutex
+  GPropose.TypeAssumptions.set'Mutex
+  GPropose.TypeAssumptions.get'Proxy
+  GPropose.TypeAssumptions.set'Proxy
+  GPropose.TypeAssumptions.get'Addr
+  GPropose.TypeAssumptions.set'Addr
   GPropose.TypeAssumptions.method_set
   GPropose.TypeAssumptions.ptr_method_set
-  GPropose.TypeAssumptions.BinarySize_unfold
-  GPropose.TypeAssumptions.Marshal_unfold
-  GPropose.TypeAssumptions.Unmarshal_unfold
-  GPropose.TypeAssumptions.ptr_BinarySize_unfold
-  GPropose.TypeAssumptions.ptr_Marshal_unfold
-  GPropose.TypeAssumptions.ptr_Unmarshal_unfold
+  GPropose.TypeAssumptions.unfold'BinarySize
+  GPropose.TypeAssumptions.unfold'Marshal
+  GPropose.TypeAssumptions.unfold'Unmarshal
+  GPropose.TypeAssumptions.ptr_unfold'BinarySize
+  GPropose.TypeAssumptions.ptr_unfold'Marshal
+  GPropose.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure GBeacon [GooseExts] where
   mk ::
@@ -4926,7 +4926,7 @@ noncomputable instance GBeacon.zero_val [GooseExts] : ZeroVal GBeacon :=
 @[irreducible] noncomputable def GBeacon.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GBeacon.fieldsUnsealed
 
-noncomputable instance equals_unfold_GBeacon [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'GBeacon [GooseExts] [GoGlobalContext] :
     EqualsUnfold GBeacon.fields GBeacon.fieldsUnsealed :=
   ⟨by unfold GBeacon.fields; rfl⟩
 
@@ -4936,19 +4936,19 @@ noncomputable instance equals_unfold_GBeacon [GooseExts] [GoGlobalContext] :
 class GBeacon.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GBeacon.underlying GBeacon
   underlying : go.UnderlyingDirectedEq GBeacon.ty GBeacon.underlying
-  get_Rid : ∀ (x : GBeacon), go.IsGoStepPureDetTagged under (StructFieldGet GBeacon.underlying go!"Rid") #x (Val #(x.Rid'))
-  set_Rid : ∀ (x : GBeacon) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet GBeacon.underlying go!"Rid") (PairV #x #y) (Val #(({ x with Rid' := y } : GBeacon)))
-  get_Timestamp : ∀ (x : GBeacon), go.IsGoStepPureDetTagged under (StructFieldGet GBeacon.underlying go!"Timestamp") #x (Val #(x.Timestamp'))
-  set_Timestamp : ∀ (x : GBeacon) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet GBeacon.underlying go!"Timestamp") (PairV #x #y) (Val #(({ x with Timestamp' := y } : GBeacon)))
+  get'Rid : ∀ (x : GBeacon), go.IsGoStepPureDetTagged under (StructFieldGet GBeacon.underlying go!"Rid") #x (Val #(x.Rid'))
+  set'Rid : ∀ (x : GBeacon) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet GBeacon.underlying go!"Rid") (PairV #x #y) (Val #(({ x with Rid' := y } : GBeacon)))
+  get'Timestamp : ∀ (x : GBeacon), go.IsGoStepPureDetTagged under (StructFieldGet GBeacon.underlying go!"Timestamp") #x (Val #(x.Timestamp'))
+  set'Timestamp : ∀ (x : GBeacon) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet GBeacon.underlying go!"Timestamp") (PairV #x #y) (Val #(({ x with Timestamp' := y } : GBeacon)))
   method_set : go.MethodSetIs GBeacon.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GBeacon.ty) []
 
 attribute [instance] GBeacon.TypeAssumptions.type_repr
   GBeacon.TypeAssumptions.underlying
-  GBeacon.TypeAssumptions.get_Rid
-  GBeacon.TypeAssumptions.set_Rid
-  GBeacon.TypeAssumptions.get_Timestamp
-  GBeacon.TypeAssumptions.set_Timestamp
+  GBeacon.TypeAssumptions.get'Rid
+  GBeacon.TypeAssumptions.set'Rid
+  GBeacon.TypeAssumptions.get'Timestamp
+  GBeacon.TypeAssumptions.set'Timestamp
   GBeacon.TypeAssumptions.method_set
   GBeacon.TypeAssumptions.ptr_method_set
 
@@ -4965,7 +4965,7 @@ noncomputable instance Stats.zero_val [GooseExts] : ZeroVal Stats :=
 @[irreducible] noncomputable def Stats.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Stats.fieldsUnsealed
 
-noncomputable instance equals_unfold_Stats [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Stats [GooseExts] [GoGlobalContext] :
     EqualsUnfold Stats.fields Stats.fieldsUnsealed :=
   ⟨by unfold Stats.fields; rfl⟩
 
@@ -4975,15 +4975,15 @@ noncomputable instance equals_unfold_Stats [GooseExts] [GoGlobalContext] :
 class Stats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Stats.underlying Stats
   underlying : go.UnderlyingDirectedEq Stats.ty Stats.underlying
-  get_M : ∀ (x : Stats), go.IsGoStepPureDetTagged under (StructFieldGet Stats.underlying go!"M") #x (Val #(x.M'))
-  set_M : ∀ (x : Stats) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Stats.underlying go!"M") (PairV #x #y) (Val #(({ x with M' := y } : Stats)))
+  get'M : ∀ (x : Stats), go.IsGoStepPureDetTagged under (StructFieldGet Stats.underlying go!"M") #x (Val #(x.M'))
+  set'M : ∀ (x : Stats) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Stats.underlying go!"M") (PairV #x #y) (Val #(({ x with M' := y } : Stats)))
   method_set : go.MethodSetIs Stats.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Stats.ty) []
 
 attribute [instance] Stats.TypeAssumptions.type_repr
   Stats.TypeAssumptions.underlying
-  Stats.TypeAssumptions.get_M
-  Stats.TypeAssumptions.set_M
+  Stats.TypeAssumptions.get'M
+  Stats.TypeAssumptions.set'M
   Stats.TypeAssumptions.method_set
   Stats.TypeAssumptions.ptr_method_set
 
@@ -5002,7 +5002,7 @@ noncomputable instance PingArgsCache.zero_val [GooseExts] : ZeroVal PingArgsCach
 @[irreducible] noncomputable def PingArgsCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PingArgsCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_PingArgsCache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PingArgsCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold PingArgsCache.fields PingArgsCache.fieldsUnsealed :=
   ⟨by unfold PingArgsCache.fields; rfl⟩
 
@@ -5012,25 +5012,25 @@ noncomputable instance equals_unfold_PingArgsCache [GooseExts] [GoGlobalContext]
 class PingArgsCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PingArgsCache.underlying PingArgsCache
   underlying : go.UnderlyingDirectedEq PingArgsCache.ty PingArgsCache.underlying
-  get_mu : ∀ (x : PingArgsCache), go.IsGoStepPureDetTagged under (StructFieldGet PingArgsCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : PingArgsCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet PingArgsCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : PingArgsCache)))
-  get_cache : ∀ (x : PingArgsCache), go.IsGoStepPureDetTagged under (StructFieldGet PingArgsCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : PingArgsCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PingArgsCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : PingArgsCache)))
+  get'mu : ∀ (x : PingArgsCache), go.IsGoStepPureDetTagged under (StructFieldGet PingArgsCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : PingArgsCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet PingArgsCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : PingArgsCache)))
+  get'cache : ∀ (x : PingArgsCache), go.IsGoStepPureDetTagged under (StructFieldGet PingArgsCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : PingArgsCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PingArgsCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : PingArgsCache)))
   method_set : go.MethodSetIs PingArgsCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PingArgsCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType PingArgs.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType PingArgs.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType PingArgsCache.ty) go!"Get" PingArgsCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType PingArgsCache.ty) go!"Put" PingArgsCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType PingArgsCache.ty) go!"Get" PingArgsCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType PingArgsCache.ty) go!"Put" PingArgsCache.Put.impl
 
 attribute [instance] PingArgsCache.TypeAssumptions.type_repr
   PingArgsCache.TypeAssumptions.underlying
-  PingArgsCache.TypeAssumptions.get_mu
-  PingArgsCache.TypeAssumptions.set_mu
-  PingArgsCache.TypeAssumptions.get_cache
-  PingArgsCache.TypeAssumptions.set_cache
+  PingArgsCache.TypeAssumptions.get'mu
+  PingArgsCache.TypeAssumptions.set'mu
+  PingArgsCache.TypeAssumptions.get'cache
+  PingArgsCache.TypeAssumptions.set'cache
   PingArgsCache.TypeAssumptions.method_set
   PingArgsCache.TypeAssumptions.ptr_method_set
-  PingArgsCache.TypeAssumptions.ptr_Get_unfold
-  PingArgsCache.TypeAssumptions.ptr_Put_unfold
+  PingArgsCache.TypeAssumptions.ptr_unfold'Get
+  PingArgsCache.TypeAssumptions.ptr_unfold'Put
 
 structure PingReplyCache [GooseExts] where
   mk ::
@@ -5047,7 +5047,7 @@ noncomputable instance PingReplyCache.zero_val [GooseExts] : ZeroVal PingReplyCa
 @[irreducible] noncomputable def PingReplyCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PingReplyCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_PingReplyCache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PingReplyCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold PingReplyCache.fields PingReplyCache.fieldsUnsealed :=
   ⟨by unfold PingReplyCache.fields; rfl⟩
 
@@ -5057,25 +5057,25 @@ noncomputable instance equals_unfold_PingReplyCache [GooseExts] [GoGlobalContext
 class PingReplyCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PingReplyCache.underlying PingReplyCache
   underlying : go.UnderlyingDirectedEq PingReplyCache.ty PingReplyCache.underlying
-  get_mu : ∀ (x : PingReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet PingReplyCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : PingReplyCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet PingReplyCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : PingReplyCache)))
-  get_cache : ∀ (x : PingReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet PingReplyCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : PingReplyCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PingReplyCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : PingReplyCache)))
+  get'mu : ∀ (x : PingReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet PingReplyCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : PingReplyCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet PingReplyCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : PingReplyCache)))
+  get'cache : ∀ (x : PingReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet PingReplyCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : PingReplyCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PingReplyCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : PingReplyCache)))
   method_set : go.MethodSetIs PingReplyCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PingReplyCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType PingReply.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType PingReply.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType PingReplyCache.ty) go!"Get" PingReplyCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType PingReplyCache.ty) go!"Put" PingReplyCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType PingReplyCache.ty) go!"Get" PingReplyCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType PingReplyCache.ty) go!"Put" PingReplyCache.Put.impl
 
 attribute [instance] PingReplyCache.TypeAssumptions.type_repr
   PingReplyCache.TypeAssumptions.underlying
-  PingReplyCache.TypeAssumptions.get_mu
-  PingReplyCache.TypeAssumptions.set_mu
-  PingReplyCache.TypeAssumptions.get_cache
-  PingReplyCache.TypeAssumptions.set_cache
+  PingReplyCache.TypeAssumptions.get'mu
+  PingReplyCache.TypeAssumptions.set'mu
+  PingReplyCache.TypeAssumptions.get'cache
+  PingReplyCache.TypeAssumptions.set'cache
   PingReplyCache.TypeAssumptions.method_set
   PingReplyCache.TypeAssumptions.ptr_method_set
-  PingReplyCache.TypeAssumptions.ptr_Get_unfold
-  PingReplyCache.TypeAssumptions.ptr_Put_unfold
+  PingReplyCache.TypeAssumptions.ptr_unfold'Get
+  PingReplyCache.TypeAssumptions.ptr_unfold'Put
 
 structure BeTheLeaderReplyCache [GooseExts] where
   mk ::
@@ -5092,7 +5092,7 @@ noncomputable instance BeTheLeaderReplyCache.zero_val [GooseExts] : ZeroVal BeTh
 @[irreducible] noncomputable def BeTheLeaderReplyCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   BeTheLeaderReplyCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_BeTheLeaderReplyCache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'BeTheLeaderReplyCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold BeTheLeaderReplyCache.fields BeTheLeaderReplyCache.fieldsUnsealed :=
   ⟨by unfold BeTheLeaderReplyCache.fields; rfl⟩
 
@@ -5102,25 +5102,25 @@ noncomputable instance equals_unfold_BeTheLeaderReplyCache [GooseExts] [GoGlobal
 class BeTheLeaderReplyCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BeTheLeaderReplyCache.underlying BeTheLeaderReplyCache
   underlying : go.UnderlyingDirectedEq BeTheLeaderReplyCache.ty BeTheLeaderReplyCache.underlying
-  get_mu : ∀ (x : BeTheLeaderReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet BeTheLeaderReplyCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : BeTheLeaderReplyCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet BeTheLeaderReplyCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : BeTheLeaderReplyCache)))
-  get_cache : ∀ (x : BeTheLeaderReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet BeTheLeaderReplyCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : BeTheLeaderReplyCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet BeTheLeaderReplyCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : BeTheLeaderReplyCache)))
+  get'mu : ∀ (x : BeTheLeaderReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet BeTheLeaderReplyCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : BeTheLeaderReplyCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet BeTheLeaderReplyCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : BeTheLeaderReplyCache)))
+  get'cache : ∀ (x : BeTheLeaderReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet BeTheLeaderReplyCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : BeTheLeaderReplyCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet BeTheLeaderReplyCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : BeTheLeaderReplyCache)))
   method_set : go.MethodSetIs BeTheLeaderReplyCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType BeTheLeaderReplyCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType BeTheLeaderReply.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType BeTheLeaderReply.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType BeTheLeaderReplyCache.ty) go!"Get" BeTheLeaderReplyCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType BeTheLeaderReplyCache.ty) go!"Put" BeTheLeaderReplyCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType BeTheLeaderReplyCache.ty) go!"Get" BeTheLeaderReplyCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType BeTheLeaderReplyCache.ty) go!"Put" BeTheLeaderReplyCache.Put.impl
 
 attribute [instance] BeTheLeaderReplyCache.TypeAssumptions.type_repr
   BeTheLeaderReplyCache.TypeAssumptions.underlying
-  BeTheLeaderReplyCache.TypeAssumptions.get_mu
-  BeTheLeaderReplyCache.TypeAssumptions.set_mu
-  BeTheLeaderReplyCache.TypeAssumptions.get_cache
-  BeTheLeaderReplyCache.TypeAssumptions.set_cache
+  BeTheLeaderReplyCache.TypeAssumptions.get'mu
+  BeTheLeaderReplyCache.TypeAssumptions.set'mu
+  BeTheLeaderReplyCache.TypeAssumptions.get'cache
+  BeTheLeaderReplyCache.TypeAssumptions.set'cache
   BeTheLeaderReplyCache.TypeAssumptions.method_set
   BeTheLeaderReplyCache.TypeAssumptions.ptr_method_set
-  BeTheLeaderReplyCache.TypeAssumptions.ptr_Get_unfold
-  BeTheLeaderReplyCache.TypeAssumptions.ptr_Put_unfold
+  BeTheLeaderReplyCache.TypeAssumptions.ptr_unfold'Get
+  BeTheLeaderReplyCache.TypeAssumptions.ptr_unfold'Put
 
 structure ProposeCache [GooseExts] where
   mk ::
@@ -5137,7 +5137,7 @@ noncomputable instance ProposeCache.zero_val [GooseExts] : ZeroVal ProposeCache 
 @[irreducible] noncomputable def ProposeCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposeCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposeCache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposeCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposeCache.fields ProposeCache.fieldsUnsealed :=
   ⟨by unfold ProposeCache.fields; rfl⟩
 
@@ -5147,25 +5147,25 @@ noncomputable instance equals_unfold_ProposeCache [GooseExts] [GoGlobalContext] 
 class ProposeCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposeCache.underlying ProposeCache
   underlying : go.UnderlyingDirectedEq ProposeCache.ty ProposeCache.underlying
-  get_mu : ∀ (x : ProposeCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : ProposeCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ProposeCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ProposeCache)))
-  get_cache : ∀ (x : ProposeCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : ProposeCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : ProposeCache)))
+  get'mu : ∀ (x : ProposeCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : ProposeCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ProposeCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ProposeCache)))
+  get'cache : ∀ (x : ProposeCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : ProposeCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : ProposeCache)))
   method_set : go.MethodSetIs ProposeCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposeCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType Propose.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType Propose.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType ProposeCache.ty) go!"Get" ProposeCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType ProposeCache.ty) go!"Put" ProposeCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType ProposeCache.ty) go!"Get" ProposeCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType ProposeCache.ty) go!"Put" ProposeCache.Put.impl
 
 attribute [instance] ProposeCache.TypeAssumptions.type_repr
   ProposeCache.TypeAssumptions.underlying
-  ProposeCache.TypeAssumptions.get_mu
-  ProposeCache.TypeAssumptions.set_mu
-  ProposeCache.TypeAssumptions.get_cache
-  ProposeCache.TypeAssumptions.set_cache
+  ProposeCache.TypeAssumptions.get'mu
+  ProposeCache.TypeAssumptions.set'mu
+  ProposeCache.TypeAssumptions.get'cache
+  ProposeCache.TypeAssumptions.set'cache
   ProposeCache.TypeAssumptions.method_set
   ProposeCache.TypeAssumptions.ptr_method_set
-  ProposeCache.TypeAssumptions.ptr_Get_unfold
-  ProposeCache.TypeAssumptions.ptr_Put_unfold
+  ProposeCache.TypeAssumptions.ptr_unfold'Get
+  ProposeCache.TypeAssumptions.ptr_unfold'Put
 
 structure ProposeReplyTSCache [GooseExts] where
   mk ::
@@ -5182,7 +5182,7 @@ noncomputable instance ProposeReplyTSCache.zero_val [GooseExts] : ZeroVal Propos
 @[irreducible] noncomputable def ProposeReplyTSCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposeReplyTSCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposeReplyTSCache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposeReplyTSCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposeReplyTSCache.fields ProposeReplyTSCache.fieldsUnsealed :=
   ⟨by unfold ProposeReplyTSCache.fields; rfl⟩
 
@@ -5192,25 +5192,25 @@ noncomputable instance equals_unfold_ProposeReplyTSCache [GooseExts] [GoGlobalCo
 class ProposeReplyTSCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposeReplyTSCache.underlying ProposeReplyTSCache
   underlying : go.UnderlyingDirectedEq ProposeReplyTSCache.ty ProposeReplyTSCache.underlying
-  get_mu : ∀ (x : ProposeReplyTSCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReplyTSCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : ProposeReplyTSCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReplyTSCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ProposeReplyTSCache)))
-  get_cache : ∀ (x : ProposeReplyTSCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReplyTSCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : ProposeReplyTSCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReplyTSCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : ProposeReplyTSCache)))
+  get'mu : ∀ (x : ProposeReplyTSCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReplyTSCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : ProposeReplyTSCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReplyTSCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ProposeReplyTSCache)))
+  get'cache : ∀ (x : ProposeReplyTSCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReplyTSCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : ProposeReplyTSCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReplyTSCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : ProposeReplyTSCache)))
   method_set : go.MethodSetIs ProposeReplyTSCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposeReplyTSCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType ProposeReplyTS.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType ProposeReplyTS.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType ProposeReplyTSCache.ty) go!"Get" ProposeReplyTSCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType ProposeReplyTSCache.ty) go!"Put" ProposeReplyTSCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType ProposeReplyTSCache.ty) go!"Get" ProposeReplyTSCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType ProposeReplyTSCache.ty) go!"Put" ProposeReplyTSCache.Put.impl
 
 attribute [instance] ProposeReplyTSCache.TypeAssumptions.type_repr
   ProposeReplyTSCache.TypeAssumptions.underlying
-  ProposeReplyTSCache.TypeAssumptions.get_mu
-  ProposeReplyTSCache.TypeAssumptions.set_mu
-  ProposeReplyTSCache.TypeAssumptions.get_cache
-  ProposeReplyTSCache.TypeAssumptions.set_cache
+  ProposeReplyTSCache.TypeAssumptions.get'mu
+  ProposeReplyTSCache.TypeAssumptions.set'mu
+  ProposeReplyTSCache.TypeAssumptions.get'cache
+  ProposeReplyTSCache.TypeAssumptions.set'cache
   ProposeReplyTSCache.TypeAssumptions.method_set
   ProposeReplyTSCache.TypeAssumptions.ptr_method_set
-  ProposeReplyTSCache.TypeAssumptions.ptr_Get_unfold
-  ProposeReplyTSCache.TypeAssumptions.ptr_Put_unfold
+  ProposeReplyTSCache.TypeAssumptions.ptr_unfold'Get
+  ProposeReplyTSCache.TypeAssumptions.ptr_unfold'Put
 
 structure ReadCache [GooseExts] where
   mk ::
@@ -5227,7 +5227,7 @@ noncomputable instance ReadCache.zero_val [GooseExts] : ZeroVal ReadCache :=
 @[irreducible] noncomputable def ReadCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReadCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReadCache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ReadCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReadCache.fields ReadCache.fieldsUnsealed :=
   ⟨by unfold ReadCache.fields; rfl⟩
 
@@ -5237,25 +5237,25 @@ noncomputable instance equals_unfold_ReadCache [GooseExts] [GoGlobalContext] :
 class ReadCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReadCache.underlying ReadCache
   underlying : go.UnderlyingDirectedEq ReadCache.ty ReadCache.underlying
-  get_mu : ∀ (x : ReadCache), go.IsGoStepPureDetTagged under (StructFieldGet ReadCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : ReadCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ReadCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ReadCache)))
-  get_cache : ∀ (x : ReadCache), go.IsGoStepPureDetTagged under (StructFieldGet ReadCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : ReadCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ReadCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : ReadCache)))
+  get'mu : ∀ (x : ReadCache), go.IsGoStepPureDetTagged under (StructFieldGet ReadCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : ReadCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ReadCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ReadCache)))
+  get'cache : ∀ (x : ReadCache), go.IsGoStepPureDetTagged under (StructFieldGet ReadCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : ReadCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ReadCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : ReadCache)))
   method_set : go.MethodSetIs ReadCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReadCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType Read.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType Read.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType ReadCache.ty) go!"Get" ReadCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType ReadCache.ty) go!"Put" ReadCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType ReadCache.ty) go!"Get" ReadCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType ReadCache.ty) go!"Put" ReadCache.Put.impl
 
 attribute [instance] ReadCache.TypeAssumptions.type_repr
   ReadCache.TypeAssumptions.underlying
-  ReadCache.TypeAssumptions.get_mu
-  ReadCache.TypeAssumptions.set_mu
-  ReadCache.TypeAssumptions.get_cache
-  ReadCache.TypeAssumptions.set_cache
+  ReadCache.TypeAssumptions.get'mu
+  ReadCache.TypeAssumptions.set'mu
+  ReadCache.TypeAssumptions.get'cache
+  ReadCache.TypeAssumptions.set'cache
   ReadCache.TypeAssumptions.method_set
   ReadCache.TypeAssumptions.ptr_method_set
-  ReadCache.TypeAssumptions.ptr_Get_unfold
-  ReadCache.TypeAssumptions.ptr_Put_unfold
+  ReadCache.TypeAssumptions.ptr_unfold'Get
+  ReadCache.TypeAssumptions.ptr_unfold'Put
 
 structure ProposeAndReadCache [GooseExts] where
   mk ::
@@ -5272,7 +5272,7 @@ noncomputable instance ProposeAndReadCache.zero_val [GooseExts] : ZeroVal Propos
 @[irreducible] noncomputable def ProposeAndReadCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposeAndReadCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposeAndReadCache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposeAndReadCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposeAndReadCache.fields ProposeAndReadCache.fieldsUnsealed :=
   ⟨by unfold ProposeAndReadCache.fields; rfl⟩
 
@@ -5282,25 +5282,25 @@ noncomputable instance equals_unfold_ProposeAndReadCache [GooseExts] [GoGlobalCo
 class ProposeAndReadCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposeAndReadCache.underlying ProposeAndReadCache
   underlying : go.UnderlyingDirectedEq ProposeAndReadCache.ty ProposeAndReadCache.underlying
-  get_mu : ∀ (x : ProposeAndReadCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndReadCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : ProposeAndReadCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndReadCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ProposeAndReadCache)))
-  get_cache : ∀ (x : ProposeAndReadCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndReadCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : ProposeAndReadCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndReadCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : ProposeAndReadCache)))
+  get'mu : ∀ (x : ProposeAndReadCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndReadCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : ProposeAndReadCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndReadCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ProposeAndReadCache)))
+  get'cache : ∀ (x : ProposeAndReadCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndReadCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : ProposeAndReadCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndReadCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : ProposeAndReadCache)))
   method_set : go.MethodSetIs ProposeAndReadCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposeAndReadCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType ProposeAndRead.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType ProposeAndRead.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType ProposeAndReadCache.ty) go!"Get" ProposeAndReadCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType ProposeAndReadCache.ty) go!"Put" ProposeAndReadCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType ProposeAndReadCache.ty) go!"Get" ProposeAndReadCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType ProposeAndReadCache.ty) go!"Put" ProposeAndReadCache.Put.impl
 
 attribute [instance] ProposeAndReadCache.TypeAssumptions.type_repr
   ProposeAndReadCache.TypeAssumptions.underlying
-  ProposeAndReadCache.TypeAssumptions.get_mu
-  ProposeAndReadCache.TypeAssumptions.set_mu
-  ProposeAndReadCache.TypeAssumptions.get_cache
-  ProposeAndReadCache.TypeAssumptions.set_cache
+  ProposeAndReadCache.TypeAssumptions.get'mu
+  ProposeAndReadCache.TypeAssumptions.set'mu
+  ProposeAndReadCache.TypeAssumptions.get'cache
+  ProposeAndReadCache.TypeAssumptions.set'cache
   ProposeAndReadCache.TypeAssumptions.method_set
   ProposeAndReadCache.TypeAssumptions.ptr_method_set
-  ProposeAndReadCache.TypeAssumptions.ptr_Get_unfold
-  ProposeAndReadCache.TypeAssumptions.ptr_Put_unfold
+  ProposeAndReadCache.TypeAssumptions.ptr_unfold'Get
+  ProposeAndReadCache.TypeAssumptions.ptr_unfold'Put
 
 structure BeaconReplyCache [GooseExts] where
   mk ::
@@ -5317,7 +5317,7 @@ noncomputable instance BeaconReplyCache.zero_val [GooseExts] : ZeroVal BeaconRep
 @[irreducible] noncomputable def BeaconReplyCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   BeaconReplyCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_BeaconReplyCache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'BeaconReplyCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold BeaconReplyCache.fields BeaconReplyCache.fieldsUnsealed :=
   ⟨by unfold BeaconReplyCache.fields; rfl⟩
 
@@ -5327,25 +5327,25 @@ noncomputable instance equals_unfold_BeaconReplyCache [GooseExts] [GoGlobalConte
 class BeaconReplyCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BeaconReplyCache.underlying BeaconReplyCache
   underlying : go.UnderlyingDirectedEq BeaconReplyCache.ty BeaconReplyCache.underlying
-  get_mu : ∀ (x : BeaconReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet BeaconReplyCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : BeaconReplyCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet BeaconReplyCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : BeaconReplyCache)))
-  get_cache : ∀ (x : BeaconReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet BeaconReplyCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : BeaconReplyCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet BeaconReplyCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : BeaconReplyCache)))
+  get'mu : ∀ (x : BeaconReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet BeaconReplyCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : BeaconReplyCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet BeaconReplyCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : BeaconReplyCache)))
+  get'cache : ∀ (x : BeaconReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet BeaconReplyCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : BeaconReplyCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet BeaconReplyCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : BeaconReplyCache)))
   method_set : go.MethodSetIs BeaconReplyCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType BeaconReplyCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType BeaconReply.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType BeaconReply.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType BeaconReplyCache.ty) go!"Get" BeaconReplyCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType BeaconReplyCache.ty) go!"Put" BeaconReplyCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType BeaconReplyCache.ty) go!"Get" BeaconReplyCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType BeaconReplyCache.ty) go!"Put" BeaconReplyCache.Put.impl
 
 attribute [instance] BeaconReplyCache.TypeAssumptions.type_repr
   BeaconReplyCache.TypeAssumptions.underlying
-  BeaconReplyCache.TypeAssumptions.get_mu
-  BeaconReplyCache.TypeAssumptions.set_mu
-  BeaconReplyCache.TypeAssumptions.get_cache
-  BeaconReplyCache.TypeAssumptions.set_cache
+  BeaconReplyCache.TypeAssumptions.get'mu
+  BeaconReplyCache.TypeAssumptions.set'mu
+  BeaconReplyCache.TypeAssumptions.get'cache
+  BeaconReplyCache.TypeAssumptions.set'cache
   BeaconReplyCache.TypeAssumptions.method_set
   BeaconReplyCache.TypeAssumptions.ptr_method_set
-  BeaconReplyCache.TypeAssumptions.ptr_Get_unfold
-  BeaconReplyCache.TypeAssumptions.ptr_Put_unfold
+  BeaconReplyCache.TypeAssumptions.ptr_unfold'Get
+  BeaconReplyCache.TypeAssumptions.ptr_unfold'Put
 
 structure BeTheLeaderArgsCache [GooseExts] where
   mk ::
@@ -5362,7 +5362,7 @@ noncomputable instance BeTheLeaderArgsCache.zero_val [GooseExts] : ZeroVal BeThe
 @[irreducible] noncomputable def BeTheLeaderArgsCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   BeTheLeaderArgsCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_BeTheLeaderArgsCache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'BeTheLeaderArgsCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold BeTheLeaderArgsCache.fields BeTheLeaderArgsCache.fieldsUnsealed :=
   ⟨by unfold BeTheLeaderArgsCache.fields; rfl⟩
 
@@ -5372,25 +5372,25 @@ noncomputable instance equals_unfold_BeTheLeaderArgsCache [GooseExts] [GoGlobalC
 class BeTheLeaderArgsCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BeTheLeaderArgsCache.underlying BeTheLeaderArgsCache
   underlying : go.UnderlyingDirectedEq BeTheLeaderArgsCache.ty BeTheLeaderArgsCache.underlying
-  get_mu : ∀ (x : BeTheLeaderArgsCache), go.IsGoStepPureDetTagged under (StructFieldGet BeTheLeaderArgsCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : BeTheLeaderArgsCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet BeTheLeaderArgsCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : BeTheLeaderArgsCache)))
-  get_cache : ∀ (x : BeTheLeaderArgsCache), go.IsGoStepPureDetTagged under (StructFieldGet BeTheLeaderArgsCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : BeTheLeaderArgsCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet BeTheLeaderArgsCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : BeTheLeaderArgsCache)))
+  get'mu : ∀ (x : BeTheLeaderArgsCache), go.IsGoStepPureDetTagged under (StructFieldGet BeTheLeaderArgsCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : BeTheLeaderArgsCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet BeTheLeaderArgsCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : BeTheLeaderArgsCache)))
+  get'cache : ∀ (x : BeTheLeaderArgsCache), go.IsGoStepPureDetTagged under (StructFieldGet BeTheLeaderArgsCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : BeTheLeaderArgsCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet BeTheLeaderArgsCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : BeTheLeaderArgsCache)))
   method_set : go.MethodSetIs BeTheLeaderArgsCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType BeTheLeaderArgsCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType BeTheLeaderArgs.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType BeTheLeaderArgs.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType BeTheLeaderArgsCache.ty) go!"Get" BeTheLeaderArgsCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType BeTheLeaderArgsCache.ty) go!"Put" BeTheLeaderArgsCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType BeTheLeaderArgsCache.ty) go!"Get" BeTheLeaderArgsCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType BeTheLeaderArgsCache.ty) go!"Put" BeTheLeaderArgsCache.Put.impl
 
 attribute [instance] BeTheLeaderArgsCache.TypeAssumptions.type_repr
   BeTheLeaderArgsCache.TypeAssumptions.underlying
-  BeTheLeaderArgsCache.TypeAssumptions.get_mu
-  BeTheLeaderArgsCache.TypeAssumptions.set_mu
-  BeTheLeaderArgsCache.TypeAssumptions.get_cache
-  BeTheLeaderArgsCache.TypeAssumptions.set_cache
+  BeTheLeaderArgsCache.TypeAssumptions.get'mu
+  BeTheLeaderArgsCache.TypeAssumptions.set'mu
+  BeTheLeaderArgsCache.TypeAssumptions.get'cache
+  BeTheLeaderArgsCache.TypeAssumptions.set'cache
   BeTheLeaderArgsCache.TypeAssumptions.method_set
   BeTheLeaderArgsCache.TypeAssumptions.ptr_method_set
-  BeTheLeaderArgsCache.TypeAssumptions.ptr_Get_unfold
-  BeTheLeaderArgsCache.TypeAssumptions.ptr_Put_unfold
+  BeTheLeaderArgsCache.TypeAssumptions.ptr_unfold'Get
+  BeTheLeaderArgsCache.TypeAssumptions.ptr_unfold'Put
 
 structure ProposeReplyCache [GooseExts] where
   mk ::
@@ -5407,7 +5407,7 @@ noncomputable instance ProposeReplyCache.zero_val [GooseExts] : ZeroVal ProposeR
 @[irreducible] noncomputable def ProposeReplyCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposeReplyCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposeReplyCache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposeReplyCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposeReplyCache.fields ProposeReplyCache.fieldsUnsealed :=
   ⟨by unfold ProposeReplyCache.fields; rfl⟩
 
@@ -5417,25 +5417,25 @@ noncomputable instance equals_unfold_ProposeReplyCache [GooseExts] [GoGlobalCont
 class ProposeReplyCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposeReplyCache.underlying ProposeReplyCache
   underlying : go.UnderlyingDirectedEq ProposeReplyCache.ty ProposeReplyCache.underlying
-  get_mu : ∀ (x : ProposeReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReplyCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : ProposeReplyCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReplyCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ProposeReplyCache)))
-  get_cache : ∀ (x : ProposeReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReplyCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : ProposeReplyCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReplyCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : ProposeReplyCache)))
+  get'mu : ∀ (x : ProposeReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReplyCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : ProposeReplyCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReplyCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ProposeReplyCache)))
+  get'cache : ∀ (x : ProposeReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeReplyCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : ProposeReplyCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeReplyCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : ProposeReplyCache)))
   method_set : go.MethodSetIs ProposeReplyCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposeReplyCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType ProposeReply.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType ProposeReply.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType ProposeReplyCache.ty) go!"Get" ProposeReplyCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType ProposeReplyCache.ty) go!"Put" ProposeReplyCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType ProposeReplyCache.ty) go!"Get" ProposeReplyCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType ProposeReplyCache.ty) go!"Put" ProposeReplyCache.Put.impl
 
 attribute [instance] ProposeReplyCache.TypeAssumptions.type_repr
   ProposeReplyCache.TypeAssumptions.underlying
-  ProposeReplyCache.TypeAssumptions.get_mu
-  ProposeReplyCache.TypeAssumptions.set_mu
-  ProposeReplyCache.TypeAssumptions.get_cache
-  ProposeReplyCache.TypeAssumptions.set_cache
+  ProposeReplyCache.TypeAssumptions.get'mu
+  ProposeReplyCache.TypeAssumptions.set'mu
+  ProposeReplyCache.TypeAssumptions.get'cache
+  ProposeReplyCache.TypeAssumptions.set'cache
   ProposeReplyCache.TypeAssumptions.method_set
   ProposeReplyCache.TypeAssumptions.ptr_method_set
-  ProposeReplyCache.TypeAssumptions.ptr_Get_unfold
-  ProposeReplyCache.TypeAssumptions.ptr_Put_unfold
+  ProposeReplyCache.TypeAssumptions.ptr_unfold'Get
+  ProposeReplyCache.TypeAssumptions.ptr_unfold'Put
 
 structure ReadReplyCache [GooseExts] where
   mk ::
@@ -5452,7 +5452,7 @@ noncomputable instance ReadReplyCache.zero_val [GooseExts] : ZeroVal ReadReplyCa
 @[irreducible] noncomputable def ReadReplyCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReadReplyCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReadReplyCache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ReadReplyCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReadReplyCache.fields ReadReplyCache.fieldsUnsealed :=
   ⟨by unfold ReadReplyCache.fields; rfl⟩
 
@@ -5462,25 +5462,25 @@ noncomputable instance equals_unfold_ReadReplyCache [GooseExts] [GoGlobalContext
 class ReadReplyCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReadReplyCache.underlying ReadReplyCache
   underlying : go.UnderlyingDirectedEq ReadReplyCache.ty ReadReplyCache.underlying
-  get_mu : ∀ (x : ReadReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet ReadReplyCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : ReadReplyCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ReadReplyCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ReadReplyCache)))
-  get_cache : ∀ (x : ReadReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet ReadReplyCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : ReadReplyCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ReadReplyCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : ReadReplyCache)))
+  get'mu : ∀ (x : ReadReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet ReadReplyCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : ReadReplyCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ReadReplyCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ReadReplyCache)))
+  get'cache : ∀ (x : ReadReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet ReadReplyCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : ReadReplyCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ReadReplyCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : ReadReplyCache)))
   method_set : go.MethodSetIs ReadReplyCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReadReplyCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType ReadReply.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType ReadReply.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType ReadReplyCache.ty) go!"Get" ReadReplyCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType ReadReplyCache.ty) go!"Put" ReadReplyCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType ReadReplyCache.ty) go!"Get" ReadReplyCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType ReadReplyCache.ty) go!"Put" ReadReplyCache.Put.impl
 
 attribute [instance] ReadReplyCache.TypeAssumptions.type_repr
   ReadReplyCache.TypeAssumptions.underlying
-  ReadReplyCache.TypeAssumptions.get_mu
-  ReadReplyCache.TypeAssumptions.set_mu
-  ReadReplyCache.TypeAssumptions.get_cache
-  ReadReplyCache.TypeAssumptions.set_cache
+  ReadReplyCache.TypeAssumptions.get'mu
+  ReadReplyCache.TypeAssumptions.set'mu
+  ReadReplyCache.TypeAssumptions.get'cache
+  ReadReplyCache.TypeAssumptions.set'cache
   ReadReplyCache.TypeAssumptions.method_set
   ReadReplyCache.TypeAssumptions.ptr_method_set
-  ReadReplyCache.TypeAssumptions.ptr_Get_unfold
-  ReadReplyCache.TypeAssumptions.ptr_Put_unfold
+  ReadReplyCache.TypeAssumptions.ptr_unfold'Get
+  ReadReplyCache.TypeAssumptions.ptr_unfold'Put
 
 structure ProposeAndReadReplyCache [GooseExts] where
   mk ::
@@ -5497,7 +5497,7 @@ noncomputable instance ProposeAndReadReplyCache.zero_val [GooseExts] : ZeroVal P
 @[irreducible] noncomputable def ProposeAndReadReplyCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposeAndReadReplyCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposeAndReadReplyCache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposeAndReadReplyCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposeAndReadReplyCache.fields ProposeAndReadReplyCache.fieldsUnsealed :=
   ⟨by unfold ProposeAndReadReplyCache.fields; rfl⟩
 
@@ -5507,25 +5507,25 @@ noncomputable instance equals_unfold_ProposeAndReadReplyCache [GooseExts] [GoGlo
 class ProposeAndReadReplyCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposeAndReadReplyCache.underlying ProposeAndReadReplyCache
   underlying : go.UnderlyingDirectedEq ProposeAndReadReplyCache.ty ProposeAndReadReplyCache.underlying
-  get_mu : ∀ (x : ProposeAndReadReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndReadReplyCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : ProposeAndReadReplyCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndReadReplyCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ProposeAndReadReplyCache)))
-  get_cache : ∀ (x : ProposeAndReadReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndReadReplyCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : ProposeAndReadReplyCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndReadReplyCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : ProposeAndReadReplyCache)))
+  get'mu : ∀ (x : ProposeAndReadReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndReadReplyCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : ProposeAndReadReplyCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndReadReplyCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ProposeAndReadReplyCache)))
+  get'cache : ∀ (x : ProposeAndReadReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet ProposeAndReadReplyCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : ProposeAndReadReplyCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeAndReadReplyCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : ProposeAndReadReplyCache)))
   method_set : go.MethodSetIs ProposeAndReadReplyCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposeAndReadReplyCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType ProposeAndReadReply.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType ProposeAndReadReply.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType ProposeAndReadReplyCache.ty) go!"Get" ProposeAndReadReplyCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType ProposeAndReadReplyCache.ty) go!"Put" ProposeAndReadReplyCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType ProposeAndReadReplyCache.ty) go!"Get" ProposeAndReadReplyCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType ProposeAndReadReplyCache.ty) go!"Put" ProposeAndReadReplyCache.Put.impl
 
 attribute [instance] ProposeAndReadReplyCache.TypeAssumptions.type_repr
   ProposeAndReadReplyCache.TypeAssumptions.underlying
-  ProposeAndReadReplyCache.TypeAssumptions.get_mu
-  ProposeAndReadReplyCache.TypeAssumptions.set_mu
-  ProposeAndReadReplyCache.TypeAssumptions.get_cache
-  ProposeAndReadReplyCache.TypeAssumptions.set_cache
+  ProposeAndReadReplyCache.TypeAssumptions.get'mu
+  ProposeAndReadReplyCache.TypeAssumptions.set'mu
+  ProposeAndReadReplyCache.TypeAssumptions.get'cache
+  ProposeAndReadReplyCache.TypeAssumptions.set'cache
   ProposeAndReadReplyCache.TypeAssumptions.method_set
   ProposeAndReadReplyCache.TypeAssumptions.ptr_method_set
-  ProposeAndReadReplyCache.TypeAssumptions.ptr_Get_unfold
-  ProposeAndReadReplyCache.TypeAssumptions.ptr_Put_unfold
+  ProposeAndReadReplyCache.TypeAssumptions.ptr_unfold'Get
+  ProposeAndReadReplyCache.TypeAssumptions.ptr_unfold'Put
 
 structure BeaconCache [GooseExts] where
   mk ::
@@ -5542,7 +5542,7 @@ noncomputable instance BeaconCache.zero_val [GooseExts] : ZeroVal BeaconCache :=
 @[irreducible] noncomputable def BeaconCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   BeaconCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_BeaconCache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'BeaconCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold BeaconCache.fields BeaconCache.fieldsUnsealed :=
   ⟨by unfold BeaconCache.fields; rfl⟩
 
@@ -5552,25 +5552,25 @@ noncomputable instance equals_unfold_BeaconCache [GooseExts] [GoGlobalContext] :
 class BeaconCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BeaconCache.underlying BeaconCache
   underlying : go.UnderlyingDirectedEq BeaconCache.ty BeaconCache.underlying
-  get_mu : ∀ (x : BeaconCache), go.IsGoStepPureDetTagged under (StructFieldGet BeaconCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : BeaconCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet BeaconCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : BeaconCache)))
-  get_cache : ∀ (x : BeaconCache), go.IsGoStepPureDetTagged under (StructFieldGet BeaconCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : BeaconCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet BeaconCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : BeaconCache)))
+  get'mu : ∀ (x : BeaconCache), go.IsGoStepPureDetTagged under (StructFieldGet BeaconCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : BeaconCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet BeaconCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : BeaconCache)))
+  get'cache : ∀ (x : BeaconCache), go.IsGoStepPureDetTagged under (StructFieldGet BeaconCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : BeaconCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet BeaconCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : BeaconCache)))
   method_set : go.MethodSetIs BeaconCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType BeaconCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType Beacon.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType Beacon.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType BeaconCache.ty) go!"Get" BeaconCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType BeaconCache.ty) go!"Put" BeaconCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType BeaconCache.ty) go!"Get" BeaconCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType BeaconCache.ty) go!"Put" BeaconCache.Put.impl
 
 attribute [instance] BeaconCache.TypeAssumptions.type_repr
   BeaconCache.TypeAssumptions.underlying
-  BeaconCache.TypeAssumptions.get_mu
-  BeaconCache.TypeAssumptions.set_mu
-  BeaconCache.TypeAssumptions.get_cache
-  BeaconCache.TypeAssumptions.set_cache
+  BeaconCache.TypeAssumptions.get'mu
+  BeaconCache.TypeAssumptions.set'mu
+  BeaconCache.TypeAssumptions.get'cache
+  BeaconCache.TypeAssumptions.set'cache
   BeaconCache.TypeAssumptions.method_set
   BeaconCache.TypeAssumptions.ptr_method_set
-  BeaconCache.TypeAssumptions.ptr_Get_unfold
-  BeaconCache.TypeAssumptions.ptr_Put_unfold
+  BeaconCache.TypeAssumptions.ptr_unfold'Get
+  BeaconCache.TypeAssumptions.ptr_unfold'Put
 
 structure LatencyTable [GooseExts] where
   mk ::
@@ -5589,7 +5589,7 @@ noncomputable instance LatencyTable.zero_val [GooseExts] : ZeroVal LatencyTable 
 @[irreducible] noncomputable def LatencyTable.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LatencyTable.fieldsUnsealed
 
-noncomputable instance equals_unfold_LatencyTable [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LatencyTable [GooseExts] [GoGlobalContext] :
     EqualsUnfold LatencyTable.fields LatencyTable.fieldsUnsealed :=
   ⟨by unfold LatencyTable.fields; rfl⟩
 
@@ -5599,29 +5599,29 @@ noncomputable instance equals_unfold_LatencyTable [GooseExts] [GoGlobalContext] 
 class LatencyTable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LatencyTable.underlying LatencyTable
   underlying : go.UnderlyingDirectedEq LatencyTable.ty LatencyTable.underlying
-  get_ti : ∀ (x : LatencyTable), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTable.underlying go!"ti") #x (Val #(x.ti'))
-  set_ti : ∀ (x : LatencyTable) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTable.underlying go!"ti") (PairV #x #y) (Val #(({ x with ti' := y } : LatencyTable)))
-  get_tn : ∀ (x : LatencyTable), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTable.underlying go!"tn") #x (Val #(x.tn'))
-  set_tn : ∀ (x : LatencyTable) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTable.underlying go!"tn") (PairV #x #y) (Val #(({ x with tn' := y } : LatencyTable)))
-  get_d : ∀ (x : LatencyTable), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTable.underlying go!"d") #x (Val #(x.d'))
-  set_d : ∀ (x : LatencyTable) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTable.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : LatencyTable)))
+  get'ti : ∀ (x : LatencyTable), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTable.underlying go!"ti") #x (Val #(x.ti'))
+  set'ti : ∀ (x : LatencyTable) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTable.underlying go!"ti") (PairV #x #y) (Val #(({ x with ti' := y } : LatencyTable)))
+  get'tn : ∀ (x : LatencyTable), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTable.underlying go!"tn") #x (Val #(x.tn'))
+  set'tn : ∀ (x : LatencyTable) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTable.underlying go!"tn") (PairV #x #y) (Val #(({ x with tn' := y } : LatencyTable)))
+  get'd : ∀ (x : LatencyTable), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTable.underlying go!"d") #x (Val #(x.d'))
+  set'd : ∀ (x : LatencyTable) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTable.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : LatencyTable)))
   method_set : go.MethodSetIs LatencyTable.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LatencyTable.ty) [(go!"WaitDuration", (some (go.signature.Signature [go.string] false [_root_.Perennial.time.Duration.ty]))), (go!"WaitDurationID", (some (go.signature.Signature [go.int] false [_root_.Perennial.time.Duration.ty])))]
-  ptr_WaitDuration_unfold : MethodUnfold (go.GoType.PointerType LatencyTable.ty) go!"WaitDuration" LatencyTable.WaitDuration.impl
-  ptr_WaitDurationID_unfold : MethodUnfold (go.GoType.PointerType LatencyTable.ty) go!"WaitDurationID" LatencyTable.WaitDurationID.impl
+  ptr_unfold'WaitDuration : MethodUnfold (go.GoType.PointerType LatencyTable.ty) go!"WaitDuration" LatencyTable.WaitDuration.impl
+  ptr_unfold'WaitDurationID : MethodUnfold (go.GoType.PointerType LatencyTable.ty) go!"WaitDurationID" LatencyTable.WaitDurationID.impl
 
 attribute [instance] LatencyTable.TypeAssumptions.type_repr
   LatencyTable.TypeAssumptions.underlying
-  LatencyTable.TypeAssumptions.get_ti
-  LatencyTable.TypeAssumptions.set_ti
-  LatencyTable.TypeAssumptions.get_tn
-  LatencyTable.TypeAssumptions.set_tn
-  LatencyTable.TypeAssumptions.get_d
-  LatencyTable.TypeAssumptions.set_d
+  LatencyTable.TypeAssumptions.get'ti
+  LatencyTable.TypeAssumptions.set'ti
+  LatencyTable.TypeAssumptions.get'tn
+  LatencyTable.TypeAssumptions.set'tn
+  LatencyTable.TypeAssumptions.get'd
+  LatencyTable.TypeAssumptions.set'd
   LatencyTable.TypeAssumptions.method_set
   LatencyTable.TypeAssumptions.ptr_method_set
-  LatencyTable.TypeAssumptions.ptr_WaitDuration_unfold
-  LatencyTable.TypeAssumptions.ptr_WaitDurationID_unfold
+  LatencyTable.TypeAssumptions.ptr_unfold'WaitDuration
+  LatencyTable.TypeAssumptions.ptr_unfold'WaitDurationID
 
 structure DelayProposeChan [GooseExts] where
   mk ::
@@ -5640,7 +5640,7 @@ noncomputable instance DelayProposeChan.zero_val [GooseExts] : ZeroVal DelayProp
 @[irreducible] noncomputable def DelayProposeChan.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DelayProposeChan.fieldsUnsealed
 
-noncomputable instance equals_unfold_DelayProposeChan [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DelayProposeChan [GooseExts] [GoGlobalContext] :
     EqualsUnfold DelayProposeChan.fields DelayProposeChan.fieldsUnsealed :=
   ⟨by unfold DelayProposeChan.fields; rfl⟩
 
@@ -5650,27 +5650,27 @@ noncomputable instance equals_unfold_DelayProposeChan [GooseExts] [GoGlobalConte
 class DelayProposeChan.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DelayProposeChan.underlying DelayProposeChan
   underlying : go.UnderlyingDirectedEq DelayProposeChan.ty DelayProposeChan.underlying
-  get_delay : ∀ (x : DelayProposeChan), go.IsGoStepPureDetTagged under (StructFieldGet DelayProposeChan.underlying go!"delay") #x (Val #(x.delay'))
-  set_delay : ∀ (x : DelayProposeChan) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet DelayProposeChan.underlying go!"delay") (PairV #x #y) (Val #(({ x with delay' := y } : DelayProposeChan)))
-  get_pChan : ∀ (x : DelayProposeChan), go.IsGoStepPureDetTagged under (StructFieldGet DelayProposeChan.underlying go!"pChan") #x (Val #(x.pChan'))
-  set_pChan : ∀ (x : DelayProposeChan) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet DelayProposeChan.underlying go!"pChan") (PairV #x #y) (Val #(({ x with pChan' := y } : DelayProposeChan)))
-  get_lChan : ∀ (x : DelayProposeChan), go.IsGoStepPureDetTagged under (StructFieldGet DelayProposeChan.underlying go!"lChan") #x (Val #(x.lChan'))
-  set_lChan : ∀ (x : DelayProposeChan) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet DelayProposeChan.underlying go!"lChan") (PairV #x #y) (Val #(({ x with lChan' := y } : DelayProposeChan)))
+  get'delay : ∀ (x : DelayProposeChan), go.IsGoStepPureDetTagged under (StructFieldGet DelayProposeChan.underlying go!"delay") #x (Val #(x.delay'))
+  set'delay : ∀ (x : DelayProposeChan) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet DelayProposeChan.underlying go!"delay") (PairV #x #y) (Val #(({ x with delay' := y } : DelayProposeChan)))
+  get'pChan : ∀ (x : DelayProposeChan), go.IsGoStepPureDetTagged under (StructFieldGet DelayProposeChan.underlying go!"pChan") #x (Val #(x.pChan'))
+  set'pChan : ∀ (x : DelayProposeChan) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet DelayProposeChan.underlying go!"pChan") (PairV #x #y) (Val #(({ x with pChan' := y } : DelayProposeChan)))
+  get'lChan : ∀ (x : DelayProposeChan), go.IsGoStepPureDetTagged under (StructFieldGet DelayProposeChan.underlying go!"lChan") #x (Val #(x.lChan'))
+  set'lChan : ∀ (x : DelayProposeChan) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet DelayProposeChan.underlying go!"lChan") (PairV #x #y) (Val #(({ x with lChan' := y } : DelayProposeChan)))
   method_set : go.MethodSetIs DelayProposeChan.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DelayProposeChan.ty) [(go!"Write", (some (go.signature.Signature [(go.GoType.PointerType GPropose.ty)] false [])))]
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType DelayProposeChan.ty) go!"Write" DelayProposeChan.Write.impl
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType DelayProposeChan.ty) go!"Write" DelayProposeChan.Write.impl
 
 attribute [instance] DelayProposeChan.TypeAssumptions.type_repr
   DelayProposeChan.TypeAssumptions.underlying
-  DelayProposeChan.TypeAssumptions.get_delay
-  DelayProposeChan.TypeAssumptions.set_delay
-  DelayProposeChan.TypeAssumptions.get_pChan
-  DelayProposeChan.TypeAssumptions.set_pChan
-  DelayProposeChan.TypeAssumptions.get_lChan
-  DelayProposeChan.TypeAssumptions.set_lChan
+  DelayProposeChan.TypeAssumptions.get'delay
+  DelayProposeChan.TypeAssumptions.set'delay
+  DelayProposeChan.TypeAssumptions.get'pChan
+  DelayProposeChan.TypeAssumptions.set'pChan
+  DelayProposeChan.TypeAssumptions.get'lChan
+  DelayProposeChan.TypeAssumptions.set'lChan
   DelayProposeChan.TypeAssumptions.method_set
   DelayProposeChan.TypeAssumptions.ptr_method_set
-  DelayProposeChan.TypeAssumptions.ptr_Write_unfold
+  DelayProposeChan.TypeAssumptions.ptr_unfold'Write
 
 structure bstNode [GooseExts] where
   mk ::
@@ -5691,7 +5691,7 @@ noncomputable instance bstNode.zero_val [GooseExts] : ZeroVal bstNode :=
 @[irreducible] noncomputable def bstNode.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bstNode.fieldsUnsealed
 
-noncomputable instance equals_unfold_bstNode [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'bstNode [GooseExts] [GoGlobalContext] :
     EqualsUnfold bstNode.fields bstNode.fieldsUnsealed :=
   ⟨by unfold bstNode.fields; rfl⟩
 
@@ -5701,35 +5701,35 @@ noncomputable instance equals_unfold_bstNode [GooseExts] [GoGlobalContext] :
 class bstNode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bstNode.underlying bstNode
   underlying : go.UnderlyingDirectedEq bstNode.ty bstNode.underlying
-  get_p : ∀ (x : bstNode), go.IsGoStepPureDetTagged under (StructFieldGet bstNode.underlying go!"p") #x (Val #(x.p'))
-  set_p : ∀ (x : bstNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bstNode.underlying go!"p") (PairV #x #y) (Val #(({ x with p' := y } : bstNode)))
-  get_left : ∀ (x : bstNode), go.IsGoStepPureDetTagged under (StructFieldGet bstNode.underlying go!"left") #x (Val #(x.left'))
-  set_left : ∀ (x : bstNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bstNode.underlying go!"left") (PairV #x #y) (Val #(({ x with left' := y } : bstNode)))
-  get_right : ∀ (x : bstNode), go.IsGoStepPureDetTagged under (StructFieldGet bstNode.underlying go!"right") #x (Val #(x.right'))
-  set_right : ∀ (x : bstNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bstNode.underlying go!"right") (PairV #x #y) (Val #(({ x with right' := y } : bstNode)))
-  get_ready : ∀ (x : bstNode), go.IsGoStepPureDetTagged under (StructFieldGet bstNode.underlying go!"ready") #x (Val #(x.ready'))
-  set_ready : ∀ (x : bstNode) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet bstNode.underlying go!"ready") (PairV #x #y) (Val #(({ x with ready' := y } : bstNode)))
+  get'p : ∀ (x : bstNode), go.IsGoStepPureDetTagged under (StructFieldGet bstNode.underlying go!"p") #x (Val #(x.p'))
+  set'p : ∀ (x : bstNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bstNode.underlying go!"p") (PairV #x #y) (Val #(({ x with p' := y } : bstNode)))
+  get'left : ∀ (x : bstNode), go.IsGoStepPureDetTagged under (StructFieldGet bstNode.underlying go!"left") #x (Val #(x.left'))
+  set'left : ∀ (x : bstNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bstNode.underlying go!"left") (PairV #x #y) (Val #(({ x with left' := y } : bstNode)))
+  get'right : ∀ (x : bstNode), go.IsGoStepPureDetTagged under (StructFieldGet bstNode.underlying go!"right") #x (Val #(x.right'))
+  set'right : ∀ (x : bstNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bstNode.underlying go!"right") (PairV #x #y) (Val #(({ x with right' := y } : bstNode)))
+  get'ready : ∀ (x : bstNode), go.IsGoStepPureDetTagged under (StructFieldGet bstNode.underlying go!"ready") #x (Val #(x.ready'))
+  set'ready : ∀ (x : bstNode) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet bstNode.underlying go!"ready") (PairV #x #y) (Val #(({ x with ready' := y } : bstNode)))
   method_set : go.MethodSetIs bstNode.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bstNode.ty) [(go!"github.com/imdea-software/swiftpaxos/replica/defs.find", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType bstNode.ty)]))), (go!"github.com/imdea-software/swiftpaxos/replica/defs.inorderReady", (some (go.signature.Signature [go.int32, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType GPropose.ty)] false []))] false [(go.GoType.PointerType bstNode.ty), go.int32]))), (go!"github.com/imdea-software/swiftpaxos/replica/defs.insert", (some (go.signature.Signature [(go.GoType.PointerType GPropose.ty)] false [(go.GoType.PointerType bstNode.ty)])))]
-  ptr_find_unfold : MethodUnfold (go.GoType.PointerType bstNode.ty) go!"find" bstNode.find.impl
-  ptr_inorderReady_unfold : MethodUnfold (go.GoType.PointerType bstNode.ty) go!"inorderReady" bstNode.inorderReady.impl
-  ptr_insert_unfold : MethodUnfold (go.GoType.PointerType bstNode.ty) go!"insert" bstNode.insert.impl
+  ptr_unfold'find : MethodUnfold (go.GoType.PointerType bstNode.ty) go!"find" bstNode.find.impl
+  ptr_unfold'inorderReady : MethodUnfold (go.GoType.PointerType bstNode.ty) go!"inorderReady" bstNode.inorderReady.impl
+  ptr_unfold'insert : MethodUnfold (go.GoType.PointerType bstNode.ty) go!"insert" bstNode.insert.impl
 
 attribute [instance] bstNode.TypeAssumptions.type_repr
   bstNode.TypeAssumptions.underlying
-  bstNode.TypeAssumptions.get_p
-  bstNode.TypeAssumptions.set_p
-  bstNode.TypeAssumptions.get_left
-  bstNode.TypeAssumptions.set_left
-  bstNode.TypeAssumptions.get_right
-  bstNode.TypeAssumptions.set_right
-  bstNode.TypeAssumptions.get_ready
-  bstNode.TypeAssumptions.set_ready
+  bstNode.TypeAssumptions.get'p
+  bstNode.TypeAssumptions.set'p
+  bstNode.TypeAssumptions.get'left
+  bstNode.TypeAssumptions.set'left
+  bstNode.TypeAssumptions.get'right
+  bstNode.TypeAssumptions.set'right
+  bstNode.TypeAssumptions.get'ready
+  bstNode.TypeAssumptions.set'ready
   bstNode.TypeAssumptions.method_set
   bstNode.TypeAssumptions.ptr_method_set
-  bstNode.TypeAssumptions.ptr_find_unfold
-  bstNode.TypeAssumptions.ptr_inorderReady_unfold
-  bstNode.TypeAssumptions.ptr_insert_unfold
+  bstNode.TypeAssumptions.ptr_unfold'find
+  bstNode.TypeAssumptions.ptr_unfold'inorderReady
+  bstNode.TypeAssumptions.ptr_unfold'insert
 
 structure logCall [GooseExts] where
   mk ::
@@ -5746,7 +5746,7 @@ noncomputable instance logCall.zero_val [GooseExts] : ZeroVal logCall :=
 @[irreducible] noncomputable def logCall.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   logCall.fieldsUnsealed
 
-noncomputable instance equals_unfold_logCall [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'logCall [GooseExts] [GoGlobalContext] :
     EqualsUnfold logCall.fields logCall.fieldsUnsealed :=
   ⟨by unfold logCall.fields; rfl⟩
 
@@ -5756,154 +5756,154 @@ noncomputable instance equals_unfold_logCall [GooseExts] [GoGlobalContext] :
 class logCall.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying logCall.underlying logCall
   underlying : go.UnderlyingDirectedEq logCall.ty logCall.underlying
-  get_action : ∀ (x : logCall), go.IsGoStepPureDetTagged under (StructFieldGet logCall.underlying go!"action") #x (Val #(x.action'))
-  set_action : ∀ (x : logCall) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet logCall.underlying go!"action") (PairV #x #y) (Val #(({ x with action' := y } : logCall)))
-  get_arg : ∀ (x : logCall), go.IsGoStepPureDetTagged under (StructFieldGet logCall.underlying go!"arg") #x (Val #(x.arg'))
-  set_arg : ∀ (x : logCall) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet logCall.underlying go!"arg") (PairV #x #y) (Val #(({ x with arg' := y } : logCall)))
+  get'action : ∀ (x : logCall), go.IsGoStepPureDetTagged under (StructFieldGet logCall.underlying go!"action") #x (Val #(x.action'))
+  set'action : ∀ (x : logCall) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet logCall.underlying go!"action") (PairV #x #y) (Val #(({ x with action' := y } : logCall)))
+  get'arg : ∀ (x : logCall), go.IsGoStepPureDetTagged under (StructFieldGet logCall.underlying go!"arg") #x (Val #(x.arg'))
+  set'arg : ∀ (x : logCall) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet logCall.underlying go!"arg") (PairV #x #y) (Val #(({ x with arg' := y } : logCall)))
   method_set : go.MethodSetIs logCall.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType logCall.ty) []
 
 attribute [instance] logCall.TypeAssumptions.type_repr
   logCall.TypeAssumptions.underlying
-  logCall.TypeAssumptions.get_action
-  logCall.TypeAssumptions.set_action
-  logCall.TypeAssumptions.get_arg
-  logCall.TypeAssumptions.set_arg
+  logCall.TypeAssumptions.get'action
+  logCall.TypeAssumptions.set'action
+  logCall.TypeAssumptions.get'arg
+  logCall.TypeAssumptions.set'arg
   logCall.TypeAssumptions.method_set
   logCall.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  RegisterArgs_instance : RegisterArgs.TypeAssumptions
-  RegisterReply_instance : RegisterReply.TypeAssumptions
-  GetLeaderArgs_instance : GetLeaderArgs.TypeAssumptions
-  GetLeaderReply_instance : GetLeaderReply.TypeAssumptions
-  GetReplicaListArgs_instance : GetReplicaListArgs.TypeAssumptions
-  GetReplicaListReply_instance : GetReplicaListReply.TypeAssumptions
-  Propose_instance : Propose.TypeAssumptions
-  ProposeReply_instance : ProposeReply.TypeAssumptions
-  ProposeReplyTS_instance : ProposeReplyTS.TypeAssumptions
-  Read_instance : Read.TypeAssumptions
-  ReadReply_instance : ReadReply.TypeAssumptions
-  ProposeAndRead_instance : ProposeAndRead.TypeAssumptions
-  ProposeAndReadReply_instance : ProposeAndReadReply.TypeAssumptions
-  Beacon_instance : Beacon.TypeAssumptions
-  BeaconReply_instance : BeaconReply.TypeAssumptions
-  PingArgs_instance : PingArgs.TypeAssumptions
-  PingReply_instance : PingReply.TypeAssumptions
-  BeTheLeaderArgs_instance : BeTheLeaderArgs.TypeAssumptions
-  BeTheLeaderReply_instance : BeTheLeaderReply.TypeAssumptions
-  GPropose_instance : GPropose.TypeAssumptions
-  GBeacon_instance : GBeacon.TypeAssumptions
-  Stats_instance : Stats.TypeAssumptions
-  PingArgsCache_instance : PingArgsCache.TypeAssumptions
-  PingReplyCache_instance : PingReplyCache.TypeAssumptions
-  BeTheLeaderReplyCache_instance : BeTheLeaderReplyCache.TypeAssumptions
-  ProposeCache_instance : ProposeCache.TypeAssumptions
-  ProposeReplyTSCache_instance : ProposeReplyTSCache.TypeAssumptions
-  ReadCache_instance : ReadCache.TypeAssumptions
-  ProposeAndReadCache_instance : ProposeAndReadCache.TypeAssumptions
-  BeaconReplyCache_instance : BeaconReplyCache.TypeAssumptions
-  BeTheLeaderArgsCache_instance : BeTheLeaderArgsCache.TypeAssumptions
-  ProposeReplyCache_instance : ProposeReplyCache.TypeAssumptions
-  ReadReplyCache_instance : ReadReplyCache.TypeAssumptions
-  ProposeAndReadReplyCache_instance : ProposeAndReadReplyCache.TypeAssumptions
-  BeaconCache_instance : BeaconCache.TypeAssumptions
-  LatencyTable_instance : LatencyTable.TypeAssumptions
-  DelayProposeChan_instance : DelayProposeChan.TypeAssumptions
-  bstNode_instance : bstNode.TypeAssumptions
-  logCall_instance : logCall.TypeAssumptions
-  NewBeTheLeaderReply_unfold : FuncUnfold NewBeTheLeaderReply [] NewBeTheLeaderReply.impl
-  UpdateBeTheLeaderReply_unfold : FuncUnfold UpdateBeTheLeaderReply [] UpdateBeTheLeaderReply.impl
-  NewPingArgsCache_unfold : FuncUnfold NewPingArgsCache [] NewPingArgsCache.impl
-  NewPingReplyCache_unfold : FuncUnfold NewPingReplyCache [] NewPingReplyCache.impl
-  NewBeTheLeaderReplyCache_unfold : FuncUnfold NewBeTheLeaderReplyCache [] NewBeTheLeaderReplyCache.impl
-  NewProposeCache_unfold : FuncUnfold NewProposeCache [] NewProposeCache.impl
-  NewProposeReplyTSCache_unfold : FuncUnfold NewProposeReplyTSCache [] NewProposeReplyTSCache.impl
-  NewReadCache_unfold : FuncUnfold NewReadCache [] NewReadCache.impl
-  NewProposeAndReadCache_unfold : FuncUnfold NewProposeAndReadCache [] NewProposeAndReadCache.impl
-  NewBeaconReplyCache_unfold : FuncUnfold NewBeaconReplyCache [] NewBeaconReplyCache.impl
-  NewBeTheLeaderArgsCache_unfold : FuncUnfold NewBeTheLeaderArgsCache [] NewBeTheLeaderArgsCache.impl
-  NewProposeReplyCache_unfold : FuncUnfold NewProposeReplyCache [] NewProposeReplyCache.impl
-  NewReadReplyCache_unfold : FuncUnfold NewReadReplyCache [] NewReadReplyCache.impl
-  NewProposeAndReadReplyCache_unfold : FuncUnfold NewProposeAndReadReplyCache [] NewProposeAndReadReplyCache.impl
-  NewBeaconCache_unfold : FuncUnfold NewBeaconCache [] NewBeaconCache.impl
-  NewDelayProposeChan_unfold : FuncUnfold NewDelayProposeChan [] NewDelayProposeChan.impl
-  NewLatencyTable_unfold : FuncUnfold NewLatencyTable [] NewLatencyTable.impl
-  IP_unfold : FuncUnfold IP [] IP.impl
-  import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_state_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'RegisterArgs : RegisterArgs.TypeAssumptions
+  instance'RegisterReply : RegisterReply.TypeAssumptions
+  instance'GetLeaderArgs : GetLeaderArgs.TypeAssumptions
+  instance'GetLeaderReply : GetLeaderReply.TypeAssumptions
+  instance'GetReplicaListArgs : GetReplicaListArgs.TypeAssumptions
+  instance'GetReplicaListReply : GetReplicaListReply.TypeAssumptions
+  instance'Propose : Propose.TypeAssumptions
+  instance'ProposeReply : ProposeReply.TypeAssumptions
+  instance'ProposeReplyTS : ProposeReplyTS.TypeAssumptions
+  instance'Read : Read.TypeAssumptions
+  instance'ReadReply : ReadReply.TypeAssumptions
+  instance'ProposeAndRead : ProposeAndRead.TypeAssumptions
+  instance'ProposeAndReadReply : ProposeAndReadReply.TypeAssumptions
+  instance'Beacon : Beacon.TypeAssumptions
+  instance'BeaconReply : BeaconReply.TypeAssumptions
+  instance'PingArgs : PingArgs.TypeAssumptions
+  instance'PingReply : PingReply.TypeAssumptions
+  instance'BeTheLeaderArgs : BeTheLeaderArgs.TypeAssumptions
+  instance'BeTheLeaderReply : BeTheLeaderReply.TypeAssumptions
+  instance'GPropose : GPropose.TypeAssumptions
+  instance'GBeacon : GBeacon.TypeAssumptions
+  instance'Stats : Stats.TypeAssumptions
+  instance'PingArgsCache : PingArgsCache.TypeAssumptions
+  instance'PingReplyCache : PingReplyCache.TypeAssumptions
+  instance'BeTheLeaderReplyCache : BeTheLeaderReplyCache.TypeAssumptions
+  instance'ProposeCache : ProposeCache.TypeAssumptions
+  instance'ProposeReplyTSCache : ProposeReplyTSCache.TypeAssumptions
+  instance'ReadCache : ReadCache.TypeAssumptions
+  instance'ProposeAndReadCache : ProposeAndReadCache.TypeAssumptions
+  instance'BeaconReplyCache : BeaconReplyCache.TypeAssumptions
+  instance'BeTheLeaderArgsCache : BeTheLeaderArgsCache.TypeAssumptions
+  instance'ProposeReplyCache : ProposeReplyCache.TypeAssumptions
+  instance'ReadReplyCache : ReadReplyCache.TypeAssumptions
+  instance'ProposeAndReadReplyCache : ProposeAndReadReplyCache.TypeAssumptions
+  instance'BeaconCache : BeaconCache.TypeAssumptions
+  instance'LatencyTable : LatencyTable.TypeAssumptions
+  instance'DelayProposeChan : DelayProposeChan.TypeAssumptions
+  instance'bstNode : bstNode.TypeAssumptions
+  instance'logCall : logCall.TypeAssumptions
+  unfold'NewBeTheLeaderReply : FuncUnfold NewBeTheLeaderReply [] NewBeTheLeaderReply.impl
+  unfold'UpdateBeTheLeaderReply : FuncUnfold UpdateBeTheLeaderReply [] UpdateBeTheLeaderReply.impl
+  unfold'NewPingArgsCache : FuncUnfold NewPingArgsCache [] NewPingArgsCache.impl
+  unfold'NewPingReplyCache : FuncUnfold NewPingReplyCache [] NewPingReplyCache.impl
+  unfold'NewBeTheLeaderReplyCache : FuncUnfold NewBeTheLeaderReplyCache [] NewBeTheLeaderReplyCache.impl
+  unfold'NewProposeCache : FuncUnfold NewProposeCache [] NewProposeCache.impl
+  unfold'NewProposeReplyTSCache : FuncUnfold NewProposeReplyTSCache [] NewProposeReplyTSCache.impl
+  unfold'NewReadCache : FuncUnfold NewReadCache [] NewReadCache.impl
+  unfold'NewProposeAndReadCache : FuncUnfold NewProposeAndReadCache [] NewProposeAndReadCache.impl
+  unfold'NewBeaconReplyCache : FuncUnfold NewBeaconReplyCache [] NewBeaconReplyCache.impl
+  unfold'NewBeTheLeaderArgsCache : FuncUnfold NewBeTheLeaderArgsCache [] NewBeTheLeaderArgsCache.impl
+  unfold'NewProposeReplyCache : FuncUnfold NewProposeReplyCache [] NewProposeReplyCache.impl
+  unfold'NewReadReplyCache : FuncUnfold NewReadReplyCache [] NewReadReplyCache.impl
+  unfold'NewProposeAndReadReplyCache : FuncUnfold NewProposeAndReadReplyCache [] NewProposeAndReadReplyCache.impl
+  unfold'NewBeaconCache : FuncUnfold NewBeaconCache [] NewBeaconCache.impl
+  unfold'NewDelayProposeChan : FuncUnfold NewDelayProposeChan [] NewDelayProposeChan.impl
+  unfold'NewLatencyTable : FuncUnfold NewLatencyTable [] NewLatencyTable.impl
+  unfold'IP : FuncUnfold IP [] IP.impl
+  import'bufio : _root_.Perennial.bufio.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'state : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Assumptions
+  import'net : _root_.Perennial.net.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.RegisterArgs_instance
-  Assumptions.RegisterReply_instance
-  Assumptions.GetLeaderArgs_instance
-  Assumptions.GetLeaderReply_instance
-  Assumptions.GetReplicaListArgs_instance
-  Assumptions.GetReplicaListReply_instance
-  Assumptions.Propose_instance
-  Assumptions.ProposeReply_instance
-  Assumptions.ProposeReplyTS_instance
-  Assumptions.Read_instance
-  Assumptions.ReadReply_instance
-  Assumptions.ProposeAndRead_instance
-  Assumptions.ProposeAndReadReply_instance
-  Assumptions.Beacon_instance
-  Assumptions.BeaconReply_instance
-  Assumptions.PingArgs_instance
-  Assumptions.PingReply_instance
-  Assumptions.BeTheLeaderArgs_instance
-  Assumptions.BeTheLeaderReply_instance
-  Assumptions.GPropose_instance
-  Assumptions.GBeacon_instance
-  Assumptions.Stats_instance
-  Assumptions.PingArgsCache_instance
-  Assumptions.PingReplyCache_instance
-  Assumptions.BeTheLeaderReplyCache_instance
-  Assumptions.ProposeCache_instance
-  Assumptions.ProposeReplyTSCache_instance
-  Assumptions.ReadCache_instance
-  Assumptions.ProposeAndReadCache_instance
-  Assumptions.BeaconReplyCache_instance
-  Assumptions.BeTheLeaderArgsCache_instance
-  Assumptions.ProposeReplyCache_instance
-  Assumptions.ReadReplyCache_instance
-  Assumptions.ProposeAndReadReplyCache_instance
-  Assumptions.BeaconCache_instance
-  Assumptions.LatencyTable_instance
-  Assumptions.DelayProposeChan_instance
-  Assumptions.bstNode_instance
-  Assumptions.logCall_instance
-  Assumptions.NewBeTheLeaderReply_unfold
-  Assumptions.UpdateBeTheLeaderReply_unfold
-  Assumptions.NewPingArgsCache_unfold
-  Assumptions.NewPingReplyCache_unfold
-  Assumptions.NewBeTheLeaderReplyCache_unfold
-  Assumptions.NewProposeCache_unfold
-  Assumptions.NewProposeReplyTSCache_unfold
-  Assumptions.NewReadCache_unfold
-  Assumptions.NewProposeAndReadCache_unfold
-  Assumptions.NewBeaconReplyCache_unfold
-  Assumptions.NewBeTheLeaderArgsCache_unfold
-  Assumptions.NewProposeReplyCache_unfold
-  Assumptions.NewReadReplyCache_unfold
-  Assumptions.NewProposeAndReadReplyCache_unfold
-  Assumptions.NewBeaconCache_unfold
-  Assumptions.NewDelayProposeChan_unfold
-  Assumptions.NewLatencyTable_unfold
-  Assumptions.IP_unfold
-  Assumptions.import_bufio_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_state_Assumption
-  Assumptions.import_net_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'RegisterArgs
+  Assumptions.instance'RegisterReply
+  Assumptions.instance'GetLeaderArgs
+  Assumptions.instance'GetLeaderReply
+  Assumptions.instance'GetReplicaListArgs
+  Assumptions.instance'GetReplicaListReply
+  Assumptions.instance'Propose
+  Assumptions.instance'ProposeReply
+  Assumptions.instance'ProposeReplyTS
+  Assumptions.instance'Read
+  Assumptions.instance'ReadReply
+  Assumptions.instance'ProposeAndRead
+  Assumptions.instance'ProposeAndReadReply
+  Assumptions.instance'Beacon
+  Assumptions.instance'BeaconReply
+  Assumptions.instance'PingArgs
+  Assumptions.instance'PingReply
+  Assumptions.instance'BeTheLeaderArgs
+  Assumptions.instance'BeTheLeaderReply
+  Assumptions.instance'GPropose
+  Assumptions.instance'GBeacon
+  Assumptions.instance'Stats
+  Assumptions.instance'PingArgsCache
+  Assumptions.instance'PingReplyCache
+  Assumptions.instance'BeTheLeaderReplyCache
+  Assumptions.instance'ProposeCache
+  Assumptions.instance'ProposeReplyTSCache
+  Assumptions.instance'ReadCache
+  Assumptions.instance'ProposeAndReadCache
+  Assumptions.instance'BeaconReplyCache
+  Assumptions.instance'BeTheLeaderArgsCache
+  Assumptions.instance'ProposeReplyCache
+  Assumptions.instance'ReadReplyCache
+  Assumptions.instance'ProposeAndReadReplyCache
+  Assumptions.instance'BeaconCache
+  Assumptions.instance'LatencyTable
+  Assumptions.instance'DelayProposeChan
+  Assumptions.instance'bstNode
+  Assumptions.instance'logCall
+  Assumptions.unfold'NewBeTheLeaderReply
+  Assumptions.unfold'UpdateBeTheLeaderReply
+  Assumptions.unfold'NewPingArgsCache
+  Assumptions.unfold'NewPingReplyCache
+  Assumptions.unfold'NewBeTheLeaderReplyCache
+  Assumptions.unfold'NewProposeCache
+  Assumptions.unfold'NewProposeReplyTSCache
+  Assumptions.unfold'NewReadCache
+  Assumptions.unfold'NewProposeAndReadCache
+  Assumptions.unfold'NewBeaconReplyCache
+  Assumptions.unfold'NewBeTheLeaderArgsCache
+  Assumptions.unfold'NewProposeReplyCache
+  Assumptions.unfold'NewReadReplyCache
+  Assumptions.unfold'NewProposeAndReadReplyCache
+  Assumptions.unfold'NewBeaconCache
+  Assumptions.unfold'NewDelayProposeChan
+  Assumptions.unfold'NewLatencyTable
+  Assumptions.unfold'IP
+  Assumptions.import'bufio
+  Assumptions.import'io
+  Assumptions.import'sync
+  Assumptions.import'state
+  Assumptions.import'net
+  Assumptions.import'os
+  Assumptions.import'strings
+  Assumptions.import'time
 
 end github_com.imdea_software.swiftpaxos.replica.defs
 

@@ -37,7 +37,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.imdea_software.swiftpaxos_epaxos.epaxos.Assumptions]
 
-noncomputable instance instanceId_typed_pointsto :
+noncomputable instance typed_pointsto'instanceId :
     TypedPointsto (GF := GF) github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId where
   typedPointstoDef l v dq := iprop(
     "replica" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId go!"replica" l) v.replica' dq ∗
@@ -47,11 +47,11 @@ noncomputable instance instanceId_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance instanceId_into_val_typed :
+noncomputable instance into_val_typed'instanceId :
     IntoValTypedUnderlying (GF := GF) github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance instanceId_access_load_replica (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId) (dq : DFrac) :
+noncomputable instance access_load'instanceId'replica (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId go!"replica" l) v.replica' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId go!"replica" l) v.replica' dq)
@@ -59,7 +59,7 @@ noncomputable instance instanceId_access_load_replica (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance instanceId_access_store_replica (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId) (y : w32) :
+noncomputable instance access_store'instanceId'replica (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId go!"replica" l) v.replica' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId go!"replica" l) y (DFrac.own 1))
@@ -67,7 +67,7 @@ noncomputable instance instanceId_access_store_replica (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance instanceId_access_load_instance (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId) (dq : DFrac) :
+noncomputable instance access_load'instanceId'instance (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId go!"instance" l) v.instance' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId go!"instance" l) v.instance' dq)
@@ -75,7 +75,7 @@ noncomputable instance instanceId_access_load_instance (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance instanceId_access_store_instance (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId) (y : w32) :
+noncomputable instance access_store'instanceId'instance (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId go!"instance" l) v.instance' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.instanceId go!"instance" l) y (DFrac.own 1))
@@ -94,7 +94,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.imdea_software.swiftpaxos_epaxos.epaxos.Assumptions]
 
-noncomputable instance LeaderBookkeeping_typed_pointsto :
+noncomputable instance typed_pointsto'LeaderBookkeeping :
     TypedPointsto (GF := GF) github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping where
   typedPointstoDef l v dq := iprop(
     "clientProposals" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"clientProposals" l) v.clientProposals' dq ∗
@@ -123,11 +123,11 @@ noncomputable instance LeaderBookkeeping_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance LeaderBookkeeping_into_val_typed :
+noncomputable instance into_val_typed'LeaderBookkeeping :
     IntoValTypedUnderlying (GF := GF) github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance LeaderBookkeeping_access_load_clientProposals (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'clientProposals (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"clientProposals" l) v.clientProposals' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"clientProposals" l) v.clientProposals' dq)
@@ -135,7 +135,7 @@ noncomputable instance LeaderBookkeeping_access_load_clientProposals (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_clientProposals (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : GoSlice) :
+noncomputable instance access_store'LeaderBookkeeping'clientProposals (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"clientProposals" l) v.clientProposals' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"clientProposals" l) y (DFrac.own 1))
@@ -143,7 +143,7 @@ noncomputable instance LeaderBookkeeping_access_store_clientProposals (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_ballot (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'ballot (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"ballot" l) v.ballot' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"ballot" l) v.ballot' dq)
@@ -151,7 +151,7 @@ noncomputable instance LeaderBookkeeping_access_load_ballot (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_ballot (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w32) :
+noncomputable instance access_store'LeaderBookkeeping'ballot (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"ballot" l) v.ballot' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"ballot" l) y (DFrac.own 1))
@@ -159,7 +159,7 @@ noncomputable instance LeaderBookkeeping_access_store_ballot (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_allEqual (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'allEqual (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"allEqual" l) v.allEqual' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"allEqual" l) v.allEqual' dq)
@@ -167,7 +167,7 @@ noncomputable instance LeaderBookkeeping_access_load_allEqual (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_allEqual (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : Bool) :
+noncomputable instance access_store'LeaderBookkeeping'allEqual (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"allEqual" l) v.allEqual' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"allEqual" l) y (DFrac.own 1))
@@ -175,7 +175,7 @@ noncomputable instance LeaderBookkeeping_access_store_allEqual (l : Loc) (v : gi
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_preAcceptOKs (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'preAcceptOKs (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"preAcceptOKs" l) v.preAcceptOKs' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"preAcceptOKs" l) v.preAcceptOKs' dq)
@@ -183,7 +183,7 @@ noncomputable instance LeaderBookkeeping_access_load_preAcceptOKs (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_preAcceptOKs (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w64) :
+noncomputable instance access_store'LeaderBookkeeping'preAcceptOKs (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"preAcceptOKs" l) v.preAcceptOKs' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"preAcceptOKs" l) y (DFrac.own 1))
@@ -191,7 +191,7 @@ noncomputable instance LeaderBookkeeping_access_store_preAcceptOKs (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_acceptOKs (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'acceptOKs (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"acceptOKs" l) v.acceptOKs' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"acceptOKs" l) v.acceptOKs' dq)
@@ -199,7 +199,7 @@ noncomputable instance LeaderBookkeeping_access_load_acceptOKs (l : Loc) (v : gi
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_acceptOKs (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w64) :
+noncomputable instance access_store'LeaderBookkeeping'acceptOKs (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"acceptOKs" l) v.acceptOKs' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"acceptOKs" l) y (DFrac.own 1))
@@ -207,7 +207,7 @@ noncomputable instance LeaderBookkeeping_access_store_acceptOKs (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_nacks (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'nacks (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"nacks" l) v.nacks' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"nacks" l) v.nacks' dq)
@@ -215,7 +215,7 @@ noncomputable instance LeaderBookkeeping_access_load_nacks (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_nacks (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w64) :
+noncomputable instance access_store'LeaderBookkeeping'nacks (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"nacks" l) v.nacks' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"nacks" l) y (DFrac.own 1))
@@ -223,7 +223,7 @@ noncomputable instance LeaderBookkeeping_access_store_nacks (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_originalDeps (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'originalDeps (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"originalDeps" l) v.originalDeps' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"originalDeps" l) v.originalDeps' dq)
@@ -231,7 +231,7 @@ noncomputable instance LeaderBookkeeping_access_load_originalDeps (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_originalDeps (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : GoSlice) :
+noncomputable instance access_store'LeaderBookkeeping'originalDeps (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"originalDeps" l) v.originalDeps' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"originalDeps" l) y (DFrac.own 1))
@@ -239,7 +239,7 @@ noncomputable instance LeaderBookkeeping_access_store_originalDeps (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_committedDeps (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'committedDeps (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"committedDeps" l) v.committedDeps' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"committedDeps" l) v.committedDeps' dq)
@@ -247,7 +247,7 @@ noncomputable instance LeaderBookkeeping_access_load_committedDeps (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_committedDeps (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : GoSlice) :
+noncomputable instance access_store'LeaderBookkeeping'committedDeps (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"committedDeps" l) v.committedDeps' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"committedDeps" l) y (DFrac.own 1))
@@ -255,7 +255,7 @@ noncomputable instance LeaderBookkeeping_access_store_committedDeps (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_prepareReplies (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'prepareReplies (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"prepareReplies" l) v.prepareReplies' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"prepareReplies" l) v.prepareReplies' dq)
@@ -263,7 +263,7 @@ noncomputable instance LeaderBookkeeping_access_load_prepareReplies (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_prepareReplies (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : GoSlice) :
+noncomputable instance access_store'LeaderBookkeeping'prepareReplies (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"prepareReplies" l) v.prepareReplies' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"prepareReplies" l) y (DFrac.own 1))
@@ -271,7 +271,7 @@ noncomputable instance LeaderBookkeeping_access_store_prepareReplies (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_preparing (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'preparing (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"preparing" l) v.preparing' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"preparing" l) v.preparing' dq)
@@ -279,7 +279,7 @@ noncomputable instance LeaderBookkeeping_access_load_preparing (l : Loc) (v : gi
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_preparing (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : Bool) :
+noncomputable instance access_store'LeaderBookkeeping'preparing (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"preparing" l) v.preparing' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"preparing" l) y (DFrac.own 1))
@@ -287,7 +287,7 @@ noncomputable instance LeaderBookkeeping_access_store_preparing (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_tryingToPreAccept (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'tryingToPreAccept (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"tryingToPreAccept" l) v.tryingToPreAccept' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"tryingToPreAccept" l) v.tryingToPreAccept' dq)
@@ -295,7 +295,7 @@ noncomputable instance LeaderBookkeeping_access_load_tryingToPreAccept (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_tryingToPreAccept (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : Bool) :
+noncomputable instance access_store'LeaderBookkeeping'tryingToPreAccept (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"tryingToPreAccept" l) v.tryingToPreAccept' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"tryingToPreAccept" l) y (DFrac.own 1))
@@ -303,7 +303,7 @@ noncomputable instance LeaderBookkeeping_access_store_tryingToPreAccept (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_possibleQuorum (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'possibleQuorum (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"possibleQuorum" l) v.possibleQuorum' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"possibleQuorum" l) v.possibleQuorum' dq)
@@ -311,7 +311,7 @@ noncomputable instance LeaderBookkeeping_access_load_possibleQuorum (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_possibleQuorum (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : GoSlice) :
+noncomputable instance access_store'LeaderBookkeeping'possibleQuorum (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"possibleQuorum" l) v.possibleQuorum' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"possibleQuorum" l) y (DFrac.own 1))
@@ -319,7 +319,7 @@ noncomputable instance LeaderBookkeeping_access_store_possibleQuorum (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_tpaReps (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'tpaReps (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"tpaReps" l) v.tpaReps' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"tpaReps" l) v.tpaReps' dq)
@@ -327,7 +327,7 @@ noncomputable instance LeaderBookkeeping_access_load_tpaReps (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_tpaReps (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w64) :
+noncomputable instance access_store'LeaderBookkeeping'tpaReps (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"tpaReps" l) v.tpaReps' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"tpaReps" l) y (DFrac.own 1))
@@ -335,7 +335,7 @@ noncomputable instance LeaderBookkeeping_access_store_tpaReps (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_tpaAccepted (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'tpaAccepted (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"tpaAccepted" l) v.tpaAccepted' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"tpaAccepted" l) v.tpaAccepted' dq)
@@ -343,7 +343,7 @@ noncomputable instance LeaderBookkeeping_access_load_tpaAccepted (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_tpaAccepted (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : Bool) :
+noncomputable instance access_store'LeaderBookkeeping'tpaAccepted (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"tpaAccepted" l) v.tpaAccepted' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"tpaAccepted" l) y (DFrac.own 1))
@@ -351,7 +351,7 @@ noncomputable instance LeaderBookkeeping_access_store_tpaAccepted (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_lastTriedBallot (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'lastTriedBallot (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"lastTriedBallot" l) v.lastTriedBallot' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"lastTriedBallot" l) v.lastTriedBallot' dq)
@@ -359,7 +359,7 @@ noncomputable instance LeaderBookkeeping_access_load_lastTriedBallot (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_lastTriedBallot (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w32) :
+noncomputable instance access_store'LeaderBookkeeping'lastTriedBallot (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"lastTriedBallot" l) v.lastTriedBallot' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"lastTriedBallot" l) y (DFrac.own 1))
@@ -367,7 +367,7 @@ noncomputable instance LeaderBookkeeping_access_store_lastTriedBallot (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_cmds (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'cmds (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"cmds" l) v.cmds' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"cmds" l) v.cmds' dq)
@@ -375,7 +375,7 @@ noncomputable instance LeaderBookkeeping_access_load_cmds (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_cmds (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : GoSlice) :
+noncomputable instance access_store'LeaderBookkeeping'cmds (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"cmds" l) v.cmds' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"cmds" l) y (DFrac.own 1))
@@ -383,7 +383,7 @@ noncomputable instance LeaderBookkeeping_access_store_cmds (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_status (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'status (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"status" l) v.status' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"status" l) v.status' dq)
@@ -391,7 +391,7 @@ noncomputable instance LeaderBookkeeping_access_load_status (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_status (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w8) :
+noncomputable instance access_store'LeaderBookkeeping'status (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"status" l) v.status' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"status" l) y (DFrac.own 1))
@@ -399,7 +399,7 @@ noncomputable instance LeaderBookkeeping_access_store_status (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_seq (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'seq (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"seq" l) v.seq' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"seq" l) v.seq' dq)
@@ -407,7 +407,7 @@ noncomputable instance LeaderBookkeeping_access_load_seq (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_seq (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w32) :
+noncomputable instance access_store'LeaderBookkeeping'seq (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"seq" l) v.seq' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"seq" l) y (DFrac.own 1))
@@ -415,7 +415,7 @@ noncomputable instance LeaderBookkeeping_access_store_seq (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_deps (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'deps (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"deps" l) v.deps' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"deps" l) v.deps' dq)
@@ -423,7 +423,7 @@ noncomputable instance LeaderBookkeeping_access_load_deps (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_deps (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : GoSlice) :
+noncomputable instance access_store'LeaderBookkeeping'deps (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"deps" l) v.deps' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"deps" l) y (DFrac.own 1))
@@ -431,7 +431,7 @@ noncomputable instance LeaderBookkeeping_access_store_deps (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_leaderResponded (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'leaderResponded (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"leaderResponded" l) v.leaderResponded' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"leaderResponded" l) v.leaderResponded' dq)
@@ -439,7 +439,7 @@ noncomputable instance LeaderBookkeeping_access_load_leaderResponded (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_leaderResponded (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : Bool) :
+noncomputable instance access_store'LeaderBookkeeping'leaderResponded (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"leaderResponded" l) v.leaderResponded' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"leaderResponded" l) y (DFrac.own 1))
@@ -447,7 +447,7 @@ noncomputable instance LeaderBookkeeping_access_store_leaderResponded (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_load_preAcceptsSent (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
+noncomputable instance access_load'LeaderBookkeeping'preAcceptsSent (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"preAcceptsSent" l) v.preAcceptsSent' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"preAcceptsSent" l) v.preAcceptsSent' dq)
@@ -455,7 +455,7 @@ noncomputable instance LeaderBookkeeping_access_load_preAcceptsSent (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_preAcceptsSent (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w64) :
+noncomputable instance access_store'LeaderBookkeeping'preAcceptsSent (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"preAcceptsSent" l) v.preAcceptsSent' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.LeaderBookkeeping go!"preAcceptsSent" l) y (DFrac.own 1))
@@ -474,7 +474,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.imdea_software.swiftpaxos_epaxos.epaxos.Assumptions]
 
-noncomputable instance Exec_typed_pointsto :
+noncomputable instance typed_pointsto'Exec :
     TypedPointsto (GF := GF) github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec where
   typedPointstoDef l v dq := iprop(
     "r" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec go!"r" l) v.r' dq ∗
@@ -484,11 +484,11 @@ noncomputable instance Exec_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Exec_into_val_typed :
+noncomputable instance into_val_typed'Exec :
     IntoValTypedUnderlying (GF := GF) github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Exec_access_load_r (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec) (dq : DFrac) :
+noncomputable instance access_load'Exec'r (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec go!"r" l) v.r' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec go!"r" l) v.r' dq)
@@ -496,7 +496,7 @@ noncomputable instance Exec_access_load_r (l : Loc) (v : github_com.imdea_softwa
  by
   solve_pointsto_access_struct
 
-noncomputable instance Exec_access_store_r (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec) (y : Loc) :
+noncomputable instance access_store'Exec'r (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec go!"r" l) v.r' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec go!"r" l) y (DFrac.own 1))
@@ -504,7 +504,7 @@ noncomputable instance Exec_access_store_r (l : Loc) (v : github_com.imdea_softw
  by
   solve_pointsto_access_struct
 
-noncomputable instance Exec_access_load_stack (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec) (dq : DFrac) :
+noncomputable instance access_load'Exec'stack (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec go!"stack" l) v.stack' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec go!"stack" l) v.stack' dq)
@@ -512,7 +512,7 @@ noncomputable instance Exec_access_load_stack (l : Loc) (v : github_com.imdea_so
  by
   solve_pointsto_access_struct
 
-noncomputable instance Exec_access_store_stack (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec) (y : GoSlice) :
+noncomputable instance access_store'Exec'stack (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec go!"stack" l) v.stack' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.Exec go!"stack" l) y (DFrac.own 1))
@@ -531,7 +531,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.imdea_software.swiftpaxos_epaxos.epaxos.Assumptions]
 
-noncomputable instance SCComponent_typed_pointsto :
+noncomputable instance typed_pointsto'SCComponent :
     TypedPointsto (GF := GF) github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent where
   typedPointstoDef l v dq := iprop(
     "nodes" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent go!"nodes" l) v.nodes' dq ∗
@@ -541,11 +541,11 @@ noncomputable instance SCComponent_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance SCComponent_into_val_typed :
+noncomputable instance into_val_typed'SCComponent :
     IntoValTypedUnderlying (GF := GF) github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance SCComponent_access_load_nodes (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent) (dq : DFrac) :
+noncomputable instance access_load'SCComponent'nodes (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent go!"nodes" l) v.nodes' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent go!"nodes" l) v.nodes' dq)
@@ -553,7 +553,7 @@ noncomputable instance SCComponent_access_load_nodes (l : Loc) (v : github_com.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance SCComponent_access_store_nodes (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent) (y : GoSlice) :
+noncomputable instance access_store'SCComponent'nodes (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent go!"nodes" l) v.nodes' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent go!"nodes" l) y (DFrac.own 1))
@@ -561,7 +561,7 @@ noncomputable instance SCComponent_access_store_nodes (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance SCComponent_access_load_color (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent) (dq : DFrac) :
+noncomputable instance access_load'SCComponent'color (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent go!"color" l) v.color' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent go!"color" l) v.color' dq)
@@ -569,7 +569,7 @@ noncomputable instance SCComponent_access_load_color (l : Loc) (v : github_com.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance SCComponent_access_store_color (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent) (y : w8) :
+noncomputable instance access_store'SCComponent'color (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent) (y : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent go!"color" l) v.color' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.epaxos.SCComponent go!"color" l) y (DFrac.own 1))

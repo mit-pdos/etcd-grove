@@ -27,7 +27,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions]
 
-noncomputable instance ClientMetrics_typed_pointsto :
+noncomputable instance typed_pointsto'ClientMetrics :
     TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics where
   typedPointstoDef l v dq := iprop(
     "clientStartedCounter" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStartedCounter" l) v.clientStartedCounter' dq ∗
@@ -42,11 +42,11 @@ noncomputable instance ClientMetrics_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ClientMetrics_into_val_typed :
+noncomputable instance into_val_typed'ClientMetrics :
     IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ClientMetrics_access_load_clientStartedCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
+noncomputable instance access_load'ClientMetrics'clientStartedCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStartedCounter" l) v.clientStartedCounter' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStartedCounter" l) v.clientStartedCounter' dq)
@@ -54,7 +54,7 @@ noncomputable instance ClientMetrics_access_load_clientStartedCounter (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientMetrics_access_store_clientStartedCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (y : Loc) :
+noncomputable instance access_store'ClientMetrics'clientStartedCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStartedCounter" l) v.clientStartedCounter' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStartedCounter" l) y (DFrac.own 1))
@@ -62,7 +62,7 @@ noncomputable instance ClientMetrics_access_store_clientStartedCounter (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientMetrics_access_load_clientHandledCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
+noncomputable instance access_load'ClientMetrics'clientHandledCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledCounter" l) v.clientHandledCounter' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledCounter" l) v.clientHandledCounter' dq)
@@ -70,7 +70,7 @@ noncomputable instance ClientMetrics_access_load_clientHandledCounter (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientMetrics_access_store_clientHandledCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (y : Loc) :
+noncomputable instance access_store'ClientMetrics'clientHandledCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledCounter" l) v.clientHandledCounter' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledCounter" l) y (DFrac.own 1))
@@ -78,7 +78,7 @@ noncomputable instance ClientMetrics_access_store_clientHandledCounter (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientMetrics_access_load_clientStreamMsgReceived (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
+noncomputable instance access_load'ClientMetrics'clientStreamMsgReceived (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgReceived" l) v.clientStreamMsgReceived' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgReceived" l) v.clientStreamMsgReceived' dq)
@@ -86,7 +86,7 @@ noncomputable instance ClientMetrics_access_load_clientStreamMsgReceived (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientMetrics_access_store_clientStreamMsgReceived (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (y : Loc) :
+noncomputable instance access_store'ClientMetrics'clientStreamMsgReceived (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgReceived" l) v.clientStreamMsgReceived' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgReceived" l) y (DFrac.own 1))
@@ -94,7 +94,7 @@ noncomputable instance ClientMetrics_access_store_clientStreamMsgReceived (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientMetrics_access_load_clientStreamMsgSent (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
+noncomputable instance access_load'ClientMetrics'clientStreamMsgSent (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgSent" l) v.clientStreamMsgSent' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgSent" l) v.clientStreamMsgSent' dq)
@@ -102,7 +102,7 @@ noncomputable instance ClientMetrics_access_load_clientStreamMsgSent (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientMetrics_access_store_clientStreamMsgSent (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (y : Loc) :
+noncomputable instance access_store'ClientMetrics'clientStreamMsgSent (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgSent" l) v.clientStreamMsgSent' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgSent" l) y (DFrac.own 1))
@@ -110,7 +110,7 @@ noncomputable instance ClientMetrics_access_store_clientStreamMsgSent (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientMetrics_access_load_clientHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
+noncomputable instance access_load'ClientMetrics'clientHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledHistogram" l) v.clientHandledHistogram' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledHistogram" l) v.clientHandledHistogram' dq)
@@ -118,7 +118,7 @@ noncomputable instance ClientMetrics_access_load_clientHandledHistogram (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientMetrics_access_store_clientHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (y : Loc) :
+noncomputable instance access_store'ClientMetrics'clientHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledHistogram" l) v.clientHandledHistogram' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledHistogram" l) y (DFrac.own 1))
@@ -126,7 +126,7 @@ noncomputable instance ClientMetrics_access_store_clientHandledHistogram (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientMetrics_access_load_clientStreamRecvHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
+noncomputable instance access_load'ClientMetrics'clientStreamRecvHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamRecvHistogram" l) v.clientStreamRecvHistogram' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamRecvHistogram" l) v.clientStreamRecvHistogram' dq)
@@ -134,7 +134,7 @@ noncomputable instance ClientMetrics_access_load_clientStreamRecvHistogram (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientMetrics_access_store_clientStreamRecvHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (y : Loc) :
+noncomputable instance access_store'ClientMetrics'clientStreamRecvHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamRecvHistogram" l) v.clientStreamRecvHistogram' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamRecvHistogram" l) y (DFrac.own 1))
@@ -142,7 +142,7 @@ noncomputable instance ClientMetrics_access_store_clientStreamRecvHistogram (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientMetrics_access_load_clientStreamSendHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
+noncomputable instance access_load'ClientMetrics'clientStreamSendHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamSendHistogram" l) v.clientStreamSendHistogram' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamSendHistogram" l) v.clientStreamSendHistogram' dq)
@@ -150,7 +150,7 @@ noncomputable instance ClientMetrics_access_load_clientStreamSendHistogram (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientMetrics_access_store_clientStreamSendHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (y : Loc) :
+noncomputable instance access_store'ClientMetrics'clientStreamSendHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamSendHistogram" l) v.clientStreamSendHistogram' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamSendHistogram" l) y (DFrac.own 1))
@@ -169,7 +169,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions]
 
-noncomputable instance clientMetricsConfig_typed_pointsto :
+noncomputable instance typed_pointsto'clientMetricsConfig :
     TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig where
   typedPointstoDef l v dq := iprop(
     "counterOpts" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"counterOpts" l) v.counterOpts' dq ∗
@@ -181,11 +181,11 @@ noncomputable instance clientMetricsConfig_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance clientMetricsConfig_into_val_typed :
+noncomputable instance into_val_typed'clientMetricsConfig :
     IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance clientMetricsConfig_access_load_counterOpts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (dq : DFrac) :
+noncomputable instance access_load'clientMetricsConfig'counterOpts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"counterOpts" l) v.counterOpts' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"counterOpts" l) v.counterOpts' dq)
@@ -193,7 +193,7 @@ noncomputable instance clientMetricsConfig_access_load_counterOpts (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientMetricsConfig_access_store_counterOpts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (y : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.counterOptions) :
+noncomputable instance access_store'clientMetricsConfig'counterOpts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (y : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.counterOptions) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"counterOpts" l) v.counterOpts' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"counterOpts" l) y (DFrac.own 1))
@@ -201,7 +201,7 @@ noncomputable instance clientMetricsConfig_access_store_counterOpts (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientMetricsConfig_access_load_clientHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (dq : DFrac) :
+noncomputable instance access_load'clientMetricsConfig'clientHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientHandledHistogram" l) v.clientHandledHistogram' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientHandledHistogram" l) v.clientHandledHistogram' dq)
@@ -209,7 +209,7 @@ noncomputable instance clientMetricsConfig_access_load_clientHandledHistogram (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientMetricsConfig_access_store_clientHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (y : Loc) :
+noncomputable instance access_store'clientMetricsConfig'clientHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientHandledHistogram" l) v.clientHandledHistogram' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientHandledHistogram" l) y (DFrac.own 1))
@@ -217,7 +217,7 @@ noncomputable instance clientMetricsConfig_access_store_clientHandledHistogram (
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientMetricsConfig_access_load_clientStreamRecvHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (dq : DFrac) :
+noncomputable instance access_load'clientMetricsConfig'clientStreamRecvHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamRecvHistogram" l) v.clientStreamRecvHistogram' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamRecvHistogram" l) v.clientStreamRecvHistogram' dq)
@@ -225,7 +225,7 @@ noncomputable instance clientMetricsConfig_access_load_clientStreamRecvHistogram
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientMetricsConfig_access_store_clientStreamRecvHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (y : Loc) :
+noncomputable instance access_store'clientMetricsConfig'clientStreamRecvHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamRecvHistogram" l) v.clientStreamRecvHistogram' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamRecvHistogram" l) y (DFrac.own 1))
@@ -233,7 +233,7 @@ noncomputable instance clientMetricsConfig_access_store_clientStreamRecvHistogra
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientMetricsConfig_access_load_clientStreamSendHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (dq : DFrac) :
+noncomputable instance access_load'clientMetricsConfig'clientStreamSendHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamSendHistogram" l) v.clientStreamSendHistogram' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamSendHistogram" l) v.clientStreamSendHistogram' dq)
@@ -241,7 +241,7 @@ noncomputable instance clientMetricsConfig_access_load_clientStreamSendHistogram
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientMetricsConfig_access_store_clientStreamSendHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (y : Loc) :
+noncomputable instance access_store'clientMetricsConfig'clientStreamSendHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamSendHistogram" l) v.clientStreamSendHistogram' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamSendHistogram" l) y (DFrac.own 1))
@@ -260,11 +260,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions]
 
-noncomputable instance exemplarFromCtxFn_typed_pointsto :
+noncomputable instance typed_pointsto'exemplarFromCtxFn :
     TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.exemplarFromCtxFn :=
   sorry -- axiomatized type
 
-noncomputable instance exemplarFromCtxFn_into_val_typed :
+noncomputable instance into_val_typed'exemplarFromCtxFn :
     IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.exemplarFromCtxFn github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.exemplarFromCtxFn.underlying :=
   sorry -- axiomatized type
 
@@ -279,11 +279,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions]
 
-noncomputable instance labelsFromCtxFn_typed_pointsto :
+noncomputable instance typed_pointsto'labelsFromCtxFn :
     TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.labelsFromCtxFn :=
   sorry -- axiomatized type
 
-noncomputable instance labelsFromCtxFn_into_val_typed :
+noncomputable instance into_val_typed'labelsFromCtxFn :
     IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.labelsFromCtxFn github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.labelsFromCtxFn.underlying :=
   sorry -- axiomatized type
 
@@ -298,7 +298,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions]
 
-noncomputable instance config_typed_pointsto :
+noncomputable instance typed_pointsto'config :
     TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config where
   typedPointstoDef l v dq := iprop(
     "exemplarFn" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config go!"exemplarFn" l) v.exemplarFn' dq ∗
@@ -308,11 +308,11 @@ noncomputable instance config_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance config_into_val_typed :
+noncomputable instance into_val_typed'config :
     IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance config_access_load_exemplarFn (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config) (dq : DFrac) :
+noncomputable instance access_load'config'exemplarFn (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config go!"exemplarFn" l) v.exemplarFn' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config go!"exemplarFn" l) v.exemplarFn' dq)
@@ -320,7 +320,7 @@ noncomputable instance config_access_load_exemplarFn (l : Loc) (v : github_com.g
  by
   solve_pointsto_access_struct
 
-noncomputable instance config_access_store_exemplarFn (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config) (y : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.exemplarFromCtxFn) :
+noncomputable instance access_store'config'exemplarFn (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config) (y : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.exemplarFromCtxFn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config go!"exemplarFn" l) v.exemplarFn' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config go!"exemplarFn" l) y (DFrac.own 1))
@@ -328,7 +328,7 @@ noncomputable instance config_access_store_exemplarFn (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance config_access_load_labelsFn (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config) (dq : DFrac) :
+noncomputable instance access_load'config'labelsFn (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config go!"labelsFn" l) v.labelsFn' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config go!"labelsFn" l) v.labelsFn' dq)
@@ -336,7 +336,7 @@ noncomputable instance config_access_load_labelsFn (l : Loc) (v : github_com.grp
  by
   solve_pointsto_access_struct
 
-noncomputable instance config_access_store_labelsFn (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config) (y : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.labelsFromCtxFn) :
+noncomputable instance access_store'config'labelsFn (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config) (y : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.labelsFromCtxFn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config go!"labelsFn" l) v.labelsFn' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.config go!"labelsFn" l) y (DFrac.own 1))
@@ -355,11 +355,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions]
 
-noncomputable instance reporter_typed_pointsto :
+noncomputable instance typed_pointsto'reporter :
     TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reporter :=
   sorry -- axiomatized type
 
-noncomputable instance reporter_into_val_typed :
+noncomputable instance into_val_typed'reporter :
     IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reporter github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reporter.underlying :=
   sorry -- axiomatized type
 
@@ -374,7 +374,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions]
 
-noncomputable instance reportable_typed_pointsto :
+noncomputable instance typed_pointsto'reportable :
     TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable where
   typedPointstoDef l v dq := iprop(
     "clientMetrics" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable go!"clientMetrics" l) v.clientMetrics' dq ∗
@@ -385,11 +385,11 @@ noncomputable instance reportable_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance reportable_into_val_typed :
+noncomputable instance into_val_typed'reportable :
     IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance reportable_access_load_clientMetrics (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable) (dq : DFrac) :
+noncomputable instance access_load'reportable'clientMetrics (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable go!"clientMetrics" l) v.clientMetrics' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable go!"clientMetrics" l) v.clientMetrics' dq)
@@ -397,7 +397,7 @@ noncomputable instance reportable_access_load_clientMetrics (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance reportable_access_store_clientMetrics (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable) (y : Loc) :
+noncomputable instance access_store'reportable'clientMetrics (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable go!"clientMetrics" l) v.clientMetrics' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable go!"clientMetrics" l) y (DFrac.own 1))
@@ -405,7 +405,7 @@ noncomputable instance reportable_access_store_clientMetrics (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance reportable_access_load_serverMetrics (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable) (dq : DFrac) :
+noncomputable instance access_load'reportable'serverMetrics (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable go!"serverMetrics" l) v.serverMetrics' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable go!"serverMetrics" l) v.serverMetrics' dq)
@@ -413,7 +413,7 @@ noncomputable instance reportable_access_load_serverMetrics (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance reportable_access_store_serverMetrics (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable) (y : Loc) :
+noncomputable instance access_store'reportable'serverMetrics (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable go!"serverMetrics" l) v.serverMetrics' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable go!"serverMetrics" l) y (DFrac.own 1))
@@ -421,7 +421,7 @@ noncomputable instance reportable_access_store_serverMetrics (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance reportable_access_load_opts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable) (dq : DFrac) :
+noncomputable instance access_load'reportable'opts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable go!"opts" l) v.opts' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable go!"opts" l) v.opts' dq)
@@ -429,7 +429,7 @@ noncomputable instance reportable_access_load_opts (l : Loc) (v : github_com.grp
  by
   solve_pointsto_access_struct
 
-noncomputable instance reportable_access_store_opts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable) (y : GoSlice) :
+noncomputable instance access_store'reportable'opts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable go!"opts" l) v.opts' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.reportable go!"opts" l) y (DFrac.own 1))
@@ -448,7 +448,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions]
 
-noncomputable instance ServerMetrics_typed_pointsto :
+noncomputable instance typed_pointsto'ServerMetrics :
     TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics where
   typedPointstoDef l v dq := iprop(
     "serverStartedCounter" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStartedCounter" l) v.serverStartedCounter' dq ∗
@@ -462,11 +462,11 @@ noncomputable instance ServerMetrics_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ServerMetrics_into_val_typed :
+noncomputable instance into_val_typed'ServerMetrics :
     IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ServerMetrics_access_load_serverStartedCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
+noncomputable instance access_load'ServerMetrics'serverStartedCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStartedCounter" l) v.serverStartedCounter' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStartedCounter" l) v.serverStartedCounter' dq)
@@ -474,7 +474,7 @@ noncomputable instance ServerMetrics_access_load_serverStartedCounter (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerMetrics_access_store_serverStartedCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (y : Loc) :
+noncomputable instance access_store'ServerMetrics'serverStartedCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStartedCounter" l) v.serverStartedCounter' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStartedCounter" l) y (DFrac.own 1))
@@ -482,7 +482,7 @@ noncomputable instance ServerMetrics_access_store_serverStartedCounter (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerMetrics_access_load_serverHandledCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
+noncomputable instance access_load'ServerMetrics'serverHandledCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledCounter" l) v.serverHandledCounter' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledCounter" l) v.serverHandledCounter' dq)
@@ -490,7 +490,7 @@ noncomputable instance ServerMetrics_access_load_serverHandledCounter (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerMetrics_access_store_serverHandledCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (y : Loc) :
+noncomputable instance access_store'ServerMetrics'serverHandledCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledCounter" l) v.serverHandledCounter' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledCounter" l) y (DFrac.own 1))
@@ -498,7 +498,7 @@ noncomputable instance ServerMetrics_access_store_serverHandledCounter (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerMetrics_access_load_serverStreamMsgReceived (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
+noncomputable instance access_load'ServerMetrics'serverStreamMsgReceived (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgReceived" l) v.serverStreamMsgReceived' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgReceived" l) v.serverStreamMsgReceived' dq)
@@ -506,7 +506,7 @@ noncomputable instance ServerMetrics_access_load_serverStreamMsgReceived (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerMetrics_access_store_serverStreamMsgReceived (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (y : Loc) :
+noncomputable instance access_store'ServerMetrics'serverStreamMsgReceived (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgReceived" l) v.serverStreamMsgReceived' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgReceived" l) y (DFrac.own 1))
@@ -514,7 +514,7 @@ noncomputable instance ServerMetrics_access_store_serverStreamMsgReceived (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerMetrics_access_load_serverStreamMsgSent (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
+noncomputable instance access_load'ServerMetrics'serverStreamMsgSent (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgSent" l) v.serverStreamMsgSent' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgSent" l) v.serverStreamMsgSent' dq)
@@ -522,7 +522,7 @@ noncomputable instance ServerMetrics_access_load_serverStreamMsgSent (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerMetrics_access_store_serverStreamMsgSent (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (y : Loc) :
+noncomputable instance access_store'ServerMetrics'serverStreamMsgSent (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgSent" l) v.serverStreamMsgSent' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgSent" l) y (DFrac.own 1))
@@ -530,7 +530,7 @@ noncomputable instance ServerMetrics_access_store_serverStreamMsgSent (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerMetrics_access_load_serverHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
+noncomputable instance access_load'ServerMetrics'serverHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledHistogram" l) v.serverHandledHistogram' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledHistogram" l) v.serverHandledHistogram' dq)
@@ -538,7 +538,7 @@ noncomputable instance ServerMetrics_access_load_serverHandledHistogram (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerMetrics_access_store_serverHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (y : Loc) :
+noncomputable instance access_store'ServerMetrics'serverHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledHistogram" l) v.serverHandledHistogram' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledHistogram" l) y (DFrac.own 1))
@@ -546,7 +546,7 @@ noncomputable instance ServerMetrics_access_store_serverHandledHistogram (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerMetrics_access_load_contextLabelNames (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
+noncomputable instance access_load'ServerMetrics'contextLabelNames (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"contextLabelNames" l) v.contextLabelNames' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"contextLabelNames" l) v.contextLabelNames' dq)
@@ -554,7 +554,7 @@ noncomputable instance ServerMetrics_access_load_contextLabelNames (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerMetrics_access_store_contextLabelNames (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (y : GoSlice) :
+noncomputable instance access_store'ServerMetrics'contextLabelNames (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"contextLabelNames" l) v.contextLabelNames' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"contextLabelNames" l) y (DFrac.own 1))
@@ -573,7 +573,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions]
 
-noncomputable instance serverMetricsConfig_typed_pointsto :
+noncomputable instance typed_pointsto'serverMetricsConfig :
     TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig where
   typedPointstoDef l v dq := iprop(
     "counterOpts" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"counterOpts" l) v.counterOpts' dq ∗
@@ -585,11 +585,11 @@ noncomputable instance serverMetricsConfig_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance serverMetricsConfig_into_val_typed :
+noncomputable instance into_val_typed'serverMetricsConfig :
     IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance serverMetricsConfig_access_load_counterOpts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig) (dq : DFrac) :
+noncomputable instance access_load'serverMetricsConfig'counterOpts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"counterOpts" l) v.counterOpts' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"counterOpts" l) v.counterOpts' dq)
@@ -597,7 +597,7 @@ noncomputable instance serverMetricsConfig_access_load_counterOpts (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverMetricsConfig_access_store_counterOpts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig) (y : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.counterOptions) :
+noncomputable instance access_store'serverMetricsConfig'counterOpts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig) (y : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.counterOptions) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"counterOpts" l) v.counterOpts' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"counterOpts" l) y (DFrac.own 1))
@@ -605,7 +605,7 @@ noncomputable instance serverMetricsConfig_access_store_counterOpts (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverMetricsConfig_access_load_histogramOpts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig) (dq : DFrac) :
+noncomputable instance access_load'serverMetricsConfig'histogramOpts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"histogramOpts" l) v.histogramOpts' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"histogramOpts" l) v.histogramOpts' dq)
@@ -613,7 +613,7 @@ noncomputable instance serverMetricsConfig_access_load_histogramOpts (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverMetricsConfig_access_store_histogramOpts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig) (y : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.histogramOptions) :
+noncomputable instance access_store'serverMetricsConfig'histogramOpts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig) (y : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.histogramOptions) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"histogramOpts" l) v.histogramOpts' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"histogramOpts" l) y (DFrac.own 1))
@@ -621,7 +621,7 @@ noncomputable instance serverMetricsConfig_access_store_histogramOpts (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverMetricsConfig_access_load_enableHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig) (dq : DFrac) :
+noncomputable instance access_load'serverMetricsConfig'enableHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"enableHistogram" l) v.enableHistogram' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"enableHistogram" l) v.enableHistogram' dq)
@@ -629,7 +629,7 @@ noncomputable instance serverMetricsConfig_access_load_enableHistogram (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverMetricsConfig_access_store_enableHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig) (y : Bool) :
+noncomputable instance access_store'serverMetricsConfig'enableHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"enableHistogram" l) v.enableHistogram' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"enableHistogram" l) y (DFrac.own 1))
@@ -637,7 +637,7 @@ noncomputable instance serverMetricsConfig_access_store_enableHistogram (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverMetricsConfig_access_load_contextLabels (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig) (dq : DFrac) :
+noncomputable instance access_load'serverMetricsConfig'contextLabels (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"contextLabels" l) v.contextLabels' dq)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"contextLabels" l) v.contextLabels' dq)
@@ -645,7 +645,7 @@ noncomputable instance serverMetricsConfig_access_load_contextLabels (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverMetricsConfig_access_store_contextLabels (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig) (y : GoSlice) :
+noncomputable instance access_store'serverMetricsConfig'contextLabels (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"contextLabels" l) v.contextLabels' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.serverMetricsConfig go!"contextLabels" l) y (DFrac.own 1))

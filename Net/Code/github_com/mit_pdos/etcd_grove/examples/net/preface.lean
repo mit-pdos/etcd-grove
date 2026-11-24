@@ -312,21 +312,21 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  serveConn_unfold : FuncUnfold serveConn [] serveConn.impl
-  Serve_unfold : FuncUnfold Serve [] Serve.impl
-  Call_unfold : FuncUnfold Call [] Call.impl
-  SendJunk_unfold : FuncUnfold SendJunk [] SendJunk.impl
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_wire_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Assumptions
+  unfold'serveConn : FuncUnfold serveConn [] serveConn.impl
+  unfold'Serve : FuncUnfold Serve [] Serve.impl
+  unfold'Call : FuncUnfold Call [] Call.impl
+  unfold'SendJunk : FuncUnfold SendJunk [] SendJunk.impl
+  import'net : _root_.Perennial.net.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'wire : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Assumptions
 
-attribute [instance] Assumptions.serveConn_unfold
-  Assumptions.Serve_unfold
-  Assumptions.Call_unfold
-  Assumptions.SendJunk_unfold
-  Assumptions.import_net_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_wire_Assumption
+attribute [instance] Assumptions.unfold'serveConn
+  Assumptions.unfold'Serve
+  Assumptions.unfold'Call
+  Assumptions.unfold'SendJunk
+  Assumptions.import'net
+  Assumptions.import'time
+  Assumptions.import'wire
 
 end github_com.mit_pdos.etcd_grove.examples.net.preface
 

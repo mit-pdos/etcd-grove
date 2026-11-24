@@ -560,71 +560,71 @@ attribute [instance] statefulSets.TypeAssumptions.type_repr
   statefulSets.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  AppsV1Interface_instance : AppsV1Interface.TypeAssumptions
-  AppsV1Client_instance : AppsV1Client.TypeAssumptions
-  ControllerRevisionsGetter_instance : ControllerRevisionsGetter.TypeAssumptions
-  ControllerRevisionInterface_instance : ControllerRevisionInterface.TypeAssumptions
-  controllerRevisions_instance : controllerRevisions.TypeAssumptions
-  DaemonSetsGetter_instance : DaemonSetsGetter.TypeAssumptions
-  DaemonSetInterface_instance : DaemonSetInterface.TypeAssumptions
-  daemonSets_instance : daemonSets.TypeAssumptions
-  DeploymentsGetter_instance : DeploymentsGetter.TypeAssumptions
-  DeploymentInterface_instance : DeploymentInterface.TypeAssumptions
-  deployments_instance : deployments.TypeAssumptions
-  ControllerRevisionExpansion_instance : ControllerRevisionExpansion.TypeAssumptions
-  DaemonSetExpansion_instance : DaemonSetExpansion.TypeAssumptions
-  DeploymentExpansion_instance : DeploymentExpansion.TypeAssumptions
-  ReplicaSetExpansion_instance : ReplicaSetExpansion.TypeAssumptions
-  StatefulSetExpansion_instance : StatefulSetExpansion.TypeAssumptions
-  ReplicaSetsGetter_instance : ReplicaSetsGetter.TypeAssumptions
-  ReplicaSetInterface_instance : ReplicaSetInterface.TypeAssumptions
-  replicaSets_instance : replicaSets.TypeAssumptions
-  StatefulSetsGetter_instance : StatefulSetsGetter.TypeAssumptions
-  StatefulSetInterface_instance : StatefulSetInterface.TypeAssumptions
-  statefulSets_instance : statefulSets.TypeAssumptions
-  import_http_Assumption : _root_.Perennial.net.http.Assumptions
-  import_api_apps_v1_Assumption : _root_.Perennial.k8s_io.api.apps.v1.Assumptions
-  import_rest_Assumption : _root_.Perennial.k8s_io.client_go.rest.Assumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_apis_meta_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_types_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
-  import_watch_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions
-  import_applyconfigurations_apps_v1_Assumption : _root_.Perennial.k8s_io.client_go.applyconfigurations.apps.v1.Assumptions
-  import_api_autoscaling_v1_Assumption : _root_.Perennial.k8s_io.api.autoscaling.v1.Assumptions
-  import_applyconfigurations_autoscaling_v1_Assumption : _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions
+  instance'AppsV1Interface : AppsV1Interface.TypeAssumptions
+  instance'AppsV1Client : AppsV1Client.TypeAssumptions
+  instance'ControllerRevisionsGetter : ControllerRevisionsGetter.TypeAssumptions
+  instance'ControllerRevisionInterface : ControllerRevisionInterface.TypeAssumptions
+  instance'controllerRevisions : controllerRevisions.TypeAssumptions
+  instance'DaemonSetsGetter : DaemonSetsGetter.TypeAssumptions
+  instance'DaemonSetInterface : DaemonSetInterface.TypeAssumptions
+  instance'daemonSets : daemonSets.TypeAssumptions
+  instance'DeploymentsGetter : DeploymentsGetter.TypeAssumptions
+  instance'DeploymentInterface : DeploymentInterface.TypeAssumptions
+  instance'deployments : deployments.TypeAssumptions
+  instance'ControllerRevisionExpansion : ControllerRevisionExpansion.TypeAssumptions
+  instance'DaemonSetExpansion : DaemonSetExpansion.TypeAssumptions
+  instance'DeploymentExpansion : DeploymentExpansion.TypeAssumptions
+  instance'ReplicaSetExpansion : ReplicaSetExpansion.TypeAssumptions
+  instance'StatefulSetExpansion : StatefulSetExpansion.TypeAssumptions
+  instance'ReplicaSetsGetter : ReplicaSetsGetter.TypeAssumptions
+  instance'ReplicaSetInterface : ReplicaSetInterface.TypeAssumptions
+  instance'replicaSets : replicaSets.TypeAssumptions
+  instance'StatefulSetsGetter : StatefulSetsGetter.TypeAssumptions
+  instance'StatefulSetInterface : StatefulSetInterface.TypeAssumptions
+  instance'statefulSets : statefulSets.TypeAssumptions
+  import'http : _root_.Perennial.net.http.Assumptions
+  import'api_apps_v1 : _root_.Perennial.k8s_io.api.apps.v1.Assumptions
+  import'rest : _root_.Perennial.k8s_io.client_go.rest.Assumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'apis_meta_v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'types : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
+  import'watch : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions
+  import'applyconfigurations_apps_v1 : _root_.Perennial.k8s_io.client_go.applyconfigurations.apps.v1.Assumptions
+  import'api_autoscaling_v1 : _root_.Perennial.k8s_io.api.autoscaling.v1.Assumptions
+  import'applyconfigurations_autoscaling_v1 : _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions
 
-attribute [instance] Assumptions.AppsV1Interface_instance
-  Assumptions.AppsV1Client_instance
-  Assumptions.ControllerRevisionsGetter_instance
-  Assumptions.ControllerRevisionInterface_instance
-  Assumptions.controllerRevisions_instance
-  Assumptions.DaemonSetsGetter_instance
-  Assumptions.DaemonSetInterface_instance
-  Assumptions.daemonSets_instance
-  Assumptions.DeploymentsGetter_instance
-  Assumptions.DeploymentInterface_instance
-  Assumptions.deployments_instance
-  Assumptions.ControllerRevisionExpansion_instance
-  Assumptions.DaemonSetExpansion_instance
-  Assumptions.DeploymentExpansion_instance
-  Assumptions.ReplicaSetExpansion_instance
-  Assumptions.StatefulSetExpansion_instance
-  Assumptions.ReplicaSetsGetter_instance
-  Assumptions.ReplicaSetInterface_instance
-  Assumptions.replicaSets_instance
-  Assumptions.StatefulSetsGetter_instance
-  Assumptions.StatefulSetInterface_instance
-  Assumptions.statefulSets_instance
-  Assumptions.import_http_Assumption
-  Assumptions.import_api_apps_v1_Assumption
-  Assumptions.import_rest_Assumption
-  Assumptions.import_context_Assumption
-  Assumptions.import_apis_meta_v1_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_watch_Assumption
-  Assumptions.import_applyconfigurations_apps_v1_Assumption
-  Assumptions.import_api_autoscaling_v1_Assumption
-  Assumptions.import_applyconfigurations_autoscaling_v1_Assumption
+attribute [instance] Assumptions.instance'AppsV1Interface
+  Assumptions.instance'AppsV1Client
+  Assumptions.instance'ControllerRevisionsGetter
+  Assumptions.instance'ControllerRevisionInterface
+  Assumptions.instance'controllerRevisions
+  Assumptions.instance'DaemonSetsGetter
+  Assumptions.instance'DaemonSetInterface
+  Assumptions.instance'daemonSets
+  Assumptions.instance'DeploymentsGetter
+  Assumptions.instance'DeploymentInterface
+  Assumptions.instance'deployments
+  Assumptions.instance'ControllerRevisionExpansion
+  Assumptions.instance'DaemonSetExpansion
+  Assumptions.instance'DeploymentExpansion
+  Assumptions.instance'ReplicaSetExpansion
+  Assumptions.instance'StatefulSetExpansion
+  Assumptions.instance'ReplicaSetsGetter
+  Assumptions.instance'ReplicaSetInterface
+  Assumptions.instance'replicaSets
+  Assumptions.instance'StatefulSetsGetter
+  Assumptions.instance'StatefulSetInterface
+  Assumptions.instance'statefulSets
+  Assumptions.import'http
+  Assumptions.import'api_apps_v1
+  Assumptions.import'rest
+  Assumptions.import'context
+  Assumptions.import'apis_meta_v1
+  Assumptions.import'types
+  Assumptions.import'watch
+  Assumptions.import'applyconfigurations_apps_v1
+  Assumptions.import'api_autoscaling_v1
+  Assumptions.import'applyconfigurations_autoscaling_v1
 
 end k8s_io.client_go.kubernetes.typed.apps.v1
 

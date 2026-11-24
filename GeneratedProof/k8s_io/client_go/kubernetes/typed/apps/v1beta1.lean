@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1beta1.Assumptions]
 
-noncomputable instance AppsV1beta1Interface_typed_pointsto :
+noncomputable instance typed_pointsto'AppsV1beta1Interface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.AppsV1beta1Interface :=
   sorry -- axiomatized type
 
-noncomputable instance AppsV1beta1Interface_into_val_typed :
+noncomputable instance into_val_typed'AppsV1beta1Interface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.AppsV1beta1Interface k8s_io.client_go.kubernetes.typed.apps.v1beta1.AppsV1beta1Interface.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1beta1.Assumptions]
 
-noncomputable instance AppsV1beta1Client_typed_pointsto :
+noncomputable instance typed_pointsto'AppsV1beta1Client :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.AppsV1beta1Client :=
   sorry -- axiomatized type
 
-noncomputable instance AppsV1beta1Client_into_val_typed :
+noncomputable instance into_val_typed'AppsV1beta1Client :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.AppsV1beta1Client k8s_io.client_go.kubernetes.typed.apps.v1beta1.AppsV1beta1Client.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1beta1.Assumptions]
 
-noncomputable instance ControllerRevisionsGetter_typed_pointsto :
+noncomputable instance typed_pointsto'ControllerRevisionsGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.ControllerRevisionsGetter :=
   sorry -- axiomatized type
 
-noncomputable instance ControllerRevisionsGetter_into_val_typed :
+noncomputable instance into_val_typed'ControllerRevisionsGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.ControllerRevisionsGetter k8s_io.client_go.kubernetes.typed.apps.v1beta1.ControllerRevisionsGetter.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1beta1.Assumptions]
 
-noncomputable instance ControllerRevisionInterface_typed_pointsto :
+noncomputable instance typed_pointsto'ControllerRevisionInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.ControllerRevisionInterface :=
   sorry -- axiomatized type
 
-noncomputable instance ControllerRevisionInterface_into_val_typed :
+noncomputable instance into_val_typed'ControllerRevisionInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.ControllerRevisionInterface k8s_io.client_go.kubernetes.typed.apps.v1beta1.ControllerRevisionInterface.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1beta1.Assumptions]
 
-noncomputable instance controllerRevisions_typed_pointsto :
+noncomputable instance typed_pointsto'controllerRevisions :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.controllerRevisions :=
   sorry -- axiomatized type
 
-noncomputable instance controllerRevisions_into_val_typed :
+noncomputable instance into_val_typed'controllerRevisions :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.controllerRevisions k8s_io.client_go.kubernetes.typed.apps.v1beta1.controllerRevisions.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1beta1.Assumptions]
 
-noncomputable instance DeploymentsGetter_typed_pointsto :
+noncomputable instance typed_pointsto'DeploymentsGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.DeploymentsGetter :=
   sorry -- axiomatized type
 
-noncomputable instance DeploymentsGetter_into_val_typed :
+noncomputable instance into_val_typed'DeploymentsGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.DeploymentsGetter k8s_io.client_go.kubernetes.typed.apps.v1beta1.DeploymentsGetter.underlying :=
   sorry -- axiomatized type
 
@@ -138,11 +138,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1beta1.Assumptions]
 
-noncomputable instance DeploymentInterface_typed_pointsto :
+noncomputable instance typed_pointsto'DeploymentInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.DeploymentInterface :=
   sorry -- axiomatized type
 
-noncomputable instance DeploymentInterface_into_val_typed :
+noncomputable instance into_val_typed'DeploymentInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.DeploymentInterface k8s_io.client_go.kubernetes.typed.apps.v1beta1.DeploymentInterface.underlying :=
   sorry -- axiomatized type
 
@@ -157,11 +157,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1beta1.Assumptions]
 
-noncomputable instance deployments_typed_pointsto :
+noncomputable instance typed_pointsto'deployments :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.deployments :=
   sorry -- axiomatized type
 
-noncomputable instance deployments_into_val_typed :
+noncomputable instance into_val_typed'deployments :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.deployments k8s_io.client_go.kubernetes.typed.apps.v1beta1.deployments.underlying :=
   sorry -- axiomatized type
 
@@ -176,11 +176,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1beta1.Assumptions]
 
-noncomputable instance ControllerRevisionExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'ControllerRevisionExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.ControllerRevisionExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance ControllerRevisionExpansion_into_val_typed :
+noncomputable instance into_val_typed'ControllerRevisionExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.ControllerRevisionExpansion k8s_io.client_go.kubernetes.typed.apps.v1beta1.ControllerRevisionExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -195,11 +195,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1beta1.Assumptions]
 
-noncomputable instance DeploymentExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'DeploymentExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.DeploymentExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance DeploymentExpansion_into_val_typed :
+noncomputable instance into_val_typed'DeploymentExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.DeploymentExpansion k8s_io.client_go.kubernetes.typed.apps.v1beta1.DeploymentExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -214,11 +214,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1beta1.Assumptions]
 
-noncomputable instance StatefulSetExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'StatefulSetExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.StatefulSetExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance StatefulSetExpansion_into_val_typed :
+noncomputable instance into_val_typed'StatefulSetExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.StatefulSetExpansion k8s_io.client_go.kubernetes.typed.apps.v1beta1.StatefulSetExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -233,11 +233,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1beta1.Assumptions]
 
-noncomputable instance StatefulSetsGetter_typed_pointsto :
+noncomputable instance typed_pointsto'StatefulSetsGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.StatefulSetsGetter :=
   sorry -- axiomatized type
 
-noncomputable instance StatefulSetsGetter_into_val_typed :
+noncomputable instance into_val_typed'StatefulSetsGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.StatefulSetsGetter k8s_io.client_go.kubernetes.typed.apps.v1beta1.StatefulSetsGetter.underlying :=
   sorry -- axiomatized type
 
@@ -252,11 +252,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1beta1.Assumptions]
 
-noncomputable instance StatefulSetInterface_typed_pointsto :
+noncomputable instance typed_pointsto'StatefulSetInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.StatefulSetInterface :=
   sorry -- axiomatized type
 
-noncomputable instance StatefulSetInterface_into_val_typed :
+noncomputable instance into_val_typed'StatefulSetInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.StatefulSetInterface k8s_io.client_go.kubernetes.typed.apps.v1beta1.StatefulSetInterface.underlying :=
   sorry -- axiomatized type
 
@@ -271,11 +271,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1beta1.Assumptions]
 
-noncomputable instance statefulSets_typed_pointsto :
+noncomputable instance typed_pointsto'statefulSets :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.statefulSets :=
   sorry -- axiomatized type
 
-noncomputable instance statefulSets_into_val_typed :
+noncomputable instance into_val_typed'statefulSets :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1beta1.statefulSets k8s_io.client_go.kubernetes.typed.apps.v1beta1.statefulSets.underlying :=
   sorry -- axiomatized type
 

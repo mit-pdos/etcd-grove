@@ -256,15 +256,15 @@ class Event_EventType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   underlying : go.UnderlyingDirectedEq Event_EventType.ty Event_EventType.underlying
   method_set : go.MethodSetIs Event_EventType.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType Event_EventType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Event_EventType.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType Event_EventType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
-  String_unfold : MethodUnfold Event_EventType.ty go!"String" Event_EventType.String.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Event_EventType.ty) go!"String" (LamV "$r"
+  unfold'String : MethodUnfold Event_EventType.ty go!"String" Event_EventType.String.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType Event_EventType.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Event_EventType.ty go!"String"))) (App (Val (GoInstruction (GoLoad Event_EventType.ty))) (Var "$r"))))
 
 attribute [instance] Event_EventType.TypeAssumptions.underlying
   Event_EventType.TypeAssumptions.method_set
   Event_EventType.TypeAssumptions.ptr_method_set
-  Event_EventType.TypeAssumptions.String_unfold
-  Event_EventType.TypeAssumptions.ptr_String_unfold
+  Event_EventType.TypeAssumptions.unfold'String
+  Event_EventType.TypeAssumptions.ptr_unfold'String
 
 structure KeyValue [GooseExts] where
   mk ::
@@ -295,7 +295,7 @@ noncomputable instance KeyValue.zero_val [GooseExts] : ZeroVal KeyValue :=
 @[irreducible] noncomputable def KeyValue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   KeyValue.fieldsUnsealed
 
-noncomputable instance equals_unfold_KeyValue [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'KeyValue [GooseExts] [GoGlobalContext] :
     EqualsUnfold KeyValue.fields KeyValue.fieldsUnsealed :=
   ⟨by unfold KeyValue.fields; rfl⟩
 
@@ -305,53 +305,53 @@ noncomputable instance equals_unfold_KeyValue [GooseExts] [GoGlobalContext] :
 class KeyValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying KeyValue.underlying KeyValue
   underlying : go.UnderlyingDirectedEq KeyValue.ty KeyValue.underlying
-  get_state : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : KeyValue) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : KeyValue)))
-  get_Key : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : KeyValue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : KeyValue)))
-  get_CreateRevision : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"CreateRevision") #x (Val #(x.CreateRevision'))
-  set_CreateRevision : ∀ (x : KeyValue) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"CreateRevision") (PairV #x #y) (Val #(({ x with CreateRevision' := y } : KeyValue)))
-  get_ModRevision : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"ModRevision") #x (Val #(x.ModRevision'))
-  set_ModRevision : ∀ (x : KeyValue) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"ModRevision") (PairV #x #y) (Val #(({ x with ModRevision' := y } : KeyValue)))
-  get_Version : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"Version") #x (Val #(x.Version'))
-  set_Version : ∀ (x : KeyValue) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : KeyValue)))
-  get_Value : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"Value") #x (Val #(x.Value'))
-  set_Value : ∀ (x : KeyValue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : KeyValue)))
-  get_Lease : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"Lease") #x (Val #(x.Lease'))
-  set_Lease : ∀ (x : KeyValue) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"Lease") (PairV #x #y) (Val #(({ x with Lease' := y } : KeyValue)))
-  get_unknownFields : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : KeyValue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : KeyValue)))
-  get_sizeCache : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : KeyValue) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : KeyValue)))
+  get'state : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : KeyValue) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : KeyValue)))
+  get'Key : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : KeyValue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : KeyValue)))
+  get'CreateRevision : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"CreateRevision") #x (Val #(x.CreateRevision'))
+  set'CreateRevision : ∀ (x : KeyValue) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"CreateRevision") (PairV #x #y) (Val #(({ x with CreateRevision' := y } : KeyValue)))
+  get'ModRevision : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"ModRevision") #x (Val #(x.ModRevision'))
+  set'ModRevision : ∀ (x : KeyValue) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"ModRevision") (PairV #x #y) (Val #(({ x with ModRevision' := y } : KeyValue)))
+  get'Version : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"Version") #x (Val #(x.Version'))
+  set'Version : ∀ (x : KeyValue) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : KeyValue)))
+  get'Value : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"Value") #x (Val #(x.Value'))
+  set'Value : ∀ (x : KeyValue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : KeyValue)))
+  get'Lease : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"Lease") #x (Val #(x.Lease'))
+  set'Lease : ∀ (x : KeyValue) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"Lease") (PairV #x #y) (Val #(({ x with Lease' := y } : KeyValue)))
+  get'unknownFields : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : KeyValue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : KeyValue)))
+  get'sizeCache : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : KeyValue) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : KeyValue)))
   method_set : go.MethodSetIs KeyValue.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType KeyValue.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCreateRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"GetKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetLease", (some (go.signature.Signature [] false [go.int64]))), (go!"GetModRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"GetValue", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetVersion", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetCreateRevision_unfold : MethodUnfold (go.GoType.PointerType KeyValue.ty) go!"GetCreateRevision" KeyValue.GetCreateRevision.impl
-  ptr_GetModRevision_unfold : MethodUnfold (go.GoType.PointerType KeyValue.ty) go!"GetModRevision" KeyValue.GetModRevision.impl
+  ptr_unfold'GetCreateRevision : MethodUnfold (go.GoType.PointerType KeyValue.ty) go!"GetCreateRevision" KeyValue.GetCreateRevision.impl
+  ptr_unfold'GetModRevision : MethodUnfold (go.GoType.PointerType KeyValue.ty) go!"GetModRevision" KeyValue.GetModRevision.impl
 
 attribute [instance] KeyValue.TypeAssumptions.type_repr
   KeyValue.TypeAssumptions.underlying
-  KeyValue.TypeAssumptions.get_state
-  KeyValue.TypeAssumptions.set_state
-  KeyValue.TypeAssumptions.get_Key
-  KeyValue.TypeAssumptions.set_Key
-  KeyValue.TypeAssumptions.get_CreateRevision
-  KeyValue.TypeAssumptions.set_CreateRevision
-  KeyValue.TypeAssumptions.get_ModRevision
-  KeyValue.TypeAssumptions.set_ModRevision
-  KeyValue.TypeAssumptions.get_Version
-  KeyValue.TypeAssumptions.set_Version
-  KeyValue.TypeAssumptions.get_Value
-  KeyValue.TypeAssumptions.set_Value
-  KeyValue.TypeAssumptions.get_Lease
-  KeyValue.TypeAssumptions.set_Lease
-  KeyValue.TypeAssumptions.get_unknownFields
-  KeyValue.TypeAssumptions.set_unknownFields
-  KeyValue.TypeAssumptions.get_sizeCache
-  KeyValue.TypeAssumptions.set_sizeCache
+  KeyValue.TypeAssumptions.get'state
+  KeyValue.TypeAssumptions.set'state
+  KeyValue.TypeAssumptions.get'Key
+  KeyValue.TypeAssumptions.set'Key
+  KeyValue.TypeAssumptions.get'CreateRevision
+  KeyValue.TypeAssumptions.set'CreateRevision
+  KeyValue.TypeAssumptions.get'ModRevision
+  KeyValue.TypeAssumptions.set'ModRevision
+  KeyValue.TypeAssumptions.get'Version
+  KeyValue.TypeAssumptions.set'Version
+  KeyValue.TypeAssumptions.get'Value
+  KeyValue.TypeAssumptions.set'Value
+  KeyValue.TypeAssumptions.get'Lease
+  KeyValue.TypeAssumptions.set'Lease
+  KeyValue.TypeAssumptions.get'unknownFields
+  KeyValue.TypeAssumptions.set'unknownFields
+  KeyValue.TypeAssumptions.get'sizeCache
+  KeyValue.TypeAssumptions.set'sizeCache
   KeyValue.TypeAssumptions.method_set
   KeyValue.TypeAssumptions.ptr_method_set
-  KeyValue.TypeAssumptions.ptr_GetCreateRevision_unfold
-  KeyValue.TypeAssumptions.ptr_GetModRevision_unfold
+  KeyValue.TypeAssumptions.ptr_unfold'GetCreateRevision
+  KeyValue.TypeAssumptions.ptr_unfold'GetModRevision
 
 structure Event [GooseExts] where
   mk ::
@@ -376,7 +376,7 @@ noncomputable instance Event.zero_val [GooseExts] : ZeroVal Event :=
 @[irreducible] noncomputable def Event.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Event.fieldsUnsealed
 
-noncomputable instance equals_unfold_Event [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Event [GooseExts] [GoGlobalContext] :
     EqualsUnfold Event.fields Event.fieldsUnsealed :=
   ⟨by unfold Event.fields; rfl⟩
 
@@ -386,56 +386,56 @@ noncomputable instance equals_unfold_Event [GooseExts] [GoGlobalContext] :
 class Event.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Event.underlying Event
   underlying : go.UnderlyingDirectedEq Event.ty Event.underlying
-  get_state : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : Event) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Event)))
-  get_Type : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : Event) (y : Event_EventType), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Event)))
-  get_Kv : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Kv") #x (Val #(x.Kv'))
-  set_Kv : ∀ (x : Event) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Kv") (PairV #x #y) (Val #(({ x with Kv' := y } : Event)))
-  get_PrevKv : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"PrevKv") #x (Val #(x.PrevKv'))
-  set_PrevKv : ∀ (x : Event) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"PrevKv") (PairV #x #y) (Val #(({ x with PrevKv' := y } : Event)))
-  get_unknownFields : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : Event) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Event)))
-  get_sizeCache : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : Event) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Event)))
+  get'state : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : Event) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Event)))
+  get'Type : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Type") #x (Val #(x.Type'))
+  set'Type : ∀ (x : Event) (y : Event_EventType), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Event)))
+  get'Kv : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Kv") #x (Val #(x.Kv'))
+  set'Kv : ∀ (x : Event) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Kv") (PairV #x #y) (Val #(({ x with Kv' := y } : Event)))
+  get'PrevKv : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"PrevKv") #x (Val #(x.PrevKv'))
+  set'PrevKv : ∀ (x : Event) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"PrevKv") (PairV #x #y) (Val #(({ x with PrevKv' := y } : Event)))
+  get'unknownFields : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : Event) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Event)))
+  get'sizeCache : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : Event) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Event)))
   method_set : go.MethodSetIs Event.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Event.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetKv", (some (go.signature.Signature [] false [(go.GoType.PointerType KeyValue.ty)]))), (go!"GetPrevKv", (some (go.signature.Signature [] false [(go.GoType.PointerType KeyValue.ty)]))), (go!"GetType", (some (go.signature.Signature [] false [Event_EventType.ty]))), (go!"IsCreate", (some (go.signature.Signature [] false [go.bool]))), (go!"IsModify", (some (go.signature.Signature [] false [go.bool]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetKv_unfold : MethodUnfold (go.GoType.PointerType Event.ty) go!"GetKv" Event.GetKv.impl
-  ptr_GetType_unfold : MethodUnfold (go.GoType.PointerType Event.ty) go!"GetType" Event.GetType.impl
-  ptr_IsCreate_unfold : MethodUnfold (go.GoType.PointerType Event.ty) go!"IsCreate" Event.IsCreate.impl
+  ptr_unfold'GetKv : MethodUnfold (go.GoType.PointerType Event.ty) go!"GetKv" Event.GetKv.impl
+  ptr_unfold'GetType : MethodUnfold (go.GoType.PointerType Event.ty) go!"GetType" Event.GetType.impl
+  ptr_unfold'IsCreate : MethodUnfold (go.GoType.PointerType Event.ty) go!"IsCreate" Event.IsCreate.impl
 
 attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.underlying
-  Event.TypeAssumptions.get_state
-  Event.TypeAssumptions.set_state
-  Event.TypeAssumptions.get_Type
-  Event.TypeAssumptions.set_Type
-  Event.TypeAssumptions.get_Kv
-  Event.TypeAssumptions.set_Kv
-  Event.TypeAssumptions.get_PrevKv
-  Event.TypeAssumptions.set_PrevKv
-  Event.TypeAssumptions.get_unknownFields
-  Event.TypeAssumptions.set_unknownFields
-  Event.TypeAssumptions.get_sizeCache
-  Event.TypeAssumptions.set_sizeCache
+  Event.TypeAssumptions.get'state
+  Event.TypeAssumptions.set'state
+  Event.TypeAssumptions.get'Type
+  Event.TypeAssumptions.set'Type
+  Event.TypeAssumptions.get'Kv
+  Event.TypeAssumptions.set'Kv
+  Event.TypeAssumptions.get'PrevKv
+  Event.TypeAssumptions.set'PrevKv
+  Event.TypeAssumptions.get'unknownFields
+  Event.TypeAssumptions.set'unknownFields
+  Event.TypeAssumptions.get'sizeCache
+  Event.TypeAssumptions.set'sizeCache
   Event.TypeAssumptions.method_set
   Event.TypeAssumptions.ptr_method_set
-  Event.TypeAssumptions.ptr_GetKv_unfold
-  Event.TypeAssumptions.ptr_GetType_unfold
-  Event.TypeAssumptions.ptr_IsCreate_unfold
+  Event.TypeAssumptions.ptr_unfold'GetKv
+  Event.TypeAssumptions.ptr_unfold'GetType
+  Event.TypeAssumptions.ptr_unfold'IsCreate
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Event_EventType_instance : Event_EventType.TypeAssumptions
-  KeyValue_instance : KeyValue.TypeAssumptions
-  Event_instance : Event.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
+  instance'Event_EventType : Event_EventType.TypeAssumptions
+  instance'KeyValue : KeyValue.TypeAssumptions
+  instance'Event : Event.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  import'protoimpl : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
 
-attribute [instance] Assumptions.Event_EventType_instance
-  Assumptions.KeyValue_instance
-  Assumptions.Event_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.import_protoimpl_Assumption
+attribute [instance] Assumptions.instance'Event_EventType
+  Assumptions.instance'KeyValue
+  Assumptions.instance'Event
+  Assumptions.«unfold'init.0»
+  Assumptions.import'protoimpl
 
 end go_etcd_io.etcd.api.v3.mvccpb
 

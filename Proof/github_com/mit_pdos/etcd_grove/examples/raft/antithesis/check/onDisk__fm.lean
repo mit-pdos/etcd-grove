@@ -37,7 +37,7 @@ theorem onDisk.fm.wp_proof (wp_m : onDisk.m.spec (GF := GF) (hG := hG))
   unfold OnDisk.fm at Hv
   obtain ⟨m, hm, Hv⟩ := bind_ok Hv
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_m_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'm.method_unfold]
   try wp_auto
   wp_apply wp_m gx x m $$ [Hx] as %u #Hu
   · iframe Hx; ipureintro; exact hm

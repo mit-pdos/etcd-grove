@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.internal.status.Assumptions]
 
-noncomputable instance Status_typed_pointsto :
+noncomputable instance typed_pointsto'Status :
     TypedPointsto (GF := GF) google_golang_org.grpc.internal.status.Status :=
   sorry -- axiomatized type
 
-noncomputable instance Status_into_val_typed :
+noncomputable instance into_val_typed'Status :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.internal.status.Status google_golang_org.grpc.internal.status.Status.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.internal.status.Assumptions]
 
-noncomputable instance Error_typed_pointsto :
+noncomputable instance typed_pointsto'Error :
     TypedPointsto (GF := GF) google_golang_org.grpc.internal.status.Error :=
   sorry -- axiomatized type
 
-noncomputable instance Error_into_val_typed :
+noncomputable instance into_val_typed'Error :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.internal.status.Error google_golang_org.grpc.internal.status.Error.underlying :=
   sorry -- axiomatized type
 

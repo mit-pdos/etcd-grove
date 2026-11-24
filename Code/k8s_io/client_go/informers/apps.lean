@@ -131,7 +131,7 @@ noncomputable instance group.zero_val [GooseExts] : ZeroVal group :=
 @[irreducible] noncomputable def group.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   group.fieldsUnsealed
 
-noncomputable instance equals_unfold_group [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'group [GooseExts] [GoGlobalContext] :
     EqualsUnfold group.fields group.fieldsUnsealed :=
   ⟨by unfold group.fields; rfl⟩
 
@@ -141,40 +141,40 @@ noncomputable instance equals_unfold_group [GooseExts] [GoGlobalContext] :
 class group.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying group.underlying group
   underlying : go.UnderlyingDirectedEq group.ty group.underlying
-  get_factory : ∀ (x : group), go.IsGoStepPureDetTagged under (StructFieldGet group.underlying go!"factory") #x (Val #(x.factory'))
-  set_factory : ∀ (x : group) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldSet group.underlying go!"factory") (PairV #x #y) (Val #(({ x with factory' := y } : group)))
-  get_namespace : ∀ (x : group), go.IsGoStepPureDetTagged under (StructFieldGet group.underlying go!"namespace") #x (Val #(x.namespace'))
-  set_namespace : ∀ (x : group) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet group.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : group)))
-  get_tweakListOptions : ∀ (x : group), go.IsGoStepPureDetTagged under (StructFieldGet group.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
-  set_tweakListOptions : ∀ (x : group) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet group.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : group)))
+  get'factory : ∀ (x : group), go.IsGoStepPureDetTagged under (StructFieldGet group.underlying go!"factory") #x (Val #(x.factory'))
+  set'factory : ∀ (x : group) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldSet group.underlying go!"factory") (PairV #x #y) (Val #(({ x with factory' := y } : group)))
+  get'namespace : ∀ (x : group), go.IsGoStepPureDetTagged under (StructFieldGet group.underlying go!"namespace") #x (Val #(x.namespace'))
+  set'namespace : ∀ (x : group) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet group.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : group)))
+  get'tweakListOptions : ∀ (x : group), go.IsGoStepPureDetTagged under (StructFieldGet group.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
+  set'tweakListOptions : ∀ (x : group) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet group.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : group)))
   method_set : go.MethodSetIs group.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType group.ty) [(go!"V1", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.informers.apps.v1.Interface.ty]))), (go!"V1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/apps/v1beta1.Interface" [])]))), (go!"V1beta2", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/apps/v1beta2.Interface" [])])))]
-  ptr_V1_unfold : MethodUnfold (go.GoType.PointerType group.ty) go!"V1" group.V1.impl
+  ptr_unfold'V1 : MethodUnfold (go.GoType.PointerType group.ty) go!"V1" group.V1.impl
 
 attribute [instance] group.TypeAssumptions.type_repr
   group.TypeAssumptions.underlying
-  group.TypeAssumptions.get_factory
-  group.TypeAssumptions.set_factory
-  group.TypeAssumptions.get_namespace
-  group.TypeAssumptions.set_namespace
-  group.TypeAssumptions.get_tweakListOptions
-  group.TypeAssumptions.set_tweakListOptions
+  group.TypeAssumptions.get'factory
+  group.TypeAssumptions.set'factory
+  group.TypeAssumptions.get'namespace
+  group.TypeAssumptions.set'namespace
+  group.TypeAssumptions.get'tweakListOptions
+  group.TypeAssumptions.set'tweakListOptions
   group.TypeAssumptions.method_set
   group.TypeAssumptions.ptr_method_set
-  group.TypeAssumptions.ptr_V1_unfold
+  group.TypeAssumptions.ptr_unfold'V1
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Interface_instance : Interface.TypeAssumptions
-  group_instance : group.TypeAssumptions
-  New_unfold : FuncUnfold New [] New.impl
-  import_v1_Assumption : _root_.Perennial.k8s_io.client_go.informers.apps.v1.Assumptions
-  import_internalinterfaces_Assumption : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.Assumptions
+  instance'Interface : Interface.TypeAssumptions
+  instance'group : group.TypeAssumptions
+  unfold'New : FuncUnfold New [] New.impl
+  import'v1 : _root_.Perennial.k8s_io.client_go.informers.apps.v1.Assumptions
+  import'internalinterfaces : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.Assumptions
 
-attribute [instance] Assumptions.Interface_instance
-  Assumptions.group_instance
-  Assumptions.New_unfold
-  Assumptions.import_v1_Assumption
-  Assumptions.import_internalinterfaces_Assumption
+attribute [instance] Assumptions.instance'Interface
+  Assumptions.instance'group
+  Assumptions.unfold'New
+  Assumptions.import'v1
+  Assumptions.import'internalinterfaces
 
 end k8s_io.client_go.informers.apps
 

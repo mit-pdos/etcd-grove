@@ -37,7 +37,7 @@ def lwPost (r : Loc) (γa : ApiNames) (γi : InfNames) (n : Option Nat) (dch : G
 
 /-- **`r.ListAndWatchWithContext(ctx)`**: see the file header. -/
 abbrev Reflector.ListAndWatchWithContext.spec : Prop :=
-  ∀ (r f : Loc) (lw : GoInterfaceOk) (et : reflect.«Type») (dh : GoFunc) (ctx : GoInterfaceOk)
+  ∀ (r f : Loc) (lw : GoInterfaceOk) (et : reflect.Type'') (dh : GoFunc) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (dch : GoChan) (γd : ChanNames) (γa : ApiNames)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config) (res : Res)
     (γf : FifoNames) (γt : TsNames) (γi : InfNames) (n : Option Nat),

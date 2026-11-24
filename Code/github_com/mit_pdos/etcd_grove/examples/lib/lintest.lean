@@ -557,33 +557,33 @@ attribute [instance] Clock.TypeAssumptions.underlying
   Clock.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Clock_instance : Clock.TypeAssumptions
-  MonotonicClock_unfold : FuncUnfold MonotonicClock [] MonotonicClock.impl
-  CounterClock_unfold : FuncUnfold CounterClock [] CounterClock.impl
-  runClient_unfold : FuncUnfold runClient [] runClient.impl
-  Run_unfold : FuncUnfold Run [] Run.impl
-  orderByLinearization_unfold : FuncUnfold orderByLinearization [] orderByLinearization.impl
-  RunLin_unfold : FuncUnfold RunLin [] RunLin.impl
-  groupOps_unfold : FuncUnfold groupOps [] groupOps.impl
-  RunLin2_unfold : FuncUnfold RunLin2 [] RunLin2.impl
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
+  instance'Clock : Clock.TypeAssumptions
+  unfold'MonotonicClock : FuncUnfold MonotonicClock [] MonotonicClock.impl
+  unfold'CounterClock : FuncUnfold CounterClock [] CounterClock.impl
+  unfold'runClient : FuncUnfold runClient [] runClient.impl
+  unfold'Run : FuncUnfold Run [] Run.impl
+  unfold'orderByLinearization : FuncUnfold orderByLinearization [] orderByLinearization.impl
+  unfold'RunLin : FuncUnfold RunLin [] RunLin.impl
+  unfold'groupOps : FuncUnfold groupOps [] groupOps.impl
+  unfold'RunLin2 : FuncUnfold RunLin2 [] RunLin2.impl
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'porcupine : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
 
-attribute [instance] Assumptions.Clock_instance
-  Assumptions.MonotonicClock_unfold
-  Assumptions.CounterClock_unfold
-  Assumptions.runClient_unfold
-  Assumptions.Run_unfold
-  Assumptions.orderByLinearization_unfold
-  Assumptions.RunLin_unfold
-  Assumptions.groupOps_unfold
-  Assumptions.RunLin2_unfold
-  Assumptions.import_sync_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_porcupine_Assumption
+attribute [instance] Assumptions.instance'Clock
+  Assumptions.unfold'MonotonicClock
+  Assumptions.unfold'CounterClock
+  Assumptions.unfold'runClient
+  Assumptions.unfold'Run
+  Assumptions.unfold'orderByLinearization
+  Assumptions.unfold'RunLin
+  Assumptions.unfold'groupOps
+  Assumptions.unfold'RunLin2
+  Assumptions.import'sync
+  Assumptions.import'atomic
+  Assumptions.import'time
+  Assumptions.import'porcupine
 
 end github_com.mit_pdos.etcd_grove.examples.lib.lintest
 

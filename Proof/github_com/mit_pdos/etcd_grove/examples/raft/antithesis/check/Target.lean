@@ -73,7 +73,7 @@ theorem Target.wp_proof (wp_rec : Value.rec.spec (GF := GF) (hG := hG))
     · exact (Except.ok.inj hr).symm
   subst hrd
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Value.TypeAssumptions.ptr_rec_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Value.TypeAssumptions.ptr_unfold'rec.method_unfold]
   try wp_auto
   wp_apply wp_rec h r r $$ [Hd] as #Hr
   · iframe Hd; ipureintro; exact hr
@@ -86,7 +86,7 @@ theorem Target.wp_proof (wp_rec : Value.rec.spec (GF := GF) (hG := hG))
   wp_apply wp_SetOf h.Add' r.add $$ [Hadd] as %u2 #Hu2
   · iframe Hadd; ipureintro; omega
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.TypeAssumptions.ptr_Union_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.TypeAssumptions.ptr_unfold'Union.method_unfold]
   try wp_auto
   have h1 := Target_setOf_len r.add
   wp_apply wp_Union g.In' c.cin u2 (setOf r.add) $$ [Hin Hu2] as %u3 #Hu3

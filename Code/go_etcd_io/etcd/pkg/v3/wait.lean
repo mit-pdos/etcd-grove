@@ -484,7 +484,7 @@ noncomputable instance list''.zero_val [GooseExts] : ZeroVal list'' :=
 @[irreducible] noncomputable def list''.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   list''.fieldsUnsealed
 
-noncomputable instance equals_unfold_list [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'list [GooseExts] [GoGlobalContext] :
     EqualsUnfold list''.fields list''.fieldsUnsealed :=
   ⟨by unfold list''.fields; rfl⟩
 
@@ -494,23 +494,23 @@ noncomputable instance equals_unfold_list [GooseExts] [GoGlobalContext] :
 class list''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying list''.underlying list''
   underlying : go.UnderlyingDirectedEq list''.ty list''.underlying
-  get_e : ∀ (x : list''), go.IsGoStepPureDetTagged under (StructFieldGet list''.underlying go!"e") #x (Val #(x.e'))
-  set_e : ∀ (x : list'') (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet list''.underlying go!"e") (PairV #x #y) (Val #(({ x with e' := y } : list'')))
+  get'e : ∀ (x : list''), go.IsGoStepPureDetTagged under (StructFieldGet list''.underlying go!"e") #x (Val #(x.e'))
+  set'e : ∀ (x : list'') (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet list''.underlying go!"e") (PairV #x #y) (Val #(({ x with e' := y } : list'')))
   method_set : go.MethodSetIs list''.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType list''.ty) [(go!"IsRegistered", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"Register", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly go.any)]))), (go!"Trigger", (some (go.signature.Signature [go.uint64, go.any] false [])))]
-  ptr_IsRegistered_unfold : MethodUnfold (go.GoType.PointerType list''.ty) go!"IsRegistered" list''.IsRegistered.impl
-  ptr_Register_unfold : MethodUnfold (go.GoType.PointerType list''.ty) go!"Register" list''.Register.impl
-  ptr_Trigger_unfold : MethodUnfold (go.GoType.PointerType list''.ty) go!"Trigger" list''.Trigger.impl
+  ptr_unfold'IsRegistered : MethodUnfold (go.GoType.PointerType list''.ty) go!"IsRegistered" list''.IsRegistered.impl
+  ptr_unfold'Register : MethodUnfold (go.GoType.PointerType list''.ty) go!"Register" list''.Register.impl
+  ptr_unfold'Trigger : MethodUnfold (go.GoType.PointerType list''.ty) go!"Trigger" list''.Trigger.impl
 
 attribute [instance] list''.TypeAssumptions.type_repr
   list''.TypeAssumptions.underlying
-  list''.TypeAssumptions.get_e
-  list''.TypeAssumptions.set_e
+  list''.TypeAssumptions.get'e
+  list''.TypeAssumptions.set'e
   list''.TypeAssumptions.method_set
   list''.TypeAssumptions.ptr_method_set
-  list''.TypeAssumptions.ptr_IsRegistered_unfold
-  list''.TypeAssumptions.ptr_Register_unfold
-  list''.TypeAssumptions.ptr_Trigger_unfold
+  list''.TypeAssumptions.ptr_unfold'IsRegistered
+  list''.TypeAssumptions.ptr_unfold'Register
+  list''.TypeAssumptions.ptr_unfold'Trigger
 
 structure listElement [GooseExts] where
   mk ::
@@ -527,7 +527,7 @@ noncomputable instance listElement.zero_val [GooseExts] : ZeroVal listElement :=
 @[irreducible] noncomputable def listElement.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   listElement.fieldsUnsealed
 
-noncomputable instance equals_unfold_listElement [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'listElement [GooseExts] [GoGlobalContext] :
     EqualsUnfold listElement.fields listElement.fieldsUnsealed :=
   ⟨by unfold listElement.fields; rfl⟩
 
@@ -537,19 +537,19 @@ noncomputable instance equals_unfold_listElement [GooseExts] [GoGlobalContext] :
 class listElement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying listElement.underlying listElement
   underlying : go.UnderlyingDirectedEq listElement.ty listElement.underlying
-  get_l : ∀ (x : listElement), go.IsGoStepPureDetTagged under (StructFieldGet listElement.underlying go!"l") #x (Val #(x.l'))
-  set_l : ∀ (x : listElement) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet listElement.underlying go!"l") (PairV #x #y) (Val #(({ x with l' := y } : listElement)))
-  get_m : ∀ (x : listElement), go.IsGoStepPureDetTagged under (StructFieldGet listElement.underlying go!"m") #x (Val #(x.m'))
-  set_m : ∀ (x : listElement) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet listElement.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : listElement)))
+  get'l : ∀ (x : listElement), go.IsGoStepPureDetTagged under (StructFieldGet listElement.underlying go!"l") #x (Val #(x.l'))
+  set'l : ∀ (x : listElement) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet listElement.underlying go!"l") (PairV #x #y) (Val #(({ x with l' := y } : listElement)))
+  get'm : ∀ (x : listElement), go.IsGoStepPureDetTagged under (StructFieldGet listElement.underlying go!"m") #x (Val #(x.m'))
+  set'm : ∀ (x : listElement) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet listElement.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : listElement)))
   method_set : go.MethodSetIs listElement.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType listElement.ty) []
 
 attribute [instance] listElement.TypeAssumptions.type_repr
   listElement.TypeAssumptions.underlying
-  listElement.TypeAssumptions.get_l
-  listElement.TypeAssumptions.set_l
-  listElement.TypeAssumptions.get_m
-  listElement.TypeAssumptions.set_m
+  listElement.TypeAssumptions.get'l
+  listElement.TypeAssumptions.set'l
+  listElement.TypeAssumptions.get'm
+  listElement.TypeAssumptions.set'm
   listElement.TypeAssumptions.method_set
   listElement.TypeAssumptions.ptr_method_set
 
@@ -566,7 +566,7 @@ noncomputable instance waitWithResponse.zero_val [GooseExts] : ZeroVal waitWithR
 @[irreducible] noncomputable def waitWithResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   waitWithResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_waitWithResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'waitWithResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold waitWithResponse.fields waitWithResponse.fieldsUnsealed :=
   ⟨by unfold waitWithResponse.fields; rfl⟩
 
@@ -576,23 +576,23 @@ noncomputable instance equals_unfold_waitWithResponse [GooseExts] [GoGlobalConte
 class waitWithResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying waitWithResponse.underlying waitWithResponse
   underlying : go.UnderlyingDirectedEq waitWithResponse.ty waitWithResponse.underlying
-  get_ch : ∀ (x : waitWithResponse), go.IsGoStepPureDetTagged under (StructFieldGet waitWithResponse.underlying go!"ch") #x (Val #(x.ch'))
-  set_ch : ∀ (x : waitWithResponse) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet waitWithResponse.underlying go!"ch") (PairV #x #y) (Val #(({ x with ch' := y } : waitWithResponse)))
+  get'ch : ∀ (x : waitWithResponse), go.IsGoStepPureDetTagged under (StructFieldGet waitWithResponse.underlying go!"ch") #x (Val #(x.ch'))
+  set'ch : ∀ (x : waitWithResponse) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet waitWithResponse.underlying go!"ch") (PairV #x #y) (Val #(({ x with ch' := y } : waitWithResponse)))
   method_set : go.MethodSetIs waitWithResponse.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType waitWithResponse.ty) [(go!"IsRegistered", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"Register", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly go.any)]))), (go!"Trigger", (some (go.signature.Signature [go.uint64, go.any] false [])))]
-  ptr_IsRegistered_unfold : MethodUnfold (go.GoType.PointerType waitWithResponse.ty) go!"IsRegistered" waitWithResponse.IsRegistered.impl
-  ptr_Register_unfold : MethodUnfold (go.GoType.PointerType waitWithResponse.ty) go!"Register" waitWithResponse.Register.impl
-  ptr_Trigger_unfold : MethodUnfold (go.GoType.PointerType waitWithResponse.ty) go!"Trigger" waitWithResponse.Trigger.impl
+  ptr_unfold'IsRegistered : MethodUnfold (go.GoType.PointerType waitWithResponse.ty) go!"IsRegistered" waitWithResponse.IsRegistered.impl
+  ptr_unfold'Register : MethodUnfold (go.GoType.PointerType waitWithResponse.ty) go!"Register" waitWithResponse.Register.impl
+  ptr_unfold'Trigger : MethodUnfold (go.GoType.PointerType waitWithResponse.ty) go!"Trigger" waitWithResponse.Trigger.impl
 
 attribute [instance] waitWithResponse.TypeAssumptions.type_repr
   waitWithResponse.TypeAssumptions.underlying
-  waitWithResponse.TypeAssumptions.get_ch
-  waitWithResponse.TypeAssumptions.set_ch
+  waitWithResponse.TypeAssumptions.get'ch
+  waitWithResponse.TypeAssumptions.set'ch
   waitWithResponse.TypeAssumptions.method_set
   waitWithResponse.TypeAssumptions.ptr_method_set
-  waitWithResponse.TypeAssumptions.ptr_IsRegistered_unfold
-  waitWithResponse.TypeAssumptions.ptr_Register_unfold
-  waitWithResponse.TypeAssumptions.ptr_Trigger_unfold
+  waitWithResponse.TypeAssumptions.ptr_unfold'IsRegistered
+  waitWithResponse.TypeAssumptions.ptr_unfold'Register
+  waitWithResponse.TypeAssumptions.ptr_unfold'Trigger
 
 abbrev WaitTime [GooseExts] : Type := GoInterface
 
@@ -625,7 +625,7 @@ noncomputable instance timeList.zero_val [GooseExts] : ZeroVal timeList :=
 @[irreducible] noncomputable def timeList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   timeList.fieldsUnsealed
 
-noncomputable instance equals_unfold_timeList [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'timeList [GooseExts] [GoGlobalContext] :
     EqualsUnfold timeList.fields timeList.fieldsUnsealed :=
   ⟨by unfold timeList.fields; rfl⟩
 
@@ -635,56 +635,56 @@ noncomputable instance equals_unfold_timeList [GooseExts] [GoGlobalContext] :
 class timeList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying timeList.underlying timeList
   underlying : go.UnderlyingDirectedEq timeList.ty timeList.underlying
-  get_l : ∀ (x : timeList), go.IsGoStepPureDetTagged under (StructFieldGet timeList.underlying go!"l") #x (Val #(x.l'))
-  set_l : ∀ (x : timeList) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet timeList.underlying go!"l") (PairV #x #y) (Val #(({ x with l' := y } : timeList)))
-  get_lastTriggerDeadline : ∀ (x : timeList), go.IsGoStepPureDetTagged under (StructFieldGet timeList.underlying go!"lastTriggerDeadline") #x (Val #(x.lastTriggerDeadline'))
-  set_lastTriggerDeadline : ∀ (x : timeList) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet timeList.underlying go!"lastTriggerDeadline") (PairV #x #y) (Val #(({ x with lastTriggerDeadline' := y } : timeList)))
-  get_m : ∀ (x : timeList), go.IsGoStepPureDetTagged under (StructFieldGet timeList.underlying go!"m") #x (Val #(x.m'))
-  set_m : ∀ (x : timeList) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet timeList.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : timeList)))
+  get'l : ∀ (x : timeList), go.IsGoStepPureDetTagged under (StructFieldGet timeList.underlying go!"l") #x (Val #(x.l'))
+  set'l : ∀ (x : timeList) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet timeList.underlying go!"l") (PairV #x #y) (Val #(({ x with l' := y } : timeList)))
+  get'lastTriggerDeadline : ∀ (x : timeList), go.IsGoStepPureDetTagged under (StructFieldGet timeList.underlying go!"lastTriggerDeadline") #x (Val #(x.lastTriggerDeadline'))
+  set'lastTriggerDeadline : ∀ (x : timeList) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet timeList.underlying go!"lastTriggerDeadline") (PairV #x #y) (Val #(({ x with lastTriggerDeadline' := y } : timeList)))
+  get'm : ∀ (x : timeList), go.IsGoStepPureDetTagged under (StructFieldGet timeList.underlying go!"m") #x (Val #(x.m'))
+  set'm : ∀ (x : timeList) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet timeList.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : timeList)))
   method_set : go.MethodSetIs timeList.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeList.ty) [(go!"Trigger", (some (go.signature.Signature [go.uint64] false []))), (go!"Wait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])))]
-  ptr_Trigger_unfold : MethodUnfold (go.GoType.PointerType timeList.ty) go!"Trigger" timeList.Trigger.impl
-  ptr_Wait_unfold : MethodUnfold (go.GoType.PointerType timeList.ty) go!"Wait" timeList.Wait.impl
+  ptr_unfold'Trigger : MethodUnfold (go.GoType.PointerType timeList.ty) go!"Trigger" timeList.Trigger.impl
+  ptr_unfold'Wait : MethodUnfold (go.GoType.PointerType timeList.ty) go!"Wait" timeList.Wait.impl
 
 attribute [instance] timeList.TypeAssumptions.type_repr
   timeList.TypeAssumptions.underlying
-  timeList.TypeAssumptions.get_l
-  timeList.TypeAssumptions.set_l
-  timeList.TypeAssumptions.get_lastTriggerDeadline
-  timeList.TypeAssumptions.set_lastTriggerDeadline
-  timeList.TypeAssumptions.get_m
-  timeList.TypeAssumptions.set_m
+  timeList.TypeAssumptions.get'l
+  timeList.TypeAssumptions.set'l
+  timeList.TypeAssumptions.get'lastTriggerDeadline
+  timeList.TypeAssumptions.set'lastTriggerDeadline
+  timeList.TypeAssumptions.get'm
+  timeList.TypeAssumptions.set'm
   timeList.TypeAssumptions.method_set
   timeList.TypeAssumptions.ptr_method_set
-  timeList.TypeAssumptions.ptr_Trigger_unfold
-  timeList.TypeAssumptions.ptr_Wait_unfold
+  timeList.TypeAssumptions.ptr_unfold'Trigger
+  timeList.TypeAssumptions.ptr_unfold'Wait
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Wait_instance : Wait.TypeAssumptions
-  list_instance : list''.TypeAssumptions
-  listElement_instance : listElement.TypeAssumptions
-  waitWithResponse_instance : waitWithResponse.TypeAssumptions
-  WaitTime_instance : WaitTime.TypeAssumptions
-  timeList_instance : timeList.TypeAssumptions
-  New_unfold : FuncUnfold New [] New.impl
-  NewWithResponse_unfold : FuncUnfold NewWithResponse [] NewWithResponse.impl
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  NewTimeList_unfold : FuncUnfold NewTimeList [] NewTimeList.impl
-  import_log_Assumption : _root_.Perennial.log.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  instance'Wait : Wait.TypeAssumptions
+  instance'list : list''.TypeAssumptions
+  instance'listElement : listElement.TypeAssumptions
+  instance'waitWithResponse : waitWithResponse.TypeAssumptions
+  instance'WaitTime : WaitTime.TypeAssumptions
+  instance'timeList : timeList.TypeAssumptions
+  unfold'New : FuncUnfold New [] New.impl
+  unfold'NewWithResponse : FuncUnfold NewWithResponse [] NewWithResponse.impl
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'NewTimeList : FuncUnfold NewTimeList [] NewTimeList.impl
+  import'log : _root_.Perennial.log.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
 
-attribute [instance] Assumptions.Wait_instance
-  Assumptions.list_instance
-  Assumptions.listElement_instance
-  Assumptions.waitWithResponse_instance
-  Assumptions.WaitTime_instance
-  Assumptions.timeList_instance
-  Assumptions.New_unfold
-  Assumptions.NewWithResponse_unfold
-  Assumptions.«init.0_unfold»
-  Assumptions.NewTimeList_unfold
-  Assumptions.import_log_Assumption
-  Assumptions.import_sync_Assumption
+attribute [instance] Assumptions.instance'Wait
+  Assumptions.instance'list
+  Assumptions.instance'listElement
+  Assumptions.instance'waitWithResponse
+  Assumptions.instance'WaitTime
+  Assumptions.instance'timeList
+  Assumptions.unfold'New
+  Assumptions.unfold'NewWithResponse
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'NewTimeList
+  Assumptions.import'log
+  Assumptions.import'sync
 
 end go_etcd_io.etcd.pkg.v3.wait
 

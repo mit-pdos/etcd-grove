@@ -206,7 +206,7 @@ theorem ownReadOnly_option (sz : Bool) (ro : Loc) (r : ReadOnly) :
   icases Hro_obj with ⟨%rov, %ptrs, Hro_obj⟩
   iNamed Hro_obj
   iexists rov.option'
-  icases (go_etcd_io.raft.v3.readOnly.readOnly_access_load_option ro rov (DFrac.own 1)).access_strict
+  icases (go_etcd_io.raft.v3.readOnly.access_load'readOnly'option ro rov (DFrac.own 1)).access_strict
     $$ Hro with ⟨Hopt, Hback⟩
   isplitr; · ipureintro; exact Hro_safe
   iframe Hopt

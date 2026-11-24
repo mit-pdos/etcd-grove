@@ -178,7 +178,7 @@ noncomputable instance Pair''.zero_val [GooseExts] : ZeroVal Pair'' :=
 @[irreducible] noncomputable def Pair''.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Pair''.fieldsUnsealed
 
-noncomputable instance equals_unfold_Pair [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Pair [GooseExts] [GoGlobalContext] :
     EqualsUnfold Pair''.fields Pair''.fieldsUnsealed :=
   ⟨by unfold Pair''.fields; rfl⟩
 
@@ -188,19 +188,19 @@ noncomputable instance equals_unfold_Pair [GooseExts] [GoGlobalContext] :
 class Pair''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Pair''.underlying Pair''
   underlying : go.UnderlyingDirectedEq Pair''.ty Pair''.underlying
-  get_Obj : ∀ (x : Pair''), go.IsGoStepPureDetTagged under (StructFieldGet Pair''.underlying go!"Obj") #x (Val #(x.Obj'))
-  set_Obj : ∀ (x : Pair'') (y : Serializable), go.IsGoStepPureDetTagged under (StructFieldSet Pair''.underlying go!"Obj") (PairV #x #y) (Val #(({ x with Obj' := y } : Pair'')))
-  get_Chan : ∀ (x : Pair''), go.IsGoStepPureDetTagged under (StructFieldGet Pair''.underlying go!"Chan") #x (Val #(x.Chan'))
-  set_Chan : ∀ (x : Pair'') (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Pair''.underlying go!"Chan") (PairV #x #y) (Val #(({ x with Chan' := y } : Pair'')))
+  get'Obj : ∀ (x : Pair''), go.IsGoStepPureDetTagged under (StructFieldGet Pair''.underlying go!"Obj") #x (Val #(x.Obj'))
+  set'Obj : ∀ (x : Pair'') (y : Serializable), go.IsGoStepPureDetTagged under (StructFieldSet Pair''.underlying go!"Obj") (PairV #x #y) (Val #(({ x with Obj' := y } : Pair'')))
+  get'Chan : ∀ (x : Pair''), go.IsGoStepPureDetTagged under (StructFieldGet Pair''.underlying go!"Chan") #x (Val #(x.Chan'))
+  set'Chan : ∀ (x : Pair'') (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Pair''.underlying go!"Chan") (PairV #x #y) (Val #(({ x with Chan' := y } : Pair'')))
   method_set : go.MethodSetIs Pair''.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Pair''.ty) []
 
 attribute [instance] Pair''.TypeAssumptions.type_repr
   Pair''.TypeAssumptions.underlying
-  Pair''.TypeAssumptions.get_Obj
-  Pair''.TypeAssumptions.set_Obj
-  Pair''.TypeAssumptions.get_Chan
-  Pair''.TypeAssumptions.set_Chan
+  Pair''.TypeAssumptions.get'Obj
+  Pair''.TypeAssumptions.set'Obj
+  Pair''.TypeAssumptions.get'Chan
+  Pair''.TypeAssumptions.set'Chan
   Pair''.TypeAssumptions.method_set
   Pair''.TypeAssumptions.ptr_method_set
 
@@ -219,7 +219,7 @@ noncomputable instance Table.zero_val [GooseExts] : ZeroVal Table :=
 @[irreducible] noncomputable def Table.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Table.fieldsUnsealed
 
-noncomputable instance equals_unfold_Table [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Table [GooseExts] [GoGlobalContext] :
     EqualsUnfold Table.fields Table.fieldsUnsealed :=
   ⟨by unfold Table.fields; rfl⟩
 
@@ -229,40 +229,40 @@ noncomputable instance equals_unfold_Table [GooseExts] [GoGlobalContext] :
 class Table.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Table.underlying Table
   underlying : go.UnderlyingDirectedEq Table.ty Table.underlying
-  get_id : ∀ (x : Table), go.IsGoStepPureDetTagged under (StructFieldGet Table.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : Table) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet Table.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : Table)))
-  get_pairs : ∀ (x : Table), go.IsGoStepPureDetTagged under (StructFieldGet Table.underlying go!"pairs") #x (Val #(x.pairs'))
-  set_pairs : ∀ (x : Table) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Table.underlying go!"pairs") (PairV #x #y) (Val #(({ x with pairs' := y } : Table)))
+  get'id : ∀ (x : Table), go.IsGoStepPureDetTagged under (StructFieldGet Table.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : Table) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet Table.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : Table)))
+  get'pairs : ∀ (x : Table), go.IsGoStepPureDetTagged under (StructFieldGet Table.underlying go!"pairs") #x (Val #(x.pairs'))
+  set'pairs : ∀ (x : Table) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Table.underlying go!"pairs") (PairV #x #y) (Val #(({ x with pairs' := y } : Table)))
   method_set : go.MethodSetIs Table.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Table.ty) [(go!"Get", (some (go.signature.Signature [go.uint8] false [Pair''.ty, go.bool]))), (go!"Register", (some (go.signature.Signature [Serializable.ty, (go.GoType.ChannelType go.ChanDir.sendrecv Serializable.ty)] false [go.uint8])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Table.ty) go!"Get" Table.Get.impl
-  ptr_Register_unfold : MethodUnfold (go.GoType.PointerType Table.ty) go!"Register" Table.Register.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType Table.ty) go!"Get" Table.Get.impl
+  ptr_unfold'Register : MethodUnfold (go.GoType.PointerType Table.ty) go!"Register" Table.Register.impl
 
 attribute [instance] Table.TypeAssumptions.type_repr
   Table.TypeAssumptions.underlying
-  Table.TypeAssumptions.get_id
-  Table.TypeAssumptions.set_id
-  Table.TypeAssumptions.get_pairs
-  Table.TypeAssumptions.set_pairs
+  Table.TypeAssumptions.get'id
+  Table.TypeAssumptions.set'id
+  Table.TypeAssumptions.get'pairs
+  Table.TypeAssumptions.set'pairs
   Table.TypeAssumptions.method_set
   Table.TypeAssumptions.ptr_method_set
-  Table.TypeAssumptions.ptr_Get_unfold
-  Table.TypeAssumptions.ptr_Register_unfold
+  Table.TypeAssumptions.ptr_unfold'Get
+  Table.TypeAssumptions.ptr_unfold'Register
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Serializable_instance : Serializable.TypeAssumptions
-  Pair_instance : Pair''.TypeAssumptions
-  Table_instance : Table.TypeAssumptions
-  NewTable_unfold : FuncUnfold NewTable [] NewTable.impl
-  NewTableId_unfold : FuncUnfold NewTableId [] NewTableId.impl
-  import_io_Assumption : _root_.Perennial.io.Assumptions
+  instance'Serializable : Serializable.TypeAssumptions
+  instance'Pair : Pair''.TypeAssumptions
+  instance'Table : Table.TypeAssumptions
+  unfold'NewTable : FuncUnfold NewTable [] NewTable.impl
+  unfold'NewTableId : FuncUnfold NewTableId [] NewTableId.impl
+  import'io : _root_.Perennial.io.Assumptions
 
-attribute [instance] Assumptions.Serializable_instance
-  Assumptions.Pair_instance
-  Assumptions.Table_instance
-  Assumptions.NewTable_unfold
-  Assumptions.NewTableId_unfold
-  Assumptions.import_io_Assumption
+attribute [instance] Assumptions.instance'Serializable
+  Assumptions.instance'Pair
+  Assumptions.instance'Table
+  Assumptions.unfold'NewTable
+  Assumptions.unfold'NewTableId
+  Assumptions.import'io
 
 end github_com.imdea_software.swiftpaxos.rpc
 

@@ -100,8 +100,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Lam "t"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.«Type».ty))) (Var "t"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.«Type».ty go!"Name"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (Var "t"))) (Val #()))
+  (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.Type''.ty))) (Var "t"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Type''.ty go!"Name"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type''.ty))) (Var "t"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -109,28 +109,28 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.reflect.«Type».ty] false [go.string]))))) (Pair (App (Val (GoInstruction (GlobalVarAddr DefaultNameFunc))) (Val #())) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.reflect.Type''.ty] false [go.string]))))) (Pair (App (Val (GoInstruction (GlobalVarAddr DefaultNameFunc))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.reflect.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc DefaultNameFunc (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.reflect.«Type».ty] false [go.string])))) (Val #()))))))))
+  (App (Val (go.GlobalAlloc DefaultNameFunc (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.reflect.Type''.ty] false [go.string])))) (Val #()))))))))
 
 structure typePair [GooseExts] where
   mk ::
-  source' : _root_.Perennial.reflect.«Type»
-  dest' : _root_.Perennial.reflect.«Type»
+  source' : _root_.Perennial.reflect.Type''
+  dest' : _root_.Perennial.reflect.Type''
 
 noncomputable instance typePair.zero_val [GooseExts] : ZeroVal typePair :=
   ⟨typePair.mk zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def typePair.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"source" _root_.Perennial.reflect.«Type».ty),
-(go.field_decl.FieldDecl go!"dest" _root_.Perennial.reflect.«Type».ty)]
+  [(go.field_decl.FieldDecl go!"source" _root_.Perennial.reflect.Type''.ty),
+(go.field_decl.FieldDecl go!"dest" _root_.Perennial.reflect.Type''.ty)]
 
 @[irreducible] noncomputable def typePair.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   typePair.fieldsUnsealed
 
-noncomputable instance equals_unfold_typePair [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'typePair [GooseExts] [GoGlobalContext] :
     EqualsUnfold typePair.fields typePair.fieldsUnsealed :=
   ⟨by unfold typePair.fields; rfl⟩
 
@@ -140,26 +140,26 @@ noncomputable instance equals_unfold_typePair [GooseExts] [GoGlobalContext] :
 class typePair.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying typePair.underlying typePair
   underlying : go.UnderlyingDirectedEq typePair.ty typePair.underlying
-  get_source : ∀ (x : typePair), go.IsGoStepPureDetTagged under (StructFieldGet typePair.underlying go!"source") #x (Val #(x.source'))
-  set_source : ∀ (x : typePair) (y : _root_.Perennial.reflect.«Type»), go.IsGoStepPureDetTagged under (StructFieldSet typePair.underlying go!"source") (PairV #x #y) (Val #(({ x with source' := y } : typePair)))
-  get_dest : ∀ (x : typePair), go.IsGoStepPureDetTagged under (StructFieldGet typePair.underlying go!"dest") #x (Val #(x.dest'))
-  set_dest : ∀ (x : typePair) (y : _root_.Perennial.reflect.«Type»), go.IsGoStepPureDetTagged under (StructFieldSet typePair.underlying go!"dest") (PairV #x #y) (Val #(({ x with dest' := y } : typePair)))
+  get'source : ∀ (x : typePair), go.IsGoStepPureDetTagged under (StructFieldGet typePair.underlying go!"source") #x (Val #(x.source'))
+  set'source : ∀ (x : typePair) (y : _root_.Perennial.reflect.Type''), go.IsGoStepPureDetTagged under (StructFieldSet typePair.underlying go!"source") (PairV #x #y) (Val #(({ x with source' := y } : typePair)))
+  get'dest : ∀ (x : typePair), go.IsGoStepPureDetTagged under (StructFieldGet typePair.underlying go!"dest") #x (Val #(x.dest'))
+  set'dest : ∀ (x : typePair) (y : _root_.Perennial.reflect.Type''), go.IsGoStepPureDetTagged under (StructFieldSet typePair.underlying go!"dest") (PairV #x #y) (Val #(({ x with dest' := y } : typePair)))
   method_set : go.MethodSetIs typePair.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType typePair.ty) []
 
 attribute [instance] typePair.TypeAssumptions.type_repr
   typePair.TypeAssumptions.underlying
-  typePair.TypeAssumptions.get_source
-  typePair.TypeAssumptions.set_source
-  typePair.TypeAssumptions.get_dest
-  typePair.TypeAssumptions.set_dest
+  typePair.TypeAssumptions.get'source
+  typePair.TypeAssumptions.set'source
+  typePair.TypeAssumptions.get'dest
+  typePair.TypeAssumptions.set'dest
   typePair.TypeAssumptions.method_set
   typePair.TypeAssumptions.ptr_method_set
 
 abbrev NameFunc [GooseExts] : Type := GoFunc
 
 @[reducible] noncomputable def NameFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.reflect.«Type».ty] false [go.string]))
+  (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.reflect.Type''.ty] false [go.string]))
 
 class NameFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq NameFunc.ty NameFunc.underlying
@@ -197,7 +197,7 @@ noncomputable instance ConversionFuncs.zero_val [GooseExts] : ZeroVal Conversion
 @[irreducible] noncomputable def ConversionFuncs.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConversionFuncs.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConversionFuncs [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ConversionFuncs [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConversionFuncs.fields ConversionFuncs.fieldsUnsealed :=
   ⟨by unfold ConversionFuncs.fields; rfl⟩
 
@@ -207,15 +207,15 @@ noncomputable instance equals_unfold_ConversionFuncs [GooseExts] [GoGlobalContex
 class ConversionFuncs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConversionFuncs.underlying ConversionFuncs
   underlying : go.UnderlyingDirectedEq ConversionFuncs.ty ConversionFuncs.underlying
-  get_untyped : ∀ (x : ConversionFuncs), go.IsGoStepPureDetTagged under (StructFieldGet ConversionFuncs.underlying go!"untyped") #x (Val #(x.untyped'))
-  set_untyped : ∀ (x : ConversionFuncs) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ConversionFuncs.underlying go!"untyped") (PairV #x #y) (Val #(({ x with untyped' := y } : ConversionFuncs)))
+  get'untyped : ∀ (x : ConversionFuncs), go.IsGoStepPureDetTagged under (StructFieldGet ConversionFuncs.underlying go!"untyped") #x (Val #(x.untyped'))
+  set'untyped : ∀ (x : ConversionFuncs) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ConversionFuncs.underlying go!"untyped") (PairV #x #y) (Val #(({ x with untyped' := y } : ConversionFuncs)))
   method_set : go.MethodSetIs ConversionFuncs.ty [(go!"AddUntyped", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), ConversionFunc.ty] false [go.error]))), (go!"Merge", (some (go.signature.Signature [ConversionFuncs.ty] false [ConversionFuncs.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConversionFuncs.ty) [(go!"AddUntyped", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), ConversionFunc.ty] false [go.error]))), (go!"Merge", (some (go.signature.Signature [ConversionFuncs.ty] false [ConversionFuncs.ty])))]
 
 attribute [instance] ConversionFuncs.TypeAssumptions.type_repr
   ConversionFuncs.TypeAssumptions.underlying
-  ConversionFuncs.TypeAssumptions.get_untyped
-  ConversionFuncs.TypeAssumptions.set_untyped
+  ConversionFuncs.TypeAssumptions.get'untyped
+  ConversionFuncs.TypeAssumptions.set'untyped
   ConversionFuncs.TypeAssumptions.method_set
   ConversionFuncs.TypeAssumptions.ptr_method_set
 
@@ -236,7 +236,7 @@ noncomputable instance Converter.zero_val [GooseExts] : ZeroVal Converter :=
 @[irreducible] noncomputable def Converter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Converter.fieldsUnsealed
 
-noncomputable instance equals_unfold_Converter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Converter [GooseExts] [GoGlobalContext] :
     EqualsUnfold Converter.fields Converter.fieldsUnsealed :=
   ⟨by unfold Converter.fields; rfl⟩
 
@@ -246,23 +246,23 @@ noncomputable instance equals_unfold_Converter [GooseExts] [GoGlobalContext] :
 class Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Converter.underlying Converter
   underlying : go.UnderlyingDirectedEq Converter.ty Converter.underlying
-  get_conversionFuncs : ∀ (x : Converter), go.IsGoStepPureDetTagged under (StructFieldGet Converter.underlying go!"conversionFuncs") #x (Val #(x.conversionFuncs'))
-  set_conversionFuncs : ∀ (x : Converter) (y : ConversionFuncs), go.IsGoStepPureDetTagged under (StructFieldSet Converter.underlying go!"conversionFuncs") (PairV #x #y) (Val #(({ x with conversionFuncs' := y } : Converter)))
-  get_generatedConversionFuncs : ∀ (x : Converter), go.IsGoStepPureDetTagged under (StructFieldGet Converter.underlying go!"generatedConversionFuncs") #x (Val #(x.generatedConversionFuncs'))
-  set_generatedConversionFuncs : ∀ (x : Converter) (y : ConversionFuncs), go.IsGoStepPureDetTagged under (StructFieldSet Converter.underlying go!"generatedConversionFuncs") (PairV #x #y) (Val #(({ x with generatedConversionFuncs' := y } : Converter)))
-  get_ignoredUntypedConversions : ∀ (x : Converter), go.IsGoStepPureDetTagged under (StructFieldGet Converter.underlying go!"ignoredUntypedConversions") #x (Val #(x.ignoredUntypedConversions'))
-  set_ignoredUntypedConversions : ∀ (x : Converter) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Converter.underlying go!"ignoredUntypedConversions") (PairV #x #y) (Val #(({ x with ignoredUntypedConversions' := y } : Converter)))
+  get'conversionFuncs : ∀ (x : Converter), go.IsGoStepPureDetTagged under (StructFieldGet Converter.underlying go!"conversionFuncs") #x (Val #(x.conversionFuncs'))
+  set'conversionFuncs : ∀ (x : Converter) (y : ConversionFuncs), go.IsGoStepPureDetTagged under (StructFieldSet Converter.underlying go!"conversionFuncs") (PairV #x #y) (Val #(({ x with conversionFuncs' := y } : Converter)))
+  get'generatedConversionFuncs : ∀ (x : Converter), go.IsGoStepPureDetTagged under (StructFieldGet Converter.underlying go!"generatedConversionFuncs") #x (Val #(x.generatedConversionFuncs'))
+  set'generatedConversionFuncs : ∀ (x : Converter) (y : ConversionFuncs), go.IsGoStepPureDetTagged under (StructFieldSet Converter.underlying go!"generatedConversionFuncs") (PairV #x #y) (Val #(({ x with generatedConversionFuncs' := y } : Converter)))
+  get'ignoredUntypedConversions : ∀ (x : Converter), go.IsGoStepPureDetTagged under (StructFieldGet Converter.underlying go!"ignoredUntypedConversions") #x (Val #(x.ignoredUntypedConversions'))
+  set'ignoredUntypedConversions : ∀ (x : Converter) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Converter.underlying go!"ignoredUntypedConversions") (PairV #x #y) (Val #(({ x with ignoredUntypedConversions' := y } : Converter)))
   method_set : go.MethodSetIs Converter.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Converter.ty) [(go!"Convert", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), (go.GoType.PointerType Meta.ty)] false [go.error]))), (go!"DefaultMeta", (some (go.signature.Signature [_root_.Perennial.reflect.«Type».ty] false [(go.GoType.PointerType Meta.ty)]))), (go!"RegisterGeneratedUntypedConversionFunc", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), ConversionFunc.ty] false [go.error]))), (go!"RegisterIgnoredConversion", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"RegisterUntypedConversionFunc", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), ConversionFunc.ty] false [go.error]))), (go!"WithConversions", (some (go.signature.Signature [ConversionFuncs.ty] false [(go.GoType.PointerType Converter.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Converter.ty) [(go!"Convert", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), (go.GoType.PointerType Meta.ty)] false [go.error]))), (go!"DefaultMeta", (some (go.signature.Signature [_root_.Perennial.reflect.Type''.ty] false [(go.GoType.PointerType Meta.ty)]))), (go!"RegisterGeneratedUntypedConversionFunc", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), ConversionFunc.ty] false [go.error]))), (go!"RegisterIgnoredConversion", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"RegisterUntypedConversionFunc", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), ConversionFunc.ty] false [go.error]))), (go!"WithConversions", (some (go.signature.Signature [ConversionFuncs.ty] false [(go.GoType.PointerType Converter.ty)])))]
 
 attribute [instance] Converter.TypeAssumptions.type_repr
   Converter.TypeAssumptions.underlying
-  Converter.TypeAssumptions.get_conversionFuncs
-  Converter.TypeAssumptions.set_conversionFuncs
-  Converter.TypeAssumptions.get_generatedConversionFuncs
-  Converter.TypeAssumptions.set_generatedConversionFuncs
-  Converter.TypeAssumptions.get_ignoredUntypedConversions
-  Converter.TypeAssumptions.set_ignoredUntypedConversions
+  Converter.TypeAssumptions.get'conversionFuncs
+  Converter.TypeAssumptions.set'conversionFuncs
+  Converter.TypeAssumptions.get'generatedConversionFuncs
+  Converter.TypeAssumptions.set'generatedConversionFuncs
+  Converter.TypeAssumptions.get'ignoredUntypedConversions
+  Converter.TypeAssumptions.set'ignoredUntypedConversions
   Converter.TypeAssumptions.method_set
   Converter.TypeAssumptions.ptr_method_set
 
@@ -293,7 +293,7 @@ noncomputable instance Meta.zero_val [GooseExts] : ZeroVal Meta :=
 @[irreducible] noncomputable def Meta.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Meta.fieldsUnsealed
 
-noncomputable instance equals_unfold_Meta [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Meta [GooseExts] [GoGlobalContext] :
     EqualsUnfold Meta.fields Meta.fieldsUnsealed :=
   ⟨by unfold Meta.fields; rfl⟩
 
@@ -303,15 +303,15 @@ noncomputable instance equals_unfold_Meta [GooseExts] [GoGlobalContext] :
 class Meta.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Meta.underlying Meta
   underlying : go.UnderlyingDirectedEq Meta.ty Meta.underlying
-  get_Context : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"Context") #x (Val #(x.Context'))
-  set_Context : ∀ (x : Meta) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : Meta)))
+  get'Context : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"Context") #x (Val #(x.Context'))
+  set'Context : ∀ (x : Meta) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : Meta)))
   method_set : go.MethodSetIs Meta.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Meta.ty) []
 
 attribute [instance] Meta.TypeAssumptions.type_repr
   Meta.TypeAssumptions.underlying
-  Meta.TypeAssumptions.get_Context
-  Meta.TypeAssumptions.set_Context
+  Meta.TypeAssumptions.get'Context
+  Meta.TypeAssumptions.set'Context
   Meta.TypeAssumptions.method_set
   Meta.TypeAssumptions.ptr_method_set
 
@@ -330,7 +330,7 @@ noncomputable instance scope.zero_val [GooseExts] : ZeroVal scope :=
 @[irreducible] noncomputable def scope.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   scope.fieldsUnsealed
 
-noncomputable instance equals_unfold_scope [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'scope [GooseExts] [GoGlobalContext] :
     EqualsUnfold scope.fields scope.fieldsUnsealed :=
   ⟨by unfold scope.fields; rfl⟩
 
@@ -340,19 +340,19 @@ noncomputable instance equals_unfold_scope [GooseExts] [GoGlobalContext] :
 class scope.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying scope.underlying scope
   underlying : go.UnderlyingDirectedEq scope.ty scope.underlying
-  get_converter : ∀ (x : scope), go.IsGoStepPureDetTagged under (StructFieldGet scope.underlying go!"converter") #x (Val #(x.converter'))
-  set_converter : ∀ (x : scope) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet scope.underlying go!"converter") (PairV #x #y) (Val #(({ x with converter' := y } : scope)))
-  get_meta : ∀ (x : scope), go.IsGoStepPureDetTagged under (StructFieldGet scope.underlying go!"meta") #x (Val #(x.meta'))
-  set_meta : ∀ (x : scope) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet scope.underlying go!"meta") (PairV #x #y) (Val #(({ x with meta' := y } : scope)))
+  get'converter : ∀ (x : scope), go.IsGoStepPureDetTagged under (StructFieldGet scope.underlying go!"converter") #x (Val #(x.converter'))
+  set'converter : ∀ (x : scope) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet scope.underlying go!"converter") (PairV #x #y) (Val #(({ x with converter' := y } : scope)))
+  get'meta : ∀ (x : scope), go.IsGoStepPureDetTagged under (StructFieldGet scope.underlying go!"meta") #x (Val #(x.meta'))
+  set'meta : ∀ (x : scope) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet scope.underlying go!"meta") (PairV #x #y) (Val #(({ x with meta' := y } : scope)))
   method_set : go.MethodSetIs scope.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType scope.ty) [(go!"Convert", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"Meta", (some (go.signature.Signature [] false [(go.GoType.PointerType Meta.ty)])))]
 
 attribute [instance] scope.TypeAssumptions.type_repr
   scope.TypeAssumptions.underlying
-  scope.TypeAssumptions.get_converter
-  scope.TypeAssumptions.set_converter
-  scope.TypeAssumptions.get_meta
-  scope.TypeAssumptions.set_meta
+  scope.TypeAssumptions.get'converter
+  scope.TypeAssumptions.set'converter
+  scope.TypeAssumptions.get'meta
+  scope.TypeAssumptions.set'meta
   scope.TypeAssumptions.method_set
   scope.TypeAssumptions.ptr_method_set
 
@@ -376,27 +376,27 @@ attribute [instance] Equalities.TypeAssumptions.type_repr
   Equalities.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  typePair_instance : typePair.TypeAssumptions
-  NameFunc_instance : NameFunc.TypeAssumptions
-  ConversionFunc_instance : ConversionFunc.TypeAssumptions
-  Converter_instance : Converter.TypeAssumptions
-  Scope_instance : Scope.TypeAssumptions
-  ConversionFuncs_instance : ConversionFuncs.TypeAssumptions
-  Meta_instance : Meta.TypeAssumptions
-  scope_instance : scope.TypeAssumptions
-  Equalities_instance : Equalities.TypeAssumptions
-  import_reflect_Assumption : _root_.Perennial.reflect.Assumptions
+  instance'typePair : typePair.TypeAssumptions
+  instance'NameFunc : NameFunc.TypeAssumptions
+  instance'ConversionFunc : ConversionFunc.TypeAssumptions
+  instance'Converter : Converter.TypeAssumptions
+  instance'Scope : Scope.TypeAssumptions
+  instance'ConversionFuncs : ConversionFuncs.TypeAssumptions
+  instance'Meta : Meta.TypeAssumptions
+  instance'scope : scope.TypeAssumptions
+  instance'Equalities : Equalities.TypeAssumptions
+  import'reflect : _root_.Perennial.reflect.Assumptions
 
-attribute [instance] Assumptions.typePair_instance
-  Assumptions.NameFunc_instance
-  Assumptions.ConversionFunc_instance
-  Assumptions.Converter_instance
-  Assumptions.Scope_instance
-  Assumptions.ConversionFuncs_instance
-  Assumptions.Meta_instance
-  Assumptions.scope_instance
-  Assumptions.Equalities_instance
-  Assumptions.import_reflect_Assumption
+attribute [instance] Assumptions.instance'typePair
+  Assumptions.instance'NameFunc
+  Assumptions.instance'ConversionFunc
+  Assumptions.instance'Converter
+  Assumptions.instance'Scope
+  Assumptions.instance'ConversionFuncs
+  Assumptions.instance'Meta
+  Assumptions.instance'scope
+  Assumptions.instance'Equalities
+  Assumptions.import'reflect
 
 end k8s_io.apimachinery.pkg.conversion
 

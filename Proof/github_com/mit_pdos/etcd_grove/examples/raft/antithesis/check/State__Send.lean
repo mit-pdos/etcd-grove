@@ -211,7 +211,7 @@ theorem State.Send.wp_proof
     obtain ⟨fr, hfr, hy⟩ := bind_ok hy
     simp only [pure_ok, Except.ok.injEq] at hy
     subst hy
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_from_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'from.method_unfold]
     try wp_auto
     wp_apply wp_from gm m fr $$ [Hm]
     · iframe Hm; ipureintro; exact hfr
@@ -228,7 +228,7 @@ theorem State.Send.wp_proof
     simp only [pure_ok, Except.ok.injEq] at hz
     subst hz
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_typ_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'typ.method_unfold]
     try wp_auto
     wp_apply wp_typ gm m ty $$ [Hm]
     · iframe Hm; ipureintro; exact hty
@@ -252,12 +252,12 @@ theorem State.Send.wp_proof
     simp only [pure_ok, Except.ok.injEq] at hy
     subst hy
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_to_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'to.method_unfold]
     try wp_auto
     wp_apply wp_to gm m dt $$ [Hm]
     · iframe Hm; ipureintro; exact hdt
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.TypeAssumptions.ptr_Has_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.TypeAssumptions.ptr_unfold'Has.method_unfold]
     try wp_auto
     wp_apply wp_SetHas gc.Server' s.cfg.server dt $$ [Hsrv]
     · iexact Hsrv
@@ -271,7 +271,7 @@ theorem State.Send.wp_proof
     simp only [pure_ok, Except.ok.injEq] at hz
     subst hz
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_to_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'to.method_unfold]
     try wp_auto
     wp_apply wp_to gm m dt2 $$ [Hm]
     · iframe Hm; ipureintro; exact hdt2
@@ -322,7 +322,7 @@ theorem State.Send.wp_proof
   unfold bootSendP_sendTail at Ht
   obtain ⟨t, htyp, Ht⟩ := bind_ok Ht
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_typ_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'typ.method_unfold]
   try wp_auto
   wp_apply wp_typ gm m t $$ [Hm]
   · iframe Hm; ipureintro; exact htyp
@@ -343,7 +343,7 @@ theorem State.Send.wp_proof
       simp only [pure_ok, Except.ok.injEq] at hx
       subst hx
       try wp_auto
-      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
       try wp_auto
       wp_apply wp_term gm m mt $$ [Hm] as %ut %Hut
       · iframe Hm; ipureintro; exact hmt
@@ -431,7 +431,7 @@ theorem State.Send.wp_proof
   rw [decide_eq_false htv]
   try wp_auto
   -- `voteresp`
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_typ_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'typ.method_unfold]
   try wp_auto
   wp_apply wp_typ gm m t $$ [Hm]
   · iframe Hm; ipureintro; exact htyp
@@ -442,7 +442,7 @@ theorem State.Send.wp_proof
     subst htr
     try wp_auto
     obtain ⟨rj, hrj, Ht⟩ := bind_ok Ht
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_reject_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'reject.method_unfold]
     try wp_auto
     wp_apply wp_reject gm m rj $$ [Hm]
     · iframe Hm; ipureintro; exact hrj
@@ -455,12 +455,12 @@ theorem State.Send.wp_proof
     obtain ⟨mt, hmt, Ht⟩ := bind_ok Ht
     obtain ⟨dt, hdt, Ht⟩ := bind_ok Ht
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
     try wp_auto
     wp_apply wp_term gm m mt $$ [Hm] as %ut %Hut
     · iframe Hm; ipureintro; exact hmt
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_to_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'to.method_unfold]
     try wp_auto
     wp_apply wp_to gm m dt $$ [Hm]
     · iframe Hm; ipureintro; exact hdt
@@ -503,12 +503,12 @@ theorem State.Send.wp_proof
       revert hbd'
       cases ev.b <;> cases bootSendP_dur (s.undo[sint.nat n]!) <;> intro hbd' <;> simp at hbd' <;> try wp_auto
       all_goals
-        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_to_unfold.method_unfold]
+        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'to.method_unfold]
         try wp_auto
         wp_apply wp_to gm m dt $$ [Hm]
         · iframe Hm; ipureintro; exact hdt
         try wp_auto
-        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
         try wp_auto
         wp_apply wp_term gm m mt $$ [Hm] as %ut2 %Hut2
         · iframe Hm; ipureintro; exact hmt
@@ -560,7 +560,7 @@ theorem State.Send.wp_proof
       simp only [pure_ok, Except.ok.injEq] at hz1
       subst hz1
       try wp_auto
-      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
       try wp_auto
       wp_apply wp_term gm m mt $$ [Hm] as %ut %Hut
       · iframe Hm; ipureintro; exact hmt
@@ -628,7 +628,7 @@ theorem State.Send.wp_proof
   rw [ite_eq_right_of_eq_false _ _ (eq_false (by decide))] at Ht
   try wp_auto
   -- `appresp`
-  try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_typ_unfold.method_unfold]
+  try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'typ.method_unfold]
   try wp_auto
   wp_apply wp_typ gm m t $$ [Hm]
   · iframe Hm; ipureintro; exact htyp
@@ -639,7 +639,7 @@ theorem State.Send.wp_proof
     rw [decide_eq_false hta]
     try wp_auto
     -- `hbresp`
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_typ_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'typ.method_unfold]
     try wp_auto
     wp_apply wp_typ gm m t $$ [Hm]
     · iframe Hm; ipureintro; exact htyp
@@ -658,7 +658,7 @@ theorem State.Send.wp_proof
         try wp_auto
         obtain ⟨mt, hmt, Ht⟩ := bind_ok Ht
         try wp_auto
-        try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+        try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
         try wp_auto
         wp_apply wp_term gm m mt $$ [Hm] as %ut %Hut
         · iframe Hm; ipureintro; exact hmt
@@ -685,7 +685,7 @@ theorem State.Send.wp_proof
       try wp_auto
       obtain ⟨mt, hmt, Ht⟩ := bind_ok Ht
       try wp_auto
-      try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+      try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
       try wp_auto
       wp_apply wp_term gm m mt $$ [Hm] as %ut %Hut
       · iframe Hm; ipureintro; exact hmt
@@ -708,7 +708,7 @@ theorem State.Send.wp_proof
     rw [decide_eq_false hth]
     try wp_auto
     -- `isUnmodelled(m.typ())`
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_typ_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'typ.method_unfold]
     try wp_auto
     wp_apply wp_typ gm m t $$ [Hm]
     · iframe Hm; ipureintro; exact htyp
@@ -726,7 +726,7 @@ theorem State.Send.wp_proof
   rw [decide_eq_true hta]
   try wp_auto
   obtain ⟨rj, hrj, Ht⟩ := bind_ok Ht
-  try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_reject_unfold.method_unfold]
+  try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'reject.method_unfold]
   try wp_auto
   wp_apply wp_reject gm m rj $$ [Hm]
   · iframe Hm; ipureintro; exact hrj
@@ -744,7 +744,7 @@ theorem State.Send.wp_proof
     rw [ite_eq_left_of_eq_true _ _ (eq_true (by decide))] at Ht
     obtain ⟨mi, hmi, Ht⟩ := bind_ok Ht
     try wp_auto
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_index_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'index.method_unfold]
     try wp_auto
     wp_apply wp_index gm m mi $$ [Hm] as %ui %Hui
     · iframe Hm; ipureintro; exact hmi
@@ -803,17 +803,17 @@ theorem State.Send.wp_proof
       wp_apply wp_load_at _ _ u Hn $$ [Hua]
       · iexact Hua
       try wp_auto
-      try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_to_unfold.method_unfold]
+      try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'to.method_unfold]
       try wp_auto
       wp_apply wp_to gm m dt $$ [Hm]
       · iframe Hm; ipureintro; exact hdt
       try wp_auto
-      try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+      try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
       try wp_auto
       wp_apply wp_term gm m mt $$ [Hm] as %ut %Hut
       · iframe Hm; ipureintro; exact hmt
       try wp_auto
-      try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_index_unfold.method_unfold]
+      try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'index.method_unfold]
       try wp_auto
       wp_apply wp_index gm m mi $$ [Hm] as %ui2 %Hui2
       · iframe Hm; ipureintro; exact hmi
@@ -903,7 +903,7 @@ theorem State.Send.wp_proof
       omega
     rw [ite_eq_left_of_eq_true _ _ (eq_true hc0)]
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
     try wp_auto
     rw [← ite_eq_left_of_eq_true (Val #(sliceIndexRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg (sint.Z (W64 0)) ccsl) : Expr) (Panic "slice index out of bounds") (eq_true hc0)]
     wp_apply wp_load_at _ _ g0 (by decide) $$ [Hg0a]
@@ -927,7 +927,7 @@ theorem State.Send.wp_proof
     simp only [pure_ok, Except.ok.injEq] at hy
     subst hy
     try wp_auto
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_index_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'index.method_unfold]
     try wp_auto
     wp_apply wp_index gm m mi $$ [Hm] as %ui %Hui
     · iframe Hm; ipureintro; exact hmi
@@ -946,7 +946,7 @@ theorem State.Send.wp_proof
     simp only [pure_ok, Except.ok.injEq] at hz
     subst hz
     try wp_auto
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
     try wp_auto
     wp_apply wp_term gm m mt $$ [Hm] as %ut %Hut
     · iframe Hm; ipureintro; exact hmt
@@ -969,7 +969,7 @@ theorem State.Send.wp_proof
   try wp_auto
   -- `m.index() == 0`
   obtain ⟨mi, hmi, Ht⟩ := bind_ok Ht
-  try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_index_unfold.method_unfold]
+  try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'index.method_unfold]
   try wp_auto
   wp_apply wp_index gm m mi $$ [Hm] as %ui %Hui
   · iframe Hm; ipureintro; exact hmi
@@ -1039,7 +1039,7 @@ theorem State.Send.wp_proof
       obtain ⟨ct1, hct1, hz⟩ := bind_ok hz
       simp only [pure_ok, Except.ok.injEq] at hz
       subst hz
-      try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_typ_unfold.method_unfold]
+      try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'typ.method_unfold]
       try wp_auto
       wp_apply wp_typ gcm cm ct1 $$ [Hcm]
       · iframe Hcm; ipureintro; exact hct1
@@ -1056,7 +1056,7 @@ theorem State.Send.wp_proof
       simp only [pure_ok, Except.ok.injEq] at hz2
       subst hz2
       try wp_auto
-      try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_typ_unfold.method_unfold]
+      try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'typ.method_unfold]
       try wp_auto
       wp_apply wp_typ gcm cm ct2 $$ [Hcm]
       · iframe Hcm; ipureintro; exact hct2
@@ -1102,12 +1102,12 @@ theorem State.Send.wp_proof
     obtain ⟨cf, hcf, hy⟩ := bind_ok hy
     simp only [pure_ok, Except.ok.injEq] at hy
     subst hy
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_to_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'to.method_unfold]
     try wp_auto
     wp_apply wp_to gm m dt $$ [Hm]
     · iframe Hm; ipureintro; exact hdt
     try wp_auto
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_from_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'from.method_unfold]
     try wp_auto
     wp_apply wp_from gcm cm cf $$ [Hcm]
     · iframe Hcm; ipureintro; exact hcf
@@ -1127,12 +1127,12 @@ theorem State.Send.wp_proof
     simp only [pure_ok, Except.ok.injEq] at hz
     subst hz
     try wp_auto
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
     try wp_auto
     wp_apply wp_term gm m mt $$ [Hm] as %ut %Hut
     · iframe Hm; ipureintro; exact hmt
     try wp_auto
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
     try wp_auto
     wp_apply wp_term gcm cm cmt $$ [Hcm] as %ucmt %Hucmt
     · iframe Hcm; ipureintro; exact hcmt
@@ -1154,7 +1154,7 @@ theorem State.Send.wp_proof
     wp_apply wp_load_at _ _ ct Hn $$ [Hcta]
     · iexact Hcta
     try wp_auto
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
     try wp_auto
     wp_apply wp_term gcm cm cmt $$ [Hcm] as %ucmt2 %Hucmt2
     · iframe Hcm; ipureintro; exact hcmt
@@ -1182,7 +1182,7 @@ theorem State.Send.wp_proof
     rw [hmi] at hmi2; cases hmi2
     simp only [pure_ok, Except.ok.injEq] at hy
     subst hy
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_index_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'index.method_unfold]
     try wp_auto
     wp_apply wp_index gm m mi $$ [Hm] as %ui2 %Hui2
     · iframe Hm; ipureintro; exact hmi
@@ -1221,12 +1221,12 @@ theorem State.Send.wp_proof
     obtain ⟨cf', hcf', Ht⟩ := bind_ok Ht
     cases Ht
     try wp_auto
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_from_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'from.method_unfold]
     try wp_auto
     wp_apply wp_from gcm cm cf' $$ [Hcm]
     · iframe Hcm; ipureintro; exact hcf'
     try wp_auto
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
     try wp_auto
     wp_apply wp_term gcm cm ct' $$ [Hcm] as %ucmt3 %Hucmt3
     · iframe Hcm; ipureintro; exact hct'
@@ -1253,7 +1253,7 @@ theorem State.Send.wp_proof
           else f.prevLogIndex + f.entries.length)⌝ ∗
         old_ptr ↦ gold ∗ cm_ptr ↦ gcm ∗ last_ptr ↦ (gf.PrevLogIndex' + gf.Entries'.len))
       at next with [idx old cm last] as ⟨%widx, idx, %Hwidx, old, cm, last⟩
-    · try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+    · try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
       try wp_auto
       wp_apply wp_term gcm cm ct' $$ [Hcm] as %ucmt4 %Hucmt4
       · iframe Hcm; ipureintro; exact hct'
@@ -1278,7 +1278,7 @@ theorem State.Send.wp_proof
         rw [show (s.confirmed[sint.nat n]!.term == ct') = false by simpa using hot]
         rw [hlastZ]; rfl
     try wp_auto
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
     try wp_auto
     wp_apply wp_term gcm cm ct' $$ [Hcm] as %ucmt5 %Hucmt5
     · iframe Hcm; ipureintro; exact hct'
@@ -1326,7 +1326,7 @@ theorem State.Send.wp_proof
   simp only [pure_ok, Except.ok.injEq] at hz
   subst hz
   try wp_auto
-  try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_index_unfold.method_unfold]
+  try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'index.method_unfold]
   try wp_auto
   wp_apply wp_index gm m mi $$ [Hm] as %ui3 %Hui3
   · iframe Hm; ipureintro; exact hmi
@@ -1348,12 +1348,12 @@ theorem State.Send.wp_proof
   obtain ⟨ct', hct', Ht⟩ := bind_ok Ht
   cases Ht
   try wp_auto
-  try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_from_unfold.method_unfold]
+  try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'from.method_unfold]
   try wp_auto
   wp_apply wp_from gcm cm cf' $$ [Hcm]
   · iframe Hcm; ipureintro; exact hcf'
   try wp_auto
-  try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+  try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
   try wp_auto
   wp_apply wp_term gcm cm ct' $$ [Hcm] as %ucmt3 %Hucmt3
   · iframe Hcm; ipureintro; exact hct'

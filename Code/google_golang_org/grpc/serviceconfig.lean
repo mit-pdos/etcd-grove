@@ -90,7 +90,7 @@ noncomputable instance ParseResult.zero_val [GooseExts] : ZeroVal ParseResult :=
 @[irreducible] noncomputable def ParseResult.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ParseResult.fieldsUnsealed
 
-noncomputable instance equals_unfold_ParseResult [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ParseResult [GooseExts] [GoGlobalContext] :
     EqualsUnfold ParseResult.fields ParseResult.fieldsUnsealed :=
   ⟨by unfold ParseResult.fields; rfl⟩
 
@@ -100,30 +100,30 @@ noncomputable instance equals_unfold_ParseResult [GooseExts] [GoGlobalContext] :
 class ParseResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ParseResult.underlying ParseResult
   underlying : go.UnderlyingDirectedEq ParseResult.ty ParseResult.underlying
-  get_Config : ∀ (x : ParseResult), go.IsGoStepPureDetTagged under (StructFieldGet ParseResult.underlying go!"Config") #x (Val #(x.Config'))
-  set_Config : ∀ (x : ParseResult) (y : Config), go.IsGoStepPureDetTagged under (StructFieldSet ParseResult.underlying go!"Config") (PairV #x #y) (Val #(({ x with Config' := y } : ParseResult)))
-  get_Err : ∀ (x : ParseResult), go.IsGoStepPureDetTagged under (StructFieldGet ParseResult.underlying go!"Err") #x (Val #(x.Err'))
-  set_Err : ∀ (x : ParseResult) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet ParseResult.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : ParseResult)))
+  get'Config : ∀ (x : ParseResult), go.IsGoStepPureDetTagged under (StructFieldGet ParseResult.underlying go!"Config") #x (Val #(x.Config'))
+  set'Config : ∀ (x : ParseResult) (y : Config), go.IsGoStepPureDetTagged under (StructFieldSet ParseResult.underlying go!"Config") (PairV #x #y) (Val #(({ x with Config' := y } : ParseResult)))
+  get'Err : ∀ (x : ParseResult), go.IsGoStepPureDetTagged under (StructFieldGet ParseResult.underlying go!"Err") #x (Val #(x.Err'))
+  set'Err : ∀ (x : ParseResult) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet ParseResult.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : ParseResult)))
   method_set : go.MethodSetIs ParseResult.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ParseResult.ty) []
 
 attribute [instance] ParseResult.TypeAssumptions.type_repr
   ParseResult.TypeAssumptions.underlying
-  ParseResult.TypeAssumptions.get_Config
-  ParseResult.TypeAssumptions.set_Config
-  ParseResult.TypeAssumptions.get_Err
-  ParseResult.TypeAssumptions.set_Err
+  ParseResult.TypeAssumptions.get'Config
+  ParseResult.TypeAssumptions.set'Config
+  ParseResult.TypeAssumptions.get'Err
+  ParseResult.TypeAssumptions.set'Err
   ParseResult.TypeAssumptions.method_set
   ParseResult.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Config_instance : Config.TypeAssumptions
-  LoadBalancingConfig_instance : LoadBalancingConfig.TypeAssumptions
-  ParseResult_instance : ParseResult.TypeAssumptions
+  instance'Config : Config.TypeAssumptions
+  instance'LoadBalancingConfig : LoadBalancingConfig.TypeAssumptions
+  instance'ParseResult : ParseResult.TypeAssumptions
 
-attribute [instance] Assumptions.Config_instance
-  Assumptions.LoadBalancingConfig_instance
-  Assumptions.ParseResult_instance
+attribute [instance] Assumptions.instance'Config
+  Assumptions.instance'LoadBalancingConfig
+  Assumptions.instance'ParseResult
 
 end google_golang_org.grpc.serviceconfig
 

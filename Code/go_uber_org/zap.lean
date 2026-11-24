@@ -35,23 +35,23 @@ end pkg_id
 
 namespace go_uber_org.zap
 
-noncomputable def objects.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"go.uber.org/zap.objects" [T])
+noncomputable def objects.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"go.uber.org/zap.objects" [T₀])
 
 attribute [irreducible] objects.ty
 
-noncomputable def ObjectMarshalerPtr.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"go.uber.org/zap.ObjectMarshalerPtr" [T])
+noncomputable def ObjectMarshalerPtr.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"go.uber.org/zap.ObjectMarshalerPtr" [T₀])
 
 attribute [irreducible] ObjectMarshalerPtr.ty
 
-noncomputable def objectValues.ty [GooseExts] [GoGlobalContext] (T : go.GoType) (P : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"go.uber.org/zap.objectValues" [T, P])
+noncomputable def objectValues.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) (P₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"go.uber.org/zap.objectValues" [T₀, P₀])
 
 attribute [irreducible] objectValues.ty
 
-noncomputable def stringers.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"go.uber.org/zap.stringers" [T])
+noncomputable def stringers.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"go.uber.org/zap.stringers" [T₀])
 
 attribute [irreducible] stringers.ty
 
@@ -180,8 +180,8 @@ noncomputable def dictObject.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] dictObject.ty
 
-noncomputable def anyFieldC.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"go.uber.org/zap.anyFieldC" [T])
+noncomputable def anyFieldC.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"go.uber.org/zap.anyFieldC" [T₀])
 
 attribute [irreducible] anyFieldC.ty
 
@@ -706,7 +706,7 @@ noncomputable def timeToMillis [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Open [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap.Open"
 
-noncomputable def «open» [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def open'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap.open"
 
 noncomputable def CombineWriteSyncers [GooseExts] [GoGlobalContext] : GoString :=
@@ -1346,7 +1346,7 @@ noncomputable def Logger.check.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "log" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Logger.ty)))) (Var "log"))
   (Let "msg" (App (Val (GoInstruction (GoAlloc go.string))) (Var "msg"))
   (Let "lvl" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_uber_org.zap.zapcore.Level.ty))) (Var "lvl"))
-  (let callerSkipOffset := #(2 : Int);
+  (let callerSkipOffset₀ := #(2 : Int);
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Logger.ty go!"name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "log"))))
   (Let "$v1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_uber_org.zap.zapcore.Clock.ty go!"Now"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_uber_org.zap.zapcore.Clock.ty))) (App (Val (GoInstruction (StructFieldRef Logger.ty go!"clock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "log"))))) (Val #()))
@@ -1376,7 +1376,7 @@ noncomputable def Logger.check.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "stackDepth" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_uber_org.zap.internal.stacktrace.Depth.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_uber_org.zap.internal.stacktrace.Depth.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Logger.ty go!"callerSkip"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "log")))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val callerSkipOffset))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Logger.ty go!"callerSkip"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "log")))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val callerSkipOffset₀))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_uber_org.zap.internal.stacktrace.Depth.ty))) (Var "stackDepth"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.internal.stacktrace.Capture []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "stack" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack.ty)))) (Val #())))
@@ -1962,57 +1962,57 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc _sinkRegistry (go.GoType.PointerType sinkRegistry.ty))) (Val #()))))))))
 
-abbrev objects [GooseExts] (T : Type) : Type := GoSlice
+abbrev objects [GooseExts] (T₀ : Type) : Type := GoSlice
 
-@[reducible] noncomputable def objects.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.SliceType T)
+@[reducible] noncomputable def objects.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.SliceType T₀)
 
 class objects.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (objects.ty T) (objects.underlying T)
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (objects.ty T) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (objects.ty T)) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (objects.ty T₀) (objects.underlying T₀)
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (objects.ty T₀) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (objects.ty T₀)) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] objects.TypeAssumptions.underlying
   objects.TypeAssumptions.method_set
   objects.TypeAssumptions.ptr_method_set
 
-abbrev ObjectMarshalerPtr [GooseExts] (T : Type) : Type := GoInterface
+abbrev ObjectMarshalerPtr [GooseExts] (T₀ : Type) : Type := GoInterface
 
-@[reducible] noncomputable def ObjectMarshalerPtr.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"MarshalLogObject" (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ObjectEncoder.ty] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm (go.GoType.PointerType T))])])
+@[reducible] noncomputable def ObjectMarshalerPtr.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"MarshalLogObject" (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ObjectEncoder.ty] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm (go.GoType.PointerType T₀))])])
 
 class ObjectMarshalerPtr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (ObjectMarshalerPtr.ty T) (ObjectMarshalerPtr.underlying T)
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (ObjectMarshalerPtr.ty T) [(go!"MarshalLogObject", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ObjectEncoder.ty] false [go.error])))]
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (ObjectMarshalerPtr.ty T)) []
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (ObjectMarshalerPtr.ty T₀) (ObjectMarshalerPtr.underlying T₀)
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (ObjectMarshalerPtr.ty T₀) [(go!"MarshalLogObject", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ObjectEncoder.ty] false [go.error])))]
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (ObjectMarshalerPtr.ty T₀)) []
 
 attribute [instance] ObjectMarshalerPtr.TypeAssumptions.underlying
   ObjectMarshalerPtr.TypeAssumptions.method_set
   ObjectMarshalerPtr.TypeAssumptions.ptr_method_set
 
-abbrev objectValues [GooseExts] (T P : Type) : Type := GoSlice
+abbrev objectValues [GooseExts] (T₀ P₀ : Type) : Type := GoSlice
 
-@[reducible] noncomputable def objectValues.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) (P : go.GoType) : go.GoType :=
-  (go.GoType.SliceType T)
+@[reducible] noncomputable def objectValues.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) (P₀ : go.GoType) : go.GoType :=
+  (go.GoType.SliceType T₀)
 
 class objectValues.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : ∀ (T P : go.GoType), go.UnderlyingDirectedEq (objectValues.ty T P) (objectValues.underlying T P)
-  method_set : ∀ (T P : go.GoType), go.MethodSetIs (objectValues.ty T P) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
-  ptr_method_set : ∀ (T P : go.GoType), go.MethodSetIs (go.GoType.PointerType (objectValues.ty T P)) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  underlying : ∀ (T₀ P₀ : go.GoType), go.UnderlyingDirectedEq (objectValues.ty T₀ P₀) (objectValues.underlying T₀ P₀)
+  method_set : ∀ (T₀ P₀ : go.GoType), go.MethodSetIs (objectValues.ty T₀ P₀) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : ∀ (T₀ P₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (objectValues.ty T₀ P₀)) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] objectValues.TypeAssumptions.underlying
   objectValues.TypeAssumptions.method_set
   objectValues.TypeAssumptions.ptr_method_set
 
-abbrev stringers [GooseExts] (T : Type) : Type := GoSlice
+abbrev stringers [GooseExts] (T₀ : Type) : Type := GoSlice
 
-@[reducible] noncomputable def stringers.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.SliceType T)
+@[reducible] noncomputable def stringers.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.SliceType T₀)
 
 class stringers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (stringers.ty T) (stringers.underlying T)
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (stringers.ty T) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (stringers.ty T)) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (stringers.ty T₀) (stringers.underlying T₀)
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (stringers.ty T₀) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (stringers.ty T₀)) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] stringers.TypeAssumptions.underlying
   stringers.TypeAssumptions.method_set
@@ -2315,7 +2315,7 @@ noncomputable instance SamplingConfig.zero_val [GooseExts] : ZeroVal SamplingCon
 @[irreducible] noncomputable def SamplingConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SamplingConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_SamplingConfig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SamplingConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold SamplingConfig.fields SamplingConfig.fieldsUnsealed :=
   ⟨by unfold SamplingConfig.fields; rfl⟩
 
@@ -2325,23 +2325,23 @@ noncomputable instance equals_unfold_SamplingConfig [GooseExts] [GoGlobalContext
 class SamplingConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SamplingConfig.underlying SamplingConfig
   underlying : go.UnderlyingDirectedEq SamplingConfig.ty SamplingConfig.underlying
-  get_Initial : ∀ (x : SamplingConfig), go.IsGoStepPureDetTagged under (StructFieldGet SamplingConfig.underlying go!"Initial") #x (Val #(x.Initial'))
-  set_Initial : ∀ (x : SamplingConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SamplingConfig.underlying go!"Initial") (PairV #x #y) (Val #(({ x with Initial' := y } : SamplingConfig)))
-  get_Thereafter : ∀ (x : SamplingConfig), go.IsGoStepPureDetTagged under (StructFieldGet SamplingConfig.underlying go!"Thereafter") #x (Val #(x.Thereafter'))
-  set_Thereafter : ∀ (x : SamplingConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SamplingConfig.underlying go!"Thereafter") (PairV #x #y) (Val #(({ x with Thereafter' := y } : SamplingConfig)))
-  get_Hook : ∀ (x : SamplingConfig), go.IsGoStepPureDetTagged under (StructFieldGet SamplingConfig.underlying go!"Hook") #x (Val #(x.Hook'))
-  set_Hook : ∀ (x : SamplingConfig) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet SamplingConfig.underlying go!"Hook") (PairV #x #y) (Val #(({ x with Hook' := y } : SamplingConfig)))
+  get'Initial : ∀ (x : SamplingConfig), go.IsGoStepPureDetTagged under (StructFieldGet SamplingConfig.underlying go!"Initial") #x (Val #(x.Initial'))
+  set'Initial : ∀ (x : SamplingConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SamplingConfig.underlying go!"Initial") (PairV #x #y) (Val #(({ x with Initial' := y } : SamplingConfig)))
+  get'Thereafter : ∀ (x : SamplingConfig), go.IsGoStepPureDetTagged under (StructFieldGet SamplingConfig.underlying go!"Thereafter") #x (Val #(x.Thereafter'))
+  set'Thereafter : ∀ (x : SamplingConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SamplingConfig.underlying go!"Thereafter") (PairV #x #y) (Val #(({ x with Thereafter' := y } : SamplingConfig)))
+  get'Hook : ∀ (x : SamplingConfig), go.IsGoStepPureDetTagged under (StructFieldGet SamplingConfig.underlying go!"Hook") #x (Val #(x.Hook'))
+  set'Hook : ∀ (x : SamplingConfig) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet SamplingConfig.underlying go!"Hook") (PairV #x #y) (Val #(({ x with Hook' := y } : SamplingConfig)))
   method_set : go.MethodSetIs SamplingConfig.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SamplingConfig.ty) []
 
 attribute [instance] SamplingConfig.TypeAssumptions.type_repr
   SamplingConfig.TypeAssumptions.underlying
-  SamplingConfig.TypeAssumptions.get_Initial
-  SamplingConfig.TypeAssumptions.set_Initial
-  SamplingConfig.TypeAssumptions.get_Thereafter
-  SamplingConfig.TypeAssumptions.set_Thereafter
-  SamplingConfig.TypeAssumptions.get_Hook
-  SamplingConfig.TypeAssumptions.set_Hook
+  SamplingConfig.TypeAssumptions.get'Initial
+  SamplingConfig.TypeAssumptions.set'Initial
+  SamplingConfig.TypeAssumptions.get'Thereafter
+  SamplingConfig.TypeAssumptions.set'Thereafter
+  SamplingConfig.TypeAssumptions.get'Hook
+  SamplingConfig.TypeAssumptions.set'Hook
   SamplingConfig.TypeAssumptions.method_set
   SamplingConfig.TypeAssumptions.ptr_method_set
 
@@ -2358,7 +2358,7 @@ noncomputable instance AtomicLevel.zero_val [GooseExts] : ZeroVal AtomicLevel :=
 @[irreducible] noncomputable def AtomicLevel.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AtomicLevel.fieldsUnsealed
 
-noncomputable instance equals_unfold_AtomicLevel [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'AtomicLevel [GooseExts] [GoGlobalContext] :
     EqualsUnfold AtomicLevel.fields AtomicLevel.fieldsUnsealed :=
   ⟨by unfold AtomicLevel.fields; rfl⟩
 
@@ -2368,15 +2368,15 @@ noncomputable instance equals_unfold_AtomicLevel [GooseExts] [GoGlobalContext] :
 class AtomicLevel.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AtomicLevel.underlying AtomicLevel
   underlying : go.UnderlyingDirectedEq AtomicLevel.ty AtomicLevel.underlying
-  get_l : ∀ (x : AtomicLevel), go.IsGoStepPureDetTagged under (StructFieldGet AtomicLevel.underlying go!"l") #x (Val #(x.l'))
-  set_l : ∀ (x : AtomicLevel) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AtomicLevel.underlying go!"l") (PairV #x #y) (Val #(({ x with l' := y } : AtomicLevel)))
+  get'l : ∀ (x : AtomicLevel), go.IsGoStepPureDetTagged under (StructFieldGet AtomicLevel.underlying go!"l") #x (Val #(x.l'))
+  set'l : ∀ (x : AtomicLevel) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AtomicLevel.underlying go!"l") (PairV #x #y) (Val #(({ x with l' := y } : AtomicLevel)))
   method_set : go.MethodSetIs AtomicLevel.ty [(go!"Enabled", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"SetLevel", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.uber.org/zap.serveHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType AtomicLevel.ty) [(go!"Enabled", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"SetLevel", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"go.uber.org/zap.serveHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [go.error])))]
 
 attribute [instance] AtomicLevel.TypeAssumptions.type_repr
   AtomicLevel.TypeAssumptions.underlying
-  AtomicLevel.TypeAssumptions.get_l
-  AtomicLevel.TypeAssumptions.set_l
+  AtomicLevel.TypeAssumptions.get'l
+  AtomicLevel.TypeAssumptions.set'l
   AtomicLevel.TypeAssumptions.method_set
   AtomicLevel.TypeAssumptions.ptr_method_set
 
@@ -2411,7 +2411,7 @@ noncomputable instance Config.zero_val [GooseExts] : ZeroVal Config :=
 @[irreducible] noncomputable def Config.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Config.fieldsUnsealed
 
-noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Config [GooseExts] [GoGlobalContext] :
     EqualsUnfold Config.fields Config.fieldsUnsealed :=
   ⟨by unfold Config.fields; rfl⟩
 
@@ -2421,51 +2421,51 @@ noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
 class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
-  get_Level : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Level") #x (Val #(x.Level'))
-  set_Level : ∀ (x : Config) (y : AtomicLevel), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Level") (PairV #x #y) (Val #(({ x with Level' := y } : Config)))
-  get_Development : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Development") #x (Val #(x.Development'))
-  set_Development : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Development") (PairV #x #y) (Val #(({ x with Development' := y } : Config)))
-  get_DisableCaller : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"DisableCaller") #x (Val #(x.DisableCaller'))
-  set_DisableCaller : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"DisableCaller") (PairV #x #y) (Val #(({ x with DisableCaller' := y } : Config)))
-  get_DisableStacktrace : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"DisableStacktrace") #x (Val #(x.DisableStacktrace'))
-  set_DisableStacktrace : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"DisableStacktrace") (PairV #x #y) (Val #(({ x with DisableStacktrace' := y } : Config)))
-  get_Sampling : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Sampling") #x (Val #(x.Sampling'))
-  set_Sampling : ∀ (x : Config) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Sampling") (PairV #x #y) (Val #(({ x with Sampling' := y } : Config)))
-  get_Encoding : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Encoding") #x (Val #(x.Encoding'))
-  set_Encoding : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Encoding") (PairV #x #y) (Val #(({ x with Encoding' := y } : Config)))
-  get_EncoderConfig : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"EncoderConfig") #x (Val #(x.EncoderConfig'))
-  set_EncoderConfig : ∀ (x : Config) (y : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"EncoderConfig") (PairV #x #y) (Val #(({ x with EncoderConfig' := y } : Config)))
-  get_OutputPaths : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"OutputPaths") #x (Val #(x.OutputPaths'))
-  set_OutputPaths : ∀ (x : Config) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"OutputPaths") (PairV #x #y) (Val #(({ x with OutputPaths' := y } : Config)))
-  get_ErrorOutputPaths : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ErrorOutputPaths") #x (Val #(x.ErrorOutputPaths'))
-  set_ErrorOutputPaths : ∀ (x : Config) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ErrorOutputPaths") (PairV #x #y) (Val #(({ x with ErrorOutputPaths' := y } : Config)))
-  get_InitialFields : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"InitialFields") #x (Val #(x.InitialFields'))
-  set_InitialFields : ∀ (x : Config) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"InitialFields") (PairV #x #y) (Val #(({ x with InitialFields' := y } : Config)))
+  get'Level : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Level") #x (Val #(x.Level'))
+  set'Level : ∀ (x : Config) (y : AtomicLevel), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Level") (PairV #x #y) (Val #(({ x with Level' := y } : Config)))
+  get'Development : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Development") #x (Val #(x.Development'))
+  set'Development : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Development") (PairV #x #y) (Val #(({ x with Development' := y } : Config)))
+  get'DisableCaller : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"DisableCaller") #x (Val #(x.DisableCaller'))
+  set'DisableCaller : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"DisableCaller") (PairV #x #y) (Val #(({ x with DisableCaller' := y } : Config)))
+  get'DisableStacktrace : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"DisableStacktrace") #x (Val #(x.DisableStacktrace'))
+  set'DisableStacktrace : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"DisableStacktrace") (PairV #x #y) (Val #(({ x with DisableStacktrace' := y } : Config)))
+  get'Sampling : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Sampling") #x (Val #(x.Sampling'))
+  set'Sampling : ∀ (x : Config) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Sampling") (PairV #x #y) (Val #(({ x with Sampling' := y } : Config)))
+  get'Encoding : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Encoding") #x (Val #(x.Encoding'))
+  set'Encoding : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Encoding") (PairV #x #y) (Val #(({ x with Encoding' := y } : Config)))
+  get'EncoderConfig : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"EncoderConfig") #x (Val #(x.EncoderConfig'))
+  set'EncoderConfig : ∀ (x : Config) (y : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"EncoderConfig") (PairV #x #y) (Val #(({ x with EncoderConfig' := y } : Config)))
+  get'OutputPaths : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"OutputPaths") #x (Val #(x.OutputPaths'))
+  set'OutputPaths : ∀ (x : Config) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"OutputPaths") (PairV #x #y) (Val #(({ x with OutputPaths' := y } : Config)))
+  get'ErrorOutputPaths : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ErrorOutputPaths") #x (Val #(x.ErrorOutputPaths'))
+  set'ErrorOutputPaths : ∀ (x : Config) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ErrorOutputPaths") (PairV #x #y) (Val #(({ x with ErrorOutputPaths' := y } : Config)))
+  get'InitialFields : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"InitialFields") #x (Val #(x.InitialFields'))
+  set'InitialFields : ∀ (x : Config) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"InitialFields") (PairV #x #y) (Val #(({ x with InitialFields' := y } : Config)))
   method_set : go.MethodSetIs Config.ty [(go!"Build", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] true [(go.GoType.PointerType Logger.ty), go.error]))), (go!"go.uber.org/zap.buildEncoder", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty, go.error]))), (go!"go.uber.org/zap.buildOptions", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty] false [(go.GoType.SliceType Option.ty)]))), (go!"go.uber.org/zap.openSinks", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty, _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) [(go!"Build", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] true [(go.GoType.PointerType Logger.ty), go.error]))), (go!"go.uber.org/zap.buildEncoder", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty, go.error]))), (go!"go.uber.org/zap.buildOptions", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty] false [(go.GoType.SliceType Option.ty)]))), (go!"go.uber.org/zap.openSinks", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty, _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty, go.error])))]
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
-  Config.TypeAssumptions.get_Level
-  Config.TypeAssumptions.set_Level
-  Config.TypeAssumptions.get_Development
-  Config.TypeAssumptions.set_Development
-  Config.TypeAssumptions.get_DisableCaller
-  Config.TypeAssumptions.set_DisableCaller
-  Config.TypeAssumptions.get_DisableStacktrace
-  Config.TypeAssumptions.set_DisableStacktrace
-  Config.TypeAssumptions.get_Sampling
-  Config.TypeAssumptions.set_Sampling
-  Config.TypeAssumptions.get_Encoding
-  Config.TypeAssumptions.set_Encoding
-  Config.TypeAssumptions.get_EncoderConfig
-  Config.TypeAssumptions.set_EncoderConfig
-  Config.TypeAssumptions.get_OutputPaths
-  Config.TypeAssumptions.set_OutputPaths
-  Config.TypeAssumptions.get_ErrorOutputPaths
-  Config.TypeAssumptions.set_ErrorOutputPaths
-  Config.TypeAssumptions.get_InitialFields
-  Config.TypeAssumptions.set_InitialFields
+  Config.TypeAssumptions.get'Level
+  Config.TypeAssumptions.set'Level
+  Config.TypeAssumptions.get'Development
+  Config.TypeAssumptions.set'Development
+  Config.TypeAssumptions.get'DisableCaller
+  Config.TypeAssumptions.set'DisableCaller
+  Config.TypeAssumptions.get'DisableStacktrace
+  Config.TypeAssumptions.set'DisableStacktrace
+  Config.TypeAssumptions.get'Sampling
+  Config.TypeAssumptions.set'Sampling
+  Config.TypeAssumptions.get'Encoding
+  Config.TypeAssumptions.set'Encoding
+  Config.TypeAssumptions.get'EncoderConfig
+  Config.TypeAssumptions.set'EncoderConfig
+  Config.TypeAssumptions.get'OutputPaths
+  Config.TypeAssumptions.set'OutputPaths
+  Config.TypeAssumptions.get'ErrorOutputPaths
+  Config.TypeAssumptions.set'ErrorOutputPaths
+  Config.TypeAssumptions.get'InitialFields
+  Config.TypeAssumptions.set'InitialFields
   Config.TypeAssumptions.method_set
   Config.TypeAssumptions.ptr_method_set
 
@@ -2496,7 +2496,7 @@ noncomputable instance errArrayElem.zero_val [GooseExts] : ZeroVal errArrayElem 
 @[irreducible] noncomputable def errArrayElem.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   errArrayElem.fieldsUnsealed
 
-noncomputable instance equals_unfold_errArrayElem [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'errArrayElem [GooseExts] [GoGlobalContext] :
     EqualsUnfold errArrayElem.fields errArrayElem.fieldsUnsealed :=
   ⟨by unfold errArrayElem.fields; rfl⟩
 
@@ -2506,15 +2506,15 @@ noncomputable instance equals_unfold_errArrayElem [GooseExts] [GoGlobalContext] 
 class errArrayElem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying errArrayElem.underlying errArrayElem
   underlying : go.UnderlyingDirectedEq errArrayElem.ty errArrayElem.underlying
-  get_error : ∀ (x : errArrayElem), go.IsGoStepPureDetTagged under (StructFieldGet errArrayElem.underlying go!"error") #x (Val #(x.error'))
-  set_error : ∀ (x : errArrayElem) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet errArrayElem.underlying go!"error") (PairV #x #y) (Val #(({ x with error' := y } : errArrayElem)))
+  get'error : ∀ (x : errArrayElem), go.IsGoStepPureDetTagged under (StructFieldGet errArrayElem.underlying go!"error") #x (Val #(x.error'))
+  set'error : ∀ (x : errArrayElem) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet errArrayElem.underlying go!"error") (PairV #x #y) (Val #(({ x with error' := y } : errArrayElem)))
   method_set : go.MethodSetIs errArrayElem.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType errArrayElem.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"MarshalLogObject", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ObjectEncoder.ty] false [go.error])))]
 
 attribute [instance] errArrayElem.TypeAssumptions.type_repr
   errArrayElem.TypeAssumptions.underlying
-  errArrayElem.TypeAssumptions.get_error
-  errArrayElem.TypeAssumptions.set_error
+  errArrayElem.TypeAssumptions.get'error
+  errArrayElem.TypeAssumptions.set'error
   errArrayElem.TypeAssumptions.method_set
   errArrayElem.TypeAssumptions.ptr_method_set
 
@@ -2532,15 +2532,15 @@ attribute [instance] dictObject.TypeAssumptions.underlying
   dictObject.TypeAssumptions.method_set
   dictObject.TypeAssumptions.ptr_method_set
 
-abbrev anyFieldC [GooseExts] (T : Type) : Type := GoFunc
+abbrev anyFieldC [GooseExts] (T₀ : Type) : Type := GoFunc
 
-@[reducible] noncomputable def anyFieldC.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.FunctionType (go.signature.Signature [go.string, T] false [Field.ty]))
+@[reducible] noncomputable def anyFieldC.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.FunctionType (go.signature.Signature [go.string, T₀] false [Field.ty]))
 
 class anyFieldC.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (anyFieldC.ty T) (anyFieldC.underlying T)
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (anyFieldC.ty T) [(go!"Any", (some (go.signature.Signature [go.string, go.any] false [Field.ty])))]
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (anyFieldC.ty T)) [(go!"Any", (some (go.signature.Signature [go.string, go.any] false [Field.ty])))]
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (anyFieldC.ty T₀) (anyFieldC.underlying T₀)
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (anyFieldC.ty T₀) [(go!"Any", (some (go.signature.Signature [go.string, go.any] false [Field.ty])))]
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (anyFieldC.ty T₀)) [(go!"Any", (some (go.signature.Signature [go.string, go.any] false [Field.ty])))]
 
 attribute [instance] anyFieldC.TypeAssumptions.underlying
   anyFieldC.TypeAssumptions.method_set
@@ -2559,7 +2559,7 @@ noncomputable instance loggerWriter.zero_val [GooseExts] : ZeroVal loggerWriter 
 @[irreducible] noncomputable def loggerWriter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   loggerWriter.fieldsUnsealed
 
-noncomputable instance equals_unfold_loggerWriter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'loggerWriter [GooseExts] [GoGlobalContext] :
     EqualsUnfold loggerWriter.fields loggerWriter.fieldsUnsealed :=
   ⟨by unfold loggerWriter.fields; rfl⟩
 
@@ -2569,15 +2569,15 @@ noncomputable instance equals_unfold_loggerWriter [GooseExts] [GoGlobalContext] 
 class loggerWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying loggerWriter.underlying loggerWriter
   underlying : go.UnderlyingDirectedEq loggerWriter.ty loggerWriter.underlying
-  get_logFunc : ∀ (x : loggerWriter), go.IsGoStepPureDetTagged under (StructFieldGet loggerWriter.underlying go!"logFunc") #x (Val #(x.logFunc'))
-  set_logFunc : ∀ (x : loggerWriter) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet loggerWriter.underlying go!"logFunc") (PairV #x #y) (Val #(({ x with logFunc' := y } : loggerWriter)))
+  get'logFunc : ∀ (x : loggerWriter), go.IsGoStepPureDetTagged under (StructFieldGet loggerWriter.underlying go!"logFunc") #x (Val #(x.logFunc'))
+  set'logFunc : ∀ (x : loggerWriter) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet loggerWriter.underlying go!"logFunc") (PairV #x #y) (Val #(({ x with logFunc' := y } : loggerWriter)))
   method_set : go.MethodSetIs loggerWriter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType loggerWriter.ty) [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] loggerWriter.TypeAssumptions.type_repr
   loggerWriter.TypeAssumptions.underlying
-  loggerWriter.TypeAssumptions.get_logFunc
-  loggerWriter.TypeAssumptions.set_logFunc
+  loggerWriter.TypeAssumptions.get'logFunc
+  loggerWriter.TypeAssumptions.set'logFunc
   loggerWriter.TypeAssumptions.method_set
   loggerWriter.TypeAssumptions.ptr_method_set
 
@@ -2626,7 +2626,7 @@ noncomputable instance Logger.zero_val [GooseExts] : ZeroVal Logger :=
 @[irreducible] noncomputable def Logger.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Logger.fieldsUnsealed
 
-noncomputable instance equals_unfold_Logger [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Logger [GooseExts] [GoGlobalContext] :
     EqualsUnfold Logger.fields Logger.fieldsUnsealed :=
   ⟨by unfold Logger.fields; rfl⟩
 
@@ -2636,69 +2636,69 @@ noncomputable instance equals_unfold_Logger [GooseExts] [GoGlobalContext] :
 class Logger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Logger.underlying Logger
   underlying : go.UnderlyingDirectedEq Logger.ty Logger.underlying
-  get_core : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"core") #x (Val #(x.core'))
-  set_core : ∀ (x : Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.Core), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"core") (PairV #x #y) (Val #(({ x with core' := y } : Logger)))
-  get_development : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"development") #x (Val #(x.development'))
-  set_development : ∀ (x : Logger) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"development") (PairV #x #y) (Val #(({ x with development' := y } : Logger)))
-  get_addCaller : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"addCaller") #x (Val #(x.addCaller'))
-  set_addCaller : ∀ (x : Logger) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"addCaller") (PairV #x #y) (Val #(({ x with addCaller' := y } : Logger)))
-  get_onPanic : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"onPanic") #x (Val #(x.onPanic'))
-  set_onPanic : ∀ (x : Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.CheckWriteHook), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"onPanic") (PairV #x #y) (Val #(({ x with onPanic' := y } : Logger)))
-  get_onFatal : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"onFatal") #x (Val #(x.onFatal'))
-  set_onFatal : ∀ (x : Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.CheckWriteHook), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"onFatal") (PairV #x #y) (Val #(({ x with onFatal' := y } : Logger)))
-  get_name : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : Logger) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : Logger)))
-  get_errorOutput : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"errorOutput") #x (Val #(x.errorOutput'))
-  set_errorOutput : ∀ (x : Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"errorOutput") (PairV #x #y) (Val #(({ x with errorOutput' := y } : Logger)))
-  get_addStack : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"addStack") #x (Val #(x.addStack'))
-  set_addStack : ∀ (x : Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.LevelEnabler), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"addStack") (PairV #x #y) (Val #(({ x with addStack' := y } : Logger)))
-  get_callerSkip : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"callerSkip") #x (Val #(x.callerSkip'))
-  set_callerSkip : ∀ (x : Logger) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"callerSkip") (PairV #x #y) (Val #(({ x with callerSkip' := y } : Logger)))
-  get_clock : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"clock") #x (Val #(x.clock'))
-  set_clock : ∀ (x : Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.Clock), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : Logger)))
+  get'core : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"core") #x (Val #(x.core'))
+  set'core : ∀ (x : Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.Core), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"core") (PairV #x #y) (Val #(({ x with core' := y } : Logger)))
+  get'development : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"development") #x (Val #(x.development'))
+  set'development : ∀ (x : Logger) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"development") (PairV #x #y) (Val #(({ x with development' := y } : Logger)))
+  get'addCaller : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"addCaller") #x (Val #(x.addCaller'))
+  set'addCaller : ∀ (x : Logger) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"addCaller") (PairV #x #y) (Val #(({ x with addCaller' := y } : Logger)))
+  get'onPanic : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"onPanic") #x (Val #(x.onPanic'))
+  set'onPanic : ∀ (x : Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.CheckWriteHook), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"onPanic") (PairV #x #y) (Val #(({ x with onPanic' := y } : Logger)))
+  get'onFatal : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"onFatal") #x (Val #(x.onFatal'))
+  set'onFatal : ∀ (x : Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.CheckWriteHook), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"onFatal") (PairV #x #y) (Val #(({ x with onFatal' := y } : Logger)))
+  get'name : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : Logger) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : Logger)))
+  get'errorOutput : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"errorOutput") #x (Val #(x.errorOutput'))
+  set'errorOutput : ∀ (x : Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"errorOutput") (PairV #x #y) (Val #(({ x with errorOutput' := y } : Logger)))
+  get'addStack : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"addStack") #x (Val #(x.addStack'))
+  set'addStack : ∀ (x : Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.LevelEnabler), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"addStack") (PairV #x #y) (Val #(({ x with addStack' := y } : Logger)))
+  get'callerSkip : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"callerSkip") #x (Val #(x.callerSkip'))
+  set'callerSkip : ∀ (x : Logger) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"callerSkip") (PairV #x #y) (Val #(({ x with callerSkip' := y } : Logger)))
+  get'clock : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"clock") #x (Val #(x.clock'))
+  set'clock : ∀ (x : Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.Clock), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : Logger)))
   method_set : go.MethodSetIs Logger.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Logger.ty) [(go!"Check", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)]))), (go!"Core", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.Core.ty]))), (go!"DPanic", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"Debug", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"Error", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"Fatal", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"Info", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"Level", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty]))), (go!"Log", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Named", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType Logger.ty)]))), (go!"Panic", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"Sugar", (some (go.signature.Signature [] false [(go.GoType.PointerType SugaredLogger.ty)]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Warn", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true [(go.GoType.PointerType Logger.ty)]))), (go!"WithLazy", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true [(go.GoType.PointerType Logger.ty)]))), (go!"WithOptions", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] true [(go.GoType.PointerType Logger.ty)]))), (go!"go.uber.org/zap.check", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)]))), (go!"go.uber.org/zap.clone", (some (go.signature.Signature [] false [(go.GoType.PointerType Logger.ty)])))]
-  ptr_Check_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Check" Logger.Check.impl
-  ptr_Debug_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Debug" Logger.Debug.impl
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Error" Logger.Error.impl
-  ptr_Info_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Info" Logger.Info.impl
-  ptr_Sugar_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Sugar" Logger.Sugar.impl
-  ptr_Warn_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Warn" Logger.Warn.impl
-  ptr_check_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"check" Logger.check.impl
-  ptr_clone_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"clone" Logger.clone.impl
+  ptr_unfold'Check : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Check" Logger.Check.impl
+  ptr_unfold'Debug : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Debug" Logger.Debug.impl
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Error" Logger.Error.impl
+  ptr_unfold'Info : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Info" Logger.Info.impl
+  ptr_unfold'Sugar : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Sugar" Logger.Sugar.impl
+  ptr_unfold'Warn : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Warn" Logger.Warn.impl
+  ptr_unfold'check : MethodUnfold (go.GoType.PointerType Logger.ty) go!"check" Logger.check.impl
+  ptr_unfold'clone : MethodUnfold (go.GoType.PointerType Logger.ty) go!"clone" Logger.clone.impl
 
 attribute [instance] Logger.TypeAssumptions.type_repr
   Logger.TypeAssumptions.underlying
-  Logger.TypeAssumptions.get_core
-  Logger.TypeAssumptions.set_core
-  Logger.TypeAssumptions.get_development
-  Logger.TypeAssumptions.set_development
-  Logger.TypeAssumptions.get_addCaller
-  Logger.TypeAssumptions.set_addCaller
-  Logger.TypeAssumptions.get_onPanic
-  Logger.TypeAssumptions.set_onPanic
-  Logger.TypeAssumptions.get_onFatal
-  Logger.TypeAssumptions.set_onFatal
-  Logger.TypeAssumptions.get_name
-  Logger.TypeAssumptions.set_name
-  Logger.TypeAssumptions.get_errorOutput
-  Logger.TypeAssumptions.set_errorOutput
-  Logger.TypeAssumptions.get_addStack
-  Logger.TypeAssumptions.set_addStack
-  Logger.TypeAssumptions.get_callerSkip
-  Logger.TypeAssumptions.set_callerSkip
-  Logger.TypeAssumptions.get_clock
-  Logger.TypeAssumptions.set_clock
+  Logger.TypeAssumptions.get'core
+  Logger.TypeAssumptions.set'core
+  Logger.TypeAssumptions.get'development
+  Logger.TypeAssumptions.set'development
+  Logger.TypeAssumptions.get'addCaller
+  Logger.TypeAssumptions.set'addCaller
+  Logger.TypeAssumptions.get'onPanic
+  Logger.TypeAssumptions.set'onPanic
+  Logger.TypeAssumptions.get'onFatal
+  Logger.TypeAssumptions.set'onFatal
+  Logger.TypeAssumptions.get'name
+  Logger.TypeAssumptions.set'name
+  Logger.TypeAssumptions.get'errorOutput
+  Logger.TypeAssumptions.set'errorOutput
+  Logger.TypeAssumptions.get'addStack
+  Logger.TypeAssumptions.set'addStack
+  Logger.TypeAssumptions.get'callerSkip
+  Logger.TypeAssumptions.set'callerSkip
+  Logger.TypeAssumptions.get'clock
+  Logger.TypeAssumptions.set'clock
   Logger.TypeAssumptions.method_set
   Logger.TypeAssumptions.ptr_method_set
-  Logger.TypeAssumptions.ptr_Check_unfold
-  Logger.TypeAssumptions.ptr_Debug_unfold
-  Logger.TypeAssumptions.ptr_Error_unfold
-  Logger.TypeAssumptions.ptr_Info_unfold
-  Logger.TypeAssumptions.ptr_Sugar_unfold
-  Logger.TypeAssumptions.ptr_Warn_unfold
-  Logger.TypeAssumptions.ptr_check_unfold
-  Logger.TypeAssumptions.ptr_clone_unfold
+  Logger.TypeAssumptions.ptr_unfold'Check
+  Logger.TypeAssumptions.ptr_unfold'Debug
+  Logger.TypeAssumptions.ptr_unfold'Error
+  Logger.TypeAssumptions.ptr_unfold'Info
+  Logger.TypeAssumptions.ptr_unfold'Sugar
+  Logger.TypeAssumptions.ptr_unfold'Warn
+  Logger.TypeAssumptions.ptr_unfold'check
+  Logger.TypeAssumptions.ptr_unfold'clone
 
 abbrev Option [GooseExts] : Type := GoInterface
 
@@ -2755,7 +2755,7 @@ noncomputable instance errSinkNotFound.zero_val [GooseExts] : ZeroVal errSinkNot
 @[irreducible] noncomputable def errSinkNotFound.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   errSinkNotFound.fieldsUnsealed
 
-noncomputable instance equals_unfold_errSinkNotFound [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'errSinkNotFound [GooseExts] [GoGlobalContext] :
     EqualsUnfold errSinkNotFound.fields errSinkNotFound.fieldsUnsealed :=
   ⟨by unfold errSinkNotFound.fields; rfl⟩
 
@@ -2765,15 +2765,15 @@ noncomputable instance equals_unfold_errSinkNotFound [GooseExts] [GoGlobalContex
 class errSinkNotFound.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying errSinkNotFound.underlying errSinkNotFound
   underlying : go.UnderlyingDirectedEq errSinkNotFound.ty errSinkNotFound.underlying
-  get_scheme : ∀ (x : errSinkNotFound), go.IsGoStepPureDetTagged under (StructFieldGet errSinkNotFound.underlying go!"scheme") #x (Val #(x.scheme'))
-  set_scheme : ∀ (x : errSinkNotFound) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet errSinkNotFound.underlying go!"scheme") (PairV #x #y) (Val #(({ x with scheme' := y } : errSinkNotFound)))
+  get'scheme : ∀ (x : errSinkNotFound), go.IsGoStepPureDetTagged under (StructFieldGet errSinkNotFound.underlying go!"scheme") #x (Val #(x.scheme'))
+  set'scheme : ∀ (x : errSinkNotFound) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet errSinkNotFound.underlying go!"scheme") (PairV #x #y) (Val #(({ x with scheme' := y } : errSinkNotFound)))
   method_set : go.MethodSetIs errSinkNotFound.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType errSinkNotFound.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] errSinkNotFound.TypeAssumptions.type_repr
   errSinkNotFound.TypeAssumptions.underlying
-  errSinkNotFound.TypeAssumptions.get_scheme
-  errSinkNotFound.TypeAssumptions.set_scheme
+  errSinkNotFound.TypeAssumptions.get'scheme
+  errSinkNotFound.TypeAssumptions.set'scheme
   errSinkNotFound.TypeAssumptions.method_set
   errSinkNotFound.TypeAssumptions.ptr_method_set
 
@@ -2790,7 +2790,7 @@ noncomputable instance nopCloserSink.zero_val [GooseExts] : ZeroVal nopCloserSin
 @[irreducible] noncomputable def nopCloserSink.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   nopCloserSink.fieldsUnsealed
 
-noncomputable instance equals_unfold_nopCloserSink [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'nopCloserSink [GooseExts] [GoGlobalContext] :
     EqualsUnfold nopCloserSink.fields nopCloserSink.fieldsUnsealed :=
   ⟨by unfold nopCloserSink.fields; rfl⟩
 
@@ -2800,15 +2800,15 @@ noncomputable instance equals_unfold_nopCloserSink [GooseExts] [GoGlobalContext]
 class nopCloserSink.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying nopCloserSink.underlying nopCloserSink
   underlying : go.UnderlyingDirectedEq nopCloserSink.ty nopCloserSink.underlying
-  get_WriteSyncer : ∀ (x : nopCloserSink), go.IsGoStepPureDetTagged under (StructFieldGet nopCloserSink.underlying go!"WriteSyncer") #x (Val #(x.WriteSyncer'))
-  set_WriteSyncer : ∀ (x : nopCloserSink) (y : _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer), go.IsGoStepPureDetTagged under (StructFieldSet nopCloserSink.underlying go!"WriteSyncer") (PairV #x #y) (Val #(({ x with WriteSyncer' := y } : nopCloserSink)))
+  get'WriteSyncer : ∀ (x : nopCloserSink), go.IsGoStepPureDetTagged under (StructFieldGet nopCloserSink.underlying go!"WriteSyncer") #x (Val #(x.WriteSyncer'))
+  set'WriteSyncer : ∀ (x : nopCloserSink) (y : _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer), go.IsGoStepPureDetTagged under (StructFieldSet nopCloserSink.underlying go!"WriteSyncer") (PairV #x #y) (Val #(({ x with WriteSyncer' := y } : nopCloserSink)))
   method_set : go.MethodSetIs nopCloserSink.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType nopCloserSink.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] nopCloserSink.TypeAssumptions.type_repr
   nopCloserSink.TypeAssumptions.underlying
-  nopCloserSink.TypeAssumptions.get_WriteSyncer
-  nopCloserSink.TypeAssumptions.set_WriteSyncer
+  nopCloserSink.TypeAssumptions.get'WriteSyncer
+  nopCloserSink.TypeAssumptions.set'WriteSyncer
   nopCloserSink.TypeAssumptions.method_set
   nopCloserSink.TypeAssumptions.ptr_method_set
 
@@ -2829,7 +2829,7 @@ noncomputable instance sinkRegistry.zero_val [GooseExts] : ZeroVal sinkRegistry 
 @[irreducible] noncomputable def sinkRegistry.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   sinkRegistry.fieldsUnsealed
 
-noncomputable instance equals_unfold_sinkRegistry [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'sinkRegistry [GooseExts] [GoGlobalContext] :
     EqualsUnfold sinkRegistry.fields sinkRegistry.fieldsUnsealed :=
   ⟨by unfold sinkRegistry.fields; rfl⟩
 
@@ -2839,27 +2839,27 @@ noncomputable instance equals_unfold_sinkRegistry [GooseExts] [GoGlobalContext] 
 class sinkRegistry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying sinkRegistry.underlying sinkRegistry
   underlying : go.UnderlyingDirectedEq sinkRegistry.ty sinkRegistry.underlying
-  get_mu : ∀ (x : sinkRegistry), go.IsGoStepPureDetTagged under (StructFieldGet sinkRegistry.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : sinkRegistry) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet sinkRegistry.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : sinkRegistry)))
-  get_factories : ∀ (x : sinkRegistry), go.IsGoStepPureDetTagged under (StructFieldGet sinkRegistry.underlying go!"factories") #x (Val #(x.factories'))
-  set_factories : ∀ (x : sinkRegistry) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet sinkRegistry.underlying go!"factories") (PairV #x #y) (Val #(({ x with factories' := y } : sinkRegistry)))
-  get_openFile : ∀ (x : sinkRegistry), go.IsGoStepPureDetTagged under (StructFieldGet sinkRegistry.underlying go!"openFile") #x (Val #(x.openFile'))
-  set_openFile : ∀ (x : sinkRegistry) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet sinkRegistry.underlying go!"openFile") (PairV #x #y) (Val #(({ x with openFile' := y } : sinkRegistry)))
+  get'mu : ∀ (x : sinkRegistry), go.IsGoStepPureDetTagged under (StructFieldGet sinkRegistry.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : sinkRegistry) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet sinkRegistry.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : sinkRegistry)))
+  get'factories : ∀ (x : sinkRegistry), go.IsGoStepPureDetTagged under (StructFieldGet sinkRegistry.underlying go!"factories") #x (Val #(x.factories'))
+  set'factories : ∀ (x : sinkRegistry) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet sinkRegistry.underlying go!"factories") (PairV #x #y) (Val #(({ x with factories' := y } : sinkRegistry)))
+  get'openFile : ∀ (x : sinkRegistry), go.IsGoStepPureDetTagged under (StructFieldGet sinkRegistry.underlying go!"openFile") #x (Val #(x.openFile'))
+  set'openFile : ∀ (x : sinkRegistry) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet sinkRegistry.underlying go!"openFile") (PairV #x #y) (Val #(({ x with openFile' := y } : sinkRegistry)))
   method_set : go.MethodSetIs sinkRegistry.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType sinkRegistry.ty) [(go!"RegisterSink", (some (go.signature.Signature [go.string, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.url.URL.ty)] false [Sink.ty, go.error]))] false [go.error]))), (go!"go.uber.org/zap.newFileSinkFromPath", (some (go.signature.Signature [go.string] false [Sink.ty, go.error]))), (go!"go.uber.org/zap.newFileSinkFromURL", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.url.URL.ty)] false [Sink.ty, go.error]))), (go!"go.uber.org/zap.newSink", (some (go.signature.Signature [go.string] false [Sink.ty, go.error])))]
-  ptr_RegisterSink_unfold : MethodUnfold (go.GoType.PointerType sinkRegistry.ty) go!"RegisterSink" sinkRegistry.RegisterSink.impl
+  ptr_unfold'RegisterSink : MethodUnfold (go.GoType.PointerType sinkRegistry.ty) go!"RegisterSink" sinkRegistry.RegisterSink.impl
 
 attribute [instance] sinkRegistry.TypeAssumptions.type_repr
   sinkRegistry.TypeAssumptions.underlying
-  sinkRegistry.TypeAssumptions.get_mu
-  sinkRegistry.TypeAssumptions.set_mu
-  sinkRegistry.TypeAssumptions.get_factories
-  sinkRegistry.TypeAssumptions.set_factories
-  sinkRegistry.TypeAssumptions.get_openFile
-  sinkRegistry.TypeAssumptions.set_openFile
+  sinkRegistry.TypeAssumptions.get'mu
+  sinkRegistry.TypeAssumptions.set'mu
+  sinkRegistry.TypeAssumptions.get'factories
+  sinkRegistry.TypeAssumptions.set'factories
+  sinkRegistry.TypeAssumptions.get'openFile
+  sinkRegistry.TypeAssumptions.set'openFile
   sinkRegistry.TypeAssumptions.method_set
   sinkRegistry.TypeAssumptions.ptr_method_set
-  sinkRegistry.TypeAssumptions.ptr_RegisterSink_unfold
+  sinkRegistry.TypeAssumptions.ptr_unfold'RegisterSink
 
 structure SugaredLogger [GooseExts] where
   mk ::
@@ -2874,7 +2874,7 @@ noncomputable instance SugaredLogger.zero_val [GooseExts] : ZeroVal SugaredLogge
 @[irreducible] noncomputable def SugaredLogger.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SugaredLogger.fieldsUnsealed
 
-noncomputable instance equals_unfold_SugaredLogger [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SugaredLogger [GooseExts] [GoGlobalContext] :
     EqualsUnfold SugaredLogger.fields SugaredLogger.fieldsUnsealed :=
   ⟨by unfold SugaredLogger.fields; rfl⟩
 
@@ -2884,15 +2884,15 @@ noncomputable instance equals_unfold_SugaredLogger [GooseExts] [GoGlobalContext]
 class SugaredLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SugaredLogger.underlying SugaredLogger
   underlying : go.UnderlyingDirectedEq SugaredLogger.ty SugaredLogger.underlying
-  get_base : ∀ (x : SugaredLogger), go.IsGoStepPureDetTagged under (StructFieldGet SugaredLogger.underlying go!"base") #x (Val #(x.base'))
-  set_base : ∀ (x : SugaredLogger) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet SugaredLogger.underlying go!"base") (PairV #x #y) (Val #(({ x with base' := y } : SugaredLogger)))
+  get'base : ∀ (x : SugaredLogger), go.IsGoStepPureDetTagged under (StructFieldGet SugaredLogger.underlying go!"base") #x (Val #(x.base'))
+  set'base : ∀ (x : SugaredLogger) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet SugaredLogger.underlying go!"base") (PairV #x #y) (Val #(({ x with base' := y } : SugaredLogger)))
   method_set : go.MethodSetIs SugaredLogger.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SugaredLogger.ty) [(go!"DPanic", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"DPanicf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"DPanicln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"DPanicw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debug", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Desugar", (some (go.signature.Signature [] false [(go.GoType.PointerType Logger.ty)]))), (go!"Error", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infoln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infow", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Level", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty]))), (go!"Log", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Logf", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Logln", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Logw", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Named", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType SugaredLogger.ty)]))), (go!"Panic", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Warn", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warnf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warnln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warnw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true [(go.GoType.PointerType SugaredLogger.ty)]))), (go!"WithLazy", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true [(go.GoType.PointerType SugaredLogger.ty)]))), (go!"WithOptions", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] true [(go.GoType.PointerType SugaredLogger.ty)]))), (go!"go.uber.org/zap.log", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, go.string, (go.GoType.SliceType (go.GoType.InterfaceType [])), (go.GoType.SliceType (go.GoType.InterfaceType []))] false []))), (go!"go.uber.org/zap.logln", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, (go.GoType.SliceType (go.GoType.InterfaceType [])), (go.GoType.SliceType (go.GoType.InterfaceType []))] false []))), (go!"go.uber.org/zap.sweetenFields", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] false [(go.GoType.SliceType Field.ty)])))]
 
 attribute [instance] SugaredLogger.TypeAssumptions.type_repr
   SugaredLogger.TypeAssumptions.underlying
-  SugaredLogger.TypeAssumptions.get_base
-  SugaredLogger.TypeAssumptions.set_base
+  SugaredLogger.TypeAssumptions.get'base
+  SugaredLogger.TypeAssumptions.set'base
   SugaredLogger.TypeAssumptions.method_set
   SugaredLogger.TypeAssumptions.ptr_method_set
 
@@ -2913,7 +2913,7 @@ noncomputable instance invalidPair.zero_val [GooseExts] : ZeroVal invalidPair :=
 @[irreducible] noncomputable def invalidPair.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   invalidPair.fieldsUnsealed
 
-noncomputable instance equals_unfold_invalidPair [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'invalidPair [GooseExts] [GoGlobalContext] :
     EqualsUnfold invalidPair.fields invalidPair.fieldsUnsealed :=
   ⟨by unfold invalidPair.fields; rfl⟩
 
@@ -2923,23 +2923,23 @@ noncomputable instance equals_unfold_invalidPair [GooseExts] [GoGlobalContext] :
 class invalidPair.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying invalidPair.underlying invalidPair
   underlying : go.UnderlyingDirectedEq invalidPair.ty invalidPair.underlying
-  get_position : ∀ (x : invalidPair), go.IsGoStepPureDetTagged under (StructFieldGet invalidPair.underlying go!"position") #x (Val #(x.position'))
-  set_position : ∀ (x : invalidPair) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet invalidPair.underlying go!"position") (PairV #x #y) (Val #(({ x with position' := y } : invalidPair)))
-  get_key : ∀ (x : invalidPair), go.IsGoStepPureDetTagged under (StructFieldGet invalidPair.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : invalidPair) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet invalidPair.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : invalidPair)))
-  get_value : ∀ (x : invalidPair), go.IsGoStepPureDetTagged under (StructFieldGet invalidPair.underlying go!"value") #x (Val #(x.value'))
-  set_value : ∀ (x : invalidPair) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet invalidPair.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : invalidPair)))
+  get'position : ∀ (x : invalidPair), go.IsGoStepPureDetTagged under (StructFieldGet invalidPair.underlying go!"position") #x (Val #(x.position'))
+  set'position : ∀ (x : invalidPair) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet invalidPair.underlying go!"position") (PairV #x #y) (Val #(({ x with position' := y } : invalidPair)))
+  get'key : ∀ (x : invalidPair), go.IsGoStepPureDetTagged under (StructFieldGet invalidPair.underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : invalidPair) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet invalidPair.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : invalidPair)))
+  get'value : ∀ (x : invalidPair), go.IsGoStepPureDetTagged under (StructFieldGet invalidPair.underlying go!"value") #x (Val #(x.value'))
+  set'value : ∀ (x : invalidPair) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet invalidPair.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : invalidPair)))
   method_set : go.MethodSetIs invalidPair.ty [(go!"MarshalLogObject", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ObjectEncoder.ty] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType invalidPair.ty) [(go!"MarshalLogObject", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ObjectEncoder.ty] false [go.error])))]
 
 attribute [instance] invalidPair.TypeAssumptions.type_repr
   invalidPair.TypeAssumptions.underlying
-  invalidPair.TypeAssumptions.get_position
-  invalidPair.TypeAssumptions.set_position
-  invalidPair.TypeAssumptions.get_key
-  invalidPair.TypeAssumptions.set_key
-  invalidPair.TypeAssumptions.get_value
-  invalidPair.TypeAssumptions.set_value
+  invalidPair.TypeAssumptions.get'position
+  invalidPair.TypeAssumptions.set'position
+  invalidPair.TypeAssumptions.get'key
+  invalidPair.TypeAssumptions.set'key
+  invalidPair.TypeAssumptions.get'value
+  invalidPair.TypeAssumptions.set'value
   invalidPair.TypeAssumptions.method_set
   invalidPair.TypeAssumptions.ptr_method_set
 
@@ -2958,167 +2958,167 @@ attribute [instance] invalidPairs.TypeAssumptions.underlying
   invalidPairs.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  objects_instance : objects.TypeAssumptions
-  ObjectMarshalerPtr_instance : ObjectMarshalerPtr.TypeAssumptions
-  objectValues_instance : objectValues.TypeAssumptions
-  stringers_instance : stringers.TypeAssumptions
-  bools_instance : bools.TypeAssumptions
-  byteStringsArray_instance : byteStringsArray.TypeAssumptions
-  complex128s_instance : complex128s.TypeAssumptions
-  complex64s_instance : complex64s.TypeAssumptions
-  durations_instance : durations.TypeAssumptions
-  float64s_instance : float64s.TypeAssumptions
-  float32s_instance : float32s.TypeAssumptions
-  ints_instance : ints.TypeAssumptions
-  int64s_instance : int64s.TypeAssumptions
-  int32s_instance : int32s.TypeAssumptions
-  int16s_instance : int16s.TypeAssumptions
-  int8s_instance : int8s.TypeAssumptions
-  stringArray_instance : stringArray.TypeAssumptions
-  times_instance : times.TypeAssumptions
-  uints_instance : uints.TypeAssumptions
-  uint64s_instance : uint64s.TypeAssumptions
-  uint32s_instance : uint32s.TypeAssumptions
-  uint16s_instance : uint16s.TypeAssumptions
-  uint8s_instance : uint8s.TypeAssumptions
-  uintptrs_instance : uintptrs.TypeAssumptions
-  SamplingConfig_instance : SamplingConfig.TypeAssumptions
-  Config_instance : Config.TypeAssumptions
-  errArray_instance : errArray.TypeAssumptions
-  errArrayElem_instance : errArrayElem.TypeAssumptions
-  dictObject_instance : dictObject.TypeAssumptions
-  anyFieldC_instance : anyFieldC.TypeAssumptions
-  loggerWriter_instance : loggerWriter.TypeAssumptions
-  LevelEnablerFunc_instance : LevelEnablerFunc.TypeAssumptions
-  AtomicLevel_instance : AtomicLevel.TypeAssumptions
-  Logger_instance : Logger.TypeAssumptions
-  Option_instance : Option.TypeAssumptions
-  optionFunc_instance : optionFunc.TypeAssumptions
-  Sink_instance : Sink.TypeAssumptions
-  errSinkNotFound_instance : errSinkNotFound.TypeAssumptions
-  nopCloserSink_instance : nopCloserSink.TypeAssumptions
-  sinkRegistry_instance : sinkRegistry.TypeAssumptions
-  SugaredLogger_instance : SugaredLogger.TypeAssumptions
-  invalidPair_instance : invalidPair.TypeAssumptions
-  invalidPairs_instance : invalidPairs.TypeAssumptions
-  Array_unfold : FuncUnfold Array [] Array.impl
-  Strings_unfold : FuncUnfold Strings [] Strings.impl
-  Error_unfold : FuncUnfold Error [] Error.impl
-  NamedError_unfold : FuncUnfold NamedError [] NamedError.impl
-  Skip_unfold : FuncUnfold Skip [] Skip.impl
-  Bool_unfold : FuncUnfold Bool'' [] Bool''.impl
-  ByteString_unfold : FuncUnfold ByteString [] ByteString.impl
-  Float64_unfold : FuncUnfold Float64 [] Float64.impl
-  Int_unfold : FuncUnfold Int'' [] Int''.impl
-  Int64_unfold : FuncUnfold Int64 [] Int64.impl
-  Int32_unfold : FuncUnfold Int32 [] Int32.impl
-  String_unfold : FuncUnfold String [] String.impl
-  Uint_unfold : FuncUnfold Uint [] Uint.impl
-  Uint64_unfold : FuncUnfold Uint64 [] Uint64.impl
-  Uint32_unfold : FuncUnfold Uint32 [] Uint32.impl
-  Stringer_unfold : FuncUnfold Stringer [] Stringer.impl
-  Time_unfold : FuncUnfold Time [] Time.impl
-  Duration_unfold : FuncUnfold Duration [] Duration.impl
-  NewNop_unfold : FuncUnfold NewNop [] NewNop.impl
-  terminalHookOverride_unfold : FuncUnfold terminalHookOverride [] terminalHookOverride.impl
-  newSinkRegistry_unfold : FuncUnfold newSinkRegistry [] newSinkRegistry.impl
-  normalizeScheme_unfold : FuncUnfold normalizeScheme [] normalizeScheme.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_zapcore_Assumption : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_pool_Assumption : _root_.Perennial.go_uber_org.zap.internal.pool.Assumptions
-  import_math_Assumption : _root_.Perennial.math.Assumptions
-  import_stacktrace_Assumption : _root_.Perennial.go_uber_org.zap.internal.stacktrace.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_internal_Assumption : _root_.Perennial.go_uber_org.zap.internal.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_bufferpool_Assumption : _root_.Perennial.go_uber_org.zap.internal.bufferpool.Assumptions
-  import_url_Assumption : _root_.Perennial.net.url.Assumptions
+  instance'objects : objects.TypeAssumptions
+  instance'ObjectMarshalerPtr : ObjectMarshalerPtr.TypeAssumptions
+  instance'objectValues : objectValues.TypeAssumptions
+  instance'stringers : stringers.TypeAssumptions
+  instance'bools : bools.TypeAssumptions
+  instance'byteStringsArray : byteStringsArray.TypeAssumptions
+  instance'complex128s : complex128s.TypeAssumptions
+  instance'complex64s : complex64s.TypeAssumptions
+  instance'durations : durations.TypeAssumptions
+  instance'float64s : float64s.TypeAssumptions
+  instance'float32s : float32s.TypeAssumptions
+  instance'ints : ints.TypeAssumptions
+  instance'int64s : int64s.TypeAssumptions
+  instance'int32s : int32s.TypeAssumptions
+  instance'int16s : int16s.TypeAssumptions
+  instance'int8s : int8s.TypeAssumptions
+  instance'stringArray : stringArray.TypeAssumptions
+  instance'times : times.TypeAssumptions
+  instance'uints : uints.TypeAssumptions
+  instance'uint64s : uint64s.TypeAssumptions
+  instance'uint32s : uint32s.TypeAssumptions
+  instance'uint16s : uint16s.TypeAssumptions
+  instance'uint8s : uint8s.TypeAssumptions
+  instance'uintptrs : uintptrs.TypeAssumptions
+  instance'SamplingConfig : SamplingConfig.TypeAssumptions
+  instance'Config : Config.TypeAssumptions
+  instance'errArray : errArray.TypeAssumptions
+  instance'errArrayElem : errArrayElem.TypeAssumptions
+  instance'dictObject : dictObject.TypeAssumptions
+  instance'anyFieldC : anyFieldC.TypeAssumptions
+  instance'loggerWriter : loggerWriter.TypeAssumptions
+  instance'LevelEnablerFunc : LevelEnablerFunc.TypeAssumptions
+  instance'AtomicLevel : AtomicLevel.TypeAssumptions
+  instance'Logger : Logger.TypeAssumptions
+  instance'Option : Option.TypeAssumptions
+  instance'optionFunc : optionFunc.TypeAssumptions
+  instance'Sink : Sink.TypeAssumptions
+  instance'errSinkNotFound : errSinkNotFound.TypeAssumptions
+  instance'nopCloserSink : nopCloserSink.TypeAssumptions
+  instance'sinkRegistry : sinkRegistry.TypeAssumptions
+  instance'SugaredLogger : SugaredLogger.TypeAssumptions
+  instance'invalidPair : invalidPair.TypeAssumptions
+  instance'invalidPairs : invalidPairs.TypeAssumptions
+  unfold'Array : FuncUnfold Array [] Array.impl
+  unfold'Strings : FuncUnfold Strings [] Strings.impl
+  unfold'Error : FuncUnfold Error [] Error.impl
+  unfold'NamedError : FuncUnfold NamedError [] NamedError.impl
+  unfold'Skip : FuncUnfold Skip [] Skip.impl
+  unfold'Bool : FuncUnfold Bool'' [] Bool''.impl
+  unfold'ByteString : FuncUnfold ByteString [] ByteString.impl
+  unfold'Float64 : FuncUnfold Float64 [] Float64.impl
+  unfold'Int : FuncUnfold Int'' [] Int''.impl
+  unfold'Int64 : FuncUnfold Int64 [] Int64.impl
+  unfold'Int32 : FuncUnfold Int32 [] Int32.impl
+  unfold'String : FuncUnfold String [] String.impl
+  unfold'Uint : FuncUnfold Uint [] Uint.impl
+  unfold'Uint64 : FuncUnfold Uint64 [] Uint64.impl
+  unfold'Uint32 : FuncUnfold Uint32 [] Uint32.impl
+  unfold'Stringer : FuncUnfold Stringer [] Stringer.impl
+  unfold'Time : FuncUnfold Time [] Time.impl
+  unfold'Duration : FuncUnfold Duration [] Duration.impl
+  unfold'NewNop : FuncUnfold NewNop [] NewNop.impl
+  unfold'terminalHookOverride : FuncUnfold terminalHookOverride [] terminalHookOverride.impl
+  unfold'newSinkRegistry : FuncUnfold newSinkRegistry [] newSinkRegistry.impl
+  unfold'normalizeScheme : FuncUnfold normalizeScheme [] normalizeScheme.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'zapcore : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'pool : _root_.Perennial.go_uber_org.zap.internal.pool.Assumptions
+  import'math : _root_.Perennial.math.Assumptions
+  import'stacktrace : _root_.Perennial.go_uber_org.zap.internal.stacktrace.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'internal : _root_.Perennial.go_uber_org.zap.internal.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'bufferpool : _root_.Perennial.go_uber_org.zap.internal.bufferpool.Assumptions
+  import'url : _root_.Perennial.net.url.Assumptions
 
-attribute [instance] Assumptions.objects_instance
-  Assumptions.ObjectMarshalerPtr_instance
-  Assumptions.objectValues_instance
-  Assumptions.stringers_instance
-  Assumptions.bools_instance
-  Assumptions.byteStringsArray_instance
-  Assumptions.complex128s_instance
-  Assumptions.complex64s_instance
-  Assumptions.durations_instance
-  Assumptions.float64s_instance
-  Assumptions.float32s_instance
-  Assumptions.ints_instance
-  Assumptions.int64s_instance
-  Assumptions.int32s_instance
-  Assumptions.int16s_instance
-  Assumptions.int8s_instance
-  Assumptions.stringArray_instance
-  Assumptions.times_instance
-  Assumptions.uints_instance
-  Assumptions.uint64s_instance
-  Assumptions.uint32s_instance
-  Assumptions.uint16s_instance
-  Assumptions.uint8s_instance
-  Assumptions.uintptrs_instance
-  Assumptions.SamplingConfig_instance
-  Assumptions.Config_instance
-  Assumptions.errArray_instance
-  Assumptions.errArrayElem_instance
-  Assumptions.dictObject_instance
-  Assumptions.anyFieldC_instance
-  Assumptions.loggerWriter_instance
-  Assumptions.LevelEnablerFunc_instance
-  Assumptions.AtomicLevel_instance
-  Assumptions.Logger_instance
-  Assumptions.Option_instance
-  Assumptions.optionFunc_instance
-  Assumptions.Sink_instance
-  Assumptions.errSinkNotFound_instance
-  Assumptions.nopCloserSink_instance
-  Assumptions.sinkRegistry_instance
-  Assumptions.SugaredLogger_instance
-  Assumptions.invalidPair_instance
-  Assumptions.invalidPairs_instance
-  Assumptions.Array_unfold
-  Assumptions.Strings_unfold
-  Assumptions.Error_unfold
-  Assumptions.NamedError_unfold
-  Assumptions.Skip_unfold
-  Assumptions.Bool_unfold
-  Assumptions.ByteString_unfold
-  Assumptions.Float64_unfold
-  Assumptions.Int_unfold
-  Assumptions.Int64_unfold
-  Assumptions.Int32_unfold
-  Assumptions.String_unfold
-  Assumptions.Uint_unfold
-  Assumptions.Uint64_unfold
-  Assumptions.Uint32_unfold
-  Assumptions.Stringer_unfold
-  Assumptions.Time_unfold
-  Assumptions.Duration_unfold
-  Assumptions.NewNop_unfold
-  Assumptions.terminalHookOverride_unfold
-  Assumptions.newSinkRegistry_unfold
-  Assumptions.normalizeScheme_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_zapcore_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_pool_Assumption
-  Assumptions.import_math_Assumption
-  Assumptions.import_stacktrace_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_internal_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_bufferpool_Assumption
-  Assumptions.import_url_Assumption
+attribute [instance] Assumptions.instance'objects
+  Assumptions.instance'ObjectMarshalerPtr
+  Assumptions.instance'objectValues
+  Assumptions.instance'stringers
+  Assumptions.instance'bools
+  Assumptions.instance'byteStringsArray
+  Assumptions.instance'complex128s
+  Assumptions.instance'complex64s
+  Assumptions.instance'durations
+  Assumptions.instance'float64s
+  Assumptions.instance'float32s
+  Assumptions.instance'ints
+  Assumptions.instance'int64s
+  Assumptions.instance'int32s
+  Assumptions.instance'int16s
+  Assumptions.instance'int8s
+  Assumptions.instance'stringArray
+  Assumptions.instance'times
+  Assumptions.instance'uints
+  Assumptions.instance'uint64s
+  Assumptions.instance'uint32s
+  Assumptions.instance'uint16s
+  Assumptions.instance'uint8s
+  Assumptions.instance'uintptrs
+  Assumptions.instance'SamplingConfig
+  Assumptions.instance'Config
+  Assumptions.instance'errArray
+  Assumptions.instance'errArrayElem
+  Assumptions.instance'dictObject
+  Assumptions.instance'anyFieldC
+  Assumptions.instance'loggerWriter
+  Assumptions.instance'LevelEnablerFunc
+  Assumptions.instance'AtomicLevel
+  Assumptions.instance'Logger
+  Assumptions.instance'Option
+  Assumptions.instance'optionFunc
+  Assumptions.instance'Sink
+  Assumptions.instance'errSinkNotFound
+  Assumptions.instance'nopCloserSink
+  Assumptions.instance'sinkRegistry
+  Assumptions.instance'SugaredLogger
+  Assumptions.instance'invalidPair
+  Assumptions.instance'invalidPairs
+  Assumptions.unfold'Array
+  Assumptions.unfold'Strings
+  Assumptions.unfold'Error
+  Assumptions.unfold'NamedError
+  Assumptions.unfold'Skip
+  Assumptions.unfold'Bool
+  Assumptions.unfold'ByteString
+  Assumptions.unfold'Float64
+  Assumptions.unfold'Int
+  Assumptions.unfold'Int64
+  Assumptions.unfold'Int32
+  Assumptions.unfold'String
+  Assumptions.unfold'Uint
+  Assumptions.unfold'Uint64
+  Assumptions.unfold'Uint32
+  Assumptions.unfold'Stringer
+  Assumptions.unfold'Time
+  Assumptions.unfold'Duration
+  Assumptions.unfold'NewNop
+  Assumptions.unfold'terminalHookOverride
+  Assumptions.unfold'newSinkRegistry
+  Assumptions.unfold'normalizeScheme
+  Assumptions.import'fmt
+  Assumptions.import'time
+  Assumptions.import'zapcore
+  Assumptions.import'errors
+  Assumptions.import'sync
+  Assumptions.import'pool
+  Assumptions.import'math
+  Assumptions.import'stacktrace
+  Assumptions.import'os
+  Assumptions.import'io
+  Assumptions.import'atomic
+  Assumptions.import'internal
+  Assumptions.import'strings
+  Assumptions.import'bufferpool
+  Assumptions.import'url
 
 end go_uber_org.zap
 

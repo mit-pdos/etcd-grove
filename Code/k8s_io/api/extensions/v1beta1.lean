@@ -825,7 +825,7 @@ noncomputable instance ScaleSpec.zero_val [GooseExts] : ZeroVal ScaleSpec :=
 @[irreducible] noncomputable def ScaleSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ScaleSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_ScaleSpec [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ScaleSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold ScaleSpec.fields ScaleSpec.fieldsUnsealed :=
   ⟨by unfold ScaleSpec.fields; rfl⟩
 
@@ -835,15 +835,15 @@ noncomputable instance equals_unfold_ScaleSpec [GooseExts] [GoGlobalContext] :
 class ScaleSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ScaleSpec.underlying ScaleSpec
   underlying : go.UnderlyingDirectedEq ScaleSpec.ty ScaleSpec.underlying
-  get_Replicas : ∀ (x : ScaleSpec), go.IsGoStepPureDetTagged under (StructFieldGet ScaleSpec.underlying go!"Replicas") #x (Val #(x.Replicas'))
-  set_Replicas : ∀ (x : ScaleSpec) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ScaleSpec.underlying go!"Replicas") (PairV #x #y) (Val #(({ x with Replicas' := y } : ScaleSpec)))
+  get'Replicas : ∀ (x : ScaleSpec), go.IsGoStepPureDetTagged under (StructFieldGet ScaleSpec.underlying go!"Replicas") #x (Val #(x.Replicas'))
+  set'Replicas : ∀ (x : ScaleSpec) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ScaleSpec.underlying go!"Replicas") (PairV #x #y) (Val #(({ x with Replicas' := y } : ScaleSpec)))
   method_set : go.MethodSetIs ScaleSpec.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ScaleSpec.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ScaleSpec.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ScaleSpec.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ScaleSpec.TypeAssumptions.type_repr
   ScaleSpec.TypeAssumptions.underlying
-  ScaleSpec.TypeAssumptions.get_Replicas
-  ScaleSpec.TypeAssumptions.set_Replicas
+  ScaleSpec.TypeAssumptions.get'Replicas
+  ScaleSpec.TypeAssumptions.set'Replicas
   ScaleSpec.TypeAssumptions.method_set
   ScaleSpec.TypeAssumptions.ptr_method_set
 
@@ -864,7 +864,7 @@ noncomputable instance ScaleStatus.zero_val [GooseExts] : ZeroVal ScaleStatus :=
 @[irreducible] noncomputable def ScaleStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ScaleStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_ScaleStatus [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ScaleStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold ScaleStatus.fields ScaleStatus.fieldsUnsealed :=
   ⟨by unfold ScaleStatus.fields; rfl⟩
 
@@ -874,23 +874,23 @@ noncomputable instance equals_unfold_ScaleStatus [GooseExts] [GoGlobalContext] :
 class ScaleStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ScaleStatus.underlying ScaleStatus
   underlying : go.UnderlyingDirectedEq ScaleStatus.ty ScaleStatus.underlying
-  get_Replicas : ∀ (x : ScaleStatus), go.IsGoStepPureDetTagged under (StructFieldGet ScaleStatus.underlying go!"Replicas") #x (Val #(x.Replicas'))
-  set_Replicas : ∀ (x : ScaleStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ScaleStatus.underlying go!"Replicas") (PairV #x #y) (Val #(({ x with Replicas' := y } : ScaleStatus)))
-  get_Selector : ∀ (x : ScaleStatus), go.IsGoStepPureDetTagged under (StructFieldGet ScaleStatus.underlying go!"Selector") #x (Val #(x.Selector'))
-  set_Selector : ∀ (x : ScaleStatus) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ScaleStatus.underlying go!"Selector") (PairV #x #y) (Val #(({ x with Selector' := y } : ScaleStatus)))
-  get_TargetSelector : ∀ (x : ScaleStatus), go.IsGoStepPureDetTagged under (StructFieldGet ScaleStatus.underlying go!"TargetSelector") #x (Val #(x.TargetSelector'))
-  set_TargetSelector : ∀ (x : ScaleStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ScaleStatus.underlying go!"TargetSelector") (PairV #x #y) (Val #(({ x with TargetSelector' := y } : ScaleStatus)))
+  get'Replicas : ∀ (x : ScaleStatus), go.IsGoStepPureDetTagged under (StructFieldGet ScaleStatus.underlying go!"Replicas") #x (Val #(x.Replicas'))
+  set'Replicas : ∀ (x : ScaleStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ScaleStatus.underlying go!"Replicas") (PairV #x #y) (Val #(({ x with Replicas' := y } : ScaleStatus)))
+  get'Selector : ∀ (x : ScaleStatus), go.IsGoStepPureDetTagged under (StructFieldGet ScaleStatus.underlying go!"Selector") #x (Val #(x.Selector'))
+  set'Selector : ∀ (x : ScaleStatus) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ScaleStatus.underlying go!"Selector") (PairV #x #y) (Val #(({ x with Selector' := y } : ScaleStatus)))
+  get'TargetSelector : ∀ (x : ScaleStatus), go.IsGoStepPureDetTagged under (StructFieldGet ScaleStatus.underlying go!"TargetSelector") #x (Val #(x.TargetSelector'))
+  set'TargetSelector : ∀ (x : ScaleStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ScaleStatus.underlying go!"TargetSelector") (PairV #x #y) (Val #(({ x with TargetSelector' := y } : ScaleStatus)))
   method_set : go.MethodSetIs ScaleStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ScaleStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ScaleStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ScaleStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ScaleStatus.TypeAssumptions.type_repr
   ScaleStatus.TypeAssumptions.underlying
-  ScaleStatus.TypeAssumptions.get_Replicas
-  ScaleStatus.TypeAssumptions.set_Replicas
-  ScaleStatus.TypeAssumptions.get_Selector
-  ScaleStatus.TypeAssumptions.set_Selector
-  ScaleStatus.TypeAssumptions.get_TargetSelector
-  ScaleStatus.TypeAssumptions.set_TargetSelector
+  ScaleStatus.TypeAssumptions.get'Replicas
+  ScaleStatus.TypeAssumptions.set'Replicas
+  ScaleStatus.TypeAssumptions.get'Selector
+  ScaleStatus.TypeAssumptions.set'Selector
+  ScaleStatus.TypeAssumptions.get'TargetSelector
+  ScaleStatus.TypeAssumptions.set'TargetSelector
   ScaleStatus.TypeAssumptions.method_set
   ScaleStatus.TypeAssumptions.ptr_method_set
 
@@ -983,7 +983,7 @@ noncomputable instance RollbackConfig.zero_val [GooseExts] : ZeroVal RollbackCon
 @[irreducible] noncomputable def RollbackConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RollbackConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_RollbackConfig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RollbackConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold RollbackConfig.fields RollbackConfig.fieldsUnsealed :=
   ⟨by unfold RollbackConfig.fields; rfl⟩
 
@@ -993,15 +993,15 @@ noncomputable instance equals_unfold_RollbackConfig [GooseExts] [GoGlobalContext
 class RollbackConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RollbackConfig.underlying RollbackConfig
   underlying : go.UnderlyingDirectedEq RollbackConfig.ty RollbackConfig.underlying
-  get_Revision : ∀ (x : RollbackConfig), go.IsGoStepPureDetTagged under (StructFieldGet RollbackConfig.underlying go!"Revision") #x (Val #(x.Revision'))
-  set_Revision : ∀ (x : RollbackConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RollbackConfig.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : RollbackConfig)))
+  get'Revision : ∀ (x : RollbackConfig), go.IsGoStepPureDetTagged under (StructFieldGet RollbackConfig.underlying go!"Revision") #x (Val #(x.Revision'))
+  set'Revision : ∀ (x : RollbackConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RollbackConfig.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : RollbackConfig)))
   method_set : go.MethodSetIs RollbackConfig.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RollbackConfig.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType RollbackConfig.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType RollbackConfig.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] RollbackConfig.TypeAssumptions.type_repr
   RollbackConfig.TypeAssumptions.underlying
-  RollbackConfig.TypeAssumptions.get_Revision
-  RollbackConfig.TypeAssumptions.set_Revision
+  RollbackConfig.TypeAssumptions.get'Revision
+  RollbackConfig.TypeAssumptions.set'Revision
   RollbackConfig.TypeAssumptions.method_set
   RollbackConfig.TypeAssumptions.ptr_method_set
 
@@ -1034,7 +1034,7 @@ noncomputable instance DeploymentStrategy.zero_val [GooseExts] : ZeroVal Deploym
 @[irreducible] noncomputable def DeploymentStrategy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DeploymentStrategy.fieldsUnsealed
 
-noncomputable instance equals_unfold_DeploymentStrategy [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DeploymentStrategy [GooseExts] [GoGlobalContext] :
     EqualsUnfold DeploymentStrategy.fields DeploymentStrategy.fieldsUnsealed :=
   ⟨by unfold DeploymentStrategy.fields; rfl⟩
 
@@ -1044,19 +1044,19 @@ noncomputable instance equals_unfold_DeploymentStrategy [GooseExts] [GoGlobalCon
 class DeploymentStrategy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeploymentStrategy.underlying DeploymentStrategy
   underlying : go.UnderlyingDirectedEq DeploymentStrategy.ty DeploymentStrategy.underlying
-  get_Type : ∀ (x : DeploymentStrategy), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStrategy.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : DeploymentStrategy) (y : DeploymentStrategyType), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStrategy.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : DeploymentStrategy)))
-  get_RollingUpdate : ∀ (x : DeploymentStrategy), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStrategy.underlying go!"RollingUpdate") #x (Val #(x.RollingUpdate'))
-  set_RollingUpdate : ∀ (x : DeploymentStrategy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStrategy.underlying go!"RollingUpdate") (PairV #x #y) (Val #(({ x with RollingUpdate' := y } : DeploymentStrategy)))
+  get'Type : ∀ (x : DeploymentStrategy), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStrategy.underlying go!"Type") #x (Val #(x.Type'))
+  set'Type : ∀ (x : DeploymentStrategy) (y : DeploymentStrategyType), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStrategy.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : DeploymentStrategy)))
+  get'RollingUpdate : ∀ (x : DeploymentStrategy), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStrategy.underlying go!"RollingUpdate") #x (Val #(x.RollingUpdate'))
+  set'RollingUpdate : ∀ (x : DeploymentStrategy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStrategy.underlying go!"RollingUpdate") (PairV #x #y) (Val #(({ x with RollingUpdate' := y } : DeploymentStrategy)))
   method_set : go.MethodSetIs DeploymentStrategy.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentStrategy.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType DeploymentStrategy.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType DeploymentStrategy.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] DeploymentStrategy.TypeAssumptions.type_repr
   DeploymentStrategy.TypeAssumptions.underlying
-  DeploymentStrategy.TypeAssumptions.get_Type
-  DeploymentStrategy.TypeAssumptions.set_Type
-  DeploymentStrategy.TypeAssumptions.get_RollingUpdate
-  DeploymentStrategy.TypeAssumptions.set_RollingUpdate
+  DeploymentStrategy.TypeAssumptions.get'Type
+  DeploymentStrategy.TypeAssumptions.set'Type
+  DeploymentStrategy.TypeAssumptions.get'RollingUpdate
+  DeploymentStrategy.TypeAssumptions.set'RollingUpdate
   DeploymentStrategy.TypeAssumptions.method_set
   DeploymentStrategy.TypeAssumptions.ptr_method_set
 
@@ -1108,7 +1108,7 @@ noncomputable instance DeploymentStatus.zero_val [GooseExts] : ZeroVal Deploymen
 @[irreducible] noncomputable def DeploymentStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DeploymentStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_DeploymentStatus [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DeploymentStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold DeploymentStatus.fields DeploymentStatus.fieldsUnsealed :=
   ⟨by unfold DeploymentStatus.fields; rfl⟩
 
@@ -1118,47 +1118,47 @@ noncomputable instance equals_unfold_DeploymentStatus [GooseExts] [GoGlobalConte
 class DeploymentStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeploymentStatus.underlying DeploymentStatus
   underlying : go.UnderlyingDirectedEq DeploymentStatus.ty DeploymentStatus.underlying
-  get_ObservedGeneration : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"ObservedGeneration") #x (Val #(x.ObservedGeneration'))
-  set_ObservedGeneration : ∀ (x : DeploymentStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"ObservedGeneration") (PairV #x #y) (Val #(({ x with ObservedGeneration' := y } : DeploymentStatus)))
-  get_Replicas : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"Replicas") #x (Val #(x.Replicas'))
-  set_Replicas : ∀ (x : DeploymentStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"Replicas") (PairV #x #y) (Val #(({ x with Replicas' := y } : DeploymentStatus)))
-  get_UpdatedReplicas : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"UpdatedReplicas") #x (Val #(x.UpdatedReplicas'))
-  set_UpdatedReplicas : ∀ (x : DeploymentStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"UpdatedReplicas") (PairV #x #y) (Val #(({ x with UpdatedReplicas' := y } : DeploymentStatus)))
-  get_ReadyReplicas : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"ReadyReplicas") #x (Val #(x.ReadyReplicas'))
-  set_ReadyReplicas : ∀ (x : DeploymentStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"ReadyReplicas") (PairV #x #y) (Val #(({ x with ReadyReplicas' := y } : DeploymentStatus)))
-  get_AvailableReplicas : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"AvailableReplicas") #x (Val #(x.AvailableReplicas'))
-  set_AvailableReplicas : ∀ (x : DeploymentStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"AvailableReplicas") (PairV #x #y) (Val #(({ x with AvailableReplicas' := y } : DeploymentStatus)))
-  get_UnavailableReplicas : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"UnavailableReplicas") #x (Val #(x.UnavailableReplicas'))
-  set_UnavailableReplicas : ∀ (x : DeploymentStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"UnavailableReplicas") (PairV #x #y) (Val #(({ x with UnavailableReplicas' := y } : DeploymentStatus)))
-  get_TerminatingReplicas : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"TerminatingReplicas") #x (Val #(x.TerminatingReplicas'))
-  set_TerminatingReplicas : ∀ (x : DeploymentStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"TerminatingReplicas") (PairV #x #y) (Val #(({ x with TerminatingReplicas' := y } : DeploymentStatus)))
-  get_Conditions : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"Conditions") #x (Val #(x.Conditions'))
-  set_Conditions : ∀ (x : DeploymentStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"Conditions") (PairV #x #y) (Val #(({ x with Conditions' := y } : DeploymentStatus)))
-  get_CollisionCount : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"CollisionCount") #x (Val #(x.CollisionCount'))
-  set_CollisionCount : ∀ (x : DeploymentStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"CollisionCount") (PairV #x #y) (Val #(({ x with CollisionCount' := y } : DeploymentStatus)))
+  get'ObservedGeneration : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"ObservedGeneration") #x (Val #(x.ObservedGeneration'))
+  set'ObservedGeneration : ∀ (x : DeploymentStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"ObservedGeneration") (PairV #x #y) (Val #(({ x with ObservedGeneration' := y } : DeploymentStatus)))
+  get'Replicas : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"Replicas") #x (Val #(x.Replicas'))
+  set'Replicas : ∀ (x : DeploymentStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"Replicas") (PairV #x #y) (Val #(({ x with Replicas' := y } : DeploymentStatus)))
+  get'UpdatedReplicas : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"UpdatedReplicas") #x (Val #(x.UpdatedReplicas'))
+  set'UpdatedReplicas : ∀ (x : DeploymentStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"UpdatedReplicas") (PairV #x #y) (Val #(({ x with UpdatedReplicas' := y } : DeploymentStatus)))
+  get'ReadyReplicas : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"ReadyReplicas") #x (Val #(x.ReadyReplicas'))
+  set'ReadyReplicas : ∀ (x : DeploymentStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"ReadyReplicas") (PairV #x #y) (Val #(({ x with ReadyReplicas' := y } : DeploymentStatus)))
+  get'AvailableReplicas : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"AvailableReplicas") #x (Val #(x.AvailableReplicas'))
+  set'AvailableReplicas : ∀ (x : DeploymentStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"AvailableReplicas") (PairV #x #y) (Val #(({ x with AvailableReplicas' := y } : DeploymentStatus)))
+  get'UnavailableReplicas : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"UnavailableReplicas") #x (Val #(x.UnavailableReplicas'))
+  set'UnavailableReplicas : ∀ (x : DeploymentStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"UnavailableReplicas") (PairV #x #y) (Val #(({ x with UnavailableReplicas' := y } : DeploymentStatus)))
+  get'TerminatingReplicas : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"TerminatingReplicas") #x (Val #(x.TerminatingReplicas'))
+  set'TerminatingReplicas : ∀ (x : DeploymentStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"TerminatingReplicas") (PairV #x #y) (Val #(({ x with TerminatingReplicas' := y } : DeploymentStatus)))
+  get'Conditions : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"Conditions") #x (Val #(x.Conditions'))
+  set'Conditions : ∀ (x : DeploymentStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"Conditions") (PairV #x #y) (Val #(({ x with Conditions' := y } : DeploymentStatus)))
+  get'CollisionCount : ∀ (x : DeploymentStatus), go.IsGoStepPureDetTagged under (StructFieldGet DeploymentStatus.underlying go!"CollisionCount") #x (Val #(x.CollisionCount'))
+  set'CollisionCount : ∀ (x : DeploymentStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DeploymentStatus.underlying go!"CollisionCount") (PairV #x #y) (Val #(({ x with CollisionCount' := y } : DeploymentStatus)))
   method_set : go.MethodSetIs DeploymentStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeploymentStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType DeploymentStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType DeploymentStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] DeploymentStatus.TypeAssumptions.type_repr
   DeploymentStatus.TypeAssumptions.underlying
-  DeploymentStatus.TypeAssumptions.get_ObservedGeneration
-  DeploymentStatus.TypeAssumptions.set_ObservedGeneration
-  DeploymentStatus.TypeAssumptions.get_Replicas
-  DeploymentStatus.TypeAssumptions.set_Replicas
-  DeploymentStatus.TypeAssumptions.get_UpdatedReplicas
-  DeploymentStatus.TypeAssumptions.set_UpdatedReplicas
-  DeploymentStatus.TypeAssumptions.get_ReadyReplicas
-  DeploymentStatus.TypeAssumptions.set_ReadyReplicas
-  DeploymentStatus.TypeAssumptions.get_AvailableReplicas
-  DeploymentStatus.TypeAssumptions.set_AvailableReplicas
-  DeploymentStatus.TypeAssumptions.get_UnavailableReplicas
-  DeploymentStatus.TypeAssumptions.set_UnavailableReplicas
-  DeploymentStatus.TypeAssumptions.get_TerminatingReplicas
-  DeploymentStatus.TypeAssumptions.set_TerminatingReplicas
-  DeploymentStatus.TypeAssumptions.get_Conditions
-  DeploymentStatus.TypeAssumptions.set_Conditions
-  DeploymentStatus.TypeAssumptions.get_CollisionCount
-  DeploymentStatus.TypeAssumptions.set_CollisionCount
+  DeploymentStatus.TypeAssumptions.get'ObservedGeneration
+  DeploymentStatus.TypeAssumptions.set'ObservedGeneration
+  DeploymentStatus.TypeAssumptions.get'Replicas
+  DeploymentStatus.TypeAssumptions.set'Replicas
+  DeploymentStatus.TypeAssumptions.get'UpdatedReplicas
+  DeploymentStatus.TypeAssumptions.set'UpdatedReplicas
+  DeploymentStatus.TypeAssumptions.get'ReadyReplicas
+  DeploymentStatus.TypeAssumptions.set'ReadyReplicas
+  DeploymentStatus.TypeAssumptions.get'AvailableReplicas
+  DeploymentStatus.TypeAssumptions.set'AvailableReplicas
+  DeploymentStatus.TypeAssumptions.get'UnavailableReplicas
+  DeploymentStatus.TypeAssumptions.set'UnavailableReplicas
+  DeploymentStatus.TypeAssumptions.get'TerminatingReplicas
+  DeploymentStatus.TypeAssumptions.set'TerminatingReplicas
+  DeploymentStatus.TypeAssumptions.get'Conditions
+  DeploymentStatus.TypeAssumptions.set'Conditions
+  DeploymentStatus.TypeAssumptions.get'CollisionCount
+  DeploymentStatus.TypeAssumptions.set'CollisionCount
   DeploymentStatus.TypeAssumptions.method_set
   DeploymentStatus.TypeAssumptions.ptr_method_set
 
@@ -1243,7 +1243,7 @@ noncomputable instance DaemonSetUpdateStrategy.zero_val [GooseExts] : ZeroVal Da
 @[irreducible] noncomputable def DaemonSetUpdateStrategy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DaemonSetUpdateStrategy.fieldsUnsealed
 
-noncomputable instance equals_unfold_DaemonSetUpdateStrategy [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DaemonSetUpdateStrategy [GooseExts] [GoGlobalContext] :
     EqualsUnfold DaemonSetUpdateStrategy.fields DaemonSetUpdateStrategy.fieldsUnsealed :=
   ⟨by unfold DaemonSetUpdateStrategy.fields; rfl⟩
 
@@ -1253,19 +1253,19 @@ noncomputable instance equals_unfold_DaemonSetUpdateStrategy [GooseExts] [GoGlob
 class DaemonSetUpdateStrategy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSetUpdateStrategy.underlying DaemonSetUpdateStrategy
   underlying : go.UnderlyingDirectedEq DaemonSetUpdateStrategy.ty DaemonSetUpdateStrategy.underlying
-  get_Type : ∀ (x : DaemonSetUpdateStrategy), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetUpdateStrategy.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : DaemonSetUpdateStrategy) (y : DaemonSetUpdateStrategyType), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetUpdateStrategy.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : DaemonSetUpdateStrategy)))
-  get_RollingUpdate : ∀ (x : DaemonSetUpdateStrategy), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetUpdateStrategy.underlying go!"RollingUpdate") #x (Val #(x.RollingUpdate'))
-  set_RollingUpdate : ∀ (x : DaemonSetUpdateStrategy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetUpdateStrategy.underlying go!"RollingUpdate") (PairV #x #y) (Val #(({ x with RollingUpdate' := y } : DaemonSetUpdateStrategy)))
+  get'Type : ∀ (x : DaemonSetUpdateStrategy), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetUpdateStrategy.underlying go!"Type") #x (Val #(x.Type'))
+  set'Type : ∀ (x : DaemonSetUpdateStrategy) (y : DaemonSetUpdateStrategyType), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetUpdateStrategy.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : DaemonSetUpdateStrategy)))
+  get'RollingUpdate : ∀ (x : DaemonSetUpdateStrategy), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetUpdateStrategy.underlying go!"RollingUpdate") #x (Val #(x.RollingUpdate'))
+  set'RollingUpdate : ∀ (x : DaemonSetUpdateStrategy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetUpdateStrategy.underlying go!"RollingUpdate") (PairV #x #y) (Val #(({ x with RollingUpdate' := y } : DaemonSetUpdateStrategy)))
   method_set : go.MethodSetIs DaemonSetUpdateStrategy.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetUpdateStrategy.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType DaemonSetUpdateStrategy.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType DaemonSetUpdateStrategy.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] DaemonSetUpdateStrategy.TypeAssumptions.type_repr
   DaemonSetUpdateStrategy.TypeAssumptions.underlying
-  DaemonSetUpdateStrategy.TypeAssumptions.get_Type
-  DaemonSetUpdateStrategy.TypeAssumptions.set_Type
-  DaemonSetUpdateStrategy.TypeAssumptions.get_RollingUpdate
-  DaemonSetUpdateStrategy.TypeAssumptions.set_RollingUpdate
+  DaemonSetUpdateStrategy.TypeAssumptions.get'Type
+  DaemonSetUpdateStrategy.TypeAssumptions.set'Type
+  DaemonSetUpdateStrategy.TypeAssumptions.get'RollingUpdate
+  DaemonSetUpdateStrategy.TypeAssumptions.set'RollingUpdate
   DaemonSetUpdateStrategy.TypeAssumptions.method_set
   DaemonSetUpdateStrategy.TypeAssumptions.ptr_method_set
 
@@ -1338,7 +1338,7 @@ noncomputable instance DaemonSetStatus.zero_val [GooseExts] : ZeroVal DaemonSetS
 @[irreducible] noncomputable def DaemonSetStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DaemonSetStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_DaemonSetStatus [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DaemonSetStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold DaemonSetStatus.fields DaemonSetStatus.fieldsUnsealed :=
   ⟨by unfold DaemonSetStatus.fields; rfl⟩
 
@@ -1348,51 +1348,51 @@ noncomputable instance equals_unfold_DaemonSetStatus [GooseExts] [GoGlobalContex
 class DaemonSetStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSetStatus.underlying DaemonSetStatus
   underlying : go.UnderlyingDirectedEq DaemonSetStatus.ty DaemonSetStatus.underlying
-  get_CurrentNumberScheduled : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"CurrentNumberScheduled") #x (Val #(x.CurrentNumberScheduled'))
-  set_CurrentNumberScheduled : ∀ (x : DaemonSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"CurrentNumberScheduled") (PairV #x #y) (Val #(({ x with CurrentNumberScheduled' := y } : DaemonSetStatus)))
-  get_NumberMisscheduled : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"NumberMisscheduled") #x (Val #(x.NumberMisscheduled'))
-  set_NumberMisscheduled : ∀ (x : DaemonSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"NumberMisscheduled") (PairV #x #y) (Val #(({ x with NumberMisscheduled' := y } : DaemonSetStatus)))
-  get_DesiredNumberScheduled : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"DesiredNumberScheduled") #x (Val #(x.DesiredNumberScheduled'))
-  set_DesiredNumberScheduled : ∀ (x : DaemonSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"DesiredNumberScheduled") (PairV #x #y) (Val #(({ x with DesiredNumberScheduled' := y } : DaemonSetStatus)))
-  get_NumberReady : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"NumberReady") #x (Val #(x.NumberReady'))
-  set_NumberReady : ∀ (x : DaemonSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"NumberReady") (PairV #x #y) (Val #(({ x with NumberReady' := y } : DaemonSetStatus)))
-  get_ObservedGeneration : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"ObservedGeneration") #x (Val #(x.ObservedGeneration'))
-  set_ObservedGeneration : ∀ (x : DaemonSetStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"ObservedGeneration") (PairV #x #y) (Val #(({ x with ObservedGeneration' := y } : DaemonSetStatus)))
-  get_UpdatedNumberScheduled : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"UpdatedNumberScheduled") #x (Val #(x.UpdatedNumberScheduled'))
-  set_UpdatedNumberScheduled : ∀ (x : DaemonSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"UpdatedNumberScheduled") (PairV #x #y) (Val #(({ x with UpdatedNumberScheduled' := y } : DaemonSetStatus)))
-  get_NumberAvailable : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"NumberAvailable") #x (Val #(x.NumberAvailable'))
-  set_NumberAvailable : ∀ (x : DaemonSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"NumberAvailable") (PairV #x #y) (Val #(({ x with NumberAvailable' := y } : DaemonSetStatus)))
-  get_NumberUnavailable : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"NumberUnavailable") #x (Val #(x.NumberUnavailable'))
-  set_NumberUnavailable : ∀ (x : DaemonSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"NumberUnavailable") (PairV #x #y) (Val #(({ x with NumberUnavailable' := y } : DaemonSetStatus)))
-  get_CollisionCount : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"CollisionCount") #x (Val #(x.CollisionCount'))
-  set_CollisionCount : ∀ (x : DaemonSetStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"CollisionCount") (PairV #x #y) (Val #(({ x with CollisionCount' := y } : DaemonSetStatus)))
-  get_Conditions : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"Conditions") #x (Val #(x.Conditions'))
-  set_Conditions : ∀ (x : DaemonSetStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"Conditions") (PairV #x #y) (Val #(({ x with Conditions' := y } : DaemonSetStatus)))
+  get'CurrentNumberScheduled : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"CurrentNumberScheduled") #x (Val #(x.CurrentNumberScheduled'))
+  set'CurrentNumberScheduled : ∀ (x : DaemonSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"CurrentNumberScheduled") (PairV #x #y) (Val #(({ x with CurrentNumberScheduled' := y } : DaemonSetStatus)))
+  get'NumberMisscheduled : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"NumberMisscheduled") #x (Val #(x.NumberMisscheduled'))
+  set'NumberMisscheduled : ∀ (x : DaemonSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"NumberMisscheduled") (PairV #x #y) (Val #(({ x with NumberMisscheduled' := y } : DaemonSetStatus)))
+  get'DesiredNumberScheduled : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"DesiredNumberScheduled") #x (Val #(x.DesiredNumberScheduled'))
+  set'DesiredNumberScheduled : ∀ (x : DaemonSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"DesiredNumberScheduled") (PairV #x #y) (Val #(({ x with DesiredNumberScheduled' := y } : DaemonSetStatus)))
+  get'NumberReady : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"NumberReady") #x (Val #(x.NumberReady'))
+  set'NumberReady : ∀ (x : DaemonSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"NumberReady") (PairV #x #y) (Val #(({ x with NumberReady' := y } : DaemonSetStatus)))
+  get'ObservedGeneration : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"ObservedGeneration") #x (Val #(x.ObservedGeneration'))
+  set'ObservedGeneration : ∀ (x : DaemonSetStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"ObservedGeneration") (PairV #x #y) (Val #(({ x with ObservedGeneration' := y } : DaemonSetStatus)))
+  get'UpdatedNumberScheduled : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"UpdatedNumberScheduled") #x (Val #(x.UpdatedNumberScheduled'))
+  set'UpdatedNumberScheduled : ∀ (x : DaemonSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"UpdatedNumberScheduled") (PairV #x #y) (Val #(({ x with UpdatedNumberScheduled' := y } : DaemonSetStatus)))
+  get'NumberAvailable : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"NumberAvailable") #x (Val #(x.NumberAvailable'))
+  set'NumberAvailable : ∀ (x : DaemonSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"NumberAvailable") (PairV #x #y) (Val #(({ x with NumberAvailable' := y } : DaemonSetStatus)))
+  get'NumberUnavailable : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"NumberUnavailable") #x (Val #(x.NumberUnavailable'))
+  set'NumberUnavailable : ∀ (x : DaemonSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"NumberUnavailable") (PairV #x #y) (Val #(({ x with NumberUnavailable' := y } : DaemonSetStatus)))
+  get'CollisionCount : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"CollisionCount") #x (Val #(x.CollisionCount'))
+  set'CollisionCount : ∀ (x : DaemonSetStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"CollisionCount") (PairV #x #y) (Val #(({ x with CollisionCount' := y } : DaemonSetStatus)))
+  get'Conditions : ∀ (x : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetStatus.underlying go!"Conditions") #x (Val #(x.Conditions'))
+  set'Conditions : ∀ (x : DaemonSetStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetStatus.underlying go!"Conditions") (PairV #x #y) (Val #(({ x with Conditions' := y } : DaemonSetStatus)))
   method_set : go.MethodSetIs DaemonSetStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType DaemonSetStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType DaemonSetStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] DaemonSetStatus.TypeAssumptions.type_repr
   DaemonSetStatus.TypeAssumptions.underlying
-  DaemonSetStatus.TypeAssumptions.get_CurrentNumberScheduled
-  DaemonSetStatus.TypeAssumptions.set_CurrentNumberScheduled
-  DaemonSetStatus.TypeAssumptions.get_NumberMisscheduled
-  DaemonSetStatus.TypeAssumptions.set_NumberMisscheduled
-  DaemonSetStatus.TypeAssumptions.get_DesiredNumberScheduled
-  DaemonSetStatus.TypeAssumptions.set_DesiredNumberScheduled
-  DaemonSetStatus.TypeAssumptions.get_NumberReady
-  DaemonSetStatus.TypeAssumptions.set_NumberReady
-  DaemonSetStatus.TypeAssumptions.get_ObservedGeneration
-  DaemonSetStatus.TypeAssumptions.set_ObservedGeneration
-  DaemonSetStatus.TypeAssumptions.get_UpdatedNumberScheduled
-  DaemonSetStatus.TypeAssumptions.set_UpdatedNumberScheduled
-  DaemonSetStatus.TypeAssumptions.get_NumberAvailable
-  DaemonSetStatus.TypeAssumptions.set_NumberAvailable
-  DaemonSetStatus.TypeAssumptions.get_NumberUnavailable
-  DaemonSetStatus.TypeAssumptions.set_NumberUnavailable
-  DaemonSetStatus.TypeAssumptions.get_CollisionCount
-  DaemonSetStatus.TypeAssumptions.set_CollisionCount
-  DaemonSetStatus.TypeAssumptions.get_Conditions
-  DaemonSetStatus.TypeAssumptions.set_Conditions
+  DaemonSetStatus.TypeAssumptions.get'CurrentNumberScheduled
+  DaemonSetStatus.TypeAssumptions.set'CurrentNumberScheduled
+  DaemonSetStatus.TypeAssumptions.get'NumberMisscheduled
+  DaemonSetStatus.TypeAssumptions.set'NumberMisscheduled
+  DaemonSetStatus.TypeAssumptions.get'DesiredNumberScheduled
+  DaemonSetStatus.TypeAssumptions.set'DesiredNumberScheduled
+  DaemonSetStatus.TypeAssumptions.get'NumberReady
+  DaemonSetStatus.TypeAssumptions.set'NumberReady
+  DaemonSetStatus.TypeAssumptions.get'ObservedGeneration
+  DaemonSetStatus.TypeAssumptions.set'ObservedGeneration
+  DaemonSetStatus.TypeAssumptions.get'UpdatedNumberScheduled
+  DaemonSetStatus.TypeAssumptions.set'UpdatedNumberScheduled
+  DaemonSetStatus.TypeAssumptions.get'NumberAvailable
+  DaemonSetStatus.TypeAssumptions.set'NumberAvailable
+  DaemonSetStatus.TypeAssumptions.get'NumberUnavailable
+  DaemonSetStatus.TypeAssumptions.set'NumberUnavailable
+  DaemonSetStatus.TypeAssumptions.get'CollisionCount
+  DaemonSetStatus.TypeAssumptions.set'CollisionCount
+  DaemonSetStatus.TypeAssumptions.get'Conditions
+  DaemonSetStatus.TypeAssumptions.set'Conditions
   DaemonSetStatus.TypeAssumptions.method_set
   DaemonSetStatus.TypeAssumptions.ptr_method_set
 
@@ -1524,7 +1524,7 @@ noncomputable instance IngressSpec.zero_val [GooseExts] : ZeroVal IngressSpec :=
 @[irreducible] noncomputable def IngressSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   IngressSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_IngressSpec [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'IngressSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold IngressSpec.fields IngressSpec.fieldsUnsealed :=
   ⟨by unfold IngressSpec.fields; rfl⟩
 
@@ -1534,27 +1534,27 @@ noncomputable instance equals_unfold_IngressSpec [GooseExts] [GoGlobalContext] :
 class IngressSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying IngressSpec.underlying IngressSpec
   underlying : go.UnderlyingDirectedEq IngressSpec.ty IngressSpec.underlying
-  get_IngressClassName : ∀ (x : IngressSpec), go.IsGoStepPureDetTagged under (StructFieldGet IngressSpec.underlying go!"IngressClassName") #x (Val #(x.IngressClassName'))
-  set_IngressClassName : ∀ (x : IngressSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet IngressSpec.underlying go!"IngressClassName") (PairV #x #y) (Val #(({ x with IngressClassName' := y } : IngressSpec)))
-  get_Backend : ∀ (x : IngressSpec), go.IsGoStepPureDetTagged under (StructFieldGet IngressSpec.underlying go!"Backend") #x (Val #(x.Backend'))
-  set_Backend : ∀ (x : IngressSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet IngressSpec.underlying go!"Backend") (PairV #x #y) (Val #(({ x with Backend' := y } : IngressSpec)))
-  get_TLS : ∀ (x : IngressSpec), go.IsGoStepPureDetTagged under (StructFieldGet IngressSpec.underlying go!"TLS") #x (Val #(x.TLS'))
-  set_TLS : ∀ (x : IngressSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet IngressSpec.underlying go!"TLS") (PairV #x #y) (Val #(({ x with TLS' := y } : IngressSpec)))
-  get_Rules : ∀ (x : IngressSpec), go.IsGoStepPureDetTagged under (StructFieldGet IngressSpec.underlying go!"Rules") #x (Val #(x.Rules'))
-  set_Rules : ∀ (x : IngressSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet IngressSpec.underlying go!"Rules") (PairV #x #y) (Val #(({ x with Rules' := y } : IngressSpec)))
+  get'IngressClassName : ∀ (x : IngressSpec), go.IsGoStepPureDetTagged under (StructFieldGet IngressSpec.underlying go!"IngressClassName") #x (Val #(x.IngressClassName'))
+  set'IngressClassName : ∀ (x : IngressSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet IngressSpec.underlying go!"IngressClassName") (PairV #x #y) (Val #(({ x with IngressClassName' := y } : IngressSpec)))
+  get'Backend : ∀ (x : IngressSpec), go.IsGoStepPureDetTagged under (StructFieldGet IngressSpec.underlying go!"Backend") #x (Val #(x.Backend'))
+  set'Backend : ∀ (x : IngressSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet IngressSpec.underlying go!"Backend") (PairV #x #y) (Val #(({ x with Backend' := y } : IngressSpec)))
+  get'TLS : ∀ (x : IngressSpec), go.IsGoStepPureDetTagged under (StructFieldGet IngressSpec.underlying go!"TLS") #x (Val #(x.TLS'))
+  set'TLS : ∀ (x : IngressSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet IngressSpec.underlying go!"TLS") (PairV #x #y) (Val #(({ x with TLS' := y } : IngressSpec)))
+  get'Rules : ∀ (x : IngressSpec), go.IsGoStepPureDetTagged under (StructFieldGet IngressSpec.underlying go!"Rules") #x (Val #(x.Rules'))
+  set'Rules : ∀ (x : IngressSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet IngressSpec.underlying go!"Rules") (PairV #x #y) (Val #(({ x with Rules' := y } : IngressSpec)))
   method_set : go.MethodSetIs IngressSpec.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType IngressSpec.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType IngressSpec.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType IngressSpec.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] IngressSpec.TypeAssumptions.type_repr
   IngressSpec.TypeAssumptions.underlying
-  IngressSpec.TypeAssumptions.get_IngressClassName
-  IngressSpec.TypeAssumptions.set_IngressClassName
-  IngressSpec.TypeAssumptions.get_Backend
-  IngressSpec.TypeAssumptions.set_Backend
-  IngressSpec.TypeAssumptions.get_TLS
-  IngressSpec.TypeAssumptions.set_TLS
-  IngressSpec.TypeAssumptions.get_Rules
-  IngressSpec.TypeAssumptions.set_Rules
+  IngressSpec.TypeAssumptions.get'IngressClassName
+  IngressSpec.TypeAssumptions.set'IngressClassName
+  IngressSpec.TypeAssumptions.get'Backend
+  IngressSpec.TypeAssumptions.set'Backend
+  IngressSpec.TypeAssumptions.get'TLS
+  IngressSpec.TypeAssumptions.set'TLS
+  IngressSpec.TypeAssumptions.get'Rules
+  IngressSpec.TypeAssumptions.set'Rules
   IngressSpec.TypeAssumptions.method_set
   IngressSpec.TypeAssumptions.ptr_method_set
 
@@ -1573,7 +1573,7 @@ noncomputable instance IngressTLS.zero_val [GooseExts] : ZeroVal IngressTLS :=
 @[irreducible] noncomputable def IngressTLS.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   IngressTLS.fieldsUnsealed
 
-noncomputable instance equals_unfold_IngressTLS [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'IngressTLS [GooseExts] [GoGlobalContext] :
     EqualsUnfold IngressTLS.fields IngressTLS.fieldsUnsealed :=
   ⟨by unfold IngressTLS.fields; rfl⟩
 
@@ -1583,19 +1583,19 @@ noncomputable instance equals_unfold_IngressTLS [GooseExts] [GoGlobalContext] :
 class IngressTLS.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying IngressTLS.underlying IngressTLS
   underlying : go.UnderlyingDirectedEq IngressTLS.ty IngressTLS.underlying
-  get_Hosts : ∀ (x : IngressTLS), go.IsGoStepPureDetTagged under (StructFieldGet IngressTLS.underlying go!"Hosts") #x (Val #(x.Hosts'))
-  set_Hosts : ∀ (x : IngressTLS) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet IngressTLS.underlying go!"Hosts") (PairV #x #y) (Val #(({ x with Hosts' := y } : IngressTLS)))
-  get_SecretName : ∀ (x : IngressTLS), go.IsGoStepPureDetTagged under (StructFieldGet IngressTLS.underlying go!"SecretName") #x (Val #(x.SecretName'))
-  set_SecretName : ∀ (x : IngressTLS) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet IngressTLS.underlying go!"SecretName") (PairV #x #y) (Val #(({ x with SecretName' := y } : IngressTLS)))
+  get'Hosts : ∀ (x : IngressTLS), go.IsGoStepPureDetTagged under (StructFieldGet IngressTLS.underlying go!"Hosts") #x (Val #(x.Hosts'))
+  set'Hosts : ∀ (x : IngressTLS) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet IngressTLS.underlying go!"Hosts") (PairV #x #y) (Val #(({ x with Hosts' := y } : IngressTLS)))
+  get'SecretName : ∀ (x : IngressTLS), go.IsGoStepPureDetTagged under (StructFieldGet IngressTLS.underlying go!"SecretName") #x (Val #(x.SecretName'))
+  set'SecretName : ∀ (x : IngressTLS) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet IngressTLS.underlying go!"SecretName") (PairV #x #y) (Val #(({ x with SecretName' := y } : IngressTLS)))
   method_set : go.MethodSetIs IngressTLS.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType IngressTLS.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType IngressTLS.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType IngressTLS.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] IngressTLS.TypeAssumptions.type_repr
   IngressTLS.TypeAssumptions.underlying
-  IngressTLS.TypeAssumptions.get_Hosts
-  IngressTLS.TypeAssumptions.set_Hosts
-  IngressTLS.TypeAssumptions.get_SecretName
-  IngressTLS.TypeAssumptions.set_SecretName
+  IngressTLS.TypeAssumptions.get'Hosts
+  IngressTLS.TypeAssumptions.set'Hosts
+  IngressTLS.TypeAssumptions.get'SecretName
+  IngressTLS.TypeAssumptions.set'SecretName
   IngressTLS.TypeAssumptions.method_set
   IngressTLS.TypeAssumptions.ptr_method_set
 
@@ -1612,7 +1612,7 @@ noncomputable instance IngressLoadBalancerStatus.zero_val [GooseExts] : ZeroVal 
 @[irreducible] noncomputable def IngressLoadBalancerStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   IngressLoadBalancerStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_IngressLoadBalancerStatus [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'IngressLoadBalancerStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold IngressLoadBalancerStatus.fields IngressLoadBalancerStatus.fieldsUnsealed :=
   ⟨by unfold IngressLoadBalancerStatus.fields; rfl⟩
 
@@ -1622,15 +1622,15 @@ noncomputable instance equals_unfold_IngressLoadBalancerStatus [GooseExts] [GoGl
 class IngressLoadBalancerStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying IngressLoadBalancerStatus.underlying IngressLoadBalancerStatus
   underlying : go.UnderlyingDirectedEq IngressLoadBalancerStatus.ty IngressLoadBalancerStatus.underlying
-  get_Ingress : ∀ (x : IngressLoadBalancerStatus), go.IsGoStepPureDetTagged under (StructFieldGet IngressLoadBalancerStatus.underlying go!"Ingress") #x (Val #(x.Ingress'))
-  set_Ingress : ∀ (x : IngressLoadBalancerStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet IngressLoadBalancerStatus.underlying go!"Ingress") (PairV #x #y) (Val #(({ x with Ingress' := y } : IngressLoadBalancerStatus)))
+  get'Ingress : ∀ (x : IngressLoadBalancerStatus), go.IsGoStepPureDetTagged under (StructFieldGet IngressLoadBalancerStatus.underlying go!"Ingress") #x (Val #(x.Ingress'))
+  set'Ingress : ∀ (x : IngressLoadBalancerStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet IngressLoadBalancerStatus.underlying go!"Ingress") (PairV #x #y) (Val #(({ x with Ingress' := y } : IngressLoadBalancerStatus)))
   method_set : go.MethodSetIs IngressLoadBalancerStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType IngressLoadBalancerStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType IngressLoadBalancerStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType IngressLoadBalancerStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] IngressLoadBalancerStatus.TypeAssumptions.type_repr
   IngressLoadBalancerStatus.TypeAssumptions.underlying
-  IngressLoadBalancerStatus.TypeAssumptions.get_Ingress
-  IngressLoadBalancerStatus.TypeAssumptions.set_Ingress
+  IngressLoadBalancerStatus.TypeAssumptions.get'Ingress
+  IngressLoadBalancerStatus.TypeAssumptions.set'Ingress
   IngressLoadBalancerStatus.TypeAssumptions.method_set
   IngressLoadBalancerStatus.TypeAssumptions.ptr_method_set
 
@@ -1647,7 +1647,7 @@ noncomputable instance IngressStatus.zero_val [GooseExts] : ZeroVal IngressStatu
 @[irreducible] noncomputable def IngressStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   IngressStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_IngressStatus [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'IngressStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold IngressStatus.fields IngressStatus.fieldsUnsealed :=
   ⟨by unfold IngressStatus.fields; rfl⟩
 
@@ -1657,15 +1657,15 @@ noncomputable instance equals_unfold_IngressStatus [GooseExts] [GoGlobalContext]
 class IngressStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying IngressStatus.underlying IngressStatus
   underlying : go.UnderlyingDirectedEq IngressStatus.ty IngressStatus.underlying
-  get_LoadBalancer : ∀ (x : IngressStatus), go.IsGoStepPureDetTagged under (StructFieldGet IngressStatus.underlying go!"LoadBalancer") #x (Val #(x.LoadBalancer'))
-  set_LoadBalancer : ∀ (x : IngressStatus) (y : IngressLoadBalancerStatus), go.IsGoStepPureDetTagged under (StructFieldSet IngressStatus.underlying go!"LoadBalancer") (PairV #x #y) (Val #(({ x with LoadBalancer' := y } : IngressStatus)))
+  get'LoadBalancer : ∀ (x : IngressStatus), go.IsGoStepPureDetTagged under (StructFieldGet IngressStatus.underlying go!"LoadBalancer") #x (Val #(x.LoadBalancer'))
+  set'LoadBalancer : ∀ (x : IngressStatus) (y : IngressLoadBalancerStatus), go.IsGoStepPureDetTagged under (StructFieldSet IngressStatus.underlying go!"LoadBalancer") (PairV #x #y) (Val #(({ x with LoadBalancer' := y } : IngressStatus)))
   method_set : go.MethodSetIs IngressStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType IngressStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType IngressStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType IngressStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] IngressStatus.TypeAssumptions.type_repr
   IngressStatus.TypeAssumptions.underlying
-  IngressStatus.TypeAssumptions.get_LoadBalancer
-  IngressStatus.TypeAssumptions.set_LoadBalancer
+  IngressStatus.TypeAssumptions.get'LoadBalancer
+  IngressStatus.TypeAssumptions.set'LoadBalancer
   IngressStatus.TypeAssumptions.method_set
   IngressStatus.TypeAssumptions.ptr_method_set
 
@@ -1686,7 +1686,7 @@ noncomputable instance IngressLoadBalancerIngress.zero_val [GooseExts] : ZeroVal
 @[irreducible] noncomputable def IngressLoadBalancerIngress.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   IngressLoadBalancerIngress.fieldsUnsealed
 
-noncomputable instance equals_unfold_IngressLoadBalancerIngress [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'IngressLoadBalancerIngress [GooseExts] [GoGlobalContext] :
     EqualsUnfold IngressLoadBalancerIngress.fields IngressLoadBalancerIngress.fieldsUnsealed :=
   ⟨by unfold IngressLoadBalancerIngress.fields; rfl⟩
 
@@ -1696,23 +1696,23 @@ noncomputable instance equals_unfold_IngressLoadBalancerIngress [GooseExts] [GoG
 class IngressLoadBalancerIngress.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying IngressLoadBalancerIngress.underlying IngressLoadBalancerIngress
   underlying : go.UnderlyingDirectedEq IngressLoadBalancerIngress.ty IngressLoadBalancerIngress.underlying
-  get_IP : ∀ (x : IngressLoadBalancerIngress), go.IsGoStepPureDetTagged under (StructFieldGet IngressLoadBalancerIngress.underlying go!"IP") #x (Val #(x.IP'))
-  set_IP : ∀ (x : IngressLoadBalancerIngress) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet IngressLoadBalancerIngress.underlying go!"IP") (PairV #x #y) (Val #(({ x with IP' := y } : IngressLoadBalancerIngress)))
-  get_Hostname : ∀ (x : IngressLoadBalancerIngress), go.IsGoStepPureDetTagged under (StructFieldGet IngressLoadBalancerIngress.underlying go!"Hostname") #x (Val #(x.Hostname'))
-  set_Hostname : ∀ (x : IngressLoadBalancerIngress) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet IngressLoadBalancerIngress.underlying go!"Hostname") (PairV #x #y) (Val #(({ x with Hostname' := y } : IngressLoadBalancerIngress)))
-  get_Ports : ∀ (x : IngressLoadBalancerIngress), go.IsGoStepPureDetTagged under (StructFieldGet IngressLoadBalancerIngress.underlying go!"Ports") #x (Val #(x.Ports'))
-  set_Ports : ∀ (x : IngressLoadBalancerIngress) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet IngressLoadBalancerIngress.underlying go!"Ports") (PairV #x #y) (Val #(({ x with Ports' := y } : IngressLoadBalancerIngress)))
+  get'IP : ∀ (x : IngressLoadBalancerIngress), go.IsGoStepPureDetTagged under (StructFieldGet IngressLoadBalancerIngress.underlying go!"IP") #x (Val #(x.IP'))
+  set'IP : ∀ (x : IngressLoadBalancerIngress) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet IngressLoadBalancerIngress.underlying go!"IP") (PairV #x #y) (Val #(({ x with IP' := y } : IngressLoadBalancerIngress)))
+  get'Hostname : ∀ (x : IngressLoadBalancerIngress), go.IsGoStepPureDetTagged under (StructFieldGet IngressLoadBalancerIngress.underlying go!"Hostname") #x (Val #(x.Hostname'))
+  set'Hostname : ∀ (x : IngressLoadBalancerIngress) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet IngressLoadBalancerIngress.underlying go!"Hostname") (PairV #x #y) (Val #(({ x with Hostname' := y } : IngressLoadBalancerIngress)))
+  get'Ports : ∀ (x : IngressLoadBalancerIngress), go.IsGoStepPureDetTagged under (StructFieldGet IngressLoadBalancerIngress.underlying go!"Ports") #x (Val #(x.Ports'))
+  set'Ports : ∀ (x : IngressLoadBalancerIngress) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet IngressLoadBalancerIngress.underlying go!"Ports") (PairV #x #y) (Val #(({ x with Ports' := y } : IngressLoadBalancerIngress)))
   method_set : go.MethodSetIs IngressLoadBalancerIngress.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType IngressLoadBalancerIngress.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType IngressLoadBalancerIngress.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType IngressLoadBalancerIngress.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] IngressLoadBalancerIngress.TypeAssumptions.type_repr
   IngressLoadBalancerIngress.TypeAssumptions.underlying
-  IngressLoadBalancerIngress.TypeAssumptions.get_IP
-  IngressLoadBalancerIngress.TypeAssumptions.set_IP
-  IngressLoadBalancerIngress.TypeAssumptions.get_Hostname
-  IngressLoadBalancerIngress.TypeAssumptions.set_Hostname
-  IngressLoadBalancerIngress.TypeAssumptions.get_Ports
-  IngressLoadBalancerIngress.TypeAssumptions.set_Ports
+  IngressLoadBalancerIngress.TypeAssumptions.get'IP
+  IngressLoadBalancerIngress.TypeAssumptions.set'IP
+  IngressLoadBalancerIngress.TypeAssumptions.get'Hostname
+  IngressLoadBalancerIngress.TypeAssumptions.set'Hostname
+  IngressLoadBalancerIngress.TypeAssumptions.get'Ports
+  IngressLoadBalancerIngress.TypeAssumptions.set'Ports
   IngressLoadBalancerIngress.TypeAssumptions.method_set
   IngressLoadBalancerIngress.TypeAssumptions.ptr_method_set
 
@@ -1748,7 +1748,7 @@ noncomputable instance IngressRuleValue.zero_val [GooseExts] : ZeroVal IngressRu
 @[irreducible] noncomputable def IngressRuleValue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   IngressRuleValue.fieldsUnsealed
 
-noncomputable instance equals_unfold_IngressRuleValue [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'IngressRuleValue [GooseExts] [GoGlobalContext] :
     EqualsUnfold IngressRuleValue.fields IngressRuleValue.fieldsUnsealed :=
   ⟨by unfold IngressRuleValue.fields; rfl⟩
 
@@ -1758,15 +1758,15 @@ noncomputable instance equals_unfold_IngressRuleValue [GooseExts] [GoGlobalConte
 class IngressRuleValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying IngressRuleValue.underlying IngressRuleValue
   underlying : go.UnderlyingDirectedEq IngressRuleValue.ty IngressRuleValue.underlying
-  get_HTTP : ∀ (x : IngressRuleValue), go.IsGoStepPureDetTagged under (StructFieldGet IngressRuleValue.underlying go!"HTTP") #x (Val #(x.HTTP'))
-  set_HTTP : ∀ (x : IngressRuleValue) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet IngressRuleValue.underlying go!"HTTP") (PairV #x #y) (Val #(({ x with HTTP' := y } : IngressRuleValue)))
+  get'HTTP : ∀ (x : IngressRuleValue), go.IsGoStepPureDetTagged under (StructFieldGet IngressRuleValue.underlying go!"HTTP") #x (Val #(x.HTTP'))
+  set'HTTP : ∀ (x : IngressRuleValue) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet IngressRuleValue.underlying go!"HTTP") (PairV #x #y) (Val #(({ x with HTTP' := y } : IngressRuleValue)))
   method_set : go.MethodSetIs IngressRuleValue.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType IngressRuleValue.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType IngressRuleValue.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType IngressRuleValue.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] IngressRuleValue.TypeAssumptions.type_repr
   IngressRuleValue.TypeAssumptions.underlying
-  IngressRuleValue.TypeAssumptions.get_HTTP
-  IngressRuleValue.TypeAssumptions.set_HTTP
+  IngressRuleValue.TypeAssumptions.get'HTTP
+  IngressRuleValue.TypeAssumptions.set'HTTP
   IngressRuleValue.TypeAssumptions.method_set
   IngressRuleValue.TypeAssumptions.ptr_method_set
 
@@ -1785,7 +1785,7 @@ noncomputable instance IngressRule.zero_val [GooseExts] : ZeroVal IngressRule :=
 @[irreducible] noncomputable def IngressRule.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   IngressRule.fieldsUnsealed
 
-noncomputable instance equals_unfold_IngressRule [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'IngressRule [GooseExts] [GoGlobalContext] :
     EqualsUnfold IngressRule.fields IngressRule.fieldsUnsealed :=
   ⟨by unfold IngressRule.fields; rfl⟩
 
@@ -1795,19 +1795,19 @@ noncomputable instance equals_unfold_IngressRule [GooseExts] [GoGlobalContext] :
 class IngressRule.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying IngressRule.underlying IngressRule
   underlying : go.UnderlyingDirectedEq IngressRule.ty IngressRule.underlying
-  get_Host : ∀ (x : IngressRule), go.IsGoStepPureDetTagged under (StructFieldGet IngressRule.underlying go!"Host") #x (Val #(x.Host'))
-  set_Host : ∀ (x : IngressRule) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet IngressRule.underlying go!"Host") (PairV #x #y) (Val #(({ x with Host' := y } : IngressRule)))
-  get_IngressRuleValue : ∀ (x : IngressRule), go.IsGoStepPureDetTagged under (StructFieldGet IngressRule.underlying go!"IngressRuleValue") #x (Val #(x.IngressRuleValue'))
-  set_IngressRuleValue : ∀ (x : IngressRule) (y : IngressRuleValue), go.IsGoStepPureDetTagged under (StructFieldSet IngressRule.underlying go!"IngressRuleValue") (PairV #x #y) (Val #(({ x with IngressRuleValue' := y } : IngressRule)))
+  get'Host : ∀ (x : IngressRule), go.IsGoStepPureDetTagged under (StructFieldGet IngressRule.underlying go!"Host") #x (Val #(x.Host'))
+  set'Host : ∀ (x : IngressRule) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet IngressRule.underlying go!"Host") (PairV #x #y) (Val #(({ x with Host' := y } : IngressRule)))
+  get'IngressRuleValue : ∀ (x : IngressRule), go.IsGoStepPureDetTagged under (StructFieldGet IngressRule.underlying go!"IngressRuleValue") #x (Val #(x.IngressRuleValue'))
+  set'IngressRuleValue : ∀ (x : IngressRule) (y : IngressRuleValue), go.IsGoStepPureDetTagged under (StructFieldSet IngressRule.underlying go!"IngressRuleValue") (PairV #x #y) (Val #(({ x with IngressRuleValue' := y } : IngressRule)))
   method_set : go.MethodSetIs IngressRule.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType IngressRule.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType IngressRule.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType IngressRule.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] IngressRule.TypeAssumptions.type_repr
   IngressRule.TypeAssumptions.underlying
-  IngressRule.TypeAssumptions.get_Host
-  IngressRule.TypeAssumptions.set_Host
-  IngressRule.TypeAssumptions.get_IngressRuleValue
-  IngressRule.TypeAssumptions.set_IngressRuleValue
+  IngressRule.TypeAssumptions.get'Host
+  IngressRule.TypeAssumptions.set'Host
+  IngressRule.TypeAssumptions.get'IngressRuleValue
+  IngressRule.TypeAssumptions.set'IngressRuleValue
   IngressRule.TypeAssumptions.method_set
   IngressRule.TypeAssumptions.ptr_method_set
 
@@ -1824,7 +1824,7 @@ noncomputable instance HTTPIngressRuleValue.zero_val [GooseExts] : ZeroVal HTTPI
 @[irreducible] noncomputable def HTTPIngressRuleValue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   HTTPIngressRuleValue.fieldsUnsealed
 
-noncomputable instance equals_unfold_HTTPIngressRuleValue [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'HTTPIngressRuleValue [GooseExts] [GoGlobalContext] :
     EqualsUnfold HTTPIngressRuleValue.fields HTTPIngressRuleValue.fieldsUnsealed :=
   ⟨by unfold HTTPIngressRuleValue.fields; rfl⟩
 
@@ -1834,15 +1834,15 @@ noncomputable instance equals_unfold_HTTPIngressRuleValue [GooseExts] [GoGlobalC
 class HTTPIngressRuleValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HTTPIngressRuleValue.underlying HTTPIngressRuleValue
   underlying : go.UnderlyingDirectedEq HTTPIngressRuleValue.ty HTTPIngressRuleValue.underlying
-  get_Paths : ∀ (x : HTTPIngressRuleValue), go.IsGoStepPureDetTagged under (StructFieldGet HTTPIngressRuleValue.underlying go!"Paths") #x (Val #(x.Paths'))
-  set_Paths : ∀ (x : HTTPIngressRuleValue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet HTTPIngressRuleValue.underlying go!"Paths") (PairV #x #y) (Val #(({ x with Paths' := y } : HTTPIngressRuleValue)))
+  get'Paths : ∀ (x : HTTPIngressRuleValue), go.IsGoStepPureDetTagged under (StructFieldGet HTTPIngressRuleValue.underlying go!"Paths") #x (Val #(x.Paths'))
+  set'Paths : ∀ (x : HTTPIngressRuleValue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet HTTPIngressRuleValue.underlying go!"Paths") (PairV #x #y) (Val #(({ x with Paths' := y } : HTTPIngressRuleValue)))
   method_set : go.MethodSetIs HTTPIngressRuleValue.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType HTTPIngressRuleValue.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType HTTPIngressRuleValue.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType HTTPIngressRuleValue.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] HTTPIngressRuleValue.TypeAssumptions.type_repr
   HTTPIngressRuleValue.TypeAssumptions.underlying
-  HTTPIngressRuleValue.TypeAssumptions.get_Paths
-  HTTPIngressRuleValue.TypeAssumptions.set_Paths
+  HTTPIngressRuleValue.TypeAssumptions.get'Paths
+  HTTPIngressRuleValue.TypeAssumptions.set'Paths
   HTTPIngressRuleValue.TypeAssumptions.method_set
   HTTPIngressRuleValue.TypeAssumptions.ptr_method_set
 
@@ -1896,7 +1896,7 @@ noncomputable instance HTTPIngressPath.zero_val [GooseExts] : ZeroVal HTTPIngres
 @[irreducible] noncomputable def HTTPIngressPath.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   HTTPIngressPath.fieldsUnsealed
 
-noncomputable instance equals_unfold_HTTPIngressPath [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'HTTPIngressPath [GooseExts] [GoGlobalContext] :
     EqualsUnfold HTTPIngressPath.fields HTTPIngressPath.fieldsUnsealed :=
   ⟨by unfold HTTPIngressPath.fields; rfl⟩
 
@@ -1906,23 +1906,23 @@ noncomputable instance equals_unfold_HTTPIngressPath [GooseExts] [GoGlobalContex
 class HTTPIngressPath.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HTTPIngressPath.underlying HTTPIngressPath
   underlying : go.UnderlyingDirectedEq HTTPIngressPath.ty HTTPIngressPath.underlying
-  get_Path : ∀ (x : HTTPIngressPath), go.IsGoStepPureDetTagged under (StructFieldGet HTTPIngressPath.underlying go!"Path") #x (Val #(x.Path'))
-  set_Path : ∀ (x : HTTPIngressPath) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet HTTPIngressPath.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : HTTPIngressPath)))
-  get_PathType : ∀ (x : HTTPIngressPath), go.IsGoStepPureDetTagged under (StructFieldGet HTTPIngressPath.underlying go!"PathType") #x (Val #(x.PathType'))
-  set_PathType : ∀ (x : HTTPIngressPath) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HTTPIngressPath.underlying go!"PathType") (PairV #x #y) (Val #(({ x with PathType' := y } : HTTPIngressPath)))
-  get_Backend : ∀ (x : HTTPIngressPath), go.IsGoStepPureDetTagged under (StructFieldGet HTTPIngressPath.underlying go!"Backend") #x (Val #(x.Backend'))
-  set_Backend : ∀ (x : HTTPIngressPath) (y : IngressBackend), go.IsGoStepPureDetTagged under (StructFieldSet HTTPIngressPath.underlying go!"Backend") (PairV #x #y) (Val #(({ x with Backend' := y } : HTTPIngressPath)))
+  get'Path : ∀ (x : HTTPIngressPath), go.IsGoStepPureDetTagged under (StructFieldGet HTTPIngressPath.underlying go!"Path") #x (Val #(x.Path'))
+  set'Path : ∀ (x : HTTPIngressPath) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet HTTPIngressPath.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : HTTPIngressPath)))
+  get'PathType : ∀ (x : HTTPIngressPath), go.IsGoStepPureDetTagged under (StructFieldGet HTTPIngressPath.underlying go!"PathType") #x (Val #(x.PathType'))
+  set'PathType : ∀ (x : HTTPIngressPath) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HTTPIngressPath.underlying go!"PathType") (PairV #x #y) (Val #(({ x with PathType' := y } : HTTPIngressPath)))
+  get'Backend : ∀ (x : HTTPIngressPath), go.IsGoStepPureDetTagged under (StructFieldGet HTTPIngressPath.underlying go!"Backend") #x (Val #(x.Backend'))
+  set'Backend : ∀ (x : HTTPIngressPath) (y : IngressBackend), go.IsGoStepPureDetTagged under (StructFieldSet HTTPIngressPath.underlying go!"Backend") (PairV #x #y) (Val #(({ x with Backend' := y } : HTTPIngressPath)))
   method_set : go.MethodSetIs HTTPIngressPath.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType HTTPIngressPath.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType HTTPIngressPath.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType HTTPIngressPath.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] HTTPIngressPath.TypeAssumptions.type_repr
   HTTPIngressPath.TypeAssumptions.underlying
-  HTTPIngressPath.TypeAssumptions.get_Path
-  HTTPIngressPath.TypeAssumptions.set_Path
-  HTTPIngressPath.TypeAssumptions.get_PathType
-  HTTPIngressPath.TypeAssumptions.set_PathType
-  HTTPIngressPath.TypeAssumptions.get_Backend
-  HTTPIngressPath.TypeAssumptions.set_Backend
+  HTTPIngressPath.TypeAssumptions.get'Path
+  HTTPIngressPath.TypeAssumptions.set'Path
+  HTTPIngressPath.TypeAssumptions.get'PathType
+  HTTPIngressPath.TypeAssumptions.set'PathType
+  HTTPIngressPath.TypeAssumptions.get'Backend
+  HTTPIngressPath.TypeAssumptions.set'Backend
   HTTPIngressPath.TypeAssumptions.method_set
   HTTPIngressPath.TypeAssumptions.ptr_method_set
 
@@ -2008,7 +2008,7 @@ noncomputable instance ReplicaSetStatus.zero_val [GooseExts] : ZeroVal ReplicaSe
 @[irreducible] noncomputable def ReplicaSetStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReplicaSetStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReplicaSetStatus [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ReplicaSetStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReplicaSetStatus.fields ReplicaSetStatus.fieldsUnsealed :=
   ⟨by unfold ReplicaSetStatus.fields; rfl⟩
 
@@ -2018,39 +2018,39 @@ noncomputable instance equals_unfold_ReplicaSetStatus [GooseExts] [GoGlobalConte
 class ReplicaSetStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicaSetStatus.underlying ReplicaSetStatus
   underlying : go.UnderlyingDirectedEq ReplicaSetStatus.ty ReplicaSetStatus.underlying
-  get_Replicas : ∀ (x : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetStatus.underlying go!"Replicas") #x (Val #(x.Replicas'))
-  set_Replicas : ∀ (x : ReplicaSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetStatus.underlying go!"Replicas") (PairV #x #y) (Val #(({ x with Replicas' := y } : ReplicaSetStatus)))
-  get_FullyLabeledReplicas : ∀ (x : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetStatus.underlying go!"FullyLabeledReplicas") #x (Val #(x.FullyLabeledReplicas'))
-  set_FullyLabeledReplicas : ∀ (x : ReplicaSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetStatus.underlying go!"FullyLabeledReplicas") (PairV #x #y) (Val #(({ x with FullyLabeledReplicas' := y } : ReplicaSetStatus)))
-  get_ReadyReplicas : ∀ (x : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetStatus.underlying go!"ReadyReplicas") #x (Val #(x.ReadyReplicas'))
-  set_ReadyReplicas : ∀ (x : ReplicaSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetStatus.underlying go!"ReadyReplicas") (PairV #x #y) (Val #(({ x with ReadyReplicas' := y } : ReplicaSetStatus)))
-  get_AvailableReplicas : ∀ (x : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetStatus.underlying go!"AvailableReplicas") #x (Val #(x.AvailableReplicas'))
-  set_AvailableReplicas : ∀ (x : ReplicaSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetStatus.underlying go!"AvailableReplicas") (PairV #x #y) (Val #(({ x with AvailableReplicas' := y } : ReplicaSetStatus)))
-  get_TerminatingReplicas : ∀ (x : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetStatus.underlying go!"TerminatingReplicas") #x (Val #(x.TerminatingReplicas'))
-  set_TerminatingReplicas : ∀ (x : ReplicaSetStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetStatus.underlying go!"TerminatingReplicas") (PairV #x #y) (Val #(({ x with TerminatingReplicas' := y } : ReplicaSetStatus)))
-  get_ObservedGeneration : ∀ (x : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetStatus.underlying go!"ObservedGeneration") #x (Val #(x.ObservedGeneration'))
-  set_ObservedGeneration : ∀ (x : ReplicaSetStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetStatus.underlying go!"ObservedGeneration") (PairV #x #y) (Val #(({ x with ObservedGeneration' := y } : ReplicaSetStatus)))
-  get_Conditions : ∀ (x : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetStatus.underlying go!"Conditions") #x (Val #(x.Conditions'))
-  set_Conditions : ∀ (x : ReplicaSetStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetStatus.underlying go!"Conditions") (PairV #x #y) (Val #(({ x with Conditions' := y } : ReplicaSetStatus)))
+  get'Replicas : ∀ (x : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetStatus.underlying go!"Replicas") #x (Val #(x.Replicas'))
+  set'Replicas : ∀ (x : ReplicaSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetStatus.underlying go!"Replicas") (PairV #x #y) (Val #(({ x with Replicas' := y } : ReplicaSetStatus)))
+  get'FullyLabeledReplicas : ∀ (x : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetStatus.underlying go!"FullyLabeledReplicas") #x (Val #(x.FullyLabeledReplicas'))
+  set'FullyLabeledReplicas : ∀ (x : ReplicaSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetStatus.underlying go!"FullyLabeledReplicas") (PairV #x #y) (Val #(({ x with FullyLabeledReplicas' := y } : ReplicaSetStatus)))
+  get'ReadyReplicas : ∀ (x : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetStatus.underlying go!"ReadyReplicas") #x (Val #(x.ReadyReplicas'))
+  set'ReadyReplicas : ∀ (x : ReplicaSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetStatus.underlying go!"ReadyReplicas") (PairV #x #y) (Val #(({ x with ReadyReplicas' := y } : ReplicaSetStatus)))
+  get'AvailableReplicas : ∀ (x : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetStatus.underlying go!"AvailableReplicas") #x (Val #(x.AvailableReplicas'))
+  set'AvailableReplicas : ∀ (x : ReplicaSetStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetStatus.underlying go!"AvailableReplicas") (PairV #x #y) (Val #(({ x with AvailableReplicas' := y } : ReplicaSetStatus)))
+  get'TerminatingReplicas : ∀ (x : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetStatus.underlying go!"TerminatingReplicas") #x (Val #(x.TerminatingReplicas'))
+  set'TerminatingReplicas : ∀ (x : ReplicaSetStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetStatus.underlying go!"TerminatingReplicas") (PairV #x #y) (Val #(({ x with TerminatingReplicas' := y } : ReplicaSetStatus)))
+  get'ObservedGeneration : ∀ (x : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetStatus.underlying go!"ObservedGeneration") #x (Val #(x.ObservedGeneration'))
+  set'ObservedGeneration : ∀ (x : ReplicaSetStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetStatus.underlying go!"ObservedGeneration") (PairV #x #y) (Val #(({ x with ObservedGeneration' := y } : ReplicaSetStatus)))
+  get'Conditions : ∀ (x : ReplicaSetStatus), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetStatus.underlying go!"Conditions") #x (Val #(x.Conditions'))
+  set'Conditions : ∀ (x : ReplicaSetStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetStatus.underlying go!"Conditions") (PairV #x #y) (Val #(({ x with Conditions' := y } : ReplicaSetStatus)))
   method_set : go.MethodSetIs ReplicaSetStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ReplicaSetStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ReplicaSetStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ReplicaSetStatus.TypeAssumptions.type_repr
   ReplicaSetStatus.TypeAssumptions.underlying
-  ReplicaSetStatus.TypeAssumptions.get_Replicas
-  ReplicaSetStatus.TypeAssumptions.set_Replicas
-  ReplicaSetStatus.TypeAssumptions.get_FullyLabeledReplicas
-  ReplicaSetStatus.TypeAssumptions.set_FullyLabeledReplicas
-  ReplicaSetStatus.TypeAssumptions.get_ReadyReplicas
-  ReplicaSetStatus.TypeAssumptions.set_ReadyReplicas
-  ReplicaSetStatus.TypeAssumptions.get_AvailableReplicas
-  ReplicaSetStatus.TypeAssumptions.set_AvailableReplicas
-  ReplicaSetStatus.TypeAssumptions.get_TerminatingReplicas
-  ReplicaSetStatus.TypeAssumptions.set_TerminatingReplicas
-  ReplicaSetStatus.TypeAssumptions.get_ObservedGeneration
-  ReplicaSetStatus.TypeAssumptions.set_ObservedGeneration
-  ReplicaSetStatus.TypeAssumptions.get_Conditions
-  ReplicaSetStatus.TypeAssumptions.set_Conditions
+  ReplicaSetStatus.TypeAssumptions.get'Replicas
+  ReplicaSetStatus.TypeAssumptions.set'Replicas
+  ReplicaSetStatus.TypeAssumptions.get'FullyLabeledReplicas
+  ReplicaSetStatus.TypeAssumptions.set'FullyLabeledReplicas
+  ReplicaSetStatus.TypeAssumptions.get'ReadyReplicas
+  ReplicaSetStatus.TypeAssumptions.set'ReadyReplicas
+  ReplicaSetStatus.TypeAssumptions.get'AvailableReplicas
+  ReplicaSetStatus.TypeAssumptions.set'AvailableReplicas
+  ReplicaSetStatus.TypeAssumptions.get'TerminatingReplicas
+  ReplicaSetStatus.TypeAssumptions.set'TerminatingReplicas
+  ReplicaSetStatus.TypeAssumptions.get'ObservedGeneration
+  ReplicaSetStatus.TypeAssumptions.set'ObservedGeneration
+  ReplicaSetStatus.TypeAssumptions.get'Conditions
+  ReplicaSetStatus.TypeAssumptions.set'Conditions
   ReplicaSetStatus.TypeAssumptions.method_set
   ReplicaSetStatus.TypeAssumptions.ptr_method_set
 
@@ -2154,7 +2154,7 @@ noncomputable instance NetworkPolicyIngressRule.zero_val [GooseExts] : ZeroVal N
 @[irreducible] noncomputable def NetworkPolicyIngressRule.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NetworkPolicyIngressRule.fieldsUnsealed
 
-noncomputable instance equals_unfold_NetworkPolicyIngressRule [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'NetworkPolicyIngressRule [GooseExts] [GoGlobalContext] :
     EqualsUnfold NetworkPolicyIngressRule.fields NetworkPolicyIngressRule.fieldsUnsealed :=
   ⟨by unfold NetworkPolicyIngressRule.fields; rfl⟩
 
@@ -2164,19 +2164,19 @@ noncomputable instance equals_unfold_NetworkPolicyIngressRule [GooseExts] [GoGlo
 class NetworkPolicyIngressRule.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NetworkPolicyIngressRule.underlying NetworkPolicyIngressRule
   underlying : go.UnderlyingDirectedEq NetworkPolicyIngressRule.ty NetworkPolicyIngressRule.underlying
-  get_Ports : ∀ (x : NetworkPolicyIngressRule), go.IsGoStepPureDetTagged under (StructFieldGet NetworkPolicyIngressRule.underlying go!"Ports") #x (Val #(x.Ports'))
-  set_Ports : ∀ (x : NetworkPolicyIngressRule) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetworkPolicyIngressRule.underlying go!"Ports") (PairV #x #y) (Val #(({ x with Ports' := y } : NetworkPolicyIngressRule)))
-  get_From : ∀ (x : NetworkPolicyIngressRule), go.IsGoStepPureDetTagged under (StructFieldGet NetworkPolicyIngressRule.underlying go!"From") #x (Val #(x.From'))
-  set_From : ∀ (x : NetworkPolicyIngressRule) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetworkPolicyIngressRule.underlying go!"From") (PairV #x #y) (Val #(({ x with From' := y } : NetworkPolicyIngressRule)))
+  get'Ports : ∀ (x : NetworkPolicyIngressRule), go.IsGoStepPureDetTagged under (StructFieldGet NetworkPolicyIngressRule.underlying go!"Ports") #x (Val #(x.Ports'))
+  set'Ports : ∀ (x : NetworkPolicyIngressRule) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetworkPolicyIngressRule.underlying go!"Ports") (PairV #x #y) (Val #(({ x with Ports' := y } : NetworkPolicyIngressRule)))
+  get'From : ∀ (x : NetworkPolicyIngressRule), go.IsGoStepPureDetTagged under (StructFieldGet NetworkPolicyIngressRule.underlying go!"From") #x (Val #(x.From'))
+  set'From : ∀ (x : NetworkPolicyIngressRule) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetworkPolicyIngressRule.underlying go!"From") (PairV #x #y) (Val #(({ x with From' := y } : NetworkPolicyIngressRule)))
   method_set : go.MethodSetIs NetworkPolicyIngressRule.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType NetworkPolicyIngressRule.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType NetworkPolicyIngressRule.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType NetworkPolicyIngressRule.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] NetworkPolicyIngressRule.TypeAssumptions.type_repr
   NetworkPolicyIngressRule.TypeAssumptions.underlying
-  NetworkPolicyIngressRule.TypeAssumptions.get_Ports
-  NetworkPolicyIngressRule.TypeAssumptions.set_Ports
-  NetworkPolicyIngressRule.TypeAssumptions.get_From
-  NetworkPolicyIngressRule.TypeAssumptions.set_From
+  NetworkPolicyIngressRule.TypeAssumptions.get'Ports
+  NetworkPolicyIngressRule.TypeAssumptions.set'Ports
+  NetworkPolicyIngressRule.TypeAssumptions.get'From
+  NetworkPolicyIngressRule.TypeAssumptions.set'From
   NetworkPolicyIngressRule.TypeAssumptions.method_set
   NetworkPolicyIngressRule.TypeAssumptions.ptr_method_set
 
@@ -2195,7 +2195,7 @@ noncomputable instance NetworkPolicyEgressRule.zero_val [GooseExts] : ZeroVal Ne
 @[irreducible] noncomputable def NetworkPolicyEgressRule.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NetworkPolicyEgressRule.fieldsUnsealed
 
-noncomputable instance equals_unfold_NetworkPolicyEgressRule [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'NetworkPolicyEgressRule [GooseExts] [GoGlobalContext] :
     EqualsUnfold NetworkPolicyEgressRule.fields NetworkPolicyEgressRule.fieldsUnsealed :=
   ⟨by unfold NetworkPolicyEgressRule.fields; rfl⟩
 
@@ -2205,19 +2205,19 @@ noncomputable instance equals_unfold_NetworkPolicyEgressRule [GooseExts] [GoGlob
 class NetworkPolicyEgressRule.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NetworkPolicyEgressRule.underlying NetworkPolicyEgressRule
   underlying : go.UnderlyingDirectedEq NetworkPolicyEgressRule.ty NetworkPolicyEgressRule.underlying
-  get_Ports : ∀ (x : NetworkPolicyEgressRule), go.IsGoStepPureDetTagged under (StructFieldGet NetworkPolicyEgressRule.underlying go!"Ports") #x (Val #(x.Ports'))
-  set_Ports : ∀ (x : NetworkPolicyEgressRule) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetworkPolicyEgressRule.underlying go!"Ports") (PairV #x #y) (Val #(({ x with Ports' := y } : NetworkPolicyEgressRule)))
-  get_To : ∀ (x : NetworkPolicyEgressRule), go.IsGoStepPureDetTagged under (StructFieldGet NetworkPolicyEgressRule.underlying go!"To") #x (Val #(x.To'))
-  set_To : ∀ (x : NetworkPolicyEgressRule) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetworkPolicyEgressRule.underlying go!"To") (PairV #x #y) (Val #(({ x with To' := y } : NetworkPolicyEgressRule)))
+  get'Ports : ∀ (x : NetworkPolicyEgressRule), go.IsGoStepPureDetTagged under (StructFieldGet NetworkPolicyEgressRule.underlying go!"Ports") #x (Val #(x.Ports'))
+  set'Ports : ∀ (x : NetworkPolicyEgressRule) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetworkPolicyEgressRule.underlying go!"Ports") (PairV #x #y) (Val #(({ x with Ports' := y } : NetworkPolicyEgressRule)))
+  get'To : ∀ (x : NetworkPolicyEgressRule), go.IsGoStepPureDetTagged under (StructFieldGet NetworkPolicyEgressRule.underlying go!"To") #x (Val #(x.To'))
+  set'To : ∀ (x : NetworkPolicyEgressRule) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetworkPolicyEgressRule.underlying go!"To") (PairV #x #y) (Val #(({ x with To' := y } : NetworkPolicyEgressRule)))
   method_set : go.MethodSetIs NetworkPolicyEgressRule.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType NetworkPolicyEgressRule.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType NetworkPolicyEgressRule.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType NetworkPolicyEgressRule.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] NetworkPolicyEgressRule.TypeAssumptions.type_repr
   NetworkPolicyEgressRule.TypeAssumptions.underlying
-  NetworkPolicyEgressRule.TypeAssumptions.get_Ports
-  NetworkPolicyEgressRule.TypeAssumptions.set_Ports
-  NetworkPolicyEgressRule.TypeAssumptions.get_To
-  NetworkPolicyEgressRule.TypeAssumptions.set_To
+  NetworkPolicyEgressRule.TypeAssumptions.get'Ports
+  NetworkPolicyEgressRule.TypeAssumptions.set'Ports
+  NetworkPolicyEgressRule.TypeAssumptions.get'To
+  NetworkPolicyEgressRule.TypeAssumptions.set'To
   NetworkPolicyEgressRule.TypeAssumptions.method_set
   NetworkPolicyEgressRule.TypeAssumptions.ptr_method_set
 
@@ -2255,7 +2255,7 @@ noncomputable instance IPBlock.zero_val [GooseExts] : ZeroVal IPBlock :=
 @[irreducible] noncomputable def IPBlock.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   IPBlock.fieldsUnsealed
 
-noncomputable instance equals_unfold_IPBlock [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'IPBlock [GooseExts] [GoGlobalContext] :
     EqualsUnfold IPBlock.fields IPBlock.fieldsUnsealed :=
   ⟨by unfold IPBlock.fields; rfl⟩
 
@@ -2265,19 +2265,19 @@ noncomputable instance equals_unfold_IPBlock [GooseExts] [GoGlobalContext] :
 class IPBlock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying IPBlock.underlying IPBlock
   underlying : go.UnderlyingDirectedEq IPBlock.ty IPBlock.underlying
-  get_CIDR : ∀ (x : IPBlock), go.IsGoStepPureDetTagged under (StructFieldGet IPBlock.underlying go!"CIDR") #x (Val #(x.CIDR'))
-  set_CIDR : ∀ (x : IPBlock) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet IPBlock.underlying go!"CIDR") (PairV #x #y) (Val #(({ x with CIDR' := y } : IPBlock)))
-  get_Except : ∀ (x : IPBlock), go.IsGoStepPureDetTagged under (StructFieldGet IPBlock.underlying go!"Except") #x (Val #(x.Except'))
-  set_Except : ∀ (x : IPBlock) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet IPBlock.underlying go!"Except") (PairV #x #y) (Val #(({ x with Except' := y } : IPBlock)))
+  get'CIDR : ∀ (x : IPBlock), go.IsGoStepPureDetTagged under (StructFieldGet IPBlock.underlying go!"CIDR") #x (Val #(x.CIDR'))
+  set'CIDR : ∀ (x : IPBlock) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet IPBlock.underlying go!"CIDR") (PairV #x #y) (Val #(({ x with CIDR' := y } : IPBlock)))
+  get'Except : ∀ (x : IPBlock), go.IsGoStepPureDetTagged under (StructFieldGet IPBlock.underlying go!"Except") #x (Val #(x.Except'))
+  set'Except : ∀ (x : IPBlock) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet IPBlock.underlying go!"Except") (PairV #x #y) (Val #(({ x with Except' := y } : IPBlock)))
   method_set : go.MethodSetIs IPBlock.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType IPBlock.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType IPBlock.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType IPBlock.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] IPBlock.TypeAssumptions.type_repr
   IPBlock.TypeAssumptions.underlying
-  IPBlock.TypeAssumptions.get_CIDR
-  IPBlock.TypeAssumptions.set_CIDR
-  IPBlock.TypeAssumptions.get_Except
-  IPBlock.TypeAssumptions.set_Except
+  IPBlock.TypeAssumptions.get'CIDR
+  IPBlock.TypeAssumptions.set'CIDR
+  IPBlock.TypeAssumptions.get'Except
+  IPBlock.TypeAssumptions.set'Except
   IPBlock.TypeAssumptions.method_set
   IPBlock.TypeAssumptions.ptr_method_set
 
@@ -2320,111 +2320,111 @@ attribute [instance] NetworkPolicyList.TypeAssumptions.type_repr
   NetworkPolicyList.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ScaleSpec_instance : ScaleSpec.TypeAssumptions
-  ScaleStatus_instance : ScaleStatus.TypeAssumptions
-  Scale_instance : Scale.TypeAssumptions
-  Deployment_instance : Deployment.TypeAssumptions
-  DeploymentSpec_instance : DeploymentSpec.TypeAssumptions
-  DeploymentRollback_instance : DeploymentRollback.TypeAssumptions
-  RollbackConfig_instance : RollbackConfig.TypeAssumptions
-  DeploymentStrategy_instance : DeploymentStrategy.TypeAssumptions
-  DeploymentStrategyType_instance : DeploymentStrategyType.TypeAssumptions
-  RollingUpdateDeployment_instance : RollingUpdateDeployment.TypeAssumptions
-  DeploymentStatus_instance : DeploymentStatus.TypeAssumptions
-  DeploymentConditionType_instance : DeploymentConditionType.TypeAssumptions
-  DeploymentCondition_instance : DeploymentCondition.TypeAssumptions
-  DeploymentList_instance : DeploymentList.TypeAssumptions
-  DaemonSetUpdateStrategy_instance : DaemonSetUpdateStrategy.TypeAssumptions
-  DaemonSetUpdateStrategyType_instance : DaemonSetUpdateStrategyType.TypeAssumptions
-  RollingUpdateDaemonSet_instance : RollingUpdateDaemonSet.TypeAssumptions
-  DaemonSetSpec_instance : DaemonSetSpec.TypeAssumptions
-  DaemonSetStatus_instance : DaemonSetStatus.TypeAssumptions
-  DaemonSetConditionType_instance : DaemonSetConditionType.TypeAssumptions
-  DaemonSetCondition_instance : DaemonSetCondition.TypeAssumptions
-  DaemonSet_instance : DaemonSet.TypeAssumptions
-  DaemonSetList_instance : DaemonSetList.TypeAssumptions
-  Ingress_instance : Ingress.TypeAssumptions
-  IngressList_instance : IngressList.TypeAssumptions
-  IngressSpec_instance : IngressSpec.TypeAssumptions
-  IngressTLS_instance : IngressTLS.TypeAssumptions
-  IngressStatus_instance : IngressStatus.TypeAssumptions
-  IngressLoadBalancerStatus_instance : IngressLoadBalancerStatus.TypeAssumptions
-  IngressLoadBalancerIngress_instance : IngressLoadBalancerIngress.TypeAssumptions
-  IngressPortStatus_instance : IngressPortStatus.TypeAssumptions
-  IngressRule_instance : IngressRule.TypeAssumptions
-  IngressRuleValue_instance : IngressRuleValue.TypeAssumptions
-  HTTPIngressRuleValue_instance : HTTPIngressRuleValue.TypeAssumptions
-  PathType_instance : PathType.TypeAssumptions
-  HTTPIngressPath_instance : HTTPIngressPath.TypeAssumptions
-  IngressBackend_instance : IngressBackend.TypeAssumptions
-  ReplicaSet_instance : ReplicaSet.TypeAssumptions
-  ReplicaSetList_instance : ReplicaSetList.TypeAssumptions
-  ReplicaSetSpec_instance : ReplicaSetSpec.TypeAssumptions
-  ReplicaSetStatus_instance : ReplicaSetStatus.TypeAssumptions
-  ReplicaSetConditionType_instance : ReplicaSetConditionType.TypeAssumptions
-  ReplicaSetCondition_instance : ReplicaSetCondition.TypeAssumptions
-  NetworkPolicy_instance : NetworkPolicy.TypeAssumptions
-  PolicyType_instance : PolicyType.TypeAssumptions
-  NetworkPolicySpec_instance : NetworkPolicySpec.TypeAssumptions
-  NetworkPolicyIngressRule_instance : NetworkPolicyIngressRule.TypeAssumptions
-  NetworkPolicyEgressRule_instance : NetworkPolicyEgressRule.TypeAssumptions
-  NetworkPolicyPort_instance : NetworkPolicyPort.TypeAssumptions
-  IPBlock_instance : IPBlock.TypeAssumptions
-  NetworkPolicyPeer_instance : NetworkPolicyPeer.TypeAssumptions
-  NetworkPolicyList_instance : NetworkPolicyList.TypeAssumptions
+  instance'ScaleSpec : ScaleSpec.TypeAssumptions
+  instance'ScaleStatus : ScaleStatus.TypeAssumptions
+  instance'Scale : Scale.TypeAssumptions
+  instance'Deployment : Deployment.TypeAssumptions
+  instance'DeploymentSpec : DeploymentSpec.TypeAssumptions
+  instance'DeploymentRollback : DeploymentRollback.TypeAssumptions
+  instance'RollbackConfig : RollbackConfig.TypeAssumptions
+  instance'DeploymentStrategy : DeploymentStrategy.TypeAssumptions
+  instance'DeploymentStrategyType : DeploymentStrategyType.TypeAssumptions
+  instance'RollingUpdateDeployment : RollingUpdateDeployment.TypeAssumptions
+  instance'DeploymentStatus : DeploymentStatus.TypeAssumptions
+  instance'DeploymentConditionType : DeploymentConditionType.TypeAssumptions
+  instance'DeploymentCondition : DeploymentCondition.TypeAssumptions
+  instance'DeploymentList : DeploymentList.TypeAssumptions
+  instance'DaemonSetUpdateStrategy : DaemonSetUpdateStrategy.TypeAssumptions
+  instance'DaemonSetUpdateStrategyType : DaemonSetUpdateStrategyType.TypeAssumptions
+  instance'RollingUpdateDaemonSet : RollingUpdateDaemonSet.TypeAssumptions
+  instance'DaemonSetSpec : DaemonSetSpec.TypeAssumptions
+  instance'DaemonSetStatus : DaemonSetStatus.TypeAssumptions
+  instance'DaemonSetConditionType : DaemonSetConditionType.TypeAssumptions
+  instance'DaemonSetCondition : DaemonSetCondition.TypeAssumptions
+  instance'DaemonSet : DaemonSet.TypeAssumptions
+  instance'DaemonSetList : DaemonSetList.TypeAssumptions
+  instance'Ingress : Ingress.TypeAssumptions
+  instance'IngressList : IngressList.TypeAssumptions
+  instance'IngressSpec : IngressSpec.TypeAssumptions
+  instance'IngressTLS : IngressTLS.TypeAssumptions
+  instance'IngressStatus : IngressStatus.TypeAssumptions
+  instance'IngressLoadBalancerStatus : IngressLoadBalancerStatus.TypeAssumptions
+  instance'IngressLoadBalancerIngress : IngressLoadBalancerIngress.TypeAssumptions
+  instance'IngressPortStatus : IngressPortStatus.TypeAssumptions
+  instance'IngressRule : IngressRule.TypeAssumptions
+  instance'IngressRuleValue : IngressRuleValue.TypeAssumptions
+  instance'HTTPIngressRuleValue : HTTPIngressRuleValue.TypeAssumptions
+  instance'PathType : PathType.TypeAssumptions
+  instance'HTTPIngressPath : HTTPIngressPath.TypeAssumptions
+  instance'IngressBackend : IngressBackend.TypeAssumptions
+  instance'ReplicaSet : ReplicaSet.TypeAssumptions
+  instance'ReplicaSetList : ReplicaSetList.TypeAssumptions
+  instance'ReplicaSetSpec : ReplicaSetSpec.TypeAssumptions
+  instance'ReplicaSetStatus : ReplicaSetStatus.TypeAssumptions
+  instance'ReplicaSetConditionType : ReplicaSetConditionType.TypeAssumptions
+  instance'ReplicaSetCondition : ReplicaSetCondition.TypeAssumptions
+  instance'NetworkPolicy : NetworkPolicy.TypeAssumptions
+  instance'PolicyType : PolicyType.TypeAssumptions
+  instance'NetworkPolicySpec : NetworkPolicySpec.TypeAssumptions
+  instance'NetworkPolicyIngressRule : NetworkPolicyIngressRule.TypeAssumptions
+  instance'NetworkPolicyEgressRule : NetworkPolicyEgressRule.TypeAssumptions
+  instance'NetworkPolicyPort : NetworkPolicyPort.TypeAssumptions
+  instance'IPBlock : IPBlock.TypeAssumptions
+  instance'NetworkPolicyPeer : NetworkPolicyPeer.TypeAssumptions
+  instance'NetworkPolicyList : NetworkPolicyList.TypeAssumptions
 
-attribute [instance] Assumptions.ScaleSpec_instance
-  Assumptions.ScaleStatus_instance
-  Assumptions.Scale_instance
-  Assumptions.Deployment_instance
-  Assumptions.DeploymentSpec_instance
-  Assumptions.DeploymentRollback_instance
-  Assumptions.RollbackConfig_instance
-  Assumptions.DeploymentStrategy_instance
-  Assumptions.DeploymentStrategyType_instance
-  Assumptions.RollingUpdateDeployment_instance
-  Assumptions.DeploymentStatus_instance
-  Assumptions.DeploymentConditionType_instance
-  Assumptions.DeploymentCondition_instance
-  Assumptions.DeploymentList_instance
-  Assumptions.DaemonSetUpdateStrategy_instance
-  Assumptions.DaemonSetUpdateStrategyType_instance
-  Assumptions.RollingUpdateDaemonSet_instance
-  Assumptions.DaemonSetSpec_instance
-  Assumptions.DaemonSetStatus_instance
-  Assumptions.DaemonSetConditionType_instance
-  Assumptions.DaemonSetCondition_instance
-  Assumptions.DaemonSet_instance
-  Assumptions.DaemonSetList_instance
-  Assumptions.Ingress_instance
-  Assumptions.IngressList_instance
-  Assumptions.IngressSpec_instance
-  Assumptions.IngressTLS_instance
-  Assumptions.IngressStatus_instance
-  Assumptions.IngressLoadBalancerStatus_instance
-  Assumptions.IngressLoadBalancerIngress_instance
-  Assumptions.IngressPortStatus_instance
-  Assumptions.IngressRule_instance
-  Assumptions.IngressRuleValue_instance
-  Assumptions.HTTPIngressRuleValue_instance
-  Assumptions.PathType_instance
-  Assumptions.HTTPIngressPath_instance
-  Assumptions.IngressBackend_instance
-  Assumptions.ReplicaSet_instance
-  Assumptions.ReplicaSetList_instance
-  Assumptions.ReplicaSetSpec_instance
-  Assumptions.ReplicaSetStatus_instance
-  Assumptions.ReplicaSetConditionType_instance
-  Assumptions.ReplicaSetCondition_instance
-  Assumptions.NetworkPolicy_instance
-  Assumptions.PolicyType_instance
-  Assumptions.NetworkPolicySpec_instance
-  Assumptions.NetworkPolicyIngressRule_instance
-  Assumptions.NetworkPolicyEgressRule_instance
-  Assumptions.NetworkPolicyPort_instance
-  Assumptions.IPBlock_instance
-  Assumptions.NetworkPolicyPeer_instance
-  Assumptions.NetworkPolicyList_instance
+attribute [instance] Assumptions.instance'ScaleSpec
+  Assumptions.instance'ScaleStatus
+  Assumptions.instance'Scale
+  Assumptions.instance'Deployment
+  Assumptions.instance'DeploymentSpec
+  Assumptions.instance'DeploymentRollback
+  Assumptions.instance'RollbackConfig
+  Assumptions.instance'DeploymentStrategy
+  Assumptions.instance'DeploymentStrategyType
+  Assumptions.instance'RollingUpdateDeployment
+  Assumptions.instance'DeploymentStatus
+  Assumptions.instance'DeploymentConditionType
+  Assumptions.instance'DeploymentCondition
+  Assumptions.instance'DeploymentList
+  Assumptions.instance'DaemonSetUpdateStrategy
+  Assumptions.instance'DaemonSetUpdateStrategyType
+  Assumptions.instance'RollingUpdateDaemonSet
+  Assumptions.instance'DaemonSetSpec
+  Assumptions.instance'DaemonSetStatus
+  Assumptions.instance'DaemonSetConditionType
+  Assumptions.instance'DaemonSetCondition
+  Assumptions.instance'DaemonSet
+  Assumptions.instance'DaemonSetList
+  Assumptions.instance'Ingress
+  Assumptions.instance'IngressList
+  Assumptions.instance'IngressSpec
+  Assumptions.instance'IngressTLS
+  Assumptions.instance'IngressStatus
+  Assumptions.instance'IngressLoadBalancerStatus
+  Assumptions.instance'IngressLoadBalancerIngress
+  Assumptions.instance'IngressPortStatus
+  Assumptions.instance'IngressRule
+  Assumptions.instance'IngressRuleValue
+  Assumptions.instance'HTTPIngressRuleValue
+  Assumptions.instance'PathType
+  Assumptions.instance'HTTPIngressPath
+  Assumptions.instance'IngressBackend
+  Assumptions.instance'ReplicaSet
+  Assumptions.instance'ReplicaSetList
+  Assumptions.instance'ReplicaSetSpec
+  Assumptions.instance'ReplicaSetStatus
+  Assumptions.instance'ReplicaSetConditionType
+  Assumptions.instance'ReplicaSetCondition
+  Assumptions.instance'NetworkPolicy
+  Assumptions.instance'PolicyType
+  Assumptions.instance'NetworkPolicySpec
+  Assumptions.instance'NetworkPolicyIngressRule
+  Assumptions.instance'NetworkPolicyEgressRule
+  Assumptions.instance'NetworkPolicyPort
+  Assumptions.instance'IPBlock
+  Assumptions.instance'NetworkPolicyPeer
+  Assumptions.instance'NetworkPolicyList
 
 end k8s_io.api.extensions.v1beta1
 

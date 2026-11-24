@@ -46,12 +46,12 @@ theorem inMem.known.wp_proof
   iNamed Hf
   iStructNamed Hp
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_T_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_unfold'T.method_unfold]
   try wp_auto
   wp_apply wp_T gx x t $$ [Hx] as %ut %Hut
   · iframe Hx; ipureintro; exact ht
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_Has_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_unfold'Has.method_unfold]
   try wp_auto
   wp_apply wp_Has g.TermLen' x.s.termLen ut $$ [HTermLen]
   · iexact HTermLen
@@ -63,12 +63,12 @@ theorem inMem.known.wp_proof
     iapply HΦ; ipureintro; rfl
   · simp only [hh, ite_true] at Hv
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_T_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_unfold'T.method_unfold]
     try wp_auto
     wp_apply wp_T gx x t $$ [Hx] as %ut2 %Hut2
     · iframe Hx; ipureintro; exact ht
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_Get_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_unfold'Get.method_unfold]
     try wp_auto
     wp_apply wp_Get g.TermLen' x.s.termLen ut2 v $$ [HTermLen] as %u %Hu
     · iframe HTermLen; ipureintro; rw [Hut2]; exact Hv

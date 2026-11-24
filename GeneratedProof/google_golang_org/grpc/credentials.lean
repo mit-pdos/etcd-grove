@@ -26,7 +26,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.Assumptions]
 
-noncomputable instance CommonAuthInfo_typed_pointsto :
+noncomputable instance typed_pointsto'CommonAuthInfo :
     TypedPointsto (GF := GF) google_golang_org.grpc.credentials.CommonAuthInfo where
   typedPointstoDef l v dq := iprop(
     "SecurityLevel" ∷ typedPointsto (structFieldRef google_golang_org.grpc.credentials.CommonAuthInfo go!"SecurityLevel" l) v.SecurityLevel' dq ∗
@@ -35,11 +35,11 @@ noncomputable instance CommonAuthInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance CommonAuthInfo_into_val_typed :
+noncomputable instance into_val_typed'CommonAuthInfo :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.CommonAuthInfo google_golang_org.grpc.credentials.CommonAuthInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance CommonAuthInfo_access_load_SecurityLevel (l : Loc) (v : google_golang_org.grpc.credentials.CommonAuthInfo) (dq : DFrac) :
+noncomputable instance access_load'CommonAuthInfo'SecurityLevel (l : Loc) (v : google_golang_org.grpc.credentials.CommonAuthInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.CommonAuthInfo go!"SecurityLevel" l) v.SecurityLevel' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.CommonAuthInfo go!"SecurityLevel" l) v.SecurityLevel' dq)
@@ -47,7 +47,7 @@ noncomputable instance CommonAuthInfo_access_load_SecurityLevel (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommonAuthInfo_access_store_SecurityLevel (l : Loc) (v : google_golang_org.grpc.credentials.CommonAuthInfo) (y : google_golang_org.grpc.credentials.SecurityLevel) :
+noncomputable instance access_store'CommonAuthInfo'SecurityLevel (l : Loc) (v : google_golang_org.grpc.credentials.CommonAuthInfo) (y : google_golang_org.grpc.credentials.SecurityLevel) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.CommonAuthInfo go!"SecurityLevel" l) v.SecurityLevel' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.CommonAuthInfo go!"SecurityLevel" l) y (DFrac.own 1))
@@ -66,7 +66,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.Assumptions]
 
-noncomputable instance ProtocolInfo_typed_pointsto :
+noncomputable instance typed_pointsto'ProtocolInfo :
     TypedPointsto (GF := GF) google_golang_org.grpc.credentials.ProtocolInfo where
   typedPointstoDef l v dq := iprop(
     "ProtocolVersion" ∷ typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"ProtocolVersion" l) v.ProtocolVersion' dq ∗
@@ -78,11 +78,11 @@ noncomputable instance ProtocolInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ProtocolInfo_into_val_typed :
+noncomputable instance into_val_typed'ProtocolInfo :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.ProtocolInfo google_golang_org.grpc.credentials.ProtocolInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ProtocolInfo_access_load_ProtocolVersion (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (dq : DFrac) :
+noncomputable instance access_load'ProtocolInfo'ProtocolVersion (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"ProtocolVersion" l) v.ProtocolVersion' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"ProtocolVersion" l) v.ProtocolVersion' dq)
@@ -90,7 +90,7 @@ noncomputable instance ProtocolInfo_access_load_ProtocolVersion (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProtocolInfo_access_store_ProtocolVersion (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (y : GoString) :
+noncomputable instance access_store'ProtocolInfo'ProtocolVersion (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"ProtocolVersion" l) v.ProtocolVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"ProtocolVersion" l) y (DFrac.own 1))
@@ -98,7 +98,7 @@ noncomputable instance ProtocolInfo_access_store_ProtocolVersion (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProtocolInfo_access_load_SecurityProtocol (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (dq : DFrac) :
+noncomputable instance access_load'ProtocolInfo'SecurityProtocol (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"SecurityProtocol" l) v.SecurityProtocol' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"SecurityProtocol" l) v.SecurityProtocol' dq)
@@ -106,7 +106,7 @@ noncomputable instance ProtocolInfo_access_load_SecurityProtocol (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProtocolInfo_access_store_SecurityProtocol (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (y : GoString) :
+noncomputable instance access_store'ProtocolInfo'SecurityProtocol (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"SecurityProtocol" l) v.SecurityProtocol' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"SecurityProtocol" l) y (DFrac.own 1))
@@ -114,7 +114,7 @@ noncomputable instance ProtocolInfo_access_store_SecurityProtocol (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProtocolInfo_access_load_SecurityVersion (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (dq : DFrac) :
+noncomputable instance access_load'ProtocolInfo'SecurityVersion (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"SecurityVersion" l) v.SecurityVersion' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"SecurityVersion" l) v.SecurityVersion' dq)
@@ -122,7 +122,7 @@ noncomputable instance ProtocolInfo_access_load_SecurityVersion (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProtocolInfo_access_store_SecurityVersion (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (y : GoString) :
+noncomputable instance access_store'ProtocolInfo'SecurityVersion (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"SecurityVersion" l) v.SecurityVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"SecurityVersion" l) y (DFrac.own 1))
@@ -130,7 +130,7 @@ noncomputable instance ProtocolInfo_access_store_SecurityVersion (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProtocolInfo_access_load_ServerName (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (dq : DFrac) :
+noncomputable instance access_load'ProtocolInfo'ServerName (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"ServerName" l) v.ServerName' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"ServerName" l) v.ServerName' dq)
@@ -138,7 +138,7 @@ noncomputable instance ProtocolInfo_access_load_ServerName (l : Loc) (v : google
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProtocolInfo_access_store_ServerName (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (y : GoString) :
+noncomputable instance access_store'ProtocolInfo'ServerName (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"ServerName" l) v.ServerName' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"ServerName" l) y (DFrac.own 1))
@@ -157,7 +157,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.Assumptions]
 
-noncomputable instance RequestInfo_typed_pointsto :
+noncomputable instance typed_pointsto'RequestInfo :
     TypedPointsto (GF := GF) google_golang_org.grpc.credentials.RequestInfo where
   typedPointstoDef l v dq := iprop(
     "Method" ∷ typedPointsto (structFieldRef google_golang_org.grpc.credentials.RequestInfo go!"Method" l) v.Method' dq ∗
@@ -167,11 +167,11 @@ noncomputable instance RequestInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance RequestInfo_into_val_typed :
+noncomputable instance into_val_typed'RequestInfo :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.RequestInfo google_golang_org.grpc.credentials.RequestInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance RequestInfo_access_load_Method (l : Loc) (v : google_golang_org.grpc.credentials.RequestInfo) (dq : DFrac) :
+noncomputable instance access_load'RequestInfo'Method (l : Loc) (v : google_golang_org.grpc.credentials.RequestInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.RequestInfo go!"Method" l) v.Method' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.RequestInfo go!"Method" l) v.Method' dq)
@@ -179,7 +179,7 @@ noncomputable instance RequestInfo_access_load_Method (l : Loc) (v : google_gola
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_store_Method (l : Loc) (v : google_golang_org.grpc.credentials.RequestInfo) (y : GoString) :
+noncomputable instance access_store'RequestInfo'Method (l : Loc) (v : google_golang_org.grpc.credentials.RequestInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.RequestInfo go!"Method" l) v.Method' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.RequestInfo go!"Method" l) y (DFrac.own 1))
@@ -187,7 +187,7 @@ noncomputable instance RequestInfo_access_store_Method (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_load_AuthInfo (l : Loc) (v : google_golang_org.grpc.credentials.RequestInfo) (dq : DFrac) :
+noncomputable instance access_load'RequestInfo'AuthInfo (l : Loc) (v : google_golang_org.grpc.credentials.RequestInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.RequestInfo go!"AuthInfo" l) v.AuthInfo' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.RequestInfo go!"AuthInfo" l) v.AuthInfo' dq)
@@ -195,7 +195,7 @@ noncomputable instance RequestInfo_access_load_AuthInfo (l : Loc) (v : google_go
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_store_AuthInfo (l : Loc) (v : google_golang_org.grpc.credentials.RequestInfo) (y : google_golang_org.grpc.credentials.AuthInfo) :
+noncomputable instance access_store'RequestInfo'AuthInfo (l : Loc) (v : google_golang_org.grpc.credentials.RequestInfo) (y : google_golang_org.grpc.credentials.AuthInfo) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.RequestInfo go!"AuthInfo" l) v.AuthInfo' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.RequestInfo go!"AuthInfo" l) y (DFrac.own 1))
@@ -214,7 +214,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.Assumptions]
 
-noncomputable instance requestInfoKey_typed_pointsto :
+noncomputable instance typed_pointsto'requestInfoKey :
     TypedPointsto (GF := GF) google_golang_org.grpc.credentials.requestInfoKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -222,7 +222,7 @@ noncomputable instance requestInfoKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance requestInfoKey_into_val_typed :
+noncomputable instance into_val_typed'requestInfoKey :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.requestInfoKey google_golang_org.grpc.credentials.requestInfoKey.underlying := by
   solve_into_val_typed_struct
 
@@ -237,11 +237,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.Assumptions]
 
-noncomputable instance ClientHandshakeInfo_typed_pointsto :
+noncomputable instance typed_pointsto'ClientHandshakeInfo :
     TypedPointsto (GF := GF) google_golang_org.grpc.credentials.ClientHandshakeInfo :=
   sorry -- axiomatized type
 
-noncomputable instance ClientHandshakeInfo_into_val_typed :
+noncomputable instance into_val_typed'ClientHandshakeInfo :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.ClientHandshakeInfo google_golang_org.grpc.credentials.ClientHandshakeInfo.underlying :=
   sorry -- axiomatized type
 
@@ -256,11 +256,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.Assumptions]
 
-noncomputable instance OtherChannelzSecurityValue_typed_pointsto :
+noncomputable instance typed_pointsto'OtherChannelzSecurityValue :
     TypedPointsto (GF := GF) google_golang_org.grpc.credentials.OtherChannelzSecurityValue :=
   sorry -- axiomatized type
 
-noncomputable instance OtherChannelzSecurityValue_into_val_typed :
+noncomputable instance into_val_typed'OtherChannelzSecurityValue :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.OtherChannelzSecurityValue google_golang_org.grpc.credentials.OtherChannelzSecurityValue.underlying :=
   sorry -- axiomatized type
 
@@ -275,11 +275,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.Assumptions]
 
-noncomputable instance TLSInfo_typed_pointsto :
+noncomputable instance typed_pointsto'TLSInfo :
     TypedPointsto (GF := GF) google_golang_org.grpc.credentials.TLSInfo :=
   sorry -- axiomatized type
 
-noncomputable instance TLSInfo_into_val_typed :
+noncomputable instance into_val_typed'TLSInfo :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.TLSInfo google_golang_org.grpc.credentials.TLSInfo.underlying :=
   sorry -- axiomatized type
 
@@ -294,11 +294,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.Assumptions]
 
-noncomputable instance tlsCreds_typed_pointsto :
+noncomputable instance typed_pointsto'tlsCreds :
     TypedPointsto (GF := GF) google_golang_org.grpc.credentials.tlsCreds :=
   sorry -- axiomatized type
 
-noncomputable instance tlsCreds_into_val_typed :
+noncomputable instance into_val_typed'tlsCreds :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.tlsCreds google_golang_org.grpc.credentials.tlsCreds.underlying :=
   sorry -- axiomatized type
 
@@ -313,7 +313,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.Assumptions]
 
-noncomputable instance TLSChannelzSecurityValue_typed_pointsto :
+noncomputable instance typed_pointsto'TLSChannelzSecurityValue :
     TypedPointsto (GF := GF) google_golang_org.grpc.credentials.TLSChannelzSecurityValue where
   typedPointstoDef l v dq := iprop(
     "ChannelzSecurityValue" ∷ typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"ChannelzSecurityValue" l) v.ChannelzSecurityValue' dq ∗
@@ -325,11 +325,11 @@ noncomputable instance TLSChannelzSecurityValue_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance TLSChannelzSecurityValue_into_val_typed :
+noncomputable instance into_val_typed'TLSChannelzSecurityValue :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.TLSChannelzSecurityValue google_golang_org.grpc.credentials.TLSChannelzSecurityValue.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance TLSChannelzSecurityValue_access_load_ChannelzSecurityValue (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (dq : DFrac) :
+noncomputable instance access_load'TLSChannelzSecurityValue'ChannelzSecurityValue (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"ChannelzSecurityValue" l) v.ChannelzSecurityValue' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"ChannelzSecurityValue" l) v.ChannelzSecurityValue' dq)
@@ -337,7 +337,7 @@ noncomputable instance TLSChannelzSecurityValue_access_load_ChannelzSecurityValu
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSChannelzSecurityValue_access_store_ChannelzSecurityValue (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (y : google_golang_org.grpc.credentials.ChannelzSecurityValue) :
+noncomputable instance access_store'TLSChannelzSecurityValue'ChannelzSecurityValue (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (y : google_golang_org.grpc.credentials.ChannelzSecurityValue) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"ChannelzSecurityValue" l) v.ChannelzSecurityValue' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"ChannelzSecurityValue" l) y (DFrac.own 1))
@@ -345,7 +345,7 @@ noncomputable instance TLSChannelzSecurityValue_access_store_ChannelzSecurityVal
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSChannelzSecurityValue_access_load_StandardName (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (dq : DFrac) :
+noncomputable instance access_load'TLSChannelzSecurityValue'StandardName (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"StandardName" l) v.StandardName' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"StandardName" l) v.StandardName' dq)
@@ -353,7 +353,7 @@ noncomputable instance TLSChannelzSecurityValue_access_load_StandardName (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSChannelzSecurityValue_access_store_StandardName (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (y : GoString) :
+noncomputable instance access_store'TLSChannelzSecurityValue'StandardName (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"StandardName" l) v.StandardName' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"StandardName" l) y (DFrac.own 1))
@@ -361,7 +361,7 @@ noncomputable instance TLSChannelzSecurityValue_access_store_StandardName (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSChannelzSecurityValue_access_load_LocalCertificate (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (dq : DFrac) :
+noncomputable instance access_load'TLSChannelzSecurityValue'LocalCertificate (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"LocalCertificate" l) v.LocalCertificate' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"LocalCertificate" l) v.LocalCertificate' dq)
@@ -369,7 +369,7 @@ noncomputable instance TLSChannelzSecurityValue_access_load_LocalCertificate (l 
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSChannelzSecurityValue_access_store_LocalCertificate (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (y : GoSlice) :
+noncomputable instance access_store'TLSChannelzSecurityValue'LocalCertificate (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"LocalCertificate" l) v.LocalCertificate' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"LocalCertificate" l) y (DFrac.own 1))
@@ -377,7 +377,7 @@ noncomputable instance TLSChannelzSecurityValue_access_store_LocalCertificate (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSChannelzSecurityValue_access_load_RemoteCertificate (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (dq : DFrac) :
+noncomputable instance access_load'TLSChannelzSecurityValue'RemoteCertificate (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"RemoteCertificate" l) v.RemoteCertificate' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"RemoteCertificate" l) v.RemoteCertificate' dq)
@@ -385,7 +385,7 @@ noncomputable instance TLSChannelzSecurityValue_access_load_RemoteCertificate (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSChannelzSecurityValue_access_store_RemoteCertificate (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (y : GoSlice) :
+noncomputable instance access_store'TLSChannelzSecurityValue'RemoteCertificate (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"RemoteCertificate" l) v.RemoteCertificate' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"RemoteCertificate" l) y (DFrac.own 1))

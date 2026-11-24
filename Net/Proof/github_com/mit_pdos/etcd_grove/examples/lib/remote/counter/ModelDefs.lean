@@ -443,10 +443,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.remote.count
 
 /-- `Out`'s values are injective (`N` and `Unknown` are read off by deterministic steps). -/
 theorem out_intoVal_inj {x y : Out} (h : (#x : val) = #y) : x = y := by
-  have hN := (Out.TypeAssumptions.get_N x).isGoStep_det_internal.isGoStep_pure_det
-  have hN' := (Out.TypeAssumptions.get_N y).isGoStep_det_internal.isGoStep_pure_det
-  have hU := (Out.TypeAssumptions.get_Unknown x).isGoStep_det_internal.isGoStep_pure_det
-  have hU' := (Out.TypeAssumptions.get_Unknown y).isGoStep_det_internal.isGoStep_pure_det
+  have hN := (Out.TypeAssumptions.get'N x).isGoStep_det_internal.isGoStep_pure_det
+  have hN' := (Out.TypeAssumptions.get'N y).isGoStep_det_internal.isGoStep_pure_det
+  have hU := (Out.TypeAssumptions.get'Unknown x).isGoStep_det_internal.isGoStep_pure_det
+  have hU' := (Out.TypeAssumptions.get'Unknown y).isGoStep_det_internal.isGoStep_pure_det
   rw [h, hN'] at hN
   rw [h, hU'] at hU
   have eN : Val #x.N' = Val #y.N' := (congrFun hN (Val #y.N')) ▸ rfl

@@ -24,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_logr.logr.Assumptions]
 
-noncomputable instance contextKey_typed_pointsto :
+noncomputable instance typed_pointsto'contextKey :
     TypedPointsto (GF := GF) github_com.go_logr.logr.contextKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -32,7 +32,7 @@ noncomputable instance contextKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance contextKey_into_val_typed :
+noncomputable instance into_val_typed'contextKey :
     IntoValTypedUnderlying (GF := GF) github_com.go_logr.logr.contextKey github_com.go_logr.logr.contextKey.underlying := by
   solve_into_val_typed_struct
 
@@ -47,7 +47,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_logr.logr.Assumptions]
 
-noncomputable instance notFoundError_typed_pointsto :
+noncomputable instance typed_pointsto'notFoundError :
     TypedPointsto (GF := GF) github_com.go_logr.logr.notFoundError where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -55,7 +55,7 @@ noncomputable instance notFoundError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance notFoundError_into_val_typed :
+noncomputable instance into_val_typed'notFoundError :
     IntoValTypedUnderlying (GF := GF) github_com.go_logr.logr.notFoundError github_com.go_logr.logr.notFoundError.underlying := by
   solve_into_val_typed_struct
 
@@ -70,7 +70,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_logr.logr.Assumptions]
 
-noncomputable instance Logger_typed_pointsto :
+noncomputable instance typed_pointsto'Logger :
     TypedPointsto (GF := GF) github_com.go_logr.logr.Logger where
   typedPointstoDef l v dq := iprop(
     "sink" ∷ typedPointsto (structFieldRef github_com.go_logr.logr.Logger go!"sink" l) v.sink' dq ∗
@@ -80,11 +80,11 @@ noncomputable instance Logger_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Logger_into_val_typed :
+noncomputable instance into_val_typed'Logger :
     IntoValTypedUnderlying (GF := GF) github_com.go_logr.logr.Logger github_com.go_logr.logr.Logger.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Logger_access_load_sink (l : Loc) (v : github_com.go_logr.logr.Logger) (dq : DFrac) :
+noncomputable instance access_load'Logger'sink (l : Loc) (v : github_com.go_logr.logr.Logger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_logr.logr.Logger go!"sink" l) v.sink' dq)
       (typedPointsto (structFieldRef github_com.go_logr.logr.Logger go!"sink" l) v.sink' dq)
@@ -92,7 +92,7 @@ noncomputable instance Logger_access_load_sink (l : Loc) (v : github_com.go_logr
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_sink (l : Loc) (v : github_com.go_logr.logr.Logger) (y : github_com.go_logr.logr.LogSink) :
+noncomputable instance access_store'Logger'sink (l : Loc) (v : github_com.go_logr.logr.Logger) (y : github_com.go_logr.logr.LogSink) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_logr.logr.Logger go!"sink" l) v.sink' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_logr.logr.Logger go!"sink" l) y (DFrac.own 1))
@@ -100,7 +100,7 @@ noncomputable instance Logger_access_store_sink (l : Loc) (v : github_com.go_log
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_load_level (l : Loc) (v : github_com.go_logr.logr.Logger) (dq : DFrac) :
+noncomputable instance access_load'Logger'level (l : Loc) (v : github_com.go_logr.logr.Logger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_logr.logr.Logger go!"level" l) v.level' dq)
       (typedPointsto (structFieldRef github_com.go_logr.logr.Logger go!"level" l) v.level' dq)
@@ -108,7 +108,7 @@ noncomputable instance Logger_access_load_level (l : Loc) (v : github_com.go_log
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_level (l : Loc) (v : github_com.go_logr.logr.Logger) (y : w64) :
+noncomputable instance access_store'Logger'level (l : Loc) (v : github_com.go_logr.logr.Logger) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_logr.logr.Logger go!"level" l) v.level' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_logr.logr.Logger go!"level" l) y (DFrac.own 1))
@@ -127,7 +127,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_logr.logr.Assumptions]
 
-noncomputable instance RuntimeInfo_typed_pointsto :
+noncomputable instance typed_pointsto'RuntimeInfo :
     TypedPointsto (GF := GF) github_com.go_logr.logr.RuntimeInfo where
   typedPointstoDef l v dq := iprop(
     "CallDepth" ∷ typedPointsto (structFieldRef github_com.go_logr.logr.RuntimeInfo go!"CallDepth" l) v.CallDepth' dq ∗
@@ -136,11 +136,11 @@ noncomputable instance RuntimeInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance RuntimeInfo_into_val_typed :
+noncomputable instance into_val_typed'RuntimeInfo :
     IntoValTypedUnderlying (GF := GF) github_com.go_logr.logr.RuntimeInfo github_com.go_logr.logr.RuntimeInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance RuntimeInfo_access_load_CallDepth (l : Loc) (v : github_com.go_logr.logr.RuntimeInfo) (dq : DFrac) :
+noncomputable instance access_load'RuntimeInfo'CallDepth (l : Loc) (v : github_com.go_logr.logr.RuntimeInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_logr.logr.RuntimeInfo go!"CallDepth" l) v.CallDepth' dq)
       (typedPointsto (structFieldRef github_com.go_logr.logr.RuntimeInfo go!"CallDepth" l) v.CallDepth' dq)
@@ -148,7 +148,7 @@ noncomputable instance RuntimeInfo_access_load_CallDepth (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance RuntimeInfo_access_store_CallDepth (l : Loc) (v : github_com.go_logr.logr.RuntimeInfo) (y : w64) :
+noncomputable instance access_store'RuntimeInfo'CallDepth (l : Loc) (v : github_com.go_logr.logr.RuntimeInfo) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_logr.logr.RuntimeInfo go!"CallDepth" l) v.CallDepth' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_logr.logr.RuntimeInfo go!"CallDepth" l) y (DFrac.own 1))
@@ -167,11 +167,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_logr.logr.Assumptions]
 
-noncomputable instance slogHandler_typed_pointsto :
+noncomputable instance typed_pointsto'slogHandler :
     TypedPointsto (GF := GF) github_com.go_logr.logr.slogHandler :=
   sorry -- axiomatized type
 
-noncomputable instance slogHandler_into_val_typed :
+noncomputable instance into_val_typed'slogHandler :
     IntoValTypedUnderlying (GF := GF) github_com.go_logr.logr.slogHandler github_com.go_logr.logr.slogHandler.underlying :=
   sorry -- axiomatized type
 
@@ -186,11 +186,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_logr.logr.Assumptions]
 
-noncomputable instance SlogSink_typed_pointsto :
+noncomputable instance typed_pointsto'SlogSink :
     TypedPointsto (GF := GF) github_com.go_logr.logr.SlogSink :=
   sorry -- axiomatized type
 
-noncomputable instance SlogSink_into_val_typed :
+noncomputable instance into_val_typed'SlogSink :
     IntoValTypedUnderlying (GF := GF) github_com.go_logr.logr.SlogSink github_com.go_logr.logr.SlogSink.underlying :=
   sorry -- axiomatized type
 
@@ -205,11 +205,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_logr.logr.Assumptions]
 
-noncomputable instance Underlier_typed_pointsto :
+noncomputable instance typed_pointsto'Underlier :
     TypedPointsto (GF := GF) github_com.go_logr.logr.Underlier :=
   sorry -- axiomatized type
 
-noncomputable instance Underlier_into_val_typed :
+noncomputable instance into_val_typed'Underlier :
     IntoValTypedUnderlying (GF := GF) github_com.go_logr.logr.Underlier github_com.go_logr.logr.Underlier.underlying :=
   sorry -- axiomatized type
 
@@ -224,11 +224,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_logr.logr.Assumptions]
 
-noncomputable instance slogSink_typed_pointsto :
+noncomputable instance typed_pointsto'slogSink :
     TypedPointsto (GF := GF) github_com.go_logr.logr.slogSink :=
   sorry -- axiomatized type
 
-noncomputable instance slogSink_into_val_typed :
+noncomputable instance into_val_typed'slogSink :
     IntoValTypedUnderlying (GF := GF) github_com.go_logr.logr.slogSink github_com.go_logr.logr.slogSink.underlying :=
   sorry -- axiomatized type
 

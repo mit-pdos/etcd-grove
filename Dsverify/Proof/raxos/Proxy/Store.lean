@@ -20,13 +20,13 @@ open raxos.replica.src
 open hyp.sync (MapVocab MapHyp strKey)
 
 section proofs
-attribute [-instance] Perennial.raxos.replica.src.ClientBatchStore.ClientBatchStore_typed_pointsto
-  Perennial.raxos.replica.src.ClientBatchStore.ClientBatchStore_into_val_typed
-  Perennial.raxos.replica.src.ClientBatchStore.ClientBatchStore_access_load_clientBatches
-  Perennial.raxos.replica.src.ClientBatchStore.ClientBatchStore_access_store_clientBatches
-  Perennial.sync.Map.Map_typed_pointsto Perennial.sync.Map.Map_into_val_typed
-  Perennial.internal.sync.HashTrieMap.HashTrieMap_typed_pointsto
-  Perennial.internal.sync.HashTrieMap.HashTrieMap_into_val_typed
+attribute [-instance] Perennial.raxos.replica.src.ClientBatchStore.typed_pointsto'ClientBatchStore
+  Perennial.raxos.replica.src.ClientBatchStore.into_val_typed'ClientBatchStore
+  Perennial.raxos.replica.src.ClientBatchStore.access_load'ClientBatchStore'clientBatches
+  Perennial.raxos.replica.src.ClientBatchStore.access_store'ClientBatchStore'clientBatches
+  Perennial.sync.Map.typed_pointsto'Map Perennial.sync.Map.into_val_typed'Map
+  Perennial.internal.sync.HashTrieMap.typed_pointsto'HashTrieMap
+  Perennial.internal.sync.HashTrieMap.into_val_typed'HashTrieMap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]

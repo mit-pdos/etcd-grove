@@ -352,23 +352,23 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.syscall.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  newData_unfold : FuncUnfold newData [] newData.impl
-  dataOk_unfold : FuncUnfold dataOk [] dataOk.impl
-  Boot_unfold : FuncUnfold Boot [] Boot.impl
-  run_unfold : FuncUnfold run [] run.impl
-  check_unfold : FuncUnfold check [] check.impl
-  commit_unfold : FuncUnfold commit [] commit.impl
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
+  unfold'newData : FuncUnfold newData [] newData.impl
+  unfold'dataOk : FuncUnfold dataOk [] dataOk.impl
+  unfold'Boot : FuncUnfold Boot [] Boot.impl
+  unfold'run : FuncUnfold run [] run.impl
+  unfold'check : FuncUnfold check [] check.impl
+  unfold'commit : FuncUnfold commit [] commit.impl
+  import'os : _root_.Perennial.os.Assumptions
+  import'syscall : _root_.Perennial.syscall.Assumptions
 
-attribute [instance] Assumptions.newData_unfold
-  Assumptions.dataOk_unfold
-  Assumptions.Boot_unfold
-  Assumptions.run_unfold
-  Assumptions.check_unfold
-  Assumptions.commit_unfold
-  Assumptions.import_os_Assumption
-  Assumptions.import_syscall_Assumption
+attribute [instance] Assumptions.unfold'newData
+  Assumptions.unfold'dataOk
+  Assumptions.unfold'Boot
+  Assumptions.unfold'run
+  Assumptions.unfold'check
+  Assumptions.unfold'commit
+  Assumptions.import'os
+  Assumptions.import'syscall
 
 end github_com.mit_pdos.etcd_grove.examples.osfs.crashlog
 

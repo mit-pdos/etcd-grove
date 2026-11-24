@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.gogo.protobuf.gogoproto.Assumptions]
 
-noncomputable instance EnableFunc_typed_pointsto :
+noncomputable instance typed_pointsto'EnableFunc :
     TypedPointsto (GF := GF) github_com.gogo.protobuf.gogoproto.EnableFunc :=
   sorry -- axiomatized type
 
-noncomputable instance EnableFunc_into_val_typed :
+noncomputable instance into_val_typed'EnableFunc :
     IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.gogoproto.EnableFunc github_com.gogo.protobuf.gogoproto.EnableFunc.underlying :=
   sorry -- axiomatized type
 

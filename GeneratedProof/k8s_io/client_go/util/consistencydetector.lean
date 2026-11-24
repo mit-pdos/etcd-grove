@@ -24,12 +24,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.util.consistencydetector.Assumptions]
 
-noncomputable instance ListFunc_typed_pointsto {T' : Type} [TypedPointsto (GF := GF) T'] :
-    TypedPointsto (GF := GF) (k8s_io.client_go.util.consistencydetector.ListFunc T') :=
+noncomputable instance typed_pointsto'ListFunc {T₀' : Type} [TypedPointsto (GF := GF) T₀'] :
+    TypedPointsto (GF := GF) (k8s_io.client_go.util.consistencydetector.ListFunc T₀') :=
   sorry -- axiomatized type
 
-noncomputable instance ListFunc_into_val_typed (T : go.GoType) {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T'] [IntoValTyped (GF := GF) T' T] :
-    IntoValTypedUnderlying (GF := GF) (k8s_io.client_go.util.consistencydetector.ListFunc T') (k8s_io.client_go.util.consistencydetector.ListFunc.underlying T) :=
+noncomputable instance into_val_typed'ListFunc (T₀ : go.GoType) {T₀' : Type} [ZeroVal T₀'] [TypedPointsto (GF := GF) T₀'] [IntoValTyped (GF := GF) T₀' T₀] :
+    IntoValTypedUnderlying (GF := GF) (k8s_io.client_go.util.consistencydetector.ListFunc T₀') (k8s_io.client_go.util.consistencydetector.ListFunc.underlying T₀) :=
   sorry -- axiomatized type
 
 end def_
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.util.consistencydetector.Assumptions]
 
-noncomputable instance byUID_typed_pointsto :
+noncomputable instance typed_pointsto'byUID :
     TypedPointsto (GF := GF) k8s_io.client_go.util.consistencydetector.byUID :=
   sorry -- axiomatized type
 
-noncomputable instance byUID_into_val_typed :
+noncomputable instance into_val_typed'byUID :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.util.consistencydetector.byUID k8s_io.client_go.util.consistencydetector.byUID.underlying :=
   sorry -- axiomatized type
 

@@ -314,27 +314,27 @@ attribute [instance] resourcePoolStatusRequests.TypeAssumptions.type_repr
   resourcePoolStatusRequests.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  DeviceTaintRulesGetter_instance : DeviceTaintRulesGetter.TypeAssumptions
-  DeviceTaintRuleInterface_instance : DeviceTaintRuleInterface.TypeAssumptions
-  deviceTaintRules_instance : deviceTaintRules.TypeAssumptions
-  DeviceTaintRuleExpansion_instance : DeviceTaintRuleExpansion.TypeAssumptions
-  ResourcePoolStatusRequestExpansion_instance : ResourcePoolStatusRequestExpansion.TypeAssumptions
-  ResourceV1alpha3Interface_instance : ResourceV1alpha3Interface.TypeAssumptions
-  ResourceV1alpha3Client_instance : ResourceV1alpha3Client.TypeAssumptions
-  ResourcePoolStatusRequestsGetter_instance : ResourcePoolStatusRequestsGetter.TypeAssumptions
-  ResourcePoolStatusRequestInterface_instance : ResourcePoolStatusRequestInterface.TypeAssumptions
-  resourcePoolStatusRequests_instance : resourcePoolStatusRequests.TypeAssumptions
+  instance'DeviceTaintRulesGetter : DeviceTaintRulesGetter.TypeAssumptions
+  instance'DeviceTaintRuleInterface : DeviceTaintRuleInterface.TypeAssumptions
+  instance'deviceTaintRules : deviceTaintRules.TypeAssumptions
+  instance'DeviceTaintRuleExpansion : DeviceTaintRuleExpansion.TypeAssumptions
+  instance'ResourcePoolStatusRequestExpansion : ResourcePoolStatusRequestExpansion.TypeAssumptions
+  instance'ResourceV1alpha3Interface : ResourceV1alpha3Interface.TypeAssumptions
+  instance'ResourceV1alpha3Client : ResourceV1alpha3Client.TypeAssumptions
+  instance'ResourcePoolStatusRequestsGetter : ResourcePoolStatusRequestsGetter.TypeAssumptions
+  instance'ResourcePoolStatusRequestInterface : ResourcePoolStatusRequestInterface.TypeAssumptions
+  instance'resourcePoolStatusRequests : resourcePoolStatusRequests.TypeAssumptions
 
-attribute [instance] Assumptions.DeviceTaintRulesGetter_instance
-  Assumptions.DeviceTaintRuleInterface_instance
-  Assumptions.deviceTaintRules_instance
-  Assumptions.DeviceTaintRuleExpansion_instance
-  Assumptions.ResourcePoolStatusRequestExpansion_instance
-  Assumptions.ResourceV1alpha3Interface_instance
-  Assumptions.ResourceV1alpha3Client_instance
-  Assumptions.ResourcePoolStatusRequestsGetter_instance
-  Assumptions.ResourcePoolStatusRequestInterface_instance
-  Assumptions.resourcePoolStatusRequests_instance
+attribute [instance] Assumptions.instance'DeviceTaintRulesGetter
+  Assumptions.instance'DeviceTaintRuleInterface
+  Assumptions.instance'deviceTaintRules
+  Assumptions.instance'DeviceTaintRuleExpansion
+  Assumptions.instance'ResourcePoolStatusRequestExpansion
+  Assumptions.instance'ResourceV1alpha3Interface
+  Assumptions.instance'ResourceV1alpha3Client
+  Assumptions.instance'ResourcePoolStatusRequestsGetter
+  Assumptions.instance'ResourcePoolStatusRequestInterface
+  Assumptions.instance'resourcePoolStatusRequests
 
 end k8s_io.client_go.kubernetes.typed.resource.v1alpha3
 

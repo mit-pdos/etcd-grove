@@ -314,27 +314,27 @@ attribute [instance] jobs.TypeAssumptions.type_repr
   jobs.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  BatchV1Interface_instance : BatchV1Interface.TypeAssumptions
-  BatchV1Client_instance : BatchV1Client.TypeAssumptions
-  CronJobsGetter_instance : CronJobsGetter.TypeAssumptions
-  CronJobInterface_instance : CronJobInterface.TypeAssumptions
-  cronJobs_instance : cronJobs.TypeAssumptions
-  CronJobExpansion_instance : CronJobExpansion.TypeAssumptions
-  JobExpansion_instance : JobExpansion.TypeAssumptions
-  JobsGetter_instance : JobsGetter.TypeAssumptions
-  JobInterface_instance : JobInterface.TypeAssumptions
-  jobs_instance : jobs.TypeAssumptions
+  instance'BatchV1Interface : BatchV1Interface.TypeAssumptions
+  instance'BatchV1Client : BatchV1Client.TypeAssumptions
+  instance'CronJobsGetter : CronJobsGetter.TypeAssumptions
+  instance'CronJobInterface : CronJobInterface.TypeAssumptions
+  instance'cronJobs : cronJobs.TypeAssumptions
+  instance'CronJobExpansion : CronJobExpansion.TypeAssumptions
+  instance'JobExpansion : JobExpansion.TypeAssumptions
+  instance'JobsGetter : JobsGetter.TypeAssumptions
+  instance'JobInterface : JobInterface.TypeAssumptions
+  instance'jobs : jobs.TypeAssumptions
 
-attribute [instance] Assumptions.BatchV1Interface_instance
-  Assumptions.BatchV1Client_instance
-  Assumptions.CronJobsGetter_instance
-  Assumptions.CronJobInterface_instance
-  Assumptions.cronJobs_instance
-  Assumptions.CronJobExpansion_instance
-  Assumptions.JobExpansion_instance
-  Assumptions.JobsGetter_instance
-  Assumptions.JobInterface_instance
-  Assumptions.jobs_instance
+attribute [instance] Assumptions.instance'BatchV1Interface
+  Assumptions.instance'BatchV1Client
+  Assumptions.instance'CronJobsGetter
+  Assumptions.instance'CronJobInterface
+  Assumptions.instance'cronJobs
+  Assumptions.instance'CronJobExpansion
+  Assumptions.instance'JobExpansion
+  Assumptions.instance'JobsGetter
+  Assumptions.instance'JobInterface
+  Assumptions.instance'jobs
 
 end k8s_io.client_go.kubernetes.typed.batch.v1
 

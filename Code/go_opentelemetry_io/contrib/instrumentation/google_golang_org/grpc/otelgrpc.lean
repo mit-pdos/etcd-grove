@@ -367,7 +367,7 @@ noncomputable instance metadataSupplier.zero_val [GooseExts] : ZeroVal metadataS
 @[irreducible] noncomputable def metadataSupplier.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   metadataSupplier.fieldsUnsealed
 
-noncomputable instance equals_unfold_metadataSupplier [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'metadataSupplier [GooseExts] [GoGlobalContext] :
     EqualsUnfold metadataSupplier.fields metadataSupplier.fieldsUnsealed :=
   ⟨by unfold metadataSupplier.fields; rfl⟩
 
@@ -377,15 +377,15 @@ noncomputable instance equals_unfold_metadataSupplier [GooseExts] [GoGlobalConte
 class metadataSupplier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying metadataSupplier.underlying metadataSupplier
   underlying : go.UnderlyingDirectedEq metadataSupplier.ty metadataSupplier.underlying
-  get_metadata : ∀ (x : metadataSupplier), go.IsGoStepPureDetTagged under (StructFieldGet metadataSupplier.underlying go!"metadata") #x (Val #(x.metadata'))
-  set_metadata : ∀ (x : metadataSupplier) (y : _root_.Perennial.google_golang_org.grpc.metadata.MD), go.IsGoStepPureDetTagged under (StructFieldSet metadataSupplier.underlying go!"metadata") (PairV #x #y) (Val #(({ x with metadata' := y } : metadataSupplier)))
+  get'metadata : ∀ (x : metadataSupplier), go.IsGoStepPureDetTagged under (StructFieldGet metadataSupplier.underlying go!"metadata") #x (Val #(x.metadata'))
+  set'metadata : ∀ (x : metadataSupplier) (y : _root_.Perennial.google_golang_org.grpc.metadata.MD), go.IsGoStepPureDetTagged under (StructFieldSet metadataSupplier.underlying go!"metadata") (PairV #x #y) (Val #(({ x with metadata' := y } : metadataSupplier)))
   method_set : go.MethodSetIs metadataSupplier.ty [(go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType metadataSupplier.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false [])))]
 
 attribute [instance] metadataSupplier.TypeAssumptions.type_repr
   metadataSupplier.TypeAssumptions.underlying
-  metadataSupplier.TypeAssumptions.get_metadata
-  metadataSupplier.TypeAssumptions.set_metadata
+  metadataSupplier.TypeAssumptions.get'metadata
+  metadataSupplier.TypeAssumptions.set'metadata
   metadataSupplier.TypeAssumptions.method_set
   metadataSupplier.TypeAssumptions.ptr_method_set
 
@@ -401,7 +401,7 @@ noncomputable instance gRPCContextKey.zero_val [GooseExts] : ZeroVal gRPCContext
 @[irreducible] noncomputable def gRPCContextKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   gRPCContextKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_gRPCContextKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'gRPCContextKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold gRPCContextKey.fields gRPCContextKey.fieldsUnsealed :=
   ⟨by unfold gRPCContextKey.fields; rfl⟩
 
@@ -431,7 +431,7 @@ noncomputable instance dialTargetContextKey.zero_val [GooseExts] : ZeroVal dialT
 @[irreducible] noncomputable def dialTargetContextKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   dialTargetContextKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_dialTargetContextKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'dialTargetContextKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold dialTargetContextKey.fields dialTargetContextKey.fieldsUnsealed :=
   ⟨by unfold dialTargetContextKey.fields; rfl⟩
 
@@ -507,43 +507,43 @@ attribute [instance] clientHandler.TypeAssumptions.type_repr
   clientHandler.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  InterceptorFilter_instance : InterceptorFilter.TypeAssumptions
-  Filter_instance : Filter.TypeAssumptions
-  semconvMode_instance : semconvMode.TypeAssumptions
-  config_instance : config.TypeAssumptions
-  Option_instance : Option.TypeAssumptions
-  optionFunc_instance : optionFunc.TypeAssumptions
-  Event_instance : Event.TypeAssumptions
-  InterceptorType_instance : InterceptorType.TypeAssumptions
-  InterceptorInfo_instance : InterceptorInfo.TypeAssumptions
-  metadataSupplier_instance : metadataSupplier.TypeAssumptions
-  gRPCContextKey_instance : gRPCContextKey.TypeAssumptions
-  dialTargetContextKey_instance : dialTargetContextKey.TypeAssumptions
-  gRPCContext_instance : gRPCContext.TypeAssumptions
-  serverHandler_instance : serverHandler.TypeAssumptions
-  clientHandler_instance : clientHandler.TypeAssumptions
-  import_propagation_Assumption : _root_.Perennial.go_opentelemetry_io.otel.propagation.Assumptions
-  import_stats_Assumption : _root_.Perennial.google_golang_org.grpc.stats.Assumptions
-  import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
+  instance'InterceptorFilter : InterceptorFilter.TypeAssumptions
+  instance'Filter : Filter.TypeAssumptions
+  instance'semconvMode : semconvMode.TypeAssumptions
+  instance'config : config.TypeAssumptions
+  instance'Option : Option.TypeAssumptions
+  instance'optionFunc : optionFunc.TypeAssumptions
+  instance'Event : Event.TypeAssumptions
+  instance'InterceptorType : InterceptorType.TypeAssumptions
+  instance'InterceptorInfo : InterceptorInfo.TypeAssumptions
+  instance'metadataSupplier : metadataSupplier.TypeAssumptions
+  instance'gRPCContextKey : gRPCContextKey.TypeAssumptions
+  instance'dialTargetContextKey : dialTargetContextKey.TypeAssumptions
+  instance'gRPCContext : gRPCContext.TypeAssumptions
+  instance'serverHandler : serverHandler.TypeAssumptions
+  instance'clientHandler : clientHandler.TypeAssumptions
+  import'propagation : _root_.Perennial.go_opentelemetry_io.otel.propagation.Assumptions
+  import'stats : _root_.Perennial.google_golang_org.grpc.stats.Assumptions
+  import'metadata : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
 
-attribute [instance] Assumptions.InterceptorFilter_instance
-  Assumptions.Filter_instance
-  Assumptions.semconvMode_instance
-  Assumptions.config_instance
-  Assumptions.Option_instance
-  Assumptions.optionFunc_instance
-  Assumptions.Event_instance
-  Assumptions.InterceptorType_instance
-  Assumptions.InterceptorInfo_instance
-  Assumptions.metadataSupplier_instance
-  Assumptions.gRPCContextKey_instance
-  Assumptions.dialTargetContextKey_instance
-  Assumptions.gRPCContext_instance
-  Assumptions.serverHandler_instance
-  Assumptions.clientHandler_instance
-  Assumptions.import_propagation_Assumption
-  Assumptions.import_stats_Assumption
-  Assumptions.import_metadata_Assumption
+attribute [instance] Assumptions.instance'InterceptorFilter
+  Assumptions.instance'Filter
+  Assumptions.instance'semconvMode
+  Assumptions.instance'config
+  Assumptions.instance'Option
+  Assumptions.instance'optionFunc
+  Assumptions.instance'Event
+  Assumptions.instance'InterceptorType
+  Assumptions.instance'InterceptorInfo
+  Assumptions.instance'metadataSupplier
+  Assumptions.instance'gRPCContextKey
+  Assumptions.instance'dialTargetContextKey
+  Assumptions.instance'gRPCContext
+  Assumptions.instance'serverHandler
+  Assumptions.instance'clientHandler
+  Assumptions.import'propagation
+  Assumptions.import'stats
+  Assumptions.import'metadata
 
 end go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 

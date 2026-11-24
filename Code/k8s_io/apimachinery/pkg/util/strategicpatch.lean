@@ -418,7 +418,7 @@ noncomputable instance LookupPatchMetaError.zero_val [GooseExts] : ZeroVal Looku
 @[irreducible] noncomputable def LookupPatchMetaError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LookupPatchMetaError.fieldsUnsealed
 
-noncomputable instance equals_unfold_LookupPatchMetaError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LookupPatchMetaError [GooseExts] [GoGlobalContext] :
     EqualsUnfold LookupPatchMetaError.fields LookupPatchMetaError.fieldsUnsealed :=
   ⟨by unfold LookupPatchMetaError.fields; rfl⟩
 
@@ -428,19 +428,19 @@ noncomputable instance equals_unfold_LookupPatchMetaError [GooseExts] [GoGlobalC
 class LookupPatchMetaError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LookupPatchMetaError.underlying LookupPatchMetaError
   underlying : go.UnderlyingDirectedEq LookupPatchMetaError.ty LookupPatchMetaError.underlying
-  get_Path : ∀ (x : LookupPatchMetaError), go.IsGoStepPureDetTagged under (StructFieldGet LookupPatchMetaError.underlying go!"Path") #x (Val #(x.Path'))
-  set_Path : ∀ (x : LookupPatchMetaError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LookupPatchMetaError.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : LookupPatchMetaError)))
-  get_Err : ∀ (x : LookupPatchMetaError), go.IsGoStepPureDetTagged under (StructFieldGet LookupPatchMetaError.underlying go!"Err") #x (Val #(x.Err'))
-  set_Err : ∀ (x : LookupPatchMetaError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet LookupPatchMetaError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : LookupPatchMetaError)))
+  get'Path : ∀ (x : LookupPatchMetaError), go.IsGoStepPureDetTagged under (StructFieldGet LookupPatchMetaError.underlying go!"Path") #x (Val #(x.Path'))
+  set'Path : ∀ (x : LookupPatchMetaError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LookupPatchMetaError.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : LookupPatchMetaError)))
+  get'Err : ∀ (x : LookupPatchMetaError), go.IsGoStepPureDetTagged under (StructFieldGet LookupPatchMetaError.underlying go!"Err") #x (Val #(x.Err'))
+  set'Err : ∀ (x : LookupPatchMetaError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet LookupPatchMetaError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : LookupPatchMetaError)))
   method_set : go.MethodSetIs LookupPatchMetaError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LookupPatchMetaError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] LookupPatchMetaError.TypeAssumptions.type_repr
   LookupPatchMetaError.TypeAssumptions.underlying
-  LookupPatchMetaError.TypeAssumptions.get_Path
-  LookupPatchMetaError.TypeAssumptions.set_Path
-  LookupPatchMetaError.TypeAssumptions.get_Err
-  LookupPatchMetaError.TypeAssumptions.set_Err
+  LookupPatchMetaError.TypeAssumptions.get'Path
+  LookupPatchMetaError.TypeAssumptions.set'Path
+  LookupPatchMetaError.TypeAssumptions.get'Err
+  LookupPatchMetaError.TypeAssumptions.set'Err
   LookupPatchMetaError.TypeAssumptions.method_set
   LookupPatchMetaError.TypeAssumptions.ptr_method_set
 
@@ -459,7 +459,7 @@ noncomputable instance FieldNotFoundError.zero_val [GooseExts] : ZeroVal FieldNo
 @[irreducible] noncomputable def FieldNotFoundError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FieldNotFoundError.fieldsUnsealed
 
-noncomputable instance equals_unfold_FieldNotFoundError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FieldNotFoundError [GooseExts] [GoGlobalContext] :
     EqualsUnfold FieldNotFoundError.fields FieldNotFoundError.fieldsUnsealed :=
   ⟨by unfold FieldNotFoundError.fields; rfl⟩
 
@@ -469,19 +469,19 @@ noncomputable instance equals_unfold_FieldNotFoundError [GooseExts] [GoGlobalCon
 class FieldNotFoundError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FieldNotFoundError.underlying FieldNotFoundError
   underlying : go.UnderlyingDirectedEq FieldNotFoundError.ty FieldNotFoundError.underlying
-  get_Path : ∀ (x : FieldNotFoundError), go.IsGoStepPureDetTagged under (StructFieldGet FieldNotFoundError.underlying go!"Path") #x (Val #(x.Path'))
-  set_Path : ∀ (x : FieldNotFoundError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet FieldNotFoundError.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : FieldNotFoundError)))
-  get_Field : ∀ (x : FieldNotFoundError), go.IsGoStepPureDetTagged under (StructFieldGet FieldNotFoundError.underlying go!"Field") #x (Val #(x.Field'))
-  set_Field : ∀ (x : FieldNotFoundError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet FieldNotFoundError.underlying go!"Field") (PairV #x #y) (Val #(({ x with Field' := y } : FieldNotFoundError)))
+  get'Path : ∀ (x : FieldNotFoundError), go.IsGoStepPureDetTagged under (StructFieldGet FieldNotFoundError.underlying go!"Path") #x (Val #(x.Path'))
+  set'Path : ∀ (x : FieldNotFoundError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet FieldNotFoundError.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : FieldNotFoundError)))
+  get'Field : ∀ (x : FieldNotFoundError), go.IsGoStepPureDetTagged under (StructFieldGet FieldNotFoundError.underlying go!"Field") #x (Val #(x.Field'))
+  set'Field : ∀ (x : FieldNotFoundError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet FieldNotFoundError.underlying go!"Field") (PairV #x #y) (Val #(({ x with Field' := y } : FieldNotFoundError)))
   method_set : go.MethodSetIs FieldNotFoundError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FieldNotFoundError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] FieldNotFoundError.TypeAssumptions.type_repr
   FieldNotFoundError.TypeAssumptions.underlying
-  FieldNotFoundError.TypeAssumptions.get_Path
-  FieldNotFoundError.TypeAssumptions.set_Path
-  FieldNotFoundError.TypeAssumptions.get_Field
-  FieldNotFoundError.TypeAssumptions.set_Field
+  FieldNotFoundError.TypeAssumptions.get'Path
+  FieldNotFoundError.TypeAssumptions.set'Path
+  FieldNotFoundError.TypeAssumptions.get'Field
+  FieldNotFoundError.TypeAssumptions.set'Field
   FieldNotFoundError.TypeAssumptions.method_set
   FieldNotFoundError.TypeAssumptions.ptr_method_set
 
@@ -502,7 +502,7 @@ noncomputable instance InvalidTypeError.zero_val [GooseExts] : ZeroVal InvalidTy
 @[irreducible] noncomputable def InvalidTypeError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InvalidTypeError.fieldsUnsealed
 
-noncomputable instance equals_unfold_InvalidTypeError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'InvalidTypeError [GooseExts] [GoGlobalContext] :
     EqualsUnfold InvalidTypeError.fields InvalidTypeError.fieldsUnsealed :=
   ⟨by unfold InvalidTypeError.fields; rfl⟩
 
@@ -512,23 +512,23 @@ noncomputable instance equals_unfold_InvalidTypeError [GooseExts] [GoGlobalConte
 class InvalidTypeError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InvalidTypeError.underlying InvalidTypeError
   underlying : go.UnderlyingDirectedEq InvalidTypeError.ty InvalidTypeError.underlying
-  get_Path : ∀ (x : InvalidTypeError), go.IsGoStepPureDetTagged under (StructFieldGet InvalidTypeError.underlying go!"Path") #x (Val #(x.Path'))
-  set_Path : ∀ (x : InvalidTypeError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet InvalidTypeError.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : InvalidTypeError)))
-  get_Expected : ∀ (x : InvalidTypeError), go.IsGoStepPureDetTagged under (StructFieldGet InvalidTypeError.underlying go!"Expected") #x (Val #(x.Expected'))
-  set_Expected : ∀ (x : InvalidTypeError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet InvalidTypeError.underlying go!"Expected") (PairV #x #y) (Val #(({ x with Expected' := y } : InvalidTypeError)))
-  get_Actual : ∀ (x : InvalidTypeError), go.IsGoStepPureDetTagged under (StructFieldGet InvalidTypeError.underlying go!"Actual") #x (Val #(x.Actual'))
-  set_Actual : ∀ (x : InvalidTypeError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet InvalidTypeError.underlying go!"Actual") (PairV #x #y) (Val #(({ x with Actual' := y } : InvalidTypeError)))
+  get'Path : ∀ (x : InvalidTypeError), go.IsGoStepPureDetTagged under (StructFieldGet InvalidTypeError.underlying go!"Path") #x (Val #(x.Path'))
+  set'Path : ∀ (x : InvalidTypeError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet InvalidTypeError.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : InvalidTypeError)))
+  get'Expected : ∀ (x : InvalidTypeError), go.IsGoStepPureDetTagged under (StructFieldGet InvalidTypeError.underlying go!"Expected") #x (Val #(x.Expected'))
+  set'Expected : ∀ (x : InvalidTypeError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet InvalidTypeError.underlying go!"Expected") (PairV #x #y) (Val #(({ x with Expected' := y } : InvalidTypeError)))
+  get'Actual : ∀ (x : InvalidTypeError), go.IsGoStepPureDetTagged under (StructFieldGet InvalidTypeError.underlying go!"Actual") #x (Val #(x.Actual'))
+  set'Actual : ∀ (x : InvalidTypeError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet InvalidTypeError.underlying go!"Actual") (PairV #x #y) (Val #(({ x with Actual' := y } : InvalidTypeError)))
   method_set : go.MethodSetIs InvalidTypeError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType InvalidTypeError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] InvalidTypeError.TypeAssumptions.type_repr
   InvalidTypeError.TypeAssumptions.underlying
-  InvalidTypeError.TypeAssumptions.get_Path
-  InvalidTypeError.TypeAssumptions.set_Path
-  InvalidTypeError.TypeAssumptions.get_Expected
-  InvalidTypeError.TypeAssumptions.set_Expected
-  InvalidTypeError.TypeAssumptions.get_Actual
-  InvalidTypeError.TypeAssumptions.set_Actual
+  InvalidTypeError.TypeAssumptions.get'Path
+  InvalidTypeError.TypeAssumptions.set'Path
+  InvalidTypeError.TypeAssumptions.get'Expected
+  InvalidTypeError.TypeAssumptions.set'Expected
+  InvalidTypeError.TypeAssumptions.get'Actual
+  InvalidTypeError.TypeAssumptions.set'Actual
   InvalidTypeError.TypeAssumptions.method_set
   InvalidTypeError.TypeAssumptions.ptr_method_set
 
@@ -547,7 +547,7 @@ noncomputable instance PatchMeta.zero_val [GooseExts] : ZeroVal PatchMeta :=
 @[irreducible] noncomputable def PatchMeta.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PatchMeta.fieldsUnsealed
 
-noncomputable instance equals_unfold_PatchMeta [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PatchMeta [GooseExts] [GoGlobalContext] :
     EqualsUnfold PatchMeta.fields PatchMeta.fieldsUnsealed :=
   ⟨by unfold PatchMeta.fields; rfl⟩
 
@@ -557,19 +557,19 @@ noncomputable instance equals_unfold_PatchMeta [GooseExts] [GoGlobalContext] :
 class PatchMeta.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PatchMeta.underlying PatchMeta
   underlying : go.UnderlyingDirectedEq PatchMeta.ty PatchMeta.underlying
-  get_patchStrategies : ∀ (x : PatchMeta), go.IsGoStepPureDetTagged under (StructFieldGet PatchMeta.underlying go!"patchStrategies") #x (Val #(x.patchStrategies'))
-  set_patchStrategies : ∀ (x : PatchMeta) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PatchMeta.underlying go!"patchStrategies") (PairV #x #y) (Val #(({ x with patchStrategies' := y } : PatchMeta)))
-  get_patchMergeKey : ∀ (x : PatchMeta), go.IsGoStepPureDetTagged under (StructFieldGet PatchMeta.underlying go!"patchMergeKey") #x (Val #(x.patchMergeKey'))
-  set_patchMergeKey : ∀ (x : PatchMeta) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PatchMeta.underlying go!"patchMergeKey") (PairV #x #y) (Val #(({ x with patchMergeKey' := y } : PatchMeta)))
+  get'patchStrategies : ∀ (x : PatchMeta), go.IsGoStepPureDetTagged under (StructFieldGet PatchMeta.underlying go!"patchStrategies") #x (Val #(x.patchStrategies'))
+  set'patchStrategies : ∀ (x : PatchMeta) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PatchMeta.underlying go!"patchStrategies") (PairV #x #y) (Val #(({ x with patchStrategies' := y } : PatchMeta)))
+  get'patchMergeKey : ∀ (x : PatchMeta), go.IsGoStepPureDetTagged under (StructFieldGet PatchMeta.underlying go!"patchMergeKey") #x (Val #(x.patchMergeKey'))
+  set'patchMergeKey : ∀ (x : PatchMeta) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PatchMeta.underlying go!"patchMergeKey") (PairV #x #y) (Val #(({ x with patchMergeKey' := y } : PatchMeta)))
   method_set : go.MethodSetIs PatchMeta.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PatchMeta.ty) [(go!"GetPatchMergeKey", (some (go.signature.Signature [] false [go.string]))), (go!"GetPatchStrategies", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"SetPatchMergeKey", (some (go.signature.Signature [go.string] false []))), (go!"SetPatchStrategies", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [])))]
 
 attribute [instance] PatchMeta.TypeAssumptions.type_repr
   PatchMeta.TypeAssumptions.underlying
-  PatchMeta.TypeAssumptions.get_patchStrategies
-  PatchMeta.TypeAssumptions.set_patchStrategies
-  PatchMeta.TypeAssumptions.get_patchMergeKey
-  PatchMeta.TypeAssumptions.set_patchMergeKey
+  PatchMeta.TypeAssumptions.get'patchStrategies
+  PatchMeta.TypeAssumptions.set'patchStrategies
+  PatchMeta.TypeAssumptions.get'patchMergeKey
+  PatchMeta.TypeAssumptions.set'patchMergeKey
   PatchMeta.TypeAssumptions.method_set
   PatchMeta.TypeAssumptions.ptr_method_set
 
@@ -677,7 +677,7 @@ noncomputable instance DiffOptions.zero_val [GooseExts] : ZeroVal DiffOptions :=
 @[irreducible] noncomputable def DiffOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DiffOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_DiffOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DiffOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold DiffOptions.fields DiffOptions.fieldsUnsealed :=
   ⟨by unfold DiffOptions.fields; rfl⟩
 
@@ -687,27 +687,27 @@ noncomputable instance equals_unfold_DiffOptions [GooseExts] [GoGlobalContext] :
 class DiffOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DiffOptions.underlying DiffOptions
   underlying : go.UnderlyingDirectedEq DiffOptions.ty DiffOptions.underlying
-  get_SetElementOrder : ∀ (x : DiffOptions), go.IsGoStepPureDetTagged under (StructFieldGet DiffOptions.underlying go!"SetElementOrder") #x (Val #(x.SetElementOrder'))
-  set_SetElementOrder : ∀ (x : DiffOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DiffOptions.underlying go!"SetElementOrder") (PairV #x #y) (Val #(({ x with SetElementOrder' := y } : DiffOptions)))
-  get_IgnoreChangesAndAdditions : ∀ (x : DiffOptions), go.IsGoStepPureDetTagged under (StructFieldGet DiffOptions.underlying go!"IgnoreChangesAndAdditions") #x (Val #(x.IgnoreChangesAndAdditions'))
-  set_IgnoreChangesAndAdditions : ∀ (x : DiffOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DiffOptions.underlying go!"IgnoreChangesAndAdditions") (PairV #x #y) (Val #(({ x with IgnoreChangesAndAdditions' := y } : DiffOptions)))
-  get_IgnoreDeletions : ∀ (x : DiffOptions), go.IsGoStepPureDetTagged under (StructFieldGet DiffOptions.underlying go!"IgnoreDeletions") #x (Val #(x.IgnoreDeletions'))
-  set_IgnoreDeletions : ∀ (x : DiffOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DiffOptions.underlying go!"IgnoreDeletions") (PairV #x #y) (Val #(({ x with IgnoreDeletions' := y } : DiffOptions)))
-  get_BuildRetainKeysDirective : ∀ (x : DiffOptions), go.IsGoStepPureDetTagged under (StructFieldGet DiffOptions.underlying go!"BuildRetainKeysDirective") #x (Val #(x.BuildRetainKeysDirective'))
-  set_BuildRetainKeysDirective : ∀ (x : DiffOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DiffOptions.underlying go!"BuildRetainKeysDirective") (PairV #x #y) (Val #(({ x with BuildRetainKeysDirective' := y } : DiffOptions)))
+  get'SetElementOrder : ∀ (x : DiffOptions), go.IsGoStepPureDetTagged under (StructFieldGet DiffOptions.underlying go!"SetElementOrder") #x (Val #(x.SetElementOrder'))
+  set'SetElementOrder : ∀ (x : DiffOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DiffOptions.underlying go!"SetElementOrder") (PairV #x #y) (Val #(({ x with SetElementOrder' := y } : DiffOptions)))
+  get'IgnoreChangesAndAdditions : ∀ (x : DiffOptions), go.IsGoStepPureDetTagged under (StructFieldGet DiffOptions.underlying go!"IgnoreChangesAndAdditions") #x (Val #(x.IgnoreChangesAndAdditions'))
+  set'IgnoreChangesAndAdditions : ∀ (x : DiffOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DiffOptions.underlying go!"IgnoreChangesAndAdditions") (PairV #x #y) (Val #(({ x with IgnoreChangesAndAdditions' := y } : DiffOptions)))
+  get'IgnoreDeletions : ∀ (x : DiffOptions), go.IsGoStepPureDetTagged under (StructFieldGet DiffOptions.underlying go!"IgnoreDeletions") #x (Val #(x.IgnoreDeletions'))
+  set'IgnoreDeletions : ∀ (x : DiffOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DiffOptions.underlying go!"IgnoreDeletions") (PairV #x #y) (Val #(({ x with IgnoreDeletions' := y } : DiffOptions)))
+  get'BuildRetainKeysDirective : ∀ (x : DiffOptions), go.IsGoStepPureDetTagged under (StructFieldGet DiffOptions.underlying go!"BuildRetainKeysDirective") #x (Val #(x.BuildRetainKeysDirective'))
+  set'BuildRetainKeysDirective : ∀ (x : DiffOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DiffOptions.underlying go!"BuildRetainKeysDirective") (PairV #x #y) (Val #(({ x with BuildRetainKeysDirective' := y } : DiffOptions)))
   method_set : go.MethodSetIs DiffOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DiffOptions.ty) []
 
 attribute [instance] DiffOptions.TypeAssumptions.type_repr
   DiffOptions.TypeAssumptions.underlying
-  DiffOptions.TypeAssumptions.get_SetElementOrder
-  DiffOptions.TypeAssumptions.set_SetElementOrder
-  DiffOptions.TypeAssumptions.get_IgnoreChangesAndAdditions
-  DiffOptions.TypeAssumptions.set_IgnoreChangesAndAdditions
-  DiffOptions.TypeAssumptions.get_IgnoreDeletions
-  DiffOptions.TypeAssumptions.set_IgnoreDeletions
-  DiffOptions.TypeAssumptions.get_BuildRetainKeysDirective
-  DiffOptions.TypeAssumptions.set_BuildRetainKeysDirective
+  DiffOptions.TypeAssumptions.get'SetElementOrder
+  DiffOptions.TypeAssumptions.set'SetElementOrder
+  DiffOptions.TypeAssumptions.get'IgnoreChangesAndAdditions
+  DiffOptions.TypeAssumptions.set'IgnoreChangesAndAdditions
+  DiffOptions.TypeAssumptions.get'IgnoreDeletions
+  DiffOptions.TypeAssumptions.set'IgnoreDeletions
+  DiffOptions.TypeAssumptions.get'BuildRetainKeysDirective
+  DiffOptions.TypeAssumptions.set'BuildRetainKeysDirective
   DiffOptions.TypeAssumptions.method_set
   DiffOptions.TypeAssumptions.ptr_method_set
 
@@ -726,7 +726,7 @@ noncomputable instance MergeOptions.zero_val [GooseExts] : ZeroVal MergeOptions 
 @[irreducible] noncomputable def MergeOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MergeOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_MergeOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'MergeOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold MergeOptions.fields MergeOptions.fieldsUnsealed :=
   ⟨by unfold MergeOptions.fields; rfl⟩
 
@@ -736,19 +736,19 @@ noncomputable instance equals_unfold_MergeOptions [GooseExts] [GoGlobalContext] 
 class MergeOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MergeOptions.underlying MergeOptions
   underlying : go.UnderlyingDirectedEq MergeOptions.ty MergeOptions.underlying
-  get_MergeParallelList : ∀ (x : MergeOptions), go.IsGoStepPureDetTagged under (StructFieldGet MergeOptions.underlying go!"MergeParallelList") #x (Val #(x.MergeParallelList'))
-  set_MergeParallelList : ∀ (x : MergeOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MergeOptions.underlying go!"MergeParallelList") (PairV #x #y) (Val #(({ x with MergeParallelList' := y } : MergeOptions)))
-  get_IgnoreUnmatchedNulls : ∀ (x : MergeOptions), go.IsGoStepPureDetTagged under (StructFieldGet MergeOptions.underlying go!"IgnoreUnmatchedNulls") #x (Val #(x.IgnoreUnmatchedNulls'))
-  set_IgnoreUnmatchedNulls : ∀ (x : MergeOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MergeOptions.underlying go!"IgnoreUnmatchedNulls") (PairV #x #y) (Val #(({ x with IgnoreUnmatchedNulls' := y } : MergeOptions)))
+  get'MergeParallelList : ∀ (x : MergeOptions), go.IsGoStepPureDetTagged under (StructFieldGet MergeOptions.underlying go!"MergeParallelList") #x (Val #(x.MergeParallelList'))
+  set'MergeParallelList : ∀ (x : MergeOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MergeOptions.underlying go!"MergeParallelList") (PairV #x #y) (Val #(({ x with MergeParallelList' := y } : MergeOptions)))
+  get'IgnoreUnmatchedNulls : ∀ (x : MergeOptions), go.IsGoStepPureDetTagged under (StructFieldGet MergeOptions.underlying go!"IgnoreUnmatchedNulls") #x (Val #(x.IgnoreUnmatchedNulls'))
+  set'IgnoreUnmatchedNulls : ∀ (x : MergeOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MergeOptions.underlying go!"IgnoreUnmatchedNulls") (PairV #x #y) (Val #(({ x with IgnoreUnmatchedNulls' := y } : MergeOptions)))
   method_set : go.MethodSetIs MergeOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MergeOptions.ty) []
 
 attribute [instance] MergeOptions.TypeAssumptions.type_repr
   MergeOptions.TypeAssumptions.underlying
-  MergeOptions.TypeAssumptions.get_MergeParallelList
-  MergeOptions.TypeAssumptions.set_MergeParallelList
-  MergeOptions.TypeAssumptions.get_IgnoreUnmatchedNulls
-  MergeOptions.TypeAssumptions.set_IgnoreUnmatchedNulls
+  MergeOptions.TypeAssumptions.get'MergeParallelList
+  MergeOptions.TypeAssumptions.set'MergeParallelList
+  MergeOptions.TypeAssumptions.get'IgnoreUnmatchedNulls
+  MergeOptions.TypeAssumptions.set'IgnoreUnmatchedNulls
   MergeOptions.TypeAssumptions.method_set
   MergeOptions.TypeAssumptions.ptr_method_set
 
@@ -767,7 +767,7 @@ noncomputable instance SortableSliceOfMaps.zero_val [GooseExts] : ZeroVal Sortab
 @[irreducible] noncomputable def SortableSliceOfMaps.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SortableSliceOfMaps.fieldsUnsealed
 
-noncomputable instance equals_unfold_SortableSliceOfMaps [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SortableSliceOfMaps [GooseExts] [GoGlobalContext] :
     EqualsUnfold SortableSliceOfMaps.fields SortableSliceOfMaps.fieldsUnsealed :=
   ⟨by unfold SortableSliceOfMaps.fields; rfl⟩
 
@@ -777,19 +777,19 @@ noncomputable instance equals_unfold_SortableSliceOfMaps [GooseExts] [GoGlobalCo
 class SortableSliceOfMaps.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SortableSliceOfMaps.underlying SortableSliceOfMaps
   underlying : go.UnderlyingDirectedEq SortableSliceOfMaps.ty SortableSliceOfMaps.underlying
-  get_s : ∀ (x : SortableSliceOfMaps), go.IsGoStepPureDetTagged under (StructFieldGet SortableSliceOfMaps.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : SortableSliceOfMaps) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet SortableSliceOfMaps.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : SortableSliceOfMaps)))
-  get_k : ∀ (x : SortableSliceOfMaps), go.IsGoStepPureDetTagged under (StructFieldGet SortableSliceOfMaps.underlying go!"k") #x (Val #(x.k'))
-  set_k : ∀ (x : SortableSliceOfMaps) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SortableSliceOfMaps.underlying go!"k") (PairV #x #y) (Val #(({ x with k' := y } : SortableSliceOfMaps)))
+  get's : ∀ (x : SortableSliceOfMaps), go.IsGoStepPureDetTagged under (StructFieldGet SortableSliceOfMaps.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : SortableSliceOfMaps) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet SortableSliceOfMaps.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : SortableSliceOfMaps)))
+  get'k : ∀ (x : SortableSliceOfMaps), go.IsGoStepPureDetTagged under (StructFieldGet SortableSliceOfMaps.underlying go!"k") #x (Val #(x.k'))
+  set'k : ∀ (x : SortableSliceOfMaps) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SortableSliceOfMaps.underlying go!"k") (PairV #x #y) (Val #(({ x with k' := y } : SortableSliceOfMaps)))
   method_set : go.MethodSetIs SortableSliceOfMaps.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SortableSliceOfMaps.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] SortableSliceOfMaps.TypeAssumptions.type_repr
   SortableSliceOfMaps.TypeAssumptions.underlying
-  SortableSliceOfMaps.TypeAssumptions.get_s
-  SortableSliceOfMaps.TypeAssumptions.set_s
-  SortableSliceOfMaps.TypeAssumptions.get_k
-  SortableSliceOfMaps.TypeAssumptions.set_k
+  SortableSliceOfMaps.TypeAssumptions.get's
+  SortableSliceOfMaps.TypeAssumptions.set's
+  SortableSliceOfMaps.TypeAssumptions.get'k
+  SortableSliceOfMaps.TypeAssumptions.set'k
   SortableSliceOfMaps.TypeAssumptions.method_set
   SortableSliceOfMaps.TypeAssumptions.ptr_method_set
 
@@ -806,7 +806,7 @@ noncomputable instance SortableSliceOfScalars.zero_val [GooseExts] : ZeroVal Sor
 @[irreducible] noncomputable def SortableSliceOfScalars.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SortableSliceOfScalars.fieldsUnsealed
 
-noncomputable instance equals_unfold_SortableSliceOfScalars [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SortableSliceOfScalars [GooseExts] [GoGlobalContext] :
     EqualsUnfold SortableSliceOfScalars.fields SortableSliceOfScalars.fieldsUnsealed :=
   ⟨by unfold SortableSliceOfScalars.fields; rfl⟩
 
@@ -816,15 +816,15 @@ noncomputable instance equals_unfold_SortableSliceOfScalars [GooseExts] [GoGloba
 class SortableSliceOfScalars.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SortableSliceOfScalars.underlying SortableSliceOfScalars
   underlying : go.UnderlyingDirectedEq SortableSliceOfScalars.ty SortableSliceOfScalars.underlying
-  get_s : ∀ (x : SortableSliceOfScalars), go.IsGoStepPureDetTagged under (StructFieldGet SortableSliceOfScalars.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : SortableSliceOfScalars) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet SortableSliceOfScalars.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : SortableSliceOfScalars)))
+  get's : ∀ (x : SortableSliceOfScalars), go.IsGoStepPureDetTagged under (StructFieldGet SortableSliceOfScalars.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : SortableSliceOfScalars) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet SortableSliceOfScalars.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : SortableSliceOfScalars)))
   method_set : go.MethodSetIs SortableSliceOfScalars.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SortableSliceOfScalars.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] SortableSliceOfScalars.TypeAssumptions.type_repr
   SortableSliceOfScalars.TypeAssumptions.underlying
-  SortableSliceOfScalars.TypeAssumptions.get_s
-  SortableSliceOfScalars.TypeAssumptions.set_s
+  SortableSliceOfScalars.TypeAssumptions.get's
+  SortableSliceOfScalars.TypeAssumptions.set's
   SortableSliceOfScalars.TypeAssumptions.method_set
   SortableSliceOfScalars.TypeAssumptions.ptr_method_set
 
@@ -886,39 +886,39 @@ attribute [instance] sliceItem.TypeAssumptions.type_repr
   sliceItem.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  LookupPatchMetaError_instance : LookupPatchMetaError.TypeAssumptions
-  FieldNotFoundError_instance : FieldNotFoundError.TypeAssumptions
-  InvalidTypeError_instance : InvalidTypeError.TypeAssumptions
-  PatchMeta_instance : PatchMeta.TypeAssumptions
-  LookupPatchMeta_instance : LookupPatchMeta.TypeAssumptions
-  PatchMetaFromStruct_instance : PatchMetaFromStruct.TypeAssumptions
-  PatchMetaFromOpenAPIV3_instance : PatchMetaFromOpenAPIV3.TypeAssumptions
-  PatchMetaFromOpenAPI_instance : PatchMetaFromOpenAPI.TypeAssumptions
-  JSONMap_instance : JSONMap.TypeAssumptions
-  DiffOptions_instance : DiffOptions.TypeAssumptions
-  MergeOptions_instance : MergeOptions.TypeAssumptions
-  SortableSliceOfMaps_instance : SortableSliceOfMaps.TypeAssumptions
-  SortableSliceOfScalars_instance : SortableSliceOfScalars.TypeAssumptions
-  LookupPatchItem_instance : LookupPatchItem.TypeAssumptions
-  kindItem_instance : kindItem.TypeAssumptions
-  sliceItem_instance : sliceItem.TypeAssumptions
+  instance'LookupPatchMetaError : LookupPatchMetaError.TypeAssumptions
+  instance'FieldNotFoundError : FieldNotFoundError.TypeAssumptions
+  instance'InvalidTypeError : InvalidTypeError.TypeAssumptions
+  instance'PatchMeta : PatchMeta.TypeAssumptions
+  instance'LookupPatchMeta : LookupPatchMeta.TypeAssumptions
+  instance'PatchMetaFromStruct : PatchMetaFromStruct.TypeAssumptions
+  instance'PatchMetaFromOpenAPIV3 : PatchMetaFromOpenAPIV3.TypeAssumptions
+  instance'PatchMetaFromOpenAPI : PatchMetaFromOpenAPI.TypeAssumptions
+  instance'JSONMap : JSONMap.TypeAssumptions
+  instance'DiffOptions : DiffOptions.TypeAssumptions
+  instance'MergeOptions : MergeOptions.TypeAssumptions
+  instance'SortableSliceOfMaps : SortableSliceOfMaps.TypeAssumptions
+  instance'SortableSliceOfScalars : SortableSliceOfScalars.TypeAssumptions
+  instance'LookupPatchItem : LookupPatchItem.TypeAssumptions
+  instance'kindItem : kindItem.TypeAssumptions
+  instance'sliceItem : sliceItem.TypeAssumptions
 
-attribute [instance] Assumptions.LookupPatchMetaError_instance
-  Assumptions.FieldNotFoundError_instance
-  Assumptions.InvalidTypeError_instance
-  Assumptions.PatchMeta_instance
-  Assumptions.LookupPatchMeta_instance
-  Assumptions.PatchMetaFromStruct_instance
-  Assumptions.PatchMetaFromOpenAPIV3_instance
-  Assumptions.PatchMetaFromOpenAPI_instance
-  Assumptions.JSONMap_instance
-  Assumptions.DiffOptions_instance
-  Assumptions.MergeOptions_instance
-  Assumptions.SortableSliceOfMaps_instance
-  Assumptions.SortableSliceOfScalars_instance
-  Assumptions.LookupPatchItem_instance
-  Assumptions.kindItem_instance
-  Assumptions.sliceItem_instance
+attribute [instance] Assumptions.instance'LookupPatchMetaError
+  Assumptions.instance'FieldNotFoundError
+  Assumptions.instance'InvalidTypeError
+  Assumptions.instance'PatchMeta
+  Assumptions.instance'LookupPatchMeta
+  Assumptions.instance'PatchMetaFromStruct
+  Assumptions.instance'PatchMetaFromOpenAPIV3
+  Assumptions.instance'PatchMetaFromOpenAPI
+  Assumptions.instance'JSONMap
+  Assumptions.instance'DiffOptions
+  Assumptions.instance'MergeOptions
+  Assumptions.instance'SortableSliceOfMaps
+  Assumptions.instance'SortableSliceOfScalars
+  Assumptions.instance'LookupPatchItem
+  Assumptions.instance'kindItem
+  Assumptions.instance'sliceItem
 
 end k8s_io.apimachinery.pkg.util.strategicpatch
 

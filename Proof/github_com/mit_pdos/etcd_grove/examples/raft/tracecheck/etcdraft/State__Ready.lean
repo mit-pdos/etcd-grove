@@ -68,7 +68,7 @@ theorem State.Ready.wp_proof (wp_clone : State.clone.spec (GF := GF) (hG := hG))
   have hsum2 : ((((st.pendingFrom (uint.nat i)).map Prod.snd).sum + (st.messages.map Prod.snd).sum : Nat) : Int) < 2 ^ 63 := by
     have := Bag.filter_sum_le st.pendingMessages (fun m => m.source == uint.nat i)
     unfold State.pendingFrom; omega
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_Plus_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'Plus.method_unfold]
   wp_auto
   wp_apply wp_Plus _ _ _ _ $$ [Hgb Hb1] as %gp #Hgp
   · iframe Hgb Hb1; ipureintro; exact ⟨hnd2, hsum2⟩
@@ -79,7 +79,7 @@ theorem State.Ready.wp_proof (wp_clone : State.clone.spec (GF := GF) (hG := hG))
   simp only [TypedPointsto.typedPointstoDef]
   icases Htpf with ⟨T1, T2, T3, T4, T5, T6, T7, -⟩
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_Minus_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'Minus.method_unfold]
   wp_auto
   wp_apply wp_Minus _ _ _ _ $$ [Hb2 Hgb] as %gm #Hgm
   · iframe Hb2 Hgb; ipureintro; exact Hnd

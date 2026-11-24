@@ -79,9 +79,9 @@ attribute [instance] CredsRequirement.TypeAssumptions.underlying
   CredsRequirement.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  CredsRequirement_instance : CredsRequirement.TypeAssumptions
+  instance'CredsRequirement : CredsRequirement.TypeAssumptions
 
-attribute [instance] Assumptions.CredsRequirement_instance
+attribute [instance] Assumptions.instance'CredsRequirement
 
 end go_etcd_io.etcd.client.v3.internal.endpoint
 

@@ -91,22 +91,22 @@ class Color.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   underlying : go.UnderlyingDirectedEq Color.ty Color.underlying
   method_set : go.MethodSetIs Color.ty [(go!"Add", (some (go.signature.Signature [go.string] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Color.ty) [(go!"Add", (some (go.signature.Signature [go.string] false [go.string])))]
-  Add_unfold : MethodUnfold Color.ty go!"Add" Color.Add.impl
-  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType Color.ty) go!"Add" (LamV "$r"
+  unfold'Add : MethodUnfold Color.ty go!"Add" Color.Add.impl
+  ptr_unfold'Add : MethodUnfold (go.GoType.PointerType Color.ty) go!"Add" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Color.ty go!"Add"))) (App (Val (GoInstruction (GoLoad Color.ty))) (Var "$r"))))
 
 attribute [instance] Color.TypeAssumptions.underlying
   Color.TypeAssumptions.method_set
   Color.TypeAssumptions.ptr_method_set
-  Color.TypeAssumptions.Add_unfold
-  Color.TypeAssumptions.ptr_Add_unfold
+  Color.TypeAssumptions.unfold'Add
+  Color.TypeAssumptions.ptr_unfold'Add
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Color_instance : Color.TypeAssumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
+  instance'Color : Color.TypeAssumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
 
-attribute [instance] Assumptions.Color_instance
-  Assumptions.import_fmt_Assumption
+attribute [instance] Assumptions.instance'Color
+  Assumptions.import'fmt
 
 end go_uber_org.zap.internal.color
 

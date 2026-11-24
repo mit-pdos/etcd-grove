@@ -1730,7 +1730,7 @@ noncomputable instance Reader.zero_val [GooseExts] : ZeroVal Reader :=
 @[irreducible] noncomputable def Reader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Reader.fieldsUnsealed
 
-noncomputable instance equals_unfold_Reader [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Reader [GooseExts] [GoGlobalContext] :
     EqualsUnfold Reader.fields Reader.fieldsUnsealed :=
   ⟨by unfold Reader.fields; rfl⟩
 
@@ -1740,65 +1740,65 @@ noncomputable instance equals_unfold_Reader [GooseExts] [GoGlobalContext] :
 class Reader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Reader.underlying Reader
   underlying : go.UnderlyingDirectedEq Reader.ty Reader.underlying
-  get_buf : ∀ (x : Reader), go.IsGoStepPureDetTagged under (StructFieldGet Reader.underlying go!"buf") #x (Val #(x.buf'))
-  set_buf : ∀ (x : Reader) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Reader.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : Reader)))
-  get_rd : ∀ (x : Reader), go.IsGoStepPureDetTagged under (StructFieldGet Reader.underlying go!"rd") #x (Val #(x.rd'))
-  set_rd : ∀ (x : Reader) (y : _root_.Perennial.io.Reader), go.IsGoStepPureDetTagged under (StructFieldSet Reader.underlying go!"rd") (PairV #x #y) (Val #(({ x with rd' := y } : Reader)))
-  get_r : ∀ (x : Reader), go.IsGoStepPureDetTagged under (StructFieldGet Reader.underlying go!"r") #x (Val #(x.r'))
-  set_r : ∀ (x : Reader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Reader.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : Reader)))
-  get_w : ∀ (x : Reader), go.IsGoStepPureDetTagged under (StructFieldGet Reader.underlying go!"w") #x (Val #(x.w'))
-  set_w : ∀ (x : Reader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Reader.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : Reader)))
-  get_err : ∀ (x : Reader), go.IsGoStepPureDetTagged under (StructFieldGet Reader.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : Reader) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Reader.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : Reader)))
-  get_lastByte : ∀ (x : Reader), go.IsGoStepPureDetTagged under (StructFieldGet Reader.underlying go!"lastByte") #x (Val #(x.lastByte'))
-  set_lastByte : ∀ (x : Reader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Reader.underlying go!"lastByte") (PairV #x #y) (Val #(({ x with lastByte' := y } : Reader)))
-  get_lastRuneSize : ∀ (x : Reader), go.IsGoStepPureDetTagged under (StructFieldGet Reader.underlying go!"lastRuneSize") #x (Val #(x.lastRuneSize'))
-  set_lastRuneSize : ∀ (x : Reader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Reader.underlying go!"lastRuneSize") (PairV #x #y) (Val #(({ x with lastRuneSize' := y } : Reader)))
+  get'buf : ∀ (x : Reader), go.IsGoStepPureDetTagged under (StructFieldGet Reader.underlying go!"buf") #x (Val #(x.buf'))
+  set'buf : ∀ (x : Reader) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Reader.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : Reader)))
+  get'rd : ∀ (x : Reader), go.IsGoStepPureDetTagged under (StructFieldGet Reader.underlying go!"rd") #x (Val #(x.rd'))
+  set'rd : ∀ (x : Reader) (y : _root_.Perennial.io.Reader), go.IsGoStepPureDetTagged under (StructFieldSet Reader.underlying go!"rd") (PairV #x #y) (Val #(({ x with rd' := y } : Reader)))
+  get'r : ∀ (x : Reader), go.IsGoStepPureDetTagged under (StructFieldGet Reader.underlying go!"r") #x (Val #(x.r'))
+  set'r : ∀ (x : Reader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Reader.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : Reader)))
+  get'w : ∀ (x : Reader), go.IsGoStepPureDetTagged under (StructFieldGet Reader.underlying go!"w") #x (Val #(x.w'))
+  set'w : ∀ (x : Reader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Reader.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : Reader)))
+  get'err : ∀ (x : Reader), go.IsGoStepPureDetTagged under (StructFieldGet Reader.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : Reader) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Reader.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : Reader)))
+  get'lastByte : ∀ (x : Reader), go.IsGoStepPureDetTagged under (StructFieldGet Reader.underlying go!"lastByte") #x (Val #(x.lastByte'))
+  set'lastByte : ∀ (x : Reader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Reader.underlying go!"lastByte") (PairV #x #y) (Val #(({ x with lastByte' := y } : Reader)))
+  get'lastRuneSize : ∀ (x : Reader), go.IsGoStepPureDetTagged under (StructFieldGet Reader.underlying go!"lastRuneSize") #x (Val #(x.lastRuneSize'))
+  set'lastRuneSize : ∀ (x : Reader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Reader.underlying go!"lastRuneSize") (PairV #x #y) (Val #(({ x with lastRuneSize' := y } : Reader)))
   method_set : go.MethodSetIs Reader.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Reader.ty) [(go!"Buffered", (some (go.signature.Signature [] false [go.int]))), (go!"Discard", (some (go.signature.Signature [go.int] false [go.int, go.error]))), (go!"Peek", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadByte", (some (go.signature.Signature [] false [go.byte, go.error]))), (go!"ReadBytes", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadLine", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"ReadRune", (some (go.signature.Signature [] false [go.rune, go.int, go.error]))), (go!"ReadSlice", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadString", (some (go.signature.Signature [go.byte] false [go.string, go.error]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"UnreadByte", (some (go.signature.Signature [] false [go.error]))), (go!"UnreadRune", (some (go.signature.Signature [] false [go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"bufio.collectFragments", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType go.byte), go.int, go.error]))), (go!"bufio.fill", (some (go.signature.Signature [] false []))), (go!"bufio.readErr", (some (go.signature.Signature [] false [go.error]))), (go!"bufio.reset", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.io.Reader.ty] false []))), (go!"bufio.writeBuf", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
-  ptr_Buffered_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"Buffered" Reader.Buffered.impl
-  ptr_Peek_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"Peek" Reader.Peek.impl
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"Read" Reader.Read.impl
-  ptr_ReadByte_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"ReadByte" Reader.ReadByte.impl
-  ptr_ReadSlice_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"ReadSlice" Reader.ReadSlice.impl
-  ptr_ReadString_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"ReadString" Reader.ReadString.impl
-  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"Reset" Reader.Reset.impl
-  ptr_Size_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"Size" Reader.Size.impl
-  ptr_collectFragments_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"collectFragments" Reader.collectFragments.impl
-  ptr_fill_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"fill" Reader.fill.impl
-  ptr_readErr_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"readErr" Reader.readErr.impl
-  ptr_reset_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"reset" Reader.reset.impl
+  ptr_unfold'Buffered : MethodUnfold (go.GoType.PointerType Reader.ty) go!"Buffered" Reader.Buffered.impl
+  ptr_unfold'Peek : MethodUnfold (go.GoType.PointerType Reader.ty) go!"Peek" Reader.Peek.impl
+  ptr_unfold'Read : MethodUnfold (go.GoType.PointerType Reader.ty) go!"Read" Reader.Read.impl
+  ptr_unfold'ReadByte : MethodUnfold (go.GoType.PointerType Reader.ty) go!"ReadByte" Reader.ReadByte.impl
+  ptr_unfold'ReadSlice : MethodUnfold (go.GoType.PointerType Reader.ty) go!"ReadSlice" Reader.ReadSlice.impl
+  ptr_unfold'ReadString : MethodUnfold (go.GoType.PointerType Reader.ty) go!"ReadString" Reader.ReadString.impl
+  ptr_unfold'Reset : MethodUnfold (go.GoType.PointerType Reader.ty) go!"Reset" Reader.Reset.impl
+  ptr_unfold'Size : MethodUnfold (go.GoType.PointerType Reader.ty) go!"Size" Reader.Size.impl
+  ptr_unfold'collectFragments : MethodUnfold (go.GoType.PointerType Reader.ty) go!"collectFragments" Reader.collectFragments.impl
+  ptr_unfold'fill : MethodUnfold (go.GoType.PointerType Reader.ty) go!"fill" Reader.fill.impl
+  ptr_unfold'readErr : MethodUnfold (go.GoType.PointerType Reader.ty) go!"readErr" Reader.readErr.impl
+  ptr_unfold'reset : MethodUnfold (go.GoType.PointerType Reader.ty) go!"reset" Reader.reset.impl
 
 attribute [instance] Reader.TypeAssumptions.type_repr
   Reader.TypeAssumptions.underlying
-  Reader.TypeAssumptions.get_buf
-  Reader.TypeAssumptions.set_buf
-  Reader.TypeAssumptions.get_rd
-  Reader.TypeAssumptions.set_rd
-  Reader.TypeAssumptions.get_r
-  Reader.TypeAssumptions.set_r
-  Reader.TypeAssumptions.get_w
-  Reader.TypeAssumptions.set_w
-  Reader.TypeAssumptions.get_err
-  Reader.TypeAssumptions.set_err
-  Reader.TypeAssumptions.get_lastByte
-  Reader.TypeAssumptions.set_lastByte
-  Reader.TypeAssumptions.get_lastRuneSize
-  Reader.TypeAssumptions.set_lastRuneSize
+  Reader.TypeAssumptions.get'buf
+  Reader.TypeAssumptions.set'buf
+  Reader.TypeAssumptions.get'rd
+  Reader.TypeAssumptions.set'rd
+  Reader.TypeAssumptions.get'r
+  Reader.TypeAssumptions.set'r
+  Reader.TypeAssumptions.get'w
+  Reader.TypeAssumptions.set'w
+  Reader.TypeAssumptions.get'err
+  Reader.TypeAssumptions.set'err
+  Reader.TypeAssumptions.get'lastByte
+  Reader.TypeAssumptions.set'lastByte
+  Reader.TypeAssumptions.get'lastRuneSize
+  Reader.TypeAssumptions.set'lastRuneSize
   Reader.TypeAssumptions.method_set
   Reader.TypeAssumptions.ptr_method_set
-  Reader.TypeAssumptions.ptr_Buffered_unfold
-  Reader.TypeAssumptions.ptr_Peek_unfold
-  Reader.TypeAssumptions.ptr_Read_unfold
-  Reader.TypeAssumptions.ptr_ReadByte_unfold
-  Reader.TypeAssumptions.ptr_ReadSlice_unfold
-  Reader.TypeAssumptions.ptr_ReadString_unfold
-  Reader.TypeAssumptions.ptr_Reset_unfold
-  Reader.TypeAssumptions.ptr_Size_unfold
-  Reader.TypeAssumptions.ptr_collectFragments_unfold
-  Reader.TypeAssumptions.ptr_fill_unfold
-  Reader.TypeAssumptions.ptr_readErr_unfold
-  Reader.TypeAssumptions.ptr_reset_unfold
+  Reader.TypeAssumptions.ptr_unfold'Buffered
+  Reader.TypeAssumptions.ptr_unfold'Peek
+  Reader.TypeAssumptions.ptr_unfold'Read
+  Reader.TypeAssumptions.ptr_unfold'ReadByte
+  Reader.TypeAssumptions.ptr_unfold'ReadSlice
+  Reader.TypeAssumptions.ptr_unfold'ReadString
+  Reader.TypeAssumptions.ptr_unfold'Reset
+  Reader.TypeAssumptions.ptr_unfold'Size
+  Reader.TypeAssumptions.ptr_unfold'collectFragments
+  Reader.TypeAssumptions.ptr_unfold'fill
+  Reader.TypeAssumptions.ptr_unfold'readErr
+  Reader.TypeAssumptions.ptr_unfold'reset
 
 structure Writer [GooseExts] where
   mk ::
@@ -1819,7 +1819,7 @@ noncomputable instance Writer.zero_val [GooseExts] : ZeroVal Writer :=
 @[irreducible] noncomputable def Writer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Writer.fieldsUnsealed
 
-noncomputable instance equals_unfold_Writer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Writer [GooseExts] [GoGlobalContext] :
     EqualsUnfold Writer.fields Writer.fieldsUnsealed :=
   ⟨by unfold Writer.fields; rfl⟩
 
@@ -1829,45 +1829,45 @@ noncomputable instance equals_unfold_Writer [GooseExts] [GoGlobalContext] :
 class Writer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Writer.underlying Writer
   underlying : go.UnderlyingDirectedEq Writer.ty Writer.underlying
-  get_err : ∀ (x : Writer), go.IsGoStepPureDetTagged under (StructFieldGet Writer.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : Writer) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Writer.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : Writer)))
-  get_buf : ∀ (x : Writer), go.IsGoStepPureDetTagged under (StructFieldGet Writer.underlying go!"buf") #x (Val #(x.buf'))
-  set_buf : ∀ (x : Writer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Writer.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : Writer)))
-  get_n : ∀ (x : Writer), go.IsGoStepPureDetTagged under (StructFieldGet Writer.underlying go!"n") #x (Val #(x.n'))
-  set_n : ∀ (x : Writer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Writer.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : Writer)))
-  get_wr : ∀ (x : Writer), go.IsGoStepPureDetTagged under (StructFieldGet Writer.underlying go!"wr") #x (Val #(x.wr'))
-  set_wr : ∀ (x : Writer) (y : _root_.Perennial.io.Writer), go.IsGoStepPureDetTagged under (StructFieldSet Writer.underlying go!"wr") (PairV #x #y) (Val #(({ x with wr' := y } : Writer)))
+  get'err : ∀ (x : Writer), go.IsGoStepPureDetTagged under (StructFieldGet Writer.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : Writer) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Writer.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : Writer)))
+  get'buf : ∀ (x : Writer), go.IsGoStepPureDetTagged under (StructFieldGet Writer.underlying go!"buf") #x (Val #(x.buf'))
+  set'buf : ∀ (x : Writer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Writer.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : Writer)))
+  get'n : ∀ (x : Writer), go.IsGoStepPureDetTagged under (StructFieldGet Writer.underlying go!"n") #x (Val #(x.n'))
+  set'n : ∀ (x : Writer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Writer.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : Writer)))
+  get'wr : ∀ (x : Writer), go.IsGoStepPureDetTagged under (StructFieldGet Writer.underlying go!"wr") #x (Val #(x.wr'))
+  set'wr : ∀ (x : Writer) (y : _root_.Perennial.io.Writer), go.IsGoStepPureDetTagged under (StructFieldSet Writer.underlying go!"wr") (PairV #x #y) (Val #(({ x with wr' := y } : Writer)))
   method_set : go.MethodSetIs Writer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Writer.ty) [(go!"Available", (some (go.signature.Signature [] false [go.int]))), (go!"AvailableBuffer", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Buffered", (some (go.signature.Signature [] false [go.int]))), (go!"Flush", (some (go.signature.Signature [] false [go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteByte", (some (go.signature.Signature [go.byte] false [go.error]))), (go!"WriteRune", (some (go.signature.Signature [go.rune] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error])))]
-  ptr_Available_unfold : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Available" Writer.Available.impl
-  ptr_Buffered_unfold : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Buffered" Writer.Buffered.impl
-  ptr_Flush_unfold : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Flush" Writer.Flush.impl
-  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Reset" Writer.Reset.impl
-  ptr_Size_unfold : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Size" Writer.Size.impl
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Write" Writer.Write.impl
-  ptr_WriteByte_unfold : MethodUnfold (go.GoType.PointerType Writer.ty) go!"WriteByte" Writer.WriteByte.impl
-  ptr_WriteString_unfold : MethodUnfold (go.GoType.PointerType Writer.ty) go!"WriteString" Writer.WriteString.impl
+  ptr_unfold'Available : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Available" Writer.Available.impl
+  ptr_unfold'Buffered : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Buffered" Writer.Buffered.impl
+  ptr_unfold'Flush : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Flush" Writer.Flush.impl
+  ptr_unfold'Reset : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Reset" Writer.Reset.impl
+  ptr_unfold'Size : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Size" Writer.Size.impl
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Write" Writer.Write.impl
+  ptr_unfold'WriteByte : MethodUnfold (go.GoType.PointerType Writer.ty) go!"WriteByte" Writer.WriteByte.impl
+  ptr_unfold'WriteString : MethodUnfold (go.GoType.PointerType Writer.ty) go!"WriteString" Writer.WriteString.impl
 
 attribute [instance] Writer.TypeAssumptions.type_repr
   Writer.TypeAssumptions.underlying
-  Writer.TypeAssumptions.get_err
-  Writer.TypeAssumptions.set_err
-  Writer.TypeAssumptions.get_buf
-  Writer.TypeAssumptions.set_buf
-  Writer.TypeAssumptions.get_n
-  Writer.TypeAssumptions.set_n
-  Writer.TypeAssumptions.get_wr
-  Writer.TypeAssumptions.set_wr
+  Writer.TypeAssumptions.get'err
+  Writer.TypeAssumptions.set'err
+  Writer.TypeAssumptions.get'buf
+  Writer.TypeAssumptions.set'buf
+  Writer.TypeAssumptions.get'n
+  Writer.TypeAssumptions.set'n
+  Writer.TypeAssumptions.get'wr
+  Writer.TypeAssumptions.set'wr
   Writer.TypeAssumptions.method_set
   Writer.TypeAssumptions.ptr_method_set
-  Writer.TypeAssumptions.ptr_Available_unfold
-  Writer.TypeAssumptions.ptr_Buffered_unfold
-  Writer.TypeAssumptions.ptr_Flush_unfold
-  Writer.TypeAssumptions.ptr_Reset_unfold
-  Writer.TypeAssumptions.ptr_Size_unfold
-  Writer.TypeAssumptions.ptr_Write_unfold
-  Writer.TypeAssumptions.ptr_WriteByte_unfold
-  Writer.TypeAssumptions.ptr_WriteString_unfold
+  Writer.TypeAssumptions.ptr_unfold'Available
+  Writer.TypeAssumptions.ptr_unfold'Buffered
+  Writer.TypeAssumptions.ptr_unfold'Flush
+  Writer.TypeAssumptions.ptr_unfold'Reset
+  Writer.TypeAssumptions.ptr_unfold'Size
+  Writer.TypeAssumptions.ptr_unfold'Write
+  Writer.TypeAssumptions.ptr_unfold'WriteByte
+  Writer.TypeAssumptions.ptr_unfold'WriteString
 
 structure ReadWriter [GooseExts] where
   mk ::
@@ -1884,7 +1884,7 @@ noncomputable instance ReadWriter.zero_val [GooseExts] : ZeroVal ReadWriter :=
 @[irreducible] noncomputable def ReadWriter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReadWriter.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReadWriter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ReadWriter [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReadWriter.fields ReadWriter.fieldsUnsealed :=
   ⟨by unfold ReadWriter.fields; rfl⟩
 
@@ -1894,19 +1894,19 @@ noncomputable instance equals_unfold_ReadWriter [GooseExts] [GoGlobalContext] :
 class ReadWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReadWriter.underlying ReadWriter
   underlying : go.UnderlyingDirectedEq ReadWriter.ty ReadWriter.underlying
-  get_Reader : ∀ (x : ReadWriter), go.IsGoStepPureDetTagged under (StructFieldGet ReadWriter.underlying go!"Reader") #x (Val #(x.Reader'))
-  set_Reader : ∀ (x : ReadWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ReadWriter.underlying go!"Reader") (PairV #x #y) (Val #(({ x with Reader' := y } : ReadWriter)))
-  get_Writer : ∀ (x : ReadWriter), go.IsGoStepPureDetTagged under (StructFieldGet ReadWriter.underlying go!"Writer") #x (Val #(x.Writer'))
-  set_Writer : ∀ (x : ReadWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ReadWriter.underlying go!"Writer") (PairV #x #y) (Val #(({ x with Writer' := y } : ReadWriter)))
+  get'Reader : ∀ (x : ReadWriter), go.IsGoStepPureDetTagged under (StructFieldGet ReadWriter.underlying go!"Reader") #x (Val #(x.Reader'))
+  set'Reader : ∀ (x : ReadWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ReadWriter.underlying go!"Reader") (PairV #x #y) (Val #(({ x with Reader' := y } : ReadWriter)))
+  get'Writer : ∀ (x : ReadWriter), go.IsGoStepPureDetTagged under (StructFieldGet ReadWriter.underlying go!"Writer") #x (Val #(x.Writer'))
+  set'Writer : ∀ (x : ReadWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ReadWriter.underlying go!"Writer") (PairV #x #y) (Val #(({ x with Writer' := y } : ReadWriter)))
   method_set : go.MethodSetIs ReadWriter.ty [(go!"Available", (some (go.signature.Signature [] false [go.int]))), (go!"AvailableBuffer", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Discard", (some (go.signature.Signature [go.int] false [go.int, go.error]))), (go!"Flush", (some (go.signature.Signature [] false [go.error]))), (go!"Peek", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadByte", (some (go.signature.Signature [] false [go.byte, go.error]))), (go!"ReadBytes", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"ReadLine", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"ReadRune", (some (go.signature.Signature [] false [go.rune, go.int, go.error]))), (go!"ReadSlice", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadString", (some (go.signature.Signature [go.byte] false [go.string, go.error]))), (go!"UnreadByte", (some (go.signature.Signature [] false [go.error]))), (go!"UnreadRune", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteByte", (some (go.signature.Signature [go.byte] false [go.error]))), (go!"WriteRune", (some (go.signature.Signature [go.rune] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"bufio.collectFragments", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType go.byte), go.int, go.error]))), (go!"bufio.fill", (some (go.signature.Signature [] false []))), (go!"bufio.readErr", (some (go.signature.Signature [] false [go.error]))), (go!"bufio.reset", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.io.Reader.ty] false []))), (go!"bufio.writeBuf", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReadWriter.ty) [(go!"Available", (some (go.signature.Signature [] false [go.int]))), (go!"AvailableBuffer", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Discard", (some (go.signature.Signature [go.int] false [go.int, go.error]))), (go!"Flush", (some (go.signature.Signature [] false [go.error]))), (go!"Peek", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadByte", (some (go.signature.Signature [] false [go.byte, go.error]))), (go!"ReadBytes", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"ReadLine", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"ReadRune", (some (go.signature.Signature [] false [go.rune, go.int, go.error]))), (go!"ReadSlice", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadString", (some (go.signature.Signature [go.byte] false [go.string, go.error]))), (go!"UnreadByte", (some (go.signature.Signature [] false [go.error]))), (go!"UnreadRune", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteByte", (some (go.signature.Signature [go.byte] false [go.error]))), (go!"WriteRune", (some (go.signature.Signature [go.rune] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"bufio.collectFragments", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType go.byte), go.int, go.error]))), (go!"bufio.fill", (some (go.signature.Signature [] false []))), (go!"bufio.readErr", (some (go.signature.Signature [] false [go.error]))), (go!"bufio.reset", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.io.Reader.ty] false []))), (go!"bufio.writeBuf", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
 
 attribute [instance] ReadWriter.TypeAssumptions.type_repr
   ReadWriter.TypeAssumptions.underlying
-  ReadWriter.TypeAssumptions.get_Reader
-  ReadWriter.TypeAssumptions.set_Reader
-  ReadWriter.TypeAssumptions.get_Writer
-  ReadWriter.TypeAssumptions.set_Writer
+  ReadWriter.TypeAssumptions.get'Reader
+  ReadWriter.TypeAssumptions.set'Reader
+  ReadWriter.TypeAssumptions.get'Writer
+  ReadWriter.TypeAssumptions.set'Writer
   ReadWriter.TypeAssumptions.method_set
   ReadWriter.TypeAssumptions.ptr_method_set
 
@@ -1957,7 +1957,7 @@ noncomputable instance Scanner.zero_val [GooseExts] : ZeroVal Scanner :=
 @[irreducible] noncomputable def Scanner.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Scanner.fieldsUnsealed
 
-noncomputable instance equals_unfold_Scanner [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Scanner [GooseExts] [GoGlobalContext] :
     EqualsUnfold Scanner.fields Scanner.fieldsUnsealed :=
   ⟨by unfold Scanner.fields; rfl⟩
 
@@ -1967,88 +1967,88 @@ noncomputable instance equals_unfold_Scanner [GooseExts] [GoGlobalContext] :
 class Scanner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Scanner.underlying Scanner
   underlying : go.UnderlyingDirectedEq Scanner.ty Scanner.underlying
-  get_r : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"r") #x (Val #(x.r'))
-  set_r : ∀ (x : Scanner) (y : _root_.Perennial.io.Reader), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : Scanner)))
-  get_split : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"split") #x (Val #(x.split'))
-  set_split : ∀ (x : Scanner) (y : SplitFunc), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"split") (PairV #x #y) (Val #(({ x with split' := y } : Scanner)))
-  get_maxTokenSize : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"maxTokenSize") #x (Val #(x.maxTokenSize'))
-  set_maxTokenSize : ∀ (x : Scanner) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"maxTokenSize") (PairV #x #y) (Val #(({ x with maxTokenSize' := y } : Scanner)))
-  get_token : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"token") #x (Val #(x.token'))
-  set_token : ∀ (x : Scanner) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"token") (PairV #x #y) (Val #(({ x with token' := y } : Scanner)))
-  get_buf : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"buf") #x (Val #(x.buf'))
-  set_buf : ∀ (x : Scanner) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : Scanner)))
-  get_start : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"start") #x (Val #(x.start'))
-  set_start : ∀ (x : Scanner) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"start") (PairV #x #y) (Val #(({ x with start' := y } : Scanner)))
-  get_end : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"end") #x (Val #(x.end'))
-  set_end : ∀ (x : Scanner) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"end") (PairV #x #y) (Val #(({ x with end' := y } : Scanner)))
-  get_err : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : Scanner) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : Scanner)))
-  get_empties : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"empties") #x (Val #(x.empties'))
-  set_empties : ∀ (x : Scanner) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"empties") (PairV #x #y) (Val #(({ x with empties' := y } : Scanner)))
-  get_scanCalled : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"scanCalled") #x (Val #(x.scanCalled'))
-  set_scanCalled : ∀ (x : Scanner) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"scanCalled") (PairV #x #y) (Val #(({ x with scanCalled' := y } : Scanner)))
-  get_done : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"done") #x (Val #(x.done'))
-  set_done : ∀ (x : Scanner) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : Scanner)))
+  get'r : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"r") #x (Val #(x.r'))
+  set'r : ∀ (x : Scanner) (y : _root_.Perennial.io.Reader), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : Scanner)))
+  get'split : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"split") #x (Val #(x.split'))
+  set'split : ∀ (x : Scanner) (y : SplitFunc), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"split") (PairV #x #y) (Val #(({ x with split' := y } : Scanner)))
+  get'maxTokenSize : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"maxTokenSize") #x (Val #(x.maxTokenSize'))
+  set'maxTokenSize : ∀ (x : Scanner) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"maxTokenSize") (PairV #x #y) (Val #(({ x with maxTokenSize' := y } : Scanner)))
+  get'token : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"token") #x (Val #(x.token'))
+  set'token : ∀ (x : Scanner) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"token") (PairV #x #y) (Val #(({ x with token' := y } : Scanner)))
+  get'buf : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"buf") #x (Val #(x.buf'))
+  set'buf : ∀ (x : Scanner) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : Scanner)))
+  get'start : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"start") #x (Val #(x.start'))
+  set'start : ∀ (x : Scanner) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"start") (PairV #x #y) (Val #(({ x with start' := y } : Scanner)))
+  get'end : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"end") #x (Val #(x.end'))
+  set'end : ∀ (x : Scanner) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"end") (PairV #x #y) (Val #(({ x with end' := y } : Scanner)))
+  get'err : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : Scanner) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : Scanner)))
+  get'empties : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"empties") #x (Val #(x.empties'))
+  set'empties : ∀ (x : Scanner) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"empties") (PairV #x #y) (Val #(({ x with empties' := y } : Scanner)))
+  get'scanCalled : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"scanCalled") #x (Val #(x.scanCalled'))
+  set'scanCalled : ∀ (x : Scanner) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"scanCalled") (PairV #x #y) (Val #(({ x with scanCalled' := y } : Scanner)))
+  get'done : ∀ (x : Scanner), go.IsGoStepPureDetTagged under (StructFieldGet Scanner.underlying go!"done") #x (Val #(x.done'))
+  set'done : ∀ (x : Scanner) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Scanner.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : Scanner)))
   method_set : go.MethodSetIs Scanner.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Scanner.ty) [(go!"Buffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int] false []))), (go!"Bytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Scan", (some (go.signature.Signature [] false [go.bool]))), (go!"Split", (some (go.signature.Signature [SplitFunc.ty] false []))), (go!"Text", (some (go.signature.Signature [] false [go.string]))), (go!"bufio.advance", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"bufio.setErr", (some (go.signature.Signature [go.error] false [])))]
 
 attribute [instance] Scanner.TypeAssumptions.type_repr
   Scanner.TypeAssumptions.underlying
-  Scanner.TypeAssumptions.get_r
-  Scanner.TypeAssumptions.set_r
-  Scanner.TypeAssumptions.get_split
-  Scanner.TypeAssumptions.set_split
-  Scanner.TypeAssumptions.get_maxTokenSize
-  Scanner.TypeAssumptions.set_maxTokenSize
-  Scanner.TypeAssumptions.get_token
-  Scanner.TypeAssumptions.set_token
-  Scanner.TypeAssumptions.get_buf
-  Scanner.TypeAssumptions.set_buf
-  Scanner.TypeAssumptions.get_start
-  Scanner.TypeAssumptions.set_start
-  Scanner.TypeAssumptions.get_end
-  Scanner.TypeAssumptions.set_end
-  Scanner.TypeAssumptions.get_err
-  Scanner.TypeAssumptions.set_err
-  Scanner.TypeAssumptions.get_empties
-  Scanner.TypeAssumptions.set_empties
-  Scanner.TypeAssumptions.get_scanCalled
-  Scanner.TypeAssumptions.set_scanCalled
-  Scanner.TypeAssumptions.get_done
-  Scanner.TypeAssumptions.set_done
+  Scanner.TypeAssumptions.get'r
+  Scanner.TypeAssumptions.set'r
+  Scanner.TypeAssumptions.get'split
+  Scanner.TypeAssumptions.set'split
+  Scanner.TypeAssumptions.get'maxTokenSize
+  Scanner.TypeAssumptions.set'maxTokenSize
+  Scanner.TypeAssumptions.get'token
+  Scanner.TypeAssumptions.set'token
+  Scanner.TypeAssumptions.get'buf
+  Scanner.TypeAssumptions.set'buf
+  Scanner.TypeAssumptions.get'start
+  Scanner.TypeAssumptions.set'start
+  Scanner.TypeAssumptions.get'end
+  Scanner.TypeAssumptions.set'end
+  Scanner.TypeAssumptions.get'err
+  Scanner.TypeAssumptions.set'err
+  Scanner.TypeAssumptions.get'empties
+  Scanner.TypeAssumptions.set'empties
+  Scanner.TypeAssumptions.get'scanCalled
+  Scanner.TypeAssumptions.set'scanCalled
+  Scanner.TypeAssumptions.get'done
+  Scanner.TypeAssumptions.set'done
   Scanner.TypeAssumptions.method_set
   Scanner.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Reader_instance : Reader.TypeAssumptions
-  Writer_instance : Writer.TypeAssumptions
-  ReadWriter_instance : ReadWriter.TypeAssumptions
-  Scanner_instance : Scanner.TypeAssumptions
-  SplitFunc_instance : SplitFunc.TypeAssumptions
-  NewReaderSize_unfold : FuncUnfold NewReaderSize [] NewReaderSize.impl
-  NewReader_unfold : FuncUnfold NewReader [] NewReader.impl
-  NewWriterSize_unfold : FuncUnfold NewWriterSize [] NewWriterSize.impl
-  NewWriter_unfold : FuncUnfold NewWriter [] NewWriter.impl
-  NewReadWriter_unfold : FuncUnfold NewReadWriter [] NewReadWriter.impl
-  import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
+  instance'Reader : Reader.TypeAssumptions
+  instance'Writer : Writer.TypeAssumptions
+  instance'ReadWriter : ReadWriter.TypeAssumptions
+  instance'Scanner : Scanner.TypeAssumptions
+  instance'SplitFunc : SplitFunc.TypeAssumptions
+  unfold'NewReaderSize : FuncUnfold NewReaderSize [] NewReaderSize.impl
+  unfold'NewReader : FuncUnfold NewReader [] NewReader.impl
+  unfold'NewWriterSize : FuncUnfold NewWriterSize [] NewWriterSize.impl
+  unfold'NewWriter : FuncUnfold NewWriter [] NewWriter.impl
+  unfold'NewReadWriter : FuncUnfold NewReadWriter [] NewReadWriter.impl
+  import'bytes : _root_.Perennial.bytes.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
 
-attribute [instance] Assumptions.Reader_instance
-  Assumptions.Writer_instance
-  Assumptions.ReadWriter_instance
-  Assumptions.Scanner_instance
-  Assumptions.SplitFunc_instance
-  Assumptions.NewReaderSize_unfold
-  Assumptions.NewReader_unfold
-  Assumptions.NewWriterSize_unfold
-  Assumptions.NewWriter_unfold
-  Assumptions.NewReadWriter_unfold
-  Assumptions.import_bytes_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_strings_Assumption
+attribute [instance] Assumptions.instance'Reader
+  Assumptions.instance'Writer
+  Assumptions.instance'ReadWriter
+  Assumptions.instance'Scanner
+  Assumptions.instance'SplitFunc
+  Assumptions.unfold'NewReaderSize
+  Assumptions.unfold'NewReader
+  Assumptions.unfold'NewWriterSize
+  Assumptions.unfold'NewWriter
+  Assumptions.unfold'NewReadWriter
+  Assumptions.import'bytes
+  Assumptions.import'errors
+  Assumptions.import'io
+  Assumptions.import'strings
 
 end bufio
 

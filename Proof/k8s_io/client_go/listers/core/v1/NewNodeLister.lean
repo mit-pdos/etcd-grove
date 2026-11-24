@@ -42,7 +42,7 @@ theorem NewNodeLister.wp_proof (wp_Resource : corev1.Resource.spec (GF := GF) (h
   (try wp_auto)
   wp_apply wp_alloc as %l Hl
   (try wp_auto)
-  ihave Hacc := (nodeLister.nodeLister_access_load_ResourceIndexer l _ (DFrac.own 1)).access_strict $$ Hl
+  ihave Hacc := (nodeLister.access_load'nodeLister'ResourceIndexer l _ (DFrac.own 1)).access_strict $$ Hl
   icases Hacc with ⟨Hf, -⟩
   iapply HΦ
   iexact Hf

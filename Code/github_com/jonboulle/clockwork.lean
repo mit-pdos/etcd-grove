@@ -229,7 +229,7 @@ noncomputable instance realClock.zero_val [GooseExts] : ZeroVal realClock :=
 @[irreducible] noncomputable def realClock.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   realClock.fieldsUnsealed
 
-noncomputable instance equals_unfold_realClock [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'realClock [GooseExts] [GoGlobalContext] :
     EqualsUnfold realClock.fields realClock.fieldsUnsealed :=
   ⟨by unfold realClock.fields; rfl⟩
 
@@ -241,15 +241,15 @@ class realClock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq realClock.ty realClock.underlying
   method_set : go.MethodSetIs realClock.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType realClock.ty) [(go!"After", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"AfterFunc", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, (go.GoType.FunctionType (go.signature.Signature [] false []))] false [Timer.ty]))), (go!"NewTicker", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Ticker.ty]))), (go!"NewTimer", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Timer.ty]))), (go!"Now", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"Since", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [_root_.Perennial.time.Duration.ty]))), (go!"Sleep", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"Until", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [_root_.Perennial.time.Duration.ty])))]
-  ptr_After_unfold : MethodUnfold (go.GoType.PointerType realClock.ty) go!"After" realClock.After.impl
-  ptr_Now_unfold : MethodUnfold (go.GoType.PointerType realClock.ty) go!"Now" realClock.Now.impl
+  ptr_unfold'After : MethodUnfold (go.GoType.PointerType realClock.ty) go!"After" realClock.After.impl
+  ptr_unfold'Now : MethodUnfold (go.GoType.PointerType realClock.ty) go!"Now" realClock.Now.impl
 
 attribute [instance] realClock.TypeAssumptions.type_repr
   realClock.TypeAssumptions.underlying
   realClock.TypeAssumptions.method_set
   realClock.TypeAssumptions.ptr_method_set
-  realClock.TypeAssumptions.ptr_After_unfold
-  realClock.TypeAssumptions.ptr_Now_unfold
+  realClock.TypeAssumptions.ptr_unfold'After
+  realClock.TypeAssumptions.ptr_unfold'Now
 
 opaque FakeClock.nonempty_type : NonemptyType.{0}
 def FakeClock : Type := FakeClock.nonempty_type.type
@@ -285,7 +285,7 @@ noncomputable instance blocker.zero_val [GooseExts] : ZeroVal blocker :=
 @[irreducible] noncomputable def blocker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   blocker.fieldsUnsealed
 
-noncomputable instance equals_unfold_blocker [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'blocker [GooseExts] [GoGlobalContext] :
     EqualsUnfold blocker.fields blocker.fieldsUnsealed :=
   ⟨by unfold blocker.fields; rfl⟩
 
@@ -295,19 +295,19 @@ noncomputable instance equals_unfold_blocker [GooseExts] [GoGlobalContext] :
 class blocker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying blocker.underlying blocker
   underlying : go.UnderlyingDirectedEq blocker.ty blocker.underlying
-  get_count : ∀ (x : blocker), go.IsGoStepPureDetTagged under (StructFieldGet blocker.underlying go!"count") #x (Val #(x.count'))
-  set_count : ∀ (x : blocker) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet blocker.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : blocker)))
-  get_ch : ∀ (x : blocker), go.IsGoStepPureDetTagged under (StructFieldGet blocker.underlying go!"ch") #x (Val #(x.ch'))
-  set_ch : ∀ (x : blocker) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet blocker.underlying go!"ch") (PairV #x #y) (Val #(({ x with ch' := y } : blocker)))
+  get'count : ∀ (x : blocker), go.IsGoStepPureDetTagged under (StructFieldGet blocker.underlying go!"count") #x (Val #(x.count'))
+  set'count : ∀ (x : blocker) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet blocker.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : blocker)))
+  get'ch : ∀ (x : blocker), go.IsGoStepPureDetTagged under (StructFieldGet blocker.underlying go!"ch") #x (Val #(x.ch'))
+  set'ch : ∀ (x : blocker) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet blocker.underlying go!"ch") (PairV #x #y) (Val #(({ x with ch' := y } : blocker)))
   method_set : go.MethodSetIs blocker.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType blocker.ty) []
 
 attribute [instance] blocker.TypeAssumptions.type_repr
   blocker.TypeAssumptions.underlying
-  blocker.TypeAssumptions.get_count
-  blocker.TypeAssumptions.set_count
-  blocker.TypeAssumptions.get_ch
-  blocker.TypeAssumptions.set_ch
+  blocker.TypeAssumptions.get'count
+  blocker.TypeAssumptions.set'count
+  blocker.TypeAssumptions.get'ch
+  blocker.TypeAssumptions.set'ch
   blocker.TypeAssumptions.method_set
   blocker.TypeAssumptions.ptr_method_set
 
@@ -385,7 +385,7 @@ noncomputable instance realTicker.zero_val [GooseExts] : ZeroVal realTicker :=
 @[irreducible] noncomputable def realTicker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   realTicker.fieldsUnsealed
 
-noncomputable instance equals_unfold_realTicker [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'realTicker [GooseExts] [GoGlobalContext] :
     EqualsUnfold realTicker.fields realTicker.fieldsUnsealed :=
   ⟨by unfold realTicker.fields; rfl⟩
 
@@ -395,15 +395,15 @@ noncomputable instance equals_unfold_realTicker [GooseExts] [GoGlobalContext] :
 class realTicker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying realTicker.underlying realTicker
   underlying : go.UnderlyingDirectedEq realTicker.ty realTicker.underlying
-  get_Ticker : ∀ (x : realTicker), go.IsGoStepPureDetTagged under (StructFieldGet realTicker.underlying go!"Ticker") #x (Val #(x.Ticker'))
-  set_Ticker : ∀ (x : realTicker) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet realTicker.underlying go!"Ticker") (PairV #x #y) (Val #(({ x with Ticker' := y } : realTicker)))
+  get'Ticker : ∀ (x : realTicker), go.IsGoStepPureDetTagged under (StructFieldGet realTicker.underlying go!"Ticker") #x (Val #(x.Ticker'))
+  set'Ticker : ∀ (x : realTicker) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet realTicker.underlying go!"Ticker") (PairV #x #y) (Val #(({ x with Ticker' := y } : realTicker)))
   method_set : go.MethodSetIs realTicker.ty [(go!"Chan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType realTicker.ty) [(go!"Chan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] realTicker.TypeAssumptions.type_repr
   realTicker.TypeAssumptions.underlying
-  realTicker.TypeAssumptions.get_Ticker
-  realTicker.TypeAssumptions.set_Ticker
+  realTicker.TypeAssumptions.get'Ticker
+  realTicker.TypeAssumptions.set'Ticker
   realTicker.TypeAssumptions.method_set
   realTicker.TypeAssumptions.ptr_method_set
 
@@ -428,7 +428,7 @@ noncomputable instance fakeTicker.zero_val [GooseExts] : ZeroVal fakeTicker :=
 @[irreducible] noncomputable def fakeTicker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fakeTicker.fieldsUnsealed
 
-noncomputable instance equals_unfold_fakeTicker [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'fakeTicker [GooseExts] [GoGlobalContext] :
     EqualsUnfold fakeTicker.fields fakeTicker.fieldsUnsealed :=
   ⟨by unfold fakeTicker.fields; rfl⟩
 
@@ -438,31 +438,31 @@ noncomputable instance equals_unfold_fakeTicker [GooseExts] [GoGlobalContext] :
 class fakeTicker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fakeTicker.underlying fakeTicker
   underlying : go.UnderlyingDirectedEq fakeTicker.ty fakeTicker.underlying
-  get_c : ∀ (x : fakeTicker), go.IsGoStepPureDetTagged under (StructFieldGet fakeTicker.underlying go!"c") #x (Val #(x.c'))
-  set_c : ∀ (x : fakeTicker) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet fakeTicker.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : fakeTicker)))
-  get_exp : ∀ (x : fakeTicker), go.IsGoStepPureDetTagged under (StructFieldGet fakeTicker.underlying go!"exp") #x (Val #(x.exp'))
-  set_exp : ∀ (x : fakeTicker) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet fakeTicker.underlying go!"exp") (PairV #x #y) (Val #(({ x with exp' := y } : fakeTicker)))
-  get_reset : ∀ (x : fakeTicker), go.IsGoStepPureDetTagged under (StructFieldGet fakeTicker.underlying go!"reset") #x (Val #(x.reset'))
-  set_reset : ∀ (x : fakeTicker) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet fakeTicker.underlying go!"reset") (PairV #x #y) (Val #(({ x with reset' := y } : fakeTicker)))
-  get_stop : ∀ (x : fakeTicker), go.IsGoStepPureDetTagged under (StructFieldGet fakeTicker.underlying go!"stop") #x (Val #(x.stop'))
-  set_stop : ∀ (x : fakeTicker) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet fakeTicker.underlying go!"stop") (PairV #x #y) (Val #(({ x with stop' := y } : fakeTicker)))
-  get_d : ∀ (x : fakeTicker), go.IsGoStepPureDetTagged under (StructFieldGet fakeTicker.underlying go!"d") #x (Val #(x.d'))
-  set_d : ∀ (x : fakeTicker) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet fakeTicker.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : fakeTicker)))
+  get'c : ∀ (x : fakeTicker), go.IsGoStepPureDetTagged under (StructFieldGet fakeTicker.underlying go!"c") #x (Val #(x.c'))
+  set'c : ∀ (x : fakeTicker) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet fakeTicker.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : fakeTicker)))
+  get'exp : ∀ (x : fakeTicker), go.IsGoStepPureDetTagged under (StructFieldGet fakeTicker.underlying go!"exp") #x (Val #(x.exp'))
+  set'exp : ∀ (x : fakeTicker) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet fakeTicker.underlying go!"exp") (PairV #x #y) (Val #(({ x with exp' := y } : fakeTicker)))
+  get'reset : ∀ (x : fakeTicker), go.IsGoStepPureDetTagged under (StructFieldGet fakeTicker.underlying go!"reset") #x (Val #(x.reset'))
+  set'reset : ∀ (x : fakeTicker) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet fakeTicker.underlying go!"reset") (PairV #x #y) (Val #(({ x with reset' := y } : fakeTicker)))
+  get'stop : ∀ (x : fakeTicker), go.IsGoStepPureDetTagged under (StructFieldGet fakeTicker.underlying go!"stop") #x (Val #(x.stop'))
+  set'stop : ∀ (x : fakeTicker) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet fakeTicker.underlying go!"stop") (PairV #x #y) (Val #(({ x with stop' := y } : fakeTicker)))
+  get'd : ∀ (x : fakeTicker), go.IsGoStepPureDetTagged under (StructFieldGet fakeTicker.underlying go!"d") #x (Val #(x.d'))
+  set'd : ∀ (x : fakeTicker) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet fakeTicker.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : fakeTicker)))
   method_set : go.MethodSetIs fakeTicker.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fakeTicker.ty) [(go!"Chan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"github.com/jonboulle/clockwork.expiration", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"github.com/jonboulle/clockwork.expire", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [(go.GoType.PointerType _root_.Perennial.time.Duration.ty)]))), (go!"github.com/jonboulle/clockwork.setExpiration", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [])))]
 
 attribute [instance] fakeTicker.TypeAssumptions.type_repr
   fakeTicker.TypeAssumptions.underlying
-  fakeTicker.TypeAssumptions.get_c
-  fakeTicker.TypeAssumptions.set_c
-  fakeTicker.TypeAssumptions.get_exp
-  fakeTicker.TypeAssumptions.set_exp
-  fakeTicker.TypeAssumptions.get_reset
-  fakeTicker.TypeAssumptions.set_reset
-  fakeTicker.TypeAssumptions.get_stop
-  fakeTicker.TypeAssumptions.set_stop
-  fakeTicker.TypeAssumptions.get_d
-  fakeTicker.TypeAssumptions.set_d
+  fakeTicker.TypeAssumptions.get'c
+  fakeTicker.TypeAssumptions.set'c
+  fakeTicker.TypeAssumptions.get'exp
+  fakeTicker.TypeAssumptions.set'exp
+  fakeTicker.TypeAssumptions.get'reset
+  fakeTicker.TypeAssumptions.set'reset
+  fakeTicker.TypeAssumptions.get'stop
+  fakeTicker.TypeAssumptions.set'stop
+  fakeTicker.TypeAssumptions.get'd
+  fakeTicker.TypeAssumptions.set'd
   fakeTicker.TypeAssumptions.method_set
   fakeTicker.TypeAssumptions.ptr_method_set
 
@@ -493,7 +493,7 @@ noncomputable instance realTimer.zero_val [GooseExts] : ZeroVal realTimer :=
 @[irreducible] noncomputable def realTimer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   realTimer.fieldsUnsealed
 
-noncomputable instance equals_unfold_realTimer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'realTimer [GooseExts] [GoGlobalContext] :
     EqualsUnfold realTimer.fields realTimer.fieldsUnsealed :=
   ⟨by unfold realTimer.fields; rfl⟩
 
@@ -503,15 +503,15 @@ noncomputable instance equals_unfold_realTimer [GooseExts] [GoGlobalContext] :
 class realTimer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying realTimer.underlying realTimer
   underlying : go.UnderlyingDirectedEq realTimer.ty realTimer.underlying
-  get_Timer : ∀ (x : realTimer), go.IsGoStepPureDetTagged under (StructFieldGet realTimer.underlying go!"Timer") #x (Val #(x.Timer'))
-  set_Timer : ∀ (x : realTimer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet realTimer.underlying go!"Timer") (PairV #x #y) (Val #(({ x with Timer' := y } : realTimer)))
+  get'Timer : ∀ (x : realTimer), go.IsGoStepPureDetTagged under (StructFieldGet realTimer.underlying go!"Timer") #x (Val #(x.Timer'))
+  set'Timer : ∀ (x : realTimer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet realTimer.underlying go!"Timer") (PairV #x #y) (Val #(({ x with Timer' := y } : realTimer)))
   method_set : go.MethodSetIs realTimer.ty [(go!"Chan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.bool]))), (go!"Stop", (some (go.signature.Signature [] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType realTimer.ty) [(go!"Chan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.bool]))), (go!"Stop", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] realTimer.TypeAssumptions.type_repr
   realTimer.TypeAssumptions.underlying
-  realTimer.TypeAssumptions.get_Timer
-  realTimer.TypeAssumptions.set_Timer
+  realTimer.TypeAssumptions.get'Timer
+  realTimer.TypeAssumptions.set'Timer
   realTimer.TypeAssumptions.method_set
   realTimer.TypeAssumptions.ptr_method_set
 
@@ -536,7 +536,7 @@ noncomputable instance fakeTimer.zero_val [GooseExts] : ZeroVal fakeTimer :=
 @[irreducible] noncomputable def fakeTimer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fakeTimer.fieldsUnsealed
 
-noncomputable instance equals_unfold_fakeTimer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'fakeTimer [GooseExts] [GoGlobalContext] :
     EqualsUnfold fakeTimer.fields fakeTimer.fieldsUnsealed :=
   ⟨by unfold fakeTimer.fields; rfl⟩
 
@@ -546,66 +546,66 @@ noncomputable instance equals_unfold_fakeTimer [GooseExts] [GoGlobalContext] :
 class fakeTimer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fakeTimer.underlying fakeTimer
   underlying : go.UnderlyingDirectedEq fakeTimer.ty fakeTimer.underlying
-  get_c : ∀ (x : fakeTimer), go.IsGoStepPureDetTagged under (StructFieldGet fakeTimer.underlying go!"c") #x (Val #(x.c'))
-  set_c : ∀ (x : fakeTimer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet fakeTimer.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : fakeTimer)))
-  get_exp : ∀ (x : fakeTimer), go.IsGoStepPureDetTagged under (StructFieldGet fakeTimer.underlying go!"exp") #x (Val #(x.exp'))
-  set_exp : ∀ (x : fakeTimer) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet fakeTimer.underlying go!"exp") (PairV #x #y) (Val #(({ x with exp' := y } : fakeTimer)))
-  get_reset : ∀ (x : fakeTimer), go.IsGoStepPureDetTagged under (StructFieldGet fakeTimer.underlying go!"reset") #x (Val #(x.reset'))
-  set_reset : ∀ (x : fakeTimer) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet fakeTimer.underlying go!"reset") (PairV #x #y) (Val #(({ x with reset' := y } : fakeTimer)))
-  get_stop : ∀ (x : fakeTimer), go.IsGoStepPureDetTagged under (StructFieldGet fakeTimer.underlying go!"stop") #x (Val #(x.stop'))
-  set_stop : ∀ (x : fakeTimer) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet fakeTimer.underlying go!"stop") (PairV #x #y) (Val #(({ x with stop' := y } : fakeTimer)))
-  get_afterFunc : ∀ (x : fakeTimer), go.IsGoStepPureDetTagged under (StructFieldGet fakeTimer.underlying go!"afterFunc") #x (Val #(x.afterFunc'))
-  set_afterFunc : ∀ (x : fakeTimer) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet fakeTimer.underlying go!"afterFunc") (PairV #x #y) (Val #(({ x with afterFunc' := y } : fakeTimer)))
+  get'c : ∀ (x : fakeTimer), go.IsGoStepPureDetTagged under (StructFieldGet fakeTimer.underlying go!"c") #x (Val #(x.c'))
+  set'c : ∀ (x : fakeTimer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet fakeTimer.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : fakeTimer)))
+  get'exp : ∀ (x : fakeTimer), go.IsGoStepPureDetTagged under (StructFieldGet fakeTimer.underlying go!"exp") #x (Val #(x.exp'))
+  set'exp : ∀ (x : fakeTimer) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet fakeTimer.underlying go!"exp") (PairV #x #y) (Val #(({ x with exp' := y } : fakeTimer)))
+  get'reset : ∀ (x : fakeTimer), go.IsGoStepPureDetTagged under (StructFieldGet fakeTimer.underlying go!"reset") #x (Val #(x.reset'))
+  set'reset : ∀ (x : fakeTimer) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet fakeTimer.underlying go!"reset") (PairV #x #y) (Val #(({ x with reset' := y } : fakeTimer)))
+  get'stop : ∀ (x : fakeTimer), go.IsGoStepPureDetTagged under (StructFieldGet fakeTimer.underlying go!"stop") #x (Val #(x.stop'))
+  set'stop : ∀ (x : fakeTimer) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet fakeTimer.underlying go!"stop") (PairV #x #y) (Val #(({ x with stop' := y } : fakeTimer)))
+  get'afterFunc : ∀ (x : fakeTimer), go.IsGoStepPureDetTagged under (StructFieldGet fakeTimer.underlying go!"afterFunc") #x (Val #(x.afterFunc'))
+  set'afterFunc : ∀ (x : fakeTimer) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet fakeTimer.underlying go!"afterFunc") (PairV #x #y) (Val #(({ x with afterFunc' := y } : fakeTimer)))
   method_set : go.MethodSetIs fakeTimer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fakeTimer.ty) [(go!"Chan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.bool]))), (go!"Stop", (some (go.signature.Signature [] false [go.bool]))), (go!"github.com/jonboulle/clockwork.expiration", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"github.com/jonboulle/clockwork.expire", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [(go.GoType.PointerType _root_.Perennial.time.Duration.ty)]))), (go!"github.com/jonboulle/clockwork.setExpiration", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [])))]
 
 attribute [instance] fakeTimer.TypeAssumptions.type_repr
   fakeTimer.TypeAssumptions.underlying
-  fakeTimer.TypeAssumptions.get_c
-  fakeTimer.TypeAssumptions.set_c
-  fakeTimer.TypeAssumptions.get_exp
-  fakeTimer.TypeAssumptions.set_exp
-  fakeTimer.TypeAssumptions.get_reset
-  fakeTimer.TypeAssumptions.set_reset
-  fakeTimer.TypeAssumptions.get_stop
-  fakeTimer.TypeAssumptions.set_stop
-  fakeTimer.TypeAssumptions.get_afterFunc
-  fakeTimer.TypeAssumptions.set_afterFunc
+  fakeTimer.TypeAssumptions.get'c
+  fakeTimer.TypeAssumptions.set'c
+  fakeTimer.TypeAssumptions.get'exp
+  fakeTimer.TypeAssumptions.set'exp
+  fakeTimer.TypeAssumptions.get'reset
+  fakeTimer.TypeAssumptions.set'reset
+  fakeTimer.TypeAssumptions.get'stop
+  fakeTimer.TypeAssumptions.set'stop
+  fakeTimer.TypeAssumptions.get'afterFunc
+  fakeTimer.TypeAssumptions.set'afterFunc
   fakeTimer.TypeAssumptions.method_set
   fakeTimer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Clock_instance : Clock.TypeAssumptions
-  realClock_instance : realClock.TypeAssumptions
-  FakeClock_instance : FakeClock.TypeAssumptions
-  blocker_instance : blocker.TypeAssumptions
-  expirer_instance : expirer.TypeAssumptions
-  contextKey_instance : contextKey.TypeAssumptions
-  fakeClockContext_instance : fakeClockContext.TypeAssumptions
-  Ticker_instance : Ticker.TypeAssumptions
-  realTicker_instance : realTicker.TypeAssumptions
-  fakeTicker_instance : fakeTicker.TypeAssumptions
-  Timer_instance : Timer.TypeAssumptions
-  realTimer_instance : realTimer.TypeAssumptions
-  fakeTimer_instance : fakeTimer.TypeAssumptions
-  NewRealClock_unfold : FuncUnfold NewRealClock [] NewRealClock.impl
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'Clock : Clock.TypeAssumptions
+  instance'realClock : realClock.TypeAssumptions
+  instance'FakeClock : FakeClock.TypeAssumptions
+  instance'blocker : blocker.TypeAssumptions
+  instance'expirer : expirer.TypeAssumptions
+  instance'contextKey : contextKey.TypeAssumptions
+  instance'fakeClockContext : fakeClockContext.TypeAssumptions
+  instance'Ticker : Ticker.TypeAssumptions
+  instance'realTicker : realTicker.TypeAssumptions
+  instance'fakeTicker : fakeTicker.TypeAssumptions
+  instance'Timer : Timer.TypeAssumptions
+  instance'realTimer : realTimer.TypeAssumptions
+  instance'fakeTimer : fakeTimer.TypeAssumptions
+  unfold'NewRealClock : FuncUnfold NewRealClock [] NewRealClock.impl
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.Clock_instance
-  Assumptions.realClock_instance
-  Assumptions.FakeClock_instance
-  Assumptions.blocker_instance
-  Assumptions.expirer_instance
-  Assumptions.contextKey_instance
-  Assumptions.fakeClockContext_instance
-  Assumptions.Ticker_instance
-  Assumptions.realTicker_instance
-  Assumptions.fakeTicker_instance
-  Assumptions.Timer_instance
-  Assumptions.realTimer_instance
-  Assumptions.fakeTimer_instance
-  Assumptions.NewRealClock_unfold
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'Clock
+  Assumptions.instance'realClock
+  Assumptions.instance'FakeClock
+  Assumptions.instance'blocker
+  Assumptions.instance'expirer
+  Assumptions.instance'contextKey
+  Assumptions.instance'fakeClockContext
+  Assumptions.instance'Ticker
+  Assumptions.instance'realTicker
+  Assumptions.instance'fakeTicker
+  Assumptions.instance'Timer
+  Assumptions.instance'realTimer
+  Assumptions.instance'fakeTimer
+  Assumptions.unfold'NewRealClock
+  Assumptions.import'time
 
 end github_com.jonboulle.clockwork
 

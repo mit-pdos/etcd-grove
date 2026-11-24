@@ -83,9 +83,9 @@ theorem sendMsgReadIndexResponse.wp_proof
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   icases ownTrackerC_incoming c tv _ $$ Htrk with ⟨%vin, %vout, %Harr, Hv0, Htrkback⟩
-  icases (go_etcd_io.raft.v3.tracker.ProgressTracker.ProgressTracker_access_load_Config
+  icases (go_etcd_io.raft.v3.tracker.ProgressTracker.access_load'ProgressTracker'Config
     _ tv (DFrac.own 1)).access_strict $$ Htrkf with ⟨Hcf, Hcfback⟩
-  icases (go_etcd_io.raft.v3.tracker.Config.Config_access_load_Voters
+  icases (go_etcd_io.raft.v3.tracker.Config.access_load'Config'Voters
     _ tv.Config' (DFrac.own 1)).access_strict $$ Hcf with ⟨Hvf, Hvfback⟩
   icases array_acc_same (GF := GF) _ (sint.Z (W64 0)) _ _ _ vin (by decide)
       (by simp [Harr]) $$ Hvf with ⟨Hv0f, Hv0back⟩

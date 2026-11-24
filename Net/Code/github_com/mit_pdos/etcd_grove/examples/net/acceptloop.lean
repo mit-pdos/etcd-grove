@@ -255,21 +255,21 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  handle_unfold : FuncUnfold handle [] handle.impl
-  Serve_unfold : FuncUnfold Serve [] Serve.impl
-  CallOne_unfold : FuncUnfold CallOne [] CallOne.impl
-  Call_unfold : FuncUnfold Call [] Call.impl
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_wire_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Assumptions
+  unfold'handle : FuncUnfold handle [] handle.impl
+  unfold'Serve : FuncUnfold Serve [] Serve.impl
+  unfold'CallOne : FuncUnfold CallOne [] CallOne.impl
+  unfold'Call : FuncUnfold Call [] Call.impl
+  import'net : _root_.Perennial.net.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'wire : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Assumptions
 
-attribute [instance] Assumptions.handle_unfold
-  Assumptions.Serve_unfold
-  Assumptions.CallOne_unfold
-  Assumptions.Call_unfold
-  Assumptions.import_net_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_wire_Assumption
+attribute [instance] Assumptions.unfold'handle
+  Assumptions.unfold'Serve
+  Assumptions.unfold'CallOne
+  Assumptions.unfold'Call
+  Assumptions.import'net
+  Assumptions.import'sync
+  Assumptions.import'wire
 
 end github_com.mit_pdos.etcd_grove.examples.net.acceptloop
 

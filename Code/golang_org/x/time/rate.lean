@@ -867,20 +867,20 @@ class Limit.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   underlying : go.UnderlyingDirectedEq Limit.ty Limit.underlying
   method_set : go.MethodSetIs Limit.ty [(go!"golang.org/x/time/rate.durationFromTokens", (some (go.signature.Signature [go.float64] false [_root_.Perennial.time.Duration.ty]))), (go!"golang.org/x/time/rate.tokensFromDuration", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.float64])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Limit.ty) [(go!"golang.org/x/time/rate.durationFromTokens", (some (go.signature.Signature [go.float64] false [_root_.Perennial.time.Duration.ty]))), (go!"golang.org/x/time/rate.tokensFromDuration", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.float64])))]
-  durationFromTokens_unfold : MethodUnfold Limit.ty go!"durationFromTokens" Limit.durationFromTokens.impl
-  tokensFromDuration_unfold : MethodUnfold Limit.ty go!"tokensFromDuration" Limit.tokensFromDuration.impl
-  ptr_durationFromTokens_unfold : MethodUnfold (go.GoType.PointerType Limit.ty) go!"durationFromTokens" (LamV "$r"
+  unfold'durationFromTokens : MethodUnfold Limit.ty go!"durationFromTokens" Limit.durationFromTokens.impl
+  unfold'tokensFromDuration : MethodUnfold Limit.ty go!"tokensFromDuration" Limit.tokensFromDuration.impl
+  ptr_unfold'durationFromTokens : MethodUnfold (go.GoType.PointerType Limit.ty) go!"durationFromTokens" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Limit.ty go!"durationFromTokens"))) (App (Val (GoInstruction (GoLoad Limit.ty))) (Var "$r"))))
-  ptr_tokensFromDuration_unfold : MethodUnfold (go.GoType.PointerType Limit.ty) go!"tokensFromDuration" (LamV "$r"
+  ptr_unfold'tokensFromDuration : MethodUnfold (go.GoType.PointerType Limit.ty) go!"tokensFromDuration" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Limit.ty go!"tokensFromDuration"))) (App (Val (GoInstruction (GoLoad Limit.ty))) (Var "$r"))))
 
 attribute [instance] Limit.TypeAssumptions.underlying
   Limit.TypeAssumptions.method_set
   Limit.TypeAssumptions.ptr_method_set
-  Limit.TypeAssumptions.durationFromTokens_unfold
-  Limit.TypeAssumptions.tokensFromDuration_unfold
-  Limit.TypeAssumptions.ptr_durationFromTokens_unfold
-  Limit.TypeAssumptions.ptr_tokensFromDuration_unfold
+  Limit.TypeAssumptions.unfold'durationFromTokens
+  Limit.TypeAssumptions.unfold'tokensFromDuration
+  Limit.TypeAssumptions.ptr_unfold'durationFromTokens
+  Limit.TypeAssumptions.ptr_unfold'tokensFromDuration
 
 structure Limiter [GooseExts] where
   mk ::
@@ -905,7 +905,7 @@ noncomputable instance Limiter.zero_val [GooseExts] : ZeroVal Limiter :=
 @[irreducible] noncomputable def Limiter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Limiter.fieldsUnsealed
 
-noncomputable instance equals_unfold_Limiter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Limiter [GooseExts] [GoGlobalContext] :
     EqualsUnfold Limiter.fields Limiter.fieldsUnsealed :=
   ⟨by unfold Limiter.fields; rfl⟩
 
@@ -915,51 +915,51 @@ noncomputable instance equals_unfold_Limiter [GooseExts] [GoGlobalContext] :
 class Limiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Limiter.underlying Limiter
   underlying : go.UnderlyingDirectedEq Limiter.ty Limiter.underlying
-  get_mu : ∀ (x : Limiter), go.IsGoStepPureDetTagged under (StructFieldGet Limiter.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : Limiter) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Limiter.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Limiter)))
-  get_limit : ∀ (x : Limiter), go.IsGoStepPureDetTagged under (StructFieldGet Limiter.underlying go!"limit") #x (Val #(x.limit'))
-  set_limit : ∀ (x : Limiter) (y : Limit), go.IsGoStepPureDetTagged under (StructFieldSet Limiter.underlying go!"limit") (PairV #x #y) (Val #(({ x with limit' := y } : Limiter)))
-  get_burst : ∀ (x : Limiter), go.IsGoStepPureDetTagged under (StructFieldGet Limiter.underlying go!"burst") #x (Val #(x.burst'))
-  set_burst : ∀ (x : Limiter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Limiter.underlying go!"burst") (PairV #x #y) (Val #(({ x with burst' := y } : Limiter)))
-  get_tokens : ∀ (x : Limiter), go.IsGoStepPureDetTagged under (StructFieldGet Limiter.underlying go!"tokens") #x (Val #(x.tokens'))
-  set_tokens : ∀ (x : Limiter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Limiter.underlying go!"tokens") (PairV #x #y) (Val #(({ x with tokens' := y } : Limiter)))
-  get_last : ∀ (x : Limiter), go.IsGoStepPureDetTagged under (StructFieldGet Limiter.underlying go!"last") #x (Val #(x.last'))
-  set_last : ∀ (x : Limiter) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Limiter.underlying go!"last") (PairV #x #y) (Val #(({ x with last' := y } : Limiter)))
-  get_lastEvent : ∀ (x : Limiter), go.IsGoStepPureDetTagged under (StructFieldGet Limiter.underlying go!"lastEvent") #x (Val #(x.lastEvent'))
-  set_lastEvent : ∀ (x : Limiter) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Limiter.underlying go!"lastEvent") (PairV #x #y) (Val #(({ x with lastEvent' := y } : Limiter)))
+  get'mu : ∀ (x : Limiter), go.IsGoStepPureDetTagged under (StructFieldGet Limiter.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : Limiter) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Limiter.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Limiter)))
+  get'limit : ∀ (x : Limiter), go.IsGoStepPureDetTagged under (StructFieldGet Limiter.underlying go!"limit") #x (Val #(x.limit'))
+  set'limit : ∀ (x : Limiter) (y : Limit), go.IsGoStepPureDetTagged under (StructFieldSet Limiter.underlying go!"limit") (PairV #x #y) (Val #(({ x with limit' := y } : Limiter)))
+  get'burst : ∀ (x : Limiter), go.IsGoStepPureDetTagged under (StructFieldGet Limiter.underlying go!"burst") #x (Val #(x.burst'))
+  set'burst : ∀ (x : Limiter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Limiter.underlying go!"burst") (PairV #x #y) (Val #(({ x with burst' := y } : Limiter)))
+  get'tokens : ∀ (x : Limiter), go.IsGoStepPureDetTagged under (StructFieldGet Limiter.underlying go!"tokens") #x (Val #(x.tokens'))
+  set'tokens : ∀ (x : Limiter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Limiter.underlying go!"tokens") (PairV #x #y) (Val #(({ x with tokens' := y } : Limiter)))
+  get'last : ∀ (x : Limiter), go.IsGoStepPureDetTagged under (StructFieldGet Limiter.underlying go!"last") #x (Val #(x.last'))
+  set'last : ∀ (x : Limiter) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Limiter.underlying go!"last") (PairV #x #y) (Val #(({ x with last' := y } : Limiter)))
+  get'lastEvent : ∀ (x : Limiter), go.IsGoStepPureDetTagged under (StructFieldGet Limiter.underlying go!"lastEvent") #x (Val #(x.lastEvent'))
+  set'lastEvent : ∀ (x : Limiter) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Limiter.underlying go!"lastEvent") (PairV #x #y) (Val #(({ x with lastEvent' := y } : Limiter)))
   method_set : go.MethodSetIs Limiter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Limiter.ty) [(go!"Allow", (some (go.signature.Signature [] false [go.bool]))), (go!"AllowN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false [go.bool]))), (go!"Burst", (some (go.signature.Signature [] false [go.int]))), (go!"Limit", (some (go.signature.Signature [] false [Limit.ty]))), (go!"Reserve", (some (go.signature.Signature [] false [(go.GoType.PointerType Reservation.ty)]))), (go!"ReserveN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false [(go.GoType.PointerType Reservation.ty)]))), (go!"SetBurst", (some (go.signature.Signature [go.int] false []))), (go!"SetBurstAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false []))), (go!"SetLimit", (some (go.signature.Signature [Limit.ty] false []))), (go!"SetLimitAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, Limit.ty] false []))), (go!"Tokens", (some (go.signature.Signature [] false [go.float64]))), (go!"TokensAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.float64]))), (go!"Wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"WaitN", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int] false [go.error]))), (go!"golang.org/x/time/rate.advance", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.float64]))), (go!"golang.org/x/time/rate.reserveN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int, _root_.Perennial.time.Duration.ty] false [Reservation.ty]))), (go!"golang.org/x/time/rate.wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int, _root_.Perennial.time.Time.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty), (go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))]))] false [go.error])))]
-  ptr_Reserve_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"Reserve" Limiter.Reserve.impl
-  ptr_ReserveN_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"ReserveN" Limiter.ReserveN.impl
-  ptr_Wait_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"Wait" Limiter.Wait.impl
-  ptr_WaitN_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"WaitN" Limiter.WaitN.impl
-  ptr_advance_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"advance" Limiter.advance.impl
-  ptr_reserveN_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"reserveN" Limiter.reserveN.impl
-  ptr_wait_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"wait" Limiter.wait.impl
+  ptr_unfold'Reserve : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"Reserve" Limiter.Reserve.impl
+  ptr_unfold'ReserveN : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"ReserveN" Limiter.ReserveN.impl
+  ptr_unfold'Wait : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"Wait" Limiter.Wait.impl
+  ptr_unfold'WaitN : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"WaitN" Limiter.WaitN.impl
+  ptr_unfold'advance : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"advance" Limiter.advance.impl
+  ptr_unfold'reserveN : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"reserveN" Limiter.reserveN.impl
+  ptr_unfold'wait : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"wait" Limiter.wait.impl
 
 attribute [instance] Limiter.TypeAssumptions.type_repr
   Limiter.TypeAssumptions.underlying
-  Limiter.TypeAssumptions.get_mu
-  Limiter.TypeAssumptions.set_mu
-  Limiter.TypeAssumptions.get_limit
-  Limiter.TypeAssumptions.set_limit
-  Limiter.TypeAssumptions.get_burst
-  Limiter.TypeAssumptions.set_burst
-  Limiter.TypeAssumptions.get_tokens
-  Limiter.TypeAssumptions.set_tokens
-  Limiter.TypeAssumptions.get_last
-  Limiter.TypeAssumptions.set_last
-  Limiter.TypeAssumptions.get_lastEvent
-  Limiter.TypeAssumptions.set_lastEvent
+  Limiter.TypeAssumptions.get'mu
+  Limiter.TypeAssumptions.set'mu
+  Limiter.TypeAssumptions.get'limit
+  Limiter.TypeAssumptions.set'limit
+  Limiter.TypeAssumptions.get'burst
+  Limiter.TypeAssumptions.set'burst
+  Limiter.TypeAssumptions.get'tokens
+  Limiter.TypeAssumptions.set'tokens
+  Limiter.TypeAssumptions.get'last
+  Limiter.TypeAssumptions.set'last
+  Limiter.TypeAssumptions.get'lastEvent
+  Limiter.TypeAssumptions.set'lastEvent
   Limiter.TypeAssumptions.method_set
   Limiter.TypeAssumptions.ptr_method_set
-  Limiter.TypeAssumptions.ptr_Reserve_unfold
-  Limiter.TypeAssumptions.ptr_ReserveN_unfold
-  Limiter.TypeAssumptions.ptr_Wait_unfold
-  Limiter.TypeAssumptions.ptr_WaitN_unfold
-  Limiter.TypeAssumptions.ptr_advance_unfold
-  Limiter.TypeAssumptions.ptr_reserveN_unfold
-  Limiter.TypeAssumptions.ptr_wait_unfold
+  Limiter.TypeAssumptions.ptr_unfold'Reserve
+  Limiter.TypeAssumptions.ptr_unfold'ReserveN
+  Limiter.TypeAssumptions.ptr_unfold'Wait
+  Limiter.TypeAssumptions.ptr_unfold'WaitN
+  Limiter.TypeAssumptions.ptr_unfold'advance
+  Limiter.TypeAssumptions.ptr_unfold'reserveN
+  Limiter.TypeAssumptions.ptr_unfold'wait
 
 structure Reservation [GooseExts] where
   mk ::
@@ -982,7 +982,7 @@ noncomputable instance Reservation.zero_val [GooseExts] : ZeroVal Reservation :=
 @[irreducible] noncomputable def Reservation.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Reservation.fieldsUnsealed
 
-noncomputable instance equals_unfold_Reservation [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Reservation [GooseExts] [GoGlobalContext] :
     EqualsUnfold Reservation.fields Reservation.fieldsUnsealed :=
   ⟨by unfold Reservation.fields; rfl⟩
 
@@ -992,41 +992,41 @@ noncomputable instance equals_unfold_Reservation [GooseExts] [GoGlobalContext] :
 class Reservation.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Reservation.underlying Reservation
   underlying : go.UnderlyingDirectedEq Reservation.ty Reservation.underlying
-  get_ok : ∀ (x : Reservation), go.IsGoStepPureDetTagged under (StructFieldGet Reservation.underlying go!"ok") #x (Val #(x.ok'))
-  set_ok : ∀ (x : Reservation) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Reservation.underlying go!"ok") (PairV #x #y) (Val #(({ x with ok' := y } : Reservation)))
-  get_lim : ∀ (x : Reservation), go.IsGoStepPureDetTagged under (StructFieldGet Reservation.underlying go!"lim") #x (Val #(x.lim'))
-  set_lim : ∀ (x : Reservation) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Reservation.underlying go!"lim") (PairV #x #y) (Val #(({ x with lim' := y } : Reservation)))
-  get_tokens : ∀ (x : Reservation), go.IsGoStepPureDetTagged under (StructFieldGet Reservation.underlying go!"tokens") #x (Val #(x.tokens'))
-  set_tokens : ∀ (x : Reservation) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Reservation.underlying go!"tokens") (PairV #x #y) (Val #(({ x with tokens' := y } : Reservation)))
-  get_timeToAct : ∀ (x : Reservation), go.IsGoStepPureDetTagged under (StructFieldGet Reservation.underlying go!"timeToAct") #x (Val #(x.timeToAct'))
-  set_timeToAct : ∀ (x : Reservation) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Reservation.underlying go!"timeToAct") (PairV #x #y) (Val #(({ x with timeToAct' := y } : Reservation)))
-  get_limit : ∀ (x : Reservation), go.IsGoStepPureDetTagged under (StructFieldGet Reservation.underlying go!"limit") #x (Val #(x.limit'))
-  set_limit : ∀ (x : Reservation) (y : Limit), go.IsGoStepPureDetTagged under (StructFieldSet Reservation.underlying go!"limit") (PairV #x #y) (Val #(({ x with limit' := y } : Reservation)))
+  get'ok : ∀ (x : Reservation), go.IsGoStepPureDetTagged under (StructFieldGet Reservation.underlying go!"ok") #x (Val #(x.ok'))
+  set'ok : ∀ (x : Reservation) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Reservation.underlying go!"ok") (PairV #x #y) (Val #(({ x with ok' := y } : Reservation)))
+  get'lim : ∀ (x : Reservation), go.IsGoStepPureDetTagged under (StructFieldGet Reservation.underlying go!"lim") #x (Val #(x.lim'))
+  set'lim : ∀ (x : Reservation) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Reservation.underlying go!"lim") (PairV #x #y) (Val #(({ x with lim' := y } : Reservation)))
+  get'tokens : ∀ (x : Reservation), go.IsGoStepPureDetTagged under (StructFieldGet Reservation.underlying go!"tokens") #x (Val #(x.tokens'))
+  set'tokens : ∀ (x : Reservation) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Reservation.underlying go!"tokens") (PairV #x #y) (Val #(({ x with tokens' := y } : Reservation)))
+  get'timeToAct : ∀ (x : Reservation), go.IsGoStepPureDetTagged under (StructFieldGet Reservation.underlying go!"timeToAct") #x (Val #(x.timeToAct'))
+  set'timeToAct : ∀ (x : Reservation) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Reservation.underlying go!"timeToAct") (PairV #x #y) (Val #(({ x with timeToAct' := y } : Reservation)))
+  get'limit : ∀ (x : Reservation), go.IsGoStepPureDetTagged under (StructFieldGet Reservation.underlying go!"limit") #x (Val #(x.limit'))
+  set'limit : ∀ (x : Reservation) (y : Limit), go.IsGoStepPureDetTagged under (StructFieldSet Reservation.underlying go!"limit") (PairV #x #y) (Val #(({ x with limit' := y } : Reservation)))
   method_set : go.MethodSetIs Reservation.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Reservation.ty) [(go!"Cancel", (some (go.signature.Signature [] false []))), (go!"CancelAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"Delay", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"DelayFrom", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [_root_.Perennial.time.Duration.ty]))), (go!"OK", (some (go.signature.Signature [] false [go.bool])))]
-  ptr_Cancel_unfold : MethodUnfold (go.GoType.PointerType Reservation.ty) go!"Cancel" Reservation.Cancel.impl
-  ptr_CancelAt_unfold : MethodUnfold (go.GoType.PointerType Reservation.ty) go!"CancelAt" Reservation.CancelAt.impl
-  ptr_Delay_unfold : MethodUnfold (go.GoType.PointerType Reservation.ty) go!"Delay" Reservation.Delay.impl
-  ptr_DelayFrom_unfold : MethodUnfold (go.GoType.PointerType Reservation.ty) go!"DelayFrom" Reservation.DelayFrom.impl
+  ptr_unfold'Cancel : MethodUnfold (go.GoType.PointerType Reservation.ty) go!"Cancel" Reservation.Cancel.impl
+  ptr_unfold'CancelAt : MethodUnfold (go.GoType.PointerType Reservation.ty) go!"CancelAt" Reservation.CancelAt.impl
+  ptr_unfold'Delay : MethodUnfold (go.GoType.PointerType Reservation.ty) go!"Delay" Reservation.Delay.impl
+  ptr_unfold'DelayFrom : MethodUnfold (go.GoType.PointerType Reservation.ty) go!"DelayFrom" Reservation.DelayFrom.impl
 
 attribute [instance] Reservation.TypeAssumptions.type_repr
   Reservation.TypeAssumptions.underlying
-  Reservation.TypeAssumptions.get_ok
-  Reservation.TypeAssumptions.set_ok
-  Reservation.TypeAssumptions.get_lim
-  Reservation.TypeAssumptions.set_lim
-  Reservation.TypeAssumptions.get_tokens
-  Reservation.TypeAssumptions.set_tokens
-  Reservation.TypeAssumptions.get_timeToAct
-  Reservation.TypeAssumptions.set_timeToAct
-  Reservation.TypeAssumptions.get_limit
-  Reservation.TypeAssumptions.set_limit
+  Reservation.TypeAssumptions.get'ok
+  Reservation.TypeAssumptions.set'ok
+  Reservation.TypeAssumptions.get'lim
+  Reservation.TypeAssumptions.set'lim
+  Reservation.TypeAssumptions.get'tokens
+  Reservation.TypeAssumptions.set'tokens
+  Reservation.TypeAssumptions.get'timeToAct
+  Reservation.TypeAssumptions.set'timeToAct
+  Reservation.TypeAssumptions.get'limit
+  Reservation.TypeAssumptions.set'limit
   Reservation.TypeAssumptions.method_set
   Reservation.TypeAssumptions.ptr_method_set
-  Reservation.TypeAssumptions.ptr_Cancel_unfold
-  Reservation.TypeAssumptions.ptr_CancelAt_unfold
-  Reservation.TypeAssumptions.ptr_Delay_unfold
-  Reservation.TypeAssumptions.ptr_DelayFrom_unfold
+  Reservation.TypeAssumptions.ptr_unfold'Cancel
+  Reservation.TypeAssumptions.ptr_unfold'CancelAt
+  Reservation.TypeAssumptions.ptr_unfold'Delay
+  Reservation.TypeAssumptions.ptr_unfold'DelayFrom
 
 structure Sometimes [GooseExts] where
   mk ::
@@ -1051,7 +1051,7 @@ noncomputable instance Sometimes.zero_val [GooseExts] : ZeroVal Sometimes :=
 @[irreducible] noncomputable def Sometimes.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Sometimes.fieldsUnsealed
 
-noncomputable instance equals_unfold_Sometimes [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Sometimes [GooseExts] [GoGlobalContext] :
     EqualsUnfold Sometimes.fields Sometimes.fieldsUnsealed :=
   ⟨by unfold Sometimes.fields; rfl⟩
 
@@ -1061,60 +1061,60 @@ noncomputable instance equals_unfold_Sometimes [GooseExts] [GoGlobalContext] :
 class Sometimes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Sometimes.underlying Sometimes
   underlying : go.UnderlyingDirectedEq Sometimes.ty Sometimes.underlying
-  get_First : ∀ (x : Sometimes), go.IsGoStepPureDetTagged under (StructFieldGet Sometimes.underlying go!"First") #x (Val #(x.First'))
-  set_First : ∀ (x : Sometimes) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Sometimes.underlying go!"First") (PairV #x #y) (Val #(({ x with First' := y } : Sometimes)))
-  get_Every : ∀ (x : Sometimes), go.IsGoStepPureDetTagged under (StructFieldGet Sometimes.underlying go!"Every") #x (Val #(x.Every'))
-  set_Every : ∀ (x : Sometimes) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Sometimes.underlying go!"Every") (PairV #x #y) (Val #(({ x with Every' := y } : Sometimes)))
-  get_Interval : ∀ (x : Sometimes), go.IsGoStepPureDetTagged under (StructFieldGet Sometimes.underlying go!"Interval") #x (Val #(x.Interval'))
-  set_Interval : ∀ (x : Sometimes) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Sometimes.underlying go!"Interval") (PairV #x #y) (Val #(({ x with Interval' := y } : Sometimes)))
-  get_mu : ∀ (x : Sometimes), go.IsGoStepPureDetTagged under (StructFieldGet Sometimes.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : Sometimes) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Sometimes.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Sometimes)))
-  get_count : ∀ (x : Sometimes), go.IsGoStepPureDetTagged under (StructFieldGet Sometimes.underlying go!"count") #x (Val #(x.count'))
-  set_count : ∀ (x : Sometimes) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Sometimes.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : Sometimes)))
-  get_last : ∀ (x : Sometimes), go.IsGoStepPureDetTagged under (StructFieldGet Sometimes.underlying go!"last") #x (Val #(x.last'))
-  set_last : ∀ (x : Sometimes) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Sometimes.underlying go!"last") (PairV #x #y) (Val #(({ x with last' := y } : Sometimes)))
+  get'First : ∀ (x : Sometimes), go.IsGoStepPureDetTagged under (StructFieldGet Sometimes.underlying go!"First") #x (Val #(x.First'))
+  set'First : ∀ (x : Sometimes) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Sometimes.underlying go!"First") (PairV #x #y) (Val #(({ x with First' := y } : Sometimes)))
+  get'Every : ∀ (x : Sometimes), go.IsGoStepPureDetTagged under (StructFieldGet Sometimes.underlying go!"Every") #x (Val #(x.Every'))
+  set'Every : ∀ (x : Sometimes) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Sometimes.underlying go!"Every") (PairV #x #y) (Val #(({ x with Every' := y } : Sometimes)))
+  get'Interval : ∀ (x : Sometimes), go.IsGoStepPureDetTagged under (StructFieldGet Sometimes.underlying go!"Interval") #x (Val #(x.Interval'))
+  set'Interval : ∀ (x : Sometimes) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Sometimes.underlying go!"Interval") (PairV #x #y) (Val #(({ x with Interval' := y } : Sometimes)))
+  get'mu : ∀ (x : Sometimes), go.IsGoStepPureDetTagged under (StructFieldGet Sometimes.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : Sometimes) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Sometimes.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Sometimes)))
+  get'count : ∀ (x : Sometimes), go.IsGoStepPureDetTagged under (StructFieldGet Sometimes.underlying go!"count") #x (Val #(x.count'))
+  set'count : ∀ (x : Sometimes) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Sometimes.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : Sometimes)))
+  get'last : ∀ (x : Sometimes), go.IsGoStepPureDetTagged under (StructFieldGet Sometimes.underlying go!"last") #x (Val #(x.last'))
+  set'last : ∀ (x : Sometimes) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Sometimes.underlying go!"last") (PairV #x #y) (Val #(({ x with last' := y } : Sometimes)))
   method_set : go.MethodSetIs Sometimes.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Sometimes.ty) [(go!"Do", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false [])))]
 
 attribute [instance] Sometimes.TypeAssumptions.type_repr
   Sometimes.TypeAssumptions.underlying
-  Sometimes.TypeAssumptions.get_First
-  Sometimes.TypeAssumptions.set_First
-  Sometimes.TypeAssumptions.get_Every
-  Sometimes.TypeAssumptions.set_Every
-  Sometimes.TypeAssumptions.get_Interval
-  Sometimes.TypeAssumptions.set_Interval
-  Sometimes.TypeAssumptions.get_mu
-  Sometimes.TypeAssumptions.set_mu
-  Sometimes.TypeAssumptions.get_count
-  Sometimes.TypeAssumptions.set_count
-  Sometimes.TypeAssumptions.get_last
-  Sometimes.TypeAssumptions.set_last
+  Sometimes.TypeAssumptions.get'First
+  Sometimes.TypeAssumptions.set'First
+  Sometimes.TypeAssumptions.get'Every
+  Sometimes.TypeAssumptions.set'Every
+  Sometimes.TypeAssumptions.get'Interval
+  Sometimes.TypeAssumptions.set'Interval
+  Sometimes.TypeAssumptions.get'mu
+  Sometimes.TypeAssumptions.set'mu
+  Sometimes.TypeAssumptions.get'count
+  Sometimes.TypeAssumptions.set'count
+  Sometimes.TypeAssumptions.get'last
+  Sometimes.TypeAssumptions.set'last
   Sometimes.TypeAssumptions.method_set
   Sometimes.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Limit_instance : Limit.TypeAssumptions
-  Limiter_instance : Limiter.TypeAssumptions
-  Reservation_instance : Reservation.TypeAssumptions
-  Sometimes_instance : Sometimes.TypeAssumptions
-  Every_unfold : FuncUnfold Every [] Every.impl
-  NewLimiter_unfold : FuncUnfold NewLimiter [] NewLimiter.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'Limit : Limit.TypeAssumptions
+  instance'Limiter : Limiter.TypeAssumptions
+  instance'Reservation : Reservation.TypeAssumptions
+  instance'Sometimes : Sometimes.TypeAssumptions
+  unfold'Every : FuncUnfold Every [] Every.impl
+  unfold'NewLimiter : FuncUnfold NewLimiter [] NewLimiter.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.Limit_instance
-  Assumptions.Limiter_instance
-  Assumptions.Reservation_instance
-  Assumptions.Sometimes_instance
-  Assumptions.Every_unfold
-  Assumptions.NewLimiter_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'Limit
+  Assumptions.instance'Limiter
+  Assumptions.instance'Reservation
+  Assumptions.instance'Sometimes
+  Assumptions.unfold'Every
+  Assumptions.unfold'NewLimiter
+  Assumptions.import'context
+  Assumptions.import'fmt
+  Assumptions.import'sync
+  Assumptions.import'time
 
 end golang_org.x.time.rate
 

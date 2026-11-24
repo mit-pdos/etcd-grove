@@ -2,7 +2,7 @@
 Lean-first (no Rocq counterpart).
 
 The `*ConditionsAwareDecision` method set's wrappers of `ConditionsAwareDecision`'s value methods
-(Go calls `d.IsAllow()` on an addressable `d` through them: goose's `ptr_IsAllow_unfold`, ...): the
+(Go calls `d.IsAllow()` on an addressable `d` through them: goose's `ptr_unfold'IsAllow`, ...): the
 value method on `*l`, from its spec (`X_of`, a hypothesis), as `sets/PtrMethods.lean` does for
 `Set[T]`. For the proofs of the callers, which hold their decision in a local variable.
 -/

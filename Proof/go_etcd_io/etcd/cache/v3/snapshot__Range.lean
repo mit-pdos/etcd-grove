@@ -75,8 +75,8 @@ theorem snapshot_Range_take_succ (l : KvMap) (i : Nat) (v : KvEntry) (h : l[i]? 
 
 -- Loads from read-only struct points-tos: the field-store `AccessStrict` instances (which
 -- need `DFrac.own 1`) are found first, so they are switched off here (this proof only loads).
-attribute [-instance] snapshot.snapshot_access_store_rev snapshot.snapshot_access_store_tree
-  kvItem.kvItem_access_store_key kvItem.kvItem_access_store_kv
+attribute [-instance] snapshot.access_store'snapshot'rev snapshot.access_store'snapshot'tree
+  kvItem.access_store'kvItem'key kvItem.access_store'kvItem'kv
 
 theorem snapshot.Range.wp_proof
     (wp_probeItemFromKey : probeItemFromKey.spec (GF := GF) (hG := hG))

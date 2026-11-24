@@ -1098,7 +1098,7 @@ noncomputable instance Codec.zero_val [GooseExts] : ZeroVal Codec :=
 @[irreducible] noncomputable def Codec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Codec.fieldsUnsealed
 
-noncomputable instance equals_unfold_Codec [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Codec [GooseExts] [GoGlobalContext] :
     EqualsUnfold Codec.fields Codec.fieldsUnsealed :=
   ⟨by unfold Codec.fields; rfl⟩
 
@@ -1108,92 +1108,92 @@ noncomputable instance equals_unfold_Codec [GooseExts] [GoGlobalContext] :
 class Codec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Codec.underlying Codec
   underlying : go.UnderlyingDirectedEq Codec.ty Codec.underlying
-  get_EncIn : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"EncIn") #x (Val #(x.EncIn'))
-  set_EncIn : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"EncIn") (PairV #x #y) (Val #(({ x with EncIn' := y } : Codec)))
-  get_DecIn : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"DecIn") #x (Val #(x.DecIn'))
-  set_DecIn : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"DecIn") (PairV #x #y) (Val #(({ x with DecIn' := y } : Codec)))
-  get_EncOut : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"EncOut") #x (Val #(x.EncOut'))
-  set_EncOut : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"EncOut") (PairV #x #y) (Val #(({ x with EncOut' := y } : Codec)))
-  get_DecOut : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"DecOut") #x (Val #(x.DecOut'))
-  set_DecOut : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"DecOut") (PairV #x #y) (Val #(({ x with DecOut' := y } : Codec)))
-  get_IsRead : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"IsRead") #x (Val #(x.IsRead'))
-  set_IsRead : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"IsRead") (PairV #x #y) (Val #(({ x with IsRead' := y } : Codec)))
-  get_Unknown : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Unknown") #x (Val #(x.Unknown'))
-  set_Unknown : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Unknown") (PairV #x #y) (Val #(({ x with Unknown' := y } : Codec)))
-  get_IsUnknown : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"IsUnknown") #x (Val #(x.IsUnknown'))
-  set_IsUnknown : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"IsUnknown") (PairV #x #y) (Val #(({ x with IsUnknown' := y } : Codec)))
+  get'EncIn : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"EncIn") #x (Val #(x.EncIn'))
+  set'EncIn : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"EncIn") (PairV #x #y) (Val #(({ x with EncIn' := y } : Codec)))
+  get'DecIn : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"DecIn") #x (Val #(x.DecIn'))
+  set'DecIn : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"DecIn") (PairV #x #y) (Val #(({ x with DecIn' := y } : Codec)))
+  get'EncOut : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"EncOut") #x (Val #(x.EncOut'))
+  set'EncOut : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"EncOut") (PairV #x #y) (Val #(({ x with EncOut' := y } : Codec)))
+  get'DecOut : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"DecOut") #x (Val #(x.DecOut'))
+  set'DecOut : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"DecOut") (PairV #x #y) (Val #(({ x with DecOut' := y } : Codec)))
+  get'IsRead : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"IsRead") #x (Val #(x.IsRead'))
+  set'IsRead : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"IsRead") (PairV #x #y) (Val #(({ x with IsRead' := y } : Codec)))
+  get'Unknown : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Unknown") #x (Val #(x.Unknown'))
+  set'Unknown : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Unknown") (PairV #x #y) (Val #(({ x with Unknown' := y } : Codec)))
+  get'IsUnknown : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"IsUnknown") #x (Val #(x.IsUnknown'))
+  set'IsUnknown : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"IsUnknown") (PairV #x #y) (Val #(({ x with IsUnknown' := y } : Codec)))
   method_set : go.MethodSetIs Codec.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Codec.ty) []
 
 attribute [instance] Codec.TypeAssumptions.type_repr
   Codec.TypeAssumptions.underlying
-  Codec.TypeAssumptions.get_EncIn
-  Codec.TypeAssumptions.set_EncIn
-  Codec.TypeAssumptions.get_DecIn
-  Codec.TypeAssumptions.set_DecIn
-  Codec.TypeAssumptions.get_EncOut
-  Codec.TypeAssumptions.set_EncOut
-  Codec.TypeAssumptions.get_DecOut
-  Codec.TypeAssumptions.set_DecOut
-  Codec.TypeAssumptions.get_IsRead
-  Codec.TypeAssumptions.set_IsRead
-  Codec.TypeAssumptions.get_Unknown
-  Codec.TypeAssumptions.set_Unknown
-  Codec.TypeAssumptions.get_IsUnknown
-  Codec.TypeAssumptions.set_IsUnknown
+  Codec.TypeAssumptions.get'EncIn
+  Codec.TypeAssumptions.set'EncIn
+  Codec.TypeAssumptions.get'DecIn
+  Codec.TypeAssumptions.set'DecIn
+  Codec.TypeAssumptions.get'EncOut
+  Codec.TypeAssumptions.set'EncOut
+  Codec.TypeAssumptions.get'DecOut
+  Codec.TypeAssumptions.set'DecOut
+  Codec.TypeAssumptions.get'IsRead
+  Codec.TypeAssumptions.set'IsRead
+  Codec.TypeAssumptions.get'Unknown
+  Codec.TypeAssumptions.set'Unknown
+  Codec.TypeAssumptions.get'IsUnknown
+  Codec.TypeAssumptions.set'IsUnknown
   Codec.TypeAssumptions.method_set
   Codec.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Codec_instance : Codec.TypeAssumptions
-  putU64_unfold : FuncUnfold putU64 [] putU64.impl
-  getU64_unfold : FuncUnfold getU64 [] getU64.impl
-  writeAll_unfold : FuncUnfold writeAll [] writeAll.impl
-  readFull_unfold : FuncUnfold readFull [] readFull.impl
-  writeFrame_unfold : FuncUnfold writeFrame [] writeFrame.impl
-  readFrame_unfold : FuncUnfold readFrame [] readFrame.impl
-  hang_unfold : FuncUnfold hang [] hang.impl
-  deadline_unfold : FuncUnfold deadline [] deadline.impl
-  attempt_unfold : FuncUnfold attempt [] attempt.impl
-  Do_unfold : FuncUnfold Do [] Do.impl
-  Report_unfold : FuncUnfold Report [] Report.impl
-  listen_unfold : FuncUnfold listen [] listen.impl
-  serveConn_unfold : FuncUnfold serveConn [] serveConn.impl
-  Serve_unfold : FuncUnfold Serve [] Serve.impl
-  ServeClient_unfold : FuncUnfold ServeClient [] ServeClient.impl
-  Run_unfold : FuncUnfold Run [] Run.impl
-  Check_unfold : FuncUnfold Check [] Check.impl
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
-  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
-  import_lintest_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
-  import_perclient_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient.Assumptions
+  instance'Codec : Codec.TypeAssumptions
+  unfold'putU64 : FuncUnfold putU64 [] putU64.impl
+  unfold'getU64 : FuncUnfold getU64 [] getU64.impl
+  unfold'writeAll : FuncUnfold writeAll [] writeAll.impl
+  unfold'readFull : FuncUnfold readFull [] readFull.impl
+  unfold'writeFrame : FuncUnfold writeFrame [] writeFrame.impl
+  unfold'readFrame : FuncUnfold readFrame [] readFrame.impl
+  unfold'hang : FuncUnfold hang [] hang.impl
+  unfold'deadline : FuncUnfold deadline [] deadline.impl
+  unfold'attempt : FuncUnfold attempt [] attempt.impl
+  unfold'Do : FuncUnfold Do [] Do.impl
+  unfold'Report : FuncUnfold Report [] Report.impl
+  unfold'listen : FuncUnfold listen [] listen.impl
+  unfold'serveConn : FuncUnfold serveConn [] serveConn.impl
+  unfold'Serve : FuncUnfold Serve [] Serve.impl
+  unfold'ServeClient : FuncUnfold ServeClient [] ServeClient.impl
+  unfold'Run : FuncUnfold Run [] Run.impl
+  unfold'Check : FuncUnfold Check [] Check.impl
+  import'net : _root_.Perennial.net.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'porcupine : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
+  import'primitive : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
+  import'lintest : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
+  import'perclient : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient.Assumptions
 
-attribute [instance] Assumptions.Codec_instance
-  Assumptions.putU64_unfold
-  Assumptions.getU64_unfold
-  Assumptions.writeAll_unfold
-  Assumptions.readFull_unfold
-  Assumptions.writeFrame_unfold
-  Assumptions.readFrame_unfold
-  Assumptions.hang_unfold
-  Assumptions.deadline_unfold
-  Assumptions.attempt_unfold
-  Assumptions.Do_unfold
-  Assumptions.Report_unfold
-  Assumptions.listen_unfold
-  Assumptions.serveConn_unfold
-  Assumptions.Serve_unfold
-  Assumptions.ServeClient_unfold
-  Assumptions.Run_unfold
-  Assumptions.Check_unfold
-  Assumptions.import_net_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_porcupine_Assumption
-  Assumptions.import_primitive_Assumption
-  Assumptions.import_lintest_Assumption
-  Assumptions.import_perclient_Assumption
+attribute [instance] Assumptions.instance'Codec
+  Assumptions.unfold'putU64
+  Assumptions.unfold'getU64
+  Assumptions.unfold'writeAll
+  Assumptions.unfold'readFull
+  Assumptions.unfold'writeFrame
+  Assumptions.unfold'readFrame
+  Assumptions.unfold'hang
+  Assumptions.unfold'deadline
+  Assumptions.unfold'attempt
+  Assumptions.unfold'Do
+  Assumptions.unfold'Report
+  Assumptions.unfold'listen
+  Assumptions.unfold'serveConn
+  Assumptions.unfold'Serve
+  Assumptions.unfold'ServeClient
+  Assumptions.unfold'Run
+  Assumptions.unfold'Check
+  Assumptions.import'net
+  Assumptions.import'time
+  Assumptions.import'porcupine
+  Assumptions.import'primitive
+  Assumptions.import'lintest
+  Assumptions.import'perclient
 
 end github_com.mit_pdos.etcd_grove.examples.lib.remote
 

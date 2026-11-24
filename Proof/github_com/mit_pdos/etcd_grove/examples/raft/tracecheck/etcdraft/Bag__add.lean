@@ -84,7 +84,7 @@ theorem Bag.add.wp_proof (wp_find : Bag.find.spec (GF := GF) (hG := hG)) :
   wp_apply wp_slice_append slice.nil [] g.items' items DFrac.discard $$ [Hnil Hcap0 Hits] as %s1 ⟨Hs1, Hcap1, -⟩
   · iframe Hnil Hcap0 Hits
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_find_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'find.method_unfold]
   try wp_auto
   wp_apply wp_find g b p m $$ [Hg Hm] as %k %Hk
   · iframe Hg Hm

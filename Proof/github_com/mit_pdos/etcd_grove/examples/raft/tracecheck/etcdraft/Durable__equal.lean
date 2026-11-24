@@ -58,7 +58,7 @@ theorem Durable.equal.wp_proof (wp_EntriesEqual : EntriesEqual.spec (GF := GF) (
         by_cases h4 : d.commitIndex = e.commitIndex
         · rw [decide_eq_true (hc.2 h4)]
           wp_auto
-          rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Config.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+          rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Config.TypeAssumptions.ptr_unfold'Equal.method_unfold]
           wp_auto
           wp_apply wp_ConfigEqual _ _ _ _ $$ [Hdc Hec] as -
           · iframe Hdc Hec

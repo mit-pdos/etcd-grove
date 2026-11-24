@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.Assumptions]
 
-noncomputable instance FlowcontrolV1beta3Interface_typed_pointsto :
+noncomputable instance typed_pointsto'FlowcontrolV1beta3Interface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.FlowcontrolV1beta3Interface :=
   sorry -- axiomatized type
 
-noncomputable instance FlowcontrolV1beta3Interface_into_val_typed :
+noncomputable instance into_val_typed'FlowcontrolV1beta3Interface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.FlowcontrolV1beta3Interface k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.FlowcontrolV1beta3Interface.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.Assumptions]
 
-noncomputable instance FlowcontrolV1beta3Client_typed_pointsto :
+noncomputable instance typed_pointsto'FlowcontrolV1beta3Client :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.FlowcontrolV1beta3Client :=
   sorry -- axiomatized type
 
-noncomputable instance FlowcontrolV1beta3Client_into_val_typed :
+noncomputable instance into_val_typed'FlowcontrolV1beta3Client :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.FlowcontrolV1beta3Client k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.FlowcontrolV1beta3Client.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.Assumptions]
 
-noncomputable instance FlowSchemasGetter_typed_pointsto :
+noncomputable instance typed_pointsto'FlowSchemasGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.FlowSchemasGetter :=
   sorry -- axiomatized type
 
-noncomputable instance FlowSchemasGetter_into_val_typed :
+noncomputable instance into_val_typed'FlowSchemasGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.FlowSchemasGetter k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.FlowSchemasGetter.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.Assumptions]
 
-noncomputable instance FlowSchemaInterface_typed_pointsto :
+noncomputable instance typed_pointsto'FlowSchemaInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.FlowSchemaInterface :=
   sorry -- axiomatized type
 
-noncomputable instance FlowSchemaInterface_into_val_typed :
+noncomputable instance into_val_typed'FlowSchemaInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.FlowSchemaInterface k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.FlowSchemaInterface.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.Assumptions]
 
-noncomputable instance flowSchemas_typed_pointsto :
+noncomputable instance typed_pointsto'flowSchemas :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.flowSchemas :=
   sorry -- axiomatized type
 
-noncomputable instance flowSchemas_into_val_typed :
+noncomputable instance into_val_typed'flowSchemas :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.flowSchemas k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.flowSchemas.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.Assumptions]
 
-noncomputable instance FlowSchemaExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'FlowSchemaExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.FlowSchemaExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance FlowSchemaExpansion_into_val_typed :
+noncomputable instance into_val_typed'FlowSchemaExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.FlowSchemaExpansion k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.FlowSchemaExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -138,11 +138,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.Assumptions]
 
-noncomputable instance PriorityLevelConfigurationExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'PriorityLevelConfigurationExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.PriorityLevelConfigurationExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance PriorityLevelConfigurationExpansion_into_val_typed :
+noncomputable instance into_val_typed'PriorityLevelConfigurationExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.PriorityLevelConfigurationExpansion k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.PriorityLevelConfigurationExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -157,11 +157,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.Assumptions]
 
-noncomputable instance PriorityLevelConfigurationsGetter_typed_pointsto :
+noncomputable instance typed_pointsto'PriorityLevelConfigurationsGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.PriorityLevelConfigurationsGetter :=
   sorry -- axiomatized type
 
-noncomputable instance PriorityLevelConfigurationsGetter_into_val_typed :
+noncomputable instance into_val_typed'PriorityLevelConfigurationsGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.PriorityLevelConfigurationsGetter k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.PriorityLevelConfigurationsGetter.underlying :=
   sorry -- axiomatized type
 
@@ -176,11 +176,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.Assumptions]
 
-noncomputable instance PriorityLevelConfigurationInterface_typed_pointsto :
+noncomputable instance typed_pointsto'PriorityLevelConfigurationInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.PriorityLevelConfigurationInterface :=
   sorry -- axiomatized type
 
-noncomputable instance PriorityLevelConfigurationInterface_into_val_typed :
+noncomputable instance into_val_typed'PriorityLevelConfigurationInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.PriorityLevelConfigurationInterface k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.PriorityLevelConfigurationInterface.underlying :=
   sorry -- axiomatized type
 
@@ -195,11 +195,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.Assumptions]
 
-noncomputable instance priorityLevelConfigurations_typed_pointsto :
+noncomputable instance typed_pointsto'priorityLevelConfigurations :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.priorityLevelConfigurations :=
   sorry -- axiomatized type
 
-noncomputable instance priorityLevelConfigurations_into_val_typed :
+noncomputable instance into_val_typed'priorityLevelConfigurations :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.priorityLevelConfigurations k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.priorityLevelConfigurations.underlying :=
   sorry -- axiomatized type
 

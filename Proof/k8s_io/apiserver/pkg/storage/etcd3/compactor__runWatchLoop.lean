@@ -96,7 +96,7 @@ theorem client_Watch_field (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
         spscConsumer γw.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
         monoListIdxOwn γw.cur 0 (rev - W64 1) }} := by
   iintro %Φ ⟨#P1, #P2, #P3, #Hwf, #Hw, %Hk, #Hctx, #Hom, #Hopts, %Hpre, #Hauth, #Hau⟩ HΦ
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Watch_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Watch.method_unfold]
   wp_pures
   wp_auto
   wp_apply (wp_Watch w V γ ctx cd om key sl opts rev Q n) $$ [] as %ch %γw H

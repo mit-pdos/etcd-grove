@@ -159,36 +159,36 @@ class PQueue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   underlying : go.UnderlyingDirectedEq PQueue.ty PQueue.underlying
   method_set : go.MethodSetIs PQueue.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PQueue.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Pop", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Push", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold PQueue.ty go!"Len" PQueue.Len.impl
-  Less_unfold : MethodUnfold PQueue.ty go!"Less" PQueue.Less.impl
-  Swap_unfold : MethodUnfold PQueue.ty go!"Swap" PQueue.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType PQueue.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold PQueue.ty go!"Len" PQueue.Len.impl
+  unfold'Less : MethodUnfold PQueue.ty go!"Less" PQueue.Less.impl
+  unfold'Swap : MethodUnfold PQueue.ty go!"Swap" PQueue.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType PQueue.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve PQueue.ty go!"Len"))) (App (Val (GoInstruction (GoLoad PQueue.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType PQueue.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType PQueue.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve PQueue.ty go!"Less"))) (App (Val (GoInstruction (GoLoad PQueue.ty))) (Var "$r"))))
-  ptr_Pop_unfold : MethodUnfold (go.GoType.PointerType PQueue.ty) go!"Pop" PQueue.Pop.impl
-  ptr_Push_unfold : MethodUnfold (go.GoType.PointerType PQueue.ty) go!"Push" PQueue.Push.impl
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType PQueue.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Pop : MethodUnfold (go.GoType.PointerType PQueue.ty) go!"Pop" PQueue.Pop.impl
+  ptr_unfold'Push : MethodUnfold (go.GoType.PointerType PQueue.ty) go!"Push" PQueue.Push.impl
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType PQueue.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve PQueue.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad PQueue.ty))) (Var "$r"))))
 
 attribute [instance] PQueue.TypeAssumptions.underlying
   PQueue.TypeAssumptions.method_set
   PQueue.TypeAssumptions.ptr_method_set
-  PQueue.TypeAssumptions.Len_unfold
-  PQueue.TypeAssumptions.Less_unfold
-  PQueue.TypeAssumptions.Swap_unfold
-  PQueue.TypeAssumptions.ptr_Len_unfold
-  PQueue.TypeAssumptions.ptr_Less_unfold
-  PQueue.TypeAssumptions.ptr_Pop_unfold
-  PQueue.TypeAssumptions.ptr_Push_unfold
-  PQueue.TypeAssumptions.ptr_Swap_unfold
+  PQueue.TypeAssumptions.unfold'Len
+  PQueue.TypeAssumptions.unfold'Less
+  PQueue.TypeAssumptions.unfold'Swap
+  PQueue.TypeAssumptions.ptr_unfold'Len
+  PQueue.TypeAssumptions.ptr_unfold'Less
+  PQueue.TypeAssumptions.ptr_unfold'Pop
+  PQueue.TypeAssumptions.ptr_unfold'Push
+  PQueue.TypeAssumptions.ptr_unfold'Swap
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  PQueue_instance : PQueue.TypeAssumptions
-  import_message_Assumption : _root_.Perennial.rabia.internal.message.Assumptions
+  instance'PQueue : PQueue.TypeAssumptions
+  import'message : _root_.Perennial.rabia.internal.message.Assumptions
 
-attribute [instance] Assumptions.PQueue_instance
-  Assumptions.import_message_Assumption
+attribute [instance] Assumptions.instance'PQueue
+  Assumptions.import'message
 
 end rabia.internal.queue
 

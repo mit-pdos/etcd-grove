@@ -55,7 +55,7 @@ theorem onDisk.first.wp_proof
   unfold OnDisk.first at Hv
   wp_auto
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_snaps_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'snaps.method_unfold]
   try wp_auto
   wp_apply wp_snaps gx x  $$ [Hx]
   · iexact Hx
@@ -67,7 +67,7 @@ theorem onDisk.first.wp_proof
   · rw [hsnap] at hsn; subst hsn
     have htk := hst2 rfl
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_takes_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'takes.method_unfold]
     try wp_auto
     wp_apply wp_takes gx x st $$ [Hx]
     · iframe Hx; ipureintro; exact htk
@@ -75,7 +75,7 @@ theorem onDisk.first.wp_proof
     cases st
     · simp only [Bool.false_eq_true, ite_false] at Hv
       try wp_auto
-      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_w_unfold.method_unfold]
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'w.method_unfold]
       try wp_auto
       wp_apply wp_w gx x  $$ [Hx] as %e #He
       · iexact Hx
@@ -88,7 +88,7 @@ theorem onDisk.first.wp_proof
         subst Hv
         try wp_auto
         try wp_auto
-        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_L0_unfold.method_unfold]
+        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'L0.method_unfold]
         try wp_auto
         wp_apply wp_L0 gx x  $$ [Hx] as %l0 #Hl0
         · iexact Hx
@@ -100,7 +100,7 @@ theorem onDisk.first.wp_proof
       · simp only [hf, ite_true] at Hv
         try wp_auto
         try wp_auto
-        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_w_unfold.method_unfold]
+        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'w.method_unfold]
         try wp_auto
         wp_apply wp_w gx x  $$ [Hx] as %e' #He'
         · iexact Hx
@@ -118,7 +118,7 @@ theorem onDisk.first.wp_proof
       have hkb := OnDisk.K_bounds hfm hk
       unfold numOk numBound at hfw
       try wp_auto
-      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_fm_unfold.method_unfold]
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'fm.method_unfold]
       try wp_auto
       wp_apply wp_fm gx x fm $$ [Hx] as %u #Hu
       · iframe Hx; ipureintro; exact hfm
@@ -126,7 +126,7 @@ theorem onDisk.first.wp_proof
       iunfold appendFactRO at Hu
       icases Hu with ⟨%Hur, #-⟩
       try wp_auto
-      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_K_unfold.method_unfold]
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'K.method_unfold]
       try wp_auto
       wp_apply wp_K gx x k $$ [Hx] as %uk %Huk
       · iframe Hx; ipureintro; exact hk
@@ -145,7 +145,7 @@ theorem onDisk.first.wp_proof
     have hkb := OnDisk.K_bounds hfm hk
     unfold numOk numBound at hfw
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_fm_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'fm.method_unfold]
     try wp_auto
     wp_apply wp_fm gx x fm $$ [Hx] as %u #Hu
     · iframe Hx; ipureintro; exact hfm
@@ -153,7 +153,7 @@ theorem onDisk.first.wp_proof
     iunfold appendFactRO at Hu
     icases Hu with ⟨%Hur, #-⟩
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_K_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'K.method_unfold]
     try wp_auto
     wp_apply wp_K gx x k $$ [Hx] as %uk %Huk
     · iframe Hx; ipureintro; exact hk

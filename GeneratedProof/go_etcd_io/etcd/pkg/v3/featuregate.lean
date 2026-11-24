@@ -30,7 +30,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.featuregate.Assumptions]
 
-noncomputable instance FeatureSpec_typed_pointsto :
+noncomputable instance typed_pointsto'FeatureSpec :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec where
   typedPointstoDef l v dq := iprop(
     "Default" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"Default" l) v.Default' dq ∗
@@ -41,11 +41,11 @@ noncomputable instance FeatureSpec_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance FeatureSpec_into_val_typed :
+noncomputable instance into_val_typed'FeatureSpec :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance FeatureSpec_access_load_Default (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (dq : DFrac) :
+noncomputable instance access_load'FeatureSpec'Default (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"Default" l) v.Default' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"Default" l) v.Default' dq)
@@ -53,7 +53,7 @@ noncomputable instance FeatureSpec_access_load_Default (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance FeatureSpec_access_store_Default (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (y : Bool) :
+noncomputable instance access_store'FeatureSpec'Default (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"Default" l) v.Default' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"Default" l) y (DFrac.own 1))
@@ -61,7 +61,7 @@ noncomputable instance FeatureSpec_access_store_Default (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance FeatureSpec_access_load_LockToDefault (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (dq : DFrac) :
+noncomputable instance access_load'FeatureSpec'LockToDefault (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"LockToDefault" l) v.LockToDefault' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"LockToDefault" l) v.LockToDefault' dq)
@@ -69,7 +69,7 @@ noncomputable instance FeatureSpec_access_load_LockToDefault (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance FeatureSpec_access_store_LockToDefault (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (y : Bool) :
+noncomputable instance access_store'FeatureSpec'LockToDefault (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"LockToDefault" l) v.LockToDefault' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"LockToDefault" l) y (DFrac.own 1))
@@ -77,7 +77,7 @@ noncomputable instance FeatureSpec_access_store_LockToDefault (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance FeatureSpec_access_load_PreRelease (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (dq : DFrac) :
+noncomputable instance access_load'FeatureSpec'PreRelease (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"PreRelease" l) v.PreRelease' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"PreRelease" l) v.PreRelease' dq)
@@ -85,7 +85,7 @@ noncomputable instance FeatureSpec_access_load_PreRelease (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance FeatureSpec_access_store_PreRelease (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (y : go_etcd_io.etcd.pkg.v3.featuregate.prerelease) :
+noncomputable instance access_store'FeatureSpec'PreRelease (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (y : go_etcd_io.etcd.pkg.v3.featuregate.prerelease) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"PreRelease" l) v.PreRelease' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"PreRelease" l) y (DFrac.own 1))
@@ -104,7 +104,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.featuregate.Assumptions]
 
-noncomputable instance featureGate_typed_pointsto :
+noncomputable instance typed_pointsto'featureGate :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.featuregate.featureGate where
   typedPointstoDef l v dq := iprop(
     "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"lg" l) v.lg' dq ∗
@@ -119,11 +119,11 @@ noncomputable instance featureGate_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance featureGate_into_val_typed :
+noncomputable instance into_val_typed'featureGate :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.featuregate.featureGate go_etcd_io.etcd.pkg.v3.featuregate.featureGate.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance featureGate_access_load_lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (dq : DFrac) :
+noncomputable instance access_load'featureGate'lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"lg" l) v.lg' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"lg" l) v.lg' dq)
@@ -131,7 +131,7 @@ noncomputable instance featureGate_access_load_lg (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGate_access_store_lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (y : Loc) :
+noncomputable instance access_store'featureGate'lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"lg" l) v.lg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"lg" l) y (DFrac.own 1))
@@ -139,7 +139,7 @@ noncomputable instance featureGate_access_store_lg (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGate_access_load_featureGateName (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (dq : DFrac) :
+noncomputable instance access_load'featureGate'featureGateName (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"featureGateName" l) v.featureGateName' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"featureGateName" l) v.featureGateName' dq)
@@ -147,7 +147,7 @@ noncomputable instance featureGate_access_load_featureGateName (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGate_access_store_featureGateName (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (y : GoString) :
+noncomputable instance access_store'featureGate'featureGateName (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"featureGateName" l) v.featureGateName' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"featureGateName" l) y (DFrac.own 1))
@@ -155,7 +155,7 @@ noncomputable instance featureGate_access_store_featureGateName (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGate_access_load_special (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (dq : DFrac) :
+noncomputable instance access_load'featureGate'special (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"special" l) v.special' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"special" l) v.special' dq)
@@ -163,7 +163,7 @@ noncomputable instance featureGate_access_load_special (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGate_access_store_special (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (y : GoMap) :
+noncomputable instance access_store'featureGate'special (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"special" l) v.special' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"special" l) y (DFrac.own 1))
@@ -171,7 +171,7 @@ noncomputable instance featureGate_access_store_special (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGate_access_load_lock (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (dq : DFrac) :
+noncomputable instance access_load'featureGate'lock (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"lock" l) v.lock' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"lock" l) v.lock' dq)
@@ -179,7 +179,7 @@ noncomputable instance featureGate_access_load_lock (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGate_access_store_lock (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'featureGate'lock (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"lock" l) v.lock' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"lock" l) y (DFrac.own 1))
@@ -187,7 +187,7 @@ noncomputable instance featureGate_access_store_lock (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGate_access_load_known (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (dq : DFrac) :
+noncomputable instance access_load'featureGate'known (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"known" l) v.known' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"known" l) v.known' dq)
@@ -195,7 +195,7 @@ noncomputable instance featureGate_access_load_known (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGate_access_store_known (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (y : _root_.Perennial.sync.atomic.Value) :
+noncomputable instance access_store'featureGate'known (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (y : _root_.Perennial.sync.atomic.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"known" l) v.known' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"known" l) y (DFrac.own 1))
@@ -203,7 +203,7 @@ noncomputable instance featureGate_access_store_known (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGate_access_load_enabled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (dq : DFrac) :
+noncomputable instance access_load'featureGate'enabled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"enabled" l) v.enabled' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"enabled" l) v.enabled' dq)
@@ -211,7 +211,7 @@ noncomputable instance featureGate_access_load_enabled (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGate_access_store_enabled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (y : _root_.Perennial.sync.atomic.Value) :
+noncomputable instance access_store'featureGate'enabled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (y : _root_.Perennial.sync.atomic.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"enabled" l) v.enabled' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"enabled" l) y (DFrac.own 1))
@@ -219,7 +219,7 @@ noncomputable instance featureGate_access_store_enabled (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGate_access_load_closed (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (dq : DFrac) :
+noncomputable instance access_load'featureGate'closed (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"closed" l) v.closed' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"closed" l) v.closed' dq)
@@ -227,7 +227,7 @@ noncomputable instance featureGate_access_load_closed (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGate_access_store_closed (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (y : Bool) :
+noncomputable instance access_store'featureGate'closed (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"closed" l) v.closed' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"closed" l) y (DFrac.own 1))

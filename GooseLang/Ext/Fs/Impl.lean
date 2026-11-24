@@ -144,7 +144,7 @@ conflicting lock on another description, an fd's or one a mapping keeps (a block
 that: it steps to itself, 2026-11-20, the user's approval of option (A)), and may fail with any errno and no change (`LockStep`), `EAGAIN` from a non-blocking one
 included **even with no conflict in the model**: another process may hold a reference to a
 description the program has closed (briefly, a read of `/proc/<pid>/fd/N` or `/proc/<pid>/fdinfo/N`,
-`get_file` … `fput`; for as long as it keeps it, a copy made by `pidfd_getfd(2)` or through ptrace),
+`get'file` … `fput`; for as long as it keeps it, a copy made by `pidfd_getfd(2)` or through ptrace),
 which keeps the description, and its locks, alive past the `close`, a fact of Linux the model does not
 track (2026-11-19, the user's decision, option (b) of the attack on F1's fix;
 `examples/osfs/semantics/locks_spurious_eagain.go`). A blocking request then only waits (for as long as

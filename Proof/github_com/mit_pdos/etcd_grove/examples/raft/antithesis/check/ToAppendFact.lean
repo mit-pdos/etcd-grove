@@ -64,37 +64,37 @@ theorem ToAppendFact.wp_proof (wp_from : Msg.«from».spec (GF := GF) (hG := hG)
   rw [h1, h2, h3, h4, h5, h6, h7] at Hf
   cases Hf
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_from_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'from.method_unfold]
   try wp_auto
   wp_apply wp_from g m src $$ [Hm]
   · iframe Hm; ipureintro; exact h1
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_to_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'to.method_unfold]
   try wp_auto
   wp_apply wp_to g m dst $$ [Hm]
   · iframe Hm; ipureintro; exact h2
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
   try wp_auto
   wp_apply wp_term g m t $$ [Hm] as %ut %Hut
   · iframe Hm; ipureintro; exact h3
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_index_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'index.method_unfold]
   try wp_auto
   wp_apply wp_index g m p $$ [Hm] as %up %Hup
   · iframe Hm; ipureintro; exact h4
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_logTerm_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'logTerm.method_unfold]
   try wp_auto
   wp_apply wp_logTerm g m pt $$ [Hm] as %ul %Hul
   · iframe Hm; ipureintro; exact h5
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_entries_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'entries.method_unfold]
   try wp_auto
   wp_apply wp_entries g m es $$ [Hm] as %ue #Hue
   · iframe Hm; ipureintro; exact h6
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_commit_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'commit.method_unfold]
   try wp_auto
   wp_apply wp_commit g m c $$ [Hm] as %uc %Huc
   · iframe Hm; ipureintro; exact h7

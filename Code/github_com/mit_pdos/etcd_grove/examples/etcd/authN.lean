@@ -741,29 +741,29 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  newUserClient_unfold : FuncUnfold newUserClient [] newUserClient.impl
-  barrier_unfold : FuncUnfold barrier [] barrier.impl
-  run_unfold : FuncUnfold run [] run.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_auth_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions
-  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
+  unfold'newUserClient : FuncUnfold newUserClient [] newUserClient.impl
+  unfold'barrier : FuncUnfold barrier [] barrier.impl
+  unfold'run : FuncUnfold run [] run.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'etcdserver : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
+  import'auth : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions
+  import'etcdstart : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
 
-attribute [instance] Assumptions.newUserClient_unfold
-  Assumptions.barrier_unfold
-  Assumptions.run_unfold
-  Assumptions.Main_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_etcdserver_Assumption
-  Assumptions.import_auth_Assumption
-  Assumptions.import_etcdstart_Assumption
+attribute [instance] Assumptions.unfold'newUserClient
+  Assumptions.unfold'barrier
+  Assumptions.unfold'run
+  Assumptions.unfold'Main
+  Assumptions.import'context
+  Assumptions.import'sync
+  Assumptions.import'zap
+  Assumptions.import'clientv3
+  Assumptions.import'etcdserver
+  Assumptions.import'auth
+  Assumptions.import'etcdstart
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.authN
 

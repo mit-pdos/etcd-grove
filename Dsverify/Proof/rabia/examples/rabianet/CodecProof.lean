@@ -625,7 +625,7 @@ theorem gens.wp_proof : gens.spec (GF := GF) (hG := hG) := by
   unfold lintest.genSpec
   iintro %id
   iintro !> %Φ' %Hid HΦ'
-  have : sync.atomic.Assumptions := Assumptions.import_atomic_Assumption
+  have : sync.atomic.Assumptions := Assumptions.import'atomic
   ihave #Hap : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
   wp_auto

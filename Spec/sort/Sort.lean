@@ -103,7 +103,7 @@ abbrev sort.«Sort».spec : Prop :=
   ∀ (E : Type) (x : GoInterfaceOk) (R : List E → IProp GF) (lt : E → E → Bool) (l : List E),
   slices.StrictWeakOrder (fun a b => lt a b = true) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.sort ∗ sorterSpec x R lt ∗ R l ∗ ⌜l.length ≤ 2 ^ 62⌝ }}
-    (App (Val (@! sort.«Sort»)) (Val #(GoInterface.ok x)))
+    (App (Val (@! sort.Sort'')) (Val #(GoInterface.ok x)))
   {{ (l' : List E), RET #(); R l' ∗
       ⌜l.Perm l' ∧ ∀ (i j : Nat) (a b : E), l'[i]? = some a → l'[j]? = some b → i < j →
         lt b a = false⌝ }}

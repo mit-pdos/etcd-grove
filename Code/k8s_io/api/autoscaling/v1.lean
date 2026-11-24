@@ -893,53 +893,53 @@ attribute [instance] ExternalMetricStatus.TypeAssumptions.type_repr
   ExternalMetricStatus.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  CrossVersionObjectReference_instance : CrossVersionObjectReference.TypeAssumptions
-  HorizontalPodAutoscalerSpec_instance : HorizontalPodAutoscalerSpec.TypeAssumptions
-  HorizontalPodAutoscalerStatus_instance : HorizontalPodAutoscalerStatus.TypeAssumptions
-  HorizontalPodAutoscaler_instance : HorizontalPodAutoscaler.TypeAssumptions
-  HorizontalPodAutoscalerList_instance : HorizontalPodAutoscalerList.TypeAssumptions
-  Scale_instance : Scale.TypeAssumptions
-  ScaleSpec_instance : ScaleSpec.TypeAssumptions
-  ScaleStatus_instance : ScaleStatus.TypeAssumptions
-  MetricSourceType_instance : MetricSourceType.TypeAssumptions
-  MetricSpec_instance : MetricSpec.TypeAssumptions
-  ObjectMetricSource_instance : ObjectMetricSource.TypeAssumptions
-  PodsMetricSource_instance : PodsMetricSource.TypeAssumptions
-  ResourceMetricSource_instance : ResourceMetricSource.TypeAssumptions
-  ContainerResourceMetricSource_instance : ContainerResourceMetricSource.TypeAssumptions
-  ExternalMetricSource_instance : ExternalMetricSource.TypeAssumptions
-  MetricStatus_instance : MetricStatus.TypeAssumptions
-  HorizontalPodAutoscalerConditionType_instance : HorizontalPodAutoscalerConditionType.TypeAssumptions
-  HorizontalPodAutoscalerCondition_instance : HorizontalPodAutoscalerCondition.TypeAssumptions
-  ObjectMetricStatus_instance : ObjectMetricStatus.TypeAssumptions
-  PodsMetricStatus_instance : PodsMetricStatus.TypeAssumptions
-  ResourceMetricStatus_instance : ResourceMetricStatus.TypeAssumptions
-  ContainerResourceMetricStatus_instance : ContainerResourceMetricStatus.TypeAssumptions
-  ExternalMetricStatus_instance : ExternalMetricStatus.TypeAssumptions
+  instance'CrossVersionObjectReference : CrossVersionObjectReference.TypeAssumptions
+  instance'HorizontalPodAutoscalerSpec : HorizontalPodAutoscalerSpec.TypeAssumptions
+  instance'HorizontalPodAutoscalerStatus : HorizontalPodAutoscalerStatus.TypeAssumptions
+  instance'HorizontalPodAutoscaler : HorizontalPodAutoscaler.TypeAssumptions
+  instance'HorizontalPodAutoscalerList : HorizontalPodAutoscalerList.TypeAssumptions
+  instance'Scale : Scale.TypeAssumptions
+  instance'ScaleSpec : ScaleSpec.TypeAssumptions
+  instance'ScaleStatus : ScaleStatus.TypeAssumptions
+  instance'MetricSourceType : MetricSourceType.TypeAssumptions
+  instance'MetricSpec : MetricSpec.TypeAssumptions
+  instance'ObjectMetricSource : ObjectMetricSource.TypeAssumptions
+  instance'PodsMetricSource : PodsMetricSource.TypeAssumptions
+  instance'ResourceMetricSource : ResourceMetricSource.TypeAssumptions
+  instance'ContainerResourceMetricSource : ContainerResourceMetricSource.TypeAssumptions
+  instance'ExternalMetricSource : ExternalMetricSource.TypeAssumptions
+  instance'MetricStatus : MetricStatus.TypeAssumptions
+  instance'HorizontalPodAutoscalerConditionType : HorizontalPodAutoscalerConditionType.TypeAssumptions
+  instance'HorizontalPodAutoscalerCondition : HorizontalPodAutoscalerCondition.TypeAssumptions
+  instance'ObjectMetricStatus : ObjectMetricStatus.TypeAssumptions
+  instance'PodsMetricStatus : PodsMetricStatus.TypeAssumptions
+  instance'ResourceMetricStatus : ResourceMetricStatus.TypeAssumptions
+  instance'ContainerResourceMetricStatus : ContainerResourceMetricStatus.TypeAssumptions
+  instance'ExternalMetricStatus : ExternalMetricStatus.TypeAssumptions
 
-attribute [instance] Assumptions.CrossVersionObjectReference_instance
-  Assumptions.HorizontalPodAutoscalerSpec_instance
-  Assumptions.HorizontalPodAutoscalerStatus_instance
-  Assumptions.HorizontalPodAutoscaler_instance
-  Assumptions.HorizontalPodAutoscalerList_instance
-  Assumptions.Scale_instance
-  Assumptions.ScaleSpec_instance
-  Assumptions.ScaleStatus_instance
-  Assumptions.MetricSourceType_instance
-  Assumptions.MetricSpec_instance
-  Assumptions.ObjectMetricSource_instance
-  Assumptions.PodsMetricSource_instance
-  Assumptions.ResourceMetricSource_instance
-  Assumptions.ContainerResourceMetricSource_instance
-  Assumptions.ExternalMetricSource_instance
-  Assumptions.MetricStatus_instance
-  Assumptions.HorizontalPodAutoscalerConditionType_instance
-  Assumptions.HorizontalPodAutoscalerCondition_instance
-  Assumptions.ObjectMetricStatus_instance
-  Assumptions.PodsMetricStatus_instance
-  Assumptions.ResourceMetricStatus_instance
-  Assumptions.ContainerResourceMetricStatus_instance
-  Assumptions.ExternalMetricStatus_instance
+attribute [instance] Assumptions.instance'CrossVersionObjectReference
+  Assumptions.instance'HorizontalPodAutoscalerSpec
+  Assumptions.instance'HorizontalPodAutoscalerStatus
+  Assumptions.instance'HorizontalPodAutoscaler
+  Assumptions.instance'HorizontalPodAutoscalerList
+  Assumptions.instance'Scale
+  Assumptions.instance'ScaleSpec
+  Assumptions.instance'ScaleStatus
+  Assumptions.instance'MetricSourceType
+  Assumptions.instance'MetricSpec
+  Assumptions.instance'ObjectMetricSource
+  Assumptions.instance'PodsMetricSource
+  Assumptions.instance'ResourceMetricSource
+  Assumptions.instance'ContainerResourceMetricSource
+  Assumptions.instance'ExternalMetricSource
+  Assumptions.instance'MetricStatus
+  Assumptions.instance'HorizontalPodAutoscalerConditionType
+  Assumptions.instance'HorizontalPodAutoscalerCondition
+  Assumptions.instance'ObjectMetricStatus
+  Assumptions.instance'PodsMetricStatus
+  Assumptions.instance'ResourceMetricStatus
+  Assumptions.instance'ContainerResourceMetricStatus
+  Assumptions.instance'ExternalMetricStatus
 
 end k8s_io.api.autoscaling.v1
 

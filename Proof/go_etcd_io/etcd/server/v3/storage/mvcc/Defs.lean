@@ -69,10 +69,10 @@ instance revision_intoValInj : go.IntoValInj Revision where
   intoVal_inj x y h := by
     have hm : ∀ z : Revision, is_go_step_pure (StructFieldGet Revision.underlying go!"Main")
         #z = Eq (Val #(z.Main')) := fun z =>
-      (Revision.TypeAssumptions.get_Main z).isGoStep_det_internal.isGoStep_pure_det
+      (Revision.TypeAssumptions.get'Main z).isGoStep_det_internal.isGoStep_pure_det
     have hs : ∀ z : Revision, is_go_step_pure (StructFieldGet Revision.underlying go!"Sub")
         #z = Eq (Val #(z.Sub')) := fun z =>
-      (Revision.TypeAssumptions.get_Sub z).isGoStep_det_internal.isGoStep_pure_det
+      (Revision.TypeAssumptions.get'Sub z).isGoStep_det_internal.isGoStep_pure_det
     have e1 := hm x
     rw [h, hm y] at e1
     have e2 := hs x

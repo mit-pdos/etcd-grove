@@ -43,11 +43,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.initialize') (Val #())))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  main_unfold : FuncUnfold main [] main.impl
-  import_acceptloop_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.Assumptions
+  unfold'main : FuncUnfold main [] main.impl
+  import'acceptloop : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.Assumptions
 
-attribute [instance] Assumptions.main_unfold
-  Assumptions.import_acceptloop_Assumption
+attribute [instance] Assumptions.unfold'main
+  Assumptions.import'acceptloop
 
 end github_com.mit_pdos.etcd_grove.examples.net.acceptloop.cmd.client
 

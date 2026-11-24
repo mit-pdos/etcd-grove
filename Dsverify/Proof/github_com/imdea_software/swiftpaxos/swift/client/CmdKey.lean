@@ -41,13 +41,13 @@ include sem package_sem in
 theorem cmdId_intoVal_inj : Function.Injective (intoVal (V := swift.CommandId)) := by
   intro k k' h
   have h1 := (go.IsGoStepPureDet.isGoStep_pure_det (self :=
-    (swift.CommandId.TypeAssumptions.get_ClientId k).isGoStep_det_internal))
+    (swift.CommandId.TypeAssumptions.get'ClientId k).isGoStep_det_internal))
   have h1' := (go.IsGoStepPureDet.isGoStep_pure_det (self :=
-    (swift.CommandId.TypeAssumptions.get_ClientId k').isGoStep_det_internal))
+    (swift.CommandId.TypeAssumptions.get'ClientId k').isGoStep_det_internal))
   have h2 := (go.IsGoStepPureDet.isGoStep_pure_det (self :=
-    (swift.CommandId.TypeAssumptions.get_SeqNum k).isGoStep_det_internal))
+    (swift.CommandId.TypeAssumptions.get'SeqNum k).isGoStep_det_internal))
   have h2' := (go.IsGoStepPureDet.isGoStep_pure_det (self :=
-    (swift.CommandId.TypeAssumptions.get_SeqNum k').isGoStep_det_internal))
+    (swift.CommandId.TypeAssumptions.get'SeqNum k').isGoStep_det_internal))
   rw [h] at h1 h2
   rw [h1] at h1'; rw [h2] at h2'
   have e1 := congrFun h1' (Val #k'.ClientId'); simp at e1

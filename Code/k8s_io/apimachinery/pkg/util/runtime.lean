@@ -195,7 +195,7 @@ noncomputable instance rudimentaryErrorBackoff.zero_val [GooseExts] : ZeroVal ru
 @[irreducible] noncomputable def rudimentaryErrorBackoff.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   rudimentaryErrorBackoff.fieldsUnsealed
 
-noncomputable instance equals_unfold_rudimentaryErrorBackoff [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'rudimentaryErrorBackoff [GooseExts] [GoGlobalContext] :
     EqualsUnfold rudimentaryErrorBackoff.fields rudimentaryErrorBackoff.fieldsUnsealed :=
   ⟨by unfold rudimentaryErrorBackoff.fields; rfl⟩
 
@@ -205,40 +205,40 @@ noncomputable instance equals_unfold_rudimentaryErrorBackoff [GooseExts] [GoGlob
 class rudimentaryErrorBackoff.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying rudimentaryErrorBackoff.underlying rudimentaryErrorBackoff
   underlying : go.UnderlyingDirectedEq rudimentaryErrorBackoff.ty rudimentaryErrorBackoff.underlying
-  get_minPeriod : ∀ (x : rudimentaryErrorBackoff), go.IsGoStepPureDetTagged under (StructFieldGet rudimentaryErrorBackoff.underlying go!"minPeriod") #x (Val #(x.minPeriod'))
-  set_minPeriod : ∀ (x : rudimentaryErrorBackoff) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet rudimentaryErrorBackoff.underlying go!"minPeriod") (PairV #x #y) (Val #(({ x with minPeriod' := y } : rudimentaryErrorBackoff)))
-  get_lastErrorTimeLock : ∀ (x : rudimentaryErrorBackoff), go.IsGoStepPureDetTagged under (StructFieldGet rudimentaryErrorBackoff.underlying go!"lastErrorTimeLock") #x (Val #(x.lastErrorTimeLock'))
-  set_lastErrorTimeLock : ∀ (x : rudimentaryErrorBackoff) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet rudimentaryErrorBackoff.underlying go!"lastErrorTimeLock") (PairV #x #y) (Val #(({ x with lastErrorTimeLock' := y } : rudimentaryErrorBackoff)))
-  get_lastErrorTime : ∀ (x : rudimentaryErrorBackoff), go.IsGoStepPureDetTagged under (StructFieldGet rudimentaryErrorBackoff.underlying go!"lastErrorTime") #x (Val #(x.lastErrorTime'))
-  set_lastErrorTime : ∀ (x : rudimentaryErrorBackoff) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet rudimentaryErrorBackoff.underlying go!"lastErrorTime") (PairV #x #y) (Val #(({ x with lastErrorTime' := y } : rudimentaryErrorBackoff)))
+  get'minPeriod : ∀ (x : rudimentaryErrorBackoff), go.IsGoStepPureDetTagged under (StructFieldGet rudimentaryErrorBackoff.underlying go!"minPeriod") #x (Val #(x.minPeriod'))
+  set'minPeriod : ∀ (x : rudimentaryErrorBackoff) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet rudimentaryErrorBackoff.underlying go!"minPeriod") (PairV #x #y) (Val #(({ x with minPeriod' := y } : rudimentaryErrorBackoff)))
+  get'lastErrorTimeLock : ∀ (x : rudimentaryErrorBackoff), go.IsGoStepPureDetTagged under (StructFieldGet rudimentaryErrorBackoff.underlying go!"lastErrorTimeLock") #x (Val #(x.lastErrorTimeLock'))
+  set'lastErrorTimeLock : ∀ (x : rudimentaryErrorBackoff) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet rudimentaryErrorBackoff.underlying go!"lastErrorTimeLock") (PairV #x #y) (Val #(({ x with lastErrorTimeLock' := y } : rudimentaryErrorBackoff)))
+  get'lastErrorTime : ∀ (x : rudimentaryErrorBackoff), go.IsGoStepPureDetTagged under (StructFieldGet rudimentaryErrorBackoff.underlying go!"lastErrorTime") #x (Val #(x.lastErrorTime'))
+  set'lastErrorTime : ∀ (x : rudimentaryErrorBackoff) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet rudimentaryErrorBackoff.underlying go!"lastErrorTime") (PairV #x #y) (Val #(({ x with lastErrorTime' := y } : rudimentaryErrorBackoff)))
   method_set : go.MethodSetIs rudimentaryErrorBackoff.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType rudimentaryErrorBackoff.ty) [(go!"OnError", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] rudimentaryErrorBackoff.TypeAssumptions.type_repr
   rudimentaryErrorBackoff.TypeAssumptions.underlying
-  rudimentaryErrorBackoff.TypeAssumptions.get_minPeriod
-  rudimentaryErrorBackoff.TypeAssumptions.set_minPeriod
-  rudimentaryErrorBackoff.TypeAssumptions.get_lastErrorTimeLock
-  rudimentaryErrorBackoff.TypeAssumptions.set_lastErrorTimeLock
-  rudimentaryErrorBackoff.TypeAssumptions.get_lastErrorTime
-  rudimentaryErrorBackoff.TypeAssumptions.set_lastErrorTime
+  rudimentaryErrorBackoff.TypeAssumptions.get'minPeriod
+  rudimentaryErrorBackoff.TypeAssumptions.set'minPeriod
+  rudimentaryErrorBackoff.TypeAssumptions.get'lastErrorTimeLock
+  rudimentaryErrorBackoff.TypeAssumptions.set'lastErrorTimeLock
+  rudimentaryErrorBackoff.TypeAssumptions.get'lastErrorTime
+  rudimentaryErrorBackoff.TypeAssumptions.set'lastErrorTime
   rudimentaryErrorBackoff.TypeAssumptions.method_set
   rudimentaryErrorBackoff.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ErrorHandler_instance : ErrorHandler.TypeAssumptions
-  rudimentaryErrorBackoff_instance : rudimentaryErrorBackoff.TypeAssumptions
-  backoffError_unfold : FuncUnfold backoffError [] backoffError.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'ErrorHandler : ErrorHandler.TypeAssumptions
+  instance'rudimentaryErrorBackoff : rudimentaryErrorBackoff.TypeAssumptions
+  unfold'backoffError : FuncUnfold backoffError [] backoffError.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.ErrorHandler_instance
-  Assumptions.rudimentaryErrorBackoff_instance
-  Assumptions.backoffError_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'ErrorHandler
+  Assumptions.instance'rudimentaryErrorBackoff
+  Assumptions.unfold'backoffError
+  Assumptions.import'context
+  Assumptions.import'sync
+  Assumptions.import'time
 
 end k8s_io.apimachinery.pkg.util.runtime
 

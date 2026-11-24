@@ -212,7 +212,7 @@ attribute [irreducible] ReplicaSetsBySizeNewer.ty
 @[irreducible] noncomputable def «struct#90a2bc34».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#90a2bc34».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#90a2bc34» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#90a2bc34» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#90a2bc34».fields «struct#90a2bc34».fieldsUnsealed :=
   ⟨by unfold «struct#90a2bc34».fields; rfl⟩
 
@@ -5939,7 +5939,7 @@ noncomputable instance BaseControllerRefManager.zero_val [GooseExts] : ZeroVal B
 @[irreducible] noncomputable def BaseControllerRefManager.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   BaseControllerRefManager.fieldsUnsealed
 
-noncomputable instance equals_unfold_BaseControllerRefManager [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'BaseControllerRefManager [GooseExts] [GoGlobalContext] :
     EqualsUnfold BaseControllerRefManager.fields BaseControllerRefManager.fieldsUnsealed :=
   ⟨by unfold BaseControllerRefManager.fields; rfl⟩
 
@@ -5949,37 +5949,37 @@ noncomputable instance equals_unfold_BaseControllerRefManager [GooseExts] [GoGlo
 class BaseControllerRefManager.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BaseControllerRefManager.underlying BaseControllerRefManager
   underlying : go.UnderlyingDirectedEq BaseControllerRefManager.ty BaseControllerRefManager.underlying
-  get_Controller : ∀ (x : BaseControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet BaseControllerRefManager.underlying go!"Controller") #x (Val #(x.Controller'))
-  set_Controller : ∀ (x : BaseControllerRefManager) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object), go.IsGoStepPureDetTagged under (StructFieldSet BaseControllerRefManager.underlying go!"Controller") (PairV #x #y) (Val #(({ x with Controller' := y } : BaseControllerRefManager)))
-  get_Selector : ∀ (x : BaseControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet BaseControllerRefManager.underlying go!"Selector") #x (Val #(x.Selector'))
-  set_Selector : ∀ (x : BaseControllerRefManager) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector), go.IsGoStepPureDetTagged under (StructFieldSet BaseControllerRefManager.underlying go!"Selector") (PairV #x #y) (Val #(({ x with Selector' := y } : BaseControllerRefManager)))
-  get_canAdoptErr : ∀ (x : BaseControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet BaseControllerRefManager.underlying go!"canAdoptErr") #x (Val #(x.canAdoptErr'))
-  set_canAdoptErr : ∀ (x : BaseControllerRefManager) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet BaseControllerRefManager.underlying go!"canAdoptErr") (PairV #x #y) (Val #(({ x with canAdoptErr' := y } : BaseControllerRefManager)))
-  get_canAdoptOnce : ∀ (x : BaseControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet BaseControllerRefManager.underlying go!"canAdoptOnce") #x (Val #(x.canAdoptOnce'))
-  set_canAdoptOnce : ∀ (x : BaseControllerRefManager) (y : _root_.Perennial.sync.Once), go.IsGoStepPureDetTagged under (StructFieldSet BaseControllerRefManager.underlying go!"canAdoptOnce") (PairV #x #y) (Val #(({ x with canAdoptOnce' := y } : BaseControllerRefManager)))
-  get_CanAdoptFunc : ∀ (x : BaseControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet BaseControllerRefManager.underlying go!"CanAdoptFunc") #x (Val #(x.CanAdoptFunc'))
-  set_CanAdoptFunc : ∀ (x : BaseControllerRefManager) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet BaseControllerRefManager.underlying go!"CanAdoptFunc") (PairV #x #y) (Val #(({ x with CanAdoptFunc' := y } : BaseControllerRefManager)))
+  get'Controller : ∀ (x : BaseControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet BaseControllerRefManager.underlying go!"Controller") #x (Val #(x.Controller'))
+  set'Controller : ∀ (x : BaseControllerRefManager) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object), go.IsGoStepPureDetTagged under (StructFieldSet BaseControllerRefManager.underlying go!"Controller") (PairV #x #y) (Val #(({ x with Controller' := y } : BaseControllerRefManager)))
+  get'Selector : ∀ (x : BaseControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet BaseControllerRefManager.underlying go!"Selector") #x (Val #(x.Selector'))
+  set'Selector : ∀ (x : BaseControllerRefManager) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector), go.IsGoStepPureDetTagged under (StructFieldSet BaseControllerRefManager.underlying go!"Selector") (PairV #x #y) (Val #(({ x with Selector' := y } : BaseControllerRefManager)))
+  get'canAdoptErr : ∀ (x : BaseControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet BaseControllerRefManager.underlying go!"canAdoptErr") #x (Val #(x.canAdoptErr'))
+  set'canAdoptErr : ∀ (x : BaseControllerRefManager) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet BaseControllerRefManager.underlying go!"canAdoptErr") (PairV #x #y) (Val #(({ x with canAdoptErr' := y } : BaseControllerRefManager)))
+  get'canAdoptOnce : ∀ (x : BaseControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet BaseControllerRefManager.underlying go!"canAdoptOnce") #x (Val #(x.canAdoptOnce'))
+  set'canAdoptOnce : ∀ (x : BaseControllerRefManager) (y : _root_.Perennial.sync.Once), go.IsGoStepPureDetTagged under (StructFieldSet BaseControllerRefManager.underlying go!"canAdoptOnce") (PairV #x #y) (Val #(({ x with canAdoptOnce' := y } : BaseControllerRefManager)))
+  get'CanAdoptFunc : ∀ (x : BaseControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet BaseControllerRefManager.underlying go!"CanAdoptFunc") #x (Val #(x.CanAdoptFunc'))
+  set'CanAdoptFunc : ∀ (x : BaseControllerRefManager) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet BaseControllerRefManager.underlying go!"CanAdoptFunc") (PairV #x #y) (Val #(({ x with CanAdoptFunc' := y } : BaseControllerRefManager)))
   method_set : go.MethodSetIs BaseControllerRefManager.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType BaseControllerRefManager.ty) [(go!"CanAdopt", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"ClaimObject", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty] false [go.error]))] false [go.bool, go.error])))]
-  ptr_CanAdopt_unfold : MethodUnfold (go.GoType.PointerType BaseControllerRefManager.ty) go!"CanAdopt" BaseControllerRefManager.CanAdopt.impl
-  ptr_ClaimObject_unfold : MethodUnfold (go.GoType.PointerType BaseControllerRefManager.ty) go!"ClaimObject" BaseControllerRefManager.ClaimObject.impl
+  ptr_unfold'CanAdopt : MethodUnfold (go.GoType.PointerType BaseControllerRefManager.ty) go!"CanAdopt" BaseControllerRefManager.CanAdopt.impl
+  ptr_unfold'ClaimObject : MethodUnfold (go.GoType.PointerType BaseControllerRefManager.ty) go!"ClaimObject" BaseControllerRefManager.ClaimObject.impl
 
 attribute [instance] BaseControllerRefManager.TypeAssumptions.type_repr
   BaseControllerRefManager.TypeAssumptions.underlying
-  BaseControllerRefManager.TypeAssumptions.get_Controller
-  BaseControllerRefManager.TypeAssumptions.set_Controller
-  BaseControllerRefManager.TypeAssumptions.get_Selector
-  BaseControllerRefManager.TypeAssumptions.set_Selector
-  BaseControllerRefManager.TypeAssumptions.get_canAdoptErr
-  BaseControllerRefManager.TypeAssumptions.set_canAdoptErr
-  BaseControllerRefManager.TypeAssumptions.get_canAdoptOnce
-  BaseControllerRefManager.TypeAssumptions.set_canAdoptOnce
-  BaseControllerRefManager.TypeAssumptions.get_CanAdoptFunc
-  BaseControllerRefManager.TypeAssumptions.set_CanAdoptFunc
+  BaseControllerRefManager.TypeAssumptions.get'Controller
+  BaseControllerRefManager.TypeAssumptions.set'Controller
+  BaseControllerRefManager.TypeAssumptions.get'Selector
+  BaseControllerRefManager.TypeAssumptions.set'Selector
+  BaseControllerRefManager.TypeAssumptions.get'canAdoptErr
+  BaseControllerRefManager.TypeAssumptions.set'canAdoptErr
+  BaseControllerRefManager.TypeAssumptions.get'canAdoptOnce
+  BaseControllerRefManager.TypeAssumptions.set'canAdoptOnce
+  BaseControllerRefManager.TypeAssumptions.get'CanAdoptFunc
+  BaseControllerRefManager.TypeAssumptions.set'CanAdoptFunc
   BaseControllerRefManager.TypeAssumptions.method_set
   BaseControllerRefManager.TypeAssumptions.ptr_method_set
-  BaseControllerRefManager.TypeAssumptions.ptr_CanAdopt_unfold
-  BaseControllerRefManager.TypeAssumptions.ptr_ClaimObject_unfold
+  BaseControllerRefManager.TypeAssumptions.ptr_unfold'CanAdopt
+  BaseControllerRefManager.TypeAssumptions.ptr_unfold'ClaimObject
 
 abbrev PodControlInterface [GooseExts] : Type := GoInterface
 
@@ -6014,7 +6014,7 @@ noncomputable instance PodControllerRefManager.zero_val [GooseExts] : ZeroVal Po
 @[irreducible] noncomputable def PodControllerRefManager.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodControllerRefManager.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodControllerRefManager [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PodControllerRefManager [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodControllerRefManager.fields PodControllerRefManager.fieldsUnsealed :=
   ⟨by unfold PodControllerRefManager.fields; rfl⟩
 
@@ -6024,41 +6024,41 @@ noncomputable instance equals_unfold_PodControllerRefManager [GooseExts] [GoGlob
 class PodControllerRefManager.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodControllerRefManager.underlying PodControllerRefManager
   underlying : go.UnderlyingDirectedEq PodControllerRefManager.ty PodControllerRefManager.underlying
-  get_BaseControllerRefManager : ∀ (x : PodControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet PodControllerRefManager.underlying go!"BaseControllerRefManager") #x (Val #(x.BaseControllerRefManager'))
-  set_BaseControllerRefManager : ∀ (x : PodControllerRefManager) (y : BaseControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldSet PodControllerRefManager.underlying go!"BaseControllerRefManager") (PairV #x #y) (Val #(({ x with BaseControllerRefManager' := y } : PodControllerRefManager)))
-  get_controllerKind : ∀ (x : PodControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet PodControllerRefManager.underlying go!"controllerKind") #x (Val #(x.controllerKind'))
-  set_controllerKind : ∀ (x : PodControllerRefManager) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind), go.IsGoStepPureDetTagged under (StructFieldSet PodControllerRefManager.underlying go!"controllerKind") (PairV #x #y) (Val #(({ x with controllerKind' := y } : PodControllerRefManager)))
-  get_podControl : ∀ (x : PodControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet PodControllerRefManager.underlying go!"podControl") #x (Val #(x.podControl'))
-  set_podControl : ∀ (x : PodControllerRefManager) (y : PodControlInterface), go.IsGoStepPureDetTagged under (StructFieldSet PodControllerRefManager.underlying go!"podControl") (PairV #x #y) (Val #(({ x with podControl' := y } : PodControllerRefManager)))
-  get_finalizers : ∀ (x : PodControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet PodControllerRefManager.underlying go!"finalizers") #x (Val #(x.finalizers'))
-  set_finalizers : ∀ (x : PodControllerRefManager) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodControllerRefManager.underlying go!"finalizers") (PairV #x #y) (Val #(({ x with finalizers' := y } : PodControllerRefManager)))
+  get'BaseControllerRefManager : ∀ (x : PodControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet PodControllerRefManager.underlying go!"BaseControllerRefManager") #x (Val #(x.BaseControllerRefManager'))
+  set'BaseControllerRefManager : ∀ (x : PodControllerRefManager) (y : BaseControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldSet PodControllerRefManager.underlying go!"BaseControllerRefManager") (PairV #x #y) (Val #(({ x with BaseControllerRefManager' := y } : PodControllerRefManager)))
+  get'controllerKind : ∀ (x : PodControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet PodControllerRefManager.underlying go!"controllerKind") #x (Val #(x.controllerKind'))
+  set'controllerKind : ∀ (x : PodControllerRefManager) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind), go.IsGoStepPureDetTagged under (StructFieldSet PodControllerRefManager.underlying go!"controllerKind") (PairV #x #y) (Val #(({ x with controllerKind' := y } : PodControllerRefManager)))
+  get'podControl : ∀ (x : PodControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet PodControllerRefManager.underlying go!"podControl") #x (Val #(x.podControl'))
+  set'podControl : ∀ (x : PodControllerRefManager) (y : PodControlInterface), go.IsGoStepPureDetTagged under (StructFieldSet PodControllerRefManager.underlying go!"podControl") (PairV #x #y) (Val #(({ x with podControl' := y } : PodControllerRefManager)))
+  get'finalizers : ∀ (x : PodControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet PodControllerRefManager.underlying go!"finalizers") #x (Val #(x.finalizers'))
+  set'finalizers : ∀ (x : PodControllerRefManager) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodControllerRefManager.underlying go!"finalizers") (PairV #x #y) (Val #(({ x with finalizers' := y } : PodControllerRefManager)))
   method_set : go.MethodSetIs PodControllerRefManager.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodControllerRefManager.ty) [(go!"AdoptPod", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)] false [go.error]))), (go!"CanAdopt", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"ClaimObject", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty] false [go.error]))] false [go.bool, go.error]))), (go!"ClaimPods", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), (go.GoType.SliceType (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)] false [go.bool])))] true [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), go.error]))), (go!"ReleasePod", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)] false [go.error])))]
-  ptr_AdoptPod_unfold : MethodUnfold (go.GoType.PointerType PodControllerRefManager.ty) go!"AdoptPod" PodControllerRefManager.AdoptPod.impl
-  ptr_CanAdopt_unfold : MethodUnfold (go.GoType.PointerType PodControllerRefManager.ty) go!"CanAdopt" (LamV "$r"
+  ptr_unfold'AdoptPod : MethodUnfold (go.GoType.PointerType PodControllerRefManager.ty) go!"AdoptPod" PodControllerRefManager.AdoptPod.impl
+  ptr_unfold'CanAdopt : MethodUnfold (go.GoType.PointerType PodControllerRefManager.ty) go!"CanAdopt" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType BaseControllerRefManager.ty) go!"CanAdopt"))) (App (Val (GoInstruction (StructFieldRef PodControllerRefManager.ty go!"BaseControllerRefManager"))) (Var "$r"))))
-  ptr_ClaimObject_unfold : MethodUnfold (go.GoType.PointerType PodControllerRefManager.ty) go!"ClaimObject" (LamV "$r"
+  ptr_unfold'ClaimObject : MethodUnfold (go.GoType.PointerType PodControllerRefManager.ty) go!"ClaimObject" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType BaseControllerRefManager.ty) go!"ClaimObject"))) (App (Val (GoInstruction (StructFieldRef PodControllerRefManager.ty go!"BaseControllerRefManager"))) (Var "$r"))))
-  ptr_ClaimPods_unfold : MethodUnfold (go.GoType.PointerType PodControllerRefManager.ty) go!"ClaimPods" PodControllerRefManager.ClaimPods.impl
-  ptr_ReleasePod_unfold : MethodUnfold (go.GoType.PointerType PodControllerRefManager.ty) go!"ReleasePod" PodControllerRefManager.ReleasePod.impl
+  ptr_unfold'ClaimPods : MethodUnfold (go.GoType.PointerType PodControllerRefManager.ty) go!"ClaimPods" PodControllerRefManager.ClaimPods.impl
+  ptr_unfold'ReleasePod : MethodUnfold (go.GoType.PointerType PodControllerRefManager.ty) go!"ReleasePod" PodControllerRefManager.ReleasePod.impl
 
 attribute [instance] PodControllerRefManager.TypeAssumptions.type_repr
   PodControllerRefManager.TypeAssumptions.underlying
-  PodControllerRefManager.TypeAssumptions.get_BaseControllerRefManager
-  PodControllerRefManager.TypeAssumptions.set_BaseControllerRefManager
-  PodControllerRefManager.TypeAssumptions.get_controllerKind
-  PodControllerRefManager.TypeAssumptions.set_controllerKind
-  PodControllerRefManager.TypeAssumptions.get_podControl
-  PodControllerRefManager.TypeAssumptions.set_podControl
-  PodControllerRefManager.TypeAssumptions.get_finalizers
-  PodControllerRefManager.TypeAssumptions.set_finalizers
+  PodControllerRefManager.TypeAssumptions.get'BaseControllerRefManager
+  PodControllerRefManager.TypeAssumptions.set'BaseControllerRefManager
+  PodControllerRefManager.TypeAssumptions.get'controllerKind
+  PodControllerRefManager.TypeAssumptions.set'controllerKind
+  PodControllerRefManager.TypeAssumptions.get'podControl
+  PodControllerRefManager.TypeAssumptions.set'podControl
+  PodControllerRefManager.TypeAssumptions.get'finalizers
+  PodControllerRefManager.TypeAssumptions.set'finalizers
   PodControllerRefManager.TypeAssumptions.method_set
   PodControllerRefManager.TypeAssumptions.ptr_method_set
-  PodControllerRefManager.TypeAssumptions.ptr_AdoptPod_unfold
-  PodControllerRefManager.TypeAssumptions.ptr_CanAdopt_unfold
-  PodControllerRefManager.TypeAssumptions.ptr_ClaimObject_unfold
-  PodControllerRefManager.TypeAssumptions.ptr_ClaimPods_unfold
-  PodControllerRefManager.TypeAssumptions.ptr_ReleasePod_unfold
+  PodControllerRefManager.TypeAssumptions.ptr_unfold'AdoptPod
+  PodControllerRefManager.TypeAssumptions.ptr_unfold'CanAdopt
+  PodControllerRefManager.TypeAssumptions.ptr_unfold'ClaimObject
+  PodControllerRefManager.TypeAssumptions.ptr_unfold'ClaimPods
+  PodControllerRefManager.TypeAssumptions.ptr_unfold'ReleasePod
 
 abbrev RSControlInterface [GooseExts] : Type := GoInterface
 
@@ -6091,7 +6091,7 @@ noncomputable instance ReplicaSetControllerRefManager.zero_val [GooseExts] : Zer
 @[irreducible] noncomputable def ReplicaSetControllerRefManager.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReplicaSetControllerRefManager.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReplicaSetControllerRefManager [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ReplicaSetControllerRefManager [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReplicaSetControllerRefManager.fields ReplicaSetControllerRefManager.fieldsUnsealed :=
   ⟨by unfold ReplicaSetControllerRefManager.fields; rfl⟩
 
@@ -6101,37 +6101,37 @@ noncomputable instance equals_unfold_ReplicaSetControllerRefManager [GooseExts] 
 class ReplicaSetControllerRefManager.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicaSetControllerRefManager.underlying ReplicaSetControllerRefManager
   underlying : go.UnderlyingDirectedEq ReplicaSetControllerRefManager.ty ReplicaSetControllerRefManager.underlying
-  get_BaseControllerRefManager : ∀ (x : ReplicaSetControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetControllerRefManager.underlying go!"BaseControllerRefManager") #x (Val #(x.BaseControllerRefManager'))
-  set_BaseControllerRefManager : ∀ (x : ReplicaSetControllerRefManager) (y : BaseControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetControllerRefManager.underlying go!"BaseControllerRefManager") (PairV #x #y) (Val #(({ x with BaseControllerRefManager' := y } : ReplicaSetControllerRefManager)))
-  get_controllerKind : ∀ (x : ReplicaSetControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetControllerRefManager.underlying go!"controllerKind") #x (Val #(x.controllerKind'))
-  set_controllerKind : ∀ (x : ReplicaSetControllerRefManager) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetControllerRefManager.underlying go!"controllerKind") (PairV #x #y) (Val #(({ x with controllerKind' := y } : ReplicaSetControllerRefManager)))
-  get_rsControl : ∀ (x : ReplicaSetControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetControllerRefManager.underlying go!"rsControl") #x (Val #(x.rsControl'))
-  set_rsControl : ∀ (x : ReplicaSetControllerRefManager) (y : RSControlInterface), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetControllerRefManager.underlying go!"rsControl") (PairV #x #y) (Val #(({ x with rsControl' := y } : ReplicaSetControllerRefManager)))
+  get'BaseControllerRefManager : ∀ (x : ReplicaSetControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetControllerRefManager.underlying go!"BaseControllerRefManager") #x (Val #(x.BaseControllerRefManager'))
+  set'BaseControllerRefManager : ∀ (x : ReplicaSetControllerRefManager) (y : BaseControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetControllerRefManager.underlying go!"BaseControllerRefManager") (PairV #x #y) (Val #(({ x with BaseControllerRefManager' := y } : ReplicaSetControllerRefManager)))
+  get'controllerKind : ∀ (x : ReplicaSetControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetControllerRefManager.underlying go!"controllerKind") #x (Val #(x.controllerKind'))
+  set'controllerKind : ∀ (x : ReplicaSetControllerRefManager) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetControllerRefManager.underlying go!"controllerKind") (PairV #x #y) (Val #(({ x with controllerKind' := y } : ReplicaSetControllerRefManager)))
+  get'rsControl : ∀ (x : ReplicaSetControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaSetControllerRefManager.underlying go!"rsControl") #x (Val #(x.rsControl'))
+  set'rsControl : ∀ (x : ReplicaSetControllerRefManager) (y : RSControlInterface), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaSetControllerRefManager.underlying go!"rsControl") (PairV #x #y) (Val #(({ x with rsControl' := y } : ReplicaSetControllerRefManager)))
   method_set : go.MethodSetIs ReplicaSetControllerRefManager.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetControllerRefManager.ty) [(go!"AdoptReplicaSet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ReplicaSet.ty)] false [go.error]))), (go!"CanAdopt", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"ClaimObject", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty] false [go.error]))] false [go.bool, go.error]))), (go!"ClaimReplicaSets", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ReplicaSet.ty))] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ReplicaSet.ty)), go.error]))), (go!"ReleaseReplicaSet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ReplicaSet.ty)] false [go.error])))]
-  ptr_AdoptReplicaSet_unfold : MethodUnfold (go.GoType.PointerType ReplicaSetControllerRefManager.ty) go!"AdoptReplicaSet" ReplicaSetControllerRefManager.AdoptReplicaSet.impl
-  ptr_CanAdopt_unfold : MethodUnfold (go.GoType.PointerType ReplicaSetControllerRefManager.ty) go!"CanAdopt" (LamV "$r"
+  ptr_unfold'AdoptReplicaSet : MethodUnfold (go.GoType.PointerType ReplicaSetControllerRefManager.ty) go!"AdoptReplicaSet" ReplicaSetControllerRefManager.AdoptReplicaSet.impl
+  ptr_unfold'CanAdopt : MethodUnfold (go.GoType.PointerType ReplicaSetControllerRefManager.ty) go!"CanAdopt" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType BaseControllerRefManager.ty) go!"CanAdopt"))) (App (Val (GoInstruction (StructFieldRef ReplicaSetControllerRefManager.ty go!"BaseControllerRefManager"))) (Var "$r"))))
-  ptr_ClaimObject_unfold : MethodUnfold (go.GoType.PointerType ReplicaSetControllerRefManager.ty) go!"ClaimObject" (LamV "$r"
+  ptr_unfold'ClaimObject : MethodUnfold (go.GoType.PointerType ReplicaSetControllerRefManager.ty) go!"ClaimObject" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType BaseControllerRefManager.ty) go!"ClaimObject"))) (App (Val (GoInstruction (StructFieldRef ReplicaSetControllerRefManager.ty go!"BaseControllerRefManager"))) (Var "$r"))))
-  ptr_ClaimReplicaSets_unfold : MethodUnfold (go.GoType.PointerType ReplicaSetControllerRefManager.ty) go!"ClaimReplicaSets" ReplicaSetControllerRefManager.ClaimReplicaSets.impl
-  ptr_ReleaseReplicaSet_unfold : MethodUnfold (go.GoType.PointerType ReplicaSetControllerRefManager.ty) go!"ReleaseReplicaSet" ReplicaSetControllerRefManager.ReleaseReplicaSet.impl
+  ptr_unfold'ClaimReplicaSets : MethodUnfold (go.GoType.PointerType ReplicaSetControllerRefManager.ty) go!"ClaimReplicaSets" ReplicaSetControllerRefManager.ClaimReplicaSets.impl
+  ptr_unfold'ReleaseReplicaSet : MethodUnfold (go.GoType.PointerType ReplicaSetControllerRefManager.ty) go!"ReleaseReplicaSet" ReplicaSetControllerRefManager.ReleaseReplicaSet.impl
 
 attribute [instance] ReplicaSetControllerRefManager.TypeAssumptions.type_repr
   ReplicaSetControllerRefManager.TypeAssumptions.underlying
-  ReplicaSetControllerRefManager.TypeAssumptions.get_BaseControllerRefManager
-  ReplicaSetControllerRefManager.TypeAssumptions.set_BaseControllerRefManager
-  ReplicaSetControllerRefManager.TypeAssumptions.get_controllerKind
-  ReplicaSetControllerRefManager.TypeAssumptions.set_controllerKind
-  ReplicaSetControllerRefManager.TypeAssumptions.get_rsControl
-  ReplicaSetControllerRefManager.TypeAssumptions.set_rsControl
+  ReplicaSetControllerRefManager.TypeAssumptions.get'BaseControllerRefManager
+  ReplicaSetControllerRefManager.TypeAssumptions.set'BaseControllerRefManager
+  ReplicaSetControllerRefManager.TypeAssumptions.get'controllerKind
+  ReplicaSetControllerRefManager.TypeAssumptions.set'controllerKind
+  ReplicaSetControllerRefManager.TypeAssumptions.get'rsControl
+  ReplicaSetControllerRefManager.TypeAssumptions.set'rsControl
   ReplicaSetControllerRefManager.TypeAssumptions.method_set
   ReplicaSetControllerRefManager.TypeAssumptions.ptr_method_set
-  ReplicaSetControllerRefManager.TypeAssumptions.ptr_AdoptReplicaSet_unfold
-  ReplicaSetControllerRefManager.TypeAssumptions.ptr_CanAdopt_unfold
-  ReplicaSetControllerRefManager.TypeAssumptions.ptr_ClaimObject_unfold
-  ReplicaSetControllerRefManager.TypeAssumptions.ptr_ClaimReplicaSets_unfold
-  ReplicaSetControllerRefManager.TypeAssumptions.ptr_ReleaseReplicaSet_unfold
+  ReplicaSetControllerRefManager.TypeAssumptions.ptr_unfold'AdoptReplicaSet
+  ReplicaSetControllerRefManager.TypeAssumptions.ptr_unfold'CanAdopt
+  ReplicaSetControllerRefManager.TypeAssumptions.ptr_unfold'ClaimObject
+  ReplicaSetControllerRefManager.TypeAssumptions.ptr_unfold'ClaimReplicaSets
+  ReplicaSetControllerRefManager.TypeAssumptions.ptr_unfold'ReleaseReplicaSet
 
 abbrev ControllerRevisionControlInterface [GooseExts] : Type := GoInterface
 
@@ -6164,7 +6164,7 @@ noncomputable instance ControllerRevisionControllerRefManager.zero_val [GooseExt
 @[irreducible] noncomputable def ControllerRevisionControllerRefManager.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ControllerRevisionControllerRefManager.fieldsUnsealed
 
-noncomputable instance equals_unfold_ControllerRevisionControllerRefManager [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ControllerRevisionControllerRefManager [GooseExts] [GoGlobalContext] :
     EqualsUnfold ControllerRevisionControllerRefManager.fields ControllerRevisionControllerRefManager.fieldsUnsealed :=
   ⟨by unfold ControllerRevisionControllerRefManager.fields; rfl⟩
 
@@ -6174,37 +6174,37 @@ noncomputable instance equals_unfold_ControllerRevisionControllerRefManager [Goo
 class ControllerRevisionControllerRefManager.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ControllerRevisionControllerRefManager.underlying ControllerRevisionControllerRefManager
   underlying : go.UnderlyingDirectedEq ControllerRevisionControllerRefManager.ty ControllerRevisionControllerRefManager.underlying
-  get_BaseControllerRefManager : ∀ (x : ControllerRevisionControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet ControllerRevisionControllerRefManager.underlying go!"BaseControllerRefManager") #x (Val #(x.BaseControllerRefManager'))
-  set_BaseControllerRefManager : ∀ (x : ControllerRevisionControllerRefManager) (y : BaseControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldSet ControllerRevisionControllerRefManager.underlying go!"BaseControllerRefManager") (PairV #x #y) (Val #(({ x with BaseControllerRefManager' := y } : ControllerRevisionControllerRefManager)))
-  get_controllerKind : ∀ (x : ControllerRevisionControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet ControllerRevisionControllerRefManager.underlying go!"controllerKind") #x (Val #(x.controllerKind'))
-  set_controllerKind : ∀ (x : ControllerRevisionControllerRefManager) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind), go.IsGoStepPureDetTagged under (StructFieldSet ControllerRevisionControllerRefManager.underlying go!"controllerKind") (PairV #x #y) (Val #(({ x with controllerKind' := y } : ControllerRevisionControllerRefManager)))
-  get_crControl : ∀ (x : ControllerRevisionControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet ControllerRevisionControllerRefManager.underlying go!"crControl") #x (Val #(x.crControl'))
-  set_crControl : ∀ (x : ControllerRevisionControllerRefManager) (y : ControllerRevisionControlInterface), go.IsGoStepPureDetTagged under (StructFieldSet ControllerRevisionControllerRefManager.underlying go!"crControl") (PairV #x #y) (Val #(({ x with crControl' := y } : ControllerRevisionControllerRefManager)))
+  get'BaseControllerRefManager : ∀ (x : ControllerRevisionControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet ControllerRevisionControllerRefManager.underlying go!"BaseControllerRefManager") #x (Val #(x.BaseControllerRefManager'))
+  set'BaseControllerRefManager : ∀ (x : ControllerRevisionControllerRefManager) (y : BaseControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldSet ControllerRevisionControllerRefManager.underlying go!"BaseControllerRefManager") (PairV #x #y) (Val #(({ x with BaseControllerRefManager' := y } : ControllerRevisionControllerRefManager)))
+  get'controllerKind : ∀ (x : ControllerRevisionControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet ControllerRevisionControllerRefManager.underlying go!"controllerKind") #x (Val #(x.controllerKind'))
+  set'controllerKind : ∀ (x : ControllerRevisionControllerRefManager) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind), go.IsGoStepPureDetTagged under (StructFieldSet ControllerRevisionControllerRefManager.underlying go!"controllerKind") (PairV #x #y) (Val #(({ x with controllerKind' := y } : ControllerRevisionControllerRefManager)))
+  get'crControl : ∀ (x : ControllerRevisionControllerRefManager), go.IsGoStepPureDetTagged under (StructFieldGet ControllerRevisionControllerRefManager.underlying go!"crControl") #x (Val #(x.crControl'))
+  set'crControl : ∀ (x : ControllerRevisionControllerRefManager) (y : ControllerRevisionControlInterface), go.IsGoStepPureDetTagged under (StructFieldSet ControllerRevisionControllerRefManager.underlying go!"crControl") (PairV #x #y) (Val #(({ x with crControl' := y } : ControllerRevisionControllerRefManager)))
   method_set : go.MethodSetIs ControllerRevisionControllerRefManager.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ControllerRevisionControllerRefManager.ty) [(go!"AdoptControllerRevision", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)] false [go.error]))), (go!"CanAdopt", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"ClaimControllerRevisions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty))] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)), go.error]))), (go!"ClaimObject", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty] false [go.error]))] false [go.bool, go.error]))), (go!"ReleaseControllerRevision", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)] false [go.error])))]
-  ptr_AdoptControllerRevision_unfold : MethodUnfold (go.GoType.PointerType ControllerRevisionControllerRefManager.ty) go!"AdoptControllerRevision" ControllerRevisionControllerRefManager.AdoptControllerRevision.impl
-  ptr_CanAdopt_unfold : MethodUnfold (go.GoType.PointerType ControllerRevisionControllerRefManager.ty) go!"CanAdopt" (LamV "$r"
+  ptr_unfold'AdoptControllerRevision : MethodUnfold (go.GoType.PointerType ControllerRevisionControllerRefManager.ty) go!"AdoptControllerRevision" ControllerRevisionControllerRefManager.AdoptControllerRevision.impl
+  ptr_unfold'CanAdopt : MethodUnfold (go.GoType.PointerType ControllerRevisionControllerRefManager.ty) go!"CanAdopt" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType BaseControllerRefManager.ty) go!"CanAdopt"))) (App (Val (GoInstruction (StructFieldRef ControllerRevisionControllerRefManager.ty go!"BaseControllerRefManager"))) (Var "$r"))))
-  ptr_ClaimControllerRevisions_unfold : MethodUnfold (go.GoType.PointerType ControllerRevisionControllerRefManager.ty) go!"ClaimControllerRevisions" ControllerRevisionControllerRefManager.ClaimControllerRevisions.impl
-  ptr_ClaimObject_unfold : MethodUnfold (go.GoType.PointerType ControllerRevisionControllerRefManager.ty) go!"ClaimObject" (LamV "$r"
+  ptr_unfold'ClaimControllerRevisions : MethodUnfold (go.GoType.PointerType ControllerRevisionControllerRefManager.ty) go!"ClaimControllerRevisions" ControllerRevisionControllerRefManager.ClaimControllerRevisions.impl
+  ptr_unfold'ClaimObject : MethodUnfold (go.GoType.PointerType ControllerRevisionControllerRefManager.ty) go!"ClaimObject" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType BaseControllerRefManager.ty) go!"ClaimObject"))) (App (Val (GoInstruction (StructFieldRef ControllerRevisionControllerRefManager.ty go!"BaseControllerRefManager"))) (Var "$r"))))
-  ptr_ReleaseControllerRevision_unfold : MethodUnfold (go.GoType.PointerType ControllerRevisionControllerRefManager.ty) go!"ReleaseControllerRevision" ControllerRevisionControllerRefManager.ReleaseControllerRevision.impl
+  ptr_unfold'ReleaseControllerRevision : MethodUnfold (go.GoType.PointerType ControllerRevisionControllerRefManager.ty) go!"ReleaseControllerRevision" ControllerRevisionControllerRefManager.ReleaseControllerRevision.impl
 
 attribute [instance] ControllerRevisionControllerRefManager.TypeAssumptions.type_repr
   ControllerRevisionControllerRefManager.TypeAssumptions.underlying
-  ControllerRevisionControllerRefManager.TypeAssumptions.get_BaseControllerRefManager
-  ControllerRevisionControllerRefManager.TypeAssumptions.set_BaseControllerRefManager
-  ControllerRevisionControllerRefManager.TypeAssumptions.get_controllerKind
-  ControllerRevisionControllerRefManager.TypeAssumptions.set_controllerKind
-  ControllerRevisionControllerRefManager.TypeAssumptions.get_crControl
-  ControllerRevisionControllerRefManager.TypeAssumptions.set_crControl
+  ControllerRevisionControllerRefManager.TypeAssumptions.get'BaseControllerRefManager
+  ControllerRevisionControllerRefManager.TypeAssumptions.set'BaseControllerRefManager
+  ControllerRevisionControllerRefManager.TypeAssumptions.get'controllerKind
+  ControllerRevisionControllerRefManager.TypeAssumptions.set'controllerKind
+  ControllerRevisionControllerRefManager.TypeAssumptions.get'crControl
+  ControllerRevisionControllerRefManager.TypeAssumptions.set'crControl
   ControllerRevisionControllerRefManager.TypeAssumptions.method_set
   ControllerRevisionControllerRefManager.TypeAssumptions.ptr_method_set
-  ControllerRevisionControllerRefManager.TypeAssumptions.ptr_AdoptControllerRevision_unfold
-  ControllerRevisionControllerRefManager.TypeAssumptions.ptr_CanAdopt_unfold
-  ControllerRevisionControllerRefManager.TypeAssumptions.ptr_ClaimControllerRevisions_unfold
-  ControllerRevisionControllerRefManager.TypeAssumptions.ptr_ClaimObject_unfold
-  ControllerRevisionControllerRefManager.TypeAssumptions.ptr_ReleaseControllerRevision_unfold
+  ControllerRevisionControllerRefManager.TypeAssumptions.ptr_unfold'AdoptControllerRevision
+  ControllerRevisionControllerRefManager.TypeAssumptions.ptr_unfold'CanAdopt
+  ControllerRevisionControllerRefManager.TypeAssumptions.ptr_unfold'ClaimControllerRevisions
+  ControllerRevisionControllerRefManager.TypeAssumptions.ptr_unfold'ClaimObject
+  ControllerRevisionControllerRefManager.TypeAssumptions.ptr_unfold'ReleaseControllerRevision
 
 structure objectMetaForPatch [GooseExts] where
   mk ::
@@ -6223,7 +6223,7 @@ noncomputable instance objectMetaForPatch.zero_val [GooseExts] : ZeroVal objectM
 @[irreducible] noncomputable def objectMetaForPatch.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   objectMetaForPatch.fieldsUnsealed
 
-noncomputable instance equals_unfold_objectMetaForPatch [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'objectMetaForPatch [GooseExts] [GoGlobalContext] :
     EqualsUnfold objectMetaForPatch.fields objectMetaForPatch.fieldsUnsealed :=
   ⟨by unfold objectMetaForPatch.fields; rfl⟩
 
@@ -6233,23 +6233,23 @@ noncomputable instance equals_unfold_objectMetaForPatch [GooseExts] [GoGlobalCon
 class objectMetaForPatch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying objectMetaForPatch.underlying objectMetaForPatch
   underlying : go.UnderlyingDirectedEq objectMetaForPatch.ty objectMetaForPatch.underlying
-  get_OwnerReferences : ∀ (x : objectMetaForPatch), go.IsGoStepPureDetTagged under (StructFieldGet objectMetaForPatch.underlying go!"OwnerReferences") #x (Val #(x.OwnerReferences'))
-  set_OwnerReferences : ∀ (x : objectMetaForPatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet objectMetaForPatch.underlying go!"OwnerReferences") (PairV #x #y) (Val #(({ x with OwnerReferences' := y } : objectMetaForPatch)))
-  get_UID : ∀ (x : objectMetaForPatch), go.IsGoStepPureDetTagged under (StructFieldGet objectMetaForPatch.underlying go!"UID") #x (Val #(x.UID'))
-  set_UID : ∀ (x : objectMetaForPatch) (y : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID), go.IsGoStepPureDetTagged under (StructFieldSet objectMetaForPatch.underlying go!"UID") (PairV #x #y) (Val #(({ x with UID' := y } : objectMetaForPatch)))
-  get_Finalizers : ∀ (x : objectMetaForPatch), go.IsGoStepPureDetTagged under (StructFieldGet objectMetaForPatch.underlying go!"Finalizers") #x (Val #(x.Finalizers'))
-  set_Finalizers : ∀ (x : objectMetaForPatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet objectMetaForPatch.underlying go!"Finalizers") (PairV #x #y) (Val #(({ x with Finalizers' := y } : objectMetaForPatch)))
+  get'OwnerReferences : ∀ (x : objectMetaForPatch), go.IsGoStepPureDetTagged under (StructFieldGet objectMetaForPatch.underlying go!"OwnerReferences") #x (Val #(x.OwnerReferences'))
+  set'OwnerReferences : ∀ (x : objectMetaForPatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet objectMetaForPatch.underlying go!"OwnerReferences") (PairV #x #y) (Val #(({ x with OwnerReferences' := y } : objectMetaForPatch)))
+  get'UID : ∀ (x : objectMetaForPatch), go.IsGoStepPureDetTagged under (StructFieldGet objectMetaForPatch.underlying go!"UID") #x (Val #(x.UID'))
+  set'UID : ∀ (x : objectMetaForPatch) (y : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID), go.IsGoStepPureDetTagged under (StructFieldSet objectMetaForPatch.underlying go!"UID") (PairV #x #y) (Val #(({ x with UID' := y } : objectMetaForPatch)))
+  get'Finalizers : ∀ (x : objectMetaForPatch), go.IsGoStepPureDetTagged under (StructFieldGet objectMetaForPatch.underlying go!"Finalizers") #x (Val #(x.Finalizers'))
+  set'Finalizers : ∀ (x : objectMetaForPatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet objectMetaForPatch.underlying go!"Finalizers") (PairV #x #y) (Val #(({ x with Finalizers' := y } : objectMetaForPatch)))
   method_set : go.MethodSetIs objectMetaForPatch.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType objectMetaForPatch.ty) []
 
 attribute [instance] objectMetaForPatch.TypeAssumptions.type_repr
   objectMetaForPatch.TypeAssumptions.underlying
-  objectMetaForPatch.TypeAssumptions.get_OwnerReferences
-  objectMetaForPatch.TypeAssumptions.set_OwnerReferences
-  objectMetaForPatch.TypeAssumptions.get_UID
-  objectMetaForPatch.TypeAssumptions.set_UID
-  objectMetaForPatch.TypeAssumptions.get_Finalizers
-  objectMetaForPatch.TypeAssumptions.set_Finalizers
+  objectMetaForPatch.TypeAssumptions.get'OwnerReferences
+  objectMetaForPatch.TypeAssumptions.set'OwnerReferences
+  objectMetaForPatch.TypeAssumptions.get'UID
+  objectMetaForPatch.TypeAssumptions.set'UID
+  objectMetaForPatch.TypeAssumptions.get'Finalizers
+  objectMetaForPatch.TypeAssumptions.set'Finalizers
   objectMetaForPatch.TypeAssumptions.method_set
   objectMetaForPatch.TypeAssumptions.ptr_method_set
 
@@ -6266,7 +6266,7 @@ noncomputable instance objectForAddOwnerRefPatch.zero_val [GooseExts] : ZeroVal 
 @[irreducible] noncomputable def objectForAddOwnerRefPatch.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   objectForAddOwnerRefPatch.fieldsUnsealed
 
-noncomputable instance equals_unfold_objectForAddOwnerRefPatch [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'objectForAddOwnerRefPatch [GooseExts] [GoGlobalContext] :
     EqualsUnfold objectForAddOwnerRefPatch.fields objectForAddOwnerRefPatch.fieldsUnsealed :=
   ⟨by unfold objectForAddOwnerRefPatch.fields; rfl⟩
 
@@ -6276,15 +6276,15 @@ noncomputable instance equals_unfold_objectForAddOwnerRefPatch [GooseExts] [GoGl
 class objectForAddOwnerRefPatch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying objectForAddOwnerRefPatch.underlying objectForAddOwnerRefPatch
   underlying : go.UnderlyingDirectedEq objectForAddOwnerRefPatch.ty objectForAddOwnerRefPatch.underlying
-  get_Metadata : ∀ (x : objectForAddOwnerRefPatch), go.IsGoStepPureDetTagged under (StructFieldGet objectForAddOwnerRefPatch.underlying go!"Metadata") #x (Val #(x.Metadata'))
-  set_Metadata : ∀ (x : objectForAddOwnerRefPatch) (y : objectMetaForPatch), go.IsGoStepPureDetTagged under (StructFieldSet objectForAddOwnerRefPatch.underlying go!"Metadata") (PairV #x #y) (Val #(({ x with Metadata' := y } : objectForAddOwnerRefPatch)))
+  get'Metadata : ∀ (x : objectForAddOwnerRefPatch), go.IsGoStepPureDetTagged under (StructFieldGet objectForAddOwnerRefPatch.underlying go!"Metadata") #x (Val #(x.Metadata'))
+  set'Metadata : ∀ (x : objectForAddOwnerRefPatch) (y : objectMetaForPatch), go.IsGoStepPureDetTagged under (StructFieldSet objectForAddOwnerRefPatch.underlying go!"Metadata") (PairV #x #y) (Val #(({ x with Metadata' := y } : objectForAddOwnerRefPatch)))
   method_set : go.MethodSetIs objectForAddOwnerRefPatch.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType objectForAddOwnerRefPatch.ty) []
 
 attribute [instance] objectForAddOwnerRefPatch.TypeAssumptions.type_repr
   objectForAddOwnerRefPatch.TypeAssumptions.underlying
-  objectForAddOwnerRefPatch.TypeAssumptions.get_Metadata
-  objectForAddOwnerRefPatch.TypeAssumptions.set_Metadata
+  objectForAddOwnerRefPatch.TypeAssumptions.get'Metadata
+  objectForAddOwnerRefPatch.TypeAssumptions.set'Metadata
   objectForAddOwnerRefPatch.TypeAssumptions.method_set
   objectForAddOwnerRefPatch.TypeAssumptions.ptr_method_set
 
@@ -6305,7 +6305,7 @@ noncomputable instance objectMetaForMergePatch.zero_val [GooseExts] : ZeroVal ob
 @[irreducible] noncomputable def objectMetaForMergePatch.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   objectMetaForMergePatch.fieldsUnsealed
 
-noncomputable instance equals_unfold_objectMetaForMergePatch [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'objectMetaForMergePatch [GooseExts] [GoGlobalContext] :
     EqualsUnfold objectMetaForMergePatch.fields objectMetaForMergePatch.fieldsUnsealed :=
   ⟨by unfold objectMetaForMergePatch.fields; rfl⟩
 
@@ -6315,23 +6315,23 @@ noncomputable instance equals_unfold_objectMetaForMergePatch [GooseExts] [GoGlob
 class objectMetaForMergePatch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying objectMetaForMergePatch.underlying objectMetaForMergePatch
   underlying : go.UnderlyingDirectedEq objectMetaForMergePatch.ty objectMetaForMergePatch.underlying
-  get_UID : ∀ (x : objectMetaForMergePatch), go.IsGoStepPureDetTagged under (StructFieldGet objectMetaForMergePatch.underlying go!"UID") #x (Val #(x.UID'))
-  set_UID : ∀ (x : objectMetaForMergePatch) (y : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID), go.IsGoStepPureDetTagged under (StructFieldSet objectMetaForMergePatch.underlying go!"UID") (PairV #x #y) (Val #(({ x with UID' := y } : objectMetaForMergePatch)))
-  get_OwnerReferences : ∀ (x : objectMetaForMergePatch), go.IsGoStepPureDetTagged under (StructFieldGet objectMetaForMergePatch.underlying go!"OwnerReferences") #x (Val #(x.OwnerReferences'))
-  set_OwnerReferences : ∀ (x : objectMetaForMergePatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet objectMetaForMergePatch.underlying go!"OwnerReferences") (PairV #x #y) (Val #(({ x with OwnerReferences' := y } : objectMetaForMergePatch)))
-  get_DeleteFinalizers : ∀ (x : objectMetaForMergePatch), go.IsGoStepPureDetTagged under (StructFieldGet objectMetaForMergePatch.underlying go!"DeleteFinalizers") #x (Val #(x.DeleteFinalizers'))
-  set_DeleteFinalizers : ∀ (x : objectMetaForMergePatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet objectMetaForMergePatch.underlying go!"DeleteFinalizers") (PairV #x #y) (Val #(({ x with DeleteFinalizers' := y } : objectMetaForMergePatch)))
+  get'UID : ∀ (x : objectMetaForMergePatch), go.IsGoStepPureDetTagged under (StructFieldGet objectMetaForMergePatch.underlying go!"UID") #x (Val #(x.UID'))
+  set'UID : ∀ (x : objectMetaForMergePatch) (y : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID), go.IsGoStepPureDetTagged under (StructFieldSet objectMetaForMergePatch.underlying go!"UID") (PairV #x #y) (Val #(({ x with UID' := y } : objectMetaForMergePatch)))
+  get'OwnerReferences : ∀ (x : objectMetaForMergePatch), go.IsGoStepPureDetTagged under (StructFieldGet objectMetaForMergePatch.underlying go!"OwnerReferences") #x (Val #(x.OwnerReferences'))
+  set'OwnerReferences : ∀ (x : objectMetaForMergePatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet objectMetaForMergePatch.underlying go!"OwnerReferences") (PairV #x #y) (Val #(({ x with OwnerReferences' := y } : objectMetaForMergePatch)))
+  get'DeleteFinalizers : ∀ (x : objectMetaForMergePatch), go.IsGoStepPureDetTagged under (StructFieldGet objectMetaForMergePatch.underlying go!"DeleteFinalizers") #x (Val #(x.DeleteFinalizers'))
+  set'DeleteFinalizers : ∀ (x : objectMetaForMergePatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet objectMetaForMergePatch.underlying go!"DeleteFinalizers") (PairV #x #y) (Val #(({ x with DeleteFinalizers' := y } : objectMetaForMergePatch)))
   method_set : go.MethodSetIs objectMetaForMergePatch.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType objectMetaForMergePatch.ty) []
 
 attribute [instance] objectMetaForMergePatch.TypeAssumptions.type_repr
   objectMetaForMergePatch.TypeAssumptions.underlying
-  objectMetaForMergePatch.TypeAssumptions.get_UID
-  objectMetaForMergePatch.TypeAssumptions.set_UID
-  objectMetaForMergePatch.TypeAssumptions.get_OwnerReferences
-  objectMetaForMergePatch.TypeAssumptions.set_OwnerReferences
-  objectMetaForMergePatch.TypeAssumptions.get_DeleteFinalizers
-  objectMetaForMergePatch.TypeAssumptions.set_DeleteFinalizers
+  objectMetaForMergePatch.TypeAssumptions.get'UID
+  objectMetaForMergePatch.TypeAssumptions.set'UID
+  objectMetaForMergePatch.TypeAssumptions.get'OwnerReferences
+  objectMetaForMergePatch.TypeAssumptions.set'OwnerReferences
+  objectMetaForMergePatch.TypeAssumptions.get'DeleteFinalizers
+  objectMetaForMergePatch.TypeAssumptions.set'DeleteFinalizers
   objectMetaForMergePatch.TypeAssumptions.method_set
   objectMetaForMergePatch.TypeAssumptions.ptr_method_set
 
@@ -6348,7 +6348,7 @@ noncomputable instance objectForDeleteOwnerRefStrategicMergePatch.zero_val [Goos
 @[irreducible] noncomputable def objectForDeleteOwnerRefStrategicMergePatch.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   objectForDeleteOwnerRefStrategicMergePatch.fieldsUnsealed
 
-noncomputable instance equals_unfold_objectForDeleteOwnerRefStrategicMergePatch [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'objectForDeleteOwnerRefStrategicMergePatch [GooseExts] [GoGlobalContext] :
     EqualsUnfold objectForDeleteOwnerRefStrategicMergePatch.fields objectForDeleteOwnerRefStrategicMergePatch.fieldsUnsealed :=
   ⟨by unfold objectForDeleteOwnerRefStrategicMergePatch.fields; rfl⟩
 
@@ -6358,15 +6358,15 @@ noncomputable instance equals_unfold_objectForDeleteOwnerRefStrategicMergePatch 
 class objectForDeleteOwnerRefStrategicMergePatch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying objectForDeleteOwnerRefStrategicMergePatch.underlying objectForDeleteOwnerRefStrategicMergePatch
   underlying : go.UnderlyingDirectedEq objectForDeleteOwnerRefStrategicMergePatch.ty objectForDeleteOwnerRefStrategicMergePatch.underlying
-  get_Metadata : ∀ (x : objectForDeleteOwnerRefStrategicMergePatch), go.IsGoStepPureDetTagged under (StructFieldGet objectForDeleteOwnerRefStrategicMergePatch.underlying go!"Metadata") #x (Val #(x.Metadata'))
-  set_Metadata : ∀ (x : objectForDeleteOwnerRefStrategicMergePatch) (y : objectMetaForMergePatch), go.IsGoStepPureDetTagged under (StructFieldSet objectForDeleteOwnerRefStrategicMergePatch.underlying go!"Metadata") (PairV #x #y) (Val #(({ x with Metadata' := y } : objectForDeleteOwnerRefStrategicMergePatch)))
+  get'Metadata : ∀ (x : objectForDeleteOwnerRefStrategicMergePatch), go.IsGoStepPureDetTagged under (StructFieldGet objectForDeleteOwnerRefStrategicMergePatch.underlying go!"Metadata") #x (Val #(x.Metadata'))
+  set'Metadata : ∀ (x : objectForDeleteOwnerRefStrategicMergePatch) (y : objectMetaForMergePatch), go.IsGoStepPureDetTagged under (StructFieldSet objectForDeleteOwnerRefStrategicMergePatch.underlying go!"Metadata") (PairV #x #y) (Val #(({ x with Metadata' := y } : objectForDeleteOwnerRefStrategicMergePatch)))
   method_set : go.MethodSetIs objectForDeleteOwnerRefStrategicMergePatch.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType objectForDeleteOwnerRefStrategicMergePatch.ty) []
 
 attribute [instance] objectForDeleteOwnerRefStrategicMergePatch.TypeAssumptions.type_repr
   objectForDeleteOwnerRefStrategicMergePatch.TypeAssumptions.underlying
-  objectForDeleteOwnerRefStrategicMergePatch.TypeAssumptions.get_Metadata
-  objectForDeleteOwnerRefStrategicMergePatch.TypeAssumptions.set_Metadata
+  objectForDeleteOwnerRefStrategicMergePatch.TypeAssumptions.get'Metadata
+  objectForDeleteOwnerRefStrategicMergePatch.TypeAssumptions.set'Metadata
   objectForDeleteOwnerRefStrategicMergePatch.TypeAssumptions.method_set
   objectForDeleteOwnerRefStrategicMergePatch.TypeAssumptions.ptr_method_set
 
@@ -6411,7 +6411,7 @@ noncomputable instance ControllerExpectations.zero_val [GooseExts] : ZeroVal Con
 @[irreducible] noncomputable def ControllerExpectations.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ControllerExpectations.fieldsUnsealed
 
-noncomputable instance equals_unfold_ControllerExpectations [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ControllerExpectations [GooseExts] [GoGlobalContext] :
     EqualsUnfold ControllerExpectations.fields ControllerExpectations.fieldsUnsealed :=
   ⟨by unfold ControllerExpectations.fields; rfl⟩
 
@@ -6421,103 +6421,103 @@ noncomputable instance equals_unfold_ControllerExpectations [GooseExts] [GoGloba
 class ControllerExpectations.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ControllerExpectations.underlying ControllerExpectations
   underlying : go.UnderlyingDirectedEq ControllerExpectations.ty ControllerExpectations.underlying
-  get_Store : ∀ (x : ControllerExpectations), go.IsGoStepPureDetTagged under (StructFieldGet ControllerExpectations.underlying go!"Store") #x (Val #(x.Store'))
-  set_Store : ∀ (x : ControllerExpectations) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Store), go.IsGoStepPureDetTagged under (StructFieldSet ControllerExpectations.underlying go!"Store") (PairV #x #y) (Val #(({ x with Store' := y } : ControllerExpectations)))
+  get'Store : ∀ (x : ControllerExpectations), go.IsGoStepPureDetTagged under (StructFieldGet ControllerExpectations.underlying go!"Store") #x (Val #(x.Store'))
+  set'Store : ∀ (x : ControllerExpectations) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Store), go.IsGoStepPureDetTagged under (StructFieldSet ControllerExpectations.underlying go!"Store") (PairV #x #y) (Val #(({ x with Store' := y } : ControllerExpectations)))
   method_set : go.MethodSetIs ControllerExpectations.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ControllerExpectations.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"CreationObserved", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"DeleteExpectations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string] false []))), (go!"DeletionObserved", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string] false []))), (go!"ExpectCreations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string, go.int] false [go.error]))), (go!"ExpectDeletions", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string, go.int] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetExpectations", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ControlleeExpectations.ty), go.bool, go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"LowerExpectations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string, go.int, go.int] false []))), (go!"RaiseExpectations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string, go.int, go.int] false []))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"SatisfiedExpectations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string] false [go.bool]))), (go!"SetExpectations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string, go.int, go.int] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
-  Add_unfold : MethodUnfold ControllerExpectations.ty go!"Add" (LamV "$r"
+  unfold'Add : MethodUnfold ControllerExpectations.ty go!"Add" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"Add"))) (App (Val (GoInstruction (StructFieldGet ControllerExpectations.ty go!"Store"))) (Var "$r"))))
-  Bookmark_unfold : MethodUnfold ControllerExpectations.ty go!"Bookmark" (LamV "$r"
+  unfold'Bookmark : MethodUnfold ControllerExpectations.ty go!"Bookmark" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"Bookmark"))) (App (Val (GoInstruction (StructFieldGet ControllerExpectations.ty go!"Store"))) (Var "$r"))))
-  Delete_unfold : MethodUnfold ControllerExpectations.ty go!"Delete" (LamV "$r"
+  unfold'Delete : MethodUnfold ControllerExpectations.ty go!"Delete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"Delete"))) (App (Val (GoInstruction (StructFieldGet ControllerExpectations.ty go!"Store"))) (Var "$r"))))
-  Get_unfold : MethodUnfold ControllerExpectations.ty go!"Get" (LamV "$r"
+  unfold'Get : MethodUnfold ControllerExpectations.ty go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"Get"))) (App (Val (GoInstruction (StructFieldGet ControllerExpectations.ty go!"Store"))) (Var "$r"))))
-  GetByKey_unfold : MethodUnfold ControllerExpectations.ty go!"GetByKey" (LamV "$r"
+  unfold'GetByKey : MethodUnfold ControllerExpectations.ty go!"GetByKey" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"GetByKey"))) (App (Val (GoInstruction (StructFieldGet ControllerExpectations.ty go!"Store"))) (Var "$r"))))
-  LastStoreSyncResourceVersion_unfold : MethodUnfold ControllerExpectations.ty go!"LastStoreSyncResourceVersion" (LamV "$r"
+  unfold'LastStoreSyncResourceVersion : MethodUnfold ControllerExpectations.ty go!"LastStoreSyncResourceVersion" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"LastStoreSyncResourceVersion"))) (App (Val (GoInstruction (StructFieldGet ControllerExpectations.ty go!"Store"))) (Var "$r"))))
-  List_unfold : MethodUnfold ControllerExpectations.ty go!"List" (LamV "$r"
+  unfold'List : MethodUnfold ControllerExpectations.ty go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"List"))) (App (Val (GoInstruction (StructFieldGet ControllerExpectations.ty go!"Store"))) (Var "$r"))))
-  ListKeys_unfold : MethodUnfold ControllerExpectations.ty go!"ListKeys" (LamV "$r"
+  unfold'ListKeys : MethodUnfold ControllerExpectations.ty go!"ListKeys" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"ListKeys"))) (App (Val (GoInstruction (StructFieldGet ControllerExpectations.ty go!"Store"))) (Var "$r"))))
-  Replace_unfold : MethodUnfold ControllerExpectations.ty go!"Replace" (LamV "$r"
+  unfold'Replace : MethodUnfold ControllerExpectations.ty go!"Replace" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"Replace"))) (App (Val (GoInstruction (StructFieldGet ControllerExpectations.ty go!"Store"))) (Var "$r"))))
-  Resync_unfold : MethodUnfold ControllerExpectations.ty go!"Resync" (LamV "$r"
+  unfold'Resync : MethodUnfold ControllerExpectations.ty go!"Resync" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"Resync"))) (App (Val (GoInstruction (StructFieldGet ControllerExpectations.ty go!"Store"))) (Var "$r"))))
-  Update_unfold : MethodUnfold ControllerExpectations.ty go!"Update" (LamV "$r"
+  unfold'Update : MethodUnfold ControllerExpectations.ty go!"Update" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"Update"))) (App (Val (GoInstruction (StructFieldGet ControllerExpectations.ty go!"Store"))) (Var "$r"))))
-  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"Add" (LamV "$r"
+  ptr_unfold'Add : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"Add" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"Add"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty))) (App (Val (GoInstruction (StructFieldRef ControllerExpectations.ty go!"Store"))) (Var "$r")))))
-  ptr_Bookmark_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"Bookmark" (LamV "$r"
+  ptr_unfold'Bookmark : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"Bookmark" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"Bookmark"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty))) (App (Val (GoInstruction (StructFieldRef ControllerExpectations.ty go!"Store"))) (Var "$r")))))
-  ptr_CreationObserved_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"CreationObserved" ControllerExpectations.CreationObserved.impl
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"Delete" (LamV "$r"
+  ptr_unfold'CreationObserved : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"CreationObserved" ControllerExpectations.CreationObserved.impl
+  ptr_unfold'Delete : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"Delete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"Delete"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty))) (App (Val (GoInstruction (StructFieldRef ControllerExpectations.ty go!"Store"))) (Var "$r")))))
-  ptr_DeleteExpectations_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"DeleteExpectations" ControllerExpectations.DeleteExpectations.impl
-  ptr_DeletionObserved_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"DeletionObserved" ControllerExpectations.DeletionObserved.impl
-  ptr_ExpectCreations_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"ExpectCreations" ControllerExpectations.ExpectCreations.impl
-  ptr_ExpectDeletions_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"ExpectDeletions" ControllerExpectations.ExpectDeletions.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"Get" (LamV "$r"
+  ptr_unfold'DeleteExpectations : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"DeleteExpectations" ControllerExpectations.DeleteExpectations.impl
+  ptr_unfold'DeletionObserved : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"DeletionObserved" ControllerExpectations.DeletionObserved.impl
+  ptr_unfold'ExpectCreations : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"ExpectCreations" ControllerExpectations.ExpectCreations.impl
+  ptr_unfold'ExpectDeletions : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"ExpectDeletions" ControllerExpectations.ExpectDeletions.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"Get"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty))) (App (Val (GoInstruction (StructFieldRef ControllerExpectations.ty go!"Store"))) (Var "$r")))))
-  ptr_GetByKey_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"GetByKey" (LamV "$r"
+  ptr_unfold'GetByKey : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"GetByKey" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"GetByKey"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty))) (App (Val (GoInstruction (StructFieldRef ControllerExpectations.ty go!"Store"))) (Var "$r")))))
-  ptr_GetExpectations_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"GetExpectations" ControllerExpectations.GetExpectations.impl
-  ptr_LastStoreSyncResourceVersion_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"LastStoreSyncResourceVersion" (LamV "$r"
+  ptr_unfold'GetExpectations : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"GetExpectations" ControllerExpectations.GetExpectations.impl
+  ptr_unfold'LastStoreSyncResourceVersion : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"LastStoreSyncResourceVersion" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"LastStoreSyncResourceVersion"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty))) (App (Val (GoInstruction (StructFieldRef ControllerExpectations.ty go!"Store"))) (Var "$r")))))
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"List" (LamV "$r"
+  ptr_unfold'List : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"List"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty))) (App (Val (GoInstruction (StructFieldRef ControllerExpectations.ty go!"Store"))) (Var "$r")))))
-  ptr_ListKeys_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"ListKeys" (LamV "$r"
+  ptr_unfold'ListKeys : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"ListKeys" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"ListKeys"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty))) (App (Val (GoInstruction (StructFieldRef ControllerExpectations.ty go!"Store"))) (Var "$r")))))
-  ptr_LowerExpectations_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"LowerExpectations" ControllerExpectations.LowerExpectations.impl
-  ptr_RaiseExpectations_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"RaiseExpectations" ControllerExpectations.RaiseExpectations.impl
-  ptr_Replace_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"Replace" (LamV "$r"
+  ptr_unfold'LowerExpectations : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"LowerExpectations" ControllerExpectations.LowerExpectations.impl
+  ptr_unfold'RaiseExpectations : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"RaiseExpectations" ControllerExpectations.RaiseExpectations.impl
+  ptr_unfold'Replace : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"Replace" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"Replace"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty))) (App (Val (GoInstruction (StructFieldRef ControllerExpectations.ty go!"Store"))) (Var "$r")))))
-  ptr_Resync_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"Resync" (LamV "$r"
+  ptr_unfold'Resync : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"Resync" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"Resync"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty))) (App (Val (GoInstruction (StructFieldRef ControllerExpectations.ty go!"Store"))) (Var "$r")))))
-  ptr_SatisfiedExpectations_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"SatisfiedExpectations" ControllerExpectations.SatisfiedExpectations.impl
-  ptr_SetExpectations_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"SetExpectations" ControllerExpectations.SetExpectations.impl
-  ptr_Update_unfold : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"Update" (LamV "$r"
+  ptr_unfold'SatisfiedExpectations : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"SatisfiedExpectations" ControllerExpectations.SatisfiedExpectations.impl
+  ptr_unfold'SetExpectations : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"SetExpectations" ControllerExpectations.SetExpectations.impl
+  ptr_unfold'Update : MethodUnfold (go.GoType.PointerType ControllerExpectations.ty) go!"Update" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty go!"Update"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.Store.ty))) (App (Val (GoInstruction (StructFieldRef ControllerExpectations.ty go!"Store"))) (Var "$r")))))
 
 attribute [instance] ControllerExpectations.TypeAssumptions.type_repr
   ControllerExpectations.TypeAssumptions.underlying
-  ControllerExpectations.TypeAssumptions.get_Store
-  ControllerExpectations.TypeAssumptions.set_Store
+  ControllerExpectations.TypeAssumptions.get'Store
+  ControllerExpectations.TypeAssumptions.set'Store
   ControllerExpectations.TypeAssumptions.method_set
   ControllerExpectations.TypeAssumptions.ptr_method_set
-  ControllerExpectations.TypeAssumptions.Add_unfold
-  ControllerExpectations.TypeAssumptions.Bookmark_unfold
-  ControllerExpectations.TypeAssumptions.Delete_unfold
-  ControllerExpectations.TypeAssumptions.Get_unfold
-  ControllerExpectations.TypeAssumptions.GetByKey_unfold
-  ControllerExpectations.TypeAssumptions.LastStoreSyncResourceVersion_unfold
-  ControllerExpectations.TypeAssumptions.List_unfold
-  ControllerExpectations.TypeAssumptions.ListKeys_unfold
-  ControllerExpectations.TypeAssumptions.Replace_unfold
-  ControllerExpectations.TypeAssumptions.Resync_unfold
-  ControllerExpectations.TypeAssumptions.Update_unfold
-  ControllerExpectations.TypeAssumptions.ptr_Add_unfold
-  ControllerExpectations.TypeAssumptions.ptr_Bookmark_unfold
-  ControllerExpectations.TypeAssumptions.ptr_CreationObserved_unfold
-  ControllerExpectations.TypeAssumptions.ptr_Delete_unfold
-  ControllerExpectations.TypeAssumptions.ptr_DeleteExpectations_unfold
-  ControllerExpectations.TypeAssumptions.ptr_DeletionObserved_unfold
-  ControllerExpectations.TypeAssumptions.ptr_ExpectCreations_unfold
-  ControllerExpectations.TypeAssumptions.ptr_ExpectDeletions_unfold
-  ControllerExpectations.TypeAssumptions.ptr_Get_unfold
-  ControllerExpectations.TypeAssumptions.ptr_GetByKey_unfold
-  ControllerExpectations.TypeAssumptions.ptr_GetExpectations_unfold
-  ControllerExpectations.TypeAssumptions.ptr_LastStoreSyncResourceVersion_unfold
-  ControllerExpectations.TypeAssumptions.ptr_List_unfold
-  ControllerExpectations.TypeAssumptions.ptr_ListKeys_unfold
-  ControllerExpectations.TypeAssumptions.ptr_LowerExpectations_unfold
-  ControllerExpectations.TypeAssumptions.ptr_RaiseExpectations_unfold
-  ControllerExpectations.TypeAssumptions.ptr_Replace_unfold
-  ControllerExpectations.TypeAssumptions.ptr_Resync_unfold
-  ControllerExpectations.TypeAssumptions.ptr_SatisfiedExpectations_unfold
-  ControllerExpectations.TypeAssumptions.ptr_SetExpectations_unfold
-  ControllerExpectations.TypeAssumptions.ptr_Update_unfold
+  ControllerExpectations.TypeAssumptions.unfold'Add
+  ControllerExpectations.TypeAssumptions.unfold'Bookmark
+  ControllerExpectations.TypeAssumptions.unfold'Delete
+  ControllerExpectations.TypeAssumptions.unfold'Get
+  ControllerExpectations.TypeAssumptions.unfold'GetByKey
+  ControllerExpectations.TypeAssumptions.unfold'LastStoreSyncResourceVersion
+  ControllerExpectations.TypeAssumptions.unfold'List
+  ControllerExpectations.TypeAssumptions.unfold'ListKeys
+  ControllerExpectations.TypeAssumptions.unfold'Replace
+  ControllerExpectations.TypeAssumptions.unfold'Resync
+  ControllerExpectations.TypeAssumptions.unfold'Update
+  ControllerExpectations.TypeAssumptions.ptr_unfold'Add
+  ControllerExpectations.TypeAssumptions.ptr_unfold'Bookmark
+  ControllerExpectations.TypeAssumptions.ptr_unfold'CreationObserved
+  ControllerExpectations.TypeAssumptions.ptr_unfold'Delete
+  ControllerExpectations.TypeAssumptions.ptr_unfold'DeleteExpectations
+  ControllerExpectations.TypeAssumptions.ptr_unfold'DeletionObserved
+  ControllerExpectations.TypeAssumptions.ptr_unfold'ExpectCreations
+  ControllerExpectations.TypeAssumptions.ptr_unfold'ExpectDeletions
+  ControllerExpectations.TypeAssumptions.ptr_unfold'Get
+  ControllerExpectations.TypeAssumptions.ptr_unfold'GetByKey
+  ControllerExpectations.TypeAssumptions.ptr_unfold'GetExpectations
+  ControllerExpectations.TypeAssumptions.ptr_unfold'LastStoreSyncResourceVersion
+  ControllerExpectations.TypeAssumptions.ptr_unfold'List
+  ControllerExpectations.TypeAssumptions.ptr_unfold'ListKeys
+  ControllerExpectations.TypeAssumptions.ptr_unfold'LowerExpectations
+  ControllerExpectations.TypeAssumptions.ptr_unfold'RaiseExpectations
+  ControllerExpectations.TypeAssumptions.ptr_unfold'Replace
+  ControllerExpectations.TypeAssumptions.ptr_unfold'Resync
+  ControllerExpectations.TypeAssumptions.ptr_unfold'SatisfiedExpectations
+  ControllerExpectations.TypeAssumptions.ptr_unfold'SetExpectations
+  ControllerExpectations.TypeAssumptions.ptr_unfold'Update
 
 structure ControlleeExpectations [GooseExts] where
   mk ::
@@ -6538,7 +6538,7 @@ noncomputable instance ControlleeExpectations.zero_val [GooseExts] : ZeroVal Con
 @[irreducible] noncomputable def ControlleeExpectations.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ControlleeExpectations.fieldsUnsealed
 
-noncomputable instance equals_unfold_ControlleeExpectations [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ControlleeExpectations [GooseExts] [GoGlobalContext] :
     EqualsUnfold ControlleeExpectations.fields ControlleeExpectations.fieldsUnsealed :=
   ⟨by unfold ControlleeExpectations.fields; rfl⟩
 
@@ -6548,39 +6548,39 @@ noncomputable instance equals_unfold_ControlleeExpectations [GooseExts] [GoGloba
 class ControlleeExpectations.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ControlleeExpectations.underlying ControlleeExpectations
   underlying : go.UnderlyingDirectedEq ControlleeExpectations.ty ControlleeExpectations.underlying
-  get_add : ∀ (x : ControlleeExpectations), go.IsGoStepPureDetTagged under (StructFieldGet ControlleeExpectations.underlying go!"add") #x (Val #(x.add'))
-  set_add : ∀ (x : ControlleeExpectations) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ControlleeExpectations.underlying go!"add") (PairV #x #y) (Val #(({ x with add' := y } : ControlleeExpectations)))
-  get_del : ∀ (x : ControlleeExpectations), go.IsGoStepPureDetTagged under (StructFieldGet ControlleeExpectations.underlying go!"del") #x (Val #(x.del'))
-  set_del : ∀ (x : ControlleeExpectations) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ControlleeExpectations.underlying go!"del") (PairV #x #y) (Val #(({ x with del' := y } : ControlleeExpectations)))
-  get_key : ∀ (x : ControlleeExpectations), go.IsGoStepPureDetTagged under (StructFieldGet ControlleeExpectations.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : ControlleeExpectations) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ControlleeExpectations.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : ControlleeExpectations)))
-  get_timestamp : ∀ (x : ControlleeExpectations), go.IsGoStepPureDetTagged under (StructFieldGet ControlleeExpectations.underlying go!"timestamp") #x (Val #(x.timestamp'))
-  set_timestamp : ∀ (x : ControlleeExpectations) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet ControlleeExpectations.underlying go!"timestamp") (PairV #x #y) (Val #(({ x with timestamp' := y } : ControlleeExpectations)))
+  get'add : ∀ (x : ControlleeExpectations), go.IsGoStepPureDetTagged under (StructFieldGet ControlleeExpectations.underlying go!"add") #x (Val #(x.add'))
+  set'add : ∀ (x : ControlleeExpectations) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ControlleeExpectations.underlying go!"add") (PairV #x #y) (Val #(({ x with add' := y } : ControlleeExpectations)))
+  get'del : ∀ (x : ControlleeExpectations), go.IsGoStepPureDetTagged under (StructFieldGet ControlleeExpectations.underlying go!"del") #x (Val #(x.del'))
+  set'del : ∀ (x : ControlleeExpectations) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ControlleeExpectations.underlying go!"del") (PairV #x #y) (Val #(({ x with del' := y } : ControlleeExpectations)))
+  get'key : ∀ (x : ControlleeExpectations), go.IsGoStepPureDetTagged under (StructFieldGet ControlleeExpectations.underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : ControlleeExpectations) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ControlleeExpectations.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : ControlleeExpectations)))
+  get'timestamp : ∀ (x : ControlleeExpectations), go.IsGoStepPureDetTagged under (StructFieldGet ControlleeExpectations.underlying go!"timestamp") #x (Val #(x.timestamp'))
+  set'timestamp : ∀ (x : ControlleeExpectations) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet ControlleeExpectations.underlying go!"timestamp") (PairV #x #y) (Val #(({ x with timestamp' := y } : ControlleeExpectations)))
   method_set : go.MethodSetIs ControlleeExpectations.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ControlleeExpectations.ty) [(go!"Add", (some (go.signature.Signature [go.int64, go.int64] false []))), (go!"Fulfilled", (some (go.signature.Signature [] false [go.bool]))), (go!"GetExpectations", (some (go.signature.Signature [] false [go.int64, go.int64]))), (go!"MarshalLog", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"k8s.io/kubernetes/pkg/controller.isExpired", (some (go.signature.Signature [] false [go.bool])))]
-  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType ControlleeExpectations.ty) go!"Add" ControlleeExpectations.Add.impl
-  ptr_Fulfilled_unfold : MethodUnfold (go.GoType.PointerType ControlleeExpectations.ty) go!"Fulfilled" ControlleeExpectations.Fulfilled.impl
-  ptr_GetExpectations_unfold : MethodUnfold (go.GoType.PointerType ControlleeExpectations.ty) go!"GetExpectations" ControlleeExpectations.GetExpectations.impl
-  ptr_MarshalLog_unfold : MethodUnfold (go.GoType.PointerType ControlleeExpectations.ty) go!"MarshalLog" ControlleeExpectations.MarshalLog.impl
-  ptr_isExpired_unfold : MethodUnfold (go.GoType.PointerType ControlleeExpectations.ty) go!"isExpired" ControlleeExpectations.isExpired.impl
+  ptr_unfold'Add : MethodUnfold (go.GoType.PointerType ControlleeExpectations.ty) go!"Add" ControlleeExpectations.Add.impl
+  ptr_unfold'Fulfilled : MethodUnfold (go.GoType.PointerType ControlleeExpectations.ty) go!"Fulfilled" ControlleeExpectations.Fulfilled.impl
+  ptr_unfold'GetExpectations : MethodUnfold (go.GoType.PointerType ControlleeExpectations.ty) go!"GetExpectations" ControlleeExpectations.GetExpectations.impl
+  ptr_unfold'MarshalLog : MethodUnfold (go.GoType.PointerType ControlleeExpectations.ty) go!"MarshalLog" ControlleeExpectations.MarshalLog.impl
+  ptr_unfold'isExpired : MethodUnfold (go.GoType.PointerType ControlleeExpectations.ty) go!"isExpired" ControlleeExpectations.isExpired.impl
 
 attribute [instance] ControlleeExpectations.TypeAssumptions.type_repr
   ControlleeExpectations.TypeAssumptions.underlying
-  ControlleeExpectations.TypeAssumptions.get_add
-  ControlleeExpectations.TypeAssumptions.set_add
-  ControlleeExpectations.TypeAssumptions.get_del
-  ControlleeExpectations.TypeAssumptions.set_del
-  ControlleeExpectations.TypeAssumptions.get_key
-  ControlleeExpectations.TypeAssumptions.set_key
-  ControlleeExpectations.TypeAssumptions.get_timestamp
-  ControlleeExpectations.TypeAssumptions.set_timestamp
+  ControlleeExpectations.TypeAssumptions.get'add
+  ControlleeExpectations.TypeAssumptions.set'add
+  ControlleeExpectations.TypeAssumptions.get'del
+  ControlleeExpectations.TypeAssumptions.set'del
+  ControlleeExpectations.TypeAssumptions.get'key
+  ControlleeExpectations.TypeAssumptions.set'key
+  ControlleeExpectations.TypeAssumptions.get'timestamp
+  ControlleeExpectations.TypeAssumptions.set'timestamp
   ControlleeExpectations.TypeAssumptions.method_set
   ControlleeExpectations.TypeAssumptions.ptr_method_set
-  ControlleeExpectations.TypeAssumptions.ptr_Add_unfold
-  ControlleeExpectations.TypeAssumptions.ptr_Fulfilled_unfold
-  ControlleeExpectations.TypeAssumptions.ptr_GetExpectations_unfold
-  ControlleeExpectations.TypeAssumptions.ptr_MarshalLog_unfold
-  ControlleeExpectations.TypeAssumptions.ptr_isExpired_unfold
+  ControlleeExpectations.TypeAssumptions.ptr_unfold'Add
+  ControlleeExpectations.TypeAssumptions.ptr_unfold'Fulfilled
+  ControlleeExpectations.TypeAssumptions.ptr_unfold'GetExpectations
+  ControlleeExpectations.TypeAssumptions.ptr_unfold'MarshalLog
+  ControlleeExpectations.TypeAssumptions.ptr_unfold'isExpired
 
 structure UIDSet [GooseExts] where
   mk ::
@@ -6597,7 +6597,7 @@ noncomputable instance UIDSet.zero_val [GooseExts] : ZeroVal UIDSet :=
 @[irreducible] noncomputable def UIDSet.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UIDSet.fieldsUnsealed
 
-noncomputable instance equals_unfold_UIDSet [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'UIDSet [GooseExts] [GoGlobalContext] :
     EqualsUnfold UIDSet.fields UIDSet.fieldsUnsealed :=
   ⟨by unfold UIDSet.fields; rfl⟩
 
@@ -6607,117 +6607,117 @@ noncomputable instance equals_unfold_UIDSet [GooseExts] [GoGlobalContext] :
 class UIDSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UIDSet.underlying UIDSet
   underlying : go.UnderlyingDirectedEq UIDSet.ty UIDSet.underlying
-  get_String : ∀ (x : UIDSet), go.IsGoStepPureDetTagged under (StructFieldGet UIDSet.underlying go!"String") #x (Val #(x.String'))
-  set_String : ∀ (x : UIDSet) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String), go.IsGoStepPureDetTagged under (StructFieldSet UIDSet.underlying go!"String") (PairV #x #y) (Val #(({ x with String' := y } : UIDSet)))
-  get_key : ∀ (x : UIDSet), go.IsGoStepPureDetTagged under (StructFieldGet UIDSet.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : UIDSet) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet UIDSet.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : UIDSet)))
+  get'String : ∀ (x : UIDSet), go.IsGoStepPureDetTagged under (StructFieldGet UIDSet.underlying go!"String") #x (Val #(x.String'))
+  set'String : ∀ (x : UIDSet) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String), go.IsGoStepPureDetTagged under (StructFieldSet UIDSet.underlying go!"String") (PairV #x #y) (Val #(({ x with String' := y } : UIDSet)))
+  get'key : ∀ (x : UIDSet), go.IsGoStepPureDetTagged under (StructFieldGet UIDSet.underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : UIDSet) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet UIDSet.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : UIDSet)))
   method_set : go.MethodSetIs UIDSet.ty [(go!"Clone", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))), (go!"Difference", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))), (go!"Equal", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty] false [go.bool]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"HasAll", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"HasAny", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"Insert", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))), (go!"Intersection", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))), (go!"IsSuperset", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"PopAny", (some (go.signature.Signature [] false [go.string, go.bool]))), (go!"SymmetricDifference", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))), (go!"Union", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))), (go!"UnsortedList", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UIDSet.ty) [(go!"Clone", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))), (go!"Difference", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))), (go!"Equal", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty] false [go.bool]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"HasAll", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"HasAny", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"Insert", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))), (go!"Intersection", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))), (go!"IsSuperset", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"PopAny", (some (go.signature.Signature [] false [go.string, go.bool]))), (go!"SymmetricDifference", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))), (go!"Union", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))), (go!"UnsortedList", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
-  Clone_unfold : MethodUnfold UIDSet.ty go!"Clone" (LamV "$r"
+  unfold'Clone : MethodUnfold UIDSet.ty go!"Clone" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty go!"Clone"))) (App (Val (GoInstruction (StructFieldGet UIDSet.ty go!"String"))) (Var "$r"))))
-  Delete_unfold : MethodUnfold UIDSet.ty go!"Delete" (LamV "$r"
+  unfold'Delete : MethodUnfold UIDSet.ty go!"Delete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty go!"Delete"))) (App (Val (GoInstruction (StructFieldGet UIDSet.ty go!"String"))) (Var "$r"))))
-  Difference_unfold : MethodUnfold UIDSet.ty go!"Difference" (LamV "$r"
+  unfold'Difference : MethodUnfold UIDSet.ty go!"Difference" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty go!"Difference"))) (App (Val (GoInstruction (StructFieldGet UIDSet.ty go!"String"))) (Var "$r"))))
-  Equal_unfold : MethodUnfold UIDSet.ty go!"Equal" (LamV "$r"
+  unfold'Equal : MethodUnfold UIDSet.ty go!"Equal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty go!"Equal"))) (App (Val (GoInstruction (StructFieldGet UIDSet.ty go!"String"))) (Var "$r"))))
-  Has_unfold : MethodUnfold UIDSet.ty go!"Has" (LamV "$r"
+  unfold'Has : MethodUnfold UIDSet.ty go!"Has" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty go!"Has"))) (App (Val (GoInstruction (StructFieldGet UIDSet.ty go!"String"))) (Var "$r"))))
-  HasAll_unfold : MethodUnfold UIDSet.ty go!"HasAll" (LamV "$r"
+  unfold'HasAll : MethodUnfold UIDSet.ty go!"HasAll" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty go!"HasAll"))) (App (Val (GoInstruction (StructFieldGet UIDSet.ty go!"String"))) (Var "$r"))))
-  HasAny_unfold : MethodUnfold UIDSet.ty go!"HasAny" (LamV "$r"
+  unfold'HasAny : MethodUnfold UIDSet.ty go!"HasAny" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty go!"HasAny"))) (App (Val (GoInstruction (StructFieldGet UIDSet.ty go!"String"))) (Var "$r"))))
-  Insert_unfold : MethodUnfold UIDSet.ty go!"Insert" (LamV "$r"
+  unfold'Insert : MethodUnfold UIDSet.ty go!"Insert" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty go!"Insert"))) (App (Val (GoInstruction (StructFieldGet UIDSet.ty go!"String"))) (Var "$r"))))
-  Intersection_unfold : MethodUnfold UIDSet.ty go!"Intersection" (LamV "$r"
+  unfold'Intersection : MethodUnfold UIDSet.ty go!"Intersection" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty go!"Intersection"))) (App (Val (GoInstruction (StructFieldGet UIDSet.ty go!"String"))) (Var "$r"))))
-  IsSuperset_unfold : MethodUnfold UIDSet.ty go!"IsSuperset" (LamV "$r"
+  unfold'IsSuperset : MethodUnfold UIDSet.ty go!"IsSuperset" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty go!"IsSuperset"))) (App (Val (GoInstruction (StructFieldGet UIDSet.ty go!"String"))) (Var "$r"))))
-  Len_unfold : MethodUnfold UIDSet.ty go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold UIDSet.ty go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty go!"Len"))) (App (Val (GoInstruction (StructFieldGet UIDSet.ty go!"String"))) (Var "$r"))))
-  List_unfold : MethodUnfold UIDSet.ty go!"List" (LamV "$r"
+  unfold'List : MethodUnfold UIDSet.ty go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty go!"List"))) (App (Val (GoInstruction (StructFieldGet UIDSet.ty go!"String"))) (Var "$r"))))
-  PopAny_unfold : MethodUnfold UIDSet.ty go!"PopAny" (LamV "$r"
+  unfold'PopAny : MethodUnfold UIDSet.ty go!"PopAny" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty go!"PopAny"))) (App (Val (GoInstruction (StructFieldGet UIDSet.ty go!"String"))) (Var "$r"))))
-  SymmetricDifference_unfold : MethodUnfold UIDSet.ty go!"SymmetricDifference" (LamV "$r"
+  unfold'SymmetricDifference : MethodUnfold UIDSet.ty go!"SymmetricDifference" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty go!"SymmetricDifference"))) (App (Val (GoInstruction (StructFieldGet UIDSet.ty go!"String"))) (Var "$r"))))
-  Union_unfold : MethodUnfold UIDSet.ty go!"Union" (LamV "$r"
+  unfold'Union : MethodUnfold UIDSet.ty go!"Union" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty go!"Union"))) (App (Val (GoInstruction (StructFieldGet UIDSet.ty go!"String"))) (Var "$r"))))
-  UnsortedList_unfold : MethodUnfold UIDSet.ty go!"UnsortedList" (LamV "$r"
+  unfold'UnsortedList : MethodUnfold UIDSet.ty go!"UnsortedList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty go!"UnsortedList"))) (App (Val (GoInstruction (StructFieldGet UIDSet.ty go!"String"))) (Var "$r"))))
-  ptr_Clone_unfold : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Clone" (LamV "$r"
+  ptr_unfold'Clone : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Clone" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"Clone"))) (App (Val (GoInstruction (StructFieldRef UIDSet.ty go!"String"))) (Var "$r"))))
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Delete" (LamV "$r"
+  ptr_unfold'Delete : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Delete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"Delete"))) (App (Val (GoInstruction (StructFieldRef UIDSet.ty go!"String"))) (Var "$r"))))
-  ptr_Difference_unfold : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Difference" (LamV "$r"
+  ptr_unfold'Difference : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Difference" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"Difference"))) (App (Val (GoInstruction (StructFieldRef UIDSet.ty go!"String"))) (Var "$r"))))
-  ptr_Equal_unfold : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Equal" (LamV "$r"
+  ptr_unfold'Equal : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Equal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef UIDSet.ty go!"String"))) (Var "$r"))))
-  ptr_Has_unfold : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Has" (LamV "$r"
+  ptr_unfold'Has : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Has" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"Has"))) (App (Val (GoInstruction (StructFieldRef UIDSet.ty go!"String"))) (Var "$r"))))
-  ptr_HasAll_unfold : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"HasAll" (LamV "$r"
+  ptr_unfold'HasAll : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"HasAll" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"HasAll"))) (App (Val (GoInstruction (StructFieldRef UIDSet.ty go!"String"))) (Var "$r"))))
-  ptr_HasAny_unfold : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"HasAny" (LamV "$r"
+  ptr_unfold'HasAny : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"HasAny" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"HasAny"))) (App (Val (GoInstruction (StructFieldRef UIDSet.ty go!"String"))) (Var "$r"))))
-  ptr_Insert_unfold : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Insert" (LamV "$r"
+  ptr_unfold'Insert : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Insert" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"Insert"))) (App (Val (GoInstruction (StructFieldRef UIDSet.ty go!"String"))) (Var "$r"))))
-  ptr_Intersection_unfold : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Intersection" (LamV "$r"
+  ptr_unfold'Intersection : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Intersection" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"Intersection"))) (App (Val (GoInstruction (StructFieldRef UIDSet.ty go!"String"))) (Var "$r"))))
-  ptr_IsSuperset_unfold : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"IsSuperset" (LamV "$r"
+  ptr_unfold'IsSuperset : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"IsSuperset" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"IsSuperset"))) (App (Val (GoInstruction (StructFieldRef UIDSet.ty go!"String"))) (Var "$r"))))
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Len" (LamV "$r"
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"Len"))) (App (Val (GoInstruction (StructFieldRef UIDSet.ty go!"String"))) (Var "$r"))))
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"List" (LamV "$r"
+  ptr_unfold'List : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"List"))) (App (Val (GoInstruction (StructFieldRef UIDSet.ty go!"String"))) (Var "$r"))))
-  ptr_PopAny_unfold : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"PopAny" (LamV "$r"
+  ptr_unfold'PopAny : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"PopAny" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"PopAny"))) (App (Val (GoInstruction (StructFieldRef UIDSet.ty go!"String"))) (Var "$r"))))
-  ptr_SymmetricDifference_unfold : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"SymmetricDifference" (LamV "$r"
+  ptr_unfold'SymmetricDifference : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"SymmetricDifference" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"SymmetricDifference"))) (App (Val (GoInstruction (StructFieldRef UIDSet.ty go!"String"))) (Var "$r"))))
-  ptr_Union_unfold : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Union" (LamV "$r"
+  ptr_unfold'Union : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"Union" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"Union"))) (App (Val (GoInstruction (StructFieldRef UIDSet.ty go!"String"))) (Var "$r"))))
-  ptr_UnsortedList_unfold : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"UnsortedList" (LamV "$r"
+  ptr_unfold'UnsortedList : MethodUnfold (go.GoType.PointerType UIDSet.ty) go!"UnsortedList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"UnsortedList"))) (App (Val (GoInstruction (StructFieldRef UIDSet.ty go!"String"))) (Var "$r"))))
 
 attribute [instance] UIDSet.TypeAssumptions.type_repr
   UIDSet.TypeAssumptions.underlying
-  UIDSet.TypeAssumptions.get_String
-  UIDSet.TypeAssumptions.set_String
-  UIDSet.TypeAssumptions.get_key
-  UIDSet.TypeAssumptions.set_key
+  UIDSet.TypeAssumptions.get'String
+  UIDSet.TypeAssumptions.set'String
+  UIDSet.TypeAssumptions.get'key
+  UIDSet.TypeAssumptions.set'key
   UIDSet.TypeAssumptions.method_set
   UIDSet.TypeAssumptions.ptr_method_set
-  UIDSet.TypeAssumptions.Clone_unfold
-  UIDSet.TypeAssumptions.Delete_unfold
-  UIDSet.TypeAssumptions.Difference_unfold
-  UIDSet.TypeAssumptions.Equal_unfold
-  UIDSet.TypeAssumptions.Has_unfold
-  UIDSet.TypeAssumptions.HasAll_unfold
-  UIDSet.TypeAssumptions.HasAny_unfold
-  UIDSet.TypeAssumptions.Insert_unfold
-  UIDSet.TypeAssumptions.Intersection_unfold
-  UIDSet.TypeAssumptions.IsSuperset_unfold
-  UIDSet.TypeAssumptions.Len_unfold
-  UIDSet.TypeAssumptions.List_unfold
-  UIDSet.TypeAssumptions.PopAny_unfold
-  UIDSet.TypeAssumptions.SymmetricDifference_unfold
-  UIDSet.TypeAssumptions.Union_unfold
-  UIDSet.TypeAssumptions.UnsortedList_unfold
-  UIDSet.TypeAssumptions.ptr_Clone_unfold
-  UIDSet.TypeAssumptions.ptr_Delete_unfold
-  UIDSet.TypeAssumptions.ptr_Difference_unfold
-  UIDSet.TypeAssumptions.ptr_Equal_unfold
-  UIDSet.TypeAssumptions.ptr_Has_unfold
-  UIDSet.TypeAssumptions.ptr_HasAll_unfold
-  UIDSet.TypeAssumptions.ptr_HasAny_unfold
-  UIDSet.TypeAssumptions.ptr_Insert_unfold
-  UIDSet.TypeAssumptions.ptr_Intersection_unfold
-  UIDSet.TypeAssumptions.ptr_IsSuperset_unfold
-  UIDSet.TypeAssumptions.ptr_Len_unfold
-  UIDSet.TypeAssumptions.ptr_List_unfold
-  UIDSet.TypeAssumptions.ptr_PopAny_unfold
-  UIDSet.TypeAssumptions.ptr_SymmetricDifference_unfold
-  UIDSet.TypeAssumptions.ptr_Union_unfold
-  UIDSet.TypeAssumptions.ptr_UnsortedList_unfold
+  UIDSet.TypeAssumptions.unfold'Clone
+  UIDSet.TypeAssumptions.unfold'Delete
+  UIDSet.TypeAssumptions.unfold'Difference
+  UIDSet.TypeAssumptions.unfold'Equal
+  UIDSet.TypeAssumptions.unfold'Has
+  UIDSet.TypeAssumptions.unfold'HasAll
+  UIDSet.TypeAssumptions.unfold'HasAny
+  UIDSet.TypeAssumptions.unfold'Insert
+  UIDSet.TypeAssumptions.unfold'Intersection
+  UIDSet.TypeAssumptions.unfold'IsSuperset
+  UIDSet.TypeAssumptions.unfold'Len
+  UIDSet.TypeAssumptions.unfold'List
+  UIDSet.TypeAssumptions.unfold'PopAny
+  UIDSet.TypeAssumptions.unfold'SymmetricDifference
+  UIDSet.TypeAssumptions.unfold'Union
+  UIDSet.TypeAssumptions.unfold'UnsortedList
+  UIDSet.TypeAssumptions.ptr_unfold'Clone
+  UIDSet.TypeAssumptions.ptr_unfold'Delete
+  UIDSet.TypeAssumptions.ptr_unfold'Difference
+  UIDSet.TypeAssumptions.ptr_unfold'Equal
+  UIDSet.TypeAssumptions.ptr_unfold'Has
+  UIDSet.TypeAssumptions.ptr_unfold'HasAll
+  UIDSet.TypeAssumptions.ptr_unfold'HasAny
+  UIDSet.TypeAssumptions.ptr_unfold'Insert
+  UIDSet.TypeAssumptions.ptr_unfold'Intersection
+  UIDSet.TypeAssumptions.ptr_unfold'IsSuperset
+  UIDSet.TypeAssumptions.ptr_unfold'Len
+  UIDSet.TypeAssumptions.ptr_unfold'List
+  UIDSet.TypeAssumptions.ptr_unfold'PopAny
+  UIDSet.TypeAssumptions.ptr_unfold'SymmetricDifference
+  UIDSet.TypeAssumptions.ptr_unfold'Union
+  UIDSet.TypeAssumptions.ptr_unfold'UnsortedList
 
 structure UIDTrackingControllerExpectations [GooseExts] where
   mk ::
@@ -6736,7 +6736,7 @@ noncomputable instance UIDTrackingControllerExpectations.zero_val [GooseExts] : 
 @[irreducible] noncomputable def UIDTrackingControllerExpectations.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UIDTrackingControllerExpectations.fieldsUnsealed
 
-noncomputable instance equals_unfold_UIDTrackingControllerExpectations [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'UIDTrackingControllerExpectations [GooseExts] [GoGlobalContext] :
     EqualsUnfold UIDTrackingControllerExpectations.fields UIDTrackingControllerExpectations.fieldsUnsealed :=
   ⟨by unfold UIDTrackingControllerExpectations.fields; rfl⟩
 
@@ -6746,75 +6746,75 @@ noncomputable instance equals_unfold_UIDTrackingControllerExpectations [GooseExt
 class UIDTrackingControllerExpectations.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UIDTrackingControllerExpectations.underlying UIDTrackingControllerExpectations
   underlying : go.UnderlyingDirectedEq UIDTrackingControllerExpectations.ty UIDTrackingControllerExpectations.underlying
-  get_ControllerExpectationsInterface : ∀ (x : UIDTrackingControllerExpectations), go.IsGoStepPureDetTagged under (StructFieldGet UIDTrackingControllerExpectations.underlying go!"ControllerExpectationsInterface") #x (Val #(x.ControllerExpectationsInterface'))
-  set_ControllerExpectationsInterface : ∀ (x : UIDTrackingControllerExpectations) (y : ControllerExpectationsInterface), go.IsGoStepPureDetTagged under (StructFieldSet UIDTrackingControllerExpectations.underlying go!"ControllerExpectationsInterface") (PairV #x #y) (Val #(({ x with ControllerExpectationsInterface' := y } : UIDTrackingControllerExpectations)))
-  get_uidStoreLock : ∀ (x : UIDTrackingControllerExpectations), go.IsGoStepPureDetTagged under (StructFieldGet UIDTrackingControllerExpectations.underlying go!"uidStoreLock") #x (Val #(x.uidStoreLock'))
-  set_uidStoreLock : ∀ (x : UIDTrackingControllerExpectations) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet UIDTrackingControllerExpectations.underlying go!"uidStoreLock") (PairV #x #y) (Val #(({ x with uidStoreLock' := y } : UIDTrackingControllerExpectations)))
-  get_uidStore : ∀ (x : UIDTrackingControllerExpectations), go.IsGoStepPureDetTagged under (StructFieldGet UIDTrackingControllerExpectations.underlying go!"uidStore") #x (Val #(x.uidStore'))
-  set_uidStore : ∀ (x : UIDTrackingControllerExpectations) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Store), go.IsGoStepPureDetTagged under (StructFieldSet UIDTrackingControllerExpectations.underlying go!"uidStore") (PairV #x #y) (Val #(({ x with uidStore' := y } : UIDTrackingControllerExpectations)))
+  get'ControllerExpectationsInterface : ∀ (x : UIDTrackingControllerExpectations), go.IsGoStepPureDetTagged under (StructFieldGet UIDTrackingControllerExpectations.underlying go!"ControllerExpectationsInterface") #x (Val #(x.ControllerExpectationsInterface'))
+  set'ControllerExpectationsInterface : ∀ (x : UIDTrackingControllerExpectations) (y : ControllerExpectationsInterface), go.IsGoStepPureDetTagged under (StructFieldSet UIDTrackingControllerExpectations.underlying go!"ControllerExpectationsInterface") (PairV #x #y) (Val #(({ x with ControllerExpectationsInterface' := y } : UIDTrackingControllerExpectations)))
+  get'uidStoreLock : ∀ (x : UIDTrackingControllerExpectations), go.IsGoStepPureDetTagged under (StructFieldGet UIDTrackingControllerExpectations.underlying go!"uidStoreLock") #x (Val #(x.uidStoreLock'))
+  set'uidStoreLock : ∀ (x : UIDTrackingControllerExpectations) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet UIDTrackingControllerExpectations.underlying go!"uidStoreLock") (PairV #x #y) (Val #(({ x with uidStoreLock' := y } : UIDTrackingControllerExpectations)))
+  get'uidStore : ∀ (x : UIDTrackingControllerExpectations), go.IsGoStepPureDetTagged under (StructFieldGet UIDTrackingControllerExpectations.underlying go!"uidStore") #x (Val #(x.uidStore'))
+  set'uidStore : ∀ (x : UIDTrackingControllerExpectations) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Store), go.IsGoStepPureDetTagged under (StructFieldSet UIDTrackingControllerExpectations.underlying go!"uidStore") (PairV #x #y) (Val #(({ x with uidStore' := y } : UIDTrackingControllerExpectations)))
   method_set : go.MethodSetIs UIDTrackingControllerExpectations.ty [(go!"CreationObserved", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string] false []))), (go!"ExpectCreations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string, go.int] false [go.error]))), (go!"GetExpectations", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ControlleeExpectations.ty), go.bool, go.error]))), (go!"LowerExpectations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string, go.int, go.int] false []))), (go!"RaiseExpectations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string, go.int, go.int] false []))), (go!"SatisfiedExpectations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string] false [go.bool]))), (go!"SetExpectations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string, go.int, go.int] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UIDTrackingControllerExpectations.ty) [(go!"CreationObserved", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string] false []))), (go!"DeleteExpectations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string] false []))), (go!"DeletionObserved", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string, go.string] false []))), (go!"ExpectCreations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string, go.int] false [go.error]))), (go!"ExpectDeletions", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string, (go.GoType.SliceType go.string)] false [go.error]))), (go!"GetExpectations", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ControlleeExpectations.ty), go.bool, go.error]))), (go!"GetUIDs", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))), (go!"LowerExpectations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string, go.int, go.int] false []))), (go!"RaiseExpectations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string, go.int, go.int] false []))), (go!"SatisfiedExpectations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string] false [go.bool]))), (go!"SetExpectations", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, go.string, go.int, go.int] false [go.error])))]
-  CreationObserved_unfold : MethodUnfold UIDTrackingControllerExpectations.ty go!"CreationObserved" (LamV "$r"
+  unfold'CreationObserved : MethodUnfold UIDTrackingControllerExpectations.ty go!"CreationObserved" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerExpectationsInterface.ty go!"CreationObserved"))) (App (Val (GoInstruction (StructFieldGet UIDTrackingControllerExpectations.ty go!"ControllerExpectationsInterface"))) (Var "$r"))))
-  ExpectCreations_unfold : MethodUnfold UIDTrackingControllerExpectations.ty go!"ExpectCreations" (LamV "$r"
+  unfold'ExpectCreations : MethodUnfold UIDTrackingControllerExpectations.ty go!"ExpectCreations" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerExpectationsInterface.ty go!"ExpectCreations"))) (App (Val (GoInstruction (StructFieldGet UIDTrackingControllerExpectations.ty go!"ControllerExpectationsInterface"))) (Var "$r"))))
-  GetExpectations_unfold : MethodUnfold UIDTrackingControllerExpectations.ty go!"GetExpectations" (LamV "$r"
+  unfold'GetExpectations : MethodUnfold UIDTrackingControllerExpectations.ty go!"GetExpectations" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerExpectationsInterface.ty go!"GetExpectations"))) (App (Val (GoInstruction (StructFieldGet UIDTrackingControllerExpectations.ty go!"ControllerExpectationsInterface"))) (Var "$r"))))
-  LowerExpectations_unfold : MethodUnfold UIDTrackingControllerExpectations.ty go!"LowerExpectations" (LamV "$r"
+  unfold'LowerExpectations : MethodUnfold UIDTrackingControllerExpectations.ty go!"LowerExpectations" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerExpectationsInterface.ty go!"LowerExpectations"))) (App (Val (GoInstruction (StructFieldGet UIDTrackingControllerExpectations.ty go!"ControllerExpectationsInterface"))) (Var "$r"))))
-  RaiseExpectations_unfold : MethodUnfold UIDTrackingControllerExpectations.ty go!"RaiseExpectations" (LamV "$r"
+  unfold'RaiseExpectations : MethodUnfold UIDTrackingControllerExpectations.ty go!"RaiseExpectations" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerExpectationsInterface.ty go!"RaiseExpectations"))) (App (Val (GoInstruction (StructFieldGet UIDTrackingControllerExpectations.ty go!"ControllerExpectationsInterface"))) (Var "$r"))))
-  SatisfiedExpectations_unfold : MethodUnfold UIDTrackingControllerExpectations.ty go!"SatisfiedExpectations" (LamV "$r"
+  unfold'SatisfiedExpectations : MethodUnfold UIDTrackingControllerExpectations.ty go!"SatisfiedExpectations" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerExpectationsInterface.ty go!"SatisfiedExpectations"))) (App (Val (GoInstruction (StructFieldGet UIDTrackingControllerExpectations.ty go!"ControllerExpectationsInterface"))) (Var "$r"))))
-  SetExpectations_unfold : MethodUnfold UIDTrackingControllerExpectations.ty go!"SetExpectations" (LamV "$r"
+  unfold'SetExpectations : MethodUnfold UIDTrackingControllerExpectations.ty go!"SetExpectations" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerExpectationsInterface.ty go!"SetExpectations"))) (App (Val (GoInstruction (StructFieldGet UIDTrackingControllerExpectations.ty go!"ControllerExpectationsInterface"))) (Var "$r"))))
-  ptr_CreationObserved_unfold : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"CreationObserved" (LamV "$r"
+  ptr_unfold'CreationObserved : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"CreationObserved" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerExpectationsInterface.ty go!"CreationObserved"))) (App (Val (GoInstruction (GoLoad ControllerExpectationsInterface.ty))) (App (Val (GoInstruction (StructFieldRef UIDTrackingControllerExpectations.ty go!"ControllerExpectationsInterface"))) (Var "$r")))))
-  ptr_DeleteExpectations_unfold : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"DeleteExpectations" UIDTrackingControllerExpectations.DeleteExpectations.impl
-  ptr_DeletionObserved_unfold : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"DeletionObserved" UIDTrackingControllerExpectations.DeletionObserved.impl
-  ptr_ExpectCreations_unfold : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"ExpectCreations" (LamV "$r"
+  ptr_unfold'DeleteExpectations : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"DeleteExpectations" UIDTrackingControllerExpectations.DeleteExpectations.impl
+  ptr_unfold'DeletionObserved : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"DeletionObserved" UIDTrackingControllerExpectations.DeletionObserved.impl
+  ptr_unfold'ExpectCreations : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"ExpectCreations" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerExpectationsInterface.ty go!"ExpectCreations"))) (App (Val (GoInstruction (GoLoad ControllerExpectationsInterface.ty))) (App (Val (GoInstruction (StructFieldRef UIDTrackingControllerExpectations.ty go!"ControllerExpectationsInterface"))) (Var "$r")))))
-  ptr_ExpectDeletions_unfold : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"ExpectDeletions" UIDTrackingControllerExpectations.ExpectDeletions.impl
-  ptr_GetExpectations_unfold : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"GetExpectations" (LamV "$r"
+  ptr_unfold'ExpectDeletions : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"ExpectDeletions" UIDTrackingControllerExpectations.ExpectDeletions.impl
+  ptr_unfold'GetExpectations : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"GetExpectations" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerExpectationsInterface.ty go!"GetExpectations"))) (App (Val (GoInstruction (GoLoad ControllerExpectationsInterface.ty))) (App (Val (GoInstruction (StructFieldRef UIDTrackingControllerExpectations.ty go!"ControllerExpectationsInterface"))) (Var "$r")))))
-  ptr_GetUIDs_unfold : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"GetUIDs" UIDTrackingControllerExpectations.GetUIDs.impl
-  ptr_LowerExpectations_unfold : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"LowerExpectations" (LamV "$r"
+  ptr_unfold'GetUIDs : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"GetUIDs" UIDTrackingControllerExpectations.GetUIDs.impl
+  ptr_unfold'LowerExpectations : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"LowerExpectations" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerExpectationsInterface.ty go!"LowerExpectations"))) (App (Val (GoInstruction (GoLoad ControllerExpectationsInterface.ty))) (App (Val (GoInstruction (StructFieldRef UIDTrackingControllerExpectations.ty go!"ControllerExpectationsInterface"))) (Var "$r")))))
-  ptr_RaiseExpectations_unfold : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"RaiseExpectations" (LamV "$r"
+  ptr_unfold'RaiseExpectations : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"RaiseExpectations" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerExpectationsInterface.ty go!"RaiseExpectations"))) (App (Val (GoInstruction (GoLoad ControllerExpectationsInterface.ty))) (App (Val (GoInstruction (StructFieldRef UIDTrackingControllerExpectations.ty go!"ControllerExpectationsInterface"))) (Var "$r")))))
-  ptr_SatisfiedExpectations_unfold : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"SatisfiedExpectations" (LamV "$r"
+  ptr_unfold'SatisfiedExpectations : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"SatisfiedExpectations" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerExpectationsInterface.ty go!"SatisfiedExpectations"))) (App (Val (GoInstruction (GoLoad ControllerExpectationsInterface.ty))) (App (Val (GoInstruction (StructFieldRef UIDTrackingControllerExpectations.ty go!"ControllerExpectationsInterface"))) (Var "$r")))))
-  ptr_SetExpectations_unfold : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"SetExpectations" (LamV "$r"
+  ptr_unfold'SetExpectations : MethodUnfold (go.GoType.PointerType UIDTrackingControllerExpectations.ty) go!"SetExpectations" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerExpectationsInterface.ty go!"SetExpectations"))) (App (Val (GoInstruction (GoLoad ControllerExpectationsInterface.ty))) (App (Val (GoInstruction (StructFieldRef UIDTrackingControllerExpectations.ty go!"ControllerExpectationsInterface"))) (Var "$r")))))
 
 attribute [instance] UIDTrackingControllerExpectations.TypeAssumptions.type_repr
   UIDTrackingControllerExpectations.TypeAssumptions.underlying
-  UIDTrackingControllerExpectations.TypeAssumptions.get_ControllerExpectationsInterface
-  UIDTrackingControllerExpectations.TypeAssumptions.set_ControllerExpectationsInterface
-  UIDTrackingControllerExpectations.TypeAssumptions.get_uidStoreLock
-  UIDTrackingControllerExpectations.TypeAssumptions.set_uidStoreLock
-  UIDTrackingControllerExpectations.TypeAssumptions.get_uidStore
-  UIDTrackingControllerExpectations.TypeAssumptions.set_uidStore
+  UIDTrackingControllerExpectations.TypeAssumptions.get'ControllerExpectationsInterface
+  UIDTrackingControllerExpectations.TypeAssumptions.set'ControllerExpectationsInterface
+  UIDTrackingControllerExpectations.TypeAssumptions.get'uidStoreLock
+  UIDTrackingControllerExpectations.TypeAssumptions.set'uidStoreLock
+  UIDTrackingControllerExpectations.TypeAssumptions.get'uidStore
+  UIDTrackingControllerExpectations.TypeAssumptions.set'uidStore
   UIDTrackingControllerExpectations.TypeAssumptions.method_set
   UIDTrackingControllerExpectations.TypeAssumptions.ptr_method_set
-  UIDTrackingControllerExpectations.TypeAssumptions.CreationObserved_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.ExpectCreations_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.GetExpectations_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.LowerExpectations_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.RaiseExpectations_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.SatisfiedExpectations_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.SetExpectations_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.ptr_CreationObserved_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.ptr_DeleteExpectations_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.ptr_DeletionObserved_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.ptr_ExpectCreations_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.ptr_ExpectDeletions_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.ptr_GetExpectations_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.ptr_GetUIDs_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.ptr_LowerExpectations_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.ptr_RaiseExpectations_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.ptr_SatisfiedExpectations_unfold
-  UIDTrackingControllerExpectations.TypeAssumptions.ptr_SetExpectations_unfold
+  UIDTrackingControllerExpectations.TypeAssumptions.unfold'CreationObserved
+  UIDTrackingControllerExpectations.TypeAssumptions.unfold'ExpectCreations
+  UIDTrackingControllerExpectations.TypeAssumptions.unfold'GetExpectations
+  UIDTrackingControllerExpectations.TypeAssumptions.unfold'LowerExpectations
+  UIDTrackingControllerExpectations.TypeAssumptions.unfold'RaiseExpectations
+  UIDTrackingControllerExpectations.TypeAssumptions.unfold'SatisfiedExpectations
+  UIDTrackingControllerExpectations.TypeAssumptions.unfold'SetExpectations
+  UIDTrackingControllerExpectations.TypeAssumptions.ptr_unfold'CreationObserved
+  UIDTrackingControllerExpectations.TypeAssumptions.ptr_unfold'DeleteExpectations
+  UIDTrackingControllerExpectations.TypeAssumptions.ptr_unfold'DeletionObserved
+  UIDTrackingControllerExpectations.TypeAssumptions.ptr_unfold'ExpectCreations
+  UIDTrackingControllerExpectations.TypeAssumptions.ptr_unfold'ExpectDeletions
+  UIDTrackingControllerExpectations.TypeAssumptions.ptr_unfold'GetExpectations
+  UIDTrackingControllerExpectations.TypeAssumptions.ptr_unfold'GetUIDs
+  UIDTrackingControllerExpectations.TypeAssumptions.ptr_unfold'LowerExpectations
+  UIDTrackingControllerExpectations.TypeAssumptions.ptr_unfold'RaiseExpectations
+  UIDTrackingControllerExpectations.TypeAssumptions.ptr_unfold'SatisfiedExpectations
+  UIDTrackingControllerExpectations.TypeAssumptions.ptr_unfold'SetExpectations
 
 structure RealRSControl [GooseExts] where
   mk ::
@@ -6831,7 +6831,7 @@ noncomputable instance RealRSControl.zero_val [GooseExts] : ZeroVal RealRSContro
 @[irreducible] noncomputable def RealRSControl.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RealRSControl.fieldsUnsealed
 
-noncomputable instance equals_unfold_RealRSControl [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RealRSControl [GooseExts] [GoGlobalContext] :
     EqualsUnfold RealRSControl.fields RealRSControl.fieldsUnsealed :=
   ⟨by unfold RealRSControl.fields; rfl⟩
 
@@ -6841,19 +6841,19 @@ noncomputable instance equals_unfold_RealRSControl [GooseExts] [GoGlobalContext]
 class RealRSControl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RealRSControl.underlying RealRSControl
   underlying : go.UnderlyingDirectedEq RealRSControl.ty RealRSControl.underlying
-  get_KubeClient : ∀ (x : RealRSControl), go.IsGoStepPureDetTagged under (StructFieldGet RealRSControl.underlying go!"KubeClient") #x (Val #(x.KubeClient'))
-  set_KubeClient : ∀ (x : RealRSControl) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface), go.IsGoStepPureDetTagged under (StructFieldSet RealRSControl.underlying go!"KubeClient") (PairV #x #y) (Val #(({ x with KubeClient' := y } : RealRSControl)))
-  get_Recorder : ∀ (x : RealRSControl), go.IsGoStepPureDetTagged under (StructFieldGet RealRSControl.underlying go!"Recorder") #x (Val #(x.Recorder'))
-  set_Recorder : ∀ (x : RealRSControl) (y : _root_.Perennial.k8s_io.client_go.tools.record.EventRecorder), go.IsGoStepPureDetTagged under (StructFieldSet RealRSControl.underlying go!"Recorder") (PairV #x #y) (Val #(({ x with Recorder' := y } : RealRSControl)))
+  get'KubeClient : ∀ (x : RealRSControl), go.IsGoStepPureDetTagged under (StructFieldGet RealRSControl.underlying go!"KubeClient") #x (Val #(x.KubeClient'))
+  set'KubeClient : ∀ (x : RealRSControl) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface), go.IsGoStepPureDetTagged under (StructFieldSet RealRSControl.underlying go!"KubeClient") (PairV #x #y) (Val #(({ x with KubeClient' := y } : RealRSControl)))
+  get'Recorder : ∀ (x : RealRSControl), go.IsGoStepPureDetTagged under (StructFieldGet RealRSControl.underlying go!"Recorder") #x (Val #(x.Recorder'))
+  set'Recorder : ∀ (x : RealRSControl) (y : _root_.Perennial.k8s_io.client_go.tools.record.EventRecorder), go.IsGoStepPureDetTagged under (StructFieldSet RealRSControl.underlying go!"Recorder") (PairV #x #y) (Val #(({ x with Recorder' := y } : RealRSControl)))
   method_set : go.MethodSetIs RealRSControl.ty [(go!"PatchReplicaSet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.SliceType go.byte)] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RealRSControl.ty) [(go!"PatchReplicaSet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] RealRSControl.TypeAssumptions.type_repr
   RealRSControl.TypeAssumptions.underlying
-  RealRSControl.TypeAssumptions.get_KubeClient
-  RealRSControl.TypeAssumptions.set_KubeClient
-  RealRSControl.TypeAssumptions.get_Recorder
-  RealRSControl.TypeAssumptions.set_Recorder
+  RealRSControl.TypeAssumptions.get'KubeClient
+  RealRSControl.TypeAssumptions.set'KubeClient
+  RealRSControl.TypeAssumptions.get'Recorder
+  RealRSControl.TypeAssumptions.set'Recorder
   RealRSControl.TypeAssumptions.method_set
   RealRSControl.TypeAssumptions.ptr_method_set
 
@@ -6870,7 +6870,7 @@ noncomputable instance RealControllerRevisionControl.zero_val [GooseExts] : Zero
 @[irreducible] noncomputable def RealControllerRevisionControl.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RealControllerRevisionControl.fieldsUnsealed
 
-noncomputable instance equals_unfold_RealControllerRevisionControl [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RealControllerRevisionControl [GooseExts] [GoGlobalContext] :
     EqualsUnfold RealControllerRevisionControl.fields RealControllerRevisionControl.fieldsUnsealed :=
   ⟨by unfold RealControllerRevisionControl.fields; rfl⟩
 
@@ -6880,15 +6880,15 @@ noncomputable instance equals_unfold_RealControllerRevisionControl [GooseExts] [
 class RealControllerRevisionControl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RealControllerRevisionControl.underlying RealControllerRevisionControl
   underlying : go.UnderlyingDirectedEq RealControllerRevisionControl.ty RealControllerRevisionControl.underlying
-  get_KubeClient : ∀ (x : RealControllerRevisionControl), go.IsGoStepPureDetTagged under (StructFieldGet RealControllerRevisionControl.underlying go!"KubeClient") #x (Val #(x.KubeClient'))
-  set_KubeClient : ∀ (x : RealControllerRevisionControl) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface), go.IsGoStepPureDetTagged under (StructFieldSet RealControllerRevisionControl.underlying go!"KubeClient") (PairV #x #y) (Val #(({ x with KubeClient' := y } : RealControllerRevisionControl)))
+  get'KubeClient : ∀ (x : RealControllerRevisionControl), go.IsGoStepPureDetTagged under (StructFieldGet RealControllerRevisionControl.underlying go!"KubeClient") #x (Val #(x.KubeClient'))
+  set'KubeClient : ∀ (x : RealControllerRevisionControl) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface), go.IsGoStepPureDetTagged under (StructFieldSet RealControllerRevisionControl.underlying go!"KubeClient") (PairV #x #y) (Val #(({ x with KubeClient' := y } : RealControllerRevisionControl)))
   method_set : go.MethodSetIs RealControllerRevisionControl.ty [(go!"PatchControllerRevision", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.SliceType go.byte)] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RealControllerRevisionControl.ty) [(go!"PatchControllerRevision", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] RealControllerRevisionControl.TypeAssumptions.type_repr
   RealControllerRevisionControl.TypeAssumptions.underlying
-  RealControllerRevisionControl.TypeAssumptions.get_KubeClient
-  RealControllerRevisionControl.TypeAssumptions.set_KubeClient
+  RealControllerRevisionControl.TypeAssumptions.get'KubeClient
+  RealControllerRevisionControl.TypeAssumptions.set'KubeClient
   RealControllerRevisionControl.TypeAssumptions.method_set
   RealControllerRevisionControl.TypeAssumptions.ptr_method_set
 
@@ -6909,7 +6909,7 @@ noncomputable instance RealPodControl.zero_val [GooseExts] : ZeroVal RealPodCont
 @[irreducible] noncomputable def RealPodControl.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RealPodControl.fieldsUnsealed
 
-noncomputable instance equals_unfold_RealPodControl [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RealPodControl [GooseExts] [GoGlobalContext] :
     EqualsUnfold RealPodControl.fields RealPodControl.fieldsUnsealed :=
   ⟨by unfold RealPodControl.fields; rfl⟩
 
@@ -6919,35 +6919,35 @@ noncomputable instance equals_unfold_RealPodControl [GooseExts] [GoGlobalContext
 class RealPodControl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RealPodControl.underlying RealPodControl
   underlying : go.UnderlyingDirectedEq RealPodControl.ty RealPodControl.underlying
-  get_KubeClient : ∀ (x : RealPodControl), go.IsGoStepPureDetTagged under (StructFieldGet RealPodControl.underlying go!"KubeClient") #x (Val #(x.KubeClient'))
-  set_KubeClient : ∀ (x : RealPodControl) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface), go.IsGoStepPureDetTagged under (StructFieldSet RealPodControl.underlying go!"KubeClient") (PairV #x #y) (Val #(({ x with KubeClient' := y } : RealPodControl)))
-  get_Recorder : ∀ (x : RealPodControl), go.IsGoStepPureDetTagged under (StructFieldGet RealPodControl.underlying go!"Recorder") #x (Val #(x.Recorder'))
-  set_Recorder : ∀ (x : RealPodControl) (y : _root_.Perennial.k8s_io.client_go.tools.record.EventRecorder), go.IsGoStepPureDetTagged under (StructFieldSet RealPodControl.underlying go!"Recorder") (PairV #x #y) (Val #(({ x with Recorder' := y } : RealPodControl)))
-  get_OnWrite : ∀ (x : RealPodControl), go.IsGoStepPureDetTagged under (StructFieldGet RealPodControl.underlying go!"OnWrite") #x (Val #(x.OnWrite'))
-  set_OnWrite : ∀ (x : RealPodControl) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet RealPodControl.underlying go!"OnWrite") (PairV #x #y) (Val #(({ x with OnWrite' := y } : RealPodControl)))
+  get'KubeClient : ∀ (x : RealPodControl), go.IsGoStepPureDetTagged under (StructFieldGet RealPodControl.underlying go!"KubeClient") #x (Val #(x.KubeClient'))
+  set'KubeClient : ∀ (x : RealPodControl) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface), go.IsGoStepPureDetTagged under (StructFieldSet RealPodControl.underlying go!"KubeClient") (PairV #x #y) (Val #(({ x with KubeClient' := y } : RealPodControl)))
+  get'Recorder : ∀ (x : RealPodControl), go.IsGoStepPureDetTagged under (StructFieldGet RealPodControl.underlying go!"Recorder") #x (Val #(x.Recorder'))
+  set'Recorder : ∀ (x : RealPodControl) (y : _root_.Perennial.k8s_io.client_go.tools.record.EventRecorder), go.IsGoStepPureDetTagged under (StructFieldSet RealPodControl.underlying go!"Recorder") (PairV #x #y) (Val #(({ x with Recorder' := y } : RealPodControl)))
+  get'OnWrite : ∀ (x : RealPodControl), go.IsGoStepPureDetTagged under (StructFieldGet RealPodControl.underlying go!"OnWrite") #x (Val #(x.OnWrite'))
+  set'OnWrite : ∀ (x : RealPodControl) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet RealPodControl.underlying go!"OnWrite") (PairV #x #y) (Val #(({ x with OnWrite' := y } : RealPodControl)))
   method_set : go.MethodSetIs RealPodControl.ty [(go!"CreatePods", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false [go.error]))), (go!"CreatePodsWithGenerateName", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty), go.string] false [go.error]))), (go!"DeletePod", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"PatchPod", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"k8s.io/kubernetes/pkg/controller.createPods", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RealPodControl.ty) [(go!"CreatePods", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false [go.error]))), (go!"CreatePodsWithGenerateName", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty), go.string] false [go.error]))), (go!"DeletePod", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"PatchPod", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"k8s.io/kubernetes/pkg/controller.createPods", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false [go.error])))]
-  CreatePods_unfold : MethodUnfold RealPodControl.ty go!"CreatePods" RealPodControl.CreatePods.impl
-  CreatePodsWithGenerateName_unfold : MethodUnfold RealPodControl.ty go!"CreatePodsWithGenerateName" RealPodControl.CreatePodsWithGenerateName.impl
-  ptr_CreatePods_unfold : MethodUnfold (go.GoType.PointerType RealPodControl.ty) go!"CreatePods" (LamV "$r"
+  unfold'CreatePods : MethodUnfold RealPodControl.ty go!"CreatePods" RealPodControl.CreatePods.impl
+  unfold'CreatePodsWithGenerateName : MethodUnfold RealPodControl.ty go!"CreatePodsWithGenerateName" RealPodControl.CreatePodsWithGenerateName.impl
+  ptr_unfold'CreatePods : MethodUnfold (go.GoType.PointerType RealPodControl.ty) go!"CreatePods" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve RealPodControl.ty go!"CreatePods"))) (App (Val (GoInstruction (GoLoad RealPodControl.ty))) (Var "$r"))))
-  ptr_CreatePodsWithGenerateName_unfold : MethodUnfold (go.GoType.PointerType RealPodControl.ty) go!"CreatePodsWithGenerateName" (LamV "$r"
+  ptr_unfold'CreatePodsWithGenerateName : MethodUnfold (go.GoType.PointerType RealPodControl.ty) go!"CreatePodsWithGenerateName" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve RealPodControl.ty go!"CreatePodsWithGenerateName"))) (App (Val (GoInstruction (GoLoad RealPodControl.ty))) (Var "$r"))))
 
 attribute [instance] RealPodControl.TypeAssumptions.type_repr
   RealPodControl.TypeAssumptions.underlying
-  RealPodControl.TypeAssumptions.get_KubeClient
-  RealPodControl.TypeAssumptions.set_KubeClient
-  RealPodControl.TypeAssumptions.get_Recorder
-  RealPodControl.TypeAssumptions.set_Recorder
-  RealPodControl.TypeAssumptions.get_OnWrite
-  RealPodControl.TypeAssumptions.set_OnWrite
+  RealPodControl.TypeAssumptions.get'KubeClient
+  RealPodControl.TypeAssumptions.set'KubeClient
+  RealPodControl.TypeAssumptions.get'Recorder
+  RealPodControl.TypeAssumptions.set'Recorder
+  RealPodControl.TypeAssumptions.get'OnWrite
+  RealPodControl.TypeAssumptions.set'OnWrite
   RealPodControl.TypeAssumptions.method_set
   RealPodControl.TypeAssumptions.ptr_method_set
-  RealPodControl.TypeAssumptions.CreatePods_unfold
-  RealPodControl.TypeAssumptions.CreatePodsWithGenerateName_unfold
-  RealPodControl.TypeAssumptions.ptr_CreatePods_unfold
-  RealPodControl.TypeAssumptions.ptr_CreatePodsWithGenerateName_unfold
+  RealPodControl.TypeAssumptions.unfold'CreatePods
+  RealPodControl.TypeAssumptions.unfold'CreatePodsWithGenerateName
+  RealPodControl.TypeAssumptions.ptr_unfold'CreatePods
+  RealPodControl.TypeAssumptions.ptr_unfold'CreatePodsWithGenerateName
 
 structure FakePodControl [GooseExts] where
   mk ::
@@ -6978,7 +6978,7 @@ noncomputable instance FakePodControl.zero_val [GooseExts] : ZeroVal FakePodCont
 @[irreducible] noncomputable def FakePodControl.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FakePodControl.fieldsUnsealed
 
-noncomputable instance equals_unfold_FakePodControl [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FakePodControl [GooseExts] [GoGlobalContext] :
     EqualsUnfold FakePodControl.fields FakePodControl.fieldsUnsealed :=
   ⟨by unfold FakePodControl.fields; rfl⟩
 
@@ -6988,68 +6988,68 @@ noncomputable instance equals_unfold_FakePodControl [GooseExts] [GoGlobalContext
 class FakePodControl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FakePodControl.underlying FakePodControl
   underlying : go.UnderlyingDirectedEq FakePodControl.ty FakePodControl.underlying
-  get_Mutex : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"Mutex") #x (Val #(x.Mutex'))
-  set_Mutex : ∀ (x : FakePodControl) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : FakePodControl)))
-  get_Templates : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"Templates") #x (Val #(x.Templates'))
-  set_Templates : ∀ (x : FakePodControl) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"Templates") (PairV #x #y) (Val #(({ x with Templates' := y } : FakePodControl)))
-  get_ControllerRefs : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"ControllerRefs") #x (Val #(x.ControllerRefs'))
-  set_ControllerRefs : ∀ (x : FakePodControl) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"ControllerRefs") (PairV #x #y) (Val #(({ x with ControllerRefs' := y } : FakePodControl)))
-  get_DeletePodName : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"DeletePodName") #x (Val #(x.DeletePodName'))
-  set_DeletePodName : ∀ (x : FakePodControl) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"DeletePodName") (PairV #x #y) (Val #(({ x with DeletePodName' := y } : FakePodControl)))
-  get_Patches : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"Patches") #x (Val #(x.Patches'))
-  set_Patches : ∀ (x : FakePodControl) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"Patches") (PairV #x #y) (Val #(({ x with Patches' := y } : FakePodControl)))
-  get_Err : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"Err") #x (Val #(x.Err'))
-  set_Err : ∀ (x : FakePodControl) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : FakePodControl)))
-  get_DeleteErr : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"DeleteErr") #x (Val #(x.DeleteErr'))
-  set_DeleteErr : ∀ (x : FakePodControl) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"DeleteErr") (PairV #x #y) (Val #(({ x with DeleteErr' := y } : FakePodControl)))
-  get_CreateLimit : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"CreateLimit") #x (Val #(x.CreateLimit'))
-  set_CreateLimit : ∀ (x : FakePodControl) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"CreateLimit") (PairV #x #y) (Val #(({ x with CreateLimit' := y } : FakePodControl)))
-  get_CreateCallCount : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"CreateCallCount") #x (Val #(x.CreateCallCount'))
-  set_CreateCallCount : ∀ (x : FakePodControl) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"CreateCallCount") (PairV #x #y) (Val #(({ x with CreateCallCount' := y } : FakePodControl)))
+  get'Mutex : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"Mutex") #x (Val #(x.Mutex'))
+  set'Mutex : ∀ (x : FakePodControl) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : FakePodControl)))
+  get'Templates : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"Templates") #x (Val #(x.Templates'))
+  set'Templates : ∀ (x : FakePodControl) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"Templates") (PairV #x #y) (Val #(({ x with Templates' := y } : FakePodControl)))
+  get'ControllerRefs : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"ControllerRefs") #x (Val #(x.ControllerRefs'))
+  set'ControllerRefs : ∀ (x : FakePodControl) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"ControllerRefs") (PairV #x #y) (Val #(({ x with ControllerRefs' := y } : FakePodControl)))
+  get'DeletePodName : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"DeletePodName") #x (Val #(x.DeletePodName'))
+  set'DeletePodName : ∀ (x : FakePodControl) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"DeletePodName") (PairV #x #y) (Val #(({ x with DeletePodName' := y } : FakePodControl)))
+  get'Patches : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"Patches") #x (Val #(x.Patches'))
+  set'Patches : ∀ (x : FakePodControl) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"Patches") (PairV #x #y) (Val #(({ x with Patches' := y } : FakePodControl)))
+  get'Err : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"Err") #x (Val #(x.Err'))
+  set'Err : ∀ (x : FakePodControl) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : FakePodControl)))
+  get'DeleteErr : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"DeleteErr") #x (Val #(x.DeleteErr'))
+  set'DeleteErr : ∀ (x : FakePodControl) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"DeleteErr") (PairV #x #y) (Val #(({ x with DeleteErr' := y } : FakePodControl)))
+  get'CreateLimit : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"CreateLimit") #x (Val #(x.CreateLimit'))
+  set'CreateLimit : ∀ (x : FakePodControl) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"CreateLimit") (PairV #x #y) (Val #(({ x with CreateLimit' := y } : FakePodControl)))
+  get'CreateCallCount : ∀ (x : FakePodControl), go.IsGoStepPureDetTagged under (StructFieldGet FakePodControl.underlying go!"CreateCallCount") #x (Val #(x.CreateCallCount'))
+  set'CreateCallCount : ∀ (x : FakePodControl) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet FakePodControl.underlying go!"CreateCallCount") (PairV #x #y) (Val #(({ x with CreateCallCount' := y } : FakePodControl)))
   method_set : go.MethodSetIs FakePodControl.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FakePodControl.ty) [(go!"Clear", (some (go.signature.Signature [] false []))), (go!"CreatePods", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false [go.error]))), (go!"CreatePodsWithGenerateName", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty), go.string] false [go.error]))), (go!"DeletePod", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"PatchPod", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false [])))]
-  ptr_Clear_unfold : MethodUnfold (go.GoType.PointerType FakePodControl.ty) go!"Clear" FakePodControl.Clear.impl
-  ptr_CreatePods_unfold : MethodUnfold (go.GoType.PointerType FakePodControl.ty) go!"CreatePods" FakePodControl.CreatePods.impl
-  ptr_CreatePodsWithGenerateName_unfold : MethodUnfold (go.GoType.PointerType FakePodControl.ty) go!"CreatePodsWithGenerateName" FakePodControl.CreatePodsWithGenerateName.impl
-  ptr_DeletePod_unfold : MethodUnfold (go.GoType.PointerType FakePodControl.ty) go!"DeletePod" FakePodControl.DeletePod.impl
-  ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType FakePodControl.ty) go!"Lock" (LamV "$r"
+  ptr_unfold'Clear : MethodUnfold (go.GoType.PointerType FakePodControl.ty) go!"Clear" FakePodControl.Clear.impl
+  ptr_unfold'CreatePods : MethodUnfold (go.GoType.PointerType FakePodControl.ty) go!"CreatePods" FakePodControl.CreatePods.impl
+  ptr_unfold'CreatePodsWithGenerateName : MethodUnfold (go.GoType.PointerType FakePodControl.ty) go!"CreatePodsWithGenerateName" FakePodControl.CreatePodsWithGenerateName.impl
+  ptr_unfold'DeletePod : MethodUnfold (go.GoType.PointerType FakePodControl.ty) go!"DeletePod" FakePodControl.DeletePod.impl
+  ptr_unfold'Lock : MethodUnfold (go.GoType.PointerType FakePodControl.ty) go!"Lock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef FakePodControl.ty go!"Mutex"))) (Var "$r"))))
-  ptr_PatchPod_unfold : MethodUnfold (go.GoType.PointerType FakePodControl.ty) go!"PatchPod" FakePodControl.PatchPod.impl
-  ptr_TryLock_unfold : MethodUnfold (go.GoType.PointerType FakePodControl.ty) go!"TryLock" (LamV "$r"
+  ptr_unfold'PatchPod : MethodUnfold (go.GoType.PointerType FakePodControl.ty) go!"PatchPod" FakePodControl.PatchPod.impl
+  ptr_unfold'TryLock : MethodUnfold (go.GoType.PointerType FakePodControl.ty) go!"TryLock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"TryLock"))) (App (Val (GoInstruction (StructFieldRef FakePodControl.ty go!"Mutex"))) (Var "$r"))))
-  ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType FakePodControl.ty) go!"Unlock" (LamV "$r"
+  ptr_unfold'Unlock : MethodUnfold (go.GoType.PointerType FakePodControl.ty) go!"Unlock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef FakePodControl.ty go!"Mutex"))) (Var "$r"))))
 
 attribute [instance] FakePodControl.TypeAssumptions.type_repr
   FakePodControl.TypeAssumptions.underlying
-  FakePodControl.TypeAssumptions.get_Mutex
-  FakePodControl.TypeAssumptions.set_Mutex
-  FakePodControl.TypeAssumptions.get_Templates
-  FakePodControl.TypeAssumptions.set_Templates
-  FakePodControl.TypeAssumptions.get_ControllerRefs
-  FakePodControl.TypeAssumptions.set_ControllerRefs
-  FakePodControl.TypeAssumptions.get_DeletePodName
-  FakePodControl.TypeAssumptions.set_DeletePodName
-  FakePodControl.TypeAssumptions.get_Patches
-  FakePodControl.TypeAssumptions.set_Patches
-  FakePodControl.TypeAssumptions.get_Err
-  FakePodControl.TypeAssumptions.set_Err
-  FakePodControl.TypeAssumptions.get_DeleteErr
-  FakePodControl.TypeAssumptions.set_DeleteErr
-  FakePodControl.TypeAssumptions.get_CreateLimit
-  FakePodControl.TypeAssumptions.set_CreateLimit
-  FakePodControl.TypeAssumptions.get_CreateCallCount
-  FakePodControl.TypeAssumptions.set_CreateCallCount
+  FakePodControl.TypeAssumptions.get'Mutex
+  FakePodControl.TypeAssumptions.set'Mutex
+  FakePodControl.TypeAssumptions.get'Templates
+  FakePodControl.TypeAssumptions.set'Templates
+  FakePodControl.TypeAssumptions.get'ControllerRefs
+  FakePodControl.TypeAssumptions.set'ControllerRefs
+  FakePodControl.TypeAssumptions.get'DeletePodName
+  FakePodControl.TypeAssumptions.set'DeletePodName
+  FakePodControl.TypeAssumptions.get'Patches
+  FakePodControl.TypeAssumptions.set'Patches
+  FakePodControl.TypeAssumptions.get'Err
+  FakePodControl.TypeAssumptions.set'Err
+  FakePodControl.TypeAssumptions.get'DeleteErr
+  FakePodControl.TypeAssumptions.set'DeleteErr
+  FakePodControl.TypeAssumptions.get'CreateLimit
+  FakePodControl.TypeAssumptions.set'CreateLimit
+  FakePodControl.TypeAssumptions.get'CreateCallCount
+  FakePodControl.TypeAssumptions.set'CreateCallCount
   FakePodControl.TypeAssumptions.method_set
   FakePodControl.TypeAssumptions.ptr_method_set
-  FakePodControl.TypeAssumptions.ptr_Clear_unfold
-  FakePodControl.TypeAssumptions.ptr_CreatePods_unfold
-  FakePodControl.TypeAssumptions.ptr_CreatePodsWithGenerateName_unfold
-  FakePodControl.TypeAssumptions.ptr_DeletePod_unfold
-  FakePodControl.TypeAssumptions.ptr_Lock_unfold
-  FakePodControl.TypeAssumptions.ptr_PatchPod_unfold
-  FakePodControl.TypeAssumptions.ptr_TryLock_unfold
-  FakePodControl.TypeAssumptions.ptr_Unlock_unfold
+  FakePodControl.TypeAssumptions.ptr_unfold'Clear
+  FakePodControl.TypeAssumptions.ptr_unfold'CreatePods
+  FakePodControl.TypeAssumptions.ptr_unfold'CreatePodsWithGenerateName
+  FakePodControl.TypeAssumptions.ptr_unfold'DeletePod
+  FakePodControl.TypeAssumptions.ptr_unfold'Lock
+  FakePodControl.TypeAssumptions.ptr_unfold'PatchPod
+  FakePodControl.TypeAssumptions.ptr_unfold'TryLock
+  FakePodControl.TypeAssumptions.ptr_unfold'Unlock
 
 abbrev ByLogging [GooseExts] : Type := GoSlice
 
@@ -7060,25 +7060,25 @@ class ByLogging.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq ByLogging.ty ByLogging.underlying
   method_set : go.MethodSetIs ByLogging.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ByLogging.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold ByLogging.ty go!"Len" ByLogging.Len.impl
-  Less_unfold : MethodUnfold ByLogging.ty go!"Less" ByLogging.Less.impl
-  Swap_unfold : MethodUnfold ByLogging.ty go!"Swap" ByLogging.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType ByLogging.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold ByLogging.ty go!"Len" ByLogging.Len.impl
+  unfold'Less : MethodUnfold ByLogging.ty go!"Less" ByLogging.Less.impl
+  unfold'Swap : MethodUnfold ByLogging.ty go!"Swap" ByLogging.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType ByLogging.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ByLogging.ty go!"Len"))) (App (Val (GoInstruction (GoLoad ByLogging.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType ByLogging.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType ByLogging.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ByLogging.ty go!"Less"))) (App (Val (GoInstruction (GoLoad ByLogging.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType ByLogging.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType ByLogging.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ByLogging.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad ByLogging.ty))) (Var "$r"))))
 
 attribute [instance] ByLogging.TypeAssumptions.underlying
   ByLogging.TypeAssumptions.method_set
   ByLogging.TypeAssumptions.ptr_method_set
-  ByLogging.TypeAssumptions.Len_unfold
-  ByLogging.TypeAssumptions.Less_unfold
-  ByLogging.TypeAssumptions.Swap_unfold
-  ByLogging.TypeAssumptions.ptr_Len_unfold
-  ByLogging.TypeAssumptions.ptr_Less_unfold
-  ByLogging.TypeAssumptions.ptr_Swap_unfold
+  ByLogging.TypeAssumptions.unfold'Len
+  ByLogging.TypeAssumptions.unfold'Less
+  ByLogging.TypeAssumptions.unfold'Swap
+  ByLogging.TypeAssumptions.ptr_unfold'Len
+  ByLogging.TypeAssumptions.ptr_unfold'Less
+  ByLogging.TypeAssumptions.ptr_unfold'Swap
 
 abbrev ActivePods [GooseExts] : Type := GoSlice
 
@@ -7089,25 +7089,25 @@ class ActivePods.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq ActivePods.ty ActivePods.underlying
   method_set : go.MethodSetIs ActivePods.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ActivePods.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold ActivePods.ty go!"Len" ActivePods.Len.impl
-  Less_unfold : MethodUnfold ActivePods.ty go!"Less" ActivePods.Less.impl
-  Swap_unfold : MethodUnfold ActivePods.ty go!"Swap" ActivePods.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType ActivePods.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold ActivePods.ty go!"Len" ActivePods.Len.impl
+  unfold'Less : MethodUnfold ActivePods.ty go!"Less" ActivePods.Less.impl
+  unfold'Swap : MethodUnfold ActivePods.ty go!"Swap" ActivePods.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType ActivePods.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ActivePods.ty go!"Len"))) (App (Val (GoInstruction (GoLoad ActivePods.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType ActivePods.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType ActivePods.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ActivePods.ty go!"Less"))) (App (Val (GoInstruction (GoLoad ActivePods.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType ActivePods.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType ActivePods.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ActivePods.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad ActivePods.ty))) (Var "$r"))))
 
 attribute [instance] ActivePods.TypeAssumptions.underlying
   ActivePods.TypeAssumptions.method_set
   ActivePods.TypeAssumptions.ptr_method_set
-  ActivePods.TypeAssumptions.Len_unfold
-  ActivePods.TypeAssumptions.Less_unfold
-  ActivePods.TypeAssumptions.Swap_unfold
-  ActivePods.TypeAssumptions.ptr_Len_unfold
-  ActivePods.TypeAssumptions.ptr_Less_unfold
-  ActivePods.TypeAssumptions.ptr_Swap_unfold
+  ActivePods.TypeAssumptions.unfold'Len
+  ActivePods.TypeAssumptions.unfold'Less
+  ActivePods.TypeAssumptions.unfold'Swap
+  ActivePods.TypeAssumptions.ptr_unfold'Len
+  ActivePods.TypeAssumptions.ptr_unfold'Less
+  ActivePods.TypeAssumptions.ptr_unfold'Swap
 
 structure ActivePodsWithRanks [GooseExts] where
   mk ::
@@ -7126,7 +7126,7 @@ noncomputable instance ActivePodsWithRanks.zero_val [GooseExts] : ZeroVal Active
 @[irreducible] noncomputable def ActivePodsWithRanks.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ActivePodsWithRanks.fieldsUnsealed
 
-noncomputable instance equals_unfold_ActivePodsWithRanks [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ActivePodsWithRanks [GooseExts] [GoGlobalContext] :
     EqualsUnfold ActivePodsWithRanks.fields ActivePodsWithRanks.fieldsUnsealed :=
   ⟨by unfold ActivePodsWithRanks.fields; rfl⟩
 
@@ -7136,40 +7136,40 @@ noncomputable instance equals_unfold_ActivePodsWithRanks [GooseExts] [GoGlobalCo
 class ActivePodsWithRanks.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ActivePodsWithRanks.underlying ActivePodsWithRanks
   underlying : go.UnderlyingDirectedEq ActivePodsWithRanks.ty ActivePodsWithRanks.underlying
-  get_Pods : ∀ (x : ActivePodsWithRanks), go.IsGoStepPureDetTagged under (StructFieldGet ActivePodsWithRanks.underlying go!"Pods") #x (Val #(x.Pods'))
-  set_Pods : ∀ (x : ActivePodsWithRanks) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ActivePodsWithRanks.underlying go!"Pods") (PairV #x #y) (Val #(({ x with Pods' := y } : ActivePodsWithRanks)))
-  get_Rank : ∀ (x : ActivePodsWithRanks), go.IsGoStepPureDetTagged under (StructFieldGet ActivePodsWithRanks.underlying go!"Rank") #x (Val #(x.Rank'))
-  set_Rank : ∀ (x : ActivePodsWithRanks) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ActivePodsWithRanks.underlying go!"Rank") (PairV #x #y) (Val #(({ x with Rank' := y } : ActivePodsWithRanks)))
-  get_Now : ∀ (x : ActivePodsWithRanks), go.IsGoStepPureDetTagged under (StructFieldGet ActivePodsWithRanks.underlying go!"Now") #x (Val #(x.Now'))
-  set_Now : ∀ (x : ActivePodsWithRanks) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time), go.IsGoStepPureDetTagged under (StructFieldSet ActivePodsWithRanks.underlying go!"Now") (PairV #x #y) (Val #(({ x with Now' := y } : ActivePodsWithRanks)))
+  get'Pods : ∀ (x : ActivePodsWithRanks), go.IsGoStepPureDetTagged under (StructFieldGet ActivePodsWithRanks.underlying go!"Pods") #x (Val #(x.Pods'))
+  set'Pods : ∀ (x : ActivePodsWithRanks) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ActivePodsWithRanks.underlying go!"Pods") (PairV #x #y) (Val #(({ x with Pods' := y } : ActivePodsWithRanks)))
+  get'Rank : ∀ (x : ActivePodsWithRanks), go.IsGoStepPureDetTagged under (StructFieldGet ActivePodsWithRanks.underlying go!"Rank") #x (Val #(x.Rank'))
+  set'Rank : ∀ (x : ActivePodsWithRanks) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ActivePodsWithRanks.underlying go!"Rank") (PairV #x #y) (Val #(({ x with Rank' := y } : ActivePodsWithRanks)))
+  get'Now : ∀ (x : ActivePodsWithRanks), go.IsGoStepPureDetTagged under (StructFieldGet ActivePodsWithRanks.underlying go!"Now") #x (Val #(x.Now'))
+  set'Now : ∀ (x : ActivePodsWithRanks) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time), go.IsGoStepPureDetTagged under (StructFieldSet ActivePodsWithRanks.underlying go!"Now") (PairV #x #y) (Val #(({ x with Now' := y } : ActivePodsWithRanks)))
   method_set : go.MethodSetIs ActivePodsWithRanks.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ActivePodsWithRanks.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold ActivePodsWithRanks.ty go!"Len" ActivePodsWithRanks.Len.impl
-  Less_unfold : MethodUnfold ActivePodsWithRanks.ty go!"Less" ActivePodsWithRanks.Less.impl
-  Swap_unfold : MethodUnfold ActivePodsWithRanks.ty go!"Swap" ActivePodsWithRanks.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType ActivePodsWithRanks.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold ActivePodsWithRanks.ty go!"Len" ActivePodsWithRanks.Len.impl
+  unfold'Less : MethodUnfold ActivePodsWithRanks.ty go!"Less" ActivePodsWithRanks.Less.impl
+  unfold'Swap : MethodUnfold ActivePodsWithRanks.ty go!"Swap" ActivePodsWithRanks.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType ActivePodsWithRanks.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ActivePodsWithRanks.ty go!"Len"))) (App (Val (GoInstruction (GoLoad ActivePodsWithRanks.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType ActivePodsWithRanks.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType ActivePodsWithRanks.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ActivePodsWithRanks.ty go!"Less"))) (App (Val (GoInstruction (GoLoad ActivePodsWithRanks.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType ActivePodsWithRanks.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType ActivePodsWithRanks.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ActivePodsWithRanks.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad ActivePodsWithRanks.ty))) (Var "$r"))))
 
 attribute [instance] ActivePodsWithRanks.TypeAssumptions.type_repr
   ActivePodsWithRanks.TypeAssumptions.underlying
-  ActivePodsWithRanks.TypeAssumptions.get_Pods
-  ActivePodsWithRanks.TypeAssumptions.set_Pods
-  ActivePodsWithRanks.TypeAssumptions.get_Rank
-  ActivePodsWithRanks.TypeAssumptions.set_Rank
-  ActivePodsWithRanks.TypeAssumptions.get_Now
-  ActivePodsWithRanks.TypeAssumptions.set_Now
+  ActivePodsWithRanks.TypeAssumptions.get'Pods
+  ActivePodsWithRanks.TypeAssumptions.set'Pods
+  ActivePodsWithRanks.TypeAssumptions.get'Rank
+  ActivePodsWithRanks.TypeAssumptions.set'Rank
+  ActivePodsWithRanks.TypeAssumptions.get'Now
+  ActivePodsWithRanks.TypeAssumptions.set'Now
   ActivePodsWithRanks.TypeAssumptions.method_set
   ActivePodsWithRanks.TypeAssumptions.ptr_method_set
-  ActivePodsWithRanks.TypeAssumptions.Len_unfold
-  ActivePodsWithRanks.TypeAssumptions.Less_unfold
-  ActivePodsWithRanks.TypeAssumptions.Swap_unfold
-  ActivePodsWithRanks.TypeAssumptions.ptr_Len_unfold
-  ActivePodsWithRanks.TypeAssumptions.ptr_Less_unfold
-  ActivePodsWithRanks.TypeAssumptions.ptr_Swap_unfold
+  ActivePodsWithRanks.TypeAssumptions.unfold'Len
+  ActivePodsWithRanks.TypeAssumptions.unfold'Less
+  ActivePodsWithRanks.TypeAssumptions.unfold'Swap
+  ActivePodsWithRanks.TypeAssumptions.ptr_unfold'Len
+  ActivePodsWithRanks.TypeAssumptions.ptr_unfold'Less
+  ActivePodsWithRanks.TypeAssumptions.ptr_unfold'Swap
 
 abbrev filterRS [GooseExts] : Type := GoFunc
 
@@ -7194,25 +7194,25 @@ class ControllersByCreationTimestamp.TypeAssumptions [GooseExts] [GoGlobalContex
   underlying : go.UnderlyingDirectedEq ControllersByCreationTimestamp.ty ControllersByCreationTimestamp.underlying
   method_set : go.MethodSetIs ControllersByCreationTimestamp.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ControllersByCreationTimestamp.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold ControllersByCreationTimestamp.ty go!"Len" ControllersByCreationTimestamp.Len.impl
-  Less_unfold : MethodUnfold ControllersByCreationTimestamp.ty go!"Less" ControllersByCreationTimestamp.Less.impl
-  Swap_unfold : MethodUnfold ControllersByCreationTimestamp.ty go!"Swap" ControllersByCreationTimestamp.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType ControllersByCreationTimestamp.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold ControllersByCreationTimestamp.ty go!"Len" ControllersByCreationTimestamp.Len.impl
+  unfold'Less : MethodUnfold ControllersByCreationTimestamp.ty go!"Less" ControllersByCreationTimestamp.Less.impl
+  unfold'Swap : MethodUnfold ControllersByCreationTimestamp.ty go!"Swap" ControllersByCreationTimestamp.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType ControllersByCreationTimestamp.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllersByCreationTimestamp.ty go!"Len"))) (App (Val (GoInstruction (GoLoad ControllersByCreationTimestamp.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType ControllersByCreationTimestamp.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType ControllersByCreationTimestamp.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllersByCreationTimestamp.ty go!"Less"))) (App (Val (GoInstruction (GoLoad ControllersByCreationTimestamp.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType ControllersByCreationTimestamp.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType ControllersByCreationTimestamp.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllersByCreationTimestamp.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad ControllersByCreationTimestamp.ty))) (Var "$r"))))
 
 attribute [instance] ControllersByCreationTimestamp.TypeAssumptions.underlying
   ControllersByCreationTimestamp.TypeAssumptions.method_set
   ControllersByCreationTimestamp.TypeAssumptions.ptr_method_set
-  ControllersByCreationTimestamp.TypeAssumptions.Len_unfold
-  ControllersByCreationTimestamp.TypeAssumptions.Less_unfold
-  ControllersByCreationTimestamp.TypeAssumptions.Swap_unfold
-  ControllersByCreationTimestamp.TypeAssumptions.ptr_Len_unfold
-  ControllersByCreationTimestamp.TypeAssumptions.ptr_Less_unfold
-  ControllersByCreationTimestamp.TypeAssumptions.ptr_Swap_unfold
+  ControllersByCreationTimestamp.TypeAssumptions.unfold'Len
+  ControllersByCreationTimestamp.TypeAssumptions.unfold'Less
+  ControllersByCreationTimestamp.TypeAssumptions.unfold'Swap
+  ControllersByCreationTimestamp.TypeAssumptions.ptr_unfold'Len
+  ControllersByCreationTimestamp.TypeAssumptions.ptr_unfold'Less
+  ControllersByCreationTimestamp.TypeAssumptions.ptr_unfold'Swap
 
 abbrev ReplicaSetsByCreationTimestamp [GooseExts] : Type := GoSlice
 
@@ -7223,25 +7223,25 @@ class ReplicaSetsByCreationTimestamp.TypeAssumptions [GooseExts] [GoGlobalContex
   underlying : go.UnderlyingDirectedEq ReplicaSetsByCreationTimestamp.ty ReplicaSetsByCreationTimestamp.underlying
   method_set : go.MethodSetIs ReplicaSetsByCreationTimestamp.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetsByCreationTimestamp.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold ReplicaSetsByCreationTimestamp.ty go!"Len" ReplicaSetsByCreationTimestamp.Len.impl
-  Less_unfold : MethodUnfold ReplicaSetsByCreationTimestamp.ty go!"Less" ReplicaSetsByCreationTimestamp.Less.impl
-  Swap_unfold : MethodUnfold ReplicaSetsByCreationTimestamp.ty go!"Swap" ReplicaSetsByCreationTimestamp.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType ReplicaSetsByCreationTimestamp.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold ReplicaSetsByCreationTimestamp.ty go!"Len" ReplicaSetsByCreationTimestamp.Len.impl
+  unfold'Less : MethodUnfold ReplicaSetsByCreationTimestamp.ty go!"Less" ReplicaSetsByCreationTimestamp.Less.impl
+  unfold'Swap : MethodUnfold ReplicaSetsByCreationTimestamp.ty go!"Swap" ReplicaSetsByCreationTimestamp.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType ReplicaSetsByCreationTimestamp.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ReplicaSetsByCreationTimestamp.ty go!"Len"))) (App (Val (GoInstruction (GoLoad ReplicaSetsByCreationTimestamp.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType ReplicaSetsByCreationTimestamp.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType ReplicaSetsByCreationTimestamp.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ReplicaSetsByCreationTimestamp.ty go!"Less"))) (App (Val (GoInstruction (GoLoad ReplicaSetsByCreationTimestamp.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType ReplicaSetsByCreationTimestamp.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType ReplicaSetsByCreationTimestamp.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ReplicaSetsByCreationTimestamp.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad ReplicaSetsByCreationTimestamp.ty))) (Var "$r"))))
 
 attribute [instance] ReplicaSetsByCreationTimestamp.TypeAssumptions.underlying
   ReplicaSetsByCreationTimestamp.TypeAssumptions.method_set
   ReplicaSetsByCreationTimestamp.TypeAssumptions.ptr_method_set
-  ReplicaSetsByCreationTimestamp.TypeAssumptions.Len_unfold
-  ReplicaSetsByCreationTimestamp.TypeAssumptions.Less_unfold
-  ReplicaSetsByCreationTimestamp.TypeAssumptions.Swap_unfold
-  ReplicaSetsByCreationTimestamp.TypeAssumptions.ptr_Len_unfold
-  ReplicaSetsByCreationTimestamp.TypeAssumptions.ptr_Less_unfold
-  ReplicaSetsByCreationTimestamp.TypeAssumptions.ptr_Swap_unfold
+  ReplicaSetsByCreationTimestamp.TypeAssumptions.unfold'Len
+  ReplicaSetsByCreationTimestamp.TypeAssumptions.unfold'Less
+  ReplicaSetsByCreationTimestamp.TypeAssumptions.unfold'Swap
+  ReplicaSetsByCreationTimestamp.TypeAssumptions.ptr_unfold'Len
+  ReplicaSetsByCreationTimestamp.TypeAssumptions.ptr_unfold'Less
+  ReplicaSetsByCreationTimestamp.TypeAssumptions.ptr_unfold'Swap
 
 abbrev ReplicaSetsBySizeOlder [GooseExts] : Type := GoSlice
 
@@ -7252,25 +7252,25 @@ class ReplicaSetsBySizeOlder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLo
   underlying : go.UnderlyingDirectedEq ReplicaSetsBySizeOlder.ty ReplicaSetsBySizeOlder.underlying
   method_set : go.MethodSetIs ReplicaSetsBySizeOlder.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetsBySizeOlder.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold ReplicaSetsBySizeOlder.ty go!"Len" ReplicaSetsBySizeOlder.Len.impl
-  Less_unfold : MethodUnfold ReplicaSetsBySizeOlder.ty go!"Less" ReplicaSetsBySizeOlder.Less.impl
-  Swap_unfold : MethodUnfold ReplicaSetsBySizeOlder.ty go!"Swap" ReplicaSetsBySizeOlder.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType ReplicaSetsBySizeOlder.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold ReplicaSetsBySizeOlder.ty go!"Len" ReplicaSetsBySizeOlder.Len.impl
+  unfold'Less : MethodUnfold ReplicaSetsBySizeOlder.ty go!"Less" ReplicaSetsBySizeOlder.Less.impl
+  unfold'Swap : MethodUnfold ReplicaSetsBySizeOlder.ty go!"Swap" ReplicaSetsBySizeOlder.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType ReplicaSetsBySizeOlder.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ReplicaSetsBySizeOlder.ty go!"Len"))) (App (Val (GoInstruction (GoLoad ReplicaSetsBySizeOlder.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType ReplicaSetsBySizeOlder.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType ReplicaSetsBySizeOlder.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ReplicaSetsBySizeOlder.ty go!"Less"))) (App (Val (GoInstruction (GoLoad ReplicaSetsBySizeOlder.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType ReplicaSetsBySizeOlder.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType ReplicaSetsBySizeOlder.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ReplicaSetsBySizeOlder.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad ReplicaSetsBySizeOlder.ty))) (Var "$r"))))
 
 attribute [instance] ReplicaSetsBySizeOlder.TypeAssumptions.underlying
   ReplicaSetsBySizeOlder.TypeAssumptions.method_set
   ReplicaSetsBySizeOlder.TypeAssumptions.ptr_method_set
-  ReplicaSetsBySizeOlder.TypeAssumptions.Len_unfold
-  ReplicaSetsBySizeOlder.TypeAssumptions.Less_unfold
-  ReplicaSetsBySizeOlder.TypeAssumptions.Swap_unfold
-  ReplicaSetsBySizeOlder.TypeAssumptions.ptr_Len_unfold
-  ReplicaSetsBySizeOlder.TypeAssumptions.ptr_Less_unfold
-  ReplicaSetsBySizeOlder.TypeAssumptions.ptr_Swap_unfold
+  ReplicaSetsBySizeOlder.TypeAssumptions.unfold'Len
+  ReplicaSetsBySizeOlder.TypeAssumptions.unfold'Less
+  ReplicaSetsBySizeOlder.TypeAssumptions.unfold'Swap
+  ReplicaSetsBySizeOlder.TypeAssumptions.ptr_unfold'Len
+  ReplicaSetsBySizeOlder.TypeAssumptions.ptr_unfold'Less
+  ReplicaSetsBySizeOlder.TypeAssumptions.ptr_unfold'Swap
 
 abbrev ReplicaSetsBySizeNewer [GooseExts] : Type := GoSlice
 
@@ -7281,25 +7281,25 @@ class ReplicaSetsBySizeNewer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLo
   underlying : go.UnderlyingDirectedEq ReplicaSetsBySizeNewer.ty ReplicaSetsBySizeNewer.underlying
   method_set : go.MethodSetIs ReplicaSetsBySizeNewer.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaSetsBySizeNewer.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold ReplicaSetsBySizeNewer.ty go!"Len" ReplicaSetsBySizeNewer.Len.impl
-  Less_unfold : MethodUnfold ReplicaSetsBySizeNewer.ty go!"Less" ReplicaSetsBySizeNewer.Less.impl
-  Swap_unfold : MethodUnfold ReplicaSetsBySizeNewer.ty go!"Swap" ReplicaSetsBySizeNewer.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType ReplicaSetsBySizeNewer.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold ReplicaSetsBySizeNewer.ty go!"Len" ReplicaSetsBySizeNewer.Len.impl
+  unfold'Less : MethodUnfold ReplicaSetsBySizeNewer.ty go!"Less" ReplicaSetsBySizeNewer.Less.impl
+  unfold'Swap : MethodUnfold ReplicaSetsBySizeNewer.ty go!"Swap" ReplicaSetsBySizeNewer.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType ReplicaSetsBySizeNewer.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ReplicaSetsBySizeNewer.ty go!"Len"))) (App (Val (GoInstruction (GoLoad ReplicaSetsBySizeNewer.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType ReplicaSetsBySizeNewer.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType ReplicaSetsBySizeNewer.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ReplicaSetsBySizeNewer.ty go!"Less"))) (App (Val (GoInstruction (GoLoad ReplicaSetsBySizeNewer.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType ReplicaSetsBySizeNewer.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType ReplicaSetsBySizeNewer.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ReplicaSetsBySizeNewer.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad ReplicaSetsBySizeNewer.ty))) (Var "$r"))))
 
 attribute [instance] ReplicaSetsBySizeNewer.TypeAssumptions.underlying
   ReplicaSetsBySizeNewer.TypeAssumptions.method_set
   ReplicaSetsBySizeNewer.TypeAssumptions.ptr_method_set
-  ReplicaSetsBySizeNewer.TypeAssumptions.Len_unfold
-  ReplicaSetsBySizeNewer.TypeAssumptions.Less_unfold
-  ReplicaSetsBySizeNewer.TypeAssumptions.Swap_unfold
-  ReplicaSetsBySizeNewer.TypeAssumptions.ptr_Len_unfold
-  ReplicaSetsBySizeNewer.TypeAssumptions.ptr_Less_unfold
-  ReplicaSetsBySizeNewer.TypeAssumptions.ptr_Swap_unfold
+  ReplicaSetsBySizeNewer.TypeAssumptions.unfold'Len
+  ReplicaSetsBySizeNewer.TypeAssumptions.unfold'Less
+  ReplicaSetsBySizeNewer.TypeAssumptions.unfold'Swap
+  ReplicaSetsBySizeNewer.TypeAssumptions.ptr_unfold'Len
+  ReplicaSetsBySizeNewer.TypeAssumptions.ptr_unfold'Less
+  ReplicaSetsBySizeNewer.TypeAssumptions.ptr_unfold'Swap
 
 structure «struct#90a2bc34» [GooseExts] where
   mk ::
@@ -7312,237 +7312,237 @@ noncomputable instance «struct#90a2bc34».zero_val [GooseExts] : ZeroVal «stru
 
 class «struct#90a2bc34».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying «struct#90a2bc34».underlying «struct#90a2bc34»
-  get_add : ∀ (x : «struct#90a2bc34»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#90a2bc34».underlying go!"add") #x (Val #(x.add'))
-  set_add : ∀ (x : «struct#90a2bc34») (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet «struct#90a2bc34».underlying go!"add") (PairV #x #y) (Val #(({ x with add' := y } : «struct#90a2bc34»)))
-  get_del : ∀ (x : «struct#90a2bc34»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#90a2bc34».underlying go!"del") #x (Val #(x.del'))
-  set_del : ∀ (x : «struct#90a2bc34») (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet «struct#90a2bc34».underlying go!"del") (PairV #x #y) (Val #(({ x with del' := y } : «struct#90a2bc34»)))
-  get_key : ∀ (x : «struct#90a2bc34»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#90a2bc34».underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : «struct#90a2bc34») (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet «struct#90a2bc34».underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : «struct#90a2bc34»)))
+  get'add : ∀ (x : «struct#90a2bc34»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#90a2bc34».underlying go!"add") #x (Val #(x.add'))
+  set'add : ∀ (x : «struct#90a2bc34») (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet «struct#90a2bc34».underlying go!"add") (PairV #x #y) (Val #(({ x with add' := y } : «struct#90a2bc34»)))
+  get'del : ∀ (x : «struct#90a2bc34»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#90a2bc34».underlying go!"del") #x (Val #(x.del'))
+  set'del : ∀ (x : «struct#90a2bc34») (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet «struct#90a2bc34».underlying go!"del") (PairV #x #y) (Val #(({ x with del' := y } : «struct#90a2bc34»)))
+  get'key : ∀ (x : «struct#90a2bc34»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#90a2bc34».underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : «struct#90a2bc34») (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet «struct#90a2bc34».underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : «struct#90a2bc34»)))
 
 attribute [instance] «struct#90a2bc34».TypeAssumptions.type_repr
-  «struct#90a2bc34».TypeAssumptions.get_add
-  «struct#90a2bc34».TypeAssumptions.set_add
-  «struct#90a2bc34».TypeAssumptions.get_del
-  «struct#90a2bc34».TypeAssumptions.set_del
-  «struct#90a2bc34».TypeAssumptions.get_key
-  «struct#90a2bc34».TypeAssumptions.set_key
+  «struct#90a2bc34».TypeAssumptions.get'add
+  «struct#90a2bc34».TypeAssumptions.set'add
+  «struct#90a2bc34».TypeAssumptions.get'del
+  «struct#90a2bc34».TypeAssumptions.set'del
+  «struct#90a2bc34».TypeAssumptions.get'key
+  «struct#90a2bc34».TypeAssumptions.set'key
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  BaseControllerRefManager_instance : BaseControllerRefManager.TypeAssumptions
-  PodControllerRefManager_instance : PodControllerRefManager.TypeAssumptions
-  ReplicaSetControllerRefManager_instance : ReplicaSetControllerRefManager.TypeAssumptions
-  ControllerRevisionControllerRefManager_instance : ControllerRevisionControllerRefManager.TypeAssumptions
-  objectForAddOwnerRefPatch_instance : objectForAddOwnerRefPatch.TypeAssumptions
-  objectMetaForPatch_instance : objectMetaForPatch.TypeAssumptions
-  objectForDeleteOwnerRefStrategicMergePatch_instance : objectForDeleteOwnerRefStrategicMergePatch.TypeAssumptions
-  objectMetaForMergePatch_instance : objectMetaForMergePatch.TypeAssumptions
-  ResyncPeriodFunc_instance : ResyncPeriodFunc.TypeAssumptions
-  ControllerExpectationsInterface_instance : ControllerExpectationsInterface.TypeAssumptions
-  ControllerExpectations_instance : ControllerExpectations.TypeAssumptions
-  ControlleeExpectations_instance : ControlleeExpectations.TypeAssumptions
-  UIDSet_instance : UIDSet.TypeAssumptions
-  UIDTrackingControllerExpectations_instance : UIDTrackingControllerExpectations.TypeAssumptions
-  RSControlInterface_instance : RSControlInterface.TypeAssumptions
-  RealRSControl_instance : RealRSControl.TypeAssumptions
-  ControllerRevisionControlInterface_instance : ControllerRevisionControlInterface.TypeAssumptions
-  RealControllerRevisionControl_instance : RealControllerRevisionControl.TypeAssumptions
-  PodControlInterface_instance : PodControlInterface.TypeAssumptions
-  RealPodControl_instance : RealPodControl.TypeAssumptions
-  FakePodControl_instance : FakePodControl.TypeAssumptions
-  ByLogging_instance : ByLogging.TypeAssumptions
-  ActivePods_instance : ActivePods.TypeAssumptions
-  ActivePodsWithRanks_instance : ActivePodsWithRanks.TypeAssumptions
-  filterRS_instance : filterRS.TypeAssumptions
-  ControllersByCreationTimestamp_instance : ControllersByCreationTimestamp.TypeAssumptions
-  ReplicaSetsByCreationTimestamp_instance : ReplicaSetsByCreationTimestamp.TypeAssumptions
-  ReplicaSetsBySizeOlder_instance : ReplicaSetsBySizeOlder.TypeAssumptions
-  ReplicaSetsBySizeNewer_instance : ReplicaSetsBySizeNewer.TypeAssumptions
-  «struct#90a2bc34_instance» : «struct#90a2bc34».TypeAssumptions
-  NewPodControllerRefManager_unfold : FuncUnfold NewPodControllerRefManager [] NewPodControllerRefManager.impl
-  NewReplicaSetControllerRefManager_unfold : FuncUnfold NewReplicaSetControllerRefManager [] NewReplicaSetControllerRefManager.impl
-  RecheckDeletionTimestamp_unfold : FuncUnfold RecheckDeletionTimestamp [] RecheckDeletionTimestamp.impl
-  NewControllerRevisionControllerRefManager_unfold : FuncUnfold NewControllerRevisionControllerRefManager [] NewControllerRevisionControllerRefManager.impl
-  ownerRefControllerPatch_unfold : FuncUnfold ownerRefControllerPatch [] ownerRefControllerPatch.impl
-  GenerateDeleteOwnerRefStrategicMergeBytes_unfold : FuncUnfold GenerateDeleteOwnerRefStrategicMergeBytes [] GenerateDeleteOwnerRefStrategicMergeBytes.impl
-  ownerReference_unfold : FuncUnfold ownerReference [] ownerReference.impl
-  NoResyncPeriodFunc_unfold : FuncUnfold NoResyncPeriodFunc [] NoResyncPeriodFunc.impl
-  StaticResyncPeriodFunc_unfold : FuncUnfold StaticResyncPeriodFunc [] StaticResyncPeriodFunc.impl
-  NewControllerExpectations_unfold : FuncUnfold NewControllerExpectations [] NewControllerExpectations.impl
-  NewUIDTrackingControllerExpectations_unfold : FuncUnfold NewUIDTrackingControllerExpectations [] NewUIDTrackingControllerExpectations.impl
-  getPodsLabelSet_unfold : FuncUnfold getPodsLabelSet [] getPodsLabelSet.impl
-  getPodsFinalizers_unfold : FuncUnfold getPodsFinalizers [] getPodsFinalizers.impl
-  getPodsAnnotationSet_unfold : FuncUnfold getPodsAnnotationSet [] getPodsAnnotationSet.impl
-  getPodsPrefix_unfold : FuncUnfold getPodsPrefix [] getPodsPrefix.impl
-  validateControllerRef_unfold : FuncUnfold validateControllerRef [] validateControllerRef.impl
-  GetPodFromTemplate_unfold : FuncUnfold GetPodFromTemplate [] GetPodFromTemplate.impl
-  afterOrZero_unfold : FuncUnfold afterOrZero [] afterOrZero.impl
-  logarithmicRankDiff_unfold : FuncUnfold logarithmicRankDiff [] logarithmicRankDiff.impl
-  podReadyTime_unfold : FuncUnfold podReadyTime [] podReadyTime.impl
-  maxContainerRestarts_unfold : FuncUnfold maxContainerRestarts [] maxContainerRestarts.impl
-  compareMaxContainerRestarts_unfold : FuncUnfold compareMaxContainerRestarts [] compareMaxContainerRestarts.impl
-  FilterClaimedPods_unfold : FuncUnfold FilterClaimedPods [] FilterClaimedPods.impl
-  FilterActivePods_unfold : FuncUnfold FilterActivePods [] FilterActivePods.impl
-  FilterTerminatingPods_unfold : FuncUnfold FilterTerminatingPods [] FilterTerminatingPods.impl
-  CountTerminatingPods_unfold : FuncUnfold CountTerminatingPods [] CountTerminatingPods.impl
-  nextPodAvailabilityCheck_unfold : FuncUnfold nextPodAvailabilityCheck [] nextPodAvailabilityCheck.impl
-  findMinNextPodAvailabilitySimpleCheck_unfold : FuncUnfold findMinNextPodAvailabilitySimpleCheck [] findMinNextPodAvailabilitySimpleCheck.impl
-  FindMinNextPodAvailabilityCheck_unfold : FuncUnfold FindMinNextPodAvailabilityCheck [] FindMinNextPodAvailabilityCheck.impl
-  IsPodActive_unfold : FuncUnfold IsPodActive [] IsPodActive.impl
-  IsPodTerminating_unfold : FuncUnfold IsPodTerminating [] IsPodTerminating.impl
-  FilterActiveReplicaSets_unfold : FuncUnfold FilterActiveReplicaSets [] FilterActiveReplicaSets.impl
-  FilterReplicaSets_unfold : FuncUnfold FilterReplicaSets [] FilterReplicaSets.impl
-  AddPodNodeNameIndexer_unfold : FuncUnfold AddPodNodeNameIndexer [] AddPodNodeNameIndexer.impl
-  PodControllerIndexKey_unfold : FuncUnfold PodControllerIndexKey [] PodControllerIndexKey.impl
-  AddPodControllerIndexer_unfold : FuncUnfold AddPodControllerIndexer [] AddPodControllerIndexer.impl
-  FilterPodsByOwner_unfold : FuncUnfold FilterPodsByOwner [] FilterPodsByOwner.impl
-  PodKey_unfold : FuncUnfold PodKey [] PodKey.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_json_Assumption : _root_.Perennial.encoding.json.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_apps_v1_Assumption : _root_.Perennial.k8s_io.api.apps.v1.Assumptions
-  import_core_v1_Assumption : _root_.Perennial.k8s_io.api.core.v1.Assumptions
-  import_api_errors_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.Assumptions
-  import_meta_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_labels_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
-  import_schema_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
-  import_types_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
-  import_util_errors_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Assumptions
-  import_klog_Assumption : _root_.Perennial.k8s_io.klog.v2.Assumptions
-  import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
-  import_fnv_Assumption : _root_.Perennial.hash.fnv.Assumptions
-  import_math_Assumption : _root_.Perennial.math.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_meta_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions
-  import_pkg_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
-  import_rand_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.rand.Assumptions
-  import_util_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.Assumptions
-  import_sets_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
-  import_strategicpatch_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions
-  import_wait_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Assumptions
-  import_feature_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
-  import_kubernetes_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.Assumptions
-  import_cache_Assumption : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions
-  import_record_Assumption : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions
-  import_retry_Assumption : _root_.Perennial.k8s_io.client_go.util.retry.Assumptions
-  import_pod_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.api.v1.pod.Assumptions
-  import_helper_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.apis.core.helper.Assumptions
-  import_install_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.apis.core.install.Assumptions
-  import_validation_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.apis.core.validation.Assumptions
-  import_features_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.features.Assumptions
-  import_hash_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.util.hash.Assumptions
-  import_taints_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.util.taints.Assumptions
-  import_clock_Assumption : _root_.Perennial.k8s_io.utils.clock.Assumptions
-  import_ptr_Assumption : _root_.Perennial.k8s_io.utils.ptr.Assumptions
+  instance'BaseControllerRefManager : BaseControllerRefManager.TypeAssumptions
+  instance'PodControllerRefManager : PodControllerRefManager.TypeAssumptions
+  instance'ReplicaSetControllerRefManager : ReplicaSetControllerRefManager.TypeAssumptions
+  instance'ControllerRevisionControllerRefManager : ControllerRevisionControllerRefManager.TypeAssumptions
+  instance'objectForAddOwnerRefPatch : objectForAddOwnerRefPatch.TypeAssumptions
+  instance'objectMetaForPatch : objectMetaForPatch.TypeAssumptions
+  instance'objectForDeleteOwnerRefStrategicMergePatch : objectForDeleteOwnerRefStrategicMergePatch.TypeAssumptions
+  instance'objectMetaForMergePatch : objectMetaForMergePatch.TypeAssumptions
+  instance'ResyncPeriodFunc : ResyncPeriodFunc.TypeAssumptions
+  instance'ControllerExpectationsInterface : ControllerExpectationsInterface.TypeAssumptions
+  instance'ControllerExpectations : ControllerExpectations.TypeAssumptions
+  instance'ControlleeExpectations : ControlleeExpectations.TypeAssumptions
+  instance'UIDSet : UIDSet.TypeAssumptions
+  instance'UIDTrackingControllerExpectations : UIDTrackingControllerExpectations.TypeAssumptions
+  instance'RSControlInterface : RSControlInterface.TypeAssumptions
+  instance'RealRSControl : RealRSControl.TypeAssumptions
+  instance'ControllerRevisionControlInterface : ControllerRevisionControlInterface.TypeAssumptions
+  instance'RealControllerRevisionControl : RealControllerRevisionControl.TypeAssumptions
+  instance'PodControlInterface : PodControlInterface.TypeAssumptions
+  instance'RealPodControl : RealPodControl.TypeAssumptions
+  instance'FakePodControl : FakePodControl.TypeAssumptions
+  instance'ByLogging : ByLogging.TypeAssumptions
+  instance'ActivePods : ActivePods.TypeAssumptions
+  instance'ActivePodsWithRanks : ActivePodsWithRanks.TypeAssumptions
+  instance'filterRS : filterRS.TypeAssumptions
+  instance'ControllersByCreationTimestamp : ControllersByCreationTimestamp.TypeAssumptions
+  instance'ReplicaSetsByCreationTimestamp : ReplicaSetsByCreationTimestamp.TypeAssumptions
+  instance'ReplicaSetsBySizeOlder : ReplicaSetsBySizeOlder.TypeAssumptions
+  instance'ReplicaSetsBySizeNewer : ReplicaSetsBySizeNewer.TypeAssumptions
+  «instance'struct#90a2bc34» : «struct#90a2bc34».TypeAssumptions
+  unfold'NewPodControllerRefManager : FuncUnfold NewPodControllerRefManager [] NewPodControllerRefManager.impl
+  unfold'NewReplicaSetControllerRefManager : FuncUnfold NewReplicaSetControllerRefManager [] NewReplicaSetControllerRefManager.impl
+  unfold'RecheckDeletionTimestamp : FuncUnfold RecheckDeletionTimestamp [] RecheckDeletionTimestamp.impl
+  unfold'NewControllerRevisionControllerRefManager : FuncUnfold NewControllerRevisionControllerRefManager [] NewControllerRevisionControllerRefManager.impl
+  unfold'ownerRefControllerPatch : FuncUnfold ownerRefControllerPatch [] ownerRefControllerPatch.impl
+  unfold'GenerateDeleteOwnerRefStrategicMergeBytes : FuncUnfold GenerateDeleteOwnerRefStrategicMergeBytes [] GenerateDeleteOwnerRefStrategicMergeBytes.impl
+  unfold'ownerReference : FuncUnfold ownerReference [] ownerReference.impl
+  unfold'NoResyncPeriodFunc : FuncUnfold NoResyncPeriodFunc [] NoResyncPeriodFunc.impl
+  unfold'StaticResyncPeriodFunc : FuncUnfold StaticResyncPeriodFunc [] StaticResyncPeriodFunc.impl
+  unfold'NewControllerExpectations : FuncUnfold NewControllerExpectations [] NewControllerExpectations.impl
+  unfold'NewUIDTrackingControllerExpectations : FuncUnfold NewUIDTrackingControllerExpectations [] NewUIDTrackingControllerExpectations.impl
+  unfold'getPodsLabelSet : FuncUnfold getPodsLabelSet [] getPodsLabelSet.impl
+  unfold'getPodsFinalizers : FuncUnfold getPodsFinalizers [] getPodsFinalizers.impl
+  unfold'getPodsAnnotationSet : FuncUnfold getPodsAnnotationSet [] getPodsAnnotationSet.impl
+  unfold'getPodsPrefix : FuncUnfold getPodsPrefix [] getPodsPrefix.impl
+  unfold'validateControllerRef : FuncUnfold validateControllerRef [] validateControllerRef.impl
+  unfold'GetPodFromTemplate : FuncUnfold GetPodFromTemplate [] GetPodFromTemplate.impl
+  unfold'afterOrZero : FuncUnfold afterOrZero [] afterOrZero.impl
+  unfold'logarithmicRankDiff : FuncUnfold logarithmicRankDiff [] logarithmicRankDiff.impl
+  unfold'podReadyTime : FuncUnfold podReadyTime [] podReadyTime.impl
+  unfold'maxContainerRestarts : FuncUnfold maxContainerRestarts [] maxContainerRestarts.impl
+  unfold'compareMaxContainerRestarts : FuncUnfold compareMaxContainerRestarts [] compareMaxContainerRestarts.impl
+  unfold'FilterClaimedPods : FuncUnfold FilterClaimedPods [] FilterClaimedPods.impl
+  unfold'FilterActivePods : FuncUnfold FilterActivePods [] FilterActivePods.impl
+  unfold'FilterTerminatingPods : FuncUnfold FilterTerminatingPods [] FilterTerminatingPods.impl
+  unfold'CountTerminatingPods : FuncUnfold CountTerminatingPods [] CountTerminatingPods.impl
+  unfold'nextPodAvailabilityCheck : FuncUnfold nextPodAvailabilityCheck [] nextPodAvailabilityCheck.impl
+  unfold'findMinNextPodAvailabilitySimpleCheck : FuncUnfold findMinNextPodAvailabilitySimpleCheck [] findMinNextPodAvailabilitySimpleCheck.impl
+  unfold'FindMinNextPodAvailabilityCheck : FuncUnfold FindMinNextPodAvailabilityCheck [] FindMinNextPodAvailabilityCheck.impl
+  unfold'IsPodActive : FuncUnfold IsPodActive [] IsPodActive.impl
+  unfold'IsPodTerminating : FuncUnfold IsPodTerminating [] IsPodTerminating.impl
+  unfold'FilterActiveReplicaSets : FuncUnfold FilterActiveReplicaSets [] FilterActiveReplicaSets.impl
+  unfold'FilterReplicaSets : FuncUnfold FilterReplicaSets [] FilterReplicaSets.impl
+  unfold'AddPodNodeNameIndexer : FuncUnfold AddPodNodeNameIndexer [] AddPodNodeNameIndexer.impl
+  unfold'PodControllerIndexKey : FuncUnfold PodControllerIndexKey [] PodControllerIndexKey.impl
+  unfold'AddPodControllerIndexer : FuncUnfold AddPodControllerIndexer [] AddPodControllerIndexer.impl
+  unfold'FilterPodsByOwner : FuncUnfold FilterPodsByOwner [] FilterPodsByOwner.impl
+  unfold'PodKey : FuncUnfold PodKey [] PodKey.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'json : _root_.Perennial.encoding.json.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'apps_v1 : _root_.Perennial.k8s_io.api.apps.v1.Assumptions
+  import'core_v1 : _root_.Perennial.k8s_io.api.core.v1.Assumptions
+  import'api_errors : _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.Assumptions
+  import'meta_v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'labels : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
+  import'schema : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
+  import'types : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
+  import'util_errors : _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Assumptions
+  import'klog : _root_.Perennial.k8s_io.klog.v2.Assumptions
+  import'binary : _root_.Perennial.encoding.binary.Assumptions
+  import'fnv : _root_.Perennial.hash.fnv.Assumptions
+  import'math : _root_.Perennial.math.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'meta : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions
+  import'pkg_runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  import'rand : _root_.Perennial.k8s_io.apimachinery.pkg.util.rand.Assumptions
+  import'util_runtime : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.Assumptions
+  import'sets : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
+  import'strategicpatch : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions
+  import'wait : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Assumptions
+  import'feature : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
+  import'kubernetes : _root_.Perennial.k8s_io.client_go.kubernetes.Assumptions
+  import'cache : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions
+  import'record : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions
+  import'retry : _root_.Perennial.k8s_io.client_go.util.retry.Assumptions
+  import'pod : _root_.Perennial.k8s_io.kubernetes.pkg.api.v1.pod.Assumptions
+  import'helper : _root_.Perennial.k8s_io.kubernetes.pkg.apis.core.helper.Assumptions
+  import'install : _root_.Perennial.k8s_io.kubernetes.pkg.apis.core.install.Assumptions
+  import'validation : _root_.Perennial.k8s_io.kubernetes.pkg.apis.core.validation.Assumptions
+  import'features : _root_.Perennial.k8s_io.kubernetes.pkg.features.Assumptions
+  import'hash : _root_.Perennial.k8s_io.kubernetes.pkg.util.hash.Assumptions
+  import'taints : _root_.Perennial.k8s_io.kubernetes.pkg.util.taints.Assumptions
+  import'clock : _root_.Perennial.k8s_io.utils.clock.Assumptions
+  import'ptr : _root_.Perennial.k8s_io.utils.ptr.Assumptions
 
-attribute [instance] Assumptions.BaseControllerRefManager_instance
-  Assumptions.PodControllerRefManager_instance
-  Assumptions.ReplicaSetControllerRefManager_instance
-  Assumptions.ControllerRevisionControllerRefManager_instance
-  Assumptions.objectForAddOwnerRefPatch_instance
-  Assumptions.objectMetaForPatch_instance
-  Assumptions.objectForDeleteOwnerRefStrategicMergePatch_instance
-  Assumptions.objectMetaForMergePatch_instance
-  Assumptions.ResyncPeriodFunc_instance
-  Assumptions.ControllerExpectationsInterface_instance
-  Assumptions.ControllerExpectations_instance
-  Assumptions.ControlleeExpectations_instance
-  Assumptions.UIDSet_instance
-  Assumptions.UIDTrackingControllerExpectations_instance
-  Assumptions.RSControlInterface_instance
-  Assumptions.RealRSControl_instance
-  Assumptions.ControllerRevisionControlInterface_instance
-  Assumptions.RealControllerRevisionControl_instance
-  Assumptions.PodControlInterface_instance
-  Assumptions.RealPodControl_instance
-  Assumptions.FakePodControl_instance
-  Assumptions.ByLogging_instance
-  Assumptions.ActivePods_instance
-  Assumptions.ActivePodsWithRanks_instance
-  Assumptions.filterRS_instance
-  Assumptions.ControllersByCreationTimestamp_instance
-  Assumptions.ReplicaSetsByCreationTimestamp_instance
-  Assumptions.ReplicaSetsBySizeOlder_instance
-  Assumptions.ReplicaSetsBySizeNewer_instance
-  Assumptions.«struct#90a2bc34_instance»
-  Assumptions.NewPodControllerRefManager_unfold
-  Assumptions.NewReplicaSetControllerRefManager_unfold
-  Assumptions.RecheckDeletionTimestamp_unfold
-  Assumptions.NewControllerRevisionControllerRefManager_unfold
-  Assumptions.ownerRefControllerPatch_unfold
-  Assumptions.GenerateDeleteOwnerRefStrategicMergeBytes_unfold
-  Assumptions.ownerReference_unfold
-  Assumptions.NoResyncPeriodFunc_unfold
-  Assumptions.StaticResyncPeriodFunc_unfold
-  Assumptions.NewControllerExpectations_unfold
-  Assumptions.NewUIDTrackingControllerExpectations_unfold
-  Assumptions.getPodsLabelSet_unfold
-  Assumptions.getPodsFinalizers_unfold
-  Assumptions.getPodsAnnotationSet_unfold
-  Assumptions.getPodsPrefix_unfold
-  Assumptions.validateControllerRef_unfold
-  Assumptions.GetPodFromTemplate_unfold
-  Assumptions.afterOrZero_unfold
-  Assumptions.logarithmicRankDiff_unfold
-  Assumptions.podReadyTime_unfold
-  Assumptions.maxContainerRestarts_unfold
-  Assumptions.compareMaxContainerRestarts_unfold
-  Assumptions.FilterClaimedPods_unfold
-  Assumptions.FilterActivePods_unfold
-  Assumptions.FilterTerminatingPods_unfold
-  Assumptions.CountTerminatingPods_unfold
-  Assumptions.nextPodAvailabilityCheck_unfold
-  Assumptions.findMinNextPodAvailabilitySimpleCheck_unfold
-  Assumptions.FindMinNextPodAvailabilityCheck_unfold
-  Assumptions.IsPodActive_unfold
-  Assumptions.IsPodTerminating_unfold
-  Assumptions.FilterActiveReplicaSets_unfold
-  Assumptions.FilterReplicaSets_unfold
-  Assumptions.AddPodNodeNameIndexer_unfold
-  Assumptions.PodControllerIndexKey_unfold
-  Assumptions.AddPodControllerIndexer_unfold
-  Assumptions.FilterPodsByOwner_unfold
-  Assumptions.PodKey_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_json_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_apps_v1_Assumption
-  Assumptions.import_core_v1_Assumption
-  Assumptions.import_api_errors_Assumption
-  Assumptions.import_meta_v1_Assumption
-  Assumptions.import_labels_Assumption
-  Assumptions.import_schema_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_util_errors_Assumption
-  Assumptions.import_klog_Assumption
-  Assumptions.import_binary_Assumption
-  Assumptions.import_fnv_Assumption
-  Assumptions.import_math_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_meta_Assumption
-  Assumptions.import_pkg_runtime_Assumption
-  Assumptions.import_rand_Assumption
-  Assumptions.import_util_runtime_Assumption
-  Assumptions.import_sets_Assumption
-  Assumptions.import_strategicpatch_Assumption
-  Assumptions.import_wait_Assumption
-  Assumptions.import_feature_Assumption
-  Assumptions.import_kubernetes_Assumption
-  Assumptions.import_cache_Assumption
-  Assumptions.import_record_Assumption
-  Assumptions.import_retry_Assumption
-  Assumptions.import_pod_Assumption
-  Assumptions.import_helper_Assumption
-  Assumptions.import_install_Assumption
-  Assumptions.import_validation_Assumption
-  Assumptions.import_features_Assumption
-  Assumptions.import_hash_Assumption
-  Assumptions.import_taints_Assumption
-  Assumptions.import_clock_Assumption
-  Assumptions.import_ptr_Assumption
+attribute [instance] Assumptions.instance'BaseControllerRefManager
+  Assumptions.instance'PodControllerRefManager
+  Assumptions.instance'ReplicaSetControllerRefManager
+  Assumptions.instance'ControllerRevisionControllerRefManager
+  Assumptions.instance'objectForAddOwnerRefPatch
+  Assumptions.instance'objectMetaForPatch
+  Assumptions.instance'objectForDeleteOwnerRefStrategicMergePatch
+  Assumptions.instance'objectMetaForMergePatch
+  Assumptions.instance'ResyncPeriodFunc
+  Assumptions.instance'ControllerExpectationsInterface
+  Assumptions.instance'ControllerExpectations
+  Assumptions.instance'ControlleeExpectations
+  Assumptions.instance'UIDSet
+  Assumptions.instance'UIDTrackingControllerExpectations
+  Assumptions.instance'RSControlInterface
+  Assumptions.instance'RealRSControl
+  Assumptions.instance'ControllerRevisionControlInterface
+  Assumptions.instance'RealControllerRevisionControl
+  Assumptions.instance'PodControlInterface
+  Assumptions.instance'RealPodControl
+  Assumptions.instance'FakePodControl
+  Assumptions.instance'ByLogging
+  Assumptions.instance'ActivePods
+  Assumptions.instance'ActivePodsWithRanks
+  Assumptions.instance'filterRS
+  Assumptions.instance'ControllersByCreationTimestamp
+  Assumptions.instance'ReplicaSetsByCreationTimestamp
+  Assumptions.instance'ReplicaSetsBySizeOlder
+  Assumptions.instance'ReplicaSetsBySizeNewer
+  Assumptions.«instance'struct#90a2bc34»
+  Assumptions.unfold'NewPodControllerRefManager
+  Assumptions.unfold'NewReplicaSetControllerRefManager
+  Assumptions.unfold'RecheckDeletionTimestamp
+  Assumptions.unfold'NewControllerRevisionControllerRefManager
+  Assumptions.unfold'ownerRefControllerPatch
+  Assumptions.unfold'GenerateDeleteOwnerRefStrategicMergeBytes
+  Assumptions.unfold'ownerReference
+  Assumptions.unfold'NoResyncPeriodFunc
+  Assumptions.unfold'StaticResyncPeriodFunc
+  Assumptions.unfold'NewControllerExpectations
+  Assumptions.unfold'NewUIDTrackingControllerExpectations
+  Assumptions.unfold'getPodsLabelSet
+  Assumptions.unfold'getPodsFinalizers
+  Assumptions.unfold'getPodsAnnotationSet
+  Assumptions.unfold'getPodsPrefix
+  Assumptions.unfold'validateControllerRef
+  Assumptions.unfold'GetPodFromTemplate
+  Assumptions.unfold'afterOrZero
+  Assumptions.unfold'logarithmicRankDiff
+  Assumptions.unfold'podReadyTime
+  Assumptions.unfold'maxContainerRestarts
+  Assumptions.unfold'compareMaxContainerRestarts
+  Assumptions.unfold'FilterClaimedPods
+  Assumptions.unfold'FilterActivePods
+  Assumptions.unfold'FilterTerminatingPods
+  Assumptions.unfold'CountTerminatingPods
+  Assumptions.unfold'nextPodAvailabilityCheck
+  Assumptions.unfold'findMinNextPodAvailabilitySimpleCheck
+  Assumptions.unfold'FindMinNextPodAvailabilityCheck
+  Assumptions.unfold'IsPodActive
+  Assumptions.unfold'IsPodTerminating
+  Assumptions.unfold'FilterActiveReplicaSets
+  Assumptions.unfold'FilterReplicaSets
+  Assumptions.unfold'AddPodNodeNameIndexer
+  Assumptions.unfold'PodControllerIndexKey
+  Assumptions.unfold'AddPodControllerIndexer
+  Assumptions.unfold'FilterPodsByOwner
+  Assumptions.unfold'PodKey
+  Assumptions.import'context
+  Assumptions.import'json
+  Assumptions.import'fmt
+  Assumptions.import'sync
+  Assumptions.import'apps_v1
+  Assumptions.import'core_v1
+  Assumptions.import'api_errors
+  Assumptions.import'meta_v1
+  Assumptions.import'labels
+  Assumptions.import'schema
+  Assumptions.import'types
+  Assumptions.import'util_errors
+  Assumptions.import'klog
+  Assumptions.import'binary
+  Assumptions.import'fnv
+  Assumptions.import'math
+  Assumptions.import'atomic
+  Assumptions.import'time
+  Assumptions.import'meta
+  Assumptions.import'pkg_runtime
+  Assumptions.import'rand
+  Assumptions.import'util_runtime
+  Assumptions.import'sets
+  Assumptions.import'strategicpatch
+  Assumptions.import'wait
+  Assumptions.import'feature
+  Assumptions.import'kubernetes
+  Assumptions.import'cache
+  Assumptions.import'record
+  Assumptions.import'retry
+  Assumptions.import'pod
+  Assumptions.import'helper
+  Assumptions.import'install
+  Assumptions.import'validation
+  Assumptions.import'features
+  Assumptions.import'hash
+  Assumptions.import'taints
+  Assumptions.import'clock
+  Assumptions.import'ptr
 
 end k8s_io.kubernetes.pkg.controller
 

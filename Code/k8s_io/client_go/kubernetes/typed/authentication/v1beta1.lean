@@ -314,27 +314,27 @@ attribute [instance] tokenReviews.TypeAssumptions.type_repr
   tokenReviews.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  AuthenticationV1beta1Interface_instance : AuthenticationV1beta1Interface.TypeAssumptions
-  AuthenticationV1beta1Client_instance : AuthenticationV1beta1Client.TypeAssumptions
-  SelfSubjectReviewExpansion_instance : SelfSubjectReviewExpansion.TypeAssumptions
-  TokenReviewExpansion_instance : TokenReviewExpansion.TypeAssumptions
-  SelfSubjectReviewsGetter_instance : SelfSubjectReviewsGetter.TypeAssumptions
-  SelfSubjectReviewInterface_instance : SelfSubjectReviewInterface.TypeAssumptions
-  selfSubjectReviews_instance : selfSubjectReviews.TypeAssumptions
-  TokenReviewsGetter_instance : TokenReviewsGetter.TypeAssumptions
-  TokenReviewInterface_instance : TokenReviewInterface.TypeAssumptions
-  tokenReviews_instance : tokenReviews.TypeAssumptions
+  instance'AuthenticationV1beta1Interface : AuthenticationV1beta1Interface.TypeAssumptions
+  instance'AuthenticationV1beta1Client : AuthenticationV1beta1Client.TypeAssumptions
+  instance'SelfSubjectReviewExpansion : SelfSubjectReviewExpansion.TypeAssumptions
+  instance'TokenReviewExpansion : TokenReviewExpansion.TypeAssumptions
+  instance'SelfSubjectReviewsGetter : SelfSubjectReviewsGetter.TypeAssumptions
+  instance'SelfSubjectReviewInterface : SelfSubjectReviewInterface.TypeAssumptions
+  instance'selfSubjectReviews : selfSubjectReviews.TypeAssumptions
+  instance'TokenReviewsGetter : TokenReviewsGetter.TypeAssumptions
+  instance'TokenReviewInterface : TokenReviewInterface.TypeAssumptions
+  instance'tokenReviews : tokenReviews.TypeAssumptions
 
-attribute [instance] Assumptions.AuthenticationV1beta1Interface_instance
-  Assumptions.AuthenticationV1beta1Client_instance
-  Assumptions.SelfSubjectReviewExpansion_instance
-  Assumptions.TokenReviewExpansion_instance
-  Assumptions.SelfSubjectReviewsGetter_instance
-  Assumptions.SelfSubjectReviewInterface_instance
-  Assumptions.selfSubjectReviews_instance
-  Assumptions.TokenReviewsGetter_instance
-  Assumptions.TokenReviewInterface_instance
-  Assumptions.tokenReviews_instance
+attribute [instance] Assumptions.instance'AuthenticationV1beta1Interface
+  Assumptions.instance'AuthenticationV1beta1Client
+  Assumptions.instance'SelfSubjectReviewExpansion
+  Assumptions.instance'TokenReviewExpansion
+  Assumptions.instance'SelfSubjectReviewsGetter
+  Assumptions.instance'SelfSubjectReviewInterface
+  Assumptions.instance'selfSubjectReviews
+  Assumptions.instance'TokenReviewsGetter
+  Assumptions.instance'TokenReviewInterface
+  Assumptions.instance'tokenReviews
 
 end k8s_io.client_go.kubernetes.typed.authentication.v1beta1
 

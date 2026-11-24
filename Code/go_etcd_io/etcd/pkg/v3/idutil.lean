@@ -128,7 +128,7 @@ noncomputable instance Generator.zero_val [GooseExts] : ZeroVal Generator :=
 @[irreducible] noncomputable def Generator.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Generator.fieldsUnsealed
 
-noncomputable instance equals_unfold_Generator [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Generator [GooseExts] [GoGlobalContext] :
     EqualsUnfold Generator.fields Generator.fieldsUnsealed :=
   ⟨by unfold Generator.fields; rfl⟩
 
@@ -138,38 +138,38 @@ noncomputable instance equals_unfold_Generator [GooseExts] [GoGlobalContext] :
 class Generator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Generator.underlying Generator
   underlying : go.UnderlyingDirectedEq Generator.ty Generator.underlying
-  get_prefix : ∀ (x : Generator), go.IsGoStepPureDetTagged under (StructFieldGet Generator.underlying go!"prefix") #x (Val #(x.prefix'))
-  set_prefix : ∀ (x : Generator) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Generator.underlying go!"prefix") (PairV #x #y) (Val #(({ x with prefix' := y } : Generator)))
-  get_suffix : ∀ (x : Generator), go.IsGoStepPureDetTagged under (StructFieldGet Generator.underlying go!"suffix") #x (Val #(x.suffix'))
-  set_suffix : ∀ (x : Generator) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Generator.underlying go!"suffix") (PairV #x #y) (Val #(({ x with suffix' := y } : Generator)))
+  get'prefix : ∀ (x : Generator), go.IsGoStepPureDetTagged under (StructFieldGet Generator.underlying go!"prefix") #x (Val #(x.prefix'))
+  set'prefix : ∀ (x : Generator) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Generator.underlying go!"prefix") (PairV #x #y) (Val #(({ x with prefix' := y } : Generator)))
+  get'suffix : ∀ (x : Generator), go.IsGoStepPureDetTagged under (StructFieldGet Generator.underlying go!"suffix") #x (Val #(x.suffix'))
+  set'suffix : ∀ (x : Generator) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Generator.underlying go!"suffix") (PairV #x #y) (Val #(({ x with suffix' := y } : Generator)))
   method_set : go.MethodSetIs Generator.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Generator.ty) [(go!"Next", (some (go.signature.Signature [] false [go.uint64])))]
-  ptr_Next_unfold : MethodUnfold (go.GoType.PointerType Generator.ty) go!"Next" Generator.Next.impl
+  ptr_unfold'Next : MethodUnfold (go.GoType.PointerType Generator.ty) go!"Next" Generator.Next.impl
 
 attribute [instance] Generator.TypeAssumptions.type_repr
   Generator.TypeAssumptions.underlying
-  Generator.TypeAssumptions.get_prefix
-  Generator.TypeAssumptions.set_prefix
-  Generator.TypeAssumptions.get_suffix
-  Generator.TypeAssumptions.set_suffix
+  Generator.TypeAssumptions.get'prefix
+  Generator.TypeAssumptions.set'prefix
+  Generator.TypeAssumptions.get'suffix
+  Generator.TypeAssumptions.set'suffix
   Generator.TypeAssumptions.method_set
   Generator.TypeAssumptions.ptr_method_set
-  Generator.TypeAssumptions.ptr_Next_unfold
+  Generator.TypeAssumptions.ptr_unfold'Next
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Generator_instance : Generator.TypeAssumptions
-  NewGenerator_unfold : FuncUnfold NewGenerator [] NewGenerator.impl
-  lowbit_unfold : FuncUnfold lowbit [] lowbit.impl
-  import_math_Assumption : _root_.Perennial.math.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'Generator : Generator.TypeAssumptions
+  unfold'NewGenerator : FuncUnfold NewGenerator [] NewGenerator.impl
+  unfold'lowbit : FuncUnfold lowbit [] lowbit.impl
+  import'math : _root_.Perennial.math.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.Generator_instance
-  Assumptions.NewGenerator_unfold
-  Assumptions.lowbit_unfold
-  Assumptions.import_math_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'Generator
+  Assumptions.unfold'NewGenerator
+  Assumptions.unfold'lowbit
+  Assumptions.import'math
+  Assumptions.import'atomic
+  Assumptions.import'time
 
 end go_etcd_io.etcd.pkg.v3.idutil
 

@@ -667,7 +667,7 @@ noncomputable instance autoTracerProvider.zero_val [GooseExts] : ZeroVal autoTra
 @[irreducible] noncomputable def autoTracerProvider.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   autoTracerProvider.fieldsUnsealed
 
-noncomputable instance equals_unfold_autoTracerProvider [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'autoTracerProvider [GooseExts] [GoGlobalContext] :
     EqualsUnfold autoTracerProvider.fields autoTracerProvider.fieldsUnsealed :=
   ⟨by unfold autoTracerProvider.fields; rfl⟩
 
@@ -677,15 +677,15 @@ noncomputable instance equals_unfold_autoTracerProvider [GooseExts] [GoGlobalCon
 class autoTracerProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying autoTracerProvider.underlying autoTracerProvider
   underlying : go.UnderlyingDirectedEq autoTracerProvider.ty autoTracerProvider.underlying
-  get_TracerProvider : ∀ (x : autoTracerProvider), go.IsGoStepPureDetTagged under (StructFieldGet autoTracerProvider.underlying go!"TracerProvider") #x (Val #(x.TracerProvider'))
-  set_TracerProvider : ∀ (x : autoTracerProvider) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.TracerProvider), go.IsGoStepPureDetTagged under (StructFieldSet autoTracerProvider.underlying go!"TracerProvider") (PairV #x #y) (Val #(({ x with TracerProvider' := y } : autoTracerProvider)))
+  get'TracerProvider : ∀ (x : autoTracerProvider), go.IsGoStepPureDetTagged under (StructFieldGet autoTracerProvider.underlying go!"TracerProvider") #x (Val #(x.TracerProvider'))
+  set'TracerProvider : ∀ (x : autoTracerProvider) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.TracerProvider), go.IsGoStepPureDetTagged under (StructFieldSet autoTracerProvider.underlying go!"TracerProvider") (PairV #x #y) (Val #(({ x with TracerProvider' := y } : autoTracerProvider)))
   method_set : go.MethodSetIs autoTracerProvider.ty [(go!"Tracer", (some (go.signature.Signature [go.string, (go.GoType.SliceType TracerOption.ty)] true [Tracer.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType autoTracerProvider.ty) [(go!"Tracer", (some (go.signature.Signature [go.string, (go.GoType.SliceType TracerOption.ty)] true [Tracer.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] autoTracerProvider.TypeAssumptions.type_repr
   autoTracerProvider.TypeAssumptions.underlying
-  autoTracerProvider.TypeAssumptions.get_TracerProvider
-  autoTracerProvider.TypeAssumptions.set_TracerProvider
+  autoTracerProvider.TypeAssumptions.get'TracerProvider
+  autoTracerProvider.TypeAssumptions.set'TracerProvider
   autoTracerProvider.TypeAssumptions.method_set
   autoTracerProvider.TypeAssumptions.ptr_method_set
 
@@ -708,7 +708,7 @@ noncomputable instance autoTracer.zero_val [GooseExts] : ZeroVal autoTracer :=
 @[irreducible] noncomputable def autoTracer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   autoTracer.fieldsUnsealed
 
-noncomputable instance equals_unfold_autoTracer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'autoTracer [GooseExts] [GoGlobalContext] :
     EqualsUnfold autoTracer.fields autoTracer.fieldsUnsealed :=
   ⟨by unfold autoTracer.fields; rfl⟩
 
@@ -718,27 +718,27 @@ noncomputable instance equals_unfold_autoTracer [GooseExts] [GoGlobalContext] :
 class autoTracer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying autoTracer.underlying autoTracer
   underlying : go.UnderlyingDirectedEq autoTracer.ty autoTracer.underlying
-  get_Tracer : ∀ (x : autoTracer), go.IsGoStepPureDetTagged under (StructFieldGet autoTracer.underlying go!"Tracer") #x (Val #(x.Tracer'))
-  set_Tracer : ∀ (x : autoTracer) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Tracer), go.IsGoStepPureDetTagged under (StructFieldSet autoTracer.underlying go!"Tracer") (PairV #x #y) (Val #(({ x with Tracer' := y } : autoTracer)))
-  get_name : ∀ (x : autoTracer), go.IsGoStepPureDetTagged under (StructFieldGet autoTracer.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : autoTracer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet autoTracer.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : autoTracer)))
-  get_schemaURL : ∀ (x : autoTracer), go.IsGoStepPureDetTagged under (StructFieldGet autoTracer.underlying go!"schemaURL") #x (Val #(x.schemaURL'))
-  set_schemaURL : ∀ (x : autoTracer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet autoTracer.underlying go!"schemaURL") (PairV #x #y) (Val #(({ x with schemaURL' := y } : autoTracer)))
-  get_version : ∀ (x : autoTracer), go.IsGoStepPureDetTagged under (StructFieldGet autoTracer.underlying go!"version") #x (Val #(x.version'))
-  set_version : ∀ (x : autoTracer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet autoTracer.underlying go!"version") (PairV #x #y) (Val #(({ x with version' := y } : autoTracer)))
+  get'Tracer : ∀ (x : autoTracer), go.IsGoStepPureDetTagged under (StructFieldGet autoTracer.underlying go!"Tracer") #x (Val #(x.Tracer'))
+  set'Tracer : ∀ (x : autoTracer) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Tracer), go.IsGoStepPureDetTagged under (StructFieldSet autoTracer.underlying go!"Tracer") (PairV #x #y) (Val #(({ x with Tracer' := y } : autoTracer)))
+  get'name : ∀ (x : autoTracer), go.IsGoStepPureDetTagged under (StructFieldGet autoTracer.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : autoTracer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet autoTracer.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : autoTracer)))
+  get'schemaURL : ∀ (x : autoTracer), go.IsGoStepPureDetTagged under (StructFieldGet autoTracer.underlying go!"schemaURL") #x (Val #(x.schemaURL'))
+  set'schemaURL : ∀ (x : autoTracer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet autoTracer.underlying go!"schemaURL") (PairV #x #y) (Val #(({ x with schemaURL' := y } : autoTracer)))
+  get'version : ∀ (x : autoTracer), go.IsGoStepPureDetTagged under (StructFieldGet autoTracer.underlying go!"version") #x (Val #(x.version'))
+  set'version : ∀ (x : autoTracer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet autoTracer.underlying go!"version") (PairV #x #y) (Val #(({ x with version' := y } : autoTracer)))
   method_set : go.MethodSetIs autoTracer.ty [(go!"Start", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType SpanStartOption.ty)] true [_root_.Perennial.context.Context.ty, Span.ty]))), (go!"go.opentelemetry.io/otel/trace.traces", (some (go.signature.Signature [go.string, SpanConfig.ty, SpanContext.ty, SpanContext.ty] false [(go.GoType.PointerType (go.GoType.Named go!"go.opentelemetry.io/otel/trace/internal/telemetry.Traces" [])), (go.GoType.PointerType (go.GoType.Named go!"go.opentelemetry.io/otel/trace/internal/telemetry.Span" []))]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracer", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType autoTracer.ty) [(go!"Start", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType SpanStartOption.ty)] true [_root_.Perennial.context.Context.ty, Span.ty]))), (go!"go.opentelemetry.io/otel/trace.start", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType autoSpan.ty), (go.GoType.PointerType SpanContext.ty), (go.GoType.PointerType go.bool), (go.GoType.PointerType SpanContext.ty)] false []))), (go!"go.opentelemetry.io/otel/trace.traces", (some (go.signature.Signature [go.string, SpanConfig.ty, SpanContext.ty, SpanContext.ty] false [(go.GoType.PointerType (go.GoType.Named go!"go.opentelemetry.io/otel/trace/internal/telemetry.Traces" [])), (go.GoType.PointerType (go.GoType.Named go!"go.opentelemetry.io/otel/trace/internal/telemetry.Span" []))]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracer", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] autoTracer.TypeAssumptions.type_repr
   autoTracer.TypeAssumptions.underlying
-  autoTracer.TypeAssumptions.get_Tracer
-  autoTracer.TypeAssumptions.set_Tracer
-  autoTracer.TypeAssumptions.get_name
-  autoTracer.TypeAssumptions.set_name
-  autoTracer.TypeAssumptions.get_schemaURL
-  autoTracer.TypeAssumptions.set_schemaURL
-  autoTracer.TypeAssumptions.get_version
-  autoTracer.TypeAssumptions.set_version
+  autoTracer.TypeAssumptions.get'Tracer
+  autoTracer.TypeAssumptions.set'Tracer
+  autoTracer.TypeAssumptions.get'name
+  autoTracer.TypeAssumptions.set'name
+  autoTracer.TypeAssumptions.get'schemaURL
+  autoTracer.TypeAssumptions.set'schemaURL
+  autoTracer.TypeAssumptions.get'version
+  autoTracer.TypeAssumptions.set'version
   autoTracer.TypeAssumptions.method_set
   autoTracer.TypeAssumptions.ptr_method_set
 
@@ -784,7 +784,7 @@ noncomputable instance spanLimits.zero_val [GooseExts] : ZeroVal spanLimits :=
 @[irreducible] noncomputable def spanLimits.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   spanLimits.fieldsUnsealed
 
-noncomputable instance equals_unfold_spanLimits [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'spanLimits [GooseExts] [GoGlobalContext] :
     EqualsUnfold spanLimits.fields spanLimits.fieldsUnsealed :=
   ⟨by unfold spanLimits.fields; rfl⟩
 
@@ -794,35 +794,35 @@ noncomputable instance equals_unfold_spanLimits [GooseExts] [GoGlobalContext] :
 class spanLimits.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying spanLimits.underlying spanLimits
   underlying : go.UnderlyingDirectedEq spanLimits.ty spanLimits.underlying
-  get_Attrs : ∀ (x : spanLimits), go.IsGoStepPureDetTagged under (StructFieldGet spanLimits.underlying go!"Attrs") #x (Val #(x.Attrs'))
-  set_Attrs : ∀ (x : spanLimits) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet spanLimits.underlying go!"Attrs") (PairV #x #y) (Val #(({ x with Attrs' := y } : spanLimits)))
-  get_AttrValueLen : ∀ (x : spanLimits), go.IsGoStepPureDetTagged under (StructFieldGet spanLimits.underlying go!"AttrValueLen") #x (Val #(x.AttrValueLen'))
-  set_AttrValueLen : ∀ (x : spanLimits) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet spanLimits.underlying go!"AttrValueLen") (PairV #x #y) (Val #(({ x with AttrValueLen' := y } : spanLimits)))
-  get_Events : ∀ (x : spanLimits), go.IsGoStepPureDetTagged under (StructFieldGet spanLimits.underlying go!"Events") #x (Val #(x.Events'))
-  set_Events : ∀ (x : spanLimits) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet spanLimits.underlying go!"Events") (PairV #x #y) (Val #(({ x with Events' := y } : spanLimits)))
-  get_EventAttrs : ∀ (x : spanLimits), go.IsGoStepPureDetTagged under (StructFieldGet spanLimits.underlying go!"EventAttrs") #x (Val #(x.EventAttrs'))
-  set_EventAttrs : ∀ (x : spanLimits) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet spanLimits.underlying go!"EventAttrs") (PairV #x #y) (Val #(({ x with EventAttrs' := y } : spanLimits)))
-  get_Links : ∀ (x : spanLimits), go.IsGoStepPureDetTagged under (StructFieldGet spanLimits.underlying go!"Links") #x (Val #(x.Links'))
-  set_Links : ∀ (x : spanLimits) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet spanLimits.underlying go!"Links") (PairV #x #y) (Val #(({ x with Links' := y } : spanLimits)))
-  get_LinkAttrs : ∀ (x : spanLimits), go.IsGoStepPureDetTagged under (StructFieldGet spanLimits.underlying go!"LinkAttrs") #x (Val #(x.LinkAttrs'))
-  set_LinkAttrs : ∀ (x : spanLimits) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet spanLimits.underlying go!"LinkAttrs") (PairV #x #y) (Val #(({ x with LinkAttrs' := y } : spanLimits)))
+  get'Attrs : ∀ (x : spanLimits), go.IsGoStepPureDetTagged under (StructFieldGet spanLimits.underlying go!"Attrs") #x (Val #(x.Attrs'))
+  set'Attrs : ∀ (x : spanLimits) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet spanLimits.underlying go!"Attrs") (PairV #x #y) (Val #(({ x with Attrs' := y } : spanLimits)))
+  get'AttrValueLen : ∀ (x : spanLimits), go.IsGoStepPureDetTagged under (StructFieldGet spanLimits.underlying go!"AttrValueLen") #x (Val #(x.AttrValueLen'))
+  set'AttrValueLen : ∀ (x : spanLimits) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet spanLimits.underlying go!"AttrValueLen") (PairV #x #y) (Val #(({ x with AttrValueLen' := y } : spanLimits)))
+  get'Events : ∀ (x : spanLimits), go.IsGoStepPureDetTagged under (StructFieldGet spanLimits.underlying go!"Events") #x (Val #(x.Events'))
+  set'Events : ∀ (x : spanLimits) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet spanLimits.underlying go!"Events") (PairV #x #y) (Val #(({ x with Events' := y } : spanLimits)))
+  get'EventAttrs : ∀ (x : spanLimits), go.IsGoStepPureDetTagged under (StructFieldGet spanLimits.underlying go!"EventAttrs") #x (Val #(x.EventAttrs'))
+  set'EventAttrs : ∀ (x : spanLimits) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet spanLimits.underlying go!"EventAttrs") (PairV #x #y) (Val #(({ x with EventAttrs' := y } : spanLimits)))
+  get'Links : ∀ (x : spanLimits), go.IsGoStepPureDetTagged under (StructFieldGet spanLimits.underlying go!"Links") #x (Val #(x.Links'))
+  set'Links : ∀ (x : spanLimits) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet spanLimits.underlying go!"Links") (PairV #x #y) (Val #(({ x with Links' := y } : spanLimits)))
+  get'LinkAttrs : ∀ (x : spanLimits), go.IsGoStepPureDetTagged under (StructFieldGet spanLimits.underlying go!"LinkAttrs") #x (Val #(x.LinkAttrs'))
+  set'LinkAttrs : ∀ (x : spanLimits) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet spanLimits.underlying go!"LinkAttrs") (PairV #x #y) (Val #(({ x with LinkAttrs' := y } : spanLimits)))
   method_set : go.MethodSetIs spanLimits.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType spanLimits.ty) []
 
 attribute [instance] spanLimits.TypeAssumptions.type_repr
   spanLimits.TypeAssumptions.underlying
-  spanLimits.TypeAssumptions.get_Attrs
-  spanLimits.TypeAssumptions.set_Attrs
-  spanLimits.TypeAssumptions.get_AttrValueLen
-  spanLimits.TypeAssumptions.set_AttrValueLen
-  spanLimits.TypeAssumptions.get_Events
-  spanLimits.TypeAssumptions.set_Events
-  spanLimits.TypeAssumptions.get_EventAttrs
-  spanLimits.TypeAssumptions.set_EventAttrs
-  spanLimits.TypeAssumptions.get_Links
-  spanLimits.TypeAssumptions.set_Links
-  spanLimits.TypeAssumptions.get_LinkAttrs
-  spanLimits.TypeAssumptions.set_LinkAttrs
+  spanLimits.TypeAssumptions.get'Attrs
+  spanLimits.TypeAssumptions.set'Attrs
+  spanLimits.TypeAssumptions.get'AttrValueLen
+  spanLimits.TypeAssumptions.set'AttrValueLen
+  spanLimits.TypeAssumptions.get'Events
+  spanLimits.TypeAssumptions.set'Events
+  spanLimits.TypeAssumptions.get'EventAttrs
+  spanLimits.TypeAssumptions.set'EventAttrs
+  spanLimits.TypeAssumptions.get'Links
+  spanLimits.TypeAssumptions.set'Links
+  spanLimits.TypeAssumptions.get'LinkAttrs
+  spanLimits.TypeAssumptions.set'LinkAttrs
   spanLimits.TypeAssumptions.method_set
   spanLimits.TypeAssumptions.ptr_method_set
 
@@ -843,7 +843,7 @@ noncomputable instance TracerConfig.zero_val [GooseExts] : ZeroVal TracerConfig 
 @[irreducible] noncomputable def TracerConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TracerConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_TracerConfig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'TracerConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold TracerConfig.fields TracerConfig.fieldsUnsealed :=
   ⟨by unfold TracerConfig.fields; rfl⟩
 
@@ -853,23 +853,23 @@ noncomputable instance equals_unfold_TracerConfig [GooseExts] [GoGlobalContext] 
 class TracerConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TracerConfig.underlying TracerConfig
   underlying : go.UnderlyingDirectedEq TracerConfig.ty TracerConfig.underlying
-  get_instrumentationVersion : ∀ (x : TracerConfig), go.IsGoStepPureDetTagged under (StructFieldGet TracerConfig.underlying go!"instrumentationVersion") #x (Val #(x.instrumentationVersion'))
-  set_instrumentationVersion : ∀ (x : TracerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TracerConfig.underlying go!"instrumentationVersion") (PairV #x #y) (Val #(({ x with instrumentationVersion' := y } : TracerConfig)))
-  get_schemaURL : ∀ (x : TracerConfig), go.IsGoStepPureDetTagged under (StructFieldGet TracerConfig.underlying go!"schemaURL") #x (Val #(x.schemaURL'))
-  set_schemaURL : ∀ (x : TracerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TracerConfig.underlying go!"schemaURL") (PairV #x #y) (Val #(({ x with schemaURL' := y } : TracerConfig)))
-  get_attrs : ∀ (x : TracerConfig), go.IsGoStepPureDetTagged under (StructFieldGet TracerConfig.underlying go!"attrs") #x (Val #(x.attrs'))
-  set_attrs : ∀ (x : TracerConfig) (y : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Set''), go.IsGoStepPureDetTagged under (StructFieldSet TracerConfig.underlying go!"attrs") (PairV #x #y) (Val #(({ x with attrs' := y } : TracerConfig)))
+  get'instrumentationVersion : ∀ (x : TracerConfig), go.IsGoStepPureDetTagged under (StructFieldGet TracerConfig.underlying go!"instrumentationVersion") #x (Val #(x.instrumentationVersion'))
+  set'instrumentationVersion : ∀ (x : TracerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TracerConfig.underlying go!"instrumentationVersion") (PairV #x #y) (Val #(({ x with instrumentationVersion' := y } : TracerConfig)))
+  get'schemaURL : ∀ (x : TracerConfig), go.IsGoStepPureDetTagged under (StructFieldGet TracerConfig.underlying go!"schemaURL") #x (Val #(x.schemaURL'))
+  set'schemaURL : ∀ (x : TracerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TracerConfig.underlying go!"schemaURL") (PairV #x #y) (Val #(({ x with schemaURL' := y } : TracerConfig)))
+  get'attrs : ∀ (x : TracerConfig), go.IsGoStepPureDetTagged under (StructFieldGet TracerConfig.underlying go!"attrs") #x (Val #(x.attrs'))
+  set'attrs : ∀ (x : TracerConfig) (y : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Set''), go.IsGoStepPureDetTagged under (StructFieldSet TracerConfig.underlying go!"attrs") (PairV #x #y) (Val #(({ x with attrs' := y } : TracerConfig)))
   method_set : go.MethodSetIs TracerConfig.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType TracerConfig.ty) [(go!"InstrumentationAttributes", (some (go.signature.Signature [] false [_root_.Perennial.go_opentelemetry_io.otel.«attribute».Set''.ty]))), (go!"InstrumentationVersion", (some (go.signature.Signature [] false [go.string]))), (go!"SchemaURL", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] TracerConfig.TypeAssumptions.type_repr
   TracerConfig.TypeAssumptions.underlying
-  TracerConfig.TypeAssumptions.get_instrumentationVersion
-  TracerConfig.TypeAssumptions.set_instrumentationVersion
-  TracerConfig.TypeAssumptions.get_schemaURL
-  TracerConfig.TypeAssumptions.set_schemaURL
-  TracerConfig.TypeAssumptions.get_attrs
-  TracerConfig.TypeAssumptions.set_attrs
+  TracerConfig.TypeAssumptions.get'instrumentationVersion
+  TracerConfig.TypeAssumptions.set'instrumentationVersion
+  TracerConfig.TypeAssumptions.get'schemaURL
+  TracerConfig.TypeAssumptions.set'schemaURL
+  TracerConfig.TypeAssumptions.get'attrs
+  TracerConfig.TypeAssumptions.set'attrs
   TracerConfig.TypeAssumptions.method_set
   TracerConfig.TypeAssumptions.ptr_method_set
 
@@ -1139,7 +1139,7 @@ noncomputable instance noopSpan.zero_val [GooseExts] : ZeroVal noopSpan :=
 @[irreducible] noncomputable def noopSpan.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noopSpan.fieldsUnsealed
 
-noncomputable instance equals_unfold_noopSpan [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'noopSpan [GooseExts] [GoGlobalContext] :
     EqualsUnfold noopSpan.fields noopSpan.fieldsUnsealed :=
   ⟨by unfold noopSpan.fields; rfl⟩
 
@@ -1149,32 +1149,32 @@ noncomputable instance equals_unfold_noopSpan [GooseExts] [GoGlobalContext] :
 class noopSpan.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopSpan.underlying noopSpan
   underlying : go.UnderlyingDirectedEq noopSpan.ty noopSpan.underlying
-  get_Span : ∀ (x : noopSpan), go.IsGoStepPureDetTagged under (StructFieldGet noopSpan.underlying go!"Span") #x (Val #(x.Span'))
-  set_Span : ∀ (x : noopSpan) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Span), go.IsGoStepPureDetTagged under (StructFieldSet noopSpan.underlying go!"Span") (PairV #x #y) (Val #(({ x with Span' := y } : noopSpan)))
+  get'Span : ∀ (x : noopSpan), go.IsGoStepPureDetTagged under (StructFieldGet noopSpan.underlying go!"Span") #x (Val #(x.Span'))
+  set'Span : ∀ (x : noopSpan) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Span), go.IsGoStepPureDetTagged under (StructFieldSet noopSpan.underlying go!"Span") (PairV #x #y) (Val #(({ x with Span' := y } : noopSpan)))
   method_set : go.MethodSetIs noopSpan.ty [(go!"AddEvent", (some (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true []))), (go!"AddLink", (some (go.signature.Signature [Link.ty] false []))), (go!"End", (some (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true []))), (go!"IsRecording", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordError", (some (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true []))), (go!"SetAttributes", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true []))), (go!"SetError", (some (go.signature.Signature [go.bool] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetStatus", (some (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false []))), (go!"SpanContext", (some (go.signature.Signature [] false [SpanContext.ty]))), (go!"TracerProvider", (some (go.signature.Signature [] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace.tracerProvider", (some (go.signature.Signature [(go.GoType.PointerType go.bool)] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.span", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopSpan.ty) [(go!"AddEvent", (some (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true []))), (go!"AddLink", (some (go.signature.Signature [Link.ty] false []))), (go!"End", (some (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true []))), (go!"IsRecording", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordError", (some (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true []))), (go!"SetAttributes", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true []))), (go!"SetError", (some (go.signature.Signature [go.bool] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetStatus", (some (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false []))), (go!"SpanContext", (some (go.signature.Signature [] false [SpanContext.ty]))), (go!"TracerProvider", (some (go.signature.Signature [] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace.tracerProvider", (some (go.signature.Signature [(go.GoType.PointerType go.bool)] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.span", (some (go.signature.Signature [] false [])))]
-  AddEvent_unfold : MethodUnfold noopSpan.ty go!"AddEvent" noopSpan.AddEvent.impl
-  End_unfold : MethodUnfold noopSpan.ty go!"End" noopSpan.End.impl
-  RecordError_unfold : MethodUnfold noopSpan.ty go!"RecordError" noopSpan.RecordError.impl
-  ptr_AddEvent_unfold : MethodUnfold (go.GoType.PointerType noopSpan.ty) go!"AddEvent" (LamV "$r"
+  unfold'AddEvent : MethodUnfold noopSpan.ty go!"AddEvent" noopSpan.AddEvent.impl
+  unfold'End : MethodUnfold noopSpan.ty go!"End" noopSpan.End.impl
+  unfold'RecordError : MethodUnfold noopSpan.ty go!"RecordError" noopSpan.RecordError.impl
+  ptr_unfold'AddEvent : MethodUnfold (go.GoType.PointerType noopSpan.ty) go!"AddEvent" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve noopSpan.ty go!"AddEvent"))) (App (Val (GoInstruction (GoLoad noopSpan.ty))) (Var "$r"))))
-  ptr_End_unfold : MethodUnfold (go.GoType.PointerType noopSpan.ty) go!"End" (LamV "$r"
+  ptr_unfold'End : MethodUnfold (go.GoType.PointerType noopSpan.ty) go!"End" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve noopSpan.ty go!"End"))) (App (Val (GoInstruction (GoLoad noopSpan.ty))) (Var "$r"))))
-  ptr_RecordError_unfold : MethodUnfold (go.GoType.PointerType noopSpan.ty) go!"RecordError" (LamV "$r"
+  ptr_unfold'RecordError : MethodUnfold (go.GoType.PointerType noopSpan.ty) go!"RecordError" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve noopSpan.ty go!"RecordError"))) (App (Val (GoInstruction (GoLoad noopSpan.ty))) (Var "$r"))))
 
 attribute [instance] noopSpan.TypeAssumptions.type_repr
   noopSpan.TypeAssumptions.underlying
-  noopSpan.TypeAssumptions.get_Span
-  noopSpan.TypeAssumptions.set_Span
+  noopSpan.TypeAssumptions.get'Span
+  noopSpan.TypeAssumptions.set'Span
   noopSpan.TypeAssumptions.method_set
   noopSpan.TypeAssumptions.ptr_method_set
-  noopSpan.TypeAssumptions.AddEvent_unfold
-  noopSpan.TypeAssumptions.End_unfold
-  noopSpan.TypeAssumptions.RecordError_unfold
-  noopSpan.TypeAssumptions.ptr_AddEvent_unfold
-  noopSpan.TypeAssumptions.ptr_End_unfold
-  noopSpan.TypeAssumptions.ptr_RecordError_unfold
+  noopSpan.TypeAssumptions.unfold'AddEvent
+  noopSpan.TypeAssumptions.unfold'End
+  noopSpan.TypeAssumptions.unfold'RecordError
+  noopSpan.TypeAssumptions.ptr_unfold'AddEvent
+  noopSpan.TypeAssumptions.ptr_unfold'End
+  noopSpan.TypeAssumptions.ptr_unfold'RecordError
 
 abbrev TraceID [GooseExts] : Type := (GoArray w8 16)
 
@@ -1231,7 +1231,7 @@ noncomputable instance TraceState.zero_val [GooseExts] : ZeroVal TraceState :=
 @[irreducible] noncomputable def TraceState.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TraceState.fieldsUnsealed
 
-noncomputable instance equals_unfold_TraceState [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'TraceState [GooseExts] [GoGlobalContext] :
     EqualsUnfold TraceState.fields TraceState.fieldsUnsealed :=
   ⟨by unfold TraceState.fields; rfl⟩
 
@@ -1241,15 +1241,15 @@ noncomputable instance equals_unfold_TraceState [GooseExts] [GoGlobalContext] :
 class TraceState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TraceState.underlying TraceState
   underlying : go.UnderlyingDirectedEq TraceState.ty TraceState.underlying
-  get_list : ∀ (x : TraceState), go.IsGoStepPureDetTagged under (StructFieldGet TraceState.underlying go!"list") #x (Val #(x.list'))
-  set_list : ∀ (x : TraceState) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TraceState.underlying go!"list") (PairV #x #y) (Val #(({ x with list' := y } : TraceState)))
+  get'list : ∀ (x : TraceState), go.IsGoStepPureDetTagged under (StructFieldGet TraceState.underlying go!"list") #x (Val #(x.list'))
+  set'list : ∀ (x : TraceState) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TraceState.underlying go!"list") (PairV #x #y) (Val #(({ x with list' := y } : TraceState)))
   method_set : go.MethodSetIs TraceState.ty [(go!"Delete", (some (go.signature.Signature [go.string] false [TraceState.ty]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Insert", (some (go.signature.Signature [go.string, go.string] false [TraceState.ty, go.error]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Walk", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.string, go.string] false [go.bool]))] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType TraceState.ty) [(go!"Delete", (some (go.signature.Signature [go.string] false [TraceState.ty]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Insert", (some (go.signature.Signature [go.string, go.string] false [TraceState.ty, go.error]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Walk", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.string, go.string] false [go.bool]))] false [])))]
 
 attribute [instance] TraceState.TypeAssumptions.type_repr
   TraceState.TypeAssumptions.underlying
-  TraceState.TypeAssumptions.get_list
-  TraceState.TypeAssumptions.set_list
+  TraceState.TypeAssumptions.get'list
+  TraceState.TypeAssumptions.set'list
   TraceState.TypeAssumptions.method_set
   TraceState.TypeAssumptions.ptr_method_set
 
@@ -1274,7 +1274,7 @@ noncomputable instance SpanContext.zero_val [GooseExts] : ZeroVal SpanContext :=
 @[irreducible] noncomputable def SpanContext.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SpanContext.fieldsUnsealed
 
-noncomputable instance equals_unfold_SpanContext [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SpanContext [GooseExts] [GoGlobalContext] :
     EqualsUnfold SpanContext.fields SpanContext.fieldsUnsealed :=
   ⟨by unfold SpanContext.fields; rfl⟩
 
@@ -1284,31 +1284,31 @@ noncomputable instance equals_unfold_SpanContext [GooseExts] [GoGlobalContext] :
 class SpanContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SpanContext.underlying SpanContext
   underlying : go.UnderlyingDirectedEq SpanContext.ty SpanContext.underlying
-  get_traceID : ∀ (x : SpanContext), go.IsGoStepPureDetTagged under (StructFieldGet SpanContext.underlying go!"traceID") #x (Val #(x.traceID'))
-  set_traceID : ∀ (x : SpanContext) (y : TraceID), go.IsGoStepPureDetTagged under (StructFieldSet SpanContext.underlying go!"traceID") (PairV #x #y) (Val #(({ x with traceID' := y } : SpanContext)))
-  get_spanID : ∀ (x : SpanContext), go.IsGoStepPureDetTagged under (StructFieldGet SpanContext.underlying go!"spanID") #x (Val #(x.spanID'))
-  set_spanID : ∀ (x : SpanContext) (y : SpanID), go.IsGoStepPureDetTagged under (StructFieldSet SpanContext.underlying go!"spanID") (PairV #x #y) (Val #(({ x with spanID' := y } : SpanContext)))
-  get_traceFlags : ∀ (x : SpanContext), go.IsGoStepPureDetTagged under (StructFieldGet SpanContext.underlying go!"traceFlags") #x (Val #(x.traceFlags'))
-  set_traceFlags : ∀ (x : SpanContext) (y : TraceFlags), go.IsGoStepPureDetTagged under (StructFieldSet SpanContext.underlying go!"traceFlags") (PairV #x #y) (Val #(({ x with traceFlags' := y } : SpanContext)))
-  get_traceState : ∀ (x : SpanContext), go.IsGoStepPureDetTagged under (StructFieldGet SpanContext.underlying go!"traceState") #x (Val #(x.traceState'))
-  set_traceState : ∀ (x : SpanContext) (y : TraceState), go.IsGoStepPureDetTagged under (StructFieldSet SpanContext.underlying go!"traceState") (PairV #x #y) (Val #(({ x with traceState' := y } : SpanContext)))
-  get_remote : ∀ (x : SpanContext), go.IsGoStepPureDetTagged under (StructFieldGet SpanContext.underlying go!"remote") #x (Val #(x.remote'))
-  set_remote : ∀ (x : SpanContext) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SpanContext.underlying go!"remote") (PairV #x #y) (Val #(({ x with remote' := y } : SpanContext)))
+  get'traceID : ∀ (x : SpanContext), go.IsGoStepPureDetTagged under (StructFieldGet SpanContext.underlying go!"traceID") #x (Val #(x.traceID'))
+  set'traceID : ∀ (x : SpanContext) (y : TraceID), go.IsGoStepPureDetTagged under (StructFieldSet SpanContext.underlying go!"traceID") (PairV #x #y) (Val #(({ x with traceID' := y } : SpanContext)))
+  get'spanID : ∀ (x : SpanContext), go.IsGoStepPureDetTagged under (StructFieldGet SpanContext.underlying go!"spanID") #x (Val #(x.spanID'))
+  set'spanID : ∀ (x : SpanContext) (y : SpanID), go.IsGoStepPureDetTagged under (StructFieldSet SpanContext.underlying go!"spanID") (PairV #x #y) (Val #(({ x with spanID' := y } : SpanContext)))
+  get'traceFlags : ∀ (x : SpanContext), go.IsGoStepPureDetTagged under (StructFieldGet SpanContext.underlying go!"traceFlags") #x (Val #(x.traceFlags'))
+  set'traceFlags : ∀ (x : SpanContext) (y : TraceFlags), go.IsGoStepPureDetTagged under (StructFieldSet SpanContext.underlying go!"traceFlags") (PairV #x #y) (Val #(({ x with traceFlags' := y } : SpanContext)))
+  get'traceState : ∀ (x : SpanContext), go.IsGoStepPureDetTagged under (StructFieldGet SpanContext.underlying go!"traceState") #x (Val #(x.traceState'))
+  set'traceState : ∀ (x : SpanContext) (y : TraceState), go.IsGoStepPureDetTagged under (StructFieldSet SpanContext.underlying go!"traceState") (PairV #x #y) (Val #(({ x with traceState' := y } : SpanContext)))
+  get'remote : ∀ (x : SpanContext), go.IsGoStepPureDetTagged under (StructFieldGet SpanContext.underlying go!"remote") #x (Val #(x.remote'))
+  set'remote : ∀ (x : SpanContext) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SpanContext.underlying go!"remote") (PairV #x #y) (Val #(({ x with remote' := y } : SpanContext)))
   method_set : go.MethodSetIs SpanContext.ty [(go!"Equal", (some (go.signature.Signature [SpanContext.ty] false [go.bool]))), (go!"HasSpanID", (some (go.signature.Signature [] false [go.bool]))), (go!"HasTraceID", (some (go.signature.Signature [] false [go.bool]))), (go!"IsRandom", (some (go.signature.Signature [] false [go.bool]))), (go!"IsRemote", (some (go.signature.Signature [] false [go.bool]))), (go!"IsSampled", (some (go.signature.Signature [] false [go.bool]))), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"SpanID", (some (go.signature.Signature [] false [SpanID.ty]))), (go!"TraceFlags", (some (go.signature.Signature [] false [TraceFlags.ty]))), (go!"TraceID", (some (go.signature.Signature [] false [TraceID.ty]))), (go!"TraceState", (some (go.signature.Signature [] false [TraceState.ty]))), (go!"WithRemote", (some (go.signature.Signature [go.bool] false [SpanContext.ty]))), (go!"WithSpanID", (some (go.signature.Signature [SpanID.ty] false [SpanContext.ty]))), (go!"WithTraceFlags", (some (go.signature.Signature [TraceFlags.ty] false [SpanContext.ty]))), (go!"WithTraceID", (some (go.signature.Signature [TraceID.ty] false [SpanContext.ty]))), (go!"WithTraceState", (some (go.signature.Signature [TraceState.ty] false [SpanContext.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SpanContext.ty) [(go!"Equal", (some (go.signature.Signature [SpanContext.ty] false [go.bool]))), (go!"HasSpanID", (some (go.signature.Signature [] false [go.bool]))), (go!"HasTraceID", (some (go.signature.Signature [] false [go.bool]))), (go!"IsRandom", (some (go.signature.Signature [] false [go.bool]))), (go!"IsRemote", (some (go.signature.Signature [] false [go.bool]))), (go!"IsSampled", (some (go.signature.Signature [] false [go.bool]))), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"SpanID", (some (go.signature.Signature [] false [SpanID.ty]))), (go!"TraceFlags", (some (go.signature.Signature [] false [TraceFlags.ty]))), (go!"TraceID", (some (go.signature.Signature [] false [TraceID.ty]))), (go!"TraceState", (some (go.signature.Signature [] false [TraceState.ty]))), (go!"WithRemote", (some (go.signature.Signature [go.bool] false [SpanContext.ty]))), (go!"WithSpanID", (some (go.signature.Signature [SpanID.ty] false [SpanContext.ty]))), (go!"WithTraceFlags", (some (go.signature.Signature [TraceFlags.ty] false [SpanContext.ty]))), (go!"WithTraceID", (some (go.signature.Signature [TraceID.ty] false [SpanContext.ty]))), (go!"WithTraceState", (some (go.signature.Signature [TraceState.ty] false [SpanContext.ty])))]
 
 attribute [instance] SpanContext.TypeAssumptions.type_repr
   SpanContext.TypeAssumptions.underlying
-  SpanContext.TypeAssumptions.get_traceID
-  SpanContext.TypeAssumptions.set_traceID
-  SpanContext.TypeAssumptions.get_spanID
-  SpanContext.TypeAssumptions.set_spanID
-  SpanContext.TypeAssumptions.get_traceFlags
-  SpanContext.TypeAssumptions.set_traceFlags
-  SpanContext.TypeAssumptions.get_traceState
-  SpanContext.TypeAssumptions.set_traceState
-  SpanContext.TypeAssumptions.get_remote
-  SpanContext.TypeAssumptions.set_remote
+  SpanContext.TypeAssumptions.get'traceID
+  SpanContext.TypeAssumptions.set'traceID
+  SpanContext.TypeAssumptions.get'spanID
+  SpanContext.TypeAssumptions.set'spanID
+  SpanContext.TypeAssumptions.get'traceFlags
+  SpanContext.TypeAssumptions.set'traceFlags
+  SpanContext.TypeAssumptions.get'traceState
+  SpanContext.TypeAssumptions.set'traceState
+  SpanContext.TypeAssumptions.get'remote
+  SpanContext.TypeAssumptions.set'remote
   SpanContext.TypeAssumptions.method_set
   SpanContext.TypeAssumptions.ptr_method_set
 
@@ -1327,7 +1327,7 @@ noncomputable instance nonRecordingSpan.zero_val [GooseExts] : ZeroVal nonRecord
 @[irreducible] noncomputable def nonRecordingSpan.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   nonRecordingSpan.fieldsUnsealed
 
-noncomputable instance equals_unfold_nonRecordingSpan [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'nonRecordingSpan [GooseExts] [GoGlobalContext] :
     EqualsUnfold nonRecordingSpan.fields nonRecordingSpan.fieldsUnsealed :=
   ⟨by unfold nonRecordingSpan.fields; rfl⟩
 
@@ -1337,19 +1337,19 @@ noncomputable instance equals_unfold_nonRecordingSpan [GooseExts] [GoGlobalConte
 class nonRecordingSpan.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying nonRecordingSpan.underlying nonRecordingSpan
   underlying : go.UnderlyingDirectedEq nonRecordingSpan.ty nonRecordingSpan.underlying
-  get_noopSpan : ∀ (x : nonRecordingSpan), go.IsGoStepPureDetTagged under (StructFieldGet nonRecordingSpan.underlying go!"noopSpan") #x (Val #(x.noopSpan'))
-  set_noopSpan : ∀ (x : nonRecordingSpan) (y : noopSpan), go.IsGoStepPureDetTagged under (StructFieldSet nonRecordingSpan.underlying go!"noopSpan") (PairV #x #y) (Val #(({ x with noopSpan' := y } : nonRecordingSpan)))
-  get_sc : ∀ (x : nonRecordingSpan), go.IsGoStepPureDetTagged under (StructFieldGet nonRecordingSpan.underlying go!"sc") #x (Val #(x.sc'))
-  set_sc : ∀ (x : nonRecordingSpan) (y : SpanContext), go.IsGoStepPureDetTagged under (StructFieldSet nonRecordingSpan.underlying go!"sc") (PairV #x #y) (Val #(({ x with sc' := y } : nonRecordingSpan)))
+  get'noopSpan : ∀ (x : nonRecordingSpan), go.IsGoStepPureDetTagged under (StructFieldGet nonRecordingSpan.underlying go!"noopSpan") #x (Val #(x.noopSpan'))
+  set'noopSpan : ∀ (x : nonRecordingSpan) (y : noopSpan), go.IsGoStepPureDetTagged under (StructFieldSet nonRecordingSpan.underlying go!"noopSpan") (PairV #x #y) (Val #(({ x with noopSpan' := y } : nonRecordingSpan)))
+  get'sc : ∀ (x : nonRecordingSpan), go.IsGoStepPureDetTagged under (StructFieldGet nonRecordingSpan.underlying go!"sc") #x (Val #(x.sc'))
+  set'sc : ∀ (x : nonRecordingSpan) (y : SpanContext), go.IsGoStepPureDetTagged under (StructFieldSet nonRecordingSpan.underlying go!"sc") (PairV #x #y) (Val #(({ x with sc' := y } : nonRecordingSpan)))
   method_set : go.MethodSetIs nonRecordingSpan.ty [(go!"AddEvent", (some (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true []))), (go!"AddLink", (some (go.signature.Signature [Link.ty] false []))), (go!"End", (some (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true []))), (go!"IsRecording", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordError", (some (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true []))), (go!"SetAttributes", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true []))), (go!"SetError", (some (go.signature.Signature [go.bool] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetStatus", (some (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false []))), (go!"SpanContext", (some (go.signature.Signature [] false [SpanContext.ty]))), (go!"TracerProvider", (some (go.signature.Signature [] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace.tracerProvider", (some (go.signature.Signature [(go.GoType.PointerType go.bool)] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.span", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType nonRecordingSpan.ty) [(go!"AddEvent", (some (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true []))), (go!"AddLink", (some (go.signature.Signature [Link.ty] false []))), (go!"End", (some (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true []))), (go!"IsRecording", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordError", (some (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true []))), (go!"SetAttributes", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true []))), (go!"SetError", (some (go.signature.Signature [go.bool] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetStatus", (some (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false []))), (go!"SpanContext", (some (go.signature.Signature [] false [SpanContext.ty]))), (go!"TracerProvider", (some (go.signature.Signature [] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace.tracerProvider", (some (go.signature.Signature [(go.GoType.PointerType go.bool)] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.span", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] nonRecordingSpan.TypeAssumptions.type_repr
   nonRecordingSpan.TypeAssumptions.underlying
-  nonRecordingSpan.TypeAssumptions.get_noopSpan
-  nonRecordingSpan.TypeAssumptions.set_noopSpan
-  nonRecordingSpan.TypeAssumptions.get_sc
-  nonRecordingSpan.TypeAssumptions.set_sc
+  nonRecordingSpan.TypeAssumptions.get'noopSpan
+  nonRecordingSpan.TypeAssumptions.set'noopSpan
+  nonRecordingSpan.TypeAssumptions.get'sc
+  nonRecordingSpan.TypeAssumptions.set'sc
   nonRecordingSpan.TypeAssumptions.method_set
   nonRecordingSpan.TypeAssumptions.ptr_method_set
 
@@ -1366,7 +1366,7 @@ noncomputable instance noopTracerProvider.zero_val [GooseExts] : ZeroVal noopTra
 @[irreducible] noncomputable def noopTracerProvider.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noopTracerProvider.fieldsUnsealed
 
-noncomputable instance equals_unfold_noopTracerProvider [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'noopTracerProvider [GooseExts] [GoGlobalContext] :
     EqualsUnfold noopTracerProvider.fields noopTracerProvider.fieldsUnsealed :=
   ⟨by unfold noopTracerProvider.fields; rfl⟩
 
@@ -1376,15 +1376,15 @@ noncomputable instance equals_unfold_noopTracerProvider [GooseExts] [GoGlobalCon
 class noopTracerProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopTracerProvider.underlying noopTracerProvider
   underlying : go.UnderlyingDirectedEq noopTracerProvider.ty noopTracerProvider.underlying
-  get_TracerProvider : ∀ (x : noopTracerProvider), go.IsGoStepPureDetTagged under (StructFieldGet noopTracerProvider.underlying go!"TracerProvider") #x (Val #(x.TracerProvider'))
-  set_TracerProvider : ∀ (x : noopTracerProvider) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.TracerProvider), go.IsGoStepPureDetTagged under (StructFieldSet noopTracerProvider.underlying go!"TracerProvider") (PairV #x #y) (Val #(({ x with TracerProvider' := y } : noopTracerProvider)))
+  get'TracerProvider : ∀ (x : noopTracerProvider), go.IsGoStepPureDetTagged under (StructFieldGet noopTracerProvider.underlying go!"TracerProvider") #x (Val #(x.TracerProvider'))
+  set'TracerProvider : ∀ (x : noopTracerProvider) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.TracerProvider), go.IsGoStepPureDetTagged under (StructFieldSet noopTracerProvider.underlying go!"TracerProvider") (PairV #x #y) (Val #(({ x with TracerProvider' := y } : noopTracerProvider)))
   method_set : go.MethodSetIs noopTracerProvider.ty [(go!"Tracer", (some (go.signature.Signature [go.string, (go.GoType.SliceType TracerOption.ty)] true [Tracer.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopTracerProvider.ty) [(go!"Tracer", (some (go.signature.Signature [go.string, (go.GoType.SliceType TracerOption.ty)] true [Tracer.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] noopTracerProvider.TypeAssumptions.type_repr
   noopTracerProvider.TypeAssumptions.underlying
-  noopTracerProvider.TypeAssumptions.get_TracerProvider
-  noopTracerProvider.TypeAssumptions.set_TracerProvider
+  noopTracerProvider.TypeAssumptions.get'TracerProvider
+  noopTracerProvider.TypeAssumptions.set'TracerProvider
   noopTracerProvider.TypeAssumptions.method_set
   noopTracerProvider.TypeAssumptions.ptr_method_set
 
@@ -1401,7 +1401,7 @@ noncomputable instance noopTracer.zero_val [GooseExts] : ZeroVal noopTracer :=
 @[irreducible] noncomputable def noopTracer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noopTracer.fieldsUnsealed
 
-noncomputable instance equals_unfold_noopTracer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'noopTracer [GooseExts] [GoGlobalContext] :
     EqualsUnfold noopTracer.fields noopTracer.fieldsUnsealed :=
   ⟨by unfold noopTracer.fields; rfl⟩
 
@@ -1411,15 +1411,15 @@ noncomputable instance equals_unfold_noopTracer [GooseExts] [GoGlobalContext] :
 class noopTracer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopTracer.underlying noopTracer
   underlying : go.UnderlyingDirectedEq noopTracer.ty noopTracer.underlying
-  get_Tracer : ∀ (x : noopTracer), go.IsGoStepPureDetTagged under (StructFieldGet noopTracer.underlying go!"Tracer") #x (Val #(x.Tracer'))
-  set_Tracer : ∀ (x : noopTracer) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Tracer), go.IsGoStepPureDetTagged under (StructFieldSet noopTracer.underlying go!"Tracer") (PairV #x #y) (Val #(({ x with Tracer' := y } : noopTracer)))
+  get'Tracer : ∀ (x : noopTracer), go.IsGoStepPureDetTagged under (StructFieldGet noopTracer.underlying go!"Tracer") #x (Val #(x.Tracer'))
+  set'Tracer : ∀ (x : noopTracer) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Tracer), go.IsGoStepPureDetTagged under (StructFieldSet noopTracer.underlying go!"Tracer") (PairV #x #y) (Val #(({ x with Tracer' := y } : noopTracer)))
   method_set : go.MethodSetIs noopTracer.ty [(go!"Start", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType SpanStartOption.ty)] true [_root_.Perennial.context.Context.ty, Span.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracer", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopTracer.ty) [(go!"Start", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType SpanStartOption.ty)] true [_root_.Perennial.context.Context.ty, Span.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracer", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] noopTracer.TypeAssumptions.type_repr
   noopTracer.TypeAssumptions.underlying
-  noopTracer.TypeAssumptions.get_Tracer
-  noopTracer.TypeAssumptions.set_Tracer
+  noopTracer.TypeAssumptions.get'Tracer
+  noopTracer.TypeAssumptions.set'Tracer
   noopTracer.TypeAssumptions.method_set
   noopTracer.TypeAssumptions.ptr_method_set
 
@@ -1466,7 +1466,7 @@ noncomputable instance Link.zero_val [GooseExts] : ZeroVal Link :=
 @[irreducible] noncomputable def Link.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Link.fieldsUnsealed
 
-noncomputable instance equals_unfold_Link [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Link [GooseExts] [GoGlobalContext] :
     EqualsUnfold Link.fields Link.fieldsUnsealed :=
   ⟨by unfold Link.fields; rfl⟩
 
@@ -1476,19 +1476,19 @@ noncomputable instance equals_unfold_Link [GooseExts] [GoGlobalContext] :
 class Link.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Link.underlying Link
   underlying : go.UnderlyingDirectedEq Link.ty Link.underlying
-  get_SpanContext : ∀ (x : Link), go.IsGoStepPureDetTagged under (StructFieldGet Link.underlying go!"SpanContext") #x (Val #(x.SpanContext'))
-  set_SpanContext : ∀ (x : Link) (y : SpanContext), go.IsGoStepPureDetTagged under (StructFieldSet Link.underlying go!"SpanContext") (PairV #x #y) (Val #(({ x with SpanContext' := y } : Link)))
-  get_Attributes : ∀ (x : Link), go.IsGoStepPureDetTagged under (StructFieldGet Link.underlying go!"Attributes") #x (Val #(x.Attributes'))
-  set_Attributes : ∀ (x : Link) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Link.underlying go!"Attributes") (PairV #x #y) (Val #(({ x with Attributes' := y } : Link)))
+  get'SpanContext : ∀ (x : Link), go.IsGoStepPureDetTagged under (StructFieldGet Link.underlying go!"SpanContext") #x (Val #(x.SpanContext'))
+  set'SpanContext : ∀ (x : Link) (y : SpanContext), go.IsGoStepPureDetTagged under (StructFieldSet Link.underlying go!"SpanContext") (PairV #x #y) (Val #(({ x with SpanContext' := y } : Link)))
+  get'Attributes : ∀ (x : Link), go.IsGoStepPureDetTagged under (StructFieldGet Link.underlying go!"Attributes") #x (Val #(x.Attributes'))
+  set'Attributes : ∀ (x : Link) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Link.underlying go!"Attributes") (PairV #x #y) (Val #(({ x with Attributes' := y } : Link)))
   method_set : go.MethodSetIs Link.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Link.ty) []
 
 attribute [instance] Link.TypeAssumptions.type_repr
   Link.TypeAssumptions.underlying
-  Link.TypeAssumptions.get_SpanContext
-  Link.TypeAssumptions.set_SpanContext
-  Link.TypeAssumptions.get_Attributes
-  Link.TypeAssumptions.set_Attributes
+  Link.TypeAssumptions.get'SpanContext
+  Link.TypeAssumptions.set'SpanContext
+  Link.TypeAssumptions.get'Attributes
+  Link.TypeAssumptions.set'Attributes
   Link.TypeAssumptions.method_set
   Link.TypeAssumptions.ptr_method_set
 
@@ -1541,7 +1541,7 @@ noncomputable instance SpanContextConfig.zero_val [GooseExts] : ZeroVal SpanCont
 @[irreducible] noncomputable def SpanContextConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SpanContextConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_SpanContextConfig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SpanContextConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold SpanContextConfig.fields SpanContextConfig.fieldsUnsealed :=
   ⟨by unfold SpanContextConfig.fields; rfl⟩
 
@@ -1551,31 +1551,31 @@ noncomputable instance equals_unfold_SpanContextConfig [GooseExts] [GoGlobalCont
 class SpanContextConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SpanContextConfig.underlying SpanContextConfig
   underlying : go.UnderlyingDirectedEq SpanContextConfig.ty SpanContextConfig.underlying
-  get_TraceID : ∀ (x : SpanContextConfig), go.IsGoStepPureDetTagged under (StructFieldGet SpanContextConfig.underlying go!"TraceID") #x (Val #(x.TraceID'))
-  set_TraceID : ∀ (x : SpanContextConfig) (y : TraceID), go.IsGoStepPureDetTagged under (StructFieldSet SpanContextConfig.underlying go!"TraceID") (PairV #x #y) (Val #(({ x with TraceID' := y } : SpanContextConfig)))
-  get_SpanID : ∀ (x : SpanContextConfig), go.IsGoStepPureDetTagged under (StructFieldGet SpanContextConfig.underlying go!"SpanID") #x (Val #(x.SpanID'))
-  set_SpanID : ∀ (x : SpanContextConfig) (y : SpanID), go.IsGoStepPureDetTagged under (StructFieldSet SpanContextConfig.underlying go!"SpanID") (PairV #x #y) (Val #(({ x with SpanID' := y } : SpanContextConfig)))
-  get_TraceFlags : ∀ (x : SpanContextConfig), go.IsGoStepPureDetTagged under (StructFieldGet SpanContextConfig.underlying go!"TraceFlags") #x (Val #(x.TraceFlags'))
-  set_TraceFlags : ∀ (x : SpanContextConfig) (y : TraceFlags), go.IsGoStepPureDetTagged under (StructFieldSet SpanContextConfig.underlying go!"TraceFlags") (PairV #x #y) (Val #(({ x with TraceFlags' := y } : SpanContextConfig)))
-  get_TraceState : ∀ (x : SpanContextConfig), go.IsGoStepPureDetTagged under (StructFieldGet SpanContextConfig.underlying go!"TraceState") #x (Val #(x.TraceState'))
-  set_TraceState : ∀ (x : SpanContextConfig) (y : TraceState), go.IsGoStepPureDetTagged under (StructFieldSet SpanContextConfig.underlying go!"TraceState") (PairV #x #y) (Val #(({ x with TraceState' := y } : SpanContextConfig)))
-  get_Remote : ∀ (x : SpanContextConfig), go.IsGoStepPureDetTagged under (StructFieldGet SpanContextConfig.underlying go!"Remote") #x (Val #(x.Remote'))
-  set_Remote : ∀ (x : SpanContextConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SpanContextConfig.underlying go!"Remote") (PairV #x #y) (Val #(({ x with Remote' := y } : SpanContextConfig)))
+  get'TraceID : ∀ (x : SpanContextConfig), go.IsGoStepPureDetTagged under (StructFieldGet SpanContextConfig.underlying go!"TraceID") #x (Val #(x.TraceID'))
+  set'TraceID : ∀ (x : SpanContextConfig) (y : TraceID), go.IsGoStepPureDetTagged under (StructFieldSet SpanContextConfig.underlying go!"TraceID") (PairV #x #y) (Val #(({ x with TraceID' := y } : SpanContextConfig)))
+  get'SpanID : ∀ (x : SpanContextConfig), go.IsGoStepPureDetTagged under (StructFieldGet SpanContextConfig.underlying go!"SpanID") #x (Val #(x.SpanID'))
+  set'SpanID : ∀ (x : SpanContextConfig) (y : SpanID), go.IsGoStepPureDetTagged under (StructFieldSet SpanContextConfig.underlying go!"SpanID") (PairV #x #y) (Val #(({ x with SpanID' := y } : SpanContextConfig)))
+  get'TraceFlags : ∀ (x : SpanContextConfig), go.IsGoStepPureDetTagged under (StructFieldGet SpanContextConfig.underlying go!"TraceFlags") #x (Val #(x.TraceFlags'))
+  set'TraceFlags : ∀ (x : SpanContextConfig) (y : TraceFlags), go.IsGoStepPureDetTagged under (StructFieldSet SpanContextConfig.underlying go!"TraceFlags") (PairV #x #y) (Val #(({ x with TraceFlags' := y } : SpanContextConfig)))
+  get'TraceState : ∀ (x : SpanContextConfig), go.IsGoStepPureDetTagged under (StructFieldGet SpanContextConfig.underlying go!"TraceState") #x (Val #(x.TraceState'))
+  set'TraceState : ∀ (x : SpanContextConfig) (y : TraceState), go.IsGoStepPureDetTagged under (StructFieldSet SpanContextConfig.underlying go!"TraceState") (PairV #x #y) (Val #(({ x with TraceState' := y } : SpanContextConfig)))
+  get'Remote : ∀ (x : SpanContextConfig), go.IsGoStepPureDetTagged under (StructFieldGet SpanContextConfig.underlying go!"Remote") #x (Val #(x.Remote'))
+  set'Remote : ∀ (x : SpanContextConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SpanContextConfig.underlying go!"Remote") (PairV #x #y) (Val #(({ x with Remote' := y } : SpanContextConfig)))
   method_set : go.MethodSetIs SpanContextConfig.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SpanContextConfig.ty) []
 
 attribute [instance] SpanContextConfig.TypeAssumptions.type_repr
   SpanContextConfig.TypeAssumptions.underlying
-  SpanContextConfig.TypeAssumptions.get_TraceID
-  SpanContextConfig.TypeAssumptions.set_TraceID
-  SpanContextConfig.TypeAssumptions.get_SpanID
-  SpanContextConfig.TypeAssumptions.set_SpanID
-  SpanContextConfig.TypeAssumptions.get_TraceFlags
-  SpanContextConfig.TypeAssumptions.set_TraceFlags
-  SpanContextConfig.TypeAssumptions.get_TraceState
-  SpanContextConfig.TypeAssumptions.set_TraceState
-  SpanContextConfig.TypeAssumptions.get_Remote
-  SpanContextConfig.TypeAssumptions.set_Remote
+  SpanContextConfig.TypeAssumptions.get'TraceID
+  SpanContextConfig.TypeAssumptions.set'TraceID
+  SpanContextConfig.TypeAssumptions.get'SpanID
+  SpanContextConfig.TypeAssumptions.set'SpanID
+  SpanContextConfig.TypeAssumptions.get'TraceFlags
+  SpanContextConfig.TypeAssumptions.set'TraceFlags
+  SpanContextConfig.TypeAssumptions.get'TraceState
+  SpanContextConfig.TypeAssumptions.set'TraceState
+  SpanContextConfig.TypeAssumptions.get'Remote
+  SpanContextConfig.TypeAssumptions.set'Remote
   SpanContextConfig.TypeAssumptions.method_set
   SpanContextConfig.TypeAssumptions.ptr_method_set
 
@@ -1608,7 +1608,7 @@ noncomputable instance member.zero_val [GooseExts] : ZeroVal member :=
 @[irreducible] noncomputable def member.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   member.fieldsUnsealed
 
-noncomputable instance equals_unfold_member [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'member [GooseExts] [GoGlobalContext] :
     EqualsUnfold member.fields member.fieldsUnsealed :=
   ⟨by unfold member.fields; rfl⟩
 
@@ -1618,114 +1618,114 @@ noncomputable instance equals_unfold_member [GooseExts] [GoGlobalContext] :
 class member.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying member.underlying member
   underlying : go.UnderlyingDirectedEq member.ty member.underlying
-  get_Key : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : member)))
-  get_Value : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"Value") #x (Val #(x.Value'))
-  set_Value : ∀ (x : member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : member)))
+  get'Key : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : member)))
+  get'Value : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"Value") #x (Val #(x.Value'))
+  set'Value : ∀ (x : member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : member)))
   method_set : go.MethodSetIs member.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType member.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] member.TypeAssumptions.type_repr
   member.TypeAssumptions.underlying
-  member.TypeAssumptions.get_Key
-  member.TypeAssumptions.set_Key
-  member.TypeAssumptions.get_Value
-  member.TypeAssumptions.set_Value
+  member.TypeAssumptions.get'Key
+  member.TypeAssumptions.set'Key
+  member.TypeAssumptions.get'Value
+  member.TypeAssumptions.set'Value
   member.TypeAssumptions.method_set
   member.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  autoTracerProvider_instance : autoTracerProvider.TypeAssumptions
-  autoTracer_instance : autoTracer.TypeAssumptions
-  autoSpan_instance : autoSpan.TypeAssumptions
-  spanLimits_instance : spanLimits.TypeAssumptions
-  TracerConfig_instance : TracerConfig.TypeAssumptions
-  experimentalOption_instance : experimentalOption.TypeAssumptions
-  TracerOption_instance : TracerOption.TypeAssumptions
-  tracerOptionFunc_instance : tracerOptionFunc.TypeAssumptions
-  SpanConfig_instance : SpanConfig.TypeAssumptions
-  SpanStartOption_instance : SpanStartOption.TypeAssumptions
-  spanOptionFunc_instance : spanOptionFunc.TypeAssumptions
-  SpanEndOption_instance : SpanEndOption.TypeAssumptions
-  EventConfig_instance : EventConfig.TypeAssumptions
-  EventOption_instance : EventOption.TypeAssumptions
-  SpanOption_instance : SpanOption.TypeAssumptions
-  SpanStartEventOption_instance : SpanStartEventOption.TypeAssumptions
-  SpanEndEventOption_instance : SpanEndEventOption.TypeAssumptions
-  attributeOption_instance : attributeOption.TypeAssumptions
-  SpanEventOption_instance : SpanEventOption.TypeAssumptions
-  timestampOption_instance : timestampOption.TypeAssumptions
-  stackTraceOption_instance : stackTraceOption.TypeAssumptions
-  traceContextKeyType_instance : traceContextKeyType.TypeAssumptions
-  nonRecordingSpan_instance : nonRecordingSpan.TypeAssumptions
-  noopTracerProvider_instance : noopTracerProvider.TypeAssumptions
-  noopTracer_instance : noopTracer.TypeAssumptions
-  noopSpan_instance : noopSpan.TypeAssumptions
-  TracerProvider_instance : TracerProvider.TypeAssumptions
-  Span_instance : Span.TypeAssumptions
-  Link_instance : Link.TypeAssumptions
-  SpanKind_instance : SpanKind.TypeAssumptions
-  errorConst_instance : errorConst.TypeAssumptions
-  TraceID_instance : TraceID.TypeAssumptions
-  SpanID_instance : SpanID.TypeAssumptions
-  TraceFlags_instance : TraceFlags.TypeAssumptions
-  SpanContextConfig_instance : SpanContextConfig.TypeAssumptions
-  SpanContext_instance : SpanContext.TypeAssumptions
-  Tracer_instance : Tracer.TypeAssumptions
-  member_instance : member.TypeAssumptions
-  TraceState_instance : TraceState.TypeAssumptions
-  WithAttributes_unfold : FuncUnfold WithAttributes [] WithAttributes.impl
-  SpanFromContext_unfold : FuncUnfold SpanFromContext [] SpanFromContext.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_attribute_Assumption : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Assumptions
-  import_codes_Assumption : _root_.Perennial.go_opentelemetry_io.otel.codes.Assumptions
-  import_embedded_Assumption : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Assumptions
+  instance'autoTracerProvider : autoTracerProvider.TypeAssumptions
+  instance'autoTracer : autoTracer.TypeAssumptions
+  instance'autoSpan : autoSpan.TypeAssumptions
+  instance'spanLimits : spanLimits.TypeAssumptions
+  instance'TracerConfig : TracerConfig.TypeAssumptions
+  instance'experimentalOption : experimentalOption.TypeAssumptions
+  instance'TracerOption : TracerOption.TypeAssumptions
+  instance'tracerOptionFunc : tracerOptionFunc.TypeAssumptions
+  instance'SpanConfig : SpanConfig.TypeAssumptions
+  instance'SpanStartOption : SpanStartOption.TypeAssumptions
+  instance'spanOptionFunc : spanOptionFunc.TypeAssumptions
+  instance'SpanEndOption : SpanEndOption.TypeAssumptions
+  instance'EventConfig : EventConfig.TypeAssumptions
+  instance'EventOption : EventOption.TypeAssumptions
+  instance'SpanOption : SpanOption.TypeAssumptions
+  instance'SpanStartEventOption : SpanStartEventOption.TypeAssumptions
+  instance'SpanEndEventOption : SpanEndEventOption.TypeAssumptions
+  instance'attributeOption : attributeOption.TypeAssumptions
+  instance'SpanEventOption : SpanEventOption.TypeAssumptions
+  instance'timestampOption : timestampOption.TypeAssumptions
+  instance'stackTraceOption : stackTraceOption.TypeAssumptions
+  instance'traceContextKeyType : traceContextKeyType.TypeAssumptions
+  instance'nonRecordingSpan : nonRecordingSpan.TypeAssumptions
+  instance'noopTracerProvider : noopTracerProvider.TypeAssumptions
+  instance'noopTracer : noopTracer.TypeAssumptions
+  instance'noopSpan : noopSpan.TypeAssumptions
+  instance'TracerProvider : TracerProvider.TypeAssumptions
+  instance'Span : Span.TypeAssumptions
+  instance'Link : Link.TypeAssumptions
+  instance'SpanKind : SpanKind.TypeAssumptions
+  instance'errorConst : errorConst.TypeAssumptions
+  instance'TraceID : TraceID.TypeAssumptions
+  instance'SpanID : SpanID.TypeAssumptions
+  instance'TraceFlags : TraceFlags.TypeAssumptions
+  instance'SpanContextConfig : SpanContextConfig.TypeAssumptions
+  instance'SpanContext : SpanContext.TypeAssumptions
+  instance'Tracer : Tracer.TypeAssumptions
+  instance'member : member.TypeAssumptions
+  instance'TraceState : TraceState.TypeAssumptions
+  unfold'WithAttributes : FuncUnfold WithAttributes [] WithAttributes.impl
+  unfold'SpanFromContext : FuncUnfold SpanFromContext [] SpanFromContext.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'attribute : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Assumptions
+  import'codes : _root_.Perennial.go_opentelemetry_io.otel.codes.Assumptions
+  import'embedded : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Assumptions
 
-attribute [instance] Assumptions.autoTracerProvider_instance
-  Assumptions.autoTracer_instance
-  Assumptions.autoSpan_instance
-  Assumptions.spanLimits_instance
-  Assumptions.TracerConfig_instance
-  Assumptions.experimentalOption_instance
-  Assumptions.TracerOption_instance
-  Assumptions.tracerOptionFunc_instance
-  Assumptions.SpanConfig_instance
-  Assumptions.SpanStartOption_instance
-  Assumptions.spanOptionFunc_instance
-  Assumptions.SpanEndOption_instance
-  Assumptions.EventConfig_instance
-  Assumptions.EventOption_instance
-  Assumptions.SpanOption_instance
-  Assumptions.SpanStartEventOption_instance
-  Assumptions.SpanEndEventOption_instance
-  Assumptions.attributeOption_instance
-  Assumptions.SpanEventOption_instance
-  Assumptions.timestampOption_instance
-  Assumptions.stackTraceOption_instance
-  Assumptions.traceContextKeyType_instance
-  Assumptions.nonRecordingSpan_instance
-  Assumptions.noopTracerProvider_instance
-  Assumptions.noopTracer_instance
-  Assumptions.noopSpan_instance
-  Assumptions.TracerProvider_instance
-  Assumptions.Span_instance
-  Assumptions.Link_instance
-  Assumptions.SpanKind_instance
-  Assumptions.errorConst_instance
-  Assumptions.TraceID_instance
-  Assumptions.SpanID_instance
-  Assumptions.TraceFlags_instance
-  Assumptions.SpanContextConfig_instance
-  Assumptions.SpanContext_instance
-  Assumptions.Tracer_instance
-  Assumptions.member_instance
-  Assumptions.TraceState_instance
-  Assumptions.WithAttributes_unfold
-  Assumptions.SpanFromContext_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_attribute_Assumption
-  Assumptions.import_codes_Assumption
-  Assumptions.import_embedded_Assumption
+attribute [instance] Assumptions.instance'autoTracerProvider
+  Assumptions.instance'autoTracer
+  Assumptions.instance'autoSpan
+  Assumptions.instance'spanLimits
+  Assumptions.instance'TracerConfig
+  Assumptions.instance'experimentalOption
+  Assumptions.instance'TracerOption
+  Assumptions.instance'tracerOptionFunc
+  Assumptions.instance'SpanConfig
+  Assumptions.instance'SpanStartOption
+  Assumptions.instance'spanOptionFunc
+  Assumptions.instance'SpanEndOption
+  Assumptions.instance'EventConfig
+  Assumptions.instance'EventOption
+  Assumptions.instance'SpanOption
+  Assumptions.instance'SpanStartEventOption
+  Assumptions.instance'SpanEndEventOption
+  Assumptions.instance'attributeOption
+  Assumptions.instance'SpanEventOption
+  Assumptions.instance'timestampOption
+  Assumptions.instance'stackTraceOption
+  Assumptions.instance'traceContextKeyType
+  Assumptions.instance'nonRecordingSpan
+  Assumptions.instance'noopTracerProvider
+  Assumptions.instance'noopTracer
+  Assumptions.instance'noopSpan
+  Assumptions.instance'TracerProvider
+  Assumptions.instance'Span
+  Assumptions.instance'Link
+  Assumptions.instance'SpanKind
+  Assumptions.instance'errorConst
+  Assumptions.instance'TraceID
+  Assumptions.instance'SpanID
+  Assumptions.instance'TraceFlags
+  Assumptions.instance'SpanContextConfig
+  Assumptions.instance'SpanContext
+  Assumptions.instance'Tracer
+  Assumptions.instance'member
+  Assumptions.instance'TraceState
+  Assumptions.unfold'WithAttributes
+  Assumptions.unfold'SpanFromContext
+  Assumptions.import'context
+  Assumptions.import'attribute
+  Assumptions.import'codes
+  Assumptions.import'embedded
 
 end go_opentelemetry_io.otel.trace
 

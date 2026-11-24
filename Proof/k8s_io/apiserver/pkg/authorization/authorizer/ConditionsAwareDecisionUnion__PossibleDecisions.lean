@@ -56,7 +56,7 @@ theorem ConditionsAwareDecisionUnion.PossibleDecisions.wp_proof
   try wp_auto
   have Hs0 : setIs (insertAll ∅ [W64 2]) ⟨false, false, true⟩ :=
     setIs_congr (setIs_new [W64 2] (by simp)) (by simp [PD.ofList])
-  icases (ConditionsAwareDecisionUnion.ConditionsAwareDecisionUnion_access_load_subDecisionsPossibleDecisions
+  icases (ConditionsAwareDecisionUnion.access_load'ConditionsAwareDecisionUnion'subDecisionsPossibleDecisions
     p u dq).access_strict $$ Hp with ⟨Hf, Hclose⟩
   unfold subOk
   icases Hsub with ⟨%Hc, Hsub⟩

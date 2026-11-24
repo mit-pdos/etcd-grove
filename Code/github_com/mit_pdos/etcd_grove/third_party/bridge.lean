@@ -705,7 +705,7 @@ noncomputable instance bridge.zero_val [GooseExts] : ZeroVal bridge :=
 @[irreducible] noncomputable def bridge.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bridge.fieldsUnsealed
 
-noncomputable instance equals_unfold_bridge [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'bridge [GooseExts] [GoGlobalContext] :
     EqualsUnfold bridge.fields bridge.fieldsUnsealed :=
   ⟨by unfold bridge.fields; rfl⟩
 
@@ -715,63 +715,63 @@ noncomputable instance equals_unfold_bridge [GooseExts] [GoGlobalContext] :
 class bridge.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bridge.underlying bridge
   underlying : go.UnderlyingDirectedEq bridge.ty bridge.underlying
-  get_dialer : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"dialer") #x (Val #(x.dialer'))
-  set_dialer : ∀ (x : bridge) (y : Dialer), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"dialer") (PairV #x #y) (Val #(({ x with dialer' := y } : bridge)))
-  get_l : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"l") #x (Val #(x.l'))
-  set_l : ∀ (x : bridge) (y : _root_.Perennial.net.Listener), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"l") (PairV #x #y) (Val #(({ x with l' := y } : bridge)))
-  get_conns : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"conns") #x (Val #(x.conns'))
-  set_conns : ∀ (x : bridge) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"conns") (PairV #x #y) (Val #(({ x with conns' := y } : bridge)))
-  get_stopc : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"stopc") #x (Val #(x.stopc'))
-  set_stopc : ∀ (x : bridge) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : bridge)))
-  get_pausec : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"pausec") #x (Val #(x.pausec'))
-  set_pausec : ∀ (x : bridge) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"pausec") (PairV #x #y) (Val #(({ x with pausec' := y } : bridge)))
-  get_blackholec : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"blackholec") #x (Val #(x.blackholec'))
-  set_blackholec : ∀ (x : bridge) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"blackholec") (PairV #x #y) (Val #(({ x with blackholec' := y } : bridge)))
-  get_wg : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"wg") #x (Val #(x.wg'))
-  set_wg : ∀ (x : bridge) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : bridge)))
-  get_mu : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : bridge) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : bridge)))
+  get'dialer : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"dialer") #x (Val #(x.dialer'))
+  set'dialer : ∀ (x : bridge) (y : Dialer), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"dialer") (PairV #x #y) (Val #(({ x with dialer' := y } : bridge)))
+  get'l : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"l") #x (Val #(x.l'))
+  set'l : ∀ (x : bridge) (y : _root_.Perennial.net.Listener), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"l") (PairV #x #y) (Val #(({ x with l' := y } : bridge)))
+  get'conns : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"conns") #x (Val #(x.conns'))
+  set'conns : ∀ (x : bridge) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"conns") (PairV #x #y) (Val #(({ x with conns' := y } : bridge)))
+  get'stopc : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"stopc") #x (Val #(x.stopc'))
+  set'stopc : ∀ (x : bridge) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : bridge)))
+  get'pausec : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"pausec") #x (Val #(x.pausec'))
+  set'pausec : ∀ (x : bridge) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"pausec") (PairV #x #y) (Val #(({ x with pausec' := y } : bridge)))
+  get'blackholec : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"blackholec") #x (Val #(x.blackholec'))
+  set'blackholec : ∀ (x : bridge) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"blackholec") (PairV #x #y) (Val #(({ x with blackholec' := y } : bridge)))
+  get'wg : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"wg") #x (Val #(x.wg'))
+  set'wg : ∀ (x : bridge) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : bridge)))
+  get'mu : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : bridge) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet bridge.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : bridge)))
   method_set : go.MethodSetIs bridge.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bridge.ty) [(go!"Blackhole", (some (go.signature.Signature [] false []))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"DropConnections", (some (go.signature.Signature [] false []))), (go!"PauseConnections", (some (go.signature.Signature [] false []))), (go!"Unblackhole", (some (go.signature.Signature [] false []))), (go!"UnpauseConnections", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/third_party/bridge.ioCopy", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, _root_.Perennial.io.Reader.ty] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/third_party/bridge.serveConn", (some (go.signature.Signature [(go.GoType.PointerType bridgeConn.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/third_party/bridge.serveListen", (some (go.signature.Signature [] false [])))]
-  ptr_Blackhole_unfold : MethodUnfold (go.GoType.PointerType bridge.ty) go!"Blackhole" bridge.Blackhole.impl
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType bridge.ty) go!"Close" bridge.Close.impl
-  ptr_DropConnections_unfold : MethodUnfold (go.GoType.PointerType bridge.ty) go!"DropConnections" bridge.DropConnections.impl
-  ptr_PauseConnections_unfold : MethodUnfold (go.GoType.PointerType bridge.ty) go!"PauseConnections" bridge.PauseConnections.impl
-  ptr_Unblackhole_unfold : MethodUnfold (go.GoType.PointerType bridge.ty) go!"Unblackhole" bridge.Unblackhole.impl
-  ptr_UnpauseConnections_unfold : MethodUnfold (go.GoType.PointerType bridge.ty) go!"UnpauseConnections" bridge.UnpauseConnections.impl
-  ptr_ioCopy_unfold : MethodUnfold (go.GoType.PointerType bridge.ty) go!"ioCopy" bridge.ioCopy.impl
-  ptr_serveConn_unfold : MethodUnfold (go.GoType.PointerType bridge.ty) go!"serveConn" bridge.serveConn.impl
-  ptr_serveListen_unfold : MethodUnfold (go.GoType.PointerType bridge.ty) go!"serveListen" bridge.serveListen.impl
+  ptr_unfold'Blackhole : MethodUnfold (go.GoType.PointerType bridge.ty) go!"Blackhole" bridge.Blackhole.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType bridge.ty) go!"Close" bridge.Close.impl
+  ptr_unfold'DropConnections : MethodUnfold (go.GoType.PointerType bridge.ty) go!"DropConnections" bridge.DropConnections.impl
+  ptr_unfold'PauseConnections : MethodUnfold (go.GoType.PointerType bridge.ty) go!"PauseConnections" bridge.PauseConnections.impl
+  ptr_unfold'Unblackhole : MethodUnfold (go.GoType.PointerType bridge.ty) go!"Unblackhole" bridge.Unblackhole.impl
+  ptr_unfold'UnpauseConnections : MethodUnfold (go.GoType.PointerType bridge.ty) go!"UnpauseConnections" bridge.UnpauseConnections.impl
+  ptr_unfold'ioCopy : MethodUnfold (go.GoType.PointerType bridge.ty) go!"ioCopy" bridge.ioCopy.impl
+  ptr_unfold'serveConn : MethodUnfold (go.GoType.PointerType bridge.ty) go!"serveConn" bridge.serveConn.impl
+  ptr_unfold'serveListen : MethodUnfold (go.GoType.PointerType bridge.ty) go!"serveListen" bridge.serveListen.impl
 
 attribute [instance] bridge.TypeAssumptions.type_repr
   bridge.TypeAssumptions.underlying
-  bridge.TypeAssumptions.get_dialer
-  bridge.TypeAssumptions.set_dialer
-  bridge.TypeAssumptions.get_l
-  bridge.TypeAssumptions.set_l
-  bridge.TypeAssumptions.get_conns
-  bridge.TypeAssumptions.set_conns
-  bridge.TypeAssumptions.get_stopc
-  bridge.TypeAssumptions.set_stopc
-  bridge.TypeAssumptions.get_pausec
-  bridge.TypeAssumptions.set_pausec
-  bridge.TypeAssumptions.get_blackholec
-  bridge.TypeAssumptions.set_blackholec
-  bridge.TypeAssumptions.get_wg
-  bridge.TypeAssumptions.set_wg
-  bridge.TypeAssumptions.get_mu
-  bridge.TypeAssumptions.set_mu
+  bridge.TypeAssumptions.get'dialer
+  bridge.TypeAssumptions.set'dialer
+  bridge.TypeAssumptions.get'l
+  bridge.TypeAssumptions.set'l
+  bridge.TypeAssumptions.get'conns
+  bridge.TypeAssumptions.set'conns
+  bridge.TypeAssumptions.get'stopc
+  bridge.TypeAssumptions.set'stopc
+  bridge.TypeAssumptions.get'pausec
+  bridge.TypeAssumptions.set'pausec
+  bridge.TypeAssumptions.get'blackholec
+  bridge.TypeAssumptions.set'blackholec
+  bridge.TypeAssumptions.get'wg
+  bridge.TypeAssumptions.set'wg
+  bridge.TypeAssumptions.get'mu
+  bridge.TypeAssumptions.set'mu
   bridge.TypeAssumptions.method_set
   bridge.TypeAssumptions.ptr_method_set
-  bridge.TypeAssumptions.ptr_Blackhole_unfold
-  bridge.TypeAssumptions.ptr_Close_unfold
-  bridge.TypeAssumptions.ptr_DropConnections_unfold
-  bridge.TypeAssumptions.ptr_PauseConnections_unfold
-  bridge.TypeAssumptions.ptr_Unblackhole_unfold
-  bridge.TypeAssumptions.ptr_UnpauseConnections_unfold
-  bridge.TypeAssumptions.ptr_ioCopy_unfold
-  bridge.TypeAssumptions.ptr_serveConn_unfold
-  bridge.TypeAssumptions.ptr_serveListen_unfold
+  bridge.TypeAssumptions.ptr_unfold'Blackhole
+  bridge.TypeAssumptions.ptr_unfold'Close
+  bridge.TypeAssumptions.ptr_unfold'DropConnections
+  bridge.TypeAssumptions.ptr_unfold'PauseConnections
+  bridge.TypeAssumptions.ptr_unfold'Unblackhole
+  bridge.TypeAssumptions.ptr_unfold'UnpauseConnections
+  bridge.TypeAssumptions.ptr_unfold'ioCopy
+  bridge.TypeAssumptions.ptr_unfold'serveConn
+  bridge.TypeAssumptions.ptr_unfold'serveListen
 
 structure bridgeConn [GooseExts] where
   mk ::
@@ -790,7 +790,7 @@ noncomputable instance bridgeConn.zero_val [GooseExts] : ZeroVal bridgeConn :=
 @[irreducible] noncomputable def bridgeConn.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bridgeConn.fieldsUnsealed
 
-noncomputable instance equals_unfold_bridgeConn [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'bridgeConn [GooseExts] [GoGlobalContext] :
     EqualsUnfold bridgeConn.fields bridgeConn.fieldsUnsealed :=
   ⟨by unfold bridgeConn.fields; rfl⟩
 
@@ -800,29 +800,29 @@ noncomputable instance equals_unfold_bridgeConn [GooseExts] [GoGlobalContext] :
 class bridgeConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bridgeConn.underlying bridgeConn
   underlying : go.UnderlyingDirectedEq bridgeConn.ty bridgeConn.underlying
-  get_in : ∀ (x : bridgeConn), go.IsGoStepPureDetTagged under (StructFieldGet bridgeConn.underlying go!"in") #x (Val #(x.in'))
-  set_in : ∀ (x : bridgeConn) (y : _root_.Perennial.net.Conn), go.IsGoStepPureDetTagged under (StructFieldSet bridgeConn.underlying go!"in") (PairV #x #y) (Val #(({ x with in' := y } : bridgeConn)))
-  get_out : ∀ (x : bridgeConn), go.IsGoStepPureDetTagged under (StructFieldGet bridgeConn.underlying go!"out") #x (Val #(x.out'))
-  set_out : ∀ (x : bridgeConn) (y : _root_.Perennial.net.Conn), go.IsGoStepPureDetTagged under (StructFieldSet bridgeConn.underlying go!"out") (PairV #x #y) (Val #(({ x with out' := y } : bridgeConn)))
-  get_donec : ∀ (x : bridgeConn), go.IsGoStepPureDetTagged under (StructFieldGet bridgeConn.underlying go!"donec") #x (Val #(x.donec'))
-  set_donec : ∀ (x : bridgeConn) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet bridgeConn.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : bridgeConn)))
+  get'in : ∀ (x : bridgeConn), go.IsGoStepPureDetTagged under (StructFieldGet bridgeConn.underlying go!"in") #x (Val #(x.in'))
+  set'in : ∀ (x : bridgeConn) (y : _root_.Perennial.net.Conn), go.IsGoStepPureDetTagged under (StructFieldSet bridgeConn.underlying go!"in") (PairV #x #y) (Val #(({ x with in' := y } : bridgeConn)))
+  get'out : ∀ (x : bridgeConn), go.IsGoStepPureDetTagged under (StructFieldGet bridgeConn.underlying go!"out") #x (Val #(x.out'))
+  set'out : ∀ (x : bridgeConn) (y : _root_.Perennial.net.Conn), go.IsGoStepPureDetTagged under (StructFieldSet bridgeConn.underlying go!"out") (PairV #x #y) (Val #(({ x with out' := y } : bridgeConn)))
+  get'donec : ∀ (x : bridgeConn), go.IsGoStepPureDetTagged under (StructFieldGet bridgeConn.underlying go!"donec") #x (Val #(x.donec'))
+  set'donec : ∀ (x : bridgeConn) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet bridgeConn.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : bridgeConn)))
   method_set : go.MethodSetIs bridgeConn.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bridgeConn.ty) [(go!"Close", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/third_party/bridge.close", (some (go.signature.Signature [] false [])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType bridgeConn.ty) go!"Close" bridgeConn.Close.impl
-  ptr_close_unfold : MethodUnfold (go.GoType.PointerType bridgeConn.ty) go!"close" bridgeConn.close.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType bridgeConn.ty) go!"Close" bridgeConn.Close.impl
+  ptr_unfold'close : MethodUnfold (go.GoType.PointerType bridgeConn.ty) go!"close" bridgeConn.close.impl
 
 attribute [instance] bridgeConn.TypeAssumptions.type_repr
   bridgeConn.TypeAssumptions.underlying
-  bridgeConn.TypeAssumptions.get_in
-  bridgeConn.TypeAssumptions.set_in
-  bridgeConn.TypeAssumptions.get_out
-  bridgeConn.TypeAssumptions.set_out
-  bridgeConn.TypeAssumptions.get_donec
-  bridgeConn.TypeAssumptions.set_donec
+  bridgeConn.TypeAssumptions.get'in
+  bridgeConn.TypeAssumptions.set'in
+  bridgeConn.TypeAssumptions.get'out
+  bridgeConn.TypeAssumptions.set'out
+  bridgeConn.TypeAssumptions.get'donec
+  bridgeConn.TypeAssumptions.set'donec
   bridgeConn.TypeAssumptions.method_set
   bridgeConn.TypeAssumptions.ptr_method_set
-  bridgeConn.TypeAssumptions.ptr_Close_unfold
-  bridgeConn.TypeAssumptions.ptr_close_unfold
+  bridgeConn.TypeAssumptions.ptr_unfold'Close
+  bridgeConn.TypeAssumptions.ptr_unfold'close
 
 structure dialer [GooseExts] where
   mk ::
@@ -839,7 +839,7 @@ noncomputable instance dialer.zero_val [GooseExts] : ZeroVal dialer :=
 @[irreducible] noncomputable def dialer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   dialer.fieldsUnsealed
 
-noncomputable instance equals_unfold_dialer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'dialer [GooseExts] [GoGlobalContext] :
     EqualsUnfold dialer.fields dialer.fieldsUnsealed :=
   ⟨by unfold dialer.fields; rfl⟩
 
@@ -849,49 +849,49 @@ noncomputable instance equals_unfold_dialer [GooseExts] [GoGlobalContext] :
 class dialer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying dialer.underlying dialer
   underlying : go.UnderlyingDirectedEq dialer.ty dialer.underlying
-  get_network : ∀ (x : dialer), go.IsGoStepPureDetTagged under (StructFieldGet dialer.underlying go!"network") #x (Val #(x.network'))
-  set_network : ∀ (x : dialer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet dialer.underlying go!"network") (PairV #x #y) (Val #(({ x with network' := y } : dialer)))
-  get_addr : ∀ (x : dialer), go.IsGoStepPureDetTagged under (StructFieldGet dialer.underlying go!"addr") #x (Val #(x.addr'))
-  set_addr : ∀ (x : dialer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet dialer.underlying go!"addr") (PairV #x #y) (Val #(({ x with addr' := y } : dialer)))
+  get'network : ∀ (x : dialer), go.IsGoStepPureDetTagged under (StructFieldGet dialer.underlying go!"network") #x (Val #(x.network'))
+  set'network : ∀ (x : dialer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet dialer.underlying go!"network") (PairV #x #y) (Val #(({ x with network' := y } : dialer)))
+  get'addr : ∀ (x : dialer), go.IsGoStepPureDetTagged under (StructFieldGet dialer.underlying go!"addr") #x (Val #(x.addr'))
+  set'addr : ∀ (x : dialer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet dialer.underlying go!"addr") (PairV #x #y) (Val #(({ x with addr' := y } : dialer)))
   method_set : go.MethodSetIs dialer.ty [(go!"Dial", (some (go.signature.Signature [] false [_root_.Perennial.net.Conn.ty, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType dialer.ty) [(go!"Dial", (some (go.signature.Signature [] false [_root_.Perennial.net.Conn.ty, go.error])))]
-  Dial_unfold : MethodUnfold dialer.ty go!"Dial" dialer.Dial.impl
-  ptr_Dial_unfold : MethodUnfold (go.GoType.PointerType dialer.ty) go!"Dial" (LamV "$r"
+  unfold'Dial : MethodUnfold dialer.ty go!"Dial" dialer.Dial.impl
+  ptr_unfold'Dial : MethodUnfold (go.GoType.PointerType dialer.ty) go!"Dial" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve dialer.ty go!"Dial"))) (App (Val (GoInstruction (GoLoad dialer.ty))) (Var "$r"))))
 
 attribute [instance] dialer.TypeAssumptions.type_repr
   dialer.TypeAssumptions.underlying
-  dialer.TypeAssumptions.get_network
-  dialer.TypeAssumptions.set_network
-  dialer.TypeAssumptions.get_addr
-  dialer.TypeAssumptions.set_addr
+  dialer.TypeAssumptions.get'network
+  dialer.TypeAssumptions.set'network
+  dialer.TypeAssumptions.get'addr
+  dialer.TypeAssumptions.set'addr
   dialer.TypeAssumptions.method_set
   dialer.TypeAssumptions.ptr_method_set
-  dialer.TypeAssumptions.Dial_unfold
-  dialer.TypeAssumptions.ptr_Dial_unfold
+  dialer.TypeAssumptions.unfold'Dial
+  dialer.TypeAssumptions.ptr_unfold'Dial
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Dialer_instance : Dialer.TypeAssumptions
-  Bridge_instance : Bridge.TypeAssumptions
-  bridge_instance : bridge.TypeAssumptions
-  bridgeConn_instance : bridgeConn.TypeAssumptions
-  dialer_instance : dialer.TypeAssumptions
-  newBridge_unfold : FuncUnfold newBridge [] newBridge.impl
-  New_unfold : FuncUnfold New [] New.impl
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  instance'Dialer : Dialer.TypeAssumptions
+  instance'Bridge : Bridge.TypeAssumptions
+  instance'bridge : bridge.TypeAssumptions
+  instance'bridgeConn : bridgeConn.TypeAssumptions
+  instance'dialer : dialer.TypeAssumptions
+  unfold'newBridge : FuncUnfold newBridge [] newBridge.impl
+  unfold'New : FuncUnfold New [] New.impl
+  import'io : _root_.Perennial.io.Assumptions
+  import'net : _root_.Perennial.net.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
 
-attribute [instance] Assumptions.Dialer_instance
-  Assumptions.Bridge_instance
-  Assumptions.bridge_instance
-  Assumptions.bridgeConn_instance
-  Assumptions.dialer_instance
-  Assumptions.newBridge_unfold
-  Assumptions.New_unfold
-  Assumptions.import_io_Assumption
-  Assumptions.import_net_Assumption
-  Assumptions.import_sync_Assumption
+attribute [instance] Assumptions.instance'Dialer
+  Assumptions.instance'Bridge
+  Assumptions.instance'bridge
+  Assumptions.instance'bridgeConn
+  Assumptions.instance'dialer
+  Assumptions.unfold'newBridge
+  Assumptions.unfold'New
+  Assumptions.import'io
+  Assumptions.import'net
+  Assumptions.import'sync
 
 end github_com.mit_pdos.etcd_grove.third_party.bridge
 

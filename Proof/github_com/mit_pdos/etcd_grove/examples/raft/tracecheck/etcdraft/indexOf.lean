@@ -70,7 +70,7 @@ theorem indexOf.wp_proof (wp_Equal : TState.Equal.spec (GF := GF) (hG := hG)) :
     wp_apply wp_load_slice_index _ (sint.Z n) gs dq y hn0 $$ [Hsl] as Hsl
     · iframe Hsl; ipureintro; exact Hy
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.TState.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.TState.TypeAssumptions.ptr_unfold'Equal.method_unfold]
     try wp_auto
     wp_apply wp_Equal y x g ts $$ [Hyx Hts]
     · iframe Hyx Hts

@@ -1091,7 +1091,7 @@ noncomputable instance backoffEntry.zero_val [GooseExts] : ZeroVal backoffEntry 
 @[irreducible] noncomputable def backoffEntry.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   backoffEntry.fieldsUnsealed
 
-noncomputable instance equals_unfold_backoffEntry [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'backoffEntry [GooseExts] [GoGlobalContext] :
     EqualsUnfold backoffEntry.fields backoffEntry.fieldsUnsealed :=
   ⟨by unfold backoffEntry.fields; rfl⟩
 
@@ -1101,19 +1101,19 @@ noncomputable instance equals_unfold_backoffEntry [GooseExts] [GoGlobalContext] 
 class backoffEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying backoffEntry.underlying backoffEntry
   underlying : go.UnderlyingDirectedEq backoffEntry.ty backoffEntry.underlying
-  get_backoff : ∀ (x : backoffEntry), go.IsGoStepPureDetTagged under (StructFieldGet backoffEntry.underlying go!"backoff") #x (Val #(x.backoff'))
-  set_backoff : ∀ (x : backoffEntry) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet backoffEntry.underlying go!"backoff") (PairV #x #y) (Val #(({ x with backoff' := y } : backoffEntry)))
-  get_lastUpdate : ∀ (x : backoffEntry), go.IsGoStepPureDetTagged under (StructFieldGet backoffEntry.underlying go!"lastUpdate") #x (Val #(x.lastUpdate'))
-  set_lastUpdate : ∀ (x : backoffEntry) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet backoffEntry.underlying go!"lastUpdate") (PairV #x #y) (Val #(({ x with lastUpdate' := y } : backoffEntry)))
+  get'backoff : ∀ (x : backoffEntry), go.IsGoStepPureDetTagged under (StructFieldGet backoffEntry.underlying go!"backoff") #x (Val #(x.backoff'))
+  set'backoff : ∀ (x : backoffEntry) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet backoffEntry.underlying go!"backoff") (PairV #x #y) (Val #(({ x with backoff' := y } : backoffEntry)))
+  get'lastUpdate : ∀ (x : backoffEntry), go.IsGoStepPureDetTagged under (StructFieldGet backoffEntry.underlying go!"lastUpdate") #x (Val #(x.lastUpdate'))
+  set'lastUpdate : ∀ (x : backoffEntry) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet backoffEntry.underlying go!"lastUpdate") (PairV #x #y) (Val #(({ x with lastUpdate' := y } : backoffEntry)))
   method_set : go.MethodSetIs backoffEntry.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType backoffEntry.ty) []
 
 attribute [instance] backoffEntry.TypeAssumptions.type_repr
   backoffEntry.TypeAssumptions.underlying
-  backoffEntry.TypeAssumptions.get_backoff
-  backoffEntry.TypeAssumptions.set_backoff
-  backoffEntry.TypeAssumptions.get_lastUpdate
-  backoffEntry.TypeAssumptions.set_lastUpdate
+  backoffEntry.TypeAssumptions.get'backoff
+  backoffEntry.TypeAssumptions.set'backoff
+  backoffEntry.TypeAssumptions.get'lastUpdate
+  backoffEntry.TypeAssumptions.set'lastUpdate
   backoffEntry.TypeAssumptions.method_set
   backoffEntry.TypeAssumptions.ptr_method_set
 
@@ -1144,7 +1144,7 @@ noncomputable instance Backoff.zero_val [GooseExts] : ZeroVal Backoff :=
 @[irreducible] noncomputable def Backoff.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Backoff.fieldsUnsealed
 
-noncomputable instance equals_unfold_Backoff [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Backoff [GooseExts] [GoGlobalContext] :
     EqualsUnfold Backoff.fields Backoff.fieldsUnsealed :=
   ⟨by unfold Backoff.fields; rfl⟩
 
@@ -1154,87 +1154,87 @@ noncomputable instance equals_unfold_Backoff [GooseExts] [GoGlobalContext] :
 class Backoff.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Backoff.underlying Backoff
   underlying : go.UnderlyingDirectedEq Backoff.ty Backoff.underlying
-  get_RWMutex : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"RWMutex") #x (Val #(x.RWMutex'))
-  set_RWMutex : ∀ (x : Backoff) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"RWMutex") (PairV #x #y) (Val #(({ x with RWMutex' := y } : Backoff)))
-  get_Clock : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"Clock") #x (Val #(x.Clock'))
-  set_Clock : ∀ (x : Backoff) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"Clock") (PairV #x #y) (Val #(({ x with Clock' := y } : Backoff)))
-  get_HasExpiredFunc : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"HasExpiredFunc") #x (Val #(x.HasExpiredFunc'))
-  set_HasExpiredFunc : ∀ (x : Backoff) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"HasExpiredFunc") (PairV #x #y) (Val #(({ x with HasExpiredFunc' := y } : Backoff)))
-  get_defaultDuration : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"defaultDuration") #x (Val #(x.defaultDuration'))
-  set_defaultDuration : ∀ (x : Backoff) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"defaultDuration") (PairV #x #y) (Val #(({ x with defaultDuration' := y } : Backoff)))
-  get_maxDuration : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"maxDuration") #x (Val #(x.maxDuration'))
-  set_maxDuration : ∀ (x : Backoff) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"maxDuration") (PairV #x #y) (Val #(({ x with maxDuration' := y } : Backoff)))
-  get_perItemBackoff : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"perItemBackoff") #x (Val #(x.perItemBackoff'))
-  set_perItemBackoff : ∀ (x : Backoff) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"perItemBackoff") (PairV #x #y) (Val #(({ x with perItemBackoff' := y } : Backoff)))
-  get_rand : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"rand") #x (Val #(x.rand'))
-  set_rand : ∀ (x : Backoff) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"rand") (PairV #x #y) (Val #(({ x with rand' := y } : Backoff)))
-  get_maxJitterFactor : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"maxJitterFactor") #x (Val #(x.maxJitterFactor'))
-  set_maxJitterFactor : ∀ (x : Backoff) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"maxJitterFactor") (PairV #x #y) (Val #(({ x with maxJitterFactor' := y } : Backoff)))
+  get'RWMutex : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"RWMutex") #x (Val #(x.RWMutex'))
+  set'RWMutex : ∀ (x : Backoff) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"RWMutex") (PairV #x #y) (Val #(({ x with RWMutex' := y } : Backoff)))
+  get'Clock : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"Clock") #x (Val #(x.Clock'))
+  set'Clock : ∀ (x : Backoff) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"Clock") (PairV #x #y) (Val #(({ x with Clock' := y } : Backoff)))
+  get'HasExpiredFunc : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"HasExpiredFunc") #x (Val #(x.HasExpiredFunc'))
+  set'HasExpiredFunc : ∀ (x : Backoff) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"HasExpiredFunc") (PairV #x #y) (Val #(({ x with HasExpiredFunc' := y } : Backoff)))
+  get'defaultDuration : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"defaultDuration") #x (Val #(x.defaultDuration'))
+  set'defaultDuration : ∀ (x : Backoff) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"defaultDuration") (PairV #x #y) (Val #(({ x with defaultDuration' := y } : Backoff)))
+  get'maxDuration : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"maxDuration") #x (Val #(x.maxDuration'))
+  set'maxDuration : ∀ (x : Backoff) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"maxDuration") (PairV #x #y) (Val #(({ x with maxDuration' := y } : Backoff)))
+  get'perItemBackoff : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"perItemBackoff") #x (Val #(x.perItemBackoff'))
+  set'perItemBackoff : ∀ (x : Backoff) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"perItemBackoff") (PairV #x #y) (Val #(({ x with perItemBackoff' := y } : Backoff)))
+  get'rand : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"rand") #x (Val #(x.rand'))
+  set'rand : ∀ (x : Backoff) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"rand") (PairV #x #y) (Val #(({ x with rand' := y } : Backoff)))
+  get'maxJitterFactor : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"maxJitterFactor") #x (Val #(x.maxJitterFactor'))
+  set'maxJitterFactor : ∀ (x : Backoff) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"maxJitterFactor") (PairV #x #y) (Val #(({ x with maxJitterFactor' := y } : Backoff)))
   method_set : go.MethodSetIs Backoff.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Backoff.ty) [(go!"DeleteEntry", (some (go.signature.Signature [go.string] false []))), (go!"GC", (some (go.signature.Signature [] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [_root_.Perennial.time.Duration.ty]))), (go!"IsInBackOffSince", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false [go.bool]))), (go!"IsInBackOffSinceUpdate", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false [go.bool]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"Next", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false []))), (go!"RLock", (some (go.signature.Signature [] false []))), (go!"RLocker", (some (go.signature.Signature [] false [_root_.Perennial.sync.Locker.ty]))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"Reset", (some (go.signature.Signature [go.string] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"TryRLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/util/flowcontrol.hasExpired", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, _root_.Perennial.time.Time.ty, _root_.Perennial.time.Duration.ty] false [go.bool]))), (go!"k8s.io/client-go/util/flowcontrol.initEntryUnsafe", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType backoffEntry.ty)]))), (go!"k8s.io/client-go/util/flowcontrol.jitter", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.time.Duration.ty]))), (go!"sync.rUnlockSlow", (some (go.signature.Signature [go.int32] false [])))]
-  ptr_DeleteEntry_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"DeleteEntry" Backoff.DeleteEntry.impl
-  ptr_GC_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"GC" Backoff.GC.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"Get" Backoff.Get.impl
-  ptr_IsInBackOffSince_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"IsInBackOffSince" Backoff.IsInBackOffSince.impl
-  ptr_IsInBackOffSinceUpdate_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"IsInBackOffSinceUpdate" Backoff.IsInBackOffSinceUpdate.impl
-  ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"Lock" (LamV "$r"
+  ptr_unfold'DeleteEntry : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"DeleteEntry" Backoff.DeleteEntry.impl
+  ptr_unfold'GC : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"GC" Backoff.GC.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"Get" Backoff.Get.impl
+  ptr_unfold'IsInBackOffSince : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"IsInBackOffSince" Backoff.IsInBackOffSince.impl
+  ptr_unfold'IsInBackOffSinceUpdate : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"IsInBackOffSinceUpdate" Backoff.IsInBackOffSinceUpdate.impl
+  ptr_unfold'Lock : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"Lock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Backoff.ty go!"RWMutex"))) (Var "$r"))))
-  ptr_RLock_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"RLock" (LamV "$r"
+  ptr_unfold'RLock : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"RLock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef Backoff.ty go!"RWMutex"))) (Var "$r"))))
-  ptr_RLocker_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"RLocker" (LamV "$r"
+  ptr_unfold'RLocker : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"RLocker" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLocker"))) (App (Val (GoInstruction (StructFieldRef Backoff.ty go!"RWMutex"))) (Var "$r"))))
-  ptr_RUnlock_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"RUnlock" (LamV "$r"
+  ptr_unfold'RUnlock : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"RUnlock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef Backoff.ty go!"RWMutex"))) (Var "$r"))))
-  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"Reset" Backoff.Reset.impl
-  ptr_TryLock_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"TryLock" (LamV "$r"
+  ptr_unfold'Reset : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"Reset" Backoff.Reset.impl
+  ptr_unfold'TryLock : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"TryLock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"TryLock"))) (App (Val (GoInstruction (StructFieldRef Backoff.ty go!"RWMutex"))) (Var "$r"))))
-  ptr_TryRLock_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"TryRLock" (LamV "$r"
+  ptr_unfold'TryRLock : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"TryRLock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"TryRLock"))) (App (Val (GoInstruction (StructFieldRef Backoff.ty go!"RWMutex"))) (Var "$r"))))
-  ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"Unlock" (LamV "$r"
+  ptr_unfold'Unlock : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"Unlock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Backoff.ty go!"RWMutex"))) (Var "$r"))))
-  ptr_hasExpired_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"hasExpired" Backoff.hasExpired.impl
-  ptr_initEntryUnsafe_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"initEntryUnsafe" Backoff.initEntryUnsafe.impl
-  ptr_jitter_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"jitter" Backoff.jitter.impl
-  ptr_rUnlockSlow_unfold : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"rUnlockSlow" (LamV "$r"
+  ptr_unfold'hasExpired : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"hasExpired" Backoff.hasExpired.impl
+  ptr_unfold'initEntryUnsafe : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"initEntryUnsafe" Backoff.initEntryUnsafe.impl
+  ptr_unfold'jitter : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"jitter" Backoff.jitter.impl
+  ptr_unfold'rUnlockSlow : MethodUnfold (go.GoType.PointerType Backoff.ty) go!"rUnlockSlow" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"rUnlockSlow"))) (App (Val (GoInstruction (StructFieldRef Backoff.ty go!"RWMutex"))) (Var "$r"))))
 
 attribute [instance] Backoff.TypeAssumptions.type_repr
   Backoff.TypeAssumptions.underlying
-  Backoff.TypeAssumptions.get_RWMutex
-  Backoff.TypeAssumptions.set_RWMutex
-  Backoff.TypeAssumptions.get_Clock
-  Backoff.TypeAssumptions.set_Clock
-  Backoff.TypeAssumptions.get_HasExpiredFunc
-  Backoff.TypeAssumptions.set_HasExpiredFunc
-  Backoff.TypeAssumptions.get_defaultDuration
-  Backoff.TypeAssumptions.set_defaultDuration
-  Backoff.TypeAssumptions.get_maxDuration
-  Backoff.TypeAssumptions.set_maxDuration
-  Backoff.TypeAssumptions.get_perItemBackoff
-  Backoff.TypeAssumptions.set_perItemBackoff
-  Backoff.TypeAssumptions.get_rand
-  Backoff.TypeAssumptions.set_rand
-  Backoff.TypeAssumptions.get_maxJitterFactor
-  Backoff.TypeAssumptions.set_maxJitterFactor
+  Backoff.TypeAssumptions.get'RWMutex
+  Backoff.TypeAssumptions.set'RWMutex
+  Backoff.TypeAssumptions.get'Clock
+  Backoff.TypeAssumptions.set'Clock
+  Backoff.TypeAssumptions.get'HasExpiredFunc
+  Backoff.TypeAssumptions.set'HasExpiredFunc
+  Backoff.TypeAssumptions.get'defaultDuration
+  Backoff.TypeAssumptions.set'defaultDuration
+  Backoff.TypeAssumptions.get'maxDuration
+  Backoff.TypeAssumptions.set'maxDuration
+  Backoff.TypeAssumptions.get'perItemBackoff
+  Backoff.TypeAssumptions.set'perItemBackoff
+  Backoff.TypeAssumptions.get'rand
+  Backoff.TypeAssumptions.set'rand
+  Backoff.TypeAssumptions.get'maxJitterFactor
+  Backoff.TypeAssumptions.set'maxJitterFactor
   Backoff.TypeAssumptions.method_set
   Backoff.TypeAssumptions.ptr_method_set
-  Backoff.TypeAssumptions.ptr_DeleteEntry_unfold
-  Backoff.TypeAssumptions.ptr_GC_unfold
-  Backoff.TypeAssumptions.ptr_Get_unfold
-  Backoff.TypeAssumptions.ptr_IsInBackOffSince_unfold
-  Backoff.TypeAssumptions.ptr_IsInBackOffSinceUpdate_unfold
-  Backoff.TypeAssumptions.ptr_Lock_unfold
-  Backoff.TypeAssumptions.ptr_RLock_unfold
-  Backoff.TypeAssumptions.ptr_RLocker_unfold
-  Backoff.TypeAssumptions.ptr_RUnlock_unfold
-  Backoff.TypeAssumptions.ptr_Reset_unfold
-  Backoff.TypeAssumptions.ptr_TryLock_unfold
-  Backoff.TypeAssumptions.ptr_TryRLock_unfold
-  Backoff.TypeAssumptions.ptr_Unlock_unfold
-  Backoff.TypeAssumptions.ptr_hasExpired_unfold
-  Backoff.TypeAssumptions.ptr_initEntryUnsafe_unfold
-  Backoff.TypeAssumptions.ptr_jitter_unfold
-  Backoff.TypeAssumptions.ptr_rUnlockSlow_unfold
+  Backoff.TypeAssumptions.ptr_unfold'DeleteEntry
+  Backoff.TypeAssumptions.ptr_unfold'GC
+  Backoff.TypeAssumptions.ptr_unfold'Get
+  Backoff.TypeAssumptions.ptr_unfold'IsInBackOffSince
+  Backoff.TypeAssumptions.ptr_unfold'IsInBackOffSinceUpdate
+  Backoff.TypeAssumptions.ptr_unfold'Lock
+  Backoff.TypeAssumptions.ptr_unfold'RLock
+  Backoff.TypeAssumptions.ptr_unfold'RLocker
+  Backoff.TypeAssumptions.ptr_unfold'RUnlock
+  Backoff.TypeAssumptions.ptr_unfold'Reset
+  Backoff.TypeAssumptions.ptr_unfold'TryLock
+  Backoff.TypeAssumptions.ptr_unfold'TryRLock
+  Backoff.TypeAssumptions.ptr_unfold'Unlock
+  Backoff.TypeAssumptions.ptr_unfold'hasExpired
+  Backoff.TypeAssumptions.ptr_unfold'initEntryUnsafe
+  Backoff.TypeAssumptions.ptr_unfold'jitter
+  Backoff.TypeAssumptions.ptr_unfold'rUnlockSlow
 
 abbrev PassiveRateLimiter [GooseExts] : Type := GoInterface
 
@@ -1281,7 +1281,7 @@ noncomputable instance tokenBucketPassiveRateLimiter.zero_val [GooseExts] : Zero
 @[irreducible] noncomputable def tokenBucketPassiveRateLimiter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   tokenBucketPassiveRateLimiter.fieldsUnsealed
 
-noncomputable instance equals_unfold_tokenBucketPassiveRateLimiter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'tokenBucketPassiveRateLimiter [GooseExts] [GoGlobalContext] :
     EqualsUnfold tokenBucketPassiveRateLimiter.fields tokenBucketPassiveRateLimiter.fieldsUnsealed :=
   ⟨by unfold tokenBucketPassiveRateLimiter.fields; rfl⟩
 
@@ -1291,31 +1291,31 @@ noncomputable instance equals_unfold_tokenBucketPassiveRateLimiter [GooseExts] [
 class tokenBucketPassiveRateLimiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tokenBucketPassiveRateLimiter.underlying tokenBucketPassiveRateLimiter
   underlying : go.UnderlyingDirectedEq tokenBucketPassiveRateLimiter.ty tokenBucketPassiveRateLimiter.underlying
-  get_limiter : ∀ (x : tokenBucketPassiveRateLimiter), go.IsGoStepPureDetTagged under (StructFieldGet tokenBucketPassiveRateLimiter.underlying go!"limiter") #x (Val #(x.limiter'))
-  set_limiter : ∀ (x : tokenBucketPassiveRateLimiter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet tokenBucketPassiveRateLimiter.underlying go!"limiter") (PairV #x #y) (Val #(({ x with limiter' := y } : tokenBucketPassiveRateLimiter)))
-  get_qps : ∀ (x : tokenBucketPassiveRateLimiter), go.IsGoStepPureDetTagged under (StructFieldGet tokenBucketPassiveRateLimiter.underlying go!"qps") #x (Val #(x.qps'))
-  set_qps : ∀ (x : tokenBucketPassiveRateLimiter) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet tokenBucketPassiveRateLimiter.underlying go!"qps") (PairV #x #y) (Val #(({ x with qps' := y } : tokenBucketPassiveRateLimiter)))
-  get_clock : ∀ (x : tokenBucketPassiveRateLimiter), go.IsGoStepPureDetTagged under (StructFieldGet tokenBucketPassiveRateLimiter.underlying go!"clock") #x (Val #(x.clock'))
-  set_clock : ∀ (x : tokenBucketPassiveRateLimiter) (y : _root_.Perennial.k8s_io.utils.clock.PassiveClock), go.IsGoStepPureDetTagged under (StructFieldSet tokenBucketPassiveRateLimiter.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : tokenBucketPassiveRateLimiter)))
+  get'limiter : ∀ (x : tokenBucketPassiveRateLimiter), go.IsGoStepPureDetTagged under (StructFieldGet tokenBucketPassiveRateLimiter.underlying go!"limiter") #x (Val #(x.limiter'))
+  set'limiter : ∀ (x : tokenBucketPassiveRateLimiter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet tokenBucketPassiveRateLimiter.underlying go!"limiter") (PairV #x #y) (Val #(({ x with limiter' := y } : tokenBucketPassiveRateLimiter)))
+  get'qps : ∀ (x : tokenBucketPassiveRateLimiter), go.IsGoStepPureDetTagged under (StructFieldGet tokenBucketPassiveRateLimiter.underlying go!"qps") #x (Val #(x.qps'))
+  set'qps : ∀ (x : tokenBucketPassiveRateLimiter) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet tokenBucketPassiveRateLimiter.underlying go!"qps") (PairV #x #y) (Val #(({ x with qps' := y } : tokenBucketPassiveRateLimiter)))
+  get'clock : ∀ (x : tokenBucketPassiveRateLimiter), go.IsGoStepPureDetTagged under (StructFieldGet tokenBucketPassiveRateLimiter.underlying go!"clock") #x (Val #(x.clock'))
+  set'clock : ∀ (x : tokenBucketPassiveRateLimiter) (y : _root_.Perennial.k8s_io.utils.clock.PassiveClock), go.IsGoStepPureDetTagged under (StructFieldSet tokenBucketPassiveRateLimiter.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : tokenBucketPassiveRateLimiter)))
   method_set : go.MethodSetIs tokenBucketPassiveRateLimiter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType tokenBucketPassiveRateLimiter.ty) [(go!"QPS", (some (go.signature.Signature [] false [go.float32]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"TryAccept", (some (go.signature.Signature [] false [go.bool])))]
-  ptr_QPS_unfold : MethodUnfold (go.GoType.PointerType tokenBucketPassiveRateLimiter.ty) go!"QPS" tokenBucketPassiveRateLimiter.QPS.impl
-  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType tokenBucketPassiveRateLimiter.ty) go!"Stop" tokenBucketPassiveRateLimiter.Stop.impl
-  ptr_TryAccept_unfold : MethodUnfold (go.GoType.PointerType tokenBucketPassiveRateLimiter.ty) go!"TryAccept" tokenBucketPassiveRateLimiter.TryAccept.impl
+  ptr_unfold'QPS : MethodUnfold (go.GoType.PointerType tokenBucketPassiveRateLimiter.ty) go!"QPS" tokenBucketPassiveRateLimiter.QPS.impl
+  ptr_unfold'Stop : MethodUnfold (go.GoType.PointerType tokenBucketPassiveRateLimiter.ty) go!"Stop" tokenBucketPassiveRateLimiter.Stop.impl
+  ptr_unfold'TryAccept : MethodUnfold (go.GoType.PointerType tokenBucketPassiveRateLimiter.ty) go!"TryAccept" tokenBucketPassiveRateLimiter.TryAccept.impl
 
 attribute [instance] tokenBucketPassiveRateLimiter.TypeAssumptions.type_repr
   tokenBucketPassiveRateLimiter.TypeAssumptions.underlying
-  tokenBucketPassiveRateLimiter.TypeAssumptions.get_limiter
-  tokenBucketPassiveRateLimiter.TypeAssumptions.set_limiter
-  tokenBucketPassiveRateLimiter.TypeAssumptions.get_qps
-  tokenBucketPassiveRateLimiter.TypeAssumptions.set_qps
-  tokenBucketPassiveRateLimiter.TypeAssumptions.get_clock
-  tokenBucketPassiveRateLimiter.TypeAssumptions.set_clock
+  tokenBucketPassiveRateLimiter.TypeAssumptions.get'limiter
+  tokenBucketPassiveRateLimiter.TypeAssumptions.set'limiter
+  tokenBucketPassiveRateLimiter.TypeAssumptions.get'qps
+  tokenBucketPassiveRateLimiter.TypeAssumptions.set'qps
+  tokenBucketPassiveRateLimiter.TypeAssumptions.get'clock
+  tokenBucketPassiveRateLimiter.TypeAssumptions.set'clock
   tokenBucketPassiveRateLimiter.TypeAssumptions.method_set
   tokenBucketPassiveRateLimiter.TypeAssumptions.ptr_method_set
-  tokenBucketPassiveRateLimiter.TypeAssumptions.ptr_QPS_unfold
-  tokenBucketPassiveRateLimiter.TypeAssumptions.ptr_Stop_unfold
-  tokenBucketPassiveRateLimiter.TypeAssumptions.ptr_TryAccept_unfold
+  tokenBucketPassiveRateLimiter.TypeAssumptions.ptr_unfold'QPS
+  tokenBucketPassiveRateLimiter.TypeAssumptions.ptr_unfold'Stop
+  tokenBucketPassiveRateLimiter.TypeAssumptions.ptr_unfold'TryAccept
 
 abbrev Clock [GooseExts] : Type := GoInterface
 
@@ -1346,7 +1346,7 @@ noncomputable instance tokenBucketRateLimiter.zero_val [GooseExts] : ZeroVal tok
 @[irreducible] noncomputable def tokenBucketRateLimiter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   tokenBucketRateLimiter.fieldsUnsealed
 
-noncomputable instance equals_unfold_tokenBucketRateLimiter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'tokenBucketRateLimiter [GooseExts] [GoGlobalContext] :
     EqualsUnfold tokenBucketRateLimiter.fields tokenBucketRateLimiter.fieldsUnsealed :=
   ⟨by unfold tokenBucketRateLimiter.fields; rfl⟩
 
@@ -1356,34 +1356,34 @@ noncomputable instance equals_unfold_tokenBucketRateLimiter [GooseExts] [GoGloba
 class tokenBucketRateLimiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tokenBucketRateLimiter.underlying tokenBucketRateLimiter
   underlying : go.UnderlyingDirectedEq tokenBucketRateLimiter.ty tokenBucketRateLimiter.underlying
-  get_tokenBucketPassiveRateLimiter : ∀ (x : tokenBucketRateLimiter), go.IsGoStepPureDetTagged under (StructFieldGet tokenBucketRateLimiter.underlying go!"tokenBucketPassiveRateLimiter") #x (Val #(x.tokenBucketPassiveRateLimiter'))
-  set_tokenBucketPassiveRateLimiter : ∀ (x : tokenBucketRateLimiter) (y : tokenBucketPassiveRateLimiter), go.IsGoStepPureDetTagged under (StructFieldSet tokenBucketRateLimiter.underlying go!"tokenBucketPassiveRateLimiter") (PairV #x #y) (Val #(({ x with tokenBucketPassiveRateLimiter' := y } : tokenBucketRateLimiter)))
-  get_clock : ∀ (x : tokenBucketRateLimiter), go.IsGoStepPureDetTagged under (StructFieldGet tokenBucketRateLimiter.underlying go!"clock") #x (Val #(x.clock'))
-  set_clock : ∀ (x : tokenBucketRateLimiter) (y : Clock), go.IsGoStepPureDetTagged under (StructFieldSet tokenBucketRateLimiter.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : tokenBucketRateLimiter)))
+  get'tokenBucketPassiveRateLimiter : ∀ (x : tokenBucketRateLimiter), go.IsGoStepPureDetTagged under (StructFieldGet tokenBucketRateLimiter.underlying go!"tokenBucketPassiveRateLimiter") #x (Val #(x.tokenBucketPassiveRateLimiter'))
+  set'tokenBucketPassiveRateLimiter : ∀ (x : tokenBucketRateLimiter) (y : tokenBucketPassiveRateLimiter), go.IsGoStepPureDetTagged under (StructFieldSet tokenBucketRateLimiter.underlying go!"tokenBucketPassiveRateLimiter") (PairV #x #y) (Val #(({ x with tokenBucketPassiveRateLimiter' := y } : tokenBucketRateLimiter)))
+  get'clock : ∀ (x : tokenBucketRateLimiter), go.IsGoStepPureDetTagged under (StructFieldGet tokenBucketRateLimiter.underlying go!"clock") #x (Val #(x.clock'))
+  set'clock : ∀ (x : tokenBucketRateLimiter) (y : Clock), go.IsGoStepPureDetTagged under (StructFieldSet tokenBucketRateLimiter.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : tokenBucketRateLimiter)))
   method_set : go.MethodSetIs tokenBucketRateLimiter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType tokenBucketRateLimiter.ty) [(go!"Accept", (some (go.signature.Signature [] false []))), (go!"QPS", (some (go.signature.Signature [] false [go.float32]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"TryAccept", (some (go.signature.Signature [] false [go.bool]))), (go!"Wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])))]
-  ptr_Accept_unfold : MethodUnfold (go.GoType.PointerType tokenBucketRateLimiter.ty) go!"Accept" tokenBucketRateLimiter.Accept.impl
-  ptr_QPS_unfold : MethodUnfold (go.GoType.PointerType tokenBucketRateLimiter.ty) go!"QPS" (LamV "$r"
+  ptr_unfold'Accept : MethodUnfold (go.GoType.PointerType tokenBucketRateLimiter.ty) go!"Accept" tokenBucketRateLimiter.Accept.impl
+  ptr_unfold'QPS : MethodUnfold (go.GoType.PointerType tokenBucketRateLimiter.ty) go!"QPS" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType tokenBucketPassiveRateLimiter.ty) go!"QPS"))) (App (Val (GoInstruction (StructFieldRef tokenBucketRateLimiter.ty go!"tokenBucketPassiveRateLimiter"))) (Var "$r"))))
-  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType tokenBucketRateLimiter.ty) go!"Stop" (LamV "$r"
+  ptr_unfold'Stop : MethodUnfold (go.GoType.PointerType tokenBucketRateLimiter.ty) go!"Stop" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType tokenBucketPassiveRateLimiter.ty) go!"Stop"))) (App (Val (GoInstruction (StructFieldRef tokenBucketRateLimiter.ty go!"tokenBucketPassiveRateLimiter"))) (Var "$r"))))
-  ptr_TryAccept_unfold : MethodUnfold (go.GoType.PointerType tokenBucketRateLimiter.ty) go!"TryAccept" (LamV "$r"
+  ptr_unfold'TryAccept : MethodUnfold (go.GoType.PointerType tokenBucketRateLimiter.ty) go!"TryAccept" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType tokenBucketPassiveRateLimiter.ty) go!"TryAccept"))) (App (Val (GoInstruction (StructFieldRef tokenBucketRateLimiter.ty go!"tokenBucketPassiveRateLimiter"))) (Var "$r"))))
-  ptr_Wait_unfold : MethodUnfold (go.GoType.PointerType tokenBucketRateLimiter.ty) go!"Wait" tokenBucketRateLimiter.Wait.impl
+  ptr_unfold'Wait : MethodUnfold (go.GoType.PointerType tokenBucketRateLimiter.ty) go!"Wait" tokenBucketRateLimiter.Wait.impl
 
 attribute [instance] tokenBucketRateLimiter.TypeAssumptions.type_repr
   tokenBucketRateLimiter.TypeAssumptions.underlying
-  tokenBucketRateLimiter.TypeAssumptions.get_tokenBucketPassiveRateLimiter
-  tokenBucketRateLimiter.TypeAssumptions.set_tokenBucketPassiveRateLimiter
-  tokenBucketRateLimiter.TypeAssumptions.get_clock
-  tokenBucketRateLimiter.TypeAssumptions.set_clock
+  tokenBucketRateLimiter.TypeAssumptions.get'tokenBucketPassiveRateLimiter
+  tokenBucketRateLimiter.TypeAssumptions.set'tokenBucketPassiveRateLimiter
+  tokenBucketRateLimiter.TypeAssumptions.get'clock
+  tokenBucketRateLimiter.TypeAssumptions.set'clock
   tokenBucketRateLimiter.TypeAssumptions.method_set
   tokenBucketRateLimiter.TypeAssumptions.ptr_method_set
-  tokenBucketRateLimiter.TypeAssumptions.ptr_Accept_unfold
-  tokenBucketRateLimiter.TypeAssumptions.ptr_QPS_unfold
-  tokenBucketRateLimiter.TypeAssumptions.ptr_Stop_unfold
-  tokenBucketRateLimiter.TypeAssumptions.ptr_TryAccept_unfold
-  tokenBucketRateLimiter.TypeAssumptions.ptr_Wait_unfold
+  tokenBucketRateLimiter.TypeAssumptions.ptr_unfold'Accept
+  tokenBucketRateLimiter.TypeAssumptions.ptr_unfold'QPS
+  tokenBucketRateLimiter.TypeAssumptions.ptr_unfold'Stop
+  tokenBucketRateLimiter.TypeAssumptions.ptr_unfold'TryAccept
+  tokenBucketRateLimiter.TypeAssumptions.ptr_unfold'Wait
 
 structure fakeAlwaysRateLimiter [GooseExts] where
   mk ::
@@ -1397,7 +1397,7 @@ noncomputable instance fakeAlwaysRateLimiter.zero_val [GooseExts] : ZeroVal fake
 @[irreducible] noncomputable def fakeAlwaysRateLimiter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fakeAlwaysRateLimiter.fieldsUnsealed
 
-noncomputable instance equals_unfold_fakeAlwaysRateLimiter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'fakeAlwaysRateLimiter [GooseExts] [GoGlobalContext] :
     EqualsUnfold fakeAlwaysRateLimiter.fields fakeAlwaysRateLimiter.fieldsUnsealed :=
   ⟨by unfold fakeAlwaysRateLimiter.fields; rfl⟩
 
@@ -1409,21 +1409,21 @@ class fakeAlwaysRateLimiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   underlying : go.UnderlyingDirectedEq fakeAlwaysRateLimiter.ty fakeAlwaysRateLimiter.underlying
   method_set : go.MethodSetIs fakeAlwaysRateLimiter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fakeAlwaysRateLimiter.ty) [(go!"Accept", (some (go.signature.Signature [] false []))), (go!"QPS", (some (go.signature.Signature [] false [go.float32]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"TryAccept", (some (go.signature.Signature [] false [go.bool]))), (go!"Wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])))]
-  ptr_Accept_unfold : MethodUnfold (go.GoType.PointerType fakeAlwaysRateLimiter.ty) go!"Accept" fakeAlwaysRateLimiter.Accept.impl
-  ptr_QPS_unfold : MethodUnfold (go.GoType.PointerType fakeAlwaysRateLimiter.ty) go!"QPS" fakeAlwaysRateLimiter.QPS.impl
-  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType fakeAlwaysRateLimiter.ty) go!"Stop" fakeAlwaysRateLimiter.Stop.impl
-  ptr_TryAccept_unfold : MethodUnfold (go.GoType.PointerType fakeAlwaysRateLimiter.ty) go!"TryAccept" fakeAlwaysRateLimiter.TryAccept.impl
-  ptr_Wait_unfold : MethodUnfold (go.GoType.PointerType fakeAlwaysRateLimiter.ty) go!"Wait" fakeAlwaysRateLimiter.Wait.impl
+  ptr_unfold'Accept : MethodUnfold (go.GoType.PointerType fakeAlwaysRateLimiter.ty) go!"Accept" fakeAlwaysRateLimiter.Accept.impl
+  ptr_unfold'QPS : MethodUnfold (go.GoType.PointerType fakeAlwaysRateLimiter.ty) go!"QPS" fakeAlwaysRateLimiter.QPS.impl
+  ptr_unfold'Stop : MethodUnfold (go.GoType.PointerType fakeAlwaysRateLimiter.ty) go!"Stop" fakeAlwaysRateLimiter.Stop.impl
+  ptr_unfold'TryAccept : MethodUnfold (go.GoType.PointerType fakeAlwaysRateLimiter.ty) go!"TryAccept" fakeAlwaysRateLimiter.TryAccept.impl
+  ptr_unfold'Wait : MethodUnfold (go.GoType.PointerType fakeAlwaysRateLimiter.ty) go!"Wait" fakeAlwaysRateLimiter.Wait.impl
 
 attribute [instance] fakeAlwaysRateLimiter.TypeAssumptions.type_repr
   fakeAlwaysRateLimiter.TypeAssumptions.underlying
   fakeAlwaysRateLimiter.TypeAssumptions.method_set
   fakeAlwaysRateLimiter.TypeAssumptions.ptr_method_set
-  fakeAlwaysRateLimiter.TypeAssumptions.ptr_Accept_unfold
-  fakeAlwaysRateLimiter.TypeAssumptions.ptr_QPS_unfold
-  fakeAlwaysRateLimiter.TypeAssumptions.ptr_Stop_unfold
-  fakeAlwaysRateLimiter.TypeAssumptions.ptr_TryAccept_unfold
-  fakeAlwaysRateLimiter.TypeAssumptions.ptr_Wait_unfold
+  fakeAlwaysRateLimiter.TypeAssumptions.ptr_unfold'Accept
+  fakeAlwaysRateLimiter.TypeAssumptions.ptr_unfold'QPS
+  fakeAlwaysRateLimiter.TypeAssumptions.ptr_unfold'Stop
+  fakeAlwaysRateLimiter.TypeAssumptions.ptr_unfold'TryAccept
+  fakeAlwaysRateLimiter.TypeAssumptions.ptr_unfold'Wait
 
 structure fakeNeverRateLimiter [GooseExts] where
   mk ::
@@ -1438,7 +1438,7 @@ noncomputable instance fakeNeverRateLimiter.zero_val [GooseExts] : ZeroVal fakeN
 @[irreducible] noncomputable def fakeNeverRateLimiter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fakeNeverRateLimiter.fieldsUnsealed
 
-noncomputable instance equals_unfold_fakeNeverRateLimiter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'fakeNeverRateLimiter [GooseExts] [GoGlobalContext] :
     EqualsUnfold fakeNeverRateLimiter.fields fakeNeverRateLimiter.fieldsUnsealed :=
   ⟨by unfold fakeNeverRateLimiter.fields; rfl⟩
 
@@ -1448,88 +1448,88 @@ noncomputable instance equals_unfold_fakeNeverRateLimiter [GooseExts] [GoGlobalC
 class fakeNeverRateLimiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fakeNeverRateLimiter.underlying fakeNeverRateLimiter
   underlying : go.UnderlyingDirectedEq fakeNeverRateLimiter.ty fakeNeverRateLimiter.underlying
-  get_wg : ∀ (x : fakeNeverRateLimiter), go.IsGoStepPureDetTagged under (StructFieldGet fakeNeverRateLimiter.underlying go!"wg") #x (Val #(x.wg'))
-  set_wg : ∀ (x : fakeNeverRateLimiter) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet fakeNeverRateLimiter.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : fakeNeverRateLimiter)))
+  get'wg : ∀ (x : fakeNeverRateLimiter), go.IsGoStepPureDetTagged under (StructFieldGet fakeNeverRateLimiter.underlying go!"wg") #x (Val #(x.wg'))
+  set'wg : ∀ (x : fakeNeverRateLimiter) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet fakeNeverRateLimiter.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : fakeNeverRateLimiter)))
   method_set : go.MethodSetIs fakeNeverRateLimiter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fakeNeverRateLimiter.ty) [(go!"Accept", (some (go.signature.Signature [] false []))), (go!"QPS", (some (go.signature.Signature [] false [go.float32]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"TryAccept", (some (go.signature.Signature [] false [go.bool]))), (go!"Wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])))]
-  ptr_Accept_unfold : MethodUnfold (go.GoType.PointerType fakeNeverRateLimiter.ty) go!"Accept" fakeNeverRateLimiter.Accept.impl
-  ptr_QPS_unfold : MethodUnfold (go.GoType.PointerType fakeNeverRateLimiter.ty) go!"QPS" fakeNeverRateLimiter.QPS.impl
-  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType fakeNeverRateLimiter.ty) go!"Stop" fakeNeverRateLimiter.Stop.impl
-  ptr_TryAccept_unfold : MethodUnfold (go.GoType.PointerType fakeNeverRateLimiter.ty) go!"TryAccept" fakeNeverRateLimiter.TryAccept.impl
-  ptr_Wait_unfold : MethodUnfold (go.GoType.PointerType fakeNeverRateLimiter.ty) go!"Wait" fakeNeverRateLimiter.Wait.impl
+  ptr_unfold'Accept : MethodUnfold (go.GoType.PointerType fakeNeverRateLimiter.ty) go!"Accept" fakeNeverRateLimiter.Accept.impl
+  ptr_unfold'QPS : MethodUnfold (go.GoType.PointerType fakeNeverRateLimiter.ty) go!"QPS" fakeNeverRateLimiter.QPS.impl
+  ptr_unfold'Stop : MethodUnfold (go.GoType.PointerType fakeNeverRateLimiter.ty) go!"Stop" fakeNeverRateLimiter.Stop.impl
+  ptr_unfold'TryAccept : MethodUnfold (go.GoType.PointerType fakeNeverRateLimiter.ty) go!"TryAccept" fakeNeverRateLimiter.TryAccept.impl
+  ptr_unfold'Wait : MethodUnfold (go.GoType.PointerType fakeNeverRateLimiter.ty) go!"Wait" fakeNeverRateLimiter.Wait.impl
 
 attribute [instance] fakeNeverRateLimiter.TypeAssumptions.type_repr
   fakeNeverRateLimiter.TypeAssumptions.underlying
-  fakeNeverRateLimiter.TypeAssumptions.get_wg
-  fakeNeverRateLimiter.TypeAssumptions.set_wg
+  fakeNeverRateLimiter.TypeAssumptions.get'wg
+  fakeNeverRateLimiter.TypeAssumptions.set'wg
   fakeNeverRateLimiter.TypeAssumptions.method_set
   fakeNeverRateLimiter.TypeAssumptions.ptr_method_set
-  fakeNeverRateLimiter.TypeAssumptions.ptr_Accept_unfold
-  fakeNeverRateLimiter.TypeAssumptions.ptr_QPS_unfold
-  fakeNeverRateLimiter.TypeAssumptions.ptr_Stop_unfold
-  fakeNeverRateLimiter.TypeAssumptions.ptr_TryAccept_unfold
-  fakeNeverRateLimiter.TypeAssumptions.ptr_Wait_unfold
+  fakeNeverRateLimiter.TypeAssumptions.ptr_unfold'Accept
+  fakeNeverRateLimiter.TypeAssumptions.ptr_unfold'QPS
+  fakeNeverRateLimiter.TypeAssumptions.ptr_unfold'Stop
+  fakeNeverRateLimiter.TypeAssumptions.ptr_unfold'TryAccept
+  fakeNeverRateLimiter.TypeAssumptions.ptr_unfold'Wait
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  backoffEntry_instance : backoffEntry.TypeAssumptions
-  Backoff_instance : Backoff.TypeAssumptions
-  PassiveRateLimiter_instance : PassiveRateLimiter.TypeAssumptions
-  RateLimiter_instance : RateLimiter.TypeAssumptions
-  tokenBucketPassiveRateLimiter_instance : tokenBucketPassiveRateLimiter.TypeAssumptions
-  tokenBucketRateLimiter_instance : tokenBucketRateLimiter.TypeAssumptions
-  Clock_instance : Clock.TypeAssumptions
-  fakeAlwaysRateLimiter_instance : fakeAlwaysRateLimiter.TypeAssumptions
-  fakeNeverRateLimiter_instance : fakeNeverRateLimiter.TypeAssumptions
-  NewFakeBackOff_unfold : FuncUnfold NewFakeBackOff [] NewFakeBackOff.impl
-  NewBackOff_unfold : FuncUnfold NewBackOff [] NewBackOff.impl
-  NewFakeBackOffWithJitter_unfold : FuncUnfold NewFakeBackOffWithJitter [] NewFakeBackOffWithJitter.impl
-  NewBackOffWithJitter_unfold : FuncUnfold NewBackOffWithJitter [] NewBackOffWithJitter.impl
-  newBackoff_unfold : FuncUnfold newBackoff [] newBackoff.impl
-  NewTokenBucketRateLimiter_unfold : FuncUnfold NewTokenBucketRateLimiter [] NewTokenBucketRateLimiter.impl
-  NewTokenBucketPassiveRateLimiter_unfold : FuncUnfold NewTokenBucketPassiveRateLimiter [] NewTokenBucketPassiveRateLimiter.impl
-  NewTokenBucketRateLimiterWithClock_unfold : FuncUnfold NewTokenBucketRateLimiterWithClock [] NewTokenBucketRateLimiterWithClock.impl
-  NewTokenBucketPassiveRateLimiterWithClock_unfold : FuncUnfold NewTokenBucketPassiveRateLimiterWithClock [] NewTokenBucketPassiveRateLimiterWithClock.impl
-  newTokenBucketRateLimiterWithClock_unfold : FuncUnfold newTokenBucketRateLimiterWithClock [] newTokenBucketRateLimiterWithClock.impl
-  newTokenBucketRateLimiterWithPassiveClock_unfold : FuncUnfold newTokenBucketRateLimiterWithPassiveClock [] newTokenBucketRateLimiterWithPassiveClock.impl
-  NewFakeAlwaysRateLimiter_unfold : FuncUnfold NewFakeAlwaysRateLimiter [] NewFakeAlwaysRateLimiter.impl
-  NewFakeNeverRateLimiter_unfold : FuncUnfold NewFakeNeverRateLimiter [] NewFakeNeverRateLimiter.impl
-  import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_clock_Assumption : _root_.Perennial.k8s_io.utils.clock.Assumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_rate_Assumption : _root_.Perennial.golang_org.x.time.rate.Assumptions
+  instance'backoffEntry : backoffEntry.TypeAssumptions
+  instance'Backoff : Backoff.TypeAssumptions
+  instance'PassiveRateLimiter : PassiveRateLimiter.TypeAssumptions
+  instance'RateLimiter : RateLimiter.TypeAssumptions
+  instance'tokenBucketPassiveRateLimiter : tokenBucketPassiveRateLimiter.TypeAssumptions
+  instance'tokenBucketRateLimiter : tokenBucketRateLimiter.TypeAssumptions
+  instance'Clock : Clock.TypeAssumptions
+  instance'fakeAlwaysRateLimiter : fakeAlwaysRateLimiter.TypeAssumptions
+  instance'fakeNeverRateLimiter : fakeNeverRateLimiter.TypeAssumptions
+  unfold'NewFakeBackOff : FuncUnfold NewFakeBackOff [] NewFakeBackOff.impl
+  unfold'NewBackOff : FuncUnfold NewBackOff [] NewBackOff.impl
+  unfold'NewFakeBackOffWithJitter : FuncUnfold NewFakeBackOffWithJitter [] NewFakeBackOffWithJitter.impl
+  unfold'NewBackOffWithJitter : FuncUnfold NewBackOffWithJitter [] NewBackOffWithJitter.impl
+  unfold'newBackoff : FuncUnfold newBackoff [] newBackoff.impl
+  unfold'NewTokenBucketRateLimiter : FuncUnfold NewTokenBucketRateLimiter [] NewTokenBucketRateLimiter.impl
+  unfold'NewTokenBucketPassiveRateLimiter : FuncUnfold NewTokenBucketPassiveRateLimiter [] NewTokenBucketPassiveRateLimiter.impl
+  unfold'NewTokenBucketRateLimiterWithClock : FuncUnfold NewTokenBucketRateLimiterWithClock [] NewTokenBucketRateLimiterWithClock.impl
+  unfold'NewTokenBucketPassiveRateLimiterWithClock : FuncUnfold NewTokenBucketPassiveRateLimiterWithClock [] NewTokenBucketPassiveRateLimiterWithClock.impl
+  unfold'newTokenBucketRateLimiterWithClock : FuncUnfold newTokenBucketRateLimiterWithClock [] newTokenBucketRateLimiterWithClock.impl
+  unfold'newTokenBucketRateLimiterWithPassiveClock : FuncUnfold newTokenBucketRateLimiterWithPassiveClock [] newTokenBucketRateLimiterWithPassiveClock.impl
+  unfold'NewFakeAlwaysRateLimiter : FuncUnfold NewFakeAlwaysRateLimiter [] NewFakeAlwaysRateLimiter.impl
+  unfold'NewFakeNeverRateLimiter : FuncUnfold NewFakeNeverRateLimiter [] NewFakeNeverRateLimiter.impl
+  import'rand : _root_.Perennial.math.rand.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'clock : _root_.Perennial.k8s_io.utils.clock.Assumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'rate : _root_.Perennial.golang_org.x.time.rate.Assumptions
 
-attribute [instance] Assumptions.backoffEntry_instance
-  Assumptions.Backoff_instance
-  Assumptions.PassiveRateLimiter_instance
-  Assumptions.RateLimiter_instance
-  Assumptions.tokenBucketPassiveRateLimiter_instance
-  Assumptions.tokenBucketRateLimiter_instance
-  Assumptions.Clock_instance
-  Assumptions.fakeAlwaysRateLimiter_instance
-  Assumptions.fakeNeverRateLimiter_instance
-  Assumptions.NewFakeBackOff_unfold
-  Assumptions.NewBackOff_unfold
-  Assumptions.NewFakeBackOffWithJitter_unfold
-  Assumptions.NewBackOffWithJitter_unfold
-  Assumptions.newBackoff_unfold
-  Assumptions.NewTokenBucketRateLimiter_unfold
-  Assumptions.NewTokenBucketPassiveRateLimiter_unfold
-  Assumptions.NewTokenBucketRateLimiterWithClock_unfold
-  Assumptions.NewTokenBucketPassiveRateLimiterWithClock_unfold
-  Assumptions.newTokenBucketRateLimiterWithClock_unfold
-  Assumptions.newTokenBucketRateLimiterWithPassiveClock_unfold
-  Assumptions.NewFakeAlwaysRateLimiter_unfold
-  Assumptions.NewFakeNeverRateLimiter_unfold
-  Assumptions.import_rand_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_clock_Assumption
-  Assumptions.import_context_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_rate_Assumption
+attribute [instance] Assumptions.instance'backoffEntry
+  Assumptions.instance'Backoff
+  Assumptions.instance'PassiveRateLimiter
+  Assumptions.instance'RateLimiter
+  Assumptions.instance'tokenBucketPassiveRateLimiter
+  Assumptions.instance'tokenBucketRateLimiter
+  Assumptions.instance'Clock
+  Assumptions.instance'fakeAlwaysRateLimiter
+  Assumptions.instance'fakeNeverRateLimiter
+  Assumptions.unfold'NewFakeBackOff
+  Assumptions.unfold'NewBackOff
+  Assumptions.unfold'NewFakeBackOffWithJitter
+  Assumptions.unfold'NewBackOffWithJitter
+  Assumptions.unfold'newBackoff
+  Assumptions.unfold'NewTokenBucketRateLimiter
+  Assumptions.unfold'NewTokenBucketPassiveRateLimiter
+  Assumptions.unfold'NewTokenBucketRateLimiterWithClock
+  Assumptions.unfold'NewTokenBucketPassiveRateLimiterWithClock
+  Assumptions.unfold'newTokenBucketRateLimiterWithClock
+  Assumptions.unfold'newTokenBucketRateLimiterWithPassiveClock
+  Assumptions.unfold'NewFakeAlwaysRateLimiter
+  Assumptions.unfold'NewFakeNeverRateLimiter
+  Assumptions.import'rand
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'clock
+  Assumptions.import'context
+  Assumptions.import'errors
+  Assumptions.import'rate
 
 end k8s_io.client_go.util.flowcontrol
 

@@ -207,19 +207,19 @@ attribute [instance] leaseCandidates.TypeAssumptions.type_repr
   leaseCandidates.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  CoordinationV1alpha2Interface_instance : CoordinationV1alpha2Interface.TypeAssumptions
-  CoordinationV1alpha2Client_instance : CoordinationV1alpha2Client.TypeAssumptions
-  LeaseCandidateExpansion_instance : LeaseCandidateExpansion.TypeAssumptions
-  LeaseCandidatesGetter_instance : LeaseCandidatesGetter.TypeAssumptions
-  LeaseCandidateInterface_instance : LeaseCandidateInterface.TypeAssumptions
-  leaseCandidates_instance : leaseCandidates.TypeAssumptions
+  instance'CoordinationV1alpha2Interface : CoordinationV1alpha2Interface.TypeAssumptions
+  instance'CoordinationV1alpha2Client : CoordinationV1alpha2Client.TypeAssumptions
+  instance'LeaseCandidateExpansion : LeaseCandidateExpansion.TypeAssumptions
+  instance'LeaseCandidatesGetter : LeaseCandidatesGetter.TypeAssumptions
+  instance'LeaseCandidateInterface : LeaseCandidateInterface.TypeAssumptions
+  instance'leaseCandidates : leaseCandidates.TypeAssumptions
 
-attribute [instance] Assumptions.CoordinationV1alpha2Interface_instance
-  Assumptions.CoordinationV1alpha2Client_instance
-  Assumptions.LeaseCandidateExpansion_instance
-  Assumptions.LeaseCandidatesGetter_instance
-  Assumptions.LeaseCandidateInterface_instance
-  Assumptions.leaseCandidates_instance
+attribute [instance] Assumptions.instance'CoordinationV1alpha2Interface
+  Assumptions.instance'CoordinationV1alpha2Client
+  Assumptions.instance'LeaseCandidateExpansion
+  Assumptions.instance'LeaseCandidatesGetter
+  Assumptions.instance'LeaseCandidateInterface
+  Assumptions.instance'leaseCandidates
 
 end k8s_io.client_go.kubernetes.typed.coordination.v1alpha2
 

@@ -159,7 +159,7 @@ noncomputable instance GroupResource.zero_val [GooseExts] : ZeroVal GroupResourc
 @[irreducible] noncomputable def GroupResource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GroupResource.fieldsUnsealed
 
-noncomputable instance equals_unfold_GroupResource [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'GroupResource [GooseExts] [GoGlobalContext] :
     EqualsUnfold GroupResource.fields GroupResource.fieldsUnsealed :=
   ⟨by unfold GroupResource.fields; rfl⟩
 
@@ -169,26 +169,26 @@ noncomputable instance equals_unfold_GroupResource [GooseExts] [GoGlobalContext]
 class GroupResource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GroupResource.underlying GroupResource
   underlying : go.UnderlyingDirectedEq GroupResource.ty GroupResource.underlying
-  get_Group : ∀ (x : GroupResource), go.IsGoStepPureDetTagged under (StructFieldGet GroupResource.underlying go!"Group") #x (Val #(x.Group'))
-  set_Group : ∀ (x : GroupResource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupResource.underlying go!"Group") (PairV #x #y) (Val #(({ x with Group' := y } : GroupResource)))
-  get_Resource : ∀ (x : GroupResource), go.IsGoStepPureDetTagged under (StructFieldGet GroupResource.underlying go!"Resource") #x (Val #(x.Resource'))
-  set_Resource : ∀ (x : GroupResource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupResource.underlying go!"Resource") (PairV #x #y) (Val #(({ x with Resource' := y } : GroupResource)))
+  get'Group : ∀ (x : GroupResource), go.IsGoStepPureDetTagged under (StructFieldGet GroupResource.underlying go!"Group") #x (Val #(x.Group'))
+  set'Group : ∀ (x : GroupResource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupResource.underlying go!"Group") (PairV #x #y) (Val #(({ x with Group' := y } : GroupResource)))
+  get'Resource : ∀ (x : GroupResource), go.IsGoStepPureDetTagged under (StructFieldGet GroupResource.underlying go!"Resource") #x (Val #(x.Resource'))
+  set'Resource : ∀ (x : GroupResource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupResource.underlying go!"Resource") (PairV #x #y) (Val #(({ x with Resource' := y } : GroupResource)))
   method_set : go.MethodSetIs GroupResource.ty [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithVersion", (some (go.signature.Signature [go.string] false [GroupVersionResource.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GroupResource.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithVersion", (some (go.signature.Signature [go.string] false [GroupVersionResource.ty])))]
-  String_unfold : MethodUnfold GroupResource.ty go!"String" GroupResource.String.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType GroupResource.ty) go!"String" (LamV "$r"
+  unfold'String : MethodUnfold GroupResource.ty go!"String" GroupResource.String.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType GroupResource.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve GroupResource.ty go!"String"))) (App (Val (GoInstruction (GoLoad GroupResource.ty))) (Var "$r"))))
 
 attribute [instance] GroupResource.TypeAssumptions.type_repr
   GroupResource.TypeAssumptions.underlying
-  GroupResource.TypeAssumptions.get_Group
-  GroupResource.TypeAssumptions.set_Group
-  GroupResource.TypeAssumptions.get_Resource
-  GroupResource.TypeAssumptions.set_Resource
+  GroupResource.TypeAssumptions.get'Group
+  GroupResource.TypeAssumptions.set'Group
+  GroupResource.TypeAssumptions.get'Resource
+  GroupResource.TypeAssumptions.set'Resource
   GroupResource.TypeAssumptions.method_set
   GroupResource.TypeAssumptions.ptr_method_set
-  GroupResource.TypeAssumptions.String_unfold
-  GroupResource.TypeAssumptions.ptr_String_unfold
+  GroupResource.TypeAssumptions.unfold'String
+  GroupResource.TypeAssumptions.ptr_unfold'String
 
 structure GroupVersionResource [GooseExts] where
   mk ::
@@ -207,7 +207,7 @@ noncomputable instance GroupVersionResource.zero_val [GooseExts] : ZeroVal Group
 @[irreducible] noncomputable def GroupVersionResource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GroupVersionResource.fieldsUnsealed
 
-noncomputable instance equals_unfold_GroupVersionResource [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'GroupVersionResource [GooseExts] [GoGlobalContext] :
     EqualsUnfold GroupVersionResource.fields GroupVersionResource.fieldsUnsealed :=
   ⟨by unfold GroupVersionResource.fields; rfl⟩
 
@@ -217,30 +217,30 @@ noncomputable instance equals_unfold_GroupVersionResource [GooseExts] [GoGlobalC
 class GroupVersionResource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GroupVersionResource.underlying GroupVersionResource
   underlying : go.UnderlyingDirectedEq GroupVersionResource.ty GroupVersionResource.underlying
-  get_Group : ∀ (x : GroupVersionResource), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersionResource.underlying go!"Group") #x (Val #(x.Group'))
-  set_Group : ∀ (x : GroupVersionResource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionResource.underlying go!"Group") (PairV #x #y) (Val #(({ x with Group' := y } : GroupVersionResource)))
-  get_Version : ∀ (x : GroupVersionResource), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersionResource.underlying go!"Version") #x (Val #(x.Version'))
-  set_Version : ∀ (x : GroupVersionResource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionResource.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : GroupVersionResource)))
-  get_Resource : ∀ (x : GroupVersionResource), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersionResource.underlying go!"Resource") #x (Val #(x.Resource'))
-  set_Resource : ∀ (x : GroupVersionResource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionResource.underlying go!"Resource") (PairV #x #y) (Val #(({ x with Resource' := y } : GroupVersionResource)))
+  get'Group : ∀ (x : GroupVersionResource), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersionResource.underlying go!"Group") #x (Val #(x.Group'))
+  set'Group : ∀ (x : GroupVersionResource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionResource.underlying go!"Group") (PairV #x #y) (Val #(({ x with Group' := y } : GroupVersionResource)))
+  get'Version : ∀ (x : GroupVersionResource), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersionResource.underlying go!"Version") #x (Val #(x.Version'))
+  set'Version : ∀ (x : GroupVersionResource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionResource.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : GroupVersionResource)))
+  get'Resource : ∀ (x : GroupVersionResource), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersionResource.underlying go!"Resource") #x (Val #(x.Resource'))
+  set'Resource : ∀ (x : GroupVersionResource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionResource.underlying go!"Resource") (PairV #x #y) (Val #(({ x with Resource' := y } : GroupVersionResource)))
   method_set : go.MethodSetIs GroupVersionResource.ty [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"GroupResource", (some (go.signature.Signature [] false [GroupResource.ty]))), (go!"GroupVersion", (some (go.signature.Signature [] false [GroupVersion.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GroupVersionResource.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"GroupResource", (some (go.signature.Signature [] false [GroupResource.ty]))), (go!"GroupVersion", (some (go.signature.Signature [] false [GroupVersion.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  Empty_unfold : MethodUnfold GroupVersionResource.ty go!"Empty" GroupVersionResource.Empty.impl
-  ptr_Empty_unfold : MethodUnfold (go.GoType.PointerType GroupVersionResource.ty) go!"Empty" (LamV "$r"
+  unfold'Empty : MethodUnfold GroupVersionResource.ty go!"Empty" GroupVersionResource.Empty.impl
+  ptr_unfold'Empty : MethodUnfold (go.GoType.PointerType GroupVersionResource.ty) go!"Empty" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve GroupVersionResource.ty go!"Empty"))) (App (Val (GoInstruction (GoLoad GroupVersionResource.ty))) (Var "$r"))))
 
 attribute [instance] GroupVersionResource.TypeAssumptions.type_repr
   GroupVersionResource.TypeAssumptions.underlying
-  GroupVersionResource.TypeAssumptions.get_Group
-  GroupVersionResource.TypeAssumptions.set_Group
-  GroupVersionResource.TypeAssumptions.get_Version
-  GroupVersionResource.TypeAssumptions.set_Version
-  GroupVersionResource.TypeAssumptions.get_Resource
-  GroupVersionResource.TypeAssumptions.set_Resource
+  GroupVersionResource.TypeAssumptions.get'Group
+  GroupVersionResource.TypeAssumptions.set'Group
+  GroupVersionResource.TypeAssumptions.get'Version
+  GroupVersionResource.TypeAssumptions.set'Version
+  GroupVersionResource.TypeAssumptions.get'Resource
+  GroupVersionResource.TypeAssumptions.set'Resource
   GroupVersionResource.TypeAssumptions.method_set
   GroupVersionResource.TypeAssumptions.ptr_method_set
-  GroupVersionResource.TypeAssumptions.Empty_unfold
-  GroupVersionResource.TypeAssumptions.ptr_Empty_unfold
+  GroupVersionResource.TypeAssumptions.unfold'Empty
+  GroupVersionResource.TypeAssumptions.ptr_unfold'Empty
 
 structure GroupKind [GooseExts] where
   mk ::
@@ -257,7 +257,7 @@ noncomputable instance GroupKind.zero_val [GooseExts] : ZeroVal GroupKind :=
 @[irreducible] noncomputable def GroupKind.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GroupKind.fieldsUnsealed
 
-noncomputable instance equals_unfold_GroupKind [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'GroupKind [GooseExts] [GoGlobalContext] :
     EqualsUnfold GroupKind.fields GroupKind.fieldsUnsealed :=
   ⟨by unfold GroupKind.fields; rfl⟩
 
@@ -267,19 +267,19 @@ noncomputable instance equals_unfold_GroupKind [GooseExts] [GoGlobalContext] :
 class GroupKind.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GroupKind.underlying GroupKind
   underlying : go.UnderlyingDirectedEq GroupKind.ty GroupKind.underlying
-  get_Group : ∀ (x : GroupKind), go.IsGoStepPureDetTagged under (StructFieldGet GroupKind.underlying go!"Group") #x (Val #(x.Group'))
-  set_Group : ∀ (x : GroupKind) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupKind.underlying go!"Group") (PairV #x #y) (Val #(({ x with Group' := y } : GroupKind)))
-  get_Kind : ∀ (x : GroupKind), go.IsGoStepPureDetTagged under (StructFieldGet GroupKind.underlying go!"Kind") #x (Val #(x.Kind'))
-  set_Kind : ∀ (x : GroupKind) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupKind.underlying go!"Kind") (PairV #x #y) (Val #(({ x with Kind' := y } : GroupKind)))
+  get'Group : ∀ (x : GroupKind), go.IsGoStepPureDetTagged under (StructFieldGet GroupKind.underlying go!"Group") #x (Val #(x.Group'))
+  set'Group : ∀ (x : GroupKind) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupKind.underlying go!"Group") (PairV #x #y) (Val #(({ x with Group' := y } : GroupKind)))
+  get'Kind : ∀ (x : GroupKind), go.IsGoStepPureDetTagged under (StructFieldGet GroupKind.underlying go!"Kind") #x (Val #(x.Kind'))
+  set'Kind : ∀ (x : GroupKind) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupKind.underlying go!"Kind") (PairV #x #y) (Val #(({ x with Kind' := y } : GroupKind)))
   method_set : go.MethodSetIs GroupKind.ty [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithVersion", (some (go.signature.Signature [go.string] false [GroupVersionKind.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GroupKind.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithVersion", (some (go.signature.Signature [go.string] false [GroupVersionKind.ty])))]
 
 attribute [instance] GroupKind.TypeAssumptions.type_repr
   GroupKind.TypeAssumptions.underlying
-  GroupKind.TypeAssumptions.get_Group
-  GroupKind.TypeAssumptions.set_Group
-  GroupKind.TypeAssumptions.get_Kind
-  GroupKind.TypeAssumptions.set_Kind
+  GroupKind.TypeAssumptions.get'Group
+  GroupKind.TypeAssumptions.set'Group
+  GroupKind.TypeAssumptions.get'Kind
+  GroupKind.TypeAssumptions.set'Kind
   GroupKind.TypeAssumptions.method_set
   GroupKind.TypeAssumptions.ptr_method_set
 
@@ -300,7 +300,7 @@ noncomputable instance GroupVersionKind.zero_val [GooseExts] : ZeroVal GroupVers
 @[irreducible] noncomputable def GroupVersionKind.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GroupVersionKind.fieldsUnsealed
 
-noncomputable instance equals_unfold_GroupVersionKind [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'GroupVersionKind [GooseExts] [GoGlobalContext] :
     EqualsUnfold GroupVersionKind.fields GroupVersionKind.fieldsUnsealed :=
   ⟨by unfold GroupVersionKind.fields; rfl⟩
 
@@ -310,23 +310,23 @@ noncomputable instance equals_unfold_GroupVersionKind [GooseExts] [GoGlobalConte
 class GroupVersionKind.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GroupVersionKind.underlying GroupVersionKind
   underlying : go.UnderlyingDirectedEq GroupVersionKind.ty GroupVersionKind.underlying
-  get_Group : ∀ (x : GroupVersionKind), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersionKind.underlying go!"Group") #x (Val #(x.Group'))
-  set_Group : ∀ (x : GroupVersionKind) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionKind.underlying go!"Group") (PairV #x #y) (Val #(({ x with Group' := y } : GroupVersionKind)))
-  get_Version : ∀ (x : GroupVersionKind), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersionKind.underlying go!"Version") #x (Val #(x.Version'))
-  set_Version : ∀ (x : GroupVersionKind) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionKind.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : GroupVersionKind)))
-  get_Kind : ∀ (x : GroupVersionKind), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersionKind.underlying go!"Kind") #x (Val #(x.Kind'))
-  set_Kind : ∀ (x : GroupVersionKind) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionKind.underlying go!"Kind") (PairV #x #y) (Val #(({ x with Kind' := y } : GroupVersionKind)))
+  get'Group : ∀ (x : GroupVersionKind), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersionKind.underlying go!"Group") #x (Val #(x.Group'))
+  set'Group : ∀ (x : GroupVersionKind) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionKind.underlying go!"Group") (PairV #x #y) (Val #(({ x with Group' := y } : GroupVersionKind)))
+  get'Version : ∀ (x : GroupVersionKind), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersionKind.underlying go!"Version") #x (Val #(x.Version'))
+  set'Version : ∀ (x : GroupVersionKind) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionKind.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : GroupVersionKind)))
+  get'Kind : ∀ (x : GroupVersionKind), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersionKind.underlying go!"Kind") #x (Val #(x.Kind'))
+  set'Kind : ∀ (x : GroupVersionKind) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionKind.underlying go!"Kind") (PairV #x #y) (Val #(({ x with Kind' := y } : GroupVersionKind)))
   method_set : go.MethodSetIs GroupVersionKind.ty [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"GroupKind", (some (go.signature.Signature [] false [GroupKind.ty]))), (go!"GroupVersion", (some (go.signature.Signature [] false [GroupVersion.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"ToAPIVersionAndKind", (some (go.signature.Signature [] false [go.string, go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GroupVersionKind.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"GroupKind", (some (go.signature.Signature [] false [GroupKind.ty]))), (go!"GroupVersion", (some (go.signature.Signature [] false [GroupVersion.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"ToAPIVersionAndKind", (some (go.signature.Signature [] false [go.string, go.string])))]
 
 attribute [instance] GroupVersionKind.TypeAssumptions.type_repr
   GroupVersionKind.TypeAssumptions.underlying
-  GroupVersionKind.TypeAssumptions.get_Group
-  GroupVersionKind.TypeAssumptions.set_Group
-  GroupVersionKind.TypeAssumptions.get_Version
-  GroupVersionKind.TypeAssumptions.set_Version
-  GroupVersionKind.TypeAssumptions.get_Kind
-  GroupVersionKind.TypeAssumptions.set_Kind
+  GroupVersionKind.TypeAssumptions.get'Group
+  GroupVersionKind.TypeAssumptions.set'Group
+  GroupVersionKind.TypeAssumptions.get'Version
+  GroupVersionKind.TypeAssumptions.set'Version
+  GroupVersionKind.TypeAssumptions.get'Kind
+  GroupVersionKind.TypeAssumptions.set'Kind
   GroupVersionKind.TypeAssumptions.method_set
   GroupVersionKind.TypeAssumptions.ptr_method_set
 
@@ -345,7 +345,7 @@ noncomputable instance GroupVersion.zero_val [GooseExts] : ZeroVal GroupVersion 
 @[irreducible] noncomputable def GroupVersion.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GroupVersion.fieldsUnsealed
 
-noncomputable instance equals_unfold_GroupVersion [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'GroupVersion [GooseExts] [GoGlobalContext] :
     EqualsUnfold GroupVersion.fields GroupVersion.fieldsUnsealed :=
   ⟨by unfold GroupVersion.fields; rfl⟩
 
@@ -355,19 +355,19 @@ noncomputable instance equals_unfold_GroupVersion [GooseExts] [GoGlobalContext] 
 class GroupVersion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GroupVersion.underlying GroupVersion
   underlying : go.UnderlyingDirectedEq GroupVersion.ty GroupVersion.underlying
-  get_Group : ∀ (x : GroupVersion), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersion.underlying go!"Group") #x (Val #(x.Group'))
-  set_Group : ∀ (x : GroupVersion) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersion.underlying go!"Group") (PairV #x #y) (Val #(({ x with Group' := y } : GroupVersion)))
-  get_Version : ∀ (x : GroupVersion), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersion.underlying go!"Version") #x (Val #(x.Version'))
-  set_Version : ∀ (x : GroupVersion) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersion.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : GroupVersion)))
+  get'Group : ∀ (x : GroupVersion), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersion.underlying go!"Group") #x (Val #(x.Group'))
+  set'Group : ∀ (x : GroupVersion) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersion.underlying go!"Group") (PairV #x #y) (Val #(({ x with Group' := y } : GroupVersion)))
+  get'Version : ∀ (x : GroupVersion), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersion.underlying go!"Version") #x (Val #(x.Version'))
+  set'Version : ∀ (x : GroupVersion) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersion.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : GroupVersion)))
   method_set : go.MethodSetIs GroupVersion.ty [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Identifier", (some (go.signature.Signature [] false [go.string]))), (go!"KindForGroupVersionKinds", (some (go.signature.Signature [(go.GoType.SliceType GroupVersionKind.ty)] false [GroupVersionKind.ty, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithKind", (some (go.signature.Signature [go.string] false [GroupVersionKind.ty]))), (go!"WithResource", (some (go.signature.Signature [go.string] false [GroupVersionResource.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GroupVersion.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Identifier", (some (go.signature.Signature [] false [go.string]))), (go!"KindForGroupVersionKinds", (some (go.signature.Signature [(go.GoType.SliceType GroupVersionKind.ty)] false [GroupVersionKind.ty, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithKind", (some (go.signature.Signature [go.string] false [GroupVersionKind.ty]))), (go!"WithResource", (some (go.signature.Signature [go.string] false [GroupVersionResource.ty])))]
 
 attribute [instance] GroupVersion.TypeAssumptions.type_repr
   GroupVersion.TypeAssumptions.underlying
-  GroupVersion.TypeAssumptions.get_Group
-  GroupVersion.TypeAssumptions.set_Group
-  GroupVersion.TypeAssumptions.get_Version
-  GroupVersion.TypeAssumptions.set_Version
+  GroupVersion.TypeAssumptions.get'Group
+  GroupVersion.TypeAssumptions.set'Group
+  GroupVersion.TypeAssumptions.get'Version
+  GroupVersion.TypeAssumptions.set'Version
   GroupVersion.TypeAssumptions.method_set
   GroupVersion.TypeAssumptions.ptr_method_set
 
@@ -411,7 +411,7 @@ noncomputable instance emptyObjectKind.zero_val [GooseExts] : ZeroVal emptyObjec
 @[irreducible] noncomputable def emptyObjectKind.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   emptyObjectKind.fieldsUnsealed
 
-noncomputable instance equals_unfold_emptyObjectKind [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'emptyObjectKind [GooseExts] [GoGlobalContext] :
     EqualsUnfold emptyObjectKind.fields emptyObjectKind.fieldsUnsealed :=
   ⟨by unfold emptyObjectKind.fields; rfl⟩
 
@@ -430,23 +430,23 @@ attribute [instance] emptyObjectKind.TypeAssumptions.type_repr
   emptyObjectKind.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  GroupResource_instance : GroupResource.TypeAssumptions
-  GroupVersionResource_instance : GroupVersionResource.TypeAssumptions
-  GroupKind_instance : GroupKind.TypeAssumptions
-  GroupVersionKind_instance : GroupVersionKind.TypeAssumptions
-  GroupVersion_instance : GroupVersion.TypeAssumptions
-  GroupVersions_instance : GroupVersions.TypeAssumptions
-  ObjectKind_instance : ObjectKind.TypeAssumptions
-  emptyObjectKind_instance : emptyObjectKind.TypeAssumptions
+  instance'GroupResource : GroupResource.TypeAssumptions
+  instance'GroupVersionResource : GroupVersionResource.TypeAssumptions
+  instance'GroupKind : GroupKind.TypeAssumptions
+  instance'GroupVersionKind : GroupVersionKind.TypeAssumptions
+  instance'GroupVersion : GroupVersion.TypeAssumptions
+  instance'GroupVersions : GroupVersions.TypeAssumptions
+  instance'ObjectKind : ObjectKind.TypeAssumptions
+  instance'emptyObjectKind : emptyObjectKind.TypeAssumptions
 
-attribute [instance] Assumptions.GroupResource_instance
-  Assumptions.GroupVersionResource_instance
-  Assumptions.GroupKind_instance
-  Assumptions.GroupVersionKind_instance
-  Assumptions.GroupVersion_instance
-  Assumptions.GroupVersions_instance
-  Assumptions.ObjectKind_instance
-  Assumptions.emptyObjectKind_instance
+attribute [instance] Assumptions.instance'GroupResource
+  Assumptions.instance'GroupVersionResource
+  Assumptions.instance'GroupKind
+  Assumptions.instance'GroupVersionKind
+  Assumptions.instance'GroupVersion
+  Assumptions.instance'GroupVersions
+  Assumptions.instance'ObjectKind
+  Assumptions.instance'emptyObjectKind
 
 end k8s_io.apimachinery.pkg.runtime.schema
 

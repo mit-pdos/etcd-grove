@@ -465,7 +465,7 @@ noncomputable def newNodeSelectorTerm.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoLoad nodeSelectorTerm.ty))) (Var "$res0"))))))
 
 /-- go: nodeaffinity.go:190:28 -/
-noncomputable def nodeSelectorTerm.«match».impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def nodeSelectorTerm.match''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "nodeLabels"
   (Lam "nodeFields"
@@ -935,7 +935,7 @@ noncomputable instance LazyErrorNodeSelector.zero_val [GooseExts] : ZeroVal Lazy
 @[irreducible] noncomputable def LazyErrorNodeSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LazyErrorNodeSelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_LazyErrorNodeSelector [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LazyErrorNodeSelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold LazyErrorNodeSelector.fields LazyErrorNodeSelector.fieldsUnsealed :=
   ⟨by unfold LazyErrorNodeSelector.fields; rfl⟩
 
@@ -945,15 +945,15 @@ noncomputable instance equals_unfold_LazyErrorNodeSelector [GooseExts] [GoGlobal
 class LazyErrorNodeSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LazyErrorNodeSelector.underlying LazyErrorNodeSelector
   underlying : go.UnderlyingDirectedEq LazyErrorNodeSelector.ty LazyErrorNodeSelector.underlying
-  get_terms : ∀ (x : LazyErrorNodeSelector), go.IsGoStepPureDetTagged under (StructFieldGet LazyErrorNodeSelector.underlying go!"terms") #x (Val #(x.terms'))
-  set_terms : ∀ (x : LazyErrorNodeSelector) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LazyErrorNodeSelector.underlying go!"terms") (PairV #x #y) (Val #(({ x with terms' := y } : LazyErrorNodeSelector)))
+  get'terms : ∀ (x : LazyErrorNodeSelector), go.IsGoStepPureDetTagged under (StructFieldGet LazyErrorNodeSelector.underlying go!"terms") #x (Val #(x.terms'))
+  set'terms : ∀ (x : LazyErrorNodeSelector) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LazyErrorNodeSelector.underlying go!"terms") (PairV #x #y) (Val #(({ x with terms' := y } : LazyErrorNodeSelector)))
   method_set : go.MethodSetIs LazyErrorNodeSelector.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LazyErrorNodeSelector.ty) [(go!"Match", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)] false [go.bool, go.error])))]
 
 attribute [instance] LazyErrorNodeSelector.TypeAssumptions.type_repr
   LazyErrorNodeSelector.TypeAssumptions.underlying
-  LazyErrorNodeSelector.TypeAssumptions.get_terms
-  LazyErrorNodeSelector.TypeAssumptions.set_terms
+  LazyErrorNodeSelector.TypeAssumptions.get'terms
+  LazyErrorNodeSelector.TypeAssumptions.set'terms
   LazyErrorNodeSelector.TypeAssumptions.method_set
   LazyErrorNodeSelector.TypeAssumptions.ptr_method_set
 
@@ -970,7 +970,7 @@ noncomputable instance NodeSelector.zero_val [GooseExts] : ZeroVal NodeSelector 
 @[irreducible] noncomputable def NodeSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NodeSelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_NodeSelector [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'NodeSelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold NodeSelector.fields NodeSelector.fieldsUnsealed :=
   ⟨by unfold NodeSelector.fields; rfl⟩
 
@@ -980,19 +980,19 @@ noncomputable instance equals_unfold_NodeSelector [GooseExts] [GoGlobalContext] 
 class NodeSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NodeSelector.underlying NodeSelector
   underlying : go.UnderlyingDirectedEq NodeSelector.ty NodeSelector.underlying
-  get_lazy : ∀ (x : NodeSelector), go.IsGoStepPureDetTagged under (StructFieldGet NodeSelector.underlying go!"lazy") #x (Val #(x.lazy'))
-  set_lazy : ∀ (x : NodeSelector) (y : LazyErrorNodeSelector), go.IsGoStepPureDetTagged under (StructFieldSet NodeSelector.underlying go!"lazy") (PairV #x #y) (Val #(({ x with lazy' := y } : NodeSelector)))
+  get'lazy : ∀ (x : NodeSelector), go.IsGoStepPureDetTagged under (StructFieldGet NodeSelector.underlying go!"lazy") #x (Val #(x.lazy'))
+  set'lazy : ∀ (x : NodeSelector) (y : LazyErrorNodeSelector), go.IsGoStepPureDetTagged under (StructFieldSet NodeSelector.underlying go!"lazy") (PairV #x #y) (Val #(({ x with lazy' := y } : NodeSelector)))
   method_set : go.MethodSetIs NodeSelector.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeSelector.ty) [(go!"Match", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)] false [go.bool])))]
-  ptr_Match_unfold : MethodUnfold (go.GoType.PointerType NodeSelector.ty) go!"Match" NodeSelector.Match.impl
+  ptr_unfold'Match : MethodUnfold (go.GoType.PointerType NodeSelector.ty) go!"Match" NodeSelector.Match.impl
 
 attribute [instance] NodeSelector.TypeAssumptions.type_repr
   NodeSelector.TypeAssumptions.underlying
-  NodeSelector.TypeAssumptions.get_lazy
-  NodeSelector.TypeAssumptions.set_lazy
+  NodeSelector.TypeAssumptions.get'lazy
+  NodeSelector.TypeAssumptions.set'lazy
   NodeSelector.TypeAssumptions.method_set
   NodeSelector.TypeAssumptions.ptr_method_set
-  NodeSelector.TypeAssumptions.ptr_Match_unfold
+  NodeSelector.TypeAssumptions.ptr_unfold'Match
 
 structure PreferredSchedulingTerms [GooseExts] where
   mk ::
@@ -1007,7 +1007,7 @@ noncomputable instance PreferredSchedulingTerms.zero_val [GooseExts] : ZeroVal P
 @[irreducible] noncomputable def PreferredSchedulingTerms.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PreferredSchedulingTerms.fieldsUnsealed
 
-noncomputable instance equals_unfold_PreferredSchedulingTerms [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PreferredSchedulingTerms [GooseExts] [GoGlobalContext] :
     EqualsUnfold PreferredSchedulingTerms.fields PreferredSchedulingTerms.fieldsUnsealed :=
   ⟨by unfold PreferredSchedulingTerms.fields; rfl⟩
 
@@ -1017,15 +1017,15 @@ noncomputable instance equals_unfold_PreferredSchedulingTerms [GooseExts] [GoGlo
 class PreferredSchedulingTerms.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PreferredSchedulingTerms.underlying PreferredSchedulingTerms
   underlying : go.UnderlyingDirectedEq PreferredSchedulingTerms.ty PreferredSchedulingTerms.underlying
-  get_terms : ∀ (x : PreferredSchedulingTerms), go.IsGoStepPureDetTagged under (StructFieldGet PreferredSchedulingTerms.underlying go!"terms") #x (Val #(x.terms'))
-  set_terms : ∀ (x : PreferredSchedulingTerms) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PreferredSchedulingTerms.underlying go!"terms") (PairV #x #y) (Val #(({ x with terms' := y } : PreferredSchedulingTerms)))
+  get'terms : ∀ (x : PreferredSchedulingTerms), go.IsGoStepPureDetTagged under (StructFieldGet PreferredSchedulingTerms.underlying go!"terms") #x (Val #(x.terms'))
+  set'terms : ∀ (x : PreferredSchedulingTerms) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PreferredSchedulingTerms.underlying go!"terms") (PairV #x #y) (Val #(({ x with terms' := y } : PreferredSchedulingTerms)))
   method_set : go.MethodSetIs PreferredSchedulingTerms.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PreferredSchedulingTerms.ty) [(go!"Score", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)] false [go.int64])))]
 
 attribute [instance] PreferredSchedulingTerms.TypeAssumptions.type_repr
   PreferredSchedulingTerms.TypeAssumptions.underlying
-  PreferredSchedulingTerms.TypeAssumptions.get_terms
-  PreferredSchedulingTerms.TypeAssumptions.set_terms
+  PreferredSchedulingTerms.TypeAssumptions.get'terms
+  PreferredSchedulingTerms.TypeAssumptions.set'terms
   PreferredSchedulingTerms.TypeAssumptions.method_set
   PreferredSchedulingTerms.TypeAssumptions.ptr_method_set
 
@@ -1046,7 +1046,7 @@ noncomputable instance nodeSelectorTerm.zero_val [GooseExts] : ZeroVal nodeSelec
 @[irreducible] noncomputable def nodeSelectorTerm.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   nodeSelectorTerm.fieldsUnsealed
 
-noncomputable instance equals_unfold_nodeSelectorTerm [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'nodeSelectorTerm [GooseExts] [GoGlobalContext] :
     EqualsUnfold nodeSelectorTerm.fields nodeSelectorTerm.fieldsUnsealed :=
   ⟨by unfold nodeSelectorTerm.fields; rfl⟩
 
@@ -1056,27 +1056,27 @@ noncomputable instance equals_unfold_nodeSelectorTerm [GooseExts] [GoGlobalConte
 class nodeSelectorTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying nodeSelectorTerm.underlying nodeSelectorTerm
   underlying : go.UnderlyingDirectedEq nodeSelectorTerm.ty nodeSelectorTerm.underlying
-  get_matchLabels : ∀ (x : nodeSelectorTerm), go.IsGoStepPureDetTagged under (StructFieldGet nodeSelectorTerm.underlying go!"matchLabels") #x (Val #(x.matchLabels'))
-  set_matchLabels : ∀ (x : nodeSelectorTerm) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector), go.IsGoStepPureDetTagged under (StructFieldSet nodeSelectorTerm.underlying go!"matchLabels") (PairV #x #y) (Val #(({ x with matchLabels' := y } : nodeSelectorTerm)))
-  get_matchFields : ∀ (x : nodeSelectorTerm), go.IsGoStepPureDetTagged under (StructFieldGet nodeSelectorTerm.underlying go!"matchFields") #x (Val #(x.matchFields'))
-  set_matchFields : ∀ (x : nodeSelectorTerm) (y : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector), go.IsGoStepPureDetTagged under (StructFieldSet nodeSelectorTerm.underlying go!"matchFields") (PairV #x #y) (Val #(({ x with matchFields' := y } : nodeSelectorTerm)))
-  get_parseErrs : ∀ (x : nodeSelectorTerm), go.IsGoStepPureDetTagged under (StructFieldGet nodeSelectorTerm.underlying go!"parseErrs") #x (Val #(x.parseErrs'))
-  set_parseErrs : ∀ (x : nodeSelectorTerm) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet nodeSelectorTerm.underlying go!"parseErrs") (PairV #x #y) (Val #(({ x with parseErrs' := y } : nodeSelectorTerm)))
+  get'matchLabels : ∀ (x : nodeSelectorTerm), go.IsGoStepPureDetTagged under (StructFieldGet nodeSelectorTerm.underlying go!"matchLabels") #x (Val #(x.matchLabels'))
+  set'matchLabels : ∀ (x : nodeSelectorTerm) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector), go.IsGoStepPureDetTagged under (StructFieldSet nodeSelectorTerm.underlying go!"matchLabels") (PairV #x #y) (Val #(({ x with matchLabels' := y } : nodeSelectorTerm)))
+  get'matchFields : ∀ (x : nodeSelectorTerm), go.IsGoStepPureDetTagged under (StructFieldGet nodeSelectorTerm.underlying go!"matchFields") #x (Val #(x.matchFields'))
+  set'matchFields : ∀ (x : nodeSelectorTerm) (y : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector), go.IsGoStepPureDetTagged under (StructFieldSet nodeSelectorTerm.underlying go!"matchFields") (PairV #x #y) (Val #(({ x with matchFields' := y } : nodeSelectorTerm)))
+  get'parseErrs : ∀ (x : nodeSelectorTerm), go.IsGoStepPureDetTagged under (StructFieldGet nodeSelectorTerm.underlying go!"parseErrs") #x (Val #(x.parseErrs'))
+  set'parseErrs : ∀ (x : nodeSelectorTerm) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet nodeSelectorTerm.underlying go!"parseErrs") (PairV #x #y) (Val #(({ x with parseErrs' := y } : nodeSelectorTerm)))
   method_set : go.MethodSetIs nodeSelectorTerm.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType nodeSelectorTerm.ty) [(go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.match", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty, _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty] false [go.bool, (go.GoType.SliceType go.error)])))]
-  ptr_match_unfold : MethodUnfold (go.GoType.PointerType nodeSelectorTerm.ty) go!"match" nodeSelectorTerm.«match».impl
+  ptr_unfold'match : MethodUnfold (go.GoType.PointerType nodeSelectorTerm.ty) go!"match" nodeSelectorTerm.match''.impl
 
 attribute [instance] nodeSelectorTerm.TypeAssumptions.type_repr
   nodeSelectorTerm.TypeAssumptions.underlying
-  nodeSelectorTerm.TypeAssumptions.get_matchLabels
-  nodeSelectorTerm.TypeAssumptions.set_matchLabels
-  nodeSelectorTerm.TypeAssumptions.get_matchFields
-  nodeSelectorTerm.TypeAssumptions.set_matchFields
-  nodeSelectorTerm.TypeAssumptions.get_parseErrs
-  nodeSelectorTerm.TypeAssumptions.set_parseErrs
+  nodeSelectorTerm.TypeAssumptions.get'matchLabels
+  nodeSelectorTerm.TypeAssumptions.set'matchLabels
+  nodeSelectorTerm.TypeAssumptions.get'matchFields
+  nodeSelectorTerm.TypeAssumptions.set'matchFields
+  nodeSelectorTerm.TypeAssumptions.get'parseErrs
+  nodeSelectorTerm.TypeAssumptions.set'parseErrs
   nodeSelectorTerm.TypeAssumptions.method_set
   nodeSelectorTerm.TypeAssumptions.ptr_method_set
-  nodeSelectorTerm.TypeAssumptions.ptr_match_unfold
+  nodeSelectorTerm.TypeAssumptions.ptr_unfold'match
 
 structure preferredSchedulingTerm [GooseExts] where
   mk ::
@@ -1093,7 +1093,7 @@ noncomputable instance preferredSchedulingTerm.zero_val [GooseExts] : ZeroVal pr
 @[irreducible] noncomputable def preferredSchedulingTerm.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   preferredSchedulingTerm.fieldsUnsealed
 
-noncomputable instance equals_unfold_preferredSchedulingTerm [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'preferredSchedulingTerm [GooseExts] [GoGlobalContext] :
     EqualsUnfold preferredSchedulingTerm.fields preferredSchedulingTerm.fieldsUnsealed :=
   ⟨by unfold preferredSchedulingTerm.fields; rfl⟩
 
@@ -1103,24 +1103,24 @@ noncomputable instance equals_unfold_preferredSchedulingTerm [GooseExts] [GoGlob
 class preferredSchedulingTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying preferredSchedulingTerm.underlying preferredSchedulingTerm
   underlying : go.UnderlyingDirectedEq preferredSchedulingTerm.ty preferredSchedulingTerm.underlying
-  get_nodeSelectorTerm : ∀ (x : preferredSchedulingTerm), go.IsGoStepPureDetTagged under (StructFieldGet preferredSchedulingTerm.underlying go!"nodeSelectorTerm") #x (Val #(x.nodeSelectorTerm'))
-  set_nodeSelectorTerm : ∀ (x : preferredSchedulingTerm) (y : nodeSelectorTerm), go.IsGoStepPureDetTagged under (StructFieldSet preferredSchedulingTerm.underlying go!"nodeSelectorTerm") (PairV #x #y) (Val #(({ x with nodeSelectorTerm' := y } : preferredSchedulingTerm)))
-  get_weight : ∀ (x : preferredSchedulingTerm), go.IsGoStepPureDetTagged under (StructFieldGet preferredSchedulingTerm.underlying go!"weight") #x (Val #(x.weight'))
-  set_weight : ∀ (x : preferredSchedulingTerm) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet preferredSchedulingTerm.underlying go!"weight") (PairV #x #y) (Val #(({ x with weight' := y } : preferredSchedulingTerm)))
+  get'nodeSelectorTerm : ∀ (x : preferredSchedulingTerm), go.IsGoStepPureDetTagged under (StructFieldGet preferredSchedulingTerm.underlying go!"nodeSelectorTerm") #x (Val #(x.nodeSelectorTerm'))
+  set'nodeSelectorTerm : ∀ (x : preferredSchedulingTerm) (y : nodeSelectorTerm), go.IsGoStepPureDetTagged under (StructFieldSet preferredSchedulingTerm.underlying go!"nodeSelectorTerm") (PairV #x #y) (Val #(({ x with nodeSelectorTerm' := y } : preferredSchedulingTerm)))
+  get'weight : ∀ (x : preferredSchedulingTerm), go.IsGoStepPureDetTagged under (StructFieldGet preferredSchedulingTerm.underlying go!"weight") #x (Val #(x.weight'))
+  set'weight : ∀ (x : preferredSchedulingTerm) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet preferredSchedulingTerm.underlying go!"weight") (PairV #x #y) (Val #(({ x with weight' := y } : preferredSchedulingTerm)))
   method_set : go.MethodSetIs preferredSchedulingTerm.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType preferredSchedulingTerm.ty) [(go!"k8s.io/component-helpers/scheduling/corev1/nodeaffinity.match", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty, _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty] false [go.bool, (go.GoType.SliceType go.error)])))]
-  ptr_match_unfold : MethodUnfold (go.GoType.PointerType preferredSchedulingTerm.ty) go!"match" (LamV "$r"
+  ptr_unfold'match : MethodUnfold (go.GoType.PointerType preferredSchedulingTerm.ty) go!"match" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType nodeSelectorTerm.ty) go!"match"))) (App (Val (GoInstruction (StructFieldRef preferredSchedulingTerm.ty go!"nodeSelectorTerm"))) (Var "$r"))))
 
 attribute [instance] preferredSchedulingTerm.TypeAssumptions.type_repr
   preferredSchedulingTerm.TypeAssumptions.underlying
-  preferredSchedulingTerm.TypeAssumptions.get_nodeSelectorTerm
-  preferredSchedulingTerm.TypeAssumptions.set_nodeSelectorTerm
-  preferredSchedulingTerm.TypeAssumptions.get_weight
-  preferredSchedulingTerm.TypeAssumptions.set_weight
+  preferredSchedulingTerm.TypeAssumptions.get'nodeSelectorTerm
+  preferredSchedulingTerm.TypeAssumptions.set'nodeSelectorTerm
+  preferredSchedulingTerm.TypeAssumptions.get'weight
+  preferredSchedulingTerm.TypeAssumptions.set'weight
   preferredSchedulingTerm.TypeAssumptions.method_set
   preferredSchedulingTerm.TypeAssumptions.ptr_method_set
-  preferredSchedulingTerm.TypeAssumptions.ptr_match_unfold
+  preferredSchedulingTerm.TypeAssumptions.ptr_unfold'match
 
 structure RequiredNodeAffinity [GooseExts] where
   mk ::
@@ -1137,7 +1137,7 @@ noncomputable instance RequiredNodeAffinity.zero_val [GooseExts] : ZeroVal Requi
 @[irreducible] noncomputable def RequiredNodeAffinity.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RequiredNodeAffinity.fieldsUnsealed
 
-noncomputable instance equals_unfold_RequiredNodeAffinity [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RequiredNodeAffinity [GooseExts] [GoGlobalContext] :
     EqualsUnfold RequiredNodeAffinity.fields RequiredNodeAffinity.fieldsUnsealed :=
   ⟨by unfold RequiredNodeAffinity.fields; rfl⟩
 
@@ -1147,66 +1147,66 @@ noncomputable instance equals_unfold_RequiredNodeAffinity [GooseExts] [GoGlobalC
 class RequiredNodeAffinity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequiredNodeAffinity.underlying RequiredNodeAffinity
   underlying : go.UnderlyingDirectedEq RequiredNodeAffinity.ty RequiredNodeAffinity.underlying
-  get_labelSelector : ∀ (x : RequiredNodeAffinity), go.IsGoStepPureDetTagged under (StructFieldGet RequiredNodeAffinity.underlying go!"labelSelector") #x (Val #(x.labelSelector'))
-  set_labelSelector : ∀ (x : RequiredNodeAffinity) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector), go.IsGoStepPureDetTagged under (StructFieldSet RequiredNodeAffinity.underlying go!"labelSelector") (PairV #x #y) (Val #(({ x with labelSelector' := y } : RequiredNodeAffinity)))
-  get_nodeSelector : ∀ (x : RequiredNodeAffinity), go.IsGoStepPureDetTagged under (StructFieldGet RequiredNodeAffinity.underlying go!"nodeSelector") #x (Val #(x.nodeSelector'))
-  set_nodeSelector : ∀ (x : RequiredNodeAffinity) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RequiredNodeAffinity.underlying go!"nodeSelector") (PairV #x #y) (Val #(({ x with nodeSelector' := y } : RequiredNodeAffinity)))
+  get'labelSelector : ∀ (x : RequiredNodeAffinity), go.IsGoStepPureDetTagged under (StructFieldGet RequiredNodeAffinity.underlying go!"labelSelector") #x (Val #(x.labelSelector'))
+  set'labelSelector : ∀ (x : RequiredNodeAffinity) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector), go.IsGoStepPureDetTagged under (StructFieldSet RequiredNodeAffinity.underlying go!"labelSelector") (PairV #x #y) (Val #(({ x with labelSelector' := y } : RequiredNodeAffinity)))
+  get'nodeSelector : ∀ (x : RequiredNodeAffinity), go.IsGoStepPureDetTagged under (StructFieldGet RequiredNodeAffinity.underlying go!"nodeSelector") #x (Val #(x.nodeSelector'))
+  set'nodeSelector : ∀ (x : RequiredNodeAffinity) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RequiredNodeAffinity.underlying go!"nodeSelector") (PairV #x #y) (Val #(({ x with nodeSelector' := y } : RequiredNodeAffinity)))
   method_set : go.MethodSetIs RequiredNodeAffinity.ty [(go!"Match", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)] false [go.bool, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequiredNodeAffinity.ty) [(go!"Match", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)] false [go.bool, go.error])))]
 
 attribute [instance] RequiredNodeAffinity.TypeAssumptions.type_repr
   RequiredNodeAffinity.TypeAssumptions.underlying
-  RequiredNodeAffinity.TypeAssumptions.get_labelSelector
-  RequiredNodeAffinity.TypeAssumptions.set_labelSelector
-  RequiredNodeAffinity.TypeAssumptions.get_nodeSelector
-  RequiredNodeAffinity.TypeAssumptions.set_nodeSelector
+  RequiredNodeAffinity.TypeAssumptions.get'labelSelector
+  RequiredNodeAffinity.TypeAssumptions.set'labelSelector
+  RequiredNodeAffinity.TypeAssumptions.get'nodeSelector
+  RequiredNodeAffinity.TypeAssumptions.set'nodeSelector
   RequiredNodeAffinity.TypeAssumptions.method_set
   RequiredNodeAffinity.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  NodeSelector_instance : NodeSelector.TypeAssumptions
-  LazyErrorNodeSelector_instance : LazyErrorNodeSelector.TypeAssumptions
-  PreferredSchedulingTerms_instance : PreferredSchedulingTerms.TypeAssumptions
-  nodeSelectorTerm_instance : nodeSelectorTerm.TypeAssumptions
-  preferredSchedulingTerm_instance : preferredSchedulingTerm.TypeAssumptions
-  RequiredNodeAffinity_instance : RequiredNodeAffinity.TypeAssumptions
-  NewNodeSelector_unfold : FuncUnfold NewNodeSelector [] NewNodeSelector.impl
-  NewLazyErrorNodeSelector_unfold : FuncUnfold NewLazyErrorNodeSelector [] NewLazyErrorNodeSelector.impl
-  NewPreferredSchedulingTerms_unfold : FuncUnfold NewPreferredSchedulingTerms [] NewPreferredSchedulingTerms.impl
-  isEmptyNodeSelectorTerm_unfold : FuncUnfold isEmptyNodeSelectorTerm [] isEmptyNodeSelectorTerm.impl
-  newNodeSelectorTerm_unfold : FuncUnfold newNodeSelectorTerm [] newNodeSelectorTerm.impl
-  nodeSelectorRequirementsAsSelector_unfold : FuncUnfold nodeSelectorRequirementsAsSelector [] nodeSelectorRequirementsAsSelector.impl
-  nodeSelectorRequirementsAsFieldSelector_unfold : FuncUnfold nodeSelectorRequirementsAsFieldSelector [] nodeSelectorRequirementsAsFieldSelector.impl
-  GetRequiredNodeAffinity_unfold : FuncUnfold GetRequiredNodeAffinity [] GetRequiredNodeAffinity.impl
-  NewRequiredNodeAffinity_unfold : FuncUnfold NewRequiredNodeAffinity [] NewRequiredNodeAffinity.impl
-  import_v1_Assumption : _root_.Perennial.k8s_io.api.core.v1.Assumptions
-  import_fields_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Assumptions
-  import_labels_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
-  import_selection_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.selection.Assumptions
-  import_errors_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Assumptions
-  import_field_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Assumptions
+  instance'NodeSelector : NodeSelector.TypeAssumptions
+  instance'LazyErrorNodeSelector : LazyErrorNodeSelector.TypeAssumptions
+  instance'PreferredSchedulingTerms : PreferredSchedulingTerms.TypeAssumptions
+  instance'nodeSelectorTerm : nodeSelectorTerm.TypeAssumptions
+  instance'preferredSchedulingTerm : preferredSchedulingTerm.TypeAssumptions
+  instance'RequiredNodeAffinity : RequiredNodeAffinity.TypeAssumptions
+  unfold'NewNodeSelector : FuncUnfold NewNodeSelector [] NewNodeSelector.impl
+  unfold'NewLazyErrorNodeSelector : FuncUnfold NewLazyErrorNodeSelector [] NewLazyErrorNodeSelector.impl
+  unfold'NewPreferredSchedulingTerms : FuncUnfold NewPreferredSchedulingTerms [] NewPreferredSchedulingTerms.impl
+  unfold'isEmptyNodeSelectorTerm : FuncUnfold isEmptyNodeSelectorTerm [] isEmptyNodeSelectorTerm.impl
+  unfold'newNodeSelectorTerm : FuncUnfold newNodeSelectorTerm [] newNodeSelectorTerm.impl
+  unfold'nodeSelectorRequirementsAsSelector : FuncUnfold nodeSelectorRequirementsAsSelector [] nodeSelectorRequirementsAsSelector.impl
+  unfold'nodeSelectorRequirementsAsFieldSelector : FuncUnfold nodeSelectorRequirementsAsFieldSelector [] nodeSelectorRequirementsAsFieldSelector.impl
+  unfold'GetRequiredNodeAffinity : FuncUnfold GetRequiredNodeAffinity [] GetRequiredNodeAffinity.impl
+  unfold'NewRequiredNodeAffinity : FuncUnfold NewRequiredNodeAffinity [] NewRequiredNodeAffinity.impl
+  import'v1 : _root_.Perennial.k8s_io.api.core.v1.Assumptions
+  import'fields : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Assumptions
+  import'labels : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
+  import'selection : _root_.Perennial.k8s_io.apimachinery.pkg.selection.Assumptions
+  import'errors : _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Assumptions
+  import'field : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Assumptions
 
-attribute [instance] Assumptions.NodeSelector_instance
-  Assumptions.LazyErrorNodeSelector_instance
-  Assumptions.PreferredSchedulingTerms_instance
-  Assumptions.nodeSelectorTerm_instance
-  Assumptions.preferredSchedulingTerm_instance
-  Assumptions.RequiredNodeAffinity_instance
-  Assumptions.NewNodeSelector_unfold
-  Assumptions.NewLazyErrorNodeSelector_unfold
-  Assumptions.NewPreferredSchedulingTerms_unfold
-  Assumptions.isEmptyNodeSelectorTerm_unfold
-  Assumptions.newNodeSelectorTerm_unfold
-  Assumptions.nodeSelectorRequirementsAsSelector_unfold
-  Assumptions.nodeSelectorRequirementsAsFieldSelector_unfold
-  Assumptions.GetRequiredNodeAffinity_unfold
-  Assumptions.NewRequiredNodeAffinity_unfold
-  Assumptions.import_v1_Assumption
-  Assumptions.import_fields_Assumption
-  Assumptions.import_labels_Assumption
-  Assumptions.import_selection_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_field_Assumption
+attribute [instance] Assumptions.instance'NodeSelector
+  Assumptions.instance'LazyErrorNodeSelector
+  Assumptions.instance'PreferredSchedulingTerms
+  Assumptions.instance'nodeSelectorTerm
+  Assumptions.instance'preferredSchedulingTerm
+  Assumptions.instance'RequiredNodeAffinity
+  Assumptions.unfold'NewNodeSelector
+  Assumptions.unfold'NewLazyErrorNodeSelector
+  Assumptions.unfold'NewPreferredSchedulingTerms
+  Assumptions.unfold'isEmptyNodeSelectorTerm
+  Assumptions.unfold'newNodeSelectorTerm
+  Assumptions.unfold'nodeSelectorRequirementsAsSelector
+  Assumptions.unfold'nodeSelectorRequirementsAsFieldSelector
+  Assumptions.unfold'GetRequiredNodeAffinity
+  Assumptions.unfold'NewRequiredNodeAffinity
+  Assumptions.import'v1
+  Assumptions.import'fields
+  Assumptions.import'labels
+  Assumptions.import'selection
+  Assumptions.import'errors
+  Assumptions.import'field
 
 end k8s_io.component_helpers.scheduling.corev1.nodeaffinity
 

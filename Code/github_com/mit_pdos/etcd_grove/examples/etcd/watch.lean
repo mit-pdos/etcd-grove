@@ -31,7 +31,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.etcd.watch
 @[reducible] noncomputable def peerAddr [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23882")
 
-@[reducible] noncomputable def «prefix» [GooseExts] [GoGlobalContext] : val :=
+@[reducible] noncomputable def prefix'' [GooseExts] [GoGlobalContext] : val :=
   #(go!"wk/")
 
 @[reducible] noncomputable def Ok [GooseExts] [GoGlobalContext] : val :=
@@ -105,7 +105,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "wctx"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val «prefix»))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val prefix''))
   (Let "$a2" (Let "$sl0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithPrefix []))) (Val #())) (Val #()))
   (Let "$sl1" (Let "$a0" (Val #(W64 1))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithRev []))) (Val #())) (Var "$a0")))
@@ -295,19 +295,19 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Main_unfold : FuncUnfold Main [] Main.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
+  unfold'Main : FuncUnfold Main [] Main.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'etcdstart : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
 
-attribute [instance] Assumptions.Main_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_etcdstart_Assumption
+attribute [instance] Assumptions.unfold'Main
+  Assumptions.import'context
+  Assumptions.import'sync
+  Assumptions.import'zap
+  Assumptions.import'clientv3
+  Assumptions.import'etcdstart
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.watch
 

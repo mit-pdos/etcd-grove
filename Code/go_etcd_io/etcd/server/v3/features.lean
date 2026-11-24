@@ -150,13 +150,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc DefaultEtcdServerFeatureGates (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec.ty))) (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  NewDefaultServerFeatureGate_unfold : FuncUnfold NewDefaultServerFeatureGate [] NewDefaultServerFeatureGate.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_featuregate_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Assumptions
+  unfold'NewDefaultServerFeatureGate : FuncUnfold NewDefaultServerFeatureGate [] NewDefaultServerFeatureGate.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'featuregate : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Assumptions
 
-attribute [instance] Assumptions.NewDefaultServerFeatureGate_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_featuregate_Assumption
+attribute [instance] Assumptions.unfold'NewDefaultServerFeatureGate
+  Assumptions.import'fmt
+  Assumptions.import'featuregate
 
 end go_etcd_io.etcd.server.v3.features
 

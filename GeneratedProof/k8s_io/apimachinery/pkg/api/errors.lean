@@ -29,7 +29,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.errors.Assumptions]
 
-noncomputable instance StatusError_typed_pointsto :
+noncomputable instance typed_pointsto'StatusError :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.errors.StatusError where
   typedPointstoDef l v dq := iprop(
     "ErrStatus" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.StatusError go!"ErrStatus" l) v.ErrStatus' dq ∗
@@ -38,11 +38,11 @@ noncomputable instance StatusError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance StatusError_into_val_typed :
+noncomputable instance into_val_typed'StatusError :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.errors.StatusError k8s_io.apimachinery.pkg.api.errors.StatusError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance StatusError_access_load_ErrStatus (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.StatusError) (dq : DFrac) :
+noncomputable instance access_load'StatusError'ErrStatus (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.StatusError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.StatusError go!"ErrStatus" l) v.ErrStatus' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.StatusError go!"ErrStatus" l) v.ErrStatus' dq)
@@ -50,7 +50,7 @@ noncomputable instance StatusError_access_load_ErrStatus (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatusError_access_store_ErrStatus (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.StatusError) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) :
+noncomputable instance access_store'StatusError'ErrStatus (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.StatusError) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.StatusError go!"ErrStatus" l) v.ErrStatus' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.StatusError go!"ErrStatus" l) y (DFrac.own 1))
@@ -69,11 +69,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.errors.Assumptions]
 
-noncomputable instance UnexpectedObjectError_typed_pointsto :
+noncomputable instance typed_pointsto'UnexpectedObjectError :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.errors.UnexpectedObjectError :=
   sorry -- axiomatized type
 
-noncomputable instance UnexpectedObjectError_into_val_typed :
+noncomputable instance into_val_typed'UnexpectedObjectError :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.errors.UnexpectedObjectError k8s_io.apimachinery.pkg.api.errors.UnexpectedObjectError.underlying :=
   sorry -- axiomatized type
 
@@ -88,7 +88,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.errors.Assumptions]
 
-noncomputable instance ErrorReporter_typed_pointsto :
+noncomputable instance typed_pointsto'ErrorReporter :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.errors.ErrorReporter where
   typedPointstoDef l v dq := iprop(
     "code" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"code" l) v.code' dq ∗
@@ -99,11 +99,11 @@ noncomputable instance ErrorReporter_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ErrorReporter_into_val_typed :
+noncomputable instance into_val_typed'ErrorReporter :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.errors.ErrorReporter k8s_io.apimachinery.pkg.api.errors.ErrorReporter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ErrorReporter_access_load_code (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (dq : DFrac) :
+noncomputable instance access_load'ErrorReporter'code (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"code" l) v.code' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"code" l) v.code' dq)
@@ -111,7 +111,7 @@ noncomputable instance ErrorReporter_access_load_code (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorReporter_access_store_code (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (y : w64) :
+noncomputable instance access_store'ErrorReporter'code (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"code" l) v.code' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"code" l) y (DFrac.own 1))
@@ -119,7 +119,7 @@ noncomputable instance ErrorReporter_access_store_code (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorReporter_access_load_verb (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (dq : DFrac) :
+noncomputable instance access_load'ErrorReporter'verb (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"verb" l) v.verb' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"verb" l) v.verb' dq)
@@ -127,7 +127,7 @@ noncomputable instance ErrorReporter_access_load_verb (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorReporter_access_store_verb (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (y : GoString) :
+noncomputable instance access_store'ErrorReporter'verb (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"verb" l) v.verb' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"verb" l) y (DFrac.own 1))
@@ -135,7 +135,7 @@ noncomputable instance ErrorReporter_access_store_verb (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorReporter_access_load_reason (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (dq : DFrac) :
+noncomputable instance access_load'ErrorReporter'reason (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"reason" l) v.reason' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"reason" l) v.reason' dq)
@@ -143,7 +143,7 @@ noncomputable instance ErrorReporter_access_load_reason (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorReporter_access_store_reason (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (y : GoString) :
+noncomputable instance access_store'ErrorReporter'reason (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"reason" l) v.reason' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"reason" l) y (DFrac.own 1))

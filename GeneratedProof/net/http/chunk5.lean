@@ -26,7 +26,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-noncomputable instance fileTransport_typed_pointsto :
+noncomputable instance typed_pointsto'fileTransport :
     TypedPointsto (GF := GF) net.http.fileTransport where
   typedPointstoDef l v dq := iprop(
     "fh" ∷ typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) v.fh' dq ∗
@@ -35,11 +35,11 @@ noncomputable instance fileTransport_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance fileTransport_into_val_typed :
+noncomputable instance into_val_typed'fileTransport :
     IntoValTypedUnderlying (GF := GF) net.http.fileTransport net.http.fileTransport.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance fileTransport_access_load_fh (l : Loc) (v : net.http.fileTransport) (dq : DFrac) :
+noncomputable instance access_load'fileTransport'fh (l : Loc) (v : net.http.fileTransport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) v.fh' dq)
       (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) v.fh' dq)
@@ -47,7 +47,7 @@ noncomputable instance fileTransport_access_load_fh (l : Loc) (v : net.http.file
  by
   solve_pointsto_access_struct
 
-noncomputable instance fileTransport_access_store_fh (l : Loc) (v : net.http.fileTransport) (y : net.http.fileHandler) :
+noncomputable instance access_store'fileTransport'fh (l : Loc) (v : net.http.fileTransport) (y : net.http.fileHandler) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) v.fh' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) y (DFrac.own 1))

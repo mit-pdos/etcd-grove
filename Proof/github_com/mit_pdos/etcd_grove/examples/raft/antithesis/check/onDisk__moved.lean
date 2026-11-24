@@ -48,7 +48,7 @@ theorem onDisk.moved.wp_proof (wp_w : onDisk.w.spec (GF := GF) (hG := hG))
   subst Hv
   icases intsRO_at g.CommitIndex' x.s.commitIndex gx.n' ⟨Hn0, by rw [HWf.len_commitIndex]; omega⟩ $$ HCommitIndex with ⟨%ci, #Hci, %Hci⟩
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_w_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'w.method_unfold]
   try wp_auto
   wp_apply wp_w gx x $$ [Hx] as %e #He
   · iexact Hx

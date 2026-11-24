@@ -785,7 +785,7 @@ noncomputable instance BackendHooks.zero_val [GooseExts] : ZeroVal BackendHooks 
 @[irreducible] noncomputable def BackendHooks.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   BackendHooks.fieldsUnsealed
 
-noncomputable instance equals_unfold_BackendHooks [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'BackendHooks [GooseExts] [GoGlobalContext] :
     EqualsUnfold BackendHooks.fields BackendHooks.fieldsUnsealed :=
   ⟨by unfold BackendHooks.fields; rfl⟩
 
@@ -795,37 +795,37 @@ noncomputable instance equals_unfold_BackendHooks [GooseExts] [GoGlobalContext] 
 class BackendHooks.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BackendHooks.underlying BackendHooks
   underlying : go.UnderlyingDirectedEq BackendHooks.ty BackendHooks.underlying
-  get_indexer : ∀ (x : BackendHooks), go.IsGoStepPureDetTagged under (StructFieldGet BackendHooks.underlying go!"indexer") #x (Val #(x.indexer'))
-  set_indexer : ∀ (x : BackendHooks) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer), go.IsGoStepPureDetTagged under (StructFieldSet BackendHooks.underlying go!"indexer") (PairV #x #y) (Val #(({ x with indexer' := y } : BackendHooks)))
-  get_lg : ∀ (x : BackendHooks), go.IsGoStepPureDetTagged under (StructFieldGet BackendHooks.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : BackendHooks) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet BackendHooks.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : BackendHooks)))
-  get_confState : ∀ (x : BackendHooks), go.IsGoStepPureDetTagged under (StructFieldGet BackendHooks.underlying go!"confState") #x (Val #(x.confState'))
-  set_confState : ∀ (x : BackendHooks) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet BackendHooks.underlying go!"confState") (PairV #x #y) (Val #(({ x with confState' := y } : BackendHooks)))
-  get_confStateDirty : ∀ (x : BackendHooks), go.IsGoStepPureDetTagged under (StructFieldGet BackendHooks.underlying go!"confStateDirty") #x (Val #(x.confStateDirty'))
-  set_confStateDirty : ∀ (x : BackendHooks) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet BackendHooks.underlying go!"confStateDirty") (PairV #x #y) (Val #(({ x with confStateDirty' := y } : BackendHooks)))
-  get_confStateLock : ∀ (x : BackendHooks), go.IsGoStepPureDetTagged under (StructFieldGet BackendHooks.underlying go!"confStateLock") #x (Val #(x.confStateLock'))
-  set_confStateLock : ∀ (x : BackendHooks) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet BackendHooks.underlying go!"confStateLock") (PairV #x #y) (Val #(({ x with confStateLock' := y } : BackendHooks)))
+  get'indexer : ∀ (x : BackendHooks), go.IsGoStepPureDetTagged under (StructFieldGet BackendHooks.underlying go!"indexer") #x (Val #(x.indexer'))
+  set'indexer : ∀ (x : BackendHooks) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer), go.IsGoStepPureDetTagged under (StructFieldSet BackendHooks.underlying go!"indexer") (PairV #x #y) (Val #(({ x with indexer' := y } : BackendHooks)))
+  get'lg : ∀ (x : BackendHooks), go.IsGoStepPureDetTagged under (StructFieldGet BackendHooks.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : BackendHooks) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet BackendHooks.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : BackendHooks)))
+  get'confState : ∀ (x : BackendHooks), go.IsGoStepPureDetTagged under (StructFieldGet BackendHooks.underlying go!"confState") #x (Val #(x.confState'))
+  set'confState : ∀ (x : BackendHooks) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet BackendHooks.underlying go!"confState") (PairV #x #y) (Val #(({ x with confState' := y } : BackendHooks)))
+  get'confStateDirty : ∀ (x : BackendHooks), go.IsGoStepPureDetTagged under (StructFieldGet BackendHooks.underlying go!"confStateDirty") #x (Val #(x.confStateDirty'))
+  set'confStateDirty : ∀ (x : BackendHooks) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet BackendHooks.underlying go!"confStateDirty") (PairV #x #y) (Val #(({ x with confStateDirty' := y } : BackendHooks)))
+  get'confStateLock : ∀ (x : BackendHooks), go.IsGoStepPureDetTagged under (StructFieldGet BackendHooks.underlying go!"confStateLock") #x (Val #(x.confStateLock'))
+  set'confStateLock : ∀ (x : BackendHooks) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet BackendHooks.underlying go!"confStateLock") (PairV #x #y) (Val #(({ x with confStateLock' := y } : BackendHooks)))
   method_set : go.MethodSetIs BackendHooks.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType BackendHooks.ty) [(go!"OnPreCommitUnsafe", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false []))), (go!"SetConfState", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [])))]
-  ptr_OnPreCommitUnsafe_unfold : MethodUnfold (go.GoType.PointerType BackendHooks.ty) go!"OnPreCommitUnsafe" BackendHooks.OnPreCommitUnsafe.impl
-  ptr_SetConfState_unfold : MethodUnfold (go.GoType.PointerType BackendHooks.ty) go!"SetConfState" BackendHooks.SetConfState.impl
+  ptr_unfold'OnPreCommitUnsafe : MethodUnfold (go.GoType.PointerType BackendHooks.ty) go!"OnPreCommitUnsafe" BackendHooks.OnPreCommitUnsafe.impl
+  ptr_unfold'SetConfState : MethodUnfold (go.GoType.PointerType BackendHooks.ty) go!"SetConfState" BackendHooks.SetConfState.impl
 
 attribute [instance] BackendHooks.TypeAssumptions.type_repr
   BackendHooks.TypeAssumptions.underlying
-  BackendHooks.TypeAssumptions.get_indexer
-  BackendHooks.TypeAssumptions.set_indexer
-  BackendHooks.TypeAssumptions.get_lg
-  BackendHooks.TypeAssumptions.set_lg
-  BackendHooks.TypeAssumptions.get_confState
-  BackendHooks.TypeAssumptions.set_confState
-  BackendHooks.TypeAssumptions.get_confStateDirty
-  BackendHooks.TypeAssumptions.set_confStateDirty
-  BackendHooks.TypeAssumptions.get_confStateLock
-  BackendHooks.TypeAssumptions.set_confStateLock
+  BackendHooks.TypeAssumptions.get'indexer
+  BackendHooks.TypeAssumptions.set'indexer
+  BackendHooks.TypeAssumptions.get'lg
+  BackendHooks.TypeAssumptions.set'lg
+  BackendHooks.TypeAssumptions.get'confState
+  BackendHooks.TypeAssumptions.set'confState
+  BackendHooks.TypeAssumptions.get'confStateDirty
+  BackendHooks.TypeAssumptions.set'confStateDirty
+  BackendHooks.TypeAssumptions.get'confStateLock
+  BackendHooks.TypeAssumptions.set'confStateLock
   BackendHooks.TypeAssumptions.method_set
   BackendHooks.TypeAssumptions.ptr_method_set
-  BackendHooks.TypeAssumptions.ptr_OnPreCommitUnsafe_unfold
-  BackendHooks.TypeAssumptions.ptr_SetConfState_unfold
+  BackendHooks.TypeAssumptions.ptr_unfold'OnPreCommitUnsafe
+  BackendHooks.TypeAssumptions.ptr_unfold'SetConfState
 
 abbrev Quota [GooseExts] : Type := GoInterface
 
@@ -853,7 +853,7 @@ noncomputable instance passthroughQuota.zero_val [GooseExts] : ZeroVal passthrou
 @[irreducible] noncomputable def passthroughQuota.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   passthroughQuota.fieldsUnsealed
 
-noncomputable instance equals_unfold_passthroughQuota [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'passthroughQuota [GooseExts] [GoGlobalContext] :
     EqualsUnfold passthroughQuota.fields passthroughQuota.fieldsUnsealed :=
   ⟨by unfold passthroughQuota.fields; rfl⟩
 
@@ -886,7 +886,7 @@ noncomputable instance BackendQuota.zero_val [GooseExts] : ZeroVal BackendQuota 
 @[irreducible] noncomputable def BackendQuota.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   BackendQuota.fieldsUnsealed
 
-noncomputable instance equals_unfold_BackendQuota [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'BackendQuota [GooseExts] [GoGlobalContext] :
     EqualsUnfold BackendQuota.fields BackendQuota.fieldsUnsealed :=
   ⟨by unfold BackendQuota.fields; rfl⟩
 
@@ -896,23 +896,23 @@ noncomputable instance equals_unfold_BackendQuota [GooseExts] [GoGlobalContext] 
 class BackendQuota.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BackendQuota.underlying BackendQuota
   underlying : go.UnderlyingDirectedEq BackendQuota.ty BackendQuota.underlying
-  get_be : ∀ (x : BackendQuota), go.IsGoStepPureDetTagged under (StructFieldGet BackendQuota.underlying go!"be") #x (Val #(x.be'))
-  set_be : ∀ (x : BackendQuota) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet BackendQuota.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : BackendQuota)))
-  get_maxBackendBytes : ∀ (x : BackendQuota), go.IsGoStepPureDetTagged under (StructFieldGet BackendQuota.underlying go!"maxBackendBytes") #x (Val #(x.maxBackendBytes'))
-  set_maxBackendBytes : ∀ (x : BackendQuota) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BackendQuota.underlying go!"maxBackendBytes") (PairV #x #y) (Val #(({ x with maxBackendBytes' := y } : BackendQuota)))
+  get'be : ∀ (x : BackendQuota), go.IsGoStepPureDetTagged under (StructFieldGet BackendQuota.underlying go!"be") #x (Val #(x.be'))
+  set'be : ∀ (x : BackendQuota) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet BackendQuota.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : BackendQuota)))
+  get'maxBackendBytes : ∀ (x : BackendQuota), go.IsGoStepPureDetTagged under (StructFieldGet BackendQuota.underlying go!"maxBackendBytes") #x (Val #(x.maxBackendBytes'))
+  set'maxBackendBytes : ∀ (x : BackendQuota) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BackendQuota.underlying go!"maxBackendBytes") (PairV #x #y) (Val #(({ x with maxBackendBytes' := y } : BackendQuota)))
   method_set : go.MethodSetIs BackendQuota.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType BackendQuota.ty) [(go!"Available", (some (go.signature.Signature [go.any] false [go.bool]))), (go!"Cost", (some (go.signature.Signature [go.any] false [go.int]))), (go!"Remaining", (some (go.signature.Signature [] false [go.int64])))]
-  ptr_Cost_unfold : MethodUnfold (go.GoType.PointerType BackendQuota.ty) go!"Cost" BackendQuota.Cost.impl
+  ptr_unfold'Cost : MethodUnfold (go.GoType.PointerType BackendQuota.ty) go!"Cost" BackendQuota.Cost.impl
 
 attribute [instance] BackendQuota.TypeAssumptions.type_repr
   BackendQuota.TypeAssumptions.underlying
-  BackendQuota.TypeAssumptions.get_be
-  BackendQuota.TypeAssumptions.set_be
-  BackendQuota.TypeAssumptions.get_maxBackendBytes
-  BackendQuota.TypeAssumptions.set_maxBackendBytes
+  BackendQuota.TypeAssumptions.get'be
+  BackendQuota.TypeAssumptions.set'be
+  BackendQuota.TypeAssumptions.get'maxBackendBytes
+  BackendQuota.TypeAssumptions.set'maxBackendBytes
   BackendQuota.TypeAssumptions.method_set
   BackendQuota.TypeAssumptions.ptr_method_set
-  BackendQuota.TypeAssumptions.ptr_Cost_unfold
+  BackendQuota.TypeAssumptions.ptr_unfold'Cost
 
 abbrev Storage [GooseExts] : Type := GoInterface
 
@@ -947,7 +947,7 @@ noncomputable instance storage.zero_val [GooseExts] : ZeroVal storage :=
 @[irreducible] noncomputable def storage.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   storage.fieldsUnsealed
 
-noncomputable instance equals_unfold_storage [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'storage [GooseExts] [GoGlobalContext] :
     EqualsUnfold storage.fields storage.fieldsUnsealed :=
   ⟨by unfold storage.fields; rfl⟩
 
@@ -957,102 +957,102 @@ noncomputable instance equals_unfold_storage [GooseExts] [GoGlobalContext] :
 class storage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying storage.underlying storage
   underlying : go.UnderlyingDirectedEq storage.ty storage.underlying
-  get_lg : ∀ (x : storage), go.IsGoStepPureDetTagged under (StructFieldGet storage.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : storage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet storage.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : storage)))
-  get_s : ∀ (x : storage), go.IsGoStepPureDetTagged under (StructFieldGet storage.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : storage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet storage.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : storage)))
-  get_mux : ∀ (x : storage), go.IsGoStepPureDetTagged under (StructFieldGet storage.underlying go!"mux") #x (Val #(x.mux'))
-  set_mux : ∀ (x : storage) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet storage.underlying go!"mux") (PairV #x #y) (Val #(({ x with mux' := y } : storage)))
-  get_w : ∀ (x : storage), go.IsGoStepPureDetTagged under (StructFieldGet storage.underlying go!"w") #x (Val #(x.w'))
-  set_w : ∀ (x : storage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet storage.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : storage)))
+  get'lg : ∀ (x : storage), go.IsGoStepPureDetTagged under (StructFieldGet storage.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : storage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet storage.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : storage)))
+  get's : ∀ (x : storage), go.IsGoStepPureDetTagged under (StructFieldGet storage.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : storage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet storage.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : storage)))
+  get'mux : ∀ (x : storage), go.IsGoStepPureDetTagged under (StructFieldGet storage.underlying go!"mux") #x (Val #(x.mux'))
+  set'mux : ∀ (x : storage) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet storage.underlying go!"mux") (PairV #x #y) (Val #(({ x with mux' := y } : storage)))
+  get'w : ∀ (x : storage), go.IsGoStepPureDetTagged under (StructFieldGet storage.underlying go!"w") #x (Val #(x.w'))
+  set'w : ∀ (x : storage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet storage.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : storage)))
   method_set : go.MethodSetIs storage.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType storage.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"MinimalEtcdVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Release", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false [go.error]))), (go!"Save", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [go.error]))), (go!"SaveSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false [go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType storage.ty) go!"Close" storage.Close.impl
-  ptr_Release_unfold : MethodUnfold (go.GoType.PointerType storage.ty) go!"Release" storage.Release.impl
-  ptr_Save_unfold : MethodUnfold (go.GoType.PointerType storage.ty) go!"Save" storage.Save.impl
-  ptr_SaveSnap_unfold : MethodUnfold (go.GoType.PointerType storage.ty) go!"SaveSnap" storage.SaveSnap.impl
-  ptr_Sync_unfold : MethodUnfold (go.GoType.PointerType storage.ty) go!"Sync" storage.Sync.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType storage.ty) go!"Close" storage.Close.impl
+  ptr_unfold'Release : MethodUnfold (go.GoType.PointerType storage.ty) go!"Release" storage.Release.impl
+  ptr_unfold'Save : MethodUnfold (go.GoType.PointerType storage.ty) go!"Save" storage.Save.impl
+  ptr_unfold'SaveSnap : MethodUnfold (go.GoType.PointerType storage.ty) go!"SaveSnap" storage.SaveSnap.impl
+  ptr_unfold'Sync : MethodUnfold (go.GoType.PointerType storage.ty) go!"Sync" storage.Sync.impl
 
 attribute [instance] storage.TypeAssumptions.type_repr
   storage.TypeAssumptions.underlying
-  storage.TypeAssumptions.get_lg
-  storage.TypeAssumptions.set_lg
-  storage.TypeAssumptions.get_s
-  storage.TypeAssumptions.set_s
-  storage.TypeAssumptions.get_mux
-  storage.TypeAssumptions.set_mux
-  storage.TypeAssumptions.get_w
-  storage.TypeAssumptions.set_w
+  storage.TypeAssumptions.get'lg
+  storage.TypeAssumptions.set'lg
+  storage.TypeAssumptions.get's
+  storage.TypeAssumptions.set's
+  storage.TypeAssumptions.get'mux
+  storage.TypeAssumptions.set'mux
+  storage.TypeAssumptions.get'w
+  storage.TypeAssumptions.set'w
   storage.TypeAssumptions.method_set
   storage.TypeAssumptions.ptr_method_set
-  storage.TypeAssumptions.ptr_Close_unfold
-  storage.TypeAssumptions.ptr_Release_unfold
-  storage.TypeAssumptions.ptr_Save_unfold
-  storage.TypeAssumptions.ptr_SaveSnap_unfold
-  storage.TypeAssumptions.ptr_Sync_unfold
+  storage.TypeAssumptions.ptr_unfold'Close
+  storage.TypeAssumptions.ptr_unfold'Release
+  storage.TypeAssumptions.ptr_unfold'Save
+  storage.TypeAssumptions.ptr_unfold'SaveSnap
+  storage.TypeAssumptions.ptr_unfold'Sync
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  BackendHooks_instance : BackendHooks.TypeAssumptions
-  Quota_instance : Quota.TypeAssumptions
-  passthroughQuota_instance : passthroughQuota.TypeAssumptions
-  BackendQuota_instance : BackendQuota.TypeAssumptions
-  Storage_instance : Storage.TypeAssumptions
-  storage_instance : storage.TypeAssumptions
-  OpenSnapshotBackend_unfold : FuncUnfold OpenSnapshotBackend [] OpenSnapshotBackend.impl
-  NewBackendHooks_unfold : FuncUnfold NewBackendHooks [] NewBackendHooks.impl
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  costPut_unfold : FuncUnfold costPut [] costPut.impl
-  costTxnReq_unfold : FuncUnfold costTxnReq [] costTxnReq.impl
-  costTxn_unfold : FuncUnfold costTxn [] costTxn.impl
-  NewStorage_unfold : FuncUnfold NewStorage [] NewStorage.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_config_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
-  import_snap_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions
-  import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
-  import_schema_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Assumptions
-  import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
-  import_cindex_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions
-  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
-  import_humanize_Assumption : _root_.Perennial.github_com.dustin.go_humanize.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
-  import_wal_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.Assumptions
-  import_walpb_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions
+  instance'BackendHooks : BackendHooks.TypeAssumptions
+  instance'Quota : Quota.TypeAssumptions
+  instance'passthroughQuota : passthroughQuota.TypeAssumptions
+  instance'BackendQuota : BackendQuota.TypeAssumptions
+  instance'Storage : Storage.TypeAssumptions
+  instance'storage : storage.TypeAssumptions
+  unfold'OpenSnapshotBackend : FuncUnfold OpenSnapshotBackend [] OpenSnapshotBackend.impl
+  unfold'NewBackendHooks : FuncUnfold NewBackendHooks [] NewBackendHooks.impl
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'costPut : FuncUnfold costPut [] costPut.impl
+  unfold'costTxnReq : FuncUnfold costTxnReq [] costTxnReq.impl
+  unfold'costTxn : FuncUnfold costTxn [] costTxn.impl
+  unfold'NewStorage : FuncUnfold NewStorage [] NewStorage.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'config : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
+  import'snap : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions
+  import'backend : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
+  import'schema : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Assumptions
+  import'raftpb : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'proto : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
+  import'cindex : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions
+  import'prometheus : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  import'humanize : _root_.Perennial.github_com.dustin.go_humanize.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'semver : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
+  import'wal : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.Assumptions
+  import'walpb : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions
 
-attribute [instance] Assumptions.BackendHooks_instance
-  Assumptions.Quota_instance
-  Assumptions.passthroughQuota_instance
-  Assumptions.BackendQuota_instance
-  Assumptions.Storage_instance
-  Assumptions.storage_instance
-  Assumptions.OpenSnapshotBackend_unfold
-  Assumptions.NewBackendHooks_unfold
-  Assumptions.«init.0_unfold»
-  Assumptions.costPut_unfold
-  Assumptions.costTxnReq_unfold
-  Assumptions.costTxn_unfold
-  Assumptions.NewStorage_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_config_Assumption
-  Assumptions.import_snap_Assumption
-  Assumptions.import_backend_Assumption
-  Assumptions.import_schema_Assumption
-  Assumptions.import_raftpb_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_proto_Assumption
-  Assumptions.import_cindex_Assumption
-  Assumptions.import_prometheus_Assumption
-  Assumptions.import_humanize_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_semver_Assumption
-  Assumptions.import_wal_Assumption
-  Assumptions.import_walpb_Assumption
+attribute [instance] Assumptions.instance'BackendHooks
+  Assumptions.instance'Quota
+  Assumptions.instance'passthroughQuota
+  Assumptions.instance'BackendQuota
+  Assumptions.instance'Storage
+  Assumptions.instance'storage
+  Assumptions.unfold'OpenSnapshotBackend
+  Assumptions.unfold'NewBackendHooks
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'costPut
+  Assumptions.unfold'costTxnReq
+  Assumptions.unfold'costTxn
+  Assumptions.unfold'NewStorage
+  Assumptions.import'fmt
+  Assumptions.import'os
+  Assumptions.import'zap
+  Assumptions.import'config
+  Assumptions.import'snap
+  Assumptions.import'backend
+  Assumptions.import'schema
+  Assumptions.import'raftpb
+  Assumptions.import'sync
+  Assumptions.import'proto
+  Assumptions.import'cindex
+  Assumptions.import'prometheus
+  Assumptions.import'humanize
+  Assumptions.import'etcdserverpb
+  Assumptions.import'semver
+  Assumptions.import'wal
+  Assumptions.import'walpb
 
 end go_etcd_io.etcd.server.v3.storage
 

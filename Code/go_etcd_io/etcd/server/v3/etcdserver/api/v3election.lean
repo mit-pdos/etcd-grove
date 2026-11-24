@@ -631,7 +631,7 @@ noncomputable instance electionServer.zero_val [GooseExts] : ZeroVal electionSer
 @[irreducible] noncomputable def electionServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   electionServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_electionServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'electionServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold electionServer.fields electionServer.fieldsUnsealed :=
   ⟨by unfold electionServer.fields; rfl⟩
 
@@ -641,50 +641,50 @@ noncomputable instance equals_unfold_electionServer [GooseExts] [GoGlobalContext
 class electionServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying electionServer.underlying electionServer
   underlying : go.UnderlyingDirectedEq electionServer.ty electionServer.underlying
-  get_c : ∀ (x : electionServer), go.IsGoStepPureDetTagged under (StructFieldGet electionServer.underlying go!"c") #x (Val #(x.c'))
-  set_c : ∀ (x : electionServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet electionServer.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : electionServer)))
-  get_UnsafeElectionServer : ∀ (x : electionServer), go.IsGoStepPureDetTagged under (StructFieldGet electionServer.underlying go!"UnsafeElectionServer") #x (Val #(x.UnsafeElectionServer'))
-  set_UnsafeElectionServer : ∀ (x : electionServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.UnsafeElectionServer), go.IsGoStepPureDetTagged under (StructFieldSet electionServer.underlying go!"UnsafeElectionServer") (PairV #x #y) (Val #(({ x with UnsafeElectionServer' := y } : electionServer)))
+  get'c : ∀ (x : electionServer), go.IsGoStepPureDetTagged under (StructFieldGet electionServer.underlying go!"c") #x (Val #(x.c'))
+  set'c : ∀ (x : electionServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet electionServer.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : electionServer)))
+  get'UnsafeElectionServer : ∀ (x : electionServer), go.IsGoStepPureDetTagged under (StructFieldGet electionServer.underlying go!"UnsafeElectionServer") #x (Val #(x.UnsafeElectionServer'))
+  set'UnsafeElectionServer : ∀ (x : electionServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.UnsafeElectionServer), go.IsGoStepPureDetTagged under (StructFieldSet electionServer.underlying go!"UnsafeElectionServer") (PairV #x #y) (Val #(({ x with UnsafeElectionServer' := y } : electionServer)))
   method_set : go.MethodSetIs electionServer.ty [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.mustEmbedUnimplementedElectionServer", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType electionServer.ty) [(go!"Campaign", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse.ty), go.error]))), (go!"Leader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse.ty), go.error]))), (go!"Observe", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Election_ObserveServer.ty] false [go.error]))), (go!"Proclaim", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse.ty), go.error]))), (go!"Resign", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election.session", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.mustEmbedUnimplementedElectionServer", (some (go.signature.Signature [] false [])))]
-  ptr_Campaign_unfold : MethodUnfold (go.GoType.PointerType electionServer.ty) go!"Campaign" electionServer.Campaign.impl
-  ptr_Leader_unfold : MethodUnfold (go.GoType.PointerType electionServer.ty) go!"Leader" electionServer.Leader.impl
-  ptr_Observe_unfold : MethodUnfold (go.GoType.PointerType electionServer.ty) go!"Observe" electionServer.Observe.impl
-  ptr_Proclaim_unfold : MethodUnfold (go.GoType.PointerType electionServer.ty) go!"Proclaim" electionServer.Proclaim.impl
-  ptr_Resign_unfold : MethodUnfold (go.GoType.PointerType electionServer.ty) go!"Resign" electionServer.Resign.impl
-  ptr_session_unfold : MethodUnfold (go.GoType.PointerType electionServer.ty) go!"session" electionServer.session.impl
+  ptr_unfold'Campaign : MethodUnfold (go.GoType.PointerType electionServer.ty) go!"Campaign" electionServer.Campaign.impl
+  ptr_unfold'Leader : MethodUnfold (go.GoType.PointerType electionServer.ty) go!"Leader" electionServer.Leader.impl
+  ptr_unfold'Observe : MethodUnfold (go.GoType.PointerType electionServer.ty) go!"Observe" electionServer.Observe.impl
+  ptr_unfold'Proclaim : MethodUnfold (go.GoType.PointerType electionServer.ty) go!"Proclaim" electionServer.Proclaim.impl
+  ptr_unfold'Resign : MethodUnfold (go.GoType.PointerType electionServer.ty) go!"Resign" electionServer.Resign.impl
+  ptr_unfold'session : MethodUnfold (go.GoType.PointerType electionServer.ty) go!"session" electionServer.session.impl
 
 attribute [instance] electionServer.TypeAssumptions.type_repr
   electionServer.TypeAssumptions.underlying
-  electionServer.TypeAssumptions.get_c
-  electionServer.TypeAssumptions.set_c
-  electionServer.TypeAssumptions.get_UnsafeElectionServer
-  electionServer.TypeAssumptions.set_UnsafeElectionServer
+  electionServer.TypeAssumptions.get'c
+  electionServer.TypeAssumptions.set'c
+  electionServer.TypeAssumptions.get'UnsafeElectionServer
+  electionServer.TypeAssumptions.set'UnsafeElectionServer
   electionServer.TypeAssumptions.method_set
   electionServer.TypeAssumptions.ptr_method_set
-  electionServer.TypeAssumptions.ptr_Campaign_unfold
-  electionServer.TypeAssumptions.ptr_Leader_unfold
-  electionServer.TypeAssumptions.ptr_Observe_unfold
-  electionServer.TypeAssumptions.ptr_Proclaim_unfold
-  electionServer.TypeAssumptions.ptr_Resign_unfold
-  electionServer.TypeAssumptions.ptr_session_unfold
+  electionServer.TypeAssumptions.ptr_unfold'Campaign
+  electionServer.TypeAssumptions.ptr_unfold'Leader
+  electionServer.TypeAssumptions.ptr_unfold'Observe
+  electionServer.TypeAssumptions.ptr_unfold'Proclaim
+  electionServer.TypeAssumptions.ptr_unfold'Resign
+  electionServer.TypeAssumptions.ptr_unfold'session
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  electionServer_instance : electionServer.TypeAssumptions
-  NewElectionServer_unfold : FuncUnfold NewElectionServer [] NewElectionServer.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_concurrency_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions
-  import_v3electionpb_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions
+  instance'electionServer : electionServer.TypeAssumptions
+  unfold'NewElectionServer : FuncUnfold NewElectionServer [] NewElectionServer.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'concurrency : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions
+  import'v3electionpb : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions
 
-attribute [instance] Assumptions.electionServer_instance
-  Assumptions.NewElectionServer_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_concurrency_Assumption
-  Assumptions.import_v3electionpb_Assumption
+attribute [instance] Assumptions.instance'electionServer
+  Assumptions.unfold'NewElectionServer
+  Assumptions.import'context
+  Assumptions.import'errors
+  Assumptions.import'clientv3
+  Assumptions.import'concurrency
+  Assumptions.import'v3electionpb
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3election
 

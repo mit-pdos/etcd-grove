@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.storagemigration.v1.Assumptions]
 
-noncomputable instance StorageVersionMigrationExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'StorageVersionMigrationExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1.StorageVersionMigrationExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance StorageVersionMigrationExpansion_into_val_typed :
+noncomputable instance into_val_typed'StorageVersionMigrationExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1.StorageVersionMigrationExpansion k8s_io.client_go.kubernetes.typed.storagemigration.v1.StorageVersionMigrationExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.storagemigration.v1.Assumptions]
 
-noncomputable instance StoragemigrationV1Interface_typed_pointsto :
+noncomputable instance typed_pointsto'StoragemigrationV1Interface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1.StoragemigrationV1Interface :=
   sorry -- axiomatized type
 
-noncomputable instance StoragemigrationV1Interface_into_val_typed :
+noncomputable instance into_val_typed'StoragemigrationV1Interface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1.StoragemigrationV1Interface k8s_io.client_go.kubernetes.typed.storagemigration.v1.StoragemigrationV1Interface.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.storagemigration.v1.Assumptions]
 
-noncomputable instance StoragemigrationV1Client_typed_pointsto :
+noncomputable instance typed_pointsto'StoragemigrationV1Client :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1.StoragemigrationV1Client :=
   sorry -- axiomatized type
 
-noncomputable instance StoragemigrationV1Client_into_val_typed :
+noncomputable instance into_val_typed'StoragemigrationV1Client :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1.StoragemigrationV1Client k8s_io.client_go.kubernetes.typed.storagemigration.v1.StoragemigrationV1Client.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.storagemigration.v1.Assumptions]
 
-noncomputable instance StorageVersionMigrationsGetter_typed_pointsto :
+noncomputable instance typed_pointsto'StorageVersionMigrationsGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1.StorageVersionMigrationsGetter :=
   sorry -- axiomatized type
 
-noncomputable instance StorageVersionMigrationsGetter_into_val_typed :
+noncomputable instance into_val_typed'StorageVersionMigrationsGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1.StorageVersionMigrationsGetter k8s_io.client_go.kubernetes.typed.storagemigration.v1.StorageVersionMigrationsGetter.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.storagemigration.v1.Assumptions]
 
-noncomputable instance StorageVersionMigrationInterface_typed_pointsto :
+noncomputable instance typed_pointsto'StorageVersionMigrationInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1.StorageVersionMigrationInterface :=
   sorry -- axiomatized type
 
-noncomputable instance StorageVersionMigrationInterface_into_val_typed :
+noncomputable instance into_val_typed'StorageVersionMigrationInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1.StorageVersionMigrationInterface k8s_io.client_go.kubernetes.typed.storagemigration.v1.StorageVersionMigrationInterface.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.storagemigration.v1.Assumptions]
 
-noncomputable instance storageVersionMigrations_typed_pointsto :
+noncomputable instance typed_pointsto'storageVersionMigrations :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1.storageVersionMigrations :=
   sorry -- axiomatized type
 
-noncomputable instance storageVersionMigrations_into_val_typed :
+noncomputable instance into_val_typed'storageVersionMigrations :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1.storageVersionMigrations k8s_io.client_go.kubernetes.typed.storagemigration.v1.storageVersionMigrations.underlying :=
   sorry -- axiomatized type
 

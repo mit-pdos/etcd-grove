@@ -50,7 +50,7 @@ theorem Entry.Equal.wp_proof (wp_ValueEqual : Value.Equal.spec (GF := GF) (hG :=
         intro h; rcases h with h | h
         · exact h (by rw [← hxt, ← hyt, ht])
         · exact h (by rw [← hxy, ← hyy, hty]))] at Hb
-      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Value.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Value.TypeAssumptions.ptr_unfold'Equal.method_unfold]
       try wp_auto
       wp_apply wp_ValueEqual _ _ _ _ _ $$ [Hxv Hyv] as -
       · iframe Hxv Hyv; ipureintro; exact Hb

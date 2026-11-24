@@ -135,7 +135,7 @@ noncomputable instance Notifier.zero_val [GooseExts] : ZeroVal Notifier :=
 @[irreducible] noncomputable def Notifier.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Notifier.fieldsUnsealed
 
-noncomputable instance equals_unfold_Notifier [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Notifier [GooseExts] [GoGlobalContext] :
     EqualsUnfold Notifier.fields Notifier.fieldsUnsealed :=
   ⟨by unfold Notifier.fields; rfl⟩
 
@@ -145,34 +145,34 @@ noncomputable instance equals_unfold_Notifier [GooseExts] [GoGlobalContext] :
 class Notifier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Notifier.underlying Notifier
   underlying : go.UnderlyingDirectedEq Notifier.ty Notifier.underlying
-  get_mu : ∀ (x : Notifier), go.IsGoStepPureDetTagged under (StructFieldGet Notifier.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : Notifier) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Notifier.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Notifier)))
-  get_channel : ∀ (x : Notifier), go.IsGoStepPureDetTagged under (StructFieldGet Notifier.underlying go!"channel") #x (Val #(x.channel'))
-  set_channel : ∀ (x : Notifier) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Notifier.underlying go!"channel") (PairV #x #y) (Val #(({ x with channel' := y } : Notifier)))
+  get'mu : ∀ (x : Notifier), go.IsGoStepPureDetTagged under (StructFieldGet Notifier.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : Notifier) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Notifier.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Notifier)))
+  get'channel : ∀ (x : Notifier), go.IsGoStepPureDetTagged under (StructFieldGet Notifier.underlying go!"channel") #x (Val #(x.channel'))
+  set'channel : ∀ (x : Notifier) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Notifier.underlying go!"channel") (PairV #x #y) (Val #(({ x with channel' := y } : Notifier)))
   method_set : go.MethodSetIs Notifier.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Notifier.ty) [(go!"Notify", (some (go.signature.Signature [] false []))), (go!"Receive", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])))]
-  ptr_Notify_unfold : MethodUnfold (go.GoType.PointerType Notifier.ty) go!"Notify" Notifier.Notify.impl
-  ptr_Receive_unfold : MethodUnfold (go.GoType.PointerType Notifier.ty) go!"Receive" Notifier.Receive.impl
+  ptr_unfold'Notify : MethodUnfold (go.GoType.PointerType Notifier.ty) go!"Notify" Notifier.Notify.impl
+  ptr_unfold'Receive : MethodUnfold (go.GoType.PointerType Notifier.ty) go!"Receive" Notifier.Receive.impl
 
 attribute [instance] Notifier.TypeAssumptions.type_repr
   Notifier.TypeAssumptions.underlying
-  Notifier.TypeAssumptions.get_mu
-  Notifier.TypeAssumptions.set_mu
-  Notifier.TypeAssumptions.get_channel
-  Notifier.TypeAssumptions.set_channel
+  Notifier.TypeAssumptions.get'mu
+  Notifier.TypeAssumptions.set'mu
+  Notifier.TypeAssumptions.get'channel
+  Notifier.TypeAssumptions.set'channel
   Notifier.TypeAssumptions.method_set
   Notifier.TypeAssumptions.ptr_method_set
-  Notifier.TypeAssumptions.ptr_Notify_unfold
-  Notifier.TypeAssumptions.ptr_Receive_unfold
+  Notifier.TypeAssumptions.ptr_unfold'Notify
+  Notifier.TypeAssumptions.ptr_unfold'Receive
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Notifier_instance : Notifier.TypeAssumptions
-  NewNotifier_unfold : FuncUnfold NewNotifier [] NewNotifier.impl
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  instance'Notifier : Notifier.TypeAssumptions
+  unfold'NewNotifier : FuncUnfold NewNotifier [] NewNotifier.impl
+  import'sync : _root_.Perennial.sync.Assumptions
 
-attribute [instance] Assumptions.Notifier_instance
-  Assumptions.NewNotifier_unfold
-  Assumptions.import_sync_Assumption
+attribute [instance] Assumptions.instance'Notifier
+  Assumptions.unfold'NewNotifier
+  Assumptions.import'sync
 
 end go_etcd_io.etcd.pkg.v3.notify
 

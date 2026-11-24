@@ -28,11 +28,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
 
-noncomputable instance NormalizationRule_typed_pointsto :
+noncomputable instance typed_pointsto'NormalizationRule :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.NormalizationRule :=
   sorry -- axiomatized type
 
-noncomputable instance NormalizationRule_into_val_typed :
+noncomputable instance into_val_typed'NormalizationRule :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.NormalizationRule k8s_io.apimachinery.pkg.util.validation.field.NormalizationRule.underlying :=
   sorry -- axiomatized type
 
@@ -47,7 +47,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
 
-noncomputable instance ErrorMatcher_typed_pointsto :
+noncomputable instance typed_pointsto'ErrorMatcher :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher where
   typedPointstoDef l v dq := iprop(
     "matchType" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchType" l) v.matchType' dq ∗
@@ -67,11 +67,11 @@ noncomputable instance ErrorMatcher_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ErrorMatcher_into_val_typed :
+noncomputable instance into_val_typed'ErrorMatcher :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ErrorMatcher_access_load_matchType (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchType (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchType" l) v.matchType' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchType" l) v.matchType' dq)
@@ -79,7 +79,7 @@ noncomputable instance ErrorMatcher_access_load_matchType (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_store_matchType (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchType (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchType" l) v.matchType' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchType" l) y (DFrac.own 1))
@@ -87,7 +87,7 @@ noncomputable instance ErrorMatcher_access_store_matchType (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_load_matchField (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchField (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchField" l) v.matchField' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchField" l) v.matchField' dq)
@@ -95,7 +95,7 @@ noncomputable instance ErrorMatcher_access_load_matchField (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_store_matchField (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchField (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchField" l) v.matchField' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchField" l) y (DFrac.own 1))
@@ -103,7 +103,7 @@ noncomputable instance ErrorMatcher_access_store_matchField (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_load_matchValue (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchValue (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValue" l) v.matchValue' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValue" l) v.matchValue' dq)
@@ -111,7 +111,7 @@ noncomputable instance ErrorMatcher_access_load_matchValue (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_store_matchValue (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchValue (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValue" l) v.matchValue' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValue" l) y (DFrac.own 1))
@@ -119,7 +119,7 @@ noncomputable instance ErrorMatcher_access_store_matchValue (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_load_matchOrigin (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchOrigin (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchOrigin" l) v.matchOrigin' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchOrigin" l) v.matchOrigin' dq)
@@ -127,7 +127,7 @@ noncomputable instance ErrorMatcher_access_load_matchOrigin (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_store_matchOrigin (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchOrigin (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchOrigin" l) v.matchOrigin' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchOrigin" l) y (DFrac.own 1))
@@ -135,7 +135,7 @@ noncomputable instance ErrorMatcher_access_store_matchOrigin (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_load_matchDetail (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchDetail (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchDetail" l) v.matchDetail' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchDetail" l) v.matchDetail' dq)
@@ -143,7 +143,7 @@ noncomputable instance ErrorMatcher_access_load_matchDetail (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_store_matchDetail (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : GoFunc) :
+noncomputable instance access_store'ErrorMatcher'matchDetail (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchDetail" l) v.matchDetail' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchDetail" l) y (DFrac.own 1))
@@ -151,7 +151,7 @@ noncomputable instance ErrorMatcher_access_store_matchDetail (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_load_requireOriginWhenInvalid (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'requireOriginWhenInvalid (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"requireOriginWhenInvalid" l) v.requireOriginWhenInvalid' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"requireOriginWhenInvalid" l) v.requireOriginWhenInvalid' dq)
@@ -159,7 +159,7 @@ noncomputable instance ErrorMatcher_access_load_requireOriginWhenInvalid (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_store_requireOriginWhenInvalid (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'requireOriginWhenInvalid (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"requireOriginWhenInvalid" l) v.requireOriginWhenInvalid' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"requireOriginWhenInvalid" l) y (DFrac.own 1))
@@ -167,7 +167,7 @@ noncomputable instance ErrorMatcher_access_store_requireOriginWhenInvalid (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_load_matchValidationStabilityLevel (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchValidationStabilityLevel (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValidationStabilityLevel" l) v.matchValidationStabilityLevel' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValidationStabilityLevel" l) v.matchValidationStabilityLevel' dq)
@@ -175,7 +175,7 @@ noncomputable instance ErrorMatcher_access_load_matchValidationStabilityLevel (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_store_matchValidationStabilityLevel (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchValidationStabilityLevel (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValidationStabilityLevel" l) v.matchValidationStabilityLevel' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValidationStabilityLevel" l) y (DFrac.own 1))
@@ -183,7 +183,7 @@ noncomputable instance ErrorMatcher_access_store_matchValidationStabilityLevel (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_load_matchSource (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchSource (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchSource" l) v.matchSource' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchSource" l) v.matchSource' dq)
@@ -191,7 +191,7 @@ noncomputable instance ErrorMatcher_access_load_matchSource (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_store_matchSource (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchSource (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchSource" l) v.matchSource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchSource" l) y (DFrac.own 1))
@@ -199,7 +199,7 @@ noncomputable instance ErrorMatcher_access_store_matchSource (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_load_matchAncestorShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchAncestorShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchAncestorShortCircuit" l) v.matchAncestorShortCircuit' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchAncestorShortCircuit" l) v.matchAncestorShortCircuit' dq)
@@ -207,7 +207,7 @@ noncomputable instance ErrorMatcher_access_load_matchAncestorShortCircuit (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_store_matchAncestorShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchAncestorShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchAncestorShortCircuit" l) v.matchAncestorShortCircuit' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchAncestorShortCircuit" l) y (DFrac.own 1))
@@ -215,7 +215,7 @@ noncomputable instance ErrorMatcher_access_store_matchAncestorShortCircuit (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_load_matchShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchShortCircuit" l) v.matchShortCircuit' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchShortCircuit" l) v.matchShortCircuit' dq)
@@ -223,7 +223,7 @@ noncomputable instance ErrorMatcher_access_load_matchShortCircuit (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_store_matchShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchShortCircuit" l) v.matchShortCircuit' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchShortCircuit" l) y (DFrac.own 1))
@@ -231,7 +231,7 @@ noncomputable instance ErrorMatcher_access_store_matchShortCircuit (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_load_matchCoveredByDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchCoveredByDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchCoveredByDeclarative" l) v.matchCoveredByDeclarative' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchCoveredByDeclarative" l) v.matchCoveredByDeclarative' dq)
@@ -239,7 +239,7 @@ noncomputable instance ErrorMatcher_access_load_matchCoveredByDeclarative (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_store_matchCoveredByDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchCoveredByDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchCoveredByDeclarative" l) v.matchCoveredByDeclarative' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchCoveredByDeclarative" l) y (DFrac.own 1))
@@ -247,7 +247,7 @@ noncomputable instance ErrorMatcher_access_store_matchCoveredByDeclarative (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_load_normalizationRules (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'normalizationRules (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"normalizationRules" l) v.normalizationRules' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"normalizationRules" l) v.normalizationRules' dq)
@@ -255,7 +255,7 @@ noncomputable instance ErrorMatcher_access_load_normalizationRules (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorMatcher_access_store_normalizationRules (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : GoSlice) :
+noncomputable instance access_store'ErrorMatcher'normalizationRules (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"normalizationRules" l) v.normalizationRules' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"normalizationRules" l) y (DFrac.own 1))
@@ -274,7 +274,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
 
-noncomputable instance Error_typed_pointsto :
+noncomputable instance typed_pointsto'Error :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.Error where
   typedPointstoDef l v dq := iprop(
     "Type'" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Type" l) v.Type' dq ∗
@@ -292,11 +292,11 @@ noncomputable instance Error_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Error_into_val_typed :
+noncomputable instance into_val_typed'Error :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.Error k8s_io.apimachinery.pkg.util.validation.field.Error.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Error_access_load_Type (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'Type (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Type" l) v.Type' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Type" l) v.Type' dq)
@@ -304,7 +304,7 @@ noncomputable instance Error_access_load_Type (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_store_Type (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : k8s_io.apimachinery.pkg.util.validation.field.ErrorType) :
+noncomputable instance access_store'Error'Type (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : k8s_io.apimachinery.pkg.util.validation.field.ErrorType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Type" l) y (DFrac.own 1))
@@ -312,7 +312,7 @@ noncomputable instance Error_access_store_Type (l : Loc) (v : k8s_io.apimachiner
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_load_Field (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'Field (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Field" l) v.Field' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Field" l) v.Field' dq)
@@ -320,7 +320,7 @@ noncomputable instance Error_access_load_Field (l : Loc) (v : k8s_io.apimachiner
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_store_Field (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : GoString) :
+noncomputable instance access_store'Error'Field (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Field" l) v.Field' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Field" l) y (DFrac.own 1))
@@ -328,7 +328,7 @@ noncomputable instance Error_access_store_Field (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_load_BadValue (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'BadValue (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"BadValue" l) v.BadValue' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"BadValue" l) v.BadValue' dq)
@@ -336,7 +336,7 @@ noncomputable instance Error_access_load_BadValue (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_store_BadValue (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : GoInterface) :
+noncomputable instance access_store'Error'BadValue (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"BadValue" l) v.BadValue' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"BadValue" l) y (DFrac.own 1))
@@ -344,7 +344,7 @@ noncomputable instance Error_access_store_BadValue (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_load_Detail (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'Detail (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Detail" l) v.Detail' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Detail" l) v.Detail' dq)
@@ -352,7 +352,7 @@ noncomputable instance Error_access_load_Detail (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_store_Detail (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : GoString) :
+noncomputable instance access_store'Error'Detail (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Detail" l) v.Detail' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Detail" l) y (DFrac.own 1))
@@ -360,7 +360,7 @@ noncomputable instance Error_access_store_Detail (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_load_Origin (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'Origin (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Origin" l) v.Origin' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Origin" l) v.Origin' dq)
@@ -368,7 +368,7 @@ noncomputable instance Error_access_load_Origin (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_store_Origin (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : GoString) :
+noncomputable instance access_store'Error'Origin (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Origin" l) v.Origin' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Origin" l) y (DFrac.own 1))
@@ -376,7 +376,7 @@ noncomputable instance Error_access_store_Origin (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_load_CoveredByDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'CoveredByDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"CoveredByDeclarative" l) v.CoveredByDeclarative' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"CoveredByDeclarative" l) v.CoveredByDeclarative' dq)
@@ -384,7 +384,7 @@ noncomputable instance Error_access_load_CoveredByDeclarative (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_store_CoveredByDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : Bool) :
+noncomputable instance access_store'Error'CoveredByDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"CoveredByDeclarative" l) v.CoveredByDeclarative' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"CoveredByDeclarative" l) y (DFrac.own 1))
@@ -392,7 +392,7 @@ noncomputable instance Error_access_store_CoveredByDeclarative (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_load_FromImperative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'FromImperative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"FromImperative" l) v.FromImperative' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"FromImperative" l) v.FromImperative' dq)
@@ -400,7 +400,7 @@ noncomputable instance Error_access_load_FromImperative (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_store_FromImperative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : Bool) :
+noncomputable instance access_store'Error'FromImperative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"FromImperative" l) v.FromImperative' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"FromImperative" l) y (DFrac.own 1))
@@ -408,7 +408,7 @@ noncomputable instance Error_access_store_FromImperative (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_load_ShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'ShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuit" l) v.ShortCircuit' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuit" l) v.ShortCircuit' dq)
@@ -416,7 +416,7 @@ noncomputable instance Error_access_load_ShortCircuit (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_store_ShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : Bool) :
+noncomputable instance access_store'Error'ShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuit" l) v.ShortCircuit' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuit" l) y (DFrac.own 1))
@@ -424,7 +424,7 @@ noncomputable instance Error_access_store_ShortCircuit (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_load_ShortCircuitedInDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'ShortCircuitedInDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuitedInDeclarative" l) v.ShortCircuitedInDeclarative' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuitedInDeclarative" l) v.ShortCircuitedInDeclarative' dq)
@@ -432,7 +432,7 @@ noncomputable instance Error_access_load_ShortCircuitedInDeclarative (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_store_ShortCircuitedInDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : Bool) :
+noncomputable instance access_store'Error'ShortCircuitedInDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuitedInDeclarative" l) v.ShortCircuitedInDeclarative' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuitedInDeclarative" l) y (DFrac.own 1))
@@ -440,7 +440,7 @@ noncomputable instance Error_access_store_ShortCircuitedInDeclarative (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_load_ValidationStabilityLevel (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'ValidationStabilityLevel (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ValidationStabilityLevel" l) v.ValidationStabilityLevel' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ValidationStabilityLevel" l) v.ValidationStabilityLevel' dq)
@@ -448,7 +448,7 @@ noncomputable instance Error_access_load_ValidationStabilityLevel (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_store_ValidationStabilityLevel (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : k8s_io.apimachinery.pkg.util.validation.field.ValidationStabilityLevel) :
+noncomputable instance access_store'Error'ValidationStabilityLevel (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : k8s_io.apimachinery.pkg.util.validation.field.ValidationStabilityLevel) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ValidationStabilityLevel" l) v.ValidationStabilityLevel' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ValidationStabilityLevel" l) y (DFrac.own 1))
@@ -467,7 +467,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
 
-noncomputable instance OmitValueType_typed_pointsto :
+noncomputable instance typed_pointsto'OmitValueType :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.OmitValueType where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -475,7 +475,7 @@ noncomputable instance OmitValueType_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance OmitValueType_into_val_typed :
+noncomputable instance into_val_typed'OmitValueType :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.OmitValueType k8s_io.apimachinery.pkg.util.validation.field.OmitValueType.underlying := by
   solve_into_val_typed_struct
 
@@ -490,7 +490,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
 
-noncomputable instance pathOptions_typed_pointsto :
+noncomputable instance typed_pointsto'pathOptions :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.pathOptions where
   typedPointstoDef l v dq := iprop(
     "path" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.pathOptions go!"path" l) v.path' dq ∗
@@ -499,11 +499,11 @@ noncomputable instance pathOptions_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance pathOptions_into_val_typed :
+noncomputable instance into_val_typed'pathOptions :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.pathOptions k8s_io.apimachinery.pkg.util.validation.field.pathOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance pathOptions_access_load_path (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.pathOptions) (dq : DFrac) :
+noncomputable instance access_load'pathOptions'path (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.pathOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.pathOptions go!"path" l) v.path' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.pathOptions go!"path" l) v.path' dq)
@@ -511,7 +511,7 @@ noncomputable instance pathOptions_access_load_path (l : Loc) (v : k8s_io.apimac
  by
   solve_pointsto_access_struct
 
-noncomputable instance pathOptions_access_store_path (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.pathOptions) (y : Loc) :
+noncomputable instance access_store'pathOptions'path (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.pathOptions) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.pathOptions go!"path" l) v.path' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.pathOptions go!"path" l) y (DFrac.own 1))
@@ -530,7 +530,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
 
-noncomputable instance Path_typed_pointsto :
+noncomputable instance typed_pointsto'Path :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.Path where
   typedPointstoDef l v dq := iprop(
     "name" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"name" l) v.name' dq ∗
@@ -541,11 +541,11 @@ noncomputable instance Path_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Path_into_val_typed :
+noncomputable instance into_val_typed'Path :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.Path k8s_io.apimachinery.pkg.util.validation.field.Path.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Path_access_load_name (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (dq : DFrac) :
+noncomputable instance access_load'Path'name (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"name" l) v.name' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"name" l) v.name' dq)
@@ -553,7 +553,7 @@ noncomputable instance Path_access_load_name (l : Loc) (v : k8s_io.apimachinery.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Path_access_store_name (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (y : GoString) :
+noncomputable instance access_store'Path'name (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"name" l) v.name' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"name" l) y (DFrac.own 1))
@@ -561,7 +561,7 @@ noncomputable instance Path_access_store_name (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-noncomputable instance Path_access_load_index (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (dq : DFrac) :
+noncomputable instance access_load'Path'index (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"index" l) v.index' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"index" l) v.index' dq)
@@ -569,7 +569,7 @@ noncomputable instance Path_access_load_index (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-noncomputable instance Path_access_store_index (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (y : GoString) :
+noncomputable instance access_store'Path'index (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"index" l) v.index' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"index" l) y (DFrac.own 1))
@@ -577,7 +577,7 @@ noncomputable instance Path_access_store_index (l : Loc) (v : k8s_io.apimachiner
  by
   solve_pointsto_access_struct
 
-noncomputable instance Path_access_load_parent (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (dq : DFrac) :
+noncomputable instance access_load'Path'parent (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"parent" l) v.parent' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"parent" l) v.parent' dq)
@@ -585,7 +585,7 @@ noncomputable instance Path_access_load_parent (l : Loc) (v : k8s_io.apimachiner
  by
   solve_pointsto_access_struct
 
-noncomputable instance Path_access_store_parent (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (y : Loc) :
+noncomputable instance access_store'Path'parent (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"parent" l) v.parent' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"parent" l) y (DFrac.own 1))

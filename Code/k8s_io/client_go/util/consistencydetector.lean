@@ -20,13 +20,13 @@ end pkg_id
 
 namespace k8s_io.client_go.util.consistencydetector
 
-noncomputable def RetrieveItemsFunc.ty [GooseExts] [GoGlobalContext] (U : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/util/consistencydetector.RetrieveItemsFunc" [U])
+noncomputable def RetrieveItemsFunc.ty [GooseExts] [GoGlobalContext] (U₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/util/consistencydetector.RetrieveItemsFunc" [U₀])
 
 attribute [irreducible] RetrieveItemsFunc.ty
 
-noncomputable def ListFunc.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/util/consistencydetector.ListFunc" [T])
+noncomputable def ListFunc.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/util/consistencydetector.ListFunc" [T₀])
 
 attribute [irreducible] ListFunc.ty
 
@@ -40,7 +40,7 @@ noncomputable def byUID.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] byUID.ty
 
-opaque ListFunc.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
+opaque ListFunc.underlying [GooseExts] [GoGlobalContext] : ∀ (T₀ : go.GoType), go.GoType
 
 opaque byUID.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -90,32 +90,32 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))))
 
-abbrev RetrieveItemsFunc [GooseExts] (U : Type) : Type := GoFunc
+abbrev RetrieveItemsFunc [GooseExts] (U₀ : Type) : Type := GoFunc
 
-@[reducible] noncomputable def RetrieveItemsFunc.underlying [GooseExts] [GoGlobalContext] (U : go.GoType) : go.GoType :=
-  (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.SliceType U)]))
+@[reducible] noncomputable def RetrieveItemsFunc.underlying [GooseExts] [GoGlobalContext] (U₀ : go.GoType) : go.GoType :=
+  (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.SliceType U₀)]))
 
 class RetrieveItemsFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : ∀ (U : go.GoType), go.UnderlyingDirectedEq (RetrieveItemsFunc.ty U) (RetrieveItemsFunc.underlying U)
-  method_set : ∀ (U : go.GoType), go.MethodSetIs (RetrieveItemsFunc.ty U) []
-  ptr_method_set : ∀ (U : go.GoType), go.MethodSetIs (go.GoType.PointerType (RetrieveItemsFunc.ty U)) []
+  underlying : ∀ (U₀ : go.GoType), go.UnderlyingDirectedEq (RetrieveItemsFunc.ty U₀) (RetrieveItemsFunc.underlying U₀)
+  method_set : ∀ (U₀ : go.GoType), go.MethodSetIs (RetrieveItemsFunc.ty U₀) []
+  ptr_method_set : ∀ (U₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (RetrieveItemsFunc.ty U₀)) []
 
 attribute [instance] RetrieveItemsFunc.TypeAssumptions.underlying
   RetrieveItemsFunc.TypeAssumptions.method_set
   RetrieveItemsFunc.TypeAssumptions.ptr_method_set
 
-opaque ListFunc.nonempty_type (T : Type) : NonemptyType.{0}
-def ListFunc (T : Type) : Type := (ListFunc.nonempty_type T).type
-instance ListFunc.nonempty {T : Type} : Nonempty (ListFunc T) := (ListFunc.nonempty_type T).property
-opaque ListFunc.zero_val {T : Type} [ZeroVal T] : ZeroVal (ListFunc T) := ⟨Classical.ofNonempty⟩
+opaque ListFunc.nonempty_type (T₀ : Type) : NonemptyType.{0}
+def ListFunc (T₀ : Type) : Type := (ListFunc.nonempty_type T₀).type
+instance ListFunc.nonempty {T₀ : Type} : Nonempty (ListFunc T₀) := (ListFunc.nonempty_type T₀).property
+opaque ListFunc.zero_val {T₀ : Type} [ZeroVal T₀] : ZeroVal (ListFunc T₀) := ⟨Classical.ofNonempty⟩
 attribute [instance] ListFunc.zero_val
 
 class ListFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (ListFunc.underlying T) (ListFunc T')
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (ListFunc.ty T) (ListFunc.underlying T)
-  isUnderlying : ∀ (T : go.GoType), go.IsUnderlying (ListFunc.underlying T) (ListFunc.underlying T)
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (ListFunc.ty T) []
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (ListFunc.ty T)) []
+  type_repr : ∀ (T₀ : go.GoType) (T₀' : Type) [ZeroVal T₀'] [TypeRepr T₀ T₀'], go.TypeReprUnderlying (ListFunc.underlying T₀) (ListFunc T₀')
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (ListFunc.ty T₀) (ListFunc.underlying T₀)
+  isUnderlying : ∀ (T₀ : go.GoType), go.IsUnderlying (ListFunc.underlying T₀) (ListFunc.underlying T₀)
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (ListFunc.ty T₀) []
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (ListFunc.ty T₀)) []
 
 attribute [instance] ListFunc.TypeAssumptions.type_repr
   ListFunc.TypeAssumptions.underlying
@@ -157,15 +157,15 @@ attribute [instance] byUID.TypeAssumptions.type_repr
   byUID.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  RetrieveItemsFunc_instance : RetrieveItemsFunc.TypeAssumptions
-  ListFunc_instance : ListFunc.TypeAssumptions
-  TransformFunc_instance : TransformFunc.TypeAssumptions
-  byUID_instance : byUID.TypeAssumptions
+  instance'RetrieveItemsFunc : RetrieveItemsFunc.TypeAssumptions
+  instance'ListFunc : ListFunc.TypeAssumptions
+  instance'TransformFunc : TransformFunc.TypeAssumptions
+  instance'byUID : byUID.TypeAssumptions
 
-attribute [instance] Assumptions.RetrieveItemsFunc_instance
-  Assumptions.ListFunc_instance
-  Assumptions.TransformFunc_instance
-  Assumptions.byUID_instance
+attribute [instance] Assumptions.instance'RetrieveItemsFunc
+  Assumptions.instance'ListFunc
+  Assumptions.instance'TransformFunc
+  Assumptions.instance'byUID
 
 end k8s_io.client_go.util.consistencydetector
 

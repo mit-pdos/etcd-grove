@@ -3492,7 +3492,7 @@ noncomputable instance ConditionsMap.zero_val [GooseExts] : ZeroVal ConditionsMa
 @[irreducible] noncomputable def ConditionsMap.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConditionsMap.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConditionsMap [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ConditionsMap [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConditionsMap.fields ConditionsMap.fieldsUnsealed :=
   ⟨by unfold ConditionsMap.fields; rfl⟩
 
@@ -3502,60 +3502,60 @@ noncomputable instance equals_unfold_ConditionsMap [GooseExts] [GoGlobalContext]
 class ConditionsMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConditionsMap.underlying ConditionsMap
   underlying : go.UnderlyingDirectedEq ConditionsMap.ty ConditionsMap.underlying
-  get_denyConditions : ∀ (x : ConditionsMap), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsMap.underlying go!"denyConditions") #x (Val #(x.denyConditions'))
-  set_denyConditions : ∀ (x : ConditionsMap) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsMap.underlying go!"denyConditions") (PairV #x #y) (Val #(({ x with denyConditions' := y } : ConditionsMap)))
-  get_noOpinionConditions : ∀ (x : ConditionsMap), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsMap.underlying go!"noOpinionConditions") #x (Val #(x.noOpinionConditions'))
-  set_noOpinionConditions : ∀ (x : ConditionsMap) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsMap.underlying go!"noOpinionConditions") (PairV #x #y) (Val #(({ x with noOpinionConditions' := y } : ConditionsMap)))
-  get_allowConditions : ∀ (x : ConditionsMap), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsMap.underlying go!"allowConditions") #x (Val #(x.allowConditions'))
-  set_allowConditions : ∀ (x : ConditionsMap) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsMap.underlying go!"allowConditions") (PairV #x #y) (Val #(({ x with allowConditions' := y } : ConditionsMap)))
+  get'denyConditions : ∀ (x : ConditionsMap), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsMap.underlying go!"denyConditions") #x (Val #(x.denyConditions'))
+  set'denyConditions : ∀ (x : ConditionsMap) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsMap.underlying go!"denyConditions") (PairV #x #y) (Val #(({ x with denyConditions' := y } : ConditionsMap)))
+  get'noOpinionConditions : ∀ (x : ConditionsMap), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsMap.underlying go!"noOpinionConditions") #x (Val #(x.noOpinionConditions'))
+  set'noOpinionConditions : ∀ (x : ConditionsMap) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsMap.underlying go!"noOpinionConditions") (PairV #x #y) (Val #(({ x with noOpinionConditions' := y } : ConditionsMap)))
+  get'allowConditions : ∀ (x : ConditionsMap), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsMap.underlying go!"allowConditions") #x (Val #(x.allowConditions'))
+  set'allowConditions : ∀ (x : ConditionsMap) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsMap.underlying go!"allowConditions") (PairV #x #y) (Val #(({ x with allowConditions' := y } : ConditionsMap)))
   method_set : go.MethodSetIs ConditionsMap.ty [(go!"AllowConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq''.ty Condition.ty)]))), (go!"DenyConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq''.ty Condition.ty)]))), (go!"Evaluate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, ConditionsData.ty, EvaluateConditionFunc.ty] false [Decision.ty, go.string, go.error]))), (go!"FailureDecision", (some (go.signature.Signature [] false [Decision.ty]))), (go!"Length", (some (go.signature.Signature [] false [go.int]))), (go!"NoOpinionConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq''.ty Condition.ty)]))), (go!"PossibleDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionsMap.ty) [(go!"AllowConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq''.ty Condition.ty)]))), (go!"DenyConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq''.ty Condition.ty)]))), (go!"Evaluate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, ConditionsData.ty, EvaluateConditionFunc.ty] false [Decision.ty, go.string, go.error]))), (go!"FailureDecision", (some (go.signature.Signature [] false [Decision.ty]))), (go!"Length", (some (go.signature.Signature [] false [go.int]))), (go!"NoOpinionConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq''.ty Condition.ty)]))), (go!"PossibleDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)])))]
-  AllowConditions_unfold : MethodUnfold ConditionsMap.ty go!"AllowConditions" ConditionsMap.AllowConditions.impl
-  DenyConditions_unfold : MethodUnfold ConditionsMap.ty go!"DenyConditions" ConditionsMap.DenyConditions.impl
-  Evaluate_unfold : MethodUnfold ConditionsMap.ty go!"Evaluate" ConditionsMap.Evaluate.impl
-  FailureDecision_unfold : MethodUnfold ConditionsMap.ty go!"FailureDecision" ConditionsMap.FailureDecision.impl
-  Length_unfold : MethodUnfold ConditionsMap.ty go!"Length" ConditionsMap.Length.impl
-  NoOpinionConditions_unfold : MethodUnfold ConditionsMap.ty go!"NoOpinionConditions" ConditionsMap.NoOpinionConditions.impl
-  PossibleDecisions_unfold : MethodUnfold ConditionsMap.ty go!"PossibleDecisions" ConditionsMap.PossibleDecisions.impl
-  ptr_AllowConditions_unfold : MethodUnfold (go.GoType.PointerType ConditionsMap.ty) go!"AllowConditions" (LamV "$r"
+  unfold'AllowConditions : MethodUnfold ConditionsMap.ty go!"AllowConditions" ConditionsMap.AllowConditions.impl
+  unfold'DenyConditions : MethodUnfold ConditionsMap.ty go!"DenyConditions" ConditionsMap.DenyConditions.impl
+  unfold'Evaluate : MethodUnfold ConditionsMap.ty go!"Evaluate" ConditionsMap.Evaluate.impl
+  unfold'FailureDecision : MethodUnfold ConditionsMap.ty go!"FailureDecision" ConditionsMap.FailureDecision.impl
+  unfold'Length : MethodUnfold ConditionsMap.ty go!"Length" ConditionsMap.Length.impl
+  unfold'NoOpinionConditions : MethodUnfold ConditionsMap.ty go!"NoOpinionConditions" ConditionsMap.NoOpinionConditions.impl
+  unfold'PossibleDecisions : MethodUnfold ConditionsMap.ty go!"PossibleDecisions" ConditionsMap.PossibleDecisions.impl
+  ptr_unfold'AllowConditions : MethodUnfold (go.GoType.PointerType ConditionsMap.ty) go!"AllowConditions" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsMap.ty go!"AllowConditions"))) (App (Val (GoInstruction (GoLoad ConditionsMap.ty))) (Var "$r"))))
-  ptr_DenyConditions_unfold : MethodUnfold (go.GoType.PointerType ConditionsMap.ty) go!"DenyConditions" (LamV "$r"
+  ptr_unfold'DenyConditions : MethodUnfold (go.GoType.PointerType ConditionsMap.ty) go!"DenyConditions" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsMap.ty go!"DenyConditions"))) (App (Val (GoInstruction (GoLoad ConditionsMap.ty))) (Var "$r"))))
-  ptr_Evaluate_unfold : MethodUnfold (go.GoType.PointerType ConditionsMap.ty) go!"Evaluate" (LamV "$r"
+  ptr_unfold'Evaluate : MethodUnfold (go.GoType.PointerType ConditionsMap.ty) go!"Evaluate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsMap.ty go!"Evaluate"))) (App (Val (GoInstruction (GoLoad ConditionsMap.ty))) (Var "$r"))))
-  ptr_FailureDecision_unfold : MethodUnfold (go.GoType.PointerType ConditionsMap.ty) go!"FailureDecision" (LamV "$r"
+  ptr_unfold'FailureDecision : MethodUnfold (go.GoType.PointerType ConditionsMap.ty) go!"FailureDecision" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsMap.ty go!"FailureDecision"))) (App (Val (GoInstruction (GoLoad ConditionsMap.ty))) (Var "$r"))))
-  ptr_Length_unfold : MethodUnfold (go.GoType.PointerType ConditionsMap.ty) go!"Length" (LamV "$r"
+  ptr_unfold'Length : MethodUnfold (go.GoType.PointerType ConditionsMap.ty) go!"Length" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsMap.ty go!"Length"))) (App (Val (GoInstruction (GoLoad ConditionsMap.ty))) (Var "$r"))))
-  ptr_NoOpinionConditions_unfold : MethodUnfold (go.GoType.PointerType ConditionsMap.ty) go!"NoOpinionConditions" (LamV "$r"
+  ptr_unfold'NoOpinionConditions : MethodUnfold (go.GoType.PointerType ConditionsMap.ty) go!"NoOpinionConditions" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsMap.ty go!"NoOpinionConditions"))) (App (Val (GoInstruction (GoLoad ConditionsMap.ty))) (Var "$r"))))
-  ptr_PossibleDecisions_unfold : MethodUnfold (go.GoType.PointerType ConditionsMap.ty) go!"PossibleDecisions" (LamV "$r"
+  ptr_unfold'PossibleDecisions : MethodUnfold (go.GoType.PointerType ConditionsMap.ty) go!"PossibleDecisions" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsMap.ty go!"PossibleDecisions"))) (App (Val (GoInstruction (GoLoad ConditionsMap.ty))) (Var "$r"))))
 
 attribute [instance] ConditionsMap.TypeAssumptions.type_repr
   ConditionsMap.TypeAssumptions.underlying
-  ConditionsMap.TypeAssumptions.get_denyConditions
-  ConditionsMap.TypeAssumptions.set_denyConditions
-  ConditionsMap.TypeAssumptions.get_noOpinionConditions
-  ConditionsMap.TypeAssumptions.set_noOpinionConditions
-  ConditionsMap.TypeAssumptions.get_allowConditions
-  ConditionsMap.TypeAssumptions.set_allowConditions
+  ConditionsMap.TypeAssumptions.get'denyConditions
+  ConditionsMap.TypeAssumptions.set'denyConditions
+  ConditionsMap.TypeAssumptions.get'noOpinionConditions
+  ConditionsMap.TypeAssumptions.set'noOpinionConditions
+  ConditionsMap.TypeAssumptions.get'allowConditions
+  ConditionsMap.TypeAssumptions.set'allowConditions
   ConditionsMap.TypeAssumptions.method_set
   ConditionsMap.TypeAssumptions.ptr_method_set
-  ConditionsMap.TypeAssumptions.AllowConditions_unfold
-  ConditionsMap.TypeAssumptions.DenyConditions_unfold
-  ConditionsMap.TypeAssumptions.Evaluate_unfold
-  ConditionsMap.TypeAssumptions.FailureDecision_unfold
-  ConditionsMap.TypeAssumptions.Length_unfold
-  ConditionsMap.TypeAssumptions.NoOpinionConditions_unfold
-  ConditionsMap.TypeAssumptions.PossibleDecisions_unfold
-  ConditionsMap.TypeAssumptions.ptr_AllowConditions_unfold
-  ConditionsMap.TypeAssumptions.ptr_DenyConditions_unfold
-  ConditionsMap.TypeAssumptions.ptr_Evaluate_unfold
-  ConditionsMap.TypeAssumptions.ptr_FailureDecision_unfold
-  ConditionsMap.TypeAssumptions.ptr_Length_unfold
-  ConditionsMap.TypeAssumptions.ptr_NoOpinionConditions_unfold
-  ConditionsMap.TypeAssumptions.ptr_PossibleDecisions_unfold
+  ConditionsMap.TypeAssumptions.unfold'AllowConditions
+  ConditionsMap.TypeAssumptions.unfold'DenyConditions
+  ConditionsMap.TypeAssumptions.unfold'Evaluate
+  ConditionsMap.TypeAssumptions.unfold'FailureDecision
+  ConditionsMap.TypeAssumptions.unfold'Length
+  ConditionsMap.TypeAssumptions.unfold'NoOpinionConditions
+  ConditionsMap.TypeAssumptions.unfold'PossibleDecisions
+  ConditionsMap.TypeAssumptions.ptr_unfold'AllowConditions
+  ConditionsMap.TypeAssumptions.ptr_unfold'DenyConditions
+  ConditionsMap.TypeAssumptions.ptr_unfold'Evaluate
+  ConditionsMap.TypeAssumptions.ptr_unfold'FailureDecision
+  ConditionsMap.TypeAssumptions.ptr_unfold'Length
+  ConditionsMap.TypeAssumptions.ptr_unfold'NoOpinionConditions
+  ConditionsMap.TypeAssumptions.ptr_unfold'PossibleDecisions
 
 abbrev Decision [GooseExts] : Type := w64
 
@@ -3566,15 +3566,15 @@ class Decision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   underlying : go.UnderlyingDirectedEq Decision.ty Decision.underlying
   method_set : go.MethodSetIs Decision.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Decision.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
-  String_unfold : MethodUnfold Decision.ty go!"String" Decision.String.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Decision.ty) go!"String" (LamV "$r"
+  unfold'String : MethodUnfold Decision.ty go!"String" Decision.String.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType Decision.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Decision.ty go!"String"))) (App (Val (GoInstruction (GoLoad Decision.ty))) (Var "$r"))))
 
 attribute [instance] Decision.TypeAssumptions.underlying
   Decision.TypeAssumptions.method_set
   Decision.TypeAssumptions.ptr_method_set
-  Decision.TypeAssumptions.String_unfold
-  Decision.TypeAssumptions.ptr_String_unfold
+  Decision.TypeAssumptions.unfold'String
+  Decision.TypeAssumptions.ptr_unfold'String
 
 structure ConditionsAwareDecisionUnion [GooseExts] where
   mk ::
@@ -3595,7 +3595,7 @@ noncomputable instance ConditionsAwareDecisionUnion.zero_val [GooseExts] : ZeroV
 @[irreducible] noncomputable def ConditionsAwareDecisionUnion.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConditionsAwareDecisionUnion.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConditionsAwareDecisionUnion [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ConditionsAwareDecisionUnion [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConditionsAwareDecisionUnion.fields ConditionsAwareDecisionUnion.fieldsUnsealed :=
   ⟨by unfold ConditionsAwareDecisionUnion.fields; rfl⟩
 
@@ -3605,41 +3605,41 @@ noncomputable instance equals_unfold_ConditionsAwareDecisionUnion [GooseExts] [G
 class ConditionsAwareDecisionUnion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConditionsAwareDecisionUnion.underlying ConditionsAwareDecisionUnion
   underlying : go.UnderlyingDirectedEq ConditionsAwareDecisionUnion.ty ConditionsAwareDecisionUnion.underlying
-  get_inner : ∀ (x : ConditionsAwareDecisionUnion), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecisionUnion.underlying go!"inner") #x (Val #(x.inner'))
-  set_inner : ∀ (x : ConditionsAwareDecisionUnion) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecisionUnion.underlying go!"inner") (PairV #x #y) (Val #(({ x with inner' := y } : ConditionsAwareDecisionUnion)))
-  get_errs : ∀ (x : ConditionsAwareDecisionUnion), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecisionUnion.underlying go!"errs") #x (Val #(x.errs'))
-  set_errs : ∀ (x : ConditionsAwareDecisionUnion) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecisionUnion.underlying go!"errs") (PairV #x #y) (Val #(({ x with errs' := y } : ConditionsAwareDecisionUnion)))
-  get_containsUnconditionalAllowOrDeny : ∀ (x : ConditionsAwareDecisionUnion), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecisionUnion.underlying go!"containsUnconditionalAllowOrDeny") #x (Val #(x.containsUnconditionalAllowOrDeny'))
-  set_containsUnconditionalAllowOrDeny : ∀ (x : ConditionsAwareDecisionUnion) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecisionUnion.underlying go!"containsUnconditionalAllowOrDeny") (PairV #x #y) (Val #(({ x with containsUnconditionalAllowOrDeny' := y } : ConditionsAwareDecisionUnion)))
-  get_subDecisionsPossibleDecisions : ∀ (x : ConditionsAwareDecisionUnion), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecisionUnion.underlying go!"subDecisionsPossibleDecisions") #x (Val #(x.subDecisionsPossibleDecisions'))
-  set_subDecisionsPossibleDecisions : ∀ (x : ConditionsAwareDecisionUnion) (y : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' Decision)), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecisionUnion.underlying go!"subDecisionsPossibleDecisions") (PairV #x #y) (Val #(({ x with subDecisionsPossibleDecisions' := y } : ConditionsAwareDecisionUnion)))
+  get'inner : ∀ (x : ConditionsAwareDecisionUnion), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecisionUnion.underlying go!"inner") #x (Val #(x.inner'))
+  set'inner : ∀ (x : ConditionsAwareDecisionUnion) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecisionUnion.underlying go!"inner") (PairV #x #y) (Val #(({ x with inner' := y } : ConditionsAwareDecisionUnion)))
+  get'errs : ∀ (x : ConditionsAwareDecisionUnion), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecisionUnion.underlying go!"errs") #x (Val #(x.errs'))
+  set'errs : ∀ (x : ConditionsAwareDecisionUnion) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecisionUnion.underlying go!"errs") (PairV #x #y) (Val #(({ x with errs' := y } : ConditionsAwareDecisionUnion)))
+  get'containsUnconditionalAllowOrDeny : ∀ (x : ConditionsAwareDecisionUnion), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecisionUnion.underlying go!"containsUnconditionalAllowOrDeny") #x (Val #(x.containsUnconditionalAllowOrDeny'))
+  set'containsUnconditionalAllowOrDeny : ∀ (x : ConditionsAwareDecisionUnion) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecisionUnion.underlying go!"containsUnconditionalAllowOrDeny") (PairV #x #y) (Val #(({ x with containsUnconditionalAllowOrDeny' := y } : ConditionsAwareDecisionUnion)))
+  get'subDecisionsPossibleDecisions : ∀ (x : ConditionsAwareDecisionUnion), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecisionUnion.underlying go!"subDecisionsPossibleDecisions") #x (Val #(x.subDecisionsPossibleDecisions'))
+  set'subDecisionsPossibleDecisions : ∀ (x : ConditionsAwareDecisionUnion) (y : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' Decision)), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecisionUnion.underlying go!"subDecisionsPossibleDecisions") (PairV #x #y) (Val #(({ x with subDecisionsPossibleDecisions' := y } : ConditionsAwareDecisionUnion)))
   method_set : go.MethodSetIs ConditionsAwareDecisionUnion.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) [(go!"Add", (some (go.signature.Signature [go.string, ConditionsAwareDecision.ty] false []))), (go!"ContainsUnconditionalAllowOrDeny", (some (go.signature.Signature [] false [go.bool]))), (go!"FailureDecision", (some (go.signature.Signature [] false [Decision.ty]))), (go!"PossibleDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)]))), (go!"ToDecision", (some (go.signature.Signature [] false [ConditionsAwareDecision.ty]))), (go!"k8s.io/apiserver/pkg/authorization/authorizer.hasConditionalAuthorizerName", (some (go.signature.Signature [go.string] false [go.bool])))]
-  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"Add" ConditionsAwareDecisionUnion.Add.impl
-  ptr_ContainsUnconditionalAllowOrDeny_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"ContainsUnconditionalAllowOrDeny" ConditionsAwareDecisionUnion.ContainsUnconditionalAllowOrDeny.impl
-  ptr_FailureDecision_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"FailureDecision" ConditionsAwareDecisionUnion.FailureDecision.impl
-  ptr_PossibleDecisions_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"PossibleDecisions" ConditionsAwareDecisionUnion.PossibleDecisions.impl
-  ptr_ToDecision_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"ToDecision" ConditionsAwareDecisionUnion.ToDecision.impl
-  ptr_hasConditionalAuthorizerName_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"hasConditionalAuthorizerName" ConditionsAwareDecisionUnion.hasConditionalAuthorizerName.impl
+  ptr_unfold'Add : MethodUnfold (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"Add" ConditionsAwareDecisionUnion.Add.impl
+  ptr_unfold'ContainsUnconditionalAllowOrDeny : MethodUnfold (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"ContainsUnconditionalAllowOrDeny" ConditionsAwareDecisionUnion.ContainsUnconditionalAllowOrDeny.impl
+  ptr_unfold'FailureDecision : MethodUnfold (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"FailureDecision" ConditionsAwareDecisionUnion.FailureDecision.impl
+  ptr_unfold'PossibleDecisions : MethodUnfold (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"PossibleDecisions" ConditionsAwareDecisionUnion.PossibleDecisions.impl
+  ptr_unfold'ToDecision : MethodUnfold (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"ToDecision" ConditionsAwareDecisionUnion.ToDecision.impl
+  ptr_unfold'hasConditionalAuthorizerName : MethodUnfold (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"hasConditionalAuthorizerName" ConditionsAwareDecisionUnion.hasConditionalAuthorizerName.impl
 
 attribute [instance] ConditionsAwareDecisionUnion.TypeAssumptions.type_repr
   ConditionsAwareDecisionUnion.TypeAssumptions.underlying
-  ConditionsAwareDecisionUnion.TypeAssumptions.get_inner
-  ConditionsAwareDecisionUnion.TypeAssumptions.set_inner
-  ConditionsAwareDecisionUnion.TypeAssumptions.get_errs
-  ConditionsAwareDecisionUnion.TypeAssumptions.set_errs
-  ConditionsAwareDecisionUnion.TypeAssumptions.get_containsUnconditionalAllowOrDeny
-  ConditionsAwareDecisionUnion.TypeAssumptions.set_containsUnconditionalAllowOrDeny
-  ConditionsAwareDecisionUnion.TypeAssumptions.get_subDecisionsPossibleDecisions
-  ConditionsAwareDecisionUnion.TypeAssumptions.set_subDecisionsPossibleDecisions
+  ConditionsAwareDecisionUnion.TypeAssumptions.get'inner
+  ConditionsAwareDecisionUnion.TypeAssumptions.set'inner
+  ConditionsAwareDecisionUnion.TypeAssumptions.get'errs
+  ConditionsAwareDecisionUnion.TypeAssumptions.set'errs
+  ConditionsAwareDecisionUnion.TypeAssumptions.get'containsUnconditionalAllowOrDeny
+  ConditionsAwareDecisionUnion.TypeAssumptions.set'containsUnconditionalAllowOrDeny
+  ConditionsAwareDecisionUnion.TypeAssumptions.get'subDecisionsPossibleDecisions
+  ConditionsAwareDecisionUnion.TypeAssumptions.set'subDecisionsPossibleDecisions
   ConditionsAwareDecisionUnion.TypeAssumptions.method_set
   ConditionsAwareDecisionUnion.TypeAssumptions.ptr_method_set
-  ConditionsAwareDecisionUnion.TypeAssumptions.ptr_Add_unfold
-  ConditionsAwareDecisionUnion.TypeAssumptions.ptr_ContainsUnconditionalAllowOrDeny_unfold
-  ConditionsAwareDecisionUnion.TypeAssumptions.ptr_FailureDecision_unfold
-  ConditionsAwareDecisionUnion.TypeAssumptions.ptr_PossibleDecisions_unfold
-  ConditionsAwareDecisionUnion.TypeAssumptions.ptr_ToDecision_unfold
-  ConditionsAwareDecisionUnion.TypeAssumptions.ptr_hasConditionalAuthorizerName_unfold
+  ConditionsAwareDecisionUnion.TypeAssumptions.ptr_unfold'Add
+  ConditionsAwareDecisionUnion.TypeAssumptions.ptr_unfold'ContainsUnconditionalAllowOrDeny
+  ConditionsAwareDecisionUnion.TypeAssumptions.ptr_unfold'FailureDecision
+  ConditionsAwareDecisionUnion.TypeAssumptions.ptr_unfold'PossibleDecisions
+  ConditionsAwareDecisionUnion.TypeAssumptions.ptr_unfold'ToDecision
+  ConditionsAwareDecisionUnion.TypeAssumptions.ptr_unfold'hasConditionalAuthorizerName
 
 structure ConditionsAwareDecision [GooseExts] where
   mk ::
@@ -3662,7 +3662,7 @@ noncomputable instance ConditionsAwareDecision.zero_val [GooseExts] : ZeroVal Co
 @[irreducible] noncomputable def ConditionsAwareDecision.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConditionsAwareDecision.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConditionsAwareDecision [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ConditionsAwareDecision [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConditionsAwareDecision.fields ConditionsAwareDecision.fieldsUnsealed :=
   ⟨by unfold ConditionsAwareDecision.fields; rfl⟩
 
@@ -3672,113 +3672,113 @@ noncomputable instance equals_unfold_ConditionsAwareDecision [GooseExts] [GoGlob
 class ConditionsAwareDecision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConditionsAwareDecision.underlying ConditionsAwareDecision
   underlying : go.UnderlyingDirectedEq ConditionsAwareDecision.ty ConditionsAwareDecision.underlying
-  get_decisionType : ∀ (x : ConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecision.underlying go!"decisionType") #x (Val #(x.decisionType'))
-  set_decisionType : ∀ (x : ConditionsAwareDecision) (y : conditionsAwareDecisionType), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecision.underlying go!"decisionType") (PairV #x #y) (Val #(({ x with decisionType' := y } : ConditionsAwareDecision)))
-  get_conditionsMap : ∀ (x : ConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecision.underlying go!"conditionsMap") #x (Val #(x.conditionsMap'))
-  set_conditionsMap : ∀ (x : ConditionsAwareDecision) (y : ConditionsMap), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecision.underlying go!"conditionsMap") (PairV #x #y) (Val #(({ x with conditionsMap' := y } : ConditionsAwareDecision)))
-  get_union : ∀ (x : ConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecision.underlying go!"union") #x (Val #(x.union'))
-  set_union : ∀ (x : ConditionsAwareDecision) (y : ConditionsAwareDecisionUnion), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecision.underlying go!"union") (PairV #x #y) (Val #(({ x with union' := y } : ConditionsAwareDecision)))
-  get_reason : ∀ (x : ConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecision.underlying go!"reason") #x (Val #(x.reason'))
-  set_reason : ∀ (x : ConditionsAwareDecision) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecision.underlying go!"reason") (PairV #x #y) (Val #(({ x with reason' := y } : ConditionsAwareDecision)))
-  get_err : ∀ (x : ConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecision.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : ConditionsAwareDecision) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecision.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : ConditionsAwareDecision)))
+  get'decisionType : ∀ (x : ConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecision.underlying go!"decisionType") #x (Val #(x.decisionType'))
+  set'decisionType : ∀ (x : ConditionsAwareDecision) (y : conditionsAwareDecisionType), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecision.underlying go!"decisionType") (PairV #x #y) (Val #(({ x with decisionType' := y } : ConditionsAwareDecision)))
+  get'conditionsMap : ∀ (x : ConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecision.underlying go!"conditionsMap") #x (Val #(x.conditionsMap'))
+  set'conditionsMap : ∀ (x : ConditionsAwareDecision) (y : ConditionsMap), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecision.underlying go!"conditionsMap") (PairV #x #y) (Val #(({ x with conditionsMap' := y } : ConditionsAwareDecision)))
+  get'union : ∀ (x : ConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecision.underlying go!"union") #x (Val #(x.union'))
+  set'union : ∀ (x : ConditionsAwareDecision) (y : ConditionsAwareDecisionUnion), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecision.underlying go!"union") (PairV #x #y) (Val #(({ x with union' := y } : ConditionsAwareDecision)))
+  get'reason : ∀ (x : ConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecision.underlying go!"reason") #x (Val #(x.reason'))
+  set'reason : ∀ (x : ConditionsAwareDecision) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecision.underlying go!"reason") (PairV #x #y) (Val #(({ x with reason' := y } : ConditionsAwareDecision)))
+  get'err : ∀ (x : ConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecision.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : ConditionsAwareDecision) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecision.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : ConditionsAwareDecision)))
   method_set : go.MethodSetIs ConditionsAwareDecision.ty [(go!"ConditionsMap", (some (go.signature.Signature [] false [ConditionsMap.ty]))), (go!"ContainsUnconditionalAllowOrDeny", (some (go.signature.Signature [] false [go.bool]))), (go!"Error", (some (go.signature.Signature [] false [go.error]))), (go!"FailureDecision", (some (go.signature.Signature [] false [Decision.ty]))), (go!"IsAllow", (some (go.signature.Signature [] false [go.bool]))), (go!"IsConditionsMap", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeny", (some (go.signature.Signature [] false [go.bool]))), (go!"IsNoOpinion", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnconditional", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnion", (some (go.signature.Signature [] false [go.bool]))), (go!"PossibleDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)]))), (go!"Reason", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnconditionalPartsOrError", (some (go.signature.Signature [] false [Decision.ty, go.string, go.error]))), (go!"UnconditionalPartsOrFailClosed", (some (go.signature.Signature [] false [Decision.ty, go.string, go.error]))), (go!"UnionedDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty go.string ConditionsAwareDecision.ty)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionsAwareDecision.ty) [(go!"ConditionsMap", (some (go.signature.Signature [] false [ConditionsMap.ty]))), (go!"ContainsUnconditionalAllowOrDeny", (some (go.signature.Signature [] false [go.bool]))), (go!"Error", (some (go.signature.Signature [] false [go.error]))), (go!"FailureDecision", (some (go.signature.Signature [] false [Decision.ty]))), (go!"IsAllow", (some (go.signature.Signature [] false [go.bool]))), (go!"IsConditionsMap", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeny", (some (go.signature.Signature [] false [go.bool]))), (go!"IsNoOpinion", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnconditional", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnion", (some (go.signature.Signature [] false [go.bool]))), (go!"PossibleDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)]))), (go!"Reason", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnconditionalPartsOrError", (some (go.signature.Signature [] false [Decision.ty, go.string, go.error]))), (go!"UnconditionalPartsOrFailClosed", (some (go.signature.Signature [] false [Decision.ty, go.string, go.error]))), (go!"UnionedDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty go.string ConditionsAwareDecision.ty)])))]
-  ConditionsMap_unfold : MethodUnfold ConditionsAwareDecision.ty go!"ConditionsMap" ConditionsAwareDecision.ConditionsMap.impl
-  ContainsUnconditionalAllowOrDeny_unfold : MethodUnfold ConditionsAwareDecision.ty go!"ContainsUnconditionalAllowOrDeny" ConditionsAwareDecision.ContainsUnconditionalAllowOrDeny.impl
-  Error_unfold : MethodUnfold ConditionsAwareDecision.ty go!"Error" ConditionsAwareDecision.Error.impl
-  FailureDecision_unfold : MethodUnfold ConditionsAwareDecision.ty go!"FailureDecision" ConditionsAwareDecision.FailureDecision.impl
-  IsAllow_unfold : MethodUnfold ConditionsAwareDecision.ty go!"IsAllow" ConditionsAwareDecision.IsAllow.impl
-  IsConditionsMap_unfold : MethodUnfold ConditionsAwareDecision.ty go!"IsConditionsMap" ConditionsAwareDecision.IsConditionsMap.impl
-  IsDeny_unfold : MethodUnfold ConditionsAwareDecision.ty go!"IsDeny" ConditionsAwareDecision.IsDeny.impl
-  IsNoOpinion_unfold : MethodUnfold ConditionsAwareDecision.ty go!"IsNoOpinion" ConditionsAwareDecision.IsNoOpinion.impl
-  IsUnconditional_unfold : MethodUnfold ConditionsAwareDecision.ty go!"IsUnconditional" ConditionsAwareDecision.IsUnconditional.impl
-  IsUnion_unfold : MethodUnfold ConditionsAwareDecision.ty go!"IsUnion" ConditionsAwareDecision.IsUnion.impl
-  PossibleDecisions_unfold : MethodUnfold ConditionsAwareDecision.ty go!"PossibleDecisions" ConditionsAwareDecision.PossibleDecisions.impl
-  Reason_unfold : MethodUnfold ConditionsAwareDecision.ty go!"Reason" ConditionsAwareDecision.Reason.impl
-  String_unfold : MethodUnfold ConditionsAwareDecision.ty go!"String" ConditionsAwareDecision.String.impl
-  UnconditionalPartsOrError_unfold : MethodUnfold ConditionsAwareDecision.ty go!"UnconditionalPartsOrError" ConditionsAwareDecision.UnconditionalPartsOrError.impl
-  UnconditionalPartsOrFailClosed_unfold : MethodUnfold ConditionsAwareDecision.ty go!"UnconditionalPartsOrFailClosed" ConditionsAwareDecision.UnconditionalPartsOrFailClosed.impl
-  UnionedDecisions_unfold : MethodUnfold ConditionsAwareDecision.ty go!"UnionedDecisions" ConditionsAwareDecision.UnionedDecisions.impl
-  ptr_ConditionsMap_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"ConditionsMap" (LamV "$r"
+  unfold'ConditionsMap : MethodUnfold ConditionsAwareDecision.ty go!"ConditionsMap" ConditionsAwareDecision.ConditionsMap.impl
+  unfold'ContainsUnconditionalAllowOrDeny : MethodUnfold ConditionsAwareDecision.ty go!"ContainsUnconditionalAllowOrDeny" ConditionsAwareDecision.ContainsUnconditionalAllowOrDeny.impl
+  unfold'Error : MethodUnfold ConditionsAwareDecision.ty go!"Error" ConditionsAwareDecision.Error.impl
+  unfold'FailureDecision : MethodUnfold ConditionsAwareDecision.ty go!"FailureDecision" ConditionsAwareDecision.FailureDecision.impl
+  unfold'IsAllow : MethodUnfold ConditionsAwareDecision.ty go!"IsAllow" ConditionsAwareDecision.IsAllow.impl
+  unfold'IsConditionsMap : MethodUnfold ConditionsAwareDecision.ty go!"IsConditionsMap" ConditionsAwareDecision.IsConditionsMap.impl
+  unfold'IsDeny : MethodUnfold ConditionsAwareDecision.ty go!"IsDeny" ConditionsAwareDecision.IsDeny.impl
+  unfold'IsNoOpinion : MethodUnfold ConditionsAwareDecision.ty go!"IsNoOpinion" ConditionsAwareDecision.IsNoOpinion.impl
+  unfold'IsUnconditional : MethodUnfold ConditionsAwareDecision.ty go!"IsUnconditional" ConditionsAwareDecision.IsUnconditional.impl
+  unfold'IsUnion : MethodUnfold ConditionsAwareDecision.ty go!"IsUnion" ConditionsAwareDecision.IsUnion.impl
+  unfold'PossibleDecisions : MethodUnfold ConditionsAwareDecision.ty go!"PossibleDecisions" ConditionsAwareDecision.PossibleDecisions.impl
+  unfold'Reason : MethodUnfold ConditionsAwareDecision.ty go!"Reason" ConditionsAwareDecision.Reason.impl
+  unfold'String : MethodUnfold ConditionsAwareDecision.ty go!"String" ConditionsAwareDecision.String.impl
+  unfold'UnconditionalPartsOrError : MethodUnfold ConditionsAwareDecision.ty go!"UnconditionalPartsOrError" ConditionsAwareDecision.UnconditionalPartsOrError.impl
+  unfold'UnconditionalPartsOrFailClosed : MethodUnfold ConditionsAwareDecision.ty go!"UnconditionalPartsOrFailClosed" ConditionsAwareDecision.UnconditionalPartsOrFailClosed.impl
+  unfold'UnionedDecisions : MethodUnfold ConditionsAwareDecision.ty go!"UnionedDecisions" ConditionsAwareDecision.UnionedDecisions.impl
+  ptr_unfold'ConditionsMap : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"ConditionsMap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsAwareDecision.ty go!"ConditionsMap"))) (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$r"))))
-  ptr_ContainsUnconditionalAllowOrDeny_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"ContainsUnconditionalAllowOrDeny" (LamV "$r"
+  ptr_unfold'ContainsUnconditionalAllowOrDeny : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"ContainsUnconditionalAllowOrDeny" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsAwareDecision.ty go!"ContainsUnconditionalAllowOrDeny"))) (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$r"))))
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"Error" (LamV "$r"
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"Error" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsAwareDecision.ty go!"Error"))) (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$r"))))
-  ptr_FailureDecision_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"FailureDecision" (LamV "$r"
+  ptr_unfold'FailureDecision : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"FailureDecision" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsAwareDecision.ty go!"FailureDecision"))) (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$r"))))
-  ptr_IsAllow_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"IsAllow" (LamV "$r"
+  ptr_unfold'IsAllow : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"IsAllow" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsAwareDecision.ty go!"IsAllow"))) (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$r"))))
-  ptr_IsConditionsMap_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"IsConditionsMap" (LamV "$r"
+  ptr_unfold'IsConditionsMap : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"IsConditionsMap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsAwareDecision.ty go!"IsConditionsMap"))) (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$r"))))
-  ptr_IsDeny_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"IsDeny" (LamV "$r"
+  ptr_unfold'IsDeny : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"IsDeny" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsAwareDecision.ty go!"IsDeny"))) (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$r"))))
-  ptr_IsNoOpinion_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"IsNoOpinion" (LamV "$r"
+  ptr_unfold'IsNoOpinion : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"IsNoOpinion" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsAwareDecision.ty go!"IsNoOpinion"))) (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$r"))))
-  ptr_IsUnconditional_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"IsUnconditional" (LamV "$r"
+  ptr_unfold'IsUnconditional : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"IsUnconditional" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsAwareDecision.ty go!"IsUnconditional"))) (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$r"))))
-  ptr_IsUnion_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"IsUnion" (LamV "$r"
+  ptr_unfold'IsUnion : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"IsUnion" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsAwareDecision.ty go!"IsUnion"))) (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$r"))))
-  ptr_PossibleDecisions_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"PossibleDecisions" (LamV "$r"
+  ptr_unfold'PossibleDecisions : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"PossibleDecisions" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsAwareDecision.ty go!"PossibleDecisions"))) (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$r"))))
-  ptr_Reason_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"Reason" (LamV "$r"
+  ptr_unfold'Reason : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"Reason" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsAwareDecision.ty go!"Reason"))) (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$r"))))
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"String" (LamV "$r"
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsAwareDecision.ty go!"String"))) (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$r"))))
-  ptr_UnconditionalPartsOrError_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"UnconditionalPartsOrError" (LamV "$r"
+  ptr_unfold'UnconditionalPartsOrError : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"UnconditionalPartsOrError" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsAwareDecision.ty go!"UnconditionalPartsOrError"))) (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$r"))))
-  ptr_UnconditionalPartsOrFailClosed_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"UnconditionalPartsOrFailClosed" (LamV "$r"
+  ptr_unfold'UnconditionalPartsOrFailClosed : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"UnconditionalPartsOrFailClosed" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsAwareDecision.ty go!"UnconditionalPartsOrFailClosed"))) (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$r"))))
-  ptr_UnionedDecisions_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"UnionedDecisions" (LamV "$r"
+  ptr_unfold'UnionedDecisions : MethodUnfold (go.GoType.PointerType ConditionsAwareDecision.ty) go!"UnionedDecisions" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionsAwareDecision.ty go!"UnionedDecisions"))) (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$r"))))
 
 attribute [instance] ConditionsAwareDecision.TypeAssumptions.type_repr
   ConditionsAwareDecision.TypeAssumptions.underlying
-  ConditionsAwareDecision.TypeAssumptions.get_decisionType
-  ConditionsAwareDecision.TypeAssumptions.set_decisionType
-  ConditionsAwareDecision.TypeAssumptions.get_conditionsMap
-  ConditionsAwareDecision.TypeAssumptions.set_conditionsMap
-  ConditionsAwareDecision.TypeAssumptions.get_union
-  ConditionsAwareDecision.TypeAssumptions.set_union
-  ConditionsAwareDecision.TypeAssumptions.get_reason
-  ConditionsAwareDecision.TypeAssumptions.set_reason
-  ConditionsAwareDecision.TypeAssumptions.get_err
-  ConditionsAwareDecision.TypeAssumptions.set_err
+  ConditionsAwareDecision.TypeAssumptions.get'decisionType
+  ConditionsAwareDecision.TypeAssumptions.set'decisionType
+  ConditionsAwareDecision.TypeAssumptions.get'conditionsMap
+  ConditionsAwareDecision.TypeAssumptions.set'conditionsMap
+  ConditionsAwareDecision.TypeAssumptions.get'union
+  ConditionsAwareDecision.TypeAssumptions.set'union
+  ConditionsAwareDecision.TypeAssumptions.get'reason
+  ConditionsAwareDecision.TypeAssumptions.set'reason
+  ConditionsAwareDecision.TypeAssumptions.get'err
+  ConditionsAwareDecision.TypeAssumptions.set'err
   ConditionsAwareDecision.TypeAssumptions.method_set
   ConditionsAwareDecision.TypeAssumptions.ptr_method_set
-  ConditionsAwareDecision.TypeAssumptions.ConditionsMap_unfold
-  ConditionsAwareDecision.TypeAssumptions.ContainsUnconditionalAllowOrDeny_unfold
-  ConditionsAwareDecision.TypeAssumptions.Error_unfold
-  ConditionsAwareDecision.TypeAssumptions.FailureDecision_unfold
-  ConditionsAwareDecision.TypeAssumptions.IsAllow_unfold
-  ConditionsAwareDecision.TypeAssumptions.IsConditionsMap_unfold
-  ConditionsAwareDecision.TypeAssumptions.IsDeny_unfold
-  ConditionsAwareDecision.TypeAssumptions.IsNoOpinion_unfold
-  ConditionsAwareDecision.TypeAssumptions.IsUnconditional_unfold
-  ConditionsAwareDecision.TypeAssumptions.IsUnion_unfold
-  ConditionsAwareDecision.TypeAssumptions.PossibleDecisions_unfold
-  ConditionsAwareDecision.TypeAssumptions.Reason_unfold
-  ConditionsAwareDecision.TypeAssumptions.String_unfold
-  ConditionsAwareDecision.TypeAssumptions.UnconditionalPartsOrError_unfold
-  ConditionsAwareDecision.TypeAssumptions.UnconditionalPartsOrFailClosed_unfold
-  ConditionsAwareDecision.TypeAssumptions.UnionedDecisions_unfold
-  ConditionsAwareDecision.TypeAssumptions.ptr_ConditionsMap_unfold
-  ConditionsAwareDecision.TypeAssumptions.ptr_ContainsUnconditionalAllowOrDeny_unfold
-  ConditionsAwareDecision.TypeAssumptions.ptr_Error_unfold
-  ConditionsAwareDecision.TypeAssumptions.ptr_FailureDecision_unfold
-  ConditionsAwareDecision.TypeAssumptions.ptr_IsAllow_unfold
-  ConditionsAwareDecision.TypeAssumptions.ptr_IsConditionsMap_unfold
-  ConditionsAwareDecision.TypeAssumptions.ptr_IsDeny_unfold
-  ConditionsAwareDecision.TypeAssumptions.ptr_IsNoOpinion_unfold
-  ConditionsAwareDecision.TypeAssumptions.ptr_IsUnconditional_unfold
-  ConditionsAwareDecision.TypeAssumptions.ptr_IsUnion_unfold
-  ConditionsAwareDecision.TypeAssumptions.ptr_PossibleDecisions_unfold
-  ConditionsAwareDecision.TypeAssumptions.ptr_Reason_unfold
-  ConditionsAwareDecision.TypeAssumptions.ptr_String_unfold
-  ConditionsAwareDecision.TypeAssumptions.ptr_UnconditionalPartsOrError_unfold
-  ConditionsAwareDecision.TypeAssumptions.ptr_UnconditionalPartsOrFailClosed_unfold
-  ConditionsAwareDecision.TypeAssumptions.ptr_UnionedDecisions_unfold
+  ConditionsAwareDecision.TypeAssumptions.unfold'ConditionsMap
+  ConditionsAwareDecision.TypeAssumptions.unfold'ContainsUnconditionalAllowOrDeny
+  ConditionsAwareDecision.TypeAssumptions.unfold'Error
+  ConditionsAwareDecision.TypeAssumptions.unfold'FailureDecision
+  ConditionsAwareDecision.TypeAssumptions.unfold'IsAllow
+  ConditionsAwareDecision.TypeAssumptions.unfold'IsConditionsMap
+  ConditionsAwareDecision.TypeAssumptions.unfold'IsDeny
+  ConditionsAwareDecision.TypeAssumptions.unfold'IsNoOpinion
+  ConditionsAwareDecision.TypeAssumptions.unfold'IsUnconditional
+  ConditionsAwareDecision.TypeAssumptions.unfold'IsUnion
+  ConditionsAwareDecision.TypeAssumptions.unfold'PossibleDecisions
+  ConditionsAwareDecision.TypeAssumptions.unfold'Reason
+  ConditionsAwareDecision.TypeAssumptions.unfold'String
+  ConditionsAwareDecision.TypeAssumptions.unfold'UnconditionalPartsOrError
+  ConditionsAwareDecision.TypeAssumptions.unfold'UnconditionalPartsOrFailClosed
+  ConditionsAwareDecision.TypeAssumptions.unfold'UnionedDecisions
+  ConditionsAwareDecision.TypeAssumptions.ptr_unfold'ConditionsMap
+  ConditionsAwareDecision.TypeAssumptions.ptr_unfold'ContainsUnconditionalAllowOrDeny
+  ConditionsAwareDecision.TypeAssumptions.ptr_unfold'Error
+  ConditionsAwareDecision.TypeAssumptions.ptr_unfold'FailureDecision
+  ConditionsAwareDecision.TypeAssumptions.ptr_unfold'IsAllow
+  ConditionsAwareDecision.TypeAssumptions.ptr_unfold'IsConditionsMap
+  ConditionsAwareDecision.TypeAssumptions.ptr_unfold'IsDeny
+  ConditionsAwareDecision.TypeAssumptions.ptr_unfold'IsNoOpinion
+  ConditionsAwareDecision.TypeAssumptions.ptr_unfold'IsUnconditional
+  ConditionsAwareDecision.TypeAssumptions.ptr_unfold'IsUnion
+  ConditionsAwareDecision.TypeAssumptions.ptr_unfold'PossibleDecisions
+  ConditionsAwareDecision.TypeAssumptions.ptr_unfold'Reason
+  ConditionsAwareDecision.TypeAssumptions.ptr_unfold'String
+  ConditionsAwareDecision.TypeAssumptions.ptr_unfold'UnconditionalPartsOrError
+  ConditionsAwareDecision.TypeAssumptions.ptr_unfold'UnconditionalPartsOrFailClosed
+  ConditionsAwareDecision.TypeAssumptions.ptr_unfold'UnionedDecisions
 
 structure GenericCondition [GooseExts] where
   mk ::
@@ -3801,7 +3801,7 @@ noncomputable instance GenericCondition.zero_val [GooseExts] : ZeroVal GenericCo
 @[irreducible] noncomputable def GenericCondition.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GenericCondition.fieldsUnsealed
 
-noncomputable instance equals_unfold_GenericCondition [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'GenericCondition [GooseExts] [GoGlobalContext] :
     EqualsUnfold GenericCondition.fields GenericCondition.fieldsUnsealed :=
   ⟨by unfold GenericCondition.fields; rfl⟩
 
@@ -3811,58 +3811,58 @@ noncomputable instance equals_unfold_GenericCondition [GooseExts] [GoGlobalConte
 class GenericCondition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GenericCondition.underlying GenericCondition
   underlying : go.UnderlyingDirectedEq GenericCondition.ty GenericCondition.underlying
-  get_ID : ∀ (x : GenericCondition), go.IsGoStepPureDetTagged under (StructFieldGet GenericCondition.underlying go!"ID") #x (Val #(x.ID'))
-  set_ID : ∀ (x : GenericCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GenericCondition.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : GenericCondition)))
-  get_Condition : ∀ (x : GenericCondition), go.IsGoStepPureDetTagged under (StructFieldGet GenericCondition.underlying go!"Condition") #x (Val #(x.Condition'))
-  set_Condition : ∀ (x : GenericCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GenericCondition.underlying go!"Condition") (PairV #x #y) (Val #(({ x with Condition' := y } : GenericCondition)))
-  get_Type : ∀ (x : GenericCondition), go.IsGoStepPureDetTagged under (StructFieldGet GenericCondition.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : GenericCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GenericCondition.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : GenericCondition)))
-  get_Description : ∀ (x : GenericCondition), go.IsGoStepPureDetTagged under (StructFieldGet GenericCondition.underlying go!"Description") #x (Val #(x.Description'))
-  set_Description : ∀ (x : GenericCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GenericCondition.underlying go!"Description") (PairV #x #y) (Val #(({ x with Description' := y } : GenericCondition)))
-  get_EvaluateFunc : ∀ (x : GenericCondition), go.IsGoStepPureDetTagged under (StructFieldGet GenericCondition.underlying go!"EvaluateFunc") #x (Val #(x.EvaluateFunc'))
-  set_EvaluateFunc : ∀ (x : GenericCondition) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet GenericCondition.underlying go!"EvaluateFunc") (PairV #x #y) (Val #(({ x with EvaluateFunc' := y } : GenericCondition)))
+  get'ID : ∀ (x : GenericCondition), go.IsGoStepPureDetTagged under (StructFieldGet GenericCondition.underlying go!"ID") #x (Val #(x.ID'))
+  set'ID : ∀ (x : GenericCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GenericCondition.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : GenericCondition)))
+  get'Condition : ∀ (x : GenericCondition), go.IsGoStepPureDetTagged under (StructFieldGet GenericCondition.underlying go!"Condition") #x (Val #(x.Condition'))
+  set'Condition : ∀ (x : GenericCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GenericCondition.underlying go!"Condition") (PairV #x #y) (Val #(({ x with Condition' := y } : GenericCondition)))
+  get'Type : ∀ (x : GenericCondition), go.IsGoStepPureDetTagged under (StructFieldGet GenericCondition.underlying go!"Type") #x (Val #(x.Type'))
+  set'Type : ∀ (x : GenericCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GenericCondition.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : GenericCondition)))
+  get'Description : ∀ (x : GenericCondition), go.IsGoStepPureDetTagged under (StructFieldGet GenericCondition.underlying go!"Description") #x (Val #(x.Description'))
+  set'Description : ∀ (x : GenericCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GenericCondition.underlying go!"Description") (PairV #x #y) (Val #(({ x with Description' := y } : GenericCondition)))
+  get'EvaluateFunc : ∀ (x : GenericCondition), go.IsGoStepPureDetTagged under (StructFieldGet GenericCondition.underlying go!"EvaluateFunc") #x (Val #(x.EvaluateFunc'))
+  set'EvaluateFunc : ∀ (x : GenericCondition) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet GenericCondition.underlying go!"EvaluateFunc") (PairV #x #y) (Val #(({ x with EvaluateFunc' := y } : GenericCondition)))
   method_set : go.MethodSetIs GenericCondition.ty [(go!"Evaluate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, ConditionsData.ty] false [ConditionEvaluationResult.ty]))), (go!"GetCondition", (some (go.signature.Signature [] false [go.string]))), (go!"GetDescription", (some (go.signature.Signature [] false [go.string]))), (go!"GetID", (some (go.signature.Signature [] false [go.string]))), (go!"GetType", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GenericCondition.ty) [(go!"Evaluate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, ConditionsData.ty] false [ConditionEvaluationResult.ty]))), (go!"GetCondition", (some (go.signature.Signature [] false [go.string]))), (go!"GetDescription", (some (go.signature.Signature [] false [go.string]))), (go!"GetID", (some (go.signature.Signature [] false [go.string]))), (go!"GetType", (some (go.signature.Signature [] false [go.string])))]
-  Evaluate_unfold : MethodUnfold GenericCondition.ty go!"Evaluate" GenericCondition.Evaluate.impl
-  GetCondition_unfold : MethodUnfold GenericCondition.ty go!"GetCondition" GenericCondition.GetCondition.impl
-  GetDescription_unfold : MethodUnfold GenericCondition.ty go!"GetDescription" GenericCondition.GetDescription.impl
-  GetID_unfold : MethodUnfold GenericCondition.ty go!"GetID" GenericCondition.GetID.impl
-  GetType_unfold : MethodUnfold GenericCondition.ty go!"GetType" GenericCondition.GetType.impl
-  ptr_Evaluate_unfold : MethodUnfold (go.GoType.PointerType GenericCondition.ty) go!"Evaluate" (LamV "$r"
+  unfold'Evaluate : MethodUnfold GenericCondition.ty go!"Evaluate" GenericCondition.Evaluate.impl
+  unfold'GetCondition : MethodUnfold GenericCondition.ty go!"GetCondition" GenericCondition.GetCondition.impl
+  unfold'GetDescription : MethodUnfold GenericCondition.ty go!"GetDescription" GenericCondition.GetDescription.impl
+  unfold'GetID : MethodUnfold GenericCondition.ty go!"GetID" GenericCondition.GetID.impl
+  unfold'GetType : MethodUnfold GenericCondition.ty go!"GetType" GenericCondition.GetType.impl
+  ptr_unfold'Evaluate : MethodUnfold (go.GoType.PointerType GenericCondition.ty) go!"Evaluate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve GenericCondition.ty go!"Evaluate"))) (App (Val (GoInstruction (GoLoad GenericCondition.ty))) (Var "$r"))))
-  ptr_GetCondition_unfold : MethodUnfold (go.GoType.PointerType GenericCondition.ty) go!"GetCondition" (LamV "$r"
+  ptr_unfold'GetCondition : MethodUnfold (go.GoType.PointerType GenericCondition.ty) go!"GetCondition" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve GenericCondition.ty go!"GetCondition"))) (App (Val (GoInstruction (GoLoad GenericCondition.ty))) (Var "$r"))))
-  ptr_GetDescription_unfold : MethodUnfold (go.GoType.PointerType GenericCondition.ty) go!"GetDescription" (LamV "$r"
+  ptr_unfold'GetDescription : MethodUnfold (go.GoType.PointerType GenericCondition.ty) go!"GetDescription" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve GenericCondition.ty go!"GetDescription"))) (App (Val (GoInstruction (GoLoad GenericCondition.ty))) (Var "$r"))))
-  ptr_GetID_unfold : MethodUnfold (go.GoType.PointerType GenericCondition.ty) go!"GetID" (LamV "$r"
+  ptr_unfold'GetID : MethodUnfold (go.GoType.PointerType GenericCondition.ty) go!"GetID" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve GenericCondition.ty go!"GetID"))) (App (Val (GoInstruction (GoLoad GenericCondition.ty))) (Var "$r"))))
-  ptr_GetType_unfold : MethodUnfold (go.GoType.PointerType GenericCondition.ty) go!"GetType" (LamV "$r"
+  ptr_unfold'GetType : MethodUnfold (go.GoType.PointerType GenericCondition.ty) go!"GetType" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve GenericCondition.ty go!"GetType"))) (App (Val (GoInstruction (GoLoad GenericCondition.ty))) (Var "$r"))))
 
 attribute [instance] GenericCondition.TypeAssumptions.type_repr
   GenericCondition.TypeAssumptions.underlying
-  GenericCondition.TypeAssumptions.get_ID
-  GenericCondition.TypeAssumptions.set_ID
-  GenericCondition.TypeAssumptions.get_Condition
-  GenericCondition.TypeAssumptions.set_Condition
-  GenericCondition.TypeAssumptions.get_Type
-  GenericCondition.TypeAssumptions.set_Type
-  GenericCondition.TypeAssumptions.get_Description
-  GenericCondition.TypeAssumptions.set_Description
-  GenericCondition.TypeAssumptions.get_EvaluateFunc
-  GenericCondition.TypeAssumptions.set_EvaluateFunc
+  GenericCondition.TypeAssumptions.get'ID
+  GenericCondition.TypeAssumptions.set'ID
+  GenericCondition.TypeAssumptions.get'Condition
+  GenericCondition.TypeAssumptions.set'Condition
+  GenericCondition.TypeAssumptions.get'Type
+  GenericCondition.TypeAssumptions.set'Type
+  GenericCondition.TypeAssumptions.get'Description
+  GenericCondition.TypeAssumptions.set'Description
+  GenericCondition.TypeAssumptions.get'EvaluateFunc
+  GenericCondition.TypeAssumptions.set'EvaluateFunc
   GenericCondition.TypeAssumptions.method_set
   GenericCondition.TypeAssumptions.ptr_method_set
-  GenericCondition.TypeAssumptions.Evaluate_unfold
-  GenericCondition.TypeAssumptions.GetCondition_unfold
-  GenericCondition.TypeAssumptions.GetDescription_unfold
-  GenericCondition.TypeAssumptions.GetID_unfold
-  GenericCondition.TypeAssumptions.GetType_unfold
-  GenericCondition.TypeAssumptions.ptr_Evaluate_unfold
-  GenericCondition.TypeAssumptions.ptr_GetCondition_unfold
-  GenericCondition.TypeAssumptions.ptr_GetDescription_unfold
-  GenericCondition.TypeAssumptions.ptr_GetID_unfold
-  GenericCondition.TypeAssumptions.ptr_GetType_unfold
+  GenericCondition.TypeAssumptions.unfold'Evaluate
+  GenericCondition.TypeAssumptions.unfold'GetCondition
+  GenericCondition.TypeAssumptions.unfold'GetDescription
+  GenericCondition.TypeAssumptions.unfold'GetID
+  GenericCondition.TypeAssumptions.unfold'GetType
+  GenericCondition.TypeAssumptions.ptr_unfold'Evaluate
+  GenericCondition.TypeAssumptions.ptr_unfold'GetCondition
+  GenericCondition.TypeAssumptions.ptr_unfold'GetDescription
+  GenericCondition.TypeAssumptions.ptr_unfold'GetID
+  GenericCondition.TypeAssumptions.ptr_unfold'GetType
 
 structure namedConditionsAwareDecision [GooseExts] where
   mk ::
@@ -3879,7 +3879,7 @@ noncomputable instance namedConditionsAwareDecision.zero_val [GooseExts] : ZeroV
 @[irreducible] noncomputable def namedConditionsAwareDecision.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   namedConditionsAwareDecision.fieldsUnsealed
 
-noncomputable instance equals_unfold_namedConditionsAwareDecision [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'namedConditionsAwareDecision [GooseExts] [GoGlobalContext] :
     EqualsUnfold namedConditionsAwareDecision.fields namedConditionsAwareDecision.fieldsUnsealed :=
   ⟨by unfold namedConditionsAwareDecision.fields; rfl⟩
 
@@ -3889,19 +3889,19 @@ noncomputable instance equals_unfold_namedConditionsAwareDecision [GooseExts] [G
 class namedConditionsAwareDecision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying namedConditionsAwareDecision.underlying namedConditionsAwareDecision
   underlying : go.UnderlyingDirectedEq namedConditionsAwareDecision.ty namedConditionsAwareDecision.underlying
-  get_conditionalAuthorizerName : ∀ (x : namedConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldGet namedConditionsAwareDecision.underlying go!"conditionalAuthorizerName") #x (Val #(x.conditionalAuthorizerName'))
-  set_conditionalAuthorizerName : ∀ (x : namedConditionsAwareDecision) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet namedConditionsAwareDecision.underlying go!"conditionalAuthorizerName") (PairV #x #y) (Val #(({ x with conditionalAuthorizerName' := y } : namedConditionsAwareDecision)))
-  get_d : ∀ (x : namedConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldGet namedConditionsAwareDecision.underlying go!"d") #x (Val #(x.d'))
-  set_d : ∀ (x : namedConditionsAwareDecision) (y : ConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldSet namedConditionsAwareDecision.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : namedConditionsAwareDecision)))
+  get'conditionalAuthorizerName : ∀ (x : namedConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldGet namedConditionsAwareDecision.underlying go!"conditionalAuthorizerName") #x (Val #(x.conditionalAuthorizerName'))
+  set'conditionalAuthorizerName : ∀ (x : namedConditionsAwareDecision) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet namedConditionsAwareDecision.underlying go!"conditionalAuthorizerName") (PairV #x #y) (Val #(({ x with conditionalAuthorizerName' := y } : namedConditionsAwareDecision)))
+  get'd : ∀ (x : namedConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldGet namedConditionsAwareDecision.underlying go!"d") #x (Val #(x.d'))
+  set'd : ∀ (x : namedConditionsAwareDecision) (y : ConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldSet namedConditionsAwareDecision.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : namedConditionsAwareDecision)))
   method_set : go.MethodSetIs namedConditionsAwareDecision.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType namedConditionsAwareDecision.ty) []
 
 attribute [instance] namedConditionsAwareDecision.TypeAssumptions.type_repr
   namedConditionsAwareDecision.TypeAssumptions.underlying
-  namedConditionsAwareDecision.TypeAssumptions.get_conditionalAuthorizerName
-  namedConditionsAwareDecision.TypeAssumptions.set_conditionalAuthorizerName
-  namedConditionsAwareDecision.TypeAssumptions.get_d
-  namedConditionsAwareDecision.TypeAssumptions.set_d
+  namedConditionsAwareDecision.TypeAssumptions.get'conditionalAuthorizerName
+  namedConditionsAwareDecision.TypeAssumptions.set'conditionalAuthorizerName
+  namedConditionsAwareDecision.TypeAssumptions.get'd
+  namedConditionsAwareDecision.TypeAssumptions.set'd
   namedConditionsAwareDecision.TypeAssumptions.method_set
   namedConditionsAwareDecision.TypeAssumptions.ptr_method_set
 
@@ -3934,7 +3934,7 @@ noncomputable instance ConditionEvaluationResult.zero_val [GooseExts] : ZeroVal 
 @[irreducible] noncomputable def ConditionEvaluationResult.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConditionEvaluationResult.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConditionEvaluationResult [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ConditionEvaluationResult [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConditionEvaluationResult.fields ConditionEvaluationResult.fieldsUnsealed :=
   ⟨by unfold ConditionEvaluationResult.fields; rfl⟩
 
@@ -3944,46 +3944,46 @@ noncomputable instance equals_unfold_ConditionEvaluationResult [GooseExts] [GoGl
 class ConditionEvaluationResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConditionEvaluationResult.underlying ConditionEvaluationResult
   underlying : go.UnderlyingDirectedEq ConditionEvaluationResult.ty ConditionEvaluationResult.underlying
-  get_resultType : ∀ (x : ConditionEvaluationResult), go.IsGoStepPureDetTagged under (StructFieldGet ConditionEvaluationResult.underlying go!"resultType") #x (Val #(x.resultType'))
-  set_resultType : ∀ (x : ConditionEvaluationResult) (y : partialConditionEvaluationResultType), go.IsGoStepPureDetTagged under (StructFieldSet ConditionEvaluationResult.underlying go!"resultType") (PairV #x #y) (Val #(({ x with resultType' := y } : ConditionEvaluationResult)))
-  get_err : ∀ (x : ConditionEvaluationResult), go.IsGoStepPureDetTagged under (StructFieldGet ConditionEvaluationResult.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : ConditionEvaluationResult) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet ConditionEvaluationResult.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : ConditionEvaluationResult)))
+  get'resultType : ∀ (x : ConditionEvaluationResult), go.IsGoStepPureDetTagged under (StructFieldGet ConditionEvaluationResult.underlying go!"resultType") #x (Val #(x.resultType'))
+  set'resultType : ∀ (x : ConditionEvaluationResult) (y : partialConditionEvaluationResultType), go.IsGoStepPureDetTagged under (StructFieldSet ConditionEvaluationResult.underlying go!"resultType") (PairV #x #y) (Val #(({ x with resultType' := y } : ConditionEvaluationResult)))
+  get'err : ∀ (x : ConditionEvaluationResult), go.IsGoStepPureDetTagged under (StructFieldGet ConditionEvaluationResult.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : ConditionEvaluationResult) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet ConditionEvaluationResult.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : ConditionEvaluationResult)))
   method_set : go.MethodSetIs ConditionEvaluationResult.ty [(go!"Error", (some (go.signature.Signature [] false [go.error]))), (go!"IsError", (some (go.signature.Signature [] false [go.bool]))), (go!"IsFalse", (some (go.signature.Signature [] false [go.bool]))), (go!"IsTrue", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnevaluatable", (some (go.signature.Signature [] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionEvaluationResult.ty) [(go!"Error", (some (go.signature.Signature [] false [go.error]))), (go!"IsError", (some (go.signature.Signature [] false [go.bool]))), (go!"IsFalse", (some (go.signature.Signature [] false [go.bool]))), (go!"IsTrue", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnevaluatable", (some (go.signature.Signature [] false [go.bool])))]
-  Error_unfold : MethodUnfold ConditionEvaluationResult.ty go!"Error" ConditionEvaluationResult.Error.impl
-  IsError_unfold : MethodUnfold ConditionEvaluationResult.ty go!"IsError" ConditionEvaluationResult.IsError.impl
-  IsFalse_unfold : MethodUnfold ConditionEvaluationResult.ty go!"IsFalse" ConditionEvaluationResult.IsFalse.impl
-  IsTrue_unfold : MethodUnfold ConditionEvaluationResult.ty go!"IsTrue" ConditionEvaluationResult.IsTrue.impl
-  IsUnevaluatable_unfold : MethodUnfold ConditionEvaluationResult.ty go!"IsUnevaluatable" ConditionEvaluationResult.IsUnevaluatable.impl
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType ConditionEvaluationResult.ty) go!"Error" (LamV "$r"
+  unfold'Error : MethodUnfold ConditionEvaluationResult.ty go!"Error" ConditionEvaluationResult.Error.impl
+  unfold'IsError : MethodUnfold ConditionEvaluationResult.ty go!"IsError" ConditionEvaluationResult.IsError.impl
+  unfold'IsFalse : MethodUnfold ConditionEvaluationResult.ty go!"IsFalse" ConditionEvaluationResult.IsFalse.impl
+  unfold'IsTrue : MethodUnfold ConditionEvaluationResult.ty go!"IsTrue" ConditionEvaluationResult.IsTrue.impl
+  unfold'IsUnevaluatable : MethodUnfold ConditionEvaluationResult.ty go!"IsUnevaluatable" ConditionEvaluationResult.IsUnevaluatable.impl
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType ConditionEvaluationResult.ty) go!"Error" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionEvaluationResult.ty go!"Error"))) (App (Val (GoInstruction (GoLoad ConditionEvaluationResult.ty))) (Var "$r"))))
-  ptr_IsError_unfold : MethodUnfold (go.GoType.PointerType ConditionEvaluationResult.ty) go!"IsError" (LamV "$r"
+  ptr_unfold'IsError : MethodUnfold (go.GoType.PointerType ConditionEvaluationResult.ty) go!"IsError" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionEvaluationResult.ty go!"IsError"))) (App (Val (GoInstruction (GoLoad ConditionEvaluationResult.ty))) (Var "$r"))))
-  ptr_IsFalse_unfold : MethodUnfold (go.GoType.PointerType ConditionEvaluationResult.ty) go!"IsFalse" (LamV "$r"
+  ptr_unfold'IsFalse : MethodUnfold (go.GoType.PointerType ConditionEvaluationResult.ty) go!"IsFalse" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionEvaluationResult.ty go!"IsFalse"))) (App (Val (GoInstruction (GoLoad ConditionEvaluationResult.ty))) (Var "$r"))))
-  ptr_IsTrue_unfold : MethodUnfold (go.GoType.PointerType ConditionEvaluationResult.ty) go!"IsTrue" (LamV "$r"
+  ptr_unfold'IsTrue : MethodUnfold (go.GoType.PointerType ConditionEvaluationResult.ty) go!"IsTrue" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionEvaluationResult.ty go!"IsTrue"))) (App (Val (GoInstruction (GoLoad ConditionEvaluationResult.ty))) (Var "$r"))))
-  ptr_IsUnevaluatable_unfold : MethodUnfold (go.GoType.PointerType ConditionEvaluationResult.ty) go!"IsUnevaluatable" (LamV "$r"
+  ptr_unfold'IsUnevaluatable : MethodUnfold (go.GoType.PointerType ConditionEvaluationResult.ty) go!"IsUnevaluatable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConditionEvaluationResult.ty go!"IsUnevaluatable"))) (App (Val (GoInstruction (GoLoad ConditionEvaluationResult.ty))) (Var "$r"))))
 
 attribute [instance] ConditionEvaluationResult.TypeAssumptions.type_repr
   ConditionEvaluationResult.TypeAssumptions.underlying
-  ConditionEvaluationResult.TypeAssumptions.get_resultType
-  ConditionEvaluationResult.TypeAssumptions.set_resultType
-  ConditionEvaluationResult.TypeAssumptions.get_err
-  ConditionEvaluationResult.TypeAssumptions.set_err
+  ConditionEvaluationResult.TypeAssumptions.get'resultType
+  ConditionEvaluationResult.TypeAssumptions.set'resultType
+  ConditionEvaluationResult.TypeAssumptions.get'err
+  ConditionEvaluationResult.TypeAssumptions.set'err
   ConditionEvaluationResult.TypeAssumptions.method_set
   ConditionEvaluationResult.TypeAssumptions.ptr_method_set
-  ConditionEvaluationResult.TypeAssumptions.Error_unfold
-  ConditionEvaluationResult.TypeAssumptions.IsError_unfold
-  ConditionEvaluationResult.TypeAssumptions.IsFalse_unfold
-  ConditionEvaluationResult.TypeAssumptions.IsTrue_unfold
-  ConditionEvaluationResult.TypeAssumptions.IsUnevaluatable_unfold
-  ConditionEvaluationResult.TypeAssumptions.ptr_Error_unfold
-  ConditionEvaluationResult.TypeAssumptions.ptr_IsError_unfold
-  ConditionEvaluationResult.TypeAssumptions.ptr_IsFalse_unfold
-  ConditionEvaluationResult.TypeAssumptions.ptr_IsTrue_unfold
-  ConditionEvaluationResult.TypeAssumptions.ptr_IsUnevaluatable_unfold
+  ConditionEvaluationResult.TypeAssumptions.unfold'Error
+  ConditionEvaluationResult.TypeAssumptions.unfold'IsError
+  ConditionEvaluationResult.TypeAssumptions.unfold'IsFalse
+  ConditionEvaluationResult.TypeAssumptions.unfold'IsTrue
+  ConditionEvaluationResult.TypeAssumptions.unfold'IsUnevaluatable
+  ConditionEvaluationResult.TypeAssumptions.ptr_unfold'Error
+  ConditionEvaluationResult.TypeAssumptions.ptr_unfold'IsError
+  ConditionEvaluationResult.TypeAssumptions.ptr_unfold'IsFalse
+  ConditionEvaluationResult.TypeAssumptions.ptr_unfold'IsTrue
+  ConditionEvaluationResult.TypeAssumptions.ptr_unfold'IsUnevaluatable
 
 abbrev Attributes [GooseExts] : Type := GoInterface
 
@@ -4036,25 +4036,25 @@ class AuthorizerFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq AuthorizerFunc.ty AuthorizerFunc.underlying
   method_set : go.MethodSetIs AuthorizerFunc.ty [(go!"Authorize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, Attributes.ty] false [Decision.ty, go.string, go.error]))), (go!"ConditionsAwareAuthorize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, Attributes.ty] false [ConditionsAwareDecision.ty]))), (go!"EvaluateConditions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, ConditionsAwareDecision.ty, ConditionsData.ty] false [Decision.ty, go.string, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthorizerFunc.ty) [(go!"Authorize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, Attributes.ty] false [Decision.ty, go.string, go.error]))), (go!"ConditionsAwareAuthorize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, Attributes.ty] false [ConditionsAwareDecision.ty]))), (go!"EvaluateConditions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, ConditionsAwareDecision.ty, ConditionsData.ty] false [Decision.ty, go.string, go.error])))]
-  Authorize_unfold : MethodUnfold AuthorizerFunc.ty go!"Authorize" AuthorizerFunc.Authorize.impl
-  ConditionsAwareAuthorize_unfold : MethodUnfold AuthorizerFunc.ty go!"ConditionsAwareAuthorize" AuthorizerFunc.ConditionsAwareAuthorize.impl
-  EvaluateConditions_unfold : MethodUnfold AuthorizerFunc.ty go!"EvaluateConditions" AuthorizerFunc.EvaluateConditions.impl
-  ptr_Authorize_unfold : MethodUnfold (go.GoType.PointerType AuthorizerFunc.ty) go!"Authorize" (LamV "$r"
+  unfold'Authorize : MethodUnfold AuthorizerFunc.ty go!"Authorize" AuthorizerFunc.Authorize.impl
+  unfold'ConditionsAwareAuthorize : MethodUnfold AuthorizerFunc.ty go!"ConditionsAwareAuthorize" AuthorizerFunc.ConditionsAwareAuthorize.impl
+  unfold'EvaluateConditions : MethodUnfold AuthorizerFunc.ty go!"EvaluateConditions" AuthorizerFunc.EvaluateConditions.impl
+  ptr_unfold'Authorize : MethodUnfold (go.GoType.PointerType AuthorizerFunc.ty) go!"Authorize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AuthorizerFunc.ty go!"Authorize"))) (App (Val (GoInstruction (GoLoad AuthorizerFunc.ty))) (Var "$r"))))
-  ptr_ConditionsAwareAuthorize_unfold : MethodUnfold (go.GoType.PointerType AuthorizerFunc.ty) go!"ConditionsAwareAuthorize" (LamV "$r"
+  ptr_unfold'ConditionsAwareAuthorize : MethodUnfold (go.GoType.PointerType AuthorizerFunc.ty) go!"ConditionsAwareAuthorize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AuthorizerFunc.ty go!"ConditionsAwareAuthorize"))) (App (Val (GoInstruction (GoLoad AuthorizerFunc.ty))) (Var "$r"))))
-  ptr_EvaluateConditions_unfold : MethodUnfold (go.GoType.PointerType AuthorizerFunc.ty) go!"EvaluateConditions" (LamV "$r"
+  ptr_unfold'EvaluateConditions : MethodUnfold (go.GoType.PointerType AuthorizerFunc.ty) go!"EvaluateConditions" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AuthorizerFunc.ty go!"EvaluateConditions"))) (App (Val (GoInstruction (GoLoad AuthorizerFunc.ty))) (Var "$r"))))
 
 attribute [instance] AuthorizerFunc.TypeAssumptions.underlying
   AuthorizerFunc.TypeAssumptions.method_set
   AuthorizerFunc.TypeAssumptions.ptr_method_set
-  AuthorizerFunc.TypeAssumptions.Authorize_unfold
-  AuthorizerFunc.TypeAssumptions.ConditionsAwareAuthorize_unfold
-  AuthorizerFunc.TypeAssumptions.EvaluateConditions_unfold
-  AuthorizerFunc.TypeAssumptions.ptr_Authorize_unfold
-  AuthorizerFunc.TypeAssumptions.ptr_ConditionsAwareAuthorize_unfold
-  AuthorizerFunc.TypeAssumptions.ptr_EvaluateConditions_unfold
+  AuthorizerFunc.TypeAssumptions.unfold'Authorize
+  AuthorizerFunc.TypeAssumptions.unfold'ConditionsAwareAuthorize
+  AuthorizerFunc.TypeAssumptions.unfold'EvaluateConditions
+  AuthorizerFunc.TypeAssumptions.ptr_unfold'Authorize
+  AuthorizerFunc.TypeAssumptions.ptr_unfold'ConditionsAwareAuthorize
+  AuthorizerFunc.TypeAssumptions.ptr_unfold'EvaluateConditions
 
 abbrev RuleResolver [GooseExts] : Type := GoInterface
 
@@ -4123,7 +4123,7 @@ noncomputable instance AttributesRecord.zero_val [GooseExts] : ZeroVal Attribute
 @[irreducible] noncomputable def AttributesRecord.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AttributesRecord.fieldsUnsealed
 
-noncomputable instance equals_unfold_AttributesRecord [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'AttributesRecord [GooseExts] [GoGlobalContext] :
     EqualsUnfold AttributesRecord.fields AttributesRecord.fieldsUnsealed :=
   ⟨by unfold AttributesRecord.fields; rfl⟩
 
@@ -4133,134 +4133,134 @@ noncomputable instance equals_unfold_AttributesRecord [GooseExts] [GoGlobalConte
 class AttributesRecord.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AttributesRecord.underlying AttributesRecord
   underlying : go.UnderlyingDirectedEq AttributesRecord.ty AttributesRecord.underlying
-  get_User : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"User") #x (Val #(x.User'))
-  set_User : ∀ (x : AttributesRecord) (y : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"User") (PairV #x #y) (Val #(({ x with User' := y } : AttributesRecord)))
-  get_Verb : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"Verb") #x (Val #(x.Verb'))
-  set_Verb : ∀ (x : AttributesRecord) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"Verb") (PairV #x #y) (Val #(({ x with Verb' := y } : AttributesRecord)))
-  get_Namespace : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"Namespace") #x (Val #(x.Namespace'))
-  set_Namespace : ∀ (x : AttributesRecord) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : AttributesRecord)))
-  get_APIGroup : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"APIGroup") #x (Val #(x.APIGroup'))
-  set_APIGroup : ∀ (x : AttributesRecord) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"APIGroup") (PairV #x #y) (Val #(({ x with APIGroup' := y } : AttributesRecord)))
-  get_APIVersion : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"APIVersion") #x (Val #(x.APIVersion'))
-  set_APIVersion : ∀ (x : AttributesRecord) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"APIVersion") (PairV #x #y) (Val #(({ x with APIVersion' := y } : AttributesRecord)))
-  get_Resource : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"Resource") #x (Val #(x.Resource'))
-  set_Resource : ∀ (x : AttributesRecord) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"Resource") (PairV #x #y) (Val #(({ x with Resource' := y } : AttributesRecord)))
-  get_Subresource : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"Subresource") #x (Val #(x.Subresource'))
-  set_Subresource : ∀ (x : AttributesRecord) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"Subresource") (PairV #x #y) (Val #(({ x with Subresource' := y } : AttributesRecord)))
-  get_Name : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : AttributesRecord) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : AttributesRecord)))
-  get_ResourceRequest : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"ResourceRequest") #x (Val #(x.ResourceRequest'))
-  set_ResourceRequest : ∀ (x : AttributesRecord) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"ResourceRequest") (PairV #x #y) (Val #(({ x with ResourceRequest' := y } : AttributesRecord)))
-  get_Path : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"Path") #x (Val #(x.Path'))
-  set_Path : ∀ (x : AttributesRecord) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : AttributesRecord)))
-  get_FieldSelectorRequirements : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"FieldSelectorRequirements") #x (Val #(x.FieldSelectorRequirements'))
-  set_FieldSelectorRequirements : ∀ (x : AttributesRecord) (y : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Requirements), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"FieldSelectorRequirements") (PairV #x #y) (Val #(({ x with FieldSelectorRequirements' := y } : AttributesRecord)))
-  get_FieldSelectorParsingErr : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"FieldSelectorParsingErr") #x (Val #(x.FieldSelectorParsingErr'))
-  set_FieldSelectorParsingErr : ∀ (x : AttributesRecord) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"FieldSelectorParsingErr") (PairV #x #y) (Val #(({ x with FieldSelectorParsingErr' := y } : AttributesRecord)))
-  get_LabelSelectorRequirements : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"LabelSelectorRequirements") #x (Val #(x.LabelSelectorRequirements'))
-  set_LabelSelectorRequirements : ∀ (x : AttributesRecord) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Requirements), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"LabelSelectorRequirements") (PairV #x #y) (Val #(({ x with LabelSelectorRequirements' := y } : AttributesRecord)))
-  get_LabelSelectorParsingErr : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"LabelSelectorParsingErr") #x (Val #(x.LabelSelectorParsingErr'))
-  set_LabelSelectorParsingErr : ∀ (x : AttributesRecord) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"LabelSelectorParsingErr") (PairV #x #y) (Val #(({ x with LabelSelectorParsingErr' := y } : AttributesRecord)))
+  get'User : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"User") #x (Val #(x.User'))
+  set'User : ∀ (x : AttributesRecord) (y : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"User") (PairV #x #y) (Val #(({ x with User' := y } : AttributesRecord)))
+  get'Verb : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"Verb") #x (Val #(x.Verb'))
+  set'Verb : ∀ (x : AttributesRecord) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"Verb") (PairV #x #y) (Val #(({ x with Verb' := y } : AttributesRecord)))
+  get'Namespace : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"Namespace") #x (Val #(x.Namespace'))
+  set'Namespace : ∀ (x : AttributesRecord) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : AttributesRecord)))
+  get'APIGroup : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"APIGroup") #x (Val #(x.APIGroup'))
+  set'APIGroup : ∀ (x : AttributesRecord) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"APIGroup") (PairV #x #y) (Val #(({ x with APIGroup' := y } : AttributesRecord)))
+  get'APIVersion : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"APIVersion") #x (Val #(x.APIVersion'))
+  set'APIVersion : ∀ (x : AttributesRecord) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"APIVersion") (PairV #x #y) (Val #(({ x with APIVersion' := y } : AttributesRecord)))
+  get'Resource : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"Resource") #x (Val #(x.Resource'))
+  set'Resource : ∀ (x : AttributesRecord) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"Resource") (PairV #x #y) (Val #(({ x with Resource' := y } : AttributesRecord)))
+  get'Subresource : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"Subresource") #x (Val #(x.Subresource'))
+  set'Subresource : ∀ (x : AttributesRecord) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"Subresource") (PairV #x #y) (Val #(({ x with Subresource' := y } : AttributesRecord)))
+  get'Name : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : AttributesRecord) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : AttributesRecord)))
+  get'ResourceRequest : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"ResourceRequest") #x (Val #(x.ResourceRequest'))
+  set'ResourceRequest : ∀ (x : AttributesRecord) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"ResourceRequest") (PairV #x #y) (Val #(({ x with ResourceRequest' := y } : AttributesRecord)))
+  get'Path : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"Path") #x (Val #(x.Path'))
+  set'Path : ∀ (x : AttributesRecord) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : AttributesRecord)))
+  get'FieldSelectorRequirements : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"FieldSelectorRequirements") #x (Val #(x.FieldSelectorRequirements'))
+  set'FieldSelectorRequirements : ∀ (x : AttributesRecord) (y : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Requirements), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"FieldSelectorRequirements") (PairV #x #y) (Val #(({ x with FieldSelectorRequirements' := y } : AttributesRecord)))
+  get'FieldSelectorParsingErr : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"FieldSelectorParsingErr") #x (Val #(x.FieldSelectorParsingErr'))
+  set'FieldSelectorParsingErr : ∀ (x : AttributesRecord) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"FieldSelectorParsingErr") (PairV #x #y) (Val #(({ x with FieldSelectorParsingErr' := y } : AttributesRecord)))
+  get'LabelSelectorRequirements : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"LabelSelectorRequirements") #x (Val #(x.LabelSelectorRequirements'))
+  set'LabelSelectorRequirements : ∀ (x : AttributesRecord) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Requirements), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"LabelSelectorRequirements") (PairV #x #y) (Val #(({ x with LabelSelectorRequirements' := y } : AttributesRecord)))
+  get'LabelSelectorParsingErr : ∀ (x : AttributesRecord), go.IsGoStepPureDetTagged under (StructFieldGet AttributesRecord.underlying go!"LabelSelectorParsingErr") #x (Val #(x.LabelSelectorParsingErr'))
+  set'LabelSelectorParsingErr : ∀ (x : AttributesRecord) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet AttributesRecord.underlying go!"LabelSelectorParsingErr") (PairV #x #y) (Val #(({ x with LabelSelectorParsingErr' := y } : AttributesRecord)))
   method_set : go.MethodSetIs AttributesRecord.ty [(go!"GetAPIGroup", (some (go.signature.Signature [] false [go.string]))), (go!"GetAPIVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetFieldSelector", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.fields.Requirements.ty, go.error]))), (go!"GetLabelSelector", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Requirements.ty, go.error]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetPath", (some (go.signature.Signature [] false [go.string]))), (go!"GetResource", (some (go.signature.Signature [] false [go.string]))), (go!"GetSubresource", (some (go.signature.Signature [] false [go.string]))), (go!"GetUser", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info.ty]))), (go!"GetVerb", (some (go.signature.Signature [] false [go.string]))), (go!"IsReadOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"IsResourceRequest", (some (go.signature.Signature [] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType AttributesRecord.ty) [(go!"GetAPIGroup", (some (go.signature.Signature [] false [go.string]))), (go!"GetAPIVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetFieldSelector", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.fields.Requirements.ty, go.error]))), (go!"GetLabelSelector", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Requirements.ty, go.error]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetPath", (some (go.signature.Signature [] false [go.string]))), (go!"GetResource", (some (go.signature.Signature [] false [go.string]))), (go!"GetSubresource", (some (go.signature.Signature [] false [go.string]))), (go!"GetUser", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info.ty]))), (go!"GetVerb", (some (go.signature.Signature [] false [go.string]))), (go!"IsReadOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"IsResourceRequest", (some (go.signature.Signature [] false [go.bool])))]
-  GetAPIGroup_unfold : MethodUnfold AttributesRecord.ty go!"GetAPIGroup" AttributesRecord.GetAPIGroup.impl
-  GetAPIVersion_unfold : MethodUnfold AttributesRecord.ty go!"GetAPIVersion" AttributesRecord.GetAPIVersion.impl
-  GetFieldSelector_unfold : MethodUnfold AttributesRecord.ty go!"GetFieldSelector" AttributesRecord.GetFieldSelector.impl
-  GetLabelSelector_unfold : MethodUnfold AttributesRecord.ty go!"GetLabelSelector" AttributesRecord.GetLabelSelector.impl
-  GetName_unfold : MethodUnfold AttributesRecord.ty go!"GetName" AttributesRecord.GetName.impl
-  GetNamespace_unfold : MethodUnfold AttributesRecord.ty go!"GetNamespace" AttributesRecord.GetNamespace.impl
-  GetPath_unfold : MethodUnfold AttributesRecord.ty go!"GetPath" AttributesRecord.GetPath.impl
-  GetResource_unfold : MethodUnfold AttributesRecord.ty go!"GetResource" AttributesRecord.GetResource.impl
-  GetSubresource_unfold : MethodUnfold AttributesRecord.ty go!"GetSubresource" AttributesRecord.GetSubresource.impl
-  GetUser_unfold : MethodUnfold AttributesRecord.ty go!"GetUser" AttributesRecord.GetUser.impl
-  GetVerb_unfold : MethodUnfold AttributesRecord.ty go!"GetVerb" AttributesRecord.GetVerb.impl
-  IsReadOnly_unfold : MethodUnfold AttributesRecord.ty go!"IsReadOnly" AttributesRecord.IsReadOnly.impl
-  IsResourceRequest_unfold : MethodUnfold AttributesRecord.ty go!"IsResourceRequest" AttributesRecord.IsResourceRequest.impl
-  ptr_GetAPIGroup_unfold : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetAPIGroup" (LamV "$r"
+  unfold'GetAPIGroup : MethodUnfold AttributesRecord.ty go!"GetAPIGroup" AttributesRecord.GetAPIGroup.impl
+  unfold'GetAPIVersion : MethodUnfold AttributesRecord.ty go!"GetAPIVersion" AttributesRecord.GetAPIVersion.impl
+  unfold'GetFieldSelector : MethodUnfold AttributesRecord.ty go!"GetFieldSelector" AttributesRecord.GetFieldSelector.impl
+  unfold'GetLabelSelector : MethodUnfold AttributesRecord.ty go!"GetLabelSelector" AttributesRecord.GetLabelSelector.impl
+  unfold'GetName : MethodUnfold AttributesRecord.ty go!"GetName" AttributesRecord.GetName.impl
+  unfold'GetNamespace : MethodUnfold AttributesRecord.ty go!"GetNamespace" AttributesRecord.GetNamespace.impl
+  unfold'GetPath : MethodUnfold AttributesRecord.ty go!"GetPath" AttributesRecord.GetPath.impl
+  unfold'GetResource : MethodUnfold AttributesRecord.ty go!"GetResource" AttributesRecord.GetResource.impl
+  unfold'GetSubresource : MethodUnfold AttributesRecord.ty go!"GetSubresource" AttributesRecord.GetSubresource.impl
+  unfold'GetUser : MethodUnfold AttributesRecord.ty go!"GetUser" AttributesRecord.GetUser.impl
+  unfold'GetVerb : MethodUnfold AttributesRecord.ty go!"GetVerb" AttributesRecord.GetVerb.impl
+  unfold'IsReadOnly : MethodUnfold AttributesRecord.ty go!"IsReadOnly" AttributesRecord.IsReadOnly.impl
+  unfold'IsResourceRequest : MethodUnfold AttributesRecord.ty go!"IsResourceRequest" AttributesRecord.IsResourceRequest.impl
+  ptr_unfold'GetAPIGroup : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetAPIGroup" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AttributesRecord.ty go!"GetAPIGroup"))) (App (Val (GoInstruction (GoLoad AttributesRecord.ty))) (Var "$r"))))
-  ptr_GetAPIVersion_unfold : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetAPIVersion" (LamV "$r"
+  ptr_unfold'GetAPIVersion : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetAPIVersion" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AttributesRecord.ty go!"GetAPIVersion"))) (App (Val (GoInstruction (GoLoad AttributesRecord.ty))) (Var "$r"))))
-  ptr_GetFieldSelector_unfold : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetFieldSelector" (LamV "$r"
+  ptr_unfold'GetFieldSelector : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetFieldSelector" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AttributesRecord.ty go!"GetFieldSelector"))) (App (Val (GoInstruction (GoLoad AttributesRecord.ty))) (Var "$r"))))
-  ptr_GetLabelSelector_unfold : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetLabelSelector" (LamV "$r"
+  ptr_unfold'GetLabelSelector : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetLabelSelector" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AttributesRecord.ty go!"GetLabelSelector"))) (App (Val (GoInstruction (GoLoad AttributesRecord.ty))) (Var "$r"))))
-  ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetName" (LamV "$r"
+  ptr_unfold'GetName : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetName" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AttributesRecord.ty go!"GetName"))) (App (Val (GoInstruction (GoLoad AttributesRecord.ty))) (Var "$r"))))
-  ptr_GetNamespace_unfold : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetNamespace" (LamV "$r"
+  ptr_unfold'GetNamespace : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetNamespace" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AttributesRecord.ty go!"GetNamespace"))) (App (Val (GoInstruction (GoLoad AttributesRecord.ty))) (Var "$r"))))
-  ptr_GetPath_unfold : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetPath" (LamV "$r"
+  ptr_unfold'GetPath : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetPath" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AttributesRecord.ty go!"GetPath"))) (App (Val (GoInstruction (GoLoad AttributesRecord.ty))) (Var "$r"))))
-  ptr_GetResource_unfold : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetResource" (LamV "$r"
+  ptr_unfold'GetResource : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetResource" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AttributesRecord.ty go!"GetResource"))) (App (Val (GoInstruction (GoLoad AttributesRecord.ty))) (Var "$r"))))
-  ptr_GetSubresource_unfold : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetSubresource" (LamV "$r"
+  ptr_unfold'GetSubresource : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetSubresource" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AttributesRecord.ty go!"GetSubresource"))) (App (Val (GoInstruction (GoLoad AttributesRecord.ty))) (Var "$r"))))
-  ptr_GetUser_unfold : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetUser" (LamV "$r"
+  ptr_unfold'GetUser : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetUser" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AttributesRecord.ty go!"GetUser"))) (App (Val (GoInstruction (GoLoad AttributesRecord.ty))) (Var "$r"))))
-  ptr_GetVerb_unfold : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetVerb" (LamV "$r"
+  ptr_unfold'GetVerb : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"GetVerb" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AttributesRecord.ty go!"GetVerb"))) (App (Val (GoInstruction (GoLoad AttributesRecord.ty))) (Var "$r"))))
-  ptr_IsReadOnly_unfold : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"IsReadOnly" (LamV "$r"
+  ptr_unfold'IsReadOnly : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"IsReadOnly" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AttributesRecord.ty go!"IsReadOnly"))) (App (Val (GoInstruction (GoLoad AttributesRecord.ty))) (Var "$r"))))
-  ptr_IsResourceRequest_unfold : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"IsResourceRequest" (LamV "$r"
+  ptr_unfold'IsResourceRequest : MethodUnfold (go.GoType.PointerType AttributesRecord.ty) go!"IsResourceRequest" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AttributesRecord.ty go!"IsResourceRequest"))) (App (Val (GoInstruction (GoLoad AttributesRecord.ty))) (Var "$r"))))
 
 attribute [instance] AttributesRecord.TypeAssumptions.type_repr
   AttributesRecord.TypeAssumptions.underlying
-  AttributesRecord.TypeAssumptions.get_User
-  AttributesRecord.TypeAssumptions.set_User
-  AttributesRecord.TypeAssumptions.get_Verb
-  AttributesRecord.TypeAssumptions.set_Verb
-  AttributesRecord.TypeAssumptions.get_Namespace
-  AttributesRecord.TypeAssumptions.set_Namespace
-  AttributesRecord.TypeAssumptions.get_APIGroup
-  AttributesRecord.TypeAssumptions.set_APIGroup
-  AttributesRecord.TypeAssumptions.get_APIVersion
-  AttributesRecord.TypeAssumptions.set_APIVersion
-  AttributesRecord.TypeAssumptions.get_Resource
-  AttributesRecord.TypeAssumptions.set_Resource
-  AttributesRecord.TypeAssumptions.get_Subresource
-  AttributesRecord.TypeAssumptions.set_Subresource
-  AttributesRecord.TypeAssumptions.get_Name
-  AttributesRecord.TypeAssumptions.set_Name
-  AttributesRecord.TypeAssumptions.get_ResourceRequest
-  AttributesRecord.TypeAssumptions.set_ResourceRequest
-  AttributesRecord.TypeAssumptions.get_Path
-  AttributesRecord.TypeAssumptions.set_Path
-  AttributesRecord.TypeAssumptions.get_FieldSelectorRequirements
-  AttributesRecord.TypeAssumptions.set_FieldSelectorRequirements
-  AttributesRecord.TypeAssumptions.get_FieldSelectorParsingErr
-  AttributesRecord.TypeAssumptions.set_FieldSelectorParsingErr
-  AttributesRecord.TypeAssumptions.get_LabelSelectorRequirements
-  AttributesRecord.TypeAssumptions.set_LabelSelectorRequirements
-  AttributesRecord.TypeAssumptions.get_LabelSelectorParsingErr
-  AttributesRecord.TypeAssumptions.set_LabelSelectorParsingErr
+  AttributesRecord.TypeAssumptions.get'User
+  AttributesRecord.TypeAssumptions.set'User
+  AttributesRecord.TypeAssumptions.get'Verb
+  AttributesRecord.TypeAssumptions.set'Verb
+  AttributesRecord.TypeAssumptions.get'Namespace
+  AttributesRecord.TypeAssumptions.set'Namespace
+  AttributesRecord.TypeAssumptions.get'APIGroup
+  AttributesRecord.TypeAssumptions.set'APIGroup
+  AttributesRecord.TypeAssumptions.get'APIVersion
+  AttributesRecord.TypeAssumptions.set'APIVersion
+  AttributesRecord.TypeAssumptions.get'Resource
+  AttributesRecord.TypeAssumptions.set'Resource
+  AttributesRecord.TypeAssumptions.get'Subresource
+  AttributesRecord.TypeAssumptions.set'Subresource
+  AttributesRecord.TypeAssumptions.get'Name
+  AttributesRecord.TypeAssumptions.set'Name
+  AttributesRecord.TypeAssumptions.get'ResourceRequest
+  AttributesRecord.TypeAssumptions.set'ResourceRequest
+  AttributesRecord.TypeAssumptions.get'Path
+  AttributesRecord.TypeAssumptions.set'Path
+  AttributesRecord.TypeAssumptions.get'FieldSelectorRequirements
+  AttributesRecord.TypeAssumptions.set'FieldSelectorRequirements
+  AttributesRecord.TypeAssumptions.get'FieldSelectorParsingErr
+  AttributesRecord.TypeAssumptions.set'FieldSelectorParsingErr
+  AttributesRecord.TypeAssumptions.get'LabelSelectorRequirements
+  AttributesRecord.TypeAssumptions.set'LabelSelectorRequirements
+  AttributesRecord.TypeAssumptions.get'LabelSelectorParsingErr
+  AttributesRecord.TypeAssumptions.set'LabelSelectorParsingErr
   AttributesRecord.TypeAssumptions.method_set
   AttributesRecord.TypeAssumptions.ptr_method_set
-  AttributesRecord.TypeAssumptions.GetAPIGroup_unfold
-  AttributesRecord.TypeAssumptions.GetAPIVersion_unfold
-  AttributesRecord.TypeAssumptions.GetFieldSelector_unfold
-  AttributesRecord.TypeAssumptions.GetLabelSelector_unfold
-  AttributesRecord.TypeAssumptions.GetName_unfold
-  AttributesRecord.TypeAssumptions.GetNamespace_unfold
-  AttributesRecord.TypeAssumptions.GetPath_unfold
-  AttributesRecord.TypeAssumptions.GetResource_unfold
-  AttributesRecord.TypeAssumptions.GetSubresource_unfold
-  AttributesRecord.TypeAssumptions.GetUser_unfold
-  AttributesRecord.TypeAssumptions.GetVerb_unfold
-  AttributesRecord.TypeAssumptions.IsReadOnly_unfold
-  AttributesRecord.TypeAssumptions.IsResourceRequest_unfold
-  AttributesRecord.TypeAssumptions.ptr_GetAPIGroup_unfold
-  AttributesRecord.TypeAssumptions.ptr_GetAPIVersion_unfold
-  AttributesRecord.TypeAssumptions.ptr_GetFieldSelector_unfold
-  AttributesRecord.TypeAssumptions.ptr_GetLabelSelector_unfold
-  AttributesRecord.TypeAssumptions.ptr_GetName_unfold
-  AttributesRecord.TypeAssumptions.ptr_GetNamespace_unfold
-  AttributesRecord.TypeAssumptions.ptr_GetPath_unfold
-  AttributesRecord.TypeAssumptions.ptr_GetResource_unfold
-  AttributesRecord.TypeAssumptions.ptr_GetSubresource_unfold
-  AttributesRecord.TypeAssumptions.ptr_GetUser_unfold
-  AttributesRecord.TypeAssumptions.ptr_GetVerb_unfold
-  AttributesRecord.TypeAssumptions.ptr_IsReadOnly_unfold
-  AttributesRecord.TypeAssumptions.ptr_IsResourceRequest_unfold
+  AttributesRecord.TypeAssumptions.unfold'GetAPIGroup
+  AttributesRecord.TypeAssumptions.unfold'GetAPIVersion
+  AttributesRecord.TypeAssumptions.unfold'GetFieldSelector
+  AttributesRecord.TypeAssumptions.unfold'GetLabelSelector
+  AttributesRecord.TypeAssumptions.unfold'GetName
+  AttributesRecord.TypeAssumptions.unfold'GetNamespace
+  AttributesRecord.TypeAssumptions.unfold'GetPath
+  AttributesRecord.TypeAssumptions.unfold'GetResource
+  AttributesRecord.TypeAssumptions.unfold'GetSubresource
+  AttributesRecord.TypeAssumptions.unfold'GetUser
+  AttributesRecord.TypeAssumptions.unfold'GetVerb
+  AttributesRecord.TypeAssumptions.unfold'IsReadOnly
+  AttributesRecord.TypeAssumptions.unfold'IsResourceRequest
+  AttributesRecord.TypeAssumptions.ptr_unfold'GetAPIGroup
+  AttributesRecord.TypeAssumptions.ptr_unfold'GetAPIVersion
+  AttributesRecord.TypeAssumptions.ptr_unfold'GetFieldSelector
+  AttributesRecord.TypeAssumptions.ptr_unfold'GetLabelSelector
+  AttributesRecord.TypeAssumptions.ptr_unfold'GetName
+  AttributesRecord.TypeAssumptions.ptr_unfold'GetNamespace
+  AttributesRecord.TypeAssumptions.ptr_unfold'GetPath
+  AttributesRecord.TypeAssumptions.ptr_unfold'GetResource
+  AttributesRecord.TypeAssumptions.ptr_unfold'GetSubresource
+  AttributesRecord.TypeAssumptions.ptr_unfold'GetUser
+  AttributesRecord.TypeAssumptions.ptr_unfold'GetVerb
+  AttributesRecord.TypeAssumptions.ptr_unfold'IsReadOnly
+  AttributesRecord.TypeAssumptions.ptr_unfold'IsResourceRequest
 
 abbrev Condition [GooseExts] : Type := GoInterface
 
@@ -4393,7 +4393,7 @@ noncomputable instance DefaultResourceRuleInfo.zero_val [GooseExts] : ZeroVal De
 @[irreducible] noncomputable def DefaultResourceRuleInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DefaultResourceRuleInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_DefaultResourceRuleInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DefaultResourceRuleInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold DefaultResourceRuleInfo.fields DefaultResourceRuleInfo.fieldsUnsealed :=
   ⟨by unfold DefaultResourceRuleInfo.fields; rfl⟩
 
@@ -4403,37 +4403,37 @@ noncomputable instance equals_unfold_DefaultResourceRuleInfo [GooseExts] [GoGlob
 class DefaultResourceRuleInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DefaultResourceRuleInfo.underlying DefaultResourceRuleInfo
   underlying : go.UnderlyingDirectedEq DefaultResourceRuleInfo.ty DefaultResourceRuleInfo.underlying
-  get_Verbs : ∀ (x : DefaultResourceRuleInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultResourceRuleInfo.underlying go!"Verbs") #x (Val #(x.Verbs'))
-  set_Verbs : ∀ (x : DefaultResourceRuleInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DefaultResourceRuleInfo.underlying go!"Verbs") (PairV #x #y) (Val #(({ x with Verbs' := y } : DefaultResourceRuleInfo)))
-  get_APIGroups : ∀ (x : DefaultResourceRuleInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultResourceRuleInfo.underlying go!"APIGroups") #x (Val #(x.APIGroups'))
-  set_APIGroups : ∀ (x : DefaultResourceRuleInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DefaultResourceRuleInfo.underlying go!"APIGroups") (PairV #x #y) (Val #(({ x with APIGroups' := y } : DefaultResourceRuleInfo)))
-  get_Resources : ∀ (x : DefaultResourceRuleInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultResourceRuleInfo.underlying go!"Resources") #x (Val #(x.Resources'))
-  set_Resources : ∀ (x : DefaultResourceRuleInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DefaultResourceRuleInfo.underlying go!"Resources") (PairV #x #y) (Val #(({ x with Resources' := y } : DefaultResourceRuleInfo)))
-  get_ResourceNames : ∀ (x : DefaultResourceRuleInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultResourceRuleInfo.underlying go!"ResourceNames") #x (Val #(x.ResourceNames'))
-  set_ResourceNames : ∀ (x : DefaultResourceRuleInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DefaultResourceRuleInfo.underlying go!"ResourceNames") (PairV #x #y) (Val #(({ x with ResourceNames' := y } : DefaultResourceRuleInfo)))
+  get'Verbs : ∀ (x : DefaultResourceRuleInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultResourceRuleInfo.underlying go!"Verbs") #x (Val #(x.Verbs'))
+  set'Verbs : ∀ (x : DefaultResourceRuleInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DefaultResourceRuleInfo.underlying go!"Verbs") (PairV #x #y) (Val #(({ x with Verbs' := y } : DefaultResourceRuleInfo)))
+  get'APIGroups : ∀ (x : DefaultResourceRuleInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultResourceRuleInfo.underlying go!"APIGroups") #x (Val #(x.APIGroups'))
+  set'APIGroups : ∀ (x : DefaultResourceRuleInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DefaultResourceRuleInfo.underlying go!"APIGroups") (PairV #x #y) (Val #(({ x with APIGroups' := y } : DefaultResourceRuleInfo)))
+  get'Resources : ∀ (x : DefaultResourceRuleInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultResourceRuleInfo.underlying go!"Resources") #x (Val #(x.Resources'))
+  set'Resources : ∀ (x : DefaultResourceRuleInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DefaultResourceRuleInfo.underlying go!"Resources") (PairV #x #y) (Val #(({ x with Resources' := y } : DefaultResourceRuleInfo)))
+  get'ResourceNames : ∀ (x : DefaultResourceRuleInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultResourceRuleInfo.underlying go!"ResourceNames") #x (Val #(x.ResourceNames'))
+  set'ResourceNames : ∀ (x : DefaultResourceRuleInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DefaultResourceRuleInfo.underlying go!"ResourceNames") (PairV #x #y) (Val #(({ x with ResourceNames' := y } : DefaultResourceRuleInfo)))
   method_set : go.MethodSetIs DefaultResourceRuleInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DefaultResourceRuleInfo.ty) [(go!"GetAPIGroups", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetResourceNames", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetResources", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetVerbs", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
-  ptr_GetAPIGroups_unfold : MethodUnfold (go.GoType.PointerType DefaultResourceRuleInfo.ty) go!"GetAPIGroups" DefaultResourceRuleInfo.GetAPIGroups.impl
-  ptr_GetResourceNames_unfold : MethodUnfold (go.GoType.PointerType DefaultResourceRuleInfo.ty) go!"GetResourceNames" DefaultResourceRuleInfo.GetResourceNames.impl
-  ptr_GetResources_unfold : MethodUnfold (go.GoType.PointerType DefaultResourceRuleInfo.ty) go!"GetResources" DefaultResourceRuleInfo.GetResources.impl
-  ptr_GetVerbs_unfold : MethodUnfold (go.GoType.PointerType DefaultResourceRuleInfo.ty) go!"GetVerbs" DefaultResourceRuleInfo.GetVerbs.impl
+  ptr_unfold'GetAPIGroups : MethodUnfold (go.GoType.PointerType DefaultResourceRuleInfo.ty) go!"GetAPIGroups" DefaultResourceRuleInfo.GetAPIGroups.impl
+  ptr_unfold'GetResourceNames : MethodUnfold (go.GoType.PointerType DefaultResourceRuleInfo.ty) go!"GetResourceNames" DefaultResourceRuleInfo.GetResourceNames.impl
+  ptr_unfold'GetResources : MethodUnfold (go.GoType.PointerType DefaultResourceRuleInfo.ty) go!"GetResources" DefaultResourceRuleInfo.GetResources.impl
+  ptr_unfold'GetVerbs : MethodUnfold (go.GoType.PointerType DefaultResourceRuleInfo.ty) go!"GetVerbs" DefaultResourceRuleInfo.GetVerbs.impl
 
 attribute [instance] DefaultResourceRuleInfo.TypeAssumptions.type_repr
   DefaultResourceRuleInfo.TypeAssumptions.underlying
-  DefaultResourceRuleInfo.TypeAssumptions.get_Verbs
-  DefaultResourceRuleInfo.TypeAssumptions.set_Verbs
-  DefaultResourceRuleInfo.TypeAssumptions.get_APIGroups
-  DefaultResourceRuleInfo.TypeAssumptions.set_APIGroups
-  DefaultResourceRuleInfo.TypeAssumptions.get_Resources
-  DefaultResourceRuleInfo.TypeAssumptions.set_Resources
-  DefaultResourceRuleInfo.TypeAssumptions.get_ResourceNames
-  DefaultResourceRuleInfo.TypeAssumptions.set_ResourceNames
+  DefaultResourceRuleInfo.TypeAssumptions.get'Verbs
+  DefaultResourceRuleInfo.TypeAssumptions.set'Verbs
+  DefaultResourceRuleInfo.TypeAssumptions.get'APIGroups
+  DefaultResourceRuleInfo.TypeAssumptions.set'APIGroups
+  DefaultResourceRuleInfo.TypeAssumptions.get'Resources
+  DefaultResourceRuleInfo.TypeAssumptions.set'Resources
+  DefaultResourceRuleInfo.TypeAssumptions.get'ResourceNames
+  DefaultResourceRuleInfo.TypeAssumptions.set'ResourceNames
   DefaultResourceRuleInfo.TypeAssumptions.method_set
   DefaultResourceRuleInfo.TypeAssumptions.ptr_method_set
-  DefaultResourceRuleInfo.TypeAssumptions.ptr_GetAPIGroups_unfold
-  DefaultResourceRuleInfo.TypeAssumptions.ptr_GetResourceNames_unfold
-  DefaultResourceRuleInfo.TypeAssumptions.ptr_GetResources_unfold
-  DefaultResourceRuleInfo.TypeAssumptions.ptr_GetVerbs_unfold
+  DefaultResourceRuleInfo.TypeAssumptions.ptr_unfold'GetAPIGroups
+  DefaultResourceRuleInfo.TypeAssumptions.ptr_unfold'GetResourceNames
+  DefaultResourceRuleInfo.TypeAssumptions.ptr_unfold'GetResources
+  DefaultResourceRuleInfo.TypeAssumptions.ptr_unfold'GetVerbs
 
 abbrev NonResourceRuleInfo [GooseExts] : Type := GoInterface
 
@@ -4464,7 +4464,7 @@ noncomputable instance DefaultNonResourceRuleInfo.zero_val [GooseExts] : ZeroVal
 @[irreducible] noncomputable def DefaultNonResourceRuleInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DefaultNonResourceRuleInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_DefaultNonResourceRuleInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DefaultNonResourceRuleInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold DefaultNonResourceRuleInfo.fields DefaultNonResourceRuleInfo.fieldsUnsealed :=
   ⟨by unfold DefaultNonResourceRuleInfo.fields; rfl⟩
 
@@ -4474,140 +4474,140 @@ noncomputable instance equals_unfold_DefaultNonResourceRuleInfo [GooseExts] [GoG
 class DefaultNonResourceRuleInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DefaultNonResourceRuleInfo.underlying DefaultNonResourceRuleInfo
   underlying : go.UnderlyingDirectedEq DefaultNonResourceRuleInfo.ty DefaultNonResourceRuleInfo.underlying
-  get_Verbs : ∀ (x : DefaultNonResourceRuleInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultNonResourceRuleInfo.underlying go!"Verbs") #x (Val #(x.Verbs'))
-  set_Verbs : ∀ (x : DefaultNonResourceRuleInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DefaultNonResourceRuleInfo.underlying go!"Verbs") (PairV #x #y) (Val #(({ x with Verbs' := y } : DefaultNonResourceRuleInfo)))
-  get_NonResourceURLs : ∀ (x : DefaultNonResourceRuleInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultNonResourceRuleInfo.underlying go!"NonResourceURLs") #x (Val #(x.NonResourceURLs'))
-  set_NonResourceURLs : ∀ (x : DefaultNonResourceRuleInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DefaultNonResourceRuleInfo.underlying go!"NonResourceURLs") (PairV #x #y) (Val #(({ x with NonResourceURLs' := y } : DefaultNonResourceRuleInfo)))
+  get'Verbs : ∀ (x : DefaultNonResourceRuleInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultNonResourceRuleInfo.underlying go!"Verbs") #x (Val #(x.Verbs'))
+  set'Verbs : ∀ (x : DefaultNonResourceRuleInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DefaultNonResourceRuleInfo.underlying go!"Verbs") (PairV #x #y) (Val #(({ x with Verbs' := y } : DefaultNonResourceRuleInfo)))
+  get'NonResourceURLs : ∀ (x : DefaultNonResourceRuleInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultNonResourceRuleInfo.underlying go!"NonResourceURLs") #x (Val #(x.NonResourceURLs'))
+  set'NonResourceURLs : ∀ (x : DefaultNonResourceRuleInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DefaultNonResourceRuleInfo.underlying go!"NonResourceURLs") (PairV #x #y) (Val #(({ x with NonResourceURLs' := y } : DefaultNonResourceRuleInfo)))
   method_set : go.MethodSetIs DefaultNonResourceRuleInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DefaultNonResourceRuleInfo.ty) [(go!"GetNonResourceURLs", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetVerbs", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
-  ptr_GetNonResourceURLs_unfold : MethodUnfold (go.GoType.PointerType DefaultNonResourceRuleInfo.ty) go!"GetNonResourceURLs" DefaultNonResourceRuleInfo.GetNonResourceURLs.impl
-  ptr_GetVerbs_unfold : MethodUnfold (go.GoType.PointerType DefaultNonResourceRuleInfo.ty) go!"GetVerbs" DefaultNonResourceRuleInfo.GetVerbs.impl
+  ptr_unfold'GetNonResourceURLs : MethodUnfold (go.GoType.PointerType DefaultNonResourceRuleInfo.ty) go!"GetNonResourceURLs" DefaultNonResourceRuleInfo.GetNonResourceURLs.impl
+  ptr_unfold'GetVerbs : MethodUnfold (go.GoType.PointerType DefaultNonResourceRuleInfo.ty) go!"GetVerbs" DefaultNonResourceRuleInfo.GetVerbs.impl
 
 attribute [instance] DefaultNonResourceRuleInfo.TypeAssumptions.type_repr
   DefaultNonResourceRuleInfo.TypeAssumptions.underlying
-  DefaultNonResourceRuleInfo.TypeAssumptions.get_Verbs
-  DefaultNonResourceRuleInfo.TypeAssumptions.set_Verbs
-  DefaultNonResourceRuleInfo.TypeAssumptions.get_NonResourceURLs
-  DefaultNonResourceRuleInfo.TypeAssumptions.set_NonResourceURLs
+  DefaultNonResourceRuleInfo.TypeAssumptions.get'Verbs
+  DefaultNonResourceRuleInfo.TypeAssumptions.set'Verbs
+  DefaultNonResourceRuleInfo.TypeAssumptions.get'NonResourceURLs
+  DefaultNonResourceRuleInfo.TypeAssumptions.set'NonResourceURLs
   DefaultNonResourceRuleInfo.TypeAssumptions.method_set
   DefaultNonResourceRuleInfo.TypeAssumptions.ptr_method_set
-  DefaultNonResourceRuleInfo.TypeAssumptions.ptr_GetNonResourceURLs_unfold
-  DefaultNonResourceRuleInfo.TypeAssumptions.ptr_GetVerbs_unfold
+  DefaultNonResourceRuleInfo.TypeAssumptions.ptr_unfold'GetNonResourceURLs
+  DefaultNonResourceRuleInfo.TypeAssumptions.ptr_unfold'GetVerbs
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  conditionsAwareDecisionType_instance : conditionsAwareDecisionType.TypeAssumptions
-  ConditionsAwareDecision_instance : ConditionsAwareDecision.TypeAssumptions
-  ConditionsMap_instance : ConditionsMap.TypeAssumptions
-  GenericCondition_instance : GenericCondition.TypeAssumptions
-  namedConditionsAwareDecision_instance : namedConditionsAwareDecision.TypeAssumptions
-  ConditionsAwareDecisionUnion_instance : ConditionsAwareDecisionUnion.TypeAssumptions
-  partialConditionEvaluationResultType_instance : partialConditionEvaluationResultType.TypeAssumptions
-  ConditionEvaluationResult_instance : ConditionEvaluationResult.TypeAssumptions
-  Attributes_instance : Attributes.TypeAssumptions
-  UnconditionalAuthorizer_instance : UnconditionalAuthorizer.TypeAssumptions
-  Authorizer_instance : Authorizer.TypeAssumptions
-  AuthorizerFunc_instance : AuthorizerFunc.TypeAssumptions
-  RuleResolver_instance : RuleResolver.TypeAssumptions
-  RequestAttributesGetter_instance : RequestAttributesGetter.TypeAssumptions
-  AttributesRecord_instance : AttributesRecord.TypeAssumptions
-  Decision_instance : Decision.TypeAssumptions
-  Condition_instance : Condition.TypeAssumptions
-  EvaluateConditionFunc_instance : EvaluateConditionFunc.TypeAssumptions
-  MaybeEvaluateConditionFunc_instance : MaybeEvaluateConditionFunc.TypeAssumptions
-  AdmissionOperation_instance : AdmissionOperation.TypeAssumptions
-  ConditionsData_instance : ConditionsData.TypeAssumptions
-  BuiltinConditionsEvaluatorBuilder_instance : BuiltinConditionsEvaluatorBuilder.TypeAssumptions
-  BuiltinConditionsEvaluator_instance : BuiltinConditionsEvaluator.TypeAssumptions
-  ResourceRuleInfo_instance : ResourceRuleInfo.TypeAssumptions
-  DefaultResourceRuleInfo_instance : DefaultResourceRuleInfo.TypeAssumptions
-  NonResourceRuleInfo_instance : NonResourceRuleInfo.TypeAssumptions
-  DefaultNonResourceRuleInfo_instance : DefaultNonResourceRuleInfo.TypeAssumptions
-  ConditionsAwareDecisionDeny_unfold : FuncUnfold ConditionsAwareDecisionDeny [] ConditionsAwareDecisionDeny.impl
-  ConditionsAwareDecisionAllow_unfold : FuncUnfold ConditionsAwareDecisionAllow [] ConditionsAwareDecisionAllow.impl
-  ConditionsAwareDecisionNoOpinion_unfold : FuncUnfold ConditionsAwareDecisionNoOpinion [] ConditionsAwareDecisionNoOpinion.impl
-  ConditionsAwareDecisionFromParts_unfold : FuncUnfold ConditionsAwareDecisionFromParts [] ConditionsAwareDecisionFromParts.impl
-  ConditionsAwareDecisionConditionsMap_unfold : FuncUnfold ConditionsAwareDecisionConditionsMap [] ConditionsAwareDecisionConditionsMap.impl
-  validateConditions_unfold : FuncUnfold validateConditions [] validateConditions.impl
-  collectReasonsAndErrors_unfold : FuncUnfold collectReasonsAndErrors [] collectReasonsAndErrors.impl
-  ConditionEvaluationResultBoolean_unfold : FuncUnfold ConditionEvaluationResultBoolean [] ConditionEvaluationResultBoolean.impl
-  ConditionEvaluationResultError_unfold : FuncUnfold ConditionEvaluationResultError [] ConditionEvaluationResultError.impl
-  ConditionsEvaluationResultUnevaluatable_unfold : FuncUnfold ConditionsEvaluationResultUnevaluatable [] ConditionsEvaluationResultUnevaluatable.impl
-  partiallyEvaluateConditionsMapInternal_unfold : FuncUnfold partiallyEvaluateConditionsMapInternal [] partiallyEvaluateConditionsMapInternal.impl
-  conditionsToAppliedErroredUnevaluated_unfold : FuncUnfold conditionsToAppliedErroredUnevaluated [] conditionsToAppliedErroredUnevaluated.impl
-  PartiallyEvaluateConditionsAwareDecision_unfold : FuncUnfold PartiallyEvaluateConditionsAwareDecision [] PartiallyEvaluateConditionsAwareDecision.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_iter_Assumption : _root_.Perennial.iter.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_util_errors_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Assumptions
-  import_sets_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_slices_Assumption : _root_.Perennial.slices.Assumptions
-  import_validation_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.Assumptions
-  import_field_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_http_Assumption : _root_.Perennial.net.http.Assumptions
-  import_fields_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Assumptions
-  import_labels_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
-  import_schema_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
-  import_user_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Assumptions
+  instance'conditionsAwareDecisionType : conditionsAwareDecisionType.TypeAssumptions
+  instance'ConditionsAwareDecision : ConditionsAwareDecision.TypeAssumptions
+  instance'ConditionsMap : ConditionsMap.TypeAssumptions
+  instance'GenericCondition : GenericCondition.TypeAssumptions
+  instance'namedConditionsAwareDecision : namedConditionsAwareDecision.TypeAssumptions
+  instance'ConditionsAwareDecisionUnion : ConditionsAwareDecisionUnion.TypeAssumptions
+  instance'partialConditionEvaluationResultType : partialConditionEvaluationResultType.TypeAssumptions
+  instance'ConditionEvaluationResult : ConditionEvaluationResult.TypeAssumptions
+  instance'Attributes : Attributes.TypeAssumptions
+  instance'UnconditionalAuthorizer : UnconditionalAuthorizer.TypeAssumptions
+  instance'Authorizer : Authorizer.TypeAssumptions
+  instance'AuthorizerFunc : AuthorizerFunc.TypeAssumptions
+  instance'RuleResolver : RuleResolver.TypeAssumptions
+  instance'RequestAttributesGetter : RequestAttributesGetter.TypeAssumptions
+  instance'AttributesRecord : AttributesRecord.TypeAssumptions
+  instance'Decision : Decision.TypeAssumptions
+  instance'Condition : Condition.TypeAssumptions
+  instance'EvaluateConditionFunc : EvaluateConditionFunc.TypeAssumptions
+  instance'MaybeEvaluateConditionFunc : MaybeEvaluateConditionFunc.TypeAssumptions
+  instance'AdmissionOperation : AdmissionOperation.TypeAssumptions
+  instance'ConditionsData : ConditionsData.TypeAssumptions
+  instance'BuiltinConditionsEvaluatorBuilder : BuiltinConditionsEvaluatorBuilder.TypeAssumptions
+  instance'BuiltinConditionsEvaluator : BuiltinConditionsEvaluator.TypeAssumptions
+  instance'ResourceRuleInfo : ResourceRuleInfo.TypeAssumptions
+  instance'DefaultResourceRuleInfo : DefaultResourceRuleInfo.TypeAssumptions
+  instance'NonResourceRuleInfo : NonResourceRuleInfo.TypeAssumptions
+  instance'DefaultNonResourceRuleInfo : DefaultNonResourceRuleInfo.TypeAssumptions
+  unfold'ConditionsAwareDecisionDeny : FuncUnfold ConditionsAwareDecisionDeny [] ConditionsAwareDecisionDeny.impl
+  unfold'ConditionsAwareDecisionAllow : FuncUnfold ConditionsAwareDecisionAllow [] ConditionsAwareDecisionAllow.impl
+  unfold'ConditionsAwareDecisionNoOpinion : FuncUnfold ConditionsAwareDecisionNoOpinion [] ConditionsAwareDecisionNoOpinion.impl
+  unfold'ConditionsAwareDecisionFromParts : FuncUnfold ConditionsAwareDecisionFromParts [] ConditionsAwareDecisionFromParts.impl
+  unfold'ConditionsAwareDecisionConditionsMap : FuncUnfold ConditionsAwareDecisionConditionsMap [] ConditionsAwareDecisionConditionsMap.impl
+  unfold'validateConditions : FuncUnfold validateConditions [] validateConditions.impl
+  unfold'collectReasonsAndErrors : FuncUnfold collectReasonsAndErrors [] collectReasonsAndErrors.impl
+  unfold'ConditionEvaluationResultBoolean : FuncUnfold ConditionEvaluationResultBoolean [] ConditionEvaluationResultBoolean.impl
+  unfold'ConditionEvaluationResultError : FuncUnfold ConditionEvaluationResultError [] ConditionEvaluationResultError.impl
+  unfold'ConditionsEvaluationResultUnevaluatable : FuncUnfold ConditionsEvaluationResultUnevaluatable [] ConditionsEvaluationResultUnevaluatable.impl
+  unfold'partiallyEvaluateConditionsMapInternal : FuncUnfold partiallyEvaluateConditionsMapInternal [] partiallyEvaluateConditionsMapInternal.impl
+  unfold'conditionsToAppliedErroredUnevaluated : FuncUnfold conditionsToAppliedErroredUnevaluated [] conditionsToAppliedErroredUnevaluated.impl
+  unfold'PartiallyEvaluateConditionsAwareDecision : FuncUnfold PartiallyEvaluateConditionsAwareDecision [] PartiallyEvaluateConditionsAwareDecision.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'iter : _root_.Perennial.iter.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'util_errors : _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Assumptions
+  import'sets : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'slices : _root_.Perennial.slices.Assumptions
+  import'validation : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.Assumptions
+  import'field : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'http : _root_.Perennial.net.http.Assumptions
+  import'fields : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Assumptions
+  import'labels : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  import'schema : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
+  import'user : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Assumptions
 
-attribute [instance] Assumptions.conditionsAwareDecisionType_instance
-  Assumptions.ConditionsAwareDecision_instance
-  Assumptions.ConditionsMap_instance
-  Assumptions.GenericCondition_instance
-  Assumptions.namedConditionsAwareDecision_instance
-  Assumptions.ConditionsAwareDecisionUnion_instance
-  Assumptions.partialConditionEvaluationResultType_instance
-  Assumptions.ConditionEvaluationResult_instance
-  Assumptions.Attributes_instance
-  Assumptions.UnconditionalAuthorizer_instance
-  Assumptions.Authorizer_instance
-  Assumptions.AuthorizerFunc_instance
-  Assumptions.RuleResolver_instance
-  Assumptions.RequestAttributesGetter_instance
-  Assumptions.AttributesRecord_instance
-  Assumptions.Decision_instance
-  Assumptions.Condition_instance
-  Assumptions.EvaluateConditionFunc_instance
-  Assumptions.MaybeEvaluateConditionFunc_instance
-  Assumptions.AdmissionOperation_instance
-  Assumptions.ConditionsData_instance
-  Assumptions.BuiltinConditionsEvaluatorBuilder_instance
-  Assumptions.BuiltinConditionsEvaluator_instance
-  Assumptions.ResourceRuleInfo_instance
-  Assumptions.DefaultResourceRuleInfo_instance
-  Assumptions.NonResourceRuleInfo_instance
-  Assumptions.DefaultNonResourceRuleInfo_instance
-  Assumptions.ConditionsAwareDecisionDeny_unfold
-  Assumptions.ConditionsAwareDecisionAllow_unfold
-  Assumptions.ConditionsAwareDecisionNoOpinion_unfold
-  Assumptions.ConditionsAwareDecisionFromParts_unfold
-  Assumptions.ConditionsAwareDecisionConditionsMap_unfold
-  Assumptions.validateConditions_unfold
-  Assumptions.collectReasonsAndErrors_unfold
-  Assumptions.ConditionEvaluationResultBoolean_unfold
-  Assumptions.ConditionEvaluationResultError_unfold
-  Assumptions.ConditionsEvaluationResultUnevaluatable_unfold
-  Assumptions.partiallyEvaluateConditionsMapInternal_unfold
-  Assumptions.conditionsToAppliedErroredUnevaluated_unfold
-  Assumptions.PartiallyEvaluateConditionsAwareDecision_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_iter_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_util_errors_Assumption
-  Assumptions.import_sets_Assumption
-  Assumptions.import_context_Assumption
-  Assumptions.import_slices_Assumption
-  Assumptions.import_validation_Assumption
-  Assumptions.import_field_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_http_Assumption
-  Assumptions.import_fields_Assumption
-  Assumptions.import_labels_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_schema_Assumption
-  Assumptions.import_user_Assumption
+attribute [instance] Assumptions.instance'conditionsAwareDecisionType
+  Assumptions.instance'ConditionsAwareDecision
+  Assumptions.instance'ConditionsMap
+  Assumptions.instance'GenericCondition
+  Assumptions.instance'namedConditionsAwareDecision
+  Assumptions.instance'ConditionsAwareDecisionUnion
+  Assumptions.instance'partialConditionEvaluationResultType
+  Assumptions.instance'ConditionEvaluationResult
+  Assumptions.instance'Attributes
+  Assumptions.instance'UnconditionalAuthorizer
+  Assumptions.instance'Authorizer
+  Assumptions.instance'AuthorizerFunc
+  Assumptions.instance'RuleResolver
+  Assumptions.instance'RequestAttributesGetter
+  Assumptions.instance'AttributesRecord
+  Assumptions.instance'Decision
+  Assumptions.instance'Condition
+  Assumptions.instance'EvaluateConditionFunc
+  Assumptions.instance'MaybeEvaluateConditionFunc
+  Assumptions.instance'AdmissionOperation
+  Assumptions.instance'ConditionsData
+  Assumptions.instance'BuiltinConditionsEvaluatorBuilder
+  Assumptions.instance'BuiltinConditionsEvaluator
+  Assumptions.instance'ResourceRuleInfo
+  Assumptions.instance'DefaultResourceRuleInfo
+  Assumptions.instance'NonResourceRuleInfo
+  Assumptions.instance'DefaultNonResourceRuleInfo
+  Assumptions.unfold'ConditionsAwareDecisionDeny
+  Assumptions.unfold'ConditionsAwareDecisionAllow
+  Assumptions.unfold'ConditionsAwareDecisionNoOpinion
+  Assumptions.unfold'ConditionsAwareDecisionFromParts
+  Assumptions.unfold'ConditionsAwareDecisionConditionsMap
+  Assumptions.unfold'validateConditions
+  Assumptions.unfold'collectReasonsAndErrors
+  Assumptions.unfold'ConditionEvaluationResultBoolean
+  Assumptions.unfold'ConditionEvaluationResultError
+  Assumptions.unfold'ConditionsEvaluationResultUnevaluatable
+  Assumptions.unfold'partiallyEvaluateConditionsMapInternal
+  Assumptions.unfold'conditionsToAppliedErroredUnevaluated
+  Assumptions.unfold'PartiallyEvaluateConditionsAwareDecision
+  Assumptions.import'fmt
+  Assumptions.import'iter
+  Assumptions.import'strings
+  Assumptions.import'util_errors
+  Assumptions.import'sets
+  Assumptions.import'context
+  Assumptions.import'slices
+  Assumptions.import'validation
+  Assumptions.import'field
+  Assumptions.import'errors
+  Assumptions.import'http
+  Assumptions.import'fields
+  Assumptions.import'labels
+  Assumptions.import'runtime
+  Assumptions.import'schema
+  Assumptions.import'user
 
 end k8s_io.apiserver.pkg.authorization.authorizer
 

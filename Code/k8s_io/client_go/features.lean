@@ -330,7 +330,7 @@ noncomputable def envVarFeatureGates.Enabled.impl [GooseExts] [GoGlobalContext] 
     the features set via environment variables.
 
     go: envvar.go:123:30 -/
-noncomputable def envVarFeatureGates.Set.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def envVarFeatureGates.Set''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam "featureName"
   (Lam "featureValue"
@@ -982,7 +982,7 @@ noncomputable instance envVarFeatureGates.zero_val [GooseExts] : ZeroVal envVarF
 @[irreducible] noncomputable def envVarFeatureGates.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   envVarFeatureGates.fieldsUnsealed
 
-noncomputable instance equals_unfold_envVarFeatureGates [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'envVarFeatureGates [GooseExts] [GoGlobalContext] :
     EqualsUnfold envVarFeatureGates.fields envVarFeatureGates.fieldsUnsealed :=
   ⟨by unfold envVarFeatureGates.fields; rfl⟩
 
@@ -992,55 +992,55 @@ noncomputable instance equals_unfold_envVarFeatureGates [GooseExts] [GoGlobalCon
 class envVarFeatureGates.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying envVarFeatureGates.underlying envVarFeatureGates
   underlying : go.UnderlyingDirectedEq envVarFeatureGates.ty envVarFeatureGates.underlying
-  get_callSiteName : ∀ (x : envVarFeatureGates), go.IsGoStepPureDetTagged under (StructFieldGet envVarFeatureGates.underlying go!"callSiteName") #x (Val #(x.callSiteName'))
-  set_callSiteName : ∀ (x : envVarFeatureGates) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"callSiteName") (PairV #x #y) (Val #(({ x with callSiteName' := y } : envVarFeatureGates)))
-  get_readEnvVarsOnce : ∀ (x : envVarFeatureGates), go.IsGoStepPureDetTagged under (StructFieldGet envVarFeatureGates.underlying go!"readEnvVarsOnce") #x (Val #(x.readEnvVarsOnce'))
-  set_readEnvVarsOnce : ∀ (x : envVarFeatureGates) (y : _root_.Perennial.sync.Once), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"readEnvVarsOnce") (PairV #x #y) (Val #(({ x with readEnvVarsOnce' := y } : envVarFeatureGates)))
-  get_known : ∀ (x : envVarFeatureGates), go.IsGoStepPureDetTagged under (StructFieldGet envVarFeatureGates.underlying go!"known") #x (Val #(x.known'))
-  set_known : ∀ (x : envVarFeatureGates) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"known") (PairV #x #y) (Val #(({ x with known' := y } : envVarFeatureGates)))
-  get_enabledViaEnvVar : ∀ (x : envVarFeatureGates), go.IsGoStepPureDetTagged under (StructFieldGet envVarFeatureGates.underlying go!"enabledViaEnvVar") #x (Val #(x.enabledViaEnvVar'))
-  set_enabledViaEnvVar : ∀ (x : envVarFeatureGates) (y : _root_.Perennial.sync.atomic.Value), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"enabledViaEnvVar") (PairV #x #y) (Val #(({ x with enabledViaEnvVar' := y } : envVarFeatureGates)))
-  get_lockEnabledViaSetMethod : ∀ (x : envVarFeatureGates), go.IsGoStepPureDetTagged under (StructFieldGet envVarFeatureGates.underlying go!"lockEnabledViaSetMethod") #x (Val #(x.lockEnabledViaSetMethod'))
-  set_lockEnabledViaSetMethod : ∀ (x : envVarFeatureGates) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"lockEnabledViaSetMethod") (PairV #x #y) (Val #(({ x with lockEnabledViaSetMethod' := y } : envVarFeatureGates)))
-  get_enabledViaSetMethod : ∀ (x : envVarFeatureGates), go.IsGoStepPureDetTagged under (StructFieldGet envVarFeatureGates.underlying go!"enabledViaSetMethod") #x (Val #(x.enabledViaSetMethod'))
-  set_enabledViaSetMethod : ∀ (x : envVarFeatureGates) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"enabledViaSetMethod") (PairV #x #y) (Val #(({ x with enabledViaSetMethod' := y } : envVarFeatureGates)))
-  get_readEnvVars : ∀ (x : envVarFeatureGates), go.IsGoStepPureDetTagged under (StructFieldGet envVarFeatureGates.underlying go!"readEnvVars") #x (Val #(x.readEnvVars'))
-  set_readEnvVars : ∀ (x : envVarFeatureGates) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"readEnvVars") (PairV #x #y) (Val #(({ x with readEnvVars' := y } : envVarFeatureGates)))
+  get'callSiteName : ∀ (x : envVarFeatureGates), go.IsGoStepPureDetTagged under (StructFieldGet envVarFeatureGates.underlying go!"callSiteName") #x (Val #(x.callSiteName'))
+  set'callSiteName : ∀ (x : envVarFeatureGates) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"callSiteName") (PairV #x #y) (Val #(({ x with callSiteName' := y } : envVarFeatureGates)))
+  get'readEnvVarsOnce : ∀ (x : envVarFeatureGates), go.IsGoStepPureDetTagged under (StructFieldGet envVarFeatureGates.underlying go!"readEnvVarsOnce") #x (Val #(x.readEnvVarsOnce'))
+  set'readEnvVarsOnce : ∀ (x : envVarFeatureGates) (y : _root_.Perennial.sync.Once), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"readEnvVarsOnce") (PairV #x #y) (Val #(({ x with readEnvVarsOnce' := y } : envVarFeatureGates)))
+  get'known : ∀ (x : envVarFeatureGates), go.IsGoStepPureDetTagged under (StructFieldGet envVarFeatureGates.underlying go!"known") #x (Val #(x.known'))
+  set'known : ∀ (x : envVarFeatureGates) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"known") (PairV #x #y) (Val #(({ x with known' := y } : envVarFeatureGates)))
+  get'enabledViaEnvVar : ∀ (x : envVarFeatureGates), go.IsGoStepPureDetTagged under (StructFieldGet envVarFeatureGates.underlying go!"enabledViaEnvVar") #x (Val #(x.enabledViaEnvVar'))
+  set'enabledViaEnvVar : ∀ (x : envVarFeatureGates) (y : _root_.Perennial.sync.atomic.Value), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"enabledViaEnvVar") (PairV #x #y) (Val #(({ x with enabledViaEnvVar' := y } : envVarFeatureGates)))
+  get'lockEnabledViaSetMethod : ∀ (x : envVarFeatureGates), go.IsGoStepPureDetTagged under (StructFieldGet envVarFeatureGates.underlying go!"lockEnabledViaSetMethod") #x (Val #(x.lockEnabledViaSetMethod'))
+  set'lockEnabledViaSetMethod : ∀ (x : envVarFeatureGates) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"lockEnabledViaSetMethod") (PairV #x #y) (Val #(({ x with lockEnabledViaSetMethod' := y } : envVarFeatureGates)))
+  get'enabledViaSetMethod : ∀ (x : envVarFeatureGates), go.IsGoStepPureDetTagged under (StructFieldGet envVarFeatureGates.underlying go!"enabledViaSetMethod") #x (Val #(x.enabledViaSetMethod'))
+  set'enabledViaSetMethod : ∀ (x : envVarFeatureGates) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"enabledViaSetMethod") (PairV #x #y) (Val #(({ x with enabledViaSetMethod' := y } : envVarFeatureGates)))
+  get'readEnvVars : ∀ (x : envVarFeatureGates), go.IsGoStepPureDetTagged under (StructFieldGet envVarFeatureGates.underlying go!"readEnvVars") #x (Val #(x.readEnvVars'))
+  set'readEnvVars : ∀ (x : envVarFeatureGates) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"readEnvVars") (PairV #x #y) (Val #(({ x with readEnvVars' := y } : envVarFeatureGates)))
   method_set : go.MethodSetIs envVarFeatureGates.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType envVarFeatureGates.ty) [(go!"Enabled", (some (go.signature.Signature [Feature.ty] false [go.bool]))), (go!"Set", (some (go.signature.Signature [Feature.ty, go.bool] false [go.error]))), (go!"SetForTesting", (some (go.signature.Signature [Feature.ty, go.bool] false [go.error]))), (go!"k8s.io/client-go/features.getEnabledMapFromEnvVar", (some (go.signature.Signature [] false [(go.GoType.MapType Feature.ty go.bool)]))), (go!"k8s.io/client-go/features.hasAlreadyReadEnvVar", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/client-go/features.set", (some (go.signature.Signature [Feature.ty, go.bool, go.bool] false [go.error]))), (go!"k8s.io/client-go/features.wasFeatureEnabledViaSetMethod", (some (go.signature.Signature [Feature.ty] false [go.bool, go.bool])))]
-  ptr_Enabled_unfold : MethodUnfold (go.GoType.PointerType envVarFeatureGates.ty) go!"Enabled" envVarFeatureGates.Enabled.impl
-  ptr_Set_unfold : MethodUnfold (go.GoType.PointerType envVarFeatureGates.ty) go!"Set" envVarFeatureGates.Set.impl
-  ptr_SetForTesting_unfold : MethodUnfold (go.GoType.PointerType envVarFeatureGates.ty) go!"SetForTesting" envVarFeatureGates.SetForTesting.impl
-  ptr_getEnabledMapFromEnvVar_unfold : MethodUnfold (go.GoType.PointerType envVarFeatureGates.ty) go!"getEnabledMapFromEnvVar" envVarFeatureGates.getEnabledMapFromEnvVar.impl
-  ptr_hasAlreadyReadEnvVar_unfold : MethodUnfold (go.GoType.PointerType envVarFeatureGates.ty) go!"hasAlreadyReadEnvVar" envVarFeatureGates.hasAlreadyReadEnvVar.impl
-  ptr_set_unfold : MethodUnfold (go.GoType.PointerType envVarFeatureGates.ty) go!"set" envVarFeatureGates.set.impl
-  ptr_wasFeatureEnabledViaSetMethod_unfold : MethodUnfold (go.GoType.PointerType envVarFeatureGates.ty) go!"wasFeatureEnabledViaSetMethod" envVarFeatureGates.wasFeatureEnabledViaSetMethod.impl
+  ptr_unfold'Enabled : MethodUnfold (go.GoType.PointerType envVarFeatureGates.ty) go!"Enabled" envVarFeatureGates.Enabled.impl
+  ptr_unfold'Set : MethodUnfold (go.GoType.PointerType envVarFeatureGates.ty) go!"Set" envVarFeatureGates.Set''.impl
+  ptr_unfold'SetForTesting : MethodUnfold (go.GoType.PointerType envVarFeatureGates.ty) go!"SetForTesting" envVarFeatureGates.SetForTesting.impl
+  ptr_unfold'getEnabledMapFromEnvVar : MethodUnfold (go.GoType.PointerType envVarFeatureGates.ty) go!"getEnabledMapFromEnvVar" envVarFeatureGates.getEnabledMapFromEnvVar.impl
+  ptr_unfold'hasAlreadyReadEnvVar : MethodUnfold (go.GoType.PointerType envVarFeatureGates.ty) go!"hasAlreadyReadEnvVar" envVarFeatureGates.hasAlreadyReadEnvVar.impl
+  ptr_unfold'set : MethodUnfold (go.GoType.PointerType envVarFeatureGates.ty) go!"set" envVarFeatureGates.set.impl
+  ptr_unfold'wasFeatureEnabledViaSetMethod : MethodUnfold (go.GoType.PointerType envVarFeatureGates.ty) go!"wasFeatureEnabledViaSetMethod" envVarFeatureGates.wasFeatureEnabledViaSetMethod.impl
 
 attribute [instance] envVarFeatureGates.TypeAssumptions.type_repr
   envVarFeatureGates.TypeAssumptions.underlying
-  envVarFeatureGates.TypeAssumptions.get_callSiteName
-  envVarFeatureGates.TypeAssumptions.set_callSiteName
-  envVarFeatureGates.TypeAssumptions.get_readEnvVarsOnce
-  envVarFeatureGates.TypeAssumptions.set_readEnvVarsOnce
-  envVarFeatureGates.TypeAssumptions.get_known
-  envVarFeatureGates.TypeAssumptions.set_known
-  envVarFeatureGates.TypeAssumptions.get_enabledViaEnvVar
-  envVarFeatureGates.TypeAssumptions.set_enabledViaEnvVar
-  envVarFeatureGates.TypeAssumptions.get_lockEnabledViaSetMethod
-  envVarFeatureGates.TypeAssumptions.set_lockEnabledViaSetMethod
-  envVarFeatureGates.TypeAssumptions.get_enabledViaSetMethod
-  envVarFeatureGates.TypeAssumptions.set_enabledViaSetMethod
-  envVarFeatureGates.TypeAssumptions.get_readEnvVars
-  envVarFeatureGates.TypeAssumptions.set_readEnvVars
+  envVarFeatureGates.TypeAssumptions.get'callSiteName
+  envVarFeatureGates.TypeAssumptions.set'callSiteName
+  envVarFeatureGates.TypeAssumptions.get'readEnvVarsOnce
+  envVarFeatureGates.TypeAssumptions.set'readEnvVarsOnce
+  envVarFeatureGates.TypeAssumptions.get'known
+  envVarFeatureGates.TypeAssumptions.set'known
+  envVarFeatureGates.TypeAssumptions.get'enabledViaEnvVar
+  envVarFeatureGates.TypeAssumptions.set'enabledViaEnvVar
+  envVarFeatureGates.TypeAssumptions.get'lockEnabledViaSetMethod
+  envVarFeatureGates.TypeAssumptions.set'lockEnabledViaSetMethod
+  envVarFeatureGates.TypeAssumptions.get'enabledViaSetMethod
+  envVarFeatureGates.TypeAssumptions.set'enabledViaSetMethod
+  envVarFeatureGates.TypeAssumptions.get'readEnvVars
+  envVarFeatureGates.TypeAssumptions.set'readEnvVars
   envVarFeatureGates.TypeAssumptions.method_set
   envVarFeatureGates.TypeAssumptions.ptr_method_set
-  envVarFeatureGates.TypeAssumptions.ptr_Enabled_unfold
-  envVarFeatureGates.TypeAssumptions.ptr_Set_unfold
-  envVarFeatureGates.TypeAssumptions.ptr_SetForTesting_unfold
-  envVarFeatureGates.TypeAssumptions.ptr_getEnabledMapFromEnvVar_unfold
-  envVarFeatureGates.TypeAssumptions.ptr_hasAlreadyReadEnvVar_unfold
-  envVarFeatureGates.TypeAssumptions.ptr_set_unfold
-  envVarFeatureGates.TypeAssumptions.ptr_wasFeatureEnabledViaSetMethod_unfold
+  envVarFeatureGates.TypeAssumptions.ptr_unfold'Enabled
+  envVarFeatureGates.TypeAssumptions.ptr_unfold'Set
+  envVarFeatureGates.TypeAssumptions.ptr_unfold'SetForTesting
+  envVarFeatureGates.TypeAssumptions.ptr_unfold'getEnabledMapFromEnvVar
+  envVarFeatureGates.TypeAssumptions.ptr_unfold'hasAlreadyReadEnvVar
+  envVarFeatureGates.TypeAssumptions.ptr_unfold'set
+  envVarFeatureGates.TypeAssumptions.ptr_unfold'wasFeatureEnabledViaSetMethod
 
 abbrev prerelease [GooseExts] : Type := GoString
 
@@ -1089,7 +1089,7 @@ noncomputable instance FeatureSpec.zero_val [GooseExts] : ZeroVal FeatureSpec :=
 @[irreducible] noncomputable def FeatureSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FeatureSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_FeatureSpec [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FeatureSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold FeatureSpec.fields FeatureSpec.fieldsUnsealed :=
   ⟨by unfold FeatureSpec.fields; rfl⟩
 
@@ -1099,27 +1099,27 @@ noncomputable instance equals_unfold_FeatureSpec [GooseExts] [GoGlobalContext] :
 class FeatureSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FeatureSpec.underlying FeatureSpec
   underlying : go.UnderlyingDirectedEq FeatureSpec.ty FeatureSpec.underlying
-  get_Default : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"Default") #x (Val #(x.Default'))
-  set_Default : ∀ (x : FeatureSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"Default") (PairV #x #y) (Val #(({ x with Default' := y } : FeatureSpec)))
-  get_LockToDefault : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"LockToDefault") #x (Val #(x.LockToDefault'))
-  set_LockToDefault : ∀ (x : FeatureSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"LockToDefault") (PairV #x #y) (Val #(({ x with LockToDefault' := y } : FeatureSpec)))
-  get_PreRelease : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"PreRelease") #x (Val #(x.PreRelease'))
-  set_PreRelease : ∀ (x : FeatureSpec) (y : prerelease), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"PreRelease") (PairV #x #y) (Val #(({ x with PreRelease' := y } : FeatureSpec)))
-  get_Version : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"Version") #x (Val #(x.Version'))
-  set_Version : ∀ (x : FeatureSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : FeatureSpec)))
+  get'Default : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"Default") #x (Val #(x.Default'))
+  set'Default : ∀ (x : FeatureSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"Default") (PairV #x #y) (Val #(({ x with Default' := y } : FeatureSpec)))
+  get'LockToDefault : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"LockToDefault") #x (Val #(x.LockToDefault'))
+  set'LockToDefault : ∀ (x : FeatureSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"LockToDefault") (PairV #x #y) (Val #(({ x with LockToDefault' := y } : FeatureSpec)))
+  get'PreRelease : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"PreRelease") #x (Val #(x.PreRelease'))
+  set'PreRelease : ∀ (x : FeatureSpec) (y : prerelease), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"PreRelease") (PairV #x #y) (Val #(({ x with PreRelease' := y } : FeatureSpec)))
+  get'Version : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"Version") #x (Val #(x.Version'))
+  set'Version : ∀ (x : FeatureSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : FeatureSpec)))
   method_set : go.MethodSetIs FeatureSpec.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FeatureSpec.ty) []
 
 attribute [instance] FeatureSpec.TypeAssumptions.type_repr
   FeatureSpec.TypeAssumptions.underlying
-  FeatureSpec.TypeAssumptions.get_Default
-  FeatureSpec.TypeAssumptions.set_Default
-  FeatureSpec.TypeAssumptions.get_LockToDefault
-  FeatureSpec.TypeAssumptions.set_LockToDefault
-  FeatureSpec.TypeAssumptions.get_PreRelease
-  FeatureSpec.TypeAssumptions.set_PreRelease
-  FeatureSpec.TypeAssumptions.get_Version
-  FeatureSpec.TypeAssumptions.set_Version
+  FeatureSpec.TypeAssumptions.get'Default
+  FeatureSpec.TypeAssumptions.set'Default
+  FeatureSpec.TypeAssumptions.get'LockToDefault
+  FeatureSpec.TypeAssumptions.set'LockToDefault
+  FeatureSpec.TypeAssumptions.get'PreRelease
+  FeatureSpec.TypeAssumptions.set'PreRelease
+  FeatureSpec.TypeAssumptions.get'Version
+  FeatureSpec.TypeAssumptions.set'Version
   FeatureSpec.TypeAssumptions.method_set
   FeatureSpec.TypeAssumptions.ptr_method_set
 
@@ -1192,7 +1192,7 @@ noncomputable instance featureGatesWrapper.zero_val [GooseExts] : ZeroVal featur
 @[irreducible] noncomputable def featureGatesWrapper.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   featureGatesWrapper.fieldsUnsealed
 
-noncomputable instance equals_unfold_featureGatesWrapper [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'featureGatesWrapper [GooseExts] [GoGlobalContext] :
     EqualsUnfold featureGatesWrapper.fields featureGatesWrapper.fieldsUnsealed :=
   ⟨by unfold featureGatesWrapper.fields; rfl⟩
 
@@ -1202,78 +1202,78 @@ noncomputable instance equals_unfold_featureGatesWrapper [GooseExts] [GoGlobalCo
 class featureGatesWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying featureGatesWrapper.underlying featureGatesWrapper
   underlying : go.UnderlyingDirectedEq featureGatesWrapper.ty featureGatesWrapper.underlying
-  get_Gates : ∀ (x : featureGatesWrapper), go.IsGoStepPureDetTagged under (StructFieldGet featureGatesWrapper.underlying go!"Gates") #x (Val #(x.Gates'))
-  set_Gates : ∀ (x : featureGatesWrapper) (y : Gates), go.IsGoStepPureDetTagged under (StructFieldSet featureGatesWrapper.underlying go!"Gates") (PairV #x #y) (Val #(({ x with Gates' := y } : featureGatesWrapper)))
+  get'Gates : ∀ (x : featureGatesWrapper), go.IsGoStepPureDetTagged under (StructFieldGet featureGatesWrapper.underlying go!"Gates") #x (Val #(x.Gates'))
+  set'Gates : ∀ (x : featureGatesWrapper) (y : Gates), go.IsGoStepPureDetTagged under (StructFieldSet featureGatesWrapper.underlying go!"Gates") (PairV #x #y) (Val #(({ x with Gates' := y } : featureGatesWrapper)))
   method_set : go.MethodSetIs featureGatesWrapper.ty [(go!"Enabled", (some (go.signature.Signature [Feature.ty] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType featureGatesWrapper.ty) [(go!"Enabled", (some (go.signature.Signature [Feature.ty] false [go.bool])))]
-  Enabled_unfold : MethodUnfold featureGatesWrapper.ty go!"Enabled" (LamV "$r"
+  unfold'Enabled : MethodUnfold featureGatesWrapper.ty go!"Enabled" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Gates.ty go!"Enabled"))) (App (Val (GoInstruction (StructFieldGet featureGatesWrapper.ty go!"Gates"))) (Var "$r"))))
-  ptr_Enabled_unfold : MethodUnfold (go.GoType.PointerType featureGatesWrapper.ty) go!"Enabled" (LamV "$r"
+  ptr_unfold'Enabled : MethodUnfold (go.GoType.PointerType featureGatesWrapper.ty) go!"Enabled" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Gates.ty go!"Enabled"))) (App (Val (GoInstruction (GoLoad Gates.ty))) (App (Val (GoInstruction (StructFieldRef featureGatesWrapper.ty go!"Gates"))) (Var "$r")))))
 
 attribute [instance] featureGatesWrapper.TypeAssumptions.type_repr
   featureGatesWrapper.TypeAssumptions.underlying
-  featureGatesWrapper.TypeAssumptions.get_Gates
-  featureGatesWrapper.TypeAssumptions.set_Gates
+  featureGatesWrapper.TypeAssumptions.get'Gates
+  featureGatesWrapper.TypeAssumptions.set'Gates
   featureGatesWrapper.TypeAssumptions.method_set
   featureGatesWrapper.TypeAssumptions.ptr_method_set
-  featureGatesWrapper.TypeAssumptions.Enabled_unfold
-  featureGatesWrapper.TypeAssumptions.ptr_Enabled_unfold
+  featureGatesWrapper.TypeAssumptions.unfold'Enabled
+  featureGatesWrapper.TypeAssumptions.ptr_unfold'Enabled
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  envVarFeatureGates_instance : envVarFeatureGates.TypeAssumptions
-  prerelease_instance : prerelease.TypeAssumptions
-  Feature_instance : Feature.TypeAssumptions
-  FeatureSpec_instance : FeatureSpec.TypeAssumptions
-  VersionedSpecs_instance : VersionedSpecs.TypeAssumptions
-  Gates_instance : Gates.TypeAssumptions
-  Registry_instance : Registry.TypeAssumptions
-  VersionedRegistry_instance : VersionedRegistry.TypeAssumptions
-  featureGatesWrapper_instance : featureGatesWrapper.TypeAssumptions
-  newEnvVarFeatureGates_unfold : FuncUnfold newEnvVarFeatureGates [] newEnvVarFeatureGates.impl
-  FeatureGates_unfold : FuncUnfold FeatureGates [] FeatureGates.impl
-  AddFeaturesToExistingFeatureGates_unfold : FuncUnfold AddFeaturesToExistingFeatureGates [] AddFeaturesToExistingFeatureGates.impl
-  AddVersionedFeaturesToExistingFeatureGates_unfold : FuncUnfold AddVersionedFeaturesToExistingFeatureGates [] AddVersionedFeaturesToExistingFeatureGates.impl
-  ReplaceFeatureGates_unfold : FuncUnfold ReplaceFeatureGates [] ReplaceFeatureGates.impl
-  replaceFeatureGatesWithWarningIndicator_unfold : FuncUnfold replaceFeatureGatesWithWarningIndicator [] replaceFeatureGatesWithWarningIndicator.impl
-  unversionedFeatureGates_unfold : FuncUnfold unversionedFeatureGates [] unversionedFeatureGates.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_naming_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.naming.Assumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.Assumptions
-  import_klog_Assumption : _root_.Perennial.k8s_io.klog.v2.Assumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_version_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.version.Assumptions
+  instance'envVarFeatureGates : envVarFeatureGates.TypeAssumptions
+  instance'prerelease : prerelease.TypeAssumptions
+  instance'Feature : Feature.TypeAssumptions
+  instance'FeatureSpec : FeatureSpec.TypeAssumptions
+  instance'VersionedSpecs : VersionedSpecs.TypeAssumptions
+  instance'Gates : Gates.TypeAssumptions
+  instance'Registry : Registry.TypeAssumptions
+  instance'VersionedRegistry : VersionedRegistry.TypeAssumptions
+  instance'featureGatesWrapper : featureGatesWrapper.TypeAssumptions
+  unfold'newEnvVarFeatureGates : FuncUnfold newEnvVarFeatureGates [] newEnvVarFeatureGates.impl
+  unfold'FeatureGates : FuncUnfold FeatureGates [] FeatureGates.impl
+  unfold'AddFeaturesToExistingFeatureGates : FuncUnfold AddFeaturesToExistingFeatureGates [] AddFeaturesToExistingFeatureGates.impl
+  unfold'AddVersionedFeaturesToExistingFeatureGates : FuncUnfold AddVersionedFeaturesToExistingFeatureGates [] AddVersionedFeaturesToExistingFeatureGates.impl
+  unfold'ReplaceFeatureGates : FuncUnfold ReplaceFeatureGates [] ReplaceFeatureGates.impl
+  unfold'replaceFeatureGatesWithWarningIndicator : FuncUnfold replaceFeatureGatesWithWarningIndicator [] replaceFeatureGatesWithWarningIndicator.impl
+  unfold'unversionedFeatureGates : FuncUnfold unversionedFeatureGates [] unversionedFeatureGates.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'naming : _root_.Perennial.k8s_io.apimachinery.pkg.util.naming.Assumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.Assumptions
+  import'klog : _root_.Perennial.k8s_io.klog.v2.Assumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'version : _root_.Perennial.k8s_io.apimachinery.pkg.util.version.Assumptions
 
-attribute [instance] Assumptions.envVarFeatureGates_instance
-  Assumptions.prerelease_instance
-  Assumptions.Feature_instance
-  Assumptions.FeatureSpec_instance
-  Assumptions.VersionedSpecs_instance
-  Assumptions.Gates_instance
-  Assumptions.Registry_instance
-  Assumptions.VersionedRegistry_instance
-  Assumptions.featureGatesWrapper_instance
-  Assumptions.newEnvVarFeatureGates_unfold
-  Assumptions.FeatureGates_unfold
-  Assumptions.AddFeaturesToExistingFeatureGates_unfold
-  Assumptions.AddVersionedFeaturesToExistingFeatureGates_unfold
-  Assumptions.ReplaceFeatureGates_unfold
-  Assumptions.replaceFeatureGatesWithWarningIndicator_unfold
-  Assumptions.unversionedFeatureGates_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_naming_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_klog_Assumption
-  Assumptions.import_context_Assumption
-  Assumptions.import_version_Assumption
+attribute [instance] Assumptions.instance'envVarFeatureGates
+  Assumptions.instance'prerelease
+  Assumptions.instance'Feature
+  Assumptions.instance'FeatureSpec
+  Assumptions.instance'VersionedSpecs
+  Assumptions.instance'Gates
+  Assumptions.instance'Registry
+  Assumptions.instance'VersionedRegistry
+  Assumptions.instance'featureGatesWrapper
+  Assumptions.unfold'newEnvVarFeatureGates
+  Assumptions.unfold'FeatureGates
+  Assumptions.unfold'AddFeaturesToExistingFeatureGates
+  Assumptions.unfold'AddVersionedFeaturesToExistingFeatureGates
+  Assumptions.unfold'ReplaceFeatureGates
+  Assumptions.unfold'replaceFeatureGatesWithWarningIndicator
+  Assumptions.unfold'unversionedFeatureGates
+  Assumptions.import'fmt
+  Assumptions.import'os
+  Assumptions.import'strconv
+  Assumptions.import'sync
+  Assumptions.import'atomic
+  Assumptions.import'naming
+  Assumptions.import'runtime
+  Assumptions.import'klog
+  Assumptions.import'context
+  Assumptions.import'version
 
 end k8s_io.client_go.features
 

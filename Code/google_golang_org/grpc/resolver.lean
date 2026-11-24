@@ -22,18 +22,18 @@ end pkg_id
 
 namespace google_golang_org.grpc.resolver
 
-noncomputable def addressMapEntry.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc/resolver.addressMapEntry" [T])
+noncomputable def addressMapEntry.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc/resolver.addressMapEntry" [T₀])
 
 attribute [irreducible] addressMapEntry.ty
 
-noncomputable def AddressMapV2.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc/resolver.AddressMapV2" [T])
+noncomputable def AddressMapV2.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc/resolver.AddressMapV2" [T₀])
 
 attribute [irreducible] AddressMapV2.ty
 
-noncomputable def addressMapEntryList.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc/resolver.addressMapEntryList" [T])
+noncomputable def addressMapEntryList.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc/resolver.addressMapEntryList" [T₀])
 
 attribute [irreducible] addressMapEntryList.ty
 
@@ -42,13 +42,13 @@ noncomputable def endpointMapKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] endpointMapKey.ty
 
-noncomputable def EndpointMap.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc/resolver.EndpointMap" [T])
+noncomputable def EndpointMap.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc/resolver.EndpointMap" [T₀])
 
 attribute [irreducible] EndpointMap.ty
 
-noncomputable def endpointData.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc/resolver.endpointData" [T])
+noncomputable def endpointData.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"google.golang.org/grpc/resolver.endpointData" [T₀])
 
 attribute [irreducible] endpointData.ty
 
@@ -195,7 +195,7 @@ noncomputable instance Address.zero_val [GooseExts] : ZeroVal Address :=
 @[irreducible] noncomputable def Address.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Address.fieldsUnsealed
 
-noncomputable instance equals_unfold_Address [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Address [GooseExts] [GoGlobalContext] :
     EqualsUnfold Address.fields Address.fieldsUnsealed :=
   ⟨by unfold Address.fields; rfl⟩
 
@@ -205,119 +205,119 @@ noncomputable instance equals_unfold_Address [GooseExts] [GoGlobalContext] :
 class Address.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Address.underlying Address
   underlying : go.UnderlyingDirectedEq Address.ty Address.underlying
-  get_Addr : ∀ (x : Address), go.IsGoStepPureDetTagged under (StructFieldGet Address.underlying go!"Addr") #x (Val #(x.Addr'))
-  set_Addr : ∀ (x : Address) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Address.underlying go!"Addr") (PairV #x #y) (Val #(({ x with Addr' := y } : Address)))
-  get_ServerName : ∀ (x : Address), go.IsGoStepPureDetTagged under (StructFieldGet Address.underlying go!"ServerName") #x (Val #(x.ServerName'))
-  set_ServerName : ∀ (x : Address) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Address.underlying go!"ServerName") (PairV #x #y) (Val #(({ x with ServerName' := y } : Address)))
-  get_Attributes : ∀ (x : Address), go.IsGoStepPureDetTagged under (StructFieldGet Address.underlying go!"Attributes") #x (Val #(x.Attributes'))
-  set_Attributes : ∀ (x : Address) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Address.underlying go!"Attributes") (PairV #x #y) (Val #(({ x with Attributes' := y } : Address)))
-  get_BalancerAttributes : ∀ (x : Address), go.IsGoStepPureDetTagged under (StructFieldGet Address.underlying go!"BalancerAttributes") #x (Val #(x.BalancerAttributes'))
-  set_BalancerAttributes : ∀ (x : Address) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Address.underlying go!"BalancerAttributes") (PairV #x #y) (Val #(({ x with BalancerAttributes' := y } : Address)))
-  get_Metadata : ∀ (x : Address), go.IsGoStepPureDetTagged under (StructFieldGet Address.underlying go!"Metadata") #x (Val #(x.Metadata'))
-  set_Metadata : ∀ (x : Address) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Address.underlying go!"Metadata") (PairV #x #y) (Val #(({ x with Metadata' := y } : Address)))
+  get'Addr : ∀ (x : Address), go.IsGoStepPureDetTagged under (StructFieldGet Address.underlying go!"Addr") #x (Val #(x.Addr'))
+  set'Addr : ∀ (x : Address) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Address.underlying go!"Addr") (PairV #x #y) (Val #(({ x with Addr' := y } : Address)))
+  get'ServerName : ∀ (x : Address), go.IsGoStepPureDetTagged under (StructFieldGet Address.underlying go!"ServerName") #x (Val #(x.ServerName'))
+  set'ServerName : ∀ (x : Address) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Address.underlying go!"ServerName") (PairV #x #y) (Val #(({ x with ServerName' := y } : Address)))
+  get'Attributes : ∀ (x : Address), go.IsGoStepPureDetTagged under (StructFieldGet Address.underlying go!"Attributes") #x (Val #(x.Attributes'))
+  set'Attributes : ∀ (x : Address) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Address.underlying go!"Attributes") (PairV #x #y) (Val #(({ x with Attributes' := y } : Address)))
+  get'BalancerAttributes : ∀ (x : Address), go.IsGoStepPureDetTagged under (StructFieldGet Address.underlying go!"BalancerAttributes") #x (Val #(x.BalancerAttributes'))
+  set'BalancerAttributes : ∀ (x : Address) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Address.underlying go!"BalancerAttributes") (PairV #x #y) (Val #(({ x with BalancerAttributes' := y } : Address)))
+  get'Metadata : ∀ (x : Address), go.IsGoStepPureDetTagged under (StructFieldGet Address.underlying go!"Metadata") #x (Val #(x.Metadata'))
+  set'Metadata : ∀ (x : Address) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Address.underlying go!"Metadata") (PairV #x #y) (Val #(({ x with Metadata' := y } : Address)))
   method_set : go.MethodSetIs Address.ty [(go!"Equal", (some (go.signature.Signature [Address.ty] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Address.ty) [(go!"Equal", (some (go.signature.Signature [Address.ty] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Address.TypeAssumptions.type_repr
   Address.TypeAssumptions.underlying
-  Address.TypeAssumptions.get_Addr
-  Address.TypeAssumptions.set_Addr
-  Address.TypeAssumptions.get_ServerName
-  Address.TypeAssumptions.set_ServerName
-  Address.TypeAssumptions.get_Attributes
-  Address.TypeAssumptions.set_Attributes
-  Address.TypeAssumptions.get_BalancerAttributes
-  Address.TypeAssumptions.set_BalancerAttributes
-  Address.TypeAssumptions.get_Metadata
-  Address.TypeAssumptions.set_Metadata
+  Address.TypeAssumptions.get'Addr
+  Address.TypeAssumptions.set'Addr
+  Address.TypeAssumptions.get'ServerName
+  Address.TypeAssumptions.set'ServerName
+  Address.TypeAssumptions.get'Attributes
+  Address.TypeAssumptions.set'Attributes
+  Address.TypeAssumptions.get'BalancerAttributes
+  Address.TypeAssumptions.set'BalancerAttributes
+  Address.TypeAssumptions.get'Metadata
+  Address.TypeAssumptions.set'Metadata
   Address.TypeAssumptions.method_set
   Address.TypeAssumptions.ptr_method_set
 
-structure addressMapEntry [GooseExts] (T : Type) where
+structure addressMapEntry [GooseExts] (T₀ : Type) where
   mk ::
   addr' : Address
-  value' : T
+  value' : T₀
 
-noncomputable instance addressMapEntry.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (addressMapEntry T) :=
+noncomputable instance addressMapEntry.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (addressMapEntry T₀) :=
   ⟨addressMapEntry.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def addressMapEntry.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def addressMapEntry.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"addr" Address.ty),
-(go.field_decl.FieldDecl go!"value" T)]
+(go.field_decl.FieldDecl go!"value" T₀)]
 
-@[irreducible] noncomputable def addressMapEntry.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (addressMapEntry.fieldsUnsealed T)
+@[irreducible] noncomputable def addressMapEntry.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (addressMapEntry.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_addressMapEntry [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (addressMapEntry.fields T) (addressMapEntry.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'addressMapEntry [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (addressMapEntry.fields T₀) (addressMapEntry.fieldsUnsealed T₀) :=
   ⟨by unfold addressMapEntry.fields; rfl⟩
 
-@[reducible] noncomputable def addressMapEntry.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (addressMapEntry.fields T))
+@[reducible] noncomputable def addressMapEntry.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (addressMapEntry.fields T₀))
 
 class addressMapEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (addressMapEntry.underlying T) (addressMapEntry T')
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (addressMapEntry.ty T) (addressMapEntry.underlying T)
-  get_addr : ∀ (T : go.GoType) (T' : Type) (x : (addressMapEntry T')), go.IsGoStepPureDetTagged under (StructFieldGet (addressMapEntry.underlying T) go!"addr") #x (Val #(x.addr'))
-  set_addr : ∀ (T : go.GoType) (T' : Type) (x : (addressMapEntry T')) (y : Address), go.IsGoStepPureDetTagged under (StructFieldSet (addressMapEntry.underlying T) go!"addr") (PairV #x #y) (Val #(({ x with addr' := y } : (addressMapEntry T'))))
-  get_value : ∀ (T : go.GoType) (T' : Type) (x : (addressMapEntry T')), go.IsGoStepPureDetTagged under (StructFieldGet (addressMapEntry.underlying T) go!"value") #x (Val #(x.value'))
-  set_value : ∀ (T : go.GoType) (T' : Type) (x : (addressMapEntry T')) (y : T'), go.IsGoStepPureDetTagged under (StructFieldSet (addressMapEntry.underlying T) go!"value") (PairV #x #y) (Val #(({ x with value' := y } : (addressMapEntry T'))))
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (addressMapEntry.ty T) []
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (addressMapEntry.ty T)) []
+  type_repr : ∀ (T₀ : go.GoType) (T₀' : Type) [ZeroVal T₀'] [TypeRepr T₀ T₀'], go.TypeReprUnderlying (addressMapEntry.underlying T₀) (addressMapEntry T₀')
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (addressMapEntry.ty T₀) (addressMapEntry.underlying T₀)
+  get'addr : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (addressMapEntry T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (addressMapEntry.underlying T₀) go!"addr") #x (Val #(x.addr'))
+  set'addr : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (addressMapEntry T₀')) (y : Address), go.IsGoStepPureDetTagged under (StructFieldSet (addressMapEntry.underlying T₀) go!"addr") (PairV #x #y) (Val #(({ x with addr' := y } : (addressMapEntry T₀'))))
+  get'value : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (addressMapEntry T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (addressMapEntry.underlying T₀) go!"value") #x (Val #(x.value'))
+  set'value : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (addressMapEntry T₀')) (y : T₀'), go.IsGoStepPureDetTagged under (StructFieldSet (addressMapEntry.underlying T₀) go!"value") (PairV #x #y) (Val #(({ x with value' := y } : (addressMapEntry T₀'))))
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (addressMapEntry.ty T₀) []
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (addressMapEntry.ty T₀)) []
 
 attribute [instance] addressMapEntry.TypeAssumptions.type_repr
   addressMapEntry.TypeAssumptions.underlying
-  addressMapEntry.TypeAssumptions.get_addr
-  addressMapEntry.TypeAssumptions.set_addr
-  addressMapEntry.TypeAssumptions.get_value
-  addressMapEntry.TypeAssumptions.set_value
+  addressMapEntry.TypeAssumptions.get'addr
+  addressMapEntry.TypeAssumptions.set'addr
+  addressMapEntry.TypeAssumptions.get'value
+  addressMapEntry.TypeAssumptions.set'value
   addressMapEntry.TypeAssumptions.method_set
   addressMapEntry.TypeAssumptions.ptr_method_set
 
-structure AddressMapV2 [GooseExts] (T : Type) where
+structure AddressMapV2 [GooseExts] (T₀ : Type) where
   mk ::
   m' : GoMap
 
-noncomputable instance AddressMapV2.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (AddressMapV2 T) :=
+noncomputable instance AddressMapV2.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (AddressMapV2 T₀) :=
   ⟨AddressMapV2.mk zeroValDef⟩
 
-@[reducible] noncomputable def AddressMapV2.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"m" (go.GoType.MapType Address.ty (addressMapEntryList.ty T)))]
+@[reducible] noncomputable def AddressMapV2.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"m" (go.GoType.MapType Address.ty (addressMapEntryList.ty T₀)))]
 
-@[irreducible] noncomputable def AddressMapV2.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (AddressMapV2.fieldsUnsealed T)
+@[irreducible] noncomputable def AddressMapV2.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (AddressMapV2.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_AddressMapV2 [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (AddressMapV2.fields T) (AddressMapV2.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'AddressMapV2 [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (AddressMapV2.fields T₀) (AddressMapV2.fieldsUnsealed T₀) :=
   ⟨by unfold AddressMapV2.fields; rfl⟩
 
-@[reducible] noncomputable def AddressMapV2.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (AddressMapV2.fields T))
+@[reducible] noncomputable def AddressMapV2.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (AddressMapV2.fields T₀))
 
 class AddressMapV2.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (AddressMapV2.underlying T) (AddressMapV2 T')
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (AddressMapV2.ty T) (AddressMapV2.underlying T)
-  get_m : ∀ (T : go.GoType) (T' : Type) (x : (AddressMapV2 T')), go.IsGoStepPureDetTagged under (StructFieldGet (AddressMapV2.underlying T) go!"m") #x (Val #(x.m'))
-  set_m : ∀ (T : go.GoType) (T' : Type) (x : (AddressMapV2 T')) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet (AddressMapV2.underlying T) go!"m") (PairV #x #y) (Val #(({ x with m' := y } : (AddressMapV2 T'))))
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (AddressMapV2.ty T) []
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (AddressMapV2.ty T)) [(go!"All", (some (go.signature.Signature [] false [(go.GoType.Named go!"iter.Seq2" [Address.ty, T])]))), (go!"Delete", (some (go.signature.Signature [Address.ty] false []))), (go!"Get", (some (go.signature.Signature [Address.ty] false [T, go.bool]))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType Address.ty)]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Set", (some (go.signature.Signature [Address.ty, T] false []))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType T)])))]
+  type_repr : ∀ (T₀ : go.GoType) (T₀' : Type) [ZeroVal T₀'] [TypeRepr T₀ T₀'], go.TypeReprUnderlying (AddressMapV2.underlying T₀) (AddressMapV2 T₀')
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (AddressMapV2.ty T₀) (AddressMapV2.underlying T₀)
+  get'm : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (AddressMapV2 T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (AddressMapV2.underlying T₀) go!"m") #x (Val #(x.m'))
+  set'm : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (AddressMapV2 T₀')) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet (AddressMapV2.underlying T₀) go!"m") (PairV #x #y) (Val #(({ x with m' := y } : (AddressMapV2 T₀'))))
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (AddressMapV2.ty T₀) []
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (AddressMapV2.ty T₀)) [(go!"All", (some (go.signature.Signature [] false [(go.GoType.Named go!"iter.Seq2" [Address.ty, T₀])]))), (go!"Delete", (some (go.signature.Signature [Address.ty] false []))), (go!"Get", (some (go.signature.Signature [Address.ty] false [T₀, go.bool]))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType Address.ty)]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Set", (some (go.signature.Signature [Address.ty, T₀] false []))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType T₀)])))]
 
 attribute [instance] AddressMapV2.TypeAssumptions.type_repr
   AddressMapV2.TypeAssumptions.underlying
-  AddressMapV2.TypeAssumptions.get_m
-  AddressMapV2.TypeAssumptions.set_m
+  AddressMapV2.TypeAssumptions.get'm
+  AddressMapV2.TypeAssumptions.set'm
   AddressMapV2.TypeAssumptions.method_set
   AddressMapV2.TypeAssumptions.ptr_method_set
 
-abbrev addressMapEntryList [GooseExts] (T : Type) : Type := GoSlice
+abbrev addressMapEntryList [GooseExts] (T₀ : Type) : Type := GoSlice
 
-@[reducible] noncomputable def addressMapEntryList.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.SliceType (go.GoType.PointerType (addressMapEntry.ty T)))
+@[reducible] noncomputable def addressMapEntryList.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.SliceType (go.GoType.PointerType (addressMapEntry.ty T₀)))
 
 class addressMapEntryList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (addressMapEntryList.ty T) (addressMapEntryList.underlying T)
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (addressMapEntryList.ty T) [(go!"google.golang.org/grpc/resolver.find", (some (go.signature.Signature [Address.ty] false [go.int])))]
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (addressMapEntryList.ty T)) [(go!"google.golang.org/grpc/resolver.find", (some (go.signature.Signature [Address.ty] false [go.int])))]
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (addressMapEntryList.ty T₀) (addressMapEntryList.underlying T₀)
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (addressMapEntryList.ty T₀) [(go!"google.golang.org/grpc/resolver.find", (some (go.signature.Signature [Address.ty] false [go.int])))]
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (addressMapEntryList.ty T₀)) [(go!"google.golang.org/grpc/resolver.find", (some (go.signature.Signature [Address.ty] false [go.int])))]
 
 attribute [instance] addressMapEntryList.TypeAssumptions.underlying
   addressMapEntryList.TypeAssumptions.method_set
@@ -337,38 +337,38 @@ attribute [instance] endpointMapKey.TypeAssumptions.underlying
   endpointMapKey.TypeAssumptions.method_set
   endpointMapKey.TypeAssumptions.ptr_method_set
 
-structure EndpointMap [GooseExts] (T : Type) where
+structure EndpointMap [GooseExts] (T₀ : Type) where
   mk ::
   endpoints' : GoMap
 
-noncomputable instance EndpointMap.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (EndpointMap T) :=
+noncomputable instance EndpointMap.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (EndpointMap T₀) :=
   ⟨EndpointMap.mk zeroValDef⟩
 
-@[reducible] noncomputable def EndpointMap.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"endpoints" (go.GoType.MapType endpointMapKey.ty (endpointData.ty T)))]
+@[reducible] noncomputable def EndpointMap.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"endpoints" (go.GoType.MapType endpointMapKey.ty (endpointData.ty T₀)))]
 
-@[irreducible] noncomputable def EndpointMap.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (EndpointMap.fieldsUnsealed T)
+@[irreducible] noncomputable def EndpointMap.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (EndpointMap.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_EndpointMap [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (EndpointMap.fields T) (EndpointMap.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'EndpointMap [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (EndpointMap.fields T₀) (EndpointMap.fieldsUnsealed T₀) :=
   ⟨by unfold EndpointMap.fields; rfl⟩
 
-@[reducible] noncomputable def EndpointMap.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (EndpointMap.fields T))
+@[reducible] noncomputable def EndpointMap.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (EndpointMap.fields T₀))
 
 class EndpointMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (EndpointMap.underlying T) (EndpointMap T')
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (EndpointMap.ty T) (EndpointMap.underlying T)
-  get_endpoints : ∀ (T : go.GoType) (T' : Type) (x : (EndpointMap T')), go.IsGoStepPureDetTagged under (StructFieldGet (EndpointMap.underlying T) go!"endpoints") #x (Val #(x.endpoints'))
-  set_endpoints : ∀ (T : go.GoType) (T' : Type) (x : (EndpointMap T')) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet (EndpointMap.underlying T) go!"endpoints") (PairV #x #y) (Val #(({ x with endpoints' := y } : (EndpointMap T'))))
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (EndpointMap.ty T) []
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (EndpointMap.ty T)) [(go!"All", (some (go.signature.Signature [] false [(go.GoType.Named go!"iter.Seq2" [Endpoint.ty, T])]))), (go!"Delete", (some (go.signature.Signature [Endpoint.ty] false []))), (go!"Get", (some (go.signature.Signature [Endpoint.ty] false [T, go.bool]))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType Endpoint.ty)]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Set", (some (go.signature.Signature [Endpoint.ty, T] false []))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType T)])))]
+  type_repr : ∀ (T₀ : go.GoType) (T₀' : Type) [ZeroVal T₀'] [TypeRepr T₀ T₀'], go.TypeReprUnderlying (EndpointMap.underlying T₀) (EndpointMap T₀')
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (EndpointMap.ty T₀) (EndpointMap.underlying T₀)
+  get'endpoints : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (EndpointMap T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (EndpointMap.underlying T₀) go!"endpoints") #x (Val #(x.endpoints'))
+  set'endpoints : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (EndpointMap T₀')) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet (EndpointMap.underlying T₀) go!"endpoints") (PairV #x #y) (Val #(({ x with endpoints' := y } : (EndpointMap T₀'))))
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (EndpointMap.ty T₀) []
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (EndpointMap.ty T₀)) [(go!"All", (some (go.signature.Signature [] false [(go.GoType.Named go!"iter.Seq2" [Endpoint.ty, T₀])]))), (go!"Delete", (some (go.signature.Signature [Endpoint.ty] false []))), (go!"Get", (some (go.signature.Signature [Endpoint.ty] false [T₀, go.bool]))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType Endpoint.ty)]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Set", (some (go.signature.Signature [Endpoint.ty, T₀] false []))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType T₀)])))]
 
 attribute [instance] EndpointMap.TypeAssumptions.type_repr
   EndpointMap.TypeAssumptions.underlying
-  EndpointMap.TypeAssumptions.get_endpoints
-  EndpointMap.TypeAssumptions.set_endpoints
+  EndpointMap.TypeAssumptions.get'endpoints
+  EndpointMap.TypeAssumptions.set'endpoints
   EndpointMap.TypeAssumptions.method_set
   EndpointMap.TypeAssumptions.ptr_method_set
 
@@ -387,7 +387,7 @@ noncomputable instance Endpoint.zero_val [GooseExts] : ZeroVal Endpoint :=
 @[irreducible] noncomputable def Endpoint.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Endpoint.fieldsUnsealed
 
-noncomputable instance equals_unfold_Endpoint [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Endpoint [GooseExts] [GoGlobalContext] :
     EqualsUnfold Endpoint.fields Endpoint.fieldsUnsealed :=
   ⟨by unfold Endpoint.fields; rfl⟩
 
@@ -397,60 +397,60 @@ noncomputable instance equals_unfold_Endpoint [GooseExts] [GoGlobalContext] :
 class Endpoint.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Endpoint.underlying Endpoint
   underlying : go.UnderlyingDirectedEq Endpoint.ty Endpoint.underlying
-  get_Addresses : ∀ (x : Endpoint), go.IsGoStepPureDetTagged under (StructFieldGet Endpoint.underlying go!"Addresses") #x (Val #(x.Addresses'))
-  set_Addresses : ∀ (x : Endpoint) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Endpoint.underlying go!"Addresses") (PairV #x #y) (Val #(({ x with Addresses' := y } : Endpoint)))
-  get_Attributes : ∀ (x : Endpoint), go.IsGoStepPureDetTagged under (StructFieldGet Endpoint.underlying go!"Attributes") #x (Val #(x.Attributes'))
-  set_Attributes : ∀ (x : Endpoint) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Endpoint.underlying go!"Attributes") (PairV #x #y) (Val #(({ x with Attributes' := y } : Endpoint)))
+  get'Addresses : ∀ (x : Endpoint), go.IsGoStepPureDetTagged under (StructFieldGet Endpoint.underlying go!"Addresses") #x (Val #(x.Addresses'))
+  set'Addresses : ∀ (x : Endpoint) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Endpoint.underlying go!"Addresses") (PairV #x #y) (Val #(({ x with Addresses' := y } : Endpoint)))
+  get'Attributes : ∀ (x : Endpoint), go.IsGoStepPureDetTagged under (StructFieldGet Endpoint.underlying go!"Attributes") #x (Val #(x.Attributes'))
+  set'Attributes : ∀ (x : Endpoint) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Endpoint.underlying go!"Attributes") (PairV #x #y) (Val #(({ x with Attributes' := y } : Endpoint)))
   method_set : go.MethodSetIs Endpoint.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Endpoint.ty) []
 
 attribute [instance] Endpoint.TypeAssumptions.type_repr
   Endpoint.TypeAssumptions.underlying
-  Endpoint.TypeAssumptions.get_Addresses
-  Endpoint.TypeAssumptions.set_Addresses
-  Endpoint.TypeAssumptions.get_Attributes
-  Endpoint.TypeAssumptions.set_Attributes
+  Endpoint.TypeAssumptions.get'Addresses
+  Endpoint.TypeAssumptions.set'Addresses
+  Endpoint.TypeAssumptions.get'Attributes
+  Endpoint.TypeAssumptions.set'Attributes
   Endpoint.TypeAssumptions.method_set
   Endpoint.TypeAssumptions.ptr_method_set
 
-structure endpointData [GooseExts] (T : Type) where
+structure endpointData [GooseExts] (T₀ : Type) where
   mk ::
   decodedKey' : Endpoint
-  value' : T
+  value' : T₀
 
-noncomputable instance endpointData.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (endpointData T) :=
+noncomputable instance endpointData.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (endpointData T₀) :=
   ⟨endpointData.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def endpointData.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def endpointData.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"decodedKey" Endpoint.ty),
-(go.field_decl.FieldDecl go!"value" T)]
+(go.field_decl.FieldDecl go!"value" T₀)]
 
-@[irreducible] noncomputable def endpointData.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (endpointData.fieldsUnsealed T)
+@[irreducible] noncomputable def endpointData.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (endpointData.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_endpointData [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (endpointData.fields T) (endpointData.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'endpointData [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (endpointData.fields T₀) (endpointData.fieldsUnsealed T₀) :=
   ⟨by unfold endpointData.fields; rfl⟩
 
-@[reducible] noncomputable def endpointData.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (endpointData.fields T))
+@[reducible] noncomputable def endpointData.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (endpointData.fields T₀))
 
 class endpointData.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (endpointData.underlying T) (endpointData T')
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (endpointData.ty T) (endpointData.underlying T)
-  get_decodedKey : ∀ (T : go.GoType) (T' : Type) (x : (endpointData T')), go.IsGoStepPureDetTagged under (StructFieldGet (endpointData.underlying T) go!"decodedKey") #x (Val #(x.decodedKey'))
-  set_decodedKey : ∀ (T : go.GoType) (T' : Type) (x : (endpointData T')) (y : Endpoint), go.IsGoStepPureDetTagged under (StructFieldSet (endpointData.underlying T) go!"decodedKey") (PairV #x #y) (Val #(({ x with decodedKey' := y } : (endpointData T'))))
-  get_value : ∀ (T : go.GoType) (T' : Type) (x : (endpointData T')), go.IsGoStepPureDetTagged under (StructFieldGet (endpointData.underlying T) go!"value") #x (Val #(x.value'))
-  set_value : ∀ (T : go.GoType) (T' : Type) (x : (endpointData T')) (y : T'), go.IsGoStepPureDetTagged under (StructFieldSet (endpointData.underlying T) go!"value") (PairV #x #y) (Val #(({ x with value' := y } : (endpointData T'))))
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (endpointData.ty T) []
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (endpointData.ty T)) []
+  type_repr : ∀ (T₀ : go.GoType) (T₀' : Type) [ZeroVal T₀'] [TypeRepr T₀ T₀'], go.TypeReprUnderlying (endpointData.underlying T₀) (endpointData T₀')
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (endpointData.ty T₀) (endpointData.underlying T₀)
+  get'decodedKey : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (endpointData T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (endpointData.underlying T₀) go!"decodedKey") #x (Val #(x.decodedKey'))
+  set'decodedKey : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (endpointData T₀')) (y : Endpoint), go.IsGoStepPureDetTagged under (StructFieldSet (endpointData.underlying T₀) go!"decodedKey") (PairV #x #y) (Val #(({ x with decodedKey' := y } : (endpointData T₀'))))
+  get'value : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (endpointData T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (endpointData.underlying T₀) go!"value") #x (Val #(x.value'))
+  set'value : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (endpointData T₀')) (y : T₀'), go.IsGoStepPureDetTagged under (StructFieldSet (endpointData.underlying T₀) go!"value") (PairV #x #y) (Val #(({ x with value' := y } : (endpointData T₀'))))
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (endpointData.ty T₀) []
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (endpointData.ty T₀)) []
 
 attribute [instance] endpointData.TypeAssumptions.type_repr
   endpointData.TypeAssumptions.underlying
-  endpointData.TypeAssumptions.get_decodedKey
-  endpointData.TypeAssumptions.set_decodedKey
-  endpointData.TypeAssumptions.get_value
-  endpointData.TypeAssumptions.set_value
+  endpointData.TypeAssumptions.get'decodedKey
+  endpointData.TypeAssumptions.set'decodedKey
+  endpointData.TypeAssumptions.get'value
+  endpointData.TypeAssumptions.set'value
   endpointData.TypeAssumptions.method_set
   endpointData.TypeAssumptions.ptr_method_set
 
@@ -492,7 +492,7 @@ noncomputable instance State.zero_val [GooseExts] : ZeroVal State :=
 @[irreducible] noncomputable def State.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   State.fieldsUnsealed
 
-noncomputable instance equals_unfold_State [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'State [GooseExts] [GoGlobalContext] :
     EqualsUnfold State.fields State.fieldsUnsealed :=
   ⟨by unfold State.fields; rfl⟩
 
@@ -502,27 +502,27 @@ noncomputable instance equals_unfold_State [GooseExts] [GoGlobalContext] :
 class State.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying State.underlying State
   underlying : go.UnderlyingDirectedEq State.ty State.underlying
-  get_Addresses : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Addresses") #x (Val #(x.Addresses'))
-  set_Addresses : ∀ (x : State) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Addresses") (PairV #x #y) (Val #(({ x with Addresses' := y } : State)))
-  get_Endpoints : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Endpoints") #x (Val #(x.Endpoints'))
-  set_Endpoints : ∀ (x : State) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Endpoints") (PairV #x #y) (Val #(({ x with Endpoints' := y } : State)))
-  get_ServiceConfig : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"ServiceConfig") #x (Val #(x.ServiceConfig'))
-  set_ServiceConfig : ∀ (x : State) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"ServiceConfig") (PairV #x #y) (Val #(({ x with ServiceConfig' := y } : State)))
-  get_Attributes : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Attributes") #x (Val #(x.Attributes'))
-  set_Attributes : ∀ (x : State) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Attributes") (PairV #x #y) (Val #(({ x with Attributes' := y } : State)))
+  get'Addresses : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Addresses") #x (Val #(x.Addresses'))
+  set'Addresses : ∀ (x : State) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Addresses") (PairV #x #y) (Val #(({ x with Addresses' := y } : State)))
+  get'Endpoints : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Endpoints") #x (Val #(x.Endpoints'))
+  set'Endpoints : ∀ (x : State) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Endpoints") (PairV #x #y) (Val #(({ x with Endpoints' := y } : State)))
+  get'ServiceConfig : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"ServiceConfig") #x (Val #(x.ServiceConfig'))
+  set'ServiceConfig : ∀ (x : State) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"ServiceConfig") (PairV #x #y) (Val #(({ x with ServiceConfig' := y } : State)))
+  get'Attributes : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Attributes") #x (Val #(x.Attributes'))
+  set'Attributes : ∀ (x : State) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Attributes") (PairV #x #y) (Val #(({ x with Attributes' := y } : State)))
   method_set : go.MethodSetIs State.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType State.ty) []
 
 attribute [instance] State.TypeAssumptions.type_repr
   State.TypeAssumptions.underlying
-  State.TypeAssumptions.get_Addresses
-  State.TypeAssumptions.set_Addresses
-  State.TypeAssumptions.get_Endpoints
-  State.TypeAssumptions.set_Endpoints
-  State.TypeAssumptions.get_ServiceConfig
-  State.TypeAssumptions.set_ServiceConfig
-  State.TypeAssumptions.get_Attributes
-  State.TypeAssumptions.set_Attributes
+  State.TypeAssumptions.get'Addresses
+  State.TypeAssumptions.set'Addresses
+  State.TypeAssumptions.get'Endpoints
+  State.TypeAssumptions.set'Endpoints
+  State.TypeAssumptions.get'ServiceConfig
+  State.TypeAssumptions.set'ServiceConfig
+  State.TypeAssumptions.get'Attributes
+  State.TypeAssumptions.set'Attributes
   State.TypeAssumptions.method_set
   State.TypeAssumptions.ptr_method_set
 
@@ -585,7 +585,7 @@ noncomputable instance ResolveNowOptions.zero_val [GooseExts] : ZeroVal ResolveN
 @[irreducible] noncomputable def ResolveNowOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResolveNowOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResolveNowOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ResolveNowOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResolveNowOptions.fields ResolveNowOptions.fieldsUnsealed :=
   ⟨by unfold ResolveNowOptions.fields; rfl⟩
 
@@ -632,43 +632,43 @@ attribute [instance] AuthorityOverrider.TypeAssumptions.underlying
   AuthorityOverrider.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  addressMapEntry_instance : addressMapEntry.TypeAssumptions
-  AddressMapV2_instance : AddressMapV2.TypeAssumptions
-  addressMapEntryList_instance : addressMapEntryList.TypeAssumptions
-  endpointMapKey_instance : endpointMapKey.TypeAssumptions
-  EndpointMap_instance : EndpointMap.TypeAssumptions
-  endpointData_instance : endpointData.TypeAssumptions
-  Address_instance : Address.TypeAssumptions
-  BuildOptions_instance : BuildOptions.TypeAssumptions
-  Endpoint_instance : Endpoint.TypeAssumptions
-  State_instance : State.TypeAssumptions
-  ClientConn_instance : ClientConn.TypeAssumptions
-  Target_instance : Target.TypeAssumptions
-  Builder_instance : Builder.TypeAssumptions
-  ResolveNowOptions_instance : ResolveNowOptions.TypeAssumptions
-  Resolver_instance : Resolver.TypeAssumptions
-  AuthorityOverrider_instance : AuthorityOverrider.TypeAssumptions
-  import_attributes_Assumption : _root_.Perennial.google_golang_org.grpc.attributes.Assumptions
-  import_serviceconfig_Assumption : _root_.Perennial.google_golang_org.grpc.serviceconfig.Assumptions
+  instance'addressMapEntry : addressMapEntry.TypeAssumptions
+  instance'AddressMapV2 : AddressMapV2.TypeAssumptions
+  instance'addressMapEntryList : addressMapEntryList.TypeAssumptions
+  instance'endpointMapKey : endpointMapKey.TypeAssumptions
+  instance'EndpointMap : EndpointMap.TypeAssumptions
+  instance'endpointData : endpointData.TypeAssumptions
+  instance'Address : Address.TypeAssumptions
+  instance'BuildOptions : BuildOptions.TypeAssumptions
+  instance'Endpoint : Endpoint.TypeAssumptions
+  instance'State : State.TypeAssumptions
+  instance'ClientConn : ClientConn.TypeAssumptions
+  instance'Target : Target.TypeAssumptions
+  instance'Builder : Builder.TypeAssumptions
+  instance'ResolveNowOptions : ResolveNowOptions.TypeAssumptions
+  instance'Resolver : Resolver.TypeAssumptions
+  instance'AuthorityOverrider : AuthorityOverrider.TypeAssumptions
+  import'attributes : _root_.Perennial.google_golang_org.grpc.attributes.Assumptions
+  import'serviceconfig : _root_.Perennial.google_golang_org.grpc.serviceconfig.Assumptions
 
-attribute [instance] Assumptions.addressMapEntry_instance
-  Assumptions.AddressMapV2_instance
-  Assumptions.addressMapEntryList_instance
-  Assumptions.endpointMapKey_instance
-  Assumptions.EndpointMap_instance
-  Assumptions.endpointData_instance
-  Assumptions.Address_instance
-  Assumptions.BuildOptions_instance
-  Assumptions.Endpoint_instance
-  Assumptions.State_instance
-  Assumptions.ClientConn_instance
-  Assumptions.Target_instance
-  Assumptions.Builder_instance
-  Assumptions.ResolveNowOptions_instance
-  Assumptions.Resolver_instance
-  Assumptions.AuthorityOverrider_instance
-  Assumptions.import_attributes_Assumption
-  Assumptions.import_serviceconfig_Assumption
+attribute [instance] Assumptions.instance'addressMapEntry
+  Assumptions.instance'AddressMapV2
+  Assumptions.instance'addressMapEntryList
+  Assumptions.instance'endpointMapKey
+  Assumptions.instance'EndpointMap
+  Assumptions.instance'endpointData
+  Assumptions.instance'Address
+  Assumptions.instance'BuildOptions
+  Assumptions.instance'Endpoint
+  Assumptions.instance'State
+  Assumptions.instance'ClientConn
+  Assumptions.instance'Target
+  Assumptions.instance'Builder
+  Assumptions.instance'ResolveNowOptions
+  Assumptions.instance'Resolver
+  Assumptions.instance'AuthorityOverrider
+  Assumptions.import'attributes
+  Assumptions.import'serviceconfig
 
 end google_golang_org.grpc.resolver
 

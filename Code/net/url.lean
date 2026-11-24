@@ -225,7 +225,7 @@ noncomputable instance Error.zero_val [GooseExts] : ZeroVal Error :=
 @[irreducible] noncomputable def Error.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Error.fieldsUnsealed
 
-noncomputable instance equals_unfold_Error [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Error [GooseExts] [GoGlobalContext] :
     EqualsUnfold Error.fields Error.fieldsUnsealed :=
   ⟨by unfold Error.fields; rfl⟩
 
@@ -235,23 +235,23 @@ noncomputable instance equals_unfold_Error [GooseExts] [GoGlobalContext] :
 class Error.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Error.underlying Error
   underlying : go.UnderlyingDirectedEq Error.ty Error.underlying
-  get_Op : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Op") #x (Val #(x.Op'))
-  set_Op : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Op") (PairV #x #y) (Val #(({ x with Op' := y } : Error)))
-  get_URL : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"URL") #x (Val #(x.URL'))
-  set_URL : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"URL") (PairV #x #y) (Val #(({ x with URL' := y } : Error)))
-  get_Err : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Err") #x (Val #(x.Err'))
-  set_Err : ∀ (x : Error) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : Error)))
+  get'Op : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Op") #x (Val #(x.Op'))
+  set'Op : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Op") (PairV #x #y) (Val #(({ x with Op' := y } : Error)))
+  get'URL : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"URL") #x (Val #(x.URL'))
+  set'URL : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"URL") (PairV #x #y) (Val #(({ x with URL' := y } : Error)))
+  get'Err : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Err") #x (Val #(x.Err'))
+  set'Err : ∀ (x : Error) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : Error)))
   method_set : go.MethodSetIs Error.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Error.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] Error.TypeAssumptions.type_repr
   Error.TypeAssumptions.underlying
-  Error.TypeAssumptions.get_Op
-  Error.TypeAssumptions.set_Op
-  Error.TypeAssumptions.get_URL
-  Error.TypeAssumptions.set_URL
-  Error.TypeAssumptions.get_Err
-  Error.TypeAssumptions.set_Err
+  Error.TypeAssumptions.get'Op
+  Error.TypeAssumptions.set'Op
+  Error.TypeAssumptions.get'URL
+  Error.TypeAssumptions.set'URL
+  Error.TypeAssumptions.get'Err
+  Error.TypeAssumptions.set'Err
   Error.TypeAssumptions.method_set
   Error.TypeAssumptions.ptr_method_set
 
@@ -316,7 +316,7 @@ noncomputable instance URL.zero_val [GooseExts] : ZeroVal URL :=
 @[irreducible] noncomputable def URL.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   URL.fieldsUnsealed
 
-noncomputable instance equals_unfold_URL [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'URL [GooseExts] [GoGlobalContext] :
     EqualsUnfold URL.fields URL.fieldsUnsealed :=
   ⟨by unfold URL.fields; rfl⟩
 
@@ -326,55 +326,55 @@ noncomputable instance equals_unfold_URL [GooseExts] [GoGlobalContext] :
 class URL.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying URL.underlying URL
   underlying : go.UnderlyingDirectedEq URL.ty URL.underlying
-  get_Scheme : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"Scheme") #x (Val #(x.Scheme'))
-  set_Scheme : ∀ (x : URL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"Scheme") (PairV #x #y) (Val #(({ x with Scheme' := y } : URL)))
-  get_Opaque : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"Opaque") #x (Val #(x.Opaque'))
-  set_Opaque : ∀ (x : URL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"Opaque") (PairV #x #y) (Val #(({ x with Opaque' := y } : URL)))
-  get_User : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"User") #x (Val #(x.User'))
-  set_User : ∀ (x : URL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"User") (PairV #x #y) (Val #(({ x with User' := y } : URL)))
-  get_Host : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"Host") #x (Val #(x.Host'))
-  set_Host : ∀ (x : URL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"Host") (PairV #x #y) (Val #(({ x with Host' := y } : URL)))
-  get_Path : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"Path") #x (Val #(x.Path'))
-  set_Path : ∀ (x : URL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : URL)))
-  get_Fragment : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"Fragment") #x (Val #(x.Fragment'))
-  set_Fragment : ∀ (x : URL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"Fragment") (PairV #x #y) (Val #(({ x with Fragment' := y } : URL)))
-  get_RawQuery : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"RawQuery") #x (Val #(x.RawQuery'))
-  set_RawQuery : ∀ (x : URL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"RawQuery") (PairV #x #y) (Val #(({ x with RawQuery' := y } : URL)))
-  get_RawPath : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"RawPath") #x (Val #(x.RawPath'))
-  set_RawPath : ∀ (x : URL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"RawPath") (PairV #x #y) (Val #(({ x with RawPath' := y } : URL)))
-  get_RawFragment : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"RawFragment") #x (Val #(x.RawFragment'))
-  set_RawFragment : ∀ (x : URL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"RawFragment") (PairV #x #y) (Val #(({ x with RawFragment' := y } : URL)))
-  get_ForceQuery : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"ForceQuery") #x (Val #(x.ForceQuery'))
-  set_ForceQuery : ∀ (x : URL) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"ForceQuery") (PairV #x #y) (Val #(({ x with ForceQuery' := y } : URL)))
-  get_OmitHost : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"OmitHost") #x (Val #(x.OmitHost'))
-  set_OmitHost : ∀ (x : URL) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"OmitHost") (PairV #x #y) (Val #(({ x with OmitHost' := y } : URL)))
+  get'Scheme : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"Scheme") #x (Val #(x.Scheme'))
+  set'Scheme : ∀ (x : URL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"Scheme") (PairV #x #y) (Val #(({ x with Scheme' := y } : URL)))
+  get'Opaque : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"Opaque") #x (Val #(x.Opaque'))
+  set'Opaque : ∀ (x : URL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"Opaque") (PairV #x #y) (Val #(({ x with Opaque' := y } : URL)))
+  get'User : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"User") #x (Val #(x.User'))
+  set'User : ∀ (x : URL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"User") (PairV #x #y) (Val #(({ x with User' := y } : URL)))
+  get'Host : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"Host") #x (Val #(x.Host'))
+  set'Host : ∀ (x : URL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"Host") (PairV #x #y) (Val #(({ x with Host' := y } : URL)))
+  get'Path : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"Path") #x (Val #(x.Path'))
+  set'Path : ∀ (x : URL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : URL)))
+  get'Fragment : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"Fragment") #x (Val #(x.Fragment'))
+  set'Fragment : ∀ (x : URL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"Fragment") (PairV #x #y) (Val #(({ x with Fragment' := y } : URL)))
+  get'RawQuery : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"RawQuery") #x (Val #(x.RawQuery'))
+  set'RawQuery : ∀ (x : URL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"RawQuery") (PairV #x #y) (Val #(({ x with RawQuery' := y } : URL)))
+  get'RawPath : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"RawPath") #x (Val #(x.RawPath'))
+  set'RawPath : ∀ (x : URL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"RawPath") (PairV #x #y) (Val #(({ x with RawPath' := y } : URL)))
+  get'RawFragment : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"RawFragment") #x (Val #(x.RawFragment'))
+  set'RawFragment : ∀ (x : URL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"RawFragment") (PairV #x #y) (Val #(({ x with RawFragment' := y } : URL)))
+  get'ForceQuery : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"ForceQuery") #x (Val #(x.ForceQuery'))
+  set'ForceQuery : ∀ (x : URL) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"ForceQuery") (PairV #x #y) (Val #(({ x with ForceQuery' := y } : URL)))
+  get'OmitHost : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"OmitHost") #x (Val #(x.OmitHost'))
+  set'OmitHost : ∀ (x : URL) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"OmitHost") (PairV #x #y) (Val #(({ x with OmitHost' := y } : URL)))
   method_set : go.MethodSetIs URL.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType URL.ty) [(go!"AppendBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType URL.ty)]))), (go!"EscapedFragment", (some (go.signature.Signature [] false [go.string]))), (go!"EscapedPath", (some (go.signature.Signature [] false [go.string]))), (go!"Hostname", (some (go.signature.Signature [] false [go.string]))), (go!"IsAbs", (some (go.signature.Signature [] false [go.bool]))), (go!"JoinPath", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType URL.ty)]))), (go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Parse", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType URL.ty), go.error]))), (go!"Port", (some (go.signature.Signature [] false [go.string]))), (go!"Query", (some (go.signature.Signature [] false [Values.ty]))), (go!"Redacted", (some (go.signature.Signature [] false [go.string]))), (go!"RequestURI", (some (go.signature.Signature [] false [go.string]))), (go!"ResolveReference", (some (go.signature.Signature [(go.GoType.PointerType URL.ty)] false [(go.GoType.PointerType URL.ty)]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"net/url.joinPath", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType URL.ty), go.error]))), (go!"net/url.setFragment", (some (go.signature.Signature [go.string] false [go.error]))), (go!"net/url.setPath", (some (go.signature.Signature [go.string] false [go.error])))]
 
 attribute [instance] URL.TypeAssumptions.type_repr
   URL.TypeAssumptions.underlying
-  URL.TypeAssumptions.get_Scheme
-  URL.TypeAssumptions.set_Scheme
-  URL.TypeAssumptions.get_Opaque
-  URL.TypeAssumptions.set_Opaque
-  URL.TypeAssumptions.get_User
-  URL.TypeAssumptions.set_User
-  URL.TypeAssumptions.get_Host
-  URL.TypeAssumptions.set_Host
-  URL.TypeAssumptions.get_Path
-  URL.TypeAssumptions.set_Path
-  URL.TypeAssumptions.get_Fragment
-  URL.TypeAssumptions.set_Fragment
-  URL.TypeAssumptions.get_RawQuery
-  URL.TypeAssumptions.set_RawQuery
-  URL.TypeAssumptions.get_RawPath
-  URL.TypeAssumptions.set_RawPath
-  URL.TypeAssumptions.get_RawFragment
-  URL.TypeAssumptions.set_RawFragment
-  URL.TypeAssumptions.get_ForceQuery
-  URL.TypeAssumptions.set_ForceQuery
-  URL.TypeAssumptions.get_OmitHost
-  URL.TypeAssumptions.set_OmitHost
+  URL.TypeAssumptions.get'Scheme
+  URL.TypeAssumptions.set'Scheme
+  URL.TypeAssumptions.get'Opaque
+  URL.TypeAssumptions.set'Opaque
+  URL.TypeAssumptions.get'User
+  URL.TypeAssumptions.set'User
+  URL.TypeAssumptions.get'Host
+  URL.TypeAssumptions.set'Host
+  URL.TypeAssumptions.get'Path
+  URL.TypeAssumptions.set'Path
+  URL.TypeAssumptions.get'Fragment
+  URL.TypeAssumptions.set'Fragment
+  URL.TypeAssumptions.get'RawQuery
+  URL.TypeAssumptions.set'RawQuery
+  URL.TypeAssumptions.get'RawPath
+  URL.TypeAssumptions.set'RawPath
+  URL.TypeAssumptions.get'RawFragment
+  URL.TypeAssumptions.set'RawFragment
+  URL.TypeAssumptions.get'ForceQuery
+  URL.TypeAssumptions.set'ForceQuery
+  URL.TypeAssumptions.get'OmitHost
+  URL.TypeAssumptions.set'OmitHost
   URL.TypeAssumptions.method_set
   URL.TypeAssumptions.ptr_method_set
 
@@ -395,7 +395,7 @@ noncomputable instance Userinfo.zero_val [GooseExts] : ZeroVal Userinfo :=
 @[irreducible] noncomputable def Userinfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Userinfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_Userinfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Userinfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold Userinfo.fields Userinfo.fieldsUnsealed :=
   ⟨by unfold Userinfo.fields; rfl⟩
 
@@ -405,23 +405,23 @@ noncomputable instance equals_unfold_Userinfo [GooseExts] [GoGlobalContext] :
 class Userinfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Userinfo.underlying Userinfo
   underlying : go.UnderlyingDirectedEq Userinfo.ty Userinfo.underlying
-  get_username : ∀ (x : Userinfo), go.IsGoStepPureDetTagged under (StructFieldGet Userinfo.underlying go!"username") #x (Val #(x.username'))
-  set_username : ∀ (x : Userinfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Userinfo.underlying go!"username") (PairV #x #y) (Val #(({ x with username' := y } : Userinfo)))
-  get_password : ∀ (x : Userinfo), go.IsGoStepPureDetTagged under (StructFieldGet Userinfo.underlying go!"password") #x (Val #(x.password'))
-  set_password : ∀ (x : Userinfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Userinfo.underlying go!"password") (PairV #x #y) (Val #(({ x with password' := y } : Userinfo)))
-  get_passwordSet : ∀ (x : Userinfo), go.IsGoStepPureDetTagged under (StructFieldGet Userinfo.underlying go!"passwordSet") #x (Val #(x.passwordSet'))
-  set_passwordSet : ∀ (x : Userinfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Userinfo.underlying go!"passwordSet") (PairV #x #y) (Val #(({ x with passwordSet' := y } : Userinfo)))
+  get'username : ∀ (x : Userinfo), go.IsGoStepPureDetTagged under (StructFieldGet Userinfo.underlying go!"username") #x (Val #(x.username'))
+  set'username : ∀ (x : Userinfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Userinfo.underlying go!"username") (PairV #x #y) (Val #(({ x with username' := y } : Userinfo)))
+  get'password : ∀ (x : Userinfo), go.IsGoStepPureDetTagged under (StructFieldGet Userinfo.underlying go!"password") #x (Val #(x.password'))
+  set'password : ∀ (x : Userinfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Userinfo.underlying go!"password") (PairV #x #y) (Val #(({ x with password' := y } : Userinfo)))
+  get'passwordSet : ∀ (x : Userinfo), go.IsGoStepPureDetTagged under (StructFieldGet Userinfo.underlying go!"passwordSet") #x (Val #(x.passwordSet'))
+  set'passwordSet : ∀ (x : Userinfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Userinfo.underlying go!"passwordSet") (PairV #x #y) (Val #(({ x with passwordSet' := y } : Userinfo)))
   method_set : go.MethodSetIs Userinfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Userinfo.ty) [(go!"Password", (some (go.signature.Signature [] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Username", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Userinfo.TypeAssumptions.type_repr
   Userinfo.TypeAssumptions.underlying
-  Userinfo.TypeAssumptions.get_username
-  Userinfo.TypeAssumptions.set_username
-  Userinfo.TypeAssumptions.get_password
-  Userinfo.TypeAssumptions.set_password
-  Userinfo.TypeAssumptions.get_passwordSet
-  Userinfo.TypeAssumptions.set_passwordSet
+  Userinfo.TypeAssumptions.get'username
+  Userinfo.TypeAssumptions.set'username
+  Userinfo.TypeAssumptions.get'password
+  Userinfo.TypeAssumptions.set'password
+  Userinfo.TypeAssumptions.get'passwordSet
+  Userinfo.TypeAssumptions.set'passwordSet
   Userinfo.TypeAssumptions.method_set
   Userinfo.TypeAssumptions.ptr_method_set
 
@@ -440,21 +440,21 @@ attribute [instance] Values.TypeAssumptions.underlying
   Values.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  encoding_instance : encoding.TypeAssumptions
-  Error_instance : Error.TypeAssumptions
-  EscapeError_instance : EscapeError.TypeAssumptions
-  InvalidHostError_instance : InvalidHostError.TypeAssumptions
-  URL_instance : URL.TypeAssumptions
-  Userinfo_instance : Userinfo.TypeAssumptions
-  Values_instance : Values.TypeAssumptions
+  instance'encoding : encoding.TypeAssumptions
+  instance'Error : Error.TypeAssumptions
+  instance'EscapeError : EscapeError.TypeAssumptions
+  instance'InvalidHostError : InvalidHostError.TypeAssumptions
+  instance'URL : URL.TypeAssumptions
+  instance'Userinfo : Userinfo.TypeAssumptions
+  instance'Values : Values.TypeAssumptions
 
-attribute [instance] Assumptions.encoding_instance
-  Assumptions.Error_instance
-  Assumptions.EscapeError_instance
-  Assumptions.InvalidHostError_instance
-  Assumptions.URL_instance
-  Assumptions.Userinfo_instance
-  Assumptions.Values_instance
+attribute [instance] Assumptions.instance'encoding
+  Assumptions.instance'Error
+  Assumptions.instance'EscapeError
+  Assumptions.instance'InvalidHostError
+  Assumptions.instance'URL
+  Assumptions.instance'Userinfo
+  Assumptions.instance'Values
 
 end net.url
 

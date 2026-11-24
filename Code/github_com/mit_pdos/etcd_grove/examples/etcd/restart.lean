@@ -962,7 +962,7 @@ noncomputable instance raftSwap.zero_val [GooseExts] : ZeroVal raftSwap :=
 @[irreducible] noncomputable def raftSwap.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   raftSwap.fieldsUnsealed
 
-noncomputable instance equals_unfold_raftSwap [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'raftSwap [GooseExts] [GoGlobalContext] :
     EqualsUnfold raftSwap.fields raftSwap.fieldsUnsealed :=
   ⟨by unfold raftSwap.fields; rfl⟩
 
@@ -972,25 +972,25 @@ noncomputable instance equals_unfold_raftSwap [GooseExts] [GoGlobalContext] :
 class raftSwap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying raftSwap.underlying raftSwap
   underlying : go.UnderlyingDirectedEq raftSwap.ty raftSwap.underlying
-  get_mu : ∀ (x : raftSwap), go.IsGoStepPureDetTagged under (StructFieldGet raftSwap.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : raftSwap) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftSwap.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : raftSwap)))
-  get_h : ∀ (x : raftSwap), go.IsGoStepPureDetTagged under (StructFieldGet raftSwap.underlying go!"h") #x (Val #(x.h'))
-  set_h : ∀ (x : raftSwap) (y : _root_.Perennial.net.http.Handler), go.IsGoStepPureDetTagged under (StructFieldSet raftSwap.underlying go!"h") (PairV #x #y) (Val #(({ x with h' := y } : raftSwap)))
+  get'mu : ∀ (x : raftSwap), go.IsGoStepPureDetTagged under (StructFieldGet raftSwap.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : raftSwap) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftSwap.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : raftSwap)))
+  get'h : ∀ (x : raftSwap), go.IsGoStepPureDetTagged under (StructFieldGet raftSwap.underlying go!"h") #x (Val #(x.h'))
+  set'h : ∀ (x : raftSwap) (y : _root_.Perennial.net.http.Handler), go.IsGoStepPureDetTagged under (StructFieldSet raftSwap.underlying go!"h") (PairV #x #y) (Val #(({ x with h' := y } : raftSwap)))
   method_set : go.MethodSetIs raftSwap.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType raftSwap.ty) [(go!"ServeHTTP", (some (go.signature.Signature [_root_.Perennial.net.http.ResponseWriter.ty, (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/etcd/restart.set", (some (go.signature.Signature [_root_.Perennial.net.http.Handler.ty] false [])))]
-  ptr_ServeHTTP_unfold : MethodUnfold (go.GoType.PointerType raftSwap.ty) go!"ServeHTTP" raftSwap.ServeHTTP.impl
-  ptr_set_unfold : MethodUnfold (go.GoType.PointerType raftSwap.ty) go!"set" raftSwap.set.impl
+  ptr_unfold'ServeHTTP : MethodUnfold (go.GoType.PointerType raftSwap.ty) go!"ServeHTTP" raftSwap.ServeHTTP.impl
+  ptr_unfold'set : MethodUnfold (go.GoType.PointerType raftSwap.ty) go!"set" raftSwap.set.impl
 
 attribute [instance] raftSwap.TypeAssumptions.type_repr
   raftSwap.TypeAssumptions.underlying
-  raftSwap.TypeAssumptions.get_mu
-  raftSwap.TypeAssumptions.set_mu
-  raftSwap.TypeAssumptions.get_h
-  raftSwap.TypeAssumptions.set_h
+  raftSwap.TypeAssumptions.get'mu
+  raftSwap.TypeAssumptions.set'mu
+  raftSwap.TypeAssumptions.get'h
+  raftSwap.TypeAssumptions.set'h
   raftSwap.TypeAssumptions.method_set
   raftSwap.TypeAssumptions.ptr_method_set
-  raftSwap.TypeAssumptions.ptr_ServeHTTP_unfold
-  raftSwap.TypeAssumptions.ptr_set_unfold
+  raftSwap.TypeAssumptions.ptr_unfold'ServeHTTP
+  raftSwap.TypeAssumptions.ptr_unfold'set
 
 structure member [GooseExts] where
   mk ::
@@ -1011,7 +1011,7 @@ noncomputable instance member.zero_val [GooseExts] : ZeroVal member :=
 @[irreducible] noncomputable def member.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   member.fieldsUnsealed
 
-noncomputable instance equals_unfold_member [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'member [GooseExts] [GoGlobalContext] :
     EqualsUnfold member.fields member.fieldsUnsealed :=
   ⟨by unfold member.fields; rfl⟩
 
@@ -1021,76 +1021,76 @@ noncomputable instance equals_unfold_member [GooseExts] [GoGlobalContext] :
 class member.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying member.underlying member
   underlying : go.UnderlyingDirectedEq member.ty member.underlying
-  get_sw : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"sw") #x (Val #(x.sw'))
-  set_sw : ∀ (x : member) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"sw") (PairV #x #y) (Val #(({ x with sw' := y } : member)))
-  get_name : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : member)))
-  get_peer : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"peer") #x (Val #(x.peer'))
-  set_peer : ∀ (x : member) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"peer") (PairV #x #y) (Val #(({ x with peer' := y } : member)))
-  get_client : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"client") #x (Val #(x.client'))
-  set_client : ∀ (x : member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"client") (PairV #x #y) (Val #(({ x with client' := y } : member)))
+  get'sw : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"sw") #x (Val #(x.sw'))
+  set'sw : ∀ (x : member) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"sw") (PairV #x #y) (Val #(({ x with sw' := y } : member)))
+  get'name : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : member)))
+  get'peer : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"peer") #x (Val #(x.peer'))
+  set'peer : ∀ (x : member) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"peer") (PairV #x #y) (Val #(({ x with peer' := y } : member)))
+  get'client : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"client") #x (Val #(x.client'))
+  set'client : ∀ (x : member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"client") (PairV #x #y) (Val #(({ x with client' := y } : member)))
   method_set : go.MethodSetIs member.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType member.ty) []
 
 attribute [instance] member.TypeAssumptions.type_repr
   member.TypeAssumptions.underlying
-  member.TypeAssumptions.get_sw
-  member.TypeAssumptions.set_sw
-  member.TypeAssumptions.get_name
-  member.TypeAssumptions.set_name
-  member.TypeAssumptions.get_peer
-  member.TypeAssumptions.set_peer
-  member.TypeAssumptions.get_client
-  member.TypeAssumptions.set_client
+  member.TypeAssumptions.get'sw
+  member.TypeAssumptions.set'sw
+  member.TypeAssumptions.get'name
+  member.TypeAssumptions.set'name
+  member.TypeAssumptions.get'peer
+  member.TypeAssumptions.set'peer
+  member.TypeAssumptions.get'client
+  member.TypeAssumptions.set'client
   member.TypeAssumptions.method_set
   member.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  raftSwap_instance : raftSwap.TypeAssumptions
-  member_instance : member.TypeAssumptions
-  key_unfold : FuncUnfold key [] key.impl
-  value_unfold : FuncUnfold value [] value.impl
-  build_unfold : FuncUnfold build [] build.impl
-  newMember_unfold : FuncUnfold newMember [] newMember.impl
-  restartMember_unfold : FuncUnfold restartMember [] restartMember.impl
-  put_unfold : FuncUnfold put [] put.impl
-  stop_unfold : FuncUnfold stop [] stop.impl
-  check_unfold : FuncUnfold check [] check.impl
-  Run_unfold : FuncUnfold Run [] Run.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_http_Assumption : _root_.Perennial.net.http.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
-  import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
+  instance'raftSwap : raftSwap.TypeAssumptions
+  instance'member : member.TypeAssumptions
+  unfold'key : FuncUnfold key [] key.impl
+  unfold'value : FuncUnfold value [] value.impl
+  unfold'build : FuncUnfold build [] build.impl
+  unfold'newMember : FuncUnfold newMember [] newMember.impl
+  unfold'restartMember : FuncUnfold restartMember [] restartMember.impl
+  unfold'put : FuncUnfold put [] put.impl
+  unfold'stop : FuncUnfold stop [] stop.impl
+  unfold'check : FuncUnfold check [] check.impl
+  unfold'Run : FuncUnfold Run [] Run.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'net : _root_.Perennial.net.Assumptions
+  import'http : _root_.Perennial.net.http.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'types : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
+  import'etcdserver : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
+  import'etcdstart : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
 
-attribute [instance] Assumptions.raftSwap_instance
-  Assumptions.member_instance
-  Assumptions.key_unfold
-  Assumptions.value_unfold
-  Assumptions.build_unfold
-  Assumptions.newMember_unfold
-  Assumptions.restartMember_unfold
-  Assumptions.put_unfold
-  Assumptions.stop_unfold
-  Assumptions.check_unfold
-  Assumptions.Run_unfold
-  Assumptions.Main_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_net_Assumption
-  Assumptions.import_http_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_etcdserver_Assumption
-  Assumptions.import_etcdstart_Assumption
+attribute [instance] Assumptions.instance'raftSwap
+  Assumptions.instance'member
+  Assumptions.unfold'key
+  Assumptions.unfold'value
+  Assumptions.unfold'build
+  Assumptions.unfold'newMember
+  Assumptions.unfold'restartMember
+  Assumptions.unfold'put
+  Assumptions.unfold'stop
+  Assumptions.unfold'check
+  Assumptions.unfold'Run
+  Assumptions.unfold'Main
+  Assumptions.import'context
+  Assumptions.import'net
+  Assumptions.import'http
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'zap
+  Assumptions.import'etcdserverpb
+  Assumptions.import'types
+  Assumptions.import'etcdserver
+  Assumptions.import'etcdstart
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.restart
 

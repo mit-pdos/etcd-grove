@@ -118,9 +118,9 @@ theorem tracker.ProgressTracker.QuorumActive.wp_proof
     have := size_le_of_sub_dom c.outgoing t.prs (by rw [Hdom]; exact outgoing_sub_ids c)
     omega
   wp_auto
-  icases (tracker.ProgressTracker.ProgressTracker_access_load_Config trk tvfin (DFrac.own 1)).access_strict
+  icases (tracker.ProgressTracker.access_load'ProgressTracker'Config trk tvfin (DFrac.own 1)).access_strict
     $$ Htrk with ⟨Hcfgf, Hback1⟩
-  icases (tracker.Config.Config_access_load_Voters _ tvfin.Config' (DFrac.own 1)).access_strict
+  icases (tracker.Config.access_load'Config'Voters _ tvfin.Config' (DFrac.own 1)).access_strict
     $$ Hcfgf with ⟨Hvf, Hback2⟩
   wp_apply wp_JointConfig_VoteResult _ (DFrac.own 1) _ vin vout c.incoming c.outgoing vref
       (DFrac.own 1) vm Harr Hsz0 Hsz1 $$ [$Hvf $Hv0 $Hv1 $Hvm]

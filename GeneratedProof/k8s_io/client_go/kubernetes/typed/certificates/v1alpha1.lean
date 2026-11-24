@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.Assumptions]
 
-noncomputable instance CertificatesV1alpha1Interface_typed_pointsto :
+noncomputable instance typed_pointsto'CertificatesV1alpha1Interface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.CertificatesV1alpha1Interface :=
   sorry -- axiomatized type
 
-noncomputable instance CertificatesV1alpha1Interface_into_val_typed :
+noncomputable instance into_val_typed'CertificatesV1alpha1Interface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.CertificatesV1alpha1Interface k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.CertificatesV1alpha1Interface.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.Assumptions]
 
-noncomputable instance CertificatesV1alpha1Client_typed_pointsto :
+noncomputable instance typed_pointsto'CertificatesV1alpha1Client :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.CertificatesV1alpha1Client :=
   sorry -- axiomatized type
 
-noncomputable instance CertificatesV1alpha1Client_into_val_typed :
+noncomputable instance into_val_typed'CertificatesV1alpha1Client :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.CertificatesV1alpha1Client k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.CertificatesV1alpha1Client.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.Assumptions]
 
-noncomputable instance ClusterTrustBundlesGetter_typed_pointsto :
+noncomputable instance typed_pointsto'ClusterTrustBundlesGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.ClusterTrustBundlesGetter :=
   sorry -- axiomatized type
 
-noncomputable instance ClusterTrustBundlesGetter_into_val_typed :
+noncomputable instance into_val_typed'ClusterTrustBundlesGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.ClusterTrustBundlesGetter k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.ClusterTrustBundlesGetter.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.Assumptions]
 
-noncomputable instance ClusterTrustBundleInterface_typed_pointsto :
+noncomputable instance typed_pointsto'ClusterTrustBundleInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.ClusterTrustBundleInterface :=
   sorry -- axiomatized type
 
-noncomputable instance ClusterTrustBundleInterface_into_val_typed :
+noncomputable instance into_val_typed'ClusterTrustBundleInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.ClusterTrustBundleInterface k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.ClusterTrustBundleInterface.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.Assumptions]
 
-noncomputable instance clusterTrustBundles_typed_pointsto :
+noncomputable instance typed_pointsto'clusterTrustBundles :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.clusterTrustBundles :=
   sorry -- axiomatized type
 
-noncomputable instance clusterTrustBundles_into_val_typed :
+noncomputable instance into_val_typed'clusterTrustBundles :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.clusterTrustBundles k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.clusterTrustBundles.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.Assumptions]
 
-noncomputable instance ClusterTrustBundleExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'ClusterTrustBundleExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.ClusterTrustBundleExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance ClusterTrustBundleExpansion_into_val_typed :
+noncomputable instance into_val_typed'ClusterTrustBundleExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.ClusterTrustBundleExpansion k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.ClusterTrustBundleExpansion.underlying :=
   sorry -- axiomatized type
 

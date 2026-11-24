@@ -28,11 +28,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-noncomputable instance keepaliveListener_typed_pointsto :
+noncomputable instance typed_pointsto'keepaliveListener :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.keepaliveListener :=
   sorry -- axiomatized type
 
-noncomputable instance keepaliveListener_into_val_typed :
+noncomputable instance into_val_typed'keepaliveListener :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.keepaliveListener go_etcd_io.etcd.client.pkg.v3.transport.keepaliveListener.underlying :=
   sorry -- axiomatized type
 
@@ -47,11 +47,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-noncomputable instance keepAliveConn_typed_pointsto :
+noncomputable instance typed_pointsto'keepAliveConn :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.keepAliveConn :=
   sorry -- axiomatized type
 
-noncomputable instance keepAliveConn_into_val_typed :
+noncomputable instance into_val_typed'keepAliveConn :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.keepAliveConn go_etcd_io.etcd.client.pkg.v3.transport.keepAliveConn.underlying :=
   sorry -- axiomatized type
 
@@ -66,11 +66,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-noncomputable instance tlsKeepaliveListener_typed_pointsto :
+noncomputable instance typed_pointsto'tlsKeepaliveListener :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.tlsKeepaliveListener :=
   sorry -- axiomatized type
 
-noncomputable instance tlsKeepaliveListener_into_val_typed :
+noncomputable instance into_val_typed'tlsKeepaliveListener :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.tlsKeepaliveListener go_etcd_io.etcd.client.pkg.v3.transport.tlsKeepaliveListener.underlying :=
   sorry -- axiomatized type
 
@@ -85,11 +85,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-noncomputable instance limitListener_typed_pointsto :
+noncomputable instance typed_pointsto'limitListener :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.limitListener :=
   sorry -- axiomatized type
 
-noncomputable instance limitListener_into_val_typed :
+noncomputable instance into_val_typed'limitListener :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.limitListener go_etcd_io.etcd.client.pkg.v3.transport.limitListener.underlying :=
   sorry -- axiomatized type
 
@@ -104,11 +104,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-noncomputable instance limitListenerConn_typed_pointsto :
+noncomputable instance typed_pointsto'limitListenerConn :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.limitListenerConn :=
   sorry -- axiomatized type
 
-noncomputable instance limitListenerConn_into_val_typed :
+noncomputable instance into_val_typed'limitListenerConn :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.limitListenerConn go_etcd_io.etcd.client.pkg.v3.transport.limitListenerConn.underlying :=
   sorry -- axiomatized type
 
@@ -123,7 +123,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-noncomputable instance TLSInfo_typed_pointsto :
+noncomputable instance typed_pointsto'TLSInfo :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo where
   typedPointstoDef l v dq := iprop(
     "CertFile" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) v.CertFile' dq ∗
@@ -154,11 +154,11 @@ noncomputable instance TLSInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance TLSInfo_into_val_typed :
+noncomputable instance into_val_typed'TLSInfo :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance TLSInfo_access_load_CertFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'CertFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) v.CertFile' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) v.CertFile' dq)
@@ -166,7 +166,7 @@ noncomputable instance TLSInfo_access_load_CertFile (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_CertFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'CertFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) v.CertFile' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) y (DFrac.own 1))
@@ -174,7 +174,7 @@ noncomputable instance TLSInfo_access_store_CertFile (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_KeyFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'KeyFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) v.KeyFile' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) v.KeyFile' dq)
@@ -182,7 +182,7 @@ noncomputable instance TLSInfo_access_load_KeyFile (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_KeyFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'KeyFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) v.KeyFile' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) y (DFrac.own 1))
@@ -190,7 +190,7 @@ noncomputable instance TLSInfo_access_store_KeyFile (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_ClientCertFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'ClientCertFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) v.ClientCertFile' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) v.ClientCertFile' dq)
@@ -198,7 +198,7 @@ noncomputable instance TLSInfo_access_load_ClientCertFile (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_ClientCertFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'ClientCertFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) v.ClientCertFile' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) y (DFrac.own 1))
@@ -206,7 +206,7 @@ noncomputable instance TLSInfo_access_store_ClientCertFile (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_ClientKeyFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'ClientKeyFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) v.ClientKeyFile' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) v.ClientKeyFile' dq)
@@ -214,7 +214,7 @@ noncomputable instance TLSInfo_access_load_ClientKeyFile (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_ClientKeyFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'ClientKeyFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) v.ClientKeyFile' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) y (DFrac.own 1))
@@ -222,7 +222,7 @@ noncomputable instance TLSInfo_access_store_ClientKeyFile (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_TrustedCAFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'TrustedCAFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) v.TrustedCAFile' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) v.TrustedCAFile' dq)
@@ -230,7 +230,7 @@ noncomputable instance TLSInfo_access_load_TrustedCAFile (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_TrustedCAFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'TrustedCAFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) v.TrustedCAFile' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) y (DFrac.own 1))
@@ -238,7 +238,7 @@ noncomputable instance TLSInfo_access_store_TrustedCAFile (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_ClientCertAuth (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'ClientCertAuth (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) v.ClientCertAuth' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) v.ClientCertAuth' dq)
@@ -246,7 +246,7 @@ noncomputable instance TLSInfo_access_load_ClientCertAuth (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_ClientCertAuth (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
+noncomputable instance access_store'TLSInfo'ClientCertAuth (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) v.ClientCertAuth' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) y (DFrac.own 1))
@@ -254,7 +254,7 @@ noncomputable instance TLSInfo_access_store_ClientCertAuth (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_CRLFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'CRLFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) v.CRLFile' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) v.CRLFile' dq)
@@ -262,7 +262,7 @@ noncomputable instance TLSInfo_access_load_CRLFile (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_CRLFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'CRLFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) v.CRLFile' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) y (DFrac.own 1))
@@ -270,7 +270,7 @@ noncomputable instance TLSInfo_access_store_CRLFile (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_InsecureSkipVerify (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'InsecureSkipVerify (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) v.InsecureSkipVerify' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) v.InsecureSkipVerify' dq)
@@ -278,7 +278,7 @@ noncomputable instance TLSInfo_access_load_InsecureSkipVerify (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_InsecureSkipVerify (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
+noncomputable instance access_store'TLSInfo'InsecureSkipVerify (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) v.InsecureSkipVerify' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) y (DFrac.own 1))
@@ -286,7 +286,7 @@ noncomputable instance TLSInfo_access_store_InsecureSkipVerify (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_SkipClientSANVerify (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'SkipClientSANVerify (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) v.SkipClientSANVerify' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) v.SkipClientSANVerify' dq)
@@ -294,7 +294,7 @@ noncomputable instance TLSInfo_access_load_SkipClientSANVerify (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_SkipClientSANVerify (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
+noncomputable instance access_store'TLSInfo'SkipClientSANVerify (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) v.SkipClientSANVerify' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) y (DFrac.own 1))
@@ -302,7 +302,7 @@ noncomputable instance TLSInfo_access_store_SkipClientSANVerify (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_ServerName (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'ServerName (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) v.ServerName' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) v.ServerName' dq)
@@ -310,7 +310,7 @@ noncomputable instance TLSInfo_access_load_ServerName (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_ServerName (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'ServerName (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) v.ServerName' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) y (DFrac.own 1))
@@ -318,7 +318,7 @@ noncomputable instance TLSInfo_access_store_ServerName (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_HandshakeFailure (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'HandshakeFailure (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) v.HandshakeFailure' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) v.HandshakeFailure' dq)
@@ -326,7 +326,7 @@ noncomputable instance TLSInfo_access_load_HandshakeFailure (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_HandshakeFailure (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoFunc) :
+noncomputable instance access_store'TLSInfo'HandshakeFailure (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) v.HandshakeFailure' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) y (DFrac.own 1))
@@ -334,7 +334,7 @@ noncomputable instance TLSInfo_access_store_HandshakeFailure (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_CipherSuites (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'CipherSuites (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) v.CipherSuites' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) v.CipherSuites' dq)
@@ -342,7 +342,7 @@ noncomputable instance TLSInfo_access_load_CipherSuites (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_CipherSuites (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoSlice) :
+noncomputable instance access_store'TLSInfo'CipherSuites (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) v.CipherSuites' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) y (DFrac.own 1))
@@ -350,7 +350,7 @@ noncomputable instance TLSInfo_access_store_CipherSuites (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_MinVersion (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'MinVersion (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) v.MinVersion' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) v.MinVersion' dq)
@@ -358,7 +358,7 @@ noncomputable instance TLSInfo_access_load_MinVersion (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_MinVersion (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : w16) :
+noncomputable instance access_store'TLSInfo'MinVersion (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) v.MinVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) y (DFrac.own 1))
@@ -366,7 +366,7 @@ noncomputable instance TLSInfo_access_store_MinVersion (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_MaxVersion (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'MaxVersion (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) v.MaxVersion' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) v.MaxVersion' dq)
@@ -374,7 +374,7 @@ noncomputable instance TLSInfo_access_load_MaxVersion (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_MaxVersion (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : w16) :
+noncomputable instance access_store'TLSInfo'MaxVersion (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) v.MaxVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) y (DFrac.own 1))
@@ -382,7 +382,7 @@ noncomputable instance TLSInfo_access_store_MaxVersion (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_selfCert (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'selfCert (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) v.selfCert' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) v.selfCert' dq)
@@ -390,7 +390,7 @@ noncomputable instance TLSInfo_access_load_selfCert (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_selfCert (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
+noncomputable instance access_store'TLSInfo'selfCert (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) v.selfCert' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) y (DFrac.own 1))
@@ -398,7 +398,7 @@ noncomputable instance TLSInfo_access_store_selfCert (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_parseFunc (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'parseFunc (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) v.parseFunc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) v.parseFunc' dq)
@@ -406,7 +406,7 @@ noncomputable instance TLSInfo_access_load_parseFunc (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_parseFunc (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoFunc) :
+noncomputable instance access_store'TLSInfo'parseFunc (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) v.parseFunc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) y (DFrac.own 1))
@@ -414,7 +414,7 @@ noncomputable instance TLSInfo_access_store_parseFunc (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_AllowedCN (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'AllowedCN (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) v.AllowedCN' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) v.AllowedCN' dq)
@@ -422,7 +422,7 @@ noncomputable instance TLSInfo_access_load_AllowedCN (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_AllowedCN (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'AllowedCN (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) v.AllowedCN' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) y (DFrac.own 1))
@@ -430,7 +430,7 @@ noncomputable instance TLSInfo_access_store_AllowedCN (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_AllowedHostname (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'AllowedHostname (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) v.AllowedHostname' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) v.AllowedHostname' dq)
@@ -438,7 +438,7 @@ noncomputable instance TLSInfo_access_load_AllowedHostname (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_AllowedHostname (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'AllowedHostname (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) v.AllowedHostname' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) y (DFrac.own 1))
@@ -446,7 +446,7 @@ noncomputable instance TLSInfo_access_store_AllowedHostname (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_AllowedCNs (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'AllowedCNs (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) v.AllowedCNs' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) v.AllowedCNs' dq)
@@ -454,7 +454,7 @@ noncomputable instance TLSInfo_access_load_AllowedCNs (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_AllowedCNs (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoSlice) :
+noncomputable instance access_store'TLSInfo'AllowedCNs (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) v.AllowedCNs' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) y (DFrac.own 1))
@@ -462,7 +462,7 @@ noncomputable instance TLSInfo_access_store_AllowedCNs (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_AllowedHostnames (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'AllowedHostnames (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) v.AllowedHostnames' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) v.AllowedHostnames' dq)
@@ -470,7 +470,7 @@ noncomputable instance TLSInfo_access_load_AllowedHostnames (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_AllowedHostnames (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoSlice) :
+noncomputable instance access_store'TLSInfo'AllowedHostnames (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) v.AllowedHostnames' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) y (DFrac.own 1))
@@ -478,7 +478,7 @@ noncomputable instance TLSInfo_access_store_AllowedHostnames (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_Logger (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'Logger (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) v.Logger' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) v.Logger' dq)
@@ -486,7 +486,7 @@ noncomputable instance TLSInfo_access_load_Logger (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_Logger (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Loc) :
+noncomputable instance access_store'TLSInfo'Logger (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) v.Logger' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) y (DFrac.own 1))
@@ -494,7 +494,7 @@ noncomputable instance TLSInfo_access_store_Logger (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_EmptyCN (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'EmptyCN (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) v.EmptyCN' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) v.EmptyCN' dq)
@@ -502,7 +502,7 @@ noncomputable instance TLSInfo_access_load_EmptyCN (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_EmptyCN (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
+noncomputable instance access_store'TLSInfo'EmptyCN (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) v.EmptyCN' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) y (DFrac.own 1))
@@ -510,7 +510,7 @@ noncomputable instance TLSInfo_access_store_EmptyCN (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_load_LocalAddr (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'LocalAddr (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) v.LocalAddr' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) v.LocalAddr' dq)
@@ -518,7 +518,7 @@ noncomputable instance TLSInfo_access_load_LocalAddr (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance TLSInfo_access_store_LocalAddr (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'LocalAddr (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) v.LocalAddr' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) y (DFrac.own 1))
@@ -537,11 +537,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-noncomputable instance ListenerOptions_typed_pointsto :
+noncomputable instance typed_pointsto'ListenerOptions :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.ListenerOptions :=
   sorry -- axiomatized type
 
-noncomputable instance ListenerOptions_into_val_typed :
+noncomputable instance into_val_typed'ListenerOptions :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.ListenerOptions go_etcd_io.etcd.client.pkg.v3.transport.ListenerOptions.underlying :=
   sorry -- axiomatized type
 
@@ -556,11 +556,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-noncomputable instance tlsListener_typed_pointsto :
+noncomputable instance typed_pointsto'tlsListener :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.tlsListener :=
   sorry -- axiomatized type
 
-noncomputable instance tlsListener_into_val_typed :
+noncomputable instance into_val_typed'tlsListener :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.tlsListener go_etcd_io.etcd.client.pkg.v3.transport.tlsListener.underlying :=
   sorry -- axiomatized type
 
@@ -575,11 +575,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-noncomputable instance tlsCheckFunc_typed_pointsto :
+noncomputable instance typed_pointsto'tlsCheckFunc :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.tlsCheckFunc :=
   sorry -- axiomatized type
 
-noncomputable instance tlsCheckFunc_into_val_typed :
+noncomputable instance into_val_typed'tlsCheckFunc :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.tlsCheckFunc go_etcd_io.etcd.client.pkg.v3.transport.tlsCheckFunc.underlying :=
   sorry -- axiomatized type
 
@@ -594,11 +594,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-noncomputable instance Controls_typed_pointsto :
+noncomputable instance typed_pointsto'Controls :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.Controls :=
   sorry -- axiomatized type
 
-noncomputable instance Controls_into_val_typed :
+noncomputable instance into_val_typed'Controls :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.Controls go_etcd_io.etcd.client.pkg.v3.transport.Controls.underlying :=
   sorry -- axiomatized type
 
@@ -613,7 +613,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-noncomputable instance SocketOpts_typed_pointsto :
+noncomputable instance typed_pointsto'SocketOpts :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts where
   typedPointstoDef l v dq := iprop(
     "ReusePort" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) v.ReusePort' dq ∗
@@ -623,11 +623,11 @@ noncomputable instance SocketOpts_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance SocketOpts_into_val_typed :
+noncomputable instance into_val_typed'SocketOpts :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance SocketOpts_access_load_ReusePort (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (dq : DFrac) :
+noncomputable instance access_load'SocketOpts'ReusePort (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) v.ReusePort' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) v.ReusePort' dq)
@@ -635,7 +635,7 @@ noncomputable instance SocketOpts_access_load_ReusePort (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance SocketOpts_access_store_ReusePort (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (y : Bool) :
+noncomputable instance access_store'SocketOpts'ReusePort (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) v.ReusePort' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) y (DFrac.own 1))
@@ -643,7 +643,7 @@ noncomputable instance SocketOpts_access_store_ReusePort (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance SocketOpts_access_load_ReuseAddress (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (dq : DFrac) :
+noncomputable instance access_load'SocketOpts'ReuseAddress (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReuseAddress" l) v.ReuseAddress' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReuseAddress" l) v.ReuseAddress' dq)
@@ -651,7 +651,7 @@ noncomputable instance SocketOpts_access_load_ReuseAddress (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance SocketOpts_access_store_ReuseAddress (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (y : Bool) :
+noncomputable instance access_store'SocketOpts'ReuseAddress (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReuseAddress" l) v.ReuseAddress' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReuseAddress" l) y (DFrac.own 1))
@@ -670,11 +670,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-noncomputable instance timeoutConn_typed_pointsto :
+noncomputable instance typed_pointsto'timeoutConn :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.timeoutConn :=
   sorry -- axiomatized type
 
-noncomputable instance timeoutConn_into_val_typed :
+noncomputable instance into_val_typed'timeoutConn :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.timeoutConn go_etcd_io.etcd.client.pkg.v3.transport.timeoutConn.underlying :=
   sorry -- axiomatized type
 
@@ -689,11 +689,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-noncomputable instance rwTimeoutDialer_typed_pointsto :
+noncomputable instance typed_pointsto'rwTimeoutDialer :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutDialer :=
   sorry -- axiomatized type
 
-noncomputable instance rwTimeoutDialer_into_val_typed :
+noncomputable instance into_val_typed'rwTimeoutDialer :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutDialer go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutDialer.underlying :=
   sorry -- axiomatized type
 
@@ -708,11 +708,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-noncomputable instance rwTimeoutListener_typed_pointsto :
+noncomputable instance typed_pointsto'rwTimeoutListener :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutListener :=
   sorry -- axiomatized type
 
-noncomputable instance rwTimeoutListener_into_val_typed :
+noncomputable instance into_val_typed'rwTimeoutListener :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutListener go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutListener.underlying :=
   sorry -- axiomatized type
 
@@ -727,11 +727,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-noncomputable instance unixTransport_typed_pointsto :
+noncomputable instance typed_pointsto'unixTransport :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.unixTransport :=
   sorry -- axiomatized type
 
-noncomputable instance unixTransport_into_val_typed :
+noncomputable instance into_val_typed'unixTransport :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.unixTransport go_etcd_io.etcd.client.pkg.v3.transport.unixTransport.underlying :=
   sorry -- axiomatized type
 
@@ -746,11 +746,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-noncomputable instance unixListener_typed_pointsto :
+noncomputable instance typed_pointsto'unixListener :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.unixListener :=
   sorry -- axiomatized type
 
-noncomputable instance unixListener_into_val_typed :
+noncomputable instance into_val_typed'unixListener :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.unixListener go_etcd_io.etcd.client.pkg.v3.transport.unixListener.underlying :=
   sorry -- axiomatized type
 

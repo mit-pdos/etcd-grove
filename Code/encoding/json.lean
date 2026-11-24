@@ -975,7 +975,7 @@ noncomputable instance Codec.zero_val [GooseExts] : ZeroVal Codec :=
 @[irreducible] noncomputable def Codec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Codec.fieldsUnsealed
 
-noncomputable instance equals_unfold_Codec [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Codec [GooseExts] [GoGlobalContext] :
     EqualsUnfold Codec.fields Codec.fieldsUnsealed :=
   ⟨by unfold Codec.fields; rfl⟩
 
@@ -985,23 +985,23 @@ noncomputable instance equals_unfold_Codec [GooseExts] [GoGlobalContext] :
 class Codec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Codec.underlying Codec
   underlying : go.UnderlyingDirectedEq Codec.ty Codec.underlying
-  get_Marshal : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Marshal") #x (Val #(x.Marshal'))
-  set_Marshal : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Marshal") (PairV #x #y) (Val #(({ x with Marshal' := y } : Codec)))
-  get_Unmarshal : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Unmarshal") #x (Val #(x.Unmarshal'))
-  set_Unmarshal : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Unmarshal") (PairV #x #y) (Val #(({ x with Unmarshal' := y } : Codec)))
-  get_Scan : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Scan") #x (Val #(x.Scan'))
-  set_Scan : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Scan") (PairV #x #y) (Val #(({ x with Scan' := y } : Codec)))
+  get'Marshal : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Marshal") #x (Val #(x.Marshal'))
+  set'Marshal : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Marshal") (PairV #x #y) (Val #(({ x with Marshal' := y } : Codec)))
+  get'Unmarshal : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Unmarshal") #x (Val #(x.Unmarshal'))
+  set'Unmarshal : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Unmarshal") (PairV #x #y) (Val #(({ x with Unmarshal' := y } : Codec)))
+  get'Scan : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Scan") #x (Val #(x.Scan'))
+  set'Scan : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Scan") (PairV #x #y) (Val #(({ x with Scan' := y } : Codec)))
   method_set : go.MethodSetIs Codec.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Codec.ty) []
 
 attribute [instance] Codec.TypeAssumptions.type_repr
   Codec.TypeAssumptions.underlying
-  Codec.TypeAssumptions.get_Marshal
-  Codec.TypeAssumptions.set_Marshal
-  Codec.TypeAssumptions.get_Unmarshal
-  Codec.TypeAssumptions.set_Unmarshal
-  Codec.TypeAssumptions.get_Scan
-  Codec.TypeAssumptions.set_Scan
+  Codec.TypeAssumptions.get'Marshal
+  Codec.TypeAssumptions.set'Marshal
+  Codec.TypeAssumptions.get'Unmarshal
+  Codec.TypeAssumptions.set'Unmarshal
+  Codec.TypeAssumptions.get'Scan
+  Codec.TypeAssumptions.set'Scan
   Codec.TypeAssumptions.method_set
   Codec.TypeAssumptions.ptr_method_set
 
@@ -1211,7 +1211,7 @@ noncomputable instance InvalidUTF8Error.zero_val [GooseExts] : ZeroVal InvalidUT
 @[irreducible] noncomputable def InvalidUTF8Error.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InvalidUTF8Error.fieldsUnsealed
 
-noncomputable instance equals_unfold_InvalidUTF8Error [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'InvalidUTF8Error [GooseExts] [GoGlobalContext] :
     EqualsUnfold InvalidUTF8Error.fields InvalidUTF8Error.fieldsUnsealed :=
   ⟨by unfold InvalidUTF8Error.fields; rfl⟩
 
@@ -1221,15 +1221,15 @@ noncomputable instance equals_unfold_InvalidUTF8Error [GooseExts] [GoGlobalConte
 class InvalidUTF8Error.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InvalidUTF8Error.underlying InvalidUTF8Error
   underlying : go.UnderlyingDirectedEq InvalidUTF8Error.ty InvalidUTF8Error.underlying
-  get_S : ∀ (x : InvalidUTF8Error), go.IsGoStepPureDetTagged under (StructFieldGet InvalidUTF8Error.underlying go!"S") #x (Val #(x.S'))
-  set_S : ∀ (x : InvalidUTF8Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet InvalidUTF8Error.underlying go!"S") (PairV #x #y) (Val #(({ x with S' := y } : InvalidUTF8Error)))
+  get'S : ∀ (x : InvalidUTF8Error), go.IsGoStepPureDetTagged under (StructFieldGet InvalidUTF8Error.underlying go!"S") #x (Val #(x.S'))
+  set'S : ∀ (x : InvalidUTF8Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet InvalidUTF8Error.underlying go!"S") (PairV #x #y) (Val #(({ x with S' := y } : InvalidUTF8Error)))
   method_set : go.MethodSetIs InvalidUTF8Error.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType InvalidUTF8Error.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] InvalidUTF8Error.TypeAssumptions.type_repr
   InvalidUTF8Error.TypeAssumptions.underlying
-  InvalidUTF8Error.TypeAssumptions.get_S
-  InvalidUTF8Error.TypeAssumptions.set_S
+  InvalidUTF8Error.TypeAssumptions.get'S
+  InvalidUTF8Error.TypeAssumptions.set'S
   InvalidUTF8Error.TypeAssumptions.method_set
   InvalidUTF8Error.TypeAssumptions.ptr_method_set
 
@@ -1281,7 +1281,7 @@ noncomputable instance SyntaxError.zero_val [GooseExts] : ZeroVal SyntaxError :=
 @[irreducible] noncomputable def SyntaxError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SyntaxError.fieldsUnsealed
 
-noncomputable instance equals_unfold_SyntaxError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SyntaxError [GooseExts] [GoGlobalContext] :
     EqualsUnfold SyntaxError.fields SyntaxError.fieldsUnsealed :=
   ⟨by unfold SyntaxError.fields; rfl⟩
 
@@ -1291,19 +1291,19 @@ noncomputable instance equals_unfold_SyntaxError [GooseExts] [GoGlobalContext] :
 class SyntaxError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SyntaxError.underlying SyntaxError
   underlying : go.UnderlyingDirectedEq SyntaxError.ty SyntaxError.underlying
-  get_msg : ∀ (x : SyntaxError), go.IsGoStepPureDetTagged under (StructFieldGet SyntaxError.underlying go!"msg") #x (Val #(x.msg'))
-  set_msg : ∀ (x : SyntaxError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SyntaxError.underlying go!"msg") (PairV #x #y) (Val #(({ x with msg' := y } : SyntaxError)))
-  get_Offset : ∀ (x : SyntaxError), go.IsGoStepPureDetTagged under (StructFieldGet SyntaxError.underlying go!"Offset") #x (Val #(x.Offset'))
-  set_Offset : ∀ (x : SyntaxError) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SyntaxError.underlying go!"Offset") (PairV #x #y) (Val #(({ x with Offset' := y } : SyntaxError)))
+  get'msg : ∀ (x : SyntaxError), go.IsGoStepPureDetTagged under (StructFieldGet SyntaxError.underlying go!"msg") #x (Val #(x.msg'))
+  set'msg : ∀ (x : SyntaxError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SyntaxError.underlying go!"msg") (PairV #x #y) (Val #(({ x with msg' := y } : SyntaxError)))
+  get'Offset : ∀ (x : SyntaxError), go.IsGoStepPureDetTagged under (StructFieldGet SyntaxError.underlying go!"Offset") #x (Val #(x.Offset'))
+  set'Offset : ∀ (x : SyntaxError) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SyntaxError.underlying go!"Offset") (PairV #x #y) (Val #(({ x with Offset' := y } : SyntaxError)))
   method_set : go.MethodSetIs SyntaxError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SyntaxError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] SyntaxError.TypeAssumptions.type_repr
   SyntaxError.TypeAssumptions.underlying
-  SyntaxError.TypeAssumptions.get_msg
-  SyntaxError.TypeAssumptions.set_msg
-  SyntaxError.TypeAssumptions.get_Offset
-  SyntaxError.TypeAssumptions.set_Offset
+  SyntaxError.TypeAssumptions.get'msg
+  SyntaxError.TypeAssumptions.set'msg
+  SyntaxError.TypeAssumptions.get'Offset
+  SyntaxError.TypeAssumptions.set'Offset
   SyntaxError.TypeAssumptions.method_set
   SyntaxError.TypeAssumptions.ptr_method_set
 
@@ -1332,7 +1332,7 @@ noncomputable instance Decoder.zero_val [GooseExts] : ZeroVal Decoder :=
 @[irreducible] noncomputable def Decoder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Decoder.fieldsUnsealed
 
-noncomputable instance equals_unfold_Decoder [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Decoder [GooseExts] [GoGlobalContext] :
     EqualsUnfold Decoder.fields Decoder.fieldsUnsealed :=
   ⟨by unfold Decoder.fields; rfl⟩
 
@@ -1342,39 +1342,39 @@ noncomputable instance equals_unfold_Decoder [GooseExts] [GoGlobalContext] :
 class Decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Decoder.underlying Decoder
   underlying : go.UnderlyingDirectedEq Decoder.ty Decoder.underlying
-  get_r : ∀ (x : Decoder), go.IsGoStepPureDetTagged under (StructFieldGet Decoder.underlying go!"r") #x (Val #(x.r'))
-  set_r : ∀ (x : Decoder) (y : _root_.Perennial.io.Reader), go.IsGoStepPureDetTagged under (StructFieldSet Decoder.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : Decoder)))
-  get_buf : ∀ (x : Decoder), go.IsGoStepPureDetTagged under (StructFieldGet Decoder.underlying go!"buf") #x (Val #(x.buf'))
-  set_buf : ∀ (x : Decoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Decoder.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : Decoder)))
-  get_prevStart : ∀ (x : Decoder), go.IsGoStepPureDetTagged under (StructFieldGet Decoder.underlying go!"prevStart") #x (Val #(x.prevStart'))
-  set_prevStart : ∀ (x : Decoder) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Decoder.underlying go!"prevStart") (PairV #x #y) (Val #(({ x with prevStart' := y } : Decoder)))
-  get_prevEnd : ∀ (x : Decoder), go.IsGoStepPureDetTagged under (StructFieldGet Decoder.underlying go!"prevEnd") #x (Val #(x.prevEnd'))
-  set_prevEnd : ∀ (x : Decoder) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Decoder.underlying go!"prevEnd") (PairV #x #y) (Val #(({ x with prevEnd' := y } : Decoder)))
-  get_baseOffset : ∀ (x : Decoder), go.IsGoStepPureDetTagged under (StructFieldGet Decoder.underlying go!"baseOffset") #x (Val #(x.baseOffset'))
-  set_baseOffset : ∀ (x : Decoder) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Decoder.underlying go!"baseOffset") (PairV #x #y) (Val #(({ x with baseOffset' := y } : Decoder)))
-  get_err : ∀ (x : Decoder), go.IsGoStepPureDetTagged under (StructFieldGet Decoder.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : Decoder) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Decoder.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : Decoder)))
-  get_useNumber : ∀ (x : Decoder), go.IsGoStepPureDetTagged under (StructFieldGet Decoder.underlying go!"useNumber") #x (Val #(x.useNumber'))
-  set_useNumber : ∀ (x : Decoder) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Decoder.underlying go!"useNumber") (PairV #x #y) (Val #(({ x with useNumber' := y } : Decoder)))
+  get'r : ∀ (x : Decoder), go.IsGoStepPureDetTagged under (StructFieldGet Decoder.underlying go!"r") #x (Val #(x.r'))
+  set'r : ∀ (x : Decoder) (y : _root_.Perennial.io.Reader), go.IsGoStepPureDetTagged under (StructFieldSet Decoder.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : Decoder)))
+  get'buf : ∀ (x : Decoder), go.IsGoStepPureDetTagged under (StructFieldGet Decoder.underlying go!"buf") #x (Val #(x.buf'))
+  set'buf : ∀ (x : Decoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Decoder.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : Decoder)))
+  get'prevStart : ∀ (x : Decoder), go.IsGoStepPureDetTagged under (StructFieldGet Decoder.underlying go!"prevStart") #x (Val #(x.prevStart'))
+  set'prevStart : ∀ (x : Decoder) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Decoder.underlying go!"prevStart") (PairV #x #y) (Val #(({ x with prevStart' := y } : Decoder)))
+  get'prevEnd : ∀ (x : Decoder), go.IsGoStepPureDetTagged under (StructFieldGet Decoder.underlying go!"prevEnd") #x (Val #(x.prevEnd'))
+  set'prevEnd : ∀ (x : Decoder) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Decoder.underlying go!"prevEnd") (PairV #x #y) (Val #(({ x with prevEnd' := y } : Decoder)))
+  get'baseOffset : ∀ (x : Decoder), go.IsGoStepPureDetTagged under (StructFieldGet Decoder.underlying go!"baseOffset") #x (Val #(x.baseOffset'))
+  set'baseOffset : ∀ (x : Decoder) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Decoder.underlying go!"baseOffset") (PairV #x #y) (Val #(({ x with baseOffset' := y } : Decoder)))
+  get'err : ∀ (x : Decoder), go.IsGoStepPureDetTagged under (StructFieldGet Decoder.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : Decoder) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Decoder.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : Decoder)))
+  get'useNumber : ∀ (x : Decoder), go.IsGoStepPureDetTagged under (StructFieldGet Decoder.underlying go!"useNumber") #x (Val #(x.useNumber'))
+  set'useNumber : ∀ (x : Decoder) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Decoder.underlying go!"useNumber") (PairV #x #y) (Val #(({ x with useNumber' := y } : Decoder)))
   method_set : go.MethodSetIs Decoder.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Decoder.ty) [(go!"Buffered", (some (go.signature.Signature [] false [_root_.Perennial.io.Reader.ty]))), (go!"Decode", (some (go.signature.Signature [go.any] false [go.error]))), (go!"DisallowUnknownFields", (some (go.signature.Signature [] false []))), (go!"InputOffset", (some (go.signature.Signature [] false [go.int64]))), (go!"More", (some (go.signature.Signature [] false [go.bool]))), (go!"Token", (some (go.signature.Signature [] false [Token.ty, go.error]))), (go!"UseNumber", (some (go.signature.Signature [] false []))), (go!"encoding/json.badStart", (some (go.signature.Signature [go.int] false [go.error]))), (go!"encoding/json.fetch", (some (go.signature.Signature [] false [go.error]))), (go!"encoding/json.readValue", (some (go.signature.Signature [(go.GoType.PointerType Codec.ty)] false [(go.GoType.SliceType go.byte), go.error])))]
 
 attribute [instance] Decoder.TypeAssumptions.type_repr
   Decoder.TypeAssumptions.underlying
-  Decoder.TypeAssumptions.get_r
-  Decoder.TypeAssumptions.set_r
-  Decoder.TypeAssumptions.get_buf
-  Decoder.TypeAssumptions.set_buf
-  Decoder.TypeAssumptions.get_prevStart
-  Decoder.TypeAssumptions.set_prevStart
-  Decoder.TypeAssumptions.get_prevEnd
-  Decoder.TypeAssumptions.set_prevEnd
-  Decoder.TypeAssumptions.get_baseOffset
-  Decoder.TypeAssumptions.set_baseOffset
-  Decoder.TypeAssumptions.get_err
-  Decoder.TypeAssumptions.set_err
-  Decoder.TypeAssumptions.get_useNumber
-  Decoder.TypeAssumptions.set_useNumber
+  Decoder.TypeAssumptions.get'r
+  Decoder.TypeAssumptions.set'r
+  Decoder.TypeAssumptions.get'buf
+  Decoder.TypeAssumptions.set'buf
+  Decoder.TypeAssumptions.get'prevStart
+  Decoder.TypeAssumptions.set'prevStart
+  Decoder.TypeAssumptions.get'prevEnd
+  Decoder.TypeAssumptions.set'prevEnd
+  Decoder.TypeAssumptions.get'baseOffset
+  Decoder.TypeAssumptions.set'baseOffset
+  Decoder.TypeAssumptions.get'err
+  Decoder.TypeAssumptions.set'err
+  Decoder.TypeAssumptions.get'useNumber
+  Decoder.TypeAssumptions.set'useNumber
   Decoder.TypeAssumptions.method_set
   Decoder.TypeAssumptions.ptr_method_set
 
@@ -1399,7 +1399,7 @@ noncomputable instance Encoder.zero_val [GooseExts] : ZeroVal Encoder :=
 @[irreducible] noncomputable def Encoder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Encoder.fieldsUnsealed
 
-noncomputable instance equals_unfold_Encoder [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Encoder [GooseExts] [GoGlobalContext] :
     EqualsUnfold Encoder.fields Encoder.fieldsUnsealed :=
   ⟨by unfold Encoder.fields; rfl⟩
 
@@ -1409,35 +1409,35 @@ noncomputable instance equals_unfold_Encoder [GooseExts] [GoGlobalContext] :
 class Encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Encoder.underlying Encoder
   underlying : go.UnderlyingDirectedEq Encoder.ty Encoder.underlying
-  get_w : ∀ (x : Encoder), go.IsGoStepPureDetTagged under (StructFieldGet Encoder.underlying go!"w") #x (Val #(x.w'))
-  set_w : ∀ (x : Encoder) (y : _root_.Perennial.io.Writer), go.IsGoStepPureDetTagged under (StructFieldSet Encoder.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : Encoder)))
-  get_err : ∀ (x : Encoder), go.IsGoStepPureDetTagged under (StructFieldGet Encoder.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : Encoder) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Encoder.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : Encoder)))
-  get_escapeHTML : ∀ (x : Encoder), go.IsGoStepPureDetTagged under (StructFieldGet Encoder.underlying go!"escapeHTML") #x (Val #(x.escapeHTML'))
-  set_escapeHTML : ∀ (x : Encoder) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Encoder.underlying go!"escapeHTML") (PairV #x #y) (Val #(({ x with escapeHTML' := y } : Encoder)))
-  get_indentPrefix : ∀ (x : Encoder), go.IsGoStepPureDetTagged under (StructFieldGet Encoder.underlying go!"indentPrefix") #x (Val #(x.indentPrefix'))
-  set_indentPrefix : ∀ (x : Encoder) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Encoder.underlying go!"indentPrefix") (PairV #x #y) (Val #(({ x with indentPrefix' := y } : Encoder)))
-  get_indentValue : ∀ (x : Encoder), go.IsGoStepPureDetTagged under (StructFieldGet Encoder.underlying go!"indentValue") #x (Val #(x.indentValue'))
-  set_indentValue : ∀ (x : Encoder) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Encoder.underlying go!"indentValue") (PairV #x #y) (Val #(({ x with indentValue' := y } : Encoder)))
+  get'w : ∀ (x : Encoder), go.IsGoStepPureDetTagged under (StructFieldGet Encoder.underlying go!"w") #x (Val #(x.w'))
+  set'w : ∀ (x : Encoder) (y : _root_.Perennial.io.Writer), go.IsGoStepPureDetTagged under (StructFieldSet Encoder.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : Encoder)))
+  get'err : ∀ (x : Encoder), go.IsGoStepPureDetTagged under (StructFieldGet Encoder.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : Encoder) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Encoder.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : Encoder)))
+  get'escapeHTML : ∀ (x : Encoder), go.IsGoStepPureDetTagged under (StructFieldGet Encoder.underlying go!"escapeHTML") #x (Val #(x.escapeHTML'))
+  set'escapeHTML : ∀ (x : Encoder) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Encoder.underlying go!"escapeHTML") (PairV #x #y) (Val #(({ x with escapeHTML' := y } : Encoder)))
+  get'indentPrefix : ∀ (x : Encoder), go.IsGoStepPureDetTagged under (StructFieldGet Encoder.underlying go!"indentPrefix") #x (Val #(x.indentPrefix'))
+  set'indentPrefix : ∀ (x : Encoder) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Encoder.underlying go!"indentPrefix") (PairV #x #y) (Val #(({ x with indentPrefix' := y } : Encoder)))
+  get'indentValue : ∀ (x : Encoder), go.IsGoStepPureDetTagged under (StructFieldGet Encoder.underlying go!"indentValue") #x (Val #(x.indentValue'))
+  set'indentValue : ∀ (x : Encoder) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Encoder.underlying go!"indentValue") (PairV #x #y) (Val #(({ x with indentValue' := y } : Encoder)))
   method_set : go.MethodSetIs Encoder.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Encoder.ty) [(go!"Encode", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetEscapeHTML", (some (go.signature.Signature [go.bool] false []))), (go!"SetIndent", (some (go.signature.Signature [go.string, go.string] false [])))]
-  ptr_Encode_unfold : MethodUnfold (go.GoType.PointerType Encoder.ty) go!"Encode" Encoder.Encode.impl
+  ptr_unfold'Encode : MethodUnfold (go.GoType.PointerType Encoder.ty) go!"Encode" Encoder.Encode.impl
 
 attribute [instance] Encoder.TypeAssumptions.type_repr
   Encoder.TypeAssumptions.underlying
-  Encoder.TypeAssumptions.get_w
-  Encoder.TypeAssumptions.set_w
-  Encoder.TypeAssumptions.get_err
-  Encoder.TypeAssumptions.set_err
-  Encoder.TypeAssumptions.get_escapeHTML
-  Encoder.TypeAssumptions.set_escapeHTML
-  Encoder.TypeAssumptions.get_indentPrefix
-  Encoder.TypeAssumptions.set_indentPrefix
-  Encoder.TypeAssumptions.get_indentValue
-  Encoder.TypeAssumptions.set_indentValue
+  Encoder.TypeAssumptions.get'w
+  Encoder.TypeAssumptions.set'w
+  Encoder.TypeAssumptions.get'err
+  Encoder.TypeAssumptions.set'err
+  Encoder.TypeAssumptions.get'escapeHTML
+  Encoder.TypeAssumptions.set'escapeHTML
+  Encoder.TypeAssumptions.get'indentPrefix
+  Encoder.TypeAssumptions.set'indentPrefix
+  Encoder.TypeAssumptions.get'indentValue
+  Encoder.TypeAssumptions.set'indentValue
   Encoder.TypeAssumptions.method_set
   Encoder.TypeAssumptions.ptr_method_set
-  Encoder.TypeAssumptions.ptr_Encode_unfold
+  Encoder.TypeAssumptions.ptr_unfold'Encode
 
 abbrev RawMessage [GooseExts] : Type := GoSlice
 
@@ -1482,73 +1482,73 @@ attribute [instance] Delim.TypeAssumptions.underlying
   Delim.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Codec_instance : Codec.TypeAssumptions
-  notModelled_instance : notModelled.TypeAssumptions
-  modelMarshalerPtr_instance : modelMarshalerPtr.TypeAssumptions
-  modelMarshaler_instance : modelMarshaler.TypeAssumptions
-  modelUnmarshaler_instance : modelUnmarshaler.TypeAssumptions
-  Unmarshaler_instance : Unmarshaler.TypeAssumptions
-  UnmarshalTypeError_instance : UnmarshalTypeError.TypeAssumptions
-  UnmarshalFieldError_instance : UnmarshalFieldError.TypeAssumptions
-  InvalidUnmarshalError_instance : InvalidUnmarshalError.TypeAssumptions
-  Number_instance : Number.TypeAssumptions
-  Marshaler_instance : Marshaler.TypeAssumptions
-  UnsupportedTypeError_instance : UnsupportedTypeError.TypeAssumptions
-  UnsupportedValueError_instance : UnsupportedValueError.TypeAssumptions
-  InvalidUTF8Error_instance : InvalidUTF8Error.TypeAssumptions
-  MarshalerError_instance : MarshalerError.TypeAssumptions
-  Options_instance : Options.TypeAssumptions
-  SyntaxError_instance : SyntaxError.TypeAssumptions
-  Decoder_instance : Decoder.TypeAssumptions
-  Encoder_instance : Encoder.TypeAssumptions
-  RawMessage_instance : RawMessage.TypeAssumptions
-  Token_instance : Token.TypeAssumptions
-  Delim_instance : Delim.TypeAssumptions
-  SetCodec_unfold : FuncUnfold SetCodec [] SetCodec.impl
-  marshalAny_unfold : FuncUnfold marshalAny [] marshalAny.impl
-  getCodec_unfold : FuncUnfold getCodec [] getCodec.impl
-  isSpace_unfold : FuncUnfold isSpace [] isSpace.impl
-  skipSpace_unfold : FuncUnfold skipSpace [] skipSpace.impl
-  valid_unfold : FuncUnfold valid [] valid.impl
-  Unmarshal_unfold : FuncUnfold Unmarshal [] Unmarshal.impl
-  Marshal_unfold : FuncUnfold Marshal [] Marshal.impl
-  NewEncoder_unfold : FuncUnfold NewEncoder [] NewEncoder.impl
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
+  instance'Codec : Codec.TypeAssumptions
+  instance'notModelled : notModelled.TypeAssumptions
+  instance'modelMarshalerPtr : modelMarshalerPtr.TypeAssumptions
+  instance'modelMarshaler : modelMarshaler.TypeAssumptions
+  instance'modelUnmarshaler : modelUnmarshaler.TypeAssumptions
+  instance'Unmarshaler : Unmarshaler.TypeAssumptions
+  instance'UnmarshalTypeError : UnmarshalTypeError.TypeAssumptions
+  instance'UnmarshalFieldError : UnmarshalFieldError.TypeAssumptions
+  instance'InvalidUnmarshalError : InvalidUnmarshalError.TypeAssumptions
+  instance'Number : Number.TypeAssumptions
+  instance'Marshaler : Marshaler.TypeAssumptions
+  instance'UnsupportedTypeError : UnsupportedTypeError.TypeAssumptions
+  instance'UnsupportedValueError : UnsupportedValueError.TypeAssumptions
+  instance'InvalidUTF8Error : InvalidUTF8Error.TypeAssumptions
+  instance'MarshalerError : MarshalerError.TypeAssumptions
+  instance'Options : Options.TypeAssumptions
+  instance'SyntaxError : SyntaxError.TypeAssumptions
+  instance'Decoder : Decoder.TypeAssumptions
+  instance'Encoder : Encoder.TypeAssumptions
+  instance'RawMessage : RawMessage.TypeAssumptions
+  instance'Token : Token.TypeAssumptions
+  instance'Delim : Delim.TypeAssumptions
+  unfold'SetCodec : FuncUnfold SetCodec [] SetCodec.impl
+  unfold'marshalAny : FuncUnfold marshalAny [] marshalAny.impl
+  unfold'getCodec : FuncUnfold getCodec [] getCodec.impl
+  unfold'isSpace : FuncUnfold isSpace [] isSpace.impl
+  unfold'skipSpace : FuncUnfold skipSpace [] skipSpace.impl
+  unfold'valid : FuncUnfold valid [] valid.impl
+  unfold'Unmarshal : FuncUnfold Unmarshal [] Unmarshal.impl
+  unfold'Marshal : FuncUnfold Marshal [] Marshal.impl
+  unfold'NewEncoder : FuncUnfold NewEncoder [] NewEncoder.impl
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
 
-attribute [instance] Assumptions.Codec_instance
-  Assumptions.notModelled_instance
-  Assumptions.modelMarshalerPtr_instance
-  Assumptions.modelMarshaler_instance
-  Assumptions.modelUnmarshaler_instance
-  Assumptions.Unmarshaler_instance
-  Assumptions.UnmarshalTypeError_instance
-  Assumptions.UnmarshalFieldError_instance
-  Assumptions.InvalidUnmarshalError_instance
-  Assumptions.Number_instance
-  Assumptions.Marshaler_instance
-  Assumptions.UnsupportedTypeError_instance
-  Assumptions.UnsupportedValueError_instance
-  Assumptions.InvalidUTF8Error_instance
-  Assumptions.MarshalerError_instance
-  Assumptions.Options_instance
-  Assumptions.SyntaxError_instance
-  Assumptions.Decoder_instance
-  Assumptions.Encoder_instance
-  Assumptions.RawMessage_instance
-  Assumptions.Token_instance
-  Assumptions.Delim_instance
-  Assumptions.SetCodec_unfold
-  Assumptions.marshalAny_unfold
-  Assumptions.getCodec_unfold
-  Assumptions.isSpace_unfold
-  Assumptions.skipSpace_unfold
-  Assumptions.valid_unfold
-  Assumptions.Unmarshal_unfold
-  Assumptions.Marshal_unfold
-  Assumptions.NewEncoder_unfold
-  Assumptions.import_sync_Assumption
-  Assumptions.import_io_Assumption
+attribute [instance] Assumptions.instance'Codec
+  Assumptions.instance'notModelled
+  Assumptions.instance'modelMarshalerPtr
+  Assumptions.instance'modelMarshaler
+  Assumptions.instance'modelUnmarshaler
+  Assumptions.instance'Unmarshaler
+  Assumptions.instance'UnmarshalTypeError
+  Assumptions.instance'UnmarshalFieldError
+  Assumptions.instance'InvalidUnmarshalError
+  Assumptions.instance'Number
+  Assumptions.instance'Marshaler
+  Assumptions.instance'UnsupportedTypeError
+  Assumptions.instance'UnsupportedValueError
+  Assumptions.instance'InvalidUTF8Error
+  Assumptions.instance'MarshalerError
+  Assumptions.instance'Options
+  Assumptions.instance'SyntaxError
+  Assumptions.instance'Decoder
+  Assumptions.instance'Encoder
+  Assumptions.instance'RawMessage
+  Assumptions.instance'Token
+  Assumptions.instance'Delim
+  Assumptions.unfold'SetCodec
+  Assumptions.unfold'marshalAny
+  Assumptions.unfold'getCodec
+  Assumptions.unfold'isSpace
+  Assumptions.unfold'skipSpace
+  Assumptions.unfold'valid
+  Assumptions.unfold'Unmarshal
+  Assumptions.unfold'Marshal
+  Assumptions.unfold'NewEncoder
+  Assumptions.import'sync
+  Assumptions.import'io
 
 end encoding.json
 

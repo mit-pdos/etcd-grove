@@ -42,7 +42,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-noncomputable instance kvSort_typed_pointsto :
+noncomputable instance typed_pointsto'kvSort :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort where
   typedPointstoDef l v dq := iprop(
     "kvs" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort go!"kvs" l) v.kvs' dq ∗
@@ -51,11 +51,11 @@ noncomputable instance kvSort_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance kvSort_into_val_typed :
+noncomputable instance into_val_typed'kvSort :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance kvSort_access_load_kvs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort) (dq : DFrac) :
+noncomputable instance access_load'kvSort'kvs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort go!"kvs" l) v.kvs' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort go!"kvs" l) v.kvs' dq)
@@ -63,7 +63,7 @@ noncomputable instance kvSort_access_load_kvs (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance kvSort_access_store_kvs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort) (y : GoSlice) :
+noncomputable instance access_store'kvSort'kvs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort go!"kvs" l) v.kvs' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort go!"kvs" l) y (DFrac.own 1))
@@ -82,7 +82,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-noncomputable instance kvSortByKey_typed_pointsto :
+noncomputable instance typed_pointsto'kvSortByKey :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey where
   typedPointstoDef l v dq := iprop(
     "kvSort" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey go!"kvSort" l) v.kvSort' dq ∗
@@ -91,11 +91,11 @@ noncomputable instance kvSortByKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance kvSortByKey_into_val_typed :
+noncomputable instance into_val_typed'kvSortByKey :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance kvSortByKey_access_load_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey) (dq : DFrac) :
+noncomputable instance access_load'kvSortByKey'kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey go!"kvSort" l) v.kvSort' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey go!"kvSort" l) v.kvSort' dq)
@@ -103,7 +103,7 @@ noncomputable instance kvSortByKey_access_load_kvSort (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance kvSortByKey_access_store_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey) (y : Loc) :
+noncomputable instance access_store'kvSortByKey'kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey go!"kvSort" l) v.kvSort' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey go!"kvSort" l) y (DFrac.own 1))
@@ -122,7 +122,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-noncomputable instance kvSortByVersion_typed_pointsto :
+noncomputable instance typed_pointsto'kvSortByVersion :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion where
   typedPointstoDef l v dq := iprop(
     "kvSort" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion go!"kvSort" l) v.kvSort' dq ∗
@@ -131,11 +131,11 @@ noncomputable instance kvSortByVersion_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance kvSortByVersion_into_val_typed :
+noncomputable instance into_val_typed'kvSortByVersion :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance kvSortByVersion_access_load_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion) (dq : DFrac) :
+noncomputable instance access_load'kvSortByVersion'kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion go!"kvSort" l) v.kvSort' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion go!"kvSort" l) v.kvSort' dq)
@@ -143,7 +143,7 @@ noncomputable instance kvSortByVersion_access_load_kvSort (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance kvSortByVersion_access_store_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion) (y : Loc) :
+noncomputable instance access_store'kvSortByVersion'kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion go!"kvSort" l) v.kvSort' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion go!"kvSort" l) y (DFrac.own 1))
@@ -162,7 +162,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-noncomputable instance kvSortByCreate_typed_pointsto :
+noncomputable instance typed_pointsto'kvSortByCreate :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate where
   typedPointstoDef l v dq := iprop(
     "kvSort" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate go!"kvSort" l) v.kvSort' dq ∗
@@ -171,11 +171,11 @@ noncomputable instance kvSortByCreate_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance kvSortByCreate_into_val_typed :
+noncomputable instance into_val_typed'kvSortByCreate :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance kvSortByCreate_access_load_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate) (dq : DFrac) :
+noncomputable instance access_load'kvSortByCreate'kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate go!"kvSort" l) v.kvSort' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate go!"kvSort" l) v.kvSort' dq)
@@ -183,7 +183,7 @@ noncomputable instance kvSortByCreate_access_load_kvSort (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance kvSortByCreate_access_store_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate) (y : Loc) :
+noncomputable instance access_store'kvSortByCreate'kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate go!"kvSort" l) v.kvSort' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate go!"kvSort" l) y (DFrac.own 1))
@@ -202,7 +202,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-noncomputable instance kvSortByMod_typed_pointsto :
+noncomputable instance typed_pointsto'kvSortByMod :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod where
   typedPointstoDef l v dq := iprop(
     "kvSort" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod go!"kvSort" l) v.kvSort' dq ∗
@@ -211,11 +211,11 @@ noncomputable instance kvSortByMod_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance kvSortByMod_into_val_typed :
+noncomputable instance into_val_typed'kvSortByMod :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance kvSortByMod_access_load_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod) (dq : DFrac) :
+noncomputable instance access_load'kvSortByMod'kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod go!"kvSort" l) v.kvSort' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod go!"kvSort" l) v.kvSort' dq)
@@ -223,7 +223,7 @@ noncomputable instance kvSortByMod_access_load_kvSort (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance kvSortByMod_access_store_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod) (y : Loc) :
+noncomputable instance access_store'kvSortByMod'kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod go!"kvSort" l) v.kvSort' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod go!"kvSort" l) y (DFrac.own 1))
@@ -242,7 +242,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-noncomputable instance kvSortByValue_typed_pointsto :
+noncomputable instance typed_pointsto'kvSortByValue :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue where
   typedPointstoDef l v dq := iprop(
     "kvSort" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue go!"kvSort" l) v.kvSort' dq ∗
@@ -251,11 +251,11 @@ noncomputable instance kvSortByValue_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance kvSortByValue_into_val_typed :
+noncomputable instance into_val_typed'kvSortByValue :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance kvSortByValue_access_load_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue) (dq : DFrac) :
+noncomputable instance access_load'kvSortByValue'kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue go!"kvSort" l) v.kvSort' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue go!"kvSort" l) v.kvSort' dq)
@@ -263,7 +263,7 @@ noncomputable instance kvSortByValue_access_load_kvSort (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance kvSortByValue_access_store_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue) (y : Loc) :
+noncomputable instance access_store'kvSortByValue'kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue go!"kvSort" l) v.kvSort' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue go!"kvSort" l) y (DFrac.own 1))

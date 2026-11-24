@@ -21,595 +21,595 @@ noncomputable section
 namespace k8s_io.client_go.tools.cache
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Config_instance : Config.TypeAssumptions
-  ShouldResyncFunc_instance : ShouldResyncFunc.TypeAssumptions
-  ProcessFunc_instance : ProcessFunc.TypeAssumptions
-  ProcessBatchFunc_instance : ProcessBatchFunc.TypeAssumptions
-  controller_instance : controller.TypeAssumptions
-  Controller_instance : Controller.TypeAssumptions
-  ResourceEventHandler_instance : ResourceEventHandler.TypeAssumptions
-  Object_instance : Object.TypeAssumptions
-  TypedResourceEventHandler_instance : TypedResourceEventHandler.TypeAssumptions
-  DeletedObject_instance : DeletedObject.TypeAssumptions
-  ResourceEventHandlerFuncs_instance : ResourceEventHandlerFuncs.TypeAssumptions
-  TypedResourceEventHandlerFuncs_instance : TypedResourceEventHandlerFuncs.TypeAssumptions
-  ResourceEventHandlerDetailedFuncs_instance : ResourceEventHandlerDetailedFuncs.TypeAssumptions
-  TypedResourceEventHandlerDetailedFuncs_instance : TypedResourceEventHandlerDetailedFuncs.TypeAssumptions
-  FilteringResourceEventHandler_instance : FilteringResourceEventHandler.TypeAssumptions
-  TypedFilteringResourceEventHandler_instance : TypedFilteringResourceEventHandler.TypeAssumptions
-  InformerOptions_instance : InformerOptions.TypeAssumptions
-  replacement_instance : replacement.TypeAssumptions
-  DeltaFIFOOptions_instance : DeltaFIFOOptions.TypeAssumptions
-  DeltaFIFO_instance : DeltaFIFO.TypeAssumptions
-  TransformFunc_instance : TransformFunc.TypeAssumptions
-  DeltaType_instance : DeltaType.TypeAssumptions
-  Delta_instance : Delta.TypeAssumptions
-  Deltas_instance : Deltas.TypeAssumptions
-  KeyListerGetter_instance : KeyListerGetter.TypeAssumptions
-  KeyLister_instance : KeyLister.TypeAssumptions
-  KeyGetter_instance : KeyGetter.TypeAssumptions
-  DeletedFinalStateUnknown_instance : DeletedFinalStateUnknown.TypeAssumptions
-  ExpirationCache_instance : ExpirationCache.TypeAssumptions
-  ExpirationPolicy_instance : ExpirationPolicy.TypeAssumptions
-  TTLPolicy_instance : TTLPolicy.TypeAssumptions
-  TimestampedEntry_instance : TimestampedEntry.TypeAssumptions
-  fakeThreadSafeMap_instance : fakeThreadSafeMap.TypeAssumptions
-  FakeExpirationPolicy_instance : FakeExpirationPolicy.TypeAssumptions
-  FakeCustomStore_instance : FakeCustomStore.TypeAssumptions
-  PopProcessFunc_instance : PopProcessFunc.TypeAssumptions
-  Queue_instance : Queue.TypeAssumptions
-  QueueWithBatch_instance : QueueWithBatch.TypeAssumptions
-  FIFO_instance : FIFO.TypeAssumptions
-  LessFunc_instance : LessFunc.TypeAssumptions
-  heapItem_instance : heapItem.TypeAssumptions
-  itemKeyValue_instance : itemKeyValue.TypeAssumptions
-  heapData_instance : heapData.TypeAssumptions
-  Heap_instance : Heap.TypeAssumptions
-  InformerName_instance : InformerName.TypeAssumptions
-  InformerNameAndResource_instance : InformerNameAndResource.TypeAssumptions
-  Indexer_instance : Indexer.TypeAssumptions
-  IndexFunc_instance : IndexFunc.TypeAssumptions
-  index_instance : index.TypeAssumptions
-  Indexers_instance : Indexers.TypeAssumptions
-  Indices_instance : Indices.TypeAssumptions
-  TypedIndexers_instance : TypedIndexers.TypeAssumptions
-  TypedIndexFunc_instance : TypedIndexFunc.TypeAssumptions
-  TypedIndexer_instance : TypedIndexer.TypeAssumptions
-  noopInformerMetricsProvider_instance : noopInformerMetricsProvider.TypeAssumptions
-  InformerMetricsProvider_instance : InformerMetricsProvider.TypeAssumptions
-  fifoMetrics_instance : fifoMetrics.TypeAssumptions
-  storeMetrics_instance : storeMetrics.TypeAssumptions
-  AppendFunc_instance : AppendFunc.TypeAssumptions
-  GenericLister_instance : GenericLister.TypeAssumptions
-  GenericNamespaceLister_instance : GenericNamespaceLister.TypeAssumptions
-  genericLister_instance : genericLister.TypeAssumptions
-  genericNamespaceLister_instance : genericNamespaceLister.TypeAssumptions
-  Lister_instance : Lister.TypeAssumptions
-  ListerWithContext_instance : ListerWithContext.TypeAssumptions
-  listerWrapper_instance : listerWrapper.TypeAssumptions
-  Watcher_instance : Watcher.TypeAssumptions
-  WatcherWithContext_instance : WatcherWithContext.TypeAssumptions
-  watcherWrapper_instance : watcherWrapper.TypeAssumptions
-  ListerWatcher_instance : ListerWatcher.TypeAssumptions
-  ListerWatcherWithContext_instance : ListerWatcherWithContext.TypeAssumptions
-  listerWatcherWrapper_instance : listerWatcherWrapper.TypeAssumptions
-  listWatcherWithWatchListSemanticsWrapper_instance : listWatcherWithWatchListSemanticsWrapper.TypeAssumptions
-  ListFunc_instance : ListFunc.TypeAssumptions
-  ListWithContextFunc_instance : ListWithContextFunc.TypeAssumptions
-  WatchFunc_instance : WatchFunc.TypeAssumptions
-  WatchFuncWithContext_instance : WatchFuncWithContext.TypeAssumptions
-  ListWatch_instance : ListWatch.TypeAssumptions
-  Getter_instance : Getter.TypeAssumptions
-  shardedListWatch_instance : shardedListWatch.TypeAssumptions
-  MutationCache_instance : MutationCache.TypeAssumptions
-  ResourceVersionComparator_instance : ResourceVersionComparator.TypeAssumptions
-  MutationCacheOptions_instance : MutationCacheOptions.TypeAssumptions
-  mutationCache_instance : mutationCache.TypeAssumptions
-  etcdObjectVersioner_instance : etcdObjectVersioner.TypeAssumptions
-  tombstone_instance : tombstone.TypeAssumptions
-  MutationDetector_instance : MutationDetector.TypeAssumptions
-  dummyMutationDetector_instance : dummyMutationDetector.TypeAssumptions
-  defaultCacheMutationDetector_instance : defaultCacheMutationDetector.TypeAssumptions
-  cacheObj_instance : cacheObj.TypeAssumptions
-  ObjectName_instance : ObjectName.TypeAssumptions
-  ReflectorStore_instance : ReflectorStore.TypeAssumptions
-  ReflectorBookmarkStore_instance : ReflectorBookmarkStore.TypeAssumptions
-  TransformingStore_instance : TransformingStore.TypeAssumptions
-  Reflector_instance : Reflector.TypeAssumptions
-  ResourceVersionUpdater_instance : ResourceVersionUpdater.TypeAssumptions
-  WatchErrorHandler_instance : WatchErrorHandler.TypeAssumptions
-  WatchErrorHandlerWithContext_instance : WatchErrorHandlerWithContext.TypeAssumptions
-  ReflectorOptions_instance : ReflectorOptions.TypeAssumptions
-  initialEventsEndBookmarkTicker_instance : initialEventsEndBookmarkTicker.TypeAssumptions
-  noopTicker_instance : noopTicker.TypeAssumptions
-  VeryShortWatchError_instance : VeryShortWatchError.TypeAssumptions
-  GaugeMetric_instance : GaugeMetric.TypeAssumptions
-  CounterMetric_instance : CounterMetric.TypeAssumptions
-  SummaryMetric_instance : SummaryMetric.TypeAssumptions
-  HistogramMetric_instance : HistogramMetric.TypeAssumptions
-  noopMetric_instance : noopMetric.TypeAssumptions
-  MetricsProvider_instance : MetricsProvider.TypeAssumptions
-  noopMetricsProvider_instance : noopMetricsProvider.TypeAssumptions
-  RetryWithDeadline_instance : RetryWithDeadline.TypeAssumptions
-  retryWithDeadlineImpl_instance : retryWithDeadlineImpl.TypeAssumptions
-  SharedInformer_instance : SharedInformer.TypeAssumptions
-  ResourceEventHandlerRegistration_instance : ResourceEventHandlerRegistration.TypeAssumptions
-  HandlerOptions_instance : HandlerOptions.TypeAssumptions
-  SharedIndexInformer_instance : SharedIndexInformer.TypeAssumptions
-  TypedSharedIndexInformer_instance : TypedSharedIndexInformer.TypeAssumptions
-  typedSharedIndexInformer_instance : typedSharedIndexInformer.TypeAssumptions
-  typedResourceEventHandler_instance : typedResourceEventHandler.TypeAssumptions
-  typedIndexer_instance : typedIndexer.TypeAssumptions
-  SharedIndexInformerOptions_instance : SharedIndexInformerOptions.TypeAssumptions
-  InformerSynced_instance : InformerSynced.TypeAssumptions
-  result_instance : result.TypeAssumptions
-  DoneChecker_instance : DoneChecker.TypeAssumptions
-  SyncResult_instance : SyncResult.TypeAssumptions
-  sharedIndexInformer_instance : sharedIndexInformer.TypeAssumptions
-  dummyController_instance : dummyController.TypeAssumptions
-  updateNotification_instance : updateNotification.TypeAssumptions
-  addNotification_instance : addNotification.TypeAssumptions
-  deleteNotification_instance : deleteNotification.TypeAssumptions
-  sharedIndexInformerDone_instance : sharedIndexInformerDone.TypeAssumptions
-  sharedProcessor_instance : sharedProcessor.TypeAssumptions
-  processorListener_instance : processorListener.TypeAssumptions
-  Store_instance : Store.TypeAssumptions
-  TransactionType_instance : TransactionType.TypeAssumptions
-  Transaction_instance : Transaction.TypeAssumptions
-  TransactionStore_instance : TransactionStore.TypeAssumptions
-  TransactionError_instance : TransactionError.TypeAssumptions
-  KeyFunc_instance : KeyFunc.TypeAssumptions
-  KeyError_instance : KeyError.TypeAssumptions
-  ExplicitKey_instance : ExplicitKey.TypeAssumptions
-  cache_instance : cache.TypeAssumptions
-  RealFIFOOptions_instance : RealFIFOOptions.TypeAssumptions
-  RealFIFO_instance : RealFIFO.TypeAssumptions
-  ReplacedAllInfo_instance : ReplacedAllInfo.TypeAssumptions
-  BookmarkInfo_instance : BookmarkInfo.TypeAssumptions
-  SyncAllInfo_instance : SyncAllInfo.TypeAssumptions
-  ThreadSafeStore_instance : ThreadSafeStore.TypeAssumptions
-  ThreadSafeStoreWithTransaction_instance : ThreadSafeStoreWithTransaction.TypeAssumptions
-  ThreadSafeStoreTransaction_instance : ThreadSafeStoreTransaction.TypeAssumptions
-  storeIndex_instance : storeIndex.TypeAssumptions
-  threadSafeMap_instance : threadSafeMap.TypeAssumptions
-  UndeltaStore_instance : UndeltaStore.TypeAssumptions
-  New_unfold : FuncUnfold New [] New.impl
-  DeletionHandlingMetaNamespaceKeyFunc_unfold : FuncUnfold DeletionHandlingMetaNamespaceKeyFunc [] DeletionHandlingMetaNamespaceKeyFunc.impl
-  DeletionHandlingObjectToName_unfold : FuncUnfold DeletionHandlingObjectToName [] DeletionHandlingObjectToName.impl
-  NewInformerWithOptions_unfold : FuncUnfold NewInformerWithOptions [] NewInformerWithOptions.impl
-  NewInformer_unfold : FuncUnfold NewInformer [] NewInformer.impl
-  NewIndexerInformer_unfold : FuncUnfold NewIndexerInformer [] NewIndexerInformer.impl
-  NewTransformingInformer_unfold : FuncUnfold NewTransformingInformer [] NewTransformingInformer.impl
-  NewTransformingIndexerInformer_unfold : FuncUnfold NewTransformingIndexerInformer [] NewTransformingIndexerInformer.impl
-  processDeltas_unfold : FuncUnfold processDeltas [] processDeltas.impl
-  processDeltasInBatch_unfold : FuncUnfold processDeltasInBatch [] processDeltasInBatch.impl
-  processReplacedAllInfo_unfold : FuncUnfold processReplacedAllInfo [] processReplacedAllInfo.impl
-  newInformer_unfold : FuncUnfold newInformer [] newInformer.impl
-  newQueueFIFO_unfold : FuncUnfold newQueueFIFO [] newQueueFIFO.impl
-  NewDeltaFIFO_unfold : FuncUnfold NewDeltaFIFO [] NewDeltaFIFO.impl
-  NewDeltaFIFOWithOptions_unfold : FuncUnfold NewDeltaFIFOWithOptions [] NewDeltaFIFOWithOptions.impl
-  dedupDeltas_unfold : FuncUnfold dedupDeltas [] dedupDeltas.impl
-  isDup_unfold : FuncUnfold isDup [] isDup.impl
-  isDeletionDup_unfold : FuncUnfold isDeletionDup [] isDeletionDup.impl
-  copyDeltas_unfold : FuncUnfold copyDeltas [] copyDeltas.impl
-  nameForHandler_unfold : FuncUnfold nameForHandler [] nameForHandler.impl
-  nameForHandlerFuncs_unfold : FuncUnfold nameForHandlerFuncs [] nameForHandlerFuncs.impl
-  nameForFunctions_unfold : FuncUnfold nameForFunctions [] nameForFunctions.impl
-  NewTTLStore_unfold : FuncUnfold NewTTLStore [] NewTTLStore.impl
-  NewExpirationStore_unfold : FuncUnfold NewExpirationStore [] NewExpirationStore.impl
-  NewFakeExpirationStore_unfold : FuncUnfold NewFakeExpirationStore [] NewFakeExpirationStore.impl
-  NewFIFO_unfold : FuncUnfold NewFIFO [] NewFIFO.impl
-  NewHeap_unfold : FuncUnfold NewHeap [] NewHeap.impl
-  IndexFuncToKeyFuncAdapter_unfold : FuncUnfold IndexFuncToKeyFuncAdapter [] IndexFuncToKeyFuncAdapter.impl
-  MetaNamespaceIndexFunc_unfold : FuncUnfold MetaNamespaceIndexFunc [] MetaNamespaceIndexFunc.impl
-  TypedIndexersToIndexers_unfold : ∀ (T : go.GoType), FuncUnfold TypedIndexersToIndexers [T] (TypedIndexersToIndexers.impl T)
-  TypedIndexerFuncToIndexerFunc_unfold : ∀ (T : go.GoType), FuncUnfold TypedIndexerFuncToIndexerFunc [T] (TypedIndexerFuncToIndexerFunc.impl T)
-  SetInformerMetricsProvider_unfold : FuncUnfold SetInformerMetricsProvider [] SetInformerMetricsProvider.impl
-  newFIFOMetrics_unfold : FuncUnfold newFIFOMetrics [] newFIFOMetrics.impl
-  newStoreMetrics_unfold : FuncUnfold newStoreMetrics [] newStoreMetrics.impl
-  ListAll_unfold : FuncUnfold ListAll [] ListAll.impl
-  ListAllByNamespace_unfold : FuncUnfold ListAllByNamespace [] ListAllByNamespace.impl
-  NewGenericLister_unfold : FuncUnfold NewGenericLister [] NewGenericLister.impl
-  ToListerWithContext_unfold : FuncUnfold ToListerWithContext [] ToListerWithContext.impl
-  ToWatcherWithContext_unfold : FuncUnfold ToWatcherWithContext [] ToWatcherWithContext.impl
-  ToListerWatcherWithContext_unfold : FuncUnfold ToListerWatcherWithContext [] ToListerWatcherWithContext.impl
-  ToListWatcherWithWatchListSemantics_unfold : FuncUnfold ToListWatcherWithWatchListSemantics [] ToListWatcherWithWatchListSemantics.impl
-  NewListWatchFromClient_unfold : FuncUnfold NewListWatchFromClient [] NewListWatchFromClient.impl
-  NewFilteredListWatchFromClient_unfold : FuncUnfold NewFilteredListWatchFromClient [] NewFilteredListWatchFromClient.impl
-  NewShardedListWatch_unfold : FuncUnfold NewShardedListWatch [] NewShardedListWatch.impl
-  NewIntegerResourceVersionMutationCacheWithOptions_unfold : FuncUnfold NewIntegerResourceVersionMutationCacheWithOptions [] NewIntegerResourceVersionMutationCacheWithOptions.impl
-  NewIntegerResourceVersionMutationCache_unfold : FuncUnfold NewIntegerResourceVersionMutationCache [] NewIntegerResourceVersionMutationCache.impl
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  NewCacheMutationDetector_unfold : FuncUnfold NewCacheMutationDetector [] NewCacheMutationDetector.impl
-  NewObjectName_unfold : FuncUnfold NewObjectName [] NewObjectName.impl
-  ParseObjectName_unfold : FuncUnfold ParseObjectName [] ParseObjectName.impl
-  NamespacedNameAsObjectName_unfold : FuncUnfold NamespacedNameAsObjectName [] NamespacedNameAsObjectName.impl
-  DefaultWatchErrorHandler_unfold : FuncUnfold DefaultWatchErrorHandler [] DefaultWatchErrorHandler.impl
-  NewNamespaceKeyedIndexerAndReflector_unfold : FuncUnfold NewNamespaceKeyedIndexerAndReflector [] NewNamespaceKeyedIndexerAndReflector.impl
-  NewReflector_unfold : FuncUnfold NewReflector [] NewReflector.impl
-  NewNamedReflector_unfold : FuncUnfold NewNamedReflector [] NewNamedReflector.impl
-  NewReflectorWithOptions_unfold : FuncUnfold NewReflectorWithOptions [] NewReflectorWithOptions.impl
-  getTypeDescriptionFromObject_unfold : FuncUnfold getTypeDescriptionFromObject [] getTypeDescriptionFromObject.impl
-  getExpectedGVKFromObject_unfold : FuncUnfold getExpectedGVKFromObject [] getExpectedGVKFromObject.impl
-  handleListWatch_unfold : FuncUnfold handleListWatch [] handleListWatch.impl
-  handleWatch_unfold : FuncUnfold handleWatch [] handleWatch.impl
-  isExpiredError_unfold : FuncUnfold isExpiredError [] isExpiredError.impl
-  isTooLargeResourceVersionError_unfold : FuncUnfold isTooLargeResourceVersionError [] isTooLargeResourceVersionError.impl
-  isWatchErrorRetriable_unfold : FuncUnfold isWatchErrorRetriable [] isWatchErrorRetriable.impl
-  newInitialEventsEndBookmarkTicker_unfold : FuncUnfold newInitialEventsEndBookmarkTicker [] newInitialEventsEndBookmarkTicker.impl
-  newInitialEventsEndBookmarkTickerInternal_unfold : FuncUnfold newInitialEventsEndBookmarkTickerInternal [] newInitialEventsEndBookmarkTickerInternal.impl
-  isUnsupportedTableObject_unfold : FuncUnfold isUnsupportedTableObject [] isUnsupportedTableObject.impl
-  isUnsupportedTableListObject_unfold : FuncUnfold isUnsupportedTableListObject [] isUnsupportedTableListObject.impl
-  checkWatchListDataConsistencyIfRequested_unfold : ∀ (T U : go.GoType), FuncUnfold checkWatchListDataConsistencyIfRequested [T, U] (checkWatchListDataConsistencyIfRequested.impl T U)
-  NewRetryWithDeadline_unfold : FuncUnfold NewRetryWithDeadline [] NewRetryWithDeadline.impl
-  NewTypedSharedIndexInformer_unfold : ∀ (T : go.GoType), FuncUnfold NewTypedSharedIndexInformer [T] (NewTypedSharedIndexInformer.impl T)
-  NewSharedInformer_unfold : FuncUnfold NewSharedInformer [] NewSharedInformer.impl
-  NewSharedIndexInformer_unfold : FuncUnfold NewSharedIndexInformer [] NewSharedIndexInformer.impl
-  NewSharedIndexInformerWithOptions_unfold : FuncUnfold NewSharedIndexInformerWithOptions [] NewSharedIndexInformerWithOptions.impl
-  WaitForNamedCacheSync_unfold : FuncUnfold WaitForNamedCacheSync [] WaitForNamedCacheSync.impl
-  WaitForNamedCacheSyncWithContext_unfold : FuncUnfold WaitForNamedCacheSyncWithContext [] WaitForNamedCacheSyncWithContext.impl
-  WaitForCacheSync_unfold : FuncUnfold WaitForCacheSync [] WaitForCacheSync.impl
-  WaitFor_unfold : FuncUnfold WaitFor [] WaitFor.impl
-  IsDone_unfold : FuncUnfold IsDone [] IsDone.impl
-  determineResyncPeriod_unfold : FuncUnfold determineResyncPeriod [] determineResyncPeriod.impl
-  ShutDownEventHandler_unfold : FuncUnfold ShutDownEventHandler [] ShutDownEventHandler.impl
-  newProcessListener_unfold : FuncUnfold newProcessListener [] newProcessListener.impl
-  MetaNamespaceKeyFunc_unfold : FuncUnfold MetaNamespaceKeyFunc [] MetaNamespaceKeyFunc.impl
-  ObjectToName_unfold : FuncUnfold ObjectToName [] ObjectToName.impl
-  MetaObjectToName_unfold : FuncUnfold MetaObjectToName [] MetaObjectToName.impl
-  SplitMetaNamespaceKey_unfold : FuncUnfold SplitMetaNamespaceKey [] SplitMetaNamespaceKey.impl
-  WithTransformer_unfold : FuncUnfold WithTransformer [] WithTransformer.impl
-  WithStoreMetrics_unfold : FuncUnfold WithStoreMetrics [] WithStoreMetrics.impl
-  NewStore_unfold : FuncUnfold NewStore [] NewStore.impl
-  NewIndexer_unfold : FuncUnfold NewIndexer [] NewIndexer.impl
-  reconcileReplacement_unfold : FuncUnfold reconcileReplacement [] reconcileReplacement.impl
-  NewRealFIFO_unfold : FuncUnfold NewRealFIFO [] NewRealFIFO.impl
-  NewRealFIFOWithOptions_unfold : FuncUnfold NewRealFIFOWithOptions [] NewRealFIFOWithOptions.impl
-  WithThreadSafeStoreMetrics_unfold : FuncUnfold WithThreadSafeStoreMetrics [] WithThreadSafeStoreMetrics.impl
-  rvFromObject_unfold : FuncUnfold rvFromObject [] rvFromObject.impl
-  NewThreadSafeStore_unfold : FuncUnfold NewThreadSafeStore [] NewThreadSafeStore.impl
-  parseRVForMetricsWithTruncation_unfold : FuncUnfold parseRVForMetricsWithTruncation [] parseRVForMetricsWithTruncation.impl
-  NewUndeltaStore_unfold : FuncUnfold NewUndeltaStore [] NewUndeltaStore.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_pkg_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
-  import_util_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.Assumptions
-  import_wait_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Assumptions
-  import_features_Assumption : _root_.Perennial.k8s_io.client_go.features.Assumptions
-  import_klog_Assumption : _root_.Perennial.k8s_io.klog.v2.Assumptions
-  import_clock_Assumption : _root_.Perennial.k8s_io.utils.clock.Assumptions
-  import_sets_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
-  import_trace_Assumption : _root_.Perennial.k8s_io.utils.trace.Assumptions
-  import_reflect_Assumption : _root_.Perennial.reflect.Assumptions
-  import_heap_Assumption : _root_.Perennial.container.heap.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_schema_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
-  import_meta_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions
-  import_api_errors_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.Assumptions
-  import_labels_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
-  import_fields_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Assumptions
-  import_sharding_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Assumptions
-  import_watch_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions
-  import_rest_Assumption : _root_.Perennial.k8s_io.client_go.rest.Assumptions
-  import_watchlist_Assumption : _root_.Perennial.k8s_io.client_go.util.watchlist.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_types_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
-  import_cache_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_diff_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.diff.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_math_Assumption : _root_.Perennial.math.Assumptions
-  import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
-  import_unstructured_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Assumptions
-  import_v1beta1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1beta1.Assumptions
-  import_naming_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.naming.Assumptions
-  import_net_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.net.Assumptions
-  import_pager_Assumption : _root_.Perennial.k8s_io.client_go.tools.pager.Assumptions
-  import_ptr_Assumption : _root_.Perennial.k8s_io.utils.ptr.Assumptions
-  import_consistencydetector_Assumption : _root_.Perennial.k8s_io.client_go.util.consistencydetector.Assumptions
-  import_slices_Assumption : _root_.Perennial.slices.Assumptions
-  import_synctrack_Assumption : _root_.Perennial.k8s_io.client_go.tools.cache.synctrack.Assumptions
-  import_buffer_Assumption : _root_.Perennial.k8s_io.utils.buffer.Assumptions
+  instance'Config : Config.TypeAssumptions
+  instance'ShouldResyncFunc : ShouldResyncFunc.TypeAssumptions
+  instance'ProcessFunc : ProcessFunc.TypeAssumptions
+  instance'ProcessBatchFunc : ProcessBatchFunc.TypeAssumptions
+  instance'controller : controller.TypeAssumptions
+  instance'Controller : Controller.TypeAssumptions
+  instance'ResourceEventHandler : ResourceEventHandler.TypeAssumptions
+  instance'Object : Object.TypeAssumptions
+  instance'TypedResourceEventHandler : TypedResourceEventHandler.TypeAssumptions
+  instance'DeletedObject : DeletedObject.TypeAssumptions
+  instance'ResourceEventHandlerFuncs : ResourceEventHandlerFuncs.TypeAssumptions
+  instance'TypedResourceEventHandlerFuncs : TypedResourceEventHandlerFuncs.TypeAssumptions
+  instance'ResourceEventHandlerDetailedFuncs : ResourceEventHandlerDetailedFuncs.TypeAssumptions
+  instance'TypedResourceEventHandlerDetailedFuncs : TypedResourceEventHandlerDetailedFuncs.TypeAssumptions
+  instance'FilteringResourceEventHandler : FilteringResourceEventHandler.TypeAssumptions
+  instance'TypedFilteringResourceEventHandler : TypedFilteringResourceEventHandler.TypeAssumptions
+  instance'InformerOptions : InformerOptions.TypeAssumptions
+  instance'replacement : replacement.TypeAssumptions
+  instance'DeltaFIFOOptions : DeltaFIFOOptions.TypeAssumptions
+  instance'DeltaFIFO : DeltaFIFO.TypeAssumptions
+  instance'TransformFunc : TransformFunc.TypeAssumptions
+  instance'DeltaType : DeltaType.TypeAssumptions
+  instance'Delta : Delta.TypeAssumptions
+  instance'Deltas : Deltas.TypeAssumptions
+  instance'KeyListerGetter : KeyListerGetter.TypeAssumptions
+  instance'KeyLister : KeyLister.TypeAssumptions
+  instance'KeyGetter : KeyGetter.TypeAssumptions
+  instance'DeletedFinalStateUnknown : DeletedFinalStateUnknown.TypeAssumptions
+  instance'ExpirationCache : ExpirationCache.TypeAssumptions
+  instance'ExpirationPolicy : ExpirationPolicy.TypeAssumptions
+  instance'TTLPolicy : TTLPolicy.TypeAssumptions
+  instance'TimestampedEntry : TimestampedEntry.TypeAssumptions
+  instance'fakeThreadSafeMap : fakeThreadSafeMap.TypeAssumptions
+  instance'FakeExpirationPolicy : FakeExpirationPolicy.TypeAssumptions
+  instance'FakeCustomStore : FakeCustomStore.TypeAssumptions
+  instance'PopProcessFunc : PopProcessFunc.TypeAssumptions
+  instance'Queue : Queue.TypeAssumptions
+  instance'QueueWithBatch : QueueWithBatch.TypeAssumptions
+  instance'FIFO : FIFO.TypeAssumptions
+  instance'LessFunc : LessFunc.TypeAssumptions
+  instance'heapItem : heapItem.TypeAssumptions
+  instance'itemKeyValue : itemKeyValue.TypeAssumptions
+  instance'heapData : heapData.TypeAssumptions
+  instance'Heap : Heap.TypeAssumptions
+  instance'InformerName : InformerName.TypeAssumptions
+  instance'InformerNameAndResource : InformerNameAndResource.TypeAssumptions
+  instance'Indexer : Indexer.TypeAssumptions
+  instance'IndexFunc : IndexFunc.TypeAssumptions
+  instance'index : index.TypeAssumptions
+  instance'Indexers : Indexers.TypeAssumptions
+  instance'Indices : Indices.TypeAssumptions
+  instance'TypedIndexers : TypedIndexers.TypeAssumptions
+  instance'TypedIndexFunc : TypedIndexFunc.TypeAssumptions
+  instance'TypedIndexer : TypedIndexer.TypeAssumptions
+  instance'noopInformerMetricsProvider : noopInformerMetricsProvider.TypeAssumptions
+  instance'InformerMetricsProvider : InformerMetricsProvider.TypeAssumptions
+  instance'fifoMetrics : fifoMetrics.TypeAssumptions
+  instance'storeMetrics : storeMetrics.TypeAssumptions
+  instance'AppendFunc : AppendFunc.TypeAssumptions
+  instance'GenericLister : GenericLister.TypeAssumptions
+  instance'GenericNamespaceLister : GenericNamespaceLister.TypeAssumptions
+  instance'genericLister : genericLister.TypeAssumptions
+  instance'genericNamespaceLister : genericNamespaceLister.TypeAssumptions
+  instance'Lister : Lister.TypeAssumptions
+  instance'ListerWithContext : ListerWithContext.TypeAssumptions
+  instance'listerWrapper : listerWrapper.TypeAssumptions
+  instance'Watcher : Watcher.TypeAssumptions
+  instance'WatcherWithContext : WatcherWithContext.TypeAssumptions
+  instance'watcherWrapper : watcherWrapper.TypeAssumptions
+  instance'ListerWatcher : ListerWatcher.TypeAssumptions
+  instance'ListerWatcherWithContext : ListerWatcherWithContext.TypeAssumptions
+  instance'listerWatcherWrapper : listerWatcherWrapper.TypeAssumptions
+  instance'listWatcherWithWatchListSemanticsWrapper : listWatcherWithWatchListSemanticsWrapper.TypeAssumptions
+  instance'ListFunc : ListFunc.TypeAssumptions
+  instance'ListWithContextFunc : ListWithContextFunc.TypeAssumptions
+  instance'WatchFunc : WatchFunc.TypeAssumptions
+  instance'WatchFuncWithContext : WatchFuncWithContext.TypeAssumptions
+  instance'ListWatch : ListWatch.TypeAssumptions
+  instance'Getter : Getter.TypeAssumptions
+  instance'shardedListWatch : shardedListWatch.TypeAssumptions
+  instance'MutationCache : MutationCache.TypeAssumptions
+  instance'ResourceVersionComparator : ResourceVersionComparator.TypeAssumptions
+  instance'MutationCacheOptions : MutationCacheOptions.TypeAssumptions
+  instance'mutationCache : mutationCache.TypeAssumptions
+  instance'etcdObjectVersioner : etcdObjectVersioner.TypeAssumptions
+  instance'tombstone : tombstone.TypeAssumptions
+  instance'MutationDetector : MutationDetector.TypeAssumptions
+  instance'dummyMutationDetector : dummyMutationDetector.TypeAssumptions
+  instance'defaultCacheMutationDetector : defaultCacheMutationDetector.TypeAssumptions
+  instance'cacheObj : cacheObj.TypeAssumptions
+  instance'ObjectName : ObjectName.TypeAssumptions
+  instance'ReflectorStore : ReflectorStore.TypeAssumptions
+  instance'ReflectorBookmarkStore : ReflectorBookmarkStore.TypeAssumptions
+  instance'TransformingStore : TransformingStore.TypeAssumptions
+  instance'Reflector : Reflector.TypeAssumptions
+  instance'ResourceVersionUpdater : ResourceVersionUpdater.TypeAssumptions
+  instance'WatchErrorHandler : WatchErrorHandler.TypeAssumptions
+  instance'WatchErrorHandlerWithContext : WatchErrorHandlerWithContext.TypeAssumptions
+  instance'ReflectorOptions : ReflectorOptions.TypeAssumptions
+  instance'initialEventsEndBookmarkTicker : initialEventsEndBookmarkTicker.TypeAssumptions
+  instance'noopTicker : noopTicker.TypeAssumptions
+  instance'VeryShortWatchError : VeryShortWatchError.TypeAssumptions
+  instance'GaugeMetric : GaugeMetric.TypeAssumptions
+  instance'CounterMetric : CounterMetric.TypeAssumptions
+  instance'SummaryMetric : SummaryMetric.TypeAssumptions
+  instance'HistogramMetric : HistogramMetric.TypeAssumptions
+  instance'noopMetric : noopMetric.TypeAssumptions
+  instance'MetricsProvider : MetricsProvider.TypeAssumptions
+  instance'noopMetricsProvider : noopMetricsProvider.TypeAssumptions
+  instance'RetryWithDeadline : RetryWithDeadline.TypeAssumptions
+  instance'retryWithDeadlineImpl : retryWithDeadlineImpl.TypeAssumptions
+  instance'SharedInformer : SharedInformer.TypeAssumptions
+  instance'ResourceEventHandlerRegistration : ResourceEventHandlerRegistration.TypeAssumptions
+  instance'HandlerOptions : HandlerOptions.TypeAssumptions
+  instance'SharedIndexInformer : SharedIndexInformer.TypeAssumptions
+  instance'TypedSharedIndexInformer : TypedSharedIndexInformer.TypeAssumptions
+  instance'typedSharedIndexInformer : typedSharedIndexInformer.TypeAssumptions
+  instance'typedResourceEventHandler : typedResourceEventHandler.TypeAssumptions
+  instance'typedIndexer : typedIndexer.TypeAssumptions
+  instance'SharedIndexInformerOptions : SharedIndexInformerOptions.TypeAssumptions
+  instance'InformerSynced : InformerSynced.TypeAssumptions
+  instance'result : result.TypeAssumptions
+  instance'DoneChecker : DoneChecker.TypeAssumptions
+  instance'SyncResult : SyncResult.TypeAssumptions
+  instance'sharedIndexInformer : sharedIndexInformer.TypeAssumptions
+  instance'dummyController : dummyController.TypeAssumptions
+  instance'updateNotification : updateNotification.TypeAssumptions
+  instance'addNotification : addNotification.TypeAssumptions
+  instance'deleteNotification : deleteNotification.TypeAssumptions
+  instance'sharedIndexInformerDone : sharedIndexInformerDone.TypeAssumptions
+  instance'sharedProcessor : sharedProcessor.TypeAssumptions
+  instance'processorListener : processorListener.TypeAssumptions
+  instance'Store : Store.TypeAssumptions
+  instance'TransactionType : TransactionType.TypeAssumptions
+  instance'Transaction : Transaction.TypeAssumptions
+  instance'TransactionStore : TransactionStore.TypeAssumptions
+  instance'TransactionError : TransactionError.TypeAssumptions
+  instance'KeyFunc : KeyFunc.TypeAssumptions
+  instance'KeyError : KeyError.TypeAssumptions
+  instance'ExplicitKey : ExplicitKey.TypeAssumptions
+  instance'cache : cache.TypeAssumptions
+  instance'RealFIFOOptions : RealFIFOOptions.TypeAssumptions
+  instance'RealFIFO : RealFIFO.TypeAssumptions
+  instance'ReplacedAllInfo : ReplacedAllInfo.TypeAssumptions
+  instance'BookmarkInfo : BookmarkInfo.TypeAssumptions
+  instance'SyncAllInfo : SyncAllInfo.TypeAssumptions
+  instance'ThreadSafeStore : ThreadSafeStore.TypeAssumptions
+  instance'ThreadSafeStoreWithTransaction : ThreadSafeStoreWithTransaction.TypeAssumptions
+  instance'ThreadSafeStoreTransaction : ThreadSafeStoreTransaction.TypeAssumptions
+  instance'storeIndex : storeIndex.TypeAssumptions
+  instance'threadSafeMap : threadSafeMap.TypeAssumptions
+  instance'UndeltaStore : UndeltaStore.TypeAssumptions
+  unfold'New : FuncUnfold New [] New.impl
+  unfold'DeletionHandlingMetaNamespaceKeyFunc : FuncUnfold DeletionHandlingMetaNamespaceKeyFunc [] DeletionHandlingMetaNamespaceKeyFunc.impl
+  unfold'DeletionHandlingObjectToName : FuncUnfold DeletionHandlingObjectToName [] DeletionHandlingObjectToName.impl
+  unfold'NewInformerWithOptions : FuncUnfold NewInformerWithOptions [] NewInformerWithOptions.impl
+  unfold'NewInformer : FuncUnfold NewInformer [] NewInformer.impl
+  unfold'NewIndexerInformer : FuncUnfold NewIndexerInformer [] NewIndexerInformer.impl
+  unfold'NewTransformingInformer : FuncUnfold NewTransformingInformer [] NewTransformingInformer.impl
+  unfold'NewTransformingIndexerInformer : FuncUnfold NewTransformingIndexerInformer [] NewTransformingIndexerInformer.impl
+  unfold'processDeltas : FuncUnfold processDeltas [] processDeltas.impl
+  unfold'processDeltasInBatch : FuncUnfold processDeltasInBatch [] processDeltasInBatch.impl
+  unfold'processReplacedAllInfo : FuncUnfold processReplacedAllInfo [] processReplacedAllInfo.impl
+  unfold'newInformer : FuncUnfold newInformer [] newInformer.impl
+  unfold'newQueueFIFO : FuncUnfold newQueueFIFO [] newQueueFIFO.impl
+  unfold'NewDeltaFIFO : FuncUnfold NewDeltaFIFO [] NewDeltaFIFO.impl
+  unfold'NewDeltaFIFOWithOptions : FuncUnfold NewDeltaFIFOWithOptions [] NewDeltaFIFOWithOptions.impl
+  unfold'dedupDeltas : FuncUnfold dedupDeltas [] dedupDeltas.impl
+  unfold'isDup : FuncUnfold isDup [] isDup.impl
+  unfold'isDeletionDup : FuncUnfold isDeletionDup [] isDeletionDup.impl
+  unfold'copyDeltas : FuncUnfold copyDeltas [] copyDeltas.impl
+  unfold'nameForHandler : FuncUnfold nameForHandler [] nameForHandler.impl
+  unfold'nameForHandlerFuncs : FuncUnfold nameForHandlerFuncs [] nameForHandlerFuncs.impl
+  unfold'nameForFunctions : FuncUnfold nameForFunctions [] nameForFunctions.impl
+  unfold'NewTTLStore : FuncUnfold NewTTLStore [] NewTTLStore.impl
+  unfold'NewExpirationStore : FuncUnfold NewExpirationStore [] NewExpirationStore.impl
+  unfold'NewFakeExpirationStore : FuncUnfold NewFakeExpirationStore [] NewFakeExpirationStore.impl
+  unfold'NewFIFO : FuncUnfold NewFIFO [] NewFIFO.impl
+  unfold'NewHeap : FuncUnfold NewHeap [] NewHeap.impl
+  unfold'IndexFuncToKeyFuncAdapter : FuncUnfold IndexFuncToKeyFuncAdapter [] IndexFuncToKeyFuncAdapter.impl
+  unfold'MetaNamespaceIndexFunc : FuncUnfold MetaNamespaceIndexFunc [] MetaNamespaceIndexFunc.impl
+  unfold'TypedIndexersToIndexers : ∀ (T₀ : go.GoType), FuncUnfold TypedIndexersToIndexers [T₀] (TypedIndexersToIndexers.impl T₀)
+  unfold'TypedIndexerFuncToIndexerFunc : ∀ (T₀ : go.GoType), FuncUnfold TypedIndexerFuncToIndexerFunc [T₀] (TypedIndexerFuncToIndexerFunc.impl T₀)
+  unfold'SetInformerMetricsProvider : FuncUnfold SetInformerMetricsProvider [] SetInformerMetricsProvider.impl
+  unfold'newFIFOMetrics : FuncUnfold newFIFOMetrics [] newFIFOMetrics.impl
+  unfold'newStoreMetrics : FuncUnfold newStoreMetrics [] newStoreMetrics.impl
+  unfold'ListAll : FuncUnfold ListAll [] ListAll.impl
+  unfold'ListAllByNamespace : FuncUnfold ListAllByNamespace [] ListAllByNamespace.impl
+  unfold'NewGenericLister : FuncUnfold NewGenericLister [] NewGenericLister.impl
+  unfold'ToListerWithContext : FuncUnfold ToListerWithContext [] ToListerWithContext.impl
+  unfold'ToWatcherWithContext : FuncUnfold ToWatcherWithContext [] ToWatcherWithContext.impl
+  unfold'ToListerWatcherWithContext : FuncUnfold ToListerWatcherWithContext [] ToListerWatcherWithContext.impl
+  unfold'ToListWatcherWithWatchListSemantics : FuncUnfold ToListWatcherWithWatchListSemantics [] ToListWatcherWithWatchListSemantics.impl
+  unfold'NewListWatchFromClient : FuncUnfold NewListWatchFromClient [] NewListWatchFromClient.impl
+  unfold'NewFilteredListWatchFromClient : FuncUnfold NewFilteredListWatchFromClient [] NewFilteredListWatchFromClient.impl
+  unfold'NewShardedListWatch : FuncUnfold NewShardedListWatch [] NewShardedListWatch.impl
+  unfold'NewIntegerResourceVersionMutationCacheWithOptions : FuncUnfold NewIntegerResourceVersionMutationCacheWithOptions [] NewIntegerResourceVersionMutationCacheWithOptions.impl
+  unfold'NewIntegerResourceVersionMutationCache : FuncUnfold NewIntegerResourceVersionMutationCache [] NewIntegerResourceVersionMutationCache.impl
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'NewCacheMutationDetector : FuncUnfold NewCacheMutationDetector [] NewCacheMutationDetector.impl
+  unfold'NewObjectName : FuncUnfold NewObjectName [] NewObjectName.impl
+  unfold'ParseObjectName : FuncUnfold ParseObjectName [] ParseObjectName.impl
+  unfold'NamespacedNameAsObjectName : FuncUnfold NamespacedNameAsObjectName [] NamespacedNameAsObjectName.impl
+  unfold'DefaultWatchErrorHandler : FuncUnfold DefaultWatchErrorHandler [] DefaultWatchErrorHandler.impl
+  unfold'NewNamespaceKeyedIndexerAndReflector : FuncUnfold NewNamespaceKeyedIndexerAndReflector [] NewNamespaceKeyedIndexerAndReflector.impl
+  unfold'NewReflector : FuncUnfold NewReflector [] NewReflector.impl
+  unfold'NewNamedReflector : FuncUnfold NewNamedReflector [] NewNamedReflector.impl
+  unfold'NewReflectorWithOptions : FuncUnfold NewReflectorWithOptions [] NewReflectorWithOptions.impl
+  unfold'getTypeDescriptionFromObject : FuncUnfold getTypeDescriptionFromObject [] getTypeDescriptionFromObject.impl
+  unfold'getExpectedGVKFromObject : FuncUnfold getExpectedGVKFromObject [] getExpectedGVKFromObject.impl
+  unfold'handleListWatch : FuncUnfold handleListWatch [] handleListWatch.impl
+  unfold'handleWatch : FuncUnfold handleWatch [] handleWatch.impl
+  unfold'isExpiredError : FuncUnfold isExpiredError [] isExpiredError.impl
+  unfold'isTooLargeResourceVersionError : FuncUnfold isTooLargeResourceVersionError [] isTooLargeResourceVersionError.impl
+  unfold'isWatchErrorRetriable : FuncUnfold isWatchErrorRetriable [] isWatchErrorRetriable.impl
+  unfold'newInitialEventsEndBookmarkTicker : FuncUnfold newInitialEventsEndBookmarkTicker [] newInitialEventsEndBookmarkTicker.impl
+  unfold'newInitialEventsEndBookmarkTickerInternal : FuncUnfold newInitialEventsEndBookmarkTickerInternal [] newInitialEventsEndBookmarkTickerInternal.impl
+  unfold'isUnsupportedTableObject : FuncUnfold isUnsupportedTableObject [] isUnsupportedTableObject.impl
+  unfold'isUnsupportedTableListObject : FuncUnfold isUnsupportedTableListObject [] isUnsupportedTableListObject.impl
+  unfold'checkWatchListDataConsistencyIfRequested : ∀ (T₀ U₀ : go.GoType), FuncUnfold checkWatchListDataConsistencyIfRequested [T₀, U₀] (checkWatchListDataConsistencyIfRequested.impl T₀ U₀)
+  unfold'NewRetryWithDeadline : FuncUnfold NewRetryWithDeadline [] NewRetryWithDeadline.impl
+  unfold'NewTypedSharedIndexInformer : ∀ (T₀ : go.GoType), FuncUnfold NewTypedSharedIndexInformer [T₀] (NewTypedSharedIndexInformer.impl T₀)
+  unfold'NewSharedInformer : FuncUnfold NewSharedInformer [] NewSharedInformer.impl
+  unfold'NewSharedIndexInformer : FuncUnfold NewSharedIndexInformer [] NewSharedIndexInformer.impl
+  unfold'NewSharedIndexInformerWithOptions : FuncUnfold NewSharedIndexInformerWithOptions [] NewSharedIndexInformerWithOptions.impl
+  unfold'WaitForNamedCacheSync : FuncUnfold WaitForNamedCacheSync [] WaitForNamedCacheSync.impl
+  unfold'WaitForNamedCacheSyncWithContext : FuncUnfold WaitForNamedCacheSyncWithContext [] WaitForNamedCacheSyncWithContext.impl
+  unfold'WaitForCacheSync : FuncUnfold WaitForCacheSync [] WaitForCacheSync.impl
+  unfold'WaitFor : FuncUnfold WaitFor [] WaitFor.impl
+  unfold'IsDone : FuncUnfold IsDone [] IsDone.impl
+  unfold'determineResyncPeriod : FuncUnfold determineResyncPeriod [] determineResyncPeriod.impl
+  unfold'ShutDownEventHandler : FuncUnfold ShutDownEventHandler [] ShutDownEventHandler.impl
+  unfold'newProcessListener : FuncUnfold newProcessListener [] newProcessListener.impl
+  unfold'MetaNamespaceKeyFunc : FuncUnfold MetaNamespaceKeyFunc [] MetaNamespaceKeyFunc.impl
+  unfold'ObjectToName : FuncUnfold ObjectToName [] ObjectToName.impl
+  unfold'MetaObjectToName : FuncUnfold MetaObjectToName [] MetaObjectToName.impl
+  unfold'SplitMetaNamespaceKey : FuncUnfold SplitMetaNamespaceKey [] SplitMetaNamespaceKey.impl
+  unfold'WithTransformer : FuncUnfold WithTransformer [] WithTransformer.impl
+  unfold'WithStoreMetrics : FuncUnfold WithStoreMetrics [] WithStoreMetrics.impl
+  unfold'NewStore : FuncUnfold NewStore [] NewStore.impl
+  unfold'NewIndexer : FuncUnfold NewIndexer [] NewIndexer.impl
+  unfold'reconcileReplacement : FuncUnfold reconcileReplacement [] reconcileReplacement.impl
+  unfold'NewRealFIFO : FuncUnfold NewRealFIFO [] NewRealFIFO.impl
+  unfold'NewRealFIFOWithOptions : FuncUnfold NewRealFIFOWithOptions [] NewRealFIFOWithOptions.impl
+  unfold'WithThreadSafeStoreMetrics : FuncUnfold WithThreadSafeStoreMetrics [] WithThreadSafeStoreMetrics.impl
+  unfold'rvFromObject : FuncUnfold rvFromObject [] rvFromObject.impl
+  unfold'NewThreadSafeStore : FuncUnfold NewThreadSafeStore [] NewThreadSafeStore.impl
+  unfold'parseRVForMetricsWithTruncation : FuncUnfold parseRVForMetricsWithTruncation [] parseRVForMetricsWithTruncation.impl
+  unfold'NewUndeltaStore : FuncUnfold NewUndeltaStore [] NewUndeltaStore.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'pkg_runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  import'util_runtime : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.Assumptions
+  import'wait : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Assumptions
+  import'features : _root_.Perennial.k8s_io.client_go.features.Assumptions
+  import'klog : _root_.Perennial.k8s_io.klog.v2.Assumptions
+  import'clock : _root_.Perennial.k8s_io.utils.clock.Assumptions
+  import'sets : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
+  import'trace : _root_.Perennial.k8s_io.utils.trace.Assumptions
+  import'reflect : _root_.Perennial.reflect.Assumptions
+  import'heap : _root_.Perennial.container.heap.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'schema : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
+  import'meta : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions
+  import'api_errors : _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.Assumptions
+  import'labels : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
+  import'fields : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Assumptions
+  import'sharding : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Assumptions
+  import'watch : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions
+  import'rest : _root_.Perennial.k8s_io.client_go.rest.Assumptions
+  import'watchlist : _root_.Perennial.k8s_io.client_go.util.watchlist.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'types : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
+  import'cache : _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'diff : _root_.Perennial.k8s_io.apimachinery.pkg.util.diff.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'math : _root_.Perennial.math.Assumptions
+  import'rand : _root_.Perennial.math.rand.Assumptions
+  import'unstructured : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Assumptions
+  import'v1beta1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1beta1.Assumptions
+  import'naming : _root_.Perennial.k8s_io.apimachinery.pkg.util.naming.Assumptions
+  import'net : _root_.Perennial.k8s_io.apimachinery.pkg.util.net.Assumptions
+  import'pager : _root_.Perennial.k8s_io.client_go.tools.pager.Assumptions
+  import'ptr : _root_.Perennial.k8s_io.utils.ptr.Assumptions
+  import'consistencydetector : _root_.Perennial.k8s_io.client_go.util.consistencydetector.Assumptions
+  import'slices : _root_.Perennial.slices.Assumptions
+  import'synctrack : _root_.Perennial.k8s_io.client_go.tools.cache.synctrack.Assumptions
+  import'buffer : _root_.Perennial.k8s_io.utils.buffer.Assumptions
 
-attribute [instance] Assumptions.Config_instance
-  Assumptions.ShouldResyncFunc_instance
-  Assumptions.ProcessFunc_instance
-  Assumptions.ProcessBatchFunc_instance
-  Assumptions.controller_instance
-  Assumptions.Controller_instance
-  Assumptions.ResourceEventHandler_instance
-  Assumptions.Object_instance
-  Assumptions.TypedResourceEventHandler_instance
-  Assumptions.DeletedObject_instance
-  Assumptions.ResourceEventHandlerFuncs_instance
-  Assumptions.TypedResourceEventHandlerFuncs_instance
-  Assumptions.ResourceEventHandlerDetailedFuncs_instance
-  Assumptions.TypedResourceEventHandlerDetailedFuncs_instance
-  Assumptions.FilteringResourceEventHandler_instance
-  Assumptions.TypedFilteringResourceEventHandler_instance
-  Assumptions.InformerOptions_instance
-  Assumptions.replacement_instance
-  Assumptions.DeltaFIFOOptions_instance
-  Assumptions.DeltaFIFO_instance
-  Assumptions.TransformFunc_instance
-  Assumptions.DeltaType_instance
-  Assumptions.Delta_instance
-  Assumptions.Deltas_instance
-  Assumptions.KeyListerGetter_instance
-  Assumptions.KeyLister_instance
-  Assumptions.KeyGetter_instance
-  Assumptions.DeletedFinalStateUnknown_instance
-  Assumptions.ExpirationCache_instance
-  Assumptions.ExpirationPolicy_instance
-  Assumptions.TTLPolicy_instance
-  Assumptions.TimestampedEntry_instance
-  Assumptions.fakeThreadSafeMap_instance
-  Assumptions.FakeExpirationPolicy_instance
-  Assumptions.FakeCustomStore_instance
-  Assumptions.PopProcessFunc_instance
-  Assumptions.Queue_instance
-  Assumptions.QueueWithBatch_instance
-  Assumptions.FIFO_instance
-  Assumptions.LessFunc_instance
-  Assumptions.heapItem_instance
-  Assumptions.itemKeyValue_instance
-  Assumptions.heapData_instance
-  Assumptions.Heap_instance
-  Assumptions.InformerName_instance
-  Assumptions.InformerNameAndResource_instance
-  Assumptions.Indexer_instance
-  Assumptions.IndexFunc_instance
-  Assumptions.index_instance
-  Assumptions.Indexers_instance
-  Assumptions.Indices_instance
-  Assumptions.TypedIndexers_instance
-  Assumptions.TypedIndexFunc_instance
-  Assumptions.TypedIndexer_instance
-  Assumptions.noopInformerMetricsProvider_instance
-  Assumptions.InformerMetricsProvider_instance
-  Assumptions.fifoMetrics_instance
-  Assumptions.storeMetrics_instance
-  Assumptions.AppendFunc_instance
-  Assumptions.GenericLister_instance
-  Assumptions.GenericNamespaceLister_instance
-  Assumptions.genericLister_instance
-  Assumptions.genericNamespaceLister_instance
-  Assumptions.Lister_instance
-  Assumptions.ListerWithContext_instance
-  Assumptions.listerWrapper_instance
-  Assumptions.Watcher_instance
-  Assumptions.WatcherWithContext_instance
-  Assumptions.watcherWrapper_instance
-  Assumptions.ListerWatcher_instance
-  Assumptions.ListerWatcherWithContext_instance
-  Assumptions.listerWatcherWrapper_instance
-  Assumptions.listWatcherWithWatchListSemanticsWrapper_instance
-  Assumptions.ListFunc_instance
-  Assumptions.ListWithContextFunc_instance
-  Assumptions.WatchFunc_instance
-  Assumptions.WatchFuncWithContext_instance
-  Assumptions.ListWatch_instance
-  Assumptions.Getter_instance
-  Assumptions.shardedListWatch_instance
-  Assumptions.MutationCache_instance
-  Assumptions.ResourceVersionComparator_instance
-  Assumptions.MutationCacheOptions_instance
-  Assumptions.mutationCache_instance
-  Assumptions.etcdObjectVersioner_instance
-  Assumptions.tombstone_instance
-  Assumptions.MutationDetector_instance
-  Assumptions.dummyMutationDetector_instance
-  Assumptions.defaultCacheMutationDetector_instance
-  Assumptions.cacheObj_instance
-  Assumptions.ObjectName_instance
-  Assumptions.ReflectorStore_instance
-  Assumptions.ReflectorBookmarkStore_instance
-  Assumptions.TransformingStore_instance
-  Assumptions.Reflector_instance
-  Assumptions.ResourceVersionUpdater_instance
-  Assumptions.WatchErrorHandler_instance
-  Assumptions.WatchErrorHandlerWithContext_instance
-  Assumptions.ReflectorOptions_instance
-  Assumptions.initialEventsEndBookmarkTicker_instance
-  Assumptions.noopTicker_instance
-  Assumptions.VeryShortWatchError_instance
-  Assumptions.GaugeMetric_instance
-  Assumptions.CounterMetric_instance
-  Assumptions.SummaryMetric_instance
-  Assumptions.HistogramMetric_instance
-  Assumptions.noopMetric_instance
-  Assumptions.MetricsProvider_instance
-  Assumptions.noopMetricsProvider_instance
-  Assumptions.RetryWithDeadline_instance
-  Assumptions.retryWithDeadlineImpl_instance
-  Assumptions.SharedInformer_instance
-  Assumptions.ResourceEventHandlerRegistration_instance
-  Assumptions.HandlerOptions_instance
-  Assumptions.SharedIndexInformer_instance
-  Assumptions.TypedSharedIndexInformer_instance
-  Assumptions.typedSharedIndexInformer_instance
-  Assumptions.typedResourceEventHandler_instance
-  Assumptions.typedIndexer_instance
-  Assumptions.SharedIndexInformerOptions_instance
-  Assumptions.InformerSynced_instance
-  Assumptions.result_instance
-  Assumptions.DoneChecker_instance
-  Assumptions.SyncResult_instance
-  Assumptions.sharedIndexInformer_instance
-  Assumptions.dummyController_instance
-  Assumptions.updateNotification_instance
-  Assumptions.addNotification_instance
-  Assumptions.deleteNotification_instance
-  Assumptions.sharedIndexInformerDone_instance
-  Assumptions.sharedProcessor_instance
-  Assumptions.processorListener_instance
-  Assumptions.Store_instance
-  Assumptions.TransactionType_instance
-  Assumptions.Transaction_instance
-  Assumptions.TransactionStore_instance
-  Assumptions.TransactionError_instance
-  Assumptions.KeyFunc_instance
-  Assumptions.KeyError_instance
-  Assumptions.ExplicitKey_instance
-  Assumptions.cache_instance
-  Assumptions.RealFIFOOptions_instance
-  Assumptions.RealFIFO_instance
-  Assumptions.ReplacedAllInfo_instance
-  Assumptions.BookmarkInfo_instance
-  Assumptions.SyncAllInfo_instance
-  Assumptions.ThreadSafeStore_instance
-  Assumptions.ThreadSafeStoreWithTransaction_instance
-  Assumptions.ThreadSafeStoreTransaction_instance
-  Assumptions.storeIndex_instance
-  Assumptions.threadSafeMap_instance
-  Assumptions.UndeltaStore_instance
-  Assumptions.New_unfold
-  Assumptions.DeletionHandlingMetaNamespaceKeyFunc_unfold
-  Assumptions.DeletionHandlingObjectToName_unfold
-  Assumptions.NewInformerWithOptions_unfold
-  Assumptions.NewInformer_unfold
-  Assumptions.NewIndexerInformer_unfold
-  Assumptions.NewTransformingInformer_unfold
-  Assumptions.NewTransformingIndexerInformer_unfold
-  Assumptions.processDeltas_unfold
-  Assumptions.processDeltasInBatch_unfold
-  Assumptions.processReplacedAllInfo_unfold
-  Assumptions.newInformer_unfold
-  Assumptions.newQueueFIFO_unfold
-  Assumptions.NewDeltaFIFO_unfold
-  Assumptions.NewDeltaFIFOWithOptions_unfold
-  Assumptions.dedupDeltas_unfold
-  Assumptions.isDup_unfold
-  Assumptions.isDeletionDup_unfold
-  Assumptions.copyDeltas_unfold
-  Assumptions.nameForHandler_unfold
-  Assumptions.nameForHandlerFuncs_unfold
-  Assumptions.nameForFunctions_unfold
-  Assumptions.NewTTLStore_unfold
-  Assumptions.NewExpirationStore_unfold
-  Assumptions.NewFakeExpirationStore_unfold
-  Assumptions.NewFIFO_unfold
-  Assumptions.NewHeap_unfold
-  Assumptions.IndexFuncToKeyFuncAdapter_unfold
-  Assumptions.MetaNamespaceIndexFunc_unfold
-  Assumptions.TypedIndexersToIndexers_unfold
-  Assumptions.TypedIndexerFuncToIndexerFunc_unfold
-  Assumptions.SetInformerMetricsProvider_unfold
-  Assumptions.newFIFOMetrics_unfold
-  Assumptions.newStoreMetrics_unfold
-  Assumptions.ListAll_unfold
-  Assumptions.ListAllByNamespace_unfold
-  Assumptions.NewGenericLister_unfold
-  Assumptions.ToListerWithContext_unfold
-  Assumptions.ToWatcherWithContext_unfold
-  Assumptions.ToListerWatcherWithContext_unfold
-  Assumptions.ToListWatcherWithWatchListSemantics_unfold
-  Assumptions.NewListWatchFromClient_unfold
-  Assumptions.NewFilteredListWatchFromClient_unfold
-  Assumptions.NewShardedListWatch_unfold
-  Assumptions.NewIntegerResourceVersionMutationCacheWithOptions_unfold
-  Assumptions.NewIntegerResourceVersionMutationCache_unfold
-  Assumptions.«init.0_unfold»
-  Assumptions.NewCacheMutationDetector_unfold
-  Assumptions.NewObjectName_unfold
-  Assumptions.ParseObjectName_unfold
-  Assumptions.NamespacedNameAsObjectName_unfold
-  Assumptions.DefaultWatchErrorHandler_unfold
-  Assumptions.NewNamespaceKeyedIndexerAndReflector_unfold
-  Assumptions.NewReflector_unfold
-  Assumptions.NewNamedReflector_unfold
-  Assumptions.NewReflectorWithOptions_unfold
-  Assumptions.getTypeDescriptionFromObject_unfold
-  Assumptions.getExpectedGVKFromObject_unfold
-  Assumptions.handleListWatch_unfold
-  Assumptions.handleWatch_unfold
-  Assumptions.isExpiredError_unfold
-  Assumptions.isTooLargeResourceVersionError_unfold
-  Assumptions.isWatchErrorRetriable_unfold
-  Assumptions.newInitialEventsEndBookmarkTicker_unfold
-  Assumptions.newInitialEventsEndBookmarkTickerInternal_unfold
-  Assumptions.isUnsupportedTableObject_unfold
-  Assumptions.isUnsupportedTableListObject_unfold
-  Assumptions.checkWatchListDataConsistencyIfRequested_unfold
-  Assumptions.NewRetryWithDeadline_unfold
-  Assumptions.NewTypedSharedIndexInformer_unfold
-  Assumptions.NewSharedInformer_unfold
-  Assumptions.NewSharedIndexInformer_unfold
-  Assumptions.NewSharedIndexInformerWithOptions_unfold
-  Assumptions.WaitForNamedCacheSync_unfold
-  Assumptions.WaitForNamedCacheSyncWithContext_unfold
-  Assumptions.WaitForCacheSync_unfold
-  Assumptions.WaitFor_unfold
-  Assumptions.IsDone_unfold
-  Assumptions.determineResyncPeriod_unfold
-  Assumptions.ShutDownEventHandler_unfold
-  Assumptions.newProcessListener_unfold
-  Assumptions.MetaNamespaceKeyFunc_unfold
-  Assumptions.ObjectToName_unfold
-  Assumptions.MetaObjectToName_unfold
-  Assumptions.SplitMetaNamespaceKey_unfold
-  Assumptions.WithTransformer_unfold
-  Assumptions.WithStoreMetrics_unfold
-  Assumptions.NewStore_unfold
-  Assumptions.NewIndexer_unfold
-  Assumptions.reconcileReplacement_unfold
-  Assumptions.NewRealFIFO_unfold
-  Assumptions.NewRealFIFOWithOptions_unfold
-  Assumptions.WithThreadSafeStoreMetrics_unfold
-  Assumptions.rvFromObject_unfold
-  Assumptions.NewThreadSafeStore_unfold
-  Assumptions.parseRVForMetricsWithTruncation_unfold
-  Assumptions.NewUndeltaStore_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_v1_Assumption
-  Assumptions.import_pkg_runtime_Assumption
-  Assumptions.import_util_runtime_Assumption
-  Assumptions.import_wait_Assumption
-  Assumptions.import_features_Assumption
-  Assumptions.import_klog_Assumption
-  Assumptions.import_clock_Assumption
-  Assumptions.import_sets_Assumption
-  Assumptions.import_trace_Assumption
-  Assumptions.import_reflect_Assumption
-  Assumptions.import_heap_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_schema_Assumption
-  Assumptions.import_meta_Assumption
-  Assumptions.import_api_errors_Assumption
-  Assumptions.import_labels_Assumption
-  Assumptions.import_fields_Assumption
-  Assumptions.import_sharding_Assumption
-  Assumptions.import_watch_Assumption
-  Assumptions.import_rest_Assumption
-  Assumptions.import_watchlist_Assumption
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_cache_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_diff_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_math_Assumption
-  Assumptions.import_rand_Assumption
-  Assumptions.import_unstructured_Assumption
-  Assumptions.import_v1beta1_Assumption
-  Assumptions.import_naming_Assumption
-  Assumptions.import_net_Assumption
-  Assumptions.import_pager_Assumption
-  Assumptions.import_ptr_Assumption
-  Assumptions.import_consistencydetector_Assumption
-  Assumptions.import_slices_Assumption
-  Assumptions.import_synctrack_Assumption
-  Assumptions.import_buffer_Assumption
+attribute [instance] Assumptions.instance'Config
+  Assumptions.instance'ShouldResyncFunc
+  Assumptions.instance'ProcessFunc
+  Assumptions.instance'ProcessBatchFunc
+  Assumptions.instance'controller
+  Assumptions.instance'Controller
+  Assumptions.instance'ResourceEventHandler
+  Assumptions.instance'Object
+  Assumptions.instance'TypedResourceEventHandler
+  Assumptions.instance'DeletedObject
+  Assumptions.instance'ResourceEventHandlerFuncs
+  Assumptions.instance'TypedResourceEventHandlerFuncs
+  Assumptions.instance'ResourceEventHandlerDetailedFuncs
+  Assumptions.instance'TypedResourceEventHandlerDetailedFuncs
+  Assumptions.instance'FilteringResourceEventHandler
+  Assumptions.instance'TypedFilteringResourceEventHandler
+  Assumptions.instance'InformerOptions
+  Assumptions.instance'replacement
+  Assumptions.instance'DeltaFIFOOptions
+  Assumptions.instance'DeltaFIFO
+  Assumptions.instance'TransformFunc
+  Assumptions.instance'DeltaType
+  Assumptions.instance'Delta
+  Assumptions.instance'Deltas
+  Assumptions.instance'KeyListerGetter
+  Assumptions.instance'KeyLister
+  Assumptions.instance'KeyGetter
+  Assumptions.instance'DeletedFinalStateUnknown
+  Assumptions.instance'ExpirationCache
+  Assumptions.instance'ExpirationPolicy
+  Assumptions.instance'TTLPolicy
+  Assumptions.instance'TimestampedEntry
+  Assumptions.instance'fakeThreadSafeMap
+  Assumptions.instance'FakeExpirationPolicy
+  Assumptions.instance'FakeCustomStore
+  Assumptions.instance'PopProcessFunc
+  Assumptions.instance'Queue
+  Assumptions.instance'QueueWithBatch
+  Assumptions.instance'FIFO
+  Assumptions.instance'LessFunc
+  Assumptions.instance'heapItem
+  Assumptions.instance'itemKeyValue
+  Assumptions.instance'heapData
+  Assumptions.instance'Heap
+  Assumptions.instance'InformerName
+  Assumptions.instance'InformerNameAndResource
+  Assumptions.instance'Indexer
+  Assumptions.instance'IndexFunc
+  Assumptions.instance'index
+  Assumptions.instance'Indexers
+  Assumptions.instance'Indices
+  Assumptions.instance'TypedIndexers
+  Assumptions.instance'TypedIndexFunc
+  Assumptions.instance'TypedIndexer
+  Assumptions.instance'noopInformerMetricsProvider
+  Assumptions.instance'InformerMetricsProvider
+  Assumptions.instance'fifoMetrics
+  Assumptions.instance'storeMetrics
+  Assumptions.instance'AppendFunc
+  Assumptions.instance'GenericLister
+  Assumptions.instance'GenericNamespaceLister
+  Assumptions.instance'genericLister
+  Assumptions.instance'genericNamespaceLister
+  Assumptions.instance'Lister
+  Assumptions.instance'ListerWithContext
+  Assumptions.instance'listerWrapper
+  Assumptions.instance'Watcher
+  Assumptions.instance'WatcherWithContext
+  Assumptions.instance'watcherWrapper
+  Assumptions.instance'ListerWatcher
+  Assumptions.instance'ListerWatcherWithContext
+  Assumptions.instance'listerWatcherWrapper
+  Assumptions.instance'listWatcherWithWatchListSemanticsWrapper
+  Assumptions.instance'ListFunc
+  Assumptions.instance'ListWithContextFunc
+  Assumptions.instance'WatchFunc
+  Assumptions.instance'WatchFuncWithContext
+  Assumptions.instance'ListWatch
+  Assumptions.instance'Getter
+  Assumptions.instance'shardedListWatch
+  Assumptions.instance'MutationCache
+  Assumptions.instance'ResourceVersionComparator
+  Assumptions.instance'MutationCacheOptions
+  Assumptions.instance'mutationCache
+  Assumptions.instance'etcdObjectVersioner
+  Assumptions.instance'tombstone
+  Assumptions.instance'MutationDetector
+  Assumptions.instance'dummyMutationDetector
+  Assumptions.instance'defaultCacheMutationDetector
+  Assumptions.instance'cacheObj
+  Assumptions.instance'ObjectName
+  Assumptions.instance'ReflectorStore
+  Assumptions.instance'ReflectorBookmarkStore
+  Assumptions.instance'TransformingStore
+  Assumptions.instance'Reflector
+  Assumptions.instance'ResourceVersionUpdater
+  Assumptions.instance'WatchErrorHandler
+  Assumptions.instance'WatchErrorHandlerWithContext
+  Assumptions.instance'ReflectorOptions
+  Assumptions.instance'initialEventsEndBookmarkTicker
+  Assumptions.instance'noopTicker
+  Assumptions.instance'VeryShortWatchError
+  Assumptions.instance'GaugeMetric
+  Assumptions.instance'CounterMetric
+  Assumptions.instance'SummaryMetric
+  Assumptions.instance'HistogramMetric
+  Assumptions.instance'noopMetric
+  Assumptions.instance'MetricsProvider
+  Assumptions.instance'noopMetricsProvider
+  Assumptions.instance'RetryWithDeadline
+  Assumptions.instance'retryWithDeadlineImpl
+  Assumptions.instance'SharedInformer
+  Assumptions.instance'ResourceEventHandlerRegistration
+  Assumptions.instance'HandlerOptions
+  Assumptions.instance'SharedIndexInformer
+  Assumptions.instance'TypedSharedIndexInformer
+  Assumptions.instance'typedSharedIndexInformer
+  Assumptions.instance'typedResourceEventHandler
+  Assumptions.instance'typedIndexer
+  Assumptions.instance'SharedIndexInformerOptions
+  Assumptions.instance'InformerSynced
+  Assumptions.instance'result
+  Assumptions.instance'DoneChecker
+  Assumptions.instance'SyncResult
+  Assumptions.instance'sharedIndexInformer
+  Assumptions.instance'dummyController
+  Assumptions.instance'updateNotification
+  Assumptions.instance'addNotification
+  Assumptions.instance'deleteNotification
+  Assumptions.instance'sharedIndexInformerDone
+  Assumptions.instance'sharedProcessor
+  Assumptions.instance'processorListener
+  Assumptions.instance'Store
+  Assumptions.instance'TransactionType
+  Assumptions.instance'Transaction
+  Assumptions.instance'TransactionStore
+  Assumptions.instance'TransactionError
+  Assumptions.instance'KeyFunc
+  Assumptions.instance'KeyError
+  Assumptions.instance'ExplicitKey
+  Assumptions.instance'cache
+  Assumptions.instance'RealFIFOOptions
+  Assumptions.instance'RealFIFO
+  Assumptions.instance'ReplacedAllInfo
+  Assumptions.instance'BookmarkInfo
+  Assumptions.instance'SyncAllInfo
+  Assumptions.instance'ThreadSafeStore
+  Assumptions.instance'ThreadSafeStoreWithTransaction
+  Assumptions.instance'ThreadSafeStoreTransaction
+  Assumptions.instance'storeIndex
+  Assumptions.instance'threadSafeMap
+  Assumptions.instance'UndeltaStore
+  Assumptions.unfold'New
+  Assumptions.unfold'DeletionHandlingMetaNamespaceKeyFunc
+  Assumptions.unfold'DeletionHandlingObjectToName
+  Assumptions.unfold'NewInformerWithOptions
+  Assumptions.unfold'NewInformer
+  Assumptions.unfold'NewIndexerInformer
+  Assumptions.unfold'NewTransformingInformer
+  Assumptions.unfold'NewTransformingIndexerInformer
+  Assumptions.unfold'processDeltas
+  Assumptions.unfold'processDeltasInBatch
+  Assumptions.unfold'processReplacedAllInfo
+  Assumptions.unfold'newInformer
+  Assumptions.unfold'newQueueFIFO
+  Assumptions.unfold'NewDeltaFIFO
+  Assumptions.unfold'NewDeltaFIFOWithOptions
+  Assumptions.unfold'dedupDeltas
+  Assumptions.unfold'isDup
+  Assumptions.unfold'isDeletionDup
+  Assumptions.unfold'copyDeltas
+  Assumptions.unfold'nameForHandler
+  Assumptions.unfold'nameForHandlerFuncs
+  Assumptions.unfold'nameForFunctions
+  Assumptions.unfold'NewTTLStore
+  Assumptions.unfold'NewExpirationStore
+  Assumptions.unfold'NewFakeExpirationStore
+  Assumptions.unfold'NewFIFO
+  Assumptions.unfold'NewHeap
+  Assumptions.unfold'IndexFuncToKeyFuncAdapter
+  Assumptions.unfold'MetaNamespaceIndexFunc
+  Assumptions.unfold'TypedIndexersToIndexers
+  Assumptions.unfold'TypedIndexerFuncToIndexerFunc
+  Assumptions.unfold'SetInformerMetricsProvider
+  Assumptions.unfold'newFIFOMetrics
+  Assumptions.unfold'newStoreMetrics
+  Assumptions.unfold'ListAll
+  Assumptions.unfold'ListAllByNamespace
+  Assumptions.unfold'NewGenericLister
+  Assumptions.unfold'ToListerWithContext
+  Assumptions.unfold'ToWatcherWithContext
+  Assumptions.unfold'ToListerWatcherWithContext
+  Assumptions.unfold'ToListWatcherWithWatchListSemantics
+  Assumptions.unfold'NewListWatchFromClient
+  Assumptions.unfold'NewFilteredListWatchFromClient
+  Assumptions.unfold'NewShardedListWatch
+  Assumptions.unfold'NewIntegerResourceVersionMutationCacheWithOptions
+  Assumptions.unfold'NewIntegerResourceVersionMutationCache
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'NewCacheMutationDetector
+  Assumptions.unfold'NewObjectName
+  Assumptions.unfold'ParseObjectName
+  Assumptions.unfold'NamespacedNameAsObjectName
+  Assumptions.unfold'DefaultWatchErrorHandler
+  Assumptions.unfold'NewNamespaceKeyedIndexerAndReflector
+  Assumptions.unfold'NewReflector
+  Assumptions.unfold'NewNamedReflector
+  Assumptions.unfold'NewReflectorWithOptions
+  Assumptions.unfold'getTypeDescriptionFromObject
+  Assumptions.unfold'getExpectedGVKFromObject
+  Assumptions.unfold'handleListWatch
+  Assumptions.unfold'handleWatch
+  Assumptions.unfold'isExpiredError
+  Assumptions.unfold'isTooLargeResourceVersionError
+  Assumptions.unfold'isWatchErrorRetriable
+  Assumptions.unfold'newInitialEventsEndBookmarkTicker
+  Assumptions.unfold'newInitialEventsEndBookmarkTickerInternal
+  Assumptions.unfold'isUnsupportedTableObject
+  Assumptions.unfold'isUnsupportedTableListObject
+  Assumptions.unfold'checkWatchListDataConsistencyIfRequested
+  Assumptions.unfold'NewRetryWithDeadline
+  Assumptions.unfold'NewTypedSharedIndexInformer
+  Assumptions.unfold'NewSharedInformer
+  Assumptions.unfold'NewSharedIndexInformer
+  Assumptions.unfold'NewSharedIndexInformerWithOptions
+  Assumptions.unfold'WaitForNamedCacheSync
+  Assumptions.unfold'WaitForNamedCacheSyncWithContext
+  Assumptions.unfold'WaitForCacheSync
+  Assumptions.unfold'WaitFor
+  Assumptions.unfold'IsDone
+  Assumptions.unfold'determineResyncPeriod
+  Assumptions.unfold'ShutDownEventHandler
+  Assumptions.unfold'newProcessListener
+  Assumptions.unfold'MetaNamespaceKeyFunc
+  Assumptions.unfold'ObjectToName
+  Assumptions.unfold'MetaObjectToName
+  Assumptions.unfold'SplitMetaNamespaceKey
+  Assumptions.unfold'WithTransformer
+  Assumptions.unfold'WithStoreMetrics
+  Assumptions.unfold'NewStore
+  Assumptions.unfold'NewIndexer
+  Assumptions.unfold'reconcileReplacement
+  Assumptions.unfold'NewRealFIFO
+  Assumptions.unfold'NewRealFIFOWithOptions
+  Assumptions.unfold'WithThreadSafeStoreMetrics
+  Assumptions.unfold'rvFromObject
+  Assumptions.unfold'NewThreadSafeStore
+  Assumptions.unfold'parseRVForMetricsWithTruncation
+  Assumptions.unfold'NewUndeltaStore
+  Assumptions.import'context
+  Assumptions.import'errors
+  Assumptions.import'fmt
+  Assumptions.import'strings
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'v1
+  Assumptions.import'pkg_runtime
+  Assumptions.import'util_runtime
+  Assumptions.import'wait
+  Assumptions.import'features
+  Assumptions.import'klog
+  Assumptions.import'clock
+  Assumptions.import'sets
+  Assumptions.import'trace
+  Assumptions.import'reflect
+  Assumptions.import'heap
+  Assumptions.import'atomic
+  Assumptions.import'schema
+  Assumptions.import'meta
+  Assumptions.import'api_errors
+  Assumptions.import'labels
+  Assumptions.import'fields
+  Assumptions.import'sharding
+  Assumptions.import'watch
+  Assumptions.import'rest
+  Assumptions.import'watchlist
+  Assumptions.import'strconv
+  Assumptions.import'types
+  Assumptions.import'cache
+  Assumptions.import'os
+  Assumptions.import'diff
+  Assumptions.import'io
+  Assumptions.import'math
+  Assumptions.import'rand
+  Assumptions.import'unstructured
+  Assumptions.import'v1beta1
+  Assumptions.import'naming
+  Assumptions.import'net
+  Assumptions.import'pager
+  Assumptions.import'ptr
+  Assumptions.import'consistencydetector
+  Assumptions.import'slices
+  Assumptions.import'synctrack
+  Assumptions.import'buffer
 
 end k8s_io.client_go.tools.cache
 

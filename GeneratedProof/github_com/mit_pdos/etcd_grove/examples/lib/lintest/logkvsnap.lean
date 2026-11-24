@@ -28,7 +28,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Assumptions]
 
-noncomputable instance Op_typed_pointsto :
+noncomputable instance typed_pointsto'Op :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op where
   typedPointstoDef l v dq := iprop(
     "Put" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op go!"Put" l) v.Put' dq ∗
@@ -38,11 +38,11 @@ noncomputable instance Op_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Op_into_val_typed :
+noncomputable instance into_val_typed'Op :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Op_access_load_Put (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op) (dq : DFrac) :
+noncomputable instance access_load'Op'Put (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op go!"Put" l) v.Put' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op go!"Put" l) v.Put' dq)
@@ -50,7 +50,7 @@ noncomputable instance Op_access_load_Put (l : Loc) (v : github_com.mit_pdos.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Op_access_store_Put (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op) (y : Bool) :
+noncomputable instance access_store'Op'Put (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op go!"Put" l) v.Put' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op go!"Put" l) y (DFrac.own 1))
@@ -58,7 +58,7 @@ noncomputable instance Op_access_store_Put (l : Loc) (v : github_com.mit_pdos.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance Op_access_load_Val (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op) (dq : DFrac) :
+noncomputable instance access_load'Op'Val (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op go!"Val" l) v.Val' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op go!"Val" l) v.Val' dq)
@@ -66,7 +66,7 @@ noncomputable instance Op_access_load_Val (l : Loc) (v : github_com.mit_pdos.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Op_access_store_Val (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op) (y : GoString) :
+noncomputable instance access_store'Op'Val (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op go!"Val" l) v.Val' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Op go!"Val" l) y (DFrac.own 1))
@@ -85,7 +85,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Assumptions]
 
-noncomputable instance snapshot_typed_pointsto :
+noncomputable instance typed_pointsto'snapshot :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot where
   typedPointstoDef l v dq := iprop(
     "val" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot go!"val" l) v.val' dq ∗
@@ -95,11 +95,11 @@ noncomputable instance snapshot_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance snapshot_into_val_typed :
+noncomputable instance into_val_typed'snapshot :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance snapshot_access_load_val (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot) (dq : DFrac) :
+noncomputable instance access_load'snapshot'val (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot go!"val" l) v.val' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot go!"val" l) v.val' dq)
@@ -107,7 +107,7 @@ noncomputable instance snapshot_access_load_val (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapshot_access_store_val (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot) (y : GoString) :
+noncomputable instance access_store'snapshot'val (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot go!"val" l) v.val' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot go!"val" l) y (DFrac.own 1))
@@ -115,7 +115,7 @@ noncomputable instance snapshot_access_store_val (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapshot_access_load_index (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot) (dq : DFrac) :
+noncomputable instance access_load'snapshot'index (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot go!"index" l) v.index' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot go!"index" l) v.index' dq)
@@ -123,7 +123,7 @@ noncomputable instance snapshot_access_load_index (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapshot_access_store_index (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot) (y : w64) :
+noncomputable instance access_store'snapshot'index (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot go!"index" l) v.index' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.snapshot go!"index" l) y (DFrac.own 1))
@@ -142,7 +142,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Assumptions]
 
-noncomputable instance Server_typed_pointsto :
+noncomputable instance typed_pointsto'Server :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server where
   typedPointstoDef l v dq := iprop(
     "mu" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"mu" l) v.mu' dq ∗
@@ -154,11 +154,11 @@ noncomputable instance Server_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Server_into_val_typed :
+noncomputable instance into_val_typed'Server :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Server_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"mu" l) v.mu' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"mu" l) v.mu' dq)
@@ -166,7 +166,7 @@ noncomputable instance Server_access_load_mu (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'Server'mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"mu" l) y (DFrac.own 1))
@@ -174,7 +174,7 @@ noncomputable instance Server_access_store_mu (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_cond (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'cond (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"cond" l) v.cond' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"cond" l) v.cond' dq)
@@ -182,7 +182,7 @@ noncomputable instance Server_access_load_cond (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_cond (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server) (y : Loc) :
+noncomputable instance access_store'Server'cond (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"cond" l) v.cond' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"cond" l) y (DFrac.own 1))
@@ -190,7 +190,7 @@ noncomputable instance Server_access_store_cond (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_log (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'log (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"log" l) v.log' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"log" l) v.log' dq)
@@ -198,7 +198,7 @@ noncomputable instance Server_access_load_log (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_log (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server) (y : GoSlice) :
+noncomputable instance access_store'Server'log (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"log" l) v.log' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"log" l) y (DFrac.own 1))
@@ -206,7 +206,7 @@ noncomputable instance Server_access_store_log (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_snap (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'snap (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"snap" l) v.snap' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"snap" l) v.snap' dq)
@@ -214,7 +214,7 @@ noncomputable instance Server_access_load_snap (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_snap (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server) (y : Loc) :
+noncomputable instance access_store'Server'snap (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"snap" l) v.snap' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server go!"snap" l) y (DFrac.own 1))

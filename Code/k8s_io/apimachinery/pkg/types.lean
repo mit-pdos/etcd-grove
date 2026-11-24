@@ -87,7 +87,7 @@ noncomputable instance NamespacedName.zero_val [GooseExts] : ZeroVal NamespacedN
 @[irreducible] noncomputable def NamespacedName.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NamespacedName.fieldsUnsealed
 
-noncomputable instance equals_unfold_NamespacedName [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'NamespacedName [GooseExts] [GoGlobalContext] :
     EqualsUnfold NamespacedName.fields NamespacedName.fieldsUnsealed :=
   ⟨by unfold NamespacedName.fields; rfl⟩
 
@@ -97,19 +97,19 @@ noncomputable instance equals_unfold_NamespacedName [GooseExts] [GoGlobalContext
 class NamespacedName.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NamespacedName.underlying NamespacedName
   underlying : go.UnderlyingDirectedEq NamespacedName.ty NamespacedName.underlying
-  get_Namespace : ∀ (x : NamespacedName), go.IsGoStepPureDetTagged under (StructFieldGet NamespacedName.underlying go!"Namespace") #x (Val #(x.Namespace'))
-  set_Namespace : ∀ (x : NamespacedName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NamespacedName.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : NamespacedName)))
-  get_Name : ∀ (x : NamespacedName), go.IsGoStepPureDetTagged under (StructFieldGet NamespacedName.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : NamespacedName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NamespacedName.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : NamespacedName)))
+  get'Namespace : ∀ (x : NamespacedName), go.IsGoStepPureDetTagged under (StructFieldGet NamespacedName.underlying go!"Namespace") #x (Val #(x.Namespace'))
+  set'Namespace : ∀ (x : NamespacedName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NamespacedName.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : NamespacedName)))
+  get'Name : ∀ (x : NamespacedName), go.IsGoStepPureDetTagged under (StructFieldGet NamespacedName.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : NamespacedName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NamespacedName.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : NamespacedName)))
   method_set : go.MethodSetIs NamespacedName.ty [(go!"MarshalLog", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType NamespacedName.ty) [(go!"MarshalLog", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] NamespacedName.TypeAssumptions.type_repr
   NamespacedName.TypeAssumptions.underlying
-  NamespacedName.TypeAssumptions.get_Namespace
-  NamespacedName.TypeAssumptions.set_Namespace
-  NamespacedName.TypeAssumptions.get_Name
-  NamespacedName.TypeAssumptions.set_Name
+  NamespacedName.TypeAssumptions.get'Namespace
+  NamespacedName.TypeAssumptions.set'Namespace
+  NamespacedName.TypeAssumptions.get'Name
+  NamespacedName.TypeAssumptions.set'Name
   NamespacedName.TypeAssumptions.method_set
   NamespacedName.TypeAssumptions.ptr_method_set
 
@@ -156,15 +156,15 @@ attribute [instance] UID.TypeAssumptions.underlying
   UID.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  NamespacedName_instance : NamespacedName.TypeAssumptions
-  NodeName_instance : NodeName.TypeAssumptions
-  PatchType_instance : PatchType.TypeAssumptions
-  UID_instance : UID.TypeAssumptions
+  instance'NamespacedName : NamespacedName.TypeAssumptions
+  instance'NodeName : NodeName.TypeAssumptions
+  instance'PatchType : PatchType.TypeAssumptions
+  instance'UID : UID.TypeAssumptions
 
-attribute [instance] Assumptions.NamespacedName_instance
-  Assumptions.NodeName_instance
-  Assumptions.PatchType_instance
-  Assumptions.UID_instance
+attribute [instance] Assumptions.instance'NamespacedName
+  Assumptions.instance'NodeName
+  Assumptions.instance'PatchType
+  Assumptions.instance'UID
 
 end k8s_io.apimachinery.pkg.types
 

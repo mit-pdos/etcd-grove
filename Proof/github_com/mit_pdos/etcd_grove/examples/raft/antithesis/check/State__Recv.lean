@@ -69,7 +69,7 @@ theorem State.Recv.wp_proof
   · iframe He; ipureintro; exact hm
   try wp_auto
   obtain ⟨dst, hdst, Ho⟩ := bind_ok Ho
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_to_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'to.method_unfold]
   try wp_auto
   wp_apply wp_to gm m dst $$ [Hm]
   · iframe Hm; ipureintro; exact hdst
@@ -128,7 +128,7 @@ theorem State.Recv.wp_proof
   simp only [pure_ok, Except.ok.injEq] at hc2
   subst hc2
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_term_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'term.method_unfold]
   try wp_auto
   wp_apply wp_term gm m mt $$ [Hm] as %ut %Hut
   · iframe Hm; ipureintro; exact hmt

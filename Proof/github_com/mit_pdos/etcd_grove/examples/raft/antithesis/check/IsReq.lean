@@ -34,7 +34,7 @@ theorem IsReq.wp_proof (wp_typ : Msg.typ.spec (GF := GF) (hG := hG)) :
   rw [h1] at Hb
   have hb := Except.ok.inj Hb
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_typ_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'typ.method_unfold]
   try wp_auto
   wp_apply wp_typ g m t $$ [Hm]
   · iframe Hm; ipureintro; exact h1
@@ -42,7 +42,7 @@ theorem IsReq.wp_proof (wp_typ : Msg.typ.spec (GF := GF) (hG := hG)) :
   wp_if_destruct
   · try wp_auto
     (cases b <;> first | (iapply HΦ; ipureintro; trivial) | (exfalso; simp_all; done))
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_typ_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'typ.method_unfold]
   try wp_auto
   wp_apply wp_typ g m t $$ [Hm]
   · iframe Hm; ipureintro; exact h1
@@ -50,7 +50,7 @@ theorem IsReq.wp_proof (wp_typ : Msg.typ.spec (GF := GF) (hG := hG)) :
   wp_if_destruct
   · try wp_auto
     (cases b <;> first | (iapply HΦ; ipureintro; trivial) | (exfalso; simp_all; done))
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_typ_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.TypeAssumptions.ptr_unfold'typ.method_unfold]
   try wp_auto
   wp_apply wp_typ g m t $$ [Hm]
   · iframe Hm; ipureintro; exact h1

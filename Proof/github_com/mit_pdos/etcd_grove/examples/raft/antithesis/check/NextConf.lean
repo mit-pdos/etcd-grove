@@ -49,7 +49,7 @@ theorem NextConf.wp_proof (wp_rec : Value.rec.spec (GF := GF) (hG := hG))
   have hrd := NextConf_asRec d r hr
   subst hrd
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Value.TypeAssumptions.ptr_rec_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Value.TypeAssumptions.ptr_unfold'rec.method_unfold]
   try wp_auto
   wp_apply wp_rec h r r $$ [Hd] as #Hr
   · iframe Hd; ipureintro; exact hr

@@ -1551,169 +1551,169 @@ attribute [instance] serviceAccounts.TypeAssumptions.type_repr
   serviceAccounts.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ComponentStatusesGetter_instance : ComponentStatusesGetter.TypeAssumptions
-  ComponentStatusInterface_instance : ComponentStatusInterface.TypeAssumptions
-  componentStatuses_instance : componentStatuses.TypeAssumptions
-  ConfigMapsGetter_instance : ConfigMapsGetter.TypeAssumptions
-  ConfigMapInterface_instance : ConfigMapInterface.TypeAssumptions
-  configMaps_instance : configMaps.TypeAssumptions
-  CoreV1Interface_instance : CoreV1Interface.TypeAssumptions
-  CoreV1Client_instance : CoreV1Client.TypeAssumptions
-  EndpointsGetter_instance : EndpointsGetter.TypeAssumptions
-  EndpointsInterface_instance : EndpointsInterface.TypeAssumptions
-  endpoints_instance : endpoints.TypeAssumptions
-  EventsGetter_instance : EventsGetter.TypeAssumptions
-  EventInterface_instance : EventInterface.TypeAssumptions
-  events_instance : events.TypeAssumptions
-  EventExpansion_instance : EventExpansion.TypeAssumptions
-  EventSinkImpl_instance : EventSinkImpl.TypeAssumptions
-  ComponentStatusExpansion_instance : ComponentStatusExpansion.TypeAssumptions
-  ConfigMapExpansion_instance : ConfigMapExpansion.TypeAssumptions
-  EndpointsExpansion_instance : EndpointsExpansion.TypeAssumptions
-  LimitRangeExpansion_instance : LimitRangeExpansion.TypeAssumptions
-  PersistentVolumeExpansion_instance : PersistentVolumeExpansion.TypeAssumptions
-  PersistentVolumeClaimExpansion_instance : PersistentVolumeClaimExpansion.TypeAssumptions
-  PodTemplateExpansion_instance : PodTemplateExpansion.TypeAssumptions
-  ReplicationControllerExpansion_instance : ReplicationControllerExpansion.TypeAssumptions
-  ResourceQuotaExpansion_instance : ResourceQuotaExpansion.TypeAssumptions
-  SecretExpansion_instance : SecretExpansion.TypeAssumptions
-  ServiceAccountExpansion_instance : ServiceAccountExpansion.TypeAssumptions
-  LimitRangesGetter_instance : LimitRangesGetter.TypeAssumptions
-  LimitRangeInterface_instance : LimitRangeInterface.TypeAssumptions
-  limitRanges_instance : limitRanges.TypeAssumptions
-  NamespacesGetter_instance : NamespacesGetter.TypeAssumptions
-  NamespaceInterface_instance : NamespaceInterface.TypeAssumptions
-  namespaces_instance : namespaces.TypeAssumptions
-  NamespaceExpansion_instance : NamespaceExpansion.TypeAssumptions
-  NodesGetter_instance : NodesGetter.TypeAssumptions
-  NodeInterface_instance : NodeInterface.TypeAssumptions
-  nodes_instance : nodes.TypeAssumptions
-  NodeExpansion_instance : NodeExpansion.TypeAssumptions
-  PersistentVolumesGetter_instance : PersistentVolumesGetter.TypeAssumptions
-  PersistentVolumeInterface_instance : PersistentVolumeInterface.TypeAssumptions
-  persistentVolumes_instance : persistentVolumes.TypeAssumptions
-  PersistentVolumeClaimsGetter_instance : PersistentVolumeClaimsGetter.TypeAssumptions
-  PersistentVolumeClaimInterface_instance : PersistentVolumeClaimInterface.TypeAssumptions
-  persistentVolumeClaims_instance : persistentVolumeClaims.TypeAssumptions
-  PodsGetter_instance : PodsGetter.TypeAssumptions
-  PodInterface_instance : PodInterface.TypeAssumptions
-  pods_instance : pods.TypeAssumptions
-  PodExpansion_instance : PodExpansion.TypeAssumptions
-  PodTemplatesGetter_instance : PodTemplatesGetter.TypeAssumptions
-  PodTemplateInterface_instance : PodTemplateInterface.TypeAssumptions
-  podTemplates_instance : podTemplates.TypeAssumptions
-  ReplicationControllersGetter_instance : ReplicationControllersGetter.TypeAssumptions
-  ReplicationControllerInterface_instance : ReplicationControllerInterface.TypeAssumptions
-  replicationControllers_instance : replicationControllers.TypeAssumptions
-  ResourceQuotasGetter_instance : ResourceQuotasGetter.TypeAssumptions
-  ResourceQuotaInterface_instance : ResourceQuotaInterface.TypeAssumptions
-  resourceQuotas_instance : resourceQuotas.TypeAssumptions
-  SecretsGetter_instance : SecretsGetter.TypeAssumptions
-  SecretInterface_instance : SecretInterface.TypeAssumptions
-  secrets_instance : secrets.TypeAssumptions
-  ServicesGetter_instance : ServicesGetter.TypeAssumptions
-  ServiceInterface_instance : ServiceInterface.TypeAssumptions
-  services_instance : services.TypeAssumptions
-  ServiceExpansion_instance : ServiceExpansion.TypeAssumptions
-  ServiceAccountsGetter_instance : ServiceAccountsGetter.TypeAssumptions
-  ServiceAccountInterface_instance : ServiceAccountInterface.TypeAssumptions
-  serviceAccounts_instance : serviceAccounts.TypeAssumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_api_core_v1_Assumption : _root_.Perennial.k8s_io.api.core.v1.Assumptions
-  import_apis_meta_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_types_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
-  import_watch_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions
-  import_applyconfigurations_core_v1_Assumption : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions
-  import_http_Assumption : _root_.Perennial.net.http.Assumptions
-  import_rest_Assumption : _root_.Perennial.k8s_io.client_go.rest.Assumptions
-  import_fields_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Assumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
-  import_api_policy_v1_Assumption : _root_.Perennial.k8s_io.api.policy.v1.Assumptions
-  import_v1beta1_Assumption : _root_.Perennial.k8s_io.api.policy.v1beta1.Assumptions
-  import_api_autoscaling_v1_Assumption : _root_.Perennial.k8s_io.api.autoscaling.v1.Assumptions
-  import_api_authentication_v1_Assumption : _root_.Perennial.k8s_io.api.authentication.v1.Assumptions
+  instance'ComponentStatusesGetter : ComponentStatusesGetter.TypeAssumptions
+  instance'ComponentStatusInterface : ComponentStatusInterface.TypeAssumptions
+  instance'componentStatuses : componentStatuses.TypeAssumptions
+  instance'ConfigMapsGetter : ConfigMapsGetter.TypeAssumptions
+  instance'ConfigMapInterface : ConfigMapInterface.TypeAssumptions
+  instance'configMaps : configMaps.TypeAssumptions
+  instance'CoreV1Interface : CoreV1Interface.TypeAssumptions
+  instance'CoreV1Client : CoreV1Client.TypeAssumptions
+  instance'EndpointsGetter : EndpointsGetter.TypeAssumptions
+  instance'EndpointsInterface : EndpointsInterface.TypeAssumptions
+  instance'endpoints : endpoints.TypeAssumptions
+  instance'EventsGetter : EventsGetter.TypeAssumptions
+  instance'EventInterface : EventInterface.TypeAssumptions
+  instance'events : events.TypeAssumptions
+  instance'EventExpansion : EventExpansion.TypeAssumptions
+  instance'EventSinkImpl : EventSinkImpl.TypeAssumptions
+  instance'ComponentStatusExpansion : ComponentStatusExpansion.TypeAssumptions
+  instance'ConfigMapExpansion : ConfigMapExpansion.TypeAssumptions
+  instance'EndpointsExpansion : EndpointsExpansion.TypeAssumptions
+  instance'LimitRangeExpansion : LimitRangeExpansion.TypeAssumptions
+  instance'PersistentVolumeExpansion : PersistentVolumeExpansion.TypeAssumptions
+  instance'PersistentVolumeClaimExpansion : PersistentVolumeClaimExpansion.TypeAssumptions
+  instance'PodTemplateExpansion : PodTemplateExpansion.TypeAssumptions
+  instance'ReplicationControllerExpansion : ReplicationControllerExpansion.TypeAssumptions
+  instance'ResourceQuotaExpansion : ResourceQuotaExpansion.TypeAssumptions
+  instance'SecretExpansion : SecretExpansion.TypeAssumptions
+  instance'ServiceAccountExpansion : ServiceAccountExpansion.TypeAssumptions
+  instance'LimitRangesGetter : LimitRangesGetter.TypeAssumptions
+  instance'LimitRangeInterface : LimitRangeInterface.TypeAssumptions
+  instance'limitRanges : limitRanges.TypeAssumptions
+  instance'NamespacesGetter : NamespacesGetter.TypeAssumptions
+  instance'NamespaceInterface : NamespaceInterface.TypeAssumptions
+  instance'namespaces : namespaces.TypeAssumptions
+  instance'NamespaceExpansion : NamespaceExpansion.TypeAssumptions
+  instance'NodesGetter : NodesGetter.TypeAssumptions
+  instance'NodeInterface : NodeInterface.TypeAssumptions
+  instance'nodes : nodes.TypeAssumptions
+  instance'NodeExpansion : NodeExpansion.TypeAssumptions
+  instance'PersistentVolumesGetter : PersistentVolumesGetter.TypeAssumptions
+  instance'PersistentVolumeInterface : PersistentVolumeInterface.TypeAssumptions
+  instance'persistentVolumes : persistentVolumes.TypeAssumptions
+  instance'PersistentVolumeClaimsGetter : PersistentVolumeClaimsGetter.TypeAssumptions
+  instance'PersistentVolumeClaimInterface : PersistentVolumeClaimInterface.TypeAssumptions
+  instance'persistentVolumeClaims : persistentVolumeClaims.TypeAssumptions
+  instance'PodsGetter : PodsGetter.TypeAssumptions
+  instance'PodInterface : PodInterface.TypeAssumptions
+  instance'pods : pods.TypeAssumptions
+  instance'PodExpansion : PodExpansion.TypeAssumptions
+  instance'PodTemplatesGetter : PodTemplatesGetter.TypeAssumptions
+  instance'PodTemplateInterface : PodTemplateInterface.TypeAssumptions
+  instance'podTemplates : podTemplates.TypeAssumptions
+  instance'ReplicationControllersGetter : ReplicationControllersGetter.TypeAssumptions
+  instance'ReplicationControllerInterface : ReplicationControllerInterface.TypeAssumptions
+  instance'replicationControllers : replicationControllers.TypeAssumptions
+  instance'ResourceQuotasGetter : ResourceQuotasGetter.TypeAssumptions
+  instance'ResourceQuotaInterface : ResourceQuotaInterface.TypeAssumptions
+  instance'resourceQuotas : resourceQuotas.TypeAssumptions
+  instance'SecretsGetter : SecretsGetter.TypeAssumptions
+  instance'SecretInterface : SecretInterface.TypeAssumptions
+  instance'secrets : secrets.TypeAssumptions
+  instance'ServicesGetter : ServicesGetter.TypeAssumptions
+  instance'ServiceInterface : ServiceInterface.TypeAssumptions
+  instance'services : services.TypeAssumptions
+  instance'ServiceExpansion : ServiceExpansion.TypeAssumptions
+  instance'ServiceAccountsGetter : ServiceAccountsGetter.TypeAssumptions
+  instance'ServiceAccountInterface : ServiceAccountInterface.TypeAssumptions
+  instance'serviceAccounts : serviceAccounts.TypeAssumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'api_core_v1 : _root_.Perennial.k8s_io.api.core.v1.Assumptions
+  import'apis_meta_v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'types : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
+  import'watch : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions
+  import'applyconfigurations_core_v1 : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions
+  import'http : _root_.Perennial.net.http.Assumptions
+  import'rest : _root_.Perennial.k8s_io.client_go.rest.Assumptions
+  import'fields : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Assumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  import'api_policy_v1 : _root_.Perennial.k8s_io.api.policy.v1.Assumptions
+  import'v1beta1 : _root_.Perennial.k8s_io.api.policy.v1beta1.Assumptions
+  import'api_autoscaling_v1 : _root_.Perennial.k8s_io.api.autoscaling.v1.Assumptions
+  import'api_authentication_v1 : _root_.Perennial.k8s_io.api.authentication.v1.Assumptions
 
-attribute [instance] Assumptions.ComponentStatusesGetter_instance
-  Assumptions.ComponentStatusInterface_instance
-  Assumptions.componentStatuses_instance
-  Assumptions.ConfigMapsGetter_instance
-  Assumptions.ConfigMapInterface_instance
-  Assumptions.configMaps_instance
-  Assumptions.CoreV1Interface_instance
-  Assumptions.CoreV1Client_instance
-  Assumptions.EndpointsGetter_instance
-  Assumptions.EndpointsInterface_instance
-  Assumptions.endpoints_instance
-  Assumptions.EventsGetter_instance
-  Assumptions.EventInterface_instance
-  Assumptions.events_instance
-  Assumptions.EventExpansion_instance
-  Assumptions.EventSinkImpl_instance
-  Assumptions.ComponentStatusExpansion_instance
-  Assumptions.ConfigMapExpansion_instance
-  Assumptions.EndpointsExpansion_instance
-  Assumptions.LimitRangeExpansion_instance
-  Assumptions.PersistentVolumeExpansion_instance
-  Assumptions.PersistentVolumeClaimExpansion_instance
-  Assumptions.PodTemplateExpansion_instance
-  Assumptions.ReplicationControllerExpansion_instance
-  Assumptions.ResourceQuotaExpansion_instance
-  Assumptions.SecretExpansion_instance
-  Assumptions.ServiceAccountExpansion_instance
-  Assumptions.LimitRangesGetter_instance
-  Assumptions.LimitRangeInterface_instance
-  Assumptions.limitRanges_instance
-  Assumptions.NamespacesGetter_instance
-  Assumptions.NamespaceInterface_instance
-  Assumptions.namespaces_instance
-  Assumptions.NamespaceExpansion_instance
-  Assumptions.NodesGetter_instance
-  Assumptions.NodeInterface_instance
-  Assumptions.nodes_instance
-  Assumptions.NodeExpansion_instance
-  Assumptions.PersistentVolumesGetter_instance
-  Assumptions.PersistentVolumeInterface_instance
-  Assumptions.persistentVolumes_instance
-  Assumptions.PersistentVolumeClaimsGetter_instance
-  Assumptions.PersistentVolumeClaimInterface_instance
-  Assumptions.persistentVolumeClaims_instance
-  Assumptions.PodsGetter_instance
-  Assumptions.PodInterface_instance
-  Assumptions.pods_instance
-  Assumptions.PodExpansion_instance
-  Assumptions.PodTemplatesGetter_instance
-  Assumptions.PodTemplateInterface_instance
-  Assumptions.podTemplates_instance
-  Assumptions.ReplicationControllersGetter_instance
-  Assumptions.ReplicationControllerInterface_instance
-  Assumptions.replicationControllers_instance
-  Assumptions.ResourceQuotasGetter_instance
-  Assumptions.ResourceQuotaInterface_instance
-  Assumptions.resourceQuotas_instance
-  Assumptions.SecretsGetter_instance
-  Assumptions.SecretInterface_instance
-  Assumptions.secrets_instance
-  Assumptions.ServicesGetter_instance
-  Assumptions.ServiceInterface_instance
-  Assumptions.services_instance
-  Assumptions.ServiceExpansion_instance
-  Assumptions.ServiceAccountsGetter_instance
-  Assumptions.ServiceAccountInterface_instance
-  Assumptions.serviceAccounts_instance
-  Assumptions.import_context_Assumption
-  Assumptions.import_api_core_v1_Assumption
-  Assumptions.import_apis_meta_v1_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_watch_Assumption
-  Assumptions.import_applyconfigurations_core_v1_Assumption
-  Assumptions.import_http_Assumption
-  Assumptions.import_rest_Assumption
-  Assumptions.import_fields_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_api_policy_v1_Assumption
-  Assumptions.import_v1beta1_Assumption
-  Assumptions.import_api_autoscaling_v1_Assumption
-  Assumptions.import_api_authentication_v1_Assumption
+attribute [instance] Assumptions.instance'ComponentStatusesGetter
+  Assumptions.instance'ComponentStatusInterface
+  Assumptions.instance'componentStatuses
+  Assumptions.instance'ConfigMapsGetter
+  Assumptions.instance'ConfigMapInterface
+  Assumptions.instance'configMaps
+  Assumptions.instance'CoreV1Interface
+  Assumptions.instance'CoreV1Client
+  Assumptions.instance'EndpointsGetter
+  Assumptions.instance'EndpointsInterface
+  Assumptions.instance'endpoints
+  Assumptions.instance'EventsGetter
+  Assumptions.instance'EventInterface
+  Assumptions.instance'events
+  Assumptions.instance'EventExpansion
+  Assumptions.instance'EventSinkImpl
+  Assumptions.instance'ComponentStatusExpansion
+  Assumptions.instance'ConfigMapExpansion
+  Assumptions.instance'EndpointsExpansion
+  Assumptions.instance'LimitRangeExpansion
+  Assumptions.instance'PersistentVolumeExpansion
+  Assumptions.instance'PersistentVolumeClaimExpansion
+  Assumptions.instance'PodTemplateExpansion
+  Assumptions.instance'ReplicationControllerExpansion
+  Assumptions.instance'ResourceQuotaExpansion
+  Assumptions.instance'SecretExpansion
+  Assumptions.instance'ServiceAccountExpansion
+  Assumptions.instance'LimitRangesGetter
+  Assumptions.instance'LimitRangeInterface
+  Assumptions.instance'limitRanges
+  Assumptions.instance'NamespacesGetter
+  Assumptions.instance'NamespaceInterface
+  Assumptions.instance'namespaces
+  Assumptions.instance'NamespaceExpansion
+  Assumptions.instance'NodesGetter
+  Assumptions.instance'NodeInterface
+  Assumptions.instance'nodes
+  Assumptions.instance'NodeExpansion
+  Assumptions.instance'PersistentVolumesGetter
+  Assumptions.instance'PersistentVolumeInterface
+  Assumptions.instance'persistentVolumes
+  Assumptions.instance'PersistentVolumeClaimsGetter
+  Assumptions.instance'PersistentVolumeClaimInterface
+  Assumptions.instance'persistentVolumeClaims
+  Assumptions.instance'PodsGetter
+  Assumptions.instance'PodInterface
+  Assumptions.instance'pods
+  Assumptions.instance'PodExpansion
+  Assumptions.instance'PodTemplatesGetter
+  Assumptions.instance'PodTemplateInterface
+  Assumptions.instance'podTemplates
+  Assumptions.instance'ReplicationControllersGetter
+  Assumptions.instance'ReplicationControllerInterface
+  Assumptions.instance'replicationControllers
+  Assumptions.instance'ResourceQuotasGetter
+  Assumptions.instance'ResourceQuotaInterface
+  Assumptions.instance'resourceQuotas
+  Assumptions.instance'SecretsGetter
+  Assumptions.instance'SecretInterface
+  Assumptions.instance'secrets
+  Assumptions.instance'ServicesGetter
+  Assumptions.instance'ServiceInterface
+  Assumptions.instance'services
+  Assumptions.instance'ServiceExpansion
+  Assumptions.instance'ServiceAccountsGetter
+  Assumptions.instance'ServiceAccountInterface
+  Assumptions.instance'serviceAccounts
+  Assumptions.import'context
+  Assumptions.import'api_core_v1
+  Assumptions.import'apis_meta_v1
+  Assumptions.import'types
+  Assumptions.import'watch
+  Assumptions.import'applyconfigurations_core_v1
+  Assumptions.import'http
+  Assumptions.import'rest
+  Assumptions.import'fields
+  Assumptions.import'runtime
+  Assumptions.import'api_policy_v1
+  Assumptions.import'v1beta1
+  Assumptions.import'api_autoscaling_v1
+  Assumptions.import'api_authentication_v1
 
 end k8s_io.client_go.kubernetes.typed.core.v1
 

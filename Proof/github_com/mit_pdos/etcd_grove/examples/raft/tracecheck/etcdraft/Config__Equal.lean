@@ -51,7 +51,7 @@ theorem Config.Equal.wp_proof (wp_SetEqual : Set.Equal.spec (GF := GF) (hG := hG
   icases array_acc _ 1 _ _ _ b' (by decide) (by rw [Hab']; rfl) $$ Jd with ⟨#Hd1, -⟩
   rw [show sint.Z (W64 0) = 0 from rfl]
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_unfold'Equal.method_unfold]
   rw [show sint.Z (W64 0) = 0 from rfl]
   wp_auto
   wp_apply wp_SetEqual _ _ _ _ $$ [Ha Ha'] as -
@@ -61,7 +61,7 @@ theorem Config.Equal.wp_proof (wp_SetEqual : Set.Equal.spec (GF := GF) (hG := hG
     wp_auto
     rw [show sint.Z (W64 1) = 1 from rfl]
     wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_unfold'Equal.method_unfold]
     rw [show sint.Z (W64 1) = 1 from rfl]
     wp_auto
     wp_apply wp_SetEqual _ _ _ _ $$ [Hb Hb'] as -
@@ -69,7 +69,7 @@ theorem Config.Equal.wp_proof (wp_SetEqual : Set.Equal.spec (GF := GF) (hG := hG
     by_cases h1 : c.outgoing = d.outgoing
     · rw [decide_eq_true h1]
       wp_auto
-      rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_unfold'Equal.method_unfold]
       wp_auto
       wp_apply wp_SetEqual _ _ _ _ $$ [Hl Hl'] as -
       · iframe Hl Hl'

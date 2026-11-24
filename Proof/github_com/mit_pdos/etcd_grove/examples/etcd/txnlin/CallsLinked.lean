@@ -72,7 +72,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
       · ileft; ipureintro; exact h
       · iright; iframe h; ipureintro; rfl
   ihave #Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Get.method_unfold]
   wp_pures
   wp_auto
   iapply wp_fupd

@@ -295,7 +295,7 @@ noncomputable instance DiscoveryError.zero_val [GooseExts] : ZeroVal DiscoveryEr
 @[irreducible] noncomputable def DiscoveryError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DiscoveryError.fieldsUnsealed
 
-noncomputable instance equals_unfold_DiscoveryError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DiscoveryError [GooseExts] [GoGlobalContext] :
     EqualsUnfold DiscoveryError.fields DiscoveryError.fieldsUnsealed :=
   ⟨by unfold DiscoveryError.fields; rfl⟩
 
@@ -305,28 +305,28 @@ noncomputable instance equals_unfold_DiscoveryError [GooseExts] [GoGlobalContext
 class DiscoveryError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DiscoveryError.underlying DiscoveryError
   underlying : go.UnderlyingDirectedEq DiscoveryError.ty DiscoveryError.underlying
-  get_Op : ∀ (x : DiscoveryError), go.IsGoStepPureDetTagged under (StructFieldGet DiscoveryError.underlying go!"Op") #x (Val #(x.Op'))
-  set_Op : ∀ (x : DiscoveryError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DiscoveryError.underlying go!"Op") (PairV #x #y) (Val #(({ x with Op' := y } : DiscoveryError)))
-  get_Err : ∀ (x : DiscoveryError), go.IsGoStepPureDetTagged under (StructFieldGet DiscoveryError.underlying go!"Err") #x (Val #(x.Err'))
-  set_Err : ∀ (x : DiscoveryError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet DiscoveryError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : DiscoveryError)))
+  get'Op : ∀ (x : DiscoveryError), go.IsGoStepPureDetTagged under (StructFieldGet DiscoveryError.underlying go!"Op") #x (Val #(x.Op'))
+  set'Op : ∀ (x : DiscoveryError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DiscoveryError.underlying go!"Op") (PairV #x #y) (Val #(({ x with Op' := y } : DiscoveryError)))
+  get'Err : ∀ (x : DiscoveryError), go.IsGoStepPureDetTagged under (StructFieldGet DiscoveryError.underlying go!"Err") #x (Val #(x.Err'))
+  set'Err : ∀ (x : DiscoveryError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet DiscoveryError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : DiscoveryError)))
   method_set : go.MethodSetIs DiscoveryError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DiscoveryError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] DiscoveryError.TypeAssumptions.type_repr
   DiscoveryError.TypeAssumptions.underlying
-  DiscoveryError.TypeAssumptions.get_Op
-  DiscoveryError.TypeAssumptions.set_Op
-  DiscoveryError.TypeAssumptions.get_Err
-  DiscoveryError.TypeAssumptions.set_Err
+  DiscoveryError.TypeAssumptions.get'Op
+  DiscoveryError.TypeAssumptions.set'Op
+  DiscoveryError.TypeAssumptions.get'Err
+  DiscoveryError.TypeAssumptions.set'Err
   DiscoveryError.TypeAssumptions.method_set
   DiscoveryError.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  DiscoveryError_instance : DiscoveryError.TypeAssumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  instance'DiscoveryError : DiscoveryError.TypeAssumptions
+  import'errors : _root_.Perennial.errors.Assumptions
 
-attribute [instance] Assumptions.DiscoveryError_instance
-  Assumptions.import_errors_Assumption
+attribute [instance] Assumptions.instance'DiscoveryError
+  Assumptions.import'errors
 
 end go_etcd_io.etcd.server.v3.etcdserver.errors
 

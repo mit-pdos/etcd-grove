@@ -264,7 +264,7 @@ noncomputable instance ClientMetrics.zero_val [GooseExts] : ZeroVal ClientMetric
 @[irreducible] noncomputable def ClientMetrics.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClientMetrics.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClientMetrics [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ClientMetrics [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClientMetrics.fields ClientMetrics.fieldsUnsealed :=
   ⟨by unfold ClientMetrics.fields; rfl⟩
 
@@ -274,39 +274,39 @@ noncomputable instance equals_unfold_ClientMetrics [GooseExts] [GoGlobalContext]
 class ClientMetrics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClientMetrics.underlying ClientMetrics
   underlying : go.UnderlyingDirectedEq ClientMetrics.ty ClientMetrics.underlying
-  get_clientStartedCounter : ∀ (x : ClientMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ClientMetrics.underlying go!"clientStartedCounter") #x (Val #(x.clientStartedCounter'))
-  set_clientStartedCounter : ∀ (x : ClientMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientMetrics.underlying go!"clientStartedCounter") (PairV #x #y) (Val #(({ x with clientStartedCounter' := y } : ClientMetrics)))
-  get_clientHandledCounter : ∀ (x : ClientMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ClientMetrics.underlying go!"clientHandledCounter") #x (Val #(x.clientHandledCounter'))
-  set_clientHandledCounter : ∀ (x : ClientMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientMetrics.underlying go!"clientHandledCounter") (PairV #x #y) (Val #(({ x with clientHandledCounter' := y } : ClientMetrics)))
-  get_clientStreamMsgReceived : ∀ (x : ClientMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ClientMetrics.underlying go!"clientStreamMsgReceived") #x (Val #(x.clientStreamMsgReceived'))
-  set_clientStreamMsgReceived : ∀ (x : ClientMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientMetrics.underlying go!"clientStreamMsgReceived") (PairV #x #y) (Val #(({ x with clientStreamMsgReceived' := y } : ClientMetrics)))
-  get_clientStreamMsgSent : ∀ (x : ClientMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ClientMetrics.underlying go!"clientStreamMsgSent") #x (Val #(x.clientStreamMsgSent'))
-  set_clientStreamMsgSent : ∀ (x : ClientMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientMetrics.underlying go!"clientStreamMsgSent") (PairV #x #y) (Val #(({ x with clientStreamMsgSent' := y } : ClientMetrics)))
-  get_clientHandledHistogram : ∀ (x : ClientMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ClientMetrics.underlying go!"clientHandledHistogram") #x (Val #(x.clientHandledHistogram'))
-  set_clientHandledHistogram : ∀ (x : ClientMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientMetrics.underlying go!"clientHandledHistogram") (PairV #x #y) (Val #(({ x with clientHandledHistogram' := y } : ClientMetrics)))
-  get_clientStreamRecvHistogram : ∀ (x : ClientMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ClientMetrics.underlying go!"clientStreamRecvHistogram") #x (Val #(x.clientStreamRecvHistogram'))
-  set_clientStreamRecvHistogram : ∀ (x : ClientMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientMetrics.underlying go!"clientStreamRecvHistogram") (PairV #x #y) (Val #(({ x with clientStreamRecvHistogram' := y } : ClientMetrics)))
-  get_clientStreamSendHistogram : ∀ (x : ClientMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ClientMetrics.underlying go!"clientStreamSendHistogram") #x (Val #(x.clientStreamSendHistogram'))
-  set_clientStreamSendHistogram : ∀ (x : ClientMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientMetrics.underlying go!"clientStreamSendHistogram") (PairV #x #y) (Val #(({ x with clientStreamSendHistogram' := y } : ClientMetrics)))
+  get'clientStartedCounter : ∀ (x : ClientMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ClientMetrics.underlying go!"clientStartedCounter") #x (Val #(x.clientStartedCounter'))
+  set'clientStartedCounter : ∀ (x : ClientMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientMetrics.underlying go!"clientStartedCounter") (PairV #x #y) (Val #(({ x with clientStartedCounter' := y } : ClientMetrics)))
+  get'clientHandledCounter : ∀ (x : ClientMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ClientMetrics.underlying go!"clientHandledCounter") #x (Val #(x.clientHandledCounter'))
+  set'clientHandledCounter : ∀ (x : ClientMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientMetrics.underlying go!"clientHandledCounter") (PairV #x #y) (Val #(({ x with clientHandledCounter' := y } : ClientMetrics)))
+  get'clientStreamMsgReceived : ∀ (x : ClientMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ClientMetrics.underlying go!"clientStreamMsgReceived") #x (Val #(x.clientStreamMsgReceived'))
+  set'clientStreamMsgReceived : ∀ (x : ClientMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientMetrics.underlying go!"clientStreamMsgReceived") (PairV #x #y) (Val #(({ x with clientStreamMsgReceived' := y } : ClientMetrics)))
+  get'clientStreamMsgSent : ∀ (x : ClientMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ClientMetrics.underlying go!"clientStreamMsgSent") #x (Val #(x.clientStreamMsgSent'))
+  set'clientStreamMsgSent : ∀ (x : ClientMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientMetrics.underlying go!"clientStreamMsgSent") (PairV #x #y) (Val #(({ x with clientStreamMsgSent' := y } : ClientMetrics)))
+  get'clientHandledHistogram : ∀ (x : ClientMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ClientMetrics.underlying go!"clientHandledHistogram") #x (Val #(x.clientHandledHistogram'))
+  set'clientHandledHistogram : ∀ (x : ClientMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientMetrics.underlying go!"clientHandledHistogram") (PairV #x #y) (Val #(({ x with clientHandledHistogram' := y } : ClientMetrics)))
+  get'clientStreamRecvHistogram : ∀ (x : ClientMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ClientMetrics.underlying go!"clientStreamRecvHistogram") #x (Val #(x.clientStreamRecvHistogram'))
+  set'clientStreamRecvHistogram : ∀ (x : ClientMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientMetrics.underlying go!"clientStreamRecvHistogram") (PairV #x #y) (Val #(({ x with clientStreamRecvHistogram' := y } : ClientMetrics)))
+  get'clientStreamSendHistogram : ∀ (x : ClientMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ClientMetrics.underlying go!"clientStreamSendHistogram") #x (Val #(x.clientStreamSendHistogram'))
+  set'clientStreamSendHistogram : ∀ (x : ClientMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientMetrics.underlying go!"clientStreamSendHistogram") (PairV #x #y) (Val #(({ x with clientStreamSendHistogram' := y } : ClientMetrics)))
   method_set : go.MethodSetIs ClientMetrics.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientMetrics.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly _root_.Perennial.github_com.prometheus.client_golang.prometheus.Metric.ty)] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Desc.ty))] false []))), (go!"StreamClientInterceptor", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] true [_root_.Perennial.google_golang_org.grpc.StreamClientInterceptor.ty]))), (go!"UnaryClientInterceptor", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] true [_root_.Perennial.google_golang_org.grpc.UnaryClientInterceptor.ty])))]
 
 attribute [instance] ClientMetrics.TypeAssumptions.type_repr
   ClientMetrics.TypeAssumptions.underlying
-  ClientMetrics.TypeAssumptions.get_clientStartedCounter
-  ClientMetrics.TypeAssumptions.set_clientStartedCounter
-  ClientMetrics.TypeAssumptions.get_clientHandledCounter
-  ClientMetrics.TypeAssumptions.set_clientHandledCounter
-  ClientMetrics.TypeAssumptions.get_clientStreamMsgReceived
-  ClientMetrics.TypeAssumptions.set_clientStreamMsgReceived
-  ClientMetrics.TypeAssumptions.get_clientStreamMsgSent
-  ClientMetrics.TypeAssumptions.set_clientStreamMsgSent
-  ClientMetrics.TypeAssumptions.get_clientHandledHistogram
-  ClientMetrics.TypeAssumptions.set_clientHandledHistogram
-  ClientMetrics.TypeAssumptions.get_clientStreamRecvHistogram
-  ClientMetrics.TypeAssumptions.set_clientStreamRecvHistogram
-  ClientMetrics.TypeAssumptions.get_clientStreamSendHistogram
-  ClientMetrics.TypeAssumptions.set_clientStreamSendHistogram
+  ClientMetrics.TypeAssumptions.get'clientStartedCounter
+  ClientMetrics.TypeAssumptions.set'clientStartedCounter
+  ClientMetrics.TypeAssumptions.get'clientHandledCounter
+  ClientMetrics.TypeAssumptions.set'clientHandledCounter
+  ClientMetrics.TypeAssumptions.get'clientStreamMsgReceived
+  ClientMetrics.TypeAssumptions.set'clientStreamMsgReceived
+  ClientMetrics.TypeAssumptions.get'clientStreamMsgSent
+  ClientMetrics.TypeAssumptions.set'clientStreamMsgSent
+  ClientMetrics.TypeAssumptions.get'clientHandledHistogram
+  ClientMetrics.TypeAssumptions.set'clientHandledHistogram
+  ClientMetrics.TypeAssumptions.get'clientStreamRecvHistogram
+  ClientMetrics.TypeAssumptions.set'clientStreamRecvHistogram
+  ClientMetrics.TypeAssumptions.get'clientStreamSendHistogram
+  ClientMetrics.TypeAssumptions.set'clientStreamSendHistogram
   ClientMetrics.TypeAssumptions.method_set
   ClientMetrics.TypeAssumptions.ptr_method_set
 
@@ -343,7 +343,7 @@ noncomputable instance clientMetricsConfig.zero_val [GooseExts] : ZeroVal client
 @[irreducible] noncomputable def clientMetricsConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   clientMetricsConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_clientMetricsConfig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'clientMetricsConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold clientMetricsConfig.fields clientMetricsConfig.fieldsUnsealed :=
   ⟨by unfold clientMetricsConfig.fields; rfl⟩
 
@@ -353,27 +353,27 @@ noncomputable instance equals_unfold_clientMetricsConfig [GooseExts] [GoGlobalCo
 class clientMetricsConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying clientMetricsConfig.underlying clientMetricsConfig
   underlying : go.UnderlyingDirectedEq clientMetricsConfig.ty clientMetricsConfig.underlying
-  get_counterOpts : ∀ (x : clientMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet clientMetricsConfig.underlying go!"counterOpts") #x (Val #(x.counterOpts'))
-  set_counterOpts : ∀ (x : clientMetricsConfig) (y : counterOptions), go.IsGoStepPureDetTagged under (StructFieldSet clientMetricsConfig.underlying go!"counterOpts") (PairV #x #y) (Val #(({ x with counterOpts' := y } : clientMetricsConfig)))
-  get_clientHandledHistogram : ∀ (x : clientMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet clientMetricsConfig.underlying go!"clientHandledHistogram") #x (Val #(x.clientHandledHistogram'))
-  set_clientHandledHistogram : ∀ (x : clientMetricsConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet clientMetricsConfig.underlying go!"clientHandledHistogram") (PairV #x #y) (Val #(({ x with clientHandledHistogram' := y } : clientMetricsConfig)))
-  get_clientStreamRecvHistogram : ∀ (x : clientMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet clientMetricsConfig.underlying go!"clientStreamRecvHistogram") #x (Val #(x.clientStreamRecvHistogram'))
-  set_clientStreamRecvHistogram : ∀ (x : clientMetricsConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet clientMetricsConfig.underlying go!"clientStreamRecvHistogram") (PairV #x #y) (Val #(({ x with clientStreamRecvHistogram' := y } : clientMetricsConfig)))
-  get_clientStreamSendHistogram : ∀ (x : clientMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet clientMetricsConfig.underlying go!"clientStreamSendHistogram") #x (Val #(x.clientStreamSendHistogram'))
-  set_clientStreamSendHistogram : ∀ (x : clientMetricsConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet clientMetricsConfig.underlying go!"clientStreamSendHistogram") (PairV #x #y) (Val #(({ x with clientStreamSendHistogram' := y } : clientMetricsConfig)))
+  get'counterOpts : ∀ (x : clientMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet clientMetricsConfig.underlying go!"counterOpts") #x (Val #(x.counterOpts'))
+  set'counterOpts : ∀ (x : clientMetricsConfig) (y : counterOptions), go.IsGoStepPureDetTagged under (StructFieldSet clientMetricsConfig.underlying go!"counterOpts") (PairV #x #y) (Val #(({ x with counterOpts' := y } : clientMetricsConfig)))
+  get'clientHandledHistogram : ∀ (x : clientMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet clientMetricsConfig.underlying go!"clientHandledHistogram") #x (Val #(x.clientHandledHistogram'))
+  set'clientHandledHistogram : ∀ (x : clientMetricsConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet clientMetricsConfig.underlying go!"clientHandledHistogram") (PairV #x #y) (Val #(({ x with clientHandledHistogram' := y } : clientMetricsConfig)))
+  get'clientStreamRecvHistogram : ∀ (x : clientMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet clientMetricsConfig.underlying go!"clientStreamRecvHistogram") #x (Val #(x.clientStreamRecvHistogram'))
+  set'clientStreamRecvHistogram : ∀ (x : clientMetricsConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet clientMetricsConfig.underlying go!"clientStreamRecvHistogram") (PairV #x #y) (Val #(({ x with clientStreamRecvHistogram' := y } : clientMetricsConfig)))
+  get'clientStreamSendHistogram : ∀ (x : clientMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet clientMetricsConfig.underlying go!"clientStreamSendHistogram") #x (Val #(x.clientStreamSendHistogram'))
+  set'clientStreamSendHistogram : ∀ (x : clientMetricsConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet clientMetricsConfig.underlying go!"clientStreamSendHistogram") (PairV #x #y) (Val #(({ x with clientStreamSendHistogram' := y } : clientMetricsConfig)))
   method_set : go.MethodSetIs clientMetricsConfig.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientMetricsConfig.ty) [(go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.apply", (some (go.signature.Signature [(go.GoType.SliceType ClientMetricsOption.ty)] false [])))]
 
 attribute [instance] clientMetricsConfig.TypeAssumptions.type_repr
   clientMetricsConfig.TypeAssumptions.underlying
-  clientMetricsConfig.TypeAssumptions.get_counterOpts
-  clientMetricsConfig.TypeAssumptions.set_counterOpts
-  clientMetricsConfig.TypeAssumptions.get_clientHandledHistogram
-  clientMetricsConfig.TypeAssumptions.set_clientHandledHistogram
-  clientMetricsConfig.TypeAssumptions.get_clientStreamRecvHistogram
-  clientMetricsConfig.TypeAssumptions.set_clientStreamRecvHistogram
-  clientMetricsConfig.TypeAssumptions.get_clientStreamSendHistogram
-  clientMetricsConfig.TypeAssumptions.set_clientStreamSendHistogram
+  clientMetricsConfig.TypeAssumptions.get'counterOpts
+  clientMetricsConfig.TypeAssumptions.set'counterOpts
+  clientMetricsConfig.TypeAssumptions.get'clientHandledHistogram
+  clientMetricsConfig.TypeAssumptions.set'clientHandledHistogram
+  clientMetricsConfig.TypeAssumptions.get'clientStreamRecvHistogram
+  clientMetricsConfig.TypeAssumptions.set'clientStreamRecvHistogram
+  clientMetricsConfig.TypeAssumptions.get'clientStreamSendHistogram
+  clientMetricsConfig.TypeAssumptions.set'clientStreamSendHistogram
   clientMetricsConfig.TypeAssumptions.method_set
   clientMetricsConfig.TypeAssumptions.ptr_method_set
 
@@ -528,7 +528,7 @@ noncomputable instance config.zero_val [GooseExts] : ZeroVal config :=
 @[irreducible] noncomputable def config.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   config.fieldsUnsealed
 
-noncomputable instance equals_unfold_config [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'config [GooseExts] [GoGlobalContext] :
     EqualsUnfold config.fields config.fieldsUnsealed :=
   ⟨by unfold config.fields; rfl⟩
 
@@ -538,19 +538,19 @@ noncomputable instance equals_unfold_config [GooseExts] [GoGlobalContext] :
 class config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying config.underlying config
   underlying : go.UnderlyingDirectedEq config.ty config.underlying
-  get_exemplarFn : ∀ (x : config), go.IsGoStepPureDetTagged under (StructFieldGet config.underlying go!"exemplarFn") #x (Val #(x.exemplarFn'))
-  set_exemplarFn : ∀ (x : config) (y : exemplarFromCtxFn), go.IsGoStepPureDetTagged under (StructFieldSet config.underlying go!"exemplarFn") (PairV #x #y) (Val #(({ x with exemplarFn' := y } : config)))
-  get_labelsFn : ∀ (x : config), go.IsGoStepPureDetTagged under (StructFieldGet config.underlying go!"labelsFn") #x (Val #(x.labelsFn'))
-  set_labelsFn : ∀ (x : config) (y : labelsFromCtxFn), go.IsGoStepPureDetTagged under (StructFieldSet config.underlying go!"labelsFn") (PairV #x #y) (Val #(({ x with labelsFn' := y } : config)))
+  get'exemplarFn : ∀ (x : config), go.IsGoStepPureDetTagged under (StructFieldGet config.underlying go!"exemplarFn") #x (Val #(x.exemplarFn'))
+  set'exemplarFn : ∀ (x : config) (y : exemplarFromCtxFn), go.IsGoStepPureDetTagged under (StructFieldSet config.underlying go!"exemplarFn") (PairV #x #y) (Val #(({ x with exemplarFn' := y } : config)))
+  get'labelsFn : ∀ (x : config), go.IsGoStepPureDetTagged under (StructFieldGet config.underlying go!"labelsFn") #x (Val #(x.labelsFn'))
+  set'labelsFn : ∀ (x : config) (y : labelsFromCtxFn), go.IsGoStepPureDetTagged under (StructFieldSet config.underlying go!"labelsFn") (PairV #x #y) (Val #(({ x with labelsFn' := y } : config)))
   method_set : go.MethodSetIs config.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType config.ty) [(go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.apply", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] false [])))]
 
 attribute [instance] config.TypeAssumptions.type_repr
   config.TypeAssumptions.underlying
-  config.TypeAssumptions.get_exemplarFn
-  config.TypeAssumptions.set_exemplarFn
-  config.TypeAssumptions.get_labelsFn
-  config.TypeAssumptions.set_labelsFn
+  config.TypeAssumptions.get'exemplarFn
+  config.TypeAssumptions.set'exemplarFn
+  config.TypeAssumptions.get'labelsFn
+  config.TypeAssumptions.set'labelsFn
   config.TypeAssumptions.method_set
   config.TypeAssumptions.ptr_method_set
 
@@ -590,7 +590,7 @@ noncomputable instance reportable.zero_val [GooseExts] : ZeroVal reportable :=
 @[irreducible] noncomputable def reportable.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   reportable.fieldsUnsealed
 
-noncomputable instance equals_unfold_reportable [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'reportable [GooseExts] [GoGlobalContext] :
     EqualsUnfold reportable.fields reportable.fieldsUnsealed :=
   ⟨by unfold reportable.fields; rfl⟩
 
@@ -600,23 +600,23 @@ noncomputable instance equals_unfold_reportable [GooseExts] [GoGlobalContext] :
 class reportable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying reportable.underlying reportable
   underlying : go.UnderlyingDirectedEq reportable.ty reportable.underlying
-  get_clientMetrics : ∀ (x : reportable), go.IsGoStepPureDetTagged under (StructFieldGet reportable.underlying go!"clientMetrics") #x (Val #(x.clientMetrics'))
-  set_clientMetrics : ∀ (x : reportable) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet reportable.underlying go!"clientMetrics") (PairV #x #y) (Val #(({ x with clientMetrics' := y } : reportable)))
-  get_serverMetrics : ∀ (x : reportable), go.IsGoStepPureDetTagged under (StructFieldGet reportable.underlying go!"serverMetrics") #x (Val #(x.serverMetrics'))
-  set_serverMetrics : ∀ (x : reportable) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet reportable.underlying go!"serverMetrics") (PairV #x #y) (Val #(({ x with serverMetrics' := y } : reportable)))
-  get_opts : ∀ (x : reportable), go.IsGoStepPureDetTagged under (StructFieldGet reportable.underlying go!"opts") #x (Val #(x.opts'))
-  set_opts : ∀ (x : reportable) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet reportable.underlying go!"opts") (PairV #x #y) (Val #(({ x with opts' := y } : reportable)))
+  get'clientMetrics : ∀ (x : reportable), go.IsGoStepPureDetTagged under (StructFieldGet reportable.underlying go!"clientMetrics") #x (Val #(x.clientMetrics'))
+  set'clientMetrics : ∀ (x : reportable) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet reportable.underlying go!"clientMetrics") (PairV #x #y) (Val #(({ x with clientMetrics' := y } : reportable)))
+  get'serverMetrics : ∀ (x : reportable), go.IsGoStepPureDetTagged under (StructFieldGet reportable.underlying go!"serverMetrics") #x (Val #(x.serverMetrics'))
+  set'serverMetrics : ∀ (x : reportable) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet reportable.underlying go!"serverMetrics") (PairV #x #y) (Val #(({ x with serverMetrics' := y } : reportable)))
+  get'opts : ∀ (x : reportable), go.IsGoStepPureDetTagged under (StructFieldGet reportable.underlying go!"opts") #x (Val #(x.opts'))
+  set'opts : ∀ (x : reportable) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet reportable.underlying go!"opts") (PairV #x #y) (Val #(({ x with opts' := y } : reportable)))
   method_set : go.MethodSetIs reportable.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType reportable.ty) [(go!"ClientReporter", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors.CallMeta" [])] false [(go.GoType.Named go!"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors.Reporter" []), (go.GoType.Named go!"context.Context" [])]))), (go!"ServerReporter", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors.CallMeta" [])] false [(go.GoType.Named go!"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors.Reporter" []), (go.GoType.Named go!"context.Context" [])]))), (go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.reporter", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType ServerMetrics.ty), (go.GoType.PointerType ClientMetrics.ty), (go.GoType.Named go!"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors.CallMeta" []), Kind.ty] false [(go.GoType.Named go!"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors.Reporter" []), (go.GoType.Named go!"context.Context" [])])))]
 
 attribute [instance] reportable.TypeAssumptions.type_repr
   reportable.TypeAssumptions.underlying
-  reportable.TypeAssumptions.get_clientMetrics
-  reportable.TypeAssumptions.set_clientMetrics
-  reportable.TypeAssumptions.get_serverMetrics
-  reportable.TypeAssumptions.set_serverMetrics
-  reportable.TypeAssumptions.get_opts
-  reportable.TypeAssumptions.set_opts
+  reportable.TypeAssumptions.get'clientMetrics
+  reportable.TypeAssumptions.set'clientMetrics
+  reportable.TypeAssumptions.get'serverMetrics
+  reportable.TypeAssumptions.set'serverMetrics
+  reportable.TypeAssumptions.get'opts
+  reportable.TypeAssumptions.set'opts
   reportable.TypeAssumptions.method_set
   reportable.TypeAssumptions.ptr_method_set
 
@@ -643,7 +643,7 @@ noncomputable instance ServerMetrics.zero_val [GooseExts] : ZeroVal ServerMetric
 @[irreducible] noncomputable def ServerMetrics.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ServerMetrics.fieldsUnsealed
 
-noncomputable instance equals_unfold_ServerMetrics [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ServerMetrics [GooseExts] [GoGlobalContext] :
     EqualsUnfold ServerMetrics.fields ServerMetrics.fieldsUnsealed :=
   ⟨by unfold ServerMetrics.fields; rfl⟩
 
@@ -653,35 +653,35 @@ noncomputable instance equals_unfold_ServerMetrics [GooseExts] [GoGlobalContext]
 class ServerMetrics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServerMetrics.underlying ServerMetrics
   underlying : go.UnderlyingDirectedEq ServerMetrics.ty ServerMetrics.underlying
-  get_serverStartedCounter : ∀ (x : ServerMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ServerMetrics.underlying go!"serverStartedCounter") #x (Val #(x.serverStartedCounter'))
-  set_serverStartedCounter : ∀ (x : ServerMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServerMetrics.underlying go!"serverStartedCounter") (PairV #x #y) (Val #(({ x with serverStartedCounter' := y } : ServerMetrics)))
-  get_serverHandledCounter : ∀ (x : ServerMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ServerMetrics.underlying go!"serverHandledCounter") #x (Val #(x.serverHandledCounter'))
-  set_serverHandledCounter : ∀ (x : ServerMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServerMetrics.underlying go!"serverHandledCounter") (PairV #x #y) (Val #(({ x with serverHandledCounter' := y } : ServerMetrics)))
-  get_serverStreamMsgReceived : ∀ (x : ServerMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ServerMetrics.underlying go!"serverStreamMsgReceived") #x (Val #(x.serverStreamMsgReceived'))
-  set_serverStreamMsgReceived : ∀ (x : ServerMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServerMetrics.underlying go!"serverStreamMsgReceived") (PairV #x #y) (Val #(({ x with serverStreamMsgReceived' := y } : ServerMetrics)))
-  get_serverStreamMsgSent : ∀ (x : ServerMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ServerMetrics.underlying go!"serverStreamMsgSent") #x (Val #(x.serverStreamMsgSent'))
-  set_serverStreamMsgSent : ∀ (x : ServerMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServerMetrics.underlying go!"serverStreamMsgSent") (PairV #x #y) (Val #(({ x with serverStreamMsgSent' := y } : ServerMetrics)))
-  get_serverHandledHistogram : ∀ (x : ServerMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ServerMetrics.underlying go!"serverHandledHistogram") #x (Val #(x.serverHandledHistogram'))
-  set_serverHandledHistogram : ∀ (x : ServerMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServerMetrics.underlying go!"serverHandledHistogram") (PairV #x #y) (Val #(({ x with serverHandledHistogram' := y } : ServerMetrics)))
-  get_contextLabelNames : ∀ (x : ServerMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ServerMetrics.underlying go!"contextLabelNames") #x (Val #(x.contextLabelNames'))
-  set_contextLabelNames : ∀ (x : ServerMetrics) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServerMetrics.underlying go!"contextLabelNames") (PairV #x #y) (Val #(({ x with contextLabelNames' := y } : ServerMetrics)))
+  get'serverStartedCounter : ∀ (x : ServerMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ServerMetrics.underlying go!"serverStartedCounter") #x (Val #(x.serverStartedCounter'))
+  set'serverStartedCounter : ∀ (x : ServerMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServerMetrics.underlying go!"serverStartedCounter") (PairV #x #y) (Val #(({ x with serverStartedCounter' := y } : ServerMetrics)))
+  get'serverHandledCounter : ∀ (x : ServerMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ServerMetrics.underlying go!"serverHandledCounter") #x (Val #(x.serverHandledCounter'))
+  set'serverHandledCounter : ∀ (x : ServerMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServerMetrics.underlying go!"serverHandledCounter") (PairV #x #y) (Val #(({ x with serverHandledCounter' := y } : ServerMetrics)))
+  get'serverStreamMsgReceived : ∀ (x : ServerMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ServerMetrics.underlying go!"serverStreamMsgReceived") #x (Val #(x.serverStreamMsgReceived'))
+  set'serverStreamMsgReceived : ∀ (x : ServerMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServerMetrics.underlying go!"serverStreamMsgReceived") (PairV #x #y) (Val #(({ x with serverStreamMsgReceived' := y } : ServerMetrics)))
+  get'serverStreamMsgSent : ∀ (x : ServerMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ServerMetrics.underlying go!"serverStreamMsgSent") #x (Val #(x.serverStreamMsgSent'))
+  set'serverStreamMsgSent : ∀ (x : ServerMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServerMetrics.underlying go!"serverStreamMsgSent") (PairV #x #y) (Val #(({ x with serverStreamMsgSent' := y } : ServerMetrics)))
+  get'serverHandledHistogram : ∀ (x : ServerMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ServerMetrics.underlying go!"serverHandledHistogram") #x (Val #(x.serverHandledHistogram'))
+  set'serverHandledHistogram : ∀ (x : ServerMetrics) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServerMetrics.underlying go!"serverHandledHistogram") (PairV #x #y) (Val #(({ x with serverHandledHistogram' := y } : ServerMetrics)))
+  get'contextLabelNames : ∀ (x : ServerMetrics), go.IsGoStepPureDetTagged under (StructFieldGet ServerMetrics.underlying go!"contextLabelNames") #x (Val #(x.contextLabelNames'))
+  set'contextLabelNames : ∀ (x : ServerMetrics) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServerMetrics.underlying go!"contextLabelNames") (PairV #x #y) (Val #(({ x with contextLabelNames' := y } : ServerMetrics)))
   method_set : go.MethodSetIs ServerMetrics.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerMetrics.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly _root_.Perennial.github_com.prometheus.client_golang.prometheus.Metric.ty)] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Desc.ty))] false []))), (go!"InitializeMetrics", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.reflection.ServiceInfoProvider.ty] false []))), (go!"StreamServerInterceptor", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] true [_root_.Perennial.google_golang_org.grpc.StreamServerInterceptor.ty]))), (go!"UnaryServerInterceptor", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] true [_root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty]))), (go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.preRegisterMethod", (some (go.signature.Signature [go.string, (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.MethodInfo.ty)] false [])))]
 
 attribute [instance] ServerMetrics.TypeAssumptions.type_repr
   ServerMetrics.TypeAssumptions.underlying
-  ServerMetrics.TypeAssumptions.get_serverStartedCounter
-  ServerMetrics.TypeAssumptions.set_serverStartedCounter
-  ServerMetrics.TypeAssumptions.get_serverHandledCounter
-  ServerMetrics.TypeAssumptions.set_serverHandledCounter
-  ServerMetrics.TypeAssumptions.get_serverStreamMsgReceived
-  ServerMetrics.TypeAssumptions.set_serverStreamMsgReceived
-  ServerMetrics.TypeAssumptions.get_serverStreamMsgSent
-  ServerMetrics.TypeAssumptions.set_serverStreamMsgSent
-  ServerMetrics.TypeAssumptions.get_serverHandledHistogram
-  ServerMetrics.TypeAssumptions.set_serverHandledHistogram
-  ServerMetrics.TypeAssumptions.get_contextLabelNames
-  ServerMetrics.TypeAssumptions.set_contextLabelNames
+  ServerMetrics.TypeAssumptions.get'serverStartedCounter
+  ServerMetrics.TypeAssumptions.set'serverStartedCounter
+  ServerMetrics.TypeAssumptions.get'serverHandledCounter
+  ServerMetrics.TypeAssumptions.set'serverHandledCounter
+  ServerMetrics.TypeAssumptions.get'serverStreamMsgReceived
+  ServerMetrics.TypeAssumptions.set'serverStreamMsgReceived
+  ServerMetrics.TypeAssumptions.get'serverStreamMsgSent
+  ServerMetrics.TypeAssumptions.set'serverStreamMsgSent
+  ServerMetrics.TypeAssumptions.get'serverHandledHistogram
+  ServerMetrics.TypeAssumptions.set'serverHandledHistogram
+  ServerMetrics.TypeAssumptions.get'contextLabelNames
+  ServerMetrics.TypeAssumptions.set'contextLabelNames
   ServerMetrics.TypeAssumptions.method_set
   ServerMetrics.TypeAssumptions.ptr_method_set
 
@@ -704,7 +704,7 @@ noncomputable instance serverMetricsConfig.zero_val [GooseExts] : ZeroVal server
 @[irreducible] noncomputable def serverMetricsConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   serverMetricsConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_serverMetricsConfig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'serverMetricsConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold serverMetricsConfig.fields serverMetricsConfig.fieldsUnsealed :=
   ⟨by unfold serverMetricsConfig.fields; rfl⟩
 
@@ -714,27 +714,27 @@ noncomputable instance equals_unfold_serverMetricsConfig [GooseExts] [GoGlobalCo
 class serverMetricsConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverMetricsConfig.underlying serverMetricsConfig
   underlying : go.UnderlyingDirectedEq serverMetricsConfig.ty serverMetricsConfig.underlying
-  get_counterOpts : ∀ (x : serverMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet serverMetricsConfig.underlying go!"counterOpts") #x (Val #(x.counterOpts'))
-  set_counterOpts : ∀ (x : serverMetricsConfig) (y : counterOptions), go.IsGoStepPureDetTagged under (StructFieldSet serverMetricsConfig.underlying go!"counterOpts") (PairV #x #y) (Val #(({ x with counterOpts' := y } : serverMetricsConfig)))
-  get_histogramOpts : ∀ (x : serverMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet serverMetricsConfig.underlying go!"histogramOpts") #x (Val #(x.histogramOpts'))
-  set_histogramOpts : ∀ (x : serverMetricsConfig) (y : histogramOptions), go.IsGoStepPureDetTagged under (StructFieldSet serverMetricsConfig.underlying go!"histogramOpts") (PairV #x #y) (Val #(({ x with histogramOpts' := y } : serverMetricsConfig)))
-  get_enableHistogram : ∀ (x : serverMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet serverMetricsConfig.underlying go!"enableHistogram") #x (Val #(x.enableHistogram'))
-  set_enableHistogram : ∀ (x : serverMetricsConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverMetricsConfig.underlying go!"enableHistogram") (PairV #x #y) (Val #(({ x with enableHistogram' := y } : serverMetricsConfig)))
-  get_contextLabels : ∀ (x : serverMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet serverMetricsConfig.underlying go!"contextLabels") #x (Val #(x.contextLabels'))
-  set_contextLabels : ∀ (x : serverMetricsConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverMetricsConfig.underlying go!"contextLabels") (PairV #x #y) (Val #(({ x with contextLabels' := y } : serverMetricsConfig)))
+  get'counterOpts : ∀ (x : serverMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet serverMetricsConfig.underlying go!"counterOpts") #x (Val #(x.counterOpts'))
+  set'counterOpts : ∀ (x : serverMetricsConfig) (y : counterOptions), go.IsGoStepPureDetTagged under (StructFieldSet serverMetricsConfig.underlying go!"counterOpts") (PairV #x #y) (Val #(({ x with counterOpts' := y } : serverMetricsConfig)))
+  get'histogramOpts : ∀ (x : serverMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet serverMetricsConfig.underlying go!"histogramOpts") #x (Val #(x.histogramOpts'))
+  set'histogramOpts : ∀ (x : serverMetricsConfig) (y : histogramOptions), go.IsGoStepPureDetTagged under (StructFieldSet serverMetricsConfig.underlying go!"histogramOpts") (PairV #x #y) (Val #(({ x with histogramOpts' := y } : serverMetricsConfig)))
+  get'enableHistogram : ∀ (x : serverMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet serverMetricsConfig.underlying go!"enableHistogram") #x (Val #(x.enableHistogram'))
+  set'enableHistogram : ∀ (x : serverMetricsConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverMetricsConfig.underlying go!"enableHistogram") (PairV #x #y) (Val #(({ x with enableHistogram' := y } : serverMetricsConfig)))
+  get'contextLabels : ∀ (x : serverMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet serverMetricsConfig.underlying go!"contextLabels") #x (Val #(x.contextLabels'))
+  set'contextLabels : ∀ (x : serverMetricsConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverMetricsConfig.underlying go!"contextLabels") (PairV #x #y) (Val #(({ x with contextLabels' := y } : serverMetricsConfig)))
   method_set : go.MethodSetIs serverMetricsConfig.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverMetricsConfig.ty) [(go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.apply", (some (go.signature.Signature [(go.GoType.SliceType ServerMetricsOption.ty)] false [])))]
 
 attribute [instance] serverMetricsConfig.TypeAssumptions.type_repr
   serverMetricsConfig.TypeAssumptions.underlying
-  serverMetricsConfig.TypeAssumptions.get_counterOpts
-  serverMetricsConfig.TypeAssumptions.set_counterOpts
-  serverMetricsConfig.TypeAssumptions.get_histogramOpts
-  serverMetricsConfig.TypeAssumptions.set_histogramOpts
-  serverMetricsConfig.TypeAssumptions.get_enableHistogram
-  serverMetricsConfig.TypeAssumptions.set_enableHistogram
-  serverMetricsConfig.TypeAssumptions.get_contextLabels
-  serverMetricsConfig.TypeAssumptions.set_contextLabels
+  serverMetricsConfig.TypeAssumptions.get'counterOpts
+  serverMetricsConfig.TypeAssumptions.set'counterOpts
+  serverMetricsConfig.TypeAssumptions.get'histogramOpts
+  serverMetricsConfig.TypeAssumptions.set'histogramOpts
+  serverMetricsConfig.TypeAssumptions.get'enableHistogram
+  serverMetricsConfig.TypeAssumptions.set'enableHistogram
+  serverMetricsConfig.TypeAssumptions.get'contextLabels
+  serverMetricsConfig.TypeAssumptions.set'contextLabels
   serverMetricsConfig.TypeAssumptions.method_set
   serverMetricsConfig.TypeAssumptions.ptr_method_set
 
@@ -753,51 +753,51 @@ attribute [instance] ServerMetricsOption.TypeAssumptions.underlying
   ServerMetricsOption.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ClientMetrics_instance : ClientMetrics.TypeAssumptions
-  clientMetricsConfig_instance : clientMetricsConfig.TypeAssumptions
-  ClientMetricsOption_instance : ClientMetricsOption.TypeAssumptions
-  grpcType_instance : grpcType.TypeAssumptions
-  Kind_instance : Kind.TypeAssumptions
-  CounterOption_instance : CounterOption.TypeAssumptions
-  counterOptions_instance : counterOptions.TypeAssumptions
-  HistogramOption_instance : HistogramOption.TypeAssumptions
-  histogramOptions_instance : histogramOptions.TypeAssumptions
-  Option_instance : Option.TypeAssumptions
-  config_instance : config.TypeAssumptions
-  reporter_instance : reporter.TypeAssumptions
-  reportable_instance : reportable.TypeAssumptions
-  ServerMetrics_instance : ServerMetrics.TypeAssumptions
-  exemplarFromCtxFn_instance : exemplarFromCtxFn.TypeAssumptions
-  labelsFromCtxFn_instance : labelsFromCtxFn.TypeAssumptions
-  serverMetricsConfig_instance : serverMetricsConfig.TypeAssumptions
-  ServerMetricsOption_instance : ServerMetricsOption.TypeAssumptions
-  WithServerHandlingTimeHistogram_unfold : FuncUnfold WithServerHandlingTimeHistogram [] WithServerHandlingTimeHistogram.impl
-  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
-  import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
-  import_reflection_Assumption : _root_.Perennial.google_golang_org.grpc.reflection.Assumptions
+  instance'ClientMetrics : ClientMetrics.TypeAssumptions
+  instance'clientMetricsConfig : clientMetricsConfig.TypeAssumptions
+  instance'ClientMetricsOption : ClientMetricsOption.TypeAssumptions
+  instance'grpcType : grpcType.TypeAssumptions
+  instance'Kind : Kind.TypeAssumptions
+  instance'CounterOption : CounterOption.TypeAssumptions
+  instance'counterOptions : counterOptions.TypeAssumptions
+  instance'HistogramOption : HistogramOption.TypeAssumptions
+  instance'histogramOptions : histogramOptions.TypeAssumptions
+  instance'Option : Option.TypeAssumptions
+  instance'config : config.TypeAssumptions
+  instance'reporter : reporter.TypeAssumptions
+  instance'reportable : reportable.TypeAssumptions
+  instance'ServerMetrics : ServerMetrics.TypeAssumptions
+  instance'exemplarFromCtxFn : exemplarFromCtxFn.TypeAssumptions
+  instance'labelsFromCtxFn : labelsFromCtxFn.TypeAssumptions
+  instance'serverMetricsConfig : serverMetricsConfig.TypeAssumptions
+  instance'ServerMetricsOption : ServerMetricsOption.TypeAssumptions
+  unfold'WithServerHandlingTimeHistogram : FuncUnfold WithServerHandlingTimeHistogram [] WithServerHandlingTimeHistogram.impl
+  import'prometheus : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  import'grpc : _root_.Perennial.google_golang_org.grpc.Assumptions
+  import'reflection : _root_.Perennial.google_golang_org.grpc.reflection.Assumptions
 
-attribute [instance] Assumptions.ClientMetrics_instance
-  Assumptions.clientMetricsConfig_instance
-  Assumptions.ClientMetricsOption_instance
-  Assumptions.grpcType_instance
-  Assumptions.Kind_instance
-  Assumptions.CounterOption_instance
-  Assumptions.counterOptions_instance
-  Assumptions.HistogramOption_instance
-  Assumptions.histogramOptions_instance
-  Assumptions.Option_instance
-  Assumptions.config_instance
-  Assumptions.reporter_instance
-  Assumptions.reportable_instance
-  Assumptions.ServerMetrics_instance
-  Assumptions.exemplarFromCtxFn_instance
-  Assumptions.labelsFromCtxFn_instance
-  Assumptions.serverMetricsConfig_instance
-  Assumptions.ServerMetricsOption_instance
-  Assumptions.WithServerHandlingTimeHistogram_unfold
-  Assumptions.import_prometheus_Assumption
-  Assumptions.import_grpc_Assumption
-  Assumptions.import_reflection_Assumption
+attribute [instance] Assumptions.instance'ClientMetrics
+  Assumptions.instance'clientMetricsConfig
+  Assumptions.instance'ClientMetricsOption
+  Assumptions.instance'grpcType
+  Assumptions.instance'Kind
+  Assumptions.instance'CounterOption
+  Assumptions.instance'counterOptions
+  Assumptions.instance'HistogramOption
+  Assumptions.instance'histogramOptions
+  Assumptions.instance'Option
+  Assumptions.instance'config
+  Assumptions.instance'reporter
+  Assumptions.instance'reportable
+  Assumptions.instance'ServerMetrics
+  Assumptions.instance'exemplarFromCtxFn
+  Assumptions.instance'labelsFromCtxFn
+  Assumptions.instance'serverMetricsConfig
+  Assumptions.instance'ServerMetricsOption
+  Assumptions.unfold'WithServerHandlingTimeHistogram
+  Assumptions.import'prometheus
+  Assumptions.import'grpc
+  Assumptions.import'reflection
 
 end github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus
 

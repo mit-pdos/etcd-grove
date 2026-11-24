@@ -314,27 +314,27 @@ attribute [instance] priorityLevelConfigurations.TypeAssumptions.type_repr
   priorityLevelConfigurations.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  FlowcontrolV1Interface_instance : FlowcontrolV1Interface.TypeAssumptions
-  FlowcontrolV1Client_instance : FlowcontrolV1Client.TypeAssumptions
-  FlowSchemasGetter_instance : FlowSchemasGetter.TypeAssumptions
-  FlowSchemaInterface_instance : FlowSchemaInterface.TypeAssumptions
-  flowSchemas_instance : flowSchemas.TypeAssumptions
-  FlowSchemaExpansion_instance : FlowSchemaExpansion.TypeAssumptions
-  PriorityLevelConfigurationExpansion_instance : PriorityLevelConfigurationExpansion.TypeAssumptions
-  PriorityLevelConfigurationsGetter_instance : PriorityLevelConfigurationsGetter.TypeAssumptions
-  PriorityLevelConfigurationInterface_instance : PriorityLevelConfigurationInterface.TypeAssumptions
-  priorityLevelConfigurations_instance : priorityLevelConfigurations.TypeAssumptions
+  instance'FlowcontrolV1Interface : FlowcontrolV1Interface.TypeAssumptions
+  instance'FlowcontrolV1Client : FlowcontrolV1Client.TypeAssumptions
+  instance'FlowSchemasGetter : FlowSchemasGetter.TypeAssumptions
+  instance'FlowSchemaInterface : FlowSchemaInterface.TypeAssumptions
+  instance'flowSchemas : flowSchemas.TypeAssumptions
+  instance'FlowSchemaExpansion : FlowSchemaExpansion.TypeAssumptions
+  instance'PriorityLevelConfigurationExpansion : PriorityLevelConfigurationExpansion.TypeAssumptions
+  instance'PriorityLevelConfigurationsGetter : PriorityLevelConfigurationsGetter.TypeAssumptions
+  instance'PriorityLevelConfigurationInterface : PriorityLevelConfigurationInterface.TypeAssumptions
+  instance'priorityLevelConfigurations : priorityLevelConfigurations.TypeAssumptions
 
-attribute [instance] Assumptions.FlowcontrolV1Interface_instance
-  Assumptions.FlowcontrolV1Client_instance
-  Assumptions.FlowSchemasGetter_instance
-  Assumptions.FlowSchemaInterface_instance
-  Assumptions.flowSchemas_instance
-  Assumptions.FlowSchemaExpansion_instance
-  Assumptions.PriorityLevelConfigurationExpansion_instance
-  Assumptions.PriorityLevelConfigurationsGetter_instance
-  Assumptions.PriorityLevelConfigurationInterface_instance
-  Assumptions.priorityLevelConfigurations_instance
+attribute [instance] Assumptions.instance'FlowcontrolV1Interface
+  Assumptions.instance'FlowcontrolV1Client
+  Assumptions.instance'FlowSchemasGetter
+  Assumptions.instance'FlowSchemaInterface
+  Assumptions.instance'flowSchemas
+  Assumptions.instance'FlowSchemaExpansion
+  Assumptions.instance'PriorityLevelConfigurationExpansion
+  Assumptions.instance'PriorityLevelConfigurationsGetter
+  Assumptions.instance'PriorityLevelConfigurationInterface
+  Assumptions.instance'priorityLevelConfigurations
 
 end k8s_io.client_go.kubernetes.typed.flowcontrol.v1
 

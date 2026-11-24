@@ -24,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.serviceconfig.Assumptions]
 
-noncomputable instance ParseResult_typed_pointsto :
+noncomputable instance typed_pointsto'ParseResult :
     TypedPointsto (GF := GF) google_golang_org.grpc.serviceconfig.ParseResult where
   typedPointstoDef l v dq := iprop(
     "Config" ∷ typedPointsto (structFieldRef google_golang_org.grpc.serviceconfig.ParseResult go!"Config" l) v.Config' dq ∗
@@ -34,11 +34,11 @@ noncomputable instance ParseResult_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ParseResult_into_val_typed :
+noncomputable instance into_val_typed'ParseResult :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.serviceconfig.ParseResult google_golang_org.grpc.serviceconfig.ParseResult.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ParseResult_access_load_Config (l : Loc) (v : google_golang_org.grpc.serviceconfig.ParseResult) (dq : DFrac) :
+noncomputable instance access_load'ParseResult'Config (l : Loc) (v : google_golang_org.grpc.serviceconfig.ParseResult) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceconfig.ParseResult go!"Config" l) v.Config' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceconfig.ParseResult go!"Config" l) v.Config' dq)
@@ -46,7 +46,7 @@ noncomputable instance ParseResult_access_load_Config (l : Loc) (v : google_gola
  by
   solve_pointsto_access_struct
 
-noncomputable instance ParseResult_access_store_Config (l : Loc) (v : google_golang_org.grpc.serviceconfig.ParseResult) (y : google_golang_org.grpc.serviceconfig.Config) :
+noncomputable instance access_store'ParseResult'Config (l : Loc) (v : google_golang_org.grpc.serviceconfig.ParseResult) (y : google_golang_org.grpc.serviceconfig.Config) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceconfig.ParseResult go!"Config" l) v.Config' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceconfig.ParseResult go!"Config" l) y (DFrac.own 1))
@@ -54,7 +54,7 @@ noncomputable instance ParseResult_access_store_Config (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance ParseResult_access_load_Err (l : Loc) (v : google_golang_org.grpc.serviceconfig.ParseResult) (dq : DFrac) :
+noncomputable instance access_load'ParseResult'Err (l : Loc) (v : google_golang_org.grpc.serviceconfig.ParseResult) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceconfig.ParseResult go!"Err" l) v.Err' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceconfig.ParseResult go!"Err" l) v.Err' dq)
@@ -62,7 +62,7 @@ noncomputable instance ParseResult_access_load_Err (l : Loc) (v : google_golang_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ParseResult_access_store_Err (l : Loc) (v : google_golang_org.grpc.serviceconfig.ParseResult) (y : GoError) :
+noncomputable instance access_store'ParseResult'Err (l : Loc) (v : google_golang_org.grpc.serviceconfig.ParseResult) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceconfig.ParseResult go!"Err" l) v.Err' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceconfig.ParseResult go!"Err" l) y (DFrac.own 1))

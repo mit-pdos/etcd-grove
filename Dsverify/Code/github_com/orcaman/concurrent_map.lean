@@ -160,7 +160,7 @@ noncomputable def ConcurrentMap.MSet.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Sets the given value under the specified key.
 
     go: concurrent_map.go:44:24 -/
-noncomputable def ConcurrentMap.Set.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def ConcurrentMap.Set''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "key"
   (Lam "value"
@@ -1101,7 +1101,7 @@ noncomputable def fnv32.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Val #(W32 2166136261))
   (Let "hash" (App (Val (GoInstruction (GoAlloc go.uint32))) (App (Val (GoInstruction (GoZeroVal go.uint32))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (let prime32 := #(W32 16777619);
+  (let prime32₀ := #(W32 16777619);
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
   (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0")))
   (Let "keyLength" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -1122,7 +1122,7 @@ noncomputable def fnv32.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint32))) (Pair (Var "hash") (App (Val (GoInstruction (GoOp GoXor go.uint32))) (Pair (App (Val (GoInstruction (GoLoad go.uint32))) (Var "hash")) (App (Val (GoInstruction (Convert go.byte go.uint32))) (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "key")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (Var "hash") (App (Val (GoInstruction (GoOp GoMul go.uint32))) (Pair (App (Val (GoInstruction (GoLoad go.uint32))) (Var "hash")) (Val prime32)))))))))
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (Var "hash") (App (Val (GoInstruction (GoOp GoMul go.uint32))) (Pair (App (Val (GoInstruction (GoLoad go.uint32))) (Var "hash")) (Val prime32₀)))))))))
   (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
@@ -1163,105 +1163,105 @@ class ConcurrentMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   underlying : go.UnderlyingDirectedEq ConcurrentMap.ty ConcurrentMap.underlying
   method_set : go.MethodSetIs ConcurrentMap.ty [(go!"Clear", (some (go.signature.Signature [] false []))), (go!"Count", (some (go.signature.Signature [] false [go.int]))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool]))), (go!"GetShard", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ConcurrentMapShared.ty)]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsEmpty", (some (go.signature.Signature [] false [go.bool]))), (go!"Items", (some (go.signature.Signature [] false [(go.GoType.MapType go.string (go.GoType.InterfaceType []))]))), (go!"Iter", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Tuple.ty)]))), (go!"IterBuffered", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Tuple.ty)]))), (go!"IterCb", (some (go.signature.Signature [IterCb.ty] false []))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"MSet", (some (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType []))] false []))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Pop", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool]))), (go!"Remove", (some (go.signature.Signature [go.string] false []))), (go!"RemoveCb", (some (go.signature.Signature [go.string, RemoveCb.ty] false [go.bool]))), (go!"Set", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"SetIfAbsent", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [go.bool]))), (go!"Upsert", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType []), UpsertCb.ty] false [(go.GoType.InterfaceType [])])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConcurrentMap.ty) [(go!"Clear", (some (go.signature.Signature [] false []))), (go!"Count", (some (go.signature.Signature [] false [go.int]))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool]))), (go!"GetShard", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType ConcurrentMapShared.ty)]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsEmpty", (some (go.signature.Signature [] false [go.bool]))), (go!"Items", (some (go.signature.Signature [] false [(go.GoType.MapType go.string (go.GoType.InterfaceType []))]))), (go!"Iter", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Tuple.ty)]))), (go!"IterBuffered", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Tuple.ty)]))), (go!"IterCb", (some (go.signature.Signature [IterCb.ty] false []))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"MSet", (some (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType []))] false []))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Pop", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool]))), (go!"Remove", (some (go.signature.Signature [go.string] false []))), (go!"RemoveCb", (some (go.signature.Signature [go.string, RemoveCb.ty] false [go.bool]))), (go!"Set", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"SetIfAbsent", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [go.bool]))), (go!"Upsert", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType []), UpsertCb.ty] false [(go.GoType.InterfaceType [])])))]
-  Clear_unfold : MethodUnfold ConcurrentMap.ty go!"Clear" ConcurrentMap.Clear.impl
-  Count_unfold : MethodUnfold ConcurrentMap.ty go!"Count" ConcurrentMap.Count.impl
-  Get_unfold : MethodUnfold ConcurrentMap.ty go!"Get" ConcurrentMap.Get.impl
-  GetShard_unfold : MethodUnfold ConcurrentMap.ty go!"GetShard" ConcurrentMap.GetShard.impl
-  Has_unfold : MethodUnfold ConcurrentMap.ty go!"Has" ConcurrentMap.Has.impl
-  IsEmpty_unfold : MethodUnfold ConcurrentMap.ty go!"IsEmpty" ConcurrentMap.IsEmpty.impl
-  Items_unfold : MethodUnfold ConcurrentMap.ty go!"Items" ConcurrentMap.Items.impl
-  Iter_unfold : MethodUnfold ConcurrentMap.ty go!"Iter" ConcurrentMap.Iter.impl
-  IterBuffered_unfold : MethodUnfold ConcurrentMap.ty go!"IterBuffered" ConcurrentMap.IterBuffered.impl
-  IterCb_unfold : MethodUnfold ConcurrentMap.ty go!"IterCb" ConcurrentMap.IterCb.impl
-  Keys_unfold : MethodUnfold ConcurrentMap.ty go!"Keys" ConcurrentMap.Keys.impl
-  MSet_unfold : MethodUnfold ConcurrentMap.ty go!"MSet" ConcurrentMap.MSet.impl
-  MarshalJSON_unfold : MethodUnfold ConcurrentMap.ty go!"MarshalJSON" ConcurrentMap.MarshalJSON.impl
-  Pop_unfold : MethodUnfold ConcurrentMap.ty go!"Pop" ConcurrentMap.Pop.impl
-  Remove_unfold : MethodUnfold ConcurrentMap.ty go!"Remove" ConcurrentMap.Remove.impl
-  RemoveCb_unfold : MethodUnfold ConcurrentMap.ty go!"RemoveCb" ConcurrentMap.RemoveCb.impl
-  Set_unfold : MethodUnfold ConcurrentMap.ty go!"Set" ConcurrentMap.Set.impl
-  SetIfAbsent_unfold : MethodUnfold ConcurrentMap.ty go!"SetIfAbsent" ConcurrentMap.SetIfAbsent.impl
-  Upsert_unfold : MethodUnfold ConcurrentMap.ty go!"Upsert" ConcurrentMap.Upsert.impl
-  ptr_Clear_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Clear" (LamV "$r"
+  unfold'Clear : MethodUnfold ConcurrentMap.ty go!"Clear" ConcurrentMap.Clear.impl
+  unfold'Count : MethodUnfold ConcurrentMap.ty go!"Count" ConcurrentMap.Count.impl
+  unfold'Get : MethodUnfold ConcurrentMap.ty go!"Get" ConcurrentMap.Get.impl
+  unfold'GetShard : MethodUnfold ConcurrentMap.ty go!"GetShard" ConcurrentMap.GetShard.impl
+  unfold'Has : MethodUnfold ConcurrentMap.ty go!"Has" ConcurrentMap.Has.impl
+  unfold'IsEmpty : MethodUnfold ConcurrentMap.ty go!"IsEmpty" ConcurrentMap.IsEmpty.impl
+  unfold'Items : MethodUnfold ConcurrentMap.ty go!"Items" ConcurrentMap.Items.impl
+  unfold'Iter : MethodUnfold ConcurrentMap.ty go!"Iter" ConcurrentMap.Iter.impl
+  unfold'IterBuffered : MethodUnfold ConcurrentMap.ty go!"IterBuffered" ConcurrentMap.IterBuffered.impl
+  unfold'IterCb : MethodUnfold ConcurrentMap.ty go!"IterCb" ConcurrentMap.IterCb.impl
+  unfold'Keys : MethodUnfold ConcurrentMap.ty go!"Keys" ConcurrentMap.Keys.impl
+  unfold'MSet : MethodUnfold ConcurrentMap.ty go!"MSet" ConcurrentMap.MSet.impl
+  unfold'MarshalJSON : MethodUnfold ConcurrentMap.ty go!"MarshalJSON" ConcurrentMap.MarshalJSON.impl
+  unfold'Pop : MethodUnfold ConcurrentMap.ty go!"Pop" ConcurrentMap.Pop.impl
+  unfold'Remove : MethodUnfold ConcurrentMap.ty go!"Remove" ConcurrentMap.Remove.impl
+  unfold'RemoveCb : MethodUnfold ConcurrentMap.ty go!"RemoveCb" ConcurrentMap.RemoveCb.impl
+  unfold'Set : MethodUnfold ConcurrentMap.ty go!"Set" ConcurrentMap.Set''.impl
+  unfold'SetIfAbsent : MethodUnfold ConcurrentMap.ty go!"SetIfAbsent" ConcurrentMap.SetIfAbsent.impl
+  unfold'Upsert : MethodUnfold ConcurrentMap.ty go!"Upsert" ConcurrentMap.Upsert.impl
+  ptr_unfold'Clear : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Clear" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"Clear"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_Count_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Count" (LamV "$r"
+  ptr_unfold'Count : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Count" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"Count"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Get" (LamV "$r"
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"Get"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_GetShard_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"GetShard" (LamV "$r"
+  ptr_unfold'GetShard : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"GetShard" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"GetShard"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_Has_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Has" (LamV "$r"
+  ptr_unfold'Has : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Has" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"Has"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_IsEmpty_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"IsEmpty" (LamV "$r"
+  ptr_unfold'IsEmpty : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"IsEmpty" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"IsEmpty"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_Items_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Items" (LamV "$r"
+  ptr_unfold'Items : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Items" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"Items"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_Iter_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Iter" (LamV "$r"
+  ptr_unfold'Iter : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Iter" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"Iter"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_IterBuffered_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"IterBuffered" (LamV "$r"
+  ptr_unfold'IterBuffered : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"IterBuffered" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"IterBuffered"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_IterCb_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"IterCb" (LamV "$r"
+  ptr_unfold'IterCb : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"IterCb" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"IterCb"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_Keys_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Keys" (LamV "$r"
+  ptr_unfold'Keys : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Keys" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"Keys"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_MSet_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"MSet" (LamV "$r"
+  ptr_unfold'MSet : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"MSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"MSet"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_MarshalJSON_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"MarshalJSON" (LamV "$r"
+  ptr_unfold'MarshalJSON : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"MarshalJSON" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"MarshalJSON"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_Pop_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Pop" (LamV "$r"
+  ptr_unfold'Pop : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Pop" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"Pop"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_Remove_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Remove" (LamV "$r"
+  ptr_unfold'Remove : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Remove" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"Remove"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_RemoveCb_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"RemoveCb" (LamV "$r"
+  ptr_unfold'RemoveCb : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"RemoveCb" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"RemoveCb"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_Set_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Set" (LamV "$r"
+  ptr_unfold'Set : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Set" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"Set"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_SetIfAbsent_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"SetIfAbsent" (LamV "$r"
+  ptr_unfold'SetIfAbsent : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"SetIfAbsent" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"SetIfAbsent"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
-  ptr_Upsert_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Upsert" (LamV "$r"
+  ptr_unfold'Upsert : MethodUnfold (go.GoType.PointerType ConcurrentMap.ty) go!"Upsert" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConcurrentMap.ty go!"Upsert"))) (App (Val (GoInstruction (GoLoad ConcurrentMap.ty))) (Var "$r"))))
 
 attribute [instance] ConcurrentMap.TypeAssumptions.underlying
   ConcurrentMap.TypeAssumptions.method_set
   ConcurrentMap.TypeAssumptions.ptr_method_set
-  ConcurrentMap.TypeAssumptions.Clear_unfold
-  ConcurrentMap.TypeAssumptions.Count_unfold
-  ConcurrentMap.TypeAssumptions.Get_unfold
-  ConcurrentMap.TypeAssumptions.GetShard_unfold
-  ConcurrentMap.TypeAssumptions.Has_unfold
-  ConcurrentMap.TypeAssumptions.IsEmpty_unfold
-  ConcurrentMap.TypeAssumptions.Items_unfold
-  ConcurrentMap.TypeAssumptions.Iter_unfold
-  ConcurrentMap.TypeAssumptions.IterBuffered_unfold
-  ConcurrentMap.TypeAssumptions.IterCb_unfold
-  ConcurrentMap.TypeAssumptions.Keys_unfold
-  ConcurrentMap.TypeAssumptions.MSet_unfold
-  ConcurrentMap.TypeAssumptions.MarshalJSON_unfold
-  ConcurrentMap.TypeAssumptions.Pop_unfold
-  ConcurrentMap.TypeAssumptions.Remove_unfold
-  ConcurrentMap.TypeAssumptions.RemoveCb_unfold
-  ConcurrentMap.TypeAssumptions.Set_unfold
-  ConcurrentMap.TypeAssumptions.SetIfAbsent_unfold
-  ConcurrentMap.TypeAssumptions.Upsert_unfold
-  ConcurrentMap.TypeAssumptions.ptr_Clear_unfold
-  ConcurrentMap.TypeAssumptions.ptr_Count_unfold
-  ConcurrentMap.TypeAssumptions.ptr_Get_unfold
-  ConcurrentMap.TypeAssumptions.ptr_GetShard_unfold
-  ConcurrentMap.TypeAssumptions.ptr_Has_unfold
-  ConcurrentMap.TypeAssumptions.ptr_IsEmpty_unfold
-  ConcurrentMap.TypeAssumptions.ptr_Items_unfold
-  ConcurrentMap.TypeAssumptions.ptr_Iter_unfold
-  ConcurrentMap.TypeAssumptions.ptr_IterBuffered_unfold
-  ConcurrentMap.TypeAssumptions.ptr_IterCb_unfold
-  ConcurrentMap.TypeAssumptions.ptr_Keys_unfold
-  ConcurrentMap.TypeAssumptions.ptr_MSet_unfold
-  ConcurrentMap.TypeAssumptions.ptr_MarshalJSON_unfold
-  ConcurrentMap.TypeAssumptions.ptr_Pop_unfold
-  ConcurrentMap.TypeAssumptions.ptr_Remove_unfold
-  ConcurrentMap.TypeAssumptions.ptr_RemoveCb_unfold
-  ConcurrentMap.TypeAssumptions.ptr_Set_unfold
-  ConcurrentMap.TypeAssumptions.ptr_SetIfAbsent_unfold
-  ConcurrentMap.TypeAssumptions.ptr_Upsert_unfold
+  ConcurrentMap.TypeAssumptions.unfold'Clear
+  ConcurrentMap.TypeAssumptions.unfold'Count
+  ConcurrentMap.TypeAssumptions.unfold'Get
+  ConcurrentMap.TypeAssumptions.unfold'GetShard
+  ConcurrentMap.TypeAssumptions.unfold'Has
+  ConcurrentMap.TypeAssumptions.unfold'IsEmpty
+  ConcurrentMap.TypeAssumptions.unfold'Items
+  ConcurrentMap.TypeAssumptions.unfold'Iter
+  ConcurrentMap.TypeAssumptions.unfold'IterBuffered
+  ConcurrentMap.TypeAssumptions.unfold'IterCb
+  ConcurrentMap.TypeAssumptions.unfold'Keys
+  ConcurrentMap.TypeAssumptions.unfold'MSet
+  ConcurrentMap.TypeAssumptions.unfold'MarshalJSON
+  ConcurrentMap.TypeAssumptions.unfold'Pop
+  ConcurrentMap.TypeAssumptions.unfold'Remove
+  ConcurrentMap.TypeAssumptions.unfold'RemoveCb
+  ConcurrentMap.TypeAssumptions.unfold'Set
+  ConcurrentMap.TypeAssumptions.unfold'SetIfAbsent
+  ConcurrentMap.TypeAssumptions.unfold'Upsert
+  ConcurrentMap.TypeAssumptions.ptr_unfold'Clear
+  ConcurrentMap.TypeAssumptions.ptr_unfold'Count
+  ConcurrentMap.TypeAssumptions.ptr_unfold'Get
+  ConcurrentMap.TypeAssumptions.ptr_unfold'GetShard
+  ConcurrentMap.TypeAssumptions.ptr_unfold'Has
+  ConcurrentMap.TypeAssumptions.ptr_unfold'IsEmpty
+  ConcurrentMap.TypeAssumptions.ptr_unfold'Items
+  ConcurrentMap.TypeAssumptions.ptr_unfold'Iter
+  ConcurrentMap.TypeAssumptions.ptr_unfold'IterBuffered
+  ConcurrentMap.TypeAssumptions.ptr_unfold'IterCb
+  ConcurrentMap.TypeAssumptions.ptr_unfold'Keys
+  ConcurrentMap.TypeAssumptions.ptr_unfold'MSet
+  ConcurrentMap.TypeAssumptions.ptr_unfold'MarshalJSON
+  ConcurrentMap.TypeAssumptions.ptr_unfold'Pop
+  ConcurrentMap.TypeAssumptions.ptr_unfold'Remove
+  ConcurrentMap.TypeAssumptions.ptr_unfold'RemoveCb
+  ConcurrentMap.TypeAssumptions.ptr_unfold'Set
+  ConcurrentMap.TypeAssumptions.ptr_unfold'SetIfAbsent
+  ConcurrentMap.TypeAssumptions.ptr_unfold'Upsert
 
 structure ConcurrentMapShared [GooseExts] where
   mk ::
@@ -1278,7 +1278,7 @@ noncomputable instance ConcurrentMapShared.zero_val [GooseExts] : ZeroVal Concur
 @[irreducible] noncomputable def ConcurrentMapShared.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConcurrentMapShared.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConcurrentMapShared [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ConcurrentMapShared [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConcurrentMapShared.fields ConcurrentMapShared.fieldsUnsealed :=
   ⟨by unfold ConcurrentMapShared.fields; rfl⟩
 
@@ -1288,45 +1288,45 @@ noncomputable instance equals_unfold_ConcurrentMapShared [GooseExts] [GoGlobalCo
 class ConcurrentMapShared.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConcurrentMapShared.underlying ConcurrentMapShared
   underlying : go.UnderlyingDirectedEq ConcurrentMapShared.ty ConcurrentMapShared.underlying
-  get_items : ∀ (x : ConcurrentMapShared), go.IsGoStepPureDetTagged under (StructFieldGet ConcurrentMapShared.underlying go!"items") #x (Val #(x.items'))
-  set_items : ∀ (x : ConcurrentMapShared) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ConcurrentMapShared.underlying go!"items") (PairV #x #y) (Val #(({ x with items' := y } : ConcurrentMapShared)))
-  get_RWMutex : ∀ (x : ConcurrentMapShared), go.IsGoStepPureDetTagged under (StructFieldGet ConcurrentMapShared.underlying go!"RWMutex") #x (Val #(x.RWMutex'))
-  set_RWMutex : ∀ (x : ConcurrentMapShared) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet ConcurrentMapShared.underlying go!"RWMutex") (PairV #x #y) (Val #(({ x with RWMutex' := y } : ConcurrentMapShared)))
+  get'items : ∀ (x : ConcurrentMapShared), go.IsGoStepPureDetTagged under (StructFieldGet ConcurrentMapShared.underlying go!"items") #x (Val #(x.items'))
+  set'items : ∀ (x : ConcurrentMapShared) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ConcurrentMapShared.underlying go!"items") (PairV #x #y) (Val #(({ x with items' := y } : ConcurrentMapShared)))
+  get'RWMutex : ∀ (x : ConcurrentMapShared), go.IsGoStepPureDetTagged under (StructFieldGet ConcurrentMapShared.underlying go!"RWMutex") #x (Val #(x.RWMutex'))
+  set'RWMutex : ∀ (x : ConcurrentMapShared) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet ConcurrentMapShared.underlying go!"RWMutex") (PairV #x #y) (Val #(({ x with RWMutex' := y } : ConcurrentMapShared)))
   method_set : go.MethodSetIs ConcurrentMapShared.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConcurrentMapShared.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"RLock", (some (go.signature.Signature [] false []))), (go!"RLocker", (some (go.signature.Signature [] false [_root_.Perennial.sync.Locker.ty]))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"TryRLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"sync.rUnlockSlow", (some (go.signature.Signature [go.int32] false [])))]
-  ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMapShared.ty) go!"Lock" (LamV "$r"
+  ptr_unfold'Lock : MethodUnfold (go.GoType.PointerType ConcurrentMapShared.ty) go!"Lock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef ConcurrentMapShared.ty go!"RWMutex"))) (Var "$r"))))
-  ptr_RLock_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMapShared.ty) go!"RLock" (LamV "$r"
+  ptr_unfold'RLock : MethodUnfold (go.GoType.PointerType ConcurrentMapShared.ty) go!"RLock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef ConcurrentMapShared.ty go!"RWMutex"))) (Var "$r"))))
-  ptr_RLocker_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMapShared.ty) go!"RLocker" (LamV "$r"
+  ptr_unfold'RLocker : MethodUnfold (go.GoType.PointerType ConcurrentMapShared.ty) go!"RLocker" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLocker"))) (App (Val (GoInstruction (StructFieldRef ConcurrentMapShared.ty go!"RWMutex"))) (Var "$r"))))
-  ptr_RUnlock_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMapShared.ty) go!"RUnlock" (LamV "$r"
+  ptr_unfold'RUnlock : MethodUnfold (go.GoType.PointerType ConcurrentMapShared.ty) go!"RUnlock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef ConcurrentMapShared.ty go!"RWMutex"))) (Var "$r"))))
-  ptr_TryLock_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMapShared.ty) go!"TryLock" (LamV "$r"
+  ptr_unfold'TryLock : MethodUnfold (go.GoType.PointerType ConcurrentMapShared.ty) go!"TryLock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"TryLock"))) (App (Val (GoInstruction (StructFieldRef ConcurrentMapShared.ty go!"RWMutex"))) (Var "$r"))))
-  ptr_TryRLock_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMapShared.ty) go!"TryRLock" (LamV "$r"
+  ptr_unfold'TryRLock : MethodUnfold (go.GoType.PointerType ConcurrentMapShared.ty) go!"TryRLock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"TryRLock"))) (App (Val (GoInstruction (StructFieldRef ConcurrentMapShared.ty go!"RWMutex"))) (Var "$r"))))
-  ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMapShared.ty) go!"Unlock" (LamV "$r"
+  ptr_unfold'Unlock : MethodUnfold (go.GoType.PointerType ConcurrentMapShared.ty) go!"Unlock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef ConcurrentMapShared.ty go!"RWMutex"))) (Var "$r"))))
-  ptr_rUnlockSlow_unfold : MethodUnfold (go.GoType.PointerType ConcurrentMapShared.ty) go!"rUnlockSlow" (LamV "$r"
+  ptr_unfold'rUnlockSlow : MethodUnfold (go.GoType.PointerType ConcurrentMapShared.ty) go!"rUnlockSlow" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"rUnlockSlow"))) (App (Val (GoInstruction (StructFieldRef ConcurrentMapShared.ty go!"RWMutex"))) (Var "$r"))))
 
 attribute [instance] ConcurrentMapShared.TypeAssumptions.type_repr
   ConcurrentMapShared.TypeAssumptions.underlying
-  ConcurrentMapShared.TypeAssumptions.get_items
-  ConcurrentMapShared.TypeAssumptions.set_items
-  ConcurrentMapShared.TypeAssumptions.get_RWMutex
-  ConcurrentMapShared.TypeAssumptions.set_RWMutex
+  ConcurrentMapShared.TypeAssumptions.get'items
+  ConcurrentMapShared.TypeAssumptions.set'items
+  ConcurrentMapShared.TypeAssumptions.get'RWMutex
+  ConcurrentMapShared.TypeAssumptions.set'RWMutex
   ConcurrentMapShared.TypeAssumptions.method_set
   ConcurrentMapShared.TypeAssumptions.ptr_method_set
-  ConcurrentMapShared.TypeAssumptions.ptr_Lock_unfold
-  ConcurrentMapShared.TypeAssumptions.ptr_RLock_unfold
-  ConcurrentMapShared.TypeAssumptions.ptr_RLocker_unfold
-  ConcurrentMapShared.TypeAssumptions.ptr_RUnlock_unfold
-  ConcurrentMapShared.TypeAssumptions.ptr_TryLock_unfold
-  ConcurrentMapShared.TypeAssumptions.ptr_TryRLock_unfold
-  ConcurrentMapShared.TypeAssumptions.ptr_Unlock_unfold
-  ConcurrentMapShared.TypeAssumptions.ptr_rUnlockSlow_unfold
+  ConcurrentMapShared.TypeAssumptions.ptr_unfold'Lock
+  ConcurrentMapShared.TypeAssumptions.ptr_unfold'RLock
+  ConcurrentMapShared.TypeAssumptions.ptr_unfold'RLocker
+  ConcurrentMapShared.TypeAssumptions.ptr_unfold'RUnlock
+  ConcurrentMapShared.TypeAssumptions.ptr_unfold'TryLock
+  ConcurrentMapShared.TypeAssumptions.ptr_unfold'TryRLock
+  ConcurrentMapShared.TypeAssumptions.ptr_unfold'Unlock
+  ConcurrentMapShared.TypeAssumptions.ptr_unfold'rUnlockSlow
 
 abbrev UpsertCb [GooseExts] : Type := GoFunc
 
@@ -1371,7 +1371,7 @@ noncomputable instance Tuple.zero_val [GooseExts] : ZeroVal Tuple :=
 @[irreducible] noncomputable def Tuple.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Tuple.fieldsUnsealed
 
-noncomputable instance equals_unfold_Tuple [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Tuple [GooseExts] [GoGlobalContext] :
     EqualsUnfold Tuple.fields Tuple.fieldsUnsealed :=
   ⟨by unfold Tuple.fields; rfl⟩
 
@@ -1381,19 +1381,19 @@ noncomputable instance equals_unfold_Tuple [GooseExts] [GoGlobalContext] :
 class Tuple.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Tuple.underlying Tuple
   underlying : go.UnderlyingDirectedEq Tuple.ty Tuple.underlying
-  get_Key : ∀ (x : Tuple), go.IsGoStepPureDetTagged under (StructFieldGet Tuple.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : Tuple) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Tuple.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Tuple)))
-  get_Val : ∀ (x : Tuple), go.IsGoStepPureDetTagged under (StructFieldGet Tuple.underlying go!"Val") #x (Val #(x.Val'))
-  set_Val : ∀ (x : Tuple) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Tuple.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : Tuple)))
+  get'Key : ∀ (x : Tuple), go.IsGoStepPureDetTagged under (StructFieldGet Tuple.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : Tuple) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Tuple.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Tuple)))
+  get'Val : ∀ (x : Tuple), go.IsGoStepPureDetTagged under (StructFieldGet Tuple.underlying go!"Val") #x (Val #(x.Val'))
+  set'Val : ∀ (x : Tuple) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Tuple.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : Tuple)))
   method_set : go.MethodSetIs Tuple.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Tuple.ty) []
 
 attribute [instance] Tuple.TypeAssumptions.type_repr
   Tuple.TypeAssumptions.underlying
-  Tuple.TypeAssumptions.get_Key
-  Tuple.TypeAssumptions.set_Key
-  Tuple.TypeAssumptions.get_Val
-  Tuple.TypeAssumptions.set_Val
+  Tuple.TypeAssumptions.get'Key
+  Tuple.TypeAssumptions.set'Key
+  Tuple.TypeAssumptions.get'Val
+  Tuple.TypeAssumptions.set'Val
   Tuple.TypeAssumptions.method_set
   Tuple.TypeAssumptions.ptr_method_set
 
@@ -1412,31 +1412,31 @@ attribute [instance] IterCb.TypeAssumptions.underlying
   IterCb.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ConcurrentMap_instance : ConcurrentMap.TypeAssumptions
-  ConcurrentMapShared_instance : ConcurrentMapShared.TypeAssumptions
-  UpsertCb_instance : UpsertCb.TypeAssumptions
-  RemoveCb_instance : RemoveCb.TypeAssumptions
-  Tuple_instance : Tuple.TypeAssumptions
-  IterCb_instance : IterCb.TypeAssumptions
-  New_unfold : FuncUnfold New [] New.impl
-  snapshot_unfold : FuncUnfold snapshot [] snapshot.impl
-  fanIn_unfold : FuncUnfold fanIn [] fanIn.impl
-  fnv32_unfold : FuncUnfold fnv32 [] fnv32.impl
-  import_json_Assumption : _root_.Perennial.encoding.json.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  instance'ConcurrentMap : ConcurrentMap.TypeAssumptions
+  instance'ConcurrentMapShared : ConcurrentMapShared.TypeAssumptions
+  instance'UpsertCb : UpsertCb.TypeAssumptions
+  instance'RemoveCb : RemoveCb.TypeAssumptions
+  instance'Tuple : Tuple.TypeAssumptions
+  instance'IterCb : IterCb.TypeAssumptions
+  unfold'New : FuncUnfold New [] New.impl
+  unfold'snapshot : FuncUnfold snapshot [] snapshot.impl
+  unfold'fanIn : FuncUnfold fanIn [] fanIn.impl
+  unfold'fnv32 : FuncUnfold fnv32 [] fnv32.impl
+  import'json : _root_.Perennial.encoding.json.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
 
-attribute [instance] Assumptions.ConcurrentMap_instance
-  Assumptions.ConcurrentMapShared_instance
-  Assumptions.UpsertCb_instance
-  Assumptions.RemoveCb_instance
-  Assumptions.Tuple_instance
-  Assumptions.IterCb_instance
-  Assumptions.New_unfold
-  Assumptions.snapshot_unfold
-  Assumptions.fanIn_unfold
-  Assumptions.fnv32_unfold
-  Assumptions.import_json_Assumption
-  Assumptions.import_sync_Assumption
+attribute [instance] Assumptions.instance'ConcurrentMap
+  Assumptions.instance'ConcurrentMapShared
+  Assumptions.instance'UpsertCb
+  Assumptions.instance'RemoveCb
+  Assumptions.instance'Tuple
+  Assumptions.instance'IterCb
+  Assumptions.unfold'New
+  Assumptions.unfold'snapshot
+  Assumptions.unfold'fanIn
+  Assumptions.unfold'fnv32
+  Assumptions.import'json
+  Assumptions.import'sync
 
 end github_com.orcaman.concurrent_map
 

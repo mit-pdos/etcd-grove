@@ -528,43 +528,43 @@ attribute [instance] roleBindings.TypeAssumptions.type_repr
   roleBindings.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ClusterRolesGetter_instance : ClusterRolesGetter.TypeAssumptions
-  ClusterRoleInterface_instance : ClusterRoleInterface.TypeAssumptions
-  clusterRoles_instance : clusterRoles.TypeAssumptions
-  ClusterRoleBindingsGetter_instance : ClusterRoleBindingsGetter.TypeAssumptions
-  ClusterRoleBindingInterface_instance : ClusterRoleBindingInterface.TypeAssumptions
-  clusterRoleBindings_instance : clusterRoleBindings.TypeAssumptions
-  ClusterRoleExpansion_instance : ClusterRoleExpansion.TypeAssumptions
-  ClusterRoleBindingExpansion_instance : ClusterRoleBindingExpansion.TypeAssumptions
-  RoleExpansion_instance : RoleExpansion.TypeAssumptions
-  RoleBindingExpansion_instance : RoleBindingExpansion.TypeAssumptions
-  RbacV1beta1Interface_instance : RbacV1beta1Interface.TypeAssumptions
-  RbacV1beta1Client_instance : RbacV1beta1Client.TypeAssumptions
-  RolesGetter_instance : RolesGetter.TypeAssumptions
-  RoleInterface_instance : RoleInterface.TypeAssumptions
-  roles_instance : roles.TypeAssumptions
-  RoleBindingsGetter_instance : RoleBindingsGetter.TypeAssumptions
-  RoleBindingInterface_instance : RoleBindingInterface.TypeAssumptions
-  roleBindings_instance : roleBindings.TypeAssumptions
+  instance'ClusterRolesGetter : ClusterRolesGetter.TypeAssumptions
+  instance'ClusterRoleInterface : ClusterRoleInterface.TypeAssumptions
+  instance'clusterRoles : clusterRoles.TypeAssumptions
+  instance'ClusterRoleBindingsGetter : ClusterRoleBindingsGetter.TypeAssumptions
+  instance'ClusterRoleBindingInterface : ClusterRoleBindingInterface.TypeAssumptions
+  instance'clusterRoleBindings : clusterRoleBindings.TypeAssumptions
+  instance'ClusterRoleExpansion : ClusterRoleExpansion.TypeAssumptions
+  instance'ClusterRoleBindingExpansion : ClusterRoleBindingExpansion.TypeAssumptions
+  instance'RoleExpansion : RoleExpansion.TypeAssumptions
+  instance'RoleBindingExpansion : RoleBindingExpansion.TypeAssumptions
+  instance'RbacV1beta1Interface : RbacV1beta1Interface.TypeAssumptions
+  instance'RbacV1beta1Client : RbacV1beta1Client.TypeAssumptions
+  instance'RolesGetter : RolesGetter.TypeAssumptions
+  instance'RoleInterface : RoleInterface.TypeAssumptions
+  instance'roles : roles.TypeAssumptions
+  instance'RoleBindingsGetter : RoleBindingsGetter.TypeAssumptions
+  instance'RoleBindingInterface : RoleBindingInterface.TypeAssumptions
+  instance'roleBindings : roleBindings.TypeAssumptions
 
-attribute [instance] Assumptions.ClusterRolesGetter_instance
-  Assumptions.ClusterRoleInterface_instance
-  Assumptions.clusterRoles_instance
-  Assumptions.ClusterRoleBindingsGetter_instance
-  Assumptions.ClusterRoleBindingInterface_instance
-  Assumptions.clusterRoleBindings_instance
-  Assumptions.ClusterRoleExpansion_instance
-  Assumptions.ClusterRoleBindingExpansion_instance
-  Assumptions.RoleExpansion_instance
-  Assumptions.RoleBindingExpansion_instance
-  Assumptions.RbacV1beta1Interface_instance
-  Assumptions.RbacV1beta1Client_instance
-  Assumptions.RolesGetter_instance
-  Assumptions.RoleInterface_instance
-  Assumptions.roles_instance
-  Assumptions.RoleBindingsGetter_instance
-  Assumptions.RoleBindingInterface_instance
-  Assumptions.roleBindings_instance
+attribute [instance] Assumptions.instance'ClusterRolesGetter
+  Assumptions.instance'ClusterRoleInterface
+  Assumptions.instance'clusterRoles
+  Assumptions.instance'ClusterRoleBindingsGetter
+  Assumptions.instance'ClusterRoleBindingInterface
+  Assumptions.instance'clusterRoleBindings
+  Assumptions.instance'ClusterRoleExpansion
+  Assumptions.instance'ClusterRoleBindingExpansion
+  Assumptions.instance'RoleExpansion
+  Assumptions.instance'RoleBindingExpansion
+  Assumptions.instance'RbacV1beta1Interface
+  Assumptions.instance'RbacV1beta1Client
+  Assumptions.instance'RolesGetter
+  Assumptions.instance'RoleInterface
+  Assumptions.instance'roles
+  Assumptions.instance'RoleBindingsGetter
+  Assumptions.instance'RoleBindingInterface
+  Assumptions.instance'roleBindings
 
 end k8s_io.client_go.kubernetes.typed.rbac.v1beta1
 

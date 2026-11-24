@@ -238,7 +238,7 @@ theorem ConditionsAwareDecisionUnion.Add.wp_proof
     · iexact Hd
     wp_apply (wp_Set__UnsortedList (K := w64) (T := Decision.ty) sp (DFrac.own 1) P) $$ [$HP]
       as %psl %ps ⟨HP, Hpsl, %Hps⟩
-    icases (ConditionsAwareDecisionUnion.ConditionsAwareDecisionUnion_access_load_subDecisionsPossibleDecisions
+    icases (ConditionsAwareDecisionUnion.access_load'ConditionsAwareDecisionUnion'subDecisionsPossibleDecisions
       p u5 (DFrac.own 1)).access_strict $$ Hp with ⟨Hf, Hclose⟩
     wp_apply (sets.Set.wp_ptr_Insert_of wp_Set__Insert _ (DFrac.own 1) u5.subDecisionsPossibleDecisions' S
       psl (DFrac.own 1) ps) $$ [$Hf $HS $Hpsl] as ⟨Hf, HS, -⟩

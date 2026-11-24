@@ -26,7 +26,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.imdea_software.swiftpaxos.dlog.Assumptions]
 
-noncomputable instance Logger_typed_pointsto :
+noncomputable instance typed_pointsto'Logger :
     TypedPointsto (GF := GF) github_com.imdea_software.swiftpaxos.dlog.Logger where
   typedPointstoDef l v dq := iprop(
     "logger" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"logger" l) v.logger' dq ∗
@@ -36,11 +36,11 @@ noncomputable instance Logger_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Logger_into_val_typed :
+noncomputable instance into_val_typed'Logger :
     IntoValTypedUnderlying (GF := GF) github_com.imdea_software.swiftpaxos.dlog.Logger github_com.imdea_software.swiftpaxos.dlog.Logger.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Logger_access_load_logger (l : Loc) (v : github_com.imdea_software.swiftpaxos.dlog.Logger) (dq : DFrac) :
+noncomputable instance access_load'Logger'logger (l : Loc) (v : github_com.imdea_software.swiftpaxos.dlog.Logger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"logger" l) v.logger' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"logger" l) v.logger' dq)
@@ -48,7 +48,7 @@ noncomputable instance Logger_access_load_logger (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_logger (l : Loc) (v : github_com.imdea_software.swiftpaxos.dlog.Logger) (y : Loc) :
+noncomputable instance access_store'Logger'logger (l : Loc) (v : github_com.imdea_software.swiftpaxos.dlog.Logger) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"logger" l) v.logger' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"logger" l) y (DFrac.own 1))
@@ -56,7 +56,7 @@ noncomputable instance Logger_access_store_logger (l : Loc) (v : github_com.imde
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_load_verbose (l : Loc) (v : github_com.imdea_software.swiftpaxos.dlog.Logger) (dq : DFrac) :
+noncomputable instance access_load'Logger'verbose (l : Loc) (v : github_com.imdea_software.swiftpaxos.dlog.Logger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"verbose" l) v.verbose' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"verbose" l) v.verbose' dq)
@@ -64,7 +64,7 @@ noncomputable instance Logger_access_load_verbose (l : Loc) (v : github_com.imde
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_verbose (l : Loc) (v : github_com.imdea_software.swiftpaxos.dlog.Logger) (y : Bool) :
+noncomputable instance access_store'Logger'verbose (l : Loc) (v : github_com.imdea_software.swiftpaxos.dlog.Logger) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"verbose" l) v.verbose' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"verbose" l) y (DFrac.own 1))

@@ -92,7 +92,7 @@ theorem optsAt_readOnly_rd (l : Loc) (dq : DFrac) (o : OptsM) :
     structFieldRef go_etcd_io.bbolt.Options go!"ReadOnly" l ↦{dq'} o.readOnly ∗
     (structFieldRef go_etcd_io.bbolt.Options go!"ReadOnly" l ↦{dq'} o.readOnly -∗ optsAt l dq o) := by
   iintro H
-  icases optsAt_acc l dq o (fun v => Options.Options_access_load_ReadOnly l v dq) $$ H with
+  icases optsAt_acc l dq o (fun v => Options.access_load'Options'ReadOnly l v dq) $$ H with
     ⟨%v, %hv, Hf, Hback⟩
   iexists dq
   rw [← hv.1]
@@ -102,7 +102,7 @@ theorem optsAt_mlock_rd (l : Loc) (dq : DFrac) (o : OptsM) :
     structFieldRef go_etcd_io.bbolt.Options go!"Mlock" l ↦{dq'} o.mlock ∗
     (structFieldRef go_etcd_io.bbolt.Options go!"Mlock" l ↦{dq'} o.mlock -∗ optsAt l dq o) := by
   iintro H
-  icases optsAt_acc l dq o (fun v => Options.Options_access_load_Mlock l v dq) $$ H with
+  icases optsAt_acc l dq o (fun v => Options.access_load'Options'Mlock l v dq) $$ H with
     ⟨%v, %hv, Hf, Hback⟩
   iexists dq
   rw [← hv.2.2.2.2.1]
@@ -112,7 +112,7 @@ theorem optsAt_pageSize_rd (l : Loc) (dq : DFrac) (o : OptsM) :
     structFieldRef go_etcd_io.bbolt.Options go!"PageSize" l ↦{dq'} o.pageSize ∗
     (structFieldRef go_etcd_io.bbolt.Options go!"PageSize" l ↦{dq'} o.pageSize -∗ optsAt l dq o) := by
   iintro H
-  icases optsAt_acc l dq o (fun v => Options.Options_access_load_PageSize l v dq) $$ H with
+  icases optsAt_acc l dq o (fun v => Options.access_load'Options'PageSize l v dq) $$ H with
     ⟨%v, %hv, Hf, Hback⟩
   iexists dq
   rw [← hv.2.1]
@@ -122,7 +122,7 @@ theorem optsAt_mmapFlags_rd (l : Loc) (dq : DFrac) (o : OptsM) :
     structFieldRef go_etcd_io.bbolt.Options go!"MmapFlags" l ↦{dq'} o.mmapFlags ∗
     (structFieldRef go_etcd_io.bbolt.Options go!"MmapFlags" l ↦{dq'} o.mmapFlags -∗ optsAt l dq o) := by
   iintro H
-  icases optsAt_acc l dq o (fun v => Options.Options_access_load_MmapFlags l v dq) $$ H with
+  icases optsAt_acc l dq o (fun v => Options.access_load'Options'MmapFlags l v dq) $$ H with
     ⟨%v, %hv, Hf, Hback⟩
   iexists dq
   rw [← hv.2.2.2.2.2]
@@ -132,7 +132,7 @@ theorem optsAt_openFile_rd (l : Loc) (dq : DFrac) (o : OptsM) :
     structFieldRef go_etcd_io.bbolt.Options go!"OpenFile" l ↦{dq'} o.openFile ∗
     (structFieldRef go_etcd_io.bbolt.Options go!"OpenFile" l ↦{dq'} o.openFile -∗ optsAt l dq o) := by
   iintro H
-  icases optsAt_acc l dq o (fun v => Options.Options_access_load_OpenFile l v dq) $$ H with
+  icases optsAt_acc l dq o (fun v => Options.access_load'Options'OpenFile l v dq) $$ H with
     ⟨%v, %hv, Hf, Hback⟩
   iexists dq
   rw [← hv.2.2.1]
@@ -144,7 +144,7 @@ theorem optsAt_logger_rd (l : Loc) (dq : DFrac) (o : OptsM) :
     (structFieldRef go_etcd_io.bbolt.Options go!"Logger" l ↦{dq'}
       (o.logger : go_etcd_io.bbolt.Logger) -∗ optsAt l dq o) := by
   iintro H
-  icases optsAt_acc l dq o (fun v => Options.Options_access_load_Logger l v dq) $$ H with
+  icases optsAt_acc l dq o (fun v => Options.access_load'Options'Logger l v dq) $$ H with
     ⟨%v, %hv, Hf, Hback⟩
   iexists dq
   rw [← hv.2.2.2.1]
@@ -160,19 +160,19 @@ theorem optsAt_bool_rd (l : Loc) (dq : DFrac) (o : OptsM) (f : GoString)
     (structFieldRef go_etcd_io.bbolt.Options f l ↦{dq'} x -∗ optsAt l dq o) := by
   iintro H
   rcases hf with rfl | rfl | rfl | rfl | rfl
-  · icases optsAt_acc l dq o (fun v => Options.Options_access_load_NoGrowSync l v dq) $$ H with
+  · icases optsAt_acc l dq o (fun v => Options.access_load'Options'NoGrowSync l v dq) $$ H with
       ⟨%v, -, Hf, Hback⟩
     iexists dq, _; iframe Hf; iexact Hback
-  · icases optsAt_acc l dq o (fun v => Options.Options_access_load_NoFreelistSync l v dq) $$ H with
+  · icases optsAt_acc l dq o (fun v => Options.access_load'Options'NoFreelistSync l v dq) $$ H with
       ⟨%v, -, Hf, Hback⟩
     iexists dq, _; iframe Hf; iexact Hback
-  · icases optsAt_acc l dq o (fun v => Options.Options_access_load_PreLoadFreelist l v dq) $$ H with
+  · icases optsAt_acc l dq o (fun v => Options.access_load'Options'PreLoadFreelist l v dq) $$ H with
       ⟨%v, -, Hf, Hback⟩
     iexists dq, _; iframe Hf; iexact Hback
-  · icases optsAt_acc l dq o (fun v => Options.Options_access_load_NoSync l v dq) $$ H with
+  · icases optsAt_acc l dq o (fun v => Options.access_load'Options'NoSync l v dq) $$ H with
       ⟨%v, -, Hf, Hback⟩
     iexists dq, _; iframe Hf; iexact Hback
-  · icases optsAt_acc l dq o (fun v => Options.Options_access_load_NoStatistics l v dq) $$ H with
+  · icases optsAt_acc l dq o (fun v => Options.access_load'Options'NoStatistics l v dq) $$ H with
       ⟨%v, -, Hf, Hback⟩
     iexists dq, _; iframe Hf; iexact Hback
 
@@ -184,10 +184,10 @@ theorem optsAt_int_rd (l : Loc) (dq : DFrac) (o : OptsM) (f : GoString)
     (structFieldRef go_etcd_io.bbolt.Options f l ↦{dq'} x -∗ optsAt l dq o) := by
   iintro H
   rcases hf with rfl | rfl
-  · icases optsAt_acc l dq o (fun v => Options.Options_access_load_InitialMmapSize l v dq) $$ H with
+  · icases optsAt_acc l dq o (fun v => Options.access_load'Options'InitialMmapSize l v dq) $$ H with
       ⟨%v, -, Hf, Hback⟩
     iexists dq, _; iframe Hf; iexact Hback
-  · icases optsAt_acc l dq o (fun v => Options.Options_access_load_MaxSize l v dq) $$ H with
+  · icases optsAt_acc l dq o (fun v => Options.access_load'Options'MaxSize l v dq) $$ H with
       ⟨%v, -, Hf, Hback⟩
     iexists dq, _; iframe Hf; iexact Hback
 
@@ -197,7 +197,7 @@ theorem optsAt_freelist_rd (l : Loc) (dq : DFrac) (o : OptsM) :
     structFieldRef go_etcd_io.bbolt.Options go!"FreelistType" l ↦{dq'} x ∗
     (structFieldRef go_etcd_io.bbolt.Options go!"FreelistType" l ↦{dq'} x -∗ optsAt l dq o) := by
   iintro H
-  icases optsAt_acc l dq o (fun v => Options.Options_access_load_FreelistType l v dq) $$ H with
+  icases optsAt_acc l dq o (fun v => Options.access_load'Options'FreelistType l v dq) $$ H with
     ⟨%v, -, Hf, Hback⟩
   iexists dq, _; iframe Hf; iexact Hback
 
@@ -207,7 +207,7 @@ theorem optsAt_timeout_rd (l : Loc) (dq : DFrac) (o : OptsM) :
     structFieldRef go_etcd_io.bbolt.Options go!"Timeout" l ↦{dq'} x ∗
     (structFieldRef go_etcd_io.bbolt.Options go!"Timeout" l ↦{dq'} x -∗ optsAt l dq o) := by
   iintro H
-  icases optsAt_acc l dq o (fun v => Options.Options_access_load_Timeout l v dq) $$ H with
+  icases optsAt_acc l dq o (fun v => Options.access_load'Options'Timeout l v dq) $$ H with
     ⟨%v, -, Hf, Hback⟩
   iexists dq, _; iframe Hf; iexact Hback
 

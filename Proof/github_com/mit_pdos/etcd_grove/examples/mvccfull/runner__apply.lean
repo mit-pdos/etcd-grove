@@ -129,19 +129,19 @@ theorem runner.apply.wp_proof
     omega
   wp_auto
   obtain ⟨hkind, hendNil, hval, hlease, hwrite, hshared, hid, hrev, hwait⟩ := Hov
-  ihave ⟨#Hfkind, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.op.op_access_load_kind p ov
+  ihave ⟨#Hfkind, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.op.access_load'op'kind p ov
     DFrac.discard).access_strict $$ Hp
-  ihave ⟨#Hfkey, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.op.op_access_load_key p ov
+  ihave ⟨#Hfkey, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.op.access_load'op'key p ov
     DFrac.discard).access_strict $$ Hp
-  ihave ⟨#Hfend, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.op.op_access_load_end p ov
+  ihave ⟨#Hfend, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.op.access_load'op'end p ov
     DFrac.discard).access_strict $$ Hp
-  ihave ⟨#Hfval, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.op.op_access_load_val p ov
+  ihave ⟨#Hfval, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.op.access_load'op'val p ov
     DFrac.discard).access_strict $$ Hp
-  ihave ⟨#Hflease, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.op.op_access_load_lease p ov
+  ihave ⟨#Hflease, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.op.access_load'op'lease p ov
     DFrac.discard).access_strict $$ Hp
-  ihave ⟨#Hfq, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.op.op_access_load_q p ov
+  ihave ⟨#Hfq, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.op.access_load'op'q p ov
     DFrac.discard).access_strict $$ Hp
-  ihave ⟨#Hfid, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.op.op_access_load_id p ov
+  ihave ⟨#Hfid, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.op.access_load'op'id p ov
     DFrac.discard).access_strict $$ Hp
   wp_auto
   rw [hkind]
@@ -1235,11 +1235,11 @@ theorem runner.apply.wp_proof
     · ipureintro; simp [σOf]
     (try wp_auto)
     -- `tr.Range(…)` of the op's request
-    ihave ⟨#Hqk, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.rangeReq.rangeReq_access_load_key
+    ihave ⟨#Hqk, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.rangeReq.access_load'rangeReq'key
       (p.[op, go!"q"]) ov.q' DFrac.discard).access_strict $$ Hfq
-    ihave ⟨#Hqe, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.rangeReq.rangeReq_access_load_end
+    ihave ⟨#Hqe, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.rangeReq.access_load'rangeReq'end
       (p.[op, go!"q"]) ov.q' DFrac.discard).access_strict $$ Hfq
-    ihave ⟨#Hqro, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.rangeReq.rangeReq_access_load_ro
+    ihave ⟨#Hqro, -⟩ := (github_com.mit_pdos.etcd_grove.examples.mvccfull.rangeReq.access_load'rangeReq'ro
       (p.[op, go!"q"]) ov.q' DFrac.discard).access_strict $$ Hfq
     iunfold rangeIs at Hoq
     icases Hoq with ⟨#Hqks, #Hqes, %Hqp⟩

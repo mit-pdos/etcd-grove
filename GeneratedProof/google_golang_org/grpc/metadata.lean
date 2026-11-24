@@ -25,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.metadata.Assumptions]
 
-noncomputable instance mdIncomingKey_typed_pointsto :
+noncomputable instance typed_pointsto'mdIncomingKey :
     TypedPointsto (GF := GF) google_golang_org.grpc.metadata.mdIncomingKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -33,7 +33,7 @@ noncomputable instance mdIncomingKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance mdIncomingKey_into_val_typed :
+noncomputable instance into_val_typed'mdIncomingKey :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.metadata.mdIncomingKey google_golang_org.grpc.metadata.mdIncomingKey.underlying := by
   solve_into_val_typed_struct
 
@@ -48,7 +48,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.metadata.Assumptions]
 
-noncomputable instance mdOutgoingKey_typed_pointsto :
+noncomputable instance typed_pointsto'mdOutgoingKey :
     TypedPointsto (GF := GF) google_golang_org.grpc.metadata.mdOutgoingKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -56,7 +56,7 @@ noncomputable instance mdOutgoingKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance mdOutgoingKey_into_val_typed :
+noncomputable instance into_val_typed'mdOutgoingKey :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.metadata.mdOutgoingKey google_golang_org.grpc.metadata.mdOutgoingKey.underlying := by
   solve_into_val_typed_struct
 
@@ -71,7 +71,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.metadata.Assumptions]
 
-noncomputable instance rawMD_typed_pointsto :
+noncomputable instance typed_pointsto'rawMD :
     TypedPointsto (GF := GF) google_golang_org.grpc.metadata.rawMD where
   typedPointstoDef l v dq := iprop(
     "md" ∷ typedPointsto (structFieldRef google_golang_org.grpc.metadata.rawMD go!"md" l) v.md' dq ∗
@@ -81,11 +81,11 @@ noncomputable instance rawMD_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance rawMD_into_val_typed :
+noncomputable instance into_val_typed'rawMD :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.metadata.rawMD google_golang_org.grpc.metadata.rawMD.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance rawMD_access_load_md (l : Loc) (v : google_golang_org.grpc.metadata.rawMD) (dq : DFrac) :
+noncomputable instance access_load'rawMD'md (l : Loc) (v : google_golang_org.grpc.metadata.rawMD) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.metadata.rawMD go!"md" l) v.md' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.metadata.rawMD go!"md" l) v.md' dq)
@@ -93,7 +93,7 @@ noncomputable instance rawMD_access_load_md (l : Loc) (v : google_golang_org.grp
  by
   solve_pointsto_access_struct
 
-noncomputable instance rawMD_access_store_md (l : Loc) (v : google_golang_org.grpc.metadata.rawMD) (y : google_golang_org.grpc.metadata.MD) :
+noncomputable instance access_store'rawMD'md (l : Loc) (v : google_golang_org.grpc.metadata.rawMD) (y : google_golang_org.grpc.metadata.MD) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.metadata.rawMD go!"md" l) v.md' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.metadata.rawMD go!"md" l) y (DFrac.own 1))
@@ -101,7 +101,7 @@ noncomputable instance rawMD_access_store_md (l : Loc) (v : google_golang_org.gr
  by
   solve_pointsto_access_struct
 
-noncomputable instance rawMD_access_load_added (l : Loc) (v : google_golang_org.grpc.metadata.rawMD) (dq : DFrac) :
+noncomputable instance access_load'rawMD'added (l : Loc) (v : google_golang_org.grpc.metadata.rawMD) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.metadata.rawMD go!"added" l) v.added' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.metadata.rawMD go!"added" l) v.added' dq)
@@ -109,7 +109,7 @@ noncomputable instance rawMD_access_load_added (l : Loc) (v : google_golang_org.
  by
   solve_pointsto_access_struct
 
-noncomputable instance rawMD_access_store_added (l : Loc) (v : google_golang_org.grpc.metadata.rawMD) (y : GoSlice) :
+noncomputable instance access_store'rawMD'added (l : Loc) (v : google_golang_org.grpc.metadata.rawMD) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.metadata.rawMD go!"added" l) v.added' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.metadata.rawMD go!"added" l) y (DFrac.own 1))

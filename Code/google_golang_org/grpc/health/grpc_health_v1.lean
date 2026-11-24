@@ -314,7 +314,7 @@ noncomputable instance healthClient.zero_val [GooseExts] : ZeroVal healthClient 
 @[irreducible] noncomputable def healthClient.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   healthClient.fieldsUnsealed
 
-noncomputable instance equals_unfold_healthClient [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'healthClient [GooseExts] [GoGlobalContext] :
     EqualsUnfold healthClient.fields healthClient.fieldsUnsealed :=
   ⟨by unfold healthClient.fields; rfl⟩
 
@@ -324,15 +324,15 @@ noncomputable instance equals_unfold_healthClient [GooseExts] [GoGlobalContext] 
 class healthClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying healthClient.underlying healthClient
   underlying : go.UnderlyingDirectedEq healthClient.ty healthClient.underlying
-  get_cc : ∀ (x : healthClient), go.IsGoStepPureDetTagged under (StructFieldGet healthClient.underlying go!"cc") #x (Val #(x.cc'))
-  set_cc : ∀ (x : healthClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet healthClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : healthClient)))
+  get'cc : ∀ (x : healthClient), go.IsGoStepPureDetTagged under (StructFieldGet healthClient.underlying go!"cc") #x (Val #(x.cc'))
+  set'cc : ∀ (x : healthClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet healthClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : healthClient)))
   method_set : go.MethodSetIs healthClient.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType healthClient.ty) [(go!"Check", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthCheckRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType HealthCheckResponse.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthListRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType HealthListResponse.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthCheckRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(_root_.Perennial.google_golang_org.grpc.ServerStreamingClient.ty HealthCheckResponse.ty), go.error])))]
 
 attribute [instance] healthClient.TypeAssumptions.type_repr
   healthClient.TypeAssumptions.underlying
-  healthClient.TypeAssumptions.get_cc
-  healthClient.TypeAssumptions.set_cc
+  healthClient.TypeAssumptions.get'cc
+  healthClient.TypeAssumptions.set'cc
   healthClient.TypeAssumptions.method_set
   healthClient.TypeAssumptions.ptr_method_set
 
@@ -362,7 +362,7 @@ noncomputable instance UnimplementedHealthServer.zero_val [GooseExts] : ZeroVal 
 @[irreducible] noncomputable def UnimplementedHealthServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UnimplementedHealthServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_UnimplementedHealthServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'UnimplementedHealthServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold UnimplementedHealthServer.fields UnimplementedHealthServer.fieldsUnsealed :=
   ⟨by unfold UnimplementedHealthServer.fields; rfl⟩
 
@@ -395,31 +395,31 @@ attribute [instance] UnsafeHealthServer.TypeAssumptions.underlying
   UnsafeHealthServer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  HealthCheckResponse_ServingStatus_instance : HealthCheckResponse_ServingStatus.TypeAssumptions
-  HealthCheckRequest_instance : HealthCheckRequest.TypeAssumptions
-  HealthCheckResponse_instance : HealthCheckResponse.TypeAssumptions
-  HealthListRequest_instance : HealthListRequest.TypeAssumptions
-  HealthListResponse_instance : HealthListResponse.TypeAssumptions
-  HealthClient_instance : HealthClient.TypeAssumptions
-  healthClient_instance : healthClient.TypeAssumptions
-  HealthServer_instance : HealthServer.TypeAssumptions
-  UnimplementedHealthServer_instance : UnimplementedHealthServer.TypeAssumptions
-  UnsafeHealthServer_instance : UnsafeHealthServer.TypeAssumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
+  instance'HealthCheckResponse_ServingStatus : HealthCheckResponse_ServingStatus.TypeAssumptions
+  instance'HealthCheckRequest : HealthCheckRequest.TypeAssumptions
+  instance'HealthCheckResponse : HealthCheckResponse.TypeAssumptions
+  instance'HealthListRequest : HealthListRequest.TypeAssumptions
+  instance'HealthListResponse : HealthListResponse.TypeAssumptions
+  instance'HealthClient : HealthClient.TypeAssumptions
+  instance'healthClient : healthClient.TypeAssumptions
+  instance'HealthServer : HealthServer.TypeAssumptions
+  instance'UnimplementedHealthServer : UnimplementedHealthServer.TypeAssumptions
+  instance'UnsafeHealthServer : UnsafeHealthServer.TypeAssumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'grpc : _root_.Perennial.google_golang_org.grpc.Assumptions
 
-attribute [instance] Assumptions.HealthCheckResponse_ServingStatus_instance
-  Assumptions.HealthCheckRequest_instance
-  Assumptions.HealthCheckResponse_instance
-  Assumptions.HealthListRequest_instance
-  Assumptions.HealthListResponse_instance
-  Assumptions.HealthClient_instance
-  Assumptions.healthClient_instance
-  Assumptions.HealthServer_instance
-  Assumptions.UnimplementedHealthServer_instance
-  Assumptions.UnsafeHealthServer_instance
-  Assumptions.import_context_Assumption
-  Assumptions.import_grpc_Assumption
+attribute [instance] Assumptions.instance'HealthCheckResponse_ServingStatus
+  Assumptions.instance'HealthCheckRequest
+  Assumptions.instance'HealthCheckResponse
+  Assumptions.instance'HealthListRequest
+  Assumptions.instance'HealthListResponse
+  Assumptions.instance'HealthClient
+  Assumptions.instance'healthClient
+  Assumptions.instance'HealthServer
+  Assumptions.instance'UnimplementedHealthServer
+  Assumptions.instance'UnsafeHealthServer
+  Assumptions.import'context
+  Assumptions.import'grpc
 
 end google_golang_org.grpc.health.grpc_health_v1
 

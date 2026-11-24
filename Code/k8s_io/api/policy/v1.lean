@@ -319,19 +319,19 @@ attribute [instance] Eviction.TypeAssumptions.type_repr
   Eviction.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  PodDisruptionBudgetSpec_instance : PodDisruptionBudgetSpec.TypeAssumptions
-  UnhealthyPodEvictionPolicyType_instance : UnhealthyPodEvictionPolicyType.TypeAssumptions
-  PodDisruptionBudgetStatus_instance : PodDisruptionBudgetStatus.TypeAssumptions
-  PodDisruptionBudget_instance : PodDisruptionBudget.TypeAssumptions
-  PodDisruptionBudgetList_instance : PodDisruptionBudgetList.TypeAssumptions
-  Eviction_instance : Eviction.TypeAssumptions
+  instance'PodDisruptionBudgetSpec : PodDisruptionBudgetSpec.TypeAssumptions
+  instance'UnhealthyPodEvictionPolicyType : UnhealthyPodEvictionPolicyType.TypeAssumptions
+  instance'PodDisruptionBudgetStatus : PodDisruptionBudgetStatus.TypeAssumptions
+  instance'PodDisruptionBudget : PodDisruptionBudget.TypeAssumptions
+  instance'PodDisruptionBudgetList : PodDisruptionBudgetList.TypeAssumptions
+  instance'Eviction : Eviction.TypeAssumptions
 
-attribute [instance] Assumptions.PodDisruptionBudgetSpec_instance
-  Assumptions.UnhealthyPodEvictionPolicyType_instance
-  Assumptions.PodDisruptionBudgetStatus_instance
-  Assumptions.PodDisruptionBudget_instance
-  Assumptions.PodDisruptionBudgetList_instance
-  Assumptions.Eviction_instance
+attribute [instance] Assumptions.instance'PodDisruptionBudgetSpec
+  Assumptions.instance'UnhealthyPodEvictionPolicyType
+  Assumptions.instance'PodDisruptionBudgetStatus
+  Assumptions.instance'PodDisruptionBudget
+  Assumptions.instance'PodDisruptionBudgetList
+  Assumptions.instance'Eviction
 
 end k8s_io.api.policy.v1
 

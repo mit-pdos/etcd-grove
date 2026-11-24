@@ -37,7 +37,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : rabia.roles.server.Assumptions]
 
-noncomputable instance Server_typed_pointsto :
+noncomputable instance typed_pointsto'Server :
     TypedPointsto (GF := GF) rabia.roles.server.Server where
   typedPointstoDef l v dq := iprop(
     "SvrId" ∷ typedPointsto (structFieldRef rabia.roles.server.Server go!"SvrId" l) v.SvrId' dq ∗
@@ -61,11 +61,11 @@ noncomputable instance Server_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Server_into_val_typed :
+noncomputable instance into_val_typed'Server :
     IntoValTypedUnderlying (GF := GF) rabia.roles.server.Server rabia.roles.server.Server.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Server_access_load_SvrId (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'SvrId (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"SvrId" l) v.SvrId' dq)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"SvrId" l) v.SvrId' dq)
@@ -73,7 +73,7 @@ noncomputable instance Server_access_load_SvrId (l : Loc) (v : rabia.roles.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_SvrId (l : Loc) (v : rabia.roles.server.Server) (y : w32) :
+noncomputable instance access_store'Server'SvrId (l : Loc) (v : rabia.roles.server.Server) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"SvrId" l) v.SvrId' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"SvrId" l) y (DFrac.own 1))
@@ -81,7 +81,7 @@ noncomputable instance Server_access_store_SvrId (l : Loc) (v : rabia.roles.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_Wg (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'Wg (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Wg" l) v.Wg' dq)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Wg" l) v.Wg' dq)
@@ -89,7 +89,7 @@ noncomputable instance Server_access_load_Wg (l : Loc) (v : rabia.roles.server.S
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_Wg (l : Loc) (v : rabia.roles.server.Server) (y : Loc) :
+noncomputable instance access_store'Server'Wg (l : Loc) (v : rabia.roles.server.Server) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Wg" l) v.Wg' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Wg" l) y (DFrac.own 1))
@@ -97,7 +97,7 @@ noncomputable instance Server_access_store_Wg (l : Loc) (v : rabia.roles.server.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_Done (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'Done (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Done" l) v.Done' dq)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Done" l) v.Done' dq)
@@ -105,7 +105,7 @@ noncomputable instance Server_access_load_Done (l : Loc) (v : rabia.roles.server
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_Done (l : Loc) (v : rabia.roles.server.Server) (y : GoChan) :
+noncomputable instance access_store'Server'Done (l : Loc) (v : rabia.roles.server.Server) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Done" l) v.Done' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Done" l) y (DFrac.own 1))
@@ -113,7 +113,7 @@ noncomputable instance Server_access_store_Done (l : Loc) (v : rabia.roles.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_Ledger (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'Ledger (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Ledger" l) v.Ledger' dq)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Ledger" l) v.Ledger' dq)
@@ -121,7 +121,7 @@ noncomputable instance Server_access_load_Ledger (l : Loc) (v : rabia.roles.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_Ledger (l : Loc) (v : rabia.roles.server.Server) (y : GoSlice) :
+noncomputable instance access_store'Server'Ledger (l : Loc) (v : rabia.roles.server.Server) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Ledger" l) v.Ledger' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Ledger" l) y (DFrac.own 1))
@@ -129,7 +129,7 @@ noncomputable instance Server_access_store_Ledger (l : Loc) (v : rabia.roles.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_Logger (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'Logger (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Logger" l) v.Logger' dq)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Logger" l) v.Logger' dq)
@@ -137,7 +137,7 @@ noncomputable instance Server_access_load_Logger (l : Loc) (v : rabia.roles.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_Logger (l : Loc) (v : rabia.roles.server.Server) (y : _root_.Perennial.github_com.rs.zerolog.Logger) :
+noncomputable instance access_store'Server'Logger (l : Loc) (v : rabia.roles.server.Server) (y : _root_.Perennial.github_com.rs.zerolog.Logger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Logger" l) v.Logger' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Logger" l) y (DFrac.own 1))
@@ -145,7 +145,7 @@ noncomputable instance Server_access_store_Logger (l : Loc) (v : rabia.roles.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_LogFile (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'LogFile (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"LogFile" l) v.LogFile' dq)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"LogFile" l) v.LogFile' dq)
@@ -153,7 +153,7 @@ noncomputable instance Server_access_load_LogFile (l : Loc) (v : rabia.roles.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_LogFile (l : Loc) (v : rabia.roles.server.Server) (y : Loc) :
+noncomputable instance access_store'Server'LogFile (l : Loc) (v : rabia.roles.server.Server) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"LogFile" l) v.LogFile' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"LogFile" l) y (DFrac.own 1))
@@ -161,7 +161,7 @@ noncomputable instance Server_access_store_LogFile (l : Loc) (v : rabia.roles.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_Proxy (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'Proxy (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Proxy" l) v.Proxy' dq)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Proxy" l) v.Proxy' dq)
@@ -169,7 +169,7 @@ noncomputable instance Server_access_load_Proxy (l : Loc) (v : rabia.roles.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_Proxy (l : Loc) (v : rabia.roles.server.Server) (y : Loc) :
+noncomputable instance access_store'Server'Proxy (l : Loc) (v : rabia.roles.server.Server) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Proxy" l) v.Proxy' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Proxy" l) y (DFrac.own 1))
@@ -177,7 +177,7 @@ noncomputable instance Server_access_store_Proxy (l : Loc) (v : rabia.roles.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_Network (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'Network (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Network" l) v.Network' dq)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Network" l) v.Network' dq)
@@ -185,7 +185,7 @@ noncomputable instance Server_access_load_Network (l : Loc) (v : rabia.roles.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_Network (l : Loc) (v : rabia.roles.server.Server) (y : Loc) :
+noncomputable instance access_store'Server'Network (l : Loc) (v : rabia.roles.server.Server) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Network" l) v.Network' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Network" l) y (DFrac.own 1))
@@ -193,7 +193,7 @@ noncomputable instance Server_access_store_Network (l : Loc) (v : rabia.roles.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_Consensus (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'Consensus (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Consensus" l) v.Consensus' dq)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Consensus" l) v.Consensus' dq)
@@ -201,7 +201,7 @@ noncomputable instance Server_access_load_Consensus (l : Loc) (v : rabia.roles.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_Consensus (l : Loc) (v : rabia.roles.server.Server) (y : Loc) :
+noncomputable instance access_store'Server'Consensus (l : Loc) (v : rabia.roles.server.Server) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Consensus" l) v.Consensus' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Consensus" l) y (DFrac.own 1))
@@ -209,7 +209,7 @@ noncomputable instance Server_access_store_Consensus (l : Loc) (v : rabia.roles.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_ClientsToProxy (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'ClientsToProxy (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"ClientsToProxy" l) v.ClientsToProxy' dq)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"ClientsToProxy" l) v.ClientsToProxy' dq)
@@ -217,7 +217,7 @@ noncomputable instance Server_access_load_ClientsToProxy (l : Loc) (v : rabia.ro
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_ClientsToProxy (l : Loc) (v : rabia.roles.server.Server) (y : GoChan) :
+noncomputable instance access_store'Server'ClientsToProxy (l : Loc) (v : rabia.roles.server.Server) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"ClientsToProxy" l) v.ClientsToProxy' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"ClientsToProxy" l) y (DFrac.own 1))
@@ -225,7 +225,7 @@ noncomputable instance Server_access_store_ClientsToProxy (l : Loc) (v : rabia.r
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_ProxyToNet (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'ProxyToNet (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"ProxyToNet" l) v.ProxyToNet' dq)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"ProxyToNet" l) v.ProxyToNet' dq)
@@ -233,7 +233,7 @@ noncomputable instance Server_access_load_ProxyToNet (l : Loc) (v : rabia.roles.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_ProxyToNet (l : Loc) (v : rabia.roles.server.Server) (y : GoChan) :
+noncomputable instance access_store'Server'ProxyToNet (l : Loc) (v : rabia.roles.server.Server) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"ProxyToNet" l) v.ProxyToNet' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"ProxyToNet" l) y (DFrac.own 1))
@@ -241,7 +241,7 @@ noncomputable instance Server_access_store_ProxyToNet (l : Loc) (v : rabia.roles
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_NetToProxy (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'NetToProxy (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"NetToProxy" l) v.NetToProxy' dq)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"NetToProxy" l) v.NetToProxy' dq)
@@ -249,7 +249,7 @@ noncomputable instance Server_access_load_NetToProxy (l : Loc) (v : rabia.roles.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_NetToProxy (l : Loc) (v : rabia.roles.server.Server) (y : GoChan) :
+noncomputable instance access_store'Server'NetToProxy (l : Loc) (v : rabia.roles.server.Server) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"NetToProxy" l) v.NetToProxy' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"NetToProxy" l) y (DFrac.own 1))
@@ -257,7 +257,7 @@ noncomputable instance Server_access_store_NetToProxy (l : Loc) (v : rabia.roles
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_MsgHandlerToNet (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'MsgHandlerToNet (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"MsgHandlerToNet" l) v.MsgHandlerToNet' dq)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"MsgHandlerToNet" l) v.MsgHandlerToNet' dq)
@@ -265,7 +265,7 @@ noncomputable instance Server_access_load_MsgHandlerToNet (l : Loc) (v : rabia.r
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_MsgHandlerToNet (l : Loc) (v : rabia.roles.server.Server) (y : GoChan) :
+noncomputable instance access_store'Server'MsgHandlerToNet (l : Loc) (v : rabia.roles.server.Server) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"MsgHandlerToNet" l) v.MsgHandlerToNet' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"MsgHandlerToNet" l) y (DFrac.own 1))
@@ -273,7 +273,7 @@ noncomputable instance Server_access_store_MsgHandlerToNet (l : Loc) (v : rabia.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_ConExecutorToNet (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'ConExecutorToNet (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"ConExecutorToNet" l) v.ConExecutorToNet' dq)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"ConExecutorToNet" l) v.ConExecutorToNet' dq)
@@ -281,7 +281,7 @@ noncomputable instance Server_access_load_ConExecutorToNet (l : Loc) (v : rabia.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_ConExecutorToNet (l : Loc) (v : rabia.roles.server.Server) (y : GoChan) :
+noncomputable instance access_store'Server'ConExecutorToNet (l : Loc) (v : rabia.roles.server.Server) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"ConExecutorToNet" l) v.ConExecutorToNet' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"ConExecutorToNet" l) y (DFrac.own 1))
@@ -289,7 +289,7 @@ noncomputable instance Server_access_store_ConExecutorToNet (l : Loc) (v : rabia
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_NetToMsgHandler (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'NetToMsgHandler (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"NetToMsgHandler" l) v.NetToMsgHandler' dq)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"NetToMsgHandler" l) v.NetToMsgHandler' dq)
@@ -297,7 +297,7 @@ noncomputable instance Server_access_load_NetToMsgHandler (l : Loc) (v : rabia.r
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_NetToMsgHandler (l : Loc) (v : rabia.roles.server.Server) (y : GoChan) :
+noncomputable instance access_store'Server'NetToMsgHandler (l : Loc) (v : rabia.roles.server.Server) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"NetToMsgHandler" l) v.NetToMsgHandler' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"NetToMsgHandler" l) y (DFrac.own 1))
@@ -305,7 +305,7 @@ noncomputable instance Server_access_store_NetToMsgHandler (l : Loc) (v : rabia.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_load_NetToConExecutor (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'NetToConExecutor (l : Loc) (v : rabia.roles.server.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"NetToConExecutor" l) v.NetToConExecutor' dq)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"NetToConExecutor" l) v.NetToConExecutor' dq)
@@ -313,7 +313,7 @@ noncomputable instance Server_access_load_NetToConExecutor (l : Loc) (v : rabia.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_NetToConExecutor (l : Loc) (v : rabia.roles.server.Server) (y : GoChan) :
+noncomputable instance access_store'Server'NetToConExecutor (l : Loc) (v : rabia.roles.server.Server) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"NetToConExecutor" l) v.NetToConExecutor' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"NetToConExecutor" l) y (DFrac.own 1))

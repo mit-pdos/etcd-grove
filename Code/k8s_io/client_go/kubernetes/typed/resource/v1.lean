@@ -635,51 +635,51 @@ attribute [instance] resourceSlices.TypeAssumptions.type_repr
   resourceSlices.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  DeviceClassesGetter_instance : DeviceClassesGetter.TypeAssumptions
-  DeviceClassInterface_instance : DeviceClassInterface.TypeAssumptions
-  deviceClasses_instance : deviceClasses.TypeAssumptions
-  DeviceTaintRulesGetter_instance : DeviceTaintRulesGetter.TypeAssumptions
-  DeviceTaintRuleInterface_instance : DeviceTaintRuleInterface.TypeAssumptions
-  deviceTaintRules_instance : deviceTaintRules.TypeAssumptions
-  DeviceClassExpansion_instance : DeviceClassExpansion.TypeAssumptions
-  DeviceTaintRuleExpansion_instance : DeviceTaintRuleExpansion.TypeAssumptions
-  ResourceClaimExpansion_instance : ResourceClaimExpansion.TypeAssumptions
-  ResourceClaimTemplateExpansion_instance : ResourceClaimTemplateExpansion.TypeAssumptions
-  ResourceSliceExpansion_instance : ResourceSliceExpansion.TypeAssumptions
-  ResourceV1Interface_instance : ResourceV1Interface.TypeAssumptions
-  ResourceV1Client_instance : ResourceV1Client.TypeAssumptions
-  ResourceClaimsGetter_instance : ResourceClaimsGetter.TypeAssumptions
-  ResourceClaimInterface_instance : ResourceClaimInterface.TypeAssumptions
-  resourceClaims_instance : resourceClaims.TypeAssumptions
-  ResourceClaimTemplatesGetter_instance : ResourceClaimTemplatesGetter.TypeAssumptions
-  ResourceClaimTemplateInterface_instance : ResourceClaimTemplateInterface.TypeAssumptions
-  resourceClaimTemplates_instance : resourceClaimTemplates.TypeAssumptions
-  ResourceSlicesGetter_instance : ResourceSlicesGetter.TypeAssumptions
-  ResourceSliceInterface_instance : ResourceSliceInterface.TypeAssumptions
-  resourceSlices_instance : resourceSlices.TypeAssumptions
+  instance'DeviceClassesGetter : DeviceClassesGetter.TypeAssumptions
+  instance'DeviceClassInterface : DeviceClassInterface.TypeAssumptions
+  instance'deviceClasses : deviceClasses.TypeAssumptions
+  instance'DeviceTaintRulesGetter : DeviceTaintRulesGetter.TypeAssumptions
+  instance'DeviceTaintRuleInterface : DeviceTaintRuleInterface.TypeAssumptions
+  instance'deviceTaintRules : deviceTaintRules.TypeAssumptions
+  instance'DeviceClassExpansion : DeviceClassExpansion.TypeAssumptions
+  instance'DeviceTaintRuleExpansion : DeviceTaintRuleExpansion.TypeAssumptions
+  instance'ResourceClaimExpansion : ResourceClaimExpansion.TypeAssumptions
+  instance'ResourceClaimTemplateExpansion : ResourceClaimTemplateExpansion.TypeAssumptions
+  instance'ResourceSliceExpansion : ResourceSliceExpansion.TypeAssumptions
+  instance'ResourceV1Interface : ResourceV1Interface.TypeAssumptions
+  instance'ResourceV1Client : ResourceV1Client.TypeAssumptions
+  instance'ResourceClaimsGetter : ResourceClaimsGetter.TypeAssumptions
+  instance'ResourceClaimInterface : ResourceClaimInterface.TypeAssumptions
+  instance'resourceClaims : resourceClaims.TypeAssumptions
+  instance'ResourceClaimTemplatesGetter : ResourceClaimTemplatesGetter.TypeAssumptions
+  instance'ResourceClaimTemplateInterface : ResourceClaimTemplateInterface.TypeAssumptions
+  instance'resourceClaimTemplates : resourceClaimTemplates.TypeAssumptions
+  instance'ResourceSlicesGetter : ResourceSlicesGetter.TypeAssumptions
+  instance'ResourceSliceInterface : ResourceSliceInterface.TypeAssumptions
+  instance'resourceSlices : resourceSlices.TypeAssumptions
 
-attribute [instance] Assumptions.DeviceClassesGetter_instance
-  Assumptions.DeviceClassInterface_instance
-  Assumptions.deviceClasses_instance
-  Assumptions.DeviceTaintRulesGetter_instance
-  Assumptions.DeviceTaintRuleInterface_instance
-  Assumptions.deviceTaintRules_instance
-  Assumptions.DeviceClassExpansion_instance
-  Assumptions.DeviceTaintRuleExpansion_instance
-  Assumptions.ResourceClaimExpansion_instance
-  Assumptions.ResourceClaimTemplateExpansion_instance
-  Assumptions.ResourceSliceExpansion_instance
-  Assumptions.ResourceV1Interface_instance
-  Assumptions.ResourceV1Client_instance
-  Assumptions.ResourceClaimsGetter_instance
-  Assumptions.ResourceClaimInterface_instance
-  Assumptions.resourceClaims_instance
-  Assumptions.ResourceClaimTemplatesGetter_instance
-  Assumptions.ResourceClaimTemplateInterface_instance
-  Assumptions.resourceClaimTemplates_instance
-  Assumptions.ResourceSlicesGetter_instance
-  Assumptions.ResourceSliceInterface_instance
-  Assumptions.resourceSlices_instance
+attribute [instance] Assumptions.instance'DeviceClassesGetter
+  Assumptions.instance'DeviceClassInterface
+  Assumptions.instance'deviceClasses
+  Assumptions.instance'DeviceTaintRulesGetter
+  Assumptions.instance'DeviceTaintRuleInterface
+  Assumptions.instance'deviceTaintRules
+  Assumptions.instance'DeviceClassExpansion
+  Assumptions.instance'DeviceTaintRuleExpansion
+  Assumptions.instance'ResourceClaimExpansion
+  Assumptions.instance'ResourceClaimTemplateExpansion
+  Assumptions.instance'ResourceSliceExpansion
+  Assumptions.instance'ResourceV1Interface
+  Assumptions.instance'ResourceV1Client
+  Assumptions.instance'ResourceClaimsGetter
+  Assumptions.instance'ResourceClaimInterface
+  Assumptions.instance'resourceClaims
+  Assumptions.instance'ResourceClaimTemplatesGetter
+  Assumptions.instance'ResourceClaimTemplateInterface
+  Assumptions.instance'resourceClaimTemplates
+  Assumptions.instance'ResourceSlicesGetter
+  Assumptions.instance'ResourceSliceInterface
+  Assumptions.instance'resourceSlices
 
 end k8s_io.client_go.kubernetes.typed.resource.v1
 

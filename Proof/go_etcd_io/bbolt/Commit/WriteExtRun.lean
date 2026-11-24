@@ -90,7 +90,7 @@ set_option maxRecDepth 20000 in
 /-- **`tx.write()` with the pages anywhere in the mapping** (`Tx.write_ext.spec`; see the file
 header). -/
 theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
-    (hSort : sort.«Sort».anyLessSpec (GF := GF) (hG := hG))
+    (hSort : sort.Sort''.anyLessSpec (GF := GF) (hG := hG))
     (hOv : internal.common.Page.Overflow.spec (GF := GF) (hG := hG))
     (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG))
     (hUBS : internal.common.UnsafeByteSlice.spec (GF := GF) (hG := hG))

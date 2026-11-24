@@ -46,12 +46,12 @@ theorem onDisk.V1.wp_proof (wp_T0 : onDisk.T0.spec (GF := GF) (hG := hG))
   unfold OnDisk.V1 at Hv
   obtain ⟨t1, ht1, Hv⟩ := bind_ok Hv
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_T1_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'T1.method_unfold]
   try wp_auto
   wp_apply wp_T1 gx x t1 $$ [Hx] as %u1 %Hu1
   · iframe Hx; ipureintro; exact ht1
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_T0_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'T0.method_unfold]
   try wp_auto
   wp_apply wp_T0 gx x $$ [Hx] as %u0 %Hu0
   · iexact Hx

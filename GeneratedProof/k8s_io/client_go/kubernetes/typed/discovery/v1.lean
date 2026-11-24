@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.discovery.v1.Assumptions]
 
-noncomputable instance DiscoveryV1Interface_typed_pointsto :
+noncomputable instance typed_pointsto'DiscoveryV1Interface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.discovery.v1.DiscoveryV1Interface :=
   sorry -- axiomatized type
 
-noncomputable instance DiscoveryV1Interface_into_val_typed :
+noncomputable instance into_val_typed'DiscoveryV1Interface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.discovery.v1.DiscoveryV1Interface k8s_io.client_go.kubernetes.typed.discovery.v1.DiscoveryV1Interface.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.discovery.v1.Assumptions]
 
-noncomputable instance DiscoveryV1Client_typed_pointsto :
+noncomputable instance typed_pointsto'DiscoveryV1Client :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.discovery.v1.DiscoveryV1Client :=
   sorry -- axiomatized type
 
-noncomputable instance DiscoveryV1Client_into_val_typed :
+noncomputable instance into_val_typed'DiscoveryV1Client :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.discovery.v1.DiscoveryV1Client k8s_io.client_go.kubernetes.typed.discovery.v1.DiscoveryV1Client.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.discovery.v1.Assumptions]
 
-noncomputable instance EndpointSlicesGetter_typed_pointsto :
+noncomputable instance typed_pointsto'EndpointSlicesGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.discovery.v1.EndpointSlicesGetter :=
   sorry -- axiomatized type
 
-noncomputable instance EndpointSlicesGetter_into_val_typed :
+noncomputable instance into_val_typed'EndpointSlicesGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.discovery.v1.EndpointSlicesGetter k8s_io.client_go.kubernetes.typed.discovery.v1.EndpointSlicesGetter.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.discovery.v1.Assumptions]
 
-noncomputable instance EndpointSliceInterface_typed_pointsto :
+noncomputable instance typed_pointsto'EndpointSliceInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.discovery.v1.EndpointSliceInterface :=
   sorry -- axiomatized type
 
-noncomputable instance EndpointSliceInterface_into_val_typed :
+noncomputable instance into_val_typed'EndpointSliceInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.discovery.v1.EndpointSliceInterface k8s_io.client_go.kubernetes.typed.discovery.v1.EndpointSliceInterface.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.discovery.v1.Assumptions]
 
-noncomputable instance endpointSlices_typed_pointsto :
+noncomputable instance typed_pointsto'endpointSlices :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.discovery.v1.endpointSlices :=
   sorry -- axiomatized type
 
-noncomputable instance endpointSlices_into_val_typed :
+noncomputable instance into_val_typed'endpointSlices :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.discovery.v1.endpointSlices k8s_io.client_go.kubernetes.typed.discovery.v1.endpointSlices.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.discovery.v1.Assumptions]
 
-noncomputable instance EndpointSliceExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'EndpointSliceExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.discovery.v1.EndpointSliceExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance EndpointSliceExpansion_into_val_typed :
+noncomputable instance into_val_typed'EndpointSliceExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.discovery.v1.EndpointSliceExpansion k8s_io.client_go.kubernetes.typed.discovery.v1.EndpointSliceExpansion.underlying :=
   sorry -- axiomatized type
 

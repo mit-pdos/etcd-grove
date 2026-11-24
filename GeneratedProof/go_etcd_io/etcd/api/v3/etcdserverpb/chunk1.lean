@@ -31,11 +31,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance Metadata_typed_pointsto :
+noncomputable instance typed_pointsto'Metadata :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.Metadata :=
   sorry -- axiomatized type
 
-noncomputable instance Metadata_into_val_typed :
+noncomputable instance into_val_typed'Metadata :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.Metadata go_etcd_io.etcd.api.v3.etcdserverpb.Metadata.underlying :=
   sorry -- axiomatized type
 
@@ -50,7 +50,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance RequestHeader_typed_pointsto :
+noncomputable instance typed_pointsto'RequestHeader :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader where
   typedPointstoDef l v dq := iprop(
     "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"state" l) v.state' dq ∗
@@ -64,11 +64,11 @@ noncomputable instance RequestHeader_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance RequestHeader_into_val_typed :
+noncomputable instance into_val_typed'RequestHeader :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance RequestHeader_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (dq : DFrac) :
+noncomputable instance access_load'RequestHeader'state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"state" l) v.state' dq)
@@ -76,7 +76,7 @@ noncomputable instance RequestHeader_access_load_state (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestHeader_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'RequestHeader'state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"state" l) y (DFrac.own 1))
@@ -84,7 +84,7 @@ noncomputable instance RequestHeader_access_store_state (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestHeader_access_load_ID (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (dq : DFrac) :
+noncomputable instance access_load'RequestHeader'ID (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"ID" l) v.ID' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"ID" l) v.ID' dq)
@@ -92,7 +92,7 @@ noncomputable instance RequestHeader_access_load_ID (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestHeader_access_store_ID (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (y : w64) :
+noncomputable instance access_store'RequestHeader'ID (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"ID" l) v.ID' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"ID" l) y (DFrac.own 1))
@@ -100,7 +100,7 @@ noncomputable instance RequestHeader_access_store_ID (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestHeader_access_load_Username (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (dq : DFrac) :
+noncomputable instance access_load'RequestHeader'Username (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"Username" l) v.Username' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"Username" l) v.Username' dq)
@@ -108,7 +108,7 @@ noncomputable instance RequestHeader_access_load_Username (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestHeader_access_store_Username (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (y : GoString) :
+noncomputable instance access_store'RequestHeader'Username (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"Username" l) v.Username' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"Username" l) y (DFrac.own 1))
@@ -116,7 +116,7 @@ noncomputable instance RequestHeader_access_store_Username (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestHeader_access_load_AuthRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (dq : DFrac) :
+noncomputable instance access_load'RequestHeader'AuthRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"AuthRevision" l) v.AuthRevision' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"AuthRevision" l) v.AuthRevision' dq)
@@ -124,7 +124,7 @@ noncomputable instance RequestHeader_access_load_AuthRevision (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestHeader_access_store_AuthRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (y : w64) :
+noncomputable instance access_store'RequestHeader'AuthRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"AuthRevision" l) v.AuthRevision' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"AuthRevision" l) y (DFrac.own 1))
@@ -132,7 +132,7 @@ noncomputable instance RequestHeader_access_store_AuthRevision (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestHeader_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (dq : DFrac) :
+noncomputable instance access_load'RequestHeader'unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"unknownFields" l) v.unknownFields' dq)
@@ -140,7 +140,7 @@ noncomputable instance RequestHeader_access_load_unknownFields (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestHeader_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (y : GoSlice) :
+noncomputable instance access_store'RequestHeader'unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"unknownFields" l) y (DFrac.own 1))
@@ -148,7 +148,7 @@ noncomputable instance RequestHeader_access_store_unknownFields (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestHeader_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (dq : DFrac) :
+noncomputable instance access_load'RequestHeader'sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"sizeCache" l) v.sizeCache' dq)
@@ -156,7 +156,7 @@ noncomputable instance RequestHeader_access_load_sizeCache (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestHeader_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (y : w32) :
+noncomputable instance access_store'RequestHeader'sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"sizeCache" l) y (DFrac.own 1))
@@ -175,7 +175,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance InternalRaftRequest_typed_pointsto :
+noncomputable instance typed_pointsto'InternalRaftRequest :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest where
   typedPointstoDef l v dq := iprop(
     "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"state" l) v.state' dq ∗
@@ -218,11 +218,11 @@ noncomputable instance InternalRaftRequest_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance InternalRaftRequest_into_val_typed :
+noncomputable instance into_val_typed'InternalRaftRequest :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance InternalRaftRequest_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"state" l) v.state' dq)
@@ -230,7 +230,7 @@ noncomputable instance InternalRaftRequest_access_load_state (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'InternalRaftRequest'state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"state" l) y (DFrac.own 1))
@@ -238,7 +238,7 @@ noncomputable instance InternalRaftRequest_access_store_state (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Header" l) v.Header' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Header" l) v.Header' dq)
@@ -246,7 +246,7 @@ noncomputable instance InternalRaftRequest_access_load_Header (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Header" l) v.Header' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Header" l) y (DFrac.own 1))
@@ -254,7 +254,7 @@ noncomputable instance InternalRaftRequest_access_store_Header (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_ID (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'ID (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"ID" l) v.ID' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"ID" l) v.ID' dq)
@@ -262,7 +262,7 @@ noncomputable instance InternalRaftRequest_access_load_ID (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_ID (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : w64) :
+noncomputable instance access_store'InternalRaftRequest'ID (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"ID" l) v.ID' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"ID" l) y (DFrac.own 1))
@@ -270,7 +270,7 @@ noncomputable instance InternalRaftRequest_access_store_ID (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_Range (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'Range (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Range" l) v.Range' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Range" l) v.Range' dq)
@@ -278,7 +278,7 @@ noncomputable instance InternalRaftRequest_access_load_Range (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_Range (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'Range (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Range" l) v.Range' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Range" l) y (DFrac.own 1))
@@ -286,7 +286,7 @@ noncomputable instance InternalRaftRequest_access_store_Range (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_Put (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'Put (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Put" l) v.Put' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Put" l) v.Put' dq)
@@ -294,7 +294,7 @@ noncomputable instance InternalRaftRequest_access_load_Put (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_Put (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'Put (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Put" l) v.Put' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Put" l) y (DFrac.own 1))
@@ -302,7 +302,7 @@ noncomputable instance InternalRaftRequest_access_store_Put (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_DeleteRange (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'DeleteRange (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"DeleteRange" l) v.DeleteRange' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"DeleteRange" l) v.DeleteRange' dq)
@@ -310,7 +310,7 @@ noncomputable instance InternalRaftRequest_access_load_DeleteRange (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_DeleteRange (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'DeleteRange (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"DeleteRange" l) v.DeleteRange' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"DeleteRange" l) y (DFrac.own 1))
@@ -318,7 +318,7 @@ noncomputable instance InternalRaftRequest_access_store_DeleteRange (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_Txn (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'Txn (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Txn" l) v.Txn' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Txn" l) v.Txn' dq)
@@ -326,7 +326,7 @@ noncomputable instance InternalRaftRequest_access_load_Txn (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_Txn (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'Txn (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Txn" l) v.Txn' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Txn" l) y (DFrac.own 1))
@@ -334,7 +334,7 @@ noncomputable instance InternalRaftRequest_access_store_Txn (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_Compaction (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'Compaction (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Compaction" l) v.Compaction' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Compaction" l) v.Compaction' dq)
@@ -342,7 +342,7 @@ noncomputable instance InternalRaftRequest_access_load_Compaction (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_Compaction (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'Compaction (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Compaction" l) v.Compaction' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Compaction" l) y (DFrac.own 1))
@@ -350,7 +350,7 @@ noncomputable instance InternalRaftRequest_access_store_Compaction (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_LeaseGrant (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'LeaseGrant (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"LeaseGrant" l) v.LeaseGrant' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"LeaseGrant" l) v.LeaseGrant' dq)
@@ -358,7 +358,7 @@ noncomputable instance InternalRaftRequest_access_load_LeaseGrant (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_LeaseGrant (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'LeaseGrant (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"LeaseGrant" l) v.LeaseGrant' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"LeaseGrant" l) y (DFrac.own 1))
@@ -366,7 +366,7 @@ noncomputable instance InternalRaftRequest_access_store_LeaseGrant (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_LeaseRevoke (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'LeaseRevoke (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"LeaseRevoke" l) v.LeaseRevoke' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"LeaseRevoke" l) v.LeaseRevoke' dq)
@@ -374,7 +374,7 @@ noncomputable instance InternalRaftRequest_access_load_LeaseRevoke (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_LeaseRevoke (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'LeaseRevoke (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"LeaseRevoke" l) v.LeaseRevoke' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"LeaseRevoke" l) y (DFrac.own 1))
@@ -382,7 +382,7 @@ noncomputable instance InternalRaftRequest_access_store_LeaseRevoke (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_Alarm (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'Alarm (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Alarm" l) v.Alarm' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Alarm" l) v.Alarm' dq)
@@ -390,7 +390,7 @@ noncomputable instance InternalRaftRequest_access_load_Alarm (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_Alarm (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'Alarm (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Alarm" l) v.Alarm' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Alarm" l) y (DFrac.own 1))
@@ -398,7 +398,7 @@ noncomputable instance InternalRaftRequest_access_store_Alarm (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_LeaseCheckpoint (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'LeaseCheckpoint (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"LeaseCheckpoint" l) v.LeaseCheckpoint' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"LeaseCheckpoint" l) v.LeaseCheckpoint' dq)
@@ -406,7 +406,7 @@ noncomputable instance InternalRaftRequest_access_load_LeaseCheckpoint (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_LeaseCheckpoint (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'LeaseCheckpoint (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"LeaseCheckpoint" l) v.LeaseCheckpoint' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"LeaseCheckpoint" l) y (DFrac.own 1))
@@ -414,7 +414,7 @@ noncomputable instance InternalRaftRequest_access_store_LeaseCheckpoint (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_AuthEnable (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'AuthEnable (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthEnable" l) v.AuthEnable' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthEnable" l) v.AuthEnable' dq)
@@ -422,7 +422,7 @@ noncomputable instance InternalRaftRequest_access_load_AuthEnable (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_AuthEnable (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'AuthEnable (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthEnable" l) v.AuthEnable' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthEnable" l) y (DFrac.own 1))
@@ -430,7 +430,7 @@ noncomputable instance InternalRaftRequest_access_store_AuthEnable (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_AuthDisable (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'AuthDisable (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthDisable" l) v.AuthDisable' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthDisable" l) v.AuthDisable' dq)
@@ -438,7 +438,7 @@ noncomputable instance InternalRaftRequest_access_load_AuthDisable (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_AuthDisable (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'AuthDisable (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthDisable" l) v.AuthDisable' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthDisable" l) y (DFrac.own 1))
@@ -446,7 +446,7 @@ noncomputable instance InternalRaftRequest_access_store_AuthDisable (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_AuthStatus (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'AuthStatus (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthStatus" l) v.AuthStatus' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthStatus" l) v.AuthStatus' dq)
@@ -454,7 +454,7 @@ noncomputable instance InternalRaftRequest_access_load_AuthStatus (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_AuthStatus (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'AuthStatus (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthStatus" l) v.AuthStatus' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthStatus" l) y (DFrac.own 1))
@@ -462,7 +462,7 @@ noncomputable instance InternalRaftRequest_access_store_AuthStatus (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_Authenticate (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'Authenticate (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Authenticate" l) v.Authenticate' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Authenticate" l) v.Authenticate' dq)
@@ -470,7 +470,7 @@ noncomputable instance InternalRaftRequest_access_load_Authenticate (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_Authenticate (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'Authenticate (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Authenticate" l) v.Authenticate' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"Authenticate" l) y (DFrac.own 1))
@@ -478,7 +478,7 @@ noncomputable instance InternalRaftRequest_access_store_Authenticate (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_AuthUserAdd (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'AuthUserAdd (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserAdd" l) v.AuthUserAdd' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserAdd" l) v.AuthUserAdd' dq)
@@ -486,7 +486,7 @@ noncomputable instance InternalRaftRequest_access_load_AuthUserAdd (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_AuthUserAdd (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'AuthUserAdd (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserAdd" l) v.AuthUserAdd' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserAdd" l) y (DFrac.own 1))
@@ -494,7 +494,7 @@ noncomputable instance InternalRaftRequest_access_store_AuthUserAdd (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_AuthUserDelete (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'AuthUserDelete (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserDelete" l) v.AuthUserDelete' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserDelete" l) v.AuthUserDelete' dq)
@@ -502,7 +502,7 @@ noncomputable instance InternalRaftRequest_access_load_AuthUserDelete (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_AuthUserDelete (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'AuthUserDelete (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserDelete" l) v.AuthUserDelete' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserDelete" l) y (DFrac.own 1))
@@ -510,7 +510,7 @@ noncomputable instance InternalRaftRequest_access_store_AuthUserDelete (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_AuthUserGet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'AuthUserGet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserGet" l) v.AuthUserGet' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserGet" l) v.AuthUserGet' dq)
@@ -518,7 +518,7 @@ noncomputable instance InternalRaftRequest_access_load_AuthUserGet (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_AuthUserGet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'AuthUserGet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserGet" l) v.AuthUserGet' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserGet" l) y (DFrac.own 1))
@@ -526,7 +526,7 @@ noncomputable instance InternalRaftRequest_access_store_AuthUserGet (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_AuthUserChangePassword (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'AuthUserChangePassword (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserChangePassword" l) v.AuthUserChangePassword' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserChangePassword" l) v.AuthUserChangePassword' dq)
@@ -534,7 +534,7 @@ noncomputable instance InternalRaftRequest_access_load_AuthUserChangePassword (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_AuthUserChangePassword (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'AuthUserChangePassword (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserChangePassword" l) v.AuthUserChangePassword' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserChangePassword" l) y (DFrac.own 1))
@@ -542,7 +542,7 @@ noncomputable instance InternalRaftRequest_access_store_AuthUserChangePassword (
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_AuthUserGrantRole (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'AuthUserGrantRole (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserGrantRole" l) v.AuthUserGrantRole' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserGrantRole" l) v.AuthUserGrantRole' dq)
@@ -550,7 +550,7 @@ noncomputable instance InternalRaftRequest_access_load_AuthUserGrantRole (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_AuthUserGrantRole (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'AuthUserGrantRole (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserGrantRole" l) v.AuthUserGrantRole' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserGrantRole" l) y (DFrac.own 1))
@@ -558,7 +558,7 @@ noncomputable instance InternalRaftRequest_access_store_AuthUserGrantRole (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_AuthUserRevokeRole (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'AuthUserRevokeRole (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserRevokeRole" l) v.AuthUserRevokeRole' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserRevokeRole" l) v.AuthUserRevokeRole' dq)
@@ -566,7 +566,7 @@ noncomputable instance InternalRaftRequest_access_load_AuthUserRevokeRole (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_AuthUserRevokeRole (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'AuthUserRevokeRole (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserRevokeRole" l) v.AuthUserRevokeRole' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserRevokeRole" l) y (DFrac.own 1))
@@ -574,7 +574,7 @@ noncomputable instance InternalRaftRequest_access_store_AuthUserRevokeRole (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_AuthUserList (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'AuthUserList (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserList" l) v.AuthUserList' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserList" l) v.AuthUserList' dq)
@@ -582,7 +582,7 @@ noncomputable instance InternalRaftRequest_access_load_AuthUserList (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_AuthUserList (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'AuthUserList (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserList" l) v.AuthUserList' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthUserList" l) y (DFrac.own 1))
@@ -590,7 +590,7 @@ noncomputable instance InternalRaftRequest_access_store_AuthUserList (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_AuthRoleList (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'AuthRoleList (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleList" l) v.AuthRoleList' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleList" l) v.AuthRoleList' dq)
@@ -598,7 +598,7 @@ noncomputable instance InternalRaftRequest_access_load_AuthRoleList (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_AuthRoleList (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'AuthRoleList (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleList" l) v.AuthRoleList' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleList" l) y (DFrac.own 1))
@@ -606,7 +606,7 @@ noncomputable instance InternalRaftRequest_access_store_AuthRoleList (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_AuthRoleAdd (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'AuthRoleAdd (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleAdd" l) v.AuthRoleAdd' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleAdd" l) v.AuthRoleAdd' dq)
@@ -614,7 +614,7 @@ noncomputable instance InternalRaftRequest_access_load_AuthRoleAdd (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_AuthRoleAdd (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'AuthRoleAdd (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleAdd" l) v.AuthRoleAdd' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleAdd" l) y (DFrac.own 1))
@@ -622,7 +622,7 @@ noncomputable instance InternalRaftRequest_access_store_AuthRoleAdd (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_AuthRoleDelete (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'AuthRoleDelete (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleDelete" l) v.AuthRoleDelete' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleDelete" l) v.AuthRoleDelete' dq)
@@ -630,7 +630,7 @@ noncomputable instance InternalRaftRequest_access_load_AuthRoleDelete (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_AuthRoleDelete (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'AuthRoleDelete (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleDelete" l) v.AuthRoleDelete' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleDelete" l) y (DFrac.own 1))
@@ -638,7 +638,7 @@ noncomputable instance InternalRaftRequest_access_store_AuthRoleDelete (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_AuthRoleGet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'AuthRoleGet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleGet" l) v.AuthRoleGet' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleGet" l) v.AuthRoleGet' dq)
@@ -646,7 +646,7 @@ noncomputable instance InternalRaftRequest_access_load_AuthRoleGet (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_AuthRoleGet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'AuthRoleGet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleGet" l) v.AuthRoleGet' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleGet" l) y (DFrac.own 1))
@@ -654,7 +654,7 @@ noncomputable instance InternalRaftRequest_access_store_AuthRoleGet (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_AuthRoleGrantPermission (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'AuthRoleGrantPermission (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleGrantPermission" l) v.AuthRoleGrantPermission' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleGrantPermission" l) v.AuthRoleGrantPermission' dq)
@@ -662,7 +662,7 @@ noncomputable instance InternalRaftRequest_access_load_AuthRoleGrantPermission (
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_AuthRoleGrantPermission (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'AuthRoleGrantPermission (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleGrantPermission" l) v.AuthRoleGrantPermission' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleGrantPermission" l) y (DFrac.own 1))
@@ -670,7 +670,7 @@ noncomputable instance InternalRaftRequest_access_store_AuthRoleGrantPermission 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_AuthRoleRevokePermission (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'AuthRoleRevokePermission (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleRevokePermission" l) v.AuthRoleRevokePermission' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleRevokePermission" l) v.AuthRoleRevokePermission' dq)
@@ -678,7 +678,7 @@ noncomputable instance InternalRaftRequest_access_load_AuthRoleRevokePermission 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_AuthRoleRevokePermission (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'AuthRoleRevokePermission (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleRevokePermission" l) v.AuthRoleRevokePermission' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"AuthRoleRevokePermission" l) y (DFrac.own 1))
@@ -686,7 +686,7 @@ noncomputable instance InternalRaftRequest_access_store_AuthRoleRevokePermission
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_ClusterVersionSet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'ClusterVersionSet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"ClusterVersionSet" l) v.ClusterVersionSet' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"ClusterVersionSet" l) v.ClusterVersionSet' dq)
@@ -694,7 +694,7 @@ noncomputable instance InternalRaftRequest_access_load_ClusterVersionSet (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_ClusterVersionSet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'ClusterVersionSet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"ClusterVersionSet" l) v.ClusterVersionSet' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"ClusterVersionSet" l) y (DFrac.own 1))
@@ -702,7 +702,7 @@ noncomputable instance InternalRaftRequest_access_store_ClusterVersionSet (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_ClusterMemberAttrSet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'ClusterMemberAttrSet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"ClusterMemberAttrSet" l) v.ClusterMemberAttrSet' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"ClusterMemberAttrSet" l) v.ClusterMemberAttrSet' dq)
@@ -710,7 +710,7 @@ noncomputable instance InternalRaftRequest_access_load_ClusterMemberAttrSet (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_ClusterMemberAttrSet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'ClusterMemberAttrSet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"ClusterMemberAttrSet" l) v.ClusterMemberAttrSet' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"ClusterMemberAttrSet" l) y (DFrac.own 1))
@@ -718,7 +718,7 @@ noncomputable instance InternalRaftRequest_access_store_ClusterMemberAttrSet (l 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_DowngradeInfoSet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'DowngradeInfoSet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"DowngradeInfoSet" l) v.DowngradeInfoSet' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"DowngradeInfoSet" l) v.DowngradeInfoSet' dq)
@@ -726,7 +726,7 @@ noncomputable instance InternalRaftRequest_access_load_DowngradeInfoSet (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_DowngradeInfoSet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'DowngradeInfoSet (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"DowngradeInfoSet" l) v.DowngradeInfoSet' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"DowngradeInfoSet" l) y (DFrac.own 1))
@@ -734,7 +734,7 @@ noncomputable instance InternalRaftRequest_access_store_DowngradeInfoSet (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_DowngradeVersionTest (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'DowngradeVersionTest (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"DowngradeVersionTest" l) v.DowngradeVersionTest' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"DowngradeVersionTest" l) v.DowngradeVersionTest' dq)
@@ -742,7 +742,7 @@ noncomputable instance InternalRaftRequest_access_load_DowngradeVersionTest (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_DowngradeVersionTest (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequest'DowngradeVersionTest (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"DowngradeVersionTest" l) v.DowngradeVersionTest' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"DowngradeVersionTest" l) y (DFrac.own 1))
@@ -750,7 +750,7 @@ noncomputable instance InternalRaftRequest_access_store_DowngradeVersionTest (l 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"unknownFields" l) v.unknownFields' dq)
@@ -758,7 +758,7 @@ noncomputable instance InternalRaftRequest_access_load_unknownFields (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : GoSlice) :
+noncomputable instance access_store'InternalRaftRequest'unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"unknownFields" l) y (DFrac.own 1))
@@ -766,7 +766,7 @@ noncomputable instance InternalRaftRequest_access_store_unknownFields (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequest'sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"sizeCache" l) v.sizeCache' dq)
@@ -774,7 +774,7 @@ noncomputable instance InternalRaftRequest_access_load_sizeCache (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : w32) :
+noncomputable instance access_store'InternalRaftRequest'sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"sizeCache" l) y (DFrac.own 1))
@@ -793,11 +793,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance EmptyResponse_typed_pointsto :
+noncomputable instance typed_pointsto'EmptyResponse :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.EmptyResponse :=
   sorry -- axiomatized type
 
-noncomputable instance EmptyResponse_into_val_typed :
+noncomputable instance into_val_typed'EmptyResponse :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.EmptyResponse go_etcd_io.etcd.api.v3.etcdserverpb.EmptyResponse.underlying :=
   sorry -- axiomatized type
 
@@ -812,7 +812,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance InternalAuthenticateRequest_typed_pointsto :
+noncomputable instance typed_pointsto'InternalAuthenticateRequest :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest where
   typedPointstoDef l v dq := iprop(
     "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"state" l) v.state' dq ∗
@@ -826,11 +826,11 @@ noncomputable instance InternalAuthenticateRequest_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance InternalAuthenticateRequest_into_val_typed :
+noncomputable instance into_val_typed'InternalAuthenticateRequest :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance InternalAuthenticateRequest_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalAuthenticateRequest'state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"state" l) v.state' dq)
@@ -838,7 +838,7 @@ noncomputable instance InternalAuthenticateRequest_access_load_state (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalAuthenticateRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'InternalAuthenticateRequest'state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"state" l) y (DFrac.own 1))
@@ -846,7 +846,7 @@ noncomputable instance InternalAuthenticateRequest_access_store_state (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalAuthenticateRequest_access_load_Name (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalAuthenticateRequest'Name (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"Name" l) v.Name' dq)
@@ -854,7 +854,7 @@ noncomputable instance InternalAuthenticateRequest_access_load_Name (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalAuthenticateRequest_access_store_Name (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (y : GoString) :
+noncomputable instance access_store'InternalAuthenticateRequest'Name (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"Name" l) y (DFrac.own 1))
@@ -862,7 +862,7 @@ noncomputable instance InternalAuthenticateRequest_access_store_Name (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalAuthenticateRequest_access_load_Password (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalAuthenticateRequest'Password (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"Password" l) v.Password' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"Password" l) v.Password' dq)
@@ -870,7 +870,7 @@ noncomputable instance InternalAuthenticateRequest_access_load_Password (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalAuthenticateRequest_access_store_Password (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (y : GoString) :
+noncomputable instance access_store'InternalAuthenticateRequest'Password (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"Password" l) v.Password' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"Password" l) y (DFrac.own 1))
@@ -878,7 +878,7 @@ noncomputable instance InternalAuthenticateRequest_access_store_Password (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalAuthenticateRequest_access_load_SimpleToken (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalAuthenticateRequest'SimpleToken (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"SimpleToken" l) v.SimpleToken' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"SimpleToken" l) v.SimpleToken' dq)
@@ -886,7 +886,7 @@ noncomputable instance InternalAuthenticateRequest_access_load_SimpleToken (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalAuthenticateRequest_access_store_SimpleToken (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (y : GoString) :
+noncomputable instance access_store'InternalAuthenticateRequest'SimpleToken (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"SimpleToken" l) v.SimpleToken' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"SimpleToken" l) y (DFrac.own 1))
@@ -894,7 +894,7 @@ noncomputable instance InternalAuthenticateRequest_access_store_SimpleToken (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalAuthenticateRequest_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalAuthenticateRequest'unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"unknownFields" l) v.unknownFields' dq)
@@ -902,7 +902,7 @@ noncomputable instance InternalAuthenticateRequest_access_load_unknownFields (l 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalAuthenticateRequest_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (y : GoSlice) :
+noncomputable instance access_store'InternalAuthenticateRequest'unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"unknownFields" l) y (DFrac.own 1))
@@ -910,7 +910,7 @@ noncomputable instance InternalAuthenticateRequest_access_store_unknownFields (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalAuthenticateRequest_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (dq : DFrac) :
+noncomputable instance access_load'InternalAuthenticateRequest'sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"sizeCache" l) v.sizeCache' dq)
@@ -918,7 +918,7 @@ noncomputable instance InternalAuthenticateRequest_access_load_sizeCache (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalAuthenticateRequest_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (y : w32) :
+noncomputable instance access_store'InternalAuthenticateRequest'sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"sizeCache" l) y (DFrac.own 1))
@@ -937,7 +937,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance InternalRaftStringer_typed_pointsto :
+noncomputable instance typed_pointsto'InternalRaftStringer :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer where
   typedPointstoDef l v dq := iprop(
     "Request" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer go!"Request" l) v.Request' dq ∗
@@ -946,11 +946,11 @@ noncomputable instance InternalRaftStringer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance InternalRaftStringer_into_val_typed :
+noncomputable instance into_val_typed'InternalRaftStringer :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance InternalRaftStringer_access_load_Request (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftStringer'Request (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer go!"Request" l) v.Request' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer go!"Request" l) v.Request' dq)
@@ -958,7 +958,7 @@ noncomputable instance InternalRaftStringer_access_load_Request (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftStringer_access_store_Request (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer) (y : Loc) :
+noncomputable instance access_store'InternalRaftStringer'Request (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer go!"Request" l) v.Request' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer go!"Request" l) y (DFrac.own 1))
@@ -977,7 +977,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance txnRequestStringer_typed_pointsto :
+noncomputable instance typed_pointsto'txnRequestStringer :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.txnRequestStringer where
   typedPointstoDef l v dq := iprop(
     "Request" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.txnRequestStringer go!"Request" l) v.Request' dq ∗
@@ -986,11 +986,11 @@ noncomputable instance txnRequestStringer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance txnRequestStringer_into_val_typed :
+noncomputable instance into_val_typed'txnRequestStringer :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.txnRequestStringer go_etcd_io.etcd.api.v3.etcdserverpb.txnRequestStringer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance txnRequestStringer_access_load_Request (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.txnRequestStringer) (dq : DFrac) :
+noncomputable instance access_load'txnRequestStringer'Request (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.txnRequestStringer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.txnRequestStringer go!"Request" l) v.Request' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.txnRequestStringer go!"Request" l) v.Request' dq)
@@ -998,7 +998,7 @@ noncomputable instance txnRequestStringer_access_load_Request (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance txnRequestStringer_access_store_Request (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.txnRequestStringer) (y : Loc) :
+noncomputable instance access_store'txnRequestStringer'Request (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.txnRequestStringer) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.txnRequestStringer go!"Request" l) v.Request' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.txnRequestStringer go!"Request" l) y (DFrac.own 1))
@@ -1017,7 +1017,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance requestOpStringer_typed_pointsto :
+noncomputable instance typed_pointsto'requestOpStringer :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.requestOpStringer where
   typedPointstoDef l v dq := iprop(
     "Op" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.requestOpStringer go!"Op" l) v.Op' dq ∗
@@ -1026,11 +1026,11 @@ noncomputable instance requestOpStringer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance requestOpStringer_into_val_typed :
+noncomputable instance into_val_typed'requestOpStringer :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.requestOpStringer go_etcd_io.etcd.api.v3.etcdserverpb.requestOpStringer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance requestOpStringer_access_load_Op (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.requestOpStringer) (dq : DFrac) :
+noncomputable instance access_load'requestOpStringer'Op (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.requestOpStringer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.requestOpStringer go!"Op" l) v.Op' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.requestOpStringer go!"Op" l) v.Op' dq)
@@ -1038,7 +1038,7 @@ noncomputable instance requestOpStringer_access_load_Op (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance requestOpStringer_access_store_Op (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.requestOpStringer) (y : Loc) :
+noncomputable instance access_store'requestOpStringer'Op (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.requestOpStringer) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.requestOpStringer go!"Op" l) v.Op' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.requestOpStringer go!"Op" l) y (DFrac.own 1))
@@ -1057,7 +1057,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance loggablePutRequest_typed_pointsto :
+noncomputable instance typed_pointsto'loggablePutRequest :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest where
   typedPointstoDef l v dq := iprop(
     "Key" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"Key" l) v.Key' dq ∗
@@ -1071,11 +1071,11 @@ noncomputable instance loggablePutRequest_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance loggablePutRequest_into_val_typed :
+noncomputable instance into_val_typed'loggablePutRequest :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance loggablePutRequest_access_load_Key (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (dq : DFrac) :
+noncomputable instance access_load'loggablePutRequest'Key (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"Key" l) v.Key' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"Key" l) v.Key' dq)
@@ -1083,7 +1083,7 @@ noncomputable instance loggablePutRequest_access_load_Key (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggablePutRequest_access_store_Key (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (y : GoSlice) :
+noncomputable instance access_store'loggablePutRequest'Key (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"Key" l) y (DFrac.own 1))
@@ -1091,7 +1091,7 @@ noncomputable instance loggablePutRequest_access_store_Key (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggablePutRequest_access_load_ValueSize (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (dq : DFrac) :
+noncomputable instance access_load'loggablePutRequest'ValueSize (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"ValueSize" l) v.ValueSize' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"ValueSize" l) v.ValueSize' dq)
@@ -1099,7 +1099,7 @@ noncomputable instance loggablePutRequest_access_load_ValueSize (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggablePutRequest_access_store_ValueSize (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (y : w64) :
+noncomputable instance access_store'loggablePutRequest'ValueSize (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"ValueSize" l) v.ValueSize' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"ValueSize" l) y (DFrac.own 1))
@@ -1107,7 +1107,7 @@ noncomputable instance loggablePutRequest_access_store_ValueSize (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggablePutRequest_access_load_Lease (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (dq : DFrac) :
+noncomputable instance access_load'loggablePutRequest'Lease (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"Lease" l) v.Lease' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"Lease" l) v.Lease' dq)
@@ -1115,7 +1115,7 @@ noncomputable instance loggablePutRequest_access_load_Lease (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggablePutRequest_access_store_Lease (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (y : w64) :
+noncomputable instance access_store'loggablePutRequest'Lease (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"Lease" l) v.Lease' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"Lease" l) y (DFrac.own 1))
@@ -1123,7 +1123,7 @@ noncomputable instance loggablePutRequest_access_store_Lease (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggablePutRequest_access_load_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (dq : DFrac) :
+noncomputable instance access_load'loggablePutRequest'PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"PrevKv" l) v.PrevKv' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"PrevKv" l) v.PrevKv' dq)
@@ -1131,7 +1131,7 @@ noncomputable instance loggablePutRequest_access_load_PrevKv (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggablePutRequest_access_store_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (y : Bool) :
+noncomputable instance access_store'loggablePutRequest'PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"PrevKv" l) v.PrevKv' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"PrevKv" l) y (DFrac.own 1))
@@ -1139,7 +1139,7 @@ noncomputable instance loggablePutRequest_access_store_PrevKv (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggablePutRequest_access_load_IgnoreValue (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (dq : DFrac) :
+noncomputable instance access_load'loggablePutRequest'IgnoreValue (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"IgnoreValue" l) v.IgnoreValue' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"IgnoreValue" l) v.IgnoreValue' dq)
@@ -1147,7 +1147,7 @@ noncomputable instance loggablePutRequest_access_load_IgnoreValue (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggablePutRequest_access_store_IgnoreValue (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (y : Bool) :
+noncomputable instance access_store'loggablePutRequest'IgnoreValue (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"IgnoreValue" l) v.IgnoreValue' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"IgnoreValue" l) y (DFrac.own 1))
@@ -1155,7 +1155,7 @@ noncomputable instance loggablePutRequest_access_store_IgnoreValue (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggablePutRequest_access_load_IgnoreLease (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (dq : DFrac) :
+noncomputable instance access_load'loggablePutRequest'IgnoreLease (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"IgnoreLease" l) v.IgnoreLease' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"IgnoreLease" l) v.IgnoreLease' dq)
@@ -1163,7 +1163,7 @@ noncomputable instance loggablePutRequest_access_load_IgnoreLease (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggablePutRequest_access_store_IgnoreLease (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (y : Bool) :
+noncomputable instance access_store'loggablePutRequest'IgnoreLease (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"IgnoreLease" l) v.IgnoreLease' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"IgnoreLease" l) y (DFrac.own 1))
@@ -1182,7 +1182,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance ResponseHeader_typed_pointsto :
+noncomputable instance typed_pointsto'ResponseHeader :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader where
   typedPointstoDef l v dq := iprop(
     "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"state" l) v.state' dq ∗
@@ -1198,11 +1198,11 @@ noncomputable instance ResponseHeader_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ResponseHeader_into_val_typed :
+noncomputable instance into_val_typed'ResponseHeader :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ResponseHeader_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (dq : DFrac) :
+noncomputable instance access_load'ResponseHeader'state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"state" l) v.state' dq)
@@ -1210,7 +1210,7 @@ noncomputable instance ResponseHeader_access_load_state (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseHeader_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'ResponseHeader'state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"state" l) y (DFrac.own 1))
@@ -1218,7 +1218,7 @@ noncomputable instance ResponseHeader_access_store_state (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseHeader_access_load_ClusterId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (dq : DFrac) :
+noncomputable instance access_load'ResponseHeader'ClusterId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"ClusterId" l) v.ClusterId' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"ClusterId" l) v.ClusterId' dq)
@@ -1226,7 +1226,7 @@ noncomputable instance ResponseHeader_access_load_ClusterId (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseHeader_access_store_ClusterId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (y : w64) :
+noncomputable instance access_store'ResponseHeader'ClusterId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"ClusterId" l) v.ClusterId' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"ClusterId" l) y (DFrac.own 1))
@@ -1234,7 +1234,7 @@ noncomputable instance ResponseHeader_access_store_ClusterId (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseHeader_access_load_MemberId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (dq : DFrac) :
+noncomputable instance access_load'ResponseHeader'MemberId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"MemberId" l) v.MemberId' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"MemberId" l) v.MemberId' dq)
@@ -1242,7 +1242,7 @@ noncomputable instance ResponseHeader_access_load_MemberId (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseHeader_access_store_MemberId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (y : w64) :
+noncomputable instance access_store'ResponseHeader'MemberId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"MemberId" l) v.MemberId' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"MemberId" l) y (DFrac.own 1))
@@ -1250,7 +1250,7 @@ noncomputable instance ResponseHeader_access_store_MemberId (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseHeader_access_load_Revision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (dq : DFrac) :
+noncomputable instance access_load'ResponseHeader'Revision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"Revision" l) v.Revision' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"Revision" l) v.Revision' dq)
@@ -1258,7 +1258,7 @@ noncomputable instance ResponseHeader_access_load_Revision (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseHeader_access_store_Revision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (y : w64) :
+noncomputable instance access_store'ResponseHeader'Revision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"Revision" l) v.Revision' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"Revision" l) y (DFrac.own 1))
@@ -1266,7 +1266,7 @@ noncomputable instance ResponseHeader_access_store_Revision (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseHeader_access_load_RaftTerm (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (dq : DFrac) :
+noncomputable instance access_load'ResponseHeader'RaftTerm (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"RaftTerm" l) v.RaftTerm' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"RaftTerm" l) v.RaftTerm' dq)
@@ -1274,7 +1274,7 @@ noncomputable instance ResponseHeader_access_load_RaftTerm (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseHeader_access_store_RaftTerm (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (y : w64) :
+noncomputable instance access_store'ResponseHeader'RaftTerm (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"RaftTerm" l) v.RaftTerm' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"RaftTerm" l) y (DFrac.own 1))
@@ -1282,7 +1282,7 @@ noncomputable instance ResponseHeader_access_store_RaftTerm (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseHeader_access_load_LeaderId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (dq : DFrac) :
+noncomputable instance access_load'ResponseHeader'LeaderId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"LeaderId" l) v.LeaderId' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"LeaderId" l) v.LeaderId' dq)
@@ -1290,7 +1290,7 @@ noncomputable instance ResponseHeader_access_load_LeaderId (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseHeader_access_store_LeaderId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (y : w64) :
+noncomputable instance access_store'ResponseHeader'LeaderId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"LeaderId" l) v.LeaderId' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"LeaderId" l) y (DFrac.own 1))
@@ -1298,7 +1298,7 @@ noncomputable instance ResponseHeader_access_store_LeaderId (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseHeader_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (dq : DFrac) :
+noncomputable instance access_load'ResponseHeader'unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"unknownFields" l) v.unknownFields' dq)
@@ -1306,7 +1306,7 @@ noncomputable instance ResponseHeader_access_load_unknownFields (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseHeader_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (y : GoSlice) :
+noncomputable instance access_store'ResponseHeader'unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"unknownFields" l) y (DFrac.own 1))
@@ -1314,7 +1314,7 @@ noncomputable instance ResponseHeader_access_store_unknownFields (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseHeader_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (dq : DFrac) :
+noncomputable instance access_load'ResponseHeader'sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"sizeCache" l) v.sizeCache' dq)
@@ -1322,7 +1322,7 @@ noncomputable instance ResponseHeader_access_load_sizeCache (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseHeader_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (y : w32) :
+noncomputable instance access_store'ResponseHeader'sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"sizeCache" l) y (DFrac.own 1))
@@ -1341,7 +1341,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance RangeResponse_typed_pointsto :
+noncomputable instance typed_pointsto'RangeResponse :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse where
   typedPointstoDef l v dq := iprop(
     "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"state" l) v.state' dq ∗
@@ -1356,11 +1356,11 @@ noncomputable instance RangeResponse_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance RangeResponse_into_val_typed :
+noncomputable instance into_val_typed'RangeResponse :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance RangeResponse_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (dq : DFrac) :
+noncomputable instance access_load'RangeResponse'state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"state" l) v.state' dq)
@@ -1368,7 +1368,7 @@ noncomputable instance RangeResponse_access_load_state (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'RangeResponse'state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"state" l) y (DFrac.own 1))
@@ -1376,7 +1376,7 @@ noncomputable instance RangeResponse_access_store_state (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeResponse_access_load_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (dq : DFrac) :
+noncomputable instance access_load'RangeResponse'Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Header" l) v.Header' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Header" l) v.Header' dq)
@@ -1384,7 +1384,7 @@ noncomputable instance RangeResponse_access_load_Header (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeResponse_access_store_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (y : Loc) :
+noncomputable instance access_store'RangeResponse'Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Header" l) v.Header' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Header" l) y (DFrac.own 1))
@@ -1392,7 +1392,7 @@ noncomputable instance RangeResponse_access_store_Header (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeResponse_access_load_Kvs (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (dq : DFrac) :
+noncomputable instance access_load'RangeResponse'Kvs (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Kvs" l) v.Kvs' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Kvs" l) v.Kvs' dq)
@@ -1400,7 +1400,7 @@ noncomputable instance RangeResponse_access_load_Kvs (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeResponse_access_store_Kvs (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (y : GoSlice) :
+noncomputable instance access_store'RangeResponse'Kvs (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Kvs" l) v.Kvs' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Kvs" l) y (DFrac.own 1))
@@ -1408,7 +1408,7 @@ noncomputable instance RangeResponse_access_store_Kvs (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeResponse_access_load_More (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (dq : DFrac) :
+noncomputable instance access_load'RangeResponse'More (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"More" l) v.More' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"More" l) v.More' dq)
@@ -1416,7 +1416,7 @@ noncomputable instance RangeResponse_access_load_More (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeResponse_access_store_More (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (y : Bool) :
+noncomputable instance access_store'RangeResponse'More (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"More" l) v.More' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"More" l) y (DFrac.own 1))
@@ -1424,7 +1424,7 @@ noncomputable instance RangeResponse_access_store_More (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeResponse_access_load_Count (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (dq : DFrac) :
+noncomputable instance access_load'RangeResponse'Count (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Count" l) v.Count' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Count" l) v.Count' dq)
@@ -1432,7 +1432,7 @@ noncomputable instance RangeResponse_access_load_Count (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeResponse_access_store_Count (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (y : w64) :
+noncomputable instance access_store'RangeResponse'Count (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Count" l) v.Count' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Count" l) y (DFrac.own 1))
@@ -1440,7 +1440,7 @@ noncomputable instance RangeResponse_access_store_Count (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeResponse_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (dq : DFrac) :
+noncomputable instance access_load'RangeResponse'unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"unknownFields" l) v.unknownFields' dq)
@@ -1448,7 +1448,7 @@ noncomputable instance RangeResponse_access_load_unknownFields (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeResponse_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (y : GoSlice) :
+noncomputable instance access_store'RangeResponse'unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"unknownFields" l) y (DFrac.own 1))
@@ -1456,7 +1456,7 @@ noncomputable instance RangeResponse_access_store_unknownFields (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeResponse_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (dq : DFrac) :
+noncomputable instance access_load'RangeResponse'sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"sizeCache" l) v.sizeCache' dq)
@@ -1464,7 +1464,7 @@ noncomputable instance RangeResponse_access_load_sizeCache (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeResponse_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (y : w32) :
+noncomputable instance access_store'RangeResponse'sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"sizeCache" l) y (DFrac.own 1))

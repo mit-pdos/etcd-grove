@@ -93,7 +93,7 @@ noncomputable instance Result.zero_val [GooseExts] : ZeroVal Result :=
 @[irreducible] noncomputable def Result.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Result.fieldsUnsealed
 
-noncomputable instance equals_unfold_Result [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Result [GooseExts] [GoGlobalContext] :
     EqualsUnfold Result.fields Result.fieldsUnsealed :=
   ⟨by unfold Result.fields; rfl⟩
 
@@ -103,19 +103,19 @@ noncomputable instance equals_unfold_Result [GooseExts] [GoGlobalContext] :
 class Result.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Result.underlying Result
   underlying : go.UnderlyingDirectedEq Result.ty Result.underlying
-  get_ShouldDelegate : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"ShouldDelegate") #x (Val #(x.ShouldDelegate'))
-  set_ShouldDelegate : ∀ (x : Result) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"ShouldDelegate") (PairV #x #y) (Val #(({ x with ShouldDelegate' := y } : Result)))
-  get_ConsistentRead : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"ConsistentRead") #x (Val #(x.ConsistentRead'))
-  set_ConsistentRead : ∀ (x : Result) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"ConsistentRead") (PairV #x #y) (Val #(({ x with ConsistentRead' := y } : Result)))
+  get'ShouldDelegate : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"ShouldDelegate") #x (Val #(x.ShouldDelegate'))
+  set'ShouldDelegate : ∀ (x : Result) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"ShouldDelegate") (PairV #x #y) (Val #(({ x with ShouldDelegate' := y } : Result)))
+  get'ConsistentRead : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"ConsistentRead") #x (Val #(x.ConsistentRead'))
+  set'ConsistentRead : ∀ (x : Result) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"ConsistentRead") (PairV #x #y) (Val #(({ x with ConsistentRead' := y } : Result)))
   method_set : go.MethodSetIs Result.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Result.ty) []
 
 attribute [instance] Result.TypeAssumptions.type_repr
   Result.TypeAssumptions.underlying
-  Result.TypeAssumptions.get_ShouldDelegate
-  Result.TypeAssumptions.set_ShouldDelegate
-  Result.TypeAssumptions.get_ConsistentRead
-  Result.TypeAssumptions.set_ConsistentRead
+  Result.TypeAssumptions.get'ShouldDelegate
+  Result.TypeAssumptions.set'ShouldDelegate
+  Result.TypeAssumptions.get'ConsistentRead
+  Result.TypeAssumptions.set'ConsistentRead
   Result.TypeAssumptions.method_set
   Result.TypeAssumptions.ptr_method_set
 
@@ -131,7 +131,7 @@ noncomputable instance CacheWithoutSnapshots.zero_val [GooseExts] : ZeroVal Cach
 @[irreducible] noncomputable def CacheWithoutSnapshots.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CacheWithoutSnapshots.fieldsUnsealed
 
-noncomputable instance equals_unfold_CacheWithoutSnapshots [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'CacheWithoutSnapshots [GooseExts] [GoGlobalContext] :
     EqualsUnfold CacheWithoutSnapshots.fields CacheWithoutSnapshots.fieldsUnsealed :=
   ⟨by unfold CacheWithoutSnapshots.fields; rfl⟩
 
@@ -150,13 +150,13 @@ attribute [instance] CacheWithoutSnapshots.TypeAssumptions.type_repr
   CacheWithoutSnapshots.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Helper_instance : Helper.TypeAssumptions
-  Result_instance : Result.TypeAssumptions
-  CacheWithoutSnapshots_instance : CacheWithoutSnapshots.TypeAssumptions
+  instance'Helper : Helper.TypeAssumptions
+  instance'Result : Result.TypeAssumptions
+  instance'CacheWithoutSnapshots : CacheWithoutSnapshots.TypeAssumptions
 
-attribute [instance] Assumptions.Helper_instance
-  Assumptions.Result_instance
-  Assumptions.CacheWithoutSnapshots_instance
+attribute [instance] Assumptions.instance'Helper
+  Assumptions.instance'Result
+  Assumptions.instance'CacheWithoutSnapshots
 
 end k8s_io.apiserver.pkg.storage.cacher.delegator
 

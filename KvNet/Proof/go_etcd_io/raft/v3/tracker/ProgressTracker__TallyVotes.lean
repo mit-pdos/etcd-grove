@@ -185,9 +185,9 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
   have Hsz1 : (GMap.size c.outgoing : Int) < 2 ^ 63 := by
     have := size_le_of_sub_dom c.outgoing prs (by rw [Hdom]; exact outgoing_sub_ids c)
     omega
-  icases (tracker.ProgressTracker.ProgressTracker_access_load_Config trk tv (DFrac.own 1)).access_strict
+  icases (tracker.ProgressTracker.access_load'ProgressTracker'Config trk tv (DFrac.own 1)).access_strict
     $$ Htrk with ⟨Hcfgf, Hback1⟩
-  icases (tracker.Config.Config_access_load_Voters _ tv.Config' (DFrac.own 1)).access_strict
+  icases (tracker.Config.access_load'Config'Voters _ tv.Config' (DFrac.own 1)).access_strict
     $$ Hcfgf with ⟨Hvf, Hback2⟩
   wp_apply wp_JointConfig_VoteResult _ (DFrac.own 1) _ vin vout c.incoming c.outgoing tv.Votes'
       (DFrac.own 1) votes Harr Hsz0 Hsz1 $$ [$Hvf $Hv0 $Hv1 $Hvotes]

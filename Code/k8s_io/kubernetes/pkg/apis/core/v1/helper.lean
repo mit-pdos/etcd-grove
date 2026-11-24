@@ -1322,73 +1322,73 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.k8s_io.kubernetes.pkg.features.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  IsExtendedResourceName_unfold : FuncUnfold IsExtendedResourceName [] IsExtendedResourceName.impl
-  IsPrefixedNativeResource_unfold : FuncUnfold IsPrefixedNativeResource [] IsPrefixedNativeResource.impl
-  IsNativeResource_unfold : FuncUnfold IsNativeResource [] IsNativeResource.impl
-  IsHugePageResourceName_unfold : FuncUnfold IsHugePageResourceName [] IsHugePageResourceName.impl
-  HugePageResourceName_unfold : FuncUnfold HugePageResourceName [] HugePageResourceName.impl
-  HugePageSizeFromResourceName_unfold : FuncUnfold HugePageSizeFromResourceName [] HugePageSizeFromResourceName.impl
-  HugePageUnitSizeFromByteSize_unfold : FuncUnfold HugePageUnitSizeFromByteSize [] HugePageUnitSizeFromByteSize.impl
-  IsHugePageMedium_unfold : FuncUnfold IsHugePageMedium [] IsHugePageMedium.impl
-  HugePageSizeFromMedium_unfold : FuncUnfold HugePageSizeFromMedium [] HugePageSizeFromMedium.impl
-  IsOvercommitAllowed_unfold : FuncUnfold IsOvercommitAllowed [] IsOvercommitAllowed.impl
-  IsAttachableVolumeResourceName_unfold : FuncUnfold IsAttachableVolumeResourceName [] IsAttachableVolumeResourceName.impl
-  IsServiceIPSet_unfold : FuncUnfold IsServiceIPSet [] IsServiceIPSet.impl
-  GetAccessModesAsString_unfold : FuncUnfold GetAccessModesAsString [] GetAccessModesAsString.impl
-  GetAccessModesFromString_unfold : FuncUnfold GetAccessModesFromString [] GetAccessModesFromString.impl
-  removeDuplicateAccessModes_unfold : FuncUnfold removeDuplicateAccessModes [] removeDuplicateAccessModes.impl
-  ContainsAccessMode_unfold : FuncUnfold ContainsAccessMode [] ContainsAccessMode.impl
-  NodeSelectorRequirementKeysExistInNodeSelectorTerms_unfold : FuncUnfold NodeSelectorRequirementKeysExistInNodeSelectorTerms [] NodeSelectorRequirementKeysExistInNodeSelectorTerms.impl
-  TopologySelectorRequirementsAsSelector_unfold : FuncUnfold TopologySelectorRequirementsAsSelector [] TopologySelectorRequirementsAsSelector.impl
-  MatchTopologySelectorTerms_unfold : FuncUnfold MatchTopologySelectorTerms [] MatchTopologySelectorTerms.impl
-  AddOrUpdateTolerationInPodSpec_unfold : FuncUnfold AddOrUpdateTolerationInPodSpec [] AddOrUpdateTolerationInPodSpec.impl
-  GetMatchingTolerations_unfold : FuncUnfold GetMatchingTolerations [] GetMatchingTolerations.impl
-  ScopedResourceSelectorRequirementsAsSelector_unfold : FuncUnfold ScopedResourceSelectorRequirementsAsSelector [] ScopedResourceSelectorRequirementsAsSelector.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_klog_Assumption : _root_.Perennial.k8s_io.klog.v2.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_v1_Assumption : _root_.Perennial.k8s_io.api.core.v1.Assumptions
-  import_resource_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.api.resource.Assumptions
-  import_labels_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
-  import_selection_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.selection.Assumptions
-  import_validation_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.Assumptions
-  import_feature_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
-  import_helper_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.apis.core.helper.Assumptions
-  import_features_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.features.Assumptions
+  unfold'IsExtendedResourceName : FuncUnfold IsExtendedResourceName [] IsExtendedResourceName.impl
+  unfold'IsPrefixedNativeResource : FuncUnfold IsPrefixedNativeResource [] IsPrefixedNativeResource.impl
+  unfold'IsNativeResource : FuncUnfold IsNativeResource [] IsNativeResource.impl
+  unfold'IsHugePageResourceName : FuncUnfold IsHugePageResourceName [] IsHugePageResourceName.impl
+  unfold'HugePageResourceName : FuncUnfold HugePageResourceName [] HugePageResourceName.impl
+  unfold'HugePageSizeFromResourceName : FuncUnfold HugePageSizeFromResourceName [] HugePageSizeFromResourceName.impl
+  unfold'HugePageUnitSizeFromByteSize : FuncUnfold HugePageUnitSizeFromByteSize [] HugePageUnitSizeFromByteSize.impl
+  unfold'IsHugePageMedium : FuncUnfold IsHugePageMedium [] IsHugePageMedium.impl
+  unfold'HugePageSizeFromMedium : FuncUnfold HugePageSizeFromMedium [] HugePageSizeFromMedium.impl
+  unfold'IsOvercommitAllowed : FuncUnfold IsOvercommitAllowed [] IsOvercommitAllowed.impl
+  unfold'IsAttachableVolumeResourceName : FuncUnfold IsAttachableVolumeResourceName [] IsAttachableVolumeResourceName.impl
+  unfold'IsServiceIPSet : FuncUnfold IsServiceIPSet [] IsServiceIPSet.impl
+  unfold'GetAccessModesAsString : FuncUnfold GetAccessModesAsString [] GetAccessModesAsString.impl
+  unfold'GetAccessModesFromString : FuncUnfold GetAccessModesFromString [] GetAccessModesFromString.impl
+  unfold'removeDuplicateAccessModes : FuncUnfold removeDuplicateAccessModes [] removeDuplicateAccessModes.impl
+  unfold'ContainsAccessMode : FuncUnfold ContainsAccessMode [] ContainsAccessMode.impl
+  unfold'NodeSelectorRequirementKeysExistInNodeSelectorTerms : FuncUnfold NodeSelectorRequirementKeysExistInNodeSelectorTerms [] NodeSelectorRequirementKeysExistInNodeSelectorTerms.impl
+  unfold'TopologySelectorRequirementsAsSelector : FuncUnfold TopologySelectorRequirementsAsSelector [] TopologySelectorRequirementsAsSelector.impl
+  unfold'MatchTopologySelectorTerms : FuncUnfold MatchTopologySelectorTerms [] MatchTopologySelectorTerms.impl
+  unfold'AddOrUpdateTolerationInPodSpec : FuncUnfold AddOrUpdateTolerationInPodSpec [] AddOrUpdateTolerationInPodSpec.impl
+  unfold'GetMatchingTolerations : FuncUnfold GetMatchingTolerations [] GetMatchingTolerations.impl
+  unfold'ScopedResourceSelectorRequirementsAsSelector : FuncUnfold ScopedResourceSelectorRequirementsAsSelector [] ScopedResourceSelectorRequirementsAsSelector.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'klog : _root_.Perennial.k8s_io.klog.v2.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'v1 : _root_.Perennial.k8s_io.api.core.v1.Assumptions
+  import'resource : _root_.Perennial.k8s_io.apimachinery.pkg.api.resource.Assumptions
+  import'labels : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
+  import'selection : _root_.Perennial.k8s_io.apimachinery.pkg.selection.Assumptions
+  import'validation : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.Assumptions
+  import'feature : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
+  import'helper : _root_.Perennial.k8s_io.kubernetes.pkg.apis.core.helper.Assumptions
+  import'features : _root_.Perennial.k8s_io.kubernetes.pkg.features.Assumptions
 
-attribute [instance] Assumptions.IsExtendedResourceName_unfold
-  Assumptions.IsPrefixedNativeResource_unfold
-  Assumptions.IsNativeResource_unfold
-  Assumptions.IsHugePageResourceName_unfold
-  Assumptions.HugePageResourceName_unfold
-  Assumptions.HugePageSizeFromResourceName_unfold
-  Assumptions.HugePageUnitSizeFromByteSize_unfold
-  Assumptions.IsHugePageMedium_unfold
-  Assumptions.HugePageSizeFromMedium_unfold
-  Assumptions.IsOvercommitAllowed_unfold
-  Assumptions.IsAttachableVolumeResourceName_unfold
-  Assumptions.IsServiceIPSet_unfold
-  Assumptions.GetAccessModesAsString_unfold
-  Assumptions.GetAccessModesFromString_unfold
-  Assumptions.removeDuplicateAccessModes_unfold
-  Assumptions.ContainsAccessMode_unfold
-  Assumptions.NodeSelectorRequirementKeysExistInNodeSelectorTerms_unfold
-  Assumptions.TopologySelectorRequirementsAsSelector_unfold
-  Assumptions.MatchTopologySelectorTerms_unfold
-  Assumptions.AddOrUpdateTolerationInPodSpec_unfold
-  Assumptions.GetMatchingTolerations_unfold
-  Assumptions.ScopedResourceSelectorRequirementsAsSelector_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_klog_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_v1_Assumption
-  Assumptions.import_resource_Assumption
-  Assumptions.import_labels_Assumption
-  Assumptions.import_selection_Assumption
-  Assumptions.import_validation_Assumption
-  Assumptions.import_feature_Assumption
-  Assumptions.import_helper_Assumption
-  Assumptions.import_features_Assumption
+attribute [instance] Assumptions.unfold'IsExtendedResourceName
+  Assumptions.unfold'IsPrefixedNativeResource
+  Assumptions.unfold'IsNativeResource
+  Assumptions.unfold'IsHugePageResourceName
+  Assumptions.unfold'HugePageResourceName
+  Assumptions.unfold'HugePageSizeFromResourceName
+  Assumptions.unfold'HugePageUnitSizeFromByteSize
+  Assumptions.unfold'IsHugePageMedium
+  Assumptions.unfold'HugePageSizeFromMedium
+  Assumptions.unfold'IsOvercommitAllowed
+  Assumptions.unfold'IsAttachableVolumeResourceName
+  Assumptions.unfold'IsServiceIPSet
+  Assumptions.unfold'GetAccessModesAsString
+  Assumptions.unfold'GetAccessModesFromString
+  Assumptions.unfold'removeDuplicateAccessModes
+  Assumptions.unfold'ContainsAccessMode
+  Assumptions.unfold'NodeSelectorRequirementKeysExistInNodeSelectorTerms
+  Assumptions.unfold'TopologySelectorRequirementsAsSelector
+  Assumptions.unfold'MatchTopologySelectorTerms
+  Assumptions.unfold'AddOrUpdateTolerationInPodSpec
+  Assumptions.unfold'GetMatchingTolerations
+  Assumptions.unfold'ScopedResourceSelectorRequirementsAsSelector
+  Assumptions.import'fmt
+  Assumptions.import'klog
+  Assumptions.import'strings
+  Assumptions.import'v1
+  Assumptions.import'resource
+  Assumptions.import'labels
+  Assumptions.import'selection
+  Assumptions.import'validation
+  Assumptions.import'feature
+  Assumptions.import'helper
+  Assumptions.import'features
 
 end k8s_io.kubernetes.pkg.apis.core.v1.helper
 

@@ -314,27 +314,27 @@ attribute [instance] LifecycleV1alpha1Client.TypeAssumptions.type_repr
   LifecycleV1alpha1Client.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  EvictionsGetter_instance : EvictionsGetter.TypeAssumptions
-  EvictionInterface_instance : EvictionInterface.TypeAssumptions
-  evictions_instance : evictions.TypeAssumptions
-  EvictionRequestsGetter_instance : EvictionRequestsGetter.TypeAssumptions
-  EvictionRequestInterface_instance : EvictionRequestInterface.TypeAssumptions
-  evictionRequests_instance : evictionRequests.TypeAssumptions
-  EvictionExpansion_instance : EvictionExpansion.TypeAssumptions
-  EvictionRequestExpansion_instance : EvictionRequestExpansion.TypeAssumptions
-  LifecycleV1alpha1Interface_instance : LifecycleV1alpha1Interface.TypeAssumptions
-  LifecycleV1alpha1Client_instance : LifecycleV1alpha1Client.TypeAssumptions
+  instance'EvictionsGetter : EvictionsGetter.TypeAssumptions
+  instance'EvictionInterface : EvictionInterface.TypeAssumptions
+  instance'evictions : evictions.TypeAssumptions
+  instance'EvictionRequestsGetter : EvictionRequestsGetter.TypeAssumptions
+  instance'EvictionRequestInterface : EvictionRequestInterface.TypeAssumptions
+  instance'evictionRequests : evictionRequests.TypeAssumptions
+  instance'EvictionExpansion : EvictionExpansion.TypeAssumptions
+  instance'EvictionRequestExpansion : EvictionRequestExpansion.TypeAssumptions
+  instance'LifecycleV1alpha1Interface : LifecycleV1alpha1Interface.TypeAssumptions
+  instance'LifecycleV1alpha1Client : LifecycleV1alpha1Client.TypeAssumptions
 
-attribute [instance] Assumptions.EvictionsGetter_instance
-  Assumptions.EvictionInterface_instance
-  Assumptions.evictions_instance
-  Assumptions.EvictionRequestsGetter_instance
-  Assumptions.EvictionRequestInterface_instance
-  Assumptions.evictionRequests_instance
-  Assumptions.EvictionExpansion_instance
-  Assumptions.EvictionRequestExpansion_instance
-  Assumptions.LifecycleV1alpha1Interface_instance
-  Assumptions.LifecycleV1alpha1Client_instance
+attribute [instance] Assumptions.instance'EvictionsGetter
+  Assumptions.instance'EvictionInterface
+  Assumptions.instance'evictions
+  Assumptions.instance'EvictionRequestsGetter
+  Assumptions.instance'EvictionRequestInterface
+  Assumptions.instance'evictionRequests
+  Assumptions.instance'EvictionExpansion
+  Assumptions.instance'EvictionRequestExpansion
+  Assumptions.instance'LifecycleV1alpha1Interface
+  Assumptions.instance'LifecycleV1alpha1Client
 
 end k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1
 

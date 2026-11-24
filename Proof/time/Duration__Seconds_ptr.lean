@@ -1,5 +1,5 @@
 /-
-The proof of `(*time.Duration).Seconds()`: goose's pointer-method wrapper (`ptr_Seconds_unfold`: load
+The proof of `(*time.Duration).Seconds()`: goose's pointer-method wrapper (`ptr_unfold'Seconds`: load
 `*l`, call the value method), over Perennial's proof of the value method `Duration.Seconds`.
 Lean-first.
 -/

@@ -74,7 +74,7 @@ theorem EntriesEqual.wp_proof (wp_EntryEqual : Entry.Equal.spec (GF := GF) (hG :
       try wp_auto
       rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z al.len from ⟨hn0, Hif⟩))]
       try wp_auto
-      rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Entry.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Entry.TypeAssumptions.ptr_unfold'Equal.method_unfold]
       try wp_auto
       wp_apply wp_load_slice_index al (sint.Z n) es DFrac.discard e hn0 $$ [Hes] as -
       · isplitr

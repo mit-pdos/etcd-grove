@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance ISCSIVolumeSourceApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'ISCSIVolumeSourceApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ISCSIVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance ISCSIVolumeSourceApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'ISCSIVolumeSourceApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ISCSIVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ISCSIVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance KeyToPathApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'KeyToPathApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.KeyToPathApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance KeyToPathApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'KeyToPathApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.KeyToPathApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.KeyToPathApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance LifecycleApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'LifecycleApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LifecycleApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance LifecycleApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'LifecycleApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LifecycleApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.LifecycleApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance LifecycleHandlerApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'LifecycleHandlerApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LifecycleHandlerApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance LifecycleHandlerApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'LifecycleHandlerApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LifecycleHandlerApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.LifecycleHandlerApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance LimitRangeApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'LimitRangeApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LimitRangeApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance LimitRangeApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'LimitRangeApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LimitRangeApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.LimitRangeApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance LimitRangeItemApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'LimitRangeItemApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LimitRangeItemApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance LimitRangeItemApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'LimitRangeItemApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LimitRangeItemApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.LimitRangeItemApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -138,11 +138,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance LimitRangeSpecApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'LimitRangeSpecApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LimitRangeSpecApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance LimitRangeSpecApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'LimitRangeSpecApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LimitRangeSpecApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.LimitRangeSpecApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -157,11 +157,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance LinuxContainerUserApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'LinuxContainerUserApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LinuxContainerUserApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance LinuxContainerUserApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'LinuxContainerUserApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LinuxContainerUserApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.LinuxContainerUserApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -176,11 +176,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance LoadBalancerIngressApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'LoadBalancerIngressApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LoadBalancerIngressApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance LoadBalancerIngressApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'LoadBalancerIngressApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LoadBalancerIngressApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.LoadBalancerIngressApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -195,11 +195,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance LoadBalancerStatusApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'LoadBalancerStatusApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LoadBalancerStatusApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance LoadBalancerStatusApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'LoadBalancerStatusApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LoadBalancerStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.LoadBalancerStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -214,11 +214,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance LocalObjectReferenceApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'LocalObjectReferenceApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LocalObjectReferenceApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance LocalObjectReferenceApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'LocalObjectReferenceApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LocalObjectReferenceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.LocalObjectReferenceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -233,11 +233,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance LocalVolumeSourceApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'LocalVolumeSourceApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LocalVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance LocalVolumeSourceApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'LocalVolumeSourceApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.LocalVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.LocalVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -252,11 +252,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance ModifyVolumeStatusApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'ModifyVolumeStatusApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ModifyVolumeStatusApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance ModifyVolumeStatusApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'ModifyVolumeStatusApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ModifyVolumeStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ModifyVolumeStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -271,11 +271,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NamespaceApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NamespaceApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NamespaceApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NamespaceApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NamespaceApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NamespaceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NamespaceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -290,11 +290,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NamespaceConditionApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NamespaceConditionApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NamespaceConditionApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NamespaceConditionApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NamespaceConditionApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NamespaceConditionApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NamespaceConditionApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -309,11 +309,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NamespaceSpecApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NamespaceSpecApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NamespaceSpecApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NamespaceSpecApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NamespaceSpecApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NamespaceSpecApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NamespaceSpecApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -328,11 +328,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NamespaceStatusApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NamespaceStatusApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NamespaceStatusApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NamespaceStatusApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NamespaceStatusApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NamespaceStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NamespaceStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -347,11 +347,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NFSVolumeSourceApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NFSVolumeSourceApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NFSVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NFSVolumeSourceApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NFSVolumeSourceApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NFSVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NFSVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -366,11 +366,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -385,11 +385,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeAddressApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeAddressApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeAddressApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeAddressApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeAddressApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeAddressApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeAddressApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -404,11 +404,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeAffinityApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeAffinityApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeAffinityApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeAffinityApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeAffinityApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeAffinityApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeAffinityApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -423,11 +423,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeAllocatableMappedResourcesApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeAllocatableMappedResourcesApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeAllocatableMappedResourcesApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeAllocatableMappedResourcesApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeAllocatableMappedResourcesApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeAllocatableMappedResourcesApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeAllocatableMappedResourcesApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -442,11 +442,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeAllocatableOverheadResourcesApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeAllocatableOverheadResourcesApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeAllocatableOverheadResourcesApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeAllocatableOverheadResourcesApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeAllocatableOverheadResourcesApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeAllocatableOverheadResourcesApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeAllocatableOverheadResourcesApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -461,11 +461,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeAllocatableResourceClaimStatusApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeAllocatableResourceClaimStatusApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeAllocatableResourceClaimStatusApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeAllocatableResourceClaimStatusApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeAllocatableResourceClaimStatusApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeAllocatableResourceClaimStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeAllocatableResourceClaimStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -480,11 +480,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeConditionApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeConditionApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeConditionApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeConditionApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeConditionApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeConditionApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeConditionApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -499,11 +499,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeConfigSourceApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeConfigSourceApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeConfigSourceApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeConfigSourceApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeConfigSourceApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeConfigSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeConfigSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -518,11 +518,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeConfigStatusApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeConfigStatusApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeConfigStatusApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeConfigStatusApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeConfigStatusApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeConfigStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeConfigStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -537,11 +537,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeDaemonEndpointsApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeDaemonEndpointsApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeDaemonEndpointsApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeDaemonEndpointsApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeDaemonEndpointsApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeDaemonEndpointsApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeDaemonEndpointsApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -556,11 +556,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeFeaturesApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeFeaturesApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeFeaturesApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeFeaturesApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeFeaturesApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeFeaturesApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeFeaturesApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -575,11 +575,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodePodPreemptionPolicyApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodePodPreemptionPolicyApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodePodPreemptionPolicyApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodePodPreemptionPolicyApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodePodPreemptionPolicyApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodePodPreemptionPolicyApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodePodPreemptionPolicyApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -594,11 +594,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeRuntimeHandlerApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeRuntimeHandlerApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeRuntimeHandlerApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeRuntimeHandlerApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeRuntimeHandlerApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeRuntimeHandlerApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeRuntimeHandlerApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -613,11 +613,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeRuntimeHandlerFeaturesApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeRuntimeHandlerFeaturesApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeRuntimeHandlerFeaturesApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeRuntimeHandlerFeaturesApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeRuntimeHandlerFeaturesApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeRuntimeHandlerFeaturesApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeRuntimeHandlerFeaturesApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -632,11 +632,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeSelectorApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeSelectorApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeSelectorApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeSelectorApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeSelectorApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeSelectorApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeSelectorApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -651,11 +651,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeSelectorRequirementApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeSelectorRequirementApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeSelectorRequirementApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeSelectorRequirementApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeSelectorRequirementApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeSelectorRequirementApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeSelectorRequirementApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -670,11 +670,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeSelectorTermApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeSelectorTermApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeSelectorTermApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeSelectorTermApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeSelectorTermApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeSelectorTermApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeSelectorTermApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -689,11 +689,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeSpecApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeSpecApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeSpecApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeSpecApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeSpecApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeSpecApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeSpecApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -708,11 +708,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeStatusApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeStatusApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeStatusApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeStatusApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeStatusApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -727,11 +727,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeSwapStatusApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeSwapStatusApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeSwapStatusApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeSwapStatusApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeSwapStatusApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeSwapStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeSwapStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -746,11 +746,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance NodeSystemInfoApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'NodeSystemInfoApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeSystemInfoApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance NodeSystemInfoApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'NodeSystemInfoApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.NodeSystemInfoApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.NodeSystemInfoApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -765,11 +765,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance ObjectFieldSelectorApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'ObjectFieldSelectorApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ObjectFieldSelectorApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance ObjectFieldSelectorApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'ObjectFieldSelectorApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ObjectFieldSelectorApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ObjectFieldSelectorApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -784,11 +784,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance ObjectReferenceApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'ObjectReferenceApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ObjectReferenceApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance ObjectReferenceApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'ObjectReferenceApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ObjectReferenceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ObjectReferenceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -803,11 +803,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PersistentVolumeApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PersistentVolumeApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PersistentVolumeApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PersistentVolumeApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -822,11 +822,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PersistentVolumeClaimApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PersistentVolumeClaimApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PersistentVolumeClaimApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PersistentVolumeClaimApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -841,11 +841,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PersistentVolumeClaimConditionApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PersistentVolumeClaimConditionApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimConditionApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PersistentVolumeClaimConditionApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PersistentVolumeClaimConditionApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimConditionApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimConditionApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -860,11 +860,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PersistentVolumeClaimSpecApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PersistentVolumeClaimSpecApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimSpecApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PersistentVolumeClaimSpecApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PersistentVolumeClaimSpecApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimSpecApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimSpecApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -879,11 +879,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PersistentVolumeClaimStatusApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PersistentVolumeClaimStatusApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimStatusApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PersistentVolumeClaimStatusApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PersistentVolumeClaimStatusApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -898,11 +898,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PersistentVolumeClaimTemplateApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PersistentVolumeClaimTemplateApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimTemplateApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PersistentVolumeClaimTemplateApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PersistentVolumeClaimTemplateApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimTemplateApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimTemplateApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -917,11 +917,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PersistentVolumeClaimVolumeSourceApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PersistentVolumeClaimVolumeSourceApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PersistentVolumeClaimVolumeSourceApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PersistentVolumeClaimVolumeSourceApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeClaimVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -936,11 +936,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PersistentVolumeSourceApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PersistentVolumeSourceApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PersistentVolumeSourceApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PersistentVolumeSourceApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -955,11 +955,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PersistentVolumeSpecApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PersistentVolumeSpecApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeSpecApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PersistentVolumeSpecApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PersistentVolumeSpecApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeSpecApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeSpecApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -974,11 +974,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PersistentVolumeStatusApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PersistentVolumeStatusApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeStatusApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PersistentVolumeStatusApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PersistentVolumeStatusApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PersistentVolumeStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -993,11 +993,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PhotonPersistentDiskVolumeSourceApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PhotonPersistentDiskVolumeSourceApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PhotonPersistentDiskVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PhotonPersistentDiskVolumeSourceApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PhotonPersistentDiskVolumeSourceApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PhotonPersistentDiskVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PhotonPersistentDiskVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1012,11 +1012,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1031,11 +1031,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodAffinityApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodAffinityApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodAffinityApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodAffinityApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodAffinityApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodAffinityApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodAffinityApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1050,11 +1050,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodAffinityTermApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodAffinityTermApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodAffinityTermApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodAffinityTermApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodAffinityTermApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodAffinityTermApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodAffinityTermApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1069,11 +1069,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodAntiAffinityApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodAntiAffinityApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodAntiAffinityApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodAntiAffinityApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodAntiAffinityApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodAntiAffinityApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodAntiAffinityApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1088,11 +1088,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodCertificateProjectionApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodCertificateProjectionApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodCertificateProjectionApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodCertificateProjectionApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodCertificateProjectionApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodCertificateProjectionApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodCertificateProjectionApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1107,11 +1107,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodConditionApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodConditionApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodConditionApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodConditionApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodConditionApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodConditionApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodConditionApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1126,11 +1126,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodDNSConfigApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodDNSConfigApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodDNSConfigApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodDNSConfigApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodDNSConfigApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodDNSConfigApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodDNSConfigApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1145,11 +1145,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodDNSConfigOptionApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodDNSConfigOptionApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodDNSConfigOptionApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodDNSConfigOptionApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodDNSConfigOptionApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodDNSConfigOptionApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodDNSConfigOptionApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1164,11 +1164,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodExtendedResourceClaimStatusApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodExtendedResourceClaimStatusApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodExtendedResourceClaimStatusApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodExtendedResourceClaimStatusApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodExtendedResourceClaimStatusApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodExtendedResourceClaimStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodExtendedResourceClaimStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1183,11 +1183,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodIPApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodIPApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodIPApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodIPApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodIPApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodIPApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodIPApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1202,11 +1202,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodOSApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodOSApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodOSApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodOSApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodOSApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodOSApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodOSApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1221,11 +1221,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodReadinessGateApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodReadinessGateApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodReadinessGateApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodReadinessGateApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodReadinessGateApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodReadinessGateApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodReadinessGateApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1240,11 +1240,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodResourceClaimApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodResourceClaimApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodResourceClaimApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodResourceClaimApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodResourceClaimApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodResourceClaimApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodResourceClaimApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1259,11 +1259,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodResourceClaimStatusApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodResourceClaimStatusApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodResourceClaimStatusApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodResourceClaimStatusApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodResourceClaimStatusApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodResourceClaimStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodResourceClaimStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1278,11 +1278,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodSchedulingGateApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodSchedulingGateApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodSchedulingGateApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodSchedulingGateApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodSchedulingGateApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodSchedulingGateApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodSchedulingGateApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1297,11 +1297,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodSchedulingGroupApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodSchedulingGroupApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodSchedulingGroupApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodSchedulingGroupApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodSchedulingGroupApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodSchedulingGroupApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodSchedulingGroupApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1316,11 +1316,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodSecurityContextApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodSecurityContextApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodSecurityContextApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodSecurityContextApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodSecurityContextApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodSecurityContextApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodSecurityContextApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1335,11 +1335,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodSpecApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodSpecApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodSpecApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodSpecApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodSpecApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodSpecApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodSpecApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1354,11 +1354,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodStatusApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodStatusApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodStatusApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodStatusApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodStatusApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1373,11 +1373,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodTemplateApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodTemplateApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodTemplateApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodTemplateApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodTemplateApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodTemplateApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodTemplateApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1392,11 +1392,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodTemplateSpecApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodTemplateSpecApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodTemplateSpecApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodTemplateSpecApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodTemplateSpecApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodTemplateSpecApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodTemplateSpecApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1411,11 +1411,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PodVolumeHealthApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PodVolumeHealthApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodVolumeHealthApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PodVolumeHealthApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PodVolumeHealthApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PodVolumeHealthApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PodVolumeHealthApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
@@ -1430,11 +1430,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
-noncomputable instance PortStatusApplyConfiguration_typed_pointsto :
+noncomputable instance typed_pointsto'PortStatusApplyConfiguration :
     TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PortStatusApplyConfiguration :=
   sorry -- axiomatized type
 
-noncomputable instance PortStatusApplyConfiguration_into_val_typed :
+noncomputable instance into_val_typed'PortStatusApplyConfiguration :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PortStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PortStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 

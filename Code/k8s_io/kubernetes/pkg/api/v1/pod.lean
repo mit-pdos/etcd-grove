@@ -1783,81 +1783,81 @@ attribute [instance] Visitor.TypeAssumptions.underlying
   Visitor.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ContainerType_instance : ContainerType.TypeAssumptions
-  ContainerVisitor_instance : ContainerVisitor.TypeAssumptions
-  Visitor_instance : Visitor.TypeAssumptions
-  AllFeatureEnabledContainers_unfold : FuncUnfold AllFeatureEnabledContainers [] AllFeatureEnabledContainers.impl
-  skipEmptyNames_unfold : FuncUnfold skipEmptyNames [] skipEmptyNames.impl
-  ContainerIter_unfold : FuncUnfold ContainerIter [] ContainerIter.impl
-  VisitPodSecretNames_unfold : FuncUnfold VisitPodSecretNames [] VisitPodSecretNames.impl
-  visitContainerSecretNames_unfold : FuncUnfold visitContainerSecretNames [] visitContainerSecretNames.impl
-  VisitPodConfigmapNames_unfold : FuncUnfold VisitPodConfigmapNames [] VisitPodConfigmapNames.impl
-  visitContainerConfigmapNames_unfold : FuncUnfold visitContainerConfigmapNames [] visitContainerConfigmapNames.impl
-  GetContainerStatus_unfold : FuncUnfold GetContainerStatus [] GetContainerStatus.impl
-  GetExistingContainerStatus_unfold : FuncUnfold GetExistingContainerStatus [] GetExistingContainerStatus.impl
-  GetIndexOfContainerStatus_unfold : FuncUnfold GetIndexOfContainerStatus [] GetIndexOfContainerStatus.impl
-  IsPodAvailable_unfold : FuncUnfold IsPodAvailable [] IsPodAvailable.impl
-  IsPodReady_unfold : FuncUnfold IsPodReady [] IsPodReady.impl
-  IsPodTerminal_unfold : FuncUnfold IsPodTerminal [] IsPodTerminal.impl
-  IsPodPhaseTerminal_unfold : FuncUnfold IsPodPhaseTerminal [] IsPodPhaseTerminal.impl
-  IsPodReadyConditionTrue_unfold : FuncUnfold IsPodReadyConditionTrue [] IsPodReadyConditionTrue.impl
-  IsContainersReadyConditionTrue_unfold : FuncUnfold IsContainersReadyConditionTrue [] IsContainersReadyConditionTrue.impl
-  GetPodReadyCondition_unfold : FuncUnfold GetPodReadyCondition [] GetPodReadyCondition.impl
-  GetContainersReadyCondition_unfold : FuncUnfold GetContainersReadyCondition [] GetContainersReadyCondition.impl
-  GetPodCondition_unfold : FuncUnfold GetPodCondition [] GetPodCondition.impl
-  GetPodConditionFromList_unfold : FuncUnfold GetPodConditionFromList [] GetPodConditionFromList.impl
-  UpdatePodCondition_unfold : FuncUnfold UpdatePodCondition [] UpdatePodCondition.impl
-  IsRestartableInitContainer_unfold : FuncUnfold IsRestartableInitContainer [] IsRestartableInitContainer.impl
-  IsContainerRestartable_unfold : FuncUnfold IsContainerRestartable [] IsContainerRestartable.impl
-  ContainerShouldRestart_unfold : FuncUnfold ContainerShouldRestart [] ContainerShouldRestart.impl
-  FindMatchingContainerRestartRule_unfold : FuncUnfold FindMatchingContainerRestartRule [] FindMatchingContainerRestartRule.impl
-  AllContainersCouldRestart_unfold : FuncUnfold AllContainersCouldRestart [] AllContainersCouldRestart.impl
-  CalculatePodStatusObservedGeneration_unfold : FuncUnfold CalculatePodStatusObservedGeneration [] CalculatePodStatusObservedGeneration.impl
-  CalculatePodConditionObservedGeneration_unfold : FuncUnfold CalculatePodConditionObservedGeneration [] CalculatePodConditionObservedGeneration.impl
-  import_iter_Assumption : _root_.Perennial.iter.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_core_v1_Assumption : _root_.Perennial.k8s_io.api.core.v1.Assumptions
-  import_meta_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_feature_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
-  import_features_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.features.Assumptions
+  instance'ContainerType : ContainerType.TypeAssumptions
+  instance'ContainerVisitor : ContainerVisitor.TypeAssumptions
+  instance'Visitor : Visitor.TypeAssumptions
+  unfold'AllFeatureEnabledContainers : FuncUnfold AllFeatureEnabledContainers [] AllFeatureEnabledContainers.impl
+  unfold'skipEmptyNames : FuncUnfold skipEmptyNames [] skipEmptyNames.impl
+  unfold'ContainerIter : FuncUnfold ContainerIter [] ContainerIter.impl
+  unfold'VisitPodSecretNames : FuncUnfold VisitPodSecretNames [] VisitPodSecretNames.impl
+  unfold'visitContainerSecretNames : FuncUnfold visitContainerSecretNames [] visitContainerSecretNames.impl
+  unfold'VisitPodConfigmapNames : FuncUnfold VisitPodConfigmapNames [] VisitPodConfigmapNames.impl
+  unfold'visitContainerConfigmapNames : FuncUnfold visitContainerConfigmapNames [] visitContainerConfigmapNames.impl
+  unfold'GetContainerStatus : FuncUnfold GetContainerStatus [] GetContainerStatus.impl
+  unfold'GetExistingContainerStatus : FuncUnfold GetExistingContainerStatus [] GetExistingContainerStatus.impl
+  unfold'GetIndexOfContainerStatus : FuncUnfold GetIndexOfContainerStatus [] GetIndexOfContainerStatus.impl
+  unfold'IsPodAvailable : FuncUnfold IsPodAvailable [] IsPodAvailable.impl
+  unfold'IsPodReady : FuncUnfold IsPodReady [] IsPodReady.impl
+  unfold'IsPodTerminal : FuncUnfold IsPodTerminal [] IsPodTerminal.impl
+  unfold'IsPodPhaseTerminal : FuncUnfold IsPodPhaseTerminal [] IsPodPhaseTerminal.impl
+  unfold'IsPodReadyConditionTrue : FuncUnfold IsPodReadyConditionTrue [] IsPodReadyConditionTrue.impl
+  unfold'IsContainersReadyConditionTrue : FuncUnfold IsContainersReadyConditionTrue [] IsContainersReadyConditionTrue.impl
+  unfold'GetPodReadyCondition : FuncUnfold GetPodReadyCondition [] GetPodReadyCondition.impl
+  unfold'GetContainersReadyCondition : FuncUnfold GetContainersReadyCondition [] GetContainersReadyCondition.impl
+  unfold'GetPodCondition : FuncUnfold GetPodCondition [] GetPodCondition.impl
+  unfold'GetPodConditionFromList : FuncUnfold GetPodConditionFromList [] GetPodConditionFromList.impl
+  unfold'UpdatePodCondition : FuncUnfold UpdatePodCondition [] UpdatePodCondition.impl
+  unfold'IsRestartableInitContainer : FuncUnfold IsRestartableInitContainer [] IsRestartableInitContainer.impl
+  unfold'IsContainerRestartable : FuncUnfold IsContainerRestartable [] IsContainerRestartable.impl
+  unfold'ContainerShouldRestart : FuncUnfold ContainerShouldRestart [] ContainerShouldRestart.impl
+  unfold'FindMatchingContainerRestartRule : FuncUnfold FindMatchingContainerRestartRule [] FindMatchingContainerRestartRule.impl
+  unfold'AllContainersCouldRestart : FuncUnfold AllContainersCouldRestart [] AllContainersCouldRestart.impl
+  unfold'CalculatePodStatusObservedGeneration : FuncUnfold CalculatePodStatusObservedGeneration [] CalculatePodStatusObservedGeneration.impl
+  unfold'CalculatePodConditionObservedGeneration : FuncUnfold CalculatePodConditionObservedGeneration [] CalculatePodConditionObservedGeneration.impl
+  import'iter : _root_.Perennial.iter.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'core_v1 : _root_.Perennial.k8s_io.api.core.v1.Assumptions
+  import'meta_v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'feature : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
+  import'features : _root_.Perennial.k8s_io.kubernetes.pkg.features.Assumptions
 
-attribute [instance] Assumptions.ContainerType_instance
-  Assumptions.ContainerVisitor_instance
-  Assumptions.Visitor_instance
-  Assumptions.AllFeatureEnabledContainers_unfold
-  Assumptions.skipEmptyNames_unfold
-  Assumptions.ContainerIter_unfold
-  Assumptions.VisitPodSecretNames_unfold
-  Assumptions.visitContainerSecretNames_unfold
-  Assumptions.VisitPodConfigmapNames_unfold
-  Assumptions.visitContainerConfigmapNames_unfold
-  Assumptions.GetContainerStatus_unfold
-  Assumptions.GetExistingContainerStatus_unfold
-  Assumptions.GetIndexOfContainerStatus_unfold
-  Assumptions.IsPodAvailable_unfold
-  Assumptions.IsPodReady_unfold
-  Assumptions.IsPodTerminal_unfold
-  Assumptions.IsPodPhaseTerminal_unfold
-  Assumptions.IsPodReadyConditionTrue_unfold
-  Assumptions.IsContainersReadyConditionTrue_unfold
-  Assumptions.GetPodReadyCondition_unfold
-  Assumptions.GetContainersReadyCondition_unfold
-  Assumptions.GetPodCondition_unfold
-  Assumptions.GetPodConditionFromList_unfold
-  Assumptions.UpdatePodCondition_unfold
-  Assumptions.IsRestartableInitContainer_unfold
-  Assumptions.IsContainerRestartable_unfold
-  Assumptions.ContainerShouldRestart_unfold
-  Assumptions.FindMatchingContainerRestartRule_unfold
-  Assumptions.AllContainersCouldRestart_unfold
-  Assumptions.CalculatePodStatusObservedGeneration_unfold
-  Assumptions.CalculatePodConditionObservedGeneration_unfold
-  Assumptions.import_iter_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_core_v1_Assumption
-  Assumptions.import_meta_v1_Assumption
-  Assumptions.import_feature_Assumption
-  Assumptions.import_features_Assumption
+attribute [instance] Assumptions.instance'ContainerType
+  Assumptions.instance'ContainerVisitor
+  Assumptions.instance'Visitor
+  Assumptions.unfold'AllFeatureEnabledContainers
+  Assumptions.unfold'skipEmptyNames
+  Assumptions.unfold'ContainerIter
+  Assumptions.unfold'VisitPodSecretNames
+  Assumptions.unfold'visitContainerSecretNames
+  Assumptions.unfold'VisitPodConfigmapNames
+  Assumptions.unfold'visitContainerConfigmapNames
+  Assumptions.unfold'GetContainerStatus
+  Assumptions.unfold'GetExistingContainerStatus
+  Assumptions.unfold'GetIndexOfContainerStatus
+  Assumptions.unfold'IsPodAvailable
+  Assumptions.unfold'IsPodReady
+  Assumptions.unfold'IsPodTerminal
+  Assumptions.unfold'IsPodPhaseTerminal
+  Assumptions.unfold'IsPodReadyConditionTrue
+  Assumptions.unfold'IsContainersReadyConditionTrue
+  Assumptions.unfold'GetPodReadyCondition
+  Assumptions.unfold'GetContainersReadyCondition
+  Assumptions.unfold'GetPodCondition
+  Assumptions.unfold'GetPodConditionFromList
+  Assumptions.unfold'UpdatePodCondition
+  Assumptions.unfold'IsRestartableInitContainer
+  Assumptions.unfold'IsContainerRestartable
+  Assumptions.unfold'ContainerShouldRestart
+  Assumptions.unfold'FindMatchingContainerRestartRule
+  Assumptions.unfold'AllContainersCouldRestart
+  Assumptions.unfold'CalculatePodStatusObservedGeneration
+  Assumptions.unfold'CalculatePodConditionObservedGeneration
+  Assumptions.import'iter
+  Assumptions.import'time
+  Assumptions.import'core_v1
+  Assumptions.import'meta_v1
+  Assumptions.import'feature
+  Assumptions.import'features
 
 end k8s_io.kubernetes.pkg.api.v1.pod
 

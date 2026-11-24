@@ -28,7 +28,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.Assumptions]
 
-noncomputable instance LockRequest_typed_pointsto :
+noncomputable instance typed_pointsto'LockRequest :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest where
   typedPointstoDef l v dq := iprop(
     "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"state" l) v.state' dq ∗
@@ -41,11 +41,11 @@ noncomputable instance LockRequest_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance LockRequest_into_val_typed :
+noncomputable instance into_val_typed'LockRequest :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance LockRequest_access_load_state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (dq : DFrac) :
+noncomputable instance access_load'LockRequest'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"state" l) v.state' dq)
@@ -53,7 +53,7 @@ noncomputable instance LockRequest_access_load_state (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'LockRequest'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"state" l) y (DFrac.own 1))
@@ -61,7 +61,7 @@ noncomputable instance LockRequest_access_store_state (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockRequest_access_load_Name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (dq : DFrac) :
+noncomputable instance access_load'LockRequest'Name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"Name" l) v.Name' dq)
@@ -69,7 +69,7 @@ noncomputable instance LockRequest_access_load_Name (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockRequest_access_store_Name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (y : GoSlice) :
+noncomputable instance access_store'LockRequest'Name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"Name" l) y (DFrac.own 1))
@@ -77,7 +77,7 @@ noncomputable instance LockRequest_access_store_Name (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockRequest_access_load_Lease (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (dq : DFrac) :
+noncomputable instance access_load'LockRequest'Lease (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"Lease" l) v.Lease' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"Lease" l) v.Lease' dq)
@@ -85,7 +85,7 @@ noncomputable instance LockRequest_access_load_Lease (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockRequest_access_store_Lease (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (y : w64) :
+noncomputable instance access_store'LockRequest'Lease (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"Lease" l) v.Lease' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"Lease" l) y (DFrac.own 1))
@@ -93,7 +93,7 @@ noncomputable instance LockRequest_access_store_Lease (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockRequest_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (dq : DFrac) :
+noncomputable instance access_load'LockRequest'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"unknownFields" l) v.unknownFields' dq)
@@ -101,7 +101,7 @@ noncomputable instance LockRequest_access_load_unknownFields (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockRequest_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (y : GoSlice) :
+noncomputable instance access_store'LockRequest'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"unknownFields" l) y (DFrac.own 1))
@@ -109,7 +109,7 @@ noncomputable instance LockRequest_access_store_unknownFields (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockRequest_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (dq : DFrac) :
+noncomputable instance access_load'LockRequest'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"sizeCache" l) v.sizeCache' dq)
@@ -117,7 +117,7 @@ noncomputable instance LockRequest_access_load_sizeCache (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockRequest_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (y : w32) :
+noncomputable instance access_store'LockRequest'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest go!"sizeCache" l) y (DFrac.own 1))
@@ -136,7 +136,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.Assumptions]
 
-noncomputable instance LockResponse_typed_pointsto :
+noncomputable instance typed_pointsto'LockResponse :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse where
   typedPointstoDef l v dq := iprop(
     "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"state" l) v.state' dq ∗
@@ -149,11 +149,11 @@ noncomputable instance LockResponse_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance LockResponse_into_val_typed :
+noncomputable instance into_val_typed'LockResponse :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance LockResponse_access_load_state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (dq : DFrac) :
+noncomputable instance access_load'LockResponse'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"state" l) v.state' dq)
@@ -161,7 +161,7 @@ noncomputable instance LockResponse_access_load_state (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'LockResponse'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"state" l) y (DFrac.own 1))
@@ -169,7 +169,7 @@ noncomputable instance LockResponse_access_store_state (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockResponse_access_load_Header (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (dq : DFrac) :
+noncomputable instance access_load'LockResponse'Header (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"Header" l) v.Header' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"Header" l) v.Header' dq)
@@ -177,7 +177,7 @@ noncomputable instance LockResponse_access_load_Header (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockResponse_access_store_Header (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (y : Loc) :
+noncomputable instance access_store'LockResponse'Header (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"Header" l) v.Header' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"Header" l) y (DFrac.own 1))
@@ -185,7 +185,7 @@ noncomputable instance LockResponse_access_store_Header (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockResponse_access_load_Key (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (dq : DFrac) :
+noncomputable instance access_load'LockResponse'Key (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"Key" l) v.Key' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"Key" l) v.Key' dq)
@@ -193,7 +193,7 @@ noncomputable instance LockResponse_access_load_Key (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockResponse_access_store_Key (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (y : GoSlice) :
+noncomputable instance access_store'LockResponse'Key (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"Key" l) y (DFrac.own 1))
@@ -201,7 +201,7 @@ noncomputable instance LockResponse_access_store_Key (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockResponse_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (dq : DFrac) :
+noncomputable instance access_load'LockResponse'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"unknownFields" l) v.unknownFields' dq)
@@ -209,7 +209,7 @@ noncomputable instance LockResponse_access_load_unknownFields (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockResponse_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (y : GoSlice) :
+noncomputable instance access_store'LockResponse'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"unknownFields" l) y (DFrac.own 1))
@@ -217,7 +217,7 @@ noncomputable instance LockResponse_access_store_unknownFields (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockResponse_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (dq : DFrac) :
+noncomputable instance access_load'LockResponse'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"sizeCache" l) v.sizeCache' dq)
@@ -225,7 +225,7 @@ noncomputable instance LockResponse_access_load_sizeCache (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockResponse_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (y : w32) :
+noncomputable instance access_store'LockResponse'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse go!"sizeCache" l) y (DFrac.own 1))
@@ -244,7 +244,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.Assumptions]
 
-noncomputable instance UnlockRequest_typed_pointsto :
+noncomputable instance typed_pointsto'UnlockRequest :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest where
   typedPointstoDef l v dq := iprop(
     "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"state" l) v.state' dq ∗
@@ -256,11 +256,11 @@ noncomputable instance UnlockRequest_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance UnlockRequest_into_val_typed :
+noncomputable instance into_val_typed'UnlockRequest :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance UnlockRequest_access_load_state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest) (dq : DFrac) :
+noncomputable instance access_load'UnlockRequest'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"state" l) v.state' dq)
@@ -268,7 +268,7 @@ noncomputable instance UnlockRequest_access_load_state (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnlockRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'UnlockRequest'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"state" l) y (DFrac.own 1))
@@ -276,7 +276,7 @@ noncomputable instance UnlockRequest_access_store_state (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnlockRequest_access_load_Key (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest) (dq : DFrac) :
+noncomputable instance access_load'UnlockRequest'Key (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"Key" l) v.Key' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"Key" l) v.Key' dq)
@@ -284,7 +284,7 @@ noncomputable instance UnlockRequest_access_load_Key (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnlockRequest_access_store_Key (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest) (y : GoSlice) :
+noncomputable instance access_store'UnlockRequest'Key (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"Key" l) y (DFrac.own 1))
@@ -292,7 +292,7 @@ noncomputable instance UnlockRequest_access_store_Key (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnlockRequest_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest) (dq : DFrac) :
+noncomputable instance access_load'UnlockRequest'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"unknownFields" l) v.unknownFields' dq)
@@ -300,7 +300,7 @@ noncomputable instance UnlockRequest_access_load_unknownFields (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnlockRequest_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest) (y : GoSlice) :
+noncomputable instance access_store'UnlockRequest'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"unknownFields" l) y (DFrac.own 1))
@@ -308,7 +308,7 @@ noncomputable instance UnlockRequest_access_store_unknownFields (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnlockRequest_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest) (dq : DFrac) :
+noncomputable instance access_load'UnlockRequest'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"sizeCache" l) v.sizeCache' dq)
@@ -316,7 +316,7 @@ noncomputable instance UnlockRequest_access_load_sizeCache (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnlockRequest_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest) (y : w32) :
+noncomputable instance access_store'UnlockRequest'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest go!"sizeCache" l) y (DFrac.own 1))
@@ -335,7 +335,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.Assumptions]
 
-noncomputable instance UnlockResponse_typed_pointsto :
+noncomputable instance typed_pointsto'UnlockResponse :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse where
   typedPointstoDef l v dq := iprop(
     "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"state" l) v.state' dq ∗
@@ -347,11 +347,11 @@ noncomputable instance UnlockResponse_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance UnlockResponse_into_val_typed :
+noncomputable instance into_val_typed'UnlockResponse :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance UnlockResponse_access_load_state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse) (dq : DFrac) :
+noncomputable instance access_load'UnlockResponse'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"state" l) v.state' dq)
@@ -359,7 +359,7 @@ noncomputable instance UnlockResponse_access_load_state (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnlockResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'UnlockResponse'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"state" l) y (DFrac.own 1))
@@ -367,7 +367,7 @@ noncomputable instance UnlockResponse_access_store_state (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnlockResponse_access_load_Header (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse) (dq : DFrac) :
+noncomputable instance access_load'UnlockResponse'Header (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"Header" l) v.Header' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"Header" l) v.Header' dq)
@@ -375,7 +375,7 @@ noncomputable instance UnlockResponse_access_load_Header (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnlockResponse_access_store_Header (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse) (y : Loc) :
+noncomputable instance access_store'UnlockResponse'Header (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"Header" l) v.Header' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"Header" l) y (DFrac.own 1))
@@ -383,7 +383,7 @@ noncomputable instance UnlockResponse_access_store_Header (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnlockResponse_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse) (dq : DFrac) :
+noncomputable instance access_load'UnlockResponse'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"unknownFields" l) v.unknownFields' dq)
@@ -391,7 +391,7 @@ noncomputable instance UnlockResponse_access_load_unknownFields (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnlockResponse_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse) (y : GoSlice) :
+noncomputable instance access_store'UnlockResponse'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"unknownFields" l) y (DFrac.own 1))
@@ -399,7 +399,7 @@ noncomputable instance UnlockResponse_access_store_unknownFields (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnlockResponse_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse) (dq : DFrac) :
+noncomputable instance access_load'UnlockResponse'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"sizeCache" l) v.sizeCache' dq)
@@ -407,7 +407,7 @@ noncomputable instance UnlockResponse_access_load_sizeCache (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnlockResponse_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse) (y : w32) :
+noncomputable instance access_store'UnlockResponse'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse go!"sizeCache" l) y (DFrac.own 1))
@@ -426,11 +426,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.Assumptions]
 
-noncomputable instance LockClient_typed_pointsto :
+noncomputable instance typed_pointsto'LockClient :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockClient :=
   sorry -- axiomatized type
 
-noncomputable instance LockClient_into_val_typed :
+noncomputable instance into_val_typed'LockClient :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockClient go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockClient.underlying :=
   sorry -- axiomatized type
 
@@ -445,11 +445,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.Assumptions]
 
-noncomputable instance lockClient_typed_pointsto :
+noncomputable instance typed_pointsto'lockClient :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.lockClient :=
   sorry -- axiomatized type
 
-noncomputable instance lockClient_into_val_typed :
+noncomputable instance into_val_typed'lockClient :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.lockClient go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.lockClient.underlying :=
   sorry -- axiomatized type
 
@@ -464,7 +464,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.Assumptions]
 
-noncomputable instance UnimplementedLockServer_typed_pointsto :
+noncomputable instance typed_pointsto'UnimplementedLockServer :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnimplementedLockServer where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -472,7 +472,7 @@ noncomputable instance UnimplementedLockServer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance UnimplementedLockServer_into_val_typed :
+noncomputable instance into_val_typed'UnimplementedLockServer :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnimplementedLockServer go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnimplementedLockServer.underlying := by
   solve_into_val_typed_struct
 

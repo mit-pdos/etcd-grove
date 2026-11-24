@@ -833,7 +833,7 @@ noncomputable instance Periodic.zero_val [GooseExts] : ZeroVal Periodic :=
 @[irreducible] noncomputable def Periodic.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Periodic.fieldsUnsealed
 
-noncomputable instance equals_unfold_Periodic [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Periodic [GooseExts] [GoGlobalContext] :
     EqualsUnfold Periodic.fields Periodic.fieldsUnsealed :=
   ⟨by unfold Periodic.fields; rfl⟩
 
@@ -843,67 +843,67 @@ noncomputable instance equals_unfold_Periodic [GooseExts] [GoGlobalContext] :
 class Periodic.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Periodic.underlying Periodic
   underlying : go.UnderlyingDirectedEq Periodic.ty Periodic.underlying
-  get_lg : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : Periodic) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : Periodic)))
-  get_clock : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"clock") #x (Val #(x.clock'))
-  set_clock : ∀ (x : Periodic) (y : _root_.Perennial.github_com.jonboulle.clockwork.Clock), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : Periodic)))
-  get_period : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"period") #x (Val #(x.period'))
-  set_period : ∀ (x : Periodic) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"period") (PairV #x #y) (Val #(({ x with period' := y } : Periodic)))
-  get_rg : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"rg") #x (Val #(x.rg'))
-  set_rg : ∀ (x : Periodic) (y : RevGetter), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"rg") (PairV #x #y) (Val #(({ x with rg' := y } : Periodic)))
-  get_c : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"c") #x (Val #(x.c'))
-  set_c : ∀ (x : Periodic) (y : Compactable), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : Periodic)))
-  get_revs : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"revs") #x (Val #(x.revs'))
-  set_revs : ∀ (x : Periodic) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"revs") (PairV #x #y) (Val #(({ x with revs' := y } : Periodic)))
-  get_ctx : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"ctx") #x (Val #(x.ctx'))
-  set_ctx : ∀ (x : Periodic) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : Periodic)))
-  get_cancel : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"cancel") #x (Val #(x.cancel'))
-  set_cancel : ∀ (x : Periodic) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : Periodic)))
-  get_mu : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : Periodic) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Periodic)))
-  get_paused : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"paused") #x (Val #(x.paused'))
-  set_paused : ∀ (x : Periodic) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"paused") (PairV #x #y) (Val #(({ x with paused' := y } : Periodic)))
+  get'lg : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : Periodic) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : Periodic)))
+  get'clock : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"clock") #x (Val #(x.clock'))
+  set'clock : ∀ (x : Periodic) (y : _root_.Perennial.github_com.jonboulle.clockwork.Clock), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : Periodic)))
+  get'period : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"period") #x (Val #(x.period'))
+  set'period : ∀ (x : Periodic) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"period") (PairV #x #y) (Val #(({ x with period' := y } : Periodic)))
+  get'rg : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"rg") #x (Val #(x.rg'))
+  set'rg : ∀ (x : Periodic) (y : RevGetter), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"rg") (PairV #x #y) (Val #(({ x with rg' := y } : Periodic)))
+  get'c : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"c") #x (Val #(x.c'))
+  set'c : ∀ (x : Periodic) (y : Compactable), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : Periodic)))
+  get'revs : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"revs") #x (Val #(x.revs'))
+  set'revs : ∀ (x : Periodic) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"revs") (PairV #x #y) (Val #(({ x with revs' := y } : Periodic)))
+  get'ctx : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"ctx") #x (Val #(x.ctx'))
+  set'ctx : ∀ (x : Periodic) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : Periodic)))
+  get'cancel : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"cancel") #x (Val #(x.cancel'))
+  set'cancel : ∀ (x : Periodic) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : Periodic)))
+  get'mu : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : Periodic) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Periodic)))
+  get'paused : ∀ (x : Periodic), go.IsGoStepPureDetTagged under (StructFieldGet Periodic.underlying go!"paused") #x (Val #(x.paused'))
+  set'paused : ∀ (x : Periodic) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Periodic.underlying go!"paused") (PairV #x #y) (Val #(({ x with paused' := y } : Periodic)))
   method_set : go.MethodSetIs Periodic.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Periodic.ty) [(go!"Pause", (some (go.signature.Signature [] false []))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"Run", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor.getCompactInterval", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor.getRetentions", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor.getRetryInterval", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])))]
-  ptr_Pause_unfold : MethodUnfold (go.GoType.PointerType Periodic.ty) go!"Pause" Periodic.Pause.impl
-  ptr_Resume_unfold : MethodUnfold (go.GoType.PointerType Periodic.ty) go!"Resume" Periodic.Resume.impl
-  ptr_Run_unfold : MethodUnfold (go.GoType.PointerType Periodic.ty) go!"Run" Periodic.Run.impl
-  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType Periodic.ty) go!"Stop" Periodic.Stop.impl
-  ptr_getCompactInterval_unfold : MethodUnfold (go.GoType.PointerType Periodic.ty) go!"getCompactInterval" Periodic.getCompactInterval.impl
-  ptr_getRetentions_unfold : MethodUnfold (go.GoType.PointerType Periodic.ty) go!"getRetentions" Periodic.getRetentions.impl
-  ptr_getRetryInterval_unfold : MethodUnfold (go.GoType.PointerType Periodic.ty) go!"getRetryInterval" Periodic.getRetryInterval.impl
+  ptr_unfold'Pause : MethodUnfold (go.GoType.PointerType Periodic.ty) go!"Pause" Periodic.Pause.impl
+  ptr_unfold'Resume : MethodUnfold (go.GoType.PointerType Periodic.ty) go!"Resume" Periodic.Resume.impl
+  ptr_unfold'Run : MethodUnfold (go.GoType.PointerType Periodic.ty) go!"Run" Periodic.Run.impl
+  ptr_unfold'Stop : MethodUnfold (go.GoType.PointerType Periodic.ty) go!"Stop" Periodic.Stop.impl
+  ptr_unfold'getCompactInterval : MethodUnfold (go.GoType.PointerType Periodic.ty) go!"getCompactInterval" Periodic.getCompactInterval.impl
+  ptr_unfold'getRetentions : MethodUnfold (go.GoType.PointerType Periodic.ty) go!"getRetentions" Periodic.getRetentions.impl
+  ptr_unfold'getRetryInterval : MethodUnfold (go.GoType.PointerType Periodic.ty) go!"getRetryInterval" Periodic.getRetryInterval.impl
 
 attribute [instance] Periodic.TypeAssumptions.type_repr
   Periodic.TypeAssumptions.underlying
-  Periodic.TypeAssumptions.get_lg
-  Periodic.TypeAssumptions.set_lg
-  Periodic.TypeAssumptions.get_clock
-  Periodic.TypeAssumptions.set_clock
-  Periodic.TypeAssumptions.get_period
-  Periodic.TypeAssumptions.set_period
-  Periodic.TypeAssumptions.get_rg
-  Periodic.TypeAssumptions.set_rg
-  Periodic.TypeAssumptions.get_c
-  Periodic.TypeAssumptions.set_c
-  Periodic.TypeAssumptions.get_revs
-  Periodic.TypeAssumptions.set_revs
-  Periodic.TypeAssumptions.get_ctx
-  Periodic.TypeAssumptions.set_ctx
-  Periodic.TypeAssumptions.get_cancel
-  Periodic.TypeAssumptions.set_cancel
-  Periodic.TypeAssumptions.get_mu
-  Periodic.TypeAssumptions.set_mu
-  Periodic.TypeAssumptions.get_paused
-  Periodic.TypeAssumptions.set_paused
+  Periodic.TypeAssumptions.get'lg
+  Periodic.TypeAssumptions.set'lg
+  Periodic.TypeAssumptions.get'clock
+  Periodic.TypeAssumptions.set'clock
+  Periodic.TypeAssumptions.get'period
+  Periodic.TypeAssumptions.set'period
+  Periodic.TypeAssumptions.get'rg
+  Periodic.TypeAssumptions.set'rg
+  Periodic.TypeAssumptions.get'c
+  Periodic.TypeAssumptions.set'c
+  Periodic.TypeAssumptions.get'revs
+  Periodic.TypeAssumptions.set'revs
+  Periodic.TypeAssumptions.get'ctx
+  Periodic.TypeAssumptions.set'ctx
+  Periodic.TypeAssumptions.get'cancel
+  Periodic.TypeAssumptions.set'cancel
+  Periodic.TypeAssumptions.get'mu
+  Periodic.TypeAssumptions.set'mu
+  Periodic.TypeAssumptions.get'paused
+  Periodic.TypeAssumptions.set'paused
   Periodic.TypeAssumptions.method_set
   Periodic.TypeAssumptions.ptr_method_set
-  Periodic.TypeAssumptions.ptr_Pause_unfold
-  Periodic.TypeAssumptions.ptr_Resume_unfold
-  Periodic.TypeAssumptions.ptr_Run_unfold
-  Periodic.TypeAssumptions.ptr_Stop_unfold
-  Periodic.TypeAssumptions.ptr_getCompactInterval_unfold
-  Periodic.TypeAssumptions.ptr_getRetentions_unfold
-  Periodic.TypeAssumptions.ptr_getRetryInterval_unfold
+  Periodic.TypeAssumptions.ptr_unfold'Pause
+  Periodic.TypeAssumptions.ptr_unfold'Resume
+  Periodic.TypeAssumptions.ptr_unfold'Run
+  Periodic.TypeAssumptions.ptr_unfold'Stop
+  Periodic.TypeAssumptions.ptr_unfold'getCompactInterval
+  Periodic.TypeAssumptions.ptr_unfold'getRetentions
+  Periodic.TypeAssumptions.ptr_unfold'getRetryInterval
 
 structure Revision [GooseExts] where
   mk ::
@@ -934,7 +934,7 @@ noncomputable instance Revision.zero_val [GooseExts] : ZeroVal Revision :=
 @[irreducible] noncomputable def Revision.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Revision.fieldsUnsealed
 
-noncomputable instance equals_unfold_Revision [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Revision [GooseExts] [GoGlobalContext] :
     EqualsUnfold Revision.fields Revision.fieldsUnsealed :=
   ⟨by unfold Revision.fields; rfl⟩
 
@@ -944,94 +944,94 @@ noncomputable instance equals_unfold_Revision [GooseExts] [GoGlobalContext] :
 class Revision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Revision.underlying Revision
   underlying : go.UnderlyingDirectedEq Revision.ty Revision.underlying
-  get_lg : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : Revision) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : Revision)))
-  get_clock : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"clock") #x (Val #(x.clock'))
-  set_clock : ∀ (x : Revision) (y : _root_.Perennial.github_com.jonboulle.clockwork.Clock), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : Revision)))
-  get_retention : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"retention") #x (Val #(x.retention'))
-  set_retention : ∀ (x : Revision) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"retention") (PairV #x #y) (Val #(({ x with retention' := y } : Revision)))
-  get_rg : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"rg") #x (Val #(x.rg'))
-  set_rg : ∀ (x : Revision) (y : RevGetter), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"rg") (PairV #x #y) (Val #(({ x with rg' := y } : Revision)))
-  get_c : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"c") #x (Val #(x.c'))
-  set_c : ∀ (x : Revision) (y : Compactable), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : Revision)))
-  get_ctx : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"ctx") #x (Val #(x.ctx'))
-  set_ctx : ∀ (x : Revision) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : Revision)))
-  get_cancel : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"cancel") #x (Val #(x.cancel'))
-  set_cancel : ∀ (x : Revision) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : Revision)))
-  get_mu : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : Revision) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Revision)))
-  get_paused : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"paused") #x (Val #(x.paused'))
-  set_paused : ∀ (x : Revision) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"paused") (PairV #x #y) (Val #(({ x with paused' := y } : Revision)))
+  get'lg : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : Revision) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : Revision)))
+  get'clock : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"clock") #x (Val #(x.clock'))
+  set'clock : ∀ (x : Revision) (y : _root_.Perennial.github_com.jonboulle.clockwork.Clock), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : Revision)))
+  get'retention : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"retention") #x (Val #(x.retention'))
+  set'retention : ∀ (x : Revision) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"retention") (PairV #x #y) (Val #(({ x with retention' := y } : Revision)))
+  get'rg : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"rg") #x (Val #(x.rg'))
+  set'rg : ∀ (x : Revision) (y : RevGetter), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"rg") (PairV #x #y) (Val #(({ x with rg' := y } : Revision)))
+  get'c : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"c") #x (Val #(x.c'))
+  set'c : ∀ (x : Revision) (y : Compactable), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : Revision)))
+  get'ctx : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"ctx") #x (Val #(x.ctx'))
+  set'ctx : ∀ (x : Revision) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : Revision)))
+  get'cancel : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"cancel") #x (Val #(x.cancel'))
+  set'cancel : ∀ (x : Revision) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : Revision)))
+  get'mu : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : Revision) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Revision)))
+  get'paused : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"paused") #x (Val #(x.paused'))
+  set'paused : ∀ (x : Revision) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Revision.underlying go!"paused") (PairV #x #y) (Val #(({ x with paused' := y } : Revision)))
   method_set : go.MethodSetIs Revision.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Revision.ty) [(go!"Pause", (some (go.signature.Signature [] false []))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"Run", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
-  ptr_Pause_unfold : MethodUnfold (go.GoType.PointerType Revision.ty) go!"Pause" Revision.Pause.impl
-  ptr_Resume_unfold : MethodUnfold (go.GoType.PointerType Revision.ty) go!"Resume" Revision.Resume.impl
-  ptr_Run_unfold : MethodUnfold (go.GoType.PointerType Revision.ty) go!"Run" Revision.Run.impl
-  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType Revision.ty) go!"Stop" Revision.Stop.impl
+  ptr_unfold'Pause : MethodUnfold (go.GoType.PointerType Revision.ty) go!"Pause" Revision.Pause.impl
+  ptr_unfold'Resume : MethodUnfold (go.GoType.PointerType Revision.ty) go!"Resume" Revision.Resume.impl
+  ptr_unfold'Run : MethodUnfold (go.GoType.PointerType Revision.ty) go!"Run" Revision.Run.impl
+  ptr_unfold'Stop : MethodUnfold (go.GoType.PointerType Revision.ty) go!"Stop" Revision.Stop.impl
 
 attribute [instance] Revision.TypeAssumptions.type_repr
   Revision.TypeAssumptions.underlying
-  Revision.TypeAssumptions.get_lg
-  Revision.TypeAssumptions.set_lg
-  Revision.TypeAssumptions.get_clock
-  Revision.TypeAssumptions.set_clock
-  Revision.TypeAssumptions.get_retention
-  Revision.TypeAssumptions.set_retention
-  Revision.TypeAssumptions.get_rg
-  Revision.TypeAssumptions.set_rg
-  Revision.TypeAssumptions.get_c
-  Revision.TypeAssumptions.set_c
-  Revision.TypeAssumptions.get_ctx
-  Revision.TypeAssumptions.set_ctx
-  Revision.TypeAssumptions.get_cancel
-  Revision.TypeAssumptions.set_cancel
-  Revision.TypeAssumptions.get_mu
-  Revision.TypeAssumptions.set_mu
-  Revision.TypeAssumptions.get_paused
-  Revision.TypeAssumptions.set_paused
+  Revision.TypeAssumptions.get'lg
+  Revision.TypeAssumptions.set'lg
+  Revision.TypeAssumptions.get'clock
+  Revision.TypeAssumptions.set'clock
+  Revision.TypeAssumptions.get'retention
+  Revision.TypeAssumptions.set'retention
+  Revision.TypeAssumptions.get'rg
+  Revision.TypeAssumptions.set'rg
+  Revision.TypeAssumptions.get'c
+  Revision.TypeAssumptions.set'c
+  Revision.TypeAssumptions.get'ctx
+  Revision.TypeAssumptions.set'ctx
+  Revision.TypeAssumptions.get'cancel
+  Revision.TypeAssumptions.set'cancel
+  Revision.TypeAssumptions.get'mu
+  Revision.TypeAssumptions.set'mu
+  Revision.TypeAssumptions.get'paused
+  Revision.TypeAssumptions.set'paused
   Revision.TypeAssumptions.method_set
   Revision.TypeAssumptions.ptr_method_set
-  Revision.TypeAssumptions.ptr_Pause_unfold
-  Revision.TypeAssumptions.ptr_Resume_unfold
-  Revision.TypeAssumptions.ptr_Run_unfold
-  Revision.TypeAssumptions.ptr_Stop_unfold
+  Revision.TypeAssumptions.ptr_unfold'Pause
+  Revision.TypeAssumptions.ptr_unfold'Resume
+  Revision.TypeAssumptions.ptr_unfold'Run
+  Revision.TypeAssumptions.ptr_unfold'Stop
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Compactor_instance : Compactor.TypeAssumptions
-  Compactable_instance : Compactable.TypeAssumptions
-  RevGetter_instance : RevGetter.TypeAssumptions
-  Periodic_instance : Periodic.TypeAssumptions
-  Revision_instance : Revision.TypeAssumptions
-  New_unfold : FuncUnfold New [] New.impl
-  newPeriodic_unfold : FuncUnfold newPeriodic [] newPeriodic.impl
-  newRevision_unfold : FuncUnfold newRevision [] newRevision.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_clockwork_Assumption : _root_.Perennial.github_com.jonboulle.clockwork.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_mvcc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions
+  instance'Compactor : Compactor.TypeAssumptions
+  instance'Compactable : Compactable.TypeAssumptions
+  instance'RevGetter : RevGetter.TypeAssumptions
+  instance'Periodic : Periodic.TypeAssumptions
+  instance'Revision : Revision.TypeAssumptions
+  unfold'New : FuncUnfold New [] New.impl
+  unfold'newPeriodic : FuncUnfold newPeriodic [] newPeriodic.impl
+  unfold'newRevision : FuncUnfold newRevision [] newRevision.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'clockwork : _root_.Perennial.github_com.jonboulle.clockwork.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'mvcc : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions
 
-attribute [instance] Assumptions.Compactor_instance
-  Assumptions.Compactable_instance
-  Assumptions.RevGetter_instance
-  Assumptions.Periodic_instance
-  Assumptions.Revision_instance
-  Assumptions.New_unfold
-  Assumptions.newPeriodic_unfold
-  Assumptions.newRevision_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_clockwork_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_mvcc_Assumption
+attribute [instance] Assumptions.instance'Compactor
+  Assumptions.instance'Compactable
+  Assumptions.instance'RevGetter
+  Assumptions.instance'Periodic
+  Assumptions.instance'Revision
+  Assumptions.unfold'New
+  Assumptions.unfold'newPeriodic
+  Assumptions.unfold'newRevision
+  Assumptions.import'context
+  Assumptions.import'fmt
+  Assumptions.import'time
+  Assumptions.import'clockwork
+  Assumptions.import'zap
+  Assumptions.import'etcdserverpb
+  Assumptions.import'errors
+  Assumptions.import'sync
+  Assumptions.import'mvcc
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
 

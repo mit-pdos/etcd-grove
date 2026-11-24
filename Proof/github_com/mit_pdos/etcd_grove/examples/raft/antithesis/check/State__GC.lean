@@ -88,7 +88,7 @@ theorem State.GC.wp_proof
   · iframe Hq Hvm
   generalize hs2 : ({ s1 with votes := lset.minus s.votes vs } : State) = s2
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermLogs.TypeAssumptions.ptr_Without_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermLogs.TypeAssumptions.ptr_unfold'Without.method_unfold]
   try wp_auto
   wp_apply wp_LogsWithout g.LedLog' s.ledLog ssl s.staleLed $$ [HLedLog Hss] as %lls #Hlls
   · iframe HLedLog Hss
@@ -97,7 +97,7 @@ theorem State.GC.wp_proof
   · iframe Hq Hlls
   generalize hs3 : ({ s2 with ledLog := s.ledLog.without s.staleLed } : State) = s3
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermConfs.TypeAssumptions.ptr_Without_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermConfs.TypeAssumptions.ptr_unfold'Without.method_unfold]
   try wp_auto
   wp_apply wp_ConfsWithout g.LedConf' s.ledConf ssl s.staleLed $$ [HLedConf Hss] as %lcs #Hlcs
   · iframe HLedConf Hss
@@ -106,7 +106,7 @@ theorem State.GC.wp_proof
   · iframe Hq Hlcs
   generalize hs4 : ({ s3 with ledConf := s.ledConf.without s.staleLed } : State) = s4
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_Without_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_unfold'Without.method_unfold]
   try wp_auto
   wp_apply wp_IntsWithout g.LedAt' s.ledAt ssl s.staleLed $$ [HLedAt Hss] as %las #Hlas
   · iframe HLedAt Hss
@@ -115,7 +115,7 @@ theorem State.GC.wp_proof
   · iframe Hq Hlas
   generalize hs5 : ({ s4 with ledAt := s.ledAt.without s.staleLed } : State) = s5
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_Without_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_unfold'Without.method_unfold]
   try wp_auto
   wp_apply wp_IntsWithout g.ElAt' s.elAt ssl s.staleLed $$ [HElAt Hss] as %eas #Heas
   · iframe HElAt Hss

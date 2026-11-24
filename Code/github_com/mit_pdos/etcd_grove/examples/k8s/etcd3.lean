@@ -12200,7 +12200,7 @@ noncomputable instance Obj.zero_val [GooseExts] : ZeroVal Obj :=
 @[irreducible] noncomputable def Obj.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Obj.fieldsUnsealed
 
-noncomputable instance equals_unfold_Obj [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Obj [GooseExts] [GoGlobalContext] :
     EqualsUnfold Obj.fields Obj.fieldsUnsealed :=
   ⟨by unfold Obj.fields; rfl⟩
 
@@ -12210,109 +12210,109 @@ noncomputable instance equals_unfold_Obj [GooseExts] [GoGlobalContext] :
 class Obj.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Obj.underlying Obj
   underlying : go.UnderlyingDirectedEq Obj.ty Obj.underlying
-  get_Namespace : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"Namespace") #x (Val #(x.Namespace'))
-  set_Namespace : ∀ (x : Obj) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : Obj)))
-  get_Name : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : Obj) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Obj)))
-  get_UID : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"UID") #x (Val #(x.UID'))
-  set_UID : ∀ (x : Obj) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"UID") (PairV #x #y) (Val #(({ x with UID' := y } : Obj)))
-  get_Value : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"Value") #x (Val #(x.Value'))
-  set_Value : ∀ (x : Obj) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Obj)))
-  get_Node : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"Node") #x (Val #(x.Node'))
-  set_Node : ∀ (x : Obj) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"Node") (PairV #x #y) (Val #(({ x with Node' := y } : Obj)))
-  get_App : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"App") #x (Val #(x.App'))
-  set_App : ∀ (x : Obj) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"App") (PairV #x #y) (Val #(({ x with App' := y } : Obj)))
-  get_ResourceVersion : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"ResourceVersion") #x (Val #(x.ResourceVersion'))
-  set_ResourceVersion : ∀ (x : Obj) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"ResourceVersion") (PairV #x #y) (Val #(({ x with ResourceVersion' := y } : Obj)))
-  get_Annotated : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"Annotated") #x (Val #(x.Annotated'))
-  set_Annotated : ∀ (x : Obj) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"Annotated") (PairV #x #y) (Val #(({ x with Annotated' := y } : Obj)))
+  get'Namespace : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"Namespace") #x (Val #(x.Namespace'))
+  set'Namespace : ∀ (x : Obj) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : Obj)))
+  get'Name : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : Obj) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Obj)))
+  get'UID : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"UID") #x (Val #(x.UID'))
+  set'UID : ∀ (x : Obj) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"UID") (PairV #x #y) (Val #(({ x with UID' := y } : Obj)))
+  get'Value : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"Value") #x (Val #(x.Value'))
+  set'Value : ∀ (x : Obj) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Obj)))
+  get'Node : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"Node") #x (Val #(x.Node'))
+  set'Node : ∀ (x : Obj) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"Node") (PairV #x #y) (Val #(({ x with Node' := y } : Obj)))
+  get'App : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"App") #x (Val #(x.App'))
+  set'App : ∀ (x : Obj) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"App") (PairV #x #y) (Val #(({ x with App' := y } : Obj)))
+  get'ResourceVersion : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"ResourceVersion") #x (Val #(x.ResourceVersion'))
+  set'ResourceVersion : ∀ (x : Obj) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"ResourceVersion") (PairV #x #y) (Val #(({ x with ResourceVersion' := y } : Obj)))
+  get'Annotated : ∀ (x : Obj), go.IsGoStepPureDetTagged under (StructFieldGet Obj.underlying go!"Annotated") #x (Val #(x.Annotated'))
+  set'Annotated : ∀ (x : Obj) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Obj.underlying go!"Annotated") (PairV #x #y) (Val #(({ x with Annotated' := y } : Obj)))
   method_set : go.MethodSetIs Obj.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Obj.ty) [(go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty]))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false [])))]
-  ptr_DeepCopyObject_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"DeepCopyObject" Obj.DeepCopyObject.impl
-  ptr_GetAnnotations_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetAnnotations" Obj.GetAnnotations.impl
-  ptr_GetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetCreationTimestamp" Obj.GetCreationTimestamp.impl
-  ptr_GetDeletionGracePeriodSeconds_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetDeletionGracePeriodSeconds" Obj.GetDeletionGracePeriodSeconds.impl
-  ptr_GetDeletionTimestamp_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetDeletionTimestamp" Obj.GetDeletionTimestamp.impl
-  ptr_GetFinalizers_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetFinalizers" Obj.GetFinalizers.impl
-  ptr_GetGenerateName_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetGenerateName" Obj.GetGenerateName.impl
-  ptr_GetGeneration_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetGeneration" Obj.GetGeneration.impl
-  ptr_GetLabels_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetLabels" Obj.GetLabels.impl
-  ptr_GetManagedFields_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetManagedFields" Obj.GetManagedFields.impl
-  ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetName" Obj.GetName.impl
-  ptr_GetNamespace_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetNamespace" Obj.GetNamespace.impl
-  ptr_GetObjectKind_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetObjectKind" Obj.GetObjectKind.impl
-  ptr_GetOwnerReferences_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetOwnerReferences" Obj.GetOwnerReferences.impl
-  ptr_GetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetResourceVersion" Obj.GetResourceVersion.impl
-  ptr_GetSelfLink_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetSelfLink" Obj.GetSelfLink.impl
-  ptr_GetUID_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetUID" Obj.GetUID.impl
-  ptr_SetAnnotations_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetAnnotations" Obj.SetAnnotations.impl
-  ptr_SetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetCreationTimestamp" Obj.SetCreationTimestamp.impl
-  ptr_SetDeletionGracePeriodSeconds_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetDeletionGracePeriodSeconds" Obj.SetDeletionGracePeriodSeconds.impl
-  ptr_SetDeletionTimestamp_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetDeletionTimestamp" Obj.SetDeletionTimestamp.impl
-  ptr_SetFinalizers_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetFinalizers" Obj.SetFinalizers.impl
-  ptr_SetGenerateName_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetGenerateName" Obj.SetGenerateName.impl
-  ptr_SetGeneration_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetGeneration" Obj.SetGeneration.impl
-  ptr_SetLabels_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetLabels" Obj.SetLabels.impl
-  ptr_SetManagedFields_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetManagedFields" Obj.SetManagedFields.impl
-  ptr_SetName_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetName" Obj.SetName.impl
-  ptr_SetNamespace_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetNamespace" Obj.SetNamespace.impl
-  ptr_SetOwnerReferences_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetOwnerReferences" Obj.SetOwnerReferences.impl
-  ptr_SetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetResourceVersion" Obj.SetResourceVersion.impl
-  ptr_SetSelfLink_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetSelfLink" Obj.SetSelfLink.impl
-  ptr_SetUID_unfold : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetUID" Obj.SetUID.impl
+  ptr_unfold'DeepCopyObject : MethodUnfold (go.GoType.PointerType Obj.ty) go!"DeepCopyObject" Obj.DeepCopyObject.impl
+  ptr_unfold'GetAnnotations : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetAnnotations" Obj.GetAnnotations.impl
+  ptr_unfold'GetCreationTimestamp : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetCreationTimestamp" Obj.GetCreationTimestamp.impl
+  ptr_unfold'GetDeletionGracePeriodSeconds : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetDeletionGracePeriodSeconds" Obj.GetDeletionGracePeriodSeconds.impl
+  ptr_unfold'GetDeletionTimestamp : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetDeletionTimestamp" Obj.GetDeletionTimestamp.impl
+  ptr_unfold'GetFinalizers : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetFinalizers" Obj.GetFinalizers.impl
+  ptr_unfold'GetGenerateName : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetGenerateName" Obj.GetGenerateName.impl
+  ptr_unfold'GetGeneration : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetGeneration" Obj.GetGeneration.impl
+  ptr_unfold'GetLabels : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetLabels" Obj.GetLabels.impl
+  ptr_unfold'GetManagedFields : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetManagedFields" Obj.GetManagedFields.impl
+  ptr_unfold'GetName : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetName" Obj.GetName.impl
+  ptr_unfold'GetNamespace : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetNamespace" Obj.GetNamespace.impl
+  ptr_unfold'GetObjectKind : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetObjectKind" Obj.GetObjectKind.impl
+  ptr_unfold'GetOwnerReferences : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetOwnerReferences" Obj.GetOwnerReferences.impl
+  ptr_unfold'GetResourceVersion : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetResourceVersion" Obj.GetResourceVersion.impl
+  ptr_unfold'GetSelfLink : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetSelfLink" Obj.GetSelfLink.impl
+  ptr_unfold'GetUID : MethodUnfold (go.GoType.PointerType Obj.ty) go!"GetUID" Obj.GetUID.impl
+  ptr_unfold'SetAnnotations : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetAnnotations" Obj.SetAnnotations.impl
+  ptr_unfold'SetCreationTimestamp : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetCreationTimestamp" Obj.SetCreationTimestamp.impl
+  ptr_unfold'SetDeletionGracePeriodSeconds : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetDeletionGracePeriodSeconds" Obj.SetDeletionGracePeriodSeconds.impl
+  ptr_unfold'SetDeletionTimestamp : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetDeletionTimestamp" Obj.SetDeletionTimestamp.impl
+  ptr_unfold'SetFinalizers : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetFinalizers" Obj.SetFinalizers.impl
+  ptr_unfold'SetGenerateName : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetGenerateName" Obj.SetGenerateName.impl
+  ptr_unfold'SetGeneration : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetGeneration" Obj.SetGeneration.impl
+  ptr_unfold'SetLabels : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetLabels" Obj.SetLabels.impl
+  ptr_unfold'SetManagedFields : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetManagedFields" Obj.SetManagedFields.impl
+  ptr_unfold'SetName : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetName" Obj.SetName.impl
+  ptr_unfold'SetNamespace : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetNamespace" Obj.SetNamespace.impl
+  ptr_unfold'SetOwnerReferences : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetOwnerReferences" Obj.SetOwnerReferences.impl
+  ptr_unfold'SetResourceVersion : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetResourceVersion" Obj.SetResourceVersion.impl
+  ptr_unfold'SetSelfLink : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetSelfLink" Obj.SetSelfLink.impl
+  ptr_unfold'SetUID : MethodUnfold (go.GoType.PointerType Obj.ty) go!"SetUID" Obj.SetUID.impl
 
 attribute [instance] Obj.TypeAssumptions.type_repr
   Obj.TypeAssumptions.underlying
-  Obj.TypeAssumptions.get_Namespace
-  Obj.TypeAssumptions.set_Namespace
-  Obj.TypeAssumptions.get_Name
-  Obj.TypeAssumptions.set_Name
-  Obj.TypeAssumptions.get_UID
-  Obj.TypeAssumptions.set_UID
-  Obj.TypeAssumptions.get_Value
-  Obj.TypeAssumptions.set_Value
-  Obj.TypeAssumptions.get_Node
-  Obj.TypeAssumptions.set_Node
-  Obj.TypeAssumptions.get_App
-  Obj.TypeAssumptions.set_App
-  Obj.TypeAssumptions.get_ResourceVersion
-  Obj.TypeAssumptions.set_ResourceVersion
-  Obj.TypeAssumptions.get_Annotated
-  Obj.TypeAssumptions.set_Annotated
+  Obj.TypeAssumptions.get'Namespace
+  Obj.TypeAssumptions.set'Namespace
+  Obj.TypeAssumptions.get'Name
+  Obj.TypeAssumptions.set'Name
+  Obj.TypeAssumptions.get'UID
+  Obj.TypeAssumptions.set'UID
+  Obj.TypeAssumptions.get'Value
+  Obj.TypeAssumptions.set'Value
+  Obj.TypeAssumptions.get'Node
+  Obj.TypeAssumptions.set'Node
+  Obj.TypeAssumptions.get'App
+  Obj.TypeAssumptions.set'App
+  Obj.TypeAssumptions.get'ResourceVersion
+  Obj.TypeAssumptions.set'ResourceVersion
+  Obj.TypeAssumptions.get'Annotated
+  Obj.TypeAssumptions.set'Annotated
   Obj.TypeAssumptions.method_set
   Obj.TypeAssumptions.ptr_method_set
-  Obj.TypeAssumptions.ptr_DeepCopyObject_unfold
-  Obj.TypeAssumptions.ptr_GetAnnotations_unfold
-  Obj.TypeAssumptions.ptr_GetCreationTimestamp_unfold
-  Obj.TypeAssumptions.ptr_GetDeletionGracePeriodSeconds_unfold
-  Obj.TypeAssumptions.ptr_GetDeletionTimestamp_unfold
-  Obj.TypeAssumptions.ptr_GetFinalizers_unfold
-  Obj.TypeAssumptions.ptr_GetGenerateName_unfold
-  Obj.TypeAssumptions.ptr_GetGeneration_unfold
-  Obj.TypeAssumptions.ptr_GetLabels_unfold
-  Obj.TypeAssumptions.ptr_GetManagedFields_unfold
-  Obj.TypeAssumptions.ptr_GetName_unfold
-  Obj.TypeAssumptions.ptr_GetNamespace_unfold
-  Obj.TypeAssumptions.ptr_GetObjectKind_unfold
-  Obj.TypeAssumptions.ptr_GetOwnerReferences_unfold
-  Obj.TypeAssumptions.ptr_GetResourceVersion_unfold
-  Obj.TypeAssumptions.ptr_GetSelfLink_unfold
-  Obj.TypeAssumptions.ptr_GetUID_unfold
-  Obj.TypeAssumptions.ptr_SetAnnotations_unfold
-  Obj.TypeAssumptions.ptr_SetCreationTimestamp_unfold
-  Obj.TypeAssumptions.ptr_SetDeletionGracePeriodSeconds_unfold
-  Obj.TypeAssumptions.ptr_SetDeletionTimestamp_unfold
-  Obj.TypeAssumptions.ptr_SetFinalizers_unfold
-  Obj.TypeAssumptions.ptr_SetGenerateName_unfold
-  Obj.TypeAssumptions.ptr_SetGeneration_unfold
-  Obj.TypeAssumptions.ptr_SetLabels_unfold
-  Obj.TypeAssumptions.ptr_SetManagedFields_unfold
-  Obj.TypeAssumptions.ptr_SetName_unfold
-  Obj.TypeAssumptions.ptr_SetNamespace_unfold
-  Obj.TypeAssumptions.ptr_SetOwnerReferences_unfold
-  Obj.TypeAssumptions.ptr_SetResourceVersion_unfold
-  Obj.TypeAssumptions.ptr_SetSelfLink_unfold
-  Obj.TypeAssumptions.ptr_SetUID_unfold
+  Obj.TypeAssumptions.ptr_unfold'DeepCopyObject
+  Obj.TypeAssumptions.ptr_unfold'GetAnnotations
+  Obj.TypeAssumptions.ptr_unfold'GetCreationTimestamp
+  Obj.TypeAssumptions.ptr_unfold'GetDeletionGracePeriodSeconds
+  Obj.TypeAssumptions.ptr_unfold'GetDeletionTimestamp
+  Obj.TypeAssumptions.ptr_unfold'GetFinalizers
+  Obj.TypeAssumptions.ptr_unfold'GetGenerateName
+  Obj.TypeAssumptions.ptr_unfold'GetGeneration
+  Obj.TypeAssumptions.ptr_unfold'GetLabels
+  Obj.TypeAssumptions.ptr_unfold'GetManagedFields
+  Obj.TypeAssumptions.ptr_unfold'GetName
+  Obj.TypeAssumptions.ptr_unfold'GetNamespace
+  Obj.TypeAssumptions.ptr_unfold'GetObjectKind
+  Obj.TypeAssumptions.ptr_unfold'GetOwnerReferences
+  Obj.TypeAssumptions.ptr_unfold'GetResourceVersion
+  Obj.TypeAssumptions.ptr_unfold'GetSelfLink
+  Obj.TypeAssumptions.ptr_unfold'GetUID
+  Obj.TypeAssumptions.ptr_unfold'SetAnnotations
+  Obj.TypeAssumptions.ptr_unfold'SetCreationTimestamp
+  Obj.TypeAssumptions.ptr_unfold'SetDeletionGracePeriodSeconds
+  Obj.TypeAssumptions.ptr_unfold'SetDeletionTimestamp
+  Obj.TypeAssumptions.ptr_unfold'SetFinalizers
+  Obj.TypeAssumptions.ptr_unfold'SetGenerateName
+  Obj.TypeAssumptions.ptr_unfold'SetGeneration
+  Obj.TypeAssumptions.ptr_unfold'SetLabels
+  Obj.TypeAssumptions.ptr_unfold'SetManagedFields
+  Obj.TypeAssumptions.ptr_unfold'SetName
+  Obj.TypeAssumptions.ptr_unfold'SetNamespace
+  Obj.TypeAssumptions.ptr_unfold'SetOwnerReferences
+  Obj.TypeAssumptions.ptr_unfold'SetResourceVersion
+  Obj.TypeAssumptions.ptr_unfold'SetSelfLink
+  Obj.TypeAssumptions.ptr_unfold'SetUID
 
 structure ObjList [GooseExts] where
   mk ::
@@ -12333,7 +12333,7 @@ noncomputable instance ObjList.zero_val [GooseExts] : ZeroVal ObjList :=
 @[irreducible] noncomputable def ObjList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ObjList.fieldsUnsealed
 
-noncomputable instance equals_unfold_ObjList [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ObjList [GooseExts] [GoGlobalContext] :
     EqualsUnfold ObjList.fields ObjList.fieldsUnsealed :=
   ⟨by unfold ObjList.fields; rfl⟩
 
@@ -12343,49 +12343,49 @@ noncomputable instance equals_unfold_ObjList [GooseExts] [GoGlobalContext] :
 class ObjList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ObjList.underlying ObjList
   underlying : go.UnderlyingDirectedEq ObjList.ty ObjList.underlying
-  get_Items : ∀ (x : ObjList), go.IsGoStepPureDetTagged under (StructFieldGet ObjList.underlying go!"Items") #x (Val #(x.Items'))
-  set_Items : ∀ (x : ObjList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ObjList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : ObjList)))
-  get_ResourceVersion : ∀ (x : ObjList), go.IsGoStepPureDetTagged under (StructFieldGet ObjList.underlying go!"ResourceVersion") #x (Val #(x.ResourceVersion'))
-  set_ResourceVersion : ∀ (x : ObjList) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ObjList.underlying go!"ResourceVersion") (PairV #x #y) (Val #(({ x with ResourceVersion' := y } : ObjList)))
-  get_Continue : ∀ (x : ObjList), go.IsGoStepPureDetTagged under (StructFieldGet ObjList.underlying go!"Continue") #x (Val #(x.Continue'))
-  set_Continue : ∀ (x : ObjList) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ObjList.underlying go!"Continue") (PairV #x #y) (Val #(({ x with Continue' := y } : ObjList)))
-  get_RemainingItemCount : ∀ (x : ObjList), go.IsGoStepPureDetTagged under (StructFieldGet ObjList.underlying go!"RemainingItemCount") #x (Val #(x.RemainingItemCount'))
-  set_RemainingItemCount : ∀ (x : ObjList) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ObjList.underlying go!"RemainingItemCount") (PairV #x #y) (Val #(({ x with RemainingItemCount' := y } : ObjList)))
+  get'Items : ∀ (x : ObjList), go.IsGoStepPureDetTagged under (StructFieldGet ObjList.underlying go!"Items") #x (Val #(x.Items'))
+  set'Items : ∀ (x : ObjList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ObjList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : ObjList)))
+  get'ResourceVersion : ∀ (x : ObjList), go.IsGoStepPureDetTagged under (StructFieldGet ObjList.underlying go!"ResourceVersion") #x (Val #(x.ResourceVersion'))
+  set'ResourceVersion : ∀ (x : ObjList) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ObjList.underlying go!"ResourceVersion") (PairV #x #y) (Val #(({ x with ResourceVersion' := y } : ObjList)))
+  get'Continue : ∀ (x : ObjList), go.IsGoStepPureDetTagged under (StructFieldGet ObjList.underlying go!"Continue") #x (Val #(x.Continue'))
+  set'Continue : ∀ (x : ObjList) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ObjList.underlying go!"Continue") (PairV #x #y) (Val #(({ x with Continue' := y } : ObjList)))
+  get'RemainingItemCount : ∀ (x : ObjList), go.IsGoStepPureDetTagged under (StructFieldGet ObjList.underlying go!"RemainingItemCount") #x (Val #(x.RemainingItemCount'))
+  set'RemainingItemCount : ∀ (x : ObjList) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ObjList.underlying go!"RemainingItemCount") (PairV #x #y) (Val #(({ x with RemainingItemCount' := y } : ObjList)))
   method_set : go.MethodSetIs ObjList.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjList.ty) [(go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false [])))]
-  ptr_DeepCopyObject_unfold : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"DeepCopyObject" ObjList.DeepCopyObject.impl
-  ptr_GetContinue_unfold : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"GetContinue" ObjList.GetContinue.impl
-  ptr_GetObjectKind_unfold : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"GetObjectKind" ObjList.GetObjectKind.impl
-  ptr_GetRemainingItemCount_unfold : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"GetRemainingItemCount" ObjList.GetRemainingItemCount.impl
-  ptr_GetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"GetResourceVersion" ObjList.GetResourceVersion.impl
-  ptr_GetSelfLink_unfold : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"GetSelfLink" ObjList.GetSelfLink.impl
-  ptr_SetContinue_unfold : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"SetContinue" ObjList.SetContinue.impl
-  ptr_SetRemainingItemCount_unfold : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"SetRemainingItemCount" ObjList.SetRemainingItemCount.impl
-  ptr_SetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"SetResourceVersion" ObjList.SetResourceVersion.impl
-  ptr_SetSelfLink_unfold : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"SetSelfLink" ObjList.SetSelfLink.impl
+  ptr_unfold'DeepCopyObject : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"DeepCopyObject" ObjList.DeepCopyObject.impl
+  ptr_unfold'GetContinue : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"GetContinue" ObjList.GetContinue.impl
+  ptr_unfold'GetObjectKind : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"GetObjectKind" ObjList.GetObjectKind.impl
+  ptr_unfold'GetRemainingItemCount : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"GetRemainingItemCount" ObjList.GetRemainingItemCount.impl
+  ptr_unfold'GetResourceVersion : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"GetResourceVersion" ObjList.GetResourceVersion.impl
+  ptr_unfold'GetSelfLink : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"GetSelfLink" ObjList.GetSelfLink.impl
+  ptr_unfold'SetContinue : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"SetContinue" ObjList.SetContinue.impl
+  ptr_unfold'SetRemainingItemCount : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"SetRemainingItemCount" ObjList.SetRemainingItemCount.impl
+  ptr_unfold'SetResourceVersion : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"SetResourceVersion" ObjList.SetResourceVersion.impl
+  ptr_unfold'SetSelfLink : MethodUnfold (go.GoType.PointerType ObjList.ty) go!"SetSelfLink" ObjList.SetSelfLink.impl
 
 attribute [instance] ObjList.TypeAssumptions.type_repr
   ObjList.TypeAssumptions.underlying
-  ObjList.TypeAssumptions.get_Items
-  ObjList.TypeAssumptions.set_Items
-  ObjList.TypeAssumptions.get_ResourceVersion
-  ObjList.TypeAssumptions.set_ResourceVersion
-  ObjList.TypeAssumptions.get_Continue
-  ObjList.TypeAssumptions.set_Continue
-  ObjList.TypeAssumptions.get_RemainingItemCount
-  ObjList.TypeAssumptions.set_RemainingItemCount
+  ObjList.TypeAssumptions.get'Items
+  ObjList.TypeAssumptions.set'Items
+  ObjList.TypeAssumptions.get'ResourceVersion
+  ObjList.TypeAssumptions.set'ResourceVersion
+  ObjList.TypeAssumptions.get'Continue
+  ObjList.TypeAssumptions.set'Continue
+  ObjList.TypeAssumptions.get'RemainingItemCount
+  ObjList.TypeAssumptions.set'RemainingItemCount
   ObjList.TypeAssumptions.method_set
   ObjList.TypeAssumptions.ptr_method_set
-  ObjList.TypeAssumptions.ptr_DeepCopyObject_unfold
-  ObjList.TypeAssumptions.ptr_GetContinue_unfold
-  ObjList.TypeAssumptions.ptr_GetObjectKind_unfold
-  ObjList.TypeAssumptions.ptr_GetRemainingItemCount_unfold
-  ObjList.TypeAssumptions.ptr_GetResourceVersion_unfold
-  ObjList.TypeAssumptions.ptr_GetSelfLink_unfold
-  ObjList.TypeAssumptions.ptr_SetContinue_unfold
-  ObjList.TypeAssumptions.ptr_SetRemainingItemCount_unfold
-  ObjList.TypeAssumptions.ptr_SetResourceVersion_unfold
-  ObjList.TypeAssumptions.ptr_SetSelfLink_unfold
+  ObjList.TypeAssumptions.ptr_unfold'DeepCopyObject
+  ObjList.TypeAssumptions.ptr_unfold'GetContinue
+  ObjList.TypeAssumptions.ptr_unfold'GetObjectKind
+  ObjList.TypeAssumptions.ptr_unfold'GetRemainingItemCount
+  ObjList.TypeAssumptions.ptr_unfold'GetResourceVersion
+  ObjList.TypeAssumptions.ptr_unfold'GetSelfLink
+  ObjList.TypeAssumptions.ptr_unfold'SetContinue
+  ObjList.TypeAssumptions.ptr_unfold'SetRemainingItemCount
+  ObjList.TypeAssumptions.ptr_unfold'SetResourceVersion
+  ObjList.TypeAssumptions.ptr_unfold'SetSelfLink
 
 structure codec [GooseExts] where
   mk ::
@@ -12399,7 +12399,7 @@ noncomputable instance codec.zero_val [GooseExts] : ZeroVal codec :=
 @[irreducible] noncomputable def codec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   codec.fieldsUnsealed
 
-noncomputable instance equals_unfold_codec [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'codec [GooseExts] [GoGlobalContext] :
     EqualsUnfold codec.fields codec.fieldsUnsealed :=
   ⟨by unfold codec.fields; rfl⟩
 
@@ -12411,26 +12411,26 @@ class codec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   underlying : go.UnderlyingDirectedEq codec.ty codec.underlying
   method_set : go.MethodSetIs codec.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType codec.ty) [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier.ty])))]
-  Decode_unfold : MethodUnfold codec.ty go!"Decode" codec.Decode.impl
-  Encode_unfold : MethodUnfold codec.ty go!"Encode" codec.Encode.impl
-  Identifier_unfold : MethodUnfold codec.ty go!"Identifier" codec.Identifier.impl
-  ptr_Decode_unfold : MethodUnfold (go.GoType.PointerType codec.ty) go!"Decode" (LamV "$r"
+  unfold'Decode : MethodUnfold codec.ty go!"Decode" codec.Decode.impl
+  unfold'Encode : MethodUnfold codec.ty go!"Encode" codec.Encode.impl
+  unfold'Identifier : MethodUnfold codec.ty go!"Identifier" codec.Identifier.impl
+  ptr_unfold'Decode : MethodUnfold (go.GoType.PointerType codec.ty) go!"Decode" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve codec.ty go!"Decode"))) (App (Val (GoInstruction (GoLoad codec.ty))) (Var "$r"))))
-  ptr_Encode_unfold : MethodUnfold (go.GoType.PointerType codec.ty) go!"Encode" (LamV "$r"
+  ptr_unfold'Encode : MethodUnfold (go.GoType.PointerType codec.ty) go!"Encode" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve codec.ty go!"Encode"))) (App (Val (GoInstruction (GoLoad codec.ty))) (Var "$r"))))
-  ptr_Identifier_unfold : MethodUnfold (go.GoType.PointerType codec.ty) go!"Identifier" (LamV "$r"
+  ptr_unfold'Identifier : MethodUnfold (go.GoType.PointerType codec.ty) go!"Identifier" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve codec.ty go!"Identifier"))) (App (Val (GoInstruction (GoLoad codec.ty))) (Var "$r"))))
 
 attribute [instance] codec.TypeAssumptions.type_repr
   codec.TypeAssumptions.underlying
   codec.TypeAssumptions.method_set
   codec.TypeAssumptions.ptr_method_set
-  codec.TypeAssumptions.Decode_unfold
-  codec.TypeAssumptions.Encode_unfold
-  codec.TypeAssumptions.Identifier_unfold
-  codec.TypeAssumptions.ptr_Decode_unfold
-  codec.TypeAssumptions.ptr_Encode_unfold
-  codec.TypeAssumptions.ptr_Identifier_unfold
+  codec.TypeAssumptions.unfold'Decode
+  codec.TypeAssumptions.unfold'Encode
+  codec.TypeAssumptions.unfold'Identifier
+  codec.TypeAssumptions.ptr_unfold'Decode
+  codec.TypeAssumptions.ptr_unfold'Encode
+  codec.TypeAssumptions.ptr_unfold'Identifier
 
 structure versioner [GooseExts] where
   mk ::
@@ -12444,7 +12444,7 @@ noncomputable instance versioner.zero_val [GooseExts] : ZeroVal versioner :=
 @[irreducible] noncomputable def versioner.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   versioner.fieldsUnsealed
 
-noncomputable instance equals_unfold_versioner [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'versioner [GooseExts] [GoGlobalContext] :
     EqualsUnfold versioner.fields versioner.fieldsUnsealed :=
   ⟨by unfold versioner.fields; rfl⟩
 
@@ -12456,36 +12456,36 @@ class versioner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq versioner.ty versioner.underlying
   method_set : go.MethodSetIs versioner.ty [(go!"ObjectResourceVersion", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.uint64, go.error]))), (go!"ParseResourceVersion", (some (go.signature.Signature [go.string] false [go.uint64, go.error]))), (go!"PrepareObjectForStorage", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"UpdateList", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64, go.string, (go.GoType.PointerType go.int64)] false [go.error]))), (go!"UpdateObject", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType versioner.ty) [(go!"ObjectResourceVersion", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.uint64, go.error]))), (go!"ParseResourceVersion", (some (go.signature.Signature [go.string] false [go.uint64, go.error]))), (go!"PrepareObjectForStorage", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"UpdateList", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64, go.string, (go.GoType.PointerType go.int64)] false [go.error]))), (go!"UpdateObject", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64] false [go.error])))]
-  ObjectResourceVersion_unfold : MethodUnfold versioner.ty go!"ObjectResourceVersion" versioner.ObjectResourceVersion.impl
-  ParseResourceVersion_unfold : MethodUnfold versioner.ty go!"ParseResourceVersion" versioner.ParseResourceVersion.impl
-  PrepareObjectForStorage_unfold : MethodUnfold versioner.ty go!"PrepareObjectForStorage" versioner.PrepareObjectForStorage.impl
-  UpdateList_unfold : MethodUnfold versioner.ty go!"UpdateList" versioner.UpdateList.impl
-  UpdateObject_unfold : MethodUnfold versioner.ty go!"UpdateObject" versioner.UpdateObject.impl
-  ptr_ObjectResourceVersion_unfold : MethodUnfold (go.GoType.PointerType versioner.ty) go!"ObjectResourceVersion" (LamV "$r"
+  unfold'ObjectResourceVersion : MethodUnfold versioner.ty go!"ObjectResourceVersion" versioner.ObjectResourceVersion.impl
+  unfold'ParseResourceVersion : MethodUnfold versioner.ty go!"ParseResourceVersion" versioner.ParseResourceVersion.impl
+  unfold'PrepareObjectForStorage : MethodUnfold versioner.ty go!"PrepareObjectForStorage" versioner.PrepareObjectForStorage.impl
+  unfold'UpdateList : MethodUnfold versioner.ty go!"UpdateList" versioner.UpdateList.impl
+  unfold'UpdateObject : MethodUnfold versioner.ty go!"UpdateObject" versioner.UpdateObject.impl
+  ptr_unfold'ObjectResourceVersion : MethodUnfold (go.GoType.PointerType versioner.ty) go!"ObjectResourceVersion" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve versioner.ty go!"ObjectResourceVersion"))) (App (Val (GoInstruction (GoLoad versioner.ty))) (Var "$r"))))
-  ptr_ParseResourceVersion_unfold : MethodUnfold (go.GoType.PointerType versioner.ty) go!"ParseResourceVersion" (LamV "$r"
+  ptr_unfold'ParseResourceVersion : MethodUnfold (go.GoType.PointerType versioner.ty) go!"ParseResourceVersion" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve versioner.ty go!"ParseResourceVersion"))) (App (Val (GoInstruction (GoLoad versioner.ty))) (Var "$r"))))
-  ptr_PrepareObjectForStorage_unfold : MethodUnfold (go.GoType.PointerType versioner.ty) go!"PrepareObjectForStorage" (LamV "$r"
+  ptr_unfold'PrepareObjectForStorage : MethodUnfold (go.GoType.PointerType versioner.ty) go!"PrepareObjectForStorage" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve versioner.ty go!"PrepareObjectForStorage"))) (App (Val (GoInstruction (GoLoad versioner.ty))) (Var "$r"))))
-  ptr_UpdateList_unfold : MethodUnfold (go.GoType.PointerType versioner.ty) go!"UpdateList" (LamV "$r"
+  ptr_unfold'UpdateList : MethodUnfold (go.GoType.PointerType versioner.ty) go!"UpdateList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve versioner.ty go!"UpdateList"))) (App (Val (GoInstruction (GoLoad versioner.ty))) (Var "$r"))))
-  ptr_UpdateObject_unfold : MethodUnfold (go.GoType.PointerType versioner.ty) go!"UpdateObject" (LamV "$r"
+  ptr_unfold'UpdateObject : MethodUnfold (go.GoType.PointerType versioner.ty) go!"UpdateObject" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve versioner.ty go!"UpdateObject"))) (App (Val (GoInstruction (GoLoad versioner.ty))) (Var "$r"))))
 
 attribute [instance] versioner.TypeAssumptions.type_repr
   versioner.TypeAssumptions.underlying
   versioner.TypeAssumptions.method_set
   versioner.TypeAssumptions.ptr_method_set
-  versioner.TypeAssumptions.ObjectResourceVersion_unfold
-  versioner.TypeAssumptions.ParseResourceVersion_unfold
-  versioner.TypeAssumptions.PrepareObjectForStorage_unfold
-  versioner.TypeAssumptions.UpdateList_unfold
-  versioner.TypeAssumptions.UpdateObject_unfold
-  versioner.TypeAssumptions.ptr_ObjectResourceVersion_unfold
-  versioner.TypeAssumptions.ptr_ParseResourceVersion_unfold
-  versioner.TypeAssumptions.ptr_PrepareObjectForStorage_unfold
-  versioner.TypeAssumptions.ptr_UpdateList_unfold
-  versioner.TypeAssumptions.ptr_UpdateObject_unfold
+  versioner.TypeAssumptions.unfold'ObjectResourceVersion
+  versioner.TypeAssumptions.unfold'ParseResourceVersion
+  versioner.TypeAssumptions.unfold'PrepareObjectForStorage
+  versioner.TypeAssumptions.unfold'UpdateList
+  versioner.TypeAssumptions.unfold'UpdateObject
+  versioner.TypeAssumptions.ptr_unfold'ObjectResourceVersion
+  versioner.TypeAssumptions.ptr_unfold'ParseResourceVersion
+  versioner.TypeAssumptions.ptr_unfold'PrepareObjectForStorage
+  versioner.TypeAssumptions.ptr_unfold'UpdateList
+  versioner.TypeAssumptions.ptr_unfold'UpdateObject
 
 structure decoder [GooseExts] where
   mk ::
@@ -12499,7 +12499,7 @@ noncomputable instance decoder.zero_val [GooseExts] : ZeroVal decoder :=
 @[irreducible] noncomputable def decoder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   decoder.fieldsUnsealed
 
-noncomputable instance equals_unfold_decoder [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'decoder [GooseExts] [GoGlobalContext] :
     EqualsUnfold decoder.fields decoder.fieldsUnsealed :=
   ⟨by unfold decoder.fields; rfl⟩
 
@@ -12511,21 +12511,21 @@ class decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   underlying : go.UnderlyingDirectedEq decoder.ty decoder.underlying
   method_set : go.MethodSetIs decoder.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.int64] false [go.error]))), (go!"DecodeListItem", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), go.uint64, (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType decoder.ty) [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.int64] false [go.error]))), (go!"DecodeListItem", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), go.uint64, (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.error])))]
-  Decode_unfold : MethodUnfold decoder.ty go!"Decode" decoder.Decode.impl
-  DecodeListItem_unfold : MethodUnfold decoder.ty go!"DecodeListItem" decoder.DecodeListItem.impl
-  ptr_Decode_unfold : MethodUnfold (go.GoType.PointerType decoder.ty) go!"Decode" (LamV "$r"
+  unfold'Decode : MethodUnfold decoder.ty go!"Decode" decoder.Decode.impl
+  unfold'DecodeListItem : MethodUnfold decoder.ty go!"DecodeListItem" decoder.DecodeListItem.impl
+  ptr_unfold'Decode : MethodUnfold (go.GoType.PointerType decoder.ty) go!"Decode" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve decoder.ty go!"Decode"))) (App (Val (GoInstruction (GoLoad decoder.ty))) (Var "$r"))))
-  ptr_DecodeListItem_unfold : MethodUnfold (go.GoType.PointerType decoder.ty) go!"DecodeListItem" (LamV "$r"
+  ptr_unfold'DecodeListItem : MethodUnfold (go.GoType.PointerType decoder.ty) go!"DecodeListItem" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve decoder.ty go!"DecodeListItem"))) (App (Val (GoInstruction (GoLoad decoder.ty))) (Var "$r"))))
 
 attribute [instance] decoder.TypeAssumptions.type_repr
   decoder.TypeAssumptions.underlying
   decoder.TypeAssumptions.method_set
   decoder.TypeAssumptions.ptr_method_set
-  decoder.TypeAssumptions.Decode_unfold
-  decoder.TypeAssumptions.DecodeListItem_unfold
-  decoder.TypeAssumptions.ptr_Decode_unfold
-  decoder.TypeAssumptions.ptr_DecodeListItem_unfold
+  decoder.TypeAssumptions.unfold'Decode
+  decoder.TypeAssumptions.unfold'DecodeListItem
+  decoder.TypeAssumptions.ptr_unfold'Decode
+  decoder.TypeAssumptions.ptr_unfold'DecodeListItem
 
 structure identity [GooseExts] where
   mk ::
@@ -12539,7 +12539,7 @@ noncomputable instance identity.zero_val [GooseExts] : ZeroVal identity :=
 @[irreducible] noncomputable def identity.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   identity.fieldsUnsealed
 
-noncomputable instance equals_unfold_identity [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'identity [GooseExts] [GoGlobalContext] :
     EqualsUnfold identity.fields identity.fieldsUnsealed :=
   ⟨by unfold identity.fields; rfl⟩
 
@@ -12551,21 +12551,21 @@ class identity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   underlying : go.UnderlyingDirectedEq identity.ty identity.underlying
   method_set : go.MethodSetIs identity.ty [(go!"TransformFromStorage", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Context.ty] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"TransformToStorage", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Context.ty] false [(go.GoType.SliceType go.byte), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType identity.ty) [(go!"TransformFromStorage", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Context.ty] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"TransformToStorage", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Context.ty] false [(go.GoType.SliceType go.byte), go.error])))]
-  TransformFromStorage_unfold : MethodUnfold identity.ty go!"TransformFromStorage" identity.TransformFromStorage.impl
-  TransformToStorage_unfold : MethodUnfold identity.ty go!"TransformToStorage" identity.TransformToStorage.impl
-  ptr_TransformFromStorage_unfold : MethodUnfold (go.GoType.PointerType identity.ty) go!"TransformFromStorage" (LamV "$r"
+  unfold'TransformFromStorage : MethodUnfold identity.ty go!"TransformFromStorage" identity.TransformFromStorage.impl
+  unfold'TransformToStorage : MethodUnfold identity.ty go!"TransformToStorage" identity.TransformToStorage.impl
+  ptr_unfold'TransformFromStorage : MethodUnfold (go.GoType.PointerType identity.ty) go!"TransformFromStorage" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve identity.ty go!"TransformFromStorage"))) (App (Val (GoInstruction (GoLoad identity.ty))) (Var "$r"))))
-  ptr_TransformToStorage_unfold : MethodUnfold (go.GoType.PointerType identity.ty) go!"TransformToStorage" (LamV "$r"
+  ptr_unfold'TransformToStorage : MethodUnfold (go.GoType.PointerType identity.ty) go!"TransformToStorage" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve identity.ty go!"TransformToStorage"))) (App (Val (GoInstruction (GoLoad identity.ty))) (Var "$r"))))
 
 attribute [instance] identity.TypeAssumptions.type_repr
   identity.TypeAssumptions.underlying
   identity.TypeAssumptions.method_set
   identity.TypeAssumptions.ptr_method_set
-  identity.TypeAssumptions.TransformFromStorage_unfold
-  identity.TypeAssumptions.TransformToStorage_unfold
-  identity.TypeAssumptions.ptr_TransformFromStorage_unfold
-  identity.TypeAssumptions.ptr_TransformToStorage_unfold
+  identity.TypeAssumptions.unfold'TransformFromStorage
+  identity.TypeAssumptions.unfold'TransformToStorage
+  identity.TypeAssumptions.ptr_unfold'TransformFromStorage
+  identity.TypeAssumptions.ptr_unfold'TransformToStorage
 
 structure noCompactor [GooseExts] where
   mk ::
@@ -12579,7 +12579,7 @@ noncomputable instance noCompactor.zero_val [GooseExts] : ZeroVal noCompactor :=
 @[irreducible] noncomputable def noCompactor.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noCompactor.fieldsUnsealed
 
-noncomputable instance equals_unfold_noCompactor [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'noCompactor [GooseExts] [GoGlobalContext] :
     EqualsUnfold noCompactor.fields noCompactor.fieldsUnsealed :=
   ⟨by unfold noCompactor.fields; rfl⟩
 
@@ -12591,16 +12591,16 @@ class noCompactor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq noCompactor.ty noCompactor.underlying
   method_set : go.MethodSetIs noCompactor.ty [(go!"CompactRevision", (some (go.signature.Signature [] false [go.int64])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType noCompactor.ty) [(go!"CompactRevision", (some (go.signature.Signature [] false [go.int64])))]
-  CompactRevision_unfold : MethodUnfold noCompactor.ty go!"CompactRevision" noCompactor.CompactRevision.impl
-  ptr_CompactRevision_unfold : MethodUnfold (go.GoType.PointerType noCompactor.ty) go!"CompactRevision" (LamV "$r"
+  unfold'CompactRevision : MethodUnfold noCompactor.ty go!"CompactRevision" noCompactor.CompactRevision.impl
+  ptr_unfold'CompactRevision : MethodUnfold (go.GoType.PointerType noCompactor.ty) go!"CompactRevision" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve noCompactor.ty go!"CompactRevision"))) (App (Val (GoInstruction (GoLoad noCompactor.ty))) (Var "$r"))))
 
 attribute [instance] noCompactor.TypeAssumptions.type_repr
   noCompactor.TypeAssumptions.underlying
   noCompactor.TypeAssumptions.method_set
   noCompactor.TypeAssumptions.ptr_method_set
-  noCompactor.TypeAssumptions.CompactRevision_unfold
-  noCompactor.TypeAssumptions.ptr_CompactRevision_unfold
+  noCompactor.TypeAssumptions.unfold'CompactRevision
+  noCompactor.TypeAssumptions.ptr_unfold'CompactRevision
 
 structure Input [GooseExts] where
   mk ::
@@ -12677,7 +12677,7 @@ noncomputable instance Input.zero_val [GooseExts] : ZeroVal Input :=
 @[irreducible] noncomputable def Input.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Input.fieldsUnsealed
 
-noncomputable instance equals_unfold_Input [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Input [GooseExts] [GoGlobalContext] :
     EqualsUnfold Input.fields Input.fieldsUnsealed :=
   ⟨by unfold Input.fields; rfl⟩
 
@@ -12687,139 +12687,139 @@ noncomputable instance equals_unfold_Input [GooseExts] [GoGlobalContext] :
 class Input.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Input.underlying Input
   underlying : go.UnderlyingDirectedEq Input.ty Input.underlying
-  get_Kind : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Kind") #x (Val #(x.Kind'))
-  set_Kind : ∀ (x : Input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Kind") (PairV #x #y) (Val #(({ x with Kind' := y } : Input)))
-  get_Key : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Input)))
-  get_Val : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Val") #x (Val #(x.Val'))
-  set_Val : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : Input)))
-  get_Node : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Node") #x (Val #(x.Node'))
-  set_Node : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Node") (PairV #x #y) (Val #(({ x with Node' := y } : Input)))
-  get_App : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"App") #x (Val #(x.App'))
-  set_App : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"App") (PairV #x #y) (Val #(({ x with App' := y } : Input)))
-  get_HasReject : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"HasReject") #x (Val #(x.HasReject'))
-  set_HasReject : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"HasReject") (PairV #x #y) (Val #(({ x with HasReject' := y } : Input)))
-  get_Reject : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Reject") #x (Val #(x.Reject'))
-  set_Reject : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Reject") (PairV #x #y) (Val #(({ x with Reject' := y } : Input)))
-  get_NoOp : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"NoOp") #x (Val #(x.NoOp'))
-  set_NoOp : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"NoOp") (PairV #x #y) (Val #(({ x with NoOp' := y } : Input)))
-  get_IgnoreNotFound : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"IgnoreNotFound") #x (Val #(x.IgnoreNotFound'))
-  set_IgnoreNotFound : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"IgnoreNotFound") (PairV #x #y) (Val #(({ x with IgnoreNotFound' := y } : Input)))
-  get_UID : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"UID") #x (Val #(x.UID'))
-  set_UID : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"UID") (PairV #x #y) (Val #(({ x with UID' := y } : Input)))
-  get_HasPreUID : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"HasPreUID") #x (Val #(x.HasPreUID'))
-  set_HasPreUID : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"HasPreUID") (PairV #x #y) (Val #(({ x with HasPreUID' := y } : Input)))
-  get_PreUID : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"PreUID") #x (Val #(x.PreUID'))
-  set_PreUID : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"PreUID") (PairV #x #y) (Val #(({ x with PreUID' := y } : Input)))
-  get_HasPreRV : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"HasPreRV") #x (Val #(x.HasPreRV'))
-  set_HasPreRV : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"HasPreRV") (PairV #x #y) (Val #(({ x with HasPreRV' := y } : Input)))
-  get_PreRV : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"PreRV") #x (Val #(x.PreRV'))
-  set_PreRV : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"PreRV") (PairV #x #y) (Val #(({ x with PreRV' := y } : Input)))
-  get_UseCached : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"UseCached") #x (Val #(x.UseCached'))
-  set_UseCached : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"UseCached") (PairV #x #y) (Val #(({ x with UseCached' := y } : Input)))
-  get_Cached : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Cached") #x (Val #(x.Cached'))
-  set_Cached : ∀ (x : Input) (y : Obj), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Cached") (PairV #x #y) (Val #(({ x with Cached' := y } : Input)))
-  get_MinRV : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"MinRV") #x (Val #(x.MinRV'))
-  set_MinRV : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"MinRV") (PairV #x #y) (Val #(({ x with MinRV' := y } : Input)))
-  get_ListKey : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"ListKey") #x (Val #(x.ListKey'))
-  set_ListKey : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"ListKey") (PairV #x #y) (Val #(({ x with ListKey' := y } : Input)))
-  get_Recursive : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Recursive") #x (Val #(x.Recursive'))
-  set_Recursive : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Recursive") (PairV #x #y) (Val #(({ x with Recursive' := y } : Input)))
-  get_Match : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Match") #x (Val #(x.Match'))
-  set_Match : ∀ (x : Input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Match") (PairV #x #y) (Val #(({ x with Match' := y } : Input)))
-  get_Field : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Field") #x (Val #(x.Field'))
-  set_Field : ∀ (x : Input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Field") (PairV #x #y) (Val #(({ x with Field' := y } : Input)))
-  get_SelNS : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"SelNS") #x (Val #(x.SelNS'))
-  set_SelNS : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"SelNS") (PairV #x #y) (Val #(({ x with SelNS' := y } : Input)))
-  get_SelName : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"SelName") #x (Val #(x.SelName'))
-  set_SelName : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"SelName") (PairV #x #y) (Val #(({ x with SelName' := y } : Input)))
-  get_SelNode : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"SelNode") #x (Val #(x.SelNode'))
-  set_SelNode : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"SelNode") (PairV #x #y) (Val #(({ x with SelNode' := y } : Input)))
-  get_SelApp : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"SelApp") #x (Val #(x.SelApp'))
-  set_SelApp : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"SelApp") (PairV #x #y) (Val #(({ x with SelApp' := y } : Input)))
-  get_Limit : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Limit") #x (Val #(x.Limit'))
-  set_Limit : ∀ (x : Input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Limit") (PairV #x #y) (Val #(({ x with Limit' := y } : Input)))
-  get_Client : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Client") #x (Val #(x.Client'))
-  set_Client : ∀ (x : Input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Client") (PairV #x #y) (Val #(({ x with Client' := y } : Input)))
-  get_WKey : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"WKey") #x (Val #(x.WKey'))
-  set_WKey : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"WKey") (PairV #x #y) (Val #(({ x with WKey' := y } : Input)))
-  get_SendInit : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"SendInit") #x (Val #(x.SendInit'))
-  set_SendInit : ∀ (x : Input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"SendInit") (PairV #x #y) (Val #(({ x with SendInit' := y } : Input)))
-  get_Bookmarks : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Bookmarks") #x (Val #(x.Bookmarks'))
-  set_Bookmarks : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Bookmarks") (PairV #x #y) (Val #(({ x with Bookmarks' := y } : Input)))
-  get_Behavior : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Behavior") #x (Val #(x.Behavior'))
-  set_Behavior : ∀ (x : Input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Behavior") (PairV #x #y) (Val #(({ x with Behavior' := y } : Input)))
-  get_Skip : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Skip") #x (Val #(x.Skip'))
-  set_Skip : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Skip") (PairV #x #y) (Val #(({ x with Skip' := y } : Input)))
+  get'Kind : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Kind") #x (Val #(x.Kind'))
+  set'Kind : ∀ (x : Input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Kind") (PairV #x #y) (Val #(({ x with Kind' := y } : Input)))
+  get'Key : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Input)))
+  get'Val : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Val") #x (Val #(x.Val'))
+  set'Val : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : Input)))
+  get'Node : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Node") #x (Val #(x.Node'))
+  set'Node : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Node") (PairV #x #y) (Val #(({ x with Node' := y } : Input)))
+  get'App : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"App") #x (Val #(x.App'))
+  set'App : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"App") (PairV #x #y) (Val #(({ x with App' := y } : Input)))
+  get'HasReject : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"HasReject") #x (Val #(x.HasReject'))
+  set'HasReject : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"HasReject") (PairV #x #y) (Val #(({ x with HasReject' := y } : Input)))
+  get'Reject : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Reject") #x (Val #(x.Reject'))
+  set'Reject : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Reject") (PairV #x #y) (Val #(({ x with Reject' := y } : Input)))
+  get'NoOp : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"NoOp") #x (Val #(x.NoOp'))
+  set'NoOp : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"NoOp") (PairV #x #y) (Val #(({ x with NoOp' := y } : Input)))
+  get'IgnoreNotFound : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"IgnoreNotFound") #x (Val #(x.IgnoreNotFound'))
+  set'IgnoreNotFound : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"IgnoreNotFound") (PairV #x #y) (Val #(({ x with IgnoreNotFound' := y } : Input)))
+  get'UID : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"UID") #x (Val #(x.UID'))
+  set'UID : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"UID") (PairV #x #y) (Val #(({ x with UID' := y } : Input)))
+  get'HasPreUID : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"HasPreUID") #x (Val #(x.HasPreUID'))
+  set'HasPreUID : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"HasPreUID") (PairV #x #y) (Val #(({ x with HasPreUID' := y } : Input)))
+  get'PreUID : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"PreUID") #x (Val #(x.PreUID'))
+  set'PreUID : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"PreUID") (PairV #x #y) (Val #(({ x with PreUID' := y } : Input)))
+  get'HasPreRV : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"HasPreRV") #x (Val #(x.HasPreRV'))
+  set'HasPreRV : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"HasPreRV") (PairV #x #y) (Val #(({ x with HasPreRV' := y } : Input)))
+  get'PreRV : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"PreRV") #x (Val #(x.PreRV'))
+  set'PreRV : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"PreRV") (PairV #x #y) (Val #(({ x with PreRV' := y } : Input)))
+  get'UseCached : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"UseCached") #x (Val #(x.UseCached'))
+  set'UseCached : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"UseCached") (PairV #x #y) (Val #(({ x with UseCached' := y } : Input)))
+  get'Cached : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Cached") #x (Val #(x.Cached'))
+  set'Cached : ∀ (x : Input) (y : Obj), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Cached") (PairV #x #y) (Val #(({ x with Cached' := y } : Input)))
+  get'MinRV : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"MinRV") #x (Val #(x.MinRV'))
+  set'MinRV : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"MinRV") (PairV #x #y) (Val #(({ x with MinRV' := y } : Input)))
+  get'ListKey : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"ListKey") #x (Val #(x.ListKey'))
+  set'ListKey : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"ListKey") (PairV #x #y) (Val #(({ x with ListKey' := y } : Input)))
+  get'Recursive : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Recursive") #x (Val #(x.Recursive'))
+  set'Recursive : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Recursive") (PairV #x #y) (Val #(({ x with Recursive' := y } : Input)))
+  get'Match : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Match") #x (Val #(x.Match'))
+  set'Match : ∀ (x : Input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Match") (PairV #x #y) (Val #(({ x with Match' := y } : Input)))
+  get'Field : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Field") #x (Val #(x.Field'))
+  set'Field : ∀ (x : Input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Field") (PairV #x #y) (Val #(({ x with Field' := y } : Input)))
+  get'SelNS : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"SelNS") #x (Val #(x.SelNS'))
+  set'SelNS : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"SelNS") (PairV #x #y) (Val #(({ x with SelNS' := y } : Input)))
+  get'SelName : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"SelName") #x (Val #(x.SelName'))
+  set'SelName : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"SelName") (PairV #x #y) (Val #(({ x with SelName' := y } : Input)))
+  get'SelNode : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"SelNode") #x (Val #(x.SelNode'))
+  set'SelNode : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"SelNode") (PairV #x #y) (Val #(({ x with SelNode' := y } : Input)))
+  get'SelApp : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"SelApp") #x (Val #(x.SelApp'))
+  set'SelApp : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"SelApp") (PairV #x #y) (Val #(({ x with SelApp' := y } : Input)))
+  get'Limit : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Limit") #x (Val #(x.Limit'))
+  set'Limit : ∀ (x : Input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Limit") (PairV #x #y) (Val #(({ x with Limit' := y } : Input)))
+  get'Client : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Client") #x (Val #(x.Client'))
+  set'Client : ∀ (x : Input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Client") (PairV #x #y) (Val #(({ x with Client' := y } : Input)))
+  get'WKey : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"WKey") #x (Val #(x.WKey'))
+  set'WKey : ∀ (x : Input) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"WKey") (PairV #x #y) (Val #(({ x with WKey' := y } : Input)))
+  get'SendInit : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"SendInit") #x (Val #(x.SendInit'))
+  set'SendInit : ∀ (x : Input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"SendInit") (PairV #x #y) (Val #(({ x with SendInit' := y } : Input)))
+  get'Bookmarks : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Bookmarks") #x (Val #(x.Bookmarks'))
+  set'Bookmarks : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Bookmarks") (PairV #x #y) (Val #(({ x with Bookmarks' := y } : Input)))
+  get'Behavior : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Behavior") #x (Val #(x.Behavior'))
+  set'Behavior : ∀ (x : Input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Behavior") (PairV #x #y) (Val #(({ x with Behavior' := y } : Input)))
+  get'Skip : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Skip") #x (Val #(x.Skip'))
+  set'Skip : ∀ (x : Input) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Skip") (PairV #x #y) (Val #(({ x with Skip' := y } : Input)))
   method_set : go.MethodSetIs Input.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Input.ty) []
 
 attribute [instance] Input.TypeAssumptions.type_repr
   Input.TypeAssumptions.underlying
-  Input.TypeAssumptions.get_Kind
-  Input.TypeAssumptions.set_Kind
-  Input.TypeAssumptions.get_Key
-  Input.TypeAssumptions.set_Key
-  Input.TypeAssumptions.get_Val
-  Input.TypeAssumptions.set_Val
-  Input.TypeAssumptions.get_Node
-  Input.TypeAssumptions.set_Node
-  Input.TypeAssumptions.get_App
-  Input.TypeAssumptions.set_App
-  Input.TypeAssumptions.get_HasReject
-  Input.TypeAssumptions.set_HasReject
-  Input.TypeAssumptions.get_Reject
-  Input.TypeAssumptions.set_Reject
-  Input.TypeAssumptions.get_NoOp
-  Input.TypeAssumptions.set_NoOp
-  Input.TypeAssumptions.get_IgnoreNotFound
-  Input.TypeAssumptions.set_IgnoreNotFound
-  Input.TypeAssumptions.get_UID
-  Input.TypeAssumptions.set_UID
-  Input.TypeAssumptions.get_HasPreUID
-  Input.TypeAssumptions.set_HasPreUID
-  Input.TypeAssumptions.get_PreUID
-  Input.TypeAssumptions.set_PreUID
-  Input.TypeAssumptions.get_HasPreRV
-  Input.TypeAssumptions.set_HasPreRV
-  Input.TypeAssumptions.get_PreRV
-  Input.TypeAssumptions.set_PreRV
-  Input.TypeAssumptions.get_UseCached
-  Input.TypeAssumptions.set_UseCached
-  Input.TypeAssumptions.get_Cached
-  Input.TypeAssumptions.set_Cached
-  Input.TypeAssumptions.get_MinRV
-  Input.TypeAssumptions.set_MinRV
-  Input.TypeAssumptions.get_ListKey
-  Input.TypeAssumptions.set_ListKey
-  Input.TypeAssumptions.get_Recursive
-  Input.TypeAssumptions.set_Recursive
-  Input.TypeAssumptions.get_Match
-  Input.TypeAssumptions.set_Match
-  Input.TypeAssumptions.get_Field
-  Input.TypeAssumptions.set_Field
-  Input.TypeAssumptions.get_SelNS
-  Input.TypeAssumptions.set_SelNS
-  Input.TypeAssumptions.get_SelName
-  Input.TypeAssumptions.set_SelName
-  Input.TypeAssumptions.get_SelNode
-  Input.TypeAssumptions.set_SelNode
-  Input.TypeAssumptions.get_SelApp
-  Input.TypeAssumptions.set_SelApp
-  Input.TypeAssumptions.get_Limit
-  Input.TypeAssumptions.set_Limit
-  Input.TypeAssumptions.get_Client
-  Input.TypeAssumptions.set_Client
-  Input.TypeAssumptions.get_WKey
-  Input.TypeAssumptions.set_WKey
-  Input.TypeAssumptions.get_SendInit
-  Input.TypeAssumptions.set_SendInit
-  Input.TypeAssumptions.get_Bookmarks
-  Input.TypeAssumptions.set_Bookmarks
-  Input.TypeAssumptions.get_Behavior
-  Input.TypeAssumptions.set_Behavior
-  Input.TypeAssumptions.get_Skip
-  Input.TypeAssumptions.set_Skip
+  Input.TypeAssumptions.get'Kind
+  Input.TypeAssumptions.set'Kind
+  Input.TypeAssumptions.get'Key
+  Input.TypeAssumptions.set'Key
+  Input.TypeAssumptions.get'Val
+  Input.TypeAssumptions.set'Val
+  Input.TypeAssumptions.get'Node
+  Input.TypeAssumptions.set'Node
+  Input.TypeAssumptions.get'App
+  Input.TypeAssumptions.set'App
+  Input.TypeAssumptions.get'HasReject
+  Input.TypeAssumptions.set'HasReject
+  Input.TypeAssumptions.get'Reject
+  Input.TypeAssumptions.set'Reject
+  Input.TypeAssumptions.get'NoOp
+  Input.TypeAssumptions.set'NoOp
+  Input.TypeAssumptions.get'IgnoreNotFound
+  Input.TypeAssumptions.set'IgnoreNotFound
+  Input.TypeAssumptions.get'UID
+  Input.TypeAssumptions.set'UID
+  Input.TypeAssumptions.get'HasPreUID
+  Input.TypeAssumptions.set'HasPreUID
+  Input.TypeAssumptions.get'PreUID
+  Input.TypeAssumptions.set'PreUID
+  Input.TypeAssumptions.get'HasPreRV
+  Input.TypeAssumptions.set'HasPreRV
+  Input.TypeAssumptions.get'PreRV
+  Input.TypeAssumptions.set'PreRV
+  Input.TypeAssumptions.get'UseCached
+  Input.TypeAssumptions.set'UseCached
+  Input.TypeAssumptions.get'Cached
+  Input.TypeAssumptions.set'Cached
+  Input.TypeAssumptions.get'MinRV
+  Input.TypeAssumptions.set'MinRV
+  Input.TypeAssumptions.get'ListKey
+  Input.TypeAssumptions.set'ListKey
+  Input.TypeAssumptions.get'Recursive
+  Input.TypeAssumptions.set'Recursive
+  Input.TypeAssumptions.get'Match
+  Input.TypeAssumptions.set'Match
+  Input.TypeAssumptions.get'Field
+  Input.TypeAssumptions.set'Field
+  Input.TypeAssumptions.get'SelNS
+  Input.TypeAssumptions.set'SelNS
+  Input.TypeAssumptions.get'SelName
+  Input.TypeAssumptions.set'SelName
+  Input.TypeAssumptions.get'SelNode
+  Input.TypeAssumptions.set'SelNode
+  Input.TypeAssumptions.get'SelApp
+  Input.TypeAssumptions.set'SelApp
+  Input.TypeAssumptions.get'Limit
+  Input.TypeAssumptions.set'Limit
+  Input.TypeAssumptions.get'Client
+  Input.TypeAssumptions.set'Client
+  Input.TypeAssumptions.get'WKey
+  Input.TypeAssumptions.set'WKey
+  Input.TypeAssumptions.get'SendInit
+  Input.TypeAssumptions.set'SendInit
+  Input.TypeAssumptions.get'Bookmarks
+  Input.TypeAssumptions.set'Bookmarks
+  Input.TypeAssumptions.get'Behavior
+  Input.TypeAssumptions.set'Behavior
+  Input.TypeAssumptions.get'Skip
+  Input.TypeAssumptions.set'Skip
   Input.TypeAssumptions.method_set
   Input.TypeAssumptions.ptr_method_set
 
@@ -12840,7 +12840,7 @@ noncomputable instance Raw.zero_val [GooseExts] : ZeroVal Raw :=
 @[irreducible] noncomputable def Raw.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Raw.fieldsUnsealed
 
-noncomputable instance equals_unfold_Raw [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Raw [GooseExts] [GoGlobalContext] :
     EqualsUnfold Raw.fields Raw.fieldsUnsealed :=
   ⟨by unfold Raw.fields; rfl⟩
 
@@ -12850,23 +12850,23 @@ noncomputable instance equals_unfold_Raw [GooseExts] [GoGlobalContext] :
 class Raw.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Raw.underlying Raw
   underlying : go.UnderlyingDirectedEq Raw.ty Raw.underlying
-  get_Object : ∀ (x : Raw), go.IsGoStepPureDetTagged under (StructFieldGet Raw.underlying go!"Object") #x (Val #(x.Object'))
-  set_Object : ∀ (x : Raw) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object), go.IsGoStepPureDetTagged under (StructFieldSet Raw.underlying go!"Object") (PairV #x #y) (Val #(({ x with Object' := y } : Raw)))
-  get_Err : ∀ (x : Raw), go.IsGoStepPureDetTagged under (StructFieldGet Raw.underlying go!"Err") #x (Val #(x.Err'))
-  set_Err : ∀ (x : Raw) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Raw.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : Raw)))
-  get_Events : ∀ (x : Raw), go.IsGoStepPureDetTagged under (StructFieldGet Raw.underlying go!"Events") #x (Val #(x.Events'))
-  set_Events : ∀ (x : Raw) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Raw.underlying go!"Events") (PairV #x #y) (Val #(({ x with Events' := y } : Raw)))
+  get'Object : ∀ (x : Raw), go.IsGoStepPureDetTagged under (StructFieldGet Raw.underlying go!"Object") #x (Val #(x.Object'))
+  set'Object : ∀ (x : Raw) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object), go.IsGoStepPureDetTagged under (StructFieldSet Raw.underlying go!"Object") (PairV #x #y) (Val #(({ x with Object' := y } : Raw)))
+  get'Err : ∀ (x : Raw), go.IsGoStepPureDetTagged under (StructFieldGet Raw.underlying go!"Err") #x (Val #(x.Err'))
+  set'Err : ∀ (x : Raw) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Raw.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : Raw)))
+  get'Events : ∀ (x : Raw), go.IsGoStepPureDetTagged under (StructFieldGet Raw.underlying go!"Events") #x (Val #(x.Events'))
+  set'Events : ∀ (x : Raw) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Raw.underlying go!"Events") (PairV #x #y) (Val #(({ x with Events' := y } : Raw)))
   method_set : go.MethodSetIs Raw.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Raw.ty) []
 
 attribute [instance] Raw.TypeAssumptions.type_repr
   Raw.TypeAssumptions.underlying
-  Raw.TypeAssumptions.get_Object
-  Raw.TypeAssumptions.set_Object
-  Raw.TypeAssumptions.get_Err
-  Raw.TypeAssumptions.set_Err
-  Raw.TypeAssumptions.get_Events
-  Raw.TypeAssumptions.set_Events
+  Raw.TypeAssumptions.get'Object
+  Raw.TypeAssumptions.set'Object
+  Raw.TypeAssumptions.get'Err
+  Raw.TypeAssumptions.set'Err
+  Raw.TypeAssumptions.get'Events
+  Raw.TypeAssumptions.set'Events
   Raw.TypeAssumptions.method_set
   Raw.TypeAssumptions.ptr_method_set
 
@@ -12919,7 +12919,7 @@ noncomputable instance Output.zero_val [GooseExts] : ZeroVal Output :=
 @[irreducible] noncomputable def Output.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Output.fieldsUnsealed
 
-noncomputable instance equals_unfold_Output [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Output [GooseExts] [GoGlobalContext] :
     EqualsUnfold Output.fields Output.fieldsUnsealed :=
   ⟨by unfold Output.fields; rfl⟩
 
@@ -12929,87 +12929,87 @@ noncomputable instance equals_unfold_Output [GooseExts] [GoGlobalContext] :
 class Output.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Output.underlying Output
   underlying : go.UnderlyingDirectedEq Output.ty Output.underlying
-  get_Err : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Err") #x (Val #(x.Err'))
-  set_Err : ∀ (x : Output) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : Output)))
-  get_ErrKey : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"ErrKey") #x (Val #(x.ErrKey'))
-  set_ErrKey : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"ErrKey") (PairV #x #y) (Val #(({ x with ErrKey' := y } : Output)))
-  get_ErrRV : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"ErrRV") #x (Val #(x.ErrRV'))
-  set_ErrRV : ∀ (x : Output) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"ErrRV") (PairV #x #y) (Val #(({ x with ErrRV' := y } : Output)))
-  get_ErrMsg : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"ErrMsg") #x (Val #(x.ErrMsg'))
-  set_ErrMsg : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"ErrMsg") (PairV #x #y) (Val #(({ x with ErrMsg' := y } : Output)))
-  get_Namespace : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Namespace") #x (Val #(x.Namespace'))
-  set_Namespace : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : Output)))
-  get_Name : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Output)))
-  get_UID : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"UID") #x (Val #(x.UID'))
-  set_UID : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"UID") (PairV #x #y) (Val #(({ x with UID' := y } : Output)))
-  get_Value : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Value") #x (Val #(x.Value'))
-  set_Value : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Output)))
-  get_Node : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Node") #x (Val #(x.Node'))
-  set_Node : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Node") (PairV #x #y) (Val #(({ x with Node' := y } : Output)))
-  get_App : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"App") #x (Val #(x.App'))
-  set_App : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"App") (PairV #x #y) (Val #(({ x with App' := y } : Output)))
-  get_RV : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"RV") #x (Val #(x.RV'))
-  set_RV : ∀ (x : Output) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"RV") (PairV #x #y) (Val #(({ x with RV' := y } : Output)))
-  get_Items : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Items") #x (Val #(x.Items'))
-  set_Items : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : Output)))
-  get_ListRV : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"ListRV") #x (Val #(x.ListRV'))
-  set_ListRV : ∀ (x : Output) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"ListRV") (PairV #x #y) (Val #(({ x with ListRV' := y } : Output)))
-  get_Continue : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Continue") #x (Val #(x.Continue'))
-  set_Continue : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Continue") (PairV #x #y) (Val #(({ x with Continue' := y } : Output)))
-  get_HasRemaining : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"HasRemaining") #x (Val #(x.HasRemaining'))
-  set_HasRemaining : ∀ (x : Output) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"HasRemaining") (PairV #x #y) (Val #(({ x with HasRemaining' := y } : Output)))
-  get_Remaining : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Remaining") #x (Val #(x.Remaining'))
-  set_Remaining : ∀ (x : Output) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Remaining") (PairV #x #y) (Val #(({ x with Remaining' := y } : Output)))
-  get_WEvents : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"WEvents") #x (Val #(x.WEvents'))
-  set_WEvents : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"WEvents") (PairV #x #y) (Val #(({ x with WEvents' := y } : Output)))
-  get_WFailed : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"WFailed") #x (Val #(x.WFailed'))
-  set_WFailed : ∀ (x : Output) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"WFailed") (PairV #x #y) (Val #(({ x with WFailed' := y } : Output)))
-  get_Raw : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Raw") #x (Val #(x.Raw'))
-  set_Raw : ∀ (x : Output) (y : Raw), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Raw") (PairV #x #y) (Val #(({ x with Raw' := y } : Output)))
+  get'Err : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Err") #x (Val #(x.Err'))
+  set'Err : ∀ (x : Output) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : Output)))
+  get'ErrKey : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"ErrKey") #x (Val #(x.ErrKey'))
+  set'ErrKey : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"ErrKey") (PairV #x #y) (Val #(({ x with ErrKey' := y } : Output)))
+  get'ErrRV : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"ErrRV") #x (Val #(x.ErrRV'))
+  set'ErrRV : ∀ (x : Output) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"ErrRV") (PairV #x #y) (Val #(({ x with ErrRV' := y } : Output)))
+  get'ErrMsg : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"ErrMsg") #x (Val #(x.ErrMsg'))
+  set'ErrMsg : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"ErrMsg") (PairV #x #y) (Val #(({ x with ErrMsg' := y } : Output)))
+  get'Namespace : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Namespace") #x (Val #(x.Namespace'))
+  set'Namespace : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : Output)))
+  get'Name : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Output)))
+  get'UID : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"UID") #x (Val #(x.UID'))
+  set'UID : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"UID") (PairV #x #y) (Val #(({ x with UID' := y } : Output)))
+  get'Value : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Value") #x (Val #(x.Value'))
+  set'Value : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Output)))
+  get'Node : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Node") #x (Val #(x.Node'))
+  set'Node : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Node") (PairV #x #y) (Val #(({ x with Node' := y } : Output)))
+  get'App : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"App") #x (Val #(x.App'))
+  set'App : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"App") (PairV #x #y) (Val #(({ x with App' := y } : Output)))
+  get'RV : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"RV") #x (Val #(x.RV'))
+  set'RV : ∀ (x : Output) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"RV") (PairV #x #y) (Val #(({ x with RV' := y } : Output)))
+  get'Items : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Items") #x (Val #(x.Items'))
+  set'Items : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : Output)))
+  get'ListRV : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"ListRV") #x (Val #(x.ListRV'))
+  set'ListRV : ∀ (x : Output) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"ListRV") (PairV #x #y) (Val #(({ x with ListRV' := y } : Output)))
+  get'Continue : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Continue") #x (Val #(x.Continue'))
+  set'Continue : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Continue") (PairV #x #y) (Val #(({ x with Continue' := y } : Output)))
+  get'HasRemaining : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"HasRemaining") #x (Val #(x.HasRemaining'))
+  set'HasRemaining : ∀ (x : Output) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"HasRemaining") (PairV #x #y) (Val #(({ x with HasRemaining' := y } : Output)))
+  get'Remaining : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Remaining") #x (Val #(x.Remaining'))
+  set'Remaining : ∀ (x : Output) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Remaining") (PairV #x #y) (Val #(({ x with Remaining' := y } : Output)))
+  get'WEvents : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"WEvents") #x (Val #(x.WEvents'))
+  set'WEvents : ∀ (x : Output) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"WEvents") (PairV #x #y) (Val #(({ x with WEvents' := y } : Output)))
+  get'WFailed : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"WFailed") #x (Val #(x.WFailed'))
+  set'WFailed : ∀ (x : Output) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"WFailed") (PairV #x #y) (Val #(({ x with WFailed' := y } : Output)))
+  get'Raw : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"Raw") #x (Val #(x.Raw'))
+  set'Raw : ∀ (x : Output) (y : Raw), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"Raw") (PairV #x #y) (Val #(({ x with Raw' := y } : Output)))
   method_set : go.MethodSetIs Output.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Output.ty) []
 
 attribute [instance] Output.TypeAssumptions.type_repr
   Output.TypeAssumptions.underlying
-  Output.TypeAssumptions.get_Err
-  Output.TypeAssumptions.set_Err
-  Output.TypeAssumptions.get_ErrKey
-  Output.TypeAssumptions.set_ErrKey
-  Output.TypeAssumptions.get_ErrRV
-  Output.TypeAssumptions.set_ErrRV
-  Output.TypeAssumptions.get_ErrMsg
-  Output.TypeAssumptions.set_ErrMsg
-  Output.TypeAssumptions.get_Namespace
-  Output.TypeAssumptions.set_Namespace
-  Output.TypeAssumptions.get_Name
-  Output.TypeAssumptions.set_Name
-  Output.TypeAssumptions.get_UID
-  Output.TypeAssumptions.set_UID
-  Output.TypeAssumptions.get_Value
-  Output.TypeAssumptions.set_Value
-  Output.TypeAssumptions.get_Node
-  Output.TypeAssumptions.set_Node
-  Output.TypeAssumptions.get_App
-  Output.TypeAssumptions.set_App
-  Output.TypeAssumptions.get_RV
-  Output.TypeAssumptions.set_RV
-  Output.TypeAssumptions.get_Items
-  Output.TypeAssumptions.set_Items
-  Output.TypeAssumptions.get_ListRV
-  Output.TypeAssumptions.set_ListRV
-  Output.TypeAssumptions.get_Continue
-  Output.TypeAssumptions.set_Continue
-  Output.TypeAssumptions.get_HasRemaining
-  Output.TypeAssumptions.set_HasRemaining
-  Output.TypeAssumptions.get_Remaining
-  Output.TypeAssumptions.set_Remaining
-  Output.TypeAssumptions.get_WEvents
-  Output.TypeAssumptions.set_WEvents
-  Output.TypeAssumptions.get_WFailed
-  Output.TypeAssumptions.set_WFailed
-  Output.TypeAssumptions.get_Raw
-  Output.TypeAssumptions.set_Raw
+  Output.TypeAssumptions.get'Err
+  Output.TypeAssumptions.set'Err
+  Output.TypeAssumptions.get'ErrKey
+  Output.TypeAssumptions.set'ErrKey
+  Output.TypeAssumptions.get'ErrRV
+  Output.TypeAssumptions.set'ErrRV
+  Output.TypeAssumptions.get'ErrMsg
+  Output.TypeAssumptions.set'ErrMsg
+  Output.TypeAssumptions.get'Namespace
+  Output.TypeAssumptions.set'Namespace
+  Output.TypeAssumptions.get'Name
+  Output.TypeAssumptions.set'Name
+  Output.TypeAssumptions.get'UID
+  Output.TypeAssumptions.set'UID
+  Output.TypeAssumptions.get'Value
+  Output.TypeAssumptions.set'Value
+  Output.TypeAssumptions.get'Node
+  Output.TypeAssumptions.set'Node
+  Output.TypeAssumptions.get'App
+  Output.TypeAssumptions.set'App
+  Output.TypeAssumptions.get'RV
+  Output.TypeAssumptions.set'RV
+  Output.TypeAssumptions.get'Items
+  Output.TypeAssumptions.set'Items
+  Output.TypeAssumptions.get'ListRV
+  Output.TypeAssumptions.set'ListRV
+  Output.TypeAssumptions.get'Continue
+  Output.TypeAssumptions.set'Continue
+  Output.TypeAssumptions.get'HasRemaining
+  Output.TypeAssumptions.set'HasRemaining
+  Output.TypeAssumptions.get'Remaining
+  Output.TypeAssumptions.set'Remaining
+  Output.TypeAssumptions.get'WEvents
+  Output.TypeAssumptions.set'WEvents
+  Output.TypeAssumptions.get'WFailed
+  Output.TypeAssumptions.set'WFailed
+  Output.TypeAssumptions.get'Raw
+  Output.TypeAssumptions.set'Raw
   Output.TypeAssumptions.method_set
   Output.TypeAssumptions.ptr_method_set
 
@@ -13034,7 +13034,7 @@ noncomputable instance fieldSel.zero_val [GooseExts] : ZeroVal fieldSel :=
 @[irreducible] noncomputable def fieldSel.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fieldSel.fieldsUnsealed
 
-noncomputable instance equals_unfold_fieldSel [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'fieldSel [GooseExts] [GoGlobalContext] :
     EqualsUnfold fieldSel.fields fieldSel.fieldsUnsealed :=
   ⟨by unfold fieldSel.fields; rfl⟩
 
@@ -13044,68 +13044,68 @@ noncomputable instance equals_unfold_fieldSel [GooseExts] [GoGlobalContext] :
 class fieldSel.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fieldSel.underlying fieldSel
   underlying : go.UnderlyingDirectedEq fieldSel.ty fieldSel.underlying
-  get_n : ∀ (x : fieldSel), go.IsGoStepPureDetTagged under (StructFieldGet fieldSel.underlying go!"n") #x (Val #(x.n'))
-  set_n : ∀ (x : fieldSel) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet fieldSel.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : fieldSel)))
-  get_f1 : ∀ (x : fieldSel), go.IsGoStepPureDetTagged under (StructFieldGet fieldSel.underlying go!"f1") #x (Val #(x.f1'))
-  set_f1 : ∀ (x : fieldSel) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet fieldSel.underlying go!"f1") (PairV #x #y) (Val #(({ x with f1' := y } : fieldSel)))
-  get_v1 : ∀ (x : fieldSel), go.IsGoStepPureDetTagged under (StructFieldGet fieldSel.underlying go!"v1") #x (Val #(x.v1'))
-  set_v1 : ∀ (x : fieldSel) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet fieldSel.underlying go!"v1") (PairV #x #y) (Val #(({ x with v1' := y } : fieldSel)))
-  get_f2 : ∀ (x : fieldSel), go.IsGoStepPureDetTagged under (StructFieldGet fieldSel.underlying go!"f2") #x (Val #(x.f2'))
-  set_f2 : ∀ (x : fieldSel) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet fieldSel.underlying go!"f2") (PairV #x #y) (Val #(({ x with f2' := y } : fieldSel)))
-  get_v2 : ∀ (x : fieldSel), go.IsGoStepPureDetTagged under (StructFieldGet fieldSel.underlying go!"v2") #x (Val #(x.v2'))
-  set_v2 : ∀ (x : fieldSel) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet fieldSel.underlying go!"v2") (PairV #x #y) (Val #(({ x with v2' := y } : fieldSel)))
+  get'n : ∀ (x : fieldSel), go.IsGoStepPureDetTagged under (StructFieldGet fieldSel.underlying go!"n") #x (Val #(x.n'))
+  set'n : ∀ (x : fieldSel) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet fieldSel.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : fieldSel)))
+  get'f1 : ∀ (x : fieldSel), go.IsGoStepPureDetTagged under (StructFieldGet fieldSel.underlying go!"f1") #x (Val #(x.f1'))
+  set'f1 : ∀ (x : fieldSel) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet fieldSel.underlying go!"f1") (PairV #x #y) (Val #(({ x with f1' := y } : fieldSel)))
+  get'v1 : ∀ (x : fieldSel), go.IsGoStepPureDetTagged under (StructFieldGet fieldSel.underlying go!"v1") #x (Val #(x.v1'))
+  set'v1 : ∀ (x : fieldSel) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet fieldSel.underlying go!"v1") (PairV #x #y) (Val #(({ x with v1' := y } : fieldSel)))
+  get'f2 : ∀ (x : fieldSel), go.IsGoStepPureDetTagged under (StructFieldGet fieldSel.underlying go!"f2") #x (Val #(x.f2'))
+  set'f2 : ∀ (x : fieldSel) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet fieldSel.underlying go!"f2") (PairV #x #y) (Val #(({ x with f2' := y } : fieldSel)))
+  get'v2 : ∀ (x : fieldSel), go.IsGoStepPureDetTagged under (StructFieldGet fieldSel.underlying go!"v2") #x (Val #(x.v2'))
+  set'v2 : ∀ (x : fieldSel) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet fieldSel.underlying go!"v2") (PairV #x #y) (Val #(({ x with v2' := y } : fieldSel)))
   method_set : go.MethodSetIs fieldSel.ty [(go!"DeepCopySelector", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.fields.Fields.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.fields.Requirements.ty]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Transform", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.fields.TransformFunc.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fieldSel.ty) [(go!"DeepCopySelector", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.fields.Fields.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.fields.Requirements.ty]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Transform", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.fields.TransformFunc.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty, go.error])))]
-  DeepCopySelector_unfold : MethodUnfold fieldSel.ty go!"DeepCopySelector" fieldSel.DeepCopySelector.impl
-  Empty_unfold : MethodUnfold fieldSel.ty go!"Empty" fieldSel.Empty.impl
-  Matches_unfold : MethodUnfold fieldSel.ty go!"Matches" fieldSel.Matches.impl
-  Requirements_unfold : MethodUnfold fieldSel.ty go!"Requirements" fieldSel.Requirements.impl
-  RequiresExactMatch_unfold : MethodUnfold fieldSel.ty go!"RequiresExactMatch" fieldSel.RequiresExactMatch.impl
-  String_unfold : MethodUnfold fieldSel.ty go!"String" fieldSel.String.impl
-  Transform_unfold : MethodUnfold fieldSel.ty go!"Transform" fieldSel.Transform.impl
-  ptr_DeepCopySelector_unfold : MethodUnfold (go.GoType.PointerType fieldSel.ty) go!"DeepCopySelector" (LamV "$r"
+  unfold'DeepCopySelector : MethodUnfold fieldSel.ty go!"DeepCopySelector" fieldSel.DeepCopySelector.impl
+  unfold'Empty : MethodUnfold fieldSel.ty go!"Empty" fieldSel.Empty.impl
+  unfold'Matches : MethodUnfold fieldSel.ty go!"Matches" fieldSel.Matches.impl
+  unfold'Requirements : MethodUnfold fieldSel.ty go!"Requirements" fieldSel.Requirements.impl
+  unfold'RequiresExactMatch : MethodUnfold fieldSel.ty go!"RequiresExactMatch" fieldSel.RequiresExactMatch.impl
+  unfold'String : MethodUnfold fieldSel.ty go!"String" fieldSel.String.impl
+  unfold'Transform : MethodUnfold fieldSel.ty go!"Transform" fieldSel.Transform.impl
+  ptr_unfold'DeepCopySelector : MethodUnfold (go.GoType.PointerType fieldSel.ty) go!"DeepCopySelector" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve fieldSel.ty go!"DeepCopySelector"))) (App (Val (GoInstruction (GoLoad fieldSel.ty))) (Var "$r"))))
-  ptr_Empty_unfold : MethodUnfold (go.GoType.PointerType fieldSel.ty) go!"Empty" (LamV "$r"
+  ptr_unfold'Empty : MethodUnfold (go.GoType.PointerType fieldSel.ty) go!"Empty" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve fieldSel.ty go!"Empty"))) (App (Val (GoInstruction (GoLoad fieldSel.ty))) (Var "$r"))))
-  ptr_Matches_unfold : MethodUnfold (go.GoType.PointerType fieldSel.ty) go!"Matches" (LamV "$r"
+  ptr_unfold'Matches : MethodUnfold (go.GoType.PointerType fieldSel.ty) go!"Matches" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve fieldSel.ty go!"Matches"))) (App (Val (GoInstruction (GoLoad fieldSel.ty))) (Var "$r"))))
-  ptr_Requirements_unfold : MethodUnfold (go.GoType.PointerType fieldSel.ty) go!"Requirements" (LamV "$r"
+  ptr_unfold'Requirements : MethodUnfold (go.GoType.PointerType fieldSel.ty) go!"Requirements" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve fieldSel.ty go!"Requirements"))) (App (Val (GoInstruction (GoLoad fieldSel.ty))) (Var "$r"))))
-  ptr_RequiresExactMatch_unfold : MethodUnfold (go.GoType.PointerType fieldSel.ty) go!"RequiresExactMatch" (LamV "$r"
+  ptr_unfold'RequiresExactMatch : MethodUnfold (go.GoType.PointerType fieldSel.ty) go!"RequiresExactMatch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve fieldSel.ty go!"RequiresExactMatch"))) (App (Val (GoInstruction (GoLoad fieldSel.ty))) (Var "$r"))))
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType fieldSel.ty) go!"String" (LamV "$r"
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType fieldSel.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve fieldSel.ty go!"String"))) (App (Val (GoInstruction (GoLoad fieldSel.ty))) (Var "$r"))))
-  ptr_Transform_unfold : MethodUnfold (go.GoType.PointerType fieldSel.ty) go!"Transform" (LamV "$r"
+  ptr_unfold'Transform : MethodUnfold (go.GoType.PointerType fieldSel.ty) go!"Transform" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve fieldSel.ty go!"Transform"))) (App (Val (GoInstruction (GoLoad fieldSel.ty))) (Var "$r"))))
 
 attribute [instance] fieldSel.TypeAssumptions.type_repr
   fieldSel.TypeAssumptions.underlying
-  fieldSel.TypeAssumptions.get_n
-  fieldSel.TypeAssumptions.set_n
-  fieldSel.TypeAssumptions.get_f1
-  fieldSel.TypeAssumptions.set_f1
-  fieldSel.TypeAssumptions.get_v1
-  fieldSel.TypeAssumptions.set_v1
-  fieldSel.TypeAssumptions.get_f2
-  fieldSel.TypeAssumptions.set_f2
-  fieldSel.TypeAssumptions.get_v2
-  fieldSel.TypeAssumptions.set_v2
+  fieldSel.TypeAssumptions.get'n
+  fieldSel.TypeAssumptions.set'n
+  fieldSel.TypeAssumptions.get'f1
+  fieldSel.TypeAssumptions.set'f1
+  fieldSel.TypeAssumptions.get'v1
+  fieldSel.TypeAssumptions.set'v1
+  fieldSel.TypeAssumptions.get'f2
+  fieldSel.TypeAssumptions.set'f2
+  fieldSel.TypeAssumptions.get'v2
+  fieldSel.TypeAssumptions.set'v2
   fieldSel.TypeAssumptions.method_set
   fieldSel.TypeAssumptions.ptr_method_set
-  fieldSel.TypeAssumptions.DeepCopySelector_unfold
-  fieldSel.TypeAssumptions.Empty_unfold
-  fieldSel.TypeAssumptions.Matches_unfold
-  fieldSel.TypeAssumptions.Requirements_unfold
-  fieldSel.TypeAssumptions.RequiresExactMatch_unfold
-  fieldSel.TypeAssumptions.String_unfold
-  fieldSel.TypeAssumptions.Transform_unfold
-  fieldSel.TypeAssumptions.ptr_DeepCopySelector_unfold
-  fieldSel.TypeAssumptions.ptr_Empty_unfold
-  fieldSel.TypeAssumptions.ptr_Matches_unfold
-  fieldSel.TypeAssumptions.ptr_Requirements_unfold
-  fieldSel.TypeAssumptions.ptr_RequiresExactMatch_unfold
-  fieldSel.TypeAssumptions.ptr_String_unfold
-  fieldSel.TypeAssumptions.ptr_Transform_unfold
+  fieldSel.TypeAssumptions.unfold'DeepCopySelector
+  fieldSel.TypeAssumptions.unfold'Empty
+  fieldSel.TypeAssumptions.unfold'Matches
+  fieldSel.TypeAssumptions.unfold'Requirements
+  fieldSel.TypeAssumptions.unfold'RequiresExactMatch
+  fieldSel.TypeAssumptions.unfold'String
+  fieldSel.TypeAssumptions.unfold'Transform
+  fieldSel.TypeAssumptions.ptr_unfold'DeepCopySelector
+  fieldSel.TypeAssumptions.ptr_unfold'Empty
+  fieldSel.TypeAssumptions.ptr_unfold'Matches
+  fieldSel.TypeAssumptions.ptr_unfold'Requirements
+  fieldSel.TypeAssumptions.ptr_unfold'RequiresExactMatch
+  fieldSel.TypeAssumptions.ptr_unfold'String
+  fieldSel.TypeAssumptions.ptr_unfold'Transform
 
 structure labelSel [GooseExts] where
   mk ::
@@ -13122,7 +13122,7 @@ noncomputable instance labelSel.zero_val [GooseExts] : ZeroVal labelSel :=
 @[irreducible] noncomputable def labelSel.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   labelSel.fieldsUnsealed
 
-noncomputable instance equals_unfold_labelSel [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'labelSel [GooseExts] [GoGlobalContext] :
     EqualsUnfold labelSel.fields labelSel.fieldsUnsealed :=
   ⟨by unfold labelSel.fields; rfl⟩
 
@@ -13132,56 +13132,56 @@ noncomputable instance equals_unfold_labelSel [GooseExts] [GoGlobalContext] :
 class labelSel.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying labelSel.underlying labelSel
   underlying : go.UnderlyingDirectedEq labelSel.ty labelSel.underlying
-  get_all : ∀ (x : labelSel), go.IsGoStepPureDetTagged under (StructFieldGet labelSel.underlying go!"all") #x (Val #(x.all'))
-  set_all : ∀ (x : labelSel) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet labelSel.underlying go!"all") (PairV #x #y) (Val #(({ x with all' := y } : labelSel)))
-  get_app : ∀ (x : labelSel), go.IsGoStepPureDetTagged under (StructFieldGet labelSel.underlying go!"app") #x (Val #(x.app'))
-  set_app : ∀ (x : labelSel) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet labelSel.underlying go!"app") (PairV #x #y) (Val #(({ x with app' := y } : labelSel)))
+  get'all : ∀ (x : labelSel), go.IsGoStepPureDetTagged under (StructFieldGet labelSel.underlying go!"all") #x (Val #(x.all'))
+  set'all : ∀ (x : labelSel) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet labelSel.underlying go!"all") (PairV #x #y) (Val #(({ x with all' := y } : labelSel)))
+  get'app : ∀ (x : labelSel), go.IsGoStepPureDetTagged under (StructFieldGet labelSel.underlying go!"app") #x (Val #(x.app'))
+  set'app : ∀ (x : labelSel) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet labelSel.underlying go!"app") (PairV #x #y) (Val #(({ x with app' := y } : labelSel)))
   method_set : go.MethodSetIs labelSel.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.labels.Requirement.ty)] true [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty]))), (go!"DeepCopySelector", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Labels.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Requirements.ty, go.bool]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType labelSel.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.labels.Requirement.ty)] true [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty]))), (go!"DeepCopySelector", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Labels.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Requirements.ty, go.bool]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  Add_unfold : MethodUnfold labelSel.ty go!"Add" labelSel.Add.impl
-  DeepCopySelector_unfold : MethodUnfold labelSel.ty go!"DeepCopySelector" labelSel.DeepCopySelector.impl
-  Empty_unfold : MethodUnfold labelSel.ty go!"Empty" labelSel.Empty.impl
-  Matches_unfold : MethodUnfold labelSel.ty go!"Matches" labelSel.Matches.impl
-  Requirements_unfold : MethodUnfold labelSel.ty go!"Requirements" labelSel.Requirements.impl
-  RequiresExactMatch_unfold : MethodUnfold labelSel.ty go!"RequiresExactMatch" labelSel.RequiresExactMatch.impl
-  String_unfold : MethodUnfold labelSel.ty go!"String" labelSel.String.impl
-  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType labelSel.ty) go!"Add" (LamV "$r"
+  unfold'Add : MethodUnfold labelSel.ty go!"Add" labelSel.Add.impl
+  unfold'DeepCopySelector : MethodUnfold labelSel.ty go!"DeepCopySelector" labelSel.DeepCopySelector.impl
+  unfold'Empty : MethodUnfold labelSel.ty go!"Empty" labelSel.Empty.impl
+  unfold'Matches : MethodUnfold labelSel.ty go!"Matches" labelSel.Matches.impl
+  unfold'Requirements : MethodUnfold labelSel.ty go!"Requirements" labelSel.Requirements.impl
+  unfold'RequiresExactMatch : MethodUnfold labelSel.ty go!"RequiresExactMatch" labelSel.RequiresExactMatch.impl
+  unfold'String : MethodUnfold labelSel.ty go!"String" labelSel.String.impl
+  ptr_unfold'Add : MethodUnfold (go.GoType.PointerType labelSel.ty) go!"Add" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve labelSel.ty go!"Add"))) (App (Val (GoInstruction (GoLoad labelSel.ty))) (Var "$r"))))
-  ptr_DeepCopySelector_unfold : MethodUnfold (go.GoType.PointerType labelSel.ty) go!"DeepCopySelector" (LamV "$r"
+  ptr_unfold'DeepCopySelector : MethodUnfold (go.GoType.PointerType labelSel.ty) go!"DeepCopySelector" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve labelSel.ty go!"DeepCopySelector"))) (App (Val (GoInstruction (GoLoad labelSel.ty))) (Var "$r"))))
-  ptr_Empty_unfold : MethodUnfold (go.GoType.PointerType labelSel.ty) go!"Empty" (LamV "$r"
+  ptr_unfold'Empty : MethodUnfold (go.GoType.PointerType labelSel.ty) go!"Empty" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve labelSel.ty go!"Empty"))) (App (Val (GoInstruction (GoLoad labelSel.ty))) (Var "$r"))))
-  ptr_Matches_unfold : MethodUnfold (go.GoType.PointerType labelSel.ty) go!"Matches" (LamV "$r"
+  ptr_unfold'Matches : MethodUnfold (go.GoType.PointerType labelSel.ty) go!"Matches" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve labelSel.ty go!"Matches"))) (App (Val (GoInstruction (GoLoad labelSel.ty))) (Var "$r"))))
-  ptr_Requirements_unfold : MethodUnfold (go.GoType.PointerType labelSel.ty) go!"Requirements" (LamV "$r"
+  ptr_unfold'Requirements : MethodUnfold (go.GoType.PointerType labelSel.ty) go!"Requirements" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve labelSel.ty go!"Requirements"))) (App (Val (GoInstruction (GoLoad labelSel.ty))) (Var "$r"))))
-  ptr_RequiresExactMatch_unfold : MethodUnfold (go.GoType.PointerType labelSel.ty) go!"RequiresExactMatch" (LamV "$r"
+  ptr_unfold'RequiresExactMatch : MethodUnfold (go.GoType.PointerType labelSel.ty) go!"RequiresExactMatch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve labelSel.ty go!"RequiresExactMatch"))) (App (Val (GoInstruction (GoLoad labelSel.ty))) (Var "$r"))))
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType labelSel.ty) go!"String" (LamV "$r"
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType labelSel.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve labelSel.ty go!"String"))) (App (Val (GoInstruction (GoLoad labelSel.ty))) (Var "$r"))))
 
 attribute [instance] labelSel.TypeAssumptions.type_repr
   labelSel.TypeAssumptions.underlying
-  labelSel.TypeAssumptions.get_all
-  labelSel.TypeAssumptions.set_all
-  labelSel.TypeAssumptions.get_app
-  labelSel.TypeAssumptions.set_app
+  labelSel.TypeAssumptions.get'all
+  labelSel.TypeAssumptions.set'all
+  labelSel.TypeAssumptions.get'app
+  labelSel.TypeAssumptions.set'app
   labelSel.TypeAssumptions.method_set
   labelSel.TypeAssumptions.ptr_method_set
-  labelSel.TypeAssumptions.Add_unfold
-  labelSel.TypeAssumptions.DeepCopySelector_unfold
-  labelSel.TypeAssumptions.Empty_unfold
-  labelSel.TypeAssumptions.Matches_unfold
-  labelSel.TypeAssumptions.Requirements_unfold
-  labelSel.TypeAssumptions.RequiresExactMatch_unfold
-  labelSel.TypeAssumptions.String_unfold
-  labelSel.TypeAssumptions.ptr_Add_unfold
-  labelSel.TypeAssumptions.ptr_DeepCopySelector_unfold
-  labelSel.TypeAssumptions.ptr_Empty_unfold
-  labelSel.TypeAssumptions.ptr_Matches_unfold
-  labelSel.TypeAssumptions.ptr_Requirements_unfold
-  labelSel.TypeAssumptions.ptr_RequiresExactMatch_unfold
-  labelSel.TypeAssumptions.ptr_String_unfold
+  labelSel.TypeAssumptions.unfold'Add
+  labelSel.TypeAssumptions.unfold'DeepCopySelector
+  labelSel.TypeAssumptions.unfold'Empty
+  labelSel.TypeAssumptions.unfold'Matches
+  labelSel.TypeAssumptions.unfold'Requirements
+  labelSel.TypeAssumptions.unfold'RequiresExactMatch
+  labelSel.TypeAssumptions.unfold'String
+  labelSel.TypeAssumptions.ptr_unfold'Add
+  labelSel.TypeAssumptions.ptr_unfold'DeepCopySelector
+  labelSel.TypeAssumptions.ptr_unfold'Empty
+  labelSel.TypeAssumptions.ptr_unfold'Matches
+  labelSel.TypeAssumptions.ptr_unfold'Requirements
+  labelSel.TypeAssumptions.ptr_unfold'RequiresExactMatch
+  labelSel.TypeAssumptions.ptr_unfold'String
 
 structure item [GooseExts] where
   mk ::
@@ -13200,7 +13200,7 @@ noncomputable instance item.zero_val [GooseExts] : ZeroVal item :=
 @[irreducible] noncomputable def item.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   item.fieldsUnsealed
 
-noncomputable instance equals_unfold_item [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'item [GooseExts] [GoGlobalContext] :
     EqualsUnfold item.fields item.fieldsUnsealed :=
   ⟨by unfold item.fields; rfl⟩
 
@@ -13210,23 +13210,23 @@ noncomputable instance equals_unfold_item [GooseExts] [GoGlobalContext] :
 class item.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying item.underlying item
   underlying : go.UnderlyingDirectedEq item.ty item.underlying
-  get_key : ∀ (x : item), go.IsGoStepPureDetTagged under (StructFieldGet item.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : item) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet item.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : item)))
-  get_obj : ∀ (x : item), go.IsGoStepPureDetTagged under (StructFieldGet item.underlying go!"obj") #x (Val #(x.obj'))
-  set_obj : ∀ (x : item) (y : Obj), go.IsGoStepPureDetTagged under (StructFieldSet item.underlying go!"obj") (PairV #x #y) (Val #(({ x with obj' := y } : item)))
-  get_canon : ∀ (x : item), go.IsGoStepPureDetTagged under (StructFieldGet item.underlying go!"canon") #x (Val #(x.canon'))
-  set_canon : ∀ (x : item) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet item.underlying go!"canon") (PairV #x #y) (Val #(({ x with canon' := y } : item)))
+  get'key : ∀ (x : item), go.IsGoStepPureDetTagged under (StructFieldGet item.underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : item) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet item.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : item)))
+  get'obj : ∀ (x : item), go.IsGoStepPureDetTagged under (StructFieldGet item.underlying go!"obj") #x (Val #(x.obj'))
+  set'obj : ∀ (x : item) (y : Obj), go.IsGoStepPureDetTagged under (StructFieldSet item.underlying go!"obj") (PairV #x #y) (Val #(({ x with obj' := y } : item)))
+  get'canon : ∀ (x : item), go.IsGoStepPureDetTagged under (StructFieldGet item.underlying go!"canon") #x (Val #(x.canon'))
+  set'canon : ∀ (x : item) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet item.underlying go!"canon") (PairV #x #y) (Val #(({ x with canon' := y } : item)))
   method_set : go.MethodSetIs item.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType item.ty) []
 
 attribute [instance] item.TypeAssumptions.type_repr
   item.TypeAssumptions.underlying
-  item.TypeAssumptions.get_key
-  item.TypeAssumptions.set_key
-  item.TypeAssumptions.get_obj
-  item.TypeAssumptions.set_obj
-  item.TypeAssumptions.get_canon
-  item.TypeAssumptions.set_canon
+  item.TypeAssumptions.get'key
+  item.TypeAssumptions.set'key
+  item.TypeAssumptions.get'obj
+  item.TypeAssumptions.set'obj
+  item.TypeAssumptions.get'canon
+  item.TypeAssumptions.set'canon
   item.TypeAssumptions.method_set
   item.TypeAssumptions.ptr_method_set
 
@@ -13245,7 +13245,7 @@ noncomputable instance mstore.zero_val [GooseExts] : ZeroVal mstore :=
 @[irreducible] noncomputable def mstore.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   mstore.fieldsUnsealed
 
-noncomputable instance equals_unfold_mstore [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'mstore [GooseExts] [GoGlobalContext] :
     EqualsUnfold mstore.fields mstore.fieldsUnsealed :=
   ⟨by unfold mstore.fields; rfl⟩
 
@@ -13255,19 +13255,19 @@ noncomputable instance equals_unfold_mstore [GooseExts] [GoGlobalContext] :
 class mstore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying mstore.underlying mstore
   underlying : go.UnderlyingDirectedEq mstore.ty mstore.underlying
-  get_items : ∀ (x : mstore), go.IsGoStepPureDetTagged under (StructFieldGet mstore.underlying go!"items") #x (Val #(x.items'))
-  set_items : ∀ (x : mstore) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet mstore.underlying go!"items") (PairV #x #y) (Val #(({ x with items' := y } : mstore)))
-  get_rv : ∀ (x : mstore), go.IsGoStepPureDetTagged under (StructFieldGet mstore.underlying go!"rv") #x (Val #(x.rv'))
-  set_rv : ∀ (x : mstore) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet mstore.underlying go!"rv") (PairV #x #y) (Val #(({ x with rv' := y } : mstore)))
+  get'items : ∀ (x : mstore), go.IsGoStepPureDetTagged under (StructFieldGet mstore.underlying go!"items") #x (Val #(x.items'))
+  set'items : ∀ (x : mstore) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet mstore.underlying go!"items") (PairV #x #y) (Val #(({ x with items' := y } : mstore)))
+  get'rv : ∀ (x : mstore), go.IsGoStepPureDetTagged under (StructFieldGet mstore.underlying go!"rv") #x (Val #(x.rv'))
+  set'rv : ∀ (x : mstore) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet mstore.underlying go!"rv") (PairV #x #y) (Val #(({ x with rv' := y } : mstore)))
   method_set : go.MethodSetIs mstore.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType mstore.ty) []
 
 attribute [instance] mstore.TypeAssumptions.type_repr
   mstore.TypeAssumptions.underlying
-  mstore.TypeAssumptions.get_items
-  mstore.TypeAssumptions.set_items
-  mstore.TypeAssumptions.get_rv
-  mstore.TypeAssumptions.set_rv
+  mstore.TypeAssumptions.get'items
+  mstore.TypeAssumptions.set'items
+  mstore.TypeAssumptions.get'rv
+  mstore.TypeAssumptions.set'rv
   mstore.TypeAssumptions.method_set
   mstore.TypeAssumptions.ptr_method_set
 
@@ -13288,7 +13288,7 @@ noncomputable instance mcfg.zero_val [GooseExts] : ZeroVal mcfg :=
 @[irreducible] noncomputable def mcfg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   mcfg.fieldsUnsealed
 
-noncomputable instance equals_unfold_mcfg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'mcfg [GooseExts] [GoGlobalContext] :
     EqualsUnfold mcfg.fields mcfg.fieldsUnsealed :=
   ⟨by unfold mcfg.fields; rfl⟩
 
@@ -13298,23 +13298,23 @@ noncomputable instance equals_unfold_mcfg [GooseExts] [GoGlobalContext] :
 class mcfg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying mcfg.underlying mcfg
   underlying : go.UnderlyingDirectedEq mcfg.ty mcfg.underlying
-  get_st : ∀ (x : mcfg), go.IsGoStepPureDetTagged under (StructFieldGet mcfg.underlying go!"st") #x (Val #(x.st'))
-  set_st : ∀ (x : mcfg) (y : mstore), go.IsGoStepPureDetTagged under (StructFieldSet mcfg.underlying go!"st") (PairV #x #y) (Val #(({ x with st' := y } : mcfg)))
-  get_pend : ∀ (x : mcfg), go.IsGoStepPureDetTagged under (StructFieldGet mcfg.underlying go!"pend") #x (Val #(x.pend'))
-  set_pend : ∀ (x : mcfg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet mcfg.underlying go!"pend") (PairV #x #y) (Val #(({ x with pend' := y } : mcfg)))
-  get_hist : ∀ (x : mcfg), go.IsGoStepPureDetTagged under (StructFieldGet mcfg.underlying go!"hist") #x (Val #(x.hist'))
-  set_hist : ∀ (x : mcfg) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet mcfg.underlying go!"hist") (PairV #x #y) (Val #(({ x with hist' := y } : mcfg)))
+  get'st : ∀ (x : mcfg), go.IsGoStepPureDetTagged under (StructFieldGet mcfg.underlying go!"st") #x (Val #(x.st'))
+  set'st : ∀ (x : mcfg) (y : mstore), go.IsGoStepPureDetTagged under (StructFieldSet mcfg.underlying go!"st") (PairV #x #y) (Val #(({ x with st' := y } : mcfg)))
+  get'pend : ∀ (x : mcfg), go.IsGoStepPureDetTagged under (StructFieldGet mcfg.underlying go!"pend") #x (Val #(x.pend'))
+  set'pend : ∀ (x : mcfg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet mcfg.underlying go!"pend") (PairV #x #y) (Val #(({ x with pend' := y } : mcfg)))
+  get'hist : ∀ (x : mcfg), go.IsGoStepPureDetTagged under (StructFieldGet mcfg.underlying go!"hist") #x (Val #(x.hist'))
+  set'hist : ∀ (x : mcfg) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet mcfg.underlying go!"hist") (PairV #x #y) (Val #(({ x with hist' := y } : mcfg)))
   method_set : go.MethodSetIs mcfg.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType mcfg.ty) []
 
 attribute [instance] mcfg.TypeAssumptions.type_repr
   mcfg.TypeAssumptions.underlying
-  mcfg.TypeAssumptions.get_st
-  mcfg.TypeAssumptions.set_st
-  mcfg.TypeAssumptions.get_pend
-  mcfg.TypeAssumptions.set_pend
-  mcfg.TypeAssumptions.get_hist
-  mcfg.TypeAssumptions.set_hist
+  mcfg.TypeAssumptions.get'st
+  mcfg.TypeAssumptions.set'st
+  mcfg.TypeAssumptions.get'pend
+  mcfg.TypeAssumptions.set'pend
+  mcfg.TypeAssumptions.get'hist
+  mcfg.TypeAssumptions.set'hist
   mcfg.TypeAssumptions.method_set
   mcfg.TypeAssumptions.ptr_method_set
 
@@ -13335,7 +13335,7 @@ noncomputable instance hnode.zero_val [GooseExts] : ZeroVal hnode :=
 @[irreducible] noncomputable def hnode.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   hnode.fieldsUnsealed
 
-noncomputable instance equals_unfold_hnode [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'hnode [GooseExts] [GoGlobalContext] :
     EqualsUnfold hnode.fields hnode.fieldsUnsealed :=
   ⟨by unfold hnode.fields; rfl⟩
 
@@ -13345,23 +13345,23 @@ noncomputable instance equals_unfold_hnode [GooseExts] [GoGlobalContext] :
 class hnode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying hnode.underlying hnode
   underlying : go.UnderlyingDirectedEq hnode.ty hnode.underlying
-  get_st : ∀ (x : hnode), go.IsGoStepPureDetTagged under (StructFieldGet hnode.underlying go!"st") #x (Val #(x.st'))
-  set_st : ∀ (x : hnode) (y : mstore), go.IsGoStepPureDetTagged under (StructFieldSet hnode.underlying go!"st") (PairV #x #y) (Val #(({ x with st' := y } : hnode)))
-  get_n : ∀ (x : hnode), go.IsGoStepPureDetTagged under (StructFieldGet hnode.underlying go!"n") #x (Val #(x.n'))
-  set_n : ∀ (x : hnode) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet hnode.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : hnode)))
-  get_prev : ∀ (x : hnode), go.IsGoStepPureDetTagged under (StructFieldGet hnode.underlying go!"prev") #x (Val #(x.prev'))
-  set_prev : ∀ (x : hnode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet hnode.underlying go!"prev") (PairV #x #y) (Val #(({ x with prev' := y } : hnode)))
+  get'st : ∀ (x : hnode), go.IsGoStepPureDetTagged under (StructFieldGet hnode.underlying go!"st") #x (Val #(x.st'))
+  set'st : ∀ (x : hnode) (y : mstore), go.IsGoStepPureDetTagged under (StructFieldSet hnode.underlying go!"st") (PairV #x #y) (Val #(({ x with st' := y } : hnode)))
+  get'n : ∀ (x : hnode), go.IsGoStepPureDetTagged under (StructFieldGet hnode.underlying go!"n") #x (Val #(x.n'))
+  set'n : ∀ (x : hnode) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet hnode.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : hnode)))
+  get'prev : ∀ (x : hnode), go.IsGoStepPureDetTagged under (StructFieldGet hnode.underlying go!"prev") #x (Val #(x.prev'))
+  set'prev : ∀ (x : hnode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet hnode.underlying go!"prev") (PairV #x #y) (Val #(({ x with prev' := y } : hnode)))
   method_set : go.MethodSetIs hnode.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType hnode.ty) []
 
 attribute [instance] hnode.TypeAssumptions.type_repr
   hnode.TypeAssumptions.underlying
-  hnode.TypeAssumptions.get_st
-  hnode.TypeAssumptions.set_st
-  hnode.TypeAssumptions.get_n
-  hnode.TypeAssumptions.set_n
-  hnode.TypeAssumptions.get_prev
-  hnode.TypeAssumptions.set_prev
+  hnode.TypeAssumptions.get'st
+  hnode.TypeAssumptions.set'st
+  hnode.TypeAssumptions.get'n
+  hnode.TypeAssumptions.set'n
+  hnode.TypeAssumptions.get'prev
+  hnode.TypeAssumptions.set'prev
   hnode.TypeAssumptions.method_set
   hnode.TypeAssumptions.ptr_method_set
 
@@ -13406,7 +13406,7 @@ noncomputable instance cache.zero_val [GooseExts] : ZeroVal cache :=
 @[irreducible] noncomputable def cache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   cache.fieldsUnsealed
 
-noncomputable instance equals_unfold_cache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'cache [GooseExts] [GoGlobalContext] :
     EqualsUnfold cache.fields cache.fieldsUnsealed :=
   ⟨by unfold cache.fields; rfl⟩
 
@@ -13416,53 +13416,53 @@ noncomputable instance equals_unfold_cache [GooseExts] [GoGlobalContext] :
 class cache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cache.underlying cache
   underlying : go.UnderlyingDirectedEq cache.ty cache.underlying
-  get_mu : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : cache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : cache)))
-  get_objs : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"objs") #x (Val #(x.objs'))
-  set_objs : ∀ (x : cache) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"objs") (PairV #x #y) (Val #(({ x with objs' := y } : cache)))
-  get_wobjs : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"wobjs") #x (Val #(x.wobjs'))
-  set_wobjs : ∀ (x : cache) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"wobjs") (PairV #x #y) (Val #(({ x with wobjs' := y } : cache)))
-  get_watch : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"watch") #x (Val #(x.watch'))
-  set_watch : ∀ (x : cache) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"watch") (PairV #x #y) (Val #(({ x with watch' := y } : cache)))
-  get_unary : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"unary") #x (Val #(x.unary'))
-  set_unary : ∀ (x : cache) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"unary") (PairV #x #y) (Val #(({ x with unary' := y } : cache)))
-  get_total : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"total") #x (Val #(x.total'))
-  set_total : ∀ (x : cache) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"total") (PairV #x #y) (Val #(({ x with total' := y } : cache)))
-  get_done : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"done") #x (Val #(x.done'))
-  set_done : ∀ (x : cache) (y : _root_.Perennial.sync.atomic.Int64), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : cache)))
-  get_floor : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"floor") #x (Val #(x.floor'))
-  set_floor : ∀ (x : cache) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"floor") (PairV #x #y) (Val #(({ x with floor' := y } : cache)))
+  get'mu : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : cache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : cache)))
+  get'objs : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"objs") #x (Val #(x.objs'))
+  set'objs : ∀ (x : cache) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"objs") (PairV #x #y) (Val #(({ x with objs' := y } : cache)))
+  get'wobjs : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"wobjs") #x (Val #(x.wobjs'))
+  set'wobjs : ∀ (x : cache) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"wobjs") (PairV #x #y) (Val #(({ x with wobjs' := y } : cache)))
+  get'watch : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"watch") #x (Val #(x.watch'))
+  set'watch : ∀ (x : cache) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"watch") (PairV #x #y) (Val #(({ x with watch' := y } : cache)))
+  get'unary : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"unary") #x (Val #(x.unary'))
+  set'unary : ∀ (x : cache) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"unary") (PairV #x #y) (Val #(({ x with unary' := y } : cache)))
+  get'total : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"total") #x (Val #(x.total'))
+  set'total : ∀ (x : cache) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"total") (PairV #x #y) (Val #(({ x with total' := y } : cache)))
+  get'done : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"done") #x (Val #(x.done'))
+  set'done : ∀ (x : cache) (y : _root_.Perennial.sync.atomic.Int64), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : cache)))
+  get'floor : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"floor") #x (Val #(x.floor'))
+  set'floor : ∀ (x : cache) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"floor") (PairV #x #y) (Val #(({ x with floor' := y } : cache)))
   method_set : go.MethodSetIs cache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType cache.ty) [(go!"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3.get", (some (go.signature.Signature [go.int] false [Obj.ty, go.bool]))), (go!"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3.getW", (some (go.signature.Signature [go.int] false [Obj.ty, go.bool]))), (go!"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3.put", (some (go.signature.Signature [go.int, Obj.ty] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3.putW", (some (go.signature.Signature [go.int, Obj.ty] false [])))]
-  ptr_get_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"get" cache.get.impl
-  ptr_getW_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"getW" cache.getW.impl
-  ptr_put_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"put" cache.put.impl
-  ptr_putW_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"putW" cache.putW.impl
+  ptr_unfold'get : MethodUnfold (go.GoType.PointerType cache.ty) go!"get" cache.get.impl
+  ptr_unfold'getW : MethodUnfold (go.GoType.PointerType cache.ty) go!"getW" cache.getW.impl
+  ptr_unfold'put : MethodUnfold (go.GoType.PointerType cache.ty) go!"put" cache.put.impl
+  ptr_unfold'putW : MethodUnfold (go.GoType.PointerType cache.ty) go!"putW" cache.putW.impl
 
 attribute [instance] cache.TypeAssumptions.type_repr
   cache.TypeAssumptions.underlying
-  cache.TypeAssumptions.get_mu
-  cache.TypeAssumptions.set_mu
-  cache.TypeAssumptions.get_objs
-  cache.TypeAssumptions.set_objs
-  cache.TypeAssumptions.get_wobjs
-  cache.TypeAssumptions.set_wobjs
-  cache.TypeAssumptions.get_watch
-  cache.TypeAssumptions.set_watch
-  cache.TypeAssumptions.get_unary
-  cache.TypeAssumptions.set_unary
-  cache.TypeAssumptions.get_total
-  cache.TypeAssumptions.set_total
-  cache.TypeAssumptions.get_done
-  cache.TypeAssumptions.set_done
-  cache.TypeAssumptions.get_floor
-  cache.TypeAssumptions.set_floor
+  cache.TypeAssumptions.get'mu
+  cache.TypeAssumptions.set'mu
+  cache.TypeAssumptions.get'objs
+  cache.TypeAssumptions.set'objs
+  cache.TypeAssumptions.get'wobjs
+  cache.TypeAssumptions.set'wobjs
+  cache.TypeAssumptions.get'watch
+  cache.TypeAssumptions.set'watch
+  cache.TypeAssumptions.get'unary
+  cache.TypeAssumptions.set'unary
+  cache.TypeAssumptions.get'total
+  cache.TypeAssumptions.set'total
+  cache.TypeAssumptions.get'done
+  cache.TypeAssumptions.set'done
+  cache.TypeAssumptions.get'floor
+  cache.TypeAssumptions.set'floor
   cache.TypeAssumptions.method_set
   cache.TypeAssumptions.ptr_method_set
-  cache.TypeAssumptions.ptr_get_unfold
-  cache.TypeAssumptions.ptr_getW_unfold
-  cache.TypeAssumptions.ptr_put_unfold
-  cache.TypeAssumptions.ptr_putW_unfold
+  cache.TypeAssumptions.ptr_unfold'get
+  cache.TypeAssumptions.ptr_unfold'getW
+  cache.TypeAssumptions.ptr_unfold'put
+  cache.TypeAssumptions.ptr_unfold'putW
 
 structure WEvent [GooseExts] where
   mk ::
@@ -13479,7 +13479,7 @@ noncomputable instance WEvent.zero_val [GooseExts] : ZeroVal WEvent :=
 @[irreducible] noncomputable def WEvent.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   WEvent.fieldsUnsealed
 
-noncomputable instance equals_unfold_WEvent [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'WEvent [GooseExts] [GoGlobalContext] :
     EqualsUnfold WEvent.fields WEvent.fieldsUnsealed :=
   ⟨by unfold WEvent.fields; rfl⟩
 
@@ -13489,19 +13489,19 @@ noncomputable instance equals_unfold_WEvent [GooseExts] [GoGlobalContext] :
 class WEvent.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WEvent.underlying WEvent
   underlying : go.UnderlyingDirectedEq WEvent.ty WEvent.underlying
-  get_Type : ∀ (x : WEvent), go.IsGoStepPureDetTagged under (StructFieldGet WEvent.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : WEvent) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WEvent.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : WEvent)))
-  get_Obj : ∀ (x : WEvent), go.IsGoStepPureDetTagged under (StructFieldGet WEvent.underlying go!"Obj") #x (Val #(x.Obj'))
-  set_Obj : ∀ (x : WEvent) (y : Obj), go.IsGoStepPureDetTagged under (StructFieldSet WEvent.underlying go!"Obj") (PairV #x #y) (Val #(({ x with Obj' := y } : WEvent)))
+  get'Type : ∀ (x : WEvent), go.IsGoStepPureDetTagged under (StructFieldGet WEvent.underlying go!"Type") #x (Val #(x.Type'))
+  set'Type : ∀ (x : WEvent) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WEvent.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : WEvent)))
+  get'Obj : ∀ (x : WEvent), go.IsGoStepPureDetTagged under (StructFieldGet WEvent.underlying go!"Obj") #x (Val #(x.Obj'))
+  set'Obj : ∀ (x : WEvent) (y : Obj), go.IsGoStepPureDetTagged under (StructFieldSet WEvent.underlying go!"Obj") (PairV #x #y) (Val #(({ x with Obj' := y } : WEvent)))
   method_set : go.MethodSetIs WEvent.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType WEvent.ty) []
 
 attribute [instance] WEvent.TypeAssumptions.type_repr
   WEvent.TypeAssumptions.underlying
-  WEvent.TypeAssumptions.get_Type
-  WEvent.TypeAssumptions.set_Type
-  WEvent.TypeAssumptions.get_Obj
-  WEvent.TypeAssumptions.set_Obj
+  WEvent.TypeAssumptions.get'Type
+  WEvent.TypeAssumptions.set'Type
+  WEvent.TypeAssumptions.get'Obj
+  WEvent.TypeAssumptions.set'Obj
   WEvent.TypeAssumptions.method_set
   WEvent.TypeAssumptions.ptr_method_set
 
@@ -13528,7 +13528,7 @@ noncomputable instance change.zero_val [GooseExts] : ZeroVal change :=
 @[irreducible] noncomputable def change.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   change.fieldsUnsealed
 
-noncomputable instance equals_unfold_change [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'change [GooseExts] [GoGlobalContext] :
     EqualsUnfold change.fields change.fieldsUnsealed :=
   ⟨by unfold change.fields; rfl⟩
 
@@ -13538,384 +13538,384 @@ noncomputable instance equals_unfold_change [GooseExts] [GoGlobalContext] :
 class change.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying change.underlying change
   underlying : go.UnderlyingDirectedEq change.ty change.underlying
-  get_key : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : change) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : change)))
-  get_prev : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"prev") #x (Val #(x.prev'))
-  set_prev : ∀ (x : change) (y : Obj), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"prev") (PairV #x #y) (Val #(({ x with prev' := y } : change)))
-  get_cur : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"cur") #x (Val #(x.cur'))
-  set_cur : ∀ (x : change) (y : Obj), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"cur") (PairV #x #y) (Val #(({ x with cur' := y } : change)))
-  get_hasPrev : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"hasPrev") #x (Val #(x.hasPrev'))
-  set_hasPrev : ∀ (x : change) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"hasPrev") (PairV #x #y) (Val #(({ x with hasPrev' := y } : change)))
-  get_hasCur : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"hasCur") #x (Val #(x.hasCur'))
-  set_hasCur : ∀ (x : change) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"hasCur") (PairV #x #y) (Val #(({ x with hasCur' := y } : change)))
-  get_rv : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"rv") #x (Val #(x.rv'))
-  set_rv : ∀ (x : change) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"rv") (PairV #x #y) (Val #(({ x with rv' := y } : change)))
+  get'key : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : change) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : change)))
+  get'prev : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"prev") #x (Val #(x.prev'))
+  set'prev : ∀ (x : change) (y : Obj), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"prev") (PairV #x #y) (Val #(({ x with prev' := y } : change)))
+  get'cur : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"cur") #x (Val #(x.cur'))
+  set'cur : ∀ (x : change) (y : Obj), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"cur") (PairV #x #y) (Val #(({ x with cur' := y } : change)))
+  get'hasPrev : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"hasPrev") #x (Val #(x.hasPrev'))
+  set'hasPrev : ∀ (x : change) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"hasPrev") (PairV #x #y) (Val #(({ x with hasPrev' := y } : change)))
+  get'hasCur : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"hasCur") #x (Val #(x.hasCur'))
+  set'hasCur : ∀ (x : change) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"hasCur") (PairV #x #y) (Val #(({ x with hasCur' := y } : change)))
+  get'rv : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"rv") #x (Val #(x.rv'))
+  set'rv : ∀ (x : change) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"rv") (PairV #x #y) (Val #(({ x with rv' := y } : change)))
   method_set : go.MethodSetIs change.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType change.ty) []
 
 attribute [instance] change.TypeAssumptions.type_repr
   change.TypeAssumptions.underlying
-  change.TypeAssumptions.get_key
-  change.TypeAssumptions.set_key
-  change.TypeAssumptions.get_prev
-  change.TypeAssumptions.set_prev
-  change.TypeAssumptions.get_cur
-  change.TypeAssumptions.set_cur
-  change.TypeAssumptions.get_hasPrev
-  change.TypeAssumptions.set_hasPrev
-  change.TypeAssumptions.get_hasCur
-  change.TypeAssumptions.set_hasCur
-  change.TypeAssumptions.get_rv
-  change.TypeAssumptions.set_rv
+  change.TypeAssumptions.get'key
+  change.TypeAssumptions.set'key
+  change.TypeAssumptions.get'prev
+  change.TypeAssumptions.set'prev
+  change.TypeAssumptions.get'cur
+  change.TypeAssumptions.set'cur
+  change.TypeAssumptions.get'hasPrev
+  change.TypeAssumptions.set'hasPrev
+  change.TypeAssumptions.get'hasCur
+  change.TypeAssumptions.set'hasCur
+  change.TypeAssumptions.get'rv
+  change.TypeAssumptions.set'rv
   change.TypeAssumptions.method_set
   change.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Obj_instance : Obj.TypeAssumptions
-  ObjList_instance : ObjList.TypeAssumptions
-  codec_instance : codec.TypeAssumptions
-  versioner_instance : versioner.TypeAssumptions
-  decoder_instance : decoder.TypeAssumptions
-  identity_instance : identity.TypeAssumptions
-  noCompactor_instance : noCompactor.TypeAssumptions
-  Input_instance : Input.TypeAssumptions
-  Output_instance : Output.TypeAssumptions
-  Raw_instance : Raw.TypeAssumptions
-  fieldSel_instance : fieldSel.TypeAssumptions
-  labelSel_instance : labelSel.TypeAssumptions
-  item_instance : item.TypeAssumptions
-  mstore_instance : mstore.TypeAssumptions
-  mcfg_instance : mcfg.TypeAssumptions
-  hnode_instance : hnode.TypeAssumptions
-  state_instance : state.TypeAssumptions
-  cache_instance : cache.TypeAssumptions
-  WEvent_instance : WEvent.TypeAssumptions
-  change_instance : change.TypeAssumptions
-  putField_unfold : FuncUnfold putField [] putField.impl
-  encodeWith_unfold : FuncUnfold encodeWith [] encodeWith.impl
-  encodeObj_unfold : FuncUnfold encodeObj [] encodeObj.impl
-  encodeV0_unfold : FuncUnfold encodeV0 [] encodeV0.impl
-  getField_unfold : FuncUnfold getField [] getField.impl
-  decodeObj_unfold : FuncUnfold decodeObj [] decodeObj.impl
-  parseRV_unfold : FuncUnfold parseRV [] parseRV.impl
-  rvBytes_unfold : FuncUnfold rvBytes [] rvBytes.impl
-  rvString_unfold : FuncUnfold rvString [] rvString.impl
-  newObj_unfold : FuncUnfold newObj [] newObj.impl
-  storeKey_unfold : FuncUnfold storeKey [] storeKey.impl
-  splitKey_unfold : FuncUnfold splitKey [] splitKey.impl
-  objLabels_unfold : FuncUnfold objLabels [] objLabels.impl
-  validateFor_unfold : FuncUnfold validateFor [] validateFor.impl
-  updated_unfold : FuncUnfold updated [] updated.impl
-  tryUpdateFor_unfold : FuncUnfold tryUpdateFor [] tryUpdateFor.impl
-  getAttrs_unfold : FuncUnfold getAttrs [] getAttrs.impl
-  fieldSelFor_unfold : FuncUnfold fieldSelFor [] fieldSelFor.impl
-  predicate_unfold : FuncUnfold predicate [] predicate.impl
-  matchOpt_unfold : FuncUnfold matchOpt [] matchOpt.impl
-  listOptions_unfold : FuncUnfold listOptions [] listOptions.impl
-  histLen_unfold : FuncUnfold histLen [] histLen.impl
-  appendHist_unfold : FuncUnfold appendHist [] appendHist.impl
-  histOf_unfold : FuncUnfold histOf [] histOf.impl
-  histAt_unfold : FuncUnfold histAt [] histAt.impl
-  histEqual_unfold : FuncUnfold histEqual [] histEqual.impl
-  advance_unfold : FuncUnfold advance [] advance.impl
-  lookup_unfold : FuncUnfold lookup'' [] lookup''.impl
-  setItem_unfold : FuncUnfold setItem [] setItem.impl
-  delItem_unfold : FuncUnfold delItem [] delItem.impl
-  notFound_unfold : FuncUnfold notFound [] notFound.impl
-  invalidObj_unfold : FuncUnfold invalidObj [] invalidObj.impl
-  preMsg_unfold : FuncUnfold preMsg [] preMsg.impl
-  objOut_unfold : FuncUnfold objOut [] objOut.impl
-  objOf_unfold : FuncUnfold objOf [] objOf.impl
-  preOk_unfold : FuncUnfold preOk [] preOk.impl
-  sameObj_unfold : FuncUnfold sameObj [] sameObj.impl
-  mcreate_unfold : FuncUnfold mcreate [] mcreate.impl
-  mdelete_unfold : FuncUnfold mdelete [] mdelete.impl
-  mupdate_unfold : FuncUnfold mupdate [] mupdate.impl
-  mget_unfold : FuncUnfold mget [] mget.impl
-  mstep_unfold : FuncUnfold mstep [] mstep.impl
-  isWrite_unfold : FuncUnfold isWrite [] isWrite.impl
-  pastRead_unfold : FuncUnfold pastRead [] pastRead.impl
-  keyInScope_unfold : FuncUnfold keyInScope [] keyInScope.impl
-  mlist_unfold : FuncUnfold mlist [] mlist.impl
-  encodeItems_unfold : FuncUnfold encodeItems [] encodeItems.impl
-  outEqual_unfold : FuncUnfold outEqual [] outEqual.impl
-  inputEqual_unfold : FuncUnfold inputEqual [] inputEqual.impl
-  storeEqual_unfold : FuncUnfold storeEqual [] storeEqual.impl
-  configEqual_unfold : FuncUnfold configEqual [] configEqual.impl
-  addConfig_unfold : FuncUnfold addConfig [] addConfig.impl
-  removeAt_unfold : FuncUnfold removeAt [] removeAt.impl
-  closure_unfold : FuncUnfold closure [] closure.impl
-  step_unfold : FuncUnfold step [] step.impl
-  Model_unfold : FuncUnfold Model [] Model.impl
-  workloadKeys_unfold : FuncUnfold workloadKeys [] workloadKeys.impl
-  workloadVals_unfold : FuncUnfold workloadVals [] workloadVals.impl
-  workloadNodes_unfold : FuncUnfold workloadNodes [] workloadNodes.impl
-  workloadApps_unfold : FuncUnfold workloadApps [] workloadApps.impl
-  pick_unfold : FuncUnfold pick [] pick.impl
-  uidOf_unfold : FuncUnfold uidOf [] uidOf.impl
-  withPre_unfold : FuncUnfold withPre [] withPre.impl
-  floored_unfold : FuncUnfold floored [] floored.impl
-  minRV_unfold : FuncUnfold minRV [] minRV.impl
-  genList_unfold : FuncUnfold genList [] genList.impl
-  genFrom_unfold : FuncUnfold genFrom [] genFrom.impl
-  newCache_unfold : FuncUnfold newCache [] newCache.impl
-  newWCache_unfold : FuncUnfold newWCache [] newWCache.impl
-  Gen_unfold : FuncUnfold Gen [] Gen.impl
-  errOut_unfold : FuncUnfold errOut [] errOut.impl
-  preconditions_unfold : FuncUnfold preconditions [] preconditions.impl
-  cachedObj_unfold : FuncUnfold cachedObj [] cachedObj.impl
-  listOut_unfold : FuncUnfold listOut [] listOut.impl
-  call_unfold : FuncUnfold call [] call.impl
-  Apply_unfold : FuncUnfold Apply [] Apply.impl
-  Check_unfold : FuncUnfold Check [] Check.impl
-  seedOne_unfold : FuncUnfold seedOne [] seedOne.impl
-  seed_unfold : FuncUnfold seed [] seed.impl
-  noStreaming_unfold : FuncUnfold noStreaming [] noStreaming.impl
-  watchList_unfold : FuncUnfold watchList [] watchList.impl
-  newStore_unfold : FuncUnfold newStore [] newStore.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  bridgeAddr_unfold : FuncUnfold bridgeAddr [] bridgeAddr.impl
-  holdToken_unfold : FuncUnfold holdToken [] holdToken.impl
-  startCluster_unfold : FuncUnfold startCluster [] startCluster.impl
-  MainCluster_unfold : FuncUnfold MainCluster [] MainCluster.impl
-  MainPartition_unfold : FuncUnfold MainPartition [] MainPartition.impl
-  failureFree_unfold : FuncUnfold failureFree [] failureFree.impl
-  realRequest_unfold : FuncUnfold realRequest [] realRequest.impl
-  realEvents_unfold : FuncUnfold realEvents [] realEvents.impl
-  keyFunc_unfold : FuncUnfold keyFunc [] keyFunc.impl
-  newObjList_unfold : FuncUnfold newObjList [] newObjList.impl
-  initialModel_unfold : FuncUnfold initialModel [] initialModel.impl
-  toPorcupineModel_unfold : FuncUnfold toPorcupineModel [] toPorcupineModel.impl
-  orderByLinearization_unfold : FuncUnfold orderByLinearization [] orderByLinearization.impl
-  realCheck_unfold : FuncUnfold realCheck [] realCheck.impl
-  genWatch_unfold : FuncUnfold genWatch [] genWatch.impl
-  genWatchFrom_unfold : FuncUnfold genWatchFrom [] genWatchFrom.impl
-  watchOptions_unfold : FuncUnfold watchOptions [] watchOptions.impl
-  toWEvent_unfold : FuncUnfold toWEvent [] toWEvent.impl
-  encodeWEvents_unfold : FuncUnfold encodeWEvents [] encodeWEvents.impl
-  decodeWEvents_unfold : FuncUnfold decodeWEvents [] decodeWEvents.impl
-  runWatch_unfold : FuncUnfold runWatch [] runWatch.impl
-  watchEvents_unfold : FuncUnfold watchEvents [] watchEvents.impl
-  consume_unfold : FuncUnfold consume [] consume.impl
-  lastObj_unfold : FuncUnfold lastObj [] lastObj.impl
-  changeAt_unfold : FuncUnfold changeAt [] changeAt.impl
-  toEvent_unfold : FuncUnfold toEvent [] toEvent.impl
-  initialEvents_unfold : FuncUnfold initialEvents [] initialEvents.impl
-  eventsEqual_unfold : FuncUnfold eventsEqual [] eventsEqual.impl
-  bookmarksOk_unfold : FuncUnfold bookmarksOk [] bookmarksOk.impl
-  watchOk_unfold : FuncUnfold watchOk [] watchOk.impl
-  checkedEvents_unfold : FuncUnfold checkedEvents [] checkedEvents.impl
-  firstBookmark_unfold : FuncUnfold firstBookmark [] firstBookmark.impl
-  watchListOk_unfold : FuncUnfold watchListOk [] watchListOk.impl
-  initialPrefixOk_unfold : FuncUnfold initialPrefixOk [] initialPrefixOk.impl
-  reliableOk_unfold : FuncUnfold reliableOk [] reliableOk.impl
-  evRange_unfold : FuncUnfold evRange [] evRange.impl
-  reliableLo_unfold : FuncUnfold reliableLo [] reliableLo.impl
-  wantEvents_unfold : FuncUnfold wantEvents [] wantEvents.impl
-  nonBookmarks_unfold : FuncUnfold nonBookmarks [] nonBookmarks.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
-  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_kubernetes_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Assumptions
-  import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_fields_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Assumptions
-  import_labels_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
-  import_schema_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
-  import_types_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
-  import_watch_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions
-  import_storage_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.storage.Assumptions
-  import_etcd3_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.Assumptions
-  import_value_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Assumptions
-  import_feature_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
-  import_cluster3_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
-  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
-  import_lintest_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
-  import_bridge_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions
-  import_correctness_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions
+  instance'Obj : Obj.TypeAssumptions
+  instance'ObjList : ObjList.TypeAssumptions
+  instance'codec : codec.TypeAssumptions
+  instance'versioner : versioner.TypeAssumptions
+  instance'decoder : decoder.TypeAssumptions
+  instance'identity : identity.TypeAssumptions
+  instance'noCompactor : noCompactor.TypeAssumptions
+  instance'Input : Input.TypeAssumptions
+  instance'Output : Output.TypeAssumptions
+  instance'Raw : Raw.TypeAssumptions
+  instance'fieldSel : fieldSel.TypeAssumptions
+  instance'labelSel : labelSel.TypeAssumptions
+  instance'item : item.TypeAssumptions
+  instance'mstore : mstore.TypeAssumptions
+  instance'mcfg : mcfg.TypeAssumptions
+  instance'hnode : hnode.TypeAssumptions
+  instance'state : state.TypeAssumptions
+  instance'cache : cache.TypeAssumptions
+  instance'WEvent : WEvent.TypeAssumptions
+  instance'change : change.TypeAssumptions
+  unfold'putField : FuncUnfold putField [] putField.impl
+  unfold'encodeWith : FuncUnfold encodeWith [] encodeWith.impl
+  unfold'encodeObj : FuncUnfold encodeObj [] encodeObj.impl
+  unfold'encodeV0 : FuncUnfold encodeV0 [] encodeV0.impl
+  unfold'getField : FuncUnfold getField [] getField.impl
+  unfold'decodeObj : FuncUnfold decodeObj [] decodeObj.impl
+  unfold'parseRV : FuncUnfold parseRV [] parseRV.impl
+  unfold'rvBytes : FuncUnfold rvBytes [] rvBytes.impl
+  unfold'rvString : FuncUnfold rvString [] rvString.impl
+  unfold'newObj : FuncUnfold newObj [] newObj.impl
+  unfold'storeKey : FuncUnfold storeKey [] storeKey.impl
+  unfold'splitKey : FuncUnfold splitKey [] splitKey.impl
+  unfold'objLabels : FuncUnfold objLabels [] objLabels.impl
+  unfold'validateFor : FuncUnfold validateFor [] validateFor.impl
+  unfold'updated : FuncUnfold updated [] updated.impl
+  unfold'tryUpdateFor : FuncUnfold tryUpdateFor [] tryUpdateFor.impl
+  unfold'getAttrs : FuncUnfold getAttrs [] getAttrs.impl
+  unfold'fieldSelFor : FuncUnfold fieldSelFor [] fieldSelFor.impl
+  unfold'predicate : FuncUnfold predicate [] predicate.impl
+  unfold'matchOpt : FuncUnfold matchOpt [] matchOpt.impl
+  unfold'listOptions : FuncUnfold listOptions [] listOptions.impl
+  unfold'histLen : FuncUnfold histLen [] histLen.impl
+  unfold'appendHist : FuncUnfold appendHist [] appendHist.impl
+  unfold'histOf : FuncUnfold histOf [] histOf.impl
+  unfold'histAt : FuncUnfold histAt [] histAt.impl
+  unfold'histEqual : FuncUnfold histEqual [] histEqual.impl
+  unfold'advance : FuncUnfold advance [] advance.impl
+  unfold'lookup : FuncUnfold lookup'' [] lookup''.impl
+  unfold'setItem : FuncUnfold setItem [] setItem.impl
+  unfold'delItem : FuncUnfold delItem [] delItem.impl
+  unfold'notFound : FuncUnfold notFound [] notFound.impl
+  unfold'invalidObj : FuncUnfold invalidObj [] invalidObj.impl
+  unfold'preMsg : FuncUnfold preMsg [] preMsg.impl
+  unfold'objOut : FuncUnfold objOut [] objOut.impl
+  unfold'objOf : FuncUnfold objOf [] objOf.impl
+  unfold'preOk : FuncUnfold preOk [] preOk.impl
+  unfold'sameObj : FuncUnfold sameObj [] sameObj.impl
+  unfold'mcreate : FuncUnfold mcreate [] mcreate.impl
+  unfold'mdelete : FuncUnfold mdelete [] mdelete.impl
+  unfold'mupdate : FuncUnfold mupdate [] mupdate.impl
+  unfold'mget : FuncUnfold mget [] mget.impl
+  unfold'mstep : FuncUnfold mstep [] mstep.impl
+  unfold'isWrite : FuncUnfold isWrite [] isWrite.impl
+  unfold'pastRead : FuncUnfold pastRead [] pastRead.impl
+  unfold'keyInScope : FuncUnfold keyInScope [] keyInScope.impl
+  unfold'mlist : FuncUnfold mlist [] mlist.impl
+  unfold'encodeItems : FuncUnfold encodeItems [] encodeItems.impl
+  unfold'outEqual : FuncUnfold outEqual [] outEqual.impl
+  unfold'inputEqual : FuncUnfold inputEqual [] inputEqual.impl
+  unfold'storeEqual : FuncUnfold storeEqual [] storeEqual.impl
+  unfold'configEqual : FuncUnfold configEqual [] configEqual.impl
+  unfold'addConfig : FuncUnfold addConfig [] addConfig.impl
+  unfold'removeAt : FuncUnfold removeAt [] removeAt.impl
+  unfold'closure : FuncUnfold closure [] closure.impl
+  unfold'step : FuncUnfold step [] step.impl
+  unfold'Model : FuncUnfold Model [] Model.impl
+  unfold'workloadKeys : FuncUnfold workloadKeys [] workloadKeys.impl
+  unfold'workloadVals : FuncUnfold workloadVals [] workloadVals.impl
+  unfold'workloadNodes : FuncUnfold workloadNodes [] workloadNodes.impl
+  unfold'workloadApps : FuncUnfold workloadApps [] workloadApps.impl
+  unfold'pick : FuncUnfold pick [] pick.impl
+  unfold'uidOf : FuncUnfold uidOf [] uidOf.impl
+  unfold'withPre : FuncUnfold withPre [] withPre.impl
+  unfold'floored : FuncUnfold floored [] floored.impl
+  unfold'minRV : FuncUnfold minRV [] minRV.impl
+  unfold'genList : FuncUnfold genList [] genList.impl
+  unfold'genFrom : FuncUnfold genFrom [] genFrom.impl
+  unfold'newCache : FuncUnfold newCache [] newCache.impl
+  unfold'newWCache : FuncUnfold newWCache [] newWCache.impl
+  unfold'Gen : FuncUnfold Gen [] Gen.impl
+  unfold'errOut : FuncUnfold errOut [] errOut.impl
+  unfold'preconditions : FuncUnfold preconditions [] preconditions.impl
+  unfold'cachedObj : FuncUnfold cachedObj [] cachedObj.impl
+  unfold'listOut : FuncUnfold listOut [] listOut.impl
+  unfold'call : FuncUnfold call [] call.impl
+  unfold'Apply : FuncUnfold Apply [] Apply.impl
+  unfold'Check : FuncUnfold Check [] Check.impl
+  unfold'seedOne : FuncUnfold seedOne [] seedOne.impl
+  unfold'seed : FuncUnfold seed [] seed.impl
+  unfold'noStreaming : FuncUnfold noStreaming [] noStreaming.impl
+  unfold'watchList : FuncUnfold watchList [] watchList.impl
+  unfold'newStore : FuncUnfold newStore [] newStore.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  unfold'bridgeAddr : FuncUnfold bridgeAddr [] bridgeAddr.impl
+  unfold'holdToken : FuncUnfold holdToken [] holdToken.impl
+  unfold'startCluster : FuncUnfold startCluster [] startCluster.impl
+  unfold'MainCluster : FuncUnfold MainCluster [] MainCluster.impl
+  unfold'MainPartition : FuncUnfold MainPartition [] MainPartition.impl
+  unfold'failureFree : FuncUnfold failureFree [] failureFree.impl
+  unfold'realRequest : FuncUnfold realRequest [] realRequest.impl
+  unfold'realEvents : FuncUnfold realEvents [] realEvents.impl
+  unfold'keyFunc : FuncUnfold keyFunc [] keyFunc.impl
+  unfold'newObjList : FuncUnfold newObjList [] newObjList.impl
+  unfold'initialModel : FuncUnfold initialModel [] initialModel.impl
+  unfold'toPorcupineModel : FuncUnfold toPorcupineModel [] toPorcupineModel.impl
+  unfold'orderByLinearization : FuncUnfold orderByLinearization [] orderByLinearization.impl
+  unfold'realCheck : FuncUnfold realCheck [] realCheck.impl
+  unfold'genWatch : FuncUnfold genWatch [] genWatch.impl
+  unfold'genWatchFrom : FuncUnfold genWatchFrom [] genWatchFrom.impl
+  unfold'watchOptions : FuncUnfold watchOptions [] watchOptions.impl
+  unfold'toWEvent : FuncUnfold toWEvent [] toWEvent.impl
+  unfold'encodeWEvents : FuncUnfold encodeWEvents [] encodeWEvents.impl
+  unfold'decodeWEvents : FuncUnfold decodeWEvents [] decodeWEvents.impl
+  unfold'runWatch : FuncUnfold runWatch [] runWatch.impl
+  unfold'watchEvents : FuncUnfold watchEvents [] watchEvents.impl
+  unfold'consume : FuncUnfold consume [] consume.impl
+  unfold'lastObj : FuncUnfold lastObj [] lastObj.impl
+  unfold'changeAt : FuncUnfold changeAt [] changeAt.impl
+  unfold'toEvent : FuncUnfold toEvent [] toEvent.impl
+  unfold'initialEvents : FuncUnfold initialEvents [] initialEvents.impl
+  unfold'eventsEqual : FuncUnfold eventsEqual [] eventsEqual.impl
+  unfold'bookmarksOk : FuncUnfold bookmarksOk [] bookmarksOk.impl
+  unfold'watchOk : FuncUnfold watchOk [] watchOk.impl
+  unfold'checkedEvents : FuncUnfold checkedEvents [] checkedEvents.impl
+  unfold'firstBookmark : FuncUnfold firstBookmark [] firstBookmark.impl
+  unfold'watchListOk : FuncUnfold watchListOk [] watchListOk.impl
+  unfold'initialPrefixOk : FuncUnfold initialPrefixOk [] initialPrefixOk.impl
+  unfold'reliableOk : FuncUnfold reliableOk [] reliableOk.impl
+  unfold'evRange : FuncUnfold evRange [] evRange.impl
+  unfold'reliableLo : FuncUnfold reliableLo [] reliableLo.impl
+  unfold'wantEvents : FuncUnfold wantEvents [] wantEvents.impl
+  unfold'nonBookmarks : FuncUnfold nonBookmarks [] nonBookmarks.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'porcupine : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
+  import'primitive : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'kubernetes : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Assumptions
+  import'etcdserver : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
+  import'v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'fields : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Assumptions
+  import'labels : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  import'schema : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
+  import'types : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
+  import'watch : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions
+  import'storage : _root_.Perennial.k8s_io.apiserver.pkg.storage.Assumptions
+  import'etcd3 : _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.Assumptions
+  import'value : _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Assumptions
+  import'feature : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
+  import'cluster3 : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
+  import'etcdstart : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
+  import'lintest : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
+  import'bridge : _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions
+  import'correctness : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions
 
-attribute [instance] Assumptions.Obj_instance
-  Assumptions.ObjList_instance
-  Assumptions.codec_instance
-  Assumptions.versioner_instance
-  Assumptions.decoder_instance
-  Assumptions.identity_instance
-  Assumptions.noCompactor_instance
-  Assumptions.Input_instance
-  Assumptions.Output_instance
-  Assumptions.Raw_instance
-  Assumptions.fieldSel_instance
-  Assumptions.labelSel_instance
-  Assumptions.item_instance
-  Assumptions.mstore_instance
-  Assumptions.mcfg_instance
-  Assumptions.hnode_instance
-  Assumptions.state_instance
-  Assumptions.cache_instance
-  Assumptions.WEvent_instance
-  Assumptions.change_instance
-  Assumptions.putField_unfold
-  Assumptions.encodeWith_unfold
-  Assumptions.encodeObj_unfold
-  Assumptions.encodeV0_unfold
-  Assumptions.getField_unfold
-  Assumptions.decodeObj_unfold
-  Assumptions.parseRV_unfold
-  Assumptions.rvBytes_unfold
-  Assumptions.rvString_unfold
-  Assumptions.newObj_unfold
-  Assumptions.storeKey_unfold
-  Assumptions.splitKey_unfold
-  Assumptions.objLabels_unfold
-  Assumptions.validateFor_unfold
-  Assumptions.updated_unfold
-  Assumptions.tryUpdateFor_unfold
-  Assumptions.getAttrs_unfold
-  Assumptions.fieldSelFor_unfold
-  Assumptions.predicate_unfold
-  Assumptions.matchOpt_unfold
-  Assumptions.listOptions_unfold
-  Assumptions.histLen_unfold
-  Assumptions.appendHist_unfold
-  Assumptions.histOf_unfold
-  Assumptions.histAt_unfold
-  Assumptions.histEqual_unfold
-  Assumptions.advance_unfold
-  Assumptions.lookup_unfold
-  Assumptions.setItem_unfold
-  Assumptions.delItem_unfold
-  Assumptions.notFound_unfold
-  Assumptions.invalidObj_unfold
-  Assumptions.preMsg_unfold
-  Assumptions.objOut_unfold
-  Assumptions.objOf_unfold
-  Assumptions.preOk_unfold
-  Assumptions.sameObj_unfold
-  Assumptions.mcreate_unfold
-  Assumptions.mdelete_unfold
-  Assumptions.mupdate_unfold
-  Assumptions.mget_unfold
-  Assumptions.mstep_unfold
-  Assumptions.isWrite_unfold
-  Assumptions.pastRead_unfold
-  Assumptions.keyInScope_unfold
-  Assumptions.mlist_unfold
-  Assumptions.encodeItems_unfold
-  Assumptions.outEqual_unfold
-  Assumptions.inputEqual_unfold
-  Assumptions.storeEqual_unfold
-  Assumptions.configEqual_unfold
-  Assumptions.addConfig_unfold
-  Assumptions.removeAt_unfold
-  Assumptions.closure_unfold
-  Assumptions.step_unfold
-  Assumptions.Model_unfold
-  Assumptions.workloadKeys_unfold
-  Assumptions.workloadVals_unfold
-  Assumptions.workloadNodes_unfold
-  Assumptions.workloadApps_unfold
-  Assumptions.pick_unfold
-  Assumptions.uidOf_unfold
-  Assumptions.withPre_unfold
-  Assumptions.floored_unfold
-  Assumptions.minRV_unfold
-  Assumptions.genList_unfold
-  Assumptions.genFrom_unfold
-  Assumptions.newCache_unfold
-  Assumptions.newWCache_unfold
-  Assumptions.Gen_unfold
-  Assumptions.errOut_unfold
-  Assumptions.preconditions_unfold
-  Assumptions.cachedObj_unfold
-  Assumptions.listOut_unfold
-  Assumptions.call_unfold
-  Assumptions.Apply_unfold
-  Assumptions.Check_unfold
-  Assumptions.seedOne_unfold
-  Assumptions.seed_unfold
-  Assumptions.noStreaming_unfold
-  Assumptions.watchList_unfold
-  Assumptions.newStore_unfold
-  Assumptions.Main_unfold
-  Assumptions.bridgeAddr_unfold
-  Assumptions.holdToken_unfold
-  Assumptions.startCluster_unfold
-  Assumptions.MainCluster_unfold
-  Assumptions.MainPartition_unfold
-  Assumptions.failureFree_unfold
-  Assumptions.realRequest_unfold
-  Assumptions.realEvents_unfold
-  Assumptions.keyFunc_unfold
-  Assumptions.newObjList_unfold
-  Assumptions.initialModel_unfold
-  Assumptions.toPorcupineModel_unfold
-  Assumptions.orderByLinearization_unfold
-  Assumptions.realCheck_unfold
-  Assumptions.genWatch_unfold
-  Assumptions.genWatchFrom_unfold
-  Assumptions.watchOptions_unfold
-  Assumptions.toWEvent_unfold
-  Assumptions.encodeWEvents_unfold
-  Assumptions.decodeWEvents_unfold
-  Assumptions.runWatch_unfold
-  Assumptions.watchEvents_unfold
-  Assumptions.consume_unfold
-  Assumptions.lastObj_unfold
-  Assumptions.changeAt_unfold
-  Assumptions.toEvent_unfold
-  Assumptions.initialEvents_unfold
-  Assumptions.eventsEqual_unfold
-  Assumptions.bookmarksOk_unfold
-  Assumptions.watchOk_unfold
-  Assumptions.checkedEvents_unfold
-  Assumptions.firstBookmark_unfold
-  Assumptions.watchListOk_unfold
-  Assumptions.initialPrefixOk_unfold
-  Assumptions.reliableOk_unfold
-  Assumptions.evRange_unfold
-  Assumptions.reliableLo_unfold
-  Assumptions.wantEvents_unfold
-  Assumptions.nonBookmarks_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_porcupine_Assumption
-  Assumptions.import_primitive_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_kubernetes_Assumption
-  Assumptions.import_etcdserver_Assumption
-  Assumptions.import_v1_Assumption
-  Assumptions.import_fields_Assumption
-  Assumptions.import_labels_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_schema_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_watch_Assumption
-  Assumptions.import_storage_Assumption
-  Assumptions.import_etcd3_Assumption
-  Assumptions.import_value_Assumption
-  Assumptions.import_feature_Assumption
-  Assumptions.import_cluster3_Assumption
-  Assumptions.import_etcdstart_Assumption
-  Assumptions.import_lintest_Assumption
-  Assumptions.import_bridge_Assumption
-  Assumptions.import_correctness_Assumption
+attribute [instance] Assumptions.instance'Obj
+  Assumptions.instance'ObjList
+  Assumptions.instance'codec
+  Assumptions.instance'versioner
+  Assumptions.instance'decoder
+  Assumptions.instance'identity
+  Assumptions.instance'noCompactor
+  Assumptions.instance'Input
+  Assumptions.instance'Output
+  Assumptions.instance'Raw
+  Assumptions.instance'fieldSel
+  Assumptions.instance'labelSel
+  Assumptions.instance'item
+  Assumptions.instance'mstore
+  Assumptions.instance'mcfg
+  Assumptions.instance'hnode
+  Assumptions.instance'state
+  Assumptions.instance'cache
+  Assumptions.instance'WEvent
+  Assumptions.instance'change
+  Assumptions.unfold'putField
+  Assumptions.unfold'encodeWith
+  Assumptions.unfold'encodeObj
+  Assumptions.unfold'encodeV0
+  Assumptions.unfold'getField
+  Assumptions.unfold'decodeObj
+  Assumptions.unfold'parseRV
+  Assumptions.unfold'rvBytes
+  Assumptions.unfold'rvString
+  Assumptions.unfold'newObj
+  Assumptions.unfold'storeKey
+  Assumptions.unfold'splitKey
+  Assumptions.unfold'objLabels
+  Assumptions.unfold'validateFor
+  Assumptions.unfold'updated
+  Assumptions.unfold'tryUpdateFor
+  Assumptions.unfold'getAttrs
+  Assumptions.unfold'fieldSelFor
+  Assumptions.unfold'predicate
+  Assumptions.unfold'matchOpt
+  Assumptions.unfold'listOptions
+  Assumptions.unfold'histLen
+  Assumptions.unfold'appendHist
+  Assumptions.unfold'histOf
+  Assumptions.unfold'histAt
+  Assumptions.unfold'histEqual
+  Assumptions.unfold'advance
+  Assumptions.unfold'lookup
+  Assumptions.unfold'setItem
+  Assumptions.unfold'delItem
+  Assumptions.unfold'notFound
+  Assumptions.unfold'invalidObj
+  Assumptions.unfold'preMsg
+  Assumptions.unfold'objOut
+  Assumptions.unfold'objOf
+  Assumptions.unfold'preOk
+  Assumptions.unfold'sameObj
+  Assumptions.unfold'mcreate
+  Assumptions.unfold'mdelete
+  Assumptions.unfold'mupdate
+  Assumptions.unfold'mget
+  Assumptions.unfold'mstep
+  Assumptions.unfold'isWrite
+  Assumptions.unfold'pastRead
+  Assumptions.unfold'keyInScope
+  Assumptions.unfold'mlist
+  Assumptions.unfold'encodeItems
+  Assumptions.unfold'outEqual
+  Assumptions.unfold'inputEqual
+  Assumptions.unfold'storeEqual
+  Assumptions.unfold'configEqual
+  Assumptions.unfold'addConfig
+  Assumptions.unfold'removeAt
+  Assumptions.unfold'closure
+  Assumptions.unfold'step
+  Assumptions.unfold'Model
+  Assumptions.unfold'workloadKeys
+  Assumptions.unfold'workloadVals
+  Assumptions.unfold'workloadNodes
+  Assumptions.unfold'workloadApps
+  Assumptions.unfold'pick
+  Assumptions.unfold'uidOf
+  Assumptions.unfold'withPre
+  Assumptions.unfold'floored
+  Assumptions.unfold'minRV
+  Assumptions.unfold'genList
+  Assumptions.unfold'genFrom
+  Assumptions.unfold'newCache
+  Assumptions.unfold'newWCache
+  Assumptions.unfold'Gen
+  Assumptions.unfold'errOut
+  Assumptions.unfold'preconditions
+  Assumptions.unfold'cachedObj
+  Assumptions.unfold'listOut
+  Assumptions.unfold'call
+  Assumptions.unfold'Apply
+  Assumptions.unfold'Check
+  Assumptions.unfold'seedOne
+  Assumptions.unfold'seed
+  Assumptions.unfold'noStreaming
+  Assumptions.unfold'watchList
+  Assumptions.unfold'newStore
+  Assumptions.unfold'Main
+  Assumptions.unfold'bridgeAddr
+  Assumptions.unfold'holdToken
+  Assumptions.unfold'startCluster
+  Assumptions.unfold'MainCluster
+  Assumptions.unfold'MainPartition
+  Assumptions.unfold'failureFree
+  Assumptions.unfold'realRequest
+  Assumptions.unfold'realEvents
+  Assumptions.unfold'keyFunc
+  Assumptions.unfold'newObjList
+  Assumptions.unfold'initialModel
+  Assumptions.unfold'toPorcupineModel
+  Assumptions.unfold'orderByLinearization
+  Assumptions.unfold'realCheck
+  Assumptions.unfold'genWatch
+  Assumptions.unfold'genWatchFrom
+  Assumptions.unfold'watchOptions
+  Assumptions.unfold'toWEvent
+  Assumptions.unfold'encodeWEvents
+  Assumptions.unfold'decodeWEvents
+  Assumptions.unfold'runWatch
+  Assumptions.unfold'watchEvents
+  Assumptions.unfold'consume
+  Assumptions.unfold'lastObj
+  Assumptions.unfold'changeAt
+  Assumptions.unfold'toEvent
+  Assumptions.unfold'initialEvents
+  Assumptions.unfold'eventsEqual
+  Assumptions.unfold'bookmarksOk
+  Assumptions.unfold'watchOk
+  Assumptions.unfold'checkedEvents
+  Assumptions.unfold'firstBookmark
+  Assumptions.unfold'watchListOk
+  Assumptions.unfold'initialPrefixOk
+  Assumptions.unfold'reliableOk
+  Assumptions.unfold'evRange
+  Assumptions.unfold'reliableLo
+  Assumptions.unfold'wantEvents
+  Assumptions.unfold'nonBookmarks
+  Assumptions.import'context
+  Assumptions.import'errors
+  Assumptions.import'io
+  Assumptions.import'strconv
+  Assumptions.import'strings
+  Assumptions.import'sync
+  Assumptions.import'atomic
+  Assumptions.import'time
+  Assumptions.import'porcupine
+  Assumptions.import'primitive
+  Assumptions.import'zap
+  Assumptions.import'clientv3
+  Assumptions.import'kubernetes
+  Assumptions.import'etcdserver
+  Assumptions.import'v1
+  Assumptions.import'fields
+  Assumptions.import'labels
+  Assumptions.import'runtime
+  Assumptions.import'schema
+  Assumptions.import'types
+  Assumptions.import'watch
+  Assumptions.import'storage
+  Assumptions.import'etcd3
+  Assumptions.import'value
+  Assumptions.import'feature
+  Assumptions.import'cluster3
+  Assumptions.import'etcdstart
+  Assumptions.import'lintest
+  Assumptions.import'bridge
+  Assumptions.import'correctness
 
 end github_com.mit_pdos.etcd_grove.examples.k8s.etcd3
 

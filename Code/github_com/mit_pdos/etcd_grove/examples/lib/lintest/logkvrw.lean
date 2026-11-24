@@ -419,7 +419,7 @@ noncomputable instance Op.zero_val [GooseExts] : ZeroVal Op :=
 @[irreducible] noncomputable def Op.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Op.fieldsUnsealed
 
-noncomputable instance equals_unfold_Op [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Op [GooseExts] [GoGlobalContext] :
     EqualsUnfold Op.fields Op.fieldsUnsealed :=
   ⟨by unfold Op.fields; rfl⟩
 
@@ -429,19 +429,19 @@ noncomputable instance equals_unfold_Op [GooseExts] [GoGlobalContext] :
 class Op.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Op.underlying Op
   underlying : go.UnderlyingDirectedEq Op.ty Op.underlying
-  get_Put : ∀ (x : Op), go.IsGoStepPureDetTagged under (StructFieldGet Op.underlying go!"Put") #x (Val #(x.Put'))
-  set_Put : ∀ (x : Op) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"Put") (PairV #x #y) (Val #(({ x with Put' := y } : Op)))
-  get_Val : ∀ (x : Op), go.IsGoStepPureDetTagged under (StructFieldGet Op.underlying go!"Val") #x (Val #(x.Val'))
-  set_Val : ∀ (x : Op) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : Op)))
+  get'Put : ∀ (x : Op), go.IsGoStepPureDetTagged under (StructFieldGet Op.underlying go!"Put") #x (Val #(x.Put'))
+  set'Put : ∀ (x : Op) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"Put") (PairV #x #y) (Val #(({ x with Put' := y } : Op)))
+  get'Val : ∀ (x : Op), go.IsGoStepPureDetTagged under (StructFieldGet Op.underlying go!"Val") #x (Val #(x.Val'))
+  set'Val : ∀ (x : Op) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : Op)))
   method_set : go.MethodSetIs Op.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Op.ty) []
 
 attribute [instance] Op.TypeAssumptions.type_repr
   Op.TypeAssumptions.underlying
-  Op.TypeAssumptions.get_Put
-  Op.TypeAssumptions.set_Put
-  Op.TypeAssumptions.get_Val
-  Op.TypeAssumptions.set_Val
+  Op.TypeAssumptions.get'Put
+  Op.TypeAssumptions.set'Put
+  Op.TypeAssumptions.get'Val
+  Op.TypeAssumptions.set'Val
   Op.TypeAssumptions.method_set
   Op.TypeAssumptions.ptr_method_set
 
@@ -466,7 +466,7 @@ noncomputable instance Server.zero_val [GooseExts] : ZeroVal Server :=
 @[irreducible] noncomputable def Server.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Server.fieldsUnsealed
 
-noncomputable instance equals_unfold_Server [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Server [GooseExts] [GoGlobalContext] :
     EqualsUnfold Server.fields Server.fieldsUnsealed :=
   ⟨by unfold Server.fields; rfl⟩
 
@@ -476,64 +476,64 @@ noncomputable instance equals_unfold_Server [GooseExts] [GoGlobalContext] :
 class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Server.underlying Server
   underlying : go.UnderlyingDirectedEq Server.ty Server.underlying
-  get_mu : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : Server) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Server)))
-  get_cond : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"cond") #x (Val #(x.cond'))
-  set_cond : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"cond") (PairV #x #y) (Val #(({ x with cond' := y } : Server)))
-  get_log : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"log") #x (Val #(x.log'))
-  set_log : ∀ (x : Server) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"log") (PairV #x #y) (Val #(({ x with log' := y } : Server)))
-  get_applied : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"applied") #x (Val #(x.applied'))
-  set_applied : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"applied") (PairV #x #y) (Val #(({ x with applied' := y } : Server)))
-  get_state : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : Server) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Server)))
+  get'mu : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : Server) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Server)))
+  get'cond : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"cond") #x (Val #(x.cond'))
+  set'cond : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"cond") (PairV #x #y) (Val #(({ x with cond' := y } : Server)))
+  get'log : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"log") #x (Val #(x.log'))
+  set'log : ∀ (x : Server) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"log") (PairV #x #y) (Val #(({ x with log' := y } : Server)))
+  get'applied : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"applied") #x (Val #(x.applied'))
+  set'applied : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"applied") (PairV #x #y) (Val #(({ x with applied' := y } : Server)))
+  get'state : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : Server) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Server)))
   method_set : go.MethodSetIs Server.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"Apply", (some (go.signature.Signature [go.any] false [go.any]))), (go!"Get", (some (go.signature.Signature [] false [go.string]))), (go!"Put", (some (go.signature.Signature [go.string] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/lib/lintest/logkvrw.applyLoop", (some (go.signature.Signature [] false [])))]
-  ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"Apply" Server.Apply.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"Get" Server.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"Put" Server.Put.impl
-  ptr_applyLoop_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"applyLoop" Server.applyLoop.impl
+  ptr_unfold'Apply : MethodUnfold (go.GoType.PointerType Server.ty) go!"Apply" Server.Apply.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType Server.ty) go!"Get" Server.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType Server.ty) go!"Put" Server.Put.impl
+  ptr_unfold'applyLoop : MethodUnfold (go.GoType.PointerType Server.ty) go!"applyLoop" Server.applyLoop.impl
 
 attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.underlying
-  Server.TypeAssumptions.get_mu
-  Server.TypeAssumptions.set_mu
-  Server.TypeAssumptions.get_cond
-  Server.TypeAssumptions.set_cond
-  Server.TypeAssumptions.get_log
-  Server.TypeAssumptions.set_log
-  Server.TypeAssumptions.get_applied
-  Server.TypeAssumptions.set_applied
-  Server.TypeAssumptions.get_state
-  Server.TypeAssumptions.set_state
+  Server.TypeAssumptions.get'mu
+  Server.TypeAssumptions.set'mu
+  Server.TypeAssumptions.get'cond
+  Server.TypeAssumptions.set'cond
+  Server.TypeAssumptions.get'log
+  Server.TypeAssumptions.set'log
+  Server.TypeAssumptions.get'applied
+  Server.TypeAssumptions.set'applied
+  Server.TypeAssumptions.get'state
+  Server.TypeAssumptions.set'state
   Server.TypeAssumptions.method_set
   Server.TypeAssumptions.ptr_method_set
-  Server.TypeAssumptions.ptr_Apply_unfold
-  Server.TypeAssumptions.ptr_Get_unfold
-  Server.TypeAssumptions.ptr_Put_unfold
-  Server.TypeAssumptions.ptr_applyLoop_unfold
+  Server.TypeAssumptions.ptr_unfold'Apply
+  Server.TypeAssumptions.ptr_unfold'Get
+  Server.TypeAssumptions.ptr_unfold'Put
+  Server.TypeAssumptions.ptr_unfold'applyLoop
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Op_instance : Op.TypeAssumptions
-  Server_instance : Server.TypeAssumptions
-  Model_unfold : FuncUnfold Model [] Model.impl
-  New_unfold : FuncUnfold New [] New.impl
-  Check_unfold : FuncUnfold Check [] Check.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
-  import_lintest_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
+  instance'Op : Op.TypeAssumptions
+  instance'Server : Server.TypeAssumptions
+  unfold'Model : FuncUnfold Model [] Model.impl
+  unfold'New : FuncUnfold New [] New.impl
+  unfold'Check : FuncUnfold Check [] Check.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'porcupine : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
+  import'lintest : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
 
-attribute [instance] Assumptions.Op_instance
-  Assumptions.Server_instance
-  Assumptions.Model_unfold
-  Assumptions.New_unfold
-  Assumptions.Check_unfold
-  Assumptions.Main_unfold
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_porcupine_Assumption
-  Assumptions.import_lintest_Assumption
+attribute [instance] Assumptions.instance'Op
+  Assumptions.instance'Server
+  Assumptions.unfold'Model
+  Assumptions.unfold'New
+  Assumptions.unfold'Check
+  Assumptions.unfold'Main
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'porcupine
+  Assumptions.import'lintest
 
 end github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw
 

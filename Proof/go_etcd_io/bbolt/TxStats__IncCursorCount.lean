@@ -39,7 +39,7 @@ theorem TxStats.IncCursorCount.wp_proof : TxStats.IncCursorCount.spec (GF := GF)
   · iexact Hatomic
   imod stats_open K tx r m q ⊤ CoPset.subseteq_top $$ [Ht] with ⟨%s, Hs, Hcl⟩
   · iframe Hc Hreg Ht
-  icases (TxStats.TxStats_access_store_CursorCount _ s (s.CursorCount' + d)).access_strict $$ Hs
+  icases (TxStats.access_store'TxStats'CursorCount _ s (s.CursorCount' + d)).access_strict $$ Hs
     with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask

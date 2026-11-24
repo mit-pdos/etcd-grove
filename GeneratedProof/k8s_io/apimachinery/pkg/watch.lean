@@ -25,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
 
-noncomputable instance filteredWatch_typed_pointsto :
+noncomputable instance typed_pointsto'filteredWatch :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.filteredWatch where
   typedPointstoDef l v dq := iprop(
     "incoming" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) v.incoming' dq ∗
@@ -36,11 +36,11 @@ noncomputable instance filteredWatch_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance filteredWatch_into_val_typed :
+noncomputable instance into_val_typed'filteredWatch :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.filteredWatch k8s_io.apimachinery.pkg.watch.filteredWatch.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance filteredWatch_access_load_incoming (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (dq : DFrac) :
+noncomputable instance access_load'filteredWatch'incoming (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) v.incoming' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) v.incoming' dq)
@@ -48,7 +48,7 @@ noncomputable instance filteredWatch_access_load_incoming (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance filteredWatch_access_store_incoming (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (y : k8s_io.apimachinery.pkg.watch.Interface) :
+noncomputable instance access_store'filteredWatch'incoming (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (y : k8s_io.apimachinery.pkg.watch.Interface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) v.incoming' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) y (DFrac.own 1))
@@ -56,7 +56,7 @@ noncomputable instance filteredWatch_access_store_incoming (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance filteredWatch_access_load_result (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (dq : DFrac) :
+noncomputable instance access_load'filteredWatch'result (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) v.result' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) v.result' dq)
@@ -64,7 +64,7 @@ noncomputable instance filteredWatch_access_load_result (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance filteredWatch_access_store_result (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (y : GoChan) :
+noncomputable instance access_store'filteredWatch'result (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) v.result' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) y (DFrac.own 1))
@@ -72,7 +72,7 @@ noncomputable instance filteredWatch_access_store_result (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance filteredWatch_access_load_f (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (dq : DFrac) :
+noncomputable instance access_load'filteredWatch'f (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) v.f' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) v.f' dq)
@@ -80,7 +80,7 @@ noncomputable instance filteredWatch_access_load_f (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance filteredWatch_access_store_f (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (y : k8s_io.apimachinery.pkg.watch.FilterFunc) :
+noncomputable instance access_store'filteredWatch'f (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (y : k8s_io.apimachinery.pkg.watch.FilterFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) v.f' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) y (DFrac.own 1))
@@ -99,11 +99,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
 
-noncomputable instance Recorder_typed_pointsto :
+noncomputable instance typed_pointsto'Recorder :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.Recorder :=
   sorry -- axiomatized type
 
-noncomputable instance Recorder_into_val_typed :
+noncomputable instance into_val_typed'Recorder :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.Recorder k8s_io.apimachinery.pkg.watch.Recorder.underlying :=
   sorry -- axiomatized type
 
@@ -118,11 +118,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
 
-noncomputable instance Broadcaster_typed_pointsto :
+noncomputable instance typed_pointsto'Broadcaster :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.Broadcaster :=
   sorry -- axiomatized type
 
-noncomputable instance Broadcaster_into_val_typed :
+noncomputable instance into_val_typed'Broadcaster :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.Broadcaster k8s_io.apimachinery.pkg.watch.Broadcaster.underlying :=
   sorry -- axiomatized type
 
@@ -137,11 +137,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
 
-noncomputable instance broadcasterWatcher_typed_pointsto :
+noncomputable instance typed_pointsto'broadcasterWatcher :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.broadcasterWatcher :=
   sorry -- axiomatized type
 
-noncomputable instance broadcasterWatcher_into_val_typed :
+noncomputable instance into_val_typed'broadcasterWatcher :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.broadcasterWatcher k8s_io.apimachinery.pkg.watch.broadcasterWatcher.underlying :=
   sorry -- axiomatized type
 
@@ -156,11 +156,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
 
-noncomputable instance StreamWatcher_typed_pointsto :
+noncomputable instance typed_pointsto'StreamWatcher :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.StreamWatcher :=
   sorry -- axiomatized type
 
-noncomputable instance StreamWatcher_into_val_typed :
+noncomputable instance into_val_typed'StreamWatcher :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.StreamWatcher k8s_io.apimachinery.pkg.watch.StreamWatcher.underlying :=
   sorry -- axiomatized type
 
@@ -175,7 +175,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
 
-noncomputable instance Event_typed_pointsto :
+noncomputable instance typed_pointsto'Event :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.Event where
   typedPointstoDef l v dq := iprop(
     "Type'" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' dq ∗
@@ -185,11 +185,11 @@ noncomputable instance Event_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Event_into_val_typed :
+noncomputable instance into_val_typed'Event :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.Event k8s_io.apimachinery.pkg.watch.Event.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Event_access_load_Type (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (dq : DFrac) :
+noncomputable instance access_load'Event'Type (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' dq)
@@ -197,7 +197,7 @@ noncomputable instance Event_access_load_Type (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Type (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (y : k8s_io.apimachinery.pkg.watch.EventType) :
+noncomputable instance access_store'Event'Type (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (y : k8s_io.apimachinery.pkg.watch.EventType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) y (DFrac.own 1))
@@ -205,7 +205,7 @@ noncomputable instance Event_access_store_Type (l : Loc) (v : k8s_io.apimachiner
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_load_Object (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (dq : DFrac) :
+noncomputable instance access_load'Event'Object (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' dq)
@@ -213,7 +213,7 @@ noncomputable instance Event_access_load_Object (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
+noncomputable instance access_store'Event'Object (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) y (DFrac.own 1))
@@ -232,11 +232,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
 
-noncomputable instance FakeWatcher_typed_pointsto :
+noncomputable instance typed_pointsto'FakeWatcher :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.FakeWatcher :=
   sorry -- axiomatized type
 
-noncomputable instance FakeWatcher_into_val_typed :
+noncomputable instance into_val_typed'FakeWatcher :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.FakeWatcher k8s_io.apimachinery.pkg.watch.FakeWatcher.underlying :=
   sorry -- axiomatized type
 
@@ -251,11 +251,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
 
-noncomputable instance FakeOptions_typed_pointsto :
+noncomputable instance typed_pointsto'FakeOptions :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.FakeOptions :=
   sorry -- axiomatized type
 
-noncomputable instance FakeOptions_into_val_typed :
+noncomputable instance into_val_typed'FakeOptions :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.FakeOptions k8s_io.apimachinery.pkg.watch.FakeOptions.underlying :=
   sorry -- axiomatized type
 
@@ -270,11 +270,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
 
-noncomputable instance RaceFreeFakeWatcher_typed_pointsto :
+noncomputable instance typed_pointsto'RaceFreeFakeWatcher :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.RaceFreeFakeWatcher :=
   sorry -- axiomatized type
 
-noncomputable instance RaceFreeFakeWatcher_into_val_typed :
+noncomputable instance into_val_typed'RaceFreeFakeWatcher :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.RaceFreeFakeWatcher k8s_io.apimachinery.pkg.watch.RaceFreeFakeWatcher.underlying :=
   sorry -- axiomatized type
 
@@ -289,11 +289,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
 
-noncomputable instance ProxyWatcher_typed_pointsto :
+noncomputable instance typed_pointsto'ProxyWatcher :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.ProxyWatcher :=
   sorry -- axiomatized type
 
-noncomputable instance ProxyWatcher_into_val_typed :
+noncomputable instance into_val_typed'ProxyWatcher :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.ProxyWatcher k8s_io.apimachinery.pkg.watch.ProxyWatcher.underlying :=
   sorry -- axiomatized type
 
@@ -308,7 +308,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
 
-noncomputable instance MockWatcher_typed_pointsto :
+noncomputable instance typed_pointsto'MockWatcher :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.MockWatcher where
   typedPointstoDef l v dq := iprop(
     "StopFunc" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) v.StopFunc' dq ∗
@@ -318,11 +318,11 @@ noncomputable instance MockWatcher_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance MockWatcher_into_val_typed :
+noncomputable instance into_val_typed'MockWatcher :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.MockWatcher k8s_io.apimachinery.pkg.watch.MockWatcher.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance MockWatcher_access_load_StopFunc (l : Loc) (v : k8s_io.apimachinery.pkg.watch.MockWatcher) (dq : DFrac) :
+noncomputable instance access_load'MockWatcher'StopFunc (l : Loc) (v : k8s_io.apimachinery.pkg.watch.MockWatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) v.StopFunc' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) v.StopFunc' dq)
@@ -330,7 +330,7 @@ noncomputable instance MockWatcher_access_load_StopFunc (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance MockWatcher_access_store_StopFunc (l : Loc) (v : k8s_io.apimachinery.pkg.watch.MockWatcher) (y : GoFunc) :
+noncomputable instance access_store'MockWatcher'StopFunc (l : Loc) (v : k8s_io.apimachinery.pkg.watch.MockWatcher) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) v.StopFunc' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) y (DFrac.own 1))
@@ -338,7 +338,7 @@ noncomputable instance MockWatcher_access_store_StopFunc (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance MockWatcher_access_load_ResultChanFunc (l : Loc) (v : k8s_io.apimachinery.pkg.watch.MockWatcher) (dq : DFrac) :
+noncomputable instance access_load'MockWatcher'ResultChanFunc (l : Loc) (v : k8s_io.apimachinery.pkg.watch.MockWatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) v.ResultChanFunc' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) v.ResultChanFunc' dq)
@@ -346,7 +346,7 @@ noncomputable instance MockWatcher_access_load_ResultChanFunc (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance MockWatcher_access_store_ResultChanFunc (l : Loc) (v : k8s_io.apimachinery.pkg.watch.MockWatcher) (y : GoFunc) :
+noncomputable instance access_store'MockWatcher'ResultChanFunc (l : Loc) (v : k8s_io.apimachinery.pkg.watch.MockWatcher) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) v.ResultChanFunc' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) y (DFrac.own 1))

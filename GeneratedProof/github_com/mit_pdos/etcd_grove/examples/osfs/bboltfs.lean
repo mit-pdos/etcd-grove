@@ -33,7 +33,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
 
-noncomputable instance DB_typed_pointsto :
+noncomputable instance typed_pointsto'DB :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB where
   typedPointstoDef l v dq := iprop(
     "path" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"path" l) v.path' dq ∗
@@ -52,11 +52,11 @@ noncomputable instance DB_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance DB_into_val_typed :
+noncomputable instance into_val_typed'DB :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance DB_access_load_path (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
+noncomputable instance access_load'DB'path (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"path" l) v.path' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"path" l) v.path' dq)
@@ -64,7 +64,7 @@ noncomputable instance DB_access_load_path (l : Loc) (v : github_com.mit_pdos.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_path (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : GoString) :
+noncomputable instance access_store'DB'path (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"path" l) v.path' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"path" l) y (DFrac.own 1))
@@ -72,7 +72,7 @@ noncomputable instance DB_access_store_path (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_load_file (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
+noncomputable instance access_load'DB'file (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"file" l) v.file' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"file" l) v.file' dq)
@@ -80,7 +80,7 @@ noncomputable instance DB_access_load_file (l : Loc) (v : github_com.mit_pdos.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_file (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : Loc) :
+noncomputable instance access_store'DB'file (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"file" l) v.file' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"file" l) y (DFrac.own 1))
@@ -88,7 +88,7 @@ noncomputable instance DB_access_store_file (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_load_dataref (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
+noncomputable instance access_load'DB'dataref (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"dataref" l) v.dataref' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"dataref" l) v.dataref' dq)
@@ -96,7 +96,7 @@ noncomputable instance DB_access_load_dataref (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_dataref (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : GoSlice) :
+noncomputable instance access_store'DB'dataref (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"dataref" l) v.dataref' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"dataref" l) y (DFrac.own 1))
@@ -104,7 +104,7 @@ noncomputable instance DB_access_store_dataref (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_load_datasz (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
+noncomputable instance access_load'DB'datasz (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"datasz" l) v.datasz' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"datasz" l) v.datasz' dq)
@@ -112,7 +112,7 @@ noncomputable instance DB_access_load_datasz (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_datasz (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : w64) :
+noncomputable instance access_store'DB'datasz (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"datasz" l) v.datasz' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"datasz" l) y (DFrac.own 1))
@@ -120,7 +120,7 @@ noncomputable instance DB_access_store_datasz (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_load_filesz (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
+noncomputable instance access_load'DB'filesz (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"filesz" l) v.filesz' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"filesz" l) v.filesz' dq)
@@ -128,7 +128,7 @@ noncomputable instance DB_access_load_filesz (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_filesz (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : w64) :
+noncomputable instance access_store'DB'filesz (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"filesz" l) v.filesz' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"filesz" l) y (DFrac.own 1))
@@ -136,7 +136,7 @@ noncomputable instance DB_access_store_filesz (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_load_meta0 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
+noncomputable instance access_load'DB'meta0 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"meta0" l) v.meta0' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"meta0" l) v.meta0' dq)
@@ -144,7 +144,7 @@ noncomputable instance DB_access_load_meta0 (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_meta0 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : Loc) :
+noncomputable instance access_store'DB'meta0 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"meta0" l) v.meta0' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"meta0" l) y (DFrac.own 1))
@@ -152,7 +152,7 @@ noncomputable instance DB_access_store_meta0 (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_load_meta1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
+noncomputable instance access_load'DB'meta1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"meta1" l) v.meta1' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"meta1" l) v.meta1' dq)
@@ -160,7 +160,7 @@ noncomputable instance DB_access_load_meta1 (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_meta1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : Loc) :
+noncomputable instance access_store'DB'meta1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"meta1" l) v.meta1' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"meta1" l) y (DFrac.own 1))
@@ -168,7 +168,7 @@ noncomputable instance DB_access_store_meta1 (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_load_failed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
+noncomputable instance access_load'DB'failed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"failed" l) v.failed' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"failed" l) v.failed' dq)
@@ -176,7 +176,7 @@ noncomputable instance DB_access_load_failed (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_failed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : Bool) :
+noncomputable instance access_store'DB'failed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"failed" l) v.failed' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"failed" l) y (DFrac.own 1))
@@ -184,7 +184,7 @@ noncomputable instance DB_access_store_failed (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_load_rwlock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
+noncomputable instance access_load'DB'rwlock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"rwlock" l) v.rwlock' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"rwlock" l) v.rwlock' dq)
@@ -192,7 +192,7 @@ noncomputable instance DB_access_load_rwlock (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_rwlock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'DB'rwlock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"rwlock" l) v.rwlock' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"rwlock" l) y (DFrac.own 1))
@@ -200,7 +200,7 @@ noncomputable instance DB_access_store_rwlock (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_load_metalock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
+noncomputable instance access_load'DB'metalock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"metalock" l) v.metalock' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"metalock" l) v.metalock' dq)
@@ -208,7 +208,7 @@ noncomputable instance DB_access_load_metalock (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_metalock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'DB'metalock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"metalock" l) v.metalock' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"metalock" l) y (DFrac.own 1))
@@ -216,7 +216,7 @@ noncomputable instance DB_access_store_metalock (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_load_mmaplock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
+noncomputable instance access_load'DB'mmaplock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"mmaplock" l) v.mmaplock' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"mmaplock" l) v.mmaplock' dq)
@@ -224,7 +224,7 @@ noncomputable instance DB_access_load_mmaplock (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_mmaplock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'DB'mmaplock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"mmaplock" l) v.mmaplock' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"mmaplock" l) y (DFrac.own 1))
@@ -243,7 +243,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
 
-noncomputable instance Page_typed_pointsto :
+noncomputable instance typed_pointsto'Page :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page where
   typedPointstoDef l v dq := iprop(
     "id" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"id" l) v.id' dq ∗
@@ -255,11 +255,11 @@ noncomputable instance Page_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Page_into_val_typed :
+noncomputable instance into_val_typed'Page :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Page_access_load_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page) (dq : DFrac) :
+noncomputable instance access_load'Page'id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"id" l) v.id' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"id" l) v.id' dq)
@@ -267,7 +267,7 @@ noncomputable instance Page_access_load_id (l : Loc) (v : github_com.mit_pdos.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance Page_access_store_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page) (y : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Pgid) :
+noncomputable instance access_store'Page'id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page) (y : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Pgid) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"id" l) v.id' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"id" l) y (DFrac.own 1))
@@ -275,7 +275,7 @@ noncomputable instance Page_access_store_id (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance Page_access_load_flags (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page) (dq : DFrac) :
+noncomputable instance access_load'Page'flags (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"flags" l) v.flags' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"flags" l) v.flags' dq)
@@ -283,7 +283,7 @@ noncomputable instance Page_access_load_flags (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Page_access_store_flags (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page) (y : w16) :
+noncomputable instance access_store'Page'flags (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page) (y : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"flags" l) v.flags' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"flags" l) y (DFrac.own 1))
@@ -291,7 +291,7 @@ noncomputable instance Page_access_store_flags (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Page_access_load_count (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page) (dq : DFrac) :
+noncomputable instance access_load'Page'count (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"count" l) v.count' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"count" l) v.count' dq)
@@ -299,7 +299,7 @@ noncomputable instance Page_access_load_count (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Page_access_store_count (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page) (y : w16) :
+noncomputable instance access_store'Page'count (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page) (y : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"count" l) v.count' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"count" l) y (DFrac.own 1))
@@ -307,7 +307,7 @@ noncomputable instance Page_access_store_count (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Page_access_load_overflow (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page) (dq : DFrac) :
+noncomputable instance access_load'Page'overflow (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"overflow" l) v.overflow' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"overflow" l) v.overflow' dq)
@@ -315,7 +315,7 @@ noncomputable instance Page_access_load_overflow (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Page_access_store_overflow (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page) (y : w32) :
+noncomputable instance access_store'Page'overflow (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"overflow" l) v.overflow' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page go!"overflow" l) y (DFrac.own 1))
@@ -334,7 +334,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
 
-noncomputable instance InBucket_typed_pointsto :
+noncomputable instance typed_pointsto'InBucket :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket where
   typedPointstoDef l v dq := iprop(
     "root" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket go!"root" l) v.root' dq ∗
@@ -344,11 +344,11 @@ noncomputable instance InBucket_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance InBucket_into_val_typed :
+noncomputable instance into_val_typed'InBucket :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance InBucket_access_load_root (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket) (dq : DFrac) :
+noncomputable instance access_load'InBucket'root (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket go!"root" l) v.root' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket go!"root" l) v.root' dq)
@@ -356,7 +356,7 @@ noncomputable instance InBucket_access_load_root (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance InBucket_access_store_root (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket) (y : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Pgid) :
+noncomputable instance access_store'InBucket'root (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket) (y : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Pgid) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket go!"root" l) v.root' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket go!"root" l) y (DFrac.own 1))
@@ -364,7 +364,7 @@ noncomputable instance InBucket_access_store_root (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance InBucket_access_load_sequence (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket) (dq : DFrac) :
+noncomputable instance access_load'InBucket'sequence (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket go!"sequence" l) v.sequence' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket go!"sequence" l) v.sequence' dq)
@@ -372,7 +372,7 @@ noncomputable instance InBucket_access_load_sequence (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance InBucket_access_store_sequence (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket) (y : w64) :
+noncomputable instance access_store'InBucket'sequence (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket go!"sequence" l) v.sequence' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket go!"sequence" l) y (DFrac.own 1))
@@ -391,7 +391,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
 
-noncomputable instance Meta_typed_pointsto :
+noncomputable instance typed_pointsto'Meta :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta where
   typedPointstoDef l v dq := iprop(
     "magic" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"magic" l) v.magic' dq ∗
@@ -408,11 +408,11 @@ noncomputable instance Meta_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Meta_into_val_typed :
+noncomputable instance into_val_typed'Meta :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Meta_access_load_magic (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
+noncomputable instance access_load'Meta'magic (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"magic" l) v.magic' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"magic" l) v.magic' dq)
@@ -420,7 +420,7 @@ noncomputable instance Meta_access_load_magic (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_magic (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : w32) :
+noncomputable instance access_store'Meta'magic (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"magic" l) v.magic' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"magic" l) y (DFrac.own 1))
@@ -428,7 +428,7 @@ noncomputable instance Meta_access_store_magic (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_load_version (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
+noncomputable instance access_load'Meta'version (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"version" l) v.version' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"version" l) v.version' dq)
@@ -436,7 +436,7 @@ noncomputable instance Meta_access_load_version (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_version (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : w32) :
+noncomputable instance access_store'Meta'version (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"version" l) v.version' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"version" l) y (DFrac.own 1))
@@ -444,7 +444,7 @@ noncomputable instance Meta_access_store_version (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_load_pageSize (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
+noncomputable instance access_load'Meta'pageSize (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"pageSize" l) v.pageSize' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"pageSize" l) v.pageSize' dq)
@@ -452,7 +452,7 @@ noncomputable instance Meta_access_load_pageSize (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_pageSize (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : w32) :
+noncomputable instance access_store'Meta'pageSize (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"pageSize" l) v.pageSize' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"pageSize" l) y (DFrac.own 1))
@@ -460,7 +460,7 @@ noncomputable instance Meta_access_store_pageSize (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_load_flags (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
+noncomputable instance access_load'Meta'flags (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"flags" l) v.flags' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"flags" l) v.flags' dq)
@@ -468,7 +468,7 @@ noncomputable instance Meta_access_load_flags (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_flags (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : w32) :
+noncomputable instance access_store'Meta'flags (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"flags" l) v.flags' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"flags" l) y (DFrac.own 1))
@@ -476,7 +476,7 @@ noncomputable instance Meta_access_store_flags (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_load_root (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
+noncomputable instance access_load'Meta'root (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"root" l) v.root' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"root" l) v.root' dq)
@@ -484,7 +484,7 @@ noncomputable instance Meta_access_load_root (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_root (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket) :
+noncomputable instance access_store'Meta'root (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.InBucket) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"root" l) v.root' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"root" l) y (DFrac.own 1))
@@ -492,7 +492,7 @@ noncomputable instance Meta_access_store_root (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_load_freelist (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
+noncomputable instance access_load'Meta'freelist (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"freelist" l) v.freelist' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"freelist" l) v.freelist' dq)
@@ -500,7 +500,7 @@ noncomputable instance Meta_access_load_freelist (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_freelist (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Pgid) :
+noncomputable instance access_store'Meta'freelist (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Pgid) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"freelist" l) v.freelist' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"freelist" l) y (DFrac.own 1))
@@ -508,7 +508,7 @@ noncomputable instance Meta_access_store_freelist (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_load_pgid (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
+noncomputable instance access_load'Meta'pgid (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"pgid" l) v.pgid' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"pgid" l) v.pgid' dq)
@@ -516,7 +516,7 @@ noncomputable instance Meta_access_load_pgid (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_pgid (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Pgid) :
+noncomputable instance access_store'Meta'pgid (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Pgid) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"pgid" l) v.pgid' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"pgid" l) y (DFrac.own 1))
@@ -524,7 +524,7 @@ noncomputable instance Meta_access_store_pgid (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_load_txid (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
+noncomputable instance access_load'Meta'txid (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"txid" l) v.txid' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"txid" l) v.txid' dq)
@@ -532,7 +532,7 @@ noncomputable instance Meta_access_load_txid (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_txid (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : w64) :
+noncomputable instance access_store'Meta'txid (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"txid" l) v.txid' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"txid" l) y (DFrac.own 1))
@@ -540,7 +540,7 @@ noncomputable instance Meta_access_store_txid (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_load_checksum (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
+noncomputable instance access_load'Meta'checksum (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"checksum" l) v.checksum' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"checksum" l) v.checksum' dq)
@@ -548,7 +548,7 @@ noncomputable instance Meta_access_load_checksum (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_checksum (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : w64) :
+noncomputable instance access_store'Meta'checksum (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"checksum" l) v.checksum' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta go!"checksum" l) y (DFrac.own 1))

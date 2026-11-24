@@ -149,19 +149,19 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.path.filepath.initialize') (Val #())))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ToBackendFileName_unfold : FuncUnfold ToBackendFileName [] ToBackendFileName.impl
-  ToSnapDir_unfold : FuncUnfold ToSnapDir [] ToSnapDir.impl
-  ToWalDir_unfold : FuncUnfold ToWalDir [] ToWalDir.impl
-  ToWALDir_unfold : FuncUnfold ToWALDir [] ToWALDir.impl
-  ToMemberDir_unfold : FuncUnfold ToMemberDir [] ToMemberDir.impl
-  import_filepath_Assumption : _root_.Perennial.path.filepath.Assumptions
+  unfold'ToBackendFileName : FuncUnfold ToBackendFileName [] ToBackendFileName.impl
+  unfold'ToSnapDir : FuncUnfold ToSnapDir [] ToSnapDir.impl
+  unfold'ToWalDir : FuncUnfold ToWalDir [] ToWalDir.impl
+  unfold'ToWALDir : FuncUnfold ToWALDir [] ToWALDir.impl
+  unfold'ToMemberDir : FuncUnfold ToMemberDir [] ToMemberDir.impl
+  import'filepath : _root_.Perennial.path.filepath.Assumptions
 
-attribute [instance] Assumptions.ToBackendFileName_unfold
-  Assumptions.ToSnapDir_unfold
-  Assumptions.ToWalDir_unfold
-  Assumptions.ToWALDir_unfold
-  Assumptions.ToMemberDir_unfold
-  Assumptions.import_filepath_Assumption
+attribute [instance] Assumptions.unfold'ToBackendFileName
+  Assumptions.unfold'ToSnapDir
+  Assumptions.unfold'ToWalDir
+  Assumptions.unfold'ToWALDir
+  Assumptions.unfold'ToMemberDir
+  Assumptions.import'filepath
 
 end go_etcd_io.etcd.server.v3.storage.datadir
 

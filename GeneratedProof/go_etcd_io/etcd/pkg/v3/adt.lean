@@ -28,7 +28,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-noncomputable instance Interval_typed_pointsto :
+noncomputable instance typed_pointsto'Interval :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.adt.Interval where
   typedPointstoDef l v dq := iprop(
     "Begin" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.Interval go!"Begin" l) v.Begin' dq ∗
@@ -38,11 +38,11 @@ noncomputable instance Interval_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Interval_into_val_typed :
+noncomputable instance into_val_typed'Interval :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.adt.Interval go_etcd_io.etcd.pkg.v3.adt.Interval.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Interval_access_load_Begin (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.Interval) (dq : DFrac) :
+noncomputable instance access_load'Interval'Begin (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.Interval) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.Interval go!"Begin" l) v.Begin' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.Interval go!"Begin" l) v.Begin' dq)
@@ -50,7 +50,7 @@ noncomputable instance Interval_access_load_Begin (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Interval_access_store_Begin (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.Interval) (y : go_etcd_io.etcd.pkg.v3.adt.Comparable) :
+noncomputable instance access_store'Interval'Begin (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.Interval) (y : go_etcd_io.etcd.pkg.v3.adt.Comparable) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.Interval go!"Begin" l) v.Begin' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.Interval go!"Begin" l) y (DFrac.own 1))
@@ -58,7 +58,7 @@ noncomputable instance Interval_access_store_Begin (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Interval_access_load_End (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.Interval) (dq : DFrac) :
+noncomputable instance access_load'Interval'End (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.Interval) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.Interval go!"End" l) v.End' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.Interval go!"End" l) v.End' dq)
@@ -66,7 +66,7 @@ noncomputable instance Interval_access_load_End (l : Loc) (v : go_etcd_io.etcd.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Interval_access_store_End (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.Interval) (y : go_etcd_io.etcd.pkg.v3.adt.Comparable) :
+noncomputable instance access_store'Interval'End (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.Interval) (y : go_etcd_io.etcd.pkg.v3.adt.Comparable) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.Interval go!"End" l) v.End' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.Interval go!"End" l) y (DFrac.own 1))
@@ -85,7 +85,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-noncomputable instance IntervalValue_typed_pointsto :
+noncomputable instance typed_pointsto'IntervalValue :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.adt.IntervalValue where
   typedPointstoDef l v dq := iprop(
     "Ivl" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.IntervalValue go!"Ivl" l) v.Ivl' dq ∗
@@ -95,11 +95,11 @@ noncomputable instance IntervalValue_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance IntervalValue_into_val_typed :
+noncomputable instance into_val_typed'IntervalValue :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.adt.IntervalValue go_etcd_io.etcd.pkg.v3.adt.IntervalValue.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance IntervalValue_access_load_Ivl (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.IntervalValue) (dq : DFrac) :
+noncomputable instance access_load'IntervalValue'Ivl (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.IntervalValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.IntervalValue go!"Ivl" l) v.Ivl' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.IntervalValue go!"Ivl" l) v.Ivl' dq)
@@ -107,7 +107,7 @@ noncomputable instance IntervalValue_access_load_Ivl (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance IntervalValue_access_store_Ivl (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.IntervalValue) (y : go_etcd_io.etcd.pkg.v3.adt.Interval) :
+noncomputable instance access_store'IntervalValue'Ivl (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.IntervalValue) (y : go_etcd_io.etcd.pkg.v3.adt.Interval) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.IntervalValue go!"Ivl" l) v.Ivl' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.IntervalValue go!"Ivl" l) y (DFrac.own 1))
@@ -115,7 +115,7 @@ noncomputable instance IntervalValue_access_store_Ivl (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance IntervalValue_access_load_Val (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.IntervalValue) (dq : DFrac) :
+noncomputable instance access_load'IntervalValue'Val (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.IntervalValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.IntervalValue go!"Val" l) v.Val' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.IntervalValue go!"Val" l) v.Val' dq)
@@ -123,7 +123,7 @@ noncomputable instance IntervalValue_access_load_Val (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance IntervalValue_access_store_Val (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.IntervalValue) (y : GoInterface) :
+noncomputable instance access_store'IntervalValue'Val (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.IntervalValue) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.IntervalValue go!"Val" l) v.Val' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.IntervalValue go!"Val" l) y (DFrac.own 1))
@@ -142,7 +142,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-noncomputable instance intervalNode_typed_pointsto :
+noncomputable instance typed_pointsto'intervalNode :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.adt.intervalNode where
   typedPointstoDef l v dq := iprop(
     "iv" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"iv" l) v.iv' dq ∗
@@ -156,11 +156,11 @@ noncomputable instance intervalNode_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance intervalNode_into_val_typed :
+noncomputable instance into_val_typed'intervalNode :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.adt.intervalNode go_etcd_io.etcd.pkg.v3.adt.intervalNode.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance intervalNode_access_load_iv (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (dq : DFrac) :
+noncomputable instance access_load'intervalNode'iv (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"iv" l) v.iv' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"iv" l) v.iv' dq)
@@ -168,7 +168,7 @@ noncomputable instance intervalNode_access_load_iv (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance intervalNode_access_store_iv (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (y : go_etcd_io.etcd.pkg.v3.adt.IntervalValue) :
+noncomputable instance access_store'intervalNode'iv (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (y : go_etcd_io.etcd.pkg.v3.adt.IntervalValue) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"iv" l) v.iv' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"iv" l) y (DFrac.own 1))
@@ -176,7 +176,7 @@ noncomputable instance intervalNode_access_store_iv (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance intervalNode_access_load_max (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (dq : DFrac) :
+noncomputable instance access_load'intervalNode'max (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"max" l) v.max' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"max" l) v.max' dq)
@@ -184,7 +184,7 @@ noncomputable instance intervalNode_access_load_max (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance intervalNode_access_store_max (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (y : go_etcd_io.etcd.pkg.v3.adt.Comparable) :
+noncomputable instance access_store'intervalNode'max (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (y : go_etcd_io.etcd.pkg.v3.adt.Comparable) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"max" l) v.max' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"max" l) y (DFrac.own 1))
@@ -192,7 +192,7 @@ noncomputable instance intervalNode_access_store_max (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance intervalNode_access_load_left (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (dq : DFrac) :
+noncomputable instance access_load'intervalNode'left (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"left" l) v.left' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"left" l) v.left' dq)
@@ -200,7 +200,7 @@ noncomputable instance intervalNode_access_load_left (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance intervalNode_access_store_left (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (y : Loc) :
+noncomputable instance access_store'intervalNode'left (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"left" l) v.left' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"left" l) y (DFrac.own 1))
@@ -208,7 +208,7 @@ noncomputable instance intervalNode_access_store_left (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance intervalNode_access_load_right (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (dq : DFrac) :
+noncomputable instance access_load'intervalNode'right (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"right" l) v.right' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"right" l) v.right' dq)
@@ -216,7 +216,7 @@ noncomputable instance intervalNode_access_load_right (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance intervalNode_access_store_right (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (y : Loc) :
+noncomputable instance access_store'intervalNode'right (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"right" l) v.right' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"right" l) y (DFrac.own 1))
@@ -224,7 +224,7 @@ noncomputable instance intervalNode_access_store_right (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance intervalNode_access_load_parent (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (dq : DFrac) :
+noncomputable instance access_load'intervalNode'parent (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"parent" l) v.parent' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"parent" l) v.parent' dq)
@@ -232,7 +232,7 @@ noncomputable instance intervalNode_access_load_parent (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance intervalNode_access_store_parent (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (y : Loc) :
+noncomputable instance access_store'intervalNode'parent (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"parent" l) v.parent' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"parent" l) y (DFrac.own 1))
@@ -240,7 +240,7 @@ noncomputable instance intervalNode_access_store_parent (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance intervalNode_access_load_c (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (dq : DFrac) :
+noncomputable instance access_load'intervalNode'c (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"c" l) v.c' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"c" l) v.c' dq)
@@ -248,7 +248,7 @@ noncomputable instance intervalNode_access_load_c (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance intervalNode_access_store_c (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (y : go_etcd_io.etcd.pkg.v3.adt.rbcolor) :
+noncomputable instance access_store'intervalNode'c (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalNode) (y : go_etcd_io.etcd.pkg.v3.adt.rbcolor) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"c" l) v.c' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalNode go!"c" l) y (DFrac.own 1))
@@ -267,7 +267,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-noncomputable instance intervalTree_typed_pointsto :
+noncomputable instance typed_pointsto'intervalTree :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.adt.intervalTree where
   typedPointstoDef l v dq := iprop(
     "root" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalTree go!"root" l) v.root' dq ∗
@@ -278,11 +278,11 @@ noncomputable instance intervalTree_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance intervalTree_into_val_typed :
+noncomputable instance into_val_typed'intervalTree :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.adt.intervalTree go_etcd_io.etcd.pkg.v3.adt.intervalTree.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance intervalTree_access_load_root (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalTree) (dq : DFrac) :
+noncomputable instance access_load'intervalTree'root (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalTree) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalTree go!"root" l) v.root' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalTree go!"root" l) v.root' dq)
@@ -290,7 +290,7 @@ noncomputable instance intervalTree_access_load_root (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance intervalTree_access_store_root (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalTree) (y : Loc) :
+noncomputable instance access_store'intervalTree'root (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalTree) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalTree go!"root" l) v.root' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalTree go!"root" l) y (DFrac.own 1))
@@ -298,7 +298,7 @@ noncomputable instance intervalTree_access_store_root (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance intervalTree_access_load_count (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalTree) (dq : DFrac) :
+noncomputable instance access_load'intervalTree'count (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalTree) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalTree go!"count" l) v.count' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalTree go!"count" l) v.count' dq)
@@ -306,7 +306,7 @@ noncomputable instance intervalTree_access_load_count (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance intervalTree_access_store_count (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalTree) (y : w64) :
+noncomputable instance access_store'intervalTree'count (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalTree) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalTree go!"count" l) v.count' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalTree go!"count" l) y (DFrac.own 1))
@@ -314,7 +314,7 @@ noncomputable instance intervalTree_access_store_count (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance intervalTree_access_load_sentinel (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalTree) (dq : DFrac) :
+noncomputable instance access_load'intervalTree'sentinel (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalTree) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalTree go!"sentinel" l) v.sentinel' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalTree go!"sentinel" l) v.sentinel' dq)
@@ -322,7 +322,7 @@ noncomputable instance intervalTree_access_load_sentinel (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance intervalTree_access_store_sentinel (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalTree) (y : Loc) :
+noncomputable instance access_store'intervalTree'sentinel (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.intervalTree) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalTree go!"sentinel" l) v.sentinel' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.intervalTree go!"sentinel" l) y (DFrac.own 1))
@@ -341,7 +341,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-noncomputable instance visitedInterval_typed_pointsto :
+noncomputable instance typed_pointsto'visitedInterval :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.adt.visitedInterval where
   typedPointstoDef l v dq := iprop(
     "root" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"root" l) v.root' dq ∗
@@ -354,11 +354,11 @@ noncomputable instance visitedInterval_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance visitedInterval_into_val_typed :
+noncomputable instance into_val_typed'visitedInterval :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.adt.visitedInterval go_etcd_io.etcd.pkg.v3.adt.visitedInterval.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance visitedInterval_access_load_root (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (dq : DFrac) :
+noncomputable instance access_load'visitedInterval'root (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"root" l) v.root' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"root" l) v.root' dq)
@@ -366,7 +366,7 @@ noncomputable instance visitedInterval_access_load_root (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance visitedInterval_access_store_root (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (y : go_etcd_io.etcd.pkg.v3.adt.Interval) :
+noncomputable instance access_store'visitedInterval'root (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (y : go_etcd_io.etcd.pkg.v3.adt.Interval) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"root" l) v.root' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"root" l) y (DFrac.own 1))
@@ -374,7 +374,7 @@ noncomputable instance visitedInterval_access_store_root (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance visitedInterval_access_load_left (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (dq : DFrac) :
+noncomputable instance access_load'visitedInterval'left (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"left" l) v.left' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"left" l) v.left' dq)
@@ -382,7 +382,7 @@ noncomputable instance visitedInterval_access_load_left (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance visitedInterval_access_store_left (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (y : go_etcd_io.etcd.pkg.v3.adt.Interval) :
+noncomputable instance access_store'visitedInterval'left (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (y : go_etcd_io.etcd.pkg.v3.adt.Interval) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"left" l) v.left' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"left" l) y (DFrac.own 1))
@@ -390,7 +390,7 @@ noncomputable instance visitedInterval_access_store_left (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance visitedInterval_access_load_right (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (dq : DFrac) :
+noncomputable instance access_load'visitedInterval'right (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"right" l) v.right' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"right" l) v.right' dq)
@@ -398,7 +398,7 @@ noncomputable instance visitedInterval_access_load_right (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance visitedInterval_access_store_right (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (y : go_etcd_io.etcd.pkg.v3.adt.Interval) :
+noncomputable instance access_store'visitedInterval'right (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (y : go_etcd_io.etcd.pkg.v3.adt.Interval) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"right" l) v.right' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"right" l) y (DFrac.own 1))
@@ -406,7 +406,7 @@ noncomputable instance visitedInterval_access_store_right (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance visitedInterval_access_load_color (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (dq : DFrac) :
+noncomputable instance access_load'visitedInterval'color (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"color" l) v.color' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"color" l) v.color' dq)
@@ -414,7 +414,7 @@ noncomputable instance visitedInterval_access_load_color (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance visitedInterval_access_store_color (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (y : go_etcd_io.etcd.pkg.v3.adt.rbcolor) :
+noncomputable instance access_store'visitedInterval'color (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (y : go_etcd_io.etcd.pkg.v3.adt.rbcolor) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"color" l) v.color' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"color" l) y (DFrac.own 1))
@@ -422,7 +422,7 @@ noncomputable instance visitedInterval_access_store_color (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance visitedInterval_access_load_depth (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (dq : DFrac) :
+noncomputable instance access_load'visitedInterval'depth (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"depth" l) v.depth' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"depth" l) v.depth' dq)
@@ -430,7 +430,7 @@ noncomputable instance visitedInterval_access_load_depth (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance visitedInterval_access_store_depth (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (y : w64) :
+noncomputable instance access_store'visitedInterval'depth (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.visitedInterval) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"depth" l) v.depth' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.adt.visitedInterval go!"depth" l) y (DFrac.own 1))

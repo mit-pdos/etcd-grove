@@ -635,7 +635,7 @@ noncomputable instance Out.zero_val [GooseExts] : ZeroVal Out :=
 @[irreducible] noncomputable def Out.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Out.fieldsUnsealed
 
-noncomputable instance equals_unfold_Out [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Out [GooseExts] [GoGlobalContext] :
     EqualsUnfold Out.fields Out.fieldsUnsealed :=
   ⟨by unfold Out.fields; rfl⟩
 
@@ -645,19 +645,19 @@ noncomputable instance equals_unfold_Out [GooseExts] [GoGlobalContext] :
 class Out.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Out.underlying Out
   underlying : go.UnderlyingDirectedEq Out.ty Out.underlying
-  get_Unknown : ∀ (x : Out), go.IsGoStepPureDetTagged under (StructFieldGet Out.underlying go!"Unknown") #x (Val #(x.Unknown'))
-  set_Unknown : ∀ (x : Out) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Out.underlying go!"Unknown") (PairV #x #y) (Val #(({ x with Unknown' := y } : Out)))
-  get_N : ∀ (x : Out), go.IsGoStepPureDetTagged under (StructFieldGet Out.underlying go!"N") #x (Val #(x.N'))
-  set_N : ∀ (x : Out) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Out.underlying go!"N") (PairV #x #y) (Val #(({ x with N' := y } : Out)))
+  get'Unknown : ∀ (x : Out), go.IsGoStepPureDetTagged under (StructFieldGet Out.underlying go!"Unknown") #x (Val #(x.Unknown'))
+  set'Unknown : ∀ (x : Out) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Out.underlying go!"Unknown") (PairV #x #y) (Val #(({ x with Unknown' := y } : Out)))
+  get'N : ∀ (x : Out), go.IsGoStepPureDetTagged under (StructFieldGet Out.underlying go!"N") #x (Val #(x.N'))
+  set'N : ∀ (x : Out) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Out.underlying go!"N") (PairV #x #y) (Val #(({ x with N' := y } : Out)))
   method_set : go.MethodSetIs Out.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Out.ty) []
 
 attribute [instance] Out.TypeAssumptions.type_repr
   Out.TypeAssumptions.underlying
-  Out.TypeAssumptions.get_Unknown
-  Out.TypeAssumptions.set_Unknown
-  Out.TypeAssumptions.get_N
-  Out.TypeAssumptions.set_N
+  Out.TypeAssumptions.get'Unknown
+  Out.TypeAssumptions.set'Unknown
+  Out.TypeAssumptions.get'N
+  Out.TypeAssumptions.set'N
   Out.TypeAssumptions.method_set
   Out.TypeAssumptions.ptr_method_set
 
@@ -676,7 +676,7 @@ noncomputable instance State.zero_val [GooseExts] : ZeroVal State :=
 @[irreducible] noncomputable def State.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   State.fieldsUnsealed
 
-noncomputable instance equals_unfold_State [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'State [GooseExts] [GoGlobalContext] :
     EqualsUnfold State.fields State.fieldsUnsealed :=
   ⟨by unfold State.fields; rfl⟩
 
@@ -686,54 +686,54 @@ noncomputable instance equals_unfold_State [GooseExts] [GoGlobalContext] :
 class State.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying State.underlying State
   underlying : go.UnderlyingDirectedEq State.ty State.underlying
-  get_Lo : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Lo") #x (Val #(x.Lo'))
-  set_Lo : ∀ (x : State) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Lo") (PairV #x #y) (Val #(({ x with Lo' := y } : State)))
-  get_K : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"K") #x (Val #(x.K'))
-  set_K : ∀ (x : State) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"K") (PairV #x #y) (Val #(({ x with K' := y } : State)))
+  get'Lo : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Lo") #x (Val #(x.Lo'))
+  set'Lo : ∀ (x : State) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Lo") (PairV #x #y) (Val #(({ x with Lo' := y } : State)))
+  get'K : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"K") #x (Val #(x.K'))
+  set'K : ∀ (x : State) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"K") (PairV #x #y) (Val #(({ x with K' := y } : State)))
   method_set : go.MethodSetIs State.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType State.ty) []
 
 attribute [instance] State.TypeAssumptions.type_repr
   State.TypeAssumptions.underlying
-  State.TypeAssumptions.get_Lo
-  State.TypeAssumptions.set_Lo
-  State.TypeAssumptions.get_K
-  State.TypeAssumptions.set_K
+  State.TypeAssumptions.get'Lo
+  State.TypeAssumptions.set'Lo
+  State.TypeAssumptions.get'K
+  State.TypeAssumptions.set'K
   State.TypeAssumptions.method_set
   State.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Out_instance : Out.TypeAssumptions
-  State_instance : State.TypeAssumptions
-  step_unfold : FuncUnfold step [] step.impl
-  Model_unfold : FuncUnfold Model [] Model.impl
-  Codec_unfold : FuncUnfold Codec [] Codec.impl
-  Gen_unfold : FuncUnfold Gen [] Gen.impl
-  attempt_unfold : FuncUnfold attempt [] attempt.impl
-  Orch_unfold : FuncUnfold Orch [] Orch.impl
-  Client_unfold : FuncUnfold Client [] Client.impl
-  Server_unfold : FuncUnfold Server [] Server.impl
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
-  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
-  import_counter_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.Assumptions
-  import_remote_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions
+  instance'Out : Out.TypeAssumptions
+  instance'State : State.TypeAssumptions
+  unfold'step : FuncUnfold step [] step.impl
+  unfold'Model : FuncUnfold Model [] Model.impl
+  unfold'Codec : FuncUnfold Codec [] Codec.impl
+  unfold'Gen : FuncUnfold Gen [] Gen.impl
+  unfold'attempt : FuncUnfold attempt [] attempt.impl
+  unfold'Orch : FuncUnfold Orch [] Orch.impl
+  unfold'Client : FuncUnfold Client [] Client.impl
+  unfold'Server : FuncUnfold Server [] Server.impl
+  import'time : _root_.Perennial.time.Assumptions
+  import'porcupine : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
+  import'primitive : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
+  import'counter : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.Assumptions
+  import'remote : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions
 
-attribute [instance] Assumptions.Out_instance
-  Assumptions.State_instance
-  Assumptions.step_unfold
-  Assumptions.Model_unfold
-  Assumptions.Codec_unfold
-  Assumptions.Gen_unfold
-  Assumptions.attempt_unfold
-  Assumptions.Orch_unfold
-  Assumptions.Client_unfold
-  Assumptions.Server_unfold
-  Assumptions.import_time_Assumption
-  Assumptions.import_porcupine_Assumption
-  Assumptions.import_primitive_Assumption
-  Assumptions.import_counter_Assumption
-  Assumptions.import_remote_Assumption
+attribute [instance] Assumptions.instance'Out
+  Assumptions.instance'State
+  Assumptions.unfold'step
+  Assumptions.unfold'Model
+  Assumptions.unfold'Codec
+  Assumptions.unfold'Gen
+  Assumptions.unfold'attempt
+  Assumptions.unfold'Orch
+  Assumptions.unfold'Client
+  Assumptions.unfold'Server
+  Assumptions.import'time
+  Assumptions.import'porcupine
+  Assumptions.import'primitive
+  Assumptions.import'counter
+  Assumptions.import'remote
 
 end github_com.mit_pdos.etcd_grove.examples.lib.remote.counter
 

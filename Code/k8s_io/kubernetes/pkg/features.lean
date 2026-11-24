@@ -809,7 +809,7 @@ noncomputable def clientAdapter.AddVersioned.impl [GooseExts] [GoGlobalContext] 
     to set test overrides for client-go feature gates.
 
     go: client_adapter.go:112:25 -/
-noncomputable def clientAdapter.Set.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def clientAdapter.Set''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "name"
   (Lam "enabled"
@@ -896,7 +896,7 @@ noncomputable instance clientAdapter.zero_val [GooseExts] : ZeroVal clientAdapte
 @[irreducible] noncomputable def clientAdapter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   clientAdapter.fieldsUnsealed
 
-noncomputable instance equals_unfold_clientAdapter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'clientAdapter [GooseExts] [GoGlobalContext] :
     EqualsUnfold clientAdapter.fields clientAdapter.fieldsUnsealed :=
   ⟨by unfold clientAdapter.fields; rfl⟩
 
@@ -906,50 +906,50 @@ noncomputable instance equals_unfold_clientAdapter [GooseExts] [GoGlobalContext]
 class clientAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying clientAdapter.underlying clientAdapter
   underlying : go.UnderlyingDirectedEq clientAdapter.ty clientAdapter.underlying
-  get_mfg : ∀ (x : clientAdapter), go.IsGoStepPureDetTagged under (StructFieldGet clientAdapter.underlying go!"mfg") #x (Val #(x.mfg'))
-  set_mfg : ∀ (x : clientAdapter) (y : _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate), go.IsGoStepPureDetTagged under (StructFieldSet clientAdapter.underlying go!"mfg") (PairV #x #y) (Val #(({ x with mfg' := y } : clientAdapter)))
+  get'mfg : ∀ (x : clientAdapter), go.IsGoStepPureDetTagged under (StructFieldGet clientAdapter.underlying go!"mfg") #x (Val #(x.mfg'))
+  set'mfg : ∀ (x : clientAdapter) (y : _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate), go.IsGoStepPureDetTagged under (StructFieldSet clientAdapter.underlying go!"mfg") (PairV #x #y) (Val #(({ x with mfg' := y } : clientAdapter)))
   method_set : go.MethodSetIs clientAdapter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientAdapter.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.MapType _root_.Perennial.k8s_io.client_go.features.Feature.ty _root_.Perennial.k8s_io.client_go.features.FeatureSpec.ty)] false [go.error]))), (go!"AddVersioned", (some (go.signature.Signature [(go.GoType.MapType _root_.Perennial.k8s_io.client_go.features.Feature.ty _root_.Perennial.k8s_io.client_go.features.VersionedSpecs.ty)] false [go.error]))), (go!"Enabled", (some (go.signature.Signature [_root_.Perennial.k8s_io.client_go.features.Feature.ty] false [go.bool]))), (go!"Set", (some (go.signature.Signature [_root_.Perennial.k8s_io.client_go.features.Feature.ty, go.bool] false [go.error])))]
-  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType clientAdapter.ty) go!"Add" clientAdapter.Add.impl
-  ptr_AddVersioned_unfold : MethodUnfold (go.GoType.PointerType clientAdapter.ty) go!"AddVersioned" clientAdapter.AddVersioned.impl
-  ptr_Enabled_unfold : MethodUnfold (go.GoType.PointerType clientAdapter.ty) go!"Enabled" clientAdapter.Enabled.impl
-  ptr_Set_unfold : MethodUnfold (go.GoType.PointerType clientAdapter.ty) go!"Set" clientAdapter.Set.impl
+  ptr_unfold'Add : MethodUnfold (go.GoType.PointerType clientAdapter.ty) go!"Add" clientAdapter.Add.impl
+  ptr_unfold'AddVersioned : MethodUnfold (go.GoType.PointerType clientAdapter.ty) go!"AddVersioned" clientAdapter.AddVersioned.impl
+  ptr_unfold'Enabled : MethodUnfold (go.GoType.PointerType clientAdapter.ty) go!"Enabled" clientAdapter.Enabled.impl
+  ptr_unfold'Set : MethodUnfold (go.GoType.PointerType clientAdapter.ty) go!"Set" clientAdapter.Set''.impl
 
 attribute [instance] clientAdapter.TypeAssumptions.type_repr
   clientAdapter.TypeAssumptions.underlying
-  clientAdapter.TypeAssumptions.get_mfg
-  clientAdapter.TypeAssumptions.set_mfg
+  clientAdapter.TypeAssumptions.get'mfg
+  clientAdapter.TypeAssumptions.set'mfg
   clientAdapter.TypeAssumptions.method_set
   clientAdapter.TypeAssumptions.ptr_method_set
-  clientAdapter.TypeAssumptions.ptr_Add_unfold
-  clientAdapter.TypeAssumptions.ptr_AddVersioned_unfold
-  clientAdapter.TypeAssumptions.ptr_Enabled_unfold
-  clientAdapter.TypeAssumptions.ptr_Set_unfold
+  clientAdapter.TypeAssumptions.ptr_unfold'Add
+  clientAdapter.TypeAssumptions.ptr_unfold'AddVersioned
+  clientAdapter.TypeAssumptions.ptr_unfold'Enabled
+  clientAdapter.TypeAssumptions.ptr_unfold'Set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  clientAdapter_instance : clientAdapter.TypeAssumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_k8s_io_client_go_features_Assumption : _root_.Perennial.k8s_io.client_go.features.Assumptions
-  import_featuregate_Assumption : _root_.Perennial.k8s_io.component_base.featuregate.Assumptions
-  import_apiextensions_apiserver_pkg_features_Assumption : _root_.Perennial.k8s_io.apiextensions_apiserver.pkg.features.Assumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.Assumptions
-  import_version_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.version.Assumptions
-  import_apiserver_pkg_features_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.features.Assumptions
-  import_feature_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
-  import_component_base_zpages_features_Assumption : _root_.Perennial.k8s_io.component_base.zpages.features.Assumptions
-  import_controller_manager_pkg_features_Assumption : _root_.Perennial.k8s_io.controller_manager.pkg.features.Assumptions
+  instance'clientAdapter : clientAdapter.TypeAssumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'k8s_io_client_go_features : _root_.Perennial.k8s_io.client_go.features.Assumptions
+  import'featuregate : _root_.Perennial.k8s_io.component_base.featuregate.Assumptions
+  import'apiextensions_apiserver_pkg_features : _root_.Perennial.k8s_io.apiextensions_apiserver.pkg.features.Assumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.Assumptions
+  import'version : _root_.Perennial.k8s_io.apimachinery.pkg.util.version.Assumptions
+  import'apiserver_pkg_features : _root_.Perennial.k8s_io.apiserver.pkg.features.Assumptions
+  import'feature : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
+  import'component_base_zpages_features : _root_.Perennial.k8s_io.component_base.zpages.features.Assumptions
+  import'controller_manager_pkg_features : _root_.Perennial.k8s_io.controller_manager.pkg.features.Assumptions
 
-attribute [instance] Assumptions.clientAdapter_instance
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_k8s_io_client_go_features_Assumption
-  Assumptions.import_featuregate_Assumption
-  Assumptions.import_apiextensions_apiserver_pkg_features_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_version_Assumption
-  Assumptions.import_apiserver_pkg_features_Assumption
-  Assumptions.import_feature_Assumption
-  Assumptions.import_component_base_zpages_features_Assumption
-  Assumptions.import_controller_manager_pkg_features_Assumption
+attribute [instance] Assumptions.instance'clientAdapter
+  Assumptions.import'fmt
+  Assumptions.import'k8s_io_client_go_features
+  Assumptions.import'featuregate
+  Assumptions.import'apiextensions_apiserver_pkg_features
+  Assumptions.import'runtime
+  Assumptions.import'version
+  Assumptions.import'apiserver_pkg_features
+  Assumptions.import'feature
+  Assumptions.import'component_base_zpages_features
+  Assumptions.import'controller_manager_pkg_features
 
 end k8s_io.kubernetes.pkg.features
 

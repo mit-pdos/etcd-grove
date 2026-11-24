@@ -69,7 +69,7 @@ theorem Trace.advanceCommitIndexIfLogged.wp_proof
   open_lineP
   simp only [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Leader]
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Role.TypeAssumptions.String_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Role.TypeAssumptions.unfold'String.method_unfold]
   wp_auto
   rw [decide_strRel Hef.2.2.2.2.2.1 strRel_leader]
   by_cases hr : (tr.line ts.l).ev.role = leader

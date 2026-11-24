@@ -524,7 +524,7 @@ noncomputable instance consistentIndex.zero_val [GooseExts] : ZeroVal consistent
 @[irreducible] noncomputable def consistentIndex.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   consistentIndex.fieldsUnsealed
 
-noncomputable instance equals_unfold_consistentIndex [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'consistentIndex [GooseExts] [GoGlobalContext] :
     EqualsUnfold consistentIndex.fields consistentIndex.fieldsUnsealed :=
   ⟨by unfold consistentIndex.fields; rfl⟩
 
@@ -534,51 +534,51 @@ noncomputable instance equals_unfold_consistentIndex [GooseExts] [GoGlobalContex
 class consistentIndex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying consistentIndex.underlying consistentIndex
   underlying : go.UnderlyingDirectedEq consistentIndex.ty consistentIndex.underlying
-  get_consistentIndex : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"consistentIndex") #x (Val #(x.consistentIndex'))
-  set_consistentIndex : ∀ (x : consistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"consistentIndex") (PairV #x #y) (Val #(({ x with consistentIndex' := y } : consistentIndex)))
-  get_term : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"term") #x (Val #(x.term'))
-  set_term : ∀ (x : consistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : consistentIndex)))
-  get_applyingIndex : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"applyingIndex") #x (Val #(x.applyingIndex'))
-  set_applyingIndex : ∀ (x : consistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"applyingIndex") (PairV #x #y) (Val #(({ x with applyingIndex' := y } : consistentIndex)))
-  get_applyingTerm : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"applyingTerm") #x (Val #(x.applyingTerm'))
-  set_applyingTerm : ∀ (x : consistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"applyingTerm") (PairV #x #y) (Val #(({ x with applyingTerm' := y } : consistentIndex)))
-  get_be : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"be") #x (Val #(x.be'))
-  set_be : ∀ (x : consistentIndex) (y : Backend), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : consistentIndex)))
-  get_mutex : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"mutex") #x (Val #(x.mutex'))
-  set_mutex : ∀ (x : consistentIndex) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"mutex") (PairV #x #y) (Val #(({ x with mutex' := y } : consistentIndex)))
+  get'consistentIndex : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"consistentIndex") #x (Val #(x.consistentIndex'))
+  set'consistentIndex : ∀ (x : consistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"consistentIndex") (PairV #x #y) (Val #(({ x with consistentIndex' := y } : consistentIndex)))
+  get'term : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"term") #x (Val #(x.term'))
+  set'term : ∀ (x : consistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : consistentIndex)))
+  get'applyingIndex : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"applyingIndex") #x (Val #(x.applyingIndex'))
+  set'applyingIndex : ∀ (x : consistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"applyingIndex") (PairV #x #y) (Val #(({ x with applyingIndex' := y } : consistentIndex)))
+  get'applyingTerm : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"applyingTerm") #x (Val #(x.applyingTerm'))
+  set'applyingTerm : ∀ (x : consistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"applyingTerm") (PairV #x #y) (Val #(({ x with applyingTerm' := y } : consistentIndex)))
+  get'be : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"be") #x (Val #(x.be'))
+  set'be : ∀ (x : consistentIndex) (y : Backend), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : consistentIndex)))
+  get'mutex : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"mutex") #x (Val #(x.mutex'))
+  set'mutex : ∀ (x : consistentIndex) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"mutex") (PairV #x #y) (Val #(({ x with mutex' := y } : consistentIndex)))
   method_set : go.MethodSetIs consistentIndex.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType consistentIndex.ty) [(go!"ConsistentApplyingIndex", (some (go.signature.Signature [] false [go.uint64, go.uint64]))), (go!"ConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"SetBackend", (some (go.signature.Signature [Backend.ty] false []))), (go!"SetConsistentApplyingIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"SetConsistentIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"UnsafeConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnsafeSave", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [])))]
-  ptr_ConsistentApplyingIndex_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"ConsistentApplyingIndex" consistentIndex.ConsistentApplyingIndex.impl
-  ptr_ConsistentIndex_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"ConsistentIndex" consistentIndex.ConsistentIndex.impl
-  ptr_SetBackend_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"SetBackend" consistentIndex.SetBackend.impl
-  ptr_SetConsistentApplyingIndex_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"SetConsistentApplyingIndex" consistentIndex.SetConsistentApplyingIndex.impl
-  ptr_SetConsistentIndex_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"SetConsistentIndex" consistentIndex.SetConsistentIndex.impl
-  ptr_UnsafeConsistentIndex_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"UnsafeConsistentIndex" consistentIndex.UnsafeConsistentIndex.impl
-  ptr_UnsafeSave_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"UnsafeSave" consistentIndex.UnsafeSave.impl
+  ptr_unfold'ConsistentApplyingIndex : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"ConsistentApplyingIndex" consistentIndex.ConsistentApplyingIndex.impl
+  ptr_unfold'ConsistentIndex : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"ConsistentIndex" consistentIndex.ConsistentIndex.impl
+  ptr_unfold'SetBackend : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"SetBackend" consistentIndex.SetBackend.impl
+  ptr_unfold'SetConsistentApplyingIndex : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"SetConsistentApplyingIndex" consistentIndex.SetConsistentApplyingIndex.impl
+  ptr_unfold'SetConsistentIndex : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"SetConsistentIndex" consistentIndex.SetConsistentIndex.impl
+  ptr_unfold'UnsafeConsistentIndex : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"UnsafeConsistentIndex" consistentIndex.UnsafeConsistentIndex.impl
+  ptr_unfold'UnsafeSave : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"UnsafeSave" consistentIndex.UnsafeSave.impl
 
 attribute [instance] consistentIndex.TypeAssumptions.type_repr
   consistentIndex.TypeAssumptions.underlying
-  consistentIndex.TypeAssumptions.get_consistentIndex
-  consistentIndex.TypeAssumptions.set_consistentIndex
-  consistentIndex.TypeAssumptions.get_term
-  consistentIndex.TypeAssumptions.set_term
-  consistentIndex.TypeAssumptions.get_applyingIndex
-  consistentIndex.TypeAssumptions.set_applyingIndex
-  consistentIndex.TypeAssumptions.get_applyingTerm
-  consistentIndex.TypeAssumptions.set_applyingTerm
-  consistentIndex.TypeAssumptions.get_be
-  consistentIndex.TypeAssumptions.set_be
-  consistentIndex.TypeAssumptions.get_mutex
-  consistentIndex.TypeAssumptions.set_mutex
+  consistentIndex.TypeAssumptions.get'consistentIndex
+  consistentIndex.TypeAssumptions.set'consistentIndex
+  consistentIndex.TypeAssumptions.get'term
+  consistentIndex.TypeAssumptions.set'term
+  consistentIndex.TypeAssumptions.get'applyingIndex
+  consistentIndex.TypeAssumptions.set'applyingIndex
+  consistentIndex.TypeAssumptions.get'applyingTerm
+  consistentIndex.TypeAssumptions.set'applyingTerm
+  consistentIndex.TypeAssumptions.get'be
+  consistentIndex.TypeAssumptions.set'be
+  consistentIndex.TypeAssumptions.get'mutex
+  consistentIndex.TypeAssumptions.set'mutex
   consistentIndex.TypeAssumptions.method_set
   consistentIndex.TypeAssumptions.ptr_method_set
-  consistentIndex.TypeAssumptions.ptr_ConsistentApplyingIndex_unfold
-  consistentIndex.TypeAssumptions.ptr_ConsistentIndex_unfold
-  consistentIndex.TypeAssumptions.ptr_SetBackend_unfold
-  consistentIndex.TypeAssumptions.ptr_SetConsistentApplyingIndex_unfold
-  consistentIndex.TypeAssumptions.ptr_SetConsistentIndex_unfold
-  consistentIndex.TypeAssumptions.ptr_UnsafeConsistentIndex_unfold
-  consistentIndex.TypeAssumptions.ptr_UnsafeSave_unfold
+  consistentIndex.TypeAssumptions.ptr_unfold'ConsistentApplyingIndex
+  consistentIndex.TypeAssumptions.ptr_unfold'ConsistentIndex
+  consistentIndex.TypeAssumptions.ptr_unfold'SetBackend
+  consistentIndex.TypeAssumptions.ptr_unfold'SetConsistentApplyingIndex
+  consistentIndex.TypeAssumptions.ptr_unfold'SetConsistentIndex
+  consistentIndex.TypeAssumptions.ptr_unfold'UnsafeConsistentIndex
+  consistentIndex.TypeAssumptions.ptr_unfold'UnsafeSave
 
 structure fakeConsistentIndex [GooseExts] where
   mk ::
@@ -595,7 +595,7 @@ noncomputable instance fakeConsistentIndex.zero_val [GooseExts] : ZeroVal fakeCo
 @[irreducible] noncomputable def fakeConsistentIndex.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fakeConsistentIndex.fieldsUnsealed
 
-noncomputable instance equals_unfold_fakeConsistentIndex [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'fakeConsistentIndex [GooseExts] [GoGlobalContext] :
     EqualsUnfold fakeConsistentIndex.fields fakeConsistentIndex.fieldsUnsealed :=
   ⟨by unfold fakeConsistentIndex.fields; rfl⟩
 
@@ -605,60 +605,60 @@ noncomputable instance equals_unfold_fakeConsistentIndex [GooseExts] [GoGlobalCo
 class fakeConsistentIndex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fakeConsistentIndex.underlying fakeConsistentIndex
   underlying : go.UnderlyingDirectedEq fakeConsistentIndex.ty fakeConsistentIndex.underlying
-  get_index : ∀ (x : fakeConsistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet fakeConsistentIndex.underlying go!"index") #x (Val #(x.index'))
-  set_index : ∀ (x : fakeConsistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet fakeConsistentIndex.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : fakeConsistentIndex)))
-  get_term : ∀ (x : fakeConsistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet fakeConsistentIndex.underlying go!"term") #x (Val #(x.term'))
-  set_term : ∀ (x : fakeConsistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet fakeConsistentIndex.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : fakeConsistentIndex)))
+  get'index : ∀ (x : fakeConsistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet fakeConsistentIndex.underlying go!"index") #x (Val #(x.index'))
+  set'index : ∀ (x : fakeConsistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet fakeConsistentIndex.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : fakeConsistentIndex)))
+  get'term : ∀ (x : fakeConsistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet fakeConsistentIndex.underlying go!"term") #x (Val #(x.term'))
+  set'term : ∀ (x : fakeConsistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet fakeConsistentIndex.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : fakeConsistentIndex)))
   method_set : go.MethodSetIs fakeConsistentIndex.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fakeConsistentIndex.ty) [(go!"ConsistentApplyingIndex", (some (go.signature.Signature [] false [go.uint64, go.uint64]))), (go!"ConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"SetBackend", (some (go.signature.Signature [Backend.ty] false []))), (go!"SetConsistentApplyingIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"SetConsistentIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"UnsafeConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnsafeSave", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [])))]
-  ptr_ConsistentApplyingIndex_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"ConsistentApplyingIndex" fakeConsistentIndex.ConsistentApplyingIndex.impl
-  ptr_ConsistentIndex_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"ConsistentIndex" fakeConsistentIndex.ConsistentIndex.impl
-  ptr_SetBackend_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"SetBackend" fakeConsistentIndex.SetBackend.impl
-  ptr_SetConsistentApplyingIndex_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"SetConsistentApplyingIndex" fakeConsistentIndex.SetConsistentApplyingIndex.impl
-  ptr_SetConsistentIndex_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"SetConsistentIndex" fakeConsistentIndex.SetConsistentIndex.impl
-  ptr_UnsafeConsistentIndex_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"UnsafeConsistentIndex" fakeConsistentIndex.UnsafeConsistentIndex.impl
-  ptr_UnsafeSave_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"UnsafeSave" fakeConsistentIndex.UnsafeSave.impl
+  ptr_unfold'ConsistentApplyingIndex : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"ConsistentApplyingIndex" fakeConsistentIndex.ConsistentApplyingIndex.impl
+  ptr_unfold'ConsistentIndex : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"ConsistentIndex" fakeConsistentIndex.ConsistentIndex.impl
+  ptr_unfold'SetBackend : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"SetBackend" fakeConsistentIndex.SetBackend.impl
+  ptr_unfold'SetConsistentApplyingIndex : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"SetConsistentApplyingIndex" fakeConsistentIndex.SetConsistentApplyingIndex.impl
+  ptr_unfold'SetConsistentIndex : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"SetConsistentIndex" fakeConsistentIndex.SetConsistentIndex.impl
+  ptr_unfold'UnsafeConsistentIndex : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"UnsafeConsistentIndex" fakeConsistentIndex.UnsafeConsistentIndex.impl
+  ptr_unfold'UnsafeSave : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"UnsafeSave" fakeConsistentIndex.UnsafeSave.impl
 
 attribute [instance] fakeConsistentIndex.TypeAssumptions.type_repr
   fakeConsistentIndex.TypeAssumptions.underlying
-  fakeConsistentIndex.TypeAssumptions.get_index
-  fakeConsistentIndex.TypeAssumptions.set_index
-  fakeConsistentIndex.TypeAssumptions.get_term
-  fakeConsistentIndex.TypeAssumptions.set_term
+  fakeConsistentIndex.TypeAssumptions.get'index
+  fakeConsistentIndex.TypeAssumptions.set'index
+  fakeConsistentIndex.TypeAssumptions.get'term
+  fakeConsistentIndex.TypeAssumptions.set'term
   fakeConsistentIndex.TypeAssumptions.method_set
   fakeConsistentIndex.TypeAssumptions.ptr_method_set
-  fakeConsistentIndex.TypeAssumptions.ptr_ConsistentApplyingIndex_unfold
-  fakeConsistentIndex.TypeAssumptions.ptr_ConsistentIndex_unfold
-  fakeConsistentIndex.TypeAssumptions.ptr_SetBackend_unfold
-  fakeConsistentIndex.TypeAssumptions.ptr_SetConsistentApplyingIndex_unfold
-  fakeConsistentIndex.TypeAssumptions.ptr_SetConsistentIndex_unfold
-  fakeConsistentIndex.TypeAssumptions.ptr_UnsafeConsistentIndex_unfold
-  fakeConsistentIndex.TypeAssumptions.ptr_UnsafeSave_unfold
+  fakeConsistentIndex.TypeAssumptions.ptr_unfold'ConsistentApplyingIndex
+  fakeConsistentIndex.TypeAssumptions.ptr_unfold'ConsistentIndex
+  fakeConsistentIndex.TypeAssumptions.ptr_unfold'SetBackend
+  fakeConsistentIndex.TypeAssumptions.ptr_unfold'SetConsistentApplyingIndex
+  fakeConsistentIndex.TypeAssumptions.ptr_unfold'SetConsistentIndex
+  fakeConsistentIndex.TypeAssumptions.ptr_unfold'UnsafeConsistentIndex
+  fakeConsistentIndex.TypeAssumptions.ptr_unfold'UnsafeSave
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Backend_instance : Backend.TypeAssumptions
-  ConsistentIndexer_instance : ConsistentIndexer.TypeAssumptions
-  consistentIndex_instance : consistentIndex.TypeAssumptions
-  fakeConsistentIndex_instance : fakeConsistentIndex.TypeAssumptions
-  NewConsistentIndex_unfold : FuncUnfold NewConsistentIndex [] NewConsistentIndex.impl
-  NewFakeConsistentIndex_unfold : FuncUnfold NewFakeConsistentIndex [] NewFakeConsistentIndex.impl
-  UpdateConsistentIndexForce_unfold : FuncUnfold UpdateConsistentIndexForce [] UpdateConsistentIndexForce.impl
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
-  import_schema_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Assumptions
+  instance'Backend : Backend.TypeAssumptions
+  instance'ConsistentIndexer : ConsistentIndexer.TypeAssumptions
+  instance'consistentIndex : consistentIndex.TypeAssumptions
+  instance'fakeConsistentIndex : fakeConsistentIndex.TypeAssumptions
+  unfold'NewConsistentIndex : FuncUnfold NewConsistentIndex [] NewConsistentIndex.impl
+  unfold'NewFakeConsistentIndex : FuncUnfold NewFakeConsistentIndex [] NewFakeConsistentIndex.impl
+  unfold'UpdateConsistentIndexForce : FuncUnfold UpdateConsistentIndexForce [] UpdateConsistentIndexForce.impl
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'backend : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
+  import'schema : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Assumptions
 
-attribute [instance] Assumptions.Backend_instance
-  Assumptions.ConsistentIndexer_instance
-  Assumptions.consistentIndex_instance
-  Assumptions.fakeConsistentIndex_instance
-  Assumptions.NewConsistentIndex_unfold
-  Assumptions.NewFakeConsistentIndex_unfold
-  Assumptions.UpdateConsistentIndexForce_unfold
-  Assumptions.import_sync_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_backend_Assumption
-  Assumptions.import_schema_Assumption
+attribute [instance] Assumptions.instance'Backend
+  Assumptions.instance'ConsistentIndexer
+  Assumptions.instance'consistentIndex
+  Assumptions.instance'fakeConsistentIndex
+  Assumptions.unfold'NewConsistentIndex
+  Assumptions.unfold'NewFakeConsistentIndex
+  Assumptions.unfold'UpdateConsistentIndexForce
+  Assumptions.import'sync
+  Assumptions.import'atomic
+  Assumptions.import'backend
+  Assumptions.import'schema
 
 end go_etcd_io.etcd.server.v3.etcdserver.cindex
 

@@ -1084,9 +1084,9 @@ theorem wp_stepLeader_hbresp
     have HcurTr : (readRespondAll id s3 (qs.take (sint.Z n).toNat)).gh.tr = s.gh.tr := by
       rw [readRespondAll_gh, ← Hs3, ← Hs1]; rfl
     generalize Hcur : readRespondAll id s3 (qs.take (sint.Z n).toNat) = cur at *
-    icases (go_etcd_io.raft.v3.readIndexRequest.readIndexRequest_access_load_req p rv
+    icases (go_etcd_io.raft.v3.readIndexRequest.access_load'readIndexRequest'req p rv
       DFrac.discard).access_strict $$ Hrv with ⟨#Hreq, -⟩
-    icases (go_etcd_io.raft.v3.readIndexRequest.readIndexRequest_access_load_index p rv
+    icases (go_etcd_io.raft.v3.readIndexRequest.access_load'readIndexRequest'index p rv
       DFrac.discard).access_strict $$ Hrv with ⟨#Hidx, -⟩
     wp_apply wp_load_pers _ rv.req' $$ Hreq
     wp_apply wp_raft_responseToReadIndexReq c r id cur rv.req' mm rv.index' e es qsn qctx qrs

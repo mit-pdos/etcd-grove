@@ -19,7 +19,7 @@ What `Model.spec` is stated in (as `linkv/Defs.lean` for `examples/linkv`):
   `Output`: what `Step`'s type assertions and the model's decoder need).
 
 `Input_intoVal_inj`/`Output_intoVal_inj`: a struct's `intoVal` is injective, from the
-translation's field projections (`get_Kind`, ...: a deterministic pure step from `#x` to `#x.f`),
+translation's field projections (`get'Kind`, ...: a deterministic pure step from `#x` to `#x.f`),
 which Perennial does not state for structs (`GoGlobalContext` states it of the basic types).
 -/
 module
@@ -81,11 +81,11 @@ theorem VR_intoVal_inj : Function.Injective (intoVal (V := VR)) := by
   intro x y h
   have h : (#x : val) = #y := h
   have e1 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (VR.TypeAssumptions.get_Val x) (VR.TypeAssumptions.get_Val y) h))
+    (proj_eq (VR.TypeAssumptions.get'Val x) (VR.TypeAssumptions.get'Val y) h))
   have e2 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (VR.TypeAssumptions.get_Mod x) (VR.TypeAssumptions.get_Mod y) h))
+    (proj_eq (VR.TypeAssumptions.get'Mod x) (VR.TypeAssumptions.get'Mod y) h))
   have e3 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (VR.TypeAssumptions.get_Ver x) (VR.TypeAssumptions.get_Ver y) h))
+    (proj_eq (VR.TypeAssumptions.get'Ver x) (VR.TypeAssumptions.get'Ver y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -93,13 +93,13 @@ theorem Cmp_intoVal_inj : Function.Injective (intoVal (V := Cmp)) := by
   intro x y h
   have h : (#x : val) = #y := h
   have e1 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (Cmp.TypeAssumptions.get_Kind x) (Cmp.TypeAssumptions.get_Kind y) h))
+    (proj_eq (Cmp.TypeAssumptions.get'Kind x) (Cmp.TypeAssumptions.get'Kind y) h))
   have e2 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (Cmp.TypeAssumptions.get_Key x) (Cmp.TypeAssumptions.get_Key y) h))
+    (proj_eq (Cmp.TypeAssumptions.get'Key x) (Cmp.TypeAssumptions.get'Key y) h))
   have e3 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (Cmp.TypeAssumptions.get_Val x) (Cmp.TypeAssumptions.get_Val y) h))
+    (proj_eq (Cmp.TypeAssumptions.get'Val x) (Cmp.TypeAssumptions.get'Val y) h))
   have e4 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (Cmp.TypeAssumptions.get_Num x) (Cmp.TypeAssumptions.get_Num y) h))
+    (proj_eq (Cmp.TypeAssumptions.get'Num x) (Cmp.TypeAssumptions.get'Num y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -107,11 +107,11 @@ theorem TOp_intoVal_inj : Function.Injective (intoVal (V := TOp)) := by
   intro x y h
   have h : (#x : val) = #y := h
   have e1 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (TOp.TypeAssumptions.get_Kind x) (TOp.TypeAssumptions.get_Kind y) h))
+    (proj_eq (TOp.TypeAssumptions.get'Kind x) (TOp.TypeAssumptions.get'Kind y) h))
   have e2 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (TOp.TypeAssumptions.get_Key x) (TOp.TypeAssumptions.get_Key y) h))
+    (proj_eq (TOp.TypeAssumptions.get'Key x) (TOp.TypeAssumptions.get'Key y) h))
   have e3 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (TOp.TypeAssumptions.get_Val x) (TOp.TypeAssumptions.get_Val y) h))
+    (proj_eq (TOp.TypeAssumptions.get'Val x) (TOp.TypeAssumptions.get'Val y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -119,13 +119,13 @@ theorem TRes_intoVal_inj : Function.Injective (intoVal (V := TRes)) := by
   intro x y h
   have h : (#x : val) = #y := h
   have e1 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (TRes.TypeAssumptions.get_Kind x) (TRes.TypeAssumptions.get_Kind y) h))
+    (proj_eq (TRes.TypeAssumptions.get'Kind x) (TRes.TypeAssumptions.get'Kind y) h))
   have e2 := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj
-    (proj_eq (TRes.TypeAssumptions.get_Found x) (TRes.TypeAssumptions.get_Found y) h))
+    (proj_eq (TRes.TypeAssumptions.get'Found x) (TRes.TypeAssumptions.get'Found y) h))
   have e3 := VR_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj
-    (proj_eq (TRes.TypeAssumptions.get_R x) (TRes.TypeAssumptions.get_R y) h))
+    (proj_eq (TRes.TypeAssumptions.get'R x) (TRes.TypeAssumptions.get'R y) h))
   have e4 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (TRes.TypeAssumptions.get_N x) (TRes.TypeAssumptions.get_N y) h))
+    (proj_eq (TRes.TypeAssumptions.get'N x) (TRes.TypeAssumptions.get'N y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -133,9 +133,9 @@ theorem KV_intoVal_inj : Function.Injective (intoVal (V := KV)) := by
   intro x y h
   have h : (#x : val) = #y := h
   have e1 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (KV.TypeAssumptions.get_Key x) (KV.TypeAssumptions.get_Key y) h))
+    (proj_eq (KV.TypeAssumptions.get'Key x) (KV.TypeAssumptions.get'Key y) h))
   have e2 := VR_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj
-    (proj_eq (KV.TypeAssumptions.get_R x) (KV.TypeAssumptions.get_R y) h))
+    (proj_eq (KV.TypeAssumptions.get'R x) (KV.TypeAssumptions.get'R y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -143,27 +143,27 @@ theorem Input_intoVal_inj : Function.Injective (intoVal (V := Input)) := by
   intro x y h
   have h : (#x : val) = #y := h
   have e1 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (Input.TypeAssumptions.get_Kind x) (Input.TypeAssumptions.get_Kind y) h))
+    (proj_eq (Input.TypeAssumptions.get'Kind x) (Input.TypeAssumptions.get'Kind y) h))
   have e2 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (Input.TypeAssumptions.get_Key x) (Input.TypeAssumptions.get_Key y) h))
+    (proj_eq (Input.TypeAssumptions.get'Key x) (Input.TypeAssumptions.get'Key y) h))
   have e3 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (Input.TypeAssumptions.get_Val x) (Input.TypeAssumptions.get_Val y) h))
+    (proj_eq (Input.TypeAssumptions.get'Val x) (Input.TypeAssumptions.get'Val y) h))
   have e4 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (Input.TypeAssumptions.get_NCmps x) (Input.TypeAssumptions.get_NCmps y) h))
+    (proj_eq (Input.TypeAssumptions.get'NCmps x) (Input.TypeAssumptions.get'NCmps y) h))
   have e5 := Cmp_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj
-    (proj_eq (Input.TypeAssumptions.get_Cmp0 x) (Input.TypeAssumptions.get_Cmp0 y) h))
+    (proj_eq (Input.TypeAssumptions.get'Cmp0 x) (Input.TypeAssumptions.get'Cmp0 y) h))
   have e6 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (Input.TypeAssumptions.get_NThen x) (Input.TypeAssumptions.get_NThen y) h))
+    (proj_eq (Input.TypeAssumptions.get'NThen x) (Input.TypeAssumptions.get'NThen y) h))
   have e7 := TOp_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj
-    (proj_eq (Input.TypeAssumptions.get_Then0 x) (Input.TypeAssumptions.get_Then0 y) h))
+    (proj_eq (Input.TypeAssumptions.get'Then0 x) (Input.TypeAssumptions.get'Then0 y) h))
   have e8 := TOp_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj
-    (proj_eq (Input.TypeAssumptions.get_Then1 x) (Input.TypeAssumptions.get_Then1 y) h))
+    (proj_eq (Input.TypeAssumptions.get'Then1 x) (Input.TypeAssumptions.get'Then1 y) h))
   have e9 := TOp_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj
-    (proj_eq (Input.TypeAssumptions.get_Then2 x) (Input.TypeAssumptions.get_Then2 y) h))
+    (proj_eq (Input.TypeAssumptions.get'Then2 x) (Input.TypeAssumptions.get'Then2 y) h))
   have e10 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (Input.TypeAssumptions.get_NElse x) (Input.TypeAssumptions.get_NElse y) h))
+    (proj_eq (Input.TypeAssumptions.get'NElse x) (Input.TypeAssumptions.get'NElse y) h))
   have e11 := TOp_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj
-    (proj_eq (Input.TypeAssumptions.get_Else0 x) (Input.TypeAssumptions.get_Else0 y) h))
+    (proj_eq (Input.TypeAssumptions.get'Else0 x) (Input.TypeAssumptions.get'Else0 y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -171,33 +171,33 @@ theorem Output_intoVal_inj : Function.Injective (intoVal (V := Output)) := by
   intro x y h
   have h : (#x : val) = #y := h
   have e1 := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj
-    (proj_eq (Output.TypeAssumptions.get_Err x) (Output.TypeAssumptions.get_Err y) h))
+    (proj_eq (Output.TypeAssumptions.get'Err x) (Output.TypeAssumptions.get'Err y) h))
   have e2 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (Output.TypeAssumptions.get_Rev x) (Output.TypeAssumptions.get_Rev y) h))
+    (proj_eq (Output.TypeAssumptions.get'Rev x) (Output.TypeAssumptions.get'Rev y) h))
   have e3 := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj
-    (proj_eq (Output.TypeAssumptions.get_Found x) (Output.TypeAssumptions.get_Found y) h))
+    (proj_eq (Output.TypeAssumptions.get'Found x) (Output.TypeAssumptions.get'Found y) h))
   have e4 := VR_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj
-    (proj_eq (Output.TypeAssumptions.get_R x) (Output.TypeAssumptions.get_R y) h))
+    (proj_eq (Output.TypeAssumptions.get'R x) (Output.TypeAssumptions.get'R y) h))
   have e5 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (Output.TypeAssumptions.get_N x) (Output.TypeAssumptions.get_N y) h))
+    (proj_eq (Output.TypeAssumptions.get'N x) (Output.TypeAssumptions.get'N y) h))
   have e6 := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj
-    (proj_eq (Output.TypeAssumptions.get_Ok x) (Output.TypeAssumptions.get_Ok y) h))
+    (proj_eq (Output.TypeAssumptions.get'Ok x) (Output.TypeAssumptions.get'Ok y) h))
   have e7 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (Output.TypeAssumptions.get_NRes x) (Output.TypeAssumptions.get_NRes y) h))
+    (proj_eq (Output.TypeAssumptions.get'NRes x) (Output.TypeAssumptions.get'NRes y) h))
   have e8 := TRes_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj
-    (proj_eq (Output.TypeAssumptions.get_Res0 x) (Output.TypeAssumptions.get_Res0 y) h))
+    (proj_eq (Output.TypeAssumptions.get'Res0 x) (Output.TypeAssumptions.get'Res0 y) h))
   have e9 := TRes_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj
-    (proj_eq (Output.TypeAssumptions.get_Res1 x) (Output.TypeAssumptions.get_Res1 y) h))
+    (proj_eq (Output.TypeAssumptions.get'Res1 x) (Output.TypeAssumptions.get'Res1 y) h))
   have e10 := TRes_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj
-    (proj_eq (Output.TypeAssumptions.get_Res2 x) (Output.TypeAssumptions.get_Res2 y) h))
+    (proj_eq (Output.TypeAssumptions.get'Res2 x) (Output.TypeAssumptions.get'Res2 y) h))
   have e11 := go.intoVal_inj (Expr.Val.inj
-    (proj_eq (Output.TypeAssumptions.get_NKVs x) (Output.TypeAssumptions.get_NKVs y) h))
+    (proj_eq (Output.TypeAssumptions.get'NKVs x) (Output.TypeAssumptions.get'NKVs y) h))
   have e12 := KV_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj
-    (proj_eq (Output.TypeAssumptions.get_KV0 x) (Output.TypeAssumptions.get_KV0 y) h))
+    (proj_eq (Output.TypeAssumptions.get'KV0 x) (Output.TypeAssumptions.get'KV0 y) h))
   have e13 := KV_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj
-    (proj_eq (Output.TypeAssumptions.get_KV1 x) (Output.TypeAssumptions.get_KV1 y) h))
+    (proj_eq (Output.TypeAssumptions.get'KV1 x) (Output.TypeAssumptions.get'KV1 y) h))
   have e14 := KV_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj
-    (proj_eq (Output.TypeAssumptions.get_KV2 x) (Output.TypeAssumptions.get_KV2 y) h))
+    (proj_eq (Output.TypeAssumptions.get'KV2 x) (Output.TypeAssumptions.get'KV2 y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in

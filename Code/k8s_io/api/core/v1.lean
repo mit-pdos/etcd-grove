@@ -24,655 +24,655 @@ noncomputable section
 namespace k8s_io.api.core.v1
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Volume_instance : Volume.TypeAssumptions
-  VolumeSource_instance : VolumeSource.TypeAssumptions
-  PersistentVolumeClaimVolumeSource_instance : PersistentVolumeClaimVolumeSource.TypeAssumptions
-  PersistentVolumeSource_instance : PersistentVolumeSource.TypeAssumptions
-  PersistentVolume_instance : PersistentVolume.TypeAssumptions
-  PersistentVolumeSpec_instance : PersistentVolumeSpec.TypeAssumptions
-  VolumeNodeAffinity_instance : VolumeNodeAffinity.TypeAssumptions
-  PersistentVolumeReclaimPolicy_instance : PersistentVolumeReclaimPolicy.TypeAssumptions
-  PersistentVolumeMode_instance : PersistentVolumeMode.TypeAssumptions
-  PersistentVolumeStatus_instance : PersistentVolumeStatus.TypeAssumptions
-  PersistentVolumeList_instance : PersistentVolumeList.TypeAssumptions
-  PersistentVolumeClaim_instance : PersistentVolumeClaim.TypeAssumptions
-  PersistentVolumeClaimList_instance : PersistentVolumeClaimList.TypeAssumptions
-  PersistentVolumeClaimSpec_instance : PersistentVolumeClaimSpec.TypeAssumptions
-  TypedObjectReference_instance : TypedObjectReference.TypeAssumptions
-  PersistentVolumeClaimConditionType_instance : PersistentVolumeClaimConditionType.TypeAssumptions
-  ClaimResourceStatus_instance : ClaimResourceStatus.TypeAssumptions
-  PersistentVolumeClaimModifyVolumeStatus_instance : PersistentVolumeClaimModifyVolumeStatus.TypeAssumptions
-  ModifyVolumeStatus_instance : ModifyVolumeStatus.TypeAssumptions
-  PersistentVolumeClaimCondition_instance : PersistentVolumeClaimCondition.TypeAssumptions
-  VolumeHealthStatusType_instance : VolumeHealthStatusType.TypeAssumptions
-  VolumeHealthCondition_instance : VolumeHealthCondition.TypeAssumptions
-  VolumeHealthStatus_instance : VolumeHealthStatus.TypeAssumptions
-  PodVolumeHealth_instance : PodVolumeHealth.TypeAssumptions
-  PersistentVolumeClaimStatus_instance : PersistentVolumeClaimStatus.TypeAssumptions
-  PersistentVolumeAccessMode_instance : PersistentVolumeAccessMode.TypeAssumptions
-  PersistentVolumePhase_instance : PersistentVolumePhase.TypeAssumptions
-  PersistentVolumeClaimPhase_instance : PersistentVolumeClaimPhase.TypeAssumptions
-  HostPathType_instance : HostPathType.TypeAssumptions
-  HostPathVolumeSource_instance : HostPathVolumeSource.TypeAssumptions
-  EmptyDirVolumeSource_instance : EmptyDirVolumeSource.TypeAssumptions
-  GlusterfsVolumeSource_instance : GlusterfsVolumeSource.TypeAssumptions
-  GlusterfsPersistentVolumeSource_instance : GlusterfsPersistentVolumeSource.TypeAssumptions
-  RBDVolumeSource_instance : RBDVolumeSource.TypeAssumptions
-  RBDPersistentVolumeSource_instance : RBDPersistentVolumeSource.TypeAssumptions
-  CinderVolumeSource_instance : CinderVolumeSource.TypeAssumptions
-  CinderPersistentVolumeSource_instance : CinderPersistentVolumeSource.TypeAssumptions
-  CephFSVolumeSource_instance : CephFSVolumeSource.TypeAssumptions
-  SecretReference_instance : SecretReference.TypeAssumptions
-  CephFSPersistentVolumeSource_instance : CephFSPersistentVolumeSource.TypeAssumptions
-  FlockerVolumeSource_instance : FlockerVolumeSource.TypeAssumptions
-  StorageMedium_instance : StorageMedium.TypeAssumptions
-  Protocol_instance : Protocol.TypeAssumptions
-  GCEPersistentDiskVolumeSource_instance : GCEPersistentDiskVolumeSource.TypeAssumptions
-  QuobyteVolumeSource_instance : QuobyteVolumeSource.TypeAssumptions
-  FlexPersistentVolumeSource_instance : FlexPersistentVolumeSource.TypeAssumptions
-  FlexVolumeSource_instance : FlexVolumeSource.TypeAssumptions
-  AWSElasticBlockStoreVolumeSource_instance : AWSElasticBlockStoreVolumeSource.TypeAssumptions
-  GitRepoVolumeSource_instance : GitRepoVolumeSource.TypeAssumptions
-  SecretVolumeSource_instance : SecretVolumeSource.TypeAssumptions
-  SecretProjection_instance : SecretProjection.TypeAssumptions
-  NFSVolumeSource_instance : NFSVolumeSource.TypeAssumptions
-  ISCSIVolumeSource_instance : ISCSIVolumeSource.TypeAssumptions
-  ISCSIPersistentVolumeSource_instance : ISCSIPersistentVolumeSource.TypeAssumptions
-  FCVolumeSource_instance : FCVolumeSource.TypeAssumptions
-  AzureFileVolumeSource_instance : AzureFileVolumeSource.TypeAssumptions
-  AzureFilePersistentVolumeSource_instance : AzureFilePersistentVolumeSource.TypeAssumptions
-  VsphereVirtualDiskVolumeSource_instance : VsphereVirtualDiskVolumeSource.TypeAssumptions
-  PhotonPersistentDiskVolumeSource_instance : PhotonPersistentDiskVolumeSource.TypeAssumptions
-  AzureDataDiskCachingMode_instance : AzureDataDiskCachingMode.TypeAssumptions
-  AzureDataDiskKind_instance : AzureDataDiskKind.TypeAssumptions
-  AzureDiskVolumeSource_instance : AzureDiskVolumeSource.TypeAssumptions
-  PortworxVolumeSource_instance : PortworxVolumeSource.TypeAssumptions
-  ScaleIOVolumeSource_instance : ScaleIOVolumeSource.TypeAssumptions
-  ScaleIOPersistentVolumeSource_instance : ScaleIOPersistentVolumeSource.TypeAssumptions
-  StorageOSVolumeSource_instance : StorageOSVolumeSource.TypeAssumptions
-  StorageOSPersistentVolumeSource_instance : StorageOSPersistentVolumeSource.TypeAssumptions
-  ConfigMapVolumeSource_instance : ConfigMapVolumeSource.TypeAssumptions
-  ConfigMapProjection_instance : ConfigMapProjection.TypeAssumptions
-  ServiceAccountTokenProjection_instance : ServiceAccountTokenProjection.TypeAssumptions
-  ClusterTrustBundleProjection_instance : ClusterTrustBundleProjection.TypeAssumptions
-  PodCertificateProjection_instance : PodCertificateProjection.TypeAssumptions
-  ProjectedVolumeSource_instance : ProjectedVolumeSource.TypeAssumptions
-  VolumeProjection_instance : VolumeProjection.TypeAssumptions
-  KeyToPath_instance : KeyToPath.TypeAssumptions
-  LocalVolumeSource_instance : LocalVolumeSource.TypeAssumptions
-  CSIPersistentVolumeSource_instance : CSIPersistentVolumeSource.TypeAssumptions
-  CSIVolumeSource_instance : CSIVolumeSource.TypeAssumptions
-  EphemeralVolumeSource_instance : EphemeralVolumeSource.TypeAssumptions
-  PersistentVolumeClaimTemplate_instance : PersistentVolumeClaimTemplate.TypeAssumptions
-  ContainerPort_instance : ContainerPort.TypeAssumptions
-  VolumeMount_instance : VolumeMount.TypeAssumptions
-  BindMountOption_instance : BindMountOption.TypeAssumptions
-  MountPropagationMode_instance : MountPropagationMode.TypeAssumptions
-  RecursiveReadOnlyMode_instance : RecursiveReadOnlyMode.TypeAssumptions
-  VolumeDevice_instance : VolumeDevice.TypeAssumptions
-  EnvVar_instance : EnvVar.TypeAssumptions
-  EnvVarSource_instance : EnvVarSource.TypeAssumptions
-  FileKeySelector_instance : FileKeySelector.TypeAssumptions
-  ObjectFieldSelector_instance : ObjectFieldSelector.TypeAssumptions
-  ResourceFieldSelector_instance : ResourceFieldSelector.TypeAssumptions
-  ConfigMapKeySelector_instance : ConfigMapKeySelector.TypeAssumptions
-  SecretKeySelector_instance : SecretKeySelector.TypeAssumptions
-  EnvFromSource_instance : EnvFromSource.TypeAssumptions
-  ConfigMapEnvSource_instance : ConfigMapEnvSource.TypeAssumptions
-  SecretEnvSource_instance : SecretEnvSource.TypeAssumptions
-  HTTPHeader_instance : HTTPHeader.TypeAssumptions
-  HTTPProtocol_instance : HTTPProtocol.TypeAssumptions
-  HTTPGetAction_instance : HTTPGetAction.TypeAssumptions
-  URIScheme_instance : URIScheme.TypeAssumptions
-  TCPSocketAction_instance : TCPSocketAction.TypeAssumptions
-  GRPCAction_instance : GRPCAction.TypeAssumptions
-  GRPCProbeMode_instance : GRPCProbeMode.TypeAssumptions
-  ExecAction_instance : ExecAction.TypeAssumptions
-  SleepAction_instance : SleepAction.TypeAssumptions
-  Probe_instance : Probe.TypeAssumptions
-  PullPolicy_instance : PullPolicy.TypeAssumptions
-  ResourceResizeRestartPolicy_instance : ResourceResizeRestartPolicy.TypeAssumptions
-  ContainerResizePolicy_instance : ContainerResizePolicy.TypeAssumptions
-  PreemptionPolicy_instance : PreemptionPolicy.TypeAssumptions
-  TerminationMessagePolicy_instance : TerminationMessagePolicy.TypeAssumptions
-  Capability_instance : Capability.TypeAssumptions
-  Capabilities_instance : Capabilities.TypeAssumptions
-  ResourceRequirements_instance : ResourceRequirements.TypeAssumptions
-  VolumeResourceRequirements_instance : VolumeResourceRequirements.TypeAssumptions
-  ResourceClaim_instance : ResourceClaim.TypeAssumptions
-  Container_instance : Container.TypeAssumptions
-  ProbeHandler_instance : ProbeHandler.TypeAssumptions
-  LifecycleHandler_instance : LifecycleHandler.TypeAssumptions
-  Signal_instance : Signal.TypeAssumptions
-  Lifecycle_instance : Lifecycle.TypeAssumptions
-  ConditionStatus_instance : ConditionStatus.TypeAssumptions
-  ContainerStateWaiting_instance : ContainerStateWaiting.TypeAssumptions
-  ContainerStateRunning_instance : ContainerStateRunning.TypeAssumptions
-  ContainerStateTerminated_instance : ContainerStateTerminated.TypeAssumptions
-  ContainerState_instance : ContainerState.TypeAssumptions
-  ContainerStatus_instance : ContainerStatus.TypeAssumptions
-  ResourceStatus_instance : ResourceStatus.TypeAssumptions
-  ResourceHealthStatus_instance : ResourceHealthStatus.TypeAssumptions
-  ResourceID_instance : ResourceID.TypeAssumptions
-  ResourceHealth_instance : ResourceHealth.TypeAssumptions
-  ContainerUser_instance : ContainerUser.TypeAssumptions
-  LinuxContainerUser_instance : LinuxContainerUser.TypeAssumptions
-  PodPhase_instance : PodPhase.TypeAssumptions
-  PodConditionType_instance : PodConditionType.TypeAssumptions
-  PodCondition_instance : PodCondition.TypeAssumptions
-  PodResizeStatus_instance : PodResizeStatus.TypeAssumptions
-  VolumeMountStatus_instance : VolumeMountStatus.TypeAssumptions
-  VolumeStatus_instance : VolumeStatus.TypeAssumptions
-  ImageVolumeStatus_instance : ImageVolumeStatus.TypeAssumptions
-  RestartPolicy_instance : RestartPolicy.TypeAssumptions
-  ContainerRestartPolicy_instance : ContainerRestartPolicy.TypeAssumptions
-  ContainerRestartRule_instance : ContainerRestartRule.TypeAssumptions
-  ContainerRestartRuleAction_instance : ContainerRestartRuleAction.TypeAssumptions
-  ContainerRestartRuleOnExitCodes_instance : ContainerRestartRuleOnExitCodes.TypeAssumptions
-  ContainerRestartRuleOnExitCodesOperator_instance : ContainerRestartRuleOnExitCodesOperator.TypeAssumptions
-  DNSPolicy_instance : DNSPolicy.TypeAssumptions
-  NodeSelector_instance : NodeSelector.TypeAssumptions
-  NodeSelectorTerm_instance : NodeSelectorTerm.TypeAssumptions
-  NodeSelectorRequirement_instance : NodeSelectorRequirement.TypeAssumptions
-  NodeSelectorOperator_instance : NodeSelectorOperator.TypeAssumptions
-  TopologySelectorTerm_instance : TopologySelectorTerm.TypeAssumptions
-  TopologySelectorLabelRequirement_instance : TopologySelectorLabelRequirement.TypeAssumptions
-  Affinity_instance : Affinity.TypeAssumptions
-  PodAffinity_instance : PodAffinity.TypeAssumptions
-  PodAntiAffinity_instance : PodAntiAffinity.TypeAssumptions
-  WeightedPodAffinityTerm_instance : WeightedPodAffinityTerm.TypeAssumptions
-  PodAffinityTerm_instance : PodAffinityTerm.TypeAssumptions
-  NodeAffinity_instance : NodeAffinity.TypeAssumptions
-  PreferredSchedulingTerm_instance : PreferredSchedulingTerm.TypeAssumptions
-  Taint_instance : Taint.TypeAssumptions
-  TaintEffect_instance : TaintEffect.TypeAssumptions
-  Toleration_instance : Toleration.TypeAssumptions
-  TolerationOperator_instance : TolerationOperator.TypeAssumptions
-  PodReadinessGate_instance : PodReadinessGate.TypeAssumptions
-  PodSpec_instance : PodSpec.TypeAssumptions
-  PodResourceClaim_instance : PodResourceClaim.TypeAssumptions
-  PodResourceClaimStatus_instance : PodResourceClaimStatus.TypeAssumptions
-  PodExtendedResourceClaimStatus_instance : PodExtendedResourceClaimStatus.TypeAssumptions
-  ContainerExtendedResourceRequest_instance : ContainerExtendedResourceRequest.TypeAssumptions
-  OSName_instance : OSName.TypeAssumptions
-  PodOS_instance : PodOS.TypeAssumptions
-  PodSchedulingGate_instance : PodSchedulingGate.TypeAssumptions
-  PodSchedulingGroup_instance : PodSchedulingGroup.TypeAssumptions
-  UnsatisfiableConstraintAction_instance : UnsatisfiableConstraintAction.TypeAssumptions
-  NodeInclusionPolicy_instance : NodeInclusionPolicy.TypeAssumptions
-  TopologySpreadConstraint_instance : TopologySpreadConstraint.TypeAssumptions
-  HostAlias_instance : HostAlias.TypeAssumptions
-  PodFSGroupChangePolicy_instance : PodFSGroupChangePolicy.TypeAssumptions
-  SupplementalGroupsPolicy_instance : SupplementalGroupsPolicy.TypeAssumptions
-  PodSELinuxChangePolicy_instance : PodSELinuxChangePolicy.TypeAssumptions
-  PodSecurityContext_instance : PodSecurityContext.TypeAssumptions
-  SeccompProfile_instance : SeccompProfile.TypeAssumptions
-  SeccompProfileType_instance : SeccompProfileType.TypeAssumptions
-  AppArmorProfile_instance : AppArmorProfile.TypeAssumptions
-  AppArmorProfileType_instance : AppArmorProfileType.TypeAssumptions
-  PodQOSClass_instance : PodQOSClass.TypeAssumptions
-  PodDNSConfig_instance : PodDNSConfig.TypeAssumptions
-  PodDNSConfigOption_instance : PodDNSConfigOption.TypeAssumptions
-  PodIP_instance : PodIP.TypeAssumptions
-  HostIP_instance : HostIP.TypeAssumptions
-  EphemeralContainerCommon_instance : EphemeralContainerCommon.TypeAssumptions
-  EphemeralContainer_instance : EphemeralContainer.TypeAssumptions
-  EvictionResponder_instance : EvictionResponder.TypeAssumptions
-  PodStatus_instance : PodStatus.TypeAssumptions
-  Pod_instance : Pod.TypeAssumptions
-  PodList_instance : PodList.TypeAssumptions
-  PodTemplateSpec_instance : PodTemplateSpec.TypeAssumptions
-  PodTemplate_instance : PodTemplate.TypeAssumptions
-  PodTemplateList_instance : PodTemplateList.TypeAssumptions
-  ReplicationControllerSpec_instance : ReplicationControllerSpec.TypeAssumptions
-  ReplicationControllerStatus_instance : ReplicationControllerStatus.TypeAssumptions
-  ReplicationControllerConditionType_instance : ReplicationControllerConditionType.TypeAssumptions
-  ReplicationControllerCondition_instance : ReplicationControllerCondition.TypeAssumptions
-  ReplicationController_instance : ReplicationController.TypeAssumptions
-  ReplicationControllerList_instance : ReplicationControllerList.TypeAssumptions
-  ServiceAffinity_instance : ServiceAffinity.TypeAssumptions
-  SessionAffinityConfig_instance : SessionAffinityConfig.TypeAssumptions
-  ClientIPConfig_instance : ClientIPConfig.TypeAssumptions
-  ServiceType_instance : ServiceType.TypeAssumptions
-  ServiceInternalTrafficPolicy_instance : ServiceInternalTrafficPolicy.TypeAssumptions
-  ServiceExternalTrafficPolicy_instance : ServiceExternalTrafficPolicy.TypeAssumptions
-  ServiceStatus_instance : ServiceStatus.TypeAssumptions
-  LoadBalancerStatus_instance : LoadBalancerStatus.TypeAssumptions
-  LoadBalancerIngress_instance : LoadBalancerIngress.TypeAssumptions
-  IPFamily_instance : IPFamily.TypeAssumptions
-  IPFamilyPolicy_instance : IPFamilyPolicy.TypeAssumptions
-  ServiceSpec_instance : ServiceSpec.TypeAssumptions
-  ServicePort_instance : ServicePort.TypeAssumptions
-  Service_instance : Service.TypeAssumptions
-  ServiceList_instance : ServiceList.TypeAssumptions
-  ServiceAccount_instance : ServiceAccount.TypeAssumptions
-  ServiceAccountList_instance : ServiceAccountList.TypeAssumptions
-  Endpoints_instance : Endpoints.TypeAssumptions
-  EndpointSubset_instance : EndpointSubset.TypeAssumptions
-  EndpointAddress_instance : EndpointAddress.TypeAssumptions
-  EndpointPort_instance : EndpointPort.TypeAssumptions
-  EndpointsList_instance : EndpointsList.TypeAssumptions
-  NodeSpec_instance : NodeSpec.TypeAssumptions
-  NodePodPreemptionPolicy_instance : NodePodPreemptionPolicy.TypeAssumptions
-  NodeConfigSource_instance : NodeConfigSource.TypeAssumptions
-  ConfigMapNodeConfigSource_instance : ConfigMapNodeConfigSource.TypeAssumptions
-  DaemonEndpoint_instance : DaemonEndpoint.TypeAssumptions
-  NodeDaemonEndpoints_instance : NodeDaemonEndpoints.TypeAssumptions
-  NodeRuntimeHandlerFeatures_instance : NodeRuntimeHandlerFeatures.TypeAssumptions
-  NodeRuntimeHandler_instance : NodeRuntimeHandler.TypeAssumptions
-  NodeFeatures_instance : NodeFeatures.TypeAssumptions
-  NodeSystemInfo_instance : NodeSystemInfo.TypeAssumptions
-  NodeSwapStatus_instance : NodeSwapStatus.TypeAssumptions
-  NodeConfigStatus_instance : NodeConfigStatus.TypeAssumptions
-  NodeStatus_instance : NodeStatus.TypeAssumptions
-  UniqueVolumeName_instance : UniqueVolumeName.TypeAssumptions
-  AttachedVolume_instance : AttachedVolume.TypeAssumptions
-  AvoidPods_instance : AvoidPods.TypeAssumptions
-  PreferAvoidPodsEntry_instance : PreferAvoidPodsEntry.TypeAssumptions
-  PodSignature_instance : PodSignature.TypeAssumptions
-  ContainerImage_instance : ContainerImage.TypeAssumptions
-  NodePhase_instance : NodePhase.TypeAssumptions
-  NodeConditionType_instance : NodeConditionType.TypeAssumptions
-  NodeCondition_instance : NodeCondition.TypeAssumptions
-  NodeAddressType_instance : NodeAddressType.TypeAssumptions
-  NodeAddress_instance : NodeAddress.TypeAssumptions
-  ResourceName_instance : ResourceName.TypeAssumptions
-  ResourceList_instance : ResourceList.TypeAssumptions
-  Node_instance : Node.TypeAssumptions
-  NodeList_instance : NodeList.TypeAssumptions
-  FinalizerName_instance : FinalizerName.TypeAssumptions
-  NamespaceSpec_instance : NamespaceSpec.TypeAssumptions
-  NamespaceStatus_instance : NamespaceStatus.TypeAssumptions
-  NamespacePhase_instance : NamespacePhase.TypeAssumptions
-  NamespaceConditionType_instance : NamespaceConditionType.TypeAssumptions
-  NamespaceCondition_instance : NamespaceCondition.TypeAssumptions
-  Namespace_instance : Namespace.TypeAssumptions
-  NamespaceList_instance : NamespaceList.TypeAssumptions
-  Binding_instance : Binding.TypeAssumptions
-  Preconditions_instance : Preconditions.TypeAssumptions
-  PodLogOptions_instance : PodLogOptions.TypeAssumptions
-  PodAttachOptions_instance : PodAttachOptions.TypeAssumptions
-  PodExecOptions_instance : PodExecOptions.TypeAssumptions
-  PodPortForwardOptions_instance : PodPortForwardOptions.TypeAssumptions
-  PodProxyOptions_instance : PodProxyOptions.TypeAssumptions
-  NodeProxyOptions_instance : NodeProxyOptions.TypeAssumptions
-  ServiceProxyOptions_instance : ServiceProxyOptions.TypeAssumptions
-  ObjectReference_instance : ObjectReference.TypeAssumptions
-  LocalObjectReference_instance : LocalObjectReference.TypeAssumptions
-  TypedLocalObjectReference_instance : TypedLocalObjectReference.TypeAssumptions
-  SerializedReference_instance : SerializedReference.TypeAssumptions
-  EventSource_instance : EventSource.TypeAssumptions
-  Event_instance : Event.TypeAssumptions
-  EventSeries_instance : EventSeries.TypeAssumptions
-  EventList_instance : EventList.TypeAssumptions
-  List_instance : List''.TypeAssumptions
-  LimitType_instance : LimitType.TypeAssumptions
-  LimitRangeItem_instance : LimitRangeItem.TypeAssumptions
-  LimitRangeSpec_instance : LimitRangeSpec.TypeAssumptions
-  LimitRange_instance : LimitRange.TypeAssumptions
-  LimitRangeList_instance : LimitRangeList.TypeAssumptions
-  ResourceQuotaScope_instance : ResourceQuotaScope.TypeAssumptions
-  ResourceQuotaSpec_instance : ResourceQuotaSpec.TypeAssumptions
-  ScopeSelector_instance : ScopeSelector.TypeAssumptions
-  ScopedResourceSelectorRequirement_instance : ScopedResourceSelectorRequirement.TypeAssumptions
-  ScopeSelectorOperator_instance : ScopeSelectorOperator.TypeAssumptions
-  ResourceQuotaStatus_instance : ResourceQuotaStatus.TypeAssumptions
-  ResourceQuota_instance : ResourceQuota.TypeAssumptions
-  ResourceQuotaList_instance : ResourceQuotaList.TypeAssumptions
-  Secret_instance : Secret.TypeAssumptions
-  SecretType_instance : SecretType.TypeAssumptions
-  SecretList_instance : SecretList.TypeAssumptions
-  ConfigMap_instance : ConfigMap.TypeAssumptions
-  ConfigMapList_instance : ConfigMapList.TypeAssumptions
-  ComponentConditionType_instance : ComponentConditionType.TypeAssumptions
-  ComponentCondition_instance : ComponentCondition.TypeAssumptions
-  ComponentStatus_instance : ComponentStatus.TypeAssumptions
-  ComponentStatusList_instance : ComponentStatusList.TypeAssumptions
-  DownwardAPIVolumeSource_instance : DownwardAPIVolumeSource.TypeAssumptions
-  DownwardAPIVolumeFile_instance : DownwardAPIVolumeFile.TypeAssumptions
-  DownwardAPIProjection_instance : DownwardAPIProjection.TypeAssumptions
-  SecurityContext_instance : SecurityContext.TypeAssumptions
-  ProcMountType_instance : ProcMountType.TypeAssumptions
-  SELinuxOptions_instance : SELinuxOptions.TypeAssumptions
-  WindowsSecurityContextOptions_instance : WindowsSecurityContextOptions.TypeAssumptions
-  RangeAllocation_instance : RangeAllocation.TypeAssumptions
-  Sysctl_instance : Sysctl.TypeAssumptions
-  PortStatus_instance : PortStatus.TypeAssumptions
-  LoadBalancerIPMode_instance : LoadBalancerIPMode.TypeAssumptions
-  ImageVolumeSource_instance : ImageVolumeSource.TypeAssumptions
-  NodeAllocatableResourceClaimStatus_instance : NodeAllocatableResourceClaimStatus.TypeAssumptions
-  NodeAllocatableMappedResources_instance : NodeAllocatableMappedResources.TypeAssumptions
-  NodeAllocatableOverheadResources_instance : NodeAllocatableOverheadResources.TypeAssumptions
-  import_resource_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.api.resource.Assumptions
-  import_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
-  import_types_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
-  import_intstr_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.Assumptions
+  instance'Volume : Volume.TypeAssumptions
+  instance'VolumeSource : VolumeSource.TypeAssumptions
+  instance'PersistentVolumeClaimVolumeSource : PersistentVolumeClaimVolumeSource.TypeAssumptions
+  instance'PersistentVolumeSource : PersistentVolumeSource.TypeAssumptions
+  instance'PersistentVolume : PersistentVolume.TypeAssumptions
+  instance'PersistentVolumeSpec : PersistentVolumeSpec.TypeAssumptions
+  instance'VolumeNodeAffinity : VolumeNodeAffinity.TypeAssumptions
+  instance'PersistentVolumeReclaimPolicy : PersistentVolumeReclaimPolicy.TypeAssumptions
+  instance'PersistentVolumeMode : PersistentVolumeMode.TypeAssumptions
+  instance'PersistentVolumeStatus : PersistentVolumeStatus.TypeAssumptions
+  instance'PersistentVolumeList : PersistentVolumeList.TypeAssumptions
+  instance'PersistentVolumeClaim : PersistentVolumeClaim.TypeAssumptions
+  instance'PersistentVolumeClaimList : PersistentVolumeClaimList.TypeAssumptions
+  instance'PersistentVolumeClaimSpec : PersistentVolumeClaimSpec.TypeAssumptions
+  instance'TypedObjectReference : TypedObjectReference.TypeAssumptions
+  instance'PersistentVolumeClaimConditionType : PersistentVolumeClaimConditionType.TypeAssumptions
+  instance'ClaimResourceStatus : ClaimResourceStatus.TypeAssumptions
+  instance'PersistentVolumeClaimModifyVolumeStatus : PersistentVolumeClaimModifyVolumeStatus.TypeAssumptions
+  instance'ModifyVolumeStatus : ModifyVolumeStatus.TypeAssumptions
+  instance'PersistentVolumeClaimCondition : PersistentVolumeClaimCondition.TypeAssumptions
+  instance'VolumeHealthStatusType : VolumeHealthStatusType.TypeAssumptions
+  instance'VolumeHealthCondition : VolumeHealthCondition.TypeAssumptions
+  instance'VolumeHealthStatus : VolumeHealthStatus.TypeAssumptions
+  instance'PodVolumeHealth : PodVolumeHealth.TypeAssumptions
+  instance'PersistentVolumeClaimStatus : PersistentVolumeClaimStatus.TypeAssumptions
+  instance'PersistentVolumeAccessMode : PersistentVolumeAccessMode.TypeAssumptions
+  instance'PersistentVolumePhase : PersistentVolumePhase.TypeAssumptions
+  instance'PersistentVolumeClaimPhase : PersistentVolumeClaimPhase.TypeAssumptions
+  instance'HostPathType : HostPathType.TypeAssumptions
+  instance'HostPathVolumeSource : HostPathVolumeSource.TypeAssumptions
+  instance'EmptyDirVolumeSource : EmptyDirVolumeSource.TypeAssumptions
+  instance'GlusterfsVolumeSource : GlusterfsVolumeSource.TypeAssumptions
+  instance'GlusterfsPersistentVolumeSource : GlusterfsPersistentVolumeSource.TypeAssumptions
+  instance'RBDVolumeSource : RBDVolumeSource.TypeAssumptions
+  instance'RBDPersistentVolumeSource : RBDPersistentVolumeSource.TypeAssumptions
+  instance'CinderVolumeSource : CinderVolumeSource.TypeAssumptions
+  instance'CinderPersistentVolumeSource : CinderPersistentVolumeSource.TypeAssumptions
+  instance'CephFSVolumeSource : CephFSVolumeSource.TypeAssumptions
+  instance'SecretReference : SecretReference.TypeAssumptions
+  instance'CephFSPersistentVolumeSource : CephFSPersistentVolumeSource.TypeAssumptions
+  instance'FlockerVolumeSource : FlockerVolumeSource.TypeAssumptions
+  instance'StorageMedium : StorageMedium.TypeAssumptions
+  instance'Protocol : Protocol.TypeAssumptions
+  instance'GCEPersistentDiskVolumeSource : GCEPersistentDiskVolumeSource.TypeAssumptions
+  instance'QuobyteVolumeSource : QuobyteVolumeSource.TypeAssumptions
+  instance'FlexPersistentVolumeSource : FlexPersistentVolumeSource.TypeAssumptions
+  instance'FlexVolumeSource : FlexVolumeSource.TypeAssumptions
+  instance'AWSElasticBlockStoreVolumeSource : AWSElasticBlockStoreVolumeSource.TypeAssumptions
+  instance'GitRepoVolumeSource : GitRepoVolumeSource.TypeAssumptions
+  instance'SecretVolumeSource : SecretVolumeSource.TypeAssumptions
+  instance'SecretProjection : SecretProjection.TypeAssumptions
+  instance'NFSVolumeSource : NFSVolumeSource.TypeAssumptions
+  instance'ISCSIVolumeSource : ISCSIVolumeSource.TypeAssumptions
+  instance'ISCSIPersistentVolumeSource : ISCSIPersistentVolumeSource.TypeAssumptions
+  instance'FCVolumeSource : FCVolumeSource.TypeAssumptions
+  instance'AzureFileVolumeSource : AzureFileVolumeSource.TypeAssumptions
+  instance'AzureFilePersistentVolumeSource : AzureFilePersistentVolumeSource.TypeAssumptions
+  instance'VsphereVirtualDiskVolumeSource : VsphereVirtualDiskVolumeSource.TypeAssumptions
+  instance'PhotonPersistentDiskVolumeSource : PhotonPersistentDiskVolumeSource.TypeAssumptions
+  instance'AzureDataDiskCachingMode : AzureDataDiskCachingMode.TypeAssumptions
+  instance'AzureDataDiskKind : AzureDataDiskKind.TypeAssumptions
+  instance'AzureDiskVolumeSource : AzureDiskVolumeSource.TypeAssumptions
+  instance'PortworxVolumeSource : PortworxVolumeSource.TypeAssumptions
+  instance'ScaleIOVolumeSource : ScaleIOVolumeSource.TypeAssumptions
+  instance'ScaleIOPersistentVolumeSource : ScaleIOPersistentVolumeSource.TypeAssumptions
+  instance'StorageOSVolumeSource : StorageOSVolumeSource.TypeAssumptions
+  instance'StorageOSPersistentVolumeSource : StorageOSPersistentVolumeSource.TypeAssumptions
+  instance'ConfigMapVolumeSource : ConfigMapVolumeSource.TypeAssumptions
+  instance'ConfigMapProjection : ConfigMapProjection.TypeAssumptions
+  instance'ServiceAccountTokenProjection : ServiceAccountTokenProjection.TypeAssumptions
+  instance'ClusterTrustBundleProjection : ClusterTrustBundleProjection.TypeAssumptions
+  instance'PodCertificateProjection : PodCertificateProjection.TypeAssumptions
+  instance'ProjectedVolumeSource : ProjectedVolumeSource.TypeAssumptions
+  instance'VolumeProjection : VolumeProjection.TypeAssumptions
+  instance'KeyToPath : KeyToPath.TypeAssumptions
+  instance'LocalVolumeSource : LocalVolumeSource.TypeAssumptions
+  instance'CSIPersistentVolumeSource : CSIPersistentVolumeSource.TypeAssumptions
+  instance'CSIVolumeSource : CSIVolumeSource.TypeAssumptions
+  instance'EphemeralVolumeSource : EphemeralVolumeSource.TypeAssumptions
+  instance'PersistentVolumeClaimTemplate : PersistentVolumeClaimTemplate.TypeAssumptions
+  instance'ContainerPort : ContainerPort.TypeAssumptions
+  instance'VolumeMount : VolumeMount.TypeAssumptions
+  instance'BindMountOption : BindMountOption.TypeAssumptions
+  instance'MountPropagationMode : MountPropagationMode.TypeAssumptions
+  instance'RecursiveReadOnlyMode : RecursiveReadOnlyMode.TypeAssumptions
+  instance'VolumeDevice : VolumeDevice.TypeAssumptions
+  instance'EnvVar : EnvVar.TypeAssumptions
+  instance'EnvVarSource : EnvVarSource.TypeAssumptions
+  instance'FileKeySelector : FileKeySelector.TypeAssumptions
+  instance'ObjectFieldSelector : ObjectFieldSelector.TypeAssumptions
+  instance'ResourceFieldSelector : ResourceFieldSelector.TypeAssumptions
+  instance'ConfigMapKeySelector : ConfigMapKeySelector.TypeAssumptions
+  instance'SecretKeySelector : SecretKeySelector.TypeAssumptions
+  instance'EnvFromSource : EnvFromSource.TypeAssumptions
+  instance'ConfigMapEnvSource : ConfigMapEnvSource.TypeAssumptions
+  instance'SecretEnvSource : SecretEnvSource.TypeAssumptions
+  instance'HTTPHeader : HTTPHeader.TypeAssumptions
+  instance'HTTPProtocol : HTTPProtocol.TypeAssumptions
+  instance'HTTPGetAction : HTTPGetAction.TypeAssumptions
+  instance'URIScheme : URIScheme.TypeAssumptions
+  instance'TCPSocketAction : TCPSocketAction.TypeAssumptions
+  instance'GRPCAction : GRPCAction.TypeAssumptions
+  instance'GRPCProbeMode : GRPCProbeMode.TypeAssumptions
+  instance'ExecAction : ExecAction.TypeAssumptions
+  instance'SleepAction : SleepAction.TypeAssumptions
+  instance'Probe : Probe.TypeAssumptions
+  instance'PullPolicy : PullPolicy.TypeAssumptions
+  instance'ResourceResizeRestartPolicy : ResourceResizeRestartPolicy.TypeAssumptions
+  instance'ContainerResizePolicy : ContainerResizePolicy.TypeAssumptions
+  instance'PreemptionPolicy : PreemptionPolicy.TypeAssumptions
+  instance'TerminationMessagePolicy : TerminationMessagePolicy.TypeAssumptions
+  instance'Capability : Capability.TypeAssumptions
+  instance'Capabilities : Capabilities.TypeAssumptions
+  instance'ResourceRequirements : ResourceRequirements.TypeAssumptions
+  instance'VolumeResourceRequirements : VolumeResourceRequirements.TypeAssumptions
+  instance'ResourceClaim : ResourceClaim.TypeAssumptions
+  instance'Container : Container.TypeAssumptions
+  instance'ProbeHandler : ProbeHandler.TypeAssumptions
+  instance'LifecycleHandler : LifecycleHandler.TypeAssumptions
+  instance'Signal : Signal.TypeAssumptions
+  instance'Lifecycle : Lifecycle.TypeAssumptions
+  instance'ConditionStatus : ConditionStatus.TypeAssumptions
+  instance'ContainerStateWaiting : ContainerStateWaiting.TypeAssumptions
+  instance'ContainerStateRunning : ContainerStateRunning.TypeAssumptions
+  instance'ContainerStateTerminated : ContainerStateTerminated.TypeAssumptions
+  instance'ContainerState : ContainerState.TypeAssumptions
+  instance'ContainerStatus : ContainerStatus.TypeAssumptions
+  instance'ResourceStatus : ResourceStatus.TypeAssumptions
+  instance'ResourceHealthStatus : ResourceHealthStatus.TypeAssumptions
+  instance'ResourceID : ResourceID.TypeAssumptions
+  instance'ResourceHealth : ResourceHealth.TypeAssumptions
+  instance'ContainerUser : ContainerUser.TypeAssumptions
+  instance'LinuxContainerUser : LinuxContainerUser.TypeAssumptions
+  instance'PodPhase : PodPhase.TypeAssumptions
+  instance'PodConditionType : PodConditionType.TypeAssumptions
+  instance'PodCondition : PodCondition.TypeAssumptions
+  instance'PodResizeStatus : PodResizeStatus.TypeAssumptions
+  instance'VolumeMountStatus : VolumeMountStatus.TypeAssumptions
+  instance'VolumeStatus : VolumeStatus.TypeAssumptions
+  instance'ImageVolumeStatus : ImageVolumeStatus.TypeAssumptions
+  instance'RestartPolicy : RestartPolicy.TypeAssumptions
+  instance'ContainerRestartPolicy : ContainerRestartPolicy.TypeAssumptions
+  instance'ContainerRestartRule : ContainerRestartRule.TypeAssumptions
+  instance'ContainerRestartRuleAction : ContainerRestartRuleAction.TypeAssumptions
+  instance'ContainerRestartRuleOnExitCodes : ContainerRestartRuleOnExitCodes.TypeAssumptions
+  instance'ContainerRestartRuleOnExitCodesOperator : ContainerRestartRuleOnExitCodesOperator.TypeAssumptions
+  instance'DNSPolicy : DNSPolicy.TypeAssumptions
+  instance'NodeSelector : NodeSelector.TypeAssumptions
+  instance'NodeSelectorTerm : NodeSelectorTerm.TypeAssumptions
+  instance'NodeSelectorRequirement : NodeSelectorRequirement.TypeAssumptions
+  instance'NodeSelectorOperator : NodeSelectorOperator.TypeAssumptions
+  instance'TopologySelectorTerm : TopologySelectorTerm.TypeAssumptions
+  instance'TopologySelectorLabelRequirement : TopologySelectorLabelRequirement.TypeAssumptions
+  instance'Affinity : Affinity.TypeAssumptions
+  instance'PodAffinity : PodAffinity.TypeAssumptions
+  instance'PodAntiAffinity : PodAntiAffinity.TypeAssumptions
+  instance'WeightedPodAffinityTerm : WeightedPodAffinityTerm.TypeAssumptions
+  instance'PodAffinityTerm : PodAffinityTerm.TypeAssumptions
+  instance'NodeAffinity : NodeAffinity.TypeAssumptions
+  instance'PreferredSchedulingTerm : PreferredSchedulingTerm.TypeAssumptions
+  instance'Taint : Taint.TypeAssumptions
+  instance'TaintEffect : TaintEffect.TypeAssumptions
+  instance'Toleration : Toleration.TypeAssumptions
+  instance'TolerationOperator : TolerationOperator.TypeAssumptions
+  instance'PodReadinessGate : PodReadinessGate.TypeAssumptions
+  instance'PodSpec : PodSpec.TypeAssumptions
+  instance'PodResourceClaim : PodResourceClaim.TypeAssumptions
+  instance'PodResourceClaimStatus : PodResourceClaimStatus.TypeAssumptions
+  instance'PodExtendedResourceClaimStatus : PodExtendedResourceClaimStatus.TypeAssumptions
+  instance'ContainerExtendedResourceRequest : ContainerExtendedResourceRequest.TypeAssumptions
+  instance'OSName : OSName.TypeAssumptions
+  instance'PodOS : PodOS.TypeAssumptions
+  instance'PodSchedulingGate : PodSchedulingGate.TypeAssumptions
+  instance'PodSchedulingGroup : PodSchedulingGroup.TypeAssumptions
+  instance'UnsatisfiableConstraintAction : UnsatisfiableConstraintAction.TypeAssumptions
+  instance'NodeInclusionPolicy : NodeInclusionPolicy.TypeAssumptions
+  instance'TopologySpreadConstraint : TopologySpreadConstraint.TypeAssumptions
+  instance'HostAlias : HostAlias.TypeAssumptions
+  instance'PodFSGroupChangePolicy : PodFSGroupChangePolicy.TypeAssumptions
+  instance'SupplementalGroupsPolicy : SupplementalGroupsPolicy.TypeAssumptions
+  instance'PodSELinuxChangePolicy : PodSELinuxChangePolicy.TypeAssumptions
+  instance'PodSecurityContext : PodSecurityContext.TypeAssumptions
+  instance'SeccompProfile : SeccompProfile.TypeAssumptions
+  instance'SeccompProfileType : SeccompProfileType.TypeAssumptions
+  instance'AppArmorProfile : AppArmorProfile.TypeAssumptions
+  instance'AppArmorProfileType : AppArmorProfileType.TypeAssumptions
+  instance'PodQOSClass : PodQOSClass.TypeAssumptions
+  instance'PodDNSConfig : PodDNSConfig.TypeAssumptions
+  instance'PodDNSConfigOption : PodDNSConfigOption.TypeAssumptions
+  instance'PodIP : PodIP.TypeAssumptions
+  instance'HostIP : HostIP.TypeAssumptions
+  instance'EphemeralContainerCommon : EphemeralContainerCommon.TypeAssumptions
+  instance'EphemeralContainer : EphemeralContainer.TypeAssumptions
+  instance'EvictionResponder : EvictionResponder.TypeAssumptions
+  instance'PodStatus : PodStatus.TypeAssumptions
+  instance'Pod : Pod.TypeAssumptions
+  instance'PodList : PodList.TypeAssumptions
+  instance'PodTemplateSpec : PodTemplateSpec.TypeAssumptions
+  instance'PodTemplate : PodTemplate.TypeAssumptions
+  instance'PodTemplateList : PodTemplateList.TypeAssumptions
+  instance'ReplicationControllerSpec : ReplicationControllerSpec.TypeAssumptions
+  instance'ReplicationControllerStatus : ReplicationControllerStatus.TypeAssumptions
+  instance'ReplicationControllerConditionType : ReplicationControllerConditionType.TypeAssumptions
+  instance'ReplicationControllerCondition : ReplicationControllerCondition.TypeAssumptions
+  instance'ReplicationController : ReplicationController.TypeAssumptions
+  instance'ReplicationControllerList : ReplicationControllerList.TypeAssumptions
+  instance'ServiceAffinity : ServiceAffinity.TypeAssumptions
+  instance'SessionAffinityConfig : SessionAffinityConfig.TypeAssumptions
+  instance'ClientIPConfig : ClientIPConfig.TypeAssumptions
+  instance'ServiceType : ServiceType.TypeAssumptions
+  instance'ServiceInternalTrafficPolicy : ServiceInternalTrafficPolicy.TypeAssumptions
+  instance'ServiceExternalTrafficPolicy : ServiceExternalTrafficPolicy.TypeAssumptions
+  instance'ServiceStatus : ServiceStatus.TypeAssumptions
+  instance'LoadBalancerStatus : LoadBalancerStatus.TypeAssumptions
+  instance'LoadBalancerIngress : LoadBalancerIngress.TypeAssumptions
+  instance'IPFamily : IPFamily.TypeAssumptions
+  instance'IPFamilyPolicy : IPFamilyPolicy.TypeAssumptions
+  instance'ServiceSpec : ServiceSpec.TypeAssumptions
+  instance'ServicePort : ServicePort.TypeAssumptions
+  instance'Service : Service.TypeAssumptions
+  instance'ServiceList : ServiceList.TypeAssumptions
+  instance'ServiceAccount : ServiceAccount.TypeAssumptions
+  instance'ServiceAccountList : ServiceAccountList.TypeAssumptions
+  instance'Endpoints : Endpoints.TypeAssumptions
+  instance'EndpointSubset : EndpointSubset.TypeAssumptions
+  instance'EndpointAddress : EndpointAddress.TypeAssumptions
+  instance'EndpointPort : EndpointPort.TypeAssumptions
+  instance'EndpointsList : EndpointsList.TypeAssumptions
+  instance'NodeSpec : NodeSpec.TypeAssumptions
+  instance'NodePodPreemptionPolicy : NodePodPreemptionPolicy.TypeAssumptions
+  instance'NodeConfigSource : NodeConfigSource.TypeAssumptions
+  instance'ConfigMapNodeConfigSource : ConfigMapNodeConfigSource.TypeAssumptions
+  instance'DaemonEndpoint : DaemonEndpoint.TypeAssumptions
+  instance'NodeDaemonEndpoints : NodeDaemonEndpoints.TypeAssumptions
+  instance'NodeRuntimeHandlerFeatures : NodeRuntimeHandlerFeatures.TypeAssumptions
+  instance'NodeRuntimeHandler : NodeRuntimeHandler.TypeAssumptions
+  instance'NodeFeatures : NodeFeatures.TypeAssumptions
+  instance'NodeSystemInfo : NodeSystemInfo.TypeAssumptions
+  instance'NodeSwapStatus : NodeSwapStatus.TypeAssumptions
+  instance'NodeConfigStatus : NodeConfigStatus.TypeAssumptions
+  instance'NodeStatus : NodeStatus.TypeAssumptions
+  instance'UniqueVolumeName : UniqueVolumeName.TypeAssumptions
+  instance'AttachedVolume : AttachedVolume.TypeAssumptions
+  instance'AvoidPods : AvoidPods.TypeAssumptions
+  instance'PreferAvoidPodsEntry : PreferAvoidPodsEntry.TypeAssumptions
+  instance'PodSignature : PodSignature.TypeAssumptions
+  instance'ContainerImage : ContainerImage.TypeAssumptions
+  instance'NodePhase : NodePhase.TypeAssumptions
+  instance'NodeConditionType : NodeConditionType.TypeAssumptions
+  instance'NodeCondition : NodeCondition.TypeAssumptions
+  instance'NodeAddressType : NodeAddressType.TypeAssumptions
+  instance'NodeAddress : NodeAddress.TypeAssumptions
+  instance'ResourceName : ResourceName.TypeAssumptions
+  instance'ResourceList : ResourceList.TypeAssumptions
+  instance'Node : Node.TypeAssumptions
+  instance'NodeList : NodeList.TypeAssumptions
+  instance'FinalizerName : FinalizerName.TypeAssumptions
+  instance'NamespaceSpec : NamespaceSpec.TypeAssumptions
+  instance'NamespaceStatus : NamespaceStatus.TypeAssumptions
+  instance'NamespacePhase : NamespacePhase.TypeAssumptions
+  instance'NamespaceConditionType : NamespaceConditionType.TypeAssumptions
+  instance'NamespaceCondition : NamespaceCondition.TypeAssumptions
+  instance'Namespace : Namespace.TypeAssumptions
+  instance'NamespaceList : NamespaceList.TypeAssumptions
+  instance'Binding : Binding.TypeAssumptions
+  instance'Preconditions : Preconditions.TypeAssumptions
+  instance'PodLogOptions : PodLogOptions.TypeAssumptions
+  instance'PodAttachOptions : PodAttachOptions.TypeAssumptions
+  instance'PodExecOptions : PodExecOptions.TypeAssumptions
+  instance'PodPortForwardOptions : PodPortForwardOptions.TypeAssumptions
+  instance'PodProxyOptions : PodProxyOptions.TypeAssumptions
+  instance'NodeProxyOptions : NodeProxyOptions.TypeAssumptions
+  instance'ServiceProxyOptions : ServiceProxyOptions.TypeAssumptions
+  instance'ObjectReference : ObjectReference.TypeAssumptions
+  instance'LocalObjectReference : LocalObjectReference.TypeAssumptions
+  instance'TypedLocalObjectReference : TypedLocalObjectReference.TypeAssumptions
+  instance'SerializedReference : SerializedReference.TypeAssumptions
+  instance'EventSource : EventSource.TypeAssumptions
+  instance'Event : Event.TypeAssumptions
+  instance'EventSeries : EventSeries.TypeAssumptions
+  instance'EventList : EventList.TypeAssumptions
+  instance'List : List''.TypeAssumptions
+  instance'LimitType : LimitType.TypeAssumptions
+  instance'LimitRangeItem : LimitRangeItem.TypeAssumptions
+  instance'LimitRangeSpec : LimitRangeSpec.TypeAssumptions
+  instance'LimitRange : LimitRange.TypeAssumptions
+  instance'LimitRangeList : LimitRangeList.TypeAssumptions
+  instance'ResourceQuotaScope : ResourceQuotaScope.TypeAssumptions
+  instance'ResourceQuotaSpec : ResourceQuotaSpec.TypeAssumptions
+  instance'ScopeSelector : ScopeSelector.TypeAssumptions
+  instance'ScopedResourceSelectorRequirement : ScopedResourceSelectorRequirement.TypeAssumptions
+  instance'ScopeSelectorOperator : ScopeSelectorOperator.TypeAssumptions
+  instance'ResourceQuotaStatus : ResourceQuotaStatus.TypeAssumptions
+  instance'ResourceQuota : ResourceQuota.TypeAssumptions
+  instance'ResourceQuotaList : ResourceQuotaList.TypeAssumptions
+  instance'Secret : Secret.TypeAssumptions
+  instance'SecretType : SecretType.TypeAssumptions
+  instance'SecretList : SecretList.TypeAssumptions
+  instance'ConfigMap : ConfigMap.TypeAssumptions
+  instance'ConfigMapList : ConfigMapList.TypeAssumptions
+  instance'ComponentConditionType : ComponentConditionType.TypeAssumptions
+  instance'ComponentCondition : ComponentCondition.TypeAssumptions
+  instance'ComponentStatus : ComponentStatus.TypeAssumptions
+  instance'ComponentStatusList : ComponentStatusList.TypeAssumptions
+  instance'DownwardAPIVolumeSource : DownwardAPIVolumeSource.TypeAssumptions
+  instance'DownwardAPIVolumeFile : DownwardAPIVolumeFile.TypeAssumptions
+  instance'DownwardAPIProjection : DownwardAPIProjection.TypeAssumptions
+  instance'SecurityContext : SecurityContext.TypeAssumptions
+  instance'ProcMountType : ProcMountType.TypeAssumptions
+  instance'SELinuxOptions : SELinuxOptions.TypeAssumptions
+  instance'WindowsSecurityContextOptions : WindowsSecurityContextOptions.TypeAssumptions
+  instance'RangeAllocation : RangeAllocation.TypeAssumptions
+  instance'Sysctl : Sysctl.TypeAssumptions
+  instance'PortStatus : PortStatus.TypeAssumptions
+  instance'LoadBalancerIPMode : LoadBalancerIPMode.TypeAssumptions
+  instance'ImageVolumeSource : ImageVolumeSource.TypeAssumptions
+  instance'NodeAllocatableResourceClaimStatus : NodeAllocatableResourceClaimStatus.TypeAssumptions
+  instance'NodeAllocatableMappedResources : NodeAllocatableMappedResources.TypeAssumptions
+  instance'NodeAllocatableOverheadResources : NodeAllocatableOverheadResources.TypeAssumptions
+  import'resource : _root_.Perennial.k8s_io.apimachinery.pkg.api.resource.Assumptions
+  import'v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  import'types : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
+  import'intstr : _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.Assumptions
 
-attribute [instance] Assumptions.Volume_instance
-  Assumptions.VolumeSource_instance
-  Assumptions.PersistentVolumeClaimVolumeSource_instance
-  Assumptions.PersistentVolumeSource_instance
-  Assumptions.PersistentVolume_instance
-  Assumptions.PersistentVolumeSpec_instance
-  Assumptions.VolumeNodeAffinity_instance
-  Assumptions.PersistentVolumeReclaimPolicy_instance
-  Assumptions.PersistentVolumeMode_instance
-  Assumptions.PersistentVolumeStatus_instance
-  Assumptions.PersistentVolumeList_instance
-  Assumptions.PersistentVolumeClaim_instance
-  Assumptions.PersistentVolumeClaimList_instance
-  Assumptions.PersistentVolumeClaimSpec_instance
-  Assumptions.TypedObjectReference_instance
-  Assumptions.PersistentVolumeClaimConditionType_instance
-  Assumptions.ClaimResourceStatus_instance
-  Assumptions.PersistentVolumeClaimModifyVolumeStatus_instance
-  Assumptions.ModifyVolumeStatus_instance
-  Assumptions.PersistentVolumeClaimCondition_instance
-  Assumptions.VolumeHealthStatusType_instance
-  Assumptions.VolumeHealthCondition_instance
-  Assumptions.VolumeHealthStatus_instance
-  Assumptions.PodVolumeHealth_instance
-  Assumptions.PersistentVolumeClaimStatus_instance
-  Assumptions.PersistentVolumeAccessMode_instance
-  Assumptions.PersistentVolumePhase_instance
-  Assumptions.PersistentVolumeClaimPhase_instance
-  Assumptions.HostPathType_instance
-  Assumptions.HostPathVolumeSource_instance
-  Assumptions.EmptyDirVolumeSource_instance
-  Assumptions.GlusterfsVolumeSource_instance
-  Assumptions.GlusterfsPersistentVolumeSource_instance
-  Assumptions.RBDVolumeSource_instance
-  Assumptions.RBDPersistentVolumeSource_instance
-  Assumptions.CinderVolumeSource_instance
-  Assumptions.CinderPersistentVolumeSource_instance
-  Assumptions.CephFSVolumeSource_instance
-  Assumptions.SecretReference_instance
-  Assumptions.CephFSPersistentVolumeSource_instance
-  Assumptions.FlockerVolumeSource_instance
-  Assumptions.StorageMedium_instance
-  Assumptions.Protocol_instance
-  Assumptions.GCEPersistentDiskVolumeSource_instance
-  Assumptions.QuobyteVolumeSource_instance
-  Assumptions.FlexPersistentVolumeSource_instance
-  Assumptions.FlexVolumeSource_instance
-  Assumptions.AWSElasticBlockStoreVolumeSource_instance
-  Assumptions.GitRepoVolumeSource_instance
-  Assumptions.SecretVolumeSource_instance
-  Assumptions.SecretProjection_instance
-  Assumptions.NFSVolumeSource_instance
-  Assumptions.ISCSIVolumeSource_instance
-  Assumptions.ISCSIPersistentVolumeSource_instance
-  Assumptions.FCVolumeSource_instance
-  Assumptions.AzureFileVolumeSource_instance
-  Assumptions.AzureFilePersistentVolumeSource_instance
-  Assumptions.VsphereVirtualDiskVolumeSource_instance
-  Assumptions.PhotonPersistentDiskVolumeSource_instance
-  Assumptions.AzureDataDiskCachingMode_instance
-  Assumptions.AzureDataDiskKind_instance
-  Assumptions.AzureDiskVolumeSource_instance
-  Assumptions.PortworxVolumeSource_instance
-  Assumptions.ScaleIOVolumeSource_instance
-  Assumptions.ScaleIOPersistentVolumeSource_instance
-  Assumptions.StorageOSVolumeSource_instance
-  Assumptions.StorageOSPersistentVolumeSource_instance
-  Assumptions.ConfigMapVolumeSource_instance
-  Assumptions.ConfigMapProjection_instance
-  Assumptions.ServiceAccountTokenProjection_instance
-  Assumptions.ClusterTrustBundleProjection_instance
-  Assumptions.PodCertificateProjection_instance
-  Assumptions.ProjectedVolumeSource_instance
-  Assumptions.VolumeProjection_instance
-  Assumptions.KeyToPath_instance
-  Assumptions.LocalVolumeSource_instance
-  Assumptions.CSIPersistentVolumeSource_instance
-  Assumptions.CSIVolumeSource_instance
-  Assumptions.EphemeralVolumeSource_instance
-  Assumptions.PersistentVolumeClaimTemplate_instance
-  Assumptions.ContainerPort_instance
-  Assumptions.VolumeMount_instance
-  Assumptions.BindMountOption_instance
-  Assumptions.MountPropagationMode_instance
-  Assumptions.RecursiveReadOnlyMode_instance
-  Assumptions.VolumeDevice_instance
-  Assumptions.EnvVar_instance
-  Assumptions.EnvVarSource_instance
-  Assumptions.FileKeySelector_instance
-  Assumptions.ObjectFieldSelector_instance
-  Assumptions.ResourceFieldSelector_instance
-  Assumptions.ConfigMapKeySelector_instance
-  Assumptions.SecretKeySelector_instance
-  Assumptions.EnvFromSource_instance
-  Assumptions.ConfigMapEnvSource_instance
-  Assumptions.SecretEnvSource_instance
-  Assumptions.HTTPHeader_instance
-  Assumptions.HTTPProtocol_instance
-  Assumptions.HTTPGetAction_instance
-  Assumptions.URIScheme_instance
-  Assumptions.TCPSocketAction_instance
-  Assumptions.GRPCAction_instance
-  Assumptions.GRPCProbeMode_instance
-  Assumptions.ExecAction_instance
-  Assumptions.SleepAction_instance
-  Assumptions.Probe_instance
-  Assumptions.PullPolicy_instance
-  Assumptions.ResourceResizeRestartPolicy_instance
-  Assumptions.ContainerResizePolicy_instance
-  Assumptions.PreemptionPolicy_instance
-  Assumptions.TerminationMessagePolicy_instance
-  Assumptions.Capability_instance
-  Assumptions.Capabilities_instance
-  Assumptions.ResourceRequirements_instance
-  Assumptions.VolumeResourceRequirements_instance
-  Assumptions.ResourceClaim_instance
-  Assumptions.Container_instance
-  Assumptions.ProbeHandler_instance
-  Assumptions.LifecycleHandler_instance
-  Assumptions.Signal_instance
-  Assumptions.Lifecycle_instance
-  Assumptions.ConditionStatus_instance
-  Assumptions.ContainerStateWaiting_instance
-  Assumptions.ContainerStateRunning_instance
-  Assumptions.ContainerStateTerminated_instance
-  Assumptions.ContainerState_instance
-  Assumptions.ContainerStatus_instance
-  Assumptions.ResourceStatus_instance
-  Assumptions.ResourceHealthStatus_instance
-  Assumptions.ResourceID_instance
-  Assumptions.ResourceHealth_instance
-  Assumptions.ContainerUser_instance
-  Assumptions.LinuxContainerUser_instance
-  Assumptions.PodPhase_instance
-  Assumptions.PodConditionType_instance
-  Assumptions.PodCondition_instance
-  Assumptions.PodResizeStatus_instance
-  Assumptions.VolumeMountStatus_instance
-  Assumptions.VolumeStatus_instance
-  Assumptions.ImageVolumeStatus_instance
-  Assumptions.RestartPolicy_instance
-  Assumptions.ContainerRestartPolicy_instance
-  Assumptions.ContainerRestartRule_instance
-  Assumptions.ContainerRestartRuleAction_instance
-  Assumptions.ContainerRestartRuleOnExitCodes_instance
-  Assumptions.ContainerRestartRuleOnExitCodesOperator_instance
-  Assumptions.DNSPolicy_instance
-  Assumptions.NodeSelector_instance
-  Assumptions.NodeSelectorTerm_instance
-  Assumptions.NodeSelectorRequirement_instance
-  Assumptions.NodeSelectorOperator_instance
-  Assumptions.TopologySelectorTerm_instance
-  Assumptions.TopologySelectorLabelRequirement_instance
-  Assumptions.Affinity_instance
-  Assumptions.PodAffinity_instance
-  Assumptions.PodAntiAffinity_instance
-  Assumptions.WeightedPodAffinityTerm_instance
-  Assumptions.PodAffinityTerm_instance
-  Assumptions.NodeAffinity_instance
-  Assumptions.PreferredSchedulingTerm_instance
-  Assumptions.Taint_instance
-  Assumptions.TaintEffect_instance
-  Assumptions.Toleration_instance
-  Assumptions.TolerationOperator_instance
-  Assumptions.PodReadinessGate_instance
-  Assumptions.PodSpec_instance
-  Assumptions.PodResourceClaim_instance
-  Assumptions.PodResourceClaimStatus_instance
-  Assumptions.PodExtendedResourceClaimStatus_instance
-  Assumptions.ContainerExtendedResourceRequest_instance
-  Assumptions.OSName_instance
-  Assumptions.PodOS_instance
-  Assumptions.PodSchedulingGate_instance
-  Assumptions.PodSchedulingGroup_instance
-  Assumptions.UnsatisfiableConstraintAction_instance
-  Assumptions.NodeInclusionPolicy_instance
-  Assumptions.TopologySpreadConstraint_instance
-  Assumptions.HostAlias_instance
-  Assumptions.PodFSGroupChangePolicy_instance
-  Assumptions.SupplementalGroupsPolicy_instance
-  Assumptions.PodSELinuxChangePolicy_instance
-  Assumptions.PodSecurityContext_instance
-  Assumptions.SeccompProfile_instance
-  Assumptions.SeccompProfileType_instance
-  Assumptions.AppArmorProfile_instance
-  Assumptions.AppArmorProfileType_instance
-  Assumptions.PodQOSClass_instance
-  Assumptions.PodDNSConfig_instance
-  Assumptions.PodDNSConfigOption_instance
-  Assumptions.PodIP_instance
-  Assumptions.HostIP_instance
-  Assumptions.EphemeralContainerCommon_instance
-  Assumptions.EphemeralContainer_instance
-  Assumptions.EvictionResponder_instance
-  Assumptions.PodStatus_instance
-  Assumptions.Pod_instance
-  Assumptions.PodList_instance
-  Assumptions.PodTemplateSpec_instance
-  Assumptions.PodTemplate_instance
-  Assumptions.PodTemplateList_instance
-  Assumptions.ReplicationControllerSpec_instance
-  Assumptions.ReplicationControllerStatus_instance
-  Assumptions.ReplicationControllerConditionType_instance
-  Assumptions.ReplicationControllerCondition_instance
-  Assumptions.ReplicationController_instance
-  Assumptions.ReplicationControllerList_instance
-  Assumptions.ServiceAffinity_instance
-  Assumptions.SessionAffinityConfig_instance
-  Assumptions.ClientIPConfig_instance
-  Assumptions.ServiceType_instance
-  Assumptions.ServiceInternalTrafficPolicy_instance
-  Assumptions.ServiceExternalTrafficPolicy_instance
-  Assumptions.ServiceStatus_instance
-  Assumptions.LoadBalancerStatus_instance
-  Assumptions.LoadBalancerIngress_instance
-  Assumptions.IPFamily_instance
-  Assumptions.IPFamilyPolicy_instance
-  Assumptions.ServiceSpec_instance
-  Assumptions.ServicePort_instance
-  Assumptions.Service_instance
-  Assumptions.ServiceList_instance
-  Assumptions.ServiceAccount_instance
-  Assumptions.ServiceAccountList_instance
-  Assumptions.Endpoints_instance
-  Assumptions.EndpointSubset_instance
-  Assumptions.EndpointAddress_instance
-  Assumptions.EndpointPort_instance
-  Assumptions.EndpointsList_instance
-  Assumptions.NodeSpec_instance
-  Assumptions.NodePodPreemptionPolicy_instance
-  Assumptions.NodeConfigSource_instance
-  Assumptions.ConfigMapNodeConfigSource_instance
-  Assumptions.DaemonEndpoint_instance
-  Assumptions.NodeDaemonEndpoints_instance
-  Assumptions.NodeRuntimeHandlerFeatures_instance
-  Assumptions.NodeRuntimeHandler_instance
-  Assumptions.NodeFeatures_instance
-  Assumptions.NodeSystemInfo_instance
-  Assumptions.NodeSwapStatus_instance
-  Assumptions.NodeConfigStatus_instance
-  Assumptions.NodeStatus_instance
-  Assumptions.UniqueVolumeName_instance
-  Assumptions.AttachedVolume_instance
-  Assumptions.AvoidPods_instance
-  Assumptions.PreferAvoidPodsEntry_instance
-  Assumptions.PodSignature_instance
-  Assumptions.ContainerImage_instance
-  Assumptions.NodePhase_instance
-  Assumptions.NodeConditionType_instance
-  Assumptions.NodeCondition_instance
-  Assumptions.NodeAddressType_instance
-  Assumptions.NodeAddress_instance
-  Assumptions.ResourceName_instance
-  Assumptions.ResourceList_instance
-  Assumptions.Node_instance
-  Assumptions.NodeList_instance
-  Assumptions.FinalizerName_instance
-  Assumptions.NamespaceSpec_instance
-  Assumptions.NamespaceStatus_instance
-  Assumptions.NamespacePhase_instance
-  Assumptions.NamespaceConditionType_instance
-  Assumptions.NamespaceCondition_instance
-  Assumptions.Namespace_instance
-  Assumptions.NamespaceList_instance
-  Assumptions.Binding_instance
-  Assumptions.Preconditions_instance
-  Assumptions.PodLogOptions_instance
-  Assumptions.PodAttachOptions_instance
-  Assumptions.PodExecOptions_instance
-  Assumptions.PodPortForwardOptions_instance
-  Assumptions.PodProxyOptions_instance
-  Assumptions.NodeProxyOptions_instance
-  Assumptions.ServiceProxyOptions_instance
-  Assumptions.ObjectReference_instance
-  Assumptions.LocalObjectReference_instance
-  Assumptions.TypedLocalObjectReference_instance
-  Assumptions.SerializedReference_instance
-  Assumptions.EventSource_instance
-  Assumptions.Event_instance
-  Assumptions.EventSeries_instance
-  Assumptions.EventList_instance
-  Assumptions.List_instance
-  Assumptions.LimitType_instance
-  Assumptions.LimitRangeItem_instance
-  Assumptions.LimitRangeSpec_instance
-  Assumptions.LimitRange_instance
-  Assumptions.LimitRangeList_instance
-  Assumptions.ResourceQuotaScope_instance
-  Assumptions.ResourceQuotaSpec_instance
-  Assumptions.ScopeSelector_instance
-  Assumptions.ScopedResourceSelectorRequirement_instance
-  Assumptions.ScopeSelectorOperator_instance
-  Assumptions.ResourceQuotaStatus_instance
-  Assumptions.ResourceQuota_instance
-  Assumptions.ResourceQuotaList_instance
-  Assumptions.Secret_instance
-  Assumptions.SecretType_instance
-  Assumptions.SecretList_instance
-  Assumptions.ConfigMap_instance
-  Assumptions.ConfigMapList_instance
-  Assumptions.ComponentConditionType_instance
-  Assumptions.ComponentCondition_instance
-  Assumptions.ComponentStatus_instance
-  Assumptions.ComponentStatusList_instance
-  Assumptions.DownwardAPIVolumeSource_instance
-  Assumptions.DownwardAPIVolumeFile_instance
-  Assumptions.DownwardAPIProjection_instance
-  Assumptions.SecurityContext_instance
-  Assumptions.ProcMountType_instance
-  Assumptions.SELinuxOptions_instance
-  Assumptions.WindowsSecurityContextOptions_instance
-  Assumptions.RangeAllocation_instance
-  Assumptions.Sysctl_instance
-  Assumptions.PortStatus_instance
-  Assumptions.LoadBalancerIPMode_instance
-  Assumptions.ImageVolumeSource_instance
-  Assumptions.NodeAllocatableResourceClaimStatus_instance
-  Assumptions.NodeAllocatableMappedResources_instance
-  Assumptions.NodeAllocatableOverheadResources_instance
-  Assumptions.import_resource_Assumption
-  Assumptions.import_v1_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_intstr_Assumption
+attribute [instance] Assumptions.instance'Volume
+  Assumptions.instance'VolumeSource
+  Assumptions.instance'PersistentVolumeClaimVolumeSource
+  Assumptions.instance'PersistentVolumeSource
+  Assumptions.instance'PersistentVolume
+  Assumptions.instance'PersistentVolumeSpec
+  Assumptions.instance'VolumeNodeAffinity
+  Assumptions.instance'PersistentVolumeReclaimPolicy
+  Assumptions.instance'PersistentVolumeMode
+  Assumptions.instance'PersistentVolumeStatus
+  Assumptions.instance'PersistentVolumeList
+  Assumptions.instance'PersistentVolumeClaim
+  Assumptions.instance'PersistentVolumeClaimList
+  Assumptions.instance'PersistentVolumeClaimSpec
+  Assumptions.instance'TypedObjectReference
+  Assumptions.instance'PersistentVolumeClaimConditionType
+  Assumptions.instance'ClaimResourceStatus
+  Assumptions.instance'PersistentVolumeClaimModifyVolumeStatus
+  Assumptions.instance'ModifyVolumeStatus
+  Assumptions.instance'PersistentVolumeClaimCondition
+  Assumptions.instance'VolumeHealthStatusType
+  Assumptions.instance'VolumeHealthCondition
+  Assumptions.instance'VolumeHealthStatus
+  Assumptions.instance'PodVolumeHealth
+  Assumptions.instance'PersistentVolumeClaimStatus
+  Assumptions.instance'PersistentVolumeAccessMode
+  Assumptions.instance'PersistentVolumePhase
+  Assumptions.instance'PersistentVolumeClaimPhase
+  Assumptions.instance'HostPathType
+  Assumptions.instance'HostPathVolumeSource
+  Assumptions.instance'EmptyDirVolumeSource
+  Assumptions.instance'GlusterfsVolumeSource
+  Assumptions.instance'GlusterfsPersistentVolumeSource
+  Assumptions.instance'RBDVolumeSource
+  Assumptions.instance'RBDPersistentVolumeSource
+  Assumptions.instance'CinderVolumeSource
+  Assumptions.instance'CinderPersistentVolumeSource
+  Assumptions.instance'CephFSVolumeSource
+  Assumptions.instance'SecretReference
+  Assumptions.instance'CephFSPersistentVolumeSource
+  Assumptions.instance'FlockerVolumeSource
+  Assumptions.instance'StorageMedium
+  Assumptions.instance'Protocol
+  Assumptions.instance'GCEPersistentDiskVolumeSource
+  Assumptions.instance'QuobyteVolumeSource
+  Assumptions.instance'FlexPersistentVolumeSource
+  Assumptions.instance'FlexVolumeSource
+  Assumptions.instance'AWSElasticBlockStoreVolumeSource
+  Assumptions.instance'GitRepoVolumeSource
+  Assumptions.instance'SecretVolumeSource
+  Assumptions.instance'SecretProjection
+  Assumptions.instance'NFSVolumeSource
+  Assumptions.instance'ISCSIVolumeSource
+  Assumptions.instance'ISCSIPersistentVolumeSource
+  Assumptions.instance'FCVolumeSource
+  Assumptions.instance'AzureFileVolumeSource
+  Assumptions.instance'AzureFilePersistentVolumeSource
+  Assumptions.instance'VsphereVirtualDiskVolumeSource
+  Assumptions.instance'PhotonPersistentDiskVolumeSource
+  Assumptions.instance'AzureDataDiskCachingMode
+  Assumptions.instance'AzureDataDiskKind
+  Assumptions.instance'AzureDiskVolumeSource
+  Assumptions.instance'PortworxVolumeSource
+  Assumptions.instance'ScaleIOVolumeSource
+  Assumptions.instance'ScaleIOPersistentVolumeSource
+  Assumptions.instance'StorageOSVolumeSource
+  Assumptions.instance'StorageOSPersistentVolumeSource
+  Assumptions.instance'ConfigMapVolumeSource
+  Assumptions.instance'ConfigMapProjection
+  Assumptions.instance'ServiceAccountTokenProjection
+  Assumptions.instance'ClusterTrustBundleProjection
+  Assumptions.instance'PodCertificateProjection
+  Assumptions.instance'ProjectedVolumeSource
+  Assumptions.instance'VolumeProjection
+  Assumptions.instance'KeyToPath
+  Assumptions.instance'LocalVolumeSource
+  Assumptions.instance'CSIPersistentVolumeSource
+  Assumptions.instance'CSIVolumeSource
+  Assumptions.instance'EphemeralVolumeSource
+  Assumptions.instance'PersistentVolumeClaimTemplate
+  Assumptions.instance'ContainerPort
+  Assumptions.instance'VolumeMount
+  Assumptions.instance'BindMountOption
+  Assumptions.instance'MountPropagationMode
+  Assumptions.instance'RecursiveReadOnlyMode
+  Assumptions.instance'VolumeDevice
+  Assumptions.instance'EnvVar
+  Assumptions.instance'EnvVarSource
+  Assumptions.instance'FileKeySelector
+  Assumptions.instance'ObjectFieldSelector
+  Assumptions.instance'ResourceFieldSelector
+  Assumptions.instance'ConfigMapKeySelector
+  Assumptions.instance'SecretKeySelector
+  Assumptions.instance'EnvFromSource
+  Assumptions.instance'ConfigMapEnvSource
+  Assumptions.instance'SecretEnvSource
+  Assumptions.instance'HTTPHeader
+  Assumptions.instance'HTTPProtocol
+  Assumptions.instance'HTTPGetAction
+  Assumptions.instance'URIScheme
+  Assumptions.instance'TCPSocketAction
+  Assumptions.instance'GRPCAction
+  Assumptions.instance'GRPCProbeMode
+  Assumptions.instance'ExecAction
+  Assumptions.instance'SleepAction
+  Assumptions.instance'Probe
+  Assumptions.instance'PullPolicy
+  Assumptions.instance'ResourceResizeRestartPolicy
+  Assumptions.instance'ContainerResizePolicy
+  Assumptions.instance'PreemptionPolicy
+  Assumptions.instance'TerminationMessagePolicy
+  Assumptions.instance'Capability
+  Assumptions.instance'Capabilities
+  Assumptions.instance'ResourceRequirements
+  Assumptions.instance'VolumeResourceRequirements
+  Assumptions.instance'ResourceClaim
+  Assumptions.instance'Container
+  Assumptions.instance'ProbeHandler
+  Assumptions.instance'LifecycleHandler
+  Assumptions.instance'Signal
+  Assumptions.instance'Lifecycle
+  Assumptions.instance'ConditionStatus
+  Assumptions.instance'ContainerStateWaiting
+  Assumptions.instance'ContainerStateRunning
+  Assumptions.instance'ContainerStateTerminated
+  Assumptions.instance'ContainerState
+  Assumptions.instance'ContainerStatus
+  Assumptions.instance'ResourceStatus
+  Assumptions.instance'ResourceHealthStatus
+  Assumptions.instance'ResourceID
+  Assumptions.instance'ResourceHealth
+  Assumptions.instance'ContainerUser
+  Assumptions.instance'LinuxContainerUser
+  Assumptions.instance'PodPhase
+  Assumptions.instance'PodConditionType
+  Assumptions.instance'PodCondition
+  Assumptions.instance'PodResizeStatus
+  Assumptions.instance'VolumeMountStatus
+  Assumptions.instance'VolumeStatus
+  Assumptions.instance'ImageVolumeStatus
+  Assumptions.instance'RestartPolicy
+  Assumptions.instance'ContainerRestartPolicy
+  Assumptions.instance'ContainerRestartRule
+  Assumptions.instance'ContainerRestartRuleAction
+  Assumptions.instance'ContainerRestartRuleOnExitCodes
+  Assumptions.instance'ContainerRestartRuleOnExitCodesOperator
+  Assumptions.instance'DNSPolicy
+  Assumptions.instance'NodeSelector
+  Assumptions.instance'NodeSelectorTerm
+  Assumptions.instance'NodeSelectorRequirement
+  Assumptions.instance'NodeSelectorOperator
+  Assumptions.instance'TopologySelectorTerm
+  Assumptions.instance'TopologySelectorLabelRequirement
+  Assumptions.instance'Affinity
+  Assumptions.instance'PodAffinity
+  Assumptions.instance'PodAntiAffinity
+  Assumptions.instance'WeightedPodAffinityTerm
+  Assumptions.instance'PodAffinityTerm
+  Assumptions.instance'NodeAffinity
+  Assumptions.instance'PreferredSchedulingTerm
+  Assumptions.instance'Taint
+  Assumptions.instance'TaintEffect
+  Assumptions.instance'Toleration
+  Assumptions.instance'TolerationOperator
+  Assumptions.instance'PodReadinessGate
+  Assumptions.instance'PodSpec
+  Assumptions.instance'PodResourceClaim
+  Assumptions.instance'PodResourceClaimStatus
+  Assumptions.instance'PodExtendedResourceClaimStatus
+  Assumptions.instance'ContainerExtendedResourceRequest
+  Assumptions.instance'OSName
+  Assumptions.instance'PodOS
+  Assumptions.instance'PodSchedulingGate
+  Assumptions.instance'PodSchedulingGroup
+  Assumptions.instance'UnsatisfiableConstraintAction
+  Assumptions.instance'NodeInclusionPolicy
+  Assumptions.instance'TopologySpreadConstraint
+  Assumptions.instance'HostAlias
+  Assumptions.instance'PodFSGroupChangePolicy
+  Assumptions.instance'SupplementalGroupsPolicy
+  Assumptions.instance'PodSELinuxChangePolicy
+  Assumptions.instance'PodSecurityContext
+  Assumptions.instance'SeccompProfile
+  Assumptions.instance'SeccompProfileType
+  Assumptions.instance'AppArmorProfile
+  Assumptions.instance'AppArmorProfileType
+  Assumptions.instance'PodQOSClass
+  Assumptions.instance'PodDNSConfig
+  Assumptions.instance'PodDNSConfigOption
+  Assumptions.instance'PodIP
+  Assumptions.instance'HostIP
+  Assumptions.instance'EphemeralContainerCommon
+  Assumptions.instance'EphemeralContainer
+  Assumptions.instance'EvictionResponder
+  Assumptions.instance'PodStatus
+  Assumptions.instance'Pod
+  Assumptions.instance'PodList
+  Assumptions.instance'PodTemplateSpec
+  Assumptions.instance'PodTemplate
+  Assumptions.instance'PodTemplateList
+  Assumptions.instance'ReplicationControllerSpec
+  Assumptions.instance'ReplicationControllerStatus
+  Assumptions.instance'ReplicationControllerConditionType
+  Assumptions.instance'ReplicationControllerCondition
+  Assumptions.instance'ReplicationController
+  Assumptions.instance'ReplicationControllerList
+  Assumptions.instance'ServiceAffinity
+  Assumptions.instance'SessionAffinityConfig
+  Assumptions.instance'ClientIPConfig
+  Assumptions.instance'ServiceType
+  Assumptions.instance'ServiceInternalTrafficPolicy
+  Assumptions.instance'ServiceExternalTrafficPolicy
+  Assumptions.instance'ServiceStatus
+  Assumptions.instance'LoadBalancerStatus
+  Assumptions.instance'LoadBalancerIngress
+  Assumptions.instance'IPFamily
+  Assumptions.instance'IPFamilyPolicy
+  Assumptions.instance'ServiceSpec
+  Assumptions.instance'ServicePort
+  Assumptions.instance'Service
+  Assumptions.instance'ServiceList
+  Assumptions.instance'ServiceAccount
+  Assumptions.instance'ServiceAccountList
+  Assumptions.instance'Endpoints
+  Assumptions.instance'EndpointSubset
+  Assumptions.instance'EndpointAddress
+  Assumptions.instance'EndpointPort
+  Assumptions.instance'EndpointsList
+  Assumptions.instance'NodeSpec
+  Assumptions.instance'NodePodPreemptionPolicy
+  Assumptions.instance'NodeConfigSource
+  Assumptions.instance'ConfigMapNodeConfigSource
+  Assumptions.instance'DaemonEndpoint
+  Assumptions.instance'NodeDaemonEndpoints
+  Assumptions.instance'NodeRuntimeHandlerFeatures
+  Assumptions.instance'NodeRuntimeHandler
+  Assumptions.instance'NodeFeatures
+  Assumptions.instance'NodeSystemInfo
+  Assumptions.instance'NodeSwapStatus
+  Assumptions.instance'NodeConfigStatus
+  Assumptions.instance'NodeStatus
+  Assumptions.instance'UniqueVolumeName
+  Assumptions.instance'AttachedVolume
+  Assumptions.instance'AvoidPods
+  Assumptions.instance'PreferAvoidPodsEntry
+  Assumptions.instance'PodSignature
+  Assumptions.instance'ContainerImage
+  Assumptions.instance'NodePhase
+  Assumptions.instance'NodeConditionType
+  Assumptions.instance'NodeCondition
+  Assumptions.instance'NodeAddressType
+  Assumptions.instance'NodeAddress
+  Assumptions.instance'ResourceName
+  Assumptions.instance'ResourceList
+  Assumptions.instance'Node
+  Assumptions.instance'NodeList
+  Assumptions.instance'FinalizerName
+  Assumptions.instance'NamespaceSpec
+  Assumptions.instance'NamespaceStatus
+  Assumptions.instance'NamespacePhase
+  Assumptions.instance'NamespaceConditionType
+  Assumptions.instance'NamespaceCondition
+  Assumptions.instance'Namespace
+  Assumptions.instance'NamespaceList
+  Assumptions.instance'Binding
+  Assumptions.instance'Preconditions
+  Assumptions.instance'PodLogOptions
+  Assumptions.instance'PodAttachOptions
+  Assumptions.instance'PodExecOptions
+  Assumptions.instance'PodPortForwardOptions
+  Assumptions.instance'PodProxyOptions
+  Assumptions.instance'NodeProxyOptions
+  Assumptions.instance'ServiceProxyOptions
+  Assumptions.instance'ObjectReference
+  Assumptions.instance'LocalObjectReference
+  Assumptions.instance'TypedLocalObjectReference
+  Assumptions.instance'SerializedReference
+  Assumptions.instance'EventSource
+  Assumptions.instance'Event
+  Assumptions.instance'EventSeries
+  Assumptions.instance'EventList
+  Assumptions.instance'List
+  Assumptions.instance'LimitType
+  Assumptions.instance'LimitRangeItem
+  Assumptions.instance'LimitRangeSpec
+  Assumptions.instance'LimitRange
+  Assumptions.instance'LimitRangeList
+  Assumptions.instance'ResourceQuotaScope
+  Assumptions.instance'ResourceQuotaSpec
+  Assumptions.instance'ScopeSelector
+  Assumptions.instance'ScopedResourceSelectorRequirement
+  Assumptions.instance'ScopeSelectorOperator
+  Assumptions.instance'ResourceQuotaStatus
+  Assumptions.instance'ResourceQuota
+  Assumptions.instance'ResourceQuotaList
+  Assumptions.instance'Secret
+  Assumptions.instance'SecretType
+  Assumptions.instance'SecretList
+  Assumptions.instance'ConfigMap
+  Assumptions.instance'ConfigMapList
+  Assumptions.instance'ComponentConditionType
+  Assumptions.instance'ComponentCondition
+  Assumptions.instance'ComponentStatus
+  Assumptions.instance'ComponentStatusList
+  Assumptions.instance'DownwardAPIVolumeSource
+  Assumptions.instance'DownwardAPIVolumeFile
+  Assumptions.instance'DownwardAPIProjection
+  Assumptions.instance'SecurityContext
+  Assumptions.instance'ProcMountType
+  Assumptions.instance'SELinuxOptions
+  Assumptions.instance'WindowsSecurityContextOptions
+  Assumptions.instance'RangeAllocation
+  Assumptions.instance'Sysctl
+  Assumptions.instance'PortStatus
+  Assumptions.instance'LoadBalancerIPMode
+  Assumptions.instance'ImageVolumeSource
+  Assumptions.instance'NodeAllocatableResourceClaimStatus
+  Assumptions.instance'NodeAllocatableMappedResources
+  Assumptions.instance'NodeAllocatableOverheadResources
+  Assumptions.import'resource
+  Assumptions.import'v1
+  Assumptions.import'runtime
+  Assumptions.import'types
+  Assumptions.import'intstr
 
 end k8s_io.api.core.v1
 

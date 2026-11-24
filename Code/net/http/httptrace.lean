@@ -101,7 +101,7 @@ noncomputable instance clientEventContextKey.zero_val [GooseExts] : ZeroVal clie
 @[irreducible] noncomputable def clientEventContextKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   clientEventContextKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_clientEventContextKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'clientEventContextKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold clientEventContextKey.fields clientEventContextKey.fieldsUnsealed :=
   ⟨by unfold clientEventContextKey.fields; rfl⟩
 
@@ -151,7 +151,7 @@ noncomputable instance WroteRequestInfo.zero_val [GooseExts] : ZeroVal WroteRequ
 @[irreducible] noncomputable def WroteRequestInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   WroteRequestInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_WroteRequestInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'WroteRequestInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold WroteRequestInfo.fields WroteRequestInfo.fieldsUnsealed :=
   ⟨by unfold WroteRequestInfo.fields; rfl⟩
 
@@ -161,15 +161,15 @@ noncomputable instance equals_unfold_WroteRequestInfo [GooseExts] [GoGlobalConte
 class WroteRequestInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WroteRequestInfo.underlying WroteRequestInfo
   underlying : go.UnderlyingDirectedEq WroteRequestInfo.ty WroteRequestInfo.underlying
-  get_Err : ∀ (x : WroteRequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet WroteRequestInfo.underlying go!"Err") #x (Val #(x.Err'))
-  set_Err : ∀ (x : WroteRequestInfo) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet WroteRequestInfo.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : WroteRequestInfo)))
+  get'Err : ∀ (x : WroteRequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet WroteRequestInfo.underlying go!"Err") #x (Val #(x.Err'))
+  set'Err : ∀ (x : WroteRequestInfo) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet WroteRequestInfo.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : WroteRequestInfo)))
   method_set : go.MethodSetIs WroteRequestInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType WroteRequestInfo.ty) []
 
 attribute [instance] WroteRequestInfo.TypeAssumptions.type_repr
   WroteRequestInfo.TypeAssumptions.underlying
-  WroteRequestInfo.TypeAssumptions.get_Err
-  WroteRequestInfo.TypeAssumptions.set_Err
+  WroteRequestInfo.TypeAssumptions.get'Err
+  WroteRequestInfo.TypeAssumptions.set'Err
   WroteRequestInfo.TypeAssumptions.method_set
   WroteRequestInfo.TypeAssumptions.ptr_method_set
 
@@ -186,7 +186,7 @@ noncomputable instance DNSStartInfo.zero_val [GooseExts] : ZeroVal DNSStartInfo 
 @[irreducible] noncomputable def DNSStartInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DNSStartInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_DNSStartInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DNSStartInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold DNSStartInfo.fields DNSStartInfo.fieldsUnsealed :=
   ⟨by unfold DNSStartInfo.fields; rfl⟩
 
@@ -196,15 +196,15 @@ noncomputable instance equals_unfold_DNSStartInfo [GooseExts] [GoGlobalContext] 
 class DNSStartInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DNSStartInfo.underlying DNSStartInfo
   underlying : go.UnderlyingDirectedEq DNSStartInfo.ty DNSStartInfo.underlying
-  get_Host : ∀ (x : DNSStartInfo), go.IsGoStepPureDetTagged under (StructFieldGet DNSStartInfo.underlying go!"Host") #x (Val #(x.Host'))
-  set_Host : ∀ (x : DNSStartInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DNSStartInfo.underlying go!"Host") (PairV #x #y) (Val #(({ x with Host' := y } : DNSStartInfo)))
+  get'Host : ∀ (x : DNSStartInfo), go.IsGoStepPureDetTagged under (StructFieldGet DNSStartInfo.underlying go!"Host") #x (Val #(x.Host'))
+  set'Host : ∀ (x : DNSStartInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DNSStartInfo.underlying go!"Host") (PairV #x #y) (Val #(({ x with Host' := y } : DNSStartInfo)))
   method_set : go.MethodSetIs DNSStartInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DNSStartInfo.ty) []
 
 attribute [instance] DNSStartInfo.TypeAssumptions.type_repr
   DNSStartInfo.TypeAssumptions.underlying
-  DNSStartInfo.TypeAssumptions.get_Host
-  DNSStartInfo.TypeAssumptions.set_Host
+  DNSStartInfo.TypeAssumptions.get'Host
+  DNSStartInfo.TypeAssumptions.set'Host
   DNSStartInfo.TypeAssumptions.method_set
   DNSStartInfo.TypeAssumptions.ptr_method_set
 
@@ -247,19 +247,19 @@ attribute [instance] GotConnInfo.TypeAssumptions.type_repr
   GotConnInfo.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  clientEventContextKey_instance : clientEventContextKey.TypeAssumptions
-  ClientTrace_instance : ClientTrace.TypeAssumptions
-  WroteRequestInfo_instance : WroteRequestInfo.TypeAssumptions
-  DNSStartInfo_instance : DNSStartInfo.TypeAssumptions
-  DNSDoneInfo_instance : DNSDoneInfo.TypeAssumptions
-  GotConnInfo_instance : GotConnInfo.TypeAssumptions
+  instance'clientEventContextKey : clientEventContextKey.TypeAssumptions
+  instance'ClientTrace : ClientTrace.TypeAssumptions
+  instance'WroteRequestInfo : WroteRequestInfo.TypeAssumptions
+  instance'DNSStartInfo : DNSStartInfo.TypeAssumptions
+  instance'DNSDoneInfo : DNSDoneInfo.TypeAssumptions
+  instance'GotConnInfo : GotConnInfo.TypeAssumptions
 
-attribute [instance] Assumptions.clientEventContextKey_instance
-  Assumptions.ClientTrace_instance
-  Assumptions.WroteRequestInfo_instance
-  Assumptions.DNSStartInfo_instance
-  Assumptions.DNSDoneInfo_instance
-  Assumptions.GotConnInfo_instance
+attribute [instance] Assumptions.instance'clientEventContextKey
+  Assumptions.instance'ClientTrace
+  Assumptions.instance'WroteRequestInfo
+  Assumptions.instance'DNSStartInfo
+  Assumptions.instance'DNSDoneInfo
+  Assumptions.instance'GotConnInfo
 
 end net.http.httptrace
 

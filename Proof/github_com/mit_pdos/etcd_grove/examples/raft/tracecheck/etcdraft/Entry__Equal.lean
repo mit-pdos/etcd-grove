@@ -46,7 +46,7 @@ theorem Entry.Equal.wp_proof (wp_ValueEqual : Value.Equal.spec (GF := GF) (hG :=
       icases typedPointsto_split _ _ _ $$ e with Hef
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hef
-      rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Value.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Value.TypeAssumptions.ptr_unfold'Equal.method_unfold]
       try wp_auto
       wp_apply wp_ValueEqual _ _ _ _ $$ [Hev Hfv] as -
       · iframe Hev Hfv

@@ -4175,7 +4175,7 @@ noncomputable instance authApplierV3.zero_val [GooseExts] : ZeroVal authApplierV
 @[irreducible] noncomputable def authApplierV3.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   authApplierV3.fieldsUnsealed
 
-noncomputable instance equals_unfold_authApplierV3 [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'authApplierV3 [GooseExts] [GoGlobalContext] :
     EqualsUnfold authApplierV3.fields authApplierV3.fieldsUnsealed :=
   ⟨by unfold authApplierV3.fields; rfl⟩
 
@@ -4185,181 +4185,181 @@ noncomputable instance equals_unfold_authApplierV3 [GooseExts] [GoGlobalContext]
 class authApplierV3.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying authApplierV3.underlying authApplierV3
   underlying : go.UnderlyingDirectedEq authApplierV3.ty authApplierV3.underlying
-  get_applierV3 : ∀ (x : authApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet authApplierV3.underlying go!"applierV3") #x (Val #(x.applierV3'))
-  set_applierV3 : ∀ (x : authApplierV3) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet authApplierV3.underlying go!"applierV3") (PairV #x #y) (Val #(({ x with applierV3' := y } : authApplierV3)))
-  get_as : ∀ (x : authApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet authApplierV3.underlying go!"as") #x (Val #(x.as'))
-  set_as : ∀ (x : authApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore), go.IsGoStepPureDetTagged under (StructFieldSet authApplierV3.underlying go!"as") (PairV #x #y) (Val #(({ x with as' := y } : authApplierV3)))
-  get_lessor : ∀ (x : authApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet authApplierV3.underlying go!"lessor") #x (Val #(x.lessor'))
-  set_lessor : ∀ (x : authApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor), go.IsGoStepPureDetTagged under (StructFieldSet authApplierV3.underlying go!"lessor") (PairV #x #y) (Val #(({ x with lessor' := y } : authApplierV3)))
-  get_mu : ∀ (x : authApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet authApplierV3.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : authApplierV3) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet authApplierV3.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : authApplierV3)))
-  get_authInfo : ∀ (x : authApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet authApplierV3.underlying go!"authInfo") #x (Val #(x.authInfo'))
-  set_authInfo : ∀ (x : authApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo), go.IsGoStepPureDetTagged under (StructFieldSet authApplierV3.underlying go!"authInfo") (PairV #x #y) (Val #(({ x with authInfo' := y } : authApplierV3)))
+  get'applierV3 : ∀ (x : authApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet authApplierV3.underlying go!"applierV3") #x (Val #(x.applierV3'))
+  set'applierV3 : ∀ (x : authApplierV3) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet authApplierV3.underlying go!"applierV3") (PairV #x #y) (Val #(({ x with applierV3' := y } : authApplierV3)))
+  get'as : ∀ (x : authApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet authApplierV3.underlying go!"as") #x (Val #(x.as'))
+  set'as : ∀ (x : authApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore), go.IsGoStepPureDetTagged under (StructFieldSet authApplierV3.underlying go!"as") (PairV #x #y) (Val #(({ x with as' := y } : authApplierV3)))
+  get'lessor : ∀ (x : authApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet authApplierV3.underlying go!"lessor") #x (Val #(x.lessor'))
+  set'lessor : ∀ (x : authApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor), go.IsGoStepPureDetTagged under (StructFieldSet authApplierV3.underlying go!"lessor") (PairV #x #y) (Val #(({ x with lessor' := y } : authApplierV3)))
+  get'mu : ∀ (x : authApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet authApplierV3.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : authApplierV3) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet authApplierV3.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : authApplierV3)))
+  get'authInfo : ∀ (x : authApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet authApplierV3.underlying go!"authInfo") #x (Val #(x.authInfo'))
+  set'authInfo : ∀ (x : authApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo), go.IsGoStepPureDetTagged under (StructFieldSet authApplierV3.underlying go!"authInfo") (PairV #x #y) (Val #(({ x with authInfo' := y } : authApplierV3)))
   method_set : go.MethodSetIs authApplierV3.ty [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseGrant", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType authApplierV3.ty) [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseGrant", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"Range", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty), go.bool] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
-  Alarm_unfold : MethodUnfold authApplierV3.ty go!"Alarm" (LamV "$r"
+  unfold'Alarm : MethodUnfold authApplierV3.ty go!"Alarm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Alarm"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  AuthDisable_unfold : MethodUnfold authApplierV3.ty go!"AuthDisable" (LamV "$r"
+  unfold'AuthDisable : MethodUnfold authApplierV3.ty go!"AuthDisable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthDisable"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  AuthEnable_unfold : MethodUnfold authApplierV3.ty go!"AuthEnable" (LamV "$r"
+  unfold'AuthEnable : MethodUnfold authApplierV3.ty go!"AuthEnable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthEnable"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  AuthStatus_unfold : MethodUnfold authApplierV3.ty go!"AuthStatus" (LamV "$r"
+  unfold'AuthStatus : MethodUnfold authApplierV3.ty go!"AuthStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthStatus"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  Authenticate_unfold : MethodUnfold authApplierV3.ty go!"Authenticate" (LamV "$r"
+  unfold'Authenticate : MethodUnfold authApplierV3.ty go!"Authenticate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Authenticate"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  ClusterMemberAttrSet_unfold : MethodUnfold authApplierV3.ty go!"ClusterMemberAttrSet" (LamV "$r"
+  unfold'ClusterMemberAttrSet : MethodUnfold authApplierV3.ty go!"ClusterMemberAttrSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"ClusterMemberAttrSet"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  ClusterVersionSet_unfold : MethodUnfold authApplierV3.ty go!"ClusterVersionSet" (LamV "$r"
+  unfold'ClusterVersionSet : MethodUnfold authApplierV3.ty go!"ClusterVersionSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"ClusterVersionSet"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  Compaction_unfold : MethodUnfold authApplierV3.ty go!"Compaction" (LamV "$r"
+  unfold'Compaction : MethodUnfold authApplierV3.ty go!"Compaction" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Compaction"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  DowngradeInfoSet_unfold : MethodUnfold authApplierV3.ty go!"DowngradeInfoSet" (LamV "$r"
+  unfold'DowngradeInfoSet : MethodUnfold authApplierV3.ty go!"DowngradeInfoSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"DowngradeInfoSet"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  LeaseCheckpoint_unfold : MethodUnfold authApplierV3.ty go!"LeaseCheckpoint" (LamV "$r"
+  unfold'LeaseCheckpoint : MethodUnfold authApplierV3.ty go!"LeaseCheckpoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"LeaseCheckpoint"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  LeaseGrant_unfold : MethodUnfold authApplierV3.ty go!"LeaseGrant" (LamV "$r"
+  unfold'LeaseGrant : MethodUnfold authApplierV3.ty go!"LeaseGrant" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"LeaseGrant"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  RoleAdd_unfold : MethodUnfold authApplierV3.ty go!"RoleAdd" (LamV "$r"
+  unfold'RoleAdd : MethodUnfold authApplierV3.ty go!"RoleAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleAdd"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  RoleDelete_unfold : MethodUnfold authApplierV3.ty go!"RoleDelete" (LamV "$r"
+  unfold'RoleDelete : MethodUnfold authApplierV3.ty go!"RoleDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleDelete"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  RoleGrantPermission_unfold : MethodUnfold authApplierV3.ty go!"RoleGrantPermission" (LamV "$r"
+  unfold'RoleGrantPermission : MethodUnfold authApplierV3.ty go!"RoleGrantPermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleGrantPermission"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  RoleList_unfold : MethodUnfold authApplierV3.ty go!"RoleList" (LamV "$r"
+  unfold'RoleList : MethodUnfold authApplierV3.ty go!"RoleList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleList"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  RoleRevokePermission_unfold : MethodUnfold authApplierV3.ty go!"RoleRevokePermission" (LamV "$r"
+  unfold'RoleRevokePermission : MethodUnfold authApplierV3.ty go!"RoleRevokePermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleRevokePermission"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  UserAdd_unfold : MethodUnfold authApplierV3.ty go!"UserAdd" (LamV "$r"
+  unfold'UserAdd : MethodUnfold authApplierV3.ty go!"UserAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserAdd"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  UserChangePassword_unfold : MethodUnfold authApplierV3.ty go!"UserChangePassword" (LamV "$r"
+  unfold'UserChangePassword : MethodUnfold authApplierV3.ty go!"UserChangePassword" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserChangePassword"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  UserDelete_unfold : MethodUnfold authApplierV3.ty go!"UserDelete" (LamV "$r"
+  unfold'UserDelete : MethodUnfold authApplierV3.ty go!"UserDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserDelete"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  UserGrantRole_unfold : MethodUnfold authApplierV3.ty go!"UserGrantRole" (LamV "$r"
+  unfold'UserGrantRole : MethodUnfold authApplierV3.ty go!"UserGrantRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserGrantRole"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  UserList_unfold : MethodUnfold authApplierV3.ty go!"UserList" (LamV "$r"
+  unfold'UserList : MethodUnfold authApplierV3.ty go!"UserList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserList"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  UserRevokeRole_unfold : MethodUnfold authApplierV3.ty go!"UserRevokeRole" (LamV "$r"
+  unfold'UserRevokeRole : MethodUnfold authApplierV3.ty go!"UserRevokeRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserRevokeRole"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  ptr_Alarm_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"Alarm" (LamV "$r"
+  ptr_unfold'Alarm : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"Alarm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Alarm"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"Apply" authApplierV3.Apply.impl
-  ptr_AuthDisable_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"AuthDisable" (LamV "$r"
+  ptr_unfold'Apply : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"Apply" authApplierV3.Apply.impl
+  ptr_unfold'AuthDisable : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"AuthDisable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthDisable"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_AuthEnable_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"AuthEnable" (LamV "$r"
+  ptr_unfold'AuthEnable : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"AuthEnable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthEnable"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_AuthStatus_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"AuthStatus" (LamV "$r"
+  ptr_unfold'AuthStatus : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"AuthStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthStatus"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Authenticate_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"Authenticate" (LamV "$r"
+  ptr_unfold'Authenticate : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"Authenticate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Authenticate"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_ClusterMemberAttrSet_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"ClusterMemberAttrSet" (LamV "$r"
+  ptr_unfold'ClusterMemberAttrSet : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"ClusterMemberAttrSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"ClusterMemberAttrSet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_ClusterVersionSet_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"ClusterVersionSet" (LamV "$r"
+  ptr_unfold'ClusterVersionSet : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"ClusterVersionSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"ClusterVersionSet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Compaction_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"Compaction" (LamV "$r"
+  ptr_unfold'Compaction : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"Compaction" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Compaction"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_DeleteRange_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"DeleteRange" authApplierV3.DeleteRange.impl
-  ptr_DowngradeInfoSet_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"DowngradeInfoSet" (LamV "$r"
+  ptr_unfold'DeleteRange : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"DeleteRange" authApplierV3.DeleteRange.impl
+  ptr_unfold'DowngradeInfoSet : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"DowngradeInfoSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"DowngradeInfoSet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_LeaseCheckpoint_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"LeaseCheckpoint" (LamV "$r"
+  ptr_unfold'LeaseCheckpoint : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"LeaseCheckpoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"LeaseCheckpoint"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_LeaseGrant_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"LeaseGrant" (LamV "$r"
+  ptr_unfold'LeaseGrant : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"LeaseGrant" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"LeaseGrant"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_LeaseRevoke_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"LeaseRevoke" authApplierV3.LeaseRevoke.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"Put" authApplierV3.Put.impl
-  ptr_Range_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"Range" authApplierV3.Range.impl
-  ptr_RoleAdd_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"RoleAdd" (LamV "$r"
+  ptr_unfold'LeaseRevoke : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"LeaseRevoke" authApplierV3.LeaseRevoke.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"Put" authApplierV3.Put.impl
+  ptr_unfold'Range : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"Range" authApplierV3.Range.impl
+  ptr_unfold'RoleAdd : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"RoleAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleAdd"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleDelete_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"RoleDelete" (LamV "$r"
+  ptr_unfold'RoleDelete : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"RoleDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleDelete"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleGet_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"RoleGet" authApplierV3.RoleGet.impl
-  ptr_RoleGrantPermission_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"RoleGrantPermission" (LamV "$r"
+  ptr_unfold'RoleGet : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"RoleGet" authApplierV3.RoleGet.impl
+  ptr_unfold'RoleGrantPermission : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"RoleGrantPermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleGrantPermission"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleList_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"RoleList" (LamV "$r"
+  ptr_unfold'RoleList : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"RoleList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleList"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleRevokePermission_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"RoleRevokePermission" (LamV "$r"
+  ptr_unfold'RoleRevokePermission : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"RoleRevokePermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleRevokePermission"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"Txn" authApplierV3.Txn.impl
-  ptr_UserAdd_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"UserAdd" (LamV "$r"
+  ptr_unfold'Txn : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"Txn" authApplierV3.Txn.impl
+  ptr_unfold'UserAdd : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"UserAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserAdd"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserChangePassword_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"UserChangePassword" (LamV "$r"
+  ptr_unfold'UserChangePassword : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"UserChangePassword" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserChangePassword"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserDelete_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"UserDelete" (LamV "$r"
+  ptr_unfold'UserDelete : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"UserDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserDelete"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserGet_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"UserGet" authApplierV3.UserGet.impl
-  ptr_UserGrantRole_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"UserGrantRole" (LamV "$r"
+  ptr_unfold'UserGet : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"UserGet" authApplierV3.UserGet.impl
+  ptr_unfold'UserGrantRole : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"UserGrantRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserGrantRole"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserList_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"UserList" (LamV "$r"
+  ptr_unfold'UserList : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"UserList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserList"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserRevokeRole_unfold : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"UserRevokeRole" (LamV "$r"
+  ptr_unfold'UserRevokeRole : MethodUnfold (go.GoType.PointerType authApplierV3.ty) go!"UserRevokeRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserRevokeRole"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"applierV3"))) (Var "$r")))))
 
 attribute [instance] authApplierV3.TypeAssumptions.type_repr
   authApplierV3.TypeAssumptions.underlying
-  authApplierV3.TypeAssumptions.get_applierV3
-  authApplierV3.TypeAssumptions.set_applierV3
-  authApplierV3.TypeAssumptions.get_as
-  authApplierV3.TypeAssumptions.set_as
-  authApplierV3.TypeAssumptions.get_lessor
-  authApplierV3.TypeAssumptions.set_lessor
-  authApplierV3.TypeAssumptions.get_mu
-  authApplierV3.TypeAssumptions.set_mu
-  authApplierV3.TypeAssumptions.get_authInfo
-  authApplierV3.TypeAssumptions.set_authInfo
+  authApplierV3.TypeAssumptions.get'applierV3
+  authApplierV3.TypeAssumptions.set'applierV3
+  authApplierV3.TypeAssumptions.get'as
+  authApplierV3.TypeAssumptions.set'as
+  authApplierV3.TypeAssumptions.get'lessor
+  authApplierV3.TypeAssumptions.set'lessor
+  authApplierV3.TypeAssumptions.get'mu
+  authApplierV3.TypeAssumptions.set'mu
+  authApplierV3.TypeAssumptions.get'authInfo
+  authApplierV3.TypeAssumptions.set'authInfo
   authApplierV3.TypeAssumptions.method_set
   authApplierV3.TypeAssumptions.ptr_method_set
-  authApplierV3.TypeAssumptions.Alarm_unfold
-  authApplierV3.TypeAssumptions.AuthDisable_unfold
-  authApplierV3.TypeAssumptions.AuthEnable_unfold
-  authApplierV3.TypeAssumptions.AuthStatus_unfold
-  authApplierV3.TypeAssumptions.Authenticate_unfold
-  authApplierV3.TypeAssumptions.ClusterMemberAttrSet_unfold
-  authApplierV3.TypeAssumptions.ClusterVersionSet_unfold
-  authApplierV3.TypeAssumptions.Compaction_unfold
-  authApplierV3.TypeAssumptions.DowngradeInfoSet_unfold
-  authApplierV3.TypeAssumptions.LeaseCheckpoint_unfold
-  authApplierV3.TypeAssumptions.LeaseGrant_unfold
-  authApplierV3.TypeAssumptions.RoleAdd_unfold
-  authApplierV3.TypeAssumptions.RoleDelete_unfold
-  authApplierV3.TypeAssumptions.RoleGrantPermission_unfold
-  authApplierV3.TypeAssumptions.RoleList_unfold
-  authApplierV3.TypeAssumptions.RoleRevokePermission_unfold
-  authApplierV3.TypeAssumptions.UserAdd_unfold
-  authApplierV3.TypeAssumptions.UserChangePassword_unfold
-  authApplierV3.TypeAssumptions.UserDelete_unfold
-  authApplierV3.TypeAssumptions.UserGrantRole_unfold
-  authApplierV3.TypeAssumptions.UserList_unfold
-  authApplierV3.TypeAssumptions.UserRevokeRole_unfold
-  authApplierV3.TypeAssumptions.ptr_Alarm_unfold
-  authApplierV3.TypeAssumptions.ptr_Apply_unfold
-  authApplierV3.TypeAssumptions.ptr_AuthDisable_unfold
-  authApplierV3.TypeAssumptions.ptr_AuthEnable_unfold
-  authApplierV3.TypeAssumptions.ptr_AuthStatus_unfold
-  authApplierV3.TypeAssumptions.ptr_Authenticate_unfold
-  authApplierV3.TypeAssumptions.ptr_ClusterMemberAttrSet_unfold
-  authApplierV3.TypeAssumptions.ptr_ClusterVersionSet_unfold
-  authApplierV3.TypeAssumptions.ptr_Compaction_unfold
-  authApplierV3.TypeAssumptions.ptr_DeleteRange_unfold
-  authApplierV3.TypeAssumptions.ptr_DowngradeInfoSet_unfold
-  authApplierV3.TypeAssumptions.ptr_LeaseCheckpoint_unfold
-  authApplierV3.TypeAssumptions.ptr_LeaseGrant_unfold
-  authApplierV3.TypeAssumptions.ptr_LeaseRevoke_unfold
-  authApplierV3.TypeAssumptions.ptr_Put_unfold
-  authApplierV3.TypeAssumptions.ptr_Range_unfold
-  authApplierV3.TypeAssumptions.ptr_RoleAdd_unfold
-  authApplierV3.TypeAssumptions.ptr_RoleDelete_unfold
-  authApplierV3.TypeAssumptions.ptr_RoleGet_unfold
-  authApplierV3.TypeAssumptions.ptr_RoleGrantPermission_unfold
-  authApplierV3.TypeAssumptions.ptr_RoleList_unfold
-  authApplierV3.TypeAssumptions.ptr_RoleRevokePermission_unfold
-  authApplierV3.TypeAssumptions.ptr_Txn_unfold
-  authApplierV3.TypeAssumptions.ptr_UserAdd_unfold
-  authApplierV3.TypeAssumptions.ptr_UserChangePassword_unfold
-  authApplierV3.TypeAssumptions.ptr_UserDelete_unfold
-  authApplierV3.TypeAssumptions.ptr_UserGet_unfold
-  authApplierV3.TypeAssumptions.ptr_UserGrantRole_unfold
-  authApplierV3.TypeAssumptions.ptr_UserList_unfold
-  authApplierV3.TypeAssumptions.ptr_UserRevokeRole_unfold
+  authApplierV3.TypeAssumptions.unfold'Alarm
+  authApplierV3.TypeAssumptions.unfold'AuthDisable
+  authApplierV3.TypeAssumptions.unfold'AuthEnable
+  authApplierV3.TypeAssumptions.unfold'AuthStatus
+  authApplierV3.TypeAssumptions.unfold'Authenticate
+  authApplierV3.TypeAssumptions.unfold'ClusterMemberAttrSet
+  authApplierV3.TypeAssumptions.unfold'ClusterVersionSet
+  authApplierV3.TypeAssumptions.unfold'Compaction
+  authApplierV3.TypeAssumptions.unfold'DowngradeInfoSet
+  authApplierV3.TypeAssumptions.unfold'LeaseCheckpoint
+  authApplierV3.TypeAssumptions.unfold'LeaseGrant
+  authApplierV3.TypeAssumptions.unfold'RoleAdd
+  authApplierV3.TypeAssumptions.unfold'RoleDelete
+  authApplierV3.TypeAssumptions.unfold'RoleGrantPermission
+  authApplierV3.TypeAssumptions.unfold'RoleList
+  authApplierV3.TypeAssumptions.unfold'RoleRevokePermission
+  authApplierV3.TypeAssumptions.unfold'UserAdd
+  authApplierV3.TypeAssumptions.unfold'UserChangePassword
+  authApplierV3.TypeAssumptions.unfold'UserDelete
+  authApplierV3.TypeAssumptions.unfold'UserGrantRole
+  authApplierV3.TypeAssumptions.unfold'UserList
+  authApplierV3.TypeAssumptions.unfold'UserRevokeRole
+  authApplierV3.TypeAssumptions.ptr_unfold'Alarm
+  authApplierV3.TypeAssumptions.ptr_unfold'Apply
+  authApplierV3.TypeAssumptions.ptr_unfold'AuthDisable
+  authApplierV3.TypeAssumptions.ptr_unfold'AuthEnable
+  authApplierV3.TypeAssumptions.ptr_unfold'AuthStatus
+  authApplierV3.TypeAssumptions.ptr_unfold'Authenticate
+  authApplierV3.TypeAssumptions.ptr_unfold'ClusterMemberAttrSet
+  authApplierV3.TypeAssumptions.ptr_unfold'ClusterVersionSet
+  authApplierV3.TypeAssumptions.ptr_unfold'Compaction
+  authApplierV3.TypeAssumptions.ptr_unfold'DeleteRange
+  authApplierV3.TypeAssumptions.ptr_unfold'DowngradeInfoSet
+  authApplierV3.TypeAssumptions.ptr_unfold'LeaseCheckpoint
+  authApplierV3.TypeAssumptions.ptr_unfold'LeaseGrant
+  authApplierV3.TypeAssumptions.ptr_unfold'LeaseRevoke
+  authApplierV3.TypeAssumptions.ptr_unfold'Put
+  authApplierV3.TypeAssumptions.ptr_unfold'Range
+  authApplierV3.TypeAssumptions.ptr_unfold'RoleAdd
+  authApplierV3.TypeAssumptions.ptr_unfold'RoleDelete
+  authApplierV3.TypeAssumptions.ptr_unfold'RoleGet
+  authApplierV3.TypeAssumptions.ptr_unfold'RoleGrantPermission
+  authApplierV3.TypeAssumptions.ptr_unfold'RoleList
+  authApplierV3.TypeAssumptions.ptr_unfold'RoleRevokePermission
+  authApplierV3.TypeAssumptions.ptr_unfold'Txn
+  authApplierV3.TypeAssumptions.ptr_unfold'UserAdd
+  authApplierV3.TypeAssumptions.ptr_unfold'UserChangePassword
+  authApplierV3.TypeAssumptions.ptr_unfold'UserDelete
+  authApplierV3.TypeAssumptions.ptr_unfold'UserGet
+  authApplierV3.TypeAssumptions.ptr_unfold'UserGrantRole
+  authApplierV3.TypeAssumptions.ptr_unfold'UserList
+  authApplierV3.TypeAssumptions.ptr_unfold'UserRevokeRole
 
 abbrev RaftStatusGetter [GooseExts] : Type := GoInterface
 
@@ -4426,7 +4426,7 @@ noncomputable instance ApplierOptions.zero_val [GooseExts] : ZeroVal ApplierOpti
 @[irreducible] noncomputable def ApplierOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ApplierOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_ApplierOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ApplierOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold ApplierOptions.fields ApplierOptions.fieldsUnsealed :=
   ⟨by unfold ApplierOptions.fields; rfl⟩
 
@@ -4436,63 +4436,63 @@ noncomputable instance equals_unfold_ApplierOptions [GooseExts] [GoGlobalContext
 class ApplierOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ApplierOptions.underlying ApplierOptions
   underlying : go.UnderlyingDirectedEq ApplierOptions.ty ApplierOptions.underlying
-  get_Logger : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"Logger") #x (Val #(x.Logger'))
-  set_Logger : ∀ (x : ApplierOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : ApplierOptions)))
-  get_KV : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"KV") #x (Val #(x.KV'))
-  set_KV : ∀ (x : ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"KV") (PairV #x #y) (Val #(({ x with KV' := y } : ApplierOptions)))
-  get_AlarmStore : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"AlarmStore") #x (Val #(x.AlarmStore'))
-  set_AlarmStore : ∀ (x : ApplierOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"AlarmStore") (PairV #x #y) (Val #(({ x with AlarmStore' := y } : ApplierOptions)))
-  get_AuthStore : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"AuthStore") #x (Val #(x.AuthStore'))
-  set_AuthStore : ∀ (x : ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"AuthStore") (PairV #x #y) (Val #(({ x with AuthStore' := y } : ApplierOptions)))
-  get_Lessor : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"Lessor") #x (Val #(x.Lessor'))
-  set_Lessor : ∀ (x : ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"Lessor") (PairV #x #y) (Val #(({ x with Lessor' := y } : ApplierOptions)))
-  get_Cluster : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"Cluster") #x (Val #(x.Cluster'))
-  set_Cluster : ∀ (x : ApplierOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"Cluster") (PairV #x #y) (Val #(({ x with Cluster' := y } : ApplierOptions)))
-  get_RaftStatus : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"RaftStatus") #x (Val #(x.RaftStatus'))
-  set_RaftStatus : ∀ (x : ApplierOptions) (y : RaftStatusGetter), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"RaftStatus") (PairV #x #y) (Val #(({ x with RaftStatus' := y } : ApplierOptions)))
-  get_SnapshotServer : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"SnapshotServer") #x (Val #(x.SnapshotServer'))
-  set_SnapshotServer : ∀ (x : ApplierOptions) (y : SnapshotServer), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"SnapshotServer") (PairV #x #y) (Val #(({ x with SnapshotServer' := y } : ApplierOptions)))
-  get_ConsistentIndex : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"ConsistentIndex") #x (Val #(x.ConsistentIndex'))
-  set_ConsistentIndex : ∀ (x : ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"ConsistentIndex") (PairV #x #y) (Val #(({ x with ConsistentIndex' := y } : ApplierOptions)))
-  get_TxnModeWriteWithSharedBuffer : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"TxnModeWriteWithSharedBuffer") #x (Val #(x.TxnModeWriteWithSharedBuffer'))
-  set_TxnModeWriteWithSharedBuffer : ∀ (x : ApplierOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"TxnModeWriteWithSharedBuffer") (PairV #x #y) (Val #(({ x with TxnModeWriteWithSharedBuffer' := y } : ApplierOptions)))
-  get_Backend : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"Backend") #x (Val #(x.Backend'))
-  set_Backend : ∀ (x : ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"Backend") (PairV #x #y) (Val #(({ x with Backend' := y } : ApplierOptions)))
-  get_QuotaBackendBytesCfg : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"QuotaBackendBytesCfg") #x (Val #(x.QuotaBackendBytesCfg'))
-  set_QuotaBackendBytesCfg : ∀ (x : ApplierOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"QuotaBackendBytesCfg") (PairV #x #y) (Val #(({ x with QuotaBackendBytesCfg' := y } : ApplierOptions)))
-  get_WarningApplyDuration : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"WarningApplyDuration") #x (Val #(x.WarningApplyDuration'))
-  set_WarningApplyDuration : ∀ (x : ApplierOptions) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"WarningApplyDuration") (PairV #x #y) (Val #(({ x with WarningApplyDuration' := y } : ApplierOptions)))
+  get'Logger : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"Logger") #x (Val #(x.Logger'))
+  set'Logger : ∀ (x : ApplierOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : ApplierOptions)))
+  get'KV : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"KV") #x (Val #(x.KV'))
+  set'KV : ∀ (x : ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"KV") (PairV #x #y) (Val #(({ x with KV' := y } : ApplierOptions)))
+  get'AlarmStore : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"AlarmStore") #x (Val #(x.AlarmStore'))
+  set'AlarmStore : ∀ (x : ApplierOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"AlarmStore") (PairV #x #y) (Val #(({ x with AlarmStore' := y } : ApplierOptions)))
+  get'AuthStore : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"AuthStore") #x (Val #(x.AuthStore'))
+  set'AuthStore : ∀ (x : ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"AuthStore") (PairV #x #y) (Val #(({ x with AuthStore' := y } : ApplierOptions)))
+  get'Lessor : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"Lessor") #x (Val #(x.Lessor'))
+  set'Lessor : ∀ (x : ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"Lessor") (PairV #x #y) (Val #(({ x with Lessor' := y } : ApplierOptions)))
+  get'Cluster : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"Cluster") #x (Val #(x.Cluster'))
+  set'Cluster : ∀ (x : ApplierOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"Cluster") (PairV #x #y) (Val #(({ x with Cluster' := y } : ApplierOptions)))
+  get'RaftStatus : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"RaftStatus") #x (Val #(x.RaftStatus'))
+  set'RaftStatus : ∀ (x : ApplierOptions) (y : RaftStatusGetter), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"RaftStatus") (PairV #x #y) (Val #(({ x with RaftStatus' := y } : ApplierOptions)))
+  get'SnapshotServer : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"SnapshotServer") #x (Val #(x.SnapshotServer'))
+  set'SnapshotServer : ∀ (x : ApplierOptions) (y : SnapshotServer), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"SnapshotServer") (PairV #x #y) (Val #(({ x with SnapshotServer' := y } : ApplierOptions)))
+  get'ConsistentIndex : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"ConsistentIndex") #x (Val #(x.ConsistentIndex'))
+  set'ConsistentIndex : ∀ (x : ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"ConsistentIndex") (PairV #x #y) (Val #(({ x with ConsistentIndex' := y } : ApplierOptions)))
+  get'TxnModeWriteWithSharedBuffer : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"TxnModeWriteWithSharedBuffer") #x (Val #(x.TxnModeWriteWithSharedBuffer'))
+  set'TxnModeWriteWithSharedBuffer : ∀ (x : ApplierOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"TxnModeWriteWithSharedBuffer") (PairV #x #y) (Val #(({ x with TxnModeWriteWithSharedBuffer' := y } : ApplierOptions)))
+  get'Backend : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"Backend") #x (Val #(x.Backend'))
+  set'Backend : ∀ (x : ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"Backend") (PairV #x #y) (Val #(({ x with Backend' := y } : ApplierOptions)))
+  get'QuotaBackendBytesCfg : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"QuotaBackendBytesCfg") #x (Val #(x.QuotaBackendBytesCfg'))
+  set'QuotaBackendBytesCfg : ∀ (x : ApplierOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"QuotaBackendBytesCfg") (PairV #x #y) (Val #(({ x with QuotaBackendBytesCfg' := y } : ApplierOptions)))
+  get'WarningApplyDuration : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"WarningApplyDuration") #x (Val #(x.WarningApplyDuration'))
+  set'WarningApplyDuration : ∀ (x : ApplierOptions) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"WarningApplyDuration") (PairV #x #y) (Val #(({ x with WarningApplyDuration' := y } : ApplierOptions)))
   method_set : go.MethodSetIs ApplierOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ApplierOptions.ty) []
 
 attribute [instance] ApplierOptions.TypeAssumptions.type_repr
   ApplierOptions.TypeAssumptions.underlying
-  ApplierOptions.TypeAssumptions.get_Logger
-  ApplierOptions.TypeAssumptions.set_Logger
-  ApplierOptions.TypeAssumptions.get_KV
-  ApplierOptions.TypeAssumptions.set_KV
-  ApplierOptions.TypeAssumptions.get_AlarmStore
-  ApplierOptions.TypeAssumptions.set_AlarmStore
-  ApplierOptions.TypeAssumptions.get_AuthStore
-  ApplierOptions.TypeAssumptions.set_AuthStore
-  ApplierOptions.TypeAssumptions.get_Lessor
-  ApplierOptions.TypeAssumptions.set_Lessor
-  ApplierOptions.TypeAssumptions.get_Cluster
-  ApplierOptions.TypeAssumptions.set_Cluster
-  ApplierOptions.TypeAssumptions.get_RaftStatus
-  ApplierOptions.TypeAssumptions.set_RaftStatus
-  ApplierOptions.TypeAssumptions.get_SnapshotServer
-  ApplierOptions.TypeAssumptions.set_SnapshotServer
-  ApplierOptions.TypeAssumptions.get_ConsistentIndex
-  ApplierOptions.TypeAssumptions.set_ConsistentIndex
-  ApplierOptions.TypeAssumptions.get_TxnModeWriteWithSharedBuffer
-  ApplierOptions.TypeAssumptions.set_TxnModeWriteWithSharedBuffer
-  ApplierOptions.TypeAssumptions.get_Backend
-  ApplierOptions.TypeAssumptions.set_Backend
-  ApplierOptions.TypeAssumptions.get_QuotaBackendBytesCfg
-  ApplierOptions.TypeAssumptions.set_QuotaBackendBytesCfg
-  ApplierOptions.TypeAssumptions.get_WarningApplyDuration
-  ApplierOptions.TypeAssumptions.set_WarningApplyDuration
+  ApplierOptions.TypeAssumptions.get'Logger
+  ApplierOptions.TypeAssumptions.set'Logger
+  ApplierOptions.TypeAssumptions.get'KV
+  ApplierOptions.TypeAssumptions.set'KV
+  ApplierOptions.TypeAssumptions.get'AlarmStore
+  ApplierOptions.TypeAssumptions.set'AlarmStore
+  ApplierOptions.TypeAssumptions.get'AuthStore
+  ApplierOptions.TypeAssumptions.set'AuthStore
+  ApplierOptions.TypeAssumptions.get'Lessor
+  ApplierOptions.TypeAssumptions.set'Lessor
+  ApplierOptions.TypeAssumptions.get'Cluster
+  ApplierOptions.TypeAssumptions.set'Cluster
+  ApplierOptions.TypeAssumptions.get'RaftStatus
+  ApplierOptions.TypeAssumptions.set'RaftStatus
+  ApplierOptions.TypeAssumptions.get'SnapshotServer
+  ApplierOptions.TypeAssumptions.set'SnapshotServer
+  ApplierOptions.TypeAssumptions.get'ConsistentIndex
+  ApplierOptions.TypeAssumptions.set'ConsistentIndex
+  ApplierOptions.TypeAssumptions.get'TxnModeWriteWithSharedBuffer
+  ApplierOptions.TypeAssumptions.set'TxnModeWriteWithSharedBuffer
+  ApplierOptions.TypeAssumptions.get'Backend
+  ApplierOptions.TypeAssumptions.set'Backend
+  ApplierOptions.TypeAssumptions.get'QuotaBackendBytesCfg
+  ApplierOptions.TypeAssumptions.set'QuotaBackendBytesCfg
+  ApplierOptions.TypeAssumptions.get'WarningApplyDuration
+  ApplierOptions.TypeAssumptions.set'WarningApplyDuration
   ApplierOptions.TypeAssumptions.method_set
   ApplierOptions.TypeAssumptions.ptr_method_set
 
@@ -4509,7 +4509,7 @@ noncomputable instance applierV3backend.zero_val [GooseExts] : ZeroVal applierV3
 @[irreducible] noncomputable def applierV3backend.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   applierV3backend.fieldsUnsealed
 
-noncomputable instance equals_unfold_applierV3backend [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'applierV3backend [GooseExts] [GoGlobalContext] :
     EqualsUnfold applierV3backend.fields applierV3backend.fieldsUnsealed :=
   ⟨by unfold applierV3backend.fields; rfl⟩
 
@@ -4519,79 +4519,79 @@ noncomputable instance equals_unfold_applierV3backend [GooseExts] [GoGlobalConte
 class applierV3backend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying applierV3backend.underlying applierV3backend
   underlying : go.UnderlyingDirectedEq applierV3backend.ty applierV3backend.underlying
-  get_options : ∀ (x : applierV3backend), go.IsGoStepPureDetTagged under (StructFieldGet applierV3backend.underlying go!"options") #x (Val #(x.options'))
-  set_options : ∀ (x : applierV3backend) (y : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldSet applierV3backend.underlying go!"options") (PairV #x #y) (Val #(({ x with options' := y } : applierV3backend)))
+  get'options : ∀ (x : applierV3backend), go.IsGoStepPureDetTagged under (StructFieldGet applierV3backend.underlying go!"options") #x (Val #(x.options'))
+  set'options : ∀ (x : applierV3backend) (y : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldSet applierV3backend.underlying go!"options") (PairV #x #y) (Val #(({ x with options' := y } : applierV3backend)))
   method_set : go.MethodSetIs applierV3backend.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType applierV3backend.ty) [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseGrant", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"Range", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty), go.bool] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/apply.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)])))]
-  ptr_Alarm_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"Alarm" applierV3backend.Alarm.impl
-  ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"Apply" applierV3backend.Apply.impl
-  ptr_AuthDisable_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"AuthDisable" applierV3backend.AuthDisable.impl
-  ptr_AuthEnable_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"AuthEnable" applierV3backend.AuthEnable.impl
-  ptr_AuthStatus_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"AuthStatus" applierV3backend.AuthStatus.impl
-  ptr_Authenticate_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"Authenticate" applierV3backend.Authenticate.impl
-  ptr_ClusterMemberAttrSet_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"ClusterMemberAttrSet" applierV3backend.ClusterMemberAttrSet.impl
-  ptr_ClusterVersionSet_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"ClusterVersionSet" applierV3backend.ClusterVersionSet.impl
-  ptr_Compaction_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"Compaction" applierV3backend.Compaction.impl
-  ptr_DeleteRange_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"DeleteRange" applierV3backend.DeleteRange.impl
-  ptr_DowngradeInfoSet_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"DowngradeInfoSet" applierV3backend.DowngradeInfoSet.impl
-  ptr_LeaseCheckpoint_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"LeaseCheckpoint" applierV3backend.LeaseCheckpoint.impl
-  ptr_LeaseGrant_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"LeaseGrant" applierV3backend.LeaseGrant.impl
-  ptr_LeaseRevoke_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"LeaseRevoke" applierV3backend.LeaseRevoke.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"Put" applierV3backend.Put.impl
-  ptr_Range_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"Range" applierV3backend.Range.impl
-  ptr_RoleAdd_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"RoleAdd" applierV3backend.RoleAdd.impl
-  ptr_RoleDelete_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"RoleDelete" applierV3backend.RoleDelete.impl
-  ptr_RoleGet_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"RoleGet" applierV3backend.RoleGet.impl
-  ptr_RoleGrantPermission_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"RoleGrantPermission" applierV3backend.RoleGrantPermission.impl
-  ptr_RoleList_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"RoleList" applierV3backend.RoleList.impl
-  ptr_RoleRevokePermission_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"RoleRevokePermission" applierV3backend.RoleRevokePermission.impl
-  ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"Txn" applierV3backend.Txn.impl
-  ptr_UserAdd_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserAdd" applierV3backend.UserAdd.impl
-  ptr_UserChangePassword_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserChangePassword" applierV3backend.UserChangePassword.impl
-  ptr_UserDelete_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserDelete" applierV3backend.UserDelete.impl
-  ptr_UserGet_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserGet" applierV3backend.UserGet.impl
-  ptr_UserGrantRole_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserGrantRole" applierV3backend.UserGrantRole.impl
-  ptr_UserList_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserList" applierV3backend.UserList.impl
-  ptr_UserRevokeRole_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserRevokeRole" applierV3backend.UserRevokeRole.impl
-  ptr_newHeader_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"newHeader" applierV3backend.newHeader.impl
+  ptr_unfold'Alarm : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"Alarm" applierV3backend.Alarm.impl
+  ptr_unfold'Apply : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"Apply" applierV3backend.Apply.impl
+  ptr_unfold'AuthDisable : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"AuthDisable" applierV3backend.AuthDisable.impl
+  ptr_unfold'AuthEnable : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"AuthEnable" applierV3backend.AuthEnable.impl
+  ptr_unfold'AuthStatus : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"AuthStatus" applierV3backend.AuthStatus.impl
+  ptr_unfold'Authenticate : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"Authenticate" applierV3backend.Authenticate.impl
+  ptr_unfold'ClusterMemberAttrSet : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"ClusterMemberAttrSet" applierV3backend.ClusterMemberAttrSet.impl
+  ptr_unfold'ClusterVersionSet : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"ClusterVersionSet" applierV3backend.ClusterVersionSet.impl
+  ptr_unfold'Compaction : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"Compaction" applierV3backend.Compaction.impl
+  ptr_unfold'DeleteRange : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"DeleteRange" applierV3backend.DeleteRange.impl
+  ptr_unfold'DowngradeInfoSet : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"DowngradeInfoSet" applierV3backend.DowngradeInfoSet.impl
+  ptr_unfold'LeaseCheckpoint : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"LeaseCheckpoint" applierV3backend.LeaseCheckpoint.impl
+  ptr_unfold'LeaseGrant : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"LeaseGrant" applierV3backend.LeaseGrant.impl
+  ptr_unfold'LeaseRevoke : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"LeaseRevoke" applierV3backend.LeaseRevoke.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"Put" applierV3backend.Put.impl
+  ptr_unfold'Range : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"Range" applierV3backend.Range.impl
+  ptr_unfold'RoleAdd : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"RoleAdd" applierV3backend.RoleAdd.impl
+  ptr_unfold'RoleDelete : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"RoleDelete" applierV3backend.RoleDelete.impl
+  ptr_unfold'RoleGet : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"RoleGet" applierV3backend.RoleGet.impl
+  ptr_unfold'RoleGrantPermission : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"RoleGrantPermission" applierV3backend.RoleGrantPermission.impl
+  ptr_unfold'RoleList : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"RoleList" applierV3backend.RoleList.impl
+  ptr_unfold'RoleRevokePermission : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"RoleRevokePermission" applierV3backend.RoleRevokePermission.impl
+  ptr_unfold'Txn : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"Txn" applierV3backend.Txn.impl
+  ptr_unfold'UserAdd : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserAdd" applierV3backend.UserAdd.impl
+  ptr_unfold'UserChangePassword : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserChangePassword" applierV3backend.UserChangePassword.impl
+  ptr_unfold'UserDelete : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserDelete" applierV3backend.UserDelete.impl
+  ptr_unfold'UserGet : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserGet" applierV3backend.UserGet.impl
+  ptr_unfold'UserGrantRole : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserGrantRole" applierV3backend.UserGrantRole.impl
+  ptr_unfold'UserList : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserList" applierV3backend.UserList.impl
+  ptr_unfold'UserRevokeRole : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserRevokeRole" applierV3backend.UserRevokeRole.impl
+  ptr_unfold'newHeader : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"newHeader" applierV3backend.newHeader.impl
 
 attribute [instance] applierV3backend.TypeAssumptions.type_repr
   applierV3backend.TypeAssumptions.underlying
-  applierV3backend.TypeAssumptions.get_options
-  applierV3backend.TypeAssumptions.set_options
+  applierV3backend.TypeAssumptions.get'options
+  applierV3backend.TypeAssumptions.set'options
   applierV3backend.TypeAssumptions.method_set
   applierV3backend.TypeAssumptions.ptr_method_set
-  applierV3backend.TypeAssumptions.ptr_Alarm_unfold
-  applierV3backend.TypeAssumptions.ptr_Apply_unfold
-  applierV3backend.TypeAssumptions.ptr_AuthDisable_unfold
-  applierV3backend.TypeAssumptions.ptr_AuthEnable_unfold
-  applierV3backend.TypeAssumptions.ptr_AuthStatus_unfold
-  applierV3backend.TypeAssumptions.ptr_Authenticate_unfold
-  applierV3backend.TypeAssumptions.ptr_ClusterMemberAttrSet_unfold
-  applierV3backend.TypeAssumptions.ptr_ClusterVersionSet_unfold
-  applierV3backend.TypeAssumptions.ptr_Compaction_unfold
-  applierV3backend.TypeAssumptions.ptr_DeleteRange_unfold
-  applierV3backend.TypeAssumptions.ptr_DowngradeInfoSet_unfold
-  applierV3backend.TypeAssumptions.ptr_LeaseCheckpoint_unfold
-  applierV3backend.TypeAssumptions.ptr_LeaseGrant_unfold
-  applierV3backend.TypeAssumptions.ptr_LeaseRevoke_unfold
-  applierV3backend.TypeAssumptions.ptr_Put_unfold
-  applierV3backend.TypeAssumptions.ptr_Range_unfold
-  applierV3backend.TypeAssumptions.ptr_RoleAdd_unfold
-  applierV3backend.TypeAssumptions.ptr_RoleDelete_unfold
-  applierV3backend.TypeAssumptions.ptr_RoleGet_unfold
-  applierV3backend.TypeAssumptions.ptr_RoleGrantPermission_unfold
-  applierV3backend.TypeAssumptions.ptr_RoleList_unfold
-  applierV3backend.TypeAssumptions.ptr_RoleRevokePermission_unfold
-  applierV3backend.TypeAssumptions.ptr_Txn_unfold
-  applierV3backend.TypeAssumptions.ptr_UserAdd_unfold
-  applierV3backend.TypeAssumptions.ptr_UserChangePassword_unfold
-  applierV3backend.TypeAssumptions.ptr_UserDelete_unfold
-  applierV3backend.TypeAssumptions.ptr_UserGet_unfold
-  applierV3backend.TypeAssumptions.ptr_UserGrantRole_unfold
-  applierV3backend.TypeAssumptions.ptr_UserList_unfold
-  applierV3backend.TypeAssumptions.ptr_UserRevokeRole_unfold
-  applierV3backend.TypeAssumptions.ptr_newHeader_unfold
+  applierV3backend.TypeAssumptions.ptr_unfold'Alarm
+  applierV3backend.TypeAssumptions.ptr_unfold'Apply
+  applierV3backend.TypeAssumptions.ptr_unfold'AuthDisable
+  applierV3backend.TypeAssumptions.ptr_unfold'AuthEnable
+  applierV3backend.TypeAssumptions.ptr_unfold'AuthStatus
+  applierV3backend.TypeAssumptions.ptr_unfold'Authenticate
+  applierV3backend.TypeAssumptions.ptr_unfold'ClusterMemberAttrSet
+  applierV3backend.TypeAssumptions.ptr_unfold'ClusterVersionSet
+  applierV3backend.TypeAssumptions.ptr_unfold'Compaction
+  applierV3backend.TypeAssumptions.ptr_unfold'DeleteRange
+  applierV3backend.TypeAssumptions.ptr_unfold'DowngradeInfoSet
+  applierV3backend.TypeAssumptions.ptr_unfold'LeaseCheckpoint
+  applierV3backend.TypeAssumptions.ptr_unfold'LeaseGrant
+  applierV3backend.TypeAssumptions.ptr_unfold'LeaseRevoke
+  applierV3backend.TypeAssumptions.ptr_unfold'Put
+  applierV3backend.TypeAssumptions.ptr_unfold'Range
+  applierV3backend.TypeAssumptions.ptr_unfold'RoleAdd
+  applierV3backend.TypeAssumptions.ptr_unfold'RoleDelete
+  applierV3backend.TypeAssumptions.ptr_unfold'RoleGet
+  applierV3backend.TypeAssumptions.ptr_unfold'RoleGrantPermission
+  applierV3backend.TypeAssumptions.ptr_unfold'RoleList
+  applierV3backend.TypeAssumptions.ptr_unfold'RoleRevokePermission
+  applierV3backend.TypeAssumptions.ptr_unfold'Txn
+  applierV3backend.TypeAssumptions.ptr_unfold'UserAdd
+  applierV3backend.TypeAssumptions.ptr_unfold'UserChangePassword
+  applierV3backend.TypeAssumptions.ptr_unfold'UserDelete
+  applierV3backend.TypeAssumptions.ptr_unfold'UserGet
+  applierV3backend.TypeAssumptions.ptr_unfold'UserGrantRole
+  applierV3backend.TypeAssumptions.ptr_unfold'UserList
+  applierV3backend.TypeAssumptions.ptr_unfold'UserRevokeRole
+  applierV3backend.TypeAssumptions.ptr_unfold'newHeader
 
 structure applierV3Capped [GooseExts] where
   mk ::
@@ -4608,7 +4608,7 @@ noncomputable instance applierV3Capped.zero_val [GooseExts] : ZeroVal applierV3C
 @[irreducible] noncomputable def applierV3Capped.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   applierV3Capped.fieldsUnsealed
 
-noncomputable instance equals_unfold_applierV3Capped [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'applierV3Capped [GooseExts] [GoGlobalContext] :
     EqualsUnfold applierV3Capped.fields applierV3Capped.fieldsUnsealed :=
   ⟨by unfold applierV3Capped.fields; rfl⟩
 
@@ -4618,189 +4618,189 @@ noncomputable instance equals_unfold_applierV3Capped [GooseExts] [GoGlobalContex
 class applierV3Capped.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying applierV3Capped.underlying applierV3Capped
   underlying : go.UnderlyingDirectedEq applierV3Capped.ty applierV3Capped.underlying
-  get_applierV3 : ∀ (x : applierV3Capped), go.IsGoStepPureDetTagged under (StructFieldGet applierV3Capped.underlying go!"applierV3") #x (Val #(x.applierV3'))
-  set_applierV3 : ∀ (x : applierV3Capped) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet applierV3Capped.underlying go!"applierV3") (PairV #x #y) (Val #(({ x with applierV3' := y } : applierV3Capped)))
-  get_q : ∀ (x : applierV3Capped), go.IsGoStepPureDetTagged under (StructFieldGet applierV3Capped.underlying go!"q") #x (Val #(x.q'))
-  set_q : ∀ (x : applierV3Capped) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.BackendQuota), go.IsGoStepPureDetTagged under (StructFieldSet applierV3Capped.underlying go!"q") (PairV #x #y) (Val #(({ x with q' := y } : applierV3Capped)))
+  get'applierV3 : ∀ (x : applierV3Capped), go.IsGoStepPureDetTagged under (StructFieldGet applierV3Capped.underlying go!"applierV3") #x (Val #(x.applierV3'))
+  set'applierV3 : ∀ (x : applierV3Capped) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet applierV3Capped.underlying go!"applierV3") (PairV #x #y) (Val #(({ x with applierV3' := y } : applierV3Capped)))
+  get'q : ∀ (x : applierV3Capped), go.IsGoStepPureDetTagged under (StructFieldGet applierV3Capped.underlying go!"q") #x (Val #(x.q'))
+  set'q : ∀ (x : applierV3Capped) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.BackendQuota), go.IsGoStepPureDetTagged under (StructFieldSet applierV3Capped.underlying go!"q") (PairV #x #y) (Val #(({ x with q' := y } : applierV3Capped)))
   method_set : go.MethodSetIs applierV3Capped.ty [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"Range", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType applierV3Capped.ty) [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseGrant", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"Range", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty), go.bool] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
-  Alarm_unfold : MethodUnfold applierV3Capped.ty go!"Alarm" (LamV "$r"
+  unfold'Alarm : MethodUnfold applierV3Capped.ty go!"Alarm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Alarm"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  Apply_unfold : MethodUnfold applierV3Capped.ty go!"Apply" (LamV "$r"
+  unfold'Apply : MethodUnfold applierV3Capped.ty go!"Apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Apply"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  AuthDisable_unfold : MethodUnfold applierV3Capped.ty go!"AuthDisable" (LamV "$r"
+  unfold'AuthDisable : MethodUnfold applierV3Capped.ty go!"AuthDisable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthDisable"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  AuthEnable_unfold : MethodUnfold applierV3Capped.ty go!"AuthEnable" (LamV "$r"
+  unfold'AuthEnable : MethodUnfold applierV3Capped.ty go!"AuthEnable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthEnable"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  AuthStatus_unfold : MethodUnfold applierV3Capped.ty go!"AuthStatus" (LamV "$r"
+  unfold'AuthStatus : MethodUnfold applierV3Capped.ty go!"AuthStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthStatus"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  Authenticate_unfold : MethodUnfold applierV3Capped.ty go!"Authenticate" (LamV "$r"
+  unfold'Authenticate : MethodUnfold applierV3Capped.ty go!"Authenticate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Authenticate"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  ClusterMemberAttrSet_unfold : MethodUnfold applierV3Capped.ty go!"ClusterMemberAttrSet" (LamV "$r"
+  unfold'ClusterMemberAttrSet : MethodUnfold applierV3Capped.ty go!"ClusterMemberAttrSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"ClusterMemberAttrSet"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  ClusterVersionSet_unfold : MethodUnfold applierV3Capped.ty go!"ClusterVersionSet" (LamV "$r"
+  unfold'ClusterVersionSet : MethodUnfold applierV3Capped.ty go!"ClusterVersionSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"ClusterVersionSet"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  Compaction_unfold : MethodUnfold applierV3Capped.ty go!"Compaction" (LamV "$r"
+  unfold'Compaction : MethodUnfold applierV3Capped.ty go!"Compaction" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Compaction"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  DeleteRange_unfold : MethodUnfold applierV3Capped.ty go!"DeleteRange" (LamV "$r"
+  unfold'DeleteRange : MethodUnfold applierV3Capped.ty go!"DeleteRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"DeleteRange"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  DowngradeInfoSet_unfold : MethodUnfold applierV3Capped.ty go!"DowngradeInfoSet" (LamV "$r"
+  unfold'DowngradeInfoSet : MethodUnfold applierV3Capped.ty go!"DowngradeInfoSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"DowngradeInfoSet"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  LeaseCheckpoint_unfold : MethodUnfold applierV3Capped.ty go!"LeaseCheckpoint" (LamV "$r"
+  unfold'LeaseCheckpoint : MethodUnfold applierV3Capped.ty go!"LeaseCheckpoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"LeaseCheckpoint"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  LeaseRevoke_unfold : MethodUnfold applierV3Capped.ty go!"LeaseRevoke" (LamV "$r"
+  unfold'LeaseRevoke : MethodUnfold applierV3Capped.ty go!"LeaseRevoke" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"LeaseRevoke"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  Range_unfold : MethodUnfold applierV3Capped.ty go!"Range" (LamV "$r"
+  unfold'Range : MethodUnfold applierV3Capped.ty go!"Range" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Range"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  RoleAdd_unfold : MethodUnfold applierV3Capped.ty go!"RoleAdd" (LamV "$r"
+  unfold'RoleAdd : MethodUnfold applierV3Capped.ty go!"RoleAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleAdd"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  RoleDelete_unfold : MethodUnfold applierV3Capped.ty go!"RoleDelete" (LamV "$r"
+  unfold'RoleDelete : MethodUnfold applierV3Capped.ty go!"RoleDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleDelete"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  RoleGet_unfold : MethodUnfold applierV3Capped.ty go!"RoleGet" (LamV "$r"
+  unfold'RoleGet : MethodUnfold applierV3Capped.ty go!"RoleGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleGet"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  RoleGrantPermission_unfold : MethodUnfold applierV3Capped.ty go!"RoleGrantPermission" (LamV "$r"
+  unfold'RoleGrantPermission : MethodUnfold applierV3Capped.ty go!"RoleGrantPermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleGrantPermission"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  RoleList_unfold : MethodUnfold applierV3Capped.ty go!"RoleList" (LamV "$r"
+  unfold'RoleList : MethodUnfold applierV3Capped.ty go!"RoleList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleList"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  RoleRevokePermission_unfold : MethodUnfold applierV3Capped.ty go!"RoleRevokePermission" (LamV "$r"
+  unfold'RoleRevokePermission : MethodUnfold applierV3Capped.ty go!"RoleRevokePermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleRevokePermission"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  UserAdd_unfold : MethodUnfold applierV3Capped.ty go!"UserAdd" (LamV "$r"
+  unfold'UserAdd : MethodUnfold applierV3Capped.ty go!"UserAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserAdd"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  UserChangePassword_unfold : MethodUnfold applierV3Capped.ty go!"UserChangePassword" (LamV "$r"
+  unfold'UserChangePassword : MethodUnfold applierV3Capped.ty go!"UserChangePassword" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserChangePassword"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  UserDelete_unfold : MethodUnfold applierV3Capped.ty go!"UserDelete" (LamV "$r"
+  unfold'UserDelete : MethodUnfold applierV3Capped.ty go!"UserDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserDelete"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  UserGet_unfold : MethodUnfold applierV3Capped.ty go!"UserGet" (LamV "$r"
+  unfold'UserGet : MethodUnfold applierV3Capped.ty go!"UserGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserGet"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  UserGrantRole_unfold : MethodUnfold applierV3Capped.ty go!"UserGrantRole" (LamV "$r"
+  unfold'UserGrantRole : MethodUnfold applierV3Capped.ty go!"UserGrantRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserGrantRole"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  UserList_unfold : MethodUnfold applierV3Capped.ty go!"UserList" (LamV "$r"
+  unfold'UserList : MethodUnfold applierV3Capped.ty go!"UserList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserList"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  UserRevokeRole_unfold : MethodUnfold applierV3Capped.ty go!"UserRevokeRole" (LamV "$r"
+  unfold'UserRevokeRole : MethodUnfold applierV3Capped.ty go!"UserRevokeRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserRevokeRole"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
-  ptr_Alarm_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"Alarm" (LamV "$r"
+  ptr_unfold'Alarm : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"Alarm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Alarm"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"Apply" (LamV "$r"
+  ptr_unfold'Apply : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"Apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Apply"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_AuthDisable_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"AuthDisable" (LamV "$r"
+  ptr_unfold'AuthDisable : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"AuthDisable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthDisable"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_AuthEnable_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"AuthEnable" (LamV "$r"
+  ptr_unfold'AuthEnable : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"AuthEnable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthEnable"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_AuthStatus_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"AuthStatus" (LamV "$r"
+  ptr_unfold'AuthStatus : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"AuthStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthStatus"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Authenticate_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"Authenticate" (LamV "$r"
+  ptr_unfold'Authenticate : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"Authenticate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Authenticate"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_ClusterMemberAttrSet_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"ClusterMemberAttrSet" (LamV "$r"
+  ptr_unfold'ClusterMemberAttrSet : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"ClusterMemberAttrSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"ClusterMemberAttrSet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_ClusterVersionSet_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"ClusterVersionSet" (LamV "$r"
+  ptr_unfold'ClusterVersionSet : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"ClusterVersionSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"ClusterVersionSet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Compaction_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"Compaction" (LamV "$r"
+  ptr_unfold'Compaction : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"Compaction" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Compaction"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_DeleteRange_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"DeleteRange" (LamV "$r"
+  ptr_unfold'DeleteRange : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"DeleteRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"DeleteRange"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_DowngradeInfoSet_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"DowngradeInfoSet" (LamV "$r"
+  ptr_unfold'DowngradeInfoSet : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"DowngradeInfoSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"DowngradeInfoSet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_LeaseCheckpoint_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"LeaseCheckpoint" (LamV "$r"
+  ptr_unfold'LeaseCheckpoint : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"LeaseCheckpoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"LeaseCheckpoint"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_LeaseGrant_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"LeaseGrant" applierV3Capped.LeaseGrant.impl
-  ptr_LeaseRevoke_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"LeaseRevoke" (LamV "$r"
+  ptr_unfold'LeaseGrant : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"LeaseGrant" applierV3Capped.LeaseGrant.impl
+  ptr_unfold'LeaseRevoke : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"LeaseRevoke" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"LeaseRevoke"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"Put" applierV3Capped.Put.impl
-  ptr_Range_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"Range" (LamV "$r"
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"Put" applierV3Capped.Put.impl
+  ptr_unfold'Range : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"Range" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Range"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleAdd_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"RoleAdd" (LamV "$r"
+  ptr_unfold'RoleAdd : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"RoleAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleAdd"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleDelete_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"RoleDelete" (LamV "$r"
+  ptr_unfold'RoleDelete : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"RoleDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleDelete"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleGet_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"RoleGet" (LamV "$r"
+  ptr_unfold'RoleGet : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"RoleGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleGet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleGrantPermission_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"RoleGrantPermission" (LamV "$r"
+  ptr_unfold'RoleGrantPermission : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"RoleGrantPermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleGrantPermission"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleList_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"RoleList" (LamV "$r"
+  ptr_unfold'RoleList : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"RoleList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleList"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleRevokePermission_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"RoleRevokePermission" (LamV "$r"
+  ptr_unfold'RoleRevokePermission : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"RoleRevokePermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleRevokePermission"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"Txn" applierV3Capped.Txn.impl
-  ptr_UserAdd_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"UserAdd" (LamV "$r"
+  ptr_unfold'Txn : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"Txn" applierV3Capped.Txn.impl
+  ptr_unfold'UserAdd : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"UserAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserAdd"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserChangePassword_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"UserChangePassword" (LamV "$r"
+  ptr_unfold'UserChangePassword : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"UserChangePassword" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserChangePassword"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserDelete_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"UserDelete" (LamV "$r"
+  ptr_unfold'UserDelete : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"UserDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserDelete"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserGet_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"UserGet" (LamV "$r"
+  ptr_unfold'UserGet : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"UserGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserGet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserGrantRole_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"UserGrantRole" (LamV "$r"
+  ptr_unfold'UserGrantRole : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"UserGrantRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserGrantRole"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserList_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"UserList" (LamV "$r"
+  ptr_unfold'UserList : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"UserList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserList"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserRevokeRole_unfold : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"UserRevokeRole" (LamV "$r"
+  ptr_unfold'UserRevokeRole : MethodUnfold (go.GoType.PointerType applierV3Capped.ty) go!"UserRevokeRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserRevokeRole"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Capped.ty go!"applierV3"))) (Var "$r")))))
 
 attribute [instance] applierV3Capped.TypeAssumptions.type_repr
   applierV3Capped.TypeAssumptions.underlying
-  applierV3Capped.TypeAssumptions.get_applierV3
-  applierV3Capped.TypeAssumptions.set_applierV3
-  applierV3Capped.TypeAssumptions.get_q
-  applierV3Capped.TypeAssumptions.set_q
+  applierV3Capped.TypeAssumptions.get'applierV3
+  applierV3Capped.TypeAssumptions.set'applierV3
+  applierV3Capped.TypeAssumptions.get'q
+  applierV3Capped.TypeAssumptions.set'q
   applierV3Capped.TypeAssumptions.method_set
   applierV3Capped.TypeAssumptions.ptr_method_set
-  applierV3Capped.TypeAssumptions.Alarm_unfold
-  applierV3Capped.TypeAssumptions.Apply_unfold
-  applierV3Capped.TypeAssumptions.AuthDisable_unfold
-  applierV3Capped.TypeAssumptions.AuthEnable_unfold
-  applierV3Capped.TypeAssumptions.AuthStatus_unfold
-  applierV3Capped.TypeAssumptions.Authenticate_unfold
-  applierV3Capped.TypeAssumptions.ClusterMemberAttrSet_unfold
-  applierV3Capped.TypeAssumptions.ClusterVersionSet_unfold
-  applierV3Capped.TypeAssumptions.Compaction_unfold
-  applierV3Capped.TypeAssumptions.DeleteRange_unfold
-  applierV3Capped.TypeAssumptions.DowngradeInfoSet_unfold
-  applierV3Capped.TypeAssumptions.LeaseCheckpoint_unfold
-  applierV3Capped.TypeAssumptions.LeaseRevoke_unfold
-  applierV3Capped.TypeAssumptions.Range_unfold
-  applierV3Capped.TypeAssumptions.RoleAdd_unfold
-  applierV3Capped.TypeAssumptions.RoleDelete_unfold
-  applierV3Capped.TypeAssumptions.RoleGet_unfold
-  applierV3Capped.TypeAssumptions.RoleGrantPermission_unfold
-  applierV3Capped.TypeAssumptions.RoleList_unfold
-  applierV3Capped.TypeAssumptions.RoleRevokePermission_unfold
-  applierV3Capped.TypeAssumptions.UserAdd_unfold
-  applierV3Capped.TypeAssumptions.UserChangePassword_unfold
-  applierV3Capped.TypeAssumptions.UserDelete_unfold
-  applierV3Capped.TypeAssumptions.UserGet_unfold
-  applierV3Capped.TypeAssumptions.UserGrantRole_unfold
-  applierV3Capped.TypeAssumptions.UserList_unfold
-  applierV3Capped.TypeAssumptions.UserRevokeRole_unfold
-  applierV3Capped.TypeAssumptions.ptr_Alarm_unfold
-  applierV3Capped.TypeAssumptions.ptr_Apply_unfold
-  applierV3Capped.TypeAssumptions.ptr_AuthDisable_unfold
-  applierV3Capped.TypeAssumptions.ptr_AuthEnable_unfold
-  applierV3Capped.TypeAssumptions.ptr_AuthStatus_unfold
-  applierV3Capped.TypeAssumptions.ptr_Authenticate_unfold
-  applierV3Capped.TypeAssumptions.ptr_ClusterMemberAttrSet_unfold
-  applierV3Capped.TypeAssumptions.ptr_ClusterVersionSet_unfold
-  applierV3Capped.TypeAssumptions.ptr_Compaction_unfold
-  applierV3Capped.TypeAssumptions.ptr_DeleteRange_unfold
-  applierV3Capped.TypeAssumptions.ptr_DowngradeInfoSet_unfold
-  applierV3Capped.TypeAssumptions.ptr_LeaseCheckpoint_unfold
-  applierV3Capped.TypeAssumptions.ptr_LeaseGrant_unfold
-  applierV3Capped.TypeAssumptions.ptr_LeaseRevoke_unfold
-  applierV3Capped.TypeAssumptions.ptr_Put_unfold
-  applierV3Capped.TypeAssumptions.ptr_Range_unfold
-  applierV3Capped.TypeAssumptions.ptr_RoleAdd_unfold
-  applierV3Capped.TypeAssumptions.ptr_RoleDelete_unfold
-  applierV3Capped.TypeAssumptions.ptr_RoleGet_unfold
-  applierV3Capped.TypeAssumptions.ptr_RoleGrantPermission_unfold
-  applierV3Capped.TypeAssumptions.ptr_RoleList_unfold
-  applierV3Capped.TypeAssumptions.ptr_RoleRevokePermission_unfold
-  applierV3Capped.TypeAssumptions.ptr_Txn_unfold
-  applierV3Capped.TypeAssumptions.ptr_UserAdd_unfold
-  applierV3Capped.TypeAssumptions.ptr_UserChangePassword_unfold
-  applierV3Capped.TypeAssumptions.ptr_UserDelete_unfold
-  applierV3Capped.TypeAssumptions.ptr_UserGet_unfold
-  applierV3Capped.TypeAssumptions.ptr_UserGrantRole_unfold
-  applierV3Capped.TypeAssumptions.ptr_UserList_unfold
-  applierV3Capped.TypeAssumptions.ptr_UserRevokeRole_unfold
+  applierV3Capped.TypeAssumptions.unfold'Alarm
+  applierV3Capped.TypeAssumptions.unfold'Apply
+  applierV3Capped.TypeAssumptions.unfold'AuthDisable
+  applierV3Capped.TypeAssumptions.unfold'AuthEnable
+  applierV3Capped.TypeAssumptions.unfold'AuthStatus
+  applierV3Capped.TypeAssumptions.unfold'Authenticate
+  applierV3Capped.TypeAssumptions.unfold'ClusterMemberAttrSet
+  applierV3Capped.TypeAssumptions.unfold'ClusterVersionSet
+  applierV3Capped.TypeAssumptions.unfold'Compaction
+  applierV3Capped.TypeAssumptions.unfold'DeleteRange
+  applierV3Capped.TypeAssumptions.unfold'DowngradeInfoSet
+  applierV3Capped.TypeAssumptions.unfold'LeaseCheckpoint
+  applierV3Capped.TypeAssumptions.unfold'LeaseRevoke
+  applierV3Capped.TypeAssumptions.unfold'Range
+  applierV3Capped.TypeAssumptions.unfold'RoleAdd
+  applierV3Capped.TypeAssumptions.unfold'RoleDelete
+  applierV3Capped.TypeAssumptions.unfold'RoleGet
+  applierV3Capped.TypeAssumptions.unfold'RoleGrantPermission
+  applierV3Capped.TypeAssumptions.unfold'RoleList
+  applierV3Capped.TypeAssumptions.unfold'RoleRevokePermission
+  applierV3Capped.TypeAssumptions.unfold'UserAdd
+  applierV3Capped.TypeAssumptions.unfold'UserChangePassword
+  applierV3Capped.TypeAssumptions.unfold'UserDelete
+  applierV3Capped.TypeAssumptions.unfold'UserGet
+  applierV3Capped.TypeAssumptions.unfold'UserGrantRole
+  applierV3Capped.TypeAssumptions.unfold'UserList
+  applierV3Capped.TypeAssumptions.unfold'UserRevokeRole
+  applierV3Capped.TypeAssumptions.ptr_unfold'Alarm
+  applierV3Capped.TypeAssumptions.ptr_unfold'Apply
+  applierV3Capped.TypeAssumptions.ptr_unfold'AuthDisable
+  applierV3Capped.TypeAssumptions.ptr_unfold'AuthEnable
+  applierV3Capped.TypeAssumptions.ptr_unfold'AuthStatus
+  applierV3Capped.TypeAssumptions.ptr_unfold'Authenticate
+  applierV3Capped.TypeAssumptions.ptr_unfold'ClusterMemberAttrSet
+  applierV3Capped.TypeAssumptions.ptr_unfold'ClusterVersionSet
+  applierV3Capped.TypeAssumptions.ptr_unfold'Compaction
+  applierV3Capped.TypeAssumptions.ptr_unfold'DeleteRange
+  applierV3Capped.TypeAssumptions.ptr_unfold'DowngradeInfoSet
+  applierV3Capped.TypeAssumptions.ptr_unfold'LeaseCheckpoint
+  applierV3Capped.TypeAssumptions.ptr_unfold'LeaseGrant
+  applierV3Capped.TypeAssumptions.ptr_unfold'LeaseRevoke
+  applierV3Capped.TypeAssumptions.ptr_unfold'Put
+  applierV3Capped.TypeAssumptions.ptr_unfold'Range
+  applierV3Capped.TypeAssumptions.ptr_unfold'RoleAdd
+  applierV3Capped.TypeAssumptions.ptr_unfold'RoleDelete
+  applierV3Capped.TypeAssumptions.ptr_unfold'RoleGet
+  applierV3Capped.TypeAssumptions.ptr_unfold'RoleGrantPermission
+  applierV3Capped.TypeAssumptions.ptr_unfold'RoleList
+  applierV3Capped.TypeAssumptions.ptr_unfold'RoleRevokePermission
+  applierV3Capped.TypeAssumptions.ptr_unfold'Txn
+  applierV3Capped.TypeAssumptions.ptr_unfold'UserAdd
+  applierV3Capped.TypeAssumptions.ptr_unfold'UserChangePassword
+  applierV3Capped.TypeAssumptions.ptr_unfold'UserDelete
+  applierV3Capped.TypeAssumptions.ptr_unfold'UserGet
+  applierV3Capped.TypeAssumptions.ptr_unfold'UserGrantRole
+  applierV3Capped.TypeAssumptions.ptr_unfold'UserList
+  applierV3Capped.TypeAssumptions.ptr_unfold'UserRevokeRole
 
 structure applierV3Corrupt [GooseExts] where
   mk ::
@@ -4815,7 +4815,7 @@ noncomputable instance applierV3Corrupt.zero_val [GooseExts] : ZeroVal applierV3
 @[irreducible] noncomputable def applierV3Corrupt.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   applierV3Corrupt.fieldsUnsealed
 
-noncomputable instance equals_unfold_applierV3Corrupt [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'applierV3Corrupt [GooseExts] [GoGlobalContext] :
     EqualsUnfold applierV3Corrupt.fields applierV3Corrupt.fieldsUnsealed :=
   ⟨by unfold applierV3Corrupt.fields; rfl⟩
 
@@ -4825,169 +4825,169 @@ noncomputable instance equals_unfold_applierV3Corrupt [GooseExts] [GoGlobalConte
 class applierV3Corrupt.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying applierV3Corrupt.underlying applierV3Corrupt
   underlying : go.UnderlyingDirectedEq applierV3Corrupt.ty applierV3Corrupt.underlying
-  get_applierV3 : ∀ (x : applierV3Corrupt), go.IsGoStepPureDetTagged under (StructFieldGet applierV3Corrupt.underlying go!"applierV3") #x (Val #(x.applierV3'))
-  set_applierV3 : ∀ (x : applierV3Corrupt) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet applierV3Corrupt.underlying go!"applierV3") (PairV #x #y) (Val #(({ x with applierV3' := y } : applierV3Corrupt)))
+  get'applierV3 : ∀ (x : applierV3Corrupt), go.IsGoStepPureDetTagged under (StructFieldGet applierV3Corrupt.underlying go!"applierV3") #x (Val #(x.applierV3'))
+  set'applierV3 : ∀ (x : applierV3Corrupt) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet applierV3Corrupt.underlying go!"applierV3") (PairV #x #y) (Val #(({ x with applierV3' := y } : applierV3Corrupt)))
   method_set : go.MethodSetIs applierV3Corrupt.ty [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType applierV3Corrupt.ty) [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseGrant", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"Range", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty), go.bool] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
-  Alarm_unfold : MethodUnfold applierV3Corrupt.ty go!"Alarm" (LamV "$r"
+  unfold'Alarm : MethodUnfold applierV3Corrupt.ty go!"Alarm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Alarm"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  Apply_unfold : MethodUnfold applierV3Corrupt.ty go!"Apply" (LamV "$r"
+  unfold'Apply : MethodUnfold applierV3Corrupt.ty go!"Apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Apply"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  AuthDisable_unfold : MethodUnfold applierV3Corrupt.ty go!"AuthDisable" (LamV "$r"
+  unfold'AuthDisable : MethodUnfold applierV3Corrupt.ty go!"AuthDisable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthDisable"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  AuthEnable_unfold : MethodUnfold applierV3Corrupt.ty go!"AuthEnable" (LamV "$r"
+  unfold'AuthEnable : MethodUnfold applierV3Corrupt.ty go!"AuthEnable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthEnable"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  AuthStatus_unfold : MethodUnfold applierV3Corrupt.ty go!"AuthStatus" (LamV "$r"
+  unfold'AuthStatus : MethodUnfold applierV3Corrupt.ty go!"AuthStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthStatus"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  Authenticate_unfold : MethodUnfold applierV3Corrupt.ty go!"Authenticate" (LamV "$r"
+  unfold'Authenticate : MethodUnfold applierV3Corrupt.ty go!"Authenticate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Authenticate"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  ClusterMemberAttrSet_unfold : MethodUnfold applierV3Corrupt.ty go!"ClusterMemberAttrSet" (LamV "$r"
+  unfold'ClusterMemberAttrSet : MethodUnfold applierV3Corrupt.ty go!"ClusterMemberAttrSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"ClusterMemberAttrSet"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  ClusterVersionSet_unfold : MethodUnfold applierV3Corrupt.ty go!"ClusterVersionSet" (LamV "$r"
+  unfold'ClusterVersionSet : MethodUnfold applierV3Corrupt.ty go!"ClusterVersionSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"ClusterVersionSet"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  DowngradeInfoSet_unfold : MethodUnfold applierV3Corrupt.ty go!"DowngradeInfoSet" (LamV "$r"
+  unfold'DowngradeInfoSet : MethodUnfold applierV3Corrupt.ty go!"DowngradeInfoSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"DowngradeInfoSet"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  LeaseCheckpoint_unfold : MethodUnfold applierV3Corrupt.ty go!"LeaseCheckpoint" (LamV "$r"
+  unfold'LeaseCheckpoint : MethodUnfold applierV3Corrupt.ty go!"LeaseCheckpoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"LeaseCheckpoint"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  RoleAdd_unfold : MethodUnfold applierV3Corrupt.ty go!"RoleAdd" (LamV "$r"
+  unfold'RoleAdd : MethodUnfold applierV3Corrupt.ty go!"RoleAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleAdd"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  RoleDelete_unfold : MethodUnfold applierV3Corrupt.ty go!"RoleDelete" (LamV "$r"
+  unfold'RoleDelete : MethodUnfold applierV3Corrupt.ty go!"RoleDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleDelete"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  RoleGet_unfold : MethodUnfold applierV3Corrupt.ty go!"RoleGet" (LamV "$r"
+  unfold'RoleGet : MethodUnfold applierV3Corrupt.ty go!"RoleGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleGet"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  RoleGrantPermission_unfold : MethodUnfold applierV3Corrupt.ty go!"RoleGrantPermission" (LamV "$r"
+  unfold'RoleGrantPermission : MethodUnfold applierV3Corrupt.ty go!"RoleGrantPermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleGrantPermission"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  RoleList_unfold : MethodUnfold applierV3Corrupt.ty go!"RoleList" (LamV "$r"
+  unfold'RoleList : MethodUnfold applierV3Corrupt.ty go!"RoleList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleList"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  RoleRevokePermission_unfold : MethodUnfold applierV3Corrupt.ty go!"RoleRevokePermission" (LamV "$r"
+  unfold'RoleRevokePermission : MethodUnfold applierV3Corrupt.ty go!"RoleRevokePermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleRevokePermission"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  UserAdd_unfold : MethodUnfold applierV3Corrupt.ty go!"UserAdd" (LamV "$r"
+  unfold'UserAdd : MethodUnfold applierV3Corrupt.ty go!"UserAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserAdd"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  UserChangePassword_unfold : MethodUnfold applierV3Corrupt.ty go!"UserChangePassword" (LamV "$r"
+  unfold'UserChangePassword : MethodUnfold applierV3Corrupt.ty go!"UserChangePassword" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserChangePassword"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  UserDelete_unfold : MethodUnfold applierV3Corrupt.ty go!"UserDelete" (LamV "$r"
+  unfold'UserDelete : MethodUnfold applierV3Corrupt.ty go!"UserDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserDelete"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  UserGet_unfold : MethodUnfold applierV3Corrupt.ty go!"UserGet" (LamV "$r"
+  unfold'UserGet : MethodUnfold applierV3Corrupt.ty go!"UserGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserGet"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  UserGrantRole_unfold : MethodUnfold applierV3Corrupt.ty go!"UserGrantRole" (LamV "$r"
+  unfold'UserGrantRole : MethodUnfold applierV3Corrupt.ty go!"UserGrantRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserGrantRole"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  UserList_unfold : MethodUnfold applierV3Corrupt.ty go!"UserList" (LamV "$r"
+  unfold'UserList : MethodUnfold applierV3Corrupt.ty go!"UserList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserList"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  UserRevokeRole_unfold : MethodUnfold applierV3Corrupt.ty go!"UserRevokeRole" (LamV "$r"
+  unfold'UserRevokeRole : MethodUnfold applierV3Corrupt.ty go!"UserRevokeRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserRevokeRole"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
-  ptr_Alarm_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"Alarm" (LamV "$r"
+  ptr_unfold'Alarm : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"Alarm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Alarm"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"Apply" (LamV "$r"
+  ptr_unfold'Apply : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"Apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Apply"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_AuthDisable_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"AuthDisable" (LamV "$r"
+  ptr_unfold'AuthDisable : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"AuthDisable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthDisable"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_AuthEnable_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"AuthEnable" (LamV "$r"
+  ptr_unfold'AuthEnable : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"AuthEnable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthEnable"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_AuthStatus_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"AuthStatus" (LamV "$r"
+  ptr_unfold'AuthStatus : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"AuthStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthStatus"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Authenticate_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"Authenticate" (LamV "$r"
+  ptr_unfold'Authenticate : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"Authenticate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Authenticate"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_ClusterMemberAttrSet_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"ClusterMemberAttrSet" (LamV "$r"
+  ptr_unfold'ClusterMemberAttrSet : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"ClusterMemberAttrSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"ClusterMemberAttrSet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_ClusterVersionSet_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"ClusterVersionSet" (LamV "$r"
+  ptr_unfold'ClusterVersionSet : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"ClusterVersionSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"ClusterVersionSet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Compaction_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"Compaction" applierV3Corrupt.Compaction.impl
-  ptr_DeleteRange_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"DeleteRange" applierV3Corrupt.DeleteRange.impl
-  ptr_DowngradeInfoSet_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"DowngradeInfoSet" (LamV "$r"
+  ptr_unfold'Compaction : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"Compaction" applierV3Corrupt.Compaction.impl
+  ptr_unfold'DeleteRange : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"DeleteRange" applierV3Corrupt.DeleteRange.impl
+  ptr_unfold'DowngradeInfoSet : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"DowngradeInfoSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"DowngradeInfoSet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_LeaseCheckpoint_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"LeaseCheckpoint" (LamV "$r"
+  ptr_unfold'LeaseCheckpoint : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"LeaseCheckpoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"LeaseCheckpoint"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_LeaseGrant_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"LeaseGrant" applierV3Corrupt.LeaseGrant.impl
-  ptr_LeaseRevoke_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"LeaseRevoke" applierV3Corrupt.LeaseRevoke.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"Put" applierV3Corrupt.Put.impl
-  ptr_Range_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"Range" applierV3Corrupt.Range.impl
-  ptr_RoleAdd_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"RoleAdd" (LamV "$r"
+  ptr_unfold'LeaseGrant : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"LeaseGrant" applierV3Corrupt.LeaseGrant.impl
+  ptr_unfold'LeaseRevoke : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"LeaseRevoke" applierV3Corrupt.LeaseRevoke.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"Put" applierV3Corrupt.Put.impl
+  ptr_unfold'Range : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"Range" applierV3Corrupt.Range.impl
+  ptr_unfold'RoleAdd : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"RoleAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleAdd"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleDelete_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"RoleDelete" (LamV "$r"
+  ptr_unfold'RoleDelete : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"RoleDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleDelete"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleGet_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"RoleGet" (LamV "$r"
+  ptr_unfold'RoleGet : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"RoleGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleGet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleGrantPermission_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"RoleGrantPermission" (LamV "$r"
+  ptr_unfold'RoleGrantPermission : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"RoleGrantPermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleGrantPermission"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleList_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"RoleList" (LamV "$r"
+  ptr_unfold'RoleList : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"RoleList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleList"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleRevokePermission_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"RoleRevokePermission" (LamV "$r"
+  ptr_unfold'RoleRevokePermission : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"RoleRevokePermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleRevokePermission"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"Txn" applierV3Corrupt.Txn.impl
-  ptr_UserAdd_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"UserAdd" (LamV "$r"
+  ptr_unfold'Txn : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"Txn" applierV3Corrupt.Txn.impl
+  ptr_unfold'UserAdd : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"UserAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserAdd"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserChangePassword_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"UserChangePassword" (LamV "$r"
+  ptr_unfold'UserChangePassword : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"UserChangePassword" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserChangePassword"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserDelete_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"UserDelete" (LamV "$r"
+  ptr_unfold'UserDelete : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"UserDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserDelete"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserGet_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"UserGet" (LamV "$r"
+  ptr_unfold'UserGet : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"UserGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserGet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserGrantRole_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"UserGrantRole" (LamV "$r"
+  ptr_unfold'UserGrantRole : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"UserGrantRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserGrantRole"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserList_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"UserList" (LamV "$r"
+  ptr_unfold'UserList : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"UserList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserList"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserRevokeRole_unfold : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"UserRevokeRole" (LamV "$r"
+  ptr_unfold'UserRevokeRole : MethodUnfold (go.GoType.PointerType applierV3Corrupt.ty) go!"UserRevokeRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserRevokeRole"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef applierV3Corrupt.ty go!"applierV3"))) (Var "$r")))))
 
 attribute [instance] applierV3Corrupt.TypeAssumptions.type_repr
   applierV3Corrupt.TypeAssumptions.underlying
-  applierV3Corrupt.TypeAssumptions.get_applierV3
-  applierV3Corrupt.TypeAssumptions.set_applierV3
+  applierV3Corrupt.TypeAssumptions.get'applierV3
+  applierV3Corrupt.TypeAssumptions.set'applierV3
   applierV3Corrupt.TypeAssumptions.method_set
   applierV3Corrupt.TypeAssumptions.ptr_method_set
-  applierV3Corrupt.TypeAssumptions.Alarm_unfold
-  applierV3Corrupt.TypeAssumptions.Apply_unfold
-  applierV3Corrupt.TypeAssumptions.AuthDisable_unfold
-  applierV3Corrupt.TypeAssumptions.AuthEnable_unfold
-  applierV3Corrupt.TypeAssumptions.AuthStatus_unfold
-  applierV3Corrupt.TypeAssumptions.Authenticate_unfold
-  applierV3Corrupt.TypeAssumptions.ClusterMemberAttrSet_unfold
-  applierV3Corrupt.TypeAssumptions.ClusterVersionSet_unfold
-  applierV3Corrupt.TypeAssumptions.DowngradeInfoSet_unfold
-  applierV3Corrupt.TypeAssumptions.LeaseCheckpoint_unfold
-  applierV3Corrupt.TypeAssumptions.RoleAdd_unfold
-  applierV3Corrupt.TypeAssumptions.RoleDelete_unfold
-  applierV3Corrupt.TypeAssumptions.RoleGet_unfold
-  applierV3Corrupt.TypeAssumptions.RoleGrantPermission_unfold
-  applierV3Corrupt.TypeAssumptions.RoleList_unfold
-  applierV3Corrupt.TypeAssumptions.RoleRevokePermission_unfold
-  applierV3Corrupt.TypeAssumptions.UserAdd_unfold
-  applierV3Corrupt.TypeAssumptions.UserChangePassword_unfold
-  applierV3Corrupt.TypeAssumptions.UserDelete_unfold
-  applierV3Corrupt.TypeAssumptions.UserGet_unfold
-  applierV3Corrupt.TypeAssumptions.UserGrantRole_unfold
-  applierV3Corrupt.TypeAssumptions.UserList_unfold
-  applierV3Corrupt.TypeAssumptions.UserRevokeRole_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_Alarm_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_Apply_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_AuthDisable_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_AuthEnable_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_AuthStatus_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_Authenticate_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_ClusterMemberAttrSet_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_ClusterVersionSet_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_Compaction_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_DeleteRange_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_DowngradeInfoSet_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_LeaseCheckpoint_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_LeaseGrant_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_LeaseRevoke_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_Put_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_Range_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_RoleAdd_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_RoleDelete_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_RoleGet_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_RoleGrantPermission_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_RoleList_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_RoleRevokePermission_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_Txn_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_UserAdd_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_UserChangePassword_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_UserDelete_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_UserGet_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_UserGrantRole_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_UserList_unfold
-  applierV3Corrupt.TypeAssumptions.ptr_UserRevokeRole_unfold
+  applierV3Corrupt.TypeAssumptions.unfold'Alarm
+  applierV3Corrupt.TypeAssumptions.unfold'Apply
+  applierV3Corrupt.TypeAssumptions.unfold'AuthDisable
+  applierV3Corrupt.TypeAssumptions.unfold'AuthEnable
+  applierV3Corrupt.TypeAssumptions.unfold'AuthStatus
+  applierV3Corrupt.TypeAssumptions.unfold'Authenticate
+  applierV3Corrupt.TypeAssumptions.unfold'ClusterMemberAttrSet
+  applierV3Corrupt.TypeAssumptions.unfold'ClusterVersionSet
+  applierV3Corrupt.TypeAssumptions.unfold'DowngradeInfoSet
+  applierV3Corrupt.TypeAssumptions.unfold'LeaseCheckpoint
+  applierV3Corrupt.TypeAssumptions.unfold'RoleAdd
+  applierV3Corrupt.TypeAssumptions.unfold'RoleDelete
+  applierV3Corrupt.TypeAssumptions.unfold'RoleGet
+  applierV3Corrupt.TypeAssumptions.unfold'RoleGrantPermission
+  applierV3Corrupt.TypeAssumptions.unfold'RoleList
+  applierV3Corrupt.TypeAssumptions.unfold'RoleRevokePermission
+  applierV3Corrupt.TypeAssumptions.unfold'UserAdd
+  applierV3Corrupt.TypeAssumptions.unfold'UserChangePassword
+  applierV3Corrupt.TypeAssumptions.unfold'UserDelete
+  applierV3Corrupt.TypeAssumptions.unfold'UserGet
+  applierV3Corrupt.TypeAssumptions.unfold'UserGrantRole
+  applierV3Corrupt.TypeAssumptions.unfold'UserList
+  applierV3Corrupt.TypeAssumptions.unfold'UserRevokeRole
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'Alarm
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'Apply
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'AuthDisable
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'AuthEnable
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'AuthStatus
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'Authenticate
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'ClusterMemberAttrSet
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'ClusterVersionSet
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'Compaction
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'DeleteRange
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'DowngradeInfoSet
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'LeaseCheckpoint
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'LeaseGrant
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'LeaseRevoke
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'Put
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'Range
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'RoleAdd
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'RoleDelete
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'RoleGet
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'RoleGrantPermission
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'RoleList
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'RoleRevokePermission
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'Txn
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'UserAdd
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'UserChangePassword
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'UserDelete
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'UserGet
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'UserGrantRole
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'UserList
+  applierV3Corrupt.TypeAssumptions.ptr_unfold'UserRevokeRole
 
 structure InternalRaftRequestWrapper [GooseExts] where
   mk ::
@@ -5004,7 +5004,7 @@ noncomputable instance InternalRaftRequestWrapper.zero_val [GooseExts] : ZeroVal
 @[irreducible] noncomputable def InternalRaftRequestWrapper.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InternalRaftRequestWrapper.fieldsUnsealed
 
-noncomputable instance equals_unfold_InternalRaftRequestWrapper [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'InternalRaftRequestWrapper [GooseExts] [GoGlobalContext] :
     EqualsUnfold InternalRaftRequestWrapper.fields InternalRaftRequestWrapper.fieldsUnsealed :=
   ⟨by unfold InternalRaftRequestWrapper.fields; rfl⟩
 
@@ -5014,243 +5014,243 @@ noncomputable instance equals_unfold_InternalRaftRequestWrapper [GooseExts] [GoG
 class InternalRaftRequestWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InternalRaftRequestWrapper.underlying InternalRaftRequestWrapper
   underlying : go.UnderlyingDirectedEq InternalRaftRequestWrapper.ty InternalRaftRequestWrapper.underlying
-  get_InternalRaftRequest : ∀ (x : InternalRaftRequestWrapper), go.IsGoStepPureDetTagged under (StructFieldGet InternalRaftRequestWrapper.underlying go!"InternalRaftRequest") #x (Val #(x.InternalRaftRequest'))
-  set_InternalRaftRequest : ∀ (x : InternalRaftRequestWrapper) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet InternalRaftRequestWrapper.underlying go!"InternalRaftRequest") (PairV #x #y) (Val #(({ x with InternalRaftRequest' := y } : InternalRaftRequestWrapper)))
-  get_SkipRangeExecution : ∀ (x : InternalRaftRequestWrapper), go.IsGoStepPureDetTagged under (StructFieldGet InternalRaftRequestWrapper.underlying go!"SkipRangeExecution") #x (Val #(x.SkipRangeExecution'))
-  set_SkipRangeExecution : ∀ (x : InternalRaftRequestWrapper) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet InternalRaftRequestWrapper.underlying go!"SkipRangeExecution") (PairV #x #y) (Val #(({ x with SkipRangeExecution' := y } : InternalRaftRequestWrapper)))
+  get'InternalRaftRequest : ∀ (x : InternalRaftRequestWrapper), go.IsGoStepPureDetTagged under (StructFieldGet InternalRaftRequestWrapper.underlying go!"InternalRaftRequest") #x (Val #(x.InternalRaftRequest'))
+  set'InternalRaftRequest : ∀ (x : InternalRaftRequestWrapper) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet InternalRaftRequestWrapper.underlying go!"InternalRaftRequest") (PairV #x #y) (Val #(({ x with InternalRaftRequest' := y } : InternalRaftRequestWrapper)))
+  get'SkipRangeExecution : ∀ (x : InternalRaftRequestWrapper), go.IsGoStepPureDetTagged under (StructFieldGet InternalRaftRequestWrapper.underlying go!"SkipRangeExecution") #x (Val #(x.SkipRangeExecution'))
+  set'SkipRangeExecution : ∀ (x : InternalRaftRequestWrapper) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet InternalRaftRequestWrapper.underlying go!"SkipRangeExecution") (PairV #x #y) (Val #(({ x with SkipRangeExecution' := y } : InternalRaftRequestWrapper)))
   method_set : go.MethodSetIs InternalRaftRequestWrapper.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetAlarm", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)]))), (go!"GetAuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)]))), (go!"GetAuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)]))), (go!"GetAuthRoleAdd", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)]))), (go!"GetAuthRoleDelete", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)]))), (go!"GetAuthRoleGet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)]))), (go!"GetAuthRoleGrantPermission", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)]))), (go!"GetAuthRoleList", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)]))), (go!"GetAuthRoleRevokePermission", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)]))), (go!"GetAuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)]))), (go!"GetAuthUserAdd", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)]))), (go!"GetAuthUserChangePassword", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)]))), (go!"GetAuthUserDelete", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)]))), (go!"GetAuthUserGet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)]))), (go!"GetAuthUserGrantRole", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)]))), (go!"GetAuthUserList", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)]))), (go!"GetAuthUserRevokeRole", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)]))), (go!"GetAuthenticate", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)]))), (go!"GetClusterMemberAttrSet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty)]))), (go!"GetClusterVersionSet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty)]))), (go!"GetCompaction", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)]))), (go!"GetDeleteRange", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)]))), (go!"GetDowngradeInfoSet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty)]))), (go!"GetDowngradeVersionTest", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeVersionTestRequest.ty)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader.ty)]))), (go!"GetID", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLeaseCheckpoint", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)]))), (go!"GetLeaseGrant", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)]))), (go!"GetLeaseRevoke", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)]))), (go!"GetPut", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)]))), (go!"GetRange", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)]))), (go!"GetTxn", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType InternalRaftRequestWrapper.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetAlarm", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)]))), (go!"GetAuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)]))), (go!"GetAuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)]))), (go!"GetAuthRoleAdd", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)]))), (go!"GetAuthRoleDelete", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)]))), (go!"GetAuthRoleGet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)]))), (go!"GetAuthRoleGrantPermission", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)]))), (go!"GetAuthRoleList", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)]))), (go!"GetAuthRoleRevokePermission", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)]))), (go!"GetAuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)]))), (go!"GetAuthUserAdd", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)]))), (go!"GetAuthUserChangePassword", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)]))), (go!"GetAuthUserDelete", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)]))), (go!"GetAuthUserGet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)]))), (go!"GetAuthUserGrantRole", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)]))), (go!"GetAuthUserList", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)]))), (go!"GetAuthUserRevokeRole", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)]))), (go!"GetAuthenticate", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)]))), (go!"GetClusterMemberAttrSet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty)]))), (go!"GetClusterVersionSet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty)]))), (go!"GetCompaction", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)]))), (go!"GetDeleteRange", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)]))), (go!"GetDowngradeInfoSet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty)]))), (go!"GetDowngradeVersionTest", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeVersionTestRequest.ty)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader.ty)]))), (go!"GetID", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLeaseCheckpoint", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)]))), (go!"GetLeaseGrant", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)]))), (go!"GetLeaseRevoke", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)]))), (go!"GetPut", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)]))), (go!"GetRange", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)]))), (go!"GetTxn", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  Descriptor_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"Descriptor" (LamV "$r"
+  unfold'Descriptor : MethodUnfold InternalRaftRequestWrapper.ty go!"Descriptor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"Descriptor"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAlarm_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAlarm" (LamV "$r"
+  unfold'GetAlarm : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAlarm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAlarm"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthDisable_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthDisable" (LamV "$r"
+  unfold'GetAuthDisable : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthDisable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthDisable"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthEnable_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthEnable" (LamV "$r"
+  unfold'GetAuthEnable : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthEnable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthEnable"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthRoleAdd_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthRoleAdd" (LamV "$r"
+  unfold'GetAuthRoleAdd : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthRoleAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthRoleAdd"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthRoleDelete_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthRoleDelete" (LamV "$r"
+  unfold'GetAuthRoleDelete : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthRoleDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthRoleDelete"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthRoleGet_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthRoleGet" (LamV "$r"
+  unfold'GetAuthRoleGet : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthRoleGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthRoleGet"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthRoleGrantPermission_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthRoleGrantPermission" (LamV "$r"
+  unfold'GetAuthRoleGrantPermission : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthRoleGrantPermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthRoleGrantPermission"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthRoleList_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthRoleList" (LamV "$r"
+  unfold'GetAuthRoleList : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthRoleList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthRoleList"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthRoleRevokePermission_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthRoleRevokePermission" (LamV "$r"
+  unfold'GetAuthRoleRevokePermission : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthRoleRevokePermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthRoleRevokePermission"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthStatus_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthStatus" (LamV "$r"
+  unfold'GetAuthStatus : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthStatus"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthUserAdd_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthUserAdd" (LamV "$r"
+  unfold'GetAuthUserAdd : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthUserAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthUserAdd"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthUserChangePassword_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthUserChangePassword" (LamV "$r"
+  unfold'GetAuthUserChangePassword : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthUserChangePassword" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthUserChangePassword"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthUserDelete_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthUserDelete" (LamV "$r"
+  unfold'GetAuthUserDelete : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthUserDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthUserDelete"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthUserGet_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthUserGet" (LamV "$r"
+  unfold'GetAuthUserGet : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthUserGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthUserGet"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthUserGrantRole_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthUserGrantRole" (LamV "$r"
+  unfold'GetAuthUserGrantRole : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthUserGrantRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthUserGrantRole"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthUserList_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthUserList" (LamV "$r"
+  unfold'GetAuthUserList : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthUserList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthUserList"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthUserRevokeRole_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthUserRevokeRole" (LamV "$r"
+  unfold'GetAuthUserRevokeRole : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthUserRevokeRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthUserRevokeRole"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetAuthenticate_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthenticate" (LamV "$r"
+  unfold'GetAuthenticate : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAuthenticate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthenticate"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetClusterMemberAttrSet_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetClusterMemberAttrSet" (LamV "$r"
+  unfold'GetClusterMemberAttrSet : MethodUnfold InternalRaftRequestWrapper.ty go!"GetClusterMemberAttrSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetClusterMemberAttrSet"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetClusterVersionSet_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetClusterVersionSet" (LamV "$r"
+  unfold'GetClusterVersionSet : MethodUnfold InternalRaftRequestWrapper.ty go!"GetClusterVersionSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetClusterVersionSet"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetCompaction_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetCompaction" (LamV "$r"
+  unfold'GetCompaction : MethodUnfold InternalRaftRequestWrapper.ty go!"GetCompaction" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetCompaction"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetDeleteRange_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetDeleteRange" (LamV "$r"
+  unfold'GetDeleteRange : MethodUnfold InternalRaftRequestWrapper.ty go!"GetDeleteRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetDeleteRange"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetDowngradeInfoSet_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetDowngradeInfoSet" (LamV "$r"
+  unfold'GetDowngradeInfoSet : MethodUnfold InternalRaftRequestWrapper.ty go!"GetDowngradeInfoSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetDowngradeInfoSet"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetDowngradeVersionTest_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetDowngradeVersionTest" (LamV "$r"
+  unfold'GetDowngradeVersionTest : MethodUnfold InternalRaftRequestWrapper.ty go!"GetDowngradeVersionTest" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetDowngradeVersionTest"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetHeader_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetHeader" (LamV "$r"
+  unfold'GetHeader : MethodUnfold InternalRaftRequestWrapper.ty go!"GetHeader" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetHeader"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetID_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetID" (LamV "$r"
+  unfold'GetID : MethodUnfold InternalRaftRequestWrapper.ty go!"GetID" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetID"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetLeaseCheckpoint_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetLeaseCheckpoint" (LamV "$r"
+  unfold'GetLeaseCheckpoint : MethodUnfold InternalRaftRequestWrapper.ty go!"GetLeaseCheckpoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetLeaseCheckpoint"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetLeaseGrant_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetLeaseGrant" (LamV "$r"
+  unfold'GetLeaseGrant : MethodUnfold InternalRaftRequestWrapper.ty go!"GetLeaseGrant" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetLeaseGrant"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetLeaseRevoke_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetLeaseRevoke" (LamV "$r"
+  unfold'GetLeaseRevoke : MethodUnfold InternalRaftRequestWrapper.ty go!"GetLeaseRevoke" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetLeaseRevoke"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetPut_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetPut" (LamV "$r"
+  unfold'GetPut : MethodUnfold InternalRaftRequestWrapper.ty go!"GetPut" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetPut"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetRange_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetRange" (LamV "$r"
+  unfold'GetRange : MethodUnfold InternalRaftRequestWrapper.ty go!"GetRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetRange"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  GetTxn_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetTxn" (LamV "$r"
+  unfold'GetTxn : MethodUnfold InternalRaftRequestWrapper.ty go!"GetTxn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetTxn"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  ProtoMessage_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"ProtoMessage" (LamV "$r"
+  unfold'ProtoMessage : MethodUnfold InternalRaftRequestWrapper.ty go!"ProtoMessage" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"ProtoMessage"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  ProtoReflect_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"ProtoReflect" (LamV "$r"
+  unfold'ProtoReflect : MethodUnfold InternalRaftRequestWrapper.ty go!"ProtoReflect" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"ProtoReflect"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  Reset_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"Reset" (LamV "$r"
+  unfold'Reset : MethodUnfold InternalRaftRequestWrapper.ty go!"Reset" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"Reset"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  String_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"String" (LamV "$r"
+  unfold'String : MethodUnfold InternalRaftRequestWrapper.ty go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"String"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
-  ptr_Descriptor_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"Descriptor" (LamV "$r"
+  ptr_unfold'Descriptor : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"Descriptor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"Descriptor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAlarm_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAlarm" (LamV "$r"
+  ptr_unfold'GetAlarm : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAlarm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAlarm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthDisable_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthDisable" (LamV "$r"
+  ptr_unfold'GetAuthDisable : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthDisable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthDisable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthEnable_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthEnable" (LamV "$r"
+  ptr_unfold'GetAuthEnable : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthEnable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthEnable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthRoleAdd_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthRoleAdd" (LamV "$r"
+  ptr_unfold'GetAuthRoleAdd : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthRoleAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthRoleAdd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthRoleDelete_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthRoleDelete" (LamV "$r"
+  ptr_unfold'GetAuthRoleDelete : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthRoleDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthRoleDelete"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthRoleGet_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthRoleGet" (LamV "$r"
+  ptr_unfold'GetAuthRoleGet : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthRoleGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthRoleGet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthRoleGrantPermission_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthRoleGrantPermission" (LamV "$r"
+  ptr_unfold'GetAuthRoleGrantPermission : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthRoleGrantPermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthRoleGrantPermission"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthRoleList_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthRoleList" (LamV "$r"
+  ptr_unfold'GetAuthRoleList : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthRoleList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthRoleList"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthRoleRevokePermission_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthRoleRevokePermission" (LamV "$r"
+  ptr_unfold'GetAuthRoleRevokePermission : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthRoleRevokePermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthRoleRevokePermission"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthStatus_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthStatus" (LamV "$r"
+  ptr_unfold'GetAuthStatus : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthStatus"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthUserAdd_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthUserAdd" (LamV "$r"
+  ptr_unfold'GetAuthUserAdd : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthUserAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthUserAdd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthUserChangePassword_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthUserChangePassword" (LamV "$r"
+  ptr_unfold'GetAuthUserChangePassword : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthUserChangePassword" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthUserChangePassword"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthUserDelete_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthUserDelete" (LamV "$r"
+  ptr_unfold'GetAuthUserDelete : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthUserDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthUserDelete"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthUserGet_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthUserGet" (LamV "$r"
+  ptr_unfold'GetAuthUserGet : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthUserGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthUserGet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthUserGrantRole_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthUserGrantRole" (LamV "$r"
+  ptr_unfold'GetAuthUserGrantRole : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthUserGrantRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthUserGrantRole"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthUserList_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthUserList" (LamV "$r"
+  ptr_unfold'GetAuthUserList : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthUserList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthUserList"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthUserRevokeRole_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthUserRevokeRole" (LamV "$r"
+  ptr_unfold'GetAuthUserRevokeRole : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthUserRevokeRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthUserRevokeRole"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetAuthenticate_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthenticate" (LamV "$r"
+  ptr_unfold'GetAuthenticate : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetAuthenticate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetAuthenticate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetClusterMemberAttrSet_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetClusterMemberAttrSet" (LamV "$r"
+  ptr_unfold'GetClusterMemberAttrSet : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetClusterMemberAttrSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetClusterMemberAttrSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetClusterVersionSet_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetClusterVersionSet" (LamV "$r"
+  ptr_unfold'GetClusterVersionSet : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetClusterVersionSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetClusterVersionSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetCompaction_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetCompaction" (LamV "$r"
+  ptr_unfold'GetCompaction : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetCompaction" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetCompaction"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetDeleteRange_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetDeleteRange" (LamV "$r"
+  ptr_unfold'GetDeleteRange : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetDeleteRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetDeleteRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetDowngradeInfoSet_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetDowngradeInfoSet" (LamV "$r"
+  ptr_unfold'GetDowngradeInfoSet : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetDowngradeInfoSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetDowngradeInfoSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetDowngradeVersionTest_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetDowngradeVersionTest" (LamV "$r"
+  ptr_unfold'GetDowngradeVersionTest : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetDowngradeVersionTest" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetDowngradeVersionTest"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetHeader_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetHeader" (LamV "$r"
+  ptr_unfold'GetHeader : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetHeader" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetHeader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetID_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetID" (LamV "$r"
+  ptr_unfold'GetID : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetID" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetLeaseCheckpoint_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetLeaseCheckpoint" (LamV "$r"
+  ptr_unfold'GetLeaseCheckpoint : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetLeaseCheckpoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetLeaseCheckpoint"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetLeaseGrant_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetLeaseGrant" (LamV "$r"
+  ptr_unfold'GetLeaseGrant : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetLeaseGrant" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetLeaseGrant"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetLeaseRevoke_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetLeaseRevoke" (LamV "$r"
+  ptr_unfold'GetLeaseRevoke : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetLeaseRevoke" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetLeaseRevoke"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetPut_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetPut" (LamV "$r"
+  ptr_unfold'GetPut : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetPut" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetPut"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetRange_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetRange" (LamV "$r"
+  ptr_unfold'GetRange : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_GetTxn_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetTxn" (LamV "$r"
+  ptr_unfold'GetTxn : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"GetTxn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"GetTxn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"ProtoMessage" (LamV "$r"
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"ProtoMessage" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"ProtoMessage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_ProtoReflect_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"ProtoReflect" (LamV "$r"
+  ptr_unfold'ProtoReflect : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"ProtoReflect" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"ProtoReflect"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"Reset" (LamV "$r"
+  ptr_unfold'Reset : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"Reset" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"Reset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"String" (LamV "$r"
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType InternalRaftRequestWrapper.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"String"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (App (Val (GoInstruction (StructFieldRef InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r")))))
 
 attribute [instance] InternalRaftRequestWrapper.TypeAssumptions.type_repr
   InternalRaftRequestWrapper.TypeAssumptions.underlying
-  InternalRaftRequestWrapper.TypeAssumptions.get_InternalRaftRequest
-  InternalRaftRequestWrapper.TypeAssumptions.set_InternalRaftRequest
-  InternalRaftRequestWrapper.TypeAssumptions.get_SkipRangeExecution
-  InternalRaftRequestWrapper.TypeAssumptions.set_SkipRangeExecution
+  InternalRaftRequestWrapper.TypeAssumptions.get'InternalRaftRequest
+  InternalRaftRequestWrapper.TypeAssumptions.set'InternalRaftRequest
+  InternalRaftRequestWrapper.TypeAssumptions.get'SkipRangeExecution
+  InternalRaftRequestWrapper.TypeAssumptions.set'SkipRangeExecution
   InternalRaftRequestWrapper.TypeAssumptions.method_set
   InternalRaftRequestWrapper.TypeAssumptions.ptr_method_set
-  InternalRaftRequestWrapper.TypeAssumptions.Descriptor_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAlarm_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthDisable_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthEnable_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthRoleAdd_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthRoleDelete_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthRoleGet_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthRoleGrantPermission_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthRoleList_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthRoleRevokePermission_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthStatus_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthUserAdd_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthUserChangePassword_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthUserDelete_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthUserGet_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthUserGrantRole_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthUserList_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthUserRevokeRole_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetAuthenticate_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetClusterMemberAttrSet_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetClusterVersionSet_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetCompaction_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetDeleteRange_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetDowngradeInfoSet_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetDowngradeVersionTest_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetHeader_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetID_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetLeaseCheckpoint_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetLeaseGrant_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetLeaseRevoke_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetPut_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetRange_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.GetTxn_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ProtoMessage_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ProtoReflect_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.Reset_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.String_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_Descriptor_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAlarm_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthDisable_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthEnable_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthRoleAdd_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthRoleDelete_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthRoleGet_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthRoleGrantPermission_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthRoleList_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthRoleRevokePermission_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthStatus_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthUserAdd_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthUserChangePassword_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthUserDelete_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthUserGet_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthUserGrantRole_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthUserList_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthUserRevokeRole_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetAuthenticate_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetClusterMemberAttrSet_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetClusterVersionSet_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetCompaction_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetDeleteRange_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetDowngradeInfoSet_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetDowngradeVersionTest_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetHeader_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetID_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetLeaseCheckpoint_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetLeaseGrant_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetLeaseRevoke_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetPut_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetRange_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_GetTxn_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_ProtoMessage_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_ProtoReflect_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_Reset_unfold
-  InternalRaftRequestWrapper.TypeAssumptions.ptr_String_unfold
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'Descriptor
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAlarm
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthDisable
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthEnable
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthRoleAdd
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthRoleDelete
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthRoleGet
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthRoleGrantPermission
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthRoleList
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthRoleRevokePermission
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthStatus
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthUserAdd
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthUserChangePassword
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthUserDelete
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthUserGet
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthUserGrantRole
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthUserList
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthUserRevokeRole
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetAuthenticate
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetClusterMemberAttrSet
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetClusterVersionSet
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetCompaction
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetDeleteRange
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetDowngradeInfoSet
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetDowngradeVersionTest
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetHeader
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetID
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetLeaseCheckpoint
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetLeaseGrant
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetLeaseRevoke
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetPut
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetRange
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'GetTxn
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'ProtoMessage
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'ProtoReflect
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'Reset
+  InternalRaftRequestWrapper.TypeAssumptions.unfold'String
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'Descriptor
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAlarm
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthDisable
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthEnable
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthRoleAdd
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthRoleDelete
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthRoleGet
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthRoleGrantPermission
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthRoleList
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthRoleRevokePermission
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthStatus
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthUserAdd
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthUserChangePassword
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthUserDelete
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthUserGet
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthUserGrantRole
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthUserList
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthUserRevokeRole
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetAuthenticate
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetClusterMemberAttrSet
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetClusterVersionSet
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetCompaction
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetDeleteRange
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetDowngradeInfoSet
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetDowngradeVersionTest
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetHeader
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetID
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetLeaseCheckpoint
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetLeaseGrant
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetLeaseRevoke
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetPut
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetRange
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'GetTxn
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'ProtoMessage
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'ProtoReflect
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'Reset
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_unfold'String
 
 structure Result [GooseExts] where
   mk ::
@@ -5271,7 +5271,7 @@ noncomputable instance Result.zero_val [GooseExts] : ZeroVal Result :=
 @[irreducible] noncomputable def Result.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Result.fieldsUnsealed
 
-noncomputable instance equals_unfold_Result [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Result [GooseExts] [GoGlobalContext] :
     EqualsUnfold Result.fields Result.fieldsUnsealed :=
   ⟨by unfold Result.fields; rfl⟩
 
@@ -5281,27 +5281,27 @@ noncomputable instance equals_unfold_Result [GooseExts] [GoGlobalContext] :
 class Result.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Result.underlying Result
   underlying : go.UnderlyingDirectedEq Result.ty Result.underlying
-  get_Resp : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Resp") #x (Val #(x.Resp'))
-  set_Resp : ∀ (x : Result) (y : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.ProtoMessage), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Resp") (PairV #x #y) (Val #(({ x with Resp' := y } : Result)))
-  get_Err : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Err") #x (Val #(x.Err'))
-  set_Err : ∀ (x : Result) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : Result)))
-  get_Physc : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Physc") #x (Val #(x.Physc'))
-  set_Physc : ∀ (x : Result) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Physc") (PairV #x #y) (Val #(({ x with Physc' := y } : Result)))
-  get_Trace : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Trace") #x (Val #(x.Trace'))
-  set_Trace : ∀ (x : Result) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Trace") (PairV #x #y) (Val #(({ x with Trace' := y } : Result)))
+  get'Resp : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Resp") #x (Val #(x.Resp'))
+  set'Resp : ∀ (x : Result) (y : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.ProtoMessage), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Resp") (PairV #x #y) (Val #(({ x with Resp' := y } : Result)))
+  get'Err : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Err") #x (Val #(x.Err'))
+  set'Err : ∀ (x : Result) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : Result)))
+  get'Physc : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Physc") #x (Val #(x.Physc'))
+  set'Physc : ∀ (x : Result) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Physc") (PairV #x #y) (Val #(({ x with Physc' := y } : Result)))
+  get'Trace : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Trace") #x (Val #(x.Trace'))
+  set'Trace : ∀ (x : Result) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Trace") (PairV #x #y) (Val #(({ x with Trace' := y } : Result)))
   method_set : go.MethodSetIs Result.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Result.ty) []
 
 attribute [instance] Result.TypeAssumptions.type_repr
   Result.TypeAssumptions.underlying
-  Result.TypeAssumptions.get_Resp
-  Result.TypeAssumptions.set_Resp
-  Result.TypeAssumptions.get_Err
-  Result.TypeAssumptions.set_Err
-  Result.TypeAssumptions.get_Physc
-  Result.TypeAssumptions.set_Physc
-  Result.TypeAssumptions.get_Trace
-  Result.TypeAssumptions.set_Trace
+  Result.TypeAssumptions.get'Resp
+  Result.TypeAssumptions.set'Resp
+  Result.TypeAssumptions.get'Err
+  Result.TypeAssumptions.set'Err
+  Result.TypeAssumptions.get'Physc
+  Result.TypeAssumptions.set'Physc
+  Result.TypeAssumptions.get'Trace
+  Result.TypeAssumptions.set'Trace
   Result.TypeAssumptions.method_set
   Result.TypeAssumptions.ptr_method_set
 
@@ -5334,7 +5334,7 @@ noncomputable instance quotaApplierV3.zero_val [GooseExts] : ZeroVal quotaApplie
 @[irreducible] noncomputable def quotaApplierV3.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   quotaApplierV3.fieldsUnsealed
 
-noncomputable instance equals_unfold_quotaApplierV3 [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'quotaApplierV3 [GooseExts] [GoGlobalContext] :
     EqualsUnfold quotaApplierV3.fields quotaApplierV3.fieldsUnsealed :=
   ⟨by unfold quotaApplierV3.fields; rfl⟩
 
@@ -5344,189 +5344,189 @@ noncomputable instance equals_unfold_quotaApplierV3 [GooseExts] [GoGlobalContext
 class quotaApplierV3.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying quotaApplierV3.underlying quotaApplierV3
   underlying : go.UnderlyingDirectedEq quotaApplierV3.ty quotaApplierV3.underlying
-  get_applierV3 : ∀ (x : quotaApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet quotaApplierV3.underlying go!"applierV3") #x (Val #(x.applierV3'))
-  set_applierV3 : ∀ (x : quotaApplierV3) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet quotaApplierV3.underlying go!"applierV3") (PairV #x #y) (Val #(({ x with applierV3' := y } : quotaApplierV3)))
-  get_q : ∀ (x : quotaApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet quotaApplierV3.underlying go!"q") #x (Val #(x.q'))
-  set_q : ∀ (x : quotaApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota), go.IsGoStepPureDetTagged under (StructFieldSet quotaApplierV3.underlying go!"q") (PairV #x #y) (Val #(({ x with q' := y } : quotaApplierV3)))
+  get'applierV3 : ∀ (x : quotaApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet quotaApplierV3.underlying go!"applierV3") #x (Val #(x.applierV3'))
+  set'applierV3 : ∀ (x : quotaApplierV3) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet quotaApplierV3.underlying go!"applierV3") (PairV #x #y) (Val #(({ x with applierV3' := y } : quotaApplierV3)))
+  get'q : ∀ (x : quotaApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet quotaApplierV3.underlying go!"q") #x (Val #(x.q'))
+  set'q : ∀ (x : quotaApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota), go.IsGoStepPureDetTagged under (StructFieldSet quotaApplierV3.underlying go!"q") (PairV #x #y) (Val #(({ x with q' := y } : quotaApplierV3)))
   method_set : go.MethodSetIs quotaApplierV3.ty [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"Range", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType quotaApplierV3.ty) [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseGrant", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"Range", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty), go.bool] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
-  Alarm_unfold : MethodUnfold quotaApplierV3.ty go!"Alarm" (LamV "$r"
+  unfold'Alarm : MethodUnfold quotaApplierV3.ty go!"Alarm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Alarm"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  Apply_unfold : MethodUnfold quotaApplierV3.ty go!"Apply" (LamV "$r"
+  unfold'Apply : MethodUnfold quotaApplierV3.ty go!"Apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Apply"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  AuthDisable_unfold : MethodUnfold quotaApplierV3.ty go!"AuthDisable" (LamV "$r"
+  unfold'AuthDisable : MethodUnfold quotaApplierV3.ty go!"AuthDisable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthDisable"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  AuthEnable_unfold : MethodUnfold quotaApplierV3.ty go!"AuthEnable" (LamV "$r"
+  unfold'AuthEnable : MethodUnfold quotaApplierV3.ty go!"AuthEnable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthEnable"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  AuthStatus_unfold : MethodUnfold quotaApplierV3.ty go!"AuthStatus" (LamV "$r"
+  unfold'AuthStatus : MethodUnfold quotaApplierV3.ty go!"AuthStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthStatus"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  Authenticate_unfold : MethodUnfold quotaApplierV3.ty go!"Authenticate" (LamV "$r"
+  unfold'Authenticate : MethodUnfold quotaApplierV3.ty go!"Authenticate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Authenticate"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  ClusterMemberAttrSet_unfold : MethodUnfold quotaApplierV3.ty go!"ClusterMemberAttrSet" (LamV "$r"
+  unfold'ClusterMemberAttrSet : MethodUnfold quotaApplierV3.ty go!"ClusterMemberAttrSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"ClusterMemberAttrSet"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  ClusterVersionSet_unfold : MethodUnfold quotaApplierV3.ty go!"ClusterVersionSet" (LamV "$r"
+  unfold'ClusterVersionSet : MethodUnfold quotaApplierV3.ty go!"ClusterVersionSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"ClusterVersionSet"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  Compaction_unfold : MethodUnfold quotaApplierV3.ty go!"Compaction" (LamV "$r"
+  unfold'Compaction : MethodUnfold quotaApplierV3.ty go!"Compaction" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Compaction"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  DeleteRange_unfold : MethodUnfold quotaApplierV3.ty go!"DeleteRange" (LamV "$r"
+  unfold'DeleteRange : MethodUnfold quotaApplierV3.ty go!"DeleteRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"DeleteRange"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  DowngradeInfoSet_unfold : MethodUnfold quotaApplierV3.ty go!"DowngradeInfoSet" (LamV "$r"
+  unfold'DowngradeInfoSet : MethodUnfold quotaApplierV3.ty go!"DowngradeInfoSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"DowngradeInfoSet"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  LeaseCheckpoint_unfold : MethodUnfold quotaApplierV3.ty go!"LeaseCheckpoint" (LamV "$r"
+  unfold'LeaseCheckpoint : MethodUnfold quotaApplierV3.ty go!"LeaseCheckpoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"LeaseCheckpoint"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  LeaseRevoke_unfold : MethodUnfold quotaApplierV3.ty go!"LeaseRevoke" (LamV "$r"
+  unfold'LeaseRevoke : MethodUnfold quotaApplierV3.ty go!"LeaseRevoke" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"LeaseRevoke"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  Range_unfold : MethodUnfold quotaApplierV3.ty go!"Range" (LamV "$r"
+  unfold'Range : MethodUnfold quotaApplierV3.ty go!"Range" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Range"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  RoleAdd_unfold : MethodUnfold quotaApplierV3.ty go!"RoleAdd" (LamV "$r"
+  unfold'RoleAdd : MethodUnfold quotaApplierV3.ty go!"RoleAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleAdd"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  RoleDelete_unfold : MethodUnfold quotaApplierV3.ty go!"RoleDelete" (LamV "$r"
+  unfold'RoleDelete : MethodUnfold quotaApplierV3.ty go!"RoleDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleDelete"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  RoleGet_unfold : MethodUnfold quotaApplierV3.ty go!"RoleGet" (LamV "$r"
+  unfold'RoleGet : MethodUnfold quotaApplierV3.ty go!"RoleGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleGet"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  RoleGrantPermission_unfold : MethodUnfold quotaApplierV3.ty go!"RoleGrantPermission" (LamV "$r"
+  unfold'RoleGrantPermission : MethodUnfold quotaApplierV3.ty go!"RoleGrantPermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleGrantPermission"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  RoleList_unfold : MethodUnfold quotaApplierV3.ty go!"RoleList" (LamV "$r"
+  unfold'RoleList : MethodUnfold quotaApplierV3.ty go!"RoleList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleList"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  RoleRevokePermission_unfold : MethodUnfold quotaApplierV3.ty go!"RoleRevokePermission" (LamV "$r"
+  unfold'RoleRevokePermission : MethodUnfold quotaApplierV3.ty go!"RoleRevokePermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleRevokePermission"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  UserAdd_unfold : MethodUnfold quotaApplierV3.ty go!"UserAdd" (LamV "$r"
+  unfold'UserAdd : MethodUnfold quotaApplierV3.ty go!"UserAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserAdd"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  UserChangePassword_unfold : MethodUnfold quotaApplierV3.ty go!"UserChangePassword" (LamV "$r"
+  unfold'UserChangePassword : MethodUnfold quotaApplierV3.ty go!"UserChangePassword" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserChangePassword"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  UserDelete_unfold : MethodUnfold quotaApplierV3.ty go!"UserDelete" (LamV "$r"
+  unfold'UserDelete : MethodUnfold quotaApplierV3.ty go!"UserDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserDelete"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  UserGet_unfold : MethodUnfold quotaApplierV3.ty go!"UserGet" (LamV "$r"
+  unfold'UserGet : MethodUnfold quotaApplierV3.ty go!"UserGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserGet"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  UserGrantRole_unfold : MethodUnfold quotaApplierV3.ty go!"UserGrantRole" (LamV "$r"
+  unfold'UserGrantRole : MethodUnfold quotaApplierV3.ty go!"UserGrantRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserGrantRole"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  UserList_unfold : MethodUnfold quotaApplierV3.ty go!"UserList" (LamV "$r"
+  unfold'UserList : MethodUnfold quotaApplierV3.ty go!"UserList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserList"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  UserRevokeRole_unfold : MethodUnfold quotaApplierV3.ty go!"UserRevokeRole" (LamV "$r"
+  unfold'UserRevokeRole : MethodUnfold quotaApplierV3.ty go!"UserRevokeRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserRevokeRole"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
-  ptr_Alarm_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"Alarm" (LamV "$r"
+  ptr_unfold'Alarm : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"Alarm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Alarm"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"Apply" (LamV "$r"
+  ptr_unfold'Apply : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"Apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Apply"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_AuthDisable_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"AuthDisable" (LamV "$r"
+  ptr_unfold'AuthDisable : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"AuthDisable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthDisable"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_AuthEnable_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"AuthEnable" (LamV "$r"
+  ptr_unfold'AuthEnable : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"AuthEnable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthEnable"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_AuthStatus_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"AuthStatus" (LamV "$r"
+  ptr_unfold'AuthStatus : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"AuthStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"AuthStatus"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Authenticate_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"Authenticate" (LamV "$r"
+  ptr_unfold'Authenticate : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"Authenticate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Authenticate"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_ClusterMemberAttrSet_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"ClusterMemberAttrSet" (LamV "$r"
+  ptr_unfold'ClusterMemberAttrSet : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"ClusterMemberAttrSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"ClusterMemberAttrSet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_ClusterVersionSet_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"ClusterVersionSet" (LamV "$r"
+  ptr_unfold'ClusterVersionSet : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"ClusterVersionSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"ClusterVersionSet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Compaction_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"Compaction" (LamV "$r"
+  ptr_unfold'Compaction : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"Compaction" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Compaction"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_DeleteRange_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"DeleteRange" (LamV "$r"
+  ptr_unfold'DeleteRange : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"DeleteRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"DeleteRange"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_DowngradeInfoSet_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"DowngradeInfoSet" (LamV "$r"
+  ptr_unfold'DowngradeInfoSet : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"DowngradeInfoSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"DowngradeInfoSet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_LeaseCheckpoint_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"LeaseCheckpoint" (LamV "$r"
+  ptr_unfold'LeaseCheckpoint : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"LeaseCheckpoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"LeaseCheckpoint"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_LeaseGrant_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"LeaseGrant" quotaApplierV3.LeaseGrant.impl
-  ptr_LeaseRevoke_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"LeaseRevoke" (LamV "$r"
+  ptr_unfold'LeaseGrant : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"LeaseGrant" quotaApplierV3.LeaseGrant.impl
+  ptr_unfold'LeaseRevoke : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"LeaseRevoke" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"LeaseRevoke"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"Put" quotaApplierV3.Put.impl
-  ptr_Range_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"Range" (LamV "$r"
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"Put" quotaApplierV3.Put.impl
+  ptr_unfold'Range : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"Range" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Range"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleAdd_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"RoleAdd" (LamV "$r"
+  ptr_unfold'RoleAdd : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"RoleAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleAdd"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleDelete_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"RoleDelete" (LamV "$r"
+  ptr_unfold'RoleDelete : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"RoleDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleDelete"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleGet_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"RoleGet" (LamV "$r"
+  ptr_unfold'RoleGet : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"RoleGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleGet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleGrantPermission_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"RoleGrantPermission" (LamV "$r"
+  ptr_unfold'RoleGrantPermission : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"RoleGrantPermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleGrantPermission"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleList_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"RoleList" (LamV "$r"
+  ptr_unfold'RoleList : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"RoleList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleList"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_RoleRevokePermission_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"RoleRevokePermission" (LamV "$r"
+  ptr_unfold'RoleRevokePermission : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"RoleRevokePermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"RoleRevokePermission"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"Txn" quotaApplierV3.Txn.impl
-  ptr_UserAdd_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"UserAdd" (LamV "$r"
+  ptr_unfold'Txn : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"Txn" quotaApplierV3.Txn.impl
+  ptr_unfold'UserAdd : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"UserAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserAdd"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserChangePassword_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"UserChangePassword" (LamV "$r"
+  ptr_unfold'UserChangePassword : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"UserChangePassword" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserChangePassword"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserDelete_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"UserDelete" (LamV "$r"
+  ptr_unfold'UserDelete : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"UserDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserDelete"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserGet_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"UserGet" (LamV "$r"
+  ptr_unfold'UserGet : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"UserGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserGet"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserGrantRole_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"UserGrantRole" (LamV "$r"
+  ptr_unfold'UserGrantRole : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"UserGrantRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserGrantRole"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserList_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"UserList" (LamV "$r"
+  ptr_unfold'UserList : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"UserList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserList"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
-  ptr_UserRevokeRole_unfold : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"UserRevokeRole" (LamV "$r"
+  ptr_unfold'UserRevokeRole : MethodUnfold (go.GoType.PointerType quotaApplierV3.ty) go!"UserRevokeRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"UserRevokeRole"))) (App (Val (GoInstruction (GoLoad applierV3.ty))) (App (Val (GoInstruction (StructFieldRef quotaApplierV3.ty go!"applierV3"))) (Var "$r")))))
 
 attribute [instance] quotaApplierV3.TypeAssumptions.type_repr
   quotaApplierV3.TypeAssumptions.underlying
-  quotaApplierV3.TypeAssumptions.get_applierV3
-  quotaApplierV3.TypeAssumptions.set_applierV3
-  quotaApplierV3.TypeAssumptions.get_q
-  quotaApplierV3.TypeAssumptions.set_q
+  quotaApplierV3.TypeAssumptions.get'applierV3
+  quotaApplierV3.TypeAssumptions.set'applierV3
+  quotaApplierV3.TypeAssumptions.get'q
+  quotaApplierV3.TypeAssumptions.set'q
   quotaApplierV3.TypeAssumptions.method_set
   quotaApplierV3.TypeAssumptions.ptr_method_set
-  quotaApplierV3.TypeAssumptions.Alarm_unfold
-  quotaApplierV3.TypeAssumptions.Apply_unfold
-  quotaApplierV3.TypeAssumptions.AuthDisable_unfold
-  quotaApplierV3.TypeAssumptions.AuthEnable_unfold
-  quotaApplierV3.TypeAssumptions.AuthStatus_unfold
-  quotaApplierV3.TypeAssumptions.Authenticate_unfold
-  quotaApplierV3.TypeAssumptions.ClusterMemberAttrSet_unfold
-  quotaApplierV3.TypeAssumptions.ClusterVersionSet_unfold
-  quotaApplierV3.TypeAssumptions.Compaction_unfold
-  quotaApplierV3.TypeAssumptions.DeleteRange_unfold
-  quotaApplierV3.TypeAssumptions.DowngradeInfoSet_unfold
-  quotaApplierV3.TypeAssumptions.LeaseCheckpoint_unfold
-  quotaApplierV3.TypeAssumptions.LeaseRevoke_unfold
-  quotaApplierV3.TypeAssumptions.Range_unfold
-  quotaApplierV3.TypeAssumptions.RoleAdd_unfold
-  quotaApplierV3.TypeAssumptions.RoleDelete_unfold
-  quotaApplierV3.TypeAssumptions.RoleGet_unfold
-  quotaApplierV3.TypeAssumptions.RoleGrantPermission_unfold
-  quotaApplierV3.TypeAssumptions.RoleList_unfold
-  quotaApplierV3.TypeAssumptions.RoleRevokePermission_unfold
-  quotaApplierV3.TypeAssumptions.UserAdd_unfold
-  quotaApplierV3.TypeAssumptions.UserChangePassword_unfold
-  quotaApplierV3.TypeAssumptions.UserDelete_unfold
-  quotaApplierV3.TypeAssumptions.UserGet_unfold
-  quotaApplierV3.TypeAssumptions.UserGrantRole_unfold
-  quotaApplierV3.TypeAssumptions.UserList_unfold
-  quotaApplierV3.TypeAssumptions.UserRevokeRole_unfold
-  quotaApplierV3.TypeAssumptions.ptr_Alarm_unfold
-  quotaApplierV3.TypeAssumptions.ptr_Apply_unfold
-  quotaApplierV3.TypeAssumptions.ptr_AuthDisable_unfold
-  quotaApplierV3.TypeAssumptions.ptr_AuthEnable_unfold
-  quotaApplierV3.TypeAssumptions.ptr_AuthStatus_unfold
-  quotaApplierV3.TypeAssumptions.ptr_Authenticate_unfold
-  quotaApplierV3.TypeAssumptions.ptr_ClusterMemberAttrSet_unfold
-  quotaApplierV3.TypeAssumptions.ptr_ClusterVersionSet_unfold
-  quotaApplierV3.TypeAssumptions.ptr_Compaction_unfold
-  quotaApplierV3.TypeAssumptions.ptr_DeleteRange_unfold
-  quotaApplierV3.TypeAssumptions.ptr_DowngradeInfoSet_unfold
-  quotaApplierV3.TypeAssumptions.ptr_LeaseCheckpoint_unfold
-  quotaApplierV3.TypeAssumptions.ptr_LeaseGrant_unfold
-  quotaApplierV3.TypeAssumptions.ptr_LeaseRevoke_unfold
-  quotaApplierV3.TypeAssumptions.ptr_Put_unfold
-  quotaApplierV3.TypeAssumptions.ptr_Range_unfold
-  quotaApplierV3.TypeAssumptions.ptr_RoleAdd_unfold
-  quotaApplierV3.TypeAssumptions.ptr_RoleDelete_unfold
-  quotaApplierV3.TypeAssumptions.ptr_RoleGet_unfold
-  quotaApplierV3.TypeAssumptions.ptr_RoleGrantPermission_unfold
-  quotaApplierV3.TypeAssumptions.ptr_RoleList_unfold
-  quotaApplierV3.TypeAssumptions.ptr_RoleRevokePermission_unfold
-  quotaApplierV3.TypeAssumptions.ptr_Txn_unfold
-  quotaApplierV3.TypeAssumptions.ptr_UserAdd_unfold
-  quotaApplierV3.TypeAssumptions.ptr_UserChangePassword_unfold
-  quotaApplierV3.TypeAssumptions.ptr_UserDelete_unfold
-  quotaApplierV3.TypeAssumptions.ptr_UserGet_unfold
-  quotaApplierV3.TypeAssumptions.ptr_UserGrantRole_unfold
-  quotaApplierV3.TypeAssumptions.ptr_UserList_unfold
-  quotaApplierV3.TypeAssumptions.ptr_UserRevokeRole_unfold
+  quotaApplierV3.TypeAssumptions.unfold'Alarm
+  quotaApplierV3.TypeAssumptions.unfold'Apply
+  quotaApplierV3.TypeAssumptions.unfold'AuthDisable
+  quotaApplierV3.TypeAssumptions.unfold'AuthEnable
+  quotaApplierV3.TypeAssumptions.unfold'AuthStatus
+  quotaApplierV3.TypeAssumptions.unfold'Authenticate
+  quotaApplierV3.TypeAssumptions.unfold'ClusterMemberAttrSet
+  quotaApplierV3.TypeAssumptions.unfold'ClusterVersionSet
+  quotaApplierV3.TypeAssumptions.unfold'Compaction
+  quotaApplierV3.TypeAssumptions.unfold'DeleteRange
+  quotaApplierV3.TypeAssumptions.unfold'DowngradeInfoSet
+  quotaApplierV3.TypeAssumptions.unfold'LeaseCheckpoint
+  quotaApplierV3.TypeAssumptions.unfold'LeaseRevoke
+  quotaApplierV3.TypeAssumptions.unfold'Range
+  quotaApplierV3.TypeAssumptions.unfold'RoleAdd
+  quotaApplierV3.TypeAssumptions.unfold'RoleDelete
+  quotaApplierV3.TypeAssumptions.unfold'RoleGet
+  quotaApplierV3.TypeAssumptions.unfold'RoleGrantPermission
+  quotaApplierV3.TypeAssumptions.unfold'RoleList
+  quotaApplierV3.TypeAssumptions.unfold'RoleRevokePermission
+  quotaApplierV3.TypeAssumptions.unfold'UserAdd
+  quotaApplierV3.TypeAssumptions.unfold'UserChangePassword
+  quotaApplierV3.TypeAssumptions.unfold'UserDelete
+  quotaApplierV3.TypeAssumptions.unfold'UserGet
+  quotaApplierV3.TypeAssumptions.unfold'UserGrantRole
+  quotaApplierV3.TypeAssumptions.unfold'UserList
+  quotaApplierV3.TypeAssumptions.unfold'UserRevokeRole
+  quotaApplierV3.TypeAssumptions.ptr_unfold'Alarm
+  quotaApplierV3.TypeAssumptions.ptr_unfold'Apply
+  quotaApplierV3.TypeAssumptions.ptr_unfold'AuthDisable
+  quotaApplierV3.TypeAssumptions.ptr_unfold'AuthEnable
+  quotaApplierV3.TypeAssumptions.ptr_unfold'AuthStatus
+  quotaApplierV3.TypeAssumptions.ptr_unfold'Authenticate
+  quotaApplierV3.TypeAssumptions.ptr_unfold'ClusterMemberAttrSet
+  quotaApplierV3.TypeAssumptions.ptr_unfold'ClusterVersionSet
+  quotaApplierV3.TypeAssumptions.ptr_unfold'Compaction
+  quotaApplierV3.TypeAssumptions.ptr_unfold'DeleteRange
+  quotaApplierV3.TypeAssumptions.ptr_unfold'DowngradeInfoSet
+  quotaApplierV3.TypeAssumptions.ptr_unfold'LeaseCheckpoint
+  quotaApplierV3.TypeAssumptions.ptr_unfold'LeaseGrant
+  quotaApplierV3.TypeAssumptions.ptr_unfold'LeaseRevoke
+  quotaApplierV3.TypeAssumptions.ptr_unfold'Put
+  quotaApplierV3.TypeAssumptions.ptr_unfold'Range
+  quotaApplierV3.TypeAssumptions.ptr_unfold'RoleAdd
+  quotaApplierV3.TypeAssumptions.ptr_unfold'RoleDelete
+  quotaApplierV3.TypeAssumptions.ptr_unfold'RoleGet
+  quotaApplierV3.TypeAssumptions.ptr_unfold'RoleGrantPermission
+  quotaApplierV3.TypeAssumptions.ptr_unfold'RoleList
+  quotaApplierV3.TypeAssumptions.ptr_unfold'RoleRevokePermission
+  quotaApplierV3.TypeAssumptions.ptr_unfold'Txn
+  quotaApplierV3.TypeAssumptions.ptr_unfold'UserAdd
+  quotaApplierV3.TypeAssumptions.ptr_unfold'UserChangePassword
+  quotaApplierV3.TypeAssumptions.ptr_unfold'UserDelete
+  quotaApplierV3.TypeAssumptions.ptr_unfold'UserGet
+  quotaApplierV3.TypeAssumptions.ptr_unfold'UserGrantRole
+  quotaApplierV3.TypeAssumptions.ptr_unfold'UserList
+  quotaApplierV3.TypeAssumptions.ptr_unfold'UserRevokeRole
 
 abbrev UberApplier [GooseExts] : Type := GoInterface
 
@@ -5563,7 +5563,7 @@ noncomputable instance uberApplier.zero_val [GooseExts] : ZeroVal uberApplier :=
 @[irreducible] noncomputable def uberApplier.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   uberApplier.fieldsUnsealed
 
-noncomputable instance equals_unfold_uberApplier [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'uberApplier [GooseExts] [GoGlobalContext] :
     EqualsUnfold uberApplier.fields uberApplier.fieldsUnsealed :=
   ⟨by unfold uberApplier.fields; rfl⟩
 
@@ -5573,160 +5573,160 @@ noncomputable instance equals_unfold_uberApplier [GooseExts] [GoGlobalContext] :
 class uberApplier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying uberApplier.underlying uberApplier
   underlying : go.UnderlyingDirectedEq uberApplier.ty uberApplier.underlying
-  get_lg : ∀ (x : uberApplier), go.IsGoStepPureDetTagged under (StructFieldGet uberApplier.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : uberApplier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet uberApplier.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : uberApplier)))
-  get_alarmStore : ∀ (x : uberApplier), go.IsGoStepPureDetTagged under (StructFieldGet uberApplier.underlying go!"alarmStore") #x (Val #(x.alarmStore'))
-  set_alarmStore : ∀ (x : uberApplier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet uberApplier.underlying go!"alarmStore") (PairV #x #y) (Val #(({ x with alarmStore' := y } : uberApplier)))
-  get_warningApplyDuration : ∀ (x : uberApplier), go.IsGoStepPureDetTagged under (StructFieldGet uberApplier.underlying go!"warningApplyDuration") #x (Val #(x.warningApplyDuration'))
-  set_warningApplyDuration : ∀ (x : uberApplier) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet uberApplier.underlying go!"warningApplyDuration") (PairV #x #y) (Val #(({ x with warningApplyDuration' := y } : uberApplier)))
-  get_applyV3 : ∀ (x : uberApplier), go.IsGoStepPureDetTagged under (StructFieldGet uberApplier.underlying go!"applyV3") #x (Val #(x.applyV3'))
-  set_applyV3 : ∀ (x : uberApplier) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet uberApplier.underlying go!"applyV3") (PairV #x #y) (Val #(({ x with applyV3' := y } : uberApplier)))
-  get_applyV3base : ∀ (x : uberApplier), go.IsGoStepPureDetTagged under (StructFieldGet uberApplier.underlying go!"applyV3base") #x (Val #(x.applyV3base'))
-  set_applyV3base : ∀ (x : uberApplier) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet uberApplier.underlying go!"applyV3base") (PairV #x #y) (Val #(({ x with applyV3base' := y } : uberApplier)))
+  get'lg : ∀ (x : uberApplier), go.IsGoStepPureDetTagged under (StructFieldGet uberApplier.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : uberApplier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet uberApplier.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : uberApplier)))
+  get'alarmStore : ∀ (x : uberApplier), go.IsGoStepPureDetTagged under (StructFieldGet uberApplier.underlying go!"alarmStore") #x (Val #(x.alarmStore'))
+  set'alarmStore : ∀ (x : uberApplier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet uberApplier.underlying go!"alarmStore") (PairV #x #y) (Val #(({ x with alarmStore' := y } : uberApplier)))
+  get'warningApplyDuration : ∀ (x : uberApplier), go.IsGoStepPureDetTagged under (StructFieldGet uberApplier.underlying go!"warningApplyDuration") #x (Val #(x.warningApplyDuration'))
+  set'warningApplyDuration : ∀ (x : uberApplier) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet uberApplier.underlying go!"warningApplyDuration") (PairV #x #y) (Val #(({ x with warningApplyDuration' := y } : uberApplier)))
+  get'applyV3 : ∀ (x : uberApplier), go.IsGoStepPureDetTagged under (StructFieldGet uberApplier.underlying go!"applyV3") #x (Val #(x.applyV3'))
+  set'applyV3 : ∀ (x : uberApplier) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet uberApplier.underlying go!"applyV3") (PairV #x #y) (Val #(({ x with applyV3' := y } : uberApplier)))
+  get'applyV3base : ∀ (x : uberApplier), go.IsGoStepPureDetTagged under (StructFieldGet uberApplier.underlying go!"applyV3base") #x (Val #(x.applyV3base'))
+  set'applyV3base : ∀ (x : uberApplier) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet uberApplier.underlying go!"applyV3base") (PairV #x #y) (Val #(({ x with applyV3base' := y } : uberApplier)))
   method_set : go.MethodSetIs uberApplier.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType uberApplier.ty) [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/apply.dispatch", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/apply.restoreAlarms", (some (go.signature.Signature [] false [])))]
-  ptr_Alarm_unfold : MethodUnfold (go.GoType.PointerType uberApplier.ty) go!"Alarm" uberApplier.Alarm.impl
-  ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType uberApplier.ty) go!"Apply" uberApplier.Apply.impl
-  ptr_dispatch_unfold : MethodUnfold (go.GoType.PointerType uberApplier.ty) go!"dispatch" uberApplier.dispatch.impl
-  ptr_restoreAlarms_unfold : MethodUnfold (go.GoType.PointerType uberApplier.ty) go!"restoreAlarms" uberApplier.restoreAlarms.impl
+  ptr_unfold'Alarm : MethodUnfold (go.GoType.PointerType uberApplier.ty) go!"Alarm" uberApplier.Alarm.impl
+  ptr_unfold'Apply : MethodUnfold (go.GoType.PointerType uberApplier.ty) go!"Apply" uberApplier.Apply.impl
+  ptr_unfold'dispatch : MethodUnfold (go.GoType.PointerType uberApplier.ty) go!"dispatch" uberApplier.dispatch.impl
+  ptr_unfold'restoreAlarms : MethodUnfold (go.GoType.PointerType uberApplier.ty) go!"restoreAlarms" uberApplier.restoreAlarms.impl
 
 attribute [instance] uberApplier.TypeAssumptions.type_repr
   uberApplier.TypeAssumptions.underlying
-  uberApplier.TypeAssumptions.get_lg
-  uberApplier.TypeAssumptions.set_lg
-  uberApplier.TypeAssumptions.get_alarmStore
-  uberApplier.TypeAssumptions.set_alarmStore
-  uberApplier.TypeAssumptions.get_warningApplyDuration
-  uberApplier.TypeAssumptions.set_warningApplyDuration
-  uberApplier.TypeAssumptions.get_applyV3
-  uberApplier.TypeAssumptions.set_applyV3
-  uberApplier.TypeAssumptions.get_applyV3base
-  uberApplier.TypeAssumptions.set_applyV3base
+  uberApplier.TypeAssumptions.get'lg
+  uberApplier.TypeAssumptions.set'lg
+  uberApplier.TypeAssumptions.get'alarmStore
+  uberApplier.TypeAssumptions.set'alarmStore
+  uberApplier.TypeAssumptions.get'warningApplyDuration
+  uberApplier.TypeAssumptions.set'warningApplyDuration
+  uberApplier.TypeAssumptions.get'applyV3
+  uberApplier.TypeAssumptions.set'applyV3
+  uberApplier.TypeAssumptions.get'applyV3base
+  uberApplier.TypeAssumptions.set'applyV3base
   uberApplier.TypeAssumptions.method_set
   uberApplier.TypeAssumptions.ptr_method_set
-  uberApplier.TypeAssumptions.ptr_Alarm_unfold
-  uberApplier.TypeAssumptions.ptr_Apply_unfold
-  uberApplier.TypeAssumptions.ptr_dispatch_unfold
-  uberApplier.TypeAssumptions.ptr_restoreAlarms_unfold
+  uberApplier.TypeAssumptions.ptr_unfold'Alarm
+  uberApplier.TypeAssumptions.ptr_unfold'Apply
+  uberApplier.TypeAssumptions.ptr_unfold'dispatch
+  uberApplier.TypeAssumptions.ptr_unfold'restoreAlarms
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  authApplierV3_instance : authApplierV3.TypeAssumptions
-  applierV3backend_instance : applierV3backend.TypeAssumptions
-  applierV3Capped_instance : applierV3Capped.TypeAssumptions
-  applierV3Corrupt_instance : applierV3Corrupt.TypeAssumptions
-  InternalRaftRequestWrapper_instance : InternalRaftRequestWrapper.TypeAssumptions
-  applierV3_instance : applierV3.TypeAssumptions
-  ApplierOptions_instance : ApplierOptions.TypeAssumptions
-  SnapshotServer_instance : SnapshotServer.TypeAssumptions
-  RaftStatusGetter_instance : RaftStatusGetter.TypeAssumptions
-  Result_instance : Result.TypeAssumptions
-  applyFunc_instance : applyFunc.TypeAssumptions
-  quotaApplierV3_instance : quotaApplierV3.TypeAssumptions
-  UberApplier_instance : UberApplier.TypeAssumptions
-  uberApplier_instance : uberApplier.TypeAssumptions
-  Apply_unfold : FuncUnfold Apply [] Apply.impl
-  noSideEffect_unfold : FuncUnfold noSideEffect [] noSideEffect.impl
-  newAuthApplierV3_unfold : FuncUnfold newAuthApplierV3 [] newAuthApplierV3.impl
-  checkPutAuth_unfold : FuncUnfold checkPutAuth [] checkPutAuth.impl
-  CheckTxnAuth_unfold : FuncUnfold CheckTxnAuth [] CheckTxnAuth.impl
-  checkTxnPermission_unfold : FuncUnfold checkTxnPermission [] checkTxnPermission.impl
-  checkTxnReqsPermission_unfold : FuncUnfold checkTxnReqsPermission [] checkTxnReqsPermission.impl
-  checkLeasePuts_unfold : FuncUnfold checkLeasePuts [] checkLeasePuts.impl
-  checkLeasePutsKeys_unfold : FuncUnfold checkLeasePutsKeys [] checkLeasePutsKeys.impl
-  needAdminPermission_unfold : FuncUnfold needAdminPermission [] needAdminPermission.impl
-  newApplierV3Backend_unfold : FuncUnfold newApplierV3Backend [] newApplierV3Backend.impl
-  newApplierV3Capped_unfold : FuncUnfold newApplierV3Capped [] newApplierV3Capped.impl
-  newApplierV3Corrupt_unfold : FuncUnfold newApplierV3Corrupt [] newApplierV3Corrupt.impl
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  newQuotaApplierV3_unfold : FuncUnfold newQuotaApplierV3 [] newQuotaApplierV3.impl
-  NewUberApplier_unfold : FuncUnfold NewUberApplier [] NewUberApplier.impl
-  newApplierV3_unfold : FuncUnfold newApplierV3 [] newApplierV3.impl
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_pbutil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.pbutil.Assumptions
-  import_wait_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.Assumptions
-  import_membership_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions
-  import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_traceutil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Assumptions
-  import_auth_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions
-  import_lease_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Assumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
-  import_membershippb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
-  import_api_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Assumptions
-  import_txn_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions
-  import_version_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions
-  import_mvcc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions
-  import_etcdserver_errors_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.Assumptions
-  import_storage_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
-  import_v3alarm_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Assumptions
-  import_cindex_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions
-  import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
-  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  instance'authApplierV3 : authApplierV3.TypeAssumptions
+  instance'applierV3backend : applierV3backend.TypeAssumptions
+  instance'applierV3Capped : applierV3Capped.TypeAssumptions
+  instance'applierV3Corrupt : applierV3Corrupt.TypeAssumptions
+  instance'InternalRaftRequestWrapper : InternalRaftRequestWrapper.TypeAssumptions
+  instance'applierV3 : applierV3.TypeAssumptions
+  instance'ApplierOptions : ApplierOptions.TypeAssumptions
+  instance'SnapshotServer : SnapshotServer.TypeAssumptions
+  instance'RaftStatusGetter : RaftStatusGetter.TypeAssumptions
+  instance'Result : Result.TypeAssumptions
+  instance'applyFunc : applyFunc.TypeAssumptions
+  instance'quotaApplierV3 : quotaApplierV3.TypeAssumptions
+  instance'UberApplier : UberApplier.TypeAssumptions
+  instance'uberApplier : uberApplier.TypeAssumptions
+  unfold'Apply : FuncUnfold Apply [] Apply.impl
+  unfold'noSideEffect : FuncUnfold noSideEffect [] noSideEffect.impl
+  unfold'newAuthApplierV3 : FuncUnfold newAuthApplierV3 [] newAuthApplierV3.impl
+  unfold'checkPutAuth : FuncUnfold checkPutAuth [] checkPutAuth.impl
+  unfold'CheckTxnAuth : FuncUnfold CheckTxnAuth [] CheckTxnAuth.impl
+  unfold'checkTxnPermission : FuncUnfold checkTxnPermission [] checkTxnPermission.impl
+  unfold'checkTxnReqsPermission : FuncUnfold checkTxnReqsPermission [] checkTxnReqsPermission.impl
+  unfold'checkLeasePuts : FuncUnfold checkLeasePuts [] checkLeasePuts.impl
+  unfold'checkLeasePutsKeys : FuncUnfold checkLeasePutsKeys [] checkLeasePutsKeys.impl
+  unfold'needAdminPermission : FuncUnfold needAdminPermission [] needAdminPermission.impl
+  unfold'newApplierV3Backend : FuncUnfold newApplierV3Backend [] newApplierV3Backend.impl
+  unfold'newApplierV3Capped : FuncUnfold newApplierV3Capped [] newApplierV3Capped.impl
+  unfold'newApplierV3Corrupt : FuncUnfold newApplierV3Corrupt [] newApplierV3Corrupt.impl
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'newQuotaApplierV3 : FuncUnfold newQuotaApplierV3 [] newQuotaApplierV3.impl
+  unfold'NewUberApplier : FuncUnfold NewUberApplier [] NewUberApplier.impl
+  unfold'newApplierV3 : FuncUnfold newApplierV3 [] newApplierV3.impl
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'pbutil : _root_.Perennial.go_etcd_io.etcd.pkg.v3.pbutil.Assumptions
+  import'wait : _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.Assumptions
+  import'membership : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions
+  import'raftpb : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'traceutil : _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Assumptions
+  import'auth : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions
+  import'lease : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Assumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'semver : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
+  import'membershippb : _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.Assumptions
+  import'types : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
+  import'api : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Assumptions
+  import'txn : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions
+  import'version : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions
+  import'mvcc : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions
+  import'etcdserver_errors : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.Assumptions
+  import'storage : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'proto : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
+  import'v3alarm : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Assumptions
+  import'cindex : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions
+  import'backend : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
+  import'prometheus : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
 
-attribute [instance] Assumptions.authApplierV3_instance
-  Assumptions.applierV3backend_instance
-  Assumptions.applierV3Capped_instance
-  Assumptions.applierV3Corrupt_instance
-  Assumptions.InternalRaftRequestWrapper_instance
-  Assumptions.applierV3_instance
-  Assumptions.ApplierOptions_instance
-  Assumptions.SnapshotServer_instance
-  Assumptions.RaftStatusGetter_instance
-  Assumptions.Result_instance
-  Assumptions.applyFunc_instance
-  Assumptions.quotaApplierV3_instance
-  Assumptions.UberApplier_instance
-  Assumptions.uberApplier_instance
-  Assumptions.Apply_unfold
-  Assumptions.noSideEffect_unfold
-  Assumptions.newAuthApplierV3_unfold
-  Assumptions.checkPutAuth_unfold
-  Assumptions.CheckTxnAuth_unfold
-  Assumptions.checkTxnPermission_unfold
-  Assumptions.checkTxnReqsPermission_unfold
-  Assumptions.checkLeasePuts_unfold
-  Assumptions.checkLeasePutsKeys_unfold
-  Assumptions.needAdminPermission_unfold
-  Assumptions.newApplierV3Backend_unfold
-  Assumptions.newApplierV3Capped_unfold
-  Assumptions.newApplierV3Corrupt_unfold
-  Assumptions.«init.0_unfold»
-  Assumptions.newQuotaApplierV3_unfold
-  Assumptions.NewUberApplier_unfold
-  Assumptions.newApplierV3_unfold
-  Assumptions.import_zap_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_pbutil_Assumption
-  Assumptions.import_wait_Assumption
-  Assumptions.import_membership_Assumption
-  Assumptions.import_raftpb_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_traceutil_Assumption
-  Assumptions.import_auth_Assumption
-  Assumptions.import_lease_Assumption
-  Assumptions.import_context_Assumption
-  Assumptions.import_semver_Assumption
-  Assumptions.import_membershippb_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_api_Assumption
-  Assumptions.import_txn_Assumption
-  Assumptions.import_version_Assumption
-  Assumptions.import_mvcc_Assumption
-  Assumptions.import_etcdserver_errors_Assumption
-  Assumptions.import_storage_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_proto_Assumption
-  Assumptions.import_v3alarm_Assumption
-  Assumptions.import_cindex_Assumption
-  Assumptions.import_backend_Assumption
-  Assumptions.import_prometheus_Assumption
-  Assumptions.import_errors_Assumption
+attribute [instance] Assumptions.instance'authApplierV3
+  Assumptions.instance'applierV3backend
+  Assumptions.instance'applierV3Capped
+  Assumptions.instance'applierV3Corrupt
+  Assumptions.instance'InternalRaftRequestWrapper
+  Assumptions.instance'applierV3
+  Assumptions.instance'ApplierOptions
+  Assumptions.instance'SnapshotServer
+  Assumptions.instance'RaftStatusGetter
+  Assumptions.instance'Result
+  Assumptions.instance'applyFunc
+  Assumptions.instance'quotaApplierV3
+  Assumptions.instance'UberApplier
+  Assumptions.instance'uberApplier
+  Assumptions.unfold'Apply
+  Assumptions.unfold'noSideEffect
+  Assumptions.unfold'newAuthApplierV3
+  Assumptions.unfold'checkPutAuth
+  Assumptions.unfold'CheckTxnAuth
+  Assumptions.unfold'checkTxnPermission
+  Assumptions.unfold'checkTxnReqsPermission
+  Assumptions.unfold'checkLeasePuts
+  Assumptions.unfold'checkLeasePutsKeys
+  Assumptions.unfold'needAdminPermission
+  Assumptions.unfold'newApplierV3Backend
+  Assumptions.unfold'newApplierV3Capped
+  Assumptions.unfold'newApplierV3Corrupt
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'newQuotaApplierV3
+  Assumptions.unfold'NewUberApplier
+  Assumptions.unfold'newApplierV3
+  Assumptions.import'zap
+  Assumptions.import'etcdserverpb
+  Assumptions.import'pbutil
+  Assumptions.import'wait
+  Assumptions.import'membership
+  Assumptions.import'raftpb
+  Assumptions.import'sync
+  Assumptions.import'traceutil
+  Assumptions.import'auth
+  Assumptions.import'lease
+  Assumptions.import'context
+  Assumptions.import'semver
+  Assumptions.import'membershippb
+  Assumptions.import'types
+  Assumptions.import'api
+  Assumptions.import'txn
+  Assumptions.import'version
+  Assumptions.import'mvcc
+  Assumptions.import'etcdserver_errors
+  Assumptions.import'storage
+  Assumptions.import'time
+  Assumptions.import'proto
+  Assumptions.import'v3alarm
+  Assumptions.import'cindex
+  Assumptions.import'backend
+  Assumptions.import'prometheus
+  Assumptions.import'errors
 
 end go_etcd_io.etcd.server.v3.etcdserver.apply
 

@@ -67,9 +67,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.google_golang_org.grpc.internal.status.initialize') (Val #())))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  import_status_Assumption : _root_.Perennial.google_golang_org.grpc.internal.status.Assumptions
+  import'status : _root_.Perennial.google_golang_org.grpc.internal.status.Assumptions
 
-attribute [instance] Assumptions.import_status_Assumption
+attribute [instance] Assumptions.import'status
 
 end google_golang_org.grpc.status
 

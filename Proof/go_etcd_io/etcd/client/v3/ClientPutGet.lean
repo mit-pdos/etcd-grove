@@ -5,8 +5,8 @@ that `New` stores in the `KV` field (`isNewClient`), so `client_put_end_to_end` 
 `PutThenGet.lean`'s updates hold of the calls the adequacy example makes (`cli.Put(ctx, k, v)`,
 `cli.Get(ctx, k)`). Lean-first (no Rocq counterpart).
 
-The reduction is the translation's method-set rules `Client.TypeAssumptions.ptr_Put_unfold` and
-`ptr_Get_unfold` (a promoted method of an embedded interface is a method resolution on the field's
+The reduction is the translation's method-set rules `Client.TypeAssumptions.ptr_unfold'Put` and
+`ptr_unfold'Get` (a promoted method of an embedded interface is a method resolution on the field's
 value), which the Goose configuration emits once the filter names the methods
 (`Code/go_etcd_io/etcd/client/v3.toml`: `Client.Put`, `Client.Get`); no translator change.
 
@@ -86,7 +86,7 @@ theorem client_Put_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
   ihave #Hrpc := kvRegs_one ep E γr cid mid $$ Hrpc0
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Put.method_unfold]
   wp_pures
   wp_auto
   ihave #Hau := putAu_of_putGetInv γr γf key val $$ Hinv
@@ -131,7 +131,7 @@ theorem client_Put_other (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEn
   ihave #Hrpc := kvRegs_one ep E γr cid mid $$ Hrpc0
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Put.method_unfold]
   wp_pures
   wp_auto
   ihave #Hau := putOtherAu_of_putGetInv γr γf key val key' val' hne $$ Hinv
@@ -164,7 +164,7 @@ theorem client_Get_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
   ihave #Hrpc := kvRegs_one ep E γr cid mid $$ Hrpc0
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Get.method_unfold]
   wp_pures
   wp_auto
   ihave #Hau := getAu_of_putGetInv γr γf key val $$ [Hinv Hlb]
@@ -272,7 +272,7 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
       · iright; iframe h; ipureintro; rfl
   ihave #Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
   ihave #Hst' := srvStart_both ms $$ Hst
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Get.method_unfold]
   wp_pures
   wp_auto
   iapply wp_fupd
@@ -336,7 +336,7 @@ theorem client_Put_rep (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoI
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
   ihave #Hwo := clientWriteOnce_api cl api _ $$ [Hkvf Hone]
   · iframe #
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Put.method_unfold]
   wp_pures
   wp_auto
   wp_apply (client_put_any api ms ci cd key val sl Q [] hsz) $$ [Hau] as %resp %err Hout
@@ -379,7 +379,7 @@ theorem client_Put_any (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoI
   iintro %Φ ⟨#Pc, #Hcl, #Hrr, #HF, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Put.method_unfold]
   wp_pures
   wp_auto
   wp_apply (client_put_any api ms ci cd key val sl Q [] hsz) $$ [] as %resp %err Hout
@@ -465,7 +465,7 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
   ihave #Hwo := clientWriteOnce_api cl api _ $$ [Hkvf Hone]
   · iframe #
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Delete_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Delete.method_unfold]
   wp_pures
   wp_auto
   wp_apply (client_delete_any api ms ci cd key sl Q [] hsz) $$ [Hau] as %resp %err Hout
@@ -524,7 +524,7 @@ theorem client_Txn_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
   ihave #Hwo := clientWriteOnce_api cl api _ $$ [Hkvf Hone]
   · iframe #
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Txn_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Txn.method_unfold]
   wp_pures
   wp_auto
   wp_apply (v3.kv.wp_Txn api (ms.map SrvAt.addr) ci cd) as %t ⟨%tp, %Ht, Hobj, #Hkt⟩
@@ -576,7 +576,7 @@ theorem client_Put_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfa
           kvRevLb γ m.hdr.revision) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hctx, #Hce, #Hopts, Hau⟩ HΦ
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Put.method_unfold]
   wp_pures
   wp_auto
   wp_apply (v3.kv.wp_Put api γ dup ci cd key val sl [] Q) $$ [Hau] as %resp %err Hout
@@ -620,7 +620,7 @@ theorem client_Compact_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInt
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : CompactRespM, compactRespMsg resp m) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hctx, #Hce, #Hrv⟩ HΦ
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Compact_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Compact.method_unfold]
   wp_pures
   wp_auto
   wp_apply (v3.kv.wp_Compact api γ dup ci cd rev hr hc) $$ [] as %resp %err Hout
@@ -653,7 +653,7 @@ theorem client_Get_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfa
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
   ihave #Hopts' := optsAt_res sl [withRevM rev] iprop(True) $$ Hopts
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Get.method_unfold]
   wp_pures
   wp_auto
   wp_apply (v3.kv.wp_Get api γ dup ci cd key sl [withRevM rev] iprop(True) Q) $$ []

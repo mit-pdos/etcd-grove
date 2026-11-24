@@ -326,7 +326,7 @@ noncomputable instance union.zero_val [GooseExts] : ZeroVal union :=
 @[irreducible] noncomputable def union.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   union.fieldsUnsealed
 
-noncomputable instance equals_unfold_union [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'union [GooseExts] [GoGlobalContext] :
     EqualsUnfold union.fields union.fieldsUnsealed :=
   ⟨by unfold union.fields; rfl⟩
 
@@ -336,38 +336,38 @@ noncomputable instance equals_unfold_union [GooseExts] [GoGlobalContext] :
 class union.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying union.underlying union
   underlying : go.UnderlyingDirectedEq union.ty union.underlying
-  get_backends : ∀ (x : union), go.IsGoStepPureDetTagged under (StructFieldGet union.underlying go!"backends") #x (Val #(x.backends'))
-  set_backends : ∀ (x : union) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet union.underlying go!"backends") (PairV #x #y) (Val #(({ x with backends' := y } : union)))
+  get'backends : ∀ (x : union), go.IsGoStepPureDetTagged under (StructFieldGet union.underlying go!"backends") #x (Val #(x.backends'))
+  set'backends : ∀ (x : union) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet union.underlying go!"backends") (PairV #x #y) (Val #(({ x with backends' := y } : union)))
   method_set : go.MethodSetIs union.ty [(go!"ProcessEvents", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/apis/audit.Event" [])))] true [go.bool]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.error]))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType union.ty) [(go!"ProcessEvents", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/apis/audit.Event" [])))] true [go.bool]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.error]))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] union.TypeAssumptions.type_repr
   union.TypeAssumptions.underlying
-  union.TypeAssumptions.get_backends
-  union.TypeAssumptions.set_backends
+  union.TypeAssumptions.get'backends
+  union.TypeAssumptions.set'backends
   union.TypeAssumptions.method_set
   union.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  key_instance : key.TypeAssumptions
-  AuditContext_instance : AuditContext.TypeAssumptions
-  RequestAuditConfig_instance : RequestAuditConfig.TypeAssumptions
-  PolicyRuleEvaluator_instance : PolicyRuleEvaluator.TypeAssumptions
-  Sink_instance : Sink.TypeAssumptions
-  Backend_instance : Backend.TypeAssumptions
-  union_instance : union.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
+  instance'key : key.TypeAssumptions
+  instance'AuditContext : AuditContext.TypeAssumptions
+  instance'RequestAuditConfig : RequestAuditConfig.TypeAssumptions
+  instance'PolicyRuleEvaluator : PolicyRuleEvaluator.TypeAssumptions
+  instance'Sink : Sink.TypeAssumptions
+  instance'Backend : Backend.TypeAssumptions
+  instance'union : union.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  «unfold'init.1» : FuncUnfold init.«1» [] init.«1».impl
 
-attribute [instance] Assumptions.key_instance
-  Assumptions.AuditContext_instance
-  Assumptions.RequestAuditConfig_instance
-  Assumptions.PolicyRuleEvaluator_instance
-  Assumptions.Sink_instance
-  Assumptions.Backend_instance
-  Assumptions.union_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.«init.1_unfold»
+attribute [instance] Assumptions.instance'key
+  Assumptions.instance'AuditContext
+  Assumptions.instance'RequestAuditConfig
+  Assumptions.instance'PolicyRuleEvaluator
+  Assumptions.instance'Sink
+  Assumptions.instance'Backend
+  Assumptions.instance'union
+  Assumptions.«unfold'init.0»
+  Assumptions.«unfold'init.1»
 
 end k8s_io.apiserver.pkg.audit
 

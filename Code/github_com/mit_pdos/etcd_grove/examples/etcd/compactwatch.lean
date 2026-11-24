@@ -522,19 +522,19 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Main_unfold : FuncUnfold Main [] Main.impl
-  checkCompactRev_unfold : FuncUnfold checkCompactRev [] checkCompactRev.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
+  unfold'Main : FuncUnfold Main [] Main.impl
+  unfold'checkCompactRev : FuncUnfold checkCompactRev [] checkCompactRev.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'etcdstart : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
 
-attribute [instance] Assumptions.Main_unfold
-  Assumptions.checkCompactRev_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_etcdstart_Assumption
+attribute [instance] Assumptions.unfold'Main
+  Assumptions.unfold'checkCompactRev
+  Assumptions.import'context
+  Assumptions.import'clientv3
+  Assumptions.import'zap
+  Assumptions.import'etcdstart
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch
 

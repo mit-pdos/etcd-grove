@@ -1496,7 +1496,7 @@ noncomputable instance State.zero_val [GooseExts] : ZeroVal State :=
 @[irreducible] noncomputable def State.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   State.fieldsUnsealed
 
-noncomputable instance equals_unfold_State [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'State [GooseExts] [GoGlobalContext] :
     EqualsUnfold State.fields State.fieldsUnsealed :=
   ⟨by unfold State.fields; rfl⟩
 
@@ -1506,19 +1506,19 @@ noncomputable instance equals_unfold_State [GooseExts] [GoGlobalContext] :
 class State.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying State.underlying State
   underlying : go.UnderlyingDirectedEq State.ty State.underlying
-  get_Bal : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Bal") #x (Val #(x.Bal'))
-  set_Bal : ∀ (x : State) (y : (GoArray w64 4)), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Bal") (PairV #x #y) (Val #(({ x with Bal' := y } : State)))
-  get_Seq : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Seq") #x (Val #(x.Seq'))
-  set_Seq : ∀ (x : State) (y : (GoArray w64 3)), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Seq") (PairV #x #y) (Val #(({ x with Seq' := y } : State)))
+  get'Bal : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Bal") #x (Val #(x.Bal'))
+  set'Bal : ∀ (x : State) (y : (GoArray w64 4)), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Bal") (PairV #x #y) (Val #(({ x with Bal' := y } : State)))
+  get'Seq : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Seq") #x (Val #(x.Seq'))
+  set'Seq : ∀ (x : State) (y : (GoArray w64 3)), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Seq") (PairV #x #y) (Val #(({ x with Seq' := y } : State)))
   method_set : go.MethodSetIs State.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType State.ty) []
 
 attribute [instance] State.TypeAssumptions.type_repr
   State.TypeAssumptions.underlying
-  State.TypeAssumptions.get_Bal
-  State.TypeAssumptions.set_Bal
-  State.TypeAssumptions.get_Seq
-  State.TypeAssumptions.set_Seq
+  State.TypeAssumptions.get'Bal
+  State.TypeAssumptions.set'Bal
+  State.TypeAssumptions.get'Seq
+  State.TypeAssumptions.set'Seq
   State.TypeAssumptions.method_set
   State.TypeAssumptions.ptr_method_set
 
@@ -1543,7 +1543,7 @@ noncomputable instance Op.zero_val [GooseExts] : ZeroVal Op :=
 @[irreducible] noncomputable def Op.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Op.fieldsUnsealed
 
-noncomputable instance equals_unfold_Op [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Op [GooseExts] [GoGlobalContext] :
     EqualsUnfold Op.fields Op.fieldsUnsealed :=
   ⟨by unfold Op.fields; rfl⟩
 
@@ -1553,31 +1553,31 @@ noncomputable instance equals_unfold_Op [GooseExts] [GoGlobalContext] :
 class Op.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Op.underlying Op
   underlying : go.UnderlyingDirectedEq Op.ty Op.underlying
-  get_Read : ∀ (x : Op), go.IsGoStepPureDetTagged under (StructFieldGet Op.underlying go!"Read") #x (Val #(x.Read'))
-  set_Read : ∀ (x : Op) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"Read") (PairV #x #y) (Val #(({ x with Read' := y } : Op)))
-  get_Client : ∀ (x : Op), go.IsGoStepPureDetTagged under (StructFieldGet Op.underlying go!"Client") #x (Val #(x.Client'))
-  set_Client : ∀ (x : Op) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"Client") (PairV #x #y) (Val #(({ x with Client' := y } : Op)))
-  get_From : ∀ (x : Op), go.IsGoStepPureDetTagged under (StructFieldGet Op.underlying go!"From") #x (Val #(x.From'))
-  set_From : ∀ (x : Op) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"From") (PairV #x #y) (Val #(({ x with From' := y } : Op)))
-  get_To : ∀ (x : Op), go.IsGoStepPureDetTagged under (StructFieldGet Op.underlying go!"To") #x (Val #(x.To'))
-  set_To : ∀ (x : Op) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"To") (PairV #x #y) (Val #(({ x with To' := y } : Op)))
-  get_Amount : ∀ (x : Op), go.IsGoStepPureDetTagged under (StructFieldGet Op.underlying go!"Amount") #x (Val #(x.Amount'))
-  set_Amount : ∀ (x : Op) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"Amount") (PairV #x #y) (Val #(({ x with Amount' := y } : Op)))
+  get'Read : ∀ (x : Op), go.IsGoStepPureDetTagged under (StructFieldGet Op.underlying go!"Read") #x (Val #(x.Read'))
+  set'Read : ∀ (x : Op) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"Read") (PairV #x #y) (Val #(({ x with Read' := y } : Op)))
+  get'Client : ∀ (x : Op), go.IsGoStepPureDetTagged under (StructFieldGet Op.underlying go!"Client") #x (Val #(x.Client'))
+  set'Client : ∀ (x : Op) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"Client") (PairV #x #y) (Val #(({ x with Client' := y } : Op)))
+  get'From : ∀ (x : Op), go.IsGoStepPureDetTagged under (StructFieldGet Op.underlying go!"From") #x (Val #(x.From'))
+  set'From : ∀ (x : Op) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"From") (PairV #x #y) (Val #(({ x with From' := y } : Op)))
+  get'To : ∀ (x : Op), go.IsGoStepPureDetTagged under (StructFieldGet Op.underlying go!"To") #x (Val #(x.To'))
+  set'To : ∀ (x : Op) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"To") (PairV #x #y) (Val #(({ x with To' := y } : Op)))
+  get'Amount : ∀ (x : Op), go.IsGoStepPureDetTagged under (StructFieldGet Op.underlying go!"Amount") #x (Val #(x.Amount'))
+  set'Amount : ∀ (x : Op) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"Amount") (PairV #x #y) (Val #(({ x with Amount' := y } : Op)))
   method_set : go.MethodSetIs Op.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Op.ty) []
 
 attribute [instance] Op.TypeAssumptions.type_repr
   Op.TypeAssumptions.underlying
-  Op.TypeAssumptions.get_Read
-  Op.TypeAssumptions.set_Read
-  Op.TypeAssumptions.get_Client
-  Op.TypeAssumptions.set_Client
-  Op.TypeAssumptions.get_From
-  Op.TypeAssumptions.set_From
-  Op.TypeAssumptions.get_To
-  Op.TypeAssumptions.set_To
-  Op.TypeAssumptions.get_Amount
-  Op.TypeAssumptions.set_Amount
+  Op.TypeAssumptions.get'Read
+  Op.TypeAssumptions.set'Read
+  Op.TypeAssumptions.get'Client
+  Op.TypeAssumptions.set'Client
+  Op.TypeAssumptions.get'From
+  Op.TypeAssumptions.set'From
+  Op.TypeAssumptions.get'To
+  Op.TypeAssumptions.set'To
+  Op.TypeAssumptions.get'Amount
+  Op.TypeAssumptions.set'Amount
   Op.TypeAssumptions.method_set
   Op.TypeAssumptions.ptr_method_set
 
@@ -1598,7 +1598,7 @@ noncomputable instance Result.zero_val [GooseExts] : ZeroVal Result :=
 @[irreducible] noncomputable def Result.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Result.fieldsUnsealed
 
-noncomputable instance equals_unfold_Result [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Result [GooseExts] [GoGlobalContext] :
     EqualsUnfold Result.fields Result.fieldsUnsealed :=
   ⟨by unfold Result.fields; rfl⟩
 
@@ -1608,23 +1608,23 @@ noncomputable instance equals_unfold_Result [GooseExts] [GoGlobalContext] :
 class Result.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Result.underlying Result
   underlying : go.UnderlyingDirectedEq Result.ty Result.underlying
-  get_Snap : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Snap") #x (Val #(x.Snap'))
-  set_Snap : ∀ (x : Result) (y : State), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Snap") (PairV #x #y) (Val #(({ x with Snap' := y } : Result)))
-  get_Moved : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Moved") #x (Val #(x.Moved'))
-  set_Moved : ∀ (x : Result) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Moved") (PairV #x #y) (Val #(({ x with Moved' := y } : Result)))
-  get_Failed : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Failed") #x (Val #(x.Failed'))
-  set_Failed : ∀ (x : Result) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Failed") (PairV #x #y) (Val #(({ x with Failed' := y } : Result)))
+  get'Snap : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Snap") #x (Val #(x.Snap'))
+  set'Snap : ∀ (x : Result) (y : State), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Snap") (PairV #x #y) (Val #(({ x with Snap' := y } : Result)))
+  get'Moved : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Moved") #x (Val #(x.Moved'))
+  set'Moved : ∀ (x : Result) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Moved") (PairV #x #y) (Val #(({ x with Moved' := y } : Result)))
+  get'Failed : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Failed") #x (Val #(x.Failed'))
+  set'Failed : ∀ (x : Result) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Failed") (PairV #x #y) (Val #(({ x with Failed' := y } : Result)))
   method_set : go.MethodSetIs Result.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Result.ty) []
 
 attribute [instance] Result.TypeAssumptions.type_repr
   Result.TypeAssumptions.underlying
-  Result.TypeAssumptions.get_Snap
-  Result.TypeAssumptions.set_Snap
-  Result.TypeAssumptions.get_Moved
-  Result.TypeAssumptions.set_Moved
-  Result.TypeAssumptions.get_Failed
-  Result.TypeAssumptions.set_Failed
+  Result.TypeAssumptions.get'Snap
+  Result.TypeAssumptions.set'Snap
+  Result.TypeAssumptions.get'Moved
+  Result.TypeAssumptions.set'Moved
+  Result.TypeAssumptions.get'Failed
+  Result.TypeAssumptions.set'Failed
   Result.TypeAssumptions.method_set
   Result.TypeAssumptions.ptr_method_set
 
@@ -1645,7 +1645,7 @@ noncomputable instance bank.zero_val [GooseExts] : ZeroVal bank :=
 @[irreducible] noncomputable def bank.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bank.fieldsUnsealed
 
-noncomputable instance equals_unfold_bank [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'bank [GooseExts] [GoGlobalContext] :
     EqualsUnfold bank.fields bank.fieldsUnsealed :=
   ⟨by unfold bank.fields; rfl⟩
 
@@ -1655,27 +1655,27 @@ noncomputable instance equals_unfold_bank [GooseExts] [GoGlobalContext] :
 class bank.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bank.underlying bank
   underlying : go.UnderlyingDirectedEq bank.ty bank.underlying
-  get_db : ∀ (x : bank), go.IsGoStepPureDetTagged under (StructFieldGet bank.underlying go!"db") #x (Val #(x.db'))
-  set_db : ∀ (x : bank) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bank.underlying go!"db") (PairV #x #y) (Val #(({ x with db' := y } : bank)))
-  get_witness : ∀ (x : bank), go.IsGoStepPureDetTagged under (StructFieldGet bank.underlying go!"witness") #x (Val #(x.witness'))
-  set_witness : ∀ (x : bank) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bank.underlying go!"witness") (PairV #x #y) (Val #(({ x with witness' := y } : bank)))
-  get_failed : ∀ (x : bank), go.IsGoStepPureDetTagged under (StructFieldGet bank.underlying go!"failed") #x (Val #(x.failed'))
-  set_failed : ∀ (x : bank) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet bank.underlying go!"failed") (PairV #x #y) (Val #(({ x with failed' := y } : bank)))
+  get'db : ∀ (x : bank), go.IsGoStepPureDetTagged under (StructFieldGet bank.underlying go!"db") #x (Val #(x.db'))
+  set'db : ∀ (x : bank) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bank.underlying go!"db") (PairV #x #y) (Val #(({ x with db' := y } : bank)))
+  get'witness : ∀ (x : bank), go.IsGoStepPureDetTagged under (StructFieldGet bank.underlying go!"witness") #x (Val #(x.witness'))
+  set'witness : ∀ (x : bank) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bank.underlying go!"witness") (PairV #x #y) (Val #(({ x with witness' := y } : bank)))
+  get'failed : ∀ (x : bank), go.IsGoStepPureDetTagged under (StructFieldGet bank.underlying go!"failed") #x (Val #(x.failed'))
+  set'failed : ∀ (x : bank) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet bank.underlying go!"failed") (PairV #x #y) (Val #(({ x with failed' := y } : bank)))
   method_set : go.MethodSetIs bank.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bank.ty) [(go!"github.com/mit-pdos/etcd-grove/examples/bbolt/bank.apply", (some (go.signature.Signature [go.any] false [go.any])))]
-  ptr_apply_unfold : MethodUnfold (go.GoType.PointerType bank.ty) go!"apply" bank.apply.impl
+  ptr_unfold'apply : MethodUnfold (go.GoType.PointerType bank.ty) go!"apply" bank.apply.impl
 
 attribute [instance] bank.TypeAssumptions.type_repr
   bank.TypeAssumptions.underlying
-  bank.TypeAssumptions.get_db
-  bank.TypeAssumptions.set_db
-  bank.TypeAssumptions.get_witness
-  bank.TypeAssumptions.set_witness
-  bank.TypeAssumptions.get_failed
-  bank.TypeAssumptions.set_failed
+  bank.TypeAssumptions.get'db
+  bank.TypeAssumptions.set'db
+  bank.TypeAssumptions.get'witness
+  bank.TypeAssumptions.set'witness
+  bank.TypeAssumptions.get'failed
+  bank.TypeAssumptions.set'failed
   bank.TypeAssumptions.method_set
   bank.TypeAssumptions.ptr_method_set
-  bank.TypeAssumptions.ptr_apply_unfold
+  bank.TypeAssumptions.ptr_unfold'apply
 
 structure witness [GooseExts] where
   mk ::
@@ -1692,7 +1692,7 @@ noncomputable instance witness.zero_val [GooseExts] : ZeroVal witness :=
 @[irreducible] noncomputable def witness.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   witness.fieldsUnsealed
 
-noncomputable instance equals_unfold_witness [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'witness [GooseExts] [GoGlobalContext] :
     EqualsUnfold witness.fields witness.fieldsUnsealed :=
   ⟨by unfold witness.fields; rfl⟩
 
@@ -1702,80 +1702,80 @@ noncomputable instance equals_unfold_witness [GooseExts] [GoGlobalContext] :
 class witness.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying witness.underlying witness
   underlying : go.UnderlyingDirectedEq witness.ty witness.underlying
-  get_mu : ∀ (x : witness), go.IsGoStepPureDetTagged under (StructFieldGet witness.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : witness) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet witness.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : witness)))
-  get_f : ∀ (x : witness), go.IsGoStepPureDetTagged under (StructFieldGet witness.underlying go!"f") #x (Val #(x.f'))
-  set_f : ∀ (x : witness) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet witness.underlying go!"f") (PairV #x #y) (Val #(({ x with f' := y } : witness)))
+  get'mu : ∀ (x : witness), go.IsGoStepPureDetTagged under (StructFieldGet witness.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : witness) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet witness.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : witness)))
+  get'f : ∀ (x : witness), go.IsGoStepPureDetTagged under (StructFieldGet witness.underlying go!"f") #x (Val #(x.f'))
+  set'f : ∀ (x : witness) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet witness.underlying go!"f") (PairV #x #y) (Val #(({ x with f' := y } : witness)))
   method_set : go.MethodSetIs witness.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType witness.ty) [(go!"github.com/mit-pdos/etcd-grove/examples/bbolt/bank.ack", (some (go.signature.Signature [go.uint64, go.uint64] false [go.bool]))), (go!"github.com/mit-pdos/etcd-grove/examples/bbolt/bank.acked", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint64), go.bool]))), (go!"github.com/mit-pdos/etcd-grove/examples/bbolt/bank.close", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/bbolt/bank.writeSync", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.bool])))]
-  ptr_ack_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"ack" witness.ack.impl
-  ptr_acked_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"acked" witness.acked.impl
-  ptr_close_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"close" witness.close.impl
-  ptr_writeSync_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"writeSync" witness.writeSync.impl
+  ptr_unfold'ack : MethodUnfold (go.GoType.PointerType witness.ty) go!"ack" witness.ack.impl
+  ptr_unfold'acked : MethodUnfold (go.GoType.PointerType witness.ty) go!"acked" witness.acked.impl
+  ptr_unfold'close : MethodUnfold (go.GoType.PointerType witness.ty) go!"close" witness.close.impl
+  ptr_unfold'writeSync : MethodUnfold (go.GoType.PointerType witness.ty) go!"writeSync" witness.writeSync.impl
 
 attribute [instance] witness.TypeAssumptions.type_repr
   witness.TypeAssumptions.underlying
-  witness.TypeAssumptions.get_mu
-  witness.TypeAssumptions.set_mu
-  witness.TypeAssumptions.get_f
-  witness.TypeAssumptions.set_f
+  witness.TypeAssumptions.get'mu
+  witness.TypeAssumptions.set'mu
+  witness.TypeAssumptions.get'f
+  witness.TypeAssumptions.set'f
   witness.TypeAssumptions.method_set
   witness.TypeAssumptions.ptr_method_set
-  witness.TypeAssumptions.ptr_ack_unfold
-  witness.TypeAssumptions.ptr_acked_unfold
-  witness.TypeAssumptions.ptr_close_unfold
-  witness.TypeAssumptions.ptr_writeSync_unfold
+  witness.TypeAssumptions.ptr_unfold'ack
+  witness.TypeAssumptions.ptr_unfold'acked
+  witness.TypeAssumptions.ptr_unfold'close
+  witness.TypeAssumptions.ptr_unfold'writeSync
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  State_instance : State.TypeAssumptions
-  Op_instance : Op.TypeAssumptions
-  Result_instance : Result.TypeAssumptions
-  bank_instance : bank.TypeAssumptions
-  witness_instance : witness.TypeAssumptions
-  step_unfold : FuncUnfold step [] step.impl
-  Model_unfold : FuncUnfold Model [] Model.impl
-  bucketName_unfold : FuncUnfold bucketName [] bucketName.impl
-  accountKey_unfold : FuncUnfold accountKey [] accountKey.impl
-  seqKey_unfold : FuncUnfold seqKey [] seqKey.impl
-  encode_unfold : FuncUnfold encode [] encode.impl
-  decode_unfold : FuncUnfold decode [] decode.impl
-  readState_unfold : FuncUnfold readState [] readState.impl
-  generator_unfold : FuncUnfold generator [] generator.impl
-  recoverState_unfold : FuncUnfold recoverState [] recoverState.impl
-  Boot_unfold : FuncUnfold Boot [] Boot.impl
-  openWitness_unfold : FuncUnfold openWitness [] openWitness.impl
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
-  import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
-  import_lintest_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
-  import_bbolt_Assumption : _root_.Perennial.go_etcd_io.bbolt.Assumptions
+  instance'State : State.TypeAssumptions
+  instance'Op : Op.TypeAssumptions
+  instance'Result : Result.TypeAssumptions
+  instance'bank : bank.TypeAssumptions
+  instance'witness : witness.TypeAssumptions
+  unfold'step : FuncUnfold step [] step.impl
+  unfold'Model : FuncUnfold Model [] Model.impl
+  unfold'bucketName : FuncUnfold bucketName [] bucketName.impl
+  unfold'accountKey : FuncUnfold accountKey [] accountKey.impl
+  unfold'seqKey : FuncUnfold seqKey [] seqKey.impl
+  unfold'encode : FuncUnfold encode [] encode.impl
+  unfold'decode : FuncUnfold decode [] decode.impl
+  unfold'readState : FuncUnfold readState [] readState.impl
+  unfold'generator : FuncUnfold generator [] generator.impl
+  unfold'recoverState : FuncUnfold recoverState [] recoverState.impl
+  unfold'Boot : FuncUnfold Boot [] Boot.impl
+  unfold'openWitness : FuncUnfold openWitness [] openWitness.impl
+  import'os : _root_.Perennial.os.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'syscall : _root_.Perennial.syscall.Assumptions
+  import'porcupine : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
+  import'lintest : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
+  import'bbolt : _root_.Perennial.go_etcd_io.bbolt.Assumptions
 
-attribute [instance] Assumptions.State_instance
-  Assumptions.Op_instance
-  Assumptions.Result_instance
-  Assumptions.bank_instance
-  Assumptions.witness_instance
-  Assumptions.step_unfold
-  Assumptions.Model_unfold
-  Assumptions.bucketName_unfold
-  Assumptions.accountKey_unfold
-  Assumptions.seqKey_unfold
-  Assumptions.encode_unfold
-  Assumptions.decode_unfold
-  Assumptions.readState_unfold
-  Assumptions.generator_unfold
-  Assumptions.recoverState_unfold
-  Assumptions.Boot_unfold
-  Assumptions.openWitness_unfold
-  Assumptions.import_os_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_syscall_Assumption
-  Assumptions.import_porcupine_Assumption
-  Assumptions.import_lintest_Assumption
-  Assumptions.import_bbolt_Assumption
+attribute [instance] Assumptions.instance'State
+  Assumptions.instance'Op
+  Assumptions.instance'Result
+  Assumptions.instance'bank
+  Assumptions.instance'witness
+  Assumptions.unfold'step
+  Assumptions.unfold'Model
+  Assumptions.unfold'bucketName
+  Assumptions.unfold'accountKey
+  Assumptions.unfold'seqKey
+  Assumptions.unfold'encode
+  Assumptions.unfold'decode
+  Assumptions.unfold'readState
+  Assumptions.unfold'generator
+  Assumptions.unfold'recoverState
+  Assumptions.unfold'Boot
+  Assumptions.unfold'openWitness
+  Assumptions.import'os
+  Assumptions.import'sync
+  Assumptions.import'atomic
+  Assumptions.import'syscall
+  Assumptions.import'porcupine
+  Assumptions.import'lintest
+  Assumptions.import'bbolt
 
 end github_com.mit_pdos.etcd_grove.examples.bbolt.bank
 

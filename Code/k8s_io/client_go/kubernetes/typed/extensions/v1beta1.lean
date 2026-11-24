@@ -635,51 +635,51 @@ attribute [instance] replicaSets.TypeAssumptions.type_repr
   replicaSets.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  DaemonSetsGetter_instance : DaemonSetsGetter.TypeAssumptions
-  DaemonSetInterface_instance : DaemonSetInterface.TypeAssumptions
-  daemonSets_instance : daemonSets.TypeAssumptions
-  DeploymentsGetter_instance : DeploymentsGetter.TypeAssumptions
-  DeploymentInterface_instance : DeploymentInterface.TypeAssumptions
-  deployments_instance : deployments.TypeAssumptions
-  DeploymentExpansion_instance : DeploymentExpansion.TypeAssumptions
-  ExtensionsV1beta1Interface_instance : ExtensionsV1beta1Interface.TypeAssumptions
-  ExtensionsV1beta1Client_instance : ExtensionsV1beta1Client.TypeAssumptions
-  DaemonSetExpansion_instance : DaemonSetExpansion.TypeAssumptions
-  IngressExpansion_instance : IngressExpansion.TypeAssumptions
-  NetworkPolicyExpansion_instance : NetworkPolicyExpansion.TypeAssumptions
-  ReplicaSetExpansion_instance : ReplicaSetExpansion.TypeAssumptions
-  IngressesGetter_instance : IngressesGetter.TypeAssumptions
-  IngressInterface_instance : IngressInterface.TypeAssumptions
-  ingresses_instance : ingresses.TypeAssumptions
-  NetworkPoliciesGetter_instance : NetworkPoliciesGetter.TypeAssumptions
-  NetworkPolicyInterface_instance : NetworkPolicyInterface.TypeAssumptions
-  networkPolicies_instance : networkPolicies.TypeAssumptions
-  ReplicaSetsGetter_instance : ReplicaSetsGetter.TypeAssumptions
-  ReplicaSetInterface_instance : ReplicaSetInterface.TypeAssumptions
-  replicaSets_instance : replicaSets.TypeAssumptions
+  instance'DaemonSetsGetter : DaemonSetsGetter.TypeAssumptions
+  instance'DaemonSetInterface : DaemonSetInterface.TypeAssumptions
+  instance'daemonSets : daemonSets.TypeAssumptions
+  instance'DeploymentsGetter : DeploymentsGetter.TypeAssumptions
+  instance'DeploymentInterface : DeploymentInterface.TypeAssumptions
+  instance'deployments : deployments.TypeAssumptions
+  instance'DeploymentExpansion : DeploymentExpansion.TypeAssumptions
+  instance'ExtensionsV1beta1Interface : ExtensionsV1beta1Interface.TypeAssumptions
+  instance'ExtensionsV1beta1Client : ExtensionsV1beta1Client.TypeAssumptions
+  instance'DaemonSetExpansion : DaemonSetExpansion.TypeAssumptions
+  instance'IngressExpansion : IngressExpansion.TypeAssumptions
+  instance'NetworkPolicyExpansion : NetworkPolicyExpansion.TypeAssumptions
+  instance'ReplicaSetExpansion : ReplicaSetExpansion.TypeAssumptions
+  instance'IngressesGetter : IngressesGetter.TypeAssumptions
+  instance'IngressInterface : IngressInterface.TypeAssumptions
+  instance'ingresses : ingresses.TypeAssumptions
+  instance'NetworkPoliciesGetter : NetworkPoliciesGetter.TypeAssumptions
+  instance'NetworkPolicyInterface : NetworkPolicyInterface.TypeAssumptions
+  instance'networkPolicies : networkPolicies.TypeAssumptions
+  instance'ReplicaSetsGetter : ReplicaSetsGetter.TypeAssumptions
+  instance'ReplicaSetInterface : ReplicaSetInterface.TypeAssumptions
+  instance'replicaSets : replicaSets.TypeAssumptions
 
-attribute [instance] Assumptions.DaemonSetsGetter_instance
-  Assumptions.DaemonSetInterface_instance
-  Assumptions.daemonSets_instance
-  Assumptions.DeploymentsGetter_instance
-  Assumptions.DeploymentInterface_instance
-  Assumptions.deployments_instance
-  Assumptions.DeploymentExpansion_instance
-  Assumptions.ExtensionsV1beta1Interface_instance
-  Assumptions.ExtensionsV1beta1Client_instance
-  Assumptions.DaemonSetExpansion_instance
-  Assumptions.IngressExpansion_instance
-  Assumptions.NetworkPolicyExpansion_instance
-  Assumptions.ReplicaSetExpansion_instance
-  Assumptions.IngressesGetter_instance
-  Assumptions.IngressInterface_instance
-  Assumptions.ingresses_instance
-  Assumptions.NetworkPoliciesGetter_instance
-  Assumptions.NetworkPolicyInterface_instance
-  Assumptions.networkPolicies_instance
-  Assumptions.ReplicaSetsGetter_instance
-  Assumptions.ReplicaSetInterface_instance
-  Assumptions.replicaSets_instance
+attribute [instance] Assumptions.instance'DaemonSetsGetter
+  Assumptions.instance'DaemonSetInterface
+  Assumptions.instance'daemonSets
+  Assumptions.instance'DeploymentsGetter
+  Assumptions.instance'DeploymentInterface
+  Assumptions.instance'deployments
+  Assumptions.instance'DeploymentExpansion
+  Assumptions.instance'ExtensionsV1beta1Interface
+  Assumptions.instance'ExtensionsV1beta1Client
+  Assumptions.instance'DaemonSetExpansion
+  Assumptions.instance'IngressExpansion
+  Assumptions.instance'NetworkPolicyExpansion
+  Assumptions.instance'ReplicaSetExpansion
+  Assumptions.instance'IngressesGetter
+  Assumptions.instance'IngressInterface
+  Assumptions.instance'ingresses
+  Assumptions.instance'NetworkPoliciesGetter
+  Assumptions.instance'NetworkPolicyInterface
+  Assumptions.instance'networkPolicies
+  Assumptions.instance'ReplicaSetsGetter
+  Assumptions.instance'ReplicaSetInterface
+  Assumptions.instance'replicaSets
 
 end k8s_io.client_go.kubernetes.typed.extensions.v1beta1
 

@@ -12549,7 +12549,7 @@ noncomputable instance serverVersionAdapter.zero_val [GooseExts] : ZeroVal serve
 @[irreducible] noncomputable def serverVersionAdapter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   serverVersionAdapter.fieldsUnsealed
 
-noncomputable instance equals_unfold_serverVersionAdapter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'serverVersionAdapter [GooseExts] [GoGlobalContext] :
     EqualsUnfold serverVersionAdapter.fields serverVersionAdapter.fieldsUnsealed :=
   ⟨by unfold serverVersionAdapter.fields; rfl⟩
 
@@ -12559,15 +12559,15 @@ noncomputable instance equals_unfold_serverVersionAdapter [GooseExts] [GoGlobalC
 class serverVersionAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverVersionAdapter.underlying serverVersionAdapter
   underlying : go.UnderlyingDirectedEq serverVersionAdapter.ty serverVersionAdapter.underlying
-  get_EtcdServer : ∀ (x : serverVersionAdapter), go.IsGoStepPureDetTagged under (StructFieldGet serverVersionAdapter.underlying go!"EtcdServer") #x (Val #(x.EtcdServer'))
-  set_EtcdServer : ∀ (x : serverVersionAdapter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet serverVersionAdapter.underlying go!"EtcdServer") (PairV #x #y) (Val #(({ x with EtcdServer' := y } : serverVersionAdapter)))
+  get'EtcdServer : ∀ (x : serverVersionAdapter), go.IsGoStepPureDetTagged under (StructFieldGet serverVersionAdapter.underlying go!"EtcdServer") #x (Val #(x.EtcdServer'))
+  set'EtcdServer : ∀ (x : serverVersionAdapter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet serverVersionAdapter.underlying go!"EtcdServer") (PairV #x #y) (Val #(({ x with EtcdServer' := y } : serverVersionAdapter)))
   method_set : go.MethodSetIs serverVersionAdapter.ty [(go!"AddMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Alarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ApplyWaitCommit", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"AuthStore", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"Backend", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"Cleanup", (some (go.signature.Signature [] false []))), (go!"ClientCertAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Cluster", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty]))), (go!"ClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"CommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"Config", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty]))), (go!"CorruptionChecker", (some (go.signature.Signature [] false [CorruptionChecker.ty]))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Defragment", (some (go.signature.Signature [] false [go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"DowngradeEnabledHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)]))), (go!"FeatureEnabled", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty] false [go.bool]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ForceSnapshot", (some (go.signature.Signature [] false []))), (go!"GoAttach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"HardStop", (some (go.signature.Signature [] false []))), (go!"HashKVHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"KV", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"Lead", (some (go.signature.Signature [] false [go.uint64]))), (go!"Leader", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChangedNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64, go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"MemberID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberId", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [go.error]))), (go!"NewUberApplier", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"PauseSending", (some (go.signature.Signature [] false []))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"RaftHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty] false [go.error]))), (go!"ReadyNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ResumeSending", (some (go.signature.Signature [] false []))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Start", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StoppingNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Term", (some (go.signature.Signature [] false [go.uint64]))), (go!"TryTransferLeadershipOnShutdown", (some (go.signature.Signature [] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"UpdateMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Manager.ty)]))), (go!"Watchable", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.adjustTicks", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.apply", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), (go.GoType.PointerType etcdProgress.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.uint64, go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyAll", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyConfChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), (go.GoType.PointerType etcdProgress.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntries", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntryNormal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkMembershipOperationPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.compactRaftLog", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.configure", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.createMergedSnapshotMessage", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.uint64, go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty), replayTerms.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.doSerialize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeValidate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.ensureLeadership", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getAppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getCommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getLead", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getPeerHashKVs", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTxPostLockInsideApplyHook", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.hasMultipleVotingMembers", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isActive", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLearnerReady", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), go.uint64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.leaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayAddMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayPromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayRemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorClusterVersions", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorCompactHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorDowngrade", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorKVHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorStorageVersion", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.parseProposeCtxErr", (some (go.signature.Signature [go.error, _root_.Perennial.time.Time.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.processInternalRaftRequestOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.promoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.publishV3", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.purgeFile", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [_root_.Perennial.google_golang_org.protobuf.proto.Message.ty, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatus", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.rangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.restoreAlarms", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.revokeExpiredLeases", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.sendMergedSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setAppliedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setCommittedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setLead", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToDisk", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToMemory", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshotIfNeededAndCompactRaftLog", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.stopWithDelay", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.error] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.triggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.updateClusterVersionV3", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitAppliedIndex", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverVersionAdapter.ty) [(go!"AddMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Alarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ApplyWaitCommit", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"AuthStore", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"Backend", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"Cleanup", (some (go.signature.Signature [] false []))), (go!"ClientCertAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Cluster", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty]))), (go!"ClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"CommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"Config", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty]))), (go!"CorruptionChecker", (some (go.signature.Signature [] false [CorruptionChecker.ty]))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Defragment", (some (go.signature.Signature [] false [go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"DowngradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"DowngradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)] false [go.error]))), (go!"DowngradeEnabledHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)]))), (go!"FeatureEnabled", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty] false [go.bool]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ForceSnapshot", (some (go.signature.Signature [] false []))), (go!"GetClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"GetDowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)]))), (go!"GetMembersVersions", (some (go.signature.Signature [] false [(go.GoType.MapType go.string (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.version.Versions.ty))]))), (go!"GetStorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"GoAttach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"HardStop", (some (go.signature.Signature [] false []))), (go!"HashKVHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"KV", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"Lead", (some (go.signature.Signature [] false [go.uint64]))), (go!"Leader", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChangedNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64, go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"MemberID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberId", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [go.error]))), (go!"NewUberApplier", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"PauseSending", (some (go.signature.Signature [] false []))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"RaftHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty] false [go.error]))), (go!"ReadyNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ResumeSending", (some (go.signature.Signature [] false []))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Start", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StoppingNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Term", (some (go.signature.Signature [] false [go.uint64]))), (go!"TryTransferLeadershipOnShutdown", (some (go.signature.Signature [] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"UpdateClusterVersion", (some (go.signature.Signature [go.string] false []))), (go!"UpdateMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"UpdateStorageVersion", (some (go.signature.Signature [_root_.Perennial.github_com.Masterminds.semver.v3.Version.ty] false [go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Manager.ty)]))), (go!"Watchable", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.adjustTicks", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.apply", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), (go.GoType.PointerType etcdProgress.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.uint64, go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyAll", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyConfChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), (go.GoType.PointerType etcdProgress.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntries", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntryNormal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkMembershipOperationPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.compactRaftLog", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.configure", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.createMergedSnapshotMessage", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.uint64, go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty), replayTerms.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.doSerialize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeValidate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.ensureLeadership", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getAppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getCommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getLead", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getPeerHashKVs", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTxPostLockInsideApplyHook", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.hasMultipleVotingMembers", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isActive", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLearnerReady", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), go.uint64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.leaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayAddMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayPromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayRemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorClusterVersions", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorCompactHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorDowngrade", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorKVHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorStorageVersion", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.parseProposeCtxErr", (some (go.signature.Signature [go.error, _root_.Perennial.time.Time.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.processInternalRaftRequestOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.promoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.publishV3", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.purgeFile", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [_root_.Perennial.google_golang_org.protobuf.proto.Message.ty, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatus", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.rangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.restoreAlarms", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.revokeExpiredLeases", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.sendMergedSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setAppliedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setCommittedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setLead", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToDisk", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToMemory", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshotIfNeededAndCompactRaftLog", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.stopWithDelay", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.error] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.triggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.updateClusterVersionV3", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitAppliedIndex", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty), go.error])))]
 
 attribute [instance] serverVersionAdapter.TypeAssumptions.type_repr
   serverVersionAdapter.TypeAssumptions.underlying
-  serverVersionAdapter.TypeAssumptions.get_EtcdServer
-  serverVersionAdapter.TypeAssumptions.set_EtcdServer
+  serverVersionAdapter.TypeAssumptions.get'EtcdServer
+  serverVersionAdapter.TypeAssumptions.set'EtcdServer
   serverVersionAdapter.TypeAssumptions.method_set
   serverVersionAdapter.TypeAssumptions.ptr_method_set
 
@@ -12592,7 +12592,7 @@ noncomputable instance bootstrappedServer.zero_val [GooseExts] : ZeroVal bootstr
 @[irreducible] noncomputable def bootstrappedServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bootstrappedServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_bootstrappedServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'bootstrappedServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold bootstrappedServer.fields bootstrappedServer.fieldsUnsealed :=
   ⟨by unfold bootstrappedServer.fields; rfl⟩
 
@@ -12602,35 +12602,35 @@ noncomputable instance equals_unfold_bootstrappedServer [GooseExts] [GoGlobalCon
 class bootstrappedServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedServer.underlying bootstrappedServer
   underlying : go.UnderlyingDirectedEq bootstrappedServer.ty bootstrappedServer.underlying
-  get_storage : ∀ (x : bootstrappedServer), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedServer.underlying go!"storage") #x (Val #(x.storage'))
-  set_storage : ∀ (x : bootstrappedServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedServer.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : bootstrappedServer)))
-  get_cluster : ∀ (x : bootstrappedServer), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedServer.underlying go!"cluster") #x (Val #(x.cluster'))
-  set_cluster : ∀ (x : bootstrappedServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedServer.underlying go!"cluster") (PairV #x #y) (Val #(({ x with cluster' := y } : bootstrappedServer)))
-  get_raft : ∀ (x : bootstrappedServer), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedServer.underlying go!"raft") #x (Val #(x.raft'))
-  set_raft : ∀ (x : bootstrappedServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedServer.underlying go!"raft") (PairV #x #y) (Val #(({ x with raft' := y } : bootstrappedServer)))
-  get_prt : ∀ (x : bootstrappedServer), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedServer.underlying go!"prt") #x (Val #(x.prt'))
-  set_prt : ∀ (x : bootstrappedServer) (y : _root_.Perennial.net.http.RoundTripper), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedServer.underlying go!"prt") (PairV #x #y) (Val #(({ x with prt' := y } : bootstrappedServer)))
-  get_ss : ∀ (x : bootstrappedServer), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedServer.underlying go!"ss") #x (Val #(x.ss'))
-  set_ss : ∀ (x : bootstrappedServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedServer.underlying go!"ss") (PairV #x #y) (Val #(({ x with ss' := y } : bootstrappedServer)))
+  get'storage : ∀ (x : bootstrappedServer), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedServer.underlying go!"storage") #x (Val #(x.storage'))
+  set'storage : ∀ (x : bootstrappedServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedServer.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : bootstrappedServer)))
+  get'cluster : ∀ (x : bootstrappedServer), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedServer.underlying go!"cluster") #x (Val #(x.cluster'))
+  set'cluster : ∀ (x : bootstrappedServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedServer.underlying go!"cluster") (PairV #x #y) (Val #(({ x with cluster' := y } : bootstrappedServer)))
+  get'raft : ∀ (x : bootstrappedServer), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedServer.underlying go!"raft") #x (Val #(x.raft'))
+  set'raft : ∀ (x : bootstrappedServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedServer.underlying go!"raft") (PairV #x #y) (Val #(({ x with raft' := y } : bootstrappedServer)))
+  get'prt : ∀ (x : bootstrappedServer), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedServer.underlying go!"prt") #x (Val #(x.prt'))
+  set'prt : ∀ (x : bootstrappedServer) (y : _root_.Perennial.net.http.RoundTripper), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedServer.underlying go!"prt") (PairV #x #y) (Val #(({ x with prt' := y } : bootstrappedServer)))
+  get'ss : ∀ (x : bootstrappedServer), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedServer.underlying go!"ss") #x (Val #(x.ss'))
+  set'ss : ∀ (x : bootstrappedServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedServer.underlying go!"ss") (PairV #x #y) (Val #(({ x with ss' := y } : bootstrappedServer)))
   method_set : go.MethodSetIs bootstrappedServer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bootstrappedServer.ty) [(go!"Close", (some (go.signature.Signature [] false [])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType bootstrappedServer.ty) go!"Close" bootstrappedServer.Close.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType bootstrappedServer.ty) go!"Close" bootstrappedServer.Close.impl
 
 attribute [instance] bootstrappedServer.TypeAssumptions.type_repr
   bootstrappedServer.TypeAssumptions.underlying
-  bootstrappedServer.TypeAssumptions.get_storage
-  bootstrappedServer.TypeAssumptions.set_storage
-  bootstrappedServer.TypeAssumptions.get_cluster
-  bootstrappedServer.TypeAssumptions.set_cluster
-  bootstrappedServer.TypeAssumptions.get_raft
-  bootstrappedServer.TypeAssumptions.set_raft
-  bootstrappedServer.TypeAssumptions.get_prt
-  bootstrappedServer.TypeAssumptions.set_prt
-  bootstrappedServer.TypeAssumptions.get_ss
-  bootstrappedServer.TypeAssumptions.set_ss
+  bootstrappedServer.TypeAssumptions.get'storage
+  bootstrappedServer.TypeAssumptions.set'storage
+  bootstrappedServer.TypeAssumptions.get'cluster
+  bootstrappedServer.TypeAssumptions.set'cluster
+  bootstrappedServer.TypeAssumptions.get'raft
+  bootstrappedServer.TypeAssumptions.set'raft
+  bootstrappedServer.TypeAssumptions.get'prt
+  bootstrappedServer.TypeAssumptions.set'prt
+  bootstrappedServer.TypeAssumptions.get'ss
+  bootstrappedServer.TypeAssumptions.set'ss
   bootstrappedServer.TypeAssumptions.method_set
   bootstrappedServer.TypeAssumptions.ptr_method_set
-  bootstrappedServer.TypeAssumptions.ptr_Close_unfold
+  bootstrappedServer.TypeAssumptions.ptr_unfold'Close
 
 structure bootstrappedStorage [GooseExts] where
   mk ::
@@ -12647,7 +12647,7 @@ noncomputable instance bootstrappedStorage.zero_val [GooseExts] : ZeroVal bootst
 @[irreducible] noncomputable def bootstrappedStorage.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bootstrappedStorage.fieldsUnsealed
 
-noncomputable instance equals_unfold_bootstrappedStorage [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'bootstrappedStorage [GooseExts] [GoGlobalContext] :
     EqualsUnfold bootstrappedStorage.fields bootstrappedStorage.fieldsUnsealed :=
   ⟨by unfold bootstrappedStorage.fields; rfl⟩
 
@@ -12657,23 +12657,23 @@ noncomputable instance equals_unfold_bootstrappedStorage [GooseExts] [GoGlobalCo
 class bootstrappedStorage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedStorage.underlying bootstrappedStorage
   underlying : go.UnderlyingDirectedEq bootstrappedStorage.ty bootstrappedStorage.underlying
-  get_backend : ∀ (x : bootstrappedStorage), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedStorage.underlying go!"backend") #x (Val #(x.backend'))
-  set_backend : ∀ (x : bootstrappedStorage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedStorage.underlying go!"backend") (PairV #x #y) (Val #(({ x with backend' := y } : bootstrappedStorage)))
-  get_wal : ∀ (x : bootstrappedStorage), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedStorage.underlying go!"wal") #x (Val #(x.wal'))
-  set_wal : ∀ (x : bootstrappedStorage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedStorage.underlying go!"wal") (PairV #x #y) (Val #(({ x with wal' := y } : bootstrappedStorage)))
+  get'backend : ∀ (x : bootstrappedStorage), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedStorage.underlying go!"backend") #x (Val #(x.backend'))
+  set'backend : ∀ (x : bootstrappedStorage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedStorage.underlying go!"backend") (PairV #x #y) (Val #(({ x with backend' := y } : bootstrappedStorage)))
+  get'wal : ∀ (x : bootstrappedStorage), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedStorage.underlying go!"wal") #x (Val #(x.wal'))
+  set'wal : ∀ (x : bootstrappedStorage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedStorage.underlying go!"wal") (PairV #x #y) (Val #(({ x with wal' := y } : bootstrappedStorage)))
   method_set : go.MethodSetIs bootstrappedStorage.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bootstrappedStorage.ty) [(go!"Close", (some (go.signature.Signature [] false [])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType bootstrappedStorage.ty) go!"Close" bootstrappedStorage.Close.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType bootstrappedStorage.ty) go!"Close" bootstrappedStorage.Close.impl
 
 attribute [instance] bootstrappedStorage.TypeAssumptions.type_repr
   bootstrappedStorage.TypeAssumptions.underlying
-  bootstrappedStorage.TypeAssumptions.get_backend
-  bootstrappedStorage.TypeAssumptions.set_backend
-  bootstrappedStorage.TypeAssumptions.get_wal
-  bootstrappedStorage.TypeAssumptions.set_wal
+  bootstrappedStorage.TypeAssumptions.get'backend
+  bootstrappedStorage.TypeAssumptions.set'backend
+  bootstrappedStorage.TypeAssumptions.get'wal
+  bootstrappedStorage.TypeAssumptions.set'wal
   bootstrappedStorage.TypeAssumptions.method_set
   bootstrappedStorage.TypeAssumptions.ptr_method_set
-  bootstrappedStorage.TypeAssumptions.ptr_Close_unfold
+  bootstrappedStorage.TypeAssumptions.ptr_unfold'Close
 
 structure bootstrappedBackend [GooseExts] where
   mk ::
@@ -12696,7 +12696,7 @@ noncomputable instance bootstrappedBackend.zero_val [GooseExts] : ZeroVal bootst
 @[irreducible] noncomputable def bootstrappedBackend.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bootstrappedBackend.fieldsUnsealed
 
-noncomputable instance equals_unfold_bootstrappedBackend [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'bootstrappedBackend [GooseExts] [GoGlobalContext] :
     EqualsUnfold bootstrappedBackend.fields bootstrappedBackend.fieldsUnsealed :=
   ⟨by unfold bootstrappedBackend.fields; rfl⟩
 
@@ -12706,35 +12706,35 @@ noncomputable instance equals_unfold_bootstrappedBackend [GooseExts] [GoGlobalCo
 class bootstrappedBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedBackend.underlying bootstrappedBackend
   underlying : go.UnderlyingDirectedEq bootstrappedBackend.ty bootstrappedBackend.underlying
-  get_beHooks : ∀ (x : bootstrappedBackend), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedBackend.underlying go!"beHooks") #x (Val #(x.beHooks'))
-  set_beHooks : ∀ (x : bootstrappedBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedBackend.underlying go!"beHooks") (PairV #x #y) (Val #(({ x with beHooks' := y } : bootstrappedBackend)))
-  get_be : ∀ (x : bootstrappedBackend), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedBackend.underlying go!"be") #x (Val #(x.be'))
-  set_be : ∀ (x : bootstrappedBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedBackend.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : bootstrappedBackend)))
-  get_ci : ∀ (x : bootstrappedBackend), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedBackend.underlying go!"ci") #x (Val #(x.ci'))
-  set_ci : ∀ (x : bootstrappedBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedBackend.underlying go!"ci") (PairV #x #y) (Val #(({ x with ci' := y } : bootstrappedBackend)))
-  get_beExist : ∀ (x : bootstrappedBackend), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedBackend.underlying go!"beExist") #x (Val #(x.beExist'))
-  set_beExist : ∀ (x : bootstrappedBackend) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedBackend.underlying go!"beExist") (PairV #x #y) (Val #(({ x with beExist' := y } : bootstrappedBackend)))
-  get_snapshot : ∀ (x : bootstrappedBackend), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedBackend.underlying go!"snapshot") #x (Val #(x.snapshot'))
-  set_snapshot : ∀ (x : bootstrappedBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedBackend.underlying go!"snapshot") (PairV #x #y) (Val #(({ x with snapshot' := y } : bootstrappedBackend)))
+  get'beHooks : ∀ (x : bootstrappedBackend), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedBackend.underlying go!"beHooks") #x (Val #(x.beHooks'))
+  set'beHooks : ∀ (x : bootstrappedBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedBackend.underlying go!"beHooks") (PairV #x #y) (Val #(({ x with beHooks' := y } : bootstrappedBackend)))
+  get'be : ∀ (x : bootstrappedBackend), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedBackend.underlying go!"be") #x (Val #(x.be'))
+  set'be : ∀ (x : bootstrappedBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedBackend.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : bootstrappedBackend)))
+  get'ci : ∀ (x : bootstrappedBackend), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedBackend.underlying go!"ci") #x (Val #(x.ci'))
+  set'ci : ∀ (x : bootstrappedBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedBackend.underlying go!"ci") (PairV #x #y) (Val #(({ x with ci' := y } : bootstrappedBackend)))
+  get'beExist : ∀ (x : bootstrappedBackend), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedBackend.underlying go!"beExist") #x (Val #(x.beExist'))
+  set'beExist : ∀ (x : bootstrappedBackend) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedBackend.underlying go!"beExist") (PairV #x #y) (Val #(({ x with beExist' := y } : bootstrappedBackend)))
+  get'snapshot : ∀ (x : bootstrappedBackend), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedBackend.underlying go!"snapshot") #x (Val #(x.snapshot'))
+  set'snapshot : ∀ (x : bootstrappedBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedBackend.underlying go!"snapshot") (PairV #x #y) (Val #(({ x with snapshot' := y } : bootstrappedBackend)))
   method_set : go.MethodSetIs bootstrappedBackend.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bootstrappedBackend.ty) [(go!"Close", (some (go.signature.Signature [] false [])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType bootstrappedBackend.ty) go!"Close" bootstrappedBackend.Close.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType bootstrappedBackend.ty) go!"Close" bootstrappedBackend.Close.impl
 
 attribute [instance] bootstrappedBackend.TypeAssumptions.type_repr
   bootstrappedBackend.TypeAssumptions.underlying
-  bootstrappedBackend.TypeAssumptions.get_beHooks
-  bootstrappedBackend.TypeAssumptions.set_beHooks
-  bootstrappedBackend.TypeAssumptions.get_be
-  bootstrappedBackend.TypeAssumptions.set_be
-  bootstrappedBackend.TypeAssumptions.get_ci
-  bootstrappedBackend.TypeAssumptions.set_ci
-  bootstrappedBackend.TypeAssumptions.get_beExist
-  bootstrappedBackend.TypeAssumptions.set_beExist
-  bootstrappedBackend.TypeAssumptions.get_snapshot
-  bootstrappedBackend.TypeAssumptions.set_snapshot
+  bootstrappedBackend.TypeAssumptions.get'beHooks
+  bootstrappedBackend.TypeAssumptions.set'beHooks
+  bootstrappedBackend.TypeAssumptions.get'be
+  bootstrappedBackend.TypeAssumptions.set'be
+  bootstrappedBackend.TypeAssumptions.get'ci
+  bootstrappedBackend.TypeAssumptions.set'ci
+  bootstrappedBackend.TypeAssumptions.get'beExist
+  bootstrappedBackend.TypeAssumptions.set'beExist
+  bootstrappedBackend.TypeAssumptions.get'snapshot
+  bootstrappedBackend.TypeAssumptions.set'snapshot
   bootstrappedBackend.TypeAssumptions.method_set
   bootstrappedBackend.TypeAssumptions.ptr_method_set
-  bootstrappedBackend.TypeAssumptions.ptr_Close_unfold
+  bootstrappedBackend.TypeAssumptions.ptr_unfold'Close
 
 structure bootstrappedCluster [GooseExts] where
   mk ::
@@ -12753,7 +12753,7 @@ noncomputable instance bootstrappedCluster.zero_val [GooseExts] : ZeroVal bootst
 @[irreducible] noncomputable def bootstrappedCluster.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bootstrappedCluster.fieldsUnsealed
 
-noncomputable instance equals_unfold_bootstrappedCluster [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'bootstrappedCluster [GooseExts] [GoGlobalContext] :
     EqualsUnfold bootstrappedCluster.fields bootstrappedCluster.fieldsUnsealed :=
   ⟨by unfold bootstrappedCluster.fields; rfl⟩
 
@@ -12763,23 +12763,23 @@ noncomputable instance equals_unfold_bootstrappedCluster [GooseExts] [GoGlobalCo
 class bootstrappedCluster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedCluster.underlying bootstrappedCluster
   underlying : go.UnderlyingDirectedEq bootstrappedCluster.ty bootstrappedCluster.underlying
-  get_remotes : ∀ (x : bootstrappedCluster), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedCluster.underlying go!"remotes") #x (Val #(x.remotes'))
-  set_remotes : ∀ (x : bootstrappedCluster) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedCluster.underlying go!"remotes") (PairV #x #y) (Val #(({ x with remotes' := y } : bootstrappedCluster)))
-  get_cl : ∀ (x : bootstrappedCluster), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedCluster.underlying go!"cl") #x (Val #(x.cl'))
-  set_cl : ∀ (x : bootstrappedCluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedCluster.underlying go!"cl") (PairV #x #y) (Val #(({ x with cl' := y } : bootstrappedCluster)))
-  get_nodeID : ∀ (x : bootstrappedCluster), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedCluster.underlying go!"nodeID") #x (Val #(x.nodeID'))
-  set_nodeID : ∀ (x : bootstrappedCluster) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedCluster.underlying go!"nodeID") (PairV #x #y) (Val #(({ x with nodeID' := y } : bootstrappedCluster)))
+  get'remotes : ∀ (x : bootstrappedCluster), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedCluster.underlying go!"remotes") #x (Val #(x.remotes'))
+  set'remotes : ∀ (x : bootstrappedCluster) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedCluster.underlying go!"remotes") (PairV #x #y) (Val #(({ x with remotes' := y } : bootstrappedCluster)))
+  get'cl : ∀ (x : bootstrappedCluster), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedCluster.underlying go!"cl") #x (Val #(x.cl'))
+  set'cl : ∀ (x : bootstrappedCluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedCluster.underlying go!"cl") (PairV #x #y) (Val #(({ x with cl' := y } : bootstrappedCluster)))
+  get'nodeID : ∀ (x : bootstrappedCluster), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedCluster.underlying go!"nodeID") #x (Val #(x.nodeID'))
+  set'nodeID : ∀ (x : bootstrappedCluster) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedCluster.underlying go!"nodeID") (PairV #x #y) (Val #(({ x with nodeID' := y } : bootstrappedCluster)))
   method_set : go.MethodSetIs bootstrappedCluster.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bootstrappedCluster.ty) [(go!"Finalize", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty, (go.GoType.PointerType bootstrappedStorage.ty)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.databaseFileMissing", (some (go.signature.Signature [(go.GoType.PointerType bootstrappedStorage.ty)] false [go.bool])))]
 
 attribute [instance] bootstrappedCluster.TypeAssumptions.type_repr
   bootstrappedCluster.TypeAssumptions.underlying
-  bootstrappedCluster.TypeAssumptions.get_remotes
-  bootstrappedCluster.TypeAssumptions.set_remotes
-  bootstrappedCluster.TypeAssumptions.get_cl
-  bootstrappedCluster.TypeAssumptions.set_cl
-  bootstrappedCluster.TypeAssumptions.get_nodeID
-  bootstrappedCluster.TypeAssumptions.set_nodeID
+  bootstrappedCluster.TypeAssumptions.get'remotes
+  bootstrappedCluster.TypeAssumptions.set'remotes
+  bootstrappedCluster.TypeAssumptions.get'cl
+  bootstrappedCluster.TypeAssumptions.set'cl
+  bootstrappedCluster.TypeAssumptions.get'nodeID
+  bootstrappedCluster.TypeAssumptions.set'nodeID
   bootstrappedCluster.TypeAssumptions.method_set
   bootstrappedCluster.TypeAssumptions.ptr_method_set
 
@@ -12804,7 +12804,7 @@ noncomputable instance bootstrappedRaft.zero_val [GooseExts] : ZeroVal bootstrap
 @[irreducible] noncomputable def bootstrappedRaft.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bootstrappedRaft.fieldsUnsealed
 
-noncomputable instance equals_unfold_bootstrappedRaft [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'bootstrappedRaft [GooseExts] [GoGlobalContext] :
     EqualsUnfold bootstrappedRaft.fields bootstrappedRaft.fieldsUnsealed :=
   ⟨by unfold bootstrappedRaft.fields; rfl⟩
 
@@ -12814,35 +12814,35 @@ noncomputable instance equals_unfold_bootstrappedRaft [GooseExts] [GoGlobalConte
 class bootstrappedRaft.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedRaft.underlying bootstrappedRaft
   underlying : go.UnderlyingDirectedEq bootstrappedRaft.ty bootstrappedRaft.underlying
-  get_lg : ∀ (x : bootstrappedRaft), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedRaft.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : bootstrappedRaft) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedRaft.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : bootstrappedRaft)))
-  get_heartbeat : ∀ (x : bootstrappedRaft), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedRaft.underlying go!"heartbeat") #x (Val #(x.heartbeat'))
-  set_heartbeat : ∀ (x : bootstrappedRaft) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedRaft.underlying go!"heartbeat") (PairV #x #y) (Val #(({ x with heartbeat' := y } : bootstrappedRaft)))
-  get_peers : ∀ (x : bootstrappedRaft), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedRaft.underlying go!"peers") #x (Val #(x.peers'))
-  set_peers : ∀ (x : bootstrappedRaft) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedRaft.underlying go!"peers") (PairV #x #y) (Val #(({ x with peers' := y } : bootstrappedRaft)))
-  get_config : ∀ (x : bootstrappedRaft), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedRaft.underlying go!"config") #x (Val #(x.config'))
-  set_config : ∀ (x : bootstrappedRaft) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedRaft.underlying go!"config") (PairV #x #y) (Val #(({ x with config' := y } : bootstrappedRaft)))
-  get_storage : ∀ (x : bootstrappedRaft), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedRaft.underlying go!"storage") #x (Val #(x.storage'))
-  set_storage : ∀ (x : bootstrappedRaft) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedRaft.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : bootstrappedRaft)))
+  get'lg : ∀ (x : bootstrappedRaft), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedRaft.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : bootstrappedRaft) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedRaft.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : bootstrappedRaft)))
+  get'heartbeat : ∀ (x : bootstrappedRaft), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedRaft.underlying go!"heartbeat") #x (Val #(x.heartbeat'))
+  set'heartbeat : ∀ (x : bootstrappedRaft) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedRaft.underlying go!"heartbeat") (PairV #x #y) (Val #(({ x with heartbeat' := y } : bootstrappedRaft)))
+  get'peers : ∀ (x : bootstrappedRaft), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedRaft.underlying go!"peers") #x (Val #(x.peers'))
+  set'peers : ∀ (x : bootstrappedRaft) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedRaft.underlying go!"peers") (PairV #x #y) (Val #(({ x with peers' := y } : bootstrappedRaft)))
+  get'config : ∀ (x : bootstrappedRaft), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedRaft.underlying go!"config") #x (Val #(x.config'))
+  set'config : ∀ (x : bootstrappedRaft) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedRaft.underlying go!"config") (PairV #x #y) (Val #(({ x with config' := y } : bootstrappedRaft)))
+  get'storage : ∀ (x : bootstrappedRaft), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedRaft.underlying go!"storage") #x (Val #(x.storage'))
+  set'storage : ∀ (x : bootstrappedRaft) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedRaft.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : bootstrappedRaft)))
   method_set : go.MethodSetIs bootstrappedRaft.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bootstrappedRaft.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver.newRaftNode", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)] false [(go.GoType.PointerType raftNode.ty)])))]
-  ptr_newRaftNode_unfold : MethodUnfold (go.GoType.PointerType bootstrappedRaft.ty) go!"newRaftNode" bootstrappedRaft.newRaftNode.impl
+  ptr_unfold'newRaftNode : MethodUnfold (go.GoType.PointerType bootstrappedRaft.ty) go!"newRaftNode" bootstrappedRaft.newRaftNode.impl
 
 attribute [instance] bootstrappedRaft.TypeAssumptions.type_repr
   bootstrappedRaft.TypeAssumptions.underlying
-  bootstrappedRaft.TypeAssumptions.get_lg
-  bootstrappedRaft.TypeAssumptions.set_lg
-  bootstrappedRaft.TypeAssumptions.get_heartbeat
-  bootstrappedRaft.TypeAssumptions.set_heartbeat
-  bootstrappedRaft.TypeAssumptions.get_peers
-  bootstrappedRaft.TypeAssumptions.set_peers
-  bootstrappedRaft.TypeAssumptions.get_config
-  bootstrappedRaft.TypeAssumptions.set_config
-  bootstrappedRaft.TypeAssumptions.get_storage
-  bootstrappedRaft.TypeAssumptions.set_storage
+  bootstrappedRaft.TypeAssumptions.get'lg
+  bootstrappedRaft.TypeAssumptions.set'lg
+  bootstrappedRaft.TypeAssumptions.get'heartbeat
+  bootstrappedRaft.TypeAssumptions.set'heartbeat
+  bootstrappedRaft.TypeAssumptions.get'peers
+  bootstrappedRaft.TypeAssumptions.set'peers
+  bootstrappedRaft.TypeAssumptions.get'config
+  bootstrappedRaft.TypeAssumptions.set'config
+  bootstrappedRaft.TypeAssumptions.get'storage
+  bootstrappedRaft.TypeAssumptions.set'storage
   bootstrappedRaft.TypeAssumptions.method_set
   bootstrappedRaft.TypeAssumptions.ptr_method_set
-  bootstrappedRaft.TypeAssumptions.ptr_newRaftNode_unfold
+  bootstrappedRaft.TypeAssumptions.ptr_unfold'newRaftNode
 
 structure snapshotMetadata [GooseExts] where
   mk ::
@@ -12859,7 +12859,7 @@ noncomputable instance snapshotMetadata.zero_val [GooseExts] : ZeroVal snapshotM
 @[irreducible] noncomputable def snapshotMetadata.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   snapshotMetadata.fieldsUnsealed
 
-noncomputable instance equals_unfold_snapshotMetadata [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'snapshotMetadata [GooseExts] [GoGlobalContext] :
     EqualsUnfold snapshotMetadata.fields snapshotMetadata.fieldsUnsealed :=
   ⟨by unfold snapshotMetadata.fields; rfl⟩
 
@@ -12869,19 +12869,19 @@ noncomputable instance equals_unfold_snapshotMetadata [GooseExts] [GoGlobalConte
 class snapshotMetadata.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying snapshotMetadata.underlying snapshotMetadata
   underlying : go.UnderlyingDirectedEq snapshotMetadata.ty snapshotMetadata.underlying
-  get_nodeID : ∀ (x : snapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet snapshotMetadata.underlying go!"nodeID") #x (Val #(x.nodeID'))
-  set_nodeID : ∀ (x : snapshotMetadata) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet snapshotMetadata.underlying go!"nodeID") (PairV #x #y) (Val #(({ x with nodeID' := y } : snapshotMetadata)))
-  get_clusterID : ∀ (x : snapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet snapshotMetadata.underlying go!"clusterID") #x (Val #(x.clusterID'))
-  set_clusterID : ∀ (x : snapshotMetadata) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet snapshotMetadata.underlying go!"clusterID") (PairV #x #y) (Val #(({ x with clusterID' := y } : snapshotMetadata)))
+  get'nodeID : ∀ (x : snapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet snapshotMetadata.underlying go!"nodeID") #x (Val #(x.nodeID'))
+  set'nodeID : ∀ (x : snapshotMetadata) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet snapshotMetadata.underlying go!"nodeID") (PairV #x #y) (Val #(({ x with nodeID' := y } : snapshotMetadata)))
+  get'clusterID : ∀ (x : snapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet snapshotMetadata.underlying go!"clusterID") #x (Val #(x.clusterID'))
+  set'clusterID : ∀ (x : snapshotMetadata) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet snapshotMetadata.underlying go!"clusterID") (PairV #x #y) (Val #(({ x with clusterID' := y } : snapshotMetadata)))
   method_set : go.MethodSetIs snapshotMetadata.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType snapshotMetadata.ty) []
 
 attribute [instance] snapshotMetadata.TypeAssumptions.type_repr
   snapshotMetadata.TypeAssumptions.underlying
-  snapshotMetadata.TypeAssumptions.get_nodeID
-  snapshotMetadata.TypeAssumptions.set_nodeID
-  snapshotMetadata.TypeAssumptions.get_clusterID
-  snapshotMetadata.TypeAssumptions.set_clusterID
+  snapshotMetadata.TypeAssumptions.get'nodeID
+  snapshotMetadata.TypeAssumptions.set'nodeID
+  snapshotMetadata.TypeAssumptions.get'clusterID
+  snapshotMetadata.TypeAssumptions.set'clusterID
   snapshotMetadata.TypeAssumptions.method_set
   snapshotMetadata.TypeAssumptions.ptr_method_set
 
@@ -12910,7 +12910,7 @@ noncomputable instance bootstrappedWAL.zero_val [GooseExts] : ZeroVal bootstrapp
 @[irreducible] noncomputable def bootstrappedWAL.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bootstrappedWAL.fieldsUnsealed
 
-noncomputable instance equals_unfold_bootstrappedWAL [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'bootstrappedWAL [GooseExts] [GoGlobalContext] :
     EqualsUnfold bootstrappedWAL.fields bootstrappedWAL.fieldsUnsealed :=
   ⟨by unfold bootstrappedWAL.fields; rfl⟩
 
@@ -12920,43 +12920,43 @@ noncomputable instance equals_unfold_bootstrappedWAL [GooseExts] [GoGlobalContex
 class bootstrappedWAL.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedWAL.underlying bootstrappedWAL
   underlying : go.UnderlyingDirectedEq bootstrappedWAL.ty bootstrappedWAL.underlying
-  get_lg : ∀ (x : bootstrappedWAL), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedWAL.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : bootstrappedWAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedWAL.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : bootstrappedWAL)))
-  get_haveWAL : ∀ (x : bootstrappedWAL), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedWAL.underlying go!"haveWAL") #x (Val #(x.haveWAL'))
-  set_haveWAL : ∀ (x : bootstrappedWAL) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedWAL.underlying go!"haveWAL") (PairV #x #y) (Val #(({ x with haveWAL' := y } : bootstrappedWAL)))
-  get_w : ∀ (x : bootstrappedWAL), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedWAL.underlying go!"w") #x (Val #(x.w'))
-  set_w : ∀ (x : bootstrappedWAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedWAL.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : bootstrappedWAL)))
-  get_st : ∀ (x : bootstrappedWAL), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedWAL.underlying go!"st") #x (Val #(x.st'))
-  set_st : ∀ (x : bootstrappedWAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedWAL.underlying go!"st") (PairV #x #y) (Val #(({ x with st' := y } : bootstrappedWAL)))
-  get_ents : ∀ (x : bootstrappedWAL), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedWAL.underlying go!"ents") #x (Val #(x.ents'))
-  set_ents : ∀ (x : bootstrappedWAL) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedWAL.underlying go!"ents") (PairV #x #y) (Val #(({ x with ents' := y } : bootstrappedWAL)))
-  get_snapshot : ∀ (x : bootstrappedWAL), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedWAL.underlying go!"snapshot") #x (Val #(x.snapshot'))
-  set_snapshot : ∀ (x : bootstrappedWAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedWAL.underlying go!"snapshot") (PairV #x #y) (Val #(({ x with snapshot' := y } : bootstrappedWAL)))
-  get_meta : ∀ (x : bootstrappedWAL), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedWAL.underlying go!"meta") #x (Val #(x.meta'))
-  set_meta : ∀ (x : bootstrappedWAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedWAL.underlying go!"meta") (PairV #x #y) (Val #(({ x with meta' := y } : bootstrappedWAL)))
+  get'lg : ∀ (x : bootstrappedWAL), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedWAL.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : bootstrappedWAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedWAL.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : bootstrappedWAL)))
+  get'haveWAL : ∀ (x : bootstrappedWAL), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedWAL.underlying go!"haveWAL") #x (Val #(x.haveWAL'))
+  set'haveWAL : ∀ (x : bootstrappedWAL) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedWAL.underlying go!"haveWAL") (PairV #x #y) (Val #(({ x with haveWAL' := y } : bootstrappedWAL)))
+  get'w : ∀ (x : bootstrappedWAL), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedWAL.underlying go!"w") #x (Val #(x.w'))
+  set'w : ∀ (x : bootstrappedWAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedWAL.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : bootstrappedWAL)))
+  get'st : ∀ (x : bootstrappedWAL), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedWAL.underlying go!"st") #x (Val #(x.st'))
+  set'st : ∀ (x : bootstrappedWAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedWAL.underlying go!"st") (PairV #x #y) (Val #(({ x with st' := y } : bootstrappedWAL)))
+  get'ents : ∀ (x : bootstrappedWAL), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedWAL.underlying go!"ents") #x (Val #(x.ents'))
+  set'ents : ∀ (x : bootstrappedWAL) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedWAL.underlying go!"ents") (PairV #x #y) (Val #(({ x with ents' := y } : bootstrappedWAL)))
+  get'snapshot : ∀ (x : bootstrappedWAL), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedWAL.underlying go!"snapshot") #x (Val #(x.snapshot'))
+  set'snapshot : ∀ (x : bootstrappedWAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedWAL.underlying go!"snapshot") (PairV #x #y) (Val #(({ x with snapshot' := y } : bootstrappedWAL)))
+  get'meta : ∀ (x : bootstrappedWAL), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedWAL.underlying go!"meta") #x (Val #(x.meta'))
+  set'meta : ∀ (x : bootstrappedWAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedWAL.underlying go!"meta") (PairV #x #y) (Val #(({ x with meta' := y } : bootstrappedWAL)))
   method_set : go.MethodSetIs bootstrappedWAL.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bootstrappedWAL.ty) [(go!"AppendAndCommitEntries", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false []))), (go!"CommitedEntries", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))), (go!"MemoryStorage", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)]))), (go!"NewConfigChangeEntries", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))])))]
-  ptr_MemoryStorage_unfold : MethodUnfold (go.GoType.PointerType bootstrappedWAL.ty) go!"MemoryStorage" bootstrappedWAL.MemoryStorage.impl
+  ptr_unfold'MemoryStorage : MethodUnfold (go.GoType.PointerType bootstrappedWAL.ty) go!"MemoryStorage" bootstrappedWAL.MemoryStorage.impl
 
 attribute [instance] bootstrappedWAL.TypeAssumptions.type_repr
   bootstrappedWAL.TypeAssumptions.underlying
-  bootstrappedWAL.TypeAssumptions.get_lg
-  bootstrappedWAL.TypeAssumptions.set_lg
-  bootstrappedWAL.TypeAssumptions.get_haveWAL
-  bootstrappedWAL.TypeAssumptions.set_haveWAL
-  bootstrappedWAL.TypeAssumptions.get_w
-  bootstrappedWAL.TypeAssumptions.set_w
-  bootstrappedWAL.TypeAssumptions.get_st
-  bootstrappedWAL.TypeAssumptions.set_st
-  bootstrappedWAL.TypeAssumptions.get_ents
-  bootstrappedWAL.TypeAssumptions.set_ents
-  bootstrappedWAL.TypeAssumptions.get_snapshot
-  bootstrappedWAL.TypeAssumptions.set_snapshot
-  bootstrappedWAL.TypeAssumptions.get_meta
-  bootstrappedWAL.TypeAssumptions.set_meta
+  bootstrappedWAL.TypeAssumptions.get'lg
+  bootstrappedWAL.TypeAssumptions.set'lg
+  bootstrappedWAL.TypeAssumptions.get'haveWAL
+  bootstrappedWAL.TypeAssumptions.set'haveWAL
+  bootstrappedWAL.TypeAssumptions.get'w
+  bootstrappedWAL.TypeAssumptions.set'w
+  bootstrappedWAL.TypeAssumptions.get'st
+  bootstrappedWAL.TypeAssumptions.set'st
+  bootstrappedWAL.TypeAssumptions.get'ents
+  bootstrappedWAL.TypeAssumptions.set'ents
+  bootstrappedWAL.TypeAssumptions.get'snapshot
+  bootstrappedWAL.TypeAssumptions.set'snapshot
+  bootstrappedWAL.TypeAssumptions.get'meta
+  bootstrappedWAL.TypeAssumptions.set'meta
   bootstrappedWAL.TypeAssumptions.method_set
   bootstrappedWAL.TypeAssumptions.ptr_method_set
-  bootstrappedWAL.TypeAssumptions.ptr_MemoryStorage_unfold
+  bootstrappedWAL.TypeAssumptions.ptr_unfold'MemoryStorage
 
 abbrev CorruptionChecker [GooseExts] : Type := GoInterface
 
@@ -13005,7 +13005,7 @@ noncomputable instance corruptionChecker.zero_val [GooseExts] : ZeroVal corrupti
 @[irreducible] noncomputable def corruptionChecker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   corruptionChecker.fieldsUnsealed
 
-noncomputable instance equals_unfold_corruptionChecker [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'corruptionChecker [GooseExts] [GoGlobalContext] :
     EqualsUnfold corruptionChecker.fields corruptionChecker.fieldsUnsealed :=
   ⟨by unfold corruptionChecker.fields; rfl⟩
 
@@ -13015,27 +13015,27 @@ noncomputable instance equals_unfold_corruptionChecker [GooseExts] [GoGlobalCont
 class corruptionChecker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying corruptionChecker.underlying corruptionChecker
   underlying : go.UnderlyingDirectedEq corruptionChecker.ty corruptionChecker.underlying
-  get_lg : ∀ (x : corruptionChecker), go.IsGoStepPureDetTagged under (StructFieldGet corruptionChecker.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : corruptionChecker) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet corruptionChecker.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : corruptionChecker)))
-  get_hasher : ∀ (x : corruptionChecker), go.IsGoStepPureDetTagged under (StructFieldGet corruptionChecker.underlying go!"hasher") #x (Val #(x.hasher'))
-  set_hasher : ∀ (x : corruptionChecker) (y : Hasher), go.IsGoStepPureDetTagged under (StructFieldSet corruptionChecker.underlying go!"hasher") (PairV #x #y) (Val #(({ x with hasher' := y } : corruptionChecker)))
-  get_mux : ∀ (x : corruptionChecker), go.IsGoStepPureDetTagged under (StructFieldGet corruptionChecker.underlying go!"mux") #x (Val #(x.mux'))
-  set_mux : ∀ (x : corruptionChecker) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet corruptionChecker.underlying go!"mux") (PairV #x #y) (Val #(({ x with mux' := y } : corruptionChecker)))
-  get_latestRevisionChecked : ∀ (x : corruptionChecker), go.IsGoStepPureDetTagged under (StructFieldGet corruptionChecker.underlying go!"latestRevisionChecked") #x (Val #(x.latestRevisionChecked'))
-  set_latestRevisionChecked : ∀ (x : corruptionChecker) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet corruptionChecker.underlying go!"latestRevisionChecked") (PairV #x #y) (Val #(({ x with latestRevisionChecked' := y } : corruptionChecker)))
+  get'lg : ∀ (x : corruptionChecker), go.IsGoStepPureDetTagged under (StructFieldGet corruptionChecker.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : corruptionChecker) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet corruptionChecker.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : corruptionChecker)))
+  get'hasher : ∀ (x : corruptionChecker), go.IsGoStepPureDetTagged under (StructFieldGet corruptionChecker.underlying go!"hasher") #x (Val #(x.hasher'))
+  set'hasher : ∀ (x : corruptionChecker) (y : Hasher), go.IsGoStepPureDetTagged under (StructFieldSet corruptionChecker.underlying go!"hasher") (PairV #x #y) (Val #(({ x with hasher' := y } : corruptionChecker)))
+  get'mux : ∀ (x : corruptionChecker), go.IsGoStepPureDetTagged under (StructFieldGet corruptionChecker.underlying go!"mux") #x (Val #(x.mux'))
+  set'mux : ∀ (x : corruptionChecker) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet corruptionChecker.underlying go!"mux") (PairV #x #y) (Val #(({ x with mux' := y } : corruptionChecker)))
+  get'latestRevisionChecked : ∀ (x : corruptionChecker), go.IsGoStepPureDetTagged under (StructFieldGet corruptionChecker.underlying go!"latestRevisionChecked") #x (Val #(x.latestRevisionChecked'))
+  set'latestRevisionChecked : ∀ (x : corruptionChecker) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet corruptionChecker.underlying go!"latestRevisionChecked") (PairV #x #y) (Val #(({ x with latestRevisionChecked' := y } : corruptionChecker)))
   method_set : go.MethodSetIs corruptionChecker.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType corruptionChecker.ty) [(go!"CompactHashCheck", (some (go.signature.Signature [] false []))), (go!"InitialCheck", (some (go.signature.Signature [] false [go.error]))), (go!"PeriodicCheck", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkPeerHashes", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty, (go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.handleConsistentHash", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty, go.int, go.int] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.uncheckedRevisions", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty)])))]
 
 attribute [instance] corruptionChecker.TypeAssumptions.type_repr
   corruptionChecker.TypeAssumptions.underlying
-  corruptionChecker.TypeAssumptions.get_lg
-  corruptionChecker.TypeAssumptions.set_lg
-  corruptionChecker.TypeAssumptions.get_hasher
-  corruptionChecker.TypeAssumptions.set_hasher
-  corruptionChecker.TypeAssumptions.get_mux
-  corruptionChecker.TypeAssumptions.set_mux
-  corruptionChecker.TypeAssumptions.get_latestRevisionChecked
-  corruptionChecker.TypeAssumptions.set_latestRevisionChecked
+  corruptionChecker.TypeAssumptions.get'lg
+  corruptionChecker.TypeAssumptions.set'lg
+  corruptionChecker.TypeAssumptions.get'hasher
+  corruptionChecker.TypeAssumptions.set'hasher
+  corruptionChecker.TypeAssumptions.get'mux
+  corruptionChecker.TypeAssumptions.set'mux
+  corruptionChecker.TypeAssumptions.get'latestRevisionChecked
+  corruptionChecker.TypeAssumptions.set'latestRevisionChecked
   corruptionChecker.TypeAssumptions.method_set
   corruptionChecker.TypeAssumptions.ptr_method_set
 
@@ -13054,7 +13054,7 @@ noncomputable instance hasherAdapter.zero_val [GooseExts] : ZeroVal hasherAdapte
 @[irreducible] noncomputable def hasherAdapter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   hasherAdapter.fieldsUnsealed
 
-noncomputable instance equals_unfold_hasherAdapter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'hasherAdapter [GooseExts] [GoGlobalContext] :
     EqualsUnfold hasherAdapter.fields hasherAdapter.fieldsUnsealed :=
   ⟨by unfold hasherAdapter.fields; rfl⟩
 
@@ -13064,19 +13064,19 @@ noncomputable instance equals_unfold_hasherAdapter [GooseExts] [GoGlobalContext]
 class hasherAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying hasherAdapter.underlying hasherAdapter
   underlying : go.UnderlyingDirectedEq hasherAdapter.ty hasherAdapter.underlying
-  get_EtcdServer : ∀ (x : hasherAdapter), go.IsGoStepPureDetTagged under (StructFieldGet hasherAdapter.underlying go!"EtcdServer") #x (Val #(x.EtcdServer'))
-  set_EtcdServer : ∀ (x : hasherAdapter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet hasherAdapter.underlying go!"EtcdServer") (PairV #x #y) (Val #(({ x with EtcdServer' := y } : hasherAdapter)))
-  get_HashStorage : ∀ (x : hasherAdapter), go.IsGoStepPureDetTagged under (StructFieldGet hasherAdapter.underlying go!"HashStorage") #x (Val #(x.HashStorage'))
-  set_HashStorage : ∀ (x : hasherAdapter) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage), go.IsGoStepPureDetTagged under (StructFieldSet hasherAdapter.underlying go!"HashStorage") (PairV #x #y) (Val #(({ x with HashStorage' := y } : hasherAdapter)))
+  get'EtcdServer : ∀ (x : hasherAdapter), go.IsGoStepPureDetTagged under (StructFieldGet hasherAdapter.underlying go!"EtcdServer") #x (Val #(x.EtcdServer'))
+  set'EtcdServer : ∀ (x : hasherAdapter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet hasherAdapter.underlying go!"EtcdServer") (PairV #x #y) (Val #(({ x with EtcdServer' := y } : hasherAdapter)))
+  get'HashStorage : ∀ (x : hasherAdapter), go.IsGoStepPureDetTagged under (StructFieldGet hasherAdapter.underlying go!"HashStorage") #x (Val #(x.HashStorage'))
+  set'HashStorage : ∀ (x : hasherAdapter) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage), go.IsGoStepPureDetTagged under (StructFieldSet hasherAdapter.underlying go!"HashStorage") (PairV #x #y) (Val #(({ x with HashStorage' := y } : hasherAdapter)))
   method_set : go.MethodSetIs hasherAdapter.ty [(go!"AddMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Alarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ApplyWaitCommit", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"AuthStore", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"Backend", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"Cleanup", (some (go.signature.Signature [] false []))), (go!"ClientCertAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Cluster", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty]))), (go!"ClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"CommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"Config", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty]))), (go!"CorruptionChecker", (some (go.signature.Signature [] false [CorruptionChecker.ty]))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Defragment", (some (go.signature.Signature [] false [go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"DowngradeEnabledHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)]))), (go!"FeatureEnabled", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty] false [go.bool]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ForceSnapshot", (some (go.signature.Signature [] false []))), (go!"GoAttach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"HardStop", (some (go.signature.Signature [] false []))), (go!"Hash", (some (go.signature.Signature [] false [go.uint32, go.int64, go.error]))), (go!"HashByRev", (some (go.signature.Signature [go.int64] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty, go.int64, go.error]))), (go!"HashKVHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Hashes", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty)]))), (go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"KV", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"Lead", (some (go.signature.Signature [] false [go.uint64]))), (go!"Leader", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChangedNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64, go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"MemberID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberId", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [go.error]))), (go!"NewUberApplier", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"PauseSending", (some (go.signature.Signature [] false []))), (go!"PeerHashByRev", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"RaftHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty] false [go.error]))), (go!"ReadyNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"ReqTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ResumeSending", (some (go.signature.Signature [] false []))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Start", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StoppingNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Store", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty] false []))), (go!"Term", (some (go.signature.Signature [] false [go.uint64]))), (go!"TriggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"TryTransferLeadershipOnShutdown", (some (go.signature.Signature [] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"UpdateMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Manager.ty)]))), (go!"Watchable", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.adjustTicks", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.apply", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), (go.GoType.PointerType etcdProgress.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.uint64, go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyAll", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyConfChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), (go.GoType.PointerType etcdProgress.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntries", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntryNormal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkMembershipOperationPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.compactRaftLog", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.configure", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.createMergedSnapshotMessage", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.uint64, go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty), replayTerms.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.doSerialize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeValidate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.ensureLeadership", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getAppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getCommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getLead", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getPeerHashKVs", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTxPostLockInsideApplyHook", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.hasMultipleVotingMembers", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isActive", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLearnerReady", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), go.uint64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.leaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayAddMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayPromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayRemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorClusterVersions", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorCompactHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorDowngrade", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorKVHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorStorageVersion", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.parseProposeCtxErr", (some (go.signature.Signature [go.error, _root_.Perennial.time.Time.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.processInternalRaftRequestOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.promoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.publishV3", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.purgeFile", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [_root_.Perennial.google_golang_org.protobuf.proto.Message.ty, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatus", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.rangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.restoreAlarms", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.revokeExpiredLeases", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.sendMergedSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setAppliedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setCommittedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setLead", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToDisk", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToMemory", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshotIfNeededAndCompactRaftLog", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.stopWithDelay", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.error] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.triggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.updateClusterVersionV3", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitAppliedIndex", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType hasherAdapter.ty) [(go!"AddMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Alarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ApplyWaitCommit", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"AuthStore", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"Backend", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"Cleanup", (some (go.signature.Signature [] false []))), (go!"ClientCertAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Cluster", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty]))), (go!"ClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"CommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"Config", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty]))), (go!"CorruptionChecker", (some (go.signature.Signature [] false [CorruptionChecker.ty]))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Defragment", (some (go.signature.Signature [] false [go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"DowngradeEnabledHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)]))), (go!"FeatureEnabled", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty] false [go.bool]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ForceSnapshot", (some (go.signature.Signature [] false []))), (go!"GoAttach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"HardStop", (some (go.signature.Signature [] false []))), (go!"Hash", (some (go.signature.Signature [] false [go.uint32, go.int64, go.error]))), (go!"HashByRev", (some (go.signature.Signature [go.int64] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty, go.int64, go.error]))), (go!"HashKVHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Hashes", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty)]))), (go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"KV", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"Lead", (some (go.signature.Signature [] false [go.uint64]))), (go!"Leader", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChangedNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64, go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"MemberID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberId", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [go.error]))), (go!"NewUberApplier", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"PauseSending", (some (go.signature.Signature [] false []))), (go!"PeerHashByRev", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"RaftHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty] false [go.error]))), (go!"ReadyNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"ReqTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ResumeSending", (some (go.signature.Signature [] false []))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Start", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StoppingNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Store", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty] false []))), (go!"Term", (some (go.signature.Signature [] false [go.uint64]))), (go!"TriggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"TryTransferLeadershipOnShutdown", (some (go.signature.Signature [] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"UpdateMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Manager.ty)]))), (go!"Watchable", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.adjustTicks", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.apply", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), (go.GoType.PointerType etcdProgress.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.uint64, go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyAll", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyConfChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), (go.GoType.PointerType etcdProgress.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntries", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntryNormal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkMembershipOperationPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.compactRaftLog", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.configure", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.createMergedSnapshotMessage", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.uint64, go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty), replayTerms.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.doSerialize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeValidate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.ensureLeadership", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getAppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getCommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getLead", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getPeerHashKVs", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTxPostLockInsideApplyHook", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.hasMultipleVotingMembers", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isActive", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLearnerReady", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), go.uint64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.leaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayAddMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayPromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayRemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorClusterVersions", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorCompactHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorDowngrade", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorKVHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorStorageVersion", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.parseProposeCtxErr", (some (go.signature.Signature [go.error, _root_.Perennial.time.Time.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.processInternalRaftRequestOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.promoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.publishV3", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.purgeFile", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [_root_.Perennial.google_golang_org.protobuf.proto.Message.ty, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatus", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.rangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.restoreAlarms", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.revokeExpiredLeases", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.sendMergedSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setAppliedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setCommittedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setLead", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToDisk", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToMemory", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshotIfNeededAndCompactRaftLog", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.stopWithDelay", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.error] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.triggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.updateClusterVersionV3", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitAppliedIndex", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty), go.error])))]
 
 attribute [instance] hasherAdapter.TypeAssumptions.type_repr
   hasherAdapter.TypeAssumptions.underlying
-  hasherAdapter.TypeAssumptions.get_EtcdServer
-  hasherAdapter.TypeAssumptions.set_EtcdServer
-  hasherAdapter.TypeAssumptions.get_HashStorage
-  hasherAdapter.TypeAssumptions.set_HashStorage
+  hasherAdapter.TypeAssumptions.get'EtcdServer
+  hasherAdapter.TypeAssumptions.set'EtcdServer
+  hasherAdapter.TypeAssumptions.get'HashStorage
+  hasherAdapter.TypeAssumptions.set'HashStorage
   hasherAdapter.TypeAssumptions.method_set
   hasherAdapter.TypeAssumptions.ptr_method_set
 
@@ -13095,7 +13095,7 @@ noncomputable instance peerInfo.zero_val [GooseExts] : ZeroVal peerInfo :=
 @[irreducible] noncomputable def peerInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   peerInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_peerInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'peerInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold peerInfo.fields peerInfo.fieldsUnsealed :=
   ⟨by unfold peerInfo.fields; rfl⟩
 
@@ -13105,19 +13105,19 @@ noncomputable instance equals_unfold_peerInfo [GooseExts] [GoGlobalContext] :
 class peerInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying peerInfo.underlying peerInfo
   underlying : go.UnderlyingDirectedEq peerInfo.ty peerInfo.underlying
-  get_id : ∀ (x : peerInfo), go.IsGoStepPureDetTagged under (StructFieldGet peerInfo.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : peerInfo) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet peerInfo.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : peerInfo)))
-  get_eps : ∀ (x : peerInfo), go.IsGoStepPureDetTagged under (StructFieldGet peerInfo.underlying go!"eps") #x (Val #(x.eps'))
-  set_eps : ∀ (x : peerInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet peerInfo.underlying go!"eps") (PairV #x #y) (Val #(({ x with eps' := y } : peerInfo)))
+  get'id : ∀ (x : peerInfo), go.IsGoStepPureDetTagged under (StructFieldGet peerInfo.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : peerInfo) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet peerInfo.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : peerInfo)))
+  get'eps : ∀ (x : peerInfo), go.IsGoStepPureDetTagged under (StructFieldGet peerInfo.underlying go!"eps") #x (Val #(x.eps'))
+  set'eps : ∀ (x : peerInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet peerInfo.underlying go!"eps") (PairV #x #y) (Val #(({ x with eps' := y } : peerInfo)))
   method_set : go.MethodSetIs peerInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType peerInfo.ty) []
 
 attribute [instance] peerInfo.TypeAssumptions.type_repr
   peerInfo.TypeAssumptions.underlying
-  peerInfo.TypeAssumptions.get_id
-  peerInfo.TypeAssumptions.set_id
-  peerInfo.TypeAssumptions.get_eps
-  peerInfo.TypeAssumptions.set_eps
+  peerInfo.TypeAssumptions.get'id
+  peerInfo.TypeAssumptions.set'id
+  peerInfo.TypeAssumptions.get'eps
+  peerInfo.TypeAssumptions.set'eps
   peerInfo.TypeAssumptions.method_set
   peerInfo.TypeAssumptions.ptr_method_set
 
@@ -13138,7 +13138,7 @@ noncomputable instance peerHashKVResp.zero_val [GooseExts] : ZeroVal peerHashKVR
 @[irreducible] noncomputable def peerHashKVResp.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   peerHashKVResp.fieldsUnsealed
 
-noncomputable instance equals_unfold_peerHashKVResp [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'peerHashKVResp [GooseExts] [GoGlobalContext] :
     EqualsUnfold peerHashKVResp.fields peerHashKVResp.fieldsUnsealed :=
   ⟨by unfold peerHashKVResp.fields; rfl⟩
 
@@ -13148,23 +13148,23 @@ noncomputable instance equals_unfold_peerHashKVResp [GooseExts] [GoGlobalContext
 class peerHashKVResp.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying peerHashKVResp.underlying peerHashKVResp
   underlying : go.UnderlyingDirectedEq peerHashKVResp.ty peerHashKVResp.underlying
-  get_peerInfo : ∀ (x : peerHashKVResp), go.IsGoStepPureDetTagged under (StructFieldGet peerHashKVResp.underlying go!"peerInfo") #x (Val #(x.peerInfo'))
-  set_peerInfo : ∀ (x : peerHashKVResp) (y : peerInfo), go.IsGoStepPureDetTagged under (StructFieldSet peerHashKVResp.underlying go!"peerInfo") (PairV #x #y) (Val #(({ x with peerInfo' := y } : peerHashKVResp)))
-  get_resp : ∀ (x : peerHashKVResp), go.IsGoStepPureDetTagged under (StructFieldGet peerHashKVResp.underlying go!"resp") #x (Val #(x.resp'))
-  set_resp : ∀ (x : peerHashKVResp) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet peerHashKVResp.underlying go!"resp") (PairV #x #y) (Val #(({ x with resp' := y } : peerHashKVResp)))
-  get_err : ∀ (x : peerHashKVResp), go.IsGoStepPureDetTagged under (StructFieldGet peerHashKVResp.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : peerHashKVResp) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet peerHashKVResp.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : peerHashKVResp)))
+  get'peerInfo : ∀ (x : peerHashKVResp), go.IsGoStepPureDetTagged under (StructFieldGet peerHashKVResp.underlying go!"peerInfo") #x (Val #(x.peerInfo'))
+  set'peerInfo : ∀ (x : peerHashKVResp) (y : peerInfo), go.IsGoStepPureDetTagged under (StructFieldSet peerHashKVResp.underlying go!"peerInfo") (PairV #x #y) (Val #(({ x with peerInfo' := y } : peerHashKVResp)))
+  get'resp : ∀ (x : peerHashKVResp), go.IsGoStepPureDetTagged under (StructFieldGet peerHashKVResp.underlying go!"resp") #x (Val #(x.resp'))
+  set'resp : ∀ (x : peerHashKVResp) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet peerHashKVResp.underlying go!"resp") (PairV #x #y) (Val #(({ x with resp' := y } : peerHashKVResp)))
+  get'err : ∀ (x : peerHashKVResp), go.IsGoStepPureDetTagged under (StructFieldGet peerHashKVResp.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : peerHashKVResp) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet peerHashKVResp.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : peerHashKVResp)))
   method_set : go.MethodSetIs peerHashKVResp.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType peerHashKVResp.ty) []
 
 attribute [instance] peerHashKVResp.TypeAssumptions.type_repr
   peerHashKVResp.TypeAssumptions.underlying
-  peerHashKVResp.TypeAssumptions.get_peerInfo
-  peerHashKVResp.TypeAssumptions.set_peerInfo
-  peerHashKVResp.TypeAssumptions.get_resp
-  peerHashKVResp.TypeAssumptions.set_resp
-  peerHashKVResp.TypeAssumptions.get_err
-  peerHashKVResp.TypeAssumptions.set_err
+  peerHashKVResp.TypeAssumptions.get'peerInfo
+  peerHashKVResp.TypeAssumptions.set'peerInfo
+  peerHashKVResp.TypeAssumptions.get'resp
+  peerHashKVResp.TypeAssumptions.set'resp
+  peerHashKVResp.TypeAssumptions.get'err
+  peerHashKVResp.TypeAssumptions.set'err
   peerHashKVResp.TypeAssumptions.method_set
   peerHashKVResp.TypeAssumptions.ptr_method_set
 
@@ -13183,7 +13183,7 @@ noncomputable instance hashKVHandler.zero_val [GooseExts] : ZeroVal hashKVHandle
 @[irreducible] noncomputable def hashKVHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   hashKVHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_hashKVHandler [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'hashKVHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold hashKVHandler.fields hashKVHandler.fieldsUnsealed :=
   ⟨by unfold hashKVHandler.fields; rfl⟩
 
@@ -13193,19 +13193,19 @@ noncomputable instance equals_unfold_hashKVHandler [GooseExts] [GoGlobalContext]
 class hashKVHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying hashKVHandler.underlying hashKVHandler
   underlying : go.UnderlyingDirectedEq hashKVHandler.ty hashKVHandler.underlying
-  get_lg : ∀ (x : hashKVHandler), go.IsGoStepPureDetTagged under (StructFieldGet hashKVHandler.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : hashKVHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet hashKVHandler.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : hashKVHandler)))
-  get_server : ∀ (x : hashKVHandler), go.IsGoStepPureDetTagged under (StructFieldGet hashKVHandler.underlying go!"server") #x (Val #(x.server'))
-  set_server : ∀ (x : hashKVHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet hashKVHandler.underlying go!"server") (PairV #x #y) (Val #(({ x with server' := y } : hashKVHandler)))
+  get'lg : ∀ (x : hashKVHandler), go.IsGoStepPureDetTagged under (StructFieldGet hashKVHandler.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : hashKVHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet hashKVHandler.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : hashKVHandler)))
+  get'server : ∀ (x : hashKVHandler), go.IsGoStepPureDetTagged under (StructFieldGet hashKVHandler.underlying go!"server") #x (Val #(x.server'))
+  set'server : ∀ (x : hashKVHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet hashKVHandler.underlying go!"server") (PairV #x #y) (Val #(({ x with server' := y } : hashKVHandler)))
   method_set : go.MethodSetIs hashKVHandler.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType hashKVHandler.ty) [(go!"ServeHTTP", (some (go.signature.Signature [_root_.Perennial.net.http.ResponseWriter.ty, (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)] false [])))]
 
 attribute [instance] hashKVHandler.TypeAssumptions.type_repr
   hashKVHandler.TypeAssumptions.underlying
-  hashKVHandler.TypeAssumptions.get_lg
-  hashKVHandler.TypeAssumptions.set_lg
-  hashKVHandler.TypeAssumptions.get_server
-  hashKVHandler.TypeAssumptions.set_server
+  hashKVHandler.TypeAssumptions.get'lg
+  hashKVHandler.TypeAssumptions.set'lg
+  hashKVHandler.TypeAssumptions.get'server
+  hashKVHandler.TypeAssumptions.set'server
   hashKVHandler.TypeAssumptions.method_set
   hashKVHandler.TypeAssumptions.ptr_method_set
 
@@ -13218,30 +13218,30 @@ class replayTerms.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq replayTerms.ty replayTerms.underlying
   method_set : go.MethodSetIs replayTerms.ty [(go!"go.etcd.io/etcd/server/v3/etcdserver.after", (some (go.signature.Signature [go.uint64] false [replayTerms.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.appendEntries", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [replayTerms.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.covers", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.termAt", (some (go.signature.Signature [go.uint64] false [go.uint64])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType replayTerms.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver.after", (some (go.signature.Signature [go.uint64] false [replayTerms.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.appendEntries", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [replayTerms.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.covers", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.termAt", (some (go.signature.Signature [go.uint64] false [go.uint64])))]
-  after_unfold : MethodUnfold replayTerms.ty go!"after" replayTerms.after.impl
-  appendEntries_unfold : MethodUnfold replayTerms.ty go!"appendEntries" replayTerms.appendEntries.impl
-  covers_unfold : MethodUnfold replayTerms.ty go!"covers" replayTerms.covers.impl
-  termAt_unfold : MethodUnfold replayTerms.ty go!"termAt" replayTerms.termAt.impl
-  ptr_after_unfold : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"after" (LamV "$r"
+  unfold'after : MethodUnfold replayTerms.ty go!"after" replayTerms.after.impl
+  unfold'appendEntries : MethodUnfold replayTerms.ty go!"appendEntries" replayTerms.appendEntries.impl
+  unfold'covers : MethodUnfold replayTerms.ty go!"covers" replayTerms.covers.impl
+  unfold'termAt : MethodUnfold replayTerms.ty go!"termAt" replayTerms.termAt.impl
+  ptr_unfold'after : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"after" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve replayTerms.ty go!"after"))) (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$r"))))
-  ptr_appendEntries_unfold : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"appendEntries" (LamV "$r"
+  ptr_unfold'appendEntries : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"appendEntries" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve replayTerms.ty go!"appendEntries"))) (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$r"))))
-  ptr_covers_unfold : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"covers" (LamV "$r"
+  ptr_unfold'covers : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"covers" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve replayTerms.ty go!"covers"))) (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$r"))))
-  ptr_termAt_unfold : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"termAt" (LamV "$r"
+  ptr_unfold'termAt : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"termAt" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve replayTerms.ty go!"termAt"))) (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$r"))))
 
 attribute [instance] replayTerms.TypeAssumptions.underlying
   replayTerms.TypeAssumptions.method_set
   replayTerms.TypeAssumptions.ptr_method_set
-  replayTerms.TypeAssumptions.after_unfold
-  replayTerms.TypeAssumptions.appendEntries_unfold
-  replayTerms.TypeAssumptions.covers_unfold
-  replayTerms.TypeAssumptions.termAt_unfold
-  replayTerms.TypeAssumptions.ptr_after_unfold
-  replayTerms.TypeAssumptions.ptr_appendEntries_unfold
-  replayTerms.TypeAssumptions.ptr_covers_unfold
-  replayTerms.TypeAssumptions.ptr_termAt_unfold
+  replayTerms.TypeAssumptions.unfold'after
+  replayTerms.TypeAssumptions.unfold'appendEntries
+  replayTerms.TypeAssumptions.unfold'covers
+  replayTerms.TypeAssumptions.unfold'termAt
+  replayTerms.TypeAssumptions.ptr_unfold'after
+  replayTerms.TypeAssumptions.ptr_unfold'appendEntries
+  replayTerms.TypeAssumptions.ptr_unfold'covers
+  replayTerms.TypeAssumptions.ptr_unfold'termAt
 
 structure toApply [GooseExts] where
   mk ::
@@ -13266,7 +13266,7 @@ noncomputable instance toApply.zero_val [GooseExts] : ZeroVal toApply :=
 @[irreducible] noncomputable def toApply.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   toApply.fieldsUnsealed
 
-noncomputable instance equals_unfold_toApply [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'toApply [GooseExts] [GoGlobalContext] :
     EqualsUnfold toApply.fields toApply.fieldsUnsealed :=
   ⟨by unfold toApply.fields; rfl⟩
 
@@ -13276,35 +13276,35 @@ noncomputable instance equals_unfold_toApply [GooseExts] [GoGlobalContext] :
 class toApply.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying toApply.underlying toApply
   underlying : go.UnderlyingDirectedEq toApply.ty toApply.underlying
-  get_entries : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"entries") #x (Val #(x.entries'))
-  set_entries : ∀ (x : toApply) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet toApply.underlying go!"entries") (PairV #x #y) (Val #(({ x with entries' := y } : toApply)))
-  get_snapshot : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"snapshot") #x (Val #(x.snapshot'))
-  set_snapshot : ∀ (x : toApply) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet toApply.underlying go!"snapshot") (PairV #x #y) (Val #(({ x with snapshot' := y } : toApply)))
-  get_notifyc : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"notifyc") #x (Val #(x.notifyc'))
-  set_notifyc : ∀ (x : toApply) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet toApply.underlying go!"notifyc") (PairV #x #y) (Val #(({ x with notifyc' := y } : toApply)))
-  get_raftAdvancedC : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"raftAdvancedC") #x (Val #(x.raftAdvancedC'))
-  set_raftAdvancedC : ∀ (x : toApply) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet toApply.underlying go!"raftAdvancedC") (PairV #x #y) (Val #(({ x with raftAdvancedC' := y } : toApply)))
-  get_raftTerm : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"raftTerm") #x (Val #(x.raftTerm'))
-  set_raftTerm : ∀ (x : toApply) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet toApply.underlying go!"raftTerm") (PairV #x #y) (Val #(({ x with raftTerm' := y } : toApply)))
-  get_replayTerms : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"replayTerms") #x (Val #(x.replayTerms'))
-  set_replayTerms : ∀ (x : toApply) (y : replayTerms), go.IsGoStepPureDetTagged under (StructFieldSet toApply.underlying go!"replayTerms") (PairV #x #y) (Val #(({ x with replayTerms' := y } : toApply)))
+  get'entries : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"entries") #x (Val #(x.entries'))
+  set'entries : ∀ (x : toApply) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet toApply.underlying go!"entries") (PairV #x #y) (Val #(({ x with entries' := y } : toApply)))
+  get'snapshot : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"snapshot") #x (Val #(x.snapshot'))
+  set'snapshot : ∀ (x : toApply) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet toApply.underlying go!"snapshot") (PairV #x #y) (Val #(({ x with snapshot' := y } : toApply)))
+  get'notifyc : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"notifyc") #x (Val #(x.notifyc'))
+  set'notifyc : ∀ (x : toApply) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet toApply.underlying go!"notifyc") (PairV #x #y) (Val #(({ x with notifyc' := y } : toApply)))
+  get'raftAdvancedC : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"raftAdvancedC") #x (Val #(x.raftAdvancedC'))
+  set'raftAdvancedC : ∀ (x : toApply) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet toApply.underlying go!"raftAdvancedC") (PairV #x #y) (Val #(({ x with raftAdvancedC' := y } : toApply)))
+  get'raftTerm : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"raftTerm") #x (Val #(x.raftTerm'))
+  set'raftTerm : ∀ (x : toApply) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet toApply.underlying go!"raftTerm") (PairV #x #y) (Val #(({ x with raftTerm' := y } : toApply)))
+  get'replayTerms : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"replayTerms") #x (Val #(x.replayTerms'))
+  set'replayTerms : ∀ (x : toApply) (y : replayTerms), go.IsGoStepPureDetTagged under (StructFieldSet toApply.underlying go!"replayTerms") (PairV #x #y) (Val #(({ x with replayTerms' := y } : toApply)))
   method_set : go.MethodSetIs toApply.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType toApply.ty) []
 
 attribute [instance] toApply.TypeAssumptions.type_repr
   toApply.TypeAssumptions.underlying
-  toApply.TypeAssumptions.get_entries
-  toApply.TypeAssumptions.set_entries
-  toApply.TypeAssumptions.get_snapshot
-  toApply.TypeAssumptions.set_snapshot
-  toApply.TypeAssumptions.get_notifyc
-  toApply.TypeAssumptions.set_notifyc
-  toApply.TypeAssumptions.get_raftAdvancedC
-  toApply.TypeAssumptions.set_raftAdvancedC
-  toApply.TypeAssumptions.get_raftTerm
-  toApply.TypeAssumptions.set_raftTerm
-  toApply.TypeAssumptions.get_replayTerms
-  toApply.TypeAssumptions.set_replayTerms
+  toApply.TypeAssumptions.get'entries
+  toApply.TypeAssumptions.set'entries
+  toApply.TypeAssumptions.get'snapshot
+  toApply.TypeAssumptions.set'snapshot
+  toApply.TypeAssumptions.get'notifyc
+  toApply.TypeAssumptions.set'notifyc
+  toApply.TypeAssumptions.get'raftAdvancedC
+  toApply.TypeAssumptions.set'raftAdvancedC
+  toApply.TypeAssumptions.get'raftTerm
+  toApply.TypeAssumptions.set'raftTerm
+  toApply.TypeAssumptions.get'replayTerms
+  toApply.TypeAssumptions.set'replayTerms
   toApply.TypeAssumptions.method_set
   toApply.TypeAssumptions.ptr_method_set
 
@@ -13335,7 +13335,7 @@ noncomputable instance raftNodeConfig.zero_val [GooseExts] : ZeroVal raftNodeCon
 @[irreducible] noncomputable def raftNodeConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   raftNodeConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_raftNodeConfig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'raftNodeConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold raftNodeConfig.fields raftNodeConfig.fieldsUnsealed :=
   ⟨by unfold raftNodeConfig.fields; rfl⟩
 
@@ -13345,105 +13345,105 @@ noncomputable instance equals_unfold_raftNodeConfig [GooseExts] [GoGlobalContext
 class raftNodeConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying raftNodeConfig.underlying raftNodeConfig
   underlying : go.UnderlyingDirectedEq raftNodeConfig.ty raftNodeConfig.underlying
-  get_initialReplayTerms : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"initialReplayTerms") #x (Val #(x.initialReplayTerms'))
-  set_initialReplayTerms : ∀ (x : raftNodeConfig) (y : replayTerms), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"initialReplayTerms") (PairV #x #y) (Val #(({ x with initialReplayTerms' := y } : raftNodeConfig)))
-  get_lg : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : raftNodeConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : raftNodeConfig)))
-  get_isIDRemoved : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"isIDRemoved") #x (Val #(x.isIDRemoved'))
-  set_isIDRemoved : ∀ (x : raftNodeConfig) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"isIDRemoved") (PairV #x #y) (Val #(({ x with isIDRemoved' := y } : raftNodeConfig)))
-  get_Node : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"Node") #x (Val #(x.Node'))
-  set_Node : ∀ (x : raftNodeConfig) (y : _root_.Perennial.go_etcd_io.raft.v3.Node), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"Node") (PairV #x #y) (Val #(({ x with Node' := y } : raftNodeConfig)))
-  get_raftStorage : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"raftStorage") #x (Val #(x.raftStorage'))
-  set_raftStorage : ∀ (x : raftNodeConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"raftStorage") (PairV #x #y) (Val #(({ x with raftStorage' := y } : raftNodeConfig)))
-  get_storage : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"storage") #x (Val #(x.storage'))
-  set_storage : ∀ (x : raftNodeConfig) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Storage), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : raftNodeConfig)))
-  get_heartbeat : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"heartbeat") #x (Val #(x.heartbeat'))
-  set_heartbeat : ∀ (x : raftNodeConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"heartbeat") (PairV #x #y) (Val #(({ x with heartbeat' := y } : raftNodeConfig)))
-  get_transport : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"transport") #x (Val #(x.transport'))
-  set_transport : ∀ (x : raftNodeConfig) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"transport") (PairV #x #y) (Val #(({ x with transport' := y } : raftNodeConfig)))
+  get'initialReplayTerms : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"initialReplayTerms") #x (Val #(x.initialReplayTerms'))
+  set'initialReplayTerms : ∀ (x : raftNodeConfig) (y : replayTerms), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"initialReplayTerms") (PairV #x #y) (Val #(({ x with initialReplayTerms' := y } : raftNodeConfig)))
+  get'lg : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : raftNodeConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : raftNodeConfig)))
+  get'isIDRemoved : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"isIDRemoved") #x (Val #(x.isIDRemoved'))
+  set'isIDRemoved : ∀ (x : raftNodeConfig) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"isIDRemoved") (PairV #x #y) (Val #(({ x with isIDRemoved' := y } : raftNodeConfig)))
+  get'Node : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"Node") #x (Val #(x.Node'))
+  set'Node : ∀ (x : raftNodeConfig) (y : _root_.Perennial.go_etcd_io.raft.v3.Node), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"Node") (PairV #x #y) (Val #(({ x with Node' := y } : raftNodeConfig)))
+  get'raftStorage : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"raftStorage") #x (Val #(x.raftStorage'))
+  set'raftStorage : ∀ (x : raftNodeConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"raftStorage") (PairV #x #y) (Val #(({ x with raftStorage' := y } : raftNodeConfig)))
+  get'storage : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"storage") #x (Val #(x.storage'))
+  set'storage : ∀ (x : raftNodeConfig) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Storage), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : raftNodeConfig)))
+  get'heartbeat : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"heartbeat") #x (Val #(x.heartbeat'))
+  set'heartbeat : ∀ (x : raftNodeConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"heartbeat") (PairV #x #y) (Val #(({ x with heartbeat' := y } : raftNodeConfig)))
+  get'transport : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"transport") #x (Val #(x.transport'))
+  set'transport : ∀ (x : raftNodeConfig) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"transport") (PairV #x #y) (Val #(({ x with transport' := y } : raftNodeConfig)))
   method_set : go.MethodSetIs raftNodeConfig.ty [(go!"Advance", (some (go.signature.Signature [] false []))), (go!"ApplyConfChange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)]))), (go!"Campaign", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"ForgetLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Propose", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"ProposeConfChange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [go.error]))), (go!"ReadIndex", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"Ready", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.go_etcd_io.raft.v3.Ready.ty)]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"Status", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"Step", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"Tick", (some (go.signature.Signature [] false []))), (go!"TransferLeadership", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType raftNodeConfig.ty) [(go!"Advance", (some (go.signature.Signature [] false []))), (go!"ApplyConfChange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)]))), (go!"Campaign", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"ForgetLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Propose", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"ProposeConfChange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [go.error]))), (go!"ReadIndex", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"Ready", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.go_etcd_io.raft.v3.Ready.ty)]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"Status", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"Step", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"Tick", (some (go.signature.Signature [] false []))), (go!"TransferLeadership", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [])))]
-  Advance_unfold : MethodUnfold raftNodeConfig.ty go!"Advance" (LamV "$r"
+  unfold'Advance : MethodUnfold raftNodeConfig.ty go!"Advance" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Advance"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
-  ApplyConfChange_unfold : MethodUnfold raftNodeConfig.ty go!"ApplyConfChange" (LamV "$r"
+  unfold'ApplyConfChange : MethodUnfold raftNodeConfig.ty go!"ApplyConfChange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ApplyConfChange"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
-  Propose_unfold : MethodUnfold raftNodeConfig.ty go!"Propose" (LamV "$r"
+  unfold'Propose : MethodUnfold raftNodeConfig.ty go!"Propose" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Propose"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
-  ReadIndex_unfold : MethodUnfold raftNodeConfig.ty go!"ReadIndex" (LamV "$r"
+  unfold'ReadIndex : MethodUnfold raftNodeConfig.ty go!"ReadIndex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ReadIndex"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
-  Ready_unfold : MethodUnfold raftNodeConfig.ty go!"Ready" (LamV "$r"
+  unfold'Ready : MethodUnfold raftNodeConfig.ty go!"Ready" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Ready"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
-  ReportSnapshot_unfold : MethodUnfold raftNodeConfig.ty go!"ReportSnapshot" (LamV "$r"
+  unfold'ReportSnapshot : MethodUnfold raftNodeConfig.ty go!"ReportSnapshot" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ReportSnapshot"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
-  ReportUnreachable_unfold : MethodUnfold raftNodeConfig.ty go!"ReportUnreachable" (LamV "$r"
+  unfold'ReportUnreachable : MethodUnfold raftNodeConfig.ty go!"ReportUnreachable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ReportUnreachable"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
-  Step_unfold : MethodUnfold raftNodeConfig.ty go!"Step" (LamV "$r"
+  unfold'Step : MethodUnfold raftNodeConfig.ty go!"Step" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Step"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
-  Stop_unfold : MethodUnfold raftNodeConfig.ty go!"Stop" (LamV "$r"
+  unfold'Stop : MethodUnfold raftNodeConfig.ty go!"Stop" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Stop"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
-  Tick_unfold : MethodUnfold raftNodeConfig.ty go!"Tick" (LamV "$r"
+  unfold'Tick : MethodUnfold raftNodeConfig.ty go!"Tick" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Tick"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
-  ptr_Advance_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Advance" (LamV "$r"
+  ptr_unfold'Advance : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Advance" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Advance"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
-  ptr_ApplyConfChange_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"ApplyConfChange" (LamV "$r"
+  ptr_unfold'ApplyConfChange : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"ApplyConfChange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ApplyConfChange"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
-  ptr_Propose_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Propose" (LamV "$r"
+  ptr_unfold'Propose : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Propose" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Propose"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
-  ptr_ReadIndex_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"ReadIndex" (LamV "$r"
+  ptr_unfold'ReadIndex : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"ReadIndex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ReadIndex"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
-  ptr_Ready_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Ready" (LamV "$r"
+  ptr_unfold'Ready : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Ready" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Ready"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
-  ptr_ReportSnapshot_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"ReportSnapshot" (LamV "$r"
+  ptr_unfold'ReportSnapshot : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"ReportSnapshot" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ReportSnapshot"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
-  ptr_ReportUnreachable_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"ReportUnreachable" (LamV "$r"
+  ptr_unfold'ReportUnreachable : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"ReportUnreachable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ReportUnreachable"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
-  ptr_Step_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Step" (LamV "$r"
+  ptr_unfold'Step : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Step" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Step"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
-  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Stop" (LamV "$r"
+  ptr_unfold'Stop : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Stop" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Stop"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
-  ptr_Tick_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Tick" (LamV "$r"
+  ptr_unfold'Tick : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Tick" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Tick"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
 
 attribute [instance] raftNodeConfig.TypeAssumptions.type_repr
   raftNodeConfig.TypeAssumptions.underlying
-  raftNodeConfig.TypeAssumptions.get_initialReplayTerms
-  raftNodeConfig.TypeAssumptions.set_initialReplayTerms
-  raftNodeConfig.TypeAssumptions.get_lg
-  raftNodeConfig.TypeAssumptions.set_lg
-  raftNodeConfig.TypeAssumptions.get_isIDRemoved
-  raftNodeConfig.TypeAssumptions.set_isIDRemoved
-  raftNodeConfig.TypeAssumptions.get_Node
-  raftNodeConfig.TypeAssumptions.set_Node
-  raftNodeConfig.TypeAssumptions.get_raftStorage
-  raftNodeConfig.TypeAssumptions.set_raftStorage
-  raftNodeConfig.TypeAssumptions.get_storage
-  raftNodeConfig.TypeAssumptions.set_storage
-  raftNodeConfig.TypeAssumptions.get_heartbeat
-  raftNodeConfig.TypeAssumptions.set_heartbeat
-  raftNodeConfig.TypeAssumptions.get_transport
-  raftNodeConfig.TypeAssumptions.set_transport
+  raftNodeConfig.TypeAssumptions.get'initialReplayTerms
+  raftNodeConfig.TypeAssumptions.set'initialReplayTerms
+  raftNodeConfig.TypeAssumptions.get'lg
+  raftNodeConfig.TypeAssumptions.set'lg
+  raftNodeConfig.TypeAssumptions.get'isIDRemoved
+  raftNodeConfig.TypeAssumptions.set'isIDRemoved
+  raftNodeConfig.TypeAssumptions.get'Node
+  raftNodeConfig.TypeAssumptions.set'Node
+  raftNodeConfig.TypeAssumptions.get'raftStorage
+  raftNodeConfig.TypeAssumptions.set'raftStorage
+  raftNodeConfig.TypeAssumptions.get'storage
+  raftNodeConfig.TypeAssumptions.set'storage
+  raftNodeConfig.TypeAssumptions.get'heartbeat
+  raftNodeConfig.TypeAssumptions.set'heartbeat
+  raftNodeConfig.TypeAssumptions.get'transport
+  raftNodeConfig.TypeAssumptions.set'transport
   raftNodeConfig.TypeAssumptions.method_set
   raftNodeConfig.TypeAssumptions.ptr_method_set
-  raftNodeConfig.TypeAssumptions.Advance_unfold
-  raftNodeConfig.TypeAssumptions.ApplyConfChange_unfold
-  raftNodeConfig.TypeAssumptions.Propose_unfold
-  raftNodeConfig.TypeAssumptions.ReadIndex_unfold
-  raftNodeConfig.TypeAssumptions.Ready_unfold
-  raftNodeConfig.TypeAssumptions.ReportSnapshot_unfold
-  raftNodeConfig.TypeAssumptions.ReportUnreachable_unfold
-  raftNodeConfig.TypeAssumptions.Step_unfold
-  raftNodeConfig.TypeAssumptions.Stop_unfold
-  raftNodeConfig.TypeAssumptions.Tick_unfold
-  raftNodeConfig.TypeAssumptions.ptr_Advance_unfold
-  raftNodeConfig.TypeAssumptions.ptr_ApplyConfChange_unfold
-  raftNodeConfig.TypeAssumptions.ptr_Propose_unfold
-  raftNodeConfig.TypeAssumptions.ptr_ReadIndex_unfold
-  raftNodeConfig.TypeAssumptions.ptr_Ready_unfold
-  raftNodeConfig.TypeAssumptions.ptr_ReportSnapshot_unfold
-  raftNodeConfig.TypeAssumptions.ptr_ReportUnreachable_unfold
-  raftNodeConfig.TypeAssumptions.ptr_Step_unfold
-  raftNodeConfig.TypeAssumptions.ptr_Stop_unfold
-  raftNodeConfig.TypeAssumptions.ptr_Tick_unfold
+  raftNodeConfig.TypeAssumptions.unfold'Advance
+  raftNodeConfig.TypeAssumptions.unfold'ApplyConfChange
+  raftNodeConfig.TypeAssumptions.unfold'Propose
+  raftNodeConfig.TypeAssumptions.unfold'ReadIndex
+  raftNodeConfig.TypeAssumptions.unfold'Ready
+  raftNodeConfig.TypeAssumptions.unfold'ReportSnapshot
+  raftNodeConfig.TypeAssumptions.unfold'ReportUnreachable
+  raftNodeConfig.TypeAssumptions.unfold'Step
+  raftNodeConfig.TypeAssumptions.unfold'Stop
+  raftNodeConfig.TypeAssumptions.unfold'Tick
+  raftNodeConfig.TypeAssumptions.ptr_unfold'Advance
+  raftNodeConfig.TypeAssumptions.ptr_unfold'ApplyConfChange
+  raftNodeConfig.TypeAssumptions.ptr_unfold'Propose
+  raftNodeConfig.TypeAssumptions.ptr_unfold'ReadIndex
+  raftNodeConfig.TypeAssumptions.ptr_unfold'Ready
+  raftNodeConfig.TypeAssumptions.ptr_unfold'ReportSnapshot
+  raftNodeConfig.TypeAssumptions.ptr_unfold'ReportUnreachable
+  raftNodeConfig.TypeAssumptions.ptr_unfold'Step
+  raftNodeConfig.TypeAssumptions.ptr_unfold'Stop
+  raftNodeConfig.TypeAssumptions.ptr_unfold'Tick
 
 structure raftNode [GooseExts] where
   mk ::
@@ -13478,7 +13478,7 @@ noncomputable instance raftNode.zero_val [GooseExts] : ZeroVal raftNode :=
 @[irreducible] noncomputable def raftNode.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   raftNode.fieldsUnsealed
 
-noncomputable instance equals_unfold_raftNode [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'raftNode [GooseExts] [GoGlobalContext] :
     EqualsUnfold raftNode.fields raftNode.fieldsUnsealed :=
   ⟨by unfold raftNode.fields; rfl⟩
 
@@ -13488,135 +13488,135 @@ noncomputable instance equals_unfold_raftNode [GooseExts] [GoGlobalContext] :
 class raftNode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying raftNode.underlying raftNode
   underlying : go.UnderlyingDirectedEq raftNode.ty raftNode.underlying
-  get_lg : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : raftNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : raftNode)))
-  get_tickMu : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"tickMu") #x (Val #(x.tickMu'))
-  set_tickMu : ∀ (x : raftNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"tickMu") (PairV #x #y) (Val #(({ x with tickMu' := y } : raftNode)))
-  get_latestTickTs : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"latestTickTs") #x (Val #(x.latestTickTs'))
-  set_latestTickTs : ∀ (x : raftNode) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"latestTickTs") (PairV #x #y) (Val #(({ x with latestTickTs' := y } : raftNode)))
-  get_raftNodeConfig : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"raftNodeConfig") #x (Val #(x.raftNodeConfig'))
-  set_raftNodeConfig : ∀ (x : raftNode) (y : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"raftNodeConfig") (PairV #x #y) (Val #(({ x with raftNodeConfig' := y } : raftNode)))
-  get_msgSnapC : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"msgSnapC") #x (Val #(x.msgSnapC'))
-  set_msgSnapC : ∀ (x : raftNode) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"msgSnapC") (PairV #x #y) (Val #(({ x with msgSnapC' := y } : raftNode)))
-  get_applyc : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"applyc") #x (Val #(x.applyc'))
-  set_applyc : ∀ (x : raftNode) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"applyc") (PairV #x #y) (Val #(({ x with applyc' := y } : raftNode)))
-  get_readStateC : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"readStateC") #x (Val #(x.readStateC'))
-  set_readStateC : ∀ (x : raftNode) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"readStateC") (PairV #x #y) (Val #(({ x with readStateC' := y } : raftNode)))
-  get_ticker : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"ticker") #x (Val #(x.ticker'))
-  set_ticker : ∀ (x : raftNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"ticker") (PairV #x #y) (Val #(({ x with ticker' := y } : raftNode)))
-  get_td : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"td") #x (Val #(x.td'))
-  set_td : ∀ (x : raftNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"td") (PairV #x #y) (Val #(({ x with td' := y } : raftNode)))
-  get_stopped : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"stopped") #x (Val #(x.stopped'))
-  set_stopped : ∀ (x : raftNode) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"stopped") (PairV #x #y) (Val #(({ x with stopped' := y } : raftNode)))
-  get_done : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"done") #x (Val #(x.done'))
-  set_done : ∀ (x : raftNode) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : raftNode)))
+  get'lg : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : raftNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : raftNode)))
+  get'tickMu : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"tickMu") #x (Val #(x.tickMu'))
+  set'tickMu : ∀ (x : raftNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"tickMu") (PairV #x #y) (Val #(({ x with tickMu' := y } : raftNode)))
+  get'latestTickTs : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"latestTickTs") #x (Val #(x.latestTickTs'))
+  set'latestTickTs : ∀ (x : raftNode) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"latestTickTs") (PairV #x #y) (Val #(({ x with latestTickTs' := y } : raftNode)))
+  get'raftNodeConfig : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"raftNodeConfig") #x (Val #(x.raftNodeConfig'))
+  set'raftNodeConfig : ∀ (x : raftNode) (y : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"raftNodeConfig") (PairV #x #y) (Val #(({ x with raftNodeConfig' := y } : raftNode)))
+  get'msgSnapC : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"msgSnapC") #x (Val #(x.msgSnapC'))
+  set'msgSnapC : ∀ (x : raftNode) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"msgSnapC") (PairV #x #y) (Val #(({ x with msgSnapC' := y } : raftNode)))
+  get'applyc : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"applyc") #x (Val #(x.applyc'))
+  set'applyc : ∀ (x : raftNode) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"applyc") (PairV #x #y) (Val #(({ x with applyc' := y } : raftNode)))
+  get'readStateC : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"readStateC") #x (Val #(x.readStateC'))
+  set'readStateC : ∀ (x : raftNode) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"readStateC") (PairV #x #y) (Val #(({ x with readStateC' := y } : raftNode)))
+  get'ticker : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"ticker") #x (Val #(x.ticker'))
+  set'ticker : ∀ (x : raftNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"ticker") (PairV #x #y) (Val #(({ x with ticker' := y } : raftNode)))
+  get'td : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"td") #x (Val #(x.td'))
+  set'td : ∀ (x : raftNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"td") (PairV #x #y) (Val #(({ x with td' := y } : raftNode)))
+  get'stopped : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"stopped") #x (Val #(x.stopped'))
+  set'stopped : ∀ (x : raftNode) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"stopped") (PairV #x #y) (Val #(({ x with stopped' := y } : raftNode)))
+  get'done : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"done") #x (Val #(x.done'))
+  set'done : ∀ (x : raftNode) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : raftNode)))
   method_set : go.MethodSetIs raftNode.ty [(go!"Advance", (some (go.signature.Signature [] false []))), (go!"ApplyConfChange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)]))), (go!"Campaign", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"ForgetLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Propose", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"ProposeConfChange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [go.error]))), (go!"ReadIndex", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"Ready", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.go_etcd_io.raft.v3.Ready.ty)]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"Status", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"Step", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"Tick", (some (go.signature.Signature [] false []))), (go!"TransferLeadership", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType raftNode.ty) [(go!"Advance", (some (go.signature.Signature [] false []))), (go!"ApplyConfChange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)]))), (go!"Campaign", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"ForgetLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Propose", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"ProposeConfChange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [go.error]))), (go!"ReadIndex", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"ReadState", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.go_etcd_io.raft.v3.ReadState.ty)]))), (go!"Ready", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.go_etcd_io.raft.v3.Ready.ty)]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"Status", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"Step", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"Tick", (some (go.signature.Signature [] false []))), (go!"TransferLeadership", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.advanceTicks", (some (go.signature.Signature [go.int] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.apply", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.sendrecv toApply.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getLatestTickTs", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.onStop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.pauseSending", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.processMessages", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.resumeSending", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.start", (some (go.signature.Signature [(go.GoType.PointerType raftReadyHandler.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.stop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.tick", (some (go.signature.Signature [] false [])))]
-  Advance_unfold : MethodUnfold raftNode.ty go!"Advance" (LamV "$r"
+  unfold'Advance : MethodUnfold raftNode.ty go!"Advance" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"Advance"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  ApplyConfChange_unfold : MethodUnfold raftNode.ty go!"ApplyConfChange" (LamV "$r"
+  unfold'ApplyConfChange : MethodUnfold raftNode.ty go!"ApplyConfChange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"ApplyConfChange"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  Propose_unfold : MethodUnfold raftNode.ty go!"Propose" (LamV "$r"
+  unfold'Propose : MethodUnfold raftNode.ty go!"Propose" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"Propose"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  ReadIndex_unfold : MethodUnfold raftNode.ty go!"ReadIndex" (LamV "$r"
+  unfold'ReadIndex : MethodUnfold raftNode.ty go!"ReadIndex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"ReadIndex"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  Ready_unfold : MethodUnfold raftNode.ty go!"Ready" (LamV "$r"
+  unfold'Ready : MethodUnfold raftNode.ty go!"Ready" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"Ready"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  ReportSnapshot_unfold : MethodUnfold raftNode.ty go!"ReportSnapshot" (LamV "$r"
+  unfold'ReportSnapshot : MethodUnfold raftNode.ty go!"ReportSnapshot" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"ReportSnapshot"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  ReportUnreachable_unfold : MethodUnfold raftNode.ty go!"ReportUnreachable" (LamV "$r"
+  unfold'ReportUnreachable : MethodUnfold raftNode.ty go!"ReportUnreachable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"ReportUnreachable"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  Step_unfold : MethodUnfold raftNode.ty go!"Step" (LamV "$r"
+  unfold'Step : MethodUnfold raftNode.ty go!"Step" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"Step"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  Stop_unfold : MethodUnfold raftNode.ty go!"Stop" (LamV "$r"
+  unfold'Stop : MethodUnfold raftNode.ty go!"Stop" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"Stop"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  Tick_unfold : MethodUnfold raftNode.ty go!"Tick" (LamV "$r"
+  unfold'Tick : MethodUnfold raftNode.ty go!"Tick" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"Tick"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  ptr_Advance_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Advance" (LamV "$r"
+  ptr_unfold'Advance : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Advance" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"Advance"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  ptr_ApplyConfChange_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"ApplyConfChange" (LamV "$r"
+  ptr_unfold'ApplyConfChange : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"ApplyConfChange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"ApplyConfChange"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  ptr_Propose_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Propose" (LamV "$r"
+  ptr_unfold'Propose : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Propose" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"Propose"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  ptr_ReadIndex_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"ReadIndex" (LamV "$r"
+  ptr_unfold'ReadIndex : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"ReadIndex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"ReadIndex"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  ptr_ReadState_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"ReadState" raftNode.ReadState.impl
-  ptr_Ready_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Ready" (LamV "$r"
+  ptr_unfold'ReadState : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"ReadState" raftNode.ReadState.impl
+  ptr_unfold'Ready : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Ready" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"Ready"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  ptr_ReportSnapshot_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"ReportSnapshot" (LamV "$r"
+  ptr_unfold'ReportSnapshot : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"ReportSnapshot" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"ReportSnapshot"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  ptr_ReportUnreachable_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"ReportUnreachable" (LamV "$r"
+  ptr_unfold'ReportUnreachable : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"ReportUnreachable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"ReportUnreachable"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  ptr_Step_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Step" (LamV "$r"
+  ptr_unfold'Step : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Step" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"Step"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Stop" (LamV "$r"
+  ptr_unfold'Stop : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Stop" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"Stop"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  ptr_Tick_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Tick" (LamV "$r"
+  ptr_unfold'Tick : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Tick" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"Tick"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
-  ptr_advanceTicks_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"advanceTicks" raftNode.advanceTicks.impl
-  ptr_apply_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"apply" raftNode.apply.impl
-  ptr_getLatestTickTs_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"getLatestTickTs" raftNode.getLatestTickTs.impl
-  ptr_onStop_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"onStop" raftNode.onStop.impl
-  ptr_processMessages_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"processMessages" raftNode.processMessages.impl
-  ptr_start_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"start" raftNode.start.impl
-  ptr_stop_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"stop" raftNode.stop.impl
-  ptr_tick_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"tick" raftNode.tick.impl
+  ptr_unfold'advanceTicks : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"advanceTicks" raftNode.advanceTicks.impl
+  ptr_unfold'apply : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"apply" raftNode.apply.impl
+  ptr_unfold'getLatestTickTs : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"getLatestTickTs" raftNode.getLatestTickTs.impl
+  ptr_unfold'onStop : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"onStop" raftNode.onStop.impl
+  ptr_unfold'processMessages : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"processMessages" raftNode.processMessages.impl
+  ptr_unfold'start : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"start" raftNode.start.impl
+  ptr_unfold'stop : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"stop" raftNode.stop.impl
+  ptr_unfold'tick : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"tick" raftNode.tick.impl
 
 attribute [instance] raftNode.TypeAssumptions.type_repr
   raftNode.TypeAssumptions.underlying
-  raftNode.TypeAssumptions.get_lg
-  raftNode.TypeAssumptions.set_lg
-  raftNode.TypeAssumptions.get_tickMu
-  raftNode.TypeAssumptions.set_tickMu
-  raftNode.TypeAssumptions.get_latestTickTs
-  raftNode.TypeAssumptions.set_latestTickTs
-  raftNode.TypeAssumptions.get_raftNodeConfig
-  raftNode.TypeAssumptions.set_raftNodeConfig
-  raftNode.TypeAssumptions.get_msgSnapC
-  raftNode.TypeAssumptions.set_msgSnapC
-  raftNode.TypeAssumptions.get_applyc
-  raftNode.TypeAssumptions.set_applyc
-  raftNode.TypeAssumptions.get_readStateC
-  raftNode.TypeAssumptions.set_readStateC
-  raftNode.TypeAssumptions.get_ticker
-  raftNode.TypeAssumptions.set_ticker
-  raftNode.TypeAssumptions.get_td
-  raftNode.TypeAssumptions.set_td
-  raftNode.TypeAssumptions.get_stopped
-  raftNode.TypeAssumptions.set_stopped
-  raftNode.TypeAssumptions.get_done
-  raftNode.TypeAssumptions.set_done
+  raftNode.TypeAssumptions.get'lg
+  raftNode.TypeAssumptions.set'lg
+  raftNode.TypeAssumptions.get'tickMu
+  raftNode.TypeAssumptions.set'tickMu
+  raftNode.TypeAssumptions.get'latestTickTs
+  raftNode.TypeAssumptions.set'latestTickTs
+  raftNode.TypeAssumptions.get'raftNodeConfig
+  raftNode.TypeAssumptions.set'raftNodeConfig
+  raftNode.TypeAssumptions.get'msgSnapC
+  raftNode.TypeAssumptions.set'msgSnapC
+  raftNode.TypeAssumptions.get'applyc
+  raftNode.TypeAssumptions.set'applyc
+  raftNode.TypeAssumptions.get'readStateC
+  raftNode.TypeAssumptions.set'readStateC
+  raftNode.TypeAssumptions.get'ticker
+  raftNode.TypeAssumptions.set'ticker
+  raftNode.TypeAssumptions.get'td
+  raftNode.TypeAssumptions.set'td
+  raftNode.TypeAssumptions.get'stopped
+  raftNode.TypeAssumptions.set'stopped
+  raftNode.TypeAssumptions.get'done
+  raftNode.TypeAssumptions.set'done
   raftNode.TypeAssumptions.method_set
   raftNode.TypeAssumptions.ptr_method_set
-  raftNode.TypeAssumptions.Advance_unfold
-  raftNode.TypeAssumptions.ApplyConfChange_unfold
-  raftNode.TypeAssumptions.Propose_unfold
-  raftNode.TypeAssumptions.ReadIndex_unfold
-  raftNode.TypeAssumptions.Ready_unfold
-  raftNode.TypeAssumptions.ReportSnapshot_unfold
-  raftNode.TypeAssumptions.ReportUnreachable_unfold
-  raftNode.TypeAssumptions.Step_unfold
-  raftNode.TypeAssumptions.Stop_unfold
-  raftNode.TypeAssumptions.Tick_unfold
-  raftNode.TypeAssumptions.ptr_Advance_unfold
-  raftNode.TypeAssumptions.ptr_ApplyConfChange_unfold
-  raftNode.TypeAssumptions.ptr_Propose_unfold
-  raftNode.TypeAssumptions.ptr_ReadIndex_unfold
-  raftNode.TypeAssumptions.ptr_ReadState_unfold
-  raftNode.TypeAssumptions.ptr_Ready_unfold
-  raftNode.TypeAssumptions.ptr_ReportSnapshot_unfold
-  raftNode.TypeAssumptions.ptr_ReportUnreachable_unfold
-  raftNode.TypeAssumptions.ptr_Step_unfold
-  raftNode.TypeAssumptions.ptr_Stop_unfold
-  raftNode.TypeAssumptions.ptr_Tick_unfold
-  raftNode.TypeAssumptions.ptr_advanceTicks_unfold
-  raftNode.TypeAssumptions.ptr_apply_unfold
-  raftNode.TypeAssumptions.ptr_getLatestTickTs_unfold
-  raftNode.TypeAssumptions.ptr_onStop_unfold
-  raftNode.TypeAssumptions.ptr_processMessages_unfold
-  raftNode.TypeAssumptions.ptr_start_unfold
-  raftNode.TypeAssumptions.ptr_stop_unfold
-  raftNode.TypeAssumptions.ptr_tick_unfold
+  raftNode.TypeAssumptions.unfold'Advance
+  raftNode.TypeAssumptions.unfold'ApplyConfChange
+  raftNode.TypeAssumptions.unfold'Propose
+  raftNode.TypeAssumptions.unfold'ReadIndex
+  raftNode.TypeAssumptions.unfold'Ready
+  raftNode.TypeAssumptions.unfold'ReportSnapshot
+  raftNode.TypeAssumptions.unfold'ReportUnreachable
+  raftNode.TypeAssumptions.unfold'Step
+  raftNode.TypeAssumptions.unfold'Stop
+  raftNode.TypeAssumptions.unfold'Tick
+  raftNode.TypeAssumptions.ptr_unfold'Advance
+  raftNode.TypeAssumptions.ptr_unfold'ApplyConfChange
+  raftNode.TypeAssumptions.ptr_unfold'Propose
+  raftNode.TypeAssumptions.ptr_unfold'ReadIndex
+  raftNode.TypeAssumptions.ptr_unfold'ReadState
+  raftNode.TypeAssumptions.ptr_unfold'Ready
+  raftNode.TypeAssumptions.ptr_unfold'ReportSnapshot
+  raftNode.TypeAssumptions.ptr_unfold'ReportUnreachable
+  raftNode.TypeAssumptions.ptr_unfold'Step
+  raftNode.TypeAssumptions.ptr_unfold'Stop
+  raftNode.TypeAssumptions.ptr_unfold'Tick
+  raftNode.TypeAssumptions.ptr_unfold'advanceTicks
+  raftNode.TypeAssumptions.ptr_unfold'apply
+  raftNode.TypeAssumptions.ptr_unfold'getLatestTickTs
+  raftNode.TypeAssumptions.ptr_unfold'onStop
+  raftNode.TypeAssumptions.ptr_unfold'processMessages
+  raftNode.TypeAssumptions.ptr_unfold'start
+  raftNode.TypeAssumptions.ptr_unfold'stop
+  raftNode.TypeAssumptions.ptr_unfold'tick
 
 opaque Response.nonempty_type : NonemptyType.{0}
 def Response : Type := Response.nonempty_type.type
@@ -13784,7 +13784,7 @@ noncomputable instance EtcdServer.zero_val [GooseExts] : ZeroVal EtcdServer :=
 @[irreducible] noncomputable def EtcdServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EtcdServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_EtcdServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'EtcdServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold EtcdServer.fields EtcdServer.fieldsUnsealed :=
   ⟨by unfold EtcdServer.fields; rfl⟩
 
@@ -13794,443 +13794,443 @@ noncomputable instance equals_unfold_EtcdServer [GooseExts] [GoGlobalContext] :
 class EtcdServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EtcdServer.underlying EtcdServer
   underlying : go.UnderlyingDirectedEq EtcdServer.ty EtcdServer.underlying
-  get_inflightSnapshots : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"inflightSnapshots") #x (Val #(x.inflightSnapshots'))
-  set_inflightSnapshots : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.atomic.Int64), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"inflightSnapshots") (PairV #x #y) (Val #(({ x with inflightSnapshots' := y } : EtcdServer)))
-  get_appliedIndex : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"appliedIndex") #x (Val #(x.appliedIndex'))
-  set_appliedIndex : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.atomic.Uint64), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"appliedIndex") (PairV #x #y) (Val #(({ x with appliedIndex' := y } : EtcdServer)))
-  get_committedIndex : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"committedIndex") #x (Val #(x.committedIndex'))
-  set_committedIndex : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.atomic.Uint64), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"committedIndex") (PairV #x #y) (Val #(({ x with committedIndex' := y } : EtcdServer)))
-  get_term : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"term") #x (Val #(x.term'))
-  set_term : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.atomic.Uint64), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : EtcdServer)))
-  get_lead : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"lead") #x (Val #(x.lead'))
-  set_lead : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.atomic.Uint64), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"lead") (PairV #x #y) (Val #(({ x with lead' := y } : EtcdServer)))
-  get_consistIndex : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"consistIndex") #x (Val #(x.consistIndex'))
-  set_consistIndex : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"consistIndex") (PairV #x #y) (Val #(({ x with consistIndex' := y } : EtcdServer)))
-  get_r : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"r") #x (Val #(x.r'))
-  set_r : ∀ (x : EtcdServer) (y : raftNode), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : EtcdServer)))
-  get_readych : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"readych") #x (Val #(x.readych'))
-  set_readych : ∀ (x : EtcdServer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"readych") (PairV #x #y) (Val #(({ x with readych' := y } : EtcdServer)))
-  get_Cfg : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"Cfg") #x (Val #(x.Cfg'))
-  set_Cfg : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"Cfg") (PairV #x #y) (Val #(({ x with Cfg' := y } : EtcdServer)))
-  get_lgMu : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"lgMu") #x (Val #(x.lgMu'))
-  set_lgMu : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"lgMu") (PairV #x #y) (Val #(({ x with lgMu' := y } : EtcdServer)))
-  get_lg : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : EtcdServer)))
-  get_w : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"w") #x (Val #(x.w'))
-  set_w : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.Wait), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : EtcdServer)))
-  get_read : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"read") #x (Val #(x.read'))
-  set_read : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"read") (PairV #x #y) (Val #(({ x with read' := y } : EtcdServer)))
-  get_stop : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"stop") #x (Val #(x.stop'))
-  set_stop : ∀ (x : EtcdServer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"stop") (PairV #x #y) (Val #(({ x with stop' := y } : EtcdServer)))
-  get_stopping : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"stopping") #x (Val #(x.stopping'))
-  set_stopping : ∀ (x : EtcdServer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"stopping") (PairV #x #y) (Val #(({ x with stopping' := y } : EtcdServer)))
-  get_done : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"done") #x (Val #(x.done'))
-  set_done : ∀ (x : EtcdServer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : EtcdServer)))
-  get_leaderChanged : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"leaderChanged") #x (Val #(x.leaderChanged'))
-  set_leaderChanged : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"leaderChanged") (PairV #x #y) (Val #(({ x with leaderChanged' := y } : EtcdServer)))
-  get_errorc : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"errorc") #x (Val #(x.errorc'))
-  set_errorc : ∀ (x : EtcdServer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"errorc") (PairV #x #y) (Val #(({ x with errorc' := y } : EtcdServer)))
-  get_memberID : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"memberID") #x (Val #(x.memberID'))
-  set_memberID : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"memberID") (PairV #x #y) (Val #(({ x with memberID' := y } : EtcdServer)))
-  get_attributes : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"attributes") #x (Val #(x.attributes'))
-  set_attributes : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"attributes") (PairV #x #y) (Val #(({ x with attributes' := y } : EtcdServer)))
-  get_cluster : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"cluster") #x (Val #(x.cluster'))
-  set_cluster : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"cluster") (PairV #x #y) (Val #(({ x with cluster' := y } : EtcdServer)))
-  get_snapshotter : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"snapshotter") #x (Val #(x.snapshotter'))
-  set_snapshotter : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"snapshotter") (PairV #x #y) (Val #(({ x with snapshotter' := y } : EtcdServer)))
-  get_uberApply : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"uberApply") #x (Val #(x.uberApply'))
-  set_uberApply : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"uberApply") (PairV #x #y) (Val #(({ x with uberApply' := y } : EtcdServer)))
-  get_applyWait : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"applyWait") #x (Val #(x.applyWait'))
-  set_applyWait : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.WaitTime), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"applyWait") (PairV #x #y) (Val #(({ x with applyWait' := y } : EtcdServer)))
-  get_kv : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"kv") #x (Val #(x.kv'))
-  set_kv : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"kv") (PairV #x #y) (Val #(({ x with kv' := y } : EtcdServer)))
-  get_lessor : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"lessor") #x (Val #(x.lessor'))
-  set_lessor : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"lessor") (PairV #x #y) (Val #(({ x with lessor' := y } : EtcdServer)))
-  get_bemu : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"bemu") #x (Val #(x.bemu'))
-  set_bemu : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"bemu") (PairV #x #y) (Val #(({ x with bemu' := y } : EtcdServer)))
-  get_be : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"be") #x (Val #(x.be'))
-  set_be : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : EtcdServer)))
-  get_beHooks : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"beHooks") #x (Val #(x.beHooks'))
-  set_beHooks : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"beHooks") (PairV #x #y) (Val #(({ x with beHooks' := y } : EtcdServer)))
-  get_authStore : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"authStore") #x (Val #(x.authStore'))
-  set_authStore : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"authStore") (PairV #x #y) (Val #(({ x with authStore' := y } : EtcdServer)))
-  get_alarmStore : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"alarmStore") #x (Val #(x.alarmStore'))
-  set_alarmStore : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"alarmStore") (PairV #x #y) (Val #(({ x with alarmStore' := y } : EtcdServer)))
-  get_stats : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"stats") #x (Val #(x.stats'))
-  set_stats : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"stats") (PairV #x #y) (Val #(({ x with stats' := y } : EtcdServer)))
-  get_lstats : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"lstats") #x (Val #(x.lstats'))
-  set_lstats : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"lstats") (PairV #x #y) (Val #(({ x with lstats' := y } : EtcdServer)))
-  get_compactor : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"compactor") #x (Val #(x.compactor'))
-  set_compactor : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Compactor), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"compactor") (PairV #x #y) (Val #(({ x with compactor' := y } : EtcdServer)))
-  get_peerRt : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"peerRt") #x (Val #(x.peerRt'))
-  set_peerRt : ∀ (x : EtcdServer) (y : _root_.Perennial.net.http.RoundTripper), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"peerRt") (PairV #x #y) (Val #(({ x with peerRt' := y } : EtcdServer)))
-  get_reqIDGen : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"reqIDGen") #x (Val #(x.reqIDGen'))
-  set_reqIDGen : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"reqIDGen") (PairV #x #y) (Val #(({ x with reqIDGen' := y } : EtcdServer)))
-  get_wgMu : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"wgMu") #x (Val #(x.wgMu'))
-  set_wgMu : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"wgMu") (PairV #x #y) (Val #(({ x with wgMu' := y } : EtcdServer)))
-  get_wg : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"wg") #x (Val #(x.wg'))
-  set_wg : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : EtcdServer)))
-  get_ctx : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"ctx") #x (Val #(x.ctx'))
-  set_ctx : ∀ (x : EtcdServer) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : EtcdServer)))
-  get_cancel : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"cancel") #x (Val #(x.cancel'))
-  set_cancel : ∀ (x : EtcdServer) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : EtcdServer)))
-  get_leadTimeMu : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"leadTimeMu") #x (Val #(x.leadTimeMu'))
-  set_leadTimeMu : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"leadTimeMu") (PairV #x #y) (Val #(({ x with leadTimeMu' := y } : EtcdServer)))
-  get_leadElectedTime : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"leadElectedTime") #x (Val #(x.leadElectedTime'))
-  set_leadElectedTime : ∀ (x : EtcdServer) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"leadElectedTime") (PairV #x #y) (Val #(({ x with leadElectedTime' := y } : EtcdServer)))
-  get_firstCommitInTerm : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"firstCommitInTerm") #x (Val #(x.firstCommitInTerm'))
-  set_firstCommitInTerm : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"firstCommitInTerm") (PairV #x #y) (Val #(({ x with firstCommitInTerm' := y } : EtcdServer)))
-  get_clusterVersionChanged : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"clusterVersionChanged") #x (Val #(x.clusterVersionChanged'))
-  set_clusterVersionChanged : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"clusterVersionChanged") (PairV #x #y) (Val #(({ x with clusterVersionChanged' := y } : EtcdServer)))
-  get_AccessController : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"AccessController") #x (Val #(x.AccessController'))
-  set_AccessController : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"AccessController") (PairV #x #y) (Val #(({ x with AccessController' := y } : EtcdServer)))
-  get_forceDiskSnapshot : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"forceDiskSnapshot") #x (Val #(x.forceDiskSnapshot'))
-  set_forceDiskSnapshot : ∀ (x : EtcdServer) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"forceDiskSnapshot") (PairV #x #y) (Val #(({ x with forceDiskSnapshot' := y } : EtcdServer)))
-  get_corruptionChecker : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"corruptionChecker") #x (Val #(x.corruptionChecker'))
-  set_corruptionChecker : ∀ (x : EtcdServer) (y : CorruptionChecker), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"corruptionChecker") (PairV #x #y) (Val #(({ x with corruptionChecker' := y } : EtcdServer)))
+  get'inflightSnapshots : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"inflightSnapshots") #x (Val #(x.inflightSnapshots'))
+  set'inflightSnapshots : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.atomic.Int64), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"inflightSnapshots") (PairV #x #y) (Val #(({ x with inflightSnapshots' := y } : EtcdServer)))
+  get'appliedIndex : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"appliedIndex") #x (Val #(x.appliedIndex'))
+  set'appliedIndex : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.atomic.Uint64), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"appliedIndex") (PairV #x #y) (Val #(({ x with appliedIndex' := y } : EtcdServer)))
+  get'committedIndex : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"committedIndex") #x (Val #(x.committedIndex'))
+  set'committedIndex : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.atomic.Uint64), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"committedIndex") (PairV #x #y) (Val #(({ x with committedIndex' := y } : EtcdServer)))
+  get'term : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"term") #x (Val #(x.term'))
+  set'term : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.atomic.Uint64), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : EtcdServer)))
+  get'lead : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"lead") #x (Val #(x.lead'))
+  set'lead : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.atomic.Uint64), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"lead") (PairV #x #y) (Val #(({ x with lead' := y } : EtcdServer)))
+  get'consistIndex : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"consistIndex") #x (Val #(x.consistIndex'))
+  set'consistIndex : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"consistIndex") (PairV #x #y) (Val #(({ x with consistIndex' := y } : EtcdServer)))
+  get'r : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"r") #x (Val #(x.r'))
+  set'r : ∀ (x : EtcdServer) (y : raftNode), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : EtcdServer)))
+  get'readych : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"readych") #x (Val #(x.readych'))
+  set'readych : ∀ (x : EtcdServer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"readych") (PairV #x #y) (Val #(({ x with readych' := y } : EtcdServer)))
+  get'Cfg : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"Cfg") #x (Val #(x.Cfg'))
+  set'Cfg : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"Cfg") (PairV #x #y) (Val #(({ x with Cfg' := y } : EtcdServer)))
+  get'lgMu : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"lgMu") #x (Val #(x.lgMu'))
+  set'lgMu : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"lgMu") (PairV #x #y) (Val #(({ x with lgMu' := y } : EtcdServer)))
+  get'lg : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : EtcdServer)))
+  get'w : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"w") #x (Val #(x.w'))
+  set'w : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.Wait), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : EtcdServer)))
+  get'read : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"read") #x (Val #(x.read'))
+  set'read : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"read") (PairV #x #y) (Val #(({ x with read' := y } : EtcdServer)))
+  get'stop : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"stop") #x (Val #(x.stop'))
+  set'stop : ∀ (x : EtcdServer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"stop") (PairV #x #y) (Val #(({ x with stop' := y } : EtcdServer)))
+  get'stopping : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"stopping") #x (Val #(x.stopping'))
+  set'stopping : ∀ (x : EtcdServer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"stopping") (PairV #x #y) (Val #(({ x with stopping' := y } : EtcdServer)))
+  get'done : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"done") #x (Val #(x.done'))
+  set'done : ∀ (x : EtcdServer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : EtcdServer)))
+  get'leaderChanged : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"leaderChanged") #x (Val #(x.leaderChanged'))
+  set'leaderChanged : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"leaderChanged") (PairV #x #y) (Val #(({ x with leaderChanged' := y } : EtcdServer)))
+  get'errorc : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"errorc") #x (Val #(x.errorc'))
+  set'errorc : ∀ (x : EtcdServer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"errorc") (PairV #x #y) (Val #(({ x with errorc' := y } : EtcdServer)))
+  get'memberID : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"memberID") #x (Val #(x.memberID'))
+  set'memberID : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"memberID") (PairV #x #y) (Val #(({ x with memberID' := y } : EtcdServer)))
+  get'attributes : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"attributes") #x (Val #(x.attributes'))
+  set'attributes : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"attributes") (PairV #x #y) (Val #(({ x with attributes' := y } : EtcdServer)))
+  get'cluster : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"cluster") #x (Val #(x.cluster'))
+  set'cluster : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"cluster") (PairV #x #y) (Val #(({ x with cluster' := y } : EtcdServer)))
+  get'snapshotter : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"snapshotter") #x (Val #(x.snapshotter'))
+  set'snapshotter : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"snapshotter") (PairV #x #y) (Val #(({ x with snapshotter' := y } : EtcdServer)))
+  get'uberApply : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"uberApply") #x (Val #(x.uberApply'))
+  set'uberApply : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"uberApply") (PairV #x #y) (Val #(({ x with uberApply' := y } : EtcdServer)))
+  get'applyWait : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"applyWait") #x (Val #(x.applyWait'))
+  set'applyWait : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.WaitTime), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"applyWait") (PairV #x #y) (Val #(({ x with applyWait' := y } : EtcdServer)))
+  get'kv : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"kv") #x (Val #(x.kv'))
+  set'kv : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"kv") (PairV #x #y) (Val #(({ x with kv' := y } : EtcdServer)))
+  get'lessor : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"lessor") #x (Val #(x.lessor'))
+  set'lessor : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"lessor") (PairV #x #y) (Val #(({ x with lessor' := y } : EtcdServer)))
+  get'bemu : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"bemu") #x (Val #(x.bemu'))
+  set'bemu : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"bemu") (PairV #x #y) (Val #(({ x with bemu' := y } : EtcdServer)))
+  get'be : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"be") #x (Val #(x.be'))
+  set'be : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : EtcdServer)))
+  get'beHooks : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"beHooks") #x (Val #(x.beHooks'))
+  set'beHooks : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"beHooks") (PairV #x #y) (Val #(({ x with beHooks' := y } : EtcdServer)))
+  get'authStore : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"authStore") #x (Val #(x.authStore'))
+  set'authStore : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"authStore") (PairV #x #y) (Val #(({ x with authStore' := y } : EtcdServer)))
+  get'alarmStore : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"alarmStore") #x (Val #(x.alarmStore'))
+  set'alarmStore : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"alarmStore") (PairV #x #y) (Val #(({ x with alarmStore' := y } : EtcdServer)))
+  get'stats : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"stats") #x (Val #(x.stats'))
+  set'stats : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"stats") (PairV #x #y) (Val #(({ x with stats' := y } : EtcdServer)))
+  get'lstats : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"lstats") #x (Val #(x.lstats'))
+  set'lstats : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"lstats") (PairV #x #y) (Val #(({ x with lstats' := y } : EtcdServer)))
+  get'compactor : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"compactor") #x (Val #(x.compactor'))
+  set'compactor : ∀ (x : EtcdServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Compactor), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"compactor") (PairV #x #y) (Val #(({ x with compactor' := y } : EtcdServer)))
+  get'peerRt : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"peerRt") #x (Val #(x.peerRt'))
+  set'peerRt : ∀ (x : EtcdServer) (y : _root_.Perennial.net.http.RoundTripper), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"peerRt") (PairV #x #y) (Val #(({ x with peerRt' := y } : EtcdServer)))
+  get'reqIDGen : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"reqIDGen") #x (Val #(x.reqIDGen'))
+  set'reqIDGen : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"reqIDGen") (PairV #x #y) (Val #(({ x with reqIDGen' := y } : EtcdServer)))
+  get'wgMu : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"wgMu") #x (Val #(x.wgMu'))
+  set'wgMu : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"wgMu") (PairV #x #y) (Val #(({ x with wgMu' := y } : EtcdServer)))
+  get'wg : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"wg") #x (Val #(x.wg'))
+  set'wg : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : EtcdServer)))
+  get'ctx : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"ctx") #x (Val #(x.ctx'))
+  set'ctx : ∀ (x : EtcdServer) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : EtcdServer)))
+  get'cancel : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"cancel") #x (Val #(x.cancel'))
+  set'cancel : ∀ (x : EtcdServer) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : EtcdServer)))
+  get'leadTimeMu : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"leadTimeMu") #x (Val #(x.leadTimeMu'))
+  set'leadTimeMu : ∀ (x : EtcdServer) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"leadTimeMu") (PairV #x #y) (Val #(({ x with leadTimeMu' := y } : EtcdServer)))
+  get'leadElectedTime : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"leadElectedTime") #x (Val #(x.leadElectedTime'))
+  set'leadElectedTime : ∀ (x : EtcdServer) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"leadElectedTime") (PairV #x #y) (Val #(({ x with leadElectedTime' := y } : EtcdServer)))
+  get'firstCommitInTerm : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"firstCommitInTerm") #x (Val #(x.firstCommitInTerm'))
+  set'firstCommitInTerm : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"firstCommitInTerm") (PairV #x #y) (Val #(({ x with firstCommitInTerm' := y } : EtcdServer)))
+  get'clusterVersionChanged : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"clusterVersionChanged") #x (Val #(x.clusterVersionChanged'))
+  set'clusterVersionChanged : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"clusterVersionChanged") (PairV #x #y) (Val #(({ x with clusterVersionChanged' := y } : EtcdServer)))
+  get'AccessController : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"AccessController") #x (Val #(x.AccessController'))
+  set'AccessController : ∀ (x : EtcdServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"AccessController") (PairV #x #y) (Val #(({ x with AccessController' := y } : EtcdServer)))
+  get'forceDiskSnapshot : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"forceDiskSnapshot") #x (Val #(x.forceDiskSnapshot'))
+  set'forceDiskSnapshot : ∀ (x : EtcdServer) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"forceDiskSnapshot") (PairV #x #y) (Val #(({ x with forceDiskSnapshot' := y } : EtcdServer)))
+  get'corruptionChecker : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"corruptionChecker") #x (Val #(x.corruptionChecker'))
+  set'corruptionChecker : ∀ (x : EtcdServer) (y : CorruptionChecker), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"corruptionChecker") (PairV #x #y) (Val #(({ x with corruptionChecker' := y } : EtcdServer)))
   method_set : go.MethodSetIs EtcdServer.ty [(go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType EtcdServer.ty) [(go!"AddMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Alarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ApplyWaitCommit", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"AuthStore", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"Backend", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))), (go!"Cleanup", (some (go.signature.Signature [] false []))), (go!"ClientCertAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Cluster", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty]))), (go!"ClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"CommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"Config", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty]))), (go!"CorruptionChecker", (some (go.signature.Signature [] false [CorruptionChecker.ty]))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Defragment", (some (go.signature.Signature [] false [go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"DowngradeEnabledHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)]))), (go!"FeatureEnabled", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty] false [go.bool]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"ForceSnapshot", (some (go.signature.Signature [] false []))), (go!"GoAttach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"HardStop", (some (go.signature.Signature [] false []))), (go!"HashKVHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"KV", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"Lead", (some (go.signature.Signature [] false [go.uint64]))), (go!"Leader", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChangedNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64, go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"MemberID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberId", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false [go.error]))), (go!"NewUberApplier", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.UberApplier.ty]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"PauseSending", (some (go.signature.Signature [] false []))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"RaftHandler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty] false [go.error]))), (go!"ReadyNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false []))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ResumeSending", (some (go.signature.Signature [] false []))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Start", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StoppingNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"StorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Term", (some (go.signature.Signature [] false [go.uint64]))), (go!"TryTransferLeadershipOnShutdown", (some (go.signature.Signature [] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"UpdateMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Manager.ty)]))), (go!"Watchable", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.adjustTicks", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.apply", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), (go.GoType.PointerType etcdProgress.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.uint64, go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyAll", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyConfChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), (go.GoType.PointerType etcdProgress.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntries", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applyEntryNormal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), (go.GoType.PointerType toApply.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseRenew", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkLeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.checkMembershipOperationPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.compactRaftLog", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.configure", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.createMergedSnapshotMessage", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.uint64, go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty), replayTerms.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.doSerialize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeValidate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.ensureLeadership", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getAppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getCommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getLead", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getPeerHashKVs", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.getTxPostLockInsideApplyHook", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.hasMultipleVotingMembers", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isActive", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.isLearnerReady", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), go.uint64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.leaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayAddMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayPromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.mayRemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorClusterVersions", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorCompactHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorDowngrade", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorKVHash", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.monitorStorageVersion", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.parseProposeCtxErr", (some (go.signature.Signature [go.error, _root_.Perennial.time.Time.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.processInternalRaftRequestOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.promoteMember", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.publishV3", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.purgeFile", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftRequest", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)] false [_root_.Perennial.google_golang_org.protobuf.proto.Message.ty, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatus", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.rangeStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.restoreAlarms", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.revokeExpiredLeases", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty))] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.sendMergedSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setAppliedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setCommittedIndex", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setLead", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.setTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToDisk", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.shouldSnapshotToMemory", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshot", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty), go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.snapshotIfNeededAndCompactRaftLog", (some (go.signature.Signature [(go.GoType.PointerType etcdProgress.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.stopWithDelay", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.error] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.triggerCorruptAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.updateClusterVersionV3", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitAppliedIndex", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.waitLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty), go.error])))]
-  ptr_AddMember_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AddMember" EtcdServer.AddMember.impl
-  ptr_AppliedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AppliedIndex" EtcdServer.AppliedIndex.impl
-  ptr_ApplyWait_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ApplyWait" EtcdServer.ApplyWait.impl
-  ptr_ApplyWaitCommit_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ApplyWaitCommit" EtcdServer.ApplyWaitCommit.impl
-  ptr_AuthDisable_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AuthDisable" EtcdServer.AuthDisable.impl
-  ptr_AuthEnable_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AuthEnable" EtcdServer.AuthEnable.impl
-  ptr_AuthInfoFromCtx_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AuthInfoFromCtx" EtcdServer.AuthInfoFromCtx.impl
-  ptr_AuthStatus_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AuthStatus" EtcdServer.AuthStatus.impl
-  ptr_AuthStore_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AuthStore" EtcdServer.AuthStore.impl
-  ptr_Authenticate_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Authenticate" EtcdServer.Authenticate.impl
-  ptr_Backend_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Backend" EtcdServer.Backend.impl
-  ptr_Cleanup_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Cleanup" EtcdServer.Cleanup.impl
-  ptr_Cluster_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Cluster" EtcdServer.Cluster.impl
-  ptr_ClusterVersion_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ClusterVersion" EtcdServer.ClusterVersion.impl
-  ptr_CommittedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"CommittedIndex" EtcdServer.CommittedIndex.impl
-  ptr_Compact_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Compact" EtcdServer.Compact.impl
-  ptr_CutPeer_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"CutPeer" EtcdServer.CutPeer.impl
-  ptr_DeleteRange_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"DeleteRange" EtcdServer.DeleteRange.impl
-  ptr_Done_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Done" EtcdServer.Done.impl
-  ptr_FeatureEnabled_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"FeatureEnabled" EtcdServer.FeatureEnabled.impl
-  ptr_FirstCommitInTermNotify_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"FirstCommitInTermNotify" EtcdServer.FirstCommitInTermNotify.impl
-  ptr_ForceSnapshot_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ForceSnapshot" EtcdServer.ForceSnapshot.impl
-  ptr_GoAttach_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"GoAttach" EtcdServer.GoAttach.impl
-  ptr_HardStop_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"HardStop" EtcdServer.HardStop.impl
-  ptr_IsIDRemoved_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"IsIDRemoved" EtcdServer.IsIDRemoved.impl
-  ptr_IsLearner_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"IsLearner" EtcdServer.IsLearner.impl
-  ptr_IsMemberExist_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"IsMemberExist" EtcdServer.IsMemberExist.impl
-  ptr_KV_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"KV" EtcdServer.KV.impl
-  ptr_Lead_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Lead" EtcdServer.Lead.impl
-  ptr_Leader_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Leader" EtcdServer.Leader.impl
-  ptr_LeaderChanged_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"LeaderChanged" EtcdServer.LeaderChanged.impl
-  ptr_LeaseGrant_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"LeaseGrant" EtcdServer.LeaseGrant.impl
-  ptr_LeaseLeases_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"LeaseLeases" EtcdServer.LeaseLeases.impl
-  ptr_LeaseRenew_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"LeaseRenew" EtcdServer.LeaseRenew.impl
-  ptr_LeaseRevoke_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"LeaseRevoke" EtcdServer.LeaseRevoke.impl
-  ptr_LeaseTimeToLive_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"LeaseTimeToLive" EtcdServer.LeaseTimeToLive.impl
-  ptr_LinearizableReadNotify_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"LinearizableReadNotify" EtcdServer.LinearizableReadNotify.impl
-  ptr_Logger_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Logger" EtcdServer.Logger.impl
-  ptr_MemberID_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"MemberID" EtcdServer.MemberID.impl
-  ptr_MemberList_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"MemberList" EtcdServer.MemberList.impl
-  ptr_MendPeer_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"MendPeer" EtcdServer.MendPeer.impl
-  ptr_NewUberApplier_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"NewUberApplier" EtcdServer.NewUberApplier.impl
-  ptr_NextRequestID_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"NextRequestID" EtcdServer.NextRequestID.impl
-  ptr_Process_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Process" EtcdServer.Process.impl
-  ptr_PromoteMember_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"PromoteMember" EtcdServer.PromoteMember.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Put" EtcdServer.Put.impl
-  ptr_RaftHandler_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RaftHandler" EtcdServer.RaftHandler.impl
-  ptr_Range_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Range" EtcdServer.Range.impl
-  ptr_RangeStream_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RangeStream" EtcdServer.RangeStream.impl
-  ptr_RemoveMember_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RemoveMember" EtcdServer.RemoveMember.impl
-  ptr_ReportSnapshot_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ReportSnapshot" EtcdServer.ReportSnapshot.impl
-  ptr_ReportUnreachable_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ReportUnreachable" EtcdServer.ReportUnreachable.impl
-  ptr_RequestTimeout_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RequestTimeout" EtcdServer.RequestTimeout.impl
-  ptr_RoleAdd_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RoleAdd" EtcdServer.RoleAdd.impl
-  ptr_RoleDelete_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RoleDelete" EtcdServer.RoleDelete.impl
-  ptr_RoleGet_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RoleGet" EtcdServer.RoleGet.impl
-  ptr_RoleGrantPermission_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RoleGrantPermission" EtcdServer.RoleGrantPermission.impl
-  ptr_RoleList_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RoleList" EtcdServer.RoleList.impl
-  ptr_RoleRevokePermission_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RoleRevokePermission" EtcdServer.RoleRevokePermission.impl
-  ptr_Start_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Start" EtcdServer.Start.impl
-  ptr_Stopping_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Stopping" EtcdServer.Stopping.impl
-  ptr_StoppingNotify_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"StoppingNotify" EtcdServer.StoppingNotify.impl
-  ptr_Term_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Term" EtcdServer.Term.impl
-  ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Txn" EtcdServer.Txn.impl
-  ptr_UpdateMember_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"UpdateMember" EtcdServer.UpdateMember.impl
-  ptr_UserAdd_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"UserAdd" EtcdServer.UserAdd.impl
-  ptr_UserChangePassword_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"UserChangePassword" EtcdServer.UserChangePassword.impl
-  ptr_UserDelete_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"UserDelete" EtcdServer.UserDelete.impl
-  ptr_UserGet_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"UserGet" EtcdServer.UserGet.impl
-  ptr_UserGrantRole_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"UserGrantRole" EtcdServer.UserGrantRole.impl
-  ptr_UserList_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"UserList" EtcdServer.UserList.impl
-  ptr_UserRevokeRole_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"UserRevokeRole" EtcdServer.UserRevokeRole.impl
-  ptr_Watchable_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Watchable" EtcdServer.Watchable.impl
-  ptr_adjustTicks_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"adjustTicks" EtcdServer.adjustTicks.impl
-  ptr_apply_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"apply" EtcdServer.apply.impl
-  ptr_applyAll_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applyAll" EtcdServer.applyAll.impl
-  ptr_applyConfChange_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applyConfChange" EtcdServer.applyConfChange.impl
-  ptr_applyEntries_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applyEntries" EtcdServer.applyEntries.impl
-  ptr_applyEntryNormal_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applyEntryNormal" EtcdServer.applyEntryNormal.impl
-  ptr_applySnapshot_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applySnapshot" EtcdServer.applySnapshot.impl
-  ptr_checkLeaseLeases_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"checkLeaseLeases" EtcdServer.checkLeaseLeases.impl
-  ptr_checkLeaseRenew_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"checkLeaseRenew" EtcdServer.checkLeaseRenew.impl
-  ptr_checkLeaseTimeToLive_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"checkLeaseTimeToLive" EtcdServer.checkLeaseTimeToLive.impl
-  ptr_checkMembershipOperationPermission_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"checkMembershipOperationPermission" EtcdServer.checkMembershipOperationPermission.impl
-  ptr_compactRaftLog_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"compactRaftLog" EtcdServer.compactRaftLog.impl
-  ptr_createMergedSnapshotMessage_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"createMergedSnapshotMessage" EtcdServer.createMergedSnapshotMessage.impl
-  ptr_doSerialize_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"doSerialize" EtcdServer.doSerialize.impl
-  ptr_ensureLeadership_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ensureLeadership" EtcdServer.ensureLeadership.impl
-  ptr_getAppliedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getAppliedIndex" EtcdServer.getAppliedIndex.impl
-  ptr_getCommittedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getCommittedIndex" EtcdServer.getCommittedIndex.impl
-  ptr_getLead_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getLead" EtcdServer.getLead.impl
-  ptr_getTerm_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getTerm" EtcdServer.getTerm.impl
-  ptr_getTxPostLockInsideApplyHook_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getTxPostLockInsideApplyHook" EtcdServer.getTxPostLockInsideApplyHook.impl
-  ptr_isActive_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"isActive" EtcdServer.isActive.impl
-  ptr_isLeader_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"isLeader" EtcdServer.isLeader.impl
-  ptr_monitorCompactHash_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"monitorCompactHash" EtcdServer.monitorCompactHash.impl
-  ptr_monitorDowngrade_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"monitorDowngrade" EtcdServer.monitorDowngrade.impl
-  ptr_monitorKVHash_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"monitorKVHash" EtcdServer.monitorKVHash.impl
-  ptr_newHeader_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"newHeader" EtcdServer.newHeader.impl
-  ptr_parseProposeCtxErr_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"parseProposeCtxErr" EtcdServer.parseProposeCtxErr.impl
-  ptr_processInternalRaftRequestOnce_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"processInternalRaftRequestOnce" EtcdServer.processInternalRaftRequestOnce.impl
-  ptr_promoteMember_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"promoteMember" EtcdServer.promoteMember.impl
-  ptr_purgeFile_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"purgeFile" EtcdServer.purgeFile.impl
-  ptr_raftRequest_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"raftRequest" EtcdServer.raftRequest.impl
-  ptr_raftStatus_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"raftStatus" EtcdServer.raftStatus.impl
-  ptr_requireAuthInfo_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"requireAuthInfo" EtcdServer.requireAuthInfo.impl
-  ptr_restoreAlarms_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"restoreAlarms" EtcdServer.restoreAlarms.impl
-  ptr_revokeExpiredLeases_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"revokeExpiredLeases" EtcdServer.revokeExpiredLeases.impl
-  ptr_run_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"run" EtcdServer.run.impl
-  ptr_sendMergedSnap_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"sendMergedSnap" EtcdServer.sendMergedSnap.impl
-  ptr_setAppliedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"setAppliedIndex" EtcdServer.setAppliedIndex.impl
-  ptr_setCommittedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"setCommittedIndex" EtcdServer.setCommittedIndex.impl
-  ptr_setLead_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"setLead" EtcdServer.setLead.impl
-  ptr_setTerm_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"setTerm" EtcdServer.setTerm.impl
-  ptr_shouldSnapshotToDisk_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"shouldSnapshotToDisk" EtcdServer.shouldSnapshotToDisk.impl
-  ptr_shouldSnapshotToMemory_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"shouldSnapshotToMemory" EtcdServer.shouldSnapshotToMemory.impl
-  ptr_snapshot_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"snapshot" EtcdServer.snapshot.impl
-  ptr_snapshotIfNeededAndCompactRaftLog_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"snapshotIfNeededAndCompactRaftLog" EtcdServer.snapshotIfNeededAndCompactRaftLog.impl
-  ptr_start_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"start" EtcdServer.start.impl
-  ptr_waitAppliedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"waitAppliedIndex" EtcdServer.waitAppliedIndex.impl
-  ptr_waitLeader_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"waitLeader" EtcdServer.waitLeader.impl
+  ptr_unfold'AddMember : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AddMember" EtcdServer.AddMember.impl
+  ptr_unfold'AppliedIndex : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AppliedIndex" EtcdServer.AppliedIndex.impl
+  ptr_unfold'ApplyWait : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ApplyWait" EtcdServer.ApplyWait.impl
+  ptr_unfold'ApplyWaitCommit : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ApplyWaitCommit" EtcdServer.ApplyWaitCommit.impl
+  ptr_unfold'AuthDisable : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AuthDisable" EtcdServer.AuthDisable.impl
+  ptr_unfold'AuthEnable : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AuthEnable" EtcdServer.AuthEnable.impl
+  ptr_unfold'AuthInfoFromCtx : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AuthInfoFromCtx" EtcdServer.AuthInfoFromCtx.impl
+  ptr_unfold'AuthStatus : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AuthStatus" EtcdServer.AuthStatus.impl
+  ptr_unfold'AuthStore : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AuthStore" EtcdServer.AuthStore.impl
+  ptr_unfold'Authenticate : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Authenticate" EtcdServer.Authenticate.impl
+  ptr_unfold'Backend : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Backend" EtcdServer.Backend.impl
+  ptr_unfold'Cleanup : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Cleanup" EtcdServer.Cleanup.impl
+  ptr_unfold'Cluster : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Cluster" EtcdServer.Cluster.impl
+  ptr_unfold'ClusterVersion : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ClusterVersion" EtcdServer.ClusterVersion.impl
+  ptr_unfold'CommittedIndex : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"CommittedIndex" EtcdServer.CommittedIndex.impl
+  ptr_unfold'Compact : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Compact" EtcdServer.Compact.impl
+  ptr_unfold'CutPeer : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"CutPeer" EtcdServer.CutPeer.impl
+  ptr_unfold'DeleteRange : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"DeleteRange" EtcdServer.DeleteRange.impl
+  ptr_unfold'Done : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Done" EtcdServer.Done.impl
+  ptr_unfold'FeatureEnabled : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"FeatureEnabled" EtcdServer.FeatureEnabled.impl
+  ptr_unfold'FirstCommitInTermNotify : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"FirstCommitInTermNotify" EtcdServer.FirstCommitInTermNotify.impl
+  ptr_unfold'ForceSnapshot : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ForceSnapshot" EtcdServer.ForceSnapshot.impl
+  ptr_unfold'GoAttach : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"GoAttach" EtcdServer.GoAttach.impl
+  ptr_unfold'HardStop : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"HardStop" EtcdServer.HardStop.impl
+  ptr_unfold'IsIDRemoved : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"IsIDRemoved" EtcdServer.IsIDRemoved.impl
+  ptr_unfold'IsLearner : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"IsLearner" EtcdServer.IsLearner.impl
+  ptr_unfold'IsMemberExist : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"IsMemberExist" EtcdServer.IsMemberExist.impl
+  ptr_unfold'KV : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"KV" EtcdServer.KV.impl
+  ptr_unfold'Lead : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Lead" EtcdServer.Lead.impl
+  ptr_unfold'Leader : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Leader" EtcdServer.Leader.impl
+  ptr_unfold'LeaderChanged : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"LeaderChanged" EtcdServer.LeaderChanged.impl
+  ptr_unfold'LeaseGrant : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"LeaseGrant" EtcdServer.LeaseGrant.impl
+  ptr_unfold'LeaseLeases : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"LeaseLeases" EtcdServer.LeaseLeases.impl
+  ptr_unfold'LeaseRenew : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"LeaseRenew" EtcdServer.LeaseRenew.impl
+  ptr_unfold'LeaseRevoke : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"LeaseRevoke" EtcdServer.LeaseRevoke.impl
+  ptr_unfold'LeaseTimeToLive : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"LeaseTimeToLive" EtcdServer.LeaseTimeToLive.impl
+  ptr_unfold'LinearizableReadNotify : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"LinearizableReadNotify" EtcdServer.LinearizableReadNotify.impl
+  ptr_unfold'Logger : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Logger" EtcdServer.Logger.impl
+  ptr_unfold'MemberID : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"MemberID" EtcdServer.MemberID.impl
+  ptr_unfold'MemberList : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"MemberList" EtcdServer.MemberList.impl
+  ptr_unfold'MendPeer : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"MendPeer" EtcdServer.MendPeer.impl
+  ptr_unfold'NewUberApplier : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"NewUberApplier" EtcdServer.NewUberApplier.impl
+  ptr_unfold'NextRequestID : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"NextRequestID" EtcdServer.NextRequestID.impl
+  ptr_unfold'Process : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Process" EtcdServer.Process.impl
+  ptr_unfold'PromoteMember : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"PromoteMember" EtcdServer.PromoteMember.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Put" EtcdServer.Put.impl
+  ptr_unfold'RaftHandler : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RaftHandler" EtcdServer.RaftHandler.impl
+  ptr_unfold'Range : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Range" EtcdServer.Range.impl
+  ptr_unfold'RangeStream : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RangeStream" EtcdServer.RangeStream.impl
+  ptr_unfold'RemoveMember : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RemoveMember" EtcdServer.RemoveMember.impl
+  ptr_unfold'ReportSnapshot : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ReportSnapshot" EtcdServer.ReportSnapshot.impl
+  ptr_unfold'ReportUnreachable : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ReportUnreachable" EtcdServer.ReportUnreachable.impl
+  ptr_unfold'RequestTimeout : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RequestTimeout" EtcdServer.RequestTimeout.impl
+  ptr_unfold'RoleAdd : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RoleAdd" EtcdServer.RoleAdd.impl
+  ptr_unfold'RoleDelete : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RoleDelete" EtcdServer.RoleDelete.impl
+  ptr_unfold'RoleGet : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RoleGet" EtcdServer.RoleGet.impl
+  ptr_unfold'RoleGrantPermission : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RoleGrantPermission" EtcdServer.RoleGrantPermission.impl
+  ptr_unfold'RoleList : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RoleList" EtcdServer.RoleList.impl
+  ptr_unfold'RoleRevokePermission : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RoleRevokePermission" EtcdServer.RoleRevokePermission.impl
+  ptr_unfold'Start : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Start" EtcdServer.Start.impl
+  ptr_unfold'Stopping : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Stopping" EtcdServer.Stopping.impl
+  ptr_unfold'StoppingNotify : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"StoppingNotify" EtcdServer.StoppingNotify.impl
+  ptr_unfold'Term : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Term" EtcdServer.Term.impl
+  ptr_unfold'Txn : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Txn" EtcdServer.Txn.impl
+  ptr_unfold'UpdateMember : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"UpdateMember" EtcdServer.UpdateMember.impl
+  ptr_unfold'UserAdd : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"UserAdd" EtcdServer.UserAdd.impl
+  ptr_unfold'UserChangePassword : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"UserChangePassword" EtcdServer.UserChangePassword.impl
+  ptr_unfold'UserDelete : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"UserDelete" EtcdServer.UserDelete.impl
+  ptr_unfold'UserGet : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"UserGet" EtcdServer.UserGet.impl
+  ptr_unfold'UserGrantRole : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"UserGrantRole" EtcdServer.UserGrantRole.impl
+  ptr_unfold'UserList : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"UserList" EtcdServer.UserList.impl
+  ptr_unfold'UserRevokeRole : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"UserRevokeRole" EtcdServer.UserRevokeRole.impl
+  ptr_unfold'Watchable : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Watchable" EtcdServer.Watchable.impl
+  ptr_unfold'adjustTicks : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"adjustTicks" EtcdServer.adjustTicks.impl
+  ptr_unfold'apply : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"apply" EtcdServer.apply.impl
+  ptr_unfold'applyAll : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applyAll" EtcdServer.applyAll.impl
+  ptr_unfold'applyConfChange : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applyConfChange" EtcdServer.applyConfChange.impl
+  ptr_unfold'applyEntries : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applyEntries" EtcdServer.applyEntries.impl
+  ptr_unfold'applyEntryNormal : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applyEntryNormal" EtcdServer.applyEntryNormal.impl
+  ptr_unfold'applySnapshot : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applySnapshot" EtcdServer.applySnapshot.impl
+  ptr_unfold'checkLeaseLeases : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"checkLeaseLeases" EtcdServer.checkLeaseLeases.impl
+  ptr_unfold'checkLeaseRenew : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"checkLeaseRenew" EtcdServer.checkLeaseRenew.impl
+  ptr_unfold'checkLeaseTimeToLive : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"checkLeaseTimeToLive" EtcdServer.checkLeaseTimeToLive.impl
+  ptr_unfold'checkMembershipOperationPermission : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"checkMembershipOperationPermission" EtcdServer.checkMembershipOperationPermission.impl
+  ptr_unfold'compactRaftLog : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"compactRaftLog" EtcdServer.compactRaftLog.impl
+  ptr_unfold'createMergedSnapshotMessage : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"createMergedSnapshotMessage" EtcdServer.createMergedSnapshotMessage.impl
+  ptr_unfold'doSerialize : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"doSerialize" EtcdServer.doSerialize.impl
+  ptr_unfold'ensureLeadership : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ensureLeadership" EtcdServer.ensureLeadership.impl
+  ptr_unfold'getAppliedIndex : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getAppliedIndex" EtcdServer.getAppliedIndex.impl
+  ptr_unfold'getCommittedIndex : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getCommittedIndex" EtcdServer.getCommittedIndex.impl
+  ptr_unfold'getLead : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getLead" EtcdServer.getLead.impl
+  ptr_unfold'getTerm : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getTerm" EtcdServer.getTerm.impl
+  ptr_unfold'getTxPostLockInsideApplyHook : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getTxPostLockInsideApplyHook" EtcdServer.getTxPostLockInsideApplyHook.impl
+  ptr_unfold'isActive : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"isActive" EtcdServer.isActive.impl
+  ptr_unfold'isLeader : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"isLeader" EtcdServer.isLeader.impl
+  ptr_unfold'monitorCompactHash : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"monitorCompactHash" EtcdServer.monitorCompactHash.impl
+  ptr_unfold'monitorDowngrade : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"monitorDowngrade" EtcdServer.monitorDowngrade.impl
+  ptr_unfold'monitorKVHash : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"monitorKVHash" EtcdServer.monitorKVHash.impl
+  ptr_unfold'newHeader : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"newHeader" EtcdServer.newHeader.impl
+  ptr_unfold'parseProposeCtxErr : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"parseProposeCtxErr" EtcdServer.parseProposeCtxErr.impl
+  ptr_unfold'processInternalRaftRequestOnce : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"processInternalRaftRequestOnce" EtcdServer.processInternalRaftRequestOnce.impl
+  ptr_unfold'promoteMember : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"promoteMember" EtcdServer.promoteMember.impl
+  ptr_unfold'purgeFile : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"purgeFile" EtcdServer.purgeFile.impl
+  ptr_unfold'raftRequest : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"raftRequest" EtcdServer.raftRequest.impl
+  ptr_unfold'raftStatus : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"raftStatus" EtcdServer.raftStatus.impl
+  ptr_unfold'requireAuthInfo : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"requireAuthInfo" EtcdServer.requireAuthInfo.impl
+  ptr_unfold'restoreAlarms : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"restoreAlarms" EtcdServer.restoreAlarms.impl
+  ptr_unfold'revokeExpiredLeases : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"revokeExpiredLeases" EtcdServer.revokeExpiredLeases.impl
+  ptr_unfold'run : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"run" EtcdServer.run.impl
+  ptr_unfold'sendMergedSnap : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"sendMergedSnap" EtcdServer.sendMergedSnap.impl
+  ptr_unfold'setAppliedIndex : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"setAppliedIndex" EtcdServer.setAppliedIndex.impl
+  ptr_unfold'setCommittedIndex : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"setCommittedIndex" EtcdServer.setCommittedIndex.impl
+  ptr_unfold'setLead : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"setLead" EtcdServer.setLead.impl
+  ptr_unfold'setTerm : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"setTerm" EtcdServer.setTerm.impl
+  ptr_unfold'shouldSnapshotToDisk : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"shouldSnapshotToDisk" EtcdServer.shouldSnapshotToDisk.impl
+  ptr_unfold'shouldSnapshotToMemory : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"shouldSnapshotToMemory" EtcdServer.shouldSnapshotToMemory.impl
+  ptr_unfold'snapshot : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"snapshot" EtcdServer.snapshot.impl
+  ptr_unfold'snapshotIfNeededAndCompactRaftLog : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"snapshotIfNeededAndCompactRaftLog" EtcdServer.snapshotIfNeededAndCompactRaftLog.impl
+  ptr_unfold'start : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"start" EtcdServer.start.impl
+  ptr_unfold'waitAppliedIndex : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"waitAppliedIndex" EtcdServer.waitAppliedIndex.impl
+  ptr_unfold'waitLeader : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"waitLeader" EtcdServer.waitLeader.impl
 
 attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.underlying
-  EtcdServer.TypeAssumptions.get_inflightSnapshots
-  EtcdServer.TypeAssumptions.set_inflightSnapshots
-  EtcdServer.TypeAssumptions.get_appliedIndex
-  EtcdServer.TypeAssumptions.set_appliedIndex
-  EtcdServer.TypeAssumptions.get_committedIndex
-  EtcdServer.TypeAssumptions.set_committedIndex
-  EtcdServer.TypeAssumptions.get_term
-  EtcdServer.TypeAssumptions.set_term
-  EtcdServer.TypeAssumptions.get_lead
-  EtcdServer.TypeAssumptions.set_lead
-  EtcdServer.TypeAssumptions.get_consistIndex
-  EtcdServer.TypeAssumptions.set_consistIndex
-  EtcdServer.TypeAssumptions.get_r
-  EtcdServer.TypeAssumptions.set_r
-  EtcdServer.TypeAssumptions.get_readych
-  EtcdServer.TypeAssumptions.set_readych
-  EtcdServer.TypeAssumptions.get_Cfg
-  EtcdServer.TypeAssumptions.set_Cfg
-  EtcdServer.TypeAssumptions.get_lgMu
-  EtcdServer.TypeAssumptions.set_lgMu
-  EtcdServer.TypeAssumptions.get_lg
-  EtcdServer.TypeAssumptions.set_lg
-  EtcdServer.TypeAssumptions.get_w
-  EtcdServer.TypeAssumptions.set_w
-  EtcdServer.TypeAssumptions.get_read
-  EtcdServer.TypeAssumptions.set_read
-  EtcdServer.TypeAssumptions.get_stop
-  EtcdServer.TypeAssumptions.set_stop
-  EtcdServer.TypeAssumptions.get_stopping
-  EtcdServer.TypeAssumptions.set_stopping
-  EtcdServer.TypeAssumptions.get_done
-  EtcdServer.TypeAssumptions.set_done
-  EtcdServer.TypeAssumptions.get_leaderChanged
-  EtcdServer.TypeAssumptions.set_leaderChanged
-  EtcdServer.TypeAssumptions.get_errorc
-  EtcdServer.TypeAssumptions.set_errorc
-  EtcdServer.TypeAssumptions.get_memberID
-  EtcdServer.TypeAssumptions.set_memberID
-  EtcdServer.TypeAssumptions.get_attributes
-  EtcdServer.TypeAssumptions.set_attributes
-  EtcdServer.TypeAssumptions.get_cluster
-  EtcdServer.TypeAssumptions.set_cluster
-  EtcdServer.TypeAssumptions.get_snapshotter
-  EtcdServer.TypeAssumptions.set_snapshotter
-  EtcdServer.TypeAssumptions.get_uberApply
-  EtcdServer.TypeAssumptions.set_uberApply
-  EtcdServer.TypeAssumptions.get_applyWait
-  EtcdServer.TypeAssumptions.set_applyWait
-  EtcdServer.TypeAssumptions.get_kv
-  EtcdServer.TypeAssumptions.set_kv
-  EtcdServer.TypeAssumptions.get_lessor
-  EtcdServer.TypeAssumptions.set_lessor
-  EtcdServer.TypeAssumptions.get_bemu
-  EtcdServer.TypeAssumptions.set_bemu
-  EtcdServer.TypeAssumptions.get_be
-  EtcdServer.TypeAssumptions.set_be
-  EtcdServer.TypeAssumptions.get_beHooks
-  EtcdServer.TypeAssumptions.set_beHooks
-  EtcdServer.TypeAssumptions.get_authStore
-  EtcdServer.TypeAssumptions.set_authStore
-  EtcdServer.TypeAssumptions.get_alarmStore
-  EtcdServer.TypeAssumptions.set_alarmStore
-  EtcdServer.TypeAssumptions.get_stats
-  EtcdServer.TypeAssumptions.set_stats
-  EtcdServer.TypeAssumptions.get_lstats
-  EtcdServer.TypeAssumptions.set_lstats
-  EtcdServer.TypeAssumptions.get_compactor
-  EtcdServer.TypeAssumptions.set_compactor
-  EtcdServer.TypeAssumptions.get_peerRt
-  EtcdServer.TypeAssumptions.set_peerRt
-  EtcdServer.TypeAssumptions.get_reqIDGen
-  EtcdServer.TypeAssumptions.set_reqIDGen
-  EtcdServer.TypeAssumptions.get_wgMu
-  EtcdServer.TypeAssumptions.set_wgMu
-  EtcdServer.TypeAssumptions.get_wg
-  EtcdServer.TypeAssumptions.set_wg
-  EtcdServer.TypeAssumptions.get_ctx
-  EtcdServer.TypeAssumptions.set_ctx
-  EtcdServer.TypeAssumptions.get_cancel
-  EtcdServer.TypeAssumptions.set_cancel
-  EtcdServer.TypeAssumptions.get_leadTimeMu
-  EtcdServer.TypeAssumptions.set_leadTimeMu
-  EtcdServer.TypeAssumptions.get_leadElectedTime
-  EtcdServer.TypeAssumptions.set_leadElectedTime
-  EtcdServer.TypeAssumptions.get_firstCommitInTerm
-  EtcdServer.TypeAssumptions.set_firstCommitInTerm
-  EtcdServer.TypeAssumptions.get_clusterVersionChanged
-  EtcdServer.TypeAssumptions.set_clusterVersionChanged
-  EtcdServer.TypeAssumptions.get_AccessController
-  EtcdServer.TypeAssumptions.set_AccessController
-  EtcdServer.TypeAssumptions.get_forceDiskSnapshot
-  EtcdServer.TypeAssumptions.set_forceDiskSnapshot
-  EtcdServer.TypeAssumptions.get_corruptionChecker
-  EtcdServer.TypeAssumptions.set_corruptionChecker
+  EtcdServer.TypeAssumptions.get'inflightSnapshots
+  EtcdServer.TypeAssumptions.set'inflightSnapshots
+  EtcdServer.TypeAssumptions.get'appliedIndex
+  EtcdServer.TypeAssumptions.set'appliedIndex
+  EtcdServer.TypeAssumptions.get'committedIndex
+  EtcdServer.TypeAssumptions.set'committedIndex
+  EtcdServer.TypeAssumptions.get'term
+  EtcdServer.TypeAssumptions.set'term
+  EtcdServer.TypeAssumptions.get'lead
+  EtcdServer.TypeAssumptions.set'lead
+  EtcdServer.TypeAssumptions.get'consistIndex
+  EtcdServer.TypeAssumptions.set'consistIndex
+  EtcdServer.TypeAssumptions.get'r
+  EtcdServer.TypeAssumptions.set'r
+  EtcdServer.TypeAssumptions.get'readych
+  EtcdServer.TypeAssumptions.set'readych
+  EtcdServer.TypeAssumptions.get'Cfg
+  EtcdServer.TypeAssumptions.set'Cfg
+  EtcdServer.TypeAssumptions.get'lgMu
+  EtcdServer.TypeAssumptions.set'lgMu
+  EtcdServer.TypeAssumptions.get'lg
+  EtcdServer.TypeAssumptions.set'lg
+  EtcdServer.TypeAssumptions.get'w
+  EtcdServer.TypeAssumptions.set'w
+  EtcdServer.TypeAssumptions.get'read
+  EtcdServer.TypeAssumptions.set'read
+  EtcdServer.TypeAssumptions.get'stop
+  EtcdServer.TypeAssumptions.set'stop
+  EtcdServer.TypeAssumptions.get'stopping
+  EtcdServer.TypeAssumptions.set'stopping
+  EtcdServer.TypeAssumptions.get'done
+  EtcdServer.TypeAssumptions.set'done
+  EtcdServer.TypeAssumptions.get'leaderChanged
+  EtcdServer.TypeAssumptions.set'leaderChanged
+  EtcdServer.TypeAssumptions.get'errorc
+  EtcdServer.TypeAssumptions.set'errorc
+  EtcdServer.TypeAssumptions.get'memberID
+  EtcdServer.TypeAssumptions.set'memberID
+  EtcdServer.TypeAssumptions.get'attributes
+  EtcdServer.TypeAssumptions.set'attributes
+  EtcdServer.TypeAssumptions.get'cluster
+  EtcdServer.TypeAssumptions.set'cluster
+  EtcdServer.TypeAssumptions.get'snapshotter
+  EtcdServer.TypeAssumptions.set'snapshotter
+  EtcdServer.TypeAssumptions.get'uberApply
+  EtcdServer.TypeAssumptions.set'uberApply
+  EtcdServer.TypeAssumptions.get'applyWait
+  EtcdServer.TypeAssumptions.set'applyWait
+  EtcdServer.TypeAssumptions.get'kv
+  EtcdServer.TypeAssumptions.set'kv
+  EtcdServer.TypeAssumptions.get'lessor
+  EtcdServer.TypeAssumptions.set'lessor
+  EtcdServer.TypeAssumptions.get'bemu
+  EtcdServer.TypeAssumptions.set'bemu
+  EtcdServer.TypeAssumptions.get'be
+  EtcdServer.TypeAssumptions.set'be
+  EtcdServer.TypeAssumptions.get'beHooks
+  EtcdServer.TypeAssumptions.set'beHooks
+  EtcdServer.TypeAssumptions.get'authStore
+  EtcdServer.TypeAssumptions.set'authStore
+  EtcdServer.TypeAssumptions.get'alarmStore
+  EtcdServer.TypeAssumptions.set'alarmStore
+  EtcdServer.TypeAssumptions.get'stats
+  EtcdServer.TypeAssumptions.set'stats
+  EtcdServer.TypeAssumptions.get'lstats
+  EtcdServer.TypeAssumptions.set'lstats
+  EtcdServer.TypeAssumptions.get'compactor
+  EtcdServer.TypeAssumptions.set'compactor
+  EtcdServer.TypeAssumptions.get'peerRt
+  EtcdServer.TypeAssumptions.set'peerRt
+  EtcdServer.TypeAssumptions.get'reqIDGen
+  EtcdServer.TypeAssumptions.set'reqIDGen
+  EtcdServer.TypeAssumptions.get'wgMu
+  EtcdServer.TypeAssumptions.set'wgMu
+  EtcdServer.TypeAssumptions.get'wg
+  EtcdServer.TypeAssumptions.set'wg
+  EtcdServer.TypeAssumptions.get'ctx
+  EtcdServer.TypeAssumptions.set'ctx
+  EtcdServer.TypeAssumptions.get'cancel
+  EtcdServer.TypeAssumptions.set'cancel
+  EtcdServer.TypeAssumptions.get'leadTimeMu
+  EtcdServer.TypeAssumptions.set'leadTimeMu
+  EtcdServer.TypeAssumptions.get'leadElectedTime
+  EtcdServer.TypeAssumptions.set'leadElectedTime
+  EtcdServer.TypeAssumptions.get'firstCommitInTerm
+  EtcdServer.TypeAssumptions.set'firstCommitInTerm
+  EtcdServer.TypeAssumptions.get'clusterVersionChanged
+  EtcdServer.TypeAssumptions.set'clusterVersionChanged
+  EtcdServer.TypeAssumptions.get'AccessController
+  EtcdServer.TypeAssumptions.set'AccessController
+  EtcdServer.TypeAssumptions.get'forceDiskSnapshot
+  EtcdServer.TypeAssumptions.set'forceDiskSnapshot
+  EtcdServer.TypeAssumptions.get'corruptionChecker
+  EtcdServer.TypeAssumptions.set'corruptionChecker
   EtcdServer.TypeAssumptions.method_set
   EtcdServer.TypeAssumptions.ptr_method_set
-  EtcdServer.TypeAssumptions.ptr_AddMember_unfold
-  EtcdServer.TypeAssumptions.ptr_AppliedIndex_unfold
-  EtcdServer.TypeAssumptions.ptr_ApplyWait_unfold
-  EtcdServer.TypeAssumptions.ptr_ApplyWaitCommit_unfold
-  EtcdServer.TypeAssumptions.ptr_AuthDisable_unfold
-  EtcdServer.TypeAssumptions.ptr_AuthEnable_unfold
-  EtcdServer.TypeAssumptions.ptr_AuthInfoFromCtx_unfold
-  EtcdServer.TypeAssumptions.ptr_AuthStatus_unfold
-  EtcdServer.TypeAssumptions.ptr_AuthStore_unfold
-  EtcdServer.TypeAssumptions.ptr_Authenticate_unfold
-  EtcdServer.TypeAssumptions.ptr_Backend_unfold
-  EtcdServer.TypeAssumptions.ptr_Cleanup_unfold
-  EtcdServer.TypeAssumptions.ptr_Cluster_unfold
-  EtcdServer.TypeAssumptions.ptr_ClusterVersion_unfold
-  EtcdServer.TypeAssumptions.ptr_CommittedIndex_unfold
-  EtcdServer.TypeAssumptions.ptr_Compact_unfold
-  EtcdServer.TypeAssumptions.ptr_CutPeer_unfold
-  EtcdServer.TypeAssumptions.ptr_DeleteRange_unfold
-  EtcdServer.TypeAssumptions.ptr_Done_unfold
-  EtcdServer.TypeAssumptions.ptr_FeatureEnabled_unfold
-  EtcdServer.TypeAssumptions.ptr_FirstCommitInTermNotify_unfold
-  EtcdServer.TypeAssumptions.ptr_ForceSnapshot_unfold
-  EtcdServer.TypeAssumptions.ptr_GoAttach_unfold
-  EtcdServer.TypeAssumptions.ptr_HardStop_unfold
-  EtcdServer.TypeAssumptions.ptr_IsIDRemoved_unfold
-  EtcdServer.TypeAssumptions.ptr_IsLearner_unfold
-  EtcdServer.TypeAssumptions.ptr_IsMemberExist_unfold
-  EtcdServer.TypeAssumptions.ptr_KV_unfold
-  EtcdServer.TypeAssumptions.ptr_Lead_unfold
-  EtcdServer.TypeAssumptions.ptr_Leader_unfold
-  EtcdServer.TypeAssumptions.ptr_LeaderChanged_unfold
-  EtcdServer.TypeAssumptions.ptr_LeaseGrant_unfold
-  EtcdServer.TypeAssumptions.ptr_LeaseLeases_unfold
-  EtcdServer.TypeAssumptions.ptr_LeaseRenew_unfold
-  EtcdServer.TypeAssumptions.ptr_LeaseRevoke_unfold
-  EtcdServer.TypeAssumptions.ptr_LeaseTimeToLive_unfold
-  EtcdServer.TypeAssumptions.ptr_LinearizableReadNotify_unfold
-  EtcdServer.TypeAssumptions.ptr_Logger_unfold
-  EtcdServer.TypeAssumptions.ptr_MemberID_unfold
-  EtcdServer.TypeAssumptions.ptr_MemberList_unfold
-  EtcdServer.TypeAssumptions.ptr_MendPeer_unfold
-  EtcdServer.TypeAssumptions.ptr_NewUberApplier_unfold
-  EtcdServer.TypeAssumptions.ptr_NextRequestID_unfold
-  EtcdServer.TypeAssumptions.ptr_Process_unfold
-  EtcdServer.TypeAssumptions.ptr_PromoteMember_unfold
-  EtcdServer.TypeAssumptions.ptr_Put_unfold
-  EtcdServer.TypeAssumptions.ptr_RaftHandler_unfold
-  EtcdServer.TypeAssumptions.ptr_Range_unfold
-  EtcdServer.TypeAssumptions.ptr_RangeStream_unfold
-  EtcdServer.TypeAssumptions.ptr_RemoveMember_unfold
-  EtcdServer.TypeAssumptions.ptr_ReportSnapshot_unfold
-  EtcdServer.TypeAssumptions.ptr_ReportUnreachable_unfold
-  EtcdServer.TypeAssumptions.ptr_RequestTimeout_unfold
-  EtcdServer.TypeAssumptions.ptr_RoleAdd_unfold
-  EtcdServer.TypeAssumptions.ptr_RoleDelete_unfold
-  EtcdServer.TypeAssumptions.ptr_RoleGet_unfold
-  EtcdServer.TypeAssumptions.ptr_RoleGrantPermission_unfold
-  EtcdServer.TypeAssumptions.ptr_RoleList_unfold
-  EtcdServer.TypeAssumptions.ptr_RoleRevokePermission_unfold
-  EtcdServer.TypeAssumptions.ptr_Start_unfold
-  EtcdServer.TypeAssumptions.ptr_Stopping_unfold
-  EtcdServer.TypeAssumptions.ptr_StoppingNotify_unfold
-  EtcdServer.TypeAssumptions.ptr_Term_unfold
-  EtcdServer.TypeAssumptions.ptr_Txn_unfold
-  EtcdServer.TypeAssumptions.ptr_UpdateMember_unfold
-  EtcdServer.TypeAssumptions.ptr_UserAdd_unfold
-  EtcdServer.TypeAssumptions.ptr_UserChangePassword_unfold
-  EtcdServer.TypeAssumptions.ptr_UserDelete_unfold
-  EtcdServer.TypeAssumptions.ptr_UserGet_unfold
-  EtcdServer.TypeAssumptions.ptr_UserGrantRole_unfold
-  EtcdServer.TypeAssumptions.ptr_UserList_unfold
-  EtcdServer.TypeAssumptions.ptr_UserRevokeRole_unfold
-  EtcdServer.TypeAssumptions.ptr_Watchable_unfold
-  EtcdServer.TypeAssumptions.ptr_adjustTicks_unfold
-  EtcdServer.TypeAssumptions.ptr_apply_unfold
-  EtcdServer.TypeAssumptions.ptr_applyAll_unfold
-  EtcdServer.TypeAssumptions.ptr_applyConfChange_unfold
-  EtcdServer.TypeAssumptions.ptr_applyEntries_unfold
-  EtcdServer.TypeAssumptions.ptr_applyEntryNormal_unfold
-  EtcdServer.TypeAssumptions.ptr_applySnapshot_unfold
-  EtcdServer.TypeAssumptions.ptr_checkLeaseLeases_unfold
-  EtcdServer.TypeAssumptions.ptr_checkLeaseRenew_unfold
-  EtcdServer.TypeAssumptions.ptr_checkLeaseTimeToLive_unfold
-  EtcdServer.TypeAssumptions.ptr_checkMembershipOperationPermission_unfold
-  EtcdServer.TypeAssumptions.ptr_compactRaftLog_unfold
-  EtcdServer.TypeAssumptions.ptr_createMergedSnapshotMessage_unfold
-  EtcdServer.TypeAssumptions.ptr_doSerialize_unfold
-  EtcdServer.TypeAssumptions.ptr_ensureLeadership_unfold
-  EtcdServer.TypeAssumptions.ptr_getAppliedIndex_unfold
-  EtcdServer.TypeAssumptions.ptr_getCommittedIndex_unfold
-  EtcdServer.TypeAssumptions.ptr_getLead_unfold
-  EtcdServer.TypeAssumptions.ptr_getTerm_unfold
-  EtcdServer.TypeAssumptions.ptr_getTxPostLockInsideApplyHook_unfold
-  EtcdServer.TypeAssumptions.ptr_isActive_unfold
-  EtcdServer.TypeAssumptions.ptr_isLeader_unfold
-  EtcdServer.TypeAssumptions.ptr_monitorCompactHash_unfold
-  EtcdServer.TypeAssumptions.ptr_monitorDowngrade_unfold
-  EtcdServer.TypeAssumptions.ptr_monitorKVHash_unfold
-  EtcdServer.TypeAssumptions.ptr_newHeader_unfold
-  EtcdServer.TypeAssumptions.ptr_parseProposeCtxErr_unfold
-  EtcdServer.TypeAssumptions.ptr_processInternalRaftRequestOnce_unfold
-  EtcdServer.TypeAssumptions.ptr_promoteMember_unfold
-  EtcdServer.TypeAssumptions.ptr_purgeFile_unfold
-  EtcdServer.TypeAssumptions.ptr_raftRequest_unfold
-  EtcdServer.TypeAssumptions.ptr_raftStatus_unfold
-  EtcdServer.TypeAssumptions.ptr_requireAuthInfo_unfold
-  EtcdServer.TypeAssumptions.ptr_restoreAlarms_unfold
-  EtcdServer.TypeAssumptions.ptr_revokeExpiredLeases_unfold
-  EtcdServer.TypeAssumptions.ptr_run_unfold
-  EtcdServer.TypeAssumptions.ptr_sendMergedSnap_unfold
-  EtcdServer.TypeAssumptions.ptr_setAppliedIndex_unfold
-  EtcdServer.TypeAssumptions.ptr_setCommittedIndex_unfold
-  EtcdServer.TypeAssumptions.ptr_setLead_unfold
-  EtcdServer.TypeAssumptions.ptr_setTerm_unfold
-  EtcdServer.TypeAssumptions.ptr_shouldSnapshotToDisk_unfold
-  EtcdServer.TypeAssumptions.ptr_shouldSnapshotToMemory_unfold
-  EtcdServer.TypeAssumptions.ptr_snapshot_unfold
-  EtcdServer.TypeAssumptions.ptr_snapshotIfNeededAndCompactRaftLog_unfold
-  EtcdServer.TypeAssumptions.ptr_start_unfold
-  EtcdServer.TypeAssumptions.ptr_waitAppliedIndex_unfold
-  EtcdServer.TypeAssumptions.ptr_waitLeader_unfold
+  EtcdServer.TypeAssumptions.ptr_unfold'AddMember
+  EtcdServer.TypeAssumptions.ptr_unfold'AppliedIndex
+  EtcdServer.TypeAssumptions.ptr_unfold'ApplyWait
+  EtcdServer.TypeAssumptions.ptr_unfold'ApplyWaitCommit
+  EtcdServer.TypeAssumptions.ptr_unfold'AuthDisable
+  EtcdServer.TypeAssumptions.ptr_unfold'AuthEnable
+  EtcdServer.TypeAssumptions.ptr_unfold'AuthInfoFromCtx
+  EtcdServer.TypeAssumptions.ptr_unfold'AuthStatus
+  EtcdServer.TypeAssumptions.ptr_unfold'AuthStore
+  EtcdServer.TypeAssumptions.ptr_unfold'Authenticate
+  EtcdServer.TypeAssumptions.ptr_unfold'Backend
+  EtcdServer.TypeAssumptions.ptr_unfold'Cleanup
+  EtcdServer.TypeAssumptions.ptr_unfold'Cluster
+  EtcdServer.TypeAssumptions.ptr_unfold'ClusterVersion
+  EtcdServer.TypeAssumptions.ptr_unfold'CommittedIndex
+  EtcdServer.TypeAssumptions.ptr_unfold'Compact
+  EtcdServer.TypeAssumptions.ptr_unfold'CutPeer
+  EtcdServer.TypeAssumptions.ptr_unfold'DeleteRange
+  EtcdServer.TypeAssumptions.ptr_unfold'Done
+  EtcdServer.TypeAssumptions.ptr_unfold'FeatureEnabled
+  EtcdServer.TypeAssumptions.ptr_unfold'FirstCommitInTermNotify
+  EtcdServer.TypeAssumptions.ptr_unfold'ForceSnapshot
+  EtcdServer.TypeAssumptions.ptr_unfold'GoAttach
+  EtcdServer.TypeAssumptions.ptr_unfold'HardStop
+  EtcdServer.TypeAssumptions.ptr_unfold'IsIDRemoved
+  EtcdServer.TypeAssumptions.ptr_unfold'IsLearner
+  EtcdServer.TypeAssumptions.ptr_unfold'IsMemberExist
+  EtcdServer.TypeAssumptions.ptr_unfold'KV
+  EtcdServer.TypeAssumptions.ptr_unfold'Lead
+  EtcdServer.TypeAssumptions.ptr_unfold'Leader
+  EtcdServer.TypeAssumptions.ptr_unfold'LeaderChanged
+  EtcdServer.TypeAssumptions.ptr_unfold'LeaseGrant
+  EtcdServer.TypeAssumptions.ptr_unfold'LeaseLeases
+  EtcdServer.TypeAssumptions.ptr_unfold'LeaseRenew
+  EtcdServer.TypeAssumptions.ptr_unfold'LeaseRevoke
+  EtcdServer.TypeAssumptions.ptr_unfold'LeaseTimeToLive
+  EtcdServer.TypeAssumptions.ptr_unfold'LinearizableReadNotify
+  EtcdServer.TypeAssumptions.ptr_unfold'Logger
+  EtcdServer.TypeAssumptions.ptr_unfold'MemberID
+  EtcdServer.TypeAssumptions.ptr_unfold'MemberList
+  EtcdServer.TypeAssumptions.ptr_unfold'MendPeer
+  EtcdServer.TypeAssumptions.ptr_unfold'NewUberApplier
+  EtcdServer.TypeAssumptions.ptr_unfold'NextRequestID
+  EtcdServer.TypeAssumptions.ptr_unfold'Process
+  EtcdServer.TypeAssumptions.ptr_unfold'PromoteMember
+  EtcdServer.TypeAssumptions.ptr_unfold'Put
+  EtcdServer.TypeAssumptions.ptr_unfold'RaftHandler
+  EtcdServer.TypeAssumptions.ptr_unfold'Range
+  EtcdServer.TypeAssumptions.ptr_unfold'RangeStream
+  EtcdServer.TypeAssumptions.ptr_unfold'RemoveMember
+  EtcdServer.TypeAssumptions.ptr_unfold'ReportSnapshot
+  EtcdServer.TypeAssumptions.ptr_unfold'ReportUnreachable
+  EtcdServer.TypeAssumptions.ptr_unfold'RequestTimeout
+  EtcdServer.TypeAssumptions.ptr_unfold'RoleAdd
+  EtcdServer.TypeAssumptions.ptr_unfold'RoleDelete
+  EtcdServer.TypeAssumptions.ptr_unfold'RoleGet
+  EtcdServer.TypeAssumptions.ptr_unfold'RoleGrantPermission
+  EtcdServer.TypeAssumptions.ptr_unfold'RoleList
+  EtcdServer.TypeAssumptions.ptr_unfold'RoleRevokePermission
+  EtcdServer.TypeAssumptions.ptr_unfold'Start
+  EtcdServer.TypeAssumptions.ptr_unfold'Stopping
+  EtcdServer.TypeAssumptions.ptr_unfold'StoppingNotify
+  EtcdServer.TypeAssumptions.ptr_unfold'Term
+  EtcdServer.TypeAssumptions.ptr_unfold'Txn
+  EtcdServer.TypeAssumptions.ptr_unfold'UpdateMember
+  EtcdServer.TypeAssumptions.ptr_unfold'UserAdd
+  EtcdServer.TypeAssumptions.ptr_unfold'UserChangePassword
+  EtcdServer.TypeAssumptions.ptr_unfold'UserDelete
+  EtcdServer.TypeAssumptions.ptr_unfold'UserGet
+  EtcdServer.TypeAssumptions.ptr_unfold'UserGrantRole
+  EtcdServer.TypeAssumptions.ptr_unfold'UserList
+  EtcdServer.TypeAssumptions.ptr_unfold'UserRevokeRole
+  EtcdServer.TypeAssumptions.ptr_unfold'Watchable
+  EtcdServer.TypeAssumptions.ptr_unfold'adjustTicks
+  EtcdServer.TypeAssumptions.ptr_unfold'apply
+  EtcdServer.TypeAssumptions.ptr_unfold'applyAll
+  EtcdServer.TypeAssumptions.ptr_unfold'applyConfChange
+  EtcdServer.TypeAssumptions.ptr_unfold'applyEntries
+  EtcdServer.TypeAssumptions.ptr_unfold'applyEntryNormal
+  EtcdServer.TypeAssumptions.ptr_unfold'applySnapshot
+  EtcdServer.TypeAssumptions.ptr_unfold'checkLeaseLeases
+  EtcdServer.TypeAssumptions.ptr_unfold'checkLeaseRenew
+  EtcdServer.TypeAssumptions.ptr_unfold'checkLeaseTimeToLive
+  EtcdServer.TypeAssumptions.ptr_unfold'checkMembershipOperationPermission
+  EtcdServer.TypeAssumptions.ptr_unfold'compactRaftLog
+  EtcdServer.TypeAssumptions.ptr_unfold'createMergedSnapshotMessage
+  EtcdServer.TypeAssumptions.ptr_unfold'doSerialize
+  EtcdServer.TypeAssumptions.ptr_unfold'ensureLeadership
+  EtcdServer.TypeAssumptions.ptr_unfold'getAppliedIndex
+  EtcdServer.TypeAssumptions.ptr_unfold'getCommittedIndex
+  EtcdServer.TypeAssumptions.ptr_unfold'getLead
+  EtcdServer.TypeAssumptions.ptr_unfold'getTerm
+  EtcdServer.TypeAssumptions.ptr_unfold'getTxPostLockInsideApplyHook
+  EtcdServer.TypeAssumptions.ptr_unfold'isActive
+  EtcdServer.TypeAssumptions.ptr_unfold'isLeader
+  EtcdServer.TypeAssumptions.ptr_unfold'monitorCompactHash
+  EtcdServer.TypeAssumptions.ptr_unfold'monitorDowngrade
+  EtcdServer.TypeAssumptions.ptr_unfold'monitorKVHash
+  EtcdServer.TypeAssumptions.ptr_unfold'newHeader
+  EtcdServer.TypeAssumptions.ptr_unfold'parseProposeCtxErr
+  EtcdServer.TypeAssumptions.ptr_unfold'processInternalRaftRequestOnce
+  EtcdServer.TypeAssumptions.ptr_unfold'promoteMember
+  EtcdServer.TypeAssumptions.ptr_unfold'purgeFile
+  EtcdServer.TypeAssumptions.ptr_unfold'raftRequest
+  EtcdServer.TypeAssumptions.ptr_unfold'raftStatus
+  EtcdServer.TypeAssumptions.ptr_unfold'requireAuthInfo
+  EtcdServer.TypeAssumptions.ptr_unfold'restoreAlarms
+  EtcdServer.TypeAssumptions.ptr_unfold'revokeExpiredLeases
+  EtcdServer.TypeAssumptions.ptr_unfold'run
+  EtcdServer.TypeAssumptions.ptr_unfold'sendMergedSnap
+  EtcdServer.TypeAssumptions.ptr_unfold'setAppliedIndex
+  EtcdServer.TypeAssumptions.ptr_unfold'setCommittedIndex
+  EtcdServer.TypeAssumptions.ptr_unfold'setLead
+  EtcdServer.TypeAssumptions.ptr_unfold'setTerm
+  EtcdServer.TypeAssumptions.ptr_unfold'shouldSnapshotToDisk
+  EtcdServer.TypeAssumptions.ptr_unfold'shouldSnapshotToMemory
+  EtcdServer.TypeAssumptions.ptr_unfold'snapshot
+  EtcdServer.TypeAssumptions.ptr_unfold'snapshotIfNeededAndCompactRaftLog
+  EtcdServer.TypeAssumptions.ptr_unfold'start
+  EtcdServer.TypeAssumptions.ptr_unfold'waitAppliedIndex
+  EtcdServer.TypeAssumptions.ptr_unfold'waitLeader
 
 abbrev ServerPeer [GooseExts] : Type := GoInterface
 
@@ -14277,7 +14277,7 @@ noncomputable instance downgradeEnabledHandler.zero_val [GooseExts] : ZeroVal do
 @[irreducible] noncomputable def downgradeEnabledHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   downgradeEnabledHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_downgradeEnabledHandler [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'downgradeEnabledHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold downgradeEnabledHandler.fields downgradeEnabledHandler.fieldsUnsealed :=
   ⟨by unfold downgradeEnabledHandler.fields; rfl⟩
 
@@ -14287,23 +14287,23 @@ noncomputable instance equals_unfold_downgradeEnabledHandler [GooseExts] [GoGlob
 class downgradeEnabledHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying downgradeEnabledHandler.underlying downgradeEnabledHandler
   underlying : go.UnderlyingDirectedEq downgradeEnabledHandler.ty downgradeEnabledHandler.underlying
-  get_lg : ∀ (x : downgradeEnabledHandler), go.IsGoStepPureDetTagged under (StructFieldGet downgradeEnabledHandler.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : downgradeEnabledHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet downgradeEnabledHandler.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : downgradeEnabledHandler)))
-  get_cluster : ∀ (x : downgradeEnabledHandler), go.IsGoStepPureDetTagged under (StructFieldGet downgradeEnabledHandler.underlying go!"cluster") #x (Val #(x.cluster'))
-  set_cluster : ∀ (x : downgradeEnabledHandler) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster), go.IsGoStepPureDetTagged under (StructFieldSet downgradeEnabledHandler.underlying go!"cluster") (PairV #x #y) (Val #(({ x with cluster' := y } : downgradeEnabledHandler)))
-  get_server : ∀ (x : downgradeEnabledHandler), go.IsGoStepPureDetTagged under (StructFieldGet downgradeEnabledHandler.underlying go!"server") #x (Val #(x.server'))
-  set_server : ∀ (x : downgradeEnabledHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet downgradeEnabledHandler.underlying go!"server") (PairV #x #y) (Val #(({ x with server' := y } : downgradeEnabledHandler)))
+  get'lg : ∀ (x : downgradeEnabledHandler), go.IsGoStepPureDetTagged under (StructFieldGet downgradeEnabledHandler.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : downgradeEnabledHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet downgradeEnabledHandler.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : downgradeEnabledHandler)))
+  get'cluster : ∀ (x : downgradeEnabledHandler), go.IsGoStepPureDetTagged under (StructFieldGet downgradeEnabledHandler.underlying go!"cluster") #x (Val #(x.cluster'))
+  set'cluster : ∀ (x : downgradeEnabledHandler) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster), go.IsGoStepPureDetTagged under (StructFieldSet downgradeEnabledHandler.underlying go!"cluster") (PairV #x #y) (Val #(({ x with cluster' := y } : downgradeEnabledHandler)))
+  get'server : ∀ (x : downgradeEnabledHandler), go.IsGoStepPureDetTagged under (StructFieldGet downgradeEnabledHandler.underlying go!"server") #x (Val #(x.server'))
+  set'server : ∀ (x : downgradeEnabledHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet downgradeEnabledHandler.underlying go!"server") (PairV #x #y) (Val #(({ x with server' := y } : downgradeEnabledHandler)))
   method_set : go.MethodSetIs downgradeEnabledHandler.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType downgradeEnabledHandler.ty) [(go!"ServeHTTP", (some (go.signature.Signature [_root_.Perennial.net.http.ResponseWriter.ty, (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)] false [])))]
 
 attribute [instance] downgradeEnabledHandler.TypeAssumptions.type_repr
   downgradeEnabledHandler.TypeAssumptions.underlying
-  downgradeEnabledHandler.TypeAssumptions.get_lg
-  downgradeEnabledHandler.TypeAssumptions.set_lg
-  downgradeEnabledHandler.TypeAssumptions.get_cluster
-  downgradeEnabledHandler.TypeAssumptions.set_cluster
-  downgradeEnabledHandler.TypeAssumptions.get_server
-  downgradeEnabledHandler.TypeAssumptions.set_server
+  downgradeEnabledHandler.TypeAssumptions.get'lg
+  downgradeEnabledHandler.TypeAssumptions.set'lg
+  downgradeEnabledHandler.TypeAssumptions.get'cluster
+  downgradeEnabledHandler.TypeAssumptions.set'cluster
+  downgradeEnabledHandler.TypeAssumptions.get'server
+  downgradeEnabledHandler.TypeAssumptions.set'server
   downgradeEnabledHandler.TypeAssumptions.method_set
   downgradeEnabledHandler.TypeAssumptions.ptr_method_set
 
@@ -14330,7 +14330,7 @@ noncomputable instance etcdProgress.zero_val [GooseExts] : ZeroVal etcdProgress 
 @[irreducible] noncomputable def etcdProgress.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   etcdProgress.fieldsUnsealed
 
-noncomputable instance equals_unfold_etcdProgress [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'etcdProgress [GooseExts] [GoGlobalContext] :
     EqualsUnfold etcdProgress.fields etcdProgress.fieldsUnsealed :=
   ⟨by unfold etcdProgress.fields; rfl⟩
 
@@ -14340,35 +14340,35 @@ noncomputable instance equals_unfold_etcdProgress [GooseExts] [GoGlobalContext] 
 class etcdProgress.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying etcdProgress.underlying etcdProgress
   underlying : go.UnderlyingDirectedEq etcdProgress.ty etcdProgress.underlying
-  get_replayConf : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"replayConf") #x (Val #(x.replayConf'))
-  set_replayConf : ∀ (x : etcdProgress) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet etcdProgress.underlying go!"replayConf") (PairV #x #y) (Val #(({ x with replayConf' := y } : etcdProgress)))
-  get_confState : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"confState") #x (Val #(x.confState'))
-  set_confState : ∀ (x : etcdProgress) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet etcdProgress.underlying go!"confState") (PairV #x #y) (Val #(({ x with confState' := y } : etcdProgress)))
-  get_diskSnapshotIndex : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"diskSnapshotIndex") #x (Val #(x.diskSnapshotIndex'))
-  set_diskSnapshotIndex : ∀ (x : etcdProgress) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet etcdProgress.underlying go!"diskSnapshotIndex") (PairV #x #y) (Val #(({ x with diskSnapshotIndex' := y } : etcdProgress)))
-  get_memorySnapshotIndex : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"memorySnapshotIndex") #x (Val #(x.memorySnapshotIndex'))
-  set_memorySnapshotIndex : ∀ (x : etcdProgress) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet etcdProgress.underlying go!"memorySnapshotIndex") (PairV #x #y) (Val #(({ x with memorySnapshotIndex' := y } : etcdProgress)))
-  get_appliedt : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"appliedt") #x (Val #(x.appliedt'))
-  set_appliedt : ∀ (x : etcdProgress) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet etcdProgress.underlying go!"appliedt") (PairV #x #y) (Val #(({ x with appliedt' := y } : etcdProgress)))
-  get_appliedi : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"appliedi") #x (Val #(x.appliedi'))
-  set_appliedi : ∀ (x : etcdProgress) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet etcdProgress.underlying go!"appliedi") (PairV #x #y) (Val #(({ x with appliedi' := y } : etcdProgress)))
+  get'replayConf : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"replayConf") #x (Val #(x.replayConf'))
+  set'replayConf : ∀ (x : etcdProgress) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet etcdProgress.underlying go!"replayConf") (PairV #x #y) (Val #(({ x with replayConf' := y } : etcdProgress)))
+  get'confState : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"confState") #x (Val #(x.confState'))
+  set'confState : ∀ (x : etcdProgress) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet etcdProgress.underlying go!"confState") (PairV #x #y) (Val #(({ x with confState' := y } : etcdProgress)))
+  get'diskSnapshotIndex : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"diskSnapshotIndex") #x (Val #(x.diskSnapshotIndex'))
+  set'diskSnapshotIndex : ∀ (x : etcdProgress) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet etcdProgress.underlying go!"diskSnapshotIndex") (PairV #x #y) (Val #(({ x with diskSnapshotIndex' := y } : etcdProgress)))
+  get'memorySnapshotIndex : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"memorySnapshotIndex") #x (Val #(x.memorySnapshotIndex'))
+  set'memorySnapshotIndex : ∀ (x : etcdProgress) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet etcdProgress.underlying go!"memorySnapshotIndex") (PairV #x #y) (Val #(({ x with memorySnapshotIndex' := y } : etcdProgress)))
+  get'appliedt : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"appliedt") #x (Val #(x.appliedt'))
+  set'appliedt : ∀ (x : etcdProgress) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet etcdProgress.underlying go!"appliedt") (PairV #x #y) (Val #(({ x with appliedt' := y } : etcdProgress)))
+  get'appliedi : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"appliedi") #x (Val #(x.appliedi'))
+  set'appliedi : ∀ (x : etcdProgress) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet etcdProgress.underlying go!"appliedi") (PairV #x #y) (Val #(({ x with appliedi' := y } : etcdProgress)))
   method_set : go.MethodSetIs etcdProgress.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType etcdProgress.ty) []
 
 attribute [instance] etcdProgress.TypeAssumptions.type_repr
   etcdProgress.TypeAssumptions.underlying
-  etcdProgress.TypeAssumptions.get_replayConf
-  etcdProgress.TypeAssumptions.set_replayConf
-  etcdProgress.TypeAssumptions.get_confState
-  etcdProgress.TypeAssumptions.set_confState
-  etcdProgress.TypeAssumptions.get_diskSnapshotIndex
-  etcdProgress.TypeAssumptions.set_diskSnapshotIndex
-  etcdProgress.TypeAssumptions.get_memorySnapshotIndex
-  etcdProgress.TypeAssumptions.set_memorySnapshotIndex
-  etcdProgress.TypeAssumptions.get_appliedt
-  etcdProgress.TypeAssumptions.set_appliedt
-  etcdProgress.TypeAssumptions.get_appliedi
-  etcdProgress.TypeAssumptions.set_appliedi
+  etcdProgress.TypeAssumptions.get'replayConf
+  etcdProgress.TypeAssumptions.set'replayConf
+  etcdProgress.TypeAssumptions.get'confState
+  etcdProgress.TypeAssumptions.set'confState
+  etcdProgress.TypeAssumptions.get'diskSnapshotIndex
+  etcdProgress.TypeAssumptions.set'diskSnapshotIndex
+  etcdProgress.TypeAssumptions.get'memorySnapshotIndex
+  etcdProgress.TypeAssumptions.set'memorySnapshotIndex
+  etcdProgress.TypeAssumptions.get'appliedt
+  etcdProgress.TypeAssumptions.set'appliedt
+  etcdProgress.TypeAssumptions.get'appliedi
+  etcdProgress.TypeAssumptions.set'appliedi
   etcdProgress.TypeAssumptions.method_set
   etcdProgress.TypeAssumptions.ptr_method_set
 
@@ -14391,7 +14391,7 @@ noncomputable instance raftReadyHandler.zero_val [GooseExts] : ZeroVal raftReady
 @[irreducible] noncomputable def raftReadyHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   raftReadyHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_raftReadyHandler [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'raftReadyHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold raftReadyHandler.fields raftReadyHandler.fieldsUnsealed :=
   ⟨by unfold raftReadyHandler.fields; rfl⟩
 
@@ -14401,27 +14401,27 @@ noncomputable instance equals_unfold_raftReadyHandler [GooseExts] [GoGlobalConte
 class raftReadyHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying raftReadyHandler.underlying raftReadyHandler
   underlying : go.UnderlyingDirectedEq raftReadyHandler.ty raftReadyHandler.underlying
-  get_getLead : ∀ (x : raftReadyHandler), go.IsGoStepPureDetTagged under (StructFieldGet raftReadyHandler.underlying go!"getLead") #x (Val #(x.getLead'))
-  set_getLead : ∀ (x : raftReadyHandler) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet raftReadyHandler.underlying go!"getLead") (PairV #x #y) (Val #(({ x with getLead' := y } : raftReadyHandler)))
-  get_updateLead : ∀ (x : raftReadyHandler), go.IsGoStepPureDetTagged under (StructFieldGet raftReadyHandler.underlying go!"updateLead") #x (Val #(x.updateLead'))
-  set_updateLead : ∀ (x : raftReadyHandler) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet raftReadyHandler.underlying go!"updateLead") (PairV #x #y) (Val #(({ x with updateLead' := y } : raftReadyHandler)))
-  get_updateLeadership : ∀ (x : raftReadyHandler), go.IsGoStepPureDetTagged under (StructFieldGet raftReadyHandler.underlying go!"updateLeadership") #x (Val #(x.updateLeadership'))
-  set_updateLeadership : ∀ (x : raftReadyHandler) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet raftReadyHandler.underlying go!"updateLeadership") (PairV #x #y) (Val #(({ x with updateLeadership' := y } : raftReadyHandler)))
-  get_updateCommittedIndex : ∀ (x : raftReadyHandler), go.IsGoStepPureDetTagged under (StructFieldGet raftReadyHandler.underlying go!"updateCommittedIndex") #x (Val #(x.updateCommittedIndex'))
-  set_updateCommittedIndex : ∀ (x : raftReadyHandler) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet raftReadyHandler.underlying go!"updateCommittedIndex") (PairV #x #y) (Val #(({ x with updateCommittedIndex' := y } : raftReadyHandler)))
+  get'getLead : ∀ (x : raftReadyHandler), go.IsGoStepPureDetTagged under (StructFieldGet raftReadyHandler.underlying go!"getLead") #x (Val #(x.getLead'))
+  set'getLead : ∀ (x : raftReadyHandler) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet raftReadyHandler.underlying go!"getLead") (PairV #x #y) (Val #(({ x with getLead' := y } : raftReadyHandler)))
+  get'updateLead : ∀ (x : raftReadyHandler), go.IsGoStepPureDetTagged under (StructFieldGet raftReadyHandler.underlying go!"updateLead") #x (Val #(x.updateLead'))
+  set'updateLead : ∀ (x : raftReadyHandler) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet raftReadyHandler.underlying go!"updateLead") (PairV #x #y) (Val #(({ x with updateLead' := y } : raftReadyHandler)))
+  get'updateLeadership : ∀ (x : raftReadyHandler), go.IsGoStepPureDetTagged under (StructFieldGet raftReadyHandler.underlying go!"updateLeadership") #x (Val #(x.updateLeadership'))
+  set'updateLeadership : ∀ (x : raftReadyHandler) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet raftReadyHandler.underlying go!"updateLeadership") (PairV #x #y) (Val #(({ x with updateLeadership' := y } : raftReadyHandler)))
+  get'updateCommittedIndex : ∀ (x : raftReadyHandler), go.IsGoStepPureDetTagged under (StructFieldGet raftReadyHandler.underlying go!"updateCommittedIndex") #x (Val #(x.updateCommittedIndex'))
+  set'updateCommittedIndex : ∀ (x : raftReadyHandler) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet raftReadyHandler.underlying go!"updateCommittedIndex") (PairV #x #y) (Val #(({ x with updateCommittedIndex' := y } : raftReadyHandler)))
   method_set : go.MethodSetIs raftReadyHandler.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType raftReadyHandler.ty) []
 
 attribute [instance] raftReadyHandler.TypeAssumptions.type_repr
   raftReadyHandler.TypeAssumptions.underlying
-  raftReadyHandler.TypeAssumptions.get_getLead
-  raftReadyHandler.TypeAssumptions.set_getLead
-  raftReadyHandler.TypeAssumptions.get_updateLead
-  raftReadyHandler.TypeAssumptions.set_updateLead
-  raftReadyHandler.TypeAssumptions.get_updateLeadership
-  raftReadyHandler.TypeAssumptions.set_updateLeadership
-  raftReadyHandler.TypeAssumptions.get_updateCommittedIndex
-  raftReadyHandler.TypeAssumptions.set_updateCommittedIndex
+  raftReadyHandler.TypeAssumptions.get'getLead
+  raftReadyHandler.TypeAssumptions.set'getLead
+  raftReadyHandler.TypeAssumptions.get'updateLead
+  raftReadyHandler.TypeAssumptions.set'updateLead
+  raftReadyHandler.TypeAssumptions.get'updateLeadership
+  raftReadyHandler.TypeAssumptions.set'updateLeadership
+  raftReadyHandler.TypeAssumptions.get'updateCommittedIndex
+  raftReadyHandler.TypeAssumptions.set'updateCommittedIndex
   raftReadyHandler.TypeAssumptions.method_set
   raftReadyHandler.TypeAssumptions.ptr_method_set
 
@@ -14442,7 +14442,7 @@ noncomputable instance confChangeResponse.zero_val [GooseExts] : ZeroVal confCha
 @[irreducible] noncomputable def confChangeResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   confChangeResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_confChangeResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'confChangeResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold confChangeResponse.fields confChangeResponse.fieldsUnsealed :=
   ⟨by unfold confChangeResponse.fields; rfl⟩
 
@@ -14452,23 +14452,23 @@ noncomputable instance equals_unfold_confChangeResponse [GooseExts] [GoGlobalCon
 class confChangeResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying confChangeResponse.underlying confChangeResponse
   underlying : go.UnderlyingDirectedEq confChangeResponse.ty confChangeResponse.underlying
-  get_membs : ∀ (x : confChangeResponse), go.IsGoStepPureDetTagged under (StructFieldGet confChangeResponse.underlying go!"membs") #x (Val #(x.membs'))
-  set_membs : ∀ (x : confChangeResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet confChangeResponse.underlying go!"membs") (PairV #x #y) (Val #(({ x with membs' := y } : confChangeResponse)))
-  get_raftAdvanceC : ∀ (x : confChangeResponse), go.IsGoStepPureDetTagged under (StructFieldGet confChangeResponse.underlying go!"raftAdvanceC") #x (Val #(x.raftAdvanceC'))
-  set_raftAdvanceC : ∀ (x : confChangeResponse) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet confChangeResponse.underlying go!"raftAdvanceC") (PairV #x #y) (Val #(({ x with raftAdvanceC' := y } : confChangeResponse)))
-  get_err : ∀ (x : confChangeResponse), go.IsGoStepPureDetTagged under (StructFieldGet confChangeResponse.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : confChangeResponse) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet confChangeResponse.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : confChangeResponse)))
+  get'membs : ∀ (x : confChangeResponse), go.IsGoStepPureDetTagged under (StructFieldGet confChangeResponse.underlying go!"membs") #x (Val #(x.membs'))
+  set'membs : ∀ (x : confChangeResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet confChangeResponse.underlying go!"membs") (PairV #x #y) (Val #(({ x with membs' := y } : confChangeResponse)))
+  get'raftAdvanceC : ∀ (x : confChangeResponse), go.IsGoStepPureDetTagged under (StructFieldGet confChangeResponse.underlying go!"raftAdvanceC") #x (Val #(x.raftAdvanceC'))
+  set'raftAdvanceC : ∀ (x : confChangeResponse) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet confChangeResponse.underlying go!"raftAdvanceC") (PairV #x #y) (Val #(({ x with raftAdvanceC' := y } : confChangeResponse)))
+  get'err : ∀ (x : confChangeResponse), go.IsGoStepPureDetTagged under (StructFieldGet confChangeResponse.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : confChangeResponse) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet confChangeResponse.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : confChangeResponse)))
   method_set : go.MethodSetIs confChangeResponse.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType confChangeResponse.ty) []
 
 attribute [instance] confChangeResponse.TypeAssumptions.type_repr
   confChangeResponse.TypeAssumptions.underlying
-  confChangeResponse.TypeAssumptions.get_membs
-  confChangeResponse.TypeAssumptions.set_membs
-  confChangeResponse.TypeAssumptions.get_raftAdvanceC
-  confChangeResponse.TypeAssumptions.set_raftAdvanceC
-  confChangeResponse.TypeAssumptions.get_err
-  confChangeResponse.TypeAssumptions.set_err
+  confChangeResponse.TypeAssumptions.get'membs
+  confChangeResponse.TypeAssumptions.set'membs
+  confChangeResponse.TypeAssumptions.get'raftAdvanceC
+  confChangeResponse.TypeAssumptions.set'raftAdvanceC
+  confChangeResponse.TypeAssumptions.get'err
+  confChangeResponse.TypeAssumptions.set'err
   confChangeResponse.TypeAssumptions.method_set
   confChangeResponse.TypeAssumptions.ptr_method_set
 
@@ -14491,7 +14491,7 @@ noncomputable instance AccessController.zero_val [GooseExts] : ZeroVal AccessCon
 @[irreducible] noncomputable def AccessController.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AccessController.fieldsUnsealed
 
-noncomputable instance equals_unfold_AccessController [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'AccessController [GooseExts] [GoGlobalContext] :
     EqualsUnfold AccessController.fields AccessController.fieldsUnsealed :=
   ⟨by unfold AccessController.fields; rfl⟩
 
@@ -14501,27 +14501,27 @@ noncomputable instance equals_unfold_AccessController [GooseExts] [GoGlobalConte
 class AccessController.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AccessController.underlying AccessController
   underlying : go.UnderlyingDirectedEq AccessController.ty AccessController.underlying
-  get_corsMu : ∀ (x : AccessController), go.IsGoStepPureDetTagged under (StructFieldGet AccessController.underlying go!"corsMu") #x (Val #(x.corsMu'))
-  set_corsMu : ∀ (x : AccessController) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet AccessController.underlying go!"corsMu") (PairV #x #y) (Val #(({ x with corsMu' := y } : AccessController)))
-  get_CORS : ∀ (x : AccessController), go.IsGoStepPureDetTagged under (StructFieldGet AccessController.underlying go!"CORS") #x (Val #(x.CORS'))
-  set_CORS : ∀ (x : AccessController) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet AccessController.underlying go!"CORS") (PairV #x #y) (Val #(({ x with CORS' := y } : AccessController)))
-  get_hostWhitelistMu : ∀ (x : AccessController), go.IsGoStepPureDetTagged under (StructFieldGet AccessController.underlying go!"hostWhitelistMu") #x (Val #(x.hostWhitelistMu'))
-  set_hostWhitelistMu : ∀ (x : AccessController) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet AccessController.underlying go!"hostWhitelistMu") (PairV #x #y) (Val #(({ x with hostWhitelistMu' := y } : AccessController)))
-  get_HostWhitelist : ∀ (x : AccessController), go.IsGoStepPureDetTagged under (StructFieldGet AccessController.underlying go!"HostWhitelist") #x (Val #(x.HostWhitelist'))
-  set_HostWhitelist : ∀ (x : AccessController) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet AccessController.underlying go!"HostWhitelist") (PairV #x #y) (Val #(({ x with HostWhitelist' := y } : AccessController)))
+  get'corsMu : ∀ (x : AccessController), go.IsGoStepPureDetTagged under (StructFieldGet AccessController.underlying go!"corsMu") #x (Val #(x.corsMu'))
+  set'corsMu : ∀ (x : AccessController) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet AccessController.underlying go!"corsMu") (PairV #x #y) (Val #(({ x with corsMu' := y } : AccessController)))
+  get'CORS : ∀ (x : AccessController), go.IsGoStepPureDetTagged under (StructFieldGet AccessController.underlying go!"CORS") #x (Val #(x.CORS'))
+  set'CORS : ∀ (x : AccessController) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet AccessController.underlying go!"CORS") (PairV #x #y) (Val #(({ x with CORS' := y } : AccessController)))
+  get'hostWhitelistMu : ∀ (x : AccessController), go.IsGoStepPureDetTagged under (StructFieldGet AccessController.underlying go!"hostWhitelistMu") #x (Val #(x.hostWhitelistMu'))
+  set'hostWhitelistMu : ∀ (x : AccessController) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet AccessController.underlying go!"hostWhitelistMu") (PairV #x #y) (Val #(({ x with hostWhitelistMu' := y } : AccessController)))
+  get'HostWhitelist : ∀ (x : AccessController), go.IsGoStepPureDetTagged under (StructFieldGet AccessController.underlying go!"HostWhitelist") #x (Val #(x.HostWhitelist'))
+  set'HostWhitelist : ∀ (x : AccessController) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet AccessController.underlying go!"HostWhitelist") (PairV #x #y) (Val #(({ x with HostWhitelist' := y } : AccessController)))
   method_set : go.MethodSetIs AccessController.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType AccessController.ty) [(go!"IsHostWhitelisted", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"OriginAllowed", (some (go.signature.Signature [go.string] false [go.bool])))]
 
 attribute [instance] AccessController.TypeAssumptions.type_repr
   AccessController.TypeAssumptions.underlying
-  AccessController.TypeAssumptions.get_corsMu
-  AccessController.TypeAssumptions.set_corsMu
-  AccessController.TypeAssumptions.get_CORS
-  AccessController.TypeAssumptions.set_CORS
-  AccessController.TypeAssumptions.get_hostWhitelistMu
-  AccessController.TypeAssumptions.set_hostWhitelistMu
-  AccessController.TypeAssumptions.get_HostWhitelist
-  AccessController.TypeAssumptions.set_HostWhitelist
+  AccessController.TypeAssumptions.get'corsMu
+  AccessController.TypeAssumptions.set'corsMu
+  AccessController.TypeAssumptions.get'CORS
+  AccessController.TypeAssumptions.set'CORS
+  AccessController.TypeAssumptions.get'hostWhitelistMu
+  AccessController.TypeAssumptions.set'hostWhitelistMu
+  AccessController.TypeAssumptions.get'HostWhitelist
+  AccessController.TypeAssumptions.set'HostWhitelist
   AccessController.TypeAssumptions.method_set
   AccessController.TypeAssumptions.ptr_method_set
 
@@ -14542,7 +14542,7 @@ noncomputable instance replayTermRun.zero_val [GooseExts] : ZeroVal replayTermRu
 @[irreducible] noncomputable def replayTermRun.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   replayTermRun.fieldsUnsealed
 
-noncomputable instance equals_unfold_replayTermRun [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'replayTermRun [GooseExts] [GoGlobalContext] :
     EqualsUnfold replayTermRun.fields replayTermRun.fieldsUnsealed :=
   ⟨by unfold replayTermRun.fields; rfl⟩
 
@@ -14552,23 +14552,23 @@ noncomputable instance equals_unfold_replayTermRun [GooseExts] [GoGlobalContext]
 class replayTermRun.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying replayTermRun.underlying replayTermRun
   underlying : go.UnderlyingDirectedEq replayTermRun.ty replayTermRun.underlying
-  get_first : ∀ (x : replayTermRun), go.IsGoStepPureDetTagged under (StructFieldGet replayTermRun.underlying go!"first") #x (Val #(x.first'))
-  set_first : ∀ (x : replayTermRun) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet replayTermRun.underlying go!"first") (PairV #x #y) (Val #(({ x with first' := y } : replayTermRun)))
-  get_last : ∀ (x : replayTermRun), go.IsGoStepPureDetTagged under (StructFieldGet replayTermRun.underlying go!"last") #x (Val #(x.last'))
-  set_last : ∀ (x : replayTermRun) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet replayTermRun.underlying go!"last") (PairV #x #y) (Val #(({ x with last' := y } : replayTermRun)))
-  get_term : ∀ (x : replayTermRun), go.IsGoStepPureDetTagged under (StructFieldGet replayTermRun.underlying go!"term") #x (Val #(x.term'))
-  set_term : ∀ (x : replayTermRun) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet replayTermRun.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : replayTermRun)))
+  get'first : ∀ (x : replayTermRun), go.IsGoStepPureDetTagged under (StructFieldGet replayTermRun.underlying go!"first") #x (Val #(x.first'))
+  set'first : ∀ (x : replayTermRun) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet replayTermRun.underlying go!"first") (PairV #x #y) (Val #(({ x with first' := y } : replayTermRun)))
+  get'last : ∀ (x : replayTermRun), go.IsGoStepPureDetTagged under (StructFieldGet replayTermRun.underlying go!"last") #x (Val #(x.last'))
+  set'last : ∀ (x : replayTermRun) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet replayTermRun.underlying go!"last") (PairV #x #y) (Val #(({ x with last' := y } : replayTermRun)))
+  get'term : ∀ (x : replayTermRun), go.IsGoStepPureDetTagged under (StructFieldGet replayTermRun.underlying go!"term") #x (Val #(x.term'))
+  set'term : ∀ (x : replayTermRun) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet replayTermRun.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : replayTermRun)))
   method_set : go.MethodSetIs replayTermRun.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType replayTermRun.ty) []
 
 attribute [instance] replayTermRun.TypeAssumptions.type_repr
   replayTermRun.TypeAssumptions.underlying
-  replayTermRun.TypeAssumptions.get_first
-  replayTermRun.TypeAssumptions.set_first
-  replayTermRun.TypeAssumptions.get_last
-  replayTermRun.TypeAssumptions.set_last
-  replayTermRun.TypeAssumptions.get_term
-  replayTermRun.TypeAssumptions.set_term
+  replayTermRun.TypeAssumptions.get'first
+  replayTermRun.TypeAssumptions.set'first
+  replayTermRun.TypeAssumptions.get'last
+  replayTermRun.TypeAssumptions.set'last
+  replayTermRun.TypeAssumptions.get'term
+  replayTermRun.TypeAssumptions.set'term
   replayTermRun.TypeAssumptions.method_set
   replayTermRun.TypeAssumptions.ptr_method_set
 
@@ -14629,7 +14629,7 @@ noncomputable instance zapRaftLogger.zero_val [GooseExts] : ZeroVal zapRaftLogge
 @[irreducible] noncomputable def zapRaftLogger.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   zapRaftLogger.fieldsUnsealed
 
-noncomputable instance equals_unfold_zapRaftLogger [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'zapRaftLogger [GooseExts] [GoGlobalContext] :
     EqualsUnfold zapRaftLogger.fields zapRaftLogger.fieldsUnsealed :=
   ⟨by unfold zapRaftLogger.fields; rfl⟩
 
@@ -14639,270 +14639,270 @@ noncomputable instance equals_unfold_zapRaftLogger [GooseExts] [GoGlobalContext]
 class zapRaftLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying zapRaftLogger.underlying zapRaftLogger
   underlying : go.UnderlyingDirectedEq zapRaftLogger.ty zapRaftLogger.underlying
-  get_lg : ∀ (x : zapRaftLogger), go.IsGoStepPureDetTagged under (StructFieldGet zapRaftLogger.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : zapRaftLogger) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet zapRaftLogger.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : zapRaftLogger)))
-  get_sugar : ∀ (x : zapRaftLogger), go.IsGoStepPureDetTagged under (StructFieldGet zapRaftLogger.underlying go!"sugar") #x (Val #(x.sugar'))
-  set_sugar : ∀ (x : zapRaftLogger) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet zapRaftLogger.underlying go!"sugar") (PairV #x #y) (Val #(({ x with sugar' := y } : zapRaftLogger)))
+  get'lg : ∀ (x : zapRaftLogger), go.IsGoStepPureDetTagged under (StructFieldGet zapRaftLogger.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : zapRaftLogger) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet zapRaftLogger.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : zapRaftLogger)))
+  get'sugar : ∀ (x : zapRaftLogger), go.IsGoStepPureDetTagged under (StructFieldGet zapRaftLogger.underlying go!"sugar") #x (Val #(x.sugar'))
+  set'sugar : ∀ (x : zapRaftLogger) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet zapRaftLogger.underlying go!"sugar") (PairV #x #y) (Val #(({ x with sugar' := y } : zapRaftLogger)))
   method_set : go.MethodSetIs zapRaftLogger.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType zapRaftLogger.ty) [(go!"Debug", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Debugf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Error", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Panic", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Panicf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Warning", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Warningf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true [])))]
 
 attribute [instance] zapRaftLogger.TypeAssumptions.type_repr
   zapRaftLogger.TypeAssumptions.underlying
-  zapRaftLogger.TypeAssumptions.get_lg
-  zapRaftLogger.TypeAssumptions.set_lg
-  zapRaftLogger.TypeAssumptions.get_sugar
-  zapRaftLogger.TypeAssumptions.set_sugar
+  zapRaftLogger.TypeAssumptions.get'lg
+  zapRaftLogger.TypeAssumptions.set'lg
+  zapRaftLogger.TypeAssumptions.get'sugar
+  zapRaftLogger.TypeAssumptions.set'sugar
   zapRaftLogger.TypeAssumptions.method_set
   zapRaftLogger.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  serverVersionAdapter_instance : serverVersionAdapter.TypeAssumptions
-  bootstrappedServer_instance : bootstrappedServer.TypeAssumptions
-  bootstrappedStorage_instance : bootstrappedStorage.TypeAssumptions
-  bootstrappedBackend_instance : bootstrappedBackend.TypeAssumptions
-  bootstrappedCluster_instance : bootstrappedCluster.TypeAssumptions
-  bootstrappedRaft_instance : bootstrappedRaft.TypeAssumptions
-  snapshotMetadata_instance : snapshotMetadata.TypeAssumptions
-  bootstrappedWAL_instance : bootstrappedWAL.TypeAssumptions
-  CorruptionChecker_instance : CorruptionChecker.TypeAssumptions
-  corruptionChecker_instance : corruptionChecker.TypeAssumptions
-  Hasher_instance : Hasher.TypeAssumptions
-  hasherAdapter_instance : hasherAdapter.TypeAssumptions
-  peerInfo_instance : peerInfo.TypeAssumptions
-  peerHashKVResp_instance : peerHashKVResp.TypeAssumptions
-  hashKVHandler_instance : hashKVHandler.TypeAssumptions
-  toApply_instance : toApply.TypeAssumptions
-  raftNode_instance : raftNode.TypeAssumptions
-  raftNodeConfig_instance : raftNodeConfig.TypeAssumptions
-  Response_instance : Response.TypeAssumptions
-  ServerV2_instance : ServerV2.TypeAssumptions
-  ServerV3_instance : ServerV3.TypeAssumptions
-  Server_instance : Server.TypeAssumptions
-  EtcdServer_instance : EtcdServer.TypeAssumptions
-  ServerPeer_instance : ServerPeer.TypeAssumptions
-  ServerPeerV2_instance : ServerPeerV2.TypeAssumptions
-  downgradeEnabledHandler_instance : downgradeEnabledHandler.TypeAssumptions
-  etcdProgress_instance : etcdProgress.TypeAssumptions
-  raftReadyHandler_instance : raftReadyHandler.TypeAssumptions
-  confChangeResponse_instance : confChangeResponse.TypeAssumptions
-  AccessController_instance : AccessController.TypeAssumptions
-  replayTermRun_instance : replayTermRun.TypeAssumptions
-  replayTerms_instance : replayTerms.TypeAssumptions
-  RaftKV_instance : RaftKV.TypeAssumptions
-  Lessor_instance : Lessor.TypeAssumptions
-  Authenticator_instance : Authenticator.TypeAssumptions
-  zapRaftLogger_instance : zapRaftLogger.TypeAssumptions
-  NewServerVersionAdapter_unfold : FuncUnfold NewServerVersionAdapter [] NewServerVersionAdapter.impl
-  confStateFromMembers_unfold : FuncUnfold confStateFromMembers [] confStateFromMembers.impl
-  newCorruptionChecker_unfold : FuncUnfold newCorruptionChecker [] newCorruptionChecker.impl
-  monitorFileDescriptor_unfold : FuncUnfold monitorFileDescriptor [] monitorFileDescriptor.impl
-  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
-  newRaftNode_unfold : FuncUnfold newRaftNode [] newRaftNode.impl
-  updateCommittedIndex_unfold : FuncUnfold updateCommittedIndex [] updateCommittedIndex.impl
-  «init.2_unfold» : FuncUnfold init.«2» [] init.«2».impl
-  NewServer_unfold : FuncUnfold NewServer [] NewServer.impl
-  tickToDur_unfold : FuncUnfold tickToDur [] tickToDur.impl
-  verifyConsistentIndexIsLatest_unfold : FuncUnfold verifyConsistentIndexIsLatest [] verifyConsistentIndexIsLatest.impl
-  addFeatureGateMetrics_unfold : FuncUnfold addFeatureGateMetrics [] addFeatureGateMetrics.impl
-  newSnapshotReaderCloser_unfold : FuncUnfold newSnapshotReaderCloser [] newSnapshotReaderCloser.impl
-  replayTermsFromStorage_unfold : FuncUnfold replayTermsFromStorage [] replayTermsFromStorage.impl
-  firstCompareKey_unfold : FuncUnfold firstCompareKey [] firstCompareKey.impl
-  firstOpKey_unfold : FuncUnfold firstOpKey [] firstOpKey.impl
-  firstOpType_unfold : FuncUnfold firstOpType [] firstOpType.impl
-  firstOpLease_unfold : FuncUnfold firstOpLease [] firstOpLease.impl
-  isConnectedToQuorumSince_unfold : FuncUnfold isConnectedToQuorumSince [] isConnectedToQuorumSince.impl
-  quorum_unfold : FuncUnfold quorum [] quorum.impl
-  isConnectedSince_unfold : FuncUnfold isConnectedSince [] isConnectedSince.impl
-  exceedsRequestLimit_unfold : FuncUnfold exceedsRequestLimit [] exceedsRequestLimit.impl
-  isPriorityRequest_unfold : FuncUnfold isPriorityRequest [] isPriorityRequest.impl
-  numConnectedSince_unfold : FuncUnfold numConnectedSince [] numConnectedSince.impl
-  getRequestType_unfold : FuncUnfold getRequestType [] getRequestType.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_v3_version_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.version.Assumptions
-  import_etcdserver_version_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions
-  import_schema_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Assumptions
-  import_json_Assumption : _root_.Perennial.encoding.json.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_http_Assumption : _root_.Perennial.net.http.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_humanize_Assumption : _root_.Perennial.github_com.dustin.go_humanize.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
-  import_fileutil_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
-  import_pbutil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.pbutil.Assumptions
-  import_config_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
-  import_api_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Assumptions
-  import_membership_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions
-  import_rafthttp_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions
-  import_snap_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions
-  import_cindex_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions
-  import_etcdserver_errors_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.Assumptions
-  import_storage_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Assumptions
-  import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
-  import_wal_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.Assumptions
-  import_raft_Assumption : _root_.Perennial.go_etcd_io.raft.v3.Assumptions
-  import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_mvcc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions
-  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
-  import_runtime_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.runtime.Assumptions
-  import_log_Assumption : _root_.Perennial.log.Assumptions
-  import_logutil_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.Assumptions
-  import_contention_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.contention.Assumptions
-  import_math_Assumption : _root_.Perennial.math.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_featuregate_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Assumptions
-  import_idutil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Assumptions
-  import_notify_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.Assumptions
-  import_schedule_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.schedule.Assumptions
-  import_traceutil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Assumptions
-  import_wait_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.Assumptions
-  import_auth_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions
-  import_httptypes_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.Assumptions
-  import_v2stats_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Assumptions
-  import_v3alarm_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Assumptions
-  import_v3compactor_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Assumptions
-  import_apply_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions
-  import_read_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions
-  import_features_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
-  import_lease_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Assumptions
-  import_leasehttp_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasehttp.Assumptions
-  import_snapshotmeta_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.Assumptions
-  import_base64_Assumption : _root_.Perennial.encoding.base64.Assumptions
-  import_attribute_Assumption : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Assumptions
-  import_trace_Assumption : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions
-  import_bcrypt_Assumption : _root_.Perennial.golang_org.x.crypto.bcrypt.Assumptions
-  import_txn_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions
+  instance'serverVersionAdapter : serverVersionAdapter.TypeAssumptions
+  instance'bootstrappedServer : bootstrappedServer.TypeAssumptions
+  instance'bootstrappedStorage : bootstrappedStorage.TypeAssumptions
+  instance'bootstrappedBackend : bootstrappedBackend.TypeAssumptions
+  instance'bootstrappedCluster : bootstrappedCluster.TypeAssumptions
+  instance'bootstrappedRaft : bootstrappedRaft.TypeAssumptions
+  instance'snapshotMetadata : snapshotMetadata.TypeAssumptions
+  instance'bootstrappedWAL : bootstrappedWAL.TypeAssumptions
+  instance'CorruptionChecker : CorruptionChecker.TypeAssumptions
+  instance'corruptionChecker : corruptionChecker.TypeAssumptions
+  instance'Hasher : Hasher.TypeAssumptions
+  instance'hasherAdapter : hasherAdapter.TypeAssumptions
+  instance'peerInfo : peerInfo.TypeAssumptions
+  instance'peerHashKVResp : peerHashKVResp.TypeAssumptions
+  instance'hashKVHandler : hashKVHandler.TypeAssumptions
+  instance'toApply : toApply.TypeAssumptions
+  instance'raftNode : raftNode.TypeAssumptions
+  instance'raftNodeConfig : raftNodeConfig.TypeAssumptions
+  instance'Response : Response.TypeAssumptions
+  instance'ServerV2 : ServerV2.TypeAssumptions
+  instance'ServerV3 : ServerV3.TypeAssumptions
+  instance'Server : Server.TypeAssumptions
+  instance'EtcdServer : EtcdServer.TypeAssumptions
+  instance'ServerPeer : ServerPeer.TypeAssumptions
+  instance'ServerPeerV2 : ServerPeerV2.TypeAssumptions
+  instance'downgradeEnabledHandler : downgradeEnabledHandler.TypeAssumptions
+  instance'etcdProgress : etcdProgress.TypeAssumptions
+  instance'raftReadyHandler : raftReadyHandler.TypeAssumptions
+  instance'confChangeResponse : confChangeResponse.TypeAssumptions
+  instance'AccessController : AccessController.TypeAssumptions
+  instance'replayTermRun : replayTermRun.TypeAssumptions
+  instance'replayTerms : replayTerms.TypeAssumptions
+  instance'RaftKV : RaftKV.TypeAssumptions
+  instance'Lessor : Lessor.TypeAssumptions
+  instance'Authenticator : Authenticator.TypeAssumptions
+  instance'zapRaftLogger : zapRaftLogger.TypeAssumptions
+  unfold'NewServerVersionAdapter : FuncUnfold NewServerVersionAdapter [] NewServerVersionAdapter.impl
+  unfold'confStateFromMembers : FuncUnfold confStateFromMembers [] confStateFromMembers.impl
+  unfold'newCorruptionChecker : FuncUnfold newCorruptionChecker [] newCorruptionChecker.impl
+  unfold'monitorFileDescriptor : FuncUnfold monitorFileDescriptor [] monitorFileDescriptor.impl
+  «unfold'init.1» : FuncUnfold init.«1» [] init.«1».impl
+  unfold'newRaftNode : FuncUnfold newRaftNode [] newRaftNode.impl
+  unfold'updateCommittedIndex : FuncUnfold updateCommittedIndex [] updateCommittedIndex.impl
+  «unfold'init.2» : FuncUnfold init.«2» [] init.«2».impl
+  unfold'NewServer : FuncUnfold NewServer [] NewServer.impl
+  unfold'tickToDur : FuncUnfold tickToDur [] tickToDur.impl
+  unfold'verifyConsistentIndexIsLatest : FuncUnfold verifyConsistentIndexIsLatest [] verifyConsistentIndexIsLatest.impl
+  unfold'addFeatureGateMetrics : FuncUnfold addFeatureGateMetrics [] addFeatureGateMetrics.impl
+  unfold'newSnapshotReaderCloser : FuncUnfold newSnapshotReaderCloser [] newSnapshotReaderCloser.impl
+  unfold'replayTermsFromStorage : FuncUnfold replayTermsFromStorage [] replayTermsFromStorage.impl
+  unfold'firstCompareKey : FuncUnfold firstCompareKey [] firstCompareKey.impl
+  unfold'firstOpKey : FuncUnfold firstOpKey [] firstOpKey.impl
+  unfold'firstOpType : FuncUnfold firstOpType [] firstOpType.impl
+  unfold'firstOpLease : FuncUnfold firstOpLease [] firstOpLease.impl
+  unfold'isConnectedToQuorumSince : FuncUnfold isConnectedToQuorumSince [] isConnectedToQuorumSince.impl
+  unfold'quorum : FuncUnfold quorum [] quorum.impl
+  unfold'isConnectedSince : FuncUnfold isConnectedSince [] isConnectedSince.impl
+  unfold'exceedsRequestLimit : FuncUnfold exceedsRequestLimit [] exceedsRequestLimit.impl
+  unfold'isPriorityRequest : FuncUnfold isPriorityRequest [] isPriorityRequest.impl
+  unfold'numConnectedSince : FuncUnfold numConnectedSince [] numConnectedSince.impl
+  unfold'getRequestType : FuncUnfold getRequestType [] getRequestType.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'semver : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'v3_version : _root_.Perennial.go_etcd_io.etcd.api.v3.version.Assumptions
+  import'etcdserver_version : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions
+  import'schema : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Assumptions
+  import'json : _root_.Perennial.encoding.json.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'http : _root_.Perennial.net.http.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'humanize : _root_.Perennial.github_com.dustin.go_humanize.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'proto : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
+  import'fileutil : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions
+  import'types : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
+  import'pbutil : _root_.Perennial.go_etcd_io.etcd.pkg.v3.pbutil.Assumptions
+  import'config : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
+  import'api : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Assumptions
+  import'membership : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions
+  import'rafthttp : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions
+  import'snap : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions
+  import'cindex : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions
+  import'etcdserver_errors : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.Assumptions
+  import'storage : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Assumptions
+  import'backend : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
+  import'wal : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.Assumptions
+  import'raft : _root_.Perennial.go_etcd_io.raft.v3.Assumptions
+  import'raftpb : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'mvcc : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions
+  import'prometheus : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  import'runtime : _root_.Perennial.go_etcd_io.etcd.pkg.v3.runtime.Assumptions
+  import'log : _root_.Perennial.log.Assumptions
+  import'logutil : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.Assumptions
+  import'contention : _root_.Perennial.go_etcd_io.etcd.pkg.v3.contention.Assumptions
+  import'math : _root_.Perennial.math.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'featuregate : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Assumptions
+  import'idutil : _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Assumptions
+  import'notify : _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.Assumptions
+  import'schedule : _root_.Perennial.go_etcd_io.etcd.pkg.v3.schedule.Assumptions
+  import'traceutil : _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Assumptions
+  import'wait : _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.Assumptions
+  import'auth : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions
+  import'httptypes : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.Assumptions
+  import'v2stats : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Assumptions
+  import'v3alarm : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Assumptions
+  import'v3compactor : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Assumptions
+  import'apply : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions
+  import'read : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions
+  import'features : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
+  import'lease : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Assumptions
+  import'leasehttp : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasehttp.Assumptions
+  import'snapshotmeta : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.Assumptions
+  import'base64 : _root_.Perennial.encoding.base64.Assumptions
+  import'attribute : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Assumptions
+  import'trace : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions
+  import'bcrypt : _root_.Perennial.golang_org.x.crypto.bcrypt.Assumptions
+  import'txn : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions
 
-attribute [instance] Assumptions.serverVersionAdapter_instance
-  Assumptions.bootstrappedServer_instance
-  Assumptions.bootstrappedStorage_instance
-  Assumptions.bootstrappedBackend_instance
-  Assumptions.bootstrappedCluster_instance
-  Assumptions.bootstrappedRaft_instance
-  Assumptions.snapshotMetadata_instance
-  Assumptions.bootstrappedWAL_instance
-  Assumptions.CorruptionChecker_instance
-  Assumptions.corruptionChecker_instance
-  Assumptions.Hasher_instance
-  Assumptions.hasherAdapter_instance
-  Assumptions.peerInfo_instance
-  Assumptions.peerHashKVResp_instance
-  Assumptions.hashKVHandler_instance
-  Assumptions.toApply_instance
-  Assumptions.raftNode_instance
-  Assumptions.raftNodeConfig_instance
-  Assumptions.Response_instance
-  Assumptions.ServerV2_instance
-  Assumptions.ServerV3_instance
-  Assumptions.Server_instance
-  Assumptions.EtcdServer_instance
-  Assumptions.ServerPeer_instance
-  Assumptions.ServerPeerV2_instance
-  Assumptions.downgradeEnabledHandler_instance
-  Assumptions.etcdProgress_instance
-  Assumptions.raftReadyHandler_instance
-  Assumptions.confChangeResponse_instance
-  Assumptions.AccessController_instance
-  Assumptions.replayTermRun_instance
-  Assumptions.replayTerms_instance
-  Assumptions.RaftKV_instance
-  Assumptions.Lessor_instance
-  Assumptions.Authenticator_instance
-  Assumptions.zapRaftLogger_instance
-  Assumptions.NewServerVersionAdapter_unfold
-  Assumptions.confStateFromMembers_unfold
-  Assumptions.newCorruptionChecker_unfold
-  Assumptions.monitorFileDescriptor_unfold
-  Assumptions.«init.1_unfold»
-  Assumptions.newRaftNode_unfold
-  Assumptions.updateCommittedIndex_unfold
-  Assumptions.«init.2_unfold»
-  Assumptions.NewServer_unfold
-  Assumptions.tickToDur_unfold
-  Assumptions.verifyConsistentIndexIsLatest_unfold
-  Assumptions.addFeatureGateMetrics_unfold
-  Assumptions.newSnapshotReaderCloser_unfold
-  Assumptions.replayTermsFromStorage_unfold
-  Assumptions.firstCompareKey_unfold
-  Assumptions.firstOpKey_unfold
-  Assumptions.firstOpType_unfold
-  Assumptions.firstOpLease_unfold
-  Assumptions.isConnectedToQuorumSince_unfold
-  Assumptions.quorum_unfold
-  Assumptions.isConnectedSince_unfold
-  Assumptions.exceedsRequestLimit_unfold
-  Assumptions.isPriorityRequest_unfold
-  Assumptions.numConnectedSince_unfold
-  Assumptions.getRequestType_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_semver_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_v3_version_Assumption
-  Assumptions.import_etcdserver_version_Assumption
-  Assumptions.import_schema_Assumption
-  Assumptions.import_json_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_http_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_humanize_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_proto_Assumption
-  Assumptions.import_fileutil_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_pbutil_Assumption
-  Assumptions.import_config_Assumption
-  Assumptions.import_api_Assumption
-  Assumptions.import_membership_Assumption
-  Assumptions.import_rafthttp_Assumption
-  Assumptions.import_snap_Assumption
-  Assumptions.import_cindex_Assumption
-  Assumptions.import_etcdserver_errors_Assumption
-  Assumptions.import_storage_Assumption
-  Assumptions.import_backend_Assumption
-  Assumptions.import_wal_Assumption
-  Assumptions.import_raft_Assumption
-  Assumptions.import_raftpb_Assumption
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_mvcc_Assumption
-  Assumptions.import_prometheus_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_log_Assumption
-  Assumptions.import_logutil_Assumption
-  Assumptions.import_contention_Assumption
-  Assumptions.import_math_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_featuregate_Assumption
-  Assumptions.import_idutil_Assumption
-  Assumptions.import_notify_Assumption
-  Assumptions.import_schedule_Assumption
-  Assumptions.import_traceutil_Assumption
-  Assumptions.import_wait_Assumption
-  Assumptions.import_auth_Assumption
-  Assumptions.import_httptypes_Assumption
-  Assumptions.import_v2stats_Assumption
-  Assumptions.import_v3alarm_Assumption
-  Assumptions.import_v3compactor_Assumption
-  Assumptions.import_apply_Assumption
-  Assumptions.import_read_Assumption
-  Assumptions.import_features_Assumption
-  Assumptions.import_lease_Assumption
-  Assumptions.import_leasehttp_Assumption
-  Assumptions.import_snapshotmeta_Assumption
-  Assumptions.import_base64_Assumption
-  Assumptions.import_attribute_Assumption
-  Assumptions.import_trace_Assumption
-  Assumptions.import_bcrypt_Assumption
-  Assumptions.import_txn_Assumption
+attribute [instance] Assumptions.instance'serverVersionAdapter
+  Assumptions.instance'bootstrappedServer
+  Assumptions.instance'bootstrappedStorage
+  Assumptions.instance'bootstrappedBackend
+  Assumptions.instance'bootstrappedCluster
+  Assumptions.instance'bootstrappedRaft
+  Assumptions.instance'snapshotMetadata
+  Assumptions.instance'bootstrappedWAL
+  Assumptions.instance'CorruptionChecker
+  Assumptions.instance'corruptionChecker
+  Assumptions.instance'Hasher
+  Assumptions.instance'hasherAdapter
+  Assumptions.instance'peerInfo
+  Assumptions.instance'peerHashKVResp
+  Assumptions.instance'hashKVHandler
+  Assumptions.instance'toApply
+  Assumptions.instance'raftNode
+  Assumptions.instance'raftNodeConfig
+  Assumptions.instance'Response
+  Assumptions.instance'ServerV2
+  Assumptions.instance'ServerV3
+  Assumptions.instance'Server
+  Assumptions.instance'EtcdServer
+  Assumptions.instance'ServerPeer
+  Assumptions.instance'ServerPeerV2
+  Assumptions.instance'downgradeEnabledHandler
+  Assumptions.instance'etcdProgress
+  Assumptions.instance'raftReadyHandler
+  Assumptions.instance'confChangeResponse
+  Assumptions.instance'AccessController
+  Assumptions.instance'replayTermRun
+  Assumptions.instance'replayTerms
+  Assumptions.instance'RaftKV
+  Assumptions.instance'Lessor
+  Assumptions.instance'Authenticator
+  Assumptions.instance'zapRaftLogger
+  Assumptions.unfold'NewServerVersionAdapter
+  Assumptions.unfold'confStateFromMembers
+  Assumptions.unfold'newCorruptionChecker
+  Assumptions.unfold'monitorFileDescriptor
+  Assumptions.«unfold'init.1»
+  Assumptions.unfold'newRaftNode
+  Assumptions.unfold'updateCommittedIndex
+  Assumptions.«unfold'init.2»
+  Assumptions.unfold'NewServer
+  Assumptions.unfold'tickToDur
+  Assumptions.unfold'verifyConsistentIndexIsLatest
+  Assumptions.unfold'addFeatureGateMetrics
+  Assumptions.unfold'newSnapshotReaderCloser
+  Assumptions.unfold'replayTermsFromStorage
+  Assumptions.unfold'firstCompareKey
+  Assumptions.unfold'firstOpKey
+  Assumptions.unfold'firstOpType
+  Assumptions.unfold'firstOpLease
+  Assumptions.unfold'isConnectedToQuorumSince
+  Assumptions.unfold'quorum
+  Assumptions.unfold'isConnectedSince
+  Assumptions.unfold'exceedsRequestLimit
+  Assumptions.unfold'isPriorityRequest
+  Assumptions.unfold'numConnectedSince
+  Assumptions.unfold'getRequestType
+  Assumptions.import'context
+  Assumptions.import'semver
+  Assumptions.import'etcdserverpb
+  Assumptions.import'v3_version
+  Assumptions.import'etcdserver_version
+  Assumptions.import'schema
+  Assumptions.import'json
+  Assumptions.import'errors
+  Assumptions.import'fmt
+  Assumptions.import'io
+  Assumptions.import'http
+  Assumptions.import'time
+  Assumptions.import'humanize
+  Assumptions.import'zap
+  Assumptions.import'proto
+  Assumptions.import'fileutil
+  Assumptions.import'types
+  Assumptions.import'pbutil
+  Assumptions.import'config
+  Assumptions.import'api
+  Assumptions.import'membership
+  Assumptions.import'rafthttp
+  Assumptions.import'snap
+  Assumptions.import'cindex
+  Assumptions.import'etcdserver_errors
+  Assumptions.import'storage
+  Assumptions.import'backend
+  Assumptions.import'wal
+  Assumptions.import'raft
+  Assumptions.import'raftpb
+  Assumptions.import'strconv
+  Assumptions.import'sync
+  Assumptions.import'mvcc
+  Assumptions.import'prometheus
+  Assumptions.import'runtime
+  Assumptions.import'log
+  Assumptions.import'logutil
+  Assumptions.import'contention
+  Assumptions.import'math
+  Assumptions.import'atomic
+  Assumptions.import'featuregate
+  Assumptions.import'idutil
+  Assumptions.import'notify
+  Assumptions.import'schedule
+  Assumptions.import'traceutil
+  Assumptions.import'wait
+  Assumptions.import'auth
+  Assumptions.import'httptypes
+  Assumptions.import'v2stats
+  Assumptions.import'v3alarm
+  Assumptions.import'v3compactor
+  Assumptions.import'apply
+  Assumptions.import'read
+  Assumptions.import'features
+  Assumptions.import'lease
+  Assumptions.import'leasehttp
+  Assumptions.import'snapshotmeta
+  Assumptions.import'base64
+  Assumptions.import'attribute
+  Assumptions.import'trace
+  Assumptions.import'bcrypt
+  Assumptions.import'txn
 
 end go_etcd_io.etcd.server.v3.etcdserver
 

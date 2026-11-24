@@ -51,7 +51,7 @@ theorem onDisk.acks.wp_proof
   obtain ⟨st, hst, hAs1, hAs2⟩ := andM_ok hA
   wp_auto
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_stores_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'stores.method_unfold]
   try wp_auto
   wp_apply wp_stores gx x st $$ [Hx]
   · iframe Hx; ipureintro; exact hst
@@ -64,7 +64,7 @@ theorem onDisk.acks.wp_proof
     obtain ⟨bv, hB, hB1, hB2⟩ := orM_ok HBC
     obtain ⟨mv, hmv, hBm1, hBm2⟩ := andM_ok hB
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_moved_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'moved.method_unfold]
     try wp_auto
     wp_apply wp_moved gx x mv $$ [Hx]
     · iframe Hx; ipureintro; exact hmv
@@ -76,7 +76,7 @@ theorem onDisk.acks.wp_proof
       -- `x.takes() || x.below()`
       obtain ⟨tk, htk, hC1, hC2⟩ := orM_ok HC
       try wp_auto
-      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_takes_unfold.method_unfold]
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'takes.method_unfold]
       try wp_auto
       wp_apply wp_takes gx x tk $$ [Hx]
       · iframe Hx; ipureintro; exact htk
@@ -84,7 +84,7 @@ theorem onDisk.acks.wp_proof
       cases tk
       · have hbl := hC2 rfl
         try wp_auto
-        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_below_unfold.method_unfold]
+        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'below.method_unfold]
         try wp_auto
         wp_apply wp_below gx x v $$ [Hx]
         · iframe Hx; ipureintro; exact hbl
@@ -100,7 +100,7 @@ theorem onDisk.acks.wp_proof
       simp only [pure_ok, Except.ok.injEq] at hnl
       subst hnl
       try wp_auto
-      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_leads_unfold.method_unfold]
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'leads.method_unfold]
       try wp_auto
       wp_apply wp_leads gx x l2 $$ [Hx]
       · iframe Hx; ipureintro; exact hl2
@@ -111,7 +111,7 @@ theorem onDisk.acks.wp_proof
         simp only [pure_ok, Except.ok.injEq] at hhm
         subst hhm
         try wp_auto
-        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_hasM_unfold.method_unfold]
+        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'hasM.method_unfold]
         try wp_auto
         wp_apply wp_hasM gx x  $$ [Hx]
         · iexact Hx
@@ -123,7 +123,7 @@ theorem onDisk.acks.wp_proof
           -- `x.takes() || x.below()`
           obtain ⟨tk, htk, hC1, hC2⟩ := orM_ok HC
           try wp_auto
-          rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_takes_unfold.method_unfold]
+          rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'takes.method_unfold]
           try wp_auto
           wp_apply wp_takes gx x tk $$ [Hx]
           · iframe Hx; ipureintro; exact htk
@@ -131,7 +131,7 @@ theorem onDisk.acks.wp_proof
           cases tk
           · have hbl := hC2 rfl
             try wp_auto
-            rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_below_unfold.method_unfold]
+            rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'below.method_unfold]
             try wp_auto
             wp_apply wp_below gx x v $$ [Hx]
             · iframe Hx; ipureintro; exact hbl
@@ -148,7 +148,7 @@ theorem onDisk.acks.wp_proof
           subst hta
           try wp_auto
           try wp_auto
-          rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_m_unfold.method_unfold]
+          rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'm.method_unfold]
           try wp_auto
           wp_apply wp_m gx x m $$ [Hx] as %u #Hu
           · iframe Hx; ipureintro; exact hm
@@ -171,7 +171,7 @@ theorem onDisk.acks.wp_proof
             simp only [pure_ok, Except.ok.injEq] at hB4
             try wp_auto
             try wp_auto
-            rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_m_unfold.method_unfold]
+            rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'm.method_unfold]
             try wp_auto
             wp_apply wp_m gx x m $$ [Hx] as %u' #Hu'
             · iframe Hx; ipureintro; exact hm
@@ -192,7 +192,7 @@ theorem onDisk.acks.wp_proof
               -- `x.takes() || x.below()`
               obtain ⟨tk, htk, hC1, hC2⟩ := orM_ok HC
               try wp_auto
-              rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_takes_unfold.method_unfold]
+              rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'takes.method_unfold]
               try wp_auto
               wp_apply wp_takes gx x tk $$ [Hx]
               · iframe Hx; ipureintro; exact htk
@@ -200,7 +200,7 @@ theorem onDisk.acks.wp_proof
               cases tk
               · have hbl := hC2 rfl
                 try wp_auto
-                rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_below_unfold.method_unfold]
+                rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'below.method_unfold]
                 try wp_auto
                 wp_apply wp_below gx x v $$ [Hx]
                 · iframe Hx; ipureintro; exact hbl
@@ -215,7 +215,7 @@ theorem onDisk.acks.wp_proof
         -- `x.takes() || x.below()`
         obtain ⟨tk, htk, hC1, hC2⟩ := orM_ok HC
         try wp_auto
-        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_takes_unfold.method_unfold]
+        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'takes.method_unfold]
         try wp_auto
         wp_apply wp_takes gx x tk $$ [Hx]
         · iframe Hx; ipureintro; exact htk
@@ -223,7 +223,7 @@ theorem onDisk.acks.wp_proof
         cases tk
         · have hbl := hC2 rfl
           try wp_auto
-          rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_below_unfold.method_unfold]
+          rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'below.method_unfold]
           try wp_auto
           wp_apply wp_below gx x v $$ [Hx]
           · iframe Hx; ipureintro; exact hbl
@@ -234,7 +234,7 @@ theorem onDisk.acks.wp_proof
           iapply HΦ; ipureintro; trivial
   · have hAl := hAs1 rfl
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_leads_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'leads.method_unfold]
     try wp_auto
     wp_apply wp_leads gx x av $$ [Hx]
     · iframe Hx; ipureintro; exact hAl
@@ -246,7 +246,7 @@ theorem onDisk.acks.wp_proof
       obtain ⟨bv, hB, hB1, hB2⟩ := orM_ok HBC
       obtain ⟨mv, hmv, hBm1, hBm2⟩ := andM_ok hB
       try wp_auto
-      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_moved_unfold.method_unfold]
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'moved.method_unfold]
       try wp_auto
       wp_apply wp_moved gx x mv $$ [Hx]
       · iframe Hx; ipureintro; exact hmv
@@ -258,7 +258,7 @@ theorem onDisk.acks.wp_proof
         -- `x.takes() || x.below()`
         obtain ⟨tk, htk, hC1, hC2⟩ := orM_ok HC
         try wp_auto
-        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_takes_unfold.method_unfold]
+        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'takes.method_unfold]
         try wp_auto
         wp_apply wp_takes gx x tk $$ [Hx]
         · iframe Hx; ipureintro; exact htk
@@ -266,7 +266,7 @@ theorem onDisk.acks.wp_proof
         cases tk
         · have hbl := hC2 rfl
           try wp_auto
-          rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_below_unfold.method_unfold]
+          rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'below.method_unfold]
           try wp_auto
           wp_apply wp_below gx x v $$ [Hx]
           · iframe Hx; ipureintro; exact hbl
@@ -282,7 +282,7 @@ theorem onDisk.acks.wp_proof
         simp only [pure_ok, Except.ok.injEq] at hnl
         subst hnl
         try wp_auto
-        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_leads_unfold.method_unfold]
+        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'leads.method_unfold]
         try wp_auto
         wp_apply wp_leads gx x l2 $$ [Hx]
         · iframe Hx; ipureintro; exact hl2
@@ -293,7 +293,7 @@ theorem onDisk.acks.wp_proof
           simp only [pure_ok, Except.ok.injEq] at hhm
           subst hhm
           try wp_auto
-          rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_hasM_unfold.method_unfold]
+          rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'hasM.method_unfold]
           try wp_auto
           wp_apply wp_hasM gx x  $$ [Hx]
           · iexact Hx
@@ -305,7 +305,7 @@ theorem onDisk.acks.wp_proof
             -- `x.takes() || x.below()`
             obtain ⟨tk, htk, hC1, hC2⟩ := orM_ok HC
             try wp_auto
-            rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_takes_unfold.method_unfold]
+            rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'takes.method_unfold]
             try wp_auto
             wp_apply wp_takes gx x tk $$ [Hx]
             · iframe Hx; ipureintro; exact htk
@@ -313,7 +313,7 @@ theorem onDisk.acks.wp_proof
             cases tk
             · have hbl := hC2 rfl
               try wp_auto
-              rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_below_unfold.method_unfold]
+              rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'below.method_unfold]
               try wp_auto
               wp_apply wp_below gx x v $$ [Hx]
               · iframe Hx; ipureintro; exact hbl
@@ -330,7 +330,7 @@ theorem onDisk.acks.wp_proof
             subst hta
             try wp_auto
             try wp_auto
-            rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_m_unfold.method_unfold]
+            rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'm.method_unfold]
             try wp_auto
             wp_apply wp_m gx x m $$ [Hx] as %u #Hu
             · iframe Hx; ipureintro; exact hm
@@ -353,7 +353,7 @@ theorem onDisk.acks.wp_proof
               simp only [pure_ok, Except.ok.injEq] at hB4
               try wp_auto
               try wp_auto
-              rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_m_unfold.method_unfold]
+              rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'm.method_unfold]
               try wp_auto
               wp_apply wp_m gx x m $$ [Hx] as %u' #Hu'
               · iframe Hx; ipureintro; exact hm
@@ -374,7 +374,7 @@ theorem onDisk.acks.wp_proof
                 -- `x.takes() || x.below()`
                 obtain ⟨tk, htk, hC1, hC2⟩ := orM_ok HC
                 try wp_auto
-                rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_takes_unfold.method_unfold]
+                rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'takes.method_unfold]
                 try wp_auto
                 wp_apply wp_takes gx x tk $$ [Hx]
                 · iframe Hx; ipureintro; exact htk
@@ -382,7 +382,7 @@ theorem onDisk.acks.wp_proof
                 cases tk
                 · have hbl := hC2 rfl
                   try wp_auto
-                  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_below_unfold.method_unfold]
+                  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'below.method_unfold]
                   try wp_auto
                   wp_apply wp_below gx x v $$ [Hx]
                   · iframe Hx; ipureintro; exact hbl
@@ -397,7 +397,7 @@ theorem onDisk.acks.wp_proof
           -- `x.takes() || x.below()`
           obtain ⟨tk, htk, hC1, hC2⟩ := orM_ok HC
           try wp_auto
-          rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_takes_unfold.method_unfold]
+          rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'takes.method_unfold]
           try wp_auto
           wp_apply wp_takes gx x tk $$ [Hx]
           · iframe Hx; ipureintro; exact htk
@@ -405,7 +405,7 @@ theorem onDisk.acks.wp_proof
           cases tk
           · have hbl := hC2 rfl
             try wp_auto
-            rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_below_unfold.method_unfold]
+            rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'below.method_unfold]
             try wp_auto
             wp_apply wp_below gx x v $$ [Hx]
             · iframe Hx; ipureintro; exact hbl

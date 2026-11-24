@@ -51,13 +51,13 @@ theorem onDisk.newC.wp_proof
   obtain ⟨c, hc, Hv⟩ := bind_ok Hv
   wp_auto
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_L1_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'L1.method_unfold]
   try wp_auto
   wp_apply wp_L1 gx x l1 $$ [Hx] as %ul #Hul
   · iframe Hx; ipureintro; exact hl1
   try wp_auto
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_w_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'w.method_unfold]
   try wp_auto
   wp_apply wp_w gx x  $$ [Hx] as %e #He
   · iexact Hx

@@ -46,11 +46,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.initialize') (Val #())))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  main_unfold : FuncUnfold main [] main.impl
-  import_counter_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Assumptions
+  unfold'main : FuncUnfold main [] main.impl
+  import'counter : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Assumptions
 
-attribute [instance] Assumptions.main_unfold
-  Assumptions.import_counter_Assumption
+attribute [instance] Assumptions.unfold'main
+  Assumptions.import'counter
 
 end github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.cmd.client1
 

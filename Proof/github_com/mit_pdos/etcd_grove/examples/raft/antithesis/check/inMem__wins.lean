@@ -45,7 +45,7 @@ theorem inMem.wins.wp_proof
   iNamed Hf
   iStructNamed Hp
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_leads_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_unfold'leads.method_unfold]
   try wp_auto
   wp_apply wp_leads gx x l $$ [Hx]
   · iframe Hx; ipureintro; exact hl

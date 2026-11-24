@@ -2266,7 +2266,7 @@ noncomputable instance controllerRevisionInformer.zero_val [GooseExts] : ZeroVal
 @[irreducible] noncomputable def controllerRevisionInformer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   controllerRevisionInformer.fieldsUnsealed
 
-noncomputable instance equals_unfold_controllerRevisionInformer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'controllerRevisionInformer [GooseExts] [GoGlobalContext] :
     EqualsUnfold controllerRevisionInformer.fields controllerRevisionInformer.fieldsUnsealed :=
   ⟨by unfold controllerRevisionInformer.fields; rfl⟩
 
@@ -2276,33 +2276,33 @@ noncomputable instance equals_unfold_controllerRevisionInformer [GooseExts] [GoG
 class controllerRevisionInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying controllerRevisionInformer.underlying controllerRevisionInformer
   underlying : go.UnderlyingDirectedEq controllerRevisionInformer.ty controllerRevisionInformer.underlying
-  get_factory : ∀ (x : controllerRevisionInformer), go.IsGoStepPureDetTagged under (StructFieldGet controllerRevisionInformer.underlying go!"factory") #x (Val #(x.factory'))
-  set_factory : ∀ (x : controllerRevisionInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldSet controllerRevisionInformer.underlying go!"factory") (PairV #x #y) (Val #(({ x with factory' := y } : controllerRevisionInformer)))
-  get_tweakListOptions : ∀ (x : controllerRevisionInformer), go.IsGoStepPureDetTagged under (StructFieldGet controllerRevisionInformer.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
-  set_tweakListOptions : ∀ (x : controllerRevisionInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet controllerRevisionInformer.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : controllerRevisionInformer)))
-  get_namespace : ∀ (x : controllerRevisionInformer), go.IsGoStepPureDetTagged under (StructFieldGet controllerRevisionInformer.underlying go!"namespace") #x (Val #(x.namespace'))
-  set_namespace : ∀ (x : controllerRevisionInformer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet controllerRevisionInformer.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : controllerRevisionInformer)))
+  get'factory : ∀ (x : controllerRevisionInformer), go.IsGoStepPureDetTagged under (StructFieldGet controllerRevisionInformer.underlying go!"factory") #x (Val #(x.factory'))
+  set'factory : ∀ (x : controllerRevisionInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldSet controllerRevisionInformer.underlying go!"factory") (PairV #x #y) (Val #(({ x with factory' := y } : controllerRevisionInformer)))
+  get'tweakListOptions : ∀ (x : controllerRevisionInformer), go.IsGoStepPureDetTagged under (StructFieldGet controllerRevisionInformer.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
+  set'tweakListOptions : ∀ (x : controllerRevisionInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet controllerRevisionInformer.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : controllerRevisionInformer)))
+  get'namespace : ∀ (x : controllerRevisionInformer), go.IsGoStepPureDetTagged under (StructFieldGet controllerRevisionInformer.underlying go!"namespace") #x (Val #(x.namespace'))
+  set'namespace : ∀ (x : controllerRevisionInformer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet controllerRevisionInformer.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : controllerRevisionInformer)))
   method_set : go.MethodSetIs controllerRevisionInformer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType controllerRevisionInformer.ty) [(go!"Informer", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"Lister", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.listers.apps.v1.ControllerRevisionLister.ty]))), (go!"TypedInformer", (some (go.signature.Signature [] false [ControllerRevisionIndexInformer.ty]))), (go!"k8s.io/client-go/informers/apps/v1.defaultInformer", (some (go.signature.Signature [_root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty, _root_.Perennial.time.Duration.ty] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty])))]
-  ptr_Informer_unfold : MethodUnfold (go.GoType.PointerType controllerRevisionInformer.ty) go!"Informer" controllerRevisionInformer.Informer.impl
-  ptr_Lister_unfold : MethodUnfold (go.GoType.PointerType controllerRevisionInformer.ty) go!"Lister" controllerRevisionInformer.Lister.impl
-  ptr_TypedInformer_unfold : MethodUnfold (go.GoType.PointerType controllerRevisionInformer.ty) go!"TypedInformer" controllerRevisionInformer.TypedInformer.impl
-  ptr_defaultInformer_unfold : MethodUnfold (go.GoType.PointerType controllerRevisionInformer.ty) go!"defaultInformer" controllerRevisionInformer.defaultInformer.impl
+  ptr_unfold'Informer : MethodUnfold (go.GoType.PointerType controllerRevisionInformer.ty) go!"Informer" controllerRevisionInformer.Informer.impl
+  ptr_unfold'Lister : MethodUnfold (go.GoType.PointerType controllerRevisionInformer.ty) go!"Lister" controllerRevisionInformer.Lister.impl
+  ptr_unfold'TypedInformer : MethodUnfold (go.GoType.PointerType controllerRevisionInformer.ty) go!"TypedInformer" controllerRevisionInformer.TypedInformer.impl
+  ptr_unfold'defaultInformer : MethodUnfold (go.GoType.PointerType controllerRevisionInformer.ty) go!"defaultInformer" controllerRevisionInformer.defaultInformer.impl
 
 attribute [instance] controllerRevisionInformer.TypeAssumptions.type_repr
   controllerRevisionInformer.TypeAssumptions.underlying
-  controllerRevisionInformer.TypeAssumptions.get_factory
-  controllerRevisionInformer.TypeAssumptions.set_factory
-  controllerRevisionInformer.TypeAssumptions.get_tweakListOptions
-  controllerRevisionInformer.TypeAssumptions.set_tweakListOptions
-  controllerRevisionInformer.TypeAssumptions.get_namespace
-  controllerRevisionInformer.TypeAssumptions.set_namespace
+  controllerRevisionInformer.TypeAssumptions.get'factory
+  controllerRevisionInformer.TypeAssumptions.set'factory
+  controllerRevisionInformer.TypeAssumptions.get'tweakListOptions
+  controllerRevisionInformer.TypeAssumptions.set'tweakListOptions
+  controllerRevisionInformer.TypeAssumptions.get'namespace
+  controllerRevisionInformer.TypeAssumptions.set'namespace
   controllerRevisionInformer.TypeAssumptions.method_set
   controllerRevisionInformer.TypeAssumptions.ptr_method_set
-  controllerRevisionInformer.TypeAssumptions.ptr_Informer_unfold
-  controllerRevisionInformer.TypeAssumptions.ptr_Lister_unfold
-  controllerRevisionInformer.TypeAssumptions.ptr_TypedInformer_unfold
-  controllerRevisionInformer.TypeAssumptions.ptr_defaultInformer_unfold
+  controllerRevisionInformer.TypeAssumptions.ptr_unfold'Informer
+  controllerRevisionInformer.TypeAssumptions.ptr_unfold'Lister
+  controllerRevisionInformer.TypeAssumptions.ptr_unfold'TypedInformer
+  controllerRevisionInformer.TypeAssumptions.ptr_unfold'defaultInformer
 
 structure controllerRevisionTypedInformerAdapter [GooseExts] where
   mk ::
@@ -2317,7 +2317,7 @@ noncomputable instance controllerRevisionTypedInformerAdapter.zero_val [GooseExt
 @[irreducible] noncomputable def controllerRevisionTypedInformerAdapter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   controllerRevisionTypedInformerAdapter.fieldsUnsealed
 
-noncomputable instance equals_unfold_controllerRevisionTypedInformerAdapter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'controllerRevisionTypedInformerAdapter [GooseExts] [GoGlobalContext] :
     EqualsUnfold controllerRevisionTypedInformerAdapter.fields controllerRevisionTypedInformerAdapter.fieldsUnsealed :=
   ⟨by unfold controllerRevisionTypedInformerAdapter.fields; rfl⟩
 
@@ -2327,31 +2327,31 @@ noncomputable instance equals_unfold_controllerRevisionTypedInformerAdapter [Goo
 class controllerRevisionTypedInformerAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying controllerRevisionTypedInformerAdapter.underlying controllerRevisionTypedInformerAdapter
   underlying : go.UnderlyingDirectedEq controllerRevisionTypedInformerAdapter.ty controllerRevisionTypedInformerAdapter.underlying
-  get_ControllerRevisionInformer : ∀ (x : controllerRevisionTypedInformerAdapter), go.IsGoStepPureDetTagged under (StructFieldGet controllerRevisionTypedInformerAdapter.underlying go!"ControllerRevisionInformer") #x (Val #(x.ControllerRevisionInformer'))
-  set_ControllerRevisionInformer : ∀ (x : controllerRevisionTypedInformerAdapter) (y : ControllerRevisionInformer), go.IsGoStepPureDetTagged under (StructFieldSet controllerRevisionTypedInformerAdapter.underlying go!"ControllerRevisionInformer") (PairV #x #y) (Val #(({ x with ControllerRevisionInformer' := y } : controllerRevisionTypedInformerAdapter)))
+  get'ControllerRevisionInformer : ∀ (x : controllerRevisionTypedInformerAdapter), go.IsGoStepPureDetTagged under (StructFieldGet controllerRevisionTypedInformerAdapter.underlying go!"ControllerRevisionInformer") #x (Val #(x.ControllerRevisionInformer'))
+  set'ControllerRevisionInformer : ∀ (x : controllerRevisionTypedInformerAdapter) (y : ControllerRevisionInformer), go.IsGoStepPureDetTagged under (StructFieldSet controllerRevisionTypedInformerAdapter.underlying go!"ControllerRevisionInformer") (PairV #x #y) (Val #(({ x with ControllerRevisionInformer' := y } : controllerRevisionTypedInformerAdapter)))
   method_set : go.MethodSetIs controllerRevisionTypedInformerAdapter.ty [(go!"Informer", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"Lister", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.listers.apps.v1.ControllerRevisionLister.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType controllerRevisionTypedInformerAdapter.ty) [(go!"Informer", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"Lister", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.listers.apps.v1.ControllerRevisionLister.ty]))), (go!"TypedInformer", (some (go.signature.Signature [] false [ControllerRevisionIndexInformer.ty])))]
-  Informer_unfold : MethodUnfold controllerRevisionTypedInformerAdapter.ty go!"Informer" (LamV "$r"
+  unfold'Informer : MethodUnfold controllerRevisionTypedInformerAdapter.ty go!"Informer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerRevisionInformer.ty go!"Informer"))) (App (Val (GoInstruction (StructFieldGet controllerRevisionTypedInformerAdapter.ty go!"ControllerRevisionInformer"))) (Var "$r"))))
-  Lister_unfold : MethodUnfold controllerRevisionTypedInformerAdapter.ty go!"Lister" (LamV "$r"
+  unfold'Lister : MethodUnfold controllerRevisionTypedInformerAdapter.ty go!"Lister" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerRevisionInformer.ty go!"Lister"))) (App (Val (GoInstruction (StructFieldGet controllerRevisionTypedInformerAdapter.ty go!"ControllerRevisionInformer"))) (Var "$r"))))
-  ptr_Informer_unfold : MethodUnfold (go.GoType.PointerType controllerRevisionTypedInformerAdapter.ty) go!"Informer" (LamV "$r"
+  ptr_unfold'Informer : MethodUnfold (go.GoType.PointerType controllerRevisionTypedInformerAdapter.ty) go!"Informer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerRevisionInformer.ty go!"Informer"))) (App (Val (GoInstruction (GoLoad ControllerRevisionInformer.ty))) (App (Val (GoInstruction (StructFieldRef controllerRevisionTypedInformerAdapter.ty go!"ControllerRevisionInformer"))) (Var "$r")))))
-  ptr_Lister_unfold : MethodUnfold (go.GoType.PointerType controllerRevisionTypedInformerAdapter.ty) go!"Lister" (LamV "$r"
+  ptr_unfold'Lister : MethodUnfold (go.GoType.PointerType controllerRevisionTypedInformerAdapter.ty) go!"Lister" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ControllerRevisionInformer.ty go!"Lister"))) (App (Val (GoInstruction (GoLoad ControllerRevisionInformer.ty))) (App (Val (GoInstruction (StructFieldRef controllerRevisionTypedInformerAdapter.ty go!"ControllerRevisionInformer"))) (Var "$r")))))
-  ptr_TypedInformer_unfold : MethodUnfold (go.GoType.PointerType controllerRevisionTypedInformerAdapter.ty) go!"TypedInformer" controllerRevisionTypedInformerAdapter.TypedInformer.impl
+  ptr_unfold'TypedInformer : MethodUnfold (go.GoType.PointerType controllerRevisionTypedInformerAdapter.ty) go!"TypedInformer" controllerRevisionTypedInformerAdapter.TypedInformer.impl
 
 attribute [instance] controllerRevisionTypedInformerAdapter.TypeAssumptions.type_repr
   controllerRevisionTypedInformerAdapter.TypeAssumptions.underlying
-  controllerRevisionTypedInformerAdapter.TypeAssumptions.get_ControllerRevisionInformer
-  controllerRevisionTypedInformerAdapter.TypeAssumptions.set_ControllerRevisionInformer
+  controllerRevisionTypedInformerAdapter.TypeAssumptions.get'ControllerRevisionInformer
+  controllerRevisionTypedInformerAdapter.TypeAssumptions.set'ControllerRevisionInformer
   controllerRevisionTypedInformerAdapter.TypeAssumptions.method_set
   controllerRevisionTypedInformerAdapter.TypeAssumptions.ptr_method_set
-  controllerRevisionTypedInformerAdapter.TypeAssumptions.Informer_unfold
-  controllerRevisionTypedInformerAdapter.TypeAssumptions.Lister_unfold
-  controllerRevisionTypedInformerAdapter.TypeAssumptions.ptr_Informer_unfold
-  controllerRevisionTypedInformerAdapter.TypeAssumptions.ptr_Lister_unfold
-  controllerRevisionTypedInformerAdapter.TypeAssumptions.ptr_TypedInformer_unfold
+  controllerRevisionTypedInformerAdapter.TypeAssumptions.unfold'Informer
+  controllerRevisionTypedInformerAdapter.TypeAssumptions.unfold'Lister
+  controllerRevisionTypedInformerAdapter.TypeAssumptions.ptr_unfold'Informer
+  controllerRevisionTypedInformerAdapter.TypeAssumptions.ptr_unfold'Lister
+  controllerRevisionTypedInformerAdapter.TypeAssumptions.ptr_unfold'TypedInformer
 
 abbrev DaemonSetInformer [GooseExts] : Type := GoInterface
 
@@ -2412,7 +2412,7 @@ noncomputable instance daemonSetInformer.zero_val [GooseExts] : ZeroVal daemonSe
 @[irreducible] noncomputable def daemonSetInformer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   daemonSetInformer.fieldsUnsealed
 
-noncomputable instance equals_unfold_daemonSetInformer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'daemonSetInformer [GooseExts] [GoGlobalContext] :
     EqualsUnfold daemonSetInformer.fields daemonSetInformer.fieldsUnsealed :=
   ⟨by unfold daemonSetInformer.fields; rfl⟩
 
@@ -2422,33 +2422,33 @@ noncomputable instance equals_unfold_daemonSetInformer [GooseExts] [GoGlobalCont
 class daemonSetInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying daemonSetInformer.underlying daemonSetInformer
   underlying : go.UnderlyingDirectedEq daemonSetInformer.ty daemonSetInformer.underlying
-  get_factory : ∀ (x : daemonSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetInformer.underlying go!"factory") #x (Val #(x.factory'))
-  set_factory : ∀ (x : daemonSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetInformer.underlying go!"factory") (PairV #x #y) (Val #(({ x with factory' := y } : daemonSetInformer)))
-  get_tweakListOptions : ∀ (x : daemonSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetInformer.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
-  set_tweakListOptions : ∀ (x : daemonSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetInformer.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : daemonSetInformer)))
-  get_namespace : ∀ (x : daemonSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetInformer.underlying go!"namespace") #x (Val #(x.namespace'))
-  set_namespace : ∀ (x : daemonSetInformer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetInformer.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : daemonSetInformer)))
+  get'factory : ∀ (x : daemonSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetInformer.underlying go!"factory") #x (Val #(x.factory'))
+  set'factory : ∀ (x : daemonSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetInformer.underlying go!"factory") (PairV #x #y) (Val #(({ x with factory' := y } : daemonSetInformer)))
+  get'tweakListOptions : ∀ (x : daemonSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetInformer.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
+  set'tweakListOptions : ∀ (x : daemonSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetInformer.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : daemonSetInformer)))
+  get'namespace : ∀ (x : daemonSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetInformer.underlying go!"namespace") #x (Val #(x.namespace'))
+  set'namespace : ∀ (x : daemonSetInformer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetInformer.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : daemonSetInformer)))
   method_set : go.MethodSetIs daemonSetInformer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType daemonSetInformer.ty) [(go!"Informer", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"Lister", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.listers.apps.v1.DaemonSetLister.ty]))), (go!"TypedInformer", (some (go.signature.Signature [] false [DaemonSetIndexInformer.ty]))), (go!"k8s.io/client-go/informers/apps/v1.defaultInformer", (some (go.signature.Signature [_root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty, _root_.Perennial.time.Duration.ty] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty])))]
-  ptr_Informer_unfold : MethodUnfold (go.GoType.PointerType daemonSetInformer.ty) go!"Informer" daemonSetInformer.Informer.impl
-  ptr_Lister_unfold : MethodUnfold (go.GoType.PointerType daemonSetInformer.ty) go!"Lister" daemonSetInformer.Lister.impl
-  ptr_TypedInformer_unfold : MethodUnfold (go.GoType.PointerType daemonSetInformer.ty) go!"TypedInformer" daemonSetInformer.TypedInformer.impl
-  ptr_defaultInformer_unfold : MethodUnfold (go.GoType.PointerType daemonSetInformer.ty) go!"defaultInformer" daemonSetInformer.defaultInformer.impl
+  ptr_unfold'Informer : MethodUnfold (go.GoType.PointerType daemonSetInformer.ty) go!"Informer" daemonSetInformer.Informer.impl
+  ptr_unfold'Lister : MethodUnfold (go.GoType.PointerType daemonSetInformer.ty) go!"Lister" daemonSetInformer.Lister.impl
+  ptr_unfold'TypedInformer : MethodUnfold (go.GoType.PointerType daemonSetInformer.ty) go!"TypedInformer" daemonSetInformer.TypedInformer.impl
+  ptr_unfold'defaultInformer : MethodUnfold (go.GoType.PointerType daemonSetInformer.ty) go!"defaultInformer" daemonSetInformer.defaultInformer.impl
 
 attribute [instance] daemonSetInformer.TypeAssumptions.type_repr
   daemonSetInformer.TypeAssumptions.underlying
-  daemonSetInformer.TypeAssumptions.get_factory
-  daemonSetInformer.TypeAssumptions.set_factory
-  daemonSetInformer.TypeAssumptions.get_tweakListOptions
-  daemonSetInformer.TypeAssumptions.set_tweakListOptions
-  daemonSetInformer.TypeAssumptions.get_namespace
-  daemonSetInformer.TypeAssumptions.set_namespace
+  daemonSetInformer.TypeAssumptions.get'factory
+  daemonSetInformer.TypeAssumptions.set'factory
+  daemonSetInformer.TypeAssumptions.get'tweakListOptions
+  daemonSetInformer.TypeAssumptions.set'tweakListOptions
+  daemonSetInformer.TypeAssumptions.get'namespace
+  daemonSetInformer.TypeAssumptions.set'namespace
   daemonSetInformer.TypeAssumptions.method_set
   daemonSetInformer.TypeAssumptions.ptr_method_set
-  daemonSetInformer.TypeAssumptions.ptr_Informer_unfold
-  daemonSetInformer.TypeAssumptions.ptr_Lister_unfold
-  daemonSetInformer.TypeAssumptions.ptr_TypedInformer_unfold
-  daemonSetInformer.TypeAssumptions.ptr_defaultInformer_unfold
+  daemonSetInformer.TypeAssumptions.ptr_unfold'Informer
+  daemonSetInformer.TypeAssumptions.ptr_unfold'Lister
+  daemonSetInformer.TypeAssumptions.ptr_unfold'TypedInformer
+  daemonSetInformer.TypeAssumptions.ptr_unfold'defaultInformer
 
 structure daemonSetTypedInformerAdapter [GooseExts] where
   mk ::
@@ -2463,7 +2463,7 @@ noncomputable instance daemonSetTypedInformerAdapter.zero_val [GooseExts] : Zero
 @[irreducible] noncomputable def daemonSetTypedInformerAdapter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   daemonSetTypedInformerAdapter.fieldsUnsealed
 
-noncomputable instance equals_unfold_daemonSetTypedInformerAdapter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'daemonSetTypedInformerAdapter [GooseExts] [GoGlobalContext] :
     EqualsUnfold daemonSetTypedInformerAdapter.fields daemonSetTypedInformerAdapter.fieldsUnsealed :=
   ⟨by unfold daemonSetTypedInformerAdapter.fields; rfl⟩
 
@@ -2473,31 +2473,31 @@ noncomputable instance equals_unfold_daemonSetTypedInformerAdapter [GooseExts] [
 class daemonSetTypedInformerAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying daemonSetTypedInformerAdapter.underlying daemonSetTypedInformerAdapter
   underlying : go.UnderlyingDirectedEq daemonSetTypedInformerAdapter.ty daemonSetTypedInformerAdapter.underlying
-  get_DaemonSetInformer : ∀ (x : daemonSetTypedInformerAdapter), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetTypedInformerAdapter.underlying go!"DaemonSetInformer") #x (Val #(x.DaemonSetInformer'))
-  set_DaemonSetInformer : ∀ (x : daemonSetTypedInformerAdapter) (y : DaemonSetInformer), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetTypedInformerAdapter.underlying go!"DaemonSetInformer") (PairV #x #y) (Val #(({ x with DaemonSetInformer' := y } : daemonSetTypedInformerAdapter)))
+  get'DaemonSetInformer : ∀ (x : daemonSetTypedInformerAdapter), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetTypedInformerAdapter.underlying go!"DaemonSetInformer") #x (Val #(x.DaemonSetInformer'))
+  set'DaemonSetInformer : ∀ (x : daemonSetTypedInformerAdapter) (y : DaemonSetInformer), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetTypedInformerAdapter.underlying go!"DaemonSetInformer") (PairV #x #y) (Val #(({ x with DaemonSetInformer' := y } : daemonSetTypedInformerAdapter)))
   method_set : go.MethodSetIs daemonSetTypedInformerAdapter.ty [(go!"Informer", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"Lister", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.listers.apps.v1.DaemonSetLister.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType daemonSetTypedInformerAdapter.ty) [(go!"Informer", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"Lister", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.listers.apps.v1.DaemonSetLister.ty]))), (go!"TypedInformer", (some (go.signature.Signature [] false [DaemonSetIndexInformer.ty])))]
-  Informer_unfold : MethodUnfold daemonSetTypedInformerAdapter.ty go!"Informer" (LamV "$r"
+  unfold'Informer : MethodUnfold daemonSetTypedInformerAdapter.ty go!"Informer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve DaemonSetInformer.ty go!"Informer"))) (App (Val (GoInstruction (StructFieldGet daemonSetTypedInformerAdapter.ty go!"DaemonSetInformer"))) (Var "$r"))))
-  Lister_unfold : MethodUnfold daemonSetTypedInformerAdapter.ty go!"Lister" (LamV "$r"
+  unfold'Lister : MethodUnfold daemonSetTypedInformerAdapter.ty go!"Lister" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve DaemonSetInformer.ty go!"Lister"))) (App (Val (GoInstruction (StructFieldGet daemonSetTypedInformerAdapter.ty go!"DaemonSetInformer"))) (Var "$r"))))
-  ptr_Informer_unfold : MethodUnfold (go.GoType.PointerType daemonSetTypedInformerAdapter.ty) go!"Informer" (LamV "$r"
+  ptr_unfold'Informer : MethodUnfold (go.GoType.PointerType daemonSetTypedInformerAdapter.ty) go!"Informer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve DaemonSetInformer.ty go!"Informer"))) (App (Val (GoInstruction (GoLoad DaemonSetInformer.ty))) (App (Val (GoInstruction (StructFieldRef daemonSetTypedInformerAdapter.ty go!"DaemonSetInformer"))) (Var "$r")))))
-  ptr_Lister_unfold : MethodUnfold (go.GoType.PointerType daemonSetTypedInformerAdapter.ty) go!"Lister" (LamV "$r"
+  ptr_unfold'Lister : MethodUnfold (go.GoType.PointerType daemonSetTypedInformerAdapter.ty) go!"Lister" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve DaemonSetInformer.ty go!"Lister"))) (App (Val (GoInstruction (GoLoad DaemonSetInformer.ty))) (App (Val (GoInstruction (StructFieldRef daemonSetTypedInformerAdapter.ty go!"DaemonSetInformer"))) (Var "$r")))))
-  ptr_TypedInformer_unfold : MethodUnfold (go.GoType.PointerType daemonSetTypedInformerAdapter.ty) go!"TypedInformer" daemonSetTypedInformerAdapter.TypedInformer.impl
+  ptr_unfold'TypedInformer : MethodUnfold (go.GoType.PointerType daemonSetTypedInformerAdapter.ty) go!"TypedInformer" daemonSetTypedInformerAdapter.TypedInformer.impl
 
 attribute [instance] daemonSetTypedInformerAdapter.TypeAssumptions.type_repr
   daemonSetTypedInformerAdapter.TypeAssumptions.underlying
-  daemonSetTypedInformerAdapter.TypeAssumptions.get_DaemonSetInformer
-  daemonSetTypedInformerAdapter.TypeAssumptions.set_DaemonSetInformer
+  daemonSetTypedInformerAdapter.TypeAssumptions.get'DaemonSetInformer
+  daemonSetTypedInformerAdapter.TypeAssumptions.set'DaemonSetInformer
   daemonSetTypedInformerAdapter.TypeAssumptions.method_set
   daemonSetTypedInformerAdapter.TypeAssumptions.ptr_method_set
-  daemonSetTypedInformerAdapter.TypeAssumptions.Informer_unfold
-  daemonSetTypedInformerAdapter.TypeAssumptions.Lister_unfold
-  daemonSetTypedInformerAdapter.TypeAssumptions.ptr_Informer_unfold
-  daemonSetTypedInformerAdapter.TypeAssumptions.ptr_Lister_unfold
-  daemonSetTypedInformerAdapter.TypeAssumptions.ptr_TypedInformer_unfold
+  daemonSetTypedInformerAdapter.TypeAssumptions.unfold'Informer
+  daemonSetTypedInformerAdapter.TypeAssumptions.unfold'Lister
+  daemonSetTypedInformerAdapter.TypeAssumptions.ptr_unfold'Informer
+  daemonSetTypedInformerAdapter.TypeAssumptions.ptr_unfold'Lister
+  daemonSetTypedInformerAdapter.TypeAssumptions.ptr_unfold'TypedInformer
 
 abbrev DeploymentInformer [GooseExts] : Type := GoInterface
 
@@ -2558,7 +2558,7 @@ noncomputable instance deploymentInformer.zero_val [GooseExts] : ZeroVal deploym
 @[irreducible] noncomputable def deploymentInformer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   deploymentInformer.fieldsUnsealed
 
-noncomputable instance equals_unfold_deploymentInformer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'deploymentInformer [GooseExts] [GoGlobalContext] :
     EqualsUnfold deploymentInformer.fields deploymentInformer.fieldsUnsealed :=
   ⟨by unfold deploymentInformer.fields; rfl⟩
 
@@ -2568,33 +2568,33 @@ noncomputable instance equals_unfold_deploymentInformer [GooseExts] [GoGlobalCon
 class deploymentInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying deploymentInformer.underlying deploymentInformer
   underlying : go.UnderlyingDirectedEq deploymentInformer.ty deploymentInformer.underlying
-  get_factory : ∀ (x : deploymentInformer), go.IsGoStepPureDetTagged under (StructFieldGet deploymentInformer.underlying go!"factory") #x (Val #(x.factory'))
-  set_factory : ∀ (x : deploymentInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldSet deploymentInformer.underlying go!"factory") (PairV #x #y) (Val #(({ x with factory' := y } : deploymentInformer)))
-  get_tweakListOptions : ∀ (x : deploymentInformer), go.IsGoStepPureDetTagged under (StructFieldGet deploymentInformer.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
-  set_tweakListOptions : ∀ (x : deploymentInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet deploymentInformer.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : deploymentInformer)))
-  get_namespace : ∀ (x : deploymentInformer), go.IsGoStepPureDetTagged under (StructFieldGet deploymentInformer.underlying go!"namespace") #x (Val #(x.namespace'))
-  set_namespace : ∀ (x : deploymentInformer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet deploymentInformer.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : deploymentInformer)))
+  get'factory : ∀ (x : deploymentInformer), go.IsGoStepPureDetTagged under (StructFieldGet deploymentInformer.underlying go!"factory") #x (Val #(x.factory'))
+  set'factory : ∀ (x : deploymentInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldSet deploymentInformer.underlying go!"factory") (PairV #x #y) (Val #(({ x with factory' := y } : deploymentInformer)))
+  get'tweakListOptions : ∀ (x : deploymentInformer), go.IsGoStepPureDetTagged under (StructFieldGet deploymentInformer.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
+  set'tweakListOptions : ∀ (x : deploymentInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet deploymentInformer.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : deploymentInformer)))
+  get'namespace : ∀ (x : deploymentInformer), go.IsGoStepPureDetTagged under (StructFieldGet deploymentInformer.underlying go!"namespace") #x (Val #(x.namespace'))
+  set'namespace : ∀ (x : deploymentInformer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet deploymentInformer.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : deploymentInformer)))
   method_set : go.MethodSetIs deploymentInformer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType deploymentInformer.ty) [(go!"Informer", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"Lister", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.listers.apps.v1.DeploymentLister.ty]))), (go!"TypedInformer", (some (go.signature.Signature [] false [DeploymentIndexInformer.ty]))), (go!"k8s.io/client-go/informers/apps/v1.defaultInformer", (some (go.signature.Signature [_root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty, _root_.Perennial.time.Duration.ty] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty])))]
-  ptr_Informer_unfold : MethodUnfold (go.GoType.PointerType deploymentInformer.ty) go!"Informer" deploymentInformer.Informer.impl
-  ptr_Lister_unfold : MethodUnfold (go.GoType.PointerType deploymentInformer.ty) go!"Lister" deploymentInformer.Lister.impl
-  ptr_TypedInformer_unfold : MethodUnfold (go.GoType.PointerType deploymentInformer.ty) go!"TypedInformer" deploymentInformer.TypedInformer.impl
-  ptr_defaultInformer_unfold : MethodUnfold (go.GoType.PointerType deploymentInformer.ty) go!"defaultInformer" deploymentInformer.defaultInformer.impl
+  ptr_unfold'Informer : MethodUnfold (go.GoType.PointerType deploymentInformer.ty) go!"Informer" deploymentInformer.Informer.impl
+  ptr_unfold'Lister : MethodUnfold (go.GoType.PointerType deploymentInformer.ty) go!"Lister" deploymentInformer.Lister.impl
+  ptr_unfold'TypedInformer : MethodUnfold (go.GoType.PointerType deploymentInformer.ty) go!"TypedInformer" deploymentInformer.TypedInformer.impl
+  ptr_unfold'defaultInformer : MethodUnfold (go.GoType.PointerType deploymentInformer.ty) go!"defaultInformer" deploymentInformer.defaultInformer.impl
 
 attribute [instance] deploymentInformer.TypeAssumptions.type_repr
   deploymentInformer.TypeAssumptions.underlying
-  deploymentInformer.TypeAssumptions.get_factory
-  deploymentInformer.TypeAssumptions.set_factory
-  deploymentInformer.TypeAssumptions.get_tweakListOptions
-  deploymentInformer.TypeAssumptions.set_tweakListOptions
-  deploymentInformer.TypeAssumptions.get_namespace
-  deploymentInformer.TypeAssumptions.set_namespace
+  deploymentInformer.TypeAssumptions.get'factory
+  deploymentInformer.TypeAssumptions.set'factory
+  deploymentInformer.TypeAssumptions.get'tweakListOptions
+  deploymentInformer.TypeAssumptions.set'tweakListOptions
+  deploymentInformer.TypeAssumptions.get'namespace
+  deploymentInformer.TypeAssumptions.set'namespace
   deploymentInformer.TypeAssumptions.method_set
   deploymentInformer.TypeAssumptions.ptr_method_set
-  deploymentInformer.TypeAssumptions.ptr_Informer_unfold
-  deploymentInformer.TypeAssumptions.ptr_Lister_unfold
-  deploymentInformer.TypeAssumptions.ptr_TypedInformer_unfold
-  deploymentInformer.TypeAssumptions.ptr_defaultInformer_unfold
+  deploymentInformer.TypeAssumptions.ptr_unfold'Informer
+  deploymentInformer.TypeAssumptions.ptr_unfold'Lister
+  deploymentInformer.TypeAssumptions.ptr_unfold'TypedInformer
+  deploymentInformer.TypeAssumptions.ptr_unfold'defaultInformer
 
 structure deploymentTypedInformerAdapter [GooseExts] where
   mk ::
@@ -2609,7 +2609,7 @@ noncomputable instance deploymentTypedInformerAdapter.zero_val [GooseExts] : Zer
 @[irreducible] noncomputable def deploymentTypedInformerAdapter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   deploymentTypedInformerAdapter.fieldsUnsealed
 
-noncomputable instance equals_unfold_deploymentTypedInformerAdapter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'deploymentTypedInformerAdapter [GooseExts] [GoGlobalContext] :
     EqualsUnfold deploymentTypedInformerAdapter.fields deploymentTypedInformerAdapter.fieldsUnsealed :=
   ⟨by unfold deploymentTypedInformerAdapter.fields; rfl⟩
 
@@ -2619,31 +2619,31 @@ noncomputable instance equals_unfold_deploymentTypedInformerAdapter [GooseExts] 
 class deploymentTypedInformerAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying deploymentTypedInformerAdapter.underlying deploymentTypedInformerAdapter
   underlying : go.UnderlyingDirectedEq deploymentTypedInformerAdapter.ty deploymentTypedInformerAdapter.underlying
-  get_DeploymentInformer : ∀ (x : deploymentTypedInformerAdapter), go.IsGoStepPureDetTagged under (StructFieldGet deploymentTypedInformerAdapter.underlying go!"DeploymentInformer") #x (Val #(x.DeploymentInformer'))
-  set_DeploymentInformer : ∀ (x : deploymentTypedInformerAdapter) (y : DeploymentInformer), go.IsGoStepPureDetTagged under (StructFieldSet deploymentTypedInformerAdapter.underlying go!"DeploymentInformer") (PairV #x #y) (Val #(({ x with DeploymentInformer' := y } : deploymentTypedInformerAdapter)))
+  get'DeploymentInformer : ∀ (x : deploymentTypedInformerAdapter), go.IsGoStepPureDetTagged under (StructFieldGet deploymentTypedInformerAdapter.underlying go!"DeploymentInformer") #x (Val #(x.DeploymentInformer'))
+  set'DeploymentInformer : ∀ (x : deploymentTypedInformerAdapter) (y : DeploymentInformer), go.IsGoStepPureDetTagged under (StructFieldSet deploymentTypedInformerAdapter.underlying go!"DeploymentInformer") (PairV #x #y) (Val #(({ x with DeploymentInformer' := y } : deploymentTypedInformerAdapter)))
   method_set : go.MethodSetIs deploymentTypedInformerAdapter.ty [(go!"Informer", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"Lister", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.listers.apps.v1.DeploymentLister.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType deploymentTypedInformerAdapter.ty) [(go!"Informer", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"Lister", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.listers.apps.v1.DeploymentLister.ty]))), (go!"TypedInformer", (some (go.signature.Signature [] false [DeploymentIndexInformer.ty])))]
-  Informer_unfold : MethodUnfold deploymentTypedInformerAdapter.ty go!"Informer" (LamV "$r"
+  unfold'Informer : MethodUnfold deploymentTypedInformerAdapter.ty go!"Informer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve DeploymentInformer.ty go!"Informer"))) (App (Val (GoInstruction (StructFieldGet deploymentTypedInformerAdapter.ty go!"DeploymentInformer"))) (Var "$r"))))
-  Lister_unfold : MethodUnfold deploymentTypedInformerAdapter.ty go!"Lister" (LamV "$r"
+  unfold'Lister : MethodUnfold deploymentTypedInformerAdapter.ty go!"Lister" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve DeploymentInformer.ty go!"Lister"))) (App (Val (GoInstruction (StructFieldGet deploymentTypedInformerAdapter.ty go!"DeploymentInformer"))) (Var "$r"))))
-  ptr_Informer_unfold : MethodUnfold (go.GoType.PointerType deploymentTypedInformerAdapter.ty) go!"Informer" (LamV "$r"
+  ptr_unfold'Informer : MethodUnfold (go.GoType.PointerType deploymentTypedInformerAdapter.ty) go!"Informer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve DeploymentInformer.ty go!"Informer"))) (App (Val (GoInstruction (GoLoad DeploymentInformer.ty))) (App (Val (GoInstruction (StructFieldRef deploymentTypedInformerAdapter.ty go!"DeploymentInformer"))) (Var "$r")))))
-  ptr_Lister_unfold : MethodUnfold (go.GoType.PointerType deploymentTypedInformerAdapter.ty) go!"Lister" (LamV "$r"
+  ptr_unfold'Lister : MethodUnfold (go.GoType.PointerType deploymentTypedInformerAdapter.ty) go!"Lister" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve DeploymentInformer.ty go!"Lister"))) (App (Val (GoInstruction (GoLoad DeploymentInformer.ty))) (App (Val (GoInstruction (StructFieldRef deploymentTypedInformerAdapter.ty go!"DeploymentInformer"))) (Var "$r")))))
-  ptr_TypedInformer_unfold : MethodUnfold (go.GoType.PointerType deploymentTypedInformerAdapter.ty) go!"TypedInformer" deploymentTypedInformerAdapter.TypedInformer.impl
+  ptr_unfold'TypedInformer : MethodUnfold (go.GoType.PointerType deploymentTypedInformerAdapter.ty) go!"TypedInformer" deploymentTypedInformerAdapter.TypedInformer.impl
 
 attribute [instance] deploymentTypedInformerAdapter.TypeAssumptions.type_repr
   deploymentTypedInformerAdapter.TypeAssumptions.underlying
-  deploymentTypedInformerAdapter.TypeAssumptions.get_DeploymentInformer
-  deploymentTypedInformerAdapter.TypeAssumptions.set_DeploymentInformer
+  deploymentTypedInformerAdapter.TypeAssumptions.get'DeploymentInformer
+  deploymentTypedInformerAdapter.TypeAssumptions.set'DeploymentInformer
   deploymentTypedInformerAdapter.TypeAssumptions.method_set
   deploymentTypedInformerAdapter.TypeAssumptions.ptr_method_set
-  deploymentTypedInformerAdapter.TypeAssumptions.Informer_unfold
-  deploymentTypedInformerAdapter.TypeAssumptions.Lister_unfold
-  deploymentTypedInformerAdapter.TypeAssumptions.ptr_Informer_unfold
-  deploymentTypedInformerAdapter.TypeAssumptions.ptr_Lister_unfold
-  deploymentTypedInformerAdapter.TypeAssumptions.ptr_TypedInformer_unfold
+  deploymentTypedInformerAdapter.TypeAssumptions.unfold'Informer
+  deploymentTypedInformerAdapter.TypeAssumptions.unfold'Lister
+  deploymentTypedInformerAdapter.TypeAssumptions.ptr_unfold'Informer
+  deploymentTypedInformerAdapter.TypeAssumptions.ptr_unfold'Lister
+  deploymentTypedInformerAdapter.TypeAssumptions.ptr_unfold'TypedInformer
 
 abbrev Interface [GooseExts] : Type := GoInterface
 
@@ -2676,7 +2676,7 @@ noncomputable instance version.zero_val [GooseExts] : ZeroVal version :=
 @[irreducible] noncomputable def version.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   version.fieldsUnsealed
 
-noncomputable instance equals_unfold_version [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'version [GooseExts] [GoGlobalContext] :
     EqualsUnfold version.fields version.fieldsUnsealed :=
   ⟨by unfold version.fields; rfl⟩
 
@@ -2686,35 +2686,35 @@ noncomputable instance equals_unfold_version [GooseExts] [GoGlobalContext] :
 class version.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying version.underlying version
   underlying : go.UnderlyingDirectedEq version.ty version.underlying
-  get_factory : ∀ (x : version), go.IsGoStepPureDetTagged under (StructFieldGet version.underlying go!"factory") #x (Val #(x.factory'))
-  set_factory : ∀ (x : version) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldSet version.underlying go!"factory") (PairV #x #y) (Val #(({ x with factory' := y } : version)))
-  get_namespace : ∀ (x : version), go.IsGoStepPureDetTagged under (StructFieldGet version.underlying go!"namespace") #x (Val #(x.namespace'))
-  set_namespace : ∀ (x : version) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet version.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : version)))
-  get_tweakListOptions : ∀ (x : version), go.IsGoStepPureDetTagged under (StructFieldGet version.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
-  set_tweakListOptions : ∀ (x : version) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet version.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : version)))
+  get'factory : ∀ (x : version), go.IsGoStepPureDetTagged under (StructFieldGet version.underlying go!"factory") #x (Val #(x.factory'))
+  set'factory : ∀ (x : version) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldSet version.underlying go!"factory") (PairV #x #y) (Val #(({ x with factory' := y } : version)))
+  get'namespace : ∀ (x : version), go.IsGoStepPureDetTagged under (StructFieldGet version.underlying go!"namespace") #x (Val #(x.namespace'))
+  set'namespace : ∀ (x : version) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet version.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : version)))
+  get'tweakListOptions : ∀ (x : version), go.IsGoStepPureDetTagged under (StructFieldGet version.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
+  set'tweakListOptions : ∀ (x : version) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet version.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : version)))
   method_set : go.MethodSetIs version.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType version.ty) [(go!"ControllerRevisions", (some (go.signature.Signature [] false [TypedControllerRevisionInformer.ty]))), (go!"DaemonSets", (some (go.signature.Signature [] false [TypedDaemonSetInformer.ty]))), (go!"Deployments", (some (go.signature.Signature [] false [TypedDeploymentInformer.ty]))), (go!"ReplicaSets", (some (go.signature.Signature [] false [TypedReplicaSetInformer.ty]))), (go!"StatefulSets", (some (go.signature.Signature [] false [TypedStatefulSetInformer.ty])))]
-  ptr_ControllerRevisions_unfold : MethodUnfold (go.GoType.PointerType version.ty) go!"ControllerRevisions" version.ControllerRevisions.impl
-  ptr_DaemonSets_unfold : MethodUnfold (go.GoType.PointerType version.ty) go!"DaemonSets" version.DaemonSets.impl
-  ptr_Deployments_unfold : MethodUnfold (go.GoType.PointerType version.ty) go!"Deployments" version.Deployments.impl
-  ptr_ReplicaSets_unfold : MethodUnfold (go.GoType.PointerType version.ty) go!"ReplicaSets" version.ReplicaSets.impl
-  ptr_StatefulSets_unfold : MethodUnfold (go.GoType.PointerType version.ty) go!"StatefulSets" version.StatefulSets.impl
+  ptr_unfold'ControllerRevisions : MethodUnfold (go.GoType.PointerType version.ty) go!"ControllerRevisions" version.ControllerRevisions.impl
+  ptr_unfold'DaemonSets : MethodUnfold (go.GoType.PointerType version.ty) go!"DaemonSets" version.DaemonSets.impl
+  ptr_unfold'Deployments : MethodUnfold (go.GoType.PointerType version.ty) go!"Deployments" version.Deployments.impl
+  ptr_unfold'ReplicaSets : MethodUnfold (go.GoType.PointerType version.ty) go!"ReplicaSets" version.ReplicaSets.impl
+  ptr_unfold'StatefulSets : MethodUnfold (go.GoType.PointerType version.ty) go!"StatefulSets" version.StatefulSets.impl
 
 attribute [instance] version.TypeAssumptions.type_repr
   version.TypeAssumptions.underlying
-  version.TypeAssumptions.get_factory
-  version.TypeAssumptions.set_factory
-  version.TypeAssumptions.get_namespace
-  version.TypeAssumptions.set_namespace
-  version.TypeAssumptions.get_tweakListOptions
-  version.TypeAssumptions.set_tweakListOptions
+  version.TypeAssumptions.get'factory
+  version.TypeAssumptions.set'factory
+  version.TypeAssumptions.get'namespace
+  version.TypeAssumptions.set'namespace
+  version.TypeAssumptions.get'tweakListOptions
+  version.TypeAssumptions.set'tweakListOptions
   version.TypeAssumptions.method_set
   version.TypeAssumptions.ptr_method_set
-  version.TypeAssumptions.ptr_ControllerRevisions_unfold
-  version.TypeAssumptions.ptr_DaemonSets_unfold
-  version.TypeAssumptions.ptr_Deployments_unfold
-  version.TypeAssumptions.ptr_ReplicaSets_unfold
-  version.TypeAssumptions.ptr_StatefulSets_unfold
+  version.TypeAssumptions.ptr_unfold'ControllerRevisions
+  version.TypeAssumptions.ptr_unfold'DaemonSets
+  version.TypeAssumptions.ptr_unfold'Deployments
+  version.TypeAssumptions.ptr_unfold'ReplicaSets
+  version.TypeAssumptions.ptr_unfold'StatefulSets
 
 abbrev ReplicaSetInformer [GooseExts] : Type := GoInterface
 
@@ -2775,7 +2775,7 @@ noncomputable instance replicaSetInformer.zero_val [GooseExts] : ZeroVal replica
 @[irreducible] noncomputable def replicaSetInformer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   replicaSetInformer.fieldsUnsealed
 
-noncomputable instance equals_unfold_replicaSetInformer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'replicaSetInformer [GooseExts] [GoGlobalContext] :
     EqualsUnfold replicaSetInformer.fields replicaSetInformer.fieldsUnsealed :=
   ⟨by unfold replicaSetInformer.fields; rfl⟩
 
@@ -2785,33 +2785,33 @@ noncomputable instance equals_unfold_replicaSetInformer [GooseExts] [GoGlobalCon
 class replicaSetInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying replicaSetInformer.underlying replicaSetInformer
   underlying : go.UnderlyingDirectedEq replicaSetInformer.ty replicaSetInformer.underlying
-  get_factory : ∀ (x : replicaSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet replicaSetInformer.underlying go!"factory") #x (Val #(x.factory'))
-  set_factory : ∀ (x : replicaSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldSet replicaSetInformer.underlying go!"factory") (PairV #x #y) (Val #(({ x with factory' := y } : replicaSetInformer)))
-  get_tweakListOptions : ∀ (x : replicaSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet replicaSetInformer.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
-  set_tweakListOptions : ∀ (x : replicaSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet replicaSetInformer.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : replicaSetInformer)))
-  get_namespace : ∀ (x : replicaSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet replicaSetInformer.underlying go!"namespace") #x (Val #(x.namespace'))
-  set_namespace : ∀ (x : replicaSetInformer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet replicaSetInformer.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : replicaSetInformer)))
+  get'factory : ∀ (x : replicaSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet replicaSetInformer.underlying go!"factory") #x (Val #(x.factory'))
+  set'factory : ∀ (x : replicaSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldSet replicaSetInformer.underlying go!"factory") (PairV #x #y) (Val #(({ x with factory' := y } : replicaSetInformer)))
+  get'tweakListOptions : ∀ (x : replicaSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet replicaSetInformer.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
+  set'tweakListOptions : ∀ (x : replicaSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet replicaSetInformer.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : replicaSetInformer)))
+  get'namespace : ∀ (x : replicaSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet replicaSetInformer.underlying go!"namespace") #x (Val #(x.namespace'))
+  set'namespace : ∀ (x : replicaSetInformer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet replicaSetInformer.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : replicaSetInformer)))
   method_set : go.MethodSetIs replicaSetInformer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType replicaSetInformer.ty) [(go!"Informer", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"Lister", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.listers.apps.v1.ReplicaSetLister.ty]))), (go!"TypedInformer", (some (go.signature.Signature [] false [ReplicaSetIndexInformer.ty]))), (go!"k8s.io/client-go/informers/apps/v1.defaultInformer", (some (go.signature.Signature [_root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty, _root_.Perennial.time.Duration.ty] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty])))]
-  ptr_Informer_unfold : MethodUnfold (go.GoType.PointerType replicaSetInformer.ty) go!"Informer" replicaSetInformer.Informer.impl
-  ptr_Lister_unfold : MethodUnfold (go.GoType.PointerType replicaSetInformer.ty) go!"Lister" replicaSetInformer.Lister.impl
-  ptr_TypedInformer_unfold : MethodUnfold (go.GoType.PointerType replicaSetInformer.ty) go!"TypedInformer" replicaSetInformer.TypedInformer.impl
-  ptr_defaultInformer_unfold : MethodUnfold (go.GoType.PointerType replicaSetInformer.ty) go!"defaultInformer" replicaSetInformer.defaultInformer.impl
+  ptr_unfold'Informer : MethodUnfold (go.GoType.PointerType replicaSetInformer.ty) go!"Informer" replicaSetInformer.Informer.impl
+  ptr_unfold'Lister : MethodUnfold (go.GoType.PointerType replicaSetInformer.ty) go!"Lister" replicaSetInformer.Lister.impl
+  ptr_unfold'TypedInformer : MethodUnfold (go.GoType.PointerType replicaSetInformer.ty) go!"TypedInformer" replicaSetInformer.TypedInformer.impl
+  ptr_unfold'defaultInformer : MethodUnfold (go.GoType.PointerType replicaSetInformer.ty) go!"defaultInformer" replicaSetInformer.defaultInformer.impl
 
 attribute [instance] replicaSetInformer.TypeAssumptions.type_repr
   replicaSetInformer.TypeAssumptions.underlying
-  replicaSetInformer.TypeAssumptions.get_factory
-  replicaSetInformer.TypeAssumptions.set_factory
-  replicaSetInformer.TypeAssumptions.get_tweakListOptions
-  replicaSetInformer.TypeAssumptions.set_tweakListOptions
-  replicaSetInformer.TypeAssumptions.get_namespace
-  replicaSetInformer.TypeAssumptions.set_namespace
+  replicaSetInformer.TypeAssumptions.get'factory
+  replicaSetInformer.TypeAssumptions.set'factory
+  replicaSetInformer.TypeAssumptions.get'tweakListOptions
+  replicaSetInformer.TypeAssumptions.set'tweakListOptions
+  replicaSetInformer.TypeAssumptions.get'namespace
+  replicaSetInformer.TypeAssumptions.set'namespace
   replicaSetInformer.TypeAssumptions.method_set
   replicaSetInformer.TypeAssumptions.ptr_method_set
-  replicaSetInformer.TypeAssumptions.ptr_Informer_unfold
-  replicaSetInformer.TypeAssumptions.ptr_Lister_unfold
-  replicaSetInformer.TypeAssumptions.ptr_TypedInformer_unfold
-  replicaSetInformer.TypeAssumptions.ptr_defaultInformer_unfold
+  replicaSetInformer.TypeAssumptions.ptr_unfold'Informer
+  replicaSetInformer.TypeAssumptions.ptr_unfold'Lister
+  replicaSetInformer.TypeAssumptions.ptr_unfold'TypedInformer
+  replicaSetInformer.TypeAssumptions.ptr_unfold'defaultInformer
 
 structure replicaSetTypedInformerAdapter [GooseExts] where
   mk ::
@@ -2826,7 +2826,7 @@ noncomputable instance replicaSetTypedInformerAdapter.zero_val [GooseExts] : Zer
 @[irreducible] noncomputable def replicaSetTypedInformerAdapter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   replicaSetTypedInformerAdapter.fieldsUnsealed
 
-noncomputable instance equals_unfold_replicaSetTypedInformerAdapter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'replicaSetTypedInformerAdapter [GooseExts] [GoGlobalContext] :
     EqualsUnfold replicaSetTypedInformerAdapter.fields replicaSetTypedInformerAdapter.fieldsUnsealed :=
   ⟨by unfold replicaSetTypedInformerAdapter.fields; rfl⟩
 
@@ -2836,31 +2836,31 @@ noncomputable instance equals_unfold_replicaSetTypedInformerAdapter [GooseExts] 
 class replicaSetTypedInformerAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying replicaSetTypedInformerAdapter.underlying replicaSetTypedInformerAdapter
   underlying : go.UnderlyingDirectedEq replicaSetTypedInformerAdapter.ty replicaSetTypedInformerAdapter.underlying
-  get_ReplicaSetInformer : ∀ (x : replicaSetTypedInformerAdapter), go.IsGoStepPureDetTagged under (StructFieldGet replicaSetTypedInformerAdapter.underlying go!"ReplicaSetInformer") #x (Val #(x.ReplicaSetInformer'))
-  set_ReplicaSetInformer : ∀ (x : replicaSetTypedInformerAdapter) (y : ReplicaSetInformer), go.IsGoStepPureDetTagged under (StructFieldSet replicaSetTypedInformerAdapter.underlying go!"ReplicaSetInformer") (PairV #x #y) (Val #(({ x with ReplicaSetInformer' := y } : replicaSetTypedInformerAdapter)))
+  get'ReplicaSetInformer : ∀ (x : replicaSetTypedInformerAdapter), go.IsGoStepPureDetTagged under (StructFieldGet replicaSetTypedInformerAdapter.underlying go!"ReplicaSetInformer") #x (Val #(x.ReplicaSetInformer'))
+  set'ReplicaSetInformer : ∀ (x : replicaSetTypedInformerAdapter) (y : ReplicaSetInformer), go.IsGoStepPureDetTagged under (StructFieldSet replicaSetTypedInformerAdapter.underlying go!"ReplicaSetInformer") (PairV #x #y) (Val #(({ x with ReplicaSetInformer' := y } : replicaSetTypedInformerAdapter)))
   method_set : go.MethodSetIs replicaSetTypedInformerAdapter.ty [(go!"Informer", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"Lister", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.listers.apps.v1.ReplicaSetLister.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType replicaSetTypedInformerAdapter.ty) [(go!"Informer", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"Lister", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.listers.apps.v1.ReplicaSetLister.ty]))), (go!"TypedInformer", (some (go.signature.Signature [] false [ReplicaSetIndexInformer.ty])))]
-  Informer_unfold : MethodUnfold replicaSetTypedInformerAdapter.ty go!"Informer" (LamV "$r"
+  unfold'Informer : MethodUnfold replicaSetTypedInformerAdapter.ty go!"Informer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ReplicaSetInformer.ty go!"Informer"))) (App (Val (GoInstruction (StructFieldGet replicaSetTypedInformerAdapter.ty go!"ReplicaSetInformer"))) (Var "$r"))))
-  Lister_unfold : MethodUnfold replicaSetTypedInformerAdapter.ty go!"Lister" (LamV "$r"
+  unfold'Lister : MethodUnfold replicaSetTypedInformerAdapter.ty go!"Lister" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ReplicaSetInformer.ty go!"Lister"))) (App (Val (GoInstruction (StructFieldGet replicaSetTypedInformerAdapter.ty go!"ReplicaSetInformer"))) (Var "$r"))))
-  ptr_Informer_unfold : MethodUnfold (go.GoType.PointerType replicaSetTypedInformerAdapter.ty) go!"Informer" (LamV "$r"
+  ptr_unfold'Informer : MethodUnfold (go.GoType.PointerType replicaSetTypedInformerAdapter.ty) go!"Informer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ReplicaSetInformer.ty go!"Informer"))) (App (Val (GoInstruction (GoLoad ReplicaSetInformer.ty))) (App (Val (GoInstruction (StructFieldRef replicaSetTypedInformerAdapter.ty go!"ReplicaSetInformer"))) (Var "$r")))))
-  ptr_Lister_unfold : MethodUnfold (go.GoType.PointerType replicaSetTypedInformerAdapter.ty) go!"Lister" (LamV "$r"
+  ptr_unfold'Lister : MethodUnfold (go.GoType.PointerType replicaSetTypedInformerAdapter.ty) go!"Lister" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ReplicaSetInformer.ty go!"Lister"))) (App (Val (GoInstruction (GoLoad ReplicaSetInformer.ty))) (App (Val (GoInstruction (StructFieldRef replicaSetTypedInformerAdapter.ty go!"ReplicaSetInformer"))) (Var "$r")))))
-  ptr_TypedInformer_unfold : MethodUnfold (go.GoType.PointerType replicaSetTypedInformerAdapter.ty) go!"TypedInformer" replicaSetTypedInformerAdapter.TypedInformer.impl
+  ptr_unfold'TypedInformer : MethodUnfold (go.GoType.PointerType replicaSetTypedInformerAdapter.ty) go!"TypedInformer" replicaSetTypedInformerAdapter.TypedInformer.impl
 
 attribute [instance] replicaSetTypedInformerAdapter.TypeAssumptions.type_repr
   replicaSetTypedInformerAdapter.TypeAssumptions.underlying
-  replicaSetTypedInformerAdapter.TypeAssumptions.get_ReplicaSetInformer
-  replicaSetTypedInformerAdapter.TypeAssumptions.set_ReplicaSetInformer
+  replicaSetTypedInformerAdapter.TypeAssumptions.get'ReplicaSetInformer
+  replicaSetTypedInformerAdapter.TypeAssumptions.set'ReplicaSetInformer
   replicaSetTypedInformerAdapter.TypeAssumptions.method_set
   replicaSetTypedInformerAdapter.TypeAssumptions.ptr_method_set
-  replicaSetTypedInformerAdapter.TypeAssumptions.Informer_unfold
-  replicaSetTypedInformerAdapter.TypeAssumptions.Lister_unfold
-  replicaSetTypedInformerAdapter.TypeAssumptions.ptr_Informer_unfold
-  replicaSetTypedInformerAdapter.TypeAssumptions.ptr_Lister_unfold
-  replicaSetTypedInformerAdapter.TypeAssumptions.ptr_TypedInformer_unfold
+  replicaSetTypedInformerAdapter.TypeAssumptions.unfold'Informer
+  replicaSetTypedInformerAdapter.TypeAssumptions.unfold'Lister
+  replicaSetTypedInformerAdapter.TypeAssumptions.ptr_unfold'Informer
+  replicaSetTypedInformerAdapter.TypeAssumptions.ptr_unfold'Lister
+  replicaSetTypedInformerAdapter.TypeAssumptions.ptr_unfold'TypedInformer
 
 abbrev StatefulSetInformer [GooseExts] : Type := GoInterface
 
@@ -2921,7 +2921,7 @@ noncomputable instance statefulSetInformer.zero_val [GooseExts] : ZeroVal statef
 @[irreducible] noncomputable def statefulSetInformer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   statefulSetInformer.fieldsUnsealed
 
-noncomputable instance equals_unfold_statefulSetInformer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'statefulSetInformer [GooseExts] [GoGlobalContext] :
     EqualsUnfold statefulSetInformer.fields statefulSetInformer.fieldsUnsealed :=
   ⟨by unfold statefulSetInformer.fields; rfl⟩
 
@@ -2931,33 +2931,33 @@ noncomputable instance equals_unfold_statefulSetInformer [GooseExts] [GoGlobalCo
 class statefulSetInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying statefulSetInformer.underlying statefulSetInformer
   underlying : go.UnderlyingDirectedEq statefulSetInformer.ty statefulSetInformer.underlying
-  get_factory : ∀ (x : statefulSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet statefulSetInformer.underlying go!"factory") #x (Val #(x.factory'))
-  set_factory : ∀ (x : statefulSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldSet statefulSetInformer.underlying go!"factory") (PairV #x #y) (Val #(({ x with factory' := y } : statefulSetInformer)))
-  get_tweakListOptions : ∀ (x : statefulSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet statefulSetInformer.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
-  set_tweakListOptions : ∀ (x : statefulSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet statefulSetInformer.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : statefulSetInformer)))
-  get_namespace : ∀ (x : statefulSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet statefulSetInformer.underlying go!"namespace") #x (Val #(x.namespace'))
-  set_namespace : ∀ (x : statefulSetInformer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet statefulSetInformer.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : statefulSetInformer)))
+  get'factory : ∀ (x : statefulSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet statefulSetInformer.underlying go!"factory") #x (Val #(x.factory'))
+  set'factory : ∀ (x : statefulSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldSet statefulSetInformer.underlying go!"factory") (PairV #x #y) (Val #(({ x with factory' := y } : statefulSetInformer)))
+  get'tweakListOptions : ∀ (x : statefulSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet statefulSetInformer.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
+  set'tweakListOptions : ∀ (x : statefulSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet statefulSetInformer.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : statefulSetInformer)))
+  get'namespace : ∀ (x : statefulSetInformer), go.IsGoStepPureDetTagged under (StructFieldGet statefulSetInformer.underlying go!"namespace") #x (Val #(x.namespace'))
+  set'namespace : ∀ (x : statefulSetInformer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet statefulSetInformer.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : statefulSetInformer)))
   method_set : go.MethodSetIs statefulSetInformer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType statefulSetInformer.ty) [(go!"Informer", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"Lister", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.listers.apps.v1.StatefulSetLister.ty]))), (go!"TypedInformer", (some (go.signature.Signature [] false [StatefulSetIndexInformer.ty]))), (go!"k8s.io/client-go/informers/apps/v1.defaultInformer", (some (go.signature.Signature [_root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty, _root_.Perennial.time.Duration.ty] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty])))]
-  ptr_Informer_unfold : MethodUnfold (go.GoType.PointerType statefulSetInformer.ty) go!"Informer" statefulSetInformer.Informer.impl
-  ptr_Lister_unfold : MethodUnfold (go.GoType.PointerType statefulSetInformer.ty) go!"Lister" statefulSetInformer.Lister.impl
-  ptr_TypedInformer_unfold : MethodUnfold (go.GoType.PointerType statefulSetInformer.ty) go!"TypedInformer" statefulSetInformer.TypedInformer.impl
-  ptr_defaultInformer_unfold : MethodUnfold (go.GoType.PointerType statefulSetInformer.ty) go!"defaultInformer" statefulSetInformer.defaultInformer.impl
+  ptr_unfold'Informer : MethodUnfold (go.GoType.PointerType statefulSetInformer.ty) go!"Informer" statefulSetInformer.Informer.impl
+  ptr_unfold'Lister : MethodUnfold (go.GoType.PointerType statefulSetInformer.ty) go!"Lister" statefulSetInformer.Lister.impl
+  ptr_unfold'TypedInformer : MethodUnfold (go.GoType.PointerType statefulSetInformer.ty) go!"TypedInformer" statefulSetInformer.TypedInformer.impl
+  ptr_unfold'defaultInformer : MethodUnfold (go.GoType.PointerType statefulSetInformer.ty) go!"defaultInformer" statefulSetInformer.defaultInformer.impl
 
 attribute [instance] statefulSetInformer.TypeAssumptions.type_repr
   statefulSetInformer.TypeAssumptions.underlying
-  statefulSetInformer.TypeAssumptions.get_factory
-  statefulSetInformer.TypeAssumptions.set_factory
-  statefulSetInformer.TypeAssumptions.get_tweakListOptions
-  statefulSetInformer.TypeAssumptions.set_tweakListOptions
-  statefulSetInformer.TypeAssumptions.get_namespace
-  statefulSetInformer.TypeAssumptions.set_namespace
+  statefulSetInformer.TypeAssumptions.get'factory
+  statefulSetInformer.TypeAssumptions.set'factory
+  statefulSetInformer.TypeAssumptions.get'tweakListOptions
+  statefulSetInformer.TypeAssumptions.set'tweakListOptions
+  statefulSetInformer.TypeAssumptions.get'namespace
+  statefulSetInformer.TypeAssumptions.set'namespace
   statefulSetInformer.TypeAssumptions.method_set
   statefulSetInformer.TypeAssumptions.ptr_method_set
-  statefulSetInformer.TypeAssumptions.ptr_Informer_unfold
-  statefulSetInformer.TypeAssumptions.ptr_Lister_unfold
-  statefulSetInformer.TypeAssumptions.ptr_TypedInformer_unfold
-  statefulSetInformer.TypeAssumptions.ptr_defaultInformer_unfold
+  statefulSetInformer.TypeAssumptions.ptr_unfold'Informer
+  statefulSetInformer.TypeAssumptions.ptr_unfold'Lister
+  statefulSetInformer.TypeAssumptions.ptr_unfold'TypedInformer
+  statefulSetInformer.TypeAssumptions.ptr_unfold'defaultInformer
 
 structure statefulSetTypedInformerAdapter [GooseExts] where
   mk ::
@@ -2972,7 +2972,7 @@ noncomputable instance statefulSetTypedInformerAdapter.zero_val [GooseExts] : Ze
 @[irreducible] noncomputable def statefulSetTypedInformerAdapter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   statefulSetTypedInformerAdapter.fieldsUnsealed
 
-noncomputable instance equals_unfold_statefulSetTypedInformerAdapter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'statefulSetTypedInformerAdapter [GooseExts] [GoGlobalContext] :
     EqualsUnfold statefulSetTypedInformerAdapter.fields statefulSetTypedInformerAdapter.fieldsUnsealed :=
   ⟨by unfold statefulSetTypedInformerAdapter.fields; rfl⟩
 
@@ -2982,182 +2982,182 @@ noncomputable instance equals_unfold_statefulSetTypedInformerAdapter [GooseExts]
 class statefulSetTypedInformerAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying statefulSetTypedInformerAdapter.underlying statefulSetTypedInformerAdapter
   underlying : go.UnderlyingDirectedEq statefulSetTypedInformerAdapter.ty statefulSetTypedInformerAdapter.underlying
-  get_StatefulSetInformer : ∀ (x : statefulSetTypedInformerAdapter), go.IsGoStepPureDetTagged under (StructFieldGet statefulSetTypedInformerAdapter.underlying go!"StatefulSetInformer") #x (Val #(x.StatefulSetInformer'))
-  set_StatefulSetInformer : ∀ (x : statefulSetTypedInformerAdapter) (y : StatefulSetInformer), go.IsGoStepPureDetTagged under (StructFieldSet statefulSetTypedInformerAdapter.underlying go!"StatefulSetInformer") (PairV #x #y) (Val #(({ x with StatefulSetInformer' := y } : statefulSetTypedInformerAdapter)))
+  get'StatefulSetInformer : ∀ (x : statefulSetTypedInformerAdapter), go.IsGoStepPureDetTagged under (StructFieldGet statefulSetTypedInformerAdapter.underlying go!"StatefulSetInformer") #x (Val #(x.StatefulSetInformer'))
+  set'StatefulSetInformer : ∀ (x : statefulSetTypedInformerAdapter) (y : StatefulSetInformer), go.IsGoStepPureDetTagged under (StructFieldSet statefulSetTypedInformerAdapter.underlying go!"StatefulSetInformer") (PairV #x #y) (Val #(({ x with StatefulSetInformer' := y } : statefulSetTypedInformerAdapter)))
   method_set : go.MethodSetIs statefulSetTypedInformerAdapter.ty [(go!"Informer", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"Lister", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.listers.apps.v1.StatefulSetLister.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType statefulSetTypedInformerAdapter.ty) [(go!"Informer", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"Lister", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.listers.apps.v1.StatefulSetLister.ty]))), (go!"TypedInformer", (some (go.signature.Signature [] false [StatefulSetIndexInformer.ty])))]
-  Informer_unfold : MethodUnfold statefulSetTypedInformerAdapter.ty go!"Informer" (LamV "$r"
+  unfold'Informer : MethodUnfold statefulSetTypedInformerAdapter.ty go!"Informer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve StatefulSetInformer.ty go!"Informer"))) (App (Val (GoInstruction (StructFieldGet statefulSetTypedInformerAdapter.ty go!"StatefulSetInformer"))) (Var "$r"))))
-  Lister_unfold : MethodUnfold statefulSetTypedInformerAdapter.ty go!"Lister" (LamV "$r"
+  unfold'Lister : MethodUnfold statefulSetTypedInformerAdapter.ty go!"Lister" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve StatefulSetInformer.ty go!"Lister"))) (App (Val (GoInstruction (StructFieldGet statefulSetTypedInformerAdapter.ty go!"StatefulSetInformer"))) (Var "$r"))))
-  ptr_Informer_unfold : MethodUnfold (go.GoType.PointerType statefulSetTypedInformerAdapter.ty) go!"Informer" (LamV "$r"
+  ptr_unfold'Informer : MethodUnfold (go.GoType.PointerType statefulSetTypedInformerAdapter.ty) go!"Informer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve StatefulSetInformer.ty go!"Informer"))) (App (Val (GoInstruction (GoLoad StatefulSetInformer.ty))) (App (Val (GoInstruction (StructFieldRef statefulSetTypedInformerAdapter.ty go!"StatefulSetInformer"))) (Var "$r")))))
-  ptr_Lister_unfold : MethodUnfold (go.GoType.PointerType statefulSetTypedInformerAdapter.ty) go!"Lister" (LamV "$r"
+  ptr_unfold'Lister : MethodUnfold (go.GoType.PointerType statefulSetTypedInformerAdapter.ty) go!"Lister" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve StatefulSetInformer.ty go!"Lister"))) (App (Val (GoInstruction (GoLoad StatefulSetInformer.ty))) (App (Val (GoInstruction (StructFieldRef statefulSetTypedInformerAdapter.ty go!"StatefulSetInformer"))) (Var "$r")))))
-  ptr_TypedInformer_unfold : MethodUnfold (go.GoType.PointerType statefulSetTypedInformerAdapter.ty) go!"TypedInformer" statefulSetTypedInformerAdapter.TypedInformer.impl
+  ptr_unfold'TypedInformer : MethodUnfold (go.GoType.PointerType statefulSetTypedInformerAdapter.ty) go!"TypedInformer" statefulSetTypedInformerAdapter.TypedInformer.impl
 
 attribute [instance] statefulSetTypedInformerAdapter.TypeAssumptions.type_repr
   statefulSetTypedInformerAdapter.TypeAssumptions.underlying
-  statefulSetTypedInformerAdapter.TypeAssumptions.get_StatefulSetInformer
-  statefulSetTypedInformerAdapter.TypeAssumptions.set_StatefulSetInformer
+  statefulSetTypedInformerAdapter.TypeAssumptions.get'StatefulSetInformer
+  statefulSetTypedInformerAdapter.TypeAssumptions.set'StatefulSetInformer
   statefulSetTypedInformerAdapter.TypeAssumptions.method_set
   statefulSetTypedInformerAdapter.TypeAssumptions.ptr_method_set
-  statefulSetTypedInformerAdapter.TypeAssumptions.Informer_unfold
-  statefulSetTypedInformerAdapter.TypeAssumptions.Lister_unfold
-  statefulSetTypedInformerAdapter.TypeAssumptions.ptr_Informer_unfold
-  statefulSetTypedInformerAdapter.TypeAssumptions.ptr_Lister_unfold
-  statefulSetTypedInformerAdapter.TypeAssumptions.ptr_TypedInformer_unfold
+  statefulSetTypedInformerAdapter.TypeAssumptions.unfold'Informer
+  statefulSetTypedInformerAdapter.TypeAssumptions.unfold'Lister
+  statefulSetTypedInformerAdapter.TypeAssumptions.ptr_unfold'Informer
+  statefulSetTypedInformerAdapter.TypeAssumptions.ptr_unfold'Lister
+  statefulSetTypedInformerAdapter.TypeAssumptions.ptr_unfold'TypedInformer
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ControllerRevisionInformer_instance : ControllerRevisionInformer.TypeAssumptions
-  TypedControllerRevisionInformer_instance : TypedControllerRevisionInformer.TypeAssumptions
-  ControllerRevisionIndexInformer_instance : ControllerRevisionIndexInformer.TypeAssumptions
-  controllerRevisionInformer_instance : controllerRevisionInformer.TypeAssumptions
-  controllerRevisionTypedInformerAdapter_instance : controllerRevisionTypedInformerAdapter.TypeAssumptions
-  DaemonSetInformer_instance : DaemonSetInformer.TypeAssumptions
-  TypedDaemonSetInformer_instance : TypedDaemonSetInformer.TypeAssumptions
-  DaemonSetIndexInformer_instance : DaemonSetIndexInformer.TypeAssumptions
-  daemonSetInformer_instance : daemonSetInformer.TypeAssumptions
-  daemonSetTypedInformerAdapter_instance : daemonSetTypedInformerAdapter.TypeAssumptions
-  DeploymentInformer_instance : DeploymentInformer.TypeAssumptions
-  TypedDeploymentInformer_instance : TypedDeploymentInformer.TypeAssumptions
-  DeploymentIndexInformer_instance : DeploymentIndexInformer.TypeAssumptions
-  deploymentInformer_instance : deploymentInformer.TypeAssumptions
-  deploymentTypedInformerAdapter_instance : deploymentTypedInformerAdapter.TypeAssumptions
-  Interface_instance : Interface.TypeAssumptions
-  version_instance : version.TypeAssumptions
-  ReplicaSetInformer_instance : ReplicaSetInformer.TypeAssumptions
-  TypedReplicaSetInformer_instance : TypedReplicaSetInformer.TypeAssumptions
-  ReplicaSetIndexInformer_instance : ReplicaSetIndexInformer.TypeAssumptions
-  replicaSetInformer_instance : replicaSetInformer.TypeAssumptions
-  replicaSetTypedInformerAdapter_instance : replicaSetTypedInformerAdapter.TypeAssumptions
-  StatefulSetInformer_instance : StatefulSetInformer.TypeAssumptions
-  TypedStatefulSetInformer_instance : TypedStatefulSetInformer.TypeAssumptions
-  StatefulSetIndexInformer_instance : StatefulSetIndexInformer.TypeAssumptions
-  statefulSetInformer_instance : statefulSetInformer.TypeAssumptions
-  statefulSetTypedInformerAdapter_instance : statefulSetTypedInformerAdapter.TypeAssumptions
-  NewControllerRevisionInformer_unfold : FuncUnfold NewControllerRevisionInformer [] NewControllerRevisionInformer.impl
-  NewTypedControllerRevisionInformer_unfold : FuncUnfold NewTypedControllerRevisionInformer [] NewTypedControllerRevisionInformer.impl
-  NewFilteredControllerRevisionInformer_unfold : FuncUnfold NewFilteredControllerRevisionInformer [] NewFilteredControllerRevisionInformer.impl
-  NewTypedFilteredControllerRevisionInformer_unfold : FuncUnfold NewTypedFilteredControllerRevisionInformer [] NewTypedFilteredControllerRevisionInformer.impl
-  NewControllerRevisionInformerWithOptions_unfold : FuncUnfold NewControllerRevisionInformerWithOptions [] NewControllerRevisionInformerWithOptions.impl
-  ToTypedControllerRevisionInformer_unfold : FuncUnfold ToTypedControllerRevisionInformer [] ToTypedControllerRevisionInformer.impl
-  ToControllerRevisionIndexInformer_unfold : FuncUnfold ToControllerRevisionIndexInformer [] ToControllerRevisionIndexInformer.impl
-  NewDaemonSetInformer_unfold : FuncUnfold NewDaemonSetInformer [] NewDaemonSetInformer.impl
-  NewTypedDaemonSetInformer_unfold : FuncUnfold NewTypedDaemonSetInformer [] NewTypedDaemonSetInformer.impl
-  NewFilteredDaemonSetInformer_unfold : FuncUnfold NewFilteredDaemonSetInformer [] NewFilteredDaemonSetInformer.impl
-  NewTypedFilteredDaemonSetInformer_unfold : FuncUnfold NewTypedFilteredDaemonSetInformer [] NewTypedFilteredDaemonSetInformer.impl
-  NewDaemonSetInformerWithOptions_unfold : FuncUnfold NewDaemonSetInformerWithOptions [] NewDaemonSetInformerWithOptions.impl
-  ToTypedDaemonSetInformer_unfold : FuncUnfold ToTypedDaemonSetInformer [] ToTypedDaemonSetInformer.impl
-  ToDaemonSetIndexInformer_unfold : FuncUnfold ToDaemonSetIndexInformer [] ToDaemonSetIndexInformer.impl
-  NewDeploymentInformer_unfold : FuncUnfold NewDeploymentInformer [] NewDeploymentInformer.impl
-  NewTypedDeploymentInformer_unfold : FuncUnfold NewTypedDeploymentInformer [] NewTypedDeploymentInformer.impl
-  NewFilteredDeploymentInformer_unfold : FuncUnfold NewFilteredDeploymentInformer [] NewFilteredDeploymentInformer.impl
-  NewTypedFilteredDeploymentInformer_unfold : FuncUnfold NewTypedFilteredDeploymentInformer [] NewTypedFilteredDeploymentInformer.impl
-  NewDeploymentInformerWithOptions_unfold : FuncUnfold NewDeploymentInformerWithOptions [] NewDeploymentInformerWithOptions.impl
-  ToTypedDeploymentInformer_unfold : FuncUnfold ToTypedDeploymentInformer [] ToTypedDeploymentInformer.impl
-  ToDeploymentIndexInformer_unfold : FuncUnfold ToDeploymentIndexInformer [] ToDeploymentIndexInformer.impl
-  New_unfold : FuncUnfold New [] New.impl
-  NewReplicaSetInformer_unfold : FuncUnfold NewReplicaSetInformer [] NewReplicaSetInformer.impl
-  NewTypedReplicaSetInformer_unfold : FuncUnfold NewTypedReplicaSetInformer [] NewTypedReplicaSetInformer.impl
-  NewFilteredReplicaSetInformer_unfold : FuncUnfold NewFilteredReplicaSetInformer [] NewFilteredReplicaSetInformer.impl
-  NewTypedFilteredReplicaSetInformer_unfold : FuncUnfold NewTypedFilteredReplicaSetInformer [] NewTypedFilteredReplicaSetInformer.impl
-  NewReplicaSetInformerWithOptions_unfold : FuncUnfold NewReplicaSetInformerWithOptions [] NewReplicaSetInformerWithOptions.impl
-  ToTypedReplicaSetInformer_unfold : FuncUnfold ToTypedReplicaSetInformer [] ToTypedReplicaSetInformer.impl
-  ToReplicaSetIndexInformer_unfold : FuncUnfold ToReplicaSetIndexInformer [] ToReplicaSetIndexInformer.impl
-  NewStatefulSetInformer_unfold : FuncUnfold NewStatefulSetInformer [] NewStatefulSetInformer.impl
-  NewTypedStatefulSetInformer_unfold : FuncUnfold NewTypedStatefulSetInformer [] NewTypedStatefulSetInformer.impl
-  NewFilteredStatefulSetInformer_unfold : FuncUnfold NewFilteredStatefulSetInformer [] NewFilteredStatefulSetInformer.impl
-  NewTypedFilteredStatefulSetInformer_unfold : FuncUnfold NewTypedFilteredStatefulSetInformer [] NewTypedFilteredStatefulSetInformer.impl
-  NewStatefulSetInformerWithOptions_unfold : FuncUnfold NewStatefulSetInformerWithOptions [] NewStatefulSetInformerWithOptions.impl
-  ToTypedStatefulSetInformer_unfold : FuncUnfold ToTypedStatefulSetInformer [] ToTypedStatefulSetInformer.impl
-  ToStatefulSetIndexInformer_unfold : FuncUnfold ToStatefulSetIndexInformer [] ToStatefulSetIndexInformer.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_api_apps_v1_Assumption : _root_.Perennial.k8s_io.api.apps.v1.Assumptions
-  import_apis_meta_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
-  import_schema_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
-  import_watch_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions
-  import_internalinterfaces_Assumption : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.Assumptions
-  import_kubernetes_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.Assumptions
-  import_listers_apps_v1_Assumption : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions
-  import_cache_Assumption : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions
+  instance'ControllerRevisionInformer : ControllerRevisionInformer.TypeAssumptions
+  instance'TypedControllerRevisionInformer : TypedControllerRevisionInformer.TypeAssumptions
+  instance'ControllerRevisionIndexInformer : ControllerRevisionIndexInformer.TypeAssumptions
+  instance'controllerRevisionInformer : controllerRevisionInformer.TypeAssumptions
+  instance'controllerRevisionTypedInformerAdapter : controllerRevisionTypedInformerAdapter.TypeAssumptions
+  instance'DaemonSetInformer : DaemonSetInformer.TypeAssumptions
+  instance'TypedDaemonSetInformer : TypedDaemonSetInformer.TypeAssumptions
+  instance'DaemonSetIndexInformer : DaemonSetIndexInformer.TypeAssumptions
+  instance'daemonSetInformer : daemonSetInformer.TypeAssumptions
+  instance'daemonSetTypedInformerAdapter : daemonSetTypedInformerAdapter.TypeAssumptions
+  instance'DeploymentInformer : DeploymentInformer.TypeAssumptions
+  instance'TypedDeploymentInformer : TypedDeploymentInformer.TypeAssumptions
+  instance'DeploymentIndexInformer : DeploymentIndexInformer.TypeAssumptions
+  instance'deploymentInformer : deploymentInformer.TypeAssumptions
+  instance'deploymentTypedInformerAdapter : deploymentTypedInformerAdapter.TypeAssumptions
+  instance'Interface : Interface.TypeAssumptions
+  instance'version : version.TypeAssumptions
+  instance'ReplicaSetInformer : ReplicaSetInformer.TypeAssumptions
+  instance'TypedReplicaSetInformer : TypedReplicaSetInformer.TypeAssumptions
+  instance'ReplicaSetIndexInformer : ReplicaSetIndexInformer.TypeAssumptions
+  instance'replicaSetInformer : replicaSetInformer.TypeAssumptions
+  instance'replicaSetTypedInformerAdapter : replicaSetTypedInformerAdapter.TypeAssumptions
+  instance'StatefulSetInformer : StatefulSetInformer.TypeAssumptions
+  instance'TypedStatefulSetInformer : TypedStatefulSetInformer.TypeAssumptions
+  instance'StatefulSetIndexInformer : StatefulSetIndexInformer.TypeAssumptions
+  instance'statefulSetInformer : statefulSetInformer.TypeAssumptions
+  instance'statefulSetTypedInformerAdapter : statefulSetTypedInformerAdapter.TypeAssumptions
+  unfold'NewControllerRevisionInformer : FuncUnfold NewControllerRevisionInformer [] NewControllerRevisionInformer.impl
+  unfold'NewTypedControllerRevisionInformer : FuncUnfold NewTypedControllerRevisionInformer [] NewTypedControllerRevisionInformer.impl
+  unfold'NewFilteredControllerRevisionInformer : FuncUnfold NewFilteredControllerRevisionInformer [] NewFilteredControllerRevisionInformer.impl
+  unfold'NewTypedFilteredControllerRevisionInformer : FuncUnfold NewTypedFilteredControllerRevisionInformer [] NewTypedFilteredControllerRevisionInformer.impl
+  unfold'NewControllerRevisionInformerWithOptions : FuncUnfold NewControllerRevisionInformerWithOptions [] NewControllerRevisionInformerWithOptions.impl
+  unfold'ToTypedControllerRevisionInformer : FuncUnfold ToTypedControllerRevisionInformer [] ToTypedControllerRevisionInformer.impl
+  unfold'ToControllerRevisionIndexInformer : FuncUnfold ToControllerRevisionIndexInformer [] ToControllerRevisionIndexInformer.impl
+  unfold'NewDaemonSetInformer : FuncUnfold NewDaemonSetInformer [] NewDaemonSetInformer.impl
+  unfold'NewTypedDaemonSetInformer : FuncUnfold NewTypedDaemonSetInformer [] NewTypedDaemonSetInformer.impl
+  unfold'NewFilteredDaemonSetInformer : FuncUnfold NewFilteredDaemonSetInformer [] NewFilteredDaemonSetInformer.impl
+  unfold'NewTypedFilteredDaemonSetInformer : FuncUnfold NewTypedFilteredDaemonSetInformer [] NewTypedFilteredDaemonSetInformer.impl
+  unfold'NewDaemonSetInformerWithOptions : FuncUnfold NewDaemonSetInformerWithOptions [] NewDaemonSetInformerWithOptions.impl
+  unfold'ToTypedDaemonSetInformer : FuncUnfold ToTypedDaemonSetInformer [] ToTypedDaemonSetInformer.impl
+  unfold'ToDaemonSetIndexInformer : FuncUnfold ToDaemonSetIndexInformer [] ToDaemonSetIndexInformer.impl
+  unfold'NewDeploymentInformer : FuncUnfold NewDeploymentInformer [] NewDeploymentInformer.impl
+  unfold'NewTypedDeploymentInformer : FuncUnfold NewTypedDeploymentInformer [] NewTypedDeploymentInformer.impl
+  unfold'NewFilteredDeploymentInformer : FuncUnfold NewFilteredDeploymentInformer [] NewFilteredDeploymentInformer.impl
+  unfold'NewTypedFilteredDeploymentInformer : FuncUnfold NewTypedFilteredDeploymentInformer [] NewTypedFilteredDeploymentInformer.impl
+  unfold'NewDeploymentInformerWithOptions : FuncUnfold NewDeploymentInformerWithOptions [] NewDeploymentInformerWithOptions.impl
+  unfold'ToTypedDeploymentInformer : FuncUnfold ToTypedDeploymentInformer [] ToTypedDeploymentInformer.impl
+  unfold'ToDeploymentIndexInformer : FuncUnfold ToDeploymentIndexInformer [] ToDeploymentIndexInformer.impl
+  unfold'New : FuncUnfold New [] New.impl
+  unfold'NewReplicaSetInformer : FuncUnfold NewReplicaSetInformer [] NewReplicaSetInformer.impl
+  unfold'NewTypedReplicaSetInformer : FuncUnfold NewTypedReplicaSetInformer [] NewTypedReplicaSetInformer.impl
+  unfold'NewFilteredReplicaSetInformer : FuncUnfold NewFilteredReplicaSetInformer [] NewFilteredReplicaSetInformer.impl
+  unfold'NewTypedFilteredReplicaSetInformer : FuncUnfold NewTypedFilteredReplicaSetInformer [] NewTypedFilteredReplicaSetInformer.impl
+  unfold'NewReplicaSetInformerWithOptions : FuncUnfold NewReplicaSetInformerWithOptions [] NewReplicaSetInformerWithOptions.impl
+  unfold'ToTypedReplicaSetInformer : FuncUnfold ToTypedReplicaSetInformer [] ToTypedReplicaSetInformer.impl
+  unfold'ToReplicaSetIndexInformer : FuncUnfold ToReplicaSetIndexInformer [] ToReplicaSetIndexInformer.impl
+  unfold'NewStatefulSetInformer : FuncUnfold NewStatefulSetInformer [] NewStatefulSetInformer.impl
+  unfold'NewTypedStatefulSetInformer : FuncUnfold NewTypedStatefulSetInformer [] NewTypedStatefulSetInformer.impl
+  unfold'NewFilteredStatefulSetInformer : FuncUnfold NewFilteredStatefulSetInformer [] NewFilteredStatefulSetInformer.impl
+  unfold'NewTypedFilteredStatefulSetInformer : FuncUnfold NewTypedFilteredStatefulSetInformer [] NewTypedFilteredStatefulSetInformer.impl
+  unfold'NewStatefulSetInformerWithOptions : FuncUnfold NewStatefulSetInformerWithOptions [] NewStatefulSetInformerWithOptions.impl
+  unfold'ToTypedStatefulSetInformer : FuncUnfold ToTypedStatefulSetInformer [] ToTypedStatefulSetInformer.impl
+  unfold'ToStatefulSetIndexInformer : FuncUnfold ToStatefulSetIndexInformer [] ToStatefulSetIndexInformer.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'api_apps_v1 : _root_.Perennial.k8s_io.api.apps.v1.Assumptions
+  import'apis_meta_v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  import'schema : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
+  import'watch : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions
+  import'internalinterfaces : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.Assumptions
+  import'kubernetes : _root_.Perennial.k8s_io.client_go.kubernetes.Assumptions
+  import'listers_apps_v1 : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions
+  import'cache : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions
 
-attribute [instance] Assumptions.ControllerRevisionInformer_instance
-  Assumptions.TypedControllerRevisionInformer_instance
-  Assumptions.ControllerRevisionIndexInformer_instance
-  Assumptions.controllerRevisionInformer_instance
-  Assumptions.controllerRevisionTypedInformerAdapter_instance
-  Assumptions.DaemonSetInformer_instance
-  Assumptions.TypedDaemonSetInformer_instance
-  Assumptions.DaemonSetIndexInformer_instance
-  Assumptions.daemonSetInformer_instance
-  Assumptions.daemonSetTypedInformerAdapter_instance
-  Assumptions.DeploymentInformer_instance
-  Assumptions.TypedDeploymentInformer_instance
-  Assumptions.DeploymentIndexInformer_instance
-  Assumptions.deploymentInformer_instance
-  Assumptions.deploymentTypedInformerAdapter_instance
-  Assumptions.Interface_instance
-  Assumptions.version_instance
-  Assumptions.ReplicaSetInformer_instance
-  Assumptions.TypedReplicaSetInformer_instance
-  Assumptions.ReplicaSetIndexInformer_instance
-  Assumptions.replicaSetInformer_instance
-  Assumptions.replicaSetTypedInformerAdapter_instance
-  Assumptions.StatefulSetInformer_instance
-  Assumptions.TypedStatefulSetInformer_instance
-  Assumptions.StatefulSetIndexInformer_instance
-  Assumptions.statefulSetInformer_instance
-  Assumptions.statefulSetTypedInformerAdapter_instance
-  Assumptions.NewControllerRevisionInformer_unfold
-  Assumptions.NewTypedControllerRevisionInformer_unfold
-  Assumptions.NewFilteredControllerRevisionInformer_unfold
-  Assumptions.NewTypedFilteredControllerRevisionInformer_unfold
-  Assumptions.NewControllerRevisionInformerWithOptions_unfold
-  Assumptions.ToTypedControllerRevisionInformer_unfold
-  Assumptions.ToControllerRevisionIndexInformer_unfold
-  Assumptions.NewDaemonSetInformer_unfold
-  Assumptions.NewTypedDaemonSetInformer_unfold
-  Assumptions.NewFilteredDaemonSetInformer_unfold
-  Assumptions.NewTypedFilteredDaemonSetInformer_unfold
-  Assumptions.NewDaemonSetInformerWithOptions_unfold
-  Assumptions.ToTypedDaemonSetInformer_unfold
-  Assumptions.ToDaemonSetIndexInformer_unfold
-  Assumptions.NewDeploymentInformer_unfold
-  Assumptions.NewTypedDeploymentInformer_unfold
-  Assumptions.NewFilteredDeploymentInformer_unfold
-  Assumptions.NewTypedFilteredDeploymentInformer_unfold
-  Assumptions.NewDeploymentInformerWithOptions_unfold
-  Assumptions.ToTypedDeploymentInformer_unfold
-  Assumptions.ToDeploymentIndexInformer_unfold
-  Assumptions.New_unfold
-  Assumptions.NewReplicaSetInformer_unfold
-  Assumptions.NewTypedReplicaSetInformer_unfold
-  Assumptions.NewFilteredReplicaSetInformer_unfold
-  Assumptions.NewTypedFilteredReplicaSetInformer_unfold
-  Assumptions.NewReplicaSetInformerWithOptions_unfold
-  Assumptions.ToTypedReplicaSetInformer_unfold
-  Assumptions.ToReplicaSetIndexInformer_unfold
-  Assumptions.NewStatefulSetInformer_unfold
-  Assumptions.NewTypedStatefulSetInformer_unfold
-  Assumptions.NewFilteredStatefulSetInformer_unfold
-  Assumptions.NewTypedFilteredStatefulSetInformer_unfold
-  Assumptions.NewStatefulSetInformerWithOptions_unfold
-  Assumptions.ToTypedStatefulSetInformer_unfold
-  Assumptions.ToStatefulSetIndexInformer_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_api_apps_v1_Assumption
-  Assumptions.import_apis_meta_v1_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_schema_Assumption
-  Assumptions.import_watch_Assumption
-  Assumptions.import_internalinterfaces_Assumption
-  Assumptions.import_kubernetes_Assumption
-  Assumptions.import_listers_apps_v1_Assumption
-  Assumptions.import_cache_Assumption
+attribute [instance] Assumptions.instance'ControllerRevisionInformer
+  Assumptions.instance'TypedControllerRevisionInformer
+  Assumptions.instance'ControllerRevisionIndexInformer
+  Assumptions.instance'controllerRevisionInformer
+  Assumptions.instance'controllerRevisionTypedInformerAdapter
+  Assumptions.instance'DaemonSetInformer
+  Assumptions.instance'TypedDaemonSetInformer
+  Assumptions.instance'DaemonSetIndexInformer
+  Assumptions.instance'daemonSetInformer
+  Assumptions.instance'daemonSetTypedInformerAdapter
+  Assumptions.instance'DeploymentInformer
+  Assumptions.instance'TypedDeploymentInformer
+  Assumptions.instance'DeploymentIndexInformer
+  Assumptions.instance'deploymentInformer
+  Assumptions.instance'deploymentTypedInformerAdapter
+  Assumptions.instance'Interface
+  Assumptions.instance'version
+  Assumptions.instance'ReplicaSetInformer
+  Assumptions.instance'TypedReplicaSetInformer
+  Assumptions.instance'ReplicaSetIndexInformer
+  Assumptions.instance'replicaSetInformer
+  Assumptions.instance'replicaSetTypedInformerAdapter
+  Assumptions.instance'StatefulSetInformer
+  Assumptions.instance'TypedStatefulSetInformer
+  Assumptions.instance'StatefulSetIndexInformer
+  Assumptions.instance'statefulSetInformer
+  Assumptions.instance'statefulSetTypedInformerAdapter
+  Assumptions.unfold'NewControllerRevisionInformer
+  Assumptions.unfold'NewTypedControllerRevisionInformer
+  Assumptions.unfold'NewFilteredControllerRevisionInformer
+  Assumptions.unfold'NewTypedFilteredControllerRevisionInformer
+  Assumptions.unfold'NewControllerRevisionInformerWithOptions
+  Assumptions.unfold'ToTypedControllerRevisionInformer
+  Assumptions.unfold'ToControllerRevisionIndexInformer
+  Assumptions.unfold'NewDaemonSetInformer
+  Assumptions.unfold'NewTypedDaemonSetInformer
+  Assumptions.unfold'NewFilteredDaemonSetInformer
+  Assumptions.unfold'NewTypedFilteredDaemonSetInformer
+  Assumptions.unfold'NewDaemonSetInformerWithOptions
+  Assumptions.unfold'ToTypedDaemonSetInformer
+  Assumptions.unfold'ToDaemonSetIndexInformer
+  Assumptions.unfold'NewDeploymentInformer
+  Assumptions.unfold'NewTypedDeploymentInformer
+  Assumptions.unfold'NewFilteredDeploymentInformer
+  Assumptions.unfold'NewTypedFilteredDeploymentInformer
+  Assumptions.unfold'NewDeploymentInformerWithOptions
+  Assumptions.unfold'ToTypedDeploymentInformer
+  Assumptions.unfold'ToDeploymentIndexInformer
+  Assumptions.unfold'New
+  Assumptions.unfold'NewReplicaSetInformer
+  Assumptions.unfold'NewTypedReplicaSetInformer
+  Assumptions.unfold'NewFilteredReplicaSetInformer
+  Assumptions.unfold'NewTypedFilteredReplicaSetInformer
+  Assumptions.unfold'NewReplicaSetInformerWithOptions
+  Assumptions.unfold'ToTypedReplicaSetInformer
+  Assumptions.unfold'ToReplicaSetIndexInformer
+  Assumptions.unfold'NewStatefulSetInformer
+  Assumptions.unfold'NewTypedStatefulSetInformer
+  Assumptions.unfold'NewFilteredStatefulSetInformer
+  Assumptions.unfold'NewTypedFilteredStatefulSetInformer
+  Assumptions.unfold'NewStatefulSetInformerWithOptions
+  Assumptions.unfold'ToTypedStatefulSetInformer
+  Assumptions.unfold'ToStatefulSetIndexInformer
+  Assumptions.import'context
+  Assumptions.import'time
+  Assumptions.import'api_apps_v1
+  Assumptions.import'apis_meta_v1
+  Assumptions.import'runtime
+  Assumptions.import'schema
+  Assumptions.import'watch
+  Assumptions.import'internalinterfaces
+  Assumptions.import'kubernetes
+  Assumptions.import'listers_apps_v1
+  Assumptions.import'cache
 
 end k8s_io.client_go.informers.apps.v1
 

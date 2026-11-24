@@ -207,19 +207,19 @@ attribute [instance] storageVersionMigrations.TypeAssumptions.type_repr
   storageVersionMigrations.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  StorageVersionMigrationExpansion_instance : StorageVersionMigrationExpansion.TypeAssumptions
-  StoragemigrationV1beta1Interface_instance : StoragemigrationV1beta1Interface.TypeAssumptions
-  StoragemigrationV1beta1Client_instance : StoragemigrationV1beta1Client.TypeAssumptions
-  StorageVersionMigrationsGetter_instance : StorageVersionMigrationsGetter.TypeAssumptions
-  StorageVersionMigrationInterface_instance : StorageVersionMigrationInterface.TypeAssumptions
-  storageVersionMigrations_instance : storageVersionMigrations.TypeAssumptions
+  instance'StorageVersionMigrationExpansion : StorageVersionMigrationExpansion.TypeAssumptions
+  instance'StoragemigrationV1beta1Interface : StoragemigrationV1beta1Interface.TypeAssumptions
+  instance'StoragemigrationV1beta1Client : StoragemigrationV1beta1Client.TypeAssumptions
+  instance'StorageVersionMigrationsGetter : StorageVersionMigrationsGetter.TypeAssumptions
+  instance'StorageVersionMigrationInterface : StorageVersionMigrationInterface.TypeAssumptions
+  instance'storageVersionMigrations : storageVersionMigrations.TypeAssumptions
 
-attribute [instance] Assumptions.StorageVersionMigrationExpansion_instance
-  Assumptions.StoragemigrationV1beta1Interface_instance
-  Assumptions.StoragemigrationV1beta1Client_instance
-  Assumptions.StorageVersionMigrationsGetter_instance
-  Assumptions.StorageVersionMigrationInterface_instance
-  Assumptions.storageVersionMigrations_instance
+attribute [instance] Assumptions.instance'StorageVersionMigrationExpansion
+  Assumptions.instance'StoragemigrationV1beta1Interface
+  Assumptions.instance'StoragemigrationV1beta1Client
+  Assumptions.instance'StorageVersionMigrationsGetter
+  Assumptions.instance'StorageVersionMigrationInterface
+  Assumptions.instance'storageVersionMigrations
 
 end k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1
 

@@ -236,7 +236,7 @@ noncomputable instance KV.zero_val [GooseExts] : ZeroVal KV :=
 @[irreducible] noncomputable def KV.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   KV.fieldsUnsealed
 
-noncomputable instance equals_unfold_KV [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'KV [GooseExts] [GoGlobalContext] :
     EqualsUnfold KV.fields KV.fieldsUnsealed :=
   ⟨by unfold KV.fields; rfl⟩
 
@@ -246,40 +246,40 @@ noncomputable instance equals_unfold_KV [GooseExts] [GoGlobalContext] :
 class KV.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying KV.underlying KV
   underlying : go.UnderlyingDirectedEq KV.ty KV.underlying
-  get_mu : ∀ (x : KV), go.IsGoStepPureDetTagged under (StructFieldGet KV.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : KV) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : KV)))
-  get_m : ∀ (x : KV), go.IsGoStepPureDetTagged under (StructFieldGet KV.underlying go!"m") #x (Val #(x.m'))
-  set_m : ∀ (x : KV) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : KV)))
+  get'mu : ∀ (x : KV), go.IsGoStepPureDetTagged under (StructFieldGet KV.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : KV) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : KV)))
+  get'm : ∀ (x : KV), go.IsGoStepPureDetTagged under (StructFieldGet KV.underlying go!"m") #x (Val #(x.m'))
+  set'm : ∀ (x : KV) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : KV)))
   method_set : go.MethodSetIs KV.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType KV.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Put", (some (go.signature.Signature [go.string, go.string] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType KV.ty) go!"Get" KV.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType KV.ty) go!"Put" KV.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType KV.ty) go!"Get" KV.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType KV.ty) go!"Put" KV.Put.impl
 
 attribute [instance] KV.TypeAssumptions.type_repr
   KV.TypeAssumptions.underlying
-  KV.TypeAssumptions.get_mu
-  KV.TypeAssumptions.set_mu
-  KV.TypeAssumptions.get_m
-  KV.TypeAssumptions.set_m
+  KV.TypeAssumptions.get'mu
+  KV.TypeAssumptions.set'mu
+  KV.TypeAssumptions.get'm
+  KV.TypeAssumptions.set'm
   KV.TypeAssumptions.method_set
   KV.TypeAssumptions.ptr_method_set
-  KV.TypeAssumptions.ptr_Get_unfold
-  KV.TypeAssumptions.ptr_Put_unfold
+  KV.TypeAssumptions.ptr_unfold'Get
+  KV.TypeAssumptions.ptr_unfold'Put
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  KV_instance : KV.TypeAssumptions
-  NewKV_unfold : FuncUnfold NewKV [] NewKV.impl
-  GetAny_unfold : FuncUnfold GetAny [] GetAny.impl
-  Test_unfold : FuncUnfold Test [] Test.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
+  instance'KV : KV.TypeAssumptions
+  unfold'NewKV : FuncUnfold NewKV [] NewKV.impl
+  unfold'GetAny : FuncUnfold GetAny [] GetAny.impl
+  unfold'Test : FuncUnfold Test [] Test.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  import'primitive : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
 
-attribute [instance] Assumptions.KV_instance
-  Assumptions.NewKV_unfold
-  Assumptions.GetAny_unfold
-  Assumptions.Test_unfold
-  Assumptions.Main_unfold
-  Assumptions.import_primitive_Assumption
+attribute [instance] Assumptions.instance'KV
+  Assumptions.unfold'NewKV
+  Assumptions.unfold'GetAny
+  Assumptions.unfold'Test
+  Assumptions.unfold'Main
+  Assumptions.import'primitive
 
 end github_com.mit_pdos.etcd_grove.examples.goose.prophkv
 

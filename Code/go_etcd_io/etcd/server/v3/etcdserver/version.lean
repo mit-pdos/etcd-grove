@@ -156,7 +156,7 @@ noncomputable instance DowngradeInfo.zero_val [GooseExts] : ZeroVal DowngradeInf
 @[irreducible] noncomputable def DowngradeInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DowngradeInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_DowngradeInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DowngradeInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold DowngradeInfo.fields DowngradeInfo.fieldsUnsealed :=
   ⟨by unfold DowngradeInfo.fields; rfl⟩
 
@@ -166,19 +166,19 @@ noncomputable instance equals_unfold_DowngradeInfo [GooseExts] [GoGlobalContext]
 class DowngradeInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DowngradeInfo.underlying DowngradeInfo
   underlying : go.UnderlyingDirectedEq DowngradeInfo.ty DowngradeInfo.underlying
-  get_TargetVersion : ∀ (x : DowngradeInfo), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeInfo.underlying go!"TargetVersion") #x (Val #(x.TargetVersion'))
-  set_TargetVersion : ∀ (x : DowngradeInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeInfo.underlying go!"TargetVersion") (PairV #x #y) (Val #(({ x with TargetVersion' := y } : DowngradeInfo)))
-  get_Enabled : ∀ (x : DowngradeInfo), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeInfo.underlying go!"Enabled") #x (Val #(x.Enabled'))
-  set_Enabled : ∀ (x : DowngradeInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeInfo.underlying go!"Enabled") (PairV #x #y) (Val #(({ x with Enabled' := y } : DowngradeInfo)))
+  get'TargetVersion : ∀ (x : DowngradeInfo), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeInfo.underlying go!"TargetVersion") #x (Val #(x.TargetVersion'))
+  set'TargetVersion : ∀ (x : DowngradeInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeInfo.underlying go!"TargetVersion") (PairV #x #y) (Val #(({ x with TargetVersion' := y } : DowngradeInfo)))
+  get'Enabled : ∀ (x : DowngradeInfo), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeInfo.underlying go!"Enabled") #x (Val #(x.Enabled'))
+  set'Enabled : ∀ (x : DowngradeInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeInfo.underlying go!"Enabled") (PairV #x #y) (Val #(({ x with Enabled' := y } : DowngradeInfo)))
   method_set : go.MethodSetIs DowngradeInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DowngradeInfo.ty) [(go!"GetTargetVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)])))]
 
 attribute [instance] DowngradeInfo.TypeAssumptions.type_repr
   DowngradeInfo.TypeAssumptions.underlying
-  DowngradeInfo.TypeAssumptions.get_TargetVersion
-  DowngradeInfo.TypeAssumptions.set_TargetVersion
-  DowngradeInfo.TypeAssumptions.get_Enabled
-  DowngradeInfo.TypeAssumptions.set_Enabled
+  DowngradeInfo.TypeAssumptions.get'TargetVersion
+  DowngradeInfo.TypeAssumptions.set'TargetVersion
+  DowngradeInfo.TypeAssumptions.get'Enabled
+  DowngradeInfo.TypeAssumptions.set'Enabled
   DowngradeInfo.TypeAssumptions.method_set
   DowngradeInfo.TypeAssumptions.ptr_method_set
 
@@ -211,7 +211,7 @@ noncomputable instance Monitor.zero_val [GooseExts] : ZeroVal Monitor :=
 @[irreducible] noncomputable def Monitor.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Monitor.fieldsUnsealed
 
-noncomputable instance equals_unfold_Monitor [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Monitor [GooseExts] [GoGlobalContext] :
     EqualsUnfold Monitor.fields Monitor.fieldsUnsealed :=
   ⟨by unfold Monitor.fields; rfl⟩
 
@@ -221,19 +221,19 @@ noncomputable instance equals_unfold_Monitor [GooseExts] [GoGlobalContext] :
 class Monitor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Monitor.underlying Monitor
   underlying : go.UnderlyingDirectedEq Monitor.ty Monitor.underlying
-  get_lg : ∀ (x : Monitor), go.IsGoStepPureDetTagged under (StructFieldGet Monitor.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : Monitor) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Monitor.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : Monitor)))
-  get_s : ∀ (x : Monitor), go.IsGoStepPureDetTagged under (StructFieldGet Monitor.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : Monitor) (y : Server), go.IsGoStepPureDetTagged under (StructFieldSet Monitor.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : Monitor)))
+  get'lg : ∀ (x : Monitor), go.IsGoStepPureDetTagged under (StructFieldGet Monitor.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : Monitor) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Monitor.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : Monitor)))
+  get's : ∀ (x : Monitor), go.IsGoStepPureDetTagged under (StructFieldGet Monitor.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : Monitor) (y : Server), go.IsGoStepPureDetTagged under (StructFieldSet Monitor.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : Monitor)))
   method_set : go.MethodSetIs Monitor.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Monitor.ty) [(go!"CancelDowngradeIfNeeded", (some (go.signature.Signature [] false []))), (go!"UpdateClusterVersionIfNeeded", (some (go.signature.Signature [] false [go.error]))), (go!"UpdateStorageVersionIfNeeded", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/version.decideClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/version.membersMinimalServerVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/version.versionsMatchTarget", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)] false [go.bool])))]
 
 attribute [instance] Monitor.TypeAssumptions.type_repr
   Monitor.TypeAssumptions.underlying
-  Monitor.TypeAssumptions.get_lg
-  Monitor.TypeAssumptions.set_lg
-  Monitor.TypeAssumptions.get_s
-  Monitor.TypeAssumptions.set_s
+  Monitor.TypeAssumptions.get'lg
+  Monitor.TypeAssumptions.set'lg
+  Monitor.TypeAssumptions.get's
+  Monitor.TypeAssumptions.set's
   Monitor.TypeAssumptions.method_set
   Monitor.TypeAssumptions.ptr_method_set
 
@@ -252,7 +252,7 @@ noncomputable instance Manager.zero_val [GooseExts] : ZeroVal Manager :=
 @[irreducible] noncomputable def Manager.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Manager.fieldsUnsealed
 
-noncomputable instance equals_unfold_Manager [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Manager [GooseExts] [GoGlobalContext] :
     EqualsUnfold Manager.fields Manager.fieldsUnsealed :=
   ⟨by unfold Manager.fields; rfl⟩
 
@@ -262,44 +262,44 @@ noncomputable instance equals_unfold_Manager [GooseExts] [GoGlobalContext] :
 class Manager.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Manager.underlying Manager
   underlying : go.UnderlyingDirectedEq Manager.ty Manager.underlying
-  get_lg : ∀ (x : Manager), go.IsGoStepPureDetTagged under (StructFieldGet Manager.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : Manager) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Manager.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : Manager)))
-  get_s : ∀ (x : Manager), go.IsGoStepPureDetTagged under (StructFieldGet Manager.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : Manager) (y : Server), go.IsGoStepPureDetTagged under (StructFieldSet Manager.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : Manager)))
+  get'lg : ∀ (x : Manager), go.IsGoStepPureDetTagged under (StructFieldGet Manager.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : Manager) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Manager.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : Manager)))
+  get's : ∀ (x : Manager), go.IsGoStepPureDetTagged under (StructFieldGet Manager.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : Manager) (y : Server), go.IsGoStepPureDetTagged under (StructFieldSet Manager.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : Manager)))
   method_set : go.MethodSetIs Manager.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Manager.ty) [(go!"DowngradeCancel", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"DowngradeEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)] false [go.error]))), (go!"DowngradeValidate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)] false [go.error])))]
 
 attribute [instance] Manager.TypeAssumptions.type_repr
   Manager.TypeAssumptions.underlying
-  Manager.TypeAssumptions.get_lg
-  Manager.TypeAssumptions.set_lg
-  Manager.TypeAssumptions.get_s
-  Manager.TypeAssumptions.set_s
+  Manager.TypeAssumptions.get'lg
+  Manager.TypeAssumptions.set'lg
+  Manager.TypeAssumptions.get's
+  Manager.TypeAssumptions.set's
   Manager.TypeAssumptions.method_set
   Manager.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  DowngradeInfo_instance : DowngradeInfo.TypeAssumptions
-  Monitor_instance : Monitor.TypeAssumptions
-  Server_instance : Server.TypeAssumptions
-  Manager_instance : Manager.TypeAssumptions
-  NewMonitor_unfold : FuncUnfold NewMonitor [] NewMonitor.impl
-  import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_version_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.version.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
+  instance'DowngradeInfo : DowngradeInfo.TypeAssumptions
+  instance'Monitor : Monitor.TypeAssumptions
+  instance'Server : Server.TypeAssumptions
+  instance'Manager : Manager.TypeAssumptions
+  unfold'NewMonitor : FuncUnfold NewMonitor [] NewMonitor.impl
+  import'semver : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'version : _root_.Perennial.go_etcd_io.etcd.api.v3.version.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'context : _root_.Perennial.context.Assumptions
 
-attribute [instance] Assumptions.DowngradeInfo_instance
-  Assumptions.Monitor_instance
-  Assumptions.Server_instance
-  Assumptions.Manager_instance
-  Assumptions.NewMonitor_unfold
-  Assumptions.import_semver_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_version_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_context_Assumption
+attribute [instance] Assumptions.instance'DowngradeInfo
+  Assumptions.instance'Monitor
+  Assumptions.instance'Server
+  Assumptions.instance'Manager
+  Assumptions.unfold'NewMonitor
+  Assumptions.import'semver
+  Assumptions.import'zap
+  Assumptions.import'version
+  Assumptions.import'errors
+  Assumptions.import'context
 
 end go_etcd_io.etcd.server.v3.etcdserver.version
 

@@ -842,7 +842,7 @@ noncomputable instance Config.zero_val [GooseExts] : ZeroVal Config :=
 @[irreducible] noncomputable def Config.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Config.fieldsUnsealed
 
-noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Config [GooseExts] [GoGlobalContext] :
     EqualsUnfold Config.fields Config.fieldsUnsealed :=
   ⟨by unfold Config.fields; rfl⟩
 
@@ -852,71 +852,71 @@ noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
 class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
-  get_Token : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Token") #x (Val #(x.Token'))
-  set_Token : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Token") (PairV #x #y) (Val #(({ x with Token' := y } : Config)))
-  get_Name1 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Name1") #x (Val #(x.Name1'))
-  set_Name1 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Name1") (PairV #x #y) (Val #(({ x with Name1' := y } : Config)))
-  get_Name2 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Name2") #x (Val #(x.Name2'))
-  set_Name2 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Name2") (PairV #x #y) (Val #(({ x with Name2' := y } : Config)))
-  get_Name3 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Name3") #x (Val #(x.Name3'))
-  set_Name3 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Name3") (PairV #x #y) (Val #(({ x with Name3' := y } : Config)))
-  get_Peer1 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Peer1") #x (Val #(x.Peer1'))
-  set_Peer1 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Peer1") (PairV #x #y) (Val #(({ x with Peer1' := y } : Config)))
-  get_Peer2 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Peer2") #x (Val #(x.Peer2'))
-  set_Peer2 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Peer2") (PairV #x #y) (Val #(({ x with Peer2' := y } : Config)))
-  get_Peer3 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Peer3") #x (Val #(x.Peer3'))
-  set_Peer3 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Peer3") (PairV #x #y) (Val #(({ x with Peer3' := y } : Config)))
-  get_Client1 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Client1") #x (Val #(x.Client1'))
-  set_Client1 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Client1") (PairV #x #y) (Val #(({ x with Client1' := y } : Config)))
-  get_Client2 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Client2") #x (Val #(x.Client2'))
-  set_Client2 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Client2") (PairV #x #y) (Val #(({ x with Client2' := y } : Config)))
-  get_Client3 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Client3") #x (Val #(x.Client3'))
-  set_Client3 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Client3") (PairV #x #y) (Val #(({ x with Client3' := y } : Config)))
-  get_Bridge1 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Bridge1") #x (Val #(x.Bridge1'))
-  set_Bridge1 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Bridge1") (PairV #x #y) (Val #(({ x with Bridge1' := y } : Config)))
-  get_Bridge2 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Bridge2") #x (Val #(x.Bridge2'))
-  set_Bridge2 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Bridge2") (PairV #x #y) (Val #(({ x with Bridge2' := y } : Config)))
-  get_Bridge3 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Bridge3") #x (Val #(x.Bridge3'))
-  set_Bridge3 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Bridge3") (PairV #x #y) (Val #(({ x with Bridge3' := y } : Config)))
-  get_SnapCount : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"SnapCount") #x (Val #(x.SnapCount'))
-  set_SnapCount : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"SnapCount") (PairV #x #y) (Val #(({ x with SnapCount' := y } : Config)))
-  get_SnapCatchUp : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"SnapCatchUp") #x (Val #(x.SnapCatchUp'))
-  set_SnapCatchUp : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"SnapCatchUp") (PairV #x #y) (Val #(({ x with SnapCatchUp' := y } : Config)))
+  get'Token : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Token") #x (Val #(x.Token'))
+  set'Token : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Token") (PairV #x #y) (Val #(({ x with Token' := y } : Config)))
+  get'Name1 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Name1") #x (Val #(x.Name1'))
+  set'Name1 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Name1") (PairV #x #y) (Val #(({ x with Name1' := y } : Config)))
+  get'Name2 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Name2") #x (Val #(x.Name2'))
+  set'Name2 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Name2") (PairV #x #y) (Val #(({ x with Name2' := y } : Config)))
+  get'Name3 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Name3") #x (Val #(x.Name3'))
+  set'Name3 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Name3") (PairV #x #y) (Val #(({ x with Name3' := y } : Config)))
+  get'Peer1 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Peer1") #x (Val #(x.Peer1'))
+  set'Peer1 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Peer1") (PairV #x #y) (Val #(({ x with Peer1' := y } : Config)))
+  get'Peer2 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Peer2") #x (Val #(x.Peer2'))
+  set'Peer2 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Peer2") (PairV #x #y) (Val #(({ x with Peer2' := y } : Config)))
+  get'Peer3 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Peer3") #x (Val #(x.Peer3'))
+  set'Peer3 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Peer3") (PairV #x #y) (Val #(({ x with Peer3' := y } : Config)))
+  get'Client1 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Client1") #x (Val #(x.Client1'))
+  set'Client1 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Client1") (PairV #x #y) (Val #(({ x with Client1' := y } : Config)))
+  get'Client2 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Client2") #x (Val #(x.Client2'))
+  set'Client2 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Client2") (PairV #x #y) (Val #(({ x with Client2' := y } : Config)))
+  get'Client3 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Client3") #x (Val #(x.Client3'))
+  set'Client3 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Client3") (PairV #x #y) (Val #(({ x with Client3' := y } : Config)))
+  get'Bridge1 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Bridge1") #x (Val #(x.Bridge1'))
+  set'Bridge1 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Bridge1") (PairV #x #y) (Val #(({ x with Bridge1' := y } : Config)))
+  get'Bridge2 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Bridge2") #x (Val #(x.Bridge2'))
+  set'Bridge2 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Bridge2") (PairV #x #y) (Val #(({ x with Bridge2' := y } : Config)))
+  get'Bridge3 : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Bridge3") #x (Val #(x.Bridge3'))
+  set'Bridge3 : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Bridge3") (PairV #x #y) (Val #(({ x with Bridge3' := y } : Config)))
+  get'SnapCount : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"SnapCount") #x (Val #(x.SnapCount'))
+  set'SnapCount : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"SnapCount") (PairV #x #y) (Val #(({ x with SnapCount' := y } : Config)))
+  get'SnapCatchUp : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"SnapCatchUp") #x (Val #(x.SnapCatchUp'))
+  set'SnapCatchUp : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"SnapCatchUp") (PairV #x #y) (Val #(({ x with SnapCatchUp' := y } : Config)))
   method_set : go.MethodSetIs Config.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) []
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
-  Config.TypeAssumptions.get_Token
-  Config.TypeAssumptions.set_Token
-  Config.TypeAssumptions.get_Name1
-  Config.TypeAssumptions.set_Name1
-  Config.TypeAssumptions.get_Name2
-  Config.TypeAssumptions.set_Name2
-  Config.TypeAssumptions.get_Name3
-  Config.TypeAssumptions.set_Name3
-  Config.TypeAssumptions.get_Peer1
-  Config.TypeAssumptions.set_Peer1
-  Config.TypeAssumptions.get_Peer2
-  Config.TypeAssumptions.set_Peer2
-  Config.TypeAssumptions.get_Peer3
-  Config.TypeAssumptions.set_Peer3
-  Config.TypeAssumptions.get_Client1
-  Config.TypeAssumptions.set_Client1
-  Config.TypeAssumptions.get_Client2
-  Config.TypeAssumptions.set_Client2
-  Config.TypeAssumptions.get_Client3
-  Config.TypeAssumptions.set_Client3
-  Config.TypeAssumptions.get_Bridge1
-  Config.TypeAssumptions.set_Bridge1
-  Config.TypeAssumptions.get_Bridge2
-  Config.TypeAssumptions.set_Bridge2
-  Config.TypeAssumptions.get_Bridge3
-  Config.TypeAssumptions.set_Bridge3
-  Config.TypeAssumptions.get_SnapCount
-  Config.TypeAssumptions.set_SnapCount
-  Config.TypeAssumptions.get_SnapCatchUp
-  Config.TypeAssumptions.set_SnapCatchUp
+  Config.TypeAssumptions.get'Token
+  Config.TypeAssumptions.set'Token
+  Config.TypeAssumptions.get'Name1
+  Config.TypeAssumptions.set'Name1
+  Config.TypeAssumptions.get'Name2
+  Config.TypeAssumptions.set'Name2
+  Config.TypeAssumptions.get'Name3
+  Config.TypeAssumptions.set'Name3
+  Config.TypeAssumptions.get'Peer1
+  Config.TypeAssumptions.set'Peer1
+  Config.TypeAssumptions.get'Peer2
+  Config.TypeAssumptions.set'Peer2
+  Config.TypeAssumptions.get'Peer3
+  Config.TypeAssumptions.set'Peer3
+  Config.TypeAssumptions.get'Client1
+  Config.TypeAssumptions.set'Client1
+  Config.TypeAssumptions.get'Client2
+  Config.TypeAssumptions.set'Client2
+  Config.TypeAssumptions.get'Client3
+  Config.TypeAssumptions.set'Client3
+  Config.TypeAssumptions.get'Bridge1
+  Config.TypeAssumptions.set'Bridge1
+  Config.TypeAssumptions.get'Bridge2
+  Config.TypeAssumptions.set'Bridge2
+  Config.TypeAssumptions.get'Bridge3
+  Config.TypeAssumptions.set'Bridge3
+  Config.TypeAssumptions.get'SnapCount
+  Config.TypeAssumptions.set'SnapCount
+  Config.TypeAssumptions.get'SnapCatchUp
+  Config.TypeAssumptions.set'SnapCatchUp
   Config.TypeAssumptions.method_set
   Config.TypeAssumptions.ptr_method_set
 
@@ -939,7 +939,7 @@ noncomputable instance Step.zero_val [GooseExts] : ZeroVal Step :=
 @[irreducible] noncomputable def Step.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Step.fieldsUnsealed
 
-noncomputable instance equals_unfold_Step [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Step [GooseExts] [GoGlobalContext] :
     EqualsUnfold Step.fields Step.fieldsUnsealed :=
   ⟨by unfold Step.fields; rfl⟩
 
@@ -949,74 +949,74 @@ noncomputable instance equals_unfold_Step [GooseExts] [GoGlobalContext] :
 class Step.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Step.underlying Step
   underlying : go.UnderlyingDirectedEq Step.ty Step.underlying
-  get_Delay : ∀ (x : Step), go.IsGoStepPureDetTagged under (StructFieldGet Step.underlying go!"Delay") #x (Val #(x.Delay'))
-  set_Delay : ∀ (x : Step) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Step.underlying go!"Delay") (PairV #x #y) (Val #(({ x with Delay' := y } : Step)))
-  get_Kind : ∀ (x : Step), go.IsGoStepPureDetTagged under (StructFieldGet Step.underlying go!"Kind") #x (Val #(x.Kind'))
-  set_Kind : ∀ (x : Step) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Step.underlying go!"Kind") (PairV #x #y) (Val #(({ x with Kind' := y } : Step)))
-  get_A : ∀ (x : Step), go.IsGoStepPureDetTagged under (StructFieldGet Step.underlying go!"A") #x (Val #(x.A'))
-  set_A : ∀ (x : Step) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Step.underlying go!"A") (PairV #x #y) (Val #(({ x with A' := y } : Step)))
-  get_B : ∀ (x : Step), go.IsGoStepPureDetTagged under (StructFieldGet Step.underlying go!"B") #x (Val #(x.B'))
-  set_B : ∀ (x : Step) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Step.underlying go!"B") (PairV #x #y) (Val #(({ x with B' := y } : Step)))
+  get'Delay : ∀ (x : Step), go.IsGoStepPureDetTagged under (StructFieldGet Step.underlying go!"Delay") #x (Val #(x.Delay'))
+  set'Delay : ∀ (x : Step) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Step.underlying go!"Delay") (PairV #x #y) (Val #(({ x with Delay' := y } : Step)))
+  get'Kind : ∀ (x : Step), go.IsGoStepPureDetTagged under (StructFieldGet Step.underlying go!"Kind") #x (Val #(x.Kind'))
+  set'Kind : ∀ (x : Step) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Step.underlying go!"Kind") (PairV #x #y) (Val #(({ x with Kind' := y } : Step)))
+  get'A : ∀ (x : Step), go.IsGoStepPureDetTagged under (StructFieldGet Step.underlying go!"A") #x (Val #(x.A'))
+  set'A : ∀ (x : Step) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Step.underlying go!"A") (PairV #x #y) (Val #(({ x with A' := y } : Step)))
+  get'B : ∀ (x : Step), go.IsGoStepPureDetTagged under (StructFieldGet Step.underlying go!"B") #x (Val #(x.B'))
+  set'B : ∀ (x : Step) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Step.underlying go!"B") (PairV #x #y) (Val #(({ x with B' := y } : Step)))
   method_set : go.MethodSetIs Step.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Step.ty) []
 
 attribute [instance] Step.TypeAssumptions.type_repr
   Step.TypeAssumptions.underlying
-  Step.TypeAssumptions.get_Delay
-  Step.TypeAssumptions.set_Delay
-  Step.TypeAssumptions.get_Kind
-  Step.TypeAssumptions.set_Kind
-  Step.TypeAssumptions.get_A
-  Step.TypeAssumptions.set_A
-  Step.TypeAssumptions.get_B
-  Step.TypeAssumptions.set_B
+  Step.TypeAssumptions.get'Delay
+  Step.TypeAssumptions.set'Delay
+  Step.TypeAssumptions.get'Kind
+  Step.TypeAssumptions.set'Kind
+  Step.TypeAssumptions.get'A
+  Step.TypeAssumptions.set'A
+  Step.TypeAssumptions.get'B
+  Step.TypeAssumptions.set'B
   Step.TypeAssumptions.method_set
   Step.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Config_instance : Config.TypeAssumptions
-  Step_instance : Step.TypeAssumptions
-  holdToken_unfold : FuncUnfold holdToken [] holdToken.impl
-  StartMember_unfold : FuncUnfold StartMember [] StartMember.impl
-  StartBridge_unfold : FuncUnfold StartBridge [] StartBridge.impl
-  PeerStep_unfold : FuncUnfold PeerStep [] PeerStep.impl
-  ClientStep_unfold : FuncUnfold ClientStep [] ClientStep.impl
-  Partitioner_unfold : FuncUnfold Partitioner [] Partitioner.impl
-  StartCluster_unfold : FuncUnfold StartCluster [] StartCluster.impl
-  NewClient_unfold : FuncUnfold NewClient [] NewClient.impl
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
-  import_keepalive_Assumption : _root_.Perennial.google_golang_org.grpc.keepalive.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_v3rpc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
-  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
-  import_bridge_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions
+  instance'Config : Config.TypeAssumptions
+  instance'Step : Step.TypeAssumptions
+  unfold'holdToken : FuncUnfold holdToken [] holdToken.impl
+  unfold'StartMember : FuncUnfold StartMember [] StartMember.impl
+  unfold'StartBridge : FuncUnfold StartBridge [] StartBridge.impl
+  unfold'PeerStep : FuncUnfold PeerStep [] PeerStep.impl
+  unfold'ClientStep : FuncUnfold ClientStep [] ClientStep.impl
+  unfold'Partitioner : FuncUnfold Partitioner [] Partitioner.impl
+  unfold'StartCluster : FuncUnfold StartCluster [] StartCluster.impl
+  unfold'NewClient : FuncUnfold NewClient [] NewClient.impl
+  import'net : _root_.Perennial.net.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'grpc : _root_.Perennial.google_golang_org.grpc.Assumptions
+  import'keepalive : _root_.Perennial.google_golang_org.grpc.keepalive.Assumptions
+  import'types : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'etcdserver : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
+  import'v3rpc : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
+  import'etcdstart : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
+  import'bridge : _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions
 
-attribute [instance] Assumptions.Config_instance
-  Assumptions.Step_instance
-  Assumptions.holdToken_unfold
-  Assumptions.StartMember_unfold
-  Assumptions.StartBridge_unfold
-  Assumptions.PeerStep_unfold
-  Assumptions.ClientStep_unfold
-  Assumptions.Partitioner_unfold
-  Assumptions.StartCluster_unfold
-  Assumptions.NewClient_unfold
-  Assumptions.import_net_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_grpc_Assumption
-  Assumptions.import_keepalive_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_etcdserver_Assumption
-  Assumptions.import_v3rpc_Assumption
-  Assumptions.import_etcdstart_Assumption
-  Assumptions.import_bridge_Assumption
+attribute [instance] Assumptions.instance'Config
+  Assumptions.instance'Step
+  Assumptions.unfold'holdToken
+  Assumptions.unfold'StartMember
+  Assumptions.unfold'StartBridge
+  Assumptions.unfold'PeerStep
+  Assumptions.unfold'ClientStep
+  Assumptions.unfold'Partitioner
+  Assumptions.unfold'StartCluster
+  Assumptions.unfold'NewClient
+  Assumptions.import'net
+  Assumptions.import'time
+  Assumptions.import'zap
+  Assumptions.import'grpc
+  Assumptions.import'keepalive
+  Assumptions.import'types
+  Assumptions.import'clientv3
+  Assumptions.import'etcdserver
+  Assumptions.import'v3rpc
+  Assumptions.import'etcdstart
+  Assumptions.import'bridge
 
 end github_com.mit_pdos.etcd_grove.examples.lib.cluster3
 

@@ -171,9 +171,9 @@ attribute [instance] PartialObjectMetadataList.TypeAssumptions.type_repr
   PartialObjectMetadataList.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  PartialObjectMetadataList_instance : PartialObjectMetadataList.TypeAssumptions
+  instance'PartialObjectMetadataList : PartialObjectMetadataList.TypeAssumptions
 
-attribute [instance] Assumptions.PartialObjectMetadataList_instance
+attribute [instance] Assumptions.instance'PartialObjectMetadataList
 
 end k8s_io.apimachinery.pkg.apis.«meta».v1beta1
 

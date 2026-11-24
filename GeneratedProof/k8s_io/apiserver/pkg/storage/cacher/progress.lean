@@ -34,7 +34,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.progress.Assumptions]
 
-noncomputable instance ConditionalProgressRequester_typed_pointsto :
+noncomputable instance typed_pointsto'ConditionalProgressRequester :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester where
   typedPointstoDef l v dq := iprop(
     "clock" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"clock" l) v.clock' dq ∗
@@ -49,11 +49,11 @@ noncomputable instance ConditionalProgressRequester_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ConditionalProgressRequester_into_val_typed :
+noncomputable instance into_val_typed'ConditionalProgressRequester :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ConditionalProgressRequester_access_load_clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (dq : DFrac) :
+noncomputable instance access_load'ConditionalProgressRequester'clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"clock" l) v.clock' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"clock" l) v.clock' dq)
@@ -61,7 +61,7 @@ noncomputable instance ConditionalProgressRequester_access_load_clock (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_store_clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : k8s_io.apiserver.pkg.storage.cacher.progress.TickerFactory) :
+noncomputable instance access_store'ConditionalProgressRequester'clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : k8s_io.apiserver.pkg.storage.cacher.progress.TickerFactory) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"clock" l) y (DFrac.own 1))
@@ -69,7 +69,7 @@ noncomputable instance ConditionalProgressRequester_access_store_clock (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_load_requestWatchProgress (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (dq : DFrac) :
+noncomputable instance access_load'ConditionalProgressRequester'requestWatchProgress (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"requestWatchProgress" l) v.requestWatchProgress' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"requestWatchProgress" l) v.requestWatchProgress' dq)
@@ -77,7 +77,7 @@ noncomputable instance ConditionalProgressRequester_access_load_requestWatchProg
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_store_requestWatchProgress (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : k8s_io.apiserver.pkg.storage.cacher.progress.WatchProgressRequester) :
+noncomputable instance access_store'ConditionalProgressRequester'requestWatchProgress (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : k8s_io.apiserver.pkg.storage.cacher.progress.WatchProgressRequester) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"requestWatchProgress" l) v.requestWatchProgress' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"requestWatchProgress" l) y (DFrac.own 1))
@@ -85,7 +85,7 @@ noncomputable instance ConditionalProgressRequester_access_store_requestWatchPro
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_load_contextMetadata (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (dq : DFrac) :
+noncomputable instance access_load'ConditionalProgressRequester'contextMetadata (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"contextMetadata" l) v.contextMetadata' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"contextMetadata" l) v.contextMetadata' dq)
@@ -93,7 +93,7 @@ noncomputable instance ConditionalProgressRequester_access_load_contextMetadata 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_store_contextMetadata (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : _root_.Perennial.google_golang_org.grpc.metadata.MD) :
+noncomputable instance access_store'ConditionalProgressRequester'contextMetadata (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : _root_.Perennial.google_golang_org.grpc.metadata.MD) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"contextMetadata" l) v.contextMetadata' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"contextMetadata" l) y (DFrac.own 1))
@@ -101,7 +101,7 @@ noncomputable instance ConditionalProgressRequester_access_store_contextMetadata
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_load_mux (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (dq : DFrac) :
+noncomputable instance access_load'ConditionalProgressRequester'mux (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"mux" l) v.mux' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"mux" l) v.mux' dq)
@@ -109,7 +109,7 @@ noncomputable instance ConditionalProgressRequester_access_load_mux (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_store_mux (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'ConditionalProgressRequester'mux (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"mux" l) v.mux' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"mux" l) y (DFrac.own 1))
@@ -117,7 +117,7 @@ noncomputable instance ConditionalProgressRequester_access_store_mux (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_load_cond (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (dq : DFrac) :
+noncomputable instance access_load'ConditionalProgressRequester'cond (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"cond" l) v.cond' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"cond" l) v.cond' dq)
@@ -125,7 +125,7 @@ noncomputable instance ConditionalProgressRequester_access_load_cond (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_store_cond (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : Loc) :
+noncomputable instance access_store'ConditionalProgressRequester'cond (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"cond" l) v.cond' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"cond" l) y (DFrac.own 1))
@@ -133,7 +133,7 @@ noncomputable instance ConditionalProgressRequester_access_store_cond (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_load_waiting (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (dq : DFrac) :
+noncomputable instance access_load'ConditionalProgressRequester'waiting (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"waiting" l) v.waiting' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"waiting" l) v.waiting' dq)
@@ -141,7 +141,7 @@ noncomputable instance ConditionalProgressRequester_access_load_waiting (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_store_waiting (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : w64) :
+noncomputable instance access_store'ConditionalProgressRequester'waiting (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"waiting" l) v.waiting' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"waiting" l) y (DFrac.own 1))
@@ -149,7 +149,7 @@ noncomputable instance ConditionalProgressRequester_access_store_waiting (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_load_stopped (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (dq : DFrac) :
+noncomputable instance access_load'ConditionalProgressRequester'stopped (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"stopped" l) v.stopped' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"stopped" l) v.stopped' dq)
@@ -157,7 +157,7 @@ noncomputable instance ConditionalProgressRequester_access_load_stopped (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_store_stopped (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : Bool) :
+noncomputable instance access_store'ConditionalProgressRequester'stopped (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"stopped" l) v.stopped' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"stopped" l) y (DFrac.own 1))

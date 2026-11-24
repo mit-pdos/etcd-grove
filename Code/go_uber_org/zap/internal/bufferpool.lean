@@ -54,9 +54,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc Get (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.buffer.Buffer.ty)])))) (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  import_buffer_Assumption : _root_.Perennial.go_uber_org.zap.buffer.Assumptions
+  import'buffer : _root_.Perennial.go_uber_org.zap.buffer.Assumptions
 
-attribute [instance] Assumptions.import_buffer_Assumption
+attribute [instance] Assumptions.import'buffer
 
 end go_uber_org.zap.internal.bufferpool
 

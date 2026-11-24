@@ -66,15 +66,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.k8s_io.utils.dump.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  DeepHashObject_unfold : FuncUnfold DeepHashObject [] DeepHashObject.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_hash_Assumption : _root_.Perennial.hash.Assumptions
-  import_dump_Assumption : _root_.Perennial.k8s_io.utils.dump.Assumptions
+  unfold'DeepHashObject : FuncUnfold DeepHashObject [] DeepHashObject.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'hash : _root_.Perennial.hash.Assumptions
+  import'dump : _root_.Perennial.k8s_io.utils.dump.Assumptions
 
-attribute [instance] Assumptions.DeepHashObject_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_hash_Assumption
-  Assumptions.import_dump_Assumption
+attribute [instance] Assumptions.unfold'DeepHashObject
+  Assumptions.import'fmt
+  Assumptions.import'hash
+  Assumptions.import'dump
 
 end k8s_io.kubernetes.pkg.util.hash
 

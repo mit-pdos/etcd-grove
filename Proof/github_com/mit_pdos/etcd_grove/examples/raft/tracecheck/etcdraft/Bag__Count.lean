@@ -33,7 +33,7 @@ theorem Bag.Count.wp_proof (wp_find : Bag.find.spec (GF := GF) (hG := hG)) :
   ihave %Hil := ownSlice_len $$ Hits
   ihave %Hbl := BigSepL2.bigSepL2_length $$ Hib
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_find_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'find.method_unfold]
   try wp_auto
   wp_apply wp_find g b p m $$ [Hg Hm] as %k %Hk
   · iframe Hg Hm

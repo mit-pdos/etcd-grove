@@ -98,12 +98,12 @@ def evAct (γ : FifoNames) (OK : GoInterface → IProp GF) (typ : GoString) (x :
   else iprop(False)
 
 /-- **`reflect.TypeOf` of resource `r`'s objects is `et`** (persistent). -/
-def typeOfOk (et : reflect.«Type») (r : Res) : IProp GF :=
+def typeOfOk (et : reflect.Type'') (r : Res) : IProp GF :=
   iprop(□ ∀ (l : Loc) (Φ : val → IProp GF), ▷ Φ #et -∗
     WP (App (Val (@! reflect.TypeOf)) (Val #(interface.mkOk (go.GoType.PointerType (resObjTy r)) #l)))
       {{ Φ }})
 
-instance typeOfOk_persistent (et : reflect.«Type») (r : Res) :
+instance typeOfOk_persistent (et : reflect.Type'') (r : Res) :
     Persistent (typeOfOk (GF := GF) et r) := by
   unfold typeOfOk; infer_instance
 

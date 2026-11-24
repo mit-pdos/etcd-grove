@@ -24,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance GeoRadiusQuery_typed_pointsto :
+noncomputable instance typed_pointsto'GeoRadiusQuery :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.GeoRadiusQuery where
   typedPointstoDef l v dq := iprop(
     "Radius" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Radius" l) v.Radius' dq ∗
@@ -41,11 +41,11 @@ noncomputable instance GeoRadiusQuery_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance GeoRadiusQuery_into_val_typed :
+noncomputable instance into_val_typed'GeoRadiusQuery :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.GeoRadiusQuery github_com.go_redis.redis.v8.GeoRadiusQuery.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance GeoRadiusQuery_access_load_Radius (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'Radius (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Radius" l) v.Radius' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Radius" l) v.Radius' dq)
@@ -53,7 +53,7 @@ noncomputable instance GeoRadiusQuery_access_load_Radius (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_store_Radius (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : w64) :
+noncomputable instance access_store'GeoRadiusQuery'Radius (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Radius" l) v.Radius' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Radius" l) y (DFrac.own 1))
@@ -61,7 +61,7 @@ noncomputable instance GeoRadiusQuery_access_store_Radius (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_load_Unit (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'Unit (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Unit" l) v.Unit' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Unit" l) v.Unit' dq)
@@ -69,7 +69,7 @@ noncomputable instance GeoRadiusQuery_access_load_Unit (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_store_Unit (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : GoString) :
+noncomputable instance access_store'GeoRadiusQuery'Unit (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Unit" l) v.Unit' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Unit" l) y (DFrac.own 1))
@@ -77,7 +77,7 @@ noncomputable instance GeoRadiusQuery_access_store_Unit (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_load_WithCoord (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'WithCoord (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithCoord" l) v.WithCoord' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithCoord" l) v.WithCoord' dq)
@@ -85,7 +85,7 @@ noncomputable instance GeoRadiusQuery_access_load_WithCoord (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_store_WithCoord (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : Bool) :
+noncomputable instance access_store'GeoRadiusQuery'WithCoord (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithCoord" l) v.WithCoord' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithCoord" l) y (DFrac.own 1))
@@ -93,7 +93,7 @@ noncomputable instance GeoRadiusQuery_access_store_WithCoord (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_load_WithDist (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'WithDist (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithDist" l) v.WithDist' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithDist" l) v.WithDist' dq)
@@ -101,7 +101,7 @@ noncomputable instance GeoRadiusQuery_access_load_WithDist (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_store_WithDist (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : Bool) :
+noncomputable instance access_store'GeoRadiusQuery'WithDist (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithDist" l) v.WithDist' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithDist" l) y (DFrac.own 1))
@@ -109,7 +109,7 @@ noncomputable instance GeoRadiusQuery_access_store_WithDist (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_load_WithGeoHash (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'WithGeoHash (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithGeoHash" l) v.WithGeoHash' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithGeoHash" l) v.WithGeoHash' dq)
@@ -117,7 +117,7 @@ noncomputable instance GeoRadiusQuery_access_load_WithGeoHash (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_store_WithGeoHash (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : Bool) :
+noncomputable instance access_store'GeoRadiusQuery'WithGeoHash (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithGeoHash" l) v.WithGeoHash' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithGeoHash" l) y (DFrac.own 1))
@@ -125,7 +125,7 @@ noncomputable instance GeoRadiusQuery_access_store_WithGeoHash (l : Loc) (v : gi
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_load_Count (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'Count (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Count" l) v.Count' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Count" l) v.Count' dq)
@@ -133,7 +133,7 @@ noncomputable instance GeoRadiusQuery_access_load_Count (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_store_Count (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : w64) :
+noncomputable instance access_store'GeoRadiusQuery'Count (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Count" l) v.Count' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Count" l) y (DFrac.own 1))
@@ -141,7 +141,7 @@ noncomputable instance GeoRadiusQuery_access_store_Count (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_load_Sort (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'Sort (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Sort" l) v.Sort' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Sort" l) v.Sort' dq)
@@ -149,7 +149,7 @@ noncomputable instance GeoRadiusQuery_access_load_Sort (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_store_Sort (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : GoString) :
+noncomputable instance access_store'GeoRadiusQuery'Sort (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Sort" l) v.Sort' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Sort" l) y (DFrac.own 1))
@@ -157,7 +157,7 @@ noncomputable instance GeoRadiusQuery_access_store_Sort (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_load_Store (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'Store (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Store" l) v.Store' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Store" l) v.Store' dq)
@@ -165,7 +165,7 @@ noncomputable instance GeoRadiusQuery_access_load_Store (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_store_Store (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : GoString) :
+noncomputable instance access_store'GeoRadiusQuery'Store (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Store" l) v.Store' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Store" l) y (DFrac.own 1))
@@ -173,7 +173,7 @@ noncomputable instance GeoRadiusQuery_access_store_Store (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_load_StoreDist (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'StoreDist (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"StoreDist" l) v.StoreDist' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"StoreDist" l) v.StoreDist' dq)
@@ -181,7 +181,7 @@ noncomputable instance GeoRadiusQuery_access_load_StoreDist (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoRadiusQuery_access_store_StoreDist (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : GoString) :
+noncomputable instance access_store'GeoRadiusQuery'StoreDist (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"StoreDist" l) v.StoreDist' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"StoreDist" l) y (DFrac.own 1))
@@ -200,7 +200,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance GeoSearchQuery_typed_pointsto :
+noncomputable instance typed_pointsto'GeoSearchQuery :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.GeoSearchQuery where
   typedPointstoDef l v dq := iprop(
     "Member" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Member" l) v.Member' dq ∗
@@ -219,11 +219,11 @@ noncomputable instance GeoSearchQuery_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance GeoSearchQuery_into_val_typed :
+noncomputable instance into_val_typed'GeoSearchQuery :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.GeoSearchQuery github_com.go_redis.redis.v8.GeoSearchQuery.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance GeoSearchQuery_access_load_Member (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'Member (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Member" l) v.Member' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Member" l) v.Member' dq)
@@ -231,7 +231,7 @@ noncomputable instance GeoSearchQuery_access_load_Member (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_store_Member (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : GoString) :
+noncomputable instance access_store'GeoSearchQuery'Member (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Member" l) v.Member' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Member" l) y (DFrac.own 1))
@@ -239,7 +239,7 @@ noncomputable instance GeoSearchQuery_access_store_Member (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_load_Longitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'Longitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Longitude" l) v.Longitude' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Longitude" l) v.Longitude' dq)
@@ -247,7 +247,7 @@ noncomputable instance GeoSearchQuery_access_load_Longitude (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_store_Longitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
+noncomputable instance access_store'GeoSearchQuery'Longitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Longitude" l) v.Longitude' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Longitude" l) y (DFrac.own 1))
@@ -255,7 +255,7 @@ noncomputable instance GeoSearchQuery_access_store_Longitude (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_load_Latitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'Latitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Latitude" l) v.Latitude' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Latitude" l) v.Latitude' dq)
@@ -263,7 +263,7 @@ noncomputable instance GeoSearchQuery_access_load_Latitude (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_store_Latitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
+noncomputable instance access_store'GeoSearchQuery'Latitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Latitude" l) v.Latitude' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Latitude" l) y (DFrac.own 1))
@@ -271,7 +271,7 @@ noncomputable instance GeoSearchQuery_access_store_Latitude (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_load_Radius (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'Radius (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Radius" l) v.Radius' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Radius" l) v.Radius' dq)
@@ -279,7 +279,7 @@ noncomputable instance GeoSearchQuery_access_load_Radius (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_store_Radius (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
+noncomputable instance access_store'GeoSearchQuery'Radius (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Radius" l) v.Radius' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Radius" l) y (DFrac.own 1))
@@ -287,7 +287,7 @@ noncomputable instance GeoSearchQuery_access_store_Radius (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_load_RadiusUnit (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'RadiusUnit (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"RadiusUnit" l) v.RadiusUnit' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"RadiusUnit" l) v.RadiusUnit' dq)
@@ -295,7 +295,7 @@ noncomputable instance GeoSearchQuery_access_load_RadiusUnit (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_store_RadiusUnit (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : GoString) :
+noncomputable instance access_store'GeoSearchQuery'RadiusUnit (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"RadiusUnit" l) v.RadiusUnit' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"RadiusUnit" l) y (DFrac.own 1))
@@ -303,7 +303,7 @@ noncomputable instance GeoSearchQuery_access_store_RadiusUnit (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_load_BoxWidth (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'BoxWidth (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxWidth" l) v.BoxWidth' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxWidth" l) v.BoxWidth' dq)
@@ -311,7 +311,7 @@ noncomputable instance GeoSearchQuery_access_load_BoxWidth (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_store_BoxWidth (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
+noncomputable instance access_store'GeoSearchQuery'BoxWidth (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxWidth" l) v.BoxWidth' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxWidth" l) y (DFrac.own 1))
@@ -319,7 +319,7 @@ noncomputable instance GeoSearchQuery_access_store_BoxWidth (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_load_BoxHeight (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'BoxHeight (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxHeight" l) v.BoxHeight' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxHeight" l) v.BoxHeight' dq)
@@ -327,7 +327,7 @@ noncomputable instance GeoSearchQuery_access_load_BoxHeight (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_store_BoxHeight (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
+noncomputable instance access_store'GeoSearchQuery'BoxHeight (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxHeight" l) v.BoxHeight' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxHeight" l) y (DFrac.own 1))
@@ -335,7 +335,7 @@ noncomputable instance GeoSearchQuery_access_store_BoxHeight (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_load_BoxUnit (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'BoxUnit (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxUnit" l) v.BoxUnit' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxUnit" l) v.BoxUnit' dq)
@@ -343,7 +343,7 @@ noncomputable instance GeoSearchQuery_access_load_BoxUnit (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_store_BoxUnit (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : GoString) :
+noncomputable instance access_store'GeoSearchQuery'BoxUnit (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxUnit" l) v.BoxUnit' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxUnit" l) y (DFrac.own 1))
@@ -351,7 +351,7 @@ noncomputable instance GeoSearchQuery_access_store_BoxUnit (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_load_Sort (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'Sort (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Sort" l) v.Sort' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Sort" l) v.Sort' dq)
@@ -359,7 +359,7 @@ noncomputable instance GeoSearchQuery_access_load_Sort (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_store_Sort (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : GoString) :
+noncomputable instance access_store'GeoSearchQuery'Sort (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Sort" l) v.Sort' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Sort" l) y (DFrac.own 1))
@@ -367,7 +367,7 @@ noncomputable instance GeoSearchQuery_access_store_Sort (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_load_Count (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'Count (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Count" l) v.Count' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Count" l) v.Count' dq)
@@ -375,7 +375,7 @@ noncomputable instance GeoSearchQuery_access_load_Count (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_store_Count (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
+noncomputable instance access_store'GeoSearchQuery'Count (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Count" l) v.Count' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Count" l) y (DFrac.own 1))
@@ -383,7 +383,7 @@ noncomputable instance GeoSearchQuery_access_store_Count (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_load_CountAny (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'CountAny (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"CountAny" l) v.CountAny' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"CountAny" l) v.CountAny' dq)
@@ -391,7 +391,7 @@ noncomputable instance GeoSearchQuery_access_load_CountAny (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoSearchQuery_access_store_CountAny (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : Bool) :
+noncomputable instance access_store'GeoSearchQuery'CountAny (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"CountAny" l) v.CountAny' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"CountAny" l) y (DFrac.own 1))
@@ -410,7 +410,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance GeoPos_typed_pointsto :
+noncomputable instance typed_pointsto'GeoPos :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.GeoPos where
   typedPointstoDef l v dq := iprop(
     "Longitude" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Longitude" l) v.Longitude' dq ∗
@@ -420,11 +420,11 @@ noncomputable instance GeoPos_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance GeoPos_into_val_typed :
+noncomputable instance into_val_typed'GeoPos :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.GeoPos github_com.go_redis.redis.v8.GeoPos.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance GeoPos_access_load_Longitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoPos) (dq : DFrac) :
+noncomputable instance access_load'GeoPos'Longitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoPos) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Longitude" l) v.Longitude' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Longitude" l) v.Longitude' dq)
@@ -432,7 +432,7 @@ noncomputable instance GeoPos_access_load_Longitude (l : Loc) (v : github_com.go
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoPos_access_store_Longitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoPos) (y : w64) :
+noncomputable instance access_store'GeoPos'Longitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoPos) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Longitude" l) v.Longitude' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Longitude" l) y (DFrac.own 1))
@@ -440,7 +440,7 @@ noncomputable instance GeoPos_access_store_Longitude (l : Loc) (v : github_com.g
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoPos_access_load_Latitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoPos) (dq : DFrac) :
+noncomputable instance access_load'GeoPos'Latitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoPos) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Latitude" l) v.Latitude' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Latitude" l) v.Latitude' dq)
@@ -448,7 +448,7 @@ noncomputable instance GeoPos_access_load_Latitude (l : Loc) (v : github_com.go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance GeoPos_access_store_Latitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoPos) (y : w64) :
+noncomputable instance access_store'GeoPos'Latitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoPos) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Latitude" l) v.Latitude' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Latitude" l) y (DFrac.own 1))
@@ -467,7 +467,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance CommandInfo_typed_pointsto :
+noncomputable instance typed_pointsto'CommandInfo :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.CommandInfo where
   typedPointstoDef l v dq := iprop(
     "Name" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Name" l) v.Name' dq ∗
@@ -483,11 +483,11 @@ noncomputable instance CommandInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance CommandInfo_into_val_typed :
+noncomputable instance into_val_typed'CommandInfo :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.CommandInfo github_com.go_redis.redis.v8.CommandInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance CommandInfo_access_load_Name (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
+noncomputable instance access_load'CommandInfo'Name (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Name" l) v.Name' dq)
@@ -495,7 +495,7 @@ noncomputable instance CommandInfo_access_load_Name (l : Loc) (v : github_com.go
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandInfo_access_store_Name (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : GoString) :
+noncomputable instance access_store'CommandInfo'Name (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Name" l) y (DFrac.own 1))
@@ -503,7 +503,7 @@ noncomputable instance CommandInfo_access_store_Name (l : Loc) (v : github_com.g
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandInfo_access_load_Arity (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
+noncomputable instance access_load'CommandInfo'Arity (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Arity" l) v.Arity' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Arity" l) v.Arity' dq)
@@ -511,7 +511,7 @@ noncomputable instance CommandInfo_access_load_Arity (l : Loc) (v : github_com.g
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandInfo_access_store_Arity (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : w8) :
+noncomputable instance access_store'CommandInfo'Arity (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Arity" l) v.Arity' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Arity" l) y (DFrac.own 1))
@@ -519,7 +519,7 @@ noncomputable instance CommandInfo_access_store_Arity (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandInfo_access_load_Flags (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
+noncomputable instance access_load'CommandInfo'Flags (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Flags" l) v.Flags' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Flags" l) v.Flags' dq)
@@ -527,7 +527,7 @@ noncomputable instance CommandInfo_access_load_Flags (l : Loc) (v : github_com.g
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandInfo_access_store_Flags (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : GoSlice) :
+noncomputable instance access_store'CommandInfo'Flags (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Flags" l) v.Flags' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Flags" l) y (DFrac.own 1))
@@ -535,7 +535,7 @@ noncomputable instance CommandInfo_access_store_Flags (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandInfo_access_load_ACLFlags (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
+noncomputable instance access_load'CommandInfo'ACLFlags (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ACLFlags" l) v.ACLFlags' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ACLFlags" l) v.ACLFlags' dq)
@@ -543,7 +543,7 @@ noncomputable instance CommandInfo_access_load_ACLFlags (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandInfo_access_store_ACLFlags (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : GoSlice) :
+noncomputable instance access_store'CommandInfo'ACLFlags (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ACLFlags" l) v.ACLFlags' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ACLFlags" l) y (DFrac.own 1))
@@ -551,7 +551,7 @@ noncomputable instance CommandInfo_access_store_ACLFlags (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandInfo_access_load_FirstKeyPos (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
+noncomputable instance access_load'CommandInfo'FirstKeyPos (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"FirstKeyPos" l) v.FirstKeyPos' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"FirstKeyPos" l) v.FirstKeyPos' dq)
@@ -559,7 +559,7 @@ noncomputable instance CommandInfo_access_load_FirstKeyPos (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandInfo_access_store_FirstKeyPos (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : w8) :
+noncomputable instance access_store'CommandInfo'FirstKeyPos (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"FirstKeyPos" l) v.FirstKeyPos' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"FirstKeyPos" l) y (DFrac.own 1))
@@ -567,7 +567,7 @@ noncomputable instance CommandInfo_access_store_FirstKeyPos (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandInfo_access_load_LastKeyPos (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
+noncomputable instance access_load'CommandInfo'LastKeyPos (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"LastKeyPos" l) v.LastKeyPos' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"LastKeyPos" l) v.LastKeyPos' dq)
@@ -575,7 +575,7 @@ noncomputable instance CommandInfo_access_load_LastKeyPos (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandInfo_access_store_LastKeyPos (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : w8) :
+noncomputable instance access_store'CommandInfo'LastKeyPos (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"LastKeyPos" l) v.LastKeyPos' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"LastKeyPos" l) y (DFrac.own 1))
@@ -583,7 +583,7 @@ noncomputable instance CommandInfo_access_store_LastKeyPos (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandInfo_access_load_StepCount (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
+noncomputable instance access_load'CommandInfo'StepCount (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"StepCount" l) v.StepCount' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"StepCount" l) v.StepCount' dq)
@@ -591,7 +591,7 @@ noncomputable instance CommandInfo_access_load_StepCount (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandInfo_access_store_StepCount (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : w8) :
+noncomputable instance access_store'CommandInfo'StepCount (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"StepCount" l) v.StepCount' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"StepCount" l) y (DFrac.own 1))
@@ -599,7 +599,7 @@ noncomputable instance CommandInfo_access_store_StepCount (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandInfo_access_load_ReadOnly (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
+noncomputable instance access_load'CommandInfo'ReadOnly (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ReadOnly" l) v.ReadOnly' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ReadOnly" l) v.ReadOnly' dq)
@@ -607,7 +607,7 @@ noncomputable instance CommandInfo_access_load_ReadOnly (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandInfo_access_store_ReadOnly (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : Bool) :
+noncomputable instance access_store'CommandInfo'ReadOnly (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ReadOnly" l) v.ReadOnly' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ReadOnly" l) y (DFrac.own 1))
@@ -626,11 +626,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance cmdsInfoCache_typed_pointsto :
+noncomputable instance typed_pointsto'cmdsInfoCache :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.cmdsInfoCache :=
   sorry -- axiomatized type
 
-noncomputable instance cmdsInfoCache_into_val_typed :
+noncomputable instance into_val_typed'cmdsInfoCache :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.cmdsInfoCache github_com.go_redis.redis.v8.cmdsInfoCache.underlying :=
   sorry -- axiomatized type
 
@@ -645,11 +645,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance SlowLog_typed_pointsto :
+noncomputable instance typed_pointsto'SlowLog :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.SlowLog :=
   sorry -- axiomatized type
 
-noncomputable instance SlowLog_into_val_typed :
+noncomputable instance into_val_typed'SlowLog :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.SlowLog github_com.go_redis.redis.v8.SlowLog.underlying :=
   sorry -- axiomatized type
 
@@ -664,11 +664,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance Cmdable_typed_pointsto :
+noncomputable instance typed_pointsto'Cmdable :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.Cmdable :=
   sorry -- axiomatized type
 
-noncomputable instance Cmdable_into_val_typed :
+noncomputable instance into_val_typed'Cmdable :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.Cmdable github_com.go_redis.redis.v8.Cmdable.underlying :=
   sorry -- axiomatized type
 
@@ -683,11 +683,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance StatefulCmdable_typed_pointsto :
+noncomputable instance typed_pointsto'StatefulCmdable :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.StatefulCmdable :=
   sorry -- axiomatized type
 
-noncomputable instance StatefulCmdable_into_val_typed :
+noncomputable instance into_val_typed'StatefulCmdable :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.StatefulCmdable github_com.go_redis.redis.v8.StatefulCmdable.underlying :=
   sorry -- axiomatized type
 
@@ -702,18 +702,18 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance statefulCmdable_typed_pointsto :
+noncomputable instance typed_pointsto'statefulCmdable :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.statefulCmdable :=
   sorry -- axiomatized type
 
-noncomputable instance statefulCmdable_into_val_typed :
+noncomputable instance into_val_typed'statefulCmdable :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.statefulCmdable github_com.go_redis.redis.v8.statefulCmdable.underlying :=
   sorry -- axiomatized type
 
 end def_
 end statefulCmdable
 
-namespace «Sort»
+namespace Sort''
 section def_
 
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
@@ -721,122 +721,122 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance Sort_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.«Sort» where
+noncomputable instance typed_pointsto'Sort :
+    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.Sort'' where
   typedPointstoDef l v dq := iprop(
-    "By" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"By" l) v.By' dq ∗
-    "Offset" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Offset" l) v.Offset' dq ∗
-    "Count" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Count" l) v.Count' dq ∗
-    "Get" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Get" l) v.Get' dq ∗
-    "Order" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Order" l) v.Order' dq ∗
-    "Alpha" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Alpha" l) v.Alpha' dq ∗
+    "By" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"By" l) v.By' dq ∗
+    "Offset" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Offset" l) v.Offset' dq ∗
+    "Count" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Count" l) v.Count' dq ∗
+    "Get" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Get" l) v.Get' dq ∗
+    "Order" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Order" l) v.Order' dq ∗
+    "Alpha" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Alpha" l) v.Alpha' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Sort_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.«Sort» github_com.go_redis.redis.v8.«Sort».underlying := by
+noncomputable instance into_val_typed'Sort :
+    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.Sort'' github_com.go_redis.redis.v8.Sort''.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Sort_access_load_By (l : Loc) (v : github_com.go_redis.redis.v8.«Sort») (dq : DFrac) :
+noncomputable instance access_load'Sort'By (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"By" l) v.By' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"By" l) v.By' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"By" l) v.By' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"By" l) v.By' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sort_access_store_By (l : Loc) (v : github_com.go_redis.redis.v8.«Sort») (y : GoString) :
+noncomputable instance access_store'Sort'By (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"By" l) v.By' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"By" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with By' := y } : github_com.go_redis.redis.v8.«Sort») (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"By" l) v.By' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"By" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with By' := y } : github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sort_access_load_Offset (l : Loc) (v : github_com.go_redis.redis.v8.«Sort») (dq : DFrac) :
+noncomputable instance access_load'Sort'Offset (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Offset" l) v.Offset' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Offset" l) v.Offset' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Offset" l) v.Offset' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Offset" l) v.Offset' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sort_access_store_Offset (l : Loc) (v : github_com.go_redis.redis.v8.«Sort») (y : w64) :
+noncomputable instance access_store'Sort'Offset (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Offset" l) v.Offset' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Offset" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Offset' := y } : github_com.go_redis.redis.v8.«Sort») (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Offset" l) v.Offset' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Offset" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Offset' := y } : github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sort_access_load_Count (l : Loc) (v : github_com.go_redis.redis.v8.«Sort») (dq : DFrac) :
+noncomputable instance access_load'Sort'Count (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Count" l) v.Count' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Count" l) v.Count' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Count" l) v.Count' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Count" l) v.Count' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sort_access_store_Count (l : Loc) (v : github_com.go_redis.redis.v8.«Sort») (y : w64) :
+noncomputable instance access_store'Sort'Count (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Count" l) v.Count' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Count" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Count' := y } : github_com.go_redis.redis.v8.«Sort») (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Count" l) v.Count' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Count" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Count' := y } : github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sort_access_load_Get (l : Loc) (v : github_com.go_redis.redis.v8.«Sort») (dq : DFrac) :
+noncomputable instance access_load'Sort'Get (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Get" l) v.Get' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Get" l) v.Get' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Get" l) v.Get' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Get" l) v.Get' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sort_access_store_Get (l : Loc) (v : github_com.go_redis.redis.v8.«Sort») (y : GoSlice) :
+noncomputable instance access_store'Sort'Get (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Get" l) v.Get' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Get" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Get' := y } : github_com.go_redis.redis.v8.«Sort») (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Get" l) v.Get' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Get" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Get' := y } : github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sort_access_load_Order (l : Loc) (v : github_com.go_redis.redis.v8.«Sort») (dq : DFrac) :
+noncomputable instance access_load'Sort'Order (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Order" l) v.Order' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Order" l) v.Order' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Order" l) v.Order' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Order" l) v.Order' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sort_access_store_Order (l : Loc) (v : github_com.go_redis.redis.v8.«Sort») (y : GoString) :
+noncomputable instance access_store'Sort'Order (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Order" l) v.Order' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Order" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Order' := y } : github_com.go_redis.redis.v8.«Sort») (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Order" l) v.Order' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Order" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Order' := y } : github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sort_access_load_Alpha (l : Loc) (v : github_com.go_redis.redis.v8.«Sort») (dq : DFrac) :
+noncomputable instance access_load'Sort'Alpha (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Alpha" l) v.Alpha' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Alpha" l) v.Alpha' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Alpha" l) v.Alpha' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Alpha" l) v.Alpha' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sort_access_store_Alpha (l : Loc) (v : github_com.go_redis.redis.v8.«Sort») (y : Bool) :
+noncomputable instance access_store'Sort'Alpha (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Alpha" l) v.Alpha' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.«Sort» go!"Alpha" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Alpha' := y } : github_com.go_redis.redis.v8.«Sort») (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Alpha" l) v.Alpha' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Alpha" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Alpha' := y } : github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
 end def_
-end «Sort»
+end Sort''
 
 namespace SetArgs
 section def_
@@ -846,11 +846,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance SetArgs_typed_pointsto :
+noncomputable instance typed_pointsto'SetArgs :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.SetArgs :=
   sorry -- axiomatized type
 
-noncomputable instance SetArgs_into_val_typed :
+noncomputable instance into_val_typed'SetArgs :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.SetArgs github_com.go_redis.redis.v8.SetArgs.underlying :=
   sorry -- axiomatized type
 
@@ -865,7 +865,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance BitCount_typed_pointsto :
+noncomputable instance typed_pointsto'BitCount :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.BitCount where
   typedPointstoDef l v dq := iprop(
     "Start" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"Start" l) v.Start' dq ∗
@@ -875,11 +875,11 @@ noncomputable instance BitCount_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance BitCount_into_val_typed :
+noncomputable instance into_val_typed'BitCount :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.BitCount github_com.go_redis.redis.v8.BitCount.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance BitCount_access_load_Start (l : Loc) (v : github_com.go_redis.redis.v8.BitCount) (dq : DFrac) :
+noncomputable instance access_load'BitCount'Start (l : Loc) (v : github_com.go_redis.redis.v8.BitCount) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"Start" l) v.Start' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"Start" l) v.Start' dq)
@@ -887,7 +887,7 @@ noncomputable instance BitCount_access_load_Start (l : Loc) (v : github_com.go_r
  by
   solve_pointsto_access_struct
 
-noncomputable instance BitCount_access_store_Start (l : Loc) (v : github_com.go_redis.redis.v8.BitCount) (y : w64) :
+noncomputable instance access_store'BitCount'Start (l : Loc) (v : github_com.go_redis.redis.v8.BitCount) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"Start" l) v.Start' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"Start" l) y (DFrac.own 1))
@@ -895,7 +895,7 @@ noncomputable instance BitCount_access_store_Start (l : Loc) (v : github_com.go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance BitCount_access_load_End (l : Loc) (v : github_com.go_redis.redis.v8.BitCount) (dq : DFrac) :
+noncomputable instance access_load'BitCount'End (l : Loc) (v : github_com.go_redis.redis.v8.BitCount) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"End" l) v.End' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"End" l) v.End' dq)
@@ -903,7 +903,7 @@ noncomputable instance BitCount_access_load_End (l : Loc) (v : github_com.go_red
  by
   solve_pointsto_access_struct
 
-noncomputable instance BitCount_access_store_End (l : Loc) (v : github_com.go_redis.redis.v8.BitCount) (y : w64) :
+noncomputable instance access_store'BitCount'End (l : Loc) (v : github_com.go_redis.redis.v8.BitCount) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"End" l) v.End' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"End" l) y (DFrac.own 1))
@@ -922,7 +922,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance LPosArgs_typed_pointsto :
+noncomputable instance typed_pointsto'LPosArgs :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.LPosArgs where
   typedPointstoDef l v dq := iprop(
     "Rank" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"Rank" l) v.Rank' dq ∗
@@ -932,11 +932,11 @@ noncomputable instance LPosArgs_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance LPosArgs_into_val_typed :
+noncomputable instance into_val_typed'LPosArgs :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.LPosArgs github_com.go_redis.redis.v8.LPosArgs.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance LPosArgs_access_load_Rank (l : Loc) (v : github_com.go_redis.redis.v8.LPosArgs) (dq : DFrac) :
+noncomputable instance access_load'LPosArgs'Rank (l : Loc) (v : github_com.go_redis.redis.v8.LPosArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"Rank" l) v.Rank' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"Rank" l) v.Rank' dq)
@@ -944,7 +944,7 @@ noncomputable instance LPosArgs_access_load_Rank (l : Loc) (v : github_com.go_re
  by
   solve_pointsto_access_struct
 
-noncomputable instance LPosArgs_access_store_Rank (l : Loc) (v : github_com.go_redis.redis.v8.LPosArgs) (y : w64) :
+noncomputable instance access_store'LPosArgs'Rank (l : Loc) (v : github_com.go_redis.redis.v8.LPosArgs) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"Rank" l) v.Rank' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"Rank" l) y (DFrac.own 1))
@@ -952,7 +952,7 @@ noncomputable instance LPosArgs_access_store_Rank (l : Loc) (v : github_com.go_r
  by
   solve_pointsto_access_struct
 
-noncomputable instance LPosArgs_access_load_MaxLen (l : Loc) (v : github_com.go_redis.redis.v8.LPosArgs) (dq : DFrac) :
+noncomputable instance access_load'LPosArgs'MaxLen (l : Loc) (v : github_com.go_redis.redis.v8.LPosArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"MaxLen" l) v.MaxLen' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"MaxLen" l) v.MaxLen' dq)
@@ -960,7 +960,7 @@ noncomputable instance LPosArgs_access_load_MaxLen (l : Loc) (v : github_com.go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance LPosArgs_access_store_MaxLen (l : Loc) (v : github_com.go_redis.redis.v8.LPosArgs) (y : w64) :
+noncomputable instance access_store'LPosArgs'MaxLen (l : Loc) (v : github_com.go_redis.redis.v8.LPosArgs) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"MaxLen" l) v.MaxLen' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"MaxLen" l) y (DFrac.own 1))
@@ -979,7 +979,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance XAddArgs_typed_pointsto :
+noncomputable instance typed_pointsto'XAddArgs :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.XAddArgs where
   typedPointstoDef l v dq := iprop(
     "Stream" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Stream" l) v.Stream' dq ∗
@@ -996,11 +996,11 @@ noncomputable instance XAddArgs_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance XAddArgs_into_val_typed :
+noncomputable instance into_val_typed'XAddArgs :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.XAddArgs github_com.go_redis.redis.v8.XAddArgs.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance XAddArgs_access_load_Stream (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'Stream (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Stream" l) v.Stream' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Stream" l) v.Stream' dq)
@@ -1008,7 +1008,7 @@ noncomputable instance XAddArgs_access_load_Stream (l : Loc) (v : github_com.go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_store_Stream (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : GoString) :
+noncomputable instance access_store'XAddArgs'Stream (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Stream" l) v.Stream' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Stream" l) y (DFrac.own 1))
@@ -1016,7 +1016,7 @@ noncomputable instance XAddArgs_access_store_Stream (l : Loc) (v : github_com.go
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_load_NoMkStream (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'NoMkStream (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"NoMkStream" l) v.NoMkStream' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"NoMkStream" l) v.NoMkStream' dq)
@@ -1024,7 +1024,7 @@ noncomputable instance XAddArgs_access_load_NoMkStream (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_store_NoMkStream (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : Bool) :
+noncomputable instance access_store'XAddArgs'NoMkStream (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"NoMkStream" l) v.NoMkStream' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"NoMkStream" l) y (DFrac.own 1))
@@ -1032,7 +1032,7 @@ noncomputable instance XAddArgs_access_store_NoMkStream (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_load_MaxLen (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'MaxLen (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLen" l) v.MaxLen' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLen" l) v.MaxLen' dq)
@@ -1040,7 +1040,7 @@ noncomputable instance XAddArgs_access_load_MaxLen (l : Loc) (v : github_com.go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_store_MaxLen (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : w64) :
+noncomputable instance access_store'XAddArgs'MaxLen (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLen" l) v.MaxLen' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLen" l) y (DFrac.own 1))
@@ -1048,7 +1048,7 @@ noncomputable instance XAddArgs_access_store_MaxLen (l : Loc) (v : github_com.go
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_load_MaxLenApprox (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'MaxLenApprox (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLenApprox" l) v.MaxLenApprox' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLenApprox" l) v.MaxLenApprox' dq)
@@ -1056,7 +1056,7 @@ noncomputable instance XAddArgs_access_load_MaxLenApprox (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_store_MaxLenApprox (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : w64) :
+noncomputable instance access_store'XAddArgs'MaxLenApprox (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLenApprox" l) v.MaxLenApprox' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLenApprox" l) y (DFrac.own 1))
@@ -1064,7 +1064,7 @@ noncomputable instance XAddArgs_access_store_MaxLenApprox (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_load_MinID (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'MinID (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MinID" l) v.MinID' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MinID" l) v.MinID' dq)
@@ -1072,7 +1072,7 @@ noncomputable instance XAddArgs_access_load_MinID (l : Loc) (v : github_com.go_r
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_store_MinID (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : GoString) :
+noncomputable instance access_store'XAddArgs'MinID (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MinID" l) v.MinID' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MinID" l) y (DFrac.own 1))
@@ -1080,7 +1080,7 @@ noncomputable instance XAddArgs_access_store_MinID (l : Loc) (v : github_com.go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_load_Approx (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'Approx (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Approx" l) v.Approx' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Approx" l) v.Approx' dq)
@@ -1088,7 +1088,7 @@ noncomputable instance XAddArgs_access_load_Approx (l : Loc) (v : github_com.go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_store_Approx (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : Bool) :
+noncomputable instance access_store'XAddArgs'Approx (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Approx" l) v.Approx' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Approx" l) y (DFrac.own 1))
@@ -1096,7 +1096,7 @@ noncomputable instance XAddArgs_access_store_Approx (l : Loc) (v : github_com.go
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_load_Limit (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'Limit (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Limit" l) v.Limit' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Limit" l) v.Limit' dq)
@@ -1104,7 +1104,7 @@ noncomputable instance XAddArgs_access_load_Limit (l : Loc) (v : github_com.go_r
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_store_Limit (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : w64) :
+noncomputable instance access_store'XAddArgs'Limit (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Limit" l) v.Limit' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Limit" l) y (DFrac.own 1))
@@ -1112,7 +1112,7 @@ noncomputable instance XAddArgs_access_store_Limit (l : Loc) (v : github_com.go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_load_ID (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'ID (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"ID" l) v.ID' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"ID" l) v.ID' dq)
@@ -1120,7 +1120,7 @@ noncomputable instance XAddArgs_access_load_ID (l : Loc) (v : github_com.go_redi
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_store_ID (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : GoString) :
+noncomputable instance access_store'XAddArgs'ID (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"ID" l) v.ID' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"ID" l) y (DFrac.own 1))
@@ -1128,7 +1128,7 @@ noncomputable instance XAddArgs_access_store_ID (l : Loc) (v : github_com.go_red
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_load_Values (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'Values (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Values" l) v.Values' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Values" l) v.Values' dq)
@@ -1136,7 +1136,7 @@ noncomputable instance XAddArgs_access_load_Values (l : Loc) (v : github_com.go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance XAddArgs_access_store_Values (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : GoInterface) :
+noncomputable instance access_store'XAddArgs'Values (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Values" l) v.Values' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Values" l) y (DFrac.own 1))
@@ -1155,11 +1155,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance XReadArgs_typed_pointsto :
+noncomputable instance typed_pointsto'XReadArgs :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.XReadArgs :=
   sorry -- axiomatized type
 
-noncomputable instance XReadArgs_into_val_typed :
+noncomputable instance into_val_typed'XReadArgs :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.XReadArgs github_com.go_redis.redis.v8.XReadArgs.underlying :=
   sorry -- axiomatized type
 
@@ -1174,11 +1174,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance XReadGroupArgs_typed_pointsto :
+noncomputable instance typed_pointsto'XReadGroupArgs :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.XReadGroupArgs :=
   sorry -- axiomatized type
 
-noncomputable instance XReadGroupArgs_into_val_typed :
+noncomputable instance into_val_typed'XReadGroupArgs :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.XReadGroupArgs github_com.go_redis.redis.v8.XReadGroupArgs.underlying :=
   sorry -- axiomatized type
 
@@ -1193,11 +1193,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance XPendingExtArgs_typed_pointsto :
+noncomputable instance typed_pointsto'XPendingExtArgs :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.XPendingExtArgs :=
   sorry -- axiomatized type
 
-noncomputable instance XPendingExtArgs_into_val_typed :
+noncomputable instance into_val_typed'XPendingExtArgs :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.XPendingExtArgs github_com.go_redis.redis.v8.XPendingExtArgs.underlying :=
   sorry -- axiomatized type
 
@@ -1212,11 +1212,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance XAutoClaimArgs_typed_pointsto :
+noncomputable instance typed_pointsto'XAutoClaimArgs :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.XAutoClaimArgs :=
   sorry -- axiomatized type
 
-noncomputable instance XAutoClaimArgs_into_val_typed :
+noncomputable instance into_val_typed'XAutoClaimArgs :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.XAutoClaimArgs github_com.go_redis.redis.v8.XAutoClaimArgs.underlying :=
   sorry -- axiomatized type
 
@@ -1231,11 +1231,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance XClaimArgs_typed_pointsto :
+noncomputable instance typed_pointsto'XClaimArgs :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.XClaimArgs :=
   sorry -- axiomatized type
 
-noncomputable instance XClaimArgs_into_val_typed :
+noncomputable instance into_val_typed'XClaimArgs :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.XClaimArgs github_com.go_redis.redis.v8.XClaimArgs.underlying :=
   sorry -- axiomatized type
 
@@ -1250,7 +1250,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance Z_typed_pointsto :
+noncomputable instance typed_pointsto'Z :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.Z where
   typedPointstoDef l v dq := iprop(
     "Score" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Score" l) v.Score' dq ∗
@@ -1260,11 +1260,11 @@ noncomputable instance Z_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Z_into_val_typed :
+noncomputable instance into_val_typed'Z :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.Z github_com.go_redis.redis.v8.Z.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Z_access_load_Score (l : Loc) (v : github_com.go_redis.redis.v8.Z) (dq : DFrac) :
+noncomputable instance access_load'Z'Score (l : Loc) (v : github_com.go_redis.redis.v8.Z) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Score" l) v.Score' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Score" l) v.Score' dq)
@@ -1272,7 +1272,7 @@ noncomputable instance Z_access_load_Score (l : Loc) (v : github_com.go_redis.re
  by
   solve_pointsto_access_struct
 
-noncomputable instance Z_access_store_Score (l : Loc) (v : github_com.go_redis.redis.v8.Z) (y : w64) :
+noncomputable instance access_store'Z'Score (l : Loc) (v : github_com.go_redis.redis.v8.Z) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Score" l) v.Score' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Score" l) y (DFrac.own 1))
@@ -1280,7 +1280,7 @@ noncomputable instance Z_access_store_Score (l : Loc) (v : github_com.go_redis.r
  by
   solve_pointsto_access_struct
 
-noncomputable instance Z_access_load_Member (l : Loc) (v : github_com.go_redis.redis.v8.Z) (dq : DFrac) :
+noncomputable instance access_load'Z'Member (l : Loc) (v : github_com.go_redis.redis.v8.Z) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Member" l) v.Member' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Member" l) v.Member' dq)
@@ -1288,7 +1288,7 @@ noncomputable instance Z_access_load_Member (l : Loc) (v : github_com.go_redis.r
  by
   solve_pointsto_access_struct
 
-noncomputable instance Z_access_store_Member (l : Loc) (v : github_com.go_redis.redis.v8.Z) (y : GoInterface) :
+noncomputable instance access_store'Z'Member (l : Loc) (v : github_com.go_redis.redis.v8.Z) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Member" l) v.Member' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Member" l) y (DFrac.own 1))
@@ -1307,7 +1307,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
 
-noncomputable instance ZStore_typed_pointsto :
+noncomputable instance typed_pointsto'ZStore :
     TypedPointsto (GF := GF) github_com.go_redis.redis.v8.ZStore where
   typedPointstoDef l v dq := iprop(
     "Keys" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Keys" l) v.Keys' dq ∗
@@ -1318,11 +1318,11 @@ noncomputable instance ZStore_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ZStore_into_val_typed :
+noncomputable instance into_val_typed'ZStore :
     IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.ZStore github_com.go_redis.redis.v8.ZStore.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ZStore_access_load_Keys (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (dq : DFrac) :
+noncomputable instance access_load'ZStore'Keys (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Keys" l) v.Keys' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Keys" l) v.Keys' dq)
@@ -1330,7 +1330,7 @@ noncomputable instance ZStore_access_load_Keys (l : Loc) (v : github_com.go_redi
  by
   solve_pointsto_access_struct
 
-noncomputable instance ZStore_access_store_Keys (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (y : GoSlice) :
+noncomputable instance access_store'ZStore'Keys (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Keys" l) v.Keys' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Keys" l) y (DFrac.own 1))
@@ -1338,7 +1338,7 @@ noncomputable instance ZStore_access_store_Keys (l : Loc) (v : github_com.go_red
  by
   solve_pointsto_access_struct
 
-noncomputable instance ZStore_access_load_Weights (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (dq : DFrac) :
+noncomputable instance access_load'ZStore'Weights (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Weights" l) v.Weights' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Weights" l) v.Weights' dq)
@@ -1346,7 +1346,7 @@ noncomputable instance ZStore_access_load_Weights (l : Loc) (v : github_com.go_r
  by
   solve_pointsto_access_struct
 
-noncomputable instance ZStore_access_store_Weights (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (y : GoSlice) :
+noncomputable instance access_store'ZStore'Weights (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Weights" l) v.Weights' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Weights" l) y (DFrac.own 1))
@@ -1354,7 +1354,7 @@ noncomputable instance ZStore_access_store_Weights (l : Loc) (v : github_com.go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ZStore_access_load_Aggregate (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (dq : DFrac) :
+noncomputable instance access_load'ZStore'Aggregate (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Aggregate" l) v.Aggregate' dq)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Aggregate" l) v.Aggregate' dq)
@@ -1362,7 +1362,7 @@ noncomputable instance ZStore_access_load_Aggregate (l : Loc) (v : github_com.go
  by
   solve_pointsto_access_struct
 
-noncomputable instance ZStore_access_store_Aggregate (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (y : GoString) :
+noncomputable instance access_store'ZStore'Aggregate (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Aggregate" l) v.Aggregate' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Aggregate" l) y (DFrac.own 1))

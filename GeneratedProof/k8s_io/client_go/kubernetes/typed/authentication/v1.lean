@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
-noncomputable instance AuthenticationV1Interface_typed_pointsto :
+noncomputable instance typed_pointsto'AuthenticationV1Interface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Interface :=
   sorry -- axiomatized type
 
-noncomputable instance AuthenticationV1Interface_into_val_typed :
+noncomputable instance into_val_typed'AuthenticationV1Interface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Interface k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Interface.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
-noncomputable instance AuthenticationV1Client_typed_pointsto :
+noncomputable instance typed_pointsto'AuthenticationV1Client :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Client :=
   sorry -- axiomatized type
 
-noncomputable instance AuthenticationV1Client_into_val_typed :
+noncomputable instance into_val_typed'AuthenticationV1Client :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Client k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Client.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
-noncomputable instance SelfSubjectReviewExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'SelfSubjectReviewExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance SelfSubjectReviewExpansion_into_val_typed :
+noncomputable instance into_val_typed'SelfSubjectReviewExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewExpansion k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
-noncomputable instance TokenReviewExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'TokenReviewExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance TokenReviewExpansion_into_val_typed :
+noncomputable instance into_val_typed'TokenReviewExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewExpansion k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
-noncomputable instance SelfSubjectReviewsGetter_typed_pointsto :
+noncomputable instance typed_pointsto'SelfSubjectReviewsGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewsGetter :=
   sorry -- axiomatized type
 
-noncomputable instance SelfSubjectReviewsGetter_into_val_typed :
+noncomputable instance into_val_typed'SelfSubjectReviewsGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewsGetter k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewsGetter.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
-noncomputable instance SelfSubjectReviewInterface_typed_pointsto :
+noncomputable instance typed_pointsto'SelfSubjectReviewInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewInterface :=
   sorry -- axiomatized type
 
-noncomputable instance SelfSubjectReviewInterface_into_val_typed :
+noncomputable instance into_val_typed'SelfSubjectReviewInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewInterface k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewInterface.underlying :=
   sorry -- axiomatized type
 
@@ -138,11 +138,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
-noncomputable instance selfSubjectReviews_typed_pointsto :
+noncomputable instance typed_pointsto'selfSubjectReviews :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.selfSubjectReviews :=
   sorry -- axiomatized type
 
-noncomputable instance selfSubjectReviews_into_val_typed :
+noncomputable instance into_val_typed'selfSubjectReviews :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.selfSubjectReviews k8s_io.client_go.kubernetes.typed.authentication.v1.selfSubjectReviews.underlying :=
   sorry -- axiomatized type
 
@@ -157,11 +157,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
-noncomputable instance TokenReviewsGetter_typed_pointsto :
+noncomputable instance typed_pointsto'TokenReviewsGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewsGetter :=
   sorry -- axiomatized type
 
-noncomputable instance TokenReviewsGetter_into_val_typed :
+noncomputable instance into_val_typed'TokenReviewsGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewsGetter k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewsGetter.underlying :=
   sorry -- axiomatized type
 
@@ -176,11 +176,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
-noncomputable instance TokenReviewInterface_typed_pointsto :
+noncomputable instance typed_pointsto'TokenReviewInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewInterface :=
   sorry -- axiomatized type
 
-noncomputable instance TokenReviewInterface_into_val_typed :
+noncomputable instance into_val_typed'TokenReviewInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewInterface k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewInterface.underlying :=
   sorry -- axiomatized type
 
@@ -195,11 +195,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
-noncomputable instance tokenReviews_typed_pointsto :
+noncomputable instance typed_pointsto'tokenReviews :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.tokenReviews :=
   sorry -- axiomatized type
 
-noncomputable instance tokenReviews_into_val_typed :
+noncomputable instance into_val_typed'tokenReviews :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.tokenReviews k8s_io.client_go.kubernetes.typed.authentication.v1.tokenReviews.underlying :=
   sorry -- axiomatized type
 

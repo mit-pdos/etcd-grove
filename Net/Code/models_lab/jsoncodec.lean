@@ -3685,7 +3685,7 @@ noncomputable instance Error.zero_val [GooseExts] : ZeroVal Error :=
 @[irreducible] noncomputable def Error.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Error.fieldsUnsealed
 
-noncomputable instance equals_unfold_Error [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Error [GooseExts] [GoGlobalContext] :
     EqualsUnfold Error.fields Error.fieldsUnsealed :=
   ⟨by unfold Error.fields; rfl⟩
 
@@ -3695,19 +3695,19 @@ noncomputable instance equals_unfold_Error [GooseExts] [GoGlobalContext] :
 class Error.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Error.underlying Error
   underlying : go.UnderlyingDirectedEq Error.ty Error.underlying
-  get_Msg : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Msg") #x (Val #(x.Msg'))
-  set_Msg : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Msg") (PairV #x #y) (Val #(({ x with Msg' := y } : Error)))
+  get'Msg : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Msg") #x (Val #(x.Msg'))
+  set'Msg : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Msg") (PairV #x #y) (Val #(({ x with Msg' := y } : Error)))
   method_set : go.MethodSetIs Error.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Error.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType Error.ty) go!"Error" Error.Error.impl
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType Error.ty) go!"Error" Error.Error.impl
 
 attribute [instance] Error.TypeAssumptions.type_repr
   Error.TypeAssumptions.underlying
-  Error.TypeAssumptions.get_Msg
-  Error.TypeAssumptions.set_Msg
+  Error.TypeAssumptions.get'Msg
+  Error.TypeAssumptions.set'Msg
   Error.TypeAssumptions.method_set
   Error.TypeAssumptions.ptr_method_set
-  Error.TypeAssumptions.ptr_Error_unfold
+  Error.TypeAssumptions.ptr_unfold'Error
 
 abbrev NotModelled [GooseExts] : Type := GoString
 
@@ -3718,108 +3718,108 @@ class NotModelled.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq NotModelled.ty NotModelled.underlying
   method_set : go.MethodSetIs NotModelled.ty [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType NotModelled.ty) [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
-  NotModelled_unfold : MethodUnfold NotModelled.ty go!"NotModelled" NotModelled.NotModelled.impl
-  ptr_NotModelled_unfold : MethodUnfold (go.GoType.PointerType NotModelled.ty) go!"NotModelled" (LamV "$r"
+  unfold'NotModelled : MethodUnfold NotModelled.ty go!"NotModelled" NotModelled.NotModelled.impl
+  ptr_unfold'NotModelled : MethodUnfold (go.GoType.PointerType NotModelled.ty) go!"NotModelled" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve NotModelled.ty go!"NotModelled"))) (App (Val (GoInstruction (GoLoad NotModelled.ty))) (Var "$r"))))
 
 attribute [instance] NotModelled.TypeAssumptions.underlying
   NotModelled.TypeAssumptions.method_set
   NotModelled.TypeAssumptions.ptr_method_set
-  NotModelled.TypeAssumptions.NotModelled_unfold
-  NotModelled.TypeAssumptions.ptr_NotModelled_unfold
+  NotModelled.TypeAssumptions.unfold'NotModelled
+  NotModelled.TypeAssumptions.ptr_unfold'NotModelled
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Error_instance : Error.TypeAssumptions
-  NotModelled_instance : NotModelled.TypeAssumptions
-  IsSpace_unfold : FuncUnfold IsSpace [] IsSpace.impl
-  SkipSpace_unfold : FuncUnfold SkipSpace [] SkipSpace.impl
-  isDigit_unfold : FuncUnfold isDigit [] isDigit.impl
-  isHex_unfold : FuncUnfold isHex [] isHex.impl
-  scanString_unfold : FuncUnfold scanString [] scanString.impl
-  scanDigits_unfold : FuncUnfold scanDigits [] scanDigits.impl
-  scanNumber_unfold : FuncUnfold scanNumber [] scanNumber.impl
-  scanLiteral_unfold : FuncUnfold scanLiteral [] scanLiteral.impl
-  scanScalar_unfold : FuncUnfold scanScalar [] scanScalar.impl
-  Scan_unfold : FuncUnfold Scan [] Scan.impl
-  Valid_unfold : FuncUnfold Valid [] Valid.impl
-  ValueEnd_unfold : FuncUnfold ValueEnd [] ValueEnd.impl
-  Nesting_unfold : FuncUnfold Nesting [] Nesting.impl
-  AppendRaw_unfold : FuncUnfold AppendRaw [] AppendRaw.impl
-  htmlByte_unfold : FuncUnfold htmlByte [] htmlByte.impl
-  appendEscapedASCII_unfold : FuncUnfold appendEscapedASCII [] appendEscapedASCII.impl
-  seqLenOf_unfold : FuncUnfold seqLenOf [] seqLenOf.impl
-  seqLen_unfold : FuncUnfold seqLen [] seqLen.impl
-  AppendString_unfold : FuncUnfold AppendString [] AppendString.impl
-  AppendUint_unfold : FuncUnfold AppendUint [] AppendUint.impl
-  AppendQuotedUint_unfold : FuncUnfold AppendQuotedUint [] AppendQuotedUint.impl
-  AppendInt_unfold : FuncUnfold AppendInt [] AppendInt.impl
-  AppendQuotedInt_unfold : FuncUnfold AppendQuotedInt [] AppendQuotedInt.impl
-  AppendBool_unfold : FuncUnfold AppendBool [] AppendBool.impl
-  AppendCompact_unfold : FuncUnfold AppendCompact [] AppendCompact.impl
-  At_unfold : FuncUnfold At [] At.impl
-  Str_unfold : FuncUnfold Str [] Str.impl
-  Member_unfold : FuncUnfold Member [] Member.impl
-  Next_unfold : FuncUnfold Next [] Next.impl
-  Empty_unfold : FuncUnfold Empty [] Empty.impl
-  lower_unfold : FuncUnfold lower [] lower.impl
-  FoldEq_unfold : FuncUnfold FoldEq [] FoldEq.impl
-  Digits_unfold : FuncUnfold Digits [] Digits.impl
-  Uint_unfold : FuncUnfold Uint [] Uint.impl
-  QuotedUint_unfold : FuncUnfold QuotedUint [] QuotedUint.impl
-  noEscape_unfold : FuncUnfold noEscape [] noEscape.impl
-  Int_unfold : FuncUnfold Int'' [] Int''.impl
-  QuotedInt_unfold : FuncUnfold QuotedInt [] QuotedInt.impl
-  signedParts_unfold : FuncUnfold signedParts [] signedParts.impl
-  statusOf_unfold : FuncUnfold statusOf [] statusOf.impl
-  signed_unfold : FuncUnfold signed [] signed.impl
-  String_unfold : FuncUnfold String [] String.impl
-  Bool_unfold : FuncUnfold Bool'' [] Bool''.impl
+  instance'Error : Error.TypeAssumptions
+  instance'NotModelled : NotModelled.TypeAssumptions
+  unfold'IsSpace : FuncUnfold IsSpace [] IsSpace.impl
+  unfold'SkipSpace : FuncUnfold SkipSpace [] SkipSpace.impl
+  unfold'isDigit : FuncUnfold isDigit [] isDigit.impl
+  unfold'isHex : FuncUnfold isHex [] isHex.impl
+  unfold'scanString : FuncUnfold scanString [] scanString.impl
+  unfold'scanDigits : FuncUnfold scanDigits [] scanDigits.impl
+  unfold'scanNumber : FuncUnfold scanNumber [] scanNumber.impl
+  unfold'scanLiteral : FuncUnfold scanLiteral [] scanLiteral.impl
+  unfold'scanScalar : FuncUnfold scanScalar [] scanScalar.impl
+  unfold'Scan : FuncUnfold Scan [] Scan.impl
+  unfold'Valid : FuncUnfold Valid [] Valid.impl
+  unfold'ValueEnd : FuncUnfold ValueEnd [] ValueEnd.impl
+  unfold'Nesting : FuncUnfold Nesting [] Nesting.impl
+  unfold'AppendRaw : FuncUnfold AppendRaw [] AppendRaw.impl
+  unfold'htmlByte : FuncUnfold htmlByte [] htmlByte.impl
+  unfold'appendEscapedASCII : FuncUnfold appendEscapedASCII [] appendEscapedASCII.impl
+  unfold'seqLenOf : FuncUnfold seqLenOf [] seqLenOf.impl
+  unfold'seqLen : FuncUnfold seqLen [] seqLen.impl
+  unfold'AppendString : FuncUnfold AppendString [] AppendString.impl
+  unfold'AppendUint : FuncUnfold AppendUint [] AppendUint.impl
+  unfold'AppendQuotedUint : FuncUnfold AppendQuotedUint [] AppendQuotedUint.impl
+  unfold'AppendInt : FuncUnfold AppendInt [] AppendInt.impl
+  unfold'AppendQuotedInt : FuncUnfold AppendQuotedInt [] AppendQuotedInt.impl
+  unfold'AppendBool : FuncUnfold AppendBool [] AppendBool.impl
+  unfold'AppendCompact : FuncUnfold AppendCompact [] AppendCompact.impl
+  unfold'At : FuncUnfold At [] At.impl
+  unfold'Str : FuncUnfold Str [] Str.impl
+  unfold'Member : FuncUnfold Member [] Member.impl
+  unfold'Next : FuncUnfold Next [] Next.impl
+  unfold'Empty : FuncUnfold Empty [] Empty.impl
+  unfold'lower : FuncUnfold lower [] lower.impl
+  unfold'FoldEq : FuncUnfold FoldEq [] FoldEq.impl
+  unfold'Digits : FuncUnfold Digits [] Digits.impl
+  unfold'Uint : FuncUnfold Uint [] Uint.impl
+  unfold'QuotedUint : FuncUnfold QuotedUint [] QuotedUint.impl
+  unfold'noEscape : FuncUnfold noEscape [] noEscape.impl
+  unfold'Int : FuncUnfold Int'' [] Int''.impl
+  unfold'QuotedInt : FuncUnfold QuotedInt [] QuotedInt.impl
+  unfold'signedParts : FuncUnfold signedParts [] signedParts.impl
+  unfold'statusOf : FuncUnfold statusOf [] statusOf.impl
+  unfold'signed : FuncUnfold signed [] signed.impl
+  unfold'String : FuncUnfold String [] String.impl
+  unfold'Bool : FuncUnfold Bool'' [] Bool''.impl
 
-attribute [instance] Assumptions.Error_instance
-  Assumptions.NotModelled_instance
-  Assumptions.IsSpace_unfold
-  Assumptions.SkipSpace_unfold
-  Assumptions.isDigit_unfold
-  Assumptions.isHex_unfold
-  Assumptions.scanString_unfold
-  Assumptions.scanDigits_unfold
-  Assumptions.scanNumber_unfold
-  Assumptions.scanLiteral_unfold
-  Assumptions.scanScalar_unfold
-  Assumptions.Scan_unfold
-  Assumptions.Valid_unfold
-  Assumptions.ValueEnd_unfold
-  Assumptions.Nesting_unfold
-  Assumptions.AppendRaw_unfold
-  Assumptions.htmlByte_unfold
-  Assumptions.appendEscapedASCII_unfold
-  Assumptions.seqLenOf_unfold
-  Assumptions.seqLen_unfold
-  Assumptions.AppendString_unfold
-  Assumptions.AppendUint_unfold
-  Assumptions.AppendQuotedUint_unfold
-  Assumptions.AppendInt_unfold
-  Assumptions.AppendQuotedInt_unfold
-  Assumptions.AppendBool_unfold
-  Assumptions.AppendCompact_unfold
-  Assumptions.At_unfold
-  Assumptions.Str_unfold
-  Assumptions.Member_unfold
-  Assumptions.Next_unfold
-  Assumptions.Empty_unfold
-  Assumptions.lower_unfold
-  Assumptions.FoldEq_unfold
-  Assumptions.Digits_unfold
-  Assumptions.Uint_unfold
-  Assumptions.QuotedUint_unfold
-  Assumptions.noEscape_unfold
-  Assumptions.Int_unfold
-  Assumptions.QuotedInt_unfold
-  Assumptions.signedParts_unfold
-  Assumptions.statusOf_unfold
-  Assumptions.signed_unfold
-  Assumptions.String_unfold
-  Assumptions.Bool_unfold
+attribute [instance] Assumptions.instance'Error
+  Assumptions.instance'NotModelled
+  Assumptions.unfold'IsSpace
+  Assumptions.unfold'SkipSpace
+  Assumptions.unfold'isDigit
+  Assumptions.unfold'isHex
+  Assumptions.unfold'scanString
+  Assumptions.unfold'scanDigits
+  Assumptions.unfold'scanNumber
+  Assumptions.unfold'scanLiteral
+  Assumptions.unfold'scanScalar
+  Assumptions.unfold'Scan
+  Assumptions.unfold'Valid
+  Assumptions.unfold'ValueEnd
+  Assumptions.unfold'Nesting
+  Assumptions.unfold'AppendRaw
+  Assumptions.unfold'htmlByte
+  Assumptions.unfold'appendEscapedASCII
+  Assumptions.unfold'seqLenOf
+  Assumptions.unfold'seqLen
+  Assumptions.unfold'AppendString
+  Assumptions.unfold'AppendUint
+  Assumptions.unfold'AppendQuotedUint
+  Assumptions.unfold'AppendInt
+  Assumptions.unfold'AppendQuotedInt
+  Assumptions.unfold'AppendBool
+  Assumptions.unfold'AppendCompact
+  Assumptions.unfold'At
+  Assumptions.unfold'Str
+  Assumptions.unfold'Member
+  Assumptions.unfold'Next
+  Assumptions.unfold'Empty
+  Assumptions.unfold'lower
+  Assumptions.unfold'FoldEq
+  Assumptions.unfold'Digits
+  Assumptions.unfold'Uint
+  Assumptions.unfold'QuotedUint
+  Assumptions.unfold'noEscape
+  Assumptions.unfold'Int
+  Assumptions.unfold'QuotedInt
+  Assumptions.unfold'signedParts
+  Assumptions.unfold'statusOf
+  Assumptions.unfold'signed
+  Assumptions.unfold'String
+  Assumptions.unfold'Bool
 
 end models_lab.jsoncodec
 

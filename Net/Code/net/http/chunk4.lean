@@ -30,35 +30,35 @@ attribute [instance] tLogKey.TypeAssumptions.type_repr
 class bodyEOFSignal.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bodyEOFSignal.underlying bodyEOFSignal
   underlying : go.UnderlyingDirectedEq bodyEOFSignal.ty bodyEOFSignal.underlying
-  get_body : ∀ (x : bodyEOFSignal), go.IsGoStepPureDetTagged under (StructFieldGet bodyEOFSignal.underlying go!"body") #x (Val #(x.body'))
-  set_body : ∀ (x : bodyEOFSignal) (y : _root_.Perennial.io.ReadCloser), go.IsGoStepPureDetTagged under (StructFieldSet bodyEOFSignal.underlying go!"body") (PairV #x #y) (Val #(({ x with body' := y } : bodyEOFSignal)))
-  get_mu : ∀ (x : bodyEOFSignal), go.IsGoStepPureDetTagged under (StructFieldGet bodyEOFSignal.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : bodyEOFSignal) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet bodyEOFSignal.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : bodyEOFSignal)))
-  get_closed : ∀ (x : bodyEOFSignal), go.IsGoStepPureDetTagged under (StructFieldGet bodyEOFSignal.underlying go!"closed") #x (Val #(x.closed'))
-  set_closed : ∀ (x : bodyEOFSignal) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet bodyEOFSignal.underlying go!"closed") (PairV #x #y) (Val #(({ x with closed' := y } : bodyEOFSignal)))
-  get_rerr : ∀ (x : bodyEOFSignal), go.IsGoStepPureDetTagged under (StructFieldGet bodyEOFSignal.underlying go!"rerr") #x (Val #(x.rerr'))
-  set_rerr : ∀ (x : bodyEOFSignal) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet bodyEOFSignal.underlying go!"rerr") (PairV #x #y) (Val #(({ x with rerr' := y } : bodyEOFSignal)))
-  get_fn : ∀ (x : bodyEOFSignal), go.IsGoStepPureDetTagged under (StructFieldGet bodyEOFSignal.underlying go!"fn") #x (Val #(x.fn'))
-  set_fn : ∀ (x : bodyEOFSignal) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet bodyEOFSignal.underlying go!"fn") (PairV #x #y) (Val #(({ x with fn' := y } : bodyEOFSignal)))
-  get_earlyCloseFn : ∀ (x : bodyEOFSignal), go.IsGoStepPureDetTagged under (StructFieldGet bodyEOFSignal.underlying go!"earlyCloseFn") #x (Val #(x.earlyCloseFn'))
-  set_earlyCloseFn : ∀ (x : bodyEOFSignal) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet bodyEOFSignal.underlying go!"earlyCloseFn") (PairV #x #y) (Val #(({ x with earlyCloseFn' := y } : bodyEOFSignal)))
+  get'body : ∀ (x : bodyEOFSignal), go.IsGoStepPureDetTagged under (StructFieldGet bodyEOFSignal.underlying go!"body") #x (Val #(x.body'))
+  set'body : ∀ (x : bodyEOFSignal) (y : _root_.Perennial.io.ReadCloser), go.IsGoStepPureDetTagged under (StructFieldSet bodyEOFSignal.underlying go!"body") (PairV #x #y) (Val #(({ x with body' := y } : bodyEOFSignal)))
+  get'mu : ∀ (x : bodyEOFSignal), go.IsGoStepPureDetTagged under (StructFieldGet bodyEOFSignal.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : bodyEOFSignal) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet bodyEOFSignal.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : bodyEOFSignal)))
+  get'closed : ∀ (x : bodyEOFSignal), go.IsGoStepPureDetTagged under (StructFieldGet bodyEOFSignal.underlying go!"closed") #x (Val #(x.closed'))
+  set'closed : ∀ (x : bodyEOFSignal) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet bodyEOFSignal.underlying go!"closed") (PairV #x #y) (Val #(({ x with closed' := y } : bodyEOFSignal)))
+  get'rerr : ∀ (x : bodyEOFSignal), go.IsGoStepPureDetTagged under (StructFieldGet bodyEOFSignal.underlying go!"rerr") #x (Val #(x.rerr'))
+  set'rerr : ∀ (x : bodyEOFSignal) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet bodyEOFSignal.underlying go!"rerr") (PairV #x #y) (Val #(({ x with rerr' := y } : bodyEOFSignal)))
+  get'fn : ∀ (x : bodyEOFSignal), go.IsGoStepPureDetTagged under (StructFieldGet bodyEOFSignal.underlying go!"fn") #x (Val #(x.fn'))
+  set'fn : ∀ (x : bodyEOFSignal) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet bodyEOFSignal.underlying go!"fn") (PairV #x #y) (Val #(({ x with fn' := y } : bodyEOFSignal)))
+  get'earlyCloseFn : ∀ (x : bodyEOFSignal), go.IsGoStepPureDetTagged under (StructFieldGet bodyEOFSignal.underlying go!"earlyCloseFn") #x (Val #(x.earlyCloseFn'))
+  set'earlyCloseFn : ∀ (x : bodyEOFSignal) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet bodyEOFSignal.underlying go!"earlyCloseFn") (PairV #x #y) (Val #(({ x with earlyCloseFn' := y } : bodyEOFSignal)))
   method_set : go.MethodSetIs bodyEOFSignal.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bodyEOFSignal.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"net/http.condfn", (some (go.signature.Signature [go.error] false [go.error])))]
 
 attribute [instance] bodyEOFSignal.TypeAssumptions.type_repr
   bodyEOFSignal.TypeAssumptions.underlying
-  bodyEOFSignal.TypeAssumptions.get_body
-  bodyEOFSignal.TypeAssumptions.set_body
-  bodyEOFSignal.TypeAssumptions.get_mu
-  bodyEOFSignal.TypeAssumptions.set_mu
-  bodyEOFSignal.TypeAssumptions.get_closed
-  bodyEOFSignal.TypeAssumptions.set_closed
-  bodyEOFSignal.TypeAssumptions.get_rerr
-  bodyEOFSignal.TypeAssumptions.set_rerr
-  bodyEOFSignal.TypeAssumptions.get_fn
-  bodyEOFSignal.TypeAssumptions.set_fn
-  bodyEOFSignal.TypeAssumptions.get_earlyCloseFn
-  bodyEOFSignal.TypeAssumptions.set_earlyCloseFn
+  bodyEOFSignal.TypeAssumptions.get'body
+  bodyEOFSignal.TypeAssumptions.set'body
+  bodyEOFSignal.TypeAssumptions.get'mu
+  bodyEOFSignal.TypeAssumptions.set'mu
+  bodyEOFSignal.TypeAssumptions.get'closed
+  bodyEOFSignal.TypeAssumptions.set'closed
+  bodyEOFSignal.TypeAssumptions.get'rerr
+  bodyEOFSignal.TypeAssumptions.set'rerr
+  bodyEOFSignal.TypeAssumptions.get'fn
+  bodyEOFSignal.TypeAssumptions.set'fn
+  bodyEOFSignal.TypeAssumptions.get'earlyCloseFn
+  bodyEOFSignal.TypeAssumptions.set'earlyCloseFn
   bodyEOFSignal.TypeAssumptions.method_set
   bodyEOFSignal.TypeAssumptions.ptr_method_set
 

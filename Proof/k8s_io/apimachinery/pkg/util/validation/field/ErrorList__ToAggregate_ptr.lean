@@ -1,6 +1,6 @@
 /-
 `(*field.ErrorList).ToAggregate()`: the proof of its spec from the value method's (goose's
-`ptr_ToAggregate_unfold`, since `ToAggregate` is translated with its body; until 2026-11-19 a
+`ptr_unfold'ToAggregate`, since `ToAggregate` is translated with its body; until 2026-11-19 a
 trust-boundary workaround axiom). Lean-first (no Rocq counterpart).
 -/
 module
@@ -27,7 +27,7 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
 
 /-- Go puts `ErrorList`'s value methods in the method set of `*ErrorList`: `l.ToAggregate()` loads
-`*l` (goose's `ptr_ToAggregate_unfold`) and runs the value method on it (its spec, a hypothesis). -/
+`*l` (goose's `ptr_unfold'ToAggregate`) and runs the value method on it (its spec, a hypothesis). -/
 theorem ErrorList.ToAggregate_ptr.wp_proof
     (wp_ToAggregate : ErrorList.ToAggregate.spec (GF := GF) (hG := hG)) :
     ErrorList.ToAggregate_ptr.spec (GF := GF) (hG := hG) := by

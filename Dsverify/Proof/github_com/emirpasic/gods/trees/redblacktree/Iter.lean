@@ -141,7 +141,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
   wp_auto
   wp_if_destruct
   · -- past the end: stays there
-    dsimp only [«end»]
+    dsimp only [end'']
     wp_auto
     rcases Hat with ⟨h0, -, -⟩ | ⟨-, hc, hr⟩ | ⟨h1, -⟩
     · exact absurd h0 (by decide)
@@ -169,7 +169,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
         wp_auto
         rcases Hm with ⟨hT0, -⟩ | ⟨C, k, v, R, hT, hpre⟩
         · subst hT0
-          dsimp only [«end»]
+          dsimp only [end'']
           wp_auto
           iapply HΦ
           simp only [RB.entries_leaf]
@@ -293,7 +293,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
               exact absurd (of_not_not_decide_val (hG := hG) Hif) (RepC_parent_ne_null hrepC' (by simp))
           subst hC
           rw [if_pos (decide_eq_true (not_decide_val_false (hG := hG) (of_not_not_decide_val (hG := hG) Hif)))]
-          dsimp only [«end»]
+          dsimp only [end'']
           wp_auto
           iapply HΦ
           rw [RB.entries_leaf, List.nil_append, ← hpost]

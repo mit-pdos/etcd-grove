@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- **`tx.write()` with the pages anywhere in the mapping** (see the file header). -/
 theorem Tx.write_ext.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
-    (hSort : sort.«Sort».anyLessSpec (GF := GF) (hG := hG))
+    (hSort : sort.Sort''.anyLessSpec (GF := GF) (hG := hG))
     (hOv : internal.common.Page.Overflow.spec (GF := GF) (hG := hG))
     (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG))
     (hUBS : internal.common.UnsafeByteSlice.spec (GF := GF) (hG := hG))

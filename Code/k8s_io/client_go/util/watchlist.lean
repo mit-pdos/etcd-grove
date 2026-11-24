@@ -75,11 +75,11 @@ attribute [instance] unSupportedWatchListSemantics.TypeAssumptions.underlying
   unSupportedWatchListSemantics.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  unSupportedWatchListSemantics_instance : unSupportedWatchListSemantics.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  instance'unSupportedWatchListSemantics : unSupportedWatchListSemantics.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
 
-attribute [instance] Assumptions.unSupportedWatchListSemantics_instance
-  Assumptions.«init.0_unfold»
+attribute [instance] Assumptions.instance'unSupportedWatchListSemantics
+  Assumptions.«unfold'init.0»
 
 end k8s_io.client_go.util.watchlist
 

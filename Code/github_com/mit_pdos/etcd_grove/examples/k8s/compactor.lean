@@ -1006,51 +1006,51 @@ attribute [instance] compactorAPI.TypeAssumptions.underlying
   compactorAPI.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  compactorAPI_instance : compactorAPI.TypeAssumptions
-  bridgeAddr_unfold : FuncUnfold bridgeAddr [] bridgeAddr.impl
-  holdToken_unfold : FuncUnfold holdToken [] holdToken.impl
-  startCluster_unfold : FuncUnfold startCluster [] startCluster.impl
-  writer_unfold : FuncUnfold writer [] writer.impl
-  ready_unfold : FuncUnfold ready [] ready.impl
-  apiserver_unfold : FuncUnfold apiserver [] apiserver.impl
-  check_unfold : FuncUnfold check [] check.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  MainPartition_unfold : FuncUnfold MainPartition [] MainPartition.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_etcd3_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.Assumptions
-  import_clock_Assumption : _root_.Perennial.k8s_io.utils.clock.Assumptions
-  import_cluster3_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
-  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
-  import_bridge_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions
+  instance'compactorAPI : compactorAPI.TypeAssumptions
+  unfold'bridgeAddr : FuncUnfold bridgeAddr [] bridgeAddr.impl
+  unfold'holdToken : FuncUnfold holdToken [] holdToken.impl
+  unfold'startCluster : FuncUnfold startCluster [] startCluster.impl
+  unfold'writer : FuncUnfold writer [] writer.impl
+  unfold'ready : FuncUnfold ready [] ready.impl
+  unfold'apiserver : FuncUnfold apiserver [] apiserver.impl
+  unfold'check : FuncUnfold check [] check.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  unfold'MainPartition : FuncUnfold MainPartition [] MainPartition.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'etcdserver : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'etcd3 : _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.Assumptions
+  import'clock : _root_.Perennial.k8s_io.utils.clock.Assumptions
+  import'cluster3 : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
+  import'etcdstart : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
+  import'bridge : _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions
 
-attribute [instance] Assumptions.compactorAPI_instance
-  Assumptions.bridgeAddr_unfold
-  Assumptions.holdToken_unfold
-  Assumptions.startCluster_unfold
-  Assumptions.writer_unfold
-  Assumptions.ready_unfold
-  Assumptions.apiserver_unfold
-  Assumptions.check_unfold
-  Assumptions.Main_unfold
-  Assumptions.MainPartition_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_etcdserver_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_etcd3_Assumption
-  Assumptions.import_clock_Assumption
-  Assumptions.import_cluster3_Assumption
-  Assumptions.import_etcdstart_Assumption
-  Assumptions.import_bridge_Assumption
+attribute [instance] Assumptions.instance'compactorAPI
+  Assumptions.unfold'bridgeAddr
+  Assumptions.unfold'holdToken
+  Assumptions.unfold'startCluster
+  Assumptions.unfold'writer
+  Assumptions.unfold'ready
+  Assumptions.unfold'apiserver
+  Assumptions.unfold'check
+  Assumptions.unfold'Main
+  Assumptions.unfold'MainPartition
+  Assumptions.import'context
+  Assumptions.import'strconv
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'clientv3
+  Assumptions.import'etcdserver
+  Assumptions.import'zap
+  Assumptions.import'etcd3
+  Assumptions.import'clock
+  Assumptions.import'cluster3
+  Assumptions.import'etcdstart
+  Assumptions.import'bridge
 
 end github_com.mit_pdos.etcd_grove.examples.k8s.compactor
 

@@ -159,15 +159,15 @@ attribute [instance] List''.TypeAssumptions.type_repr
   List''.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ListOptions_instance : ListOptions.TypeAssumptions
-  List_instance : List''.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
+  instance'ListOptions : ListOptions.TypeAssumptions
+  instance'List : List''.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  «unfold'init.1» : FuncUnfold init.«1» [] init.«1».impl
 
-attribute [instance] Assumptions.ListOptions_instance
-  Assumptions.List_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.«init.1_unfold»
+attribute [instance] Assumptions.instance'ListOptions
+  Assumptions.instance'List
+  Assumptions.«unfold'init.0»
+  Assumptions.«unfold'init.1»
 
 end k8s_io.apimachinery.pkg.apis.«meta».internalversion
 

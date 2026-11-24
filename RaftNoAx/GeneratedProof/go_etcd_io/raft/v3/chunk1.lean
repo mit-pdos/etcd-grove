@@ -42,7 +42,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
-noncomputable instance DefaultLogger_typed_pointsto :
+noncomputable instance typed_pointsto'DefaultLogger :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.DefaultLogger where
   typedPointstoDef l v dq := iprop(
     "Logger" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.DefaultLogger go!"Logger" l) v.Logger' dq ∗
@@ -52,11 +52,11 @@ noncomputable instance DefaultLogger_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance DefaultLogger_into_val_typed :
+noncomputable instance into_val_typed'DefaultLogger :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.DefaultLogger go_etcd_io.raft.v3.DefaultLogger.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance DefaultLogger_access_load_Logger (l : Loc) (v : go_etcd_io.raft.v3.DefaultLogger) (dq : DFrac) :
+noncomputable instance access_load'DefaultLogger'Logger (l : Loc) (v : go_etcd_io.raft.v3.DefaultLogger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.DefaultLogger go!"Logger" l) v.Logger' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.DefaultLogger go!"Logger" l) v.Logger' dq)
@@ -64,7 +64,7 @@ noncomputable instance DefaultLogger_access_load_Logger (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultLogger_access_store_Logger (l : Loc) (v : go_etcd_io.raft.v3.DefaultLogger) (y : Loc) :
+noncomputable instance access_store'DefaultLogger'Logger (l : Loc) (v : go_etcd_io.raft.v3.DefaultLogger) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.DefaultLogger go!"Logger" l) v.Logger' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.DefaultLogger go!"Logger" l) y (DFrac.own 1))
@@ -72,7 +72,7 @@ noncomputable instance DefaultLogger_access_store_Logger (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultLogger_access_load_debug (l : Loc) (v : go_etcd_io.raft.v3.DefaultLogger) (dq : DFrac) :
+noncomputable instance access_load'DefaultLogger'debug (l : Loc) (v : go_etcd_io.raft.v3.DefaultLogger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.DefaultLogger go!"debug" l) v.debug' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.DefaultLogger go!"debug" l) v.debug' dq)
@@ -80,7 +80,7 @@ noncomputable instance DefaultLogger_access_load_debug (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultLogger_access_store_debug (l : Loc) (v : go_etcd_io.raft.v3.DefaultLogger) (y : Bool) :
+noncomputable instance access_store'DefaultLogger'debug (l : Loc) (v : go_etcd_io.raft.v3.DefaultLogger) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.DefaultLogger go!"debug" l) v.debug' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.DefaultLogger go!"debug" l) y (DFrac.own 1))
@@ -99,7 +99,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
-noncomputable instance Ready_typed_pointsto :
+noncomputable instance typed_pointsto'Ready :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.Ready where
   typedPointstoDef l v dq := iprop(
     "SoftState" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"SoftState" l) v.SoftState' dq ∗
@@ -115,11 +115,11 @@ noncomputable instance Ready_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Ready_into_val_typed :
+noncomputable instance into_val_typed'Ready :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.Ready go_etcd_io.raft.v3.Ready.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Ready_access_load_SoftState (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
+noncomputable instance access_load'Ready'SoftState (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"SoftState" l) v.SoftState' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"SoftState" l) v.SoftState' dq)
@@ -127,7 +127,7 @@ noncomputable instance Ready_access_load_SoftState (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ready_access_store_SoftState (l : Loc) (v : go_etcd_io.raft.v3.Ready) (y : Loc) :
+noncomputable instance access_store'Ready'SoftState (l : Loc) (v : go_etcd_io.raft.v3.Ready) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"SoftState" l) v.SoftState' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"SoftState" l) y (DFrac.own 1))
@@ -135,7 +135,7 @@ noncomputable instance Ready_access_store_SoftState (l : Loc) (v : go_etcd_io.ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ready_access_load_HardState (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
+noncomputable instance access_load'Ready'HardState (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"HardState" l) v.HardState' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"HardState" l) v.HardState' dq)
@@ -143,7 +143,7 @@ noncomputable instance Ready_access_load_HardState (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ready_access_store_HardState (l : Loc) (v : go_etcd_io.raft.v3.Ready) (y : Loc) :
+noncomputable instance access_store'Ready'HardState (l : Loc) (v : go_etcd_io.raft.v3.Ready) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"HardState" l) v.HardState' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"HardState" l) y (DFrac.own 1))
@@ -151,7 +151,7 @@ noncomputable instance Ready_access_store_HardState (l : Loc) (v : go_etcd_io.ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ready_access_load_ReadStates (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
+noncomputable instance access_load'Ready'ReadStates (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"ReadStates" l) v.ReadStates' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"ReadStates" l) v.ReadStates' dq)
@@ -159,7 +159,7 @@ noncomputable instance Ready_access_load_ReadStates (l : Loc) (v : go_etcd_io.ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ready_access_store_ReadStates (l : Loc) (v : go_etcd_io.raft.v3.Ready) (y : GoSlice) :
+noncomputable instance access_store'Ready'ReadStates (l : Loc) (v : go_etcd_io.raft.v3.Ready) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"ReadStates" l) v.ReadStates' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"ReadStates" l) y (DFrac.own 1))
@@ -167,7 +167,7 @@ noncomputable instance Ready_access_store_ReadStates (l : Loc) (v : go_etcd_io.r
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ready_access_load_Entries (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
+noncomputable instance access_load'Ready'Entries (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"Entries" l) v.Entries' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"Entries" l) v.Entries' dq)
@@ -175,7 +175,7 @@ noncomputable instance Ready_access_load_Entries (l : Loc) (v : go_etcd_io.raft.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ready_access_store_Entries (l : Loc) (v : go_etcd_io.raft.v3.Ready) (y : GoSlice) :
+noncomputable instance access_store'Ready'Entries (l : Loc) (v : go_etcd_io.raft.v3.Ready) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"Entries" l) v.Entries' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"Entries" l) y (DFrac.own 1))
@@ -183,7 +183,7 @@ noncomputable instance Ready_access_store_Entries (l : Loc) (v : go_etcd_io.raft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ready_access_load_Snapshot (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
+noncomputable instance access_load'Ready'Snapshot (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"Snapshot" l) v.Snapshot' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"Snapshot" l) v.Snapshot' dq)
@@ -191,7 +191,7 @@ noncomputable instance Ready_access_load_Snapshot (l : Loc) (v : go_etcd_io.raft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ready_access_store_Snapshot (l : Loc) (v : go_etcd_io.raft.v3.Ready) (y : Loc) :
+noncomputable instance access_store'Ready'Snapshot (l : Loc) (v : go_etcd_io.raft.v3.Ready) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"Snapshot" l) v.Snapshot' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"Snapshot" l) y (DFrac.own 1))
@@ -199,7 +199,7 @@ noncomputable instance Ready_access_store_Snapshot (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ready_access_load_CommittedEntries (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
+noncomputable instance access_load'Ready'CommittedEntries (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"CommittedEntries" l) v.CommittedEntries' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"CommittedEntries" l) v.CommittedEntries' dq)
@@ -207,7 +207,7 @@ noncomputable instance Ready_access_load_CommittedEntries (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ready_access_store_CommittedEntries (l : Loc) (v : go_etcd_io.raft.v3.Ready) (y : GoSlice) :
+noncomputable instance access_store'Ready'CommittedEntries (l : Loc) (v : go_etcd_io.raft.v3.Ready) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"CommittedEntries" l) v.CommittedEntries' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"CommittedEntries" l) y (DFrac.own 1))
@@ -215,7 +215,7 @@ noncomputable instance Ready_access_store_CommittedEntries (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ready_access_load_Messages (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
+noncomputable instance access_load'Ready'Messages (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"Messages" l) v.Messages' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"Messages" l) v.Messages' dq)
@@ -223,7 +223,7 @@ noncomputable instance Ready_access_load_Messages (l : Loc) (v : go_etcd_io.raft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ready_access_store_Messages (l : Loc) (v : go_etcd_io.raft.v3.Ready) (y : GoSlice) :
+noncomputable instance access_store'Ready'Messages (l : Loc) (v : go_etcd_io.raft.v3.Ready) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"Messages" l) v.Messages' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"Messages" l) y (DFrac.own 1))
@@ -231,7 +231,7 @@ noncomputable instance Ready_access_store_Messages (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ready_access_load_MustSync (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
+noncomputable instance access_load'Ready'MustSync (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"MustSync" l) v.MustSync' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"MustSync" l) v.MustSync' dq)
@@ -239,7 +239,7 @@ noncomputable instance Ready_access_load_MustSync (l : Loc) (v : go_etcd_io.raft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ready_access_store_MustSync (l : Loc) (v : go_etcd_io.raft.v3.Ready) (y : Bool) :
+noncomputable instance access_store'Ready'MustSync (l : Loc) (v : go_etcd_io.raft.v3.Ready) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"MustSync" l) v.MustSync' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"MustSync" l) y (DFrac.own 1))
@@ -258,7 +258,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
-noncomputable instance Peer_typed_pointsto :
+noncomputable instance typed_pointsto'Peer :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.Peer where
   typedPointstoDef l v dq := iprop(
     "ID" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"ID" l) v.ID' dq ∗
@@ -268,11 +268,11 @@ noncomputable instance Peer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Peer_into_val_typed :
+noncomputable instance into_val_typed'Peer :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.Peer go_etcd_io.raft.v3.Peer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Peer_access_load_ID (l : Loc) (v : go_etcd_io.raft.v3.Peer) (dq : DFrac) :
+noncomputable instance access_load'Peer'ID (l : Loc) (v : go_etcd_io.raft.v3.Peer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"ID" l) v.ID' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"ID" l) v.ID' dq)
@@ -280,7 +280,7 @@ noncomputable instance Peer_access_load_ID (l : Loc) (v : go_etcd_io.raft.v3.Pee
  by
   solve_pointsto_access_struct
 
-noncomputable instance Peer_access_store_ID (l : Loc) (v : go_etcd_io.raft.v3.Peer) (y : w64) :
+noncomputable instance access_store'Peer'ID (l : Loc) (v : go_etcd_io.raft.v3.Peer) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"ID" l) v.ID' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"ID" l) y (DFrac.own 1))
@@ -288,7 +288,7 @@ noncomputable instance Peer_access_store_ID (l : Loc) (v : go_etcd_io.raft.v3.Pe
  by
   solve_pointsto_access_struct
 
-noncomputable instance Peer_access_load_Context (l : Loc) (v : go_etcd_io.raft.v3.Peer) (dq : DFrac) :
+noncomputable instance access_load'Peer'Context (l : Loc) (v : go_etcd_io.raft.v3.Peer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"Context" l) v.Context' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"Context" l) v.Context' dq)
@@ -296,7 +296,7 @@ noncomputable instance Peer_access_load_Context (l : Loc) (v : go_etcd_io.raft.v
  by
   solve_pointsto_access_struct
 
-noncomputable instance Peer_access_store_Context (l : Loc) (v : go_etcd_io.raft.v3.Peer) (y : GoSlice) :
+noncomputable instance access_store'Peer'Context (l : Loc) (v : go_etcd_io.raft.v3.Peer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"Context" l) v.Context' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"Context" l) y (DFrac.own 1))
@@ -315,7 +315,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
-noncomputable instance msgWithResult_typed_pointsto :
+noncomputable instance typed_pointsto'msgWithResult :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.msgWithResult where
   typedPointstoDef l v dq := iprop(
     "m" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.msgWithResult go!"m" l) v.m' dq ∗
@@ -325,11 +325,11 @@ noncomputable instance msgWithResult_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance msgWithResult_into_val_typed :
+noncomputable instance into_val_typed'msgWithResult :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.msgWithResult go_etcd_io.raft.v3.msgWithResult.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance msgWithResult_access_load_m (l : Loc) (v : go_etcd_io.raft.v3.msgWithResult) (dq : DFrac) :
+noncomputable instance access_load'msgWithResult'm (l : Loc) (v : go_etcd_io.raft.v3.msgWithResult) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.msgWithResult go!"m" l) v.m' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.msgWithResult go!"m" l) v.m' dq)
@@ -337,7 +337,7 @@ noncomputable instance msgWithResult_access_load_m (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance msgWithResult_access_store_m (l : Loc) (v : go_etcd_io.raft.v3.msgWithResult) (y : Loc) :
+noncomputable instance access_store'msgWithResult'm (l : Loc) (v : go_etcd_io.raft.v3.msgWithResult) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.msgWithResult go!"m" l) v.m' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.msgWithResult go!"m" l) y (DFrac.own 1))
@@ -345,7 +345,7 @@ noncomputable instance msgWithResult_access_store_m (l : Loc) (v : go_etcd_io.ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance msgWithResult_access_load_result (l : Loc) (v : go_etcd_io.raft.v3.msgWithResult) (dq : DFrac) :
+noncomputable instance access_load'msgWithResult'result (l : Loc) (v : go_etcd_io.raft.v3.msgWithResult) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.msgWithResult go!"result" l) v.result' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.msgWithResult go!"result" l) v.result' dq)
@@ -353,7 +353,7 @@ noncomputable instance msgWithResult_access_load_result (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance msgWithResult_access_store_result (l : Loc) (v : go_etcd_io.raft.v3.msgWithResult) (y : GoChan) :
+noncomputable instance access_store'msgWithResult'result (l : Loc) (v : go_etcd_io.raft.v3.msgWithResult) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.msgWithResult go!"result" l) v.result' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.msgWithResult go!"result" l) y (DFrac.own 1))
@@ -372,7 +372,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
-noncomputable instance node_typed_pointsto :
+noncomputable instance typed_pointsto'node :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.node where
   typedPointstoDef l v dq := iprop(
     "propc" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"propc" l) v.propc' dq ∗
@@ -391,11 +391,11 @@ noncomputable instance node_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance node_into_val_typed :
+noncomputable instance into_val_typed'node :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.node go_etcd_io.raft.v3.node.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance node_access_load_propc (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
+noncomputable instance access_load'node'propc (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"propc" l) v.propc' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"propc" l) v.propc' dq)
@@ -403,7 +403,7 @@ noncomputable instance node_access_load_propc (l : Loc) (v : go_etcd_io.raft.v3.
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_propc (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
+noncomputable instance access_store'node'propc (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"propc" l) v.propc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"propc" l) y (DFrac.own 1))
@@ -411,7 +411,7 @@ noncomputable instance node_access_store_propc (l : Loc) (v : go_etcd_io.raft.v3
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_load_recvc (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
+noncomputable instance access_load'node'recvc (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"recvc" l) v.recvc' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"recvc" l) v.recvc' dq)
@@ -419,7 +419,7 @@ noncomputable instance node_access_load_recvc (l : Loc) (v : go_etcd_io.raft.v3.
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_recvc (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
+noncomputable instance access_store'node'recvc (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"recvc" l) v.recvc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"recvc" l) y (DFrac.own 1))
@@ -427,7 +427,7 @@ noncomputable instance node_access_store_recvc (l : Loc) (v : go_etcd_io.raft.v3
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_load_confc (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
+noncomputable instance access_load'node'confc (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"confc" l) v.confc' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"confc" l) v.confc' dq)
@@ -435,7 +435,7 @@ noncomputable instance node_access_load_confc (l : Loc) (v : go_etcd_io.raft.v3.
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_confc (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
+noncomputable instance access_store'node'confc (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"confc" l) v.confc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"confc" l) y (DFrac.own 1))
@@ -443,7 +443,7 @@ noncomputable instance node_access_store_confc (l : Loc) (v : go_etcd_io.raft.v3
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_load_confstatec (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
+noncomputable instance access_load'node'confstatec (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"confstatec" l) v.confstatec' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"confstatec" l) v.confstatec' dq)
@@ -451,7 +451,7 @@ noncomputable instance node_access_load_confstatec (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_confstatec (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
+noncomputable instance access_store'node'confstatec (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"confstatec" l) v.confstatec' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"confstatec" l) y (DFrac.own 1))
@@ -459,7 +459,7 @@ noncomputable instance node_access_store_confstatec (l : Loc) (v : go_etcd_io.ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_load_readyc (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
+noncomputable instance access_load'node'readyc (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"readyc" l) v.readyc' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"readyc" l) v.readyc' dq)
@@ -467,7 +467,7 @@ noncomputable instance node_access_load_readyc (l : Loc) (v : go_etcd_io.raft.v3
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_readyc (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
+noncomputable instance access_store'node'readyc (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"readyc" l) v.readyc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"readyc" l) y (DFrac.own 1))
@@ -475,7 +475,7 @@ noncomputable instance node_access_store_readyc (l : Loc) (v : go_etcd_io.raft.v
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_load_advancec (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
+noncomputable instance access_load'node'advancec (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"advancec" l) v.advancec' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"advancec" l) v.advancec' dq)
@@ -483,7 +483,7 @@ noncomputable instance node_access_load_advancec (l : Loc) (v : go_etcd_io.raft.
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_advancec (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
+noncomputable instance access_store'node'advancec (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"advancec" l) v.advancec' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"advancec" l) y (DFrac.own 1))
@@ -491,7 +491,7 @@ noncomputable instance node_access_store_advancec (l : Loc) (v : go_etcd_io.raft
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_load_tickc (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
+noncomputable instance access_load'node'tickc (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"tickc" l) v.tickc' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"tickc" l) v.tickc' dq)
@@ -499,7 +499,7 @@ noncomputable instance node_access_load_tickc (l : Loc) (v : go_etcd_io.raft.v3.
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_tickc (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
+noncomputable instance access_store'node'tickc (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"tickc" l) v.tickc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"tickc" l) y (DFrac.own 1))
@@ -507,7 +507,7 @@ noncomputable instance node_access_store_tickc (l : Loc) (v : go_etcd_io.raft.v3
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_load_done (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
+noncomputable instance access_load'node'done (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"done" l) v.done' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"done" l) v.done' dq)
@@ -515,7 +515,7 @@ noncomputable instance node_access_load_done (l : Loc) (v : go_etcd_io.raft.v3.n
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_done (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
+noncomputable instance access_store'node'done (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"done" l) v.done' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"done" l) y (DFrac.own 1))
@@ -523,7 +523,7 @@ noncomputable instance node_access_store_done (l : Loc) (v : go_etcd_io.raft.v3.
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_load_stop (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
+noncomputable instance access_load'node'stop (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"stop" l) v.stop' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"stop" l) v.stop' dq)
@@ -531,7 +531,7 @@ noncomputable instance node_access_load_stop (l : Loc) (v : go_etcd_io.raft.v3.n
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_stop (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
+noncomputable instance access_store'node'stop (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"stop" l) v.stop' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"stop" l) y (DFrac.own 1))
@@ -539,7 +539,7 @@ noncomputable instance node_access_store_stop (l : Loc) (v : go_etcd_io.raft.v3.
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_load_status (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
+noncomputable instance access_load'node'status (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"status" l) v.status' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"status" l) v.status' dq)
@@ -547,7 +547,7 @@ noncomputable instance node_access_load_status (l : Loc) (v : go_etcd_io.raft.v3
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_status (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
+noncomputable instance access_store'node'status (l : Loc) (v : go_etcd_io.raft.v3.node) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"status" l) v.status' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"status" l) y (DFrac.own 1))
@@ -555,7 +555,7 @@ noncomputable instance node_access_store_status (l : Loc) (v : go_etcd_io.raft.v
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_load_rn (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
+noncomputable instance access_load'node'rn (l : Loc) (v : go_etcd_io.raft.v3.node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"rn" l) v.rn' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"rn" l) v.rn' dq)
@@ -563,7 +563,7 @@ noncomputable instance node_access_load_rn (l : Loc) (v : go_etcd_io.raft.v3.nod
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_rn (l : Loc) (v : go_etcd_io.raft.v3.node) (y : Loc) :
+noncomputable instance access_store'node'rn (l : Loc) (v : go_etcd_io.raft.v3.node) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"rn" l) v.rn' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.node go!"rn" l) y (DFrac.own 1))
@@ -582,7 +582,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
-noncomputable instance lockedRand_typed_pointsto :
+noncomputable instance typed_pointsto'lockedRand :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.lockedRand where
   typedPointstoDef l v dq := iprop(
     "mu" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.lockedRand go!"mu" l) v.mu' dq ∗
@@ -591,11 +591,11 @@ noncomputable instance lockedRand_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance lockedRand_into_val_typed :
+noncomputable instance into_val_typed'lockedRand :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.lockedRand go_etcd_io.raft.v3.lockedRand.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance lockedRand_access_load_mu (l : Loc) (v : go_etcd_io.raft.v3.lockedRand) (dq : DFrac) :
+noncomputable instance access_load'lockedRand'mu (l : Loc) (v : go_etcd_io.raft.v3.lockedRand) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.lockedRand go!"mu" l) v.mu' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.lockedRand go!"mu" l) v.mu' dq)
@@ -603,7 +603,7 @@ noncomputable instance lockedRand_access_load_mu (l : Loc) (v : go_etcd_io.raft.
  by
   solve_pointsto_access_struct
 
-noncomputable instance lockedRand_access_store_mu (l : Loc) (v : go_etcd_io.raft.v3.lockedRand) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'lockedRand'mu (l : Loc) (v : go_etcd_io.raft.v3.lockedRand) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.lockedRand go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.lockedRand go!"mu" l) y (DFrac.own 1))
@@ -622,7 +622,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
-noncomputable instance RawNode_typed_pointsto :
+noncomputable instance typed_pointsto'RawNode :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.RawNode where
   typedPointstoDef l v dq := iprop(
     "raft" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"raft" l) v.raft' dq ∗
@@ -635,11 +635,11 @@ noncomputable instance RawNode_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance RawNode_into_val_typed :
+noncomputable instance into_val_typed'RawNode :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.RawNode go_etcd_io.raft.v3.RawNode.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance RawNode_access_load_raft (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (dq : DFrac) :
+noncomputable instance access_load'RawNode'raft (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"raft" l) v.raft' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"raft" l) v.raft' dq)
@@ -647,7 +647,7 @@ noncomputable instance RawNode_access_load_raft (l : Loc) (v : go_etcd_io.raft.v
  by
   solve_pointsto_access_struct
 
-noncomputable instance RawNode_access_store_raft (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (y : Loc) :
+noncomputable instance access_store'RawNode'raft (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"raft" l) v.raft' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"raft" l) y (DFrac.own 1))
@@ -655,7 +655,7 @@ noncomputable instance RawNode_access_store_raft (l : Loc) (v : go_etcd_io.raft.
  by
   solve_pointsto_access_struct
 
-noncomputable instance RawNode_access_load_asyncStorageWrites (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (dq : DFrac) :
+noncomputable instance access_load'RawNode'asyncStorageWrites (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"asyncStorageWrites" l) v.asyncStorageWrites' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"asyncStorageWrites" l) v.asyncStorageWrites' dq)
@@ -663,7 +663,7 @@ noncomputable instance RawNode_access_load_asyncStorageWrites (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance RawNode_access_store_asyncStorageWrites (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (y : Bool) :
+noncomputable instance access_store'RawNode'asyncStorageWrites (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"asyncStorageWrites" l) v.asyncStorageWrites' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"asyncStorageWrites" l) y (DFrac.own 1))
@@ -671,7 +671,7 @@ noncomputable instance RawNode_access_store_asyncStorageWrites (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance RawNode_access_load_prevSoftSt (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (dq : DFrac) :
+noncomputable instance access_load'RawNode'prevSoftSt (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"prevSoftSt" l) v.prevSoftSt' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"prevSoftSt" l) v.prevSoftSt' dq)
@@ -679,7 +679,7 @@ noncomputable instance RawNode_access_load_prevSoftSt (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance RawNode_access_store_prevSoftSt (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (y : Loc) :
+noncomputable instance access_store'RawNode'prevSoftSt (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"prevSoftSt" l) v.prevSoftSt' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"prevSoftSt" l) y (DFrac.own 1))
@@ -687,7 +687,7 @@ noncomputable instance RawNode_access_store_prevSoftSt (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance RawNode_access_load_prevHardSt (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (dq : DFrac) :
+noncomputable instance access_load'RawNode'prevHardSt (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"prevHardSt" l) v.prevHardSt' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"prevHardSt" l) v.prevHardSt' dq)
@@ -695,7 +695,7 @@ noncomputable instance RawNode_access_load_prevHardSt (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance RawNode_access_store_prevHardSt (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (y : Loc) :
+noncomputable instance access_store'RawNode'prevHardSt (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"prevHardSt" l) v.prevHardSt' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"prevHardSt" l) y (DFrac.own 1))
@@ -703,7 +703,7 @@ noncomputable instance RawNode_access_store_prevHardSt (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance RawNode_access_load_stepsOnAdvance (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (dq : DFrac) :
+noncomputable instance access_load'RawNode'stepsOnAdvance (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"stepsOnAdvance" l) v.stepsOnAdvance' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"stepsOnAdvance" l) v.stepsOnAdvance' dq)
@@ -711,7 +711,7 @@ noncomputable instance RawNode_access_load_stepsOnAdvance (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance RawNode_access_store_stepsOnAdvance (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (y : GoSlice) :
+noncomputable instance access_store'RawNode'stepsOnAdvance (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"stepsOnAdvance" l) v.stepsOnAdvance' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"stepsOnAdvance" l) y (DFrac.own 1))
@@ -730,7 +730,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
-noncomputable instance ReadState_typed_pointsto :
+noncomputable instance typed_pointsto'ReadState :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.ReadState where
   typedPointstoDef l v dq := iprop(
     "Index" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.ReadState go!"Index" l) v.Index' dq ∗
@@ -740,11 +740,11 @@ noncomputable instance ReadState_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ReadState_into_val_typed :
+noncomputable instance into_val_typed'ReadState :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.ReadState go_etcd_io.raft.v3.ReadState.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ReadState_access_load_Index (l : Loc) (v : go_etcd_io.raft.v3.ReadState) (dq : DFrac) :
+noncomputable instance access_load'ReadState'Index (l : Loc) (v : go_etcd_io.raft.v3.ReadState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.ReadState go!"Index" l) v.Index' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.ReadState go!"Index" l) v.Index' dq)
@@ -752,7 +752,7 @@ noncomputable instance ReadState_access_load_Index (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReadState_access_store_Index (l : Loc) (v : go_etcd_io.raft.v3.ReadState) (y : w64) :
+noncomputable instance access_store'ReadState'Index (l : Loc) (v : go_etcd_io.raft.v3.ReadState) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.ReadState go!"Index" l) v.Index' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.ReadState go!"Index" l) y (DFrac.own 1))
@@ -760,7 +760,7 @@ noncomputable instance ReadState_access_store_Index (l : Loc) (v : go_etcd_io.ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReadState_access_load_RequestCtx (l : Loc) (v : go_etcd_io.raft.v3.ReadState) (dq : DFrac) :
+noncomputable instance access_load'ReadState'RequestCtx (l : Loc) (v : go_etcd_io.raft.v3.ReadState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.ReadState go!"RequestCtx" l) v.RequestCtx' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.ReadState go!"RequestCtx" l) v.RequestCtx' dq)
@@ -768,7 +768,7 @@ noncomputable instance ReadState_access_load_RequestCtx (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReadState_access_store_RequestCtx (l : Loc) (v : go_etcd_io.raft.v3.ReadState) (y : GoSlice) :
+noncomputable instance access_store'ReadState'RequestCtx (l : Loc) (v : go_etcd_io.raft.v3.ReadState) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.ReadState go!"RequestCtx" l) v.RequestCtx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.ReadState go!"RequestCtx" l) y (DFrac.own 1))
@@ -787,7 +787,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
-noncomputable instance readIndexRequest_typed_pointsto :
+noncomputable instance typed_pointsto'readIndexRequest :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.readIndexRequest where
   typedPointstoDef l v dq := iprop(
     "req" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.readIndexRequest go!"req" l) v.req' dq ∗
@@ -797,11 +797,11 @@ noncomputable instance readIndexRequest_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance readIndexRequest_into_val_typed :
+noncomputable instance into_val_typed'readIndexRequest :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.readIndexRequest go_etcd_io.raft.v3.readIndexRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance readIndexRequest_access_load_req (l : Loc) (v : go_etcd_io.raft.v3.readIndexRequest) (dq : DFrac) :
+noncomputable instance access_load'readIndexRequest'req (l : Loc) (v : go_etcd_io.raft.v3.readIndexRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.readIndexRequest go!"req" l) v.req' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.readIndexRequest go!"req" l) v.req' dq)
@@ -809,7 +809,7 @@ noncomputable instance readIndexRequest_access_load_req (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance readIndexRequest_access_store_req (l : Loc) (v : go_etcd_io.raft.v3.readIndexRequest) (y : Loc) :
+noncomputable instance access_store'readIndexRequest'req (l : Loc) (v : go_etcd_io.raft.v3.readIndexRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.readIndexRequest go!"req" l) v.req' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.readIndexRequest go!"req" l) y (DFrac.own 1))
@@ -817,7 +817,7 @@ noncomputable instance readIndexRequest_access_store_req (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance readIndexRequest_access_load_index (l : Loc) (v : go_etcd_io.raft.v3.readIndexRequest) (dq : DFrac) :
+noncomputable instance access_load'readIndexRequest'index (l : Loc) (v : go_etcd_io.raft.v3.readIndexRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.readIndexRequest go!"index" l) v.index' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.readIndexRequest go!"index" l) v.index' dq)
@@ -825,7 +825,7 @@ noncomputable instance readIndexRequest_access_load_index (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance readIndexRequest_access_store_index (l : Loc) (v : go_etcd_io.raft.v3.readIndexRequest) (y : w64) :
+noncomputable instance access_store'readIndexRequest'index (l : Loc) (v : go_etcd_io.raft.v3.readIndexRequest) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.readIndexRequest go!"index" l) v.index' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.readIndexRequest go!"index" l) y (DFrac.own 1))
@@ -844,7 +844,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
-noncomputable instance TracingEvent_typed_pointsto :
+noncomputable instance typed_pointsto'TracingEvent :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.TracingEvent where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -852,7 +852,7 @@ noncomputable instance TracingEvent_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance TracingEvent_into_val_typed :
+noncomputable instance into_val_typed'TracingEvent :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.TracingEvent go_etcd_io.raft.v3.TracingEvent.underlying := by
   solve_into_val_typed_struct
 
@@ -867,7 +867,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
-noncomputable instance inMemStorageCallStats_typed_pointsto :
+noncomputable instance typed_pointsto'inMemStorageCallStats :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.inMemStorageCallStats where
   typedPointstoDef l v dq := iprop(
     "initialState" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"initialState" l) v.initialState' dq ∗
@@ -881,11 +881,11 @@ noncomputable instance inMemStorageCallStats_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance inMemStorageCallStats_into_val_typed :
+noncomputable instance into_val_typed'inMemStorageCallStats :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.inMemStorageCallStats go_etcd_io.raft.v3.inMemStorageCallStats.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance inMemStorageCallStats_access_load_initialState (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (dq : DFrac) :
+noncomputable instance access_load'inMemStorageCallStats'initialState (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"initialState" l) v.initialState' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"initialState" l) v.initialState' dq)
@@ -893,7 +893,7 @@ noncomputable instance inMemStorageCallStats_access_load_initialState (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance inMemStorageCallStats_access_store_initialState (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (y : w64) :
+noncomputable instance access_store'inMemStorageCallStats'initialState (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"initialState" l) v.initialState' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"initialState" l) y (DFrac.own 1))
@@ -901,7 +901,7 @@ noncomputable instance inMemStorageCallStats_access_store_initialState (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance inMemStorageCallStats_access_load_firstIndex (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (dq : DFrac) :
+noncomputable instance access_load'inMemStorageCallStats'firstIndex (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"firstIndex" l) v.firstIndex' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"firstIndex" l) v.firstIndex' dq)
@@ -909,7 +909,7 @@ noncomputable instance inMemStorageCallStats_access_load_firstIndex (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance inMemStorageCallStats_access_store_firstIndex (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (y : w64) :
+noncomputable instance access_store'inMemStorageCallStats'firstIndex (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"firstIndex" l) v.firstIndex' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"firstIndex" l) y (DFrac.own 1))
@@ -917,7 +917,7 @@ noncomputable instance inMemStorageCallStats_access_store_firstIndex (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance inMemStorageCallStats_access_load_lastIndex (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (dq : DFrac) :
+noncomputable instance access_load'inMemStorageCallStats'lastIndex (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"lastIndex" l) v.lastIndex' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"lastIndex" l) v.lastIndex' dq)
@@ -925,7 +925,7 @@ noncomputable instance inMemStorageCallStats_access_load_lastIndex (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance inMemStorageCallStats_access_store_lastIndex (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (y : w64) :
+noncomputable instance access_store'inMemStorageCallStats'lastIndex (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"lastIndex" l) v.lastIndex' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"lastIndex" l) y (DFrac.own 1))
@@ -933,7 +933,7 @@ noncomputable instance inMemStorageCallStats_access_store_lastIndex (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance inMemStorageCallStats_access_load_entries (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (dq : DFrac) :
+noncomputable instance access_load'inMemStorageCallStats'entries (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"entries" l) v.entries' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"entries" l) v.entries' dq)
@@ -941,7 +941,7 @@ noncomputable instance inMemStorageCallStats_access_load_entries (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance inMemStorageCallStats_access_store_entries (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (y : w64) :
+noncomputable instance access_store'inMemStorageCallStats'entries (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"entries" l) v.entries' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"entries" l) y (DFrac.own 1))
@@ -949,7 +949,7 @@ noncomputable instance inMemStorageCallStats_access_store_entries (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance inMemStorageCallStats_access_load_term (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (dq : DFrac) :
+noncomputable instance access_load'inMemStorageCallStats'term (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"term" l) v.term' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"term" l) v.term' dq)
@@ -957,7 +957,7 @@ noncomputable instance inMemStorageCallStats_access_load_term (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance inMemStorageCallStats_access_store_term (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (y : w64) :
+noncomputable instance access_store'inMemStorageCallStats'term (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"term" l) v.term' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"term" l) y (DFrac.own 1))
@@ -965,7 +965,7 @@ noncomputable instance inMemStorageCallStats_access_store_term (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance inMemStorageCallStats_access_load_snapshot (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (dq : DFrac) :
+noncomputable instance access_load'inMemStorageCallStats'snapshot (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"snapshot" l) v.snapshot' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"snapshot" l) v.snapshot' dq)
@@ -973,7 +973,7 @@ noncomputable instance inMemStorageCallStats_access_load_snapshot (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance inMemStorageCallStats_access_store_snapshot (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (y : w64) :
+noncomputable instance access_store'inMemStorageCallStats'snapshot (l : Loc) (v : go_etcd_io.raft.v3.inMemStorageCallStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"snapshot" l) v.snapshot' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.inMemStorageCallStats go!"snapshot" l) y (DFrac.own 1))
@@ -992,7 +992,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
-noncomputable instance entryID_typed_pointsto :
+noncomputable instance typed_pointsto'entryID :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.entryID where
   typedPointstoDef l v dq := iprop(
     "term" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.entryID go!"term" l) v.term' dq ∗
@@ -1002,11 +1002,11 @@ noncomputable instance entryID_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance entryID_into_val_typed :
+noncomputable instance into_val_typed'entryID :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.entryID go_etcd_io.raft.v3.entryID.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance entryID_access_load_term (l : Loc) (v : go_etcd_io.raft.v3.entryID) (dq : DFrac) :
+noncomputable instance access_load'entryID'term (l : Loc) (v : go_etcd_io.raft.v3.entryID) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.entryID go!"term" l) v.term' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.entryID go!"term" l) v.term' dq)
@@ -1014,7 +1014,7 @@ noncomputable instance entryID_access_load_term (l : Loc) (v : go_etcd_io.raft.v
  by
   solve_pointsto_access_struct
 
-noncomputable instance entryID_access_store_term (l : Loc) (v : go_etcd_io.raft.v3.entryID) (y : w64) :
+noncomputable instance access_store'entryID'term (l : Loc) (v : go_etcd_io.raft.v3.entryID) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.entryID go!"term" l) v.term' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.entryID go!"term" l) y (DFrac.own 1))
@@ -1022,7 +1022,7 @@ noncomputable instance entryID_access_store_term (l : Loc) (v : go_etcd_io.raft.
  by
   solve_pointsto_access_struct
 
-noncomputable instance entryID_access_load_index (l : Loc) (v : go_etcd_io.raft.v3.entryID) (dq : DFrac) :
+noncomputable instance access_load'entryID'index (l : Loc) (v : go_etcd_io.raft.v3.entryID) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.entryID go!"index" l) v.index' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.entryID go!"index" l) v.index' dq)
@@ -1030,7 +1030,7 @@ noncomputable instance entryID_access_load_index (l : Loc) (v : go_etcd_io.raft.
  by
   solve_pointsto_access_struct
 
-noncomputable instance entryID_access_store_index (l : Loc) (v : go_etcd_io.raft.v3.entryID) (y : w64) :
+noncomputable instance access_store'entryID'index (l : Loc) (v : go_etcd_io.raft.v3.entryID) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.entryID go!"index" l) v.index' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.entryID go!"index" l) y (DFrac.own 1))
@@ -1049,7 +1049,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
-noncomputable instance lazySprintf_typed_pointsto :
+noncomputable instance typed_pointsto'lazySprintf :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.lazySprintf where
   typedPointstoDef l v dq := iprop(
     "format" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"format" l) v.format' dq ∗
@@ -1059,11 +1059,11 @@ noncomputable instance lazySprintf_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance lazySprintf_into_val_typed :
+noncomputable instance into_val_typed'lazySprintf :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.lazySprintf go_etcd_io.raft.v3.lazySprintf.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance lazySprintf_access_load_format (l : Loc) (v : go_etcd_io.raft.v3.lazySprintf) (dq : DFrac) :
+noncomputable instance access_load'lazySprintf'format (l : Loc) (v : go_etcd_io.raft.v3.lazySprintf) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"format" l) v.format' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"format" l) v.format' dq)
@@ -1071,7 +1071,7 @@ noncomputable instance lazySprintf_access_load_format (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance lazySprintf_access_store_format (l : Loc) (v : go_etcd_io.raft.v3.lazySprintf) (y : GoString) :
+noncomputable instance access_store'lazySprintf'format (l : Loc) (v : go_etcd_io.raft.v3.lazySprintf) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"format" l) v.format' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"format" l) y (DFrac.own 1))
@@ -1079,7 +1079,7 @@ noncomputable instance lazySprintf_access_store_format (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance lazySprintf_access_load_args (l : Loc) (v : go_etcd_io.raft.v3.lazySprintf) (dq : DFrac) :
+noncomputable instance access_load'lazySprintf'args (l : Loc) (v : go_etcd_io.raft.v3.lazySprintf) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"args" l) v.args' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"args" l) v.args' dq)
@@ -1087,7 +1087,7 @@ noncomputable instance lazySprintf_access_load_args (l : Loc) (v : go_etcd_io.ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance lazySprintf_access_store_args (l : Loc) (v : go_etcd_io.raft.v3.lazySprintf) (y : GoSlice) :
+noncomputable instance access_store'lazySprintf'args (l : Loc) (v : go_etcd_io.raft.v3.lazySprintf) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"args" l) v.args' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"args" l) y (DFrac.own 1))
@@ -1106,7 +1106,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
-noncomputable instance describedConfChange_typed_pointsto :
+noncomputable instance typed_pointsto'describedConfChange :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.describedConfChange where
   typedPointstoDef l v dq := iprop(
     "cc" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.describedConfChange go!"cc" l) v.cc' dq ∗
@@ -1115,11 +1115,11 @@ noncomputable instance describedConfChange_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance describedConfChange_into_val_typed :
+noncomputable instance into_val_typed'describedConfChange :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.describedConfChange go_etcd_io.raft.v3.describedConfChange.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance describedConfChange_access_load_cc (l : Loc) (v : go_etcd_io.raft.v3.describedConfChange) (dq : DFrac) :
+noncomputable instance access_load'describedConfChange'cc (l : Loc) (v : go_etcd_io.raft.v3.describedConfChange) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.describedConfChange go!"cc" l) v.cc' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.describedConfChange go!"cc" l) v.cc' dq)
@@ -1127,7 +1127,7 @@ noncomputable instance describedConfChange_access_load_cc (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance describedConfChange_access_store_cc (l : Loc) (v : go_etcd_io.raft.v3.describedConfChange) (y : _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI) :
+noncomputable instance access_store'describedConfChange'cc (l : Loc) (v : go_etcd_io.raft.v3.describedConfChange) (y : _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.describedConfChange go!"cc" l) v.cc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.describedConfChange go!"cc" l) y (DFrac.own 1))

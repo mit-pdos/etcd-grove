@@ -25,11 +25,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.reflection.Assumptions]
 
-noncomputable instance v1AlphaServerImpl_typed_pointsto :
+noncomputable instance typed_pointsto'v1AlphaServerImpl :
     TypedPointsto (GF := GF) google_golang_org.grpc.reflection.v1AlphaServerImpl :=
   sorry -- axiomatized type
 
-noncomputable instance v1AlphaServerImpl_into_val_typed :
+noncomputable instance into_val_typed'v1AlphaServerImpl :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.reflection.v1AlphaServerImpl google_golang_org.grpc.reflection.v1AlphaServerImpl.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +44,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.reflection.Assumptions]
 
-noncomputable instance v1AlphaServerStreamAdapter_typed_pointsto :
+noncomputable instance typed_pointsto'v1AlphaServerStreamAdapter :
     TypedPointsto (GF := GF) google_golang_org.grpc.reflection.v1AlphaServerStreamAdapter :=
   sorry -- axiomatized type
 
-noncomputable instance v1AlphaServerStreamAdapter_into_val_typed :
+noncomputable instance into_val_typed'v1AlphaServerStreamAdapter :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.reflection.v1AlphaServerStreamAdapter google_golang_org.grpc.reflection.v1AlphaServerStreamAdapter.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +63,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.reflection.Assumptions]
 
-noncomputable instance ExtensionResolver_typed_pointsto :
+noncomputable instance typed_pointsto'ExtensionResolver :
     TypedPointsto (GF := GF) google_golang_org.grpc.reflection.ExtensionResolver :=
   sorry -- axiomatized type
 
-noncomputable instance ExtensionResolver_into_val_typed :
+noncomputable instance into_val_typed'ExtensionResolver :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.reflection.ExtensionResolver google_golang_org.grpc.reflection.ExtensionResolver.underlying :=
   sorry -- axiomatized type
 
@@ -82,11 +82,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.reflection.Assumptions]
 
-noncomputable instance ServerOptions_typed_pointsto :
+noncomputable instance typed_pointsto'ServerOptions :
     TypedPointsto (GF := GF) google_golang_org.grpc.reflection.ServerOptions :=
   sorry -- axiomatized type
 
-noncomputable instance ServerOptions_into_val_typed :
+noncomputable instance into_val_typed'ServerOptions :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.reflection.ServerOptions google_golang_org.grpc.reflection.ServerOptions.underlying :=
   sorry -- axiomatized type
 

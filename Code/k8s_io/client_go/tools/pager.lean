@@ -118,7 +118,7 @@ noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
     use ListWithAlloc instead.
 
     go: pager.go:80:21 -/
-noncomputable def ListPager.List.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def ListPager.List''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "ctx"
   (Lam "options"
@@ -193,7 +193,7 @@ noncomputable def ListPager.ListWithAlloc.impl [GooseExts] [GoGlobalContext] : v
   (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))))
 
 /-- go: pager.go:92:21 -/
-noncomputable def ListPager.list.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def ListPager.list''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "ctx"
   (Lam "options"
@@ -939,7 +939,7 @@ noncomputable instance ListPager.zero_val [GooseExts] : ZeroVal ListPager :=
 @[irreducible] noncomputable def ListPager.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ListPager.fieldsUnsealed
 
-noncomputable instance equals_unfold_ListPager [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ListPager [GooseExts] [GoGlobalContext] :
     EqualsUnfold ListPager.fields ListPager.fieldsUnsealed :=
   ⟨by unfold ListPager.fields; rfl⟩
 
@@ -949,70 +949,70 @@ noncomputable instance equals_unfold_ListPager [GooseExts] [GoGlobalContext] :
 class ListPager.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ListPager.underlying ListPager
   underlying : go.UnderlyingDirectedEq ListPager.ty ListPager.underlying
-  get_PageSize : ∀ (x : ListPager), go.IsGoStepPureDetTagged under (StructFieldGet ListPager.underlying go!"PageSize") #x (Val #(x.PageSize'))
-  set_PageSize : ∀ (x : ListPager) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ListPager.underlying go!"PageSize") (PairV #x #y) (Val #(({ x with PageSize' := y } : ListPager)))
-  get_PageFn : ∀ (x : ListPager), go.IsGoStepPureDetTagged under (StructFieldGet ListPager.underlying go!"PageFn") #x (Val #(x.PageFn'))
-  set_PageFn : ∀ (x : ListPager) (y : ListPageFunc), go.IsGoStepPureDetTagged under (StructFieldSet ListPager.underlying go!"PageFn") (PairV #x #y) (Val #(({ x with PageFn' := y } : ListPager)))
-  get_FullListIfExpired : ∀ (x : ListPager), go.IsGoStepPureDetTagged under (StructFieldGet ListPager.underlying go!"FullListIfExpired") #x (Val #(x.FullListIfExpired'))
-  set_FullListIfExpired : ∀ (x : ListPager) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ListPager.underlying go!"FullListIfExpired") (PairV #x #y) (Val #(({ x with FullListIfExpired' := y } : ListPager)))
-  get_PageBufferSize : ∀ (x : ListPager), go.IsGoStepPureDetTagged under (StructFieldGet ListPager.underlying go!"PageBufferSize") #x (Val #(x.PageBufferSize'))
-  set_PageBufferSize : ∀ (x : ListPager) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ListPager.underlying go!"PageBufferSize") (PairV #x #y) (Val #(({ x with PageBufferSize' := y } : ListPager)))
+  get'PageSize : ∀ (x : ListPager), go.IsGoStepPureDetTagged under (StructFieldGet ListPager.underlying go!"PageSize") #x (Val #(x.PageSize'))
+  set'PageSize : ∀ (x : ListPager) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ListPager.underlying go!"PageSize") (PairV #x #y) (Val #(({ x with PageSize' := y } : ListPager)))
+  get'PageFn : ∀ (x : ListPager), go.IsGoStepPureDetTagged under (StructFieldGet ListPager.underlying go!"PageFn") #x (Val #(x.PageFn'))
+  set'PageFn : ∀ (x : ListPager) (y : ListPageFunc), go.IsGoStepPureDetTagged under (StructFieldSet ListPager.underlying go!"PageFn") (PairV #x #y) (Val #(({ x with PageFn' := y } : ListPager)))
+  get'FullListIfExpired : ∀ (x : ListPager), go.IsGoStepPureDetTagged under (StructFieldGet ListPager.underlying go!"FullListIfExpired") #x (Val #(x.FullListIfExpired'))
+  set'FullListIfExpired : ∀ (x : ListPager) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ListPager.underlying go!"FullListIfExpired") (PairV #x #y) (Val #(({ x with FullListIfExpired' := y } : ListPager)))
+  get'PageBufferSize : ∀ (x : ListPager), go.IsGoStepPureDetTagged under (StructFieldGet ListPager.underlying go!"PageBufferSize") #x (Val #(x.PageBufferSize'))
+  set'PageBufferSize : ∀ (x : ListPager) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ListPager.underlying go!"PageBufferSize") (PairV #x #y) (Val #(({ x with PageBufferSize' := y } : ListPager)))
   method_set : go.MethodSetIs ListPager.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListPager.ty) [(go!"EachListItem", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))] false [go.error]))), (go!"EachListItemWithAlloc", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))] false [go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.bool, go.error]))), (go!"ListWithAlloc", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.bool, go.error]))), (go!"k8s.io/client-go/tools/pager.eachListChunk", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))] false [go.error]))), (go!"k8s.io/client-go/tools/pager.eachListChunkBuffered", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))] false [go.error]))), (go!"k8s.io/client-go/tools/pager.list", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty, go.bool] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.bool, go.error])))]
-  ptr_EachListItem_unfold : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"EachListItem" ListPager.EachListItem.impl
-  ptr_EachListItemWithAlloc_unfold : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"EachListItemWithAlloc" ListPager.EachListItemWithAlloc.impl
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"List" ListPager.List.impl
-  ptr_ListWithAlloc_unfold : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"ListWithAlloc" ListPager.ListWithAlloc.impl
-  ptr_eachListChunk_unfold : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"eachListChunk" ListPager.eachListChunk.impl
-  ptr_eachListChunkBuffered_unfold : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"eachListChunkBuffered" ListPager.eachListChunkBuffered.impl
-  ptr_list_unfold : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"list" ListPager.list.impl
+  ptr_unfold'EachListItem : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"EachListItem" ListPager.EachListItem.impl
+  ptr_unfold'EachListItemWithAlloc : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"EachListItemWithAlloc" ListPager.EachListItemWithAlloc.impl
+  ptr_unfold'List : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"List" ListPager.List''.impl
+  ptr_unfold'ListWithAlloc : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"ListWithAlloc" ListPager.ListWithAlloc.impl
+  ptr_unfold'eachListChunk : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"eachListChunk" ListPager.eachListChunk.impl
+  ptr_unfold'eachListChunkBuffered : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"eachListChunkBuffered" ListPager.eachListChunkBuffered.impl
+  ptr_unfold'list : MethodUnfold (go.GoType.PointerType ListPager.ty) go!"list" ListPager.list''.impl
 
 attribute [instance] ListPager.TypeAssumptions.type_repr
   ListPager.TypeAssumptions.underlying
-  ListPager.TypeAssumptions.get_PageSize
-  ListPager.TypeAssumptions.set_PageSize
-  ListPager.TypeAssumptions.get_PageFn
-  ListPager.TypeAssumptions.set_PageFn
-  ListPager.TypeAssumptions.get_FullListIfExpired
-  ListPager.TypeAssumptions.set_FullListIfExpired
-  ListPager.TypeAssumptions.get_PageBufferSize
-  ListPager.TypeAssumptions.set_PageBufferSize
+  ListPager.TypeAssumptions.get'PageSize
+  ListPager.TypeAssumptions.set'PageSize
+  ListPager.TypeAssumptions.get'PageFn
+  ListPager.TypeAssumptions.set'PageFn
+  ListPager.TypeAssumptions.get'FullListIfExpired
+  ListPager.TypeAssumptions.set'FullListIfExpired
+  ListPager.TypeAssumptions.get'PageBufferSize
+  ListPager.TypeAssumptions.set'PageBufferSize
   ListPager.TypeAssumptions.method_set
   ListPager.TypeAssumptions.ptr_method_set
-  ListPager.TypeAssumptions.ptr_EachListItem_unfold
-  ListPager.TypeAssumptions.ptr_EachListItemWithAlloc_unfold
-  ListPager.TypeAssumptions.ptr_List_unfold
-  ListPager.TypeAssumptions.ptr_ListWithAlloc_unfold
-  ListPager.TypeAssumptions.ptr_eachListChunk_unfold
-  ListPager.TypeAssumptions.ptr_eachListChunkBuffered_unfold
-  ListPager.TypeAssumptions.ptr_list_unfold
+  ListPager.TypeAssumptions.ptr_unfold'EachListItem
+  ListPager.TypeAssumptions.ptr_unfold'EachListItemWithAlloc
+  ListPager.TypeAssumptions.ptr_unfold'List
+  ListPager.TypeAssumptions.ptr_unfold'ListWithAlloc
+  ListPager.TypeAssumptions.ptr_unfold'eachListChunk
+  ListPager.TypeAssumptions.ptr_unfold'eachListChunkBuffered
+  ListPager.TypeAssumptions.ptr_unfold'list
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ListPageFunc_instance : ListPageFunc.TypeAssumptions
-  ListPager_instance : ListPager.TypeAssumptions
-  SimplePageFunc_unfold : FuncUnfold SimplePageFunc [] SimplePageFunc.impl
-  New_unfold : FuncUnfold New [] New.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_errors_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.Assumptions
-  import_meta_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions
-  import_internalversion_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.Assumptions
-  import_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_pkg_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
-  import_util_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.Assumptions
+  instance'ListPageFunc : ListPageFunc.TypeAssumptions
+  instance'ListPager : ListPager.TypeAssumptions
+  unfold'SimplePageFunc : FuncUnfold SimplePageFunc [] SimplePageFunc.impl
+  unfold'New : FuncUnfold New [] New.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'errors : _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.Assumptions
+  import'meta : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions
+  import'internalversion : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.Assumptions
+  import'v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'pkg_runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  import'util_runtime : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.Assumptions
 
-attribute [instance] Assumptions.ListPageFunc_instance
-  Assumptions.ListPager_instance
-  Assumptions.SimplePageFunc_unfold
-  Assumptions.New_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_meta_Assumption
-  Assumptions.import_internalversion_Assumption
-  Assumptions.import_v1_Assumption
-  Assumptions.import_pkg_runtime_Assumption
-  Assumptions.import_util_runtime_Assumption
+attribute [instance] Assumptions.instance'ListPageFunc
+  Assumptions.instance'ListPager
+  Assumptions.unfold'SimplePageFunc
+  Assumptions.unfold'New
+  Assumptions.import'context
+  Assumptions.import'fmt
+  Assumptions.import'errors
+  Assumptions.import'meta
+  Assumptions.import'internalversion
+  Assumptions.import'v1
+  Assumptions.import'pkg_runtime
+  Assumptions.import'util_runtime
 
 end k8s_io.client_go.tools.pager
 

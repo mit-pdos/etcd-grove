@@ -34,7 +34,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.kubernetes.pkg.features.Assumptions]
 
-noncomputable instance clientAdapter_typed_pointsto :
+noncomputable instance typed_pointsto'clientAdapter :
     TypedPointsto (GF := GF) k8s_io.kubernetes.pkg.features.clientAdapter where
   typedPointstoDef l v dq := iprop(
     "mfg" ∷ typedPointsto (structFieldRef k8s_io.kubernetes.pkg.features.clientAdapter go!"mfg" l) v.mfg' dq ∗
@@ -43,11 +43,11 @@ noncomputable instance clientAdapter_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance clientAdapter_into_val_typed :
+noncomputable instance into_val_typed'clientAdapter :
     IntoValTypedUnderlying (GF := GF) k8s_io.kubernetes.pkg.features.clientAdapter k8s_io.kubernetes.pkg.features.clientAdapter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance clientAdapter_access_load_mfg (l : Loc) (v : k8s_io.kubernetes.pkg.features.clientAdapter) (dq : DFrac) :
+noncomputable instance access_load'clientAdapter'mfg (l : Loc) (v : k8s_io.kubernetes.pkg.features.clientAdapter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.features.clientAdapter go!"mfg" l) v.mfg' dq)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.features.clientAdapter go!"mfg" l) v.mfg' dq)
@@ -55,7 +55,7 @@ noncomputable instance clientAdapter_access_load_mfg (l : Loc) (v : k8s_io.kuber
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientAdapter_access_store_mfg (l : Loc) (v : k8s_io.kubernetes.pkg.features.clientAdapter) (y : _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate) :
+noncomputable instance access_store'clientAdapter'mfg (l : Loc) (v : k8s_io.kubernetes.pkg.features.clientAdapter) (y : _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.features.clientAdapter go!"mfg" l) v.mfg' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.features.clientAdapter go!"mfg" l) y (DFrac.own 1))

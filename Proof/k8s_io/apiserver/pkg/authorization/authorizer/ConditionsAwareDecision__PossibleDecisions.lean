@@ -146,7 +146,7 @@ theorem ConditionsAwareDecision.PossibleDecisions.wp_proof
       (DFrac.own 1) d) $$ [$Hdp] as Hdp
     rw [Htag]
     try wp_auto
-    icases (ConditionsAwareDecision.ConditionsAwareDecision_access_load_union d_ptr d
+    icases (ConditionsAwareDecision.access_load'ConditionsAwareDecision'union d_ptr d
       (DFrac.own 1)).access_strict $$ Hdp with ⟨Hu, Hclose⟩
     ihave #Hsub := isDecision_union_subOk d ks $$ Hd
     wp_apply (wp_ConditionsAwareDecisionUnion_PossibleDecisions _ (DFrac.own 1) d.union' DFrac.discard ks)

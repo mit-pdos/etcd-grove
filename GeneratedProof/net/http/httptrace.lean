@@ -24,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.httptrace.Assumptions]
 
-noncomputable instance clientEventContextKey_typed_pointsto :
+noncomputable instance typed_pointsto'clientEventContextKey :
     TypedPointsto (GF := GF) net.http.httptrace.clientEventContextKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -32,7 +32,7 @@ noncomputable instance clientEventContextKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance clientEventContextKey_into_val_typed :
+noncomputable instance into_val_typed'clientEventContextKey :
     IntoValTypedUnderlying (GF := GF) net.http.httptrace.clientEventContextKey net.http.httptrace.clientEventContextKey.underlying := by
   solve_into_val_typed_struct
 
@@ -47,11 +47,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.httptrace.Assumptions]
 
-noncomputable instance ClientTrace_typed_pointsto :
+noncomputable instance typed_pointsto'ClientTrace :
     TypedPointsto (GF := GF) net.http.httptrace.ClientTrace :=
   sorry -- axiomatized type
 
-noncomputable instance ClientTrace_into_val_typed :
+noncomputable instance into_val_typed'ClientTrace :
     IntoValTypedUnderlying (GF := GF) net.http.httptrace.ClientTrace net.http.httptrace.ClientTrace.underlying :=
   sorry -- axiomatized type
 
@@ -66,7 +66,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.httptrace.Assumptions]
 
-noncomputable instance WroteRequestInfo_typed_pointsto :
+noncomputable instance typed_pointsto'WroteRequestInfo :
     TypedPointsto (GF := GF) net.http.httptrace.WroteRequestInfo where
   typedPointstoDef l v dq := iprop(
     "Err" ∷ typedPointsto (structFieldRef net.http.httptrace.WroteRequestInfo go!"Err" l) v.Err' dq ∗
@@ -75,11 +75,11 @@ noncomputable instance WroteRequestInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance WroteRequestInfo_into_val_typed :
+noncomputable instance into_val_typed'WroteRequestInfo :
     IntoValTypedUnderlying (GF := GF) net.http.httptrace.WroteRequestInfo net.http.httptrace.WroteRequestInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance WroteRequestInfo_access_load_Err (l : Loc) (v : net.http.httptrace.WroteRequestInfo) (dq : DFrac) :
+noncomputable instance access_load'WroteRequestInfo'Err (l : Loc) (v : net.http.httptrace.WroteRequestInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.httptrace.WroteRequestInfo go!"Err" l) v.Err' dq)
       (typedPointsto (structFieldRef net.http.httptrace.WroteRequestInfo go!"Err" l) v.Err' dq)
@@ -87,7 +87,7 @@ noncomputable instance WroteRequestInfo_access_load_Err (l : Loc) (v : net.http.
  by
   solve_pointsto_access_struct
 
-noncomputable instance WroteRequestInfo_access_store_Err (l : Loc) (v : net.http.httptrace.WroteRequestInfo) (y : GoError) :
+noncomputable instance access_store'WroteRequestInfo'Err (l : Loc) (v : net.http.httptrace.WroteRequestInfo) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.httptrace.WroteRequestInfo go!"Err" l) v.Err' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.httptrace.WroteRequestInfo go!"Err" l) y (DFrac.own 1))
@@ -106,7 +106,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.httptrace.Assumptions]
 
-noncomputable instance DNSStartInfo_typed_pointsto :
+noncomputable instance typed_pointsto'DNSStartInfo :
     TypedPointsto (GF := GF) net.http.httptrace.DNSStartInfo where
   typedPointstoDef l v dq := iprop(
     "Host" ∷ typedPointsto (structFieldRef net.http.httptrace.DNSStartInfo go!"Host" l) v.Host' dq ∗
@@ -115,11 +115,11 @@ noncomputable instance DNSStartInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance DNSStartInfo_into_val_typed :
+noncomputable instance into_val_typed'DNSStartInfo :
     IntoValTypedUnderlying (GF := GF) net.http.httptrace.DNSStartInfo net.http.httptrace.DNSStartInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance DNSStartInfo_access_load_Host (l : Loc) (v : net.http.httptrace.DNSStartInfo) (dq : DFrac) :
+noncomputable instance access_load'DNSStartInfo'Host (l : Loc) (v : net.http.httptrace.DNSStartInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.httptrace.DNSStartInfo go!"Host" l) v.Host' dq)
       (typedPointsto (structFieldRef net.http.httptrace.DNSStartInfo go!"Host" l) v.Host' dq)
@@ -127,7 +127,7 @@ noncomputable instance DNSStartInfo_access_load_Host (l : Loc) (v : net.http.htt
  by
   solve_pointsto_access_struct
 
-noncomputable instance DNSStartInfo_access_store_Host (l : Loc) (v : net.http.httptrace.DNSStartInfo) (y : GoString) :
+noncomputable instance access_store'DNSStartInfo'Host (l : Loc) (v : net.http.httptrace.DNSStartInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.httptrace.DNSStartInfo go!"Host" l) v.Host' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.httptrace.DNSStartInfo go!"Host" l) y (DFrac.own 1))
@@ -146,11 +146,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.httptrace.Assumptions]
 
-noncomputable instance DNSDoneInfo_typed_pointsto :
+noncomputable instance typed_pointsto'DNSDoneInfo :
     TypedPointsto (GF := GF) net.http.httptrace.DNSDoneInfo :=
   sorry -- axiomatized type
 
-noncomputable instance DNSDoneInfo_into_val_typed :
+noncomputable instance into_val_typed'DNSDoneInfo :
     IntoValTypedUnderlying (GF := GF) net.http.httptrace.DNSDoneInfo net.http.httptrace.DNSDoneInfo.underlying :=
   sorry -- axiomatized type
 
@@ -165,11 +165,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.httptrace.Assumptions]
 
-noncomputable instance GotConnInfo_typed_pointsto :
+noncomputable instance typed_pointsto'GotConnInfo :
     TypedPointsto (GF := GF) net.http.httptrace.GotConnInfo :=
   sorry -- axiomatized type
 
-noncomputable instance GotConnInfo_into_val_typed :
+noncomputable instance into_val_typed'GotConnInfo :
     IntoValTypedUnderlying (GF := GF) net.http.httptrace.GotConnInfo net.http.httptrace.GotConnInfo.underlying :=
   sorry -- axiomatized type
 

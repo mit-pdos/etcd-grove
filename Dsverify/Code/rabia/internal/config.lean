@@ -556,7 +556,7 @@ noncomputable instance Config.zero_val [GooseExts] : ZeroVal Config :=
 @[irreducible] noncomputable def Config.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Config.fieldsUnsealed
 
-noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Config [GooseExts] [GoGlobalContext] :
     EqualsUnfold Config.fields Config.fieldsUnsealed :=
   ⟨by unfold Config.fields; rfl⟩
 
@@ -566,206 +566,206 @@ noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
 class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
-  get_Role : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Role") #x (Val #(x.Role'))
-  set_Role : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Role") (PairV #x #y) (Val #(({ x with Role' := y } : Config)))
-  get_Id : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Id") #x (Val #(x.Id'))
-  set_Id : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : Config)))
-  get_ControllerAddr : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ControllerAddr") #x (Val #(x.ControllerAddr'))
-  set_ControllerAddr : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ControllerAddr") (PairV #x #y) (Val #(({ x with ControllerAddr' := y } : Config)))
-  get_ProjectFolder : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProjectFolder") #x (Val #(x.ProjectFolder'))
-  set_ProjectFolder : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProjectFolder") (PairV #x #y) (Val #(({ x with ProjectFolder' := y } : Config)))
-  get_LogLevel : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"LogLevel") #x (Val #(x.LogLevel'))
-  set_LogLevel : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"LogLevel") (PairV #x #y) (Val #(({ x with LogLevel' := y } : Config)))
-  get_SvrIp : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"SvrIp") #x (Val #(x.SvrIp'))
-  set_SvrIp : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"SvrIp") (PairV #x #y) (Val #(({ x with SvrIp' := y } : Config)))
-  get_ProxyPort : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProxyPort") #x (Val #(x.ProxyPort'))
-  set_ProxyPort : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProxyPort") (PairV #x #y) (Val #(({ x with ProxyPort' := y } : Config)))
-  get_NetworkPort : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NetworkPort") #x (Val #(x.NetworkPort'))
-  set_NetworkPort : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NetworkPort") (PairV #x #y) (Val #(({ x with NetworkPort' := y } : Config)))
-  get_Peers : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Peers") #x (Val #(x.Peers'))
-  set_Peers : ∀ (x : Config) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Peers") (PairV #x #y) (Val #(({ x with Peers' := y } : Config)))
-  get_ProxyAddr : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProxyAddr") #x (Val #(x.ProxyAddr'))
-  set_ProxyAddr : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProxyAddr") (PairV #x #y) (Val #(({ x with ProxyAddr' := y } : Config)))
-  get_ClosedLoop : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ClosedLoop") #x (Val #(x.ClosedLoop'))
-  set_ClosedLoop : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ClosedLoop") (PairV #x #y) (Val #(({ x with ClosedLoop' := y } : Config)))
-  get_NServers : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NServers") #x (Val #(x.NServers'))
-  set_NServers : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NServers") (PairV #x #y) (Val #(({ x with NServers' := y } : Config)))
-  get_NFaulty : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NFaulty") #x (Val #(x.NFaulty'))
-  set_NFaulty : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NFaulty") (PairV #x #y) (Val #(({ x with NFaulty' := y } : Config)))
-  get_NClients : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NClients") #x (Val #(x.NClients'))
-  set_NClients : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NClients") (PairV #x #y) (Val #(({ x with NClients' := y } : Config)))
-  get_NConcurrency : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NConcurrency") #x (Val #(x.NConcurrency'))
-  set_NConcurrency : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NConcurrency") (PairV #x #y) (Val #(({ x with NConcurrency' := y } : Config)))
-  get_NClientRequests : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NClientRequests") #x (Val #(x.NClientRequests'))
-  set_NClientRequests : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NClientRequests") (PairV #x #y) (Val #(({ x with NClientRequests' := y } : Config)))
-  get_ClientThinkTime : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ClientThinkTime") #x (Val #(x.ClientThinkTime'))
-  set_ClientThinkTime : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ClientThinkTime") (PairV #x #y) (Val #(({ x with ClientThinkTime' := y } : Config)))
-  get_ClientBatchSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ClientBatchSize") #x (Val #(x.ClientBatchSize'))
-  set_ClientBatchSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ClientBatchSize") (PairV #x #y) (Val #(({ x with ClientBatchSize' := y } : Config)))
-  get_ProxyBatchSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProxyBatchSize") #x (Val #(x.ProxyBatchSize'))
-  set_ProxyBatchSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProxyBatchSize") (PairV #x #y) (Val #(({ x with ProxyBatchSize' := y } : Config)))
-  get_ProxyBatchTimeout : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProxyBatchTimeout") #x (Val #(x.ProxyBatchTimeout'))
-  set_ProxyBatchTimeout : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProxyBatchTimeout") (PairV #x #y) (Val #(({ x with ProxyBatchTimeout' := y } : Config)))
-  get_NetworkBatchSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NetworkBatchSize") #x (Val #(x.NetworkBatchSize'))
-  set_NetworkBatchSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NetworkBatchSize") (PairV #x #y) (Val #(({ x with NetworkBatchSize' := y } : Config)))
-  get_NetworkBatchTimeout : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NetworkBatchTimeout") #x (Val #(x.NetworkBatchTimeout'))
-  set_NetworkBatchTimeout : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NetworkBatchTimeout") (PairV #x #y) (Val #(({ x with NetworkBatchTimeout' := y } : Config)))
-  get_NMinusF : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NMinusF") #x (Val #(x.NMinusF'))
-  set_NMinusF : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NMinusF") (PairV #x #y) (Val #(({ x with NMinusF' := y } : Config)))
-  get_Majority : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Majority") #x (Val #(x.Majority'))
-  set_Majority : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Majority") (PairV #x #y) (Val #(({ x with Majority' := y } : Config)))
-  get_MajorityPlusF : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"MajorityPlusF") #x (Val #(x.MajorityPlusF'))
-  set_MajorityPlusF : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"MajorityPlusF") (PairV #x #y) (Val #(({ x with MajorityPlusF' := y } : Config)))
-  get_FaultyPlusOne : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"FaultyPlusOne") #x (Val #(x.FaultyPlusOne'))
-  set_FaultyPlusOne : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"FaultyPlusOne") (PairV #x #y) (Val #(({ x with FaultyPlusOne' := y } : Config)))
-  get_LenLedger : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"LenLedger") #x (Val #(x.LenLedger'))
-  set_LenLedger : ∀ (x : Config) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"LenLedger") (PairV #x #y) (Val #(({ x with LenLedger' := y } : Config)))
-  get_LenBlockArray : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"LenBlockArray") #x (Val #(x.LenBlockArray'))
-  set_LenBlockArray : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"LenBlockArray") (PairV #x #y) (Val #(({ x with LenBlockArray' := y } : Config)))
-  get_LenChannel : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"LenChannel") #x (Val #(x.LenChannel'))
-  set_LenChannel : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"LenChannel") (PairV #x #y) (Val #(({ x with LenChannel' := y } : Config)))
-  get_LenPQueue : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"LenPQueue") #x (Val #(x.LenPQueue'))
-  set_LenPQueue : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"LenPQueue") (PairV #x #y) (Val #(({ x with LenPQueue' := y } : Config)))
-  get_IoBufSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"IoBufSize") #x (Val #(x.IoBufSize'))
-  set_IoBufSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"IoBufSize") (PairV #x #y) (Val #(({ x with IoBufSize' := y } : Config)))
-  get_TcpBufSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"TcpBufSize") #x (Val #(x.TcpBufSize'))
-  set_TcpBufSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"TcpBufSize") (PairV #x #y) (Val #(({ x with TcpBufSize' := y } : Config)))
-  get_KeyLen : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"KeyLen") #x (Val #(x.KeyLen'))
-  set_KeyLen : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"KeyLen") (PairV #x #y) (Val #(({ x with KeyLen' := y } : Config)))
-  get_ValLen : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ValLen") #x (Val #(x.ValLen'))
-  set_ValLen : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ValLen") (PairV #x #y) (Val #(({ x with ValLen' := y } : Config)))
-  get_SvrLogInterval : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"SvrLogInterval") #x (Val #(x.SvrLogInterval'))
-  set_SvrLogInterval : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"SvrLogInterval") (PairV #x #y) (Val #(({ x with SvrLogInterval' := y } : Config)))
-  get_ClientLogInterval : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ClientLogInterval") #x (Val #(x.ClientLogInterval'))
-  set_ClientLogInterval : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ClientLogInterval") (PairV #x #y) (Val #(({ x with ClientLogInterval' := y } : Config)))
-  get_ClientTimeout : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ClientTimeout") #x (Val #(x.ClientTimeout'))
-  set_ClientTimeout : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ClientTimeout") (PairV #x #y) (Val #(({ x with ClientTimeout' := y } : Config)))
-  get_ConsensusStartAfter : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ConsensusStartAfter") #x (Val #(x.ConsensusStartAfter'))
-  set_ConsensusStartAfter : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ConsensusStartAfter") (PairV #x #y) (Val #(({ x with ConsensusStartAfter' := y } : Config)))
-  get_StorageMode : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"StorageMode") #x (Val #(x.StorageMode'))
-  set_StorageMode : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"StorageMode") (PairV #x #y) (Val #(({ x with StorageMode' := y } : Config)))
-  get_RedisAddr : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"RedisAddr") #x (Val #(x.RedisAddr'))
-  set_RedisAddr : ∀ (x : Config) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"RedisAddr") (PairV #x #y) (Val #(({ x with RedisAddr' := y } : Config)))
+  get'Role : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Role") #x (Val #(x.Role'))
+  set'Role : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Role") (PairV #x #y) (Val #(({ x with Role' := y } : Config)))
+  get'Id : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Id") #x (Val #(x.Id'))
+  set'Id : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : Config)))
+  get'ControllerAddr : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ControllerAddr") #x (Val #(x.ControllerAddr'))
+  set'ControllerAddr : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ControllerAddr") (PairV #x #y) (Val #(({ x with ControllerAddr' := y } : Config)))
+  get'ProjectFolder : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProjectFolder") #x (Val #(x.ProjectFolder'))
+  set'ProjectFolder : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProjectFolder") (PairV #x #y) (Val #(({ x with ProjectFolder' := y } : Config)))
+  get'LogLevel : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"LogLevel") #x (Val #(x.LogLevel'))
+  set'LogLevel : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"LogLevel") (PairV #x #y) (Val #(({ x with LogLevel' := y } : Config)))
+  get'SvrIp : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"SvrIp") #x (Val #(x.SvrIp'))
+  set'SvrIp : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"SvrIp") (PairV #x #y) (Val #(({ x with SvrIp' := y } : Config)))
+  get'ProxyPort : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProxyPort") #x (Val #(x.ProxyPort'))
+  set'ProxyPort : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProxyPort") (PairV #x #y) (Val #(({ x with ProxyPort' := y } : Config)))
+  get'NetworkPort : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NetworkPort") #x (Val #(x.NetworkPort'))
+  set'NetworkPort : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NetworkPort") (PairV #x #y) (Val #(({ x with NetworkPort' := y } : Config)))
+  get'Peers : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Peers") #x (Val #(x.Peers'))
+  set'Peers : ∀ (x : Config) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Peers") (PairV #x #y) (Val #(({ x with Peers' := y } : Config)))
+  get'ProxyAddr : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProxyAddr") #x (Val #(x.ProxyAddr'))
+  set'ProxyAddr : ∀ (x : Config) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProxyAddr") (PairV #x #y) (Val #(({ x with ProxyAddr' := y } : Config)))
+  get'ClosedLoop : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ClosedLoop") #x (Val #(x.ClosedLoop'))
+  set'ClosedLoop : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ClosedLoop") (PairV #x #y) (Val #(({ x with ClosedLoop' := y } : Config)))
+  get'NServers : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NServers") #x (Val #(x.NServers'))
+  set'NServers : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NServers") (PairV #x #y) (Val #(({ x with NServers' := y } : Config)))
+  get'NFaulty : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NFaulty") #x (Val #(x.NFaulty'))
+  set'NFaulty : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NFaulty") (PairV #x #y) (Val #(({ x with NFaulty' := y } : Config)))
+  get'NClients : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NClients") #x (Val #(x.NClients'))
+  set'NClients : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NClients") (PairV #x #y) (Val #(({ x with NClients' := y } : Config)))
+  get'NConcurrency : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NConcurrency") #x (Val #(x.NConcurrency'))
+  set'NConcurrency : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NConcurrency") (PairV #x #y) (Val #(({ x with NConcurrency' := y } : Config)))
+  get'NClientRequests : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NClientRequests") #x (Val #(x.NClientRequests'))
+  set'NClientRequests : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NClientRequests") (PairV #x #y) (Val #(({ x with NClientRequests' := y } : Config)))
+  get'ClientThinkTime : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ClientThinkTime") #x (Val #(x.ClientThinkTime'))
+  set'ClientThinkTime : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ClientThinkTime") (PairV #x #y) (Val #(({ x with ClientThinkTime' := y } : Config)))
+  get'ClientBatchSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ClientBatchSize") #x (Val #(x.ClientBatchSize'))
+  set'ClientBatchSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ClientBatchSize") (PairV #x #y) (Val #(({ x with ClientBatchSize' := y } : Config)))
+  get'ProxyBatchSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProxyBatchSize") #x (Val #(x.ProxyBatchSize'))
+  set'ProxyBatchSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProxyBatchSize") (PairV #x #y) (Val #(({ x with ProxyBatchSize' := y } : Config)))
+  get'ProxyBatchTimeout : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProxyBatchTimeout") #x (Val #(x.ProxyBatchTimeout'))
+  set'ProxyBatchTimeout : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProxyBatchTimeout") (PairV #x #y) (Val #(({ x with ProxyBatchTimeout' := y } : Config)))
+  get'NetworkBatchSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NetworkBatchSize") #x (Val #(x.NetworkBatchSize'))
+  set'NetworkBatchSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NetworkBatchSize") (PairV #x #y) (Val #(({ x with NetworkBatchSize' := y } : Config)))
+  get'NetworkBatchTimeout : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NetworkBatchTimeout") #x (Val #(x.NetworkBatchTimeout'))
+  set'NetworkBatchTimeout : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NetworkBatchTimeout") (PairV #x #y) (Val #(({ x with NetworkBatchTimeout' := y } : Config)))
+  get'NMinusF : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"NMinusF") #x (Val #(x.NMinusF'))
+  set'NMinusF : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"NMinusF") (PairV #x #y) (Val #(({ x with NMinusF' := y } : Config)))
+  get'Majority : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Majority") #x (Val #(x.Majority'))
+  set'Majority : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Majority") (PairV #x #y) (Val #(({ x with Majority' := y } : Config)))
+  get'MajorityPlusF : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"MajorityPlusF") #x (Val #(x.MajorityPlusF'))
+  set'MajorityPlusF : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"MajorityPlusF") (PairV #x #y) (Val #(({ x with MajorityPlusF' := y } : Config)))
+  get'FaultyPlusOne : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"FaultyPlusOne") #x (Val #(x.FaultyPlusOne'))
+  set'FaultyPlusOne : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"FaultyPlusOne") (PairV #x #y) (Val #(({ x with FaultyPlusOne' := y } : Config)))
+  get'LenLedger : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"LenLedger") #x (Val #(x.LenLedger'))
+  set'LenLedger : ∀ (x : Config) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"LenLedger") (PairV #x #y) (Val #(({ x with LenLedger' := y } : Config)))
+  get'LenBlockArray : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"LenBlockArray") #x (Val #(x.LenBlockArray'))
+  set'LenBlockArray : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"LenBlockArray") (PairV #x #y) (Val #(({ x with LenBlockArray' := y } : Config)))
+  get'LenChannel : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"LenChannel") #x (Val #(x.LenChannel'))
+  set'LenChannel : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"LenChannel") (PairV #x #y) (Val #(({ x with LenChannel' := y } : Config)))
+  get'LenPQueue : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"LenPQueue") #x (Val #(x.LenPQueue'))
+  set'LenPQueue : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"LenPQueue") (PairV #x #y) (Val #(({ x with LenPQueue' := y } : Config)))
+  get'IoBufSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"IoBufSize") #x (Val #(x.IoBufSize'))
+  set'IoBufSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"IoBufSize") (PairV #x #y) (Val #(({ x with IoBufSize' := y } : Config)))
+  get'TcpBufSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"TcpBufSize") #x (Val #(x.TcpBufSize'))
+  set'TcpBufSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"TcpBufSize") (PairV #x #y) (Val #(({ x with TcpBufSize' := y } : Config)))
+  get'KeyLen : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"KeyLen") #x (Val #(x.KeyLen'))
+  set'KeyLen : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"KeyLen") (PairV #x #y) (Val #(({ x with KeyLen' := y } : Config)))
+  get'ValLen : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ValLen") #x (Val #(x.ValLen'))
+  set'ValLen : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ValLen") (PairV #x #y) (Val #(({ x with ValLen' := y } : Config)))
+  get'SvrLogInterval : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"SvrLogInterval") #x (Val #(x.SvrLogInterval'))
+  set'SvrLogInterval : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"SvrLogInterval") (PairV #x #y) (Val #(({ x with SvrLogInterval' := y } : Config)))
+  get'ClientLogInterval : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ClientLogInterval") #x (Val #(x.ClientLogInterval'))
+  set'ClientLogInterval : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ClientLogInterval") (PairV #x #y) (Val #(({ x with ClientLogInterval' := y } : Config)))
+  get'ClientTimeout : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ClientTimeout") #x (Val #(x.ClientTimeout'))
+  set'ClientTimeout : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ClientTimeout") (PairV #x #y) (Val #(({ x with ClientTimeout' := y } : Config)))
+  get'ConsensusStartAfter : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ConsensusStartAfter") #x (Val #(x.ConsensusStartAfter'))
+  set'ConsensusStartAfter : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ConsensusStartAfter") (PairV #x #y) (Val #(({ x with ConsensusStartAfter' := y } : Config)))
+  get'StorageMode : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"StorageMode") #x (Val #(x.StorageMode'))
+  set'StorageMode : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"StorageMode") (PairV #x #y) (Val #(({ x with StorageMode' := y } : Config)))
+  get'RedisAddr : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"RedisAddr") #x (Val #(x.RedisAddr'))
+  set'RedisAddr : ∀ (x : Config) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"RedisAddr") (PairV #x #y) (Val #(({ x with RedisAddr' := y } : Config)))
   method_set : go.MethodSetIs Config.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) [(go!"CalcConstants", (some (go.signature.Signature [] false []))), (go!"LoadConfigs", (some (go.signature.Signature [] false []))), (go!"rabia/internal/config.loadEnvVars1", (some (go.signature.Signature [] false []))), (go!"rabia/internal/config.loadEnvVars2", (some (go.signature.Signature [] false []))), (go!"rabia/internal/config.loadRedisVars", (some (go.signature.Signature [] false [])))]
-  ptr_CalcConstants_unfold : MethodUnfold (go.GoType.PointerType Config.ty) go!"CalcConstants" Config.CalcConstants.impl
-  ptr_LoadConfigs_unfold : MethodUnfold (go.GoType.PointerType Config.ty) go!"LoadConfigs" Config.LoadConfigs.impl
-  ptr_loadEnvVars1_unfold : MethodUnfold (go.GoType.PointerType Config.ty) go!"loadEnvVars1" Config.loadEnvVars1.impl
-  ptr_loadEnvVars2_unfold : MethodUnfold (go.GoType.PointerType Config.ty) go!"loadEnvVars2" Config.loadEnvVars2.impl
-  ptr_loadRedisVars_unfold : MethodUnfold (go.GoType.PointerType Config.ty) go!"loadRedisVars" Config.loadRedisVars.impl
+  ptr_unfold'CalcConstants : MethodUnfold (go.GoType.PointerType Config.ty) go!"CalcConstants" Config.CalcConstants.impl
+  ptr_unfold'LoadConfigs : MethodUnfold (go.GoType.PointerType Config.ty) go!"LoadConfigs" Config.LoadConfigs.impl
+  ptr_unfold'loadEnvVars1 : MethodUnfold (go.GoType.PointerType Config.ty) go!"loadEnvVars1" Config.loadEnvVars1.impl
+  ptr_unfold'loadEnvVars2 : MethodUnfold (go.GoType.PointerType Config.ty) go!"loadEnvVars2" Config.loadEnvVars2.impl
+  ptr_unfold'loadRedisVars : MethodUnfold (go.GoType.PointerType Config.ty) go!"loadRedisVars" Config.loadRedisVars.impl
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
-  Config.TypeAssumptions.get_Role
-  Config.TypeAssumptions.set_Role
-  Config.TypeAssumptions.get_Id
-  Config.TypeAssumptions.set_Id
-  Config.TypeAssumptions.get_ControllerAddr
-  Config.TypeAssumptions.set_ControllerAddr
-  Config.TypeAssumptions.get_ProjectFolder
-  Config.TypeAssumptions.set_ProjectFolder
-  Config.TypeAssumptions.get_LogLevel
-  Config.TypeAssumptions.set_LogLevel
-  Config.TypeAssumptions.get_SvrIp
-  Config.TypeAssumptions.set_SvrIp
-  Config.TypeAssumptions.get_ProxyPort
-  Config.TypeAssumptions.set_ProxyPort
-  Config.TypeAssumptions.get_NetworkPort
-  Config.TypeAssumptions.set_NetworkPort
-  Config.TypeAssumptions.get_Peers
-  Config.TypeAssumptions.set_Peers
-  Config.TypeAssumptions.get_ProxyAddr
-  Config.TypeAssumptions.set_ProxyAddr
-  Config.TypeAssumptions.get_ClosedLoop
-  Config.TypeAssumptions.set_ClosedLoop
-  Config.TypeAssumptions.get_NServers
-  Config.TypeAssumptions.set_NServers
-  Config.TypeAssumptions.get_NFaulty
-  Config.TypeAssumptions.set_NFaulty
-  Config.TypeAssumptions.get_NClients
-  Config.TypeAssumptions.set_NClients
-  Config.TypeAssumptions.get_NConcurrency
-  Config.TypeAssumptions.set_NConcurrency
-  Config.TypeAssumptions.get_NClientRequests
-  Config.TypeAssumptions.set_NClientRequests
-  Config.TypeAssumptions.get_ClientThinkTime
-  Config.TypeAssumptions.set_ClientThinkTime
-  Config.TypeAssumptions.get_ClientBatchSize
-  Config.TypeAssumptions.set_ClientBatchSize
-  Config.TypeAssumptions.get_ProxyBatchSize
-  Config.TypeAssumptions.set_ProxyBatchSize
-  Config.TypeAssumptions.get_ProxyBatchTimeout
-  Config.TypeAssumptions.set_ProxyBatchTimeout
-  Config.TypeAssumptions.get_NetworkBatchSize
-  Config.TypeAssumptions.set_NetworkBatchSize
-  Config.TypeAssumptions.get_NetworkBatchTimeout
-  Config.TypeAssumptions.set_NetworkBatchTimeout
-  Config.TypeAssumptions.get_NMinusF
-  Config.TypeAssumptions.set_NMinusF
-  Config.TypeAssumptions.get_Majority
-  Config.TypeAssumptions.set_Majority
-  Config.TypeAssumptions.get_MajorityPlusF
-  Config.TypeAssumptions.set_MajorityPlusF
-  Config.TypeAssumptions.get_FaultyPlusOne
-  Config.TypeAssumptions.set_FaultyPlusOne
-  Config.TypeAssumptions.get_LenLedger
-  Config.TypeAssumptions.set_LenLedger
-  Config.TypeAssumptions.get_LenBlockArray
-  Config.TypeAssumptions.set_LenBlockArray
-  Config.TypeAssumptions.get_LenChannel
-  Config.TypeAssumptions.set_LenChannel
-  Config.TypeAssumptions.get_LenPQueue
-  Config.TypeAssumptions.set_LenPQueue
-  Config.TypeAssumptions.get_IoBufSize
-  Config.TypeAssumptions.set_IoBufSize
-  Config.TypeAssumptions.get_TcpBufSize
-  Config.TypeAssumptions.set_TcpBufSize
-  Config.TypeAssumptions.get_KeyLen
-  Config.TypeAssumptions.set_KeyLen
-  Config.TypeAssumptions.get_ValLen
-  Config.TypeAssumptions.set_ValLen
-  Config.TypeAssumptions.get_SvrLogInterval
-  Config.TypeAssumptions.set_SvrLogInterval
-  Config.TypeAssumptions.get_ClientLogInterval
-  Config.TypeAssumptions.set_ClientLogInterval
-  Config.TypeAssumptions.get_ClientTimeout
-  Config.TypeAssumptions.set_ClientTimeout
-  Config.TypeAssumptions.get_ConsensusStartAfter
-  Config.TypeAssumptions.set_ConsensusStartAfter
-  Config.TypeAssumptions.get_StorageMode
-  Config.TypeAssumptions.set_StorageMode
-  Config.TypeAssumptions.get_RedisAddr
-  Config.TypeAssumptions.set_RedisAddr
+  Config.TypeAssumptions.get'Role
+  Config.TypeAssumptions.set'Role
+  Config.TypeAssumptions.get'Id
+  Config.TypeAssumptions.set'Id
+  Config.TypeAssumptions.get'ControllerAddr
+  Config.TypeAssumptions.set'ControllerAddr
+  Config.TypeAssumptions.get'ProjectFolder
+  Config.TypeAssumptions.set'ProjectFolder
+  Config.TypeAssumptions.get'LogLevel
+  Config.TypeAssumptions.set'LogLevel
+  Config.TypeAssumptions.get'SvrIp
+  Config.TypeAssumptions.set'SvrIp
+  Config.TypeAssumptions.get'ProxyPort
+  Config.TypeAssumptions.set'ProxyPort
+  Config.TypeAssumptions.get'NetworkPort
+  Config.TypeAssumptions.set'NetworkPort
+  Config.TypeAssumptions.get'Peers
+  Config.TypeAssumptions.set'Peers
+  Config.TypeAssumptions.get'ProxyAddr
+  Config.TypeAssumptions.set'ProxyAddr
+  Config.TypeAssumptions.get'ClosedLoop
+  Config.TypeAssumptions.set'ClosedLoop
+  Config.TypeAssumptions.get'NServers
+  Config.TypeAssumptions.set'NServers
+  Config.TypeAssumptions.get'NFaulty
+  Config.TypeAssumptions.set'NFaulty
+  Config.TypeAssumptions.get'NClients
+  Config.TypeAssumptions.set'NClients
+  Config.TypeAssumptions.get'NConcurrency
+  Config.TypeAssumptions.set'NConcurrency
+  Config.TypeAssumptions.get'NClientRequests
+  Config.TypeAssumptions.set'NClientRequests
+  Config.TypeAssumptions.get'ClientThinkTime
+  Config.TypeAssumptions.set'ClientThinkTime
+  Config.TypeAssumptions.get'ClientBatchSize
+  Config.TypeAssumptions.set'ClientBatchSize
+  Config.TypeAssumptions.get'ProxyBatchSize
+  Config.TypeAssumptions.set'ProxyBatchSize
+  Config.TypeAssumptions.get'ProxyBatchTimeout
+  Config.TypeAssumptions.set'ProxyBatchTimeout
+  Config.TypeAssumptions.get'NetworkBatchSize
+  Config.TypeAssumptions.set'NetworkBatchSize
+  Config.TypeAssumptions.get'NetworkBatchTimeout
+  Config.TypeAssumptions.set'NetworkBatchTimeout
+  Config.TypeAssumptions.get'NMinusF
+  Config.TypeAssumptions.set'NMinusF
+  Config.TypeAssumptions.get'Majority
+  Config.TypeAssumptions.set'Majority
+  Config.TypeAssumptions.get'MajorityPlusF
+  Config.TypeAssumptions.set'MajorityPlusF
+  Config.TypeAssumptions.get'FaultyPlusOne
+  Config.TypeAssumptions.set'FaultyPlusOne
+  Config.TypeAssumptions.get'LenLedger
+  Config.TypeAssumptions.set'LenLedger
+  Config.TypeAssumptions.get'LenBlockArray
+  Config.TypeAssumptions.set'LenBlockArray
+  Config.TypeAssumptions.get'LenChannel
+  Config.TypeAssumptions.set'LenChannel
+  Config.TypeAssumptions.get'LenPQueue
+  Config.TypeAssumptions.set'LenPQueue
+  Config.TypeAssumptions.get'IoBufSize
+  Config.TypeAssumptions.set'IoBufSize
+  Config.TypeAssumptions.get'TcpBufSize
+  Config.TypeAssumptions.set'TcpBufSize
+  Config.TypeAssumptions.get'KeyLen
+  Config.TypeAssumptions.set'KeyLen
+  Config.TypeAssumptions.get'ValLen
+  Config.TypeAssumptions.set'ValLen
+  Config.TypeAssumptions.get'SvrLogInterval
+  Config.TypeAssumptions.set'SvrLogInterval
+  Config.TypeAssumptions.get'ClientLogInterval
+  Config.TypeAssumptions.set'ClientLogInterval
+  Config.TypeAssumptions.get'ClientTimeout
+  Config.TypeAssumptions.set'ClientTimeout
+  Config.TypeAssumptions.get'ConsensusStartAfter
+  Config.TypeAssumptions.set'ConsensusStartAfter
+  Config.TypeAssumptions.get'StorageMode
+  Config.TypeAssumptions.set'StorageMode
+  Config.TypeAssumptions.get'RedisAddr
+  Config.TypeAssumptions.set'RedisAddr
   Config.TypeAssumptions.method_set
   Config.TypeAssumptions.ptr_method_set
-  Config.TypeAssumptions.ptr_CalcConstants_unfold
-  Config.TypeAssumptions.ptr_LoadConfigs_unfold
-  Config.TypeAssumptions.ptr_loadEnvVars1_unfold
-  Config.TypeAssumptions.ptr_loadEnvVars2_unfold
-  Config.TypeAssumptions.ptr_loadRedisVars_unfold
+  Config.TypeAssumptions.ptr_unfold'CalcConstants
+  Config.TypeAssumptions.ptr_unfold'LoadConfigs
+  Config.TypeAssumptions.ptr_unfold'loadEnvVars1
+  Config.TypeAssumptions.ptr_unfold'loadEnvVars2
+  Config.TypeAssumptions.ptr_unfold'loadRedisVars
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Config_instance : Config.TypeAssumptions
-  getEnvStr_unfold : FuncUnfold getEnvStr [] getEnvStr.impl
-  getEnvInt_unfold : FuncUnfold getEnvInt [] getEnvInt.impl
-  strToIntArray_unfold : FuncUnfold strToIntArray [] strToIntArray.impl
-  strToBool_unfold : FuncUnfold strToBool [] strToBool.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'Config : Config.TypeAssumptions
+  unfold'getEnvStr : FuncUnfold getEnvStr [] getEnvStr.impl
+  unfold'getEnvInt : FuncUnfold getEnvInt [] getEnvInt.impl
+  unfold'strToIntArray : FuncUnfold strToIntArray [] strToIntArray.impl
+  unfold'strToBool : FuncUnfold strToBool [] strToBool.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.Config_instance
-  Assumptions.getEnvStr_unfold
-  Assumptions.getEnvInt_unfold
-  Assumptions.strToIntArray_unfold
-  Assumptions.strToBool_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'Config
+  Assumptions.unfold'getEnvStr
+  Assumptions.unfold'getEnvInt
+  Assumptions.unfold'strToIntArray
+  Assumptions.unfold'strToBool
+  Assumptions.import'fmt
+  Assumptions.import'os
+  Assumptions.import'strconv
+  Assumptions.import'strings
+  Assumptions.import'time
 
 end rabia.internal.config
 

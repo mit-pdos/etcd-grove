@@ -48,15 +48,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.syscall.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  FDLimit_unfold : FuncUnfold FDLimit [] FDLimit.impl
-  FDUsage_unfold : FuncUnfold FDUsage [] FDUsage.impl
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
+  unfold'FDLimit : FuncUnfold FDLimit [] FDLimit.impl
+  unfold'FDUsage : FuncUnfold FDUsage [] FDUsage.impl
+  import'os : _root_.Perennial.os.Assumptions
+  import'syscall : _root_.Perennial.syscall.Assumptions
 
-attribute [instance] Assumptions.FDLimit_unfold
-  Assumptions.FDUsage_unfold
-  Assumptions.import_os_Assumption
-  Assumptions.import_syscall_Assumption
+attribute [instance] Assumptions.unfold'FDLimit
+  Assumptions.unfold'FDUsage
+  Assumptions.import'os
+  Assumptions.import'syscall
 
 end go_etcd_io.etcd.pkg.v3.runtime
 

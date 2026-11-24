@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 -- `wp_load` from a persistent struct points-to: the field-store `AccessStrict` instance
 -- (which needs `DFrac.own 1`) is found first and the search does not backtrack.
-attribute [-instance] Config.Config_access_store_WaitTimeout
+attribute [-instance] Config.access_store'Config'WaitTimeout
 
 theorem Cache.waitTillRevision.wp_proof
     (wp_LatestRev : store.LatestRev.spec (GF := GF) (hG := hG))

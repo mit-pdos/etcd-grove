@@ -26,7 +26,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.resolver.Assumptions]
 
-noncomputable instance Address_typed_pointsto :
+noncomputable instance typed_pointsto'Address :
     TypedPointsto (GF := GF) google_golang_org.grpc.resolver.Address where
   typedPointstoDef l v dq := iprop(
     "Addr" ∷ typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"Addr" l) v.Addr' dq ∗
@@ -39,11 +39,11 @@ noncomputable instance Address_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Address_into_val_typed :
+noncomputable instance into_val_typed'Address :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.resolver.Address google_golang_org.grpc.resolver.Address.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Address_access_load_Addr (l : Loc) (v : google_golang_org.grpc.resolver.Address) (dq : DFrac) :
+noncomputable instance access_load'Address'Addr (l : Loc) (v : google_golang_org.grpc.resolver.Address) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"Addr" l) v.Addr' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"Addr" l) v.Addr' dq)
@@ -51,7 +51,7 @@ noncomputable instance Address_access_load_Addr (l : Loc) (v : google_golang_org
  by
   solve_pointsto_access_struct
 
-noncomputable instance Address_access_store_Addr (l : Loc) (v : google_golang_org.grpc.resolver.Address) (y : GoString) :
+noncomputable instance access_store'Address'Addr (l : Loc) (v : google_golang_org.grpc.resolver.Address) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"Addr" l) v.Addr' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"Addr" l) y (DFrac.own 1))
@@ -59,7 +59,7 @@ noncomputable instance Address_access_store_Addr (l : Loc) (v : google_golang_or
  by
   solve_pointsto_access_struct
 
-noncomputable instance Address_access_load_ServerName (l : Loc) (v : google_golang_org.grpc.resolver.Address) (dq : DFrac) :
+noncomputable instance access_load'Address'ServerName (l : Loc) (v : google_golang_org.grpc.resolver.Address) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"ServerName" l) v.ServerName' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"ServerName" l) v.ServerName' dq)
@@ -67,7 +67,7 @@ noncomputable instance Address_access_load_ServerName (l : Loc) (v : google_gola
  by
   solve_pointsto_access_struct
 
-noncomputable instance Address_access_store_ServerName (l : Loc) (v : google_golang_org.grpc.resolver.Address) (y : GoString) :
+noncomputable instance access_store'Address'ServerName (l : Loc) (v : google_golang_org.grpc.resolver.Address) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"ServerName" l) v.ServerName' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"ServerName" l) y (DFrac.own 1))
@@ -75,7 +75,7 @@ noncomputable instance Address_access_store_ServerName (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance Address_access_load_Attributes (l : Loc) (v : google_golang_org.grpc.resolver.Address) (dq : DFrac) :
+noncomputable instance access_load'Address'Attributes (l : Loc) (v : google_golang_org.grpc.resolver.Address) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"Attributes" l) v.Attributes' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"Attributes" l) v.Attributes' dq)
@@ -83,7 +83,7 @@ noncomputable instance Address_access_load_Attributes (l : Loc) (v : google_gola
  by
   solve_pointsto_access_struct
 
-noncomputable instance Address_access_store_Attributes (l : Loc) (v : google_golang_org.grpc.resolver.Address) (y : Loc) :
+noncomputable instance access_store'Address'Attributes (l : Loc) (v : google_golang_org.grpc.resolver.Address) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"Attributes" l) v.Attributes' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"Attributes" l) y (DFrac.own 1))
@@ -91,7 +91,7 @@ noncomputable instance Address_access_store_Attributes (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance Address_access_load_BalancerAttributes (l : Loc) (v : google_golang_org.grpc.resolver.Address) (dq : DFrac) :
+noncomputable instance access_load'Address'BalancerAttributes (l : Loc) (v : google_golang_org.grpc.resolver.Address) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"BalancerAttributes" l) v.BalancerAttributes' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"BalancerAttributes" l) v.BalancerAttributes' dq)
@@ -99,7 +99,7 @@ noncomputable instance Address_access_load_BalancerAttributes (l : Loc) (v : goo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Address_access_store_BalancerAttributes (l : Loc) (v : google_golang_org.grpc.resolver.Address) (y : Loc) :
+noncomputable instance access_store'Address'BalancerAttributes (l : Loc) (v : google_golang_org.grpc.resolver.Address) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"BalancerAttributes" l) v.BalancerAttributes' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"BalancerAttributes" l) y (DFrac.own 1))
@@ -107,7 +107,7 @@ noncomputable instance Address_access_store_BalancerAttributes (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance Address_access_load_Metadata (l : Loc) (v : google_golang_org.grpc.resolver.Address) (dq : DFrac) :
+noncomputable instance access_load'Address'Metadata (l : Loc) (v : google_golang_org.grpc.resolver.Address) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"Metadata" l) v.Metadata' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"Metadata" l) v.Metadata' dq)
@@ -115,7 +115,7 @@ noncomputable instance Address_access_load_Metadata (l : Loc) (v : google_golang
  by
   solve_pointsto_access_struct
 
-noncomputable instance Address_access_store_Metadata (l : Loc) (v : google_golang_org.grpc.resolver.Address) (y : GoInterface) :
+noncomputable instance access_store'Address'Metadata (l : Loc) (v : google_golang_org.grpc.resolver.Address) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"Metadata" l) v.Metadata' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Address go!"Metadata" l) y (DFrac.own 1))
@@ -134,49 +134,49 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.resolver.Assumptions]
 
-noncomputable instance addressMapEntry_typed_pointsto {T' : Type} [TypedPointsto (GF := GF) T'] :
-    TypedPointsto (GF := GF) (google_golang_org.grpc.resolver.addressMapEntry T') where
+noncomputable instance typed_pointsto'addressMapEntry {T₀' : Type} [TypedPointsto (GF := GF) T₀'] :
+    TypedPointsto (GF := GF) (google_golang_org.grpc.resolver.addressMapEntry T₀') where
   typedPointstoDef l v dq := iprop(
-    "addr" ∷ typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T') go!"addr" l) v.addr' dq ∗
-    "value" ∷ typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T') go!"value" l) v.value' dq ∗
+    "addr" ∷ typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T₀') go!"addr" l) v.addr' dq ∗
+    "value" ∷ typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T₀') go!"value" l) v.value' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance addressMapEntry_into_val_typed (T : go.GoType) {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T'] [IntoValTyped (GF := GF) T' T] :
-    IntoValTypedUnderlying (GF := GF) (google_golang_org.grpc.resolver.addressMapEntry T') (google_golang_org.grpc.resolver.addressMapEntry.underlying T) := by
+noncomputable instance into_val_typed'addressMapEntry (T₀ : go.GoType) {T₀' : Type} [ZeroVal T₀'] [TypedPointsto (GF := GF) T₀'] [IntoValTyped (GF := GF) T₀' T₀] :
+    IntoValTypedUnderlying (GF := GF) (google_golang_org.grpc.resolver.addressMapEntry T₀') (google_golang_org.grpc.resolver.addressMapEntry.underlying T₀) := by
   solve_into_val_typed_struct
 
-noncomputable instance addressMapEntry_access_load_addr {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (google_golang_org.grpc.resolver.addressMapEntry T')) (dq : DFrac) :
+noncomputable instance access_load'addressMapEntry'addr {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (google_golang_org.grpc.resolver.addressMapEntry T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T') go!"addr" l) v.addr' dq)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T') go!"addr" l) v.addr' dq)
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T₀') go!"addr" l) v.addr' dq)
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T₀') go!"addr" l) v.addr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance addressMapEntry_access_store_addr {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (google_golang_org.grpc.resolver.addressMapEntry T')) (y : google_golang_org.grpc.resolver.Address) :
+noncomputable instance access_store'addressMapEntry'addr {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (google_golang_org.grpc.resolver.addressMapEntry T₀')) (y : google_golang_org.grpc.resolver.Address) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T') go!"addr" l) v.addr' (DFrac.own 1))
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T') go!"addr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addr' := y } : (google_golang_org.grpc.resolver.addressMapEntry T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T₀') go!"addr" l) v.addr' (DFrac.own 1))
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T₀') go!"addr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addr' := y } : (google_golang_org.grpc.resolver.addressMapEntry T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance addressMapEntry_access_load_value {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (google_golang_org.grpc.resolver.addressMapEntry T')) (dq : DFrac) :
+noncomputable instance access_load'addressMapEntry'value {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (google_golang_org.grpc.resolver.addressMapEntry T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T') go!"value" l) v.value' dq)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T') go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T₀') go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T₀') go!"value" l) v.value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance addressMapEntry_access_store_value {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (google_golang_org.grpc.resolver.addressMapEntry T')) (y : T') :
+noncomputable instance access_store'addressMapEntry'value {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (google_golang_org.grpc.resolver.addressMapEntry T₀')) (y : T₀') :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T') go!"value" l) v.value' (DFrac.own 1))
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T') go!"value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : (google_golang_org.grpc.resolver.addressMapEntry T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T₀') go!"value" l) v.value' (DFrac.own 1))
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.addressMapEntry T₀') go!"value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : (google_golang_org.grpc.resolver.addressMapEntry T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -191,32 +191,32 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.resolver.Assumptions]
 
-noncomputable instance AddressMapV2_typed_pointsto {T' : Type} [TypedPointsto (GF := GF) T'] :
-    TypedPointsto (GF := GF) (google_golang_org.grpc.resolver.AddressMapV2 T') where
+noncomputable instance typed_pointsto'AddressMapV2 {T₀' : Type} [TypedPointsto (GF := GF) T₀'] :
+    TypedPointsto (GF := GF) (google_golang_org.grpc.resolver.AddressMapV2 T₀') where
   typedPointstoDef l v dq := iprop(
-    "m" ∷ typedPointsto (structFieldRef (google_golang_org.grpc.resolver.AddressMapV2 T') go!"m" l) v.m' dq ∗
+    "m" ∷ typedPointsto (structFieldRef (google_golang_org.grpc.resolver.AddressMapV2 T₀') go!"m" l) v.m' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance AddressMapV2_into_val_typed (T : go.GoType) {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T'] [IntoValTyped (GF := GF) T' T] :
-    IntoValTypedUnderlying (GF := GF) (google_golang_org.grpc.resolver.AddressMapV2 T') (google_golang_org.grpc.resolver.AddressMapV2.underlying T) := by
+noncomputable instance into_val_typed'AddressMapV2 (T₀ : go.GoType) {T₀' : Type} [ZeroVal T₀'] [TypedPointsto (GF := GF) T₀'] [IntoValTyped (GF := GF) T₀' T₀] :
+    IntoValTypedUnderlying (GF := GF) (google_golang_org.grpc.resolver.AddressMapV2 T₀') (google_golang_org.grpc.resolver.AddressMapV2.underlying T₀) := by
   solve_into_val_typed_struct
 
-noncomputable instance AddressMapV2_access_load_m {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (google_golang_org.grpc.resolver.AddressMapV2 T')) (dq : DFrac) :
+noncomputable instance access_load'AddressMapV2'm {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (google_golang_org.grpc.resolver.AddressMapV2 T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.AddressMapV2 T') go!"m" l) v.m' dq)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.AddressMapV2 T') go!"m" l) v.m' dq)
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.AddressMapV2 T₀') go!"m" l) v.m' dq)
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.AddressMapV2 T₀') go!"m" l) v.m' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance AddressMapV2_access_store_m {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (google_golang_org.grpc.resolver.AddressMapV2 T')) (y : GoMap) :
+noncomputable instance access_store'AddressMapV2'm {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (google_golang_org.grpc.resolver.AddressMapV2 T₀')) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.AddressMapV2 T') go!"m" l) v.m' (DFrac.own 1))
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.AddressMapV2 T') go!"m" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with m' := y } : (google_golang_org.grpc.resolver.AddressMapV2 T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.AddressMapV2 T₀') go!"m" l) v.m' (DFrac.own 1))
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.AddressMapV2 T₀') go!"m" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with m' := y } : (google_golang_org.grpc.resolver.AddressMapV2 T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -231,32 +231,32 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.resolver.Assumptions]
 
-noncomputable instance EndpointMap_typed_pointsto {T' : Type} [TypedPointsto (GF := GF) T'] :
-    TypedPointsto (GF := GF) (google_golang_org.grpc.resolver.EndpointMap T') where
+noncomputable instance typed_pointsto'EndpointMap {T₀' : Type} [TypedPointsto (GF := GF) T₀'] :
+    TypedPointsto (GF := GF) (google_golang_org.grpc.resolver.EndpointMap T₀') where
   typedPointstoDef l v dq := iprop(
-    "endpoints" ∷ typedPointsto (structFieldRef (google_golang_org.grpc.resolver.EndpointMap T') go!"endpoints" l) v.endpoints' dq ∗
+    "endpoints" ∷ typedPointsto (structFieldRef (google_golang_org.grpc.resolver.EndpointMap T₀') go!"endpoints" l) v.endpoints' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance EndpointMap_into_val_typed (T : go.GoType) {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T'] [IntoValTyped (GF := GF) T' T] :
-    IntoValTypedUnderlying (GF := GF) (google_golang_org.grpc.resolver.EndpointMap T') (google_golang_org.grpc.resolver.EndpointMap.underlying T) := by
+noncomputable instance into_val_typed'EndpointMap (T₀ : go.GoType) {T₀' : Type} [ZeroVal T₀'] [TypedPointsto (GF := GF) T₀'] [IntoValTyped (GF := GF) T₀' T₀] :
+    IntoValTypedUnderlying (GF := GF) (google_golang_org.grpc.resolver.EndpointMap T₀') (google_golang_org.grpc.resolver.EndpointMap.underlying T₀) := by
   solve_into_val_typed_struct
 
-noncomputable instance EndpointMap_access_load_endpoints {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (google_golang_org.grpc.resolver.EndpointMap T')) (dq : DFrac) :
+noncomputable instance access_load'EndpointMap'endpoints {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (google_golang_org.grpc.resolver.EndpointMap T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.EndpointMap T') go!"endpoints" l) v.endpoints' dq)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.EndpointMap T') go!"endpoints" l) v.endpoints' dq)
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.EndpointMap T₀') go!"endpoints" l) v.endpoints' dq)
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.EndpointMap T₀') go!"endpoints" l) v.endpoints' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance EndpointMap_access_store_endpoints {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (google_golang_org.grpc.resolver.EndpointMap T')) (y : GoMap) :
+noncomputable instance access_store'EndpointMap'endpoints {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (google_golang_org.grpc.resolver.EndpointMap T₀')) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.EndpointMap T') go!"endpoints" l) v.endpoints' (DFrac.own 1))
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.EndpointMap T') go!"endpoints" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with endpoints' := y } : (google_golang_org.grpc.resolver.EndpointMap T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.EndpointMap T₀') go!"endpoints" l) v.endpoints' (DFrac.own 1))
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.EndpointMap T₀') go!"endpoints" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with endpoints' := y } : (google_golang_org.grpc.resolver.EndpointMap T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -271,7 +271,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.resolver.Assumptions]
 
-noncomputable instance Endpoint_typed_pointsto :
+noncomputable instance typed_pointsto'Endpoint :
     TypedPointsto (GF := GF) google_golang_org.grpc.resolver.Endpoint where
   typedPointstoDef l v dq := iprop(
     "Addresses" ∷ typedPointsto (structFieldRef google_golang_org.grpc.resolver.Endpoint go!"Addresses" l) v.Addresses' dq ∗
@@ -281,11 +281,11 @@ noncomputable instance Endpoint_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Endpoint_into_val_typed :
+noncomputable instance into_val_typed'Endpoint :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.resolver.Endpoint google_golang_org.grpc.resolver.Endpoint.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Endpoint_access_load_Addresses (l : Loc) (v : google_golang_org.grpc.resolver.Endpoint) (dq : DFrac) :
+noncomputable instance access_load'Endpoint'Addresses (l : Loc) (v : google_golang_org.grpc.resolver.Endpoint) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Endpoint go!"Addresses" l) v.Addresses' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Endpoint go!"Addresses" l) v.Addresses' dq)
@@ -293,7 +293,7 @@ noncomputable instance Endpoint_access_load_Addresses (l : Loc) (v : google_gola
  by
   solve_pointsto_access_struct
 
-noncomputable instance Endpoint_access_store_Addresses (l : Loc) (v : google_golang_org.grpc.resolver.Endpoint) (y : GoSlice) :
+noncomputable instance access_store'Endpoint'Addresses (l : Loc) (v : google_golang_org.grpc.resolver.Endpoint) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Endpoint go!"Addresses" l) v.Addresses' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Endpoint go!"Addresses" l) y (DFrac.own 1))
@@ -301,7 +301,7 @@ noncomputable instance Endpoint_access_store_Addresses (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance Endpoint_access_load_Attributes (l : Loc) (v : google_golang_org.grpc.resolver.Endpoint) (dq : DFrac) :
+noncomputable instance access_load'Endpoint'Attributes (l : Loc) (v : google_golang_org.grpc.resolver.Endpoint) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Endpoint go!"Attributes" l) v.Attributes' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Endpoint go!"Attributes" l) v.Attributes' dq)
@@ -309,7 +309,7 @@ noncomputable instance Endpoint_access_load_Attributes (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance Endpoint_access_store_Attributes (l : Loc) (v : google_golang_org.grpc.resolver.Endpoint) (y : Loc) :
+noncomputable instance access_store'Endpoint'Attributes (l : Loc) (v : google_golang_org.grpc.resolver.Endpoint) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Endpoint go!"Attributes" l) v.Attributes' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.Endpoint go!"Attributes" l) y (DFrac.own 1))
@@ -328,49 +328,49 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.resolver.Assumptions]
 
-noncomputable instance endpointData_typed_pointsto {T' : Type} [TypedPointsto (GF := GF) T'] :
-    TypedPointsto (GF := GF) (google_golang_org.grpc.resolver.endpointData T') where
+noncomputable instance typed_pointsto'endpointData {T₀' : Type} [TypedPointsto (GF := GF) T₀'] :
+    TypedPointsto (GF := GF) (google_golang_org.grpc.resolver.endpointData T₀') where
   typedPointstoDef l v dq := iprop(
-    "decodedKey" ∷ typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T') go!"decodedKey" l) v.decodedKey' dq ∗
-    "value" ∷ typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T') go!"value" l) v.value' dq ∗
+    "decodedKey" ∷ typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T₀') go!"decodedKey" l) v.decodedKey' dq ∗
+    "value" ∷ typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T₀') go!"value" l) v.value' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance endpointData_into_val_typed (T : go.GoType) {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T'] [IntoValTyped (GF := GF) T' T] :
-    IntoValTypedUnderlying (GF := GF) (google_golang_org.grpc.resolver.endpointData T') (google_golang_org.grpc.resolver.endpointData.underlying T) := by
+noncomputable instance into_val_typed'endpointData (T₀ : go.GoType) {T₀' : Type} [ZeroVal T₀'] [TypedPointsto (GF := GF) T₀'] [IntoValTyped (GF := GF) T₀' T₀] :
+    IntoValTypedUnderlying (GF := GF) (google_golang_org.grpc.resolver.endpointData T₀') (google_golang_org.grpc.resolver.endpointData.underlying T₀) := by
   solve_into_val_typed_struct
 
-noncomputable instance endpointData_access_load_decodedKey {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (google_golang_org.grpc.resolver.endpointData T')) (dq : DFrac) :
+noncomputable instance access_load'endpointData'decodedKey {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (google_golang_org.grpc.resolver.endpointData T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T') go!"decodedKey" l) v.decodedKey' dq)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T') go!"decodedKey" l) v.decodedKey' dq)
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T₀') go!"decodedKey" l) v.decodedKey' dq)
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T₀') go!"decodedKey" l) v.decodedKey' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance endpointData_access_store_decodedKey {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (google_golang_org.grpc.resolver.endpointData T')) (y : google_golang_org.grpc.resolver.Endpoint) :
+noncomputable instance access_store'endpointData'decodedKey {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (google_golang_org.grpc.resolver.endpointData T₀')) (y : google_golang_org.grpc.resolver.Endpoint) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T') go!"decodedKey" l) v.decodedKey' (DFrac.own 1))
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T') go!"decodedKey" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decodedKey' := y } : (google_golang_org.grpc.resolver.endpointData T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T₀') go!"decodedKey" l) v.decodedKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T₀') go!"decodedKey" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decodedKey' := y } : (google_golang_org.grpc.resolver.endpointData T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance endpointData_access_load_value {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (google_golang_org.grpc.resolver.endpointData T')) (dq : DFrac) :
+noncomputable instance access_load'endpointData'value {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (google_golang_org.grpc.resolver.endpointData T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T') go!"value" l) v.value' dq)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T') go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T₀') go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T₀') go!"value" l) v.value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance endpointData_access_store_value {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (google_golang_org.grpc.resolver.endpointData T')) (y : T') :
+noncomputable instance access_store'endpointData'value {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (google_golang_org.grpc.resolver.endpointData T₀')) (y : T₀') :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T') go!"value" l) v.value' (DFrac.own 1))
-      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T') go!"value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : (google_golang_org.grpc.resolver.endpointData T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T₀') go!"value" l) v.value' (DFrac.own 1))
+      (typedPointsto (structFieldRef (google_golang_org.grpc.resolver.endpointData T₀') go!"value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : (google_golang_org.grpc.resolver.endpointData T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -385,11 +385,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.resolver.Assumptions]
 
-noncomputable instance BuildOptions_typed_pointsto :
+noncomputable instance typed_pointsto'BuildOptions :
     TypedPointsto (GF := GF) google_golang_org.grpc.resolver.BuildOptions :=
   sorry -- axiomatized type
 
-noncomputable instance BuildOptions_into_val_typed :
+noncomputable instance into_val_typed'BuildOptions :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.resolver.BuildOptions google_golang_org.grpc.resolver.BuildOptions.underlying :=
   sorry -- axiomatized type
 
@@ -404,7 +404,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.resolver.Assumptions]
 
-noncomputable instance State_typed_pointsto :
+noncomputable instance typed_pointsto'State :
     TypedPointsto (GF := GF) google_golang_org.grpc.resolver.State where
   typedPointstoDef l v dq := iprop(
     "Addresses" ∷ typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"Addresses" l) v.Addresses' dq ∗
@@ -416,11 +416,11 @@ noncomputable instance State_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance State_into_val_typed :
+noncomputable instance into_val_typed'State :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.resolver.State google_golang_org.grpc.resolver.State.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance State_access_load_Addresses (l : Loc) (v : google_golang_org.grpc.resolver.State) (dq : DFrac) :
+noncomputable instance access_load'State'Addresses (l : Loc) (v : google_golang_org.grpc.resolver.State) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"Addresses" l) v.Addresses' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"Addresses" l) v.Addresses' dq)
@@ -428,7 +428,7 @@ noncomputable instance State_access_load_Addresses (l : Loc) (v : google_golang_
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Addresses (l : Loc) (v : google_golang_org.grpc.resolver.State) (y : GoSlice) :
+noncomputable instance access_store'State'Addresses (l : Loc) (v : google_golang_org.grpc.resolver.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"Addresses" l) v.Addresses' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"Addresses" l) y (DFrac.own 1))
@@ -436,7 +436,7 @@ noncomputable instance State_access_store_Addresses (l : Loc) (v : google_golang
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_load_Endpoints (l : Loc) (v : google_golang_org.grpc.resolver.State) (dq : DFrac) :
+noncomputable instance access_load'State'Endpoints (l : Loc) (v : google_golang_org.grpc.resolver.State) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"Endpoints" l) v.Endpoints' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"Endpoints" l) v.Endpoints' dq)
@@ -444,7 +444,7 @@ noncomputable instance State_access_load_Endpoints (l : Loc) (v : google_golang_
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Endpoints (l : Loc) (v : google_golang_org.grpc.resolver.State) (y : GoSlice) :
+noncomputable instance access_store'State'Endpoints (l : Loc) (v : google_golang_org.grpc.resolver.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"Endpoints" l) v.Endpoints' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"Endpoints" l) y (DFrac.own 1))
@@ -452,7 +452,7 @@ noncomputable instance State_access_store_Endpoints (l : Loc) (v : google_golang
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_load_ServiceConfig (l : Loc) (v : google_golang_org.grpc.resolver.State) (dq : DFrac) :
+noncomputable instance access_load'State'ServiceConfig (l : Loc) (v : google_golang_org.grpc.resolver.State) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"ServiceConfig" l) v.ServiceConfig' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"ServiceConfig" l) v.ServiceConfig' dq)
@@ -460,7 +460,7 @@ noncomputable instance State_access_load_ServiceConfig (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_ServiceConfig (l : Loc) (v : google_golang_org.grpc.resolver.State) (y : Loc) :
+noncomputable instance access_store'State'ServiceConfig (l : Loc) (v : google_golang_org.grpc.resolver.State) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"ServiceConfig" l) v.ServiceConfig' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"ServiceConfig" l) y (DFrac.own 1))
@@ -468,7 +468,7 @@ noncomputable instance State_access_store_ServiceConfig (l : Loc) (v : google_go
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_load_Attributes (l : Loc) (v : google_golang_org.grpc.resolver.State) (dq : DFrac) :
+noncomputable instance access_load'State'Attributes (l : Loc) (v : google_golang_org.grpc.resolver.State) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"Attributes" l) v.Attributes' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"Attributes" l) v.Attributes' dq)
@@ -476,7 +476,7 @@ noncomputable instance State_access_load_Attributes (l : Loc) (v : google_golang
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Attributes (l : Loc) (v : google_golang_org.grpc.resolver.State) (y : Loc) :
+noncomputable instance access_store'State'Attributes (l : Loc) (v : google_golang_org.grpc.resolver.State) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"Attributes" l) v.Attributes' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.State go!"Attributes" l) y (DFrac.own 1))
@@ -495,11 +495,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.resolver.Assumptions]
 
-noncomputable instance Target_typed_pointsto :
+noncomputable instance typed_pointsto'Target :
     TypedPointsto (GF := GF) google_golang_org.grpc.resolver.Target :=
   sorry -- axiomatized type
 
-noncomputable instance Target_into_val_typed :
+noncomputable instance into_val_typed'Target :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.resolver.Target google_golang_org.grpc.resolver.Target.underlying :=
   sorry -- axiomatized type
 
@@ -514,7 +514,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.resolver.Assumptions]
 
-noncomputable instance ResolveNowOptions_typed_pointsto :
+noncomputable instance typed_pointsto'ResolveNowOptions :
     TypedPointsto (GF := GF) google_golang_org.grpc.resolver.ResolveNowOptions where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -522,7 +522,7 @@ noncomputable instance ResolveNowOptions_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ResolveNowOptions_into_val_typed :
+noncomputable instance into_val_typed'ResolveNowOptions :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.resolver.ResolveNowOptions google_golang_org.grpc.resolver.ResolveNowOptions.underlying := by
   solve_into_val_typed_struct
 

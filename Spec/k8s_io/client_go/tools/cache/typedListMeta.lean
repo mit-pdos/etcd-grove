@@ -15,7 +15,7 @@ lists, and what `meta.ListAccessor`'s spec said of them until (B'):
 
 Each is a fact about `k8s.io/api/{core,apps}/v1`: (1) of those packages' method sets
 (`PodList.TypeAssumptions.ptr_method_set`, ...), (2) and (3) of their promoted methods
-(`ptr_GetResourceVersion_unfold`, ..., translated since (B')) and of `metav1.ListMeta`'s two getters
+(`ptr_unfold'GetResourceVersion`, ..., translated since (B')) and of `metav1.ListMeta`'s two getters
 (translated with bodies). So it is provable under `k8s.io/api/core/v1`'s and `apps/v1`'s
 `Assumptions`, which client-go cache's Link does not take: there it stays a hypothesis
 (`h_typedListMeta`, `section links_pending`) of the results that reach the pager (all of which are

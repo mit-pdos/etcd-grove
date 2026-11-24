@@ -3111,10 +3111,10 @@ noncomputable def Create.impl [GooseExts] [GoGlobalContext] : val :=
     If forceNew is true, the file will be truncated if it already exists.
 
     go: wal.go:273:6 -/
-noncomputable def createNewWALFile.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def createNewWALFile.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "path"
   (Lam "forceNew"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T₀))) (App (Val (GoInstruction (GoZeroVal T₀))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "forceNew" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "forceNew"))
@@ -3137,7 +3137,7 @@ noncomputable def createNewWALFile.impl [GooseExts] [GoGlobalContext] (T : go.Go
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (TypeAssert T))) (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.os.File.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Var "file"))))
+  (Let "$r0" (App (Val (GoInstruction (TypeAssert T₀))) (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.os.File.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Var "file"))))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3146,9 +3146,9 @@ noncomputable def createNewWALFile.impl [GooseExts] [GoGlobalContext] (T : go.Go
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil T))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil T₀))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3157,14 +3157,14 @@ noncomputable def createNewWALFile.impl [GooseExts] [GoGlobalContext] (T : go.Go
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Pair (Var "file") (Var "$r0"))))))))))))))
-  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)))) (App (Val (GoInstruction (Convert T go.any))) (App (Val (GoInstruction (Convert go.untypedNil T))) (Val UntypedNil))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)))) (App (Val (GoInstruction (Convert T₀ go.any))) (App (Val (GoInstruction (Convert go.untypedNil T₀))) (Val UntypedNil))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -3186,7 +3186,7 @@ noncomputable def createNewWALFile.impl [GooseExts] [GoGlobalContext] (T : go.Go
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (TypeAssert T))) (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)))) (Var "lockedFile"))))
+  (Let "$r0" (App (Val (GoInstruction (TypeAssert T₀))) (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)))) (Var "lockedFile"))))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3195,9 +3195,9 @@ noncomputable def createNewWALFile.impl [GooseExts] [GoGlobalContext] (T : go.Go
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil T))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil T₀))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3206,7 +3206,7 @@ noncomputable def createNewWALFile.impl [GooseExts] [GoGlobalContext] (T : go.Go
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -3226,7 +3226,7 @@ noncomputable def createNewWALFile.impl [GooseExts] [GoGlobalContext] (T : go.Go
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "flag") (Var "$r0"))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T₀))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- go: wal.go:294:15 -/
 noncomputable def WAL.Reopen.impl [GooseExts] [GoGlobalContext] : val :=
@@ -5834,7 +5834,7 @@ noncomputable def ValidSnapshotEntries.impl [GooseExts] [GoGlobalContext] : val 
   (Seq (App (Val exceptionDo)
   (Let "walDir" (App (Val (GoInstruction (GoAlloc go.string))) (Var "walDir"))
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (let maxReadAttempts := #(3 : Int);
+  (let maxReadAttempts₀ := #(3 : Int);
   (Let "lastErr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty))))) (Val UntypedNil))
@@ -5851,7 +5851,7 @@ noncomputable def ValidSnapshotEntries.impl [GooseExts] [GoGlobalContext] : val 
   (Let "attempt" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "attempt")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxReadAttempts)))))) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "attempt")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxReadAttempts₀)))))) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "walDir"))
   (App (App (App (Val (GoInstruction (FuncResolve validSnapshotEntries []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -5867,7 +5867,7 @@ noncomputable def ValidSnapshotEntries.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "attempt")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxReadAttempts)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "attempt")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxReadAttempts₀)))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"retrying WAL snapshot scan after transient file removal"))
   (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"wal-dir"))
@@ -5877,7 +5877,7 @@ noncomputable def ValidSnapshotEntries.impl [GooseExts] [GoGlobalContext] : val 
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "attempt"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$sl2" (Let "$a0" (Val #(go!"max-attempts"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxReadAttempts))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxReadAttempts₀))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$sl3" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
@@ -8128,7 +8128,7 @@ noncomputable instance decoder.zero_val [GooseExts] : ZeroVal decoder :=
 @[irreducible] noncomputable def decoder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   decoder.fieldsUnsealed
 
-noncomputable instance equals_unfold_decoder [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'decoder [GooseExts] [GoGlobalContext] :
     EqualsUnfold decoder.fields decoder.fieldsUnsealed :=
   ⟨by unfold decoder.fields; rfl⟩
 
@@ -8138,45 +8138,45 @@ noncomputable instance equals_unfold_decoder [GooseExts] [GoGlobalContext] :
 class decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying decoder.underlying decoder
   underlying : go.UnderlyingDirectedEq decoder.ty decoder.underlying
-  get_mu : ∀ (x : decoder), go.IsGoStepPureDetTagged under (StructFieldGet decoder.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : decoder) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet decoder.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : decoder)))
-  get_brs : ∀ (x : decoder), go.IsGoStepPureDetTagged under (StructFieldGet decoder.underlying go!"brs") #x (Val #(x.brs'))
-  set_brs : ∀ (x : decoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet decoder.underlying go!"brs") (PairV #x #y) (Val #(({ x with brs' := y } : decoder)))
-  get_lastValidOff : ∀ (x : decoder), go.IsGoStepPureDetTagged under (StructFieldGet decoder.underlying go!"lastValidOff") #x (Val #(x.lastValidOff'))
-  set_lastValidOff : ∀ (x : decoder) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet decoder.underlying go!"lastValidOff") (PairV #x #y) (Val #(({ x with lastValidOff' := y } : decoder)))
-  get_crc : ∀ (x : decoder), go.IsGoStepPureDetTagged under (StructFieldGet decoder.underlying go!"crc") #x (Val #(x.crc'))
-  set_crc : ∀ (x : decoder) (y : _root_.Perennial.hash.Hash32), go.IsGoStepPureDetTagged under (StructFieldSet decoder.underlying go!"crc") (PairV #x #y) (Val #(({ x with crc' := y } : decoder)))
-  get_continueOnCrcError : ∀ (x : decoder), go.IsGoStepPureDetTagged under (StructFieldGet decoder.underlying go!"continueOnCrcError") #x (Val #(x.continueOnCrcError'))
-  set_continueOnCrcError : ∀ (x : decoder) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet decoder.underlying go!"continueOnCrcError") (PairV #x #y) (Val #(({ x with continueOnCrcError' := y } : decoder)))
+  get'mu : ∀ (x : decoder), go.IsGoStepPureDetTagged under (StructFieldGet decoder.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : decoder) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet decoder.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : decoder)))
+  get'brs : ∀ (x : decoder), go.IsGoStepPureDetTagged under (StructFieldGet decoder.underlying go!"brs") #x (Val #(x.brs'))
+  set'brs : ∀ (x : decoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet decoder.underlying go!"brs") (PairV #x #y) (Val #(({ x with brs' := y } : decoder)))
+  get'lastValidOff : ∀ (x : decoder), go.IsGoStepPureDetTagged under (StructFieldGet decoder.underlying go!"lastValidOff") #x (Val #(x.lastValidOff'))
+  set'lastValidOff : ∀ (x : decoder) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet decoder.underlying go!"lastValidOff") (PairV #x #y) (Val #(({ x with lastValidOff' := y } : decoder)))
+  get'crc : ∀ (x : decoder), go.IsGoStepPureDetTagged under (StructFieldGet decoder.underlying go!"crc") #x (Val #(x.crc'))
+  set'crc : ∀ (x : decoder) (y : _root_.Perennial.hash.Hash32), go.IsGoStepPureDetTagged under (StructFieldSet decoder.underlying go!"crc") (PairV #x #y) (Val #(({ x with crc' := y } : decoder)))
+  get'continueOnCrcError : ∀ (x : decoder), go.IsGoStepPureDetTagged under (StructFieldGet decoder.underlying go!"continueOnCrcError") #x (Val #(x.continueOnCrcError'))
+  set'continueOnCrcError : ∀ (x : decoder) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet decoder.underlying go!"continueOnCrcError") (PairV #x #y) (Val #(({ x with continueOnCrcError' := y } : decoder)))
   method_set : go.MethodSetIs decoder.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType decoder.ty) [(go!"Decode", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.ty)] false [go.error]))), (go!"LastCRC", (some (go.signature.Signature [] false [go.uint32]))), (go!"LastOffset", (some (go.signature.Signature [] false [go.int64]))), (go!"UpdateCRC", (some (go.signature.Signature [go.uint32] false []))), (go!"go.etcd.io/etcd/server/v3/storage/wal.decodeRecord", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.ty)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.isTornEntry", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
-  ptr_Decode_unfold : MethodUnfold (go.GoType.PointerType decoder.ty) go!"Decode" decoder.Decode.impl
-  ptr_LastCRC_unfold : MethodUnfold (go.GoType.PointerType decoder.ty) go!"LastCRC" decoder.LastCRC.impl
-  ptr_LastOffset_unfold : MethodUnfold (go.GoType.PointerType decoder.ty) go!"LastOffset" decoder.LastOffset.impl
-  ptr_UpdateCRC_unfold : MethodUnfold (go.GoType.PointerType decoder.ty) go!"UpdateCRC" decoder.UpdateCRC.impl
-  ptr_decodeRecord_unfold : MethodUnfold (go.GoType.PointerType decoder.ty) go!"decodeRecord" decoder.decodeRecord.impl
-  ptr_isTornEntry_unfold : MethodUnfold (go.GoType.PointerType decoder.ty) go!"isTornEntry" decoder.isTornEntry.impl
+  ptr_unfold'Decode : MethodUnfold (go.GoType.PointerType decoder.ty) go!"Decode" decoder.Decode.impl
+  ptr_unfold'LastCRC : MethodUnfold (go.GoType.PointerType decoder.ty) go!"LastCRC" decoder.LastCRC.impl
+  ptr_unfold'LastOffset : MethodUnfold (go.GoType.PointerType decoder.ty) go!"LastOffset" decoder.LastOffset.impl
+  ptr_unfold'UpdateCRC : MethodUnfold (go.GoType.PointerType decoder.ty) go!"UpdateCRC" decoder.UpdateCRC.impl
+  ptr_unfold'decodeRecord : MethodUnfold (go.GoType.PointerType decoder.ty) go!"decodeRecord" decoder.decodeRecord.impl
+  ptr_unfold'isTornEntry : MethodUnfold (go.GoType.PointerType decoder.ty) go!"isTornEntry" decoder.isTornEntry.impl
 
 attribute [instance] decoder.TypeAssumptions.type_repr
   decoder.TypeAssumptions.underlying
-  decoder.TypeAssumptions.get_mu
-  decoder.TypeAssumptions.set_mu
-  decoder.TypeAssumptions.get_brs
-  decoder.TypeAssumptions.set_brs
-  decoder.TypeAssumptions.get_lastValidOff
-  decoder.TypeAssumptions.set_lastValidOff
-  decoder.TypeAssumptions.get_crc
-  decoder.TypeAssumptions.set_crc
-  decoder.TypeAssumptions.get_continueOnCrcError
-  decoder.TypeAssumptions.set_continueOnCrcError
+  decoder.TypeAssumptions.get'mu
+  decoder.TypeAssumptions.set'mu
+  decoder.TypeAssumptions.get'brs
+  decoder.TypeAssumptions.set'brs
+  decoder.TypeAssumptions.get'lastValidOff
+  decoder.TypeAssumptions.set'lastValidOff
+  decoder.TypeAssumptions.get'crc
+  decoder.TypeAssumptions.set'crc
+  decoder.TypeAssumptions.get'continueOnCrcError
+  decoder.TypeAssumptions.set'continueOnCrcError
   decoder.TypeAssumptions.method_set
   decoder.TypeAssumptions.ptr_method_set
-  decoder.TypeAssumptions.ptr_Decode_unfold
-  decoder.TypeAssumptions.ptr_LastCRC_unfold
-  decoder.TypeAssumptions.ptr_LastOffset_unfold
-  decoder.TypeAssumptions.ptr_UpdateCRC_unfold
-  decoder.TypeAssumptions.ptr_decodeRecord_unfold
-  decoder.TypeAssumptions.ptr_isTornEntry_unfold
+  decoder.TypeAssumptions.ptr_unfold'Decode
+  decoder.TypeAssumptions.ptr_unfold'LastCRC
+  decoder.TypeAssumptions.ptr_unfold'LastOffset
+  decoder.TypeAssumptions.ptr_unfold'UpdateCRC
+  decoder.TypeAssumptions.ptr_unfold'decodeRecord
+  decoder.TypeAssumptions.ptr_unfold'isTornEntry
 
 structure encoder [GooseExts] where
   mk ::
@@ -8199,7 +8199,7 @@ noncomputable instance encoder.zero_val [GooseExts] : ZeroVal encoder :=
 @[irreducible] noncomputable def encoder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   encoder.fieldsUnsealed
 
-noncomputable instance equals_unfold_encoder [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'encoder [GooseExts] [GoGlobalContext] :
     EqualsUnfold encoder.fields encoder.fieldsUnsealed :=
   ⟨by unfold encoder.fields; rfl⟩
 
@@ -8209,37 +8209,37 @@ noncomputable instance equals_unfold_encoder [GooseExts] [GoGlobalContext] :
 class encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying encoder.underlying encoder
   underlying : go.UnderlyingDirectedEq encoder.ty encoder.underlying
-  get_mu : ∀ (x : encoder), go.IsGoStepPureDetTagged under (StructFieldGet encoder.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : encoder) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet encoder.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : encoder)))
-  get_bw : ∀ (x : encoder), go.IsGoStepPureDetTagged under (StructFieldGet encoder.underlying go!"bw") #x (Val #(x.bw'))
-  set_bw : ∀ (x : encoder) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet encoder.underlying go!"bw") (PairV #x #y) (Val #(({ x with bw' := y } : encoder)))
-  get_crc : ∀ (x : encoder), go.IsGoStepPureDetTagged under (StructFieldGet encoder.underlying go!"crc") #x (Val #(x.crc'))
-  set_crc : ∀ (x : encoder) (y : _root_.Perennial.hash.Hash32), go.IsGoStepPureDetTagged under (StructFieldSet encoder.underlying go!"crc") (PairV #x #y) (Val #(({ x with crc' := y } : encoder)))
-  get_buf : ∀ (x : encoder), go.IsGoStepPureDetTagged under (StructFieldGet encoder.underlying go!"buf") #x (Val #(x.buf'))
-  set_buf : ∀ (x : encoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet encoder.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : encoder)))
-  get_uint64buf : ∀ (x : encoder), go.IsGoStepPureDetTagged under (StructFieldGet encoder.underlying go!"uint64buf") #x (Val #(x.uint64buf'))
-  set_uint64buf : ∀ (x : encoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet encoder.underlying go!"uint64buf") (PairV #x #y) (Val #(({ x with uint64buf' := y } : encoder)))
+  get'mu : ∀ (x : encoder), go.IsGoStepPureDetTagged under (StructFieldGet encoder.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : encoder) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet encoder.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : encoder)))
+  get'bw : ∀ (x : encoder), go.IsGoStepPureDetTagged under (StructFieldGet encoder.underlying go!"bw") #x (Val #(x.bw'))
+  set'bw : ∀ (x : encoder) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet encoder.underlying go!"bw") (PairV #x #y) (Val #(({ x with bw' := y } : encoder)))
+  get'crc : ∀ (x : encoder), go.IsGoStepPureDetTagged under (StructFieldGet encoder.underlying go!"crc") #x (Val #(x.crc'))
+  set'crc : ∀ (x : encoder) (y : _root_.Perennial.hash.Hash32), go.IsGoStepPureDetTagged under (StructFieldSet encoder.underlying go!"crc") (PairV #x #y) (Val #(({ x with crc' := y } : encoder)))
+  get'buf : ∀ (x : encoder), go.IsGoStepPureDetTagged under (StructFieldGet encoder.underlying go!"buf") #x (Val #(x.buf'))
+  set'buf : ∀ (x : encoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet encoder.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : encoder)))
+  get'uint64buf : ∀ (x : encoder), go.IsGoStepPureDetTagged under (StructFieldGet encoder.underlying go!"uint64buf") #x (Val #(x.uint64buf'))
+  set'uint64buf : ∀ (x : encoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet encoder.underlying go!"uint64buf") (PairV #x #y) (Val #(({ x with uint64buf' := y } : encoder)))
   method_set : go.MethodSetIs encoder.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType encoder.ty) [(go!"go.etcd.io/etcd/server/v3/storage/wal.encode", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.ty)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.flush", (some (go.signature.Signature [] false [go.error])))]
-  ptr_encode_unfold : MethodUnfold (go.GoType.PointerType encoder.ty) go!"encode" encoder.encode.impl
-  ptr_flush_unfold : MethodUnfold (go.GoType.PointerType encoder.ty) go!"flush" encoder.flush.impl
+  ptr_unfold'encode : MethodUnfold (go.GoType.PointerType encoder.ty) go!"encode" encoder.encode.impl
+  ptr_unfold'flush : MethodUnfold (go.GoType.PointerType encoder.ty) go!"flush" encoder.flush.impl
 
 attribute [instance] encoder.TypeAssumptions.type_repr
   encoder.TypeAssumptions.underlying
-  encoder.TypeAssumptions.get_mu
-  encoder.TypeAssumptions.set_mu
-  encoder.TypeAssumptions.get_bw
-  encoder.TypeAssumptions.set_bw
-  encoder.TypeAssumptions.get_crc
-  encoder.TypeAssumptions.set_crc
-  encoder.TypeAssumptions.get_buf
-  encoder.TypeAssumptions.set_buf
-  encoder.TypeAssumptions.get_uint64buf
-  encoder.TypeAssumptions.set_uint64buf
+  encoder.TypeAssumptions.get'mu
+  encoder.TypeAssumptions.set'mu
+  encoder.TypeAssumptions.get'bw
+  encoder.TypeAssumptions.set'bw
+  encoder.TypeAssumptions.get'crc
+  encoder.TypeAssumptions.set'crc
+  encoder.TypeAssumptions.get'buf
+  encoder.TypeAssumptions.set'buf
+  encoder.TypeAssumptions.get'uint64buf
+  encoder.TypeAssumptions.set'uint64buf
   encoder.TypeAssumptions.method_set
   encoder.TypeAssumptions.ptr_method_set
-  encoder.TypeAssumptions.ptr_encode_unfold
-  encoder.TypeAssumptions.ptr_flush_unfold
+  encoder.TypeAssumptions.ptr_unfold'encode
+  encoder.TypeAssumptions.ptr_unfold'flush
 
 structure filePipeline [GooseExts] where
   mk ::
@@ -8266,7 +8266,7 @@ noncomputable instance filePipeline.zero_val [GooseExts] : ZeroVal filePipeline 
 @[irreducible] noncomputable def filePipeline.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   filePipeline.fieldsUnsealed
 
-noncomputable instance equals_unfold_filePipeline [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'filePipeline [GooseExts] [GoGlobalContext] :
     EqualsUnfold filePipeline.fields filePipeline.fieldsUnsealed :=
   ⟨by unfold filePipeline.fields; rfl⟩
 
@@ -8276,49 +8276,49 @@ noncomputable instance equals_unfold_filePipeline [GooseExts] [GoGlobalContext] 
 class filePipeline.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying filePipeline.underlying filePipeline
   underlying : go.UnderlyingDirectedEq filePipeline.ty filePipeline.underlying
-  get_lg : ∀ (x : filePipeline), go.IsGoStepPureDetTagged under (StructFieldGet filePipeline.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : filePipeline) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet filePipeline.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : filePipeline)))
-  get_dir : ∀ (x : filePipeline), go.IsGoStepPureDetTagged under (StructFieldGet filePipeline.underlying go!"dir") #x (Val #(x.dir'))
-  set_dir : ∀ (x : filePipeline) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet filePipeline.underlying go!"dir") (PairV #x #y) (Val #(({ x with dir' := y } : filePipeline)))
-  get_size : ∀ (x : filePipeline), go.IsGoStepPureDetTagged under (StructFieldGet filePipeline.underlying go!"size") #x (Val #(x.size'))
-  set_size : ∀ (x : filePipeline) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet filePipeline.underlying go!"size") (PairV #x #y) (Val #(({ x with size' := y } : filePipeline)))
-  get_count : ∀ (x : filePipeline), go.IsGoStepPureDetTagged under (StructFieldGet filePipeline.underlying go!"count") #x (Val #(x.count'))
-  set_count : ∀ (x : filePipeline) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet filePipeline.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : filePipeline)))
-  get_filec : ∀ (x : filePipeline), go.IsGoStepPureDetTagged under (StructFieldGet filePipeline.underlying go!"filec") #x (Val #(x.filec'))
-  set_filec : ∀ (x : filePipeline) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet filePipeline.underlying go!"filec") (PairV #x #y) (Val #(({ x with filec' := y } : filePipeline)))
-  get_errc : ∀ (x : filePipeline), go.IsGoStepPureDetTagged under (StructFieldGet filePipeline.underlying go!"errc") #x (Val #(x.errc'))
-  set_errc : ∀ (x : filePipeline) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet filePipeline.underlying go!"errc") (PairV #x #y) (Val #(({ x with errc' := y } : filePipeline)))
-  get_donec : ∀ (x : filePipeline), go.IsGoStepPureDetTagged under (StructFieldGet filePipeline.underlying go!"donec") #x (Val #(x.donec'))
-  set_donec : ∀ (x : filePipeline) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet filePipeline.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : filePipeline)))
+  get'lg : ∀ (x : filePipeline), go.IsGoStepPureDetTagged under (StructFieldGet filePipeline.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : filePipeline) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet filePipeline.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : filePipeline)))
+  get'dir : ∀ (x : filePipeline), go.IsGoStepPureDetTagged under (StructFieldGet filePipeline.underlying go!"dir") #x (Val #(x.dir'))
+  set'dir : ∀ (x : filePipeline) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet filePipeline.underlying go!"dir") (PairV #x #y) (Val #(({ x with dir' := y } : filePipeline)))
+  get'size : ∀ (x : filePipeline), go.IsGoStepPureDetTagged under (StructFieldGet filePipeline.underlying go!"size") #x (Val #(x.size'))
+  set'size : ∀ (x : filePipeline) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet filePipeline.underlying go!"size") (PairV #x #y) (Val #(({ x with size' := y } : filePipeline)))
+  get'count : ∀ (x : filePipeline), go.IsGoStepPureDetTagged under (StructFieldGet filePipeline.underlying go!"count") #x (Val #(x.count'))
+  set'count : ∀ (x : filePipeline) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet filePipeline.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : filePipeline)))
+  get'filec : ∀ (x : filePipeline), go.IsGoStepPureDetTagged under (StructFieldGet filePipeline.underlying go!"filec") #x (Val #(x.filec'))
+  set'filec : ∀ (x : filePipeline) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet filePipeline.underlying go!"filec") (PairV #x #y) (Val #(({ x with filec' := y } : filePipeline)))
+  get'errc : ∀ (x : filePipeline), go.IsGoStepPureDetTagged under (StructFieldGet filePipeline.underlying go!"errc") #x (Val #(x.errc'))
+  set'errc : ∀ (x : filePipeline) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet filePipeline.underlying go!"errc") (PairV #x #y) (Val #(({ x with errc' := y } : filePipeline)))
+  get'donec : ∀ (x : filePipeline), go.IsGoStepPureDetTagged under (StructFieldGet filePipeline.underlying go!"donec") #x (Val #(x.donec'))
+  set'donec : ∀ (x : filePipeline) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet filePipeline.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : filePipeline)))
   method_set : go.MethodSetIs filePipeline.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType filePipeline.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Open", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.alloc", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.run", (some (go.signature.Signature [] false [])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType filePipeline.ty) go!"Close" filePipeline.Close.impl
-  ptr_Open_unfold : MethodUnfold (go.GoType.PointerType filePipeline.ty) go!"Open" filePipeline.Open.impl
-  ptr_alloc_unfold : MethodUnfold (go.GoType.PointerType filePipeline.ty) go!"alloc" filePipeline.alloc.impl
-  ptr_run_unfold : MethodUnfold (go.GoType.PointerType filePipeline.ty) go!"run" filePipeline.run.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType filePipeline.ty) go!"Close" filePipeline.Close.impl
+  ptr_unfold'Open : MethodUnfold (go.GoType.PointerType filePipeline.ty) go!"Open" filePipeline.Open.impl
+  ptr_unfold'alloc : MethodUnfold (go.GoType.PointerType filePipeline.ty) go!"alloc" filePipeline.alloc.impl
+  ptr_unfold'run : MethodUnfold (go.GoType.PointerType filePipeline.ty) go!"run" filePipeline.run.impl
 
 attribute [instance] filePipeline.TypeAssumptions.type_repr
   filePipeline.TypeAssumptions.underlying
-  filePipeline.TypeAssumptions.get_lg
-  filePipeline.TypeAssumptions.set_lg
-  filePipeline.TypeAssumptions.get_dir
-  filePipeline.TypeAssumptions.set_dir
-  filePipeline.TypeAssumptions.get_size
-  filePipeline.TypeAssumptions.set_size
-  filePipeline.TypeAssumptions.get_count
-  filePipeline.TypeAssumptions.set_count
-  filePipeline.TypeAssumptions.get_filec
-  filePipeline.TypeAssumptions.set_filec
-  filePipeline.TypeAssumptions.get_errc
-  filePipeline.TypeAssumptions.set_errc
-  filePipeline.TypeAssumptions.get_donec
-  filePipeline.TypeAssumptions.set_donec
+  filePipeline.TypeAssumptions.get'lg
+  filePipeline.TypeAssumptions.set'lg
+  filePipeline.TypeAssumptions.get'dir
+  filePipeline.TypeAssumptions.set'dir
+  filePipeline.TypeAssumptions.get'size
+  filePipeline.TypeAssumptions.set'size
+  filePipeline.TypeAssumptions.get'count
+  filePipeline.TypeAssumptions.set'count
+  filePipeline.TypeAssumptions.get'filec
+  filePipeline.TypeAssumptions.set'filec
+  filePipeline.TypeAssumptions.get'errc
+  filePipeline.TypeAssumptions.set'errc
+  filePipeline.TypeAssumptions.get'donec
+  filePipeline.TypeAssumptions.set'donec
   filePipeline.TypeAssumptions.method_set
   filePipeline.TypeAssumptions.ptr_method_set
-  filePipeline.TypeAssumptions.ptr_Close_unfold
-  filePipeline.TypeAssumptions.ptr_Open_unfold
-  filePipeline.TypeAssumptions.ptr_alloc_unfold
-  filePipeline.TypeAssumptions.ptr_run_unfold
+  filePipeline.TypeAssumptions.ptr_unfold'Close
+  filePipeline.TypeAssumptions.ptr_unfold'Open
+  filePipeline.TypeAssumptions.ptr_unfold'alloc
+  filePipeline.TypeAssumptions.ptr_unfold'run
 
 abbrev Version [GooseExts] : Type := GoInterface
 
@@ -8347,7 +8347,7 @@ noncomputable instance walVersion.zero_val [GooseExts] : ZeroVal walVersion :=
 @[irreducible] noncomputable def walVersion.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   walVersion.fieldsUnsealed
 
-noncomputable instance equals_unfold_walVersion [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'walVersion [GooseExts] [GoGlobalContext] :
     EqualsUnfold walVersion.fields walVersion.fieldsUnsealed :=
   ⟨by unfold walVersion.fields; rfl⟩
 
@@ -8357,15 +8357,15 @@ noncomputable instance equals_unfold_walVersion [GooseExts] [GoGlobalContext] :
 class walVersion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying walVersion.underlying walVersion
   underlying : go.UnderlyingDirectedEq walVersion.ty walVersion.underlying
-  get_entries : ∀ (x : walVersion), go.IsGoStepPureDetTagged under (StructFieldGet walVersion.underlying go!"entries") #x (Val #(x.entries'))
-  set_entries : ∀ (x : walVersion) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet walVersion.underlying go!"entries") (PairV #x #y) (Val #(({ x with entries' := y } : walVersion)))
+  get'entries : ∀ (x : walVersion), go.IsGoStepPureDetTagged under (StructFieldGet walVersion.underlying go!"entries") #x (Val #(x.entries'))
+  set'entries : ∀ (x : walVersion) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet walVersion.underlying go!"entries") (PairV #x #y) (Val #(({ x with entries' := y } : walVersion)))
   method_set : go.MethodSetIs walVersion.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType walVersion.ty) [(go!"MinimalEtcdVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)])))]
 
 attribute [instance] walVersion.TypeAssumptions.type_repr
   walVersion.TypeAssumptions.underlying
-  walVersion.TypeAssumptions.get_entries
-  walVersion.TypeAssumptions.set_entries
+  walVersion.TypeAssumptions.get'entries
+  walVersion.TypeAssumptions.set'entries
   walVersion.TypeAssumptions.method_set
   walVersion.TypeAssumptions.ptr_method_set
 
@@ -8428,7 +8428,7 @@ noncomputable instance WAL.zero_val [GooseExts] : ZeroVal WAL :=
 @[irreducible] noncomputable def WAL.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   WAL.fieldsUnsealed
 
-noncomputable instance equals_unfold_WAL [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'WAL [GooseExts] [GoGlobalContext] :
     EqualsUnfold WAL.fields WAL.fieldsUnsealed :=
   ⟨by unfold WAL.fields; rfl⟩
 
@@ -8438,123 +8438,123 @@ noncomputable instance equals_unfold_WAL [GooseExts] [GoGlobalContext] :
 class WAL.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WAL.underlying WAL
   underlying : go.UnderlyingDirectedEq WAL.ty WAL.underlying
-  get_lg : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : WAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : WAL)))
-  get_dir : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"dir") #x (Val #(x.dir'))
-  set_dir : ∀ (x : WAL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"dir") (PairV #x #y) (Val #(({ x with dir' := y } : WAL)))
-  get_dirFile : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"dirFile") #x (Val #(x.dirFile'))
-  set_dirFile : ∀ (x : WAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"dirFile") (PairV #x #y) (Val #(({ x with dirFile' := y } : WAL)))
-  get_metadata : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"metadata") #x (Val #(x.metadata'))
-  set_metadata : ∀ (x : WAL) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"metadata") (PairV #x #y) (Val #(({ x with metadata' := y } : WAL)))
-  get_state : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : WAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : WAL)))
-  get_start : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"start") #x (Val #(x.start'))
-  set_start : ∀ (x : WAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"start") (PairV #x #y) (Val #(({ x with start' := y } : WAL)))
-  get_decoder : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"decoder") #x (Val #(x.decoder'))
-  set_decoder : ∀ (x : WAL) (y : Decoder), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"decoder") (PairV #x #y) (Val #(({ x with decoder' := y } : WAL)))
-  get_readClose : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"readClose") #x (Val #(x.readClose'))
-  set_readClose : ∀ (x : WAL) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"readClose") (PairV #x #y) (Val #(({ x with readClose' := y } : WAL)))
-  get_fallback : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"fallback") #x (Val #(x.fallback'))
-  set_fallback : ∀ (x : WAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"fallback") (PairV #x #y) (Val #(({ x with fallback' := y } : WAL)))
-  get_snapBefore : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"snapBefore") #x (Val #(x.snapBefore'))
-  set_snapBefore : ∀ (x : WAL) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"snapBefore") (PairV #x #y) (Val #(({ x with snapBefore' := y } : WAL)))
-  get_unsafeNoSync : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"unsafeNoSync") #x (Val #(x.unsafeNoSync'))
-  set_unsafeNoSync : ∀ (x : WAL) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"unsafeNoSync") (PairV #x #y) (Val #(({ x with unsafeNoSync' := y } : WAL)))
-  get_mu : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : WAL) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : WAL)))
-  get_enti : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"enti") #x (Val #(x.enti'))
-  set_enti : ∀ (x : WAL) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"enti") (PairV #x #y) (Val #(({ x with enti' := y } : WAL)))
-  get_snapi : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"snapi") #x (Val #(x.snapi'))
-  set_snapi : ∀ (x : WAL) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"snapi") (PairV #x #y) (Val #(({ x with snapi' := y } : WAL)))
-  get_encoder : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"encoder") #x (Val #(x.encoder'))
-  set_encoder : ∀ (x : WAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"encoder") (PairV #x #y) (Val #(({ x with encoder' := y } : WAL)))
-  get_locks : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"locks") #x (Val #(x.locks'))
-  set_locks : ∀ (x : WAL) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"locks") (PairV #x #y) (Val #(({ x with locks' := y } : WAL)))
-  get_fp : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"fp") #x (Val #(x.fp'))
-  set_fp : ∀ (x : WAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"fp") (PairV #x #y) (Val #(({ x with fp' := y } : WAL)))
+  get'lg : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : WAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : WAL)))
+  get'dir : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"dir") #x (Val #(x.dir'))
+  set'dir : ∀ (x : WAL) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"dir") (PairV #x #y) (Val #(({ x with dir' := y } : WAL)))
+  get'dirFile : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"dirFile") #x (Val #(x.dirFile'))
+  set'dirFile : ∀ (x : WAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"dirFile") (PairV #x #y) (Val #(({ x with dirFile' := y } : WAL)))
+  get'metadata : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"metadata") #x (Val #(x.metadata'))
+  set'metadata : ∀ (x : WAL) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"metadata") (PairV #x #y) (Val #(({ x with metadata' := y } : WAL)))
+  get'state : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : WAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : WAL)))
+  get'start : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"start") #x (Val #(x.start'))
+  set'start : ∀ (x : WAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"start") (PairV #x #y) (Val #(({ x with start' := y } : WAL)))
+  get'decoder : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"decoder") #x (Val #(x.decoder'))
+  set'decoder : ∀ (x : WAL) (y : Decoder), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"decoder") (PairV #x #y) (Val #(({ x with decoder' := y } : WAL)))
+  get'readClose : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"readClose") #x (Val #(x.readClose'))
+  set'readClose : ∀ (x : WAL) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"readClose") (PairV #x #y) (Val #(({ x with readClose' := y } : WAL)))
+  get'fallback : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"fallback") #x (Val #(x.fallback'))
+  set'fallback : ∀ (x : WAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"fallback") (PairV #x #y) (Val #(({ x with fallback' := y } : WAL)))
+  get'snapBefore : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"snapBefore") #x (Val #(x.snapBefore'))
+  set'snapBefore : ∀ (x : WAL) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"snapBefore") (PairV #x #y) (Val #(({ x with snapBefore' := y } : WAL)))
+  get'unsafeNoSync : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"unsafeNoSync") #x (Val #(x.unsafeNoSync'))
+  set'unsafeNoSync : ∀ (x : WAL) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"unsafeNoSync") (PairV #x #y) (Val #(({ x with unsafeNoSync' := y } : WAL)))
+  get'mu : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : WAL) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : WAL)))
+  get'enti : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"enti") #x (Val #(x.enti'))
+  set'enti : ∀ (x : WAL) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"enti") (PairV #x #y) (Val #(({ x with enti' := y } : WAL)))
+  get'snapi : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"snapi") #x (Val #(x.snapi'))
+  set'snapi : ∀ (x : WAL) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"snapi") (PairV #x #y) (Val #(({ x with snapi' := y } : WAL)))
+  get'encoder : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"encoder") #x (Val #(x.encoder'))
+  set'encoder : ∀ (x : WAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"encoder") (PairV #x #y) (Val #(({ x with encoder' := y } : WAL)))
+  get'locks : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"locks") #x (Val #(x.locks'))
+  set'locks : ∀ (x : WAL) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"locks") (PairV #x #y) (Val #(({ x with locks' := y } : WAL)))
+  get'fp : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"fp") #x (Val #(x.fp'))
+  set'fp : ∀ (x : WAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"fp") (PairV #x #y) (Val #(({ x with fp' := y } : WAL)))
   method_set : go.MethodSetIs WAL.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType WAL.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"LatestSnapshotEntry", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty), go.error]))), (go!"ReadAll", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), go.error]))), (go!"ReleaseLockTo", (some (go.signature.Signature [go.uint64] false [go.error]))), (go!"Reopen", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty)] false [(go.GoType.PointerType WAL.ty), go.error]))), (go!"Save", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [go.error]))), (go!"SaveSnapshot", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty)] false [go.error]))), (go!"SetUnsafeNoFsync", (some (go.signature.Signature [] false []))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.cleanupWAL", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.cut", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.readAll", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.renameWAL", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType WAL.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.renameWALUnlock", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType WAL.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.reopenAtRecord", (some (go.signature.Signature [(go.GoType.PointerType walReadRange.ty)] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.saveCrc", (some (go.signature.Signature [go.uint32] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.saveEntry", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.saveState", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.seq", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.sync", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.tail", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"Close" WAL.Close.impl
-  ptr_LatestSnapshotEntry_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"LatestSnapshotEntry" WAL.LatestSnapshotEntry.impl
-  ptr_ReadAll_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"ReadAll" WAL.ReadAll.impl
-  ptr_ReleaseLockTo_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"ReleaseLockTo" WAL.ReleaseLockTo.impl
-  ptr_Reopen_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"Reopen" WAL.Reopen.impl
-  ptr_Save_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"Save" WAL.Save.impl
-  ptr_SaveSnapshot_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"SaveSnapshot" WAL.SaveSnapshot.impl
-  ptr_SetUnsafeNoFsync_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"SetUnsafeNoFsync" WAL.SetUnsafeNoFsync.impl
-  ptr_Sync_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"Sync" WAL.Sync.impl
-  ptr_cleanupWAL_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"cleanupWAL" WAL.cleanupWAL.impl
-  ptr_cut_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"cut" WAL.cut.impl
-  ptr_readAll_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"readAll" WAL.readAll.impl
-  ptr_renameWAL_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"renameWAL" WAL.renameWAL.impl
-  ptr_renameWALUnlock_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"renameWALUnlock" WAL.renameWALUnlock.impl
-  ptr_reopenAtRecord_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"reopenAtRecord" WAL.reopenAtRecord.impl
-  ptr_saveCrc_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"saveCrc" WAL.saveCrc.impl
-  ptr_saveEntry_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"saveEntry" WAL.saveEntry.impl
-  ptr_saveState_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"saveState" WAL.saveState.impl
-  ptr_seq_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"seq" WAL.seq.impl
-  ptr_sync_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"sync" WAL.sync.impl
-  ptr_tail_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"tail" WAL.tail.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType WAL.ty) go!"Close" WAL.Close.impl
+  ptr_unfold'LatestSnapshotEntry : MethodUnfold (go.GoType.PointerType WAL.ty) go!"LatestSnapshotEntry" WAL.LatestSnapshotEntry.impl
+  ptr_unfold'ReadAll : MethodUnfold (go.GoType.PointerType WAL.ty) go!"ReadAll" WAL.ReadAll.impl
+  ptr_unfold'ReleaseLockTo : MethodUnfold (go.GoType.PointerType WAL.ty) go!"ReleaseLockTo" WAL.ReleaseLockTo.impl
+  ptr_unfold'Reopen : MethodUnfold (go.GoType.PointerType WAL.ty) go!"Reopen" WAL.Reopen.impl
+  ptr_unfold'Save : MethodUnfold (go.GoType.PointerType WAL.ty) go!"Save" WAL.Save.impl
+  ptr_unfold'SaveSnapshot : MethodUnfold (go.GoType.PointerType WAL.ty) go!"SaveSnapshot" WAL.SaveSnapshot.impl
+  ptr_unfold'SetUnsafeNoFsync : MethodUnfold (go.GoType.PointerType WAL.ty) go!"SetUnsafeNoFsync" WAL.SetUnsafeNoFsync.impl
+  ptr_unfold'Sync : MethodUnfold (go.GoType.PointerType WAL.ty) go!"Sync" WAL.Sync.impl
+  ptr_unfold'cleanupWAL : MethodUnfold (go.GoType.PointerType WAL.ty) go!"cleanupWAL" WAL.cleanupWAL.impl
+  ptr_unfold'cut : MethodUnfold (go.GoType.PointerType WAL.ty) go!"cut" WAL.cut.impl
+  ptr_unfold'readAll : MethodUnfold (go.GoType.PointerType WAL.ty) go!"readAll" WAL.readAll.impl
+  ptr_unfold'renameWAL : MethodUnfold (go.GoType.PointerType WAL.ty) go!"renameWAL" WAL.renameWAL.impl
+  ptr_unfold'renameWALUnlock : MethodUnfold (go.GoType.PointerType WAL.ty) go!"renameWALUnlock" WAL.renameWALUnlock.impl
+  ptr_unfold'reopenAtRecord : MethodUnfold (go.GoType.PointerType WAL.ty) go!"reopenAtRecord" WAL.reopenAtRecord.impl
+  ptr_unfold'saveCrc : MethodUnfold (go.GoType.PointerType WAL.ty) go!"saveCrc" WAL.saveCrc.impl
+  ptr_unfold'saveEntry : MethodUnfold (go.GoType.PointerType WAL.ty) go!"saveEntry" WAL.saveEntry.impl
+  ptr_unfold'saveState : MethodUnfold (go.GoType.PointerType WAL.ty) go!"saveState" WAL.saveState.impl
+  ptr_unfold'seq : MethodUnfold (go.GoType.PointerType WAL.ty) go!"seq" WAL.seq.impl
+  ptr_unfold'sync : MethodUnfold (go.GoType.PointerType WAL.ty) go!"sync" WAL.sync.impl
+  ptr_unfold'tail : MethodUnfold (go.GoType.PointerType WAL.ty) go!"tail" WAL.tail.impl
 
 attribute [instance] WAL.TypeAssumptions.type_repr
   WAL.TypeAssumptions.underlying
-  WAL.TypeAssumptions.get_lg
-  WAL.TypeAssumptions.set_lg
-  WAL.TypeAssumptions.get_dir
-  WAL.TypeAssumptions.set_dir
-  WAL.TypeAssumptions.get_dirFile
-  WAL.TypeAssumptions.set_dirFile
-  WAL.TypeAssumptions.get_metadata
-  WAL.TypeAssumptions.set_metadata
-  WAL.TypeAssumptions.get_state
-  WAL.TypeAssumptions.set_state
-  WAL.TypeAssumptions.get_start
-  WAL.TypeAssumptions.set_start
-  WAL.TypeAssumptions.get_decoder
-  WAL.TypeAssumptions.set_decoder
-  WAL.TypeAssumptions.get_readClose
-  WAL.TypeAssumptions.set_readClose
-  WAL.TypeAssumptions.get_fallback
-  WAL.TypeAssumptions.set_fallback
-  WAL.TypeAssumptions.get_snapBefore
-  WAL.TypeAssumptions.set_snapBefore
-  WAL.TypeAssumptions.get_unsafeNoSync
-  WAL.TypeAssumptions.set_unsafeNoSync
-  WAL.TypeAssumptions.get_mu
-  WAL.TypeAssumptions.set_mu
-  WAL.TypeAssumptions.get_enti
-  WAL.TypeAssumptions.set_enti
-  WAL.TypeAssumptions.get_snapi
-  WAL.TypeAssumptions.set_snapi
-  WAL.TypeAssumptions.get_encoder
-  WAL.TypeAssumptions.set_encoder
-  WAL.TypeAssumptions.get_locks
-  WAL.TypeAssumptions.set_locks
-  WAL.TypeAssumptions.get_fp
-  WAL.TypeAssumptions.set_fp
+  WAL.TypeAssumptions.get'lg
+  WAL.TypeAssumptions.set'lg
+  WAL.TypeAssumptions.get'dir
+  WAL.TypeAssumptions.set'dir
+  WAL.TypeAssumptions.get'dirFile
+  WAL.TypeAssumptions.set'dirFile
+  WAL.TypeAssumptions.get'metadata
+  WAL.TypeAssumptions.set'metadata
+  WAL.TypeAssumptions.get'state
+  WAL.TypeAssumptions.set'state
+  WAL.TypeAssumptions.get'start
+  WAL.TypeAssumptions.set'start
+  WAL.TypeAssumptions.get'decoder
+  WAL.TypeAssumptions.set'decoder
+  WAL.TypeAssumptions.get'readClose
+  WAL.TypeAssumptions.set'readClose
+  WAL.TypeAssumptions.get'fallback
+  WAL.TypeAssumptions.set'fallback
+  WAL.TypeAssumptions.get'snapBefore
+  WAL.TypeAssumptions.set'snapBefore
+  WAL.TypeAssumptions.get'unsafeNoSync
+  WAL.TypeAssumptions.set'unsafeNoSync
+  WAL.TypeAssumptions.get'mu
+  WAL.TypeAssumptions.set'mu
+  WAL.TypeAssumptions.get'enti
+  WAL.TypeAssumptions.set'enti
+  WAL.TypeAssumptions.get'snapi
+  WAL.TypeAssumptions.set'snapi
+  WAL.TypeAssumptions.get'encoder
+  WAL.TypeAssumptions.set'encoder
+  WAL.TypeAssumptions.get'locks
+  WAL.TypeAssumptions.set'locks
+  WAL.TypeAssumptions.get'fp
+  WAL.TypeAssumptions.set'fp
   WAL.TypeAssumptions.method_set
   WAL.TypeAssumptions.ptr_method_set
-  WAL.TypeAssumptions.ptr_Close_unfold
-  WAL.TypeAssumptions.ptr_LatestSnapshotEntry_unfold
-  WAL.TypeAssumptions.ptr_ReadAll_unfold
-  WAL.TypeAssumptions.ptr_ReleaseLockTo_unfold
-  WAL.TypeAssumptions.ptr_Reopen_unfold
-  WAL.TypeAssumptions.ptr_Save_unfold
-  WAL.TypeAssumptions.ptr_SaveSnapshot_unfold
-  WAL.TypeAssumptions.ptr_SetUnsafeNoFsync_unfold
-  WAL.TypeAssumptions.ptr_Sync_unfold
-  WAL.TypeAssumptions.ptr_cleanupWAL_unfold
-  WAL.TypeAssumptions.ptr_cut_unfold
-  WAL.TypeAssumptions.ptr_readAll_unfold
-  WAL.TypeAssumptions.ptr_renameWAL_unfold
-  WAL.TypeAssumptions.ptr_renameWALUnlock_unfold
-  WAL.TypeAssumptions.ptr_reopenAtRecord_unfold
-  WAL.TypeAssumptions.ptr_saveCrc_unfold
-  WAL.TypeAssumptions.ptr_saveEntry_unfold
-  WAL.TypeAssumptions.ptr_saveState_unfold
-  WAL.TypeAssumptions.ptr_seq_unfold
-  WAL.TypeAssumptions.ptr_sync_unfold
-  WAL.TypeAssumptions.ptr_tail_unfold
+  WAL.TypeAssumptions.ptr_unfold'Close
+  WAL.TypeAssumptions.ptr_unfold'LatestSnapshotEntry
+  WAL.TypeAssumptions.ptr_unfold'ReadAll
+  WAL.TypeAssumptions.ptr_unfold'ReleaseLockTo
+  WAL.TypeAssumptions.ptr_unfold'Reopen
+  WAL.TypeAssumptions.ptr_unfold'Save
+  WAL.TypeAssumptions.ptr_unfold'SaveSnapshot
+  WAL.TypeAssumptions.ptr_unfold'SetUnsafeNoFsync
+  WAL.TypeAssumptions.ptr_unfold'Sync
+  WAL.TypeAssumptions.ptr_unfold'cleanupWAL
+  WAL.TypeAssumptions.ptr_unfold'cut
+  WAL.TypeAssumptions.ptr_unfold'readAll
+  WAL.TypeAssumptions.ptr_unfold'renameWAL
+  WAL.TypeAssumptions.ptr_unfold'renameWALUnlock
+  WAL.TypeAssumptions.ptr_unfold'reopenAtRecord
+  WAL.TypeAssumptions.ptr_unfold'saveCrc
+  WAL.TypeAssumptions.ptr_unfold'saveEntry
+  WAL.TypeAssumptions.ptr_unfold'saveState
+  WAL.TypeAssumptions.ptr_unfold'seq
+  WAL.TypeAssumptions.ptr_unfold'sync
+  WAL.TypeAssumptions.ptr_unfold'tail
 
 structure walReadRange [GooseExts] where
   mk ::
@@ -8571,7 +8571,7 @@ noncomputable instance walReadRange.zero_val [GooseExts] : ZeroVal walReadRange 
 @[irreducible] noncomputable def walReadRange.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   walReadRange.fieldsUnsealed
 
-noncomputable instance equals_unfold_walReadRange [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'walReadRange [GooseExts] [GoGlobalContext] :
     EqualsUnfold walReadRange.fields walReadRange.fieldsUnsealed :=
   ⟨by unfold walReadRange.fields; rfl⟩
 
@@ -8581,162 +8581,162 @@ noncomputable instance equals_unfold_walReadRange [GooseExts] [GoGlobalContext] 
 class walReadRange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying walReadRange.underlying walReadRange
   underlying : go.UnderlyingDirectedEq walReadRange.ty walReadRange.underlying
-  get_names : ∀ (x : walReadRange), go.IsGoStepPureDetTagged under (StructFieldGet walReadRange.underlying go!"names") #x (Val #(x.names'))
-  set_names : ∀ (x : walReadRange) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet walReadRange.underlying go!"names") (PairV #x #y) (Val #(({ x with names' := y } : walReadRange)))
-  get_first : ∀ (x : walReadRange), go.IsGoStepPureDetTagged under (StructFieldGet walReadRange.underlying go!"first") #x (Val #(x.first'))
-  set_first : ∀ (x : walReadRange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet walReadRange.underlying go!"first") (PairV #x #y) (Val #(({ x with first' := y } : walReadRange)))
+  get'names : ∀ (x : walReadRange), go.IsGoStepPureDetTagged under (StructFieldGet walReadRange.underlying go!"names") #x (Val #(x.names'))
+  set'names : ∀ (x : walReadRange) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet walReadRange.underlying go!"names") (PairV #x #y) (Val #(({ x with names' := y } : walReadRange)))
+  get'first : ∀ (x : walReadRange), go.IsGoStepPureDetTagged under (StructFieldGet walReadRange.underlying go!"first") #x (Val #(x.first'))
+  set'first : ∀ (x : walReadRange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet walReadRange.underlying go!"first") (PairV #x #y) (Val #(({ x with first' := y } : walReadRange)))
   method_set : go.MethodSetIs walReadRange.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType walReadRange.ty) []
 
 attribute [instance] walReadRange.TypeAssumptions.type_repr
   walReadRange.TypeAssumptions.underlying
-  walReadRange.TypeAssumptions.get_names
-  walReadRange.TypeAssumptions.set_names
-  walReadRange.TypeAssumptions.get_first
-  walReadRange.TypeAssumptions.set_first
+  walReadRange.TypeAssumptions.get'names
+  walReadRange.TypeAssumptions.set'names
+  walReadRange.TypeAssumptions.get'first
+  walReadRange.TypeAssumptions.set'first
   walReadRange.TypeAssumptions.method_set
   walReadRange.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Decoder_instance : Decoder.TypeAssumptions
-  decoder_instance : decoder.TypeAssumptions
-  encoder_instance : encoder.TypeAssumptions
-  filePipeline_instance : filePipeline.TypeAssumptions
-  Version_instance : Version.TypeAssumptions
-  walVersion_instance : walVersion.TypeAssumptions
-  Visitor_instance : Visitor.TypeAssumptions
-  WAL_instance : WAL.TypeAssumptions
-  walReadRange_instance : walReadRange.TypeAssumptions
-  NewDecoderAdvanced_unfold : FuncUnfold NewDecoderAdvanced [] NewDecoderAdvanced.impl
-  NewDecoder_unfold : FuncUnfold NewDecoder [] NewDecoder.impl
-  decodeFrameSize_unfold : FuncUnfold decodeFrameSize [] decodeFrameSize.impl
-  MustUnmarshalEntry_unfold : FuncUnfold MustUnmarshalEntry [] MustUnmarshalEntry.impl
-  MustUnmarshalState_unfold : FuncUnfold MustUnmarshalState [] MustUnmarshalState.impl
-  readInt64_unfold : FuncUnfold readInt64 [] readInt64.impl
-  newEncoder_unfold : FuncUnfold newEncoder [] newEncoder.impl
-  newFileEncoder_unfold : FuncUnfold newFileEncoder [] newFileEncoder.impl
-  encodeFrameSize_unfold : FuncUnfold encodeFrameSize [] encodeFrameSize.impl
-  prepareDataWithPadding_unfold : FuncUnfold prepareDataWithPadding [] prepareDataWithPadding.impl
-  write_unfold : FuncUnfold write [] write.impl
-  newFilePipeline_unfold : FuncUnfold newFilePipeline [] newFilePipeline.impl
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  Repair_unfold : FuncUnfold Repair [] Repair.impl
-  openLast_unfold : FuncUnfold openLast [] openLast.impl
-  Exist_unfold : FuncUnfold Exist [] Exist.impl
-  searchIndex_unfold : FuncUnfold searchIndex [] searchIndex.impl
-  isValidSeq_unfold : FuncUnfold isValidSeq [] isValidSeq.impl
-  readWALNames_unfold : FuncUnfold readWALNames [] readWALNames.impl
-  checkWALNames_unfold : FuncUnfold checkWALNames [] checkWALNames.impl
-  parseWALName_unfold : FuncUnfold parseWALName [] parseWALName.impl
-  walName_unfold : FuncUnfold walName [] walName.impl
-  Create_unfold : FuncUnfold Create [] Create.impl
-  createNewWALFile_unfold : ∀ (T : go.GoType), FuncUnfold createNewWALFile [T] (createNewWALFile.impl T)
-  syncDir_unfold : FuncUnfold syncDir [] syncDir.impl
-  Open_unfold : FuncUnfold Open [] Open.impl
-  OpenForRead_unfold : FuncUnfold OpenForRead [] OpenForRead.impl
-  openAtIndex_unfold : FuncUnfold openAtIndex [] openAtIndex.impl
-  selectWALFiles_unfold : FuncUnfold selectWALFiles [] selectWALFiles.impl
-  openWALFiles_unfold : FuncUnfold openWALFiles [] openWALFiles.impl
-  snapshotPrefix_unfold : FuncUnfold snapshotPrefix [] snapshotPrefix.impl
-  segmentContainsSnapshot_unfold : FuncUnfold segmentContainsSnapshot [] segmentContainsSnapshot.impl
-  ValidSnapshotEntries_unfold : FuncUnfold ValidSnapshotEntries [] ValidSnapshotEntries.impl
-  validSnapshotEntries_unfold : FuncUnfold validSnapshotEntries [] validSnapshotEntries.impl
-  Verify_unfold : FuncUnfold Verify [] Verify.impl
-  verifyRange_unfold : FuncUnfold verifyRange [] verifyRange.impl
-  closeAll_unfold : FuncUnfold closeAll [] closeAll.impl
-  import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_hash_Assumption : _root_.Perennial.hash.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
-  import_fileutil_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions
-  import_crc_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.Assumptions
-  import_pbutil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.pbutil.Assumptions
-  import_walpb_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions
-  import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_ioutil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.ioutil.Assumptions
-  import_filepath_Assumption : _root_.Perennial.path.filepath.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
-  import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
-  import_crc32_Assumption : _root_.Perennial.hash.crc32.Assumptions
-  import_raft_Assumption : _root_.Perennial.go_etcd_io.raft.v3.Assumptions
+  instance'Decoder : Decoder.TypeAssumptions
+  instance'decoder : decoder.TypeAssumptions
+  instance'encoder : encoder.TypeAssumptions
+  instance'filePipeline : filePipeline.TypeAssumptions
+  instance'Version : Version.TypeAssumptions
+  instance'walVersion : walVersion.TypeAssumptions
+  instance'Visitor : Visitor.TypeAssumptions
+  instance'WAL : WAL.TypeAssumptions
+  instance'walReadRange : walReadRange.TypeAssumptions
+  unfold'NewDecoderAdvanced : FuncUnfold NewDecoderAdvanced [] NewDecoderAdvanced.impl
+  unfold'NewDecoder : FuncUnfold NewDecoder [] NewDecoder.impl
+  unfold'decodeFrameSize : FuncUnfold decodeFrameSize [] decodeFrameSize.impl
+  unfold'MustUnmarshalEntry : FuncUnfold MustUnmarshalEntry [] MustUnmarshalEntry.impl
+  unfold'MustUnmarshalState : FuncUnfold MustUnmarshalState [] MustUnmarshalState.impl
+  unfold'readInt64 : FuncUnfold readInt64 [] readInt64.impl
+  unfold'newEncoder : FuncUnfold newEncoder [] newEncoder.impl
+  unfold'newFileEncoder : FuncUnfold newFileEncoder [] newFileEncoder.impl
+  unfold'encodeFrameSize : FuncUnfold encodeFrameSize [] encodeFrameSize.impl
+  unfold'prepareDataWithPadding : FuncUnfold prepareDataWithPadding [] prepareDataWithPadding.impl
+  unfold'write : FuncUnfold write [] write.impl
+  unfold'newFilePipeline : FuncUnfold newFilePipeline [] newFilePipeline.impl
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'Repair : FuncUnfold Repair [] Repair.impl
+  unfold'openLast : FuncUnfold openLast [] openLast.impl
+  unfold'Exist : FuncUnfold Exist [] Exist.impl
+  unfold'searchIndex : FuncUnfold searchIndex [] searchIndex.impl
+  unfold'isValidSeq : FuncUnfold isValidSeq [] isValidSeq.impl
+  unfold'readWALNames : FuncUnfold readWALNames [] readWALNames.impl
+  unfold'checkWALNames : FuncUnfold checkWALNames [] checkWALNames.impl
+  unfold'parseWALName : FuncUnfold parseWALName [] parseWALName.impl
+  unfold'walName : FuncUnfold walName [] walName.impl
+  unfold'Create : FuncUnfold Create [] Create.impl
+  unfold'createNewWALFile : ∀ (T₀ : go.GoType), FuncUnfold createNewWALFile [T₀] (createNewWALFile.impl T₀)
+  unfold'syncDir : FuncUnfold syncDir [] syncDir.impl
+  unfold'Open : FuncUnfold Open [] Open.impl
+  unfold'OpenForRead : FuncUnfold OpenForRead [] OpenForRead.impl
+  unfold'openAtIndex : FuncUnfold openAtIndex [] openAtIndex.impl
+  unfold'selectWALFiles : FuncUnfold selectWALFiles [] selectWALFiles.impl
+  unfold'openWALFiles : FuncUnfold openWALFiles [] openWALFiles.impl
+  unfold'snapshotPrefix : FuncUnfold snapshotPrefix [] snapshotPrefix.impl
+  unfold'segmentContainsSnapshot : FuncUnfold segmentContainsSnapshot [] segmentContainsSnapshot.impl
+  unfold'ValidSnapshotEntries : FuncUnfold ValidSnapshotEntries [] ValidSnapshotEntries.impl
+  unfold'validSnapshotEntries : FuncUnfold validSnapshotEntries [] validSnapshotEntries.impl
+  unfold'Verify : FuncUnfold Verify [] Verify.impl
+  unfold'verifyRange : FuncUnfold verifyRange [] verifyRange.impl
+  unfold'closeAll : FuncUnfold closeAll [] closeAll.impl
+  import'binary : _root_.Perennial.encoding.binary.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'hash : _root_.Perennial.hash.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'proto : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
+  import'fileutil : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions
+  import'crc : _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.Assumptions
+  import'pbutil : _root_.Perennial.go_etcd_io.etcd.pkg.v3.pbutil.Assumptions
+  import'walpb : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions
+  import'raftpb : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'ioutil : _root_.Perennial.go_etcd_io.etcd.pkg.v3.ioutil.Assumptions
+  import'filepath : _root_.Perennial.path.filepath.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'prometheus : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'semver : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
+  import'bytes : _root_.Perennial.bytes.Assumptions
+  import'crc32 : _root_.Perennial.hash.crc32.Assumptions
+  import'raft : _root_.Perennial.go_etcd_io.raft.v3.Assumptions
 
-attribute [instance] Assumptions.Decoder_instance
-  Assumptions.decoder_instance
-  Assumptions.encoder_instance
-  Assumptions.filePipeline_instance
-  Assumptions.Version_instance
-  Assumptions.walVersion_instance
-  Assumptions.Visitor_instance
-  Assumptions.WAL_instance
-  Assumptions.walReadRange_instance
-  Assumptions.NewDecoderAdvanced_unfold
-  Assumptions.NewDecoder_unfold
-  Assumptions.decodeFrameSize_unfold
-  Assumptions.MustUnmarshalEntry_unfold
-  Assumptions.MustUnmarshalState_unfold
-  Assumptions.readInt64_unfold
-  Assumptions.newEncoder_unfold
-  Assumptions.newFileEncoder_unfold
-  Assumptions.encodeFrameSize_unfold
-  Assumptions.prepareDataWithPadding_unfold
-  Assumptions.write_unfold
-  Assumptions.newFilePipeline_unfold
-  Assumptions.«init.0_unfold»
-  Assumptions.Repair_unfold
-  Assumptions.openLast_unfold
-  Assumptions.Exist_unfold
-  Assumptions.searchIndex_unfold
-  Assumptions.isValidSeq_unfold
-  Assumptions.readWALNames_unfold
-  Assumptions.checkWALNames_unfold
-  Assumptions.parseWALName_unfold
-  Assumptions.walName_unfold
-  Assumptions.Create_unfold
-  Assumptions.createNewWALFile_unfold
-  Assumptions.syncDir_unfold
-  Assumptions.Open_unfold
-  Assumptions.OpenForRead_unfold
-  Assumptions.openAtIndex_unfold
-  Assumptions.selectWALFiles_unfold
-  Assumptions.openWALFiles_unfold
-  Assumptions.snapshotPrefix_unfold
-  Assumptions.segmentContainsSnapshot_unfold
-  Assumptions.ValidSnapshotEntries_unfold
-  Assumptions.validSnapshotEntries_unfold
-  Assumptions.Verify_unfold
-  Assumptions.verifyRange_unfold
-  Assumptions.closeAll_unfold
-  Assumptions.import_binary_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_hash_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_proto_Assumption
-  Assumptions.import_fileutil_Assumption
-  Assumptions.import_crc_Assumption
-  Assumptions.import_pbutil_Assumption
-  Assumptions.import_walpb_Assumption
-  Assumptions.import_raftpb_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_ioutil_Assumption
-  Assumptions.import_filepath_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_prometheus_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_semver_Assumption
-  Assumptions.import_bytes_Assumption
-  Assumptions.import_crc32_Assumption
-  Assumptions.import_raft_Assumption
+attribute [instance] Assumptions.instance'Decoder
+  Assumptions.instance'decoder
+  Assumptions.instance'encoder
+  Assumptions.instance'filePipeline
+  Assumptions.instance'Version
+  Assumptions.instance'walVersion
+  Assumptions.instance'Visitor
+  Assumptions.instance'WAL
+  Assumptions.instance'walReadRange
+  Assumptions.unfold'NewDecoderAdvanced
+  Assumptions.unfold'NewDecoder
+  Assumptions.unfold'decodeFrameSize
+  Assumptions.unfold'MustUnmarshalEntry
+  Assumptions.unfold'MustUnmarshalState
+  Assumptions.unfold'readInt64
+  Assumptions.unfold'newEncoder
+  Assumptions.unfold'newFileEncoder
+  Assumptions.unfold'encodeFrameSize
+  Assumptions.unfold'prepareDataWithPadding
+  Assumptions.unfold'write
+  Assumptions.unfold'newFilePipeline
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'Repair
+  Assumptions.unfold'openLast
+  Assumptions.unfold'Exist
+  Assumptions.unfold'searchIndex
+  Assumptions.unfold'isValidSeq
+  Assumptions.unfold'readWALNames
+  Assumptions.unfold'checkWALNames
+  Assumptions.unfold'parseWALName
+  Assumptions.unfold'walName
+  Assumptions.unfold'Create
+  Assumptions.unfold'createNewWALFile
+  Assumptions.unfold'syncDir
+  Assumptions.unfold'Open
+  Assumptions.unfold'OpenForRead
+  Assumptions.unfold'openAtIndex
+  Assumptions.unfold'selectWALFiles
+  Assumptions.unfold'openWALFiles
+  Assumptions.unfold'snapshotPrefix
+  Assumptions.unfold'segmentContainsSnapshot
+  Assumptions.unfold'ValidSnapshotEntries
+  Assumptions.unfold'validSnapshotEntries
+  Assumptions.unfold'Verify
+  Assumptions.unfold'verifyRange
+  Assumptions.unfold'closeAll
+  Assumptions.import'binary
+  Assumptions.import'errors
+  Assumptions.import'fmt
+  Assumptions.import'hash
+  Assumptions.import'io
+  Assumptions.import'sync
+  Assumptions.import'proto
+  Assumptions.import'fileutil
+  Assumptions.import'crc
+  Assumptions.import'pbutil
+  Assumptions.import'walpb
+  Assumptions.import'raftpb
+  Assumptions.import'os
+  Assumptions.import'time
+  Assumptions.import'ioutil
+  Assumptions.import'filepath
+  Assumptions.import'zap
+  Assumptions.import'prometheus
+  Assumptions.import'strings
+  Assumptions.import'semver
+  Assumptions.import'bytes
+  Assumptions.import'crc32
+  Assumptions.import'raft
 
 end go_etcd_io.etcd.server.v3.storage.wal
 

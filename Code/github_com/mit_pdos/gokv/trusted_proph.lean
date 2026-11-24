@@ -44,13 +44,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.goose_lang.primitive.initialize') (Val #())))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  NewProph_unfold : FuncUnfold NewProph [] NewProph.impl
-  ResolveBytes_unfold : FuncUnfold ResolveBytes [] ResolveBytes.impl
-  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
+  unfold'NewProph : FuncUnfold NewProph [] NewProph.impl
+  unfold'ResolveBytes : FuncUnfold ResolveBytes [] ResolveBytes.impl
+  import'primitive : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
 
-attribute [instance] Assumptions.NewProph_unfold
-  Assumptions.ResolveBytes_unfold
-  Assumptions.import_primitive_Assumption
+attribute [instance] Assumptions.unfold'NewProph
+  Assumptions.unfold'ResolveBytes
+  Assumptions.import'primitive
 
 end github_com.mit_pdos.gokv.trusted_proph
 

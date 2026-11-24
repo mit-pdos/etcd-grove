@@ -207,19 +207,19 @@ attribute [instance] EndpointSliceExpansion.TypeAssumptions.type_repr
   EndpointSliceExpansion.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  DiscoveryV1beta1Interface_instance : DiscoveryV1beta1Interface.TypeAssumptions
-  DiscoveryV1beta1Client_instance : DiscoveryV1beta1Client.TypeAssumptions
-  EndpointSlicesGetter_instance : EndpointSlicesGetter.TypeAssumptions
-  EndpointSliceInterface_instance : EndpointSliceInterface.TypeAssumptions
-  endpointSlices_instance : endpointSlices.TypeAssumptions
-  EndpointSliceExpansion_instance : EndpointSliceExpansion.TypeAssumptions
+  instance'DiscoveryV1beta1Interface : DiscoveryV1beta1Interface.TypeAssumptions
+  instance'DiscoveryV1beta1Client : DiscoveryV1beta1Client.TypeAssumptions
+  instance'EndpointSlicesGetter : EndpointSlicesGetter.TypeAssumptions
+  instance'EndpointSliceInterface : EndpointSliceInterface.TypeAssumptions
+  instance'endpointSlices : endpointSlices.TypeAssumptions
+  instance'EndpointSliceExpansion : EndpointSliceExpansion.TypeAssumptions
 
-attribute [instance] Assumptions.DiscoveryV1beta1Interface_instance
-  Assumptions.DiscoveryV1beta1Client_instance
-  Assumptions.EndpointSlicesGetter_instance
-  Assumptions.EndpointSliceInterface_instance
-  Assumptions.endpointSlices_instance
-  Assumptions.EndpointSliceExpansion_instance
+attribute [instance] Assumptions.instance'DiscoveryV1beta1Interface
+  Assumptions.instance'DiscoveryV1beta1Client
+  Assumptions.instance'EndpointSlicesGetter
+  Assumptions.instance'EndpointSliceInterface
+  Assumptions.instance'endpointSlices
+  Assumptions.instance'EndpointSliceExpansion
 
 end k8s_io.client_go.kubernetes.typed.discovery.v1beta1
 

@@ -61,7 +61,7 @@ theorem promote_swap (γd γt : GName) (dc c : GoChan) :
 
 theorem lease.lessor.Promote.wp_proof
     (hUL : lease.lessor.unsafeLeases.spec (GF := GF) (hG := hG))
-    (hSort : sort.«Sort».anyLessSpec (GF := GF) (hG := hG))
+    (hSort : sort.Sort''.anyLessSpec (GF := GF) (hG := hG))
     (hLen : lease.leasesByExpiry.Len.spec (GF := GF) (hG := hG))
     (hLess : lease.leasesByExpiry.Less.spec (GF := GF) (hG := hG))
     (hSwap : lease.leasesByExpiry.Swap.spec (GF := GF) (hG := hG))

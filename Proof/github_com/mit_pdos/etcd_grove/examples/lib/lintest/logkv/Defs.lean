@@ -133,12 +133,12 @@ instance op_intoValInj : go.IntoValInj LOp where
     have hp : ∀ z : LOp, is_go_step_pure (StructFieldGet
         github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv.Op.underlying go!"Put")
         #z = Eq (Val #(z.Put')) := fun z =>
-      (github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv.Op.TypeAssumptions.get_Put
+      (github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv.Op.TypeAssumptions.get'Put
         z).isGoStep_det_internal.isGoStep_pure_det
     have hv : ∀ z : LOp, is_go_step_pure (StructFieldGet
         github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv.Op.underlying go!"Val")
         #z = Eq (Val #(z.Val')) := fun z =>
-      (github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv.Op.TypeAssumptions.get_Val
+      (github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv.Op.TypeAssumptions.get'Val
         z).isGoStep_det_internal.isGoStep_pure_det
     have e1 := hp x
     rw [h, hp y] at e1

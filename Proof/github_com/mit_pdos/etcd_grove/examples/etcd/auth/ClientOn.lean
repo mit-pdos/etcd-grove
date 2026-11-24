@@ -60,7 +60,7 @@ theorem client_Put_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
               v3rpc.writeGrantOn (srvTLSId s) E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hreg, #HF, #Hom, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Put.method_unfold]
   wp_pures
   wp_auto
   imod srvReqLogLb_nil (GF := GF) ρ.raft with #H0
@@ -111,7 +111,7 @@ theorem client_Put_onG (cl api conn : Loc) (addr : GoString) (s : Loc) (E : appl
               v3rpc.writeGrantOn (srvTLSId s) E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hreg, #HF, #Hom, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Put.method_unfold]
   wp_pures
   wp_auto
   wp_apply (client_put_on_nil api conn addr (srvTLSId s) E ρ cid mid ci om cd key val sl Q F hsz) $$ [] as %resp %err Hout
@@ -155,7 +155,7 @@ theorem client_Get_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
               v3rpc.rangeAuthed (srvTLSId s) E γr c n (auth.mdTokenOf md) (rangeWireOf (opGetModel key gs))) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }} := by
   iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hreg, #Hc, #HF, #Hn, #Hom, #Hctx, #Hce, Hopts, HR, Hsn, %Hg, #Hdq⟩ HΦ
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Get.method_unfold]
   wp_pures
   wp_auto
   wp_apply (client_range_on api conn addr (srvTLSId s) E γr cid mid c n ci om cd key sl gs R Q F hsz)
@@ -194,7 +194,7 @@ theorem client_Delete_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : ap
                 (irrDeleteRange (txn.deleteOpOf key [] false))) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hreg, #HF, #Hom, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Delete_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Delete.method_unfold]
   wp_pures
   wp_auto
   wp_apply (client_delete_on api conn addr (srvTLSId s) E ρ cid mid ci om cd key sl Q F hk hsz) $$ []
@@ -222,7 +222,7 @@ theorem client_Txn_on (cl api conn : Loc) (addr : GoString) (ci : GoInterfaceOk)
   · iapply (kvObjAt_conn api [addr]).2
     iexists conn
     iexact Hkv
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Txn_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Txn.method_unfold]
   wp_pures
   wp_auto
   wp_apply (v3.kv.wp_Txn api [addr] ci cd) as %t ⟨%tp, %Ht, Hobj, #Hkt⟩

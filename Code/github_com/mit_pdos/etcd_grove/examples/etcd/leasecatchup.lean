@@ -566,31 +566,31 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  config_unfold : FuncUnfold config [] config.impl
-  grant_unfold : FuncUnfold grant [] grant.impl
-  leases_unfold : FuncUnfold leases [] leases.impl
-  listed_unfold : FuncUnfold listed [] listed.impl
-  run_unfold : FuncUnfold run [] run.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_cluster3_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
-  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
+  unfold'config : FuncUnfold config [] config.impl
+  unfold'grant : FuncUnfold grant [] grant.impl
+  unfold'leases : FuncUnfold leases [] leases.impl
+  unfold'listed : FuncUnfold listed [] listed.impl
+  unfold'run : FuncUnfold run [] run.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'cluster3 : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
+  import'etcdstart : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
 
-attribute [instance] Assumptions.config_unfold
-  Assumptions.grant_unfold
-  Assumptions.leases_unfold
-  Assumptions.listed_unfold
-  Assumptions.run_unfold
-  Assumptions.Main_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_cluster3_Assumption
-  Assumptions.import_etcdstart_Assumption
+attribute [instance] Assumptions.unfold'config
+  Assumptions.unfold'grant
+  Assumptions.unfold'leases
+  Assumptions.unfold'listed
+  Assumptions.unfold'run
+  Assumptions.unfold'Main
+  Assumptions.import'context
+  Assumptions.import'time
+  Assumptions.import'zap
+  Assumptions.import'clientv3
+  Assumptions.import'cluster3
+  Assumptions.import'etcdstart
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup
 

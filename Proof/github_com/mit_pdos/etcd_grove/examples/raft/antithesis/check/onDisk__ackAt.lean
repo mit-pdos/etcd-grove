@@ -46,7 +46,7 @@ theorem onDisk.ackAt.wp_proof
   obtain ⟨bl, hbl, Hv⟩ := bind_ok Hv
   wp_auto
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_below_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'below.method_unfold]
   try wp_auto
   wp_apply wp_below gx x bl $$ [Hx]
   · iframe Hx; ipureintro; exact hbl
@@ -54,7 +54,7 @@ theorem onDisk.ackAt.wp_proof
   cases bl
   · simp only [Bool.false_eq_true, ite_false] at Hv
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_last_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'last.method_unfold]
     try wp_auto
     wp_apply wp_last gx x v $$ [Hx] as %u %Hu
     · iframe Hx; ipureintro; exact Hv

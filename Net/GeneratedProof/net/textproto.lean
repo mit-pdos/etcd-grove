@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.textproto.Assumptions]
 
-noncomputable instance Pipeline_typed_pointsto :
+noncomputable instance typed_pointsto'Pipeline :
     TypedPointsto (GF := GF) net.textproto.Pipeline :=
   sorry -- axiomatized type
 
-noncomputable instance Pipeline_into_val_typed :
+noncomputable instance into_val_typed'Pipeline :
     IntoValTypedUnderlying (GF := GF) net.textproto.Pipeline net.textproto.Pipeline.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.textproto.Assumptions]
 
-noncomputable instance sequencer_typed_pointsto :
+noncomputable instance typed_pointsto'sequencer :
     TypedPointsto (GF := GF) net.textproto.sequencer :=
   sorry -- axiomatized type
 
-noncomputable instance sequencer_into_val_typed :
+noncomputable instance into_val_typed'sequencer :
     IntoValTypedUnderlying (GF := GF) net.textproto.sequencer net.textproto.sequencer.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.textproto.Assumptions]
 
-noncomputable instance Reader_typed_pointsto :
+noncomputable instance typed_pointsto'Reader :
     TypedPointsto (GF := GF) net.textproto.Reader :=
   sorry -- axiomatized type
 
-noncomputable instance Reader_into_val_typed :
+noncomputable instance into_val_typed'Reader :
     IntoValTypedUnderlying (GF := GF) net.textproto.Reader net.textproto.Reader.underlying :=
   sorry -- axiomatized type
 
@@ -81,7 +81,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.textproto.Assumptions]
 
-noncomputable instance dotReader_typed_pointsto :
+noncomputable instance typed_pointsto'dotReader :
     TypedPointsto (GF := GF) net.textproto.dotReader where
   typedPointstoDef l v dq := iprop(
     "r" ∷ typedPointsto (structFieldRef net.textproto.dotReader go!"r" l) v.r' dq ∗
@@ -91,11 +91,11 @@ noncomputable instance dotReader_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance dotReader_into_val_typed :
+noncomputable instance into_val_typed'dotReader :
     IntoValTypedUnderlying (GF := GF) net.textproto.dotReader net.textproto.dotReader.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance dotReader_access_load_r (l : Loc) (v : net.textproto.dotReader) (dq : DFrac) :
+noncomputable instance access_load'dotReader'r (l : Loc) (v : net.textproto.dotReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.dotReader go!"r" l) v.r' dq)
       (typedPointsto (structFieldRef net.textproto.dotReader go!"r" l) v.r' dq)
@@ -103,7 +103,7 @@ noncomputable instance dotReader_access_load_r (l : Loc) (v : net.textproto.dotR
  by
   solve_pointsto_access_struct
 
-noncomputable instance dotReader_access_store_r (l : Loc) (v : net.textproto.dotReader) (y : Loc) :
+noncomputable instance access_store'dotReader'r (l : Loc) (v : net.textproto.dotReader) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.dotReader go!"r" l) v.r' (DFrac.own 1))
       (typedPointsto (structFieldRef net.textproto.dotReader go!"r" l) y (DFrac.own 1))
@@ -111,7 +111,7 @@ noncomputable instance dotReader_access_store_r (l : Loc) (v : net.textproto.dot
  by
   solve_pointsto_access_struct
 
-noncomputable instance dotReader_access_load_state (l : Loc) (v : net.textproto.dotReader) (dq : DFrac) :
+noncomputable instance access_load'dotReader'state (l : Loc) (v : net.textproto.dotReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.dotReader go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef net.textproto.dotReader go!"state" l) v.state' dq)
@@ -119,7 +119,7 @@ noncomputable instance dotReader_access_load_state (l : Loc) (v : net.textproto.
  by
   solve_pointsto_access_struct
 
-noncomputable instance dotReader_access_store_state (l : Loc) (v : net.textproto.dotReader) (y : w64) :
+noncomputable instance access_store'dotReader'state (l : Loc) (v : net.textproto.dotReader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.dotReader go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef net.textproto.dotReader go!"state" l) y (DFrac.own 1))
@@ -138,7 +138,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.textproto.Assumptions]
 
-noncomputable instance Error_typed_pointsto :
+noncomputable instance typed_pointsto'Error :
     TypedPointsto (GF := GF) net.textproto.Error where
   typedPointstoDef l v dq := iprop(
     "Code" ∷ typedPointsto (structFieldRef net.textproto.Error go!"Code" l) v.Code' dq ∗
@@ -148,11 +148,11 @@ noncomputable instance Error_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Error_into_val_typed :
+noncomputable instance into_val_typed'Error :
     IntoValTypedUnderlying (GF := GF) net.textproto.Error net.textproto.Error.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Error_access_load_Code (l : Loc) (v : net.textproto.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'Code (l : Loc) (v : net.textproto.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.Error go!"Code" l) v.Code' dq)
       (typedPointsto (structFieldRef net.textproto.Error go!"Code" l) v.Code' dq)
@@ -160,7 +160,7 @@ noncomputable instance Error_access_load_Code (l : Loc) (v : net.textproto.Error
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_store_Code (l : Loc) (v : net.textproto.Error) (y : w64) :
+noncomputable instance access_store'Error'Code (l : Loc) (v : net.textproto.Error) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.Error go!"Code" l) v.Code' (DFrac.own 1))
       (typedPointsto (structFieldRef net.textproto.Error go!"Code" l) y (DFrac.own 1))
@@ -168,7 +168,7 @@ noncomputable instance Error_access_store_Code (l : Loc) (v : net.textproto.Erro
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_load_Msg (l : Loc) (v : net.textproto.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'Msg (l : Loc) (v : net.textproto.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.Error go!"Msg" l) v.Msg' dq)
       (typedPointsto (structFieldRef net.textproto.Error go!"Msg" l) v.Msg' dq)
@@ -176,7 +176,7 @@ noncomputable instance Error_access_load_Msg (l : Loc) (v : net.textproto.Error)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_store_Msg (l : Loc) (v : net.textproto.Error) (y : GoString) :
+noncomputable instance access_store'Error'Msg (l : Loc) (v : net.textproto.Error) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.Error go!"Msg" l) v.Msg' (DFrac.own 1))
       (typedPointsto (structFieldRef net.textproto.Error go!"Msg" l) y (DFrac.own 1))
@@ -195,11 +195,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.textproto.Assumptions]
 
-noncomputable instance Conn_typed_pointsto :
+noncomputable instance typed_pointsto'Conn :
     TypedPointsto (GF := GF) net.textproto.Conn :=
   sorry -- axiomatized type
 
-noncomputable instance Conn_into_val_typed :
+noncomputable instance into_val_typed'Conn :
     IntoValTypedUnderlying (GF := GF) net.textproto.Conn net.textproto.Conn.underlying :=
   sorry -- axiomatized type
 
@@ -214,11 +214,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.textproto.Assumptions]
 
-noncomputable instance Writer_typed_pointsto :
+noncomputable instance typed_pointsto'Writer :
     TypedPointsto (GF := GF) net.textproto.Writer :=
   sorry -- axiomatized type
 
-noncomputable instance Writer_into_val_typed :
+noncomputable instance into_val_typed'Writer :
     IntoValTypedUnderlying (GF := GF) net.textproto.Writer net.textproto.Writer.underlying :=
   sorry -- axiomatized type
 
@@ -233,7 +233,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.textproto.Assumptions]
 
-noncomputable instance dotWriter_typed_pointsto :
+noncomputable instance typed_pointsto'dotWriter :
     TypedPointsto (GF := GF) net.textproto.dotWriter where
   typedPointstoDef l v dq := iprop(
     "w" ∷ typedPointsto (structFieldRef net.textproto.dotWriter go!"w" l) v.w' dq ∗
@@ -243,11 +243,11 @@ noncomputable instance dotWriter_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance dotWriter_into_val_typed :
+noncomputable instance into_val_typed'dotWriter :
     IntoValTypedUnderlying (GF := GF) net.textproto.dotWriter net.textproto.dotWriter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance dotWriter_access_load_w (l : Loc) (v : net.textproto.dotWriter) (dq : DFrac) :
+noncomputable instance access_load'dotWriter'w (l : Loc) (v : net.textproto.dotWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.dotWriter go!"w" l) v.w' dq)
       (typedPointsto (structFieldRef net.textproto.dotWriter go!"w" l) v.w' dq)
@@ -255,7 +255,7 @@ noncomputable instance dotWriter_access_load_w (l : Loc) (v : net.textproto.dotW
  by
   solve_pointsto_access_struct
 
-noncomputable instance dotWriter_access_store_w (l : Loc) (v : net.textproto.dotWriter) (y : Loc) :
+noncomputable instance access_store'dotWriter'w (l : Loc) (v : net.textproto.dotWriter) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.dotWriter go!"w" l) v.w' (DFrac.own 1))
       (typedPointsto (structFieldRef net.textproto.dotWriter go!"w" l) y (DFrac.own 1))
@@ -263,7 +263,7 @@ noncomputable instance dotWriter_access_store_w (l : Loc) (v : net.textproto.dot
  by
   solve_pointsto_access_struct
 
-noncomputable instance dotWriter_access_load_state (l : Loc) (v : net.textproto.dotWriter) (dq : DFrac) :
+noncomputable instance access_load'dotWriter'state (l : Loc) (v : net.textproto.dotWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.dotWriter go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef net.textproto.dotWriter go!"state" l) v.state' dq)
@@ -271,7 +271,7 @@ noncomputable instance dotWriter_access_load_state (l : Loc) (v : net.textproto.
  by
   solve_pointsto_access_struct
 
-noncomputable instance dotWriter_access_store_state (l : Loc) (v : net.textproto.dotWriter) (y : w64) :
+noncomputable instance access_store'dotWriter'state (l : Loc) (v : net.textproto.dotWriter) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.dotWriter go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef net.textproto.dotWriter go!"state" l) y (DFrac.own 1))

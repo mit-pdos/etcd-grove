@@ -826,7 +826,7 @@ noncomputable instance StatusError.zero_val [GooseExts] : ZeroVal StatusError :=
 @[irreducible] noncomputable def StatusError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StatusError.fieldsUnsealed
 
-noncomputable instance equals_unfold_StatusError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'StatusError [GooseExts] [GoGlobalContext] :
     EqualsUnfold StatusError.fields StatusError.fieldsUnsealed :=
   ⟨by unfold StatusError.fields; rfl⟩
 
@@ -836,21 +836,21 @@ noncomputable instance equals_unfold_StatusError [GooseExts] [GoGlobalContext] :
 class StatusError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StatusError.underlying StatusError
   underlying : go.UnderlyingDirectedEq StatusError.ty StatusError.underlying
-  get_ErrStatus : ∀ (x : StatusError), go.IsGoStepPureDetTagged under (StructFieldGet StatusError.underlying go!"ErrStatus") #x (Val #(x.ErrStatus'))
-  set_ErrStatus : ∀ (x : StatusError) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status), go.IsGoStepPureDetTagged under (StructFieldSet StatusError.underlying go!"ErrStatus") (PairV #x #y) (Val #(({ x with ErrStatus' := y } : StatusError)))
+  get'ErrStatus : ∀ (x : StatusError), go.IsGoStepPureDetTagged under (StructFieldGet StatusError.underlying go!"ErrStatus") #x (Val #(x.ErrStatus'))
+  set'ErrStatus : ∀ (x : StatusError) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status), go.IsGoStepPureDetTagged under (StructFieldSet StatusError.underlying go!"ErrStatus") (PairV #x #y) (Val #(({ x with ErrStatus' := y } : StatusError)))
   method_set : go.MethodSetIs StatusError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatusError.ty) [(go!"DebugError", (some (go.signature.Signature [] false [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Status", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty])))]
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType StatusError.ty) go!"Error" StatusError.Error.impl
-  ptr_Status_unfold : MethodUnfold (go.GoType.PointerType StatusError.ty) go!"Status" StatusError.Status.impl
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType StatusError.ty) go!"Error" StatusError.Error.impl
+  ptr_unfold'Status : MethodUnfold (go.GoType.PointerType StatusError.ty) go!"Status" StatusError.Status.impl
 
 attribute [instance] StatusError.TypeAssumptions.type_repr
   StatusError.TypeAssumptions.underlying
-  StatusError.TypeAssumptions.get_ErrStatus
-  StatusError.TypeAssumptions.set_ErrStatus
+  StatusError.TypeAssumptions.get'ErrStatus
+  StatusError.TypeAssumptions.set'ErrStatus
   StatusError.TypeAssumptions.method_set
   StatusError.TypeAssumptions.ptr_method_set
-  StatusError.TypeAssumptions.ptr_Error_unfold
-  StatusError.TypeAssumptions.ptr_Status_unfold
+  StatusError.TypeAssumptions.ptr_unfold'Error
+  StatusError.TypeAssumptions.ptr_unfold'Status
 
 abbrev APIStatus [GooseExts] : Type := GoInterface
 
@@ -902,7 +902,7 @@ noncomputable instance ErrorReporter.zero_val [GooseExts] : ZeroVal ErrorReporte
 @[irreducible] noncomputable def ErrorReporter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ErrorReporter.fieldsUnsealed
 
-noncomputable instance equals_unfold_ErrorReporter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ErrorReporter [GooseExts] [GoGlobalContext] :
     EqualsUnfold ErrorReporter.fields ErrorReporter.fieldsUnsealed :=
   ⟨by unfold ErrorReporter.fields; rfl⟩
 
@@ -912,72 +912,72 @@ noncomputable instance equals_unfold_ErrorReporter [GooseExts] [GoGlobalContext]
 class ErrorReporter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ErrorReporter.underlying ErrorReporter
   underlying : go.UnderlyingDirectedEq ErrorReporter.ty ErrorReporter.underlying
-  get_code : ∀ (x : ErrorReporter), go.IsGoStepPureDetTagged under (StructFieldGet ErrorReporter.underlying go!"code") #x (Val #(x.code'))
-  set_code : ∀ (x : ErrorReporter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ErrorReporter.underlying go!"code") (PairV #x #y) (Val #(({ x with code' := y } : ErrorReporter)))
-  get_verb : ∀ (x : ErrorReporter), go.IsGoStepPureDetTagged under (StructFieldGet ErrorReporter.underlying go!"verb") #x (Val #(x.verb'))
-  set_verb : ∀ (x : ErrorReporter) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ErrorReporter.underlying go!"verb") (PairV #x #y) (Val #(({ x with verb' := y } : ErrorReporter)))
-  get_reason : ∀ (x : ErrorReporter), go.IsGoStepPureDetTagged under (StructFieldGet ErrorReporter.underlying go!"reason") #x (Val #(x.reason'))
-  set_reason : ∀ (x : ErrorReporter) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ErrorReporter.underlying go!"reason") (PairV #x #y) (Val #(({ x with reason' := y } : ErrorReporter)))
+  get'code : ∀ (x : ErrorReporter), go.IsGoStepPureDetTagged under (StructFieldGet ErrorReporter.underlying go!"code") #x (Val #(x.code'))
+  set'code : ∀ (x : ErrorReporter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ErrorReporter.underlying go!"code") (PairV #x #y) (Val #(({ x with code' := y } : ErrorReporter)))
+  get'verb : ∀ (x : ErrorReporter), go.IsGoStepPureDetTagged under (StructFieldGet ErrorReporter.underlying go!"verb") #x (Val #(x.verb'))
+  set'verb : ∀ (x : ErrorReporter) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ErrorReporter.underlying go!"verb") (PairV #x #y) (Val #(({ x with verb' := y } : ErrorReporter)))
+  get'reason : ∀ (x : ErrorReporter), go.IsGoStepPureDetTagged under (StructFieldGet ErrorReporter.underlying go!"reason") #x (Val #(x.reason'))
+  set'reason : ∀ (x : ErrorReporter) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ErrorReporter.underlying go!"reason") (PairV #x #y) (Val #(({ x with reason' := y } : ErrorReporter)))
   method_set : go.MethodSetIs ErrorReporter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ErrorReporter.ty) [(go!"AsObject", (some (go.signature.Signature [go.error] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])])))]
 
 attribute [instance] ErrorReporter.TypeAssumptions.type_repr
   ErrorReporter.TypeAssumptions.underlying
-  ErrorReporter.TypeAssumptions.get_code
-  ErrorReporter.TypeAssumptions.set_code
-  ErrorReporter.TypeAssumptions.get_verb
-  ErrorReporter.TypeAssumptions.set_verb
-  ErrorReporter.TypeAssumptions.get_reason
-  ErrorReporter.TypeAssumptions.set_reason
+  ErrorReporter.TypeAssumptions.get'code
+  ErrorReporter.TypeAssumptions.set'code
+  ErrorReporter.TypeAssumptions.get'verb
+  ErrorReporter.TypeAssumptions.set'verb
+  ErrorReporter.TypeAssumptions.get'reason
+  ErrorReporter.TypeAssumptions.set'reason
   ErrorReporter.TypeAssumptions.method_set
   ErrorReporter.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  StatusError_instance : StatusError.TypeAssumptions
-  APIStatus_instance : APIStatus.TypeAssumptions
-  UnexpectedObjectError_instance : UnexpectedObjectError.TypeAssumptions
-  ErrorReporter_instance : ErrorReporter.TypeAssumptions
-  HasStatusCause_unfold : FuncUnfold HasStatusCause [] HasStatusCause.impl
-  StatusCause_unfold : FuncUnfold StatusCause [] StatusCause.impl
-  NewNotFound_unfold : FuncUnfold NewNotFound [] NewNotFound.impl
-  NewAlreadyExists_unfold : FuncUnfold NewAlreadyExists [] NewAlreadyExists.impl
-  NewConflict_unfold : FuncUnfold NewConflict [] NewConflict.impl
-  NewResourceExpired_unfold : FuncUnfold NewResourceExpired [] NewResourceExpired.impl
-  NewBadRequest_unfold : FuncUnfold NewBadRequest [] NewBadRequest.impl
-  NewInternalError_unfold : FuncUnfold NewInternalError [] NewInternalError.impl
-  NewTimeoutError_unfold : FuncUnfold NewTimeoutError [] NewTimeoutError.impl
-  IsTimeout_unfold : FuncUnfold IsTimeout [] IsTimeout.impl
-  IsTooManyRequests_unfold : FuncUnfold IsTooManyRequests [] IsTooManyRequests.impl
-  SuggestsClientDelay_unfold : FuncUnfold SuggestsClientDelay [] SuggestsClientDelay.impl
-  reasonAndCodeForError_unfold : FuncUnfold reasonAndCodeForError [] reasonAndCodeForError.impl
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_http_Assumption : _root_.Perennial.net.http.Assumptions
-  import_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_schema_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
+  instance'StatusError : StatusError.TypeAssumptions
+  instance'APIStatus : APIStatus.TypeAssumptions
+  instance'UnexpectedObjectError : UnexpectedObjectError.TypeAssumptions
+  instance'ErrorReporter : ErrorReporter.TypeAssumptions
+  unfold'HasStatusCause : FuncUnfold HasStatusCause [] HasStatusCause.impl
+  unfold'StatusCause : FuncUnfold StatusCause [] StatusCause.impl
+  unfold'NewNotFound : FuncUnfold NewNotFound [] NewNotFound.impl
+  unfold'NewAlreadyExists : FuncUnfold NewAlreadyExists [] NewAlreadyExists.impl
+  unfold'NewConflict : FuncUnfold NewConflict [] NewConflict.impl
+  unfold'NewResourceExpired : FuncUnfold NewResourceExpired [] NewResourceExpired.impl
+  unfold'NewBadRequest : FuncUnfold NewBadRequest [] NewBadRequest.impl
+  unfold'NewInternalError : FuncUnfold NewInternalError [] NewInternalError.impl
+  unfold'NewTimeoutError : FuncUnfold NewTimeoutError [] NewTimeoutError.impl
+  unfold'IsTimeout : FuncUnfold IsTimeout [] IsTimeout.impl
+  unfold'IsTooManyRequests : FuncUnfold IsTooManyRequests [] IsTooManyRequests.impl
+  unfold'SuggestsClientDelay : FuncUnfold SuggestsClientDelay [] SuggestsClientDelay.impl
+  unfold'reasonAndCodeForError : FuncUnfold reasonAndCodeForError [] reasonAndCodeForError.impl
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'http : _root_.Perennial.net.http.Assumptions
+  import'v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'schema : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
 
-attribute [instance] Assumptions.StatusError_instance
-  Assumptions.APIStatus_instance
-  Assumptions.UnexpectedObjectError_instance
-  Assumptions.ErrorReporter_instance
-  Assumptions.HasStatusCause_unfold
-  Assumptions.StatusCause_unfold
-  Assumptions.NewNotFound_unfold
-  Assumptions.NewAlreadyExists_unfold
-  Assumptions.NewConflict_unfold
-  Assumptions.NewResourceExpired_unfold
-  Assumptions.NewBadRequest_unfold
-  Assumptions.NewInternalError_unfold
-  Assumptions.NewTimeoutError_unfold
-  Assumptions.IsTimeout_unfold
-  Assumptions.IsTooManyRequests_unfold
-  Assumptions.SuggestsClientDelay_unfold
-  Assumptions.reasonAndCodeForError_unfold
-  Assumptions.import_errors_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_http_Assumption
-  Assumptions.import_v1_Assumption
-  Assumptions.import_schema_Assumption
+attribute [instance] Assumptions.instance'StatusError
+  Assumptions.instance'APIStatus
+  Assumptions.instance'UnexpectedObjectError
+  Assumptions.instance'ErrorReporter
+  Assumptions.unfold'HasStatusCause
+  Assumptions.unfold'StatusCause
+  Assumptions.unfold'NewNotFound
+  Assumptions.unfold'NewAlreadyExists
+  Assumptions.unfold'NewConflict
+  Assumptions.unfold'NewResourceExpired
+  Assumptions.unfold'NewBadRequest
+  Assumptions.unfold'NewInternalError
+  Assumptions.unfold'NewTimeoutError
+  Assumptions.unfold'IsTimeout
+  Assumptions.unfold'IsTooManyRequests
+  Assumptions.unfold'SuggestsClientDelay
+  Assumptions.unfold'reasonAndCodeForError
+  Assumptions.import'errors
+  Assumptions.import'fmt
+  Assumptions.import'http
+  Assumptions.import'v1
+  Assumptions.import'schema
 
 end k8s_io.apimachinery.pkg.api.errors
 

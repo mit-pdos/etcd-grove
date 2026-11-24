@@ -354,21 +354,21 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.net.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  readAll_unfold : FuncUnfold readAll [] readAll.impl
-  serveConn_unfold : FuncUnfold serveConn [] serveConn.impl
-  Serve_unfold : FuncUnfold Serve [] Serve.impl
-  Call_unfold : FuncUnfold Call [] Call.impl
-  prefixOf_unfold : FuncUnfold prefixOf [] prefixOf.impl
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
+  unfold'readAll : FuncUnfold readAll [] readAll.impl
+  unfold'serveConn : FuncUnfold serveConn [] serveConn.impl
+  unfold'Serve : FuncUnfold Serve [] Serve.impl
+  unfold'Call : FuncUnfold Call [] Call.impl
+  unfold'prefixOf : FuncUnfold prefixOf [] prefixOf.impl
+  import'io : _root_.Perennial.io.Assumptions
+  import'net : _root_.Perennial.net.Assumptions
 
-attribute [instance] Assumptions.readAll_unfold
-  Assumptions.serveConn_unfold
-  Assumptions.Serve_unfold
-  Assumptions.Call_unfold
-  Assumptions.prefixOf_unfold
-  Assumptions.import_io_Assumption
-  Assumptions.import_net_Assumption
+attribute [instance] Assumptions.unfold'readAll
+  Assumptions.unfold'serveConn
+  Assumptions.unfold'Serve
+  Assumptions.unfold'Call
+  Assumptions.unfold'prefixOf
+  Assumptions.import'io
+  Assumptions.import'net
 
 end github_com.mit_pdos.etcd_grove.examples.net.halfclose
 

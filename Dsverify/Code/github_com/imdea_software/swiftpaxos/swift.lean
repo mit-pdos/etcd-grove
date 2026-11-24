@@ -20,311 +20,311 @@ noncomputable section
 namespace github_com.imdea_software.swiftpaxos.swift
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Batcher_instance : Batcher.TypeAssumptions
-  BatcherOp_instance : BatcherOp.TypeAssumptions
-  Client_instance : Client.TypeAssumptions
-  CommandId_instance : CommandId.TypeAssumptions
-  Dep_instance : Dep.TypeAssumptions
-  MFastAck_instance : MFastAck.TypeAssumptions
-  MFastAckClient_instance : MFastAckClient.TypeAssumptions
-  MSlowAck_instance : MSlowAck.TypeAssumptions
-  MLightSlowAck_instance : MLightSlowAck.TypeAssumptions
-  MAcks_instance : MAcks.TypeAssumptions
-  Ack_instance : Ack.TypeAssumptions
-  MOptAcks_instance : MOptAcks.TypeAssumptions
-  MReply_instance : MReply.TypeAssumptions
-  MAccept_instance : MAccept.TypeAssumptions
-  MNewLeader_instance : MNewLeader.TypeAssumptions
-  MNewLeaderAck_instance : MNewLeaderAck.TypeAssumptions
-  SDep_instance : SDep.TypeAssumptions
-  MNewLeaderAckN_instance : MNewLeaderAckN.TypeAssumptions
-  MShareState_instance : MShareState.TypeAssumptions
-  MSync_instance : MSync.TypeAssumptions
-  MLightSync_instance : MLightSync.TypeAssumptions
-  MCollect_instance : MCollect.TypeAssumptions
-  MPing_instance : MPing.TypeAssumptions
-  MPingRep_instance : MPingRep.TypeAssumptions
-  CommunicationSupply_instance : CommunicationSupply.TypeAssumptions
-  byteReader_instance : byteReader.TypeAssumptions
-  CommandIdCache_instance : CommandIdCache.TypeAssumptions
-  SHashCache_instance : SHashCache.TypeAssumptions
-  AckCache_instance : AckCache.TypeAssumptions
-  MNewLeaderAckCache_instance : MNewLeaderAckCache.TypeAssumptions
-  MLightSyncCache_instance : MLightSyncCache.TypeAssumptions
-  MFastAckCache_instance : MFastAckCache.TypeAssumptions
-  MFastAckClientCache_instance : MFastAckClientCache.TypeAssumptions
-  MLightSlowAckCache_instance : MLightSlowAckCache.TypeAssumptions
-  MAcceptCache_instance : MAcceptCache.TypeAssumptions
-  MNewLeaderCache_instance : MNewLeaderCache.TypeAssumptions
-  SDepCache_instance : SDepCache.TypeAssumptions
-  MShareStateCache_instance : MShareStateCache.TypeAssumptions
-  MOptAcksCache_instance : MOptAcksCache.TypeAssumptions
-  MPingCache_instance : MPingCache.TypeAssumptions
-  MSlowAckCache_instance : MSlowAckCache.TypeAssumptions
-  MAcksCache_instance : MAcksCache.TypeAssumptions
-  MReplyCache_instance : MReplyCache.TypeAssumptions
-  MNewLeaderAckNCache_instance : MNewLeaderAckNCache.TypeAssumptions
-  MCollectCache_instance : MCollectCache.TypeAssumptions
-  MPingRepCache_instance : MPingRepCache.TypeAssumptions
-  DelayEntry_instance : DelayEntry.TypeAssumptions
-  SwapValue_instance : SwapValue.TypeAssumptions
-  DelayLog_instance : DelayLog.TypeAssumptions
-  SHash_instance : SHash.TypeAssumptions
-  HashNode_instance : HashNode.TypeAssumptions
-  UpdateEntry_instance : UpdateEntry.TypeAssumptions
-  HashLog_instance : HashLog.TypeAssumptions
-  keyInfo_instance : keyInfo.TypeAssumptions
-  fullKeyInfo_instance : fullKeyInfo.TypeAssumptions
-  lightKeyInfo_instance : lightKeyInfo.TypeAssumptions
-  recEntry_instance : recEntry.TypeAssumptions
-  syncEntry_instance : syncEntry.TypeAssumptions
-  replyArgs_instance : replyArgs.TypeAssumptions
-  replyChan_instance : replyChan.TypeAssumptions
-  Replica_instance : Replica.TypeAssumptions
-  commandDesc_instance : commandDesc.TypeAssumptions
-  proposeMsg_instance : proposeMsg.TypeAssumptions
-  commandStaticDesc_instance : commandStaticDesc.TypeAssumptions
-  readDesc_instance : readDesc.TypeAssumptions
-  NewBatcher_unfold : FuncUnfold NewBatcher [] NewBatcher.impl
-  NewClient_unfold : FuncUnfold NewClient [] NewClient.impl
-  NilDepOfCmdId_unfold : FuncUnfold NilDepOfCmdId [] NilDepOfCmdId.impl
-  IsNilDepOfCmdId_unfold : FuncUnfold IsNilDepOfCmdId [] IsNilDepOfCmdId.impl
-  inConflict_unfold : FuncUnfold inConflict [] inConflict.impl
-  isNoop_unfold : FuncUnfold isNoop [] isNoop.impl
-  initCs_unfold : FuncUnfold initCs [] initCs.impl
-  newFastAck_unfold : FuncUnfold newFastAck [] newFastAck.impl
-  releaseFastAck_unfold : FuncUnfold releaseFastAck [] releaseFastAck.impl
-  copyFastAck_unfold : FuncUnfold copyFastAck [] copyFastAck.impl
-  NewCommandIdCache_unfold : FuncUnfold NewCommandIdCache [] NewCommandIdCache.impl
-  NewSHashCache_unfold : FuncUnfold NewSHashCache [] NewSHashCache.impl
-  NewAckCache_unfold : FuncUnfold NewAckCache [] NewAckCache.impl
-  NewMNewLeaderAckCache_unfold : FuncUnfold NewMNewLeaderAckCache [] NewMNewLeaderAckCache.impl
-  NewMLightSyncCache_unfold : FuncUnfold NewMLightSyncCache [] NewMLightSyncCache.impl
-  NewMFastAckCache_unfold : FuncUnfold NewMFastAckCache [] NewMFastAckCache.impl
-  NewMFastAckClientCache_unfold : FuncUnfold NewMFastAckClientCache [] NewMFastAckClientCache.impl
-  NewMLightSlowAckCache_unfold : FuncUnfold NewMLightSlowAckCache [] NewMLightSlowAckCache.impl
-  NewMAcceptCache_unfold : FuncUnfold NewMAcceptCache [] NewMAcceptCache.impl
-  NewMNewLeaderCache_unfold : FuncUnfold NewMNewLeaderCache [] NewMNewLeaderCache.impl
-  NewSDepCache_unfold : FuncUnfold NewSDepCache [] NewSDepCache.impl
-  NewMShareStateCache_unfold : FuncUnfold NewMShareStateCache [] NewMShareStateCache.impl
-  NewMOptAcksCache_unfold : FuncUnfold NewMOptAcksCache [] NewMOptAcksCache.impl
-  NewMPingCache_unfold : FuncUnfold NewMPingCache [] NewMPingCache.impl
-  NewMSlowAckCache_unfold : FuncUnfold NewMSlowAckCache [] NewMSlowAckCache.impl
-  NewMAcksCache_unfold : FuncUnfold NewMAcksCache [] NewMAcksCache.impl
-  NewMReplyCache_unfold : FuncUnfold NewMReplyCache [] NewMReplyCache.impl
-  NewMNewLeaderAckNCache_unfold : FuncUnfold NewMNewLeaderAckNCache [] NewMNewLeaderAckNCache.impl
-  NewMCollectCache_unfold : FuncUnfold NewMCollectCache [] NewMCollectCache.impl
-  NewMPingRepCache_unfold : FuncUnfold NewMPingRepCache [] NewMPingRepCache.impl
-  NewDelayLog_unfold : FuncUnfold NewDelayLog [] NewDelayLog.impl
-  NewHashLog_unfold : FuncUnfold NewHashLog [] NewHashLog.impl
-  hashStart_unfold : FuncUnfold hashStart [] hashStart.impl
-  putId_unfold : FuncUnfold putId [] putId.impl
-  hash_unfold : FuncUnfold hash [] hash.impl
-  clientChecksum_unfold : FuncUnfold clientChecksum [] clientChecksum.impl
-  cmdIdCmp_unfold : FuncUnfold cmdIdCmp [] cmdIdCmp.impl
-  cmdIdLess_unfold : FuncUnfold cmdIdLess [] cmdIdLess.impl
-  SHashesEq_unfold : FuncUnfold SHashesEq [] SHashesEq.impl
-  ghostId_unfold : FuncUnfold ghostId [] ghostId.impl
-  ghostIds_unfold : FuncUnfold ghostIds [] ghostIds.impl
-  ghostCmd_unfold : FuncUnfold ghostCmd [] ghostCmd.impl
-  ghostHandle_unfold : FuncUnfold ghostHandle [] ghostHandle.impl
-  ghostPreaccept_unfold : FuncUnfold ghostPreaccept [] ghostPreaccept.impl
-  ghostAccept_unfold : FuncUnfold ghostAccept [] ghostAccept.impl
-  ghostCommit_unfold : FuncUnfold ghostCommit [] ghostCommit.impl
-  ghostNewBallot_unfold : FuncUnfold ghostNewBallot [] ghostNewBallot.impl
-  ghostReport_unfold : FuncUnfold ghostReport [] ghostReport.impl
-  ghostComputeSync_unfold : FuncUnfold ghostComputeSync [] ghostComputeSync.impl
-  ghostTakeSync_unfold : FuncUnfold ghostTakeSync [] ghostTakeSync.impl
-  newFullKeyInfo_unfold : FuncUnfold newFullKeyInfo [] newFullKeyInfo.impl
-  keysOf_unfold : FuncUnfold keysOf [] keysOf.impl
-  newLightKeyInfo_unfold : FuncUnfold newLightKeyInfo [] newLightKeyInfo.impl
-  sortedIds_unfold : FuncUnfold sortedIds [] sortedIds.impl
-  recReaches_unfold : FuncUnfold recReaches [] recReaches.impl
-  recOrder_unfold : FuncUnfold recOrder [] recOrder.impl
-  sortedProposes_unfold : FuncUnfold sortedProposes [] sortedProposes.impl
-  syncOrder_unfold : FuncUnfold syncOrder [] syncOrder.impl
-  NewReplyChan_unfold : FuncUnfold NewReplyChan [] NewReplyChan.impl
-  New_unfold : FuncUnfold New [] New.impl
-  getFastAndSlowAcksHandler_unfold : FuncUnfold getFastAndSlowAcksHandler [] getFastAndSlowAcksHandler.impl
-  readUvarint_unfold : FuncUnfold readUvarint [] readUvarint.impl
-  readVarint_unfold : FuncUnfold readVarint [] readVarint.impl
-  putUvarint_unfold : FuncUnfold putUvarint [] putUvarint.impl
-  putVarint_unfold : FuncUnfold putVarint [] putVarint.impl
-  import_rpc_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Assumptions
-  import_client_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.client.Assumptions
-  import_replica_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Assumptions
-  import_defs_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.Assumptions
-  import_state_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Assumptions
-  import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
-  import_gob_Assumption : _root_.Perennial.encoding.gob.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
-  import_sha256_Assumption : _root_.Perennial.crypto.sha256.Assumptions
-  import_slices_Assumption : _root_.Perennial.slices.Assumptions
-  import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
-  import_log_Assumption : _root_.Perennial.log.Assumptions
-  import_cmap_Assumption : _root_.Perennial.github_com.orcaman.concurrent_map.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_config_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.config.Assumptions
-  import_dlog_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Assumptions
-  import_hook_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.hook.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  instance'Batcher : Batcher.TypeAssumptions
+  instance'BatcherOp : BatcherOp.TypeAssumptions
+  instance'Client : Client.TypeAssumptions
+  instance'CommandId : CommandId.TypeAssumptions
+  instance'Dep : Dep.TypeAssumptions
+  instance'MFastAck : MFastAck.TypeAssumptions
+  instance'MFastAckClient : MFastAckClient.TypeAssumptions
+  instance'MSlowAck : MSlowAck.TypeAssumptions
+  instance'MLightSlowAck : MLightSlowAck.TypeAssumptions
+  instance'MAcks : MAcks.TypeAssumptions
+  instance'Ack : Ack.TypeAssumptions
+  instance'MOptAcks : MOptAcks.TypeAssumptions
+  instance'MReply : MReply.TypeAssumptions
+  instance'MAccept : MAccept.TypeAssumptions
+  instance'MNewLeader : MNewLeader.TypeAssumptions
+  instance'MNewLeaderAck : MNewLeaderAck.TypeAssumptions
+  instance'SDep : SDep.TypeAssumptions
+  instance'MNewLeaderAckN : MNewLeaderAckN.TypeAssumptions
+  instance'MShareState : MShareState.TypeAssumptions
+  instance'MSync : MSync.TypeAssumptions
+  instance'MLightSync : MLightSync.TypeAssumptions
+  instance'MCollect : MCollect.TypeAssumptions
+  instance'MPing : MPing.TypeAssumptions
+  instance'MPingRep : MPingRep.TypeAssumptions
+  instance'CommunicationSupply : CommunicationSupply.TypeAssumptions
+  instance'byteReader : byteReader.TypeAssumptions
+  instance'CommandIdCache : CommandIdCache.TypeAssumptions
+  instance'SHashCache : SHashCache.TypeAssumptions
+  instance'AckCache : AckCache.TypeAssumptions
+  instance'MNewLeaderAckCache : MNewLeaderAckCache.TypeAssumptions
+  instance'MLightSyncCache : MLightSyncCache.TypeAssumptions
+  instance'MFastAckCache : MFastAckCache.TypeAssumptions
+  instance'MFastAckClientCache : MFastAckClientCache.TypeAssumptions
+  instance'MLightSlowAckCache : MLightSlowAckCache.TypeAssumptions
+  instance'MAcceptCache : MAcceptCache.TypeAssumptions
+  instance'MNewLeaderCache : MNewLeaderCache.TypeAssumptions
+  instance'SDepCache : SDepCache.TypeAssumptions
+  instance'MShareStateCache : MShareStateCache.TypeAssumptions
+  instance'MOptAcksCache : MOptAcksCache.TypeAssumptions
+  instance'MPingCache : MPingCache.TypeAssumptions
+  instance'MSlowAckCache : MSlowAckCache.TypeAssumptions
+  instance'MAcksCache : MAcksCache.TypeAssumptions
+  instance'MReplyCache : MReplyCache.TypeAssumptions
+  instance'MNewLeaderAckNCache : MNewLeaderAckNCache.TypeAssumptions
+  instance'MCollectCache : MCollectCache.TypeAssumptions
+  instance'MPingRepCache : MPingRepCache.TypeAssumptions
+  instance'DelayEntry : DelayEntry.TypeAssumptions
+  instance'SwapValue : SwapValue.TypeAssumptions
+  instance'DelayLog : DelayLog.TypeAssumptions
+  instance'SHash : SHash.TypeAssumptions
+  instance'HashNode : HashNode.TypeAssumptions
+  instance'UpdateEntry : UpdateEntry.TypeAssumptions
+  instance'HashLog : HashLog.TypeAssumptions
+  instance'keyInfo : keyInfo.TypeAssumptions
+  instance'fullKeyInfo : fullKeyInfo.TypeAssumptions
+  instance'lightKeyInfo : lightKeyInfo.TypeAssumptions
+  instance'recEntry : recEntry.TypeAssumptions
+  instance'syncEntry : syncEntry.TypeAssumptions
+  instance'replyArgs : replyArgs.TypeAssumptions
+  instance'replyChan : replyChan.TypeAssumptions
+  instance'Replica : Replica.TypeAssumptions
+  instance'commandDesc : commandDesc.TypeAssumptions
+  instance'proposeMsg : proposeMsg.TypeAssumptions
+  instance'commandStaticDesc : commandStaticDesc.TypeAssumptions
+  instance'readDesc : readDesc.TypeAssumptions
+  unfold'NewBatcher : FuncUnfold NewBatcher [] NewBatcher.impl
+  unfold'NewClient : FuncUnfold NewClient [] NewClient.impl
+  unfold'NilDepOfCmdId : FuncUnfold NilDepOfCmdId [] NilDepOfCmdId.impl
+  unfold'IsNilDepOfCmdId : FuncUnfold IsNilDepOfCmdId [] IsNilDepOfCmdId.impl
+  unfold'inConflict : FuncUnfold inConflict [] inConflict.impl
+  unfold'isNoop : FuncUnfold isNoop [] isNoop.impl
+  unfold'initCs : FuncUnfold initCs [] initCs.impl
+  unfold'newFastAck : FuncUnfold newFastAck [] newFastAck.impl
+  unfold'releaseFastAck : FuncUnfold releaseFastAck [] releaseFastAck.impl
+  unfold'copyFastAck : FuncUnfold copyFastAck [] copyFastAck.impl
+  unfold'NewCommandIdCache : FuncUnfold NewCommandIdCache [] NewCommandIdCache.impl
+  unfold'NewSHashCache : FuncUnfold NewSHashCache [] NewSHashCache.impl
+  unfold'NewAckCache : FuncUnfold NewAckCache [] NewAckCache.impl
+  unfold'NewMNewLeaderAckCache : FuncUnfold NewMNewLeaderAckCache [] NewMNewLeaderAckCache.impl
+  unfold'NewMLightSyncCache : FuncUnfold NewMLightSyncCache [] NewMLightSyncCache.impl
+  unfold'NewMFastAckCache : FuncUnfold NewMFastAckCache [] NewMFastAckCache.impl
+  unfold'NewMFastAckClientCache : FuncUnfold NewMFastAckClientCache [] NewMFastAckClientCache.impl
+  unfold'NewMLightSlowAckCache : FuncUnfold NewMLightSlowAckCache [] NewMLightSlowAckCache.impl
+  unfold'NewMAcceptCache : FuncUnfold NewMAcceptCache [] NewMAcceptCache.impl
+  unfold'NewMNewLeaderCache : FuncUnfold NewMNewLeaderCache [] NewMNewLeaderCache.impl
+  unfold'NewSDepCache : FuncUnfold NewSDepCache [] NewSDepCache.impl
+  unfold'NewMShareStateCache : FuncUnfold NewMShareStateCache [] NewMShareStateCache.impl
+  unfold'NewMOptAcksCache : FuncUnfold NewMOptAcksCache [] NewMOptAcksCache.impl
+  unfold'NewMPingCache : FuncUnfold NewMPingCache [] NewMPingCache.impl
+  unfold'NewMSlowAckCache : FuncUnfold NewMSlowAckCache [] NewMSlowAckCache.impl
+  unfold'NewMAcksCache : FuncUnfold NewMAcksCache [] NewMAcksCache.impl
+  unfold'NewMReplyCache : FuncUnfold NewMReplyCache [] NewMReplyCache.impl
+  unfold'NewMNewLeaderAckNCache : FuncUnfold NewMNewLeaderAckNCache [] NewMNewLeaderAckNCache.impl
+  unfold'NewMCollectCache : FuncUnfold NewMCollectCache [] NewMCollectCache.impl
+  unfold'NewMPingRepCache : FuncUnfold NewMPingRepCache [] NewMPingRepCache.impl
+  unfold'NewDelayLog : FuncUnfold NewDelayLog [] NewDelayLog.impl
+  unfold'NewHashLog : FuncUnfold NewHashLog [] NewHashLog.impl
+  unfold'hashStart : FuncUnfold hashStart [] hashStart.impl
+  unfold'putId : FuncUnfold putId [] putId.impl
+  unfold'hash : FuncUnfold hash [] hash.impl
+  unfold'clientChecksum : FuncUnfold clientChecksum [] clientChecksum.impl
+  unfold'cmdIdCmp : FuncUnfold cmdIdCmp [] cmdIdCmp.impl
+  unfold'cmdIdLess : FuncUnfold cmdIdLess [] cmdIdLess.impl
+  unfold'SHashesEq : FuncUnfold SHashesEq [] SHashesEq.impl
+  unfold'ghostId : FuncUnfold ghostId [] ghostId.impl
+  unfold'ghostIds : FuncUnfold ghostIds [] ghostIds.impl
+  unfold'ghostCmd : FuncUnfold ghostCmd [] ghostCmd.impl
+  unfold'ghostHandle : FuncUnfold ghostHandle [] ghostHandle.impl
+  unfold'ghostPreaccept : FuncUnfold ghostPreaccept [] ghostPreaccept.impl
+  unfold'ghostAccept : FuncUnfold ghostAccept [] ghostAccept.impl
+  unfold'ghostCommit : FuncUnfold ghostCommit [] ghostCommit.impl
+  unfold'ghostNewBallot : FuncUnfold ghostNewBallot [] ghostNewBallot.impl
+  unfold'ghostReport : FuncUnfold ghostReport [] ghostReport.impl
+  unfold'ghostComputeSync : FuncUnfold ghostComputeSync [] ghostComputeSync.impl
+  unfold'ghostTakeSync : FuncUnfold ghostTakeSync [] ghostTakeSync.impl
+  unfold'newFullKeyInfo : FuncUnfold newFullKeyInfo [] newFullKeyInfo.impl
+  unfold'keysOf : FuncUnfold keysOf [] keysOf.impl
+  unfold'newLightKeyInfo : FuncUnfold newLightKeyInfo [] newLightKeyInfo.impl
+  unfold'sortedIds : FuncUnfold sortedIds [] sortedIds.impl
+  unfold'recReaches : FuncUnfold recReaches [] recReaches.impl
+  unfold'recOrder : FuncUnfold recOrder [] recOrder.impl
+  unfold'sortedProposes : FuncUnfold sortedProposes [] sortedProposes.impl
+  unfold'syncOrder : FuncUnfold syncOrder [] syncOrder.impl
+  unfold'NewReplyChan : FuncUnfold NewReplyChan [] NewReplyChan.impl
+  unfold'New : FuncUnfold New [] New.impl
+  unfold'getFastAndSlowAcksHandler : FuncUnfold getFastAndSlowAcksHandler [] getFastAndSlowAcksHandler.impl
+  unfold'readUvarint : FuncUnfold readUvarint [] readUvarint.impl
+  unfold'readVarint : FuncUnfold readVarint [] readVarint.impl
+  unfold'putUvarint : FuncUnfold putUvarint [] putUvarint.impl
+  unfold'putVarint : FuncUnfold putVarint [] putVarint.impl
+  import'rpc : _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Assumptions
+  import'client : _root_.Perennial.github_com.imdea_software.swiftpaxos.client.Assumptions
+  import'replica : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Assumptions
+  import'defs : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.Assumptions
+  import'state : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Assumptions
+  import'bufio : _root_.Perennial.bufio.Assumptions
+  import'gob : _root_.Perennial.encoding.gob.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'bytes : _root_.Perennial.bytes.Assumptions
+  import'sha256 : _root_.Perennial.crypto.sha256.Assumptions
+  import'slices : _root_.Perennial.slices.Assumptions
+  import'binary : _root_.Perennial.encoding.binary.Assumptions
+  import'log : _root_.Perennial.log.Assumptions
+  import'cmap : _root_.Perennial.github_com.orcaman.concurrent_map.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'config : _root_.Perennial.github_com.imdea_software.swiftpaxos.config.Assumptions
+  import'dlog : _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Assumptions
+  import'hook : _root_.Perennial.github_com.imdea_software.swiftpaxos.hook.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
 
-attribute [instance] Assumptions.Batcher_instance
-  Assumptions.BatcherOp_instance
-  Assumptions.Client_instance
-  Assumptions.CommandId_instance
-  Assumptions.Dep_instance
-  Assumptions.MFastAck_instance
-  Assumptions.MFastAckClient_instance
-  Assumptions.MSlowAck_instance
-  Assumptions.MLightSlowAck_instance
-  Assumptions.MAcks_instance
-  Assumptions.Ack_instance
-  Assumptions.MOptAcks_instance
-  Assumptions.MReply_instance
-  Assumptions.MAccept_instance
-  Assumptions.MNewLeader_instance
-  Assumptions.MNewLeaderAck_instance
-  Assumptions.SDep_instance
-  Assumptions.MNewLeaderAckN_instance
-  Assumptions.MShareState_instance
-  Assumptions.MSync_instance
-  Assumptions.MLightSync_instance
-  Assumptions.MCollect_instance
-  Assumptions.MPing_instance
-  Assumptions.MPingRep_instance
-  Assumptions.CommunicationSupply_instance
-  Assumptions.byteReader_instance
-  Assumptions.CommandIdCache_instance
-  Assumptions.SHashCache_instance
-  Assumptions.AckCache_instance
-  Assumptions.MNewLeaderAckCache_instance
-  Assumptions.MLightSyncCache_instance
-  Assumptions.MFastAckCache_instance
-  Assumptions.MFastAckClientCache_instance
-  Assumptions.MLightSlowAckCache_instance
-  Assumptions.MAcceptCache_instance
-  Assumptions.MNewLeaderCache_instance
-  Assumptions.SDepCache_instance
-  Assumptions.MShareStateCache_instance
-  Assumptions.MOptAcksCache_instance
-  Assumptions.MPingCache_instance
-  Assumptions.MSlowAckCache_instance
-  Assumptions.MAcksCache_instance
-  Assumptions.MReplyCache_instance
-  Assumptions.MNewLeaderAckNCache_instance
-  Assumptions.MCollectCache_instance
-  Assumptions.MPingRepCache_instance
-  Assumptions.DelayEntry_instance
-  Assumptions.SwapValue_instance
-  Assumptions.DelayLog_instance
-  Assumptions.SHash_instance
-  Assumptions.HashNode_instance
-  Assumptions.UpdateEntry_instance
-  Assumptions.HashLog_instance
-  Assumptions.keyInfo_instance
-  Assumptions.fullKeyInfo_instance
-  Assumptions.lightKeyInfo_instance
-  Assumptions.recEntry_instance
-  Assumptions.syncEntry_instance
-  Assumptions.replyArgs_instance
-  Assumptions.replyChan_instance
-  Assumptions.Replica_instance
-  Assumptions.commandDesc_instance
-  Assumptions.proposeMsg_instance
-  Assumptions.commandStaticDesc_instance
-  Assumptions.readDesc_instance
-  Assumptions.NewBatcher_unfold
-  Assumptions.NewClient_unfold
-  Assumptions.NilDepOfCmdId_unfold
-  Assumptions.IsNilDepOfCmdId_unfold
-  Assumptions.inConflict_unfold
-  Assumptions.isNoop_unfold
-  Assumptions.initCs_unfold
-  Assumptions.newFastAck_unfold
-  Assumptions.releaseFastAck_unfold
-  Assumptions.copyFastAck_unfold
-  Assumptions.NewCommandIdCache_unfold
-  Assumptions.NewSHashCache_unfold
-  Assumptions.NewAckCache_unfold
-  Assumptions.NewMNewLeaderAckCache_unfold
-  Assumptions.NewMLightSyncCache_unfold
-  Assumptions.NewMFastAckCache_unfold
-  Assumptions.NewMFastAckClientCache_unfold
-  Assumptions.NewMLightSlowAckCache_unfold
-  Assumptions.NewMAcceptCache_unfold
-  Assumptions.NewMNewLeaderCache_unfold
-  Assumptions.NewSDepCache_unfold
-  Assumptions.NewMShareStateCache_unfold
-  Assumptions.NewMOptAcksCache_unfold
-  Assumptions.NewMPingCache_unfold
-  Assumptions.NewMSlowAckCache_unfold
-  Assumptions.NewMAcksCache_unfold
-  Assumptions.NewMReplyCache_unfold
-  Assumptions.NewMNewLeaderAckNCache_unfold
-  Assumptions.NewMCollectCache_unfold
-  Assumptions.NewMPingRepCache_unfold
-  Assumptions.NewDelayLog_unfold
-  Assumptions.NewHashLog_unfold
-  Assumptions.hashStart_unfold
-  Assumptions.putId_unfold
-  Assumptions.hash_unfold
-  Assumptions.clientChecksum_unfold
-  Assumptions.cmdIdCmp_unfold
-  Assumptions.cmdIdLess_unfold
-  Assumptions.SHashesEq_unfold
-  Assumptions.ghostId_unfold
-  Assumptions.ghostIds_unfold
-  Assumptions.ghostCmd_unfold
-  Assumptions.ghostHandle_unfold
-  Assumptions.ghostPreaccept_unfold
-  Assumptions.ghostAccept_unfold
-  Assumptions.ghostCommit_unfold
-  Assumptions.ghostNewBallot_unfold
-  Assumptions.ghostReport_unfold
-  Assumptions.ghostComputeSync_unfold
-  Assumptions.ghostTakeSync_unfold
-  Assumptions.newFullKeyInfo_unfold
-  Assumptions.keysOf_unfold
-  Assumptions.newLightKeyInfo_unfold
-  Assumptions.sortedIds_unfold
-  Assumptions.recReaches_unfold
-  Assumptions.recOrder_unfold
-  Assumptions.sortedProposes_unfold
-  Assumptions.syncOrder_unfold
-  Assumptions.NewReplyChan_unfold
-  Assumptions.New_unfold
-  Assumptions.getFastAndSlowAcksHandler_unfold
-  Assumptions.readUvarint_unfold
-  Assumptions.readVarint_unfold
-  Assumptions.putUvarint_unfold
-  Assumptions.putVarint_unfold
-  Assumptions.import_rpc_Assumption
-  Assumptions.import_client_Assumption
-  Assumptions.import_replica_Assumption
-  Assumptions.import_defs_Assumption
-  Assumptions.import_state_Assumption
-  Assumptions.import_bufio_Assumption
-  Assumptions.import_gob_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_bytes_Assumption
-  Assumptions.import_sha256_Assumption
-  Assumptions.import_slices_Assumption
-  Assumptions.import_binary_Assumption
-  Assumptions.import_log_Assumption
-  Assumptions.import_cmap_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_config_Assumption
-  Assumptions.import_dlog_Assumption
-  Assumptions.import_hook_Assumption
-  Assumptions.import_errors_Assumption
+attribute [instance] Assumptions.instance'Batcher
+  Assumptions.instance'BatcherOp
+  Assumptions.instance'Client
+  Assumptions.instance'CommandId
+  Assumptions.instance'Dep
+  Assumptions.instance'MFastAck
+  Assumptions.instance'MFastAckClient
+  Assumptions.instance'MSlowAck
+  Assumptions.instance'MLightSlowAck
+  Assumptions.instance'MAcks
+  Assumptions.instance'Ack
+  Assumptions.instance'MOptAcks
+  Assumptions.instance'MReply
+  Assumptions.instance'MAccept
+  Assumptions.instance'MNewLeader
+  Assumptions.instance'MNewLeaderAck
+  Assumptions.instance'SDep
+  Assumptions.instance'MNewLeaderAckN
+  Assumptions.instance'MShareState
+  Assumptions.instance'MSync
+  Assumptions.instance'MLightSync
+  Assumptions.instance'MCollect
+  Assumptions.instance'MPing
+  Assumptions.instance'MPingRep
+  Assumptions.instance'CommunicationSupply
+  Assumptions.instance'byteReader
+  Assumptions.instance'CommandIdCache
+  Assumptions.instance'SHashCache
+  Assumptions.instance'AckCache
+  Assumptions.instance'MNewLeaderAckCache
+  Assumptions.instance'MLightSyncCache
+  Assumptions.instance'MFastAckCache
+  Assumptions.instance'MFastAckClientCache
+  Assumptions.instance'MLightSlowAckCache
+  Assumptions.instance'MAcceptCache
+  Assumptions.instance'MNewLeaderCache
+  Assumptions.instance'SDepCache
+  Assumptions.instance'MShareStateCache
+  Assumptions.instance'MOptAcksCache
+  Assumptions.instance'MPingCache
+  Assumptions.instance'MSlowAckCache
+  Assumptions.instance'MAcksCache
+  Assumptions.instance'MReplyCache
+  Assumptions.instance'MNewLeaderAckNCache
+  Assumptions.instance'MCollectCache
+  Assumptions.instance'MPingRepCache
+  Assumptions.instance'DelayEntry
+  Assumptions.instance'SwapValue
+  Assumptions.instance'DelayLog
+  Assumptions.instance'SHash
+  Assumptions.instance'HashNode
+  Assumptions.instance'UpdateEntry
+  Assumptions.instance'HashLog
+  Assumptions.instance'keyInfo
+  Assumptions.instance'fullKeyInfo
+  Assumptions.instance'lightKeyInfo
+  Assumptions.instance'recEntry
+  Assumptions.instance'syncEntry
+  Assumptions.instance'replyArgs
+  Assumptions.instance'replyChan
+  Assumptions.instance'Replica
+  Assumptions.instance'commandDesc
+  Assumptions.instance'proposeMsg
+  Assumptions.instance'commandStaticDesc
+  Assumptions.instance'readDesc
+  Assumptions.unfold'NewBatcher
+  Assumptions.unfold'NewClient
+  Assumptions.unfold'NilDepOfCmdId
+  Assumptions.unfold'IsNilDepOfCmdId
+  Assumptions.unfold'inConflict
+  Assumptions.unfold'isNoop
+  Assumptions.unfold'initCs
+  Assumptions.unfold'newFastAck
+  Assumptions.unfold'releaseFastAck
+  Assumptions.unfold'copyFastAck
+  Assumptions.unfold'NewCommandIdCache
+  Assumptions.unfold'NewSHashCache
+  Assumptions.unfold'NewAckCache
+  Assumptions.unfold'NewMNewLeaderAckCache
+  Assumptions.unfold'NewMLightSyncCache
+  Assumptions.unfold'NewMFastAckCache
+  Assumptions.unfold'NewMFastAckClientCache
+  Assumptions.unfold'NewMLightSlowAckCache
+  Assumptions.unfold'NewMAcceptCache
+  Assumptions.unfold'NewMNewLeaderCache
+  Assumptions.unfold'NewSDepCache
+  Assumptions.unfold'NewMShareStateCache
+  Assumptions.unfold'NewMOptAcksCache
+  Assumptions.unfold'NewMPingCache
+  Assumptions.unfold'NewMSlowAckCache
+  Assumptions.unfold'NewMAcksCache
+  Assumptions.unfold'NewMReplyCache
+  Assumptions.unfold'NewMNewLeaderAckNCache
+  Assumptions.unfold'NewMCollectCache
+  Assumptions.unfold'NewMPingRepCache
+  Assumptions.unfold'NewDelayLog
+  Assumptions.unfold'NewHashLog
+  Assumptions.unfold'hashStart
+  Assumptions.unfold'putId
+  Assumptions.unfold'hash
+  Assumptions.unfold'clientChecksum
+  Assumptions.unfold'cmdIdCmp
+  Assumptions.unfold'cmdIdLess
+  Assumptions.unfold'SHashesEq
+  Assumptions.unfold'ghostId
+  Assumptions.unfold'ghostIds
+  Assumptions.unfold'ghostCmd
+  Assumptions.unfold'ghostHandle
+  Assumptions.unfold'ghostPreaccept
+  Assumptions.unfold'ghostAccept
+  Assumptions.unfold'ghostCommit
+  Assumptions.unfold'ghostNewBallot
+  Assumptions.unfold'ghostReport
+  Assumptions.unfold'ghostComputeSync
+  Assumptions.unfold'ghostTakeSync
+  Assumptions.unfold'newFullKeyInfo
+  Assumptions.unfold'keysOf
+  Assumptions.unfold'newLightKeyInfo
+  Assumptions.unfold'sortedIds
+  Assumptions.unfold'recReaches
+  Assumptions.unfold'recOrder
+  Assumptions.unfold'sortedProposes
+  Assumptions.unfold'syncOrder
+  Assumptions.unfold'NewReplyChan
+  Assumptions.unfold'New
+  Assumptions.unfold'getFastAndSlowAcksHandler
+  Assumptions.unfold'readUvarint
+  Assumptions.unfold'readVarint
+  Assumptions.unfold'putUvarint
+  Assumptions.unfold'putVarint
+  Assumptions.import'rpc
+  Assumptions.import'client
+  Assumptions.import'replica
+  Assumptions.import'defs
+  Assumptions.import'state
+  Assumptions.import'bufio
+  Assumptions.import'gob
+  Assumptions.import'fmt
+  Assumptions.import'io
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'bytes
+  Assumptions.import'sha256
+  Assumptions.import'slices
+  Assumptions.import'binary
+  Assumptions.import'log
+  Assumptions.import'cmap
+  Assumptions.import'atomic
+  Assumptions.import'config
+  Assumptions.import'dlog
+  Assumptions.import'hook
+  Assumptions.import'errors
 
 end github_com.imdea_software.swiftpaxos.swift
 

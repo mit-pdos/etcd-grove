@@ -1525,7 +1525,7 @@ noncomputable instance ClientTCP.zero_val [GooseExts] : ZeroVal ClientTCP :=
 @[irreducible] noncomputable def ClientTCP.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClientTCP.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClientTCP [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ClientTCP [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClientTCP.fields ClientTCP.fieldsUnsealed :=
   ⟨by unfold ClientTCP.fields; rfl⟩
 
@@ -1535,61 +1535,61 @@ noncomputable instance equals_unfold_ClientTCP [GooseExts] [GoGlobalContext] :
 class ClientTCP.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClientTCP.underlying ClientTCP
   underlying : go.UnderlyingDirectedEq ClientTCP.ty ClientTCP.underlying
-  get_Id : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"Id") #x (Val #(x.Id'))
-  set_Id : ∀ (x : ClientTCP) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : ClientTCP)))
-  get_Wg : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"Wg") #x (Val #(x.Wg'))
-  set_Wg : ∀ (x : ClientTCP) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"Wg") (PairV #x #y) (Val #(({ x with Wg' := y } : ClientTCP)))
-  get_Done : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"Done") #x (Val #(x.Done'))
-  set_Done : ∀ (x : ClientTCP) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"Done") (PairV #x #y) (Val #(({ x with Done' := y } : ClientTCP)))
-  get_ProxyAddr : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"ProxyAddr") #x (Val #(x.ProxyAddr'))
-  set_ProxyAddr : ∀ (x : ClientTCP) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"ProxyAddr") (PairV #x #y) (Val #(({ x with ProxyAddr' := y } : ClientTCP)))
-  get_RecvChan : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"RecvChan") #x (Val #(x.RecvChan'))
-  set_RecvChan : ∀ (x : ClientTCP) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"RecvChan") (PairV #x #y) (Val #(({ x with RecvChan' := y } : ClientTCP)))
-  get_SendChan : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"SendChan") #x (Val #(x.SendChan'))
-  set_SendChan : ∀ (x : ClientTCP) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"SendChan") (PairV #x #y) (Val #(({ x with SendChan' := y } : ClientTCP)))
-  get_Conn : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"Conn") #x (Val #(x.Conn'))
-  set_Conn : ∀ (x : ClientTCP) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"Conn") (PairV #x #y) (Val #(({ x with Conn' := y } : ClientTCP)))
-  get_Reader : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"Reader") #x (Val #(x.Reader'))
-  set_Reader : ∀ (x : ClientTCP) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"Reader") (PairV #x #y) (Val #(({ x with Reader' := y } : ClientTCP)))
-  get_Writer : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"Writer") #x (Val #(x.Writer'))
-  set_Writer : ∀ (x : ClientTCP) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"Writer") (PairV #x #y) (Val #(({ x with Writer' := y } : ClientTCP)))
+  get'Id : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"Id") #x (Val #(x.Id'))
+  set'Id : ∀ (x : ClientTCP) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : ClientTCP)))
+  get'Wg : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"Wg") #x (Val #(x.Wg'))
+  set'Wg : ∀ (x : ClientTCP) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"Wg") (PairV #x #y) (Val #(({ x with Wg' := y } : ClientTCP)))
+  get'Done : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"Done") #x (Val #(x.Done'))
+  set'Done : ∀ (x : ClientTCP) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"Done") (PairV #x #y) (Val #(({ x with Done' := y } : ClientTCP)))
+  get'ProxyAddr : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"ProxyAddr") #x (Val #(x.ProxyAddr'))
+  set'ProxyAddr : ∀ (x : ClientTCP) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"ProxyAddr") (PairV #x #y) (Val #(({ x with ProxyAddr' := y } : ClientTCP)))
+  get'RecvChan : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"RecvChan") #x (Val #(x.RecvChan'))
+  set'RecvChan : ∀ (x : ClientTCP) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"RecvChan") (PairV #x #y) (Val #(({ x with RecvChan' := y } : ClientTCP)))
+  get'SendChan : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"SendChan") #x (Val #(x.SendChan'))
+  set'SendChan : ∀ (x : ClientTCP) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"SendChan") (PairV #x #y) (Val #(({ x with SendChan' := y } : ClientTCP)))
+  get'Conn : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"Conn") #x (Val #(x.Conn'))
+  set'Conn : ∀ (x : ClientTCP) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"Conn") (PairV #x #y) (Val #(({ x with Conn' := y } : ClientTCP)))
+  get'Reader : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"Reader") #x (Val #(x.Reader'))
+  set'Reader : ∀ (x : ClientTCP) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"Reader") (PairV #x #y) (Val #(({ x with Reader' := y } : ClientTCP)))
+  get'Writer : ∀ (x : ClientTCP), go.IsGoStepPureDetTagged under (StructFieldGet ClientTCP.underlying go!"Writer") #x (Val #(x.Writer'))
+  set'Writer : ∀ (x : ClientTCP) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientTCP.underlying go!"Writer") (PairV #x #y) (Val #(({ x with Writer' := y } : ClientTCP)))
   method_set : go.MethodSetIs ClientTCP.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientTCP.ty) [(go!"Close", (some (go.signature.Signature [] false []))), (go!"Connect", (some (go.signature.Signature [] false []))), (go!"PrintStatus", (some (go.signature.Signature [] false []))), (go!"RecvHandler", (some (go.signature.Signature [] false []))), (go!"SendHandler", (some (go.signature.Signature [] false []))), (go!"rabia/internal/tcp.connect", (some (go.signature.Signature [] false [])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType ClientTCP.ty) go!"Close" ClientTCP.Close.impl
-  ptr_Connect_unfold : MethodUnfold (go.GoType.PointerType ClientTCP.ty) go!"Connect" ClientTCP.Connect.impl
-  ptr_PrintStatus_unfold : MethodUnfold (go.GoType.PointerType ClientTCP.ty) go!"PrintStatus" ClientTCP.PrintStatus.impl
-  ptr_RecvHandler_unfold : MethodUnfold (go.GoType.PointerType ClientTCP.ty) go!"RecvHandler" ClientTCP.RecvHandler.impl
-  ptr_SendHandler_unfold : MethodUnfold (go.GoType.PointerType ClientTCP.ty) go!"SendHandler" ClientTCP.SendHandler.impl
-  ptr_connect_unfold : MethodUnfold (go.GoType.PointerType ClientTCP.ty) go!"connect" ClientTCP.connect.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType ClientTCP.ty) go!"Close" ClientTCP.Close.impl
+  ptr_unfold'Connect : MethodUnfold (go.GoType.PointerType ClientTCP.ty) go!"Connect" ClientTCP.Connect.impl
+  ptr_unfold'PrintStatus : MethodUnfold (go.GoType.PointerType ClientTCP.ty) go!"PrintStatus" ClientTCP.PrintStatus.impl
+  ptr_unfold'RecvHandler : MethodUnfold (go.GoType.PointerType ClientTCP.ty) go!"RecvHandler" ClientTCP.RecvHandler.impl
+  ptr_unfold'SendHandler : MethodUnfold (go.GoType.PointerType ClientTCP.ty) go!"SendHandler" ClientTCP.SendHandler.impl
+  ptr_unfold'connect : MethodUnfold (go.GoType.PointerType ClientTCP.ty) go!"connect" ClientTCP.connect.impl
 
 attribute [instance] ClientTCP.TypeAssumptions.type_repr
   ClientTCP.TypeAssumptions.underlying
-  ClientTCP.TypeAssumptions.get_Id
-  ClientTCP.TypeAssumptions.set_Id
-  ClientTCP.TypeAssumptions.get_Wg
-  ClientTCP.TypeAssumptions.set_Wg
-  ClientTCP.TypeAssumptions.get_Done
-  ClientTCP.TypeAssumptions.set_Done
-  ClientTCP.TypeAssumptions.get_ProxyAddr
-  ClientTCP.TypeAssumptions.set_ProxyAddr
-  ClientTCP.TypeAssumptions.get_RecvChan
-  ClientTCP.TypeAssumptions.set_RecvChan
-  ClientTCP.TypeAssumptions.get_SendChan
-  ClientTCP.TypeAssumptions.set_SendChan
-  ClientTCP.TypeAssumptions.get_Conn
-  ClientTCP.TypeAssumptions.set_Conn
-  ClientTCP.TypeAssumptions.get_Reader
-  ClientTCP.TypeAssumptions.set_Reader
-  ClientTCP.TypeAssumptions.get_Writer
-  ClientTCP.TypeAssumptions.set_Writer
+  ClientTCP.TypeAssumptions.get'Id
+  ClientTCP.TypeAssumptions.set'Id
+  ClientTCP.TypeAssumptions.get'Wg
+  ClientTCP.TypeAssumptions.set'Wg
+  ClientTCP.TypeAssumptions.get'Done
+  ClientTCP.TypeAssumptions.set'Done
+  ClientTCP.TypeAssumptions.get'ProxyAddr
+  ClientTCP.TypeAssumptions.set'ProxyAddr
+  ClientTCP.TypeAssumptions.get'RecvChan
+  ClientTCP.TypeAssumptions.set'RecvChan
+  ClientTCP.TypeAssumptions.get'SendChan
+  ClientTCP.TypeAssumptions.set'SendChan
+  ClientTCP.TypeAssumptions.get'Conn
+  ClientTCP.TypeAssumptions.set'Conn
+  ClientTCP.TypeAssumptions.get'Reader
+  ClientTCP.TypeAssumptions.set'Reader
+  ClientTCP.TypeAssumptions.get'Writer
+  ClientTCP.TypeAssumptions.set'Writer
   ClientTCP.TypeAssumptions.method_set
   ClientTCP.TypeAssumptions.ptr_method_set
-  ClientTCP.TypeAssumptions.ptr_Close_unfold
-  ClientTCP.TypeAssumptions.ptr_Connect_unfold
-  ClientTCP.TypeAssumptions.ptr_PrintStatus_unfold
-  ClientTCP.TypeAssumptions.ptr_RecvHandler_unfold
-  ClientTCP.TypeAssumptions.ptr_SendHandler_unfold
-  ClientTCP.TypeAssumptions.ptr_connect_unfold
+  ClientTCP.TypeAssumptions.ptr_unfold'Close
+  ClientTCP.TypeAssumptions.ptr_unfold'Connect
+  ClientTCP.TypeAssumptions.ptr_unfold'PrintStatus
+  ClientTCP.TypeAssumptions.ptr_unfold'RecvHandler
+  ClientTCP.TypeAssumptions.ptr_unfold'SendHandler
+  ClientTCP.TypeAssumptions.ptr_unfold'connect
 
 structure ProxyTCP [GooseExts] where
   mk ::
@@ -1624,7 +1624,7 @@ noncomputable instance ProxyTCP.zero_val [GooseExts] : ZeroVal ProxyTCP :=
 @[irreducible] noncomputable def ProxyTCP.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProxyTCP.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProxyTCP [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProxyTCP [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProxyTCP.fields ProxyTCP.fieldsUnsealed :=
   ⟨by unfold ProxyTCP.fields; rfl⟩
 
@@ -1634,77 +1634,77 @@ noncomputable instance equals_unfold_ProxyTCP [GooseExts] [GoGlobalContext] :
 class ProxyTCP.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProxyTCP.underlying ProxyTCP
   underlying : go.UnderlyingDirectedEq ProxyTCP.ty ProxyTCP.underlying
-  get_Id : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"Id") #x (Val #(x.Id'))
-  set_Id : ∀ (x : ProxyTCP) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : ProxyTCP)))
-  get_Wg : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"Wg") #x (Val #(x.Wg'))
-  set_Wg : ∀ (x : ProxyTCP) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"Wg") (PairV #x #y) (Val #(({ x with Wg' := y } : ProxyTCP)))
-  get_Done : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"Done") #x (Val #(x.Done'))
-  set_Done : ∀ (x : ProxyTCP) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"Done") (PairV #x #y) (Val #(({ x with Done' := y } : ProxyTCP)))
-  get_ProxyAddr : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"ProxyAddr") #x (Val #(x.ProxyAddr'))
-  set_ProxyAddr : ∀ (x : ProxyTCP) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"ProxyAddr") (PairV #x #y) (Val #(({ x with ProxyAddr' := y } : ProxyTCP)))
-  get_RecvChan : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"RecvChan") #x (Val #(x.RecvChan'))
-  set_RecvChan : ∀ (x : ProxyTCP) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"RecvChan") (PairV #x #y) (Val #(({ x with RecvChan' := y } : ProxyTCP)))
-  get_SendChan : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"SendChan") #x (Val #(x.SendChan'))
-  set_SendChan : ∀ (x : ProxyTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"SendChan") (PairV #x #y) (Val #(({ x with SendChan' := y } : ProxyTCP)))
-  get_Listener : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"Listener") #x (Val #(x.Listener'))
-  set_Listener : ∀ (x : ProxyTCP) (y : _root_.Perennial.net.Listener), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"Listener") (PairV #x #y) (Val #(({ x with Listener' := y } : ProxyTCP)))
-  get_Conns : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"Conns") #x (Val #(x.Conns'))
-  set_Conns : ∀ (x : ProxyTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"Conns") (PairV #x #y) (Val #(({ x with Conns' := y } : ProxyTCP)))
-  get_Readers : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"Readers") #x (Val #(x.Readers'))
-  set_Readers : ∀ (x : ProxyTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"Readers") (PairV #x #y) (Val #(({ x with Readers' := y } : ProxyTCP)))
-  get_Writers : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"Writers") #x (Val #(x.Writers'))
-  set_Writers : ∀ (x : ProxyTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"Writers") (PairV #x #y) (Val #(({ x with Writers' := y } : ProxyTCP)))
-  get_ConnsLock : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"ConnsLock") #x (Val #(x.ConnsLock'))
-  set_ConnsLock : ∀ (x : ProxyTCP) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"ConnsLock") (PairV #x #y) (Val #(({ x with ConnsLock' := y } : ProxyTCP)))
+  get'Id : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"Id") #x (Val #(x.Id'))
+  set'Id : ∀ (x : ProxyTCP) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : ProxyTCP)))
+  get'Wg : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"Wg") #x (Val #(x.Wg'))
+  set'Wg : ∀ (x : ProxyTCP) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"Wg") (PairV #x #y) (Val #(({ x with Wg' := y } : ProxyTCP)))
+  get'Done : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"Done") #x (Val #(x.Done'))
+  set'Done : ∀ (x : ProxyTCP) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"Done") (PairV #x #y) (Val #(({ x with Done' := y } : ProxyTCP)))
+  get'ProxyAddr : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"ProxyAddr") #x (Val #(x.ProxyAddr'))
+  set'ProxyAddr : ∀ (x : ProxyTCP) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"ProxyAddr") (PairV #x #y) (Val #(({ x with ProxyAddr' := y } : ProxyTCP)))
+  get'RecvChan : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"RecvChan") #x (Val #(x.RecvChan'))
+  set'RecvChan : ∀ (x : ProxyTCP) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"RecvChan") (PairV #x #y) (Val #(({ x with RecvChan' := y } : ProxyTCP)))
+  get'SendChan : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"SendChan") #x (Val #(x.SendChan'))
+  set'SendChan : ∀ (x : ProxyTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"SendChan") (PairV #x #y) (Val #(({ x with SendChan' := y } : ProxyTCP)))
+  get'Listener : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"Listener") #x (Val #(x.Listener'))
+  set'Listener : ∀ (x : ProxyTCP) (y : _root_.Perennial.net.Listener), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"Listener") (PairV #x #y) (Val #(({ x with Listener' := y } : ProxyTCP)))
+  get'Conns : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"Conns") #x (Val #(x.Conns'))
+  set'Conns : ∀ (x : ProxyTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"Conns") (PairV #x #y) (Val #(({ x with Conns' := y } : ProxyTCP)))
+  get'Readers : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"Readers") #x (Val #(x.Readers'))
+  set'Readers : ∀ (x : ProxyTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"Readers") (PairV #x #y) (Val #(({ x with Readers' := y } : ProxyTCP)))
+  get'Writers : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"Writers") #x (Val #(x.Writers'))
+  set'Writers : ∀ (x : ProxyTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"Writers") (PairV #x #y) (Val #(({ x with Writers' := y } : ProxyTCP)))
+  get'ConnsLock : ∀ (x : ProxyTCP), go.IsGoStepPureDetTagged under (StructFieldGet ProxyTCP.underlying go!"ConnsLock") #x (Val #(x.ConnsLock'))
+  set'ConnsLock : ∀ (x : ProxyTCP) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ProxyTCP.underlying go!"ConnsLock") (PairV #x #y) (Val #(({ x with ConnsLock' := y } : ProxyTCP)))
   method_set : go.MethodSetIs ProxyTCP.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProxyTCP.ty) [(go!"ClientSendChan", (some (go.signature.Signature [go.uint32] false [(go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.rabia.internal.message.Command.ty)]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"Connect", (some (go.signature.Signature [] false []))), (go!"NumConns", (some (go.signature.Signature [] false [go.int]))), (go!"PrintStatus", (some (go.signature.Signature [] false []))), (go!"RecvHandler", (some (go.signature.Signature [go.int] false []))), (go!"SendHandler", (some (go.signature.Signature [go.int] false []))), (go!"rabia/internal/tcp.connect", (some (go.signature.Signature [] false []))), (go!"rabia/internal/tcp.recvLoop", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)] false []))), (go!"rabia/internal/tcp.sendLoop", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.rabia.internal.message.Command.ty), (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)] false [])))]
-  ptr_ClientSendChan_unfold : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"ClientSendChan" ProxyTCP.ClientSendChan.impl
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"Close" ProxyTCP.Close.impl
-  ptr_Connect_unfold : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"Connect" ProxyTCP.Connect.impl
-  ptr_NumConns_unfold : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"NumConns" ProxyTCP.NumConns.impl
-  ptr_PrintStatus_unfold : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"PrintStatus" ProxyTCP.PrintStatus.impl
-  ptr_RecvHandler_unfold : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"RecvHandler" ProxyTCP.RecvHandler.impl
-  ptr_SendHandler_unfold : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"SendHandler" ProxyTCP.SendHandler.impl
-  ptr_connect_unfold : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"connect" ProxyTCP.connect.impl
-  ptr_recvLoop_unfold : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"recvLoop" ProxyTCP.recvLoop.impl
-  ptr_sendLoop_unfold : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"sendLoop" ProxyTCP.sendLoop.impl
+  ptr_unfold'ClientSendChan : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"ClientSendChan" ProxyTCP.ClientSendChan.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"Close" ProxyTCP.Close.impl
+  ptr_unfold'Connect : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"Connect" ProxyTCP.Connect.impl
+  ptr_unfold'NumConns : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"NumConns" ProxyTCP.NumConns.impl
+  ptr_unfold'PrintStatus : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"PrintStatus" ProxyTCP.PrintStatus.impl
+  ptr_unfold'RecvHandler : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"RecvHandler" ProxyTCP.RecvHandler.impl
+  ptr_unfold'SendHandler : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"SendHandler" ProxyTCP.SendHandler.impl
+  ptr_unfold'connect : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"connect" ProxyTCP.connect.impl
+  ptr_unfold'recvLoop : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"recvLoop" ProxyTCP.recvLoop.impl
+  ptr_unfold'sendLoop : MethodUnfold (go.GoType.PointerType ProxyTCP.ty) go!"sendLoop" ProxyTCP.sendLoop.impl
 
 attribute [instance] ProxyTCP.TypeAssumptions.type_repr
   ProxyTCP.TypeAssumptions.underlying
-  ProxyTCP.TypeAssumptions.get_Id
-  ProxyTCP.TypeAssumptions.set_Id
-  ProxyTCP.TypeAssumptions.get_Wg
-  ProxyTCP.TypeAssumptions.set_Wg
-  ProxyTCP.TypeAssumptions.get_Done
-  ProxyTCP.TypeAssumptions.set_Done
-  ProxyTCP.TypeAssumptions.get_ProxyAddr
-  ProxyTCP.TypeAssumptions.set_ProxyAddr
-  ProxyTCP.TypeAssumptions.get_RecvChan
-  ProxyTCP.TypeAssumptions.set_RecvChan
-  ProxyTCP.TypeAssumptions.get_SendChan
-  ProxyTCP.TypeAssumptions.set_SendChan
-  ProxyTCP.TypeAssumptions.get_Listener
-  ProxyTCP.TypeAssumptions.set_Listener
-  ProxyTCP.TypeAssumptions.get_Conns
-  ProxyTCP.TypeAssumptions.set_Conns
-  ProxyTCP.TypeAssumptions.get_Readers
-  ProxyTCP.TypeAssumptions.set_Readers
-  ProxyTCP.TypeAssumptions.get_Writers
-  ProxyTCP.TypeAssumptions.set_Writers
-  ProxyTCP.TypeAssumptions.get_ConnsLock
-  ProxyTCP.TypeAssumptions.set_ConnsLock
+  ProxyTCP.TypeAssumptions.get'Id
+  ProxyTCP.TypeAssumptions.set'Id
+  ProxyTCP.TypeAssumptions.get'Wg
+  ProxyTCP.TypeAssumptions.set'Wg
+  ProxyTCP.TypeAssumptions.get'Done
+  ProxyTCP.TypeAssumptions.set'Done
+  ProxyTCP.TypeAssumptions.get'ProxyAddr
+  ProxyTCP.TypeAssumptions.set'ProxyAddr
+  ProxyTCP.TypeAssumptions.get'RecvChan
+  ProxyTCP.TypeAssumptions.set'RecvChan
+  ProxyTCP.TypeAssumptions.get'SendChan
+  ProxyTCP.TypeAssumptions.set'SendChan
+  ProxyTCP.TypeAssumptions.get'Listener
+  ProxyTCP.TypeAssumptions.set'Listener
+  ProxyTCP.TypeAssumptions.get'Conns
+  ProxyTCP.TypeAssumptions.set'Conns
+  ProxyTCP.TypeAssumptions.get'Readers
+  ProxyTCP.TypeAssumptions.set'Readers
+  ProxyTCP.TypeAssumptions.get'Writers
+  ProxyTCP.TypeAssumptions.set'Writers
+  ProxyTCP.TypeAssumptions.get'ConnsLock
+  ProxyTCP.TypeAssumptions.set'ConnsLock
   ProxyTCP.TypeAssumptions.method_set
   ProxyTCP.TypeAssumptions.ptr_method_set
-  ProxyTCP.TypeAssumptions.ptr_ClientSendChan_unfold
-  ProxyTCP.TypeAssumptions.ptr_Close_unfold
-  ProxyTCP.TypeAssumptions.ptr_Connect_unfold
-  ProxyTCP.TypeAssumptions.ptr_NumConns_unfold
-  ProxyTCP.TypeAssumptions.ptr_PrintStatus_unfold
-  ProxyTCP.TypeAssumptions.ptr_RecvHandler_unfold
-  ProxyTCP.TypeAssumptions.ptr_SendHandler_unfold
-  ProxyTCP.TypeAssumptions.ptr_connect_unfold
-  ProxyTCP.TypeAssumptions.ptr_recvLoop_unfold
-  ProxyTCP.TypeAssumptions.ptr_sendLoop_unfold
+  ProxyTCP.TypeAssumptions.ptr_unfold'ClientSendChan
+  ProxyTCP.TypeAssumptions.ptr_unfold'Close
+  ProxyTCP.TypeAssumptions.ptr_unfold'Connect
+  ProxyTCP.TypeAssumptions.ptr_unfold'NumConns
+  ProxyTCP.TypeAssumptions.ptr_unfold'PrintStatus
+  ProxyTCP.TypeAssumptions.ptr_unfold'RecvHandler
+  ProxyTCP.TypeAssumptions.ptr_unfold'SendHandler
+  ProxyTCP.TypeAssumptions.ptr_unfold'connect
+  ProxyTCP.TypeAssumptions.ptr_unfold'recvLoop
+  ProxyTCP.TypeAssumptions.ptr_unfold'sendLoop
 
 structure NetTCP [GooseExts] where
   mk ::
@@ -1739,7 +1739,7 @@ noncomputable instance NetTCP.zero_val [GooseExts] : ZeroVal NetTCP :=
 @[irreducible] noncomputable def NetTCP.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NetTCP.fieldsUnsealed
 
-noncomputable instance equals_unfold_NetTCP [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'NetTCP [GooseExts] [GoGlobalContext] :
     EqualsUnfold NetTCP.fields NetTCP.fieldsUnsealed :=
   ⟨by unfold NetTCP.fields; rfl⟩
 
@@ -1749,102 +1749,102 @@ noncomputable instance equals_unfold_NetTCP [GooseExts] [GoGlobalContext] :
 class NetTCP.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NetTCP.underlying NetTCP
   underlying : go.UnderlyingDirectedEq NetTCP.ty NetTCP.underlying
-  get_Id : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"Id") #x (Val #(x.Id'))
-  set_Id : ∀ (x : NetTCP) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : NetTCP)))
-  get_Done : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"Done") #x (Val #(x.Done'))
-  set_Done : ∀ (x : NetTCP) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"Done") (PairV #x #y) (Val #(({ x with Done' := y } : NetTCP)))
-  get_Wg : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"Wg") #x (Val #(x.Wg'))
-  set_Wg : ∀ (x : NetTCP) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"Wg") (PairV #x #y) (Val #(({ x with Wg' := y } : NetTCP)))
-  get_NetAddr : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"NetAddr") #x (Val #(x.NetAddr'))
-  set_NetAddr : ∀ (x : NetTCP) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"NetAddr") (PairV #x #y) (Val #(({ x with NetAddr' := y } : NetTCP)))
-  get_RecvChan : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"RecvChan") #x (Val #(x.RecvChan'))
-  set_RecvChan : ∀ (x : NetTCP) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"RecvChan") (PairV #x #y) (Val #(({ x with RecvChan' := y } : NetTCP)))
-  get_SendChan : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"SendChan") #x (Val #(x.SendChan'))
-  set_SendChan : ∀ (x : NetTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"SendChan") (PairV #x #y) (Val #(({ x with SendChan' := y } : NetTCP)))
-  get_Listener : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"Listener") #x (Val #(x.Listener'))
-  set_Listener : ∀ (x : NetTCP) (y : _root_.Perennial.net.Listener), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"Listener") (PairV #x #y) (Val #(({ x with Listener' := y } : NetTCP)))
-  get_RecvConn : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"RecvConn") #x (Val #(x.RecvConn'))
-  set_RecvConn : ∀ (x : NetTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"RecvConn") (PairV #x #y) (Val #(({ x with RecvConn' := y } : NetTCP)))
-  get_SendConn : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"SendConn") #x (Val #(x.SendConn'))
-  set_SendConn : ∀ (x : NetTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"SendConn") (PairV #x #y) (Val #(({ x with SendConn' := y } : NetTCP)))
-  get_Readers : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"Readers") #x (Val #(x.Readers'))
-  set_Readers : ∀ (x : NetTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"Readers") (PairV #x #y) (Val #(({ x with Readers' := y } : NetTCP)))
-  get_Writers : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"Writers") #x (Val #(x.Writers'))
-  set_Writers : ∀ (x : NetTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"Writers") (PairV #x #y) (Val #(({ x with Writers' := y } : NetTCP)))
+  get'Id : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"Id") #x (Val #(x.Id'))
+  set'Id : ∀ (x : NetTCP) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : NetTCP)))
+  get'Done : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"Done") #x (Val #(x.Done'))
+  set'Done : ∀ (x : NetTCP) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"Done") (PairV #x #y) (Val #(({ x with Done' := y } : NetTCP)))
+  get'Wg : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"Wg") #x (Val #(x.Wg'))
+  set'Wg : ∀ (x : NetTCP) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"Wg") (PairV #x #y) (Val #(({ x with Wg' := y } : NetTCP)))
+  get'NetAddr : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"NetAddr") #x (Val #(x.NetAddr'))
+  set'NetAddr : ∀ (x : NetTCP) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"NetAddr") (PairV #x #y) (Val #(({ x with NetAddr' := y } : NetTCP)))
+  get'RecvChan : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"RecvChan") #x (Val #(x.RecvChan'))
+  set'RecvChan : ∀ (x : NetTCP) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"RecvChan") (PairV #x #y) (Val #(({ x with RecvChan' := y } : NetTCP)))
+  get'SendChan : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"SendChan") #x (Val #(x.SendChan'))
+  set'SendChan : ∀ (x : NetTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"SendChan") (PairV #x #y) (Val #(({ x with SendChan' := y } : NetTCP)))
+  get'Listener : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"Listener") #x (Val #(x.Listener'))
+  set'Listener : ∀ (x : NetTCP) (y : _root_.Perennial.net.Listener), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"Listener") (PairV #x #y) (Val #(({ x with Listener' := y } : NetTCP)))
+  get'RecvConn : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"RecvConn") #x (Val #(x.RecvConn'))
+  set'RecvConn : ∀ (x : NetTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"RecvConn") (PairV #x #y) (Val #(({ x with RecvConn' := y } : NetTCP)))
+  get'SendConn : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"SendConn") #x (Val #(x.SendConn'))
+  set'SendConn : ∀ (x : NetTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"SendConn") (PairV #x #y) (Val #(({ x with SendConn' := y } : NetTCP)))
+  get'Readers : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"Readers") #x (Val #(x.Readers'))
+  set'Readers : ∀ (x : NetTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"Readers") (PairV #x #y) (Val #(({ x with Readers' := y } : NetTCP)))
+  get'Writers : ∀ (x : NetTCP), go.IsGoStepPureDetTagged under (StructFieldGet NetTCP.underlying go!"Writers") #x (Val #(x.Writers'))
+  set'Writers : ∀ (x : NetTCP) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetTCP.underlying go!"Writers") (PairV #x #y) (Val #(({ x with Writers' := y } : NetTCP)))
   method_set : go.MethodSetIs NetTCP.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType NetTCP.ty) [(go!"Close", (some (go.signature.Signature [] false []))), (go!"Connect", (some (go.signature.Signature [] false []))), (go!"PrintStatus", (some (go.signature.Signature [] false []))), (go!"RecvHandler", (some (go.signature.Signature [go.int] false []))), (go!"SendHandler", (some (go.signature.Signature [go.int] false []))), (go!"rabia/internal/tcp.accepting", (some (go.signature.Signature [] false []))), (go!"rabia/internal/tcp.dialing", (some (go.signature.Signature [] false [])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType NetTCP.ty) go!"Close" NetTCP.Close.impl
-  ptr_Connect_unfold : MethodUnfold (go.GoType.PointerType NetTCP.ty) go!"Connect" NetTCP.Connect.impl
-  ptr_PrintStatus_unfold : MethodUnfold (go.GoType.PointerType NetTCP.ty) go!"PrintStatus" NetTCP.PrintStatus.impl
-  ptr_RecvHandler_unfold : MethodUnfold (go.GoType.PointerType NetTCP.ty) go!"RecvHandler" NetTCP.RecvHandler.impl
-  ptr_SendHandler_unfold : MethodUnfold (go.GoType.PointerType NetTCP.ty) go!"SendHandler" NetTCP.SendHandler.impl
-  ptr_accepting_unfold : MethodUnfold (go.GoType.PointerType NetTCP.ty) go!"accepting" NetTCP.accepting.impl
-  ptr_dialing_unfold : MethodUnfold (go.GoType.PointerType NetTCP.ty) go!"dialing" NetTCP.dialing.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType NetTCP.ty) go!"Close" NetTCP.Close.impl
+  ptr_unfold'Connect : MethodUnfold (go.GoType.PointerType NetTCP.ty) go!"Connect" NetTCP.Connect.impl
+  ptr_unfold'PrintStatus : MethodUnfold (go.GoType.PointerType NetTCP.ty) go!"PrintStatus" NetTCP.PrintStatus.impl
+  ptr_unfold'RecvHandler : MethodUnfold (go.GoType.PointerType NetTCP.ty) go!"RecvHandler" NetTCP.RecvHandler.impl
+  ptr_unfold'SendHandler : MethodUnfold (go.GoType.PointerType NetTCP.ty) go!"SendHandler" NetTCP.SendHandler.impl
+  ptr_unfold'accepting : MethodUnfold (go.GoType.PointerType NetTCP.ty) go!"accepting" NetTCP.accepting.impl
+  ptr_unfold'dialing : MethodUnfold (go.GoType.PointerType NetTCP.ty) go!"dialing" NetTCP.dialing.impl
 
 attribute [instance] NetTCP.TypeAssumptions.type_repr
   NetTCP.TypeAssumptions.underlying
-  NetTCP.TypeAssumptions.get_Id
-  NetTCP.TypeAssumptions.set_Id
-  NetTCP.TypeAssumptions.get_Done
-  NetTCP.TypeAssumptions.set_Done
-  NetTCP.TypeAssumptions.get_Wg
-  NetTCP.TypeAssumptions.set_Wg
-  NetTCP.TypeAssumptions.get_NetAddr
-  NetTCP.TypeAssumptions.set_NetAddr
-  NetTCP.TypeAssumptions.get_RecvChan
-  NetTCP.TypeAssumptions.set_RecvChan
-  NetTCP.TypeAssumptions.get_SendChan
-  NetTCP.TypeAssumptions.set_SendChan
-  NetTCP.TypeAssumptions.get_Listener
-  NetTCP.TypeAssumptions.set_Listener
-  NetTCP.TypeAssumptions.get_RecvConn
-  NetTCP.TypeAssumptions.set_RecvConn
-  NetTCP.TypeAssumptions.get_SendConn
-  NetTCP.TypeAssumptions.set_SendConn
-  NetTCP.TypeAssumptions.get_Readers
-  NetTCP.TypeAssumptions.set_Readers
-  NetTCP.TypeAssumptions.get_Writers
-  NetTCP.TypeAssumptions.set_Writers
+  NetTCP.TypeAssumptions.get'Id
+  NetTCP.TypeAssumptions.set'Id
+  NetTCP.TypeAssumptions.get'Done
+  NetTCP.TypeAssumptions.set'Done
+  NetTCP.TypeAssumptions.get'Wg
+  NetTCP.TypeAssumptions.set'Wg
+  NetTCP.TypeAssumptions.get'NetAddr
+  NetTCP.TypeAssumptions.set'NetAddr
+  NetTCP.TypeAssumptions.get'RecvChan
+  NetTCP.TypeAssumptions.set'RecvChan
+  NetTCP.TypeAssumptions.get'SendChan
+  NetTCP.TypeAssumptions.set'SendChan
+  NetTCP.TypeAssumptions.get'Listener
+  NetTCP.TypeAssumptions.set'Listener
+  NetTCP.TypeAssumptions.get'RecvConn
+  NetTCP.TypeAssumptions.set'RecvConn
+  NetTCP.TypeAssumptions.get'SendConn
+  NetTCP.TypeAssumptions.set'SendConn
+  NetTCP.TypeAssumptions.get'Readers
+  NetTCP.TypeAssumptions.set'Readers
+  NetTCP.TypeAssumptions.get'Writers
+  NetTCP.TypeAssumptions.set'Writers
   NetTCP.TypeAssumptions.method_set
   NetTCP.TypeAssumptions.ptr_method_set
-  NetTCP.TypeAssumptions.ptr_Close_unfold
-  NetTCP.TypeAssumptions.ptr_Connect_unfold
-  NetTCP.TypeAssumptions.ptr_PrintStatus_unfold
-  NetTCP.TypeAssumptions.ptr_RecvHandler_unfold
-  NetTCP.TypeAssumptions.ptr_SendHandler_unfold
-  NetTCP.TypeAssumptions.ptr_accepting_unfold
-  NetTCP.TypeAssumptions.ptr_dialing_unfold
+  NetTCP.TypeAssumptions.ptr_unfold'Close
+  NetTCP.TypeAssumptions.ptr_unfold'Connect
+  NetTCP.TypeAssumptions.ptr_unfold'PrintStatus
+  NetTCP.TypeAssumptions.ptr_unfold'RecvHandler
+  NetTCP.TypeAssumptions.ptr_unfold'SendHandler
+  NetTCP.TypeAssumptions.ptr_unfold'accepting
+  NetTCP.TypeAssumptions.ptr_unfold'dialing
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ClientTCP_instance : ClientTCP.TypeAssumptions
-  ProxyTCP_instance : ProxyTCP.TypeAssumptions
-  NetTCP_instance : NetTCP.TypeAssumptions
-  GetReaderWriter_unfold : FuncUnfold GetReaderWriter [] GetReaderWriter.impl
-  ClientTcpInit_unfold : FuncUnfold ClientTcpInit [] ClientTcpInit.impl
-  ProxyTcpInit_unfold : FuncUnfold ProxyTcpInit [] ProxyTcpInit.impl
-  NetTCPInit_unfold : FuncUnfold NetTCPInit [] NetTCPInit.impl
-  import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_config_Assumption : _root_.Perennial.rabia.internal.config.Assumptions
-  import_message_Assumption : _root_.Perennial.rabia.internal.message.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'ClientTCP : ClientTCP.TypeAssumptions
+  instance'ProxyTCP : ProxyTCP.TypeAssumptions
+  instance'NetTCP : NetTCP.TypeAssumptions
+  unfold'GetReaderWriter : FuncUnfold GetReaderWriter [] GetReaderWriter.impl
+  unfold'ClientTcpInit : FuncUnfold ClientTcpInit [] ClientTcpInit.impl
+  unfold'ProxyTcpInit : FuncUnfold ProxyTcpInit [] ProxyTcpInit.impl
+  unfold'NetTCPInit : FuncUnfold NetTCPInit [] NetTCPInit.impl
+  import'bufio : _root_.Perennial.bufio.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'net : _root_.Perennial.net.Assumptions
+  import'config : _root_.Perennial.rabia.internal.config.Assumptions
+  import'message : _root_.Perennial.rabia.internal.message.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.ClientTCP_instance
-  Assumptions.ProxyTCP_instance
-  Assumptions.NetTCP_instance
-  Assumptions.GetReaderWriter_unfold
-  Assumptions.ClientTcpInit_unfold
-  Assumptions.ProxyTcpInit_unfold
-  Assumptions.NetTCPInit_unfold
-  Assumptions.import_bufio_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_net_Assumption
-  Assumptions.import_config_Assumption
-  Assumptions.import_message_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'ClientTCP
+  Assumptions.instance'ProxyTCP
+  Assumptions.instance'NetTCP
+  Assumptions.unfold'GetReaderWriter
+  Assumptions.unfold'ClientTcpInit
+  Assumptions.unfold'ProxyTcpInit
+  Assumptions.unfold'NetTCPInit
+  Assumptions.import'bufio
+  Assumptions.import'fmt
+  Assumptions.import'net
+  Assumptions.import'config
+  Assumptions.import'message
+  Assumptions.import'sync
+  Assumptions.import'time
 
 end rabia.internal.tcp
 

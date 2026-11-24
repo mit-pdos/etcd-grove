@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.cache.Assumptions]
 
-noncomputable instance Expiring_typed_pointsto :
+noncomputable instance typed_pointsto'Expiring :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.cache.Expiring :=
   sorry -- axiomatized type
 
-noncomputable instance Expiring_into_val_typed :
+noncomputable instance into_val_typed'Expiring :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.cache.Expiring k8s_io.apimachinery.pkg.util.cache.Expiring.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.cache.Assumptions]
 
-noncomputable instance entry_typed_pointsto :
+noncomputable instance typed_pointsto'entry :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.cache.entry :=
   sorry -- axiomatized type
 
-noncomputable instance entry_into_val_typed :
+noncomputable instance into_val_typed'entry :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.cache.entry k8s_io.apimachinery.pkg.util.cache.entry.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.cache.Assumptions]
 
-noncomputable instance expiringHeapEntry_typed_pointsto :
+noncomputable instance typed_pointsto'expiringHeapEntry :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.cache.expiringHeapEntry :=
   sorry -- axiomatized type
 
-noncomputable instance expiringHeapEntry_into_val_typed :
+noncomputable instance into_val_typed'expiringHeapEntry :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.cache.expiringHeapEntry k8s_io.apimachinery.pkg.util.cache.expiringHeapEntry.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.cache.Assumptions]
 
-noncomputable instance Clock_typed_pointsto :
+noncomputable instance typed_pointsto'Clock :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.cache.Clock :=
   sorry -- axiomatized type
 
-noncomputable instance Clock_into_val_typed :
+noncomputable instance into_val_typed'Clock :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.cache.Clock k8s_io.apimachinery.pkg.util.cache.Clock.underlying :=
   sorry -- axiomatized type
 
@@ -100,7 +100,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.cache.Assumptions]
 
-noncomputable instance realClock_typed_pointsto :
+noncomputable instance typed_pointsto'realClock :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.cache.realClock where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -108,7 +108,7 @@ noncomputable instance realClock_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance realClock_into_val_typed :
+noncomputable instance into_val_typed'realClock :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.cache.realClock k8s_io.apimachinery.pkg.util.cache.realClock.underlying := by
   solve_into_val_typed_struct
 
@@ -123,11 +123,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.cache.Assumptions]
 
-noncomputable instance LRUExpireCache_typed_pointsto :
+noncomputable instance typed_pointsto'LRUExpireCache :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.cache.LRUExpireCache :=
   sorry -- axiomatized type
 
-noncomputable instance LRUExpireCache_into_val_typed :
+noncomputable instance into_val_typed'LRUExpireCache :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.cache.LRUExpireCache k8s_io.apimachinery.pkg.util.cache.LRUExpireCache.underlying :=
   sorry -- axiomatized type
 
@@ -142,11 +142,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.cache.Assumptions]
 
-noncomputable instance cacheEntry_typed_pointsto :
+noncomputable instance typed_pointsto'cacheEntry :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.cache.cacheEntry :=
   sorry -- axiomatized type
 
-noncomputable instance cacheEntry_into_val_typed :
+noncomputable instance into_val_typed'cacheEntry :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.cache.cacheEntry k8s_io.apimachinery.pkg.util.cache.cacheEntry.underlying :=
   sorry -- axiomatized type
 

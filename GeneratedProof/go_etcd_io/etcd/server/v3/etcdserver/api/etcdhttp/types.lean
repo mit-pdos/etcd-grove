@@ -24,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.Assumptions]
 
-noncomputable instance HTTPError_typed_pointsto :
+noncomputable instance typed_pointsto'HTTPError :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError where
   typedPointstoDef l v dq := iprop(
     "Message" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) v.Message' dq ∗
@@ -34,11 +34,11 @@ noncomputable instance HTTPError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance HTTPError_into_val_typed :
+noncomputable instance into_val_typed'HTTPError :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance HTTPError_access_load_Message (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (dq : DFrac) :
+noncomputable instance access_load'HTTPError'Message (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) v.Message' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) v.Message' dq)
@@ -46,7 +46,7 @@ noncomputable instance HTTPError_access_load_Message (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance HTTPError_access_store_Message (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (y : GoString) :
+noncomputable instance access_store'HTTPError'Message (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) v.Message' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) y (DFrac.own 1))
@@ -54,7 +54,7 @@ noncomputable instance HTTPError_access_store_Message (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance HTTPError_access_load_Code (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (dq : DFrac) :
+noncomputable instance access_load'HTTPError'Code (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) v.Code' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) v.Code' dq)
@@ -62,7 +62,7 @@ noncomputable instance HTTPError_access_load_Code (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance HTTPError_access_store_Code (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (y : w64) :
+noncomputable instance access_store'HTTPError'Code (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) v.Code' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) y (DFrac.own 1))

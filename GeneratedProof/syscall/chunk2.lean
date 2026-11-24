@@ -28,7 +28,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance RawSockaddrUnix_typed_pointsto :
+noncomputable instance typed_pointsto'RawSockaddrUnix :
     TypedPointsto (GF := GF) syscall.RawSockaddrUnix where
   typedPointstoDef l v dq := iprop(
     "Family" ∷ typedPointsto (structFieldRef syscall.RawSockaddrUnix go!"Family" l) v.Family' dq ∗
@@ -38,11 +38,11 @@ noncomputable instance RawSockaddrUnix_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance RawSockaddrUnix_into_val_typed :
+noncomputable instance into_val_typed'RawSockaddrUnix :
     IntoValTypedUnderlying (GF := GF) syscall.RawSockaddrUnix syscall.RawSockaddrUnix.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance RawSockaddrUnix_access_load_Family (l : Loc) (v : syscall.RawSockaddrUnix) (dq : DFrac) :
+noncomputable instance access_load'RawSockaddrUnix'Family (l : Loc) (v : syscall.RawSockaddrUnix) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.RawSockaddrUnix go!"Family" l) v.Family' dq)
       (typedPointsto (structFieldRef syscall.RawSockaddrUnix go!"Family" l) v.Family' dq)
@@ -50,7 +50,7 @@ noncomputable instance RawSockaddrUnix_access_load_Family (l : Loc) (v : syscall
  by
   solve_pointsto_access_struct
 
-noncomputable instance RawSockaddrUnix_access_store_Family (l : Loc) (v : syscall.RawSockaddrUnix) (y : w16) :
+noncomputable instance access_store'RawSockaddrUnix'Family (l : Loc) (v : syscall.RawSockaddrUnix) (y : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.RawSockaddrUnix go!"Family" l) v.Family' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.RawSockaddrUnix go!"Family" l) y (DFrac.own 1))
@@ -58,7 +58,7 @@ noncomputable instance RawSockaddrUnix_access_store_Family (l : Loc) (v : syscal
  by
   solve_pointsto_access_struct
 
-noncomputable instance RawSockaddrUnix_access_load_Path (l : Loc) (v : syscall.RawSockaddrUnix) (dq : DFrac) :
+noncomputable instance access_load'RawSockaddrUnix'Path (l : Loc) (v : syscall.RawSockaddrUnix) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.RawSockaddrUnix go!"Path" l) v.Path' dq)
       (typedPointsto (structFieldRef syscall.RawSockaddrUnix go!"Path" l) v.Path' dq)
@@ -66,7 +66,7 @@ noncomputable instance RawSockaddrUnix_access_load_Path (l : Loc) (v : syscall.R
  by
   solve_pointsto_access_struct
 
-noncomputable instance RawSockaddrUnix_access_store_Path (l : Loc) (v : syscall.RawSockaddrUnix) (y : (GoArray w8 108)) :
+noncomputable instance access_store'RawSockaddrUnix'Path (l : Loc) (v : syscall.RawSockaddrUnix) (y : (GoArray w8 108)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.RawSockaddrUnix go!"Path" l) v.Path' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.RawSockaddrUnix go!"Path" l) y (DFrac.own 1))
@@ -85,7 +85,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance Timespec_typed_pointsto :
+noncomputable instance typed_pointsto'Timespec :
     TypedPointsto (GF := GF) syscall.Timespec where
   typedPointstoDef l v dq := iprop(
     "Sec" ∷ typedPointsto (structFieldRef syscall.Timespec go!"Sec" l) v.Sec' dq ∗
@@ -95,11 +95,11 @@ noncomputable instance Timespec_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Timespec_into_val_typed :
+noncomputable instance into_val_typed'Timespec :
     IntoValTypedUnderlying (GF := GF) syscall.Timespec syscall.Timespec.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Timespec_access_load_Sec (l : Loc) (v : syscall.Timespec) (dq : DFrac) :
+noncomputable instance access_load'Timespec'Sec (l : Loc) (v : syscall.Timespec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Timespec go!"Sec" l) v.Sec' dq)
       (typedPointsto (structFieldRef syscall.Timespec go!"Sec" l) v.Sec' dq)
@@ -107,7 +107,7 @@ noncomputable instance Timespec_access_load_Sec (l : Loc) (v : syscall.Timespec)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Timespec_access_store_Sec (l : Loc) (v : syscall.Timespec) (y : w64) :
+noncomputable instance access_store'Timespec'Sec (l : Loc) (v : syscall.Timespec) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Timespec go!"Sec" l) v.Sec' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Timespec go!"Sec" l) y (DFrac.own 1))
@@ -115,7 +115,7 @@ noncomputable instance Timespec_access_store_Sec (l : Loc) (v : syscall.Timespec
  by
   solve_pointsto_access_struct
 
-noncomputable instance Timespec_access_load_Nsec (l : Loc) (v : syscall.Timespec) (dq : DFrac) :
+noncomputable instance access_load'Timespec'Nsec (l : Loc) (v : syscall.Timespec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Timespec go!"Nsec" l) v.Nsec' dq)
       (typedPointsto (structFieldRef syscall.Timespec go!"Nsec" l) v.Nsec' dq)
@@ -123,7 +123,7 @@ noncomputable instance Timespec_access_load_Nsec (l : Loc) (v : syscall.Timespec
  by
   solve_pointsto_access_struct
 
-noncomputable instance Timespec_access_store_Nsec (l : Loc) (v : syscall.Timespec) (y : w64) :
+noncomputable instance access_store'Timespec'Nsec (l : Loc) (v : syscall.Timespec) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Timespec go!"Nsec" l) v.Nsec' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Timespec go!"Nsec" l) y (DFrac.own 1))
@@ -142,7 +142,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance Timeval_typed_pointsto :
+noncomputable instance typed_pointsto'Timeval :
     TypedPointsto (GF := GF) syscall.Timeval where
   typedPointstoDef l v dq := iprop(
     "Sec" ∷ typedPointsto (structFieldRef syscall.Timeval go!"Sec" l) v.Sec' dq ∗
@@ -152,11 +152,11 @@ noncomputable instance Timeval_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Timeval_into_val_typed :
+noncomputable instance into_val_typed'Timeval :
     IntoValTypedUnderlying (GF := GF) syscall.Timeval syscall.Timeval.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Timeval_access_load_Sec (l : Loc) (v : syscall.Timeval) (dq : DFrac) :
+noncomputable instance access_load'Timeval'Sec (l : Loc) (v : syscall.Timeval) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Timeval go!"Sec" l) v.Sec' dq)
       (typedPointsto (structFieldRef syscall.Timeval go!"Sec" l) v.Sec' dq)
@@ -164,7 +164,7 @@ noncomputable instance Timeval_access_load_Sec (l : Loc) (v : syscall.Timeval) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance Timeval_access_store_Sec (l : Loc) (v : syscall.Timeval) (y : w64) :
+noncomputable instance access_store'Timeval'Sec (l : Loc) (v : syscall.Timeval) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Timeval go!"Sec" l) v.Sec' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Timeval go!"Sec" l) y (DFrac.own 1))
@@ -172,7 +172,7 @@ noncomputable instance Timeval_access_store_Sec (l : Loc) (v : syscall.Timeval) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Timeval_access_load_Usec (l : Loc) (v : syscall.Timeval) (dq : DFrac) :
+noncomputable instance access_load'Timeval'Usec (l : Loc) (v : syscall.Timeval) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Timeval go!"Usec" l) v.Usec' dq)
       (typedPointsto (structFieldRef syscall.Timeval go!"Usec" l) v.Usec' dq)
@@ -180,7 +180,7 @@ noncomputable instance Timeval_access_load_Usec (l : Loc) (v : syscall.Timeval) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Timeval_access_store_Usec (l : Loc) (v : syscall.Timeval) (y : w64) :
+noncomputable instance access_store'Timeval'Usec (l : Loc) (v : syscall.Timeval) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Timeval go!"Usec" l) v.Usec' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Timeval go!"Usec" l) y (DFrac.own 1))
@@ -199,7 +199,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance Tms_typed_pointsto :
+noncomputable instance typed_pointsto'Tms :
     TypedPointsto (GF := GF) syscall.Tms where
   typedPointstoDef l v dq := iprop(
     "Utime" ∷ typedPointsto (structFieldRef syscall.Tms go!"Utime" l) v.Utime' dq ∗
@@ -211,11 +211,11 @@ noncomputable instance Tms_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Tms_into_val_typed :
+noncomputable instance into_val_typed'Tms :
     IntoValTypedUnderlying (GF := GF) syscall.Tms syscall.Tms.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Tms_access_load_Utime (l : Loc) (v : syscall.Tms) (dq : DFrac) :
+noncomputable instance access_load'Tms'Utime (l : Loc) (v : syscall.Tms) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Tms go!"Utime" l) v.Utime' dq)
       (typedPointsto (structFieldRef syscall.Tms go!"Utime" l) v.Utime' dq)
@@ -223,7 +223,7 @@ noncomputable instance Tms_access_load_Utime (l : Loc) (v : syscall.Tms) (dq : D
  by
   solve_pointsto_access_struct
 
-noncomputable instance Tms_access_store_Utime (l : Loc) (v : syscall.Tms) (y : w64) :
+noncomputable instance access_store'Tms'Utime (l : Loc) (v : syscall.Tms) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Tms go!"Utime" l) v.Utime' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Tms go!"Utime" l) y (DFrac.own 1))
@@ -231,7 +231,7 @@ noncomputable instance Tms_access_store_Utime (l : Loc) (v : syscall.Tms) (y : w
  by
   solve_pointsto_access_struct
 
-noncomputable instance Tms_access_load_Stime (l : Loc) (v : syscall.Tms) (dq : DFrac) :
+noncomputable instance access_load'Tms'Stime (l : Loc) (v : syscall.Tms) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Tms go!"Stime" l) v.Stime' dq)
       (typedPointsto (structFieldRef syscall.Tms go!"Stime" l) v.Stime' dq)
@@ -239,7 +239,7 @@ noncomputable instance Tms_access_load_Stime (l : Loc) (v : syscall.Tms) (dq : D
  by
   solve_pointsto_access_struct
 
-noncomputable instance Tms_access_store_Stime (l : Loc) (v : syscall.Tms) (y : w64) :
+noncomputable instance access_store'Tms'Stime (l : Loc) (v : syscall.Tms) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Tms go!"Stime" l) v.Stime' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Tms go!"Stime" l) y (DFrac.own 1))
@@ -247,7 +247,7 @@ noncomputable instance Tms_access_store_Stime (l : Loc) (v : syscall.Tms) (y : w
  by
   solve_pointsto_access_struct
 
-noncomputable instance Tms_access_load_Cutime (l : Loc) (v : syscall.Tms) (dq : DFrac) :
+noncomputable instance access_load'Tms'Cutime (l : Loc) (v : syscall.Tms) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Tms go!"Cutime" l) v.Cutime' dq)
       (typedPointsto (structFieldRef syscall.Tms go!"Cutime" l) v.Cutime' dq)
@@ -255,7 +255,7 @@ noncomputable instance Tms_access_load_Cutime (l : Loc) (v : syscall.Tms) (dq : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Tms_access_store_Cutime (l : Loc) (v : syscall.Tms) (y : w64) :
+noncomputable instance access_store'Tms'Cutime (l : Loc) (v : syscall.Tms) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Tms go!"Cutime" l) v.Cutime' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Tms go!"Cutime" l) y (DFrac.own 1))
@@ -263,7 +263,7 @@ noncomputable instance Tms_access_store_Cutime (l : Loc) (v : syscall.Tms) (y : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Tms_access_load_Cstime (l : Loc) (v : syscall.Tms) (dq : DFrac) :
+noncomputable instance access_load'Tms'Cstime (l : Loc) (v : syscall.Tms) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Tms go!"Cstime" l) v.Cstime' dq)
       (typedPointsto (structFieldRef syscall.Tms go!"Cstime" l) v.Cstime' dq)
@@ -271,7 +271,7 @@ noncomputable instance Tms_access_load_Cstime (l : Loc) (v : syscall.Tms) (dq : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Tms_access_store_Cstime (l : Loc) (v : syscall.Tms) (y : w64) :
+noncomputable instance access_store'Tms'Cstime (l : Loc) (v : syscall.Tms) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Tms go!"Cstime" l) v.Cstime' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Tms go!"Cstime" l) y (DFrac.own 1))
@@ -290,7 +290,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance Utimbuf_typed_pointsto :
+noncomputable instance typed_pointsto'Utimbuf :
     TypedPointsto (GF := GF) syscall.Utimbuf where
   typedPointstoDef l v dq := iprop(
     "Actime" ∷ typedPointsto (structFieldRef syscall.Utimbuf go!"Actime" l) v.Actime' dq ∗
@@ -300,11 +300,11 @@ noncomputable instance Utimbuf_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Utimbuf_into_val_typed :
+noncomputable instance into_val_typed'Utimbuf :
     IntoValTypedUnderlying (GF := GF) syscall.Utimbuf syscall.Utimbuf.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Utimbuf_access_load_Actime (l : Loc) (v : syscall.Utimbuf) (dq : DFrac) :
+noncomputable instance access_load'Utimbuf'Actime (l : Loc) (v : syscall.Utimbuf) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Utimbuf go!"Actime" l) v.Actime' dq)
       (typedPointsto (structFieldRef syscall.Utimbuf go!"Actime" l) v.Actime' dq)
@@ -312,7 +312,7 @@ noncomputable instance Utimbuf_access_load_Actime (l : Loc) (v : syscall.Utimbuf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Utimbuf_access_store_Actime (l : Loc) (v : syscall.Utimbuf) (y : w64) :
+noncomputable instance access_store'Utimbuf'Actime (l : Loc) (v : syscall.Utimbuf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Utimbuf go!"Actime" l) v.Actime' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Utimbuf go!"Actime" l) y (DFrac.own 1))
@@ -320,7 +320,7 @@ noncomputable instance Utimbuf_access_store_Actime (l : Loc) (v : syscall.Utimbu
  by
   solve_pointsto_access_struct
 
-noncomputable instance Utimbuf_access_load_Modtime (l : Loc) (v : syscall.Utimbuf) (dq : DFrac) :
+noncomputable instance access_load'Utimbuf'Modtime (l : Loc) (v : syscall.Utimbuf) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Utimbuf go!"Modtime" l) v.Modtime' dq)
       (typedPointsto (structFieldRef syscall.Utimbuf go!"Modtime" l) v.Modtime' dq)
@@ -328,7 +328,7 @@ noncomputable instance Utimbuf_access_load_Modtime (l : Loc) (v : syscall.Utimbu
  by
   solve_pointsto_access_struct
 
-noncomputable instance Utimbuf_access_store_Modtime (l : Loc) (v : syscall.Utimbuf) (y : w64) :
+noncomputable instance access_store'Utimbuf'Modtime (l : Loc) (v : syscall.Utimbuf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Utimbuf go!"Modtime" l) v.Modtime' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Utimbuf go!"Modtime" l) y (DFrac.own 1))
@@ -347,7 +347,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance Rlimit_typed_pointsto :
+noncomputable instance typed_pointsto'Rlimit :
     TypedPointsto (GF := GF) syscall.Rlimit where
   typedPointstoDef l v dq := iprop(
     "Cur" ∷ typedPointsto (structFieldRef syscall.Rlimit go!"Cur" l) v.Cur' dq ∗
@@ -357,11 +357,11 @@ noncomputable instance Rlimit_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Rlimit_into_val_typed :
+noncomputable instance into_val_typed'Rlimit :
     IntoValTypedUnderlying (GF := GF) syscall.Rlimit syscall.Rlimit.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Rlimit_access_load_Cur (l : Loc) (v : syscall.Rlimit) (dq : DFrac) :
+noncomputable instance access_load'Rlimit'Cur (l : Loc) (v : syscall.Rlimit) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Rlimit go!"Cur" l) v.Cur' dq)
       (typedPointsto (structFieldRef syscall.Rlimit go!"Cur" l) v.Cur' dq)
@@ -369,7 +369,7 @@ noncomputable instance Rlimit_access_load_Cur (l : Loc) (v : syscall.Rlimit) (dq
  by
   solve_pointsto_access_struct
 
-noncomputable instance Rlimit_access_store_Cur (l : Loc) (v : syscall.Rlimit) (y : w64) :
+noncomputable instance access_store'Rlimit'Cur (l : Loc) (v : syscall.Rlimit) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Rlimit go!"Cur" l) v.Cur' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Rlimit go!"Cur" l) y (DFrac.own 1))
@@ -377,7 +377,7 @@ noncomputable instance Rlimit_access_store_Cur (l : Loc) (v : syscall.Rlimit) (y
  by
   solve_pointsto_access_struct
 
-noncomputable instance Rlimit_access_load_Max (l : Loc) (v : syscall.Rlimit) (dq : DFrac) :
+noncomputable instance access_load'Rlimit'Max (l : Loc) (v : syscall.Rlimit) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Rlimit go!"Max" l) v.Max' dq)
       (typedPointsto (structFieldRef syscall.Rlimit go!"Max" l) v.Max' dq)
@@ -385,7 +385,7 @@ noncomputable instance Rlimit_access_load_Max (l : Loc) (v : syscall.Rlimit) (dq
  by
   solve_pointsto_access_struct
 
-noncomputable instance Rlimit_access_store_Max (l : Loc) (v : syscall.Rlimit) (y : w64) :
+noncomputable instance access_store'Rlimit'Max (l : Loc) (v : syscall.Rlimit) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Rlimit go!"Max" l) v.Max' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Rlimit go!"Max" l) y (DFrac.own 1))
@@ -404,7 +404,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance Fsid_typed_pointsto :
+noncomputable instance typed_pointsto'Fsid :
     TypedPointsto (GF := GF) syscall.Fsid where
   typedPointstoDef l v dq := iprop(
     "X__val" ∷ typedPointsto (structFieldRef syscall.Fsid go!"X__val" l) v.X__val' dq ∗
@@ -413,11 +413,11 @@ noncomputable instance Fsid_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Fsid_into_val_typed :
+noncomputable instance into_val_typed'Fsid :
     IntoValTypedUnderlying (GF := GF) syscall.Fsid syscall.Fsid.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Fsid_access_load_X__val (l : Loc) (v : syscall.Fsid) (dq : DFrac) :
+noncomputable instance access_load'Fsid'X__val (l : Loc) (v : syscall.Fsid) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Fsid go!"X__val" l) v.X__val' dq)
       (typedPointsto (structFieldRef syscall.Fsid go!"X__val" l) v.X__val' dq)
@@ -425,7 +425,7 @@ noncomputable instance Fsid_access_load_X__val (l : Loc) (v : syscall.Fsid) (dq 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Fsid_access_store_X__val (l : Loc) (v : syscall.Fsid) (y : (GoArray w32 2)) :
+noncomputable instance access_store'Fsid'X__val (l : Loc) (v : syscall.Fsid) (y : (GoArray w32 2)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Fsid go!"X__val" l) v.X__val' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Fsid go!"X__val" l) y (DFrac.own 1))
@@ -444,7 +444,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance Dirent_typed_pointsto :
+noncomputable instance typed_pointsto'Dirent :
     TypedPointsto (GF := GF) syscall.Dirent where
   typedPointstoDef l v dq := iprop(
     "Ino" ∷ typedPointsto (structFieldRef syscall.Dirent go!"Ino" l) v.Ino' dq ∗
@@ -458,11 +458,11 @@ noncomputable instance Dirent_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Dirent_into_val_typed :
+noncomputable instance into_val_typed'Dirent :
     IntoValTypedUnderlying (GF := GF) syscall.Dirent syscall.Dirent.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Dirent_access_load_Ino (l : Loc) (v : syscall.Dirent) (dq : DFrac) :
+noncomputable instance access_load'Dirent'Ino (l : Loc) (v : syscall.Dirent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Dirent go!"Ino" l) v.Ino' dq)
       (typedPointsto (structFieldRef syscall.Dirent go!"Ino" l) v.Ino' dq)
@@ -470,7 +470,7 @@ noncomputable instance Dirent_access_load_Ino (l : Loc) (v : syscall.Dirent) (dq
  by
   solve_pointsto_access_struct
 
-noncomputable instance Dirent_access_store_Ino (l : Loc) (v : syscall.Dirent) (y : w64) :
+noncomputable instance access_store'Dirent'Ino (l : Loc) (v : syscall.Dirent) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Dirent go!"Ino" l) v.Ino' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Dirent go!"Ino" l) y (DFrac.own 1))
@@ -478,7 +478,7 @@ noncomputable instance Dirent_access_store_Ino (l : Loc) (v : syscall.Dirent) (y
  by
   solve_pointsto_access_struct
 
-noncomputable instance Dirent_access_load_Off (l : Loc) (v : syscall.Dirent) (dq : DFrac) :
+noncomputable instance access_load'Dirent'Off (l : Loc) (v : syscall.Dirent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Dirent go!"Off" l) v.Off' dq)
       (typedPointsto (structFieldRef syscall.Dirent go!"Off" l) v.Off' dq)
@@ -486,7 +486,7 @@ noncomputable instance Dirent_access_load_Off (l : Loc) (v : syscall.Dirent) (dq
  by
   solve_pointsto_access_struct
 
-noncomputable instance Dirent_access_store_Off (l : Loc) (v : syscall.Dirent) (y : w64) :
+noncomputable instance access_store'Dirent'Off (l : Loc) (v : syscall.Dirent) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Dirent go!"Off" l) v.Off' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Dirent go!"Off" l) y (DFrac.own 1))
@@ -494,7 +494,7 @@ noncomputable instance Dirent_access_store_Off (l : Loc) (v : syscall.Dirent) (y
  by
   solve_pointsto_access_struct
 
-noncomputable instance Dirent_access_load_Reclen (l : Loc) (v : syscall.Dirent) (dq : DFrac) :
+noncomputable instance access_load'Dirent'Reclen (l : Loc) (v : syscall.Dirent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Dirent go!"Reclen" l) v.Reclen' dq)
       (typedPointsto (structFieldRef syscall.Dirent go!"Reclen" l) v.Reclen' dq)
@@ -502,7 +502,7 @@ noncomputable instance Dirent_access_load_Reclen (l : Loc) (v : syscall.Dirent) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Dirent_access_store_Reclen (l : Loc) (v : syscall.Dirent) (y : w16) :
+noncomputable instance access_store'Dirent'Reclen (l : Loc) (v : syscall.Dirent) (y : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Dirent go!"Reclen" l) v.Reclen' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Dirent go!"Reclen" l) y (DFrac.own 1))
@@ -510,7 +510,7 @@ noncomputable instance Dirent_access_store_Reclen (l : Loc) (v : syscall.Dirent)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Dirent_access_load_Type (l : Loc) (v : syscall.Dirent) (dq : DFrac) :
+noncomputable instance access_load'Dirent'Type (l : Loc) (v : syscall.Dirent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Dirent go!"Type" l) v.Type' dq)
       (typedPointsto (structFieldRef syscall.Dirent go!"Type" l) v.Type' dq)
@@ -518,7 +518,7 @@ noncomputable instance Dirent_access_load_Type (l : Loc) (v : syscall.Dirent) (d
  by
   solve_pointsto_access_struct
 
-noncomputable instance Dirent_access_store_Type (l : Loc) (v : syscall.Dirent) (y : w8) :
+noncomputable instance access_store'Dirent'Type (l : Loc) (v : syscall.Dirent) (y : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Dirent go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Dirent go!"Type" l) y (DFrac.own 1))
@@ -526,7 +526,7 @@ noncomputable instance Dirent_access_store_Type (l : Loc) (v : syscall.Dirent) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance Dirent_access_load_Name (l : Loc) (v : syscall.Dirent) (dq : DFrac) :
+noncomputable instance access_load'Dirent'Name (l : Loc) (v : syscall.Dirent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Dirent go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef syscall.Dirent go!"Name" l) v.Name' dq)
@@ -534,7 +534,7 @@ noncomputable instance Dirent_access_load_Name (l : Loc) (v : syscall.Dirent) (d
  by
   solve_pointsto_access_struct
 
-noncomputable instance Dirent_access_store_Name (l : Loc) (v : syscall.Dirent) (y : (GoArray w8 256)) :
+noncomputable instance access_store'Dirent'Name (l : Loc) (v : syscall.Dirent) (y : (GoArray w8 256)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Dirent go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Dirent go!"Name" l) y (DFrac.own 1))
@@ -542,7 +542,7 @@ noncomputable instance Dirent_access_store_Name (l : Loc) (v : syscall.Dirent) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance Dirent_access_load_Pad_cgo_0 (l : Loc) (v : syscall.Dirent) (dq : DFrac) :
+noncomputable instance access_load'Dirent'Pad_cgo_0 (l : Loc) (v : syscall.Dirent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Dirent go!"Pad_cgo_0" l) v.Pad_cgo_0' dq)
       (typedPointsto (structFieldRef syscall.Dirent go!"Pad_cgo_0" l) v.Pad_cgo_0' dq)
@@ -550,7 +550,7 @@ noncomputable instance Dirent_access_load_Pad_cgo_0 (l : Loc) (v : syscall.Diren
  by
   solve_pointsto_access_struct
 
-noncomputable instance Dirent_access_store_Pad_cgo_0 (l : Loc) (v : syscall.Dirent) (y : (GoArray w8 5)) :
+noncomputable instance access_store'Dirent'Pad_cgo_0 (l : Loc) (v : syscall.Dirent) (y : (GoArray w8 5)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Dirent go!"Pad_cgo_0" l) v.Pad_cgo_0' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Dirent go!"Pad_cgo_0" l) y (DFrac.own 1))
@@ -569,7 +569,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance Flock_t_typed_pointsto :
+noncomputable instance typed_pointsto'Flock_t :
     TypedPointsto (GF := GF) syscall.Flock_t where
   typedPointstoDef l v dq := iprop(
     "Type'" ∷ typedPointsto (structFieldRef syscall.Flock_t go!"Type" l) v.Type' dq ∗
@@ -584,11 +584,11 @@ noncomputable instance Flock_t_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Flock_t_into_val_typed :
+noncomputable instance into_val_typed'Flock_t :
     IntoValTypedUnderlying (GF := GF) syscall.Flock_t syscall.Flock_t.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Flock_t_access_load_Type (l : Loc) (v : syscall.Flock_t) (dq : DFrac) :
+noncomputable instance access_load'Flock_t'Type (l : Loc) (v : syscall.Flock_t) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Type" l) v.Type' dq)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Type" l) v.Type' dq)
@@ -596,7 +596,7 @@ noncomputable instance Flock_t_access_load_Type (l : Loc) (v : syscall.Flock_t) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_store_Type (l : Loc) (v : syscall.Flock_t) (y : w16) :
+noncomputable instance access_store'Flock_t'Type (l : Loc) (v : syscall.Flock_t) (y : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Flock_t go!"Type" l) y (DFrac.own 1))
@@ -604,7 +604,7 @@ noncomputable instance Flock_t_access_store_Type (l : Loc) (v : syscall.Flock_t)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_load_Whence (l : Loc) (v : syscall.Flock_t) (dq : DFrac) :
+noncomputable instance access_load'Flock_t'Whence (l : Loc) (v : syscall.Flock_t) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Whence" l) v.Whence' dq)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Whence" l) v.Whence' dq)
@@ -612,7 +612,7 @@ noncomputable instance Flock_t_access_load_Whence (l : Loc) (v : syscall.Flock_t
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_store_Whence (l : Loc) (v : syscall.Flock_t) (y : w16) :
+noncomputable instance access_store'Flock_t'Whence (l : Loc) (v : syscall.Flock_t) (y : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Whence" l) v.Whence' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Flock_t go!"Whence" l) y (DFrac.own 1))
@@ -620,7 +620,7 @@ noncomputable instance Flock_t_access_store_Whence (l : Loc) (v : syscall.Flock_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_load_Pad_cgo_0 (l : Loc) (v : syscall.Flock_t) (dq : DFrac) :
+noncomputable instance access_load'Flock_t'Pad_cgo_0 (l : Loc) (v : syscall.Flock_t) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Pad_cgo_0" l) v.Pad_cgo_0' dq)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Pad_cgo_0" l) v.Pad_cgo_0' dq)
@@ -628,7 +628,7 @@ noncomputable instance Flock_t_access_load_Pad_cgo_0 (l : Loc) (v : syscall.Floc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_store_Pad_cgo_0 (l : Loc) (v : syscall.Flock_t) (y : (GoArray w8 4)) :
+noncomputable instance access_store'Flock_t'Pad_cgo_0 (l : Loc) (v : syscall.Flock_t) (y : (GoArray w8 4)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Pad_cgo_0" l) v.Pad_cgo_0' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Flock_t go!"Pad_cgo_0" l) y (DFrac.own 1))
@@ -636,7 +636,7 @@ noncomputable instance Flock_t_access_store_Pad_cgo_0 (l : Loc) (v : syscall.Flo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_load_Start (l : Loc) (v : syscall.Flock_t) (dq : DFrac) :
+noncomputable instance access_load'Flock_t'Start (l : Loc) (v : syscall.Flock_t) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Start" l) v.Start' dq)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Start" l) v.Start' dq)
@@ -644,7 +644,7 @@ noncomputable instance Flock_t_access_load_Start (l : Loc) (v : syscall.Flock_t)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_store_Start (l : Loc) (v : syscall.Flock_t) (y : w64) :
+noncomputable instance access_store'Flock_t'Start (l : Loc) (v : syscall.Flock_t) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Start" l) v.Start' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Flock_t go!"Start" l) y (DFrac.own 1))
@@ -652,7 +652,7 @@ noncomputable instance Flock_t_access_store_Start (l : Loc) (v : syscall.Flock_t
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_load_Len (l : Loc) (v : syscall.Flock_t) (dq : DFrac) :
+noncomputable instance access_load'Flock_t'Len (l : Loc) (v : syscall.Flock_t) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Len" l) v.Len' dq)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Len" l) v.Len' dq)
@@ -660,7 +660,7 @@ noncomputable instance Flock_t_access_load_Len (l : Loc) (v : syscall.Flock_t) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_store_Len (l : Loc) (v : syscall.Flock_t) (y : w64) :
+noncomputable instance access_store'Flock_t'Len (l : Loc) (v : syscall.Flock_t) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Len" l) v.Len' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Flock_t go!"Len" l) y (DFrac.own 1))
@@ -668,7 +668,7 @@ noncomputable instance Flock_t_access_store_Len (l : Loc) (v : syscall.Flock_t) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_load_Pid (l : Loc) (v : syscall.Flock_t) (dq : DFrac) :
+noncomputable instance access_load'Flock_t'Pid (l : Loc) (v : syscall.Flock_t) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Pid" l) v.Pid' dq)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Pid" l) v.Pid' dq)
@@ -676,7 +676,7 @@ noncomputable instance Flock_t_access_load_Pid (l : Loc) (v : syscall.Flock_t) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_store_Pid (l : Loc) (v : syscall.Flock_t) (y : w32) :
+noncomputable instance access_store'Flock_t'Pid (l : Loc) (v : syscall.Flock_t) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Pid" l) v.Pid' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Flock_t go!"Pid" l) y (DFrac.own 1))
@@ -684,7 +684,7 @@ noncomputable instance Flock_t_access_store_Pid (l : Loc) (v : syscall.Flock_t) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_load_Pad_cgo_1 (l : Loc) (v : syscall.Flock_t) (dq : DFrac) :
+noncomputable instance access_load'Flock_t'Pad_cgo_1 (l : Loc) (v : syscall.Flock_t) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Pad_cgo_1" l) v.Pad_cgo_1' dq)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Pad_cgo_1" l) v.Pad_cgo_1' dq)
@@ -692,7 +692,7 @@ noncomputable instance Flock_t_access_load_Pad_cgo_1 (l : Loc) (v : syscall.Floc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_store_Pad_cgo_1 (l : Loc) (v : syscall.Flock_t) (y : (GoArray w8 4)) :
+noncomputable instance access_store'Flock_t'Pad_cgo_1 (l : Loc) (v : syscall.Flock_t) (y : (GoArray w8 4)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Flock_t go!"Pad_cgo_1" l) v.Pad_cgo_1' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Flock_t go!"Pad_cgo_1" l) y (DFrac.own 1))
@@ -711,7 +711,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance RawSockaddr_typed_pointsto :
+noncomputable instance typed_pointsto'RawSockaddr :
     TypedPointsto (GF := GF) syscall.RawSockaddr where
   typedPointstoDef l v dq := iprop(
     "Family" ∷ typedPointsto (structFieldRef syscall.RawSockaddr go!"Family" l) v.Family' dq ∗
@@ -721,11 +721,11 @@ noncomputable instance RawSockaddr_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance RawSockaddr_into_val_typed :
+noncomputable instance into_val_typed'RawSockaddr :
     IntoValTypedUnderlying (GF := GF) syscall.RawSockaddr syscall.RawSockaddr.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance RawSockaddr_access_load_Family (l : Loc) (v : syscall.RawSockaddr) (dq : DFrac) :
+noncomputable instance access_load'RawSockaddr'Family (l : Loc) (v : syscall.RawSockaddr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.RawSockaddr go!"Family" l) v.Family' dq)
       (typedPointsto (structFieldRef syscall.RawSockaddr go!"Family" l) v.Family' dq)
@@ -733,7 +733,7 @@ noncomputable instance RawSockaddr_access_load_Family (l : Loc) (v : syscall.Raw
  by
   solve_pointsto_access_struct
 
-noncomputable instance RawSockaddr_access_store_Family (l : Loc) (v : syscall.RawSockaddr) (y : w16) :
+noncomputable instance access_store'RawSockaddr'Family (l : Loc) (v : syscall.RawSockaddr) (y : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.RawSockaddr go!"Family" l) v.Family' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.RawSockaddr go!"Family" l) y (DFrac.own 1))
@@ -741,7 +741,7 @@ noncomputable instance RawSockaddr_access_store_Family (l : Loc) (v : syscall.Ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance RawSockaddr_access_load_Data (l : Loc) (v : syscall.RawSockaddr) (dq : DFrac) :
+noncomputable instance access_load'RawSockaddr'Data (l : Loc) (v : syscall.RawSockaddr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.RawSockaddr go!"Data" l) v.Data' dq)
       (typedPointsto (structFieldRef syscall.RawSockaddr go!"Data" l) v.Data' dq)
@@ -749,7 +749,7 @@ noncomputable instance RawSockaddr_access_load_Data (l : Loc) (v : syscall.RawSo
  by
   solve_pointsto_access_struct
 
-noncomputable instance RawSockaddr_access_store_Data (l : Loc) (v : syscall.RawSockaddr) (y : (GoArray w8 14)) :
+noncomputable instance access_store'RawSockaddr'Data (l : Loc) (v : syscall.RawSockaddr) (y : (GoArray w8 14)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.RawSockaddr go!"Data" l) v.Data' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.RawSockaddr go!"Data" l) y (DFrac.own 1))
@@ -768,7 +768,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance Linger_typed_pointsto :
+noncomputable instance typed_pointsto'Linger :
     TypedPointsto (GF := GF) syscall.Linger where
   typedPointstoDef l v dq := iprop(
     "Onoff" ∷ typedPointsto (structFieldRef syscall.Linger go!"Onoff" l) v.Onoff' dq ∗
@@ -778,11 +778,11 @@ noncomputable instance Linger_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Linger_into_val_typed :
+noncomputable instance into_val_typed'Linger :
     IntoValTypedUnderlying (GF := GF) syscall.Linger syscall.Linger.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Linger_access_load_Onoff (l : Loc) (v : syscall.Linger) (dq : DFrac) :
+noncomputable instance access_load'Linger'Onoff (l : Loc) (v : syscall.Linger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Linger go!"Onoff" l) v.Onoff' dq)
       (typedPointsto (structFieldRef syscall.Linger go!"Onoff" l) v.Onoff' dq)
@@ -790,7 +790,7 @@ noncomputable instance Linger_access_load_Onoff (l : Loc) (v : syscall.Linger) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance Linger_access_store_Onoff (l : Loc) (v : syscall.Linger) (y : w32) :
+noncomputable instance access_store'Linger'Onoff (l : Loc) (v : syscall.Linger) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Linger go!"Onoff" l) v.Onoff' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Linger go!"Onoff" l) y (DFrac.own 1))
@@ -798,7 +798,7 @@ noncomputable instance Linger_access_store_Onoff (l : Loc) (v : syscall.Linger) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Linger_access_load_Linger (l : Loc) (v : syscall.Linger) (dq : DFrac) :
+noncomputable instance access_load'Linger'Linger (l : Loc) (v : syscall.Linger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Linger go!"Linger" l) v.Linger' dq)
       (typedPointsto (structFieldRef syscall.Linger go!"Linger" l) v.Linger' dq)
@@ -806,7 +806,7 @@ noncomputable instance Linger_access_load_Linger (l : Loc) (v : syscall.Linger) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Linger_access_store_Linger (l : Loc) (v : syscall.Linger) (y : w32) :
+noncomputable instance access_store'Linger'Linger (l : Loc) (v : syscall.Linger) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Linger go!"Linger" l) v.Linger' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Linger go!"Linger" l) y (DFrac.own 1))
@@ -825,7 +825,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance Iovec_typed_pointsto :
+noncomputable instance typed_pointsto'Iovec :
     TypedPointsto (GF := GF) syscall.Iovec where
   typedPointstoDef l v dq := iprop(
     "Base" ∷ typedPointsto (structFieldRef syscall.Iovec go!"Base" l) v.Base' dq ∗
@@ -835,11 +835,11 @@ noncomputable instance Iovec_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Iovec_into_val_typed :
+noncomputable instance into_val_typed'Iovec :
     IntoValTypedUnderlying (GF := GF) syscall.Iovec syscall.Iovec.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Iovec_access_load_Base (l : Loc) (v : syscall.Iovec) (dq : DFrac) :
+noncomputable instance access_load'Iovec'Base (l : Loc) (v : syscall.Iovec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Iovec go!"Base" l) v.Base' dq)
       (typedPointsto (structFieldRef syscall.Iovec go!"Base" l) v.Base' dq)
@@ -847,7 +847,7 @@ noncomputable instance Iovec_access_load_Base (l : Loc) (v : syscall.Iovec) (dq 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Iovec_access_store_Base (l : Loc) (v : syscall.Iovec) (y : Loc) :
+noncomputable instance access_store'Iovec'Base (l : Loc) (v : syscall.Iovec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Iovec go!"Base" l) v.Base' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Iovec go!"Base" l) y (DFrac.own 1))
@@ -855,7 +855,7 @@ noncomputable instance Iovec_access_store_Base (l : Loc) (v : syscall.Iovec) (y 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Iovec_access_load_Len (l : Loc) (v : syscall.Iovec) (dq : DFrac) :
+noncomputable instance access_load'Iovec'Len (l : Loc) (v : syscall.Iovec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Iovec go!"Len" l) v.Len' dq)
       (typedPointsto (structFieldRef syscall.Iovec go!"Len" l) v.Len' dq)
@@ -863,7 +863,7 @@ noncomputable instance Iovec_access_load_Len (l : Loc) (v : syscall.Iovec) (dq :
  by
   solve_pointsto_access_struct
 
-noncomputable instance Iovec_access_store_Len (l : Loc) (v : syscall.Iovec) (y : w64) :
+noncomputable instance access_store'Iovec'Len (l : Loc) (v : syscall.Iovec) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Iovec go!"Len" l) v.Len' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Iovec go!"Len" l) y (DFrac.own 1))
@@ -882,7 +882,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance IPMreq_typed_pointsto :
+noncomputable instance typed_pointsto'IPMreq :
     TypedPointsto (GF := GF) syscall.IPMreq where
   typedPointstoDef l v dq := iprop(
     "Multiaddr" ∷ typedPointsto (structFieldRef syscall.IPMreq go!"Multiaddr" l) v.Multiaddr' dq ∗
@@ -892,11 +892,11 @@ noncomputable instance IPMreq_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance IPMreq_into_val_typed :
+noncomputable instance into_val_typed'IPMreq :
     IntoValTypedUnderlying (GF := GF) syscall.IPMreq syscall.IPMreq.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance IPMreq_access_load_Multiaddr (l : Loc) (v : syscall.IPMreq) (dq : DFrac) :
+noncomputable instance access_load'IPMreq'Multiaddr (l : Loc) (v : syscall.IPMreq) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.IPMreq go!"Multiaddr" l) v.Multiaddr' dq)
       (typedPointsto (structFieldRef syscall.IPMreq go!"Multiaddr" l) v.Multiaddr' dq)
@@ -904,7 +904,7 @@ noncomputable instance IPMreq_access_load_Multiaddr (l : Loc) (v : syscall.IPMre
  by
   solve_pointsto_access_struct
 
-noncomputable instance IPMreq_access_store_Multiaddr (l : Loc) (v : syscall.IPMreq) (y : (GoArray w8 4)) :
+noncomputable instance access_store'IPMreq'Multiaddr (l : Loc) (v : syscall.IPMreq) (y : (GoArray w8 4)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.IPMreq go!"Multiaddr" l) v.Multiaddr' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.IPMreq go!"Multiaddr" l) y (DFrac.own 1))
@@ -912,7 +912,7 @@ noncomputable instance IPMreq_access_store_Multiaddr (l : Loc) (v : syscall.IPMr
  by
   solve_pointsto_access_struct
 
-noncomputable instance IPMreq_access_load_Interface (l : Loc) (v : syscall.IPMreq) (dq : DFrac) :
+noncomputable instance access_load'IPMreq'Interface (l : Loc) (v : syscall.IPMreq) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.IPMreq go!"Interface" l) v.Interface' dq)
       (typedPointsto (structFieldRef syscall.IPMreq go!"Interface" l) v.Interface' dq)
@@ -920,7 +920,7 @@ noncomputable instance IPMreq_access_load_Interface (l : Loc) (v : syscall.IPMre
  by
   solve_pointsto_access_struct
 
-noncomputable instance IPMreq_access_store_Interface (l : Loc) (v : syscall.IPMreq) (y : (GoArray w8 4)) :
+noncomputable instance access_store'IPMreq'Interface (l : Loc) (v : syscall.IPMreq) (y : (GoArray w8 4)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.IPMreq go!"Interface" l) v.Interface' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.IPMreq go!"Interface" l) y (DFrac.own 1))
@@ -939,7 +939,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance IPMreqn_typed_pointsto :
+noncomputable instance typed_pointsto'IPMreqn :
     TypedPointsto (GF := GF) syscall.IPMreqn where
   typedPointstoDef l v dq := iprop(
     "Multiaddr" ∷ typedPointsto (structFieldRef syscall.IPMreqn go!"Multiaddr" l) v.Multiaddr' dq ∗
@@ -950,11 +950,11 @@ noncomputable instance IPMreqn_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance IPMreqn_into_val_typed :
+noncomputable instance into_val_typed'IPMreqn :
     IntoValTypedUnderlying (GF := GF) syscall.IPMreqn syscall.IPMreqn.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance IPMreqn_access_load_Multiaddr (l : Loc) (v : syscall.IPMreqn) (dq : DFrac) :
+noncomputable instance access_load'IPMreqn'Multiaddr (l : Loc) (v : syscall.IPMreqn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.IPMreqn go!"Multiaddr" l) v.Multiaddr' dq)
       (typedPointsto (structFieldRef syscall.IPMreqn go!"Multiaddr" l) v.Multiaddr' dq)
@@ -962,7 +962,7 @@ noncomputable instance IPMreqn_access_load_Multiaddr (l : Loc) (v : syscall.IPMr
  by
   solve_pointsto_access_struct
 
-noncomputable instance IPMreqn_access_store_Multiaddr (l : Loc) (v : syscall.IPMreqn) (y : (GoArray w8 4)) :
+noncomputable instance access_store'IPMreqn'Multiaddr (l : Loc) (v : syscall.IPMreqn) (y : (GoArray w8 4)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.IPMreqn go!"Multiaddr" l) v.Multiaddr' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.IPMreqn go!"Multiaddr" l) y (DFrac.own 1))
@@ -970,7 +970,7 @@ noncomputable instance IPMreqn_access_store_Multiaddr (l : Loc) (v : syscall.IPM
  by
   solve_pointsto_access_struct
 
-noncomputable instance IPMreqn_access_load_Address (l : Loc) (v : syscall.IPMreqn) (dq : DFrac) :
+noncomputable instance access_load'IPMreqn'Address (l : Loc) (v : syscall.IPMreqn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.IPMreqn go!"Address" l) v.Address' dq)
       (typedPointsto (structFieldRef syscall.IPMreqn go!"Address" l) v.Address' dq)
@@ -978,7 +978,7 @@ noncomputable instance IPMreqn_access_load_Address (l : Loc) (v : syscall.IPMreq
  by
   solve_pointsto_access_struct
 
-noncomputable instance IPMreqn_access_store_Address (l : Loc) (v : syscall.IPMreqn) (y : (GoArray w8 4)) :
+noncomputable instance access_store'IPMreqn'Address (l : Loc) (v : syscall.IPMreqn) (y : (GoArray w8 4)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.IPMreqn go!"Address" l) v.Address' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.IPMreqn go!"Address" l) y (DFrac.own 1))
@@ -986,7 +986,7 @@ noncomputable instance IPMreqn_access_store_Address (l : Loc) (v : syscall.IPMre
  by
   solve_pointsto_access_struct
 
-noncomputable instance IPMreqn_access_load_Ifindex (l : Loc) (v : syscall.IPMreqn) (dq : DFrac) :
+noncomputable instance access_load'IPMreqn'Ifindex (l : Loc) (v : syscall.IPMreqn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.IPMreqn go!"Ifindex" l) v.Ifindex' dq)
       (typedPointsto (structFieldRef syscall.IPMreqn go!"Ifindex" l) v.Ifindex' dq)
@@ -994,7 +994,7 @@ noncomputable instance IPMreqn_access_load_Ifindex (l : Loc) (v : syscall.IPMreq
  by
   solve_pointsto_access_struct
 
-noncomputable instance IPMreqn_access_store_Ifindex (l : Loc) (v : syscall.IPMreqn) (y : w32) :
+noncomputable instance access_store'IPMreqn'Ifindex (l : Loc) (v : syscall.IPMreqn) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.IPMreqn go!"Ifindex" l) v.Ifindex' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.IPMreqn go!"Ifindex" l) y (DFrac.own 1))
@@ -1013,7 +1013,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance IPv6Mreq_typed_pointsto :
+noncomputable instance typed_pointsto'IPv6Mreq :
     TypedPointsto (GF := GF) syscall.IPv6Mreq where
   typedPointstoDef l v dq := iprop(
     "Multiaddr" ∷ typedPointsto (structFieldRef syscall.IPv6Mreq go!"Multiaddr" l) v.Multiaddr' dq ∗
@@ -1023,11 +1023,11 @@ noncomputable instance IPv6Mreq_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance IPv6Mreq_into_val_typed :
+noncomputable instance into_val_typed'IPv6Mreq :
     IntoValTypedUnderlying (GF := GF) syscall.IPv6Mreq syscall.IPv6Mreq.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance IPv6Mreq_access_load_Multiaddr (l : Loc) (v : syscall.IPv6Mreq) (dq : DFrac) :
+noncomputable instance access_load'IPv6Mreq'Multiaddr (l : Loc) (v : syscall.IPv6Mreq) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.IPv6Mreq go!"Multiaddr" l) v.Multiaddr' dq)
       (typedPointsto (structFieldRef syscall.IPv6Mreq go!"Multiaddr" l) v.Multiaddr' dq)
@@ -1035,7 +1035,7 @@ noncomputable instance IPv6Mreq_access_load_Multiaddr (l : Loc) (v : syscall.IPv
  by
   solve_pointsto_access_struct
 
-noncomputable instance IPv6Mreq_access_store_Multiaddr (l : Loc) (v : syscall.IPv6Mreq) (y : (GoArray w8 16)) :
+noncomputable instance access_store'IPv6Mreq'Multiaddr (l : Loc) (v : syscall.IPv6Mreq) (y : (GoArray w8 16)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.IPv6Mreq go!"Multiaddr" l) v.Multiaddr' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.IPv6Mreq go!"Multiaddr" l) y (DFrac.own 1))
@@ -1043,7 +1043,7 @@ noncomputable instance IPv6Mreq_access_store_Multiaddr (l : Loc) (v : syscall.IP
  by
   solve_pointsto_access_struct
 
-noncomputable instance IPv6Mreq_access_load_Interface (l : Loc) (v : syscall.IPv6Mreq) (dq : DFrac) :
+noncomputable instance access_load'IPv6Mreq'Interface (l : Loc) (v : syscall.IPv6Mreq) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.IPv6Mreq go!"Interface" l) v.Interface' dq)
       (typedPointsto (structFieldRef syscall.IPv6Mreq go!"Interface" l) v.Interface' dq)
@@ -1051,7 +1051,7 @@ noncomputable instance IPv6Mreq_access_load_Interface (l : Loc) (v : syscall.IPv
  by
   solve_pointsto_access_struct
 
-noncomputable instance IPv6Mreq_access_store_Interface (l : Loc) (v : syscall.IPv6Mreq) (y : w32) :
+noncomputable instance access_store'IPv6Mreq'Interface (l : Loc) (v : syscall.IPv6Mreq) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.IPv6Mreq go!"Interface" l) v.Interface' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.IPv6Mreq go!"Interface" l) y (DFrac.own 1))
@@ -1070,7 +1070,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance Msghdr_typed_pointsto :
+noncomputable instance typed_pointsto'Msghdr :
     TypedPointsto (GF := GF) syscall.Msghdr where
   typedPointstoDef l v dq := iprop(
     "Name" ∷ typedPointsto (structFieldRef syscall.Msghdr go!"Name" l) v.Name' dq ∗
@@ -1087,11 +1087,11 @@ noncomputable instance Msghdr_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Msghdr_into_val_typed :
+noncomputable instance into_val_typed'Msghdr :
     IntoValTypedUnderlying (GF := GF) syscall.Msghdr syscall.Msghdr.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Msghdr_access_load_Name (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
+noncomputable instance access_load'Msghdr'Name (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Name" l) v.Name' dq)
@@ -1099,7 +1099,7 @@ noncomputable instance Msghdr_access_load_Name (l : Loc) (v : syscall.Msghdr) (d
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_store_Name (l : Loc) (v : syscall.Msghdr) (y : Loc) :
+noncomputable instance access_store'Msghdr'Name (l : Loc) (v : syscall.Msghdr) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Msghdr go!"Name" l) y (DFrac.own 1))
@@ -1107,7 +1107,7 @@ noncomputable instance Msghdr_access_store_Name (l : Loc) (v : syscall.Msghdr) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_load_Namelen (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
+noncomputable instance access_load'Msghdr'Namelen (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Namelen" l) v.Namelen' dq)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Namelen" l) v.Namelen' dq)
@@ -1115,7 +1115,7 @@ noncomputable instance Msghdr_access_load_Namelen (l : Loc) (v : syscall.Msghdr)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_store_Namelen (l : Loc) (v : syscall.Msghdr) (y : w32) :
+noncomputable instance access_store'Msghdr'Namelen (l : Loc) (v : syscall.Msghdr) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Namelen" l) v.Namelen' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Msghdr go!"Namelen" l) y (DFrac.own 1))
@@ -1123,7 +1123,7 @@ noncomputable instance Msghdr_access_store_Namelen (l : Loc) (v : syscall.Msghdr
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_load_Pad_cgo_0 (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
+noncomputable instance access_load'Msghdr'Pad_cgo_0 (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Pad_cgo_0" l) v.Pad_cgo_0' dq)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Pad_cgo_0" l) v.Pad_cgo_0' dq)
@@ -1131,7 +1131,7 @@ noncomputable instance Msghdr_access_load_Pad_cgo_0 (l : Loc) (v : syscall.Msghd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_store_Pad_cgo_0 (l : Loc) (v : syscall.Msghdr) (y : (GoArray w8 4)) :
+noncomputable instance access_store'Msghdr'Pad_cgo_0 (l : Loc) (v : syscall.Msghdr) (y : (GoArray w8 4)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Pad_cgo_0" l) v.Pad_cgo_0' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Msghdr go!"Pad_cgo_0" l) y (DFrac.own 1))
@@ -1139,7 +1139,7 @@ noncomputable instance Msghdr_access_store_Pad_cgo_0 (l : Loc) (v : syscall.Msgh
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_load_Iov (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
+noncomputable instance access_load'Msghdr'Iov (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Iov" l) v.Iov' dq)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Iov" l) v.Iov' dq)
@@ -1147,7 +1147,7 @@ noncomputable instance Msghdr_access_load_Iov (l : Loc) (v : syscall.Msghdr) (dq
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_store_Iov (l : Loc) (v : syscall.Msghdr) (y : Loc) :
+noncomputable instance access_store'Msghdr'Iov (l : Loc) (v : syscall.Msghdr) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Iov" l) v.Iov' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Msghdr go!"Iov" l) y (DFrac.own 1))
@@ -1155,7 +1155,7 @@ noncomputable instance Msghdr_access_store_Iov (l : Loc) (v : syscall.Msghdr) (y
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_load_Iovlen (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
+noncomputable instance access_load'Msghdr'Iovlen (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Iovlen" l) v.Iovlen' dq)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Iovlen" l) v.Iovlen' dq)
@@ -1163,7 +1163,7 @@ noncomputable instance Msghdr_access_load_Iovlen (l : Loc) (v : syscall.Msghdr) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_store_Iovlen (l : Loc) (v : syscall.Msghdr) (y : w64) :
+noncomputable instance access_store'Msghdr'Iovlen (l : Loc) (v : syscall.Msghdr) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Iovlen" l) v.Iovlen' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Msghdr go!"Iovlen" l) y (DFrac.own 1))
@@ -1171,7 +1171,7 @@ noncomputable instance Msghdr_access_store_Iovlen (l : Loc) (v : syscall.Msghdr)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_load_Control (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
+noncomputable instance access_load'Msghdr'Control (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Control" l) v.Control' dq)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Control" l) v.Control' dq)
@@ -1179,7 +1179,7 @@ noncomputable instance Msghdr_access_load_Control (l : Loc) (v : syscall.Msghdr)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_store_Control (l : Loc) (v : syscall.Msghdr) (y : Loc) :
+noncomputable instance access_store'Msghdr'Control (l : Loc) (v : syscall.Msghdr) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Control" l) v.Control' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Msghdr go!"Control" l) y (DFrac.own 1))
@@ -1187,7 +1187,7 @@ noncomputable instance Msghdr_access_store_Control (l : Loc) (v : syscall.Msghdr
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_load_Controllen (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
+noncomputable instance access_load'Msghdr'Controllen (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Controllen" l) v.Controllen' dq)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Controllen" l) v.Controllen' dq)
@@ -1195,7 +1195,7 @@ noncomputable instance Msghdr_access_load_Controllen (l : Loc) (v : syscall.Msgh
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_store_Controllen (l : Loc) (v : syscall.Msghdr) (y : w64) :
+noncomputable instance access_store'Msghdr'Controllen (l : Loc) (v : syscall.Msghdr) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Controllen" l) v.Controllen' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Msghdr go!"Controllen" l) y (DFrac.own 1))
@@ -1203,7 +1203,7 @@ noncomputable instance Msghdr_access_store_Controllen (l : Loc) (v : syscall.Msg
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_load_Flags (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
+noncomputable instance access_load'Msghdr'Flags (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Flags" l) v.Flags' dq)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Flags" l) v.Flags' dq)
@@ -1211,7 +1211,7 @@ noncomputable instance Msghdr_access_load_Flags (l : Loc) (v : syscall.Msghdr) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_store_Flags (l : Loc) (v : syscall.Msghdr) (y : w32) :
+noncomputable instance access_store'Msghdr'Flags (l : Loc) (v : syscall.Msghdr) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Flags" l) v.Flags' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Msghdr go!"Flags" l) y (DFrac.own 1))
@@ -1219,7 +1219,7 @@ noncomputable instance Msghdr_access_store_Flags (l : Loc) (v : syscall.Msghdr) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_load_Pad_cgo_1 (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
+noncomputable instance access_load'Msghdr'Pad_cgo_1 (l : Loc) (v : syscall.Msghdr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Pad_cgo_1" l) v.Pad_cgo_1' dq)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Pad_cgo_1" l) v.Pad_cgo_1' dq)
@@ -1227,7 +1227,7 @@ noncomputable instance Msghdr_access_load_Pad_cgo_1 (l : Loc) (v : syscall.Msghd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msghdr_access_store_Pad_cgo_1 (l : Loc) (v : syscall.Msghdr) (y : (GoArray w8 4)) :
+noncomputable instance access_store'Msghdr'Pad_cgo_1 (l : Loc) (v : syscall.Msghdr) (y : (GoArray w8 4)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Msghdr go!"Pad_cgo_1" l) v.Pad_cgo_1' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Msghdr go!"Pad_cgo_1" l) y (DFrac.own 1))
@@ -1246,7 +1246,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance Inet4Pktinfo_typed_pointsto :
+noncomputable instance typed_pointsto'Inet4Pktinfo :
     TypedPointsto (GF := GF) syscall.Inet4Pktinfo where
   typedPointstoDef l v dq := iprop(
     "Ifindex" ∷ typedPointsto (structFieldRef syscall.Inet4Pktinfo go!"Ifindex" l) v.Ifindex' dq ∗
@@ -1257,11 +1257,11 @@ noncomputable instance Inet4Pktinfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Inet4Pktinfo_into_val_typed :
+noncomputable instance into_val_typed'Inet4Pktinfo :
     IntoValTypedUnderlying (GF := GF) syscall.Inet4Pktinfo syscall.Inet4Pktinfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Inet4Pktinfo_access_load_Ifindex (l : Loc) (v : syscall.Inet4Pktinfo) (dq : DFrac) :
+noncomputable instance access_load'Inet4Pktinfo'Ifindex (l : Loc) (v : syscall.Inet4Pktinfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Inet4Pktinfo go!"Ifindex" l) v.Ifindex' dq)
       (typedPointsto (structFieldRef syscall.Inet4Pktinfo go!"Ifindex" l) v.Ifindex' dq)
@@ -1269,7 +1269,7 @@ noncomputable instance Inet4Pktinfo_access_load_Ifindex (l : Loc) (v : syscall.I
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inet4Pktinfo_access_store_Ifindex (l : Loc) (v : syscall.Inet4Pktinfo) (y : w32) :
+noncomputable instance access_store'Inet4Pktinfo'Ifindex (l : Loc) (v : syscall.Inet4Pktinfo) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Inet4Pktinfo go!"Ifindex" l) v.Ifindex' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Inet4Pktinfo go!"Ifindex" l) y (DFrac.own 1))
@@ -1277,7 +1277,7 @@ noncomputable instance Inet4Pktinfo_access_store_Ifindex (l : Loc) (v : syscall.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inet4Pktinfo_access_load_Spec_dst (l : Loc) (v : syscall.Inet4Pktinfo) (dq : DFrac) :
+noncomputable instance access_load'Inet4Pktinfo'Spec_dst (l : Loc) (v : syscall.Inet4Pktinfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Inet4Pktinfo go!"Spec_dst" l) v.Spec_dst' dq)
       (typedPointsto (structFieldRef syscall.Inet4Pktinfo go!"Spec_dst" l) v.Spec_dst' dq)
@@ -1285,7 +1285,7 @@ noncomputable instance Inet4Pktinfo_access_load_Spec_dst (l : Loc) (v : syscall.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inet4Pktinfo_access_store_Spec_dst (l : Loc) (v : syscall.Inet4Pktinfo) (y : (GoArray w8 4)) :
+noncomputable instance access_store'Inet4Pktinfo'Spec_dst (l : Loc) (v : syscall.Inet4Pktinfo) (y : (GoArray w8 4)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Inet4Pktinfo go!"Spec_dst" l) v.Spec_dst' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Inet4Pktinfo go!"Spec_dst" l) y (DFrac.own 1))
@@ -1293,7 +1293,7 @@ noncomputable instance Inet4Pktinfo_access_store_Spec_dst (l : Loc) (v : syscall
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inet4Pktinfo_access_load_Addr (l : Loc) (v : syscall.Inet4Pktinfo) (dq : DFrac) :
+noncomputable instance access_load'Inet4Pktinfo'Addr (l : Loc) (v : syscall.Inet4Pktinfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Inet4Pktinfo go!"Addr" l) v.Addr' dq)
       (typedPointsto (structFieldRef syscall.Inet4Pktinfo go!"Addr" l) v.Addr' dq)
@@ -1301,7 +1301,7 @@ noncomputable instance Inet4Pktinfo_access_load_Addr (l : Loc) (v : syscall.Inet
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inet4Pktinfo_access_store_Addr (l : Loc) (v : syscall.Inet4Pktinfo) (y : (GoArray w8 4)) :
+noncomputable instance access_store'Inet4Pktinfo'Addr (l : Loc) (v : syscall.Inet4Pktinfo) (y : (GoArray w8 4)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Inet4Pktinfo go!"Addr" l) v.Addr' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Inet4Pktinfo go!"Addr" l) y (DFrac.own 1))
@@ -1320,7 +1320,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance Inet6Pktinfo_typed_pointsto :
+noncomputable instance typed_pointsto'Inet6Pktinfo :
     TypedPointsto (GF := GF) syscall.Inet6Pktinfo where
   typedPointstoDef l v dq := iprop(
     "Addr" ∷ typedPointsto (structFieldRef syscall.Inet6Pktinfo go!"Addr" l) v.Addr' dq ∗
@@ -1330,11 +1330,11 @@ noncomputable instance Inet6Pktinfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Inet6Pktinfo_into_val_typed :
+noncomputable instance into_val_typed'Inet6Pktinfo :
     IntoValTypedUnderlying (GF := GF) syscall.Inet6Pktinfo syscall.Inet6Pktinfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Inet6Pktinfo_access_load_Addr (l : Loc) (v : syscall.Inet6Pktinfo) (dq : DFrac) :
+noncomputable instance access_load'Inet6Pktinfo'Addr (l : Loc) (v : syscall.Inet6Pktinfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Inet6Pktinfo go!"Addr" l) v.Addr' dq)
       (typedPointsto (structFieldRef syscall.Inet6Pktinfo go!"Addr" l) v.Addr' dq)
@@ -1342,7 +1342,7 @@ noncomputable instance Inet6Pktinfo_access_load_Addr (l : Loc) (v : syscall.Inet
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inet6Pktinfo_access_store_Addr (l : Loc) (v : syscall.Inet6Pktinfo) (y : (GoArray w8 16)) :
+noncomputable instance access_store'Inet6Pktinfo'Addr (l : Loc) (v : syscall.Inet6Pktinfo) (y : (GoArray w8 16)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Inet6Pktinfo go!"Addr" l) v.Addr' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Inet6Pktinfo go!"Addr" l) y (DFrac.own 1))
@@ -1350,7 +1350,7 @@ noncomputable instance Inet6Pktinfo_access_store_Addr (l : Loc) (v : syscall.Ine
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inet6Pktinfo_access_load_Ifindex (l : Loc) (v : syscall.Inet6Pktinfo) (dq : DFrac) :
+noncomputable instance access_load'Inet6Pktinfo'Ifindex (l : Loc) (v : syscall.Inet6Pktinfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Inet6Pktinfo go!"Ifindex" l) v.Ifindex' dq)
       (typedPointsto (structFieldRef syscall.Inet6Pktinfo go!"Ifindex" l) v.Ifindex' dq)
@@ -1358,7 +1358,7 @@ noncomputable instance Inet6Pktinfo_access_load_Ifindex (l : Loc) (v : syscall.I
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inet6Pktinfo_access_store_Ifindex (l : Loc) (v : syscall.Inet6Pktinfo) (y : w32) :
+noncomputable instance access_store'Inet6Pktinfo'Ifindex (l : Loc) (v : syscall.Inet6Pktinfo) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.Inet6Pktinfo go!"Ifindex" l) v.Ifindex' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.Inet6Pktinfo go!"Ifindex" l) y (DFrac.own 1))
@@ -1377,7 +1377,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : syscall.Assumptions]
 
-noncomputable instance ICMPv6Filter_typed_pointsto :
+noncomputable instance typed_pointsto'ICMPv6Filter :
     TypedPointsto (GF := GF) syscall.ICMPv6Filter where
   typedPointstoDef l v dq := iprop(
     "Data" ∷ typedPointsto (structFieldRef syscall.ICMPv6Filter go!"Data" l) v.Data' dq ∗
@@ -1386,11 +1386,11 @@ noncomputable instance ICMPv6Filter_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ICMPv6Filter_into_val_typed :
+noncomputable instance into_val_typed'ICMPv6Filter :
     IntoValTypedUnderlying (GF := GF) syscall.ICMPv6Filter syscall.ICMPv6Filter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ICMPv6Filter_access_load_Data (l : Loc) (v : syscall.ICMPv6Filter) (dq : DFrac) :
+noncomputable instance access_load'ICMPv6Filter'Data (l : Loc) (v : syscall.ICMPv6Filter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.ICMPv6Filter go!"Data" l) v.Data' dq)
       (typedPointsto (structFieldRef syscall.ICMPv6Filter go!"Data" l) v.Data' dq)
@@ -1398,7 +1398,7 @@ noncomputable instance ICMPv6Filter_access_load_Data (l : Loc) (v : syscall.ICMP
  by
   solve_pointsto_access_struct
 
-noncomputable instance ICMPv6Filter_access_store_Data (l : Loc) (v : syscall.ICMPv6Filter) (y : (GoArray w32 8)) :
+noncomputable instance access_store'ICMPv6Filter'Data (l : Loc) (v : syscall.ICMPv6Filter) (y : (GoArray w32 8)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef syscall.ICMPv6Filter go!"Data" l) v.Data' (DFrac.own 1))
       (typedPointsto (structFieldRef syscall.ICMPv6Filter go!"Data" l) y (DFrac.own 1))

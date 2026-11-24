@@ -193,21 +193,21 @@ attribute [instance] ServerOptions.TypeAssumptions.type_repr
   ServerOptions.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  v1AlphaServerImpl_instance : v1AlphaServerImpl.TypeAssumptions
-  v1AlphaServerStreamAdapter_instance : v1AlphaServerStreamAdapter.TypeAssumptions
-  GRPCServer_instance : GRPCServer.TypeAssumptions
-  ServiceInfoProvider_instance : ServiceInfoProvider.TypeAssumptions
-  ExtensionResolver_instance : ExtensionResolver.TypeAssumptions
-  ServerOptions_instance : ServerOptions.TypeAssumptions
-  import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
+  instance'v1AlphaServerImpl : v1AlphaServerImpl.TypeAssumptions
+  instance'v1AlphaServerStreamAdapter : v1AlphaServerStreamAdapter.TypeAssumptions
+  instance'GRPCServer : GRPCServer.TypeAssumptions
+  instance'ServiceInfoProvider : ServiceInfoProvider.TypeAssumptions
+  instance'ExtensionResolver : ExtensionResolver.TypeAssumptions
+  instance'ServerOptions : ServerOptions.TypeAssumptions
+  import'grpc : _root_.Perennial.google_golang_org.grpc.Assumptions
 
-attribute [instance] Assumptions.v1AlphaServerImpl_instance
-  Assumptions.v1AlphaServerStreamAdapter_instance
-  Assumptions.GRPCServer_instance
-  Assumptions.ServiceInfoProvider_instance
-  Assumptions.ExtensionResolver_instance
-  Assumptions.ServerOptions_instance
-  Assumptions.import_grpc_Assumption
+attribute [instance] Assumptions.instance'v1AlphaServerImpl
+  Assumptions.instance'v1AlphaServerStreamAdapter
+  Assumptions.instance'GRPCServer
+  Assumptions.instance'ServiceInfoProvider
+  Assumptions.instance'ExtensionResolver
+  Assumptions.instance'ServerOptions
+  Assumptions.import'grpc
 
 end google_golang_org.grpc.reflection
 

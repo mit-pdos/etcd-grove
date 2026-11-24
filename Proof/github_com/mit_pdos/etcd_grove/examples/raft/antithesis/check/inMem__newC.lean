@@ -41,12 +41,12 @@ theorem inMem.newC.wp_proof
   obtain ⟨l, hl, Hv⟩ := bind_ok Hv
   obtain ⟨c, hc, Hv⟩ := bind_ok Hv
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_L_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_unfold'L.method_unfold]
   try wp_auto
   wp_apply wp_L gx x l $$ [Hx] as %ul #Hul
   · iframe Hx; ipureintro; exact hl
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_c_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_unfold'c.method_unfold]
   try wp_auto
   wp_apply wp_c gx x c $$ [Hx] as %uc %Huc
   · iframe Hx; ipureintro; exact hc

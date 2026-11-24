@@ -3,8 +3,8 @@ The memory of `sync.Map` and of `ClientBatchStore` (the lab's `StoreInst.lean`),
 
 Perennial's generated `TypedPointsto`/`IntoValTypedUnderlying` instances of `sync.Map` go through
 those of `internal/sync.HashTrieMap`, an axiomatized type, which are `sorry`
-(`Perennial/GeneratedProof/internal/sync.lean`, `HashTrieMap_typed_pointsto`,
-`HashTrieMap_into_val_typed`; notes/perennial-changes.md), and so do the generated instances of
+(`Perennial/GeneratedProof/internal/sync.lean`, `typed_pointsto'HashTrieMap`,
+`into_val_typed'HashTrieMap`; notes/perennial-changes.md), and so do the generated instances of
 `ClientBatchStore` (`raxos/replica/src`, whose one field is a `sync.Map`). Here, of high priority:
 `sync.Map`'s points-to is the deployment's vocabulary's (`QpVocab.map.tp`, `Hyp.lean`) and its
 `IntoValTypedUnderlying` the hypothesis `MapHyp.ivt`; `ClientBatchStore`'s are the generated

@@ -26,83 +26,83 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.buffer.Assumptions]
 
-noncomputable instance TypedRingFixed_typed_pointsto {T' : Type} [TypedPointsto (GF := GF) T'] :
-    TypedPointsto (GF := GF) (k8s_io.utils.buffer.TypedRingFixed T') where
+noncomputable instance typed_pointsto'TypedRingFixed {T₀' : Type} [TypedPointsto (GF := GF) T₀'] :
+    TypedPointsto (GF := GF) (k8s_io.utils.buffer.TypedRingFixed T₀') where
   typedPointstoDef l v dq := iprop(
-    "data" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"data" l) v.data' dq ∗
-    "size" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"size" l) v.size' dq ∗
-    "writeCursor" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"writeCursor" l) v.writeCursor' dq ∗
-    "written" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"written" l) v.written' dq ∗
+    "data" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"data" l) v.data' dq ∗
+    "size" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"size" l) v.size' dq ∗
+    "writeCursor" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"writeCursor" l) v.writeCursor' dq ∗
+    "written" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"written" l) v.written' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance TypedRingFixed_into_val_typed (T : go.GoType) {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T'] [IntoValTyped (GF := GF) T' T] :
-    IntoValTypedUnderlying (GF := GF) (k8s_io.utils.buffer.TypedRingFixed T') (k8s_io.utils.buffer.TypedRingFixed.underlying T) := by
+noncomputable instance into_val_typed'TypedRingFixed (T₀ : go.GoType) {T₀' : Type} [ZeroVal T₀'] [TypedPointsto (GF := GF) T₀'] [IntoValTyped (GF := GF) T₀' T₀] :
+    IntoValTypedUnderlying (GF := GF) (k8s_io.utils.buffer.TypedRingFixed T₀') (k8s_io.utils.buffer.TypedRingFixed.underlying T₀) := by
   solve_into_val_typed_struct
 
-noncomputable instance TypedRingFixed_access_load_data {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingFixed T')) (dq : DFrac) :
+noncomputable instance access_load'TypedRingFixed'data {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingFixed T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"data" l) v.data' dq)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"data" l) v.data' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"data" l) v.data' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"data" l) v.data' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedRingFixed_access_store_data {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingFixed T')) (y : GoSlice) :
+noncomputable instance access_store'TypedRingFixed'data {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingFixed T₀')) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"data" l) v.data' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"data" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := y } : (k8s_io.utils.buffer.TypedRingFixed T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"data" l) v.data' (DFrac.own 1))
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"data" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := y } : (k8s_io.utils.buffer.TypedRingFixed T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedRingFixed_access_load_size {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingFixed T')) (dq : DFrac) :
+noncomputable instance access_load'TypedRingFixed'size {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingFixed T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"size" l) v.size' dq)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"size" l) v.size' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"size" l) v.size' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"size" l) v.size' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedRingFixed_access_store_size {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingFixed T')) (y : w64) :
+noncomputable instance access_store'TypedRingFixed'size {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingFixed T₀')) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"size" l) v.size' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"size" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with size' := y } : (k8s_io.utils.buffer.TypedRingFixed T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"size" l) v.size' (DFrac.own 1))
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"size" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with size' := y } : (k8s_io.utils.buffer.TypedRingFixed T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedRingFixed_access_load_writeCursor {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingFixed T')) (dq : DFrac) :
+noncomputable instance access_load'TypedRingFixed'writeCursor {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingFixed T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"writeCursor" l) v.writeCursor' dq)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"writeCursor" l) v.writeCursor' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"writeCursor" l) v.writeCursor' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"writeCursor" l) v.writeCursor' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedRingFixed_access_store_writeCursor {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingFixed T')) (y : w64) :
+noncomputable instance access_store'TypedRingFixed'writeCursor {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingFixed T₀')) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"writeCursor" l) v.writeCursor' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"writeCursor" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writeCursor' := y } : (k8s_io.utils.buffer.TypedRingFixed T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"writeCursor" l) v.writeCursor' (DFrac.own 1))
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"writeCursor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writeCursor' := y } : (k8s_io.utils.buffer.TypedRingFixed T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedRingFixed_access_load_written {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingFixed T')) (dq : DFrac) :
+noncomputable instance access_load'TypedRingFixed'written {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingFixed T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"written" l) v.written' dq)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"written" l) v.written' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"written" l) v.written' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"written" l) v.written' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedRingFixed_access_store_written {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingFixed T')) (y : w64) :
+noncomputable instance access_store'TypedRingFixed'written {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingFixed T₀')) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"written" l) v.written' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T') go!"written" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with written' := y } : (k8s_io.utils.buffer.TypedRingFixed T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"written" l) v.written' (DFrac.own 1))
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingFixed T₀') go!"written" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with written' := y } : (k8s_io.utils.buffer.TypedRingFixed T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -117,7 +117,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.buffer.Assumptions]
 
-noncomputable instance RingGrowingOptions_typed_pointsto :
+noncomputable instance typed_pointsto'RingGrowingOptions :
     TypedPointsto (GF := GF) k8s_io.utils.buffer.RingGrowingOptions where
   typedPointstoDef l v dq := iprop(
     "InitialSize" ∷ typedPointsto (structFieldRef k8s_io.utils.buffer.RingGrowingOptions go!"InitialSize" l) v.InitialSize' dq ∗
@@ -126,11 +126,11 @@ noncomputable instance RingGrowingOptions_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance RingGrowingOptions_into_val_typed :
+noncomputable instance into_val_typed'RingGrowingOptions :
     IntoValTypedUnderlying (GF := GF) k8s_io.utils.buffer.RingGrowingOptions k8s_io.utils.buffer.RingGrowingOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance RingGrowingOptions_access_load_InitialSize (l : Loc) (v : k8s_io.utils.buffer.RingGrowingOptions) (dq : DFrac) :
+noncomputable instance access_load'RingGrowingOptions'InitialSize (l : Loc) (v : k8s_io.utils.buffer.RingGrowingOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.buffer.RingGrowingOptions go!"InitialSize" l) v.InitialSize' dq)
       (typedPointsto (structFieldRef k8s_io.utils.buffer.RingGrowingOptions go!"InitialSize" l) v.InitialSize' dq)
@@ -138,7 +138,7 @@ noncomputable instance RingGrowingOptions_access_load_InitialSize (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance RingGrowingOptions_access_store_InitialSize (l : Loc) (v : k8s_io.utils.buffer.RingGrowingOptions) (y : w64) :
+noncomputable instance access_store'RingGrowingOptions'InitialSize (l : Loc) (v : k8s_io.utils.buffer.RingGrowingOptions) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.buffer.RingGrowingOptions go!"InitialSize" l) v.InitialSize' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.utils.buffer.RingGrowingOptions go!"InitialSize" l) y (DFrac.own 1))
@@ -157,83 +157,83 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.buffer.Assumptions]
 
-noncomputable instance TypedRingGrowing_typed_pointsto {T' : Type} [TypedPointsto (GF := GF) T'] :
-    TypedPointsto (GF := GF) (k8s_io.utils.buffer.TypedRingGrowing T') where
+noncomputable instance typed_pointsto'TypedRingGrowing {T₀' : Type} [TypedPointsto (GF := GF) T₀'] :
+    TypedPointsto (GF := GF) (k8s_io.utils.buffer.TypedRingGrowing T₀') where
   typedPointstoDef l v dq := iprop(
-    "data" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"data" l) v.data' dq ∗
-    "n" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"n" l) v.n' dq ∗
-    "beg" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"beg" l) v.beg' dq ∗
-    "readable" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"readable" l) v.readable' dq ∗
+    "data" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"data" l) v.data' dq ∗
+    "n" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"n" l) v.n' dq ∗
+    "beg" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"beg" l) v.beg' dq ∗
+    "readable" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"readable" l) v.readable' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance TypedRingGrowing_into_val_typed (T : go.GoType) {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T'] [IntoValTyped (GF := GF) T' T] :
-    IntoValTypedUnderlying (GF := GF) (k8s_io.utils.buffer.TypedRingGrowing T') (k8s_io.utils.buffer.TypedRingGrowing.underlying T) := by
+noncomputable instance into_val_typed'TypedRingGrowing (T₀ : go.GoType) {T₀' : Type} [ZeroVal T₀'] [TypedPointsto (GF := GF) T₀'] [IntoValTyped (GF := GF) T₀' T₀] :
+    IntoValTypedUnderlying (GF := GF) (k8s_io.utils.buffer.TypedRingGrowing T₀') (k8s_io.utils.buffer.TypedRingGrowing.underlying T₀) := by
   solve_into_val_typed_struct
 
-noncomputable instance TypedRingGrowing_access_load_data {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingGrowing T')) (dq : DFrac) :
+noncomputable instance access_load'TypedRingGrowing'data {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingGrowing T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"data" l) v.data' dq)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"data" l) v.data' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"data" l) v.data' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"data" l) v.data' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedRingGrowing_access_store_data {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingGrowing T')) (y : GoSlice) :
+noncomputable instance access_store'TypedRingGrowing'data {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingGrowing T₀')) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"data" l) v.data' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"data" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := y } : (k8s_io.utils.buffer.TypedRingGrowing T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"data" l) v.data' (DFrac.own 1))
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"data" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := y } : (k8s_io.utils.buffer.TypedRingGrowing T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedRingGrowing_access_load_n {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingGrowing T')) (dq : DFrac) :
+noncomputable instance access_load'TypedRingGrowing'n {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingGrowing T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"n" l) v.n' dq)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"n" l) v.n' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"n" l) v.n' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"n" l) v.n' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedRingGrowing_access_store_n {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingGrowing T')) (y : w64) :
+noncomputable instance access_store'TypedRingGrowing'n {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingGrowing T₀')) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"n" l) v.n' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"n" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with n' := y } : (k8s_io.utils.buffer.TypedRingGrowing T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"n" l) v.n' (DFrac.own 1))
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"n" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with n' := y } : (k8s_io.utils.buffer.TypedRingGrowing T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedRingGrowing_access_load_beg {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingGrowing T')) (dq : DFrac) :
+noncomputable instance access_load'TypedRingGrowing'beg {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingGrowing T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"beg" l) v.beg' dq)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"beg" l) v.beg' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"beg" l) v.beg' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"beg" l) v.beg' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedRingGrowing_access_store_beg {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingGrowing T')) (y : w64) :
+noncomputable instance access_store'TypedRingGrowing'beg {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingGrowing T₀')) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"beg" l) v.beg' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"beg" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with beg' := y } : (k8s_io.utils.buffer.TypedRingGrowing T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"beg" l) v.beg' (DFrac.own 1))
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"beg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with beg' := y } : (k8s_io.utils.buffer.TypedRingGrowing T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedRingGrowing_access_load_readable {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingGrowing T')) (dq : DFrac) :
+noncomputable instance access_load'TypedRingGrowing'readable {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingGrowing T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"readable" l) v.readable' dq)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"readable" l) v.readable' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"readable" l) v.readable' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"readable" l) v.readable' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedRingGrowing_access_store_readable {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingGrowing T')) (y : w64) :
+noncomputable instance access_store'TypedRingGrowing'readable {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.TypedRingGrowing T₀')) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"readable" l) v.readable' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T') go!"readable" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with readable' := y } : (k8s_io.utils.buffer.TypedRingGrowing T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"readable" l) v.readable' (DFrac.own 1))
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.TypedRingGrowing T₀') go!"readable" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with readable' := y } : (k8s_io.utils.buffer.TypedRingGrowing T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -248,7 +248,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.buffer.Assumptions]
 
-noncomputable instance RingOptions_typed_pointsto :
+noncomputable instance typed_pointsto'RingOptions :
     TypedPointsto (GF := GF) k8s_io.utils.buffer.RingOptions where
   typedPointstoDef l v dq := iprop(
     "InitialSize" ∷ typedPointsto (structFieldRef k8s_io.utils.buffer.RingOptions go!"InitialSize" l) v.InitialSize' dq ∗
@@ -258,11 +258,11 @@ noncomputable instance RingOptions_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance RingOptions_into_val_typed :
+noncomputable instance into_val_typed'RingOptions :
     IntoValTypedUnderlying (GF := GF) k8s_io.utils.buffer.RingOptions k8s_io.utils.buffer.RingOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance RingOptions_access_load_InitialSize (l : Loc) (v : k8s_io.utils.buffer.RingOptions) (dq : DFrac) :
+noncomputable instance access_load'RingOptions'InitialSize (l : Loc) (v : k8s_io.utils.buffer.RingOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.buffer.RingOptions go!"InitialSize" l) v.InitialSize' dq)
       (typedPointsto (structFieldRef k8s_io.utils.buffer.RingOptions go!"InitialSize" l) v.InitialSize' dq)
@@ -270,7 +270,7 @@ noncomputable instance RingOptions_access_load_InitialSize (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance RingOptions_access_store_InitialSize (l : Loc) (v : k8s_io.utils.buffer.RingOptions) (y : w64) :
+noncomputable instance access_store'RingOptions'InitialSize (l : Loc) (v : k8s_io.utils.buffer.RingOptions) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.buffer.RingOptions go!"InitialSize" l) v.InitialSize' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.utils.buffer.RingOptions go!"InitialSize" l) y (DFrac.own 1))
@@ -278,7 +278,7 @@ noncomputable instance RingOptions_access_store_InitialSize (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance RingOptions_access_load_NormalSize (l : Loc) (v : k8s_io.utils.buffer.RingOptions) (dq : DFrac) :
+noncomputable instance access_load'RingOptions'NormalSize (l : Loc) (v : k8s_io.utils.buffer.RingOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.buffer.RingOptions go!"NormalSize" l) v.NormalSize' dq)
       (typedPointsto (structFieldRef k8s_io.utils.buffer.RingOptions go!"NormalSize" l) v.NormalSize' dq)
@@ -286,7 +286,7 @@ noncomputable instance RingOptions_access_load_NormalSize (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance RingOptions_access_store_NormalSize (l : Loc) (v : k8s_io.utils.buffer.RingOptions) (y : w64) :
+noncomputable instance access_store'RingOptions'NormalSize (l : Loc) (v : k8s_io.utils.buffer.RingOptions) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.buffer.RingOptions go!"NormalSize" l) v.NormalSize' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.utils.buffer.RingOptions go!"NormalSize" l) y (DFrac.own 1))
@@ -305,49 +305,49 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.buffer.Assumptions]
 
-noncomputable instance Ring_typed_pointsto {T' : Type} [TypedPointsto (GF := GF) T'] :
-    TypedPointsto (GF := GF) (k8s_io.utils.buffer.Ring T') where
+noncomputable instance typed_pointsto'Ring {T₀' : Type} [TypedPointsto (GF := GF) T₀'] :
+    TypedPointsto (GF := GF) (k8s_io.utils.buffer.Ring T₀') where
   typedPointstoDef l v dq := iprop(
-    "growing" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T') go!"growing" l) v.growing' dq ∗
-    "normalSize" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T') go!"normalSize" l) v.normalSize' dq ∗
+    "growing" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T₀') go!"growing" l) v.growing' dq ∗
+    "normalSize" ∷ typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T₀') go!"normalSize" l) v.normalSize' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Ring_into_val_typed (T : go.GoType) {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T'] [IntoValTyped (GF := GF) T' T] :
-    IntoValTypedUnderlying (GF := GF) (k8s_io.utils.buffer.Ring T') (k8s_io.utils.buffer.Ring.underlying T) := by
+noncomputable instance into_val_typed'Ring (T₀ : go.GoType) {T₀' : Type} [ZeroVal T₀'] [TypedPointsto (GF := GF) T₀'] [IntoValTyped (GF := GF) T₀' T₀] :
+    IntoValTypedUnderlying (GF := GF) (k8s_io.utils.buffer.Ring T₀') (k8s_io.utils.buffer.Ring.underlying T₀) := by
   solve_into_val_typed_struct
 
-noncomputable instance Ring_access_load_growing {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.Ring T')) (dq : DFrac) :
+noncomputable instance access_load'Ring'growing {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.Ring T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T') go!"growing" l) v.growing' dq)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T') go!"growing" l) v.growing' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T₀') go!"growing" l) v.growing' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T₀') go!"growing" l) v.growing' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ring_access_store_growing {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.Ring T')) (y : (k8s_io.utils.buffer.TypedRingGrowing T')) :
+noncomputable instance access_store'Ring'growing {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.Ring T₀')) (y : (k8s_io.utils.buffer.TypedRingGrowing T₀')) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T') go!"growing" l) v.growing' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T') go!"growing" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with growing' := y } : (k8s_io.utils.buffer.Ring T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T₀') go!"growing" l) v.growing' (DFrac.own 1))
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T₀') go!"growing" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with growing' := y } : (k8s_io.utils.buffer.Ring T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ring_access_load_normalSize {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.Ring T')) (dq : DFrac) :
+noncomputable instance access_load'Ring'normalSize {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.Ring T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T') go!"normalSize" l) v.normalSize' dq)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T') go!"normalSize" l) v.normalSize' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T₀') go!"normalSize" l) v.normalSize' dq)
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T₀') go!"normalSize" l) v.normalSize' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Ring_access_store_normalSize {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.buffer.Ring T')) (y : w64) :
+noncomputable instance access_store'Ring'normalSize {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.utils.buffer.Ring T₀')) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T') go!"normalSize" l) v.normalSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T') go!"normalSize" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with normalSize' := y } : (k8s_io.utils.buffer.Ring T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T₀') go!"normalSize" l) v.normalSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef (k8s_io.utils.buffer.Ring T₀') go!"normalSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with normalSize' := y } : (k8s_io.utils.buffer.Ring T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

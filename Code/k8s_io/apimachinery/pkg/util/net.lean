@@ -458,7 +458,7 @@ noncomputable instance WarningHeader.zero_val [GooseExts] : ZeroVal WarningHeade
 @[irreducible] noncomputable def WarningHeader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   WarningHeader.fieldsUnsealed
 
-noncomputable instance equals_unfold_WarningHeader [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'WarningHeader [GooseExts] [GoGlobalContext] :
     EqualsUnfold WarningHeader.fields WarningHeader.fieldsUnsealed :=
   ⟨by unfold WarningHeader.fields; rfl⟩
 
@@ -468,23 +468,23 @@ noncomputable instance equals_unfold_WarningHeader [GooseExts] [GoGlobalContext]
 class WarningHeader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WarningHeader.underlying WarningHeader
   underlying : go.UnderlyingDirectedEq WarningHeader.ty WarningHeader.underlying
-  get_Code : ∀ (x : WarningHeader), go.IsGoStepPureDetTagged under (StructFieldGet WarningHeader.underlying go!"Code") #x (Val #(x.Code'))
-  set_Code : ∀ (x : WarningHeader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WarningHeader.underlying go!"Code") (PairV #x #y) (Val #(({ x with Code' := y } : WarningHeader)))
-  get_Agent : ∀ (x : WarningHeader), go.IsGoStepPureDetTagged under (StructFieldGet WarningHeader.underlying go!"Agent") #x (Val #(x.Agent'))
-  set_Agent : ∀ (x : WarningHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet WarningHeader.underlying go!"Agent") (PairV #x #y) (Val #(({ x with Agent' := y } : WarningHeader)))
-  get_Text : ∀ (x : WarningHeader), go.IsGoStepPureDetTagged under (StructFieldGet WarningHeader.underlying go!"Text") #x (Val #(x.Text'))
-  set_Text : ∀ (x : WarningHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet WarningHeader.underlying go!"Text") (PairV #x #y) (Val #(({ x with Text' := y } : WarningHeader)))
+  get'Code : ∀ (x : WarningHeader), go.IsGoStepPureDetTagged under (StructFieldGet WarningHeader.underlying go!"Code") #x (Val #(x.Code'))
+  set'Code : ∀ (x : WarningHeader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WarningHeader.underlying go!"Code") (PairV #x #y) (Val #(({ x with Code' := y } : WarningHeader)))
+  get'Agent : ∀ (x : WarningHeader), go.IsGoStepPureDetTagged under (StructFieldGet WarningHeader.underlying go!"Agent") #x (Val #(x.Agent'))
+  set'Agent : ∀ (x : WarningHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet WarningHeader.underlying go!"Agent") (PairV #x #y) (Val #(({ x with Agent' := y } : WarningHeader)))
+  get'Text : ∀ (x : WarningHeader), go.IsGoStepPureDetTagged under (StructFieldGet WarningHeader.underlying go!"Text") #x (Val #(x.Text'))
+  set'Text : ∀ (x : WarningHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet WarningHeader.underlying go!"Text") (PairV #x #y) (Val #(({ x with Text' := y } : WarningHeader)))
   method_set : go.MethodSetIs WarningHeader.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType WarningHeader.ty) []
 
 attribute [instance] WarningHeader.TypeAssumptions.type_repr
   WarningHeader.TypeAssumptions.underlying
-  WarningHeader.TypeAssumptions.get_Code
-  WarningHeader.TypeAssumptions.set_Code
-  WarningHeader.TypeAssumptions.get_Agent
-  WarningHeader.TypeAssumptions.set_Agent
-  WarningHeader.TypeAssumptions.get_Text
-  WarningHeader.TypeAssumptions.set_Text
+  WarningHeader.TypeAssumptions.get'Code
+  WarningHeader.TypeAssumptions.set'Code
+  WarningHeader.TypeAssumptions.get'Agent
+  WarningHeader.TypeAssumptions.set'Agent
+  WarningHeader.TypeAssumptions.get'Text
+  WarningHeader.TypeAssumptions.set'Text
   WarningHeader.TypeAssumptions.method_set
   WarningHeader.TypeAssumptions.ptr_method_set
 
@@ -567,7 +567,7 @@ noncomputable instance noRoutesError.zero_val [GooseExts] : ZeroVal noRoutesErro
 @[irreducible] noncomputable def noRoutesError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noRoutesError.fieldsUnsealed
 
-noncomputable instance equals_unfold_noRoutesError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'noRoutesError [GooseExts] [GoGlobalContext] :
     EqualsUnfold noRoutesError.fields noRoutesError.fieldsUnsealed :=
   ⟨by unfold noRoutesError.fields; rfl⟩
 
@@ -577,15 +577,15 @@ noncomputable instance equals_unfold_noRoutesError [GooseExts] [GoGlobalContext]
 class noRoutesError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noRoutesError.underlying noRoutesError
   underlying : go.UnderlyingDirectedEq noRoutesError.ty noRoutesError.underlying
-  get_message : ∀ (x : noRoutesError), go.IsGoStepPureDetTagged under (StructFieldGet noRoutesError.underlying go!"message") #x (Val #(x.message'))
-  set_message : ∀ (x : noRoutesError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet noRoutesError.underlying go!"message") (PairV #x #y) (Val #(({ x with message' := y } : noRoutesError)))
+  get'message : ∀ (x : noRoutesError), go.IsGoStepPureDetTagged under (StructFieldGet noRoutesError.underlying go!"message") #x (Val #(x.message'))
+  set'message : ∀ (x : noRoutesError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet noRoutesError.underlying go!"message") (PairV #x #y) (Val #(({ x with message' := y } : noRoutesError)))
   method_set : go.MethodSetIs noRoutesError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType noRoutesError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] noRoutesError.TypeAssumptions.type_repr
   noRoutesError.TypeAssumptions.underlying
-  noRoutesError.TypeAssumptions.get_message
-  noRoutesError.TypeAssumptions.set_message
+  noRoutesError.TypeAssumptions.get'message
+  noRoutesError.TypeAssumptions.set'message
   noRoutesError.TypeAssumptions.method_set
   noRoutesError.TypeAssumptions.ptr_method_set
 
@@ -620,7 +620,7 @@ noncomputable instance networkInterface.zero_val [GooseExts] : ZeroVal networkIn
 @[irreducible] noncomputable def networkInterface.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   networkInterface.fieldsUnsealed
 
-noncomputable instance equals_unfold_networkInterface [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'networkInterface [GooseExts] [GoGlobalContext] :
     EqualsUnfold networkInterface.fields networkInterface.fieldsUnsealed :=
   ⟨by unfold networkInterface.fields; rfl⟩
 
@@ -653,7 +653,7 @@ noncomputable instance PortRange.zero_val [GooseExts] : ZeroVal PortRange :=
 @[irreducible] noncomputable def PortRange.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PortRange.fieldsUnsealed
 
-noncomputable instance equals_unfold_PortRange [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PortRange [GooseExts] [GoGlobalContext] :
     EqualsUnfold PortRange.fields PortRange.fieldsUnsealed :=
   ⟨by unfold PortRange.fields; rfl⟩
 
@@ -663,52 +663,52 @@ noncomputable instance equals_unfold_PortRange [GooseExts] [GoGlobalContext] :
 class PortRange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PortRange.underlying PortRange
   underlying : go.UnderlyingDirectedEq PortRange.ty PortRange.underlying
-  get_Base : ∀ (x : PortRange), go.IsGoStepPureDetTagged under (StructFieldGet PortRange.underlying go!"Base") #x (Val #(x.Base'))
-  set_Base : ∀ (x : PortRange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PortRange.underlying go!"Base") (PairV #x #y) (Val #(({ x with Base' := y } : PortRange)))
-  get_Size : ∀ (x : PortRange), go.IsGoStepPureDetTagged under (StructFieldGet PortRange.underlying go!"Size") #x (Val #(x.Size'))
-  set_Size : ∀ (x : PortRange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PortRange.underlying go!"Size") (PairV #x #y) (Val #(({ x with Size' := y } : PortRange)))
+  get'Base : ∀ (x : PortRange), go.IsGoStepPureDetTagged under (StructFieldGet PortRange.underlying go!"Base") #x (Val #(x.Base'))
+  set'Base : ∀ (x : PortRange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PortRange.underlying go!"Base") (PairV #x #y) (Val #(({ x with Base' := y } : PortRange)))
+  get'Size : ∀ (x : PortRange), go.IsGoStepPureDetTagged under (StructFieldGet PortRange.underlying go!"Size") #x (Val #(x.Size'))
+  set'Size : ∀ (x : PortRange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PortRange.underlying go!"Size") (PairV #x #y) (Val #(({ x with Size' := y } : PortRange)))
   method_set : go.MethodSetIs PortRange.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PortRange.ty) [(go!"Contains", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] PortRange.TypeAssumptions.type_repr
   PortRange.TypeAssumptions.underlying
-  PortRange.TypeAssumptions.get_Base
-  PortRange.TypeAssumptions.set_Base
-  PortRange.TypeAssumptions.get_Size
-  PortRange.TypeAssumptions.set_Size
+  PortRange.TypeAssumptions.get'Base
+  PortRange.TypeAssumptions.set'Base
+  PortRange.TypeAssumptions.get'Size
+  PortRange.TypeAssumptions.set'Size
   PortRange.TypeAssumptions.method_set
   PortRange.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  RoundTripperWrapper_instance : RoundTripperWrapper.TypeAssumptions
-  DialFunc_instance : DialFunc.TypeAssumptions
-  TLSClientConfigHolder_instance : TLSClientConfigHolder.TypeAssumptions
-  DialerFunc_instance : DialerFunc.TypeAssumptions
-  Dialer_instance : Dialer.TypeAssumptions
-  WarningHeader_instance : WarningHeader.TypeAssumptions
-  AddressFamily_instance : AddressFamily.TypeAssumptions
-  AddressFamilyPreference_instance : AddressFamilyPreference.TypeAssumptions
-  Route_instance : Route.TypeAssumptions
-  RouteFile_instance : RouteFile.TypeAssumptions
-  noRoutesError_instance : noRoutesError.TypeAssumptions
-  networkInterfacer_instance : networkInterfacer.TypeAssumptions
-  networkInterface_instance : networkInterface.TypeAssumptions
-  PortRange_instance : PortRange.TypeAssumptions
+  instance'RoundTripperWrapper : RoundTripperWrapper.TypeAssumptions
+  instance'DialFunc : DialFunc.TypeAssumptions
+  instance'TLSClientConfigHolder : TLSClientConfigHolder.TypeAssumptions
+  instance'DialerFunc : DialerFunc.TypeAssumptions
+  instance'Dialer : Dialer.TypeAssumptions
+  instance'WarningHeader : WarningHeader.TypeAssumptions
+  instance'AddressFamily : AddressFamily.TypeAssumptions
+  instance'AddressFamilyPreference : AddressFamilyPreference.TypeAssumptions
+  instance'Route : Route.TypeAssumptions
+  instance'RouteFile : RouteFile.TypeAssumptions
+  instance'noRoutesError : noRoutesError.TypeAssumptions
+  instance'networkInterfacer : networkInterfacer.TypeAssumptions
+  instance'networkInterface : networkInterface.TypeAssumptions
+  instance'PortRange : PortRange.TypeAssumptions
 
-attribute [instance] Assumptions.RoundTripperWrapper_instance
-  Assumptions.DialFunc_instance
-  Assumptions.TLSClientConfigHolder_instance
-  Assumptions.DialerFunc_instance
-  Assumptions.Dialer_instance
-  Assumptions.WarningHeader_instance
-  Assumptions.AddressFamily_instance
-  Assumptions.AddressFamilyPreference_instance
-  Assumptions.Route_instance
-  Assumptions.RouteFile_instance
-  Assumptions.noRoutesError_instance
-  Assumptions.networkInterfacer_instance
-  Assumptions.networkInterface_instance
-  Assumptions.PortRange_instance
+attribute [instance] Assumptions.instance'RoundTripperWrapper
+  Assumptions.instance'DialFunc
+  Assumptions.instance'TLSClientConfigHolder
+  Assumptions.instance'DialerFunc
+  Assumptions.instance'Dialer
+  Assumptions.instance'WarningHeader
+  Assumptions.instance'AddressFamily
+  Assumptions.instance'AddressFamilyPreference
+  Assumptions.instance'Route
+  Assumptions.instance'RouteFile
+  Assumptions.instance'noRoutesError
+  Assumptions.instance'networkInterfacer
+  Assumptions.instance'networkInterface
+  Assumptions.instance'PortRange
 
 end k8s_io.apimachinery.pkg.util.net
 

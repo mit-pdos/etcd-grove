@@ -90,13 +90,13 @@ attribute [instance] Span.TypeAssumptions.underlying
   Span.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  TracerProvider_instance : TracerProvider.TypeAssumptions
-  Tracer_instance : Tracer.TypeAssumptions
-  Span_instance : Span.TypeAssumptions
+  instance'TracerProvider : TracerProvider.TypeAssumptions
+  instance'Tracer : Tracer.TypeAssumptions
+  instance'Span : Span.TypeAssumptions
 
-attribute [instance] Assumptions.TracerProvider_instance
-  Assumptions.Tracer_instance
-  Assumptions.Span_instance
+attribute [instance] Assumptions.instance'TracerProvider
+  Assumptions.instance'Tracer
+  Assumptions.instance'Span
 
 end go_opentelemetry_io.otel.trace.embedded
 

@@ -99,8 +99,8 @@ variable [LeaseItem.TypeAssumptions]
 /-- A `LeaseItem` is its key: its Go value determines it (the field read is deterministic). -/
 instance leaseItem_intoValInj [go.BasicIntoValInj] : go.IntoValInj LeaseItem where
   intoVal_inj x y h := by
-    have hx := (LeaseItem.TypeAssumptions.get_Key x).isGoStep_det_internal.isGoStep_pure_det
-    have hy := (LeaseItem.TypeAssumptions.get_Key y).isGoStep_det_internal.isGoStep_pure_det
+    have hx := (LeaseItem.TypeAssumptions.get'Key x).isGoStep_det_internal.isGoStep_pure_det
+    have hy := (LeaseItem.TypeAssumptions.get'Key y).isGoStep_det_internal.isGoStep_pure_det
     rw [h] at hx
     have h2 := congrFun (hx.symm.trans hy) (Val #(x.Key'))
     simp only [eq_iff_iff, true_iff] at h2

@@ -311,7 +311,7 @@ noncomputable instance Resolver.zero_val [GooseExts] : ZeroVal Resolver :=
 @[irreducible] noncomputable def Resolver.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Resolver.fieldsUnsealed
 
-noncomputable instance equals_unfold_Resolver [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Resolver [GooseExts] [GoGlobalContext] :
     EqualsUnfold Resolver.fields Resolver.fieldsUnsealed :=
   ⟨by unfold Resolver.fields; rfl⟩
 
@@ -321,70 +321,70 @@ noncomputable instance equals_unfold_Resolver [GooseExts] [GoGlobalContext] :
 class Resolver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Resolver.underlying Resolver
   underlying : go.UnderlyingDirectedEq Resolver.ty Resolver.underlying
-  get_BuildCallback : ∀ (x : Resolver), go.IsGoStepPureDetTagged under (StructFieldGet Resolver.underlying go!"BuildCallback") #x (Val #(x.BuildCallback'))
-  set_BuildCallback : ∀ (x : Resolver) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Resolver.underlying go!"BuildCallback") (PairV #x #y) (Val #(({ x with BuildCallback' := y } : Resolver)))
-  get_UpdateStateCallback : ∀ (x : Resolver), go.IsGoStepPureDetTagged under (StructFieldGet Resolver.underlying go!"UpdateStateCallback") #x (Val #(x.UpdateStateCallback'))
-  set_UpdateStateCallback : ∀ (x : Resolver) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Resolver.underlying go!"UpdateStateCallback") (PairV #x #y) (Val #(({ x with UpdateStateCallback' := y } : Resolver)))
-  get_ResolveNowCallback : ∀ (x : Resolver), go.IsGoStepPureDetTagged under (StructFieldGet Resolver.underlying go!"ResolveNowCallback") #x (Val #(x.ResolveNowCallback'))
-  set_ResolveNowCallback : ∀ (x : Resolver) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Resolver.underlying go!"ResolveNowCallback") (PairV #x #y) (Val #(({ x with ResolveNowCallback' := y } : Resolver)))
-  get_CloseCallback : ∀ (x : Resolver), go.IsGoStepPureDetTagged under (StructFieldGet Resolver.underlying go!"CloseCallback") #x (Val #(x.CloseCallback'))
-  set_CloseCallback : ∀ (x : Resolver) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Resolver.underlying go!"CloseCallback") (PairV #x #y) (Val #(({ x with CloseCallback' := y } : Resolver)))
-  get_scheme : ∀ (x : Resolver), go.IsGoStepPureDetTagged under (StructFieldGet Resolver.underlying go!"scheme") #x (Val #(x.scheme'))
-  set_scheme : ∀ (x : Resolver) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Resolver.underlying go!"scheme") (PairV #x #y) (Val #(({ x with scheme' := y } : Resolver)))
-  get_mu : ∀ (x : Resolver), go.IsGoStepPureDetTagged under (StructFieldGet Resolver.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : Resolver) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Resolver.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Resolver)))
-  get_cc : ∀ (x : Resolver), go.IsGoStepPureDetTagged under (StructFieldGet Resolver.underlying go!"cc") #x (Val #(x.cc'))
-  set_cc : ∀ (x : Resolver) (y : _root_.Perennial.google_golang_org.grpc.resolver.ClientConn), go.IsGoStepPureDetTagged under (StructFieldSet Resolver.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : Resolver)))
-  get_lastSeenState : ∀ (x : Resolver), go.IsGoStepPureDetTagged under (StructFieldGet Resolver.underlying go!"lastSeenState") #x (Val #(x.lastSeenState'))
-  set_lastSeenState : ∀ (x : Resolver) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Resolver.underlying go!"lastSeenState") (PairV #x #y) (Val #(({ x with lastSeenState' := y } : Resolver)))
+  get'BuildCallback : ∀ (x : Resolver), go.IsGoStepPureDetTagged under (StructFieldGet Resolver.underlying go!"BuildCallback") #x (Val #(x.BuildCallback'))
+  set'BuildCallback : ∀ (x : Resolver) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Resolver.underlying go!"BuildCallback") (PairV #x #y) (Val #(({ x with BuildCallback' := y } : Resolver)))
+  get'UpdateStateCallback : ∀ (x : Resolver), go.IsGoStepPureDetTagged under (StructFieldGet Resolver.underlying go!"UpdateStateCallback") #x (Val #(x.UpdateStateCallback'))
+  set'UpdateStateCallback : ∀ (x : Resolver) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Resolver.underlying go!"UpdateStateCallback") (PairV #x #y) (Val #(({ x with UpdateStateCallback' := y } : Resolver)))
+  get'ResolveNowCallback : ∀ (x : Resolver), go.IsGoStepPureDetTagged under (StructFieldGet Resolver.underlying go!"ResolveNowCallback") #x (Val #(x.ResolveNowCallback'))
+  set'ResolveNowCallback : ∀ (x : Resolver) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Resolver.underlying go!"ResolveNowCallback") (PairV #x #y) (Val #(({ x with ResolveNowCallback' := y } : Resolver)))
+  get'CloseCallback : ∀ (x : Resolver), go.IsGoStepPureDetTagged under (StructFieldGet Resolver.underlying go!"CloseCallback") #x (Val #(x.CloseCallback'))
+  set'CloseCallback : ∀ (x : Resolver) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Resolver.underlying go!"CloseCallback") (PairV #x #y) (Val #(({ x with CloseCallback' := y } : Resolver)))
+  get'scheme : ∀ (x : Resolver), go.IsGoStepPureDetTagged under (StructFieldGet Resolver.underlying go!"scheme") #x (Val #(x.scheme'))
+  set'scheme : ∀ (x : Resolver) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Resolver.underlying go!"scheme") (PairV #x #y) (Val #(({ x with scheme' := y } : Resolver)))
+  get'mu : ∀ (x : Resolver), go.IsGoStepPureDetTagged under (StructFieldGet Resolver.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : Resolver) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Resolver.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Resolver)))
+  get'cc : ∀ (x : Resolver), go.IsGoStepPureDetTagged under (StructFieldGet Resolver.underlying go!"cc") #x (Val #(x.cc'))
+  set'cc : ∀ (x : Resolver) (y : _root_.Perennial.google_golang_org.grpc.resolver.ClientConn), go.IsGoStepPureDetTagged under (StructFieldSet Resolver.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : Resolver)))
+  get'lastSeenState : ∀ (x : Resolver), go.IsGoStepPureDetTagged under (StructFieldGet Resolver.underlying go!"lastSeenState") #x (Val #(x.lastSeenState'))
+  set'lastSeenState : ∀ (x : Resolver) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Resolver.underlying go!"lastSeenState") (PairV #x #y) (Val #(({ x with lastSeenState' := y } : Resolver)))
   method_set : go.MethodSetIs Resolver.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Resolver.ty) [(go!"Build", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.resolver.Target.ty, _root_.Perennial.google_golang_org.grpc.resolver.ClientConn.ty, _root_.Perennial.google_golang_org.grpc.resolver.BuildOptions.ty] false [_root_.Perennial.google_golang_org.grpc.resolver.Resolver.ty, go.error]))), (go!"CC", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.resolver.ClientConn.ty]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"InitialState", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.resolver.State.ty] false []))), (go!"ResolveNow", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.resolver.ResolveNowOptions.ty] false []))), (go!"Scheme", (some (go.signature.Signature [] false [go.string]))), (go!"UpdateState", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.resolver.State.ty] false [])))]
-  ptr_Build_unfold : MethodUnfold (go.GoType.PointerType Resolver.ty) go!"Build" Resolver.Build.impl
-  ptr_CC_unfold : MethodUnfold (go.GoType.PointerType Resolver.ty) go!"CC" Resolver.CC.impl
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType Resolver.ty) go!"Close" Resolver.Close.impl
-  ptr_InitialState_unfold : MethodUnfold (go.GoType.PointerType Resolver.ty) go!"InitialState" Resolver.InitialState.impl
-  ptr_ResolveNow_unfold : MethodUnfold (go.GoType.PointerType Resolver.ty) go!"ResolveNow" Resolver.ResolveNow.impl
-  ptr_Scheme_unfold : MethodUnfold (go.GoType.PointerType Resolver.ty) go!"Scheme" Resolver.Scheme.impl
-  ptr_UpdateState_unfold : MethodUnfold (go.GoType.PointerType Resolver.ty) go!"UpdateState" Resolver.UpdateState.impl
+  ptr_unfold'Build : MethodUnfold (go.GoType.PointerType Resolver.ty) go!"Build" Resolver.Build.impl
+  ptr_unfold'CC : MethodUnfold (go.GoType.PointerType Resolver.ty) go!"CC" Resolver.CC.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType Resolver.ty) go!"Close" Resolver.Close.impl
+  ptr_unfold'InitialState : MethodUnfold (go.GoType.PointerType Resolver.ty) go!"InitialState" Resolver.InitialState.impl
+  ptr_unfold'ResolveNow : MethodUnfold (go.GoType.PointerType Resolver.ty) go!"ResolveNow" Resolver.ResolveNow.impl
+  ptr_unfold'Scheme : MethodUnfold (go.GoType.PointerType Resolver.ty) go!"Scheme" Resolver.Scheme.impl
+  ptr_unfold'UpdateState : MethodUnfold (go.GoType.PointerType Resolver.ty) go!"UpdateState" Resolver.UpdateState.impl
 
 attribute [instance] Resolver.TypeAssumptions.type_repr
   Resolver.TypeAssumptions.underlying
-  Resolver.TypeAssumptions.get_BuildCallback
-  Resolver.TypeAssumptions.set_BuildCallback
-  Resolver.TypeAssumptions.get_UpdateStateCallback
-  Resolver.TypeAssumptions.set_UpdateStateCallback
-  Resolver.TypeAssumptions.get_ResolveNowCallback
-  Resolver.TypeAssumptions.set_ResolveNowCallback
-  Resolver.TypeAssumptions.get_CloseCallback
-  Resolver.TypeAssumptions.set_CloseCallback
-  Resolver.TypeAssumptions.get_scheme
-  Resolver.TypeAssumptions.set_scheme
-  Resolver.TypeAssumptions.get_mu
-  Resolver.TypeAssumptions.set_mu
-  Resolver.TypeAssumptions.get_cc
-  Resolver.TypeAssumptions.set_cc
-  Resolver.TypeAssumptions.get_lastSeenState
-  Resolver.TypeAssumptions.set_lastSeenState
+  Resolver.TypeAssumptions.get'BuildCallback
+  Resolver.TypeAssumptions.set'BuildCallback
+  Resolver.TypeAssumptions.get'UpdateStateCallback
+  Resolver.TypeAssumptions.set'UpdateStateCallback
+  Resolver.TypeAssumptions.get'ResolveNowCallback
+  Resolver.TypeAssumptions.set'ResolveNowCallback
+  Resolver.TypeAssumptions.get'CloseCallback
+  Resolver.TypeAssumptions.set'CloseCallback
+  Resolver.TypeAssumptions.get'scheme
+  Resolver.TypeAssumptions.set'scheme
+  Resolver.TypeAssumptions.get'mu
+  Resolver.TypeAssumptions.set'mu
+  Resolver.TypeAssumptions.get'cc
+  Resolver.TypeAssumptions.set'cc
+  Resolver.TypeAssumptions.get'lastSeenState
+  Resolver.TypeAssumptions.set'lastSeenState
   Resolver.TypeAssumptions.method_set
   Resolver.TypeAssumptions.ptr_method_set
-  Resolver.TypeAssumptions.ptr_Build_unfold
-  Resolver.TypeAssumptions.ptr_CC_unfold
-  Resolver.TypeAssumptions.ptr_Close_unfold
-  Resolver.TypeAssumptions.ptr_InitialState_unfold
-  Resolver.TypeAssumptions.ptr_ResolveNow_unfold
-  Resolver.TypeAssumptions.ptr_Scheme_unfold
-  Resolver.TypeAssumptions.ptr_UpdateState_unfold
+  Resolver.TypeAssumptions.ptr_unfold'Build
+  Resolver.TypeAssumptions.ptr_unfold'CC
+  Resolver.TypeAssumptions.ptr_unfold'Close
+  Resolver.TypeAssumptions.ptr_unfold'InitialState
+  Resolver.TypeAssumptions.ptr_unfold'ResolveNow
+  Resolver.TypeAssumptions.ptr_unfold'Scheme
+  Resolver.TypeAssumptions.ptr_unfold'UpdateState
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Resolver_instance : Resolver.TypeAssumptions
-  NewBuilderWithScheme_unfold : FuncUnfold NewBuilderWithScheme [] NewBuilderWithScheme.impl
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_resolver_Assumption : _root_.Perennial.google_golang_org.grpc.resolver.Assumptions
+  instance'Resolver : Resolver.TypeAssumptions
+  unfold'NewBuilderWithScheme : FuncUnfold NewBuilderWithScheme [] NewBuilderWithScheme.impl
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'resolver : _root_.Perennial.google_golang_org.grpc.resolver.Assumptions
 
-attribute [instance] Assumptions.Resolver_instance
-  Assumptions.NewBuilderWithScheme_unfold
-  Assumptions.import_sync_Assumption
-  Assumptions.import_resolver_Assumption
+attribute [instance] Assumptions.instance'Resolver
+  Assumptions.unfold'NewBuilderWithScheme
+  Assumptions.import'sync
+  Assumptions.import'resolver
 
 end google_golang_org.grpc.resolver.manual
 

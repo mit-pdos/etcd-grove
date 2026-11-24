@@ -7481,7 +7481,7 @@ noncomputable instance AuthServer.zero_val [GooseExts] : ZeroVal AuthServer :=
 @[irreducible] noncomputable def AuthServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AuthServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_AuthServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'AuthServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold AuthServer.fields AuthServer.fieldsUnsealed :=
   ⟨by unfold AuthServer.fields; rfl⟩
 
@@ -7491,55 +7491,55 @@ noncomputable instance equals_unfold_AuthServer [GooseExts] [GoGlobalContext] :
 class AuthServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthServer.underlying AuthServer
   underlying : go.UnderlyingDirectedEq AuthServer.ty AuthServer.underlying
-  get_authenticator : ∀ (x : AuthServer), go.IsGoStepPureDetTagged under (StructFieldGet AuthServer.underlying go!"authenticator") #x (Val #(x.authenticator'))
-  set_authenticator : ∀ (x : AuthServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Authenticator), go.IsGoStepPureDetTagged under (StructFieldSet AuthServer.underlying go!"authenticator") (PairV #x #y) (Val #(({ x with authenticator' := y } : AuthServer)))
-  get_UnsafeAuthServer : ∀ (x : AuthServer), go.IsGoStepPureDetTagged under (StructFieldGet AuthServer.underlying go!"UnsafeAuthServer") #x (Val #(x.UnsafeAuthServer'))
-  set_UnsafeAuthServer : ∀ (x : AuthServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeAuthServer), go.IsGoStepPureDetTagged under (StructFieldSet AuthServer.underlying go!"UnsafeAuthServer") (PairV #x #y) (Val #(({ x with UnsafeAuthServer' := y } : AuthServer)))
+  get'authenticator : ∀ (x : AuthServer), go.IsGoStepPureDetTagged under (StructFieldGet AuthServer.underlying go!"authenticator") #x (Val #(x.authenticator'))
+  set'authenticator : ∀ (x : AuthServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Authenticator), go.IsGoStepPureDetTagged under (StructFieldSet AuthServer.underlying go!"authenticator") (PairV #x #y) (Val #(({ x with authenticator' := y } : AuthServer)))
+  get'UnsafeAuthServer : ∀ (x : AuthServer), go.IsGoStepPureDetTagged under (StructFieldGet AuthServer.underlying go!"UnsafeAuthServer") #x (Val #(x.UnsafeAuthServer'))
+  set'UnsafeAuthServer : ∀ (x : AuthServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeAuthServer), go.IsGoStepPureDetTagged under (StructFieldSet AuthServer.underlying go!"UnsafeAuthServer") (PairV #x #y) (Val #(({ x with UnsafeAuthServer' := y } : AuthServer)))
   method_set : go.MethodSetIs AuthServer.ty [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedAuthServer", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthServer.ty) [(go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedAuthServer", (some (go.signature.Signature [] false [])))]
-  ptr_AuthDisable_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"AuthDisable" AuthServer.AuthDisable.impl
-  ptr_AuthEnable_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"AuthEnable" AuthServer.AuthEnable.impl
-  ptr_AuthStatus_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"AuthStatus" AuthServer.AuthStatus.impl
-  ptr_Authenticate_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"Authenticate" AuthServer.Authenticate.impl
-  ptr_RoleAdd_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"RoleAdd" AuthServer.RoleAdd.impl
-  ptr_RoleDelete_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"RoleDelete" AuthServer.RoleDelete.impl
-  ptr_RoleGet_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"RoleGet" AuthServer.RoleGet.impl
-  ptr_RoleGrantPermission_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"RoleGrantPermission" AuthServer.RoleGrantPermission.impl
-  ptr_RoleList_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"RoleList" AuthServer.RoleList.impl
-  ptr_RoleRevokePermission_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"RoleRevokePermission" AuthServer.RoleRevokePermission.impl
-  ptr_UserAdd_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"UserAdd" AuthServer.UserAdd.impl
-  ptr_UserChangePassword_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"UserChangePassword" AuthServer.UserChangePassword.impl
-  ptr_UserDelete_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"UserDelete" AuthServer.UserDelete.impl
-  ptr_UserGet_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"UserGet" AuthServer.UserGet.impl
-  ptr_UserGrantRole_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"UserGrantRole" AuthServer.UserGrantRole.impl
-  ptr_UserList_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"UserList" AuthServer.UserList.impl
-  ptr_UserRevokeRole_unfold : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"UserRevokeRole" AuthServer.UserRevokeRole.impl
+  ptr_unfold'AuthDisable : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"AuthDisable" AuthServer.AuthDisable.impl
+  ptr_unfold'AuthEnable : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"AuthEnable" AuthServer.AuthEnable.impl
+  ptr_unfold'AuthStatus : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"AuthStatus" AuthServer.AuthStatus.impl
+  ptr_unfold'Authenticate : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"Authenticate" AuthServer.Authenticate.impl
+  ptr_unfold'RoleAdd : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"RoleAdd" AuthServer.RoleAdd.impl
+  ptr_unfold'RoleDelete : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"RoleDelete" AuthServer.RoleDelete.impl
+  ptr_unfold'RoleGet : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"RoleGet" AuthServer.RoleGet.impl
+  ptr_unfold'RoleGrantPermission : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"RoleGrantPermission" AuthServer.RoleGrantPermission.impl
+  ptr_unfold'RoleList : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"RoleList" AuthServer.RoleList.impl
+  ptr_unfold'RoleRevokePermission : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"RoleRevokePermission" AuthServer.RoleRevokePermission.impl
+  ptr_unfold'UserAdd : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"UserAdd" AuthServer.UserAdd.impl
+  ptr_unfold'UserChangePassword : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"UserChangePassword" AuthServer.UserChangePassword.impl
+  ptr_unfold'UserDelete : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"UserDelete" AuthServer.UserDelete.impl
+  ptr_unfold'UserGet : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"UserGet" AuthServer.UserGet.impl
+  ptr_unfold'UserGrantRole : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"UserGrantRole" AuthServer.UserGrantRole.impl
+  ptr_unfold'UserList : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"UserList" AuthServer.UserList.impl
+  ptr_unfold'UserRevokeRole : MethodUnfold (go.GoType.PointerType AuthServer.ty) go!"UserRevokeRole" AuthServer.UserRevokeRole.impl
 
 attribute [instance] AuthServer.TypeAssumptions.type_repr
   AuthServer.TypeAssumptions.underlying
-  AuthServer.TypeAssumptions.get_authenticator
-  AuthServer.TypeAssumptions.set_authenticator
-  AuthServer.TypeAssumptions.get_UnsafeAuthServer
-  AuthServer.TypeAssumptions.set_UnsafeAuthServer
+  AuthServer.TypeAssumptions.get'authenticator
+  AuthServer.TypeAssumptions.set'authenticator
+  AuthServer.TypeAssumptions.get'UnsafeAuthServer
+  AuthServer.TypeAssumptions.set'UnsafeAuthServer
   AuthServer.TypeAssumptions.method_set
   AuthServer.TypeAssumptions.ptr_method_set
-  AuthServer.TypeAssumptions.ptr_AuthDisable_unfold
-  AuthServer.TypeAssumptions.ptr_AuthEnable_unfold
-  AuthServer.TypeAssumptions.ptr_AuthStatus_unfold
-  AuthServer.TypeAssumptions.ptr_Authenticate_unfold
-  AuthServer.TypeAssumptions.ptr_RoleAdd_unfold
-  AuthServer.TypeAssumptions.ptr_RoleDelete_unfold
-  AuthServer.TypeAssumptions.ptr_RoleGet_unfold
-  AuthServer.TypeAssumptions.ptr_RoleGrantPermission_unfold
-  AuthServer.TypeAssumptions.ptr_RoleList_unfold
-  AuthServer.TypeAssumptions.ptr_RoleRevokePermission_unfold
-  AuthServer.TypeAssumptions.ptr_UserAdd_unfold
-  AuthServer.TypeAssumptions.ptr_UserChangePassword_unfold
-  AuthServer.TypeAssumptions.ptr_UserDelete_unfold
-  AuthServer.TypeAssumptions.ptr_UserGet_unfold
-  AuthServer.TypeAssumptions.ptr_UserGrantRole_unfold
-  AuthServer.TypeAssumptions.ptr_UserList_unfold
-  AuthServer.TypeAssumptions.ptr_UserRevokeRole_unfold
+  AuthServer.TypeAssumptions.ptr_unfold'AuthDisable
+  AuthServer.TypeAssumptions.ptr_unfold'AuthEnable
+  AuthServer.TypeAssumptions.ptr_unfold'AuthStatus
+  AuthServer.TypeAssumptions.ptr_unfold'Authenticate
+  AuthServer.TypeAssumptions.ptr_unfold'RoleAdd
+  AuthServer.TypeAssumptions.ptr_unfold'RoleDelete
+  AuthServer.TypeAssumptions.ptr_unfold'RoleGet
+  AuthServer.TypeAssumptions.ptr_unfold'RoleGrantPermission
+  AuthServer.TypeAssumptions.ptr_unfold'RoleList
+  AuthServer.TypeAssumptions.ptr_unfold'RoleRevokePermission
+  AuthServer.TypeAssumptions.ptr_unfold'UserAdd
+  AuthServer.TypeAssumptions.ptr_unfold'UserChangePassword
+  AuthServer.TypeAssumptions.ptr_unfold'UserDelete
+  AuthServer.TypeAssumptions.ptr_unfold'UserGet
+  AuthServer.TypeAssumptions.ptr_unfold'UserGrantRole
+  AuthServer.TypeAssumptions.ptr_unfold'UserList
+  AuthServer.TypeAssumptions.ptr_unfold'UserRevokeRole
 
 abbrev AuthGetter [GooseExts] : Type := GoInterface
 
@@ -7568,7 +7568,7 @@ noncomputable instance AuthAdmin.zero_val [GooseExts] : ZeroVal AuthAdmin :=
 @[irreducible] noncomputable def AuthAdmin.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AuthAdmin.fieldsUnsealed
 
-noncomputable instance equals_unfold_AuthAdmin [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'AuthAdmin [GooseExts] [GoGlobalContext] :
     EqualsUnfold AuthAdmin.fields AuthAdmin.fieldsUnsealed :=
   ⟨by unfold AuthAdmin.fields; rfl⟩
 
@@ -7578,21 +7578,21 @@ noncomputable instance equals_unfold_AuthAdmin [GooseExts] [GoGlobalContext] :
 class AuthAdmin.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthAdmin.underlying AuthAdmin
   underlying : go.UnderlyingDirectedEq AuthAdmin.ty AuthAdmin.underlying
-  get_ag : ∀ (x : AuthAdmin), go.IsGoStepPureDetTagged under (StructFieldGet AuthAdmin.underlying go!"ag") #x (Val #(x.ag'))
-  set_ag : ∀ (x : AuthAdmin) (y : AuthGetter), go.IsGoStepPureDetTagged under (StructFieldSet AuthAdmin.underlying go!"ag") (PairV #x #y) (Val #(({ x with ag' := y } : AuthAdmin)))
+  get'ag : ∀ (x : AuthAdmin), go.IsGoStepPureDetTagged under (StructFieldGet AuthAdmin.underlying go!"ag") #x (Val #(x.ag'))
+  set'ag : ∀ (x : AuthAdmin) (y : AuthGetter), go.IsGoStepPureDetTagged under (StructFieldSet AuthAdmin.underlying go!"ag") (PairV #x #y) (Val #(({ x with ag' := y } : AuthAdmin)))
   method_set : go.MethodSetIs AuthAdmin.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthAdmin.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.isPermitted", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])))]
-  ptr_isPermitted_unfold : MethodUnfold (go.GoType.PointerType AuthAdmin.ty) go!"isPermitted" AuthAdmin.isPermitted.impl
-  ptr_requireAuthInfo_unfold : MethodUnfold (go.GoType.PointerType AuthAdmin.ty) go!"requireAuthInfo" AuthAdmin.requireAuthInfo.impl
+  ptr_unfold'isPermitted : MethodUnfold (go.GoType.PointerType AuthAdmin.ty) go!"isPermitted" AuthAdmin.isPermitted.impl
+  ptr_unfold'requireAuthInfo : MethodUnfold (go.GoType.PointerType AuthAdmin.ty) go!"requireAuthInfo" AuthAdmin.requireAuthInfo.impl
 
 attribute [instance] AuthAdmin.TypeAssumptions.type_repr
   AuthAdmin.TypeAssumptions.underlying
-  AuthAdmin.TypeAssumptions.get_ag
-  AuthAdmin.TypeAssumptions.set_ag
+  AuthAdmin.TypeAssumptions.get'ag
+  AuthAdmin.TypeAssumptions.set'ag
   AuthAdmin.TypeAssumptions.method_set
   AuthAdmin.TypeAssumptions.ptr_method_set
-  AuthAdmin.TypeAssumptions.ptr_isPermitted_unfold
-  AuthAdmin.TypeAssumptions.ptr_requireAuthInfo_unfold
+  AuthAdmin.TypeAssumptions.ptr_unfold'isPermitted
+  AuthAdmin.TypeAssumptions.ptr_unfold'requireAuthInfo
 
 structure codec [GooseExts] where
   mk ::
@@ -7606,7 +7606,7 @@ noncomputable instance codec.zero_val [GooseExts] : ZeroVal codec :=
 @[irreducible] noncomputable def codec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   codec.fieldsUnsealed
 
-noncomputable instance equals_unfold_codec [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'codec [GooseExts] [GoGlobalContext] :
     EqualsUnfold codec.fields codec.fieldsUnsealed :=
   ⟨by unfold codec.fields; rfl⟩
 
@@ -7643,7 +7643,7 @@ noncomputable instance header.zero_val [GooseExts] : ZeroVal header :=
 @[irreducible] noncomputable def header.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   header.fieldsUnsealed
 
-noncomputable instance equals_unfold_header [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'header [GooseExts] [GoGlobalContext] :
     EqualsUnfold header.fields header.fieldsUnsealed :=
   ⟨by unfold header.fields; rfl⟩
 
@@ -7653,33 +7653,33 @@ noncomputable instance equals_unfold_header [GooseExts] [GoGlobalContext] :
 class header.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying header.underlying header
   underlying : go.UnderlyingDirectedEq header.ty header.underlying
-  get_clusterID : ∀ (x : header), go.IsGoStepPureDetTagged under (StructFieldGet header.underlying go!"clusterID") #x (Val #(x.clusterID'))
-  set_clusterID : ∀ (x : header) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet header.underlying go!"clusterID") (PairV #x #y) (Val #(({ x with clusterID' := y } : header)))
-  get_memberID : ∀ (x : header), go.IsGoStepPureDetTagged under (StructFieldGet header.underlying go!"memberID") #x (Val #(x.memberID'))
-  set_memberID : ∀ (x : header) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet header.underlying go!"memberID") (PairV #x #y) (Val #(({ x with memberID' := y } : header)))
-  get_sg : ∀ (x : header), go.IsGoStepPureDetTagged under (StructFieldGet header.underlying go!"sg") #x (Val #(x.sg'))
-  set_sg : ∀ (x : header) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter), go.IsGoStepPureDetTagged under (StructFieldSet header.underlying go!"sg") (PairV #x #y) (Val #(({ x with sg' := y } : header)))
-  get_rev : ∀ (x : header), go.IsGoStepPureDetTagged under (StructFieldGet header.underlying go!"rev") #x (Val #(x.rev'))
-  set_rev : ∀ (x : header) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet header.underlying go!"rev") (PairV #x #y) (Val #(({ x with rev' := y } : header)))
+  get'clusterID : ∀ (x : header), go.IsGoStepPureDetTagged under (StructFieldGet header.underlying go!"clusterID") #x (Val #(x.clusterID'))
+  set'clusterID : ∀ (x : header) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet header.underlying go!"clusterID") (PairV #x #y) (Val #(({ x with clusterID' := y } : header)))
+  get'memberID : ∀ (x : header), go.IsGoStepPureDetTagged under (StructFieldGet header.underlying go!"memberID") #x (Val #(x.memberID'))
+  set'memberID : ∀ (x : header) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet header.underlying go!"memberID") (PairV #x #y) (Val #(({ x with memberID' := y } : header)))
+  get'sg : ∀ (x : header), go.IsGoStepPureDetTagged under (StructFieldGet header.underlying go!"sg") #x (Val #(x.sg'))
+  set'sg : ∀ (x : header) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter), go.IsGoStepPureDetTagged under (StructFieldSet header.underlying go!"sg") (PairV #x #y) (Val #(({ x with sg' := y } : header)))
+  get'rev : ∀ (x : header), go.IsGoStepPureDetTagged under (StructFieldGet header.underlying go!"rev") #x (Val #(x.rev'))
+  set'rev : ∀ (x : header) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet header.underlying go!"rev") (PairV #x #y) (Val #(({ x with rev' := y } : header)))
   method_set : go.MethodSetIs header.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType header.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.fill", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.fillWithoutRevision", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)] false [])))]
-  ptr_fill_unfold : MethodUnfold (go.GoType.PointerType header.ty) go!"fill" header.fill.impl
-  ptr_fillWithoutRevision_unfold : MethodUnfold (go.GoType.PointerType header.ty) go!"fillWithoutRevision" header.fillWithoutRevision.impl
+  ptr_unfold'fill : MethodUnfold (go.GoType.PointerType header.ty) go!"fill" header.fill.impl
+  ptr_unfold'fillWithoutRevision : MethodUnfold (go.GoType.PointerType header.ty) go!"fillWithoutRevision" header.fillWithoutRevision.impl
 
 attribute [instance] header.TypeAssumptions.type_repr
   header.TypeAssumptions.underlying
-  header.TypeAssumptions.get_clusterID
-  header.TypeAssumptions.set_clusterID
-  header.TypeAssumptions.get_memberID
-  header.TypeAssumptions.set_memberID
-  header.TypeAssumptions.get_sg
-  header.TypeAssumptions.set_sg
-  header.TypeAssumptions.get_rev
-  header.TypeAssumptions.set_rev
+  header.TypeAssumptions.get'clusterID
+  header.TypeAssumptions.set'clusterID
+  header.TypeAssumptions.get'memberID
+  header.TypeAssumptions.set'memberID
+  header.TypeAssumptions.get'sg
+  header.TypeAssumptions.set'sg
+  header.TypeAssumptions.get'rev
+  header.TypeAssumptions.set'rev
   header.TypeAssumptions.method_set
   header.TypeAssumptions.ptr_method_set
-  header.TypeAssumptions.ptr_fill_unfold
-  header.TypeAssumptions.ptr_fillWithoutRevision_unfold
+  header.TypeAssumptions.ptr_unfold'fill
+  header.TypeAssumptions.ptr_unfold'fillWithoutRevision
 
 abbrev notifier [GooseExts] : Type := GoInterface
 
@@ -7712,7 +7712,7 @@ noncomputable instance healthNotifier.zero_val [GooseExts] : ZeroVal healthNotif
 @[irreducible] noncomputable def healthNotifier.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   healthNotifier.fieldsUnsealed
 
-noncomputable instance equals_unfold_healthNotifier [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'healthNotifier [GooseExts] [GoGlobalContext] :
     EqualsUnfold healthNotifier.fields healthNotifier.fieldsUnsealed :=
   ⟨by unfold healthNotifier.fields; rfl⟩
 
@@ -7722,27 +7722,27 @@ noncomputable instance equals_unfold_healthNotifier [GooseExts] [GoGlobalContext
 class healthNotifier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying healthNotifier.underlying healthNotifier
   underlying : go.UnderlyingDirectedEq healthNotifier.ty healthNotifier.underlying
-  get_hs : ∀ (x : healthNotifier), go.IsGoStepPureDetTagged under (StructFieldGet healthNotifier.underlying go!"hs") #x (Val #(x.hs'))
-  set_hs : ∀ (x : healthNotifier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet healthNotifier.underlying go!"hs") (PairV #x #y) (Val #(({ x with hs' := y } : healthNotifier)))
-  get_lg : ∀ (x : healthNotifier), go.IsGoStepPureDetTagged under (StructFieldGet healthNotifier.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : healthNotifier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet healthNotifier.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : healthNotifier)))
-  get_stopGRPCServiceOnDefrag : ∀ (x : healthNotifier), go.IsGoStepPureDetTagged under (StructFieldGet healthNotifier.underlying go!"stopGRPCServiceOnDefrag") #x (Val #(x.stopGRPCServiceOnDefrag'))
-  set_stopGRPCServiceOnDefrag : ∀ (x : healthNotifier) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet healthNotifier.underlying go!"stopGRPCServiceOnDefrag") (PairV #x #y) (Val #(({ x with stopGRPCServiceOnDefrag' := y } : healthNotifier)))
+  get'hs : ∀ (x : healthNotifier), go.IsGoStepPureDetTagged under (StructFieldGet healthNotifier.underlying go!"hs") #x (Val #(x.hs'))
+  set'hs : ∀ (x : healthNotifier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet healthNotifier.underlying go!"hs") (PairV #x #y) (Val #(({ x with hs' := y } : healthNotifier)))
+  get'lg : ∀ (x : healthNotifier), go.IsGoStepPureDetTagged under (StructFieldGet healthNotifier.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : healthNotifier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet healthNotifier.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : healthNotifier)))
+  get'stopGRPCServiceOnDefrag : ∀ (x : healthNotifier), go.IsGoStepPureDetTagged under (StructFieldGet healthNotifier.underlying go!"stopGRPCServiceOnDefrag") #x (Val #(x.stopGRPCServiceOnDefrag'))
+  set'stopGRPCServiceOnDefrag : ∀ (x : healthNotifier) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet healthNotifier.underlying go!"stopGRPCServiceOnDefrag") (PairV #x #y) (Val #(({ x with stopGRPCServiceOnDefrag' := y } : healthNotifier)))
   method_set : go.MethodSetIs healthNotifier.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType healthNotifier.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.defragFinished", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.defragStarted", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.startServe", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.stopServe", (some (go.signature.Signature [go.string] false [])))]
-  ptr_startServe_unfold : MethodUnfold (go.GoType.PointerType healthNotifier.ty) go!"startServe" healthNotifier.startServe.impl
+  ptr_unfold'startServe : MethodUnfold (go.GoType.PointerType healthNotifier.ty) go!"startServe" healthNotifier.startServe.impl
 
 attribute [instance] healthNotifier.TypeAssumptions.type_repr
   healthNotifier.TypeAssumptions.underlying
-  healthNotifier.TypeAssumptions.get_hs
-  healthNotifier.TypeAssumptions.set_hs
-  healthNotifier.TypeAssumptions.get_lg
-  healthNotifier.TypeAssumptions.set_lg
-  healthNotifier.TypeAssumptions.get_stopGRPCServiceOnDefrag
-  healthNotifier.TypeAssumptions.set_stopGRPCServiceOnDefrag
+  healthNotifier.TypeAssumptions.get'hs
+  healthNotifier.TypeAssumptions.set'hs
+  healthNotifier.TypeAssumptions.get'lg
+  healthNotifier.TypeAssumptions.set'lg
+  healthNotifier.TypeAssumptions.get'stopGRPCServiceOnDefrag
+  healthNotifier.TypeAssumptions.set'stopGRPCServiceOnDefrag
   healthNotifier.TypeAssumptions.method_set
   healthNotifier.TypeAssumptions.ptr_method_set
-  healthNotifier.TypeAssumptions.ptr_startServe_unfold
+  healthNotifier.TypeAssumptions.ptr_unfold'startServe
 
 structure streamsMap [GooseExts] where
   mk ::
@@ -7759,7 +7759,7 @@ noncomputable instance streamsMap.zero_val [GooseExts] : ZeroVal streamsMap :=
 @[irreducible] noncomputable def streamsMap.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   streamsMap.fieldsUnsealed
 
-noncomputable instance equals_unfold_streamsMap [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'streamsMap [GooseExts] [GoGlobalContext] :
     EqualsUnfold streamsMap.fields streamsMap.fieldsUnsealed :=
   ⟨by unfold streamsMap.fields; rfl⟩
 
@@ -7769,19 +7769,19 @@ noncomputable instance equals_unfold_streamsMap [GooseExts] [GoGlobalContext] :
 class streamsMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying streamsMap.underlying streamsMap
   underlying : go.UnderlyingDirectedEq streamsMap.ty streamsMap.underlying
-  get_mu : ∀ (x : streamsMap), go.IsGoStepPureDetTagged under (StructFieldGet streamsMap.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : streamsMap) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet streamsMap.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : streamsMap)))
-  get_streams : ∀ (x : streamsMap), go.IsGoStepPureDetTagged under (StructFieldGet streamsMap.underlying go!"streams") #x (Val #(x.streams'))
-  set_streams : ∀ (x : streamsMap) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet streamsMap.underlying go!"streams") (PairV #x #y) (Val #(({ x with streams' := y } : streamsMap)))
+  get'mu : ∀ (x : streamsMap), go.IsGoStepPureDetTagged under (StructFieldGet streamsMap.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : streamsMap) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet streamsMap.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : streamsMap)))
+  get'streams : ∀ (x : streamsMap), go.IsGoStepPureDetTagged under (StructFieldGet streamsMap.underlying go!"streams") #x (Val #(x.streams'))
+  set'streams : ∀ (x : streamsMap) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet streamsMap.underlying go!"streams") (PairV #x #y) (Val #(({ x with streams' := y } : streamsMap)))
   method_set : go.MethodSetIs streamsMap.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType streamsMap.ty) []
 
 attribute [instance] streamsMap.TypeAssumptions.type_repr
   streamsMap.TypeAssumptions.underlying
-  streamsMap.TypeAssumptions.get_mu
-  streamsMap.TypeAssumptions.set_mu
-  streamsMap.TypeAssumptions.get_streams
-  streamsMap.TypeAssumptions.set_streams
+  streamsMap.TypeAssumptions.get'mu
+  streamsMap.TypeAssumptions.set'mu
+  streamsMap.TypeAssumptions.get'streams
+  streamsMap.TypeAssumptions.set'streams
   streamsMap.TypeAssumptions.method_set
   streamsMap.TypeAssumptions.ptr_method_set
 
@@ -7804,7 +7804,7 @@ noncomputable instance cancellableContext.zero_val [GooseExts] : ZeroVal cancell
 @[irreducible] noncomputable def cancellableContext.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   cancellableContext.fieldsUnsealed
 
-noncomputable instance equals_unfold_cancellableContext [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'cancellableContext [GooseExts] [GoGlobalContext] :
     EqualsUnfold cancellableContext.fields cancellableContext.fieldsUnsealed :=
   ⟨by unfold cancellableContext.fields; rfl⟩
 
@@ -7814,51 +7814,51 @@ noncomputable instance equals_unfold_cancellableContext [GooseExts] [GoGlobalCon
 class cancellableContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cancellableContext.underlying cancellableContext
   underlying : go.UnderlyingDirectedEq cancellableContext.ty cancellableContext.underlying
-  get_Context : ∀ (x : cancellableContext), go.IsGoStepPureDetTagged under (StructFieldGet cancellableContext.underlying go!"Context") #x (Val #(x.Context'))
-  set_Context : ∀ (x : cancellableContext) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet cancellableContext.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : cancellableContext)))
-  get_lock : ∀ (x : cancellableContext), go.IsGoStepPureDetTagged under (StructFieldGet cancellableContext.underlying go!"lock") #x (Val #(x.lock'))
-  set_lock : ∀ (x : cancellableContext) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet cancellableContext.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : cancellableContext)))
-  get_cancel : ∀ (x : cancellableContext), go.IsGoStepPureDetTagged under (StructFieldGet cancellableContext.underlying go!"cancel") #x (Val #(x.cancel'))
-  set_cancel : ∀ (x : cancellableContext) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet cancellableContext.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : cancellableContext)))
-  get_cancelReason : ∀ (x : cancellableContext), go.IsGoStepPureDetTagged under (StructFieldGet cancellableContext.underlying go!"cancelReason") #x (Val #(x.cancelReason'))
-  set_cancelReason : ∀ (x : cancellableContext) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet cancellableContext.underlying go!"cancelReason") (PairV #x #y) (Val #(({ x with cancelReason' := y } : cancellableContext)))
+  get'Context : ∀ (x : cancellableContext), go.IsGoStepPureDetTagged under (StructFieldGet cancellableContext.underlying go!"Context") #x (Val #(x.Context'))
+  set'Context : ∀ (x : cancellableContext) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet cancellableContext.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : cancellableContext)))
+  get'lock : ∀ (x : cancellableContext), go.IsGoStepPureDetTagged under (StructFieldGet cancellableContext.underlying go!"lock") #x (Val #(x.lock'))
+  set'lock : ∀ (x : cancellableContext) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet cancellableContext.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : cancellableContext)))
+  get'cancel : ∀ (x : cancellableContext), go.IsGoStepPureDetTagged under (StructFieldGet cancellableContext.underlying go!"cancel") #x (Val #(x.cancel'))
+  set'cancel : ∀ (x : cancellableContext) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet cancellableContext.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : cancellableContext)))
+  get'cancelReason : ∀ (x : cancellableContext), go.IsGoStepPureDetTagged under (StructFieldGet cancellableContext.underlying go!"cancelReason") #x (Val #(x.cancelReason'))
+  set'cancelReason : ∀ (x : cancellableContext) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet cancellableContext.underlying go!"cancelReason") (PairV #x #y) (Val #(({ x with cancelReason' := y } : cancellableContext)))
   method_set : go.MethodSetIs cancellableContext.ty [(go!"Deadline", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty, go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType cancellableContext.ty) [(go!"Cancel", (some (go.signature.Signature [go.error] false []))), (go!"Deadline", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty, go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
-  Deadline_unfold : MethodUnfold cancellableContext.ty go!"Deadline" (LamV "$r"
+  unfold'Deadline : MethodUnfold cancellableContext.ty go!"Deadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Deadline"))) (App (Val (GoInstruction (StructFieldGet cancellableContext.ty go!"Context"))) (Var "$r"))))
-  Done_unfold : MethodUnfold cancellableContext.ty go!"Done" (LamV "$r"
+  unfold'Done : MethodUnfold cancellableContext.ty go!"Done" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (StructFieldGet cancellableContext.ty go!"Context"))) (Var "$r"))))
-  Value_unfold : MethodUnfold cancellableContext.ty go!"Value" (LamV "$r"
+  unfold'Value : MethodUnfold cancellableContext.ty go!"Value" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Value"))) (App (Val (GoInstruction (StructFieldGet cancellableContext.ty go!"Context"))) (Var "$r"))))
-  ptr_Cancel_unfold : MethodUnfold (go.GoType.PointerType cancellableContext.ty) go!"Cancel" cancellableContext.Cancel.impl
-  ptr_Deadline_unfold : MethodUnfold (go.GoType.PointerType cancellableContext.ty) go!"Deadline" (LamV "$r"
+  ptr_unfold'Cancel : MethodUnfold (go.GoType.PointerType cancellableContext.ty) go!"Cancel" cancellableContext.Cancel.impl
+  ptr_unfold'Deadline : MethodUnfold (go.GoType.PointerType cancellableContext.ty) go!"Deadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Deadline"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef cancellableContext.ty go!"Context"))) (Var "$r")))))
-  ptr_Done_unfold : MethodUnfold (go.GoType.PointerType cancellableContext.ty) go!"Done" (LamV "$r"
+  ptr_unfold'Done : MethodUnfold (go.GoType.PointerType cancellableContext.ty) go!"Done" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef cancellableContext.ty go!"Context"))) (Var "$r")))))
-  ptr_Err_unfold : MethodUnfold (go.GoType.PointerType cancellableContext.ty) go!"Err" cancellableContext.Err.impl
-  ptr_Value_unfold : MethodUnfold (go.GoType.PointerType cancellableContext.ty) go!"Value" (LamV "$r"
+  ptr_unfold'Err : MethodUnfold (go.GoType.PointerType cancellableContext.ty) go!"Err" cancellableContext.Err.impl
+  ptr_unfold'Value : MethodUnfold (go.GoType.PointerType cancellableContext.ty) go!"Value" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Value"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef cancellableContext.ty go!"Context"))) (Var "$r")))))
 
 attribute [instance] cancellableContext.TypeAssumptions.type_repr
   cancellableContext.TypeAssumptions.underlying
-  cancellableContext.TypeAssumptions.get_Context
-  cancellableContext.TypeAssumptions.set_Context
-  cancellableContext.TypeAssumptions.get_lock
-  cancellableContext.TypeAssumptions.set_lock
-  cancellableContext.TypeAssumptions.get_cancel
-  cancellableContext.TypeAssumptions.set_cancel
-  cancellableContext.TypeAssumptions.get_cancelReason
-  cancellableContext.TypeAssumptions.set_cancelReason
+  cancellableContext.TypeAssumptions.get'Context
+  cancellableContext.TypeAssumptions.set'Context
+  cancellableContext.TypeAssumptions.get'lock
+  cancellableContext.TypeAssumptions.set'lock
+  cancellableContext.TypeAssumptions.get'cancel
+  cancellableContext.TypeAssumptions.set'cancel
+  cancellableContext.TypeAssumptions.get'cancelReason
+  cancellableContext.TypeAssumptions.set'cancelReason
   cancellableContext.TypeAssumptions.method_set
   cancellableContext.TypeAssumptions.ptr_method_set
-  cancellableContext.TypeAssumptions.Deadline_unfold
-  cancellableContext.TypeAssumptions.Done_unfold
-  cancellableContext.TypeAssumptions.Value_unfold
-  cancellableContext.TypeAssumptions.ptr_Cancel_unfold
-  cancellableContext.TypeAssumptions.ptr_Deadline_unfold
-  cancellableContext.TypeAssumptions.ptr_Done_unfold
-  cancellableContext.TypeAssumptions.ptr_Err_unfold
-  cancellableContext.TypeAssumptions.ptr_Value_unfold
+  cancellableContext.TypeAssumptions.unfold'Deadline
+  cancellableContext.TypeAssumptions.unfold'Done
+  cancellableContext.TypeAssumptions.unfold'Value
+  cancellableContext.TypeAssumptions.ptr_unfold'Cancel
+  cancellableContext.TypeAssumptions.ptr_unfold'Deadline
+  cancellableContext.TypeAssumptions.ptr_unfold'Done
+  cancellableContext.TypeAssumptions.ptr_unfold'Err
+  cancellableContext.TypeAssumptions.ptr_unfold'Value
 
 structure serverStreamWithCtx [GooseExts] where
   mk ::
@@ -7875,7 +7875,7 @@ noncomputable instance serverStreamWithCtx.zero_val [GooseExts] : ZeroVal server
 @[irreducible] noncomputable def serverStreamWithCtx.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   serverStreamWithCtx.fieldsUnsealed
 
-noncomputable instance equals_unfold_serverStreamWithCtx [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'serverStreamWithCtx [GooseExts] [GoGlobalContext] :
     EqualsUnfold serverStreamWithCtx.fields serverStreamWithCtx.fieldsUnsealed :=
   ⟨by unfold serverStreamWithCtx.fields; rfl⟩
 
@@ -7885,38 +7885,38 @@ noncomputable instance equals_unfold_serverStreamWithCtx [GooseExts] [GoGlobalCo
 class serverStreamWithCtx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverStreamWithCtx.underlying serverStreamWithCtx
   underlying : go.UnderlyingDirectedEq serverStreamWithCtx.ty serverStreamWithCtx.underlying
-  get_ServerStream : ∀ (x : serverStreamWithCtx), go.IsGoStepPureDetTagged under (StructFieldGet serverStreamWithCtx.underlying go!"ServerStream") #x (Val #(x.ServerStream'))
-  set_ServerStream : ∀ (x : serverStreamWithCtx) (y : _root_.Perennial.google_golang_org.grpc.ServerStream), go.IsGoStepPureDetTagged under (StructFieldSet serverStreamWithCtx.underlying go!"ServerStream") (PairV #x #y) (Val #(({ x with ServerStream' := y } : serverStreamWithCtx)))
-  get_ctx : ∀ (x : serverStreamWithCtx), go.IsGoStepPureDetTagged under (StructFieldGet serverStreamWithCtx.underlying go!"ctx") #x (Val #(x.ctx'))
-  set_ctx : ∀ (x : serverStreamWithCtx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet serverStreamWithCtx.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : serverStreamWithCtx)))
+  get'ServerStream : ∀ (x : serverStreamWithCtx), go.IsGoStepPureDetTagged under (StructFieldGet serverStreamWithCtx.underlying go!"ServerStream") #x (Val #(x.ServerStream'))
+  set'ServerStream : ∀ (x : serverStreamWithCtx) (y : _root_.Perennial.google_golang_org.grpc.ServerStream), go.IsGoStepPureDetTagged under (StructFieldSet serverStreamWithCtx.underlying go!"ServerStream") (PairV #x #y) (Val #(({ x with ServerStream' := y } : serverStreamWithCtx)))
+  get'ctx : ∀ (x : serverStreamWithCtx), go.IsGoStepPureDetTagged under (StructFieldGet serverStreamWithCtx.underlying go!"ctx") #x (Val #(x.ctx'))
+  set'ctx : ∀ (x : serverStreamWithCtx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet serverStreamWithCtx.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : serverStreamWithCtx)))
   method_set : go.MethodSetIs serverStreamWithCtx.ty [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverStreamWithCtx.ty) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
-  Context_unfold : MethodUnfold serverStreamWithCtx.ty go!"Context" serverStreamWithCtx.Context.impl
-  RecvMsg_unfold : MethodUnfold serverStreamWithCtx.ty go!"RecvMsg" (LamV "$r"
+  unfold'Context : MethodUnfold serverStreamWithCtx.ty go!"Context" serverStreamWithCtx.Context.impl
+  unfold'RecvMsg : MethodUnfold serverStreamWithCtx.ty go!"RecvMsg" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ServerStream.ty go!"RecvMsg"))) (App (Val (GoInstruction (StructFieldGet serverStreamWithCtx.ty go!"ServerStream"))) (Var "$r"))))
-  SendMsg_unfold : MethodUnfold serverStreamWithCtx.ty go!"SendMsg" (LamV "$r"
+  unfold'SendMsg : MethodUnfold serverStreamWithCtx.ty go!"SendMsg" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ServerStream.ty go!"SendMsg"))) (App (Val (GoInstruction (StructFieldGet serverStreamWithCtx.ty go!"ServerStream"))) (Var "$r"))))
-  ptr_Context_unfold : MethodUnfold (go.GoType.PointerType serverStreamWithCtx.ty) go!"Context" (LamV "$r"
+  ptr_unfold'Context : MethodUnfold (go.GoType.PointerType serverStreamWithCtx.ty) go!"Context" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve serverStreamWithCtx.ty go!"Context"))) (App (Val (GoInstruction (GoLoad serverStreamWithCtx.ty))) (Var "$r"))))
-  ptr_RecvMsg_unfold : MethodUnfold (go.GoType.PointerType serverStreamWithCtx.ty) go!"RecvMsg" (LamV "$r"
+  ptr_unfold'RecvMsg : MethodUnfold (go.GoType.PointerType serverStreamWithCtx.ty) go!"RecvMsg" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ServerStream.ty go!"RecvMsg"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ServerStream.ty))) (App (Val (GoInstruction (StructFieldRef serverStreamWithCtx.ty go!"ServerStream"))) (Var "$r")))))
-  ptr_SendMsg_unfold : MethodUnfold (go.GoType.PointerType serverStreamWithCtx.ty) go!"SendMsg" (LamV "$r"
+  ptr_unfold'SendMsg : MethodUnfold (go.GoType.PointerType serverStreamWithCtx.ty) go!"SendMsg" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ServerStream.ty go!"SendMsg"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ServerStream.ty))) (App (Val (GoInstruction (StructFieldRef serverStreamWithCtx.ty go!"ServerStream"))) (Var "$r")))))
 
 attribute [instance] serverStreamWithCtx.TypeAssumptions.type_repr
   serverStreamWithCtx.TypeAssumptions.underlying
-  serverStreamWithCtx.TypeAssumptions.get_ServerStream
-  serverStreamWithCtx.TypeAssumptions.set_ServerStream
-  serverStreamWithCtx.TypeAssumptions.get_ctx
-  serverStreamWithCtx.TypeAssumptions.set_ctx
+  serverStreamWithCtx.TypeAssumptions.get'ServerStream
+  serverStreamWithCtx.TypeAssumptions.set'ServerStream
+  serverStreamWithCtx.TypeAssumptions.get'ctx
+  serverStreamWithCtx.TypeAssumptions.set'ctx
   serverStreamWithCtx.TypeAssumptions.method_set
   serverStreamWithCtx.TypeAssumptions.ptr_method_set
-  serverStreamWithCtx.TypeAssumptions.Context_unfold
-  serverStreamWithCtx.TypeAssumptions.RecvMsg_unfold
-  serverStreamWithCtx.TypeAssumptions.SendMsg_unfold
-  serverStreamWithCtx.TypeAssumptions.ptr_Context_unfold
-  serverStreamWithCtx.TypeAssumptions.ptr_RecvMsg_unfold
-  serverStreamWithCtx.TypeAssumptions.ptr_SendMsg_unfold
+  serverStreamWithCtx.TypeAssumptions.unfold'Context
+  serverStreamWithCtx.TypeAssumptions.unfold'RecvMsg
+  serverStreamWithCtx.TypeAssumptions.unfold'SendMsg
+  serverStreamWithCtx.TypeAssumptions.ptr_unfold'Context
+  serverStreamWithCtx.TypeAssumptions.ptr_unfold'RecvMsg
+  serverStreamWithCtx.TypeAssumptions.ptr_unfold'SendMsg
 
 structure kvServer [GooseExts] where
   mk ::
@@ -7939,7 +7939,7 @@ noncomputable instance kvServer.zero_val [GooseExts] : ZeroVal kvServer :=
 @[irreducible] noncomputable def kvServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kvServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_kvServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'kvServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold kvServer.fields kvServer.fieldsUnsealed :=
   ⟨by unfold kvServer.fields; rfl⟩
 
@@ -7949,45 +7949,45 @@ noncomputable instance equals_unfold_kvServer [GooseExts] [GoGlobalContext] :
 class kvServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kvServer.underlying kvServer
   underlying : go.UnderlyingDirectedEq kvServer.ty kvServer.underlying
-  get_hdr : ∀ (x : kvServer), go.IsGoStepPureDetTagged under (StructFieldGet kvServer.underlying go!"hdr") #x (Val #(x.hdr'))
-  set_hdr : ∀ (x : kvServer) (y : header), go.IsGoStepPureDetTagged under (StructFieldSet kvServer.underlying go!"hdr") (PairV #x #y) (Val #(({ x with hdr' := y } : kvServer)))
-  get_kv : ∀ (x : kvServer), go.IsGoStepPureDetTagged under (StructFieldGet kvServer.underlying go!"kv") #x (Val #(x.kv'))
-  set_kv : ∀ (x : kvServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.RaftKV), go.IsGoStepPureDetTagged under (StructFieldSet kvServer.underlying go!"kv") (PairV #x #y) (Val #(({ x with kv' := y } : kvServer)))
-  get_aa : ∀ (x : kvServer), go.IsGoStepPureDetTagged under (StructFieldGet kvServer.underlying go!"aa") #x (Val #(x.aa'))
-  set_aa : ∀ (x : kvServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvServer.underlying go!"aa") (PairV #x #y) (Val #(({ x with aa' := y } : kvServer)))
-  get_maxTxnOps : ∀ (x : kvServer), go.IsGoStepPureDetTagged under (StructFieldGet kvServer.underlying go!"maxTxnOps") #x (Val #(x.maxTxnOps'))
-  set_maxTxnOps : ∀ (x : kvServer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet kvServer.underlying go!"maxTxnOps") (PairV #x #y) (Val #(({ x with maxTxnOps' := y } : kvServer)))
-  get_UnsafeKVServer : ∀ (x : kvServer), go.IsGoStepPureDetTagged under (StructFieldGet kvServer.underlying go!"UnsafeKVServer") #x (Val #(x.UnsafeKVServer'))
-  set_UnsafeKVServer : ∀ (x : kvServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeKVServer), go.IsGoStepPureDetTagged under (StructFieldSet kvServer.underlying go!"UnsafeKVServer") (PairV #x #y) (Val #(({ x with UnsafeKVServer' := y } : kvServer)))
+  get'hdr : ∀ (x : kvServer), go.IsGoStepPureDetTagged under (StructFieldGet kvServer.underlying go!"hdr") #x (Val #(x.hdr'))
+  set'hdr : ∀ (x : kvServer) (y : header), go.IsGoStepPureDetTagged under (StructFieldSet kvServer.underlying go!"hdr") (PairV #x #y) (Val #(({ x with hdr' := y } : kvServer)))
+  get'kv : ∀ (x : kvServer), go.IsGoStepPureDetTagged under (StructFieldGet kvServer.underlying go!"kv") #x (Val #(x.kv'))
+  set'kv : ∀ (x : kvServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.RaftKV), go.IsGoStepPureDetTagged under (StructFieldSet kvServer.underlying go!"kv") (PairV #x #y) (Val #(({ x with kv' := y } : kvServer)))
+  get'aa : ∀ (x : kvServer), go.IsGoStepPureDetTagged under (StructFieldGet kvServer.underlying go!"aa") #x (Val #(x.aa'))
+  set'aa : ∀ (x : kvServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvServer.underlying go!"aa") (PairV #x #y) (Val #(({ x with aa' := y } : kvServer)))
+  get'maxTxnOps : ∀ (x : kvServer), go.IsGoStepPureDetTagged under (StructFieldGet kvServer.underlying go!"maxTxnOps") #x (Val #(x.maxTxnOps'))
+  set'maxTxnOps : ∀ (x : kvServer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet kvServer.underlying go!"maxTxnOps") (PairV #x #y) (Val #(({ x with maxTxnOps' := y } : kvServer)))
+  get'UnsafeKVServer : ∀ (x : kvServer), go.IsGoStepPureDetTagged under (StructFieldGet kvServer.underlying go!"UnsafeKVServer") #x (Val #(x.UnsafeKVServer'))
+  set'UnsafeKVServer : ∀ (x : kvServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeKVServer), go.IsGoStepPureDetTagged under (StructFieldSet kvServer.underlying go!"UnsafeKVServer") (PairV #x #y) (Val #(({ x with UnsafeKVServer' := y } : kvServer)))
   method_set : go.MethodSetIs kvServer.ty [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedKVServer", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType kvServer.ty) [(go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedKVServer", (some (go.signature.Signature [] false [])))]
-  ptr_Compact_unfold : MethodUnfold (go.GoType.PointerType kvServer.ty) go!"Compact" kvServer.Compact.impl
-  ptr_DeleteRange_unfold : MethodUnfold (go.GoType.PointerType kvServer.ty) go!"DeleteRange" kvServer.DeleteRange.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType kvServer.ty) go!"Put" kvServer.Put.impl
-  ptr_Range_unfold : MethodUnfold (go.GoType.PointerType kvServer.ty) go!"Range" kvServer.Range.impl
-  ptr_RangeStream_unfold : MethodUnfold (go.GoType.PointerType kvServer.ty) go!"RangeStream" kvServer.RangeStream.impl
-  ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType kvServer.ty) go!"Txn" kvServer.Txn.impl
+  ptr_unfold'Compact : MethodUnfold (go.GoType.PointerType kvServer.ty) go!"Compact" kvServer.Compact.impl
+  ptr_unfold'DeleteRange : MethodUnfold (go.GoType.PointerType kvServer.ty) go!"DeleteRange" kvServer.DeleteRange.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType kvServer.ty) go!"Put" kvServer.Put.impl
+  ptr_unfold'Range : MethodUnfold (go.GoType.PointerType kvServer.ty) go!"Range" kvServer.Range.impl
+  ptr_unfold'RangeStream : MethodUnfold (go.GoType.PointerType kvServer.ty) go!"RangeStream" kvServer.RangeStream.impl
+  ptr_unfold'Txn : MethodUnfold (go.GoType.PointerType kvServer.ty) go!"Txn" kvServer.Txn.impl
 
 attribute [instance] kvServer.TypeAssumptions.type_repr
   kvServer.TypeAssumptions.underlying
-  kvServer.TypeAssumptions.get_hdr
-  kvServer.TypeAssumptions.set_hdr
-  kvServer.TypeAssumptions.get_kv
-  kvServer.TypeAssumptions.set_kv
-  kvServer.TypeAssumptions.get_aa
-  kvServer.TypeAssumptions.set_aa
-  kvServer.TypeAssumptions.get_maxTxnOps
-  kvServer.TypeAssumptions.set_maxTxnOps
-  kvServer.TypeAssumptions.get_UnsafeKVServer
-  kvServer.TypeAssumptions.set_UnsafeKVServer
+  kvServer.TypeAssumptions.get'hdr
+  kvServer.TypeAssumptions.set'hdr
+  kvServer.TypeAssumptions.get'kv
+  kvServer.TypeAssumptions.set'kv
+  kvServer.TypeAssumptions.get'aa
+  kvServer.TypeAssumptions.set'aa
+  kvServer.TypeAssumptions.get'maxTxnOps
+  kvServer.TypeAssumptions.set'maxTxnOps
+  kvServer.TypeAssumptions.get'UnsafeKVServer
+  kvServer.TypeAssumptions.set'UnsafeKVServer
   kvServer.TypeAssumptions.method_set
   kvServer.TypeAssumptions.ptr_method_set
-  kvServer.TypeAssumptions.ptr_Compact_unfold
-  kvServer.TypeAssumptions.ptr_DeleteRange_unfold
-  kvServer.TypeAssumptions.ptr_Put_unfold
-  kvServer.TypeAssumptions.ptr_Range_unfold
-  kvServer.TypeAssumptions.ptr_RangeStream_unfold
-  kvServer.TypeAssumptions.ptr_Txn_unfold
+  kvServer.TypeAssumptions.ptr_unfold'Compact
+  kvServer.TypeAssumptions.ptr_unfold'DeleteRange
+  kvServer.TypeAssumptions.ptr_unfold'Put
+  kvServer.TypeAssumptions.ptr_unfold'Range
+  kvServer.TypeAssumptions.ptr_unfold'RangeStream
+  kvServer.TypeAssumptions.ptr_unfold'Txn
 
 structure headerFillingRangeStream [GooseExts] where
   mk ::
@@ -8004,7 +8004,7 @@ noncomputable instance headerFillingRangeStream.zero_val [GooseExts] : ZeroVal h
 @[irreducible] noncomputable def headerFillingRangeStream.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   headerFillingRangeStream.fieldsUnsealed
 
-noncomputable instance equals_unfold_headerFillingRangeStream [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'headerFillingRangeStream [GooseExts] [GoGlobalContext] :
     EqualsUnfold headerFillingRangeStream.fields headerFillingRangeStream.fieldsUnsealed :=
   ⟨by unfold headerFillingRangeStream.fields; rfl⟩
 
@@ -8014,29 +8014,29 @@ noncomputable instance equals_unfold_headerFillingRangeStream [GooseExts] [GoGlo
 class headerFillingRangeStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying headerFillingRangeStream.underlying headerFillingRangeStream
   underlying : go.UnderlyingDirectedEq headerFillingRangeStream.ty headerFillingRangeStream.underlying
-  get_KV_RangeStreamServer : ∀ (x : headerFillingRangeStream), go.IsGoStepPureDetTagged under (StructFieldGet headerFillingRangeStream.underlying go!"KV_RangeStreamServer") #x (Val #(x.KV_RangeStreamServer'))
-  set_KV_RangeStreamServer : ∀ (x : headerFillingRangeStream) (y : (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse)), go.IsGoStepPureDetTagged under (StructFieldSet headerFillingRangeStream.underlying go!"KV_RangeStreamServer") (PairV #x #y) (Val #(({ x with KV_RangeStreamServer' := y } : headerFillingRangeStream)))
-  get_hdr : ∀ (x : headerFillingRangeStream), go.IsGoStepPureDetTagged under (StructFieldGet headerFillingRangeStream.underlying go!"hdr") #x (Val #(x.hdr'))
-  set_hdr : ∀ (x : headerFillingRangeStream) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet headerFillingRangeStream.underlying go!"hdr") (PairV #x #y) (Val #(({ x with hdr' := y } : headerFillingRangeStream)))
+  get'KV_RangeStreamServer : ∀ (x : headerFillingRangeStream), go.IsGoStepPureDetTagged under (StructFieldGet headerFillingRangeStream.underlying go!"KV_RangeStreamServer") #x (Val #(x.KV_RangeStreamServer'))
+  set'KV_RangeStreamServer : ∀ (x : headerFillingRangeStream) (y : (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse)), go.IsGoStepPureDetTagged under (StructFieldSet headerFillingRangeStream.underlying go!"KV_RangeStreamServer") (PairV #x #y) (Val #(({ x with KV_RangeStreamServer' := y } : headerFillingRangeStream)))
+  get'hdr : ∀ (x : headerFillingRangeStream), go.IsGoStepPureDetTagged under (StructFieldGet headerFillingRangeStream.underlying go!"hdr") #x (Val #(x.hdr'))
+  set'hdr : ∀ (x : headerFillingRangeStream) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet headerFillingRangeStream.underlying go!"hdr") (PairV #x #y) (Val #(({ x with hdr' := y } : headerFillingRangeStream)))
   method_set : go.MethodSetIs headerFillingRangeStream.ty [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType headerFillingRangeStream.ty) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty)] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
-  Context_unfold : MethodUnfold headerFillingRangeStream.ty go!"Context" (LamV "$r"
+  unfold'Context : MethodUnfold headerFillingRangeStream.ty go!"Context" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty go!"Context"))) (App (Val (GoInstruction (StructFieldGet headerFillingRangeStream.ty go!"KV_RangeStreamServer"))) (Var "$r"))))
-  ptr_Context_unfold : MethodUnfold (go.GoType.PointerType headerFillingRangeStream.ty) go!"Context" (LamV "$r"
+  ptr_unfold'Context : MethodUnfold (go.GoType.PointerType headerFillingRangeStream.ty) go!"Context" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty go!"Context"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty))) (App (Val (GoInstruction (StructFieldRef headerFillingRangeStream.ty go!"KV_RangeStreamServer"))) (Var "$r")))))
-  ptr_Send_unfold : MethodUnfold (go.GoType.PointerType headerFillingRangeStream.ty) go!"Send" headerFillingRangeStream.Send.impl
+  ptr_unfold'Send : MethodUnfold (go.GoType.PointerType headerFillingRangeStream.ty) go!"Send" headerFillingRangeStream.Send.impl
 
 attribute [instance] headerFillingRangeStream.TypeAssumptions.type_repr
   headerFillingRangeStream.TypeAssumptions.underlying
-  headerFillingRangeStream.TypeAssumptions.get_KV_RangeStreamServer
-  headerFillingRangeStream.TypeAssumptions.set_KV_RangeStreamServer
-  headerFillingRangeStream.TypeAssumptions.get_hdr
-  headerFillingRangeStream.TypeAssumptions.set_hdr
+  headerFillingRangeStream.TypeAssumptions.get'KV_RangeStreamServer
+  headerFillingRangeStream.TypeAssumptions.set'KV_RangeStreamServer
+  headerFillingRangeStream.TypeAssumptions.get'hdr
+  headerFillingRangeStream.TypeAssumptions.set'hdr
   headerFillingRangeStream.TypeAssumptions.method_set
   headerFillingRangeStream.TypeAssumptions.ptr_method_set
-  headerFillingRangeStream.TypeAssumptions.Context_unfold
-  headerFillingRangeStream.TypeAssumptions.ptr_Context_unfold
-  headerFillingRangeStream.TypeAssumptions.ptr_Send_unfold
+  headerFillingRangeStream.TypeAssumptions.unfold'Context
+  headerFillingRangeStream.TypeAssumptions.ptr_unfold'Context
+  headerFillingRangeStream.TypeAssumptions.ptr_unfold'Send
 
 structure LeaseServer [GooseExts] where
   mk ::
@@ -8057,7 +8057,7 @@ noncomputable instance LeaseServer.zero_val [GooseExts] : ZeroVal LeaseServer :=
 @[irreducible] noncomputable def LeaseServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LeaseServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_LeaseServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LeaseServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold LeaseServer.fields LeaseServer.fieldsUnsealed :=
   ⟨by unfold LeaseServer.fields; rfl⟩
 
@@ -8067,41 +8067,41 @@ noncomputable instance equals_unfold_LeaseServer [GooseExts] [GoGlobalContext] :
 class LeaseServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseServer.underlying LeaseServer
   underlying : go.UnderlyingDirectedEq LeaseServer.ty LeaseServer.underlying
-  get_lg : ∀ (x : LeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet LeaseServer.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : LeaseServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet LeaseServer.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : LeaseServer)))
-  get_hdr : ∀ (x : LeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet LeaseServer.underlying go!"hdr") #x (Val #(x.hdr'))
-  set_hdr : ∀ (x : LeaseServer) (y : header), go.IsGoStepPureDetTagged under (StructFieldSet LeaseServer.underlying go!"hdr") (PairV #x #y) (Val #(({ x with hdr' := y } : LeaseServer)))
-  get_le : ∀ (x : LeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet LeaseServer.underlying go!"le") #x (Val #(x.le'))
-  set_le : ∀ (x : LeaseServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Lessor), go.IsGoStepPureDetTagged under (StructFieldSet LeaseServer.underlying go!"le") (PairV #x #y) (Val #(({ x with le' := y } : LeaseServer)))
-  get_UnsafeLeaseServer : ∀ (x : LeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet LeaseServer.underlying go!"UnsafeLeaseServer") #x (Val #(x.UnsafeLeaseServer'))
-  set_UnsafeLeaseServer : ∀ (x : LeaseServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeLeaseServer), go.IsGoStepPureDetTagged under (StructFieldSet LeaseServer.underlying go!"UnsafeLeaseServer") (PairV #x #y) (Val #(({ x with UnsafeLeaseServer' := y } : LeaseServer)))
+  get'lg : ∀ (x : LeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet LeaseServer.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : LeaseServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet LeaseServer.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : LeaseServer)))
+  get'hdr : ∀ (x : LeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet LeaseServer.underlying go!"hdr") #x (Val #(x.hdr'))
+  set'hdr : ∀ (x : LeaseServer) (y : header), go.IsGoStepPureDetTagged under (StructFieldSet LeaseServer.underlying go!"hdr") (PairV #x #y) (Val #(({ x with hdr' := y } : LeaseServer)))
+  get'le : ∀ (x : LeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet LeaseServer.underlying go!"le") #x (Val #(x.le'))
+  set'le : ∀ (x : LeaseServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Lessor), go.IsGoStepPureDetTagged under (StructFieldSet LeaseServer.underlying go!"le") (PairV #x #y) (Val #(({ x with le' := y } : LeaseServer)))
+  get'UnsafeLeaseServer : ∀ (x : LeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet LeaseServer.underlying go!"UnsafeLeaseServer") #x (Val #(x.UnsafeLeaseServer'))
+  set'UnsafeLeaseServer : ∀ (x : LeaseServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeLeaseServer), go.IsGoStepPureDetTagged under (StructFieldSet LeaseServer.underlying go!"UnsafeLeaseServer") (PairV #x #y) (Val #(({ x with UnsafeLeaseServer' := y } : LeaseServer)))
   method_set : go.MethodSetIs LeaseServer.ty [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedLeaseServer", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseServer.ty) [(go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseKeepAlive", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Lease_LeaseKeepAliveServer.ty] false [go.error]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedLeaseServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.leaseKeepAlive", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Lease_LeaseKeepAliveServer.ty] false [go.error])))]
-  ptr_LeaseGrant_unfold : MethodUnfold (go.GoType.PointerType LeaseServer.ty) go!"LeaseGrant" LeaseServer.LeaseGrant.impl
-  ptr_LeaseKeepAlive_unfold : MethodUnfold (go.GoType.PointerType LeaseServer.ty) go!"LeaseKeepAlive" LeaseServer.LeaseKeepAlive.impl
-  ptr_LeaseLeases_unfold : MethodUnfold (go.GoType.PointerType LeaseServer.ty) go!"LeaseLeases" LeaseServer.LeaseLeases.impl
-  ptr_LeaseRevoke_unfold : MethodUnfold (go.GoType.PointerType LeaseServer.ty) go!"LeaseRevoke" LeaseServer.LeaseRevoke.impl
-  ptr_LeaseTimeToLive_unfold : MethodUnfold (go.GoType.PointerType LeaseServer.ty) go!"LeaseTimeToLive" LeaseServer.LeaseTimeToLive.impl
-  ptr_leaseKeepAlive_unfold : MethodUnfold (go.GoType.PointerType LeaseServer.ty) go!"leaseKeepAlive" LeaseServer.leaseKeepAlive.impl
+  ptr_unfold'LeaseGrant : MethodUnfold (go.GoType.PointerType LeaseServer.ty) go!"LeaseGrant" LeaseServer.LeaseGrant.impl
+  ptr_unfold'LeaseKeepAlive : MethodUnfold (go.GoType.PointerType LeaseServer.ty) go!"LeaseKeepAlive" LeaseServer.LeaseKeepAlive.impl
+  ptr_unfold'LeaseLeases : MethodUnfold (go.GoType.PointerType LeaseServer.ty) go!"LeaseLeases" LeaseServer.LeaseLeases.impl
+  ptr_unfold'LeaseRevoke : MethodUnfold (go.GoType.PointerType LeaseServer.ty) go!"LeaseRevoke" LeaseServer.LeaseRevoke.impl
+  ptr_unfold'LeaseTimeToLive : MethodUnfold (go.GoType.PointerType LeaseServer.ty) go!"LeaseTimeToLive" LeaseServer.LeaseTimeToLive.impl
+  ptr_unfold'leaseKeepAlive : MethodUnfold (go.GoType.PointerType LeaseServer.ty) go!"leaseKeepAlive" LeaseServer.leaseKeepAlive.impl
 
 attribute [instance] LeaseServer.TypeAssumptions.type_repr
   LeaseServer.TypeAssumptions.underlying
-  LeaseServer.TypeAssumptions.get_lg
-  LeaseServer.TypeAssumptions.set_lg
-  LeaseServer.TypeAssumptions.get_hdr
-  LeaseServer.TypeAssumptions.set_hdr
-  LeaseServer.TypeAssumptions.get_le
-  LeaseServer.TypeAssumptions.set_le
-  LeaseServer.TypeAssumptions.get_UnsafeLeaseServer
-  LeaseServer.TypeAssumptions.set_UnsafeLeaseServer
+  LeaseServer.TypeAssumptions.get'lg
+  LeaseServer.TypeAssumptions.set'lg
+  LeaseServer.TypeAssumptions.get'hdr
+  LeaseServer.TypeAssumptions.set'hdr
+  LeaseServer.TypeAssumptions.get'le
+  LeaseServer.TypeAssumptions.set'le
+  LeaseServer.TypeAssumptions.get'UnsafeLeaseServer
+  LeaseServer.TypeAssumptions.set'UnsafeLeaseServer
   LeaseServer.TypeAssumptions.method_set
   LeaseServer.TypeAssumptions.ptr_method_set
-  LeaseServer.TypeAssumptions.ptr_LeaseGrant_unfold
-  LeaseServer.TypeAssumptions.ptr_LeaseKeepAlive_unfold
-  LeaseServer.TypeAssumptions.ptr_LeaseLeases_unfold
-  LeaseServer.TypeAssumptions.ptr_LeaseRevoke_unfold
-  LeaseServer.TypeAssumptions.ptr_LeaseTimeToLive_unfold
-  LeaseServer.TypeAssumptions.ptr_leaseKeepAlive_unfold
+  LeaseServer.TypeAssumptions.ptr_unfold'LeaseGrant
+  LeaseServer.TypeAssumptions.ptr_unfold'LeaseKeepAlive
+  LeaseServer.TypeAssumptions.ptr_unfold'LeaseLeases
+  LeaseServer.TypeAssumptions.ptr_unfold'LeaseRevoke
+  LeaseServer.TypeAssumptions.ptr_unfold'LeaseTimeToLive
+  LeaseServer.TypeAssumptions.ptr_unfold'leaseKeepAlive
 
 abbrev KVGetter [GooseExts] : Type := GoInterface
 
@@ -8254,7 +8254,7 @@ noncomputable instance maintenanceServer.zero_val [GooseExts] : ZeroVal maintena
 @[irreducible] noncomputable def maintenanceServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   maintenanceServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_maintenanceServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'maintenanceServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold maintenanceServer.fields maintenanceServer.fieldsUnsealed :=
   ⟨by unfold maintenanceServer.fields; rfl⟩
 
@@ -8264,67 +8264,67 @@ noncomputable instance equals_unfold_maintenanceServer [GooseExts] [GoGlobalCont
 class maintenanceServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying maintenanceServer.underlying maintenanceServer
   underlying : go.UnderlyingDirectedEq maintenanceServer.ty maintenanceServer.underlying
-  get_lg : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : maintenanceServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : maintenanceServer)))
-  get_rg : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"rg") #x (Val #(x.rg'))
-  set_rg : ∀ (x : maintenanceServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"rg") (PairV #x #y) (Val #(({ x with rg' := y } : maintenanceServer)))
-  get_hasher : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"hasher") #x (Val #(x.hasher'))
-  set_hasher : ∀ (x : maintenanceServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"hasher") (PairV #x #y) (Val #(({ x with hasher' := y } : maintenanceServer)))
-  get_bg : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"bg") #x (Val #(x.bg'))
-  set_bg : ∀ (x : maintenanceServer) (y : BackendGetter), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"bg") (PairV #x #y) (Val #(({ x with bg' := y } : maintenanceServer)))
-  get_defrag : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"defrag") #x (Val #(x.defrag'))
-  set_defrag : ∀ (x : maintenanceServer) (y : Defrager), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"defrag") (PairV #x #y) (Val #(({ x with defrag' := y } : maintenanceServer)))
-  get_a : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"a") #x (Val #(x.a'))
-  set_a : ∀ (x : maintenanceServer) (y : Alarmer), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"a") (PairV #x #y) (Val #(({ x with a' := y } : maintenanceServer)))
-  get_lt : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"lt") #x (Val #(x.lt'))
-  set_lt : ∀ (x : maintenanceServer) (y : LeaderTransferrer), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"lt") (PairV #x #y) (Val #(({ x with lt' := y } : maintenanceServer)))
-  get_hdr : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"hdr") #x (Val #(x.hdr'))
-  set_hdr : ∀ (x : maintenanceServer) (y : header), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"hdr") (PairV #x #y) (Val #(({ x with hdr' := y } : maintenanceServer)))
-  get_cs : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"cs") #x (Val #(x.cs'))
-  set_cs : ∀ (x : maintenanceServer) (y : ClusterStatusGetter), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"cs") (PairV #x #y) (Val #(({ x with cs' := y } : maintenanceServer)))
-  get_d : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"d") #x (Val #(x.d'))
-  set_d : ∀ (x : maintenanceServer) (y : Downgrader), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : maintenanceServer)))
-  get_vs : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"vs") #x (Val #(x.vs'))
-  set_vs : ∀ (x : maintenanceServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Server), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"vs") (PairV #x #y) (Val #(({ x with vs' := y } : maintenanceServer)))
-  get_cg : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"cg") #x (Val #(x.cg'))
-  set_cg : ∀ (x : maintenanceServer) (y : ConfigGetter), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"cg") (PairV #x #y) (Val #(({ x with cg' := y } : maintenanceServer)))
-  get_healthNotifier : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"healthNotifier") #x (Val #(x.healthNotifier'))
-  set_healthNotifier : ∀ (x : maintenanceServer) (y : notifier), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"healthNotifier") (PairV #x #y) (Val #(({ x with healthNotifier' := y } : maintenanceServer)))
-  get_UnsafeMaintenanceServer : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"UnsafeMaintenanceServer") #x (Val #(x.UnsafeMaintenanceServer'))
-  set_UnsafeMaintenanceServer : ∀ (x : maintenanceServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeMaintenanceServer), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"UnsafeMaintenanceServer") (PairV #x #y) (Val #(({ x with UnsafeMaintenanceServer' := y } : maintenanceServer)))
+  get'lg : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : maintenanceServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : maintenanceServer)))
+  get'rg : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"rg") #x (Val #(x.rg'))
+  set'rg : ∀ (x : maintenanceServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"rg") (PairV #x #y) (Val #(({ x with rg' := y } : maintenanceServer)))
+  get'hasher : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"hasher") #x (Val #(x.hasher'))
+  set'hasher : ∀ (x : maintenanceServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"hasher") (PairV #x #y) (Val #(({ x with hasher' := y } : maintenanceServer)))
+  get'bg : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"bg") #x (Val #(x.bg'))
+  set'bg : ∀ (x : maintenanceServer) (y : BackendGetter), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"bg") (PairV #x #y) (Val #(({ x with bg' := y } : maintenanceServer)))
+  get'defrag : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"defrag") #x (Val #(x.defrag'))
+  set'defrag : ∀ (x : maintenanceServer) (y : Defrager), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"defrag") (PairV #x #y) (Val #(({ x with defrag' := y } : maintenanceServer)))
+  get'a : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"a") #x (Val #(x.a'))
+  set'a : ∀ (x : maintenanceServer) (y : Alarmer), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"a") (PairV #x #y) (Val #(({ x with a' := y } : maintenanceServer)))
+  get'lt : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"lt") #x (Val #(x.lt'))
+  set'lt : ∀ (x : maintenanceServer) (y : LeaderTransferrer), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"lt") (PairV #x #y) (Val #(({ x with lt' := y } : maintenanceServer)))
+  get'hdr : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"hdr") #x (Val #(x.hdr'))
+  set'hdr : ∀ (x : maintenanceServer) (y : header), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"hdr") (PairV #x #y) (Val #(({ x with hdr' := y } : maintenanceServer)))
+  get'cs : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"cs") #x (Val #(x.cs'))
+  set'cs : ∀ (x : maintenanceServer) (y : ClusterStatusGetter), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"cs") (PairV #x #y) (Val #(({ x with cs' := y } : maintenanceServer)))
+  get'd : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"d") #x (Val #(x.d'))
+  set'd : ∀ (x : maintenanceServer) (y : Downgrader), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : maintenanceServer)))
+  get'vs : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"vs") #x (Val #(x.vs'))
+  set'vs : ∀ (x : maintenanceServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Server), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"vs") (PairV #x #y) (Val #(({ x with vs' := y } : maintenanceServer)))
+  get'cg : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"cg") #x (Val #(x.cg'))
+  set'cg : ∀ (x : maintenanceServer) (y : ConfigGetter), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"cg") (PairV #x #y) (Val #(({ x with cg' := y } : maintenanceServer)))
+  get'healthNotifier : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"healthNotifier") #x (Val #(x.healthNotifier'))
+  set'healthNotifier : ∀ (x : maintenanceServer) (y : notifier), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"healthNotifier") (PairV #x #y) (Val #(({ x with healthNotifier' := y } : maintenanceServer)))
+  get'UnsafeMaintenanceServer : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"UnsafeMaintenanceServer") #x (Val #(x.UnsafeMaintenanceServer'))
+  set'UnsafeMaintenanceServer : ∀ (x : maintenanceServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeMaintenanceServer), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"UnsafeMaintenanceServer") (PairV #x #y) (Val #(({ x with UnsafeMaintenanceServer' := y } : maintenanceServer)))
   method_set : go.MethodSetIs maintenanceServer.ty [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedMaintenanceServer", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType maintenanceServer.ty) [(go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Defragment", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentResponse.ty), go.error]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"Hash", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashResponse.ty), go.error]))), (go!"HashKV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVResponse.ty), go.error]))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MoveLeaderRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MoveLeaderResponse.ty), go.error]))), (go!"Snapshot", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.SnapshotRequest.ty), _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Maintenance_SnapshotServer.ty] false [go.error]))), (go!"Status", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.StatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.StatusResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedMaintenanceServer", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] maintenanceServer.TypeAssumptions.type_repr
   maintenanceServer.TypeAssumptions.underlying
-  maintenanceServer.TypeAssumptions.get_lg
-  maintenanceServer.TypeAssumptions.set_lg
-  maintenanceServer.TypeAssumptions.get_rg
-  maintenanceServer.TypeAssumptions.set_rg
-  maintenanceServer.TypeAssumptions.get_hasher
-  maintenanceServer.TypeAssumptions.set_hasher
-  maintenanceServer.TypeAssumptions.get_bg
-  maintenanceServer.TypeAssumptions.set_bg
-  maintenanceServer.TypeAssumptions.get_defrag
-  maintenanceServer.TypeAssumptions.set_defrag
-  maintenanceServer.TypeAssumptions.get_a
-  maintenanceServer.TypeAssumptions.set_a
-  maintenanceServer.TypeAssumptions.get_lt
-  maintenanceServer.TypeAssumptions.set_lt
-  maintenanceServer.TypeAssumptions.get_hdr
-  maintenanceServer.TypeAssumptions.set_hdr
-  maintenanceServer.TypeAssumptions.get_cs
-  maintenanceServer.TypeAssumptions.set_cs
-  maintenanceServer.TypeAssumptions.get_d
-  maintenanceServer.TypeAssumptions.set_d
-  maintenanceServer.TypeAssumptions.get_vs
-  maintenanceServer.TypeAssumptions.set_vs
-  maintenanceServer.TypeAssumptions.get_cg
-  maintenanceServer.TypeAssumptions.set_cg
-  maintenanceServer.TypeAssumptions.get_healthNotifier
-  maintenanceServer.TypeAssumptions.set_healthNotifier
-  maintenanceServer.TypeAssumptions.get_UnsafeMaintenanceServer
-  maintenanceServer.TypeAssumptions.set_UnsafeMaintenanceServer
+  maintenanceServer.TypeAssumptions.get'lg
+  maintenanceServer.TypeAssumptions.set'lg
+  maintenanceServer.TypeAssumptions.get'rg
+  maintenanceServer.TypeAssumptions.set'rg
+  maintenanceServer.TypeAssumptions.get'hasher
+  maintenanceServer.TypeAssumptions.set'hasher
+  maintenanceServer.TypeAssumptions.get'bg
+  maintenanceServer.TypeAssumptions.set'bg
+  maintenanceServer.TypeAssumptions.get'defrag
+  maintenanceServer.TypeAssumptions.set'defrag
+  maintenanceServer.TypeAssumptions.get'a
+  maintenanceServer.TypeAssumptions.set'a
+  maintenanceServer.TypeAssumptions.get'lt
+  maintenanceServer.TypeAssumptions.set'lt
+  maintenanceServer.TypeAssumptions.get'hdr
+  maintenanceServer.TypeAssumptions.set'hdr
+  maintenanceServer.TypeAssumptions.get'cs
+  maintenanceServer.TypeAssumptions.set'cs
+  maintenanceServer.TypeAssumptions.get'd
+  maintenanceServer.TypeAssumptions.set'd
+  maintenanceServer.TypeAssumptions.get'vs
+  maintenanceServer.TypeAssumptions.set'vs
+  maintenanceServer.TypeAssumptions.get'cg
+  maintenanceServer.TypeAssumptions.set'cg
+  maintenanceServer.TypeAssumptions.get'healthNotifier
+  maintenanceServer.TypeAssumptions.set'healthNotifier
+  maintenanceServer.TypeAssumptions.get'UnsafeMaintenanceServer
+  maintenanceServer.TypeAssumptions.set'UnsafeMaintenanceServer
   maintenanceServer.TypeAssumptions.method_set
   maintenanceServer.TypeAssumptions.ptr_method_set
 
@@ -8343,7 +8343,7 @@ noncomputable instance authMaintenanceServer.zero_val [GooseExts] : ZeroVal auth
 @[irreducible] noncomputable def authMaintenanceServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   authMaintenanceServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_authMaintenanceServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'authMaintenanceServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold authMaintenanceServer.fields authMaintenanceServer.fieldsUnsealed :=
   ⟨by unfold authMaintenanceServer.fields; rfl⟩
 
@@ -8353,49 +8353,49 @@ noncomputable instance equals_unfold_authMaintenanceServer [GooseExts] [GoGlobal
 class authMaintenanceServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying authMaintenanceServer.underlying authMaintenanceServer
   underlying : go.UnderlyingDirectedEq authMaintenanceServer.ty authMaintenanceServer.underlying
-  get_maintenanceServer : ∀ (x : authMaintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet authMaintenanceServer.underlying go!"maintenanceServer") #x (Val #(x.maintenanceServer'))
-  set_maintenanceServer : ∀ (x : authMaintenanceServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authMaintenanceServer.underlying go!"maintenanceServer") (PairV #x #y) (Val #(({ x with maintenanceServer' := y } : authMaintenanceServer)))
-  get_AuthAdmin : ∀ (x : authMaintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet authMaintenanceServer.underlying go!"AuthAdmin") #x (Val #(x.AuthAdmin'))
-  set_AuthAdmin : ∀ (x : authMaintenanceServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authMaintenanceServer.underlying go!"AuthAdmin") (PairV #x #y) (Val #(({ x with AuthAdmin' := y } : authMaintenanceServer)))
+  get'maintenanceServer : ∀ (x : authMaintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet authMaintenanceServer.underlying go!"maintenanceServer") #x (Val #(x.maintenanceServer'))
+  set'maintenanceServer : ∀ (x : authMaintenanceServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authMaintenanceServer.underlying go!"maintenanceServer") (PairV #x #y) (Val #(({ x with maintenanceServer' := y } : authMaintenanceServer)))
+  get'AuthAdmin : ∀ (x : authMaintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet authMaintenanceServer.underlying go!"AuthAdmin") #x (Val #(x.AuthAdmin'))
+  set'AuthAdmin : ∀ (x : authMaintenanceServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authMaintenanceServer.underlying go!"AuthAdmin") (PairV #x #y) (Val #(({ x with AuthAdmin' := y } : authMaintenanceServer)))
   method_set : go.MethodSetIs authMaintenanceServer.ty [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedMaintenanceServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.isPermitted", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType authMaintenanceServer.ty) [(go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Defragment", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentResponse.ty), go.error]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"Hash", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashResponse.ty), go.error]))), (go!"HashKV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVResponse.ty), go.error]))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MoveLeaderRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MoveLeaderResponse.ty), go.error]))), (go!"Snapshot", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.SnapshotRequest.ty), _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Maintenance_SnapshotServer.ty] false [go.error]))), (go!"Status", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.StatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.StatusResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedMaintenanceServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.isPermitted", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.requireAuthInfo", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])))]
-  isPermitted_unfold : MethodUnfold authMaintenanceServer.ty go!"isPermitted" (LamV "$r"
+  unfold'isPermitted : MethodUnfold authMaintenanceServer.ty go!"isPermitted" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType AuthAdmin.ty) go!"isPermitted"))) (App (Val (GoInstruction (StructFieldGet authMaintenanceServer.ty go!"AuthAdmin"))) (Var "$r"))))
-  requireAuthInfo_unfold : MethodUnfold authMaintenanceServer.ty go!"requireAuthInfo" (LamV "$r"
+  unfold'requireAuthInfo : MethodUnfold authMaintenanceServer.ty go!"requireAuthInfo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType AuthAdmin.ty) go!"requireAuthInfo"))) (App (Val (GoInstruction (StructFieldGet authMaintenanceServer.ty go!"AuthAdmin"))) (Var "$r"))))
-  ptr_Alarm_unfold : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"Alarm" authMaintenanceServer.Alarm.impl
-  ptr_Defragment_unfold : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"Defragment" authMaintenanceServer.Defragment.impl
-  ptr_Downgrade_unfold : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"Downgrade" authMaintenanceServer.Downgrade.impl
-  ptr_Hash_unfold : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"Hash" authMaintenanceServer.Hash.impl
-  ptr_HashKV_unfold : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"HashKV" authMaintenanceServer.HashKV.impl
-  ptr_MoveLeader_unfold : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"MoveLeader" authMaintenanceServer.MoveLeader.impl
-  ptr_Snapshot_unfold : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"Snapshot" authMaintenanceServer.Snapshot.impl
-  ptr_Status_unfold : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"Status" authMaintenanceServer.Status.impl
-  ptr_isPermitted_unfold : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"isPermitted" (LamV "$r"
+  ptr_unfold'Alarm : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"Alarm" authMaintenanceServer.Alarm.impl
+  ptr_unfold'Defragment : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"Defragment" authMaintenanceServer.Defragment.impl
+  ptr_unfold'Downgrade : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"Downgrade" authMaintenanceServer.Downgrade.impl
+  ptr_unfold'Hash : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"Hash" authMaintenanceServer.Hash.impl
+  ptr_unfold'HashKV : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"HashKV" authMaintenanceServer.HashKV.impl
+  ptr_unfold'MoveLeader : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"MoveLeader" authMaintenanceServer.MoveLeader.impl
+  ptr_unfold'Snapshot : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"Snapshot" authMaintenanceServer.Snapshot.impl
+  ptr_unfold'Status : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"Status" authMaintenanceServer.Status.impl
+  ptr_unfold'isPermitted : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"isPermitted" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType AuthAdmin.ty) go!"isPermitted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthAdmin.ty)))) (App (Val (GoInstruction (StructFieldRef authMaintenanceServer.ty go!"AuthAdmin"))) (Var "$r")))))
-  ptr_requireAuthInfo_unfold : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"requireAuthInfo" (LamV "$r"
+  ptr_unfold'requireAuthInfo : MethodUnfold (go.GoType.PointerType authMaintenanceServer.ty) go!"requireAuthInfo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType AuthAdmin.ty) go!"requireAuthInfo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthAdmin.ty)))) (App (Val (GoInstruction (StructFieldRef authMaintenanceServer.ty go!"AuthAdmin"))) (Var "$r")))))
 
 attribute [instance] authMaintenanceServer.TypeAssumptions.type_repr
   authMaintenanceServer.TypeAssumptions.underlying
-  authMaintenanceServer.TypeAssumptions.get_maintenanceServer
-  authMaintenanceServer.TypeAssumptions.set_maintenanceServer
-  authMaintenanceServer.TypeAssumptions.get_AuthAdmin
-  authMaintenanceServer.TypeAssumptions.set_AuthAdmin
+  authMaintenanceServer.TypeAssumptions.get'maintenanceServer
+  authMaintenanceServer.TypeAssumptions.set'maintenanceServer
+  authMaintenanceServer.TypeAssumptions.get'AuthAdmin
+  authMaintenanceServer.TypeAssumptions.set'AuthAdmin
   authMaintenanceServer.TypeAssumptions.method_set
   authMaintenanceServer.TypeAssumptions.ptr_method_set
-  authMaintenanceServer.TypeAssumptions.isPermitted_unfold
-  authMaintenanceServer.TypeAssumptions.requireAuthInfo_unfold
-  authMaintenanceServer.TypeAssumptions.ptr_Alarm_unfold
-  authMaintenanceServer.TypeAssumptions.ptr_Defragment_unfold
-  authMaintenanceServer.TypeAssumptions.ptr_Downgrade_unfold
-  authMaintenanceServer.TypeAssumptions.ptr_Hash_unfold
-  authMaintenanceServer.TypeAssumptions.ptr_HashKV_unfold
-  authMaintenanceServer.TypeAssumptions.ptr_MoveLeader_unfold
-  authMaintenanceServer.TypeAssumptions.ptr_Snapshot_unfold
-  authMaintenanceServer.TypeAssumptions.ptr_Status_unfold
-  authMaintenanceServer.TypeAssumptions.ptr_isPermitted_unfold
-  authMaintenanceServer.TypeAssumptions.ptr_requireAuthInfo_unfold
+  authMaintenanceServer.TypeAssumptions.unfold'isPermitted
+  authMaintenanceServer.TypeAssumptions.unfold'requireAuthInfo
+  authMaintenanceServer.TypeAssumptions.ptr_unfold'Alarm
+  authMaintenanceServer.TypeAssumptions.ptr_unfold'Defragment
+  authMaintenanceServer.TypeAssumptions.ptr_unfold'Downgrade
+  authMaintenanceServer.TypeAssumptions.ptr_unfold'Hash
+  authMaintenanceServer.TypeAssumptions.ptr_unfold'HashKV
+  authMaintenanceServer.TypeAssumptions.ptr_unfold'MoveLeader
+  authMaintenanceServer.TypeAssumptions.ptr_unfold'Snapshot
+  authMaintenanceServer.TypeAssumptions.ptr_unfold'Status
+  authMaintenanceServer.TypeAssumptions.ptr_unfold'isPermitted
+  authMaintenanceServer.TypeAssumptions.ptr_unfold'requireAuthInfo
 
 structure ClusterServer [GooseExts] where
   mk ::
@@ -8414,7 +8414,7 @@ noncomputable instance ClusterServer.zero_val [GooseExts] : ZeroVal ClusterServe
 @[irreducible] noncomputable def ClusterServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClusterServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClusterServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ClusterServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClusterServer.fields ClusterServer.fieldsUnsealed :=
   ⟨by unfold ClusterServer.fields; rfl⟩
 
@@ -8424,37 +8424,37 @@ noncomputable instance equals_unfold_ClusterServer [GooseExts] [GoGlobalContext]
 class ClusterServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClusterServer.underlying ClusterServer
   underlying : go.UnderlyingDirectedEq ClusterServer.ty ClusterServer.underlying
-  get_cluster : ∀ (x : ClusterServer), go.IsGoStepPureDetTagged under (StructFieldGet ClusterServer.underlying go!"cluster") #x (Val #(x.cluster'))
-  set_cluster : ∀ (x : ClusterServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster), go.IsGoStepPureDetTagged under (StructFieldSet ClusterServer.underlying go!"cluster") (PairV #x #y) (Val #(({ x with cluster' := y } : ClusterServer)))
-  get_server : ∀ (x : ClusterServer), go.IsGoStepPureDetTagged under (StructFieldGet ClusterServer.underlying go!"server") #x (Val #(x.server'))
-  set_server : ∀ (x : ClusterServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClusterServer.underlying go!"server") (PairV #x #y) (Val #(({ x with server' := y } : ClusterServer)))
-  get_UnsafeClusterServer : ∀ (x : ClusterServer), go.IsGoStepPureDetTagged under (StructFieldGet ClusterServer.underlying go!"UnsafeClusterServer") #x (Val #(x.UnsafeClusterServer'))
-  set_UnsafeClusterServer : ∀ (x : ClusterServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeClusterServer), go.IsGoStepPureDetTagged under (StructFieldSet ClusterServer.underlying go!"UnsafeClusterServer") (PairV #x #y) (Val #(({ x with UnsafeClusterServer' := y } : ClusterServer)))
+  get'cluster : ∀ (x : ClusterServer), go.IsGoStepPureDetTagged under (StructFieldGet ClusterServer.underlying go!"cluster") #x (Val #(x.cluster'))
+  set'cluster : ∀ (x : ClusterServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster), go.IsGoStepPureDetTagged under (StructFieldSet ClusterServer.underlying go!"cluster") (PairV #x #y) (Val #(({ x with cluster' := y } : ClusterServer)))
+  get'server : ∀ (x : ClusterServer), go.IsGoStepPureDetTagged under (StructFieldGet ClusterServer.underlying go!"server") #x (Val #(x.server'))
+  set'server : ∀ (x : ClusterServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClusterServer.underlying go!"server") (PairV #x #y) (Val #(({ x with server' := y } : ClusterServer)))
+  get'UnsafeClusterServer : ∀ (x : ClusterServer), go.IsGoStepPureDetTagged under (StructFieldGet ClusterServer.underlying go!"UnsafeClusterServer") #x (Val #(x.UnsafeClusterServer'))
+  set'UnsafeClusterServer : ∀ (x : ClusterServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeClusterServer), go.IsGoStepPureDetTagged under (StructFieldSet ClusterServer.underlying go!"UnsafeClusterServer") (PairV #x #y) (Val #(({ x with UnsafeClusterServer' := y } : ClusterServer)))
   method_set : go.MethodSetIs ClusterServer.ty [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedClusterServer", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterServer.ty) [(go!"MemberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty), go.error]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse.ty), go.error]))), (go!"MemberPromote", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse.ty), go.error]))), (go!"MemberRemove", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse.ty), go.error]))), (go!"MemberUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedClusterServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.header", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)])))]
-  ptr_MemberAdd_unfold : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"MemberAdd" ClusterServer.MemberAdd.impl
-  ptr_MemberList_unfold : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"MemberList" ClusterServer.MemberList.impl
-  ptr_MemberPromote_unfold : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"MemberPromote" ClusterServer.MemberPromote.impl
-  ptr_MemberRemove_unfold : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"MemberRemove" ClusterServer.MemberRemove.impl
-  ptr_MemberUpdate_unfold : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"MemberUpdate" ClusterServer.MemberUpdate.impl
-  ptr_header_unfold : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"header" ClusterServer.header.impl
+  ptr_unfold'MemberAdd : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"MemberAdd" ClusterServer.MemberAdd.impl
+  ptr_unfold'MemberList : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"MemberList" ClusterServer.MemberList.impl
+  ptr_unfold'MemberPromote : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"MemberPromote" ClusterServer.MemberPromote.impl
+  ptr_unfold'MemberRemove : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"MemberRemove" ClusterServer.MemberRemove.impl
+  ptr_unfold'MemberUpdate : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"MemberUpdate" ClusterServer.MemberUpdate.impl
+  ptr_unfold'header : MethodUnfold (go.GoType.PointerType ClusterServer.ty) go!"header" ClusterServer.header.impl
 
 attribute [instance] ClusterServer.TypeAssumptions.type_repr
   ClusterServer.TypeAssumptions.underlying
-  ClusterServer.TypeAssumptions.get_cluster
-  ClusterServer.TypeAssumptions.set_cluster
-  ClusterServer.TypeAssumptions.get_server
-  ClusterServer.TypeAssumptions.set_server
-  ClusterServer.TypeAssumptions.get_UnsafeClusterServer
-  ClusterServer.TypeAssumptions.set_UnsafeClusterServer
+  ClusterServer.TypeAssumptions.get'cluster
+  ClusterServer.TypeAssumptions.set'cluster
+  ClusterServer.TypeAssumptions.get'server
+  ClusterServer.TypeAssumptions.set'server
+  ClusterServer.TypeAssumptions.get'UnsafeClusterServer
+  ClusterServer.TypeAssumptions.set'UnsafeClusterServer
   ClusterServer.TypeAssumptions.method_set
   ClusterServer.TypeAssumptions.ptr_method_set
-  ClusterServer.TypeAssumptions.ptr_MemberAdd_unfold
-  ClusterServer.TypeAssumptions.ptr_MemberList_unfold
-  ClusterServer.TypeAssumptions.ptr_MemberPromote_unfold
-  ClusterServer.TypeAssumptions.ptr_MemberRemove_unfold
-  ClusterServer.TypeAssumptions.ptr_MemberUpdate_unfold
-  ClusterServer.TypeAssumptions.ptr_header_unfold
+  ClusterServer.TypeAssumptions.ptr_unfold'MemberAdd
+  ClusterServer.TypeAssumptions.ptr_unfold'MemberList
+  ClusterServer.TypeAssumptions.ptr_unfold'MemberPromote
+  ClusterServer.TypeAssumptions.ptr_unfold'MemberRemove
+  ClusterServer.TypeAssumptions.ptr_unfold'MemberUpdate
+  ClusterServer.TypeAssumptions.ptr_unfold'header
 
 structure quotaAlarmer [GooseExts] where
   mk ::
@@ -8471,7 +8471,7 @@ noncomputable instance quotaAlarmer.zero_val [GooseExts] : ZeroVal quotaAlarmer 
 @[irreducible] noncomputable def quotaAlarmer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   quotaAlarmer.fieldsUnsealed
 
-noncomputable instance equals_unfold_quotaAlarmer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'quotaAlarmer [GooseExts] [GoGlobalContext] :
     EqualsUnfold quotaAlarmer.fields quotaAlarmer.fieldsUnsealed :=
   ⟨by unfold quotaAlarmer.fields; rfl⟩
 
@@ -8481,23 +8481,23 @@ noncomputable instance equals_unfold_quotaAlarmer [GooseExts] [GoGlobalContext] 
 class quotaAlarmer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying quotaAlarmer.underlying quotaAlarmer
   underlying : go.UnderlyingDirectedEq quotaAlarmer.ty quotaAlarmer.underlying
-  get_s : ∀ (x : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldGet quotaAlarmer.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : quotaAlarmer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet quotaAlarmer.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : quotaAlarmer)))
-  get_name : ∀ (x : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldGet quotaAlarmer.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : quotaAlarmer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet quotaAlarmer.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : quotaAlarmer)))
+  get's : ∀ (x : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldGet quotaAlarmer.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : quotaAlarmer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet quotaAlarmer.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : quotaAlarmer)))
+  get'name : ∀ (x : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldGet quotaAlarmer.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : quotaAlarmer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet quotaAlarmer.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : quotaAlarmer)))
   method_set : go.MethodSetIs quotaAlarmer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType quotaAlarmer.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.check", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.any] false [go.error])))]
-  ptr_check_unfold : MethodUnfold (go.GoType.PointerType quotaAlarmer.ty) go!"check" quotaAlarmer.check.impl
+  ptr_unfold'check : MethodUnfold (go.GoType.PointerType quotaAlarmer.ty) go!"check" quotaAlarmer.check.impl
 
 attribute [instance] quotaAlarmer.TypeAssumptions.type_repr
   quotaAlarmer.TypeAssumptions.underlying
-  quotaAlarmer.TypeAssumptions.get_s
-  quotaAlarmer.TypeAssumptions.set_s
-  quotaAlarmer.TypeAssumptions.get_name
-  quotaAlarmer.TypeAssumptions.set_name
+  quotaAlarmer.TypeAssumptions.get's
+  quotaAlarmer.TypeAssumptions.set's
+  quotaAlarmer.TypeAssumptions.get'name
+  quotaAlarmer.TypeAssumptions.set'name
   quotaAlarmer.TypeAssumptions.method_set
   quotaAlarmer.TypeAssumptions.ptr_method_set
-  quotaAlarmer.TypeAssumptions.ptr_check_unfold
+  quotaAlarmer.TypeAssumptions.ptr_unfold'check
 
 structure quotaKVServer [GooseExts] where
   mk ::
@@ -8514,7 +8514,7 @@ noncomputable instance quotaKVServer.zero_val [GooseExts] : ZeroVal quotaKVServe
 @[irreducible] noncomputable def quotaKVServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   quotaKVServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_quotaKVServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'quotaKVServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold quotaKVServer.fields quotaKVServer.fieldsUnsealed :=
   ⟨by unfold quotaKVServer.fields; rfl⟩
 
@@ -8524,43 +8524,43 @@ noncomputable instance equals_unfold_quotaKVServer [GooseExts] [GoGlobalContext]
 class quotaKVServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying quotaKVServer.underlying quotaKVServer
   underlying : go.UnderlyingDirectedEq quotaKVServer.ty quotaKVServer.underlying
-  get_KVServer : ∀ (x : quotaKVServer), go.IsGoStepPureDetTagged under (StructFieldGet quotaKVServer.underlying go!"KVServer") #x (Val #(x.KVServer'))
-  set_KVServer : ∀ (x : quotaKVServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer), go.IsGoStepPureDetTagged under (StructFieldSet quotaKVServer.underlying go!"KVServer") (PairV #x #y) (Val #(({ x with KVServer' := y } : quotaKVServer)))
-  get_qa : ∀ (x : quotaKVServer), go.IsGoStepPureDetTagged under (StructFieldGet quotaKVServer.underlying go!"qa") #x (Val #(x.qa'))
-  set_qa : ∀ (x : quotaKVServer) (y : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldSet quotaKVServer.underlying go!"qa") (PairV #x #y) (Val #(({ x with qa' := y } : quotaKVServer)))
+  get'KVServer : ∀ (x : quotaKVServer), go.IsGoStepPureDetTagged under (StructFieldGet quotaKVServer.underlying go!"KVServer") #x (Val #(x.KVServer'))
+  set'KVServer : ∀ (x : quotaKVServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer), go.IsGoStepPureDetTagged under (StructFieldSet quotaKVServer.underlying go!"KVServer") (PairV #x #y) (Val #(({ x with KVServer' := y } : quotaKVServer)))
+  get'qa : ∀ (x : quotaKVServer), go.IsGoStepPureDetTagged under (StructFieldGet quotaKVServer.underlying go!"qa") #x (Val #(x.qa'))
+  set'qa : ∀ (x : quotaKVServer) (y : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldSet quotaKVServer.underlying go!"qa") (PairV #x #y) (Val #(({ x with qa' := y } : quotaKVServer)))
   method_set : go.MethodSetIs quotaKVServer.ty [(go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty)] false [go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedKVServer", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType quotaKVServer.ty) [(go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty)] false [go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedKVServer", (some (go.signature.Signature [] false [])))]
-  Compact_unfold : MethodUnfold quotaKVServer.ty go!"Compact" (LamV "$r"
+  unfold'Compact : MethodUnfold quotaKVServer.ty go!"Compact" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty go!"Compact"))) (App (Val (GoInstruction (StructFieldGet quotaKVServer.ty go!"KVServer"))) (Var "$r"))))
-  DeleteRange_unfold : MethodUnfold quotaKVServer.ty go!"DeleteRange" (LamV "$r"
+  unfold'DeleteRange : MethodUnfold quotaKVServer.ty go!"DeleteRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty go!"DeleteRange"))) (App (Val (GoInstruction (StructFieldGet quotaKVServer.ty go!"KVServer"))) (Var "$r"))))
-  Range_unfold : MethodUnfold quotaKVServer.ty go!"Range" (LamV "$r"
+  unfold'Range : MethodUnfold quotaKVServer.ty go!"Range" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty go!"Range"))) (App (Val (GoInstruction (StructFieldGet quotaKVServer.ty go!"KVServer"))) (Var "$r"))))
-  ptr_Compact_unfold : MethodUnfold (go.GoType.PointerType quotaKVServer.ty) go!"Compact" (LamV "$r"
+  ptr_unfold'Compact : MethodUnfold (go.GoType.PointerType quotaKVServer.ty) go!"Compact" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty go!"Compact"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty))) (App (Val (GoInstruction (StructFieldRef quotaKVServer.ty go!"KVServer"))) (Var "$r")))))
-  ptr_DeleteRange_unfold : MethodUnfold (go.GoType.PointerType quotaKVServer.ty) go!"DeleteRange" (LamV "$r"
+  ptr_unfold'DeleteRange : MethodUnfold (go.GoType.PointerType quotaKVServer.ty) go!"DeleteRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty go!"DeleteRange"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty))) (App (Val (GoInstruction (StructFieldRef quotaKVServer.ty go!"KVServer"))) (Var "$r")))))
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType quotaKVServer.ty) go!"Put" quotaKVServer.Put.impl
-  ptr_Range_unfold : MethodUnfold (go.GoType.PointerType quotaKVServer.ty) go!"Range" (LamV "$r"
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType quotaKVServer.ty) go!"Put" quotaKVServer.Put.impl
+  ptr_unfold'Range : MethodUnfold (go.GoType.PointerType quotaKVServer.ty) go!"Range" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty go!"Range"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty))) (App (Val (GoInstruction (StructFieldRef quotaKVServer.ty go!"KVServer"))) (Var "$r")))))
-  ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType quotaKVServer.ty) go!"Txn" quotaKVServer.Txn.impl
+  ptr_unfold'Txn : MethodUnfold (go.GoType.PointerType quotaKVServer.ty) go!"Txn" quotaKVServer.Txn.impl
 
 attribute [instance] quotaKVServer.TypeAssumptions.type_repr
   quotaKVServer.TypeAssumptions.underlying
-  quotaKVServer.TypeAssumptions.get_KVServer
-  quotaKVServer.TypeAssumptions.set_KVServer
-  quotaKVServer.TypeAssumptions.get_qa
-  quotaKVServer.TypeAssumptions.set_qa
+  quotaKVServer.TypeAssumptions.get'KVServer
+  quotaKVServer.TypeAssumptions.set'KVServer
+  quotaKVServer.TypeAssumptions.get'qa
+  quotaKVServer.TypeAssumptions.set'qa
   quotaKVServer.TypeAssumptions.method_set
   quotaKVServer.TypeAssumptions.ptr_method_set
-  quotaKVServer.TypeAssumptions.Compact_unfold
-  quotaKVServer.TypeAssumptions.DeleteRange_unfold
-  quotaKVServer.TypeAssumptions.Range_unfold
-  quotaKVServer.TypeAssumptions.ptr_Compact_unfold
-  quotaKVServer.TypeAssumptions.ptr_DeleteRange_unfold
-  quotaKVServer.TypeAssumptions.ptr_Put_unfold
-  quotaKVServer.TypeAssumptions.ptr_Range_unfold
-  quotaKVServer.TypeAssumptions.ptr_Txn_unfold
+  quotaKVServer.TypeAssumptions.unfold'Compact
+  quotaKVServer.TypeAssumptions.unfold'DeleteRange
+  quotaKVServer.TypeAssumptions.unfold'Range
+  quotaKVServer.TypeAssumptions.ptr_unfold'Compact
+  quotaKVServer.TypeAssumptions.ptr_unfold'DeleteRange
+  quotaKVServer.TypeAssumptions.ptr_unfold'Put
+  quotaKVServer.TypeAssumptions.ptr_unfold'Range
+  quotaKVServer.TypeAssumptions.ptr_unfold'Txn
 
 structure quotaLeaseServer [GooseExts] where
   mk ::
@@ -8577,7 +8577,7 @@ noncomputable instance quotaLeaseServer.zero_val [GooseExts] : ZeroVal quotaLeas
 @[irreducible] noncomputable def quotaLeaseServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   quotaLeaseServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_quotaLeaseServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'quotaLeaseServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold quotaLeaseServer.fields quotaLeaseServer.fieldsUnsealed :=
   ⟨by unfold quotaLeaseServer.fields; rfl⟩
 
@@ -8587,41 +8587,41 @@ noncomputable instance equals_unfold_quotaLeaseServer [GooseExts] [GoGlobalConte
 class quotaLeaseServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying quotaLeaseServer.underlying quotaLeaseServer
   underlying : go.UnderlyingDirectedEq quotaLeaseServer.ty quotaLeaseServer.underlying
-  get_LeaseServer : ∀ (x : quotaLeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet quotaLeaseServer.underlying go!"LeaseServer") #x (Val #(x.LeaseServer'))
-  set_LeaseServer : ∀ (x : quotaLeaseServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer), go.IsGoStepPureDetTagged under (StructFieldSet quotaLeaseServer.underlying go!"LeaseServer") (PairV #x #y) (Val #(({ x with LeaseServer' := y } : quotaLeaseServer)))
-  get_qa : ∀ (x : quotaLeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet quotaLeaseServer.underlying go!"qa") #x (Val #(x.qa'))
-  set_qa : ∀ (x : quotaLeaseServer) (y : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldSet quotaLeaseServer.underlying go!"qa") (PairV #x #y) (Val #(({ x with qa' := y } : quotaLeaseServer)))
+  get'LeaseServer : ∀ (x : quotaLeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet quotaLeaseServer.underlying go!"LeaseServer") #x (Val #(x.LeaseServer'))
+  set'LeaseServer : ∀ (x : quotaLeaseServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer), go.IsGoStepPureDetTagged under (StructFieldSet quotaLeaseServer.underlying go!"LeaseServer") (PairV #x #y) (Val #(({ x with LeaseServer' := y } : quotaLeaseServer)))
+  get'qa : ∀ (x : quotaLeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet quotaLeaseServer.underlying go!"qa") #x (Val #(x.qa'))
+  set'qa : ∀ (x : quotaLeaseServer) (y : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldSet quotaLeaseServer.underlying go!"qa") (PairV #x #y) (Val #(({ x with qa' := y } : quotaLeaseServer)))
   method_set : go.MethodSetIs quotaLeaseServer.ty [(go!"LeaseKeepAlive", (some (go.signature.Signature [(_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty)] false [go.error]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedLeaseServer", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType quotaLeaseServer.ty) [(go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseKeepAlive", (some (go.signature.Signature [(_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty)] false [go.error]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedLeaseServer", (some (go.signature.Signature [] false [])))]
-  LeaseLeases_unfold : MethodUnfold quotaLeaseServer.ty go!"LeaseLeases" (LamV "$r"
+  unfold'LeaseLeases : MethodUnfold quotaLeaseServer.ty go!"LeaseLeases" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty go!"LeaseLeases"))) (App (Val (GoInstruction (StructFieldGet quotaLeaseServer.ty go!"LeaseServer"))) (Var "$r"))))
-  LeaseRevoke_unfold : MethodUnfold quotaLeaseServer.ty go!"LeaseRevoke" (LamV "$r"
+  unfold'LeaseRevoke : MethodUnfold quotaLeaseServer.ty go!"LeaseRevoke" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty go!"LeaseRevoke"))) (App (Val (GoInstruction (StructFieldGet quotaLeaseServer.ty go!"LeaseServer"))) (Var "$r"))))
-  LeaseTimeToLive_unfold : MethodUnfold quotaLeaseServer.ty go!"LeaseTimeToLive" (LamV "$r"
+  unfold'LeaseTimeToLive : MethodUnfold quotaLeaseServer.ty go!"LeaseTimeToLive" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty go!"LeaseTimeToLive"))) (App (Val (GoInstruction (StructFieldGet quotaLeaseServer.ty go!"LeaseServer"))) (Var "$r"))))
-  ptr_LeaseGrant_unfold : MethodUnfold (go.GoType.PointerType quotaLeaseServer.ty) go!"LeaseGrant" quotaLeaseServer.LeaseGrant.impl
-  ptr_LeaseLeases_unfold : MethodUnfold (go.GoType.PointerType quotaLeaseServer.ty) go!"LeaseLeases" (LamV "$r"
+  ptr_unfold'LeaseGrant : MethodUnfold (go.GoType.PointerType quotaLeaseServer.ty) go!"LeaseGrant" quotaLeaseServer.LeaseGrant.impl
+  ptr_unfold'LeaseLeases : MethodUnfold (go.GoType.PointerType quotaLeaseServer.ty) go!"LeaseLeases" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty go!"LeaseLeases"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty))) (App (Val (GoInstruction (StructFieldRef quotaLeaseServer.ty go!"LeaseServer"))) (Var "$r")))))
-  ptr_LeaseRevoke_unfold : MethodUnfold (go.GoType.PointerType quotaLeaseServer.ty) go!"LeaseRevoke" (LamV "$r"
+  ptr_unfold'LeaseRevoke : MethodUnfold (go.GoType.PointerType quotaLeaseServer.ty) go!"LeaseRevoke" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty go!"LeaseRevoke"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty))) (App (Val (GoInstruction (StructFieldRef quotaLeaseServer.ty go!"LeaseServer"))) (Var "$r")))))
-  ptr_LeaseTimeToLive_unfold : MethodUnfold (go.GoType.PointerType quotaLeaseServer.ty) go!"LeaseTimeToLive" (LamV "$r"
+  ptr_unfold'LeaseTimeToLive : MethodUnfold (go.GoType.PointerType quotaLeaseServer.ty) go!"LeaseTimeToLive" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty go!"LeaseTimeToLive"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty))) (App (Val (GoInstruction (StructFieldRef quotaLeaseServer.ty go!"LeaseServer"))) (Var "$r")))))
 
 attribute [instance] quotaLeaseServer.TypeAssumptions.type_repr
   quotaLeaseServer.TypeAssumptions.underlying
-  quotaLeaseServer.TypeAssumptions.get_LeaseServer
-  quotaLeaseServer.TypeAssumptions.set_LeaseServer
-  quotaLeaseServer.TypeAssumptions.get_qa
-  quotaLeaseServer.TypeAssumptions.set_qa
+  quotaLeaseServer.TypeAssumptions.get'LeaseServer
+  quotaLeaseServer.TypeAssumptions.set'LeaseServer
+  quotaLeaseServer.TypeAssumptions.get'qa
+  quotaLeaseServer.TypeAssumptions.set'qa
   quotaLeaseServer.TypeAssumptions.method_set
   quotaLeaseServer.TypeAssumptions.ptr_method_set
-  quotaLeaseServer.TypeAssumptions.LeaseLeases_unfold
-  quotaLeaseServer.TypeAssumptions.LeaseRevoke_unfold
-  quotaLeaseServer.TypeAssumptions.LeaseTimeToLive_unfold
-  quotaLeaseServer.TypeAssumptions.ptr_LeaseGrant_unfold
-  quotaLeaseServer.TypeAssumptions.ptr_LeaseLeases_unfold
-  quotaLeaseServer.TypeAssumptions.ptr_LeaseRevoke_unfold
-  quotaLeaseServer.TypeAssumptions.ptr_LeaseTimeToLive_unfold
+  quotaLeaseServer.TypeAssumptions.unfold'LeaseLeases
+  quotaLeaseServer.TypeAssumptions.unfold'LeaseRevoke
+  quotaLeaseServer.TypeAssumptions.unfold'LeaseTimeToLive
+  quotaLeaseServer.TypeAssumptions.ptr_unfold'LeaseGrant
+  quotaLeaseServer.TypeAssumptions.ptr_unfold'LeaseLeases
+  quotaLeaseServer.TypeAssumptions.ptr_unfold'LeaseRevoke
+  quotaLeaseServer.TypeAssumptions.ptr_unfold'LeaseTimeToLive
 
 structure watchServer [GooseExts] where
   mk ::
@@ -8650,7 +8650,7 @@ noncomputable instance watchServer.zero_val [GooseExts] : ZeroVal watchServer :=
 @[irreducible] noncomputable def watchServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watchServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_watchServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'watchServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold watchServer.fields watchServer.fieldsUnsealed :=
   ⟨by unfold watchServer.fields; rfl⟩
 
@@ -8660,47 +8660,47 @@ noncomputable instance equals_unfold_watchServer [GooseExts] [GoGlobalContext] :
 class watchServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watchServer.underlying watchServer
   underlying : go.UnderlyingDirectedEq watchServer.ty watchServer.underlying
-  get_lg : ∀ (x : watchServer), go.IsGoStepPureDetTagged under (StructFieldGet watchServer.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : watchServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watchServer.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : watchServer)))
-  get_clusterID : ∀ (x : watchServer), go.IsGoStepPureDetTagged under (StructFieldGet watchServer.underlying go!"clusterID") #x (Val #(x.clusterID'))
-  set_clusterID : ∀ (x : watchServer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watchServer.underlying go!"clusterID") (PairV #x #y) (Val #(({ x with clusterID' := y } : watchServer)))
-  get_memberID : ∀ (x : watchServer), go.IsGoStepPureDetTagged under (StructFieldGet watchServer.underlying go!"memberID") #x (Val #(x.memberID'))
-  set_memberID : ∀ (x : watchServer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watchServer.underlying go!"memberID") (PairV #x #y) (Val #(({ x with memberID' := y } : watchServer)))
-  get_maxRequestBytes : ∀ (x : watchServer), go.IsGoStepPureDetTagged under (StructFieldGet watchServer.underlying go!"maxRequestBytes") #x (Val #(x.maxRequestBytes'))
-  set_maxRequestBytes : ∀ (x : watchServer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watchServer.underlying go!"maxRequestBytes") (PairV #x #y) (Val #(({ x with maxRequestBytes' := y } : watchServer)))
-  get_sg : ∀ (x : watchServer), go.IsGoStepPureDetTagged under (StructFieldGet watchServer.underlying go!"sg") #x (Val #(x.sg'))
-  set_sg : ∀ (x : watchServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter), go.IsGoStepPureDetTagged under (StructFieldSet watchServer.underlying go!"sg") (PairV #x #y) (Val #(({ x with sg' := y } : watchServer)))
-  get_watchable : ∀ (x : watchServer), go.IsGoStepPureDetTagged under (StructFieldGet watchServer.underlying go!"watchable") #x (Val #(x.watchable'))
-  set_watchable : ∀ (x : watchServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV), go.IsGoStepPureDetTagged under (StructFieldSet watchServer.underlying go!"watchable") (PairV #x #y) (Val #(({ x with watchable' := y } : watchServer)))
-  get_ag : ∀ (x : watchServer), go.IsGoStepPureDetTagged under (StructFieldGet watchServer.underlying go!"ag") #x (Val #(x.ag'))
-  set_ag : ∀ (x : watchServer) (y : AuthGetter), go.IsGoStepPureDetTagged under (StructFieldSet watchServer.underlying go!"ag") (PairV #x #y) (Val #(({ x with ag' := y } : watchServer)))
-  get_UnsafeWatchServer : ∀ (x : watchServer), go.IsGoStepPureDetTagged under (StructFieldGet watchServer.underlying go!"UnsafeWatchServer") #x (Val #(x.UnsafeWatchServer'))
-  set_UnsafeWatchServer : ∀ (x : watchServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeWatchServer), go.IsGoStepPureDetTagged under (StructFieldSet watchServer.underlying go!"UnsafeWatchServer") (PairV #x #y) (Val #(({ x with UnsafeWatchServer' := y } : watchServer)))
+  get'lg : ∀ (x : watchServer), go.IsGoStepPureDetTagged under (StructFieldGet watchServer.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : watchServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watchServer.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : watchServer)))
+  get'clusterID : ∀ (x : watchServer), go.IsGoStepPureDetTagged under (StructFieldGet watchServer.underlying go!"clusterID") #x (Val #(x.clusterID'))
+  set'clusterID : ∀ (x : watchServer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watchServer.underlying go!"clusterID") (PairV #x #y) (Val #(({ x with clusterID' := y } : watchServer)))
+  get'memberID : ∀ (x : watchServer), go.IsGoStepPureDetTagged under (StructFieldGet watchServer.underlying go!"memberID") #x (Val #(x.memberID'))
+  set'memberID : ∀ (x : watchServer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watchServer.underlying go!"memberID") (PairV #x #y) (Val #(({ x with memberID' := y } : watchServer)))
+  get'maxRequestBytes : ∀ (x : watchServer), go.IsGoStepPureDetTagged under (StructFieldGet watchServer.underlying go!"maxRequestBytes") #x (Val #(x.maxRequestBytes'))
+  set'maxRequestBytes : ∀ (x : watchServer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watchServer.underlying go!"maxRequestBytes") (PairV #x #y) (Val #(({ x with maxRequestBytes' := y } : watchServer)))
+  get'sg : ∀ (x : watchServer), go.IsGoStepPureDetTagged under (StructFieldGet watchServer.underlying go!"sg") #x (Val #(x.sg'))
+  set'sg : ∀ (x : watchServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter), go.IsGoStepPureDetTagged under (StructFieldSet watchServer.underlying go!"sg") (PairV #x #y) (Val #(({ x with sg' := y } : watchServer)))
+  get'watchable : ∀ (x : watchServer), go.IsGoStepPureDetTagged under (StructFieldGet watchServer.underlying go!"watchable") #x (Val #(x.watchable'))
+  set'watchable : ∀ (x : watchServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV), go.IsGoStepPureDetTagged under (StructFieldSet watchServer.underlying go!"watchable") (PairV #x #y) (Val #(({ x with watchable' := y } : watchServer)))
+  get'ag : ∀ (x : watchServer), go.IsGoStepPureDetTagged under (StructFieldGet watchServer.underlying go!"ag") #x (Val #(x.ag'))
+  set'ag : ∀ (x : watchServer) (y : AuthGetter), go.IsGoStepPureDetTagged under (StructFieldSet watchServer.underlying go!"ag") (PairV #x #y) (Val #(({ x with ag' := y } : watchServer)))
+  get'UnsafeWatchServer : ∀ (x : watchServer), go.IsGoStepPureDetTagged under (StructFieldGet watchServer.underlying go!"UnsafeWatchServer") #x (Val #(x.UnsafeWatchServer'))
+  set'UnsafeWatchServer : ∀ (x : watchServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeWatchServer), go.IsGoStepPureDetTagged under (StructFieldSet watchServer.underlying go!"UnsafeWatchServer") (PairV #x #y) (Val #(({ x with UnsafeWatchServer' := y } : watchServer)))
   method_set : go.MethodSetIs watchServer.ty [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedWatchServer", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchServer.ty) [(go!"Watch", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchServer.ty] false [go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedWatchServer", (some (go.signature.Signature [] false [])))]
-  ptr_Watch_unfold : MethodUnfold (go.GoType.PointerType watchServer.ty) go!"Watch" watchServer.Watch.impl
+  ptr_unfold'Watch : MethodUnfold (go.GoType.PointerType watchServer.ty) go!"Watch" watchServer.Watch.impl
 
 attribute [instance] watchServer.TypeAssumptions.type_repr
   watchServer.TypeAssumptions.underlying
-  watchServer.TypeAssumptions.get_lg
-  watchServer.TypeAssumptions.set_lg
-  watchServer.TypeAssumptions.get_clusterID
-  watchServer.TypeAssumptions.set_clusterID
-  watchServer.TypeAssumptions.get_memberID
-  watchServer.TypeAssumptions.set_memberID
-  watchServer.TypeAssumptions.get_maxRequestBytes
-  watchServer.TypeAssumptions.set_maxRequestBytes
-  watchServer.TypeAssumptions.get_sg
-  watchServer.TypeAssumptions.set_sg
-  watchServer.TypeAssumptions.get_watchable
-  watchServer.TypeAssumptions.set_watchable
-  watchServer.TypeAssumptions.get_ag
-  watchServer.TypeAssumptions.set_ag
-  watchServer.TypeAssumptions.get_UnsafeWatchServer
-  watchServer.TypeAssumptions.set_UnsafeWatchServer
+  watchServer.TypeAssumptions.get'lg
+  watchServer.TypeAssumptions.set'lg
+  watchServer.TypeAssumptions.get'clusterID
+  watchServer.TypeAssumptions.set'clusterID
+  watchServer.TypeAssumptions.get'memberID
+  watchServer.TypeAssumptions.set'memberID
+  watchServer.TypeAssumptions.get'maxRequestBytes
+  watchServer.TypeAssumptions.set'maxRequestBytes
+  watchServer.TypeAssumptions.get'sg
+  watchServer.TypeAssumptions.set'sg
+  watchServer.TypeAssumptions.get'watchable
+  watchServer.TypeAssumptions.set'watchable
+  watchServer.TypeAssumptions.get'ag
+  watchServer.TypeAssumptions.set'ag
+  watchServer.TypeAssumptions.get'UnsafeWatchServer
+  watchServer.TypeAssumptions.set'UnsafeWatchServer
   watchServer.TypeAssumptions.method_set
   watchServer.TypeAssumptions.ptr_method_set
-  watchServer.TypeAssumptions.ptr_Watch_unfold
+  watchServer.TypeAssumptions.ptr_unfold'Watch
 
 structure serverWatchStream [GooseExts] where
   mk ::
@@ -8745,7 +8745,7 @@ noncomputable instance serverWatchStream.zero_val [GooseExts] : ZeroVal serverWa
 @[irreducible] noncomputable def serverWatchStream.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   serverWatchStream.fieldsUnsealed
 
-noncomputable instance equals_unfold_serverWatchStream [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'serverWatchStream [GooseExts] [GoGlobalContext] :
     EqualsUnfold serverWatchStream.fields serverWatchStream.fieldsUnsealed :=
   ⟨by unfold serverWatchStream.fields; rfl⟩
 
@@ -8755,314 +8755,314 @@ noncomputable instance equals_unfold_serverWatchStream [GooseExts] [GoGlobalCont
 class serverWatchStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverWatchStream.underlying serverWatchStream
   underlying : go.UnderlyingDirectedEq serverWatchStream.ty serverWatchStream.underlying
-  get_lg : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : serverWatchStream) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : serverWatchStream)))
-  get_clusterID : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"clusterID") #x (Val #(x.clusterID'))
-  set_clusterID : ∀ (x : serverWatchStream) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"clusterID") (PairV #x #y) (Val #(({ x with clusterID' := y } : serverWatchStream)))
-  get_memberID : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"memberID") #x (Val #(x.memberID'))
-  set_memberID : ∀ (x : serverWatchStream) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"memberID") (PairV #x #y) (Val #(({ x with memberID' := y } : serverWatchStream)))
-  get_maxRequestBytes : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"maxRequestBytes") #x (Val #(x.maxRequestBytes'))
-  set_maxRequestBytes : ∀ (x : serverWatchStream) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"maxRequestBytes") (PairV #x #y) (Val #(({ x with maxRequestBytes' := y } : serverWatchStream)))
-  get_sg : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"sg") #x (Val #(x.sg'))
-  set_sg : ∀ (x : serverWatchStream) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"sg") (PairV #x #y) (Val #(({ x with sg' := y } : serverWatchStream)))
-  get_watchable : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"watchable") #x (Val #(x.watchable'))
-  set_watchable : ∀ (x : serverWatchStream) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"watchable") (PairV #x #y) (Val #(({ x with watchable' := y } : serverWatchStream)))
-  get_ag : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"ag") #x (Val #(x.ag'))
-  set_ag : ∀ (x : serverWatchStream) (y : AuthGetter), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"ag") (PairV #x #y) (Val #(({ x with ag' := y } : serverWatchStream)))
-  get_gRPCStream : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"gRPCStream") #x (Val #(x.gRPCStream'))
-  set_gRPCStream : ∀ (x : serverWatchStream) (y : (_root_.Perennial.google_golang_org.grpc.BidiStreamingServer _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse)), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"gRPCStream") (PairV #x #y) (Val #(({ x with gRPCStream' := y } : serverWatchStream)))
-  get_watchStream : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"watchStream") #x (Val #(x.watchStream'))
-  set_watchStream : ∀ (x : serverWatchStream) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchStream), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"watchStream") (PairV #x #y) (Val #(({ x with watchStream' := y } : serverWatchStream)))
-  get_ctrlStream : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"ctrlStream") #x (Val #(x.ctrlStream'))
-  set_ctrlStream : ∀ (x : serverWatchStream) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"ctrlStream") (PairV #x #y) (Val #(({ x with ctrlStream' := y } : serverWatchStream)))
-  get_mu : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : serverWatchStream) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : serverWatchStream)))
-  get_progress : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"progress") #x (Val #(x.progress'))
-  set_progress : ∀ (x : serverWatchStream) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"progress") (PairV #x #y) (Val #(({ x with progress' := y } : serverWatchStream)))
-  get_prevKV : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"prevKV") #x (Val #(x.prevKV'))
-  set_prevKV : ∀ (x : serverWatchStream) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"prevKV") (PairV #x #y) (Val #(({ x with prevKV' := y } : serverWatchStream)))
-  get_fragment : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"fragment") #x (Val #(x.fragment'))
-  set_fragment : ∀ (x : serverWatchStream) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"fragment") (PairV #x #y) (Val #(({ x with fragment' := y } : serverWatchStream)))
-  get_closec : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"closec") #x (Val #(x.closec'))
-  set_closec : ∀ (x : serverWatchStream) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"closec") (PairV #x #y) (Val #(({ x with closec' := y } : serverWatchStream)))
-  get_wg : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"wg") #x (Val #(x.wg'))
-  set_wg : ∀ (x : serverWatchStream) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : serverWatchStream)))
+  get'lg : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : serverWatchStream) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : serverWatchStream)))
+  get'clusterID : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"clusterID") #x (Val #(x.clusterID'))
+  set'clusterID : ∀ (x : serverWatchStream) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"clusterID") (PairV #x #y) (Val #(({ x with clusterID' := y } : serverWatchStream)))
+  get'memberID : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"memberID") #x (Val #(x.memberID'))
+  set'memberID : ∀ (x : serverWatchStream) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"memberID") (PairV #x #y) (Val #(({ x with memberID' := y } : serverWatchStream)))
+  get'maxRequestBytes : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"maxRequestBytes") #x (Val #(x.maxRequestBytes'))
+  set'maxRequestBytes : ∀ (x : serverWatchStream) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"maxRequestBytes") (PairV #x #y) (Val #(({ x with maxRequestBytes' := y } : serverWatchStream)))
+  get'sg : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"sg") #x (Val #(x.sg'))
+  set'sg : ∀ (x : serverWatchStream) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"sg") (PairV #x #y) (Val #(({ x with sg' := y } : serverWatchStream)))
+  get'watchable : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"watchable") #x (Val #(x.watchable'))
+  set'watchable : ∀ (x : serverWatchStream) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"watchable") (PairV #x #y) (Val #(({ x with watchable' := y } : serverWatchStream)))
+  get'ag : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"ag") #x (Val #(x.ag'))
+  set'ag : ∀ (x : serverWatchStream) (y : AuthGetter), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"ag") (PairV #x #y) (Val #(({ x with ag' := y } : serverWatchStream)))
+  get'gRPCStream : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"gRPCStream") #x (Val #(x.gRPCStream'))
+  set'gRPCStream : ∀ (x : serverWatchStream) (y : (_root_.Perennial.google_golang_org.grpc.BidiStreamingServer _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse)), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"gRPCStream") (PairV #x #y) (Val #(({ x with gRPCStream' := y } : serverWatchStream)))
+  get'watchStream : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"watchStream") #x (Val #(x.watchStream'))
+  set'watchStream : ∀ (x : serverWatchStream) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchStream), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"watchStream") (PairV #x #y) (Val #(({ x with watchStream' := y } : serverWatchStream)))
+  get'ctrlStream : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"ctrlStream") #x (Val #(x.ctrlStream'))
+  set'ctrlStream : ∀ (x : serverWatchStream) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"ctrlStream") (PairV #x #y) (Val #(({ x with ctrlStream' := y } : serverWatchStream)))
+  get'mu : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : serverWatchStream) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : serverWatchStream)))
+  get'progress : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"progress") #x (Val #(x.progress'))
+  set'progress : ∀ (x : serverWatchStream) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"progress") (PairV #x #y) (Val #(({ x with progress' := y } : serverWatchStream)))
+  get'prevKV : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"prevKV") #x (Val #(x.prevKV'))
+  set'prevKV : ∀ (x : serverWatchStream) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"prevKV") (PairV #x #y) (Val #(({ x with prevKV' := y } : serverWatchStream)))
+  get'fragment : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"fragment") #x (Val #(x.fragment'))
+  set'fragment : ∀ (x : serverWatchStream) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"fragment") (PairV #x #y) (Val #(({ x with fragment' := y } : serverWatchStream)))
+  get'closec : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"closec") #x (Val #(x.closec'))
+  set'closec : ∀ (x : serverWatchStream) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"closec") (PairV #x #y) (Val #(({ x with closec' := y } : serverWatchStream)))
+  get'wg : ∀ (x : serverWatchStream), go.IsGoStepPureDetTagged under (StructFieldGet serverWatchStream.underlying go!"wg") #x (Val #(x.wg'))
+  set'wg : ∀ (x : serverWatchStream) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet serverWatchStream.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : serverWatchStream)))
   method_set : go.MethodSetIs serverWatchStream.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverWatchStream.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.close", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.isWatchPermitted", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest.ty)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.newResponseHeader", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.recvLoop", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.sendLoop", (some (go.signature.Signature [] false [])))]
-  ptr_close_unfold : MethodUnfold (go.GoType.PointerType serverWatchStream.ty) go!"close" serverWatchStream.close.impl
-  ptr_isWatchPermitted_unfold : MethodUnfold (go.GoType.PointerType serverWatchStream.ty) go!"isWatchPermitted" serverWatchStream.isWatchPermitted.impl
-  ptr_newResponseHeader_unfold : MethodUnfold (go.GoType.PointerType serverWatchStream.ty) go!"newResponseHeader" serverWatchStream.newResponseHeader.impl
-  ptr_recvLoop_unfold : MethodUnfold (go.GoType.PointerType serverWatchStream.ty) go!"recvLoop" serverWatchStream.recvLoop.impl
-  ptr_sendLoop_unfold : MethodUnfold (go.GoType.PointerType serverWatchStream.ty) go!"sendLoop" serverWatchStream.sendLoop.impl
+  ptr_unfold'close : MethodUnfold (go.GoType.PointerType serverWatchStream.ty) go!"close" serverWatchStream.close.impl
+  ptr_unfold'isWatchPermitted : MethodUnfold (go.GoType.PointerType serverWatchStream.ty) go!"isWatchPermitted" serverWatchStream.isWatchPermitted.impl
+  ptr_unfold'newResponseHeader : MethodUnfold (go.GoType.PointerType serverWatchStream.ty) go!"newResponseHeader" serverWatchStream.newResponseHeader.impl
+  ptr_unfold'recvLoop : MethodUnfold (go.GoType.PointerType serverWatchStream.ty) go!"recvLoop" serverWatchStream.recvLoop.impl
+  ptr_unfold'sendLoop : MethodUnfold (go.GoType.PointerType serverWatchStream.ty) go!"sendLoop" serverWatchStream.sendLoop.impl
 
 attribute [instance] serverWatchStream.TypeAssumptions.type_repr
   serverWatchStream.TypeAssumptions.underlying
-  serverWatchStream.TypeAssumptions.get_lg
-  serverWatchStream.TypeAssumptions.set_lg
-  serverWatchStream.TypeAssumptions.get_clusterID
-  serverWatchStream.TypeAssumptions.set_clusterID
-  serverWatchStream.TypeAssumptions.get_memberID
-  serverWatchStream.TypeAssumptions.set_memberID
-  serverWatchStream.TypeAssumptions.get_maxRequestBytes
-  serverWatchStream.TypeAssumptions.set_maxRequestBytes
-  serverWatchStream.TypeAssumptions.get_sg
-  serverWatchStream.TypeAssumptions.set_sg
-  serverWatchStream.TypeAssumptions.get_watchable
-  serverWatchStream.TypeAssumptions.set_watchable
-  serverWatchStream.TypeAssumptions.get_ag
-  serverWatchStream.TypeAssumptions.set_ag
-  serverWatchStream.TypeAssumptions.get_gRPCStream
-  serverWatchStream.TypeAssumptions.set_gRPCStream
-  serverWatchStream.TypeAssumptions.get_watchStream
-  serverWatchStream.TypeAssumptions.set_watchStream
-  serverWatchStream.TypeAssumptions.get_ctrlStream
-  serverWatchStream.TypeAssumptions.set_ctrlStream
-  serverWatchStream.TypeAssumptions.get_mu
-  serverWatchStream.TypeAssumptions.set_mu
-  serverWatchStream.TypeAssumptions.get_progress
-  serverWatchStream.TypeAssumptions.set_progress
-  serverWatchStream.TypeAssumptions.get_prevKV
-  serverWatchStream.TypeAssumptions.set_prevKV
-  serverWatchStream.TypeAssumptions.get_fragment
-  serverWatchStream.TypeAssumptions.set_fragment
-  serverWatchStream.TypeAssumptions.get_closec
-  serverWatchStream.TypeAssumptions.set_closec
-  serverWatchStream.TypeAssumptions.get_wg
-  serverWatchStream.TypeAssumptions.set_wg
+  serverWatchStream.TypeAssumptions.get'lg
+  serverWatchStream.TypeAssumptions.set'lg
+  serverWatchStream.TypeAssumptions.get'clusterID
+  serverWatchStream.TypeAssumptions.set'clusterID
+  serverWatchStream.TypeAssumptions.get'memberID
+  serverWatchStream.TypeAssumptions.set'memberID
+  serverWatchStream.TypeAssumptions.get'maxRequestBytes
+  serverWatchStream.TypeAssumptions.set'maxRequestBytes
+  serverWatchStream.TypeAssumptions.get'sg
+  serverWatchStream.TypeAssumptions.set'sg
+  serverWatchStream.TypeAssumptions.get'watchable
+  serverWatchStream.TypeAssumptions.set'watchable
+  serverWatchStream.TypeAssumptions.get'ag
+  serverWatchStream.TypeAssumptions.set'ag
+  serverWatchStream.TypeAssumptions.get'gRPCStream
+  serverWatchStream.TypeAssumptions.set'gRPCStream
+  serverWatchStream.TypeAssumptions.get'watchStream
+  serverWatchStream.TypeAssumptions.set'watchStream
+  serverWatchStream.TypeAssumptions.get'ctrlStream
+  serverWatchStream.TypeAssumptions.set'ctrlStream
+  serverWatchStream.TypeAssumptions.get'mu
+  serverWatchStream.TypeAssumptions.set'mu
+  serverWatchStream.TypeAssumptions.get'progress
+  serverWatchStream.TypeAssumptions.set'progress
+  serverWatchStream.TypeAssumptions.get'prevKV
+  serverWatchStream.TypeAssumptions.set'prevKV
+  serverWatchStream.TypeAssumptions.get'fragment
+  serverWatchStream.TypeAssumptions.set'fragment
+  serverWatchStream.TypeAssumptions.get'closec
+  serverWatchStream.TypeAssumptions.set'closec
+  serverWatchStream.TypeAssumptions.get'wg
+  serverWatchStream.TypeAssumptions.set'wg
   serverWatchStream.TypeAssumptions.method_set
   serverWatchStream.TypeAssumptions.ptr_method_set
-  serverWatchStream.TypeAssumptions.ptr_close_unfold
-  serverWatchStream.TypeAssumptions.ptr_isWatchPermitted_unfold
-  serverWatchStream.TypeAssumptions.ptr_newResponseHeader_unfold
-  serverWatchStream.TypeAssumptions.ptr_recvLoop_unfold
-  serverWatchStream.TypeAssumptions.ptr_sendLoop_unfold
+  serverWatchStream.TypeAssumptions.ptr_unfold'close
+  serverWatchStream.TypeAssumptions.ptr_unfold'isWatchPermitted
+  serverWatchStream.TypeAssumptions.ptr_unfold'newResponseHeader
+  serverWatchStream.TypeAssumptions.ptr_unfold'recvLoop
+  serverWatchStream.TypeAssumptions.ptr_unfold'sendLoop
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  AuthServer_instance : AuthServer.TypeAssumptions
-  AuthGetter_instance : AuthGetter.TypeAssumptions
-  AuthAdmin_instance : AuthAdmin.TypeAssumptions
-  codec_instance : codec.TypeAssumptions
-  header_instance : header.TypeAssumptions
-  notifier_instance : notifier.TypeAssumptions
-  healthNotifier_instance : healthNotifier.TypeAssumptions
-  streamsMap_instance : streamsMap.TypeAssumptions
-  cancellableContext_instance : cancellableContext.TypeAssumptions
-  serverStreamWithCtx_instance : serverStreamWithCtx.TypeAssumptions
-  kvServer_instance : kvServer.TypeAssumptions
-  headerFillingRangeStream_instance : headerFillingRangeStream.TypeAssumptions
-  LeaseServer_instance : LeaseServer.TypeAssumptions
-  KVGetter_instance : KVGetter.TypeAssumptions
-  BackendGetter_instance : BackendGetter.TypeAssumptions
-  Defrager_instance : Defrager.TypeAssumptions
-  Alarmer_instance : Alarmer.TypeAssumptions
-  Downgrader_instance : Downgrader.TypeAssumptions
-  LeaderTransferrer_instance : LeaderTransferrer.TypeAssumptions
-  ClusterStatusGetter_instance : ClusterStatusGetter.TypeAssumptions
-  ConfigGetter_instance : ConfigGetter.TypeAssumptions
-  maintenanceServer_instance : maintenanceServer.TypeAssumptions
-  authMaintenanceServer_instance : authMaintenanceServer.TypeAssumptions
-  ClusterServer_instance : ClusterServer.TypeAssumptions
-  quotaKVServer_instance : quotaKVServer.TypeAssumptions
-  quotaAlarmer_instance : quotaAlarmer.TypeAssumptions
-  quotaLeaseServer_instance : quotaLeaseServer.TypeAssumptions
-  watchServer_instance : watchServer.TypeAssumptions
-  serverWatchStream_instance : serverWatchStream.TypeAssumptions
-  NewAuthServer_unfold : FuncUnfold NewAuthServer [] NewAuthServer.impl
-  Server_unfold : FuncUnfold Server [] Server.impl
-  getServerMetrics_unfold : FuncUnfold getServerMetrics [] getServerMetrics.impl
-  newHeader_unfold : FuncUnfold newHeader [] newHeader.impl
-  newHealthNotifier_unfold : FuncUnfold newHealthNotifier [] newHealthNotifier.impl
-  newUnaryInterceptor_unfold : FuncUnfold newUnaryInterceptor [] newUnaryInterceptor.impl
-  newLogUnaryInterceptor_unfold : FuncUnfold newLogUnaryInterceptor [] newLogUnaryInterceptor.impl
-  newStreamInterceptor_unfold : FuncUnfold newStreamInterceptor [] newStreamInterceptor.impl
-  newCancellableContext_unfold : FuncUnfold newCancellableContext [] newCancellableContext.impl
-  monitorLeader_unfold : FuncUnfold monitorLeader [] monitorLeader.impl
-  NewKVServer_unfold : FuncUnfold NewKVServer [] NewKVServer.impl
-  checkRangeRequest_unfold : FuncUnfold checkRangeRequest [] checkRangeRequest.impl
-  checkRangeStreamRequest_unfold : FuncUnfold checkRangeStreamRequest [] checkRangeStreamRequest.impl
-  checkPutRequest_unfold : FuncUnfold checkPutRequest [] checkPutRequest.impl
-  checkDeleteRequest_unfold : FuncUnfold checkDeleteRequest [] checkDeleteRequest.impl
-  checkTxnRequest_unfold : FuncUnfold checkTxnRequest [] checkTxnRequest.impl
-  checkIntervals_unfold : FuncUnfold checkIntervals [] checkIntervals.impl
-  checkRequestOp_unfold : FuncUnfold checkRequestOp [] checkRequestOp.impl
-  NewLeaseServer_unfold : FuncUnfold NewLeaseServer [] NewLeaseServer.impl
-  NewMaintenanceServer_unfold : FuncUnfold NewMaintenanceServer [] NewMaintenanceServer.impl
-  NewClusterServer_unfold : FuncUnfold NewClusterServer [] NewClusterServer.impl
-  membersToProtoMembers_unfold : FuncUnfold membersToProtoMembers [] membersToProtoMembers.impl
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  NewQuotaKVServer_unfold : FuncUnfold NewQuotaKVServer [] NewQuotaKVServer.impl
-  NewQuotaLeaseServer_unfold : FuncUnfold NewQuotaLeaseServer [] NewQuotaLeaseServer.impl
-  newBackendQuota_unfold : FuncUnfold newBackendQuota [] newBackendQuota.impl
-  togRPCError_unfold : FuncUnfold togRPCError [] togRPCError.impl
-  isClientCtxErr_unfold : FuncUnfold isClientCtxErr [] isClientCtxErr.impl
-  isRPCSupportedForLearner_unfold : FuncUnfold isRPCSupportedForLearner [] isRPCSupportedForLearner.impl
-  NewWatchServer_unfold : FuncUnfold NewWatchServer [] NewWatchServer.impl
-  GetProgressReportInterval_unfold : FuncUnfold GetProgressReportInterval [] GetProgressReportInterval.impl
-  SetProgressReportInterval_unfold : FuncUnfold SetProgressReportInterval [] SetProgressReportInterval.impl
-  IsCreateEvent_unfold : FuncUnfold IsCreateEvent [] IsCreateEvent.impl
-  sendFragments_unfold : FuncUnfold sendFragments [] sendFragments.impl
-  filterNoDelete_unfold : FuncUnfold filterNoDelete [] filterNoDelete.impl
-  filterNoPut_unfold : FuncUnfold filterNoPut [] filterNoPut.impl
-  FiltersFromRequest_unfold : FuncUnfold FiltersFromRequest [] FiltersFromRequest.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_auth_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions
-  import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_tls_Assumption : _root_.Perennial.crypto.tls.Assumptions
-  import_math_Assumption : _root_.Perennial.math.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_providers_prometheus_Assumption : _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions
-  import_client_golang_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
-  import_otelgrpc_Assumption : _root_.Perennial.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
-  import_health_Assumption : _root_.Perennial.google_golang_org.grpc.health.Assumptions
-  import_grpc_health_v1_Assumption : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Assumptions
-  import_credentials_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.Assumptions
-  import_apply_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions
-  import_features_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_utf8_Assumption : _root_.Perennial.unicode.utf8.Assumptions
-  import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
-  import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
-  import_rpctypes_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
-  import_api_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Assumptions
-  import_raft_Assumption : _root_.Perennial.go_etcd_io.raft.v3.Assumptions
-  import_codes_Assumption : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
-  import_status_Assumption : _root_.Perennial.google_golang_org.grpc.status.Assumptions
-  import_adt_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.Assumptions
-  import_txn_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_lease_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Assumptions
-  import_config_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
-  import_version_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions
-  import_storage_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Assumptions
-  import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
-  import_mvcc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions
-  import_membership_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
-  import_attribute_Assumption : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Assumptions
-  import_trace_Assumption : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions
-  import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
-  import_verify_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_traceutil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Assumptions
+  instance'AuthServer : AuthServer.TypeAssumptions
+  instance'AuthGetter : AuthGetter.TypeAssumptions
+  instance'AuthAdmin : AuthAdmin.TypeAssumptions
+  instance'codec : codec.TypeAssumptions
+  instance'header : header.TypeAssumptions
+  instance'notifier : notifier.TypeAssumptions
+  instance'healthNotifier : healthNotifier.TypeAssumptions
+  instance'streamsMap : streamsMap.TypeAssumptions
+  instance'cancellableContext : cancellableContext.TypeAssumptions
+  instance'serverStreamWithCtx : serverStreamWithCtx.TypeAssumptions
+  instance'kvServer : kvServer.TypeAssumptions
+  instance'headerFillingRangeStream : headerFillingRangeStream.TypeAssumptions
+  instance'LeaseServer : LeaseServer.TypeAssumptions
+  instance'KVGetter : KVGetter.TypeAssumptions
+  instance'BackendGetter : BackendGetter.TypeAssumptions
+  instance'Defrager : Defrager.TypeAssumptions
+  instance'Alarmer : Alarmer.TypeAssumptions
+  instance'Downgrader : Downgrader.TypeAssumptions
+  instance'LeaderTransferrer : LeaderTransferrer.TypeAssumptions
+  instance'ClusterStatusGetter : ClusterStatusGetter.TypeAssumptions
+  instance'ConfigGetter : ConfigGetter.TypeAssumptions
+  instance'maintenanceServer : maintenanceServer.TypeAssumptions
+  instance'authMaintenanceServer : authMaintenanceServer.TypeAssumptions
+  instance'ClusterServer : ClusterServer.TypeAssumptions
+  instance'quotaKVServer : quotaKVServer.TypeAssumptions
+  instance'quotaAlarmer : quotaAlarmer.TypeAssumptions
+  instance'quotaLeaseServer : quotaLeaseServer.TypeAssumptions
+  instance'watchServer : watchServer.TypeAssumptions
+  instance'serverWatchStream : serverWatchStream.TypeAssumptions
+  unfold'NewAuthServer : FuncUnfold NewAuthServer [] NewAuthServer.impl
+  unfold'Server : FuncUnfold Server [] Server.impl
+  unfold'getServerMetrics : FuncUnfold getServerMetrics [] getServerMetrics.impl
+  unfold'newHeader : FuncUnfold newHeader [] newHeader.impl
+  unfold'newHealthNotifier : FuncUnfold newHealthNotifier [] newHealthNotifier.impl
+  unfold'newUnaryInterceptor : FuncUnfold newUnaryInterceptor [] newUnaryInterceptor.impl
+  unfold'newLogUnaryInterceptor : FuncUnfold newLogUnaryInterceptor [] newLogUnaryInterceptor.impl
+  unfold'newStreamInterceptor : FuncUnfold newStreamInterceptor [] newStreamInterceptor.impl
+  unfold'newCancellableContext : FuncUnfold newCancellableContext [] newCancellableContext.impl
+  unfold'monitorLeader : FuncUnfold monitorLeader [] monitorLeader.impl
+  unfold'NewKVServer : FuncUnfold NewKVServer [] NewKVServer.impl
+  unfold'checkRangeRequest : FuncUnfold checkRangeRequest [] checkRangeRequest.impl
+  unfold'checkRangeStreamRequest : FuncUnfold checkRangeStreamRequest [] checkRangeStreamRequest.impl
+  unfold'checkPutRequest : FuncUnfold checkPutRequest [] checkPutRequest.impl
+  unfold'checkDeleteRequest : FuncUnfold checkDeleteRequest [] checkDeleteRequest.impl
+  unfold'checkTxnRequest : FuncUnfold checkTxnRequest [] checkTxnRequest.impl
+  unfold'checkIntervals : FuncUnfold checkIntervals [] checkIntervals.impl
+  unfold'checkRequestOp : FuncUnfold checkRequestOp [] checkRequestOp.impl
+  unfold'NewLeaseServer : FuncUnfold NewLeaseServer [] NewLeaseServer.impl
+  unfold'NewMaintenanceServer : FuncUnfold NewMaintenanceServer [] NewMaintenanceServer.impl
+  unfold'NewClusterServer : FuncUnfold NewClusterServer [] NewClusterServer.impl
+  unfold'membersToProtoMembers : FuncUnfold membersToProtoMembers [] membersToProtoMembers.impl
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'NewQuotaKVServer : FuncUnfold NewQuotaKVServer [] NewQuotaKVServer.impl
+  unfold'NewQuotaLeaseServer : FuncUnfold NewQuotaLeaseServer [] NewQuotaLeaseServer.impl
+  unfold'newBackendQuota : FuncUnfold newBackendQuota [] newBackendQuota.impl
+  unfold'togRPCError : FuncUnfold togRPCError [] togRPCError.impl
+  unfold'isClientCtxErr : FuncUnfold isClientCtxErr [] isClientCtxErr.impl
+  unfold'isRPCSupportedForLearner : FuncUnfold isRPCSupportedForLearner [] isRPCSupportedForLearner.impl
+  unfold'NewWatchServer : FuncUnfold NewWatchServer [] NewWatchServer.impl
+  unfold'GetProgressReportInterval : FuncUnfold GetProgressReportInterval [] GetProgressReportInterval.impl
+  unfold'SetProgressReportInterval : FuncUnfold SetProgressReportInterval [] SetProgressReportInterval.impl
+  unfold'IsCreateEvent : FuncUnfold IsCreateEvent [] IsCreateEvent.impl
+  unfold'sendFragments : FuncUnfold sendFragments [] sendFragments.impl
+  unfold'filterNoDelete : FuncUnfold filterNoDelete [] filterNoDelete.impl
+  unfold'filterNoPut : FuncUnfold filterNoPut [] filterNoPut.impl
+  unfold'FiltersFromRequest : FuncUnfold FiltersFromRequest [] FiltersFromRequest.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'auth : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions
+  import'etcdserver : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
+  import'tls : _root_.Perennial.crypto.tls.Assumptions
+  import'math : _root_.Perennial.math.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'providers_prometheus : _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions
+  import'client_golang_prometheus : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  import'otelgrpc : _root_.Perennial.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'grpc : _root_.Perennial.google_golang_org.grpc.Assumptions
+  import'health : _root_.Perennial.google_golang_org.grpc.health.Assumptions
+  import'grpc_health_v1 : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Assumptions
+  import'credentials : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.Assumptions
+  import'apply : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions
+  import'features : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'utf8 : _root_.Perennial.unicode.utf8.Assumptions
+  import'metadata : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
+  import'proto : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
+  import'rpctypes : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions
+  import'types : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
+  import'api : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Assumptions
+  import'raft : _root_.Perennial.go_etcd_io.raft.v3.Assumptions
+  import'codes : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
+  import'status : _root_.Perennial.google_golang_org.grpc.status.Assumptions
+  import'adt : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.Assumptions
+  import'txn : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'lease : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Assumptions
+  import'config : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
+  import'version : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions
+  import'storage : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Assumptions
+  import'backend : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
+  import'mvcc : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions
+  import'membership : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'rand : _root_.Perennial.math.rand.Assumptions
+  import'attribute : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Assumptions
+  import'trace : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions
+  import'mvccpb : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
+  import'verify : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'traceutil : _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Assumptions
 
-attribute [instance] Assumptions.AuthServer_instance
-  Assumptions.AuthGetter_instance
-  Assumptions.AuthAdmin_instance
-  Assumptions.codec_instance
-  Assumptions.header_instance
-  Assumptions.notifier_instance
-  Assumptions.healthNotifier_instance
-  Assumptions.streamsMap_instance
-  Assumptions.cancellableContext_instance
-  Assumptions.serverStreamWithCtx_instance
-  Assumptions.kvServer_instance
-  Assumptions.headerFillingRangeStream_instance
-  Assumptions.LeaseServer_instance
-  Assumptions.KVGetter_instance
-  Assumptions.BackendGetter_instance
-  Assumptions.Defrager_instance
-  Assumptions.Alarmer_instance
-  Assumptions.Downgrader_instance
-  Assumptions.LeaderTransferrer_instance
-  Assumptions.ClusterStatusGetter_instance
-  Assumptions.ConfigGetter_instance
-  Assumptions.maintenanceServer_instance
-  Assumptions.authMaintenanceServer_instance
-  Assumptions.ClusterServer_instance
-  Assumptions.quotaKVServer_instance
-  Assumptions.quotaAlarmer_instance
-  Assumptions.quotaLeaseServer_instance
-  Assumptions.watchServer_instance
-  Assumptions.serverWatchStream_instance
-  Assumptions.NewAuthServer_unfold
-  Assumptions.Server_unfold
-  Assumptions.getServerMetrics_unfold
-  Assumptions.newHeader_unfold
-  Assumptions.newHealthNotifier_unfold
-  Assumptions.newUnaryInterceptor_unfold
-  Assumptions.newLogUnaryInterceptor_unfold
-  Assumptions.newStreamInterceptor_unfold
-  Assumptions.newCancellableContext_unfold
-  Assumptions.monitorLeader_unfold
-  Assumptions.NewKVServer_unfold
-  Assumptions.checkRangeRequest_unfold
-  Assumptions.checkRangeStreamRequest_unfold
-  Assumptions.checkPutRequest_unfold
-  Assumptions.checkDeleteRequest_unfold
-  Assumptions.checkTxnRequest_unfold
-  Assumptions.checkIntervals_unfold
-  Assumptions.checkRequestOp_unfold
-  Assumptions.NewLeaseServer_unfold
-  Assumptions.NewMaintenanceServer_unfold
-  Assumptions.NewClusterServer_unfold
-  Assumptions.membersToProtoMembers_unfold
-  Assumptions.«init.0_unfold»
-  Assumptions.NewQuotaKVServer_unfold
-  Assumptions.NewQuotaLeaseServer_unfold
-  Assumptions.newBackendQuota_unfold
-  Assumptions.togRPCError_unfold
-  Assumptions.isClientCtxErr_unfold
-  Assumptions.isRPCSupportedForLearner_unfold
-  Assumptions.NewWatchServer_unfold
-  Assumptions.GetProgressReportInterval_unfold
-  Assumptions.SetProgressReportInterval_unfold
-  Assumptions.IsCreateEvent_unfold
-  Assumptions.sendFragments_unfold
-  Assumptions.filterNoDelete_unfold
-  Assumptions.filterNoPut_unfold
-  Assumptions.FiltersFromRequest_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_auth_Assumption
-  Assumptions.import_etcdserver_Assumption
-  Assumptions.import_tls_Assumption
-  Assumptions.import_math_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_providers_prometheus_Assumption
-  Assumptions.import_client_golang_prometheus_Assumption
-  Assumptions.import_otelgrpc_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_grpc_Assumption
-  Assumptions.import_health_Assumption
-  Assumptions.import_grpc_health_v1_Assumption
-  Assumptions.import_credentials_Assumption
-  Assumptions.import_apply_Assumption
-  Assumptions.import_features_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_utf8_Assumption
-  Assumptions.import_metadata_Assumption
-  Assumptions.import_proto_Assumption
-  Assumptions.import_rpctypes_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_api_Assumption
-  Assumptions.import_raft_Assumption
-  Assumptions.import_codes_Assumption
-  Assumptions.import_status_Assumption
-  Assumptions.import_adt_Assumption
-  Assumptions.import_txn_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_lease_Assumption
-  Assumptions.import_config_Assumption
-  Assumptions.import_version_Assumption
-  Assumptions.import_storage_Assumption
-  Assumptions.import_backend_Assumption
-  Assumptions.import_mvcc_Assumption
-  Assumptions.import_membership_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_rand_Assumption
-  Assumptions.import_attribute_Assumption
-  Assumptions.import_trace_Assumption
-  Assumptions.import_mvccpb_Assumption
-  Assumptions.import_verify_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_traceutil_Assumption
+attribute [instance] Assumptions.instance'AuthServer
+  Assumptions.instance'AuthGetter
+  Assumptions.instance'AuthAdmin
+  Assumptions.instance'codec
+  Assumptions.instance'header
+  Assumptions.instance'notifier
+  Assumptions.instance'healthNotifier
+  Assumptions.instance'streamsMap
+  Assumptions.instance'cancellableContext
+  Assumptions.instance'serverStreamWithCtx
+  Assumptions.instance'kvServer
+  Assumptions.instance'headerFillingRangeStream
+  Assumptions.instance'LeaseServer
+  Assumptions.instance'KVGetter
+  Assumptions.instance'BackendGetter
+  Assumptions.instance'Defrager
+  Assumptions.instance'Alarmer
+  Assumptions.instance'Downgrader
+  Assumptions.instance'LeaderTransferrer
+  Assumptions.instance'ClusterStatusGetter
+  Assumptions.instance'ConfigGetter
+  Assumptions.instance'maintenanceServer
+  Assumptions.instance'authMaintenanceServer
+  Assumptions.instance'ClusterServer
+  Assumptions.instance'quotaKVServer
+  Assumptions.instance'quotaAlarmer
+  Assumptions.instance'quotaLeaseServer
+  Assumptions.instance'watchServer
+  Assumptions.instance'serverWatchStream
+  Assumptions.unfold'NewAuthServer
+  Assumptions.unfold'Server
+  Assumptions.unfold'getServerMetrics
+  Assumptions.unfold'newHeader
+  Assumptions.unfold'newHealthNotifier
+  Assumptions.unfold'newUnaryInterceptor
+  Assumptions.unfold'newLogUnaryInterceptor
+  Assumptions.unfold'newStreamInterceptor
+  Assumptions.unfold'newCancellableContext
+  Assumptions.unfold'monitorLeader
+  Assumptions.unfold'NewKVServer
+  Assumptions.unfold'checkRangeRequest
+  Assumptions.unfold'checkRangeStreamRequest
+  Assumptions.unfold'checkPutRequest
+  Assumptions.unfold'checkDeleteRequest
+  Assumptions.unfold'checkTxnRequest
+  Assumptions.unfold'checkIntervals
+  Assumptions.unfold'checkRequestOp
+  Assumptions.unfold'NewLeaseServer
+  Assumptions.unfold'NewMaintenanceServer
+  Assumptions.unfold'NewClusterServer
+  Assumptions.unfold'membersToProtoMembers
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'NewQuotaKVServer
+  Assumptions.unfold'NewQuotaLeaseServer
+  Assumptions.unfold'newBackendQuota
+  Assumptions.unfold'togRPCError
+  Assumptions.unfold'isClientCtxErr
+  Assumptions.unfold'isRPCSupportedForLearner
+  Assumptions.unfold'NewWatchServer
+  Assumptions.unfold'GetProgressReportInterval
+  Assumptions.unfold'SetProgressReportInterval
+  Assumptions.unfold'IsCreateEvent
+  Assumptions.unfold'sendFragments
+  Assumptions.unfold'filterNoDelete
+  Assumptions.unfold'filterNoPut
+  Assumptions.unfold'FiltersFromRequest
+  Assumptions.import'context
+  Assumptions.import'etcdserverpb
+  Assumptions.import'auth
+  Assumptions.import'etcdserver
+  Assumptions.import'tls
+  Assumptions.import'math
+  Assumptions.import'sync
+  Assumptions.import'providers_prometheus
+  Assumptions.import'client_golang_prometheus
+  Assumptions.import'otelgrpc
+  Assumptions.import'zap
+  Assumptions.import'grpc
+  Assumptions.import'health
+  Assumptions.import'grpc_health_v1
+  Assumptions.import'credentials
+  Assumptions.import'apply
+  Assumptions.import'features
+  Assumptions.import'time
+  Assumptions.import'utf8
+  Assumptions.import'metadata
+  Assumptions.import'proto
+  Assumptions.import'rpctypes
+  Assumptions.import'types
+  Assumptions.import'api
+  Assumptions.import'raft
+  Assumptions.import'codes
+  Assumptions.import'status
+  Assumptions.import'adt
+  Assumptions.import'txn
+  Assumptions.import'errors
+  Assumptions.import'io
+  Assumptions.import'lease
+  Assumptions.import'config
+  Assumptions.import'version
+  Assumptions.import'storage
+  Assumptions.import'backend
+  Assumptions.import'mvcc
+  Assumptions.import'membership
+  Assumptions.import'strings
+  Assumptions.import'rand
+  Assumptions.import'attribute
+  Assumptions.import'trace
+  Assumptions.import'mvccpb
+  Assumptions.import'verify
+  Assumptions.import'clientv3
+  Assumptions.import'traceutil
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 

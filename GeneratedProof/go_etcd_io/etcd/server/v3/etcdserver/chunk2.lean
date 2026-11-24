@@ -87,7 +87,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-noncomputable instance zapRaftLogger_typed_pointsto :
+noncomputable instance typed_pointsto'zapRaftLogger :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger where
   typedPointstoDef l v dq := iprop(
     "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) v.lg' dq ∗
@@ -97,11 +97,11 @@ noncomputable instance zapRaftLogger_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance zapRaftLogger_into_val_typed :
+noncomputable instance into_val_typed'zapRaftLogger :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance zapRaftLogger_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (dq : DFrac) :
+noncomputable instance access_load'zapRaftLogger'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) v.lg' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) v.lg' dq)
@@ -109,7 +109,7 @@ noncomputable instance zapRaftLogger_access_load_lg (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance zapRaftLogger_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (y : Loc) :
+noncomputable instance access_store'zapRaftLogger'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) v.lg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) y (DFrac.own 1))
@@ -117,7 +117,7 @@ noncomputable instance zapRaftLogger_access_store_lg (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance zapRaftLogger_access_load_sugar (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (dq : DFrac) :
+noncomputable instance access_load'zapRaftLogger'sugar (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) v.sugar' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) v.sugar' dq)
@@ -125,7 +125,7 @@ noncomputable instance zapRaftLogger_access_load_sugar (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance zapRaftLogger_access_store_sugar (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (y : Loc) :
+noncomputable instance access_store'zapRaftLogger'sugar (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) v.sugar' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) y (DFrac.own 1))

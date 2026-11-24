@@ -141,7 +141,7 @@ theorem Matching.wp_proof (wp_Min : Min.spec (GF := GF) (hG := hG))
       try wp_auto
       rw [ite_eq_left_of_eq_true _ _ hTa]
       try wp_auto
-      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Entry.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Entry.TypeAssumptions.ptr_unfold'Equal.method_unfold]
       try wp_auto
       wp_apply wp_EntryEqual e _ f _ c $$ [Hex0 Hfy0]
       · iframe Hex0 Hfy0; ipureintro; exact hc

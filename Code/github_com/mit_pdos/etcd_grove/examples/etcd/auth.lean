@@ -2008,69 +2008,69 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Principals_unfold : FuncUnfold Principals [] Principals.impl
-  startServer_unfold : FuncUnfold startServer [] startServer.impl
-  newUserClient_unfold : FuncUnfold newUserClient [] newUserClient.impl
-  InRange_unfold : FuncUnfold InRange [] InRange.impl
-  Permitted_unfold : FuncUnfold Permitted [] Permitted.impl
-  keyOf_unfold : FuncUnfold keyOf [] keyOf.impl
-  reqCtx_unfold : FuncUnfold reqCtx [] reqCtx.impl
-  refused_unfold : FuncUnfold refused [] refused.impl
-  checkKVs_unfold : FuncUnfold checkKVs [] checkKVs.impl
-  checkTxnReads_unfold : FuncUnfold checkTxnReads [] checkTxnReads.impl
-  Work_unfold : FuncUnfold Work [] Work.impl
-  SetUp_unfold : FuncUnfold SetUp [] SetUp.impl
-  Writer_unfold : FuncUnfold Writer [] Writer.impl
-  SetupWrite_unfold : FuncUnfold SetupWrite [] SetupWrite.impl
-  CheckHistory_unfold : FuncUnfold CheckHistory [] CheckHistory.impl
-  LastIn_unfold : FuncUnfold LastIn [] LastIn.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  Run_unfold : FuncUnfold Run [] Run.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_config_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
-  import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_features_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
-  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
+  unfold'Principals : FuncUnfold Principals [] Principals.impl
+  unfold'startServer : FuncUnfold startServer [] startServer.impl
+  unfold'newUserClient : FuncUnfold newUserClient [] newUserClient.impl
+  unfold'InRange : FuncUnfold InRange [] InRange.impl
+  unfold'Permitted : FuncUnfold Permitted [] Permitted.impl
+  unfold'keyOf : FuncUnfold keyOf [] keyOf.impl
+  unfold'reqCtx : FuncUnfold reqCtx [] reqCtx.impl
+  unfold'refused : FuncUnfold refused [] refused.impl
+  unfold'checkKVs : FuncUnfold checkKVs [] checkKVs.impl
+  unfold'checkTxnReads : FuncUnfold checkTxnReads [] checkTxnReads.impl
+  unfold'Work : FuncUnfold Work [] Work.impl
+  unfold'SetUp : FuncUnfold SetUp [] SetUp.impl
+  unfold'Writer : FuncUnfold Writer [] Writer.impl
+  unfold'SetupWrite : FuncUnfold SetupWrite [] SetupWrite.impl
+  unfold'CheckHistory : FuncUnfold CheckHistory [] CheckHistory.impl
+  unfold'LastIn : FuncUnfold LastIn [] LastIn.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  unfold'Run : FuncUnfold Run [] Run.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'metadata : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'mvccpb : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
+  import'types : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'config : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
+  import'etcdserver : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
+  import'features : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
+  import'etcdstart : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
 
-attribute [instance] Assumptions.Principals_unfold
-  Assumptions.startServer_unfold
-  Assumptions.newUserClient_unfold
-  Assumptions.InRange_unfold
-  Assumptions.Permitted_unfold
-  Assumptions.keyOf_unfold
-  Assumptions.reqCtx_unfold
-  Assumptions.refused_unfold
-  Assumptions.checkKVs_unfold
-  Assumptions.checkTxnReads_unfold
-  Assumptions.Work_unfold
-  Assumptions.SetUp_unfold
-  Assumptions.Writer_unfold
-  Assumptions.SetupWrite_unfold
-  Assumptions.CheckHistory_unfold
-  Assumptions.LastIn_unfold
-  Assumptions.Main_unfold
-  Assumptions.Run_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_metadata_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_mvccpb_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_config_Assumption
-  Assumptions.import_etcdserver_Assumption
-  Assumptions.import_features_Assumption
-  Assumptions.import_etcdstart_Assumption
+attribute [instance] Assumptions.unfold'Principals
+  Assumptions.unfold'startServer
+  Assumptions.unfold'newUserClient
+  Assumptions.unfold'InRange
+  Assumptions.unfold'Permitted
+  Assumptions.unfold'keyOf
+  Assumptions.unfold'reqCtx
+  Assumptions.unfold'refused
+  Assumptions.unfold'checkKVs
+  Assumptions.unfold'checkTxnReads
+  Assumptions.unfold'Work
+  Assumptions.unfold'SetUp
+  Assumptions.unfold'Writer
+  Assumptions.unfold'SetupWrite
+  Assumptions.unfold'CheckHistory
+  Assumptions.unfold'LastIn
+  Assumptions.unfold'Main
+  Assumptions.unfold'Run
+  Assumptions.import'context
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'zap
+  Assumptions.import'metadata
+  Assumptions.import'etcdserverpb
+  Assumptions.import'mvccpb
+  Assumptions.import'types
+  Assumptions.import'clientv3
+  Assumptions.import'config
+  Assumptions.import'etcdserver
+  Assumptions.import'features
+  Assumptions.import'etcdstart
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.auth
 

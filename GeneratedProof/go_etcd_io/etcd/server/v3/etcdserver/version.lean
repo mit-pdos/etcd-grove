@@ -29,7 +29,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions]
 
-noncomputable instance DowngradeInfo_typed_pointsto :
+noncomputable instance typed_pointsto'DowngradeInfo :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo where
   typedPointstoDef l v dq := iprop(
     "TargetVersion" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"TargetVersion" l) v.TargetVersion' dq ∗
@@ -39,11 +39,11 @@ noncomputable instance DowngradeInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance DowngradeInfo_into_val_typed :
+noncomputable instance into_val_typed'DowngradeInfo :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance DowngradeInfo_access_load_TargetVersion (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo) (dq : DFrac) :
+noncomputable instance access_load'DowngradeInfo'TargetVersion (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"TargetVersion" l) v.TargetVersion' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"TargetVersion" l) v.TargetVersion' dq)
@@ -51,7 +51,7 @@ noncomputable instance DowngradeInfo_access_load_TargetVersion (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance DowngradeInfo_access_store_TargetVersion (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo) (y : GoString) :
+noncomputable instance access_store'DowngradeInfo'TargetVersion (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"TargetVersion" l) v.TargetVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"TargetVersion" l) y (DFrac.own 1))
@@ -59,7 +59,7 @@ noncomputable instance DowngradeInfo_access_store_TargetVersion (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance DowngradeInfo_access_load_Enabled (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo) (dq : DFrac) :
+noncomputable instance access_load'DowngradeInfo'Enabled (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"Enabled" l) v.Enabled' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"Enabled" l) v.Enabled' dq)
@@ -67,7 +67,7 @@ noncomputable instance DowngradeInfo_access_load_Enabled (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance DowngradeInfo_access_store_Enabled (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo) (y : Bool) :
+noncomputable instance access_store'DowngradeInfo'Enabled (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"Enabled" l) v.Enabled' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"Enabled" l) y (DFrac.own 1))
@@ -86,7 +86,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions]
 
-noncomputable instance Monitor_typed_pointsto :
+noncomputable instance typed_pointsto'Monitor :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Monitor where
   typedPointstoDef l v dq := iprop(
     "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"lg" l) v.lg' dq ∗
@@ -96,11 +96,11 @@ noncomputable instance Monitor_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Monitor_into_val_typed :
+noncomputable instance into_val_typed'Monitor :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go_etcd_io.etcd.server.v3.etcdserver.version.Monitor.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Monitor_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Monitor) (dq : DFrac) :
+noncomputable instance access_load'Monitor'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Monitor) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"lg" l) v.lg' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"lg" l) v.lg' dq)
@@ -108,7 +108,7 @@ noncomputable instance Monitor_access_load_lg (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance Monitor_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Monitor) (y : Loc) :
+noncomputable instance access_store'Monitor'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Monitor) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"lg" l) v.lg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"lg" l) y (DFrac.own 1))
@@ -116,7 +116,7 @@ noncomputable instance Monitor_access_store_lg (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Monitor_access_load_s (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Monitor) (dq : DFrac) :
+noncomputable instance access_load'Monitor's (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Monitor) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"s" l) v.s' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"s" l) v.s' dq)
@@ -124,7 +124,7 @@ noncomputable instance Monitor_access_load_s (l : Loc) (v : go_etcd_io.etcd.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Monitor_access_store_s (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Monitor) (y : go_etcd_io.etcd.server.v3.etcdserver.version.Server) :
+noncomputable instance access_store'Monitor's (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Monitor) (y : go_etcd_io.etcd.server.v3.etcdserver.version.Server) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"s" l) v.s' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go!"s" l) y (DFrac.own 1))
@@ -143,7 +143,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions]
 
-noncomputable instance Manager_typed_pointsto :
+noncomputable instance typed_pointsto'Manager :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Manager where
   typedPointstoDef l v dq := iprop(
     "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"lg" l) v.lg' dq ∗
@@ -153,11 +153,11 @@ noncomputable instance Manager_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Manager_into_val_typed :
+noncomputable instance into_val_typed'Manager :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Manager go_etcd_io.etcd.server.v3.etcdserver.version.Manager.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Manager_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Manager) (dq : DFrac) :
+noncomputable instance access_load'Manager'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Manager) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"lg" l) v.lg' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"lg" l) v.lg' dq)
@@ -165,7 +165,7 @@ noncomputable instance Manager_access_load_lg (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance Manager_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Manager) (y : Loc) :
+noncomputable instance access_store'Manager'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Manager) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"lg" l) v.lg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"lg" l) y (DFrac.own 1))
@@ -173,7 +173,7 @@ noncomputable instance Manager_access_store_lg (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Manager_access_load_s (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Manager) (dq : DFrac) :
+noncomputable instance access_load'Manager's (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Manager) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"s" l) v.s' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"s" l) v.s' dq)
@@ -181,7 +181,7 @@ noncomputable instance Manager_access_load_s (l : Loc) (v : go_etcd_io.etcd.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Manager_access_store_s (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Manager) (y : go_etcd_io.etcd.server.v3.etcdserver.version.Server) :
+noncomputable instance access_store'Manager's (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.Manager) (y : go_etcd_io.etcd.server.v3.etcdserver.version.Server) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"s" l) v.s' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.Manager go!"s" l) y (DFrac.own 1))

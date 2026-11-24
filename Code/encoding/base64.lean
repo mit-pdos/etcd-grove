@@ -1309,7 +1309,7 @@ noncomputable instance Encoding.zero_val [GooseExts] : ZeroVal Encoding :=
 @[irreducible] noncomputable def Encoding.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Encoding.fieldsUnsealed
 
-noncomputable instance equals_unfold_Encoding [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Encoding [GooseExts] [GoGlobalContext] :
     EqualsUnfold Encoding.fields Encoding.fieldsUnsealed :=
   ⟨by unfold Encoding.fields; rfl⟩
 
@@ -1319,48 +1319,48 @@ noncomputable instance equals_unfold_Encoding [GooseExts] [GoGlobalContext] :
 class Encoding.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Encoding.underlying Encoding
   underlying : go.UnderlyingDirectedEq Encoding.ty Encoding.underlying
-  get_encode : ∀ (x : Encoding), go.IsGoStepPureDetTagged under (StructFieldGet Encoding.underlying go!"encode") #x (Val #(x.encode'))
-  set_encode : ∀ (x : Encoding) (y : (GoArray w8 64)), go.IsGoStepPureDetTagged under (StructFieldSet Encoding.underlying go!"encode") (PairV #x #y) (Val #(({ x with encode' := y } : Encoding)))
-  get_decodeMap : ∀ (x : Encoding), go.IsGoStepPureDetTagged under (StructFieldGet Encoding.underlying go!"decodeMap") #x (Val #(x.decodeMap'))
-  set_decodeMap : ∀ (x : Encoding) (y : (GoArray w8 256)), go.IsGoStepPureDetTagged under (StructFieldSet Encoding.underlying go!"decodeMap") (PairV #x #y) (Val #(({ x with decodeMap' := y } : Encoding)))
-  get_padChar : ∀ (x : Encoding), go.IsGoStepPureDetTagged under (StructFieldGet Encoding.underlying go!"padChar") #x (Val #(x.padChar'))
-  set_padChar : ∀ (x : Encoding) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Encoding.underlying go!"padChar") (PairV #x #y) (Val #(({ x with padChar' := y } : Encoding)))
-  get_strict : ∀ (x : Encoding), go.IsGoStepPureDetTagged under (StructFieldGet Encoding.underlying go!"strict") #x (Val #(x.strict'))
-  set_strict : ∀ (x : Encoding) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Encoding.underlying go!"strict") (PairV #x #y) (Val #(({ x with strict' := y } : Encoding)))
+  get'encode : ∀ (x : Encoding), go.IsGoStepPureDetTagged under (StructFieldGet Encoding.underlying go!"encode") #x (Val #(x.encode'))
+  set'encode : ∀ (x : Encoding) (y : (GoArray w8 64)), go.IsGoStepPureDetTagged under (StructFieldSet Encoding.underlying go!"encode") (PairV #x #y) (Val #(({ x with encode' := y } : Encoding)))
+  get'decodeMap : ∀ (x : Encoding), go.IsGoStepPureDetTagged under (StructFieldGet Encoding.underlying go!"decodeMap") #x (Val #(x.decodeMap'))
+  set'decodeMap : ∀ (x : Encoding) (y : (GoArray w8 256)), go.IsGoStepPureDetTagged under (StructFieldSet Encoding.underlying go!"decodeMap") (PairV #x #y) (Val #(({ x with decodeMap' := y } : Encoding)))
+  get'padChar : ∀ (x : Encoding), go.IsGoStepPureDetTagged under (StructFieldGet Encoding.underlying go!"padChar") #x (Val #(x.padChar'))
+  set'padChar : ∀ (x : Encoding) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Encoding.underlying go!"padChar") (PairV #x #y) (Val #(({ x with padChar' := y } : Encoding)))
+  get'strict : ∀ (x : Encoding), go.IsGoStepPureDetTagged under (StructFieldGet Encoding.underlying go!"strict") #x (Val #(x.strict'))
+  set'strict : ∀ (x : Encoding) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Encoding.underlying go!"strict") (PairV #x #y) (Val #(({ x with strict' := y } : Encoding)))
   method_set : go.MethodSetIs Encoding.ty [(go!"Strict", (some (go.signature.Signature [] false [(go.GoType.PointerType Encoding.ty)]))), (go!"WithPadding", (some (go.signature.Signature [go.rune] false [(go.GoType.PointerType Encoding.ty)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Encoding.ty) [(go!"AppendDecode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"AppendEncode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"DecodeString", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.byte), go.error]))), (go!"DecodedLen", (some (go.signature.Signature [go.int] false [go.int]))), (go!"Encode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"EncodeToString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string]))), (go!"EncodedLen", (some (go.signature.Signature [go.int] false [go.int]))), (go!"Strict", (some (go.signature.Signature [] false [(go.GoType.PointerType Encoding.ty)]))), (go!"WithPadding", (some (go.signature.Signature [go.rune] false [(go.GoType.PointerType Encoding.ty)]))), (go!"encoding/base64.decodeQuantum", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int] false [go.int, go.int, go.error])))]
-  WithPadding_unfold : MethodUnfold Encoding.ty go!"WithPadding" Encoding.WithPadding.impl
-  ptr_Decode_unfold : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"Decode" Encoding.Decode.impl
-  ptr_DecodeString_unfold : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"DecodeString" Encoding.DecodeString.impl
-  ptr_DecodedLen_unfold : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"DecodedLen" Encoding.DecodedLen.impl
-  ptr_Encode_unfold : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"Encode" Encoding.Encode.impl
-  ptr_EncodeToString_unfold : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"EncodeToString" Encoding.EncodeToString.impl
-  ptr_EncodedLen_unfold : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"EncodedLen" Encoding.EncodedLen.impl
-  ptr_WithPadding_unfold : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"WithPadding" (LamV "$r"
+  unfold'WithPadding : MethodUnfold Encoding.ty go!"WithPadding" Encoding.WithPadding.impl
+  ptr_unfold'Decode : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"Decode" Encoding.Decode.impl
+  ptr_unfold'DecodeString : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"DecodeString" Encoding.DecodeString.impl
+  ptr_unfold'DecodedLen : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"DecodedLen" Encoding.DecodedLen.impl
+  ptr_unfold'Encode : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"Encode" Encoding.Encode.impl
+  ptr_unfold'EncodeToString : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"EncodeToString" Encoding.EncodeToString.impl
+  ptr_unfold'EncodedLen : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"EncodedLen" Encoding.EncodedLen.impl
+  ptr_unfold'WithPadding : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"WithPadding" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Encoding.ty go!"WithPadding"))) (App (Val (GoInstruction (GoLoad Encoding.ty))) (Var "$r"))))
-  ptr_decodeQuantum_unfold : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"decodeQuantum" Encoding.decodeQuantum.impl
+  ptr_unfold'decodeQuantum : MethodUnfold (go.GoType.PointerType Encoding.ty) go!"decodeQuantum" Encoding.decodeQuantum.impl
 
 attribute [instance] Encoding.TypeAssumptions.type_repr
   Encoding.TypeAssumptions.underlying
-  Encoding.TypeAssumptions.get_encode
-  Encoding.TypeAssumptions.set_encode
-  Encoding.TypeAssumptions.get_decodeMap
-  Encoding.TypeAssumptions.set_decodeMap
-  Encoding.TypeAssumptions.get_padChar
-  Encoding.TypeAssumptions.set_padChar
-  Encoding.TypeAssumptions.get_strict
-  Encoding.TypeAssumptions.set_strict
+  Encoding.TypeAssumptions.get'encode
+  Encoding.TypeAssumptions.set'encode
+  Encoding.TypeAssumptions.get'decodeMap
+  Encoding.TypeAssumptions.set'decodeMap
+  Encoding.TypeAssumptions.get'padChar
+  Encoding.TypeAssumptions.set'padChar
+  Encoding.TypeAssumptions.get'strict
+  Encoding.TypeAssumptions.set'strict
   Encoding.TypeAssumptions.method_set
   Encoding.TypeAssumptions.ptr_method_set
-  Encoding.TypeAssumptions.WithPadding_unfold
-  Encoding.TypeAssumptions.ptr_Decode_unfold
-  Encoding.TypeAssumptions.ptr_DecodeString_unfold
-  Encoding.TypeAssumptions.ptr_DecodedLen_unfold
-  Encoding.TypeAssumptions.ptr_Encode_unfold
-  Encoding.TypeAssumptions.ptr_EncodeToString_unfold
-  Encoding.TypeAssumptions.ptr_EncodedLen_unfold
-  Encoding.TypeAssumptions.ptr_WithPadding_unfold
-  Encoding.TypeAssumptions.ptr_decodeQuantum_unfold
+  Encoding.TypeAssumptions.unfold'WithPadding
+  Encoding.TypeAssumptions.ptr_unfold'Decode
+  Encoding.TypeAssumptions.ptr_unfold'DecodeString
+  Encoding.TypeAssumptions.ptr_unfold'DecodedLen
+  Encoding.TypeAssumptions.ptr_unfold'Encode
+  Encoding.TypeAssumptions.ptr_unfold'EncodeToString
+  Encoding.TypeAssumptions.ptr_unfold'EncodedLen
+  Encoding.TypeAssumptions.ptr_unfold'WithPadding
+  Encoding.TypeAssumptions.ptr_unfold'decodeQuantum
 
 opaque encoder.nonempty_type : NonemptyType.{0}
 def encoder : Type := encoder.nonempty_type.type
@@ -1434,29 +1434,29 @@ attribute [instance] newlineFilteringReader.TypeAssumptions.type_repr
   newlineFilteringReader.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Encoding_instance : Encoding.TypeAssumptions
-  encoder_instance : encoder.TypeAssumptions
-  CorruptInputError_instance : CorruptInputError.TypeAssumptions
-  decoder_instance : decoder.TypeAssumptions
-  newlineFilteringReader_instance : newlineFilteringReader.TypeAssumptions
-  NewEncoding_unfold : FuncUnfold NewEncoding [] NewEncoding.impl
-  assemble32_unfold : FuncUnfold assemble32 [] assemble32.impl
-  assemble64_unfold : FuncUnfold assemble64 [] assemble64.impl
-  decodedLen_unfold : FuncUnfold decodedLen [] decodedLen.impl
-  import_byteorder_Assumption : _root_.Perennial.internal.byteorder.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
+  instance'Encoding : Encoding.TypeAssumptions
+  instance'encoder : encoder.TypeAssumptions
+  instance'CorruptInputError : CorruptInputError.TypeAssumptions
+  instance'decoder : decoder.TypeAssumptions
+  instance'newlineFilteringReader : newlineFilteringReader.TypeAssumptions
+  unfold'NewEncoding : FuncUnfold NewEncoding [] NewEncoding.impl
+  unfold'assemble32 : FuncUnfold assemble32 [] assemble32.impl
+  unfold'assemble64 : FuncUnfold assemble64 [] assemble64.impl
+  unfold'decodedLen : FuncUnfold decodedLen [] decodedLen.impl
+  import'byteorder : _root_.Perennial.internal.byteorder.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
 
-attribute [instance] Assumptions.Encoding_instance
-  Assumptions.encoder_instance
-  Assumptions.CorruptInputError_instance
-  Assumptions.decoder_instance
-  Assumptions.newlineFilteringReader_instance
-  Assumptions.NewEncoding_unfold
-  Assumptions.assemble32_unfold
-  Assumptions.assemble64_unfold
-  Assumptions.decodedLen_unfold
-  Assumptions.import_byteorder_Assumption
-  Assumptions.import_strconv_Assumption
+attribute [instance] Assumptions.instance'Encoding
+  Assumptions.instance'encoder
+  Assumptions.instance'CorruptInputError
+  Assumptions.instance'decoder
+  Assumptions.instance'newlineFilteringReader
+  Assumptions.unfold'NewEncoding
+  Assumptions.unfold'assemble32
+  Assumptions.unfold'assemble64
+  Assumptions.unfold'decodedLen
+  Assumptions.import'byteorder
+  Assumptions.import'strconv
 
 end encoding.base64
 

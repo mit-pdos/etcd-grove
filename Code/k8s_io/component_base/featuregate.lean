@@ -220,7 +220,7 @@ noncomputable instance FeatureSpec.zero_val [GooseExts] : ZeroVal FeatureSpec :=
 @[irreducible] noncomputable def FeatureSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FeatureSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_FeatureSpec [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FeatureSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold FeatureSpec.fields FeatureSpec.fieldsUnsealed :=
   ⟨by unfold FeatureSpec.fields; rfl⟩
 
@@ -230,31 +230,31 @@ noncomputable instance equals_unfold_FeatureSpec [GooseExts] [GoGlobalContext] :
 class FeatureSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FeatureSpec.underlying FeatureSpec
   underlying : go.UnderlyingDirectedEq FeatureSpec.ty FeatureSpec.underlying
-  get_Default : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"Default") #x (Val #(x.Default'))
-  set_Default : ∀ (x : FeatureSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"Default") (PairV #x #y) (Val #(({ x with Default' := y } : FeatureSpec)))
-  get_LockToDefault : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"LockToDefault") #x (Val #(x.LockToDefault'))
-  set_LockToDefault : ∀ (x : FeatureSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"LockToDefault") (PairV #x #y) (Val #(({ x with LockToDefault' := y } : FeatureSpec)))
-  get_PreRelease : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"PreRelease") #x (Val #(x.PreRelease'))
-  set_PreRelease : ∀ (x : FeatureSpec) (y : prerelease), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"PreRelease") (PairV #x #y) (Val #(({ x with PreRelease' := y } : FeatureSpec)))
-  get_Version : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"Version") #x (Val #(x.Version'))
-  set_Version : ∀ (x : FeatureSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : FeatureSpec)))
-  get_MinCompatibilityVersion : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"MinCompatibilityVersion") #x (Val #(x.MinCompatibilityVersion'))
-  set_MinCompatibilityVersion : ∀ (x : FeatureSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"MinCompatibilityVersion") (PairV #x #y) (Val #(({ x with MinCompatibilityVersion' := y } : FeatureSpec)))
+  get'Default : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"Default") #x (Val #(x.Default'))
+  set'Default : ∀ (x : FeatureSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"Default") (PairV #x #y) (Val #(({ x with Default' := y } : FeatureSpec)))
+  get'LockToDefault : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"LockToDefault") #x (Val #(x.LockToDefault'))
+  set'LockToDefault : ∀ (x : FeatureSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"LockToDefault") (PairV #x #y) (Val #(({ x with LockToDefault' := y } : FeatureSpec)))
+  get'PreRelease : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"PreRelease") #x (Val #(x.PreRelease'))
+  set'PreRelease : ∀ (x : FeatureSpec) (y : prerelease), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"PreRelease") (PairV #x #y) (Val #(({ x with PreRelease' := y } : FeatureSpec)))
+  get'Version : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"Version") #x (Val #(x.Version'))
+  set'Version : ∀ (x : FeatureSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : FeatureSpec)))
+  get'MinCompatibilityVersion : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"MinCompatibilityVersion") #x (Val #(x.MinCompatibilityVersion'))
+  set'MinCompatibilityVersion : ∀ (x : FeatureSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"MinCompatibilityVersion") (PairV #x #y) (Val #(({ x with MinCompatibilityVersion' := y } : FeatureSpec)))
   method_set : go.MethodSetIs FeatureSpec.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FeatureSpec.ty) [(go!"HelpString", (some (go.signature.Signature [Feature.ty, go.bool] false [go.string])))]
 
 attribute [instance] FeatureSpec.TypeAssumptions.type_repr
   FeatureSpec.TypeAssumptions.underlying
-  FeatureSpec.TypeAssumptions.get_Default
-  FeatureSpec.TypeAssumptions.set_Default
-  FeatureSpec.TypeAssumptions.get_LockToDefault
-  FeatureSpec.TypeAssumptions.set_LockToDefault
-  FeatureSpec.TypeAssumptions.get_PreRelease
-  FeatureSpec.TypeAssumptions.set_PreRelease
-  FeatureSpec.TypeAssumptions.get_Version
-  FeatureSpec.TypeAssumptions.set_Version
-  FeatureSpec.TypeAssumptions.get_MinCompatibilityVersion
-  FeatureSpec.TypeAssumptions.set_MinCompatibilityVersion
+  FeatureSpec.TypeAssumptions.get'Default
+  FeatureSpec.TypeAssumptions.set'Default
+  FeatureSpec.TypeAssumptions.get'LockToDefault
+  FeatureSpec.TypeAssumptions.set'LockToDefault
+  FeatureSpec.TypeAssumptions.get'PreRelease
+  FeatureSpec.TypeAssumptions.set'PreRelease
+  FeatureSpec.TypeAssumptions.get'Version
+  FeatureSpec.TypeAssumptions.set'Version
+  FeatureSpec.TypeAssumptions.get'MinCompatibilityVersion
+  FeatureSpec.TypeAssumptions.set'MinCompatibilityVersion
   FeatureSpec.TypeAssumptions.method_set
   FeatureSpec.TypeAssumptions.ptr_method_set
 
@@ -386,35 +386,35 @@ attribute [instance] featureGate.TypeAssumptions.type_repr
   featureGate.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Feature_instance : Feature.TypeAssumptions
-  FeatureSpec_instance : FeatureSpec.TypeAssumptions
-  VersionedSpecs_instance : VersionedSpecs.TypeAssumptions
-  PromotionVersionMapping_instance : PromotionVersionMapping.TypeAssumptions
-  prerelease_instance : prerelease.TypeAssumptions
-  FeatureGate_instance : FeatureGate.TypeAssumptions
-  MutableFeatureGate_instance : MutableFeatureGate.TypeAssumptions
-  MutableFeatureGateWithLogger_instance : MutableFeatureGateWithLogger.TypeAssumptions
-  MutableVersionedFeatureGate_instance : MutableVersionedFeatureGate.TypeAssumptions
-  MutableVersionedFeatureGateWithLogger_instance : MutableVersionedFeatureGateWithLogger.TypeAssumptions
-  featureGate_instance : featureGate.TypeAssumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_pflag_Assumption : _root_.Perennial.github_com.spf13.pflag.Assumptions
-  import_version_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.version.Assumptions
+  instance'Feature : Feature.TypeAssumptions
+  instance'FeatureSpec : FeatureSpec.TypeAssumptions
+  instance'VersionedSpecs : VersionedSpecs.TypeAssumptions
+  instance'PromotionVersionMapping : PromotionVersionMapping.TypeAssumptions
+  instance'prerelease : prerelease.TypeAssumptions
+  instance'FeatureGate : FeatureGate.TypeAssumptions
+  instance'MutableFeatureGate : MutableFeatureGate.TypeAssumptions
+  instance'MutableFeatureGateWithLogger : MutableFeatureGateWithLogger.TypeAssumptions
+  instance'MutableVersionedFeatureGate : MutableVersionedFeatureGate.TypeAssumptions
+  instance'MutableVersionedFeatureGateWithLogger : MutableVersionedFeatureGateWithLogger.TypeAssumptions
+  instance'featureGate : featureGate.TypeAssumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'pflag : _root_.Perennial.github_com.spf13.pflag.Assumptions
+  import'version : _root_.Perennial.k8s_io.apimachinery.pkg.util.version.Assumptions
 
-attribute [instance] Assumptions.Feature_instance
-  Assumptions.FeatureSpec_instance
-  Assumptions.VersionedSpecs_instance
-  Assumptions.PromotionVersionMapping_instance
-  Assumptions.prerelease_instance
-  Assumptions.FeatureGate_instance
-  Assumptions.MutableFeatureGate_instance
-  Assumptions.MutableFeatureGateWithLogger_instance
-  Assumptions.MutableVersionedFeatureGate_instance
-  Assumptions.MutableVersionedFeatureGateWithLogger_instance
-  Assumptions.featureGate_instance
-  Assumptions.import_context_Assumption
-  Assumptions.import_pflag_Assumption
-  Assumptions.import_version_Assumption
+attribute [instance] Assumptions.instance'Feature
+  Assumptions.instance'FeatureSpec
+  Assumptions.instance'VersionedSpecs
+  Assumptions.instance'PromotionVersionMapping
+  Assumptions.instance'prerelease
+  Assumptions.instance'FeatureGate
+  Assumptions.instance'MutableFeatureGate
+  Assumptions.instance'MutableFeatureGateWithLogger
+  Assumptions.instance'MutableVersionedFeatureGate
+  Assumptions.instance'MutableVersionedFeatureGateWithLogger
+  Assumptions.instance'featureGate
+  Assumptions.import'context
+  Assumptions.import'pflag
+  Assumptions.import'version
 
 end k8s_io.component_base.featuregate
 

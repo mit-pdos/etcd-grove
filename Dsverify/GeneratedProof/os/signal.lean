@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : os.signal.Assumptions]
 
-noncomputable instance stopping_typed_pointsto :
+noncomputable instance typed_pointsto'stopping :
     TypedPointsto (GF := GF) os.signal.stopping :=
   sorry -- axiomatized type
 
-noncomputable instance stopping_into_val_typed :
+noncomputable instance into_val_typed'stopping :
     IntoValTypedUnderlying (GF := GF) os.signal.stopping os.signal.stopping.underlying :=
   sorry -- axiomatized type
 
@@ -43,7 +43,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : os.signal.Assumptions]
 
-noncomputable instance handler_typed_pointsto :
+noncomputable instance typed_pointsto'handler :
     TypedPointsto (GF := GF) os.signal.handler where
   typedPointstoDef l v dq := iprop(
     "mask" ∷ typedPointsto (structFieldRef os.signal.handler go!"mask" l) v.mask' dq ∗
@@ -52,11 +52,11 @@ noncomputable instance handler_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance handler_into_val_typed :
+noncomputable instance into_val_typed'handler :
     IntoValTypedUnderlying (GF := GF) os.signal.handler os.signal.handler.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance handler_access_load_mask (l : Loc) (v : os.signal.handler) (dq : DFrac) :
+noncomputable instance access_load'handler'mask (l : Loc) (v : os.signal.handler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef os.signal.handler go!"mask" l) v.mask' dq)
       (typedPointsto (structFieldRef os.signal.handler go!"mask" l) v.mask' dq)
@@ -64,7 +64,7 @@ noncomputable instance handler_access_load_mask (l : Loc) (v : os.signal.handler
  by
   solve_pointsto_access_struct
 
-noncomputable instance handler_access_store_mask (l : Loc) (v : os.signal.handler) (y : (GoArray w32 3)) :
+noncomputable instance access_store'handler'mask (l : Loc) (v : os.signal.handler) (y : (GoArray w32 3)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef os.signal.handler go!"mask" l) v.mask' (DFrac.own 1))
       (typedPointsto (structFieldRef os.signal.handler go!"mask" l) y (DFrac.own 1))
@@ -83,11 +83,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : os.signal.Assumptions]
 
-noncomputable instance signalCtx_typed_pointsto :
+noncomputable instance typed_pointsto'signalCtx :
     TypedPointsto (GF := GF) os.signal.signalCtx :=
   sorry -- axiomatized type
 
-noncomputable instance signalCtx_into_val_typed :
+noncomputable instance into_val_typed'signalCtx :
     IntoValTypedUnderlying (GF := GF) os.signal.signalCtx os.signal.signalCtx.underlying :=
   sorry -- axiomatized type
 

@@ -1408,47 +1408,47 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.golang_org.x.sys.unix.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Create_unfold : FuncUnfold Create [] Create.impl
-  BootDir_unfold : FuncUnfold BootDir [] BootDir.impl
-  checkDir_unfold : FuncUnfold checkDir [] checkDir.impl
-  newData_unfold : FuncUnfold newData [] newData.impl
-  dataOk_unfold : FuncUnfold dataOk [] dataOk.impl
-  readNames_unfold : FuncUnfold readNames [] readNames.impl
-  syncDir_unfold : FuncUnfold syncDir [] syncDir.impl
-  Boot_unfold : FuncUnfold Boot [] Boot.impl
-  check_unfold : FuncUnfold check [] check.impl
-  commit_unfold : FuncUnfold commit [] commit.impl
-  lockFile_unfold : FuncUnfold lockFile [] lockFile.impl
-  Segment_unfold : FuncUnfold Segment [] Segment.impl
-  ZeroToEnd_unfold : FuncUnfold ZeroToEnd [] ZeroToEnd.impl
-  Reread_unfold : FuncUnfold Reread [] Reread.impl
-  readFull_unfold : FuncUnfold readFull [] readFull.impl
-  Run_unfold : FuncUnfold Run [] Run.impl
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_unix_Assumption : _root_.Perennial.golang_org.x.sys.unix.Assumptions
+  unfold'Create : FuncUnfold Create [] Create.impl
+  unfold'BootDir : FuncUnfold BootDir [] BootDir.impl
+  unfold'checkDir : FuncUnfold checkDir [] checkDir.impl
+  unfold'newData : FuncUnfold newData [] newData.impl
+  unfold'dataOk : FuncUnfold dataOk [] dataOk.impl
+  unfold'readNames : FuncUnfold readNames [] readNames.impl
+  unfold'syncDir : FuncUnfold syncDir [] syncDir.impl
+  unfold'Boot : FuncUnfold Boot [] Boot.impl
+  unfold'check : FuncUnfold check [] check.impl
+  unfold'commit : FuncUnfold commit [] commit.impl
+  unfold'lockFile : FuncUnfold lockFile [] lockFile.impl
+  unfold'Segment : FuncUnfold Segment [] Segment.impl
+  unfold'ZeroToEnd : FuncUnfold ZeroToEnd [] ZeroToEnd.impl
+  unfold'Reread : FuncUnfold Reread [] Reread.impl
+  unfold'readFull : FuncUnfold readFull [] readFull.impl
+  unfold'Run : FuncUnfold Run [] Run.impl
+  import'os : _root_.Perennial.os.Assumptions
+  import'syscall : _root_.Perennial.syscall.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'unix : _root_.Perennial.golang_org.x.sys.unix.Assumptions
 
-attribute [instance] Assumptions.Create_unfold
-  Assumptions.BootDir_unfold
-  Assumptions.checkDir_unfold
-  Assumptions.newData_unfold
-  Assumptions.dataOk_unfold
-  Assumptions.readNames_unfold
-  Assumptions.syncDir_unfold
-  Assumptions.Boot_unfold
-  Assumptions.check_unfold
-  Assumptions.commit_unfold
-  Assumptions.lockFile_unfold
-  Assumptions.Segment_unfold
-  Assumptions.ZeroToEnd_unfold
-  Assumptions.Reread_unfold
-  Assumptions.readFull_unfold
-  Assumptions.Run_unfold
-  Assumptions.import_os_Assumption
-  Assumptions.import_syscall_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_unix_Assumption
+attribute [instance] Assumptions.unfold'Create
+  Assumptions.unfold'BootDir
+  Assumptions.unfold'checkDir
+  Assumptions.unfold'newData
+  Assumptions.unfold'dataOk
+  Assumptions.unfold'readNames
+  Assumptions.unfold'syncDir
+  Assumptions.unfold'Boot
+  Assumptions.unfold'check
+  Assumptions.unfold'commit
+  Assumptions.unfold'lockFile
+  Assumptions.unfold'Segment
+  Assumptions.unfold'ZeroToEnd
+  Assumptions.unfold'Reread
+  Assumptions.unfold'readFull
+  Assumptions.unfold'Run
+  Assumptions.import'os
+  Assumptions.import'syscall
+  Assumptions.import'io
+  Assumptions.import'unix
 
 end github_com.mit_pdos.etcd_grove.examples.osfs.walfs
 

@@ -289,23 +289,23 @@ attribute [instance] Interface.TypeAssumptions.underlying
   Interface.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Interface_instance : Interface.TypeAssumptions
-  Init_unfold : FuncUnfold Init [] Init.impl
-  Push_unfold : FuncUnfold Push [] Push.impl
-  Pop_unfold : FuncUnfold Pop [] Pop.impl
-  Fix_unfold : FuncUnfold Fix [] Fix.impl
-  up_unfold : FuncUnfold up [] up.impl
-  down_unfold : FuncUnfold down [] down.impl
-  import_sort_Assumption : _root_.Perennial.sort.Assumptions
+  instance'Interface : Interface.TypeAssumptions
+  unfold'Init : FuncUnfold Init [] Init.impl
+  unfold'Push : FuncUnfold Push [] Push.impl
+  unfold'Pop : FuncUnfold Pop [] Pop.impl
+  unfold'Fix : FuncUnfold Fix [] Fix.impl
+  unfold'up : FuncUnfold up [] up.impl
+  unfold'down : FuncUnfold down [] down.impl
+  import'sort : _root_.Perennial.sort.Assumptions
 
-attribute [instance] Assumptions.Interface_instance
-  Assumptions.Init_unfold
-  Assumptions.Push_unfold
-  Assumptions.Pop_unfold
-  Assumptions.Fix_unfold
-  Assumptions.up_unfold
-  Assumptions.down_unfold
-  Assumptions.import_sort_Assumption
+attribute [instance] Assumptions.instance'Interface
+  Assumptions.unfold'Init
+  Assumptions.unfold'Push
+  Assumptions.unfold'Pop
+  Assumptions.unfold'Fix
+  Assumptions.unfold'up
+  Assumptions.unfold'down
+  Assumptions.import'sort
 
 end container.heap
 

@@ -1,5 +1,5 @@
 /-
-The proof of `(*time.Duration).String()`: goose's pointer-method wrapper (`ptr_String_unfold`: load
+The proof of `(*time.Duration).String()`: goose's pointer-method wrapper (`ptr_unfold'String`: load
 `*l`, call the value method), over Perennial's proof of `Duration.String`. Lean-first.
 -/
 module

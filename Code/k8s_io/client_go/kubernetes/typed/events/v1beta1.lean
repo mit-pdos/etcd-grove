@@ -207,19 +207,19 @@ attribute [instance] EventsV1beta1Client.TypeAssumptions.type_repr
   EventsV1beta1Client.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  EventsGetter_instance : EventsGetter.TypeAssumptions
-  EventInterface_instance : EventInterface.TypeAssumptions
-  events_instance : events.TypeAssumptions
-  EventExpansion_instance : EventExpansion.TypeAssumptions
-  EventsV1beta1Interface_instance : EventsV1beta1Interface.TypeAssumptions
-  EventsV1beta1Client_instance : EventsV1beta1Client.TypeAssumptions
+  instance'EventsGetter : EventsGetter.TypeAssumptions
+  instance'EventInterface : EventInterface.TypeAssumptions
+  instance'events : events.TypeAssumptions
+  instance'EventExpansion : EventExpansion.TypeAssumptions
+  instance'EventsV1beta1Interface : EventsV1beta1Interface.TypeAssumptions
+  instance'EventsV1beta1Client : EventsV1beta1Client.TypeAssumptions
 
-attribute [instance] Assumptions.EventsGetter_instance
-  Assumptions.EventInterface_instance
-  Assumptions.events_instance
-  Assumptions.EventExpansion_instance
-  Assumptions.EventsV1beta1Interface_instance
-  Assumptions.EventsV1beta1Client_instance
+attribute [instance] Assumptions.instance'EventsGetter
+  Assumptions.instance'EventInterface
+  Assumptions.instance'events
+  Assumptions.instance'EventExpansion
+  Assumptions.instance'EventsV1beta1Interface
+  Assumptions.instance'EventsV1beta1Client
 
 end k8s_io.client_go.kubernetes.typed.events.v1beta1
 

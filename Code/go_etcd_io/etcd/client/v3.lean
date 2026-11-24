@@ -19,437 +19,437 @@ noncomputable section
 namespace go_etcd_io.etcd.client.v3
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  AuthEnableResponse_instance : AuthEnableResponse.TypeAssumptions
-  AuthDisableResponse_instance : AuthDisableResponse.TypeAssumptions
-  AuthStatusResponse_instance : AuthStatusResponse.TypeAssumptions
-  AuthenticateResponse_instance : AuthenticateResponse.TypeAssumptions
-  AuthUserAddResponse_instance : AuthUserAddResponse.TypeAssumptions
-  AuthUserDeleteResponse_instance : AuthUserDeleteResponse.TypeAssumptions
-  AuthUserChangePasswordResponse_instance : AuthUserChangePasswordResponse.TypeAssumptions
-  AuthUserGrantRoleResponse_instance : AuthUserGrantRoleResponse.TypeAssumptions
-  AuthUserGetResponse_instance : AuthUserGetResponse.TypeAssumptions
-  AuthUserRevokeRoleResponse_instance : AuthUserRevokeRoleResponse.TypeAssumptions
-  AuthRoleAddResponse_instance : AuthRoleAddResponse.TypeAssumptions
-  AuthRoleGrantPermissionResponse_instance : AuthRoleGrantPermissionResponse.TypeAssumptions
-  AuthRoleGetResponse_instance : AuthRoleGetResponse.TypeAssumptions
-  AuthRoleRevokePermissionResponse_instance : AuthRoleRevokePermissionResponse.TypeAssumptions
-  AuthRoleDeleteResponse_instance : AuthRoleDeleteResponse.TypeAssumptions
-  AuthUserListResponse_instance : AuthUserListResponse.TypeAssumptions
-  AuthRoleListResponse_instance : AuthRoleListResponse.TypeAssumptions
-  PermissionType_instance : PermissionType.TypeAssumptions
-  Permission_instance : Permission.TypeAssumptions
-  UserAddOptions_instance : UserAddOptions.TypeAssumptions
-  Auth_instance : Auth.TypeAssumptions
-  authClient_instance : authClient.TypeAssumptions
-  blockLogger_instance : blockLogger.TypeAssumptions
-  Client_instance : Client.TypeAssumptions
-  Option_instance : Option.TypeAssumptions
-  Member_instance : Member.TypeAssumptions
-  MemberListResponse_instance : MemberListResponse.TypeAssumptions
-  MemberAddResponse_instance : MemberAddResponse.TypeAssumptions
-  MemberRemoveResponse_instance : MemberRemoveResponse.TypeAssumptions
-  MemberUpdateResponse_instance : MemberUpdateResponse.TypeAssumptions
-  MemberPromoteResponse_instance : MemberPromoteResponse.TypeAssumptions
-  Cluster_instance : Cluster.TypeAssumptions
-  cluster_instance : cluster.TypeAssumptions
-  CompactOp_instance : CompactOp.TypeAssumptions
-  CompactOption_instance : CompactOption.TypeAssumptions
-  CompareTarget_instance : CompareTarget.TypeAssumptions
-  CompareResult_instance : CompareResult.TypeAssumptions
-  Cmp_instance : Cmp.TypeAssumptions
-  Config_instance : Config.TypeAssumptions
-  ConfigSpec_instance : ConfigSpec.TypeAssumptions
-  SecureConfig_instance : SecureConfig.TypeAssumptions
-  AuthConfig_instance : AuthConfig.TypeAssumptions
-  CompactResponse_instance : CompactResponse.TypeAssumptions
-  PutResponse_instance : PutResponse.TypeAssumptions
-  GetResponse_instance : GetResponse.TypeAssumptions
-  GetStreamChan_instance : GetStreamChan.TypeAssumptions
-  DeleteResponse_instance : DeleteResponse.TypeAssumptions
-  TxnResponse_instance : TxnResponse.TypeAssumptions
-  KV_instance : KV.TypeAssumptions
-  RangeStreamResponse_instance : RangeStreamResponse.TypeAssumptions
-  OpResponse_instance : OpResponse.TypeAssumptions
-  kv_instance : kv.TypeAssumptions
-  LeaseRevokeResponse_instance : LeaseRevokeResponse.TypeAssumptions
-  LeaseID_instance : LeaseID.TypeAssumptions
-  LeaseGrantResponse_instance : LeaseGrantResponse.TypeAssumptions
-  LeaseKeepAliveResponse_instance : LeaseKeepAliveResponse.TypeAssumptions
-  LeaseTimeToLiveResponse_instance : LeaseTimeToLiveResponse.TypeAssumptions
-  LeaseStatus_instance : LeaseStatus.TypeAssumptions
-  LeaseLeasesResponse_instance : LeaseLeasesResponse.TypeAssumptions
-  ErrKeepAliveHalted_instance : ErrKeepAliveHalted.TypeAssumptions
-  Lease_instance : Lease.TypeAssumptions
-  lessor_instance : lessor.TypeAssumptions
-  keepAlive_instance : keepAlive.TypeAssumptions
-  keepAliveCtxKey_instance : keepAliveCtxKey.TypeAssumptions
-  DefragmentResponse_instance : DefragmentResponse.TypeAssumptions
-  AlarmResponse_instance : AlarmResponse.TypeAssumptions
-  AlarmMember_instance : AlarmMember.TypeAssumptions
-  StatusResponse_instance : StatusResponse.TypeAssumptions
-  HashKVResponse_instance : HashKVResponse.TypeAssumptions
-  MoveLeaderResponse_instance : MoveLeaderResponse.TypeAssumptions
-  DowngradeResponse_instance : DowngradeResponse.TypeAssumptions
-  DowngradeAction_instance : DowngradeAction.TypeAssumptions
-  Maintenance_instance : Maintenance.TypeAssumptions
-  SnapshotResponse_instance : SnapshotResponse.TypeAssumptions
-  maintenance_instance : maintenance.TypeAssumptions
-  snapshotReadCloser_instance : snapshotReadCloser.TypeAssumptions
-  opType_instance : opType.TypeAssumptions
-  Op_instance : Op.TypeAssumptions
-  OpOption_instance : OpOption.TypeAssumptions
-  LeaseOp_instance : LeaseOp.TypeAssumptions
-  LeaseOption_instance : LeaseOption.TypeAssumptions
-  retryPolicy_instance : retryPolicy.TypeAssumptions
-  retryKVClient_instance : retryKVClient.TypeAssumptions
-  retryLeaseClient_instance : retryLeaseClient.TypeAssumptions
-  retryClusterClient_instance : retryClusterClient.TypeAssumptions
-  retryMaintenanceClient_instance : retryMaintenanceClient.TypeAssumptions
-  retryAuthClient_instance : retryAuthClient.TypeAssumptions
-  serverStreamingRetryingStream_instance : serverStreamingRetryingStream.TypeAssumptions
-  backoffFunc_instance : backoffFunc.TypeAssumptions
-  options_instance : options.TypeAssumptions
-  retryOption_instance : retryOption.TypeAssumptions
-  SortTarget_instance : SortTarget.TypeAssumptions
-  SortOrder_instance : SortOrder.TypeAssumptions
-  SortOption_instance : SortOption.TypeAssumptions
-  Txn_instance : Txn.TypeAssumptions
-  txn_instance : txn.TypeAssumptions
-  WatchChan_instance : WatchChan.TypeAssumptions
-  Watcher_instance : Watcher.TypeAssumptions
-  WatchResponse_instance : WatchResponse.TypeAssumptions
-  watcher_instance : watcher.TypeAssumptions
-  watchGRPCStream_instance : watchGRPCStream.TypeAssumptions
-  watchStreamRequest_instance : watchStreamRequest.TypeAssumptions
-  watchRequest_instance : watchRequest.TypeAssumptions
-  progressRequest_instance : progressRequest.TypeAssumptions
-  watcherStream_instance : watcherStream.TypeAssumptions
-  valCtx_instance : valCtx.TypeAssumptions
-  NewAuth_unfold : FuncUnfold NewAuth [] NewAuth.impl
-  newBlockLogger_unfold : FuncUnfold newBlockLogger [] newBlockLogger.impl
-  New_unfold : FuncUnfold New [] New.impl
-  authority_unfold : FuncUnfold authority [] authority.impl
-  newClient_unfold : FuncUnfold newClient [] newClient.impl
-  isHaltErr_unfold : FuncUnfold isHaltErr [] isHaltErr.impl
-  isUnavailableErr_unfold : FuncUnfold isUnavailableErr [] isUnavailableErr.impl
-  ContextError_unfold : FuncUnfold ContextError [] ContextError.impl
-  canceledByCaller_unfold : FuncUnfold canceledByCaller [] canceledByCaller.impl
-  NewCluster_unfold : FuncUnfold NewCluster [] NewCluster.impl
-  OpCompact_unfold : FuncUnfold OpCompact [] OpCompact.impl
-  Compare_unfold : FuncUnfold Compare [] Compare.impl
-  Value_unfold : FuncUnfold Value [] Value.impl
-  Version_unfold : FuncUnfold Version [] Version.impl
-  CreateRevision_unfold : FuncUnfold CreateRevision [] CreateRevision.impl
-  ModRevision_unfold : FuncUnfold ModRevision [] ModRevision.impl
-  LeaseValue_unfold : FuncUnfold LeaseValue [] LeaseValue.impl
-  mustInt64_unfold : FuncUnfold mustInt64 [] mustInt64.impl
-  mustInt64orLeaseID_unfold : FuncUnfold mustInt64orLeaseID [] mustInt64orLeaseID.impl
-  cloneCompare_unfold : FuncUnfold cloneCompare [] cloneCompare.impl
-  NewKV_unfold : FuncUnfold NewKV [] NewKV.impl
-  NewLease_unfold : FuncUnfold NewLease [] NewLease.impl
-  NewLeaseFromLeaseClient_unfold : FuncUnfold NewLeaseFromLeaseClient [] NewLeaseFromLeaseClient.impl
-  NewMaintenance_unfold : FuncUnfold NewMaintenance [] NewMaintenance.impl
-  NewOp_unfold : FuncUnfold NewOp [] NewOp.impl
-  OpGet_unfold : FuncUnfold OpGet [] OpGet.impl
-  OpDelete_unfold : FuncUnfold OpDelete [] OpDelete.impl
-  OpPut_unfold : FuncUnfold OpPut [] OpPut.impl
-  OpTxn_unfold : FuncUnfold OpTxn [] OpTxn.impl
-  OpWatch_unfold : FuncUnfold OpWatch [] OpWatch.impl
-  WithLease_unfold : FuncUnfold WithLease [] WithLease.impl
-  WithLimit_unfold : FuncUnfold WithLimit [] WithLimit.impl
-  WithRev_unfold : FuncUnfold WithRev [] WithRev.impl
-  WithSort_unfold : FuncUnfold WithSort [] WithSort.impl
-  GetPrefixRangeEnd_unfold : FuncUnfold GetPrefixRangeEnd [] GetPrefixRangeEnd.impl
-  getPrefix_unfold : FuncUnfold getPrefix [] getPrefix.impl
-  WithPrefix_unfold : FuncUnfold WithPrefix [] WithPrefix.impl
-  WithRange_unfold : FuncUnfold WithRange [] WithRange.impl
-  WithFromKey_unfold : FuncUnfold WithFromKey [] WithFromKey.impl
-  WithSerializable_unfold : FuncUnfold WithSerializable [] WithSerializable.impl
-  WithKeysOnly_unfold : FuncUnfold WithKeysOnly [] WithKeysOnly.impl
-  WithCountOnly_unfold : FuncUnfold WithCountOnly [] WithCountOnly.impl
-  WithMinModRev_unfold : FuncUnfold WithMinModRev [] WithMinModRev.impl
-  WithMaxModRev_unfold : FuncUnfold WithMaxModRev [] WithMaxModRev.impl
-  WithMaxCreateRev_unfold : FuncUnfold WithMaxCreateRev [] WithMaxCreateRev.impl
-  WithFirstCreate_unfold : FuncUnfold WithFirstCreate [] WithFirstCreate.impl
-  WithLastCreate_unfold : FuncUnfold WithLastCreate [] WithLastCreate.impl
-  WithFirstKey_unfold : FuncUnfold WithFirstKey [] WithFirstKey.impl
-  WithLastKey_unfold : FuncUnfold WithLastKey [] WithLastKey.impl
-  WithFirstRev_unfold : FuncUnfold WithFirstRev [] WithFirstRev.impl
-  WithLastRev_unfold : FuncUnfold WithLastRev [] WithLastRev.impl
-  withTop_unfold : FuncUnfold withTop [] withTop.impl
-  WithProgressNotify_unfold : FuncUnfold WithProgressNotify [] WithProgressNotify.impl
-  WithCreatedNotify_unfold : FuncUnfold WithCreatedNotify [] WithCreatedNotify.impl
-  WithPrevKV_unfold : FuncUnfold WithPrevKV [] WithPrevKV.impl
-  WithIgnoreLease_unfold : FuncUnfold WithIgnoreLease [] WithIgnoreLease.impl
-  WithAttachedKeys_unfold : FuncUnfold WithAttachedKeys [] WithAttachedKeys.impl
-  toLeaseTimeToLiveRequest_unfold : FuncUnfold toLeaseTimeToLiveRequest [] toLeaseTimeToLiveRequest.impl
-  IsOptsWithPrefix_unfold : FuncUnfold IsOptsWithPrefix [] IsOptsWithPrefix.impl
-  IsOptsWithFromKey_unfold : FuncUnfold IsOptsWithFromKey [] IsOptsWithFromKey.impl
-  isSafeRetryImmutableRPC_unfold : FuncUnfold isSafeRetryImmutableRPC [] isSafeRetryImmutableRPC.impl
-  isSafeRetryMutableRPC_unfold : FuncUnfold isSafeRetryMutableRPC [] isSafeRetryMutableRPC.impl
-  RetryKVClient_unfold : FuncUnfold RetryKVClient [] RetryKVClient.impl
-  RetryLeaseClient_unfold : FuncUnfold RetryLeaseClient [] RetryLeaseClient.impl
-  RetryClusterClient_unfold : FuncUnfold RetryClusterClient [] RetryClusterClient.impl
-  RetryMaintenanceClient_unfold : FuncUnfold RetryMaintenanceClient [] RetryMaintenanceClient.impl
-  RetryAuthClient_unfold : FuncUnfold RetryAuthClient [] RetryAuthClient.impl
-  waitRetryBackoff_unfold : FuncUnfold waitRetryBackoff [] waitRetryBackoff.impl
-  isSafeRetry_unfold : FuncUnfold isSafeRetry [] isSafeRetry.impl
-  isContextError_unfold : FuncUnfold isContextError [] isContextError.impl
-  contextErrToGRPCErr_unfold : FuncUnfold contextErrToGRPCErr [] contextErrToGRPCErr.impl
-  withRepeatablePolicy_unfold : FuncUnfold withRepeatablePolicy [] withRepeatablePolicy.impl
-  withMax_unfold : FuncUnfold withMax [] withMax.impl
-  withBackoff_unfold : FuncUnfold withBackoff [] withBackoff.impl
-  reuseOrNewWithCallOptions_unfold : FuncUnfold reuseOrNewWithCallOptions [] reuseOrNewWithCallOptions.impl
-  filterCallOptions_unfold : FuncUnfold filterCallOptions [] filterCallOptions.impl
-  backoffLinearWithJitter_unfold : FuncUnfold backoffLinearWithJitter [] backoffLinearWithJitter.impl
-  jitterUp_unfold : FuncUnfold jitterUp [] jitterUp.impl
-  ensureWatchHeader_unfold : FuncUnfold ensureWatchHeader [] ensureWatchHeader.impl
-  NewWatcher_unfold : FuncUnfold NewWatcher [] NewWatcher.impl
-  NewWatchFromWatchClient_unfold : FuncUnfold NewWatchFromWatchClient [] NewWatchFromWatchClient.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
-  import_authpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_codes_Assumption : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
-  import_grpc_credentials_Assumption : _root_.Perennial.google_golang_org.grpc.credentials.Assumptions
-  import_insecure_Assumption : _root_.Perennial.google_golang_org.grpc.credentials.insecure.Assumptions
-  import_keepalive_Assumption : _root_.Perennial.google_golang_org.grpc.keepalive.Assumptions
-  import_status_Assumption : _root_.Perennial.google_golang_org.grpc.status.Assumptions
-  import_rpctypes_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions
-  import_logutil_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.Assumptions
-  import_v3_credentials_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.Assumptions
-  import_endpoint_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.internal.endpoint.Assumptions
-  import_resolver_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.internal.resolver.Assumptions
-  import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
-  import_tls_Assumption : _root_.Perennial.crypto.tls.Assumptions
-  import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_peer_Assumption : _root_.Perennial.google_golang_org.grpc.peer.Assumptions
-  import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
-  import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
+  instance'AuthEnableResponse : AuthEnableResponse.TypeAssumptions
+  instance'AuthDisableResponse : AuthDisableResponse.TypeAssumptions
+  instance'AuthStatusResponse : AuthStatusResponse.TypeAssumptions
+  instance'AuthenticateResponse : AuthenticateResponse.TypeAssumptions
+  instance'AuthUserAddResponse : AuthUserAddResponse.TypeAssumptions
+  instance'AuthUserDeleteResponse : AuthUserDeleteResponse.TypeAssumptions
+  instance'AuthUserChangePasswordResponse : AuthUserChangePasswordResponse.TypeAssumptions
+  instance'AuthUserGrantRoleResponse : AuthUserGrantRoleResponse.TypeAssumptions
+  instance'AuthUserGetResponse : AuthUserGetResponse.TypeAssumptions
+  instance'AuthUserRevokeRoleResponse : AuthUserRevokeRoleResponse.TypeAssumptions
+  instance'AuthRoleAddResponse : AuthRoleAddResponse.TypeAssumptions
+  instance'AuthRoleGrantPermissionResponse : AuthRoleGrantPermissionResponse.TypeAssumptions
+  instance'AuthRoleGetResponse : AuthRoleGetResponse.TypeAssumptions
+  instance'AuthRoleRevokePermissionResponse : AuthRoleRevokePermissionResponse.TypeAssumptions
+  instance'AuthRoleDeleteResponse : AuthRoleDeleteResponse.TypeAssumptions
+  instance'AuthUserListResponse : AuthUserListResponse.TypeAssumptions
+  instance'AuthRoleListResponse : AuthRoleListResponse.TypeAssumptions
+  instance'PermissionType : PermissionType.TypeAssumptions
+  instance'Permission : Permission.TypeAssumptions
+  instance'UserAddOptions : UserAddOptions.TypeAssumptions
+  instance'Auth : Auth.TypeAssumptions
+  instance'authClient : authClient.TypeAssumptions
+  instance'blockLogger : blockLogger.TypeAssumptions
+  instance'Client : Client.TypeAssumptions
+  instance'Option : Option.TypeAssumptions
+  instance'Member : Member.TypeAssumptions
+  instance'MemberListResponse : MemberListResponse.TypeAssumptions
+  instance'MemberAddResponse : MemberAddResponse.TypeAssumptions
+  instance'MemberRemoveResponse : MemberRemoveResponse.TypeAssumptions
+  instance'MemberUpdateResponse : MemberUpdateResponse.TypeAssumptions
+  instance'MemberPromoteResponse : MemberPromoteResponse.TypeAssumptions
+  instance'Cluster : Cluster.TypeAssumptions
+  instance'cluster : cluster.TypeAssumptions
+  instance'CompactOp : CompactOp.TypeAssumptions
+  instance'CompactOption : CompactOption.TypeAssumptions
+  instance'CompareTarget : CompareTarget.TypeAssumptions
+  instance'CompareResult : CompareResult.TypeAssumptions
+  instance'Cmp : Cmp.TypeAssumptions
+  instance'Config : Config.TypeAssumptions
+  instance'ConfigSpec : ConfigSpec.TypeAssumptions
+  instance'SecureConfig : SecureConfig.TypeAssumptions
+  instance'AuthConfig : AuthConfig.TypeAssumptions
+  instance'CompactResponse : CompactResponse.TypeAssumptions
+  instance'PutResponse : PutResponse.TypeAssumptions
+  instance'GetResponse : GetResponse.TypeAssumptions
+  instance'GetStreamChan : GetStreamChan.TypeAssumptions
+  instance'DeleteResponse : DeleteResponse.TypeAssumptions
+  instance'TxnResponse : TxnResponse.TypeAssumptions
+  instance'KV : KV.TypeAssumptions
+  instance'RangeStreamResponse : RangeStreamResponse.TypeAssumptions
+  instance'OpResponse : OpResponse.TypeAssumptions
+  instance'kv : kv.TypeAssumptions
+  instance'LeaseRevokeResponse : LeaseRevokeResponse.TypeAssumptions
+  instance'LeaseID : LeaseID.TypeAssumptions
+  instance'LeaseGrantResponse : LeaseGrantResponse.TypeAssumptions
+  instance'LeaseKeepAliveResponse : LeaseKeepAliveResponse.TypeAssumptions
+  instance'LeaseTimeToLiveResponse : LeaseTimeToLiveResponse.TypeAssumptions
+  instance'LeaseStatus : LeaseStatus.TypeAssumptions
+  instance'LeaseLeasesResponse : LeaseLeasesResponse.TypeAssumptions
+  instance'ErrKeepAliveHalted : ErrKeepAliveHalted.TypeAssumptions
+  instance'Lease : Lease.TypeAssumptions
+  instance'lessor : lessor.TypeAssumptions
+  instance'keepAlive : keepAlive.TypeAssumptions
+  instance'keepAliveCtxKey : keepAliveCtxKey.TypeAssumptions
+  instance'DefragmentResponse : DefragmentResponse.TypeAssumptions
+  instance'AlarmResponse : AlarmResponse.TypeAssumptions
+  instance'AlarmMember : AlarmMember.TypeAssumptions
+  instance'StatusResponse : StatusResponse.TypeAssumptions
+  instance'HashKVResponse : HashKVResponse.TypeAssumptions
+  instance'MoveLeaderResponse : MoveLeaderResponse.TypeAssumptions
+  instance'DowngradeResponse : DowngradeResponse.TypeAssumptions
+  instance'DowngradeAction : DowngradeAction.TypeAssumptions
+  instance'Maintenance : Maintenance.TypeAssumptions
+  instance'SnapshotResponse : SnapshotResponse.TypeAssumptions
+  instance'maintenance : maintenance.TypeAssumptions
+  instance'snapshotReadCloser : snapshotReadCloser.TypeAssumptions
+  instance'opType : opType.TypeAssumptions
+  instance'Op : Op.TypeAssumptions
+  instance'OpOption : OpOption.TypeAssumptions
+  instance'LeaseOp : LeaseOp.TypeAssumptions
+  instance'LeaseOption : LeaseOption.TypeAssumptions
+  instance'retryPolicy : retryPolicy.TypeAssumptions
+  instance'retryKVClient : retryKVClient.TypeAssumptions
+  instance'retryLeaseClient : retryLeaseClient.TypeAssumptions
+  instance'retryClusterClient : retryClusterClient.TypeAssumptions
+  instance'retryMaintenanceClient : retryMaintenanceClient.TypeAssumptions
+  instance'retryAuthClient : retryAuthClient.TypeAssumptions
+  instance'serverStreamingRetryingStream : serverStreamingRetryingStream.TypeAssumptions
+  instance'backoffFunc : backoffFunc.TypeAssumptions
+  instance'options : options.TypeAssumptions
+  instance'retryOption : retryOption.TypeAssumptions
+  instance'SortTarget : SortTarget.TypeAssumptions
+  instance'SortOrder : SortOrder.TypeAssumptions
+  instance'SortOption : SortOption.TypeAssumptions
+  instance'Txn : Txn.TypeAssumptions
+  instance'txn : txn.TypeAssumptions
+  instance'WatchChan : WatchChan.TypeAssumptions
+  instance'Watcher : Watcher.TypeAssumptions
+  instance'WatchResponse : WatchResponse.TypeAssumptions
+  instance'watcher : watcher.TypeAssumptions
+  instance'watchGRPCStream : watchGRPCStream.TypeAssumptions
+  instance'watchStreamRequest : watchStreamRequest.TypeAssumptions
+  instance'watchRequest : watchRequest.TypeAssumptions
+  instance'progressRequest : progressRequest.TypeAssumptions
+  instance'watcherStream : watcherStream.TypeAssumptions
+  instance'valCtx : valCtx.TypeAssumptions
+  unfold'NewAuth : FuncUnfold NewAuth [] NewAuth.impl
+  unfold'newBlockLogger : FuncUnfold newBlockLogger [] newBlockLogger.impl
+  unfold'New : FuncUnfold New [] New.impl
+  unfold'authority : FuncUnfold authority [] authority.impl
+  unfold'newClient : FuncUnfold newClient [] newClient.impl
+  unfold'isHaltErr : FuncUnfold isHaltErr [] isHaltErr.impl
+  unfold'isUnavailableErr : FuncUnfold isUnavailableErr [] isUnavailableErr.impl
+  unfold'ContextError : FuncUnfold ContextError [] ContextError.impl
+  unfold'canceledByCaller : FuncUnfold canceledByCaller [] canceledByCaller.impl
+  unfold'NewCluster : FuncUnfold NewCluster [] NewCluster.impl
+  unfold'OpCompact : FuncUnfold OpCompact [] OpCompact.impl
+  unfold'Compare : FuncUnfold Compare [] Compare.impl
+  unfold'Value : FuncUnfold Value [] Value.impl
+  unfold'Version : FuncUnfold Version [] Version.impl
+  unfold'CreateRevision : FuncUnfold CreateRevision [] CreateRevision.impl
+  unfold'ModRevision : FuncUnfold ModRevision [] ModRevision.impl
+  unfold'LeaseValue : FuncUnfold LeaseValue [] LeaseValue.impl
+  unfold'mustInt64 : FuncUnfold mustInt64 [] mustInt64.impl
+  unfold'mustInt64orLeaseID : FuncUnfold mustInt64orLeaseID [] mustInt64orLeaseID.impl
+  unfold'cloneCompare : FuncUnfold cloneCompare [] cloneCompare.impl
+  unfold'NewKV : FuncUnfold NewKV [] NewKV.impl
+  unfold'NewLease : FuncUnfold NewLease [] NewLease.impl
+  unfold'NewLeaseFromLeaseClient : FuncUnfold NewLeaseFromLeaseClient [] NewLeaseFromLeaseClient.impl
+  unfold'NewMaintenance : FuncUnfold NewMaintenance [] NewMaintenance.impl
+  unfold'NewOp : FuncUnfold NewOp [] NewOp.impl
+  unfold'OpGet : FuncUnfold OpGet [] OpGet.impl
+  unfold'OpDelete : FuncUnfold OpDelete [] OpDelete.impl
+  unfold'OpPut : FuncUnfold OpPut [] OpPut.impl
+  unfold'OpTxn : FuncUnfold OpTxn [] OpTxn.impl
+  unfold'OpWatch : FuncUnfold OpWatch [] OpWatch.impl
+  unfold'WithLease : FuncUnfold WithLease [] WithLease.impl
+  unfold'WithLimit : FuncUnfold WithLimit [] WithLimit.impl
+  unfold'WithRev : FuncUnfold WithRev [] WithRev.impl
+  unfold'WithSort : FuncUnfold WithSort [] WithSort.impl
+  unfold'GetPrefixRangeEnd : FuncUnfold GetPrefixRangeEnd [] GetPrefixRangeEnd.impl
+  unfold'getPrefix : FuncUnfold getPrefix [] getPrefix.impl
+  unfold'WithPrefix : FuncUnfold WithPrefix [] WithPrefix.impl
+  unfold'WithRange : FuncUnfold WithRange [] WithRange.impl
+  unfold'WithFromKey : FuncUnfold WithFromKey [] WithFromKey.impl
+  unfold'WithSerializable : FuncUnfold WithSerializable [] WithSerializable.impl
+  unfold'WithKeysOnly : FuncUnfold WithKeysOnly [] WithKeysOnly.impl
+  unfold'WithCountOnly : FuncUnfold WithCountOnly [] WithCountOnly.impl
+  unfold'WithMinModRev : FuncUnfold WithMinModRev [] WithMinModRev.impl
+  unfold'WithMaxModRev : FuncUnfold WithMaxModRev [] WithMaxModRev.impl
+  unfold'WithMaxCreateRev : FuncUnfold WithMaxCreateRev [] WithMaxCreateRev.impl
+  unfold'WithFirstCreate : FuncUnfold WithFirstCreate [] WithFirstCreate.impl
+  unfold'WithLastCreate : FuncUnfold WithLastCreate [] WithLastCreate.impl
+  unfold'WithFirstKey : FuncUnfold WithFirstKey [] WithFirstKey.impl
+  unfold'WithLastKey : FuncUnfold WithLastKey [] WithLastKey.impl
+  unfold'WithFirstRev : FuncUnfold WithFirstRev [] WithFirstRev.impl
+  unfold'WithLastRev : FuncUnfold WithLastRev [] WithLastRev.impl
+  unfold'withTop : FuncUnfold withTop [] withTop.impl
+  unfold'WithProgressNotify : FuncUnfold WithProgressNotify [] WithProgressNotify.impl
+  unfold'WithCreatedNotify : FuncUnfold WithCreatedNotify [] WithCreatedNotify.impl
+  unfold'WithPrevKV : FuncUnfold WithPrevKV [] WithPrevKV.impl
+  unfold'WithIgnoreLease : FuncUnfold WithIgnoreLease [] WithIgnoreLease.impl
+  unfold'WithAttachedKeys : FuncUnfold WithAttachedKeys [] WithAttachedKeys.impl
+  unfold'toLeaseTimeToLiveRequest : FuncUnfold toLeaseTimeToLiveRequest [] toLeaseTimeToLiveRequest.impl
+  unfold'IsOptsWithPrefix : FuncUnfold IsOptsWithPrefix [] IsOptsWithPrefix.impl
+  unfold'IsOptsWithFromKey : FuncUnfold IsOptsWithFromKey [] IsOptsWithFromKey.impl
+  unfold'isSafeRetryImmutableRPC : FuncUnfold isSafeRetryImmutableRPC [] isSafeRetryImmutableRPC.impl
+  unfold'isSafeRetryMutableRPC : FuncUnfold isSafeRetryMutableRPC [] isSafeRetryMutableRPC.impl
+  unfold'RetryKVClient : FuncUnfold RetryKVClient [] RetryKVClient.impl
+  unfold'RetryLeaseClient : FuncUnfold RetryLeaseClient [] RetryLeaseClient.impl
+  unfold'RetryClusterClient : FuncUnfold RetryClusterClient [] RetryClusterClient.impl
+  unfold'RetryMaintenanceClient : FuncUnfold RetryMaintenanceClient [] RetryMaintenanceClient.impl
+  unfold'RetryAuthClient : FuncUnfold RetryAuthClient [] RetryAuthClient.impl
+  unfold'waitRetryBackoff : FuncUnfold waitRetryBackoff [] waitRetryBackoff.impl
+  unfold'isSafeRetry : FuncUnfold isSafeRetry [] isSafeRetry.impl
+  unfold'isContextError : FuncUnfold isContextError [] isContextError.impl
+  unfold'contextErrToGRPCErr : FuncUnfold contextErrToGRPCErr [] contextErrToGRPCErr.impl
+  unfold'withRepeatablePolicy : FuncUnfold withRepeatablePolicy [] withRepeatablePolicy.impl
+  unfold'withMax : FuncUnfold withMax [] withMax.impl
+  unfold'withBackoff : FuncUnfold withBackoff [] withBackoff.impl
+  unfold'reuseOrNewWithCallOptions : FuncUnfold reuseOrNewWithCallOptions [] reuseOrNewWithCallOptions.impl
+  unfold'filterCallOptions : FuncUnfold filterCallOptions [] filterCallOptions.impl
+  unfold'backoffLinearWithJitter : FuncUnfold backoffLinearWithJitter [] backoffLinearWithJitter.impl
+  unfold'jitterUp : FuncUnfold jitterUp [] jitterUp.impl
+  unfold'ensureWatchHeader : FuncUnfold ensureWatchHeader [] ensureWatchHeader.impl
+  unfold'NewWatcher : FuncUnfold NewWatcher [] NewWatcher.impl
+  unfold'NewWatchFromWatchClient : FuncUnfold NewWatchFromWatchClient [] NewWatchFromWatchClient.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'grpc : _root_.Perennial.google_golang_org.grpc.Assumptions
+  import'authpb : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'codes : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
+  import'grpc_credentials : _root_.Perennial.google_golang_org.grpc.credentials.Assumptions
+  import'insecure : _root_.Perennial.google_golang_org.grpc.credentials.insecure.Assumptions
+  import'keepalive : _root_.Perennial.google_golang_org.grpc.keepalive.Assumptions
+  import'status : _root_.Perennial.google_golang_org.grpc.status.Assumptions
+  import'rpctypes : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions
+  import'logutil : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.Assumptions
+  import'v3_credentials : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.Assumptions
+  import'endpoint : _root_.Perennial.go_etcd_io.etcd.client.v3.internal.endpoint.Assumptions
+  import'resolver : _root_.Perennial.go_etcd_io.etcd.client.v3.internal.resolver.Assumptions
+  import'proto : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
+  import'tls : _root_.Perennial.crypto.tls.Assumptions
+  import'metadata : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'peer : _root_.Perennial.google_golang_org.grpc.peer.Assumptions
+  import'rand : _root_.Perennial.math.rand.Assumptions
+  import'mvccpb : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
 
-attribute [instance] Assumptions.AuthEnableResponse_instance
-  Assumptions.AuthDisableResponse_instance
-  Assumptions.AuthStatusResponse_instance
-  Assumptions.AuthenticateResponse_instance
-  Assumptions.AuthUserAddResponse_instance
-  Assumptions.AuthUserDeleteResponse_instance
-  Assumptions.AuthUserChangePasswordResponse_instance
-  Assumptions.AuthUserGrantRoleResponse_instance
-  Assumptions.AuthUserGetResponse_instance
-  Assumptions.AuthUserRevokeRoleResponse_instance
-  Assumptions.AuthRoleAddResponse_instance
-  Assumptions.AuthRoleGrantPermissionResponse_instance
-  Assumptions.AuthRoleGetResponse_instance
-  Assumptions.AuthRoleRevokePermissionResponse_instance
-  Assumptions.AuthRoleDeleteResponse_instance
-  Assumptions.AuthUserListResponse_instance
-  Assumptions.AuthRoleListResponse_instance
-  Assumptions.PermissionType_instance
-  Assumptions.Permission_instance
-  Assumptions.UserAddOptions_instance
-  Assumptions.Auth_instance
-  Assumptions.authClient_instance
-  Assumptions.blockLogger_instance
-  Assumptions.Client_instance
-  Assumptions.Option_instance
-  Assumptions.Member_instance
-  Assumptions.MemberListResponse_instance
-  Assumptions.MemberAddResponse_instance
-  Assumptions.MemberRemoveResponse_instance
-  Assumptions.MemberUpdateResponse_instance
-  Assumptions.MemberPromoteResponse_instance
-  Assumptions.Cluster_instance
-  Assumptions.cluster_instance
-  Assumptions.CompactOp_instance
-  Assumptions.CompactOption_instance
-  Assumptions.CompareTarget_instance
-  Assumptions.CompareResult_instance
-  Assumptions.Cmp_instance
-  Assumptions.Config_instance
-  Assumptions.ConfigSpec_instance
-  Assumptions.SecureConfig_instance
-  Assumptions.AuthConfig_instance
-  Assumptions.CompactResponse_instance
-  Assumptions.PutResponse_instance
-  Assumptions.GetResponse_instance
-  Assumptions.GetStreamChan_instance
-  Assumptions.DeleteResponse_instance
-  Assumptions.TxnResponse_instance
-  Assumptions.KV_instance
-  Assumptions.RangeStreamResponse_instance
-  Assumptions.OpResponse_instance
-  Assumptions.kv_instance
-  Assumptions.LeaseRevokeResponse_instance
-  Assumptions.LeaseID_instance
-  Assumptions.LeaseGrantResponse_instance
-  Assumptions.LeaseKeepAliveResponse_instance
-  Assumptions.LeaseTimeToLiveResponse_instance
-  Assumptions.LeaseStatus_instance
-  Assumptions.LeaseLeasesResponse_instance
-  Assumptions.ErrKeepAliveHalted_instance
-  Assumptions.Lease_instance
-  Assumptions.lessor_instance
-  Assumptions.keepAlive_instance
-  Assumptions.keepAliveCtxKey_instance
-  Assumptions.DefragmentResponse_instance
-  Assumptions.AlarmResponse_instance
-  Assumptions.AlarmMember_instance
-  Assumptions.StatusResponse_instance
-  Assumptions.HashKVResponse_instance
-  Assumptions.MoveLeaderResponse_instance
-  Assumptions.DowngradeResponse_instance
-  Assumptions.DowngradeAction_instance
-  Assumptions.Maintenance_instance
-  Assumptions.SnapshotResponse_instance
-  Assumptions.maintenance_instance
-  Assumptions.snapshotReadCloser_instance
-  Assumptions.opType_instance
-  Assumptions.Op_instance
-  Assumptions.OpOption_instance
-  Assumptions.LeaseOp_instance
-  Assumptions.LeaseOption_instance
-  Assumptions.retryPolicy_instance
-  Assumptions.retryKVClient_instance
-  Assumptions.retryLeaseClient_instance
-  Assumptions.retryClusterClient_instance
-  Assumptions.retryMaintenanceClient_instance
-  Assumptions.retryAuthClient_instance
-  Assumptions.serverStreamingRetryingStream_instance
-  Assumptions.backoffFunc_instance
-  Assumptions.options_instance
-  Assumptions.retryOption_instance
-  Assumptions.SortTarget_instance
-  Assumptions.SortOrder_instance
-  Assumptions.SortOption_instance
-  Assumptions.Txn_instance
-  Assumptions.txn_instance
-  Assumptions.WatchChan_instance
-  Assumptions.Watcher_instance
-  Assumptions.WatchResponse_instance
-  Assumptions.watcher_instance
-  Assumptions.watchGRPCStream_instance
-  Assumptions.watchStreamRequest_instance
-  Assumptions.watchRequest_instance
-  Assumptions.progressRequest_instance
-  Assumptions.watcherStream_instance
-  Assumptions.valCtx_instance
-  Assumptions.NewAuth_unfold
-  Assumptions.newBlockLogger_unfold
-  Assumptions.New_unfold
-  Assumptions.authority_unfold
-  Assumptions.newClient_unfold
-  Assumptions.isHaltErr_unfold
-  Assumptions.isUnavailableErr_unfold
-  Assumptions.ContextError_unfold
-  Assumptions.canceledByCaller_unfold
-  Assumptions.NewCluster_unfold
-  Assumptions.OpCompact_unfold
-  Assumptions.Compare_unfold
-  Assumptions.Value_unfold
-  Assumptions.Version_unfold
-  Assumptions.CreateRevision_unfold
-  Assumptions.ModRevision_unfold
-  Assumptions.LeaseValue_unfold
-  Assumptions.mustInt64_unfold
-  Assumptions.mustInt64orLeaseID_unfold
-  Assumptions.cloneCompare_unfold
-  Assumptions.NewKV_unfold
-  Assumptions.NewLease_unfold
-  Assumptions.NewLeaseFromLeaseClient_unfold
-  Assumptions.NewMaintenance_unfold
-  Assumptions.NewOp_unfold
-  Assumptions.OpGet_unfold
-  Assumptions.OpDelete_unfold
-  Assumptions.OpPut_unfold
-  Assumptions.OpTxn_unfold
-  Assumptions.OpWatch_unfold
-  Assumptions.WithLease_unfold
-  Assumptions.WithLimit_unfold
-  Assumptions.WithRev_unfold
-  Assumptions.WithSort_unfold
-  Assumptions.GetPrefixRangeEnd_unfold
-  Assumptions.getPrefix_unfold
-  Assumptions.WithPrefix_unfold
-  Assumptions.WithRange_unfold
-  Assumptions.WithFromKey_unfold
-  Assumptions.WithSerializable_unfold
-  Assumptions.WithKeysOnly_unfold
-  Assumptions.WithCountOnly_unfold
-  Assumptions.WithMinModRev_unfold
-  Assumptions.WithMaxModRev_unfold
-  Assumptions.WithMaxCreateRev_unfold
-  Assumptions.WithFirstCreate_unfold
-  Assumptions.WithLastCreate_unfold
-  Assumptions.WithFirstKey_unfold
-  Assumptions.WithLastKey_unfold
-  Assumptions.WithFirstRev_unfold
-  Assumptions.WithLastRev_unfold
-  Assumptions.withTop_unfold
-  Assumptions.WithProgressNotify_unfold
-  Assumptions.WithCreatedNotify_unfold
-  Assumptions.WithPrevKV_unfold
-  Assumptions.WithIgnoreLease_unfold
-  Assumptions.WithAttachedKeys_unfold
-  Assumptions.toLeaseTimeToLiveRequest_unfold
-  Assumptions.IsOptsWithPrefix_unfold
-  Assumptions.IsOptsWithFromKey_unfold
-  Assumptions.isSafeRetryImmutableRPC_unfold
-  Assumptions.isSafeRetryMutableRPC_unfold
-  Assumptions.RetryKVClient_unfold
-  Assumptions.RetryLeaseClient_unfold
-  Assumptions.RetryClusterClient_unfold
-  Assumptions.RetryMaintenanceClient_unfold
-  Assumptions.RetryAuthClient_unfold
-  Assumptions.waitRetryBackoff_unfold
-  Assumptions.isSafeRetry_unfold
-  Assumptions.isContextError_unfold
-  Assumptions.contextErrToGRPCErr_unfold
-  Assumptions.withRepeatablePolicy_unfold
-  Assumptions.withMax_unfold
-  Assumptions.withBackoff_unfold
-  Assumptions.reuseOrNewWithCallOptions_unfold
-  Assumptions.filterCallOptions_unfold
-  Assumptions.backoffLinearWithJitter_unfold
-  Assumptions.jitterUp_unfold
-  Assumptions.ensureWatchHeader_unfold
-  Assumptions.NewWatcher_unfold
-  Assumptions.NewWatchFromWatchClient_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_grpc_Assumption
-  Assumptions.import_authpb_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_codes_Assumption
-  Assumptions.import_grpc_credentials_Assumption
-  Assumptions.import_insecure_Assumption
-  Assumptions.import_keepalive_Assumption
-  Assumptions.import_status_Assumption
-  Assumptions.import_rpctypes_Assumption
-  Assumptions.import_logutil_Assumption
-  Assumptions.import_v3_credentials_Assumption
-  Assumptions.import_endpoint_Assumption
-  Assumptions.import_resolver_Assumption
-  Assumptions.import_proto_Assumption
-  Assumptions.import_tls_Assumption
-  Assumptions.import_metadata_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_peer_Assumption
-  Assumptions.import_rand_Assumption
-  Assumptions.import_mvccpb_Assumption
+attribute [instance] Assumptions.instance'AuthEnableResponse
+  Assumptions.instance'AuthDisableResponse
+  Assumptions.instance'AuthStatusResponse
+  Assumptions.instance'AuthenticateResponse
+  Assumptions.instance'AuthUserAddResponse
+  Assumptions.instance'AuthUserDeleteResponse
+  Assumptions.instance'AuthUserChangePasswordResponse
+  Assumptions.instance'AuthUserGrantRoleResponse
+  Assumptions.instance'AuthUserGetResponse
+  Assumptions.instance'AuthUserRevokeRoleResponse
+  Assumptions.instance'AuthRoleAddResponse
+  Assumptions.instance'AuthRoleGrantPermissionResponse
+  Assumptions.instance'AuthRoleGetResponse
+  Assumptions.instance'AuthRoleRevokePermissionResponse
+  Assumptions.instance'AuthRoleDeleteResponse
+  Assumptions.instance'AuthUserListResponse
+  Assumptions.instance'AuthRoleListResponse
+  Assumptions.instance'PermissionType
+  Assumptions.instance'Permission
+  Assumptions.instance'UserAddOptions
+  Assumptions.instance'Auth
+  Assumptions.instance'authClient
+  Assumptions.instance'blockLogger
+  Assumptions.instance'Client
+  Assumptions.instance'Option
+  Assumptions.instance'Member
+  Assumptions.instance'MemberListResponse
+  Assumptions.instance'MemberAddResponse
+  Assumptions.instance'MemberRemoveResponse
+  Assumptions.instance'MemberUpdateResponse
+  Assumptions.instance'MemberPromoteResponse
+  Assumptions.instance'Cluster
+  Assumptions.instance'cluster
+  Assumptions.instance'CompactOp
+  Assumptions.instance'CompactOption
+  Assumptions.instance'CompareTarget
+  Assumptions.instance'CompareResult
+  Assumptions.instance'Cmp
+  Assumptions.instance'Config
+  Assumptions.instance'ConfigSpec
+  Assumptions.instance'SecureConfig
+  Assumptions.instance'AuthConfig
+  Assumptions.instance'CompactResponse
+  Assumptions.instance'PutResponse
+  Assumptions.instance'GetResponse
+  Assumptions.instance'GetStreamChan
+  Assumptions.instance'DeleteResponse
+  Assumptions.instance'TxnResponse
+  Assumptions.instance'KV
+  Assumptions.instance'RangeStreamResponse
+  Assumptions.instance'OpResponse
+  Assumptions.instance'kv
+  Assumptions.instance'LeaseRevokeResponse
+  Assumptions.instance'LeaseID
+  Assumptions.instance'LeaseGrantResponse
+  Assumptions.instance'LeaseKeepAliveResponse
+  Assumptions.instance'LeaseTimeToLiveResponse
+  Assumptions.instance'LeaseStatus
+  Assumptions.instance'LeaseLeasesResponse
+  Assumptions.instance'ErrKeepAliveHalted
+  Assumptions.instance'Lease
+  Assumptions.instance'lessor
+  Assumptions.instance'keepAlive
+  Assumptions.instance'keepAliveCtxKey
+  Assumptions.instance'DefragmentResponse
+  Assumptions.instance'AlarmResponse
+  Assumptions.instance'AlarmMember
+  Assumptions.instance'StatusResponse
+  Assumptions.instance'HashKVResponse
+  Assumptions.instance'MoveLeaderResponse
+  Assumptions.instance'DowngradeResponse
+  Assumptions.instance'DowngradeAction
+  Assumptions.instance'Maintenance
+  Assumptions.instance'SnapshotResponse
+  Assumptions.instance'maintenance
+  Assumptions.instance'snapshotReadCloser
+  Assumptions.instance'opType
+  Assumptions.instance'Op
+  Assumptions.instance'OpOption
+  Assumptions.instance'LeaseOp
+  Assumptions.instance'LeaseOption
+  Assumptions.instance'retryPolicy
+  Assumptions.instance'retryKVClient
+  Assumptions.instance'retryLeaseClient
+  Assumptions.instance'retryClusterClient
+  Assumptions.instance'retryMaintenanceClient
+  Assumptions.instance'retryAuthClient
+  Assumptions.instance'serverStreamingRetryingStream
+  Assumptions.instance'backoffFunc
+  Assumptions.instance'options
+  Assumptions.instance'retryOption
+  Assumptions.instance'SortTarget
+  Assumptions.instance'SortOrder
+  Assumptions.instance'SortOption
+  Assumptions.instance'Txn
+  Assumptions.instance'txn
+  Assumptions.instance'WatchChan
+  Assumptions.instance'Watcher
+  Assumptions.instance'WatchResponse
+  Assumptions.instance'watcher
+  Assumptions.instance'watchGRPCStream
+  Assumptions.instance'watchStreamRequest
+  Assumptions.instance'watchRequest
+  Assumptions.instance'progressRequest
+  Assumptions.instance'watcherStream
+  Assumptions.instance'valCtx
+  Assumptions.unfold'NewAuth
+  Assumptions.unfold'newBlockLogger
+  Assumptions.unfold'New
+  Assumptions.unfold'authority
+  Assumptions.unfold'newClient
+  Assumptions.unfold'isHaltErr
+  Assumptions.unfold'isUnavailableErr
+  Assumptions.unfold'ContextError
+  Assumptions.unfold'canceledByCaller
+  Assumptions.unfold'NewCluster
+  Assumptions.unfold'OpCompact
+  Assumptions.unfold'Compare
+  Assumptions.unfold'Value
+  Assumptions.unfold'Version
+  Assumptions.unfold'CreateRevision
+  Assumptions.unfold'ModRevision
+  Assumptions.unfold'LeaseValue
+  Assumptions.unfold'mustInt64
+  Assumptions.unfold'mustInt64orLeaseID
+  Assumptions.unfold'cloneCompare
+  Assumptions.unfold'NewKV
+  Assumptions.unfold'NewLease
+  Assumptions.unfold'NewLeaseFromLeaseClient
+  Assumptions.unfold'NewMaintenance
+  Assumptions.unfold'NewOp
+  Assumptions.unfold'OpGet
+  Assumptions.unfold'OpDelete
+  Assumptions.unfold'OpPut
+  Assumptions.unfold'OpTxn
+  Assumptions.unfold'OpWatch
+  Assumptions.unfold'WithLease
+  Assumptions.unfold'WithLimit
+  Assumptions.unfold'WithRev
+  Assumptions.unfold'WithSort
+  Assumptions.unfold'GetPrefixRangeEnd
+  Assumptions.unfold'getPrefix
+  Assumptions.unfold'WithPrefix
+  Assumptions.unfold'WithRange
+  Assumptions.unfold'WithFromKey
+  Assumptions.unfold'WithSerializable
+  Assumptions.unfold'WithKeysOnly
+  Assumptions.unfold'WithCountOnly
+  Assumptions.unfold'WithMinModRev
+  Assumptions.unfold'WithMaxModRev
+  Assumptions.unfold'WithMaxCreateRev
+  Assumptions.unfold'WithFirstCreate
+  Assumptions.unfold'WithLastCreate
+  Assumptions.unfold'WithFirstKey
+  Assumptions.unfold'WithLastKey
+  Assumptions.unfold'WithFirstRev
+  Assumptions.unfold'WithLastRev
+  Assumptions.unfold'withTop
+  Assumptions.unfold'WithProgressNotify
+  Assumptions.unfold'WithCreatedNotify
+  Assumptions.unfold'WithPrevKV
+  Assumptions.unfold'WithIgnoreLease
+  Assumptions.unfold'WithAttachedKeys
+  Assumptions.unfold'toLeaseTimeToLiveRequest
+  Assumptions.unfold'IsOptsWithPrefix
+  Assumptions.unfold'IsOptsWithFromKey
+  Assumptions.unfold'isSafeRetryImmutableRPC
+  Assumptions.unfold'isSafeRetryMutableRPC
+  Assumptions.unfold'RetryKVClient
+  Assumptions.unfold'RetryLeaseClient
+  Assumptions.unfold'RetryClusterClient
+  Assumptions.unfold'RetryMaintenanceClient
+  Assumptions.unfold'RetryAuthClient
+  Assumptions.unfold'waitRetryBackoff
+  Assumptions.unfold'isSafeRetry
+  Assumptions.unfold'isContextError
+  Assumptions.unfold'contextErrToGRPCErr
+  Assumptions.unfold'withRepeatablePolicy
+  Assumptions.unfold'withMax
+  Assumptions.unfold'withBackoff
+  Assumptions.unfold'reuseOrNewWithCallOptions
+  Assumptions.unfold'filterCallOptions
+  Assumptions.unfold'backoffLinearWithJitter
+  Assumptions.unfold'jitterUp
+  Assumptions.unfold'ensureWatchHeader
+  Assumptions.unfold'NewWatcher
+  Assumptions.unfold'NewWatchFromWatchClient
+  Assumptions.import'context
+  Assumptions.import'fmt
+  Assumptions.import'strings
+  Assumptions.import'grpc
+  Assumptions.import'authpb
+  Assumptions.import'etcdserverpb
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'errors
+  Assumptions.import'atomic
+  Assumptions.import'zap
+  Assumptions.import'codes
+  Assumptions.import'grpc_credentials
+  Assumptions.import'insecure
+  Assumptions.import'keepalive
+  Assumptions.import'status
+  Assumptions.import'rpctypes
+  Assumptions.import'logutil
+  Assumptions.import'v3_credentials
+  Assumptions.import'endpoint
+  Assumptions.import'resolver
+  Assumptions.import'proto
+  Assumptions.import'tls
+  Assumptions.import'metadata
+  Assumptions.import'io
+  Assumptions.import'peer
+  Assumptions.import'rand
+  Assumptions.import'mvccpb
 
 end go_etcd_io.etcd.client.v3
 

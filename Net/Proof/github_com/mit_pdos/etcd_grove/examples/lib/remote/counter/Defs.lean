@@ -110,10 +110,10 @@ instance out_intoValInj : go.IntoValInj Out where
   intoVal_inj x y h := by
     have hu : ∀ z : Out, is_go_step_pure (StructFieldGet Out.underlying go!"Unknown")
         #z = Eq (Val #(z.Unknown')) := fun z =>
-      (Out.TypeAssumptions.get_Unknown z).isGoStep_det_internal.isGoStep_pure_det
+      (Out.TypeAssumptions.get'Unknown z).isGoStep_det_internal.isGoStep_pure_det
     have hn : ∀ z : Out, is_go_step_pure (StructFieldGet Out.underlying go!"N")
         #z = Eq (Val #(z.N')) := fun z =>
-      (Out.TypeAssumptions.get_N z).isGoStep_det_internal.isGoStep_pure_det
+      (Out.TypeAssumptions.get'N z).isGoStep_det_internal.isGoStep_pure_det
     have e1 := hu x
     rw [h, hu y] at e1
     have e2 := hn x

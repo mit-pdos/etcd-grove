@@ -2985,7 +2985,7 @@ noncomputable instance message.zero_val [GooseExts] : ZeroVal message :=
 @[irreducible] noncomputable def message.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   message.fieldsUnsealed
 
-noncomputable instance equals_unfold_message [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'message [GooseExts] [GoGlobalContext] :
     EqualsUnfold message.fields message.fieldsUnsealed :=
   ⟨by unfold message.fields; rfl⟩
 
@@ -2995,52 +2995,52 @@ noncomputable instance equals_unfold_message [GooseExts] [GoGlobalContext] :
 class message.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying message.underlying message
   underlying : go.UnderlyingDirectedEq message.ty message.underlying
-  get_from : ∀ (x : message), go.IsGoStepPureDetTagged under (StructFieldGet message.underlying go!"from") #x (Val #(x.from'))
-  set_from : ∀ (x : message) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet message.underlying go!"from") (PairV #x #y) (Val #(({ x with from' := y } : message)))
-  get_to : ∀ (x : message), go.IsGoStepPureDetTagged under (StructFieldGet message.underlying go!"to") #x (Val #(x.to'))
-  set_to : ∀ (x : message) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet message.underlying go!"to") (PairV #x #y) (Val #(({ x with to' := y } : message)))
-  get_typ : ∀ (x : message), go.IsGoStepPureDetTagged under (StructFieldGet message.underlying go!"typ") #x (Val #(x.typ'))
-  set_typ : ∀ (x : message) (y : msgType), go.IsGoStepPureDetTagged under (StructFieldSet message.underlying go!"typ") (PairV #x #y) (Val #(({ x with typ' := y } : message)))
-  get_n : ∀ (x : message), go.IsGoStepPureDetTagged under (StructFieldGet message.underlying go!"n") #x (Val #(x.n'))
-  set_n : ∀ (x : message) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet message.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : message)))
-  get_prevn : ∀ (x : message), go.IsGoStepPureDetTagged under (StructFieldGet message.underlying go!"prevn") #x (Val #(x.prevn'))
-  set_prevn : ∀ (x : message) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet message.underlying go!"prevn") (PairV #x #y) (Val #(({ x with prevn' := y } : message)))
-  get_value : ∀ (x : message), go.IsGoStepPureDetTagged under (StructFieldGet message.underlying go!"value") #x (Val #(x.value'))
-  set_value : ∀ (x : message) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet message.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : message)))
+  get'from : ∀ (x : message), go.IsGoStepPureDetTagged under (StructFieldGet message.underlying go!"from") #x (Val #(x.from'))
+  set'from : ∀ (x : message) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet message.underlying go!"from") (PairV #x #y) (Val #(({ x with from' := y } : message)))
+  get'to : ∀ (x : message), go.IsGoStepPureDetTagged under (StructFieldGet message.underlying go!"to") #x (Val #(x.to'))
+  set'to : ∀ (x : message) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet message.underlying go!"to") (PairV #x #y) (Val #(({ x with to' := y } : message)))
+  get'typ : ∀ (x : message), go.IsGoStepPureDetTagged under (StructFieldGet message.underlying go!"typ") #x (Val #(x.typ'))
+  set'typ : ∀ (x : message) (y : msgType), go.IsGoStepPureDetTagged under (StructFieldSet message.underlying go!"typ") (PairV #x #y) (Val #(({ x with typ' := y } : message)))
+  get'n : ∀ (x : message), go.IsGoStepPureDetTagged under (StructFieldGet message.underlying go!"n") #x (Val #(x.n'))
+  set'n : ∀ (x : message) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet message.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : message)))
+  get'prevn : ∀ (x : message), go.IsGoStepPureDetTagged under (StructFieldGet message.underlying go!"prevn") #x (Val #(x.prevn'))
+  set'prevn : ∀ (x : message) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet message.underlying go!"prevn") (PairV #x #y) (Val #(({ x with prevn' := y } : message)))
+  get'value : ∀ (x : message), go.IsGoStepPureDetTagged under (StructFieldGet message.underlying go!"value") #x (Val #(x.value'))
+  set'value : ∀ (x : message) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet message.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : message)))
   method_set : go.MethodSetIs message.ty [(go!"github.com/xiang90/paxos.number", (some (go.signature.Signature [] false [go.int]))), (go!"github.com/xiang90/paxos.proposalNumber", (some (go.signature.Signature [] false [go.int]))), (go!"github.com/xiang90/paxos.proposalValue", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType message.ty) [(go!"github.com/xiang90/paxos.number", (some (go.signature.Signature [] false [go.int]))), (go!"github.com/xiang90/paxos.proposalNumber", (some (go.signature.Signature [] false [go.int]))), (go!"github.com/xiang90/paxos.proposalValue", (some (go.signature.Signature [] false [go.string])))]
-  number_unfold : MethodUnfold message.ty go!"number" message.number.impl
-  proposalNumber_unfold : MethodUnfold message.ty go!"proposalNumber" message.proposalNumber.impl
-  proposalValue_unfold : MethodUnfold message.ty go!"proposalValue" message.proposalValue.impl
-  ptr_number_unfold : MethodUnfold (go.GoType.PointerType message.ty) go!"number" (LamV "$r"
+  unfold'number : MethodUnfold message.ty go!"number" message.number.impl
+  unfold'proposalNumber : MethodUnfold message.ty go!"proposalNumber" message.proposalNumber.impl
+  unfold'proposalValue : MethodUnfold message.ty go!"proposalValue" message.proposalValue.impl
+  ptr_unfold'number : MethodUnfold (go.GoType.PointerType message.ty) go!"number" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve message.ty go!"number"))) (App (Val (GoInstruction (GoLoad message.ty))) (Var "$r"))))
-  ptr_proposalNumber_unfold : MethodUnfold (go.GoType.PointerType message.ty) go!"proposalNumber" (LamV "$r"
+  ptr_unfold'proposalNumber : MethodUnfold (go.GoType.PointerType message.ty) go!"proposalNumber" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve message.ty go!"proposalNumber"))) (App (Val (GoInstruction (GoLoad message.ty))) (Var "$r"))))
-  ptr_proposalValue_unfold : MethodUnfold (go.GoType.PointerType message.ty) go!"proposalValue" (LamV "$r"
+  ptr_unfold'proposalValue : MethodUnfold (go.GoType.PointerType message.ty) go!"proposalValue" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve message.ty go!"proposalValue"))) (App (Val (GoInstruction (GoLoad message.ty))) (Var "$r"))))
 
 attribute [instance] message.TypeAssumptions.type_repr
   message.TypeAssumptions.underlying
-  message.TypeAssumptions.get_from
-  message.TypeAssumptions.set_from
-  message.TypeAssumptions.get_to
-  message.TypeAssumptions.set_to
-  message.TypeAssumptions.get_typ
-  message.TypeAssumptions.set_typ
-  message.TypeAssumptions.get_n
-  message.TypeAssumptions.set_n
-  message.TypeAssumptions.get_prevn
-  message.TypeAssumptions.set_prevn
-  message.TypeAssumptions.get_value
-  message.TypeAssumptions.set_value
+  message.TypeAssumptions.get'from
+  message.TypeAssumptions.set'from
+  message.TypeAssumptions.get'to
+  message.TypeAssumptions.set'to
+  message.TypeAssumptions.get'typ
+  message.TypeAssumptions.set'typ
+  message.TypeAssumptions.get'n
+  message.TypeAssumptions.set'n
+  message.TypeAssumptions.get'prevn
+  message.TypeAssumptions.set'prevn
+  message.TypeAssumptions.get'value
+  message.TypeAssumptions.set'value
   message.TypeAssumptions.method_set
   message.TypeAssumptions.ptr_method_set
-  message.TypeAssumptions.number_unfold
-  message.TypeAssumptions.proposalNumber_unfold
-  message.TypeAssumptions.proposalValue_unfold
-  message.TypeAssumptions.ptr_number_unfold
-  message.TypeAssumptions.ptr_proposalNumber_unfold
-  message.TypeAssumptions.ptr_proposalValue_unfold
+  message.TypeAssumptions.unfold'number
+  message.TypeAssumptions.unfold'proposalNumber
+  message.TypeAssumptions.unfold'proposalValue
+  message.TypeAssumptions.ptr_unfold'number
+  message.TypeAssumptions.ptr_unfold'proposalNumber
+  message.TypeAssumptions.ptr_unfold'proposalValue
 
 abbrev promise [GooseExts] : Type := GoInterface
 
@@ -3091,7 +3091,7 @@ noncomputable instance acceptor.zero_val [GooseExts] : ZeroVal acceptor :=
 @[irreducible] noncomputable def acceptor.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   acceptor.fieldsUnsealed
 
-noncomputable instance equals_unfold_acceptor [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'acceptor [GooseExts] [GoGlobalContext] :
     EqualsUnfold acceptor.fields acceptor.fieldsUnsealed :=
   ⟨by unfold acceptor.fields; rfl⟩
 
@@ -3101,43 +3101,43 @@ noncomputable instance equals_unfold_acceptor [GooseExts] [GoGlobalContext] :
 class acceptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying acceptor.underlying acceptor
   underlying : go.UnderlyingDirectedEq acceptor.ty acceptor.underlying
-  get_id : ∀ (x : acceptor), go.IsGoStepPureDetTagged under (StructFieldGet acceptor.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : acceptor) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet acceptor.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : acceptor)))
-  get_learners : ∀ (x : acceptor), go.IsGoStepPureDetTagged under (StructFieldGet acceptor.underlying go!"learners") #x (Val #(x.learners'))
-  set_learners : ∀ (x : acceptor) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet acceptor.underlying go!"learners") (PairV #x #y) (Val #(({ x with learners' := y } : acceptor)))
-  get_accept : ∀ (x : acceptor), go.IsGoStepPureDetTagged under (StructFieldGet acceptor.underlying go!"accept") #x (Val #(x.accept'))
-  set_accept : ∀ (x : acceptor) (y : message), go.IsGoStepPureDetTagged under (StructFieldSet acceptor.underlying go!"accept") (PairV #x #y) (Val #(({ x with accept' := y } : acceptor)))
-  get_promised : ∀ (x : acceptor), go.IsGoStepPureDetTagged under (StructFieldGet acceptor.underlying go!"promised") #x (Val #(x.promised'))
-  set_promised : ∀ (x : acceptor) (y : promise), go.IsGoStepPureDetTagged under (StructFieldSet acceptor.underlying go!"promised") (PairV #x #y) (Val #(({ x with promised' := y } : acceptor)))
-  get_nt : ∀ (x : acceptor), go.IsGoStepPureDetTagged under (StructFieldGet acceptor.underlying go!"nt") #x (Val #(x.nt'))
-  set_nt : ∀ (x : acceptor) (y : network), go.IsGoStepPureDetTagged under (StructFieldSet acceptor.underlying go!"nt") (PairV #x #y) (Val #(({ x with nt' := y } : acceptor)))
+  get'id : ∀ (x : acceptor), go.IsGoStepPureDetTagged under (StructFieldGet acceptor.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : acceptor) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet acceptor.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : acceptor)))
+  get'learners : ∀ (x : acceptor), go.IsGoStepPureDetTagged under (StructFieldGet acceptor.underlying go!"learners") #x (Val #(x.learners'))
+  set'learners : ∀ (x : acceptor) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet acceptor.underlying go!"learners") (PairV #x #y) (Val #(({ x with learners' := y } : acceptor)))
+  get'accept : ∀ (x : acceptor), go.IsGoStepPureDetTagged under (StructFieldGet acceptor.underlying go!"accept") #x (Val #(x.accept'))
+  set'accept : ∀ (x : acceptor) (y : message), go.IsGoStepPureDetTagged under (StructFieldSet acceptor.underlying go!"accept") (PairV #x #y) (Val #(({ x with accept' := y } : acceptor)))
+  get'promised : ∀ (x : acceptor), go.IsGoStepPureDetTagged under (StructFieldGet acceptor.underlying go!"promised") #x (Val #(x.promised'))
+  set'promised : ∀ (x : acceptor) (y : promise), go.IsGoStepPureDetTagged under (StructFieldSet acceptor.underlying go!"promised") (PairV #x #y) (Val #(({ x with promised' := y } : acceptor)))
+  get'nt : ∀ (x : acceptor), go.IsGoStepPureDetTagged under (StructFieldGet acceptor.underlying go!"nt") #x (Val #(x.nt'))
+  set'nt : ∀ (x : acceptor) (y : network), go.IsGoStepPureDetTagged under (StructFieldSet acceptor.underlying go!"nt") (PairV #x #y) (Val #(({ x with nt' := y } : acceptor)))
   method_set : go.MethodSetIs acceptor.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType acceptor.ty) [(go!"github.com/xiang90/paxos.delay", (some (go.signature.Signature [] false []))), (go!"github.com/xiang90/paxos.receivePrepare", (some (go.signature.Signature [message.ty] false [message.ty, go.bool]))), (go!"github.com/xiang90/paxos.receivePropose", (some (go.signature.Signature [message.ty] false [go.bool]))), (go!"github.com/xiang90/paxos.restart", (some (go.signature.Signature [] false []))), (go!"github.com/xiang90/paxos.run", (some (go.signature.Signature [] false [])))]
-  ptr_delay_unfold : MethodUnfold (go.GoType.PointerType acceptor.ty) go!"delay" acceptor.delay.impl
-  ptr_receivePrepare_unfold : MethodUnfold (go.GoType.PointerType acceptor.ty) go!"receivePrepare" acceptor.receivePrepare.impl
-  ptr_receivePropose_unfold : MethodUnfold (go.GoType.PointerType acceptor.ty) go!"receivePropose" acceptor.receivePropose.impl
-  ptr_restart_unfold : MethodUnfold (go.GoType.PointerType acceptor.ty) go!"restart" acceptor.restart.impl
-  ptr_run_unfold : MethodUnfold (go.GoType.PointerType acceptor.ty) go!"run" acceptor.run.impl
+  ptr_unfold'delay : MethodUnfold (go.GoType.PointerType acceptor.ty) go!"delay" acceptor.delay.impl
+  ptr_unfold'receivePrepare : MethodUnfold (go.GoType.PointerType acceptor.ty) go!"receivePrepare" acceptor.receivePrepare.impl
+  ptr_unfold'receivePropose : MethodUnfold (go.GoType.PointerType acceptor.ty) go!"receivePropose" acceptor.receivePropose.impl
+  ptr_unfold'restart : MethodUnfold (go.GoType.PointerType acceptor.ty) go!"restart" acceptor.restart.impl
+  ptr_unfold'run : MethodUnfold (go.GoType.PointerType acceptor.ty) go!"run" acceptor.run.impl
 
 attribute [instance] acceptor.TypeAssumptions.type_repr
   acceptor.TypeAssumptions.underlying
-  acceptor.TypeAssumptions.get_id
-  acceptor.TypeAssumptions.set_id
-  acceptor.TypeAssumptions.get_learners
-  acceptor.TypeAssumptions.set_learners
-  acceptor.TypeAssumptions.get_accept
-  acceptor.TypeAssumptions.set_accept
-  acceptor.TypeAssumptions.get_promised
-  acceptor.TypeAssumptions.set_promised
-  acceptor.TypeAssumptions.get_nt
-  acceptor.TypeAssumptions.set_nt
+  acceptor.TypeAssumptions.get'id
+  acceptor.TypeAssumptions.set'id
+  acceptor.TypeAssumptions.get'learners
+  acceptor.TypeAssumptions.set'learners
+  acceptor.TypeAssumptions.get'accept
+  acceptor.TypeAssumptions.set'accept
+  acceptor.TypeAssumptions.get'promised
+  acceptor.TypeAssumptions.set'promised
+  acceptor.TypeAssumptions.get'nt
+  acceptor.TypeAssumptions.set'nt
   acceptor.TypeAssumptions.method_set
   acceptor.TypeAssumptions.ptr_method_set
-  acceptor.TypeAssumptions.ptr_delay_unfold
-  acceptor.TypeAssumptions.ptr_receivePrepare_unfold
-  acceptor.TypeAssumptions.ptr_receivePropose_unfold
-  acceptor.TypeAssumptions.ptr_restart_unfold
-  acceptor.TypeAssumptions.ptr_run_unfold
+  acceptor.TypeAssumptions.ptr_unfold'delay
+  acceptor.TypeAssumptions.ptr_unfold'receivePrepare
+  acceptor.TypeAssumptions.ptr_unfold'receivePropose
+  acceptor.TypeAssumptions.ptr_unfold'restart
+  acceptor.TypeAssumptions.ptr_unfold'run
 
 structure learner [GooseExts] where
   mk ::
@@ -3156,7 +3156,7 @@ noncomputable instance learner.zero_val [GooseExts] : ZeroVal learner :=
 @[irreducible] noncomputable def learner.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   learner.fieldsUnsealed
 
-noncomputable instance equals_unfold_learner [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'learner [GooseExts] [GoGlobalContext] :
     EqualsUnfold learner.fields learner.fieldsUnsealed :=
   ⟨by unfold learner.fields; rfl⟩
 
@@ -3166,33 +3166,33 @@ noncomputable instance equals_unfold_learner [GooseExts] [GoGlobalContext] :
 class learner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying learner.underlying learner
   underlying : go.UnderlyingDirectedEq learner.ty learner.underlying
-  get_id : ∀ (x : learner), go.IsGoStepPureDetTagged under (StructFieldGet learner.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : learner) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet learner.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : learner)))
-  get_acceptors : ∀ (x : learner), go.IsGoStepPureDetTagged under (StructFieldGet learner.underlying go!"acceptors") #x (Val #(x.acceptors'))
-  set_acceptors : ∀ (x : learner) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet learner.underlying go!"acceptors") (PairV #x #y) (Val #(({ x with acceptors' := y } : learner)))
-  get_nt : ∀ (x : learner), go.IsGoStepPureDetTagged under (StructFieldGet learner.underlying go!"nt") #x (Val #(x.nt'))
-  set_nt : ∀ (x : learner) (y : network), go.IsGoStepPureDetTagged under (StructFieldSet learner.underlying go!"nt") (PairV #x #y) (Val #(({ x with nt' := y } : learner)))
+  get'id : ∀ (x : learner), go.IsGoStepPureDetTagged under (StructFieldGet learner.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : learner) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet learner.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : learner)))
+  get'acceptors : ∀ (x : learner), go.IsGoStepPureDetTagged under (StructFieldGet learner.underlying go!"acceptors") #x (Val #(x.acceptors'))
+  set'acceptors : ∀ (x : learner) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet learner.underlying go!"acceptors") (PairV #x #y) (Val #(({ x with acceptors' := y } : learner)))
+  get'nt : ∀ (x : learner), go.IsGoStepPureDetTagged under (StructFieldGet learner.underlying go!"nt") #x (Val #(x.nt'))
+  set'nt : ∀ (x : learner) (y : network), go.IsGoStepPureDetTagged under (StructFieldSet learner.underlying go!"nt") (PairV #x #y) (Val #(({ x with nt' := y } : learner)))
   method_set : go.MethodSetIs learner.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType learner.ty) [(go!"github.com/xiang90/paxos.chosen", (some (go.signature.Signature [] false [accept.ty, go.bool]))), (go!"github.com/xiang90/paxos.learn", (some (go.signature.Signature [] false [go.string]))), (go!"github.com/xiang90/paxos.majority", (some (go.signature.Signature [] false [go.int]))), (go!"github.com/xiang90/paxos.receiveAccepted", (some (go.signature.Signature [message.ty] false [])))]
-  ptr_chosen_unfold : MethodUnfold (go.GoType.PointerType learner.ty) go!"chosen" learner.chosen.impl
-  ptr_learn_unfold : MethodUnfold (go.GoType.PointerType learner.ty) go!"learn" learner.learn.impl
-  ptr_majority_unfold : MethodUnfold (go.GoType.PointerType learner.ty) go!"majority" learner.majority.impl
-  ptr_receiveAccepted_unfold : MethodUnfold (go.GoType.PointerType learner.ty) go!"receiveAccepted" learner.receiveAccepted.impl
+  ptr_unfold'chosen : MethodUnfold (go.GoType.PointerType learner.ty) go!"chosen" learner.chosen.impl
+  ptr_unfold'learn : MethodUnfold (go.GoType.PointerType learner.ty) go!"learn" learner.learn.impl
+  ptr_unfold'majority : MethodUnfold (go.GoType.PointerType learner.ty) go!"majority" learner.majority.impl
+  ptr_unfold'receiveAccepted : MethodUnfold (go.GoType.PointerType learner.ty) go!"receiveAccepted" learner.receiveAccepted.impl
 
 attribute [instance] learner.TypeAssumptions.type_repr
   learner.TypeAssumptions.underlying
-  learner.TypeAssumptions.get_id
-  learner.TypeAssumptions.set_id
-  learner.TypeAssumptions.get_acceptors
-  learner.TypeAssumptions.set_acceptors
-  learner.TypeAssumptions.get_nt
-  learner.TypeAssumptions.set_nt
+  learner.TypeAssumptions.get'id
+  learner.TypeAssumptions.set'id
+  learner.TypeAssumptions.get'acceptors
+  learner.TypeAssumptions.set'acceptors
+  learner.TypeAssumptions.get'nt
+  learner.TypeAssumptions.set'nt
   learner.TypeAssumptions.method_set
   learner.TypeAssumptions.ptr_method_set
-  learner.TypeAssumptions.ptr_chosen_unfold
-  learner.TypeAssumptions.ptr_learn_unfold
-  learner.TypeAssumptions.ptr_majority_unfold
-  learner.TypeAssumptions.ptr_receiveAccepted_unfold
+  learner.TypeAssumptions.ptr_unfold'chosen
+  learner.TypeAssumptions.ptr_unfold'learn
+  learner.TypeAssumptions.ptr_unfold'majority
+  learner.TypeAssumptions.ptr_unfold'receiveAccepted
 
 abbrev accept [GooseExts] : Type := GoInterface
 
@@ -3227,7 +3227,7 @@ noncomputable instance decision.zero_val [GooseExts] : ZeroVal decision :=
 @[irreducible] noncomputable def decision.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   decision.fieldsUnsealed
 
-noncomputable instance equals_unfold_decision [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'decision [GooseExts] [GoGlobalContext] :
     EqualsUnfold decision.fields decision.fieldsUnsealed :=
   ⟨by unfold decision.fields; rfl⟩
 
@@ -3237,33 +3237,33 @@ noncomputable instance equals_unfold_decision [GooseExts] [GoGlobalContext] :
 class decision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying decision.underlying decision
   underlying : go.UnderlyingDirectedEq decision.ty decision.underlying
-  get_mu : ∀ (x : decision), go.IsGoStepPureDetTagged under (StructFieldGet decision.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : decision) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet decision.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : decision)))
-  get_value : ∀ (x : decision), go.IsGoStepPureDetTagged under (StructFieldGet decision.underlying go!"value") #x (Val #(x.value'))
-  set_value : ∀ (x : decision) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet decision.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : decision)))
-  get_known : ∀ (x : decision), go.IsGoStepPureDetTagged under (StructFieldGet decision.underlying go!"known") #x (Val #(x.known'))
-  set_known : ∀ (x : decision) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet decision.underlying go!"known") (PairV #x #y) (Val #(({ x with known' := y } : decision)))
-  get_changes : ∀ (x : decision), go.IsGoStepPureDetTagged under (StructFieldGet decision.underlying go!"changes") #x (Val #(x.changes'))
-  set_changes : ∀ (x : decision) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet decision.underlying go!"changes") (PairV #x #y) (Val #(({ x with changes' := y } : decision)))
+  get'mu : ∀ (x : decision), go.IsGoStepPureDetTagged under (StructFieldGet decision.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : decision) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet decision.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : decision)))
+  get'value : ∀ (x : decision), go.IsGoStepPureDetTagged under (StructFieldGet decision.underlying go!"value") #x (Val #(x.value'))
+  set'value : ∀ (x : decision) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet decision.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : decision)))
+  get'known : ∀ (x : decision), go.IsGoStepPureDetTagged under (StructFieldGet decision.underlying go!"known") #x (Val #(x.known'))
+  set'known : ∀ (x : decision) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet decision.underlying go!"known") (PairV #x #y) (Val #(({ x with known' := y } : decision)))
+  get'changes : ∀ (x : decision), go.IsGoStepPureDetTagged under (StructFieldGet decision.underlying go!"changes") #x (Val #(x.changes'))
+  set'changes : ∀ (x : decision) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet decision.underlying go!"changes") (PairV #x #y) (Val #(({ x with changes' := y } : decision)))
   method_set : go.MethodSetIs decision.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType decision.ty) [(go!"github.com/xiang90/paxos.get", (some (go.signature.Signature [] false [go.string, go.bool, go.uint64]))), (go!"github.com/xiang90/paxos.set", (some (go.signature.Signature [go.string] false [])))]
-  ptr_get_unfold : MethodUnfold (go.GoType.PointerType decision.ty) go!"get" decision.get.impl
-  ptr_set_unfold : MethodUnfold (go.GoType.PointerType decision.ty) go!"set" decision.set.impl
+  ptr_unfold'get : MethodUnfold (go.GoType.PointerType decision.ty) go!"get" decision.get.impl
+  ptr_unfold'set : MethodUnfold (go.GoType.PointerType decision.ty) go!"set" decision.set.impl
 
 attribute [instance] decision.TypeAssumptions.type_repr
   decision.TypeAssumptions.underlying
-  decision.TypeAssumptions.get_mu
-  decision.TypeAssumptions.set_mu
-  decision.TypeAssumptions.get_value
-  decision.TypeAssumptions.set_value
-  decision.TypeAssumptions.get_known
-  decision.TypeAssumptions.set_known
-  decision.TypeAssumptions.get_changes
-  decision.TypeAssumptions.set_changes
+  decision.TypeAssumptions.get'mu
+  decision.TypeAssumptions.set'mu
+  decision.TypeAssumptions.get'value
+  decision.TypeAssumptions.set'value
+  decision.TypeAssumptions.get'known
+  decision.TypeAssumptions.set'known
+  decision.TypeAssumptions.get'changes
+  decision.TypeAssumptions.set'changes
   decision.TypeAssumptions.method_set
   decision.TypeAssumptions.ptr_method_set
-  decision.TypeAssumptions.ptr_get_unfold
-  decision.TypeAssumptions.ptr_set_unfold
+  decision.TypeAssumptions.ptr_unfold'get
+  decision.TypeAssumptions.ptr_unfold'set
 
 structure NetCluster [GooseExts] where
   mk ::
@@ -3284,7 +3284,7 @@ noncomputable instance NetCluster.zero_val [GooseExts] : ZeroVal NetCluster :=
 @[irreducible] noncomputable def NetCluster.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NetCluster.fieldsUnsealed
 
-noncomputable instance equals_unfold_NetCluster [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'NetCluster [GooseExts] [GoGlobalContext] :
     EqualsUnfold NetCluster.fields NetCluster.fieldsUnsealed :=
   ⟨by unfold NetCluster.fields; rfl⟩
 
@@ -3294,31 +3294,31 @@ noncomputable instance equals_unfold_NetCluster [GooseExts] [GoGlobalContext] :
 class NetCluster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NetCluster.underlying NetCluster
   underlying : go.UnderlyingDirectedEq NetCluster.ty NetCluster.underlying
-  get_node : ∀ (x : NetCluster), go.IsGoStepPureDetTagged under (StructFieldGet NetCluster.underlying go!"node") #x (Val #(x.node'))
-  set_node : ∀ (x : NetCluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet NetCluster.underlying go!"node") (PairV #x #y) (Val #(({ x with node' := y } : NetCluster)))
-  get_acceptors : ∀ (x : NetCluster), go.IsGoStepPureDetTagged under (StructFieldGet NetCluster.underlying go!"acceptors") #x (Val #(x.acceptors'))
-  set_acceptors : ∀ (x : NetCluster) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetCluster.underlying go!"acceptors") (PairV #x #y) (Val #(({ x with acceptors' := y } : NetCluster)))
-  get_mu : ∀ (x : NetCluster), go.IsGoStepPureDetTagged under (StructFieldGet NetCluster.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : NetCluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet NetCluster.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : NetCluster)))
-  get_used : ∀ (x : NetCluster), go.IsGoStepPureDetTagged under (StructFieldGet NetCluster.underlying go!"used") #x (Val #(x.used'))
-  set_used : ∀ (x : NetCluster) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetCluster.underlying go!"used") (PairV #x #y) (Val #(({ x with used' := y } : NetCluster)))
+  get'node : ∀ (x : NetCluster), go.IsGoStepPureDetTagged under (StructFieldGet NetCluster.underlying go!"node") #x (Val #(x.node'))
+  set'node : ∀ (x : NetCluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet NetCluster.underlying go!"node") (PairV #x #y) (Val #(({ x with node' := y } : NetCluster)))
+  get'acceptors : ∀ (x : NetCluster), go.IsGoStepPureDetTagged under (StructFieldGet NetCluster.underlying go!"acceptors") #x (Val #(x.acceptors'))
+  set'acceptors : ∀ (x : NetCluster) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetCluster.underlying go!"acceptors") (PairV #x #y) (Val #(({ x with acceptors' := y } : NetCluster)))
+  get'mu : ∀ (x : NetCluster), go.IsGoStepPureDetTagged under (StructFieldGet NetCluster.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : NetCluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet NetCluster.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : NetCluster)))
+  get'used : ∀ (x : NetCluster), go.IsGoStepPureDetTagged under (StructFieldGet NetCluster.underlying go!"used") #x (Val #(x.used'))
+  set'used : ∀ (x : NetCluster) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NetCluster.underlying go!"used") (PairV #x #y) (Val #(({ x with used' := y } : NetCluster)))
   method_set : go.MethodSetIs NetCluster.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType NetCluster.ty) [(go!"Propose", (some (go.signature.Signature [go.uint64, go.string, go.uint64] false [go.string, go.bool])))]
-  ptr_Propose_unfold : MethodUnfold (go.GoType.PointerType NetCluster.ty) go!"Propose" NetCluster.Propose.impl
+  ptr_unfold'Propose : MethodUnfold (go.GoType.PointerType NetCluster.ty) go!"Propose" NetCluster.Propose.impl
 
 attribute [instance] NetCluster.TypeAssumptions.type_repr
   NetCluster.TypeAssumptions.underlying
-  NetCluster.TypeAssumptions.get_node
-  NetCluster.TypeAssumptions.set_node
-  NetCluster.TypeAssumptions.get_acceptors
-  NetCluster.TypeAssumptions.set_acceptors
-  NetCluster.TypeAssumptions.get_mu
-  NetCluster.TypeAssumptions.set_mu
-  NetCluster.TypeAssumptions.get_used
-  NetCluster.TypeAssumptions.set_used
+  NetCluster.TypeAssumptions.get'node
+  NetCluster.TypeAssumptions.set'node
+  NetCluster.TypeAssumptions.get'acceptors
+  NetCluster.TypeAssumptions.set'acceptors
+  NetCluster.TypeAssumptions.get'mu
+  NetCluster.TypeAssumptions.set'mu
+  NetCluster.TypeAssumptions.get'used
+  NetCluster.TypeAssumptions.set'used
   NetCluster.TypeAssumptions.method_set
   NetCluster.TypeAssumptions.ptr_method_set
-  NetCluster.TypeAssumptions.ptr_Propose_unfold
+  NetCluster.TypeAssumptions.ptr_unfold'Propose
 
 structure paxosNetwork [GooseExts] where
   mk ::
@@ -3333,7 +3333,7 @@ noncomputable instance paxosNetwork.zero_val [GooseExts] : ZeroVal paxosNetwork 
 @[irreducible] noncomputable def paxosNetwork.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   paxosNetwork.fieldsUnsealed
 
-noncomputable instance equals_unfold_paxosNetwork [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'paxosNetwork [GooseExts] [GoGlobalContext] :
     EqualsUnfold paxosNetwork.fields paxosNetwork.fieldsUnsealed :=
   ⟨by unfold paxosNetwork.fields; rfl⟩
 
@@ -3343,25 +3343,25 @@ noncomputable instance equals_unfold_paxosNetwork [GooseExts] [GoGlobalContext] 
 class paxosNetwork.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying paxosNetwork.underlying paxosNetwork
   underlying : go.UnderlyingDirectedEq paxosNetwork.ty paxosNetwork.underlying
-  get_recvQueues : ∀ (x : paxosNetwork), go.IsGoStepPureDetTagged under (StructFieldGet paxosNetwork.underlying go!"recvQueues") #x (Val #(x.recvQueues'))
-  set_recvQueues : ∀ (x : paxosNetwork) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet paxosNetwork.underlying go!"recvQueues") (PairV #x #y) (Val #(({ x with recvQueues' := y } : paxosNetwork)))
+  get'recvQueues : ∀ (x : paxosNetwork), go.IsGoStepPureDetTagged under (StructFieldGet paxosNetwork.underlying go!"recvQueues") #x (Val #(x.recvQueues'))
+  set'recvQueues : ∀ (x : paxosNetwork) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet paxosNetwork.underlying go!"recvQueues") (PairV #x #y) (Val #(({ x with recvQueues' := y } : paxosNetwork)))
   method_set : go.MethodSetIs paxosNetwork.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType paxosNetwork.ty) [(go!"github.com/xiang90/paxos.agentNetwork", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType agentNetwork.ty)]))), (go!"github.com/xiang90/paxos.empty", (some (go.signature.Signature [] false [go.bool]))), (go!"github.com/xiang90/paxos.recvFrom", (some (go.signature.Signature [go.int, _root_.Perennial.time.Duration.ty] false [message.ty, go.bool]))), (go!"github.com/xiang90/paxos.send", (some (go.signature.Signature [message.ty] false [])))]
-  ptr_agentNetwork_unfold : MethodUnfold (go.GoType.PointerType paxosNetwork.ty) go!"agentNetwork" paxosNetwork.agentNetwork.impl
-  ptr_empty_unfold : MethodUnfold (go.GoType.PointerType paxosNetwork.ty) go!"empty" paxosNetwork.empty.impl
-  ptr_recvFrom_unfold : MethodUnfold (go.GoType.PointerType paxosNetwork.ty) go!"recvFrom" paxosNetwork.recvFrom.impl
-  ptr_send_unfold : MethodUnfold (go.GoType.PointerType paxosNetwork.ty) go!"send" paxosNetwork.send.impl
+  ptr_unfold'agentNetwork : MethodUnfold (go.GoType.PointerType paxosNetwork.ty) go!"agentNetwork" paxosNetwork.agentNetwork.impl
+  ptr_unfold'empty : MethodUnfold (go.GoType.PointerType paxosNetwork.ty) go!"empty" paxosNetwork.empty.impl
+  ptr_unfold'recvFrom : MethodUnfold (go.GoType.PointerType paxosNetwork.ty) go!"recvFrom" paxosNetwork.recvFrom.impl
+  ptr_unfold'send : MethodUnfold (go.GoType.PointerType paxosNetwork.ty) go!"send" paxosNetwork.send.impl
 
 attribute [instance] paxosNetwork.TypeAssumptions.type_repr
   paxosNetwork.TypeAssumptions.underlying
-  paxosNetwork.TypeAssumptions.get_recvQueues
-  paxosNetwork.TypeAssumptions.set_recvQueues
+  paxosNetwork.TypeAssumptions.get'recvQueues
+  paxosNetwork.TypeAssumptions.set'recvQueues
   paxosNetwork.TypeAssumptions.method_set
   paxosNetwork.TypeAssumptions.ptr_method_set
-  paxosNetwork.TypeAssumptions.ptr_agentNetwork_unfold
-  paxosNetwork.TypeAssumptions.ptr_empty_unfold
-  paxosNetwork.TypeAssumptions.ptr_recvFrom_unfold
-  paxosNetwork.TypeAssumptions.ptr_send_unfold
+  paxosNetwork.TypeAssumptions.ptr_unfold'agentNetwork
+  paxosNetwork.TypeAssumptions.ptr_unfold'empty
+  paxosNetwork.TypeAssumptions.ptr_unfold'recvFrom
+  paxosNetwork.TypeAssumptions.ptr_unfold'send
 
 structure agentNetwork [GooseExts] where
   mk ::
@@ -3378,7 +3378,7 @@ noncomputable instance agentNetwork.zero_val [GooseExts] : ZeroVal agentNetwork 
 @[irreducible] noncomputable def agentNetwork.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   agentNetwork.fieldsUnsealed
 
-noncomputable instance equals_unfold_agentNetwork [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'agentNetwork [GooseExts] [GoGlobalContext] :
     EqualsUnfold agentNetwork.fields agentNetwork.fieldsUnsealed :=
   ⟨by unfold agentNetwork.fields; rfl⟩
 
@@ -3388,43 +3388,43 @@ noncomputable instance equals_unfold_agentNetwork [GooseExts] [GoGlobalContext] 
 class agentNetwork.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying agentNetwork.underlying agentNetwork
   underlying : go.UnderlyingDirectedEq agentNetwork.ty agentNetwork.underlying
-  get_id : ∀ (x : agentNetwork), go.IsGoStepPureDetTagged under (StructFieldGet agentNetwork.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : agentNetwork) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet agentNetwork.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : agentNetwork)))
-  get_paxosNetwork : ∀ (x : agentNetwork), go.IsGoStepPureDetTagged under (StructFieldGet agentNetwork.underlying go!"paxosNetwork") #x (Val #(x.paxosNetwork'))
-  set_paxosNetwork : ∀ (x : agentNetwork) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet agentNetwork.underlying go!"paxosNetwork") (PairV #x #y) (Val #(({ x with paxosNetwork' := y } : agentNetwork)))
+  get'id : ∀ (x : agentNetwork), go.IsGoStepPureDetTagged under (StructFieldGet agentNetwork.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : agentNetwork) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet agentNetwork.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : agentNetwork)))
+  get'paxosNetwork : ∀ (x : agentNetwork), go.IsGoStepPureDetTagged under (StructFieldGet agentNetwork.underlying go!"paxosNetwork") #x (Val #(x.paxosNetwork'))
+  set'paxosNetwork : ∀ (x : agentNetwork) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet agentNetwork.underlying go!"paxosNetwork") (PairV #x #y) (Val #(({ x with paxosNetwork' := y } : agentNetwork)))
   method_set : go.MethodSetIs agentNetwork.ty [(go!"github.com/xiang90/paxos.agentNetwork", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType agentNetwork.ty)]))), (go!"github.com/xiang90/paxos.empty", (some (go.signature.Signature [] false [go.bool]))), (go!"github.com/xiang90/paxos.recvFrom", (some (go.signature.Signature [go.int, _root_.Perennial.time.Duration.ty] false [message.ty, go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType agentNetwork.ty) [(go!"github.com/xiang90/paxos.agentNetwork", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType agentNetwork.ty)]))), (go!"github.com/xiang90/paxos.empty", (some (go.signature.Signature [] false [go.bool]))), (go!"github.com/xiang90/paxos.recv", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [message.ty, go.bool]))), (go!"github.com/xiang90/paxos.recvFrom", (some (go.signature.Signature [go.int, _root_.Perennial.time.Duration.ty] false [message.ty, go.bool]))), (go!"github.com/xiang90/paxos.send", (some (go.signature.Signature [message.ty] false [])))]
-  agentNetwork_unfold : MethodUnfold agentNetwork.ty go!"agentNetwork" (LamV "$r"
+  unfold'agentNetwork : MethodUnfold agentNetwork.ty go!"agentNetwork" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType paxosNetwork.ty) go!"agentNetwork"))) (App (Val (GoInstruction (StructFieldGet agentNetwork.ty go!"paxosNetwork"))) (Var "$r"))))
-  empty_unfold : MethodUnfold agentNetwork.ty go!"empty" (LamV "$r"
+  unfold'empty : MethodUnfold agentNetwork.ty go!"empty" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType paxosNetwork.ty) go!"empty"))) (App (Val (GoInstruction (StructFieldGet agentNetwork.ty go!"paxosNetwork"))) (Var "$r"))))
-  recvFrom_unfold : MethodUnfold agentNetwork.ty go!"recvFrom" (LamV "$r"
+  unfold'recvFrom : MethodUnfold agentNetwork.ty go!"recvFrom" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType paxosNetwork.ty) go!"recvFrom"))) (App (Val (GoInstruction (StructFieldGet agentNetwork.ty go!"paxosNetwork"))) (Var "$r"))))
-  ptr_agentNetwork_unfold : MethodUnfold (go.GoType.PointerType agentNetwork.ty) go!"agentNetwork" (LamV "$r"
+  ptr_unfold'agentNetwork : MethodUnfold (go.GoType.PointerType agentNetwork.ty) go!"agentNetwork" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType paxosNetwork.ty) go!"agentNetwork"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType paxosNetwork.ty)))) (App (Val (GoInstruction (StructFieldRef agentNetwork.ty go!"paxosNetwork"))) (Var "$r")))))
-  ptr_empty_unfold : MethodUnfold (go.GoType.PointerType agentNetwork.ty) go!"empty" (LamV "$r"
+  ptr_unfold'empty : MethodUnfold (go.GoType.PointerType agentNetwork.ty) go!"empty" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType paxosNetwork.ty) go!"empty"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType paxosNetwork.ty)))) (App (Val (GoInstruction (StructFieldRef agentNetwork.ty go!"paxosNetwork"))) (Var "$r")))))
-  ptr_recv_unfold : MethodUnfold (go.GoType.PointerType agentNetwork.ty) go!"recv" agentNetwork.recv.impl
-  ptr_recvFrom_unfold : MethodUnfold (go.GoType.PointerType agentNetwork.ty) go!"recvFrom" (LamV "$r"
+  ptr_unfold'recv : MethodUnfold (go.GoType.PointerType agentNetwork.ty) go!"recv" agentNetwork.recv.impl
+  ptr_unfold'recvFrom : MethodUnfold (go.GoType.PointerType agentNetwork.ty) go!"recvFrom" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType paxosNetwork.ty) go!"recvFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType paxosNetwork.ty)))) (App (Val (GoInstruction (StructFieldRef agentNetwork.ty go!"paxosNetwork"))) (Var "$r")))))
-  ptr_send_unfold : MethodUnfold (go.GoType.PointerType agentNetwork.ty) go!"send" agentNetwork.send.impl
+  ptr_unfold'send : MethodUnfold (go.GoType.PointerType agentNetwork.ty) go!"send" agentNetwork.send.impl
 
 attribute [instance] agentNetwork.TypeAssumptions.type_repr
   agentNetwork.TypeAssumptions.underlying
-  agentNetwork.TypeAssumptions.get_id
-  agentNetwork.TypeAssumptions.set_id
-  agentNetwork.TypeAssumptions.get_paxosNetwork
-  agentNetwork.TypeAssumptions.set_paxosNetwork
+  agentNetwork.TypeAssumptions.get'id
+  agentNetwork.TypeAssumptions.set'id
+  agentNetwork.TypeAssumptions.get'paxosNetwork
+  agentNetwork.TypeAssumptions.set'paxosNetwork
   agentNetwork.TypeAssumptions.method_set
   agentNetwork.TypeAssumptions.ptr_method_set
-  agentNetwork.TypeAssumptions.agentNetwork_unfold
-  agentNetwork.TypeAssumptions.empty_unfold
-  agentNetwork.TypeAssumptions.recvFrom_unfold
-  agentNetwork.TypeAssumptions.ptr_agentNetwork_unfold
-  agentNetwork.TypeAssumptions.ptr_empty_unfold
-  agentNetwork.TypeAssumptions.ptr_recv_unfold
-  agentNetwork.TypeAssumptions.ptr_recvFrom_unfold
-  agentNetwork.TypeAssumptions.ptr_send_unfold
+  agentNetwork.TypeAssumptions.unfold'agentNetwork
+  agentNetwork.TypeAssumptions.unfold'empty
+  agentNetwork.TypeAssumptions.unfold'recvFrom
+  agentNetwork.TypeAssumptions.ptr_unfold'agentNetwork
+  agentNetwork.TypeAssumptions.ptr_unfold'empty
+  agentNetwork.TypeAssumptions.ptr_unfold'recv
+  agentNetwork.TypeAssumptions.ptr_unfold'recvFrom
+  agentNetwork.TypeAssumptions.ptr_unfold'send
 
 structure proposer [GooseExts] where
   mk ::
@@ -3449,7 +3449,7 @@ noncomputable instance proposer.zero_val [GooseExts] : ZeroVal proposer :=
 @[irreducible] noncomputable def proposer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   proposer.fieldsUnsealed
 
-noncomputable instance equals_unfold_proposer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'proposer [GooseExts] [GoGlobalContext] :
     EqualsUnfold proposer.fields proposer.fieldsUnsealed :=
   ⟨by unfold proposer.fields; rfl⟩
 
@@ -3459,51 +3459,51 @@ noncomputable instance equals_unfold_proposer [GooseExts] [GoGlobalContext] :
 class proposer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying proposer.underlying proposer
   underlying : go.UnderlyingDirectedEq proposer.ty proposer.underlying
-  get_id : ∀ (x : proposer), go.IsGoStepPureDetTagged under (StructFieldGet proposer.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet proposer.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : proposer)))
-  get_lastSeq : ∀ (x : proposer), go.IsGoStepPureDetTagged under (StructFieldGet proposer.underlying go!"lastSeq") #x (Val #(x.lastSeq'))
-  set_lastSeq : ∀ (x : proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet proposer.underlying go!"lastSeq") (PairV #x #y) (Val #(({ x with lastSeq' := y } : proposer)))
-  get_value : ∀ (x : proposer), go.IsGoStepPureDetTagged under (StructFieldGet proposer.underlying go!"value") #x (Val #(x.value'))
-  set_value : ∀ (x : proposer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet proposer.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : proposer)))
-  get_valueN : ∀ (x : proposer), go.IsGoStepPureDetTagged under (StructFieldGet proposer.underlying go!"valueN") #x (Val #(x.valueN'))
-  set_valueN : ∀ (x : proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet proposer.underlying go!"valueN") (PairV #x #y) (Val #(({ x with valueN' := y } : proposer)))
-  get_acceptors : ∀ (x : proposer), go.IsGoStepPureDetTagged under (StructFieldGet proposer.underlying go!"acceptors") #x (Val #(x.acceptors'))
-  set_acceptors : ∀ (x : proposer) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet proposer.underlying go!"acceptors") (PairV #x #y) (Val #(({ x with acceptors' := y } : proposer)))
-  get_nt : ∀ (x : proposer), go.IsGoStepPureDetTagged under (StructFieldGet proposer.underlying go!"nt") #x (Val #(x.nt'))
-  set_nt : ∀ (x : proposer) (y : network), go.IsGoStepPureDetTagged under (StructFieldSet proposer.underlying go!"nt") (PairV #x #y) (Val #(({ x with nt' := y } : proposer)))
+  get'id : ∀ (x : proposer), go.IsGoStepPureDetTagged under (StructFieldGet proposer.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet proposer.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : proposer)))
+  get'lastSeq : ∀ (x : proposer), go.IsGoStepPureDetTagged under (StructFieldGet proposer.underlying go!"lastSeq") #x (Val #(x.lastSeq'))
+  set'lastSeq : ∀ (x : proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet proposer.underlying go!"lastSeq") (PairV #x #y) (Val #(({ x with lastSeq' := y } : proposer)))
+  get'value : ∀ (x : proposer), go.IsGoStepPureDetTagged under (StructFieldGet proposer.underlying go!"value") #x (Val #(x.value'))
+  set'value : ∀ (x : proposer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet proposer.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : proposer)))
+  get'valueN : ∀ (x : proposer), go.IsGoStepPureDetTagged under (StructFieldGet proposer.underlying go!"valueN") #x (Val #(x.valueN'))
+  set'valueN : ∀ (x : proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet proposer.underlying go!"valueN") (PairV #x #y) (Val #(({ x with valueN' := y } : proposer)))
+  get'acceptors : ∀ (x : proposer), go.IsGoStepPureDetTagged under (StructFieldGet proposer.underlying go!"acceptors") #x (Val #(x.acceptors'))
+  set'acceptors : ∀ (x : proposer) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet proposer.underlying go!"acceptors") (PairV #x #y) (Val #(({ x with acceptors' := y } : proposer)))
+  get'nt : ∀ (x : proposer), go.IsGoStepPureDetTagged under (StructFieldGet proposer.underlying go!"nt") #x (Val #(x.nt'))
+  set'nt : ∀ (x : proposer) (y : network), go.IsGoStepPureDetTagged under (StructFieldSet proposer.underlying go!"nt") (PairV #x #y) (Val #(({ x with nt' := y } : proposer)))
   method_set : go.MethodSetIs proposer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType proposer.ty) [(go!"github.com/xiang90/paxos.majority", (some (go.signature.Signature [] false [go.int]))), (go!"github.com/xiang90/paxos.majorityReached", (some (go.signature.Signature [] false [go.bool]))), (go!"github.com/xiang90/paxos.n", (some (go.signature.Signature [] false [go.int]))), (go!"github.com/xiang90/paxos.prepare", (some (go.signature.Signature [] false [(go.GoType.SliceType message.ty)]))), (go!"github.com/xiang90/paxos.propose", (some (go.signature.Signature [] false [(go.GoType.SliceType message.ty)]))), (go!"github.com/xiang90/paxos.receivePromise", (some (go.signature.Signature [message.ty] false []))), (go!"github.com/xiang90/paxos.run", (some (go.signature.Signature [] false [])))]
-  ptr_majority_unfold : MethodUnfold (go.GoType.PointerType proposer.ty) go!"majority" proposer.majority.impl
-  ptr_majorityReached_unfold : MethodUnfold (go.GoType.PointerType proposer.ty) go!"majorityReached" proposer.majorityReached.impl
-  ptr_n_unfold : MethodUnfold (go.GoType.PointerType proposer.ty) go!"n" proposer.n.impl
-  ptr_prepare_unfold : MethodUnfold (go.GoType.PointerType proposer.ty) go!"prepare" proposer.prepare.impl
-  ptr_propose_unfold : MethodUnfold (go.GoType.PointerType proposer.ty) go!"propose" proposer.propose.impl
-  ptr_receivePromise_unfold : MethodUnfold (go.GoType.PointerType proposer.ty) go!"receivePromise" proposer.receivePromise.impl
-  ptr_run_unfold : MethodUnfold (go.GoType.PointerType proposer.ty) go!"run" proposer.run.impl
+  ptr_unfold'majority : MethodUnfold (go.GoType.PointerType proposer.ty) go!"majority" proposer.majority.impl
+  ptr_unfold'majorityReached : MethodUnfold (go.GoType.PointerType proposer.ty) go!"majorityReached" proposer.majorityReached.impl
+  ptr_unfold'n : MethodUnfold (go.GoType.PointerType proposer.ty) go!"n" proposer.n.impl
+  ptr_unfold'prepare : MethodUnfold (go.GoType.PointerType proposer.ty) go!"prepare" proposer.prepare.impl
+  ptr_unfold'propose : MethodUnfold (go.GoType.PointerType proposer.ty) go!"propose" proposer.propose.impl
+  ptr_unfold'receivePromise : MethodUnfold (go.GoType.PointerType proposer.ty) go!"receivePromise" proposer.receivePromise.impl
+  ptr_unfold'run : MethodUnfold (go.GoType.PointerType proposer.ty) go!"run" proposer.run.impl
 
 attribute [instance] proposer.TypeAssumptions.type_repr
   proposer.TypeAssumptions.underlying
-  proposer.TypeAssumptions.get_id
-  proposer.TypeAssumptions.set_id
-  proposer.TypeAssumptions.get_lastSeq
-  proposer.TypeAssumptions.set_lastSeq
-  proposer.TypeAssumptions.get_value
-  proposer.TypeAssumptions.set_value
-  proposer.TypeAssumptions.get_valueN
-  proposer.TypeAssumptions.set_valueN
-  proposer.TypeAssumptions.get_acceptors
-  proposer.TypeAssumptions.set_acceptors
-  proposer.TypeAssumptions.get_nt
-  proposer.TypeAssumptions.set_nt
+  proposer.TypeAssumptions.get'id
+  proposer.TypeAssumptions.set'id
+  proposer.TypeAssumptions.get'lastSeq
+  proposer.TypeAssumptions.set'lastSeq
+  proposer.TypeAssumptions.get'value
+  proposer.TypeAssumptions.set'value
+  proposer.TypeAssumptions.get'valueN
+  proposer.TypeAssumptions.set'valueN
+  proposer.TypeAssumptions.get'acceptors
+  proposer.TypeAssumptions.set'acceptors
+  proposer.TypeAssumptions.get'nt
+  proposer.TypeAssumptions.set'nt
   proposer.TypeAssumptions.method_set
   proposer.TypeAssumptions.ptr_method_set
-  proposer.TypeAssumptions.ptr_majority_unfold
-  proposer.TypeAssumptions.ptr_majorityReached_unfold
-  proposer.TypeAssumptions.ptr_n_unfold
-  proposer.TypeAssumptions.ptr_prepare_unfold
-  proposer.TypeAssumptions.ptr_propose_unfold
-  proposer.TypeAssumptions.ptr_receivePromise_unfold
-  proposer.TypeAssumptions.ptr_run_unfold
+  proposer.TypeAssumptions.ptr_unfold'majority
+  proposer.TypeAssumptions.ptr_unfold'majorityReached
+  proposer.TypeAssumptions.ptr_unfold'n
+  proposer.TypeAssumptions.ptr_unfold'prepare
+  proposer.TypeAssumptions.ptr_unfold'propose
+  proposer.TypeAssumptions.ptr_unfold'receivePromise
+  proposer.TypeAssumptions.ptr_unfold'run
 
 structure tcpNode [GooseExts] where
   mk ::
@@ -3520,7 +3520,7 @@ noncomputable instance tcpNode.zero_val [GooseExts] : ZeroVal tcpNode :=
 @[irreducible] noncomputable def tcpNode.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   tcpNode.fieldsUnsealed
 
-noncomputable instance equals_unfold_tcpNode [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'tcpNode [GooseExts] [GoGlobalContext] :
     EqualsUnfold tcpNode.fields tcpNode.fieldsUnsealed :=
   ⟨by unfold tcpNode.fields; rfl⟩
 
@@ -3530,31 +3530,31 @@ noncomputable instance equals_unfold_tcpNode [GooseExts] [GoGlobalContext] :
 class tcpNode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tcpNode.underlying tcpNode
   underlying : go.UnderlyingDirectedEq tcpNode.ty tcpNode.underlying
-  get_addrs : ∀ (x : tcpNode), go.IsGoStepPureDetTagged under (StructFieldGet tcpNode.underlying go!"addrs") #x (Val #(x.addrs'))
-  set_addrs : ∀ (x : tcpNode) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet tcpNode.underlying go!"addrs") (PairV #x #y) (Val #(({ x with addrs' := y } : tcpNode)))
-  get_inbox : ∀ (x : tcpNode), go.IsGoStepPureDetTagged under (StructFieldGet tcpNode.underlying go!"inbox") #x (Val #(x.inbox'))
-  set_inbox : ∀ (x : tcpNode) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet tcpNode.underlying go!"inbox") (PairV #x #y) (Val #(({ x with inbox' := y } : tcpNode)))
+  get'addrs : ∀ (x : tcpNode), go.IsGoStepPureDetTagged under (StructFieldGet tcpNode.underlying go!"addrs") #x (Val #(x.addrs'))
+  set'addrs : ∀ (x : tcpNode) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet tcpNode.underlying go!"addrs") (PairV #x #y) (Val #(({ x with addrs' := y } : tcpNode)))
+  get'inbox : ∀ (x : tcpNode), go.IsGoStepPureDetTagged under (StructFieldGet tcpNode.underlying go!"inbox") #x (Val #(x.inbox'))
+  set'inbox : ∀ (x : tcpNode) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet tcpNode.underlying go!"inbox") (PairV #x #y) (Val #(({ x with inbox' := y } : tcpNode)))
   method_set : go.MethodSetIs tcpNode.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType tcpNode.ty) [(go!"github.com/xiang90/paxos.acceptLoop", (some (go.signature.Signature [_root_.Perennial.net.Listener.ty] false []))), (go!"github.com/xiang90/paxos.deliver", (some (go.signature.Signature [message.ty] false []))), (go!"github.com/xiang90/paxos.network", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType tcpNetwork.ty)]))), (go!"github.com/xiang90/paxos.readLoop", (some (go.signature.Signature [_root_.Perennial.net.Conn.ty] false []))), (go!"github.com/xiang90/paxos.serve", (some (go.signature.Signature [go.string, go.uint64] false [go.bool])))]
-  ptr_acceptLoop_unfold : MethodUnfold (go.GoType.PointerType tcpNode.ty) go!"acceptLoop" tcpNode.acceptLoop.impl
-  ptr_deliver_unfold : MethodUnfold (go.GoType.PointerType tcpNode.ty) go!"deliver" tcpNode.deliver.impl
-  ptr_network_unfold : MethodUnfold (go.GoType.PointerType tcpNode.ty) go!"network" tcpNode.network.impl
-  ptr_readLoop_unfold : MethodUnfold (go.GoType.PointerType tcpNode.ty) go!"readLoop" tcpNode.readLoop.impl
-  ptr_serve_unfold : MethodUnfold (go.GoType.PointerType tcpNode.ty) go!"serve" tcpNode.serve.impl
+  ptr_unfold'acceptLoop : MethodUnfold (go.GoType.PointerType tcpNode.ty) go!"acceptLoop" tcpNode.acceptLoop.impl
+  ptr_unfold'deliver : MethodUnfold (go.GoType.PointerType tcpNode.ty) go!"deliver" tcpNode.deliver.impl
+  ptr_unfold'network : MethodUnfold (go.GoType.PointerType tcpNode.ty) go!"network" tcpNode.network.impl
+  ptr_unfold'readLoop : MethodUnfold (go.GoType.PointerType tcpNode.ty) go!"readLoop" tcpNode.readLoop.impl
+  ptr_unfold'serve : MethodUnfold (go.GoType.PointerType tcpNode.ty) go!"serve" tcpNode.serve.impl
 
 attribute [instance] tcpNode.TypeAssumptions.type_repr
   tcpNode.TypeAssumptions.underlying
-  tcpNode.TypeAssumptions.get_addrs
-  tcpNode.TypeAssumptions.set_addrs
-  tcpNode.TypeAssumptions.get_inbox
-  tcpNode.TypeAssumptions.set_inbox
+  tcpNode.TypeAssumptions.get'addrs
+  tcpNode.TypeAssumptions.set'addrs
+  tcpNode.TypeAssumptions.get'inbox
+  tcpNode.TypeAssumptions.set'inbox
   tcpNode.TypeAssumptions.method_set
   tcpNode.TypeAssumptions.ptr_method_set
-  tcpNode.TypeAssumptions.ptr_acceptLoop_unfold
-  tcpNode.TypeAssumptions.ptr_deliver_unfold
-  tcpNode.TypeAssumptions.ptr_network_unfold
-  tcpNode.TypeAssumptions.ptr_readLoop_unfold
-  tcpNode.TypeAssumptions.ptr_serve_unfold
+  tcpNode.TypeAssumptions.ptr_unfold'acceptLoop
+  tcpNode.TypeAssumptions.ptr_unfold'deliver
+  tcpNode.TypeAssumptions.ptr_unfold'network
+  tcpNode.TypeAssumptions.ptr_unfold'readLoop
+  tcpNode.TypeAssumptions.ptr_unfold'serve
 
 structure tcpNetwork [GooseExts] where
   mk ::
@@ -3573,7 +3573,7 @@ noncomputable instance tcpNetwork.zero_val [GooseExts] : ZeroVal tcpNetwork :=
 @[irreducible] noncomputable def tcpNetwork.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   tcpNetwork.fieldsUnsealed
 
-noncomputable instance equals_unfold_tcpNetwork [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'tcpNetwork [GooseExts] [GoGlobalContext] :
     EqualsUnfold tcpNetwork.fields tcpNetwork.fieldsUnsealed :=
   ⟨by unfold tcpNetwork.fields; rfl⟩
 
@@ -3583,114 +3583,114 @@ noncomputable instance equals_unfold_tcpNetwork [GooseExts] [GoGlobalContext] :
 class tcpNetwork.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tcpNetwork.underlying tcpNetwork
   underlying : go.UnderlyingDirectedEq tcpNetwork.ty tcpNetwork.underlying
-  get_node : ∀ (x : tcpNetwork), go.IsGoStepPureDetTagged under (StructFieldGet tcpNetwork.underlying go!"node") #x (Val #(x.node'))
-  set_node : ∀ (x : tcpNetwork) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet tcpNetwork.underlying go!"node") (PairV #x #y) (Val #(({ x with node' := y } : tcpNetwork)))
-  get_me : ∀ (x : tcpNetwork), go.IsGoStepPureDetTagged under (StructFieldGet tcpNetwork.underlying go!"me") #x (Val #(x.me'))
-  set_me : ∀ (x : tcpNetwork) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet tcpNetwork.underlying go!"me") (PairV #x #y) (Val #(({ x with me' := y } : tcpNetwork)))
-  get_conns : ∀ (x : tcpNetwork), go.IsGoStepPureDetTagged under (StructFieldGet tcpNetwork.underlying go!"conns") #x (Val #(x.conns'))
-  set_conns : ∀ (x : tcpNetwork) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet tcpNetwork.underlying go!"conns") (PairV #x #y) (Val #(({ x with conns' := y } : tcpNetwork)))
+  get'node : ∀ (x : tcpNetwork), go.IsGoStepPureDetTagged under (StructFieldGet tcpNetwork.underlying go!"node") #x (Val #(x.node'))
+  set'node : ∀ (x : tcpNetwork) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet tcpNetwork.underlying go!"node") (PairV #x #y) (Val #(({ x with node' := y } : tcpNetwork)))
+  get'me : ∀ (x : tcpNetwork), go.IsGoStepPureDetTagged under (StructFieldGet tcpNetwork.underlying go!"me") #x (Val #(x.me'))
+  set'me : ∀ (x : tcpNetwork) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet tcpNetwork.underlying go!"me") (PairV #x #y) (Val #(({ x with me' := y } : tcpNetwork)))
+  get'conns : ∀ (x : tcpNetwork), go.IsGoStepPureDetTagged under (StructFieldGet tcpNetwork.underlying go!"conns") #x (Val #(x.conns'))
+  set'conns : ∀ (x : tcpNetwork) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet tcpNetwork.underlying go!"conns") (PairV #x #y) (Val #(({ x with conns' := y } : tcpNetwork)))
   method_set : go.MethodSetIs tcpNetwork.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType tcpNetwork.ty) [(go!"github.com/xiang90/paxos.poll", (some (go.signature.Signature [] false [message.ty, go.bool]))), (go!"github.com/xiang90/paxos.recv", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [message.ty, go.bool]))), (go!"github.com/xiang90/paxos.send", (some (go.signature.Signature [message.ty] false [])))]
-  ptr_poll_unfold : MethodUnfold (go.GoType.PointerType tcpNetwork.ty) go!"poll" tcpNetwork.poll.impl
-  ptr_recv_unfold : MethodUnfold (go.GoType.PointerType tcpNetwork.ty) go!"recv" tcpNetwork.recv.impl
-  ptr_send_unfold : MethodUnfold (go.GoType.PointerType tcpNetwork.ty) go!"send" tcpNetwork.send.impl
+  ptr_unfold'poll : MethodUnfold (go.GoType.PointerType tcpNetwork.ty) go!"poll" tcpNetwork.poll.impl
+  ptr_unfold'recv : MethodUnfold (go.GoType.PointerType tcpNetwork.ty) go!"recv" tcpNetwork.recv.impl
+  ptr_unfold'send : MethodUnfold (go.GoType.PointerType tcpNetwork.ty) go!"send" tcpNetwork.send.impl
 
 attribute [instance] tcpNetwork.TypeAssumptions.type_repr
   tcpNetwork.TypeAssumptions.underlying
-  tcpNetwork.TypeAssumptions.get_node
-  tcpNetwork.TypeAssumptions.set_node
-  tcpNetwork.TypeAssumptions.get_me
-  tcpNetwork.TypeAssumptions.set_me
-  tcpNetwork.TypeAssumptions.get_conns
-  tcpNetwork.TypeAssumptions.set_conns
+  tcpNetwork.TypeAssumptions.get'node
+  tcpNetwork.TypeAssumptions.set'node
+  tcpNetwork.TypeAssumptions.get'me
+  tcpNetwork.TypeAssumptions.set'me
+  tcpNetwork.TypeAssumptions.get'conns
+  tcpNetwork.TypeAssumptions.set'conns
   tcpNetwork.TypeAssumptions.method_set
   tcpNetwork.TypeAssumptions.ptr_method_set
-  tcpNetwork.TypeAssumptions.ptr_poll_unfold
-  tcpNetwork.TypeAssumptions.ptr_recv_unfold
-  tcpNetwork.TypeAssumptions.ptr_send_unfold
+  tcpNetwork.TypeAssumptions.ptr_unfold'poll
+  tcpNetwork.TypeAssumptions.ptr_unfold'recv
+  tcpNetwork.TypeAssumptions.ptr_unfold'send
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  acceptor_instance : acceptor.TypeAssumptions
-  learner_instance : learner.TypeAssumptions
-  msgType_instance : msgType.TypeAssumptions
-  message_instance : message.TypeAssumptions
-  promise_instance : promise.TypeAssumptions
-  accept_instance : accept.TypeAssumptions
-  decision_instance : decision.TypeAssumptions
-  NetCluster_instance : NetCluster.TypeAssumptions
-  network_instance : network.TypeAssumptions
-  paxosNetwork_instance : paxosNetwork.TypeAssumptions
-  agentNetwork_instance : agentNetwork.TypeAssumptions
-  proposer_instance : proposer.TypeAssumptions
-  tcpNode_instance : tcpNode.TypeAssumptions
-  tcpNetwork_instance : tcpNetwork.TypeAssumptions
-  newAcceptor_unfold : FuncUnfold newAcceptor [] newAcceptor.impl
-  newLearner_unfold : FuncUnfold newLearner [] newLearner.impl
-  marshalMessage_unfold : FuncUnfold marshalMessage [] marshalMessage.impl
-  unmarshalMessage_unfold : FuncUnfold unmarshalMessage [] unmarshalMessage.impl
-  netProposerId_unfold : FuncUnfold netProposerId [] netProposerId.impl
-  netLearnerId_unfold : FuncUnfold netLearnerId [] netLearnerId.impl
-  netBoxId_unfold : FuncUnfold netBoxId [] netBoxId.impl
-  agentAddrs_unfold : FuncUnfold agentAddrs [] agentAddrs.impl
-  acceptorIds_unfold : FuncUnfold acceptorIds [] acceptorIds.impl
-  learnerIds_unfold : FuncUnfold learnerIds [] learnerIds.impl
-  RunServer_unfold : FuncUnfold RunServer [] RunServer.impl
-  runLearner_unfold : FuncUnfold runLearner [] runLearner.impl
-  announce_unfold : FuncUnfold announce [] announce.impl
-  NewNetCluster_unfold : FuncUnfold NewNetCluster [] NewNetCluster.impl
-  newPaxosNetwork_unfold : FuncUnfold newPaxosNetwork [] newPaxosNetwork.impl
-  newProposer_unfold : FuncUnfold newProposer [] newProposer.impl
-  newTCPNode_unfold : FuncUnfold newTCPNode [] newTCPNode.impl
-  readFull_unfold : FuncUnfold readFull [] readFull.impl
-  readFrame_unfold : FuncUnfold readFrame [] readFrame.impl
-  encodeFrame_unfold : FuncUnfold encodeFrame [] encodeFrame.impl
-  writeFrame_unfold : FuncUnfold writeFrame [] writeFrame.impl
-  import_log_Assumption : _root_.Perennial.log.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_marshal_Assumption : _root_.Perennial.github_com.tchajed.marshal.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
+  instance'acceptor : acceptor.TypeAssumptions
+  instance'learner : learner.TypeAssumptions
+  instance'msgType : msgType.TypeAssumptions
+  instance'message : message.TypeAssumptions
+  instance'promise : promise.TypeAssumptions
+  instance'accept : accept.TypeAssumptions
+  instance'decision : decision.TypeAssumptions
+  instance'NetCluster : NetCluster.TypeAssumptions
+  instance'network : network.TypeAssumptions
+  instance'paxosNetwork : paxosNetwork.TypeAssumptions
+  instance'agentNetwork : agentNetwork.TypeAssumptions
+  instance'proposer : proposer.TypeAssumptions
+  instance'tcpNode : tcpNode.TypeAssumptions
+  instance'tcpNetwork : tcpNetwork.TypeAssumptions
+  unfold'newAcceptor : FuncUnfold newAcceptor [] newAcceptor.impl
+  unfold'newLearner : FuncUnfold newLearner [] newLearner.impl
+  unfold'marshalMessage : FuncUnfold marshalMessage [] marshalMessage.impl
+  unfold'unmarshalMessage : FuncUnfold unmarshalMessage [] unmarshalMessage.impl
+  unfold'netProposerId : FuncUnfold netProposerId [] netProposerId.impl
+  unfold'netLearnerId : FuncUnfold netLearnerId [] netLearnerId.impl
+  unfold'netBoxId : FuncUnfold netBoxId [] netBoxId.impl
+  unfold'agentAddrs : FuncUnfold agentAddrs [] agentAddrs.impl
+  unfold'acceptorIds : FuncUnfold acceptorIds [] acceptorIds.impl
+  unfold'learnerIds : FuncUnfold learnerIds [] learnerIds.impl
+  unfold'RunServer : FuncUnfold RunServer [] RunServer.impl
+  unfold'runLearner : FuncUnfold runLearner [] runLearner.impl
+  unfold'announce : FuncUnfold announce [] announce.impl
+  unfold'NewNetCluster : FuncUnfold NewNetCluster [] NewNetCluster.impl
+  unfold'newPaxosNetwork : FuncUnfold newPaxosNetwork [] newPaxosNetwork.impl
+  unfold'newProposer : FuncUnfold newProposer [] newProposer.impl
+  unfold'newTCPNode : FuncUnfold newTCPNode [] newTCPNode.impl
+  unfold'readFull : FuncUnfold readFull [] readFull.impl
+  unfold'readFrame : FuncUnfold readFrame [] readFrame.impl
+  unfold'encodeFrame : FuncUnfold encodeFrame [] encodeFrame.impl
+  unfold'writeFrame : FuncUnfold writeFrame [] writeFrame.impl
+  import'log : _root_.Perennial.log.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'marshal : _root_.Perennial.github_com.tchajed.marshal.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'net : _root_.Perennial.net.Assumptions
 
-attribute [instance] Assumptions.acceptor_instance
-  Assumptions.learner_instance
-  Assumptions.msgType_instance
-  Assumptions.message_instance
-  Assumptions.promise_instance
-  Assumptions.accept_instance
-  Assumptions.decision_instance
-  Assumptions.NetCluster_instance
-  Assumptions.network_instance
-  Assumptions.paxosNetwork_instance
-  Assumptions.agentNetwork_instance
-  Assumptions.proposer_instance
-  Assumptions.tcpNode_instance
-  Assumptions.tcpNetwork_instance
-  Assumptions.newAcceptor_unfold
-  Assumptions.newLearner_unfold
-  Assumptions.marshalMessage_unfold
-  Assumptions.unmarshalMessage_unfold
-  Assumptions.netProposerId_unfold
-  Assumptions.netLearnerId_unfold
-  Assumptions.netBoxId_unfold
-  Assumptions.agentAddrs_unfold
-  Assumptions.acceptorIds_unfold
-  Assumptions.learnerIds_unfold
-  Assumptions.RunServer_unfold
-  Assumptions.runLearner_unfold
-  Assumptions.announce_unfold
-  Assumptions.NewNetCluster_unfold
-  Assumptions.newPaxosNetwork_unfold
-  Assumptions.newProposer_unfold
-  Assumptions.newTCPNode_unfold
-  Assumptions.readFull_unfold
-  Assumptions.readFrame_unfold
-  Assumptions.encodeFrame_unfold
-  Assumptions.writeFrame_unfold
-  Assumptions.import_log_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_marshal_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_net_Assumption
+attribute [instance] Assumptions.instance'acceptor
+  Assumptions.instance'learner
+  Assumptions.instance'msgType
+  Assumptions.instance'message
+  Assumptions.instance'promise
+  Assumptions.instance'accept
+  Assumptions.instance'decision
+  Assumptions.instance'NetCluster
+  Assumptions.instance'network
+  Assumptions.instance'paxosNetwork
+  Assumptions.instance'agentNetwork
+  Assumptions.instance'proposer
+  Assumptions.instance'tcpNode
+  Assumptions.instance'tcpNetwork
+  Assumptions.unfold'newAcceptor
+  Assumptions.unfold'newLearner
+  Assumptions.unfold'marshalMessage
+  Assumptions.unfold'unmarshalMessage
+  Assumptions.unfold'netProposerId
+  Assumptions.unfold'netLearnerId
+  Assumptions.unfold'netBoxId
+  Assumptions.unfold'agentAddrs
+  Assumptions.unfold'acceptorIds
+  Assumptions.unfold'learnerIds
+  Assumptions.unfold'RunServer
+  Assumptions.unfold'runLearner
+  Assumptions.unfold'announce
+  Assumptions.unfold'NewNetCluster
+  Assumptions.unfold'newPaxosNetwork
+  Assumptions.unfold'newProposer
+  Assumptions.unfold'newTCPNode
+  Assumptions.unfold'readFull
+  Assumptions.unfold'readFrame
+  Assumptions.unfold'encodeFrame
+  Assumptions.unfold'writeFrame
+  Assumptions.import'log
+  Assumptions.import'time
+  Assumptions.import'marshal
+  Assumptions.import'sync
+  Assumptions.import'net
 
 end github_com.xiang90.paxos
 

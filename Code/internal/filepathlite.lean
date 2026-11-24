@@ -159,7 +159,7 @@ noncomputable def lazybuf.append.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
 
 /-- go: path.go:57:19 -/
-noncomputable def lazybuf.string.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def lazybuf.string''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -690,7 +690,7 @@ noncomputable instance lazybuf.zero_val [GooseExts] : ZeroVal lazybuf :=
 @[irreducible] noncomputable def lazybuf.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   lazybuf.fieldsUnsealed
 
-noncomputable instance equals_unfold_lazybuf [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'lazybuf [GooseExts] [GoGlobalContext] :
     EqualsUnfold lazybuf.fields lazybuf.fieldsUnsealed :=
   ⟨by unfold lazybuf.fields; rfl⟩
 
@@ -700,68 +700,68 @@ noncomputable instance equals_unfold_lazybuf [GooseExts] [GoGlobalContext] :
 class lazybuf.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lazybuf.underlying lazybuf
   underlying : go.UnderlyingDirectedEq lazybuf.ty lazybuf.underlying
-  get_path : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"path") #x (Val #(x.path'))
-  set_path : ∀ (x : lazybuf) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"path") (PairV #x #y) (Val #(({ x with path' := y } : lazybuf)))
-  get_buf : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"buf") #x (Val #(x.buf'))
-  set_buf : ∀ (x : lazybuf) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : lazybuf)))
-  get_w : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"w") #x (Val #(x.w'))
-  set_w : ∀ (x : lazybuf) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : lazybuf)))
-  get_volAndPath : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"volAndPath") #x (Val #(x.volAndPath'))
-  set_volAndPath : ∀ (x : lazybuf) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"volAndPath") (PairV #x #y) (Val #(({ x with volAndPath' := y } : lazybuf)))
-  get_volLen : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"volLen") #x (Val #(x.volLen'))
-  set_volLen : ∀ (x : lazybuf) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"volLen") (PairV #x #y) (Val #(({ x with volLen' := y } : lazybuf)))
+  get'path : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"path") #x (Val #(x.path'))
+  set'path : ∀ (x : lazybuf) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"path") (PairV #x #y) (Val #(({ x with path' := y } : lazybuf)))
+  get'buf : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"buf") #x (Val #(x.buf'))
+  set'buf : ∀ (x : lazybuf) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : lazybuf)))
+  get'w : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"w") #x (Val #(x.w'))
+  set'w : ∀ (x : lazybuf) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : lazybuf)))
+  get'volAndPath : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"volAndPath") #x (Val #(x.volAndPath'))
+  set'volAndPath : ∀ (x : lazybuf) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"volAndPath") (PairV #x #y) (Val #(({ x with volAndPath' := y } : lazybuf)))
+  get'volLen : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"volLen") #x (Val #(x.volLen'))
+  set'volLen : ∀ (x : lazybuf) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"volLen") (PairV #x #y) (Val #(({ x with volLen' := y } : lazybuf)))
   method_set : go.MethodSetIs lazybuf.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType lazybuf.ty) [(go!"internal/filepathlite.append", (some (go.signature.Signature [go.byte] false []))), (go!"internal/filepathlite.index", (some (go.signature.Signature [go.int] false [go.byte]))), (go!"internal/filepathlite.prepend", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] true []))), (go!"internal/filepathlite.string", (some (go.signature.Signature [] false [go.string])))]
-  ptr_append_unfold : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"append" lazybuf.append.impl
-  ptr_index_unfold : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"index" lazybuf.index.impl
-  ptr_string_unfold : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"string" lazybuf.string.impl
+  ptr_unfold'append : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"append" lazybuf.append.impl
+  ptr_unfold'index : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"index" lazybuf.index.impl
+  ptr_unfold'string : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"string" lazybuf.string''.impl
 
 attribute [instance] lazybuf.TypeAssumptions.type_repr
   lazybuf.TypeAssumptions.underlying
-  lazybuf.TypeAssumptions.get_path
-  lazybuf.TypeAssumptions.set_path
-  lazybuf.TypeAssumptions.get_buf
-  lazybuf.TypeAssumptions.set_buf
-  lazybuf.TypeAssumptions.get_w
-  lazybuf.TypeAssumptions.set_w
-  lazybuf.TypeAssumptions.get_volAndPath
-  lazybuf.TypeAssumptions.set_volAndPath
-  lazybuf.TypeAssumptions.get_volLen
-  lazybuf.TypeAssumptions.set_volLen
+  lazybuf.TypeAssumptions.get'path
+  lazybuf.TypeAssumptions.set'path
+  lazybuf.TypeAssumptions.get'buf
+  lazybuf.TypeAssumptions.set'buf
+  lazybuf.TypeAssumptions.get'w
+  lazybuf.TypeAssumptions.set'w
+  lazybuf.TypeAssumptions.get'volAndPath
+  lazybuf.TypeAssumptions.set'volAndPath
+  lazybuf.TypeAssumptions.get'volLen
+  lazybuf.TypeAssumptions.set'volLen
   lazybuf.TypeAssumptions.method_set
   lazybuf.TypeAssumptions.ptr_method_set
-  lazybuf.TypeAssumptions.ptr_append_unfold
-  lazybuf.TypeAssumptions.ptr_index_unfold
-  lazybuf.TypeAssumptions.ptr_string_unfold
+  lazybuf.TypeAssumptions.ptr_unfold'append
+  lazybuf.TypeAssumptions.ptr_unfold'index
+  lazybuf.TypeAssumptions.ptr_unfold'string
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  lazybuf_instance : lazybuf.TypeAssumptions
-  Clean_unfold : FuncUnfold Clean [] Clean.impl
-  FromSlash_unfold : FuncUnfold FromSlash [] FromSlash.impl
-  Ext_unfold : FuncUnfold Ext [] Ext.impl
-  Base_unfold : FuncUnfold Base [] Base.impl
-  Dir_unfold : FuncUnfold Dir [] Dir.impl
-  VolumeName_unfold : FuncUnfold VolumeName [] VolumeName.impl
-  postClean_unfold : FuncUnfold postClean [] postClean.impl
-  IsPathSeparator_unfold : FuncUnfold IsPathSeparator [] IsPathSeparator.impl
-  IsAbs_unfold : FuncUnfold IsAbs [] IsAbs.impl
-  volumeNameLen_unfold : FuncUnfold volumeNameLen [] volumeNameLen.impl
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_stringslite_Assumption : _root_.Perennial.internal.stringslite.Assumptions
+  instance'lazybuf : lazybuf.TypeAssumptions
+  unfold'Clean : FuncUnfold Clean [] Clean.impl
+  unfold'FromSlash : FuncUnfold FromSlash [] FromSlash.impl
+  unfold'Ext : FuncUnfold Ext [] Ext.impl
+  unfold'Base : FuncUnfold Base [] Base.impl
+  unfold'Dir : FuncUnfold Dir [] Dir.impl
+  unfold'VolumeName : FuncUnfold VolumeName [] VolumeName.impl
+  unfold'postClean : FuncUnfold postClean [] postClean.impl
+  unfold'IsPathSeparator : FuncUnfold IsPathSeparator [] IsPathSeparator.impl
+  unfold'IsAbs : FuncUnfold IsAbs [] IsAbs.impl
+  unfold'volumeNameLen : FuncUnfold volumeNameLen [] volumeNameLen.impl
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'stringslite : _root_.Perennial.internal.stringslite.Assumptions
 
-attribute [instance] Assumptions.lazybuf_instance
-  Assumptions.Clean_unfold
-  Assumptions.FromSlash_unfold
-  Assumptions.Ext_unfold
-  Assumptions.Base_unfold
-  Assumptions.Dir_unfold
-  Assumptions.VolumeName_unfold
-  Assumptions.postClean_unfold
-  Assumptions.IsPathSeparator_unfold
-  Assumptions.IsAbs_unfold
-  Assumptions.volumeNameLen_unfold
-  Assumptions.import_errors_Assumption
-  Assumptions.import_stringslite_Assumption
+attribute [instance] Assumptions.instance'lazybuf
+  Assumptions.unfold'Clean
+  Assumptions.unfold'FromSlash
+  Assumptions.unfold'Ext
+  Assumptions.unfold'Base
+  Assumptions.unfold'Dir
+  Assumptions.unfold'VolumeName
+  Assumptions.unfold'postClean
+  Assumptions.unfold'IsPathSeparator
+  Assumptions.unfold'IsAbs
+  Assumptions.unfold'volumeNameLen
+  Assumptions.import'errors
+  Assumptions.import'stringslite
 
 end internal.filepathlite
 

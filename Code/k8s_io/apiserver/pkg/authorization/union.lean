@@ -787,7 +787,7 @@ noncomputable instance unionAuthzHandler.zero_val [GooseExts] : ZeroVal unionAut
 @[irreducible] noncomputable def unionAuthzHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   unionAuthzHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_unionAuthzHandler [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'unionAuthzHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold unionAuthzHandler.fields unionAuthzHandler.fieldsUnsealed :=
   ⟨by unfold unionAuthzHandler.fields; rfl⟩
 
@@ -797,41 +797,41 @@ noncomputable instance equals_unfold_unionAuthzHandler [GooseExts] [GoGlobalCont
 class unionAuthzHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying unionAuthzHandler.underlying unionAuthzHandler
   underlying : go.UnderlyingDirectedEq unionAuthzHandler.ty unionAuthzHandler.underlying
-  get_chain : ∀ (x : unionAuthzHandler), go.IsGoStepPureDetTagged under (StructFieldGet unionAuthzHandler.underlying go!"chain") #x (Val #(x.chain'))
-  set_chain : ∀ (x : unionAuthzHandler) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet unionAuthzHandler.underlying go!"chain") (PairV #x #y) (Val #(({ x with chain' := y } : unionAuthzHandler)))
-  get_nameToAuthorizer : ∀ (x : unionAuthzHandler), go.IsGoStepPureDetTagged under (StructFieldGet unionAuthzHandler.underlying go!"nameToAuthorizer") #x (Val #(x.nameToAuthorizer'))
-  set_nameToAuthorizer : ∀ (x : unionAuthzHandler) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet unionAuthzHandler.underlying go!"nameToAuthorizer") (PairV #x #y) (Val #(({ x with nameToAuthorizer' := y } : unionAuthzHandler)))
+  get'chain : ∀ (x : unionAuthzHandler), go.IsGoStepPureDetTagged under (StructFieldGet unionAuthzHandler.underlying go!"chain") #x (Val #(x.chain'))
+  set'chain : ∀ (x : unionAuthzHandler) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet unionAuthzHandler.underlying go!"chain") (PairV #x #y) (Val #(({ x with chain' := y } : unionAuthzHandler)))
+  get'nameToAuthorizer : ∀ (x : unionAuthzHandler), go.IsGoStepPureDetTagged under (StructFieldGet unionAuthzHandler.underlying go!"nameToAuthorizer") #x (Val #(x.nameToAuthorizer'))
+  set'nameToAuthorizer : ∀ (x : unionAuthzHandler) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet unionAuthzHandler.underlying go!"nameToAuthorizer") (PairV #x #y) (Val #(({ x with nameToAuthorizer' := y } : unionAuthzHandler)))
   method_set : go.MethodSetIs unionAuthzHandler.ty [(go!"Authorize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Attributes.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty, go.string, go.error]))), (go!"ConditionsAwareAuthorize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Attributes.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty]))), (go!"EvaluateConditions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsData.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/authorization/union.evaluateConditions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsData.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty, go.string, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType unionAuthzHandler.ty) [(go!"Authorize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Attributes.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty, go.string, go.error]))), (go!"ConditionsAwareAuthorize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Attributes.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty]))), (go!"EvaluateConditions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsData.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/authorization/union.evaluateConditions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsData.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty, go.string, go.error])))]
-  Authorize_unfold : MethodUnfold unionAuthzHandler.ty go!"Authorize" unionAuthzHandler.Authorize.impl
-  ConditionsAwareAuthorize_unfold : MethodUnfold unionAuthzHandler.ty go!"ConditionsAwareAuthorize" unionAuthzHandler.ConditionsAwareAuthorize.impl
-  EvaluateConditions_unfold : MethodUnfold unionAuthzHandler.ty go!"EvaluateConditions" unionAuthzHandler.EvaluateConditions.impl
-  evaluateConditions_unfold : MethodUnfold unionAuthzHandler.ty go!"evaluateConditions" unionAuthzHandler.evaluateConditions.impl
-  ptr_Authorize_unfold : MethodUnfold (go.GoType.PointerType unionAuthzHandler.ty) go!"Authorize" (LamV "$r"
+  unfold'Authorize : MethodUnfold unionAuthzHandler.ty go!"Authorize" unionAuthzHandler.Authorize.impl
+  unfold'ConditionsAwareAuthorize : MethodUnfold unionAuthzHandler.ty go!"ConditionsAwareAuthorize" unionAuthzHandler.ConditionsAwareAuthorize.impl
+  unfold'EvaluateConditions : MethodUnfold unionAuthzHandler.ty go!"EvaluateConditions" unionAuthzHandler.EvaluateConditions.impl
+  unfold'evaluateConditions : MethodUnfold unionAuthzHandler.ty go!"evaluateConditions" unionAuthzHandler.evaluateConditions.impl
+  ptr_unfold'Authorize : MethodUnfold (go.GoType.PointerType unionAuthzHandler.ty) go!"Authorize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve unionAuthzHandler.ty go!"Authorize"))) (App (Val (GoInstruction (GoLoad unionAuthzHandler.ty))) (Var "$r"))))
-  ptr_ConditionsAwareAuthorize_unfold : MethodUnfold (go.GoType.PointerType unionAuthzHandler.ty) go!"ConditionsAwareAuthorize" (LamV "$r"
+  ptr_unfold'ConditionsAwareAuthorize : MethodUnfold (go.GoType.PointerType unionAuthzHandler.ty) go!"ConditionsAwareAuthorize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve unionAuthzHandler.ty go!"ConditionsAwareAuthorize"))) (App (Val (GoInstruction (GoLoad unionAuthzHandler.ty))) (Var "$r"))))
-  ptr_EvaluateConditions_unfold : MethodUnfold (go.GoType.PointerType unionAuthzHandler.ty) go!"EvaluateConditions" (LamV "$r"
+  ptr_unfold'EvaluateConditions : MethodUnfold (go.GoType.PointerType unionAuthzHandler.ty) go!"EvaluateConditions" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve unionAuthzHandler.ty go!"EvaluateConditions"))) (App (Val (GoInstruction (GoLoad unionAuthzHandler.ty))) (Var "$r"))))
-  ptr_evaluateConditions_unfold : MethodUnfold (go.GoType.PointerType unionAuthzHandler.ty) go!"evaluateConditions" (LamV "$r"
+  ptr_unfold'evaluateConditions : MethodUnfold (go.GoType.PointerType unionAuthzHandler.ty) go!"evaluateConditions" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve unionAuthzHandler.ty go!"evaluateConditions"))) (App (Val (GoInstruction (GoLoad unionAuthzHandler.ty))) (Var "$r"))))
 
 attribute [instance] unionAuthzHandler.TypeAssumptions.type_repr
   unionAuthzHandler.TypeAssumptions.underlying
-  unionAuthzHandler.TypeAssumptions.get_chain
-  unionAuthzHandler.TypeAssumptions.set_chain
-  unionAuthzHandler.TypeAssumptions.get_nameToAuthorizer
-  unionAuthzHandler.TypeAssumptions.set_nameToAuthorizer
+  unionAuthzHandler.TypeAssumptions.get'chain
+  unionAuthzHandler.TypeAssumptions.set'chain
+  unionAuthzHandler.TypeAssumptions.get'nameToAuthorizer
+  unionAuthzHandler.TypeAssumptions.set'nameToAuthorizer
   unionAuthzHandler.TypeAssumptions.method_set
   unionAuthzHandler.TypeAssumptions.ptr_method_set
-  unionAuthzHandler.TypeAssumptions.Authorize_unfold
-  unionAuthzHandler.TypeAssumptions.ConditionsAwareAuthorize_unfold
-  unionAuthzHandler.TypeAssumptions.EvaluateConditions_unfold
-  unionAuthzHandler.TypeAssumptions.evaluateConditions_unfold
-  unionAuthzHandler.TypeAssumptions.ptr_Authorize_unfold
-  unionAuthzHandler.TypeAssumptions.ptr_ConditionsAwareAuthorize_unfold
-  unionAuthzHandler.TypeAssumptions.ptr_EvaluateConditions_unfold
-  unionAuthzHandler.TypeAssumptions.ptr_evaluateConditions_unfold
+  unionAuthzHandler.TypeAssumptions.unfold'Authorize
+  unionAuthzHandler.TypeAssumptions.unfold'ConditionsAwareAuthorize
+  unionAuthzHandler.TypeAssumptions.unfold'EvaluateConditions
+  unionAuthzHandler.TypeAssumptions.unfold'evaluateConditions
+  unionAuthzHandler.TypeAssumptions.ptr_unfold'Authorize
+  unionAuthzHandler.TypeAssumptions.ptr_unfold'ConditionsAwareAuthorize
+  unionAuthzHandler.TypeAssumptions.ptr_unfold'EvaluateConditions
+  unionAuthzHandler.TypeAssumptions.ptr_unfold'evaluateConditions
 
 structure NamedAuthorizer [GooseExts] where
   mk ::
@@ -848,7 +848,7 @@ noncomputable instance NamedAuthorizer.zero_val [GooseExts] : ZeroVal NamedAutho
 @[irreducible] noncomputable def NamedAuthorizer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NamedAuthorizer.fieldsUnsealed
 
-noncomputable instance equals_unfold_NamedAuthorizer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'NamedAuthorizer [GooseExts] [GoGlobalContext] :
     EqualsUnfold NamedAuthorizer.fields NamedAuthorizer.fieldsUnsealed :=
   ⟨by unfold NamedAuthorizer.fields; rfl⟩
 
@@ -858,19 +858,19 @@ noncomputable instance equals_unfold_NamedAuthorizer [GooseExts] [GoGlobalContex
 class NamedAuthorizer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NamedAuthorizer.underlying NamedAuthorizer
   underlying : go.UnderlyingDirectedEq NamedAuthorizer.ty NamedAuthorizer.underlying
-  get_AuthorizerName : ∀ (x : NamedAuthorizer), go.IsGoStepPureDetTagged under (StructFieldGet NamedAuthorizer.underlying go!"AuthorizerName") #x (Val #(x.AuthorizerName'))
-  set_AuthorizerName : ∀ (x : NamedAuthorizer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NamedAuthorizer.underlying go!"AuthorizerName") (PairV #x #y) (Val #(({ x with AuthorizerName' := y } : NamedAuthorizer)))
-  get_Authorizer : ∀ (x : NamedAuthorizer), go.IsGoStepPureDetTagged under (StructFieldGet NamedAuthorizer.underlying go!"Authorizer") #x (Val #(x.Authorizer'))
-  set_Authorizer : ∀ (x : NamedAuthorizer) (y : _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Authorizer), go.IsGoStepPureDetTagged under (StructFieldSet NamedAuthorizer.underlying go!"Authorizer") (PairV #x #y) (Val #(({ x with Authorizer' := y } : NamedAuthorizer)))
+  get'AuthorizerName : ∀ (x : NamedAuthorizer), go.IsGoStepPureDetTagged under (StructFieldGet NamedAuthorizer.underlying go!"AuthorizerName") #x (Val #(x.AuthorizerName'))
+  set'AuthorizerName : ∀ (x : NamedAuthorizer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NamedAuthorizer.underlying go!"AuthorizerName") (PairV #x #y) (Val #(({ x with AuthorizerName' := y } : NamedAuthorizer)))
+  get'Authorizer : ∀ (x : NamedAuthorizer), go.IsGoStepPureDetTagged under (StructFieldGet NamedAuthorizer.underlying go!"Authorizer") #x (Val #(x.Authorizer'))
+  set'Authorizer : ∀ (x : NamedAuthorizer) (y : _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Authorizer), go.IsGoStepPureDetTagged under (StructFieldSet NamedAuthorizer.underlying go!"Authorizer") (PairV #x #y) (Val #(({ x with Authorizer' := y } : NamedAuthorizer)))
   method_set : go.MethodSetIs NamedAuthorizer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType NamedAuthorizer.ty) []
 
 attribute [instance] NamedAuthorizer.TypeAssumptions.type_repr
   NamedAuthorizer.TypeAssumptions.underlying
-  NamedAuthorizer.TypeAssumptions.get_AuthorizerName
-  NamedAuthorizer.TypeAssumptions.set_AuthorizerName
-  NamedAuthorizer.TypeAssumptions.get_Authorizer
-  NamedAuthorizer.TypeAssumptions.set_Authorizer
+  NamedAuthorizer.TypeAssumptions.get'AuthorizerName
+  NamedAuthorizer.TypeAssumptions.set'AuthorizerName
+  NamedAuthorizer.TypeAssumptions.get'Authorizer
+  NamedAuthorizer.TypeAssumptions.set'Authorizer
   NamedAuthorizer.TypeAssumptions.method_set
   NamedAuthorizer.TypeAssumptions.ptr_method_set
 
@@ -883,44 +883,44 @@ class unionAuthzRulesHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLo
   underlying : go.UnderlyingDirectedEq unionAuthzRulesHandler.ty unionAuthzRulesHandler.underlying
   method_set : go.MethodSetIs unionAuthzRulesHandler.ty [(go!"RulesFor", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info.ty, go.string] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ResourceRuleInfo.ty), (go.GoType.SliceType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.NonResourceRuleInfo.ty), go.bool, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType unionAuthzRulesHandler.ty) [(go!"RulesFor", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info.ty, go.string] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ResourceRuleInfo.ty), (go.GoType.SliceType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.NonResourceRuleInfo.ty), go.bool, go.error])))]
-  RulesFor_unfold : MethodUnfold unionAuthzRulesHandler.ty go!"RulesFor" unionAuthzRulesHandler.RulesFor.impl
-  ptr_RulesFor_unfold : MethodUnfold (go.GoType.PointerType unionAuthzRulesHandler.ty) go!"RulesFor" (LamV "$r"
+  unfold'RulesFor : MethodUnfold unionAuthzRulesHandler.ty go!"RulesFor" unionAuthzRulesHandler.RulesFor.impl
+  ptr_unfold'RulesFor : MethodUnfold (go.GoType.PointerType unionAuthzRulesHandler.ty) go!"RulesFor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve unionAuthzRulesHandler.ty go!"RulesFor"))) (App (Val (GoInstruction (GoLoad unionAuthzRulesHandler.ty))) (Var "$r"))))
 
 attribute [instance] unionAuthzRulesHandler.TypeAssumptions.underlying
   unionAuthzRulesHandler.TypeAssumptions.method_set
   unionAuthzRulesHandler.TypeAssumptions.ptr_method_set
-  unionAuthzRulesHandler.TypeAssumptions.RulesFor_unfold
-  unionAuthzRulesHandler.TypeAssumptions.ptr_RulesFor_unfold
+  unionAuthzRulesHandler.TypeAssumptions.unfold'RulesFor
+  unionAuthzRulesHandler.TypeAssumptions.ptr_unfold'RulesFor
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  unionAuthzHandler_instance : unionAuthzHandler.TypeAssumptions
-  NamedAuthorizer_instance : NamedAuthorizer.TypeAssumptions
-  unionAuthzRulesHandler_instance : unionAuthzRulesHandler.TypeAssumptions
-  New_unfold : FuncUnfold New [] New.impl
-  NewRuleResolvers_unfold : FuncUnfold NewRuleResolvers [] NewRuleResolvers.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_util_errors_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Assumptions
-  import_sets_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
-  import_user_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Assumptions
-  import_authorizer_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Assumptions
+  instance'unionAuthzHandler : unionAuthzHandler.TypeAssumptions
+  instance'NamedAuthorizer : NamedAuthorizer.TypeAssumptions
+  instance'unionAuthzRulesHandler : unionAuthzRulesHandler.TypeAssumptions
+  unfold'New : FuncUnfold New [] New.impl
+  unfold'NewRuleResolvers : FuncUnfold NewRuleResolvers [] NewRuleResolvers.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'util_errors : _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Assumptions
+  import'sets : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
+  import'user : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Assumptions
+  import'authorizer : _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Assumptions
 
-attribute [instance] Assumptions.unionAuthzHandler_instance
-  Assumptions.NamedAuthorizer_instance
-  Assumptions.unionAuthzRulesHandler_instance
-  Assumptions.New_unfold
-  Assumptions.NewRuleResolvers_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_util_errors_Assumption
-  Assumptions.import_sets_Assumption
-  Assumptions.import_user_Assumption
-  Assumptions.import_authorizer_Assumption
+attribute [instance] Assumptions.instance'unionAuthzHandler
+  Assumptions.instance'NamedAuthorizer
+  Assumptions.instance'unionAuthzRulesHandler
+  Assumptions.unfold'New
+  Assumptions.unfold'NewRuleResolvers
+  Assumptions.import'context
+  Assumptions.import'errors
+  Assumptions.import'fmt
+  Assumptions.import'strings
+  Assumptions.import'util_errors
+  Assumptions.import'sets
+  Assumptions.import'user
+  Assumptions.import'authorizer
 
 end k8s_io.apiserver.pkg.authorization.union
 

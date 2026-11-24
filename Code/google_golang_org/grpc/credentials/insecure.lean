@@ -84,7 +84,7 @@ noncomputable instance insecureTC.zero_val [GooseExts] : ZeroVal insecureTC :=
 @[irreducible] noncomputable def insecureTC.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   insecureTC.fieldsUnsealed
 
-noncomputable instance equals_unfold_insecureTC [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'insecureTC [GooseExts] [GoGlobalContext] :
     EqualsUnfold insecureTC.fields insecureTC.fieldsUnsealed :=
   ⟨by unfold insecureTC.fields; rfl⟩
 
@@ -115,7 +115,7 @@ noncomputable instance info.zero_val [GooseExts] : ZeroVal info :=
 @[irreducible] noncomputable def info.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   info.fieldsUnsealed
 
-noncomputable instance equals_unfold_info [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'info [GooseExts] [GoGlobalContext] :
     EqualsUnfold info.fields info.fieldsUnsealed :=
   ⟨by unfold info.fields; rfl⟩
 
@@ -125,15 +125,15 @@ noncomputable instance equals_unfold_info [GooseExts] [GoGlobalContext] :
 class info.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying info.underlying info
   underlying : go.UnderlyingDirectedEq info.ty info.underlying
-  get_CommonAuthInfo : ∀ (x : info), go.IsGoStepPureDetTagged under (StructFieldGet info.underlying go!"CommonAuthInfo") #x (Val #(x.CommonAuthInfo'))
-  set_CommonAuthInfo : ∀ (x : info) (y : _root_.Perennial.google_golang_org.grpc.credentials.CommonAuthInfo), go.IsGoStepPureDetTagged under (StructFieldSet info.underlying go!"CommonAuthInfo") (PairV #x #y) (Val #(({ x with CommonAuthInfo' := y } : info)))
+  get'CommonAuthInfo : ∀ (x : info), go.IsGoStepPureDetTagged under (StructFieldGet info.underlying go!"CommonAuthInfo") #x (Val #(x.CommonAuthInfo'))
+  set'CommonAuthInfo : ∀ (x : info) (y : _root_.Perennial.google_golang_org.grpc.credentials.CommonAuthInfo), go.IsGoStepPureDetTagged under (StructFieldSet info.underlying go!"CommonAuthInfo") (PairV #x #y) (Val #(({ x with CommonAuthInfo' := y } : info)))
   method_set : go.MethodSetIs info.ty [(go!"AuthType", (some (go.signature.Signature [] false [go.string]))), (go!"GetCommonAuthInfo", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.credentials.CommonAuthInfo.ty]))), (go!"ValidateAuthority", (some (go.signature.Signature [go.string] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType info.ty) [(go!"AuthType", (some (go.signature.Signature [] false [go.string]))), (go!"GetCommonAuthInfo", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.credentials.CommonAuthInfo.ty]))), (go!"ValidateAuthority", (some (go.signature.Signature [go.string] false [go.error])))]
 
 attribute [instance] info.TypeAssumptions.type_repr
   info.TypeAssumptions.underlying
-  info.TypeAssumptions.get_CommonAuthInfo
-  info.TypeAssumptions.set_CommonAuthInfo
+  info.TypeAssumptions.get'CommonAuthInfo
+  info.TypeAssumptions.set'CommonAuthInfo
   info.TypeAssumptions.method_set
   info.TypeAssumptions.ptr_method_set
 
@@ -149,7 +149,7 @@ noncomputable instance insecureBundle.zero_val [GooseExts] : ZeroVal insecureBun
 @[irreducible] noncomputable def insecureBundle.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   insecureBundle.fieldsUnsealed
 
-noncomputable instance equals_unfold_insecureBundle [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'insecureBundle [GooseExts] [GoGlobalContext] :
     EqualsUnfold insecureBundle.fields insecureBundle.fieldsUnsealed :=
   ⟨by unfold insecureBundle.fields; rfl⟩
 
@@ -168,17 +168,17 @@ attribute [instance] insecureBundle.TypeAssumptions.type_repr
   insecureBundle.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  insecureTC_instance : insecureTC.TypeAssumptions
-  info_instance : info.TypeAssumptions
-  insecureBundle_instance : insecureBundle.TypeAssumptions
-  NewCredentials_unfold : FuncUnfold NewCredentials [] NewCredentials.impl
-  import_credentials_Assumption : _root_.Perennial.google_golang_org.grpc.credentials.Assumptions
+  instance'insecureTC : insecureTC.TypeAssumptions
+  instance'info : info.TypeAssumptions
+  instance'insecureBundle : insecureBundle.TypeAssumptions
+  unfold'NewCredentials : FuncUnfold NewCredentials [] NewCredentials.impl
+  import'credentials : _root_.Perennial.google_golang_org.grpc.credentials.Assumptions
 
-attribute [instance] Assumptions.insecureTC_instance
-  Assumptions.info_instance
-  Assumptions.insecureBundle_instance
-  Assumptions.NewCredentials_unfold
-  Assumptions.import_credentials_Assumption
+attribute [instance] Assumptions.instance'insecureTC
+  Assumptions.instance'info
+  Assumptions.instance'insecureBundle
+  Assumptions.unfold'NewCredentials
+  Assumptions.import'credentials
 
 end google_golang_org.grpc.credentials.insecure
 

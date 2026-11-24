@@ -97,7 +97,7 @@ noncomputable instance DefaultInfo.zero_val [GooseExts] : ZeroVal DefaultInfo :=
 @[irreducible] noncomputable def DefaultInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DefaultInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_DefaultInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DefaultInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold DefaultInfo.fields DefaultInfo.fieldsUnsealed :=
   ⟨by unfold DefaultInfo.fields; rfl⟩
 
@@ -107,36 +107,36 @@ noncomputable instance equals_unfold_DefaultInfo [GooseExts] [GoGlobalContext] :
 class DefaultInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DefaultInfo.underlying DefaultInfo
   underlying : go.UnderlyingDirectedEq DefaultInfo.ty DefaultInfo.underlying
-  get_Name : ∀ (x : DefaultInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultInfo.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : DefaultInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DefaultInfo.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : DefaultInfo)))
-  get_UID : ∀ (x : DefaultInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultInfo.underlying go!"UID") #x (Val #(x.UID'))
-  set_UID : ∀ (x : DefaultInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DefaultInfo.underlying go!"UID") (PairV #x #y) (Val #(({ x with UID' := y } : DefaultInfo)))
-  get_Groups : ∀ (x : DefaultInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultInfo.underlying go!"Groups") #x (Val #(x.Groups'))
-  set_Groups : ∀ (x : DefaultInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DefaultInfo.underlying go!"Groups") (PairV #x #y) (Val #(({ x with Groups' := y } : DefaultInfo)))
-  get_Extra : ∀ (x : DefaultInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultInfo.underlying go!"Extra") #x (Val #(x.Extra'))
-  set_Extra : ∀ (x : DefaultInfo) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet DefaultInfo.underlying go!"Extra") (PairV #x #y) (Val #(({ x with Extra' := y } : DefaultInfo)))
+  get'Name : ∀ (x : DefaultInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultInfo.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : DefaultInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DefaultInfo.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : DefaultInfo)))
+  get'UID : ∀ (x : DefaultInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultInfo.underlying go!"UID") #x (Val #(x.UID'))
+  set'UID : ∀ (x : DefaultInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DefaultInfo.underlying go!"UID") (PairV #x #y) (Val #(({ x with UID' := y } : DefaultInfo)))
+  get'Groups : ∀ (x : DefaultInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultInfo.underlying go!"Groups") #x (Val #(x.Groups'))
+  set'Groups : ∀ (x : DefaultInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DefaultInfo.underlying go!"Groups") (PairV #x #y) (Val #(({ x with Groups' := y } : DefaultInfo)))
+  get'Extra : ∀ (x : DefaultInfo), go.IsGoStepPureDetTagged under (StructFieldGet DefaultInfo.underlying go!"Extra") #x (Val #(x.Extra'))
+  set'Extra : ∀ (x : DefaultInfo) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet DefaultInfo.underlying go!"Extra") (PairV #x #y) (Val #(({ x with Extra' := y } : DefaultInfo)))
   method_set : go.MethodSetIs DefaultInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DefaultInfo.ty) [(go!"GetExtra", (some (go.signature.Signature [] false [(go.GoType.MapType go.string (go.GoType.SliceType go.string))]))), (go!"GetGroups", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] DefaultInfo.TypeAssumptions.type_repr
   DefaultInfo.TypeAssumptions.underlying
-  DefaultInfo.TypeAssumptions.get_Name
-  DefaultInfo.TypeAssumptions.set_Name
-  DefaultInfo.TypeAssumptions.get_UID
-  DefaultInfo.TypeAssumptions.set_UID
-  DefaultInfo.TypeAssumptions.get_Groups
-  DefaultInfo.TypeAssumptions.set_Groups
-  DefaultInfo.TypeAssumptions.get_Extra
-  DefaultInfo.TypeAssumptions.set_Extra
+  DefaultInfo.TypeAssumptions.get'Name
+  DefaultInfo.TypeAssumptions.set'Name
+  DefaultInfo.TypeAssumptions.get'UID
+  DefaultInfo.TypeAssumptions.set'UID
+  DefaultInfo.TypeAssumptions.get'Groups
+  DefaultInfo.TypeAssumptions.set'Groups
+  DefaultInfo.TypeAssumptions.get'Extra
+  DefaultInfo.TypeAssumptions.set'Extra
   DefaultInfo.TypeAssumptions.method_set
   DefaultInfo.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Info_instance : Info.TypeAssumptions
-  DefaultInfo_instance : DefaultInfo.TypeAssumptions
+  instance'Info : Info.TypeAssumptions
+  instance'DefaultInfo : DefaultInfo.TypeAssumptions
 
-attribute [instance] Assumptions.Info_instance
-  Assumptions.DefaultInfo_instance
+attribute [instance] Assumptions.instance'Info
+  Assumptions.instance'DefaultInfo
 
 end k8s_io.apiserver.pkg.authentication.user
 

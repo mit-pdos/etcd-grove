@@ -71,11 +71,11 @@ theorem v3rpc.serverStreamWithCtx_intoVal_inj :
   intro x y h
   have h : (#x : val) = #y := h
   have := go.intoVal_inj (V := GoInterface) (Expr.Val.inj (proj_eq'
-    (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverStreamWithCtx.TypeAssumptions.get_ServerStream x)
-    (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverStreamWithCtx.TypeAssumptions.get_ServerStream y) h))
+    (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverStreamWithCtx.TypeAssumptions.get'ServerStream x)
+    (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverStreamWithCtx.TypeAssumptions.get'ServerStream y) h))
   have := GoGlobalContext.intoVal_inj_loc (Expr.Val.inj (proj_eq'
-    (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverStreamWithCtx.TypeAssumptions.get_ctx x)
-    (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverStreamWithCtx.TypeAssumptions.get_ctx y) h))
+    (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverStreamWithCtx.TypeAssumptions.get'ctx x)
+    (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverStreamWithCtx.TypeAssumptions.get'ctx y) h))
   cases x; cases y; simp_all
 
 /-- **`==` on two monitor keys is equality.** -/

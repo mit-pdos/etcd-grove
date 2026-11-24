@@ -419,7 +419,7 @@ noncomputable instance Versions.zero_val [GooseExts] : ZeroVal Versions :=
 @[irreducible] noncomputable def Versions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Versions.fieldsUnsealed
 
-noncomputable instance equals_unfold_Versions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Versions [GooseExts] [GoGlobalContext] :
     EqualsUnfold Versions.fields Versions.fieldsUnsealed :=
   ⟨by unfold Versions.fields; rfl⟩
 
@@ -429,42 +429,42 @@ noncomputable instance equals_unfold_Versions [GooseExts] [GoGlobalContext] :
 class Versions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Versions.underlying Versions
   underlying : go.UnderlyingDirectedEq Versions.ty Versions.underlying
-  get_Server : ∀ (x : Versions), go.IsGoStepPureDetTagged under (StructFieldGet Versions.underlying go!"Server") #x (Val #(x.Server'))
-  set_Server : ∀ (x : Versions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Versions.underlying go!"Server") (PairV #x #y) (Val #(({ x with Server' := y } : Versions)))
-  get_Cluster : ∀ (x : Versions), go.IsGoStepPureDetTagged under (StructFieldGet Versions.underlying go!"Cluster") #x (Val #(x.Cluster'))
-  set_Cluster : ∀ (x : Versions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Versions.underlying go!"Cluster") (PairV #x #y) (Val #(({ x with Cluster' := y } : Versions)))
-  get_Storage : ∀ (x : Versions), go.IsGoStepPureDetTagged under (StructFieldGet Versions.underlying go!"Storage") #x (Val #(x.Storage'))
-  set_Storage : ∀ (x : Versions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Versions.underlying go!"Storage") (PairV #x #y) (Val #(({ x with Storage' := y } : Versions)))
+  get'Server : ∀ (x : Versions), go.IsGoStepPureDetTagged under (StructFieldGet Versions.underlying go!"Server") #x (Val #(x.Server'))
+  set'Server : ∀ (x : Versions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Versions.underlying go!"Server") (PairV #x #y) (Val #(({ x with Server' := y } : Versions)))
+  get'Cluster : ∀ (x : Versions), go.IsGoStepPureDetTagged under (StructFieldGet Versions.underlying go!"Cluster") #x (Val #(x.Cluster'))
+  set'Cluster : ∀ (x : Versions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Versions.underlying go!"Cluster") (PairV #x #y) (Val #(({ x with Cluster' := y } : Versions)))
+  get'Storage : ∀ (x : Versions), go.IsGoStepPureDetTagged under (StructFieldGet Versions.underlying go!"Storage") #x (Val #(x.Storage'))
+  set'Storage : ∀ (x : Versions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Versions.underlying go!"Storage") (PairV #x #y) (Val #(({ x with Storage' := y } : Versions)))
   method_set : go.MethodSetIs Versions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Versions.ty) []
 
 attribute [instance] Versions.TypeAssumptions.type_repr
   Versions.TypeAssumptions.underlying
-  Versions.TypeAssumptions.get_Server
-  Versions.TypeAssumptions.set_Server
-  Versions.TypeAssumptions.get_Cluster
-  Versions.TypeAssumptions.set_Cluster
-  Versions.TypeAssumptions.get_Storage
-  Versions.TypeAssumptions.set_Storage
+  Versions.TypeAssumptions.get'Server
+  Versions.TypeAssumptions.set'Server
+  Versions.TypeAssumptions.get'Cluster
+  Versions.TypeAssumptions.set'Cluster
+  Versions.TypeAssumptions.get'Storage
+  Versions.TypeAssumptions.set'Storage
   Versions.TypeAssumptions.method_set
   Versions.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Versions_instance : Versions.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  Cluster_unfold : FuncUnfold Cluster [] Cluster.impl
-  LessThan_unfold : FuncUnfold LessThan [] LessThan.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
+  instance'Versions : Versions.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'Cluster : FuncUnfold Cluster [] Cluster.impl
+  unfold'LessThan : FuncUnfold LessThan [] LessThan.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'semver : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
 
-attribute [instance] Assumptions.Versions_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.Cluster_unfold
-  Assumptions.LessThan_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_semver_Assumption
+attribute [instance] Assumptions.instance'Versions
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'Cluster
+  Assumptions.unfold'LessThan
+  Assumptions.import'fmt
+  Assumptions.import'strings
+  Assumptions.import'semver
 
 end go_etcd_io.etcd.api.v3.version
 

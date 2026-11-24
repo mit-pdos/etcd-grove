@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 -- `wp_load` from a persistent struct points-to: the field-store `AccessStrict` instances
 -- (which need `DFrac.own 1`) are found first and the search does not backtrack.
-attribute [-instance] snapshot.snapshot_access_store_rev snapshot.snapshot_access_store_tree
+attribute [-instance] snapshot.access_store'snapshot'rev snapshot.access_store'snapshot'tree
 
 theorem newStore.wp_proof
     (wp_btree_New : btree.New.spec (GF := GF) (hG := hG))

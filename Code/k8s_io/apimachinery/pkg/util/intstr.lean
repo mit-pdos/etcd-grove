@@ -25,10 +25,10 @@ noncomputable def IntOrString.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] IntOrString.ty
 
-noncomputable def «Type».ty [GooseExts] [GoGlobalContext] : go.GoType :=
+noncomputable def Type''.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/intstr.Type" [])
 
-attribute [irreducible] «Type».ty
+attribute [irreducible] Type''.ty
 
 opaque IntOrString.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -130,26 +130,26 @@ attribute [instance] IntOrString.TypeAssumptions.type_repr
   IntOrString.TypeAssumptions.method_set
   IntOrString.TypeAssumptions.ptr_method_set
 
-abbrev «Type» [GooseExts] : Type := w64
+abbrev Type'' [GooseExts] : Type := w64
 
-@[reducible] noncomputable def «Type».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Type''.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int64
 
-class «Type».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq «Type».ty «Type».underlying
-  method_set : go.MethodSetIs «Type».ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType «Type».ty) []
+class Type''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq Type''.ty Type''.underlying
+  method_set : go.MethodSetIs Type''.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Type''.ty) []
 
-attribute [instance] «Type».TypeAssumptions.underlying
-  «Type».TypeAssumptions.method_set
-  «Type».TypeAssumptions.ptr_method_set
+attribute [instance] Type''.TypeAssumptions.underlying
+  Type''.TypeAssumptions.method_set
+  Type''.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  IntOrString_instance : IntOrString.TypeAssumptions
-  Type_instance : «Type».TypeAssumptions
+  instance'IntOrString : IntOrString.TypeAssumptions
+  instance'Type : Type''.TypeAssumptions
 
-attribute [instance] Assumptions.IntOrString_instance
-  Assumptions.Type_instance
+attribute [instance] Assumptions.instance'IntOrString
+  Assumptions.instance'Type
 
 end k8s_io.apimachinery.pkg.util.intstr
 

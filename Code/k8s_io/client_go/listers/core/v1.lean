@@ -1614,7 +1614,7 @@ noncomputable instance nodeLister.zero_val [GooseExts] : ZeroVal nodeLister :=
 @[irreducible] noncomputable def nodeLister.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   nodeLister.fieldsUnsealed
 
-noncomputable instance equals_unfold_nodeLister [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'nodeLister [GooseExts] [GoGlobalContext] :
     EqualsUnfold nodeLister.fields nodeLister.fieldsUnsealed :=
   ⟨by unfold nodeLister.fields; rfl⟩
 
@@ -1624,29 +1624,29 @@ noncomputable instance equals_unfold_nodeLister [GooseExts] [GoGlobalContext] :
 class nodeLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying nodeLister.underlying nodeLister
   underlying : go.UnderlyingDirectedEq nodeLister.ty nodeLister.underlying
-  get_ResourceIndexer : ∀ (x : nodeLister), go.IsGoStepPureDetTagged under (StructFieldGet nodeLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
-  set_ResourceIndexer : ∀ (x : nodeLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet nodeLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : nodeLister)))
+  get'ResourceIndexer : ∀ (x : nodeLister), go.IsGoStepPureDetTagged under (StructFieldGet nodeLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
+  set'ResourceIndexer : ∀ (x : nodeLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet nodeLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : nodeLister)))
   method_set : go.MethodSetIs nodeLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType nodeLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)), go.error])))]
-  Get_unfold : MethodUnfold nodeLister.ty go!"Get" (LamV "$r"
+  unfold'Get : MethodUnfold nodeLister.ty go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)) go!"Get"))) (App (Val (GoInstruction (StructFieldGet nodeLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  List_unfold : MethodUnfold nodeLister.ty go!"List" (LamV "$r"
+  unfold'List : MethodUnfold nodeLister.ty go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)) go!"List"))) (App (Val (GoInstruction (StructFieldGet nodeLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType nodeLister.ty) go!"Get" (LamV "$r"
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType nodeLister.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty))) go!"Get"))) (App (Val (GoInstruction (StructFieldRef nodeLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType nodeLister.ty) go!"List" (LamV "$r"
+  ptr_unfold'List : MethodUnfold (go.GoType.PointerType nodeLister.ty) go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty))) go!"List"))) (App (Val (GoInstruction (StructFieldRef nodeLister.ty go!"ResourceIndexer"))) (Var "$r"))))
 
 attribute [instance] nodeLister.TypeAssumptions.type_repr
   nodeLister.TypeAssumptions.underlying
-  nodeLister.TypeAssumptions.get_ResourceIndexer
-  nodeLister.TypeAssumptions.set_ResourceIndexer
+  nodeLister.TypeAssumptions.get'ResourceIndexer
+  nodeLister.TypeAssumptions.set'ResourceIndexer
   nodeLister.TypeAssumptions.method_set
   nodeLister.TypeAssumptions.ptr_method_set
-  nodeLister.TypeAssumptions.Get_unfold
-  nodeLister.TypeAssumptions.List_unfold
-  nodeLister.TypeAssumptions.ptr_Get_unfold
-  nodeLister.TypeAssumptions.ptr_List_unfold
+  nodeLister.TypeAssumptions.unfold'Get
+  nodeLister.TypeAssumptions.unfold'List
+  nodeLister.TypeAssumptions.ptr_unfold'Get
+  nodeLister.TypeAssumptions.ptr_unfold'List
 
 opaque PersistentVolumeLister.nonempty_type : NonemptyType.{0}
 def PersistentVolumeLister : Type := PersistentVolumeLister.nonempty_type.type
@@ -1789,7 +1789,7 @@ noncomputable instance podLister.zero_val [GooseExts] : ZeroVal podLister :=
 @[irreducible] noncomputable def podLister.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   podLister.fieldsUnsealed
 
-noncomputable instance equals_unfold_podLister [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'podLister [GooseExts] [GoGlobalContext] :
     EqualsUnfold podLister.fields podLister.fieldsUnsealed :=
   ⟨by unfold podLister.fields; rfl⟩
 
@@ -1799,31 +1799,31 @@ noncomputable instance equals_unfold_podLister [GooseExts] [GoGlobalContext] :
 class podLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying podLister.underlying podLister
   underlying : go.UnderlyingDirectedEq podLister.ty podLister.underlying
-  get_ResourceIndexer : ∀ (x : podLister), go.IsGoStepPureDetTagged under (StructFieldGet podLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
-  set_ResourceIndexer : ∀ (x : podLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet podLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : podLister)))
+  get'ResourceIndexer : ∀ (x : podLister), go.IsGoStepPureDetTagged under (StructFieldGet podLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
+  set'ResourceIndexer : ∀ (x : podLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet podLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : podLister)))
   method_set : go.MethodSetIs podLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType podLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), go.error]))), (go!"Pods", (some (go.signature.Signature [go.string] false [PodNamespaceLister.ty])))]
-  Get_unfold : MethodUnfold podLister.ty go!"Get" (LamV "$r"
+  unfold'Get : MethodUnfold podLister.ty go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)) go!"Get"))) (App (Val (GoInstruction (StructFieldGet podLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  List_unfold : MethodUnfold podLister.ty go!"List" (LamV "$r"
+  unfold'List : MethodUnfold podLister.ty go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)) go!"List"))) (App (Val (GoInstruction (StructFieldGet podLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType podLister.ty) go!"Get" (LamV "$r"
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType podLister.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))) go!"Get"))) (App (Val (GoInstruction (StructFieldRef podLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType podLister.ty) go!"List" (LamV "$r"
+  ptr_unfold'List : MethodUnfold (go.GoType.PointerType podLister.ty) go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))) go!"List"))) (App (Val (GoInstruction (StructFieldRef podLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  ptr_Pods_unfold : MethodUnfold (go.GoType.PointerType podLister.ty) go!"Pods" podLister.Pods.impl
+  ptr_unfold'Pods : MethodUnfold (go.GoType.PointerType podLister.ty) go!"Pods" podLister.Pods.impl
 
 attribute [instance] podLister.TypeAssumptions.type_repr
   podLister.TypeAssumptions.underlying
-  podLister.TypeAssumptions.get_ResourceIndexer
-  podLister.TypeAssumptions.set_ResourceIndexer
+  podLister.TypeAssumptions.get'ResourceIndexer
+  podLister.TypeAssumptions.set'ResourceIndexer
   podLister.TypeAssumptions.method_set
   podLister.TypeAssumptions.ptr_method_set
-  podLister.TypeAssumptions.Get_unfold
-  podLister.TypeAssumptions.List_unfold
-  podLister.TypeAssumptions.ptr_Get_unfold
-  podLister.TypeAssumptions.ptr_List_unfold
-  podLister.TypeAssumptions.ptr_Pods_unfold
+  podLister.TypeAssumptions.unfold'Get
+  podLister.TypeAssumptions.unfold'List
+  podLister.TypeAssumptions.ptr_unfold'Get
+  podLister.TypeAssumptions.ptr_unfold'List
+  podLister.TypeAssumptions.ptr_unfold'Pods
 
 abbrev PodNamespaceLister [GooseExts] : Type := GoInterface
 
@@ -1852,7 +1852,7 @@ noncomputable instance podNamespaceLister.zero_val [GooseExts] : ZeroVal podName
 @[irreducible] noncomputable def podNamespaceLister.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   podNamespaceLister.fieldsUnsealed
 
-noncomputable instance equals_unfold_podNamespaceLister [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'podNamespaceLister [GooseExts] [GoGlobalContext] :
     EqualsUnfold podNamespaceLister.fields podNamespaceLister.fieldsUnsealed :=
   ⟨by unfold podNamespaceLister.fields; rfl⟩
 
@@ -1862,29 +1862,29 @@ noncomputable instance equals_unfold_podNamespaceLister [GooseExts] [GoGlobalCon
 class podNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying podNamespaceLister.underlying podNamespaceLister
   underlying : go.UnderlyingDirectedEq podNamespaceLister.ty podNamespaceLister.underlying
-  get_ResourceIndexer : ∀ (x : podNamespaceLister), go.IsGoStepPureDetTagged under (StructFieldGet podNamespaceLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
-  set_ResourceIndexer : ∀ (x : podNamespaceLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet podNamespaceLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : podNamespaceLister)))
+  get'ResourceIndexer : ∀ (x : podNamespaceLister), go.IsGoStepPureDetTagged under (StructFieldGet podNamespaceLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
+  set'ResourceIndexer : ∀ (x : podNamespaceLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet podNamespaceLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : podNamespaceLister)))
   method_set : go.MethodSetIs podNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType podNamespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), go.error])))]
-  Get_unfold : MethodUnfold podNamespaceLister.ty go!"Get" (LamV "$r"
+  unfold'Get : MethodUnfold podNamespaceLister.ty go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)) go!"Get"))) (App (Val (GoInstruction (StructFieldGet podNamespaceLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  List_unfold : MethodUnfold podNamespaceLister.ty go!"List" (LamV "$r"
+  unfold'List : MethodUnfold podNamespaceLister.ty go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)) go!"List"))) (App (Val (GoInstruction (StructFieldGet podNamespaceLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType podNamespaceLister.ty) go!"Get" (LamV "$r"
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType podNamespaceLister.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))) go!"Get"))) (App (Val (GoInstruction (StructFieldRef podNamespaceLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType podNamespaceLister.ty) go!"List" (LamV "$r"
+  ptr_unfold'List : MethodUnfold (go.GoType.PointerType podNamespaceLister.ty) go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))) go!"List"))) (App (Val (GoInstruction (StructFieldRef podNamespaceLister.ty go!"ResourceIndexer"))) (Var "$r"))))
 
 attribute [instance] podNamespaceLister.TypeAssumptions.type_repr
   podNamespaceLister.TypeAssumptions.underlying
-  podNamespaceLister.TypeAssumptions.get_ResourceIndexer
-  podNamespaceLister.TypeAssumptions.set_ResourceIndexer
+  podNamespaceLister.TypeAssumptions.get'ResourceIndexer
+  podNamespaceLister.TypeAssumptions.set'ResourceIndexer
   podNamespaceLister.TypeAssumptions.method_set
   podNamespaceLister.TypeAssumptions.ptr_method_set
-  podNamespaceLister.TypeAssumptions.Get_unfold
-  podNamespaceLister.TypeAssumptions.List_unfold
-  podNamespaceLister.TypeAssumptions.ptr_Get_unfold
-  podNamespaceLister.TypeAssumptions.ptr_List_unfold
+  podNamespaceLister.TypeAssumptions.unfold'Get
+  podNamespaceLister.TypeAssumptions.unfold'List
+  podNamespaceLister.TypeAssumptions.ptr_unfold'Get
+  podNamespaceLister.TypeAssumptions.ptr_unfold'List
 
 opaque PodTemplateLister.nonempty_type : NonemptyType.{0}
 def PodTemplateLister : Type := PodTemplateLister.nonempty_type.type
@@ -2381,189 +2381,189 @@ attribute [instance] serviceAccountNamespaceLister.TypeAssumptions.type_repr
   serviceAccountNamespaceLister.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ComponentStatusLister_instance : ComponentStatusLister.TypeAssumptions
-  componentStatusLister_instance : componentStatusLister.TypeAssumptions
-  ConfigMapLister_instance : ConfigMapLister.TypeAssumptions
-  configMapLister_instance : configMapLister.TypeAssumptions
-  ConfigMapNamespaceLister_instance : ConfigMapNamespaceLister.TypeAssumptions
-  configMapNamespaceLister_instance : configMapNamespaceLister.TypeAssumptions
-  EndpointsLister_instance : EndpointsLister.TypeAssumptions
-  endpointsLister_instance : endpointsLister.TypeAssumptions
-  EndpointsNamespaceLister_instance : EndpointsNamespaceLister.TypeAssumptions
-  endpointsNamespaceLister_instance : endpointsNamespaceLister.TypeAssumptions
-  EventLister_instance : EventLister.TypeAssumptions
-  eventLister_instance : eventLister.TypeAssumptions
-  EventNamespaceLister_instance : EventNamespaceLister.TypeAssumptions
-  eventNamespaceLister_instance : eventNamespaceLister.TypeAssumptions
-  ComponentStatusListerExpansion_instance : ComponentStatusListerExpansion.TypeAssumptions
-  ConfigMapListerExpansion_instance : ConfigMapListerExpansion.TypeAssumptions
-  ConfigMapNamespaceListerExpansion_instance : ConfigMapNamespaceListerExpansion.TypeAssumptions
-  EndpointsListerExpansion_instance : EndpointsListerExpansion.TypeAssumptions
-  EndpointsNamespaceListerExpansion_instance : EndpointsNamespaceListerExpansion.TypeAssumptions
-  EventListerExpansion_instance : EventListerExpansion.TypeAssumptions
-  EventNamespaceListerExpansion_instance : EventNamespaceListerExpansion.TypeAssumptions
-  LimitRangeListerExpansion_instance : LimitRangeListerExpansion.TypeAssumptions
-  LimitRangeNamespaceListerExpansion_instance : LimitRangeNamespaceListerExpansion.TypeAssumptions
-  NamespaceListerExpansion_instance : NamespaceListerExpansion.TypeAssumptions
-  NodeListerExpansion_instance : NodeListerExpansion.TypeAssumptions
-  PersistentVolumeListerExpansion_instance : PersistentVolumeListerExpansion.TypeAssumptions
-  PersistentVolumeClaimListerExpansion_instance : PersistentVolumeClaimListerExpansion.TypeAssumptions
-  PersistentVolumeClaimNamespaceListerExpansion_instance : PersistentVolumeClaimNamespaceListerExpansion.TypeAssumptions
-  PodListerExpansion_instance : PodListerExpansion.TypeAssumptions
-  PodNamespaceListerExpansion_instance : PodNamespaceListerExpansion.TypeAssumptions
-  PodTemplateListerExpansion_instance : PodTemplateListerExpansion.TypeAssumptions
-  PodTemplateNamespaceListerExpansion_instance : PodTemplateNamespaceListerExpansion.TypeAssumptions
-  ResourceQuotaListerExpansion_instance : ResourceQuotaListerExpansion.TypeAssumptions
-  ResourceQuotaNamespaceListerExpansion_instance : ResourceQuotaNamespaceListerExpansion.TypeAssumptions
-  SecretListerExpansion_instance : SecretListerExpansion.TypeAssumptions
-  SecretNamespaceListerExpansion_instance : SecretNamespaceListerExpansion.TypeAssumptions
-  ServiceListerExpansion_instance : ServiceListerExpansion.TypeAssumptions
-  ServiceNamespaceListerExpansion_instance : ServiceNamespaceListerExpansion.TypeAssumptions
-  ServiceAccountListerExpansion_instance : ServiceAccountListerExpansion.TypeAssumptions
-  ServiceAccountNamespaceListerExpansion_instance : ServiceAccountNamespaceListerExpansion.TypeAssumptions
-  LimitRangeLister_instance : LimitRangeLister.TypeAssumptions
-  limitRangeLister_instance : limitRangeLister.TypeAssumptions
-  LimitRangeNamespaceLister_instance : LimitRangeNamespaceLister.TypeAssumptions
-  limitRangeNamespaceLister_instance : limitRangeNamespaceLister.TypeAssumptions
-  NamespaceLister_instance : NamespaceLister.TypeAssumptions
-  namespaceLister_instance : namespaceLister.TypeAssumptions
-  NodeLister_instance : NodeLister.TypeAssumptions
-  nodeLister_instance : nodeLister.TypeAssumptions
-  PersistentVolumeLister_instance : PersistentVolumeLister.TypeAssumptions
-  persistentVolumeLister_instance : persistentVolumeLister.TypeAssumptions
-  PersistentVolumeClaimLister_instance : PersistentVolumeClaimLister.TypeAssumptions
-  persistentVolumeClaimLister_instance : persistentVolumeClaimLister.TypeAssumptions
-  PersistentVolumeClaimNamespaceLister_instance : PersistentVolumeClaimNamespaceLister.TypeAssumptions
-  persistentVolumeClaimNamespaceLister_instance : persistentVolumeClaimNamespaceLister.TypeAssumptions
-  PodLister_instance : PodLister.TypeAssumptions
-  podLister_instance : podLister.TypeAssumptions
-  PodNamespaceLister_instance : PodNamespaceLister.TypeAssumptions
-  podNamespaceLister_instance : podNamespaceLister.TypeAssumptions
-  PodTemplateLister_instance : PodTemplateLister.TypeAssumptions
-  podTemplateLister_instance : podTemplateLister.TypeAssumptions
-  PodTemplateNamespaceLister_instance : PodTemplateNamespaceLister.TypeAssumptions
-  podTemplateNamespaceLister_instance : podTemplateNamespaceLister.TypeAssumptions
-  ReplicationControllerLister_instance : ReplicationControllerLister.TypeAssumptions
-  replicationControllerLister_instance : replicationControllerLister.TypeAssumptions
-  ReplicationControllerNamespaceLister_instance : ReplicationControllerNamespaceLister.TypeAssumptions
-  replicationControllerNamespaceLister_instance : replicationControllerNamespaceLister.TypeAssumptions
-  ReplicationControllerListerExpansion_instance : ReplicationControllerListerExpansion.TypeAssumptions
-  ReplicationControllerNamespaceListerExpansion_instance : ReplicationControllerNamespaceListerExpansion.TypeAssumptions
-  ResourceQuotaLister_instance : ResourceQuotaLister.TypeAssumptions
-  resourceQuotaLister_instance : resourceQuotaLister.TypeAssumptions
-  ResourceQuotaNamespaceLister_instance : ResourceQuotaNamespaceLister.TypeAssumptions
-  resourceQuotaNamespaceLister_instance : resourceQuotaNamespaceLister.TypeAssumptions
-  SecretLister_instance : SecretLister.TypeAssumptions
-  secretLister_instance : secretLister.TypeAssumptions
-  SecretNamespaceLister_instance : SecretNamespaceLister.TypeAssumptions
-  secretNamespaceLister_instance : secretNamespaceLister.TypeAssumptions
-  ServiceLister_instance : ServiceLister.TypeAssumptions
-  serviceLister_instance : serviceLister.TypeAssumptions
-  ServiceNamespaceLister_instance : ServiceNamespaceLister.TypeAssumptions
-  serviceNamespaceLister_instance : serviceNamespaceLister.TypeAssumptions
-  ServiceAccountLister_instance : ServiceAccountLister.TypeAssumptions
-  serviceAccountLister_instance : serviceAccountLister.TypeAssumptions
-  ServiceAccountNamespaceLister_instance : ServiceAccountNamespaceLister.TypeAssumptions
-  serviceAccountNamespaceLister_instance : serviceAccountNamespaceLister.TypeAssumptions
-  NewNodeLister_unfold : FuncUnfold NewNodeLister [] NewNodeLister.impl
-  NewPodLister_unfold : FuncUnfold NewPodLister [] NewPodLister.impl
-  import_v1_Assumption : _root_.Perennial.k8s_io.api.core.v1.Assumptions
-  import_labels_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
-  import_listers_Assumption : _root_.Perennial.k8s_io.client_go.listers.Assumptions
-  import_cache_Assumption : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
+  instance'ComponentStatusLister : ComponentStatusLister.TypeAssumptions
+  instance'componentStatusLister : componentStatusLister.TypeAssumptions
+  instance'ConfigMapLister : ConfigMapLister.TypeAssumptions
+  instance'configMapLister : configMapLister.TypeAssumptions
+  instance'ConfigMapNamespaceLister : ConfigMapNamespaceLister.TypeAssumptions
+  instance'configMapNamespaceLister : configMapNamespaceLister.TypeAssumptions
+  instance'EndpointsLister : EndpointsLister.TypeAssumptions
+  instance'endpointsLister : endpointsLister.TypeAssumptions
+  instance'EndpointsNamespaceLister : EndpointsNamespaceLister.TypeAssumptions
+  instance'endpointsNamespaceLister : endpointsNamespaceLister.TypeAssumptions
+  instance'EventLister : EventLister.TypeAssumptions
+  instance'eventLister : eventLister.TypeAssumptions
+  instance'EventNamespaceLister : EventNamespaceLister.TypeAssumptions
+  instance'eventNamespaceLister : eventNamespaceLister.TypeAssumptions
+  instance'ComponentStatusListerExpansion : ComponentStatusListerExpansion.TypeAssumptions
+  instance'ConfigMapListerExpansion : ConfigMapListerExpansion.TypeAssumptions
+  instance'ConfigMapNamespaceListerExpansion : ConfigMapNamespaceListerExpansion.TypeAssumptions
+  instance'EndpointsListerExpansion : EndpointsListerExpansion.TypeAssumptions
+  instance'EndpointsNamespaceListerExpansion : EndpointsNamespaceListerExpansion.TypeAssumptions
+  instance'EventListerExpansion : EventListerExpansion.TypeAssumptions
+  instance'EventNamespaceListerExpansion : EventNamespaceListerExpansion.TypeAssumptions
+  instance'LimitRangeListerExpansion : LimitRangeListerExpansion.TypeAssumptions
+  instance'LimitRangeNamespaceListerExpansion : LimitRangeNamespaceListerExpansion.TypeAssumptions
+  instance'NamespaceListerExpansion : NamespaceListerExpansion.TypeAssumptions
+  instance'NodeListerExpansion : NodeListerExpansion.TypeAssumptions
+  instance'PersistentVolumeListerExpansion : PersistentVolumeListerExpansion.TypeAssumptions
+  instance'PersistentVolumeClaimListerExpansion : PersistentVolumeClaimListerExpansion.TypeAssumptions
+  instance'PersistentVolumeClaimNamespaceListerExpansion : PersistentVolumeClaimNamespaceListerExpansion.TypeAssumptions
+  instance'PodListerExpansion : PodListerExpansion.TypeAssumptions
+  instance'PodNamespaceListerExpansion : PodNamespaceListerExpansion.TypeAssumptions
+  instance'PodTemplateListerExpansion : PodTemplateListerExpansion.TypeAssumptions
+  instance'PodTemplateNamespaceListerExpansion : PodTemplateNamespaceListerExpansion.TypeAssumptions
+  instance'ResourceQuotaListerExpansion : ResourceQuotaListerExpansion.TypeAssumptions
+  instance'ResourceQuotaNamespaceListerExpansion : ResourceQuotaNamespaceListerExpansion.TypeAssumptions
+  instance'SecretListerExpansion : SecretListerExpansion.TypeAssumptions
+  instance'SecretNamespaceListerExpansion : SecretNamespaceListerExpansion.TypeAssumptions
+  instance'ServiceListerExpansion : ServiceListerExpansion.TypeAssumptions
+  instance'ServiceNamespaceListerExpansion : ServiceNamespaceListerExpansion.TypeAssumptions
+  instance'ServiceAccountListerExpansion : ServiceAccountListerExpansion.TypeAssumptions
+  instance'ServiceAccountNamespaceListerExpansion : ServiceAccountNamespaceListerExpansion.TypeAssumptions
+  instance'LimitRangeLister : LimitRangeLister.TypeAssumptions
+  instance'limitRangeLister : limitRangeLister.TypeAssumptions
+  instance'LimitRangeNamespaceLister : LimitRangeNamespaceLister.TypeAssumptions
+  instance'limitRangeNamespaceLister : limitRangeNamespaceLister.TypeAssumptions
+  instance'NamespaceLister : NamespaceLister.TypeAssumptions
+  instance'namespaceLister : namespaceLister.TypeAssumptions
+  instance'NodeLister : NodeLister.TypeAssumptions
+  instance'nodeLister : nodeLister.TypeAssumptions
+  instance'PersistentVolumeLister : PersistentVolumeLister.TypeAssumptions
+  instance'persistentVolumeLister : persistentVolumeLister.TypeAssumptions
+  instance'PersistentVolumeClaimLister : PersistentVolumeClaimLister.TypeAssumptions
+  instance'persistentVolumeClaimLister : persistentVolumeClaimLister.TypeAssumptions
+  instance'PersistentVolumeClaimNamespaceLister : PersistentVolumeClaimNamespaceLister.TypeAssumptions
+  instance'persistentVolumeClaimNamespaceLister : persistentVolumeClaimNamespaceLister.TypeAssumptions
+  instance'PodLister : PodLister.TypeAssumptions
+  instance'podLister : podLister.TypeAssumptions
+  instance'PodNamespaceLister : PodNamespaceLister.TypeAssumptions
+  instance'podNamespaceLister : podNamespaceLister.TypeAssumptions
+  instance'PodTemplateLister : PodTemplateLister.TypeAssumptions
+  instance'podTemplateLister : podTemplateLister.TypeAssumptions
+  instance'PodTemplateNamespaceLister : PodTemplateNamespaceLister.TypeAssumptions
+  instance'podTemplateNamespaceLister : podTemplateNamespaceLister.TypeAssumptions
+  instance'ReplicationControllerLister : ReplicationControllerLister.TypeAssumptions
+  instance'replicationControllerLister : replicationControllerLister.TypeAssumptions
+  instance'ReplicationControllerNamespaceLister : ReplicationControllerNamespaceLister.TypeAssumptions
+  instance'replicationControllerNamespaceLister : replicationControllerNamespaceLister.TypeAssumptions
+  instance'ReplicationControllerListerExpansion : ReplicationControllerListerExpansion.TypeAssumptions
+  instance'ReplicationControllerNamespaceListerExpansion : ReplicationControllerNamespaceListerExpansion.TypeAssumptions
+  instance'ResourceQuotaLister : ResourceQuotaLister.TypeAssumptions
+  instance'resourceQuotaLister : resourceQuotaLister.TypeAssumptions
+  instance'ResourceQuotaNamespaceLister : ResourceQuotaNamespaceLister.TypeAssumptions
+  instance'resourceQuotaNamespaceLister : resourceQuotaNamespaceLister.TypeAssumptions
+  instance'SecretLister : SecretLister.TypeAssumptions
+  instance'secretLister : secretLister.TypeAssumptions
+  instance'SecretNamespaceLister : SecretNamespaceLister.TypeAssumptions
+  instance'secretNamespaceLister : secretNamespaceLister.TypeAssumptions
+  instance'ServiceLister : ServiceLister.TypeAssumptions
+  instance'serviceLister : serviceLister.TypeAssumptions
+  instance'ServiceNamespaceLister : ServiceNamespaceLister.TypeAssumptions
+  instance'serviceNamespaceLister : serviceNamespaceLister.TypeAssumptions
+  instance'ServiceAccountLister : ServiceAccountLister.TypeAssumptions
+  instance'serviceAccountLister : serviceAccountLister.TypeAssumptions
+  instance'ServiceAccountNamespaceLister : ServiceAccountNamespaceLister.TypeAssumptions
+  instance'serviceAccountNamespaceLister : serviceAccountNamespaceLister.TypeAssumptions
+  unfold'NewNodeLister : FuncUnfold NewNodeLister [] NewNodeLister.impl
+  unfold'NewPodLister : FuncUnfold NewPodLister [] NewPodLister.impl
+  import'v1 : _root_.Perennial.k8s_io.api.core.v1.Assumptions
+  import'labels : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
+  import'listers : _root_.Perennial.k8s_io.client_go.listers.Assumptions
+  import'cache : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
 
-attribute [instance] Assumptions.ComponentStatusLister_instance
-  Assumptions.componentStatusLister_instance
-  Assumptions.ConfigMapLister_instance
-  Assumptions.configMapLister_instance
-  Assumptions.ConfigMapNamespaceLister_instance
-  Assumptions.configMapNamespaceLister_instance
-  Assumptions.EndpointsLister_instance
-  Assumptions.endpointsLister_instance
-  Assumptions.EndpointsNamespaceLister_instance
-  Assumptions.endpointsNamespaceLister_instance
-  Assumptions.EventLister_instance
-  Assumptions.eventLister_instance
-  Assumptions.EventNamespaceLister_instance
-  Assumptions.eventNamespaceLister_instance
-  Assumptions.ComponentStatusListerExpansion_instance
-  Assumptions.ConfigMapListerExpansion_instance
-  Assumptions.ConfigMapNamespaceListerExpansion_instance
-  Assumptions.EndpointsListerExpansion_instance
-  Assumptions.EndpointsNamespaceListerExpansion_instance
-  Assumptions.EventListerExpansion_instance
-  Assumptions.EventNamespaceListerExpansion_instance
-  Assumptions.LimitRangeListerExpansion_instance
-  Assumptions.LimitRangeNamespaceListerExpansion_instance
-  Assumptions.NamespaceListerExpansion_instance
-  Assumptions.NodeListerExpansion_instance
-  Assumptions.PersistentVolumeListerExpansion_instance
-  Assumptions.PersistentVolumeClaimListerExpansion_instance
-  Assumptions.PersistentVolumeClaimNamespaceListerExpansion_instance
-  Assumptions.PodListerExpansion_instance
-  Assumptions.PodNamespaceListerExpansion_instance
-  Assumptions.PodTemplateListerExpansion_instance
-  Assumptions.PodTemplateNamespaceListerExpansion_instance
-  Assumptions.ResourceQuotaListerExpansion_instance
-  Assumptions.ResourceQuotaNamespaceListerExpansion_instance
-  Assumptions.SecretListerExpansion_instance
-  Assumptions.SecretNamespaceListerExpansion_instance
-  Assumptions.ServiceListerExpansion_instance
-  Assumptions.ServiceNamespaceListerExpansion_instance
-  Assumptions.ServiceAccountListerExpansion_instance
-  Assumptions.ServiceAccountNamespaceListerExpansion_instance
-  Assumptions.LimitRangeLister_instance
-  Assumptions.limitRangeLister_instance
-  Assumptions.LimitRangeNamespaceLister_instance
-  Assumptions.limitRangeNamespaceLister_instance
-  Assumptions.NamespaceLister_instance
-  Assumptions.namespaceLister_instance
-  Assumptions.NodeLister_instance
-  Assumptions.nodeLister_instance
-  Assumptions.PersistentVolumeLister_instance
-  Assumptions.persistentVolumeLister_instance
-  Assumptions.PersistentVolumeClaimLister_instance
-  Assumptions.persistentVolumeClaimLister_instance
-  Assumptions.PersistentVolumeClaimNamespaceLister_instance
-  Assumptions.persistentVolumeClaimNamespaceLister_instance
-  Assumptions.PodLister_instance
-  Assumptions.podLister_instance
-  Assumptions.PodNamespaceLister_instance
-  Assumptions.podNamespaceLister_instance
-  Assumptions.PodTemplateLister_instance
-  Assumptions.podTemplateLister_instance
-  Assumptions.PodTemplateNamespaceLister_instance
-  Assumptions.podTemplateNamespaceLister_instance
-  Assumptions.ReplicationControllerLister_instance
-  Assumptions.replicationControllerLister_instance
-  Assumptions.ReplicationControllerNamespaceLister_instance
-  Assumptions.replicationControllerNamespaceLister_instance
-  Assumptions.ReplicationControllerListerExpansion_instance
-  Assumptions.ReplicationControllerNamespaceListerExpansion_instance
-  Assumptions.ResourceQuotaLister_instance
-  Assumptions.resourceQuotaLister_instance
-  Assumptions.ResourceQuotaNamespaceLister_instance
-  Assumptions.resourceQuotaNamespaceLister_instance
-  Assumptions.SecretLister_instance
-  Assumptions.secretLister_instance
-  Assumptions.SecretNamespaceLister_instance
-  Assumptions.secretNamespaceLister_instance
-  Assumptions.ServiceLister_instance
-  Assumptions.serviceLister_instance
-  Assumptions.ServiceNamespaceLister_instance
-  Assumptions.serviceNamespaceLister_instance
-  Assumptions.ServiceAccountLister_instance
-  Assumptions.serviceAccountLister_instance
-  Assumptions.ServiceAccountNamespaceLister_instance
-  Assumptions.serviceAccountNamespaceLister_instance
-  Assumptions.NewNodeLister_unfold
-  Assumptions.NewPodLister_unfold
-  Assumptions.import_v1_Assumption
-  Assumptions.import_labels_Assumption
-  Assumptions.import_listers_Assumption
-  Assumptions.import_cache_Assumption
-  Assumptions.import_fmt_Assumption
+attribute [instance] Assumptions.instance'ComponentStatusLister
+  Assumptions.instance'componentStatusLister
+  Assumptions.instance'ConfigMapLister
+  Assumptions.instance'configMapLister
+  Assumptions.instance'ConfigMapNamespaceLister
+  Assumptions.instance'configMapNamespaceLister
+  Assumptions.instance'EndpointsLister
+  Assumptions.instance'endpointsLister
+  Assumptions.instance'EndpointsNamespaceLister
+  Assumptions.instance'endpointsNamespaceLister
+  Assumptions.instance'EventLister
+  Assumptions.instance'eventLister
+  Assumptions.instance'EventNamespaceLister
+  Assumptions.instance'eventNamespaceLister
+  Assumptions.instance'ComponentStatusListerExpansion
+  Assumptions.instance'ConfigMapListerExpansion
+  Assumptions.instance'ConfigMapNamespaceListerExpansion
+  Assumptions.instance'EndpointsListerExpansion
+  Assumptions.instance'EndpointsNamespaceListerExpansion
+  Assumptions.instance'EventListerExpansion
+  Assumptions.instance'EventNamespaceListerExpansion
+  Assumptions.instance'LimitRangeListerExpansion
+  Assumptions.instance'LimitRangeNamespaceListerExpansion
+  Assumptions.instance'NamespaceListerExpansion
+  Assumptions.instance'NodeListerExpansion
+  Assumptions.instance'PersistentVolumeListerExpansion
+  Assumptions.instance'PersistentVolumeClaimListerExpansion
+  Assumptions.instance'PersistentVolumeClaimNamespaceListerExpansion
+  Assumptions.instance'PodListerExpansion
+  Assumptions.instance'PodNamespaceListerExpansion
+  Assumptions.instance'PodTemplateListerExpansion
+  Assumptions.instance'PodTemplateNamespaceListerExpansion
+  Assumptions.instance'ResourceQuotaListerExpansion
+  Assumptions.instance'ResourceQuotaNamespaceListerExpansion
+  Assumptions.instance'SecretListerExpansion
+  Assumptions.instance'SecretNamespaceListerExpansion
+  Assumptions.instance'ServiceListerExpansion
+  Assumptions.instance'ServiceNamespaceListerExpansion
+  Assumptions.instance'ServiceAccountListerExpansion
+  Assumptions.instance'ServiceAccountNamespaceListerExpansion
+  Assumptions.instance'LimitRangeLister
+  Assumptions.instance'limitRangeLister
+  Assumptions.instance'LimitRangeNamespaceLister
+  Assumptions.instance'limitRangeNamespaceLister
+  Assumptions.instance'NamespaceLister
+  Assumptions.instance'namespaceLister
+  Assumptions.instance'NodeLister
+  Assumptions.instance'nodeLister
+  Assumptions.instance'PersistentVolumeLister
+  Assumptions.instance'persistentVolumeLister
+  Assumptions.instance'PersistentVolumeClaimLister
+  Assumptions.instance'persistentVolumeClaimLister
+  Assumptions.instance'PersistentVolumeClaimNamespaceLister
+  Assumptions.instance'persistentVolumeClaimNamespaceLister
+  Assumptions.instance'PodLister
+  Assumptions.instance'podLister
+  Assumptions.instance'PodNamespaceLister
+  Assumptions.instance'podNamespaceLister
+  Assumptions.instance'PodTemplateLister
+  Assumptions.instance'podTemplateLister
+  Assumptions.instance'PodTemplateNamespaceLister
+  Assumptions.instance'podTemplateNamespaceLister
+  Assumptions.instance'ReplicationControllerLister
+  Assumptions.instance'replicationControllerLister
+  Assumptions.instance'ReplicationControllerNamespaceLister
+  Assumptions.instance'replicationControllerNamespaceLister
+  Assumptions.instance'ReplicationControllerListerExpansion
+  Assumptions.instance'ReplicationControllerNamespaceListerExpansion
+  Assumptions.instance'ResourceQuotaLister
+  Assumptions.instance'resourceQuotaLister
+  Assumptions.instance'ResourceQuotaNamespaceLister
+  Assumptions.instance'resourceQuotaNamespaceLister
+  Assumptions.instance'SecretLister
+  Assumptions.instance'secretLister
+  Assumptions.instance'SecretNamespaceLister
+  Assumptions.instance'secretNamespaceLister
+  Assumptions.instance'ServiceLister
+  Assumptions.instance'serviceLister
+  Assumptions.instance'ServiceNamespaceLister
+  Assumptions.instance'serviceNamespaceLister
+  Assumptions.instance'ServiceAccountLister
+  Assumptions.instance'serviceAccountLister
+  Assumptions.instance'ServiceAccountNamespaceLister
+  Assumptions.instance'serviceAccountNamespaceLister
+  Assumptions.unfold'NewNodeLister
+  Assumptions.unfold'NewPodLister
+  Assumptions.import'v1
+  Assumptions.import'labels
+  Assumptions.import'listers
+  Assumptions.import'cache
+  Assumptions.import'fmt
 
 end k8s_io.client_go.listers.core.v1
 

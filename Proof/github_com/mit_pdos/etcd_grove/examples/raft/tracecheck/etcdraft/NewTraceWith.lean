@@ -1339,7 +1339,7 @@ theorem NewTraceWith.wp_proof
   subst He
   try wp_auto
   ipersist InitSrv
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Subset_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_unfold'Subset.method_unfold]
   try wp_auto
   wp_apply wp_Subset cs c0 srvsl srv $$ []
   · iframe Hc0 Hsrv

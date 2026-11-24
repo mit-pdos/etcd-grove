@@ -28,7 +28,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.apps.v1.Assumptions]
 
-noncomputable instance ControllerRevisionList_typed_pointsto :
+noncomputable instance typed_pointsto'ControllerRevisionList :
     TypedPointsto (GF := GF) k8s_io.api.apps.v1.ControllerRevisionList where
   typedPointstoDef l v dq := iprop(
     "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.api.apps.v1.ControllerRevisionList go!"TypeMeta" l) v.TypeMeta' dq ∗
@@ -39,11 +39,11 @@ noncomputable instance ControllerRevisionList_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ControllerRevisionList_into_val_typed :
+noncomputable instance into_val_typed'ControllerRevisionList :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.apps.v1.ControllerRevisionList k8s_io.api.apps.v1.ControllerRevisionList.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ControllerRevisionList_access_load_TypeMeta (l : Loc) (v : k8s_io.api.apps.v1.ControllerRevisionList) (dq : DFrac) :
+noncomputable instance access_load'ControllerRevisionList'TypeMeta (l : Loc) (v : k8s_io.api.apps.v1.ControllerRevisionList) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ControllerRevisionList go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ControllerRevisionList go!"TypeMeta" l) v.TypeMeta' dq)
@@ -51,7 +51,7 @@ noncomputable instance ControllerRevisionList_access_load_TypeMeta (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ControllerRevisionList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.apps.v1.ControllerRevisionList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'ControllerRevisionList'TypeMeta (l : Loc) (v : k8s_io.api.apps.v1.ControllerRevisionList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ControllerRevisionList go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ControllerRevisionList go!"TypeMeta" l) y (DFrac.own 1))
@@ -59,7 +59,7 @@ noncomputable instance ControllerRevisionList_access_store_TypeMeta (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance ControllerRevisionList_access_load_ListMeta (l : Loc) (v : k8s_io.api.apps.v1.ControllerRevisionList) (dq : DFrac) :
+noncomputable instance access_load'ControllerRevisionList'ListMeta (l : Loc) (v : k8s_io.api.apps.v1.ControllerRevisionList) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ControllerRevisionList go!"ListMeta" l) v.ListMeta' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ControllerRevisionList go!"ListMeta" l) v.ListMeta' dq)
@@ -67,7 +67,7 @@ noncomputable instance ControllerRevisionList_access_load_ListMeta (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ControllerRevisionList_access_store_ListMeta (l : Loc) (v : k8s_io.api.apps.v1.ControllerRevisionList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
+noncomputable instance access_store'ControllerRevisionList'ListMeta (l : Loc) (v : k8s_io.api.apps.v1.ControllerRevisionList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ControllerRevisionList go!"ListMeta" l) v.ListMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ControllerRevisionList go!"ListMeta" l) y (DFrac.own 1))
@@ -75,7 +75,7 @@ noncomputable instance ControllerRevisionList_access_store_ListMeta (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance ControllerRevisionList_access_load_Items (l : Loc) (v : k8s_io.api.apps.v1.ControllerRevisionList) (dq : DFrac) :
+noncomputable instance access_load'ControllerRevisionList'Items (l : Loc) (v : k8s_io.api.apps.v1.ControllerRevisionList) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ControllerRevisionList go!"Items" l) v.Items' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ControllerRevisionList go!"Items" l) v.Items' dq)
@@ -83,7 +83,7 @@ noncomputable instance ControllerRevisionList_access_load_Items (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance ControllerRevisionList_access_store_Items (l : Loc) (v : k8s_io.api.apps.v1.ControllerRevisionList) (y : GoSlice) :
+noncomputable instance access_store'ControllerRevisionList'Items (l : Loc) (v : k8s_io.api.apps.v1.ControllerRevisionList) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ControllerRevisionList go!"Items" l) v.Items' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ControllerRevisionList go!"Items" l) y (DFrac.own 1))

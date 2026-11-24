@@ -57,10 +57,10 @@ noncomputable def List''.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] List''.ty
 
-noncomputable def «Type».ty [GooseExts] [GoGlobalContext] : go.GoType :=
+noncomputable def Type''.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.Type" [])
 
-attribute [irreducible] «Type».ty
+attribute [irreducible] Type''.ty
 
 noncomputable def MetadataAccessor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.MetadataAccessor" [])
@@ -756,7 +756,7 @@ noncomputable instance FirstHitRESTMapper.zero_val [GooseExts] : ZeroVal FirstHi
 @[irreducible] noncomputable def FirstHitRESTMapper.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FirstHitRESTMapper.fieldsUnsealed
 
-noncomputable instance equals_unfold_FirstHitRESTMapper [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FirstHitRESTMapper [GooseExts] [GoGlobalContext] :
     EqualsUnfold FirstHitRESTMapper.fields FirstHitRESTMapper.fieldsUnsealed :=
   ⟨by unfold FirstHitRESTMapper.fields; rfl⟩
 
@@ -766,15 +766,15 @@ noncomputable instance equals_unfold_FirstHitRESTMapper [GooseExts] [GoGlobalCon
 class FirstHitRESTMapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FirstHitRESTMapper.underlying FirstHitRESTMapper
   underlying : go.UnderlyingDirectedEq FirstHitRESTMapper.ty FirstHitRESTMapper.underlying
-  get_MultiRESTMapper : ∀ (x : FirstHitRESTMapper), go.IsGoStepPureDetTagged under (StructFieldGet FirstHitRESTMapper.underlying go!"MultiRESTMapper") #x (Val #(x.MultiRESTMapper'))
-  set_MultiRESTMapper : ∀ (x : FirstHitRESTMapper) (y : MultiRESTMapper), go.IsGoStepPureDetTagged under (StructFieldSet FirstHitRESTMapper.underlying go!"MultiRESTMapper") (PairV #x #y) (Val #(({ x with MultiRESTMapper' := y } : FirstHitRESTMapper)))
+  get'MultiRESTMapper : ∀ (x : FirstHitRESTMapper), go.IsGoStepPureDetTagged under (StructFieldGet FirstHitRESTMapper.underlying go!"MultiRESTMapper") #x (Val #(x.MultiRESTMapper'))
+  set'MultiRESTMapper : ∀ (x : FirstHitRESTMapper) (y : MultiRESTMapper), go.IsGoStepPureDetTagged under (StructFieldSet FirstHitRESTMapper.underlying go!"MultiRESTMapper") (PairV #x #y) (Val #(({ x with MultiRESTMapper' := y } : FirstHitRESTMapper)))
   method_set : go.MethodSetIs FirstHitRESTMapper.ty [(go!"KindFor", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" []), go.error]))), (go!"KindsFor", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])), go.error]))), (go!"RESTMapping", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupKind" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType RESTMapping.ty), go.error]))), (go!"RESTMappings", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupKind" []), (go.GoType.SliceType go.string)] true [(go.GoType.SliceType (go.GoType.PointerType RESTMapping.ty)), go.error]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResourceFor", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" []), go.error]))), (go!"ResourceSingularizer", (some (go.signature.Signature [go.string] false [go.string, go.error]))), (go!"ResourcesFor", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FirstHitRESTMapper.ty) [(go!"KindFor", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" []), go.error]))), (go!"KindsFor", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])), go.error]))), (go!"RESTMapping", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupKind" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType RESTMapping.ty), go.error]))), (go!"RESTMappings", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupKind" []), (go.GoType.SliceType go.string)] true [(go.GoType.SliceType (go.GoType.PointerType RESTMapping.ty)), go.error]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResourceFor", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" []), go.error]))), (go!"ResourceSingularizer", (some (go.signature.Signature [go.string] false [go.string, go.error]))), (go!"ResourcesFor", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] FirstHitRESTMapper.TypeAssumptions.type_repr
   FirstHitRESTMapper.TypeAssumptions.underlying
-  FirstHitRESTMapper.TypeAssumptions.get_MultiRESTMapper
-  FirstHitRESTMapper.TypeAssumptions.set_MultiRESTMapper
+  FirstHitRESTMapper.TypeAssumptions.get'MultiRESTMapper
+  FirstHitRESTMapper.TypeAssumptions.set'MultiRESTMapper
   FirstHitRESTMapper.TypeAssumptions.method_set
   FirstHitRESTMapper.TypeAssumptions.ptr_method_set
 
@@ -806,19 +806,19 @@ attribute [instance] List''.TypeAssumptions.underlying
   List''.TypeAssumptions.method_set
   List''.TypeAssumptions.ptr_method_set
 
-abbrev «Type» [GooseExts] : Type := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.«Type»
+abbrev Type'' [GooseExts] : Type := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Type''
 
-@[reducible] noncomputable def «Type».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.«Type».ty
+@[reducible] noncomputable def Type''.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Type''.ty
 
-class «Type».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq «Type».ty «Type».underlying
-  method_set : go.MethodSetIs «Type».ty [(go!"GetAPIVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetKind", (some (go.signature.Signature [] false [go.string]))), (go!"SetAPIVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetKind", (some (go.signature.Signature [go.string] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType «Type».ty) []
+class Type''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq Type''.ty Type''.underlying
+  method_set : go.MethodSetIs Type''.ty [(go!"GetAPIVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetKind", (some (go.signature.Signature [] false [go.string]))), (go!"SetAPIVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetKind", (some (go.signature.Signature [go.string] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Type''.ty) []
 
-attribute [instance] «Type».TypeAssumptions.underlying
-  «Type».TypeAssumptions.method_set
-  «Type».TypeAssumptions.ptr_method_set
+attribute [instance] Type''.TypeAssumptions.underlying
+  Type''.TypeAssumptions.method_set
+  Type''.TypeAssumptions.ptr_method_set
 
 opaque MetadataAccessor.nonempty_type : NonemptyType.{0}
 def MetadataAccessor : Type := MetadataAccessor.nonempty_type.type
@@ -937,7 +937,7 @@ noncomputable instance restMapperWrapper.zero_val [GooseExts] : ZeroVal restMapp
 @[irreducible] noncomputable def restMapperWrapper.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   restMapperWrapper.fieldsUnsealed
 
-noncomputable instance equals_unfold_restMapperWrapper [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'restMapperWrapper [GooseExts] [GoGlobalContext] :
     EqualsUnfold restMapperWrapper.fields restMapperWrapper.fieldsUnsealed :=
   ⟨by unfold restMapperWrapper.fields; rfl⟩
 
@@ -947,15 +947,15 @@ noncomputable instance equals_unfold_restMapperWrapper [GooseExts] [GoGlobalCont
 class restMapperWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying restMapperWrapper.underlying restMapperWrapper
   underlying : go.UnderlyingDirectedEq restMapperWrapper.ty restMapperWrapper.underlying
-  get_delegate : ∀ (x : restMapperWrapper), go.IsGoStepPureDetTagged under (StructFieldGet restMapperWrapper.underlying go!"delegate") #x (Val #(x.delegate'))
-  set_delegate : ∀ (x : restMapperWrapper) (y : RESTMapper), go.IsGoStepPureDetTagged under (StructFieldSet restMapperWrapper.underlying go!"delegate") (PairV #x #y) (Val #(({ x with delegate' := y } : restMapperWrapper)))
+  get'delegate : ∀ (x : restMapperWrapper), go.IsGoStepPureDetTagged under (StructFieldGet restMapperWrapper.underlying go!"delegate") #x (Val #(x.delegate'))
+  set'delegate : ∀ (x : restMapperWrapper) (y : RESTMapper), go.IsGoStepPureDetTagged under (StructFieldSet restMapperWrapper.underlying go!"delegate") (PairV #x #y) (Val #(({ x with delegate' := y } : restMapperWrapper)))
   method_set : go.MethodSetIs restMapperWrapper.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType restMapperWrapper.ty) [(go!"KindForWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" []), go.error]))), (go!"KindsForWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])), go.error]))), (go!"RESTMappingWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupKind" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType RESTMapping.ty), go.error]))), (go!"RESTMappingsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupKind" []), (go.GoType.SliceType go.string)] true [(go.GoType.SliceType (go.GoType.PointerType RESTMapping.ty)), go.error]))), (go!"ResourceForWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" []), go.error]))), (go!"ResourceSingularizerWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [go.string, go.error]))), (go!"ResourcesForWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])), go.error])))]
 
 attribute [instance] restMapperWrapper.TypeAssumptions.type_repr
   restMapperWrapper.TypeAssumptions.underlying
-  restMapperWrapper.TypeAssumptions.get_delegate
-  restMapperWrapper.TypeAssumptions.set_delegate
+  restMapperWrapper.TypeAssumptions.get'delegate
+  restMapperWrapper.TypeAssumptions.set'delegate
   restMapperWrapper.TypeAssumptions.method_set
   restMapperWrapper.TypeAssumptions.ptr_method_set
 
@@ -1007,7 +1007,7 @@ noncomputable instance resettableRESTMapperWrapper.zero_val [GooseExts] : ZeroVa
 @[irreducible] noncomputable def resettableRESTMapperWrapper.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   resettableRESTMapperWrapper.fieldsUnsealed
 
-noncomputable instance equals_unfold_resettableRESTMapperWrapper [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'resettableRESTMapperWrapper [GooseExts] [GoGlobalContext] :
     EqualsUnfold resettableRESTMapperWrapper.fields resettableRESTMapperWrapper.fieldsUnsealed :=
   ⟨by unfold resettableRESTMapperWrapper.fields; rfl⟩
 
@@ -1017,19 +1017,19 @@ noncomputable instance equals_unfold_resettableRESTMapperWrapper [GooseExts] [Go
 class resettableRESTMapperWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying resettableRESTMapperWrapper.underlying resettableRESTMapperWrapper
   underlying : go.UnderlyingDirectedEq resettableRESTMapperWrapper.ty resettableRESTMapperWrapper.underlying
-  get_RESTMapperWithContext : ∀ (x : resettableRESTMapperWrapper), go.IsGoStepPureDetTagged under (StructFieldGet resettableRESTMapperWrapper.underlying go!"RESTMapperWithContext") #x (Val #(x.RESTMapperWithContext'))
-  set_RESTMapperWithContext : ∀ (x : resettableRESTMapperWrapper) (y : RESTMapperWithContext), go.IsGoStepPureDetTagged under (StructFieldSet resettableRESTMapperWrapper.underlying go!"RESTMapperWithContext") (PairV #x #y) (Val #(({ x with RESTMapperWithContext' := y } : resettableRESTMapperWrapper)))
-  get_delegate : ∀ (x : resettableRESTMapperWrapper), go.IsGoStepPureDetTagged under (StructFieldGet resettableRESTMapperWrapper.underlying go!"delegate") #x (Val #(x.delegate'))
-  set_delegate : ∀ (x : resettableRESTMapperWrapper) (y : ResettableRESTMapper), go.IsGoStepPureDetTagged under (StructFieldSet resettableRESTMapperWrapper.underlying go!"delegate") (PairV #x #y) (Val #(({ x with delegate' := y } : resettableRESTMapperWrapper)))
+  get'RESTMapperWithContext : ∀ (x : resettableRESTMapperWrapper), go.IsGoStepPureDetTagged under (StructFieldGet resettableRESTMapperWrapper.underlying go!"RESTMapperWithContext") #x (Val #(x.RESTMapperWithContext'))
+  set'RESTMapperWithContext : ∀ (x : resettableRESTMapperWrapper) (y : RESTMapperWithContext), go.IsGoStepPureDetTagged under (StructFieldSet resettableRESTMapperWrapper.underlying go!"RESTMapperWithContext") (PairV #x #y) (Val #(({ x with RESTMapperWithContext' := y } : resettableRESTMapperWrapper)))
+  get'delegate : ∀ (x : resettableRESTMapperWrapper), go.IsGoStepPureDetTagged under (StructFieldGet resettableRESTMapperWrapper.underlying go!"delegate") #x (Val #(x.delegate'))
+  set'delegate : ∀ (x : resettableRESTMapperWrapper) (y : ResettableRESTMapper), go.IsGoStepPureDetTagged under (StructFieldSet resettableRESTMapperWrapper.underlying go!"delegate") (PairV #x #y) (Val #(({ x with delegate' := y } : resettableRESTMapperWrapper)))
   method_set : go.MethodSetIs resettableRESTMapperWrapper.ty [(go!"KindForWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" []), go.error]))), (go!"KindsForWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])), go.error]))), (go!"RESTMappingWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupKind" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType RESTMapping.ty), go.error]))), (go!"RESTMappingsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupKind" []), (go.GoType.SliceType go.string)] true [(go.GoType.SliceType (go.GoType.PointerType RESTMapping.ty)), go.error]))), (go!"ResourceForWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" []), go.error]))), (go!"ResourceSingularizerWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [go.string, go.error]))), (go!"ResourcesForWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType resettableRESTMapperWrapper.ty) [(go!"KindForWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" []), go.error]))), (go!"KindsForWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])), go.error]))), (go!"RESTMappingWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupKind" []), (go.GoType.SliceType go.string)] true [(go.GoType.PointerType RESTMapping.ty), go.error]))), (go!"RESTMappingsWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupKind" []), (go.GoType.SliceType go.string)] true [(go.GoType.SliceType (go.GoType.PointerType RESTMapping.ty)), go.error]))), (go!"ResetWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false []))), (go!"ResourceForWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" []), go.error]))), (go!"ResourceSingularizerWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [go.string, go.error]))), (go!"ResourcesForWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])), go.error])))]
 
 attribute [instance] resettableRESTMapperWrapper.TypeAssumptions.type_repr
   resettableRESTMapperWrapper.TypeAssumptions.underlying
-  resettableRESTMapperWrapper.TypeAssumptions.get_RESTMapperWithContext
-  resettableRESTMapperWrapper.TypeAssumptions.set_RESTMapperWithContext
-  resettableRESTMapperWrapper.TypeAssumptions.get_delegate
-  resettableRESTMapperWrapper.TypeAssumptions.set_delegate
+  resettableRESTMapperWrapper.TypeAssumptions.get'RESTMapperWithContext
+  resettableRESTMapperWrapper.TypeAssumptions.set'RESTMapperWithContext
+  resettableRESTMapperWrapper.TypeAssumptions.get'delegate
+  resettableRESTMapperWrapper.TypeAssumptions.set'delegate
   resettableRESTMapperWrapper.TypeAssumptions.method_set
   resettableRESTMapperWrapper.TypeAssumptions.ptr_method_set
 
@@ -1083,7 +1083,7 @@ noncomputable instance resourceAccessor.zero_val [GooseExts] : ZeroVal resourceA
 @[irreducible] noncomputable def resourceAccessor.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   resourceAccessor.fieldsUnsealed
 
-noncomputable instance equals_unfold_resourceAccessor [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'resourceAccessor [GooseExts] [GoGlobalContext] :
     EqualsUnfold resourceAccessor.fields resourceAccessor.fieldsUnsealed :=
   ⟨by unfold resourceAccessor.fields; rfl⟩
 
@@ -1185,7 +1185,7 @@ noncomputable instance restScope.zero_val [GooseExts] : ZeroVal restScope :=
 @[irreducible] noncomputable def restScope.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   restScope.fieldsUnsealed
 
-noncomputable instance equals_unfold_restScope [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'restScope [GooseExts] [GoGlobalContext] :
     EqualsUnfold restScope.fields restScope.fieldsUnsealed :=
   ⟨by unfold restScope.fields; rfl⟩
 
@@ -1195,15 +1195,15 @@ noncomputable instance equals_unfold_restScope [GooseExts] [GoGlobalContext] :
 class restScope.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying restScope.underlying restScope
   underlying : go.UnderlyingDirectedEq restScope.ty restScope.underlying
-  get_name : ∀ (x : restScope), go.IsGoStepPureDetTagged under (StructFieldGet restScope.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : restScope) (y : RESTScopeName), go.IsGoStepPureDetTagged under (StructFieldSet restScope.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : restScope)))
+  get'name : ∀ (x : restScope), go.IsGoStepPureDetTagged under (StructFieldGet restScope.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : restScope) (y : RESTScopeName), go.IsGoStepPureDetTagged under (StructFieldSet restScope.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : restScope)))
   method_set : go.MethodSetIs restScope.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType restScope.ty) [(go!"Name", (some (go.signature.Signature [] false [RESTScopeName.ty])))]
 
 attribute [instance] restScope.TypeAssumptions.type_repr
   restScope.TypeAssumptions.underlying
-  restScope.TypeAssumptions.get_name
-  restScope.TypeAssumptions.set_name
+  restScope.TypeAssumptions.get'name
+  restScope.TypeAssumptions.set'name
   restScope.TypeAssumptions.method_set
   restScope.TypeAssumptions.ptr_method_set
 
@@ -1265,75 +1265,75 @@ attribute [instance] resourceByPreferredGroupVersion.TypeAssumptions.type_repr
   resourceByPreferredGroupVersion.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  AmbiguousResourceError_instance : AmbiguousResourceError.TypeAssumptions
-  AmbiguousKindError_instance : AmbiguousKindError.TypeAssumptions
-  NoResourceMatchError_instance : NoResourceMatchError.TypeAssumptions
-  NoKindMatchError_instance : NoKindMatchError.TypeAssumptions
-  FirstHitRESTMapper_instance : FirstHitRESTMapper.TypeAssumptions
-  ListMetaAccessor_instance : ListMetaAccessor.TypeAssumptions
-  List_instance : List''.TypeAssumptions
-  Type_instance : «Type».TypeAssumptions
-  MetadataAccessor_instance : MetadataAccessor.TypeAssumptions
-  RESTScopeName_instance : RESTScopeName.TypeAssumptions
-  RESTScope_instance : RESTScope.TypeAssumptions
-  RESTMapping_instance : RESTMapping.TypeAssumptions
-  RESTMapper_instance : RESTMapper.TypeAssumptions
-  RESTMapperWithContext_instance : RESTMapperWithContext.TypeAssumptions
-  restMapperWrapper_instance : restMapperWrapper.TypeAssumptions
-  ResettableRESTMapper_instance : ResettableRESTMapper.TypeAssumptions
-  ResettableRESTMapperWithContext_instance : ResettableRESTMapperWithContext.TypeAssumptions
-  resettableRESTMapperWrapper_instance : resettableRESTMapperWrapper.TypeAssumptions
-  lazyObject_instance : lazyObject.TypeAssumptions
-  objectAccessor_instance : objectAccessor.TypeAssumptions
-  resourceAccessor_instance : resourceAccessor.TypeAssumptions
-  genericAccessor_instance : genericAccessor.TypeAssumptions
-  MultiRESTMapper_instance : MultiRESTMapper.TypeAssumptions
-  MultiRESTMapperWithContext_instance : MultiRESTMapperWithContext.TypeAssumptions
-  PriorityRESTMapper_instance : PriorityRESTMapper.TypeAssumptions
-  PriorityRESTMapperWithContext_instance : PriorityRESTMapperWithContext.TypeAssumptions
-  restScope_instance : restScope.TypeAssumptions
-  DefaultRESTMapper_instance : DefaultRESTMapper.TypeAssumptions
-  kindByPreferredGroupVersion_instance : kindByPreferredGroupVersion.TypeAssumptions
-  resourceByPreferredGroupVersion_instance : resourceByPreferredGroupVersion.TypeAssumptions
-  ListAccessor_unfold : FuncUnfold ListAccessor [] ListAccessor.impl
-  Accessor_unfold : FuncUnfold Accessor [] Accessor.impl
-  import_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
+  instance'AmbiguousResourceError : AmbiguousResourceError.TypeAssumptions
+  instance'AmbiguousKindError : AmbiguousKindError.TypeAssumptions
+  instance'NoResourceMatchError : NoResourceMatchError.TypeAssumptions
+  instance'NoKindMatchError : NoKindMatchError.TypeAssumptions
+  instance'FirstHitRESTMapper : FirstHitRESTMapper.TypeAssumptions
+  instance'ListMetaAccessor : ListMetaAccessor.TypeAssumptions
+  instance'List : List''.TypeAssumptions
+  instance'Type : Type''.TypeAssumptions
+  instance'MetadataAccessor : MetadataAccessor.TypeAssumptions
+  instance'RESTScopeName : RESTScopeName.TypeAssumptions
+  instance'RESTScope : RESTScope.TypeAssumptions
+  instance'RESTMapping : RESTMapping.TypeAssumptions
+  instance'RESTMapper : RESTMapper.TypeAssumptions
+  instance'RESTMapperWithContext : RESTMapperWithContext.TypeAssumptions
+  instance'restMapperWrapper : restMapperWrapper.TypeAssumptions
+  instance'ResettableRESTMapper : ResettableRESTMapper.TypeAssumptions
+  instance'ResettableRESTMapperWithContext : ResettableRESTMapperWithContext.TypeAssumptions
+  instance'resettableRESTMapperWrapper : resettableRESTMapperWrapper.TypeAssumptions
+  instance'lazyObject : lazyObject.TypeAssumptions
+  instance'objectAccessor : objectAccessor.TypeAssumptions
+  instance'resourceAccessor : resourceAccessor.TypeAssumptions
+  instance'genericAccessor : genericAccessor.TypeAssumptions
+  instance'MultiRESTMapper : MultiRESTMapper.TypeAssumptions
+  instance'MultiRESTMapperWithContext : MultiRESTMapperWithContext.TypeAssumptions
+  instance'PriorityRESTMapper : PriorityRESTMapper.TypeAssumptions
+  instance'PriorityRESTMapperWithContext : PriorityRESTMapperWithContext.TypeAssumptions
+  instance'restScope : restScope.TypeAssumptions
+  instance'DefaultRESTMapper : DefaultRESTMapper.TypeAssumptions
+  instance'kindByPreferredGroupVersion : kindByPreferredGroupVersion.TypeAssumptions
+  instance'resourceByPreferredGroupVersion : resourceByPreferredGroupVersion.TypeAssumptions
+  unfold'ListAccessor : FuncUnfold ListAccessor [] ListAccessor.impl
+  unfold'Accessor : FuncUnfold Accessor [] Accessor.impl
+  import'v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
 
-attribute [instance] Assumptions.AmbiguousResourceError_instance
-  Assumptions.AmbiguousKindError_instance
-  Assumptions.NoResourceMatchError_instance
-  Assumptions.NoKindMatchError_instance
-  Assumptions.FirstHitRESTMapper_instance
-  Assumptions.ListMetaAccessor_instance
-  Assumptions.List_instance
-  Assumptions.Type_instance
-  Assumptions.MetadataAccessor_instance
-  Assumptions.RESTScopeName_instance
-  Assumptions.RESTScope_instance
-  Assumptions.RESTMapping_instance
-  Assumptions.RESTMapper_instance
-  Assumptions.RESTMapperWithContext_instance
-  Assumptions.restMapperWrapper_instance
-  Assumptions.ResettableRESTMapper_instance
-  Assumptions.ResettableRESTMapperWithContext_instance
-  Assumptions.resettableRESTMapperWrapper_instance
-  Assumptions.lazyObject_instance
-  Assumptions.objectAccessor_instance
-  Assumptions.resourceAccessor_instance
-  Assumptions.genericAccessor_instance
-  Assumptions.MultiRESTMapper_instance
-  Assumptions.MultiRESTMapperWithContext_instance
-  Assumptions.PriorityRESTMapper_instance
-  Assumptions.PriorityRESTMapperWithContext_instance
-  Assumptions.restScope_instance
-  Assumptions.DefaultRESTMapper_instance
-  Assumptions.kindByPreferredGroupVersion_instance
-  Assumptions.resourceByPreferredGroupVersion_instance
-  Assumptions.ListAccessor_unfold
-  Assumptions.Accessor_unfold
-  Assumptions.import_v1_Assumption
-  Assumptions.import_fmt_Assumption
+attribute [instance] Assumptions.instance'AmbiguousResourceError
+  Assumptions.instance'AmbiguousKindError
+  Assumptions.instance'NoResourceMatchError
+  Assumptions.instance'NoKindMatchError
+  Assumptions.instance'FirstHitRESTMapper
+  Assumptions.instance'ListMetaAccessor
+  Assumptions.instance'List
+  Assumptions.instance'Type
+  Assumptions.instance'MetadataAccessor
+  Assumptions.instance'RESTScopeName
+  Assumptions.instance'RESTScope
+  Assumptions.instance'RESTMapping
+  Assumptions.instance'RESTMapper
+  Assumptions.instance'RESTMapperWithContext
+  Assumptions.instance'restMapperWrapper
+  Assumptions.instance'ResettableRESTMapper
+  Assumptions.instance'ResettableRESTMapperWithContext
+  Assumptions.instance'resettableRESTMapperWrapper
+  Assumptions.instance'lazyObject
+  Assumptions.instance'objectAccessor
+  Assumptions.instance'resourceAccessor
+  Assumptions.instance'genericAccessor
+  Assumptions.instance'MultiRESTMapper
+  Assumptions.instance'MultiRESTMapperWithContext
+  Assumptions.instance'PriorityRESTMapper
+  Assumptions.instance'PriorityRESTMapperWithContext
+  Assumptions.instance'restScope
+  Assumptions.instance'DefaultRESTMapper
+  Assumptions.instance'kindByPreferredGroupVersion
+  Assumptions.instance'resourceByPreferredGroupVersion
+  Assumptions.unfold'ListAccessor
+  Assumptions.unfold'Accessor
+  Assumptions.import'v1
+  Assumptions.import'fmt
 
 end k8s_io.apimachinery.pkg.api.«meta»
 

@@ -437,7 +437,7 @@ noncomputable def Slot.SortRecvProposals.impl [GooseExts] [GoGlobalContext] : va
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Slot.ty)))) (Var "s"))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert tallies.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Tally.ty)))) (App (Val (GoInstruction (StructFieldRef Slot.ty go!"RecvProposals"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Slot.ty)))) (Var "s")))))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0"))))))
   (Val #()))))
 
 /-- go: ledger.go:251:18 -/
@@ -914,7 +914,7 @@ noncomputable instance Tally.zero_val [GooseExts] : ZeroVal Tally :=
 @[irreducible] noncomputable def Tally.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Tally.fieldsUnsealed
 
-noncomputable instance equals_unfold_Tally [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Tally [GooseExts] [GoGlobalContext] :
     EqualsUnfold Tally.fields Tally.fieldsUnsealed :=
   ⟨by unfold Tally.fields; rfl⟩
 
@@ -924,19 +924,19 @@ noncomputable instance equals_unfold_Tally [GooseExts] [GoGlobalContext] :
 class Tally.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Tally.underlying Tally
   underlying : go.UnderlyingDirectedEq Tally.ty Tally.underlying
-  get_Proposal : ∀ (x : Tally), go.IsGoStepPureDetTagged under (StructFieldGet Tally.underlying go!"Proposal") #x (Val #(x.Proposal'))
-  set_Proposal : ∀ (x : Tally) (y : _root_.Perennial.rabia.internal.message.ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldSet Tally.underlying go!"Proposal") (PairV #x #y) (Val #(({ x with Proposal' := y } : Tally)))
-  get_Count : ∀ (x : Tally), go.IsGoStepPureDetTagged under (StructFieldGet Tally.underlying go!"Count") #x (Val #(x.Count'))
-  set_Count : ∀ (x : Tally) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Tally.underlying go!"Count") (PairV #x #y) (Val #(({ x with Count' := y } : Tally)))
+  get'Proposal : ∀ (x : Tally), go.IsGoStepPureDetTagged under (StructFieldGet Tally.underlying go!"Proposal") #x (Val #(x.Proposal'))
+  set'Proposal : ∀ (x : Tally) (y : _root_.Perennial.rabia.internal.message.ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldSet Tally.underlying go!"Proposal") (PairV #x #y) (Val #(({ x with Proposal' := y } : Tally)))
+  get'Count : ∀ (x : Tally), go.IsGoStepPureDetTagged under (StructFieldGet Tally.underlying go!"Count") #x (Val #(x.Count'))
+  set'Count : ∀ (x : Tally) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Tally.underlying go!"Count") (PairV #x #y) (Val #(({ x with Count' := y } : Tally)))
   method_set : go.MethodSetIs Tally.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Tally.ty) []
 
 attribute [instance] Tally.TypeAssumptions.type_repr
   Tally.TypeAssumptions.underlying
-  Tally.TypeAssumptions.get_Proposal
-  Tally.TypeAssumptions.set_Proposal
-  Tally.TypeAssumptions.get_Count
-  Tally.TypeAssumptions.set_Count
+  Tally.TypeAssumptions.get'Proposal
+  Tally.TypeAssumptions.set'Proposal
+  Tally.TypeAssumptions.get'Count
+  Tally.TypeAssumptions.set'Count
   Tally.TypeAssumptions.method_set
   Tally.TypeAssumptions.ptr_method_set
 
@@ -979,7 +979,7 @@ noncomputable instance Slot.zero_val [GooseExts] : ZeroVal Slot :=
 @[irreducible] noncomputable def Slot.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Slot.fieldsUnsealed
 
-noncomputable instance equals_unfold_Slot [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Slot [GooseExts] [GoGlobalContext] :
     EqualsUnfold Slot.fields Slot.fieldsUnsealed :=
   ⟨by unfold Slot.fields; rfl⟩
 
@@ -989,117 +989,117 @@ noncomputable instance equals_unfold_Slot [GooseExts] [GoGlobalContext] :
 class Slot.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Slot.underlying Slot
   underlying : go.UnderlyingDirectedEq Slot.ty Slot.underlying
-  get_Term : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"Term") #x (Val #(x.Term'))
-  set_Term : ∀ (x : Slot) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"Term") (PairV #x #y) (Val #(({ x with Term' := y } : Slot)))
-  get_Lock : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"Lock") #x (Val #(x.Lock'))
-  set_Lock : ∀ (x : Slot) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"Lock") (PairV #x #y) (Val #(({ x with Lock' := y } : Slot)))
-  get_IsDone : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"IsDone") #x (Val #(x.IsDone'))
-  set_IsDone : ∀ (x : Slot) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"IsDone") (PairV #x #y) (Val #(({ x with IsDone' := y } : Slot)))
-  get_HasRecvDec : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"HasRecvDec") #x (Val #(x.HasRecvDec'))
-  set_HasRecvDec : ∀ (x : Slot) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"HasRecvDec") (PairV #x #y) (Val #(({ x with HasRecvDec' := y } : Slot)))
-  get_Decision : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"Decision") #x (Val #(x.Decision'))
-  set_Decision : ∀ (x : Slot) (y : _root_.Perennial.rabia.internal.message.ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"Decision") (PairV #x #y) (Val #(({ x with Decision' := y } : Slot)))
-  get_Queue : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"Queue") #x (Val #(x.Queue'))
-  set_Queue : ∀ (x : Slot) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"Queue") (PairV #x #y) (Val #(({ x with Queue' := y } : Slot)))
-  get_Phase : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"Phase") #x (Val #(x.Phase'))
-  set_Phase : ∀ (x : Slot) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"Phase") (PairV #x #y) (Val #(({ x with Phase' := y } : Slot)))
-  get_Round : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"Round") #x (Val #(x.Round'))
-  set_Round : ∀ (x : Slot) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"Round") (PairV #x #y) (Val #(({ x with Round' := y } : Slot)))
-  get_wake : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"wake") #x (Val #(x.wake'))
-  set_wake : ∀ (x : Slot) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"wake") (PairV #x #y) (Val #(({ x with wake' := y } : Slot)))
-  get_MyProposal : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"MyProposal") #x (Val #(x.MyProposal'))
-  set_MyProposal : ∀ (x : Slot) (y : _root_.Perennial.rabia.internal.message.ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"MyProposal") (PairV #x #y) (Val #(({ x with MyProposal' := y } : Slot)))
-  get_RecvProposals : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"RecvProposals") #x (Val #(x.RecvProposals'))
-  set_RecvProposals : ∀ (x : Slot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"RecvProposals") (PairV #x #y) (Val #(({ x with RecvProposals' := y } : Slot)))
-  get_MyBCMsgs : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"MyBCMsgs") #x (Val #(x.MyBCMsgs'))
-  set_MyBCMsgs : ∀ (x : Slot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"MyBCMsgs") (PairV #x #y) (Val #(({ x with MyBCMsgs' := y } : Slot)))
-  get_RecvBCMsgs : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"RecvBCMsgs") #x (Val #(x.RecvBCMsgs'))
-  set_RecvBCMsgs : ∀ (x : Slot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"RecvBCMsgs") (PairV #x #y) (Val #(({ x with RecvBCMsgs' := y } : Slot)))
-  get_RecvBCMsgsT : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"RecvBCMsgsT") #x (Val #(x.RecvBCMsgsT'))
-  set_RecvBCMsgsT : ∀ (x : Slot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"RecvBCMsgsT") (PairV #x #y) (Val #(({ x with RecvBCMsgsT' := y } : Slot)))
+  get'Term : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"Term") #x (Val #(x.Term'))
+  set'Term : ∀ (x : Slot) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"Term") (PairV #x #y) (Val #(({ x with Term' := y } : Slot)))
+  get'Lock : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"Lock") #x (Val #(x.Lock'))
+  set'Lock : ∀ (x : Slot) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"Lock") (PairV #x #y) (Val #(({ x with Lock' := y } : Slot)))
+  get'IsDone : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"IsDone") #x (Val #(x.IsDone'))
+  set'IsDone : ∀ (x : Slot) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"IsDone") (PairV #x #y) (Val #(({ x with IsDone' := y } : Slot)))
+  get'HasRecvDec : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"HasRecvDec") #x (Val #(x.HasRecvDec'))
+  set'HasRecvDec : ∀ (x : Slot) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"HasRecvDec") (PairV #x #y) (Val #(({ x with HasRecvDec' := y } : Slot)))
+  get'Decision : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"Decision") #x (Val #(x.Decision'))
+  set'Decision : ∀ (x : Slot) (y : _root_.Perennial.rabia.internal.message.ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"Decision") (PairV #x #y) (Val #(({ x with Decision' := y } : Slot)))
+  get'Queue : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"Queue") #x (Val #(x.Queue'))
+  set'Queue : ∀ (x : Slot) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"Queue") (PairV #x #y) (Val #(({ x with Queue' := y } : Slot)))
+  get'Phase : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"Phase") #x (Val #(x.Phase'))
+  set'Phase : ∀ (x : Slot) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"Phase") (PairV #x #y) (Val #(({ x with Phase' := y } : Slot)))
+  get'Round : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"Round") #x (Val #(x.Round'))
+  set'Round : ∀ (x : Slot) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"Round") (PairV #x #y) (Val #(({ x with Round' := y } : Slot)))
+  get'wake : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"wake") #x (Val #(x.wake'))
+  set'wake : ∀ (x : Slot) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"wake") (PairV #x #y) (Val #(({ x with wake' := y } : Slot)))
+  get'MyProposal : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"MyProposal") #x (Val #(x.MyProposal'))
+  set'MyProposal : ∀ (x : Slot) (y : _root_.Perennial.rabia.internal.message.ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"MyProposal") (PairV #x #y) (Val #(({ x with MyProposal' := y } : Slot)))
+  get'RecvProposals : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"RecvProposals") #x (Val #(x.RecvProposals'))
+  set'RecvProposals : ∀ (x : Slot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"RecvProposals") (PairV #x #y) (Val #(({ x with RecvProposals' := y } : Slot)))
+  get'MyBCMsgs : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"MyBCMsgs") #x (Val #(x.MyBCMsgs'))
+  set'MyBCMsgs : ∀ (x : Slot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"MyBCMsgs") (PairV #x #y) (Val #(({ x with MyBCMsgs' := y } : Slot)))
+  get'RecvBCMsgs : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"RecvBCMsgs") #x (Val #(x.RecvBCMsgs'))
+  set'RecvBCMsgs : ∀ (x : Slot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"RecvBCMsgs") (PairV #x #y) (Val #(({ x with RecvBCMsgs' := y } : Slot)))
+  get'RecvBCMsgsT : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"RecvBCMsgsT") #x (Val #(x.RecvBCMsgsT'))
+  set'RecvBCMsgsT : ∀ (x : Slot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"RecvBCMsgsT") (PairV #x #y) (Val #(({ x with RecvBCMsgsT' := y } : Slot)))
   method_set : go.MethodSetIs Slot.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Slot.ty) [(go!"GetDecision", (some (go.signature.Signature [] false [_root_.Perennial.rabia.internal.message.ConsensusObj.ty, go.bool]))), (go!"GetDecisionOrWake", (some (go.signature.Signature [] false [_root_.Perennial.rabia.internal.message.ConsensusObj.ty, go.bool, (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))), (go!"GetHasRecvDec", (some (go.signature.Signature [] false [go.bool]))), (go!"GetIsDone", (some (go.signature.Signature [] false [go.bool]))), (go!"GetMyBCMsgs", (some (go.signature.Signature [go.uint32, go.uint32] false [go.uint32]))), (go!"GetMyProposal", (some (go.signature.Signature [] false [_root_.Perennial.rabia.internal.message.ConsensusObj.ty]))), (go!"GetRecvBCMsgsT", (some (go.signature.Signature [go.uint32, go.uint32] false [go.int]))), (go!"HasEnoughMsg", (some (go.signature.Signature [go.uint32, go.uint32] false [go.bool]))), (go!"IncrPhaseDecrRound", (some (go.signature.Signature [] false []))), (go!"PutRecvBCMsgs", (some (go.signature.Signature [go.uint32, go.uint32, go.uint32] false []))), (go!"PutRecvProposals", (some (go.signature.Signature [_root_.Perennial.rabia.internal.message.ConsensusObj.ty] false []))), (go!"RecvBCMsgsMajT", (some (go.signature.Signature [go.uint32, go.uint32] false [go.int]))), (go!"RecvBCMsgsMajV", (some (go.signature.Signature [go.uint32, go.uint32] false [go.uint32]))), (go!"RecvProposalsMajT", (some (go.signature.Signature [] false [go.int]))), (go!"RecvProposalsMajV", (some (go.signature.Signature [] false [_root_.Perennial.rabia.internal.message.ConsensusObj.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetDecision", (some (go.signature.Signature [_root_.Perennial.rabia.internal.message.ConsensusObj.ty] false []))), (go!"SetHasRecvDec", (some (go.signature.Signature [] false []))), (go!"SetMyBCMsgs", (some (go.signature.Signature [go.uint32, go.uint32, go.uint32] false []))), (go!"SetMyProposal", (some (go.signature.Signature [_root_.Perennial.rabia.internal.message.ConsensusObj.ty] false []))), (go!"SortRecvProposals", (some (go.signature.Signature [] false []))), (go!"rabia/internal/ledger.recvBCMsgs", (some (go.signature.Signature [go.uint32, go.uint32] false [(go.GoType.ArrayType 3 go.int)]))), (go!"rabia/internal/ledger.recvBCMsgsT", (some (go.signature.Signature [go.uint32, go.uint32] false [go.int]))), (go!"rabia/internal/ledger.wakeWaiters", (some (go.signature.Signature [] false [])))]
-  ptr_GetDecision_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"GetDecision" Slot.GetDecision.impl
-  ptr_GetDecisionOrWake_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"GetDecisionOrWake" Slot.GetDecisionOrWake.impl
-  ptr_GetHasRecvDec_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"GetHasRecvDec" Slot.GetHasRecvDec.impl
-  ptr_GetIsDone_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"GetIsDone" Slot.GetIsDone.impl
-  ptr_GetMyBCMsgs_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"GetMyBCMsgs" Slot.GetMyBCMsgs.impl
-  ptr_GetMyProposal_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"GetMyProposal" Slot.GetMyProposal.impl
-  ptr_GetRecvBCMsgsT_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"GetRecvBCMsgsT" Slot.GetRecvBCMsgsT.impl
-  ptr_HasEnoughMsg_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"HasEnoughMsg" Slot.HasEnoughMsg.impl
-  ptr_IncrPhaseDecrRound_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"IncrPhaseDecrRound" Slot.IncrPhaseDecrRound.impl
-  ptr_PutRecvBCMsgs_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"PutRecvBCMsgs" Slot.PutRecvBCMsgs.impl
-  ptr_PutRecvProposals_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"PutRecvProposals" Slot.PutRecvProposals.impl
-  ptr_RecvBCMsgsMajT_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"RecvBCMsgsMajT" Slot.RecvBCMsgsMajT.impl
-  ptr_RecvBCMsgsMajV_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"RecvBCMsgsMajV" Slot.RecvBCMsgsMajV.impl
-  ptr_RecvProposalsMajT_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"RecvProposalsMajT" Slot.RecvProposalsMajT.impl
-  ptr_RecvProposalsMajV_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"RecvProposalsMajV" Slot.RecvProposalsMajV.impl
-  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"Reset" Slot.Reset.impl
-  ptr_SetDecision_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"SetDecision" Slot.SetDecision.impl
-  ptr_SetHasRecvDec_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"SetHasRecvDec" Slot.SetHasRecvDec.impl
-  ptr_SetMyBCMsgs_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"SetMyBCMsgs" Slot.SetMyBCMsgs.impl
-  ptr_SetMyProposal_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"SetMyProposal" Slot.SetMyProposal.impl
-  ptr_SortRecvProposals_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"SortRecvProposals" Slot.SortRecvProposals.impl
-  ptr_recvBCMsgs_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"recvBCMsgs" Slot.recvBCMsgs.impl
-  ptr_recvBCMsgsT_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"recvBCMsgsT" Slot.recvBCMsgsT.impl
-  ptr_wakeWaiters_unfold : MethodUnfold (go.GoType.PointerType Slot.ty) go!"wakeWaiters" Slot.wakeWaiters.impl
+  ptr_unfold'GetDecision : MethodUnfold (go.GoType.PointerType Slot.ty) go!"GetDecision" Slot.GetDecision.impl
+  ptr_unfold'GetDecisionOrWake : MethodUnfold (go.GoType.PointerType Slot.ty) go!"GetDecisionOrWake" Slot.GetDecisionOrWake.impl
+  ptr_unfold'GetHasRecvDec : MethodUnfold (go.GoType.PointerType Slot.ty) go!"GetHasRecvDec" Slot.GetHasRecvDec.impl
+  ptr_unfold'GetIsDone : MethodUnfold (go.GoType.PointerType Slot.ty) go!"GetIsDone" Slot.GetIsDone.impl
+  ptr_unfold'GetMyBCMsgs : MethodUnfold (go.GoType.PointerType Slot.ty) go!"GetMyBCMsgs" Slot.GetMyBCMsgs.impl
+  ptr_unfold'GetMyProposal : MethodUnfold (go.GoType.PointerType Slot.ty) go!"GetMyProposal" Slot.GetMyProposal.impl
+  ptr_unfold'GetRecvBCMsgsT : MethodUnfold (go.GoType.PointerType Slot.ty) go!"GetRecvBCMsgsT" Slot.GetRecvBCMsgsT.impl
+  ptr_unfold'HasEnoughMsg : MethodUnfold (go.GoType.PointerType Slot.ty) go!"HasEnoughMsg" Slot.HasEnoughMsg.impl
+  ptr_unfold'IncrPhaseDecrRound : MethodUnfold (go.GoType.PointerType Slot.ty) go!"IncrPhaseDecrRound" Slot.IncrPhaseDecrRound.impl
+  ptr_unfold'PutRecvBCMsgs : MethodUnfold (go.GoType.PointerType Slot.ty) go!"PutRecvBCMsgs" Slot.PutRecvBCMsgs.impl
+  ptr_unfold'PutRecvProposals : MethodUnfold (go.GoType.PointerType Slot.ty) go!"PutRecvProposals" Slot.PutRecvProposals.impl
+  ptr_unfold'RecvBCMsgsMajT : MethodUnfold (go.GoType.PointerType Slot.ty) go!"RecvBCMsgsMajT" Slot.RecvBCMsgsMajT.impl
+  ptr_unfold'RecvBCMsgsMajV : MethodUnfold (go.GoType.PointerType Slot.ty) go!"RecvBCMsgsMajV" Slot.RecvBCMsgsMajV.impl
+  ptr_unfold'RecvProposalsMajT : MethodUnfold (go.GoType.PointerType Slot.ty) go!"RecvProposalsMajT" Slot.RecvProposalsMajT.impl
+  ptr_unfold'RecvProposalsMajV : MethodUnfold (go.GoType.PointerType Slot.ty) go!"RecvProposalsMajV" Slot.RecvProposalsMajV.impl
+  ptr_unfold'Reset : MethodUnfold (go.GoType.PointerType Slot.ty) go!"Reset" Slot.Reset.impl
+  ptr_unfold'SetDecision : MethodUnfold (go.GoType.PointerType Slot.ty) go!"SetDecision" Slot.SetDecision.impl
+  ptr_unfold'SetHasRecvDec : MethodUnfold (go.GoType.PointerType Slot.ty) go!"SetHasRecvDec" Slot.SetHasRecvDec.impl
+  ptr_unfold'SetMyBCMsgs : MethodUnfold (go.GoType.PointerType Slot.ty) go!"SetMyBCMsgs" Slot.SetMyBCMsgs.impl
+  ptr_unfold'SetMyProposal : MethodUnfold (go.GoType.PointerType Slot.ty) go!"SetMyProposal" Slot.SetMyProposal.impl
+  ptr_unfold'SortRecvProposals : MethodUnfold (go.GoType.PointerType Slot.ty) go!"SortRecvProposals" Slot.SortRecvProposals.impl
+  ptr_unfold'recvBCMsgs : MethodUnfold (go.GoType.PointerType Slot.ty) go!"recvBCMsgs" Slot.recvBCMsgs.impl
+  ptr_unfold'recvBCMsgsT : MethodUnfold (go.GoType.PointerType Slot.ty) go!"recvBCMsgsT" Slot.recvBCMsgsT.impl
+  ptr_unfold'wakeWaiters : MethodUnfold (go.GoType.PointerType Slot.ty) go!"wakeWaiters" Slot.wakeWaiters.impl
 
 attribute [instance] Slot.TypeAssumptions.type_repr
   Slot.TypeAssumptions.underlying
-  Slot.TypeAssumptions.get_Term
-  Slot.TypeAssumptions.set_Term
-  Slot.TypeAssumptions.get_Lock
-  Slot.TypeAssumptions.set_Lock
-  Slot.TypeAssumptions.get_IsDone
-  Slot.TypeAssumptions.set_IsDone
-  Slot.TypeAssumptions.get_HasRecvDec
-  Slot.TypeAssumptions.set_HasRecvDec
-  Slot.TypeAssumptions.get_Decision
-  Slot.TypeAssumptions.set_Decision
-  Slot.TypeAssumptions.get_Queue
-  Slot.TypeAssumptions.set_Queue
-  Slot.TypeAssumptions.get_Phase
-  Slot.TypeAssumptions.set_Phase
-  Slot.TypeAssumptions.get_Round
-  Slot.TypeAssumptions.set_Round
-  Slot.TypeAssumptions.get_wake
-  Slot.TypeAssumptions.set_wake
-  Slot.TypeAssumptions.get_MyProposal
-  Slot.TypeAssumptions.set_MyProposal
-  Slot.TypeAssumptions.get_RecvProposals
-  Slot.TypeAssumptions.set_RecvProposals
-  Slot.TypeAssumptions.get_MyBCMsgs
-  Slot.TypeAssumptions.set_MyBCMsgs
-  Slot.TypeAssumptions.get_RecvBCMsgs
-  Slot.TypeAssumptions.set_RecvBCMsgs
-  Slot.TypeAssumptions.get_RecvBCMsgsT
-  Slot.TypeAssumptions.set_RecvBCMsgsT
+  Slot.TypeAssumptions.get'Term
+  Slot.TypeAssumptions.set'Term
+  Slot.TypeAssumptions.get'Lock
+  Slot.TypeAssumptions.set'Lock
+  Slot.TypeAssumptions.get'IsDone
+  Slot.TypeAssumptions.set'IsDone
+  Slot.TypeAssumptions.get'HasRecvDec
+  Slot.TypeAssumptions.set'HasRecvDec
+  Slot.TypeAssumptions.get'Decision
+  Slot.TypeAssumptions.set'Decision
+  Slot.TypeAssumptions.get'Queue
+  Slot.TypeAssumptions.set'Queue
+  Slot.TypeAssumptions.get'Phase
+  Slot.TypeAssumptions.set'Phase
+  Slot.TypeAssumptions.get'Round
+  Slot.TypeAssumptions.set'Round
+  Slot.TypeAssumptions.get'wake
+  Slot.TypeAssumptions.set'wake
+  Slot.TypeAssumptions.get'MyProposal
+  Slot.TypeAssumptions.set'MyProposal
+  Slot.TypeAssumptions.get'RecvProposals
+  Slot.TypeAssumptions.set'RecvProposals
+  Slot.TypeAssumptions.get'MyBCMsgs
+  Slot.TypeAssumptions.set'MyBCMsgs
+  Slot.TypeAssumptions.get'RecvBCMsgs
+  Slot.TypeAssumptions.set'RecvBCMsgs
+  Slot.TypeAssumptions.get'RecvBCMsgsT
+  Slot.TypeAssumptions.set'RecvBCMsgsT
   Slot.TypeAssumptions.method_set
   Slot.TypeAssumptions.ptr_method_set
-  Slot.TypeAssumptions.ptr_GetDecision_unfold
-  Slot.TypeAssumptions.ptr_GetDecisionOrWake_unfold
-  Slot.TypeAssumptions.ptr_GetHasRecvDec_unfold
-  Slot.TypeAssumptions.ptr_GetIsDone_unfold
-  Slot.TypeAssumptions.ptr_GetMyBCMsgs_unfold
-  Slot.TypeAssumptions.ptr_GetMyProposal_unfold
-  Slot.TypeAssumptions.ptr_GetRecvBCMsgsT_unfold
-  Slot.TypeAssumptions.ptr_HasEnoughMsg_unfold
-  Slot.TypeAssumptions.ptr_IncrPhaseDecrRound_unfold
-  Slot.TypeAssumptions.ptr_PutRecvBCMsgs_unfold
-  Slot.TypeAssumptions.ptr_PutRecvProposals_unfold
-  Slot.TypeAssumptions.ptr_RecvBCMsgsMajT_unfold
-  Slot.TypeAssumptions.ptr_RecvBCMsgsMajV_unfold
-  Slot.TypeAssumptions.ptr_RecvProposalsMajT_unfold
-  Slot.TypeAssumptions.ptr_RecvProposalsMajV_unfold
-  Slot.TypeAssumptions.ptr_Reset_unfold
-  Slot.TypeAssumptions.ptr_SetDecision_unfold
-  Slot.TypeAssumptions.ptr_SetHasRecvDec_unfold
-  Slot.TypeAssumptions.ptr_SetMyBCMsgs_unfold
-  Slot.TypeAssumptions.ptr_SetMyProposal_unfold
-  Slot.TypeAssumptions.ptr_SortRecvProposals_unfold
-  Slot.TypeAssumptions.ptr_recvBCMsgs_unfold
-  Slot.TypeAssumptions.ptr_recvBCMsgsT_unfold
-  Slot.TypeAssumptions.ptr_wakeWaiters_unfold
+  Slot.TypeAssumptions.ptr_unfold'GetDecision
+  Slot.TypeAssumptions.ptr_unfold'GetDecisionOrWake
+  Slot.TypeAssumptions.ptr_unfold'GetHasRecvDec
+  Slot.TypeAssumptions.ptr_unfold'GetIsDone
+  Slot.TypeAssumptions.ptr_unfold'GetMyBCMsgs
+  Slot.TypeAssumptions.ptr_unfold'GetMyProposal
+  Slot.TypeAssumptions.ptr_unfold'GetRecvBCMsgsT
+  Slot.TypeAssumptions.ptr_unfold'HasEnoughMsg
+  Slot.TypeAssumptions.ptr_unfold'IncrPhaseDecrRound
+  Slot.TypeAssumptions.ptr_unfold'PutRecvBCMsgs
+  Slot.TypeAssumptions.ptr_unfold'PutRecvProposals
+  Slot.TypeAssumptions.ptr_unfold'RecvBCMsgsMajT
+  Slot.TypeAssumptions.ptr_unfold'RecvBCMsgsMajV
+  Slot.TypeAssumptions.ptr_unfold'RecvProposalsMajT
+  Slot.TypeAssumptions.ptr_unfold'RecvProposalsMajV
+  Slot.TypeAssumptions.ptr_unfold'Reset
+  Slot.TypeAssumptions.ptr_unfold'SetDecision
+  Slot.TypeAssumptions.ptr_unfold'SetHasRecvDec
+  Slot.TypeAssumptions.ptr_unfold'SetMyBCMsgs
+  Slot.TypeAssumptions.ptr_unfold'SetMyProposal
+  Slot.TypeAssumptions.ptr_unfold'SortRecvProposals
+  Slot.TypeAssumptions.ptr_unfold'recvBCMsgs
+  Slot.TypeAssumptions.ptr_unfold'recvBCMsgsT
+  Slot.TypeAssumptions.ptr_unfold'wakeWaiters
 
 abbrev Ledger [GooseExts] : Type := GoSlice
 
@@ -1124,44 +1124,44 @@ class tallies.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   underlying : go.UnderlyingDirectedEq tallies.ty tallies.underlying
   method_set : go.MethodSetIs tallies.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType tallies.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold tallies.ty go!"Len" tallies.Len.impl
-  Less_unfold : MethodUnfold tallies.ty go!"Less" tallies.Less.impl
-  Swap_unfold : MethodUnfold tallies.ty go!"Swap" tallies.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType tallies.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold tallies.ty go!"Len" tallies.Len.impl
+  unfold'Less : MethodUnfold tallies.ty go!"Less" tallies.Less.impl
+  unfold'Swap : MethodUnfold tallies.ty go!"Swap" tallies.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType tallies.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve tallies.ty go!"Len"))) (App (Val (GoInstruction (GoLoad tallies.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType tallies.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType tallies.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve tallies.ty go!"Less"))) (App (Val (GoInstruction (GoLoad tallies.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType tallies.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType tallies.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve tallies.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad tallies.ty))) (Var "$r"))))
 
 attribute [instance] tallies.TypeAssumptions.underlying
   tallies.TypeAssumptions.method_set
   tallies.TypeAssumptions.ptr_method_set
-  tallies.TypeAssumptions.Len_unfold
-  tallies.TypeAssumptions.Less_unfold
-  tallies.TypeAssumptions.Swap_unfold
-  tallies.TypeAssumptions.ptr_Len_unfold
-  tallies.TypeAssumptions.ptr_Less_unfold
-  tallies.TypeAssumptions.ptr_Swap_unfold
+  tallies.TypeAssumptions.unfold'Len
+  tallies.TypeAssumptions.unfold'Less
+  tallies.TypeAssumptions.unfold'Swap
+  tallies.TypeAssumptions.ptr_unfold'Len
+  tallies.TypeAssumptions.ptr_unfold'Less
+  tallies.TypeAssumptions.ptr_unfold'Swap
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Tally_instance : Tally.TypeAssumptions
-  Slot_instance : Slot.TypeAssumptions
-  Ledger_instance : Ledger.TypeAssumptions
-  tallies_instance : tallies.TypeAssumptions
-  import_config_Assumption : _root_.Perennial.rabia.internal.config.Assumptions
-  import_message_Assumption : _root_.Perennial.rabia.internal.message.Assumptions
-  import_sort_Assumption : _root_.Perennial.sort.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  instance'Tally : Tally.TypeAssumptions
+  instance'Slot : Slot.TypeAssumptions
+  instance'Ledger : Ledger.TypeAssumptions
+  instance'tallies : tallies.TypeAssumptions
+  import'config : _root_.Perennial.rabia.internal.config.Assumptions
+  import'message : _root_.Perennial.rabia.internal.message.Assumptions
+  import'sort : _root_.Perennial.sort.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
 
-attribute [instance] Assumptions.Tally_instance
-  Assumptions.Slot_instance
-  Assumptions.Ledger_instance
-  Assumptions.tallies_instance
-  Assumptions.import_config_Assumption
-  Assumptions.import_message_Assumption
-  Assumptions.import_sort_Assumption
-  Assumptions.import_sync_Assumption
+attribute [instance] Assumptions.instance'Tally
+  Assumptions.instance'Slot
+  Assumptions.instance'Ledger
+  Assumptions.instance'tallies
+  Assumptions.import'config
+  Assumptions.import'message
+  Assumptions.import'sort
+  Assumptions.import'sync
 
 end rabia.internal.ledger
 

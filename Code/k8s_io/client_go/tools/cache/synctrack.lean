@@ -24,18 +24,18 @@ end pkg_id
 
 namespace k8s_io.client_go.tools.cache.synctrack
 
-noncomputable def Lazy.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/tools/cache/synctrack.Lazy" [T])
+noncomputable def Lazy.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/tools/cache/synctrack.Lazy" [T₀])
 
 attribute [irreducible] Lazy.ty
 
-noncomputable def cacheEntry.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/tools/cache/synctrack.cacheEntry" [T])
+noncomputable def cacheEntry.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/tools/cache/synctrack.cacheEntry" [T₀])
 
 attribute [irreducible] cacheEntry.ty
 
-noncomputable def AsyncTracker.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/tools/cache/synctrack.AsyncTracker" [T])
+noncomputable def AsyncTracker.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/tools/cache/synctrack.AsyncTracker" [T₀])
 
 attribute [irreducible] AsyncTracker.ty
 
@@ -51,29 +51,29 @@ noncomputable def NewSingleFileTracker [GooseExts] [GoGlobalContext] : GoString 
   go!"k8s.io/client-go/tools/cache/synctrack.NewSingleFileTracker"
 
 /-- go: lazy.go:38:25 -/
-noncomputable def cacheEntry.get.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def cacheEntry.get.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "e"
   (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T₀))) (App (Val (GoInstruction (GoZeroVal T₀))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val wrapDefer)
   (Lam "$defer"
-  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (cacheEntry.ty T))))) (Var "e"))
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (cacheEntry.ty T₀))))) (Var "e"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [T, go.error]))))) (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T) go!"eval"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T))))) (Var "e")))) (Val #()))
+  (Let "__p" (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [T₀, go.error]))))) (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T₀) go!"eval"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T₀))))) (Var "e")))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "r" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "r" (App (Val (GoInstruction (GoAlloc T₀))) (App (Val (GoInstruction (GoZeroVal T₀))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "r"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T₀))) (Var "r"))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -82,19 +82,19 @@ noncomputable def cacheEntry.get.impl [GooseExts] [GoGlobalContext] (T : go.GoTy
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
   (Let "$r0" (Var "r")
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType T)))) (Pair (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T) go!"result"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T))))) (Var "e"))) (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType T₀)))) (Pair (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T₀) go!"result"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T₀))))) (Var "e"))) (Var "$r0")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "r") (Var "$r0"))))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType T)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType T)))) (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T) go!"result"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T))))) (Var "e")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType T)))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType T)))) (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T) go!"result"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T))))) (Var "e")))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (Var "r") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType T₀)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType T₀)))) (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T₀) go!"result"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T₀))))) (Var "e")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType T₀)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T₀))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType T₀)))) (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T₀) go!"result"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T₀))))) (Var "e")))))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -103,42 +103,42 @@ noncomputable def cacheEntry.get.impl [GooseExts] [GoGlobalContext] (T : go.GoTy
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T))))) (Var "e"))))
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T₀) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T₀))))) (Var "e"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T))))) (Var "e")))) (Val #()))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T₀) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T₀))))) (Var "e")))) (Val #()))))))
   (Let "$r0" (App (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType T)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType T₀)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType T₀)))) (Val #())))
   (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType T)))) (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T) go!"result"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T))))) (Var "e"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType T₀)))) (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T₀) go!"result"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T₀))))) (Var "e"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType T)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType T₀)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T))))) (Var "e"))))
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T₀) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T₀))))) (Var "e"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T))))) (Var "e")))) (Val #()))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType T)))) (Var "$res0"))))) (Val #()))
-  (Let "cur" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType T)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType T)))) (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef (cacheEntry.ty T₀) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T₀))))) (Var "e")))) (Val #()))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType T₀)))) (Var "$res0"))))) (Val #()))
+  (Let "cur" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType T₀)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType T₀)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType T)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType T)))) (Var "cur")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType T)))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType T)))) (Var "cur")))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType T₀)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType T₀)))) (Var "cur")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType T₀)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T₀))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType T₀)))) (Var "cur")))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -147,41 +147,41 @@ noncomputable def cacheEntry.get.impl [GooseExts] [GoGlobalContext] (T : go.GoTy
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType T)))) (Pair (Var "cur") (Var "$r0")))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType T₀)))) (Pair (Var "cur") (Var "$r0")))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T₀))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- go: lazy.go:59:19 -/
-noncomputable def Lazy.newCacheEntry.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Lazy.newCacheEntry.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "z"
   (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (cacheEntry.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (cacheEntry.ty T))))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (cacheEntry.ty T₀))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (cacheEntry.ty T₀))))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "z" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Lazy.ty T))))) (Var "z"))
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc (cacheEntry.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [T, go.error]))))) (App (Val (GoInstruction (StructFieldRef (Lazy.ty T) go!"Evaluate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Lazy.ty T))))) (Var "z"))))
-  (App (Val (GoInstruction (CompositeLiteral (cacheEntry.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"eval")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [] false [T, go.error])) (Var "$v0")))]))))
+  (Let "z" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Lazy.ty T₀))))) (Var "z"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc (cacheEntry.ty T₀)))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [T₀, go.error]))))) (App (Val (GoInstruction (StructFieldRef (Lazy.ty T₀) go!"Evaluate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Lazy.ty T₀))))) (Var "z"))))
+  (App (Val (GoInstruction (CompositeLiteral (cacheEntry.ty T₀)))) (LiteralValue [(KeyedElement (some (KeyField go!"eval")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [] false [T₀, go.error])) (Var "$v0")))]))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (cacheEntry.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T))))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (cacheEntry.ty T₀))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T₀))))) (Var "$res0"))))))
 
 /-- Notify should be called when something has changed necessitating a new call
     to Evaluate.
 
     go: lazy.go:65:19 -/
-noncomputable def Lazy.Notify.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Lazy.Notify.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "z"
   (Lam BAnon
   (Seq (App (Val exceptionDo)
-  (Let "z" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Lazy.ty T))))) (Var "z"))
+  (Let "z" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Lazy.ty T₀))))) (Var "z"))
   (App (Val doExecute)
-  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Lazy.ty T)) go!"newCacheEntry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Lazy.ty T))))) (Var "z"))) (Val #()))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.sync.atomic.Pointer.ty (cacheEntry.ty T))) go!"Swap"))) (App (Val (GoInstruction (StructFieldRef (Lazy.ty T) go!"cache"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Lazy.ty T))))) (Var "z")))) (Var "$a0"))))))
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Lazy.ty T₀)) go!"newCacheEntry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Lazy.ty T₀))))) (Var "z"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.sync.atomic.Pointer.ty (cacheEntry.ty T₀))) go!"Swap"))) (App (Val (GoInstruction (StructFieldRef (Lazy.ty T₀) go!"cache"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Lazy.ty T₀))))) (Var "z")))) (Var "$a0"))))))
   (Val #()))))
 
 /-- Get should be called to get the current result of a call to Evaluate. If the
@@ -192,18 +192,18 @@ noncomputable def Lazy.Notify.impl [GooseExts] [GoGlobalContext] (T : go.GoType)
     Error returns are not cached and will cause multiple calls to evaluate!
 
     go: lazy.go:73:19 -/
-noncomputable def Lazy.Get.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Lazy.Get.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "z"
   (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T₀))) (App (Val (GoInstruction (GoZeroVal T₀))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "z" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Lazy.ty T))))) (Var "z"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.sync.atomic.Pointer.ty (cacheEntry.ty T))) go!"Load"))) (App (Val (GoInstruction (StructFieldRef (Lazy.ty T) go!"cache"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Lazy.ty T))))) (Var "z")))) (Val #()))
-  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (cacheEntry.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (cacheEntry.ty T))))) (Val #())))
+  (Let "z" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Lazy.ty T₀))))) (Var "z"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.sync.atomic.Pointer.ty (cacheEntry.ty T₀))) go!"Load"))) (App (Val (GoInstruction (StructFieldRef (Lazy.ty T₀) go!"cache"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Lazy.ty T₀))))) (Var "z")))) (Val #()))
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (cacheEntry.ty T₀))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (cacheEntry.ty T₀))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (cacheEntry.ty T)) go!"get"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T))))) (Var "e"))) (Val #()))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (cacheEntry.ty T₀)) go!"get"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T₀))))) (Var "e"))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -215,34 +215,34 @@ noncomputable def Lazy.Get.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0"))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType (cacheEntry.ty T))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T))))) (Var "e")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (cacheEntry.ty T))))) (Val UntypedNil)))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType (cacheEntry.ty T₀))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (cacheEntry.ty T₀))))) (Var "e")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (cacheEntry.ty T₀))))) (Val UntypedNil)))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.sync.atomic.Pointer.ty (cacheEntry.ty T))) go!"Load"))) (App (Val (GoInstruction (StructFieldRef (Lazy.ty T) go!"cache"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Lazy.ty T))))) (Var "z")))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.sync.atomic.Pointer.ty (cacheEntry.ty T₀))) go!"Load"))) (App (Val (GoInstruction (StructFieldRef (Lazy.ty T₀) go!"cache"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Lazy.ty T₀))))) (Var "z")))) (Val #()))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (cacheEntry.ty T))))) (Pair (Var "e") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (cacheEntry.ty T₀))))) (Pair (Var "e") (Var "$r0")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (cacheEntry.ty T))))) (Val UntypedNil))
-  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Lazy.ty T)) go!"newCacheEntry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Lazy.ty T))))) (Var "z"))) (Val #()))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.sync.atomic.Pointer.ty (cacheEntry.ty T))) go!"CompareAndSwap"))) (App (Val (GoInstruction (StructFieldRef (Lazy.ty T) go!"cache"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Lazy.ty T))))) (Var "z")))) (Var "$a0")) (Var "$a1"))))))
+  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (cacheEntry.ty T₀))))) (Val UntypedNil))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Lazy.ty T₀)) go!"newCacheEntry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Lazy.ty T₀))))) (Var "z"))) (Val #()))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.sync.atomic.Pointer.ty (cacheEntry.ty T₀))) go!"CompareAndSwap"))) (App (Val (GoInstruction (StructFieldRef (Lazy.ty T₀) go!"cache"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Lazy.ty T₀))))) (Var "z")))) (Var "$a0")) (Var "$a1"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (cacheEntry.ty T))))) (Pair (Var "e") (Var "$r0")))))))))
-  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (cacheEntry.ty T₀))))) (Pair (Var "e") (Var "$r0")))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T₀))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- go: synctrack.go:51:6 -/
-noncomputable def NewAsyncTracker.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewAsyncTracker.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "name"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (AsyncTracker.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (AsyncTracker.ty T))))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (AsyncTracker.ty T₀))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc (AsyncTracker.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
-  (App (Val (GoInstruction (CompositeLiteral (AsyncTracker.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"name")) (ElementExpression go.string (Var "$v0")))]))))
-  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (AsyncTracker.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (AsyncTracker.ty T))))) (Val #())))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc (AsyncTracker.ty T₀)))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (App (Val (GoInstruction (CompositeLiteral (AsyncTracker.ty T₀)))) (LiteralValue [(KeyedElement (some (KeyField go!"name")) (ElementExpression go.string (Var "$v0")))]))))
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (AsyncTracker.ty T₀))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$l0" (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"synced"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t")))
-  (Let "$l1" (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t")))
+  (Let "$l0" (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"synced"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t")))
+  (Let "$l1" (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t")))
   (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithCancel []))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
@@ -251,51 +251,51 @@ noncomputable def NewAsyncTracker.impl [GooseExts] [GoGlobalContext] (T : go.GoT
   (Let "$r1" (Var "$ret1")
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (AsyncTracker.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Pair (Var "$l1") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "$l0") (Var "$r0"))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (AsyncTracker.ty T))))) (Pair (Var "t") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Pair (Var "t") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "$res0")))))
 
 /-- Start should be called prior to processing each key which is part of the
     initial list.
 
     go: synctrack.go:61:27 -/
-noncomputable def AsyncTracker.Start.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def AsyncTracker.Start.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "t"
   (Lam "key"
   (Seq (App (Val wrapDefer)
   (Lam "$defer"
-  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t"))
-  (Let "key" (App (Val (GoInstruction (GoAlloc T))) (Var "key"))
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc T₀))) (Var "key"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"waiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t")))) (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)))) (Val UntypedNil)))))
-  (Let "$r0" (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T))) (Var "key"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T)))) (LiteralValue [(KeyedElement none (ElementExpression T (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.New [T]))) (Val #())) (Var "$a0")))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T₀)))) (Pair (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T₀)))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"waiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t")))) (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T₀)))) (Val UntypedNil)))))
+  (Let "$r0" (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T₀))) (Var "key"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T₀)))) (LiteralValue [(KeyedElement none (ElementExpression T₀ (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.New [T₀]))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)))) (Pair (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"waiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t"))) (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T₀)))) (Pair (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"waiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t"))) (Var "$r0")))))
   (App (Val doExecute)
-  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T))) (Var "key"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T)))) (LiteralValue [(KeyedElement none (ElementExpression T (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)) go!"Insert"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"waiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t")))) (Var "$a0")))))))
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T₀))) (Var "key"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T₀)))) (LiteralValue [(KeyedElement none (ElementExpression T₀ (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T₀)) go!"Insert"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"waiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t")))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t"))))
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t")))) (Val #()))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t")))) (Val #()))))))))
   (Val #()))))
 
 /-- Finished should be called when finished processing a key which was part of
@@ -305,37 +305,37 @@ noncomputable def AsyncTracker.Start.impl [GooseExts] [GoGlobalContext] (T : go.
     to plumb through the isInInitialList boolean.
 
     go: synctrack.go:76:27 -/
-noncomputable def AsyncTracker.Finished.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def AsyncTracker.Finished.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "t"
   (Lam "key"
   (Seq (App (Val wrapDefer)
   (Lam "$defer"
-  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t"))
-  (Let "key" (App (Val (GoInstruction (GoAlloc T))) (Var "key"))
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc T₀))) (Var "key"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"upstreamHasSynced"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t")))) (Val #())) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"waiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #false))
+  (If (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"upstreamHasSynced"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t")))) (Val #())) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T₀)))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"waiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T₀)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #false))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t")))) (Val #())))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t")))) (Val #())))
   (App (Val doExecute)
   (Val #())))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"waiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t")))) (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)))) (Val UntypedNil))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T₀)))) (Pair (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T₀)))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"waiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t")))) (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T₀)))) (Val UntypedNil))))))
   (App (Val doExecute)
-  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T))) (Var "key"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T)))) (LiteralValue [(KeyedElement none (ElementExpression T (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)) go!"Delete"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"waiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t")))) (Var "$a0"))))
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T₀))) (Var "key"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T₀)))) (LiteralValue [(KeyedElement none (ElementExpression T₀ (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T₀)) go!"Delete"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"waiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t")))) (Var "$a0"))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t"))))
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t")))) (Val #()))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t")))) (Val #()))))))))
   (Val #()))))
 
 /-- UpstreamHasSynced needs to be called at least once as soon as
@@ -345,32 +345,32 @@ noncomputable def AsyncTracker.Finished.impl [GooseExts] [GoGlobalContext] (T : 
     Must be called after handing over the initial list to Start.
 
     go: synctrack.go:95:27 -/
-noncomputable def AsyncTracker.UpstreamHasSynced.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def AsyncTracker.UpstreamHasSynced.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "t"
   (Lam BAnon
   (Seq (App (Val wrapDefer)
   (Lam "$defer"
-  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t"))
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"waiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T₀)))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"waiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T₀)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t")))) (Val #())))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t")))) (Val #())))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t"))))
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t")))) (Val #()))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t")))) (Val #()))))))
   (App (Val doExecute)
   (Let "$a0" (Val #true)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"upstreamHasSynced"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t")))) (Var "$a0"))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"upstreamHasSynced"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t")))) (Var "$a0"))))))))
   (Val #()))))
 
 /-- HasSynced returns true if the source is synced and every key present in the
@@ -379,13 +379,13 @@ noncomputable def AsyncTracker.UpstreamHasSynced.impl [GooseExts] [GoGlobalConte
     key, and that notification handler must have called Start.
 
     go: synctrack.go:110:27 -/
-noncomputable def AsyncTracker.HasSynced.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def AsyncTracker.HasSynced.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "t"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t"))
-  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"synced"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t"))))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t"))
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"synced"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t"))))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -399,13 +399,13 @@ noncomputable def AsyncTracker.HasSynced.impl [GooseExts] [GoGlobalContext] (T :
     key, and that notification handler must have called Start.
 
     go: synctrack.go:118:27 -/
-noncomputable def AsyncTracker.Done.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def AsyncTracker.Done.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "t"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"synced"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t"))))) (Val #()))
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"synced"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t"))))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -414,13 +414,13 @@ noncomputable def AsyncTracker.Done.impl [GooseExts] [GoGlobalContext] (T : go.G
   (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "$res0"))))))
 
 /-- go: synctrack.go:122:27 -/
-noncomputable def AsyncTracker.Name.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def AsyncTracker.Name.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "t"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T) go!"name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T))))) (Var "t"))))
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef (AsyncTracker.ty T₀) go!"name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (AsyncTracker.ty T₀))))) (Var "t"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -608,178 +608,178 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.initialize') (Val #()))))))))
 
-structure cacheEntry [GooseExts] (T : Type) where
+structure cacheEntry [GooseExts] (T₀ : Type) where
   mk ::
   eval' : GoFunc
   lock' : _root_.Perennial.sync.RWMutex
   result' : Loc
 
-noncomputable instance cacheEntry.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (cacheEntry T) :=
+noncomputable instance cacheEntry.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (cacheEntry T₀) :=
   ⟨cacheEntry.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def cacheEntry.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"eval" (go.GoType.FunctionType (go.signature.Signature [] false [T, go.error]))),
+@[reducible] noncomputable def cacheEntry.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"eval" (go.GoType.FunctionType (go.signature.Signature [] false [T₀, go.error]))),
 (go.field_decl.FieldDecl go!"lock" _root_.Perennial.sync.RWMutex.ty),
-(go.field_decl.FieldDecl go!"result" (go.GoType.PointerType T))]
+(go.field_decl.FieldDecl go!"result" (go.GoType.PointerType T₀))]
 
-@[irreducible] noncomputable def cacheEntry.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (cacheEntry.fieldsUnsealed T)
+@[irreducible] noncomputable def cacheEntry.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (cacheEntry.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_cacheEntry [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (cacheEntry.fields T) (cacheEntry.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'cacheEntry [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (cacheEntry.fields T₀) (cacheEntry.fieldsUnsealed T₀) :=
   ⟨by unfold cacheEntry.fields; rfl⟩
 
-@[reducible] noncomputable def cacheEntry.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (cacheEntry.fields T))
+@[reducible] noncomputable def cacheEntry.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (cacheEntry.fields T₀))
 
 class cacheEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (cacheEntry.underlying T) (cacheEntry T')
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (cacheEntry.ty T) (cacheEntry.underlying T)
-  get_eval : ∀ (T : go.GoType) (T' : Type) (x : (cacheEntry T')), go.IsGoStepPureDetTagged under (StructFieldGet (cacheEntry.underlying T) go!"eval") #x (Val #(x.eval'))
-  set_eval : ∀ (T : go.GoType) (T' : Type) (x : (cacheEntry T')) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet (cacheEntry.underlying T) go!"eval") (PairV #x #y) (Val #(({ x with eval' := y } : (cacheEntry T'))))
-  get_lock : ∀ (T : go.GoType) (T' : Type) (x : (cacheEntry T')), go.IsGoStepPureDetTagged under (StructFieldGet (cacheEntry.underlying T) go!"lock") #x (Val #(x.lock'))
-  set_lock : ∀ (T : go.GoType) (T' : Type) (x : (cacheEntry T')) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet (cacheEntry.underlying T) go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : (cacheEntry T'))))
-  get_result : ∀ (T : go.GoType) (T' : Type) (x : (cacheEntry T')), go.IsGoStepPureDetTagged under (StructFieldGet (cacheEntry.underlying T) go!"result") #x (Val #(x.result'))
-  set_result : ∀ (T : go.GoType) (T' : Type) (x : (cacheEntry T')) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet (cacheEntry.underlying T) go!"result") (PairV #x #y) (Val #(({ x with result' := y } : (cacheEntry T'))))
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (cacheEntry.ty T) []
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (cacheEntry.ty T)) [(go!"k8s.io/client-go/tools/cache/synctrack.get", (some (go.signature.Signature [] false [T, go.error])))]
-  ptr_get_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (cacheEntry.ty T)) go!"get" (cacheEntry.get.impl T)
+  type_repr : ∀ (T₀ : go.GoType) (T₀' : Type) [ZeroVal T₀'] [TypeRepr T₀ T₀'], go.TypeReprUnderlying (cacheEntry.underlying T₀) (cacheEntry T₀')
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (cacheEntry.ty T₀) (cacheEntry.underlying T₀)
+  get'eval : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (cacheEntry T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (cacheEntry.underlying T₀) go!"eval") #x (Val #(x.eval'))
+  set'eval : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (cacheEntry T₀')) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet (cacheEntry.underlying T₀) go!"eval") (PairV #x #y) (Val #(({ x with eval' := y } : (cacheEntry T₀'))))
+  get'lock : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (cacheEntry T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (cacheEntry.underlying T₀) go!"lock") #x (Val #(x.lock'))
+  set'lock : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (cacheEntry T₀')) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet (cacheEntry.underlying T₀) go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : (cacheEntry T₀'))))
+  get'result : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (cacheEntry T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (cacheEntry.underlying T₀) go!"result") #x (Val #(x.result'))
+  set'result : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (cacheEntry T₀')) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet (cacheEntry.underlying T₀) go!"result") (PairV #x #y) (Val #(({ x with result' := y } : (cacheEntry T₀'))))
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (cacheEntry.ty T₀) []
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (cacheEntry.ty T₀)) [(go!"k8s.io/client-go/tools/cache/synctrack.get", (some (go.signature.Signature [] false [T₀, go.error])))]
+  ptr_unfold'get : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (cacheEntry.ty T₀)) go!"get" (cacheEntry.get.impl T₀)
 
 attribute [instance] cacheEntry.TypeAssumptions.type_repr
   cacheEntry.TypeAssumptions.underlying
-  cacheEntry.TypeAssumptions.get_eval
-  cacheEntry.TypeAssumptions.set_eval
-  cacheEntry.TypeAssumptions.get_lock
-  cacheEntry.TypeAssumptions.set_lock
-  cacheEntry.TypeAssumptions.get_result
-  cacheEntry.TypeAssumptions.set_result
+  cacheEntry.TypeAssumptions.get'eval
+  cacheEntry.TypeAssumptions.set'eval
+  cacheEntry.TypeAssumptions.get'lock
+  cacheEntry.TypeAssumptions.set'lock
+  cacheEntry.TypeAssumptions.get'result
+  cacheEntry.TypeAssumptions.set'result
   cacheEntry.TypeAssumptions.method_set
   cacheEntry.TypeAssumptions.ptr_method_set
-  cacheEntry.TypeAssumptions.ptr_get_unfold
+  cacheEntry.TypeAssumptions.ptr_unfold'get
 
-structure Lazy [GooseExts] (T : Type) where
+structure Lazy [GooseExts] (T₀ : Type) where
   mk ::
   Evaluate' : GoFunc
-  cache' : (_root_.Perennial.sync.atomic.Pointer (cacheEntry T))
+  cache' : (_root_.Perennial.sync.atomic.Pointer (cacheEntry T₀))
 
-noncomputable instance Lazy.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (Lazy T) :=
+noncomputable instance Lazy.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (Lazy T₀) :=
   ⟨Lazy.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Lazy.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"Evaluate" (go.GoType.FunctionType (go.signature.Signature [] false [T, go.error]))),
-(go.field_decl.FieldDecl go!"cache" (_root_.Perennial.sync.atomic.Pointer.ty (cacheEntry.ty T)))]
+@[reducible] noncomputable def Lazy.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Evaluate" (go.GoType.FunctionType (go.signature.Signature [] false [T₀, go.error]))),
+(go.field_decl.FieldDecl go!"cache" (_root_.Perennial.sync.atomic.Pointer.ty (cacheEntry.ty T₀)))]
 
-@[irreducible] noncomputable def Lazy.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (Lazy.fieldsUnsealed T)
+@[irreducible] noncomputable def Lazy.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (Lazy.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_Lazy [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (Lazy.fields T) (Lazy.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'Lazy [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (Lazy.fields T₀) (Lazy.fieldsUnsealed T₀) :=
   ⟨by unfold Lazy.fields; rfl⟩
 
-@[reducible] noncomputable def Lazy.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (Lazy.fields T))
+@[reducible] noncomputable def Lazy.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (Lazy.fields T₀))
 
 class Lazy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (Lazy.underlying T) (Lazy T')
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (Lazy.ty T) (Lazy.underlying T)
-  get_Evaluate : ∀ (T : go.GoType) (T' : Type) (x : (Lazy T')), go.IsGoStepPureDetTagged under (StructFieldGet (Lazy.underlying T) go!"Evaluate") #x (Val #(x.Evaluate'))
-  set_Evaluate : ∀ (T : go.GoType) (T' : Type) (x : (Lazy T')) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet (Lazy.underlying T) go!"Evaluate") (PairV #x #y) (Val #(({ x with Evaluate' := y } : (Lazy T'))))
-  get_cache : ∀ (T : go.GoType) (T' : Type) (x : (Lazy T')), go.IsGoStepPureDetTagged under (StructFieldGet (Lazy.underlying T) go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (T : go.GoType) (T' : Type) (x : (Lazy T')) (y : (_root_.Perennial.sync.atomic.Pointer (cacheEntry T'))), go.IsGoStepPureDetTagged under (StructFieldSet (Lazy.underlying T) go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : (Lazy T'))))
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (Lazy.ty T) []
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (Lazy.ty T)) [(go!"Get", (some (go.signature.Signature [] false [T, go.error]))), (go!"Notify", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/cache/synctrack.newCacheEntry", (some (go.signature.Signature [] false [(go.GoType.PointerType (cacheEntry.ty T))])))]
-  ptr_Get_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Lazy.ty T)) go!"Get" (Lazy.Get.impl T)
-  ptr_Notify_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Lazy.ty T)) go!"Notify" (Lazy.Notify.impl T)
-  ptr_newCacheEntry_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Lazy.ty T)) go!"newCacheEntry" (Lazy.newCacheEntry.impl T)
+  type_repr : ∀ (T₀ : go.GoType) (T₀' : Type) [ZeroVal T₀'] [TypeRepr T₀ T₀'], go.TypeReprUnderlying (Lazy.underlying T₀) (Lazy T₀')
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (Lazy.ty T₀) (Lazy.underlying T₀)
+  get'Evaluate : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (Lazy T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (Lazy.underlying T₀) go!"Evaluate") #x (Val #(x.Evaluate'))
+  set'Evaluate : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (Lazy T₀')) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet (Lazy.underlying T₀) go!"Evaluate") (PairV #x #y) (Val #(({ x with Evaluate' := y } : (Lazy T₀'))))
+  get'cache : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (Lazy T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (Lazy.underlying T₀) go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (Lazy T₀')) (y : (_root_.Perennial.sync.atomic.Pointer (cacheEntry T₀'))), go.IsGoStepPureDetTagged under (StructFieldSet (Lazy.underlying T₀) go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : (Lazy T₀'))))
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (Lazy.ty T₀) []
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (Lazy.ty T₀)) [(go!"Get", (some (go.signature.Signature [] false [T₀, go.error]))), (go!"Notify", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/cache/synctrack.newCacheEntry", (some (go.signature.Signature [] false [(go.GoType.PointerType (cacheEntry.ty T₀))])))]
+  ptr_unfold'Get : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (Lazy.ty T₀)) go!"Get" (Lazy.Get.impl T₀)
+  ptr_unfold'Notify : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (Lazy.ty T₀)) go!"Notify" (Lazy.Notify.impl T₀)
+  ptr_unfold'newCacheEntry : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (Lazy.ty T₀)) go!"newCacheEntry" (Lazy.newCacheEntry.impl T₀)
 
 attribute [instance] Lazy.TypeAssumptions.type_repr
   Lazy.TypeAssumptions.underlying
-  Lazy.TypeAssumptions.get_Evaluate
-  Lazy.TypeAssumptions.set_Evaluate
-  Lazy.TypeAssumptions.get_cache
-  Lazy.TypeAssumptions.set_cache
+  Lazy.TypeAssumptions.get'Evaluate
+  Lazy.TypeAssumptions.set'Evaluate
+  Lazy.TypeAssumptions.get'cache
+  Lazy.TypeAssumptions.set'cache
   Lazy.TypeAssumptions.method_set
   Lazy.TypeAssumptions.ptr_method_set
-  Lazy.TypeAssumptions.ptr_Get_unfold
-  Lazy.TypeAssumptions.ptr_Notify_unfold
-  Lazy.TypeAssumptions.ptr_newCacheEntry_unfold
+  Lazy.TypeAssumptions.ptr_unfold'Get
+  Lazy.TypeAssumptions.ptr_unfold'Notify
+  Lazy.TypeAssumptions.ptr_unfold'newCacheEntry
 
-structure AsyncTracker [GooseExts] (T : Type) where
+structure AsyncTracker [GooseExts] (T₀ : Type) where
   mk ::
   name' : GoString
   upstreamHasSynced' : _root_.Perennial.sync.atomic.Bool''
   lock' : _root_.Perennial.sync.Mutex
-  waiting' : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' T)
+  waiting' : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' T₀)
   synced' : _root_.Perennial.context.Context
   cancel' : GoFunc
 
-noncomputable instance AsyncTracker.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (AsyncTracker T) :=
+noncomputable instance AsyncTracker.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (AsyncTracker T₀) :=
   ⟨AsyncTracker.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def AsyncTracker.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def AsyncTracker.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"name" go.string),
 (go.field_decl.FieldDecl go!"upstreamHasSynced" _root_.Perennial.sync.atomic.Bool''.ty),
 (go.field_decl.FieldDecl go!"lock" _root_.Perennial.sync.Mutex.ty),
-(go.field_decl.FieldDecl go!"waiting" (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)),
+(go.field_decl.FieldDecl go!"waiting" (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T₀)),
 (go.field_decl.FieldDecl go!"synced" _root_.Perennial.context.Context.ty),
 (go.field_decl.FieldDecl go!"cancel" (go.GoType.FunctionType (go.signature.Signature [] false [])))]
 
-@[irreducible] noncomputable def AsyncTracker.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (AsyncTracker.fieldsUnsealed T)
+@[irreducible] noncomputable def AsyncTracker.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (AsyncTracker.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_AsyncTracker [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (AsyncTracker.fields T) (AsyncTracker.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'AsyncTracker [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (AsyncTracker.fields T₀) (AsyncTracker.fieldsUnsealed T₀) :=
   ⟨by unfold AsyncTracker.fields; rfl⟩
 
-@[reducible] noncomputable def AsyncTracker.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (AsyncTracker.fields T))
+@[reducible] noncomputable def AsyncTracker.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (AsyncTracker.fields T₀))
 
 class AsyncTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (AsyncTracker.underlying T) (AsyncTracker T')
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (AsyncTracker.ty T) (AsyncTracker.underlying T)
-  get_name : ∀ (T : go.GoType) (T' : Type) (x : (AsyncTracker T')), go.IsGoStepPureDetTagged under (StructFieldGet (AsyncTracker.underlying T) go!"name") #x (Val #(x.name'))
-  set_name : ∀ (T : go.GoType) (T' : Type) (x : (AsyncTracker T')) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet (AsyncTracker.underlying T) go!"name") (PairV #x #y) (Val #(({ x with name' := y } : (AsyncTracker T'))))
-  get_upstreamHasSynced : ∀ (T : go.GoType) (T' : Type) (x : (AsyncTracker T')), go.IsGoStepPureDetTagged under (StructFieldGet (AsyncTracker.underlying T) go!"upstreamHasSynced") #x (Val #(x.upstreamHasSynced'))
-  set_upstreamHasSynced : ∀ (T : go.GoType) (T' : Type) (x : (AsyncTracker T')) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet (AsyncTracker.underlying T) go!"upstreamHasSynced") (PairV #x #y) (Val #(({ x with upstreamHasSynced' := y } : (AsyncTracker T'))))
-  get_lock : ∀ (T : go.GoType) (T' : Type) (x : (AsyncTracker T')), go.IsGoStepPureDetTagged under (StructFieldGet (AsyncTracker.underlying T) go!"lock") #x (Val #(x.lock'))
-  set_lock : ∀ (T : go.GoType) (T' : Type) (x : (AsyncTracker T')) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet (AsyncTracker.underlying T) go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : (AsyncTracker T'))))
-  get_waiting : ∀ (T : go.GoType) (T' : Type) (x : (AsyncTracker T')), go.IsGoStepPureDetTagged under (StructFieldGet (AsyncTracker.underlying T) go!"waiting") #x (Val #(x.waiting'))
-  set_waiting : ∀ (T : go.GoType) (T' : Type) (x : (AsyncTracker T')) (y : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' T')), go.IsGoStepPureDetTagged under (StructFieldSet (AsyncTracker.underlying T) go!"waiting") (PairV #x #y) (Val #(({ x with waiting' := y } : (AsyncTracker T'))))
-  get_synced : ∀ (T : go.GoType) (T' : Type) (x : (AsyncTracker T')), go.IsGoStepPureDetTagged under (StructFieldGet (AsyncTracker.underlying T) go!"synced") #x (Val #(x.synced'))
-  set_synced : ∀ (T : go.GoType) (T' : Type) (x : (AsyncTracker T')) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet (AsyncTracker.underlying T) go!"synced") (PairV #x #y) (Val #(({ x with synced' := y } : (AsyncTracker T'))))
-  get_cancel : ∀ (T : go.GoType) (T' : Type) (x : (AsyncTracker T')), go.IsGoStepPureDetTagged under (StructFieldGet (AsyncTracker.underlying T) go!"cancel") #x (Val #(x.cancel'))
-  set_cancel : ∀ (T : go.GoType) (T' : Type) (x : (AsyncTracker T')) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet (AsyncTracker.underlying T) go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : (AsyncTracker T'))))
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (AsyncTracker.ty T) []
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (AsyncTracker.ty T)) [(go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Finished", (some (go.signature.Signature [T] false []))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Start", (some (go.signature.Signature [T] false []))), (go!"UpstreamHasSynced", (some (go.signature.Signature [] false [])))]
-  ptr_Done_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (AsyncTracker.ty T)) go!"Done" (AsyncTracker.Done.impl T)
-  ptr_Finished_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (AsyncTracker.ty T)) go!"Finished" (AsyncTracker.Finished.impl T)
-  ptr_HasSynced_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (AsyncTracker.ty T)) go!"HasSynced" (AsyncTracker.HasSynced.impl T)
-  ptr_Name_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (AsyncTracker.ty T)) go!"Name" (AsyncTracker.Name.impl T)
-  ptr_Start_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (AsyncTracker.ty T)) go!"Start" (AsyncTracker.Start.impl T)
-  ptr_UpstreamHasSynced_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (AsyncTracker.ty T)) go!"UpstreamHasSynced" (AsyncTracker.UpstreamHasSynced.impl T)
+  type_repr : ∀ (T₀ : go.GoType) (T₀' : Type) [ZeroVal T₀'] [TypeRepr T₀ T₀'], go.TypeReprUnderlying (AsyncTracker.underlying T₀) (AsyncTracker T₀')
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (AsyncTracker.ty T₀) (AsyncTracker.underlying T₀)
+  get'name : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (AsyncTracker T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (AsyncTracker.underlying T₀) go!"name") #x (Val #(x.name'))
+  set'name : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (AsyncTracker T₀')) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet (AsyncTracker.underlying T₀) go!"name") (PairV #x #y) (Val #(({ x with name' := y } : (AsyncTracker T₀'))))
+  get'upstreamHasSynced : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (AsyncTracker T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (AsyncTracker.underlying T₀) go!"upstreamHasSynced") #x (Val #(x.upstreamHasSynced'))
+  set'upstreamHasSynced : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (AsyncTracker T₀')) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet (AsyncTracker.underlying T₀) go!"upstreamHasSynced") (PairV #x #y) (Val #(({ x with upstreamHasSynced' := y } : (AsyncTracker T₀'))))
+  get'lock : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (AsyncTracker T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (AsyncTracker.underlying T₀) go!"lock") #x (Val #(x.lock'))
+  set'lock : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (AsyncTracker T₀')) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet (AsyncTracker.underlying T₀) go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : (AsyncTracker T₀'))))
+  get'waiting : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (AsyncTracker T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (AsyncTracker.underlying T₀) go!"waiting") #x (Val #(x.waiting'))
+  set'waiting : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (AsyncTracker T₀')) (y : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' T₀')), go.IsGoStepPureDetTagged under (StructFieldSet (AsyncTracker.underlying T₀) go!"waiting") (PairV #x #y) (Val #(({ x with waiting' := y } : (AsyncTracker T₀'))))
+  get'synced : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (AsyncTracker T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (AsyncTracker.underlying T₀) go!"synced") #x (Val #(x.synced'))
+  set'synced : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (AsyncTracker T₀')) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet (AsyncTracker.underlying T₀) go!"synced") (PairV #x #y) (Val #(({ x with synced' := y } : (AsyncTracker T₀'))))
+  get'cancel : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (AsyncTracker T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (AsyncTracker.underlying T₀) go!"cancel") #x (Val #(x.cancel'))
+  set'cancel : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (AsyncTracker T₀')) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet (AsyncTracker.underlying T₀) go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : (AsyncTracker T₀'))))
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (AsyncTracker.ty T₀) []
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (AsyncTracker.ty T₀)) [(go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Finished", (some (go.signature.Signature [T₀] false []))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Start", (some (go.signature.Signature [T₀] false []))), (go!"UpstreamHasSynced", (some (go.signature.Signature [] false [])))]
+  ptr_unfold'Done : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (AsyncTracker.ty T₀)) go!"Done" (AsyncTracker.Done.impl T₀)
+  ptr_unfold'Finished : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (AsyncTracker.ty T₀)) go!"Finished" (AsyncTracker.Finished.impl T₀)
+  ptr_unfold'HasSynced : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (AsyncTracker.ty T₀)) go!"HasSynced" (AsyncTracker.HasSynced.impl T₀)
+  ptr_unfold'Name : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (AsyncTracker.ty T₀)) go!"Name" (AsyncTracker.Name.impl T₀)
+  ptr_unfold'Start : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (AsyncTracker.ty T₀)) go!"Start" (AsyncTracker.Start.impl T₀)
+  ptr_unfold'UpstreamHasSynced : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (AsyncTracker.ty T₀)) go!"UpstreamHasSynced" (AsyncTracker.UpstreamHasSynced.impl T₀)
 
 attribute [instance] AsyncTracker.TypeAssumptions.type_repr
   AsyncTracker.TypeAssumptions.underlying
-  AsyncTracker.TypeAssumptions.get_name
-  AsyncTracker.TypeAssumptions.set_name
-  AsyncTracker.TypeAssumptions.get_upstreamHasSynced
-  AsyncTracker.TypeAssumptions.set_upstreamHasSynced
-  AsyncTracker.TypeAssumptions.get_lock
-  AsyncTracker.TypeAssumptions.set_lock
-  AsyncTracker.TypeAssumptions.get_waiting
-  AsyncTracker.TypeAssumptions.set_waiting
-  AsyncTracker.TypeAssumptions.get_synced
-  AsyncTracker.TypeAssumptions.set_synced
-  AsyncTracker.TypeAssumptions.get_cancel
-  AsyncTracker.TypeAssumptions.set_cancel
+  AsyncTracker.TypeAssumptions.get'name
+  AsyncTracker.TypeAssumptions.set'name
+  AsyncTracker.TypeAssumptions.get'upstreamHasSynced
+  AsyncTracker.TypeAssumptions.set'upstreamHasSynced
+  AsyncTracker.TypeAssumptions.get'lock
+  AsyncTracker.TypeAssumptions.set'lock
+  AsyncTracker.TypeAssumptions.get'waiting
+  AsyncTracker.TypeAssumptions.set'waiting
+  AsyncTracker.TypeAssumptions.get'synced
+  AsyncTracker.TypeAssumptions.set'synced
+  AsyncTracker.TypeAssumptions.get'cancel
+  AsyncTracker.TypeAssumptions.set'cancel
   AsyncTracker.TypeAssumptions.method_set
   AsyncTracker.TypeAssumptions.ptr_method_set
-  AsyncTracker.TypeAssumptions.ptr_Done_unfold
-  AsyncTracker.TypeAssumptions.ptr_Finished_unfold
-  AsyncTracker.TypeAssumptions.ptr_HasSynced_unfold
-  AsyncTracker.TypeAssumptions.ptr_Name_unfold
-  AsyncTracker.TypeAssumptions.ptr_Start_unfold
-  AsyncTracker.TypeAssumptions.ptr_UpstreamHasSynced_unfold
+  AsyncTracker.TypeAssumptions.ptr_unfold'Done
+  AsyncTracker.TypeAssumptions.ptr_unfold'Finished
+  AsyncTracker.TypeAssumptions.ptr_unfold'HasSynced
+  AsyncTracker.TypeAssumptions.ptr_unfold'Name
+  AsyncTracker.TypeAssumptions.ptr_unfold'Start
+  AsyncTracker.TypeAssumptions.ptr_unfold'UpstreamHasSynced
 
 structure SingleFileTracker [GooseExts] where
   mk ::
@@ -802,7 +802,7 @@ noncomputable instance SingleFileTracker.zero_val [GooseExts] : ZeroVal SingleFi
 @[irreducible] noncomputable def SingleFileTracker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SingleFileTracker.fieldsUnsealed
 
-noncomputable instance equals_unfold_SingleFileTracker [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SingleFileTracker [GooseExts] [GoGlobalContext] :
     EqualsUnfold SingleFileTracker.fields SingleFileTracker.fieldsUnsealed :=
   ⟨by unfold SingleFileTracker.fields; rfl⟩
 
@@ -812,68 +812,68 @@ noncomputable instance equals_unfold_SingleFileTracker [GooseExts] [GoGlobalCont
 class SingleFileTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SingleFileTracker.underlying SingleFileTracker
   underlying : go.UnderlyingDirectedEq SingleFileTracker.ty SingleFileTracker.underlying
-  get_name : ∀ (x : SingleFileTracker), go.IsGoStepPureDetTagged under (StructFieldGet SingleFileTracker.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : SingleFileTracker) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SingleFileTracker.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : SingleFileTracker)))
-  get_count : ∀ (x : SingleFileTracker), go.IsGoStepPureDetTagged under (StructFieldGet SingleFileTracker.underlying go!"count") #x (Val #(x.count'))
-  set_count : ∀ (x : SingleFileTracker) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SingleFileTracker.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : SingleFileTracker)))
-  get_upstreamHasSynced : ∀ (x : SingleFileTracker), go.IsGoStepPureDetTagged under (StructFieldGet SingleFileTracker.underlying go!"upstreamHasSynced") #x (Val #(x.upstreamHasSynced'))
-  set_upstreamHasSynced : ∀ (x : SingleFileTracker) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet SingleFileTracker.underlying go!"upstreamHasSynced") (PairV #x #y) (Val #(({ x with upstreamHasSynced' := y } : SingleFileTracker)))
-  get_synced : ∀ (x : SingleFileTracker), go.IsGoStepPureDetTagged under (StructFieldGet SingleFileTracker.underlying go!"synced") #x (Val #(x.synced'))
-  set_synced : ∀ (x : SingleFileTracker) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet SingleFileTracker.underlying go!"synced") (PairV #x #y) (Val #(({ x with synced' := y } : SingleFileTracker)))
-  get_cancel : ∀ (x : SingleFileTracker), go.IsGoStepPureDetTagged under (StructFieldGet SingleFileTracker.underlying go!"cancel") #x (Val #(x.cancel'))
-  set_cancel : ∀ (x : SingleFileTracker) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet SingleFileTracker.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : SingleFileTracker)))
+  get'name : ∀ (x : SingleFileTracker), go.IsGoStepPureDetTagged under (StructFieldGet SingleFileTracker.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : SingleFileTracker) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SingleFileTracker.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : SingleFileTracker)))
+  get'count : ∀ (x : SingleFileTracker), go.IsGoStepPureDetTagged under (StructFieldGet SingleFileTracker.underlying go!"count") #x (Val #(x.count'))
+  set'count : ∀ (x : SingleFileTracker) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SingleFileTracker.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : SingleFileTracker)))
+  get'upstreamHasSynced : ∀ (x : SingleFileTracker), go.IsGoStepPureDetTagged under (StructFieldGet SingleFileTracker.underlying go!"upstreamHasSynced") #x (Val #(x.upstreamHasSynced'))
+  set'upstreamHasSynced : ∀ (x : SingleFileTracker) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet SingleFileTracker.underlying go!"upstreamHasSynced") (PairV #x #y) (Val #(({ x with upstreamHasSynced' := y } : SingleFileTracker)))
+  get'synced : ∀ (x : SingleFileTracker), go.IsGoStepPureDetTagged under (StructFieldGet SingleFileTracker.underlying go!"synced") #x (Val #(x.synced'))
+  set'synced : ∀ (x : SingleFileTracker) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet SingleFileTracker.underlying go!"synced") (PairV #x #y) (Val #(({ x with synced' := y } : SingleFileTracker)))
+  get'cancel : ∀ (x : SingleFileTracker), go.IsGoStepPureDetTagged under (StructFieldGet SingleFileTracker.underlying go!"cancel") #x (Val #(x.cancel'))
+  set'cancel : ∀ (x : SingleFileTracker) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet SingleFileTracker.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : SingleFileTracker)))
   method_set : go.MethodSetIs SingleFileTracker.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SingleFileTracker.ty) [(go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Finished", (some (go.signature.Signature [] false []))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Start", (some (go.signature.Signature [] false []))), (go!"UpstreamHasSynced", (some (go.signature.Signature [] false [])))]
-  ptr_Done_unfold : MethodUnfold (go.GoType.PointerType SingleFileTracker.ty) go!"Done" SingleFileTracker.Done.impl
-  ptr_Finished_unfold : MethodUnfold (go.GoType.PointerType SingleFileTracker.ty) go!"Finished" SingleFileTracker.Finished.impl
-  ptr_HasSynced_unfold : MethodUnfold (go.GoType.PointerType SingleFileTracker.ty) go!"HasSynced" SingleFileTracker.HasSynced.impl
-  ptr_Name_unfold : MethodUnfold (go.GoType.PointerType SingleFileTracker.ty) go!"Name" SingleFileTracker.Name.impl
-  ptr_Start_unfold : MethodUnfold (go.GoType.PointerType SingleFileTracker.ty) go!"Start" SingleFileTracker.Start.impl
-  ptr_UpstreamHasSynced_unfold : MethodUnfold (go.GoType.PointerType SingleFileTracker.ty) go!"UpstreamHasSynced" SingleFileTracker.UpstreamHasSynced.impl
+  ptr_unfold'Done : MethodUnfold (go.GoType.PointerType SingleFileTracker.ty) go!"Done" SingleFileTracker.Done.impl
+  ptr_unfold'Finished : MethodUnfold (go.GoType.PointerType SingleFileTracker.ty) go!"Finished" SingleFileTracker.Finished.impl
+  ptr_unfold'HasSynced : MethodUnfold (go.GoType.PointerType SingleFileTracker.ty) go!"HasSynced" SingleFileTracker.HasSynced.impl
+  ptr_unfold'Name : MethodUnfold (go.GoType.PointerType SingleFileTracker.ty) go!"Name" SingleFileTracker.Name.impl
+  ptr_unfold'Start : MethodUnfold (go.GoType.PointerType SingleFileTracker.ty) go!"Start" SingleFileTracker.Start.impl
+  ptr_unfold'UpstreamHasSynced : MethodUnfold (go.GoType.PointerType SingleFileTracker.ty) go!"UpstreamHasSynced" SingleFileTracker.UpstreamHasSynced.impl
 
 attribute [instance] SingleFileTracker.TypeAssumptions.type_repr
   SingleFileTracker.TypeAssumptions.underlying
-  SingleFileTracker.TypeAssumptions.get_name
-  SingleFileTracker.TypeAssumptions.set_name
-  SingleFileTracker.TypeAssumptions.get_count
-  SingleFileTracker.TypeAssumptions.set_count
-  SingleFileTracker.TypeAssumptions.get_upstreamHasSynced
-  SingleFileTracker.TypeAssumptions.set_upstreamHasSynced
-  SingleFileTracker.TypeAssumptions.get_synced
-  SingleFileTracker.TypeAssumptions.set_synced
-  SingleFileTracker.TypeAssumptions.get_cancel
-  SingleFileTracker.TypeAssumptions.set_cancel
+  SingleFileTracker.TypeAssumptions.get'name
+  SingleFileTracker.TypeAssumptions.set'name
+  SingleFileTracker.TypeAssumptions.get'count
+  SingleFileTracker.TypeAssumptions.set'count
+  SingleFileTracker.TypeAssumptions.get'upstreamHasSynced
+  SingleFileTracker.TypeAssumptions.set'upstreamHasSynced
+  SingleFileTracker.TypeAssumptions.get'synced
+  SingleFileTracker.TypeAssumptions.set'synced
+  SingleFileTracker.TypeAssumptions.get'cancel
+  SingleFileTracker.TypeAssumptions.set'cancel
   SingleFileTracker.TypeAssumptions.method_set
   SingleFileTracker.TypeAssumptions.ptr_method_set
-  SingleFileTracker.TypeAssumptions.ptr_Done_unfold
-  SingleFileTracker.TypeAssumptions.ptr_Finished_unfold
-  SingleFileTracker.TypeAssumptions.ptr_HasSynced_unfold
-  SingleFileTracker.TypeAssumptions.ptr_Name_unfold
-  SingleFileTracker.TypeAssumptions.ptr_Start_unfold
-  SingleFileTracker.TypeAssumptions.ptr_UpstreamHasSynced_unfold
+  SingleFileTracker.TypeAssumptions.ptr_unfold'Done
+  SingleFileTracker.TypeAssumptions.ptr_unfold'Finished
+  SingleFileTracker.TypeAssumptions.ptr_unfold'HasSynced
+  SingleFileTracker.TypeAssumptions.ptr_unfold'Name
+  SingleFileTracker.TypeAssumptions.ptr_unfold'Start
+  SingleFileTracker.TypeAssumptions.ptr_unfold'UpstreamHasSynced
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Lazy_instance : Lazy.TypeAssumptions
-  cacheEntry_instance : cacheEntry.TypeAssumptions
-  AsyncTracker_instance : AsyncTracker.TypeAssumptions
-  SingleFileTracker_instance : SingleFileTracker.TypeAssumptions
-  NewAsyncTracker_unfold : ∀ (T : go.GoType), FuncUnfold NewAsyncTracker [T] (NewAsyncTracker.impl T)
-  NewSingleFileTracker_unfold : FuncUnfold NewSingleFileTracker [] NewSingleFileTracker.impl
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_sets_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
+  instance'Lazy : Lazy.TypeAssumptions
+  instance'cacheEntry : cacheEntry.TypeAssumptions
+  instance'AsyncTracker : AsyncTracker.TypeAssumptions
+  instance'SingleFileTracker : SingleFileTracker.TypeAssumptions
+  unfold'NewAsyncTracker : ∀ (T₀ : go.GoType), FuncUnfold NewAsyncTracker [T₀] (NewAsyncTracker.impl T₀)
+  unfold'NewSingleFileTracker : FuncUnfold NewSingleFileTracker [] NewSingleFileTracker.impl
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'sets : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
 
-attribute [instance] Assumptions.Lazy_instance
-  Assumptions.cacheEntry_instance
-  Assumptions.AsyncTracker_instance
-  Assumptions.SingleFileTracker_instance
-  Assumptions.NewAsyncTracker_unfold
-  Assumptions.NewSingleFileTracker_unfold
-  Assumptions.import_sync_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_context_Assumption
-  Assumptions.import_sets_Assumption
+attribute [instance] Assumptions.instance'Lazy
+  Assumptions.instance'cacheEntry
+  Assumptions.instance'AsyncTracker
+  Assumptions.instance'SingleFileTracker
+  Assumptions.unfold'NewAsyncTracker
+  Assumptions.unfold'NewSingleFileTracker
+  Assumptions.import'sync
+  Assumptions.import'atomic
+  Assumptions.import'context
+  Assumptions.import'sets
 
 end k8s_io.client_go.tools.cache.synctrack
 

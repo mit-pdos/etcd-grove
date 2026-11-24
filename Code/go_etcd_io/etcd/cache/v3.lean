@@ -101,23 +101,23 @@ noncomputable def ready.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] ready.ty
 
-noncomputable def ringBuffer.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"go.etcd.io/etcd/cache/v3.ringBuffer" [T])
+noncomputable def ringBuffer.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/cache/v3.ringBuffer" [T₀])
 
 attribute [irreducible] ringBuffer.ty
 
-noncomputable def entry.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"go.etcd.io/etcd/cache/v3.entry" [T])
+noncomputable def entry.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/cache/v3.entry" [T₀])
 
 attribute [irreducible] entry.ty
 
-noncomputable def RevisionOf.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"go.etcd.io/etcd/cache/v3.RevisionOf" [T])
+noncomputable def RevisionOf.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/cache/v3.RevisionOf" [T₀])
 
 attribute [irreducible] RevisionOf.ty
 
-noncomputable def IterFunc.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"go.etcd.io/etcd/cache/v3.IterFunc" [T])
+noncomputable def IterFunc.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/cache/v3.IterFunc" [T₀])
 
 attribute [irreducible] IterFunc.ty
 
@@ -3855,7 +3855,7 @@ noncomputable def ready.WaitNotReady.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- go: ready.go:47:17 -/
-noncomputable def ready.Set.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def ready.Set''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
   (Seq (App (Val wrapDefer)
@@ -3973,65 +3973,65 @@ noncomputable def ready.waitForState.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
 /-- go: ringbuffer.go:35:6 -/
-noncomputable def newRingBuffer.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def newRingBuffer.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "capacity"
   (Lam "revisionOf"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (ringBuffer.ty T))))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T₀))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (ringBuffer.ty T₀))))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "revisionOf" (App (Val (GoInstruction (GoAlloc (RevisionOf.ty T)))) (Var "revisionOf"))
+  (Let "revisionOf" (App (Val (GoInstruction (GoAlloc (RevisionOf.ty T₀)))) (Var "revisionOf"))
   (Let "capacity" (App (Val (GoInstruction (GoAlloc go.int))) (Var "capacity"))
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc (ringBuffer.ty T)))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType (entry.ty T))]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (Var "capacity")))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad (RevisionOf.ty T)))) (Var "revisionOf"))
-  (App (Val (GoInstruction (CompositeLiteral (ringBuffer.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"buffer")) (ElementExpression (go.GoType.SliceType (entry.ty T)) (Var "$v0"))), (KeyedElement (some (KeyField go!"revisionOf")) (ElementExpression (RevisionOf.ty T) (Var "$v1")))])))))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc (ringBuffer.ty T₀)))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType (entry.ty T₀))]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (Var "capacity")))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (RevisionOf.ty T₀)))) (Var "revisionOf"))
+  (App (Val (GoInstruction (CompositeLiteral (ringBuffer.ty T₀)))) (LiteralValue [(KeyedElement (some (KeyField go!"buffer")) (ElementExpression (go.GoType.SliceType (entry.ty T₀)) (Var "$v0"))), (KeyedElement (some (KeyField go!"revisionOf")) (ElementExpression (RevisionOf.ty T₀) (Var "$v1")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (ringBuffer.ty T))))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (ringBuffer.ty T₀))))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "$res0"))))))
 
 /-- go: ringbuffer.go:43:25 -/
-noncomputable def ringBuffer.Append.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def ringBuffer.Append.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "item"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
-  (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (Let "$r0" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
-  (App (App (Val (GoInstruction (GoLoad (RevisionOf.ty T)))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"revisionOf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Var "$a0")))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
-  (App (Val (GoInstruction (CompositeLiteral (entry.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"revision")) (ElementExpression go.int64 (Var "$v0"))), (KeyedElement (some (KeyField go!"item")) (ElementExpression T (Var "$v1")))]))))
-  (Let "entry" (App (Val (GoInstruction (GoAlloc (entry.ty T)))) (App (Val (GoInstruction (GoZeroVal (entry.ty T)))) (Val #())))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))
+  (Let "item" (App (Val (GoInstruction (GoAlloc T₀))) (Var "item"))
+  (Let "$r0" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad T₀))) (Var "item"))
+  (App (App (Val (GoInstruction (GoLoad (RevisionOf.ty T₀)))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"revisionOf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (Var "$a0")))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad T₀))) (Var "item"))
+  (App (Val (GoInstruction (CompositeLiteral (entry.ty T₀)))) (LiteralValue [(KeyedElement (some (KeyField go!"revision")) (ElementExpression go.int64 (Var "$v0"))), (KeyedElement (some (KeyField go!"item")) (ElementExpression T₀ (Var "$v1")))]))))
+  (Let "entry" (App (Val (GoInstruction (GoAlloc (entry.ty T₀)))) (App (Val (GoInstruction (GoZeroVal (entry.ty T₀)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (entry.ty T)))) (Var "entry"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (entry.ty T₀)))) (Var "entry"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"head"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Val #(W64 1)))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty T))]))) (Val #())) (Var "$a0")))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"head"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (Val #(W64 1)))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T₀))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty T₀))]))) (Val #())) (Var "$a0")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"head"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"head"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (entry.ty T)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (entry.ty T))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"head"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))))) (Var "$r0"))))))))
-  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"full"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Val #()))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"tail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Val #(W64 1)))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty T))]))) (Val #())) (Var "$a0")))))
+  (App (Val (GoInstruction (GoStore (entry.ty T₀)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (entry.ty T₀))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T₀))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"head"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))))) (Var "$r0"))))))))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T₀)) go!"full"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))) (Val #()))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"tail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (Val #(W64 1)))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T₀))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty T₀))]))) (Val #())) (Var "$a0")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"tail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"tail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))) (Var "$r0")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Val #(W64 1)))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (Val #(W64 1)))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (entry.ty T)))) (Pair (Var "entry") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore (entry.ty T₀)))) (Pair (Var "entry") (Var "$r0"))))))))))
   (Val #()))))
 
 /-- go: ringbuffer.go:54:25 -/
-noncomputable def ringBuffer.full.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def ringBuffer.full.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty T))]))) (Val #())) (Var "$a0")))))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T₀))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty T₀))]))) (Val #())) (Var "$a0")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -4042,33 +4042,33 @@ noncomputable def ringBuffer.full.impl [GooseExts] [GoGlobalContext] (T : go.GoT
 /-- AscendGreaterOrEqual iterates through entries in ascending order starting from the first entry with revision >= pivot.
 
     go: ringbuffer.go:59:25 -/
-noncomputable def ringBuffer.AscendGreaterOrEqual.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def ringBuffer.AscendGreaterOrEqual.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "pivot"
   (Lam "iter"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
-  (Let "iter" (App (Val (GoInstruction (GoAlloc (IterFunc.ty T)))) (Var "iter"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))
+  (Let "iter" (App (Val (GoInstruction (GoAlloc (IterFunc.ty T₀)))) (Var "iter"))
   (Let "pivot" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "pivot"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "pivot"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"findFirstIndexGreaterOrEqual"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T₀)) go!"findFirstIndexGreaterOrEqual"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))) (Var "$a0")))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))))))) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))))))) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"at"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$a0")))
-  (Let "entry" (App (Val (GoInstruction (GoAlloc (entry.ty T)))) (App (Val (GoInstruction (GoZeroVal (entry.ty T)))) (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T₀)) go!"at"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))) (Var "$a0")))
+  (Let "entry" (App (Val (GoInstruction (GoAlloc (entry.ty T₀)))) (App (Val (GoInstruction (GoZeroVal (entry.ty T₀)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (entry.ty T) go!"revision"))) (Var "entry")))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (StructFieldRef (entry.ty T) go!"item"))) (Var "entry")))
-  (App (App (App (Val (GoInstruction (GoLoad (IterFunc.ty T)))) (Var "iter")) (Var "$a0")) (Var "$a1")))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (entry.ty T₀) go!"revision"))) (Var "entry")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad T₀))) (App (Val (GoInstruction (StructFieldRef (entry.ty T₀) go!"item"))) (Var "entry")))
+  (App (App (App (Val (GoInstruction (GoLoad (IterFunc.ty T₀)))) (Var "iter")) (Var "$a0")) (Var "$a1")))))
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (entry.ty T)))) (Pair (Var "entry") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (entry.ty T₀)))) (Pair (Var "entry") (Var "$r0")))))))))
   (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
@@ -4079,33 +4079,33 @@ noncomputable def ringBuffer.AscendGreaterOrEqual.impl [GooseExts] [GoGlobalCont
 /-- AscendLessThan iterates in ascending order over entries with revision < pivot.
 
     go: ringbuffer.go:69:25 -/
-noncomputable def ringBuffer.AscendLessThan.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def ringBuffer.AscendLessThan.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "pivot"
   (Lam "iter"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
-  (Let "iter" (App (Val (GoInstruction (GoAlloc (IterFunc.ty T)))) (Var "iter"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))
+  (Let "iter" (App (Val (GoInstruction (GoAlloc (IterFunc.ty T₀)))) (Var "iter"))
   (Let "pivot" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "pivot"))
   (Let "$r0" (Val #(W64 0))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "pivot"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"findFirstIndexGreaterOrEqual"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$a0"))))))) (Lam BAnon
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T₀)) go!"findFirstIndexGreaterOrEqual"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))) (Var "$a0"))))))) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"at"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$a0")))
-  (Let "entry" (App (Val (GoInstruction (GoAlloc (entry.ty T)))) (App (Val (GoInstruction (GoZeroVal (entry.ty T)))) (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T₀)) go!"at"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))) (Var "$a0")))
+  (Let "entry" (App (Val (GoInstruction (GoAlloc (entry.ty T₀)))) (App (Val (GoInstruction (GoZeroVal (entry.ty T₀)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (entry.ty T) go!"revision"))) (Var "entry")))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (StructFieldRef (entry.ty T) go!"item"))) (Var "entry")))
-  (App (App (App (Val (GoInstruction (GoLoad (IterFunc.ty T)))) (Var "iter")) (Var "$a0")) (Var "$a1")))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (entry.ty T₀) go!"revision"))) (Var "entry")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad T₀))) (App (Val (GoInstruction (StructFieldRef (entry.ty T₀) go!"item"))) (Var "entry")))
+  (App (App (App (Val (GoInstruction (GoLoad (IterFunc.ty T₀)))) (Var "iter")) (Var "$a0")) (Var "$a1")))))
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (entry.ty T)))) (Pair (Var "entry") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (entry.ty T₀)))) (Pair (Var "entry") (Var "$r0")))))))))
   (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
@@ -4116,33 +4116,33 @@ noncomputable def ringBuffer.AscendLessThan.impl [GooseExts] [GoGlobalContext] (
 /-- DescendGreaterThan iterates in descending order over entries with revision > pivot.
 
     go: ringbuffer.go:79:25 -/
-noncomputable def ringBuffer.DescendGreaterThan.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def ringBuffer.DescendGreaterThan.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "pivot"
   (Lam "iter"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
-  (Let "iter" (App (Val (GoInstruction (GoAlloc (IterFunc.ty T)))) (Var "iter"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))
+  (Let "iter" (App (Val (GoInstruction (GoAlloc (IterFunc.ty T₀)))) (Var "iter"))
   (Let "pivot" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "pivot"))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Val #(W64 1))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (Val #(W64 1))))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "pivot"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"findLastIndexLessOrEqual"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$a0"))))))) (Lam BAnon
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T₀)) go!"findLastIndexLessOrEqual"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))) (Var "$a0"))))))) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"at"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$a0")))
-  (Let "entry" (App (Val (GoInstruction (GoAlloc (entry.ty T)))) (App (Val (GoInstruction (GoZeroVal (entry.ty T)))) (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T₀)) go!"at"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))) (Var "$a0")))
+  (Let "entry" (App (Val (GoInstruction (GoAlloc (entry.ty T₀)))) (App (Val (GoInstruction (GoZeroVal (entry.ty T₀)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (entry.ty T) go!"revision"))) (Var "entry")))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (StructFieldRef (entry.ty T) go!"item"))) (Var "entry")))
-  (App (App (App (Val (GoInstruction (GoLoad (IterFunc.ty T)))) (Var "iter")) (Var "$a0")) (Var "$a1")))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (entry.ty T₀) go!"revision"))) (Var "entry")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad T₀))) (App (Val (GoInstruction (StructFieldRef (entry.ty T₀) go!"item"))) (Var "entry")))
+  (App (App (App (Val (GoInstruction (GoLoad (IterFunc.ty T₀)))) (Var "iter")) (Var "$a0")) (Var "$a1")))))
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (entry.ty T)))) (Pair (Var "entry") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (entry.ty T₀)))) (Pair (Var "entry") (Var "$r0")))))))))
   (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
@@ -4153,33 +4153,33 @@ noncomputable def ringBuffer.DescendGreaterThan.impl [GooseExts] [GoGlobalContex
 /-- DescendLessOrEqual iterates in descending order over entries with revision <= pivot.
 
     go: ringbuffer.go:89:25 -/
-noncomputable def ringBuffer.DescendLessOrEqual.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def ringBuffer.DescendLessOrEqual.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "pivot"
   (Lam "iter"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
-  (Let "iter" (App (Val (GoInstruction (GoAlloc (IterFunc.ty T)))) (Var "iter"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))
+  (Let "iter" (App (Val (GoInstruction (GoAlloc (IterFunc.ty T₀)))) (Var "iter"))
   (Let "pivot" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "pivot"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "pivot"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"findLastIndexLessOrEqual"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T₀)) go!"findLastIndexLessOrEqual"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))) (Var "$a0")))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"at"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$a0")))
-  (Let "entry" (App (Val (GoInstruction (GoAlloc (entry.ty T)))) (App (Val (GoInstruction (GoZeroVal (entry.ty T)))) (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T₀)) go!"at"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))) (Var "$a0")))
+  (Let "entry" (App (Val (GoInstruction (GoAlloc (entry.ty T₀)))) (App (Val (GoInstruction (GoZeroVal (entry.ty T₀)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (entry.ty T) go!"revision"))) (Var "entry")))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (StructFieldRef (entry.ty T) go!"item"))) (Var "entry")))
-  (App (App (App (Val (GoInstruction (GoLoad (IterFunc.ty T)))) (Var "iter")) (Var "$a0")) (Var "$a1")))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (entry.ty T₀) go!"revision"))) (Var "entry")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad T₀))) (App (Val (GoInstruction (StructFieldRef (entry.ty T₀) go!"item"))) (Var "entry")))
+  (App (App (App (Val (GoInstruction (GoLoad (IterFunc.ty T₀)))) (Var "iter")) (Var "$a0")) (Var "$a1")))))
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (entry.ty T)))) (Pair (Var "entry") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (entry.ty T₀)))) (Pair (Var "entry") (Var "$r0")))))))))
   (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
@@ -4190,19 +4190,19 @@ noncomputable def ringBuffer.DescendLessOrEqual.impl [GooseExts] [GoGlobalContex
 /-- PeekLatest returns the most recently-appended revision (or 0 if empty).
 
     go: ringbuffer.go:99:25 -/
-noncomputable def ringBuffer.PeekLatest.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def ringBuffer.PeekLatest.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"head"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Val #(W64 1)))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty T))]))) (Val #())) (Var "$a0"))))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty T))]))) (Val #())) (Var "$a0")))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"head"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (Val #(W64 1)))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T₀))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty T₀))]))) (Val #())) (Var "$a0"))))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T₀))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty T₀))]))) (Val #())) (Var "$a0")))))
   (Let "idx" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (entry.ty T) go!"revision"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (entry.ty T))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "idx"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (entry.ty T₀) go!"revision"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (entry.ty T₀))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T₀))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "idx"))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -4210,7 +4210,7 @@ noncomputable def ringBuffer.PeekLatest.impl [GooseExts] [GoGlobalContext] (T : 
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "idx") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (Val #(W64 0)))))
   (Let "$r0" (Val #(W64 0))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -4224,20 +4224,20 @@ noncomputable def ringBuffer.PeekLatest.impl [GooseExts] [GoGlobalContext] (T : 
 /-- PeekOldest returns the oldest revision currently stored (or 0 if empty).
 
     go: ringbuffer.go:108:25 -/
-noncomputable def ringBuffer.PeekOldest.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def ringBuffer.PeekOldest.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (entry.ty T) go!"revision"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (entry.ty T))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"tail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (entry.ty T₀) go!"revision"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (entry.ty T₀))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T₀))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"tail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (Val #(W64 0)))))
   (Let "$r0" (Val #(W64 0))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -4249,29 +4249,29 @@ noncomputable def ringBuffer.PeekOldest.impl [GooseExts] [GoGlobalContext] (T : 
   (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
 /-- go: ringbuffer.go:115:25 -/
-noncomputable def ringBuffer.RebaseHistory.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def ringBuffer.RebaseHistory.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
-  (Let "$l0" (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"head"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))
-  (Let "$l1" (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"tail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))
-  (Let "$l2" (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))
+  (Let "$l0" (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"head"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))
+  (Let "$l1" (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"tail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))
+  (Let "$l2" (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))
   (Let "$r0" (Val #(W64 0))
   (Let "$r1" (Val #(W64 0))
   (Let "$r2" (Val #(W64 0))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T₀))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
-  (App (App (Val (slice.forRange (entry.ty T))) (Var "$range"))
+  (App (App (Val (slice.forRange (entry.ty T₀))) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (entry.ty T)))) (LiteralValue []))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (entry.ty T₀)))) (LiteralValue []))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (entry.ty T)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (entry.ty T))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (entry.ty T₀)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (entry.ty T₀))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T₀))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key"))))))))))))
   (App (Val doExecute)
@@ -4283,16 +4283,16 @@ noncomputable def ringBuffer.RebaseHistory.impl [GooseExts] [GoGlobalContext] (T
   (Val #()))))
 
 /-- go: ringbuffer.go:122:25 -/
-noncomputable def ringBuffer.moduloIndex.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def ringBuffer.moduloIndex.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "index"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))
   (Let "index" (App (Val (GoInstruction (GoAlloc go.int))) (Var "index"))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "index")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty T))]))) (Val #())) (Var "$a0"))))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty T))]))) (Val #())) (Var "$a0")))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "index")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T₀))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty T₀))]))) (Val #())) (Var "$a0"))))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T₀))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty T₀))]))) (Val #())) (Var "$a0")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -4301,32 +4301,32 @@ noncomputable def ringBuffer.moduloIndex.impl [GooseExts] [GoGlobalContext] (T :
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: ringbuffer.go:126:25 -/
-noncomputable def ringBuffer.«at».impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def ringBuffer.at''.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "logicalIndex"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (entry.ty T)))) (App (Val (GoInstruction (GoZeroVal (entry.ty T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (entry.ty T₀)))) (App (Val (GoInstruction (GoZeroVal (entry.ty T₀)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))
   (Let "logicalIndex" (App (Val (GoInstruction (GoAlloc go.int))) (Var "logicalIndex"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (entry.ty T)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (entry.ty T))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"tail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "logicalIndex"))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"moduloIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$a0"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (entry.ty T₀)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (entry.ty T₀))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T₀))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"tail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "logicalIndex"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T₀)) go!"moduloIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))) (Var "$a0"))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (entry.ty T)))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad (entry.ty T)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (entry.ty T₀)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (entry.ty T₀)))) (Var "$res0"))))))
 
 /-- go: ringbuffer.go:130:25 -/
-noncomputable def ringBuffer.findFirstIndexGreaterOrEqual.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def ringBuffer.findFirstIndexGreaterOrEqual.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "pivot"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))
   (Let "pivot" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "pivot"))
   (Let "$r0" (Val #(W64 0))
-  (Let "$r1" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Val #(W64 1))))
+  (Let "$r1" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (Val #(W64 1))))
   (Let "right" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Let "left" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -4344,10 +4344,10 @@ noncomputable def ringBuffer.findFirstIndexGreaterOrEqual.impl [GooseExts] [GoGl
   (Let "mid" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "mid"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"at"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$a0")))
-  (Let "ent" (App (Val (GoInstruction (GoAlloc (entry.ty T)))) (App (Val (GoInstruction (GoZeroVal (entry.ty T)))) (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T₀)) go!"at"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))) (Var "$a0")))
+  (Let "ent" (App (Val (GoInstruction (GoAlloc (entry.ty T₀)))) (App (Val (GoInstruction (GoZeroVal (entry.ty T₀)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (entry.ty T) go!"revision"))) (Var "ent"))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "pivot")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (entry.ty T₀) go!"revision"))) (Var "ent"))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "pivot")))))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "mid")) (Val #(W64 1))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "right") (Var "$r0")))))
@@ -4355,7 +4355,7 @@ noncomputable def ringBuffer.findFirstIndexGreaterOrEqual.impl [GooseExts] [GoGl
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "left") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (entry.ty T)))) (Pair (Var "ent") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (entry.ty T₀)))) (Pair (Var "ent") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "mid") (Var "$r0")))))))))
   (Lam BAnon
@@ -4367,15 +4367,15 @@ noncomputable def ringBuffer.findFirstIndexGreaterOrEqual.impl [GooseExts] [GoGl
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: ringbuffer.go:148:25 -/
-noncomputable def ringBuffer.findLastIndexLessOrEqual.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def ringBuffer.findLastIndexLessOrEqual.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "pivot"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))
   (Let "pivot" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "pivot"))
   (Let "$r0" (Val #(W64 0))
-  (Let "$r1" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Val #(W64 1))))
+  (Let "$r1" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r")))) (Val #(W64 1))))
   (Let "right" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Let "left" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -4393,10 +4393,10 @@ noncomputable def ringBuffer.findLastIndexLessOrEqual.impl [GooseExts] [GoGlobal
   (Let "mid" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "mid"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"at"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$a0")))
-  (Let "ent" (App (Val (GoInstruction (GoAlloc (entry.ty T)))) (App (Val (GoInstruction (GoZeroVal (entry.ty T)))) (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T₀)) go!"at"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T₀))))) (Var "r"))) (Var "$a0")))
+  (Let "ent" (App (Val (GoInstruction (GoAlloc (entry.ty T₀)))) (App (Val (GoInstruction (GoZeroVal (entry.ty T₀)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (entry.ty T) go!"revision"))) (Var "ent"))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "pivot")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (entry.ty T₀) go!"revision"))) (Var "ent"))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "pivot")))))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "mid")) (Val #(W64 1))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "left") (Var "$r0")))))
@@ -4404,7 +4404,7 @@ noncomputable def ringBuffer.findLastIndexLessOrEqual.impl [GooseExts] [GoGlobal
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "right") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (entry.ty T)))) (Pair (Var "ent") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (entry.ty T₀)))) (Pair (Var "ent") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "mid") (Var "$r0")))))))))
   (Lam BAnon
@@ -5482,7 +5482,7 @@ noncomputable instance Config.zero_val [GooseExts] : ZeroVal Config :=
 @[irreducible] noncomputable def Config.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Config.fieldsUnsealed
 
-noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Config [GooseExts] [GoGlobalContext] :
     EqualsUnfold Config.fields Config.fieldsUnsealed :=
   ⟨by unfold Config.fields; rfl⟩
 
@@ -5492,51 +5492,51 @@ noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
 class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
-  get_PerWatcherBufferSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"PerWatcherBufferSize") #x (Val #(x.PerWatcherBufferSize'))
-  set_PerWatcherBufferSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"PerWatcherBufferSize") (PairV #x #y) (Val #(({ x with PerWatcherBufferSize' := y } : Config)))
-  get_HistoryWindowSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"HistoryWindowSize") #x (Val #(x.HistoryWindowSize'))
-  set_HistoryWindowSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"HistoryWindowSize") (PairV #x #y) (Val #(({ x with HistoryWindowSize' := y } : Config)))
-  get_ResyncInterval : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ResyncInterval") #x (Val #(x.ResyncInterval'))
-  set_ResyncInterval : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ResyncInterval") (PairV #x #y) (Val #(({ x with ResyncInterval' := y } : Config)))
-  get_InitialBackoff : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"InitialBackoff") #x (Val #(x.InitialBackoff'))
-  set_InitialBackoff : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"InitialBackoff") (PairV #x #y) (Val #(({ x with InitialBackoff' := y } : Config)))
-  get_MaxBackoff : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"MaxBackoff") #x (Val #(x.MaxBackoff'))
-  set_MaxBackoff : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"MaxBackoff") (PairV #x #y) (Val #(({ x with MaxBackoff' := y } : Config)))
-  get_GetTimeout : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"GetTimeout") #x (Val #(x.GetTimeout'))
-  set_GetTimeout : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"GetTimeout") (PairV #x #y) (Val #(({ x with GetTimeout' := y } : Config)))
-  get_WaitTimeout : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"WaitTimeout") #x (Val #(x.WaitTimeout'))
-  set_WaitTimeout : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"WaitTimeout") (PairV #x #y) (Val #(({ x with WaitTimeout' := y } : Config)))
-  get_BTreeDegree : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"BTreeDegree") #x (Val #(x.BTreeDegree'))
-  set_BTreeDegree : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"BTreeDegree") (PairV #x #y) (Val #(({ x with BTreeDegree' := y } : Config)))
-  get_ProgressRequestInterval : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProgressRequestInterval") #x (Val #(x.ProgressRequestInterval'))
-  set_ProgressRequestInterval : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProgressRequestInterval") (PairV #x #y) (Val #(({ x with ProgressRequestInterval' := y } : Config)))
-  get_ProgressNotifyInterval : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProgressNotifyInterval") #x (Val #(x.ProgressNotifyInterval'))
-  set_ProgressNotifyInterval : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProgressNotifyInterval") (PairV #x #y) (Val #(({ x with ProgressNotifyInterval' := y } : Config)))
+  get'PerWatcherBufferSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"PerWatcherBufferSize") #x (Val #(x.PerWatcherBufferSize'))
+  set'PerWatcherBufferSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"PerWatcherBufferSize") (PairV #x #y) (Val #(({ x with PerWatcherBufferSize' := y } : Config)))
+  get'HistoryWindowSize : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"HistoryWindowSize") #x (Val #(x.HistoryWindowSize'))
+  set'HistoryWindowSize : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"HistoryWindowSize") (PairV #x #y) (Val #(({ x with HistoryWindowSize' := y } : Config)))
+  get'ResyncInterval : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ResyncInterval") #x (Val #(x.ResyncInterval'))
+  set'ResyncInterval : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ResyncInterval") (PairV #x #y) (Val #(({ x with ResyncInterval' := y } : Config)))
+  get'InitialBackoff : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"InitialBackoff") #x (Val #(x.InitialBackoff'))
+  set'InitialBackoff : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"InitialBackoff") (PairV #x #y) (Val #(({ x with InitialBackoff' := y } : Config)))
+  get'MaxBackoff : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"MaxBackoff") #x (Val #(x.MaxBackoff'))
+  set'MaxBackoff : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"MaxBackoff") (PairV #x #y) (Val #(({ x with MaxBackoff' := y } : Config)))
+  get'GetTimeout : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"GetTimeout") #x (Val #(x.GetTimeout'))
+  set'GetTimeout : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"GetTimeout") (PairV #x #y) (Val #(({ x with GetTimeout' := y } : Config)))
+  get'WaitTimeout : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"WaitTimeout") #x (Val #(x.WaitTimeout'))
+  set'WaitTimeout : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"WaitTimeout") (PairV #x #y) (Val #(({ x with WaitTimeout' := y } : Config)))
+  get'BTreeDegree : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"BTreeDegree") #x (Val #(x.BTreeDegree'))
+  set'BTreeDegree : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"BTreeDegree") (PairV #x #y) (Val #(({ x with BTreeDegree' := y } : Config)))
+  get'ProgressRequestInterval : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProgressRequestInterval") #x (Val #(x.ProgressRequestInterval'))
+  set'ProgressRequestInterval : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProgressRequestInterval") (PairV #x #y) (Val #(({ x with ProgressRequestInterval' := y } : Config)))
+  get'ProgressNotifyInterval : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProgressNotifyInterval") #x (Val #(x.ProgressNotifyInterval'))
+  set'ProgressNotifyInterval : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProgressNotifyInterval") (PairV #x #y) (Val #(({ x with ProgressNotifyInterval' := y } : Config)))
   method_set : go.MethodSetIs Config.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) []
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
-  Config.TypeAssumptions.get_PerWatcherBufferSize
-  Config.TypeAssumptions.set_PerWatcherBufferSize
-  Config.TypeAssumptions.get_HistoryWindowSize
-  Config.TypeAssumptions.set_HistoryWindowSize
-  Config.TypeAssumptions.get_ResyncInterval
-  Config.TypeAssumptions.set_ResyncInterval
-  Config.TypeAssumptions.get_InitialBackoff
-  Config.TypeAssumptions.set_InitialBackoff
-  Config.TypeAssumptions.get_MaxBackoff
-  Config.TypeAssumptions.set_MaxBackoff
-  Config.TypeAssumptions.get_GetTimeout
-  Config.TypeAssumptions.set_GetTimeout
-  Config.TypeAssumptions.get_WaitTimeout
-  Config.TypeAssumptions.set_WaitTimeout
-  Config.TypeAssumptions.get_BTreeDegree
-  Config.TypeAssumptions.set_BTreeDegree
-  Config.TypeAssumptions.get_ProgressRequestInterval
-  Config.TypeAssumptions.set_ProgressRequestInterval
-  Config.TypeAssumptions.get_ProgressNotifyInterval
-  Config.TypeAssumptions.set_ProgressNotifyInterval
+  Config.TypeAssumptions.get'PerWatcherBufferSize
+  Config.TypeAssumptions.set'PerWatcherBufferSize
+  Config.TypeAssumptions.get'HistoryWindowSize
+  Config.TypeAssumptions.set'HistoryWindowSize
+  Config.TypeAssumptions.get'ResyncInterval
+  Config.TypeAssumptions.set'ResyncInterval
+  Config.TypeAssumptions.get'InitialBackoff
+  Config.TypeAssumptions.set'InitialBackoff
+  Config.TypeAssumptions.get'MaxBackoff
+  Config.TypeAssumptions.set'MaxBackoff
+  Config.TypeAssumptions.get'GetTimeout
+  Config.TypeAssumptions.set'GetTimeout
+  Config.TypeAssumptions.get'WaitTimeout
+  Config.TypeAssumptions.set'WaitTimeout
+  Config.TypeAssumptions.get'BTreeDegree
+  Config.TypeAssumptions.set'BTreeDegree
+  Config.TypeAssumptions.get'ProgressRequestInterval
+  Config.TypeAssumptions.set'ProgressRequestInterval
+  Config.TypeAssumptions.get'ProgressNotifyInterval
+  Config.TypeAssumptions.set'ProgressNotifyInterval
   Config.TypeAssumptions.method_set
   Config.TypeAssumptions.ptr_method_set
 
@@ -5603,7 +5603,7 @@ noncomputable instance Cache.zero_val [GooseExts] : ZeroVal Cache :=
 @[irreducible] noncomputable def Cache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Cache.fieldsUnsealed
 
-noncomputable instance equals_unfold_Cache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Cache [GooseExts] [GoGlobalContext] :
     EqualsUnfold Cache.fields Cache.fieldsUnsealed :=
   ⟨by unfold Cache.fields; rfl⟩
 
@@ -5613,99 +5613,99 @@ noncomputable instance equals_unfold_Cache [GooseExts] [GoGlobalContext] :
 class Cache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Cache.underlying Cache
   underlying : go.UnderlyingDirectedEq Cache.ty Cache.underlying
-  get_prefix : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"prefix") #x (Val #(x.prefix'))
-  set_prefix : ∀ (x : Cache) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"prefix") (PairV #x #y) (Val #(({ x with prefix' := y } : Cache)))
-  get_cfg : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"cfg") #x (Val #(x.cfg'))
-  set_cfg : ∀ (x : Cache) (y : Config), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"cfg") (PairV #x #y) (Val #(({ x with cfg' := y } : Cache)))
-  get_watcher : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"watcher") #x (Val #(x.watcher'))
-  set_watcher : ∀ (x : Cache) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.Watcher), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"watcher") (PairV #x #y) (Val #(({ x with watcher' := y } : Cache)))
-  get_kv : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"kv") #x (Val #(x.kv'))
-  set_kv : ∀ (x : Cache) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.KV), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"kv") (PairV #x #y) (Val #(({ x with kv' := y } : Cache)))
-  get_demux : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"demux") #x (Val #(x.demux'))
-  set_demux : ∀ (x : Cache) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"demux") (PairV #x #y) (Val #(({ x with demux' := y } : Cache)))
-  get_store : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"store") #x (Val #(x.store'))
-  set_store : ∀ (x : Cache) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"store") (PairV #x #y) (Val #(({ x with store' := y } : Cache)))
-  get_ready : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"ready") #x (Val #(x.ready'))
-  set_ready : ∀ (x : Cache) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"ready") (PairV #x #y) (Val #(({ x with ready' := y } : Cache)))
-  get_stop : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"stop") #x (Val #(x.stop'))
-  set_stop : ∀ (x : Cache) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"stop") (PairV #x #y) (Val #(({ x with stop' := y } : Cache)))
-  get_waitGroup : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"waitGroup") #x (Val #(x.waitGroup'))
-  set_waitGroup : ∀ (x : Cache) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"waitGroup") (PairV #x #y) (Val #(({ x with waitGroup' := y } : Cache)))
-  get_internalCtx : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"internalCtx") #x (Val #(x.internalCtx'))
-  set_internalCtx : ∀ (x : Cache) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"internalCtx") (PairV #x #y) (Val #(({ x with internalCtx' := y } : Cache)))
-  get_progressRequestor : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"progressRequestor") #x (Val #(x.progressRequestor'))
-  set_progressRequestor : ∀ (x : Cache) (y : progressRequestor), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"progressRequestor") (PairV #x #y) (Val #(({ x with progressRequestor' := y } : Cache)))
-  get_clock : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"clock") #x (Val #(x.clock'))
-  set_clock : ∀ (x : Cache) (y : Clock), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : Cache)))
+  get'prefix : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"prefix") #x (Val #(x.prefix'))
+  set'prefix : ∀ (x : Cache) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"prefix") (PairV #x #y) (Val #(({ x with prefix' := y } : Cache)))
+  get'cfg : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"cfg") #x (Val #(x.cfg'))
+  set'cfg : ∀ (x : Cache) (y : Config), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"cfg") (PairV #x #y) (Val #(({ x with cfg' := y } : Cache)))
+  get'watcher : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"watcher") #x (Val #(x.watcher'))
+  set'watcher : ∀ (x : Cache) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.Watcher), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"watcher") (PairV #x #y) (Val #(({ x with watcher' := y } : Cache)))
+  get'kv : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"kv") #x (Val #(x.kv'))
+  set'kv : ∀ (x : Cache) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.KV), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"kv") (PairV #x #y) (Val #(({ x with kv' := y } : Cache)))
+  get'demux : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"demux") #x (Val #(x.demux'))
+  set'demux : ∀ (x : Cache) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"demux") (PairV #x #y) (Val #(({ x with demux' := y } : Cache)))
+  get'store : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"store") #x (Val #(x.store'))
+  set'store : ∀ (x : Cache) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"store") (PairV #x #y) (Val #(({ x with store' := y } : Cache)))
+  get'ready : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"ready") #x (Val #(x.ready'))
+  set'ready : ∀ (x : Cache) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"ready") (PairV #x #y) (Val #(({ x with ready' := y } : Cache)))
+  get'stop : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"stop") #x (Val #(x.stop'))
+  set'stop : ∀ (x : Cache) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"stop") (PairV #x #y) (Val #(({ x with stop' := y } : Cache)))
+  get'waitGroup : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"waitGroup") #x (Val #(x.waitGroup'))
+  set'waitGroup : ∀ (x : Cache) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"waitGroup") (PairV #x #y) (Val #(({ x with waitGroup' := y } : Cache)))
+  get'internalCtx : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"internalCtx") #x (Val #(x.internalCtx'))
+  set'internalCtx : ∀ (x : Cache) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"internalCtx") (PairV #x #y) (Val #(({ x with internalCtx' := y } : Cache)))
+  get'progressRequestor : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"progressRequestor") #x (Val #(x.progressRequestor'))
+  set'progressRequestor : ∀ (x : Cache) (y : progressRequestor), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"progressRequestor") (PairV #x #y) (Val #(({ x with progressRequestor' := y } : Cache)))
+  get'clock : ∀ (x : Cache), go.IsGoStepPureDetTagged under (StructFieldGet Cache.underlying go!"clock") #x (Val #(x.clock'))
+  set'clock : ∀ (x : Cache) (y : Clock), go.IsGoStepPureDetTagged under (StructFieldSet Cache.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : Cache)))
   method_set : go.MethodSetIs Cache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Cache.ty) [(go!"Close", (some (go.signature.Signature [] false []))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty), go.error]))), (go!"Ready", (some (go.signature.Signature [] false [go.bool]))), (go!"RequestProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"WaitForNextResync", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"WaitForRevision", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64] false [go.error]))), (go!"WaitReady", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [_root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty]))), (go!"go.etcd.io/etcd/cache/v3.applyStorage", (some (go.signature.Signature [(go.GoType.PointerType watcher.ty)] false [go.error]))), (go!"go.etcd.io/etcd/cache/v3.get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty), go.error]))), (go!"go.etcd.io/etcd/cache/v3.getWatch", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/cache/v3.getWatchLoop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.serverRevision", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.int64, go.error]))), (go!"go.etcd.io/etcd/cache/v3.validateGet", (some (go.signature.Signature [go.string, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [KeyPredicate.ty, go.error]))), (go!"go.etcd.io/etcd/cache/v3.validateRange", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"go.etcd.io/etcd/cache/v3.validateWatch", (some (go.signature.Signature [go.string, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [KeyPredicate.ty, go.error]))), (go!"go.etcd.io/etcd/cache/v3.waitTillRevision", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64] false [go.error]))), (go!"go.etcd.io/etcd/cache/v3.watch", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"go.etcd.io/etcd/cache/v3.watchEvents", (some (go.signature.Signature [go.int64, (go.GoType.ChannelType go.ChanDir.recvonly go.error), (go.GoType.PointerType _root_.Perennial.sync.Once.ty)] false [go.error])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"Close" Cache.Close.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"Get" Cache.Get.impl
-  ptr_Ready_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"Ready" Cache.Ready.impl
-  ptr_RequestProgress_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"RequestProgress" Cache.RequestProgress.impl
-  ptr_WaitForNextResync_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"WaitForNextResync" Cache.WaitForNextResync.impl
-  ptr_WaitForRevision_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"WaitForRevision" Cache.WaitForRevision.impl
-  ptr_WaitReady_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"WaitReady" Cache.WaitReady.impl
-  ptr_Watch_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"Watch" Cache.Watch.impl
-  ptr_applyStorage_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"applyStorage" Cache.applyStorage.impl
-  ptr_get_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"get" Cache.get.impl
-  ptr_getWatch_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"getWatch" Cache.getWatch.impl
-  ptr_getWatchLoop_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"getWatchLoop" Cache.getWatchLoop.impl
-  ptr_serverRevision_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"serverRevision" Cache.serverRevision.impl
-  ptr_validateGet_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"validateGet" Cache.validateGet.impl
-  ptr_validateRange_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"validateRange" Cache.validateRange.impl
-  ptr_validateWatch_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"validateWatch" Cache.validateWatch.impl
-  ptr_waitTillRevision_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"waitTillRevision" Cache.waitTillRevision.impl
-  ptr_watch_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"watch" Cache.watch.impl
-  ptr_watchEvents_unfold : MethodUnfold (go.GoType.PointerType Cache.ty) go!"watchEvents" Cache.watchEvents.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType Cache.ty) go!"Close" Cache.Close.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType Cache.ty) go!"Get" Cache.Get.impl
+  ptr_unfold'Ready : MethodUnfold (go.GoType.PointerType Cache.ty) go!"Ready" Cache.Ready.impl
+  ptr_unfold'RequestProgress : MethodUnfold (go.GoType.PointerType Cache.ty) go!"RequestProgress" Cache.RequestProgress.impl
+  ptr_unfold'WaitForNextResync : MethodUnfold (go.GoType.PointerType Cache.ty) go!"WaitForNextResync" Cache.WaitForNextResync.impl
+  ptr_unfold'WaitForRevision : MethodUnfold (go.GoType.PointerType Cache.ty) go!"WaitForRevision" Cache.WaitForRevision.impl
+  ptr_unfold'WaitReady : MethodUnfold (go.GoType.PointerType Cache.ty) go!"WaitReady" Cache.WaitReady.impl
+  ptr_unfold'Watch : MethodUnfold (go.GoType.PointerType Cache.ty) go!"Watch" Cache.Watch.impl
+  ptr_unfold'applyStorage : MethodUnfold (go.GoType.PointerType Cache.ty) go!"applyStorage" Cache.applyStorage.impl
+  ptr_unfold'get : MethodUnfold (go.GoType.PointerType Cache.ty) go!"get" Cache.get.impl
+  ptr_unfold'getWatch : MethodUnfold (go.GoType.PointerType Cache.ty) go!"getWatch" Cache.getWatch.impl
+  ptr_unfold'getWatchLoop : MethodUnfold (go.GoType.PointerType Cache.ty) go!"getWatchLoop" Cache.getWatchLoop.impl
+  ptr_unfold'serverRevision : MethodUnfold (go.GoType.PointerType Cache.ty) go!"serverRevision" Cache.serverRevision.impl
+  ptr_unfold'validateGet : MethodUnfold (go.GoType.PointerType Cache.ty) go!"validateGet" Cache.validateGet.impl
+  ptr_unfold'validateRange : MethodUnfold (go.GoType.PointerType Cache.ty) go!"validateRange" Cache.validateRange.impl
+  ptr_unfold'validateWatch : MethodUnfold (go.GoType.PointerType Cache.ty) go!"validateWatch" Cache.validateWatch.impl
+  ptr_unfold'waitTillRevision : MethodUnfold (go.GoType.PointerType Cache.ty) go!"waitTillRevision" Cache.waitTillRevision.impl
+  ptr_unfold'watch : MethodUnfold (go.GoType.PointerType Cache.ty) go!"watch" Cache.watch.impl
+  ptr_unfold'watchEvents : MethodUnfold (go.GoType.PointerType Cache.ty) go!"watchEvents" Cache.watchEvents.impl
 
 attribute [instance] Cache.TypeAssumptions.type_repr
   Cache.TypeAssumptions.underlying
-  Cache.TypeAssumptions.get_prefix
-  Cache.TypeAssumptions.set_prefix
-  Cache.TypeAssumptions.get_cfg
-  Cache.TypeAssumptions.set_cfg
-  Cache.TypeAssumptions.get_watcher
-  Cache.TypeAssumptions.set_watcher
-  Cache.TypeAssumptions.get_kv
-  Cache.TypeAssumptions.set_kv
-  Cache.TypeAssumptions.get_demux
-  Cache.TypeAssumptions.set_demux
-  Cache.TypeAssumptions.get_store
-  Cache.TypeAssumptions.set_store
-  Cache.TypeAssumptions.get_ready
-  Cache.TypeAssumptions.set_ready
-  Cache.TypeAssumptions.get_stop
-  Cache.TypeAssumptions.set_stop
-  Cache.TypeAssumptions.get_waitGroup
-  Cache.TypeAssumptions.set_waitGroup
-  Cache.TypeAssumptions.get_internalCtx
-  Cache.TypeAssumptions.set_internalCtx
-  Cache.TypeAssumptions.get_progressRequestor
-  Cache.TypeAssumptions.set_progressRequestor
-  Cache.TypeAssumptions.get_clock
-  Cache.TypeAssumptions.set_clock
+  Cache.TypeAssumptions.get'prefix
+  Cache.TypeAssumptions.set'prefix
+  Cache.TypeAssumptions.get'cfg
+  Cache.TypeAssumptions.set'cfg
+  Cache.TypeAssumptions.get'watcher
+  Cache.TypeAssumptions.set'watcher
+  Cache.TypeAssumptions.get'kv
+  Cache.TypeAssumptions.set'kv
+  Cache.TypeAssumptions.get'demux
+  Cache.TypeAssumptions.set'demux
+  Cache.TypeAssumptions.get'store
+  Cache.TypeAssumptions.set'store
+  Cache.TypeAssumptions.get'ready
+  Cache.TypeAssumptions.set'ready
+  Cache.TypeAssumptions.get'stop
+  Cache.TypeAssumptions.set'stop
+  Cache.TypeAssumptions.get'waitGroup
+  Cache.TypeAssumptions.set'waitGroup
+  Cache.TypeAssumptions.get'internalCtx
+  Cache.TypeAssumptions.set'internalCtx
+  Cache.TypeAssumptions.get'progressRequestor
+  Cache.TypeAssumptions.set'progressRequestor
+  Cache.TypeAssumptions.get'clock
+  Cache.TypeAssumptions.set'clock
   Cache.TypeAssumptions.method_set
   Cache.TypeAssumptions.ptr_method_set
-  Cache.TypeAssumptions.ptr_Close_unfold
-  Cache.TypeAssumptions.ptr_Get_unfold
-  Cache.TypeAssumptions.ptr_Ready_unfold
-  Cache.TypeAssumptions.ptr_RequestProgress_unfold
-  Cache.TypeAssumptions.ptr_WaitForNextResync_unfold
-  Cache.TypeAssumptions.ptr_WaitForRevision_unfold
-  Cache.TypeAssumptions.ptr_WaitReady_unfold
-  Cache.TypeAssumptions.ptr_Watch_unfold
-  Cache.TypeAssumptions.ptr_applyStorage_unfold
-  Cache.TypeAssumptions.ptr_get_unfold
-  Cache.TypeAssumptions.ptr_getWatch_unfold
-  Cache.TypeAssumptions.ptr_getWatchLoop_unfold
-  Cache.TypeAssumptions.ptr_serverRevision_unfold
-  Cache.TypeAssumptions.ptr_validateGet_unfold
-  Cache.TypeAssumptions.ptr_validateRange_unfold
-  Cache.TypeAssumptions.ptr_validateWatch_unfold
-  Cache.TypeAssumptions.ptr_waitTillRevision_unfold
-  Cache.TypeAssumptions.ptr_watch_unfold
-  Cache.TypeAssumptions.ptr_watchEvents_unfold
+  Cache.TypeAssumptions.ptr_unfold'Close
+  Cache.TypeAssumptions.ptr_unfold'Get
+  Cache.TypeAssumptions.ptr_unfold'Ready
+  Cache.TypeAssumptions.ptr_unfold'RequestProgress
+  Cache.TypeAssumptions.ptr_unfold'WaitForNextResync
+  Cache.TypeAssumptions.ptr_unfold'WaitForRevision
+  Cache.TypeAssumptions.ptr_unfold'WaitReady
+  Cache.TypeAssumptions.ptr_unfold'Watch
+  Cache.TypeAssumptions.ptr_unfold'applyStorage
+  Cache.TypeAssumptions.ptr_unfold'get
+  Cache.TypeAssumptions.ptr_unfold'getWatch
+  Cache.TypeAssumptions.ptr_unfold'getWatchLoop
+  Cache.TypeAssumptions.ptr_unfold'serverRevision
+  Cache.TypeAssumptions.ptr_unfold'validateGet
+  Cache.TypeAssumptions.ptr_unfold'validateRange
+  Cache.TypeAssumptions.ptr_unfold'validateWatch
+  Cache.TypeAssumptions.ptr_unfold'waitTillRevision
+  Cache.TypeAssumptions.ptr_unfold'watch
+  Cache.TypeAssumptions.ptr_unfold'watchEvents
 
 abbrev Timer [GooseExts] : Type := GoInterface
 
@@ -5733,7 +5733,7 @@ noncomputable instance realClock.zero_val [GooseExts] : ZeroVal realClock :=
 @[irreducible] noncomputable def realClock.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   realClock.fieldsUnsealed
 
-noncomputable instance equals_unfold_realClock [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'realClock [GooseExts] [GoGlobalContext] :
     EqualsUnfold realClock.fields realClock.fieldsUnsealed :=
   ⟨by unfold realClock.fields; rfl⟩
 
@@ -5745,16 +5745,16 @@ class realClock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq realClock.ty realClock.underlying
   method_set : go.MethodSetIs realClock.ty [(go!"NewTimer", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Timer.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType realClock.ty) [(go!"NewTimer", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Timer.ty])))]
-  NewTimer_unfold : MethodUnfold realClock.ty go!"NewTimer" realClock.NewTimer.impl
-  ptr_NewTimer_unfold : MethodUnfold (go.GoType.PointerType realClock.ty) go!"NewTimer" (LamV "$r"
+  unfold'NewTimer : MethodUnfold realClock.ty go!"NewTimer" realClock.NewTimer.impl
+  ptr_unfold'NewTimer : MethodUnfold (go.GoType.PointerType realClock.ty) go!"NewTimer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve realClock.ty go!"NewTimer"))) (App (Val (GoInstruction (GoLoad realClock.ty))) (Var "$r"))))
 
 attribute [instance] realClock.TypeAssumptions.type_repr
   realClock.TypeAssumptions.underlying
   realClock.TypeAssumptions.method_set
   realClock.TypeAssumptions.ptr_method_set
-  realClock.TypeAssumptions.NewTimer_unfold
-  realClock.TypeAssumptions.ptr_NewTimer_unfold
+  realClock.TypeAssumptions.unfold'NewTimer
+  realClock.TypeAssumptions.ptr_unfold'NewTimer
 
 structure realTimer [GooseExts] where
   mk ::
@@ -5769,7 +5769,7 @@ noncomputable instance realTimer.zero_val [GooseExts] : ZeroVal realTimer :=
 @[irreducible] noncomputable def realTimer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   realTimer.fieldsUnsealed
 
-noncomputable instance equals_unfold_realTimer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'realTimer [GooseExts] [GoGlobalContext] :
     EqualsUnfold realTimer.fields realTimer.fieldsUnsealed :=
   ⟨by unfold realTimer.fields; rfl⟩
 
@@ -5779,23 +5779,23 @@ noncomputable instance equals_unfold_realTimer [GooseExts] [GoGlobalContext] :
 class realTimer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying realTimer.underlying realTimer
   underlying : go.UnderlyingDirectedEq realTimer.ty realTimer.underlying
-  get_timer : ∀ (x : realTimer), go.IsGoStepPureDetTagged under (StructFieldGet realTimer.underlying go!"timer") #x (Val #(x.timer'))
-  set_timer : ∀ (x : realTimer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet realTimer.underlying go!"timer") (PairV #x #y) (Val #(({ x with timer' := y } : realTimer)))
+  get'timer : ∀ (x : realTimer), go.IsGoStepPureDetTagged under (StructFieldGet realTimer.underlying go!"timer") #x (Val #(x.timer'))
+  set'timer : ∀ (x : realTimer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet realTimer.underlying go!"timer") (PairV #x #y) (Val #(({ x with timer' := y } : realTimer)))
   method_set : go.MethodSetIs realTimer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType realTimer.ty) [(go!"Chan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.bool]))), (go!"Stop", (some (go.signature.Signature [] false [go.bool])))]
-  ptr_Chan_unfold : MethodUnfold (go.GoType.PointerType realTimer.ty) go!"Chan" realTimer.Chan.impl
-  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType realTimer.ty) go!"Reset" realTimer.Reset.impl
-  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType realTimer.ty) go!"Stop" realTimer.Stop.impl
+  ptr_unfold'Chan : MethodUnfold (go.GoType.PointerType realTimer.ty) go!"Chan" realTimer.Chan.impl
+  ptr_unfold'Reset : MethodUnfold (go.GoType.PointerType realTimer.ty) go!"Reset" realTimer.Reset.impl
+  ptr_unfold'Stop : MethodUnfold (go.GoType.PointerType realTimer.ty) go!"Stop" realTimer.Stop.impl
 
 attribute [instance] realTimer.TypeAssumptions.type_repr
   realTimer.TypeAssumptions.underlying
-  realTimer.TypeAssumptions.get_timer
-  realTimer.TypeAssumptions.set_timer
+  realTimer.TypeAssumptions.get'timer
+  realTimer.TypeAssumptions.set'timer
   realTimer.TypeAssumptions.method_set
   realTimer.TypeAssumptions.ptr_method_set
-  realTimer.TypeAssumptions.ptr_Chan_unfold
-  realTimer.TypeAssumptions.ptr_Reset_unfold
-  realTimer.TypeAssumptions.ptr_Stop_unfold
+  realTimer.TypeAssumptions.ptr_unfold'Chan
+  realTimer.TypeAssumptions.ptr_unfold'Reset
+  realTimer.TypeAssumptions.ptr_unfold'Stop
 
 abbrev Option [GooseExts] : Type := GoFunc
 
@@ -5811,104 +5811,104 @@ attribute [instance] Option.TypeAssumptions.underlying
   Option.TypeAssumptions.method_set
   Option.TypeAssumptions.ptr_method_set
 
-abbrev RevisionOf [GooseExts] (T : Type) : Type := GoFunc
+abbrev RevisionOf [GooseExts] (T₀ : Type) : Type := GoFunc
 
-@[reducible] noncomputable def RevisionOf.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.FunctionType (go.signature.Signature [T] false [go.int64]))
+@[reducible] noncomputable def RevisionOf.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.FunctionType (go.signature.Signature [T₀] false [go.int64]))
 
 class RevisionOf.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (RevisionOf.ty T) (RevisionOf.underlying T)
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (RevisionOf.ty T) []
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (RevisionOf.ty T)) []
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (RevisionOf.ty T₀) (RevisionOf.underlying T₀)
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (RevisionOf.ty T₀) []
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (RevisionOf.ty T₀)) []
 
 attribute [instance] RevisionOf.TypeAssumptions.underlying
   RevisionOf.TypeAssumptions.method_set
   RevisionOf.TypeAssumptions.ptr_method_set
 
-structure ringBuffer [GooseExts] (T : Type) where
+structure ringBuffer [GooseExts] (T₀ : Type) where
   mk ::
   buffer' : GoSlice
   head' : w64
   tail' : w64
   size' : w64
-  revisionOf' : (RevisionOf T)
+  revisionOf' : (RevisionOf T₀)
 
-noncomputable instance ringBuffer.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (ringBuffer T) :=
+noncomputable instance ringBuffer.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (ringBuffer T₀) :=
   ⟨ringBuffer.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ringBuffer.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"buffer" (go.GoType.SliceType (entry.ty T))),
+@[reducible] noncomputable def ringBuffer.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"buffer" (go.GoType.SliceType (entry.ty T₀))),
 (go.field_decl.FieldDecl go!"head" go.int),
 (go.field_decl.FieldDecl go!"tail" go.int),
 (go.field_decl.FieldDecl go!"size" go.int),
-(go.field_decl.FieldDecl go!"revisionOf" (RevisionOf.ty T))]
+(go.field_decl.FieldDecl go!"revisionOf" (RevisionOf.ty T₀))]
 
-@[irreducible] noncomputable def ringBuffer.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (ringBuffer.fieldsUnsealed T)
+@[irreducible] noncomputable def ringBuffer.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (ringBuffer.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_ringBuffer [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (ringBuffer.fields T) (ringBuffer.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'ringBuffer [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (ringBuffer.fields T₀) (ringBuffer.fieldsUnsealed T₀) :=
   ⟨by unfold ringBuffer.fields; rfl⟩
 
-@[reducible] noncomputable def ringBuffer.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (ringBuffer.fields T))
+@[reducible] noncomputable def ringBuffer.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (ringBuffer.fields T₀))
 
 class ringBuffer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (ringBuffer.underlying T) (ringBuffer T')
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (ringBuffer.ty T) (ringBuffer.underlying T)
-  get_buffer : ∀ (T : go.GoType) (T' : Type) (x : (ringBuffer T')), go.IsGoStepPureDetTagged under (StructFieldGet (ringBuffer.underlying T) go!"buffer") #x (Val #(x.buffer'))
-  set_buffer : ∀ (T : go.GoType) (T' : Type) (x : (ringBuffer T')) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet (ringBuffer.underlying T) go!"buffer") (PairV #x #y) (Val #(({ x with buffer' := y } : (ringBuffer T'))))
-  get_head : ∀ (T : go.GoType) (T' : Type) (x : (ringBuffer T')), go.IsGoStepPureDetTagged under (StructFieldGet (ringBuffer.underlying T) go!"head") #x (Val #(x.head'))
-  set_head : ∀ (T : go.GoType) (T' : Type) (x : (ringBuffer T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (ringBuffer.underlying T) go!"head") (PairV #x #y) (Val #(({ x with head' := y } : (ringBuffer T'))))
-  get_tail : ∀ (T : go.GoType) (T' : Type) (x : (ringBuffer T')), go.IsGoStepPureDetTagged under (StructFieldGet (ringBuffer.underlying T) go!"tail") #x (Val #(x.tail'))
-  set_tail : ∀ (T : go.GoType) (T' : Type) (x : (ringBuffer T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (ringBuffer.underlying T) go!"tail") (PairV #x #y) (Val #(({ x with tail' := y } : (ringBuffer T'))))
-  get_size : ∀ (T : go.GoType) (T' : Type) (x : (ringBuffer T')), go.IsGoStepPureDetTagged under (StructFieldGet (ringBuffer.underlying T) go!"size") #x (Val #(x.size'))
-  set_size : ∀ (T : go.GoType) (T' : Type) (x : (ringBuffer T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (ringBuffer.underlying T) go!"size") (PairV #x #y) (Val #(({ x with size' := y } : (ringBuffer T'))))
-  get_revisionOf : ∀ (T : go.GoType) (T' : Type) (x : (ringBuffer T')), go.IsGoStepPureDetTagged under (StructFieldGet (ringBuffer.underlying T) go!"revisionOf") #x (Val #(x.revisionOf'))
-  set_revisionOf : ∀ (T : go.GoType) (T' : Type) (x : (ringBuffer T')) (y : (RevisionOf T')), go.IsGoStepPureDetTagged under (StructFieldSet (ringBuffer.underlying T) go!"revisionOf") (PairV #x #y) (Val #(({ x with revisionOf' := y } : (ringBuffer T'))))
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (ringBuffer.ty T) []
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (ringBuffer.ty T)) [(go!"Append", (some (go.signature.Signature [T] false []))), (go!"AscendGreaterOrEqual", (some (go.signature.Signature [go.int64, (IterFunc.ty T)] false []))), (go!"AscendLessThan", (some (go.signature.Signature [go.int64, (IterFunc.ty T)] false []))), (go!"DescendGreaterThan", (some (go.signature.Signature [go.int64, (IterFunc.ty T)] false []))), (go!"DescendLessOrEqual", (some (go.signature.Signature [go.int64, (IterFunc.ty T)] false []))), (go!"PeekLatest", (some (go.signature.Signature [] false [go.int64]))), (go!"PeekOldest", (some (go.signature.Signature [] false [go.int64]))), (go!"RebaseHistory", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.at", (some (go.signature.Signature [go.int] false [(entry.ty T)]))), (go!"go.etcd.io/etcd/cache/v3.findFirstIndexGreaterOrEqual", (some (go.signature.Signature [go.int64] false [go.int]))), (go!"go.etcd.io/etcd/cache/v3.findLastIndexLessOrEqual", (some (go.signature.Signature [go.int64] false [go.int]))), (go!"go.etcd.io/etcd/cache/v3.full", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/cache/v3.moduloIndex", (some (go.signature.Signature [go.int] false [go.int])))]
-  ptr_Append_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"Append" (ringBuffer.Append.impl T)
-  ptr_AscendGreaterOrEqual_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"AscendGreaterOrEqual" (ringBuffer.AscendGreaterOrEqual.impl T)
-  ptr_AscendLessThan_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"AscendLessThan" (ringBuffer.AscendLessThan.impl T)
-  ptr_DescendGreaterThan_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"DescendGreaterThan" (ringBuffer.DescendGreaterThan.impl T)
-  ptr_DescendLessOrEqual_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"DescendLessOrEqual" (ringBuffer.DescendLessOrEqual.impl T)
-  ptr_PeekLatest_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"PeekLatest" (ringBuffer.PeekLatest.impl T)
-  ptr_PeekOldest_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"PeekOldest" (ringBuffer.PeekOldest.impl T)
-  ptr_RebaseHistory_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"RebaseHistory" (ringBuffer.RebaseHistory.impl T)
-  ptr_at_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"at" (ringBuffer.«at».impl T)
-  ptr_findFirstIndexGreaterOrEqual_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"findFirstIndexGreaterOrEqual" (ringBuffer.findFirstIndexGreaterOrEqual.impl T)
-  ptr_findLastIndexLessOrEqual_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"findLastIndexLessOrEqual" (ringBuffer.findLastIndexLessOrEqual.impl T)
-  ptr_full_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"full" (ringBuffer.full.impl T)
-  ptr_moduloIndex_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"moduloIndex" (ringBuffer.moduloIndex.impl T)
+  type_repr : ∀ (T₀ : go.GoType) (T₀' : Type) [ZeroVal T₀'] [TypeRepr T₀ T₀'], go.TypeReprUnderlying (ringBuffer.underlying T₀) (ringBuffer T₀')
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (ringBuffer.ty T₀) (ringBuffer.underlying T₀)
+  get'buffer : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (ringBuffer T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (ringBuffer.underlying T₀) go!"buffer") #x (Val #(x.buffer'))
+  set'buffer : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (ringBuffer T₀')) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet (ringBuffer.underlying T₀) go!"buffer") (PairV #x #y) (Val #(({ x with buffer' := y } : (ringBuffer T₀'))))
+  get'head : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (ringBuffer T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (ringBuffer.underlying T₀) go!"head") #x (Val #(x.head'))
+  set'head : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (ringBuffer T₀')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (ringBuffer.underlying T₀) go!"head") (PairV #x #y) (Val #(({ x with head' := y } : (ringBuffer T₀'))))
+  get'tail : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (ringBuffer T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (ringBuffer.underlying T₀) go!"tail") #x (Val #(x.tail'))
+  set'tail : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (ringBuffer T₀')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (ringBuffer.underlying T₀) go!"tail") (PairV #x #y) (Val #(({ x with tail' := y } : (ringBuffer T₀'))))
+  get'size : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (ringBuffer T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (ringBuffer.underlying T₀) go!"size") #x (Val #(x.size'))
+  set'size : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (ringBuffer T₀')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (ringBuffer.underlying T₀) go!"size") (PairV #x #y) (Val #(({ x with size' := y } : (ringBuffer T₀'))))
+  get'revisionOf : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (ringBuffer T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (ringBuffer.underlying T₀) go!"revisionOf") #x (Val #(x.revisionOf'))
+  set'revisionOf : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (ringBuffer T₀')) (y : (RevisionOf T₀')), go.IsGoStepPureDetTagged under (StructFieldSet (ringBuffer.underlying T₀) go!"revisionOf") (PairV #x #y) (Val #(({ x with revisionOf' := y } : (ringBuffer T₀'))))
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (ringBuffer.ty T₀) []
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (ringBuffer.ty T₀)) [(go!"Append", (some (go.signature.Signature [T₀] false []))), (go!"AscendGreaterOrEqual", (some (go.signature.Signature [go.int64, (IterFunc.ty T₀)] false []))), (go!"AscendLessThan", (some (go.signature.Signature [go.int64, (IterFunc.ty T₀)] false []))), (go!"DescendGreaterThan", (some (go.signature.Signature [go.int64, (IterFunc.ty T₀)] false []))), (go!"DescendLessOrEqual", (some (go.signature.Signature [go.int64, (IterFunc.ty T₀)] false []))), (go!"PeekLatest", (some (go.signature.Signature [] false [go.int64]))), (go!"PeekOldest", (some (go.signature.Signature [] false [go.int64]))), (go!"RebaseHistory", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.at", (some (go.signature.Signature [go.int] false [(entry.ty T₀)]))), (go!"go.etcd.io/etcd/cache/v3.findFirstIndexGreaterOrEqual", (some (go.signature.Signature [go.int64] false [go.int]))), (go!"go.etcd.io/etcd/cache/v3.findLastIndexLessOrEqual", (some (go.signature.Signature [go.int64] false [go.int]))), (go!"go.etcd.io/etcd/cache/v3.full", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/cache/v3.moduloIndex", (some (go.signature.Signature [go.int] false [go.int])))]
+  ptr_unfold'Append : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T₀)) go!"Append" (ringBuffer.Append.impl T₀)
+  ptr_unfold'AscendGreaterOrEqual : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T₀)) go!"AscendGreaterOrEqual" (ringBuffer.AscendGreaterOrEqual.impl T₀)
+  ptr_unfold'AscendLessThan : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T₀)) go!"AscendLessThan" (ringBuffer.AscendLessThan.impl T₀)
+  ptr_unfold'DescendGreaterThan : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T₀)) go!"DescendGreaterThan" (ringBuffer.DescendGreaterThan.impl T₀)
+  ptr_unfold'DescendLessOrEqual : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T₀)) go!"DescendLessOrEqual" (ringBuffer.DescendLessOrEqual.impl T₀)
+  ptr_unfold'PeekLatest : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T₀)) go!"PeekLatest" (ringBuffer.PeekLatest.impl T₀)
+  ptr_unfold'PeekOldest : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T₀)) go!"PeekOldest" (ringBuffer.PeekOldest.impl T₀)
+  ptr_unfold'RebaseHistory : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T₀)) go!"RebaseHistory" (ringBuffer.RebaseHistory.impl T₀)
+  ptr_unfold'at : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T₀)) go!"at" (ringBuffer.at''.impl T₀)
+  ptr_unfold'findFirstIndexGreaterOrEqual : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T₀)) go!"findFirstIndexGreaterOrEqual" (ringBuffer.findFirstIndexGreaterOrEqual.impl T₀)
+  ptr_unfold'findLastIndexLessOrEqual : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T₀)) go!"findLastIndexLessOrEqual" (ringBuffer.findLastIndexLessOrEqual.impl T₀)
+  ptr_unfold'full : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T₀)) go!"full" (ringBuffer.full.impl T₀)
+  ptr_unfold'moduloIndex : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T₀)) go!"moduloIndex" (ringBuffer.moduloIndex.impl T₀)
 
 attribute [instance] ringBuffer.TypeAssumptions.type_repr
   ringBuffer.TypeAssumptions.underlying
-  ringBuffer.TypeAssumptions.get_buffer
-  ringBuffer.TypeAssumptions.set_buffer
-  ringBuffer.TypeAssumptions.get_head
-  ringBuffer.TypeAssumptions.set_head
-  ringBuffer.TypeAssumptions.get_tail
-  ringBuffer.TypeAssumptions.set_tail
-  ringBuffer.TypeAssumptions.get_size
-  ringBuffer.TypeAssumptions.set_size
-  ringBuffer.TypeAssumptions.get_revisionOf
-  ringBuffer.TypeAssumptions.set_revisionOf
+  ringBuffer.TypeAssumptions.get'buffer
+  ringBuffer.TypeAssumptions.set'buffer
+  ringBuffer.TypeAssumptions.get'head
+  ringBuffer.TypeAssumptions.set'head
+  ringBuffer.TypeAssumptions.get'tail
+  ringBuffer.TypeAssumptions.set'tail
+  ringBuffer.TypeAssumptions.get'size
+  ringBuffer.TypeAssumptions.set'size
+  ringBuffer.TypeAssumptions.get'revisionOf
+  ringBuffer.TypeAssumptions.set'revisionOf
   ringBuffer.TypeAssumptions.method_set
   ringBuffer.TypeAssumptions.ptr_method_set
-  ringBuffer.TypeAssumptions.ptr_Append_unfold
-  ringBuffer.TypeAssumptions.ptr_AscendGreaterOrEqual_unfold
-  ringBuffer.TypeAssumptions.ptr_AscendLessThan_unfold
-  ringBuffer.TypeAssumptions.ptr_DescendGreaterThan_unfold
-  ringBuffer.TypeAssumptions.ptr_DescendLessOrEqual_unfold
-  ringBuffer.TypeAssumptions.ptr_PeekLatest_unfold
-  ringBuffer.TypeAssumptions.ptr_PeekOldest_unfold
-  ringBuffer.TypeAssumptions.ptr_RebaseHistory_unfold
-  ringBuffer.TypeAssumptions.ptr_at_unfold
-  ringBuffer.TypeAssumptions.ptr_findFirstIndexGreaterOrEqual_unfold
-  ringBuffer.TypeAssumptions.ptr_findLastIndexLessOrEqual_unfold
-  ringBuffer.TypeAssumptions.ptr_full_unfold
-  ringBuffer.TypeAssumptions.ptr_moduloIndex_unfold
+  ringBuffer.TypeAssumptions.ptr_unfold'Append
+  ringBuffer.TypeAssumptions.ptr_unfold'AscendGreaterOrEqual
+  ringBuffer.TypeAssumptions.ptr_unfold'AscendLessThan
+  ringBuffer.TypeAssumptions.ptr_unfold'DescendGreaterThan
+  ringBuffer.TypeAssumptions.ptr_unfold'DescendLessOrEqual
+  ringBuffer.TypeAssumptions.ptr_unfold'PeekLatest
+  ringBuffer.TypeAssumptions.ptr_unfold'PeekOldest
+  ringBuffer.TypeAssumptions.ptr_unfold'RebaseHistory
+  ringBuffer.TypeAssumptions.ptr_unfold'at
+  ringBuffer.TypeAssumptions.ptr_unfold'findFirstIndexGreaterOrEqual
+  ringBuffer.TypeAssumptions.ptr_unfold'findLastIndexLessOrEqual
+  ringBuffer.TypeAssumptions.ptr_unfold'full
+  ringBuffer.TypeAssumptions.ptr_unfold'moduloIndex
 
 structure demux [GooseExts] where
   mk ::
@@ -5937,7 +5937,7 @@ noncomputable instance demux.zero_val [GooseExts] : ZeroVal demux :=
 @[irreducible] noncomputable def demux.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   demux.fieldsUnsealed
 
-noncomputable instance equals_unfold_demux [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'demux [GooseExts] [GoGlobalContext] :
     EqualsUnfold demux.fields demux.fieldsUnsealed :=
   ⟨by unfold demux.fields; rfl⟩
 
@@ -5947,79 +5947,79 @@ noncomputable instance equals_unfold_demux [GooseExts] [GoGlobalContext] :
 class demux.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying demux.underlying demux
   underlying : go.UnderlyingDirectedEq demux.ty demux.underlying
-  get_mu : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : demux) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : demux)))
-  get_activeWatchers : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"activeWatchers") #x (Val #(x.activeWatchers'))
-  set_activeWatchers : ∀ (x : demux) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"activeWatchers") (PairV #x #y) (Val #(({ x with activeWatchers' := y } : demux)))
-  get_laggingWatchers : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"laggingWatchers") #x (Val #(x.laggingWatchers'))
-  set_laggingWatchers : ∀ (x : demux) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"laggingWatchers") (PairV #x #y) (Val #(({ x with laggingWatchers' := y } : demux)))
-  get_resyncInterval : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"resyncInterval") #x (Val #(x.resyncInterval'))
-  set_resyncInterval : ∀ (x : demux) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"resyncInterval") (PairV #x #y) (Val #(({ x with resyncInterval' := y } : demux)))
-  get_minRev : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"minRev") #x (Val #(x.minRev'))
-  set_minRev : ∀ (x : demux) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"minRev") (PairV #x #y) (Val #(({ x with minRev' := y } : demux)))
-  get_maxRev : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"maxRev") #x (Val #(x.maxRev'))
-  set_maxRev : ∀ (x : demux) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"maxRev") (PairV #x #y) (Val #(({ x with maxRev' := y } : demux)))
-  get_history : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"history") #x (Val #(x.history'))
-  set_history : ∀ (x : demux) (y : (ringBuffer GoSlice)), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"history") (PairV #x #y) (Val #(({ x with history' := y } : demux)))
-  get_resynced : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"resynced") #x (Val #(x.resynced'))
-  set_resynced : ∀ (x : demux) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"resynced") (PairV #x #y) (Val #(({ x with resynced' := y } : demux)))
+  get'mu : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : demux) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : demux)))
+  get'activeWatchers : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"activeWatchers") #x (Val #(x.activeWatchers'))
+  set'activeWatchers : ∀ (x : demux) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"activeWatchers") (PairV #x #y) (Val #(({ x with activeWatchers' := y } : demux)))
+  get'laggingWatchers : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"laggingWatchers") #x (Val #(x.laggingWatchers'))
+  set'laggingWatchers : ∀ (x : demux) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"laggingWatchers") (PairV #x #y) (Val #(({ x with laggingWatchers' := y } : demux)))
+  get'resyncInterval : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"resyncInterval") #x (Val #(x.resyncInterval'))
+  set'resyncInterval : ∀ (x : demux) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"resyncInterval") (PairV #x #y) (Val #(({ x with resyncInterval' := y } : demux)))
+  get'minRev : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"minRev") #x (Val #(x.minRev'))
+  set'minRev : ∀ (x : demux) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"minRev") (PairV #x #y) (Val #(({ x with minRev' := y } : demux)))
+  get'maxRev : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"maxRev") #x (Val #(x.maxRev'))
+  set'maxRev : ∀ (x : demux) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"maxRev") (PairV #x #y) (Val #(({ x with maxRev' := y } : demux)))
+  get'history : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"history") #x (Val #(x.history'))
+  set'history : ∀ (x : demux) (y : (ringBuffer GoSlice)), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"history") (PairV #x #y) (Val #(({ x with history' := y } : demux)))
+  get'resynced : ∀ (x : demux), go.IsGoStepPureDetTagged under (StructFieldGet demux.underlying go!"resynced") #x (Val #(x.resynced'))
+  set'resynced : ∀ (x : demux) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet demux.underlying go!"resynced") (PairV #x #y) (Val #(({ x with resynced' := y } : demux)))
   method_set : go.MethodSetIs demux.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType demux.ty) [(go!"Broadcast", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty] false [go.error]))), (go!"BroadcastProgress", (some (go.signature.Signature [] false []))), (go!"BroadcastProgressTo", (some (go.signature.Signature [(go.GoType.PointerType watcher.ty)] false []))), (go!"Compact", (some (go.signature.Signature [go.int64] false []))), (go!"Init", (some (go.signature.Signature [go.int64] false []))), (go!"LatestRev", (some (go.signature.Signature [] false [go.int64]))), (go!"Purge", (some (go.signature.Signature [] false []))), (go!"Register", (some (go.signature.Signature [(go.GoType.PointerType watcher.ty), go.int64] false []))), (go!"Unregister", (some (go.signature.Signature [(go.GoType.PointerType watcher.ty)] false []))), (go!"WaitForNextResync", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/cache/v3.broadcastEventsLocked", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))] false []))), (go!"go.etcd.io/etcd/cache/v3.broadcastLocked", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty] false []))), (go!"go.etcd.io/etcd/cache/v3.broadcastProgressLocked", (some (go.signature.Signature [go.int64] false []))), (go!"go.etcd.io/etcd/cache/v3.purge", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.resyncLaggingWatchers", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.resyncLoop", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"go.etcd.io/etcd/cache/v3.updateStoreLocked", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty] false [])))]
-  ptr_Broadcast_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"Broadcast" demux.Broadcast.impl
-  ptr_BroadcastProgress_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"BroadcastProgress" demux.BroadcastProgress.impl
-  ptr_BroadcastProgressTo_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"BroadcastProgressTo" demux.BroadcastProgressTo.impl
-  ptr_Compact_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"Compact" demux.Compact.impl
-  ptr_Init_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"Init" demux.Init.impl
-  ptr_LatestRev_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"LatestRev" demux.LatestRev.impl
-  ptr_Purge_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"Purge" demux.Purge.impl
-  ptr_Register_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"Register" demux.Register.impl
-  ptr_Unregister_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"Unregister" demux.Unregister.impl
-  ptr_WaitForNextResync_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"WaitForNextResync" demux.WaitForNextResync.impl
-  ptr_broadcastEventsLocked_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"broadcastEventsLocked" demux.broadcastEventsLocked.impl
-  ptr_broadcastLocked_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"broadcastLocked" demux.broadcastLocked.impl
-  ptr_broadcastProgressLocked_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"broadcastProgressLocked" demux.broadcastProgressLocked.impl
-  ptr_purge_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"purge" demux.purge.impl
-  ptr_resyncLaggingWatchers_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"resyncLaggingWatchers" demux.resyncLaggingWatchers.impl
-  ptr_resyncLoop_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"resyncLoop" demux.resyncLoop.impl
-  ptr_updateStoreLocked_unfold : MethodUnfold (go.GoType.PointerType demux.ty) go!"updateStoreLocked" demux.updateStoreLocked.impl
+  ptr_unfold'Broadcast : MethodUnfold (go.GoType.PointerType demux.ty) go!"Broadcast" demux.Broadcast.impl
+  ptr_unfold'BroadcastProgress : MethodUnfold (go.GoType.PointerType demux.ty) go!"BroadcastProgress" demux.BroadcastProgress.impl
+  ptr_unfold'BroadcastProgressTo : MethodUnfold (go.GoType.PointerType demux.ty) go!"BroadcastProgressTo" demux.BroadcastProgressTo.impl
+  ptr_unfold'Compact : MethodUnfold (go.GoType.PointerType demux.ty) go!"Compact" demux.Compact.impl
+  ptr_unfold'Init : MethodUnfold (go.GoType.PointerType demux.ty) go!"Init" demux.Init.impl
+  ptr_unfold'LatestRev : MethodUnfold (go.GoType.PointerType demux.ty) go!"LatestRev" demux.LatestRev.impl
+  ptr_unfold'Purge : MethodUnfold (go.GoType.PointerType demux.ty) go!"Purge" demux.Purge.impl
+  ptr_unfold'Register : MethodUnfold (go.GoType.PointerType demux.ty) go!"Register" demux.Register.impl
+  ptr_unfold'Unregister : MethodUnfold (go.GoType.PointerType demux.ty) go!"Unregister" demux.Unregister.impl
+  ptr_unfold'WaitForNextResync : MethodUnfold (go.GoType.PointerType demux.ty) go!"WaitForNextResync" demux.WaitForNextResync.impl
+  ptr_unfold'broadcastEventsLocked : MethodUnfold (go.GoType.PointerType demux.ty) go!"broadcastEventsLocked" demux.broadcastEventsLocked.impl
+  ptr_unfold'broadcastLocked : MethodUnfold (go.GoType.PointerType demux.ty) go!"broadcastLocked" demux.broadcastLocked.impl
+  ptr_unfold'broadcastProgressLocked : MethodUnfold (go.GoType.PointerType demux.ty) go!"broadcastProgressLocked" demux.broadcastProgressLocked.impl
+  ptr_unfold'purge : MethodUnfold (go.GoType.PointerType demux.ty) go!"purge" demux.purge.impl
+  ptr_unfold'resyncLaggingWatchers : MethodUnfold (go.GoType.PointerType demux.ty) go!"resyncLaggingWatchers" demux.resyncLaggingWatchers.impl
+  ptr_unfold'resyncLoop : MethodUnfold (go.GoType.PointerType demux.ty) go!"resyncLoop" demux.resyncLoop.impl
+  ptr_unfold'updateStoreLocked : MethodUnfold (go.GoType.PointerType demux.ty) go!"updateStoreLocked" demux.updateStoreLocked.impl
 
 attribute [instance] demux.TypeAssumptions.type_repr
   demux.TypeAssumptions.underlying
-  demux.TypeAssumptions.get_mu
-  demux.TypeAssumptions.set_mu
-  demux.TypeAssumptions.get_activeWatchers
-  demux.TypeAssumptions.set_activeWatchers
-  demux.TypeAssumptions.get_laggingWatchers
-  demux.TypeAssumptions.set_laggingWatchers
-  demux.TypeAssumptions.get_resyncInterval
-  demux.TypeAssumptions.set_resyncInterval
-  demux.TypeAssumptions.get_minRev
-  demux.TypeAssumptions.set_minRev
-  demux.TypeAssumptions.get_maxRev
-  demux.TypeAssumptions.set_maxRev
-  demux.TypeAssumptions.get_history
-  demux.TypeAssumptions.set_history
-  demux.TypeAssumptions.get_resynced
-  demux.TypeAssumptions.set_resynced
+  demux.TypeAssumptions.get'mu
+  demux.TypeAssumptions.set'mu
+  demux.TypeAssumptions.get'activeWatchers
+  demux.TypeAssumptions.set'activeWatchers
+  demux.TypeAssumptions.get'laggingWatchers
+  demux.TypeAssumptions.set'laggingWatchers
+  demux.TypeAssumptions.get'resyncInterval
+  demux.TypeAssumptions.set'resyncInterval
+  demux.TypeAssumptions.get'minRev
+  demux.TypeAssumptions.set'minRev
+  demux.TypeAssumptions.get'maxRev
+  demux.TypeAssumptions.set'maxRev
+  demux.TypeAssumptions.get'history
+  demux.TypeAssumptions.set'history
+  demux.TypeAssumptions.get'resynced
+  demux.TypeAssumptions.set'resynced
   demux.TypeAssumptions.method_set
   demux.TypeAssumptions.ptr_method_set
-  demux.TypeAssumptions.ptr_Broadcast_unfold
-  demux.TypeAssumptions.ptr_BroadcastProgress_unfold
-  demux.TypeAssumptions.ptr_BroadcastProgressTo_unfold
-  demux.TypeAssumptions.ptr_Compact_unfold
-  demux.TypeAssumptions.ptr_Init_unfold
-  demux.TypeAssumptions.ptr_LatestRev_unfold
-  demux.TypeAssumptions.ptr_Purge_unfold
-  demux.TypeAssumptions.ptr_Register_unfold
-  demux.TypeAssumptions.ptr_Unregister_unfold
-  demux.TypeAssumptions.ptr_WaitForNextResync_unfold
-  demux.TypeAssumptions.ptr_broadcastEventsLocked_unfold
-  demux.TypeAssumptions.ptr_broadcastLocked_unfold
-  demux.TypeAssumptions.ptr_broadcastProgressLocked_unfold
-  demux.TypeAssumptions.ptr_purge_unfold
-  demux.TypeAssumptions.ptr_resyncLaggingWatchers_unfold
-  demux.TypeAssumptions.ptr_resyncLoop_unfold
-  demux.TypeAssumptions.ptr_updateStoreLocked_unfold
+  demux.TypeAssumptions.ptr_unfold'Broadcast
+  demux.TypeAssumptions.ptr_unfold'BroadcastProgress
+  demux.TypeAssumptions.ptr_unfold'BroadcastProgressTo
+  demux.TypeAssumptions.ptr_unfold'Compact
+  demux.TypeAssumptions.ptr_unfold'Init
+  demux.TypeAssumptions.ptr_unfold'LatestRev
+  demux.TypeAssumptions.ptr_unfold'Purge
+  demux.TypeAssumptions.ptr_unfold'Register
+  demux.TypeAssumptions.ptr_unfold'Unregister
+  demux.TypeAssumptions.ptr_unfold'WaitForNextResync
+  demux.TypeAssumptions.ptr_unfold'broadcastEventsLocked
+  demux.TypeAssumptions.ptr_unfold'broadcastLocked
+  demux.TypeAssumptions.ptr_unfold'broadcastProgressLocked
+  demux.TypeAssumptions.ptr_unfold'purge
+  demux.TypeAssumptions.ptr_unfold'resyncLaggingWatchers
+  demux.TypeAssumptions.ptr_unfold'resyncLoop
+  demux.TypeAssumptions.ptr_unfold'updateStoreLocked
 
 structure notifier [GooseExts] where
   mk ::
@@ -6036,7 +6036,7 @@ noncomputable instance notifier.zero_val [GooseExts] : ZeroVal notifier :=
 @[irreducible] noncomputable def notifier.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   notifier.fieldsUnsealed
 
-noncomputable instance equals_unfold_notifier [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'notifier [GooseExts] [GoGlobalContext] :
     EqualsUnfold notifier.fields notifier.fieldsUnsealed :=
   ⟨by unfold notifier.fields; rfl⟩
 
@@ -6046,25 +6046,25 @@ noncomputable instance equals_unfold_notifier [GooseExts] [GoGlobalContext] :
 class notifier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying notifier.underlying notifier
   underlying : go.UnderlyingDirectedEq notifier.ty notifier.underlying
-  get_mu : ∀ (x : notifier), go.IsGoStepPureDetTagged under (StructFieldGet notifier.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : notifier) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet notifier.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : notifier)))
-  get_ch : ∀ (x : notifier), go.IsGoStepPureDetTagged under (StructFieldGet notifier.underlying go!"ch") #x (Val #(x.ch'))
-  set_ch : ∀ (x : notifier) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet notifier.underlying go!"ch") (PairV #x #y) (Val #(({ x with ch' := y } : notifier)))
+  get'mu : ∀ (x : notifier), go.IsGoStepPureDetTagged under (StructFieldGet notifier.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : notifier) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet notifier.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : notifier)))
+  get'ch : ∀ (x : notifier), go.IsGoStepPureDetTagged under (StructFieldGet notifier.underlying go!"ch") #x (Val #(x.ch'))
+  set'ch : ∀ (x : notifier) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet notifier.underlying go!"ch") (PairV #x #y) (Val #(({ x with ch' := y } : notifier)))
   method_set : go.MethodSetIs notifier.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType notifier.ty) [(go!"go.etcd.io/etcd/cache/v3.notify", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])))]
-  ptr_notify_unfold : MethodUnfold (go.GoType.PointerType notifier.ty) go!"notify" notifier.notify.impl
-  ptr_wait_unfold : MethodUnfold (go.GoType.PointerType notifier.ty) go!"wait" notifier.wait.impl
+  ptr_unfold'notify : MethodUnfold (go.GoType.PointerType notifier.ty) go!"notify" notifier.notify.impl
+  ptr_unfold'wait : MethodUnfold (go.GoType.PointerType notifier.ty) go!"wait" notifier.wait.impl
 
 attribute [instance] notifier.TypeAssumptions.type_repr
   notifier.TypeAssumptions.underlying
-  notifier.TypeAssumptions.get_mu
-  notifier.TypeAssumptions.set_mu
-  notifier.TypeAssumptions.get_ch
-  notifier.TypeAssumptions.set_ch
+  notifier.TypeAssumptions.get'mu
+  notifier.TypeAssumptions.set'mu
+  notifier.TypeAssumptions.get'ch
+  notifier.TypeAssumptions.set'ch
   notifier.TypeAssumptions.method_set
   notifier.TypeAssumptions.ptr_method_set
-  notifier.TypeAssumptions.ptr_notify_unfold
-  notifier.TypeAssumptions.ptr_wait_unfold
+  notifier.TypeAssumptions.ptr_unfold'notify
+  notifier.TypeAssumptions.ptr_unfold'wait
 
 abbrev Prefix [GooseExts] : Type := GoString
 
@@ -6075,15 +6075,15 @@ class Prefix.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   underlying : go.UnderlyingDirectedEq Prefix.ty Prefix.underlying
   method_set : go.MethodSetIs Prefix.ty [(go!"Match", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Prefix.ty) [(go!"Match", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
-  Match_unfold : MethodUnfold Prefix.ty go!"Match" Prefix.Match.impl
-  ptr_Match_unfold : MethodUnfold (go.GoType.PointerType Prefix.ty) go!"Match" (LamV "$r"
+  unfold'Match : MethodUnfold Prefix.ty go!"Match" Prefix.Match.impl
+  ptr_unfold'Match : MethodUnfold (go.GoType.PointerType Prefix.ty) go!"Match" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Prefix.ty go!"Match"))) (App (Val (GoInstruction (GoLoad Prefix.ty))) (Var "$r"))))
 
 attribute [instance] Prefix.TypeAssumptions.underlying
   Prefix.TypeAssumptions.method_set
   Prefix.TypeAssumptions.ptr_method_set
-  Prefix.TypeAssumptions.Match_unfold
-  Prefix.TypeAssumptions.ptr_Match_unfold
+  Prefix.TypeAssumptions.unfold'Match
+  Prefix.TypeAssumptions.ptr_unfold'Match
 
 abbrev progressNotifier [GooseExts] : Type := GoInterface
 
@@ -6124,7 +6124,7 @@ noncomputable instance conditionalProgressRequestor.zero_val [GooseExts] : ZeroV
 @[irreducible] noncomputable def conditionalProgressRequestor.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   conditionalProgressRequestor.fieldsUnsealed
 
-noncomputable instance equals_unfold_conditionalProgressRequestor [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'conditionalProgressRequestor [GooseExts] [GoGlobalContext] :
     EqualsUnfold conditionalProgressRequestor.fields conditionalProgressRequestor.fieldsUnsealed :=
   ⟨by unfold conditionalProgressRequestor.fields; rfl⟩
 
@@ -6134,47 +6134,47 @@ noncomputable instance equals_unfold_conditionalProgressRequestor [GooseExts] [G
 class conditionalProgressRequestor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying conditionalProgressRequestor.underlying conditionalProgressRequestor
   underlying : go.UnderlyingDirectedEq conditionalProgressRequestor.ty conditionalProgressRequestor.underlying
-  get_mux : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"mux") #x (Val #(x.mux'))
-  set_mux : ∀ (x : conditionalProgressRequestor) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"mux") (PairV #x #y) (Val #(({ x with mux' := y } : conditionalProgressRequestor)))
-  get_cond : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"cond") #x (Val #(x.cond'))
-  set_cond : ∀ (x : conditionalProgressRequestor) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"cond") (PairV #x #y) (Val #(({ x with cond' := y } : conditionalProgressRequestor)))
-  get_waiting : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"waiting") #x (Val #(x.waiting'))
-  set_waiting : ∀ (x : conditionalProgressRequestor) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"waiting") (PairV #x #y) (Val #(({ x with waiting' := y } : conditionalProgressRequestor)))
-  get_stopped : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"stopped") #x (Val #(x.stopped'))
-  set_stopped : ∀ (x : conditionalProgressRequestor) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"stopped") (PairV #x #y) (Val #(({ x with stopped' := y } : conditionalProgressRequestor)))
-  get_notifier : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"notifier") #x (Val #(x.notifier'))
-  set_notifier : ∀ (x : conditionalProgressRequestor) (y : progressNotifier), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"notifier") (PairV #x #y) (Val #(({ x with notifier' := y } : conditionalProgressRequestor)))
-  get_requestInterval : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"requestInterval") #x (Val #(x.requestInterval'))
-  set_requestInterval : ∀ (x : conditionalProgressRequestor) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"requestInterval") (PairV #x #y) (Val #(({ x with requestInterval' := y } : conditionalProgressRequestor)))
-  get_clock : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"clock") #x (Val #(x.clock'))
-  set_clock : ∀ (x : conditionalProgressRequestor) (y : Clock), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : conditionalProgressRequestor)))
+  get'mux : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"mux") #x (Val #(x.mux'))
+  set'mux : ∀ (x : conditionalProgressRequestor) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"mux") (PairV #x #y) (Val #(({ x with mux' := y } : conditionalProgressRequestor)))
+  get'cond : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"cond") #x (Val #(x.cond'))
+  set'cond : ∀ (x : conditionalProgressRequestor) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"cond") (PairV #x #y) (Val #(({ x with cond' := y } : conditionalProgressRequestor)))
+  get'waiting : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"waiting") #x (Val #(x.waiting'))
+  set'waiting : ∀ (x : conditionalProgressRequestor) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"waiting") (PairV #x #y) (Val #(({ x with waiting' := y } : conditionalProgressRequestor)))
+  get'stopped : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"stopped") #x (Val #(x.stopped'))
+  set'stopped : ∀ (x : conditionalProgressRequestor) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"stopped") (PairV #x #y) (Val #(({ x with stopped' := y } : conditionalProgressRequestor)))
+  get'notifier : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"notifier") #x (Val #(x.notifier'))
+  set'notifier : ∀ (x : conditionalProgressRequestor) (y : progressNotifier), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"notifier") (PairV #x #y) (Val #(({ x with notifier' := y } : conditionalProgressRequestor)))
+  get'requestInterval : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"requestInterval") #x (Val #(x.requestInterval'))
+  set'requestInterval : ∀ (x : conditionalProgressRequestor) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"requestInterval") (PairV #x #y) (Val #(({ x with requestInterval' := y } : conditionalProgressRequestor)))
+  get'clock : ∀ (x : conditionalProgressRequestor), go.IsGoStepPureDetTagged under (StructFieldGet conditionalProgressRequestor.underlying go!"clock") #x (Val #(x.clock'))
+  set'clock : ∀ (x : conditionalProgressRequestor) (y : Clock), go.IsGoStepPureDetTagged under (StructFieldSet conditionalProgressRequestor.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : conditionalProgressRequestor)))
   method_set : go.MethodSetIs conditionalProgressRequestor.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType conditionalProgressRequestor.ty) [(go!"go.etcd.io/etcd/cache/v3.add", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.remove", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.run", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [])))]
-  ptr_add_unfold : MethodUnfold (go.GoType.PointerType conditionalProgressRequestor.ty) go!"add" conditionalProgressRequestor.add.impl
-  ptr_remove_unfold : MethodUnfold (go.GoType.PointerType conditionalProgressRequestor.ty) go!"remove" conditionalProgressRequestor.remove.impl
-  ptr_run_unfold : MethodUnfold (go.GoType.PointerType conditionalProgressRequestor.ty) go!"run" conditionalProgressRequestor.run.impl
+  ptr_unfold'add : MethodUnfold (go.GoType.PointerType conditionalProgressRequestor.ty) go!"add" conditionalProgressRequestor.add.impl
+  ptr_unfold'remove : MethodUnfold (go.GoType.PointerType conditionalProgressRequestor.ty) go!"remove" conditionalProgressRequestor.remove.impl
+  ptr_unfold'run : MethodUnfold (go.GoType.PointerType conditionalProgressRequestor.ty) go!"run" conditionalProgressRequestor.run.impl
 
 attribute [instance] conditionalProgressRequestor.TypeAssumptions.type_repr
   conditionalProgressRequestor.TypeAssumptions.underlying
-  conditionalProgressRequestor.TypeAssumptions.get_mux
-  conditionalProgressRequestor.TypeAssumptions.set_mux
-  conditionalProgressRequestor.TypeAssumptions.get_cond
-  conditionalProgressRequestor.TypeAssumptions.set_cond
-  conditionalProgressRequestor.TypeAssumptions.get_waiting
-  conditionalProgressRequestor.TypeAssumptions.set_waiting
-  conditionalProgressRequestor.TypeAssumptions.get_stopped
-  conditionalProgressRequestor.TypeAssumptions.set_stopped
-  conditionalProgressRequestor.TypeAssumptions.get_notifier
-  conditionalProgressRequestor.TypeAssumptions.set_notifier
-  conditionalProgressRequestor.TypeAssumptions.get_requestInterval
-  conditionalProgressRequestor.TypeAssumptions.set_requestInterval
-  conditionalProgressRequestor.TypeAssumptions.get_clock
-  conditionalProgressRequestor.TypeAssumptions.set_clock
+  conditionalProgressRequestor.TypeAssumptions.get'mux
+  conditionalProgressRequestor.TypeAssumptions.set'mux
+  conditionalProgressRequestor.TypeAssumptions.get'cond
+  conditionalProgressRequestor.TypeAssumptions.set'cond
+  conditionalProgressRequestor.TypeAssumptions.get'waiting
+  conditionalProgressRequestor.TypeAssumptions.set'waiting
+  conditionalProgressRequestor.TypeAssumptions.get'stopped
+  conditionalProgressRequestor.TypeAssumptions.set'stopped
+  conditionalProgressRequestor.TypeAssumptions.get'notifier
+  conditionalProgressRequestor.TypeAssumptions.set'notifier
+  conditionalProgressRequestor.TypeAssumptions.get'requestInterval
+  conditionalProgressRequestor.TypeAssumptions.set'requestInterval
+  conditionalProgressRequestor.TypeAssumptions.get'clock
+  conditionalProgressRequestor.TypeAssumptions.set'clock
   conditionalProgressRequestor.TypeAssumptions.method_set
   conditionalProgressRequestor.TypeAssumptions.ptr_method_set
-  conditionalProgressRequestor.TypeAssumptions.ptr_add_unfold
-  conditionalProgressRequestor.TypeAssumptions.ptr_remove_unfold
-  conditionalProgressRequestor.TypeAssumptions.ptr_run_unfold
+  conditionalProgressRequestor.TypeAssumptions.ptr_unfold'add
+  conditionalProgressRequestor.TypeAssumptions.ptr_unfold'remove
+  conditionalProgressRequestor.TypeAssumptions.ptr_unfold'run
 
 structure ready [GooseExts] where
   mk ::
@@ -6193,7 +6193,7 @@ noncomputable instance ready.zero_val [GooseExts] : ZeroVal ready :=
 @[irreducible] noncomputable def ready.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ready.fieldsUnsealed
 
-noncomputable instance equals_unfold_ready [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ready [GooseExts] [GoGlobalContext] :
     EqualsUnfold ready.fields ready.fieldsUnsealed :=
   ⟨by unfold ready.fields; rfl⟩
 
@@ -6203,88 +6203,88 @@ noncomputable instance equals_unfold_ready [GooseExts] [GoGlobalContext] :
 class ready.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ready.underlying ready
   underlying : go.UnderlyingDirectedEq ready.ty ready.underlying
-  get_mu : ∀ (x : ready), go.IsGoStepPureDetTagged under (StructFieldGet ready.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : ready) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ready.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ready)))
-  get_isReady : ∀ (x : ready), go.IsGoStepPureDetTagged under (StructFieldGet ready.underlying go!"isReady") #x (Val #(x.isReady'))
-  set_isReady : ∀ (x : ready) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ready.underlying go!"isReady") (PairV #x #y) (Val #(({ x with isReady' := y } : ready)))
-  get_stateCh : ∀ (x : ready), go.IsGoStepPureDetTagged under (StructFieldGet ready.underlying go!"stateCh") #x (Val #(x.stateCh'))
-  set_stateCh : ∀ (x : ready) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet ready.underlying go!"stateCh") (PairV #x #y) (Val #(({ x with stateCh' := y } : ready)))
+  get'mu : ∀ (x : ready), go.IsGoStepPureDetTagged under (StructFieldGet ready.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : ready) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ready.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : ready)))
+  get'isReady : ∀ (x : ready), go.IsGoStepPureDetTagged under (StructFieldGet ready.underlying go!"isReady") #x (Val #(x.isReady'))
+  set'isReady : ∀ (x : ready) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ready.underlying go!"isReady") (PairV #x #y) (Val #(({ x with isReady' := y } : ready)))
+  get'stateCh : ∀ (x : ready), go.IsGoStepPureDetTagged under (StructFieldGet ready.underlying go!"stateCh") #x (Val #(x.stateCh'))
+  set'stateCh : ∀ (x : ready) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet ready.underlying go!"stateCh") (PairV #x #y) (Val #(({ x with stateCh' := y } : ready)))
   method_set : go.MethodSetIs ready.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ready.ty) [(go!"Ready", (some (go.signature.Signature [] false [go.bool]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Set", (some (go.signature.Signature [] false []))), (go!"WaitNotReady", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"WaitReady", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/cache/v3.waitForState", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))] false [go.error])))]
-  ptr_Ready_unfold : MethodUnfold (go.GoType.PointerType ready.ty) go!"Ready" ready.Ready.impl
-  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType ready.ty) go!"Reset" ready.Reset.impl
-  ptr_Set_unfold : MethodUnfold (go.GoType.PointerType ready.ty) go!"Set" ready.Set.impl
-  ptr_WaitNotReady_unfold : MethodUnfold (go.GoType.PointerType ready.ty) go!"WaitNotReady" ready.WaitNotReady.impl
-  ptr_WaitReady_unfold : MethodUnfold (go.GoType.PointerType ready.ty) go!"WaitReady" ready.WaitReady.impl
-  ptr_waitForState_unfold : MethodUnfold (go.GoType.PointerType ready.ty) go!"waitForState" ready.waitForState.impl
+  ptr_unfold'Ready : MethodUnfold (go.GoType.PointerType ready.ty) go!"Ready" ready.Ready.impl
+  ptr_unfold'Reset : MethodUnfold (go.GoType.PointerType ready.ty) go!"Reset" ready.Reset.impl
+  ptr_unfold'Set : MethodUnfold (go.GoType.PointerType ready.ty) go!"Set" ready.Set''.impl
+  ptr_unfold'WaitNotReady : MethodUnfold (go.GoType.PointerType ready.ty) go!"WaitNotReady" ready.WaitNotReady.impl
+  ptr_unfold'WaitReady : MethodUnfold (go.GoType.PointerType ready.ty) go!"WaitReady" ready.WaitReady.impl
+  ptr_unfold'waitForState : MethodUnfold (go.GoType.PointerType ready.ty) go!"waitForState" ready.waitForState.impl
 
 attribute [instance] ready.TypeAssumptions.type_repr
   ready.TypeAssumptions.underlying
-  ready.TypeAssumptions.get_mu
-  ready.TypeAssumptions.set_mu
-  ready.TypeAssumptions.get_isReady
-  ready.TypeAssumptions.set_isReady
-  ready.TypeAssumptions.get_stateCh
-  ready.TypeAssumptions.set_stateCh
+  ready.TypeAssumptions.get'mu
+  ready.TypeAssumptions.set'mu
+  ready.TypeAssumptions.get'isReady
+  ready.TypeAssumptions.set'isReady
+  ready.TypeAssumptions.get'stateCh
+  ready.TypeAssumptions.set'stateCh
   ready.TypeAssumptions.method_set
   ready.TypeAssumptions.ptr_method_set
-  ready.TypeAssumptions.ptr_Ready_unfold
-  ready.TypeAssumptions.ptr_Reset_unfold
-  ready.TypeAssumptions.ptr_Set_unfold
-  ready.TypeAssumptions.ptr_WaitNotReady_unfold
-  ready.TypeAssumptions.ptr_WaitReady_unfold
-  ready.TypeAssumptions.ptr_waitForState_unfold
+  ready.TypeAssumptions.ptr_unfold'Ready
+  ready.TypeAssumptions.ptr_unfold'Reset
+  ready.TypeAssumptions.ptr_unfold'Set
+  ready.TypeAssumptions.ptr_unfold'WaitNotReady
+  ready.TypeAssumptions.ptr_unfold'WaitReady
+  ready.TypeAssumptions.ptr_unfold'waitForState
 
-structure entry [GooseExts] (T : Type) where
+structure entry [GooseExts] (T₀ : Type) where
   mk ::
   revision' : w64
-  item' : T
+  item' : T₀
 
-noncomputable instance entry.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (entry T) :=
+noncomputable instance entry.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (entry T₀) :=
   ⟨entry.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def entry.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def entry.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"revision" go.int64),
-(go.field_decl.FieldDecl go!"item" T)]
+(go.field_decl.FieldDecl go!"item" T₀)]
 
-@[irreducible] noncomputable def entry.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (entry.fieldsUnsealed T)
+@[irreducible] noncomputable def entry.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (entry.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_entry [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (entry.fields T) (entry.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'entry [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (entry.fields T₀) (entry.fieldsUnsealed T₀) :=
   ⟨by unfold entry.fields; rfl⟩
 
-@[reducible] noncomputable def entry.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (entry.fields T))
+@[reducible] noncomputable def entry.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (entry.fields T₀))
 
 class entry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (entry.underlying T) (entry T')
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (entry.ty T) (entry.underlying T)
-  get_revision : ∀ (T : go.GoType) (T' : Type) (x : (entry T')), go.IsGoStepPureDetTagged under (StructFieldGet (entry.underlying T) go!"revision") #x (Val #(x.revision'))
-  set_revision : ∀ (T : go.GoType) (T' : Type) (x : (entry T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (entry.underlying T) go!"revision") (PairV #x #y) (Val #(({ x with revision' := y } : (entry T'))))
-  get_item : ∀ (T : go.GoType) (T' : Type) (x : (entry T')), go.IsGoStepPureDetTagged under (StructFieldGet (entry.underlying T) go!"item") #x (Val #(x.item'))
-  set_item : ∀ (T : go.GoType) (T' : Type) (x : (entry T')) (y : T'), go.IsGoStepPureDetTagged under (StructFieldSet (entry.underlying T) go!"item") (PairV #x #y) (Val #(({ x with item' := y } : (entry T'))))
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (entry.ty T) []
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (entry.ty T)) []
+  type_repr : ∀ (T₀ : go.GoType) (T₀' : Type) [ZeroVal T₀'] [TypeRepr T₀ T₀'], go.TypeReprUnderlying (entry.underlying T₀) (entry T₀')
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (entry.ty T₀) (entry.underlying T₀)
+  get'revision : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (entry T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (entry.underlying T₀) go!"revision") #x (Val #(x.revision'))
+  set'revision : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (entry T₀')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (entry.underlying T₀) go!"revision") (PairV #x #y) (Val #(({ x with revision' := y } : (entry T₀'))))
+  get'item : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (entry T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (entry.underlying T₀) go!"item") #x (Val #(x.item'))
+  set'item : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (entry T₀')) (y : T₀'), go.IsGoStepPureDetTagged under (StructFieldSet (entry.underlying T₀) go!"item") (PairV #x #y) (Val #(({ x with item' := y } : (entry T₀'))))
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (entry.ty T₀) []
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (entry.ty T₀)) []
 
 attribute [instance] entry.TypeAssumptions.type_repr
   entry.TypeAssumptions.underlying
-  entry.TypeAssumptions.get_revision
-  entry.TypeAssumptions.set_revision
-  entry.TypeAssumptions.get_item
-  entry.TypeAssumptions.set_item
+  entry.TypeAssumptions.get'revision
+  entry.TypeAssumptions.set'revision
+  entry.TypeAssumptions.get'item
+  entry.TypeAssumptions.set'item
   entry.TypeAssumptions.method_set
   entry.TypeAssumptions.ptr_method_set
 
-abbrev IterFunc [GooseExts] (T : Type) : Type := GoFunc
+abbrev IterFunc [GooseExts] (T₀ : Type) : Type := GoFunc
 
-@[reducible] noncomputable def IterFunc.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.FunctionType (go.signature.Signature [go.int64, T] false [go.bool]))
+@[reducible] noncomputable def IterFunc.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.FunctionType (go.signature.Signature [go.int64, T₀] false [go.bool]))
 
 class IterFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (IterFunc.ty T) (IterFunc.underlying T)
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (IterFunc.ty T) []
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (IterFunc.ty T)) []
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (IterFunc.ty T₀) (IterFunc.underlying T₀)
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (IterFunc.ty T₀) []
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (IterFunc.ty T₀)) []
 
 attribute [instance] IterFunc.TypeAssumptions.underlying
   IterFunc.TypeAssumptions.method_set
@@ -6305,7 +6305,7 @@ noncomputable instance snapshot.zero_val [GooseExts] : ZeroVal snapshot :=
 @[irreducible] noncomputable def snapshot.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   snapshot.fieldsUnsealed
 
-noncomputable instance equals_unfold_snapshot [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'snapshot [GooseExts] [GoGlobalContext] :
     EqualsUnfold snapshot.fields snapshot.fieldsUnsealed :=
   ⟨by unfold snapshot.fields; rfl⟩
 
@@ -6315,23 +6315,23 @@ noncomputable instance equals_unfold_snapshot [GooseExts] [GoGlobalContext] :
 class snapshot.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying snapshot.underlying snapshot
   underlying : go.UnderlyingDirectedEq snapshot.ty snapshot.underlying
-  get_rev : ∀ (x : snapshot), go.IsGoStepPureDetTagged under (StructFieldGet snapshot.underlying go!"rev") #x (Val #(x.rev'))
-  set_rev : ∀ (x : snapshot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet snapshot.underlying go!"rev") (PairV #x #y) (Val #(({ x with rev' := y } : snapshot)))
-  get_tree : ∀ (x : snapshot), go.IsGoStepPureDetTagged under (StructFieldGet snapshot.underlying go!"tree") #x (Val #(x.tree'))
-  set_tree : ∀ (x : snapshot) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet snapshot.underlying go!"tree") (PairV #x #y) (Val #(({ x with tree' := y } : snapshot)))
+  get'rev : ∀ (x : snapshot), go.IsGoStepPureDetTagged under (StructFieldGet snapshot.underlying go!"rev") #x (Val #(x.rev'))
+  set'rev : ∀ (x : snapshot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet snapshot.underlying go!"rev") (PairV #x #y) (Val #(({ x with rev' := y } : snapshot)))
+  get'tree : ∀ (x : snapshot), go.IsGoStepPureDetTagged under (StructFieldGet snapshot.underlying go!"tree") #x (Val #(x.tree'))
+  set'tree : ∀ (x : snapshot) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet snapshot.underlying go!"tree") (PairV #x #y) (Val #(({ x with tree' := y } : snapshot)))
   method_set : go.MethodSetIs snapshot.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType snapshot.ty) [(go!"Range", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))])))]
-  ptr_Range_unfold : MethodUnfold (go.GoType.PointerType snapshot.ty) go!"Range" snapshot.Range.impl
+  ptr_unfold'Range : MethodUnfold (go.GoType.PointerType snapshot.ty) go!"Range" snapshot.Range.impl
 
 attribute [instance] snapshot.TypeAssumptions.type_repr
   snapshot.TypeAssumptions.underlying
-  snapshot.TypeAssumptions.get_rev
-  snapshot.TypeAssumptions.set_rev
-  snapshot.TypeAssumptions.get_tree
-  snapshot.TypeAssumptions.set_tree
+  snapshot.TypeAssumptions.get'rev
+  snapshot.TypeAssumptions.set'rev
+  snapshot.TypeAssumptions.get'tree
+  snapshot.TypeAssumptions.set'tree
   snapshot.TypeAssumptions.method_set
   snapshot.TypeAssumptions.ptr_method_set
-  snapshot.TypeAssumptions.ptr_Range_unfold
+  snapshot.TypeAssumptions.ptr_unfold'Range
 
 structure store [GooseExts] where
   mk ::
@@ -6354,7 +6354,7 @@ noncomputable instance store.zero_val [GooseExts] : ZeroVal store :=
 @[irreducible] noncomputable def store.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   store.fieldsUnsealed
 
-noncomputable instance equals_unfold_store [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'store [GooseExts] [GoGlobalContext] :
     EqualsUnfold store.fields store.fieldsUnsealed :=
   ⟨by unfold store.fields; rfl⟩
 
@@ -6364,47 +6364,47 @@ noncomputable instance equals_unfold_store [GooseExts] [GoGlobalContext] :
 class store.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying store.underlying store
   underlying : go.UnderlyingDirectedEq store.ty store.underlying
-  get_mu : ∀ (x : store), go.IsGoStepPureDetTagged under (StructFieldGet store.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : store) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet store.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : store)))
-  get_revCond : ∀ (x : store), go.IsGoStepPureDetTagged under (StructFieldGet store.underlying go!"revCond") #x (Val #(x.revCond'))
-  set_revCond : ∀ (x : store) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet store.underlying go!"revCond") (PairV #x #y) (Val #(({ x with revCond' := y } : store)))
-  get_degree : ∀ (x : store), go.IsGoStepPureDetTagged under (StructFieldGet store.underlying go!"degree") #x (Val #(x.degree'))
-  set_degree : ∀ (x : store) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet store.underlying go!"degree") (PairV #x #y) (Val #(({ x with degree' := y } : store)))
-  get_latest : ∀ (x : store), go.IsGoStepPureDetTagged under (StructFieldGet store.underlying go!"latest") #x (Val #(x.latest'))
-  set_latest : ∀ (x : store) (y : snapshot), go.IsGoStepPureDetTagged under (StructFieldSet store.underlying go!"latest") (PairV #x #y) (Val #(({ x with latest' := y } : store)))
-  get_history : ∀ (x : store), go.IsGoStepPureDetTagged under (StructFieldGet store.underlying go!"history") #x (Val #(x.history'))
-  set_history : ∀ (x : store) (y : (ringBuffer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet store.underlying go!"history") (PairV #x #y) (Val #(({ x with history' := y } : store)))
+  get'mu : ∀ (x : store), go.IsGoStepPureDetTagged under (StructFieldGet store.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : store) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet store.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : store)))
+  get'revCond : ∀ (x : store), go.IsGoStepPureDetTagged under (StructFieldGet store.underlying go!"revCond") #x (Val #(x.revCond'))
+  set'revCond : ∀ (x : store) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet store.underlying go!"revCond") (PairV #x #y) (Val #(({ x with revCond' := y } : store)))
+  get'degree : ∀ (x : store), go.IsGoStepPureDetTagged under (StructFieldGet store.underlying go!"degree") #x (Val #(x.degree'))
+  set'degree : ∀ (x : store) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet store.underlying go!"degree") (PairV #x #y) (Val #(({ x with degree' := y } : store)))
+  get'latest : ∀ (x : store), go.IsGoStepPureDetTagged under (StructFieldGet store.underlying go!"latest") #x (Val #(x.latest'))
+  set'latest : ∀ (x : store) (y : snapshot), go.IsGoStepPureDetTagged under (StructFieldSet store.underlying go!"latest") (PairV #x #y) (Val #(({ x with latest' := y } : store)))
+  get'history : ∀ (x : store), go.IsGoStepPureDetTagged under (StructFieldGet store.underlying go!"history") #x (Val #(x.history'))
+  set'history : ∀ (x : store) (y : (ringBuffer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet store.underlying go!"history") (PairV #x #y) (Val #(({ x with history' := y } : store)))
   method_set : go.MethodSetIs store.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType store.ty) [(go!"Apply", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)), go.int64, go.error]))), (go!"LatestRev", (some (go.signature.Signature [] false [go.int64]))), (go!"Restore", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)), go.int64] false []))), (go!"go.etcd.io/etcd/cache/v3.applyEventsLocked", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))] false [go.error]))), (go!"go.etcd.io/etcd/cache/v3.applyProgressNotifyLocked", (some (go.signature.Signature [go.int64] false []))), (go!"go.etcd.io/etcd/cache/v3.getSnapshot", (some (go.signature.Signature [go.int64] false [(go.GoType.PointerType snapshot.ty), go.int64, go.error])))]
-  ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"Apply" store.Apply.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"Get" store.Get.impl
-  ptr_LatestRev_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"LatestRev" store.LatestRev.impl
-  ptr_Restore_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"Restore" store.Restore.impl
-  ptr_applyEventsLocked_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"applyEventsLocked" store.applyEventsLocked.impl
-  ptr_applyProgressNotifyLocked_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"applyProgressNotifyLocked" store.applyProgressNotifyLocked.impl
-  ptr_getSnapshot_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"getSnapshot" store.getSnapshot.impl
+  ptr_unfold'Apply : MethodUnfold (go.GoType.PointerType store.ty) go!"Apply" store.Apply.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType store.ty) go!"Get" store.Get.impl
+  ptr_unfold'LatestRev : MethodUnfold (go.GoType.PointerType store.ty) go!"LatestRev" store.LatestRev.impl
+  ptr_unfold'Restore : MethodUnfold (go.GoType.PointerType store.ty) go!"Restore" store.Restore.impl
+  ptr_unfold'applyEventsLocked : MethodUnfold (go.GoType.PointerType store.ty) go!"applyEventsLocked" store.applyEventsLocked.impl
+  ptr_unfold'applyProgressNotifyLocked : MethodUnfold (go.GoType.PointerType store.ty) go!"applyProgressNotifyLocked" store.applyProgressNotifyLocked.impl
+  ptr_unfold'getSnapshot : MethodUnfold (go.GoType.PointerType store.ty) go!"getSnapshot" store.getSnapshot.impl
 
 attribute [instance] store.TypeAssumptions.type_repr
   store.TypeAssumptions.underlying
-  store.TypeAssumptions.get_mu
-  store.TypeAssumptions.set_mu
-  store.TypeAssumptions.get_revCond
-  store.TypeAssumptions.set_revCond
-  store.TypeAssumptions.get_degree
-  store.TypeAssumptions.set_degree
-  store.TypeAssumptions.get_latest
-  store.TypeAssumptions.set_latest
-  store.TypeAssumptions.get_history
-  store.TypeAssumptions.set_history
+  store.TypeAssumptions.get'mu
+  store.TypeAssumptions.set'mu
+  store.TypeAssumptions.get'revCond
+  store.TypeAssumptions.set'revCond
+  store.TypeAssumptions.get'degree
+  store.TypeAssumptions.set'degree
+  store.TypeAssumptions.get'latest
+  store.TypeAssumptions.set'latest
+  store.TypeAssumptions.get'history
+  store.TypeAssumptions.set'history
   store.TypeAssumptions.method_set
   store.TypeAssumptions.ptr_method_set
-  store.TypeAssumptions.ptr_Apply_unfold
-  store.TypeAssumptions.ptr_Get_unfold
-  store.TypeAssumptions.ptr_LatestRev_unfold
-  store.TypeAssumptions.ptr_Restore_unfold
-  store.TypeAssumptions.ptr_applyEventsLocked_unfold
-  store.TypeAssumptions.ptr_applyProgressNotifyLocked_unfold
-  store.TypeAssumptions.ptr_getSnapshot_unfold
+  store.TypeAssumptions.ptr_unfold'Apply
+  store.TypeAssumptions.ptr_unfold'Get
+  store.TypeAssumptions.ptr_unfold'LatestRev
+  store.TypeAssumptions.ptr_unfold'Restore
+  store.TypeAssumptions.ptr_unfold'applyEventsLocked
+  store.TypeAssumptions.ptr_unfold'applyProgressNotifyLocked
+  store.TypeAssumptions.ptr_unfold'getSnapshot
 
 structure kvItem [GooseExts] where
   mk ::
@@ -6421,7 +6421,7 @@ noncomputable instance kvItem.zero_val [GooseExts] : ZeroVal kvItem :=
 @[irreducible] noncomputable def kvItem.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kvItem.fieldsUnsealed
 
-noncomputable instance equals_unfold_kvItem [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'kvItem [GooseExts] [GoGlobalContext] :
     EqualsUnfold kvItem.fields kvItem.fieldsUnsealed :=
   ⟨by unfold kvItem.fields; rfl⟩
 
@@ -6431,19 +6431,19 @@ noncomputable instance equals_unfold_kvItem [GooseExts] [GoGlobalContext] :
 class kvItem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kvItem.underlying kvItem
   underlying : go.UnderlyingDirectedEq kvItem.ty kvItem.underlying
-  get_key : ∀ (x : kvItem), go.IsGoStepPureDetTagged under (StructFieldGet kvItem.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : kvItem) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet kvItem.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : kvItem)))
-  get_kv : ∀ (x : kvItem), go.IsGoStepPureDetTagged under (StructFieldGet kvItem.underlying go!"kv") #x (Val #(x.kv'))
-  set_kv : ∀ (x : kvItem) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvItem.underlying go!"kv") (PairV #x #y) (Val #(({ x with kv' := y } : kvItem)))
+  get'key : ∀ (x : kvItem), go.IsGoStepPureDetTagged under (StructFieldGet kvItem.underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : kvItem) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet kvItem.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : kvItem)))
+  get'kv : ∀ (x : kvItem), go.IsGoStepPureDetTagged under (StructFieldGet kvItem.underlying go!"kv") #x (Val #(x.kv'))
+  set'kv : ∀ (x : kvItem) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvItem.underlying go!"kv") (PairV #x #y) (Val #(({ x with kv' := y } : kvItem)))
   method_set : go.MethodSetIs kvItem.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType kvItem.ty) []
 
 attribute [instance] kvItem.TypeAssumptions.type_repr
   kvItem.TypeAssumptions.underlying
-  kvItem.TypeAssumptions.get_key
-  kvItem.TypeAssumptions.set_key
-  kvItem.TypeAssumptions.get_kv
-  kvItem.TypeAssumptions.set_kv
+  kvItem.TypeAssumptions.get'key
+  kvItem.TypeAssumptions.set'key
+  kvItem.TypeAssumptions.get'kv
+  kvItem.TypeAssumptions.set'kv
   kvItem.TypeAssumptions.method_set
   kvItem.TypeAssumptions.ptr_method_set
 
@@ -6466,7 +6466,7 @@ noncomputable instance watcher.zero_val [GooseExts] : ZeroVal watcher :=
 @[irreducible] noncomputable def watcher.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watcher.fieldsUnsealed
 
-noncomputable instance equals_unfold_watcher [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'watcher [GooseExts] [GoGlobalContext] :
     EqualsUnfold watcher.fields watcher.fieldsUnsealed :=
   ⟨by unfold watcher.fields; rfl⟩
 
@@ -6476,166 +6476,166 @@ noncomputable instance equals_unfold_watcher [GooseExts] [GoGlobalContext] :
 class watcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watcher.underlying watcher
   underlying : go.UnderlyingDirectedEq watcher.ty watcher.underlying
-  get_respCh : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"respCh") #x (Val #(x.respCh'))
-  set_respCh : ∀ (x : watcher) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"respCh") (PairV #x #y) (Val #(({ x with respCh' := y } : watcher)))
-  get_cancelResp : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"cancelResp") #x (Val #(x.cancelResp'))
-  set_cancelResp : ∀ (x : watcher) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"cancelResp") (PairV #x #y) (Val #(({ x with cancelResp' := y } : watcher)))
-  get_keyPred : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"keyPred") #x (Val #(x.keyPred'))
-  set_keyPred : ∀ (x : watcher) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"keyPred") (PairV #x #y) (Val #(({ x with keyPred' := y } : watcher)))
-  get_stopOnce : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"stopOnce") #x (Val #(x.stopOnce'))
-  set_stopOnce : ∀ (x : watcher) (y : _root_.Perennial.sync.Once), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"stopOnce") (PairV #x #y) (Val #(({ x with stopOnce' := y } : watcher)))
+  get'respCh : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"respCh") #x (Val #(x.respCh'))
+  set'respCh : ∀ (x : watcher) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"respCh") (PairV #x #y) (Val #(({ x with respCh' := y } : watcher)))
+  get'cancelResp : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"cancelResp") #x (Val #(x.cancelResp'))
+  set'cancelResp : ∀ (x : watcher) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"cancelResp") (PairV #x #y) (Val #(({ x with cancelResp' := y } : watcher)))
+  get'keyPred : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"keyPred") #x (Val #(x.keyPred'))
+  set'keyPred : ∀ (x : watcher) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"keyPred") (PairV #x #y) (Val #(({ x with keyPred' := y } : watcher)))
+  get'stopOnce : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"stopOnce") #x (Val #(x.stopOnce'))
+  set'stopOnce : ∀ (x : watcher) (y : _root_.Perennial.sync.Once), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"stopOnce") (PairV #x #y) (Val #(({ x with stopOnce' := y } : watcher)))
   method_set : go.MethodSetIs watcher.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType watcher.ty) [(go!"Compact", (some (go.signature.Signature [go.int64] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/cache/v3.enqueueResponse", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty] false [go.bool])))]
-  ptr_Compact_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"Compact" watcher.Compact.impl
-  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"Stop" watcher.Stop.impl
-  ptr_enqueueResponse_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"enqueueResponse" watcher.enqueueResponse.impl
+  ptr_unfold'Compact : MethodUnfold (go.GoType.PointerType watcher.ty) go!"Compact" watcher.Compact.impl
+  ptr_unfold'Stop : MethodUnfold (go.GoType.PointerType watcher.ty) go!"Stop" watcher.Stop.impl
+  ptr_unfold'enqueueResponse : MethodUnfold (go.GoType.PointerType watcher.ty) go!"enqueueResponse" watcher.enqueueResponse.impl
 
 attribute [instance] watcher.TypeAssumptions.type_repr
   watcher.TypeAssumptions.underlying
-  watcher.TypeAssumptions.get_respCh
-  watcher.TypeAssumptions.set_respCh
-  watcher.TypeAssumptions.get_cancelResp
-  watcher.TypeAssumptions.set_cancelResp
-  watcher.TypeAssumptions.get_keyPred
-  watcher.TypeAssumptions.set_keyPred
-  watcher.TypeAssumptions.get_stopOnce
-  watcher.TypeAssumptions.set_stopOnce
+  watcher.TypeAssumptions.get'respCh
+  watcher.TypeAssumptions.set'respCh
+  watcher.TypeAssumptions.get'cancelResp
+  watcher.TypeAssumptions.set'cancelResp
+  watcher.TypeAssumptions.get'keyPred
+  watcher.TypeAssumptions.set'keyPred
+  watcher.TypeAssumptions.get'stopOnce
+  watcher.TypeAssumptions.set'stopOnce
   watcher.TypeAssumptions.method_set
   watcher.TypeAssumptions.ptr_method_set
-  watcher.TypeAssumptions.ptr_Compact_unfold
-  watcher.TypeAssumptions.ptr_Stop_unfold
-  watcher.TypeAssumptions.ptr_enqueueResponse_unfold
+  watcher.TypeAssumptions.ptr_unfold'Compact
+  watcher.TypeAssumptions.ptr_unfold'Stop
+  watcher.TypeAssumptions.ptr_unfold'enqueueResponse
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Cache_instance : Cache.TypeAssumptions
-  Clock_instance : Clock.TypeAssumptions
-  Timer_instance : Timer.TypeAssumptions
-  realClock_instance : realClock.TypeAssumptions
-  realTimer_instance : realTimer.TypeAssumptions
-  Config_instance : Config.TypeAssumptions
-  Option_instance : Option.TypeAssumptions
-  demux_instance : demux.TypeAssumptions
-  notifier_instance : notifier.TypeAssumptions
-  Prefix_instance : Prefix.TypeAssumptions
-  progressNotifier_instance : progressNotifier.TypeAssumptions
-  progressRequestor_instance : progressRequestor.TypeAssumptions
-  conditionalProgressRequestor_instance : conditionalProgressRequestor.TypeAssumptions
-  ready_instance : ready.TypeAssumptions
-  ringBuffer_instance : ringBuffer.TypeAssumptions
-  entry_instance : entry.TypeAssumptions
-  RevisionOf_instance : RevisionOf.TypeAssumptions
-  IterFunc_instance : IterFunc.TypeAssumptions
-  snapshot_instance : snapshot.TypeAssumptions
-  store_instance : store.TypeAssumptions
-  kvItem_instance : kvItem.TypeAssumptions
-  watcher_instance : watcher.TypeAssumptions
-  New_unfold : FuncUnfold New [] New.impl
-  newCache_unfold : FuncUnfold newCache [] newCache.impl
-  defaultConfig_unfold : FuncUnfold defaultConfig [] defaultConfig.impl
-  WithPerWatcherBufferSize_unfold : FuncUnfold WithPerWatcherBufferSize [] WithPerWatcherBufferSize.impl
-  WithHistoryWindowSize_unfold : FuncUnfold WithHistoryWindowSize [] WithHistoryWindowSize.impl
-  WithResyncInterval_unfold : FuncUnfold WithResyncInterval [] WithResyncInterval.impl
-  WithInitialBackoff_unfold : FuncUnfold WithInitialBackoff [] WithInitialBackoff.impl
-  WithMaxBackoff_unfold : FuncUnfold WithMaxBackoff [] WithMaxBackoff.impl
-  WithGetTimeout_unfold : FuncUnfold WithGetTimeout [] WithGetTimeout.impl
-  WithBTreeDegree_unfold : FuncUnfold WithBTreeDegree [] WithBTreeDegree.impl
-  WithProgressRequestInterval_unfold : FuncUnfold WithProgressRequestInterval [] WithProgressRequestInterval.impl
-  WithProgressNotifyInterval_unfold : FuncUnfold WithProgressNotifyInterval [] WithProgressNotifyInterval.impl
-  WithWaitTimeout_unfold : FuncUnfold WithWaitTimeout [] WithWaitTimeout.impl
-  NewDemux_unfold : FuncUnfold NewDemux [] NewDemux.impl
-  newDemux_unfold : FuncUnfold newDemux [] newDemux.impl
-  newNotifier_unfold : FuncUnfold newNotifier [] newNotifier.impl
-  ExactKey_unfold : FuncUnfold ExactKey [] ExactKey.impl
-  FromKey_unfold : FuncUnfold FromKey [] FromKey.impl
-  Range_unfold : FuncUnfold Range [] Range.impl
-  KeyPredForRange_unfold : FuncUnfold KeyPredForRange [] KeyPredForRange.impl
-  newConditionalProgressRequestor_unfold : FuncUnfold newConditionalProgressRequestor [] newConditionalProgressRequestor.impl
-  newReady_unfold : FuncUnfold newReady [] newReady.impl
-  newRingBuffer_unfold : ∀ (T : go.GoType), FuncUnfold newRingBuffer [T] (newRingBuffer.impl T)
-  newClonedSnapshot_unfold : FuncUnfold newClonedSnapshot [] newClonedSnapshot.impl
-  isPrefixScan_unfold : FuncUnfold isPrefixScan [] isPrefixScan.impl
-  probeItemFromKey_unfold : FuncUnfold probeItemFromKey [] probeItemFromKey.impl
-  newStore_unfold : FuncUnfold newStore [] newStore.impl
-  newKVItem_unfold : FuncUnfold newKVItem [] newKVItem.impl
-  kvItemLess_unfold : FuncUnfold kvItemLess [] kvItemLess.impl
-  validateRevisions_unfold : FuncUnfold validateRevisions [] validateRevisions.impl
-  newWatcher_unfold : FuncUnfold newWatcher [] newWatcher.impl
-  import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_rpctypes_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
-  import_btree_Assumption : _root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.Assumptions
+  instance'Cache : Cache.TypeAssumptions
+  instance'Clock : Clock.TypeAssumptions
+  instance'Timer : Timer.TypeAssumptions
+  instance'realClock : realClock.TypeAssumptions
+  instance'realTimer : realTimer.TypeAssumptions
+  instance'Config : Config.TypeAssumptions
+  instance'Option : Option.TypeAssumptions
+  instance'demux : demux.TypeAssumptions
+  instance'notifier : notifier.TypeAssumptions
+  instance'Prefix : Prefix.TypeAssumptions
+  instance'progressNotifier : progressNotifier.TypeAssumptions
+  instance'progressRequestor : progressRequestor.TypeAssumptions
+  instance'conditionalProgressRequestor : conditionalProgressRequestor.TypeAssumptions
+  instance'ready : ready.TypeAssumptions
+  instance'ringBuffer : ringBuffer.TypeAssumptions
+  instance'entry : entry.TypeAssumptions
+  instance'RevisionOf : RevisionOf.TypeAssumptions
+  instance'IterFunc : IterFunc.TypeAssumptions
+  instance'snapshot : snapshot.TypeAssumptions
+  instance'store : store.TypeAssumptions
+  instance'kvItem : kvItem.TypeAssumptions
+  instance'watcher : watcher.TypeAssumptions
+  unfold'New : FuncUnfold New [] New.impl
+  unfold'newCache : FuncUnfold newCache [] newCache.impl
+  unfold'defaultConfig : FuncUnfold defaultConfig [] defaultConfig.impl
+  unfold'WithPerWatcherBufferSize : FuncUnfold WithPerWatcherBufferSize [] WithPerWatcherBufferSize.impl
+  unfold'WithHistoryWindowSize : FuncUnfold WithHistoryWindowSize [] WithHistoryWindowSize.impl
+  unfold'WithResyncInterval : FuncUnfold WithResyncInterval [] WithResyncInterval.impl
+  unfold'WithInitialBackoff : FuncUnfold WithInitialBackoff [] WithInitialBackoff.impl
+  unfold'WithMaxBackoff : FuncUnfold WithMaxBackoff [] WithMaxBackoff.impl
+  unfold'WithGetTimeout : FuncUnfold WithGetTimeout [] WithGetTimeout.impl
+  unfold'WithBTreeDegree : FuncUnfold WithBTreeDegree [] WithBTreeDegree.impl
+  unfold'WithProgressRequestInterval : FuncUnfold WithProgressRequestInterval [] WithProgressRequestInterval.impl
+  unfold'WithProgressNotifyInterval : FuncUnfold WithProgressNotifyInterval [] WithProgressNotifyInterval.impl
+  unfold'WithWaitTimeout : FuncUnfold WithWaitTimeout [] WithWaitTimeout.impl
+  unfold'NewDemux : FuncUnfold NewDemux [] NewDemux.impl
+  unfold'newDemux : FuncUnfold newDemux [] newDemux.impl
+  unfold'newNotifier : FuncUnfold newNotifier [] newNotifier.impl
+  unfold'ExactKey : FuncUnfold ExactKey [] ExactKey.impl
+  unfold'FromKey : FuncUnfold FromKey [] FromKey.impl
+  unfold'Range : FuncUnfold Range [] Range.impl
+  unfold'KeyPredForRange : FuncUnfold KeyPredForRange [] KeyPredForRange.impl
+  unfold'newConditionalProgressRequestor : FuncUnfold newConditionalProgressRequestor [] newConditionalProgressRequestor.impl
+  unfold'newReady : FuncUnfold newReady [] newReady.impl
+  unfold'newRingBuffer : ∀ (T₀ : go.GoType), FuncUnfold newRingBuffer [T₀] (newRingBuffer.impl T₀)
+  unfold'newClonedSnapshot : FuncUnfold newClonedSnapshot [] newClonedSnapshot.impl
+  unfold'isPrefixScan : FuncUnfold isPrefixScan [] isPrefixScan.impl
+  unfold'probeItemFromKey : FuncUnfold probeItemFromKey [] probeItemFromKey.impl
+  unfold'newStore : FuncUnfold newStore [] newStore.impl
+  unfold'newKVItem : FuncUnfold newKVItem [] newKVItem.impl
+  unfold'kvItemLess : FuncUnfold kvItemLess [] kvItemLess.impl
+  unfold'validateRevisions : FuncUnfold validateRevisions [] validateRevisions.impl
+  unfold'newWatcher : FuncUnfold newWatcher [] newWatcher.impl
+  import'bytes : _root_.Perennial.bytes.Assumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'rpctypes : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'mvccpb : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
+  import'btree : _root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.Assumptions
 
-attribute [instance] Assumptions.Cache_instance
-  Assumptions.Clock_instance
-  Assumptions.Timer_instance
-  Assumptions.realClock_instance
-  Assumptions.realTimer_instance
-  Assumptions.Config_instance
-  Assumptions.Option_instance
-  Assumptions.demux_instance
-  Assumptions.notifier_instance
-  Assumptions.Prefix_instance
-  Assumptions.progressNotifier_instance
-  Assumptions.progressRequestor_instance
-  Assumptions.conditionalProgressRequestor_instance
-  Assumptions.ready_instance
-  Assumptions.ringBuffer_instance
-  Assumptions.entry_instance
-  Assumptions.RevisionOf_instance
-  Assumptions.IterFunc_instance
-  Assumptions.snapshot_instance
-  Assumptions.store_instance
-  Assumptions.kvItem_instance
-  Assumptions.watcher_instance
-  Assumptions.New_unfold
-  Assumptions.newCache_unfold
-  Assumptions.defaultConfig_unfold
-  Assumptions.WithPerWatcherBufferSize_unfold
-  Assumptions.WithHistoryWindowSize_unfold
-  Assumptions.WithResyncInterval_unfold
-  Assumptions.WithInitialBackoff_unfold
-  Assumptions.WithMaxBackoff_unfold
-  Assumptions.WithGetTimeout_unfold
-  Assumptions.WithBTreeDegree_unfold
-  Assumptions.WithProgressRequestInterval_unfold
-  Assumptions.WithProgressNotifyInterval_unfold
-  Assumptions.WithWaitTimeout_unfold
-  Assumptions.NewDemux_unfold
-  Assumptions.newDemux_unfold
-  Assumptions.newNotifier_unfold
-  Assumptions.ExactKey_unfold
-  Assumptions.FromKey_unfold
-  Assumptions.Range_unfold
-  Assumptions.KeyPredForRange_unfold
-  Assumptions.newConditionalProgressRequestor_unfold
-  Assumptions.newReady_unfold
-  Assumptions.newRingBuffer_unfold
-  Assumptions.newClonedSnapshot_unfold
-  Assumptions.isPrefixScan_unfold
-  Assumptions.probeItemFromKey_unfold
-  Assumptions.newStore_unfold
-  Assumptions.newKVItem_unfold
-  Assumptions.kvItemLess_unfold
-  Assumptions.validateRevisions_unfold
-  Assumptions.newWatcher_unfold
-  Assumptions.import_bytes_Assumption
-  Assumptions.import_context_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_rpctypes_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_mvccpb_Assumption
-  Assumptions.import_btree_Assumption
+attribute [instance] Assumptions.instance'Cache
+  Assumptions.instance'Clock
+  Assumptions.instance'Timer
+  Assumptions.instance'realClock
+  Assumptions.instance'realTimer
+  Assumptions.instance'Config
+  Assumptions.instance'Option
+  Assumptions.instance'demux
+  Assumptions.instance'notifier
+  Assumptions.instance'Prefix
+  Assumptions.instance'progressNotifier
+  Assumptions.instance'progressRequestor
+  Assumptions.instance'conditionalProgressRequestor
+  Assumptions.instance'ready
+  Assumptions.instance'ringBuffer
+  Assumptions.instance'entry
+  Assumptions.instance'RevisionOf
+  Assumptions.instance'IterFunc
+  Assumptions.instance'snapshot
+  Assumptions.instance'store
+  Assumptions.instance'kvItem
+  Assumptions.instance'watcher
+  Assumptions.unfold'New
+  Assumptions.unfold'newCache
+  Assumptions.unfold'defaultConfig
+  Assumptions.unfold'WithPerWatcherBufferSize
+  Assumptions.unfold'WithHistoryWindowSize
+  Assumptions.unfold'WithResyncInterval
+  Assumptions.unfold'WithInitialBackoff
+  Assumptions.unfold'WithMaxBackoff
+  Assumptions.unfold'WithGetTimeout
+  Assumptions.unfold'WithBTreeDegree
+  Assumptions.unfold'WithProgressRequestInterval
+  Assumptions.unfold'WithProgressNotifyInterval
+  Assumptions.unfold'WithWaitTimeout
+  Assumptions.unfold'NewDemux
+  Assumptions.unfold'newDemux
+  Assumptions.unfold'newNotifier
+  Assumptions.unfold'ExactKey
+  Assumptions.unfold'FromKey
+  Assumptions.unfold'Range
+  Assumptions.unfold'KeyPredForRange
+  Assumptions.unfold'newConditionalProgressRequestor
+  Assumptions.unfold'newReady
+  Assumptions.unfold'newRingBuffer
+  Assumptions.unfold'newClonedSnapshot
+  Assumptions.unfold'isPrefixScan
+  Assumptions.unfold'probeItemFromKey
+  Assumptions.unfold'newStore
+  Assumptions.unfold'newKVItem
+  Assumptions.unfold'kvItemLess
+  Assumptions.unfold'validateRevisions
+  Assumptions.unfold'newWatcher
+  Assumptions.import'bytes
+  Assumptions.import'context
+  Assumptions.import'errors
+  Assumptions.import'fmt
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'etcdserverpb
+  Assumptions.import'rpctypes
+  Assumptions.import'clientv3
+  Assumptions.import'mvccpb
+  Assumptions.import'btree
 
 end go_etcd_io.etcd.cache.v3
 

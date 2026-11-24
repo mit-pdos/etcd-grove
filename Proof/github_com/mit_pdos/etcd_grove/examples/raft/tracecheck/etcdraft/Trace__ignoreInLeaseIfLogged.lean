@@ -70,7 +70,7 @@ theorem Trace.ignoreInLeaseIfLogged.wp_proof
   simp only [TypedPointsto.typedPointstoDef]
   icases Hpf with ⟨-, -, #PMs, -⟩
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_Domain_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'Domain.method_unfold]
   try wp_auto
   wp_apply wp_Domain gs.Messages' ts.s.messages $$ [Hmsgs] as %sl #Hsl
   · iexact Hmsgs

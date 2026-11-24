@@ -70,13 +70,13 @@ attribute [instance] BidiMap.TypeAssumptions.underlying
   BidiMap.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Map_instance : Map.TypeAssumptions
-  BidiMap_instance : BidiMap.TypeAssumptions
-  import_containers_Assumption : _root_.Perennial.github_com.emirpasic.gods.containers.Assumptions
+  instance'Map : Map.TypeAssumptions
+  instance'BidiMap : BidiMap.TypeAssumptions
+  import'containers : _root_.Perennial.github_com.emirpasic.gods.containers.Assumptions
 
-attribute [instance] Assumptions.Map_instance
-  Assumptions.BidiMap_instance
-  Assumptions.import_containers_Assumption
+attribute [instance] Assumptions.instance'Map
+  Assumptions.instance'BidiMap
+  Assumptions.import'containers
 
 end github_com.emirpasic.gods.maps
 

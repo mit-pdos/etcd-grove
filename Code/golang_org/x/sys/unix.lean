@@ -20,601 +20,601 @@ noncomputable section
 namespace golang_org.x.sys.unix
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  CPUSet_instance : CPUSet.TypeAssumptions
-  CPUSetDynamic_instance : CPUSetDynamic.TypeAssumptions
-  Ifreq_instance : Ifreq.TypeAssumptions
-  ifreqData_instance : ifreqData.TypeAssumptions
-  FileDedupeRange_instance : FileDedupeRange.TypeAssumptions
-  FileDedupeRangeInfo_instance : FileDedupeRangeInfo.TypeAssumptions
-  mremapMmapper_instance : mremapMmapper.TypeAssumptions
-  SocketControlMessage_instance : SocketControlMessage.TypeAssumptions
-  WaitStatus_instance : WaitStatus.TypeAssumptions
-  SockaddrLinklayer_instance : SockaddrLinklayer.TypeAssumptions
-  SockaddrNetlink_instance : SockaddrNetlink.TypeAssumptions
-  SockaddrHCI_instance : SockaddrHCI.TypeAssumptions
-  SockaddrL2_instance : SockaddrL2.TypeAssumptions
-  SockaddrRFCOMM_instance : SockaddrRFCOMM.TypeAssumptions
-  SockaddrCAN_instance : SockaddrCAN.TypeAssumptions
-  SockaddrCANJ1939_instance : SockaddrCANJ1939.TypeAssumptions
-  SockaddrALG_instance : SockaddrALG.TypeAssumptions
-  SockaddrVM_instance : SockaddrVM.TypeAssumptions
-  SockaddrXDP_instance : SockaddrXDP.TypeAssumptions
-  SockaddrPPPoE_instance : SockaddrPPPoE.TypeAssumptions
-  SockaddrTIPC_instance : SockaddrTIPC.TypeAssumptions
-  TIPCAddr_instance : TIPCAddr.TypeAssumptions
-  SockaddrL2TPIP_instance : SockaddrL2TPIP.TypeAssumptions
-  SockaddrL2TPIP6_instance : SockaddrL2TPIP6.TypeAssumptions
-  SockaddrIUCV_instance : SockaddrIUCV.TypeAssumptions
-  SockaddrNFC_instance : SockaddrNFC.TypeAssumptions
-  SockaddrNFCLLCP_instance : SockaddrNFCLLCP.TypeAssumptions
-  fileHandle_instance : fileHandle.TypeAssumptions
-  FileHandle_instance : FileHandle.TypeAssumptions
-  RemoteIovec_instance : RemoteIovec.TypeAssumptions
-  ItimerWhich_instance : ItimerWhich.TypeAssumptions
-  mmapper_instance : mmapper.TypeAssumptions
-  Sockaddr_instance : Sockaddr.TypeAssumptions
-  SockaddrInet4_instance : SockaddrInet4.TypeAssumptions
-  SockaddrInet6_instance : SockaddrInet6.TypeAssumptions
-  SockaddrUnix_instance : SockaddrUnix.TypeAssumptions
-  PtraceRegs386_instance : PtraceRegs386.TypeAssumptions
-  PtraceRegsAmd64_instance : PtraceRegsAmd64.TypeAssumptions
-  _C_short_instance : _C_short.TypeAssumptions
-  _C_int_instance : _C_int.TypeAssumptions
-  _C_long_long_instance : _C_long_long.TypeAssumptions
-  KernelTimespec_instance : KernelTimespec.TypeAssumptions
-  ItimerSpec_instance : ItimerSpec.TypeAssumptions
-  Itimerval_instance : Itimerval.TypeAssumptions
-  Rlimit_instance : Rlimit.TypeAssumptions
-  _Gid_t_instance : _Gid_t.TypeAssumptions
-  StatxTimestamp_instance : StatxTimestamp.TypeAssumptions
-  Statx_t_instance : Statx_t.TypeAssumptions
-  Fsid_instance : Fsid.TypeAssumptions
-  FileCloneRange_instance : FileCloneRange.TypeAssumptions
-  RawFileDedupeRange_instance : RawFileDedupeRange.TypeAssumptions
-  RawFileDedupeRangeInfo_instance : RawFileDedupeRangeInfo.TypeAssumptions
-  FscryptPolicy_instance : FscryptPolicy.TypeAssumptions
-  FscryptKey_instance : FscryptKey.TypeAssumptions
-  FscryptPolicyV1_instance : FscryptPolicyV1.TypeAssumptions
-  FscryptPolicyV2_instance : FscryptPolicyV2.TypeAssumptions
-  FscryptGetPolicyExArg_instance : FscryptGetPolicyExArg.TypeAssumptions
-  FscryptKeySpecifier_instance : FscryptKeySpecifier.TypeAssumptions
-  FscryptAddKeyArg_instance : FscryptAddKeyArg.TypeAssumptions
-  FscryptRemoveKeyArg_instance : FscryptRemoveKeyArg.TypeAssumptions
-  FscryptGetKeyStatusArg_instance : FscryptGetKeyStatusArg.TypeAssumptions
-  DmIoctl_instance : DmIoctl.TypeAssumptions
-  DmTargetSpec_instance : DmTargetSpec.TypeAssumptions
-  DmTargetDeps_instance : DmTargetDeps.TypeAssumptions
-  DmTargetVersions_instance : DmTargetVersions.TypeAssumptions
-  DmTargetMsg_instance : DmTargetMsg.TypeAssumptions
-  KeyctlDHParams_instance : KeyctlDHParams.TypeAssumptions
-  RawSockaddrInet4_instance : RawSockaddrInet4.TypeAssumptions
-  RawSockaddrInet6_instance : RawSockaddrInet6.TypeAssumptions
-  RawSockaddrUnix_instance : RawSockaddrUnix.TypeAssumptions
-  RawSockaddrLinklayer_instance : RawSockaddrLinklayer.TypeAssumptions
-  RawSockaddrNetlink_instance : RawSockaddrNetlink.TypeAssumptions
-  RawSockaddrHCI_instance : RawSockaddrHCI.TypeAssumptions
-  RawSockaddrL2_instance : RawSockaddrL2.TypeAssumptions
-  RawSockaddrRFCOMM_instance : RawSockaddrRFCOMM.TypeAssumptions
-  RawSockaddrCAN_instance : RawSockaddrCAN.TypeAssumptions
-  RawSockaddrALG_instance : RawSockaddrALG.TypeAssumptions
-  RawSockaddrVM_instance : RawSockaddrVM.TypeAssumptions
-  RawSockaddrXDP_instance : RawSockaddrXDP.TypeAssumptions
-  RawSockaddrPPPoX_instance : RawSockaddrPPPoX.TypeAssumptions
-  RawSockaddrTIPC_instance : RawSockaddrTIPC.TypeAssumptions
-  RawSockaddrL2TPIP_instance : RawSockaddrL2TPIP.TypeAssumptions
-  RawSockaddrL2TPIP6_instance : RawSockaddrL2TPIP6.TypeAssumptions
-  RawSockaddrIUCV_instance : RawSockaddrIUCV.TypeAssumptions
-  RawSockaddrNFC_instance : RawSockaddrNFC.TypeAssumptions
-  _Socklen_instance : _Socklen.TypeAssumptions
-  Linger_instance : Linger.TypeAssumptions
-  IPMreq_instance : IPMreq.TypeAssumptions
-  IPMreqn_instance : IPMreqn.TypeAssumptions
-  IPv6Mreq_instance : IPv6Mreq.TypeAssumptions
-  PacketMreq_instance : PacketMreq.TypeAssumptions
-  Inet4Pktinfo_instance : Inet4Pktinfo.TypeAssumptions
-  Inet6Pktinfo_instance : Inet6Pktinfo.TypeAssumptions
-  IPv6MTUInfo_instance : IPv6MTUInfo.TypeAssumptions
-  ICMPv6Filter_instance : ICMPv6Filter.TypeAssumptions
-  Ucred_instance : Ucred.TypeAssumptions
-  TCPInfo_instance : TCPInfo.TypeAssumptions
-  TCPVegasInfo_instance : TCPVegasInfo.TypeAssumptions
-  TCPDCTCPInfo_instance : TCPDCTCPInfo.TypeAssumptions
-  TCPBBRInfo_instance : TCPBBRInfo.TypeAssumptions
-  CanFilter_instance : CanFilter.TypeAssumptions
-  TCPRepairOpt_instance : TCPRepairOpt.TypeAssumptions
-  NlMsghdr_instance : NlMsghdr.TypeAssumptions
-  NlMsgerr_instance : NlMsgerr.TypeAssumptions
-  RtGenmsg_instance : RtGenmsg.TypeAssumptions
-  NlAttr_instance : NlAttr.TypeAssumptions
-  RtAttr_instance : RtAttr.TypeAssumptions
-  IfInfomsg_instance : IfInfomsg.TypeAssumptions
-  Prefixmsg_instance : Prefixmsg.TypeAssumptions
-  PrefixCacheinfo_instance : PrefixCacheinfo.TypeAssumptions
-  IfAddrmsg_instance : IfAddrmsg.TypeAssumptions
-  IfAddrlblmsg_instance : IfAddrlblmsg.TypeAssumptions
-  IfaCacheinfo_instance : IfaCacheinfo.TypeAssumptions
-  RtMsg_instance : RtMsg.TypeAssumptions
-  RtNexthop_instance : RtNexthop.TypeAssumptions
-  NdUseroptmsg_instance : NdUseroptmsg.TypeAssumptions
-  NdMsg_instance : NdMsg.TypeAssumptions
-  SockFilter_instance : SockFilter.TypeAssumptions
-  SockFprog_instance : SockFprog.TypeAssumptions
-  InotifyEvent_instance : InotifyEvent.TypeAssumptions
-  Utsname_instance : Utsname.TypeAssumptions
-  OpenHow_instance : OpenHow.TypeAssumptions
-  PollFd_instance : PollFd.TypeAssumptions
-  sigset_argpack_instance : sigset_argpack.TypeAssumptions
-  SignalfdSiginfo_instance : SignalfdSiginfo.TypeAssumptions
-  Winsize_instance : Winsize.TypeAssumptions
-  CGroupStats_instance : CGroupStats.TypeAssumptions
-  Genlmsghdr_instance : Genlmsghdr.TypeAssumptions
-  PerfEventAttr_instance : PerfEventAttr.TypeAssumptions
-  PerfEventMmapPage_instance : PerfEventMmapPage.TypeAssumptions
-  TCPMD5Sig_instance : TCPMD5Sig.TypeAssumptions
-  HDDriveCmdHdr_instance : HDDriveCmdHdr.TypeAssumptions
-  HDDriveID_instance : HDDriveID.TypeAssumptions
-  Tpacket2Hdr_instance : Tpacket2Hdr.TypeAssumptions
-  Tpacket3Hdr_instance : Tpacket3Hdr.TypeAssumptions
-  TpacketHdrVariant1_instance : TpacketHdrVariant1.TypeAssumptions
-  TpacketBlockDesc_instance : TpacketBlockDesc.TypeAssumptions
-  TpacketBDTS_instance : TpacketBDTS.TypeAssumptions
-  TpacketHdrV1_instance : TpacketHdrV1.TypeAssumptions
-  TpacketReq_instance : TpacketReq.TypeAssumptions
-  TpacketReq3_instance : TpacketReq3.TypeAssumptions
-  TpacketStats_instance : TpacketStats.TypeAssumptions
-  TpacketStatsV3_instance : TpacketStatsV3.TypeAssumptions
-  TpacketAuxdata_instance : TpacketAuxdata.TypeAssumptions
-  Nfgenmsg_instance : Nfgenmsg.TypeAssumptions
-  RTCTime_instance : RTCTime.TypeAssumptions
-  RTCWkAlrm_instance : RTCWkAlrm.TypeAssumptions
-  BlkpgIoctlArg_instance : BlkpgIoctlArg.TypeAssumptions
-  XDPRingOffset_instance : XDPRingOffset.TypeAssumptions
-  XDPMmapOffsets_instance : XDPMmapOffsets.TypeAssumptions
-  XDPUmemReg_instance : XDPUmemReg.TypeAssumptions
-  XDPStatistics_instance : XDPStatistics.TypeAssumptions
-  XDPDesc_instance : XDPDesc.TypeAssumptions
-  ScmTimestamping_instance : ScmTimestamping.TypeAssumptions
-  SockExtendedErr_instance : SockExtendedErr.TypeAssumptions
-  FanotifyEventMetadata_instance : FanotifyEventMetadata.TypeAssumptions
-  FanotifyResponse_instance : FanotifyResponse.TypeAssumptions
-  CapUserHeader_instance : CapUserHeader.TypeAssumptions
-  CapUserData_instance : CapUserData.TypeAssumptions
-  LoopInfo64_instance : LoopInfo64.TypeAssumptions
-  LoopConfig_instance : LoopConfig.TypeAssumptions
-  TIPCSocketAddr_instance : TIPCSocketAddr.TypeAssumptions
-  TIPCServiceRange_instance : TIPCServiceRange.TypeAssumptions
-  TIPCServiceName_instance : TIPCServiceName.TypeAssumptions
-  TIPCEvent_instance : TIPCEvent.TypeAssumptions
-  TIPCGroupReq_instance : TIPCGroupReq.TypeAssumptions
-  FsverityDigest_instance : FsverityDigest.TypeAssumptions
-  FsverityEnableArg_instance : FsverityEnableArg.TypeAssumptions
-  Nhmsg_instance : Nhmsg.TypeAssumptions
-  NexthopGrp_instance : NexthopGrp.TypeAssumptions
-  WatchdogInfo_instance : WatchdogInfo.TypeAssumptions
-  PPSFData_instance : PPSFData.TypeAssumptions
-  PPSKParams_instance : PPSKParams.TypeAssumptions
-  PPSKTime_instance : PPSKTime.TypeAssumptions
-  EthtoolDrvinfo_instance : EthtoolDrvinfo.TypeAssumptions
-  EthtoolTsInfo_instance : EthtoolTsInfo.TypeAssumptions
-  HwTstampConfig_instance : HwTstampConfig.TypeAssumptions
-  PtpClockCaps_instance : PtpClockCaps.TypeAssumptions
-  PtpClockTime_instance : PtpClockTime.TypeAssumptions
-  PtpExttsEvent_instance : PtpExttsEvent.TypeAssumptions
-  PtpExttsRequest_instance : PtpExttsRequest.TypeAssumptions
-  PtpPeroutRequest_instance : PtpPeroutRequest.TypeAssumptions
-  PtpPinDesc_instance : PtpPinDesc.TypeAssumptions
-  PtpSysOffset_instance : PtpSysOffset.TypeAssumptions
-  PtpSysOffsetExtended_instance : PtpSysOffsetExtended.TypeAssumptions
-  PtpSysOffsetPrecise_instance : PtpSysOffsetPrecise.TypeAssumptions
-  HIDRawReportDescriptor_instance : HIDRawReportDescriptor.TypeAssumptions
-  HIDRawDevInfo_instance : HIDRawDevInfo.TypeAssumptions
-  EraseInfo_instance : EraseInfo.TypeAssumptions
-  EraseInfo64_instance : EraseInfo64.TypeAssumptions
-  MtdOobBuf_instance : MtdOobBuf.TypeAssumptions
-  MtdOobBuf64_instance : MtdOobBuf64.TypeAssumptions
-  MtdWriteReq_instance : MtdWriteReq.TypeAssumptions
-  MtdInfo_instance : MtdInfo.TypeAssumptions
-  RegionInfo_instance : RegionInfo.TypeAssumptions
-  OtpInfo_instance : OtpInfo.TypeAssumptions
-  NandOobinfo_instance : NandOobinfo.TypeAssumptions
-  NandOobfree_instance : NandOobfree.TypeAssumptions
-  NandEcclayout_instance : NandEcclayout.TypeAssumptions
-  MtdEccStats_instance : MtdEccStats.TypeAssumptions
-  LandlockRulesetAttr_instance : LandlockRulesetAttr.TypeAssumptions
-  LandlockPathBeneathAttr_instance : LandlockPathBeneathAttr.TypeAssumptions
-  PidfdInfo_instance : PidfdInfo.TypeAssumptions
-  MountAttr_instance : MountAttr.TypeAssumptions
-  CANBitTiming_instance : CANBitTiming.TypeAssumptions
-  CANBitTimingConst_instance : CANBitTimingConst.TypeAssumptions
-  CANClock_instance : CANClock.TypeAssumptions
-  CANBusErrorCounters_instance : CANBusErrorCounters.TypeAssumptions
-  CANCtrlMode_instance : CANCtrlMode.TypeAssumptions
-  CANDeviceStats_instance : CANDeviceStats.TypeAssumptions
-  KCMAttach_instance : KCMAttach.TypeAssumptions
-  KCMUnattach_instance : KCMUnattach.TypeAssumptions
-  KCMClone_instance : KCMClone.TypeAssumptions
-  SchedAttr_instance : SchedAttr.TypeAssumptions
-  Cachestat_t_instance : Cachestat_t.TypeAssumptions
-  CachestatRange_instance : CachestatRange.TypeAssumptions
-  SockDiagReq_instance : SockDiagReq.TypeAssumptions
-  GPIOChipInfo_instance : GPIOChipInfo.TypeAssumptions
-  GPIOV2LineValues_instance : GPIOV2LineValues.TypeAssumptions
-  GPIOV2LineAttribute_instance : GPIOV2LineAttribute.TypeAssumptions
-  GPIOV2LineConfigAttribute_instance : GPIOV2LineConfigAttribute.TypeAssumptions
-  GPIOV2LineConfig_instance : GPIOV2LineConfig.TypeAssumptions
-  GPIOV2LineRequest_instance : GPIOV2LineRequest.TypeAssumptions
-  GPIOV2LineInfo_instance : GPIOV2LineInfo.TypeAssumptions
-  GPIOV2LineInfoChanged_instance : GPIOV2LineInfoChanged.TypeAssumptions
-  GPIOV2LineEvent_instance : GPIOV2LineEvent.TypeAssumptions
-  IPMISystemInterfaceAddr_instance : IPMISystemInterfaceAddr.TypeAssumptions
-  IPMIMsg_instance : IPMIMsg.TypeAssumptions
-  _C_long_instance : _C_long.TypeAssumptions
-  Timespec_instance : Timespec.TypeAssumptions
-  Timeval_instance : Timeval.TypeAssumptions
-  Timex_instance : Timex.TypeAssumptions
-  Time_t_instance : Time_t.TypeAssumptions
-  Tms_instance : Tms.TypeAssumptions
-  Utimbuf_instance : Utimbuf.TypeAssumptions
-  Rusage_instance : Rusage.TypeAssumptions
-  Stat_t_instance : Stat_t.TypeAssumptions
-  Dirent_instance : Dirent.TypeAssumptions
-  Flock_t_instance : Flock_t.TypeAssumptions
-  DmNameList_instance : DmNameList.TypeAssumptions
-  RawSockaddrNFCLLCP_instance : RawSockaddrNFCLLCP.TypeAssumptions
-  RawSockaddr_instance : RawSockaddr.TypeAssumptions
-  RawSockaddrAny_instance : RawSockaddrAny.TypeAssumptions
-  Iovec_instance : Iovec.TypeAssumptions
-  Msghdr_instance : Msghdr.TypeAssumptions
-  Cmsghdr_instance : Cmsghdr.TypeAssumptions
-  ifreq_instance : ifreq.TypeAssumptions
-  PtraceRegs_instance : PtraceRegs.TypeAssumptions
-  FdSet_instance : FdSet.TypeAssumptions
-  Sysinfo_t_instance : Sysinfo_t.TypeAssumptions
-  Ustat_t_instance : Ustat_t.TypeAssumptions
-  EpollEvent_instance : EpollEvent.TypeAssumptions
-  Sigset_t_instance : Sigset_t.TypeAssumptions
-  Siginfo_instance : Siginfo.TypeAssumptions
-  Termios_instance : Termios.TypeAssumptions
-  Taskstats_instance : Taskstats.TypeAssumptions
-  cpuMask_instance : cpuMask.TypeAssumptions
-  SockaddrStorage_instance : SockaddrStorage.TypeAssumptions
-  HDGeometry_instance : HDGeometry.TypeAssumptions
-  Statfs_t_instance : Statfs_t.TypeAssumptions
-  TpacketHdr_instance : TpacketHdr.TypeAssumptions
-  RTCPLLInfo_instance : RTCPLLInfo.TypeAssumptions
-  BlkpgPartition_instance : BlkpgPartition.TypeAssumptions
-  CryptoUserAlg_instance : CryptoUserAlg.TypeAssumptions
-  CryptoStatAEAD_instance : CryptoStatAEAD.TypeAssumptions
-  CryptoStatAKCipher_instance : CryptoStatAKCipher.TypeAssumptions
-  CryptoStatCipher_instance : CryptoStatCipher.TypeAssumptions
-  CryptoStatCompress_instance : CryptoStatCompress.TypeAssumptions
-  CryptoStatHash_instance : CryptoStatHash.TypeAssumptions
-  CryptoStatKPP_instance : CryptoStatKPP.TypeAssumptions
-  CryptoStatRNG_instance : CryptoStatRNG.TypeAssumptions
-  CryptoStatLarval_instance : CryptoStatLarval.TypeAssumptions
-  CryptoReportLarval_instance : CryptoReportLarval.TypeAssumptions
-  CryptoReportHash_instance : CryptoReportHash.TypeAssumptions
-  CryptoReportCipher_instance : CryptoReportCipher.TypeAssumptions
-  CryptoReportBlkCipher_instance : CryptoReportBlkCipher.TypeAssumptions
-  CryptoReportAEAD_instance : CryptoReportAEAD.TypeAssumptions
-  CryptoReportComp_instance : CryptoReportComp.TypeAssumptions
-  CryptoReportRNG_instance : CryptoReportRNG.TypeAssumptions
-  CryptoReportAKCipher_instance : CryptoReportAKCipher.TypeAssumptions
-  CryptoReportKPP_instance : CryptoReportKPP.TypeAssumptions
-  CryptoReportAcomp_instance : CryptoReportAcomp.TypeAssumptions
-  LoopInfo_instance : LoopInfo.TypeAssumptions
-  TIPCSubscr_instance : TIPCSubscr.TypeAssumptions
-  TIPCSIOCLNReq_instance : TIPCSIOCLNReq.TypeAssumptions
-  TIPCSIOCNodeIDReq_instance : TIPCSIOCNodeIDReq.TypeAssumptions
-  PPSKInfo_instance : PPSKInfo.TypeAssumptions
-  SysvIpcPerm_instance : SysvIpcPerm.TypeAssumptions
-  SysvShmDesc_instance : SysvShmDesc.TypeAssumptions
-  IPMIReq_instance : IPMIReq.TypeAssumptions
-  IPMIRecv_instance : IPMIRecv.TypeAssumptions
-  FcntlFlock_unfold : FuncUnfold FcntlFlock [] FcntlFlock.impl
-  Mmap_unfold : FuncUnfold Mmap [] Mmap.impl
-  Munmap_unfold : FuncUnfold Munmap [] Munmap.impl
-  Madvise_unfold : FuncUnfold Madvise [] Madvise.impl
-  Fallocate_unfold : FuncUnfold Fallocate [] Fallocate.impl
-  import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
+  instance'CPUSet : CPUSet.TypeAssumptions
+  instance'CPUSetDynamic : CPUSetDynamic.TypeAssumptions
+  instance'Ifreq : Ifreq.TypeAssumptions
+  instance'ifreqData : ifreqData.TypeAssumptions
+  instance'FileDedupeRange : FileDedupeRange.TypeAssumptions
+  instance'FileDedupeRangeInfo : FileDedupeRangeInfo.TypeAssumptions
+  instance'mremapMmapper : mremapMmapper.TypeAssumptions
+  instance'SocketControlMessage : SocketControlMessage.TypeAssumptions
+  instance'WaitStatus : WaitStatus.TypeAssumptions
+  instance'SockaddrLinklayer : SockaddrLinklayer.TypeAssumptions
+  instance'SockaddrNetlink : SockaddrNetlink.TypeAssumptions
+  instance'SockaddrHCI : SockaddrHCI.TypeAssumptions
+  instance'SockaddrL2 : SockaddrL2.TypeAssumptions
+  instance'SockaddrRFCOMM : SockaddrRFCOMM.TypeAssumptions
+  instance'SockaddrCAN : SockaddrCAN.TypeAssumptions
+  instance'SockaddrCANJ1939 : SockaddrCANJ1939.TypeAssumptions
+  instance'SockaddrALG : SockaddrALG.TypeAssumptions
+  instance'SockaddrVM : SockaddrVM.TypeAssumptions
+  instance'SockaddrXDP : SockaddrXDP.TypeAssumptions
+  instance'SockaddrPPPoE : SockaddrPPPoE.TypeAssumptions
+  instance'SockaddrTIPC : SockaddrTIPC.TypeAssumptions
+  instance'TIPCAddr : TIPCAddr.TypeAssumptions
+  instance'SockaddrL2TPIP : SockaddrL2TPIP.TypeAssumptions
+  instance'SockaddrL2TPIP6 : SockaddrL2TPIP6.TypeAssumptions
+  instance'SockaddrIUCV : SockaddrIUCV.TypeAssumptions
+  instance'SockaddrNFC : SockaddrNFC.TypeAssumptions
+  instance'SockaddrNFCLLCP : SockaddrNFCLLCP.TypeAssumptions
+  instance'fileHandle : fileHandle.TypeAssumptions
+  instance'FileHandle : FileHandle.TypeAssumptions
+  instance'RemoteIovec : RemoteIovec.TypeAssumptions
+  instance'ItimerWhich : ItimerWhich.TypeAssumptions
+  instance'mmapper : mmapper.TypeAssumptions
+  instance'Sockaddr : Sockaddr.TypeAssumptions
+  instance'SockaddrInet4 : SockaddrInet4.TypeAssumptions
+  instance'SockaddrInet6 : SockaddrInet6.TypeAssumptions
+  instance'SockaddrUnix : SockaddrUnix.TypeAssumptions
+  instance'PtraceRegs386 : PtraceRegs386.TypeAssumptions
+  instance'PtraceRegsAmd64 : PtraceRegsAmd64.TypeAssumptions
+  instance'_C_short : _C_short.TypeAssumptions
+  instance'_C_int : _C_int.TypeAssumptions
+  instance'_C_long_long : _C_long_long.TypeAssumptions
+  instance'KernelTimespec : KernelTimespec.TypeAssumptions
+  instance'ItimerSpec : ItimerSpec.TypeAssumptions
+  instance'Itimerval : Itimerval.TypeAssumptions
+  instance'Rlimit : Rlimit.TypeAssumptions
+  instance'_Gid_t : _Gid_t.TypeAssumptions
+  instance'StatxTimestamp : StatxTimestamp.TypeAssumptions
+  instance'Statx_t : Statx_t.TypeAssumptions
+  instance'Fsid : Fsid.TypeAssumptions
+  instance'FileCloneRange : FileCloneRange.TypeAssumptions
+  instance'RawFileDedupeRange : RawFileDedupeRange.TypeAssumptions
+  instance'RawFileDedupeRangeInfo : RawFileDedupeRangeInfo.TypeAssumptions
+  instance'FscryptPolicy : FscryptPolicy.TypeAssumptions
+  instance'FscryptKey : FscryptKey.TypeAssumptions
+  instance'FscryptPolicyV1 : FscryptPolicyV1.TypeAssumptions
+  instance'FscryptPolicyV2 : FscryptPolicyV2.TypeAssumptions
+  instance'FscryptGetPolicyExArg : FscryptGetPolicyExArg.TypeAssumptions
+  instance'FscryptKeySpecifier : FscryptKeySpecifier.TypeAssumptions
+  instance'FscryptAddKeyArg : FscryptAddKeyArg.TypeAssumptions
+  instance'FscryptRemoveKeyArg : FscryptRemoveKeyArg.TypeAssumptions
+  instance'FscryptGetKeyStatusArg : FscryptGetKeyStatusArg.TypeAssumptions
+  instance'DmIoctl : DmIoctl.TypeAssumptions
+  instance'DmTargetSpec : DmTargetSpec.TypeAssumptions
+  instance'DmTargetDeps : DmTargetDeps.TypeAssumptions
+  instance'DmTargetVersions : DmTargetVersions.TypeAssumptions
+  instance'DmTargetMsg : DmTargetMsg.TypeAssumptions
+  instance'KeyctlDHParams : KeyctlDHParams.TypeAssumptions
+  instance'RawSockaddrInet4 : RawSockaddrInet4.TypeAssumptions
+  instance'RawSockaddrInet6 : RawSockaddrInet6.TypeAssumptions
+  instance'RawSockaddrUnix : RawSockaddrUnix.TypeAssumptions
+  instance'RawSockaddrLinklayer : RawSockaddrLinklayer.TypeAssumptions
+  instance'RawSockaddrNetlink : RawSockaddrNetlink.TypeAssumptions
+  instance'RawSockaddrHCI : RawSockaddrHCI.TypeAssumptions
+  instance'RawSockaddrL2 : RawSockaddrL2.TypeAssumptions
+  instance'RawSockaddrRFCOMM : RawSockaddrRFCOMM.TypeAssumptions
+  instance'RawSockaddrCAN : RawSockaddrCAN.TypeAssumptions
+  instance'RawSockaddrALG : RawSockaddrALG.TypeAssumptions
+  instance'RawSockaddrVM : RawSockaddrVM.TypeAssumptions
+  instance'RawSockaddrXDP : RawSockaddrXDP.TypeAssumptions
+  instance'RawSockaddrPPPoX : RawSockaddrPPPoX.TypeAssumptions
+  instance'RawSockaddrTIPC : RawSockaddrTIPC.TypeAssumptions
+  instance'RawSockaddrL2TPIP : RawSockaddrL2TPIP.TypeAssumptions
+  instance'RawSockaddrL2TPIP6 : RawSockaddrL2TPIP6.TypeAssumptions
+  instance'RawSockaddrIUCV : RawSockaddrIUCV.TypeAssumptions
+  instance'RawSockaddrNFC : RawSockaddrNFC.TypeAssumptions
+  instance'_Socklen : _Socklen.TypeAssumptions
+  instance'Linger : Linger.TypeAssumptions
+  instance'IPMreq : IPMreq.TypeAssumptions
+  instance'IPMreqn : IPMreqn.TypeAssumptions
+  instance'IPv6Mreq : IPv6Mreq.TypeAssumptions
+  instance'PacketMreq : PacketMreq.TypeAssumptions
+  instance'Inet4Pktinfo : Inet4Pktinfo.TypeAssumptions
+  instance'Inet6Pktinfo : Inet6Pktinfo.TypeAssumptions
+  instance'IPv6MTUInfo : IPv6MTUInfo.TypeAssumptions
+  instance'ICMPv6Filter : ICMPv6Filter.TypeAssumptions
+  instance'Ucred : Ucred.TypeAssumptions
+  instance'TCPInfo : TCPInfo.TypeAssumptions
+  instance'TCPVegasInfo : TCPVegasInfo.TypeAssumptions
+  instance'TCPDCTCPInfo : TCPDCTCPInfo.TypeAssumptions
+  instance'TCPBBRInfo : TCPBBRInfo.TypeAssumptions
+  instance'CanFilter : CanFilter.TypeAssumptions
+  instance'TCPRepairOpt : TCPRepairOpt.TypeAssumptions
+  instance'NlMsghdr : NlMsghdr.TypeAssumptions
+  instance'NlMsgerr : NlMsgerr.TypeAssumptions
+  instance'RtGenmsg : RtGenmsg.TypeAssumptions
+  instance'NlAttr : NlAttr.TypeAssumptions
+  instance'RtAttr : RtAttr.TypeAssumptions
+  instance'IfInfomsg : IfInfomsg.TypeAssumptions
+  instance'Prefixmsg : Prefixmsg.TypeAssumptions
+  instance'PrefixCacheinfo : PrefixCacheinfo.TypeAssumptions
+  instance'IfAddrmsg : IfAddrmsg.TypeAssumptions
+  instance'IfAddrlblmsg : IfAddrlblmsg.TypeAssumptions
+  instance'IfaCacheinfo : IfaCacheinfo.TypeAssumptions
+  instance'RtMsg : RtMsg.TypeAssumptions
+  instance'RtNexthop : RtNexthop.TypeAssumptions
+  instance'NdUseroptmsg : NdUseroptmsg.TypeAssumptions
+  instance'NdMsg : NdMsg.TypeAssumptions
+  instance'SockFilter : SockFilter.TypeAssumptions
+  instance'SockFprog : SockFprog.TypeAssumptions
+  instance'InotifyEvent : InotifyEvent.TypeAssumptions
+  instance'Utsname : Utsname.TypeAssumptions
+  instance'OpenHow : OpenHow.TypeAssumptions
+  instance'PollFd : PollFd.TypeAssumptions
+  instance'sigset_argpack : sigset_argpack.TypeAssumptions
+  instance'SignalfdSiginfo : SignalfdSiginfo.TypeAssumptions
+  instance'Winsize : Winsize.TypeAssumptions
+  instance'CGroupStats : CGroupStats.TypeAssumptions
+  instance'Genlmsghdr : Genlmsghdr.TypeAssumptions
+  instance'PerfEventAttr : PerfEventAttr.TypeAssumptions
+  instance'PerfEventMmapPage : PerfEventMmapPage.TypeAssumptions
+  instance'TCPMD5Sig : TCPMD5Sig.TypeAssumptions
+  instance'HDDriveCmdHdr : HDDriveCmdHdr.TypeAssumptions
+  instance'HDDriveID : HDDriveID.TypeAssumptions
+  instance'Tpacket2Hdr : Tpacket2Hdr.TypeAssumptions
+  instance'Tpacket3Hdr : Tpacket3Hdr.TypeAssumptions
+  instance'TpacketHdrVariant1 : TpacketHdrVariant1.TypeAssumptions
+  instance'TpacketBlockDesc : TpacketBlockDesc.TypeAssumptions
+  instance'TpacketBDTS : TpacketBDTS.TypeAssumptions
+  instance'TpacketHdrV1 : TpacketHdrV1.TypeAssumptions
+  instance'TpacketReq : TpacketReq.TypeAssumptions
+  instance'TpacketReq3 : TpacketReq3.TypeAssumptions
+  instance'TpacketStats : TpacketStats.TypeAssumptions
+  instance'TpacketStatsV3 : TpacketStatsV3.TypeAssumptions
+  instance'TpacketAuxdata : TpacketAuxdata.TypeAssumptions
+  instance'Nfgenmsg : Nfgenmsg.TypeAssumptions
+  instance'RTCTime : RTCTime.TypeAssumptions
+  instance'RTCWkAlrm : RTCWkAlrm.TypeAssumptions
+  instance'BlkpgIoctlArg : BlkpgIoctlArg.TypeAssumptions
+  instance'XDPRingOffset : XDPRingOffset.TypeAssumptions
+  instance'XDPMmapOffsets : XDPMmapOffsets.TypeAssumptions
+  instance'XDPUmemReg : XDPUmemReg.TypeAssumptions
+  instance'XDPStatistics : XDPStatistics.TypeAssumptions
+  instance'XDPDesc : XDPDesc.TypeAssumptions
+  instance'ScmTimestamping : ScmTimestamping.TypeAssumptions
+  instance'SockExtendedErr : SockExtendedErr.TypeAssumptions
+  instance'FanotifyEventMetadata : FanotifyEventMetadata.TypeAssumptions
+  instance'FanotifyResponse : FanotifyResponse.TypeAssumptions
+  instance'CapUserHeader : CapUserHeader.TypeAssumptions
+  instance'CapUserData : CapUserData.TypeAssumptions
+  instance'LoopInfo64 : LoopInfo64.TypeAssumptions
+  instance'LoopConfig : LoopConfig.TypeAssumptions
+  instance'TIPCSocketAddr : TIPCSocketAddr.TypeAssumptions
+  instance'TIPCServiceRange : TIPCServiceRange.TypeAssumptions
+  instance'TIPCServiceName : TIPCServiceName.TypeAssumptions
+  instance'TIPCEvent : TIPCEvent.TypeAssumptions
+  instance'TIPCGroupReq : TIPCGroupReq.TypeAssumptions
+  instance'FsverityDigest : FsverityDigest.TypeAssumptions
+  instance'FsverityEnableArg : FsverityEnableArg.TypeAssumptions
+  instance'Nhmsg : Nhmsg.TypeAssumptions
+  instance'NexthopGrp : NexthopGrp.TypeAssumptions
+  instance'WatchdogInfo : WatchdogInfo.TypeAssumptions
+  instance'PPSFData : PPSFData.TypeAssumptions
+  instance'PPSKParams : PPSKParams.TypeAssumptions
+  instance'PPSKTime : PPSKTime.TypeAssumptions
+  instance'EthtoolDrvinfo : EthtoolDrvinfo.TypeAssumptions
+  instance'EthtoolTsInfo : EthtoolTsInfo.TypeAssumptions
+  instance'HwTstampConfig : HwTstampConfig.TypeAssumptions
+  instance'PtpClockCaps : PtpClockCaps.TypeAssumptions
+  instance'PtpClockTime : PtpClockTime.TypeAssumptions
+  instance'PtpExttsEvent : PtpExttsEvent.TypeAssumptions
+  instance'PtpExttsRequest : PtpExttsRequest.TypeAssumptions
+  instance'PtpPeroutRequest : PtpPeroutRequest.TypeAssumptions
+  instance'PtpPinDesc : PtpPinDesc.TypeAssumptions
+  instance'PtpSysOffset : PtpSysOffset.TypeAssumptions
+  instance'PtpSysOffsetExtended : PtpSysOffsetExtended.TypeAssumptions
+  instance'PtpSysOffsetPrecise : PtpSysOffsetPrecise.TypeAssumptions
+  instance'HIDRawReportDescriptor : HIDRawReportDescriptor.TypeAssumptions
+  instance'HIDRawDevInfo : HIDRawDevInfo.TypeAssumptions
+  instance'EraseInfo : EraseInfo.TypeAssumptions
+  instance'EraseInfo64 : EraseInfo64.TypeAssumptions
+  instance'MtdOobBuf : MtdOobBuf.TypeAssumptions
+  instance'MtdOobBuf64 : MtdOobBuf64.TypeAssumptions
+  instance'MtdWriteReq : MtdWriteReq.TypeAssumptions
+  instance'MtdInfo : MtdInfo.TypeAssumptions
+  instance'RegionInfo : RegionInfo.TypeAssumptions
+  instance'OtpInfo : OtpInfo.TypeAssumptions
+  instance'NandOobinfo : NandOobinfo.TypeAssumptions
+  instance'NandOobfree : NandOobfree.TypeAssumptions
+  instance'NandEcclayout : NandEcclayout.TypeAssumptions
+  instance'MtdEccStats : MtdEccStats.TypeAssumptions
+  instance'LandlockRulesetAttr : LandlockRulesetAttr.TypeAssumptions
+  instance'LandlockPathBeneathAttr : LandlockPathBeneathAttr.TypeAssumptions
+  instance'PidfdInfo : PidfdInfo.TypeAssumptions
+  instance'MountAttr : MountAttr.TypeAssumptions
+  instance'CANBitTiming : CANBitTiming.TypeAssumptions
+  instance'CANBitTimingConst : CANBitTimingConst.TypeAssumptions
+  instance'CANClock : CANClock.TypeAssumptions
+  instance'CANBusErrorCounters : CANBusErrorCounters.TypeAssumptions
+  instance'CANCtrlMode : CANCtrlMode.TypeAssumptions
+  instance'CANDeviceStats : CANDeviceStats.TypeAssumptions
+  instance'KCMAttach : KCMAttach.TypeAssumptions
+  instance'KCMUnattach : KCMUnattach.TypeAssumptions
+  instance'KCMClone : KCMClone.TypeAssumptions
+  instance'SchedAttr : SchedAttr.TypeAssumptions
+  instance'Cachestat_t : Cachestat_t.TypeAssumptions
+  instance'CachestatRange : CachestatRange.TypeAssumptions
+  instance'SockDiagReq : SockDiagReq.TypeAssumptions
+  instance'GPIOChipInfo : GPIOChipInfo.TypeAssumptions
+  instance'GPIOV2LineValues : GPIOV2LineValues.TypeAssumptions
+  instance'GPIOV2LineAttribute : GPIOV2LineAttribute.TypeAssumptions
+  instance'GPIOV2LineConfigAttribute : GPIOV2LineConfigAttribute.TypeAssumptions
+  instance'GPIOV2LineConfig : GPIOV2LineConfig.TypeAssumptions
+  instance'GPIOV2LineRequest : GPIOV2LineRequest.TypeAssumptions
+  instance'GPIOV2LineInfo : GPIOV2LineInfo.TypeAssumptions
+  instance'GPIOV2LineInfoChanged : GPIOV2LineInfoChanged.TypeAssumptions
+  instance'GPIOV2LineEvent : GPIOV2LineEvent.TypeAssumptions
+  instance'IPMISystemInterfaceAddr : IPMISystemInterfaceAddr.TypeAssumptions
+  instance'IPMIMsg : IPMIMsg.TypeAssumptions
+  instance'_C_long : _C_long.TypeAssumptions
+  instance'Timespec : Timespec.TypeAssumptions
+  instance'Timeval : Timeval.TypeAssumptions
+  instance'Timex : Timex.TypeAssumptions
+  instance'Time_t : Time_t.TypeAssumptions
+  instance'Tms : Tms.TypeAssumptions
+  instance'Utimbuf : Utimbuf.TypeAssumptions
+  instance'Rusage : Rusage.TypeAssumptions
+  instance'Stat_t : Stat_t.TypeAssumptions
+  instance'Dirent : Dirent.TypeAssumptions
+  instance'Flock_t : Flock_t.TypeAssumptions
+  instance'DmNameList : DmNameList.TypeAssumptions
+  instance'RawSockaddrNFCLLCP : RawSockaddrNFCLLCP.TypeAssumptions
+  instance'RawSockaddr : RawSockaddr.TypeAssumptions
+  instance'RawSockaddrAny : RawSockaddrAny.TypeAssumptions
+  instance'Iovec : Iovec.TypeAssumptions
+  instance'Msghdr : Msghdr.TypeAssumptions
+  instance'Cmsghdr : Cmsghdr.TypeAssumptions
+  instance'ifreq : ifreq.TypeAssumptions
+  instance'PtraceRegs : PtraceRegs.TypeAssumptions
+  instance'FdSet : FdSet.TypeAssumptions
+  instance'Sysinfo_t : Sysinfo_t.TypeAssumptions
+  instance'Ustat_t : Ustat_t.TypeAssumptions
+  instance'EpollEvent : EpollEvent.TypeAssumptions
+  instance'Sigset_t : Sigset_t.TypeAssumptions
+  instance'Siginfo : Siginfo.TypeAssumptions
+  instance'Termios : Termios.TypeAssumptions
+  instance'Taskstats : Taskstats.TypeAssumptions
+  instance'cpuMask : cpuMask.TypeAssumptions
+  instance'SockaddrStorage : SockaddrStorage.TypeAssumptions
+  instance'HDGeometry : HDGeometry.TypeAssumptions
+  instance'Statfs_t : Statfs_t.TypeAssumptions
+  instance'TpacketHdr : TpacketHdr.TypeAssumptions
+  instance'RTCPLLInfo : RTCPLLInfo.TypeAssumptions
+  instance'BlkpgPartition : BlkpgPartition.TypeAssumptions
+  instance'CryptoUserAlg : CryptoUserAlg.TypeAssumptions
+  instance'CryptoStatAEAD : CryptoStatAEAD.TypeAssumptions
+  instance'CryptoStatAKCipher : CryptoStatAKCipher.TypeAssumptions
+  instance'CryptoStatCipher : CryptoStatCipher.TypeAssumptions
+  instance'CryptoStatCompress : CryptoStatCompress.TypeAssumptions
+  instance'CryptoStatHash : CryptoStatHash.TypeAssumptions
+  instance'CryptoStatKPP : CryptoStatKPP.TypeAssumptions
+  instance'CryptoStatRNG : CryptoStatRNG.TypeAssumptions
+  instance'CryptoStatLarval : CryptoStatLarval.TypeAssumptions
+  instance'CryptoReportLarval : CryptoReportLarval.TypeAssumptions
+  instance'CryptoReportHash : CryptoReportHash.TypeAssumptions
+  instance'CryptoReportCipher : CryptoReportCipher.TypeAssumptions
+  instance'CryptoReportBlkCipher : CryptoReportBlkCipher.TypeAssumptions
+  instance'CryptoReportAEAD : CryptoReportAEAD.TypeAssumptions
+  instance'CryptoReportComp : CryptoReportComp.TypeAssumptions
+  instance'CryptoReportRNG : CryptoReportRNG.TypeAssumptions
+  instance'CryptoReportAKCipher : CryptoReportAKCipher.TypeAssumptions
+  instance'CryptoReportKPP : CryptoReportKPP.TypeAssumptions
+  instance'CryptoReportAcomp : CryptoReportAcomp.TypeAssumptions
+  instance'LoopInfo : LoopInfo.TypeAssumptions
+  instance'TIPCSubscr : TIPCSubscr.TypeAssumptions
+  instance'TIPCSIOCLNReq : TIPCSIOCLNReq.TypeAssumptions
+  instance'TIPCSIOCNodeIDReq : TIPCSIOCNodeIDReq.TypeAssumptions
+  instance'PPSKInfo : PPSKInfo.TypeAssumptions
+  instance'SysvIpcPerm : SysvIpcPerm.TypeAssumptions
+  instance'SysvShmDesc : SysvShmDesc.TypeAssumptions
+  instance'IPMIReq : IPMIReq.TypeAssumptions
+  instance'IPMIRecv : IPMIRecv.TypeAssumptions
+  unfold'FcntlFlock : FuncUnfold FcntlFlock [] FcntlFlock.impl
+  unfold'Mmap : FuncUnfold Mmap [] Mmap.impl
+  unfold'Munmap : FuncUnfold Munmap [] Munmap.impl
+  unfold'Madvise : FuncUnfold Madvise [] Madvise.impl
+  unfold'Fallocate : FuncUnfold Fallocate [] Fallocate.impl
+  import'syscall : _root_.Perennial.syscall.Assumptions
 
-attribute [instance] Assumptions.CPUSet_instance
-  Assumptions.CPUSetDynamic_instance
-  Assumptions.Ifreq_instance
-  Assumptions.ifreqData_instance
-  Assumptions.FileDedupeRange_instance
-  Assumptions.FileDedupeRangeInfo_instance
-  Assumptions.mremapMmapper_instance
-  Assumptions.SocketControlMessage_instance
-  Assumptions.WaitStatus_instance
-  Assumptions.SockaddrLinklayer_instance
-  Assumptions.SockaddrNetlink_instance
-  Assumptions.SockaddrHCI_instance
-  Assumptions.SockaddrL2_instance
-  Assumptions.SockaddrRFCOMM_instance
-  Assumptions.SockaddrCAN_instance
-  Assumptions.SockaddrCANJ1939_instance
-  Assumptions.SockaddrALG_instance
-  Assumptions.SockaddrVM_instance
-  Assumptions.SockaddrXDP_instance
-  Assumptions.SockaddrPPPoE_instance
-  Assumptions.SockaddrTIPC_instance
-  Assumptions.TIPCAddr_instance
-  Assumptions.SockaddrL2TPIP_instance
-  Assumptions.SockaddrL2TPIP6_instance
-  Assumptions.SockaddrIUCV_instance
-  Assumptions.SockaddrNFC_instance
-  Assumptions.SockaddrNFCLLCP_instance
-  Assumptions.fileHandle_instance
-  Assumptions.FileHandle_instance
-  Assumptions.RemoteIovec_instance
-  Assumptions.ItimerWhich_instance
-  Assumptions.mmapper_instance
-  Assumptions.Sockaddr_instance
-  Assumptions.SockaddrInet4_instance
-  Assumptions.SockaddrInet6_instance
-  Assumptions.SockaddrUnix_instance
-  Assumptions.PtraceRegs386_instance
-  Assumptions.PtraceRegsAmd64_instance
-  Assumptions._C_short_instance
-  Assumptions._C_int_instance
-  Assumptions._C_long_long_instance
-  Assumptions.KernelTimespec_instance
-  Assumptions.ItimerSpec_instance
-  Assumptions.Itimerval_instance
-  Assumptions.Rlimit_instance
-  Assumptions._Gid_t_instance
-  Assumptions.StatxTimestamp_instance
-  Assumptions.Statx_t_instance
-  Assumptions.Fsid_instance
-  Assumptions.FileCloneRange_instance
-  Assumptions.RawFileDedupeRange_instance
-  Assumptions.RawFileDedupeRangeInfo_instance
-  Assumptions.FscryptPolicy_instance
-  Assumptions.FscryptKey_instance
-  Assumptions.FscryptPolicyV1_instance
-  Assumptions.FscryptPolicyV2_instance
-  Assumptions.FscryptGetPolicyExArg_instance
-  Assumptions.FscryptKeySpecifier_instance
-  Assumptions.FscryptAddKeyArg_instance
-  Assumptions.FscryptRemoveKeyArg_instance
-  Assumptions.FscryptGetKeyStatusArg_instance
-  Assumptions.DmIoctl_instance
-  Assumptions.DmTargetSpec_instance
-  Assumptions.DmTargetDeps_instance
-  Assumptions.DmTargetVersions_instance
-  Assumptions.DmTargetMsg_instance
-  Assumptions.KeyctlDHParams_instance
-  Assumptions.RawSockaddrInet4_instance
-  Assumptions.RawSockaddrInet6_instance
-  Assumptions.RawSockaddrUnix_instance
-  Assumptions.RawSockaddrLinklayer_instance
-  Assumptions.RawSockaddrNetlink_instance
-  Assumptions.RawSockaddrHCI_instance
-  Assumptions.RawSockaddrL2_instance
-  Assumptions.RawSockaddrRFCOMM_instance
-  Assumptions.RawSockaddrCAN_instance
-  Assumptions.RawSockaddrALG_instance
-  Assumptions.RawSockaddrVM_instance
-  Assumptions.RawSockaddrXDP_instance
-  Assumptions.RawSockaddrPPPoX_instance
-  Assumptions.RawSockaddrTIPC_instance
-  Assumptions.RawSockaddrL2TPIP_instance
-  Assumptions.RawSockaddrL2TPIP6_instance
-  Assumptions.RawSockaddrIUCV_instance
-  Assumptions.RawSockaddrNFC_instance
-  Assumptions._Socklen_instance
-  Assumptions.Linger_instance
-  Assumptions.IPMreq_instance
-  Assumptions.IPMreqn_instance
-  Assumptions.IPv6Mreq_instance
-  Assumptions.PacketMreq_instance
-  Assumptions.Inet4Pktinfo_instance
-  Assumptions.Inet6Pktinfo_instance
-  Assumptions.IPv6MTUInfo_instance
-  Assumptions.ICMPv6Filter_instance
-  Assumptions.Ucred_instance
-  Assumptions.TCPInfo_instance
-  Assumptions.TCPVegasInfo_instance
-  Assumptions.TCPDCTCPInfo_instance
-  Assumptions.TCPBBRInfo_instance
-  Assumptions.CanFilter_instance
-  Assumptions.TCPRepairOpt_instance
-  Assumptions.NlMsghdr_instance
-  Assumptions.NlMsgerr_instance
-  Assumptions.RtGenmsg_instance
-  Assumptions.NlAttr_instance
-  Assumptions.RtAttr_instance
-  Assumptions.IfInfomsg_instance
-  Assumptions.Prefixmsg_instance
-  Assumptions.PrefixCacheinfo_instance
-  Assumptions.IfAddrmsg_instance
-  Assumptions.IfAddrlblmsg_instance
-  Assumptions.IfaCacheinfo_instance
-  Assumptions.RtMsg_instance
-  Assumptions.RtNexthop_instance
-  Assumptions.NdUseroptmsg_instance
-  Assumptions.NdMsg_instance
-  Assumptions.SockFilter_instance
-  Assumptions.SockFprog_instance
-  Assumptions.InotifyEvent_instance
-  Assumptions.Utsname_instance
-  Assumptions.OpenHow_instance
-  Assumptions.PollFd_instance
-  Assumptions.sigset_argpack_instance
-  Assumptions.SignalfdSiginfo_instance
-  Assumptions.Winsize_instance
-  Assumptions.CGroupStats_instance
-  Assumptions.Genlmsghdr_instance
-  Assumptions.PerfEventAttr_instance
-  Assumptions.PerfEventMmapPage_instance
-  Assumptions.TCPMD5Sig_instance
-  Assumptions.HDDriveCmdHdr_instance
-  Assumptions.HDDriveID_instance
-  Assumptions.Tpacket2Hdr_instance
-  Assumptions.Tpacket3Hdr_instance
-  Assumptions.TpacketHdrVariant1_instance
-  Assumptions.TpacketBlockDesc_instance
-  Assumptions.TpacketBDTS_instance
-  Assumptions.TpacketHdrV1_instance
-  Assumptions.TpacketReq_instance
-  Assumptions.TpacketReq3_instance
-  Assumptions.TpacketStats_instance
-  Assumptions.TpacketStatsV3_instance
-  Assumptions.TpacketAuxdata_instance
-  Assumptions.Nfgenmsg_instance
-  Assumptions.RTCTime_instance
-  Assumptions.RTCWkAlrm_instance
-  Assumptions.BlkpgIoctlArg_instance
-  Assumptions.XDPRingOffset_instance
-  Assumptions.XDPMmapOffsets_instance
-  Assumptions.XDPUmemReg_instance
-  Assumptions.XDPStatistics_instance
-  Assumptions.XDPDesc_instance
-  Assumptions.ScmTimestamping_instance
-  Assumptions.SockExtendedErr_instance
-  Assumptions.FanotifyEventMetadata_instance
-  Assumptions.FanotifyResponse_instance
-  Assumptions.CapUserHeader_instance
-  Assumptions.CapUserData_instance
-  Assumptions.LoopInfo64_instance
-  Assumptions.LoopConfig_instance
-  Assumptions.TIPCSocketAddr_instance
-  Assumptions.TIPCServiceRange_instance
-  Assumptions.TIPCServiceName_instance
-  Assumptions.TIPCEvent_instance
-  Assumptions.TIPCGroupReq_instance
-  Assumptions.FsverityDigest_instance
-  Assumptions.FsverityEnableArg_instance
-  Assumptions.Nhmsg_instance
-  Assumptions.NexthopGrp_instance
-  Assumptions.WatchdogInfo_instance
-  Assumptions.PPSFData_instance
-  Assumptions.PPSKParams_instance
-  Assumptions.PPSKTime_instance
-  Assumptions.EthtoolDrvinfo_instance
-  Assumptions.EthtoolTsInfo_instance
-  Assumptions.HwTstampConfig_instance
-  Assumptions.PtpClockCaps_instance
-  Assumptions.PtpClockTime_instance
-  Assumptions.PtpExttsEvent_instance
-  Assumptions.PtpExttsRequest_instance
-  Assumptions.PtpPeroutRequest_instance
-  Assumptions.PtpPinDesc_instance
-  Assumptions.PtpSysOffset_instance
-  Assumptions.PtpSysOffsetExtended_instance
-  Assumptions.PtpSysOffsetPrecise_instance
-  Assumptions.HIDRawReportDescriptor_instance
-  Assumptions.HIDRawDevInfo_instance
-  Assumptions.EraseInfo_instance
-  Assumptions.EraseInfo64_instance
-  Assumptions.MtdOobBuf_instance
-  Assumptions.MtdOobBuf64_instance
-  Assumptions.MtdWriteReq_instance
-  Assumptions.MtdInfo_instance
-  Assumptions.RegionInfo_instance
-  Assumptions.OtpInfo_instance
-  Assumptions.NandOobinfo_instance
-  Assumptions.NandOobfree_instance
-  Assumptions.NandEcclayout_instance
-  Assumptions.MtdEccStats_instance
-  Assumptions.LandlockRulesetAttr_instance
-  Assumptions.LandlockPathBeneathAttr_instance
-  Assumptions.PidfdInfo_instance
-  Assumptions.MountAttr_instance
-  Assumptions.CANBitTiming_instance
-  Assumptions.CANBitTimingConst_instance
-  Assumptions.CANClock_instance
-  Assumptions.CANBusErrorCounters_instance
-  Assumptions.CANCtrlMode_instance
-  Assumptions.CANDeviceStats_instance
-  Assumptions.KCMAttach_instance
-  Assumptions.KCMUnattach_instance
-  Assumptions.KCMClone_instance
-  Assumptions.SchedAttr_instance
-  Assumptions.Cachestat_t_instance
-  Assumptions.CachestatRange_instance
-  Assumptions.SockDiagReq_instance
-  Assumptions.GPIOChipInfo_instance
-  Assumptions.GPIOV2LineValues_instance
-  Assumptions.GPIOV2LineAttribute_instance
-  Assumptions.GPIOV2LineConfigAttribute_instance
-  Assumptions.GPIOV2LineConfig_instance
-  Assumptions.GPIOV2LineRequest_instance
-  Assumptions.GPIOV2LineInfo_instance
-  Assumptions.GPIOV2LineInfoChanged_instance
-  Assumptions.GPIOV2LineEvent_instance
-  Assumptions.IPMISystemInterfaceAddr_instance
-  Assumptions.IPMIMsg_instance
-  Assumptions._C_long_instance
-  Assumptions.Timespec_instance
-  Assumptions.Timeval_instance
-  Assumptions.Timex_instance
-  Assumptions.Time_t_instance
-  Assumptions.Tms_instance
-  Assumptions.Utimbuf_instance
-  Assumptions.Rusage_instance
-  Assumptions.Stat_t_instance
-  Assumptions.Dirent_instance
-  Assumptions.Flock_t_instance
-  Assumptions.DmNameList_instance
-  Assumptions.RawSockaddrNFCLLCP_instance
-  Assumptions.RawSockaddr_instance
-  Assumptions.RawSockaddrAny_instance
-  Assumptions.Iovec_instance
-  Assumptions.Msghdr_instance
-  Assumptions.Cmsghdr_instance
-  Assumptions.ifreq_instance
-  Assumptions.PtraceRegs_instance
-  Assumptions.FdSet_instance
-  Assumptions.Sysinfo_t_instance
-  Assumptions.Ustat_t_instance
-  Assumptions.EpollEvent_instance
-  Assumptions.Sigset_t_instance
-  Assumptions.Siginfo_instance
-  Assumptions.Termios_instance
-  Assumptions.Taskstats_instance
-  Assumptions.cpuMask_instance
-  Assumptions.SockaddrStorage_instance
-  Assumptions.HDGeometry_instance
-  Assumptions.Statfs_t_instance
-  Assumptions.TpacketHdr_instance
-  Assumptions.RTCPLLInfo_instance
-  Assumptions.BlkpgPartition_instance
-  Assumptions.CryptoUserAlg_instance
-  Assumptions.CryptoStatAEAD_instance
-  Assumptions.CryptoStatAKCipher_instance
-  Assumptions.CryptoStatCipher_instance
-  Assumptions.CryptoStatCompress_instance
-  Assumptions.CryptoStatHash_instance
-  Assumptions.CryptoStatKPP_instance
-  Assumptions.CryptoStatRNG_instance
-  Assumptions.CryptoStatLarval_instance
-  Assumptions.CryptoReportLarval_instance
-  Assumptions.CryptoReportHash_instance
-  Assumptions.CryptoReportCipher_instance
-  Assumptions.CryptoReportBlkCipher_instance
-  Assumptions.CryptoReportAEAD_instance
-  Assumptions.CryptoReportComp_instance
-  Assumptions.CryptoReportRNG_instance
-  Assumptions.CryptoReportAKCipher_instance
-  Assumptions.CryptoReportKPP_instance
-  Assumptions.CryptoReportAcomp_instance
-  Assumptions.LoopInfo_instance
-  Assumptions.TIPCSubscr_instance
-  Assumptions.TIPCSIOCLNReq_instance
-  Assumptions.TIPCSIOCNodeIDReq_instance
-  Assumptions.PPSKInfo_instance
-  Assumptions.SysvIpcPerm_instance
-  Assumptions.SysvShmDesc_instance
-  Assumptions.IPMIReq_instance
-  Assumptions.IPMIRecv_instance
-  Assumptions.FcntlFlock_unfold
-  Assumptions.Mmap_unfold
-  Assumptions.Munmap_unfold
-  Assumptions.Madvise_unfold
-  Assumptions.Fallocate_unfold
-  Assumptions.import_syscall_Assumption
+attribute [instance] Assumptions.instance'CPUSet
+  Assumptions.instance'CPUSetDynamic
+  Assumptions.instance'Ifreq
+  Assumptions.instance'ifreqData
+  Assumptions.instance'FileDedupeRange
+  Assumptions.instance'FileDedupeRangeInfo
+  Assumptions.instance'mremapMmapper
+  Assumptions.instance'SocketControlMessage
+  Assumptions.instance'WaitStatus
+  Assumptions.instance'SockaddrLinklayer
+  Assumptions.instance'SockaddrNetlink
+  Assumptions.instance'SockaddrHCI
+  Assumptions.instance'SockaddrL2
+  Assumptions.instance'SockaddrRFCOMM
+  Assumptions.instance'SockaddrCAN
+  Assumptions.instance'SockaddrCANJ1939
+  Assumptions.instance'SockaddrALG
+  Assumptions.instance'SockaddrVM
+  Assumptions.instance'SockaddrXDP
+  Assumptions.instance'SockaddrPPPoE
+  Assumptions.instance'SockaddrTIPC
+  Assumptions.instance'TIPCAddr
+  Assumptions.instance'SockaddrL2TPIP
+  Assumptions.instance'SockaddrL2TPIP6
+  Assumptions.instance'SockaddrIUCV
+  Assumptions.instance'SockaddrNFC
+  Assumptions.instance'SockaddrNFCLLCP
+  Assumptions.instance'fileHandle
+  Assumptions.instance'FileHandle
+  Assumptions.instance'RemoteIovec
+  Assumptions.instance'ItimerWhich
+  Assumptions.instance'mmapper
+  Assumptions.instance'Sockaddr
+  Assumptions.instance'SockaddrInet4
+  Assumptions.instance'SockaddrInet6
+  Assumptions.instance'SockaddrUnix
+  Assumptions.instance'PtraceRegs386
+  Assumptions.instance'PtraceRegsAmd64
+  Assumptions.instance'_C_short
+  Assumptions.instance'_C_int
+  Assumptions.instance'_C_long_long
+  Assumptions.instance'KernelTimespec
+  Assumptions.instance'ItimerSpec
+  Assumptions.instance'Itimerval
+  Assumptions.instance'Rlimit
+  Assumptions.instance'_Gid_t
+  Assumptions.instance'StatxTimestamp
+  Assumptions.instance'Statx_t
+  Assumptions.instance'Fsid
+  Assumptions.instance'FileCloneRange
+  Assumptions.instance'RawFileDedupeRange
+  Assumptions.instance'RawFileDedupeRangeInfo
+  Assumptions.instance'FscryptPolicy
+  Assumptions.instance'FscryptKey
+  Assumptions.instance'FscryptPolicyV1
+  Assumptions.instance'FscryptPolicyV2
+  Assumptions.instance'FscryptGetPolicyExArg
+  Assumptions.instance'FscryptKeySpecifier
+  Assumptions.instance'FscryptAddKeyArg
+  Assumptions.instance'FscryptRemoveKeyArg
+  Assumptions.instance'FscryptGetKeyStatusArg
+  Assumptions.instance'DmIoctl
+  Assumptions.instance'DmTargetSpec
+  Assumptions.instance'DmTargetDeps
+  Assumptions.instance'DmTargetVersions
+  Assumptions.instance'DmTargetMsg
+  Assumptions.instance'KeyctlDHParams
+  Assumptions.instance'RawSockaddrInet4
+  Assumptions.instance'RawSockaddrInet6
+  Assumptions.instance'RawSockaddrUnix
+  Assumptions.instance'RawSockaddrLinklayer
+  Assumptions.instance'RawSockaddrNetlink
+  Assumptions.instance'RawSockaddrHCI
+  Assumptions.instance'RawSockaddrL2
+  Assumptions.instance'RawSockaddrRFCOMM
+  Assumptions.instance'RawSockaddrCAN
+  Assumptions.instance'RawSockaddrALG
+  Assumptions.instance'RawSockaddrVM
+  Assumptions.instance'RawSockaddrXDP
+  Assumptions.instance'RawSockaddrPPPoX
+  Assumptions.instance'RawSockaddrTIPC
+  Assumptions.instance'RawSockaddrL2TPIP
+  Assumptions.instance'RawSockaddrL2TPIP6
+  Assumptions.instance'RawSockaddrIUCV
+  Assumptions.instance'RawSockaddrNFC
+  Assumptions.instance'_Socklen
+  Assumptions.instance'Linger
+  Assumptions.instance'IPMreq
+  Assumptions.instance'IPMreqn
+  Assumptions.instance'IPv6Mreq
+  Assumptions.instance'PacketMreq
+  Assumptions.instance'Inet4Pktinfo
+  Assumptions.instance'Inet6Pktinfo
+  Assumptions.instance'IPv6MTUInfo
+  Assumptions.instance'ICMPv6Filter
+  Assumptions.instance'Ucred
+  Assumptions.instance'TCPInfo
+  Assumptions.instance'TCPVegasInfo
+  Assumptions.instance'TCPDCTCPInfo
+  Assumptions.instance'TCPBBRInfo
+  Assumptions.instance'CanFilter
+  Assumptions.instance'TCPRepairOpt
+  Assumptions.instance'NlMsghdr
+  Assumptions.instance'NlMsgerr
+  Assumptions.instance'RtGenmsg
+  Assumptions.instance'NlAttr
+  Assumptions.instance'RtAttr
+  Assumptions.instance'IfInfomsg
+  Assumptions.instance'Prefixmsg
+  Assumptions.instance'PrefixCacheinfo
+  Assumptions.instance'IfAddrmsg
+  Assumptions.instance'IfAddrlblmsg
+  Assumptions.instance'IfaCacheinfo
+  Assumptions.instance'RtMsg
+  Assumptions.instance'RtNexthop
+  Assumptions.instance'NdUseroptmsg
+  Assumptions.instance'NdMsg
+  Assumptions.instance'SockFilter
+  Assumptions.instance'SockFprog
+  Assumptions.instance'InotifyEvent
+  Assumptions.instance'Utsname
+  Assumptions.instance'OpenHow
+  Assumptions.instance'PollFd
+  Assumptions.instance'sigset_argpack
+  Assumptions.instance'SignalfdSiginfo
+  Assumptions.instance'Winsize
+  Assumptions.instance'CGroupStats
+  Assumptions.instance'Genlmsghdr
+  Assumptions.instance'PerfEventAttr
+  Assumptions.instance'PerfEventMmapPage
+  Assumptions.instance'TCPMD5Sig
+  Assumptions.instance'HDDriveCmdHdr
+  Assumptions.instance'HDDriveID
+  Assumptions.instance'Tpacket2Hdr
+  Assumptions.instance'Tpacket3Hdr
+  Assumptions.instance'TpacketHdrVariant1
+  Assumptions.instance'TpacketBlockDesc
+  Assumptions.instance'TpacketBDTS
+  Assumptions.instance'TpacketHdrV1
+  Assumptions.instance'TpacketReq
+  Assumptions.instance'TpacketReq3
+  Assumptions.instance'TpacketStats
+  Assumptions.instance'TpacketStatsV3
+  Assumptions.instance'TpacketAuxdata
+  Assumptions.instance'Nfgenmsg
+  Assumptions.instance'RTCTime
+  Assumptions.instance'RTCWkAlrm
+  Assumptions.instance'BlkpgIoctlArg
+  Assumptions.instance'XDPRingOffset
+  Assumptions.instance'XDPMmapOffsets
+  Assumptions.instance'XDPUmemReg
+  Assumptions.instance'XDPStatistics
+  Assumptions.instance'XDPDesc
+  Assumptions.instance'ScmTimestamping
+  Assumptions.instance'SockExtendedErr
+  Assumptions.instance'FanotifyEventMetadata
+  Assumptions.instance'FanotifyResponse
+  Assumptions.instance'CapUserHeader
+  Assumptions.instance'CapUserData
+  Assumptions.instance'LoopInfo64
+  Assumptions.instance'LoopConfig
+  Assumptions.instance'TIPCSocketAddr
+  Assumptions.instance'TIPCServiceRange
+  Assumptions.instance'TIPCServiceName
+  Assumptions.instance'TIPCEvent
+  Assumptions.instance'TIPCGroupReq
+  Assumptions.instance'FsverityDigest
+  Assumptions.instance'FsverityEnableArg
+  Assumptions.instance'Nhmsg
+  Assumptions.instance'NexthopGrp
+  Assumptions.instance'WatchdogInfo
+  Assumptions.instance'PPSFData
+  Assumptions.instance'PPSKParams
+  Assumptions.instance'PPSKTime
+  Assumptions.instance'EthtoolDrvinfo
+  Assumptions.instance'EthtoolTsInfo
+  Assumptions.instance'HwTstampConfig
+  Assumptions.instance'PtpClockCaps
+  Assumptions.instance'PtpClockTime
+  Assumptions.instance'PtpExttsEvent
+  Assumptions.instance'PtpExttsRequest
+  Assumptions.instance'PtpPeroutRequest
+  Assumptions.instance'PtpPinDesc
+  Assumptions.instance'PtpSysOffset
+  Assumptions.instance'PtpSysOffsetExtended
+  Assumptions.instance'PtpSysOffsetPrecise
+  Assumptions.instance'HIDRawReportDescriptor
+  Assumptions.instance'HIDRawDevInfo
+  Assumptions.instance'EraseInfo
+  Assumptions.instance'EraseInfo64
+  Assumptions.instance'MtdOobBuf
+  Assumptions.instance'MtdOobBuf64
+  Assumptions.instance'MtdWriteReq
+  Assumptions.instance'MtdInfo
+  Assumptions.instance'RegionInfo
+  Assumptions.instance'OtpInfo
+  Assumptions.instance'NandOobinfo
+  Assumptions.instance'NandOobfree
+  Assumptions.instance'NandEcclayout
+  Assumptions.instance'MtdEccStats
+  Assumptions.instance'LandlockRulesetAttr
+  Assumptions.instance'LandlockPathBeneathAttr
+  Assumptions.instance'PidfdInfo
+  Assumptions.instance'MountAttr
+  Assumptions.instance'CANBitTiming
+  Assumptions.instance'CANBitTimingConst
+  Assumptions.instance'CANClock
+  Assumptions.instance'CANBusErrorCounters
+  Assumptions.instance'CANCtrlMode
+  Assumptions.instance'CANDeviceStats
+  Assumptions.instance'KCMAttach
+  Assumptions.instance'KCMUnattach
+  Assumptions.instance'KCMClone
+  Assumptions.instance'SchedAttr
+  Assumptions.instance'Cachestat_t
+  Assumptions.instance'CachestatRange
+  Assumptions.instance'SockDiagReq
+  Assumptions.instance'GPIOChipInfo
+  Assumptions.instance'GPIOV2LineValues
+  Assumptions.instance'GPIOV2LineAttribute
+  Assumptions.instance'GPIOV2LineConfigAttribute
+  Assumptions.instance'GPIOV2LineConfig
+  Assumptions.instance'GPIOV2LineRequest
+  Assumptions.instance'GPIOV2LineInfo
+  Assumptions.instance'GPIOV2LineInfoChanged
+  Assumptions.instance'GPIOV2LineEvent
+  Assumptions.instance'IPMISystemInterfaceAddr
+  Assumptions.instance'IPMIMsg
+  Assumptions.instance'_C_long
+  Assumptions.instance'Timespec
+  Assumptions.instance'Timeval
+  Assumptions.instance'Timex
+  Assumptions.instance'Time_t
+  Assumptions.instance'Tms
+  Assumptions.instance'Utimbuf
+  Assumptions.instance'Rusage
+  Assumptions.instance'Stat_t
+  Assumptions.instance'Dirent
+  Assumptions.instance'Flock_t
+  Assumptions.instance'DmNameList
+  Assumptions.instance'RawSockaddrNFCLLCP
+  Assumptions.instance'RawSockaddr
+  Assumptions.instance'RawSockaddrAny
+  Assumptions.instance'Iovec
+  Assumptions.instance'Msghdr
+  Assumptions.instance'Cmsghdr
+  Assumptions.instance'ifreq
+  Assumptions.instance'PtraceRegs
+  Assumptions.instance'FdSet
+  Assumptions.instance'Sysinfo_t
+  Assumptions.instance'Ustat_t
+  Assumptions.instance'EpollEvent
+  Assumptions.instance'Sigset_t
+  Assumptions.instance'Siginfo
+  Assumptions.instance'Termios
+  Assumptions.instance'Taskstats
+  Assumptions.instance'cpuMask
+  Assumptions.instance'SockaddrStorage
+  Assumptions.instance'HDGeometry
+  Assumptions.instance'Statfs_t
+  Assumptions.instance'TpacketHdr
+  Assumptions.instance'RTCPLLInfo
+  Assumptions.instance'BlkpgPartition
+  Assumptions.instance'CryptoUserAlg
+  Assumptions.instance'CryptoStatAEAD
+  Assumptions.instance'CryptoStatAKCipher
+  Assumptions.instance'CryptoStatCipher
+  Assumptions.instance'CryptoStatCompress
+  Assumptions.instance'CryptoStatHash
+  Assumptions.instance'CryptoStatKPP
+  Assumptions.instance'CryptoStatRNG
+  Assumptions.instance'CryptoStatLarval
+  Assumptions.instance'CryptoReportLarval
+  Assumptions.instance'CryptoReportHash
+  Assumptions.instance'CryptoReportCipher
+  Assumptions.instance'CryptoReportBlkCipher
+  Assumptions.instance'CryptoReportAEAD
+  Assumptions.instance'CryptoReportComp
+  Assumptions.instance'CryptoReportRNG
+  Assumptions.instance'CryptoReportAKCipher
+  Assumptions.instance'CryptoReportKPP
+  Assumptions.instance'CryptoReportAcomp
+  Assumptions.instance'LoopInfo
+  Assumptions.instance'TIPCSubscr
+  Assumptions.instance'TIPCSIOCLNReq
+  Assumptions.instance'TIPCSIOCNodeIDReq
+  Assumptions.instance'PPSKInfo
+  Assumptions.instance'SysvIpcPerm
+  Assumptions.instance'SysvShmDesc
+  Assumptions.instance'IPMIReq
+  Assumptions.instance'IPMIRecv
+  Assumptions.unfold'FcntlFlock
+  Assumptions.unfold'Mmap
+  Assumptions.unfold'Munmap
+  Assumptions.unfold'Madvise
+  Assumptions.unfold'Fallocate
+  Assumptions.import'syscall
 
 end golang_org.x.sys.unix
 

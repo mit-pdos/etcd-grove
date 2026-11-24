@@ -592,9 +592,9 @@ theorem getOptions_intoVal_inj : Function.Injective (intoVal (V := k8s_io.apiser
   intro x y h
   have h : (#x : val) = #y := h
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.GetOptions.TypeAssumptions.get_IgnoreNotFound x) (k8s_io.apiserver.pkg.storage.GetOptions.TypeAssumptions.get_IgnoreNotFound y) h))
+    (k8s_io.apiserver.pkg.storage.GetOptions.TypeAssumptions.get'IgnoreNotFound x) (k8s_io.apiserver.pkg.storage.GetOptions.TypeAssumptions.get'IgnoreNotFound y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.GetOptions.TypeAssumptions.get_ResourceVersion x) (k8s_io.apiserver.pkg.storage.GetOptions.TypeAssumptions.get_ResourceVersion y) h))
+    (k8s_io.apiserver.pkg.storage.GetOptions.TypeAssumptions.get'ResourceVersion x) (k8s_io.apiserver.pkg.storage.GetOptions.TypeAssumptions.get'ResourceVersion y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -602,23 +602,23 @@ theorem selPred_intoVal_inj : Function.Injective (intoVal (V := k8s_io.apiserver
   intro x y h
   have h : (#x : val) = #y := h
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_Label x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_Label y) h))
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'Label x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'Label y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_Field x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_Field y) h))
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'Field x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'Field y) h))
   have := intoVal_inj_func (hG := hG) (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_GetAttrs x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_GetAttrs y) h))
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'GetAttrs x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'GetAttrs y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_IndexLabels x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_IndexLabels y) h))
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'IndexLabels x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'IndexLabels y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_IndexFields x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_IndexFields y) h))
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'IndexFields x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'IndexFields y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_Limit x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_Limit y) h))
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'Limit x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'Limit y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_Continue x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_Continue y) h))
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'Continue x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'Continue y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_AllowWatchBookmarks x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_AllowWatchBookmarks y) h))
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'AllowWatchBookmarks x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'AllowWatchBookmarks y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_ShardSelector x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_ShardSelector y) h))
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'ShardSelector x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get'ShardSelector y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -626,19 +626,19 @@ theorem listOptions_intoVal_inj : Function.Injective (intoVal (V := k8s_io.apise
   intro x y h
   have h : (#x : val) = #y := h
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_ResourceVersion x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_ResourceVersion y) h))
+    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get'ResourceVersion x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get'ResourceVersion y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_ResourceVersionMatch x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_ResourceVersionMatch y) h))
+    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get'ResourceVersionMatch x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get'ResourceVersionMatch y) h))
   have := selPred_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_Predicate x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_Predicate y) h))
+    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get'Predicate x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get'Predicate y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_Recursive x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_Recursive y) h))
+    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get'Recursive x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get'Recursive y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_ProgressNotify x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_ProgressNotify y) h))
+    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get'ProgressNotify x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get'ProgressNotify y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_SendInitialEvents x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_SendInitialEvents y) h))
+    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get'SendInitialEvents x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get'SendInitialEvents y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_RecordTimestamps x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_RecordTimestamps y) h))
+    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get'RecordTimestamps x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get'RecordTimestamps y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -646,7 +646,7 @@ theorem createReq_intoVal_inj : Function.Injective (intoVal (V := github_com.mit
   intro x y h
   have h : (#x : val) = #y := h
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest.TypeAssumptions.get_Object x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest.TypeAssumptions.get_Object y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest.TypeAssumptions.get'Object x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest.TypeAssumptions.get'Object y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -654,7 +654,7 @@ theorem getReq_intoVal_inj : Function.Injective (intoVal (V := github_com.mit_pd
   intro x y h
   have h : (#x : val) = #y := h
   have := getOptions_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest.TypeAssumptions.get_Options x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest.TypeAssumptions.get_Options y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest.TypeAssumptions.get'Options x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest.TypeAssumptions.get'Options y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -662,7 +662,7 @@ theorem listReq_intoVal_inj : Function.Injective (intoVal (V := github_com.mit_p
   intro x y h
   have h : (#x : val) = #y := h
   have := listOptions_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest.TypeAssumptions.get_Options x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest.TypeAssumptions.get_Options y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest.TypeAssumptions.get'Options x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest.TypeAssumptions.get'Options y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -670,11 +670,11 @@ theorem deleteReq_intoVal_inj : Function.Injective (intoVal (V := github_com.mit
   intro x y h
   have h : (#x : val) = #y := h
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get_Preconditions x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get_Preconditions y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get'Preconditions x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get'Preconditions y) h))
   have := intoVal_inj_func (hG := hG) (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get_ValidateDeletion x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get_ValidateDeletion y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get'ValidateDeletion x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get'ValidateDeletion y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get_CachedExistingObject x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get_CachedExistingObject y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get'CachedExistingObject x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get'CachedExistingObject y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -682,13 +682,13 @@ theorem updateReq_intoVal_inj : Function.Injective (intoVal (V := github_com.mit
   intro x y h
   have h : (#x : val) = #y := h
   have := intoVal_inj_func (hG := hG) (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get_UpdateFunc x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get_UpdateFunc y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get'UpdateFunc x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get'UpdateFunc y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get_IgnoreNotFound x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get_IgnoreNotFound y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get'IgnoreNotFound x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get'IgnoreNotFound y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get_Preconditions x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get_Preconditions y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get'Preconditions x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get'Preconditions y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get_CachedExistingObject x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get_CachedExistingObject y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get'CachedExistingObject x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get'CachedExistingObject y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -696,7 +696,7 @@ theorem compactReq_intoVal_inj : Function.Injective (intoVal (V := github_com.mi
   intro x y h
   have h : (#x : val) = #y := h
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest.TypeAssumptions.get_ResourceVersion x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest.TypeAssumptions.get_ResourceVersion y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest.TypeAssumptions.get'ResourceVersion x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest.TypeAssumptions.get'ResourceVersion y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -704,21 +704,21 @@ theorem request_intoVal_inj : Function.Injective (intoVal (V := github_com.mit_p
   intro x y h
   have h : (#x : val) = #y := h
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Op x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Op y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get'Op x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get'Op y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Key x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Key y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get'Key x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get'Key y) h))
   have := createReq_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Create x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Create y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get'Create x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get'Create y) h))
   have := getReq_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Get x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Get y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get'Get x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get'Get y) h))
   have := listReq_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_List x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_List y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get'List x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get'List y) h))
   have := deleteReq_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Delete x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Delete y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get'Delete x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get'Delete y) h))
   have := updateReq_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Update x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Update y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get'Update x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get'Update y) h))
   have := compactReq_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Compact x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Compact y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get'Compact x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get'Compact y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -726,9 +726,9 @@ theorem response_intoVal_inj : Function.Injective (intoVal (V := github_com.mit_
   intro x y h
   have h : (#x : val) = #y := h
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.TypeAssumptions.get_Object x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.TypeAssumptions.get_Object y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.TypeAssumptions.get'Object x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.TypeAssumptions.get'Object y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.TypeAssumptions.get_Err x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.TypeAssumptions.get_Err y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.TypeAssumptions.get'Err x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.TypeAssumptions.get'Err y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in

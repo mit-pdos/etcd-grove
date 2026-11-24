@@ -59,7 +59,7 @@ noncomputable instance TraceKey.zero_val [GooseExts] : ZeroVal TraceKey :=
 @[irreducible] noncomputable def TraceKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TraceKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_TraceKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'TraceKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold TraceKey.fields TraceKey.fieldsUnsealed :=
   ⟨by unfold TraceKey.fields; rfl⟩
 
@@ -89,7 +89,7 @@ noncomputable instance LookupIPAltResolverKey.zero_val [GooseExts] : ZeroVal Loo
 @[irreducible] noncomputable def LookupIPAltResolverKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LookupIPAltResolverKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_LookupIPAltResolverKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LookupIPAltResolverKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold LookupIPAltResolverKey.fields LookupIPAltResolverKey.fieldsUnsealed :=
   ⟨by unfold LookupIPAltResolverKey.fields; rfl⟩
 
@@ -126,7 +126,7 @@ noncomputable instance Trace.zero_val [GooseExts] : ZeroVal Trace :=
 @[irreducible] noncomputable def Trace.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Trace.fieldsUnsealed
 
-noncomputable instance equals_unfold_Trace [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Trace [GooseExts] [GoGlobalContext] :
     EqualsUnfold Trace.fields Trace.fieldsUnsealed :=
   ⟨by unfold Trace.fields; rfl⟩
 
@@ -136,38 +136,38 @@ noncomputable instance equals_unfold_Trace [GooseExts] [GoGlobalContext] :
 class Trace.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Trace.underlying Trace
   underlying : go.UnderlyingDirectedEq Trace.ty Trace.underlying
-  get_DNSStart : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"DNSStart") #x (Val #(x.DNSStart'))
-  set_DNSStart : ∀ (x : Trace) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"DNSStart") (PairV #x #y) (Val #(({ x with DNSStart' := y } : Trace)))
-  get_DNSDone : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"DNSDone") #x (Val #(x.DNSDone'))
-  set_DNSDone : ∀ (x : Trace) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"DNSDone") (PairV #x #y) (Val #(({ x with DNSDone' := y } : Trace)))
-  get_ConnectStart : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"ConnectStart") #x (Val #(x.ConnectStart'))
-  set_ConnectStart : ∀ (x : Trace) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"ConnectStart") (PairV #x #y) (Val #(({ x with ConnectStart' := y } : Trace)))
-  get_ConnectDone : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"ConnectDone") #x (Val #(x.ConnectDone'))
-  set_ConnectDone : ∀ (x : Trace) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"ConnectDone") (PairV #x #y) (Val #(({ x with ConnectDone' := y } : Trace)))
+  get'DNSStart : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"DNSStart") #x (Val #(x.DNSStart'))
+  set'DNSStart : ∀ (x : Trace) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"DNSStart") (PairV #x #y) (Val #(({ x with DNSStart' := y } : Trace)))
+  get'DNSDone : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"DNSDone") #x (Val #(x.DNSDone'))
+  set'DNSDone : ∀ (x : Trace) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"DNSDone") (PairV #x #y) (Val #(({ x with DNSDone' := y } : Trace)))
+  get'ConnectStart : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"ConnectStart") #x (Val #(x.ConnectStart'))
+  set'ConnectStart : ∀ (x : Trace) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"ConnectStart") (PairV #x #y) (Val #(({ x with ConnectStart' := y } : Trace)))
+  get'ConnectDone : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"ConnectDone") #x (Val #(x.ConnectDone'))
+  set'ConnectDone : ∀ (x : Trace) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"ConnectDone") (PairV #x #y) (Val #(({ x with ConnectDone' := y } : Trace)))
   method_set : go.MethodSetIs Trace.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Trace.ty) []
 
 attribute [instance] Trace.TypeAssumptions.type_repr
   Trace.TypeAssumptions.underlying
-  Trace.TypeAssumptions.get_DNSStart
-  Trace.TypeAssumptions.set_DNSStart
-  Trace.TypeAssumptions.get_DNSDone
-  Trace.TypeAssumptions.set_DNSDone
-  Trace.TypeAssumptions.get_ConnectStart
-  Trace.TypeAssumptions.set_ConnectStart
-  Trace.TypeAssumptions.get_ConnectDone
-  Trace.TypeAssumptions.set_ConnectDone
+  Trace.TypeAssumptions.get'DNSStart
+  Trace.TypeAssumptions.set'DNSStart
+  Trace.TypeAssumptions.get'DNSDone
+  Trace.TypeAssumptions.set'DNSDone
+  Trace.TypeAssumptions.get'ConnectStart
+  Trace.TypeAssumptions.set'ConnectStart
+  Trace.TypeAssumptions.get'ConnectDone
+  Trace.TypeAssumptions.set'ConnectDone
   Trace.TypeAssumptions.method_set
   Trace.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  TraceKey_instance : TraceKey.TypeAssumptions
-  LookupIPAltResolverKey_instance : LookupIPAltResolverKey.TypeAssumptions
-  Trace_instance : Trace.TypeAssumptions
+  instance'TraceKey : TraceKey.TypeAssumptions
+  instance'LookupIPAltResolverKey : LookupIPAltResolverKey.TypeAssumptions
+  instance'Trace : Trace.TypeAssumptions
 
-attribute [instance] Assumptions.TraceKey_instance
-  Assumptions.LookupIPAltResolverKey_instance
-  Assumptions.Trace_instance
+attribute [instance] Assumptions.instance'TraceKey
+  Assumptions.instance'LookupIPAltResolverKey
+  Assumptions.instance'Trace
 
 end internal.nettrace
 

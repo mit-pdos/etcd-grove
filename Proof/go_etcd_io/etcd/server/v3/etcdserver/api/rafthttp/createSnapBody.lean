@@ -117,7 +117,7 @@ theorem rafthttp.createSnapBody.wp_proof
       isplitr
       · ipureintro; rfl
       iintro !> %r %p %xs %Ψ !> Hpre HΨ
-      rw [go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser.TypeAssumptions.ptr_Read_unfold.method_unfold]
+      rw [go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser.TypeAssumptions.ptr_unfold'Read.method_unfold]
       wp_auto
       wp_apply HR $$ [$Hpre]
       iexact HΨ
@@ -125,7 +125,7 @@ theorem rafthttp.createSnapBody.wp_proof
   iunfold rdCloseOk
   iintro !> %Ψ !> - HΨ
   subst Hrd
-  rw [go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser.TypeAssumptions.ptr_Close_unfold.method_unfold]
+  rw [go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser.TypeAssumptions.ptr_unfold'Close.method_unfold]
   wp_auto
   wp_apply Hclose
   iexact HΨ

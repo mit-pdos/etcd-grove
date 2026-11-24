@@ -36,7 +36,7 @@ theorem newPending.wp_proof (wp_Domain : Bag.Domain.spec (GF := GF) (hG := hG))
   simp only [TypedPointsto.typedPointstoDef]
   icases Hpf2 with ⟨-, -, -, #PM2, -⟩
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_Domain_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'Domain.method_unfold]
   try wp_auto
   wp_apply wp_Domain g2.PendingMessages' s2.pendingMessages $$ [Hpm2] as %sl #Hsl
   · iexact Hpm2

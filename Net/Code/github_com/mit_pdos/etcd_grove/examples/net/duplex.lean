@@ -284,19 +284,19 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  serveConn_unfold : FuncUnfold serveConn [] serveConn.impl
-  Serve_unfold : FuncUnfold Serve [] Serve.impl
-  writeAll_unfold : FuncUnfold writeAll [] writeAll.impl
-  Call_unfold : FuncUnfold Call [] Call.impl
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_wire_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Assumptions
+  unfold'serveConn : FuncUnfold serveConn [] serveConn.impl
+  unfold'Serve : FuncUnfold Serve [] Serve.impl
+  unfold'writeAll : FuncUnfold writeAll [] writeAll.impl
+  unfold'Call : FuncUnfold Call [] Call.impl
+  import'net : _root_.Perennial.net.Assumptions
+  import'wire : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Assumptions
 
-attribute [instance] Assumptions.serveConn_unfold
-  Assumptions.Serve_unfold
-  Assumptions.writeAll_unfold
-  Assumptions.Call_unfold
-  Assumptions.import_net_Assumption
-  Assumptions.import_wire_Assumption
+attribute [instance] Assumptions.unfold'serveConn
+  Assumptions.unfold'Serve
+  Assumptions.unfold'writeAll
+  Assumptions.unfold'Call
+  Assumptions.import'net
+  Assumptions.import'wire
 
 end github_com.mit_pdos.etcd_grove.examples.net.duplex
 

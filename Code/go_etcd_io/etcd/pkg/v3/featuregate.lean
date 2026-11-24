@@ -435,7 +435,7 @@ noncomputable instance FeatureSpec.zero_val [GooseExts] : ZeroVal FeatureSpec :=
 @[irreducible] noncomputable def FeatureSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FeatureSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_FeatureSpec [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FeatureSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold FeatureSpec.fields FeatureSpec.fieldsUnsealed :=
   ⟨by unfold FeatureSpec.fields; rfl⟩
 
@@ -445,23 +445,23 @@ noncomputable instance equals_unfold_FeatureSpec [GooseExts] [GoGlobalContext] :
 class FeatureSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FeatureSpec.underlying FeatureSpec
   underlying : go.UnderlyingDirectedEq FeatureSpec.ty FeatureSpec.underlying
-  get_Default : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"Default") #x (Val #(x.Default'))
-  set_Default : ∀ (x : FeatureSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"Default") (PairV #x #y) (Val #(({ x with Default' := y } : FeatureSpec)))
-  get_LockToDefault : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"LockToDefault") #x (Val #(x.LockToDefault'))
-  set_LockToDefault : ∀ (x : FeatureSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"LockToDefault") (PairV #x #y) (Val #(({ x with LockToDefault' := y } : FeatureSpec)))
-  get_PreRelease : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"PreRelease") #x (Val #(x.PreRelease'))
-  set_PreRelease : ∀ (x : FeatureSpec) (y : prerelease), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"PreRelease") (PairV #x #y) (Val #(({ x with PreRelease' := y } : FeatureSpec)))
+  get'Default : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"Default") #x (Val #(x.Default'))
+  set'Default : ∀ (x : FeatureSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"Default") (PairV #x #y) (Val #(({ x with Default' := y } : FeatureSpec)))
+  get'LockToDefault : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"LockToDefault") #x (Val #(x.LockToDefault'))
+  set'LockToDefault : ∀ (x : FeatureSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"LockToDefault") (PairV #x #y) (Val #(({ x with LockToDefault' := y } : FeatureSpec)))
+  get'PreRelease : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"PreRelease") #x (Val #(x.PreRelease'))
+  set'PreRelease : ∀ (x : FeatureSpec) (y : prerelease), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"PreRelease") (PairV #x #y) (Val #(({ x with PreRelease' := y } : FeatureSpec)))
   method_set : go.MethodSetIs FeatureSpec.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FeatureSpec.ty) []
 
 attribute [instance] FeatureSpec.TypeAssumptions.type_repr
   FeatureSpec.TypeAssumptions.underlying
-  FeatureSpec.TypeAssumptions.get_Default
-  FeatureSpec.TypeAssumptions.set_Default
-  FeatureSpec.TypeAssumptions.get_LockToDefault
-  FeatureSpec.TypeAssumptions.set_LockToDefault
-  FeatureSpec.TypeAssumptions.get_PreRelease
-  FeatureSpec.TypeAssumptions.set_PreRelease
+  FeatureSpec.TypeAssumptions.get'Default
+  FeatureSpec.TypeAssumptions.set'Default
+  FeatureSpec.TypeAssumptions.get'LockToDefault
+  FeatureSpec.TypeAssumptions.set'LockToDefault
+  FeatureSpec.TypeAssumptions.get'PreRelease
+  FeatureSpec.TypeAssumptions.set'PreRelease
   FeatureSpec.TypeAssumptions.method_set
   FeatureSpec.TypeAssumptions.ptr_method_set
 
@@ -518,7 +518,7 @@ noncomputable instance featureGate.zero_val [GooseExts] : ZeroVal featureGate :=
 @[irreducible] noncomputable def featureGate.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   featureGate.fieldsUnsealed
 
-noncomputable instance equals_unfold_featureGate [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'featureGate [GooseExts] [GoGlobalContext] :
     EqualsUnfold featureGate.fields featureGate.fieldsUnsealed :=
   ⟨by unfold featureGate.fields; rfl⟩
 
@@ -528,76 +528,76 @@ noncomputable instance equals_unfold_featureGate [GooseExts] [GoGlobalContext] :
 class featureGate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying featureGate.underlying featureGate
   underlying : go.UnderlyingDirectedEq featureGate.ty featureGate.underlying
-  get_lg : ∀ (x : featureGate), go.IsGoStepPureDetTagged under (StructFieldGet featureGate.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : featureGate) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet featureGate.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : featureGate)))
-  get_featureGateName : ∀ (x : featureGate), go.IsGoStepPureDetTagged under (StructFieldGet featureGate.underlying go!"featureGateName") #x (Val #(x.featureGateName'))
-  set_featureGateName : ∀ (x : featureGate) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet featureGate.underlying go!"featureGateName") (PairV #x #y) (Val #(({ x with featureGateName' := y } : featureGate)))
-  get_special : ∀ (x : featureGate), go.IsGoStepPureDetTagged under (StructFieldGet featureGate.underlying go!"special") #x (Val #(x.special'))
-  set_special : ∀ (x : featureGate) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet featureGate.underlying go!"special") (PairV #x #y) (Val #(({ x with special' := y } : featureGate)))
-  get_lock : ∀ (x : featureGate), go.IsGoStepPureDetTagged under (StructFieldGet featureGate.underlying go!"lock") #x (Val #(x.lock'))
-  set_lock : ∀ (x : featureGate) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet featureGate.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : featureGate)))
-  get_known : ∀ (x : featureGate), go.IsGoStepPureDetTagged under (StructFieldGet featureGate.underlying go!"known") #x (Val #(x.known'))
-  set_known : ∀ (x : featureGate) (y : _root_.Perennial.sync.atomic.Value), go.IsGoStepPureDetTagged under (StructFieldSet featureGate.underlying go!"known") (PairV #x #y) (Val #(({ x with known' := y } : featureGate)))
-  get_enabled : ∀ (x : featureGate), go.IsGoStepPureDetTagged under (StructFieldGet featureGate.underlying go!"enabled") #x (Val #(x.enabled'))
-  set_enabled : ∀ (x : featureGate) (y : _root_.Perennial.sync.atomic.Value), go.IsGoStepPureDetTagged under (StructFieldSet featureGate.underlying go!"enabled") (PairV #x #y) (Val #(({ x with enabled' := y } : featureGate)))
-  get_closed : ∀ (x : featureGate), go.IsGoStepPureDetTagged under (StructFieldGet featureGate.underlying go!"closed") #x (Val #(x.closed'))
-  set_closed : ∀ (x : featureGate) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet featureGate.underlying go!"closed") (PairV #x #y) (Val #(({ x with closed' := y } : featureGate)))
+  get'lg : ∀ (x : featureGate), go.IsGoStepPureDetTagged under (StructFieldGet featureGate.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : featureGate) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet featureGate.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : featureGate)))
+  get'featureGateName : ∀ (x : featureGate), go.IsGoStepPureDetTagged under (StructFieldGet featureGate.underlying go!"featureGateName") #x (Val #(x.featureGateName'))
+  set'featureGateName : ∀ (x : featureGate) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet featureGate.underlying go!"featureGateName") (PairV #x #y) (Val #(({ x with featureGateName' := y } : featureGate)))
+  get'special : ∀ (x : featureGate), go.IsGoStepPureDetTagged under (StructFieldGet featureGate.underlying go!"special") #x (Val #(x.special'))
+  set'special : ∀ (x : featureGate) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet featureGate.underlying go!"special") (PairV #x #y) (Val #(({ x with special' := y } : featureGate)))
+  get'lock : ∀ (x : featureGate), go.IsGoStepPureDetTagged under (StructFieldGet featureGate.underlying go!"lock") #x (Val #(x.lock'))
+  set'lock : ∀ (x : featureGate) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet featureGate.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : featureGate)))
+  get'known : ∀ (x : featureGate), go.IsGoStepPureDetTagged under (StructFieldGet featureGate.underlying go!"known") #x (Val #(x.known'))
+  set'known : ∀ (x : featureGate) (y : _root_.Perennial.sync.atomic.Value), go.IsGoStepPureDetTagged under (StructFieldSet featureGate.underlying go!"known") (PairV #x #y) (Val #(({ x with known' := y } : featureGate)))
+  get'enabled : ∀ (x : featureGate), go.IsGoStepPureDetTagged under (StructFieldGet featureGate.underlying go!"enabled") #x (Val #(x.enabled'))
+  set'enabled : ∀ (x : featureGate) (y : _root_.Perennial.sync.atomic.Value), go.IsGoStepPureDetTagged under (StructFieldSet featureGate.underlying go!"enabled") (PairV #x #y) (Val #(({ x with enabled' := y } : featureGate)))
+  get'closed : ∀ (x : featureGate), go.IsGoStepPureDetTagged under (StructFieldGet featureGate.underlying go!"closed") #x (Val #(x.closed'))
+  set'closed : ∀ (x : featureGate) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet featureGate.underlying go!"closed") (PairV #x #y) (Val #(({ x with closed' := y } : featureGate)))
   method_set : go.MethodSetIs featureGate.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType featureGate.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.MapType Feature.ty FeatureSpec.ty)] false [go.error]))), (go!"AddFlag", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.flag.FlagSet.ty), go.string] false []))), (go!"DeepCopy", (some (go.signature.Signature [] false [MutableFeatureGate.ty]))), (go!"Enabled", (some (go.signature.Signature [Feature.ty] false [go.bool]))), (go!"GetAll", (some (go.signature.Signature [] false [(go.GoType.MapType Feature.ty FeatureSpec.ty)]))), (go!"KnownFeatures", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"OverrideDefault", (some (go.signature.Signature [Feature.ty, go.bool] false [go.error]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"SetFromMap", (some (go.signature.Signature [(go.GoType.MapType go.string go.bool)] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [go.string])))]
-  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType featureGate.ty) go!"Add" featureGate.Add.impl
-  ptr_Enabled_unfold : MethodUnfold (go.GoType.PointerType featureGate.ty) go!"Enabled" featureGate.Enabled.impl
-  ptr_GetAll_unfold : MethodUnfold (go.GoType.PointerType featureGate.ty) go!"GetAll" featureGate.GetAll.impl
+  ptr_unfold'Add : MethodUnfold (go.GoType.PointerType featureGate.ty) go!"Add" featureGate.Add.impl
+  ptr_unfold'Enabled : MethodUnfold (go.GoType.PointerType featureGate.ty) go!"Enabled" featureGate.Enabled.impl
+  ptr_unfold'GetAll : MethodUnfold (go.GoType.PointerType featureGate.ty) go!"GetAll" featureGate.GetAll.impl
 
 attribute [instance] featureGate.TypeAssumptions.type_repr
   featureGate.TypeAssumptions.underlying
-  featureGate.TypeAssumptions.get_lg
-  featureGate.TypeAssumptions.set_lg
-  featureGate.TypeAssumptions.get_featureGateName
-  featureGate.TypeAssumptions.set_featureGateName
-  featureGate.TypeAssumptions.get_special
-  featureGate.TypeAssumptions.set_special
-  featureGate.TypeAssumptions.get_lock
-  featureGate.TypeAssumptions.set_lock
-  featureGate.TypeAssumptions.get_known
-  featureGate.TypeAssumptions.set_known
-  featureGate.TypeAssumptions.get_enabled
-  featureGate.TypeAssumptions.set_enabled
-  featureGate.TypeAssumptions.get_closed
-  featureGate.TypeAssumptions.set_closed
+  featureGate.TypeAssumptions.get'lg
+  featureGate.TypeAssumptions.set'lg
+  featureGate.TypeAssumptions.get'featureGateName
+  featureGate.TypeAssumptions.set'featureGateName
+  featureGate.TypeAssumptions.get'special
+  featureGate.TypeAssumptions.set'special
+  featureGate.TypeAssumptions.get'lock
+  featureGate.TypeAssumptions.set'lock
+  featureGate.TypeAssumptions.get'known
+  featureGate.TypeAssumptions.set'known
+  featureGate.TypeAssumptions.get'enabled
+  featureGate.TypeAssumptions.set'enabled
+  featureGate.TypeAssumptions.get'closed
+  featureGate.TypeAssumptions.set'closed
   featureGate.TypeAssumptions.method_set
   featureGate.TypeAssumptions.ptr_method_set
-  featureGate.TypeAssumptions.ptr_Add_unfold
-  featureGate.TypeAssumptions.ptr_Enabled_unfold
-  featureGate.TypeAssumptions.ptr_GetAll_unfold
+  featureGate.TypeAssumptions.ptr_unfold'Add
+  featureGate.TypeAssumptions.ptr_unfold'Enabled
+  featureGate.TypeAssumptions.ptr_unfold'GetAll
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Feature_instance : Feature.TypeAssumptions
-  FeatureSpec_instance : FeatureSpec.TypeAssumptions
-  prerelease_instance : prerelease.TypeAssumptions
-  FeatureGate_instance : FeatureGate.TypeAssumptions
-  MutableFeatureGate_instance : MutableFeatureGate.TypeAssumptions
-  featureGate_instance : featureGate.TypeAssumptions
-  New_unfold : FuncUnfold New [] New.impl
-  import_flag_Assumption : _root_.Perennial.flag.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_maps_Assumption : _root_.Perennial.maps.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
+  instance'Feature : Feature.TypeAssumptions
+  instance'FeatureSpec : FeatureSpec.TypeAssumptions
+  instance'prerelease : prerelease.TypeAssumptions
+  instance'FeatureGate : FeatureGate.TypeAssumptions
+  instance'MutableFeatureGate : MutableFeatureGate.TypeAssumptions
+  instance'featureGate : featureGate.TypeAssumptions
+  unfold'New : FuncUnfold New [] New.impl
+  import'flag : _root_.Perennial.flag.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'maps : _root_.Perennial.maps.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
 
-attribute [instance] Assumptions.Feature_instance
-  Assumptions.FeatureSpec_instance
-  Assumptions.prerelease_instance
-  Assumptions.FeatureGate_instance
-  Assumptions.MutableFeatureGate_instance
-  Assumptions.featureGate_instance
-  Assumptions.New_unfold
-  Assumptions.import_flag_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_maps_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_zap_Assumption
+attribute [instance] Assumptions.instance'Feature
+  Assumptions.instance'FeatureSpec
+  Assumptions.instance'prerelease
+  Assumptions.instance'FeatureGate
+  Assumptions.instance'MutableFeatureGate
+  Assumptions.instance'featureGate
+  Assumptions.unfold'New
+  Assumptions.import'flag
+  Assumptions.import'fmt
+  Assumptions.import'maps
+  Assumptions.import'sync
+  Assumptions.import'atomic
+  Assumptions.import'zap
 
 end go_etcd_io.etcd.pkg.v3.featuregate
 

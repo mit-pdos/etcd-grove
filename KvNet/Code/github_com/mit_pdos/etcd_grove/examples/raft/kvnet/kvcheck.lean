@@ -354,7 +354,7 @@ noncomputable def checker.fresh.impl [GooseExts] [GoGlobalContext] : val :=
     member until one answers (the same encoding each time: it takes effect once).
 
     go: kvcheck.go:127:19 -/
-noncomputable def checker.«do».impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def checker.do''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "kind"
   (Lam "key"
@@ -933,7 +933,7 @@ noncomputable instance checker.zero_val [GooseExts] : ZeroVal checker :=
 @[irreducible] noncomputable def checker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   checker.fieldsUnsealed
 
-noncomputable instance equals_unfold_checker [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'checker [GooseExts] [GoGlobalContext] :
     EqualsUnfold checker.fields checker.fieldsUnsealed :=
   ⟨by unfold checker.fields; rfl⟩
 
@@ -943,84 +943,84 @@ noncomputable instance equals_unfold_checker [GooseExts] [GoGlobalContext] :
 class checker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying checker.underlying checker
   underlying : go.UnderlyingDirectedEq checker.ty checker.underlying
-  get_addrs : ∀ (x : checker), go.IsGoStepPureDetTagged under (StructFieldGet checker.underlying go!"addrs") #x (Val #(x.addrs'))
-  set_addrs : ∀ (x : checker) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet checker.underlying go!"addrs") (PairV #x #y) (Val #(({ x with addrs' := y } : checker)))
-  get_mu : ∀ (x : checker), go.IsGoStepPureDetTagged under (StructFieldGet checker.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : checker) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet checker.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : checker)))
-  get_nextOp : ∀ (x : checker), go.IsGoStepPureDetTagged under (StructFieldGet checker.underlying go!"nextOp") #x (Val #(x.nextOp'))
-  set_nextOp : ∀ (x : checker) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet checker.underlying go!"nextOp") (PairV #x #y) (Val #(({ x with nextOp' := y } : checker)))
-  get_nextRead : ∀ (x : checker), go.IsGoStepPureDetTagged under (StructFieldGet checker.underlying go!"nextRead") #x (Val #(x.nextRead'))
-  set_nextRead : ∀ (x : checker) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet checker.underlying go!"nextRead") (PairV #x #y) (Val #(({ x with nextRead' := y } : checker)))
-  get_lastConf : ∀ (x : checker), go.IsGoStepPureDetTagged under (StructFieldGet checker.underlying go!"lastConf") #x (Val #(x.lastConf'))
-  set_lastConf : ∀ (x : checker) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet checker.underlying go!"lastConf") (PairV #x #y) (Val #(({ x with lastConf' := y } : checker)))
+  get'addrs : ∀ (x : checker), go.IsGoStepPureDetTagged under (StructFieldGet checker.underlying go!"addrs") #x (Val #(x.addrs'))
+  set'addrs : ∀ (x : checker) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet checker.underlying go!"addrs") (PairV #x #y) (Val #(({ x with addrs' := y } : checker)))
+  get'mu : ∀ (x : checker), go.IsGoStepPureDetTagged under (StructFieldGet checker.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : checker) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet checker.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : checker)))
+  get'nextOp : ∀ (x : checker), go.IsGoStepPureDetTagged under (StructFieldGet checker.underlying go!"nextOp") #x (Val #(x.nextOp'))
+  set'nextOp : ∀ (x : checker) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet checker.underlying go!"nextOp") (PairV #x #y) (Val #(({ x with nextOp' := y } : checker)))
+  get'nextRead : ∀ (x : checker), go.IsGoStepPureDetTagged under (StructFieldGet checker.underlying go!"nextRead") #x (Val #(x.nextRead'))
+  set'nextRead : ∀ (x : checker) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet checker.underlying go!"nextRead") (PairV #x #y) (Val #(({ x with nextRead' := y } : checker)))
+  get'lastConf : ∀ (x : checker), go.IsGoStepPureDetTagged under (StructFieldGet checker.underlying go!"lastConf") #x (Val #(x.lastConf'))
+  set'lastConf : ∀ (x : checker) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet checker.underlying go!"lastConf") (PairV #x #y) (Val #(({ x with lastConf' := y } : checker)))
   method_set : go.MethodSetIs checker.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType checker.ty) [(go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet/kvcheck.changeID", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [go.uint64]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet/kvcheck.conf", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet/kvcheck.disrupt", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet/kvcheck.do", (some (go.signature.Signature [go.byte, go.string, go.string] false [go.string]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet/kvcheck.fresh", (some (go.signature.Signature [(go.GoType.PointerType go.uint64)] false [go.uint64]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet/kvcheck.randomChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [_root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet/kvcheck.randomID", (some (go.signature.Signature [] false [go.uint64]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet/kvcheck.randomMember", (some (go.signature.Signature [] false [go.uint64]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet/kvcheck.read", (some (go.signature.Signature [go.string] false [go.string]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet/kvcheck.reconfigure", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet/kvcheck.request", (some (go.signature.Signature [go.uint64, go.byte, (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.bool])))]
-  ptr_changeID_unfold : MethodUnfold (go.GoType.PointerType checker.ty) go!"changeID" checker.changeID.impl
-  ptr_conf_unfold : MethodUnfold (go.GoType.PointerType checker.ty) go!"conf" checker.conf.impl
-  ptr_disrupt_unfold : MethodUnfold (go.GoType.PointerType checker.ty) go!"disrupt" checker.disrupt.impl
-  ptr_do_unfold : MethodUnfold (go.GoType.PointerType checker.ty) go!"do" checker.«do».impl
-  ptr_fresh_unfold : MethodUnfold (go.GoType.PointerType checker.ty) go!"fresh" checker.fresh.impl
-  ptr_randomChange_unfold : MethodUnfold (go.GoType.PointerType checker.ty) go!"randomChange" checker.randomChange.impl
-  ptr_randomID_unfold : MethodUnfold (go.GoType.PointerType checker.ty) go!"randomID" checker.randomID.impl
-  ptr_randomMember_unfold : MethodUnfold (go.GoType.PointerType checker.ty) go!"randomMember" checker.randomMember.impl
-  ptr_read_unfold : MethodUnfold (go.GoType.PointerType checker.ty) go!"read" checker.read.impl
-  ptr_reconfigure_unfold : MethodUnfold (go.GoType.PointerType checker.ty) go!"reconfigure" checker.reconfigure.impl
-  ptr_request_unfold : MethodUnfold (go.GoType.PointerType checker.ty) go!"request" checker.request.impl
+  ptr_unfold'changeID : MethodUnfold (go.GoType.PointerType checker.ty) go!"changeID" checker.changeID.impl
+  ptr_unfold'conf : MethodUnfold (go.GoType.PointerType checker.ty) go!"conf" checker.conf.impl
+  ptr_unfold'disrupt : MethodUnfold (go.GoType.PointerType checker.ty) go!"disrupt" checker.disrupt.impl
+  ptr_unfold'do : MethodUnfold (go.GoType.PointerType checker.ty) go!"do" checker.do''.impl
+  ptr_unfold'fresh : MethodUnfold (go.GoType.PointerType checker.ty) go!"fresh" checker.fresh.impl
+  ptr_unfold'randomChange : MethodUnfold (go.GoType.PointerType checker.ty) go!"randomChange" checker.randomChange.impl
+  ptr_unfold'randomID : MethodUnfold (go.GoType.PointerType checker.ty) go!"randomID" checker.randomID.impl
+  ptr_unfold'randomMember : MethodUnfold (go.GoType.PointerType checker.ty) go!"randomMember" checker.randomMember.impl
+  ptr_unfold'read : MethodUnfold (go.GoType.PointerType checker.ty) go!"read" checker.read.impl
+  ptr_unfold'reconfigure : MethodUnfold (go.GoType.PointerType checker.ty) go!"reconfigure" checker.reconfigure.impl
+  ptr_unfold'request : MethodUnfold (go.GoType.PointerType checker.ty) go!"request" checker.request.impl
 
 attribute [instance] checker.TypeAssumptions.type_repr
   checker.TypeAssumptions.underlying
-  checker.TypeAssumptions.get_addrs
-  checker.TypeAssumptions.set_addrs
-  checker.TypeAssumptions.get_mu
-  checker.TypeAssumptions.set_mu
-  checker.TypeAssumptions.get_nextOp
-  checker.TypeAssumptions.set_nextOp
-  checker.TypeAssumptions.get_nextRead
-  checker.TypeAssumptions.set_nextRead
-  checker.TypeAssumptions.get_lastConf
-  checker.TypeAssumptions.set_lastConf
+  checker.TypeAssumptions.get'addrs
+  checker.TypeAssumptions.set'addrs
+  checker.TypeAssumptions.get'mu
+  checker.TypeAssumptions.set'mu
+  checker.TypeAssumptions.get'nextOp
+  checker.TypeAssumptions.set'nextOp
+  checker.TypeAssumptions.get'nextRead
+  checker.TypeAssumptions.set'nextRead
+  checker.TypeAssumptions.get'lastConf
+  checker.TypeAssumptions.set'lastConf
   checker.TypeAssumptions.method_set
   checker.TypeAssumptions.ptr_method_set
-  checker.TypeAssumptions.ptr_changeID_unfold
-  checker.TypeAssumptions.ptr_conf_unfold
-  checker.TypeAssumptions.ptr_disrupt_unfold
-  checker.TypeAssumptions.ptr_do_unfold
-  checker.TypeAssumptions.ptr_fresh_unfold
-  checker.TypeAssumptions.ptr_randomChange_unfold
-  checker.TypeAssumptions.ptr_randomID_unfold
-  checker.TypeAssumptions.ptr_randomMember_unfold
-  checker.TypeAssumptions.ptr_read_unfold
-  checker.TypeAssumptions.ptr_reconfigure_unfold
-  checker.TypeAssumptions.ptr_request_unfold
+  checker.TypeAssumptions.ptr_unfold'changeID
+  checker.TypeAssumptions.ptr_unfold'conf
+  checker.TypeAssumptions.ptr_unfold'disrupt
+  checker.TypeAssumptions.ptr_unfold'do
+  checker.TypeAssumptions.ptr_unfold'fresh
+  checker.TypeAssumptions.ptr_unfold'randomChange
+  checker.TypeAssumptions.ptr_unfold'randomID
+  checker.TypeAssumptions.ptr_unfold'randomMember
+  checker.TypeAssumptions.ptr_unfold'read
+  checker.TypeAssumptions.ptr_unfold'reconfigure
+  checker.TypeAssumptions.ptr_unfold'request
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  checker_instance : checker.TypeAssumptions
-  oneIn_unfold : FuncUnfold oneIn [] oneIn.impl
-  below_unfold : FuncUnfold below [] below.impl
-  sleep_unfold : FuncUnfold sleep [] sleep.impl
-  Check_unfold : FuncUnfold Check [] Check.impl
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
-  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
-  import_trusted_proph_Assumption : _root_.Perennial.github_com.mit_pdos.gokv.trusted_proph.Assumptions
-  import_lintest_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
-  import_kvnet_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions
-  import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
+  instance'checker : checker.TypeAssumptions
+  unfold'oneIn : FuncUnfold oneIn [] oneIn.impl
+  unfold'below : FuncUnfold below [] below.impl
+  unfold'sleep : FuncUnfold sleep [] sleep.impl
+  unfold'Check : FuncUnfold Check [] Check.impl
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'porcupine : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
+  import'primitive : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
+  import'trusted_proph : _root_.Perennial.github_com.mit_pdos.gokv.trusted_proph.Assumptions
+  import'lintest : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
+  import'kvnet : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions
+  import'raftpb : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
 
-attribute [instance] Assumptions.checker_instance
-  Assumptions.oneIn_unfold
-  Assumptions.below_unfold
-  Assumptions.sleep_unfold
-  Assumptions.Check_unfold
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_porcupine_Assumption
-  Assumptions.import_primitive_Assumption
-  Assumptions.import_trusted_proph_Assumption
-  Assumptions.import_lintest_Assumption
-  Assumptions.import_kvnet_Assumption
-  Assumptions.import_raftpb_Assumption
+attribute [instance] Assumptions.instance'checker
+  Assumptions.unfold'oneIn
+  Assumptions.unfold'below
+  Assumptions.unfold'sleep
+  Assumptions.unfold'Check
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'porcupine
+  Assumptions.import'primitive
+  Assumptions.import'trusted_proph
+  Assumptions.import'lintest
+  Assumptions.import'kvnet
+  Assumptions.import'raftpb
 
 end github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck
 

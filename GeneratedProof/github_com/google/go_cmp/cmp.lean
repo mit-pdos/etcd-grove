@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance state_typed_pointsto :
+noncomputable instance typed_pointsto'state :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.state :=
   sorry -- axiomatized type
 
-noncomputable instance state_into_val_typed :
+noncomputable instance into_val_typed'state :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.state github_com.google.go_cmp.cmp.state.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance recChecker_typed_pointsto :
+noncomputable instance typed_pointsto'recChecker :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.recChecker :=
   sorry -- axiomatized type
 
-noncomputable instance recChecker_into_val_typed :
+noncomputable instance into_val_typed'recChecker :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.recChecker github_com.google.go_cmp.cmp.recChecker.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance dynChecker_typed_pointsto :
+noncomputable instance typed_pointsto'dynChecker :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.dynChecker :=
   sorry -- axiomatized type
 
-noncomputable instance dynChecker_into_val_typed :
+noncomputable instance into_val_typed'dynChecker :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.dynChecker github_com.google.go_cmp.cmp.dynChecker.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance coreOption_typed_pointsto :
+noncomputable instance typed_pointsto'coreOption :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.coreOption :=
   sorry -- axiomatized type
 
-noncomputable instance coreOption_into_val_typed :
+noncomputable instance into_val_typed'coreOption :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.coreOption github_com.google.go_cmp.cmp.coreOption.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance core_typed_pointsto :
+noncomputable instance typed_pointsto'core :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.core :=
   sorry -- axiomatized type
 
-noncomputable instance core_into_val_typed :
+noncomputable instance into_val_typed'core :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.core github_com.google.go_cmp.cmp.core.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance Options_typed_pointsto :
+noncomputable instance typed_pointsto'Options :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.Options :=
   sorry -- axiomatized type
 
-noncomputable instance Options_into_val_typed :
+noncomputable instance into_val_typed'Options :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.Options github_com.google.go_cmp.cmp.Options.underlying :=
   sorry -- axiomatized type
 
@@ -138,11 +138,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance pathFilter_typed_pointsto :
+noncomputable instance typed_pointsto'pathFilter :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.pathFilter :=
   sorry -- axiomatized type
 
-noncomputable instance pathFilter_into_val_typed :
+noncomputable instance into_val_typed'pathFilter :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.pathFilter github_com.google.go_cmp.cmp.pathFilter.underlying :=
   sorry -- axiomatized type
 
@@ -157,11 +157,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance valuesFilter_typed_pointsto :
+noncomputable instance typed_pointsto'valuesFilter :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.valuesFilter :=
   sorry -- axiomatized type
 
-noncomputable instance valuesFilter_into_val_typed :
+noncomputable instance into_val_typed'valuesFilter :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.valuesFilter github_com.google.go_cmp.cmp.valuesFilter.underlying :=
   sorry -- axiomatized type
 
@@ -176,11 +176,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance ignore_typed_pointsto :
+noncomputable instance typed_pointsto'ignore :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.ignore :=
   sorry -- axiomatized type
 
-noncomputable instance ignore_into_val_typed :
+noncomputable instance into_val_typed'ignore :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.ignore github_com.google.go_cmp.cmp.ignore.underlying :=
   sorry -- axiomatized type
 
@@ -195,11 +195,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance validator_typed_pointsto :
+noncomputable instance typed_pointsto'validator :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.validator :=
   sorry -- axiomatized type
 
-noncomputable instance validator_into_val_typed :
+noncomputable instance into_val_typed'validator :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.validator github_com.google.go_cmp.cmp.validator.underlying :=
   sorry -- axiomatized type
 
@@ -214,11 +214,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance transformer_typed_pointsto :
+noncomputable instance typed_pointsto'transformer :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.transformer :=
   sorry -- axiomatized type
 
-noncomputable instance transformer_into_val_typed :
+noncomputable instance into_val_typed'transformer :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.transformer github_com.google.go_cmp.cmp.transformer.underlying :=
   sorry -- axiomatized type
 
@@ -233,11 +233,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance comparer_typed_pointsto :
+noncomputable instance typed_pointsto'comparer :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.comparer :=
   sorry -- axiomatized type
 
-noncomputable instance comparer_into_val_typed :
+noncomputable instance into_val_typed'comparer :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.comparer github_com.google.go_cmp.cmp.comparer.underlying :=
   sorry -- axiomatized type
 
@@ -252,11 +252,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance exporter_typed_pointsto :
+noncomputable instance typed_pointsto'exporter :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.exporter :=
   sorry -- axiomatized type
 
-noncomputable instance exporter_into_val_typed :
+noncomputable instance into_val_typed'exporter :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.exporter github_com.google.go_cmp.cmp.exporter.underlying :=
   sorry -- axiomatized type
 
@@ -271,11 +271,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance Result_typed_pointsto :
+noncomputable instance typed_pointsto'Result :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.Result :=
   sorry -- axiomatized type
 
-noncomputable instance Result_into_val_typed :
+noncomputable instance into_val_typed'Result :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.Result github_com.google.go_cmp.cmp.Result.underlying :=
   sorry -- axiomatized type
 
@@ -290,11 +290,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance resultFlags_typed_pointsto :
+noncomputable instance typed_pointsto'resultFlags :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.resultFlags :=
   sorry -- axiomatized type
 
-noncomputable instance resultFlags_into_val_typed :
+noncomputable instance into_val_typed'resultFlags :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.resultFlags github_com.google.go_cmp.cmp.resultFlags.underlying :=
   sorry -- axiomatized type
 
@@ -309,11 +309,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance reporter_typed_pointsto :
+noncomputable instance typed_pointsto'reporter :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.reporter :=
   sorry -- axiomatized type
 
-noncomputable instance reporter_into_val_typed :
+noncomputable instance into_val_typed'reporter :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.reporter github_com.google.go_cmp.cmp.reporter.underlying :=
   sorry -- axiomatized type
 
@@ -328,11 +328,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance reporterIface_typed_pointsto :
+noncomputable instance typed_pointsto'reporterIface :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.reporterIface :=
   sorry -- axiomatized type
 
-noncomputable instance reporterIface_into_val_typed :
+noncomputable instance into_val_typed'reporterIface :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.reporterIface github_com.google.go_cmp.cmp.reporterIface.underlying :=
   sorry -- axiomatized type
 
@@ -347,11 +347,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance Path_typed_pointsto :
+noncomputable instance typed_pointsto'Path :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.Path :=
   sorry -- axiomatized type
 
-noncomputable instance Path_into_val_typed :
+noncomputable instance into_val_typed'Path :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.Path github_com.google.go_cmp.cmp.Path.underlying :=
   sorry -- axiomatized type
 
@@ -366,11 +366,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance PathStep_typed_pointsto :
+noncomputable instance typed_pointsto'PathStep :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.PathStep :=
   sorry -- axiomatized type
 
-noncomputable instance PathStep_into_val_typed :
+noncomputable instance into_val_typed'PathStep :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.PathStep github_com.google.go_cmp.cmp.PathStep.underlying :=
   sorry -- axiomatized type
 
@@ -385,11 +385,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance pathStep_typed_pointsto :
+noncomputable instance typed_pointsto'pathStep :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.pathStep :=
   sorry -- axiomatized type
 
-noncomputable instance pathStep_into_val_typed :
+noncomputable instance into_val_typed'pathStep :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.pathStep github_com.google.go_cmp.cmp.pathStep.underlying :=
   sorry -- axiomatized type
 
@@ -404,11 +404,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance StructField_typed_pointsto :
+noncomputable instance typed_pointsto'StructField :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.StructField :=
   sorry -- axiomatized type
 
-noncomputable instance StructField_into_val_typed :
+noncomputable instance into_val_typed'StructField :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.StructField github_com.google.go_cmp.cmp.StructField.underlying :=
   sorry -- axiomatized type
 
@@ -423,11 +423,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance structField_typed_pointsto :
+noncomputable instance typed_pointsto'structField :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.structField :=
   sorry -- axiomatized type
 
-noncomputable instance structField_into_val_typed :
+noncomputable instance into_val_typed'structField :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.structField github_com.google.go_cmp.cmp.structField.underlying :=
   sorry -- axiomatized type
 
@@ -442,11 +442,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance SliceIndex_typed_pointsto :
+noncomputable instance typed_pointsto'SliceIndex :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.SliceIndex :=
   sorry -- axiomatized type
 
-noncomputable instance SliceIndex_into_val_typed :
+noncomputable instance into_val_typed'SliceIndex :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.SliceIndex github_com.google.go_cmp.cmp.SliceIndex.underlying :=
   sorry -- axiomatized type
 
@@ -461,11 +461,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance sliceIndex_typed_pointsto :
+noncomputable instance typed_pointsto'sliceIndex :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.sliceIndex :=
   sorry -- axiomatized type
 
-noncomputable instance sliceIndex_into_val_typed :
+noncomputable instance into_val_typed'sliceIndex :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.sliceIndex github_com.google.go_cmp.cmp.sliceIndex.underlying :=
   sorry -- axiomatized type
 
@@ -480,11 +480,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance MapIndex_typed_pointsto :
+noncomputable instance typed_pointsto'MapIndex :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.MapIndex :=
   sorry -- axiomatized type
 
-noncomputable instance MapIndex_into_val_typed :
+noncomputable instance into_val_typed'MapIndex :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.MapIndex github_com.google.go_cmp.cmp.MapIndex.underlying :=
   sorry -- axiomatized type
 
@@ -499,11 +499,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance mapIndex_typed_pointsto :
+noncomputable instance typed_pointsto'mapIndex :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.mapIndex :=
   sorry -- axiomatized type
 
-noncomputable instance mapIndex_into_val_typed :
+noncomputable instance into_val_typed'mapIndex :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.mapIndex github_com.google.go_cmp.cmp.mapIndex.underlying :=
   sorry -- axiomatized type
 
@@ -518,11 +518,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance Indirect_typed_pointsto :
+noncomputable instance typed_pointsto'Indirect :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.Indirect :=
   sorry -- axiomatized type
 
-noncomputable instance Indirect_into_val_typed :
+noncomputable instance into_val_typed'Indirect :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.Indirect github_com.google.go_cmp.cmp.Indirect.underlying :=
   sorry -- axiomatized type
 
@@ -537,11 +537,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance indirect_typed_pointsto :
+noncomputable instance typed_pointsto'indirect :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.indirect :=
   sorry -- axiomatized type
 
-noncomputable instance indirect_into_val_typed :
+noncomputable instance into_val_typed'indirect :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.indirect github_com.google.go_cmp.cmp.indirect.underlying :=
   sorry -- axiomatized type
 
@@ -556,11 +556,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance TypeAssertion_typed_pointsto :
+noncomputable instance typed_pointsto'TypeAssertion :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.TypeAssertion :=
   sorry -- axiomatized type
 
-noncomputable instance TypeAssertion_into_val_typed :
+noncomputable instance into_val_typed'TypeAssertion :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.TypeAssertion github_com.google.go_cmp.cmp.TypeAssertion.underlying :=
   sorry -- axiomatized type
 
@@ -575,11 +575,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance typeAssertion_typed_pointsto :
+noncomputable instance typed_pointsto'typeAssertion :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.typeAssertion :=
   sorry -- axiomatized type
 
-noncomputable instance typeAssertion_into_val_typed :
+noncomputable instance into_val_typed'typeAssertion :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.typeAssertion github_com.google.go_cmp.cmp.typeAssertion.underlying :=
   sorry -- axiomatized type
 
@@ -594,11 +594,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance Transform_typed_pointsto :
+noncomputable instance typed_pointsto'Transform :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.Transform :=
   sorry -- axiomatized type
 
-noncomputable instance Transform_into_val_typed :
+noncomputable instance into_val_typed'Transform :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.Transform github_com.google.go_cmp.cmp.Transform.underlying :=
   sorry -- axiomatized type
 
@@ -613,11 +613,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance transform_typed_pointsto :
+noncomputable instance typed_pointsto'transform :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.transform :=
   sorry -- axiomatized type
 
-noncomputable instance transform_into_val_typed :
+noncomputable instance into_val_typed'transform :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.transform github_com.google.go_cmp.cmp.transform.underlying :=
   sorry -- axiomatized type
 
@@ -632,11 +632,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance pointerPath_typed_pointsto :
+noncomputable instance typed_pointsto'pointerPath :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.pointerPath :=
   sorry -- axiomatized type
 
-noncomputable instance pointerPath_into_val_typed :
+noncomputable instance into_val_typed'pointerPath :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.pointerPath github_com.google.go_cmp.cmp.pointerPath.underlying :=
   sorry -- axiomatized type
 
@@ -651,11 +651,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance defaultReporter_typed_pointsto :
+noncomputable instance typed_pointsto'defaultReporter :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.defaultReporter :=
   sorry -- axiomatized type
 
-noncomputable instance defaultReporter_into_val_typed :
+noncomputable instance into_val_typed'defaultReporter :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.defaultReporter github_com.google.go_cmp.cmp.defaultReporter.underlying :=
   sorry -- axiomatized type
 
@@ -670,11 +670,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance diffMode_typed_pointsto :
+noncomputable instance typed_pointsto'diffMode :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.diffMode :=
   sorry -- axiomatized type
 
-noncomputable instance diffMode_into_val_typed :
+noncomputable instance into_val_typed'diffMode :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.diffMode github_com.google.go_cmp.cmp.diffMode.underlying :=
   sorry -- axiomatized type
 
@@ -689,11 +689,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance typeMode_typed_pointsto :
+noncomputable instance typed_pointsto'typeMode :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.typeMode :=
   sorry -- axiomatized type
 
-noncomputable instance typeMode_into_val_typed :
+noncomputable instance into_val_typed'typeMode :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.typeMode github_com.google.go_cmp.cmp.typeMode.underlying :=
   sorry -- axiomatized type
 
@@ -708,11 +708,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance formatOptions_typed_pointsto :
+noncomputable instance typed_pointsto'formatOptions :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.formatOptions :=
   sorry -- axiomatized type
 
-noncomputable instance formatOptions_into_val_typed :
+noncomputable instance into_val_typed'formatOptions :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.formatOptions github_com.google.go_cmp.cmp.formatOptions.underlying :=
   sorry -- axiomatized type
 
@@ -727,11 +727,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance pointerReferences_typed_pointsto :
+noncomputable instance typed_pointsto'pointerReferences :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.pointerReferences :=
   sorry -- axiomatized type
 
-noncomputable instance pointerReferences_into_val_typed :
+noncomputable instance into_val_typed'pointerReferences :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.pointerReferences github_com.google.go_cmp.cmp.pointerReferences.underlying :=
   sorry -- axiomatized type
 
@@ -746,11 +746,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance trunkReferences_typed_pointsto :
+noncomputable instance typed_pointsto'trunkReferences :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.trunkReferences :=
   sorry -- axiomatized type
 
-noncomputable instance trunkReferences_into_val_typed :
+noncomputable instance into_val_typed'trunkReferences :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.trunkReferences github_com.google.go_cmp.cmp.trunkReferences.underlying :=
   sorry -- axiomatized type
 
@@ -765,11 +765,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance trunkReference_typed_pointsto :
+noncomputable instance typed_pointsto'trunkReference :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.trunkReference :=
   sorry -- axiomatized type
 
-noncomputable instance trunkReference_into_val_typed :
+noncomputable instance into_val_typed'trunkReference :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.trunkReference github_com.google.go_cmp.cmp.trunkReference.underlying :=
   sorry -- axiomatized type
 
@@ -784,11 +784,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance leafReference_typed_pointsto :
+noncomputable instance typed_pointsto'leafReference :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.leafReference :=
   sorry -- axiomatized type
 
-noncomputable instance leafReference_into_val_typed :
+noncomputable instance into_val_typed'leafReference :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.leafReference github_com.google.go_cmp.cmp.leafReference.underlying :=
   sorry -- axiomatized type
 
@@ -803,11 +803,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance formatValueOptions_typed_pointsto :
+noncomputable instance typed_pointsto'formatValueOptions :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.formatValueOptions :=
   sorry -- axiomatized type
 
-noncomputable instance formatValueOptions_into_val_typed :
+noncomputable instance into_val_typed'formatValueOptions :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.formatValueOptions github_com.google.go_cmp.cmp.formatValueOptions.underlying :=
   sorry -- axiomatized type
 
@@ -822,11 +822,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance indentMode_typed_pointsto :
+noncomputable instance typed_pointsto'indentMode :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.indentMode :=
   sorry -- axiomatized type
 
-noncomputable instance indentMode_into_val_typed :
+noncomputable instance into_val_typed'indentMode :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.indentMode github_com.google.go_cmp.cmp.indentMode.underlying :=
   sorry -- axiomatized type
 
@@ -841,11 +841,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance repeatCount_typed_pointsto :
+noncomputable instance typed_pointsto'repeatCount :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.repeatCount :=
   sorry -- axiomatized type
 
-noncomputable instance repeatCount_into_val_typed :
+noncomputable instance into_val_typed'repeatCount :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.repeatCount github_com.google.go_cmp.cmp.repeatCount.underlying :=
   sorry -- axiomatized type
 
@@ -860,11 +860,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance textNode_typed_pointsto :
+noncomputable instance typed_pointsto'textNode :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.textNode :=
   sorry -- axiomatized type
 
-noncomputable instance textNode_into_val_typed :
+noncomputable instance into_val_typed'textNode :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.textNode github_com.google.go_cmp.cmp.textNode.underlying :=
   sorry -- axiomatized type
 
@@ -879,11 +879,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance textWrap_typed_pointsto :
+noncomputable instance typed_pointsto'textWrap :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.textWrap :=
   sorry -- axiomatized type
 
-noncomputable instance textWrap_into_val_typed :
+noncomputable instance into_val_typed'textWrap :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.textWrap github_com.google.go_cmp.cmp.textWrap.underlying :=
   sorry -- axiomatized type
 
@@ -898,11 +898,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance textList_typed_pointsto :
+noncomputable instance typed_pointsto'textList :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.textList :=
   sorry -- axiomatized type
 
-noncomputable instance textList_into_val_typed :
+noncomputable instance into_val_typed'textList :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.textList github_com.google.go_cmp.cmp.textList.underlying :=
   sorry -- axiomatized type
 
@@ -917,11 +917,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance textRecord_typed_pointsto :
+noncomputable instance typed_pointsto'textRecord :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.textRecord :=
   sorry -- axiomatized type
 
-noncomputable instance textRecord_into_val_typed :
+noncomputable instance into_val_typed'textRecord :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.textRecord github_com.google.go_cmp.cmp.textRecord.underlying :=
   sorry -- axiomatized type
 
@@ -936,11 +936,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance textLine_typed_pointsto :
+noncomputable instance typed_pointsto'textLine :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.textLine :=
   sorry -- axiomatized type
 
-noncomputable instance textLine_into_val_typed :
+noncomputable instance into_val_typed'textLine :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.textLine github_com.google.go_cmp.cmp.textLine.underlying :=
   sorry -- axiomatized type
 
@@ -955,11 +955,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance diffStats_typed_pointsto :
+noncomputable instance typed_pointsto'diffStats :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.diffStats :=
   sorry -- axiomatized type
 
-noncomputable instance diffStats_into_val_typed :
+noncomputable instance into_val_typed'diffStats :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.diffStats github_com.google.go_cmp.cmp.diffStats.underlying :=
   sorry -- axiomatized type
 
@@ -974,11 +974,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance commentString_typed_pointsto :
+noncomputable instance typed_pointsto'commentString :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.commentString :=
   sorry -- axiomatized type
 
-noncomputable instance commentString_into_val_typed :
+noncomputable instance into_val_typed'commentString :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.commentString github_com.google.go_cmp.cmp.commentString.underlying :=
   sorry -- axiomatized type
 
@@ -993,11 +993,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance valueNode_typed_pointsto :
+noncomputable instance typed_pointsto'valueNode :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.valueNode :=
   sorry -- axiomatized type
 
-noncomputable instance valueNode_into_val_typed :
+noncomputable instance into_val_typed'valueNode :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.valueNode github_com.google.go_cmp.cmp.valueNode.underlying :=
   sorry -- axiomatized type
 
@@ -1012,11 +1012,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
 
-noncomputable instance reportRecord_typed_pointsto :
+noncomputable instance typed_pointsto'reportRecord :
     TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.reportRecord :=
   sorry -- axiomatized type
 
-noncomputable instance reportRecord_into_val_typed :
+noncomputable instance into_val_typed'reportRecord :
     IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.reportRecord github_com.google.go_cmp.cmp.reportRecord.underlying :=
   sorry -- axiomatized type
 

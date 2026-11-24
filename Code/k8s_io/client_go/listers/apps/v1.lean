@@ -646,7 +646,7 @@ noncomputable instance controllerRevisionLister.zero_val [GooseExts] : ZeroVal c
 @[irreducible] noncomputable def controllerRevisionLister.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   controllerRevisionLister.fieldsUnsealed
 
-noncomputable instance equals_unfold_controllerRevisionLister [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'controllerRevisionLister [GooseExts] [GoGlobalContext] :
     EqualsUnfold controllerRevisionLister.fields controllerRevisionLister.fieldsUnsealed :=
   ⟨by unfold controllerRevisionLister.fields; rfl⟩
 
@@ -656,31 +656,31 @@ noncomputable instance equals_unfold_controllerRevisionLister [GooseExts] [GoGlo
 class controllerRevisionLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying controllerRevisionLister.underlying controllerRevisionLister
   underlying : go.UnderlyingDirectedEq controllerRevisionLister.ty controllerRevisionLister.underlying
-  get_ResourceIndexer : ∀ (x : controllerRevisionLister), go.IsGoStepPureDetTagged under (StructFieldGet controllerRevisionLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
-  set_ResourceIndexer : ∀ (x : controllerRevisionLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet controllerRevisionLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : controllerRevisionLister)))
+  get'ResourceIndexer : ∀ (x : controllerRevisionLister), go.IsGoStepPureDetTagged under (StructFieldGet controllerRevisionLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
+  set'ResourceIndexer : ∀ (x : controllerRevisionLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet controllerRevisionLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : controllerRevisionLister)))
   method_set : go.MethodSetIs controllerRevisionLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType controllerRevisionLister.ty) [(go!"ControllerRevisions", (some (go.signature.Signature [go.string] false [ControllerRevisionNamespaceLister.ty]))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)), go.error])))]
-  Get_unfold : MethodUnfold controllerRevisionLister.ty go!"Get" (LamV "$r"
+  unfold'Get : MethodUnfold controllerRevisionLister.ty go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)) go!"Get"))) (App (Val (GoInstruction (StructFieldGet controllerRevisionLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  List_unfold : MethodUnfold controllerRevisionLister.ty go!"List" (LamV "$r"
+  unfold'List : MethodUnfold controllerRevisionLister.ty go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)) go!"List"))) (App (Val (GoInstruction (StructFieldGet controllerRevisionLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  ptr_ControllerRevisions_unfold : MethodUnfold (go.GoType.PointerType controllerRevisionLister.ty) go!"ControllerRevisions" controllerRevisionLister.ControllerRevisions.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType controllerRevisionLister.ty) go!"Get" (LamV "$r"
+  ptr_unfold'ControllerRevisions : MethodUnfold (go.GoType.PointerType controllerRevisionLister.ty) go!"ControllerRevisions" controllerRevisionLister.ControllerRevisions.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType controllerRevisionLister.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty))) go!"Get"))) (App (Val (GoInstruction (StructFieldRef controllerRevisionLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType controllerRevisionLister.ty) go!"List" (LamV "$r"
+  ptr_unfold'List : MethodUnfold (go.GoType.PointerType controllerRevisionLister.ty) go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty))) go!"List"))) (App (Val (GoInstruction (StructFieldRef controllerRevisionLister.ty go!"ResourceIndexer"))) (Var "$r"))))
 
 attribute [instance] controllerRevisionLister.TypeAssumptions.type_repr
   controllerRevisionLister.TypeAssumptions.underlying
-  controllerRevisionLister.TypeAssumptions.get_ResourceIndexer
-  controllerRevisionLister.TypeAssumptions.set_ResourceIndexer
+  controllerRevisionLister.TypeAssumptions.get'ResourceIndexer
+  controllerRevisionLister.TypeAssumptions.set'ResourceIndexer
   controllerRevisionLister.TypeAssumptions.method_set
   controllerRevisionLister.TypeAssumptions.ptr_method_set
-  controllerRevisionLister.TypeAssumptions.Get_unfold
-  controllerRevisionLister.TypeAssumptions.List_unfold
-  controllerRevisionLister.TypeAssumptions.ptr_ControllerRevisions_unfold
-  controllerRevisionLister.TypeAssumptions.ptr_Get_unfold
-  controllerRevisionLister.TypeAssumptions.ptr_List_unfold
+  controllerRevisionLister.TypeAssumptions.unfold'Get
+  controllerRevisionLister.TypeAssumptions.unfold'List
+  controllerRevisionLister.TypeAssumptions.ptr_unfold'ControllerRevisions
+  controllerRevisionLister.TypeAssumptions.ptr_unfold'Get
+  controllerRevisionLister.TypeAssumptions.ptr_unfold'List
 
 abbrev ControllerRevisionNamespaceLister [GooseExts] : Type := GoInterface
 
@@ -709,7 +709,7 @@ noncomputable instance controllerRevisionNamespaceLister.zero_val [GooseExts] : 
 @[irreducible] noncomputable def controllerRevisionNamespaceLister.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   controllerRevisionNamespaceLister.fieldsUnsealed
 
-noncomputable instance equals_unfold_controllerRevisionNamespaceLister [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'controllerRevisionNamespaceLister [GooseExts] [GoGlobalContext] :
     EqualsUnfold controllerRevisionNamespaceLister.fields controllerRevisionNamespaceLister.fieldsUnsealed :=
   ⟨by unfold controllerRevisionNamespaceLister.fields; rfl⟩
 
@@ -719,29 +719,29 @@ noncomputable instance equals_unfold_controllerRevisionNamespaceLister [GooseExt
 class controllerRevisionNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying controllerRevisionNamespaceLister.underlying controllerRevisionNamespaceLister
   underlying : go.UnderlyingDirectedEq controllerRevisionNamespaceLister.ty controllerRevisionNamespaceLister.underlying
-  get_ResourceIndexer : ∀ (x : controllerRevisionNamespaceLister), go.IsGoStepPureDetTagged under (StructFieldGet controllerRevisionNamespaceLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
-  set_ResourceIndexer : ∀ (x : controllerRevisionNamespaceLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet controllerRevisionNamespaceLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : controllerRevisionNamespaceLister)))
+  get'ResourceIndexer : ∀ (x : controllerRevisionNamespaceLister), go.IsGoStepPureDetTagged under (StructFieldGet controllerRevisionNamespaceLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
+  set'ResourceIndexer : ∀ (x : controllerRevisionNamespaceLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet controllerRevisionNamespaceLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : controllerRevisionNamespaceLister)))
   method_set : go.MethodSetIs controllerRevisionNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType controllerRevisionNamespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)), go.error])))]
-  Get_unfold : MethodUnfold controllerRevisionNamespaceLister.ty go!"Get" (LamV "$r"
+  unfold'Get : MethodUnfold controllerRevisionNamespaceLister.ty go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)) go!"Get"))) (App (Val (GoInstruction (StructFieldGet controllerRevisionNamespaceLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  List_unfold : MethodUnfold controllerRevisionNamespaceLister.ty go!"List" (LamV "$r"
+  unfold'List : MethodUnfold controllerRevisionNamespaceLister.ty go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)) go!"List"))) (App (Val (GoInstruction (StructFieldGet controllerRevisionNamespaceLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType controllerRevisionNamespaceLister.ty) go!"Get" (LamV "$r"
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType controllerRevisionNamespaceLister.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty))) go!"Get"))) (App (Val (GoInstruction (StructFieldRef controllerRevisionNamespaceLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType controllerRevisionNamespaceLister.ty) go!"List" (LamV "$r"
+  ptr_unfold'List : MethodUnfold (go.GoType.PointerType controllerRevisionNamespaceLister.ty) go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty))) go!"List"))) (App (Val (GoInstruction (StructFieldRef controllerRevisionNamespaceLister.ty go!"ResourceIndexer"))) (Var "$r"))))
 
 attribute [instance] controllerRevisionNamespaceLister.TypeAssumptions.type_repr
   controllerRevisionNamespaceLister.TypeAssumptions.underlying
-  controllerRevisionNamespaceLister.TypeAssumptions.get_ResourceIndexer
-  controllerRevisionNamespaceLister.TypeAssumptions.set_ResourceIndexer
+  controllerRevisionNamespaceLister.TypeAssumptions.get'ResourceIndexer
+  controllerRevisionNamespaceLister.TypeAssumptions.set'ResourceIndexer
   controllerRevisionNamespaceLister.TypeAssumptions.method_set
   controllerRevisionNamespaceLister.TypeAssumptions.ptr_method_set
-  controllerRevisionNamespaceLister.TypeAssumptions.Get_unfold
-  controllerRevisionNamespaceLister.TypeAssumptions.List_unfold
-  controllerRevisionNamespaceLister.TypeAssumptions.ptr_Get_unfold
-  controllerRevisionNamespaceLister.TypeAssumptions.ptr_List_unfold
+  controllerRevisionNamespaceLister.TypeAssumptions.unfold'Get
+  controllerRevisionNamespaceLister.TypeAssumptions.unfold'List
+  controllerRevisionNamespaceLister.TypeAssumptions.ptr_unfold'Get
+  controllerRevisionNamespaceLister.TypeAssumptions.ptr_unfold'List
 
 abbrev DaemonSetLister [GooseExts] : Type := GoInterface
 
@@ -770,7 +770,7 @@ noncomputable instance daemonSetLister.zero_val [GooseExts] : ZeroVal daemonSetL
 @[irreducible] noncomputable def daemonSetLister.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   daemonSetLister.fieldsUnsealed
 
-noncomputable instance equals_unfold_daemonSetLister [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'daemonSetLister [GooseExts] [GoGlobalContext] :
     EqualsUnfold daemonSetLister.fields daemonSetLister.fieldsUnsealed :=
   ⟨by unfold daemonSetLister.fields; rfl⟩
 
@@ -780,35 +780,35 @@ noncomputable instance equals_unfold_daemonSetLister [GooseExts] [GoGlobalContex
 class daemonSetLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying daemonSetLister.underlying daemonSetLister
   underlying : go.UnderlyingDirectedEq daemonSetLister.ty daemonSetLister.underlying
-  get_ResourceIndexer : ∀ (x : daemonSetLister), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
-  set_ResourceIndexer : ∀ (x : daemonSetLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : daemonSetLister)))
+  get'ResourceIndexer : ∀ (x : daemonSetLister), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
+  set'ResourceIndexer : ∀ (x : daemonSetLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : daemonSetLister)))
   method_set : go.MethodSetIs daemonSetLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType daemonSetLister.ty) [(go!"DaemonSets", (some (go.signature.Signature [go.string] false [DaemonSetNamespaceLister.ty]))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.error]))), (go!"GetHistoryDaemonSets", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)), go.error]))), (go!"GetPodDaemonSets", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)), go.error])))]
-  Get_unfold : MethodUnfold daemonSetLister.ty go!"Get" (LamV "$r"
+  unfold'Get : MethodUnfold daemonSetLister.ty go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)) go!"Get"))) (App (Val (GoInstruction (StructFieldGet daemonSetLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  List_unfold : MethodUnfold daemonSetLister.ty go!"List" (LamV "$r"
+  unfold'List : MethodUnfold daemonSetLister.ty go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)) go!"List"))) (App (Val (GoInstruction (StructFieldGet daemonSetLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  ptr_DaemonSets_unfold : MethodUnfold (go.GoType.PointerType daemonSetLister.ty) go!"DaemonSets" daemonSetLister.DaemonSets.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType daemonSetLister.ty) go!"Get" (LamV "$r"
+  ptr_unfold'DaemonSets : MethodUnfold (go.GoType.PointerType daemonSetLister.ty) go!"DaemonSets" daemonSetLister.DaemonSets.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType daemonSetLister.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty))) go!"Get"))) (App (Val (GoInstruction (StructFieldRef daemonSetLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  ptr_GetHistoryDaemonSets_unfold : MethodUnfold (go.GoType.PointerType daemonSetLister.ty) go!"GetHistoryDaemonSets" daemonSetLister.GetHistoryDaemonSets.impl
-  ptr_GetPodDaemonSets_unfold : MethodUnfold (go.GoType.PointerType daemonSetLister.ty) go!"GetPodDaemonSets" daemonSetLister.GetPodDaemonSets.impl
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType daemonSetLister.ty) go!"List" (LamV "$r"
+  ptr_unfold'GetHistoryDaemonSets : MethodUnfold (go.GoType.PointerType daemonSetLister.ty) go!"GetHistoryDaemonSets" daemonSetLister.GetHistoryDaemonSets.impl
+  ptr_unfold'GetPodDaemonSets : MethodUnfold (go.GoType.PointerType daemonSetLister.ty) go!"GetPodDaemonSets" daemonSetLister.GetPodDaemonSets.impl
+  ptr_unfold'List : MethodUnfold (go.GoType.PointerType daemonSetLister.ty) go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty))) go!"List"))) (App (Val (GoInstruction (StructFieldRef daemonSetLister.ty go!"ResourceIndexer"))) (Var "$r"))))
 
 attribute [instance] daemonSetLister.TypeAssumptions.type_repr
   daemonSetLister.TypeAssumptions.underlying
-  daemonSetLister.TypeAssumptions.get_ResourceIndexer
-  daemonSetLister.TypeAssumptions.set_ResourceIndexer
+  daemonSetLister.TypeAssumptions.get'ResourceIndexer
+  daemonSetLister.TypeAssumptions.set'ResourceIndexer
   daemonSetLister.TypeAssumptions.method_set
   daemonSetLister.TypeAssumptions.ptr_method_set
-  daemonSetLister.TypeAssumptions.Get_unfold
-  daemonSetLister.TypeAssumptions.List_unfold
-  daemonSetLister.TypeAssumptions.ptr_DaemonSets_unfold
-  daemonSetLister.TypeAssumptions.ptr_Get_unfold
-  daemonSetLister.TypeAssumptions.ptr_GetHistoryDaemonSets_unfold
-  daemonSetLister.TypeAssumptions.ptr_GetPodDaemonSets_unfold
-  daemonSetLister.TypeAssumptions.ptr_List_unfold
+  daemonSetLister.TypeAssumptions.unfold'Get
+  daemonSetLister.TypeAssumptions.unfold'List
+  daemonSetLister.TypeAssumptions.ptr_unfold'DaemonSets
+  daemonSetLister.TypeAssumptions.ptr_unfold'Get
+  daemonSetLister.TypeAssumptions.ptr_unfold'GetHistoryDaemonSets
+  daemonSetLister.TypeAssumptions.ptr_unfold'GetPodDaemonSets
+  daemonSetLister.TypeAssumptions.ptr_unfold'List
 
 abbrev DaemonSetNamespaceLister [GooseExts] : Type := GoInterface
 
@@ -837,7 +837,7 @@ noncomputable instance daemonSetNamespaceLister.zero_val [GooseExts] : ZeroVal d
 @[irreducible] noncomputable def daemonSetNamespaceLister.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   daemonSetNamespaceLister.fieldsUnsealed
 
-noncomputable instance equals_unfold_daemonSetNamespaceLister [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'daemonSetNamespaceLister [GooseExts] [GoGlobalContext] :
     EqualsUnfold daemonSetNamespaceLister.fields daemonSetNamespaceLister.fieldsUnsealed :=
   ⟨by unfold daemonSetNamespaceLister.fields; rfl⟩
 
@@ -847,29 +847,29 @@ noncomputable instance equals_unfold_daemonSetNamespaceLister [GooseExts] [GoGlo
 class daemonSetNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying daemonSetNamespaceLister.underlying daemonSetNamespaceLister
   underlying : go.UnderlyingDirectedEq daemonSetNamespaceLister.ty daemonSetNamespaceLister.underlying
-  get_ResourceIndexer : ∀ (x : daemonSetNamespaceLister), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetNamespaceLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
-  set_ResourceIndexer : ∀ (x : daemonSetNamespaceLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetNamespaceLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : daemonSetNamespaceLister)))
+  get'ResourceIndexer : ∀ (x : daemonSetNamespaceLister), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetNamespaceLister.underlying go!"ResourceIndexer") #x (Val #(x.ResourceIndexer'))
+  set'ResourceIndexer : ∀ (x : daemonSetNamespaceLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetNamespaceLister.underlying go!"ResourceIndexer") (PairV #x #y) (Val #(({ x with ResourceIndexer' := y } : daemonSetNamespaceLister)))
   method_set : go.MethodSetIs daemonSetNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType daemonSetNamespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)), go.error])))]
-  Get_unfold : MethodUnfold daemonSetNamespaceLister.ty go!"Get" (LamV "$r"
+  unfold'Get : MethodUnfold daemonSetNamespaceLister.ty go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)) go!"Get"))) (App (Val (GoInstruction (StructFieldGet daemonSetNamespaceLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  List_unfold : MethodUnfold daemonSetNamespaceLister.ty go!"List" (LamV "$r"
+  unfold'List : MethodUnfold daemonSetNamespaceLister.ty go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)) go!"List"))) (App (Val (GoInstruction (StructFieldGet daemonSetNamespaceLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType daemonSetNamespaceLister.ty) go!"Get" (LamV "$r"
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType daemonSetNamespaceLister.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty))) go!"Get"))) (App (Val (GoInstruction (StructFieldRef daemonSetNamespaceLister.ty go!"ResourceIndexer"))) (Var "$r"))))
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType daemonSetNamespaceLister.ty) go!"List" (LamV "$r"
+  ptr_unfold'List : MethodUnfold (go.GoType.PointerType daemonSetNamespaceLister.ty) go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.ty (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty))) go!"List"))) (App (Val (GoInstruction (StructFieldRef daemonSetNamespaceLister.ty go!"ResourceIndexer"))) (Var "$r"))))
 
 attribute [instance] daemonSetNamespaceLister.TypeAssumptions.type_repr
   daemonSetNamespaceLister.TypeAssumptions.underlying
-  daemonSetNamespaceLister.TypeAssumptions.get_ResourceIndexer
-  daemonSetNamespaceLister.TypeAssumptions.set_ResourceIndexer
+  daemonSetNamespaceLister.TypeAssumptions.get'ResourceIndexer
+  daemonSetNamespaceLister.TypeAssumptions.set'ResourceIndexer
   daemonSetNamespaceLister.TypeAssumptions.method_set
   daemonSetNamespaceLister.TypeAssumptions.ptr_method_set
-  daemonSetNamespaceLister.TypeAssumptions.Get_unfold
-  daemonSetNamespaceLister.TypeAssumptions.List_unfold
-  daemonSetNamespaceLister.TypeAssumptions.ptr_Get_unfold
-  daemonSetNamespaceLister.TypeAssumptions.ptr_List_unfold
+  daemonSetNamespaceLister.TypeAssumptions.unfold'Get
+  daemonSetNamespaceLister.TypeAssumptions.unfold'List
+  daemonSetNamespaceLister.TypeAssumptions.ptr_unfold'Get
+  daemonSetNamespaceLister.TypeAssumptions.ptr_unfold'List
 
 abbrev DaemonSetListerExpansion [GooseExts] : Type := GoInterface
 
@@ -1270,85 +1270,85 @@ attribute [instance] StatefulSetNamespaceListerExpansion.TypeAssumptions.type_re
   StatefulSetNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ControllerRevisionLister_instance : ControllerRevisionLister.TypeAssumptions
-  controllerRevisionLister_instance : controllerRevisionLister.TypeAssumptions
-  ControllerRevisionNamespaceLister_instance : ControllerRevisionNamespaceLister.TypeAssumptions
-  controllerRevisionNamespaceLister_instance : controllerRevisionNamespaceLister.TypeAssumptions
-  DaemonSetLister_instance : DaemonSetLister.TypeAssumptions
-  daemonSetLister_instance : daemonSetLister.TypeAssumptions
-  DaemonSetNamespaceLister_instance : DaemonSetNamespaceLister.TypeAssumptions
-  daemonSetNamespaceLister_instance : daemonSetNamespaceLister.TypeAssumptions
-  DaemonSetListerExpansion_instance : DaemonSetListerExpansion.TypeAssumptions
-  DaemonSetNamespaceListerExpansion_instance : DaemonSetNamespaceListerExpansion.TypeAssumptions
-  DeploymentLister_instance : DeploymentLister.TypeAssumptions
-  deploymentLister_instance : deploymentLister.TypeAssumptions
-  DeploymentNamespaceLister_instance : DeploymentNamespaceLister.TypeAssumptions
-  deploymentNamespaceLister_instance : deploymentNamespaceLister.TypeAssumptions
-  ControllerRevisionListerExpansion_instance : ControllerRevisionListerExpansion.TypeAssumptions
-  ControllerRevisionNamespaceListerExpansion_instance : ControllerRevisionNamespaceListerExpansion.TypeAssumptions
-  DeploymentListerExpansion_instance : DeploymentListerExpansion.TypeAssumptions
-  DeploymentNamespaceListerExpansion_instance : DeploymentNamespaceListerExpansion.TypeAssumptions
-  ReplicaSetLister_instance : ReplicaSetLister.TypeAssumptions
-  replicaSetLister_instance : replicaSetLister.TypeAssumptions
-  ReplicaSetNamespaceLister_instance : ReplicaSetNamespaceLister.TypeAssumptions
-  replicaSetNamespaceLister_instance : replicaSetNamespaceLister.TypeAssumptions
-  ReplicaSetListerExpansion_instance : ReplicaSetListerExpansion.TypeAssumptions
-  ReplicaSetNamespaceListerExpansion_instance : ReplicaSetNamespaceListerExpansion.TypeAssumptions
-  StatefulSetLister_instance : StatefulSetLister.TypeAssumptions
-  statefulSetLister_instance : statefulSetLister.TypeAssumptions
-  StatefulSetNamespaceLister_instance : StatefulSetNamespaceLister.TypeAssumptions
-  statefulSetNamespaceLister_instance : statefulSetNamespaceLister.TypeAssumptions
-  StatefulSetListerExpansion_instance : StatefulSetListerExpansion.TypeAssumptions
-  StatefulSetNamespaceListerExpansion_instance : StatefulSetNamespaceListerExpansion.TypeAssumptions
-  NewControllerRevisionLister_unfold : FuncUnfold NewControllerRevisionLister [] NewControllerRevisionLister.impl
-  NewDaemonSetLister_unfold : FuncUnfold NewDaemonSetLister [] NewDaemonSetLister.impl
-  import_apps_v1_Assumption : _root_.Perennial.k8s_io.api.apps.v1.Assumptions
-  import_labels_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
-  import_listers_Assumption : _root_.Perennial.k8s_io.client_go.listers.Assumptions
-  import_cache_Assumption : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_core_v1_Assumption : _root_.Perennial.k8s_io.api.core.v1.Assumptions
-  import_meta_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  instance'ControllerRevisionLister : ControllerRevisionLister.TypeAssumptions
+  instance'controllerRevisionLister : controllerRevisionLister.TypeAssumptions
+  instance'ControllerRevisionNamespaceLister : ControllerRevisionNamespaceLister.TypeAssumptions
+  instance'controllerRevisionNamespaceLister : controllerRevisionNamespaceLister.TypeAssumptions
+  instance'DaemonSetLister : DaemonSetLister.TypeAssumptions
+  instance'daemonSetLister : daemonSetLister.TypeAssumptions
+  instance'DaemonSetNamespaceLister : DaemonSetNamespaceLister.TypeAssumptions
+  instance'daemonSetNamespaceLister : daemonSetNamespaceLister.TypeAssumptions
+  instance'DaemonSetListerExpansion : DaemonSetListerExpansion.TypeAssumptions
+  instance'DaemonSetNamespaceListerExpansion : DaemonSetNamespaceListerExpansion.TypeAssumptions
+  instance'DeploymentLister : DeploymentLister.TypeAssumptions
+  instance'deploymentLister : deploymentLister.TypeAssumptions
+  instance'DeploymentNamespaceLister : DeploymentNamespaceLister.TypeAssumptions
+  instance'deploymentNamespaceLister : deploymentNamespaceLister.TypeAssumptions
+  instance'ControllerRevisionListerExpansion : ControllerRevisionListerExpansion.TypeAssumptions
+  instance'ControllerRevisionNamespaceListerExpansion : ControllerRevisionNamespaceListerExpansion.TypeAssumptions
+  instance'DeploymentListerExpansion : DeploymentListerExpansion.TypeAssumptions
+  instance'DeploymentNamespaceListerExpansion : DeploymentNamespaceListerExpansion.TypeAssumptions
+  instance'ReplicaSetLister : ReplicaSetLister.TypeAssumptions
+  instance'replicaSetLister : replicaSetLister.TypeAssumptions
+  instance'ReplicaSetNamespaceLister : ReplicaSetNamespaceLister.TypeAssumptions
+  instance'replicaSetNamespaceLister : replicaSetNamespaceLister.TypeAssumptions
+  instance'ReplicaSetListerExpansion : ReplicaSetListerExpansion.TypeAssumptions
+  instance'ReplicaSetNamespaceListerExpansion : ReplicaSetNamespaceListerExpansion.TypeAssumptions
+  instance'StatefulSetLister : StatefulSetLister.TypeAssumptions
+  instance'statefulSetLister : statefulSetLister.TypeAssumptions
+  instance'StatefulSetNamespaceLister : StatefulSetNamespaceLister.TypeAssumptions
+  instance'statefulSetNamespaceLister : statefulSetNamespaceLister.TypeAssumptions
+  instance'StatefulSetListerExpansion : StatefulSetListerExpansion.TypeAssumptions
+  instance'StatefulSetNamespaceListerExpansion : StatefulSetNamespaceListerExpansion.TypeAssumptions
+  unfold'NewControllerRevisionLister : FuncUnfold NewControllerRevisionLister [] NewControllerRevisionLister.impl
+  unfold'NewDaemonSetLister : FuncUnfold NewDaemonSetLister [] NewDaemonSetLister.impl
+  import'apps_v1 : _root_.Perennial.k8s_io.api.apps.v1.Assumptions
+  import'labels : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
+  import'listers : _root_.Perennial.k8s_io.client_go.listers.Assumptions
+  import'cache : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'core_v1 : _root_.Perennial.k8s_io.api.core.v1.Assumptions
+  import'meta_v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
 
-attribute [instance] Assumptions.ControllerRevisionLister_instance
-  Assumptions.controllerRevisionLister_instance
-  Assumptions.ControllerRevisionNamespaceLister_instance
-  Assumptions.controllerRevisionNamespaceLister_instance
-  Assumptions.DaemonSetLister_instance
-  Assumptions.daemonSetLister_instance
-  Assumptions.DaemonSetNamespaceLister_instance
-  Assumptions.daemonSetNamespaceLister_instance
-  Assumptions.DaemonSetListerExpansion_instance
-  Assumptions.DaemonSetNamespaceListerExpansion_instance
-  Assumptions.DeploymentLister_instance
-  Assumptions.deploymentLister_instance
-  Assumptions.DeploymentNamespaceLister_instance
-  Assumptions.deploymentNamespaceLister_instance
-  Assumptions.ControllerRevisionListerExpansion_instance
-  Assumptions.ControllerRevisionNamespaceListerExpansion_instance
-  Assumptions.DeploymentListerExpansion_instance
-  Assumptions.DeploymentNamespaceListerExpansion_instance
-  Assumptions.ReplicaSetLister_instance
-  Assumptions.replicaSetLister_instance
-  Assumptions.ReplicaSetNamespaceLister_instance
-  Assumptions.replicaSetNamespaceLister_instance
-  Assumptions.ReplicaSetListerExpansion_instance
-  Assumptions.ReplicaSetNamespaceListerExpansion_instance
-  Assumptions.StatefulSetLister_instance
-  Assumptions.statefulSetLister_instance
-  Assumptions.StatefulSetNamespaceLister_instance
-  Assumptions.statefulSetNamespaceLister_instance
-  Assumptions.StatefulSetListerExpansion_instance
-  Assumptions.StatefulSetNamespaceListerExpansion_instance
-  Assumptions.NewControllerRevisionLister_unfold
-  Assumptions.NewDaemonSetLister_unfold
-  Assumptions.import_apps_v1_Assumption
-  Assumptions.import_labels_Assumption
-  Assumptions.import_listers_Assumption
-  Assumptions.import_cache_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_core_v1_Assumption
-  Assumptions.import_meta_v1_Assumption
+attribute [instance] Assumptions.instance'ControllerRevisionLister
+  Assumptions.instance'controllerRevisionLister
+  Assumptions.instance'ControllerRevisionNamespaceLister
+  Assumptions.instance'controllerRevisionNamespaceLister
+  Assumptions.instance'DaemonSetLister
+  Assumptions.instance'daemonSetLister
+  Assumptions.instance'DaemonSetNamespaceLister
+  Assumptions.instance'daemonSetNamespaceLister
+  Assumptions.instance'DaemonSetListerExpansion
+  Assumptions.instance'DaemonSetNamespaceListerExpansion
+  Assumptions.instance'DeploymentLister
+  Assumptions.instance'deploymentLister
+  Assumptions.instance'DeploymentNamespaceLister
+  Assumptions.instance'deploymentNamespaceLister
+  Assumptions.instance'ControllerRevisionListerExpansion
+  Assumptions.instance'ControllerRevisionNamespaceListerExpansion
+  Assumptions.instance'DeploymentListerExpansion
+  Assumptions.instance'DeploymentNamespaceListerExpansion
+  Assumptions.instance'ReplicaSetLister
+  Assumptions.instance'replicaSetLister
+  Assumptions.instance'ReplicaSetNamespaceLister
+  Assumptions.instance'replicaSetNamespaceLister
+  Assumptions.instance'ReplicaSetListerExpansion
+  Assumptions.instance'ReplicaSetNamespaceListerExpansion
+  Assumptions.instance'StatefulSetLister
+  Assumptions.instance'statefulSetLister
+  Assumptions.instance'StatefulSetNamespaceLister
+  Assumptions.instance'statefulSetNamespaceLister
+  Assumptions.instance'StatefulSetListerExpansion
+  Assumptions.instance'StatefulSetNamespaceListerExpansion
+  Assumptions.unfold'NewControllerRevisionLister
+  Assumptions.unfold'NewDaemonSetLister
+  Assumptions.import'apps_v1
+  Assumptions.import'labels
+  Assumptions.import'listers
+  Assumptions.import'cache
+  Assumptions.import'fmt
+  Assumptions.import'core_v1
+  Assumptions.import'meta_v1
 
 end k8s_io.client_go.listers.apps.v1
 

@@ -315,125 +315,125 @@ attribute [instance] Clientset.TypeAssumptions.type_repr
   Clientset.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Interface_instance : Interface.TypeAssumptions
-  Clientset_instance : Clientset.TypeAssumptions
-  import_discovery_Assumption : _root_.Perennial.k8s_io.client_go.discovery.Assumptions
-  import_admissionregistration_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1.Assumptions
-  import_admissionregistration_v1alpha1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions
-  import_admissionregistration_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1beta1.Assumptions
-  import_apiserverinternal_v1alpha1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions
-  import_apps_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions
-  import_apps_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1beta1.Assumptions
-  import_apps_v1beta2_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1beta2.Assumptions
-  import_authentication_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions
-  import_authentication_v1alpha1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1alpha1.Assumptions
-  import_authentication_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1beta1.Assumptions
-  import_authorization_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1.Assumptions
-  import_authorization_v1alpha1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.Assumptions
-  import_authorization_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1beta1.Assumptions
-  import_autoscaling_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.autoscaling.v1.Assumptions
-  import_v2_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.autoscaling.v2.Assumptions
-  import_batch_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions
-  import_batch_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1beta1.Assumptions
-  import_certificates_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1.Assumptions
-  import_certificates_v1alpha1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.Assumptions
-  import_certificates_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions
-  import_coordination_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1.Assumptions
-  import_v1alpha2_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.Assumptions
-  import_coordination_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1beta1.Assumptions
-  import_core_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.Assumptions
-  import_discovery_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.discovery.v1.Assumptions
-  import_discovery_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.discovery.v1beta1.Assumptions
-  import_events_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.Assumptions
-  import_events_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1beta1.Assumptions
-  import_extensions_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.extensions.v1beta1.Assumptions
-  import_flowcontrol_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1.Assumptions
-  import_flowcontrol_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions
-  import_flowcontrol_v1beta2_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta2.Assumptions
-  import_v1beta3_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.Assumptions
-  import_lifecycle_v1alpha1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions
-  import_networking_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1.Assumptions
-  import_networking_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions
-  import_node_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.node.v1.Assumptions
-  import_node_v1alpha1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.node.v1alpha1.Assumptions
-  import_node_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.node.v1beta1.Assumptions
-  import_policy_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.policy.v1.Assumptions
-  import_policy_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.policy.v1beta1.Assumptions
-  import_rbac_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1.Assumptions
-  import_rbac_v1alpha1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions
-  import_rbac_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1beta1.Assumptions
-  import_resource_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1.Assumptions
-  import_resource_v1alpha3_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1alpha3.Assumptions
-  import_resource_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions
-  import_resource_v1beta2_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions
-  import_scheduling_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.scheduling.v1.Assumptions
-  import_scheduling_v1alpha3_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.scheduling.v1alpha3.Assumptions
-  import_scheduling_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.scheduling.v1beta1.Assumptions
-  import_storage_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1.Assumptions
-  import_storage_v1alpha1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1alpha1.Assumptions
-  import_storage_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions
-  import_storagemigration_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1.Assumptions
-  import_storagemigration_v1beta1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.Assumptions
+  instance'Interface : Interface.TypeAssumptions
+  instance'Clientset : Clientset.TypeAssumptions
+  import'discovery : _root_.Perennial.k8s_io.client_go.discovery.Assumptions
+  import'admissionregistration_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1.Assumptions
+  import'admissionregistration_v1alpha1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions
+  import'admissionregistration_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1beta1.Assumptions
+  import'apiserverinternal_v1alpha1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions
+  import'apps_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions
+  import'apps_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1beta1.Assumptions
+  import'apps_v1beta2 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1beta2.Assumptions
+  import'authentication_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions
+  import'authentication_v1alpha1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1alpha1.Assumptions
+  import'authentication_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1beta1.Assumptions
+  import'authorization_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1.Assumptions
+  import'authorization_v1alpha1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.Assumptions
+  import'authorization_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1beta1.Assumptions
+  import'autoscaling_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.autoscaling.v1.Assumptions
+  import'v2 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.autoscaling.v2.Assumptions
+  import'batch_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions
+  import'batch_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1beta1.Assumptions
+  import'certificates_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1.Assumptions
+  import'certificates_v1alpha1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1alpha1.Assumptions
+  import'certificates_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions
+  import'coordination_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1.Assumptions
+  import'v1alpha2 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.Assumptions
+  import'coordination_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1beta1.Assumptions
+  import'core_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.Assumptions
+  import'discovery_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.discovery.v1.Assumptions
+  import'discovery_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.discovery.v1beta1.Assumptions
+  import'events_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.Assumptions
+  import'events_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1beta1.Assumptions
+  import'extensions_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.extensions.v1beta1.Assumptions
+  import'flowcontrol_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1.Assumptions
+  import'flowcontrol_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions
+  import'flowcontrol_v1beta2 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta2.Assumptions
+  import'v1beta3 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3.Assumptions
+  import'lifecycle_v1alpha1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions
+  import'networking_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1.Assumptions
+  import'networking_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions
+  import'node_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.node.v1.Assumptions
+  import'node_v1alpha1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.node.v1alpha1.Assumptions
+  import'node_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.node.v1beta1.Assumptions
+  import'policy_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.policy.v1.Assumptions
+  import'policy_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.policy.v1beta1.Assumptions
+  import'rbac_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1.Assumptions
+  import'rbac_v1alpha1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions
+  import'rbac_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1beta1.Assumptions
+  import'resource_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1.Assumptions
+  import'resource_v1alpha3 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1alpha3.Assumptions
+  import'resource_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions
+  import'resource_v1beta2 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions
+  import'scheduling_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.scheduling.v1.Assumptions
+  import'scheduling_v1alpha3 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.scheduling.v1alpha3.Assumptions
+  import'scheduling_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.scheduling.v1beta1.Assumptions
+  import'storage_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1.Assumptions
+  import'storage_v1alpha1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1alpha1.Assumptions
+  import'storage_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions
+  import'storagemigration_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1.Assumptions
+  import'storagemigration_v1beta1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.Assumptions
 
-attribute [instance] Assumptions.Interface_instance
-  Assumptions.Clientset_instance
-  Assumptions.import_discovery_Assumption
-  Assumptions.import_admissionregistration_v1_Assumption
-  Assumptions.import_admissionregistration_v1alpha1_Assumption
-  Assumptions.import_admissionregistration_v1beta1_Assumption
-  Assumptions.import_apiserverinternal_v1alpha1_Assumption
-  Assumptions.import_apps_v1_Assumption
-  Assumptions.import_apps_v1beta1_Assumption
-  Assumptions.import_apps_v1beta2_Assumption
-  Assumptions.import_authentication_v1_Assumption
-  Assumptions.import_authentication_v1alpha1_Assumption
-  Assumptions.import_authentication_v1beta1_Assumption
-  Assumptions.import_authorization_v1_Assumption
-  Assumptions.import_authorization_v1alpha1_Assumption
-  Assumptions.import_authorization_v1beta1_Assumption
-  Assumptions.import_autoscaling_v1_Assumption
-  Assumptions.import_v2_Assumption
-  Assumptions.import_batch_v1_Assumption
-  Assumptions.import_batch_v1beta1_Assumption
-  Assumptions.import_certificates_v1_Assumption
-  Assumptions.import_certificates_v1alpha1_Assumption
-  Assumptions.import_certificates_v1beta1_Assumption
-  Assumptions.import_coordination_v1_Assumption
-  Assumptions.import_v1alpha2_Assumption
-  Assumptions.import_coordination_v1beta1_Assumption
-  Assumptions.import_core_v1_Assumption
-  Assumptions.import_discovery_v1_Assumption
-  Assumptions.import_discovery_v1beta1_Assumption
-  Assumptions.import_events_v1_Assumption
-  Assumptions.import_events_v1beta1_Assumption
-  Assumptions.import_extensions_v1beta1_Assumption
-  Assumptions.import_flowcontrol_v1_Assumption
-  Assumptions.import_flowcontrol_v1beta1_Assumption
-  Assumptions.import_flowcontrol_v1beta2_Assumption
-  Assumptions.import_v1beta3_Assumption
-  Assumptions.import_lifecycle_v1alpha1_Assumption
-  Assumptions.import_networking_v1_Assumption
-  Assumptions.import_networking_v1beta1_Assumption
-  Assumptions.import_node_v1_Assumption
-  Assumptions.import_node_v1alpha1_Assumption
-  Assumptions.import_node_v1beta1_Assumption
-  Assumptions.import_policy_v1_Assumption
-  Assumptions.import_policy_v1beta1_Assumption
-  Assumptions.import_rbac_v1_Assumption
-  Assumptions.import_rbac_v1alpha1_Assumption
-  Assumptions.import_rbac_v1beta1_Assumption
-  Assumptions.import_resource_v1_Assumption
-  Assumptions.import_resource_v1alpha3_Assumption
-  Assumptions.import_resource_v1beta1_Assumption
-  Assumptions.import_resource_v1beta2_Assumption
-  Assumptions.import_scheduling_v1_Assumption
-  Assumptions.import_scheduling_v1alpha3_Assumption
-  Assumptions.import_scheduling_v1beta1_Assumption
-  Assumptions.import_storage_v1_Assumption
-  Assumptions.import_storage_v1alpha1_Assumption
-  Assumptions.import_storage_v1beta1_Assumption
-  Assumptions.import_storagemigration_v1_Assumption
-  Assumptions.import_storagemigration_v1beta1_Assumption
+attribute [instance] Assumptions.instance'Interface
+  Assumptions.instance'Clientset
+  Assumptions.import'discovery
+  Assumptions.import'admissionregistration_v1
+  Assumptions.import'admissionregistration_v1alpha1
+  Assumptions.import'admissionregistration_v1beta1
+  Assumptions.import'apiserverinternal_v1alpha1
+  Assumptions.import'apps_v1
+  Assumptions.import'apps_v1beta1
+  Assumptions.import'apps_v1beta2
+  Assumptions.import'authentication_v1
+  Assumptions.import'authentication_v1alpha1
+  Assumptions.import'authentication_v1beta1
+  Assumptions.import'authorization_v1
+  Assumptions.import'authorization_v1alpha1
+  Assumptions.import'authorization_v1beta1
+  Assumptions.import'autoscaling_v1
+  Assumptions.import'v2
+  Assumptions.import'batch_v1
+  Assumptions.import'batch_v1beta1
+  Assumptions.import'certificates_v1
+  Assumptions.import'certificates_v1alpha1
+  Assumptions.import'certificates_v1beta1
+  Assumptions.import'coordination_v1
+  Assumptions.import'v1alpha2
+  Assumptions.import'coordination_v1beta1
+  Assumptions.import'core_v1
+  Assumptions.import'discovery_v1
+  Assumptions.import'discovery_v1beta1
+  Assumptions.import'events_v1
+  Assumptions.import'events_v1beta1
+  Assumptions.import'extensions_v1beta1
+  Assumptions.import'flowcontrol_v1
+  Assumptions.import'flowcontrol_v1beta1
+  Assumptions.import'flowcontrol_v1beta2
+  Assumptions.import'v1beta3
+  Assumptions.import'lifecycle_v1alpha1
+  Assumptions.import'networking_v1
+  Assumptions.import'networking_v1beta1
+  Assumptions.import'node_v1
+  Assumptions.import'node_v1alpha1
+  Assumptions.import'node_v1beta1
+  Assumptions.import'policy_v1
+  Assumptions.import'policy_v1beta1
+  Assumptions.import'rbac_v1
+  Assumptions.import'rbac_v1alpha1
+  Assumptions.import'rbac_v1beta1
+  Assumptions.import'resource_v1
+  Assumptions.import'resource_v1alpha3
+  Assumptions.import'resource_v1beta1
+  Assumptions.import'resource_v1beta2
+  Assumptions.import'scheduling_v1
+  Assumptions.import'scheduling_v1alpha3
+  Assumptions.import'scheduling_v1beta1
+  Assumptions.import'storage_v1
+  Assumptions.import'storage_v1alpha1
+  Assumptions.import'storage_v1beta1
+  Assumptions.import'storagemigration_v1
+  Assumptions.import'storagemigration_v1beta1
 
 end k8s_io.client_go.kubernetes
 

@@ -207,19 +207,19 @@ attribute [instance] AuthorizationConditionsReviewExpansion.TypeAssumptions.type
   AuthorizationConditionsReviewExpansion.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  AuthorizationV1alpha1Interface_instance : AuthorizationV1alpha1Interface.TypeAssumptions
-  AuthorizationV1alpha1Client_instance : AuthorizationV1alpha1Client.TypeAssumptions
-  AuthorizationConditionsReviewsGetter_instance : AuthorizationConditionsReviewsGetter.TypeAssumptions
-  AuthorizationConditionsReviewInterface_instance : AuthorizationConditionsReviewInterface.TypeAssumptions
-  authorizationConditionsReviews_instance : authorizationConditionsReviews.TypeAssumptions
-  AuthorizationConditionsReviewExpansion_instance : AuthorizationConditionsReviewExpansion.TypeAssumptions
+  instance'AuthorizationV1alpha1Interface : AuthorizationV1alpha1Interface.TypeAssumptions
+  instance'AuthorizationV1alpha1Client : AuthorizationV1alpha1Client.TypeAssumptions
+  instance'AuthorizationConditionsReviewsGetter : AuthorizationConditionsReviewsGetter.TypeAssumptions
+  instance'AuthorizationConditionsReviewInterface : AuthorizationConditionsReviewInterface.TypeAssumptions
+  instance'authorizationConditionsReviews : authorizationConditionsReviews.TypeAssumptions
+  instance'AuthorizationConditionsReviewExpansion : AuthorizationConditionsReviewExpansion.TypeAssumptions
 
-attribute [instance] Assumptions.AuthorizationV1alpha1Interface_instance
-  Assumptions.AuthorizationV1alpha1Client_instance
-  Assumptions.AuthorizationConditionsReviewsGetter_instance
-  Assumptions.AuthorizationConditionsReviewInterface_instance
-  Assumptions.authorizationConditionsReviews_instance
-  Assumptions.AuthorizationConditionsReviewExpansion_instance
+attribute [instance] Assumptions.instance'AuthorizationV1alpha1Interface
+  Assumptions.instance'AuthorizationV1alpha1Client
+  Assumptions.instance'AuthorizationConditionsReviewsGetter
+  Assumptions.instance'AuthorizationConditionsReviewInterface
+  Assumptions.instance'authorizationConditionsReviews
+  Assumptions.instance'AuthorizationConditionsReviewExpansion
 
 end k8s_io.client_go.kubernetes.typed.authorization.v1alpha1
 

@@ -147,11 +147,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.bbolt.initialize') (Val #())))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Run_unfold : FuncUnfold Run [] Run.impl
-  import_bbolt_Assumption : _root_.Perennial.go_etcd_io.bbolt.Assumptions
+  unfold'Run : FuncUnfold Run [] Run.impl
+  import'bbolt : _root_.Perennial.go_etcd_io.bbolt.Assumptions
 
-attribute [instance] Assumptions.Run_unfold
-  Assumptions.import_bbolt_Assumption
+attribute [instance] Assumptions.unfold'Run
+  Assumptions.import'bbolt
 
 end github_com.mit_pdos.etcd_grove.examples.axiomcx.bboltnan
 

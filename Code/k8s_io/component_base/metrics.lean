@@ -1748,117 +1748,117 @@ attribute [instance] GaugeFunc.TypeAssumptions.type_repr
   GaugeFunc.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  StableCollector_instance : StableCollector.TypeAssumptions
-  BaseStableCollector_instance : BaseStableCollector.TypeAssumptions
-  Counter_instance : Counter.TypeAssumptions
-  exemplarCounterMetric_instance : exemplarCounterMetric.TypeAssumptions
-  CounterVec_instance : CounterVec.TypeAssumptions
-  CounterVecWithContext_instance : CounterVecWithContext.TypeAssumptions
-  Desc_instance : Desc.TypeAssumptions
-  Gauge_instance : Gauge.TypeAssumptions
-  GaugeVec_instance : GaugeVec.TypeAssumptions
-  GaugeVecWithContext_instance : GaugeVecWithContext.TypeAssumptions
-  Histogram_instance : Histogram.TypeAssumptions
-  exemplarHistogramMetric_instance : exemplarHistogramMetric.TypeAssumptions
-  exemplarHistogramVec_instance : exemplarHistogramVec.TypeAssumptions
-  HistogramVec_instance : HistogramVec.TypeAssumptions
-  HistogramVecWithContext_instance : HistogramVecWithContext.TypeAssumptions
-  HandlerOpts_instance : HandlerOpts.TypeAssumptions
-  Labels_instance : Labels.TypeAssumptions
-  kubeCollector_instance : kubeCollector.TypeAssumptions
-  lazyKubeMetric_instance : lazyKubeMetric.TypeAssumptions
-  lazyMetric_instance : lazyMetric.TypeAssumptions
-  selfCollector_instance : selfCollector.TypeAssumptions
-  noopMetric_instance : noopMetric.TypeAssumptions
-  Options_instance : Options.TypeAssumptions
-  MetricLabelAllowList_instance : MetricLabelAllowList.TypeAssumptions
-  KubeOpts_instance : KubeOpts.TypeAssumptions
-  StabilityLevel_instance : StabilityLevel.TypeAssumptions
-  CounterOpts_instance : CounterOpts.TypeAssumptions
-  GaugeOpts_instance : GaugeOpts.TypeAssumptions
-  HistogramOpts_instance : HistogramOpts.TypeAssumptions
-  TimingHistogramOpts_instance : TimingHistogramOpts.TypeAssumptions
-  SummaryOpts_instance : SummaryOpts.TypeAssumptions
-  Registerable_instance : Registerable.TypeAssumptions
-  resettable_instance : resettable.TypeAssumptions
-  KubeRegistry_instance : KubeRegistry.TypeAssumptions
-  kubeRegistry_instance : kubeRegistry.TypeAssumptions
-  Summary_instance : Summary.TypeAssumptions
-  SummaryVec_instance : SummaryVec.TypeAssumptions
-  SummaryVecWithContext_instance : SummaryVecWithContext.TypeAssumptions
-  PrometheusTimingHistogram_instance : PrometheusTimingHistogram.TypeAssumptions
-  TimingHistogram_instance : TimingHistogram.TypeAssumptions
-  TimingHistogramVec_instance : TimingHistogramVec.TypeAssumptions
-  TimingHistogramVecWithContext_instance : TimingHistogramVecWithContext.TypeAssumptions
-  ValueType_instance : ValueType.TypeAssumptions
-  Collector_instance : Collector.TypeAssumptions
-  Metric_instance : Metric.TypeAssumptions
-  CounterMetric_instance : CounterMetric.TypeAssumptions
-  CounterVecMetric_instance : CounterVecMetric.TypeAssumptions
-  GaugeMetric_instance : GaugeMetric.TypeAssumptions
-  GaugeVecMetric_instance : GaugeVecMetric.TypeAssumptions
-  ObserverMetric_instance : ObserverMetric.TypeAssumptions
-  PromRegistry_instance : PromRegistry.TypeAssumptions
-  Gatherer_instance : Gatherer.TypeAssumptions
-  Registerer_instance : Registerer.TypeAssumptions
-  GaugeFunc_instance : GaugeFunc.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  instance'StableCollector : StableCollector.TypeAssumptions
+  instance'BaseStableCollector : BaseStableCollector.TypeAssumptions
+  instance'Counter : Counter.TypeAssumptions
+  instance'exemplarCounterMetric : exemplarCounterMetric.TypeAssumptions
+  instance'CounterVec : CounterVec.TypeAssumptions
+  instance'CounterVecWithContext : CounterVecWithContext.TypeAssumptions
+  instance'Desc : Desc.TypeAssumptions
+  instance'Gauge : Gauge.TypeAssumptions
+  instance'GaugeVec : GaugeVec.TypeAssumptions
+  instance'GaugeVecWithContext : GaugeVecWithContext.TypeAssumptions
+  instance'Histogram : Histogram.TypeAssumptions
+  instance'exemplarHistogramMetric : exemplarHistogramMetric.TypeAssumptions
+  instance'exemplarHistogramVec : exemplarHistogramVec.TypeAssumptions
+  instance'HistogramVec : HistogramVec.TypeAssumptions
+  instance'HistogramVecWithContext : HistogramVecWithContext.TypeAssumptions
+  instance'HandlerOpts : HandlerOpts.TypeAssumptions
+  instance'Labels : Labels.TypeAssumptions
+  instance'kubeCollector : kubeCollector.TypeAssumptions
+  instance'lazyKubeMetric : lazyKubeMetric.TypeAssumptions
+  instance'lazyMetric : lazyMetric.TypeAssumptions
+  instance'selfCollector : selfCollector.TypeAssumptions
+  instance'noopMetric : noopMetric.TypeAssumptions
+  instance'Options : Options.TypeAssumptions
+  instance'MetricLabelAllowList : MetricLabelAllowList.TypeAssumptions
+  instance'KubeOpts : KubeOpts.TypeAssumptions
+  instance'StabilityLevel : StabilityLevel.TypeAssumptions
+  instance'CounterOpts : CounterOpts.TypeAssumptions
+  instance'GaugeOpts : GaugeOpts.TypeAssumptions
+  instance'HistogramOpts : HistogramOpts.TypeAssumptions
+  instance'TimingHistogramOpts : TimingHistogramOpts.TypeAssumptions
+  instance'SummaryOpts : SummaryOpts.TypeAssumptions
+  instance'Registerable : Registerable.TypeAssumptions
+  instance'resettable : resettable.TypeAssumptions
+  instance'KubeRegistry : KubeRegistry.TypeAssumptions
+  instance'kubeRegistry : kubeRegistry.TypeAssumptions
+  instance'Summary : Summary.TypeAssumptions
+  instance'SummaryVec : SummaryVec.TypeAssumptions
+  instance'SummaryVecWithContext : SummaryVecWithContext.TypeAssumptions
+  instance'PrometheusTimingHistogram : PrometheusTimingHistogram.TypeAssumptions
+  instance'TimingHistogram : TimingHistogram.TypeAssumptions
+  instance'TimingHistogramVec : TimingHistogramVec.TypeAssumptions
+  instance'TimingHistogramVecWithContext : TimingHistogramVecWithContext.TypeAssumptions
+  instance'ValueType : ValueType.TypeAssumptions
+  instance'Collector : Collector.TypeAssumptions
+  instance'Metric : Metric.TypeAssumptions
+  instance'CounterMetric : CounterMetric.TypeAssumptions
+  instance'CounterVecMetric : CounterVecMetric.TypeAssumptions
+  instance'GaugeMetric : GaugeMetric.TypeAssumptions
+  instance'GaugeVecMetric : GaugeVecMetric.TypeAssumptions
+  instance'ObserverMetric : ObserverMetric.TypeAssumptions
+  instance'PromRegistry : PromRegistry.TypeAssumptions
+  instance'Gatherer : Gatherer.TypeAssumptions
+  instance'Registerer : Registerer.TypeAssumptions
+  instance'GaugeFunc : GaugeFunc.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
 
-attribute [instance] Assumptions.StableCollector_instance
-  Assumptions.BaseStableCollector_instance
-  Assumptions.Counter_instance
-  Assumptions.exemplarCounterMetric_instance
-  Assumptions.CounterVec_instance
-  Assumptions.CounterVecWithContext_instance
-  Assumptions.Desc_instance
-  Assumptions.Gauge_instance
-  Assumptions.GaugeVec_instance
-  Assumptions.GaugeVecWithContext_instance
-  Assumptions.Histogram_instance
-  Assumptions.exemplarHistogramMetric_instance
-  Assumptions.exemplarHistogramVec_instance
-  Assumptions.HistogramVec_instance
-  Assumptions.HistogramVecWithContext_instance
-  Assumptions.HandlerOpts_instance
-  Assumptions.Labels_instance
-  Assumptions.kubeCollector_instance
-  Assumptions.lazyKubeMetric_instance
-  Assumptions.lazyMetric_instance
-  Assumptions.selfCollector_instance
-  Assumptions.noopMetric_instance
-  Assumptions.Options_instance
-  Assumptions.MetricLabelAllowList_instance
-  Assumptions.KubeOpts_instance
-  Assumptions.StabilityLevel_instance
-  Assumptions.CounterOpts_instance
-  Assumptions.GaugeOpts_instance
-  Assumptions.HistogramOpts_instance
-  Assumptions.TimingHistogramOpts_instance
-  Assumptions.SummaryOpts_instance
-  Assumptions.Registerable_instance
-  Assumptions.resettable_instance
-  Assumptions.KubeRegistry_instance
-  Assumptions.kubeRegistry_instance
-  Assumptions.Summary_instance
-  Assumptions.SummaryVec_instance
-  Assumptions.SummaryVecWithContext_instance
-  Assumptions.PrometheusTimingHistogram_instance
-  Assumptions.TimingHistogram_instance
-  Assumptions.TimingHistogramVec_instance
-  Assumptions.TimingHistogramVecWithContext_instance
-  Assumptions.ValueType_instance
-  Assumptions.Collector_instance
-  Assumptions.Metric_instance
-  Assumptions.CounterMetric_instance
-  Assumptions.CounterVecMetric_instance
-  Assumptions.GaugeMetric_instance
-  Assumptions.GaugeVecMetric_instance
-  Assumptions.ObserverMetric_instance
-  Assumptions.PromRegistry_instance
-  Assumptions.Gatherer_instance
-  Assumptions.Registerer_instance
-  Assumptions.GaugeFunc_instance
-  Assumptions.«init.0_unfold»
+attribute [instance] Assumptions.instance'StableCollector
+  Assumptions.instance'BaseStableCollector
+  Assumptions.instance'Counter
+  Assumptions.instance'exemplarCounterMetric
+  Assumptions.instance'CounterVec
+  Assumptions.instance'CounterVecWithContext
+  Assumptions.instance'Desc
+  Assumptions.instance'Gauge
+  Assumptions.instance'GaugeVec
+  Assumptions.instance'GaugeVecWithContext
+  Assumptions.instance'Histogram
+  Assumptions.instance'exemplarHistogramMetric
+  Assumptions.instance'exemplarHistogramVec
+  Assumptions.instance'HistogramVec
+  Assumptions.instance'HistogramVecWithContext
+  Assumptions.instance'HandlerOpts
+  Assumptions.instance'Labels
+  Assumptions.instance'kubeCollector
+  Assumptions.instance'lazyKubeMetric
+  Assumptions.instance'lazyMetric
+  Assumptions.instance'selfCollector
+  Assumptions.instance'noopMetric
+  Assumptions.instance'Options
+  Assumptions.instance'MetricLabelAllowList
+  Assumptions.instance'KubeOpts
+  Assumptions.instance'StabilityLevel
+  Assumptions.instance'CounterOpts
+  Assumptions.instance'GaugeOpts
+  Assumptions.instance'HistogramOpts
+  Assumptions.instance'TimingHistogramOpts
+  Assumptions.instance'SummaryOpts
+  Assumptions.instance'Registerable
+  Assumptions.instance'resettable
+  Assumptions.instance'KubeRegistry
+  Assumptions.instance'kubeRegistry
+  Assumptions.instance'Summary
+  Assumptions.instance'SummaryVec
+  Assumptions.instance'SummaryVecWithContext
+  Assumptions.instance'PrometheusTimingHistogram
+  Assumptions.instance'TimingHistogram
+  Assumptions.instance'TimingHistogramVec
+  Assumptions.instance'TimingHistogramVecWithContext
+  Assumptions.instance'ValueType
+  Assumptions.instance'Collector
+  Assumptions.instance'Metric
+  Assumptions.instance'CounterMetric
+  Assumptions.instance'CounterVecMetric
+  Assumptions.instance'GaugeMetric
+  Assumptions.instance'GaugeVecMetric
+  Assumptions.instance'ObserverMetric
+  Assumptions.instance'PromRegistry
+  Assumptions.instance'Gatherer
+  Assumptions.instance'Registerer
+  Assumptions.instance'GaugeFunc
+  Assumptions.«unfold'init.0»
 
 end k8s_io.component_base.metrics
 

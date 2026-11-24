@@ -90,7 +90,7 @@ noncomputable instance Pool.zero_val [GooseExts] : ZeroVal Pool :=
 @[irreducible] noncomputable def Pool.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Pool.fieldsUnsealed
 
-noncomputable instance equals_unfold_Pool [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Pool [GooseExts] [GoGlobalContext] :
     EqualsUnfold Pool.fields Pool.fieldsUnsealed :=
   ⟨by unfold Pool.fields; rfl⟩
 
@@ -100,15 +100,15 @@ noncomputable instance equals_unfold_Pool [GooseExts] [GoGlobalContext] :
 class Pool.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Pool.underlying Pool
   underlying : go.UnderlyingDirectedEq Pool.ty Pool.underlying
-  get_p : ∀ (x : Pool), go.IsGoStepPureDetTagged under (StructFieldGet Pool.underlying go!"p") #x (Val #(x.p'))
-  set_p : ∀ (x : Pool) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Pool.underlying go!"p") (PairV #x #y) (Val #(({ x with p' := y } : Pool)))
+  get'p : ∀ (x : Pool), go.IsGoStepPureDetTagged under (StructFieldGet Pool.underlying go!"p") #x (Val #(x.p'))
+  set'p : ∀ (x : Pool) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Pool.underlying go!"p") (PairV #x #y) (Val #(({ x with p' := y } : Pool)))
   method_set : go.MethodSetIs Pool.ty [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType Buffer.ty)]))), (go!"go.uber.org/zap/buffer.put", (some (go.signature.Signature [(go.GoType.PointerType Buffer.ty)] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Pool.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType Buffer.ty)]))), (go!"go.uber.org/zap/buffer.put", (some (go.signature.Signature [(go.GoType.PointerType Buffer.ty)] false [])))]
 
 attribute [instance] Pool.TypeAssumptions.type_repr
   Pool.TypeAssumptions.underlying
-  Pool.TypeAssumptions.get_p
-  Pool.TypeAssumptions.set_p
+  Pool.TypeAssumptions.get'p
+  Pool.TypeAssumptions.set'p
   Pool.TypeAssumptions.method_set
   Pool.TypeAssumptions.ptr_method_set
 
@@ -127,7 +127,7 @@ noncomputable instance Buffer.zero_val [GooseExts] : ZeroVal Buffer :=
 @[irreducible] noncomputable def Buffer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Buffer.fieldsUnsealed
 
-noncomputable instance equals_unfold_Buffer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Buffer [GooseExts] [GoGlobalContext] :
     EqualsUnfold Buffer.fields Buffer.fieldsUnsealed :=
   ⟨by unfold Buffer.fields; rfl⟩
 
@@ -137,32 +137,32 @@ noncomputable instance equals_unfold_Buffer [GooseExts] [GoGlobalContext] :
 class Buffer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Buffer.underlying Buffer
   underlying : go.UnderlyingDirectedEq Buffer.ty Buffer.underlying
-  get_bs : ∀ (x : Buffer), go.IsGoStepPureDetTagged under (StructFieldGet Buffer.underlying go!"bs") #x (Val #(x.bs'))
-  set_bs : ∀ (x : Buffer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Buffer.underlying go!"bs") (PairV #x #y) (Val #(({ x with bs' := y } : Buffer)))
-  get_pool : ∀ (x : Buffer), go.IsGoStepPureDetTagged under (StructFieldGet Buffer.underlying go!"pool") #x (Val #(x.pool'))
-  set_pool : ∀ (x : Buffer) (y : Pool), go.IsGoStepPureDetTagged under (StructFieldSet Buffer.underlying go!"pool") (PairV #x #y) (Val #(({ x with pool' := y } : Buffer)))
+  get'bs : ∀ (x : Buffer), go.IsGoStepPureDetTagged under (StructFieldGet Buffer.underlying go!"bs") #x (Val #(x.bs'))
+  set'bs : ∀ (x : Buffer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Buffer.underlying go!"bs") (PairV #x #y) (Val #(({ x with bs' := y } : Buffer)))
+  get'pool : ∀ (x : Buffer), go.IsGoStepPureDetTagged under (StructFieldGet Buffer.underlying go!"pool") #x (Val #(x.pool'))
+  set'pool : ∀ (x : Buffer) (y : Pool), go.IsGoStepPureDetTagged under (StructFieldSet Buffer.underlying go!"pool") (PairV #x #y) (Val #(({ x with pool' := y } : Buffer)))
   method_set : go.MethodSetIs Buffer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Buffer.ty) [(go!"AppendBool", (some (go.signature.Signature [go.bool] false []))), (go!"AppendByte", (some (go.signature.Signature [go.byte] false []))), (go!"AppendBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"AppendFloat", (some (go.signature.Signature [go.float64, go.int] false []))), (go!"AppendInt", (some (go.signature.Signature [go.int64] false []))), (go!"AppendString", (some (go.signature.Signature [go.string] false []))), (go!"AppendTime", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" []), go.string] false []))), (go!"AppendUint", (some (go.signature.Signature [go.uint64] false []))), (go!"Bytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Cap", (some (go.signature.Signature [] false [go.int]))), (go!"Free", (some (go.signature.Signature [] false []))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"TrimNewline", (some (go.signature.Signature [] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteByte", (some (go.signature.Signature [go.byte] false [go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error])))]
 
 attribute [instance] Buffer.TypeAssumptions.type_repr
   Buffer.TypeAssumptions.underlying
-  Buffer.TypeAssumptions.get_bs
-  Buffer.TypeAssumptions.set_bs
-  Buffer.TypeAssumptions.get_pool
-  Buffer.TypeAssumptions.set_pool
+  Buffer.TypeAssumptions.get'bs
+  Buffer.TypeAssumptions.set'bs
+  Buffer.TypeAssumptions.get'pool
+  Buffer.TypeAssumptions.set'pool
   Buffer.TypeAssumptions.method_set
   Buffer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Buffer_instance : Buffer.TypeAssumptions
-  Pool_instance : Pool.TypeAssumptions
-  NewPool_unfold : FuncUnfold NewPool [] NewPool.impl
-  import_pool_Assumption : _root_.Perennial.go_uber_org.zap.internal.pool.Assumptions
+  instance'Buffer : Buffer.TypeAssumptions
+  instance'Pool : Pool.TypeAssumptions
+  unfold'NewPool : FuncUnfold NewPool [] NewPool.impl
+  import'pool : _root_.Perennial.go_uber_org.zap.internal.pool.Assumptions
 
-attribute [instance] Assumptions.Buffer_instance
-  Assumptions.Pool_instance
-  Assumptions.NewPool_unfold
-  Assumptions.import_pool_Assumption
+attribute [instance] Assumptions.instance'Buffer
+  Assumptions.instance'Pool
+  Assumptions.unfold'NewPool
+  Assumptions.import'pool
 
 end go_uber_org.zap.buffer
 

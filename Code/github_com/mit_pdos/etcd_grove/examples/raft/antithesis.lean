@@ -1788,7 +1788,7 @@ noncomputable instance quietLogger.zero_val [GooseExts] : ZeroVal quietLogger :=
 @[irreducible] noncomputable def quietLogger.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   quietLogger.fieldsUnsealed
 
-noncomputable instance equals_unfold_quietLogger [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'quietLogger [GooseExts] [GoGlobalContext] :
     EqualsUnfold quietLogger.fields quietLogger.fieldsUnsealed :=
   ⟨by unfold quietLogger.fields; rfl⟩
 
@@ -1800,71 +1800,71 @@ class quietLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq quietLogger.ty quietLogger.underlying
   method_set : go.MethodSetIs quietLogger.ty [(go!"Debug", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Error", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panic", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warning", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warningf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType quietLogger.ty) [(go!"Debug", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Error", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panic", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warning", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warningf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true [])))]
-  Debug_unfold : MethodUnfold quietLogger.ty go!"Debug" quietLogger.Debug.impl
-  Debugf_unfold : MethodUnfold quietLogger.ty go!"Debugf" quietLogger.Debugf.impl
-  Error_unfold : MethodUnfold quietLogger.ty go!"Error" quietLogger.Error.impl
-  Errorf_unfold : MethodUnfold quietLogger.ty go!"Errorf" quietLogger.Errorf.impl
-  Fatal_unfold : MethodUnfold quietLogger.ty go!"Fatal" quietLogger.Fatal.impl
-  Fatalf_unfold : MethodUnfold quietLogger.ty go!"Fatalf" quietLogger.Fatalf.impl
-  Info_unfold : MethodUnfold quietLogger.ty go!"Info" quietLogger.Info.impl
-  Infof_unfold : MethodUnfold quietLogger.ty go!"Infof" quietLogger.Infof.impl
-  Panic_unfold : MethodUnfold quietLogger.ty go!"Panic" quietLogger.Panic.impl
-  Panicf_unfold : MethodUnfold quietLogger.ty go!"Panicf" quietLogger.Panicf.impl
-  Warning_unfold : MethodUnfold quietLogger.ty go!"Warning" quietLogger.Warning.impl
-  Warningf_unfold : MethodUnfold quietLogger.ty go!"Warningf" quietLogger.Warningf.impl
-  ptr_Debug_unfold : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Debug" (LamV "$r"
+  unfold'Debug : MethodUnfold quietLogger.ty go!"Debug" quietLogger.Debug.impl
+  unfold'Debugf : MethodUnfold quietLogger.ty go!"Debugf" quietLogger.Debugf.impl
+  unfold'Error : MethodUnfold quietLogger.ty go!"Error" quietLogger.Error.impl
+  unfold'Errorf : MethodUnfold quietLogger.ty go!"Errorf" quietLogger.Errorf.impl
+  unfold'Fatal : MethodUnfold quietLogger.ty go!"Fatal" quietLogger.Fatal.impl
+  unfold'Fatalf : MethodUnfold quietLogger.ty go!"Fatalf" quietLogger.Fatalf.impl
+  unfold'Info : MethodUnfold quietLogger.ty go!"Info" quietLogger.Info.impl
+  unfold'Infof : MethodUnfold quietLogger.ty go!"Infof" quietLogger.Infof.impl
+  unfold'Panic : MethodUnfold quietLogger.ty go!"Panic" quietLogger.Panic.impl
+  unfold'Panicf : MethodUnfold quietLogger.ty go!"Panicf" quietLogger.Panicf.impl
+  unfold'Warning : MethodUnfold quietLogger.ty go!"Warning" quietLogger.Warning.impl
+  unfold'Warningf : MethodUnfold quietLogger.ty go!"Warningf" quietLogger.Warningf.impl
+  ptr_unfold'Debug : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Debug" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve quietLogger.ty go!"Debug"))) (App (Val (GoInstruction (GoLoad quietLogger.ty))) (Var "$r"))))
-  ptr_Debugf_unfold : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Debugf" (LamV "$r"
+  ptr_unfold'Debugf : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Debugf" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve quietLogger.ty go!"Debugf"))) (App (Val (GoInstruction (GoLoad quietLogger.ty))) (Var "$r"))))
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Error" (LamV "$r"
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Error" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve quietLogger.ty go!"Error"))) (App (Val (GoInstruction (GoLoad quietLogger.ty))) (Var "$r"))))
-  ptr_Errorf_unfold : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Errorf" (LamV "$r"
+  ptr_unfold'Errorf : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Errorf" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve quietLogger.ty go!"Errorf"))) (App (Val (GoInstruction (GoLoad quietLogger.ty))) (Var "$r"))))
-  ptr_Fatal_unfold : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Fatal" (LamV "$r"
+  ptr_unfold'Fatal : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Fatal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve quietLogger.ty go!"Fatal"))) (App (Val (GoInstruction (GoLoad quietLogger.ty))) (Var "$r"))))
-  ptr_Fatalf_unfold : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Fatalf" (LamV "$r"
+  ptr_unfold'Fatalf : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Fatalf" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve quietLogger.ty go!"Fatalf"))) (App (Val (GoInstruction (GoLoad quietLogger.ty))) (Var "$r"))))
-  ptr_Info_unfold : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Info" (LamV "$r"
+  ptr_unfold'Info : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Info" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve quietLogger.ty go!"Info"))) (App (Val (GoInstruction (GoLoad quietLogger.ty))) (Var "$r"))))
-  ptr_Infof_unfold : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Infof" (LamV "$r"
+  ptr_unfold'Infof : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Infof" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve quietLogger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad quietLogger.ty))) (Var "$r"))))
-  ptr_Panic_unfold : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Panic" (LamV "$r"
+  ptr_unfold'Panic : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Panic" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve quietLogger.ty go!"Panic"))) (App (Val (GoInstruction (GoLoad quietLogger.ty))) (Var "$r"))))
-  ptr_Panicf_unfold : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Panicf" (LamV "$r"
+  ptr_unfold'Panicf : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Panicf" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve quietLogger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad quietLogger.ty))) (Var "$r"))))
-  ptr_Warning_unfold : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Warning" (LamV "$r"
+  ptr_unfold'Warning : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Warning" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve quietLogger.ty go!"Warning"))) (App (Val (GoInstruction (GoLoad quietLogger.ty))) (Var "$r"))))
-  ptr_Warningf_unfold : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Warningf" (LamV "$r"
+  ptr_unfold'Warningf : MethodUnfold (go.GoType.PointerType quietLogger.ty) go!"Warningf" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve quietLogger.ty go!"Warningf"))) (App (Val (GoInstruction (GoLoad quietLogger.ty))) (Var "$r"))))
 
 attribute [instance] quietLogger.TypeAssumptions.type_repr
   quietLogger.TypeAssumptions.underlying
   quietLogger.TypeAssumptions.method_set
   quietLogger.TypeAssumptions.ptr_method_set
-  quietLogger.TypeAssumptions.Debug_unfold
-  quietLogger.TypeAssumptions.Debugf_unfold
-  quietLogger.TypeAssumptions.Error_unfold
-  quietLogger.TypeAssumptions.Errorf_unfold
-  quietLogger.TypeAssumptions.Fatal_unfold
-  quietLogger.TypeAssumptions.Fatalf_unfold
-  quietLogger.TypeAssumptions.Info_unfold
-  quietLogger.TypeAssumptions.Infof_unfold
-  quietLogger.TypeAssumptions.Panic_unfold
-  quietLogger.TypeAssumptions.Panicf_unfold
-  quietLogger.TypeAssumptions.Warning_unfold
-  quietLogger.TypeAssumptions.Warningf_unfold
-  quietLogger.TypeAssumptions.ptr_Debug_unfold
-  quietLogger.TypeAssumptions.ptr_Debugf_unfold
-  quietLogger.TypeAssumptions.ptr_Error_unfold
-  quietLogger.TypeAssumptions.ptr_Errorf_unfold
-  quietLogger.TypeAssumptions.ptr_Fatal_unfold
-  quietLogger.TypeAssumptions.ptr_Fatalf_unfold
-  quietLogger.TypeAssumptions.ptr_Info_unfold
-  quietLogger.TypeAssumptions.ptr_Infof_unfold
-  quietLogger.TypeAssumptions.ptr_Panic_unfold
-  quietLogger.TypeAssumptions.ptr_Panicf_unfold
-  quietLogger.TypeAssumptions.ptr_Warning_unfold
-  quietLogger.TypeAssumptions.ptr_Warningf_unfold
+  quietLogger.TypeAssumptions.unfold'Debug
+  quietLogger.TypeAssumptions.unfold'Debugf
+  quietLogger.TypeAssumptions.unfold'Error
+  quietLogger.TypeAssumptions.unfold'Errorf
+  quietLogger.TypeAssumptions.unfold'Fatal
+  quietLogger.TypeAssumptions.unfold'Fatalf
+  quietLogger.TypeAssumptions.unfold'Info
+  quietLogger.TypeAssumptions.unfold'Infof
+  quietLogger.TypeAssumptions.unfold'Panic
+  quietLogger.TypeAssumptions.unfold'Panicf
+  quietLogger.TypeAssumptions.unfold'Warning
+  quietLogger.TypeAssumptions.unfold'Warningf
+  quietLogger.TypeAssumptions.ptr_unfold'Debug
+  quietLogger.TypeAssumptions.ptr_unfold'Debugf
+  quietLogger.TypeAssumptions.ptr_unfold'Error
+  quietLogger.TypeAssumptions.ptr_unfold'Errorf
+  quietLogger.TypeAssumptions.ptr_unfold'Fatal
+  quietLogger.TypeAssumptions.ptr_unfold'Fatalf
+  quietLogger.TypeAssumptions.ptr_unfold'Info
+  quietLogger.TypeAssumptions.ptr_unfold'Infof
+  quietLogger.TypeAssumptions.ptr_unfold'Panic
+  quietLogger.TypeAssumptions.ptr_unfold'Panicf
+  quietLogger.TypeAssumptions.ptr_unfold'Warning
+  quietLogger.TypeAssumptions.ptr_unfold'Warningf
 
 structure Recorder [GooseExts] where
   mk ::
@@ -1881,7 +1881,7 @@ noncomputable instance Recorder.zero_val [GooseExts] : ZeroVal Recorder :=
 @[irreducible] noncomputable def Recorder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Recorder.fieldsUnsealed
 
-noncomputable instance equals_unfold_Recorder [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Recorder [GooseExts] [GoGlobalContext] :
     EqualsUnfold Recorder.fields Recorder.fieldsUnsealed :=
   ⟨by unfold Recorder.fields; rfl⟩
 
@@ -1891,25 +1891,25 @@ noncomputable instance equals_unfold_Recorder [GooseExts] [GoGlobalContext] :
 class Recorder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Recorder.underlying Recorder
   underlying : go.UnderlyingDirectedEq Recorder.ty Recorder.underlying
-  get_mu : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : Recorder) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Recorder)))
-  get_events : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"events") #x (Val #(x.events'))
-  set_events : ∀ (x : Recorder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"events") (PairV #x #y) (Val #(({ x with events' := y } : Recorder)))
+  get'mu : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : Recorder) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Recorder)))
+  get'events : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"events") #x (Val #(x.events'))
+  set'events : ∀ (x : Recorder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"events") (PairV #x #y) (Val #(({ x with events' := y } : Recorder)))
   method_set : go.MethodSetIs Recorder.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Recorder.ty) [(go!"Events", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event.ty))]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.record", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event.ty)] false [])))]
-  ptr_Events_unfold : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"Events" Recorder.Events.impl
-  ptr_record_unfold : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"record" Recorder.record.impl
+  ptr_unfold'Events : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"Events" Recorder.Events.impl
+  ptr_unfold'record : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"record" Recorder.record.impl
 
 attribute [instance] Recorder.TypeAssumptions.type_repr
   Recorder.TypeAssumptions.underlying
-  Recorder.TypeAssumptions.get_mu
-  Recorder.TypeAssumptions.set_mu
-  Recorder.TypeAssumptions.get_events
-  Recorder.TypeAssumptions.set_events
+  Recorder.TypeAssumptions.get'mu
+  Recorder.TypeAssumptions.set'mu
+  Recorder.TypeAssumptions.get'events
+  Recorder.TypeAssumptions.set'events
   Recorder.TypeAssumptions.method_set
   Recorder.TypeAssumptions.ptr_method_set
-  Recorder.TypeAssumptions.ptr_Events_unfold
-  Recorder.TypeAssumptions.ptr_record_unfold
+  Recorder.TypeAssumptions.ptr_unfold'Events
+  Recorder.TypeAssumptions.ptr_unfold'record
 
 structure bootStorage [GooseExts] where
   mk ::
@@ -1926,7 +1926,7 @@ noncomputable instance bootStorage.zero_val [GooseExts] : ZeroVal bootStorage :=
 @[irreducible] noncomputable def bootStorage.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bootStorage.fieldsUnsealed
 
-noncomputable instance equals_unfold_bootStorage [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'bootStorage [GooseExts] [GoGlobalContext] :
     EqualsUnfold bootStorage.fields bootStorage.fieldsUnsealed :=
   ⟨by unfold bootStorage.fields; rfl⟩
 
@@ -1936,33 +1936,33 @@ noncomputable instance equals_unfold_bootStorage [GooseExts] [GoGlobalContext] :
 class bootStorage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootStorage.underlying bootStorage
   underlying : go.UnderlyingDirectedEq bootStorage.ty bootStorage.underlying
-  get_ms : ∀ (x : bootStorage), go.IsGoStepPureDetTagged under (StructFieldGet bootStorage.underlying go!"ms") #x (Val #(x.ms'))
-  set_ms : ∀ (x : bootStorage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootStorage.underlying go!"ms") (PairV #x #y) (Val #(({ x with ms' := y } : bootStorage)))
-  get_voters : ∀ (x : bootStorage), go.IsGoStepPureDetTagged under (StructFieldGet bootStorage.underlying go!"voters") #x (Val #(x.voters'))
-  set_voters : ∀ (x : bootStorage) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet bootStorage.underlying go!"voters") (PairV #x #y) (Val #(({ x with voters' := y } : bootStorage)))
+  get'ms : ∀ (x : bootStorage), go.IsGoStepPureDetTagged under (StructFieldGet bootStorage.underlying go!"ms") #x (Val #(x.ms'))
+  set'ms : ∀ (x : bootStorage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootStorage.underlying go!"ms") (PairV #x #y) (Val #(({ x with ms' := y } : bootStorage)))
+  get'voters : ∀ (x : bootStorage), go.IsGoStepPureDetTagged under (StructFieldGet bootStorage.underlying go!"voters") #x (Val #(x.voters'))
+  set'voters : ∀ (x : bootStorage) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet bootStorage.underlying go!"voters") (PairV #x #y) (Val #(({ x with voters' := y } : bootStorage)))
   method_set : go.MethodSetIs bootStorage.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bootStorage.ty) [(go!"Entries", (some (go.signature.Signature [go.uint64, go.uint64, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), go.error]))), (go!"FirstIndex", (some (go.signature.Signature [] false [go.uint64, go.error]))), (go!"InitialState", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty), go.error]))), (go!"LastIndex", (some (go.signature.Signature [] false [go.uint64, go.error]))), (go!"Snapshot", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty), go.error]))), (go!"Term", (some (go.signature.Signature [go.uint64] false [go.uint64, go.error])))]
-  ptr_Entries_unfold : MethodUnfold (go.GoType.PointerType bootStorage.ty) go!"Entries" bootStorage.Entries.impl
-  ptr_FirstIndex_unfold : MethodUnfold (go.GoType.PointerType bootStorage.ty) go!"FirstIndex" bootStorage.FirstIndex.impl
-  ptr_InitialState_unfold : MethodUnfold (go.GoType.PointerType bootStorage.ty) go!"InitialState" bootStorage.InitialState.impl
-  ptr_LastIndex_unfold : MethodUnfold (go.GoType.PointerType bootStorage.ty) go!"LastIndex" bootStorage.LastIndex.impl
-  ptr_Snapshot_unfold : MethodUnfold (go.GoType.PointerType bootStorage.ty) go!"Snapshot" bootStorage.Snapshot.impl
-  ptr_Term_unfold : MethodUnfold (go.GoType.PointerType bootStorage.ty) go!"Term" bootStorage.Term.impl
+  ptr_unfold'Entries : MethodUnfold (go.GoType.PointerType bootStorage.ty) go!"Entries" bootStorage.Entries.impl
+  ptr_unfold'FirstIndex : MethodUnfold (go.GoType.PointerType bootStorage.ty) go!"FirstIndex" bootStorage.FirstIndex.impl
+  ptr_unfold'InitialState : MethodUnfold (go.GoType.PointerType bootStorage.ty) go!"InitialState" bootStorage.InitialState.impl
+  ptr_unfold'LastIndex : MethodUnfold (go.GoType.PointerType bootStorage.ty) go!"LastIndex" bootStorage.LastIndex.impl
+  ptr_unfold'Snapshot : MethodUnfold (go.GoType.PointerType bootStorage.ty) go!"Snapshot" bootStorage.Snapshot.impl
+  ptr_unfold'Term : MethodUnfold (go.GoType.PointerType bootStorage.ty) go!"Term" bootStorage.Term.impl
 
 attribute [instance] bootStorage.TypeAssumptions.type_repr
   bootStorage.TypeAssumptions.underlying
-  bootStorage.TypeAssumptions.get_ms
-  bootStorage.TypeAssumptions.set_ms
-  bootStorage.TypeAssumptions.get_voters
-  bootStorage.TypeAssumptions.set_voters
+  bootStorage.TypeAssumptions.get'ms
+  bootStorage.TypeAssumptions.set'ms
+  bootStorage.TypeAssumptions.get'voters
+  bootStorage.TypeAssumptions.set'voters
   bootStorage.TypeAssumptions.method_set
   bootStorage.TypeAssumptions.ptr_method_set
-  bootStorage.TypeAssumptions.ptr_Entries_unfold
-  bootStorage.TypeAssumptions.ptr_FirstIndex_unfold
-  bootStorage.TypeAssumptions.ptr_InitialState_unfold
-  bootStorage.TypeAssumptions.ptr_LastIndex_unfold
-  bootStorage.TypeAssumptions.ptr_Snapshot_unfold
-  bootStorage.TypeAssumptions.ptr_Term_unfold
+  bootStorage.TypeAssumptions.ptr_unfold'Entries
+  bootStorage.TypeAssumptions.ptr_unfold'FirstIndex
+  bootStorage.TypeAssumptions.ptr_unfold'InitialState
+  bootStorage.TypeAssumptions.ptr_unfold'LastIndex
+  bootStorage.TypeAssumptions.ptr_unfold'Snapshot
+  bootStorage.TypeAssumptions.ptr_unfold'Term
 
 structure Config [GooseExts] where
   mk ::
@@ -1993,7 +1993,7 @@ noncomputable instance Config.zero_val [GooseExts] : ZeroVal Config :=
 @[irreducible] noncomputable def Config.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Config.fieldsUnsealed
 
-noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Config [GooseExts] [GoGlobalContext] :
     EqualsUnfold Config.fields Config.fieldsUnsealed :=
   ⟨by unfold Config.fields; rfl⟩
 
@@ -2003,47 +2003,47 @@ noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
 class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
-  get_Nodes : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Nodes") #x (Val #(x.Nodes'))
-  set_Nodes : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Nodes") (PairV #x #y) (Val #(({ x with Nodes' := y } : Config)))
-  get_Proposals : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Proposals") #x (Val #(x.Proposals'))
-  set_Proposals : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Proposals") (PairV #x #y) (Val #(({ x with Proposals' := y } : Config)))
-  get_ProposeGap : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProposeGap") #x (Val #(x.ProposeGap'))
-  set_ProposeGap : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProposeGap") (PairV #x #y) (Val #(({ x with ProposeGap' := y } : Config)))
-  get_Settle : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Settle") #x (Val #(x.Settle'))
-  set_Settle : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Settle") (PairV #x #y) (Val #(({ x with Settle' := y } : Config)))
-  get_Tick : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Tick") #x (Val #(x.Tick'))
-  set_Tick : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Tick") (PairV #x #y) (Val #(({ x with Tick' := y } : Config)))
-  get_MaxDelay : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"MaxDelay") #x (Val #(x.MaxDelay'))
-  set_MaxDelay : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"MaxDelay") (PairV #x #y) (Val #(({ x with MaxDelay' := y } : Config)))
-  get_DropPct : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"DropPct") #x (Val #(x.DropPct'))
-  set_DropPct : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"DropPct") (PairV #x #y) (Val #(({ x with DropPct' := y } : Config)))
-  get_Isolations : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Isolations") #x (Val #(x.Isolations'))
-  set_Isolations : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Isolations") (PairV #x #y) (Val #(({ x with Isolations' := y } : Config)))
-  get_IsolateFor : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"IsolateFor") #x (Val #(x.IsolateFor'))
-  set_IsolateFor : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"IsolateFor") (PairV #x #y) (Val #(({ x with IsolateFor' := y } : Config)))
+  get'Nodes : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Nodes") #x (Val #(x.Nodes'))
+  set'Nodes : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Nodes") (PairV #x #y) (Val #(({ x with Nodes' := y } : Config)))
+  get'Proposals : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Proposals") #x (Val #(x.Proposals'))
+  set'Proposals : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Proposals") (PairV #x #y) (Val #(({ x with Proposals' := y } : Config)))
+  get'ProposeGap : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProposeGap") #x (Val #(x.ProposeGap'))
+  set'ProposeGap : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProposeGap") (PairV #x #y) (Val #(({ x with ProposeGap' := y } : Config)))
+  get'Settle : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Settle") #x (Val #(x.Settle'))
+  set'Settle : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Settle") (PairV #x #y) (Val #(({ x with Settle' := y } : Config)))
+  get'Tick : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Tick") #x (Val #(x.Tick'))
+  set'Tick : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Tick") (PairV #x #y) (Val #(({ x with Tick' := y } : Config)))
+  get'MaxDelay : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"MaxDelay") #x (Val #(x.MaxDelay'))
+  set'MaxDelay : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"MaxDelay") (PairV #x #y) (Val #(({ x with MaxDelay' := y } : Config)))
+  get'DropPct : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"DropPct") #x (Val #(x.DropPct'))
+  set'DropPct : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"DropPct") (PairV #x #y) (Val #(({ x with DropPct' := y } : Config)))
+  get'Isolations : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Isolations") #x (Val #(x.Isolations'))
+  set'Isolations : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Isolations") (PairV #x #y) (Val #(({ x with Isolations' := y } : Config)))
+  get'IsolateFor : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"IsolateFor") #x (Val #(x.IsolateFor'))
+  set'IsolateFor : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"IsolateFor") (PairV #x #y) (Val #(({ x with IsolateFor' := y } : Config)))
   method_set : go.MethodSetIs Config.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) []
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
-  Config.TypeAssumptions.get_Nodes
-  Config.TypeAssumptions.set_Nodes
-  Config.TypeAssumptions.get_Proposals
-  Config.TypeAssumptions.set_Proposals
-  Config.TypeAssumptions.get_ProposeGap
-  Config.TypeAssumptions.set_ProposeGap
-  Config.TypeAssumptions.get_Settle
-  Config.TypeAssumptions.set_Settle
-  Config.TypeAssumptions.get_Tick
-  Config.TypeAssumptions.set_Tick
-  Config.TypeAssumptions.get_MaxDelay
-  Config.TypeAssumptions.set_MaxDelay
-  Config.TypeAssumptions.get_DropPct
-  Config.TypeAssumptions.set_DropPct
-  Config.TypeAssumptions.get_Isolations
-  Config.TypeAssumptions.set_Isolations
-  Config.TypeAssumptions.get_IsolateFor
-  Config.TypeAssumptions.set_IsolateFor
+  Config.TypeAssumptions.get'Nodes
+  Config.TypeAssumptions.set'Nodes
+  Config.TypeAssumptions.get'Proposals
+  Config.TypeAssumptions.set'Proposals
+  Config.TypeAssumptions.get'ProposeGap
+  Config.TypeAssumptions.set'ProposeGap
+  Config.TypeAssumptions.get'Settle
+  Config.TypeAssumptions.set'Settle
+  Config.TypeAssumptions.get'Tick
+  Config.TypeAssumptions.set'Tick
+  Config.TypeAssumptions.get'MaxDelay
+  Config.TypeAssumptions.set'MaxDelay
+  Config.TypeAssumptions.get'DropPct
+  Config.TypeAssumptions.set'DropPct
+  Config.TypeAssumptions.get'Isolations
+  Config.TypeAssumptions.set'Isolations
+  Config.TypeAssumptions.get'IsolateFor
+  Config.TypeAssumptions.set'IsolateFor
   Config.TypeAssumptions.method_set
   Config.TypeAssumptions.ptr_method_set
 
@@ -2064,7 +2064,7 @@ noncomputable instance input.zero_val [GooseExts] : ZeroVal input :=
 @[irreducible] noncomputable def input.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   input.fieldsUnsealed
 
-noncomputable instance equals_unfold_input [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'input [GooseExts] [GoGlobalContext] :
     EqualsUnfold input.fields input.fieldsUnsealed :=
   ⟨by unfold input.fields; rfl⟩
 
@@ -2074,23 +2074,23 @@ noncomputable instance equals_unfold_input [GooseExts] [GoGlobalContext] :
 class input.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying input.underlying input
   underlying : go.UnderlyingDirectedEq input.ty input.underlying
-  get_kind : ∀ (x : input), go.IsGoStepPureDetTagged under (StructFieldGet input.underlying go!"kind") #x (Val #(x.kind'))
-  set_kind : ∀ (x : input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet input.underlying go!"kind") (PairV #x #y) (Val #(({ x with kind' := y } : input)))
-  get_msg : ∀ (x : input), go.IsGoStepPureDetTagged under (StructFieldGet input.underlying go!"msg") #x (Val #(x.msg'))
-  set_msg : ∀ (x : input) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet input.underlying go!"msg") (PairV #x #y) (Val #(({ x with msg' := y } : input)))
-  get_data : ∀ (x : input), go.IsGoStepPureDetTagged under (StructFieldGet input.underlying go!"data") #x (Val #(x.data'))
-  set_data : ∀ (x : input) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet input.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : input)))
+  get'kind : ∀ (x : input), go.IsGoStepPureDetTagged under (StructFieldGet input.underlying go!"kind") #x (Val #(x.kind'))
+  set'kind : ∀ (x : input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet input.underlying go!"kind") (PairV #x #y) (Val #(({ x with kind' := y } : input)))
+  get'msg : ∀ (x : input), go.IsGoStepPureDetTagged under (StructFieldGet input.underlying go!"msg") #x (Val #(x.msg'))
+  set'msg : ∀ (x : input) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet input.underlying go!"msg") (PairV #x #y) (Val #(({ x with msg' := y } : input)))
+  get'data : ∀ (x : input), go.IsGoStepPureDetTagged under (StructFieldGet input.underlying go!"data") #x (Val #(x.data'))
+  set'data : ∀ (x : input) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet input.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : input)))
   method_set : go.MethodSetIs input.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType input.ty) []
 
 attribute [instance] input.TypeAssumptions.type_repr
   input.TypeAssumptions.underlying
-  input.TypeAssumptions.get_kind
-  input.TypeAssumptions.set_kind
-  input.TypeAssumptions.get_msg
-  input.TypeAssumptions.set_msg
-  input.TypeAssumptions.get_data
-  input.TypeAssumptions.set_data
+  input.TypeAssumptions.get'kind
+  input.TypeAssumptions.set'kind
+  input.TypeAssumptions.get'msg
+  input.TypeAssumptions.set'msg
+  input.TypeAssumptions.get'data
+  input.TypeAssumptions.set'data
   input.TypeAssumptions.method_set
   input.TypeAssumptions.ptr_method_set
 
@@ -2127,7 +2127,7 @@ noncomputable instance node.zero_val [GooseExts] : ZeroVal node :=
 @[irreducible] noncomputable def node.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   node.fieldsUnsealed
 
-noncomputable instance equals_unfold_node [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'node [GooseExts] [GoGlobalContext] :
     EqualsUnfold node.fields node.fieldsUnsealed :=
   ⟨by unfold node.fields; rfl⟩
 
@@ -2137,55 +2137,55 @@ noncomputable instance equals_unfold_node [GooseExts] [GoGlobalContext] :
 class node.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying node.underlying node
   underlying : go.UnderlyingDirectedEq node.ty node.underlying
-  get_id : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : node) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : node)))
-  get_name : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : node) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : node)))
-  get_rn : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"rn") #x (Val #(x.rn'))
-  set_rn : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"rn") (PairV #x #y) (Val #(({ x with rn' := y } : node)))
-  get_storage : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"storage") #x (Val #(x.storage'))
-  set_storage : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : node)))
-  get_in : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"in") #x (Val #(x.in'))
-  set_in : ∀ (x : node) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"in") (PairV #x #y) (Val #(({ x with in' := y } : node)))
-  get_role : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"role") #x (Val #(x.role'))
-  set_role : ∀ (x : node) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"role") (PairV #x #y) (Val #(({ x with role' := y } : node)))
-  get_term : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"term") #x (Val #(x.term'))
-  set_term : ∀ (x : node) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : node)))
-  get_vote : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"vote") #x (Val #(x.vote'))
-  set_vote : ∀ (x : node) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"vote") (PairV #x #y) (Val #(({ x with vote' := y } : node)))
-  get_commit : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"commit") #x (Val #(x.commit'))
-  set_commit : ∀ (x : node) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"commit") (PairV #x #y) (Val #(({ x with commit' := y } : node)))
-  get_cause : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"cause") #x (Val #(x.cause'))
-  set_cause : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"cause") (PairV #x #y) (Val #(({ x with cause' := y } : node)))
-  get_applied : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"applied") #x (Val #(x.applied'))
-  set_applied : ∀ (x : node) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"applied") (PairV #x #y) (Val #(({ x with applied' := y } : node)))
+  get'id : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : node) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : node)))
+  get'name : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : node) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : node)))
+  get'rn : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"rn") #x (Val #(x.rn'))
+  set'rn : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"rn") (PairV #x #y) (Val #(({ x with rn' := y } : node)))
+  get'storage : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"storage") #x (Val #(x.storage'))
+  set'storage : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : node)))
+  get'in : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"in") #x (Val #(x.in'))
+  set'in : ∀ (x : node) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"in") (PairV #x #y) (Val #(({ x with in' := y } : node)))
+  get'role : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"role") #x (Val #(x.role'))
+  set'role : ∀ (x : node) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"role") (PairV #x #y) (Val #(({ x with role' := y } : node)))
+  get'term : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"term") #x (Val #(x.term'))
+  set'term : ∀ (x : node) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : node)))
+  get'vote : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"vote") #x (Val #(x.vote'))
+  set'vote : ∀ (x : node) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"vote") (PairV #x #y) (Val #(({ x with vote' := y } : node)))
+  get'commit : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"commit") #x (Val #(x.commit'))
+  set'commit : ∀ (x : node) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"commit") (PairV #x #y) (Val #(({ x with commit' := y } : node)))
+  get'cause : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"cause") #x (Val #(x.cause'))
+  set'cause : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"cause") (PairV #x #y) (Val #(({ x with cause' := y } : node)))
+  get'applied : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"applied") #x (Val #(x.applied'))
+  set'applied : ∀ (x : node) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"applied") (PairV #x #y) (Val #(({ x with applied' := y } : node)))
   method_set : go.MethodSetIs node.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType node.ty) []
 
 attribute [instance] node.TypeAssumptions.type_repr
   node.TypeAssumptions.underlying
-  node.TypeAssumptions.get_id
-  node.TypeAssumptions.set_id
-  node.TypeAssumptions.get_name
-  node.TypeAssumptions.set_name
-  node.TypeAssumptions.get_rn
-  node.TypeAssumptions.set_rn
-  node.TypeAssumptions.get_storage
-  node.TypeAssumptions.set_storage
-  node.TypeAssumptions.get_in
-  node.TypeAssumptions.set_in
-  node.TypeAssumptions.get_role
-  node.TypeAssumptions.set_role
-  node.TypeAssumptions.get_term
-  node.TypeAssumptions.set_term
-  node.TypeAssumptions.get_vote
-  node.TypeAssumptions.set_vote
-  node.TypeAssumptions.get_commit
-  node.TypeAssumptions.set_commit
-  node.TypeAssumptions.get_cause
-  node.TypeAssumptions.set_cause
-  node.TypeAssumptions.get_applied
-  node.TypeAssumptions.set_applied
+  node.TypeAssumptions.get'id
+  node.TypeAssumptions.set'id
+  node.TypeAssumptions.get'name
+  node.TypeAssumptions.set'name
+  node.TypeAssumptions.get'rn
+  node.TypeAssumptions.set'rn
+  node.TypeAssumptions.get'storage
+  node.TypeAssumptions.set'storage
+  node.TypeAssumptions.get'in
+  node.TypeAssumptions.set'in
+  node.TypeAssumptions.get'role
+  node.TypeAssumptions.set'role
+  node.TypeAssumptions.get'term
+  node.TypeAssumptions.set'term
+  node.TypeAssumptions.get'vote
+  node.TypeAssumptions.set'vote
+  node.TypeAssumptions.get'commit
+  node.TypeAssumptions.set'commit
+  node.TypeAssumptions.get'cause
+  node.TypeAssumptions.set'cause
+  node.TypeAssumptions.get'applied
+  node.TypeAssumptions.set'applied
   node.TypeAssumptions.method_set
   node.TypeAssumptions.ptr_method_set
 
@@ -2216,7 +2216,7 @@ noncomputable instance Cluster.zero_val [GooseExts] : ZeroVal Cluster :=
 @[irreducible] noncomputable def Cluster.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Cluster.fieldsUnsealed
 
-noncomputable instance equals_unfold_Cluster [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Cluster [GooseExts] [GoGlobalContext] :
     EqualsUnfold Cluster.fields Cluster.fieldsUnsealed :=
   ⟨by unfold Cluster.fields; rfl⟩
 
@@ -2226,120 +2226,120 @@ noncomputable instance equals_unfold_Cluster [GooseExts] [GoGlobalContext] :
 class Cluster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Cluster.underlying Cluster
   underlying : go.UnderlyingDirectedEq Cluster.ty Cluster.underlying
-  get_cfg : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"cfg") #x (Val #(x.cfg'))
-  set_cfg : ∀ (x : Cluster) (y : Config), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"cfg") (PairV #x #y) (Val #(({ x with cfg' := y } : Cluster)))
-  get_rec : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"rec") #x (Val #(x.rec'))
-  set_rec : ∀ (x : Cluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"rec") (PairV #x #y) (Val #(({ x with rec' := y } : Cluster)))
-  get_nodes : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"nodes") #x (Val #(x.nodes'))
-  set_nodes : ∀ (x : Cluster) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"nodes") (PairV #x #y) (Val #(({ x with nodes' := y } : Cluster)))
-  get_stop : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"stop") #x (Val #(x.stop'))
-  set_stop : ∀ (x : Cluster) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"stop") (PairV #x #y) (Val #(({ x with stop' := y } : Cluster)))
-  get_isoMu : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"isoMu") #x (Val #(x.isoMu'))
-  set_isoMu : ∀ (x : Cluster) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"isoMu") (PairV #x #y) (Val #(({ x with isoMu' := y } : Cluster)))
-  get_isolated : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"isolated") #x (Val #(x.isolated'))
-  set_isolated : ∀ (x : Cluster) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"isolated") (PairV #x #y) (Val #(({ x with isolated' := y } : Cluster)))
-  get_nodesWg : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"nodesWg") #x (Val #(x.nodesWg'))
-  set_nodesWg : ∀ (x : Cluster) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"nodesWg") (PairV #x #y) (Val #(({ x with nodesWg' := y } : Cluster)))
-  get_netWg : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"netWg") #x (Val #(x.netWg'))
-  set_netWg : ∀ (x : Cluster) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"netWg") (PairV #x #y) (Val #(({ x with netWg' := y } : Cluster)))
+  get'cfg : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"cfg") #x (Val #(x.cfg'))
+  set'cfg : ∀ (x : Cluster) (y : Config), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"cfg") (PairV #x #y) (Val #(({ x with cfg' := y } : Cluster)))
+  get'rec : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"rec") #x (Val #(x.rec'))
+  set'rec : ∀ (x : Cluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"rec") (PairV #x #y) (Val #(({ x with rec' := y } : Cluster)))
+  get'nodes : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"nodes") #x (Val #(x.nodes'))
+  set'nodes : ∀ (x : Cluster) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"nodes") (PairV #x #y) (Val #(({ x with nodes' := y } : Cluster)))
+  get'stop : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"stop") #x (Val #(x.stop'))
+  set'stop : ∀ (x : Cluster) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"stop") (PairV #x #y) (Val #(({ x with stop' := y } : Cluster)))
+  get'isoMu : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"isoMu") #x (Val #(x.isoMu'))
+  set'isoMu : ∀ (x : Cluster) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"isoMu") (PairV #x #y) (Val #(({ x with isoMu' := y } : Cluster)))
+  get'isolated : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"isolated") #x (Val #(x.isolated'))
+  set'isolated : ∀ (x : Cluster) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"isolated") (PairV #x #y) (Val #(({ x with isolated' := y } : Cluster)))
+  get'nodesWg : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"nodesWg") #x (Val #(x.nodesWg'))
+  set'nodesWg : ∀ (x : Cluster) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"nodesWg") (PairV #x #y) (Val #(({ x with nodesWg' := y } : Cluster)))
+  get'netWg : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"netWg") #x (Val #(x.netWg'))
+  set'netWg : ∀ (x : Cluster) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"netWg") (PairV #x #y) (Val #(({ x with netWg' := y } : Cluster)))
   method_set : go.MethodSetIs Cluster.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Cluster.ty) [(go!"Events", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event.ty))]))), (go!"Servers", (some (go.signature.Signature [] false [_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.ty]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.deliver", (some (go.signature.Signature [(go.GoType.PointerType node.ty), input.ty] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.drain", (some (go.signature.Signature [(go.GoType.PointerType node.ty), go.string] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.isolate", (some (go.signature.Signature [go.uint64] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.isolatedNow", (some (go.signature.Signature [] false [go.uint64]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.node", (some (go.signature.Signature [go.uint64] false [(go.GoType.PointerType node.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.reportCause", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.run", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.send", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [])))]
-  ptr_Events_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"Events" Cluster.Events.impl
-  ptr_Servers_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"Servers" Cluster.Servers.impl
-  ptr_deliver_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"deliver" Cluster.deliver.impl
-  ptr_drain_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"drain" Cluster.drain.impl
-  ptr_isolate_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"isolate" Cluster.isolate.impl
-  ptr_isolatedNow_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"isolatedNow" Cluster.isolatedNow.impl
-  ptr_node_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"node" Cluster.node.impl
-  ptr_reportCause_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"reportCause" Cluster.reportCause.impl
-  ptr_run_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"run" Cluster.run.impl
-  ptr_send_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"send" Cluster.send.impl
+  ptr_unfold'Events : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"Events" Cluster.Events.impl
+  ptr_unfold'Servers : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"Servers" Cluster.Servers.impl
+  ptr_unfold'deliver : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"deliver" Cluster.deliver.impl
+  ptr_unfold'drain : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"drain" Cluster.drain.impl
+  ptr_unfold'isolate : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"isolate" Cluster.isolate.impl
+  ptr_unfold'isolatedNow : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"isolatedNow" Cluster.isolatedNow.impl
+  ptr_unfold'node : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"node" Cluster.node.impl
+  ptr_unfold'reportCause : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"reportCause" Cluster.reportCause.impl
+  ptr_unfold'run : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"run" Cluster.run.impl
+  ptr_unfold'send : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"send" Cluster.send.impl
 
 attribute [instance] Cluster.TypeAssumptions.type_repr
   Cluster.TypeAssumptions.underlying
-  Cluster.TypeAssumptions.get_cfg
-  Cluster.TypeAssumptions.set_cfg
-  Cluster.TypeAssumptions.get_rec
-  Cluster.TypeAssumptions.set_rec
-  Cluster.TypeAssumptions.get_nodes
-  Cluster.TypeAssumptions.set_nodes
-  Cluster.TypeAssumptions.get_stop
-  Cluster.TypeAssumptions.set_stop
-  Cluster.TypeAssumptions.get_isoMu
-  Cluster.TypeAssumptions.set_isoMu
-  Cluster.TypeAssumptions.get_isolated
-  Cluster.TypeAssumptions.set_isolated
-  Cluster.TypeAssumptions.get_nodesWg
-  Cluster.TypeAssumptions.set_nodesWg
-  Cluster.TypeAssumptions.get_netWg
-  Cluster.TypeAssumptions.set_netWg
+  Cluster.TypeAssumptions.get'cfg
+  Cluster.TypeAssumptions.set'cfg
+  Cluster.TypeAssumptions.get'rec
+  Cluster.TypeAssumptions.set'rec
+  Cluster.TypeAssumptions.get'nodes
+  Cluster.TypeAssumptions.set'nodes
+  Cluster.TypeAssumptions.get'stop
+  Cluster.TypeAssumptions.set'stop
+  Cluster.TypeAssumptions.get'isoMu
+  Cluster.TypeAssumptions.set'isoMu
+  Cluster.TypeAssumptions.get'isolated
+  Cluster.TypeAssumptions.set'isolated
+  Cluster.TypeAssumptions.get'nodesWg
+  Cluster.TypeAssumptions.set'nodesWg
+  Cluster.TypeAssumptions.get'netWg
+  Cluster.TypeAssumptions.set'netWg
   Cluster.TypeAssumptions.method_set
   Cluster.TypeAssumptions.ptr_method_set
-  Cluster.TypeAssumptions.ptr_Events_unfold
-  Cluster.TypeAssumptions.ptr_Servers_unfold
-  Cluster.TypeAssumptions.ptr_deliver_unfold
-  Cluster.TypeAssumptions.ptr_drain_unfold
-  Cluster.TypeAssumptions.ptr_isolate_unfold
-  Cluster.TypeAssumptions.ptr_isolatedNow_unfold
-  Cluster.TypeAssumptions.ptr_node_unfold
-  Cluster.TypeAssumptions.ptr_reportCause_unfold
-  Cluster.TypeAssumptions.ptr_run_unfold
-  Cluster.TypeAssumptions.ptr_send_unfold
+  Cluster.TypeAssumptions.ptr_unfold'Events
+  Cluster.TypeAssumptions.ptr_unfold'Servers
+  Cluster.TypeAssumptions.ptr_unfold'deliver
+  Cluster.TypeAssumptions.ptr_unfold'drain
+  Cluster.TypeAssumptions.ptr_unfold'isolate
+  Cluster.TypeAssumptions.ptr_unfold'isolatedNow
+  Cluster.TypeAssumptions.ptr_unfold'node
+  Cluster.TypeAssumptions.ptr_unfold'reportCause
+  Cluster.TypeAssumptions.ptr_unfold'run
+  Cluster.TypeAssumptions.ptr_unfold'send
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  quietLogger_instance : quietLogger.TypeAssumptions
-  Recorder_instance : Recorder.TypeAssumptions
-  bootStorage_instance : bootStorage.TypeAssumptions
-  Config_instance : Config.TypeAssumptions
-  input_instance : input.TypeAssumptions
-  node_instance : node.TypeAssumptions
-  Cluster_instance : Cluster.TypeAssumptions
-  below_unfold : FuncUnfold below [] below.impl
-  Name_unfold : FuncUnfold Name [] Name.impl
-  names_unfold : FuncUnfold names [] names.impl
-  entryOf_unfold : FuncUnfold entryOf [] entryOf.impl
-  entriesOf_unfold : FuncUnfold entriesOf [] entriesOf.impl
-  msgType_unfold : FuncUnfold msgType [] msgType.impl
-  msgOf_unfold : FuncUnfold msgOf [] msgOf.impl
-  roleOf_unfold : FuncUnfold roleOf [] roleOf.impl
-  DefaultConfig_unfold : FuncUnfold DefaultConfig [] DefaultConfig.impl
-  RunCluster_unfold : FuncUnfold RunCluster [] RunCluster.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
-  import_raft_Assumption : _root_.Perennial.go_etcd_io.raft.v3.Assumptions
-  import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
-  import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
-  import_check_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions
+  instance'quietLogger : quietLogger.TypeAssumptions
+  instance'Recorder : Recorder.TypeAssumptions
+  instance'bootStorage : bootStorage.TypeAssumptions
+  instance'Config : Config.TypeAssumptions
+  instance'input : input.TypeAssumptions
+  instance'node : node.TypeAssumptions
+  instance'Cluster : Cluster.TypeAssumptions
+  unfold'below : FuncUnfold below [] below.impl
+  unfold'Name : FuncUnfold Name [] Name.impl
+  unfold'names : FuncUnfold names [] names.impl
+  unfold'entryOf : FuncUnfold entryOf [] entryOf.impl
+  unfold'entriesOf : FuncUnfold entriesOf [] entriesOf.impl
+  unfold'msgType : FuncUnfold msgType [] msgType.impl
+  unfold'msgOf : FuncUnfold msgOf [] msgOf.impl
+  unfold'roleOf : FuncUnfold roleOf [] roleOf.impl
+  unfold'DefaultConfig : FuncUnfold DefaultConfig [] DefaultConfig.impl
+  unfold'RunCluster : FuncUnfold RunCluster [] RunCluster.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'primitive : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
+  import'raft : _root_.Perennial.go_etcd_io.raft.v3.Assumptions
+  import'raftpb : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
+  import'proto : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
+  import'check : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions
 
-attribute [instance] Assumptions.quietLogger_instance
-  Assumptions.Recorder_instance
-  Assumptions.bootStorage_instance
-  Assumptions.Config_instance
-  Assumptions.input_instance
-  Assumptions.node_instance
-  Assumptions.Cluster_instance
-  Assumptions.below_unfold
-  Assumptions.Name_unfold
-  Assumptions.names_unfold
-  Assumptions.entryOf_unfold
-  Assumptions.entriesOf_unfold
-  Assumptions.msgType_unfold
-  Assumptions.msgOf_unfold
-  Assumptions.roleOf_unfold
-  Assumptions.DefaultConfig_unfold
-  Assumptions.RunCluster_unfold
-  Assumptions.Main_unfold
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_primitive_Assumption
-  Assumptions.import_raft_Assumption
-  Assumptions.import_raftpb_Assumption
-  Assumptions.import_proto_Assumption
-  Assumptions.import_check_Assumption
+attribute [instance] Assumptions.instance'quietLogger
+  Assumptions.instance'Recorder
+  Assumptions.instance'bootStorage
+  Assumptions.instance'Config
+  Assumptions.instance'input
+  Assumptions.instance'node
+  Assumptions.instance'Cluster
+  Assumptions.unfold'below
+  Assumptions.unfold'Name
+  Assumptions.unfold'names
+  Assumptions.unfold'entryOf
+  Assumptions.unfold'entriesOf
+  Assumptions.unfold'msgType
+  Assumptions.unfold'msgOf
+  Assumptions.unfold'roleOf
+  Assumptions.unfold'DefaultConfig
+  Assumptions.unfold'RunCluster
+  Assumptions.unfold'Main
+  Assumptions.import'strconv
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'primitive
+  Assumptions.import'raft
+  Assumptions.import'raftpb
+  Assumptions.import'proto
+  Assumptions.import'check
 
 end github_com.mit_pdos.etcd_grove.examples.raft.antithesis
 

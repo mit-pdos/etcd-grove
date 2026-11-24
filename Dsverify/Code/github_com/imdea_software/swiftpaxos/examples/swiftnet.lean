@@ -155,7 +155,7 @@ noncomputable def host [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def port [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/imdea-software/swiftpaxos/examples/swiftnet.port"
 
-noncomputable def «at» [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def at'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/imdea-software/swiftpaxos/examples/swiftnet.at"
 
 noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
@@ -877,7 +877,7 @@ noncomputable def port.impl [GooseExts] [GoGlobalContext] : val :=
 /-- at is the address of node id's port off above its first (the deployment at addrs).
 
     go: kit.go:234:6 -/
-noncomputable def «at».impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def at''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Lam "id"
   (Lam "off"
@@ -953,7 +953,7 @@ noncomputable def configure.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "addrs"))
   (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "c"))))
   (Let "$a2" (Val StartOff)
-  (App (App (App (App (Val (GoInstruction (FuncResolve «at» []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve at'' []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType change.ty)))) (Val UntypedNil))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Conf.ty) go!"encode"))) (Var "conf")) (Var "$a0")))
   (App (App (App (Val (GoInstruction (FuncResolve sendConf []))) (Val #())) (Var "$a0")) (Var "$a1"))))))) (Lam BAnon
@@ -976,7 +976,7 @@ noncomputable def configure.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "addrs"))
   (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "c"))))
   (Let "$a2" (Val ConfOff)
-  (App (App (App (App (Val (GoInstruction (FuncResolve «at» []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve at'' []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$a1" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType change.ty)))) (Var "cs"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "c"))
   (App (App (App (Val (GoInstruction (FuncResolve mine []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -1001,7 +1001,7 @@ noncomputable def configure.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "addrs"))
   (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val NC) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))))
   (Let "$a2" (Val ConfOff)
-  (App (App (App (App (Val (GoInstruction (FuncResolve «at» []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve at'' []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType change.ty)))) (Val UntypedNil))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Conf.ty) go!"encode"))) (Var "conf")) (Var "$a0")))
   (App (App (App (Val (GoInstruction (FuncResolve sendConf []))) (Val #())) (Var "$a0")) (Var "$a1"))))))) (Lam BAnon
@@ -1274,7 +1274,7 @@ noncomputable def newClient.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "addrs"))
   (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "c"))))
   (Let "$a2" (Val ConfOff)
-  (App (App (App (App (Val (GoInstruction (FuncResolve «at» []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve at'' []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv msg.ty)))) (Var "ch"))
   (Let "$go" (App (Val (GoInstruction (FuncResolve awaitConf []))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1287,7 +1287,7 @@ noncomputable def newClient.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "addrs"))
   (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "c"))))
   (Let "$a2" (Val StartOff)
-  (App (App (App (App (Val (GoInstruction (FuncResolve «at» []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve at'' []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv msg.ty)))) (Var "st"))
   (Let "$go" (App (Val (GoInstruction (FuncResolve awaitConf []))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1373,7 +1373,7 @@ noncomputable def Sys.changeLeaders.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Sys.ty go!"addrs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Sys.ty)))) (Var "s"))))
   (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val NC) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef change.ty go!"Node"))) (Var "ch")))))
   (Let "$a2" (Val RPCOff)
-  (App (App (App (App (Val (GoInstruction (FuncResolve «at» []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve at'' []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.rpc.DialHTTP []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -2595,7 +2595,7 @@ noncomputable def serve.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "addrs"))
   (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val NC) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))))
   (Let "$a2" (Val ConfOff)
-  (App (App (App (App (Val (GoInstruction (FuncResolve «at» []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve at'' []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv msg.ty)))) (Var "ch"))
   (Let "$go" (App (Val (GoInstruction (FuncResolve awaitConf []))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2666,7 +2666,7 @@ noncomputable def serve.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "addrs"))
   (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val NC) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))))
   (Let "$a2" (Val RPCOff)
-  (App (App (App (App (Val (GoInstruction (FuncResolve «at» []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve at'' []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.Listen []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -6702,7 +6702,7 @@ noncomputable instance Conf.zero_val [GooseExts] : ZeroVal Conf :=
 @[irreducible] noncomputable def Conf.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Conf.fieldsUnsealed
 
-noncomputable instance equals_unfold_Conf [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Conf [GooseExts] [GoGlobalContext] :
     EqualsUnfold Conf.fields Conf.fieldsUnsealed :=
   ⟨by unfold Conf.fields; rfl⟩
 
@@ -6712,39 +6712,39 @@ noncomputable instance equals_unfold_Conf [GooseExts] [GoGlobalContext] :
 class Conf.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Conf.underlying Conf
   underlying : go.UnderlyingDirectedEq Conf.ty Conf.underlying
-  get_N : ∀ (x : Conf), go.IsGoStepPureDetTagged under (StructFieldGet Conf.underlying go!"N") #x (Val #(x.N'))
-  set_N : ∀ (x : Conf) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Conf.underlying go!"N") (PairV #x #y) (Val #(({ x with N' := y } : Conf)))
-  get_FastRead : ∀ (x : Conf), go.IsGoStepPureDetTagged under (StructFieldGet Conf.underlying go!"FastRead") #x (Val #(x.FastRead'))
-  set_FastRead : ∀ (x : Conf) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Conf.underlying go!"FastRead") (PairV #x #y) (Val #(({ x with FastRead' := y } : Conf)))
-  get_Pool : ∀ (x : Conf), go.IsGoStepPureDetTagged under (StructFieldGet Conf.underlying go!"Pool") #x (Val #(x.Pool'))
-  set_Pool : ∀ (x : Conf) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Conf.underlying go!"Pool") (PairV #x #y) (Val #(({ x with Pool' := y } : Conf)))
-  get_Desc : ∀ (x : Conf), go.IsGoStepPureDetTagged under (StructFieldGet Conf.underlying go!"Desc") #x (Val #(x.Desc'))
-  set_Desc : ∀ (x : Conf) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Conf.underlying go!"Desc") (PairV #x #y) (Val #(({ x with Desc' := y } : Conf)))
+  get'N : ∀ (x : Conf), go.IsGoStepPureDetTagged under (StructFieldGet Conf.underlying go!"N") #x (Val #(x.N'))
+  set'N : ∀ (x : Conf) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Conf.underlying go!"N") (PairV #x #y) (Val #(({ x with N' := y } : Conf)))
+  get'FastRead : ∀ (x : Conf), go.IsGoStepPureDetTagged under (StructFieldGet Conf.underlying go!"FastRead") #x (Val #(x.FastRead'))
+  set'FastRead : ∀ (x : Conf) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Conf.underlying go!"FastRead") (PairV #x #y) (Val #(({ x with FastRead' := y } : Conf)))
+  get'Pool : ∀ (x : Conf), go.IsGoStepPureDetTagged under (StructFieldGet Conf.underlying go!"Pool") #x (Val #(x.Pool'))
+  set'Pool : ∀ (x : Conf) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Conf.underlying go!"Pool") (PairV #x #y) (Val #(({ x with Pool' := y } : Conf)))
+  get'Desc : ∀ (x : Conf), go.IsGoStepPureDetTagged under (StructFieldGet Conf.underlying go!"Desc") #x (Val #(x.Desc'))
+  set'Desc : ∀ (x : Conf) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Conf.underlying go!"Desc") (PairV #x #y) (Val #(({ x with Desc' := y } : Conf)))
   method_set : go.MethodSetIs Conf.ty [(go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"github.com/imdea-software/swiftpaxos/examples/swiftnet.encode", (some (go.signature.Signature [(go.GoType.SliceType change.ty)] false [(go.GoType.SliceType go.byte)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Conf.ty) [(go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"github.com/imdea-software/swiftpaxos/examples/swiftnet.encode", (some (go.signature.Signature [(go.GoType.SliceType change.ty)] false [(go.GoType.SliceType go.byte)])))]
-  String_unfold : MethodUnfold Conf.ty go!"String" Conf.String.impl
-  encode_unfold : MethodUnfold Conf.ty go!"encode" Conf.encode.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Conf.ty) go!"String" (LamV "$r"
+  unfold'String : MethodUnfold Conf.ty go!"String" Conf.String.impl
+  unfold'encode : MethodUnfold Conf.ty go!"encode" Conf.encode.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType Conf.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Conf.ty go!"String"))) (App (Val (GoInstruction (GoLoad Conf.ty))) (Var "$r"))))
-  ptr_encode_unfold : MethodUnfold (go.GoType.PointerType Conf.ty) go!"encode" (LamV "$r"
+  ptr_unfold'encode : MethodUnfold (go.GoType.PointerType Conf.ty) go!"encode" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Conf.ty go!"encode"))) (App (Val (GoInstruction (GoLoad Conf.ty))) (Var "$r"))))
 
 attribute [instance] Conf.TypeAssumptions.type_repr
   Conf.TypeAssumptions.underlying
-  Conf.TypeAssumptions.get_N
-  Conf.TypeAssumptions.set_N
-  Conf.TypeAssumptions.get_FastRead
-  Conf.TypeAssumptions.set_FastRead
-  Conf.TypeAssumptions.get_Pool
-  Conf.TypeAssumptions.set_Pool
-  Conf.TypeAssumptions.get_Desc
-  Conf.TypeAssumptions.set_Desc
+  Conf.TypeAssumptions.get'N
+  Conf.TypeAssumptions.set'N
+  Conf.TypeAssumptions.get'FastRead
+  Conf.TypeAssumptions.set'FastRead
+  Conf.TypeAssumptions.get'Pool
+  Conf.TypeAssumptions.set'Pool
+  Conf.TypeAssumptions.get'Desc
+  Conf.TypeAssumptions.set'Desc
   Conf.TypeAssumptions.method_set
   Conf.TypeAssumptions.ptr_method_set
-  Conf.TypeAssumptions.String_unfold
-  Conf.TypeAssumptions.encode_unfold
-  Conf.TypeAssumptions.ptr_String_unfold
-  Conf.TypeAssumptions.ptr_encode_unfold
+  Conf.TypeAssumptions.unfold'String
+  Conf.TypeAssumptions.unfold'encode
+  Conf.TypeAssumptions.ptr_unfold'String
+  Conf.TypeAssumptions.ptr_unfold'encode
 
 structure change [GooseExts] where
   mk ::
@@ -6763,7 +6763,7 @@ noncomputable instance change.zero_val [GooseExts] : ZeroVal change :=
 @[irreducible] noncomputable def change.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   change.fieldsUnsealed
 
-noncomputable instance equals_unfold_change [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'change [GooseExts] [GoGlobalContext] :
     EqualsUnfold change.fields change.fieldsUnsealed :=
   ⟨by unfold change.fields; rfl⟩
 
@@ -6773,23 +6773,23 @@ noncomputable instance equals_unfold_change [GooseExts] [GoGlobalContext] :
 class change.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying change.underlying change
   underlying : go.UnderlyingDirectedEq change.ty change.underlying
-  get_Client : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"Client") #x (Val #(x.Client'))
-  set_Client : ∀ (x : change) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"Client") (PairV #x #y) (Val #(({ x with Client' := y } : change)))
-  get_Node : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"Node") #x (Val #(x.Node'))
-  set_Node : ∀ (x : change) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"Node") (PairV #x #y) (Val #(({ x with Node' := y } : change)))
-  get_After : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"After") #x (Val #(x.After'))
-  set_After : ∀ (x : change) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"After") (PairV #x #y) (Val #(({ x with After' := y } : change)))
+  get'Client : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"Client") #x (Val #(x.Client'))
+  set'Client : ∀ (x : change) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"Client") (PairV #x #y) (Val #(({ x with Client' := y } : change)))
+  get'Node : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"Node") #x (Val #(x.Node'))
+  set'Node : ∀ (x : change) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"Node") (PairV #x #y) (Val #(({ x with Node' := y } : change)))
+  get'After : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"After") #x (Val #(x.After'))
+  set'After : ∀ (x : change) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"After") (PairV #x #y) (Val #(({ x with After' := y } : change)))
   method_set : go.MethodSetIs change.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType change.ty) []
 
 attribute [instance] change.TypeAssumptions.type_repr
   change.TypeAssumptions.underlying
-  change.TypeAssumptions.get_Client
-  change.TypeAssumptions.set_Client
-  change.TypeAssumptions.get_Node
-  change.TypeAssumptions.set_Node
-  change.TypeAssumptions.get_After
-  change.TypeAssumptions.set_After
+  change.TypeAssumptions.get'Client
+  change.TypeAssumptions.set'Client
+  change.TypeAssumptions.get'Node
+  change.TypeAssumptions.set'Node
+  change.TypeAssumptions.get'After
+  change.TypeAssumptions.set'After
   change.TypeAssumptions.method_set
   change.TypeAssumptions.ptr_method_set
 
@@ -6808,7 +6808,7 @@ noncomputable instance msg.zero_val [GooseExts] : ZeroVal msg :=
 @[irreducible] noncomputable def msg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   msg.fieldsUnsealed
 
-noncomputable instance equals_unfold_msg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'msg [GooseExts] [GoGlobalContext] :
     EqualsUnfold msg.fields msg.fieldsUnsealed :=
   ⟨by unfold msg.fields; rfl⟩
 
@@ -6818,19 +6818,19 @@ noncomputable instance equals_unfold_msg [GooseExts] [GoGlobalContext] :
 class msg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying msg.underlying msg
   underlying : go.UnderlyingDirectedEq msg.ty msg.underlying
-  get_conf : ∀ (x : msg), go.IsGoStepPureDetTagged under (StructFieldGet msg.underlying go!"conf") #x (Val #(x.conf'))
-  set_conf : ∀ (x : msg) (y : Conf), go.IsGoStepPureDetTagged under (StructFieldSet msg.underlying go!"conf") (PairV #x #y) (Val #(({ x with conf' := y } : msg)))
-  get_cs : ∀ (x : msg), go.IsGoStepPureDetTagged under (StructFieldGet msg.underlying go!"cs") #x (Val #(x.cs'))
-  set_cs : ∀ (x : msg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet msg.underlying go!"cs") (PairV #x #y) (Val #(({ x with cs' := y } : msg)))
+  get'conf : ∀ (x : msg), go.IsGoStepPureDetTagged under (StructFieldGet msg.underlying go!"conf") #x (Val #(x.conf'))
+  set'conf : ∀ (x : msg) (y : Conf), go.IsGoStepPureDetTagged under (StructFieldSet msg.underlying go!"conf") (PairV #x #y) (Val #(({ x with conf' := y } : msg)))
+  get'cs : ∀ (x : msg), go.IsGoStepPureDetTagged under (StructFieldGet msg.underlying go!"cs") #x (Val #(x.cs'))
+  set'cs : ∀ (x : msg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet msg.underlying go!"cs") (PairV #x #y) (Val #(({ x with cs' := y } : msg)))
   method_set : go.MethodSetIs msg.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType msg.ty) []
 
 attribute [instance] msg.TypeAssumptions.type_repr
   msg.TypeAssumptions.underlying
-  msg.TypeAssumptions.get_conf
-  msg.TypeAssumptions.set_conf
-  msg.TypeAssumptions.get_cs
-  msg.TypeAssumptions.set_cs
+  msg.TypeAssumptions.get'conf
+  msg.TypeAssumptions.set'conf
+  msg.TypeAssumptions.get'cs
+  msg.TypeAssumptions.set'cs
   msg.TypeAssumptions.method_set
   msg.TypeAssumptions.ptr_method_set
 
@@ -6859,7 +6859,7 @@ noncomputable instance Sys.zero_val [GooseExts] : ZeroVal Sys :=
 @[irreducible] noncomputable def Sys.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Sys.fieldsUnsealed
 
-noncomputable instance equals_unfold_Sys [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Sys [GooseExts] [GoGlobalContext] :
     EqualsUnfold Sys.fields Sys.fieldsUnsealed :=
   ⟨by unfold Sys.fields; rfl⟩
 
@@ -6869,47 +6869,47 @@ noncomputable instance equals_unfold_Sys [GooseExts] [GoGlobalContext] :
 class Sys.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Sys.underlying Sys
   underlying : go.UnderlyingDirectedEq Sys.ty Sys.underlying
-  get_addrs : ∀ (x : Sys), go.IsGoStepPureDetTagged under (StructFieldGet Sys.underlying go!"addrs") #x (Val #(x.addrs'))
-  set_addrs : ∀ (x : Sys) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Sys.underlying go!"addrs") (PairV #x #y) (Val #(({ x with addrs' := y } : Sys)))
-  get_conf : ∀ (x : Sys), go.IsGoStepPureDetTagged under (StructFieldGet Sys.underlying go!"conf") #x (Val #(x.conf'))
-  set_conf : ∀ (x : Sys) (y : Conf), go.IsGoStepPureDetTagged under (StructFieldSet Sys.underlying go!"conf") (PairV #x #y) (Val #(({ x with conf' := y } : Sys)))
-  get_b : ∀ (x : Sys), go.IsGoStepPureDetTagged under (StructFieldGet Sys.underlying go!"b") #x (Val #(x.b'))
-  set_b : ∀ (x : Sys) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Sys.underlying go!"b") (PairV #x #y) (Val #(({ x with b' := y } : Sys)))
-  get_mu : ∀ (x : Sys), go.IsGoStepPureDetTagged under (StructFieldGet Sys.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : Sys) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Sys.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Sys)))
-  get_done : ∀ (x : Sys), go.IsGoStepPureDetTagged under (StructFieldGet Sys.underlying go!"done") #x (Val #(x.done'))
-  set_done : ∀ (x : Sys) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Sys.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : Sys)))
-  get_opMu : ∀ (x : Sys), go.IsGoStepPureDetTagged under (StructFieldGet Sys.underlying go!"opMu") #x (Val #(x.opMu'))
-  set_opMu : ∀ (x : Sys) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Sys.underlying go!"opMu") (PairV #x #y) (Val #(({ x with opMu' := y } : Sys)))
-  get_ops : ∀ (x : Sys), go.IsGoStepPureDetTagged under (StructFieldGet Sys.underlying go!"ops") #x (Val #(x.ops'))
-  set_ops : ∀ (x : Sys) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Sys.underlying go!"ops") (PairV #x #y) (Val #(({ x with ops' := y } : Sys)))
+  get'addrs : ∀ (x : Sys), go.IsGoStepPureDetTagged under (StructFieldGet Sys.underlying go!"addrs") #x (Val #(x.addrs'))
+  set'addrs : ∀ (x : Sys) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Sys.underlying go!"addrs") (PairV #x #y) (Val #(({ x with addrs' := y } : Sys)))
+  get'conf : ∀ (x : Sys), go.IsGoStepPureDetTagged under (StructFieldGet Sys.underlying go!"conf") #x (Val #(x.conf'))
+  set'conf : ∀ (x : Sys) (y : Conf), go.IsGoStepPureDetTagged under (StructFieldSet Sys.underlying go!"conf") (PairV #x #y) (Val #(({ x with conf' := y } : Sys)))
+  get'b : ∀ (x : Sys), go.IsGoStepPureDetTagged under (StructFieldGet Sys.underlying go!"b") #x (Val #(x.b'))
+  set'b : ∀ (x : Sys) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Sys.underlying go!"b") (PairV #x #y) (Val #(({ x with b' := y } : Sys)))
+  get'mu : ∀ (x : Sys), go.IsGoStepPureDetTagged under (StructFieldGet Sys.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : Sys) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Sys.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Sys)))
+  get'done : ∀ (x : Sys), go.IsGoStepPureDetTagged under (StructFieldGet Sys.underlying go!"done") #x (Val #(x.done'))
+  set'done : ∀ (x : Sys) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Sys.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : Sys)))
+  get'opMu : ∀ (x : Sys), go.IsGoStepPureDetTagged under (StructFieldGet Sys.underlying go!"opMu") #x (Val #(x.opMu'))
+  set'opMu : ∀ (x : Sys) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Sys.underlying go!"opMu") (PairV #x #y) (Val #(({ x with opMu' := y } : Sys)))
+  get'ops : ∀ (x : Sys), go.IsGoStepPureDetTagged under (StructFieldGet Sys.underlying go!"ops") #x (Val #(x.ops'))
+  set'ops : ∀ (x : Sys) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Sys.underlying go!"ops") (PairV #x #y) (Val #(({ x with ops' := y } : Sys)))
   method_set : go.MethodSetIs Sys.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Sys.ty) [(go!"github.com/imdea-software/swiftpaxos/examples/swiftnet.changeLeaders", (some (go.signature.Signature [(go.GoType.SliceType change.ty)] false []))), (go!"github.com/imdea-software/swiftpaxos/examples/swiftnet.connect", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"github.com/imdea-software/swiftpaxos/examples/swiftnet.returned", (some (go.signature.Signature [] false [])))]
-  ptr_changeLeaders_unfold : MethodUnfold (go.GoType.PointerType Sys.ty) go!"changeLeaders" Sys.changeLeaders.impl
-  ptr_connect_unfold : MethodUnfold (go.GoType.PointerType Sys.ty) go!"connect" Sys.connect.impl
-  ptr_returned_unfold : MethodUnfold (go.GoType.PointerType Sys.ty) go!"returned" Sys.returned.impl
+  ptr_unfold'changeLeaders : MethodUnfold (go.GoType.PointerType Sys.ty) go!"changeLeaders" Sys.changeLeaders.impl
+  ptr_unfold'connect : MethodUnfold (go.GoType.PointerType Sys.ty) go!"connect" Sys.connect.impl
+  ptr_unfold'returned : MethodUnfold (go.GoType.PointerType Sys.ty) go!"returned" Sys.returned.impl
 
 attribute [instance] Sys.TypeAssumptions.type_repr
   Sys.TypeAssumptions.underlying
-  Sys.TypeAssumptions.get_addrs
-  Sys.TypeAssumptions.set_addrs
-  Sys.TypeAssumptions.get_conf
-  Sys.TypeAssumptions.set_conf
-  Sys.TypeAssumptions.get_b
-  Sys.TypeAssumptions.set_b
-  Sys.TypeAssumptions.get_mu
-  Sys.TypeAssumptions.set_mu
-  Sys.TypeAssumptions.get_done
-  Sys.TypeAssumptions.set_done
-  Sys.TypeAssumptions.get_opMu
-  Sys.TypeAssumptions.set_opMu
-  Sys.TypeAssumptions.get_ops
-  Sys.TypeAssumptions.set_ops
+  Sys.TypeAssumptions.get'addrs
+  Sys.TypeAssumptions.set'addrs
+  Sys.TypeAssumptions.get'conf
+  Sys.TypeAssumptions.set'conf
+  Sys.TypeAssumptions.get'b
+  Sys.TypeAssumptions.set'b
+  Sys.TypeAssumptions.get'mu
+  Sys.TypeAssumptions.set'mu
+  Sys.TypeAssumptions.get'done
+  Sys.TypeAssumptions.set'done
+  Sys.TypeAssumptions.get'opMu
+  Sys.TypeAssumptions.set'opMu
+  Sys.TypeAssumptions.get'ops
+  Sys.TypeAssumptions.set'ops
   Sys.TypeAssumptions.method_set
   Sys.TypeAssumptions.ptr_method_set
-  Sys.TypeAssumptions.ptr_changeLeaders_unfold
-  Sys.TypeAssumptions.ptr_connect_unfold
-  Sys.TypeAssumptions.ptr_returned_unfold
+  Sys.TypeAssumptions.ptr_unfold'changeLeaders
+  Sys.TypeAssumptions.ptr_unfold'connect
+  Sys.TypeAssumptions.ptr_unfold'returned
 
 structure In [GooseExts] where
   mk ::
@@ -6928,7 +6928,7 @@ noncomputable instance In.zero_val [GooseExts] : ZeroVal In :=
 @[irreducible] noncomputable def In.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   In.fieldsUnsealed
 
-noncomputable instance equals_unfold_In [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'In [GooseExts] [GoGlobalContext] :
     EqualsUnfold In.fields In.fieldsUnsealed :=
   ⟨by unfold In.fields; rfl⟩
 
@@ -6938,23 +6938,23 @@ noncomputable instance equals_unfold_In [GooseExts] [GoGlobalContext] :
 class In.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying In.underlying In
   underlying : go.UnderlyingDirectedEq In.ty In.underlying
-  get_Put : ∀ (x : In), go.IsGoStepPureDetTagged under (StructFieldGet In.underlying go!"Put") #x (Val #(x.Put'))
-  set_Put : ∀ (x : In) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet In.underlying go!"Put") (PairV #x #y) (Val #(({ x with Put' := y } : In)))
-  get_K : ∀ (x : In), go.IsGoStepPureDetTagged under (StructFieldGet In.underlying go!"K") #x (Val #(x.K'))
-  set_K : ∀ (x : In) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet In.underlying go!"K") (PairV #x #y) (Val #(({ x with K' := y } : In)))
-  get_V : ∀ (x : In), go.IsGoStepPureDetTagged under (StructFieldGet In.underlying go!"V") #x (Val #(x.V'))
-  set_V : ∀ (x : In) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet In.underlying go!"V") (PairV #x #y) (Val #(({ x with V' := y } : In)))
+  get'Put : ∀ (x : In), go.IsGoStepPureDetTagged under (StructFieldGet In.underlying go!"Put") #x (Val #(x.Put'))
+  set'Put : ∀ (x : In) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet In.underlying go!"Put") (PairV #x #y) (Val #(({ x with Put' := y } : In)))
+  get'K : ∀ (x : In), go.IsGoStepPureDetTagged under (StructFieldGet In.underlying go!"K") #x (Val #(x.K'))
+  set'K : ∀ (x : In) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet In.underlying go!"K") (PairV #x #y) (Val #(({ x with K' := y } : In)))
+  get'V : ∀ (x : In), go.IsGoStepPureDetTagged under (StructFieldGet In.underlying go!"V") #x (Val #(x.V'))
+  set'V : ∀ (x : In) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet In.underlying go!"V") (PairV #x #y) (Val #(({ x with V' := y } : In)))
   method_set : go.MethodSetIs In.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType In.ty) []
 
 attribute [instance] In.TypeAssumptions.type_repr
   In.TypeAssumptions.underlying
-  In.TypeAssumptions.get_Put
-  In.TypeAssumptions.set_Put
-  In.TypeAssumptions.get_K
-  In.TypeAssumptions.set_K
-  In.TypeAssumptions.get_V
-  In.TypeAssumptions.set_V
+  In.TypeAssumptions.get'Put
+  In.TypeAssumptions.set'Put
+  In.TypeAssumptions.get'K
+  In.TypeAssumptions.set'K
+  In.TypeAssumptions.get'V
+  In.TypeAssumptions.set'V
   In.TypeAssumptions.method_set
   In.TypeAssumptions.ptr_method_set
 
@@ -6973,7 +6973,7 @@ noncomputable instance Out.zero_val [GooseExts] : ZeroVal Out :=
 @[irreducible] noncomputable def Out.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Out.fieldsUnsealed
 
-noncomputable instance equals_unfold_Out [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Out [GooseExts] [GoGlobalContext] :
     EqualsUnfold Out.fields Out.fieldsUnsealed :=
   ⟨by unfold Out.fields; rfl⟩
 
@@ -6983,19 +6983,19 @@ noncomputable instance equals_unfold_Out [GooseExts] [GoGlobalContext] :
 class Out.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Out.underlying Out
   underlying : go.UnderlyingDirectedEq Out.ty Out.underlying
-  get_Unknown : ∀ (x : Out), go.IsGoStepPureDetTagged under (StructFieldGet Out.underlying go!"Unknown") #x (Val #(x.Unknown'))
-  set_Unknown : ∀ (x : Out) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Out.underlying go!"Unknown") (PairV #x #y) (Val #(({ x with Unknown' := y } : Out)))
-  get_V : ∀ (x : Out), go.IsGoStepPureDetTagged under (StructFieldGet Out.underlying go!"V") #x (Val #(x.V'))
-  set_V : ∀ (x : Out) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Out.underlying go!"V") (PairV #x #y) (Val #(({ x with V' := y } : Out)))
+  get'Unknown : ∀ (x : Out), go.IsGoStepPureDetTagged under (StructFieldGet Out.underlying go!"Unknown") #x (Val #(x.Unknown'))
+  set'Unknown : ∀ (x : Out) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Out.underlying go!"Unknown") (PairV #x #y) (Val #(({ x with Unknown' := y } : Out)))
+  get'V : ∀ (x : Out), go.IsGoStepPureDetTagged under (StructFieldGet Out.underlying go!"V") #x (Val #(x.V'))
+  set'V : ∀ (x : Out) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Out.underlying go!"V") (PairV #x #y) (Val #(({ x with V' := y } : Out)))
   method_set : go.MethodSetIs Out.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Out.ty) []
 
 attribute [instance] Out.TypeAssumptions.type_repr
   Out.TypeAssumptions.underlying
-  Out.TypeAssumptions.get_Unknown
-  Out.TypeAssumptions.set_Unknown
-  Out.TypeAssumptions.get_V
-  Out.TypeAssumptions.set_V
+  Out.TypeAssumptions.get'Unknown
+  Out.TypeAssumptions.set'Unknown
+  Out.TypeAssumptions.get'V
+  Out.TypeAssumptions.set'V
   Out.TypeAssumptions.method_set
   Out.TypeAssumptions.ptr_method_set
 
@@ -7014,7 +7014,7 @@ noncomputable instance State.zero_val [GooseExts] : ZeroVal State :=
 @[irreducible] noncomputable def State.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   State.fieldsUnsealed
 
-noncomputable instance equals_unfold_State [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'State [GooseExts] [GoGlobalContext] :
     EqualsUnfold State.fields State.fieldsUnsealed :=
   ⟨by unfold State.fields; rfl⟩
 
@@ -7024,19 +7024,19 @@ noncomputable instance equals_unfold_State [GooseExts] [GoGlobalContext] :
 class State.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying State.underlying State
   underlying : go.UnderlyingDirectedEq State.ty State.underlying
-  get_Cur : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Cur") #x (Val #(x.Cur'))
-  set_Cur : ∀ (x : State) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Cur") (PairV #x #y) (Val #(({ x with Cur' := y } : State)))
-  get_Pend : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Pend") #x (Val #(x.Pend'))
-  set_Pend : ∀ (x : State) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Pend") (PairV #x #y) (Val #(({ x with Pend' := y } : State)))
+  get'Cur : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Cur") #x (Val #(x.Cur'))
+  set'Cur : ∀ (x : State) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Cur") (PairV #x #y) (Val #(({ x with Cur' := y } : State)))
+  get'Pend : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Pend") #x (Val #(x.Pend'))
+  set'Pend : ∀ (x : State) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Pend") (PairV #x #y) (Val #(({ x with Pend' := y } : State)))
   method_set : go.MethodSetIs State.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType State.ty) []
 
 attribute [instance] State.TypeAssumptions.type_repr
   State.TypeAssumptions.underlying
-  State.TypeAssumptions.get_Cur
-  State.TypeAssumptions.set_Cur
-  State.TypeAssumptions.get_Pend
-  State.TypeAssumptions.set_Pend
+  State.TypeAssumptions.get'Cur
+  State.TypeAssumptions.set'Cur
+  State.TypeAssumptions.get'Pend
+  State.TypeAssumptions.set'Pend
   State.TypeAssumptions.method_set
   State.TypeAssumptions.ptr_method_set
 
@@ -7049,276 +7049,276 @@ class rpcNotModelled.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq rpcNotModelled.ty rpcNotModelled.underlying
   method_set : go.MethodSetIs rpcNotModelled.ty [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType rpcNotModelled.ty) [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
-  NotModelled_unfold : MethodUnfold rpcNotModelled.ty go!"NotModelled" rpcNotModelled.NotModelled.impl
-  ptr_NotModelled_unfold : MethodUnfold (go.GoType.PointerType rpcNotModelled.ty) go!"NotModelled" (LamV "$r"
+  unfold'NotModelled : MethodUnfold rpcNotModelled.ty go!"NotModelled" rpcNotModelled.NotModelled.impl
+  ptr_unfold'NotModelled : MethodUnfold (go.GoType.PointerType rpcNotModelled.ty) go!"NotModelled" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve rpcNotModelled.ty go!"NotModelled"))) (App (Val (GoInstruction (GoLoad rpcNotModelled.ty))) (Var "$r"))))
 
 attribute [instance] rpcNotModelled.TypeAssumptions.underlying
   rpcNotModelled.TypeAssumptions.method_set
   rpcNotModelled.TypeAssumptions.ptr_method_set
-  rpcNotModelled.TypeAssumptions.NotModelled_unfold
-  rpcNotModelled.TypeAssumptions.ptr_NotModelled_unfold
+  rpcNotModelled.TypeAssumptions.unfold'NotModelled
+  rpcNotModelled.TypeAssumptions.ptr_unfold'NotModelled
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Conf_instance : Conf.TypeAssumptions
-  change_instance : change.TypeAssumptions
-  msg_instance : msg.TypeAssumptions
-  Sys_instance : Sys.TypeAssumptions
-  In_instance : In.TypeAssumptions
-  Out_instance : Out.TypeAssumptions
-  State_instance : State.TypeAssumptions
-  rpcNotModelled_instance : rpcNotModelled.TypeAssumptions
-  Addrs_unfold : FuncUnfold Addrs [] Addrs.impl
-  ClientAddrs_unfold : FuncUnfold ClientAddrs [] ClientAddrs.impl
-  choose_unfold : FuncUnfold choose [] choose.impl
-  plan_unfold : FuncUnfold plan [] plan.impl
-  mine_unfold : FuncUnfold mine [] mine.impl
-  decode_unfold : FuncUnfold decode [] decode.impl
-  host_unfold : FuncUnfold host [] host.impl
-  port_unfold : FuncUnfold port [] port.impl
-  at_unfold : FuncUnfold «at» [] «at».impl
-  New_unfold : FuncUnfold New [] New.impl
-  configure_unfold : FuncUnfold configure [] configure.impl
-  sendConf_unfold : FuncUnfold sendConf [] sendConf.impl
-  awaitConf_unfold : FuncUnfold awaitConf [] awaitConf.impl
-  newClient_unfold : FuncUnfold newClient [] newClient.impl
-  op_unfold : FuncUnfold op [] op.impl
-  op1_unfold : FuncUnfold op1 [] op1.impl
-  digits_unfold : FuncUnfold digits [] digits.impl
-  Gen_unfold : FuncUnfold Gen [] Gen.impl
-  has_unfold : FuncUnfold has [] has.impl
-  push_unfold : FuncUnfold push [] push.impl
-  erase_unfold : FuncUnfold erase [] erase.impl
-  setCur_unfold : FuncUnfold setCur [] setCur.impl
-  setPend_unfold : FuncUnfold setPend [] setPend.impl
-  step_unfold : FuncUnfold step [] step.impl
-  initState_unfold : FuncUnfold initState [] initState.impl
-  Model_unfold : FuncUnfold Model [] Model.impl
-  Codec_unfold : FuncUnfold Codec [] Codec.impl
-  callTime_unfold : FuncUnfold callTime [] callTime.impl
-  Orch_unfold : FuncUnfold Orch [] Orch.impl
-  orch_unfold : FuncUnfold orch [] orch.impl
-  Client_unfold : FuncUnfold Client [] Client.impl
-  clientNode_unfold : FuncUnfold clientNode [] clientNode.impl
-  Server_unfold : FuncUnfold Server [] Server.impl
-  nodeConfig_unfold : FuncUnfold nodeConfig [] nodeConfig.impl
-  register_unfold : FuncUnfold register [] register.impl
-  serve_unfold : FuncUnfold serve [] serve.impl
-  rpcErrDecode_unfold : FuncUnfold rpcErrDecode [] rpcErrDecode.impl
-  rpcPutU64_unfold : FuncUnfold rpcPutU64 [] rpcPutU64.impl
-  rpcGetU64_unfold : FuncUnfold rpcGetU64 [] rpcGetU64.impl
-  rpcGetTag_unfold : FuncUnfold rpcGetTag [] rpcGetTag.impl
-  rpcPutTag_unfold : FuncUnfold rpcPutTag [] rpcPutTag.impl
-  rpcEnc_t6_unfold : FuncUnfold rpcEnc_t6 [] rpcEnc_t6.impl
-  rpcDec_t6_unfold : FuncUnfold rpcDec_t6 [] rpcDec_t6.impl
-  rpcEnc_t4_unfold : FuncUnfold rpcEnc_t4 [] rpcEnc_t4.impl
-  rpcSent_t4_unfold : FuncUnfold rpcSent_t4 [] rpcSent_t4.impl
-  rpcDec_t4_unfold : FuncUnfold rpcDec_t4 [] rpcDec_t4.impl
-  rpcEnc_t8_unfold : FuncUnfold rpcEnc_t8 [] rpcEnc_t8.impl
-  rpcDec_t8_unfold : FuncUnfold rpcDec_t8 [] rpcDec_t8.impl
-  rpcEnc_t10_unfold : FuncUnfold rpcEnc_t10 [] rpcEnc_t10.impl
-  rpcDec_t10_unfold : FuncUnfold rpcDec_t10 [] rpcDec_t10.impl
-  rpcEnc_t14_unfold : FuncUnfold rpcEnc_t14 [] rpcEnc_t14.impl
-  rpcSent_t14_unfold : FuncUnfold rpcSent_t14 [] rpcSent_t14.impl
-  rpcDec_t14_unfold : FuncUnfold rpcDec_t14 [] rpcDec_t14.impl
-  rpcEnc_t13_unfold : FuncUnfold rpcEnc_t13 [] rpcEnc_t13.impl
-  rpcSent_t13_unfold : FuncUnfold rpcSent_t13 [] rpcSent_t13.impl
-  rpcDec_t13_unfold : FuncUnfold rpcDec_t13 [] rpcDec_t13.impl
-  rpcEnc_t16_unfold : FuncUnfold rpcEnc_t16 [] rpcEnc_t16.impl
-  rpcSent_t16_unfold : FuncUnfold rpcSent_t16 [] rpcSent_t16.impl
-  rpcDec_t16_unfold : FuncUnfold rpcDec_t16 [] rpcDec_t16.impl
-  rpcEnc_t15_unfold : FuncUnfold rpcEnc_t15 [] rpcEnc_t15.impl
-  rpcSent_t15_unfold : FuncUnfold rpcSent_t15 [] rpcSent_t15.impl
-  rpcDec_t15_unfold : FuncUnfold rpcDec_t15 [] rpcDec_t15.impl
-  rpcEnc_t12_unfold : FuncUnfold rpcEnc_t12 [] rpcEnc_t12.impl
-  rpcDec_t12_unfold : FuncUnfold rpcDec_t12 [] rpcDec_t12.impl
-  rpcEnc_t18_unfold : FuncUnfold rpcEnc_t18 [] rpcEnc_t18.impl
-  rpcDec_t18_unfold : FuncUnfold rpcDec_t18 [] rpcDec_t18.impl
-  rpcEnc_t20_unfold : FuncUnfold rpcEnc_t20 [] rpcEnc_t20.impl
-  rpcDec_t20_unfold : FuncUnfold rpcDec_t20 [] rpcDec_t20.impl
-  rpcEnc_t79_unfold : FuncUnfold rpcEnc_t79 [] rpcEnc_t79.impl
-  rpcDec_t79_unfold : FuncUnfold rpcDec_t79 [] rpcDec_t79.impl
-  rpcEnc_t26_unfold : FuncUnfold rpcEnc_t26 [] rpcEnc_t26.impl
-  rpcSent_t26_unfold : FuncUnfold rpcSent_t26 [] rpcSent_t26.impl
-  rpcDec_t26_unfold : FuncUnfold rpcDec_t26 [] rpcDec_t26.impl
-  rpcEnc_t81_unfold : FuncUnfold rpcEnc_t81 [] rpcEnc_t81.impl
-  rpcDec_t81_unfold : FuncUnfold rpcDec_t81 [] rpcDec_t81.impl
-  rpcEnc_t66_unfold : FuncUnfold rpcEnc_t66 [] rpcEnc_t66.impl
-  rpcSent_t66_unfold : FuncUnfold rpcSent_t66 [] rpcSent_t66.impl
-  rpcDec_t66_unfold : FuncUnfold rpcDec_t66 [] rpcDec_t66.impl
-  rpcEnc_t83_unfold : FuncUnfold rpcEnc_t83 [] rpcEnc_t83.impl
-  rpcDec_t83_unfold : FuncUnfold rpcDec_t83 [] rpcDec_t83.impl
-  rpcEnc_t85_unfold : FuncUnfold rpcEnc_t85 [] rpcEnc_t85.impl
-  rpcDec_t85_unfold : FuncUnfold rpcDec_t85 [] rpcDec_t85.impl
-  rpcEncode_unfold : FuncUnfold rpcEncode [] rpcEncode.impl
-  rpcDecode_unfold : FuncUnfold rpcDecode [] rpcDecode.impl
-  Register_unfold : FuncUnfold Register [] Register.impl
-  rpcReceiver_unfold : FuncUnfold rpcReceiver [] rpcReceiver.impl
-  rpcNewArg_r0_GetLeader_unfold : FuncUnfold rpcNewArg_r0_GetLeader [] rpcNewArg_r0_GetLeader.impl
-  rpcNewReply_r0_GetLeader_unfold : FuncUnfold rpcNewReply_r0_GetLeader [] rpcNewReply_r0_GetLeader.impl
-  rpcCall_r0_GetLeader_unfold : FuncUnfold rpcCall_r0_GetLeader [] rpcCall_r0_GetLeader.impl
-  rpcNewArg_r0_GetReplicaList_unfold : FuncUnfold rpcNewArg_r0_GetReplicaList [] rpcNewArg_r0_GetReplicaList.impl
-  rpcNewReply_r0_GetReplicaList_unfold : FuncUnfold rpcNewReply_r0_GetReplicaList [] rpcNewReply_r0_GetReplicaList.impl
-  rpcCall_r0_GetReplicaList_unfold : FuncUnfold rpcCall_r0_GetReplicaList [] rpcCall_r0_GetReplicaList.impl
-  rpcNewArg_r0_Register_unfold : FuncUnfold rpcNewArg_r0_Register [] rpcNewArg_r0_Register.impl
-  rpcNewReply_r0_Register_unfold : FuncUnfold rpcNewReply_r0_Register [] rpcNewReply_r0_Register.impl
-  rpcCall_r0_Register_unfold : FuncUnfold rpcCall_r0_Register [] rpcCall_r0_Register.impl
-  rpcNewArg_r1_BeTheLeader_unfold : FuncUnfold rpcNewArg_r1_BeTheLeader [] rpcNewArg_r1_BeTheLeader.impl
-  rpcNewReply_r1_BeTheLeader_unfold : FuncUnfold rpcNewReply_r1_BeTheLeader [] rpcNewReply_r1_BeTheLeader.impl
-  rpcCall_r1_BeTheLeader_unfold : FuncUnfold rpcCall_r1_BeTheLeader [] rpcCall_r1_BeTheLeader.impl
-  rpcNewArg_r1_Ping_unfold : FuncUnfold rpcNewArg_r1_Ping [] rpcNewArg_r1_Ping.impl
-  rpcNewReply_r1_Ping_unfold : FuncUnfold rpcNewReply_r1_Ping [] rpcNewReply_r1_Ping.impl
-  rpcCall_r1_Ping_unfold : FuncUnfold rpcCall_r1_Ping [] rpcCall_r1_Ping.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_log_Assumption : _root_.Perennial.log.Assumptions
-  import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_http_Assumption : _root_.Perennial.net.http.Assumptions
-  import_rpc_Assumption : _root_.Perennial.net.rpc.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
-  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
-  import_client_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.client.Assumptions
-  import_config_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.config.Assumptions
-  import_dlog_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Assumptions
-  import_master_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.master.Assumptions
-  import_defs_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.Assumptions
-  import_swift_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.swift.Assumptions
-  import_remote_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  instance'Conf : Conf.TypeAssumptions
+  instance'change : change.TypeAssumptions
+  instance'msg : msg.TypeAssumptions
+  instance'Sys : Sys.TypeAssumptions
+  instance'In : In.TypeAssumptions
+  instance'Out : Out.TypeAssumptions
+  instance'State : State.TypeAssumptions
+  instance'rpcNotModelled : rpcNotModelled.TypeAssumptions
+  unfold'Addrs : FuncUnfold Addrs [] Addrs.impl
+  unfold'ClientAddrs : FuncUnfold ClientAddrs [] ClientAddrs.impl
+  unfold'choose : FuncUnfold choose [] choose.impl
+  unfold'plan : FuncUnfold plan [] plan.impl
+  unfold'mine : FuncUnfold mine [] mine.impl
+  unfold'decode : FuncUnfold decode [] decode.impl
+  unfold'host : FuncUnfold host [] host.impl
+  unfold'port : FuncUnfold port [] port.impl
+  unfold'at : FuncUnfold at'' [] at''.impl
+  unfold'New : FuncUnfold New [] New.impl
+  unfold'configure : FuncUnfold configure [] configure.impl
+  unfold'sendConf : FuncUnfold sendConf [] sendConf.impl
+  unfold'awaitConf : FuncUnfold awaitConf [] awaitConf.impl
+  unfold'newClient : FuncUnfold newClient [] newClient.impl
+  unfold'op : FuncUnfold op [] op.impl
+  unfold'op1 : FuncUnfold op1 [] op1.impl
+  unfold'digits : FuncUnfold digits [] digits.impl
+  unfold'Gen : FuncUnfold Gen [] Gen.impl
+  unfold'has : FuncUnfold has [] has.impl
+  unfold'push : FuncUnfold push [] push.impl
+  unfold'erase : FuncUnfold erase [] erase.impl
+  unfold'setCur : FuncUnfold setCur [] setCur.impl
+  unfold'setPend : FuncUnfold setPend [] setPend.impl
+  unfold'step : FuncUnfold step [] step.impl
+  unfold'initState : FuncUnfold initState [] initState.impl
+  unfold'Model : FuncUnfold Model [] Model.impl
+  unfold'Codec : FuncUnfold Codec [] Codec.impl
+  unfold'callTime : FuncUnfold callTime [] callTime.impl
+  unfold'Orch : FuncUnfold Orch [] Orch.impl
+  unfold'orch : FuncUnfold orch [] orch.impl
+  unfold'Client : FuncUnfold Client [] Client.impl
+  unfold'clientNode : FuncUnfold clientNode [] clientNode.impl
+  unfold'Server : FuncUnfold Server [] Server.impl
+  unfold'nodeConfig : FuncUnfold nodeConfig [] nodeConfig.impl
+  unfold'register : FuncUnfold register [] register.impl
+  unfold'serve : FuncUnfold serve [] serve.impl
+  unfold'rpcErrDecode : FuncUnfold rpcErrDecode [] rpcErrDecode.impl
+  unfold'rpcPutU64 : FuncUnfold rpcPutU64 [] rpcPutU64.impl
+  unfold'rpcGetU64 : FuncUnfold rpcGetU64 [] rpcGetU64.impl
+  unfold'rpcGetTag : FuncUnfold rpcGetTag [] rpcGetTag.impl
+  unfold'rpcPutTag : FuncUnfold rpcPutTag [] rpcPutTag.impl
+  unfold'rpcEnc_t6 : FuncUnfold rpcEnc_t6 [] rpcEnc_t6.impl
+  unfold'rpcDec_t6 : FuncUnfold rpcDec_t6 [] rpcDec_t6.impl
+  unfold'rpcEnc_t4 : FuncUnfold rpcEnc_t4 [] rpcEnc_t4.impl
+  unfold'rpcSent_t4 : FuncUnfold rpcSent_t4 [] rpcSent_t4.impl
+  unfold'rpcDec_t4 : FuncUnfold rpcDec_t4 [] rpcDec_t4.impl
+  unfold'rpcEnc_t8 : FuncUnfold rpcEnc_t8 [] rpcEnc_t8.impl
+  unfold'rpcDec_t8 : FuncUnfold rpcDec_t8 [] rpcDec_t8.impl
+  unfold'rpcEnc_t10 : FuncUnfold rpcEnc_t10 [] rpcEnc_t10.impl
+  unfold'rpcDec_t10 : FuncUnfold rpcDec_t10 [] rpcDec_t10.impl
+  unfold'rpcEnc_t14 : FuncUnfold rpcEnc_t14 [] rpcEnc_t14.impl
+  unfold'rpcSent_t14 : FuncUnfold rpcSent_t14 [] rpcSent_t14.impl
+  unfold'rpcDec_t14 : FuncUnfold rpcDec_t14 [] rpcDec_t14.impl
+  unfold'rpcEnc_t13 : FuncUnfold rpcEnc_t13 [] rpcEnc_t13.impl
+  unfold'rpcSent_t13 : FuncUnfold rpcSent_t13 [] rpcSent_t13.impl
+  unfold'rpcDec_t13 : FuncUnfold rpcDec_t13 [] rpcDec_t13.impl
+  unfold'rpcEnc_t16 : FuncUnfold rpcEnc_t16 [] rpcEnc_t16.impl
+  unfold'rpcSent_t16 : FuncUnfold rpcSent_t16 [] rpcSent_t16.impl
+  unfold'rpcDec_t16 : FuncUnfold rpcDec_t16 [] rpcDec_t16.impl
+  unfold'rpcEnc_t15 : FuncUnfold rpcEnc_t15 [] rpcEnc_t15.impl
+  unfold'rpcSent_t15 : FuncUnfold rpcSent_t15 [] rpcSent_t15.impl
+  unfold'rpcDec_t15 : FuncUnfold rpcDec_t15 [] rpcDec_t15.impl
+  unfold'rpcEnc_t12 : FuncUnfold rpcEnc_t12 [] rpcEnc_t12.impl
+  unfold'rpcDec_t12 : FuncUnfold rpcDec_t12 [] rpcDec_t12.impl
+  unfold'rpcEnc_t18 : FuncUnfold rpcEnc_t18 [] rpcEnc_t18.impl
+  unfold'rpcDec_t18 : FuncUnfold rpcDec_t18 [] rpcDec_t18.impl
+  unfold'rpcEnc_t20 : FuncUnfold rpcEnc_t20 [] rpcEnc_t20.impl
+  unfold'rpcDec_t20 : FuncUnfold rpcDec_t20 [] rpcDec_t20.impl
+  unfold'rpcEnc_t79 : FuncUnfold rpcEnc_t79 [] rpcEnc_t79.impl
+  unfold'rpcDec_t79 : FuncUnfold rpcDec_t79 [] rpcDec_t79.impl
+  unfold'rpcEnc_t26 : FuncUnfold rpcEnc_t26 [] rpcEnc_t26.impl
+  unfold'rpcSent_t26 : FuncUnfold rpcSent_t26 [] rpcSent_t26.impl
+  unfold'rpcDec_t26 : FuncUnfold rpcDec_t26 [] rpcDec_t26.impl
+  unfold'rpcEnc_t81 : FuncUnfold rpcEnc_t81 [] rpcEnc_t81.impl
+  unfold'rpcDec_t81 : FuncUnfold rpcDec_t81 [] rpcDec_t81.impl
+  unfold'rpcEnc_t66 : FuncUnfold rpcEnc_t66 [] rpcEnc_t66.impl
+  unfold'rpcSent_t66 : FuncUnfold rpcSent_t66 [] rpcSent_t66.impl
+  unfold'rpcDec_t66 : FuncUnfold rpcDec_t66 [] rpcDec_t66.impl
+  unfold'rpcEnc_t83 : FuncUnfold rpcEnc_t83 [] rpcEnc_t83.impl
+  unfold'rpcDec_t83 : FuncUnfold rpcDec_t83 [] rpcDec_t83.impl
+  unfold'rpcEnc_t85 : FuncUnfold rpcEnc_t85 [] rpcEnc_t85.impl
+  unfold'rpcDec_t85 : FuncUnfold rpcDec_t85 [] rpcDec_t85.impl
+  unfold'rpcEncode : FuncUnfold rpcEncode [] rpcEncode.impl
+  unfold'rpcDecode : FuncUnfold rpcDecode [] rpcDecode.impl
+  unfold'Register : FuncUnfold Register [] Register.impl
+  unfold'rpcReceiver : FuncUnfold rpcReceiver [] rpcReceiver.impl
+  unfold'rpcNewArg_r0_GetLeader : FuncUnfold rpcNewArg_r0_GetLeader [] rpcNewArg_r0_GetLeader.impl
+  unfold'rpcNewReply_r0_GetLeader : FuncUnfold rpcNewReply_r0_GetLeader [] rpcNewReply_r0_GetLeader.impl
+  unfold'rpcCall_r0_GetLeader : FuncUnfold rpcCall_r0_GetLeader [] rpcCall_r0_GetLeader.impl
+  unfold'rpcNewArg_r0_GetReplicaList : FuncUnfold rpcNewArg_r0_GetReplicaList [] rpcNewArg_r0_GetReplicaList.impl
+  unfold'rpcNewReply_r0_GetReplicaList : FuncUnfold rpcNewReply_r0_GetReplicaList [] rpcNewReply_r0_GetReplicaList.impl
+  unfold'rpcCall_r0_GetReplicaList : FuncUnfold rpcCall_r0_GetReplicaList [] rpcCall_r0_GetReplicaList.impl
+  unfold'rpcNewArg_r0_Register : FuncUnfold rpcNewArg_r0_Register [] rpcNewArg_r0_Register.impl
+  unfold'rpcNewReply_r0_Register : FuncUnfold rpcNewReply_r0_Register [] rpcNewReply_r0_Register.impl
+  unfold'rpcCall_r0_Register : FuncUnfold rpcCall_r0_Register [] rpcCall_r0_Register.impl
+  unfold'rpcNewArg_r1_BeTheLeader : FuncUnfold rpcNewArg_r1_BeTheLeader [] rpcNewArg_r1_BeTheLeader.impl
+  unfold'rpcNewReply_r1_BeTheLeader : FuncUnfold rpcNewReply_r1_BeTheLeader [] rpcNewReply_r1_BeTheLeader.impl
+  unfold'rpcCall_r1_BeTheLeader : FuncUnfold rpcCall_r1_BeTheLeader [] rpcCall_r1_BeTheLeader.impl
+  unfold'rpcNewArg_r1_Ping : FuncUnfold rpcNewArg_r1_Ping [] rpcNewArg_r1_Ping.impl
+  unfold'rpcNewReply_r1_Ping : FuncUnfold rpcNewReply_r1_Ping [] rpcNewReply_r1_Ping.impl
+  unfold'rpcCall_r1_Ping : FuncUnfold rpcCall_r1_Ping [] rpcCall_r1_Ping.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'log : _root_.Perennial.log.Assumptions
+  import'rand : _root_.Perennial.math.rand.Assumptions
+  import'net : _root_.Perennial.net.Assumptions
+  import'http : _root_.Perennial.net.http.Assumptions
+  import'rpc : _root_.Perennial.net.rpc.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'porcupine : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
+  import'primitive : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
+  import'client : _root_.Perennial.github_com.imdea_software.swiftpaxos.client.Assumptions
+  import'config : _root_.Perennial.github_com.imdea_software.swiftpaxos.config.Assumptions
+  import'dlog : _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Assumptions
+  import'master : _root_.Perennial.github_com.imdea_software.swiftpaxos.master.Assumptions
+  import'defs : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.Assumptions
+  import'swift : _root_.Perennial.github_com.imdea_software.swiftpaxos.swift.Assumptions
+  import'remote : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
 
-attribute [instance] Assumptions.Conf_instance
-  Assumptions.change_instance
-  Assumptions.msg_instance
-  Assumptions.Sys_instance
-  Assumptions.In_instance
-  Assumptions.Out_instance
-  Assumptions.State_instance
-  Assumptions.rpcNotModelled_instance
-  Assumptions.Addrs_unfold
-  Assumptions.ClientAddrs_unfold
-  Assumptions.choose_unfold
-  Assumptions.plan_unfold
-  Assumptions.mine_unfold
-  Assumptions.decode_unfold
-  Assumptions.host_unfold
-  Assumptions.port_unfold
-  Assumptions.at_unfold
-  Assumptions.New_unfold
-  Assumptions.configure_unfold
-  Assumptions.sendConf_unfold
-  Assumptions.awaitConf_unfold
-  Assumptions.newClient_unfold
-  Assumptions.op_unfold
-  Assumptions.op1_unfold
-  Assumptions.digits_unfold
-  Assumptions.Gen_unfold
-  Assumptions.has_unfold
-  Assumptions.push_unfold
-  Assumptions.erase_unfold
-  Assumptions.setCur_unfold
-  Assumptions.setPend_unfold
-  Assumptions.step_unfold
-  Assumptions.initState_unfold
-  Assumptions.Model_unfold
-  Assumptions.Codec_unfold
-  Assumptions.callTime_unfold
-  Assumptions.Orch_unfold
-  Assumptions.orch_unfold
-  Assumptions.Client_unfold
-  Assumptions.clientNode_unfold
-  Assumptions.Server_unfold
-  Assumptions.nodeConfig_unfold
-  Assumptions.register_unfold
-  Assumptions.serve_unfold
-  Assumptions.rpcErrDecode_unfold
-  Assumptions.rpcPutU64_unfold
-  Assumptions.rpcGetU64_unfold
-  Assumptions.rpcGetTag_unfold
-  Assumptions.rpcPutTag_unfold
-  Assumptions.rpcEnc_t6_unfold
-  Assumptions.rpcDec_t6_unfold
-  Assumptions.rpcEnc_t4_unfold
-  Assumptions.rpcSent_t4_unfold
-  Assumptions.rpcDec_t4_unfold
-  Assumptions.rpcEnc_t8_unfold
-  Assumptions.rpcDec_t8_unfold
-  Assumptions.rpcEnc_t10_unfold
-  Assumptions.rpcDec_t10_unfold
-  Assumptions.rpcEnc_t14_unfold
-  Assumptions.rpcSent_t14_unfold
-  Assumptions.rpcDec_t14_unfold
-  Assumptions.rpcEnc_t13_unfold
-  Assumptions.rpcSent_t13_unfold
-  Assumptions.rpcDec_t13_unfold
-  Assumptions.rpcEnc_t16_unfold
-  Assumptions.rpcSent_t16_unfold
-  Assumptions.rpcDec_t16_unfold
-  Assumptions.rpcEnc_t15_unfold
-  Assumptions.rpcSent_t15_unfold
-  Assumptions.rpcDec_t15_unfold
-  Assumptions.rpcEnc_t12_unfold
-  Assumptions.rpcDec_t12_unfold
-  Assumptions.rpcEnc_t18_unfold
-  Assumptions.rpcDec_t18_unfold
-  Assumptions.rpcEnc_t20_unfold
-  Assumptions.rpcDec_t20_unfold
-  Assumptions.rpcEnc_t79_unfold
-  Assumptions.rpcDec_t79_unfold
-  Assumptions.rpcEnc_t26_unfold
-  Assumptions.rpcSent_t26_unfold
-  Assumptions.rpcDec_t26_unfold
-  Assumptions.rpcEnc_t81_unfold
-  Assumptions.rpcDec_t81_unfold
-  Assumptions.rpcEnc_t66_unfold
-  Assumptions.rpcSent_t66_unfold
-  Assumptions.rpcDec_t66_unfold
-  Assumptions.rpcEnc_t83_unfold
-  Assumptions.rpcDec_t83_unfold
-  Assumptions.rpcEnc_t85_unfold
-  Assumptions.rpcDec_t85_unfold
-  Assumptions.rpcEncode_unfold
-  Assumptions.rpcDecode_unfold
-  Assumptions.Register_unfold
-  Assumptions.rpcReceiver_unfold
-  Assumptions.rpcNewArg_r0_GetLeader_unfold
-  Assumptions.rpcNewReply_r0_GetLeader_unfold
-  Assumptions.rpcCall_r0_GetLeader_unfold
-  Assumptions.rpcNewArg_r0_GetReplicaList_unfold
-  Assumptions.rpcNewReply_r0_GetReplicaList_unfold
-  Assumptions.rpcCall_r0_GetReplicaList_unfold
-  Assumptions.rpcNewArg_r0_Register_unfold
-  Assumptions.rpcNewReply_r0_Register_unfold
-  Assumptions.rpcCall_r0_Register_unfold
-  Assumptions.rpcNewArg_r1_BeTheLeader_unfold
-  Assumptions.rpcNewReply_r1_BeTheLeader_unfold
-  Assumptions.rpcCall_r1_BeTheLeader_unfold
-  Assumptions.rpcNewArg_r1_Ping_unfold
-  Assumptions.rpcNewReply_r1_Ping_unfold
-  Assumptions.rpcCall_r1_Ping_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_log_Assumption
-  Assumptions.import_rand_Assumption
-  Assumptions.import_net_Assumption
-  Assumptions.import_http_Assumption
-  Assumptions.import_rpc_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_porcupine_Assumption
-  Assumptions.import_primitive_Assumption
-  Assumptions.import_client_Assumption
-  Assumptions.import_config_Assumption
-  Assumptions.import_dlog_Assumption
-  Assumptions.import_master_Assumption
-  Assumptions.import_defs_Assumption
-  Assumptions.import_swift_Assumption
-  Assumptions.import_remote_Assumption
-  Assumptions.import_errors_Assumption
+attribute [instance] Assumptions.instance'Conf
+  Assumptions.instance'change
+  Assumptions.instance'msg
+  Assumptions.instance'Sys
+  Assumptions.instance'In
+  Assumptions.instance'Out
+  Assumptions.instance'State
+  Assumptions.instance'rpcNotModelled
+  Assumptions.unfold'Addrs
+  Assumptions.unfold'ClientAddrs
+  Assumptions.unfold'choose
+  Assumptions.unfold'plan
+  Assumptions.unfold'mine
+  Assumptions.unfold'decode
+  Assumptions.unfold'host
+  Assumptions.unfold'port
+  Assumptions.unfold'at
+  Assumptions.unfold'New
+  Assumptions.unfold'configure
+  Assumptions.unfold'sendConf
+  Assumptions.unfold'awaitConf
+  Assumptions.unfold'newClient
+  Assumptions.unfold'op
+  Assumptions.unfold'op1
+  Assumptions.unfold'digits
+  Assumptions.unfold'Gen
+  Assumptions.unfold'has
+  Assumptions.unfold'push
+  Assumptions.unfold'erase
+  Assumptions.unfold'setCur
+  Assumptions.unfold'setPend
+  Assumptions.unfold'step
+  Assumptions.unfold'initState
+  Assumptions.unfold'Model
+  Assumptions.unfold'Codec
+  Assumptions.unfold'callTime
+  Assumptions.unfold'Orch
+  Assumptions.unfold'orch
+  Assumptions.unfold'Client
+  Assumptions.unfold'clientNode
+  Assumptions.unfold'Server
+  Assumptions.unfold'nodeConfig
+  Assumptions.unfold'register
+  Assumptions.unfold'serve
+  Assumptions.unfold'rpcErrDecode
+  Assumptions.unfold'rpcPutU64
+  Assumptions.unfold'rpcGetU64
+  Assumptions.unfold'rpcGetTag
+  Assumptions.unfold'rpcPutTag
+  Assumptions.unfold'rpcEnc_t6
+  Assumptions.unfold'rpcDec_t6
+  Assumptions.unfold'rpcEnc_t4
+  Assumptions.unfold'rpcSent_t4
+  Assumptions.unfold'rpcDec_t4
+  Assumptions.unfold'rpcEnc_t8
+  Assumptions.unfold'rpcDec_t8
+  Assumptions.unfold'rpcEnc_t10
+  Assumptions.unfold'rpcDec_t10
+  Assumptions.unfold'rpcEnc_t14
+  Assumptions.unfold'rpcSent_t14
+  Assumptions.unfold'rpcDec_t14
+  Assumptions.unfold'rpcEnc_t13
+  Assumptions.unfold'rpcSent_t13
+  Assumptions.unfold'rpcDec_t13
+  Assumptions.unfold'rpcEnc_t16
+  Assumptions.unfold'rpcSent_t16
+  Assumptions.unfold'rpcDec_t16
+  Assumptions.unfold'rpcEnc_t15
+  Assumptions.unfold'rpcSent_t15
+  Assumptions.unfold'rpcDec_t15
+  Assumptions.unfold'rpcEnc_t12
+  Assumptions.unfold'rpcDec_t12
+  Assumptions.unfold'rpcEnc_t18
+  Assumptions.unfold'rpcDec_t18
+  Assumptions.unfold'rpcEnc_t20
+  Assumptions.unfold'rpcDec_t20
+  Assumptions.unfold'rpcEnc_t79
+  Assumptions.unfold'rpcDec_t79
+  Assumptions.unfold'rpcEnc_t26
+  Assumptions.unfold'rpcSent_t26
+  Assumptions.unfold'rpcDec_t26
+  Assumptions.unfold'rpcEnc_t81
+  Assumptions.unfold'rpcDec_t81
+  Assumptions.unfold'rpcEnc_t66
+  Assumptions.unfold'rpcSent_t66
+  Assumptions.unfold'rpcDec_t66
+  Assumptions.unfold'rpcEnc_t83
+  Assumptions.unfold'rpcDec_t83
+  Assumptions.unfold'rpcEnc_t85
+  Assumptions.unfold'rpcDec_t85
+  Assumptions.unfold'rpcEncode
+  Assumptions.unfold'rpcDecode
+  Assumptions.unfold'Register
+  Assumptions.unfold'rpcReceiver
+  Assumptions.unfold'rpcNewArg_r0_GetLeader
+  Assumptions.unfold'rpcNewReply_r0_GetLeader
+  Assumptions.unfold'rpcCall_r0_GetLeader
+  Assumptions.unfold'rpcNewArg_r0_GetReplicaList
+  Assumptions.unfold'rpcNewReply_r0_GetReplicaList
+  Assumptions.unfold'rpcCall_r0_GetReplicaList
+  Assumptions.unfold'rpcNewArg_r0_Register
+  Assumptions.unfold'rpcNewReply_r0_Register
+  Assumptions.unfold'rpcCall_r0_Register
+  Assumptions.unfold'rpcNewArg_r1_BeTheLeader
+  Assumptions.unfold'rpcNewReply_r1_BeTheLeader
+  Assumptions.unfold'rpcCall_r1_BeTheLeader
+  Assumptions.unfold'rpcNewArg_r1_Ping
+  Assumptions.unfold'rpcNewReply_r1_Ping
+  Assumptions.unfold'rpcCall_r1_Ping
+  Assumptions.import'fmt
+  Assumptions.import'io
+  Assumptions.import'log
+  Assumptions.import'rand
+  Assumptions.import'net
+  Assumptions.import'http
+  Assumptions.import'rpc
+  Assumptions.import'strings
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'porcupine
+  Assumptions.import'primitive
+  Assumptions.import'client
+  Assumptions.import'config
+  Assumptions.import'dlog
+  Assumptions.import'master
+  Assumptions.import'defs
+  Assumptions.import'swift
+  Assumptions.import'remote
+  Assumptions.import'errors
 
 end github_com.imdea_software.swiftpaxos.examples.swiftnet
 

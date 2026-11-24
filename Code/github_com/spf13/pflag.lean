@@ -2307,119 +2307,119 @@ attribute [instance] uintSliceValue.TypeAssumptions.type_repr
   uintSliceValue.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  boolFlag_instance : boolFlag.TypeAssumptions
-  boolValue_instance : boolValue.TypeAssumptions
-  boolfuncValue_instance : boolfuncValue.TypeAssumptions
-  boolSliceValue_instance : boolSliceValue.TypeAssumptions
-  bytesHexValue_instance : bytesHexValue.TypeAssumptions
-  bytesBase64Value_instance : bytesBase64Value.TypeAssumptions
-  countValue_instance : countValue.TypeAssumptions
-  durationValue_instance : durationValue.TypeAssumptions
-  durationSliceValue_instance : durationSliceValue.TypeAssumptions
-  notExistErrorMessageType_instance : notExistErrorMessageType.TypeAssumptions
-  NotExistError_instance : NotExistError.TypeAssumptions
-  ValueRequiredError_instance : ValueRequiredError.TypeAssumptions
-  InvalidValueError_instance : InvalidValueError.TypeAssumptions
-  InvalidSyntaxError_instance : InvalidSyntaxError.TypeAssumptions
-  ErrorHandling_instance : ErrorHandling.TypeAssumptions
-  ParseErrorsAllowlist_instance : ParseErrorsAllowlist.TypeAssumptions
-  NormalizedName_instance : NormalizedName.TypeAssumptions
-  FlagSet_instance : FlagSet.TypeAssumptions
-  Flag_instance : Flag.TypeAssumptions
-  Value_instance : Value.TypeAssumptions
-  SliceValue_instance : SliceValue.TypeAssumptions
-  parseFunc_instance : parseFunc.TypeAssumptions
-  float32Value_instance : float32Value.TypeAssumptions
-  float32SliceValue_instance : float32SliceValue.TypeAssumptions
-  float64Value_instance : float64Value.TypeAssumptions
-  float64SliceValue_instance : float64SliceValue.TypeAssumptions
-  funcValue_instance : funcValue.TypeAssumptions
-  flagValueWrapper_instance : flagValueWrapper.TypeAssumptions
-  goBoolFlag_instance : goBoolFlag.TypeAssumptions
-  intValue_instance : intValue.TypeAssumptions
-  int16Value_instance : int16Value.TypeAssumptions
-  int32Value_instance : int32Value.TypeAssumptions
-  int32SliceValue_instance : int32SliceValue.TypeAssumptions
-  int64Value_instance : int64Value.TypeAssumptions
-  int64SliceValue_instance : int64SliceValue.TypeAssumptions
-  int8Value_instance : int8Value.TypeAssumptions
-  intSliceValue_instance : intSliceValue.TypeAssumptions
-  ipValue_instance : ipValue.TypeAssumptions
-  ipSliceValue_instance : ipSliceValue.TypeAssumptions
-  ipMaskValue_instance : ipMaskValue.TypeAssumptions
-  ipNetValue_instance : ipNetValue.TypeAssumptions
-  ipNetSliceValue_instance : ipNetSliceValue.TypeAssumptions
-  stringValue_instance : stringValue.TypeAssumptions
-  stringArrayValue_instance : stringArrayValue.TypeAssumptions
-  stringSliceValue_instance : stringSliceValue.TypeAssumptions
-  stringToIntValue_instance : stringToIntValue.TypeAssumptions
-  stringToInt64Value_instance : stringToInt64Value.TypeAssumptions
-  stringToStringValue_instance : stringToStringValue.TypeAssumptions
-  textValue_instance : textValue.TypeAssumptions
-  timeValue_instance : timeValue.TypeAssumptions
-  uintValue_instance : uintValue.TypeAssumptions
-  uint16Value_instance : uint16Value.TypeAssumptions
-  uint32Value_instance : uint32Value.TypeAssumptions
-  uint64Value_instance : uint64Value.TypeAssumptions
-  uint8Value_instance : uint8Value.TypeAssumptions
-  uintSliceValue_instance : uintSliceValue.TypeAssumptions
+  instance'boolFlag : boolFlag.TypeAssumptions
+  instance'boolValue : boolValue.TypeAssumptions
+  instance'boolfuncValue : boolfuncValue.TypeAssumptions
+  instance'boolSliceValue : boolSliceValue.TypeAssumptions
+  instance'bytesHexValue : bytesHexValue.TypeAssumptions
+  instance'bytesBase64Value : bytesBase64Value.TypeAssumptions
+  instance'countValue : countValue.TypeAssumptions
+  instance'durationValue : durationValue.TypeAssumptions
+  instance'durationSliceValue : durationSliceValue.TypeAssumptions
+  instance'notExistErrorMessageType : notExistErrorMessageType.TypeAssumptions
+  instance'NotExistError : NotExistError.TypeAssumptions
+  instance'ValueRequiredError : ValueRequiredError.TypeAssumptions
+  instance'InvalidValueError : InvalidValueError.TypeAssumptions
+  instance'InvalidSyntaxError : InvalidSyntaxError.TypeAssumptions
+  instance'ErrorHandling : ErrorHandling.TypeAssumptions
+  instance'ParseErrorsAllowlist : ParseErrorsAllowlist.TypeAssumptions
+  instance'NormalizedName : NormalizedName.TypeAssumptions
+  instance'FlagSet : FlagSet.TypeAssumptions
+  instance'Flag : Flag.TypeAssumptions
+  instance'Value : Value.TypeAssumptions
+  instance'SliceValue : SliceValue.TypeAssumptions
+  instance'parseFunc : parseFunc.TypeAssumptions
+  instance'float32Value : float32Value.TypeAssumptions
+  instance'float32SliceValue : float32SliceValue.TypeAssumptions
+  instance'float64Value : float64Value.TypeAssumptions
+  instance'float64SliceValue : float64SliceValue.TypeAssumptions
+  instance'funcValue : funcValue.TypeAssumptions
+  instance'flagValueWrapper : flagValueWrapper.TypeAssumptions
+  instance'goBoolFlag : goBoolFlag.TypeAssumptions
+  instance'intValue : intValue.TypeAssumptions
+  instance'int16Value : int16Value.TypeAssumptions
+  instance'int32Value : int32Value.TypeAssumptions
+  instance'int32SliceValue : int32SliceValue.TypeAssumptions
+  instance'int64Value : int64Value.TypeAssumptions
+  instance'int64SliceValue : int64SliceValue.TypeAssumptions
+  instance'int8Value : int8Value.TypeAssumptions
+  instance'intSliceValue : intSliceValue.TypeAssumptions
+  instance'ipValue : ipValue.TypeAssumptions
+  instance'ipSliceValue : ipSliceValue.TypeAssumptions
+  instance'ipMaskValue : ipMaskValue.TypeAssumptions
+  instance'ipNetValue : ipNetValue.TypeAssumptions
+  instance'ipNetSliceValue : ipNetSliceValue.TypeAssumptions
+  instance'stringValue : stringValue.TypeAssumptions
+  instance'stringArrayValue : stringArrayValue.TypeAssumptions
+  instance'stringSliceValue : stringSliceValue.TypeAssumptions
+  instance'stringToIntValue : stringToIntValue.TypeAssumptions
+  instance'stringToInt64Value : stringToInt64Value.TypeAssumptions
+  instance'stringToStringValue : stringToStringValue.TypeAssumptions
+  instance'textValue : textValue.TypeAssumptions
+  instance'timeValue : timeValue.TypeAssumptions
+  instance'uintValue : uintValue.TypeAssumptions
+  instance'uint16Value : uint16Value.TypeAssumptions
+  instance'uint32Value : uint32Value.TypeAssumptions
+  instance'uint64Value : uint64Value.TypeAssumptions
+  instance'uint8Value : uint8Value.TypeAssumptions
+  instance'uintSliceValue : uintSliceValue.TypeAssumptions
 
-attribute [instance] Assumptions.boolFlag_instance
-  Assumptions.boolValue_instance
-  Assumptions.boolfuncValue_instance
-  Assumptions.boolSliceValue_instance
-  Assumptions.bytesHexValue_instance
-  Assumptions.bytesBase64Value_instance
-  Assumptions.countValue_instance
-  Assumptions.durationValue_instance
-  Assumptions.durationSliceValue_instance
-  Assumptions.notExistErrorMessageType_instance
-  Assumptions.NotExistError_instance
-  Assumptions.ValueRequiredError_instance
-  Assumptions.InvalidValueError_instance
-  Assumptions.InvalidSyntaxError_instance
-  Assumptions.ErrorHandling_instance
-  Assumptions.ParseErrorsAllowlist_instance
-  Assumptions.NormalizedName_instance
-  Assumptions.FlagSet_instance
-  Assumptions.Flag_instance
-  Assumptions.Value_instance
-  Assumptions.SliceValue_instance
-  Assumptions.parseFunc_instance
-  Assumptions.float32Value_instance
-  Assumptions.float32SliceValue_instance
-  Assumptions.float64Value_instance
-  Assumptions.float64SliceValue_instance
-  Assumptions.funcValue_instance
-  Assumptions.flagValueWrapper_instance
-  Assumptions.goBoolFlag_instance
-  Assumptions.intValue_instance
-  Assumptions.int16Value_instance
-  Assumptions.int32Value_instance
-  Assumptions.int32SliceValue_instance
-  Assumptions.int64Value_instance
-  Assumptions.int64SliceValue_instance
-  Assumptions.int8Value_instance
-  Assumptions.intSliceValue_instance
-  Assumptions.ipValue_instance
-  Assumptions.ipSliceValue_instance
-  Assumptions.ipMaskValue_instance
-  Assumptions.ipNetValue_instance
-  Assumptions.ipNetSliceValue_instance
-  Assumptions.stringValue_instance
-  Assumptions.stringArrayValue_instance
-  Assumptions.stringSliceValue_instance
-  Assumptions.stringToIntValue_instance
-  Assumptions.stringToInt64Value_instance
-  Assumptions.stringToStringValue_instance
-  Assumptions.textValue_instance
-  Assumptions.timeValue_instance
-  Assumptions.uintValue_instance
-  Assumptions.uint16Value_instance
-  Assumptions.uint32Value_instance
-  Assumptions.uint64Value_instance
-  Assumptions.uint8Value_instance
-  Assumptions.uintSliceValue_instance
+attribute [instance] Assumptions.instance'boolFlag
+  Assumptions.instance'boolValue
+  Assumptions.instance'boolfuncValue
+  Assumptions.instance'boolSliceValue
+  Assumptions.instance'bytesHexValue
+  Assumptions.instance'bytesBase64Value
+  Assumptions.instance'countValue
+  Assumptions.instance'durationValue
+  Assumptions.instance'durationSliceValue
+  Assumptions.instance'notExistErrorMessageType
+  Assumptions.instance'NotExistError
+  Assumptions.instance'ValueRequiredError
+  Assumptions.instance'InvalidValueError
+  Assumptions.instance'InvalidSyntaxError
+  Assumptions.instance'ErrorHandling
+  Assumptions.instance'ParseErrorsAllowlist
+  Assumptions.instance'NormalizedName
+  Assumptions.instance'FlagSet
+  Assumptions.instance'Flag
+  Assumptions.instance'Value
+  Assumptions.instance'SliceValue
+  Assumptions.instance'parseFunc
+  Assumptions.instance'float32Value
+  Assumptions.instance'float32SliceValue
+  Assumptions.instance'float64Value
+  Assumptions.instance'float64SliceValue
+  Assumptions.instance'funcValue
+  Assumptions.instance'flagValueWrapper
+  Assumptions.instance'goBoolFlag
+  Assumptions.instance'intValue
+  Assumptions.instance'int16Value
+  Assumptions.instance'int32Value
+  Assumptions.instance'int32SliceValue
+  Assumptions.instance'int64Value
+  Assumptions.instance'int64SliceValue
+  Assumptions.instance'int8Value
+  Assumptions.instance'intSliceValue
+  Assumptions.instance'ipValue
+  Assumptions.instance'ipSliceValue
+  Assumptions.instance'ipMaskValue
+  Assumptions.instance'ipNetValue
+  Assumptions.instance'ipNetSliceValue
+  Assumptions.instance'stringValue
+  Assumptions.instance'stringArrayValue
+  Assumptions.instance'stringSliceValue
+  Assumptions.instance'stringToIntValue
+  Assumptions.instance'stringToInt64Value
+  Assumptions.instance'stringToStringValue
+  Assumptions.instance'textValue
+  Assumptions.instance'timeValue
+  Assumptions.instance'uintValue
+  Assumptions.instance'uint16Value
+  Assumptions.instance'uint32Value
+  Assumptions.instance'uint64Value
+  Assumptions.instance'uint8Value
+  Assumptions.instance'uintSliceValue
 
 end github_com.spf13.pflag
 

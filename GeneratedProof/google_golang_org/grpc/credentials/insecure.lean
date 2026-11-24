@@ -25,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.insecure.Assumptions]
 
-noncomputable instance insecureTC_typed_pointsto :
+noncomputable instance typed_pointsto'insecureTC :
     TypedPointsto (GF := GF) google_golang_org.grpc.credentials.insecure.insecureTC where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -33,7 +33,7 @@ noncomputable instance insecureTC_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance insecureTC_into_val_typed :
+noncomputable instance into_val_typed'insecureTC :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.insecure.insecureTC google_golang_org.grpc.credentials.insecure.insecureTC.underlying := by
   solve_into_val_typed_struct
 
@@ -48,7 +48,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.insecure.Assumptions]
 
-noncomputable instance info_typed_pointsto :
+noncomputable instance typed_pointsto'info :
     TypedPointsto (GF := GF) google_golang_org.grpc.credentials.insecure.info where
   typedPointstoDef l v dq := iprop(
     "CommonAuthInfo" ∷ typedPointsto (structFieldRef google_golang_org.grpc.credentials.insecure.info go!"CommonAuthInfo" l) v.CommonAuthInfo' dq ∗
@@ -57,11 +57,11 @@ noncomputable instance info_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance info_into_val_typed :
+noncomputable instance into_val_typed'info :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.insecure.info google_golang_org.grpc.credentials.insecure.info.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance info_access_load_CommonAuthInfo (l : Loc) (v : google_golang_org.grpc.credentials.insecure.info) (dq : DFrac) :
+noncomputable instance access_load'info'CommonAuthInfo (l : Loc) (v : google_golang_org.grpc.credentials.insecure.info) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.insecure.info go!"CommonAuthInfo" l) v.CommonAuthInfo' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.insecure.info go!"CommonAuthInfo" l) v.CommonAuthInfo' dq)
@@ -69,7 +69,7 @@ noncomputable instance info_access_load_CommonAuthInfo (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance info_access_store_CommonAuthInfo (l : Loc) (v : google_golang_org.grpc.credentials.insecure.info) (y : _root_.Perennial.google_golang_org.grpc.credentials.CommonAuthInfo) :
+noncomputable instance access_store'info'CommonAuthInfo (l : Loc) (v : google_golang_org.grpc.credentials.insecure.info) (y : _root_.Perennial.google_golang_org.grpc.credentials.CommonAuthInfo) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.insecure.info go!"CommonAuthInfo" l) v.CommonAuthInfo' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.insecure.info go!"CommonAuthInfo" l) y (DFrac.own 1))
@@ -88,7 +88,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.insecure.Assumptions]
 
-noncomputable instance insecureBundle_typed_pointsto :
+noncomputable instance typed_pointsto'insecureBundle :
     TypedPointsto (GF := GF) google_golang_org.grpc.credentials.insecure.insecureBundle where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -96,7 +96,7 @@ noncomputable instance insecureBundle_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance insecureBundle_into_val_typed :
+noncomputable instance into_val_typed'insecureBundle :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.insecure.insecureBundle google_golang_org.grpc.credentials.insecure.insecureBundle.underlying := by
   solve_into_val_typed_struct
 

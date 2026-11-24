@@ -45,11 +45,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-noncomputable instance tokenJWT_typed_pointsto :
+noncomputable instance typed_pointsto'tokenJWT :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.tokenJWT :=
   sorry -- axiomatized type
 
-noncomputable instance tokenJWT_into_val_typed :
+noncomputable instance into_val_typed'tokenJWT :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.tokenJWT go_etcd_io.etcd.server.v3.auth.tokenJWT.underlying :=
   sorry -- axiomatized type
 
@@ -64,7 +64,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-noncomputable instance tokenNop_typed_pointsto :
+noncomputable instance typed_pointsto'tokenNop :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.tokenNop where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -72,7 +72,7 @@ noncomputable instance tokenNop_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance tokenNop_into_val_typed :
+noncomputable instance into_val_typed'tokenNop :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.tokenNop go_etcd_io.etcd.server.v3.auth.tokenNop.underlying := by
   solve_into_val_typed_struct
 
@@ -87,11 +87,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-noncomputable instance jwtOptions_typed_pointsto :
+noncomputable instance typed_pointsto'jwtOptions :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.jwtOptions :=
   sorry -- axiomatized type
 
-noncomputable instance jwtOptions_into_val_typed :
+noncomputable instance into_val_typed'jwtOptions :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.jwtOptions go_etcd_io.etcd.server.v3.auth.jwtOptions.underlying :=
   sorry -- axiomatized type
 
@@ -106,7 +106,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-noncomputable instance unifiedRangePermissions_typed_pointsto :
+noncomputable instance typed_pointsto'unifiedRangePermissions :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions where
   typedPointstoDef l v dq := iprop(
     "readPerms" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"readPerms" l) v.readPerms' dq ∗
@@ -116,11 +116,11 @@ noncomputable instance unifiedRangePermissions_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance unifiedRangePermissions_into_val_typed :
+noncomputable instance into_val_typed'unifiedRangePermissions :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance unifiedRangePermissions_access_load_readPerms (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions) (dq : DFrac) :
+noncomputable instance access_load'unifiedRangePermissions'readPerms (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"readPerms" l) v.readPerms' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"readPerms" l) v.readPerms' dq)
@@ -128,7 +128,7 @@ noncomputable instance unifiedRangePermissions_access_load_readPerms (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance unifiedRangePermissions_access_store_readPerms (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.IntervalTree) :
+noncomputable instance access_store'unifiedRangePermissions'readPerms (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.IntervalTree) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"readPerms" l) v.readPerms' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"readPerms" l) y (DFrac.own 1))
@@ -136,7 +136,7 @@ noncomputable instance unifiedRangePermissions_access_store_readPerms (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance unifiedRangePermissions_access_load_writePerms (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions) (dq : DFrac) :
+noncomputable instance access_load'unifiedRangePermissions'writePerms (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"writePerms" l) v.writePerms' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"writePerms" l) v.writePerms' dq)
@@ -144,7 +144,7 @@ noncomputable instance unifiedRangePermissions_access_load_writePerms (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance unifiedRangePermissions_access_store_writePerms (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.IntervalTree) :
+noncomputable instance access_store'unifiedRangePermissions'writePerms (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.IntervalTree) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"writePerms" l) v.writePerms' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"writePerms" l) y (DFrac.own 1))
@@ -163,7 +163,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-noncomputable instance simpleTokenTTLKeeper_typed_pointsto :
+noncomputable instance typed_pointsto'simpleTokenTTLKeeper :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper where
   typedPointstoDef l v dq := iprop(
     "tokens" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"tokens" l) v.tokens' dq ∗
@@ -177,11 +177,11 @@ noncomputable instance simpleTokenTTLKeeper_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance simpleTokenTTLKeeper_into_val_typed :
+noncomputable instance into_val_typed'simpleTokenTTLKeeper :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance simpleTokenTTLKeeper_access_load_tokens (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
+noncomputable instance access_load'simpleTokenTTLKeeper'tokens (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"tokens" l) v.tokens' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"tokens" l) v.tokens' dq)
@@ -189,7 +189,7 @@ noncomputable instance simpleTokenTTLKeeper_access_load_tokens (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance simpleTokenTTLKeeper_access_store_tokens (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (y : GoMap) :
+noncomputable instance access_store'simpleTokenTTLKeeper'tokens (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"tokens" l) v.tokens' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"tokens" l) y (DFrac.own 1))
@@ -197,7 +197,7 @@ noncomputable instance simpleTokenTTLKeeper_access_store_tokens (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance simpleTokenTTLKeeper_access_load_donec (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
+noncomputable instance access_load'simpleTokenTTLKeeper'donec (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"donec" l) v.donec' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"donec" l) v.donec' dq)
@@ -205,7 +205,7 @@ noncomputable instance simpleTokenTTLKeeper_access_load_donec (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance simpleTokenTTLKeeper_access_store_donec (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (y : GoChan) :
+noncomputable instance access_store'simpleTokenTTLKeeper'donec (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"donec" l) v.donec' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"donec" l) y (DFrac.own 1))
@@ -213,7 +213,7 @@ noncomputable instance simpleTokenTTLKeeper_access_store_donec (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance simpleTokenTTLKeeper_access_load_stopc (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
+noncomputable instance access_load'simpleTokenTTLKeeper'stopc (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"stopc" l) v.stopc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"stopc" l) v.stopc' dq)
@@ -221,7 +221,7 @@ noncomputable instance simpleTokenTTLKeeper_access_load_stopc (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance simpleTokenTTLKeeper_access_store_stopc (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (y : GoChan) :
+noncomputable instance access_store'simpleTokenTTLKeeper'stopc (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"stopc" l) v.stopc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"stopc" l) y (DFrac.own 1))
@@ -229,7 +229,7 @@ noncomputable instance simpleTokenTTLKeeper_access_store_stopc (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance simpleTokenTTLKeeper_access_load_deleteTokenFunc (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
+noncomputable instance access_load'simpleTokenTTLKeeper'deleteTokenFunc (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"deleteTokenFunc" l) v.deleteTokenFunc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"deleteTokenFunc" l) v.deleteTokenFunc' dq)
@@ -237,7 +237,7 @@ noncomputable instance simpleTokenTTLKeeper_access_load_deleteTokenFunc (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance simpleTokenTTLKeeper_access_store_deleteTokenFunc (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (y : GoFunc) :
+noncomputable instance access_store'simpleTokenTTLKeeper'deleteTokenFunc (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"deleteTokenFunc" l) v.deleteTokenFunc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"deleteTokenFunc" l) y (DFrac.own 1))
@@ -245,7 +245,7 @@ noncomputable instance simpleTokenTTLKeeper_access_store_deleteTokenFunc (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance simpleTokenTTLKeeper_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
+noncomputable instance access_load'simpleTokenTTLKeeper'mu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"mu" l) v.mu' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"mu" l) v.mu' dq)
@@ -253,7 +253,7 @@ noncomputable instance simpleTokenTTLKeeper_access_load_mu (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance simpleTokenTTLKeeper_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (y : Loc) :
+noncomputable instance access_store'simpleTokenTTLKeeper'mu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"mu" l) y (DFrac.own 1))
@@ -261,7 +261,7 @@ noncomputable instance simpleTokenTTLKeeper_access_store_mu (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance simpleTokenTTLKeeper_access_load_simpleTokenTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
+noncomputable instance access_load'simpleTokenTTLKeeper'simpleTokenTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"simpleTokenTTL" l) v.simpleTokenTTL' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"simpleTokenTTL" l) v.simpleTokenTTL' dq)
@@ -269,7 +269,7 @@ noncomputable instance simpleTokenTTLKeeper_access_load_simpleTokenTTL (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance simpleTokenTTLKeeper_access_store_simpleTokenTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'simpleTokenTTLKeeper'simpleTokenTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"simpleTokenTTL" l) v.simpleTokenTTL' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"simpleTokenTTL" l) y (DFrac.own 1))
@@ -288,7 +288,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-noncomputable instance tokenSimple_typed_pointsto :
+noncomputable instance typed_pointsto'tokenSimple :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.tokenSimple where
   typedPointstoDef l v dq := iprop(
     "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"lg" l) v.lg' dq ∗
@@ -302,11 +302,11 @@ noncomputable instance tokenSimple_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance tokenSimple_into_val_typed :
+noncomputable instance into_val_typed'tokenSimple :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.tokenSimple go_etcd_io.etcd.server.v3.auth.tokenSimple.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance tokenSimple_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
+noncomputable instance access_load'tokenSimple'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"lg" l) v.lg' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"lg" l) v.lg' dq)
@@ -314,7 +314,7 @@ noncomputable instance tokenSimple_access_load_lg (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance tokenSimple_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (y : Loc) :
+noncomputable instance access_store'tokenSimple'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"lg" l) v.lg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"lg" l) y (DFrac.own 1))
@@ -322,7 +322,7 @@ noncomputable instance tokenSimple_access_store_lg (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance tokenSimple_access_load_indexWaiter (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
+noncomputable instance access_load'tokenSimple'indexWaiter (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"indexWaiter" l) v.indexWaiter' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"indexWaiter" l) v.indexWaiter' dq)
@@ -330,7 +330,7 @@ noncomputable instance tokenSimple_access_load_indexWaiter (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance tokenSimple_access_store_indexWaiter (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (y : GoFunc) :
+noncomputable instance access_store'tokenSimple'indexWaiter (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"indexWaiter" l) v.indexWaiter' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"indexWaiter" l) y (DFrac.own 1))
@@ -338,7 +338,7 @@ noncomputable instance tokenSimple_access_store_indexWaiter (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance tokenSimple_access_load_simpleTokenKeeper (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
+noncomputable instance access_load'tokenSimple'simpleTokenKeeper (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenKeeper" l) v.simpleTokenKeeper' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenKeeper" l) v.simpleTokenKeeper' dq)
@@ -346,7 +346,7 @@ noncomputable instance tokenSimple_access_load_simpleTokenKeeper (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance tokenSimple_access_store_simpleTokenKeeper (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (y : Loc) :
+noncomputable instance access_store'tokenSimple'simpleTokenKeeper (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenKeeper" l) v.simpleTokenKeeper' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenKeeper" l) y (DFrac.own 1))
@@ -354,7 +354,7 @@ noncomputable instance tokenSimple_access_store_simpleTokenKeeper (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance tokenSimple_access_load_simpleTokensMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
+noncomputable instance access_load'tokenSimple'simpleTokensMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokensMu" l) v.simpleTokensMu' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokensMu" l) v.simpleTokensMu' dq)
@@ -362,7 +362,7 @@ noncomputable instance tokenSimple_access_load_simpleTokensMu (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance tokenSimple_access_store_simpleTokensMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'tokenSimple'simpleTokensMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokensMu" l) v.simpleTokensMu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokensMu" l) y (DFrac.own 1))
@@ -370,7 +370,7 @@ noncomputable instance tokenSimple_access_store_simpleTokensMu (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance tokenSimple_access_load_simpleTokens (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
+noncomputable instance access_load'tokenSimple'simpleTokens (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokens" l) v.simpleTokens' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokens" l) v.simpleTokens' dq)
@@ -378,7 +378,7 @@ noncomputable instance tokenSimple_access_load_simpleTokens (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance tokenSimple_access_store_simpleTokens (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (y : GoMap) :
+noncomputable instance access_store'tokenSimple'simpleTokens (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokens" l) v.simpleTokens' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokens" l) y (DFrac.own 1))
@@ -386,7 +386,7 @@ noncomputable instance tokenSimple_access_store_simpleTokens (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance tokenSimple_access_load_simpleTokenTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
+noncomputable instance access_load'tokenSimple'simpleTokenTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenTTL" l) v.simpleTokenTTL' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenTTL" l) v.simpleTokenTTL' dq)
@@ -394,7 +394,7 @@ noncomputable instance tokenSimple_access_load_simpleTokenTTL (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance tokenSimple_access_store_simpleTokenTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'tokenSimple'simpleTokenTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenTTL" l) v.simpleTokenTTL' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenTTL" l) y (DFrac.own 1))
@@ -413,7 +413,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-noncomputable instance AuthInfo_typed_pointsto :
+noncomputable instance typed_pointsto'AuthInfo :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.AuthInfo where
   typedPointstoDef l v dq := iprop(
     "Username" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.AuthInfo go!"Username" l) v.Username' dq ∗
@@ -423,11 +423,11 @@ noncomputable instance AuthInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance AuthInfo_into_val_typed :
+noncomputable instance into_val_typed'AuthInfo :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.AuthInfo go_etcd_io.etcd.server.v3.auth.AuthInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance AuthInfo_access_load_Username (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) :
+noncomputable instance access_load'AuthInfo'Username (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.AuthInfo go!"Username" l) v.Username' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.AuthInfo go!"Username" l) v.Username' dq)
@@ -435,7 +435,7 @@ noncomputable instance AuthInfo_access_load_Username (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthInfo_access_store_Username (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.AuthInfo) (y : GoString) :
+noncomputable instance access_store'AuthInfo'Username (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.AuthInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.AuthInfo go!"Username" l) v.Username' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.AuthInfo go!"Username" l) y (DFrac.own 1))
@@ -443,7 +443,7 @@ noncomputable instance AuthInfo_access_store_Username (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthInfo_access_load_Revision (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) :
+noncomputable instance access_load'AuthInfo'Revision (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.AuthInfo go!"Revision" l) v.Revision' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.AuthInfo go!"Revision" l) v.Revision' dq)
@@ -451,7 +451,7 @@ noncomputable instance AuthInfo_access_load_Revision (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthInfo_access_store_Revision (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.AuthInfo) (y : w64) :
+noncomputable instance access_store'AuthInfo'Revision (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.AuthInfo) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.AuthInfo go!"Revision" l) v.Revision' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.AuthInfo go!"Revision" l) y (DFrac.own 1))
@@ -470,7 +470,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-noncomputable instance AuthenticateParamIndex_typed_pointsto :
+noncomputable instance typed_pointsto'AuthenticateParamIndex :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.AuthenticateParamIndex where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -478,7 +478,7 @@ noncomputable instance AuthenticateParamIndex_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance AuthenticateParamIndex_into_val_typed :
+noncomputable instance into_val_typed'AuthenticateParamIndex :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.AuthenticateParamIndex go_etcd_io.etcd.server.v3.auth.AuthenticateParamIndex.underlying := by
   solve_into_val_typed_struct
 
@@ -493,7 +493,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-noncomputable instance AuthenticateParamSimpleTokenPrefix_typed_pointsto :
+noncomputable instance typed_pointsto'AuthenticateParamSimpleTokenPrefix :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.AuthenticateParamSimpleTokenPrefix where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -501,7 +501,7 @@ noncomputable instance AuthenticateParamSimpleTokenPrefix_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance AuthenticateParamSimpleTokenPrefix_into_val_typed :
+noncomputable instance into_val_typed'AuthenticateParamSimpleTokenPrefix :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.AuthenticateParamSimpleTokenPrefix go_etcd_io.etcd.server.v3.auth.AuthenticateParamSimpleTokenPrefix.underlying := by
   solve_into_val_typed_struct
 
@@ -516,7 +516,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-noncomputable instance authStore_typed_pointsto :
+noncomputable instance typed_pointsto'authStore :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.authStore where
   typedPointstoDef l v dq := iprop(
     "revision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"revision" l) v.revision' dq ∗
@@ -534,11 +534,11 @@ noncomputable instance authStore_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance authStore_into_val_typed :
+noncomputable instance into_val_typed'authStore :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.authStore go_etcd_io.etcd.server.v3.auth.authStore.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance authStore_access_load_revision (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+noncomputable instance access_load'authStore'revision (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"revision" l) v.revision' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"revision" l) v.revision' dq)
@@ -546,7 +546,7 @@ noncomputable instance authStore_access_load_revision (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_store_revision (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : w64) :
+noncomputable instance access_store'authStore'revision (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"revision" l) v.revision' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"revision" l) y (DFrac.own 1))
@@ -554,7 +554,7 @@ noncomputable instance authStore_access_store_revision (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+noncomputable instance access_load'authStore'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"lg" l) v.lg' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"lg" l) v.lg' dq)
@@ -562,7 +562,7 @@ noncomputable instance authStore_access_load_lg (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : Loc) :
+noncomputable instance access_store'authStore'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"lg" l) v.lg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"lg" l) y (DFrac.own 1))
@@ -570,7 +570,7 @@ noncomputable instance authStore_access_store_lg (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_load_be (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+noncomputable instance access_load'authStore'be (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"be" l) v.be' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"be" l) v.be' dq)
@@ -578,7 +578,7 @@ noncomputable instance authStore_access_load_be (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : go_etcd_io.etcd.server.v3.auth.AuthBackend) :
+noncomputable instance access_store'authStore'be (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : go_etcd_io.etcd.server.v3.auth.AuthBackend) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"be" l) v.be' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"be" l) y (DFrac.own 1))
@@ -586,7 +586,7 @@ noncomputable instance authStore_access_store_be (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_load_enabled (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+noncomputable instance access_load'authStore'enabled (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabled" l) v.enabled' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabled" l) v.enabled' dq)
@@ -594,7 +594,7 @@ noncomputable instance authStore_access_load_enabled (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_store_enabled (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : Bool) :
+noncomputable instance access_store'authStore'enabled (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabled" l) v.enabled' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabled" l) y (DFrac.own 1))
@@ -602,7 +602,7 @@ noncomputable instance authStore_access_store_enabled (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_load_enabledMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+noncomputable instance access_load'authStore'enabledMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabledMu" l) v.enabledMu' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabledMu" l) v.enabledMu' dq)
@@ -610,7 +610,7 @@ noncomputable instance authStore_access_load_enabledMu (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_store_enabledMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'authStore'enabledMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabledMu" l) v.enabledMu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabledMu" l) y (DFrac.own 1))
@@ -618,7 +618,7 @@ noncomputable instance authStore_access_store_enabledMu (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_load_beMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+noncomputable instance access_load'authStore'beMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"beMu" l) v.beMu' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"beMu" l) v.beMu' dq)
@@ -626,7 +626,7 @@ noncomputable instance authStore_access_load_beMu (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_store_beMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'authStore'beMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"beMu" l) v.beMu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"beMu" l) y (DFrac.own 1))
@@ -634,7 +634,7 @@ noncomputable instance authStore_access_store_beMu (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_load_rangePermCache (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+noncomputable instance access_load'authStore'rangePermCache (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCache" l) v.rangePermCache' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCache" l) v.rangePermCache' dq)
@@ -642,7 +642,7 @@ noncomputable instance authStore_access_load_rangePermCache (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_store_rangePermCache (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : GoMap) :
+noncomputable instance access_store'authStore'rangePermCache (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCache" l) v.rangePermCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCache" l) y (DFrac.own 1))
@@ -650,7 +650,7 @@ noncomputable instance authStore_access_store_rangePermCache (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_load_rangePermCacheMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+noncomputable instance access_load'authStore'rangePermCacheMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCacheMu" l) v.rangePermCacheMu' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCacheMu" l) v.rangePermCacheMu' dq)
@@ -658,7 +658,7 @@ noncomputable instance authStore_access_load_rangePermCacheMu (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_store_rangePermCacheMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'authStore'rangePermCacheMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCacheMu" l) v.rangePermCacheMu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCacheMu" l) y (DFrac.own 1))
@@ -666,7 +666,7 @@ noncomputable instance authStore_access_store_rangePermCacheMu (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_load_tokenProvider (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+noncomputable instance access_load'authStore'tokenProvider (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"tokenProvider" l) v.tokenProvider' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"tokenProvider" l) v.tokenProvider' dq)
@@ -674,7 +674,7 @@ noncomputable instance authStore_access_load_tokenProvider (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_store_tokenProvider (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : go_etcd_io.etcd.server.v3.auth.TokenProvider) :
+noncomputable instance access_store'authStore'tokenProvider (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : go_etcd_io.etcd.server.v3.auth.TokenProvider) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"tokenProvider" l) v.tokenProvider' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"tokenProvider" l) y (DFrac.own 1))
@@ -682,7 +682,7 @@ noncomputable instance authStore_access_store_tokenProvider (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_load_bcryptCost (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+noncomputable instance access_load'authStore'bcryptCost (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"bcryptCost" l) v.bcryptCost' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"bcryptCost" l) v.bcryptCost' dq)
@@ -690,7 +690,7 @@ noncomputable instance authStore_access_load_bcryptCost (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance authStore_access_store_bcryptCost (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : w64) :
+noncomputable instance access_store'authStore'bcryptCost (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"bcryptCost" l) v.bcryptCost' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"bcryptCost" l) y (DFrac.own 1))

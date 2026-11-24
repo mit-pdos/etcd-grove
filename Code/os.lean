@@ -576,7 +576,7 @@ noncomputable def readFileContents [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def WriteFile [GooseExts] [GoGlobalContext] : GoString :=
   go!"os.WriteFile"
 
-noncomputable def «open» [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def open'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"os.open"
 
 noncomputable def syscallMode [GooseExts] [GoGlobalContext] : GoString :=
@@ -2363,7 +2363,7 @@ noncomputable instance dirInfo.zero_val [GooseExts] : ZeroVal dirInfo :=
 @[irreducible] noncomputable def dirInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   dirInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_dirInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'dirInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold dirInfo.fields dirInfo.fieldsUnsealed :=
   ⟨by unfold dirInfo.fields; rfl⟩
 
@@ -2373,27 +2373,27 @@ noncomputable instance equals_unfold_dirInfo [GooseExts] [GoGlobalContext] :
 class dirInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying dirInfo.underlying dirInfo
   underlying : go.UnderlyingDirectedEq dirInfo.ty dirInfo.underlying
-  get_mu : ∀ (x : dirInfo), go.IsGoStepPureDetTagged under (StructFieldGet dirInfo.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : dirInfo) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet dirInfo.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : dirInfo)))
-  get_buf : ∀ (x : dirInfo), go.IsGoStepPureDetTagged under (StructFieldGet dirInfo.underlying go!"buf") #x (Val #(x.buf'))
-  set_buf : ∀ (x : dirInfo) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet dirInfo.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : dirInfo)))
-  get_nbuf : ∀ (x : dirInfo), go.IsGoStepPureDetTagged under (StructFieldGet dirInfo.underlying go!"nbuf") #x (Val #(x.nbuf'))
-  set_nbuf : ∀ (x : dirInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet dirInfo.underlying go!"nbuf") (PairV #x #y) (Val #(({ x with nbuf' := y } : dirInfo)))
-  get_bufp : ∀ (x : dirInfo), go.IsGoStepPureDetTagged under (StructFieldGet dirInfo.underlying go!"bufp") #x (Val #(x.bufp'))
-  set_bufp : ∀ (x : dirInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet dirInfo.underlying go!"bufp") (PairV #x #y) (Val #(({ x with bufp' := y } : dirInfo)))
+  get'mu : ∀ (x : dirInfo), go.IsGoStepPureDetTagged under (StructFieldGet dirInfo.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : dirInfo) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet dirInfo.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : dirInfo)))
+  get'buf : ∀ (x : dirInfo), go.IsGoStepPureDetTagged under (StructFieldGet dirInfo.underlying go!"buf") #x (Val #(x.buf'))
+  set'buf : ∀ (x : dirInfo) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet dirInfo.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : dirInfo)))
+  get'nbuf : ∀ (x : dirInfo), go.IsGoStepPureDetTagged under (StructFieldGet dirInfo.underlying go!"nbuf") #x (Val #(x.nbuf'))
+  set'nbuf : ∀ (x : dirInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet dirInfo.underlying go!"nbuf") (PairV #x #y) (Val #(({ x with nbuf' := y } : dirInfo)))
+  get'bufp : ∀ (x : dirInfo), go.IsGoStepPureDetTagged under (StructFieldGet dirInfo.underlying go!"bufp") #x (Val #(x.bufp'))
+  set'bufp : ∀ (x : dirInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet dirInfo.underlying go!"bufp") (PairV #x #y) (Val #(({ x with bufp' := y } : dirInfo)))
   method_set : go.MethodSetIs dirInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType dirInfo.ty) [(go!"os.close", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] dirInfo.TypeAssumptions.type_repr
   dirInfo.TypeAssumptions.underlying
-  dirInfo.TypeAssumptions.get_mu
-  dirInfo.TypeAssumptions.set_mu
-  dirInfo.TypeAssumptions.get_buf
-  dirInfo.TypeAssumptions.set_buf
-  dirInfo.TypeAssumptions.get_nbuf
-  dirInfo.TypeAssumptions.set_nbuf
-  dirInfo.TypeAssumptions.get_bufp
-  dirInfo.TypeAssumptions.set_bufp
+  dirInfo.TypeAssumptions.get'mu
+  dirInfo.TypeAssumptions.set'mu
+  dirInfo.TypeAssumptions.get'buf
+  dirInfo.TypeAssumptions.set'buf
+  dirInfo.TypeAssumptions.get'nbuf
+  dirInfo.TypeAssumptions.set'nbuf
+  dirInfo.TypeAssumptions.get'bufp
+  dirInfo.TypeAssumptions.set'bufp
   dirInfo.TypeAssumptions.method_set
   dirInfo.TypeAssumptions.ptr_method_set
 
@@ -2426,7 +2426,7 @@ noncomputable instance SyscallError.zero_val [GooseExts] : ZeroVal SyscallError 
 @[irreducible] noncomputable def SyscallError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SyscallError.fieldsUnsealed
 
-noncomputable instance equals_unfold_SyscallError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SyscallError [GooseExts] [GoGlobalContext] :
     EqualsUnfold SyscallError.fields SyscallError.fieldsUnsealed :=
   ⟨by unfold SyscallError.fields; rfl⟩
 
@@ -2436,25 +2436,25 @@ noncomputable instance equals_unfold_SyscallError [GooseExts] [GoGlobalContext] 
 class SyscallError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SyscallError.underlying SyscallError
   underlying : go.UnderlyingDirectedEq SyscallError.ty SyscallError.underlying
-  get_Syscall : ∀ (x : SyscallError), go.IsGoStepPureDetTagged under (StructFieldGet SyscallError.underlying go!"Syscall") #x (Val #(x.Syscall'))
-  set_Syscall : ∀ (x : SyscallError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SyscallError.underlying go!"Syscall") (PairV #x #y) (Val #(({ x with Syscall' := y } : SyscallError)))
-  get_Err : ∀ (x : SyscallError), go.IsGoStepPureDetTagged under (StructFieldGet SyscallError.underlying go!"Err") #x (Val #(x.Err'))
-  set_Err : ∀ (x : SyscallError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet SyscallError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : SyscallError)))
+  get'Syscall : ∀ (x : SyscallError), go.IsGoStepPureDetTagged under (StructFieldGet SyscallError.underlying go!"Syscall") #x (Val #(x.Syscall'))
+  set'Syscall : ∀ (x : SyscallError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SyscallError.underlying go!"Syscall") (PairV #x #y) (Val #(({ x with Syscall' := y } : SyscallError)))
+  get'Err : ∀ (x : SyscallError), go.IsGoStepPureDetTagged under (StructFieldGet SyscallError.underlying go!"Err") #x (Val #(x.Err'))
+  set'Err : ∀ (x : SyscallError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet SyscallError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : SyscallError)))
   method_set : go.MethodSetIs SyscallError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SyscallError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType SyscallError.ty) go!"Error" SyscallError.Error.impl
-  ptr_Unwrap_unfold : MethodUnfold (go.GoType.PointerType SyscallError.ty) go!"Unwrap" SyscallError.Unwrap.impl
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType SyscallError.ty) go!"Error" SyscallError.Error.impl
+  ptr_unfold'Unwrap : MethodUnfold (go.GoType.PointerType SyscallError.ty) go!"Unwrap" SyscallError.Unwrap.impl
 
 attribute [instance] SyscallError.TypeAssumptions.type_repr
   SyscallError.TypeAssumptions.underlying
-  SyscallError.TypeAssumptions.get_Syscall
-  SyscallError.TypeAssumptions.set_Syscall
-  SyscallError.TypeAssumptions.get_Err
-  SyscallError.TypeAssumptions.set_Err
+  SyscallError.TypeAssumptions.get'Syscall
+  SyscallError.TypeAssumptions.set'Syscall
+  SyscallError.TypeAssumptions.get'Err
+  SyscallError.TypeAssumptions.set'Err
   SyscallError.TypeAssumptions.method_set
   SyscallError.TypeAssumptions.ptr_method_set
-  SyscallError.TypeAssumptions.ptr_Error_unfold
-  SyscallError.TypeAssumptions.ptr_Unwrap_unfold
+  SyscallError.TypeAssumptions.ptr_unfold'Error
+  SyscallError.TypeAssumptions.ptr_unfold'Unwrap
 
 abbrev processStatus [GooseExts] : Type := w32
 
@@ -2527,7 +2527,7 @@ noncomputable instance ProcAttr.zero_val [GooseExts] : ZeroVal ProcAttr :=
 @[irreducible] noncomputable def ProcAttr.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProcAttr.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProcAttr [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProcAttr [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProcAttr.fields ProcAttr.fieldsUnsealed :=
   ⟨by unfold ProcAttr.fields; rfl⟩
 
@@ -2537,27 +2537,27 @@ noncomputable instance equals_unfold_ProcAttr [GooseExts] [GoGlobalContext] :
 class ProcAttr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProcAttr.underlying ProcAttr
   underlying : go.UnderlyingDirectedEq ProcAttr.ty ProcAttr.underlying
-  get_Dir : ∀ (x : ProcAttr), go.IsGoStepPureDetTagged under (StructFieldGet ProcAttr.underlying go!"Dir") #x (Val #(x.Dir'))
-  set_Dir : ∀ (x : ProcAttr) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProcAttr.underlying go!"Dir") (PairV #x #y) (Val #(({ x with Dir' := y } : ProcAttr)))
-  get_Env : ∀ (x : ProcAttr), go.IsGoStepPureDetTagged under (StructFieldGet ProcAttr.underlying go!"Env") #x (Val #(x.Env'))
-  set_Env : ∀ (x : ProcAttr) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProcAttr.underlying go!"Env") (PairV #x #y) (Val #(({ x with Env' := y } : ProcAttr)))
-  get_Files : ∀ (x : ProcAttr), go.IsGoStepPureDetTagged under (StructFieldGet ProcAttr.underlying go!"Files") #x (Val #(x.Files'))
-  set_Files : ∀ (x : ProcAttr) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProcAttr.underlying go!"Files") (PairV #x #y) (Val #(({ x with Files' := y } : ProcAttr)))
-  get_Sys : ∀ (x : ProcAttr), go.IsGoStepPureDetTagged under (StructFieldGet ProcAttr.underlying go!"Sys") #x (Val #(x.Sys'))
-  set_Sys : ∀ (x : ProcAttr) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ProcAttr.underlying go!"Sys") (PairV #x #y) (Val #(({ x with Sys' := y } : ProcAttr)))
+  get'Dir : ∀ (x : ProcAttr), go.IsGoStepPureDetTagged under (StructFieldGet ProcAttr.underlying go!"Dir") #x (Val #(x.Dir'))
+  set'Dir : ∀ (x : ProcAttr) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProcAttr.underlying go!"Dir") (PairV #x #y) (Val #(({ x with Dir' := y } : ProcAttr)))
+  get'Env : ∀ (x : ProcAttr), go.IsGoStepPureDetTagged under (StructFieldGet ProcAttr.underlying go!"Env") #x (Val #(x.Env'))
+  set'Env : ∀ (x : ProcAttr) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProcAttr.underlying go!"Env") (PairV #x #y) (Val #(({ x with Env' := y } : ProcAttr)))
+  get'Files : ∀ (x : ProcAttr), go.IsGoStepPureDetTagged under (StructFieldGet ProcAttr.underlying go!"Files") #x (Val #(x.Files'))
+  set'Files : ∀ (x : ProcAttr) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProcAttr.underlying go!"Files") (PairV #x #y) (Val #(({ x with Files' := y } : ProcAttr)))
+  get'Sys : ∀ (x : ProcAttr), go.IsGoStepPureDetTagged under (StructFieldGet ProcAttr.underlying go!"Sys") #x (Val #(x.Sys'))
+  set'Sys : ∀ (x : ProcAttr) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ProcAttr.underlying go!"Sys") (PairV #x #y) (Val #(({ x with Sys' := y } : ProcAttr)))
   method_set : go.MethodSetIs ProcAttr.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProcAttr.ty) []
 
 attribute [instance] ProcAttr.TypeAssumptions.type_repr
   ProcAttr.TypeAssumptions.underlying
-  ProcAttr.TypeAssumptions.get_Dir
-  ProcAttr.TypeAssumptions.set_Dir
-  ProcAttr.TypeAssumptions.get_Env
-  ProcAttr.TypeAssumptions.set_Env
-  ProcAttr.TypeAssumptions.get_Files
-  ProcAttr.TypeAssumptions.set_Files
-  ProcAttr.TypeAssumptions.get_Sys
-  ProcAttr.TypeAssumptions.set_Sys
+  ProcAttr.TypeAssumptions.get'Dir
+  ProcAttr.TypeAssumptions.set'Dir
+  ProcAttr.TypeAssumptions.get'Env
+  ProcAttr.TypeAssumptions.set'Env
+  ProcAttr.TypeAssumptions.get'Files
+  ProcAttr.TypeAssumptions.set'Files
+  ProcAttr.TypeAssumptions.get'Sys
+  ProcAttr.TypeAssumptions.set'Sys
   ProcAttr.TypeAssumptions.method_set
   ProcAttr.TypeAssumptions.ptr_method_set
 
@@ -2592,7 +2592,7 @@ noncomputable instance ProcessState.zero_val [GooseExts] : ZeroVal ProcessState 
 @[irreducible] noncomputable def ProcessState.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProcessState.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProcessState [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProcessState [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProcessState.fields ProcessState.fieldsUnsealed :=
   ⟨by unfold ProcessState.fields; rfl⟩
 
@@ -2602,23 +2602,23 @@ noncomputable instance equals_unfold_ProcessState [GooseExts] [GoGlobalContext] 
 class ProcessState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProcessState.underlying ProcessState
   underlying : go.UnderlyingDirectedEq ProcessState.ty ProcessState.underlying
-  get_pid : ∀ (x : ProcessState), go.IsGoStepPureDetTagged under (StructFieldGet ProcessState.underlying go!"pid") #x (Val #(x.pid'))
-  set_pid : ∀ (x : ProcessState) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProcessState.underlying go!"pid") (PairV #x #y) (Val #(({ x with pid' := y } : ProcessState)))
-  get_status : ∀ (x : ProcessState), go.IsGoStepPureDetTagged under (StructFieldGet ProcessState.underlying go!"status") #x (Val #(x.status'))
-  set_status : ∀ (x : ProcessState) (y : _root_.Perennial.syscall.WaitStatus), go.IsGoStepPureDetTagged under (StructFieldSet ProcessState.underlying go!"status") (PairV #x #y) (Val #(({ x with status' := y } : ProcessState)))
-  get_rusage : ∀ (x : ProcessState), go.IsGoStepPureDetTagged under (StructFieldGet ProcessState.underlying go!"rusage") #x (Val #(x.rusage'))
-  set_rusage : ∀ (x : ProcessState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ProcessState.underlying go!"rusage") (PairV #x #y) (Val #(({ x with rusage' := y } : ProcessState)))
+  get'pid : ∀ (x : ProcessState), go.IsGoStepPureDetTagged under (StructFieldGet ProcessState.underlying go!"pid") #x (Val #(x.pid'))
+  set'pid : ∀ (x : ProcessState) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProcessState.underlying go!"pid") (PairV #x #y) (Val #(({ x with pid' := y } : ProcessState)))
+  get'status : ∀ (x : ProcessState), go.IsGoStepPureDetTagged under (StructFieldGet ProcessState.underlying go!"status") #x (Val #(x.status'))
+  set'status : ∀ (x : ProcessState) (y : _root_.Perennial.syscall.WaitStatus), go.IsGoStepPureDetTagged under (StructFieldSet ProcessState.underlying go!"status") (PairV #x #y) (Val #(({ x with status' := y } : ProcessState)))
+  get'rusage : ∀ (x : ProcessState), go.IsGoStepPureDetTagged under (StructFieldGet ProcessState.underlying go!"rusage") #x (Val #(x.rusage'))
+  set'rusage : ∀ (x : ProcessState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ProcessState.underlying go!"rusage") (PairV #x #y) (Val #(({ x with rusage' := y } : ProcessState)))
   method_set : go.MethodSetIs ProcessState.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProcessState.ty) [(go!"ExitCode", (some (go.signature.Signature [] false [go.int]))), (go!"Exited", (some (go.signature.Signature [] false [go.bool]))), (go!"Pid", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Success", (some (go.signature.Signature [] false [go.bool]))), (go!"Sys", (some (go.signature.Signature [] false [go.any]))), (go!"SysUsage", (some (go.signature.Signature [] false [go.any]))), (go!"SystemTime", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"UserTime", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"os.exited", (some (go.signature.Signature [] false [go.bool]))), (go!"os.success", (some (go.signature.Signature [] false [go.bool]))), (go!"os.sys", (some (go.signature.Signature [] false [go.any]))), (go!"os.sysUsage", (some (go.signature.Signature [] false [go.any]))), (go!"os.systemTime", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"os.userTime", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])])))]
 
 attribute [instance] ProcessState.TypeAssumptions.type_repr
   ProcessState.TypeAssumptions.underlying
-  ProcessState.TypeAssumptions.get_pid
-  ProcessState.TypeAssumptions.set_pid
-  ProcessState.TypeAssumptions.get_status
-  ProcessState.TypeAssumptions.set_status
-  ProcessState.TypeAssumptions.get_rusage
-  ProcessState.TypeAssumptions.set_rusage
+  ProcessState.TypeAssumptions.get'pid
+  ProcessState.TypeAssumptions.set'pid
+  ProcessState.TypeAssumptions.get'status
+  ProcessState.TypeAssumptions.set'status
+  ProcessState.TypeAssumptions.get'rusage
+  ProcessState.TypeAssumptions.set'rusage
   ProcessState.TypeAssumptions.method_set
   ProcessState.TypeAssumptions.ptr_method_set
 
@@ -2641,7 +2641,7 @@ noncomputable instance LinkError.zero_val [GooseExts] : ZeroVal LinkError :=
 @[irreducible] noncomputable def LinkError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LinkError.fieldsUnsealed
 
-noncomputable instance equals_unfold_LinkError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LinkError [GooseExts] [GoGlobalContext] :
     EqualsUnfold LinkError.fields LinkError.fieldsUnsealed :=
   ⟨by unfold LinkError.fields; rfl⟩
 
@@ -2651,31 +2651,31 @@ noncomputable instance equals_unfold_LinkError [GooseExts] [GoGlobalContext] :
 class LinkError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LinkError.underlying LinkError
   underlying : go.UnderlyingDirectedEq LinkError.ty LinkError.underlying
-  get_Op : ∀ (x : LinkError), go.IsGoStepPureDetTagged under (StructFieldGet LinkError.underlying go!"Op") #x (Val #(x.Op'))
-  set_Op : ∀ (x : LinkError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LinkError.underlying go!"Op") (PairV #x #y) (Val #(({ x with Op' := y } : LinkError)))
-  get_Old : ∀ (x : LinkError), go.IsGoStepPureDetTagged under (StructFieldGet LinkError.underlying go!"Old") #x (Val #(x.Old'))
-  set_Old : ∀ (x : LinkError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LinkError.underlying go!"Old") (PairV #x #y) (Val #(({ x with Old' := y } : LinkError)))
-  get_New : ∀ (x : LinkError), go.IsGoStepPureDetTagged under (StructFieldGet LinkError.underlying go!"New") #x (Val #(x.New'))
-  set_New : ∀ (x : LinkError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LinkError.underlying go!"New") (PairV #x #y) (Val #(({ x with New' := y } : LinkError)))
-  get_Err : ∀ (x : LinkError), go.IsGoStepPureDetTagged under (StructFieldGet LinkError.underlying go!"Err") #x (Val #(x.Err'))
-  set_Err : ∀ (x : LinkError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet LinkError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : LinkError)))
+  get'Op : ∀ (x : LinkError), go.IsGoStepPureDetTagged under (StructFieldGet LinkError.underlying go!"Op") #x (Val #(x.Op'))
+  set'Op : ∀ (x : LinkError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LinkError.underlying go!"Op") (PairV #x #y) (Val #(({ x with Op' := y } : LinkError)))
+  get'Old : ∀ (x : LinkError), go.IsGoStepPureDetTagged under (StructFieldGet LinkError.underlying go!"Old") #x (Val #(x.Old'))
+  set'Old : ∀ (x : LinkError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LinkError.underlying go!"Old") (PairV #x #y) (Val #(({ x with Old' := y } : LinkError)))
+  get'New : ∀ (x : LinkError), go.IsGoStepPureDetTagged under (StructFieldGet LinkError.underlying go!"New") #x (Val #(x.New'))
+  set'New : ∀ (x : LinkError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LinkError.underlying go!"New") (PairV #x #y) (Val #(({ x with New' := y } : LinkError)))
+  get'Err : ∀ (x : LinkError), go.IsGoStepPureDetTagged under (StructFieldGet LinkError.underlying go!"Err") #x (Val #(x.Err'))
+  set'Err : ∀ (x : LinkError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet LinkError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : LinkError)))
   method_set : go.MethodSetIs LinkError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LinkError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType LinkError.ty) go!"Error" LinkError.Error.impl
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType LinkError.ty) go!"Error" LinkError.Error.impl
 
 attribute [instance] LinkError.TypeAssumptions.type_repr
   LinkError.TypeAssumptions.underlying
-  LinkError.TypeAssumptions.get_Op
-  LinkError.TypeAssumptions.set_Op
-  LinkError.TypeAssumptions.get_Old
-  LinkError.TypeAssumptions.set_Old
-  LinkError.TypeAssumptions.get_New
-  LinkError.TypeAssumptions.set_New
-  LinkError.TypeAssumptions.get_Err
-  LinkError.TypeAssumptions.set_Err
+  LinkError.TypeAssumptions.get'Op
+  LinkError.TypeAssumptions.set'Op
+  LinkError.TypeAssumptions.get'Old
+  LinkError.TypeAssumptions.set'Old
+  LinkError.TypeAssumptions.get'New
+  LinkError.TypeAssumptions.set'New
+  LinkError.TypeAssumptions.get'Err
+  LinkError.TypeAssumptions.set'Err
   LinkError.TypeAssumptions.method_set
   LinkError.TypeAssumptions.ptr_method_set
-  LinkError.TypeAssumptions.ptr_Error_unfold
+  LinkError.TypeAssumptions.ptr_unfold'Error
 
 structure noReadFrom [GooseExts] where
   mk ::
@@ -2689,7 +2689,7 @@ noncomputable instance noReadFrom.zero_val [GooseExts] : ZeroVal noReadFrom :=
 @[irreducible] noncomputable def noReadFrom.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noReadFrom.fieldsUnsealed
 
-noncomputable instance equals_unfold_noReadFrom [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'noReadFrom [GooseExts] [GoGlobalContext] :
     EqualsUnfold noReadFrom.fields noReadFrom.fieldsUnsealed :=
   ⟨by unfold noReadFrom.fields; rfl⟩
 
@@ -2701,16 +2701,16 @@ class noReadFrom.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq noReadFrom.ty noReadFrom.underlying
   method_set : go.MethodSetIs noReadFrom.ty [(go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType noReadFrom.ty) [(go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error])))]
-  ReadFrom_unfold : MethodUnfold noReadFrom.ty go!"ReadFrom" noReadFrom.ReadFrom.impl
-  ptr_ReadFrom_unfold : MethodUnfold (go.GoType.PointerType noReadFrom.ty) go!"ReadFrom" (LamV "$r"
+  unfold'ReadFrom : MethodUnfold noReadFrom.ty go!"ReadFrom" noReadFrom.ReadFrom.impl
+  ptr_unfold'ReadFrom : MethodUnfold (go.GoType.PointerType noReadFrom.ty) go!"ReadFrom" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve noReadFrom.ty go!"ReadFrom"))) (App (Val (GoInstruction (GoLoad noReadFrom.ty))) (Var "$r"))))
 
 attribute [instance] noReadFrom.TypeAssumptions.type_repr
   noReadFrom.TypeAssumptions.underlying
   noReadFrom.TypeAssumptions.method_set
   noReadFrom.TypeAssumptions.ptr_method_set
-  noReadFrom.TypeAssumptions.ReadFrom_unfold
-  noReadFrom.TypeAssumptions.ptr_ReadFrom_unfold
+  noReadFrom.TypeAssumptions.unfold'ReadFrom
+  noReadFrom.TypeAssumptions.ptr_unfold'ReadFrom
 
 structure fileWithoutReadFrom [GooseExts] where
   mk ::
@@ -2727,7 +2727,7 @@ noncomputable instance fileWithoutReadFrom.zero_val [GooseExts] : ZeroVal fileWi
 @[irreducible] noncomputable def fileWithoutReadFrom.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fileWithoutReadFrom.fieldsUnsealed
 
-noncomputable instance equals_unfold_fileWithoutReadFrom [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'fileWithoutReadFrom [GooseExts] [GoGlobalContext] :
     EqualsUnfold fileWithoutReadFrom.fields fileWithoutReadFrom.fieldsUnsealed :=
   ⟨by unfold fileWithoutReadFrom.fields; rfl⟩
 
@@ -2737,27 +2737,27 @@ noncomputable instance equals_unfold_fileWithoutReadFrom [GooseExts] [GoGlobalCo
 class fileWithoutReadFrom.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fileWithoutReadFrom.underlying fileWithoutReadFrom
   underlying : go.UnderlyingDirectedEq fileWithoutReadFrom.ty fileWithoutReadFrom.underlying
-  get_noReadFrom : ∀ (x : fileWithoutReadFrom), go.IsGoStepPureDetTagged under (StructFieldGet fileWithoutReadFrom.underlying go!"noReadFrom") #x (Val #(x.noReadFrom'))
-  set_noReadFrom : ∀ (x : fileWithoutReadFrom) (y : noReadFrom), go.IsGoStepPureDetTagged under (StructFieldSet fileWithoutReadFrom.underlying go!"noReadFrom") (PairV #x #y) (Val #(({ x with noReadFrom' := y } : fileWithoutReadFrom)))
-  get_File : ∀ (x : fileWithoutReadFrom), go.IsGoStepPureDetTagged under (StructFieldGet fileWithoutReadFrom.underlying go!"File") #x (Val #(x.File'))
-  set_File : ∀ (x : fileWithoutReadFrom) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fileWithoutReadFrom.underlying go!"File") (PairV #x #y) (Val #(({ x with File' := y } : fileWithoutReadFrom)))
+  get'noReadFrom : ∀ (x : fileWithoutReadFrom), go.IsGoStepPureDetTagged under (StructFieldGet fileWithoutReadFrom.underlying go!"noReadFrom") #x (Val #(x.noReadFrom'))
+  set'noReadFrom : ∀ (x : fileWithoutReadFrom) (y : noReadFrom), go.IsGoStepPureDetTagged under (StructFieldSet fileWithoutReadFrom.underlying go!"noReadFrom") (PairV #x #y) (Val #(({ x with noReadFrom' := y } : fileWithoutReadFrom)))
+  get'File : ∀ (x : fileWithoutReadFrom), go.IsGoStepPureDetTagged under (StructFieldGet fileWithoutReadFrom.underlying go!"File") #x (Val #(x.File'))
+  set'File : ∀ (x : fileWithoutReadFrom) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fileWithoutReadFrom.underlying go!"File") (PairV #x #y) (Val #(({ x with File' := y } : fileWithoutReadFrom)))
   method_set : go.MethodSetIs fileWithoutReadFrom.ty [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType DirEntry.ty), go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType DirEntry.ty), (go.GoType.SliceType FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fileWithoutReadFrom.ty) [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType DirEntry.ty), go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType DirEntry.ty), (go.GoType.SliceType FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
-  Write_unfold : MethodUnfold fileWithoutReadFrom.ty go!"Write" (LamV "$r"
+  unfold'Write : MethodUnfold fileWithoutReadFrom.ty go!"Write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"Write" (LamV "$r"
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"Write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
 
 attribute [instance] fileWithoutReadFrom.TypeAssumptions.type_repr
   fileWithoutReadFrom.TypeAssumptions.underlying
-  fileWithoutReadFrom.TypeAssumptions.get_noReadFrom
-  fileWithoutReadFrom.TypeAssumptions.set_noReadFrom
-  fileWithoutReadFrom.TypeAssumptions.get_File
-  fileWithoutReadFrom.TypeAssumptions.set_File
+  fileWithoutReadFrom.TypeAssumptions.get'noReadFrom
+  fileWithoutReadFrom.TypeAssumptions.set'noReadFrom
+  fileWithoutReadFrom.TypeAssumptions.get'File
+  fileWithoutReadFrom.TypeAssumptions.set'File
   fileWithoutReadFrom.TypeAssumptions.method_set
   fileWithoutReadFrom.TypeAssumptions.ptr_method_set
-  fileWithoutReadFrom.TypeAssumptions.Write_unfold
-  fileWithoutReadFrom.TypeAssumptions.ptr_Write_unfold
+  fileWithoutReadFrom.TypeAssumptions.unfold'Write
+  fileWithoutReadFrom.TypeAssumptions.ptr_unfold'Write
 
 structure noWriteTo [GooseExts] where
   mk ::
@@ -2771,7 +2771,7 @@ noncomputable instance noWriteTo.zero_val [GooseExts] : ZeroVal noWriteTo :=
 @[irreducible] noncomputable def noWriteTo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noWriteTo.fieldsUnsealed
 
-noncomputable instance equals_unfold_noWriteTo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'noWriteTo [GooseExts] [GoGlobalContext] :
     EqualsUnfold noWriteTo.fields noWriteTo.fieldsUnsealed :=
   ⟨by unfold noWriteTo.fields; rfl⟩
 
@@ -2783,16 +2783,16 @@ class noWriteTo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq noWriteTo.ty noWriteTo.underlying
   method_set : go.MethodSetIs noWriteTo.ty [(go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType noWriteTo.ty) [(go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
-  WriteTo_unfold : MethodUnfold noWriteTo.ty go!"WriteTo" noWriteTo.WriteTo.impl
-  ptr_WriteTo_unfold : MethodUnfold (go.GoType.PointerType noWriteTo.ty) go!"WriteTo" (LamV "$r"
+  unfold'WriteTo : MethodUnfold noWriteTo.ty go!"WriteTo" noWriteTo.WriteTo.impl
+  ptr_unfold'WriteTo : MethodUnfold (go.GoType.PointerType noWriteTo.ty) go!"WriteTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve noWriteTo.ty go!"WriteTo"))) (App (Val (GoInstruction (GoLoad noWriteTo.ty))) (Var "$r"))))
 
 attribute [instance] noWriteTo.TypeAssumptions.type_repr
   noWriteTo.TypeAssumptions.underlying
   noWriteTo.TypeAssumptions.method_set
   noWriteTo.TypeAssumptions.ptr_method_set
-  noWriteTo.TypeAssumptions.WriteTo_unfold
-  noWriteTo.TypeAssumptions.ptr_WriteTo_unfold
+  noWriteTo.TypeAssumptions.unfold'WriteTo
+  noWriteTo.TypeAssumptions.ptr_unfold'WriteTo
 
 structure fileWithoutWriteTo [GooseExts] where
   mk ::
@@ -2809,7 +2809,7 @@ noncomputable instance fileWithoutWriteTo.zero_val [GooseExts] : ZeroVal fileWit
 @[irreducible] noncomputable def fileWithoutWriteTo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fileWithoutWriteTo.fieldsUnsealed
 
-noncomputable instance equals_unfold_fileWithoutWriteTo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'fileWithoutWriteTo [GooseExts] [GoGlobalContext] :
     EqualsUnfold fileWithoutWriteTo.fields fileWithoutWriteTo.fieldsUnsealed :=
   ⟨by unfold fileWithoutWriteTo.fields; rfl⟩
 
@@ -2819,33 +2819,33 @@ noncomputable instance equals_unfold_fileWithoutWriteTo [GooseExts] [GoGlobalCon
 class fileWithoutWriteTo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fileWithoutWriteTo.underlying fileWithoutWriteTo
   underlying : go.UnderlyingDirectedEq fileWithoutWriteTo.ty fileWithoutWriteTo.underlying
-  get_noWriteTo : ∀ (x : fileWithoutWriteTo), go.IsGoStepPureDetTagged under (StructFieldGet fileWithoutWriteTo.underlying go!"noWriteTo") #x (Val #(x.noWriteTo'))
-  set_noWriteTo : ∀ (x : fileWithoutWriteTo) (y : noWriteTo), go.IsGoStepPureDetTagged under (StructFieldSet fileWithoutWriteTo.underlying go!"noWriteTo") (PairV #x #y) (Val #(({ x with noWriteTo' := y } : fileWithoutWriteTo)))
-  get_File : ∀ (x : fileWithoutWriteTo), go.IsGoStepPureDetTagged under (StructFieldGet fileWithoutWriteTo.underlying go!"File") #x (Val #(x.File'))
-  set_File : ∀ (x : fileWithoutWriteTo) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fileWithoutWriteTo.underlying go!"File") (PairV #x #y) (Val #(({ x with File' := y } : fileWithoutWriteTo)))
+  get'noWriteTo : ∀ (x : fileWithoutWriteTo), go.IsGoStepPureDetTagged under (StructFieldGet fileWithoutWriteTo.underlying go!"noWriteTo") #x (Val #(x.noWriteTo'))
+  set'noWriteTo : ∀ (x : fileWithoutWriteTo) (y : noWriteTo), go.IsGoStepPureDetTagged under (StructFieldSet fileWithoutWriteTo.underlying go!"noWriteTo") (PairV #x #y) (Val #(({ x with noWriteTo' := y } : fileWithoutWriteTo)))
+  get'File : ∀ (x : fileWithoutWriteTo), go.IsGoStepPureDetTagged under (StructFieldGet fileWithoutWriteTo.underlying go!"File") #x (Val #(x.File'))
+  set'File : ∀ (x : fileWithoutWriteTo) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fileWithoutWriteTo.underlying go!"File") (PairV #x #y) (Val #(({ x with File' := y } : fileWithoutWriteTo)))
   method_set : go.MethodSetIs fileWithoutWriteTo.ty [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType DirEntry.ty), go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType DirEntry.ty), (go.GoType.SliceType FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fileWithoutWriteTo.ty) [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType DirEntry.ty), go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType DirEntry.ty), (go.GoType.SliceType FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
-  Read_unfold : MethodUnfold fileWithoutWriteTo.ty go!"Read" (LamV "$r"
+  unfold'Read : MethodUnfold fileWithoutWriteTo.ty go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
-  SyscallConn_unfold : MethodUnfold fileWithoutWriteTo.ty go!"SyscallConn" (LamV "$r"
+  unfold'SyscallConn : MethodUnfold fileWithoutWriteTo.ty go!"SyscallConn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"SyscallConn"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"Read" (LamV "$r"
+  ptr_unfold'Read : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
-  ptr_SyscallConn_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"SyscallConn" (LamV "$r"
+  ptr_unfold'SyscallConn : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"SyscallConn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"SyscallConn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
 
 attribute [instance] fileWithoutWriteTo.TypeAssumptions.type_repr
   fileWithoutWriteTo.TypeAssumptions.underlying
-  fileWithoutWriteTo.TypeAssumptions.get_noWriteTo
-  fileWithoutWriteTo.TypeAssumptions.set_noWriteTo
-  fileWithoutWriteTo.TypeAssumptions.get_File
-  fileWithoutWriteTo.TypeAssumptions.set_File
+  fileWithoutWriteTo.TypeAssumptions.get'noWriteTo
+  fileWithoutWriteTo.TypeAssumptions.set'noWriteTo
+  fileWithoutWriteTo.TypeAssumptions.get'File
+  fileWithoutWriteTo.TypeAssumptions.set'File
   fileWithoutWriteTo.TypeAssumptions.method_set
   fileWithoutWriteTo.TypeAssumptions.ptr_method_set
-  fileWithoutWriteTo.TypeAssumptions.Read_unfold
-  fileWithoutWriteTo.TypeAssumptions.SyscallConn_unfold
-  fileWithoutWriteTo.TypeAssumptions.ptr_Read_unfold
-  fileWithoutWriteTo.TypeAssumptions.ptr_SyscallConn_unfold
+  fileWithoutWriteTo.TypeAssumptions.unfold'Read
+  fileWithoutWriteTo.TypeAssumptions.unfold'SyscallConn
+  fileWithoutWriteTo.TypeAssumptions.ptr_unfold'Read
+  fileWithoutWriteTo.TypeAssumptions.ptr_unfold'SyscallConn
 
 abbrev dirFS [GooseExts] : Type := GoString
 
@@ -2905,7 +2905,7 @@ noncomputable instance unixDirent.zero_val [GooseExts] : ZeroVal unixDirent :=
 @[irreducible] noncomputable def unixDirent.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   unixDirent.fieldsUnsealed
 
-noncomputable instance equals_unfold_unixDirent [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'unixDirent [GooseExts] [GoGlobalContext] :
     EqualsUnfold unixDirent.fields unixDirent.fieldsUnsealed :=
   ⟨by unfold unixDirent.fields; rfl⟩
 
@@ -2915,27 +2915,27 @@ noncomputable instance equals_unfold_unixDirent [GooseExts] [GoGlobalContext] :
 class unixDirent.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying unixDirent.underlying unixDirent
   underlying : go.UnderlyingDirectedEq unixDirent.ty unixDirent.underlying
-  get_parent : ∀ (x : unixDirent), go.IsGoStepPureDetTagged under (StructFieldGet unixDirent.underlying go!"parent") #x (Val #(x.parent'))
-  set_parent : ∀ (x : unixDirent) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet unixDirent.underlying go!"parent") (PairV #x #y) (Val #(({ x with parent' := y } : unixDirent)))
-  get_name : ∀ (x : unixDirent), go.IsGoStepPureDetTagged under (StructFieldGet unixDirent.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : unixDirent) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet unixDirent.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : unixDirent)))
-  get_typ : ∀ (x : unixDirent), go.IsGoStepPureDetTagged under (StructFieldGet unixDirent.underlying go!"typ") #x (Val #(x.typ'))
-  set_typ : ∀ (x : unixDirent) (y : _root_.Perennial.io.fs.FileMode), go.IsGoStepPureDetTagged under (StructFieldSet unixDirent.underlying go!"typ") (PairV #x #y) (Val #(({ x with typ' := y } : unixDirent)))
-  get_info : ∀ (x : unixDirent), go.IsGoStepPureDetTagged under (StructFieldGet unixDirent.underlying go!"info") #x (Val #(x.info'))
-  set_info : ∀ (x : unixDirent) (y : _root_.Perennial.io.fs.FileInfo), go.IsGoStepPureDetTagged under (StructFieldSet unixDirent.underlying go!"info") (PairV #x #y) (Val #(({ x with info' := y } : unixDirent)))
+  get'parent : ∀ (x : unixDirent), go.IsGoStepPureDetTagged under (StructFieldGet unixDirent.underlying go!"parent") #x (Val #(x.parent'))
+  set'parent : ∀ (x : unixDirent) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet unixDirent.underlying go!"parent") (PairV #x #y) (Val #(({ x with parent' := y } : unixDirent)))
+  get'name : ∀ (x : unixDirent), go.IsGoStepPureDetTagged under (StructFieldGet unixDirent.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : unixDirent) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet unixDirent.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : unixDirent)))
+  get'typ : ∀ (x : unixDirent), go.IsGoStepPureDetTagged under (StructFieldGet unixDirent.underlying go!"typ") #x (Val #(x.typ'))
+  set'typ : ∀ (x : unixDirent) (y : _root_.Perennial.io.fs.FileMode), go.IsGoStepPureDetTagged under (StructFieldSet unixDirent.underlying go!"typ") (PairV #x #y) (Val #(({ x with typ' := y } : unixDirent)))
+  get'info : ∀ (x : unixDirent), go.IsGoStepPureDetTagged under (StructFieldGet unixDirent.underlying go!"info") #x (Val #(x.info'))
+  set'info : ∀ (x : unixDirent) (y : _root_.Perennial.io.fs.FileInfo), go.IsGoStepPureDetTagged under (StructFieldSet unixDirent.underlying go!"info") (PairV #x #y) (Val #(({ x with info' := y } : unixDirent)))
   method_set : go.MethodSetIs unixDirent.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType unixDirent.ty) [(go!"Info", (some (go.signature.Signature [] false [FileInfo.ty, go.error]))), (go!"IsDir", (some (go.signature.Signature [] false [go.bool]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [FileMode.ty])))]
 
 attribute [instance] unixDirent.TypeAssumptions.type_repr
   unixDirent.TypeAssumptions.underlying
-  unixDirent.TypeAssumptions.get_parent
-  unixDirent.TypeAssumptions.set_parent
-  unixDirent.TypeAssumptions.get_name
-  unixDirent.TypeAssumptions.set_name
-  unixDirent.TypeAssumptions.get_typ
-  unixDirent.TypeAssumptions.set_typ
-  unixDirent.TypeAssumptions.get_info
-  unixDirent.TypeAssumptions.set_info
+  unixDirent.TypeAssumptions.get'parent
+  unixDirent.TypeAssumptions.set'parent
+  unixDirent.TypeAssumptions.get'name
+  unixDirent.TypeAssumptions.set'name
+  unixDirent.TypeAssumptions.get'typ
+  unixDirent.TypeAssumptions.set'typ
+  unixDirent.TypeAssumptions.get'info
+  unixDirent.TypeAssumptions.set'info
   unixDirent.TypeAssumptions.method_set
   unixDirent.TypeAssumptions.ptr_method_set
 
@@ -2952,7 +2952,7 @@ noncomputable instance rawConn.zero_val [GooseExts] : ZeroVal rawConn :=
 @[irreducible] noncomputable def rawConn.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   rawConn.fieldsUnsealed
 
-noncomputable instance equals_unfold_rawConn [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'rawConn [GooseExts] [GoGlobalContext] :
     EqualsUnfold rawConn.fields rawConn.fieldsUnsealed :=
   ⟨by unfold rawConn.fields; rfl⟩
 
@@ -2962,23 +2962,23 @@ noncomputable instance equals_unfold_rawConn [GooseExts] [GoGlobalContext] :
 class rawConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying rawConn.underlying rawConn
   underlying : go.UnderlyingDirectedEq rawConn.ty rawConn.underlying
-  get_file : ∀ (x : rawConn), go.IsGoStepPureDetTagged under (StructFieldGet rawConn.underlying go!"file") #x (Val #(x.file'))
-  set_file : ∀ (x : rawConn) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet rawConn.underlying go!"file") (PairV #x #y) (Val #(({ x with file' := y } : rawConn)))
+  get'file : ∀ (x : rawConn), go.IsGoStepPureDetTagged under (StructFieldGet rawConn.underlying go!"file") #x (Val #(x.file'))
+  set'file : ∀ (x : rawConn) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet rawConn.underlying go!"file") (PairV #x #y) (Val #(({ x with file' := y } : rawConn)))
   method_set : go.MethodSetIs rawConn.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType rawConn.ty) [(go!"Control", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false []))] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false [go.bool]))] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false [go.bool]))] false [go.error])))]
-  ptr_Control_unfold : MethodUnfold (go.GoType.PointerType rawConn.ty) go!"Control" rawConn.Control.impl
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType rawConn.ty) go!"Read" rawConn.Read.impl
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType rawConn.ty) go!"Write" rawConn.Write.impl
+  ptr_unfold'Control : MethodUnfold (go.GoType.PointerType rawConn.ty) go!"Control" rawConn.Control.impl
+  ptr_unfold'Read : MethodUnfold (go.GoType.PointerType rawConn.ty) go!"Read" rawConn.Read.impl
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType rawConn.ty) go!"Write" rawConn.Write.impl
 
 attribute [instance] rawConn.TypeAssumptions.type_repr
   rawConn.TypeAssumptions.underlying
-  rawConn.TypeAssumptions.get_file
-  rawConn.TypeAssumptions.set_file
+  rawConn.TypeAssumptions.get'file
+  rawConn.TypeAssumptions.set'file
   rawConn.TypeAssumptions.method_set
   rawConn.TypeAssumptions.ptr_method_set
-  rawConn.TypeAssumptions.ptr_Control_unfold
-  rawConn.TypeAssumptions.ptr_Read_unfold
-  rawConn.TypeAssumptions.ptr_Write_unfold
+  rawConn.TypeAssumptions.ptr_unfold'Control
+  rawConn.TypeAssumptions.ptr_unfold'Read
+  rawConn.TypeAssumptions.ptr_unfold'Write
 
 structure Root [GooseExts] where
   mk ::
@@ -2993,7 +2993,7 @@ noncomputable instance Root.zero_val [GooseExts] : ZeroVal Root :=
 @[irreducible] noncomputable def Root.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Root.fieldsUnsealed
 
-noncomputable instance equals_unfold_Root [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Root [GooseExts] [GoGlobalContext] :
     EqualsUnfold Root.fields Root.fieldsUnsealed :=
   ⟨by unfold Root.fields; rfl⟩
 
@@ -3003,15 +3003,15 @@ noncomputable instance equals_unfold_Root [GooseExts] [GoGlobalContext] :
 class Root.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Root.underlying Root
   underlying : go.UnderlyingDirectedEq Root.ty Root.underlying
-  get_root : ∀ (x : Root), go.IsGoStepPureDetTagged under (StructFieldGet Root.underlying go!"root") #x (Val #(x.root'))
-  set_root : ∀ (x : Root) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Root.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : Root)))
+  get'root : ∀ (x : Root), go.IsGoStepPureDetTagged under (StructFieldGet Root.underlying go!"root") #x (Val #(x.root'))
+  set'root : ∀ (x : Root) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Root.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : Root)))
   method_set : go.MethodSetIs Root.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Root.ty) [(go!"Chmod", (some (go.signature.Signature [go.string, FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.string, go.int, go.int] false [go.error]))), (go!"Chtimes", (some (go.signature.Signature [go.string, (go.GoType.Named go!"time.Time" []), (go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Create", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType File.ty), go.error]))), (go!"FS", (some (go.signature.Signature [] false [_root_.Perennial.io.fs.FS.ty]))), (go!"Lchown", (some (go.signature.Signature [go.string, go.int, go.int] false [go.error]))), (go!"Link", (some (go.signature.Signature [go.string, go.string] false [go.error]))), (go!"Lstat", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"Mkdir", (some (go.signature.Signature [go.string, FileMode.ty] false [go.error]))), (go!"MkdirAll", (some (go.signature.Signature [go.string, FileMode.ty] false [go.error]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Open", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType File.ty), go.error]))), (go!"OpenFile", (some (go.signature.Signature [go.string, go.int, FileMode.ty] false [(go.GoType.PointerType File.ty), go.error]))), (go!"OpenRoot", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType Root.ty), go.error]))), (go!"ReadFile", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Readlink", (some (go.signature.Signature [go.string] false [go.string, go.error]))), (go!"Remove", (some (go.signature.Signature [go.string] false [go.error]))), (go!"RemoveAll", (some (go.signature.Signature [go.string] false [go.error]))), (go!"Rename", (some (go.signature.Signature [go.string, go.string] false [go.error]))), (go!"Stat", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"Symlink", (some (go.signature.Signature [go.string, go.string] false [go.error]))), (go!"WriteFile", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte), FileMode.ty] false [go.error]))), (go!"os.logOpen", (some (go.signature.Signature [go.string] false []))), (go!"os.logStat", (some (go.signature.Signature [go.string] false [])))]
 
 attribute [instance] Root.TypeAssumptions.type_repr
   Root.TypeAssumptions.underlying
-  Root.TypeAssumptions.get_root
-  Root.TypeAssumptions.set_root
+  Root.TypeAssumptions.get'root
+  Root.TypeAssumptions.set'root
   Root.TypeAssumptions.method_set
   Root.TypeAssumptions.ptr_method_set
 
@@ -3050,7 +3050,7 @@ noncomputable instance root.zero_val [GooseExts] : ZeroVal root :=
 @[irreducible] noncomputable def root.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   root.fieldsUnsealed
 
-noncomputable instance equals_unfold_root [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'root [GooseExts] [GoGlobalContext] :
     EqualsUnfold root.fields root.fieldsUnsealed :=
   ⟨by unfold root.fields; rfl⟩
 
@@ -3060,31 +3060,31 @@ noncomputable instance equals_unfold_root [GooseExts] [GoGlobalContext] :
 class root.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying root.underlying root
   underlying : go.UnderlyingDirectedEq root.ty root.underlying
-  get_name : ∀ (x : root), go.IsGoStepPureDetTagged under (StructFieldGet root.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : root) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet root.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : root)))
-  get_mu : ∀ (x : root), go.IsGoStepPureDetTagged under (StructFieldGet root.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : root) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet root.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : root)))
-  get_fd : ∀ (x : root), go.IsGoStepPureDetTagged under (StructFieldGet root.underlying go!"fd") #x (Val #(x.fd'))
-  set_fd : ∀ (x : root) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet root.underlying go!"fd") (PairV #x #y) (Val #(({ x with fd' := y } : root)))
-  get_refs : ∀ (x : root), go.IsGoStepPureDetTagged under (StructFieldGet root.underlying go!"refs") #x (Val #(x.refs'))
-  set_refs : ∀ (x : root) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet root.underlying go!"refs") (PairV #x #y) (Val #(({ x with refs' := y } : root)))
-  get_closed : ∀ (x : root), go.IsGoStepPureDetTagged under (StructFieldGet root.underlying go!"closed") #x (Val #(x.closed'))
-  set_closed : ∀ (x : root) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet root.underlying go!"closed") (PairV #x #y) (Val #(({ x with closed' := y } : root)))
+  get'name : ∀ (x : root), go.IsGoStepPureDetTagged under (StructFieldGet root.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : root) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet root.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : root)))
+  get'mu : ∀ (x : root), go.IsGoStepPureDetTagged under (StructFieldGet root.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : root) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet root.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : root)))
+  get'fd : ∀ (x : root), go.IsGoStepPureDetTagged under (StructFieldGet root.underlying go!"fd") #x (Val #(x.fd'))
+  set'fd : ∀ (x : root) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet root.underlying go!"fd") (PairV #x #y) (Val #(({ x with fd' := y } : root)))
+  get'refs : ∀ (x : root), go.IsGoStepPureDetTagged under (StructFieldGet root.underlying go!"refs") #x (Val #(x.refs'))
+  set'refs : ∀ (x : root) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet root.underlying go!"refs") (PairV #x #y) (Val #(({ x with refs' := y } : root)))
+  get'closed : ∀ (x : root), go.IsGoStepPureDetTagged under (StructFieldGet root.underlying go!"closed") #x (Val #(x.closed'))
+  set'closed : ∀ (x : root) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet root.underlying go!"closed") (PairV #x #y) (Val #(({ x with closed' := y } : root)))
   method_set : go.MethodSetIs root.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType root.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"os.decref", (some (go.signature.Signature [] false []))), (go!"os.incref", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] root.TypeAssumptions.type_repr
   root.TypeAssumptions.underlying
-  root.TypeAssumptions.get_name
-  root.TypeAssumptions.set_name
-  root.TypeAssumptions.get_mu
-  root.TypeAssumptions.set_mu
-  root.TypeAssumptions.get_fd
-  root.TypeAssumptions.set_fd
-  root.TypeAssumptions.get_refs
-  root.TypeAssumptions.set_refs
-  root.TypeAssumptions.get_closed
-  root.TypeAssumptions.set_closed
+  root.TypeAssumptions.get'name
+  root.TypeAssumptions.set'name
+  root.TypeAssumptions.get'mu
+  root.TypeAssumptions.set'mu
+  root.TypeAssumptions.get'fd
+  root.TypeAssumptions.set'fd
+  root.TypeAssumptions.get'refs
+  root.TypeAssumptions.set'refs
+  root.TypeAssumptions.get'closed
+  root.TypeAssumptions.set'closed
   root.TypeAssumptions.method_set
   root.TypeAssumptions.ptr_method_set
 
@@ -3115,7 +3115,7 @@ noncomputable instance File.zero_val [GooseExts] : ZeroVal File :=
 @[irreducible] noncomputable def File.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   File.fieldsUnsealed
 
-noncomputable instance equals_unfold_File [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'File [GooseExts] [GoGlobalContext] :
     EqualsUnfold File.fields File.fieldsUnsealed :=
   ⟨by unfold File.fields; rfl⟩
 
@@ -3125,195 +3125,195 @@ noncomputable instance equals_unfold_File [GooseExts] [GoGlobalContext] :
 class File.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying File.underlying File
   underlying : go.UnderlyingDirectedEq File.ty File.underlying
-  get_file : ∀ (x : File), go.IsGoStepPureDetTagged under (StructFieldGet File.underlying go!"file") #x (Val #(x.file'))
-  set_file : ∀ (x : File) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet File.underlying go!"file") (PairV #x #y) (Val #(({ x with file' := y } : File)))
+  get'file : ∀ (x : File), go.IsGoStepPureDetTagged under (StructFieldGet File.underlying go!"file") #x (Val #(x.file'))
+  set'file : ∀ (x : File) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet File.underlying go!"file") (PairV #x #y) (Val #(({ x with file' := y } : File)))
   method_set : go.MethodSetIs File.ty [(go!"os.close", (some (go.signature.Signature [] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType File.ty) [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType DirEntry.ty), go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType DirEntry.ty), (go.GoType.SliceType FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Close" File.Close.impl
-  ptr_Fd_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Fd" File.Fd.impl
-  ptr_Name_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Name" File.Name.impl
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Read" File.Read.impl
-  ptr_ReadAt_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"ReadAt" File.ReadAt.impl
-  ptr_ReadFrom_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"ReadFrom" File.ReadFrom.impl
-  ptr_Readdirnames_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Readdirnames" File.Readdirnames.impl
-  ptr_Seek_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Seek" File.Seek.impl
-  ptr_Stat_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Stat" File.Stat.impl
-  ptr_Sync_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Sync" File.Sync.impl
-  ptr_SyscallConn_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"SyscallConn" File.SyscallConn.impl
-  ptr_Truncate_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Truncate" File.Truncate.impl
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Write" File.Write.impl
-  ptr_WriteAt_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"WriteAt" File.WriteAt.impl
-  ptr_WriteTo_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"WriteTo" File.WriteTo.impl
-  ptr_checkValid_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"checkValid" File.checkValid.impl
-  ptr_copyFileRange_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"copyFileRange" File.copyFileRange.impl
-  ptr_readFrom_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"readFrom" File.readFrom.impl
-  ptr_spliceToFile_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"spliceToFile" File.spliceToFile.impl
-  ptr_wrapErr_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"wrapErr" File.wrapErr.impl
-  ptr_writeTo_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"writeTo" File.writeTo.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType File.ty) go!"Close" File.Close.impl
+  ptr_unfold'Fd : MethodUnfold (go.GoType.PointerType File.ty) go!"Fd" File.Fd.impl
+  ptr_unfold'Name : MethodUnfold (go.GoType.PointerType File.ty) go!"Name" File.Name.impl
+  ptr_unfold'Read : MethodUnfold (go.GoType.PointerType File.ty) go!"Read" File.Read.impl
+  ptr_unfold'ReadAt : MethodUnfold (go.GoType.PointerType File.ty) go!"ReadAt" File.ReadAt.impl
+  ptr_unfold'ReadFrom : MethodUnfold (go.GoType.PointerType File.ty) go!"ReadFrom" File.ReadFrom.impl
+  ptr_unfold'Readdirnames : MethodUnfold (go.GoType.PointerType File.ty) go!"Readdirnames" File.Readdirnames.impl
+  ptr_unfold'Seek : MethodUnfold (go.GoType.PointerType File.ty) go!"Seek" File.Seek.impl
+  ptr_unfold'Stat : MethodUnfold (go.GoType.PointerType File.ty) go!"Stat" File.Stat.impl
+  ptr_unfold'Sync : MethodUnfold (go.GoType.PointerType File.ty) go!"Sync" File.Sync.impl
+  ptr_unfold'SyscallConn : MethodUnfold (go.GoType.PointerType File.ty) go!"SyscallConn" File.SyscallConn.impl
+  ptr_unfold'Truncate : MethodUnfold (go.GoType.PointerType File.ty) go!"Truncate" File.Truncate.impl
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType File.ty) go!"Write" File.Write.impl
+  ptr_unfold'WriteAt : MethodUnfold (go.GoType.PointerType File.ty) go!"WriteAt" File.WriteAt.impl
+  ptr_unfold'WriteTo : MethodUnfold (go.GoType.PointerType File.ty) go!"WriteTo" File.WriteTo.impl
+  ptr_unfold'checkValid : MethodUnfold (go.GoType.PointerType File.ty) go!"checkValid" File.checkValid.impl
+  ptr_unfold'copyFileRange : MethodUnfold (go.GoType.PointerType File.ty) go!"copyFileRange" File.copyFileRange.impl
+  ptr_unfold'readFrom : MethodUnfold (go.GoType.PointerType File.ty) go!"readFrom" File.readFrom.impl
+  ptr_unfold'spliceToFile : MethodUnfold (go.GoType.PointerType File.ty) go!"spliceToFile" File.spliceToFile.impl
+  ptr_unfold'wrapErr : MethodUnfold (go.GoType.PointerType File.ty) go!"wrapErr" File.wrapErr.impl
+  ptr_unfold'writeTo : MethodUnfold (go.GoType.PointerType File.ty) go!"writeTo" File.writeTo.impl
 
 attribute [instance] File.TypeAssumptions.type_repr
   File.TypeAssumptions.underlying
-  File.TypeAssumptions.get_file
-  File.TypeAssumptions.set_file
+  File.TypeAssumptions.get'file
+  File.TypeAssumptions.set'file
   File.TypeAssumptions.method_set
   File.TypeAssumptions.ptr_method_set
-  File.TypeAssumptions.ptr_Close_unfold
-  File.TypeAssumptions.ptr_Fd_unfold
-  File.TypeAssumptions.ptr_Name_unfold
-  File.TypeAssumptions.ptr_Read_unfold
-  File.TypeAssumptions.ptr_ReadAt_unfold
-  File.TypeAssumptions.ptr_ReadFrom_unfold
-  File.TypeAssumptions.ptr_Readdirnames_unfold
-  File.TypeAssumptions.ptr_Seek_unfold
-  File.TypeAssumptions.ptr_Stat_unfold
-  File.TypeAssumptions.ptr_Sync_unfold
-  File.TypeAssumptions.ptr_SyscallConn_unfold
-  File.TypeAssumptions.ptr_Truncate_unfold
-  File.TypeAssumptions.ptr_Write_unfold
-  File.TypeAssumptions.ptr_WriteAt_unfold
-  File.TypeAssumptions.ptr_WriteTo_unfold
-  File.TypeAssumptions.ptr_checkValid_unfold
-  File.TypeAssumptions.ptr_copyFileRange_unfold
-  File.TypeAssumptions.ptr_readFrom_unfold
-  File.TypeAssumptions.ptr_spliceToFile_unfold
-  File.TypeAssumptions.ptr_wrapErr_unfold
-  File.TypeAssumptions.ptr_writeTo_unfold
+  File.TypeAssumptions.ptr_unfold'Close
+  File.TypeAssumptions.ptr_unfold'Fd
+  File.TypeAssumptions.ptr_unfold'Name
+  File.TypeAssumptions.ptr_unfold'Read
+  File.TypeAssumptions.ptr_unfold'ReadAt
+  File.TypeAssumptions.ptr_unfold'ReadFrom
+  File.TypeAssumptions.ptr_unfold'Readdirnames
+  File.TypeAssumptions.ptr_unfold'Seek
+  File.TypeAssumptions.ptr_unfold'Stat
+  File.TypeAssumptions.ptr_unfold'Sync
+  File.TypeAssumptions.ptr_unfold'SyscallConn
+  File.TypeAssumptions.ptr_unfold'Truncate
+  File.TypeAssumptions.ptr_unfold'Write
+  File.TypeAssumptions.ptr_unfold'WriteAt
+  File.TypeAssumptions.ptr_unfold'WriteTo
+  File.TypeAssumptions.ptr_unfold'checkValid
+  File.TypeAssumptions.ptr_unfold'copyFileRange
+  File.TypeAssumptions.ptr_unfold'readFrom
+  File.TypeAssumptions.ptr_unfold'spliceToFile
+  File.TypeAssumptions.ptr_unfold'wrapErr
+  File.TypeAssumptions.ptr_unfold'writeTo
 
 class fileStat.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fileStat.underlying fileStat
   underlying : go.UnderlyingDirectedEq fileStat.ty fileStat.underlying
   method_set : go.MethodSetIs fileStat.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fileStat.ty) [(go!"IsDir", (some (go.signature.Signature [] false [go.bool]))), (go!"ModTime", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" [])]))), (go!"Mode", (some (go.signature.Signature [] false [FileMode.ty]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Size", (some (go.signature.Signature [] false [go.int64]))), (go!"Sys", (some (go.signature.Signature [] false [go.any])))]
-  ptr_IsDir_unfold : MethodUnfold (go.GoType.PointerType fileStat.ty) go!"IsDir" fileStat.IsDir.impl
-  ptr_Mode_unfold : MethodUnfold (go.GoType.PointerType fileStat.ty) go!"Mode" fileStat.Mode.impl
-  ptr_Name_unfold : MethodUnfold (go.GoType.PointerType fileStat.ty) go!"Name" fileStat.Name.impl
-  ptr_Size_unfold : MethodUnfold (go.GoType.PointerType fileStat.ty) go!"Size" fileStat.Size.impl
+  ptr_unfold'IsDir : MethodUnfold (go.GoType.PointerType fileStat.ty) go!"IsDir" fileStat.IsDir.impl
+  ptr_unfold'Mode : MethodUnfold (go.GoType.PointerType fileStat.ty) go!"Mode" fileStat.Mode.impl
+  ptr_unfold'Name : MethodUnfold (go.GoType.PointerType fileStat.ty) go!"Name" fileStat.Name.impl
+  ptr_unfold'Size : MethodUnfold (go.GoType.PointerType fileStat.ty) go!"Size" fileStat.Size.impl
 
 attribute [instance] fileStat.TypeAssumptions.type_repr
   fileStat.TypeAssumptions.underlying
   fileStat.TypeAssumptions.method_set
   fileStat.TypeAssumptions.ptr_method_set
-  fileStat.TypeAssumptions.ptr_IsDir_unfold
-  fileStat.TypeAssumptions.ptr_Mode_unfold
-  fileStat.TypeAssumptions.ptr_Name_unfold
-  fileStat.TypeAssumptions.ptr_Size_unfold
+  fileStat.TypeAssumptions.ptr_unfold'IsDir
+  fileStat.TypeAssumptions.ptr_unfold'Mode
+  fileStat.TypeAssumptions.ptr_unfold'Name
+  fileStat.TypeAssumptions.ptr_unfold'Size
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  readdirMode_instance : readdirMode.TypeAssumptions
-  dirInfo_instance : dirInfo.TypeAssumptions
-  timeout_instance : timeout.TypeAssumptions
-  SyscallError_instance : SyscallError.TypeAssumptions
-  processStatus_instance : processStatus.TypeAssumptions
-  Process_instance : Process.TypeAssumptions
-  processHandle_instance : processHandle.TypeAssumptions
-  ProcAttr_instance : ProcAttr.TypeAssumptions
-  Signal_instance : Signal.TypeAssumptions
-  ProcessState_instance : ProcessState.TypeAssumptions
-  LinkError_instance : LinkError.TypeAssumptions
-  noReadFrom_instance : noReadFrom.TypeAssumptions
-  fileWithoutReadFrom_instance : fileWithoutReadFrom.TypeAssumptions
-  noWriteTo_instance : noWriteTo.TypeAssumptions
-  fileWithoutWriteTo_instance : fileWithoutWriteTo.TypeAssumptions
-  dirFS_instance : dirFS.TypeAssumptions
-  file_instance : file.TypeAssumptions
-  newFileKind_instance : newFileKind.TypeAssumptions
-  unixDirent_instance : unixDirent.TypeAssumptions
-  rawConn_instance : rawConn.TypeAssumptions
-  Root_instance : Root.TypeAssumptions
-  rootFS_instance : rootFS.TypeAssumptions
-  root_instance : root.TypeAssumptions
-  errSymlink_instance : errSymlink.TypeAssumptions
-  File_instance : File.TypeAssumptions
-  fileStat_instance : fileStat.TypeAssumptions
-  errNoDeadline_unfold : FuncUnfold errNoDeadline [] errNoDeadline.impl
-  errDeadlineExceeded_unfold : FuncUnfold errDeadlineExceeded [] errDeadlineExceeded.impl
-  NewSyscallError_unfold : FuncUnfold NewSyscallError [] NewSyscallError.impl
-  genericReadFrom_unfold : FuncUnfold genericReadFrom [] genericReadFrom.impl
-  genericWriteTo_unfold : FuncUnfold genericWriteTo [] genericWriteTo.impl
-  Mkdir_unfold : FuncUnfold Mkdir [] Mkdir.impl
-  Open_unfold : FuncUnfold Open [] Open.impl
-  OpenFile_unfold : FuncUnfold OpenFile [] OpenFile.impl
-  Rename_unfold : FuncUnfold Rename [] Rename.impl
-  WriteFile_unfold : FuncUnfold WriteFile [] WriteFile.impl
-  Remove_unfold : FuncUnfold Remove [] Remove.impl
-  MkdirAll_unfold : FuncUnfold MkdirAll [] MkdirAll.impl
-  RemoveAll_unfold : FuncUnfold RemoveAll [] RemoveAll.impl
-  endsWithDot_unfold : FuncUnfold endsWithDot [] endsWithDot.impl
-  IsPathSeparator_unfold : FuncUnfold IsPathSeparator [] IsPathSeparator.impl
-  splitPath_unfold : FuncUnfold splitPath [] splitPath.impl
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  runtime_args_unfold : FuncUnfold runtime_args [] runtime_args.impl
-  newRawConn_unfold : FuncUnfold newRawConn [] newRawConn.impl
-  Stat_unfold : FuncUnfold Stat [] Stat.impl
-  Lstat_unfold : FuncUnfold Lstat [] Lstat.impl
-  getPollFDAndNetwork_unfold : FuncUnfold getPollFDAndNetwork [] getPollFDAndNetwork.impl
-  isUnixOrTCP_unfold : FuncUnfold isUnixOrTCP [] isUnixOrTCP.impl
-  wrapSyscallError_unfold : FuncUnfold wrapSyscallError [] wrapSyscallError.impl
-  tryLimitedReader_unfold : FuncUnfold tryLimitedReader [] tryLimitedReader.impl
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_fs_Assumption : _root_.Perennial.io.fs.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
-  import_poll_Assumption : _root_.Perennial.internal.poll.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  instance'readdirMode : readdirMode.TypeAssumptions
+  instance'dirInfo : dirInfo.TypeAssumptions
+  instance'timeout : timeout.TypeAssumptions
+  instance'SyscallError : SyscallError.TypeAssumptions
+  instance'processStatus : processStatus.TypeAssumptions
+  instance'Process : Process.TypeAssumptions
+  instance'processHandle : processHandle.TypeAssumptions
+  instance'ProcAttr : ProcAttr.TypeAssumptions
+  instance'Signal : Signal.TypeAssumptions
+  instance'ProcessState : ProcessState.TypeAssumptions
+  instance'LinkError : LinkError.TypeAssumptions
+  instance'noReadFrom : noReadFrom.TypeAssumptions
+  instance'fileWithoutReadFrom : fileWithoutReadFrom.TypeAssumptions
+  instance'noWriteTo : noWriteTo.TypeAssumptions
+  instance'fileWithoutWriteTo : fileWithoutWriteTo.TypeAssumptions
+  instance'dirFS : dirFS.TypeAssumptions
+  instance'file : file.TypeAssumptions
+  instance'newFileKind : newFileKind.TypeAssumptions
+  instance'unixDirent : unixDirent.TypeAssumptions
+  instance'rawConn : rawConn.TypeAssumptions
+  instance'Root : Root.TypeAssumptions
+  instance'rootFS : rootFS.TypeAssumptions
+  instance'root : root.TypeAssumptions
+  instance'errSymlink : errSymlink.TypeAssumptions
+  instance'File : File.TypeAssumptions
+  instance'fileStat : fileStat.TypeAssumptions
+  unfold'errNoDeadline : FuncUnfold errNoDeadline [] errNoDeadline.impl
+  unfold'errDeadlineExceeded : FuncUnfold errDeadlineExceeded [] errDeadlineExceeded.impl
+  unfold'NewSyscallError : FuncUnfold NewSyscallError [] NewSyscallError.impl
+  unfold'genericReadFrom : FuncUnfold genericReadFrom [] genericReadFrom.impl
+  unfold'genericWriteTo : FuncUnfold genericWriteTo [] genericWriteTo.impl
+  unfold'Mkdir : FuncUnfold Mkdir [] Mkdir.impl
+  unfold'Open : FuncUnfold Open [] Open.impl
+  unfold'OpenFile : FuncUnfold OpenFile [] OpenFile.impl
+  unfold'Rename : FuncUnfold Rename [] Rename.impl
+  unfold'WriteFile : FuncUnfold WriteFile [] WriteFile.impl
+  unfold'Remove : FuncUnfold Remove [] Remove.impl
+  unfold'MkdirAll : FuncUnfold MkdirAll [] MkdirAll.impl
+  unfold'RemoveAll : FuncUnfold RemoveAll [] RemoveAll.impl
+  unfold'endsWithDot : FuncUnfold endsWithDot [] endsWithDot.impl
+  unfold'IsPathSeparator : FuncUnfold IsPathSeparator [] IsPathSeparator.impl
+  unfold'splitPath : FuncUnfold splitPath [] splitPath.impl
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'runtime_args : FuncUnfold runtime_args [] runtime_args.impl
+  unfold'newRawConn : FuncUnfold newRawConn [] newRawConn.impl
+  unfold'Stat : FuncUnfold Stat [] Stat.impl
+  unfold'Lstat : FuncUnfold Lstat [] Lstat.impl
+  unfold'getPollFDAndNetwork : FuncUnfold getPollFDAndNetwork [] getPollFDAndNetwork.impl
+  unfold'isUnixOrTCP : FuncUnfold isUnixOrTCP [] isUnixOrTCP.impl
+  unfold'wrapSyscallError : FuncUnfold wrapSyscallError [] wrapSyscallError.impl
+  unfold'tryLimitedReader : FuncUnfold tryLimitedReader [] tryLimitedReader.impl
+  import'io : _root_.Perennial.io.Assumptions
+  import'fs : _root_.Perennial.io.fs.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'syscall : _root_.Perennial.syscall.Assumptions
+  import'poll : _root_.Perennial.internal.poll.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
 
-attribute [instance] Assumptions.readdirMode_instance
-  Assumptions.dirInfo_instance
-  Assumptions.timeout_instance
-  Assumptions.SyscallError_instance
-  Assumptions.processStatus_instance
-  Assumptions.Process_instance
-  Assumptions.processHandle_instance
-  Assumptions.ProcAttr_instance
-  Assumptions.Signal_instance
-  Assumptions.ProcessState_instance
-  Assumptions.LinkError_instance
-  Assumptions.noReadFrom_instance
-  Assumptions.fileWithoutReadFrom_instance
-  Assumptions.noWriteTo_instance
-  Assumptions.fileWithoutWriteTo_instance
-  Assumptions.dirFS_instance
-  Assumptions.file_instance
-  Assumptions.newFileKind_instance
-  Assumptions.unixDirent_instance
-  Assumptions.rawConn_instance
-  Assumptions.Root_instance
-  Assumptions.rootFS_instance
-  Assumptions.root_instance
-  Assumptions.errSymlink_instance
-  Assumptions.File_instance
-  Assumptions.fileStat_instance
-  Assumptions.errNoDeadline_unfold
-  Assumptions.errDeadlineExceeded_unfold
-  Assumptions.NewSyscallError_unfold
-  Assumptions.genericReadFrom_unfold
-  Assumptions.genericWriteTo_unfold
-  Assumptions.Mkdir_unfold
-  Assumptions.Open_unfold
-  Assumptions.OpenFile_unfold
-  Assumptions.Rename_unfold
-  Assumptions.WriteFile_unfold
-  Assumptions.Remove_unfold
-  Assumptions.MkdirAll_unfold
-  Assumptions.RemoveAll_unfold
-  Assumptions.endsWithDot_unfold
-  Assumptions.IsPathSeparator_unfold
-  Assumptions.splitPath_unfold
-  Assumptions.«init.0_unfold»
-  Assumptions.runtime_args_unfold
-  Assumptions.newRawConn_unfold
-  Assumptions.Stat_unfold
-  Assumptions.Lstat_unfold
-  Assumptions.getPollFDAndNetwork_unfold
-  Assumptions.isUnixOrTCP_unfold
-  Assumptions.wrapSyscallError_unfold
-  Assumptions.tryLimitedReader_unfold
-  Assumptions.import_io_Assumption
-  Assumptions.import_fs_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_syscall_Assumption
-  Assumptions.import_poll_Assumption
-  Assumptions.import_errors_Assumption
+attribute [instance] Assumptions.instance'readdirMode
+  Assumptions.instance'dirInfo
+  Assumptions.instance'timeout
+  Assumptions.instance'SyscallError
+  Assumptions.instance'processStatus
+  Assumptions.instance'Process
+  Assumptions.instance'processHandle
+  Assumptions.instance'ProcAttr
+  Assumptions.instance'Signal
+  Assumptions.instance'ProcessState
+  Assumptions.instance'LinkError
+  Assumptions.instance'noReadFrom
+  Assumptions.instance'fileWithoutReadFrom
+  Assumptions.instance'noWriteTo
+  Assumptions.instance'fileWithoutWriteTo
+  Assumptions.instance'dirFS
+  Assumptions.instance'file
+  Assumptions.instance'newFileKind
+  Assumptions.instance'unixDirent
+  Assumptions.instance'rawConn
+  Assumptions.instance'Root
+  Assumptions.instance'rootFS
+  Assumptions.instance'root
+  Assumptions.instance'errSymlink
+  Assumptions.instance'File
+  Assumptions.instance'fileStat
+  Assumptions.unfold'errNoDeadline
+  Assumptions.unfold'errDeadlineExceeded
+  Assumptions.unfold'NewSyscallError
+  Assumptions.unfold'genericReadFrom
+  Assumptions.unfold'genericWriteTo
+  Assumptions.unfold'Mkdir
+  Assumptions.unfold'Open
+  Assumptions.unfold'OpenFile
+  Assumptions.unfold'Rename
+  Assumptions.unfold'WriteFile
+  Assumptions.unfold'Remove
+  Assumptions.unfold'MkdirAll
+  Assumptions.unfold'RemoveAll
+  Assumptions.unfold'endsWithDot
+  Assumptions.unfold'IsPathSeparator
+  Assumptions.unfold'splitPath
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'runtime_args
+  Assumptions.unfold'newRawConn
+  Assumptions.unfold'Stat
+  Assumptions.unfold'Lstat
+  Assumptions.unfold'getPollFDAndNetwork
+  Assumptions.unfold'isUnixOrTCP
+  Assumptions.unfold'wrapSyscallError
+  Assumptions.unfold'tryLimitedReader
+  Assumptions.import'io
+  Assumptions.import'fs
+  Assumptions.import'sync
+  Assumptions.import'syscall
+  Assumptions.import'poll
+  Assumptions.import'errors
 
 end os
 

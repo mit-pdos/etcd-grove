@@ -207,19 +207,19 @@ attribute [instance] runtimeClasses.TypeAssumptions.type_repr
   runtimeClasses.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  RuntimeClassExpansion_instance : RuntimeClassExpansion.TypeAssumptions
-  NodeV1Interface_instance : NodeV1Interface.TypeAssumptions
-  NodeV1Client_instance : NodeV1Client.TypeAssumptions
-  RuntimeClassesGetter_instance : RuntimeClassesGetter.TypeAssumptions
-  RuntimeClassInterface_instance : RuntimeClassInterface.TypeAssumptions
-  runtimeClasses_instance : runtimeClasses.TypeAssumptions
+  instance'RuntimeClassExpansion : RuntimeClassExpansion.TypeAssumptions
+  instance'NodeV1Interface : NodeV1Interface.TypeAssumptions
+  instance'NodeV1Client : NodeV1Client.TypeAssumptions
+  instance'RuntimeClassesGetter : RuntimeClassesGetter.TypeAssumptions
+  instance'RuntimeClassInterface : RuntimeClassInterface.TypeAssumptions
+  instance'runtimeClasses : runtimeClasses.TypeAssumptions
 
-attribute [instance] Assumptions.RuntimeClassExpansion_instance
-  Assumptions.NodeV1Interface_instance
-  Assumptions.NodeV1Client_instance
-  Assumptions.RuntimeClassesGetter_instance
-  Assumptions.RuntimeClassInterface_instance
-  Assumptions.runtimeClasses_instance
+attribute [instance] Assumptions.instance'RuntimeClassExpansion
+  Assumptions.instance'NodeV1Interface
+  Assumptions.instance'NodeV1Client
+  Assumptions.instance'RuntimeClassesGetter
+  Assumptions.instance'RuntimeClassInterface
+  Assumptions.instance'runtimeClasses
 
 end k8s_io.client_go.kubernetes.typed.node.v1
 

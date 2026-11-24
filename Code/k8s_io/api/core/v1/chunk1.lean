@@ -19,272 +19,272 @@ namespace k8s_io.api.core.v1
 class VolumeSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying VolumeSource.underlying VolumeSource
   underlying : go.UnderlyingDirectedEq VolumeSource.ty VolumeSource.underlying
-  get_HostPath : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"HostPath") #x (Val #(x.HostPath'))
-  set_HostPath : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"HostPath") (PairV #x #y) (Val #(({ x with HostPath' := y } : VolumeSource)))
-  get_EmptyDir : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"EmptyDir") #x (Val #(x.EmptyDir'))
-  set_EmptyDir : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"EmptyDir") (PairV #x #y) (Val #(({ x with EmptyDir' := y } : VolumeSource)))
-  get_GCEPersistentDisk : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"GCEPersistentDisk") #x (Val #(x.GCEPersistentDisk'))
-  set_GCEPersistentDisk : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"GCEPersistentDisk") (PairV #x #y) (Val #(({ x with GCEPersistentDisk' := y } : VolumeSource)))
-  get_AWSElasticBlockStore : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"AWSElasticBlockStore") #x (Val #(x.AWSElasticBlockStore'))
-  set_AWSElasticBlockStore : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"AWSElasticBlockStore") (PairV #x #y) (Val #(({ x with AWSElasticBlockStore' := y } : VolumeSource)))
-  get_GitRepo : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"GitRepo") #x (Val #(x.GitRepo'))
-  set_GitRepo : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"GitRepo") (PairV #x #y) (Val #(({ x with GitRepo' := y } : VolumeSource)))
-  get_Secret : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"Secret") #x (Val #(x.Secret'))
-  set_Secret : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"Secret") (PairV #x #y) (Val #(({ x with Secret' := y } : VolumeSource)))
-  get_NFS : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"NFS") #x (Val #(x.NFS'))
-  set_NFS : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"NFS") (PairV #x #y) (Val #(({ x with NFS' := y } : VolumeSource)))
-  get_ISCSI : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"ISCSI") #x (Val #(x.ISCSI'))
-  set_ISCSI : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"ISCSI") (PairV #x #y) (Val #(({ x with ISCSI' := y } : VolumeSource)))
-  get_Glusterfs : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"Glusterfs") #x (Val #(x.Glusterfs'))
-  set_Glusterfs : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"Glusterfs") (PairV #x #y) (Val #(({ x with Glusterfs' := y } : VolumeSource)))
-  get_PersistentVolumeClaim : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"PersistentVolumeClaim") #x (Val #(x.PersistentVolumeClaim'))
-  set_PersistentVolumeClaim : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"PersistentVolumeClaim") (PairV #x #y) (Val #(({ x with PersistentVolumeClaim' := y } : VolumeSource)))
-  get_RBD : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"RBD") #x (Val #(x.RBD'))
-  set_RBD : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"RBD") (PairV #x #y) (Val #(({ x with RBD' := y } : VolumeSource)))
-  get_FlexVolume : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"FlexVolume") #x (Val #(x.FlexVolume'))
-  set_FlexVolume : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"FlexVolume") (PairV #x #y) (Val #(({ x with FlexVolume' := y } : VolumeSource)))
-  get_Cinder : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"Cinder") #x (Val #(x.Cinder'))
-  set_Cinder : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"Cinder") (PairV #x #y) (Val #(({ x with Cinder' := y } : VolumeSource)))
-  get_CephFS : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"CephFS") #x (Val #(x.CephFS'))
-  set_CephFS : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"CephFS") (PairV #x #y) (Val #(({ x with CephFS' := y } : VolumeSource)))
-  get_Flocker : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"Flocker") #x (Val #(x.Flocker'))
-  set_Flocker : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"Flocker") (PairV #x #y) (Val #(({ x with Flocker' := y } : VolumeSource)))
-  get_DownwardAPI : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"DownwardAPI") #x (Val #(x.DownwardAPI'))
-  set_DownwardAPI : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"DownwardAPI") (PairV #x #y) (Val #(({ x with DownwardAPI' := y } : VolumeSource)))
-  get_FC : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"FC") #x (Val #(x.FC'))
-  set_FC : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"FC") (PairV #x #y) (Val #(({ x with FC' := y } : VolumeSource)))
-  get_AzureFile : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"AzureFile") #x (Val #(x.AzureFile'))
-  set_AzureFile : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"AzureFile") (PairV #x #y) (Val #(({ x with AzureFile' := y } : VolumeSource)))
-  get_ConfigMap : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"ConfigMap") #x (Val #(x.ConfigMap'))
-  set_ConfigMap : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"ConfigMap") (PairV #x #y) (Val #(({ x with ConfigMap' := y } : VolumeSource)))
-  get_VsphereVolume : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"VsphereVolume") #x (Val #(x.VsphereVolume'))
-  set_VsphereVolume : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"VsphereVolume") (PairV #x #y) (Val #(({ x with VsphereVolume' := y } : VolumeSource)))
-  get_Quobyte : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"Quobyte") #x (Val #(x.Quobyte'))
-  set_Quobyte : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"Quobyte") (PairV #x #y) (Val #(({ x with Quobyte' := y } : VolumeSource)))
-  get_AzureDisk : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"AzureDisk") #x (Val #(x.AzureDisk'))
-  set_AzureDisk : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"AzureDisk") (PairV #x #y) (Val #(({ x with AzureDisk' := y } : VolumeSource)))
-  get_PhotonPersistentDisk : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"PhotonPersistentDisk") #x (Val #(x.PhotonPersistentDisk'))
-  set_PhotonPersistentDisk : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"PhotonPersistentDisk") (PairV #x #y) (Val #(({ x with PhotonPersistentDisk' := y } : VolumeSource)))
-  get_Projected : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"Projected") #x (Val #(x.Projected'))
-  set_Projected : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"Projected") (PairV #x #y) (Val #(({ x with Projected' := y } : VolumeSource)))
-  get_PortworxVolume : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"PortworxVolume") #x (Val #(x.PortworxVolume'))
-  set_PortworxVolume : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"PortworxVolume") (PairV #x #y) (Val #(({ x with PortworxVolume' := y } : VolumeSource)))
-  get_ScaleIO : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"ScaleIO") #x (Val #(x.ScaleIO'))
-  set_ScaleIO : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"ScaleIO") (PairV #x #y) (Val #(({ x with ScaleIO' := y } : VolumeSource)))
-  get_StorageOS : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"StorageOS") #x (Val #(x.StorageOS'))
-  set_StorageOS : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"StorageOS") (PairV #x #y) (Val #(({ x with StorageOS' := y } : VolumeSource)))
-  get_CSI : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"CSI") #x (Val #(x.CSI'))
-  set_CSI : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"CSI") (PairV #x #y) (Val #(({ x with CSI' := y } : VolumeSource)))
-  get_Ephemeral : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"Ephemeral") #x (Val #(x.Ephemeral'))
-  set_Ephemeral : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"Ephemeral") (PairV #x #y) (Val #(({ x with Ephemeral' := y } : VolumeSource)))
-  get_Image : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"Image") #x (Val #(x.Image'))
-  set_Image : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"Image") (PairV #x #y) (Val #(({ x with Image' := y } : VolumeSource)))
+  get'HostPath : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"HostPath") #x (Val #(x.HostPath'))
+  set'HostPath : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"HostPath") (PairV #x #y) (Val #(({ x with HostPath' := y } : VolumeSource)))
+  get'EmptyDir : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"EmptyDir") #x (Val #(x.EmptyDir'))
+  set'EmptyDir : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"EmptyDir") (PairV #x #y) (Val #(({ x with EmptyDir' := y } : VolumeSource)))
+  get'GCEPersistentDisk : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"GCEPersistentDisk") #x (Val #(x.GCEPersistentDisk'))
+  set'GCEPersistentDisk : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"GCEPersistentDisk") (PairV #x #y) (Val #(({ x with GCEPersistentDisk' := y } : VolumeSource)))
+  get'AWSElasticBlockStore : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"AWSElasticBlockStore") #x (Val #(x.AWSElasticBlockStore'))
+  set'AWSElasticBlockStore : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"AWSElasticBlockStore") (PairV #x #y) (Val #(({ x with AWSElasticBlockStore' := y } : VolumeSource)))
+  get'GitRepo : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"GitRepo") #x (Val #(x.GitRepo'))
+  set'GitRepo : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"GitRepo") (PairV #x #y) (Val #(({ x with GitRepo' := y } : VolumeSource)))
+  get'Secret : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"Secret") #x (Val #(x.Secret'))
+  set'Secret : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"Secret") (PairV #x #y) (Val #(({ x with Secret' := y } : VolumeSource)))
+  get'NFS : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"NFS") #x (Val #(x.NFS'))
+  set'NFS : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"NFS") (PairV #x #y) (Val #(({ x with NFS' := y } : VolumeSource)))
+  get'ISCSI : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"ISCSI") #x (Val #(x.ISCSI'))
+  set'ISCSI : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"ISCSI") (PairV #x #y) (Val #(({ x with ISCSI' := y } : VolumeSource)))
+  get'Glusterfs : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"Glusterfs") #x (Val #(x.Glusterfs'))
+  set'Glusterfs : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"Glusterfs") (PairV #x #y) (Val #(({ x with Glusterfs' := y } : VolumeSource)))
+  get'PersistentVolumeClaim : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"PersistentVolumeClaim") #x (Val #(x.PersistentVolumeClaim'))
+  set'PersistentVolumeClaim : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"PersistentVolumeClaim") (PairV #x #y) (Val #(({ x with PersistentVolumeClaim' := y } : VolumeSource)))
+  get'RBD : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"RBD") #x (Val #(x.RBD'))
+  set'RBD : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"RBD") (PairV #x #y) (Val #(({ x with RBD' := y } : VolumeSource)))
+  get'FlexVolume : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"FlexVolume") #x (Val #(x.FlexVolume'))
+  set'FlexVolume : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"FlexVolume") (PairV #x #y) (Val #(({ x with FlexVolume' := y } : VolumeSource)))
+  get'Cinder : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"Cinder") #x (Val #(x.Cinder'))
+  set'Cinder : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"Cinder") (PairV #x #y) (Val #(({ x with Cinder' := y } : VolumeSource)))
+  get'CephFS : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"CephFS") #x (Val #(x.CephFS'))
+  set'CephFS : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"CephFS") (PairV #x #y) (Val #(({ x with CephFS' := y } : VolumeSource)))
+  get'Flocker : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"Flocker") #x (Val #(x.Flocker'))
+  set'Flocker : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"Flocker") (PairV #x #y) (Val #(({ x with Flocker' := y } : VolumeSource)))
+  get'DownwardAPI : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"DownwardAPI") #x (Val #(x.DownwardAPI'))
+  set'DownwardAPI : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"DownwardAPI") (PairV #x #y) (Val #(({ x with DownwardAPI' := y } : VolumeSource)))
+  get'FC : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"FC") #x (Val #(x.FC'))
+  set'FC : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"FC") (PairV #x #y) (Val #(({ x with FC' := y } : VolumeSource)))
+  get'AzureFile : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"AzureFile") #x (Val #(x.AzureFile'))
+  set'AzureFile : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"AzureFile") (PairV #x #y) (Val #(({ x with AzureFile' := y } : VolumeSource)))
+  get'ConfigMap : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"ConfigMap") #x (Val #(x.ConfigMap'))
+  set'ConfigMap : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"ConfigMap") (PairV #x #y) (Val #(({ x with ConfigMap' := y } : VolumeSource)))
+  get'VsphereVolume : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"VsphereVolume") #x (Val #(x.VsphereVolume'))
+  set'VsphereVolume : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"VsphereVolume") (PairV #x #y) (Val #(({ x with VsphereVolume' := y } : VolumeSource)))
+  get'Quobyte : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"Quobyte") #x (Val #(x.Quobyte'))
+  set'Quobyte : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"Quobyte") (PairV #x #y) (Val #(({ x with Quobyte' := y } : VolumeSource)))
+  get'AzureDisk : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"AzureDisk") #x (Val #(x.AzureDisk'))
+  set'AzureDisk : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"AzureDisk") (PairV #x #y) (Val #(({ x with AzureDisk' := y } : VolumeSource)))
+  get'PhotonPersistentDisk : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"PhotonPersistentDisk") #x (Val #(x.PhotonPersistentDisk'))
+  set'PhotonPersistentDisk : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"PhotonPersistentDisk") (PairV #x #y) (Val #(({ x with PhotonPersistentDisk' := y } : VolumeSource)))
+  get'Projected : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"Projected") #x (Val #(x.Projected'))
+  set'Projected : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"Projected") (PairV #x #y) (Val #(({ x with Projected' := y } : VolumeSource)))
+  get'PortworxVolume : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"PortworxVolume") #x (Val #(x.PortworxVolume'))
+  set'PortworxVolume : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"PortworxVolume") (PairV #x #y) (Val #(({ x with PortworxVolume' := y } : VolumeSource)))
+  get'ScaleIO : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"ScaleIO") #x (Val #(x.ScaleIO'))
+  set'ScaleIO : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"ScaleIO") (PairV #x #y) (Val #(({ x with ScaleIO' := y } : VolumeSource)))
+  get'StorageOS : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"StorageOS") #x (Val #(x.StorageOS'))
+  set'StorageOS : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"StorageOS") (PairV #x #y) (Val #(({ x with StorageOS' := y } : VolumeSource)))
+  get'CSI : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"CSI") #x (Val #(x.CSI'))
+  set'CSI : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"CSI") (PairV #x #y) (Val #(({ x with CSI' := y } : VolumeSource)))
+  get'Ephemeral : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"Ephemeral") #x (Val #(x.Ephemeral'))
+  set'Ephemeral : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"Ephemeral") (PairV #x #y) (Val #(({ x with Ephemeral' := y } : VolumeSource)))
+  get'Image : ∀ (x : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet VolumeSource.underlying go!"Image") #x (Val #(x.Image'))
+  set'Image : ∀ (x : VolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeSource.underlying go!"Image") (PairV #x #y) (Val #(({ x with Image' := y } : VolumeSource)))
   method_set : go.MethodSetIs VolumeSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType VolumeSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType VolumeSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType VolumeSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType VolumeSource.ty) go!"DeepCopyInto" VolumeSource.DeepCopyInto.impl
+  ptr_unfold'DeepCopyInto : MethodUnfold (go.GoType.PointerType VolumeSource.ty) go!"DeepCopyInto" VolumeSource.DeepCopyInto.impl
 
 attribute [instance] VolumeSource.TypeAssumptions.type_repr
   VolumeSource.TypeAssumptions.underlying
-  VolumeSource.TypeAssumptions.get_HostPath
-  VolumeSource.TypeAssumptions.set_HostPath
-  VolumeSource.TypeAssumptions.get_EmptyDir
-  VolumeSource.TypeAssumptions.set_EmptyDir
-  VolumeSource.TypeAssumptions.get_GCEPersistentDisk
-  VolumeSource.TypeAssumptions.set_GCEPersistentDisk
-  VolumeSource.TypeAssumptions.get_AWSElasticBlockStore
-  VolumeSource.TypeAssumptions.set_AWSElasticBlockStore
-  VolumeSource.TypeAssumptions.get_GitRepo
-  VolumeSource.TypeAssumptions.set_GitRepo
-  VolumeSource.TypeAssumptions.get_Secret
-  VolumeSource.TypeAssumptions.set_Secret
-  VolumeSource.TypeAssumptions.get_NFS
-  VolumeSource.TypeAssumptions.set_NFS
-  VolumeSource.TypeAssumptions.get_ISCSI
-  VolumeSource.TypeAssumptions.set_ISCSI
-  VolumeSource.TypeAssumptions.get_Glusterfs
-  VolumeSource.TypeAssumptions.set_Glusterfs
-  VolumeSource.TypeAssumptions.get_PersistentVolumeClaim
-  VolumeSource.TypeAssumptions.set_PersistentVolumeClaim
-  VolumeSource.TypeAssumptions.get_RBD
-  VolumeSource.TypeAssumptions.set_RBD
-  VolumeSource.TypeAssumptions.get_FlexVolume
-  VolumeSource.TypeAssumptions.set_FlexVolume
-  VolumeSource.TypeAssumptions.get_Cinder
-  VolumeSource.TypeAssumptions.set_Cinder
-  VolumeSource.TypeAssumptions.get_CephFS
-  VolumeSource.TypeAssumptions.set_CephFS
-  VolumeSource.TypeAssumptions.get_Flocker
-  VolumeSource.TypeAssumptions.set_Flocker
-  VolumeSource.TypeAssumptions.get_DownwardAPI
-  VolumeSource.TypeAssumptions.set_DownwardAPI
-  VolumeSource.TypeAssumptions.get_FC
-  VolumeSource.TypeAssumptions.set_FC
-  VolumeSource.TypeAssumptions.get_AzureFile
-  VolumeSource.TypeAssumptions.set_AzureFile
-  VolumeSource.TypeAssumptions.get_ConfigMap
-  VolumeSource.TypeAssumptions.set_ConfigMap
-  VolumeSource.TypeAssumptions.get_VsphereVolume
-  VolumeSource.TypeAssumptions.set_VsphereVolume
-  VolumeSource.TypeAssumptions.get_Quobyte
-  VolumeSource.TypeAssumptions.set_Quobyte
-  VolumeSource.TypeAssumptions.get_AzureDisk
-  VolumeSource.TypeAssumptions.set_AzureDisk
-  VolumeSource.TypeAssumptions.get_PhotonPersistentDisk
-  VolumeSource.TypeAssumptions.set_PhotonPersistentDisk
-  VolumeSource.TypeAssumptions.get_Projected
-  VolumeSource.TypeAssumptions.set_Projected
-  VolumeSource.TypeAssumptions.get_PortworxVolume
-  VolumeSource.TypeAssumptions.set_PortworxVolume
-  VolumeSource.TypeAssumptions.get_ScaleIO
-  VolumeSource.TypeAssumptions.set_ScaleIO
-  VolumeSource.TypeAssumptions.get_StorageOS
-  VolumeSource.TypeAssumptions.set_StorageOS
-  VolumeSource.TypeAssumptions.get_CSI
-  VolumeSource.TypeAssumptions.set_CSI
-  VolumeSource.TypeAssumptions.get_Ephemeral
-  VolumeSource.TypeAssumptions.set_Ephemeral
-  VolumeSource.TypeAssumptions.get_Image
-  VolumeSource.TypeAssumptions.set_Image
+  VolumeSource.TypeAssumptions.get'HostPath
+  VolumeSource.TypeAssumptions.set'HostPath
+  VolumeSource.TypeAssumptions.get'EmptyDir
+  VolumeSource.TypeAssumptions.set'EmptyDir
+  VolumeSource.TypeAssumptions.get'GCEPersistentDisk
+  VolumeSource.TypeAssumptions.set'GCEPersistentDisk
+  VolumeSource.TypeAssumptions.get'AWSElasticBlockStore
+  VolumeSource.TypeAssumptions.set'AWSElasticBlockStore
+  VolumeSource.TypeAssumptions.get'GitRepo
+  VolumeSource.TypeAssumptions.set'GitRepo
+  VolumeSource.TypeAssumptions.get'Secret
+  VolumeSource.TypeAssumptions.set'Secret
+  VolumeSource.TypeAssumptions.get'NFS
+  VolumeSource.TypeAssumptions.set'NFS
+  VolumeSource.TypeAssumptions.get'ISCSI
+  VolumeSource.TypeAssumptions.set'ISCSI
+  VolumeSource.TypeAssumptions.get'Glusterfs
+  VolumeSource.TypeAssumptions.set'Glusterfs
+  VolumeSource.TypeAssumptions.get'PersistentVolumeClaim
+  VolumeSource.TypeAssumptions.set'PersistentVolumeClaim
+  VolumeSource.TypeAssumptions.get'RBD
+  VolumeSource.TypeAssumptions.set'RBD
+  VolumeSource.TypeAssumptions.get'FlexVolume
+  VolumeSource.TypeAssumptions.set'FlexVolume
+  VolumeSource.TypeAssumptions.get'Cinder
+  VolumeSource.TypeAssumptions.set'Cinder
+  VolumeSource.TypeAssumptions.get'CephFS
+  VolumeSource.TypeAssumptions.set'CephFS
+  VolumeSource.TypeAssumptions.get'Flocker
+  VolumeSource.TypeAssumptions.set'Flocker
+  VolumeSource.TypeAssumptions.get'DownwardAPI
+  VolumeSource.TypeAssumptions.set'DownwardAPI
+  VolumeSource.TypeAssumptions.get'FC
+  VolumeSource.TypeAssumptions.set'FC
+  VolumeSource.TypeAssumptions.get'AzureFile
+  VolumeSource.TypeAssumptions.set'AzureFile
+  VolumeSource.TypeAssumptions.get'ConfigMap
+  VolumeSource.TypeAssumptions.set'ConfigMap
+  VolumeSource.TypeAssumptions.get'VsphereVolume
+  VolumeSource.TypeAssumptions.set'VsphereVolume
+  VolumeSource.TypeAssumptions.get'Quobyte
+  VolumeSource.TypeAssumptions.set'Quobyte
+  VolumeSource.TypeAssumptions.get'AzureDisk
+  VolumeSource.TypeAssumptions.set'AzureDisk
+  VolumeSource.TypeAssumptions.get'PhotonPersistentDisk
+  VolumeSource.TypeAssumptions.set'PhotonPersistentDisk
+  VolumeSource.TypeAssumptions.get'Projected
+  VolumeSource.TypeAssumptions.set'Projected
+  VolumeSource.TypeAssumptions.get'PortworxVolume
+  VolumeSource.TypeAssumptions.set'PortworxVolume
+  VolumeSource.TypeAssumptions.get'ScaleIO
+  VolumeSource.TypeAssumptions.set'ScaleIO
+  VolumeSource.TypeAssumptions.get'StorageOS
+  VolumeSource.TypeAssumptions.set'StorageOS
+  VolumeSource.TypeAssumptions.get'CSI
+  VolumeSource.TypeAssumptions.set'CSI
+  VolumeSource.TypeAssumptions.get'Ephemeral
+  VolumeSource.TypeAssumptions.set'Ephemeral
+  VolumeSource.TypeAssumptions.get'Image
+  VolumeSource.TypeAssumptions.set'Image
   VolumeSource.TypeAssumptions.method_set
   VolumeSource.TypeAssumptions.ptr_method_set
-  VolumeSource.TypeAssumptions.ptr_DeepCopyInto_unfold
+  VolumeSource.TypeAssumptions.ptr_unfold'DeepCopyInto
 
 class Volume.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Volume.underlying Volume
   underlying : go.UnderlyingDirectedEq Volume.ty Volume.underlying
-  get_Name : ∀ (x : Volume), go.IsGoStepPureDetTagged under (StructFieldGet Volume.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : Volume) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Volume.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Volume)))
-  get_VolumeSource : ∀ (x : Volume), go.IsGoStepPureDetTagged under (StructFieldGet Volume.underlying go!"VolumeSource") #x (Val #(x.VolumeSource'))
-  set_VolumeSource : ∀ (x : Volume) (y : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldSet Volume.underlying go!"VolumeSource") (PairV #x #y) (Val #(({ x with VolumeSource' := y } : Volume)))
+  get'Name : ∀ (x : Volume), go.IsGoStepPureDetTagged under (StructFieldGet Volume.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : Volume) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Volume.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Volume)))
+  get'VolumeSource : ∀ (x : Volume), go.IsGoStepPureDetTagged under (StructFieldGet Volume.underlying go!"VolumeSource") #x (Val #(x.VolumeSource'))
+  set'VolumeSource : ∀ (x : Volume) (y : VolumeSource), go.IsGoStepPureDetTagged under (StructFieldSet Volume.underlying go!"VolumeSource") (PairV #x #y) (Val #(({ x with VolumeSource' := y } : Volume)))
   method_set : go.MethodSetIs Volume.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Volume.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Volume.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Volume.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType Volume.ty) go!"DeepCopyInto" Volume.DeepCopyInto.impl
+  ptr_unfold'DeepCopyInto : MethodUnfold (go.GoType.PointerType Volume.ty) go!"DeepCopyInto" Volume.DeepCopyInto.impl
 
 attribute [instance] Volume.TypeAssumptions.type_repr
   Volume.TypeAssumptions.underlying
-  Volume.TypeAssumptions.get_Name
-  Volume.TypeAssumptions.set_Name
-  Volume.TypeAssumptions.get_VolumeSource
-  Volume.TypeAssumptions.set_VolumeSource
+  Volume.TypeAssumptions.get'Name
+  Volume.TypeAssumptions.set'Name
+  Volume.TypeAssumptions.get'VolumeSource
+  Volume.TypeAssumptions.set'VolumeSource
   Volume.TypeAssumptions.method_set
   Volume.TypeAssumptions.ptr_method_set
-  Volume.TypeAssumptions.ptr_DeepCopyInto_unfold
+  Volume.TypeAssumptions.ptr_unfold'DeepCopyInto
 
 class PersistentVolumeClaimVolumeSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeClaimVolumeSource.underlying PersistentVolumeClaimVolumeSource
   underlying : go.UnderlyingDirectedEq PersistentVolumeClaimVolumeSource.ty PersistentVolumeClaimVolumeSource.underlying
-  get_ClaimName : ∀ (x : PersistentVolumeClaimVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimVolumeSource.underlying go!"ClaimName") #x (Val #(x.ClaimName'))
-  set_ClaimName : ∀ (x : PersistentVolumeClaimVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimVolumeSource.underlying go!"ClaimName") (PairV #x #y) (Val #(({ x with ClaimName' := y } : PersistentVolumeClaimVolumeSource)))
-  get_ReadOnly : ∀ (x : PersistentVolumeClaimVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimVolumeSource.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
-  set_ReadOnly : ∀ (x : PersistentVolumeClaimVolumeSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimVolumeSource.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : PersistentVolumeClaimVolumeSource)))
+  get'ClaimName : ∀ (x : PersistentVolumeClaimVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimVolumeSource.underlying go!"ClaimName") #x (Val #(x.ClaimName'))
+  set'ClaimName : ∀ (x : PersistentVolumeClaimVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimVolumeSource.underlying go!"ClaimName") (PairV #x #y) (Val #(({ x with ClaimName' := y } : PersistentVolumeClaimVolumeSource)))
+  get'ReadOnly : ∀ (x : PersistentVolumeClaimVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimVolumeSource.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
+  set'ReadOnly : ∀ (x : PersistentVolumeClaimVolumeSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimVolumeSource.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : PersistentVolumeClaimVolumeSource)))
   method_set : go.MethodSetIs PersistentVolumeClaimVolumeSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeClaimVolumeSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PersistentVolumeClaimVolumeSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PersistentVolumeClaimVolumeSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PersistentVolumeClaimVolumeSource.TypeAssumptions.type_repr
   PersistentVolumeClaimVolumeSource.TypeAssumptions.underlying
-  PersistentVolumeClaimVolumeSource.TypeAssumptions.get_ClaimName
-  PersistentVolumeClaimVolumeSource.TypeAssumptions.set_ClaimName
-  PersistentVolumeClaimVolumeSource.TypeAssumptions.get_ReadOnly
-  PersistentVolumeClaimVolumeSource.TypeAssumptions.set_ReadOnly
+  PersistentVolumeClaimVolumeSource.TypeAssumptions.get'ClaimName
+  PersistentVolumeClaimVolumeSource.TypeAssumptions.set'ClaimName
+  PersistentVolumeClaimVolumeSource.TypeAssumptions.get'ReadOnly
+  PersistentVolumeClaimVolumeSource.TypeAssumptions.set'ReadOnly
   PersistentVolumeClaimVolumeSource.TypeAssumptions.method_set
   PersistentVolumeClaimVolumeSource.TypeAssumptions.ptr_method_set
 
 class PersistentVolumeSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeSource.underlying PersistentVolumeSource
   underlying : go.UnderlyingDirectedEq PersistentVolumeSource.ty PersistentVolumeSource.underlying
-  get_GCEPersistentDisk : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"GCEPersistentDisk") #x (Val #(x.GCEPersistentDisk'))
-  set_GCEPersistentDisk : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"GCEPersistentDisk") (PairV #x #y) (Val #(({ x with GCEPersistentDisk' := y } : PersistentVolumeSource)))
-  get_AWSElasticBlockStore : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"AWSElasticBlockStore") #x (Val #(x.AWSElasticBlockStore'))
-  set_AWSElasticBlockStore : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"AWSElasticBlockStore") (PairV #x #y) (Val #(({ x with AWSElasticBlockStore' := y } : PersistentVolumeSource)))
-  get_HostPath : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"HostPath") #x (Val #(x.HostPath'))
-  set_HostPath : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"HostPath") (PairV #x #y) (Val #(({ x with HostPath' := y } : PersistentVolumeSource)))
-  get_Glusterfs : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"Glusterfs") #x (Val #(x.Glusterfs'))
-  set_Glusterfs : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"Glusterfs") (PairV #x #y) (Val #(({ x with Glusterfs' := y } : PersistentVolumeSource)))
-  get_NFS : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"NFS") #x (Val #(x.NFS'))
-  set_NFS : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"NFS") (PairV #x #y) (Val #(({ x with NFS' := y } : PersistentVolumeSource)))
-  get_RBD : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"RBD") #x (Val #(x.RBD'))
-  set_RBD : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"RBD") (PairV #x #y) (Val #(({ x with RBD' := y } : PersistentVolumeSource)))
-  get_ISCSI : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"ISCSI") #x (Val #(x.ISCSI'))
-  set_ISCSI : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"ISCSI") (PairV #x #y) (Val #(({ x with ISCSI' := y } : PersistentVolumeSource)))
-  get_Cinder : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"Cinder") #x (Val #(x.Cinder'))
-  set_Cinder : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"Cinder") (PairV #x #y) (Val #(({ x with Cinder' := y } : PersistentVolumeSource)))
-  get_CephFS : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"CephFS") #x (Val #(x.CephFS'))
-  set_CephFS : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"CephFS") (PairV #x #y) (Val #(({ x with CephFS' := y } : PersistentVolumeSource)))
-  get_FC : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"FC") #x (Val #(x.FC'))
-  set_FC : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"FC") (PairV #x #y) (Val #(({ x with FC' := y } : PersistentVolumeSource)))
-  get_Flocker : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"Flocker") #x (Val #(x.Flocker'))
-  set_Flocker : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"Flocker") (PairV #x #y) (Val #(({ x with Flocker' := y } : PersistentVolumeSource)))
-  get_FlexVolume : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"FlexVolume") #x (Val #(x.FlexVolume'))
-  set_FlexVolume : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"FlexVolume") (PairV #x #y) (Val #(({ x with FlexVolume' := y } : PersistentVolumeSource)))
-  get_AzureFile : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"AzureFile") #x (Val #(x.AzureFile'))
-  set_AzureFile : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"AzureFile") (PairV #x #y) (Val #(({ x with AzureFile' := y } : PersistentVolumeSource)))
-  get_VsphereVolume : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"VsphereVolume") #x (Val #(x.VsphereVolume'))
-  set_VsphereVolume : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"VsphereVolume") (PairV #x #y) (Val #(({ x with VsphereVolume' := y } : PersistentVolumeSource)))
-  get_Quobyte : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"Quobyte") #x (Val #(x.Quobyte'))
-  set_Quobyte : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"Quobyte") (PairV #x #y) (Val #(({ x with Quobyte' := y } : PersistentVolumeSource)))
-  get_AzureDisk : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"AzureDisk") #x (Val #(x.AzureDisk'))
-  set_AzureDisk : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"AzureDisk") (PairV #x #y) (Val #(({ x with AzureDisk' := y } : PersistentVolumeSource)))
-  get_PhotonPersistentDisk : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"PhotonPersistentDisk") #x (Val #(x.PhotonPersistentDisk'))
-  set_PhotonPersistentDisk : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"PhotonPersistentDisk") (PairV #x #y) (Val #(({ x with PhotonPersistentDisk' := y } : PersistentVolumeSource)))
-  get_PortworxVolume : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"PortworxVolume") #x (Val #(x.PortworxVolume'))
-  set_PortworxVolume : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"PortworxVolume") (PairV #x #y) (Val #(({ x with PortworxVolume' := y } : PersistentVolumeSource)))
-  get_ScaleIO : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"ScaleIO") #x (Val #(x.ScaleIO'))
-  set_ScaleIO : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"ScaleIO") (PairV #x #y) (Val #(({ x with ScaleIO' := y } : PersistentVolumeSource)))
-  get_Local : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"Local") #x (Val #(x.Local'))
-  set_Local : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"Local") (PairV #x #y) (Val #(({ x with Local' := y } : PersistentVolumeSource)))
-  get_StorageOS : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"StorageOS") #x (Val #(x.StorageOS'))
-  set_StorageOS : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"StorageOS") (PairV #x #y) (Val #(({ x with StorageOS' := y } : PersistentVolumeSource)))
-  get_CSI : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"CSI") #x (Val #(x.CSI'))
-  set_CSI : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"CSI") (PairV #x #y) (Val #(({ x with CSI' := y } : PersistentVolumeSource)))
+  get'GCEPersistentDisk : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"GCEPersistentDisk") #x (Val #(x.GCEPersistentDisk'))
+  set'GCEPersistentDisk : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"GCEPersistentDisk") (PairV #x #y) (Val #(({ x with GCEPersistentDisk' := y } : PersistentVolumeSource)))
+  get'AWSElasticBlockStore : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"AWSElasticBlockStore") #x (Val #(x.AWSElasticBlockStore'))
+  set'AWSElasticBlockStore : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"AWSElasticBlockStore") (PairV #x #y) (Val #(({ x with AWSElasticBlockStore' := y } : PersistentVolumeSource)))
+  get'HostPath : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"HostPath") #x (Val #(x.HostPath'))
+  set'HostPath : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"HostPath") (PairV #x #y) (Val #(({ x with HostPath' := y } : PersistentVolumeSource)))
+  get'Glusterfs : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"Glusterfs") #x (Val #(x.Glusterfs'))
+  set'Glusterfs : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"Glusterfs") (PairV #x #y) (Val #(({ x with Glusterfs' := y } : PersistentVolumeSource)))
+  get'NFS : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"NFS") #x (Val #(x.NFS'))
+  set'NFS : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"NFS") (PairV #x #y) (Val #(({ x with NFS' := y } : PersistentVolumeSource)))
+  get'RBD : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"RBD") #x (Val #(x.RBD'))
+  set'RBD : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"RBD") (PairV #x #y) (Val #(({ x with RBD' := y } : PersistentVolumeSource)))
+  get'ISCSI : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"ISCSI") #x (Val #(x.ISCSI'))
+  set'ISCSI : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"ISCSI") (PairV #x #y) (Val #(({ x with ISCSI' := y } : PersistentVolumeSource)))
+  get'Cinder : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"Cinder") #x (Val #(x.Cinder'))
+  set'Cinder : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"Cinder") (PairV #x #y) (Val #(({ x with Cinder' := y } : PersistentVolumeSource)))
+  get'CephFS : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"CephFS") #x (Val #(x.CephFS'))
+  set'CephFS : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"CephFS") (PairV #x #y) (Val #(({ x with CephFS' := y } : PersistentVolumeSource)))
+  get'FC : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"FC") #x (Val #(x.FC'))
+  set'FC : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"FC") (PairV #x #y) (Val #(({ x with FC' := y } : PersistentVolumeSource)))
+  get'Flocker : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"Flocker") #x (Val #(x.Flocker'))
+  set'Flocker : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"Flocker") (PairV #x #y) (Val #(({ x with Flocker' := y } : PersistentVolumeSource)))
+  get'FlexVolume : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"FlexVolume") #x (Val #(x.FlexVolume'))
+  set'FlexVolume : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"FlexVolume") (PairV #x #y) (Val #(({ x with FlexVolume' := y } : PersistentVolumeSource)))
+  get'AzureFile : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"AzureFile") #x (Val #(x.AzureFile'))
+  set'AzureFile : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"AzureFile") (PairV #x #y) (Val #(({ x with AzureFile' := y } : PersistentVolumeSource)))
+  get'VsphereVolume : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"VsphereVolume") #x (Val #(x.VsphereVolume'))
+  set'VsphereVolume : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"VsphereVolume") (PairV #x #y) (Val #(({ x with VsphereVolume' := y } : PersistentVolumeSource)))
+  get'Quobyte : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"Quobyte") #x (Val #(x.Quobyte'))
+  set'Quobyte : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"Quobyte") (PairV #x #y) (Val #(({ x with Quobyte' := y } : PersistentVolumeSource)))
+  get'AzureDisk : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"AzureDisk") #x (Val #(x.AzureDisk'))
+  set'AzureDisk : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"AzureDisk") (PairV #x #y) (Val #(({ x with AzureDisk' := y } : PersistentVolumeSource)))
+  get'PhotonPersistentDisk : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"PhotonPersistentDisk") #x (Val #(x.PhotonPersistentDisk'))
+  set'PhotonPersistentDisk : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"PhotonPersistentDisk") (PairV #x #y) (Val #(({ x with PhotonPersistentDisk' := y } : PersistentVolumeSource)))
+  get'PortworxVolume : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"PortworxVolume") #x (Val #(x.PortworxVolume'))
+  set'PortworxVolume : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"PortworxVolume") (PairV #x #y) (Val #(({ x with PortworxVolume' := y } : PersistentVolumeSource)))
+  get'ScaleIO : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"ScaleIO") #x (Val #(x.ScaleIO'))
+  set'ScaleIO : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"ScaleIO") (PairV #x #y) (Val #(({ x with ScaleIO' := y } : PersistentVolumeSource)))
+  get'Local : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"Local") #x (Val #(x.Local'))
+  set'Local : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"Local") (PairV #x #y) (Val #(({ x with Local' := y } : PersistentVolumeSource)))
+  get'StorageOS : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"StorageOS") #x (Val #(x.StorageOS'))
+  set'StorageOS : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"StorageOS") (PairV #x #y) (Val #(({ x with StorageOS' := y } : PersistentVolumeSource)))
+  get'CSI : ∀ (x : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSource.underlying go!"CSI") #x (Val #(x.CSI'))
+  set'CSI : ∀ (x : PersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSource.underlying go!"CSI") (PairV #x #y) (Val #(({ x with CSI' := y } : PersistentVolumeSource)))
   method_set : go.MethodSetIs PersistentVolumeSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PersistentVolumeSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PersistentVolumeSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PersistentVolumeSource.TypeAssumptions.type_repr
   PersistentVolumeSource.TypeAssumptions.underlying
-  PersistentVolumeSource.TypeAssumptions.get_GCEPersistentDisk
-  PersistentVolumeSource.TypeAssumptions.set_GCEPersistentDisk
-  PersistentVolumeSource.TypeAssumptions.get_AWSElasticBlockStore
-  PersistentVolumeSource.TypeAssumptions.set_AWSElasticBlockStore
-  PersistentVolumeSource.TypeAssumptions.get_HostPath
-  PersistentVolumeSource.TypeAssumptions.set_HostPath
-  PersistentVolumeSource.TypeAssumptions.get_Glusterfs
-  PersistentVolumeSource.TypeAssumptions.set_Glusterfs
-  PersistentVolumeSource.TypeAssumptions.get_NFS
-  PersistentVolumeSource.TypeAssumptions.set_NFS
-  PersistentVolumeSource.TypeAssumptions.get_RBD
-  PersistentVolumeSource.TypeAssumptions.set_RBD
-  PersistentVolumeSource.TypeAssumptions.get_ISCSI
-  PersistentVolumeSource.TypeAssumptions.set_ISCSI
-  PersistentVolumeSource.TypeAssumptions.get_Cinder
-  PersistentVolumeSource.TypeAssumptions.set_Cinder
-  PersistentVolumeSource.TypeAssumptions.get_CephFS
-  PersistentVolumeSource.TypeAssumptions.set_CephFS
-  PersistentVolumeSource.TypeAssumptions.get_FC
-  PersistentVolumeSource.TypeAssumptions.set_FC
-  PersistentVolumeSource.TypeAssumptions.get_Flocker
-  PersistentVolumeSource.TypeAssumptions.set_Flocker
-  PersistentVolumeSource.TypeAssumptions.get_FlexVolume
-  PersistentVolumeSource.TypeAssumptions.set_FlexVolume
-  PersistentVolumeSource.TypeAssumptions.get_AzureFile
-  PersistentVolumeSource.TypeAssumptions.set_AzureFile
-  PersistentVolumeSource.TypeAssumptions.get_VsphereVolume
-  PersistentVolumeSource.TypeAssumptions.set_VsphereVolume
-  PersistentVolumeSource.TypeAssumptions.get_Quobyte
-  PersistentVolumeSource.TypeAssumptions.set_Quobyte
-  PersistentVolumeSource.TypeAssumptions.get_AzureDisk
-  PersistentVolumeSource.TypeAssumptions.set_AzureDisk
-  PersistentVolumeSource.TypeAssumptions.get_PhotonPersistentDisk
-  PersistentVolumeSource.TypeAssumptions.set_PhotonPersistentDisk
-  PersistentVolumeSource.TypeAssumptions.get_PortworxVolume
-  PersistentVolumeSource.TypeAssumptions.set_PortworxVolume
-  PersistentVolumeSource.TypeAssumptions.get_ScaleIO
-  PersistentVolumeSource.TypeAssumptions.set_ScaleIO
-  PersistentVolumeSource.TypeAssumptions.get_Local
-  PersistentVolumeSource.TypeAssumptions.set_Local
-  PersistentVolumeSource.TypeAssumptions.get_StorageOS
-  PersistentVolumeSource.TypeAssumptions.set_StorageOS
-  PersistentVolumeSource.TypeAssumptions.get_CSI
-  PersistentVolumeSource.TypeAssumptions.set_CSI
+  PersistentVolumeSource.TypeAssumptions.get'GCEPersistentDisk
+  PersistentVolumeSource.TypeAssumptions.set'GCEPersistentDisk
+  PersistentVolumeSource.TypeAssumptions.get'AWSElasticBlockStore
+  PersistentVolumeSource.TypeAssumptions.set'AWSElasticBlockStore
+  PersistentVolumeSource.TypeAssumptions.get'HostPath
+  PersistentVolumeSource.TypeAssumptions.set'HostPath
+  PersistentVolumeSource.TypeAssumptions.get'Glusterfs
+  PersistentVolumeSource.TypeAssumptions.set'Glusterfs
+  PersistentVolumeSource.TypeAssumptions.get'NFS
+  PersistentVolumeSource.TypeAssumptions.set'NFS
+  PersistentVolumeSource.TypeAssumptions.get'RBD
+  PersistentVolumeSource.TypeAssumptions.set'RBD
+  PersistentVolumeSource.TypeAssumptions.get'ISCSI
+  PersistentVolumeSource.TypeAssumptions.set'ISCSI
+  PersistentVolumeSource.TypeAssumptions.get'Cinder
+  PersistentVolumeSource.TypeAssumptions.set'Cinder
+  PersistentVolumeSource.TypeAssumptions.get'CephFS
+  PersistentVolumeSource.TypeAssumptions.set'CephFS
+  PersistentVolumeSource.TypeAssumptions.get'FC
+  PersistentVolumeSource.TypeAssumptions.set'FC
+  PersistentVolumeSource.TypeAssumptions.get'Flocker
+  PersistentVolumeSource.TypeAssumptions.set'Flocker
+  PersistentVolumeSource.TypeAssumptions.get'FlexVolume
+  PersistentVolumeSource.TypeAssumptions.set'FlexVolume
+  PersistentVolumeSource.TypeAssumptions.get'AzureFile
+  PersistentVolumeSource.TypeAssumptions.set'AzureFile
+  PersistentVolumeSource.TypeAssumptions.get'VsphereVolume
+  PersistentVolumeSource.TypeAssumptions.set'VsphereVolume
+  PersistentVolumeSource.TypeAssumptions.get'Quobyte
+  PersistentVolumeSource.TypeAssumptions.set'Quobyte
+  PersistentVolumeSource.TypeAssumptions.get'AzureDisk
+  PersistentVolumeSource.TypeAssumptions.set'AzureDisk
+  PersistentVolumeSource.TypeAssumptions.get'PhotonPersistentDisk
+  PersistentVolumeSource.TypeAssumptions.set'PhotonPersistentDisk
+  PersistentVolumeSource.TypeAssumptions.get'PortworxVolume
+  PersistentVolumeSource.TypeAssumptions.set'PortworxVolume
+  PersistentVolumeSource.TypeAssumptions.get'ScaleIO
+  PersistentVolumeSource.TypeAssumptions.set'ScaleIO
+  PersistentVolumeSource.TypeAssumptions.get'Local
+  PersistentVolumeSource.TypeAssumptions.set'Local
+  PersistentVolumeSource.TypeAssumptions.get'StorageOS
+  PersistentVolumeSource.TypeAssumptions.set'StorageOS
+  PersistentVolumeSource.TypeAssumptions.get'CSI
+  PersistentVolumeSource.TypeAssumptions.set'CSI
   PersistentVolumeSource.TypeAssumptions.method_set
   PersistentVolumeSource.TypeAssumptions.ptr_method_set
 
@@ -309,51 +309,51 @@ attribute [instance] PersistentVolumeReclaimPolicy.TypeAssumptions.underlying
 class PersistentVolumeSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeSpec.underlying PersistentVolumeSpec
   underlying : go.UnderlyingDirectedEq PersistentVolumeSpec.ty PersistentVolumeSpec.underlying
-  get_Capacity : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"Capacity") #x (Val #(x.Capacity'))
-  set_Capacity : ∀ (x : PersistentVolumeSpec) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"Capacity") (PairV #x #y) (Val #(({ x with Capacity' := y } : PersistentVolumeSpec)))
-  get_PersistentVolumeSource : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"PersistentVolumeSource") #x (Val #(x.PersistentVolumeSource'))
-  set_PersistentVolumeSource : ∀ (x : PersistentVolumeSpec) (y : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"PersistentVolumeSource") (PairV #x #y) (Val #(({ x with PersistentVolumeSource' := y } : PersistentVolumeSpec)))
-  get_AccessModes : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"AccessModes") #x (Val #(x.AccessModes'))
-  set_AccessModes : ∀ (x : PersistentVolumeSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"AccessModes") (PairV #x #y) (Val #(({ x with AccessModes' := y } : PersistentVolumeSpec)))
-  get_ClaimRef : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"ClaimRef") #x (Val #(x.ClaimRef'))
-  set_ClaimRef : ∀ (x : PersistentVolumeSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"ClaimRef") (PairV #x #y) (Val #(({ x with ClaimRef' := y } : PersistentVolumeSpec)))
-  get_PersistentVolumeReclaimPolicy : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"PersistentVolumeReclaimPolicy") #x (Val #(x.PersistentVolumeReclaimPolicy'))
-  set_PersistentVolumeReclaimPolicy : ∀ (x : PersistentVolumeSpec) (y : PersistentVolumeReclaimPolicy), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"PersistentVolumeReclaimPolicy") (PairV #x #y) (Val #(({ x with PersistentVolumeReclaimPolicy' := y } : PersistentVolumeSpec)))
-  get_StorageClassName : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"StorageClassName") #x (Val #(x.StorageClassName'))
-  set_StorageClassName : ∀ (x : PersistentVolumeSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"StorageClassName") (PairV #x #y) (Val #(({ x with StorageClassName' := y } : PersistentVolumeSpec)))
-  get_MountOptions : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"MountOptions") #x (Val #(x.MountOptions'))
-  set_MountOptions : ∀ (x : PersistentVolumeSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"MountOptions") (PairV #x #y) (Val #(({ x with MountOptions' := y } : PersistentVolumeSpec)))
-  get_VolumeMode : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"VolumeMode") #x (Val #(x.VolumeMode'))
-  set_VolumeMode : ∀ (x : PersistentVolumeSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"VolumeMode") (PairV #x #y) (Val #(({ x with VolumeMode' := y } : PersistentVolumeSpec)))
-  get_NodeAffinity : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"NodeAffinity") #x (Val #(x.NodeAffinity'))
-  set_NodeAffinity : ∀ (x : PersistentVolumeSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"NodeAffinity") (PairV #x #y) (Val #(({ x with NodeAffinity' := y } : PersistentVolumeSpec)))
-  get_VolumeAttributesClassName : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"VolumeAttributesClassName") #x (Val #(x.VolumeAttributesClassName'))
-  set_VolumeAttributesClassName : ∀ (x : PersistentVolumeSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"VolumeAttributesClassName") (PairV #x #y) (Val #(({ x with VolumeAttributesClassName' := y } : PersistentVolumeSpec)))
+  get'Capacity : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"Capacity") #x (Val #(x.Capacity'))
+  set'Capacity : ∀ (x : PersistentVolumeSpec) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"Capacity") (PairV #x #y) (Val #(({ x with Capacity' := y } : PersistentVolumeSpec)))
+  get'PersistentVolumeSource : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"PersistentVolumeSource") #x (Val #(x.PersistentVolumeSource'))
+  set'PersistentVolumeSource : ∀ (x : PersistentVolumeSpec) (y : PersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"PersistentVolumeSource") (PairV #x #y) (Val #(({ x with PersistentVolumeSource' := y } : PersistentVolumeSpec)))
+  get'AccessModes : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"AccessModes") #x (Val #(x.AccessModes'))
+  set'AccessModes : ∀ (x : PersistentVolumeSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"AccessModes") (PairV #x #y) (Val #(({ x with AccessModes' := y } : PersistentVolumeSpec)))
+  get'ClaimRef : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"ClaimRef") #x (Val #(x.ClaimRef'))
+  set'ClaimRef : ∀ (x : PersistentVolumeSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"ClaimRef") (PairV #x #y) (Val #(({ x with ClaimRef' := y } : PersistentVolumeSpec)))
+  get'PersistentVolumeReclaimPolicy : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"PersistentVolumeReclaimPolicy") #x (Val #(x.PersistentVolumeReclaimPolicy'))
+  set'PersistentVolumeReclaimPolicy : ∀ (x : PersistentVolumeSpec) (y : PersistentVolumeReclaimPolicy), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"PersistentVolumeReclaimPolicy") (PairV #x #y) (Val #(({ x with PersistentVolumeReclaimPolicy' := y } : PersistentVolumeSpec)))
+  get'StorageClassName : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"StorageClassName") #x (Val #(x.StorageClassName'))
+  set'StorageClassName : ∀ (x : PersistentVolumeSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"StorageClassName") (PairV #x #y) (Val #(({ x with StorageClassName' := y } : PersistentVolumeSpec)))
+  get'MountOptions : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"MountOptions") #x (Val #(x.MountOptions'))
+  set'MountOptions : ∀ (x : PersistentVolumeSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"MountOptions") (PairV #x #y) (Val #(({ x with MountOptions' := y } : PersistentVolumeSpec)))
+  get'VolumeMode : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"VolumeMode") #x (Val #(x.VolumeMode'))
+  set'VolumeMode : ∀ (x : PersistentVolumeSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"VolumeMode") (PairV #x #y) (Val #(({ x with VolumeMode' := y } : PersistentVolumeSpec)))
+  get'NodeAffinity : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"NodeAffinity") #x (Val #(x.NodeAffinity'))
+  set'NodeAffinity : ∀ (x : PersistentVolumeSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"NodeAffinity") (PairV #x #y) (Val #(({ x with NodeAffinity' := y } : PersistentVolumeSpec)))
+  get'VolumeAttributesClassName : ∀ (x : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpec.underlying go!"VolumeAttributesClassName") #x (Val #(x.VolumeAttributesClassName'))
+  set'VolumeAttributesClassName : ∀ (x : PersistentVolumeSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpec.underlying go!"VolumeAttributesClassName") (PairV #x #y) (Val #(({ x with VolumeAttributesClassName' := y } : PersistentVolumeSpec)))
   method_set : go.MethodSetIs PersistentVolumeSpec.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeSpec.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PersistentVolumeSpec.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PersistentVolumeSpec.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PersistentVolumeSpec.TypeAssumptions.type_repr
   PersistentVolumeSpec.TypeAssumptions.underlying
-  PersistentVolumeSpec.TypeAssumptions.get_Capacity
-  PersistentVolumeSpec.TypeAssumptions.set_Capacity
-  PersistentVolumeSpec.TypeAssumptions.get_PersistentVolumeSource
-  PersistentVolumeSpec.TypeAssumptions.set_PersistentVolumeSource
-  PersistentVolumeSpec.TypeAssumptions.get_AccessModes
-  PersistentVolumeSpec.TypeAssumptions.set_AccessModes
-  PersistentVolumeSpec.TypeAssumptions.get_ClaimRef
-  PersistentVolumeSpec.TypeAssumptions.set_ClaimRef
-  PersistentVolumeSpec.TypeAssumptions.get_PersistentVolumeReclaimPolicy
-  PersistentVolumeSpec.TypeAssumptions.set_PersistentVolumeReclaimPolicy
-  PersistentVolumeSpec.TypeAssumptions.get_StorageClassName
-  PersistentVolumeSpec.TypeAssumptions.set_StorageClassName
-  PersistentVolumeSpec.TypeAssumptions.get_MountOptions
-  PersistentVolumeSpec.TypeAssumptions.set_MountOptions
-  PersistentVolumeSpec.TypeAssumptions.get_VolumeMode
-  PersistentVolumeSpec.TypeAssumptions.set_VolumeMode
-  PersistentVolumeSpec.TypeAssumptions.get_NodeAffinity
-  PersistentVolumeSpec.TypeAssumptions.set_NodeAffinity
-  PersistentVolumeSpec.TypeAssumptions.get_VolumeAttributesClassName
-  PersistentVolumeSpec.TypeAssumptions.set_VolumeAttributesClassName
+  PersistentVolumeSpec.TypeAssumptions.get'Capacity
+  PersistentVolumeSpec.TypeAssumptions.set'Capacity
+  PersistentVolumeSpec.TypeAssumptions.get'PersistentVolumeSource
+  PersistentVolumeSpec.TypeAssumptions.set'PersistentVolumeSource
+  PersistentVolumeSpec.TypeAssumptions.get'AccessModes
+  PersistentVolumeSpec.TypeAssumptions.set'AccessModes
+  PersistentVolumeSpec.TypeAssumptions.get'ClaimRef
+  PersistentVolumeSpec.TypeAssumptions.set'ClaimRef
+  PersistentVolumeSpec.TypeAssumptions.get'PersistentVolumeReclaimPolicy
+  PersistentVolumeSpec.TypeAssumptions.set'PersistentVolumeReclaimPolicy
+  PersistentVolumeSpec.TypeAssumptions.get'StorageClassName
+  PersistentVolumeSpec.TypeAssumptions.set'StorageClassName
+  PersistentVolumeSpec.TypeAssumptions.get'MountOptions
+  PersistentVolumeSpec.TypeAssumptions.set'MountOptions
+  PersistentVolumeSpec.TypeAssumptions.get'VolumeMode
+  PersistentVolumeSpec.TypeAssumptions.set'VolumeMode
+  PersistentVolumeSpec.TypeAssumptions.get'NodeAffinity
+  PersistentVolumeSpec.TypeAssumptions.set'NodeAffinity
+  PersistentVolumeSpec.TypeAssumptions.get'VolumeAttributesClassName
+  PersistentVolumeSpec.TypeAssumptions.set'VolumeAttributesClassName
   PersistentVolumeSpec.TypeAssumptions.method_set
   PersistentVolumeSpec.TypeAssumptions.ptr_method_set
 
@@ -369,69 +369,69 @@ attribute [instance] PersistentVolumePhase.TypeAssumptions.underlying
 class PersistentVolumeStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeStatus.underlying PersistentVolumeStatus
   underlying : go.UnderlyingDirectedEq PersistentVolumeStatus.ty PersistentVolumeStatus.underlying
-  get_Phase : ∀ (x : PersistentVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeStatus.underlying go!"Phase") #x (Val #(x.Phase'))
-  set_Phase : ∀ (x : PersistentVolumeStatus) (y : PersistentVolumePhase), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeStatus.underlying go!"Phase") (PairV #x #y) (Val #(({ x with Phase' := y } : PersistentVolumeStatus)))
-  get_Message : ∀ (x : PersistentVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeStatus.underlying go!"Message") #x (Val #(x.Message'))
-  set_Message : ∀ (x : PersistentVolumeStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeStatus.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : PersistentVolumeStatus)))
-  get_Reason : ∀ (x : PersistentVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeStatus.underlying go!"Reason") #x (Val #(x.Reason'))
-  set_Reason : ∀ (x : PersistentVolumeStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeStatus.underlying go!"Reason") (PairV #x #y) (Val #(({ x with Reason' := y } : PersistentVolumeStatus)))
-  get_LastPhaseTransitionTime : ∀ (x : PersistentVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeStatus.underlying go!"LastPhaseTransitionTime") #x (Val #(x.LastPhaseTransitionTime'))
-  set_LastPhaseTransitionTime : ∀ (x : PersistentVolumeStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeStatus.underlying go!"LastPhaseTransitionTime") (PairV #x #y) (Val #(({ x with LastPhaseTransitionTime' := y } : PersistentVolumeStatus)))
+  get'Phase : ∀ (x : PersistentVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeStatus.underlying go!"Phase") #x (Val #(x.Phase'))
+  set'Phase : ∀ (x : PersistentVolumeStatus) (y : PersistentVolumePhase), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeStatus.underlying go!"Phase") (PairV #x #y) (Val #(({ x with Phase' := y } : PersistentVolumeStatus)))
+  get'Message : ∀ (x : PersistentVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeStatus.underlying go!"Message") #x (Val #(x.Message'))
+  set'Message : ∀ (x : PersistentVolumeStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeStatus.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : PersistentVolumeStatus)))
+  get'Reason : ∀ (x : PersistentVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeStatus.underlying go!"Reason") #x (Val #(x.Reason'))
+  set'Reason : ∀ (x : PersistentVolumeStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeStatus.underlying go!"Reason") (PairV #x #y) (Val #(({ x with Reason' := y } : PersistentVolumeStatus)))
+  get'LastPhaseTransitionTime : ∀ (x : PersistentVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeStatus.underlying go!"LastPhaseTransitionTime") #x (Val #(x.LastPhaseTransitionTime'))
+  set'LastPhaseTransitionTime : ∀ (x : PersistentVolumeStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeStatus.underlying go!"LastPhaseTransitionTime") (PairV #x #y) (Val #(({ x with LastPhaseTransitionTime' := y } : PersistentVolumeStatus)))
   method_set : go.MethodSetIs PersistentVolumeStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PersistentVolumeStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PersistentVolumeStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PersistentVolumeStatus.TypeAssumptions.type_repr
   PersistentVolumeStatus.TypeAssumptions.underlying
-  PersistentVolumeStatus.TypeAssumptions.get_Phase
-  PersistentVolumeStatus.TypeAssumptions.set_Phase
-  PersistentVolumeStatus.TypeAssumptions.get_Message
-  PersistentVolumeStatus.TypeAssumptions.set_Message
-  PersistentVolumeStatus.TypeAssumptions.get_Reason
-  PersistentVolumeStatus.TypeAssumptions.set_Reason
-  PersistentVolumeStatus.TypeAssumptions.get_LastPhaseTransitionTime
-  PersistentVolumeStatus.TypeAssumptions.set_LastPhaseTransitionTime
+  PersistentVolumeStatus.TypeAssumptions.get'Phase
+  PersistentVolumeStatus.TypeAssumptions.set'Phase
+  PersistentVolumeStatus.TypeAssumptions.get'Message
+  PersistentVolumeStatus.TypeAssumptions.set'Message
+  PersistentVolumeStatus.TypeAssumptions.get'Reason
+  PersistentVolumeStatus.TypeAssumptions.set'Reason
+  PersistentVolumeStatus.TypeAssumptions.get'LastPhaseTransitionTime
+  PersistentVolumeStatus.TypeAssumptions.set'LastPhaseTransitionTime
   PersistentVolumeStatus.TypeAssumptions.method_set
   PersistentVolumeStatus.TypeAssumptions.ptr_method_set
 
 class PersistentVolume.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolume.underlying PersistentVolume
   underlying : go.UnderlyingDirectedEq PersistentVolume.ty PersistentVolume.underlying
-  get_TypeMeta : ∀ (x : PersistentVolume), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolume.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : PersistentVolume) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolume.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : PersistentVolume)))
-  get_ObjectMeta : ∀ (x : PersistentVolume), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolume.underlying go!"ObjectMeta") #x (Val #(x.ObjectMeta'))
-  set_ObjectMeta : ∀ (x : PersistentVolume) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolume.underlying go!"ObjectMeta") (PairV #x #y) (Val #(({ x with ObjectMeta' := y } : PersistentVolume)))
-  get_Spec : ∀ (x : PersistentVolume), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolume.underlying go!"Spec") #x (Val #(x.Spec'))
-  set_Spec : ∀ (x : PersistentVolume) (y : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolume.underlying go!"Spec") (PairV #x #y) (Val #(({ x with Spec' := y } : PersistentVolume)))
-  get_Status : ∀ (x : PersistentVolume), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolume.underlying go!"Status") #x (Val #(x.Status'))
-  set_Status : ∀ (x : PersistentVolume) (y : PersistentVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolume.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : PersistentVolume)))
+  get'TypeMeta : ∀ (x : PersistentVolume), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolume.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
+  set'TypeMeta : ∀ (x : PersistentVolume) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolume.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : PersistentVolume)))
+  get'ObjectMeta : ∀ (x : PersistentVolume), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolume.underlying go!"ObjectMeta") #x (Val #(x.ObjectMeta'))
+  set'ObjectMeta : ∀ (x : PersistentVolume) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolume.underlying go!"ObjectMeta") (PairV #x #y) (Val #(({ x with ObjectMeta' := y } : PersistentVolume)))
+  get'Spec : ∀ (x : PersistentVolume), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolume.underlying go!"Spec") #x (Val #(x.Spec'))
+  set'Spec : ∀ (x : PersistentVolume) (y : PersistentVolumeSpec), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolume.underlying go!"Spec") (PairV #x #y) (Val #(({ x with Spec' := y } : PersistentVolume)))
+  get'Status : ∀ (x : PersistentVolume), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolume.underlying go!"Status") #x (Val #(x.Status'))
+  set'Status : ∀ (x : PersistentVolume) (y : PersistentVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolume.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : PersistentVolume)))
   method_set : go.MethodSetIs PersistentVolume.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolume.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PersistentVolume.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PersistentVolume.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetObjectMeta", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PersistentVolume.TypeAssumptions.type_repr
   PersistentVolume.TypeAssumptions.underlying
-  PersistentVolume.TypeAssumptions.get_TypeMeta
-  PersistentVolume.TypeAssumptions.set_TypeMeta
-  PersistentVolume.TypeAssumptions.get_ObjectMeta
-  PersistentVolume.TypeAssumptions.set_ObjectMeta
-  PersistentVolume.TypeAssumptions.get_Spec
-  PersistentVolume.TypeAssumptions.set_Spec
-  PersistentVolume.TypeAssumptions.get_Status
-  PersistentVolume.TypeAssumptions.set_Status
+  PersistentVolume.TypeAssumptions.get'TypeMeta
+  PersistentVolume.TypeAssumptions.set'TypeMeta
+  PersistentVolume.TypeAssumptions.get'ObjectMeta
+  PersistentVolume.TypeAssumptions.set'ObjectMeta
+  PersistentVolume.TypeAssumptions.get'Spec
+  PersistentVolume.TypeAssumptions.set'Spec
+  PersistentVolume.TypeAssumptions.get'Status
+  PersistentVolume.TypeAssumptions.set'Status
   PersistentVolume.TypeAssumptions.method_set
   PersistentVolume.TypeAssumptions.ptr_method_set
 
 class VolumeNodeAffinity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying VolumeNodeAffinity.underlying VolumeNodeAffinity
   underlying : go.UnderlyingDirectedEq VolumeNodeAffinity.ty VolumeNodeAffinity.underlying
-  get_Required : ∀ (x : VolumeNodeAffinity), go.IsGoStepPureDetTagged under (StructFieldGet VolumeNodeAffinity.underlying go!"Required") #x (Val #(x.Required'))
-  set_Required : ∀ (x : VolumeNodeAffinity) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeNodeAffinity.underlying go!"Required") (PairV #x #y) (Val #(({ x with Required' := y } : VolumeNodeAffinity)))
+  get'Required : ∀ (x : VolumeNodeAffinity), go.IsGoStepPureDetTagged under (StructFieldGet VolumeNodeAffinity.underlying go!"Required") #x (Val #(x.Required'))
+  set'Required : ∀ (x : VolumeNodeAffinity) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeNodeAffinity.underlying go!"Required") (PairV #x #y) (Val #(({ x with Required' := y } : VolumeNodeAffinity)))
   method_set : go.MethodSetIs VolumeNodeAffinity.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType VolumeNodeAffinity.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType VolumeNodeAffinity.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType VolumeNodeAffinity.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] VolumeNodeAffinity.TypeAssumptions.type_repr
   VolumeNodeAffinity.TypeAssumptions.underlying
-  VolumeNodeAffinity.TypeAssumptions.get_Required
-  VolumeNodeAffinity.TypeAssumptions.set_Required
+  VolumeNodeAffinity.TypeAssumptions.get'Required
+  VolumeNodeAffinity.TypeAssumptions.set'Required
   VolumeNodeAffinity.TypeAssumptions.method_set
   VolumeNodeAffinity.TypeAssumptions.ptr_method_set
 
@@ -447,95 +447,95 @@ attribute [instance] PersistentVolumeMode.TypeAssumptions.underlying
 class PersistentVolumeList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeList.underlying PersistentVolumeList
   underlying : go.UnderlyingDirectedEq PersistentVolumeList.ty PersistentVolumeList.underlying
-  get_TypeMeta : ∀ (x : PersistentVolumeList), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : PersistentVolumeList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeList.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : PersistentVolumeList)))
-  get_ListMeta : ∀ (x : PersistentVolumeList), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeList.underlying go!"ListMeta") #x (Val #(x.ListMeta'))
-  set_ListMeta : ∀ (x : PersistentVolumeList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : PersistentVolumeList)))
-  get_Items : ∀ (x : PersistentVolumeList), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeList.underlying go!"Items") #x (Val #(x.Items'))
-  set_Items : ∀ (x : PersistentVolumeList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : PersistentVolumeList)))
+  get'TypeMeta : ∀ (x : PersistentVolumeList), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
+  set'TypeMeta : ∀ (x : PersistentVolumeList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeList.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : PersistentVolumeList)))
+  get'ListMeta : ∀ (x : PersistentVolumeList), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeList.underlying go!"ListMeta") #x (Val #(x.ListMeta'))
+  set'ListMeta : ∀ (x : PersistentVolumeList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : PersistentVolumeList)))
+  get'Items : ∀ (x : PersistentVolumeList), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeList.underlying go!"Items") #x (Val #(x.Items'))
+  set'Items : ∀ (x : PersistentVolumeList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : PersistentVolumeList)))
   method_set : go.MethodSetIs PersistentVolumeList.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeList.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PersistentVolumeList.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PersistentVolumeList.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardInfo.ty)]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardInfo.ty)] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PersistentVolumeList.TypeAssumptions.type_repr
   PersistentVolumeList.TypeAssumptions.underlying
-  PersistentVolumeList.TypeAssumptions.get_TypeMeta
-  PersistentVolumeList.TypeAssumptions.set_TypeMeta
-  PersistentVolumeList.TypeAssumptions.get_ListMeta
-  PersistentVolumeList.TypeAssumptions.set_ListMeta
-  PersistentVolumeList.TypeAssumptions.get_Items
-  PersistentVolumeList.TypeAssumptions.set_Items
+  PersistentVolumeList.TypeAssumptions.get'TypeMeta
+  PersistentVolumeList.TypeAssumptions.set'TypeMeta
+  PersistentVolumeList.TypeAssumptions.get'ListMeta
+  PersistentVolumeList.TypeAssumptions.set'ListMeta
+  PersistentVolumeList.TypeAssumptions.get'Items
+  PersistentVolumeList.TypeAssumptions.set'Items
   PersistentVolumeList.TypeAssumptions.method_set
   PersistentVolumeList.TypeAssumptions.ptr_method_set
 
 class VolumeResourceRequirements.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying VolumeResourceRequirements.underlying VolumeResourceRequirements
   underlying : go.UnderlyingDirectedEq VolumeResourceRequirements.ty VolumeResourceRequirements.underlying
-  get_Limits : ∀ (x : VolumeResourceRequirements), go.IsGoStepPureDetTagged under (StructFieldGet VolumeResourceRequirements.underlying go!"Limits") #x (Val #(x.Limits'))
-  set_Limits : ∀ (x : VolumeResourceRequirements) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet VolumeResourceRequirements.underlying go!"Limits") (PairV #x #y) (Val #(({ x with Limits' := y } : VolumeResourceRequirements)))
-  get_Requests : ∀ (x : VolumeResourceRequirements), go.IsGoStepPureDetTagged under (StructFieldGet VolumeResourceRequirements.underlying go!"Requests") #x (Val #(x.Requests'))
-  set_Requests : ∀ (x : VolumeResourceRequirements) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet VolumeResourceRequirements.underlying go!"Requests") (PairV #x #y) (Val #(({ x with Requests' := y } : VolumeResourceRequirements)))
+  get'Limits : ∀ (x : VolumeResourceRequirements), go.IsGoStepPureDetTagged under (StructFieldGet VolumeResourceRequirements.underlying go!"Limits") #x (Val #(x.Limits'))
+  set'Limits : ∀ (x : VolumeResourceRequirements) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet VolumeResourceRequirements.underlying go!"Limits") (PairV #x #y) (Val #(({ x with Limits' := y } : VolumeResourceRequirements)))
+  get'Requests : ∀ (x : VolumeResourceRequirements), go.IsGoStepPureDetTagged under (StructFieldGet VolumeResourceRequirements.underlying go!"Requests") #x (Val #(x.Requests'))
+  set'Requests : ∀ (x : VolumeResourceRequirements) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet VolumeResourceRequirements.underlying go!"Requests") (PairV #x #y) (Val #(({ x with Requests' := y } : VolumeResourceRequirements)))
   method_set : go.MethodSetIs VolumeResourceRequirements.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType VolumeResourceRequirements.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType VolumeResourceRequirements.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType VolumeResourceRequirements.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType VolumeResourceRequirements.ty) go!"DeepCopyInto" VolumeResourceRequirements.DeepCopyInto.impl
+  ptr_unfold'DeepCopyInto : MethodUnfold (go.GoType.PointerType VolumeResourceRequirements.ty) go!"DeepCopyInto" VolumeResourceRequirements.DeepCopyInto.impl
 
 attribute [instance] VolumeResourceRequirements.TypeAssumptions.type_repr
   VolumeResourceRequirements.TypeAssumptions.underlying
-  VolumeResourceRequirements.TypeAssumptions.get_Limits
-  VolumeResourceRequirements.TypeAssumptions.set_Limits
-  VolumeResourceRequirements.TypeAssumptions.get_Requests
-  VolumeResourceRequirements.TypeAssumptions.set_Requests
+  VolumeResourceRequirements.TypeAssumptions.get'Limits
+  VolumeResourceRequirements.TypeAssumptions.set'Limits
+  VolumeResourceRequirements.TypeAssumptions.get'Requests
+  VolumeResourceRequirements.TypeAssumptions.set'Requests
   VolumeResourceRequirements.TypeAssumptions.method_set
   VolumeResourceRequirements.TypeAssumptions.ptr_method_set
-  VolumeResourceRequirements.TypeAssumptions.ptr_DeepCopyInto_unfold
+  VolumeResourceRequirements.TypeAssumptions.ptr_unfold'DeepCopyInto
 
 class PersistentVolumeClaimSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeClaimSpec.underlying PersistentVolumeClaimSpec
   underlying : go.UnderlyingDirectedEq PersistentVolumeClaimSpec.ty PersistentVolumeClaimSpec.underlying
-  get_AccessModes : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"AccessModes") #x (Val #(x.AccessModes'))
-  set_AccessModes : ∀ (x : PersistentVolumeClaimSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"AccessModes") (PairV #x #y) (Val #(({ x with AccessModes' := y } : PersistentVolumeClaimSpec)))
-  get_Selector : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"Selector") #x (Val #(x.Selector'))
-  set_Selector : ∀ (x : PersistentVolumeClaimSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"Selector") (PairV #x #y) (Val #(({ x with Selector' := y } : PersistentVolumeClaimSpec)))
-  get_Resources : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"Resources") #x (Val #(x.Resources'))
-  set_Resources : ∀ (x : PersistentVolumeClaimSpec) (y : VolumeResourceRequirements), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"Resources") (PairV #x #y) (Val #(({ x with Resources' := y } : PersistentVolumeClaimSpec)))
-  get_VolumeName : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"VolumeName") #x (Val #(x.VolumeName'))
-  set_VolumeName : ∀ (x : PersistentVolumeClaimSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"VolumeName") (PairV #x #y) (Val #(({ x with VolumeName' := y } : PersistentVolumeClaimSpec)))
-  get_StorageClassName : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"StorageClassName") #x (Val #(x.StorageClassName'))
-  set_StorageClassName : ∀ (x : PersistentVolumeClaimSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"StorageClassName") (PairV #x #y) (Val #(({ x with StorageClassName' := y } : PersistentVolumeClaimSpec)))
-  get_VolumeMode : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"VolumeMode") #x (Val #(x.VolumeMode'))
-  set_VolumeMode : ∀ (x : PersistentVolumeClaimSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"VolumeMode") (PairV #x #y) (Val #(({ x with VolumeMode' := y } : PersistentVolumeClaimSpec)))
-  get_DataSource : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"DataSource") #x (Val #(x.DataSource'))
-  set_DataSource : ∀ (x : PersistentVolumeClaimSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"DataSource") (PairV #x #y) (Val #(({ x with DataSource' := y } : PersistentVolumeClaimSpec)))
-  get_DataSourceRef : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"DataSourceRef") #x (Val #(x.DataSourceRef'))
-  set_DataSourceRef : ∀ (x : PersistentVolumeClaimSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"DataSourceRef") (PairV #x #y) (Val #(({ x with DataSourceRef' := y } : PersistentVolumeClaimSpec)))
-  get_VolumeAttributesClassName : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"VolumeAttributesClassName") #x (Val #(x.VolumeAttributesClassName'))
-  set_VolumeAttributesClassName : ∀ (x : PersistentVolumeClaimSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"VolumeAttributesClassName") (PairV #x #y) (Val #(({ x with VolumeAttributesClassName' := y } : PersistentVolumeClaimSpec)))
+  get'AccessModes : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"AccessModes") #x (Val #(x.AccessModes'))
+  set'AccessModes : ∀ (x : PersistentVolumeClaimSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"AccessModes") (PairV #x #y) (Val #(({ x with AccessModes' := y } : PersistentVolumeClaimSpec)))
+  get'Selector : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"Selector") #x (Val #(x.Selector'))
+  set'Selector : ∀ (x : PersistentVolumeClaimSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"Selector") (PairV #x #y) (Val #(({ x with Selector' := y } : PersistentVolumeClaimSpec)))
+  get'Resources : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"Resources") #x (Val #(x.Resources'))
+  set'Resources : ∀ (x : PersistentVolumeClaimSpec) (y : VolumeResourceRequirements), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"Resources") (PairV #x #y) (Val #(({ x with Resources' := y } : PersistentVolumeClaimSpec)))
+  get'VolumeName : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"VolumeName") #x (Val #(x.VolumeName'))
+  set'VolumeName : ∀ (x : PersistentVolumeClaimSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"VolumeName") (PairV #x #y) (Val #(({ x with VolumeName' := y } : PersistentVolumeClaimSpec)))
+  get'StorageClassName : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"StorageClassName") #x (Val #(x.StorageClassName'))
+  set'StorageClassName : ∀ (x : PersistentVolumeClaimSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"StorageClassName") (PairV #x #y) (Val #(({ x with StorageClassName' := y } : PersistentVolumeClaimSpec)))
+  get'VolumeMode : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"VolumeMode") #x (Val #(x.VolumeMode'))
+  set'VolumeMode : ∀ (x : PersistentVolumeClaimSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"VolumeMode") (PairV #x #y) (Val #(({ x with VolumeMode' := y } : PersistentVolumeClaimSpec)))
+  get'DataSource : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"DataSource") #x (Val #(x.DataSource'))
+  set'DataSource : ∀ (x : PersistentVolumeClaimSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"DataSource") (PairV #x #y) (Val #(({ x with DataSource' := y } : PersistentVolumeClaimSpec)))
+  get'DataSourceRef : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"DataSourceRef") #x (Val #(x.DataSourceRef'))
+  set'DataSourceRef : ∀ (x : PersistentVolumeClaimSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"DataSourceRef") (PairV #x #y) (Val #(({ x with DataSourceRef' := y } : PersistentVolumeClaimSpec)))
+  get'VolumeAttributesClassName : ∀ (x : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpec.underlying go!"VolumeAttributesClassName") #x (Val #(x.VolumeAttributesClassName'))
+  set'VolumeAttributesClassName : ∀ (x : PersistentVolumeClaimSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpec.underlying go!"VolumeAttributesClassName") (PairV #x #y) (Val #(({ x with VolumeAttributesClassName' := y } : PersistentVolumeClaimSpec)))
   method_set : go.MethodSetIs PersistentVolumeClaimSpec.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeClaimSpec.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PersistentVolumeClaimSpec.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PersistentVolumeClaimSpec.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType PersistentVolumeClaimSpec.ty) go!"DeepCopyInto" PersistentVolumeClaimSpec.DeepCopyInto.impl
+  ptr_unfold'DeepCopyInto : MethodUnfold (go.GoType.PointerType PersistentVolumeClaimSpec.ty) go!"DeepCopyInto" PersistentVolumeClaimSpec.DeepCopyInto.impl
 
 attribute [instance] PersistentVolumeClaimSpec.TypeAssumptions.type_repr
   PersistentVolumeClaimSpec.TypeAssumptions.underlying
-  PersistentVolumeClaimSpec.TypeAssumptions.get_AccessModes
-  PersistentVolumeClaimSpec.TypeAssumptions.set_AccessModes
-  PersistentVolumeClaimSpec.TypeAssumptions.get_Selector
-  PersistentVolumeClaimSpec.TypeAssumptions.set_Selector
-  PersistentVolumeClaimSpec.TypeAssumptions.get_Resources
-  PersistentVolumeClaimSpec.TypeAssumptions.set_Resources
-  PersistentVolumeClaimSpec.TypeAssumptions.get_VolumeName
-  PersistentVolumeClaimSpec.TypeAssumptions.set_VolumeName
-  PersistentVolumeClaimSpec.TypeAssumptions.get_StorageClassName
-  PersistentVolumeClaimSpec.TypeAssumptions.set_StorageClassName
-  PersistentVolumeClaimSpec.TypeAssumptions.get_VolumeMode
-  PersistentVolumeClaimSpec.TypeAssumptions.set_VolumeMode
-  PersistentVolumeClaimSpec.TypeAssumptions.get_DataSource
-  PersistentVolumeClaimSpec.TypeAssumptions.set_DataSource
-  PersistentVolumeClaimSpec.TypeAssumptions.get_DataSourceRef
-  PersistentVolumeClaimSpec.TypeAssumptions.set_DataSourceRef
-  PersistentVolumeClaimSpec.TypeAssumptions.get_VolumeAttributesClassName
-  PersistentVolumeClaimSpec.TypeAssumptions.set_VolumeAttributesClassName
+  PersistentVolumeClaimSpec.TypeAssumptions.get'AccessModes
+  PersistentVolumeClaimSpec.TypeAssumptions.set'AccessModes
+  PersistentVolumeClaimSpec.TypeAssumptions.get'Selector
+  PersistentVolumeClaimSpec.TypeAssumptions.set'Selector
+  PersistentVolumeClaimSpec.TypeAssumptions.get'Resources
+  PersistentVolumeClaimSpec.TypeAssumptions.set'Resources
+  PersistentVolumeClaimSpec.TypeAssumptions.get'VolumeName
+  PersistentVolumeClaimSpec.TypeAssumptions.set'VolumeName
+  PersistentVolumeClaimSpec.TypeAssumptions.get'StorageClassName
+  PersistentVolumeClaimSpec.TypeAssumptions.set'StorageClassName
+  PersistentVolumeClaimSpec.TypeAssumptions.get'VolumeMode
+  PersistentVolumeClaimSpec.TypeAssumptions.set'VolumeMode
+  PersistentVolumeClaimSpec.TypeAssumptions.get'DataSource
+  PersistentVolumeClaimSpec.TypeAssumptions.set'DataSource
+  PersistentVolumeClaimSpec.TypeAssumptions.get'DataSourceRef
+  PersistentVolumeClaimSpec.TypeAssumptions.set'DataSourceRef
+  PersistentVolumeClaimSpec.TypeAssumptions.get'VolumeAttributesClassName
+  PersistentVolumeClaimSpec.TypeAssumptions.set'VolumeAttributesClassName
   PersistentVolumeClaimSpec.TypeAssumptions.method_set
   PersistentVolumeClaimSpec.TypeAssumptions.ptr_method_set
-  PersistentVolumeClaimSpec.TypeAssumptions.ptr_DeepCopyInto_unfold
+  PersistentVolumeClaimSpec.TypeAssumptions.ptr_unfold'DeepCopyInto
 
 class PersistentVolumeClaimPhase.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PersistentVolumeClaimPhase.ty PersistentVolumeClaimPhase.underlying
@@ -549,128 +549,128 @@ attribute [instance] PersistentVolumeClaimPhase.TypeAssumptions.underlying
 class PersistentVolumeClaimStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeClaimStatus.underlying PersistentVolumeClaimStatus
   underlying : go.UnderlyingDirectedEq PersistentVolumeClaimStatus.ty PersistentVolumeClaimStatus.underlying
-  get_Phase : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"Phase") #x (Val #(x.Phase'))
-  set_Phase : ∀ (x : PersistentVolumeClaimStatus) (y : PersistentVolumeClaimPhase), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"Phase") (PairV #x #y) (Val #(({ x with Phase' := y } : PersistentVolumeClaimStatus)))
-  get_AccessModes : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"AccessModes") #x (Val #(x.AccessModes'))
-  set_AccessModes : ∀ (x : PersistentVolumeClaimStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"AccessModes") (PairV #x #y) (Val #(({ x with AccessModes' := y } : PersistentVolumeClaimStatus)))
-  get_Capacity : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"Capacity") #x (Val #(x.Capacity'))
-  set_Capacity : ∀ (x : PersistentVolumeClaimStatus) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"Capacity") (PairV #x #y) (Val #(({ x with Capacity' := y } : PersistentVolumeClaimStatus)))
-  get_Conditions : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"Conditions") #x (Val #(x.Conditions'))
-  set_Conditions : ∀ (x : PersistentVolumeClaimStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"Conditions") (PairV #x #y) (Val #(({ x with Conditions' := y } : PersistentVolumeClaimStatus)))
-  get_AllocatedResources : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"AllocatedResources") #x (Val #(x.AllocatedResources'))
-  set_AllocatedResources : ∀ (x : PersistentVolumeClaimStatus) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"AllocatedResources") (PairV #x #y) (Val #(({ x with AllocatedResources' := y } : PersistentVolumeClaimStatus)))
-  get_AllocatedResourceStatuses : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"AllocatedResourceStatuses") #x (Val #(x.AllocatedResourceStatuses'))
-  set_AllocatedResourceStatuses : ∀ (x : PersistentVolumeClaimStatus) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"AllocatedResourceStatuses") (PairV #x #y) (Val #(({ x with AllocatedResourceStatuses' := y } : PersistentVolumeClaimStatus)))
-  get_CurrentVolumeAttributesClassName : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"CurrentVolumeAttributesClassName") #x (Val #(x.CurrentVolumeAttributesClassName'))
-  set_CurrentVolumeAttributesClassName : ∀ (x : PersistentVolumeClaimStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"CurrentVolumeAttributesClassName") (PairV #x #y) (Val #(({ x with CurrentVolumeAttributesClassName' := y } : PersistentVolumeClaimStatus)))
-  get_ModifyVolumeStatus : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"ModifyVolumeStatus") #x (Val #(x.ModifyVolumeStatus'))
-  set_ModifyVolumeStatus : ∀ (x : PersistentVolumeClaimStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"ModifyVolumeStatus") (PairV #x #y) (Val #(({ x with ModifyVolumeStatus' := y } : PersistentVolumeClaimStatus)))
-  get_HealthStatus : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"HealthStatus") #x (Val #(x.HealthStatus'))
-  set_HealthStatus : ∀ (x : PersistentVolumeClaimStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"HealthStatus") (PairV #x #y) (Val #(({ x with HealthStatus' := y } : PersistentVolumeClaimStatus)))
+  get'Phase : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"Phase") #x (Val #(x.Phase'))
+  set'Phase : ∀ (x : PersistentVolumeClaimStatus) (y : PersistentVolumeClaimPhase), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"Phase") (PairV #x #y) (Val #(({ x with Phase' := y } : PersistentVolumeClaimStatus)))
+  get'AccessModes : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"AccessModes") #x (Val #(x.AccessModes'))
+  set'AccessModes : ∀ (x : PersistentVolumeClaimStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"AccessModes") (PairV #x #y) (Val #(({ x with AccessModes' := y } : PersistentVolumeClaimStatus)))
+  get'Capacity : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"Capacity") #x (Val #(x.Capacity'))
+  set'Capacity : ∀ (x : PersistentVolumeClaimStatus) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"Capacity") (PairV #x #y) (Val #(({ x with Capacity' := y } : PersistentVolumeClaimStatus)))
+  get'Conditions : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"Conditions") #x (Val #(x.Conditions'))
+  set'Conditions : ∀ (x : PersistentVolumeClaimStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"Conditions") (PairV #x #y) (Val #(({ x with Conditions' := y } : PersistentVolumeClaimStatus)))
+  get'AllocatedResources : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"AllocatedResources") #x (Val #(x.AllocatedResources'))
+  set'AllocatedResources : ∀ (x : PersistentVolumeClaimStatus) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"AllocatedResources") (PairV #x #y) (Val #(({ x with AllocatedResources' := y } : PersistentVolumeClaimStatus)))
+  get'AllocatedResourceStatuses : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"AllocatedResourceStatuses") #x (Val #(x.AllocatedResourceStatuses'))
+  set'AllocatedResourceStatuses : ∀ (x : PersistentVolumeClaimStatus) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"AllocatedResourceStatuses") (PairV #x #y) (Val #(({ x with AllocatedResourceStatuses' := y } : PersistentVolumeClaimStatus)))
+  get'CurrentVolumeAttributesClassName : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"CurrentVolumeAttributesClassName") #x (Val #(x.CurrentVolumeAttributesClassName'))
+  set'CurrentVolumeAttributesClassName : ∀ (x : PersistentVolumeClaimStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"CurrentVolumeAttributesClassName") (PairV #x #y) (Val #(({ x with CurrentVolumeAttributesClassName' := y } : PersistentVolumeClaimStatus)))
+  get'ModifyVolumeStatus : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"ModifyVolumeStatus") #x (Val #(x.ModifyVolumeStatus'))
+  set'ModifyVolumeStatus : ∀ (x : PersistentVolumeClaimStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"ModifyVolumeStatus") (PairV #x #y) (Val #(({ x with ModifyVolumeStatus' := y } : PersistentVolumeClaimStatus)))
+  get'HealthStatus : ∀ (x : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimStatus.underlying go!"HealthStatus") #x (Val #(x.HealthStatus'))
+  set'HealthStatus : ∀ (x : PersistentVolumeClaimStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimStatus.underlying go!"HealthStatus") (PairV #x #y) (Val #(({ x with HealthStatus' := y } : PersistentVolumeClaimStatus)))
   method_set : go.MethodSetIs PersistentVolumeClaimStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeClaimStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PersistentVolumeClaimStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PersistentVolumeClaimStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PersistentVolumeClaimStatus.TypeAssumptions.type_repr
   PersistentVolumeClaimStatus.TypeAssumptions.underlying
-  PersistentVolumeClaimStatus.TypeAssumptions.get_Phase
-  PersistentVolumeClaimStatus.TypeAssumptions.set_Phase
-  PersistentVolumeClaimStatus.TypeAssumptions.get_AccessModes
-  PersistentVolumeClaimStatus.TypeAssumptions.set_AccessModes
-  PersistentVolumeClaimStatus.TypeAssumptions.get_Capacity
-  PersistentVolumeClaimStatus.TypeAssumptions.set_Capacity
-  PersistentVolumeClaimStatus.TypeAssumptions.get_Conditions
-  PersistentVolumeClaimStatus.TypeAssumptions.set_Conditions
-  PersistentVolumeClaimStatus.TypeAssumptions.get_AllocatedResources
-  PersistentVolumeClaimStatus.TypeAssumptions.set_AllocatedResources
-  PersistentVolumeClaimStatus.TypeAssumptions.get_AllocatedResourceStatuses
-  PersistentVolumeClaimStatus.TypeAssumptions.set_AllocatedResourceStatuses
-  PersistentVolumeClaimStatus.TypeAssumptions.get_CurrentVolumeAttributesClassName
-  PersistentVolumeClaimStatus.TypeAssumptions.set_CurrentVolumeAttributesClassName
-  PersistentVolumeClaimStatus.TypeAssumptions.get_ModifyVolumeStatus
-  PersistentVolumeClaimStatus.TypeAssumptions.set_ModifyVolumeStatus
-  PersistentVolumeClaimStatus.TypeAssumptions.get_HealthStatus
-  PersistentVolumeClaimStatus.TypeAssumptions.set_HealthStatus
+  PersistentVolumeClaimStatus.TypeAssumptions.get'Phase
+  PersistentVolumeClaimStatus.TypeAssumptions.set'Phase
+  PersistentVolumeClaimStatus.TypeAssumptions.get'AccessModes
+  PersistentVolumeClaimStatus.TypeAssumptions.set'AccessModes
+  PersistentVolumeClaimStatus.TypeAssumptions.get'Capacity
+  PersistentVolumeClaimStatus.TypeAssumptions.set'Capacity
+  PersistentVolumeClaimStatus.TypeAssumptions.get'Conditions
+  PersistentVolumeClaimStatus.TypeAssumptions.set'Conditions
+  PersistentVolumeClaimStatus.TypeAssumptions.get'AllocatedResources
+  PersistentVolumeClaimStatus.TypeAssumptions.set'AllocatedResources
+  PersistentVolumeClaimStatus.TypeAssumptions.get'AllocatedResourceStatuses
+  PersistentVolumeClaimStatus.TypeAssumptions.set'AllocatedResourceStatuses
+  PersistentVolumeClaimStatus.TypeAssumptions.get'CurrentVolumeAttributesClassName
+  PersistentVolumeClaimStatus.TypeAssumptions.set'CurrentVolumeAttributesClassName
+  PersistentVolumeClaimStatus.TypeAssumptions.get'ModifyVolumeStatus
+  PersistentVolumeClaimStatus.TypeAssumptions.set'ModifyVolumeStatus
+  PersistentVolumeClaimStatus.TypeAssumptions.get'HealthStatus
+  PersistentVolumeClaimStatus.TypeAssumptions.set'HealthStatus
   PersistentVolumeClaimStatus.TypeAssumptions.method_set
   PersistentVolumeClaimStatus.TypeAssumptions.ptr_method_set
 
 class PersistentVolumeClaim.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeClaim.underlying PersistentVolumeClaim
   underlying : go.UnderlyingDirectedEq PersistentVolumeClaim.ty PersistentVolumeClaim.underlying
-  get_TypeMeta : ∀ (x : PersistentVolumeClaim), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaim.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : PersistentVolumeClaim) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaim.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : PersistentVolumeClaim)))
-  get_ObjectMeta : ∀ (x : PersistentVolumeClaim), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaim.underlying go!"ObjectMeta") #x (Val #(x.ObjectMeta'))
-  set_ObjectMeta : ∀ (x : PersistentVolumeClaim) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaim.underlying go!"ObjectMeta") (PairV #x #y) (Val #(({ x with ObjectMeta' := y } : PersistentVolumeClaim)))
-  get_Spec : ∀ (x : PersistentVolumeClaim), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaim.underlying go!"Spec") #x (Val #(x.Spec'))
-  set_Spec : ∀ (x : PersistentVolumeClaim) (y : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaim.underlying go!"Spec") (PairV #x #y) (Val #(({ x with Spec' := y } : PersistentVolumeClaim)))
-  get_Status : ∀ (x : PersistentVolumeClaim), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaim.underlying go!"Status") #x (Val #(x.Status'))
-  set_Status : ∀ (x : PersistentVolumeClaim) (y : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaim.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : PersistentVolumeClaim)))
+  get'TypeMeta : ∀ (x : PersistentVolumeClaim), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaim.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
+  set'TypeMeta : ∀ (x : PersistentVolumeClaim) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaim.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : PersistentVolumeClaim)))
+  get'ObjectMeta : ∀ (x : PersistentVolumeClaim), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaim.underlying go!"ObjectMeta") #x (Val #(x.ObjectMeta'))
+  set'ObjectMeta : ∀ (x : PersistentVolumeClaim) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaim.underlying go!"ObjectMeta") (PairV #x #y) (Val #(({ x with ObjectMeta' := y } : PersistentVolumeClaim)))
+  get'Spec : ∀ (x : PersistentVolumeClaim), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaim.underlying go!"Spec") #x (Val #(x.Spec'))
+  set'Spec : ∀ (x : PersistentVolumeClaim) (y : PersistentVolumeClaimSpec), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaim.underlying go!"Spec") (PairV #x #y) (Val #(({ x with Spec' := y } : PersistentVolumeClaim)))
+  get'Status : ∀ (x : PersistentVolumeClaim), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaim.underlying go!"Status") #x (Val #(x.Status'))
+  set'Status : ∀ (x : PersistentVolumeClaim) (y : PersistentVolumeClaimStatus), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaim.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : PersistentVolumeClaim)))
   method_set : go.MethodSetIs PersistentVolumeClaim.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeClaim.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PersistentVolumeClaim.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PersistentVolumeClaim.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetObjectMeta", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PersistentVolumeClaim.TypeAssumptions.type_repr
   PersistentVolumeClaim.TypeAssumptions.underlying
-  PersistentVolumeClaim.TypeAssumptions.get_TypeMeta
-  PersistentVolumeClaim.TypeAssumptions.set_TypeMeta
-  PersistentVolumeClaim.TypeAssumptions.get_ObjectMeta
-  PersistentVolumeClaim.TypeAssumptions.set_ObjectMeta
-  PersistentVolumeClaim.TypeAssumptions.get_Spec
-  PersistentVolumeClaim.TypeAssumptions.set_Spec
-  PersistentVolumeClaim.TypeAssumptions.get_Status
-  PersistentVolumeClaim.TypeAssumptions.set_Status
+  PersistentVolumeClaim.TypeAssumptions.get'TypeMeta
+  PersistentVolumeClaim.TypeAssumptions.set'TypeMeta
+  PersistentVolumeClaim.TypeAssumptions.get'ObjectMeta
+  PersistentVolumeClaim.TypeAssumptions.set'ObjectMeta
+  PersistentVolumeClaim.TypeAssumptions.get'Spec
+  PersistentVolumeClaim.TypeAssumptions.set'Spec
+  PersistentVolumeClaim.TypeAssumptions.get'Status
+  PersistentVolumeClaim.TypeAssumptions.set'Status
   PersistentVolumeClaim.TypeAssumptions.method_set
   PersistentVolumeClaim.TypeAssumptions.ptr_method_set
 
 class PersistentVolumeClaimList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeClaimList.underlying PersistentVolumeClaimList
   underlying : go.UnderlyingDirectedEq PersistentVolumeClaimList.ty PersistentVolumeClaimList.underlying
-  get_TypeMeta : ∀ (x : PersistentVolumeClaimList), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : PersistentVolumeClaimList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimList.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : PersistentVolumeClaimList)))
-  get_ListMeta : ∀ (x : PersistentVolumeClaimList), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimList.underlying go!"ListMeta") #x (Val #(x.ListMeta'))
-  set_ListMeta : ∀ (x : PersistentVolumeClaimList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : PersistentVolumeClaimList)))
-  get_Items : ∀ (x : PersistentVolumeClaimList), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimList.underlying go!"Items") #x (Val #(x.Items'))
-  set_Items : ∀ (x : PersistentVolumeClaimList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : PersistentVolumeClaimList)))
+  get'TypeMeta : ∀ (x : PersistentVolumeClaimList), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
+  set'TypeMeta : ∀ (x : PersistentVolumeClaimList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimList.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : PersistentVolumeClaimList)))
+  get'ListMeta : ∀ (x : PersistentVolumeClaimList), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimList.underlying go!"ListMeta") #x (Val #(x.ListMeta'))
+  set'ListMeta : ∀ (x : PersistentVolumeClaimList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : PersistentVolumeClaimList)))
+  get'Items : ∀ (x : PersistentVolumeClaimList), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimList.underlying go!"Items") #x (Val #(x.Items'))
+  set'Items : ∀ (x : PersistentVolumeClaimList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : PersistentVolumeClaimList)))
   method_set : go.MethodSetIs PersistentVolumeClaimList.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeClaimList.ty) [(go!"APILifecycleIntroduced", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PersistentVolumeClaimList.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PersistentVolumeClaimList.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardInfo.ty)]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardInfo.ty)] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PersistentVolumeClaimList.TypeAssumptions.type_repr
   PersistentVolumeClaimList.TypeAssumptions.underlying
-  PersistentVolumeClaimList.TypeAssumptions.get_TypeMeta
-  PersistentVolumeClaimList.TypeAssumptions.set_TypeMeta
-  PersistentVolumeClaimList.TypeAssumptions.get_ListMeta
-  PersistentVolumeClaimList.TypeAssumptions.set_ListMeta
-  PersistentVolumeClaimList.TypeAssumptions.get_Items
-  PersistentVolumeClaimList.TypeAssumptions.set_Items
+  PersistentVolumeClaimList.TypeAssumptions.get'TypeMeta
+  PersistentVolumeClaimList.TypeAssumptions.set'TypeMeta
+  PersistentVolumeClaimList.TypeAssumptions.get'ListMeta
+  PersistentVolumeClaimList.TypeAssumptions.set'ListMeta
+  PersistentVolumeClaimList.TypeAssumptions.get'Items
+  PersistentVolumeClaimList.TypeAssumptions.set'Items
   PersistentVolumeClaimList.TypeAssumptions.method_set
   PersistentVolumeClaimList.TypeAssumptions.ptr_method_set
 
 class TypedObjectReference.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TypedObjectReference.underlying TypedObjectReference
   underlying : go.UnderlyingDirectedEq TypedObjectReference.ty TypedObjectReference.underlying
-  get_APIGroup : ∀ (x : TypedObjectReference), go.IsGoStepPureDetTagged under (StructFieldGet TypedObjectReference.underlying go!"APIGroup") #x (Val #(x.APIGroup'))
-  set_APIGroup : ∀ (x : TypedObjectReference) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TypedObjectReference.underlying go!"APIGroup") (PairV #x #y) (Val #(({ x with APIGroup' := y } : TypedObjectReference)))
-  get_Kind : ∀ (x : TypedObjectReference), go.IsGoStepPureDetTagged under (StructFieldGet TypedObjectReference.underlying go!"Kind") #x (Val #(x.Kind'))
-  set_Kind : ∀ (x : TypedObjectReference) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TypedObjectReference.underlying go!"Kind") (PairV #x #y) (Val #(({ x with Kind' := y } : TypedObjectReference)))
-  get_Name : ∀ (x : TypedObjectReference), go.IsGoStepPureDetTagged under (StructFieldGet TypedObjectReference.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : TypedObjectReference) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TypedObjectReference.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : TypedObjectReference)))
-  get_Namespace : ∀ (x : TypedObjectReference), go.IsGoStepPureDetTagged under (StructFieldGet TypedObjectReference.underlying go!"Namespace") #x (Val #(x.Namespace'))
-  set_Namespace : ∀ (x : TypedObjectReference) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TypedObjectReference.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : TypedObjectReference)))
+  get'APIGroup : ∀ (x : TypedObjectReference), go.IsGoStepPureDetTagged under (StructFieldGet TypedObjectReference.underlying go!"APIGroup") #x (Val #(x.APIGroup'))
+  set'APIGroup : ∀ (x : TypedObjectReference) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TypedObjectReference.underlying go!"APIGroup") (PairV #x #y) (Val #(({ x with APIGroup' := y } : TypedObjectReference)))
+  get'Kind : ∀ (x : TypedObjectReference), go.IsGoStepPureDetTagged under (StructFieldGet TypedObjectReference.underlying go!"Kind") #x (Val #(x.Kind'))
+  set'Kind : ∀ (x : TypedObjectReference) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TypedObjectReference.underlying go!"Kind") (PairV #x #y) (Val #(({ x with Kind' := y } : TypedObjectReference)))
+  get'Name : ∀ (x : TypedObjectReference), go.IsGoStepPureDetTagged under (StructFieldGet TypedObjectReference.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : TypedObjectReference) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TypedObjectReference.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : TypedObjectReference)))
+  get'Namespace : ∀ (x : TypedObjectReference), go.IsGoStepPureDetTagged under (StructFieldGet TypedObjectReference.underlying go!"Namespace") #x (Val #(x.Namespace'))
+  set'Namespace : ∀ (x : TypedObjectReference) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TypedObjectReference.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : TypedObjectReference)))
   method_set : go.MethodSetIs TypedObjectReference.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType TypedObjectReference.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType TypedObjectReference.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType TypedObjectReference.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType TypedObjectReference.ty) go!"DeepCopyInto" TypedObjectReference.DeepCopyInto.impl
+  ptr_unfold'DeepCopyInto : MethodUnfold (go.GoType.PointerType TypedObjectReference.ty) go!"DeepCopyInto" TypedObjectReference.DeepCopyInto.impl
 
 attribute [instance] TypedObjectReference.TypeAssumptions.type_repr
   TypedObjectReference.TypeAssumptions.underlying
-  TypedObjectReference.TypeAssumptions.get_APIGroup
-  TypedObjectReference.TypeAssumptions.set_APIGroup
-  TypedObjectReference.TypeAssumptions.get_Kind
-  TypedObjectReference.TypeAssumptions.set_Kind
-  TypedObjectReference.TypeAssumptions.get_Name
-  TypedObjectReference.TypeAssumptions.set_Name
-  TypedObjectReference.TypeAssumptions.get_Namespace
-  TypedObjectReference.TypeAssumptions.set_Namespace
+  TypedObjectReference.TypeAssumptions.get'APIGroup
+  TypedObjectReference.TypeAssumptions.set'APIGroup
+  TypedObjectReference.TypeAssumptions.get'Kind
+  TypedObjectReference.TypeAssumptions.set'Kind
+  TypedObjectReference.TypeAssumptions.get'Name
+  TypedObjectReference.TypeAssumptions.set'Name
+  TypedObjectReference.TypeAssumptions.get'Namespace
+  TypedObjectReference.TypeAssumptions.set'Namespace
   TypedObjectReference.TypeAssumptions.method_set
   TypedObjectReference.TypeAssumptions.ptr_method_set
-  TypedObjectReference.TypeAssumptions.ptr_DeepCopyInto_unfold
+  TypedObjectReference.TypeAssumptions.ptr_unfold'DeepCopyInto
 
 class PersistentVolumeClaimConditionType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PersistentVolumeClaimConditionType.ty PersistentVolumeClaimConditionType.underlying
@@ -702,19 +702,19 @@ attribute [instance] PersistentVolumeClaimModifyVolumeStatus.TypeAssumptions.und
 class ModifyVolumeStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ModifyVolumeStatus.underlying ModifyVolumeStatus
   underlying : go.UnderlyingDirectedEq ModifyVolumeStatus.ty ModifyVolumeStatus.underlying
-  get_TargetVolumeAttributesClassName : ∀ (x : ModifyVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldGet ModifyVolumeStatus.underlying go!"TargetVolumeAttributesClassName") #x (Val #(x.TargetVolumeAttributesClassName'))
-  set_TargetVolumeAttributesClassName : ∀ (x : ModifyVolumeStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ModifyVolumeStatus.underlying go!"TargetVolumeAttributesClassName") (PairV #x #y) (Val #(({ x with TargetVolumeAttributesClassName' := y } : ModifyVolumeStatus)))
-  get_Status : ∀ (x : ModifyVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldGet ModifyVolumeStatus.underlying go!"Status") #x (Val #(x.Status'))
-  set_Status : ∀ (x : ModifyVolumeStatus) (y : PersistentVolumeClaimModifyVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldSet ModifyVolumeStatus.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : ModifyVolumeStatus)))
+  get'TargetVolumeAttributesClassName : ∀ (x : ModifyVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldGet ModifyVolumeStatus.underlying go!"TargetVolumeAttributesClassName") #x (Val #(x.TargetVolumeAttributesClassName'))
+  set'TargetVolumeAttributesClassName : ∀ (x : ModifyVolumeStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ModifyVolumeStatus.underlying go!"TargetVolumeAttributesClassName") (PairV #x #y) (Val #(({ x with TargetVolumeAttributesClassName' := y } : ModifyVolumeStatus)))
+  get'Status : ∀ (x : ModifyVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldGet ModifyVolumeStatus.underlying go!"Status") #x (Val #(x.Status'))
+  set'Status : ∀ (x : ModifyVolumeStatus) (y : PersistentVolumeClaimModifyVolumeStatus), go.IsGoStepPureDetTagged under (StructFieldSet ModifyVolumeStatus.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : ModifyVolumeStatus)))
   method_set : go.MethodSetIs ModifyVolumeStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ModifyVolumeStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ModifyVolumeStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ModifyVolumeStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] ModifyVolumeStatus.TypeAssumptions.type_repr
   ModifyVolumeStatus.TypeAssumptions.underlying
-  ModifyVolumeStatus.TypeAssumptions.get_TargetVolumeAttributesClassName
-  ModifyVolumeStatus.TypeAssumptions.set_TargetVolumeAttributesClassName
-  ModifyVolumeStatus.TypeAssumptions.get_Status
-  ModifyVolumeStatus.TypeAssumptions.set_Status
+  ModifyVolumeStatus.TypeAssumptions.get'TargetVolumeAttributesClassName
+  ModifyVolumeStatus.TypeAssumptions.set'TargetVolumeAttributesClassName
+  ModifyVolumeStatus.TypeAssumptions.get'Status
+  ModifyVolumeStatus.TypeAssumptions.set'Status
   ModifyVolumeStatus.TypeAssumptions.method_set
   ModifyVolumeStatus.TypeAssumptions.ptr_method_set
 
@@ -730,35 +730,35 @@ attribute [instance] ConditionStatus.TypeAssumptions.underlying
 class PersistentVolumeClaimCondition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeClaimCondition.underlying PersistentVolumeClaimCondition
   underlying : go.UnderlyingDirectedEq PersistentVolumeClaimCondition.ty PersistentVolumeClaimCondition.underlying
-  get_Type : ∀ (x : PersistentVolumeClaimCondition), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimCondition.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : PersistentVolumeClaimCondition) (y : PersistentVolumeClaimConditionType), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimCondition.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : PersistentVolumeClaimCondition)))
-  get_Status : ∀ (x : PersistentVolumeClaimCondition), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimCondition.underlying go!"Status") #x (Val #(x.Status'))
-  set_Status : ∀ (x : PersistentVolumeClaimCondition) (y : ConditionStatus), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimCondition.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : PersistentVolumeClaimCondition)))
-  get_LastProbeTime : ∀ (x : PersistentVolumeClaimCondition), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimCondition.underlying go!"LastProbeTime") #x (Val #(x.LastProbeTime'))
-  set_LastProbeTime : ∀ (x : PersistentVolumeClaimCondition) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimCondition.underlying go!"LastProbeTime") (PairV #x #y) (Val #(({ x with LastProbeTime' := y } : PersistentVolumeClaimCondition)))
-  get_LastTransitionTime : ∀ (x : PersistentVolumeClaimCondition), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimCondition.underlying go!"LastTransitionTime") #x (Val #(x.LastTransitionTime'))
-  set_LastTransitionTime : ∀ (x : PersistentVolumeClaimCondition) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimCondition.underlying go!"LastTransitionTime") (PairV #x #y) (Val #(({ x with LastTransitionTime' := y } : PersistentVolumeClaimCondition)))
-  get_Reason : ∀ (x : PersistentVolumeClaimCondition), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimCondition.underlying go!"Reason") #x (Val #(x.Reason'))
-  set_Reason : ∀ (x : PersistentVolumeClaimCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimCondition.underlying go!"Reason") (PairV #x #y) (Val #(({ x with Reason' := y } : PersistentVolumeClaimCondition)))
-  get_Message : ∀ (x : PersistentVolumeClaimCondition), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimCondition.underlying go!"Message") #x (Val #(x.Message'))
-  set_Message : ∀ (x : PersistentVolumeClaimCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimCondition.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : PersistentVolumeClaimCondition)))
+  get'Type : ∀ (x : PersistentVolumeClaimCondition), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimCondition.underlying go!"Type") #x (Val #(x.Type'))
+  set'Type : ∀ (x : PersistentVolumeClaimCondition) (y : PersistentVolumeClaimConditionType), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimCondition.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : PersistentVolumeClaimCondition)))
+  get'Status : ∀ (x : PersistentVolumeClaimCondition), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimCondition.underlying go!"Status") #x (Val #(x.Status'))
+  set'Status : ∀ (x : PersistentVolumeClaimCondition) (y : ConditionStatus), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimCondition.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : PersistentVolumeClaimCondition)))
+  get'LastProbeTime : ∀ (x : PersistentVolumeClaimCondition), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimCondition.underlying go!"LastProbeTime") #x (Val #(x.LastProbeTime'))
+  set'LastProbeTime : ∀ (x : PersistentVolumeClaimCondition) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimCondition.underlying go!"LastProbeTime") (PairV #x #y) (Val #(({ x with LastProbeTime' := y } : PersistentVolumeClaimCondition)))
+  get'LastTransitionTime : ∀ (x : PersistentVolumeClaimCondition), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimCondition.underlying go!"LastTransitionTime") #x (Val #(x.LastTransitionTime'))
+  set'LastTransitionTime : ∀ (x : PersistentVolumeClaimCondition) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimCondition.underlying go!"LastTransitionTime") (PairV #x #y) (Val #(({ x with LastTransitionTime' := y } : PersistentVolumeClaimCondition)))
+  get'Reason : ∀ (x : PersistentVolumeClaimCondition), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimCondition.underlying go!"Reason") #x (Val #(x.Reason'))
+  set'Reason : ∀ (x : PersistentVolumeClaimCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimCondition.underlying go!"Reason") (PairV #x #y) (Val #(({ x with Reason' := y } : PersistentVolumeClaimCondition)))
+  get'Message : ∀ (x : PersistentVolumeClaimCondition), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimCondition.underlying go!"Message") #x (Val #(x.Message'))
+  set'Message : ∀ (x : PersistentVolumeClaimCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimCondition.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : PersistentVolumeClaimCondition)))
   method_set : go.MethodSetIs PersistentVolumeClaimCondition.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeClaimCondition.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PersistentVolumeClaimCondition.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PersistentVolumeClaimCondition.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] PersistentVolumeClaimCondition.TypeAssumptions.type_repr
   PersistentVolumeClaimCondition.TypeAssumptions.underlying
-  PersistentVolumeClaimCondition.TypeAssumptions.get_Type
-  PersistentVolumeClaimCondition.TypeAssumptions.set_Type
-  PersistentVolumeClaimCondition.TypeAssumptions.get_Status
-  PersistentVolumeClaimCondition.TypeAssumptions.set_Status
-  PersistentVolumeClaimCondition.TypeAssumptions.get_LastProbeTime
-  PersistentVolumeClaimCondition.TypeAssumptions.set_LastProbeTime
-  PersistentVolumeClaimCondition.TypeAssumptions.get_LastTransitionTime
-  PersistentVolumeClaimCondition.TypeAssumptions.set_LastTransitionTime
-  PersistentVolumeClaimCondition.TypeAssumptions.get_Reason
-  PersistentVolumeClaimCondition.TypeAssumptions.set_Reason
-  PersistentVolumeClaimCondition.TypeAssumptions.get_Message
-  PersistentVolumeClaimCondition.TypeAssumptions.set_Message
+  PersistentVolumeClaimCondition.TypeAssumptions.get'Type
+  PersistentVolumeClaimCondition.TypeAssumptions.set'Type
+  PersistentVolumeClaimCondition.TypeAssumptions.get'Status
+  PersistentVolumeClaimCondition.TypeAssumptions.set'Status
+  PersistentVolumeClaimCondition.TypeAssumptions.get'LastProbeTime
+  PersistentVolumeClaimCondition.TypeAssumptions.set'LastProbeTime
+  PersistentVolumeClaimCondition.TypeAssumptions.get'LastTransitionTime
+  PersistentVolumeClaimCondition.TypeAssumptions.set'LastTransitionTime
+  PersistentVolumeClaimCondition.TypeAssumptions.get'Reason
+  PersistentVolumeClaimCondition.TypeAssumptions.set'Reason
+  PersistentVolumeClaimCondition.TypeAssumptions.get'Message
+  PersistentVolumeClaimCondition.TypeAssumptions.set'Message
   PersistentVolumeClaimCondition.TypeAssumptions.method_set
   PersistentVolumeClaimCondition.TypeAssumptions.ptr_method_set
 
@@ -774,69 +774,69 @@ attribute [instance] VolumeHealthStatusType.TypeAssumptions.underlying
 class VolumeHealthCondition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying VolumeHealthCondition.underlying VolumeHealthCondition
   underlying : go.UnderlyingDirectedEq VolumeHealthCondition.ty VolumeHealthCondition.underlying
-  get_Status : ∀ (x : VolumeHealthCondition), go.IsGoStepPureDetTagged under (StructFieldGet VolumeHealthCondition.underlying go!"Status") #x (Val #(x.Status'))
-  set_Status : ∀ (x : VolumeHealthCondition) (y : VolumeHealthStatusType), go.IsGoStepPureDetTagged under (StructFieldSet VolumeHealthCondition.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : VolumeHealthCondition)))
-  get_Reason : ∀ (x : VolumeHealthCondition), go.IsGoStepPureDetTagged under (StructFieldGet VolumeHealthCondition.underlying go!"Reason") #x (Val #(x.Reason'))
-  set_Reason : ∀ (x : VolumeHealthCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet VolumeHealthCondition.underlying go!"Reason") (PairV #x #y) (Val #(({ x with Reason' := y } : VolumeHealthCondition)))
-  get_Message : ∀ (x : VolumeHealthCondition), go.IsGoStepPureDetTagged under (StructFieldGet VolumeHealthCondition.underlying go!"Message") #x (Val #(x.Message'))
-  set_Message : ∀ (x : VolumeHealthCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet VolumeHealthCondition.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : VolumeHealthCondition)))
+  get'Status : ∀ (x : VolumeHealthCondition), go.IsGoStepPureDetTagged under (StructFieldGet VolumeHealthCondition.underlying go!"Status") #x (Val #(x.Status'))
+  set'Status : ∀ (x : VolumeHealthCondition) (y : VolumeHealthStatusType), go.IsGoStepPureDetTagged under (StructFieldSet VolumeHealthCondition.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : VolumeHealthCondition)))
+  get'Reason : ∀ (x : VolumeHealthCondition), go.IsGoStepPureDetTagged under (StructFieldGet VolumeHealthCondition.underlying go!"Reason") #x (Val #(x.Reason'))
+  set'Reason : ∀ (x : VolumeHealthCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet VolumeHealthCondition.underlying go!"Reason") (PairV #x #y) (Val #(({ x with Reason' := y } : VolumeHealthCondition)))
+  get'Message : ∀ (x : VolumeHealthCondition), go.IsGoStepPureDetTagged under (StructFieldGet VolumeHealthCondition.underlying go!"Message") #x (Val #(x.Message'))
+  set'Message : ∀ (x : VolumeHealthCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet VolumeHealthCondition.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : VolumeHealthCondition)))
   method_set : go.MethodSetIs VolumeHealthCondition.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType VolumeHealthCondition.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType VolumeHealthCondition.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType VolumeHealthCondition.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] VolumeHealthCondition.TypeAssumptions.type_repr
   VolumeHealthCondition.TypeAssumptions.underlying
-  VolumeHealthCondition.TypeAssumptions.get_Status
-  VolumeHealthCondition.TypeAssumptions.set_Status
-  VolumeHealthCondition.TypeAssumptions.get_Reason
-  VolumeHealthCondition.TypeAssumptions.set_Reason
-  VolumeHealthCondition.TypeAssumptions.get_Message
-  VolumeHealthCondition.TypeAssumptions.set_Message
+  VolumeHealthCondition.TypeAssumptions.get'Status
+  VolumeHealthCondition.TypeAssumptions.set'Status
+  VolumeHealthCondition.TypeAssumptions.get'Reason
+  VolumeHealthCondition.TypeAssumptions.set'Reason
+  VolumeHealthCondition.TypeAssumptions.get'Message
+  VolumeHealthCondition.TypeAssumptions.set'Message
   VolumeHealthCondition.TypeAssumptions.method_set
   VolumeHealthCondition.TypeAssumptions.ptr_method_set
 
 class VolumeHealthStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying VolumeHealthStatus.underlying VolumeHealthStatus
   underlying : go.UnderlyingDirectedEq VolumeHealthStatus.ty VolumeHealthStatus.underlying
-  get_HealthConditions : ∀ (x : VolumeHealthStatus), go.IsGoStepPureDetTagged under (StructFieldGet VolumeHealthStatus.underlying go!"HealthConditions") #x (Val #(x.HealthConditions'))
-  set_HealthConditions : ∀ (x : VolumeHealthStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet VolumeHealthStatus.underlying go!"HealthConditions") (PairV #x #y) (Val #(({ x with HealthConditions' := y } : VolumeHealthStatus)))
-  get_LastTransitionTime : ∀ (x : VolumeHealthStatus), go.IsGoStepPureDetTagged under (StructFieldGet VolumeHealthStatus.underlying go!"LastTransitionTime") #x (Val #(x.LastTransitionTime'))
-  set_LastTransitionTime : ∀ (x : VolumeHealthStatus) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time), go.IsGoStepPureDetTagged under (StructFieldSet VolumeHealthStatus.underlying go!"LastTransitionTime") (PairV #x #y) (Val #(({ x with LastTransitionTime' := y } : VolumeHealthStatus)))
+  get'HealthConditions : ∀ (x : VolumeHealthStatus), go.IsGoStepPureDetTagged under (StructFieldGet VolumeHealthStatus.underlying go!"HealthConditions") #x (Val #(x.HealthConditions'))
+  set'HealthConditions : ∀ (x : VolumeHealthStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet VolumeHealthStatus.underlying go!"HealthConditions") (PairV #x #y) (Val #(({ x with HealthConditions' := y } : VolumeHealthStatus)))
+  get'LastTransitionTime : ∀ (x : VolumeHealthStatus), go.IsGoStepPureDetTagged under (StructFieldGet VolumeHealthStatus.underlying go!"LastTransitionTime") #x (Val #(x.LastTransitionTime'))
+  set'LastTransitionTime : ∀ (x : VolumeHealthStatus) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time), go.IsGoStepPureDetTagged under (StructFieldSet VolumeHealthStatus.underlying go!"LastTransitionTime") (PairV #x #y) (Val #(({ x with LastTransitionTime' := y } : VolumeHealthStatus)))
   method_set : go.MethodSetIs VolumeHealthStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType VolumeHealthStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType VolumeHealthStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType VolumeHealthStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] VolumeHealthStatus.TypeAssumptions.type_repr
   VolumeHealthStatus.TypeAssumptions.underlying
-  VolumeHealthStatus.TypeAssumptions.get_HealthConditions
-  VolumeHealthStatus.TypeAssumptions.set_HealthConditions
-  VolumeHealthStatus.TypeAssumptions.get_LastTransitionTime
-  VolumeHealthStatus.TypeAssumptions.set_LastTransitionTime
+  VolumeHealthStatus.TypeAssumptions.get'HealthConditions
+  VolumeHealthStatus.TypeAssumptions.set'HealthConditions
+  VolumeHealthStatus.TypeAssumptions.get'LastTransitionTime
+  VolumeHealthStatus.TypeAssumptions.set'LastTransitionTime
   VolumeHealthStatus.TypeAssumptions.method_set
   VolumeHealthStatus.TypeAssumptions.ptr_method_set
 
 class PodVolumeHealth.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodVolumeHealth.underlying PodVolumeHealth
   underlying : go.UnderlyingDirectedEq PodVolumeHealth.ty PodVolumeHealth.underlying
-  get_Name : ∀ (x : PodVolumeHealth), go.IsGoStepPureDetTagged under (StructFieldGet PodVolumeHealth.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : PodVolumeHealth) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodVolumeHealth.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : PodVolumeHealth)))
-  get_HealthConditions : ∀ (x : PodVolumeHealth), go.IsGoStepPureDetTagged under (StructFieldGet PodVolumeHealth.underlying go!"HealthConditions") #x (Val #(x.HealthConditions'))
-  set_HealthConditions : ∀ (x : PodVolumeHealth) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodVolumeHealth.underlying go!"HealthConditions") (PairV #x #y) (Val #(({ x with HealthConditions' := y } : PodVolumeHealth)))
-  get_LastTransitionTime : ∀ (x : PodVolumeHealth), go.IsGoStepPureDetTagged under (StructFieldGet PodVolumeHealth.underlying go!"LastTransitionTime") #x (Val #(x.LastTransitionTime'))
-  set_LastTransitionTime : ∀ (x : PodVolumeHealth) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time), go.IsGoStepPureDetTagged under (StructFieldSet PodVolumeHealth.underlying go!"LastTransitionTime") (PairV #x #y) (Val #(({ x with LastTransitionTime' := y } : PodVolumeHealth)))
+  get'Name : ∀ (x : PodVolumeHealth), go.IsGoStepPureDetTagged under (StructFieldGet PodVolumeHealth.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : PodVolumeHealth) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodVolumeHealth.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : PodVolumeHealth)))
+  get'HealthConditions : ∀ (x : PodVolumeHealth), go.IsGoStepPureDetTagged under (StructFieldGet PodVolumeHealth.underlying go!"HealthConditions") #x (Val #(x.HealthConditions'))
+  set'HealthConditions : ∀ (x : PodVolumeHealth) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodVolumeHealth.underlying go!"HealthConditions") (PairV #x #y) (Val #(({ x with HealthConditions' := y } : PodVolumeHealth)))
+  get'LastTransitionTime : ∀ (x : PodVolumeHealth), go.IsGoStepPureDetTagged under (StructFieldGet PodVolumeHealth.underlying go!"LastTransitionTime") #x (Val #(x.LastTransitionTime'))
+  set'LastTransitionTime : ∀ (x : PodVolumeHealth) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time), go.IsGoStepPureDetTagged under (StructFieldSet PodVolumeHealth.underlying go!"LastTransitionTime") (PairV #x #y) (Val #(({ x with LastTransitionTime' := y } : PodVolumeHealth)))
   method_set : go.MethodSetIs PodVolumeHealth.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodVolumeHealth.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodVolumeHealth.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodVolumeHealth.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType PodVolumeHealth.ty) go!"DeepCopyInto" PodVolumeHealth.DeepCopyInto.impl
+  ptr_unfold'DeepCopyInto : MethodUnfold (go.GoType.PointerType PodVolumeHealth.ty) go!"DeepCopyInto" PodVolumeHealth.DeepCopyInto.impl
 
 attribute [instance] PodVolumeHealth.TypeAssumptions.type_repr
   PodVolumeHealth.TypeAssumptions.underlying
-  PodVolumeHealth.TypeAssumptions.get_Name
-  PodVolumeHealth.TypeAssumptions.set_Name
-  PodVolumeHealth.TypeAssumptions.get_HealthConditions
-  PodVolumeHealth.TypeAssumptions.set_HealthConditions
-  PodVolumeHealth.TypeAssumptions.get_LastTransitionTime
-  PodVolumeHealth.TypeAssumptions.set_LastTransitionTime
+  PodVolumeHealth.TypeAssumptions.get'Name
+  PodVolumeHealth.TypeAssumptions.set'Name
+  PodVolumeHealth.TypeAssumptions.get'HealthConditions
+  PodVolumeHealth.TypeAssumptions.set'HealthConditions
+  PodVolumeHealth.TypeAssumptions.get'LastTransitionTime
+  PodVolumeHealth.TypeAssumptions.set'LastTransitionTime
   PodVolumeHealth.TypeAssumptions.method_set
   PodVolumeHealth.TypeAssumptions.ptr_method_set
-  PodVolumeHealth.TypeAssumptions.ptr_DeepCopyInto_unfold
+  PodVolumeHealth.TypeAssumptions.ptr_unfold'DeepCopyInto
 
 class PersistentVolumeAccessMode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PersistentVolumeAccessMode.ty PersistentVolumeAccessMode.underlying
@@ -859,23 +859,23 @@ attribute [instance] HostPathType.TypeAssumptions.underlying
 class HostPathVolumeSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HostPathVolumeSource.underlying HostPathVolumeSource
   underlying : go.UnderlyingDirectedEq HostPathVolumeSource.ty HostPathVolumeSource.underlying
-  get_Path : ∀ (x : HostPathVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet HostPathVolumeSource.underlying go!"Path") #x (Val #(x.Path'))
-  set_Path : ∀ (x : HostPathVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet HostPathVolumeSource.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : HostPathVolumeSource)))
-  get_Type : ∀ (x : HostPathVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet HostPathVolumeSource.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : HostPathVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HostPathVolumeSource.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : HostPathVolumeSource)))
+  get'Path : ∀ (x : HostPathVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet HostPathVolumeSource.underlying go!"Path") #x (Val #(x.Path'))
+  set'Path : ∀ (x : HostPathVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet HostPathVolumeSource.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : HostPathVolumeSource)))
+  get'Type : ∀ (x : HostPathVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet HostPathVolumeSource.underlying go!"Type") #x (Val #(x.Type'))
+  set'Type : ∀ (x : HostPathVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HostPathVolumeSource.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : HostPathVolumeSource)))
   method_set : go.MethodSetIs HostPathVolumeSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType HostPathVolumeSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType HostPathVolumeSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType HostPathVolumeSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType HostPathVolumeSource.ty) go!"DeepCopyInto" HostPathVolumeSource.DeepCopyInto.impl
+  ptr_unfold'DeepCopyInto : MethodUnfold (go.GoType.PointerType HostPathVolumeSource.ty) go!"DeepCopyInto" HostPathVolumeSource.DeepCopyInto.impl
 
 attribute [instance] HostPathVolumeSource.TypeAssumptions.type_repr
   HostPathVolumeSource.TypeAssumptions.underlying
-  HostPathVolumeSource.TypeAssumptions.get_Path
-  HostPathVolumeSource.TypeAssumptions.set_Path
-  HostPathVolumeSource.TypeAssumptions.get_Type
-  HostPathVolumeSource.TypeAssumptions.set_Type
+  HostPathVolumeSource.TypeAssumptions.get'Path
+  HostPathVolumeSource.TypeAssumptions.set'Path
+  HostPathVolumeSource.TypeAssumptions.get'Type
+  HostPathVolumeSource.TypeAssumptions.set'Type
   HostPathVolumeSource.TypeAssumptions.method_set
   HostPathVolumeSource.TypeAssumptions.ptr_method_set
-  HostPathVolumeSource.TypeAssumptions.ptr_DeepCopyInto_unfold
+  HostPathVolumeSource.TypeAssumptions.ptr_unfold'DeepCopyInto
 
 class StorageMedium.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq StorageMedium.ty StorageMedium.underlying
@@ -889,258 +889,258 @@ attribute [instance] StorageMedium.TypeAssumptions.underlying
 class EmptyDirVolumeSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EmptyDirVolumeSource.underlying EmptyDirVolumeSource
   underlying : go.UnderlyingDirectedEq EmptyDirVolumeSource.ty EmptyDirVolumeSource.underlying
-  get_Medium : ∀ (x : EmptyDirVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet EmptyDirVolumeSource.underlying go!"Medium") #x (Val #(x.Medium'))
-  set_Medium : ∀ (x : EmptyDirVolumeSource) (y : StorageMedium), go.IsGoStepPureDetTagged under (StructFieldSet EmptyDirVolumeSource.underlying go!"Medium") (PairV #x #y) (Val #(({ x with Medium' := y } : EmptyDirVolumeSource)))
-  get_SizeLimit : ∀ (x : EmptyDirVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet EmptyDirVolumeSource.underlying go!"SizeLimit") #x (Val #(x.SizeLimit'))
-  set_SizeLimit : ∀ (x : EmptyDirVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EmptyDirVolumeSource.underlying go!"SizeLimit") (PairV #x #y) (Val #(({ x with SizeLimit' := y } : EmptyDirVolumeSource)))
-  get_Mode : ∀ (x : EmptyDirVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet EmptyDirVolumeSource.underlying go!"Mode") #x (Val #(x.Mode'))
-  set_Mode : ∀ (x : EmptyDirVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EmptyDirVolumeSource.underlying go!"Mode") (PairV #x #y) (Val #(({ x with Mode' := y } : EmptyDirVolumeSource)))
+  get'Medium : ∀ (x : EmptyDirVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet EmptyDirVolumeSource.underlying go!"Medium") #x (Val #(x.Medium'))
+  set'Medium : ∀ (x : EmptyDirVolumeSource) (y : StorageMedium), go.IsGoStepPureDetTagged under (StructFieldSet EmptyDirVolumeSource.underlying go!"Medium") (PairV #x #y) (Val #(({ x with Medium' := y } : EmptyDirVolumeSource)))
+  get'SizeLimit : ∀ (x : EmptyDirVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet EmptyDirVolumeSource.underlying go!"SizeLimit") #x (Val #(x.SizeLimit'))
+  set'SizeLimit : ∀ (x : EmptyDirVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EmptyDirVolumeSource.underlying go!"SizeLimit") (PairV #x #y) (Val #(({ x with SizeLimit' := y } : EmptyDirVolumeSource)))
+  get'Mode : ∀ (x : EmptyDirVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet EmptyDirVolumeSource.underlying go!"Mode") #x (Val #(x.Mode'))
+  set'Mode : ∀ (x : EmptyDirVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EmptyDirVolumeSource.underlying go!"Mode") (PairV #x #y) (Val #(({ x with Mode' := y } : EmptyDirVolumeSource)))
   method_set : go.MethodSetIs EmptyDirVolumeSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType EmptyDirVolumeSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType EmptyDirVolumeSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType EmptyDirVolumeSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType EmptyDirVolumeSource.ty) go!"DeepCopyInto" EmptyDirVolumeSource.DeepCopyInto.impl
+  ptr_unfold'DeepCopyInto : MethodUnfold (go.GoType.PointerType EmptyDirVolumeSource.ty) go!"DeepCopyInto" EmptyDirVolumeSource.DeepCopyInto.impl
 
 attribute [instance] EmptyDirVolumeSource.TypeAssumptions.type_repr
   EmptyDirVolumeSource.TypeAssumptions.underlying
-  EmptyDirVolumeSource.TypeAssumptions.get_Medium
-  EmptyDirVolumeSource.TypeAssumptions.set_Medium
-  EmptyDirVolumeSource.TypeAssumptions.get_SizeLimit
-  EmptyDirVolumeSource.TypeAssumptions.set_SizeLimit
-  EmptyDirVolumeSource.TypeAssumptions.get_Mode
-  EmptyDirVolumeSource.TypeAssumptions.set_Mode
+  EmptyDirVolumeSource.TypeAssumptions.get'Medium
+  EmptyDirVolumeSource.TypeAssumptions.set'Medium
+  EmptyDirVolumeSource.TypeAssumptions.get'SizeLimit
+  EmptyDirVolumeSource.TypeAssumptions.set'SizeLimit
+  EmptyDirVolumeSource.TypeAssumptions.get'Mode
+  EmptyDirVolumeSource.TypeAssumptions.set'Mode
   EmptyDirVolumeSource.TypeAssumptions.method_set
   EmptyDirVolumeSource.TypeAssumptions.ptr_method_set
-  EmptyDirVolumeSource.TypeAssumptions.ptr_DeepCopyInto_unfold
+  EmptyDirVolumeSource.TypeAssumptions.ptr_unfold'DeepCopyInto
 
 class GlusterfsVolumeSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GlusterfsVolumeSource.underlying GlusterfsVolumeSource
   underlying : go.UnderlyingDirectedEq GlusterfsVolumeSource.ty GlusterfsVolumeSource.underlying
-  get_EndpointsName : ∀ (x : GlusterfsVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet GlusterfsVolumeSource.underlying go!"EndpointsName") #x (Val #(x.EndpointsName'))
-  set_EndpointsName : ∀ (x : GlusterfsVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GlusterfsVolumeSource.underlying go!"EndpointsName") (PairV #x #y) (Val #(({ x with EndpointsName' := y } : GlusterfsVolumeSource)))
-  get_Path : ∀ (x : GlusterfsVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet GlusterfsVolumeSource.underlying go!"Path") #x (Val #(x.Path'))
-  set_Path : ∀ (x : GlusterfsVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GlusterfsVolumeSource.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : GlusterfsVolumeSource)))
-  get_ReadOnly : ∀ (x : GlusterfsVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet GlusterfsVolumeSource.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
-  set_ReadOnly : ∀ (x : GlusterfsVolumeSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet GlusterfsVolumeSource.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : GlusterfsVolumeSource)))
+  get'EndpointsName : ∀ (x : GlusterfsVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet GlusterfsVolumeSource.underlying go!"EndpointsName") #x (Val #(x.EndpointsName'))
+  set'EndpointsName : ∀ (x : GlusterfsVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GlusterfsVolumeSource.underlying go!"EndpointsName") (PairV #x #y) (Val #(({ x with EndpointsName' := y } : GlusterfsVolumeSource)))
+  get'Path : ∀ (x : GlusterfsVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet GlusterfsVolumeSource.underlying go!"Path") #x (Val #(x.Path'))
+  set'Path : ∀ (x : GlusterfsVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GlusterfsVolumeSource.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : GlusterfsVolumeSource)))
+  get'ReadOnly : ∀ (x : GlusterfsVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet GlusterfsVolumeSource.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
+  set'ReadOnly : ∀ (x : GlusterfsVolumeSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet GlusterfsVolumeSource.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : GlusterfsVolumeSource)))
   method_set : go.MethodSetIs GlusterfsVolumeSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GlusterfsVolumeSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType GlusterfsVolumeSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType GlusterfsVolumeSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] GlusterfsVolumeSource.TypeAssumptions.type_repr
   GlusterfsVolumeSource.TypeAssumptions.underlying
-  GlusterfsVolumeSource.TypeAssumptions.get_EndpointsName
-  GlusterfsVolumeSource.TypeAssumptions.set_EndpointsName
-  GlusterfsVolumeSource.TypeAssumptions.get_Path
-  GlusterfsVolumeSource.TypeAssumptions.set_Path
-  GlusterfsVolumeSource.TypeAssumptions.get_ReadOnly
-  GlusterfsVolumeSource.TypeAssumptions.set_ReadOnly
+  GlusterfsVolumeSource.TypeAssumptions.get'EndpointsName
+  GlusterfsVolumeSource.TypeAssumptions.set'EndpointsName
+  GlusterfsVolumeSource.TypeAssumptions.get'Path
+  GlusterfsVolumeSource.TypeAssumptions.set'Path
+  GlusterfsVolumeSource.TypeAssumptions.get'ReadOnly
+  GlusterfsVolumeSource.TypeAssumptions.set'ReadOnly
   GlusterfsVolumeSource.TypeAssumptions.method_set
   GlusterfsVolumeSource.TypeAssumptions.ptr_method_set
 
 class GlusterfsPersistentVolumeSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GlusterfsPersistentVolumeSource.underlying GlusterfsPersistentVolumeSource
   underlying : go.UnderlyingDirectedEq GlusterfsPersistentVolumeSource.ty GlusterfsPersistentVolumeSource.underlying
-  get_EndpointsName : ∀ (x : GlusterfsPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet GlusterfsPersistentVolumeSource.underlying go!"EndpointsName") #x (Val #(x.EndpointsName'))
-  set_EndpointsName : ∀ (x : GlusterfsPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GlusterfsPersistentVolumeSource.underlying go!"EndpointsName") (PairV #x #y) (Val #(({ x with EndpointsName' := y } : GlusterfsPersistentVolumeSource)))
-  get_Path : ∀ (x : GlusterfsPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet GlusterfsPersistentVolumeSource.underlying go!"Path") #x (Val #(x.Path'))
-  set_Path : ∀ (x : GlusterfsPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GlusterfsPersistentVolumeSource.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : GlusterfsPersistentVolumeSource)))
-  get_ReadOnly : ∀ (x : GlusterfsPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet GlusterfsPersistentVolumeSource.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
-  set_ReadOnly : ∀ (x : GlusterfsPersistentVolumeSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet GlusterfsPersistentVolumeSource.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : GlusterfsPersistentVolumeSource)))
-  get_EndpointsNamespace : ∀ (x : GlusterfsPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet GlusterfsPersistentVolumeSource.underlying go!"EndpointsNamespace") #x (Val #(x.EndpointsNamespace'))
-  set_EndpointsNamespace : ∀ (x : GlusterfsPersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet GlusterfsPersistentVolumeSource.underlying go!"EndpointsNamespace") (PairV #x #y) (Val #(({ x with EndpointsNamespace' := y } : GlusterfsPersistentVolumeSource)))
+  get'EndpointsName : ∀ (x : GlusterfsPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet GlusterfsPersistentVolumeSource.underlying go!"EndpointsName") #x (Val #(x.EndpointsName'))
+  set'EndpointsName : ∀ (x : GlusterfsPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GlusterfsPersistentVolumeSource.underlying go!"EndpointsName") (PairV #x #y) (Val #(({ x with EndpointsName' := y } : GlusterfsPersistentVolumeSource)))
+  get'Path : ∀ (x : GlusterfsPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet GlusterfsPersistentVolumeSource.underlying go!"Path") #x (Val #(x.Path'))
+  set'Path : ∀ (x : GlusterfsPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GlusterfsPersistentVolumeSource.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : GlusterfsPersistentVolumeSource)))
+  get'ReadOnly : ∀ (x : GlusterfsPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet GlusterfsPersistentVolumeSource.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
+  set'ReadOnly : ∀ (x : GlusterfsPersistentVolumeSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet GlusterfsPersistentVolumeSource.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : GlusterfsPersistentVolumeSource)))
+  get'EndpointsNamespace : ∀ (x : GlusterfsPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet GlusterfsPersistentVolumeSource.underlying go!"EndpointsNamespace") #x (Val #(x.EndpointsNamespace'))
+  set'EndpointsNamespace : ∀ (x : GlusterfsPersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet GlusterfsPersistentVolumeSource.underlying go!"EndpointsNamespace") (PairV #x #y) (Val #(({ x with EndpointsNamespace' := y } : GlusterfsPersistentVolumeSource)))
   method_set : go.MethodSetIs GlusterfsPersistentVolumeSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GlusterfsPersistentVolumeSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType GlusterfsPersistentVolumeSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType GlusterfsPersistentVolumeSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] GlusterfsPersistentVolumeSource.TypeAssumptions.type_repr
   GlusterfsPersistentVolumeSource.TypeAssumptions.underlying
-  GlusterfsPersistentVolumeSource.TypeAssumptions.get_EndpointsName
-  GlusterfsPersistentVolumeSource.TypeAssumptions.set_EndpointsName
-  GlusterfsPersistentVolumeSource.TypeAssumptions.get_Path
-  GlusterfsPersistentVolumeSource.TypeAssumptions.set_Path
-  GlusterfsPersistentVolumeSource.TypeAssumptions.get_ReadOnly
-  GlusterfsPersistentVolumeSource.TypeAssumptions.set_ReadOnly
-  GlusterfsPersistentVolumeSource.TypeAssumptions.get_EndpointsNamespace
-  GlusterfsPersistentVolumeSource.TypeAssumptions.set_EndpointsNamespace
+  GlusterfsPersistentVolumeSource.TypeAssumptions.get'EndpointsName
+  GlusterfsPersistentVolumeSource.TypeAssumptions.set'EndpointsName
+  GlusterfsPersistentVolumeSource.TypeAssumptions.get'Path
+  GlusterfsPersistentVolumeSource.TypeAssumptions.set'Path
+  GlusterfsPersistentVolumeSource.TypeAssumptions.get'ReadOnly
+  GlusterfsPersistentVolumeSource.TypeAssumptions.set'ReadOnly
+  GlusterfsPersistentVolumeSource.TypeAssumptions.get'EndpointsNamespace
+  GlusterfsPersistentVolumeSource.TypeAssumptions.set'EndpointsNamespace
   GlusterfsPersistentVolumeSource.TypeAssumptions.method_set
   GlusterfsPersistentVolumeSource.TypeAssumptions.ptr_method_set
 
 class RBDVolumeSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RBDVolumeSource.underlying RBDVolumeSource
   underlying : go.UnderlyingDirectedEq RBDVolumeSource.ty RBDVolumeSource.underlying
-  get_CephMonitors : ∀ (x : RBDVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDVolumeSource.underlying go!"CephMonitors") #x (Val #(x.CephMonitors'))
-  set_CephMonitors : ∀ (x : RBDVolumeSource) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RBDVolumeSource.underlying go!"CephMonitors") (PairV #x #y) (Val #(({ x with CephMonitors' := y } : RBDVolumeSource)))
-  get_RBDImage : ∀ (x : RBDVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDVolumeSource.underlying go!"RBDImage") #x (Val #(x.RBDImage'))
-  set_RBDImage : ∀ (x : RBDVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDVolumeSource.underlying go!"RBDImage") (PairV #x #y) (Val #(({ x with RBDImage' := y } : RBDVolumeSource)))
-  get_FSType : ∀ (x : RBDVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDVolumeSource.underlying go!"FSType") #x (Val #(x.FSType'))
-  set_FSType : ∀ (x : RBDVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDVolumeSource.underlying go!"FSType") (PairV #x #y) (Val #(({ x with FSType' := y } : RBDVolumeSource)))
-  get_RBDPool : ∀ (x : RBDVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDVolumeSource.underlying go!"RBDPool") #x (Val #(x.RBDPool'))
-  set_RBDPool : ∀ (x : RBDVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDVolumeSource.underlying go!"RBDPool") (PairV #x #y) (Val #(({ x with RBDPool' := y } : RBDVolumeSource)))
-  get_RadosUser : ∀ (x : RBDVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDVolumeSource.underlying go!"RadosUser") #x (Val #(x.RadosUser'))
-  set_RadosUser : ∀ (x : RBDVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDVolumeSource.underlying go!"RadosUser") (PairV #x #y) (Val #(({ x with RadosUser' := y } : RBDVolumeSource)))
-  get_Keyring : ∀ (x : RBDVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDVolumeSource.underlying go!"Keyring") #x (Val #(x.Keyring'))
-  set_Keyring : ∀ (x : RBDVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDVolumeSource.underlying go!"Keyring") (PairV #x #y) (Val #(({ x with Keyring' := y } : RBDVolumeSource)))
-  get_SecretRef : ∀ (x : RBDVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDVolumeSource.underlying go!"SecretRef") #x (Val #(x.SecretRef'))
-  set_SecretRef : ∀ (x : RBDVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RBDVolumeSource.underlying go!"SecretRef") (PairV #x #y) (Val #(({ x with SecretRef' := y } : RBDVolumeSource)))
-  get_ReadOnly : ∀ (x : RBDVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDVolumeSource.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
-  set_ReadOnly : ∀ (x : RBDVolumeSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RBDVolumeSource.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : RBDVolumeSource)))
+  get'CephMonitors : ∀ (x : RBDVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDVolumeSource.underlying go!"CephMonitors") #x (Val #(x.CephMonitors'))
+  set'CephMonitors : ∀ (x : RBDVolumeSource) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RBDVolumeSource.underlying go!"CephMonitors") (PairV #x #y) (Val #(({ x with CephMonitors' := y } : RBDVolumeSource)))
+  get'RBDImage : ∀ (x : RBDVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDVolumeSource.underlying go!"RBDImage") #x (Val #(x.RBDImage'))
+  set'RBDImage : ∀ (x : RBDVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDVolumeSource.underlying go!"RBDImage") (PairV #x #y) (Val #(({ x with RBDImage' := y } : RBDVolumeSource)))
+  get'FSType : ∀ (x : RBDVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDVolumeSource.underlying go!"FSType") #x (Val #(x.FSType'))
+  set'FSType : ∀ (x : RBDVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDVolumeSource.underlying go!"FSType") (PairV #x #y) (Val #(({ x with FSType' := y } : RBDVolumeSource)))
+  get'RBDPool : ∀ (x : RBDVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDVolumeSource.underlying go!"RBDPool") #x (Val #(x.RBDPool'))
+  set'RBDPool : ∀ (x : RBDVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDVolumeSource.underlying go!"RBDPool") (PairV #x #y) (Val #(({ x with RBDPool' := y } : RBDVolumeSource)))
+  get'RadosUser : ∀ (x : RBDVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDVolumeSource.underlying go!"RadosUser") #x (Val #(x.RadosUser'))
+  set'RadosUser : ∀ (x : RBDVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDVolumeSource.underlying go!"RadosUser") (PairV #x #y) (Val #(({ x with RadosUser' := y } : RBDVolumeSource)))
+  get'Keyring : ∀ (x : RBDVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDVolumeSource.underlying go!"Keyring") #x (Val #(x.Keyring'))
+  set'Keyring : ∀ (x : RBDVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDVolumeSource.underlying go!"Keyring") (PairV #x #y) (Val #(({ x with Keyring' := y } : RBDVolumeSource)))
+  get'SecretRef : ∀ (x : RBDVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDVolumeSource.underlying go!"SecretRef") #x (Val #(x.SecretRef'))
+  set'SecretRef : ∀ (x : RBDVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RBDVolumeSource.underlying go!"SecretRef") (PairV #x #y) (Val #(({ x with SecretRef' := y } : RBDVolumeSource)))
+  get'ReadOnly : ∀ (x : RBDVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDVolumeSource.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
+  set'ReadOnly : ∀ (x : RBDVolumeSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RBDVolumeSource.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : RBDVolumeSource)))
   method_set : go.MethodSetIs RBDVolumeSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RBDVolumeSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType RBDVolumeSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType RBDVolumeSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType RBDVolumeSource.ty) go!"DeepCopyInto" RBDVolumeSource.DeepCopyInto.impl
+  ptr_unfold'DeepCopyInto : MethodUnfold (go.GoType.PointerType RBDVolumeSource.ty) go!"DeepCopyInto" RBDVolumeSource.DeepCopyInto.impl
 
 attribute [instance] RBDVolumeSource.TypeAssumptions.type_repr
   RBDVolumeSource.TypeAssumptions.underlying
-  RBDVolumeSource.TypeAssumptions.get_CephMonitors
-  RBDVolumeSource.TypeAssumptions.set_CephMonitors
-  RBDVolumeSource.TypeAssumptions.get_RBDImage
-  RBDVolumeSource.TypeAssumptions.set_RBDImage
-  RBDVolumeSource.TypeAssumptions.get_FSType
-  RBDVolumeSource.TypeAssumptions.set_FSType
-  RBDVolumeSource.TypeAssumptions.get_RBDPool
-  RBDVolumeSource.TypeAssumptions.set_RBDPool
-  RBDVolumeSource.TypeAssumptions.get_RadosUser
-  RBDVolumeSource.TypeAssumptions.set_RadosUser
-  RBDVolumeSource.TypeAssumptions.get_Keyring
-  RBDVolumeSource.TypeAssumptions.set_Keyring
-  RBDVolumeSource.TypeAssumptions.get_SecretRef
-  RBDVolumeSource.TypeAssumptions.set_SecretRef
-  RBDVolumeSource.TypeAssumptions.get_ReadOnly
-  RBDVolumeSource.TypeAssumptions.set_ReadOnly
+  RBDVolumeSource.TypeAssumptions.get'CephMonitors
+  RBDVolumeSource.TypeAssumptions.set'CephMonitors
+  RBDVolumeSource.TypeAssumptions.get'RBDImage
+  RBDVolumeSource.TypeAssumptions.set'RBDImage
+  RBDVolumeSource.TypeAssumptions.get'FSType
+  RBDVolumeSource.TypeAssumptions.set'FSType
+  RBDVolumeSource.TypeAssumptions.get'RBDPool
+  RBDVolumeSource.TypeAssumptions.set'RBDPool
+  RBDVolumeSource.TypeAssumptions.get'RadosUser
+  RBDVolumeSource.TypeAssumptions.set'RadosUser
+  RBDVolumeSource.TypeAssumptions.get'Keyring
+  RBDVolumeSource.TypeAssumptions.set'Keyring
+  RBDVolumeSource.TypeAssumptions.get'SecretRef
+  RBDVolumeSource.TypeAssumptions.set'SecretRef
+  RBDVolumeSource.TypeAssumptions.get'ReadOnly
+  RBDVolumeSource.TypeAssumptions.set'ReadOnly
   RBDVolumeSource.TypeAssumptions.method_set
   RBDVolumeSource.TypeAssumptions.ptr_method_set
-  RBDVolumeSource.TypeAssumptions.ptr_DeepCopyInto_unfold
+  RBDVolumeSource.TypeAssumptions.ptr_unfold'DeepCopyInto
 
 class RBDPersistentVolumeSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RBDPersistentVolumeSource.underlying RBDPersistentVolumeSource
   underlying : go.UnderlyingDirectedEq RBDPersistentVolumeSource.ty RBDPersistentVolumeSource.underlying
-  get_CephMonitors : ∀ (x : RBDPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDPersistentVolumeSource.underlying go!"CephMonitors") #x (Val #(x.CephMonitors'))
-  set_CephMonitors : ∀ (x : RBDPersistentVolumeSource) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RBDPersistentVolumeSource.underlying go!"CephMonitors") (PairV #x #y) (Val #(({ x with CephMonitors' := y } : RBDPersistentVolumeSource)))
-  get_RBDImage : ∀ (x : RBDPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDPersistentVolumeSource.underlying go!"RBDImage") #x (Val #(x.RBDImage'))
-  set_RBDImage : ∀ (x : RBDPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDPersistentVolumeSource.underlying go!"RBDImage") (PairV #x #y) (Val #(({ x with RBDImage' := y } : RBDPersistentVolumeSource)))
-  get_FSType : ∀ (x : RBDPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDPersistentVolumeSource.underlying go!"FSType") #x (Val #(x.FSType'))
-  set_FSType : ∀ (x : RBDPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDPersistentVolumeSource.underlying go!"FSType") (PairV #x #y) (Val #(({ x with FSType' := y } : RBDPersistentVolumeSource)))
-  get_RBDPool : ∀ (x : RBDPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDPersistentVolumeSource.underlying go!"RBDPool") #x (Val #(x.RBDPool'))
-  set_RBDPool : ∀ (x : RBDPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDPersistentVolumeSource.underlying go!"RBDPool") (PairV #x #y) (Val #(({ x with RBDPool' := y } : RBDPersistentVolumeSource)))
-  get_RadosUser : ∀ (x : RBDPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDPersistentVolumeSource.underlying go!"RadosUser") #x (Val #(x.RadosUser'))
-  set_RadosUser : ∀ (x : RBDPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDPersistentVolumeSource.underlying go!"RadosUser") (PairV #x #y) (Val #(({ x with RadosUser' := y } : RBDPersistentVolumeSource)))
-  get_Keyring : ∀ (x : RBDPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDPersistentVolumeSource.underlying go!"Keyring") #x (Val #(x.Keyring'))
-  set_Keyring : ∀ (x : RBDPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDPersistentVolumeSource.underlying go!"Keyring") (PairV #x #y) (Val #(({ x with Keyring' := y } : RBDPersistentVolumeSource)))
-  get_SecretRef : ∀ (x : RBDPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDPersistentVolumeSource.underlying go!"SecretRef") #x (Val #(x.SecretRef'))
-  set_SecretRef : ∀ (x : RBDPersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RBDPersistentVolumeSource.underlying go!"SecretRef") (PairV #x #y) (Val #(({ x with SecretRef' := y } : RBDPersistentVolumeSource)))
-  get_ReadOnly : ∀ (x : RBDPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDPersistentVolumeSource.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
-  set_ReadOnly : ∀ (x : RBDPersistentVolumeSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RBDPersistentVolumeSource.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : RBDPersistentVolumeSource)))
+  get'CephMonitors : ∀ (x : RBDPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDPersistentVolumeSource.underlying go!"CephMonitors") #x (Val #(x.CephMonitors'))
+  set'CephMonitors : ∀ (x : RBDPersistentVolumeSource) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RBDPersistentVolumeSource.underlying go!"CephMonitors") (PairV #x #y) (Val #(({ x with CephMonitors' := y } : RBDPersistentVolumeSource)))
+  get'RBDImage : ∀ (x : RBDPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDPersistentVolumeSource.underlying go!"RBDImage") #x (Val #(x.RBDImage'))
+  set'RBDImage : ∀ (x : RBDPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDPersistentVolumeSource.underlying go!"RBDImage") (PairV #x #y) (Val #(({ x with RBDImage' := y } : RBDPersistentVolumeSource)))
+  get'FSType : ∀ (x : RBDPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDPersistentVolumeSource.underlying go!"FSType") #x (Val #(x.FSType'))
+  set'FSType : ∀ (x : RBDPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDPersistentVolumeSource.underlying go!"FSType") (PairV #x #y) (Val #(({ x with FSType' := y } : RBDPersistentVolumeSource)))
+  get'RBDPool : ∀ (x : RBDPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDPersistentVolumeSource.underlying go!"RBDPool") #x (Val #(x.RBDPool'))
+  set'RBDPool : ∀ (x : RBDPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDPersistentVolumeSource.underlying go!"RBDPool") (PairV #x #y) (Val #(({ x with RBDPool' := y } : RBDPersistentVolumeSource)))
+  get'RadosUser : ∀ (x : RBDPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDPersistentVolumeSource.underlying go!"RadosUser") #x (Val #(x.RadosUser'))
+  set'RadosUser : ∀ (x : RBDPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDPersistentVolumeSource.underlying go!"RadosUser") (PairV #x #y) (Val #(({ x with RadosUser' := y } : RBDPersistentVolumeSource)))
+  get'Keyring : ∀ (x : RBDPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDPersistentVolumeSource.underlying go!"Keyring") #x (Val #(x.Keyring'))
+  set'Keyring : ∀ (x : RBDPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RBDPersistentVolumeSource.underlying go!"Keyring") (PairV #x #y) (Val #(({ x with Keyring' := y } : RBDPersistentVolumeSource)))
+  get'SecretRef : ∀ (x : RBDPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDPersistentVolumeSource.underlying go!"SecretRef") #x (Val #(x.SecretRef'))
+  set'SecretRef : ∀ (x : RBDPersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RBDPersistentVolumeSource.underlying go!"SecretRef") (PairV #x #y) (Val #(({ x with SecretRef' := y } : RBDPersistentVolumeSource)))
+  get'ReadOnly : ∀ (x : RBDPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet RBDPersistentVolumeSource.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
+  set'ReadOnly : ∀ (x : RBDPersistentVolumeSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RBDPersistentVolumeSource.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : RBDPersistentVolumeSource)))
   method_set : go.MethodSetIs RBDPersistentVolumeSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RBDPersistentVolumeSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType RBDPersistentVolumeSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType RBDPersistentVolumeSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] RBDPersistentVolumeSource.TypeAssumptions.type_repr
   RBDPersistentVolumeSource.TypeAssumptions.underlying
-  RBDPersistentVolumeSource.TypeAssumptions.get_CephMonitors
-  RBDPersistentVolumeSource.TypeAssumptions.set_CephMonitors
-  RBDPersistentVolumeSource.TypeAssumptions.get_RBDImage
-  RBDPersistentVolumeSource.TypeAssumptions.set_RBDImage
-  RBDPersistentVolumeSource.TypeAssumptions.get_FSType
-  RBDPersistentVolumeSource.TypeAssumptions.set_FSType
-  RBDPersistentVolumeSource.TypeAssumptions.get_RBDPool
-  RBDPersistentVolumeSource.TypeAssumptions.set_RBDPool
-  RBDPersistentVolumeSource.TypeAssumptions.get_RadosUser
-  RBDPersistentVolumeSource.TypeAssumptions.set_RadosUser
-  RBDPersistentVolumeSource.TypeAssumptions.get_Keyring
-  RBDPersistentVolumeSource.TypeAssumptions.set_Keyring
-  RBDPersistentVolumeSource.TypeAssumptions.get_SecretRef
-  RBDPersistentVolumeSource.TypeAssumptions.set_SecretRef
-  RBDPersistentVolumeSource.TypeAssumptions.get_ReadOnly
-  RBDPersistentVolumeSource.TypeAssumptions.set_ReadOnly
+  RBDPersistentVolumeSource.TypeAssumptions.get'CephMonitors
+  RBDPersistentVolumeSource.TypeAssumptions.set'CephMonitors
+  RBDPersistentVolumeSource.TypeAssumptions.get'RBDImage
+  RBDPersistentVolumeSource.TypeAssumptions.set'RBDImage
+  RBDPersistentVolumeSource.TypeAssumptions.get'FSType
+  RBDPersistentVolumeSource.TypeAssumptions.set'FSType
+  RBDPersistentVolumeSource.TypeAssumptions.get'RBDPool
+  RBDPersistentVolumeSource.TypeAssumptions.set'RBDPool
+  RBDPersistentVolumeSource.TypeAssumptions.get'RadosUser
+  RBDPersistentVolumeSource.TypeAssumptions.set'RadosUser
+  RBDPersistentVolumeSource.TypeAssumptions.get'Keyring
+  RBDPersistentVolumeSource.TypeAssumptions.set'Keyring
+  RBDPersistentVolumeSource.TypeAssumptions.get'SecretRef
+  RBDPersistentVolumeSource.TypeAssumptions.set'SecretRef
+  RBDPersistentVolumeSource.TypeAssumptions.get'ReadOnly
+  RBDPersistentVolumeSource.TypeAssumptions.set'ReadOnly
   RBDPersistentVolumeSource.TypeAssumptions.method_set
   RBDPersistentVolumeSource.TypeAssumptions.ptr_method_set
 
 class CinderVolumeSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CinderVolumeSource.underlying CinderVolumeSource
   underlying : go.UnderlyingDirectedEq CinderVolumeSource.ty CinderVolumeSource.underlying
-  get_VolumeID : ∀ (x : CinderVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CinderVolumeSource.underlying go!"VolumeID") #x (Val #(x.VolumeID'))
-  set_VolumeID : ∀ (x : CinderVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CinderVolumeSource.underlying go!"VolumeID") (PairV #x #y) (Val #(({ x with VolumeID' := y } : CinderVolumeSource)))
-  get_FSType : ∀ (x : CinderVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CinderVolumeSource.underlying go!"FSType") #x (Val #(x.FSType'))
-  set_FSType : ∀ (x : CinderVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CinderVolumeSource.underlying go!"FSType") (PairV #x #y) (Val #(({ x with FSType' := y } : CinderVolumeSource)))
-  get_ReadOnly : ∀ (x : CinderVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CinderVolumeSource.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
-  set_ReadOnly : ∀ (x : CinderVolumeSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet CinderVolumeSource.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : CinderVolumeSource)))
-  get_SecretRef : ∀ (x : CinderVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CinderVolumeSource.underlying go!"SecretRef") #x (Val #(x.SecretRef'))
-  set_SecretRef : ∀ (x : CinderVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet CinderVolumeSource.underlying go!"SecretRef") (PairV #x #y) (Val #(({ x with SecretRef' := y } : CinderVolumeSource)))
+  get'VolumeID : ∀ (x : CinderVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CinderVolumeSource.underlying go!"VolumeID") #x (Val #(x.VolumeID'))
+  set'VolumeID : ∀ (x : CinderVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CinderVolumeSource.underlying go!"VolumeID") (PairV #x #y) (Val #(({ x with VolumeID' := y } : CinderVolumeSource)))
+  get'FSType : ∀ (x : CinderVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CinderVolumeSource.underlying go!"FSType") #x (Val #(x.FSType'))
+  set'FSType : ∀ (x : CinderVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CinderVolumeSource.underlying go!"FSType") (PairV #x #y) (Val #(({ x with FSType' := y } : CinderVolumeSource)))
+  get'ReadOnly : ∀ (x : CinderVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CinderVolumeSource.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
+  set'ReadOnly : ∀ (x : CinderVolumeSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet CinderVolumeSource.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : CinderVolumeSource)))
+  get'SecretRef : ∀ (x : CinderVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CinderVolumeSource.underlying go!"SecretRef") #x (Val #(x.SecretRef'))
+  set'SecretRef : ∀ (x : CinderVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet CinderVolumeSource.underlying go!"SecretRef") (PairV #x #y) (Val #(({ x with SecretRef' := y } : CinderVolumeSource)))
   method_set : go.MethodSetIs CinderVolumeSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType CinderVolumeSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType CinderVolumeSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType CinderVolumeSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType CinderVolumeSource.ty) go!"DeepCopyInto" CinderVolumeSource.DeepCopyInto.impl
+  ptr_unfold'DeepCopyInto : MethodUnfold (go.GoType.PointerType CinderVolumeSource.ty) go!"DeepCopyInto" CinderVolumeSource.DeepCopyInto.impl
 
 attribute [instance] CinderVolumeSource.TypeAssumptions.type_repr
   CinderVolumeSource.TypeAssumptions.underlying
-  CinderVolumeSource.TypeAssumptions.get_VolumeID
-  CinderVolumeSource.TypeAssumptions.set_VolumeID
-  CinderVolumeSource.TypeAssumptions.get_FSType
-  CinderVolumeSource.TypeAssumptions.set_FSType
-  CinderVolumeSource.TypeAssumptions.get_ReadOnly
-  CinderVolumeSource.TypeAssumptions.set_ReadOnly
-  CinderVolumeSource.TypeAssumptions.get_SecretRef
-  CinderVolumeSource.TypeAssumptions.set_SecretRef
+  CinderVolumeSource.TypeAssumptions.get'VolumeID
+  CinderVolumeSource.TypeAssumptions.set'VolumeID
+  CinderVolumeSource.TypeAssumptions.get'FSType
+  CinderVolumeSource.TypeAssumptions.set'FSType
+  CinderVolumeSource.TypeAssumptions.get'ReadOnly
+  CinderVolumeSource.TypeAssumptions.set'ReadOnly
+  CinderVolumeSource.TypeAssumptions.get'SecretRef
+  CinderVolumeSource.TypeAssumptions.set'SecretRef
   CinderVolumeSource.TypeAssumptions.method_set
   CinderVolumeSource.TypeAssumptions.ptr_method_set
-  CinderVolumeSource.TypeAssumptions.ptr_DeepCopyInto_unfold
+  CinderVolumeSource.TypeAssumptions.ptr_unfold'DeepCopyInto
 
 class CinderPersistentVolumeSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CinderPersistentVolumeSource.underlying CinderPersistentVolumeSource
   underlying : go.UnderlyingDirectedEq CinderPersistentVolumeSource.ty CinderPersistentVolumeSource.underlying
-  get_VolumeID : ∀ (x : CinderPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CinderPersistentVolumeSource.underlying go!"VolumeID") #x (Val #(x.VolumeID'))
-  set_VolumeID : ∀ (x : CinderPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CinderPersistentVolumeSource.underlying go!"VolumeID") (PairV #x #y) (Val #(({ x with VolumeID' := y } : CinderPersistentVolumeSource)))
-  get_FSType : ∀ (x : CinderPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CinderPersistentVolumeSource.underlying go!"FSType") #x (Val #(x.FSType'))
-  set_FSType : ∀ (x : CinderPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CinderPersistentVolumeSource.underlying go!"FSType") (PairV #x #y) (Val #(({ x with FSType' := y } : CinderPersistentVolumeSource)))
-  get_ReadOnly : ∀ (x : CinderPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CinderPersistentVolumeSource.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
-  set_ReadOnly : ∀ (x : CinderPersistentVolumeSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet CinderPersistentVolumeSource.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : CinderPersistentVolumeSource)))
-  get_SecretRef : ∀ (x : CinderPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CinderPersistentVolumeSource.underlying go!"SecretRef") #x (Val #(x.SecretRef'))
-  set_SecretRef : ∀ (x : CinderPersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet CinderPersistentVolumeSource.underlying go!"SecretRef") (PairV #x #y) (Val #(({ x with SecretRef' := y } : CinderPersistentVolumeSource)))
+  get'VolumeID : ∀ (x : CinderPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CinderPersistentVolumeSource.underlying go!"VolumeID") #x (Val #(x.VolumeID'))
+  set'VolumeID : ∀ (x : CinderPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CinderPersistentVolumeSource.underlying go!"VolumeID") (PairV #x #y) (Val #(({ x with VolumeID' := y } : CinderPersistentVolumeSource)))
+  get'FSType : ∀ (x : CinderPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CinderPersistentVolumeSource.underlying go!"FSType") #x (Val #(x.FSType'))
+  set'FSType : ∀ (x : CinderPersistentVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CinderPersistentVolumeSource.underlying go!"FSType") (PairV #x #y) (Val #(({ x with FSType' := y } : CinderPersistentVolumeSource)))
+  get'ReadOnly : ∀ (x : CinderPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CinderPersistentVolumeSource.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
+  set'ReadOnly : ∀ (x : CinderPersistentVolumeSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet CinderPersistentVolumeSource.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : CinderPersistentVolumeSource)))
+  get'SecretRef : ∀ (x : CinderPersistentVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CinderPersistentVolumeSource.underlying go!"SecretRef") #x (Val #(x.SecretRef'))
+  set'SecretRef : ∀ (x : CinderPersistentVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet CinderPersistentVolumeSource.underlying go!"SecretRef") (PairV #x #y) (Val #(({ x with SecretRef' := y } : CinderPersistentVolumeSource)))
   method_set : go.MethodSetIs CinderPersistentVolumeSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType CinderPersistentVolumeSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType CinderPersistentVolumeSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType CinderPersistentVolumeSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] CinderPersistentVolumeSource.TypeAssumptions.type_repr
   CinderPersistentVolumeSource.TypeAssumptions.underlying
-  CinderPersistentVolumeSource.TypeAssumptions.get_VolumeID
-  CinderPersistentVolumeSource.TypeAssumptions.set_VolumeID
-  CinderPersistentVolumeSource.TypeAssumptions.get_FSType
-  CinderPersistentVolumeSource.TypeAssumptions.set_FSType
-  CinderPersistentVolumeSource.TypeAssumptions.get_ReadOnly
-  CinderPersistentVolumeSource.TypeAssumptions.set_ReadOnly
-  CinderPersistentVolumeSource.TypeAssumptions.get_SecretRef
-  CinderPersistentVolumeSource.TypeAssumptions.set_SecretRef
+  CinderPersistentVolumeSource.TypeAssumptions.get'VolumeID
+  CinderPersistentVolumeSource.TypeAssumptions.set'VolumeID
+  CinderPersistentVolumeSource.TypeAssumptions.get'FSType
+  CinderPersistentVolumeSource.TypeAssumptions.set'FSType
+  CinderPersistentVolumeSource.TypeAssumptions.get'ReadOnly
+  CinderPersistentVolumeSource.TypeAssumptions.set'ReadOnly
+  CinderPersistentVolumeSource.TypeAssumptions.get'SecretRef
+  CinderPersistentVolumeSource.TypeAssumptions.set'SecretRef
   CinderPersistentVolumeSource.TypeAssumptions.method_set
   CinderPersistentVolumeSource.TypeAssumptions.ptr_method_set
 
 class CephFSVolumeSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CephFSVolumeSource.underlying CephFSVolumeSource
   underlying : go.UnderlyingDirectedEq CephFSVolumeSource.ty CephFSVolumeSource.underlying
-  get_Monitors : ∀ (x : CephFSVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CephFSVolumeSource.underlying go!"Monitors") #x (Val #(x.Monitors'))
-  set_Monitors : ∀ (x : CephFSVolumeSource) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CephFSVolumeSource.underlying go!"Monitors") (PairV #x #y) (Val #(({ x with Monitors' := y } : CephFSVolumeSource)))
-  get_Path : ∀ (x : CephFSVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CephFSVolumeSource.underlying go!"Path") #x (Val #(x.Path'))
-  set_Path : ∀ (x : CephFSVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CephFSVolumeSource.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : CephFSVolumeSource)))
-  get_User : ∀ (x : CephFSVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CephFSVolumeSource.underlying go!"User") #x (Val #(x.User'))
-  set_User : ∀ (x : CephFSVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CephFSVolumeSource.underlying go!"User") (PairV #x #y) (Val #(({ x with User' := y } : CephFSVolumeSource)))
-  get_SecretFile : ∀ (x : CephFSVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CephFSVolumeSource.underlying go!"SecretFile") #x (Val #(x.SecretFile'))
-  set_SecretFile : ∀ (x : CephFSVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CephFSVolumeSource.underlying go!"SecretFile") (PairV #x #y) (Val #(({ x with SecretFile' := y } : CephFSVolumeSource)))
-  get_SecretRef : ∀ (x : CephFSVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CephFSVolumeSource.underlying go!"SecretRef") #x (Val #(x.SecretRef'))
-  set_SecretRef : ∀ (x : CephFSVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet CephFSVolumeSource.underlying go!"SecretRef") (PairV #x #y) (Val #(({ x with SecretRef' := y } : CephFSVolumeSource)))
-  get_ReadOnly : ∀ (x : CephFSVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CephFSVolumeSource.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
-  set_ReadOnly : ∀ (x : CephFSVolumeSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet CephFSVolumeSource.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : CephFSVolumeSource)))
+  get'Monitors : ∀ (x : CephFSVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CephFSVolumeSource.underlying go!"Monitors") #x (Val #(x.Monitors'))
+  set'Monitors : ∀ (x : CephFSVolumeSource) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CephFSVolumeSource.underlying go!"Monitors") (PairV #x #y) (Val #(({ x with Monitors' := y } : CephFSVolumeSource)))
+  get'Path : ∀ (x : CephFSVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CephFSVolumeSource.underlying go!"Path") #x (Val #(x.Path'))
+  set'Path : ∀ (x : CephFSVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CephFSVolumeSource.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : CephFSVolumeSource)))
+  get'User : ∀ (x : CephFSVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CephFSVolumeSource.underlying go!"User") #x (Val #(x.User'))
+  set'User : ∀ (x : CephFSVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CephFSVolumeSource.underlying go!"User") (PairV #x #y) (Val #(({ x with User' := y } : CephFSVolumeSource)))
+  get'SecretFile : ∀ (x : CephFSVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CephFSVolumeSource.underlying go!"SecretFile") #x (Val #(x.SecretFile'))
+  set'SecretFile : ∀ (x : CephFSVolumeSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CephFSVolumeSource.underlying go!"SecretFile") (PairV #x #y) (Val #(({ x with SecretFile' := y } : CephFSVolumeSource)))
+  get'SecretRef : ∀ (x : CephFSVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CephFSVolumeSource.underlying go!"SecretRef") #x (Val #(x.SecretRef'))
+  set'SecretRef : ∀ (x : CephFSVolumeSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet CephFSVolumeSource.underlying go!"SecretRef") (PairV #x #y) (Val #(({ x with SecretRef' := y } : CephFSVolumeSource)))
+  get'ReadOnly : ∀ (x : CephFSVolumeSource), go.IsGoStepPureDetTagged under (StructFieldGet CephFSVolumeSource.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
+  set'ReadOnly : ∀ (x : CephFSVolumeSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet CephFSVolumeSource.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : CephFSVolumeSource)))
   method_set : go.MethodSetIs CephFSVolumeSource.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType CephFSVolumeSource.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType CephFSVolumeSource.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType CephFSVolumeSource.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType CephFSVolumeSource.ty) go!"DeepCopyInto" CephFSVolumeSource.DeepCopyInto.impl
+  ptr_unfold'DeepCopyInto : MethodUnfold (go.GoType.PointerType CephFSVolumeSource.ty) go!"DeepCopyInto" CephFSVolumeSource.DeepCopyInto.impl
 
 attribute [instance] CephFSVolumeSource.TypeAssumptions.type_repr
   CephFSVolumeSource.TypeAssumptions.underlying
-  CephFSVolumeSource.TypeAssumptions.get_Monitors
-  CephFSVolumeSource.TypeAssumptions.set_Monitors
-  CephFSVolumeSource.TypeAssumptions.get_Path
-  CephFSVolumeSource.TypeAssumptions.set_Path
-  CephFSVolumeSource.TypeAssumptions.get_User
-  CephFSVolumeSource.TypeAssumptions.set_User
-  CephFSVolumeSource.TypeAssumptions.get_SecretFile
-  CephFSVolumeSource.TypeAssumptions.set_SecretFile
-  CephFSVolumeSource.TypeAssumptions.get_SecretRef
-  CephFSVolumeSource.TypeAssumptions.set_SecretRef
-  CephFSVolumeSource.TypeAssumptions.get_ReadOnly
-  CephFSVolumeSource.TypeAssumptions.set_ReadOnly
+  CephFSVolumeSource.TypeAssumptions.get'Monitors
+  CephFSVolumeSource.TypeAssumptions.set'Monitors
+  CephFSVolumeSource.TypeAssumptions.get'Path
+  CephFSVolumeSource.TypeAssumptions.set'Path
+  CephFSVolumeSource.TypeAssumptions.get'User
+  CephFSVolumeSource.TypeAssumptions.set'User
+  CephFSVolumeSource.TypeAssumptions.get'SecretFile
+  CephFSVolumeSource.TypeAssumptions.set'SecretFile
+  CephFSVolumeSource.TypeAssumptions.get'SecretRef
+  CephFSVolumeSource.TypeAssumptions.set'SecretRef
+  CephFSVolumeSource.TypeAssumptions.get'ReadOnly
+  CephFSVolumeSource.TypeAssumptions.set'ReadOnly
   CephFSVolumeSource.TypeAssumptions.method_set
   CephFSVolumeSource.TypeAssumptions.ptr_method_set
-  CephFSVolumeSource.TypeAssumptions.ptr_DeepCopyInto_unfold
+  CephFSVolumeSource.TypeAssumptions.ptr_unfold'DeepCopyInto
 
 end k8s_io.api.core.v1
 

@@ -25,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.keepalive.Assumptions]
 
-noncomputable instance ClientParameters_typed_pointsto :
+noncomputable instance typed_pointsto'ClientParameters :
     TypedPointsto (GF := GF) google_golang_org.grpc.keepalive.ClientParameters where
   typedPointstoDef l v dq := iprop(
     "Time" ∷ typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ClientParameters go!"Time" l) v.Time' dq ∗
@@ -36,11 +36,11 @@ noncomputable instance ClientParameters_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ClientParameters_into_val_typed :
+noncomputable instance into_val_typed'ClientParameters :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.keepalive.ClientParameters google_golang_org.grpc.keepalive.ClientParameters.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ClientParameters_access_load_Time (l : Loc) (v : google_golang_org.grpc.keepalive.ClientParameters) (dq : DFrac) :
+noncomputable instance access_load'ClientParameters'Time (l : Loc) (v : google_golang_org.grpc.keepalive.ClientParameters) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ClientParameters go!"Time" l) v.Time' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ClientParameters go!"Time" l) v.Time' dq)
@@ -48,7 +48,7 @@ noncomputable instance ClientParameters_access_load_Time (l : Loc) (v : google_g
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientParameters_access_store_Time (l : Loc) (v : google_golang_org.grpc.keepalive.ClientParameters) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'ClientParameters'Time (l : Loc) (v : google_golang_org.grpc.keepalive.ClientParameters) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ClientParameters go!"Time" l) v.Time' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ClientParameters go!"Time" l) y (DFrac.own 1))
@@ -56,7 +56,7 @@ noncomputable instance ClientParameters_access_store_Time (l : Loc) (v : google_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientParameters_access_load_Timeout (l : Loc) (v : google_golang_org.grpc.keepalive.ClientParameters) (dq : DFrac) :
+noncomputable instance access_load'ClientParameters'Timeout (l : Loc) (v : google_golang_org.grpc.keepalive.ClientParameters) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ClientParameters go!"Timeout" l) v.Timeout' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ClientParameters go!"Timeout" l) v.Timeout' dq)
@@ -64,7 +64,7 @@ noncomputable instance ClientParameters_access_load_Timeout (l : Loc) (v : googl
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientParameters_access_store_Timeout (l : Loc) (v : google_golang_org.grpc.keepalive.ClientParameters) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'ClientParameters'Timeout (l : Loc) (v : google_golang_org.grpc.keepalive.ClientParameters) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ClientParameters go!"Timeout" l) v.Timeout' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ClientParameters go!"Timeout" l) y (DFrac.own 1))
@@ -72,7 +72,7 @@ noncomputable instance ClientParameters_access_store_Timeout (l : Loc) (v : goog
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientParameters_access_load_PermitWithoutStream (l : Loc) (v : google_golang_org.grpc.keepalive.ClientParameters) (dq : DFrac) :
+noncomputable instance access_load'ClientParameters'PermitWithoutStream (l : Loc) (v : google_golang_org.grpc.keepalive.ClientParameters) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ClientParameters go!"PermitWithoutStream" l) v.PermitWithoutStream' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ClientParameters go!"PermitWithoutStream" l) v.PermitWithoutStream' dq)
@@ -80,7 +80,7 @@ noncomputable instance ClientParameters_access_load_PermitWithoutStream (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientParameters_access_store_PermitWithoutStream (l : Loc) (v : google_golang_org.grpc.keepalive.ClientParameters) (y : Bool) :
+noncomputable instance access_store'ClientParameters'PermitWithoutStream (l : Loc) (v : google_golang_org.grpc.keepalive.ClientParameters) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ClientParameters go!"PermitWithoutStream" l) v.PermitWithoutStream' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ClientParameters go!"PermitWithoutStream" l) y (DFrac.own 1))
@@ -99,7 +99,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.keepalive.Assumptions]
 
-noncomputable instance ServerParameters_typed_pointsto :
+noncomputable instance typed_pointsto'ServerParameters :
     TypedPointsto (GF := GF) google_golang_org.grpc.keepalive.ServerParameters where
   typedPointstoDef l v dq := iprop(
     "MaxConnectionIdle" ∷ typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"MaxConnectionIdle" l) v.MaxConnectionIdle' dq ∗
@@ -112,11 +112,11 @@ noncomputable instance ServerParameters_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ServerParameters_into_val_typed :
+noncomputable instance into_val_typed'ServerParameters :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.keepalive.ServerParameters google_golang_org.grpc.keepalive.ServerParameters.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ServerParameters_access_load_MaxConnectionIdle (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (dq : DFrac) :
+noncomputable instance access_load'ServerParameters'MaxConnectionIdle (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"MaxConnectionIdle" l) v.MaxConnectionIdle' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"MaxConnectionIdle" l) v.MaxConnectionIdle' dq)
@@ -124,7 +124,7 @@ noncomputable instance ServerParameters_access_load_MaxConnectionIdle (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerParameters_access_store_MaxConnectionIdle (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'ServerParameters'MaxConnectionIdle (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"MaxConnectionIdle" l) v.MaxConnectionIdle' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"MaxConnectionIdle" l) y (DFrac.own 1))
@@ -132,7 +132,7 @@ noncomputable instance ServerParameters_access_store_MaxConnectionIdle (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerParameters_access_load_MaxConnectionAge (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (dq : DFrac) :
+noncomputable instance access_load'ServerParameters'MaxConnectionAge (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"MaxConnectionAge" l) v.MaxConnectionAge' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"MaxConnectionAge" l) v.MaxConnectionAge' dq)
@@ -140,7 +140,7 @@ noncomputable instance ServerParameters_access_load_MaxConnectionAge (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerParameters_access_store_MaxConnectionAge (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'ServerParameters'MaxConnectionAge (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"MaxConnectionAge" l) v.MaxConnectionAge' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"MaxConnectionAge" l) y (DFrac.own 1))
@@ -148,7 +148,7 @@ noncomputable instance ServerParameters_access_store_MaxConnectionAge (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerParameters_access_load_MaxConnectionAgeGrace (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (dq : DFrac) :
+noncomputable instance access_load'ServerParameters'MaxConnectionAgeGrace (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"MaxConnectionAgeGrace" l) v.MaxConnectionAgeGrace' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"MaxConnectionAgeGrace" l) v.MaxConnectionAgeGrace' dq)
@@ -156,7 +156,7 @@ noncomputable instance ServerParameters_access_load_MaxConnectionAgeGrace (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerParameters_access_store_MaxConnectionAgeGrace (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'ServerParameters'MaxConnectionAgeGrace (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"MaxConnectionAgeGrace" l) v.MaxConnectionAgeGrace' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"MaxConnectionAgeGrace" l) y (DFrac.own 1))
@@ -164,7 +164,7 @@ noncomputable instance ServerParameters_access_store_MaxConnectionAgeGrace (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerParameters_access_load_Time (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (dq : DFrac) :
+noncomputable instance access_load'ServerParameters'Time (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"Time" l) v.Time' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"Time" l) v.Time' dq)
@@ -172,7 +172,7 @@ noncomputable instance ServerParameters_access_load_Time (l : Loc) (v : google_g
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerParameters_access_store_Time (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'ServerParameters'Time (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"Time" l) v.Time' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"Time" l) y (DFrac.own 1))
@@ -180,7 +180,7 @@ noncomputable instance ServerParameters_access_store_Time (l : Loc) (v : google_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerParameters_access_load_Timeout (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (dq : DFrac) :
+noncomputable instance access_load'ServerParameters'Timeout (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"Timeout" l) v.Timeout' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"Timeout" l) v.Timeout' dq)
@@ -188,7 +188,7 @@ noncomputable instance ServerParameters_access_load_Timeout (l : Loc) (v : googl
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerParameters_access_store_Timeout (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'ServerParameters'Timeout (l : Loc) (v : google_golang_org.grpc.keepalive.ServerParameters) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"Timeout" l) v.Timeout' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.ServerParameters go!"Timeout" l) y (DFrac.own 1))
@@ -207,7 +207,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.keepalive.Assumptions]
 
-noncomputable instance EnforcementPolicy_typed_pointsto :
+noncomputable instance typed_pointsto'EnforcementPolicy :
     TypedPointsto (GF := GF) google_golang_org.grpc.keepalive.EnforcementPolicy where
   typedPointstoDef l v dq := iprop(
     "MinTime" ∷ typedPointsto (structFieldRef google_golang_org.grpc.keepalive.EnforcementPolicy go!"MinTime" l) v.MinTime' dq ∗
@@ -217,11 +217,11 @@ noncomputable instance EnforcementPolicy_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance EnforcementPolicy_into_val_typed :
+noncomputable instance into_val_typed'EnforcementPolicy :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.keepalive.EnforcementPolicy google_golang_org.grpc.keepalive.EnforcementPolicy.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance EnforcementPolicy_access_load_MinTime (l : Loc) (v : google_golang_org.grpc.keepalive.EnforcementPolicy) (dq : DFrac) :
+noncomputable instance access_load'EnforcementPolicy'MinTime (l : Loc) (v : google_golang_org.grpc.keepalive.EnforcementPolicy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.EnforcementPolicy go!"MinTime" l) v.MinTime' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.EnforcementPolicy go!"MinTime" l) v.MinTime' dq)
@@ -229,7 +229,7 @@ noncomputable instance EnforcementPolicy_access_load_MinTime (l : Loc) (v : goog
  by
   solve_pointsto_access_struct
 
-noncomputable instance EnforcementPolicy_access_store_MinTime (l : Loc) (v : google_golang_org.grpc.keepalive.EnforcementPolicy) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'EnforcementPolicy'MinTime (l : Loc) (v : google_golang_org.grpc.keepalive.EnforcementPolicy) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.EnforcementPolicy go!"MinTime" l) v.MinTime' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.EnforcementPolicy go!"MinTime" l) y (DFrac.own 1))
@@ -237,7 +237,7 @@ noncomputable instance EnforcementPolicy_access_store_MinTime (l : Loc) (v : goo
  by
   solve_pointsto_access_struct
 
-noncomputable instance EnforcementPolicy_access_load_PermitWithoutStream (l : Loc) (v : google_golang_org.grpc.keepalive.EnforcementPolicy) (dq : DFrac) :
+noncomputable instance access_load'EnforcementPolicy'PermitWithoutStream (l : Loc) (v : google_golang_org.grpc.keepalive.EnforcementPolicy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.EnforcementPolicy go!"PermitWithoutStream" l) v.PermitWithoutStream' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.EnforcementPolicy go!"PermitWithoutStream" l) v.PermitWithoutStream' dq)
@@ -245,7 +245,7 @@ noncomputable instance EnforcementPolicy_access_load_PermitWithoutStream (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance EnforcementPolicy_access_store_PermitWithoutStream (l : Loc) (v : google_golang_org.grpc.keepalive.EnforcementPolicy) (y : Bool) :
+noncomputable instance access_store'EnforcementPolicy'PermitWithoutStream (l : Loc) (v : google_golang_org.grpc.keepalive.EnforcementPolicy) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.EnforcementPolicy go!"PermitWithoutStream" l) v.PermitWithoutStream' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.keepalive.EnforcementPolicy go!"PermitWithoutStream" l) y (DFrac.own 1))

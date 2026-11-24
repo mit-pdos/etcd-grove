@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.policy.v1.Assumptions]
 
-noncomputable instance EvictionsGetter_typed_pointsto :
+noncomputable instance typed_pointsto'EvictionsGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.EvictionsGetter :=
   sorry -- axiomatized type
 
-noncomputable instance EvictionsGetter_into_val_typed :
+noncomputable instance into_val_typed'EvictionsGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.EvictionsGetter k8s_io.client_go.kubernetes.typed.policy.v1.EvictionsGetter.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.policy.v1.Assumptions]
 
-noncomputable instance EvictionInterface_typed_pointsto :
+noncomputable instance typed_pointsto'EvictionInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.EvictionInterface :=
   sorry -- axiomatized type
 
-noncomputable instance EvictionInterface_into_val_typed :
+noncomputable instance into_val_typed'EvictionInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.EvictionInterface k8s_io.client_go.kubernetes.typed.policy.v1.EvictionInterface.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.policy.v1.Assumptions]
 
-noncomputable instance evictions_typed_pointsto :
+noncomputable instance typed_pointsto'evictions :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.evictions :=
   sorry -- axiomatized type
 
-noncomputable instance evictions_into_val_typed :
+noncomputable instance into_val_typed'evictions :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.evictions k8s_io.client_go.kubernetes.typed.policy.v1.evictions.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.policy.v1.Assumptions]
 
-noncomputable instance EvictionExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'EvictionExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.EvictionExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance EvictionExpansion_into_val_typed :
+noncomputable instance into_val_typed'EvictionExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.EvictionExpansion k8s_io.client_go.kubernetes.typed.policy.v1.EvictionExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.policy.v1.Assumptions]
 
-noncomputable instance PodDisruptionBudgetExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'PodDisruptionBudgetExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.PodDisruptionBudgetExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance PodDisruptionBudgetExpansion_into_val_typed :
+noncomputable instance into_val_typed'PodDisruptionBudgetExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.PodDisruptionBudgetExpansion k8s_io.client_go.kubernetes.typed.policy.v1.PodDisruptionBudgetExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.policy.v1.Assumptions]
 
-noncomputable instance PodDisruptionBudgetsGetter_typed_pointsto :
+noncomputable instance typed_pointsto'PodDisruptionBudgetsGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.PodDisruptionBudgetsGetter :=
   sorry -- axiomatized type
 
-noncomputable instance PodDisruptionBudgetsGetter_into_val_typed :
+noncomputable instance into_val_typed'PodDisruptionBudgetsGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.PodDisruptionBudgetsGetter k8s_io.client_go.kubernetes.typed.policy.v1.PodDisruptionBudgetsGetter.underlying :=
   sorry -- axiomatized type
 
@@ -138,11 +138,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.policy.v1.Assumptions]
 
-noncomputable instance PodDisruptionBudgetInterface_typed_pointsto :
+noncomputable instance typed_pointsto'PodDisruptionBudgetInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.PodDisruptionBudgetInterface :=
   sorry -- axiomatized type
 
-noncomputable instance PodDisruptionBudgetInterface_into_val_typed :
+noncomputable instance into_val_typed'PodDisruptionBudgetInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.PodDisruptionBudgetInterface k8s_io.client_go.kubernetes.typed.policy.v1.PodDisruptionBudgetInterface.underlying :=
   sorry -- axiomatized type
 
@@ -157,11 +157,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.policy.v1.Assumptions]
 
-noncomputable instance podDisruptionBudgets_typed_pointsto :
+noncomputable instance typed_pointsto'podDisruptionBudgets :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.podDisruptionBudgets :=
   sorry -- axiomatized type
 
-noncomputable instance podDisruptionBudgets_into_val_typed :
+noncomputable instance into_val_typed'podDisruptionBudgets :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.podDisruptionBudgets k8s_io.client_go.kubernetes.typed.policy.v1.podDisruptionBudgets.underlying :=
   sorry -- axiomatized type
 
@@ -176,11 +176,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.policy.v1.Assumptions]
 
-noncomputable instance PolicyV1Interface_typed_pointsto :
+noncomputable instance typed_pointsto'PolicyV1Interface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.PolicyV1Interface :=
   sorry -- axiomatized type
 
-noncomputable instance PolicyV1Interface_into_val_typed :
+noncomputable instance into_val_typed'PolicyV1Interface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.PolicyV1Interface k8s_io.client_go.kubernetes.typed.policy.v1.PolicyV1Interface.underlying :=
   sorry -- axiomatized type
 
@@ -195,11 +195,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.policy.v1.Assumptions]
 
-noncomputable instance PolicyV1Client_typed_pointsto :
+noncomputable instance typed_pointsto'PolicyV1Client :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.PolicyV1Client :=
   sorry -- axiomatized type
 
-noncomputable instance PolicyV1Client_into_val_typed :
+noncomputable instance into_val_typed'PolicyV1Client :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.policy.v1.PolicyV1Client k8s_io.client_go.kubernetes.typed.policy.v1.PolicyV1Client.underlying :=
   sorry -- axiomatized type
 

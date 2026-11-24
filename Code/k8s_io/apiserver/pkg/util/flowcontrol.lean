@@ -536,7 +536,7 @@ noncomputable instance RequestDigest.zero_val [GooseExts] : ZeroVal RequestDiges
 @[irreducible] noncomputable def RequestDigest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RequestDigest.fieldsUnsealed
 
-noncomputable instance equals_unfold_RequestDigest [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RequestDigest [GooseExts] [GoGlobalContext] :
     EqualsUnfold RequestDigest.fields RequestDigest.fieldsUnsealed :=
   ⟨by unfold RequestDigest.fields; rfl⟩
 
@@ -546,19 +546,19 @@ noncomputable instance equals_unfold_RequestDigest [GooseExts] [GoGlobalContext]
 class RequestDigest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestDigest.underlying RequestDigest
   underlying : go.UnderlyingDirectedEq RequestDigest.ty RequestDigest.underlying
-  get_RequestInfo : ∀ (x : RequestDigest), go.IsGoStepPureDetTagged under (StructFieldGet RequestDigest.underlying go!"RequestInfo") #x (Val #(x.RequestInfo'))
-  set_RequestInfo : ∀ (x : RequestDigest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RequestDigest.underlying go!"RequestInfo") (PairV #x #y) (Val #(({ x with RequestInfo' := y } : RequestDigest)))
-  get_User : ∀ (x : RequestDigest), go.IsGoStepPureDetTagged under (StructFieldGet RequestDigest.underlying go!"User") #x (Val #(x.User'))
-  set_User : ∀ (x : RequestDigest) (y : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info), go.IsGoStepPureDetTagged under (StructFieldSet RequestDigest.underlying go!"User") (PairV #x #y) (Val #(({ x with User' := y } : RequestDigest)))
+  get'RequestInfo : ∀ (x : RequestDigest), go.IsGoStepPureDetTagged under (StructFieldGet RequestDigest.underlying go!"RequestInfo") #x (Val #(x.RequestInfo'))
+  set'RequestInfo : ∀ (x : RequestDigest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RequestDigest.underlying go!"RequestInfo") (PairV #x #y) (Val #(({ x with RequestInfo' := y } : RequestDigest)))
+  get'User : ∀ (x : RequestDigest), go.IsGoStepPureDetTagged under (StructFieldGet RequestDigest.underlying go!"User") #x (Val #(x.User'))
+  set'User : ∀ (x : RequestDigest) (y : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info), go.IsGoStepPureDetTagged under (StructFieldSet RequestDigest.underlying go!"User") (PairV #x #y) (Val #(({ x with User' := y } : RequestDigest)))
   method_set : go.MethodSetIs RequestDigest.ty [(go!"GoString", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestDigest.ty) [(go!"GoString", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] RequestDigest.TypeAssumptions.type_repr
   RequestDigest.TypeAssumptions.underlying
-  RequestDigest.TypeAssumptions.get_RequestInfo
-  RequestDigest.TypeAssumptions.set_RequestInfo
-  RequestDigest.TypeAssumptions.get_User
-  RequestDigest.TypeAssumptions.set_User
+  RequestDigest.TypeAssumptions.get'RequestInfo
+  RequestDigest.TypeAssumptions.set'RequestInfo
+  RequestDigest.TypeAssumptions.get'User
+  RequestDigest.TypeAssumptions.set'User
   RequestDigest.TypeAssumptions.method_set
   RequestDigest.TypeAssumptions.ptr_method_set
 
@@ -638,7 +638,7 @@ noncomputable instance seatDemandStats.zero_val [GooseExts] : ZeroVal seatDemand
 @[irreducible] noncomputable def seatDemandStats.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   seatDemandStats.fieldsUnsealed
 
-noncomputable instance equals_unfold_seatDemandStats [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'seatDemandStats [GooseExts] [GoGlobalContext] :
     EqualsUnfold seatDemandStats.fields seatDemandStats.fieldsUnsealed :=
   ⟨by unfold seatDemandStats.fields; rfl⟩
 
@@ -648,27 +648,27 @@ noncomputable instance equals_unfold_seatDemandStats [GooseExts] [GoGlobalContex
 class seatDemandStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying seatDemandStats.underlying seatDemandStats
   underlying : go.UnderlyingDirectedEq seatDemandStats.ty seatDemandStats.underlying
-  get_avg : ∀ (x : seatDemandStats), go.IsGoStepPureDetTagged under (StructFieldGet seatDemandStats.underlying go!"avg") #x (Val #(x.avg'))
-  set_avg : ∀ (x : seatDemandStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet seatDemandStats.underlying go!"avg") (PairV #x #y) (Val #(({ x with avg' := y } : seatDemandStats)))
-  get_stdDev : ∀ (x : seatDemandStats), go.IsGoStepPureDetTagged under (StructFieldGet seatDemandStats.underlying go!"stdDev") #x (Val #(x.stdDev'))
-  set_stdDev : ∀ (x : seatDemandStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet seatDemandStats.underlying go!"stdDev") (PairV #x #y) (Val #(({ x with stdDev' := y } : seatDemandStats)))
-  get_highWatermark : ∀ (x : seatDemandStats), go.IsGoStepPureDetTagged under (StructFieldGet seatDemandStats.underlying go!"highWatermark") #x (Val #(x.highWatermark'))
-  set_highWatermark : ∀ (x : seatDemandStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet seatDemandStats.underlying go!"highWatermark") (PairV #x #y) (Val #(({ x with highWatermark' := y } : seatDemandStats)))
-  get_smoothed : ∀ (x : seatDemandStats), go.IsGoStepPureDetTagged under (StructFieldGet seatDemandStats.underlying go!"smoothed") #x (Val #(x.smoothed'))
-  set_smoothed : ∀ (x : seatDemandStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet seatDemandStats.underlying go!"smoothed") (PairV #x #y) (Val #(({ x with smoothed' := y } : seatDemandStats)))
+  get'avg : ∀ (x : seatDemandStats), go.IsGoStepPureDetTagged under (StructFieldGet seatDemandStats.underlying go!"avg") #x (Val #(x.avg'))
+  set'avg : ∀ (x : seatDemandStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet seatDemandStats.underlying go!"avg") (PairV #x #y) (Val #(({ x with avg' := y } : seatDemandStats)))
+  get'stdDev : ∀ (x : seatDemandStats), go.IsGoStepPureDetTagged under (StructFieldGet seatDemandStats.underlying go!"stdDev") #x (Val #(x.stdDev'))
+  set'stdDev : ∀ (x : seatDemandStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet seatDemandStats.underlying go!"stdDev") (PairV #x #y) (Val #(({ x with stdDev' := y } : seatDemandStats)))
+  get'highWatermark : ∀ (x : seatDemandStats), go.IsGoStepPureDetTagged under (StructFieldGet seatDemandStats.underlying go!"highWatermark") #x (Val #(x.highWatermark'))
+  set'highWatermark : ∀ (x : seatDemandStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet seatDemandStats.underlying go!"highWatermark") (PairV #x #y) (Val #(({ x with highWatermark' := y } : seatDemandStats)))
+  get'smoothed : ∀ (x : seatDemandStats), go.IsGoStepPureDetTagged under (StructFieldGet seatDemandStats.underlying go!"smoothed") #x (Val #(x.smoothed'))
+  set'smoothed : ∀ (x : seatDemandStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet seatDemandStats.underlying go!"smoothed") (PairV #x #y) (Val #(({ x with smoothed' := y } : seatDemandStats)))
   method_set : go.MethodSetIs seatDemandStats.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType seatDemandStats.ty) [(go!"k8s.io/apiserver/pkg/util/flowcontrol.update", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/fairqueuing.IntegratorResults" [])] false [])))]
 
 attribute [instance] seatDemandStats.TypeAssumptions.type_repr
   seatDemandStats.TypeAssumptions.underlying
-  seatDemandStats.TypeAssumptions.get_avg
-  seatDemandStats.TypeAssumptions.set_avg
-  seatDemandStats.TypeAssumptions.get_stdDev
-  seatDemandStats.TypeAssumptions.set_stdDev
-  seatDemandStats.TypeAssumptions.get_highWatermark
-  seatDemandStats.TypeAssumptions.set_highWatermark
-  seatDemandStats.TypeAssumptions.get_smoothed
-  seatDemandStats.TypeAssumptions.set_smoothed
+  seatDemandStats.TypeAssumptions.get'avg
+  seatDemandStats.TypeAssumptions.set'avg
+  seatDemandStats.TypeAssumptions.get'stdDev
+  seatDemandStats.TypeAssumptions.set'stdDev
+  seatDemandStats.TypeAssumptions.get'highWatermark
+  seatDemandStats.TypeAssumptions.set'highWatermark
+  seatDemandStats.TypeAssumptions.get'smoothed
+  seatDemandStats.TypeAssumptions.set'smoothed
   seatDemandStats.TypeAssumptions.method_set
   seatDemandStats.TypeAssumptions.ptr_method_set
 
@@ -699,7 +699,7 @@ noncomputable instance cfgMeal.zero_val [GooseExts] : ZeroVal cfgMeal :=
 @[irreducible] noncomputable def cfgMeal.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   cfgMeal.fieldsUnsealed
 
-noncomputable instance equals_unfold_cfgMeal [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'cfgMeal [GooseExts] [GoGlobalContext] :
     EqualsUnfold cfgMeal.fields cfgMeal.fieldsUnsealed :=
   ⟨by unfold cfgMeal.fields; rfl⟩
 
@@ -709,43 +709,43 @@ noncomputable instance equals_unfold_cfgMeal [GooseExts] [GoGlobalContext] :
 class cfgMeal.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cfgMeal.underlying cfgMeal
   underlying : go.UnderlyingDirectedEq cfgMeal.ty cfgMeal.underlying
-  get_cfgCtlr : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"cfgCtlr") #x (Val #(x.cfgCtlr'))
-  set_cfgCtlr : ∀ (x : cfgMeal) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"cfgCtlr") (PairV #x #y) (Val #(({ x with cfgCtlr' := y } : cfgMeal)))
-  get_newPLStates : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"newPLStates") #x (Val #(x.newPLStates'))
-  set_newPLStates : ∀ (x : cfgMeal) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"newPLStates") (PairV #x #y) (Val #(({ x with newPLStates' := y } : cfgMeal)))
-  get_shareSum : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"shareSum") #x (Val #(x.shareSum'))
-  set_shareSum : ∀ (x : cfgMeal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"shareSum") (PairV #x #y) (Val #(({ x with shareSum' := y } : cfgMeal)))
-  get_haveExemptPL : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"haveExemptPL") #x (Val #(x.haveExemptPL'))
-  set_haveExemptPL : ∀ (x : cfgMeal) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"haveExemptPL") (PairV #x #y) (Val #(({ x with haveExemptPL' := y } : cfgMeal)))
-  get_haveCatchAllPL : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"haveCatchAllPL") #x (Val #(x.haveCatchAllPL'))
-  set_haveCatchAllPL : ∀ (x : cfgMeal) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"haveCatchAllPL") (PairV #x #y) (Val #(({ x with haveCatchAllPL' := y } : cfgMeal)))
-  get_fsStatusUpdates : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"fsStatusUpdates") #x (Val #(x.fsStatusUpdates'))
-  set_fsStatusUpdates : ∀ (x : cfgMeal) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"fsStatusUpdates") (PairV #x #y) (Val #(({ x with fsStatusUpdates' := y } : cfgMeal)))
-  get_maxWaitingRequests : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"maxWaitingRequests") #x (Val #(x.maxWaitingRequests'))
-  set_maxWaitingRequests : ∀ (x : cfgMeal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"maxWaitingRequests") (PairV #x #y) (Val #(({ x with maxWaitingRequests' := y } : cfgMeal)))
-  get_maxExecutingRequests : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"maxExecutingRequests") #x (Val #(x.maxExecutingRequests'))
-  set_maxExecutingRequests : ∀ (x : cfgMeal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"maxExecutingRequests") (PairV #x #y) (Val #(({ x with maxExecutingRequests' := y } : cfgMeal)))
+  get'cfgCtlr : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"cfgCtlr") #x (Val #(x.cfgCtlr'))
+  set'cfgCtlr : ∀ (x : cfgMeal) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"cfgCtlr") (PairV #x #y) (Val #(({ x with cfgCtlr' := y } : cfgMeal)))
+  get'newPLStates : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"newPLStates") #x (Val #(x.newPLStates'))
+  set'newPLStates : ∀ (x : cfgMeal) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"newPLStates") (PairV #x #y) (Val #(({ x with newPLStates' := y } : cfgMeal)))
+  get'shareSum : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"shareSum") #x (Val #(x.shareSum'))
+  set'shareSum : ∀ (x : cfgMeal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"shareSum") (PairV #x #y) (Val #(({ x with shareSum' := y } : cfgMeal)))
+  get'haveExemptPL : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"haveExemptPL") #x (Val #(x.haveExemptPL'))
+  set'haveExemptPL : ∀ (x : cfgMeal) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"haveExemptPL") (PairV #x #y) (Val #(({ x with haveExemptPL' := y } : cfgMeal)))
+  get'haveCatchAllPL : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"haveCatchAllPL") #x (Val #(x.haveCatchAllPL'))
+  set'haveCatchAllPL : ∀ (x : cfgMeal) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"haveCatchAllPL") (PairV #x #y) (Val #(({ x with haveCatchAllPL' := y } : cfgMeal)))
+  get'fsStatusUpdates : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"fsStatusUpdates") #x (Val #(x.fsStatusUpdates'))
+  set'fsStatusUpdates : ∀ (x : cfgMeal) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"fsStatusUpdates") (PairV #x #y) (Val #(({ x with fsStatusUpdates' := y } : cfgMeal)))
+  get'maxWaitingRequests : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"maxWaitingRequests") #x (Val #(x.maxWaitingRequests'))
+  set'maxWaitingRequests : ∀ (x : cfgMeal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"maxWaitingRequests") (PairV #x #y) (Val #(({ x with maxWaitingRequests' := y } : cfgMeal)))
+  get'maxExecutingRequests : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"maxExecutingRequests") #x (Val #(x.maxExecutingRequests'))
+  set'maxExecutingRequests : ∀ (x : cfgMeal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"maxExecutingRequests") (PairV #x #y) (Val #(({ x with maxExecutingRequests' := y } : cfgMeal)))
   method_set : go.MethodSetIs cfgMeal.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType cfgMeal.ty) [(go!"k8s.io/apiserver/pkg/util/flowcontrol.digestFlowSchemasLocked", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])))] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.digestNewPLsLocked", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" [])))] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.finishQueueSetReconfigsLocked", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.imaginePL", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" []))] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.presyncFlowSchemaStatus", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])), go.bool, go.string] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.processOldPLsLocked", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] cfgMeal.TypeAssumptions.type_repr
   cfgMeal.TypeAssumptions.underlying
-  cfgMeal.TypeAssumptions.get_cfgCtlr
-  cfgMeal.TypeAssumptions.set_cfgCtlr
-  cfgMeal.TypeAssumptions.get_newPLStates
-  cfgMeal.TypeAssumptions.set_newPLStates
-  cfgMeal.TypeAssumptions.get_shareSum
-  cfgMeal.TypeAssumptions.set_shareSum
-  cfgMeal.TypeAssumptions.get_haveExemptPL
-  cfgMeal.TypeAssumptions.set_haveExemptPL
-  cfgMeal.TypeAssumptions.get_haveCatchAllPL
-  cfgMeal.TypeAssumptions.set_haveCatchAllPL
-  cfgMeal.TypeAssumptions.get_fsStatusUpdates
-  cfgMeal.TypeAssumptions.set_fsStatusUpdates
-  cfgMeal.TypeAssumptions.get_maxWaitingRequests
-  cfgMeal.TypeAssumptions.set_maxWaitingRequests
-  cfgMeal.TypeAssumptions.get_maxExecutingRequests
-  cfgMeal.TypeAssumptions.set_maxExecutingRequests
+  cfgMeal.TypeAssumptions.get'cfgCtlr
+  cfgMeal.TypeAssumptions.set'cfgCtlr
+  cfgMeal.TypeAssumptions.get'newPLStates
+  cfgMeal.TypeAssumptions.set'newPLStates
+  cfgMeal.TypeAssumptions.get'shareSum
+  cfgMeal.TypeAssumptions.set'shareSum
+  cfgMeal.TypeAssumptions.get'haveExemptPL
+  cfgMeal.TypeAssumptions.set'haveExemptPL
+  cfgMeal.TypeAssumptions.get'haveCatchAllPL
+  cfgMeal.TypeAssumptions.set'haveCatchAllPL
+  cfgMeal.TypeAssumptions.get'fsStatusUpdates
+  cfgMeal.TypeAssumptions.set'fsStatusUpdates
+  cfgMeal.TypeAssumptions.get'maxWaitingRequests
+  cfgMeal.TypeAssumptions.set'maxWaitingRequests
+  cfgMeal.TypeAssumptions.get'maxExecutingRequests
+  cfgMeal.TypeAssumptions.set'maxExecutingRequests
   cfgMeal.TypeAssumptions.method_set
   cfgMeal.TypeAssumptions.ptr_method_set
 
@@ -823,7 +823,7 @@ noncomputable instance allocProblemItem.zero_val [GooseExts] : ZeroVal allocProb
 @[irreducible] noncomputable def allocProblemItem.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   allocProblemItem.fieldsUnsealed
 
-noncomputable instance equals_unfold_allocProblemItem [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'allocProblemItem [GooseExts] [GoGlobalContext] :
     EqualsUnfold allocProblemItem.fields allocProblemItem.fieldsUnsealed :=
   ⟨by unfold allocProblemItem.fields; rfl⟩
 
@@ -833,23 +833,23 @@ noncomputable instance equals_unfold_allocProblemItem [GooseExts] [GoGlobalConte
 class allocProblemItem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying allocProblemItem.underlying allocProblemItem
   underlying : go.UnderlyingDirectedEq allocProblemItem.ty allocProblemItem.underlying
-  get_target : ∀ (x : allocProblemItem), go.IsGoStepPureDetTagged under (StructFieldGet allocProblemItem.underlying go!"target") #x (Val #(x.target'))
-  set_target : ∀ (x : allocProblemItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet allocProblemItem.underlying go!"target") (PairV #x #y) (Val #(({ x with target' := y } : allocProblemItem)))
-  get_lowerBound : ∀ (x : allocProblemItem), go.IsGoStepPureDetTagged under (StructFieldGet allocProblemItem.underlying go!"lowerBound") #x (Val #(x.lowerBound'))
-  set_lowerBound : ∀ (x : allocProblemItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet allocProblemItem.underlying go!"lowerBound") (PairV #x #y) (Val #(({ x with lowerBound' := y } : allocProblemItem)))
-  get_upperBound : ∀ (x : allocProblemItem), go.IsGoStepPureDetTagged under (StructFieldGet allocProblemItem.underlying go!"upperBound") #x (Val #(x.upperBound'))
-  set_upperBound : ∀ (x : allocProblemItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet allocProblemItem.underlying go!"upperBound") (PairV #x #y) (Val #(({ x with upperBound' := y } : allocProblemItem)))
+  get'target : ∀ (x : allocProblemItem), go.IsGoStepPureDetTagged under (StructFieldGet allocProblemItem.underlying go!"target") #x (Val #(x.target'))
+  set'target : ∀ (x : allocProblemItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet allocProblemItem.underlying go!"target") (PairV #x #y) (Val #(({ x with target' := y } : allocProblemItem)))
+  get'lowerBound : ∀ (x : allocProblemItem), go.IsGoStepPureDetTagged under (StructFieldGet allocProblemItem.underlying go!"lowerBound") #x (Val #(x.lowerBound'))
+  set'lowerBound : ∀ (x : allocProblemItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet allocProblemItem.underlying go!"lowerBound") (PairV #x #y) (Val #(({ x with lowerBound' := y } : allocProblemItem)))
+  get'upperBound : ∀ (x : allocProblemItem), go.IsGoStepPureDetTagged under (StructFieldGet allocProblemItem.underlying go!"upperBound") #x (Val #(x.upperBound'))
+  set'upperBound : ∀ (x : allocProblemItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet allocProblemItem.underlying go!"upperBound") (PairV #x #y) (Val #(({ x with upperBound' := y } : allocProblemItem)))
   method_set : go.MethodSetIs allocProblemItem.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType allocProblemItem.ty) []
 
 attribute [instance] allocProblemItem.TypeAssumptions.type_repr
   allocProblemItem.TypeAssumptions.underlying
-  allocProblemItem.TypeAssumptions.get_target
-  allocProblemItem.TypeAssumptions.set_target
-  allocProblemItem.TypeAssumptions.get_lowerBound
-  allocProblemItem.TypeAssumptions.set_lowerBound
-  allocProblemItem.TypeAssumptions.get_upperBound
-  allocProblemItem.TypeAssumptions.set_upperBound
+  allocProblemItem.TypeAssumptions.get'target
+  allocProblemItem.TypeAssumptions.set'target
+  allocProblemItem.TypeAssumptions.get'lowerBound
+  allocProblemItem.TypeAssumptions.set'lowerBound
+  allocProblemItem.TypeAssumptions.get'upperBound
+  allocProblemItem.TypeAssumptions.set'upperBound
   allocProblemItem.TypeAssumptions.method_set
   allocProblemItem.TypeAssumptions.ptr_method_set
 
@@ -870,7 +870,7 @@ noncomputable instance relativeAllocItem.zero_val [GooseExts] : ZeroVal relative
 @[irreducible] noncomputable def relativeAllocItem.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   relativeAllocItem.fieldsUnsealed
 
-noncomputable instance equals_unfold_relativeAllocItem [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'relativeAllocItem [GooseExts] [GoGlobalContext] :
     EqualsUnfold relativeAllocItem.fields relativeAllocItem.fieldsUnsealed :=
   ⟨by unfold relativeAllocItem.fields; rfl⟩
 
@@ -880,23 +880,23 @@ noncomputable instance equals_unfold_relativeAllocItem [GooseExts] [GoGlobalCont
 class relativeAllocItem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying relativeAllocItem.underlying relativeAllocItem
   underlying : go.UnderlyingDirectedEq relativeAllocItem.ty relativeAllocItem.underlying
-  get_target : ∀ (x : relativeAllocItem), go.IsGoStepPureDetTagged under (StructFieldGet relativeAllocItem.underlying go!"target") #x (Val #(x.target'))
-  set_target : ∀ (x : relativeAllocItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet relativeAllocItem.underlying go!"target") (PairV #x #y) (Val #(({ x with target' := y } : relativeAllocItem)))
-  get_relativeLowerBound : ∀ (x : relativeAllocItem), go.IsGoStepPureDetTagged under (StructFieldGet relativeAllocItem.underlying go!"relativeLowerBound") #x (Val #(x.relativeLowerBound'))
-  set_relativeLowerBound : ∀ (x : relativeAllocItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet relativeAllocItem.underlying go!"relativeLowerBound") (PairV #x #y) (Val #(({ x with relativeLowerBound' := y } : relativeAllocItem)))
-  get_relativeUpperBound : ∀ (x : relativeAllocItem), go.IsGoStepPureDetTagged under (StructFieldGet relativeAllocItem.underlying go!"relativeUpperBound") #x (Val #(x.relativeUpperBound'))
-  set_relativeUpperBound : ∀ (x : relativeAllocItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet relativeAllocItem.underlying go!"relativeUpperBound") (PairV #x #y) (Val #(({ x with relativeUpperBound' := y } : relativeAllocItem)))
+  get'target : ∀ (x : relativeAllocItem), go.IsGoStepPureDetTagged under (StructFieldGet relativeAllocItem.underlying go!"target") #x (Val #(x.target'))
+  set'target : ∀ (x : relativeAllocItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet relativeAllocItem.underlying go!"target") (PairV #x #y) (Val #(({ x with target' := y } : relativeAllocItem)))
+  get'relativeLowerBound : ∀ (x : relativeAllocItem), go.IsGoStepPureDetTagged under (StructFieldGet relativeAllocItem.underlying go!"relativeLowerBound") #x (Val #(x.relativeLowerBound'))
+  set'relativeLowerBound : ∀ (x : relativeAllocItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet relativeAllocItem.underlying go!"relativeLowerBound") (PairV #x #y) (Val #(({ x with relativeLowerBound' := y } : relativeAllocItem)))
+  get'relativeUpperBound : ∀ (x : relativeAllocItem), go.IsGoStepPureDetTagged under (StructFieldGet relativeAllocItem.underlying go!"relativeUpperBound") #x (Val #(x.relativeUpperBound'))
+  set'relativeUpperBound : ∀ (x : relativeAllocItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet relativeAllocItem.underlying go!"relativeUpperBound") (PairV #x #y) (Val #(({ x with relativeUpperBound' := y } : relativeAllocItem)))
   method_set : go.MethodSetIs relativeAllocItem.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType relativeAllocItem.ty) []
 
 attribute [instance] relativeAllocItem.TypeAssumptions.type_repr
   relativeAllocItem.TypeAssumptions.underlying
-  relativeAllocItem.TypeAssumptions.get_target
-  relativeAllocItem.TypeAssumptions.set_target
-  relativeAllocItem.TypeAssumptions.get_relativeLowerBound
-  relativeAllocItem.TypeAssumptions.set_relativeLowerBound
-  relativeAllocItem.TypeAssumptions.get_relativeUpperBound
-  relativeAllocItem.TypeAssumptions.set_relativeUpperBound
+  relativeAllocItem.TypeAssumptions.get'target
+  relativeAllocItem.TypeAssumptions.set'target
+  relativeAllocItem.TypeAssumptions.get'relativeLowerBound
+  relativeAllocItem.TypeAssumptions.set'relativeLowerBound
+  relativeAllocItem.TypeAssumptions.get'relativeUpperBound
+  relativeAllocItem.TypeAssumptions.set'relativeUpperBound
   relativeAllocItem.TypeAssumptions.method_set
   relativeAllocItem.TypeAssumptions.ptr_method_set
 
@@ -915,7 +915,7 @@ noncomputable instance relativeAllocProblem.zero_val [GooseExts] : ZeroVal relat
 @[irreducible] noncomputable def relativeAllocProblem.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   relativeAllocProblem.fieldsUnsealed
 
-noncomputable instance equals_unfold_relativeAllocProblem [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'relativeAllocProblem [GooseExts] [GoGlobalContext] :
     EqualsUnfold relativeAllocProblem.fields relativeAllocProblem.fieldsUnsealed :=
   ⟨by unfold relativeAllocProblem.fields; rfl⟩
 
@@ -925,19 +925,19 @@ noncomputable instance equals_unfold_relativeAllocProblem [GooseExts] [GoGlobalC
 class relativeAllocProblem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying relativeAllocProblem.underlying relativeAllocProblem
   underlying : go.UnderlyingDirectedEq relativeAllocProblem.ty relativeAllocProblem.underlying
-  get_items : ∀ (x : relativeAllocProblem), go.IsGoStepPureDetTagged under (StructFieldGet relativeAllocProblem.underlying go!"items") #x (Val #(x.items'))
-  set_items : ∀ (x : relativeAllocProblem) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet relativeAllocProblem.underlying go!"items") (PairV #x #y) (Val #(({ x with items' := y } : relativeAllocProblem)))
-  get_ascendingIndices : ∀ (x : relativeAllocProblem), go.IsGoStepPureDetTagged under (StructFieldGet relativeAllocProblem.underlying go!"ascendingIndices") #x (Val #(x.ascendingIndices'))
-  set_ascendingIndices : ∀ (x : relativeAllocProblem) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet relativeAllocProblem.underlying go!"ascendingIndices") (PairV #x #y) (Val #(({ x with ascendingIndices' := y } : relativeAllocProblem)))
+  get'items : ∀ (x : relativeAllocProblem), go.IsGoStepPureDetTagged under (StructFieldGet relativeAllocProblem.underlying go!"items") #x (Val #(x.items'))
+  set'items : ∀ (x : relativeAllocProblem) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet relativeAllocProblem.underlying go!"items") (PairV #x #y) (Val #(({ x with items' := y } : relativeAllocProblem)))
+  get'ascendingIndices : ∀ (x : relativeAllocProblem), go.IsGoStepPureDetTagged under (StructFieldGet relativeAllocProblem.underlying go!"ascendingIndices") #x (Val #(x.ascendingIndices'))
+  set'ascendingIndices : ∀ (x : relativeAllocProblem) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet relativeAllocProblem.underlying go!"ascendingIndices") (PairV #x #y) (Val #(({ x with ascendingIndices' := y } : relativeAllocProblem)))
   method_set : go.MethodSetIs relativeAllocProblem.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType relativeAllocProblem.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.decode", (some (go.signature.Signature [go.int] false [go.float64, go.int, go.bool]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.getItemIndex", (some (go.signature.Signature [go.int] false [go.int, go.bool]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.getProportion", (some (go.signature.Signature [go.int] false [go.float64]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.initIndices", (some (go.signature.Signature [] false [(go.GoType.PointerType relativeAllocProblem.ty)])))]
 
 attribute [instance] relativeAllocProblem.TypeAssumptions.type_repr
   relativeAllocProblem.TypeAssumptions.underlying
-  relativeAllocProblem.TypeAssumptions.get_items
-  relativeAllocProblem.TypeAssumptions.set_items
-  relativeAllocProblem.TypeAssumptions.get_ascendingIndices
-  relativeAllocProblem.TypeAssumptions.set_ascendingIndices
+  relativeAllocProblem.TypeAssumptions.get'items
+  relativeAllocProblem.TypeAssumptions.set'items
+  relativeAllocProblem.TypeAssumptions.get'ascendingIndices
+  relativeAllocProblem.TypeAssumptions.set'ascendingIndices
   relativeAllocProblem.TypeAssumptions.method_set
   relativeAllocProblem.TypeAssumptions.ptr_method_set
 
@@ -956,7 +956,7 @@ noncomputable instance minMax.zero_val [GooseExts] : ZeroVal minMax :=
 @[irreducible] noncomputable def minMax.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   minMax.fieldsUnsealed
 
-noncomputable instance equals_unfold_minMax [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'minMax [GooseExts] [GoGlobalContext] :
     EqualsUnfold minMax.fields minMax.fieldsUnsealed :=
   ⟨by unfold minMax.fields; rfl⟩
 
@@ -966,19 +966,19 @@ noncomputable instance equals_unfold_minMax [GooseExts] [GoGlobalContext] :
 class minMax.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying minMax.underlying minMax
   underlying : go.UnderlyingDirectedEq minMax.ty minMax.underlying
-  get_min : ∀ (x : minMax), go.IsGoStepPureDetTagged under (StructFieldGet minMax.underlying go!"min") #x (Val #(x.min'))
-  set_min : ∀ (x : minMax) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet minMax.underlying go!"min") (PairV #x #y) (Val #(({ x with min' := y } : minMax)))
-  get_max : ∀ (x : minMax), go.IsGoStepPureDetTagged under (StructFieldGet minMax.underlying go!"max") #x (Val #(x.max'))
-  set_max : ∀ (x : minMax) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet minMax.underlying go!"max") (PairV #x #y) (Val #(({ x with max' := y } : minMax)))
+  get'min : ∀ (x : minMax), go.IsGoStepPureDetTagged under (StructFieldGet minMax.underlying go!"min") #x (Val #(x.min'))
+  set'min : ∀ (x : minMax) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet minMax.underlying go!"min") (PairV #x #y) (Val #(({ x with min' := y } : minMax)))
+  get'max : ∀ (x : minMax), go.IsGoStepPureDetTagged under (StructFieldGet minMax.underlying go!"max") #x (Val #(x.max'))
+  set'max : ∀ (x : minMax) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet minMax.underlying go!"max") (PairV #x #y) (Val #(({ x with max' := y } : minMax)))
   method_set : go.MethodSetIs minMax.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType minMax.ty) [(go!"k8s.io/apiserver/pkg/util/flowcontrol.note", (some (go.signature.Signature [go.float64] false [])))]
 
 attribute [instance] minMax.TypeAssumptions.type_repr
   minMax.TypeAssumptions.underlying
-  minMax.TypeAssumptions.get_min
-  minMax.TypeAssumptions.set_min
-  minMax.TypeAssumptions.get_max
-  minMax.TypeAssumptions.set_max
+  minMax.TypeAssumptions.get'min
+  minMax.TypeAssumptions.set'min
+  minMax.TypeAssumptions.get'max
+  minMax.TypeAssumptions.set'max
   minMax.TypeAssumptions.method_set
   minMax.TypeAssumptions.ptr_method_set
 
@@ -1011,7 +1011,7 @@ noncomputable instance unixStat.zero_val [GooseExts] : ZeroVal unixStat :=
 @[irreducible] noncomputable def unixStat.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   unixStat.fieldsUnsealed
 
-noncomputable instance equals_unfold_unixStat [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'unixStat [GooseExts] [GoGlobalContext] :
     EqualsUnfold unixStat.fields unixStat.fieldsUnsealed :=
   ⟨by unfold unixStat.fields; rfl⟩
 
@@ -1021,19 +1021,19 @@ noncomputable instance equals_unfold_unixStat [GooseExts] [GoGlobalContext] :
 class unixStat.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying unixStat.underlying unixStat
   underlying : go.UnderlyingDirectedEq unixStat.ty unixStat.underlying
-  get_unixTime : ∀ (x : unixStat), go.IsGoStepPureDetTagged under (StructFieldGet unixStat.underlying go!"unixTime") #x (Val #(x.unixTime'))
-  set_unixTime : ∀ (x : unixStat) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet unixStat.underlying go!"unixTime") (PairV #x #y) (Val #(({ x with unixTime' := y } : unixStat)))
-  get_requests : ∀ (x : unixStat), go.IsGoStepPureDetTagged under (StructFieldGet unixStat.underlying go!"requests") #x (Val #(x.requests'))
-  set_requests : ∀ (x : unixStat) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet unixStat.underlying go!"requests") (PairV #x #y) (Val #(({ x with requests' := y } : unixStat)))
+  get'unixTime : ∀ (x : unixStat), go.IsGoStepPureDetTagged under (StructFieldGet unixStat.underlying go!"unixTime") #x (Val #(x.unixTime'))
+  set'unixTime : ∀ (x : unixStat) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet unixStat.underlying go!"unixTime") (PairV #x #y) (Val #(({ x with unixTime' := y } : unixStat)))
+  get'requests : ∀ (x : unixStat), go.IsGoStepPureDetTagged under (StructFieldGet unixStat.underlying go!"requests") #x (Val #(x.requests'))
+  set'requests : ∀ (x : unixStat) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet unixStat.underlying go!"requests") (PairV #x #y) (Val #(({ x with requests' := y } : unixStat)))
   method_set : go.MethodSetIs unixStat.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType unixStat.ty) []
 
 attribute [instance] unixStat.TypeAssumptions.type_repr
   unixStat.TypeAssumptions.underlying
-  unixStat.TypeAssumptions.get_unixTime
-  unixStat.TypeAssumptions.set_unixTime
-  unixStat.TypeAssumptions.get_requests
-  unixStat.TypeAssumptions.set_requests
+  unixStat.TypeAssumptions.get'unixTime
+  unixStat.TypeAssumptions.set'unixTime
+  unixStat.TypeAssumptions.get'requests
+  unixStat.TypeAssumptions.set'requests
   unixStat.TypeAssumptions.method_set
   unixStat.TypeAssumptions.ptr_method_set
 
@@ -1127,7 +1127,7 @@ noncomputable instance watchIdentifier.zero_val [GooseExts] : ZeroVal watchIdent
 @[irreducible] noncomputable def watchIdentifier.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watchIdentifier.fieldsUnsealed
 
-noncomputable instance equals_unfold_watchIdentifier [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'watchIdentifier [GooseExts] [GoGlobalContext] :
     EqualsUnfold watchIdentifier.fields watchIdentifier.fieldsUnsealed :=
   ⟨by unfold watchIdentifier.fields; rfl⟩
 
@@ -1137,27 +1137,27 @@ noncomputable instance equals_unfold_watchIdentifier [GooseExts] [GoGlobalContex
 class watchIdentifier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watchIdentifier.underlying watchIdentifier
   underlying : go.UnderlyingDirectedEq watchIdentifier.ty watchIdentifier.underlying
-  get_apiGroup : ∀ (x : watchIdentifier), go.IsGoStepPureDetTagged under (StructFieldGet watchIdentifier.underlying go!"apiGroup") #x (Val #(x.apiGroup'))
-  set_apiGroup : ∀ (x : watchIdentifier) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet watchIdentifier.underlying go!"apiGroup") (PairV #x #y) (Val #(({ x with apiGroup' := y } : watchIdentifier)))
-  get_resource : ∀ (x : watchIdentifier), go.IsGoStepPureDetTagged under (StructFieldGet watchIdentifier.underlying go!"resource") #x (Val #(x.resource'))
-  set_resource : ∀ (x : watchIdentifier) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet watchIdentifier.underlying go!"resource") (PairV #x #y) (Val #(({ x with resource' := y } : watchIdentifier)))
-  get_namespace : ∀ (x : watchIdentifier), go.IsGoStepPureDetTagged under (StructFieldGet watchIdentifier.underlying go!"namespace") #x (Val #(x.namespace'))
-  set_namespace : ∀ (x : watchIdentifier) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet watchIdentifier.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : watchIdentifier)))
-  get_name : ∀ (x : watchIdentifier), go.IsGoStepPureDetTagged under (StructFieldGet watchIdentifier.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : watchIdentifier) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet watchIdentifier.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : watchIdentifier)))
+  get'apiGroup : ∀ (x : watchIdentifier), go.IsGoStepPureDetTagged under (StructFieldGet watchIdentifier.underlying go!"apiGroup") #x (Val #(x.apiGroup'))
+  set'apiGroup : ∀ (x : watchIdentifier) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet watchIdentifier.underlying go!"apiGroup") (PairV #x #y) (Val #(({ x with apiGroup' := y } : watchIdentifier)))
+  get'resource : ∀ (x : watchIdentifier), go.IsGoStepPureDetTagged under (StructFieldGet watchIdentifier.underlying go!"resource") #x (Val #(x.resource'))
+  set'resource : ∀ (x : watchIdentifier) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet watchIdentifier.underlying go!"resource") (PairV #x #y) (Val #(({ x with resource' := y } : watchIdentifier)))
+  get'namespace : ∀ (x : watchIdentifier), go.IsGoStepPureDetTagged under (StructFieldGet watchIdentifier.underlying go!"namespace") #x (Val #(x.namespace'))
+  set'namespace : ∀ (x : watchIdentifier) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet watchIdentifier.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : watchIdentifier)))
+  get'name : ∀ (x : watchIdentifier), go.IsGoStepPureDetTagged under (StructFieldGet watchIdentifier.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : watchIdentifier) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet watchIdentifier.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : watchIdentifier)))
   method_set : go.MethodSetIs watchIdentifier.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchIdentifier.ty) []
 
 attribute [instance] watchIdentifier.TypeAssumptions.type_repr
   watchIdentifier.TypeAssumptions.underlying
-  watchIdentifier.TypeAssumptions.get_apiGroup
-  watchIdentifier.TypeAssumptions.set_apiGroup
-  watchIdentifier.TypeAssumptions.get_resource
-  watchIdentifier.TypeAssumptions.set_resource
-  watchIdentifier.TypeAssumptions.get_namespace
-  watchIdentifier.TypeAssumptions.set_namespace
-  watchIdentifier.TypeAssumptions.get_name
-  watchIdentifier.TypeAssumptions.set_name
+  watchIdentifier.TypeAssumptions.get'apiGroup
+  watchIdentifier.TypeAssumptions.set'apiGroup
+  watchIdentifier.TypeAssumptions.get'resource
+  watchIdentifier.TypeAssumptions.set'resource
+  watchIdentifier.TypeAssumptions.get'namespace
+  watchIdentifier.TypeAssumptions.set'namespace
+  watchIdentifier.TypeAssumptions.get'name
+  watchIdentifier.TypeAssumptions.set'name
   watchIdentifier.TypeAssumptions.method_set
   watchIdentifier.TypeAssumptions.ptr_method_set
 
@@ -1242,7 +1242,7 @@ noncomputable instance indexValue.zero_val [GooseExts] : ZeroVal indexValue :=
 @[irreducible] noncomputable def indexValue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   indexValue.fieldsUnsealed
 
-noncomputable instance equals_unfold_indexValue [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'indexValue [GooseExts] [GoGlobalContext] :
     EqualsUnfold indexValue.fields indexValue.fieldsUnsealed :=
   ⟨by unfold indexValue.fields; rfl⟩
 
@@ -1252,96 +1252,96 @@ noncomputable instance equals_unfold_indexValue [GooseExts] [GoGlobalContext] :
 class indexValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying indexValue.underlying indexValue
   underlying : go.UnderlyingDirectedEq indexValue.ty indexValue.underlying
-  get_resource : ∀ (x : indexValue), go.IsGoStepPureDetTagged under (StructFieldGet indexValue.underlying go!"resource") #x (Val #(x.resource'))
-  set_resource : ∀ (x : indexValue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet indexValue.underlying go!"resource") (PairV #x #y) (Val #(({ x with resource' := y } : indexValue)))
-  get_value : ∀ (x : indexValue), go.IsGoStepPureDetTagged under (StructFieldGet indexValue.underlying go!"value") #x (Val #(x.value'))
-  set_value : ∀ (x : indexValue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet indexValue.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : indexValue)))
+  get'resource : ∀ (x : indexValue), go.IsGoStepPureDetTagged under (StructFieldGet indexValue.underlying go!"resource") #x (Val #(x.resource'))
+  set'resource : ∀ (x : indexValue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet indexValue.underlying go!"resource") (PairV #x #y) (Val #(({ x with resource' := y } : indexValue)))
+  get'value : ∀ (x : indexValue), go.IsGoStepPureDetTagged under (StructFieldGet indexValue.underlying go!"value") #x (Val #(x.value'))
+  set'value : ∀ (x : indexValue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet indexValue.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : indexValue)))
   method_set : go.MethodSetIs indexValue.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType indexValue.ty) []
 
 attribute [instance] indexValue.TypeAssumptions.type_repr
   indexValue.TypeAssumptions.underlying
-  indexValue.TypeAssumptions.get_resource
-  indexValue.TypeAssumptions.set_resource
-  indexValue.TypeAssumptions.get_value
-  indexValue.TypeAssumptions.set_value
+  indexValue.TypeAssumptions.get'resource
+  indexValue.TypeAssumptions.set'resource
+  indexValue.TypeAssumptions.get'value
+  indexValue.TypeAssumptions.set'value
   indexValue.TypeAssumptions.method_set
   indexValue.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  priorityAndFairnessKeyType_instance : priorityAndFairnessKeyType.TypeAssumptions
-  InitializationSignal_instance : InitializationSignal.TypeAssumptions
-  initializationSignal_instance : initializationSignal.TypeAssumptions
-  StartFunction_instance : StartFunction.TypeAssumptions
-  RequestDigest_instance : RequestDigest.TypeAssumptions
-  configController_instance : configController.TypeAssumptions
-  updateAttempt_instance : updateAttempt.TypeAssumptions
-  priorityLevelState_instance : priorityLevelState.TypeAssumptions
-  seatDemandStats_instance : seatDemandStats.TypeAssumptions
-  cfgMeal_instance : cfgMeal.TypeAssumptions
-  fsStatusUpdate_instance : fsStatusUpdate.TypeAssumptions
-  Interface_instance : Interface.TypeAssumptions
-  TestableConfig_instance : TestableConfig.TypeAssumptions
-  allocProblemItem_instance : allocProblemItem.TypeAssumptions
-  relativeAllocItem_instance : relativeAllocItem.TypeAssumptions
-  relativeAllocProblem_instance : relativeAllocProblem.TypeAssumptions
-  minMax_instance : minMax.TypeAssumptions
-  DroppedRequestsTracker_instance : DroppedRequestsTracker.TypeAssumptions
-  unixStat_instance : unixStat.TypeAssumptions
-  droppedRequestsStats_instance : droppedRequestsStats.TypeAssumptions
-  droppedRequestsTracker_instance : droppedRequestsTracker.TypeAssumptions
-  MaxSeatsTracker_instance : MaxSeatsTracker.TypeAssumptions
-  maxSeatsTracker_instance : maxSeatsTracker.TypeAssumptions
-  watchIdentifier_instance : watchIdentifier.TypeAssumptions
-  ForgetWatchFunc_instance : ForgetWatchFunc.TypeAssumptions
-  WatchTracker_instance : WatchTracker.TypeAssumptions
-  builtinIndexes_instance : builtinIndexes.TypeAssumptions
-  watchTracker_instance : watchTracker.TypeAssumptions
-  indexValue_instance : indexValue.TypeAssumptions
-  initializationSignalFrom_unfold : FuncUnfold initializationSignalFrom [] initializationSignalFrom.impl
-  WatchInitialized_unfold : FuncUnfold WatchInitialized [] WatchInitialized.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_sets_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
-  import_user_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Assumptions
-  import_request_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.endpoints.request.Assumptions
+  instance'priorityAndFairnessKeyType : priorityAndFairnessKeyType.TypeAssumptions
+  instance'InitializationSignal : InitializationSignal.TypeAssumptions
+  instance'initializationSignal : initializationSignal.TypeAssumptions
+  instance'StartFunction : StartFunction.TypeAssumptions
+  instance'RequestDigest : RequestDigest.TypeAssumptions
+  instance'configController : configController.TypeAssumptions
+  instance'updateAttempt : updateAttempt.TypeAssumptions
+  instance'priorityLevelState : priorityLevelState.TypeAssumptions
+  instance'seatDemandStats : seatDemandStats.TypeAssumptions
+  instance'cfgMeal : cfgMeal.TypeAssumptions
+  instance'fsStatusUpdate : fsStatusUpdate.TypeAssumptions
+  instance'Interface : Interface.TypeAssumptions
+  instance'TestableConfig : TestableConfig.TypeAssumptions
+  instance'allocProblemItem : allocProblemItem.TypeAssumptions
+  instance'relativeAllocItem : relativeAllocItem.TypeAssumptions
+  instance'relativeAllocProblem : relativeAllocProblem.TypeAssumptions
+  instance'minMax : minMax.TypeAssumptions
+  instance'DroppedRequestsTracker : DroppedRequestsTracker.TypeAssumptions
+  instance'unixStat : unixStat.TypeAssumptions
+  instance'droppedRequestsStats : droppedRequestsStats.TypeAssumptions
+  instance'droppedRequestsTracker : droppedRequestsTracker.TypeAssumptions
+  instance'MaxSeatsTracker : MaxSeatsTracker.TypeAssumptions
+  instance'maxSeatsTracker : maxSeatsTracker.TypeAssumptions
+  instance'watchIdentifier : watchIdentifier.TypeAssumptions
+  instance'ForgetWatchFunc : ForgetWatchFunc.TypeAssumptions
+  instance'WatchTracker : WatchTracker.TypeAssumptions
+  instance'builtinIndexes : builtinIndexes.TypeAssumptions
+  instance'watchTracker : watchTracker.TypeAssumptions
+  instance'indexValue : indexValue.TypeAssumptions
+  unfold'initializationSignalFrom : FuncUnfold initializationSignalFrom [] initializationSignalFrom.impl
+  unfold'WatchInitialized : FuncUnfold WatchInitialized [] WatchInitialized.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'sets : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
+  import'user : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Assumptions
+  import'request : _root_.Perennial.k8s_io.apiserver.pkg.endpoints.request.Assumptions
 
-attribute [instance] Assumptions.priorityAndFairnessKeyType_instance
-  Assumptions.InitializationSignal_instance
-  Assumptions.initializationSignal_instance
-  Assumptions.StartFunction_instance
-  Assumptions.RequestDigest_instance
-  Assumptions.configController_instance
-  Assumptions.updateAttempt_instance
-  Assumptions.priorityLevelState_instance
-  Assumptions.seatDemandStats_instance
-  Assumptions.cfgMeal_instance
-  Assumptions.fsStatusUpdate_instance
-  Assumptions.Interface_instance
-  Assumptions.TestableConfig_instance
-  Assumptions.allocProblemItem_instance
-  Assumptions.relativeAllocItem_instance
-  Assumptions.relativeAllocProblem_instance
-  Assumptions.minMax_instance
-  Assumptions.DroppedRequestsTracker_instance
-  Assumptions.unixStat_instance
-  Assumptions.droppedRequestsStats_instance
-  Assumptions.droppedRequestsTracker_instance
-  Assumptions.MaxSeatsTracker_instance
-  Assumptions.maxSeatsTracker_instance
-  Assumptions.watchIdentifier_instance
-  Assumptions.ForgetWatchFunc_instance
-  Assumptions.WatchTracker_instance
-  Assumptions.builtinIndexes_instance
-  Assumptions.watchTracker_instance
-  Assumptions.indexValue_instance
-  Assumptions.initializationSignalFrom_unfold
-  Assumptions.WatchInitialized_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_sets_Assumption
-  Assumptions.import_user_Assumption
-  Assumptions.import_request_Assumption
+attribute [instance] Assumptions.instance'priorityAndFairnessKeyType
+  Assumptions.instance'InitializationSignal
+  Assumptions.instance'initializationSignal
+  Assumptions.instance'StartFunction
+  Assumptions.instance'RequestDigest
+  Assumptions.instance'configController
+  Assumptions.instance'updateAttempt
+  Assumptions.instance'priorityLevelState
+  Assumptions.instance'seatDemandStats
+  Assumptions.instance'cfgMeal
+  Assumptions.instance'fsStatusUpdate
+  Assumptions.instance'Interface
+  Assumptions.instance'TestableConfig
+  Assumptions.instance'allocProblemItem
+  Assumptions.instance'relativeAllocItem
+  Assumptions.instance'relativeAllocProblem
+  Assumptions.instance'minMax
+  Assumptions.instance'DroppedRequestsTracker
+  Assumptions.instance'unixStat
+  Assumptions.instance'droppedRequestsStats
+  Assumptions.instance'droppedRequestsTracker
+  Assumptions.instance'MaxSeatsTracker
+  Assumptions.instance'maxSeatsTracker
+  Assumptions.instance'watchIdentifier
+  Assumptions.instance'ForgetWatchFunc
+  Assumptions.instance'WatchTracker
+  Assumptions.instance'builtinIndexes
+  Assumptions.instance'watchTracker
+  Assumptions.instance'indexValue
+  Assumptions.unfold'initializationSignalFrom
+  Assumptions.unfold'WatchInitialized
+  Assumptions.import'context
+  Assumptions.import'fmt
+  Assumptions.import'sets
+  Assumptions.import'user
+  Assumptions.import'request
 
 end k8s_io.apiserver.pkg.util.flowcontrol
 

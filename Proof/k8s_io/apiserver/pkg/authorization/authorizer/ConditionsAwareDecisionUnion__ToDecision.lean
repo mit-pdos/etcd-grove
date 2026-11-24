@@ -105,7 +105,7 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
         exact absurd rfl hc1
       wp_apply (wp_Clone u.inner' (DFrac.own 1) nds) $$ [$Hin] as %ci ⟨Hin, Hci, -⟩
       imod ownSlice_persist ci (DFrac.own 1) nds $$ Hci with #Hci
-      icases (ConditionsAwareDecisionUnion.ConditionsAwareDecisionUnion_access_load_subDecisionsPossibleDecisions
+      icases (ConditionsAwareDecisionUnion.access_load'ConditionsAwareDecisionUnion'subDecisionsPossibleDecisions
         p u (DFrac.own 1)).access_strict $$ Hp with ⟨Hf, Hclose⟩
       wp_apply +noauto (sets_wp_ptr_Clone_of (K := w64) (T := Decision.ty) wp_Set_Clone _ (DFrac.own 1)
         u.subDecisionsPossibleDecisions' (DFrac.own 1) S0) $$ [$Hf $HS0] as %r ⟨Hf, HS0, Hr⟩

@@ -298,12 +298,12 @@ variable [sem : go.Semantics] [bvi : go.BasicIntoValInj]
 variable [package_sem : raxos.examples.quepaxanet.Assumptions]
 
 theorem in_intoVal_inj {x y : In} (h : (#x : val) = #y) : x = y := by
-  have hP := (In.TypeAssumptions.get_Put x).isGoStep_det_internal.isGoStep_pure_det
-  have hP' := (In.TypeAssumptions.get_Put y).isGoStep_det_internal.isGoStep_pure_det
-  have hK := (In.TypeAssumptions.get_K x).isGoStep_det_internal.isGoStep_pure_det
-  have hK' := (In.TypeAssumptions.get_K y).isGoStep_det_internal.isGoStep_pure_det
-  have hV := (In.TypeAssumptions.get_V x).isGoStep_det_internal.isGoStep_pure_det
-  have hV' := (In.TypeAssumptions.get_V y).isGoStep_det_internal.isGoStep_pure_det
+  have hP := (In.TypeAssumptions.get'Put x).isGoStep_det_internal.isGoStep_pure_det
+  have hP' := (In.TypeAssumptions.get'Put y).isGoStep_det_internal.isGoStep_pure_det
+  have hK := (In.TypeAssumptions.get'K x).isGoStep_det_internal.isGoStep_pure_det
+  have hK' := (In.TypeAssumptions.get'K y).isGoStep_det_internal.isGoStep_pure_det
+  have hV := (In.TypeAssumptions.get'V x).isGoStep_det_internal.isGoStep_pure_det
+  have hV' := (In.TypeAssumptions.get'V y).isGoStep_det_internal.isGoStep_pure_det
   rw [h, hP'] at hP
   rw [h, hK'] at hK
   rw [h, hV'] at hV
@@ -322,12 +322,12 @@ theorem in_intoVal_inj {x y : In} (h : (#x : val) = #y) : x = y := by
   rfl
 
 theorem out_intoVal_inj {x y : Out} (h : (#x : val) = #y) : x = y := by
-  have hU := (Out.TypeAssumptions.get_Unknown x).isGoStep_det_internal.isGoStep_pure_det
-  have hU' := (Out.TypeAssumptions.get_Unknown y).isGoStep_det_internal.isGoStep_pure_det
-  have hF := (Out.TypeAssumptions.get_Found x).isGoStep_det_internal.isGoStep_pure_det
-  have hF' := (Out.TypeAssumptions.get_Found y).isGoStep_det_internal.isGoStep_pure_det
-  have hV := (Out.TypeAssumptions.get_V x).isGoStep_det_internal.isGoStep_pure_det
-  have hV' := (Out.TypeAssumptions.get_V y).isGoStep_det_internal.isGoStep_pure_det
+  have hU := (Out.TypeAssumptions.get'Unknown x).isGoStep_det_internal.isGoStep_pure_det
+  have hU' := (Out.TypeAssumptions.get'Unknown y).isGoStep_det_internal.isGoStep_pure_det
+  have hF := (Out.TypeAssumptions.get'Found x).isGoStep_det_internal.isGoStep_pure_det
+  have hF' := (Out.TypeAssumptions.get'Found y).isGoStep_det_internal.isGoStep_pure_det
+  have hV := (Out.TypeAssumptions.get'V x).isGoStep_det_internal.isGoStep_pure_det
+  have hV' := (Out.TypeAssumptions.get'V y).isGoStep_det_internal.isGoStep_pure_det
   rw [h, hU'] at hU
   rw [h, hF'] at hF
   rw [h, hV'] at hV

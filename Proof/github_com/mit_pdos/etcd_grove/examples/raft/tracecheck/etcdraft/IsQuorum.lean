@@ -35,7 +35,7 @@ theorem IsQuorum.wp_proof (wp_Subset : Set.Subset.spec (GF := GF) (hG := hG)) :
   ihave %Hxl := ownSlice_len $$ Hxs
   ihave %Hyl := ownSlice_len $$ Hys
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Subset_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_unfold'Subset.method_unfold]
   try wp_auto
   wp_apply wp_Subset ql q cl c $$ [Hq Hc]
   · iframe Hq Hc

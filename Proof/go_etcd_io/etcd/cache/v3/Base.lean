@@ -518,9 +518,9 @@ theorem descIs_etcdError_eq [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.Typ
     simp only [interface.mkOk] at hy
     injection hy with hy
     injection hy with _ h
-    have k := (go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.TypeAssumptions.get_desc
+    have k := (go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.TypeAssumptions.get'desc
       x).isGoStep_det_internal.isGoStep_pure_det
-    have k' := (go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.TypeAssumptions.get_desc
+    have k' := (go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.TypeAssumptions.get'desc
       y).isGoStep_det_internal.isGoStep_pure_det
     rw [h] at k
     have e := congrFun (k.symm.trans k') (Val #(x.desc'))

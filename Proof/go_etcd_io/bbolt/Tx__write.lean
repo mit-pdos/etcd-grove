@@ -122,7 +122,7 @@ set_option maxRecDepth 20000 in
 slots assembled into the spec's `slotsOwn` (`done_final`) or, on an error, `wrSlots`
 (`err_final`). -/
 theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
-    (hSort : sort.«Sort».anyLessSpec (GF := GF) (hG := hG))
+    (hSort : sort.Sort''.anyLessSpec (GF := GF) (hG := hG))
     (hOv : internal.common.Page.Overflow.spec (GF := GF) (hG := hG))
     (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG))
     (hUBS : internal.common.UnsafeByteSlice.spec (GF := GF) (hG := hG))

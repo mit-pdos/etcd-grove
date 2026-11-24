@@ -60,7 +60,7 @@ theorem listed.wp_proof : listed.spec (GF := GF) (hG := hG) := by
     wp_apply wp_load_slice_index _ (sint.Z n) _ DFrac.discard _ Hn.1 $$ [Hsl] as -
     · iframe Hsl; ipureintro; exact hxs
     icases ownSlice_elem_acc (sint.Z n) _ sl DFrac.discard _ Hn.1 hxs $$ Hsl with ⟨#Hxn, -⟩
-    icases (go_etcd_io.etcd.client.v3.LeaseStatus.LeaseStatus_access_load_ID
+    icases (go_etcd_io.etcd.client.v3.LeaseStatus.access_load'LeaseStatus'ID
         (sliceIndexRef go_etcd_io.etcd.client.v3.LeaseStatus (sint.Z n) sl)
         (go_etcd_io.etcd.client.v3.LeaseStatus.mk x) DFrac.discard).access_strict $$ Hxn
       with ⟨#Hxid, -⟩

@@ -276,7 +276,7 @@ noncomputable instance Message.zero_val [GooseExts] : ZeroVal Message :=
 @[irreducible] noncomputable def Message.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Message.fieldsUnsealed
 
-noncomputable instance equals_unfold_Message [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Message [GooseExts] [GoGlobalContext] :
     EqualsUnfold Message.fields Message.fieldsUnsealed :=
   ⟨by unfold Message.fields; rfl⟩
 
@@ -286,39 +286,39 @@ noncomputable instance equals_unfold_Message [GooseExts] [GoGlobalContext] :
 class Message.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Message.underlying Message
   underlying : go.UnderlyingDirectedEq Message.ty Message.underlying
-  get_Message : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"Message") #x (Val #(x.Message'))
-  set_Message : ∀ (x : Message) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : Message)))
-  get_ReadCloser : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"ReadCloser") #x (Val #(x.ReadCloser'))
-  set_ReadCloser : ∀ (x : Message) (y : _root_.Perennial.io.ReadCloser), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"ReadCloser") (PairV #x #y) (Val #(({ x with ReadCloser' := y } : Message)))
-  get_TotalSize : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"TotalSize") #x (Val #(x.TotalSize'))
-  set_TotalSize : ∀ (x : Message) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"TotalSize") (PairV #x #y) (Val #(({ x with TotalSize' := y } : Message)))
-  get_closeC : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"closeC") #x (Val #(x.closeC'))
-  set_closeC : ∀ (x : Message) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"closeC") (PairV #x #y) (Val #(({ x with closeC' := y } : Message)))
+  get'Message : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"Message") #x (Val #(x.Message'))
+  set'Message : ∀ (x : Message) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : Message)))
+  get'ReadCloser : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"ReadCloser") #x (Val #(x.ReadCloser'))
+  set'ReadCloser : ∀ (x : Message) (y : _root_.Perennial.io.ReadCloser), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"ReadCloser") (PairV #x #y) (Val #(({ x with ReadCloser' := y } : Message)))
+  get'TotalSize : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"TotalSize") #x (Val #(x.TotalSize'))
+  set'TotalSize : ∀ (x : Message) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"TotalSize") (PairV #x #y) (Val #(({ x with TotalSize' := y } : Message)))
+  get'closeC : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"closeC") #x (Val #(x.closeC'))
+  set'closeC : ∀ (x : Message) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"closeC") (PairV #x #y) (Val #(({ x with closeC' := y } : Message)))
   method_set : go.MethodSetIs Message.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCommit", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetContext", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetEntries", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))), (go!"GetFrom", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLogTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetReject", (some (go.signature.Signature [] false [go.bool]))), (go!"GetRejectHint", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetResponses", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))]))), (go!"GetSnapshot", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)]))), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTo", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetType", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty]))), (go!"GetVote", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Message.ty) [(go!"CloseNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly go.bool)]))), (go!"CloseWithError", (some (go.signature.Signature [go.error] false []))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCommit", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetContext", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetEntries", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))), (go!"GetFrom", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLogTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetReject", (some (go.signature.Signature [] false [go.bool]))), (go!"GetRejectHint", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetResponses", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))]))), (go!"GetSnapshot", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)]))), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTo", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetType", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty]))), (go!"GetVote", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  GetTo_unfold : MethodUnfold Message.ty go!"GetTo" (LamV "$r"
+  unfold'GetTo : MethodUnfold Message.ty go!"GetTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (StructFieldGet Message.ty go!"Message"))) (Var "$r"))))
-  ptr_CloseNotify_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"CloseNotify" Message.CloseNotify.impl
-  ptr_CloseWithError_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"CloseWithError" Message.CloseWithError.impl
-  ptr_GetTo_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"GetTo" (LamV "$r"
+  ptr_unfold'CloseNotify : MethodUnfold (go.GoType.PointerType Message.ty) go!"CloseNotify" Message.CloseNotify.impl
+  ptr_unfold'CloseWithError : MethodUnfold (go.GoType.PointerType Message.ty) go!"CloseWithError" Message.CloseWithError.impl
+  ptr_unfold'GetTo : MethodUnfold (go.GoType.PointerType Message.ty) go!"GetTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (StructFieldRef Message.ty go!"Message"))) (Var "$r")))))
 
 attribute [instance] Message.TypeAssumptions.type_repr
   Message.TypeAssumptions.underlying
-  Message.TypeAssumptions.get_Message
-  Message.TypeAssumptions.set_Message
-  Message.TypeAssumptions.get_ReadCloser
-  Message.TypeAssumptions.set_ReadCloser
-  Message.TypeAssumptions.get_TotalSize
-  Message.TypeAssumptions.set_TotalSize
-  Message.TypeAssumptions.get_closeC
-  Message.TypeAssumptions.set_closeC
+  Message.TypeAssumptions.get'Message
+  Message.TypeAssumptions.set'Message
+  Message.TypeAssumptions.get'ReadCloser
+  Message.TypeAssumptions.set'ReadCloser
+  Message.TypeAssumptions.get'TotalSize
+  Message.TypeAssumptions.set'TotalSize
+  Message.TypeAssumptions.get'closeC
+  Message.TypeAssumptions.set'closeC
   Message.TypeAssumptions.method_set
   Message.TypeAssumptions.ptr_method_set
-  Message.TypeAssumptions.GetTo_unfold
-  Message.TypeAssumptions.ptr_CloseNotify_unfold
-  Message.TypeAssumptions.ptr_CloseWithError_unfold
-  Message.TypeAssumptions.ptr_GetTo_unfold
+  Message.TypeAssumptions.unfold'GetTo
+  Message.TypeAssumptions.ptr_unfold'CloseNotify
+  Message.TypeAssumptions.ptr_unfold'CloseWithError
+  Message.TypeAssumptions.ptr_unfold'GetTo
 
 opaque Snapshotter.nonempty_type : NonemptyType.{0}
 def Snapshotter : Type := Snapshotter.nonempty_type.type
@@ -340,21 +340,21 @@ attribute [instance] Snapshotter.TypeAssumptions.type_repr
   Snapshotter.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Message_instance : Message.TypeAssumptions
-  Snapshotter_instance : Snapshotter.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
-  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  instance'Message : Message.TypeAssumptions
+  instance'Snapshotter : Snapshotter.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'raftpb : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
+  import'prometheus : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
 
-attribute [instance] Assumptions.Message_instance
-  Assumptions.Snapshotter_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.import_errors_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_raftpb_Assumption
-  Assumptions.import_prometheus_Assumption
+attribute [instance] Assumptions.instance'Message
+  Assumptions.instance'Snapshotter
+  Assumptions.«unfold'init.0»
+  Assumptions.import'errors
+  Assumptions.import'io
+  Assumptions.import'raftpb
+  Assumptions.import'prometheus
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.snap
 

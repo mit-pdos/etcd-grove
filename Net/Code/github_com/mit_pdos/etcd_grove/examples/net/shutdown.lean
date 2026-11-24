@@ -270,17 +270,17 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.net.initialize') (Val #())))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  acceptLoop_unfold : FuncUnfold acceptLoop [] acceptLoop.impl
-  readLoop_unfold : FuncUnfold readLoop [] readLoop.impl
-  closeConn_unfold : FuncUnfold closeConn [] closeConn.impl
-  Run_unfold : FuncUnfold Run [] Run.impl
-  import_net_Assumption : _root_.Perennial.net.Assumptions
+  unfold'acceptLoop : FuncUnfold acceptLoop [] acceptLoop.impl
+  unfold'readLoop : FuncUnfold readLoop [] readLoop.impl
+  unfold'closeConn : FuncUnfold closeConn [] closeConn.impl
+  unfold'Run : FuncUnfold Run [] Run.impl
+  import'net : _root_.Perennial.net.Assumptions
 
-attribute [instance] Assumptions.acceptLoop_unfold
-  Assumptions.readLoop_unfold
-  Assumptions.closeConn_unfold
-  Assumptions.Run_unfold
-  Assumptions.import_net_Assumption
+attribute [instance] Assumptions.unfold'acceptLoop
+  Assumptions.unfold'readLoop
+  Assumptions.unfold'closeConn
+  Assumptions.unfold'Run
+  Assumptions.import'net
 
 end github_com.mit_pdos.etcd_grove.examples.net.shutdown
 

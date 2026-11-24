@@ -22,8 +22,8 @@ end pkg_id
 
 namespace k8s_io.utils.buffer
 
-noncomputable def TypedRingFixed.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/utils/buffer.TypedRingFixed" [T])
+noncomputable def TypedRingFixed.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/utils/buffer.TypedRingFixed" [T₀])
 
 attribute [irreducible] TypedRingFixed.ty
 
@@ -32,8 +32,8 @@ noncomputable def RingGrowingOptions.ty [GooseExts] [GoGlobalContext] : go.GoTyp
 
 attribute [irreducible] RingGrowingOptions.ty
 
-noncomputable def TypedRingGrowing.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/utils/buffer.TypedRingGrowing" [T])
+noncomputable def TypedRingGrowing.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/utils/buffer.TypedRingGrowing" [T₀])
 
 attribute [irreducible] TypedRingGrowing.ty
 
@@ -42,8 +42,8 @@ noncomputable def RingOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] RingOptions.ty
 
-noncomputable def Ring.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/utils/buffer.Ring" [T])
+noncomputable def Ring.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/utils/buffer.Ring" [T₀])
 
 attribute [irreducible] Ring.ty
 
@@ -71,16 +71,16 @@ noncomputable def NewRing [GooseExts] [GoGlobalContext] : GoString :=
 /-- NewTypedRingFixed creates a circular buffer with the given capacity (must be > 0).
 
     go: ring_fixed.go:41:6 -/
-noncomputable def NewTypedRingFixed.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewTypedRingFixed.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "size"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (TypedRingFixed.ty T))))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "size" (App (Val (GoInstruction (GoAlloc go.int))) (Var "size"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc (TypedRingFixed.ty T)))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (Var "size")))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc (TypedRingFixed.ty T₀)))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T₀)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (Var "size")))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.int))) (Var "size"))
-  (App (Val (GoInstruction (CompositeLiteral (TypedRingFixed.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"data")) (ElementExpression (go.GoType.SliceType T) (Var "$v0"))), (KeyedElement (some (KeyField go!"size")) (ElementExpression go.int (Var "$v1")))])))))
+  (App (Val (GoInstruction (CompositeLiteral (TypedRingFixed.ty T₀)))) (LiteralValue [(KeyedElement (some (KeyField go!"data")) (ElementExpression (go.GoType.SliceType T₀) (Var "$v0"))), (KeyedElement (some (KeyField go!"size")) (ElementExpression go.int (Var "$v1")))])))))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -89,9 +89,9 @@ noncomputable def NewTypedRingFixed.impl [GooseExts] [GoGlobalContext] (T : go.G
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (TypedRingFixed.ty T))))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "size")) (Val #(W64 0)))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (TypedRingFixed.ty T))))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrInvalidSize))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -100,37 +100,37 @@ noncomputable def NewTypedRingFixed.impl [GooseExts] [GoGlobalContext] (T : go.G
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (TypedRingFixed.ty T))))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
 
 /-- Write writes p to the buffer, overwriting old data if needed.
 
     go: ring_fixed.go:52:29 -/
-noncomputable def TypedRingFixed.Write.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingFixed.Write.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "p"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))
-  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (Var "p"))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "p"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T)]))) (Val #())) (Var "$a0")))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T₀)))) (Var "p"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$a0")))
   (Let "originalLen" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "p"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T)]))) (Val #())) (Var "$a0")))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$a0")))
   (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))))
   (Let "remain" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "originalLen"))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
@@ -143,38 +143,38 @@ noncomputable def TypedRingFixed.Write.impl [GooseExts] [GoGlobalContext] (T : g
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (App (Val (GoInstruction (GoLoad go.int))) (Var "remain")))))
   (App (Val doExecute)
-  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType T)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T)]))) (Val #())) (Var "$s")))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "p"))
-  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType T)]))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType T₀)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$s")))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "p"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))
-  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "p"))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType T)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "remain"))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T)]))) (Val #())) (Var "$s")))))
-  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType T)]))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))
+  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "p"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType T₀)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "remain"))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$s")))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (App (Val doExecute)
-  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType T)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T)]))) (Val #())) (Var "$s")))))
-  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "p"))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType T)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "remain")))))
-  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType T)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))
+  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType T₀)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$s")))))
+  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "p"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType T₀)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "remain")))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "remain") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "originalLen")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))))))
-  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "p"))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType T)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "originalLen")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T)]))) (Val #())) (Var "$s")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "originalLen")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r")))))))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "p"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType T₀)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "originalLen")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$s")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "p") (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T₀)))) (Pair (Var "p") (Var "$r0")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))) (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))) (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "originalLen")))))))))))
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))) (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "originalLen")))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "originalLen") (Var "$r0"))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
@@ -182,79 +182,79 @@ noncomputable def TypedRingFixed.Write.impl [GooseExts] [GoGlobalContext] (T : g
 /-- Slice returns buffer contents in write order. Don't modify the returned slice.
 
     go: ring_fixed.go:76:29 -/
-noncomputable def TypedRingFixed.Slice.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingFixed.Slice''.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T₀)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))))
-  (Let "out" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T)))) (Val #())))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T₀)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r")))))
+  (Let "out" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T₀)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "out"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val doExecute)
-  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "out"))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType T)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T)]))) (Val #())) (Var "$s")))))
-  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType T)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))))))
-  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType T)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "out"))
-  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType T)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T)]))) (Val #())) (Var "$s")))))
-  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType T)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "out") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))) (Val #(W64 0)))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "out"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T₀)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "out"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType T₀)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$s")))))
+  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType T₀)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r")))))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "out"))
+  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType T₀)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$s")))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T₀)))) (Pair (Var "out") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r")))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T₀)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))) (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))))))
-  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType T)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))))))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType T₀)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r")))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T₀)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))) (Val #(W64 0)))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType T)))) (Val UntypedNil))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r")))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType T₀)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T₀)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "$res0"))))))
 
 /-- Size returns the buffer capacity.
 
     go: ring_fixed.go:99:29 -/
-noncomputable def TypedRingFixed.Size.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingFixed.Size.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -265,21 +265,21 @@ noncomputable def TypedRingFixed.Size.impl [GooseExts] [GoGlobalContext] (T : go
 /-- Len returns how many elements are currently in the buffer.
 
     go: ring_fixed.go:104:29 -/
-noncomputable def TypedRingFixed.Len.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingFixed.Len.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))) (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.int64 go.int))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.int64 go.int))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -292,13 +292,13 @@ noncomputable def TypedRingFixed.Len.impl [GooseExts] [GoGlobalContext] (T : go.
 /-- TotalWritten returns total elements ever written (including overwritten ones).
 
     go: ring_fixed.go:112:29 -/
-noncomputable def TypedRingFixed.TotalWritten.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingFixed.TotalWritten.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -309,18 +309,18 @@ noncomputable def TypedRingFixed.TotalWritten.impl [GooseExts] [GoGlobalContext]
 /-- Reset clears the buffer.
 
     go: ring_fixed.go:117:29 -/
-noncomputable def TypedRingFixed.Reset.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingFixed.Reset.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))
   (Let "$r0" (Val #(W64 0))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 0))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"written"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T))))) (Var "r"))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingFixed.ty T₀) go!"writeCursor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingFixed.ty T₀))))) (Var "r"))) (Var "$r0"))))))))
   (Val #()))))
 
 /-- NewRingGrowing constructs a new RingGrowing instance with provided parameters.
@@ -346,43 +346,43 @@ noncomputable def NewRingGrowing.impl [GooseExts] [GoGlobalContext] : val :=
 /-- NewTypedRingGrowing constructs a new TypedRingGrowing instance with provided parameters.
 
     go: ring_growing.go:54:6 -/
-noncomputable def NewTypedRingGrowing.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewTypedRingGrowing.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "opts"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingGrowing.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "opts" (App (Val (GoInstruction (GoAlloc RingGrowingOptions.ty))) (Var "opts"))
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc (TypedRingGrowing.ty T)))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef RingGrowingOptions.ty go!"InitialSize"))) (Var "opts"))))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc (TypedRingGrowing.ty T₀)))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T₀)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef RingGrowingOptions.ty go!"InitialSize"))) (Var "opts"))))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef RingGrowingOptions.ty go!"InitialSize"))) (Var "opts")))
-  (App (Val (GoInstruction (CompositeLiteral (TypedRingGrowing.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"data")) (ElementExpression (go.GoType.SliceType T) (Var "$v0"))), (KeyedElement (some (KeyField go!"n")) (ElementExpression go.int (Var "$v1")))])))))
+  (App (Val (GoInstruction (CompositeLiteral (TypedRingGrowing.ty T₀)))) (LiteralValue [(KeyedElement (some (KeyField go!"data")) (ElementExpression (go.GoType.SliceType T₀) (Var "$v0"))), (KeyedElement (some (KeyField go!"n")) (ElementExpression go.int (Var "$v1")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "$res0")))))
 
 /-- ReadOne reads (consumes) first item from the buffer if it is available, otherwise returns false.
 
     go: ring_growing.go:62:31 -/
-noncomputable def TypedRingGrowing.ReadOne.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingGrowing.ReadOne.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
-  (Let "data" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "data" (App (Val (GoInstruction (GoAlloc T₀))) (App (Val (GoInstruction (GoZeroVal T₀))) (Val #())))
   (Let "$res0" (Var "data")
   (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Let "$res1" (Var "ok")
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType T)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))))))
-  (Let "element" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T₀))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType T₀)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))))))
+  (Let "element" (App (Val (GoInstruction (GoAlloc T₀))) (App (Val (GoInstruction (GoZeroVal T₀))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "zero" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "zero"))
+  (Let "zero" (App (Val (GoInstruction (GoAlloc T₀))) (App (Val (GoInstruction (GoZeroVal T₀))) (Val #())))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T₀))) (Var "zero"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "element"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T₀))) (Var "element"))
   (Let "$r1" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -391,89 +391,89 @@ noncomputable def TypedRingGrowing.ReadOne.impl [GooseExts] [GoGlobalContext] (T
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (Val #(W64 1)))))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))) (Val #(W64 1)))))))
   (Let "$r0" (Val #(W64 0))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))) (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))) (Var "$r0")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (Val #(W64 1)))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))) (Val #(W64 1)))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType T)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))))) (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType T₀)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))))) (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "element") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (Var "element") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (Val #(W64 1))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (Val #(W64 0)))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))) (Val #(W64 1))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))) (Val #(W64 0)))))
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
   (Val #()))))))
-  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T₀))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))))
 
 /-- WriteOne adds an item to the end of the buffer, growing it if it is full.
 
     go: ring_growing.go:80:31 -/
-noncomputable def TypedRingGrowing.WriteOne.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingGrowing.WriteOne.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "data"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))
-  (Let "data" (App (Val (GoInstruction (GoAlloc T))) (Var "data"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))
+  (Let "data" (App (Val (GoInstruction (GoAlloc T₀))) (Var "data"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "data"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T₀))) (Var "data"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (Val #(W64 1)))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))) (Val #(W64 1)))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType T)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))))))) (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))))))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (Val #(W64 2))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType T₀)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))))))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))) (Val #(W64 2))))
   (Let "newN" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (Var "newN")))
-  (Let "newData" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T)))) (Val #())))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T₀)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (Var "newN")))
+  (Let "newData" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T₀)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))))))
   (Let "to" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 0))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "newData"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "newData"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "newN"))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T₀)))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))) (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "to")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "to")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "newData"))
-  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType T)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "to")))))
-  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType T)]))) (Val #())) (Var "$a0")) (Var "$a1")))))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "newData"))
-  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType T)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T)]))) (Val #())) (Var "$s")))))
-  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType T)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "newData"))
+  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType T₀)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "to")))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "newData"))
+  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType T₀)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"beg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$s")))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "copied" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "newData"))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType T)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "copied"))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T)]))) (Val #())) (Var "$s")))))
-  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType T)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "to")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r")))))))))
-  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType T)]))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "newData"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType T₀)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "copied"))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$s")))))
+  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"data"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType T₀)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "to")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r")))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType T₀)]))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "copied") (Var "$r0")))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "to") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "newData") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T₀)))) (Pair (Var "newData") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "newN")) (Val #(W64 0)))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val defaultRingSize))
   (App (Val doExecute)
@@ -489,13 +489,13 @@ noncomputable def TypedRingGrowing.WriteOne.impl [GooseExts] [GoGlobalContext] (
 /-- Len returns the number of items in the buffer.
 
     go: ring_growing.go:104:31 -/
-noncomputable def TypedRingGrowing.Len.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingGrowing.Len.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"readable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -506,13 +506,13 @@ noncomputable def TypedRingGrowing.Len.impl [GooseExts] [GoGlobalContext] (T : g
 /-- Cap returns the capacity of the buffer.
 
     go: ring_growing.go:109:31 -/
-noncomputable def TypedRingGrowing.Cap.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedRingGrowing.Cap.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T))))) (Var "r"))))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedRingGrowing.ty T₀))))) (Var "r"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -523,47 +523,47 @@ noncomputable def TypedRingGrowing.Cap.impl [GooseExts] [GoGlobalContext] (T : g
 /-- NewRing constructs a new Ring instance with provided parameters.
 
     go: ring_growing.go:133:6 -/
-noncomputable def NewRing.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewRing.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "opts"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Ring.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (Ring.ty T))))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Ring.ty T₀))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (Ring.ty T₀))))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "opts" (App (Val (GoInstruction (GoAlloc RingOptions.ty))) (Var "opts"))
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc (Ring.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad (TypedRingGrowing.ty T)))) (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef RingOptions.ty go!"InitialSize"))) (Var "opts")))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc (Ring.ty T₀)))) (Let "$v0" (App (Val (GoInstruction (GoLoad (TypedRingGrowing.ty T₀)))) (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef RingOptions.ty go!"InitialSize"))) (Var "opts")))
   (App (Val (GoInstruction (CompositeLiteral RingGrowingOptions.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"InitialSize")) (ElementExpression go.int (Var "$v0")))])))
-  (App (App (Val (GoInstruction (FuncResolve NewTypedRingGrowing [T]))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve NewTypedRingGrowing [T₀]))) (Val #())) (Var "$a0"))))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef RingOptions.ty go!"NormalSize"))) (Var "opts")))
-  (App (Val (GoInstruction (CompositeLiteral (Ring.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"growing")) (ElementExpression (TypedRingGrowing.ty T) (Var "$v0"))), (KeyedElement (some (KeyField go!"normalSize")) (ElementExpression go.int (Var "$v1")))])))))
+  (App (Val (GoInstruction (CompositeLiteral (Ring.ty T₀)))) (LiteralValue [(KeyedElement (some (KeyField go!"growing")) (ElementExpression (TypedRingGrowing.ty T₀) (Var "$v0"))), (KeyedElement (some (KeyField go!"normalSize")) (ElementExpression go.int (Var "$v1")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (Ring.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (Ring.ty T₀))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T₀))))) (Var "$res0")))))
 
 /-- ReadOne reads (consumes) first item from the buffer if it is available,
     otherwise returns false. When the buffer has been totally consumed and has
     grown in size beyond its normal size, it shrinks down to its normal size again.
 
     go: ring_growing.go:143:19 -/
-noncomputable def Ring.ReadOne.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Ring.ReadOne.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
-  (Let "data" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "data" (App (Val (GoInstruction (GoAlloc T₀))) (App (Val (GoInstruction (GoZeroVal T₀))) (Val #())))
   (Let "$res0" (Var "data")
   (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Let "$res1" (Var "ok")
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Ring.ty T))))) (Var "r"))
-  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"ReadOne"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))) (Val #()))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Ring.ty T₀))))) (Var "r"))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (TypedRingGrowing.ty T₀)) go!"ReadOne"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T₀) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T₀))))) (Var "r")))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
-  (Let "element" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "element" (App (Val (GoInstruction (GoAlloc T₀))) (App (Val (GoInstruction (GoZeroVal T₀))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "element"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T₀))) (Var "element"))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -572,51 +572,51 @@ noncomputable def Ring.ReadOne.impl [GooseExts] [GoGlobalContext] (T : go.GoType
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"readable"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r"))))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"n"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r"))))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"normalSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))))) (Val #false)))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"normalSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"readable"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T₀) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T₀))))) (Var "r"))))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"n"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T₀) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T₀))))) (Var "r"))))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T₀) go!"normalSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T₀))))) (Var "r")))))) (Val #false)))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T₀)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T₀) go!"normalSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T₀))))) (Var "r")))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"normalSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T₀) go!"normalSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T₀))))) (Var "r"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 0))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"beg"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"beg"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T₀) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T₀))))) (Var "r")))) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"n"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"n"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T₀) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T₀))))) (Var "r")))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T) go!"data"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))) (Var "$r0"))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T₀)))) (Pair (App (Val (GoInstruction (StructFieldRef (TypedRingGrowing.ty T₀) go!"data"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T₀) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T₀))))) (Var "r")))) (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (Var "element") (Var "$r0")))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (Var "element") (Var "$r0")))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad T₀))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))))
 
 /-- WriteOne adds an item to the end of the buffer, growing it if it is full.
 
     go: ring_growing.go:158:19 -/
-noncomputable def Ring.WriteOne.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Ring.WriteOne.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "data"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Ring.ty T))))) (Var "r"))
-  (Let "data" (App (Val (GoInstruction (GoAlloc T))) (Var "data"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Ring.ty T₀))))) (Var "r"))
+  (Let "data" (App (Val (GoInstruction (GoAlloc T₀))) (Var "data"))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "data"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"WriteOne"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))) (Var "$a0")))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad T₀))) (Var "data"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (TypedRingGrowing.ty T₀)) go!"WriteOne"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T₀) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T₀))))) (Var "r")))) (Var "$a0")))))))
   (Val #()))))
 
 /-- Len returns the number of items in the buffer.
 
     go: ring_growing.go:163:19 -/
-noncomputable def Ring.Len.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Ring.Len.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Ring.ty T))))) (Var "r"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"Len"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))) (Val #()))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Ring.ty T₀))))) (Var "r"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (TypedRingGrowing.ty T₀)) go!"Len"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T₀) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T₀))))) (Var "r")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -627,13 +627,13 @@ noncomputable def Ring.Len.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : 
 /-- Cap returns the capacity of the buffer.
 
     go: ring_growing.go:168:19 -/
-noncomputable def Ring.Cap.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Ring.Cap.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Ring.ty T))))) (Var "r"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"Cap"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T))))) (Var "r")))) (Val #()))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Ring.ty T₀))))) (Var "r"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (TypedRingGrowing.ty T₀)) go!"Cap"))) (App (Val (GoInstruction (StructFieldRef (Ring.ty T₀) go!"growing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Ring.ty T₀))))) (Var "r")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -663,70 +663,70 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrInvalidSize go.error)) (Val #()))))))))
 
-structure TypedRingFixed [GooseExts] (T : Type) where
+structure TypedRingFixed [GooseExts] (T₀ : Type) where
   mk ::
   data' : GoSlice
   size' : w64
   writeCursor' : w64
   written' : w64
 
-noncomputable instance TypedRingFixed.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (TypedRingFixed T) :=
+noncomputable instance TypedRingFixed.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (TypedRingFixed T₀) :=
   ⟨TypedRingFixed.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TypedRingFixed.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"data" (go.GoType.SliceType T)),
+@[reducible] noncomputable def TypedRingFixed.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"data" (go.GoType.SliceType T₀)),
 (go.field_decl.FieldDecl go!"size" go.int),
 (go.field_decl.FieldDecl go!"writeCursor" go.int),
 (go.field_decl.FieldDecl go!"written" go.int64)]
 
-@[irreducible] noncomputable def TypedRingFixed.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (TypedRingFixed.fieldsUnsealed T)
+@[irreducible] noncomputable def TypedRingFixed.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (TypedRingFixed.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_TypedRingFixed [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (TypedRingFixed.fields T) (TypedRingFixed.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'TypedRingFixed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (TypedRingFixed.fields T₀) (TypedRingFixed.fieldsUnsealed T₀) :=
   ⟨by unfold TypedRingFixed.fields; rfl⟩
 
-@[reducible] noncomputable def TypedRingFixed.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (TypedRingFixed.fields T))
+@[reducible] noncomputable def TypedRingFixed.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (TypedRingFixed.fields T₀))
 
 class TypedRingFixed.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedRingFixed.underlying T) (TypedRingFixed T')
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedRingFixed.ty T) (TypedRingFixed.underlying T)
-  get_data : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingFixed T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingFixed.underlying T) go!"data") #x (Val #(x.data'))
-  set_data : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingFixed T')) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingFixed.underlying T) go!"data") (PairV #x #y) (Val #(({ x with data' := y } : (TypedRingFixed T'))))
-  get_size : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingFixed T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingFixed.underlying T) go!"size") #x (Val #(x.size'))
-  set_size : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingFixed T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingFixed.underlying T) go!"size") (PairV #x #y) (Val #(({ x with size' := y } : (TypedRingFixed T'))))
-  get_writeCursor : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingFixed T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingFixed.underlying T) go!"writeCursor") #x (Val #(x.writeCursor'))
-  set_writeCursor : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingFixed T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingFixed.underlying T) go!"writeCursor") (PairV #x #y) (Val #(({ x with writeCursor' := y } : (TypedRingFixed T'))))
-  get_written : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingFixed T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingFixed.underlying T) go!"written") #x (Val #(x.written'))
-  set_written : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingFixed T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingFixed.underlying T) go!"written") (PairV #x #y) (Val #(({ x with written' := y } : (TypedRingFixed T'))))
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedRingFixed.ty T) []
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedRingFixed.ty T)) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType T)]))), (go!"TotalWritten", (some (go.signature.Signature [] false [go.int64]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType T)] false [go.int, go.error])))]
-  ptr_Len_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingFixed.ty T)) go!"Len" (TypedRingFixed.Len.impl T)
-  ptr_Reset_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingFixed.ty T)) go!"Reset" (TypedRingFixed.Reset.impl T)
-  ptr_Size_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingFixed.ty T)) go!"Size" (TypedRingFixed.Size.impl T)
-  ptr_Slice_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingFixed.ty T)) go!"Slice" (TypedRingFixed.Slice.impl T)
-  ptr_TotalWritten_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingFixed.ty T)) go!"TotalWritten" (TypedRingFixed.TotalWritten.impl T)
-  ptr_Write_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingFixed.ty T)) go!"Write" (TypedRingFixed.Write.impl T)
+  type_repr : ∀ (T₀ : go.GoType) (T₀' : Type) [ZeroVal T₀'] [TypeRepr T₀ T₀'], go.TypeReprUnderlying (TypedRingFixed.underlying T₀) (TypedRingFixed T₀')
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (TypedRingFixed.ty T₀) (TypedRingFixed.underlying T₀)
+  get'data : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (TypedRingFixed T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingFixed.underlying T₀) go!"data") #x (Val #(x.data'))
+  set'data : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (TypedRingFixed T₀')) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingFixed.underlying T₀) go!"data") (PairV #x #y) (Val #(({ x with data' := y } : (TypedRingFixed T₀'))))
+  get'size : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (TypedRingFixed T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingFixed.underlying T₀) go!"size") #x (Val #(x.size'))
+  set'size : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (TypedRingFixed T₀')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingFixed.underlying T₀) go!"size") (PairV #x #y) (Val #(({ x with size' := y } : (TypedRingFixed T₀'))))
+  get'writeCursor : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (TypedRingFixed T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingFixed.underlying T₀) go!"writeCursor") #x (Val #(x.writeCursor'))
+  set'writeCursor : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (TypedRingFixed T₀')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingFixed.underlying T₀) go!"writeCursor") (PairV #x #y) (Val #(({ x with writeCursor' := y } : (TypedRingFixed T₀'))))
+  get'written : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (TypedRingFixed T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingFixed.underlying T₀) go!"written") #x (Val #(x.written'))
+  set'written : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (TypedRingFixed T₀')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingFixed.underlying T₀) go!"written") (PairV #x #y) (Val #(({ x with written' := y } : (TypedRingFixed T₀'))))
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (TypedRingFixed.ty T₀) []
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedRingFixed.ty T₀)) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType T₀)]))), (go!"TotalWritten", (some (go.signature.Signature [] false [go.int64]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType T₀)] false [go.int, go.error])))]
+  ptr_unfold'Len : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingFixed.ty T₀)) go!"Len" (TypedRingFixed.Len.impl T₀)
+  ptr_unfold'Reset : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingFixed.ty T₀)) go!"Reset" (TypedRingFixed.Reset.impl T₀)
+  ptr_unfold'Size : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingFixed.ty T₀)) go!"Size" (TypedRingFixed.Size.impl T₀)
+  ptr_unfold'Slice : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingFixed.ty T₀)) go!"Slice" (TypedRingFixed.Slice''.impl T₀)
+  ptr_unfold'TotalWritten : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingFixed.ty T₀)) go!"TotalWritten" (TypedRingFixed.TotalWritten.impl T₀)
+  ptr_unfold'Write : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingFixed.ty T₀)) go!"Write" (TypedRingFixed.Write.impl T₀)
 
 attribute [instance] TypedRingFixed.TypeAssumptions.type_repr
   TypedRingFixed.TypeAssumptions.underlying
-  TypedRingFixed.TypeAssumptions.get_data
-  TypedRingFixed.TypeAssumptions.set_data
-  TypedRingFixed.TypeAssumptions.get_size
-  TypedRingFixed.TypeAssumptions.set_size
-  TypedRingFixed.TypeAssumptions.get_writeCursor
-  TypedRingFixed.TypeAssumptions.set_writeCursor
-  TypedRingFixed.TypeAssumptions.get_written
-  TypedRingFixed.TypeAssumptions.set_written
+  TypedRingFixed.TypeAssumptions.get'data
+  TypedRingFixed.TypeAssumptions.set'data
+  TypedRingFixed.TypeAssumptions.get'size
+  TypedRingFixed.TypeAssumptions.set'size
+  TypedRingFixed.TypeAssumptions.get'writeCursor
+  TypedRingFixed.TypeAssumptions.set'writeCursor
+  TypedRingFixed.TypeAssumptions.get'written
+  TypedRingFixed.TypeAssumptions.set'written
   TypedRingFixed.TypeAssumptions.method_set
   TypedRingFixed.TypeAssumptions.ptr_method_set
-  TypedRingFixed.TypeAssumptions.ptr_Len_unfold
-  TypedRingFixed.TypeAssumptions.ptr_Reset_unfold
-  TypedRingFixed.TypeAssumptions.ptr_Size_unfold
-  TypedRingFixed.TypeAssumptions.ptr_Slice_unfold
-  TypedRingFixed.TypeAssumptions.ptr_TotalWritten_unfold
-  TypedRingFixed.TypeAssumptions.ptr_Write_unfold
+  TypedRingFixed.TypeAssumptions.ptr_unfold'Len
+  TypedRingFixed.TypeAssumptions.ptr_unfold'Reset
+  TypedRingFixed.TypeAssumptions.ptr_unfold'Size
+  TypedRingFixed.TypeAssumptions.ptr_unfold'Slice
+  TypedRingFixed.TypeAssumptions.ptr_unfold'TotalWritten
+  TypedRingFixed.TypeAssumptions.ptr_unfold'Write
 
 structure RingGrowingOptions [GooseExts] where
   mk ::
@@ -741,7 +741,7 @@ noncomputable instance RingGrowingOptions.zero_val [GooseExts] : ZeroVal RingGro
 @[irreducible] noncomputable def RingGrowingOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RingGrowingOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_RingGrowingOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RingGrowingOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold RingGrowingOptions.fields RingGrowingOptions.fieldsUnsealed :=
   ⟨by unfold RingGrowingOptions.fields; rfl⟩
 
@@ -751,78 +751,78 @@ noncomputable instance equals_unfold_RingGrowingOptions [GooseExts] [GoGlobalCon
 class RingGrowingOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RingGrowingOptions.underlying RingGrowingOptions
   underlying : go.UnderlyingDirectedEq RingGrowingOptions.ty RingGrowingOptions.underlying
-  get_InitialSize : ∀ (x : RingGrowingOptions), go.IsGoStepPureDetTagged under (StructFieldGet RingGrowingOptions.underlying go!"InitialSize") #x (Val #(x.InitialSize'))
-  set_InitialSize : ∀ (x : RingGrowingOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RingGrowingOptions.underlying go!"InitialSize") (PairV #x #y) (Val #(({ x with InitialSize' := y } : RingGrowingOptions)))
+  get'InitialSize : ∀ (x : RingGrowingOptions), go.IsGoStepPureDetTagged under (StructFieldGet RingGrowingOptions.underlying go!"InitialSize") #x (Val #(x.InitialSize'))
+  set'InitialSize : ∀ (x : RingGrowingOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RingGrowingOptions.underlying go!"InitialSize") (PairV #x #y) (Val #(({ x with InitialSize' := y } : RingGrowingOptions)))
   method_set : go.MethodSetIs RingGrowingOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RingGrowingOptions.ty) []
 
 attribute [instance] RingGrowingOptions.TypeAssumptions.type_repr
   RingGrowingOptions.TypeAssumptions.underlying
-  RingGrowingOptions.TypeAssumptions.get_InitialSize
-  RingGrowingOptions.TypeAssumptions.set_InitialSize
+  RingGrowingOptions.TypeAssumptions.get'InitialSize
+  RingGrowingOptions.TypeAssumptions.set'InitialSize
   RingGrowingOptions.TypeAssumptions.method_set
   RingGrowingOptions.TypeAssumptions.ptr_method_set
 
-structure TypedRingGrowing [GooseExts] (T : Type) where
+structure TypedRingGrowing [GooseExts] (T₀ : Type) where
   mk ::
   data' : GoSlice
   n' : w64
   beg' : w64
   readable' : w64
 
-noncomputable instance TypedRingGrowing.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (TypedRingGrowing T) :=
+noncomputable instance TypedRingGrowing.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (TypedRingGrowing T₀) :=
   ⟨TypedRingGrowing.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TypedRingGrowing.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"data" (go.GoType.SliceType T)),
+@[reducible] noncomputable def TypedRingGrowing.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"data" (go.GoType.SliceType T₀)),
 (go.field_decl.FieldDecl go!"n" go.int),
 (go.field_decl.FieldDecl go!"beg" go.int),
 (go.field_decl.FieldDecl go!"readable" go.int)]
 
-@[irreducible] noncomputable def TypedRingGrowing.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (TypedRingGrowing.fieldsUnsealed T)
+@[irreducible] noncomputable def TypedRingGrowing.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (TypedRingGrowing.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_TypedRingGrowing [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (TypedRingGrowing.fields T) (TypedRingGrowing.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'TypedRingGrowing [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (TypedRingGrowing.fields T₀) (TypedRingGrowing.fieldsUnsealed T₀) :=
   ⟨by unfold TypedRingGrowing.fields; rfl⟩
 
-@[reducible] noncomputable def TypedRingGrowing.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (TypedRingGrowing.fields T))
+@[reducible] noncomputable def TypedRingGrowing.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (TypedRingGrowing.fields T₀))
 
 class TypedRingGrowing.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedRingGrowing.underlying T) (TypedRingGrowing T')
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedRingGrowing.ty T) (TypedRingGrowing.underlying T)
-  get_data : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingGrowing T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingGrowing.underlying T) go!"data") #x (Val #(x.data'))
-  set_data : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingGrowing T')) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingGrowing.underlying T) go!"data") (PairV #x #y) (Val #(({ x with data' := y } : (TypedRingGrowing T'))))
-  get_n : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingGrowing T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingGrowing.underlying T) go!"n") #x (Val #(x.n'))
-  set_n : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingGrowing T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingGrowing.underlying T) go!"n") (PairV #x #y) (Val #(({ x with n' := y } : (TypedRingGrowing T'))))
-  get_beg : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingGrowing T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingGrowing.underlying T) go!"beg") #x (Val #(x.beg'))
-  set_beg : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingGrowing T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingGrowing.underlying T) go!"beg") (PairV #x #y) (Val #(({ x with beg' := y } : (TypedRingGrowing T'))))
-  get_readable : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingGrowing T')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingGrowing.underlying T) go!"readable") #x (Val #(x.readable'))
-  set_readable : ∀ (T : go.GoType) (T' : Type) (x : (TypedRingGrowing T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingGrowing.underlying T) go!"readable") (PairV #x #y) (Val #(({ x with readable' := y } : (TypedRingGrowing T'))))
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedRingGrowing.ty T) []
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedRingGrowing.ty T)) [(go!"Cap", (some (go.signature.Signature [] false [go.int]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ReadOne", (some (go.signature.Signature [] false [T, go.bool]))), (go!"WriteOne", (some (go.signature.Signature [T] false [])))]
-  ptr_Cap_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"Cap" (TypedRingGrowing.Cap.impl T)
-  ptr_Len_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"Len" (TypedRingGrowing.Len.impl T)
-  ptr_ReadOne_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"ReadOne" (TypedRingGrowing.ReadOne.impl T)
-  ptr_WriteOne_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingGrowing.ty T)) go!"WriteOne" (TypedRingGrowing.WriteOne.impl T)
+  type_repr : ∀ (T₀ : go.GoType) (T₀' : Type) [ZeroVal T₀'] [TypeRepr T₀ T₀'], go.TypeReprUnderlying (TypedRingGrowing.underlying T₀) (TypedRingGrowing T₀')
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (TypedRingGrowing.ty T₀) (TypedRingGrowing.underlying T₀)
+  get'data : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (TypedRingGrowing T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingGrowing.underlying T₀) go!"data") #x (Val #(x.data'))
+  set'data : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (TypedRingGrowing T₀')) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingGrowing.underlying T₀) go!"data") (PairV #x #y) (Val #(({ x with data' := y } : (TypedRingGrowing T₀'))))
+  get'n : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (TypedRingGrowing T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingGrowing.underlying T₀) go!"n") #x (Val #(x.n'))
+  set'n : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (TypedRingGrowing T₀')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingGrowing.underlying T₀) go!"n") (PairV #x #y) (Val #(({ x with n' := y } : (TypedRingGrowing T₀'))))
+  get'beg : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (TypedRingGrowing T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingGrowing.underlying T₀) go!"beg") #x (Val #(x.beg'))
+  set'beg : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (TypedRingGrowing T₀')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingGrowing.underlying T₀) go!"beg") (PairV #x #y) (Val #(({ x with beg' := y } : (TypedRingGrowing T₀'))))
+  get'readable : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (TypedRingGrowing T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (TypedRingGrowing.underlying T₀) go!"readable") #x (Val #(x.readable'))
+  set'readable : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (TypedRingGrowing T₀')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (TypedRingGrowing.underlying T₀) go!"readable") (PairV #x #y) (Val #(({ x with readable' := y } : (TypedRingGrowing T₀'))))
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (TypedRingGrowing.ty T₀) []
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedRingGrowing.ty T₀)) [(go!"Cap", (some (go.signature.Signature [] false [go.int]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ReadOne", (some (go.signature.Signature [] false [T₀, go.bool]))), (go!"WriteOne", (some (go.signature.Signature [T₀] false [])))]
+  ptr_unfold'Cap : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingGrowing.ty T₀)) go!"Cap" (TypedRingGrowing.Cap.impl T₀)
+  ptr_unfold'Len : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingGrowing.ty T₀)) go!"Len" (TypedRingGrowing.Len.impl T₀)
+  ptr_unfold'ReadOne : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingGrowing.ty T₀)) go!"ReadOne" (TypedRingGrowing.ReadOne.impl T₀)
+  ptr_unfold'WriteOne : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (TypedRingGrowing.ty T₀)) go!"WriteOne" (TypedRingGrowing.WriteOne.impl T₀)
 
 attribute [instance] TypedRingGrowing.TypeAssumptions.type_repr
   TypedRingGrowing.TypeAssumptions.underlying
-  TypedRingGrowing.TypeAssumptions.get_data
-  TypedRingGrowing.TypeAssumptions.set_data
-  TypedRingGrowing.TypeAssumptions.get_n
-  TypedRingGrowing.TypeAssumptions.set_n
-  TypedRingGrowing.TypeAssumptions.get_beg
-  TypedRingGrowing.TypeAssumptions.set_beg
-  TypedRingGrowing.TypeAssumptions.get_readable
-  TypedRingGrowing.TypeAssumptions.set_readable
+  TypedRingGrowing.TypeAssumptions.get'data
+  TypedRingGrowing.TypeAssumptions.set'data
+  TypedRingGrowing.TypeAssumptions.get'n
+  TypedRingGrowing.TypeAssumptions.set'n
+  TypedRingGrowing.TypeAssumptions.get'beg
+  TypedRingGrowing.TypeAssumptions.set'beg
+  TypedRingGrowing.TypeAssumptions.get'readable
+  TypedRingGrowing.TypeAssumptions.set'readable
   TypedRingGrowing.TypeAssumptions.method_set
   TypedRingGrowing.TypeAssumptions.ptr_method_set
-  TypedRingGrowing.TypeAssumptions.ptr_Cap_unfold
-  TypedRingGrowing.TypeAssumptions.ptr_Len_unfold
-  TypedRingGrowing.TypeAssumptions.ptr_ReadOne_unfold
-  TypedRingGrowing.TypeAssumptions.ptr_WriteOne_unfold
+  TypedRingGrowing.TypeAssumptions.ptr_unfold'Cap
+  TypedRingGrowing.TypeAssumptions.ptr_unfold'Len
+  TypedRingGrowing.TypeAssumptions.ptr_unfold'ReadOne
+  TypedRingGrowing.TypeAssumptions.ptr_unfold'WriteOne
 
 structure RingOptions [GooseExts] where
   mk ::
@@ -839,7 +839,7 @@ noncomputable instance RingOptions.zero_val [GooseExts] : ZeroVal RingOptions :=
 @[irreducible] noncomputable def RingOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RingOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_RingOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RingOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold RingOptions.fields RingOptions.fieldsUnsealed :=
   ⟨by unfold RingOptions.fields; rfl⟩
 
@@ -849,95 +849,95 @@ noncomputable instance equals_unfold_RingOptions [GooseExts] [GoGlobalContext] :
 class RingOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RingOptions.underlying RingOptions
   underlying : go.UnderlyingDirectedEq RingOptions.ty RingOptions.underlying
-  get_InitialSize : ∀ (x : RingOptions), go.IsGoStepPureDetTagged under (StructFieldGet RingOptions.underlying go!"InitialSize") #x (Val #(x.InitialSize'))
-  set_InitialSize : ∀ (x : RingOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RingOptions.underlying go!"InitialSize") (PairV #x #y) (Val #(({ x with InitialSize' := y } : RingOptions)))
-  get_NormalSize : ∀ (x : RingOptions), go.IsGoStepPureDetTagged under (StructFieldGet RingOptions.underlying go!"NormalSize") #x (Val #(x.NormalSize'))
-  set_NormalSize : ∀ (x : RingOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RingOptions.underlying go!"NormalSize") (PairV #x #y) (Val #(({ x with NormalSize' := y } : RingOptions)))
+  get'InitialSize : ∀ (x : RingOptions), go.IsGoStepPureDetTagged under (StructFieldGet RingOptions.underlying go!"InitialSize") #x (Val #(x.InitialSize'))
+  set'InitialSize : ∀ (x : RingOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RingOptions.underlying go!"InitialSize") (PairV #x #y) (Val #(({ x with InitialSize' := y } : RingOptions)))
+  get'NormalSize : ∀ (x : RingOptions), go.IsGoStepPureDetTagged under (StructFieldGet RingOptions.underlying go!"NormalSize") #x (Val #(x.NormalSize'))
+  set'NormalSize : ∀ (x : RingOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RingOptions.underlying go!"NormalSize") (PairV #x #y) (Val #(({ x with NormalSize' := y } : RingOptions)))
   method_set : go.MethodSetIs RingOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RingOptions.ty) []
 
 attribute [instance] RingOptions.TypeAssumptions.type_repr
   RingOptions.TypeAssumptions.underlying
-  RingOptions.TypeAssumptions.get_InitialSize
-  RingOptions.TypeAssumptions.set_InitialSize
-  RingOptions.TypeAssumptions.get_NormalSize
-  RingOptions.TypeAssumptions.set_NormalSize
+  RingOptions.TypeAssumptions.get'InitialSize
+  RingOptions.TypeAssumptions.set'InitialSize
+  RingOptions.TypeAssumptions.get'NormalSize
+  RingOptions.TypeAssumptions.set'NormalSize
   RingOptions.TypeAssumptions.method_set
   RingOptions.TypeAssumptions.ptr_method_set
 
-structure Ring [GooseExts] (T : Type) where
+structure Ring [GooseExts] (T₀ : Type) where
   mk ::
-  growing' : (TypedRingGrowing T)
+  growing' : (TypedRingGrowing T₀)
   normalSize' : w64
 
-noncomputable instance Ring.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (Ring T) :=
+noncomputable instance Ring.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (Ring T₀) :=
   ⟨Ring.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Ring.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"growing" (TypedRingGrowing.ty T)),
+@[reducible] noncomputable def Ring.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"growing" (TypedRingGrowing.ty T₀)),
 (go.field_decl.FieldDecl go!"normalSize" go.int)]
 
-@[irreducible] noncomputable def Ring.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (Ring.fieldsUnsealed T)
+@[irreducible] noncomputable def Ring.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (Ring.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_Ring [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (Ring.fields T) (Ring.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'Ring [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (Ring.fields T₀) (Ring.fieldsUnsealed T₀) :=
   ⟨by unfold Ring.fields; rfl⟩
 
-@[reducible] noncomputable def Ring.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (Ring.fields T))
+@[reducible] noncomputable def Ring.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (Ring.fields T₀))
 
 class Ring.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (Ring.underlying T) (Ring T')
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (Ring.ty T) (Ring.underlying T)
-  get_growing : ∀ (T : go.GoType) (T' : Type) (x : (Ring T')), go.IsGoStepPureDetTagged under (StructFieldGet (Ring.underlying T) go!"growing") #x (Val #(x.growing'))
-  set_growing : ∀ (T : go.GoType) (T' : Type) (x : (Ring T')) (y : (TypedRingGrowing T')), go.IsGoStepPureDetTagged under (StructFieldSet (Ring.underlying T) go!"growing") (PairV #x #y) (Val #(({ x with growing' := y } : (Ring T'))))
-  get_normalSize : ∀ (T : go.GoType) (T' : Type) (x : (Ring T')), go.IsGoStepPureDetTagged under (StructFieldGet (Ring.underlying T) go!"normalSize") #x (Val #(x.normalSize'))
-  set_normalSize : ∀ (T : go.GoType) (T' : Type) (x : (Ring T')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (Ring.underlying T) go!"normalSize") (PairV #x #y) (Val #(({ x with normalSize' := y } : (Ring T'))))
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (Ring.ty T) []
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (Ring.ty T)) [(go!"Cap", (some (go.signature.Signature [] false [go.int]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ReadOne", (some (go.signature.Signature [] false [T, go.bool]))), (go!"WriteOne", (some (go.signature.Signature [T] false [])))]
-  ptr_Cap_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Ring.ty T)) go!"Cap" (Ring.Cap.impl T)
-  ptr_Len_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Ring.ty T)) go!"Len" (Ring.Len.impl T)
-  ptr_ReadOne_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Ring.ty T)) go!"ReadOne" (Ring.ReadOne.impl T)
-  ptr_WriteOne_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Ring.ty T)) go!"WriteOne" (Ring.WriteOne.impl T)
+  type_repr : ∀ (T₀ : go.GoType) (T₀' : Type) [ZeroVal T₀'] [TypeRepr T₀ T₀'], go.TypeReprUnderlying (Ring.underlying T₀) (Ring T₀')
+  underlying : ∀ (T₀ : go.GoType), go.UnderlyingDirectedEq (Ring.ty T₀) (Ring.underlying T₀)
+  get'growing : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (Ring T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (Ring.underlying T₀) go!"growing") #x (Val #(x.growing'))
+  set'growing : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (Ring T₀')) (y : (TypedRingGrowing T₀')), go.IsGoStepPureDetTagged under (StructFieldSet (Ring.underlying T₀) go!"growing") (PairV #x #y) (Val #(({ x with growing' := y } : (Ring T₀'))))
+  get'normalSize : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (Ring T₀')), go.IsGoStepPureDetTagged under (StructFieldGet (Ring.underlying T₀) go!"normalSize") #x (Val #(x.normalSize'))
+  set'normalSize : ∀ (T₀ : go.GoType) (T₀' : Type) (x : (Ring T₀')) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet (Ring.underlying T₀) go!"normalSize") (PairV #x #y) (Val #(({ x with normalSize' := y } : (Ring T₀'))))
+  method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (Ring.ty T₀) []
+  ptr_method_set : ∀ (T₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (Ring.ty T₀)) [(go!"Cap", (some (go.signature.Signature [] false [go.int]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ReadOne", (some (go.signature.Signature [] false [T₀, go.bool]))), (go!"WriteOne", (some (go.signature.Signature [T₀] false [])))]
+  ptr_unfold'Cap : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (Ring.ty T₀)) go!"Cap" (Ring.Cap.impl T₀)
+  ptr_unfold'Len : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (Ring.ty T₀)) go!"Len" (Ring.Len.impl T₀)
+  ptr_unfold'ReadOne : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (Ring.ty T₀)) go!"ReadOne" (Ring.ReadOne.impl T₀)
+  ptr_unfold'WriteOne : ∀ (T₀ : go.GoType), MethodUnfold (go.GoType.PointerType (Ring.ty T₀)) go!"WriteOne" (Ring.WriteOne.impl T₀)
 
 attribute [instance] Ring.TypeAssumptions.type_repr
   Ring.TypeAssumptions.underlying
-  Ring.TypeAssumptions.get_growing
-  Ring.TypeAssumptions.set_growing
-  Ring.TypeAssumptions.get_normalSize
-  Ring.TypeAssumptions.set_normalSize
+  Ring.TypeAssumptions.get'growing
+  Ring.TypeAssumptions.set'growing
+  Ring.TypeAssumptions.get'normalSize
+  Ring.TypeAssumptions.set'normalSize
   Ring.TypeAssumptions.method_set
   Ring.TypeAssumptions.ptr_method_set
-  Ring.TypeAssumptions.ptr_Cap_unfold
-  Ring.TypeAssumptions.ptr_Len_unfold
-  Ring.TypeAssumptions.ptr_ReadOne_unfold
-  Ring.TypeAssumptions.ptr_WriteOne_unfold
+  Ring.TypeAssumptions.ptr_unfold'Cap
+  Ring.TypeAssumptions.ptr_unfold'Len
+  Ring.TypeAssumptions.ptr_unfold'ReadOne
+  Ring.TypeAssumptions.ptr_unfold'WriteOne
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  TypedRingFixed_instance : TypedRingFixed.TypeAssumptions
-  RingGrowingOptions_instance : RingGrowingOptions.TypeAssumptions
-  TypedRingGrowing_instance : TypedRingGrowing.TypeAssumptions
-  RingOptions_instance : RingOptions.TypeAssumptions
-  Ring_instance : Ring.TypeAssumptions
-  NewTypedRingFixed_unfold : ∀ (T : go.GoType), FuncUnfold NewTypedRingFixed [T] (NewTypedRingFixed.impl T)
-  NewRingGrowing_unfold : FuncUnfold NewRingGrowing [] NewRingGrowing.impl
-  NewTypedRingGrowing_unfold : ∀ (T : go.GoType), FuncUnfold NewTypedRingGrowing [T] (NewTypedRingGrowing.impl T)
-  NewRing_unfold : ∀ (T : go.GoType), FuncUnfold NewRing [T] (NewRing.impl T)
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
+  instance'TypedRingFixed : TypedRingFixed.TypeAssumptions
+  instance'RingGrowingOptions : RingGrowingOptions.TypeAssumptions
+  instance'TypedRingGrowing : TypedRingGrowing.TypeAssumptions
+  instance'RingOptions : RingOptions.TypeAssumptions
+  instance'Ring : Ring.TypeAssumptions
+  unfold'NewTypedRingFixed : ∀ (T₀ : go.GoType), FuncUnfold NewTypedRingFixed [T₀] (NewTypedRingFixed.impl T₀)
+  unfold'NewRingGrowing : FuncUnfold NewRingGrowing [] NewRingGrowing.impl
+  unfold'NewTypedRingGrowing : ∀ (T₀ : go.GoType), FuncUnfold NewTypedRingGrowing [T₀] (NewTypedRingGrowing.impl T₀)
+  unfold'NewRing : ∀ (T₀ : go.GoType), FuncUnfold NewRing [T₀] (NewRing.impl T₀)
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
 
-attribute [instance] Assumptions.TypedRingFixed_instance
-  Assumptions.RingGrowingOptions_instance
-  Assumptions.TypedRingGrowing_instance
-  Assumptions.RingOptions_instance
-  Assumptions.Ring_instance
-  Assumptions.NewTypedRingFixed_unfold
-  Assumptions.NewRingGrowing_unfold
-  Assumptions.NewTypedRingGrowing_unfold
-  Assumptions.NewRing_unfold
-  Assumptions.import_errors_Assumption
-  Assumptions.import_io_Assumption
+attribute [instance] Assumptions.instance'TypedRingFixed
+  Assumptions.instance'RingGrowingOptions
+  Assumptions.instance'TypedRingGrowing
+  Assumptions.instance'RingOptions
+  Assumptions.instance'Ring
+  Assumptions.unfold'NewTypedRingFixed
+  Assumptions.unfold'NewRingGrowing
+  Assumptions.unfold'NewTypedRingGrowing
+  Assumptions.unfold'NewRing
+  Assumptions.import'errors
+  Assumptions.import'io
 
 end k8s_io.utils.buffer
 

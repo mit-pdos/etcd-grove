@@ -1701,7 +1701,7 @@ noncomputable instance CipherSuite.zero_val [GooseExts] : ZeroVal CipherSuite :=
 @[irreducible] noncomputable def CipherSuite.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CipherSuite.fieldsUnsealed
 
-noncomputable instance equals_unfold_CipherSuite [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'CipherSuite [GooseExts] [GoGlobalContext] :
     EqualsUnfold CipherSuite.fields CipherSuite.fieldsUnsealed :=
   ⟨by unfold CipherSuite.fields; rfl⟩
 
@@ -1711,27 +1711,27 @@ noncomputable instance equals_unfold_CipherSuite [GooseExts] [GoGlobalContext] :
 class CipherSuite.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CipherSuite.underlying CipherSuite
   underlying : go.UnderlyingDirectedEq CipherSuite.ty CipherSuite.underlying
-  get_ID : ∀ (x : CipherSuite), go.IsGoStepPureDetTagged under (StructFieldGet CipherSuite.underlying go!"ID") #x (Val #(x.ID'))
-  set_ID : ∀ (x : CipherSuite) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet CipherSuite.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : CipherSuite)))
-  get_Name : ∀ (x : CipherSuite), go.IsGoStepPureDetTagged under (StructFieldGet CipherSuite.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : CipherSuite) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CipherSuite.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : CipherSuite)))
-  get_SupportedVersions : ∀ (x : CipherSuite), go.IsGoStepPureDetTagged under (StructFieldGet CipherSuite.underlying go!"SupportedVersions") #x (Val #(x.SupportedVersions'))
-  set_SupportedVersions : ∀ (x : CipherSuite) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CipherSuite.underlying go!"SupportedVersions") (PairV #x #y) (Val #(({ x with SupportedVersions' := y } : CipherSuite)))
-  get_Insecure : ∀ (x : CipherSuite), go.IsGoStepPureDetTagged under (StructFieldGet CipherSuite.underlying go!"Insecure") #x (Val #(x.Insecure'))
-  set_Insecure : ∀ (x : CipherSuite) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet CipherSuite.underlying go!"Insecure") (PairV #x #y) (Val #(({ x with Insecure' := y } : CipherSuite)))
+  get'ID : ∀ (x : CipherSuite), go.IsGoStepPureDetTagged under (StructFieldGet CipherSuite.underlying go!"ID") #x (Val #(x.ID'))
+  set'ID : ∀ (x : CipherSuite) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet CipherSuite.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : CipherSuite)))
+  get'Name : ∀ (x : CipherSuite), go.IsGoStepPureDetTagged under (StructFieldGet CipherSuite.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : CipherSuite) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CipherSuite.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : CipherSuite)))
+  get'SupportedVersions : ∀ (x : CipherSuite), go.IsGoStepPureDetTagged under (StructFieldGet CipherSuite.underlying go!"SupportedVersions") #x (Val #(x.SupportedVersions'))
+  set'SupportedVersions : ∀ (x : CipherSuite) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CipherSuite.underlying go!"SupportedVersions") (PairV #x #y) (Val #(({ x with SupportedVersions' := y } : CipherSuite)))
+  get'Insecure : ∀ (x : CipherSuite), go.IsGoStepPureDetTagged under (StructFieldGet CipherSuite.underlying go!"Insecure") #x (Val #(x.Insecure'))
+  set'Insecure : ∀ (x : CipherSuite) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet CipherSuite.underlying go!"Insecure") (PairV #x #y) (Val #(({ x with Insecure' := y } : CipherSuite)))
   method_set : go.MethodSetIs CipherSuite.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType CipherSuite.ty) []
 
 attribute [instance] CipherSuite.TypeAssumptions.type_repr
   CipherSuite.TypeAssumptions.underlying
-  CipherSuite.TypeAssumptions.get_ID
-  CipherSuite.TypeAssumptions.set_ID
-  CipherSuite.TypeAssumptions.get_Name
-  CipherSuite.TypeAssumptions.set_Name
-  CipherSuite.TypeAssumptions.get_SupportedVersions
-  CipherSuite.TypeAssumptions.set_SupportedVersions
-  CipherSuite.TypeAssumptions.get_Insecure
-  CipherSuite.TypeAssumptions.set_Insecure
+  CipherSuite.TypeAssumptions.get'ID
+  CipherSuite.TypeAssumptions.set'ID
+  CipherSuite.TypeAssumptions.get'Name
+  CipherSuite.TypeAssumptions.set'Name
+  CipherSuite.TypeAssumptions.get'SupportedVersions
+  CipherSuite.TypeAssumptions.set'SupportedVersions
+  CipherSuite.TypeAssumptions.get'Insecure
+  CipherSuite.TypeAssumptions.set'Insecure
   CipherSuite.TypeAssumptions.method_set
   CipherSuite.TypeAssumptions.ptr_method_set
 
@@ -1862,7 +1862,7 @@ noncomputable instance cthWrapper.zero_val [GooseExts] : ZeroVal cthWrapper :=
 @[irreducible] noncomputable def cthWrapper.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   cthWrapper.fieldsUnsealed
 
-noncomputable instance equals_unfold_cthWrapper [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'cthWrapper [GooseExts] [GoGlobalContext] :
     EqualsUnfold cthWrapper.fields cthWrapper.fieldsUnsealed :=
   ⟨by unfold cthWrapper.fields; rfl⟩
 
@@ -1872,15 +1872,15 @@ noncomputable instance equals_unfold_cthWrapper [GooseExts] [GoGlobalContext] :
 class cthWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cthWrapper.underlying cthWrapper
   underlying : go.UnderlyingDirectedEq cthWrapper.ty cthWrapper.underlying
-  get_h : ∀ (x : cthWrapper), go.IsGoStepPureDetTagged under (StructFieldGet cthWrapper.underlying go!"h") #x (Val #(x.h'))
-  set_h : ∀ (x : cthWrapper) (y : constantTimeHash), go.IsGoStepPureDetTagged under (StructFieldSet cthWrapper.underlying go!"h") (PairV #x #y) (Val #(({ x with h' := y } : cthWrapper)))
+  get'h : ∀ (x : cthWrapper), go.IsGoStepPureDetTagged under (StructFieldGet cthWrapper.underlying go!"h") #x (Val #(x.h'))
+  set'h : ∀ (x : cthWrapper) (y : constantTimeHash), go.IsGoStepPureDetTagged under (StructFieldSet cthWrapper.underlying go!"h") (PairV #x #y) (Val #(({ x with h' := y } : cthWrapper)))
   method_set : go.MethodSetIs cthWrapper.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType cthWrapper.ty) [(go!"BlockSize", (some (go.signature.Signature [] false [go.int]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Sum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] cthWrapper.TypeAssumptions.type_repr
   cthWrapper.TypeAssumptions.underlying
-  cthWrapper.TypeAssumptions.get_h
-  cthWrapper.TypeAssumptions.set_h
+  cthWrapper.TypeAssumptions.get'h
+  cthWrapper.TypeAssumptions.set'h
   cthWrapper.TypeAssumptions.method_set
   cthWrapper.TypeAssumptions.ptr_method_set
 
@@ -1927,7 +1927,7 @@ noncomputable instance keyShare.zero_val [GooseExts] : ZeroVal keyShare :=
 @[irreducible] noncomputable def keyShare.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   keyShare.fieldsUnsealed
 
-noncomputable instance equals_unfold_keyShare [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'keyShare [GooseExts] [GoGlobalContext] :
     EqualsUnfold keyShare.fields keyShare.fieldsUnsealed :=
   ⟨by unfold keyShare.fields; rfl⟩
 
@@ -1937,19 +1937,19 @@ noncomputable instance equals_unfold_keyShare [GooseExts] [GoGlobalContext] :
 class keyShare.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying keyShare.underlying keyShare
   underlying : go.UnderlyingDirectedEq keyShare.ty keyShare.underlying
-  get_group : ∀ (x : keyShare), go.IsGoStepPureDetTagged under (StructFieldGet keyShare.underlying go!"group") #x (Val #(x.group'))
-  set_group : ∀ (x : keyShare) (y : CurveID), go.IsGoStepPureDetTagged under (StructFieldSet keyShare.underlying go!"group") (PairV #x #y) (Val #(({ x with group' := y } : keyShare)))
-  get_data : ∀ (x : keyShare), go.IsGoStepPureDetTagged under (StructFieldGet keyShare.underlying go!"data") #x (Val #(x.data'))
-  set_data : ∀ (x : keyShare) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet keyShare.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : keyShare)))
+  get'group : ∀ (x : keyShare), go.IsGoStepPureDetTagged under (StructFieldGet keyShare.underlying go!"group") #x (Val #(x.group'))
+  set'group : ∀ (x : keyShare) (y : CurveID), go.IsGoStepPureDetTagged under (StructFieldSet keyShare.underlying go!"group") (PairV #x #y) (Val #(({ x with group' := y } : keyShare)))
+  get'data : ∀ (x : keyShare), go.IsGoStepPureDetTagged under (StructFieldGet keyShare.underlying go!"data") #x (Val #(x.data'))
+  set'data : ∀ (x : keyShare) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet keyShare.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : keyShare)))
   method_set : go.MethodSetIs keyShare.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType keyShare.ty) []
 
 attribute [instance] keyShare.TypeAssumptions.type_repr
   keyShare.TypeAssumptions.underlying
-  keyShare.TypeAssumptions.get_group
-  keyShare.TypeAssumptions.set_group
-  keyShare.TypeAssumptions.get_data
-  keyShare.TypeAssumptions.set_data
+  keyShare.TypeAssumptions.get'group
+  keyShare.TypeAssumptions.set'group
+  keyShare.TypeAssumptions.get'data
+  keyShare.TypeAssumptions.set'data
   keyShare.TypeAssumptions.method_set
   keyShare.TypeAssumptions.ptr_method_set
 
@@ -1968,7 +1968,7 @@ noncomputable instance pskIdentity.zero_val [GooseExts] : ZeroVal pskIdentity :=
 @[irreducible] noncomputable def pskIdentity.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   pskIdentity.fieldsUnsealed
 
-noncomputable instance equals_unfold_pskIdentity [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'pskIdentity [GooseExts] [GoGlobalContext] :
     EqualsUnfold pskIdentity.fields pskIdentity.fieldsUnsealed :=
   ⟨by unfold pskIdentity.fields; rfl⟩
 
@@ -1978,19 +1978,19 @@ noncomputable instance equals_unfold_pskIdentity [GooseExts] [GoGlobalContext] :
 class pskIdentity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying pskIdentity.underlying pskIdentity
   underlying : go.UnderlyingDirectedEq pskIdentity.ty pskIdentity.underlying
-  get_label : ∀ (x : pskIdentity), go.IsGoStepPureDetTagged under (StructFieldGet pskIdentity.underlying go!"label") #x (Val #(x.label'))
-  set_label : ∀ (x : pskIdentity) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet pskIdentity.underlying go!"label") (PairV #x #y) (Val #(({ x with label' := y } : pskIdentity)))
-  get_obfuscatedTicketAge : ∀ (x : pskIdentity), go.IsGoStepPureDetTagged under (StructFieldGet pskIdentity.underlying go!"obfuscatedTicketAge") #x (Val #(x.obfuscatedTicketAge'))
-  set_obfuscatedTicketAge : ∀ (x : pskIdentity) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet pskIdentity.underlying go!"obfuscatedTicketAge") (PairV #x #y) (Val #(({ x with obfuscatedTicketAge' := y } : pskIdentity)))
+  get'label : ∀ (x : pskIdentity), go.IsGoStepPureDetTagged under (StructFieldGet pskIdentity.underlying go!"label") #x (Val #(x.label'))
+  set'label : ∀ (x : pskIdentity) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet pskIdentity.underlying go!"label") (PairV #x #y) (Val #(({ x with label' := y } : pskIdentity)))
+  get'obfuscatedTicketAge : ∀ (x : pskIdentity), go.IsGoStepPureDetTagged under (StructFieldGet pskIdentity.underlying go!"obfuscatedTicketAge") #x (Val #(x.obfuscatedTicketAge'))
+  set'obfuscatedTicketAge : ∀ (x : pskIdentity) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet pskIdentity.underlying go!"obfuscatedTicketAge") (PairV #x #y) (Val #(({ x with obfuscatedTicketAge' := y } : pskIdentity)))
   method_set : go.MethodSetIs pskIdentity.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType pskIdentity.ty) []
 
 attribute [instance] pskIdentity.TypeAssumptions.type_repr
   pskIdentity.TypeAssumptions.underlying
-  pskIdentity.TypeAssumptions.get_label
-  pskIdentity.TypeAssumptions.set_label
-  pskIdentity.TypeAssumptions.get_obfuscatedTicketAge
-  pskIdentity.TypeAssumptions.set_obfuscatedTicketAge
+  pskIdentity.TypeAssumptions.get'label
+  pskIdentity.TypeAssumptions.set'label
+  pskIdentity.TypeAssumptions.get'obfuscatedTicketAge
+  pskIdentity.TypeAssumptions.set'obfuscatedTicketAge
   pskIdentity.TypeAssumptions.method_set
   pskIdentity.TypeAssumptions.ptr_method_set
 
@@ -2143,7 +2143,7 @@ noncomputable instance EncryptedClientHelloKey.zero_val [GooseExts] : ZeroVal En
 @[irreducible] noncomputable def EncryptedClientHelloKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EncryptedClientHelloKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_EncryptedClientHelloKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'EncryptedClientHelloKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold EncryptedClientHelloKey.fields EncryptedClientHelloKey.fieldsUnsealed :=
   ⟨by unfold EncryptedClientHelloKey.fields; rfl⟩
 
@@ -2153,23 +2153,23 @@ noncomputable instance equals_unfold_EncryptedClientHelloKey [GooseExts] [GoGlob
 class EncryptedClientHelloKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EncryptedClientHelloKey.underlying EncryptedClientHelloKey
   underlying : go.UnderlyingDirectedEq EncryptedClientHelloKey.ty EncryptedClientHelloKey.underlying
-  get_Config : ∀ (x : EncryptedClientHelloKey), go.IsGoStepPureDetTagged under (StructFieldGet EncryptedClientHelloKey.underlying go!"Config") #x (Val #(x.Config'))
-  set_Config : ∀ (x : EncryptedClientHelloKey) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EncryptedClientHelloKey.underlying go!"Config") (PairV #x #y) (Val #(({ x with Config' := y } : EncryptedClientHelloKey)))
-  get_PrivateKey : ∀ (x : EncryptedClientHelloKey), go.IsGoStepPureDetTagged under (StructFieldGet EncryptedClientHelloKey.underlying go!"PrivateKey") #x (Val #(x.PrivateKey'))
-  set_PrivateKey : ∀ (x : EncryptedClientHelloKey) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EncryptedClientHelloKey.underlying go!"PrivateKey") (PairV #x #y) (Val #(({ x with PrivateKey' := y } : EncryptedClientHelloKey)))
-  get_SendAsRetry : ∀ (x : EncryptedClientHelloKey), go.IsGoStepPureDetTagged under (StructFieldGet EncryptedClientHelloKey.underlying go!"SendAsRetry") #x (Val #(x.SendAsRetry'))
-  set_SendAsRetry : ∀ (x : EncryptedClientHelloKey) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EncryptedClientHelloKey.underlying go!"SendAsRetry") (PairV #x #y) (Val #(({ x with SendAsRetry' := y } : EncryptedClientHelloKey)))
+  get'Config : ∀ (x : EncryptedClientHelloKey), go.IsGoStepPureDetTagged under (StructFieldGet EncryptedClientHelloKey.underlying go!"Config") #x (Val #(x.Config'))
+  set'Config : ∀ (x : EncryptedClientHelloKey) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EncryptedClientHelloKey.underlying go!"Config") (PairV #x #y) (Val #(({ x with Config' := y } : EncryptedClientHelloKey)))
+  get'PrivateKey : ∀ (x : EncryptedClientHelloKey), go.IsGoStepPureDetTagged under (StructFieldGet EncryptedClientHelloKey.underlying go!"PrivateKey") #x (Val #(x.PrivateKey'))
+  set'PrivateKey : ∀ (x : EncryptedClientHelloKey) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EncryptedClientHelloKey.underlying go!"PrivateKey") (PairV #x #y) (Val #(({ x with PrivateKey' := y } : EncryptedClientHelloKey)))
+  get'SendAsRetry : ∀ (x : EncryptedClientHelloKey), go.IsGoStepPureDetTagged under (StructFieldGet EncryptedClientHelloKey.underlying go!"SendAsRetry") #x (Val #(x.SendAsRetry'))
+  set'SendAsRetry : ∀ (x : EncryptedClientHelloKey) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EncryptedClientHelloKey.underlying go!"SendAsRetry") (PairV #x #y) (Val #(({ x with SendAsRetry' := y } : EncryptedClientHelloKey)))
   method_set : go.MethodSetIs EncryptedClientHelloKey.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType EncryptedClientHelloKey.ty) []
 
 attribute [instance] EncryptedClientHelloKey.TypeAssumptions.type_repr
   EncryptedClientHelloKey.TypeAssumptions.underlying
-  EncryptedClientHelloKey.TypeAssumptions.get_Config
-  EncryptedClientHelloKey.TypeAssumptions.set_Config
-  EncryptedClientHelloKey.TypeAssumptions.get_PrivateKey
-  EncryptedClientHelloKey.TypeAssumptions.set_PrivateKey
-  EncryptedClientHelloKey.TypeAssumptions.get_SendAsRetry
-  EncryptedClientHelloKey.TypeAssumptions.set_SendAsRetry
+  EncryptedClientHelloKey.TypeAssumptions.get'Config
+  EncryptedClientHelloKey.TypeAssumptions.set'Config
+  EncryptedClientHelloKey.TypeAssumptions.get'PrivateKey
+  EncryptedClientHelloKey.TypeAssumptions.set'PrivateKey
+  EncryptedClientHelloKey.TypeAssumptions.get'SendAsRetry
+  EncryptedClientHelloKey.TypeAssumptions.set'SendAsRetry
   EncryptedClientHelloKey.TypeAssumptions.method_set
   EncryptedClientHelloKey.TypeAssumptions.ptr_method_set
 
@@ -2273,7 +2273,7 @@ noncomputable instance lruSessionCacheEntry.zero_val [GooseExts] : ZeroVal lruSe
 @[irreducible] noncomputable def lruSessionCacheEntry.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   lruSessionCacheEntry.fieldsUnsealed
 
-noncomputable instance equals_unfold_lruSessionCacheEntry [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'lruSessionCacheEntry [GooseExts] [GoGlobalContext] :
     EqualsUnfold lruSessionCacheEntry.fields lruSessionCacheEntry.fieldsUnsealed :=
   ⟨by unfold lruSessionCacheEntry.fields; rfl⟩
 
@@ -2283,19 +2283,19 @@ noncomputable instance equals_unfold_lruSessionCacheEntry [GooseExts] [GoGlobalC
 class lruSessionCacheEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lruSessionCacheEntry.underlying lruSessionCacheEntry
   underlying : go.UnderlyingDirectedEq lruSessionCacheEntry.ty lruSessionCacheEntry.underlying
-  get_sessionKey : ∀ (x : lruSessionCacheEntry), go.IsGoStepPureDetTagged under (StructFieldGet lruSessionCacheEntry.underlying go!"sessionKey") #x (Val #(x.sessionKey'))
-  set_sessionKey : ∀ (x : lruSessionCacheEntry) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet lruSessionCacheEntry.underlying go!"sessionKey") (PairV #x #y) (Val #(({ x with sessionKey' := y } : lruSessionCacheEntry)))
-  get_state : ∀ (x : lruSessionCacheEntry), go.IsGoStepPureDetTagged under (StructFieldGet lruSessionCacheEntry.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : lruSessionCacheEntry) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet lruSessionCacheEntry.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : lruSessionCacheEntry)))
+  get'sessionKey : ∀ (x : lruSessionCacheEntry), go.IsGoStepPureDetTagged under (StructFieldGet lruSessionCacheEntry.underlying go!"sessionKey") #x (Val #(x.sessionKey'))
+  set'sessionKey : ∀ (x : lruSessionCacheEntry) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet lruSessionCacheEntry.underlying go!"sessionKey") (PairV #x #y) (Val #(({ x with sessionKey' := y } : lruSessionCacheEntry)))
+  get'state : ∀ (x : lruSessionCacheEntry), go.IsGoStepPureDetTagged under (StructFieldGet lruSessionCacheEntry.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : lruSessionCacheEntry) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet lruSessionCacheEntry.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : lruSessionCacheEntry)))
   method_set : go.MethodSetIs lruSessionCacheEntry.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType lruSessionCacheEntry.ty) []
 
 attribute [instance] lruSessionCacheEntry.TypeAssumptions.type_repr
   lruSessionCacheEntry.TypeAssumptions.underlying
-  lruSessionCacheEntry.TypeAssumptions.get_sessionKey
-  lruSessionCacheEntry.TypeAssumptions.set_sessionKey
-  lruSessionCacheEntry.TypeAssumptions.get_state
-  lruSessionCacheEntry.TypeAssumptions.set_state
+  lruSessionCacheEntry.TypeAssumptions.get'sessionKey
+  lruSessionCacheEntry.TypeAssumptions.set'sessionKey
+  lruSessionCacheEntry.TypeAssumptions.get'state
+  lruSessionCacheEntry.TypeAssumptions.set'state
   lruSessionCacheEntry.TypeAssumptions.method_set
   lruSessionCacheEntry.TypeAssumptions.ptr_method_set
 
@@ -2428,7 +2428,7 @@ noncomputable instance echCipher.zero_val [GooseExts] : ZeroVal echCipher :=
 @[irreducible] noncomputable def echCipher.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   echCipher.fieldsUnsealed
 
-noncomputable instance equals_unfold_echCipher [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'echCipher [GooseExts] [GoGlobalContext] :
     EqualsUnfold echCipher.fields echCipher.fieldsUnsealed :=
   ⟨by unfold echCipher.fields; rfl⟩
 
@@ -2438,19 +2438,19 @@ noncomputable instance equals_unfold_echCipher [GooseExts] [GoGlobalContext] :
 class echCipher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying echCipher.underlying echCipher
   underlying : go.UnderlyingDirectedEq echCipher.ty echCipher.underlying
-  get_KDFID : ∀ (x : echCipher), go.IsGoStepPureDetTagged under (StructFieldGet echCipher.underlying go!"KDFID") #x (Val #(x.KDFID'))
-  set_KDFID : ∀ (x : echCipher) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet echCipher.underlying go!"KDFID") (PairV #x #y) (Val #(({ x with KDFID' := y } : echCipher)))
-  get_AEADID : ∀ (x : echCipher), go.IsGoStepPureDetTagged under (StructFieldGet echCipher.underlying go!"AEADID") #x (Val #(x.AEADID'))
-  set_AEADID : ∀ (x : echCipher) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet echCipher.underlying go!"AEADID") (PairV #x #y) (Val #(({ x with AEADID' := y } : echCipher)))
+  get'KDFID : ∀ (x : echCipher), go.IsGoStepPureDetTagged under (StructFieldGet echCipher.underlying go!"KDFID") #x (Val #(x.KDFID'))
+  set'KDFID : ∀ (x : echCipher) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet echCipher.underlying go!"KDFID") (PairV #x #y) (Val #(({ x with KDFID' := y } : echCipher)))
+  get'AEADID : ∀ (x : echCipher), go.IsGoStepPureDetTagged under (StructFieldGet echCipher.underlying go!"AEADID") #x (Val #(x.AEADID'))
+  set'AEADID : ∀ (x : echCipher) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet echCipher.underlying go!"AEADID") (PairV #x #y) (Val #(({ x with AEADID' := y } : echCipher)))
   method_set : go.MethodSetIs echCipher.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType echCipher.ty) []
 
 attribute [instance] echCipher.TypeAssumptions.type_repr
   echCipher.TypeAssumptions.underlying
-  echCipher.TypeAssumptions.get_KDFID
-  echCipher.TypeAssumptions.set_KDFID
-  echCipher.TypeAssumptions.get_AEADID
-  echCipher.TypeAssumptions.set_AEADID
+  echCipher.TypeAssumptions.get'KDFID
+  echCipher.TypeAssumptions.set'KDFID
+  echCipher.TypeAssumptions.get'AEADID
+  echCipher.TypeAssumptions.set'AEADID
   echCipher.TypeAssumptions.method_set
   echCipher.TypeAssumptions.ptr_method_set
 
@@ -2469,7 +2469,7 @@ noncomputable instance echExtension.zero_val [GooseExts] : ZeroVal echExtension 
 @[irreducible] noncomputable def echExtension.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   echExtension.fieldsUnsealed
 
-noncomputable instance equals_unfold_echExtension [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'echExtension [GooseExts] [GoGlobalContext] :
     EqualsUnfold echExtension.fields echExtension.fieldsUnsealed :=
   ⟨by unfold echExtension.fields; rfl⟩
 
@@ -2479,19 +2479,19 @@ noncomputable instance equals_unfold_echExtension [GooseExts] [GoGlobalContext] 
 class echExtension.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying echExtension.underlying echExtension
   underlying : go.UnderlyingDirectedEq echExtension.ty echExtension.underlying
-  get_Type : ∀ (x : echExtension), go.IsGoStepPureDetTagged under (StructFieldGet echExtension.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : echExtension) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet echExtension.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : echExtension)))
-  get_Data : ∀ (x : echExtension), go.IsGoStepPureDetTagged under (StructFieldGet echExtension.underlying go!"Data") #x (Val #(x.Data'))
-  set_Data : ∀ (x : echExtension) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet echExtension.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : echExtension)))
+  get'Type : ∀ (x : echExtension), go.IsGoStepPureDetTagged under (StructFieldGet echExtension.underlying go!"Type") #x (Val #(x.Type'))
+  set'Type : ∀ (x : echExtension) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet echExtension.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : echExtension)))
+  get'Data : ∀ (x : echExtension), go.IsGoStepPureDetTagged under (StructFieldGet echExtension.underlying go!"Data") #x (Val #(x.Data'))
+  set'Data : ∀ (x : echExtension) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet echExtension.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : echExtension)))
   method_set : go.MethodSetIs echExtension.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType echExtension.ty) []
 
 attribute [instance] echExtension.TypeAssumptions.type_repr
   echExtension.TypeAssumptions.underlying
-  echExtension.TypeAssumptions.get_Type
-  echExtension.TypeAssumptions.set_Type
-  echExtension.TypeAssumptions.get_Data
-  echExtension.TypeAssumptions.set_Data
+  echExtension.TypeAssumptions.get'Type
+  echExtension.TypeAssumptions.set'Type
+  echExtension.TypeAssumptions.get'Data
+  echExtension.TypeAssumptions.set'Data
   echExtension.TypeAssumptions.method_set
   echExtension.TypeAssumptions.ptr_method_set
 
@@ -2526,7 +2526,7 @@ noncomputable instance echConfig.zero_val [GooseExts] : ZeroVal echConfig :=
 @[irreducible] noncomputable def echConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   echConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_echConfig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'echConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold echConfig.fields echConfig.fieldsUnsealed :=
   ⟨by unfold echConfig.fields; rfl⟩
 
@@ -2536,51 +2536,51 @@ noncomputable instance equals_unfold_echConfig [GooseExts] [GoGlobalContext] :
 class echConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying echConfig.underlying echConfig
   underlying : go.UnderlyingDirectedEq echConfig.ty echConfig.underlying
-  get_raw : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"raw") #x (Val #(x.raw'))
-  set_raw : ∀ (x : echConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"raw") (PairV #x #y) (Val #(({ x with raw' := y } : echConfig)))
-  get_Version : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"Version") #x (Val #(x.Version'))
-  set_Version : ∀ (x : echConfig) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : echConfig)))
-  get_Length : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"Length") #x (Val #(x.Length'))
-  set_Length : ∀ (x : echConfig) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"Length") (PairV #x #y) (Val #(({ x with Length' := y } : echConfig)))
-  get_ConfigID : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"ConfigID") #x (Val #(x.ConfigID'))
-  set_ConfigID : ∀ (x : echConfig) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"ConfigID") (PairV #x #y) (Val #(({ x with ConfigID' := y } : echConfig)))
-  get_KemID : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"KemID") #x (Val #(x.KemID'))
-  set_KemID : ∀ (x : echConfig) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"KemID") (PairV #x #y) (Val #(({ x with KemID' := y } : echConfig)))
-  get_PublicKey : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"PublicKey") #x (Val #(x.PublicKey'))
-  set_PublicKey : ∀ (x : echConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"PublicKey") (PairV #x #y) (Val #(({ x with PublicKey' := y } : echConfig)))
-  get_SymmetricCipherSuite : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"SymmetricCipherSuite") #x (Val #(x.SymmetricCipherSuite'))
-  set_SymmetricCipherSuite : ∀ (x : echConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"SymmetricCipherSuite") (PairV #x #y) (Val #(({ x with SymmetricCipherSuite' := y } : echConfig)))
-  get_MaxNameLength : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"MaxNameLength") #x (Val #(x.MaxNameLength'))
-  set_MaxNameLength : ∀ (x : echConfig) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"MaxNameLength") (PairV #x #y) (Val #(({ x with MaxNameLength' := y } : echConfig)))
-  get_PublicName : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"PublicName") #x (Val #(x.PublicName'))
-  set_PublicName : ∀ (x : echConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"PublicName") (PairV #x #y) (Val #(({ x with PublicName' := y } : echConfig)))
-  get_Extensions : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"Extensions") #x (Val #(x.Extensions'))
-  set_Extensions : ∀ (x : echConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"Extensions") (PairV #x #y) (Val #(({ x with Extensions' := y } : echConfig)))
+  get'raw : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"raw") #x (Val #(x.raw'))
+  set'raw : ∀ (x : echConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"raw") (PairV #x #y) (Val #(({ x with raw' := y } : echConfig)))
+  get'Version : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"Version") #x (Val #(x.Version'))
+  set'Version : ∀ (x : echConfig) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : echConfig)))
+  get'Length : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"Length") #x (Val #(x.Length'))
+  set'Length : ∀ (x : echConfig) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"Length") (PairV #x #y) (Val #(({ x with Length' := y } : echConfig)))
+  get'ConfigID : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"ConfigID") #x (Val #(x.ConfigID'))
+  set'ConfigID : ∀ (x : echConfig) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"ConfigID") (PairV #x #y) (Val #(({ x with ConfigID' := y } : echConfig)))
+  get'KemID : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"KemID") #x (Val #(x.KemID'))
+  set'KemID : ∀ (x : echConfig) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"KemID") (PairV #x #y) (Val #(({ x with KemID' := y } : echConfig)))
+  get'PublicKey : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"PublicKey") #x (Val #(x.PublicKey'))
+  set'PublicKey : ∀ (x : echConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"PublicKey") (PairV #x #y) (Val #(({ x with PublicKey' := y } : echConfig)))
+  get'SymmetricCipherSuite : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"SymmetricCipherSuite") #x (Val #(x.SymmetricCipherSuite'))
+  set'SymmetricCipherSuite : ∀ (x : echConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"SymmetricCipherSuite") (PairV #x #y) (Val #(({ x with SymmetricCipherSuite' := y } : echConfig)))
+  get'MaxNameLength : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"MaxNameLength") #x (Val #(x.MaxNameLength'))
+  set'MaxNameLength : ∀ (x : echConfig) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"MaxNameLength") (PairV #x #y) (Val #(({ x with MaxNameLength' := y } : echConfig)))
+  get'PublicName : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"PublicName") #x (Val #(x.PublicName'))
+  set'PublicName : ∀ (x : echConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"PublicName") (PairV #x #y) (Val #(({ x with PublicName' := y } : echConfig)))
+  get'Extensions : ∀ (x : echConfig), go.IsGoStepPureDetTagged under (StructFieldGet echConfig.underlying go!"Extensions") #x (Val #(x.Extensions'))
+  set'Extensions : ∀ (x : echConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet echConfig.underlying go!"Extensions") (PairV #x #y) (Val #(({ x with Extensions' := y } : echConfig)))
   method_set : go.MethodSetIs echConfig.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType echConfig.ty) []
 
 attribute [instance] echConfig.TypeAssumptions.type_repr
   echConfig.TypeAssumptions.underlying
-  echConfig.TypeAssumptions.get_raw
-  echConfig.TypeAssumptions.set_raw
-  echConfig.TypeAssumptions.get_Version
-  echConfig.TypeAssumptions.set_Version
-  echConfig.TypeAssumptions.get_Length
-  echConfig.TypeAssumptions.set_Length
-  echConfig.TypeAssumptions.get_ConfigID
-  echConfig.TypeAssumptions.set_ConfigID
-  echConfig.TypeAssumptions.get_KemID
-  echConfig.TypeAssumptions.set_KemID
-  echConfig.TypeAssumptions.get_PublicKey
-  echConfig.TypeAssumptions.set_PublicKey
-  echConfig.TypeAssumptions.get_SymmetricCipherSuite
-  echConfig.TypeAssumptions.set_SymmetricCipherSuite
-  echConfig.TypeAssumptions.get_MaxNameLength
-  echConfig.TypeAssumptions.set_MaxNameLength
-  echConfig.TypeAssumptions.get_PublicName
-  echConfig.TypeAssumptions.set_PublicName
-  echConfig.TypeAssumptions.get_Extensions
-  echConfig.TypeAssumptions.set_Extensions
+  echConfig.TypeAssumptions.get'raw
+  echConfig.TypeAssumptions.set'raw
+  echConfig.TypeAssumptions.get'Version
+  echConfig.TypeAssumptions.set'Version
+  echConfig.TypeAssumptions.get'Length
+  echConfig.TypeAssumptions.set'Length
+  echConfig.TypeAssumptions.get'ConfigID
+  echConfig.TypeAssumptions.set'ConfigID
+  echConfig.TypeAssumptions.get'KemID
+  echConfig.TypeAssumptions.set'KemID
+  echConfig.TypeAssumptions.get'PublicKey
+  echConfig.TypeAssumptions.set'PublicKey
+  echConfig.TypeAssumptions.get'SymmetricCipherSuite
+  echConfig.TypeAssumptions.set'SymmetricCipherSuite
+  echConfig.TypeAssumptions.get'MaxNameLength
+  echConfig.TypeAssumptions.set'MaxNameLength
+  echConfig.TypeAssumptions.get'PublicName
+  echConfig.TypeAssumptions.set'PublicName
+  echConfig.TypeAssumptions.get'Extensions
+  echConfig.TypeAssumptions.set'Extensions
   echConfig.TypeAssumptions.method_set
   echConfig.TypeAssumptions.ptr_method_set
 
@@ -2597,7 +2597,7 @@ noncomputable instance echConfigErr.zero_val [GooseExts] : ZeroVal echConfigErr 
 @[irreducible] noncomputable def echConfigErr.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   echConfigErr.fieldsUnsealed
 
-noncomputable instance equals_unfold_echConfigErr [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'echConfigErr [GooseExts] [GoGlobalContext] :
     EqualsUnfold echConfigErr.fields echConfigErr.fieldsUnsealed :=
   ⟨by unfold echConfigErr.fields; rfl⟩
 
@@ -2607,15 +2607,15 @@ noncomputable instance equals_unfold_echConfigErr [GooseExts] [GoGlobalContext] 
 class echConfigErr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying echConfigErr.underlying echConfigErr
   underlying : go.UnderlyingDirectedEq echConfigErr.ty echConfigErr.underlying
-  get_field : ∀ (x : echConfigErr), go.IsGoStepPureDetTagged under (StructFieldGet echConfigErr.underlying go!"field") #x (Val #(x.field'))
-  set_field : ∀ (x : echConfigErr) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet echConfigErr.underlying go!"field") (PairV #x #y) (Val #(({ x with field' := y } : echConfigErr)))
+  get'field : ∀ (x : echConfigErr), go.IsGoStepPureDetTagged under (StructFieldGet echConfigErr.underlying go!"field") #x (Val #(x.field'))
+  set'field : ∀ (x : echConfigErr) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet echConfigErr.underlying go!"field") (PairV #x #y) (Val #(({ x with field' := y } : echConfigErr)))
   method_set : go.MethodSetIs echConfigErr.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType echConfigErr.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] echConfigErr.TypeAssumptions.type_repr
   echConfigErr.TypeAssumptions.underlying
-  echConfigErr.TypeAssumptions.get_field
-  echConfigErr.TypeAssumptions.set_field
+  echConfigErr.TypeAssumptions.get'field
+  echConfigErr.TypeAssumptions.set'field
   echConfigErr.TypeAssumptions.method_set
   echConfigErr.TypeAssumptions.ptr_method_set
 
@@ -2634,7 +2634,7 @@ noncomputable instance rawExtension.zero_val [GooseExts] : ZeroVal rawExtension 
 @[irreducible] noncomputable def rawExtension.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   rawExtension.fieldsUnsealed
 
-noncomputable instance equals_unfold_rawExtension [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'rawExtension [GooseExts] [GoGlobalContext] :
     EqualsUnfold rawExtension.fields rawExtension.fieldsUnsealed :=
   ⟨by unfold rawExtension.fields; rfl⟩
 
@@ -2644,19 +2644,19 @@ noncomputable instance equals_unfold_rawExtension [GooseExts] [GoGlobalContext] 
 class rawExtension.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying rawExtension.underlying rawExtension
   underlying : go.UnderlyingDirectedEq rawExtension.ty rawExtension.underlying
-  get_extType : ∀ (x : rawExtension), go.IsGoStepPureDetTagged under (StructFieldGet rawExtension.underlying go!"extType") #x (Val #(x.extType'))
-  set_extType : ∀ (x : rawExtension) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet rawExtension.underlying go!"extType") (PairV #x #y) (Val #(({ x with extType' := y } : rawExtension)))
-  get_data : ∀ (x : rawExtension), go.IsGoStepPureDetTagged under (StructFieldGet rawExtension.underlying go!"data") #x (Val #(x.data'))
-  set_data : ∀ (x : rawExtension) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet rawExtension.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : rawExtension)))
+  get'extType : ∀ (x : rawExtension), go.IsGoStepPureDetTagged under (StructFieldGet rawExtension.underlying go!"extType") #x (Val #(x.extType'))
+  set'extType : ∀ (x : rawExtension) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet rawExtension.underlying go!"extType") (PairV #x #y) (Val #(({ x with extType' := y } : rawExtension)))
+  get'data : ∀ (x : rawExtension), go.IsGoStepPureDetTagged under (StructFieldGet rawExtension.underlying go!"data") #x (Val #(x.data'))
+  set'data : ∀ (x : rawExtension) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet rawExtension.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : rawExtension)))
   method_set : go.MethodSetIs rawExtension.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType rawExtension.ty) []
 
 attribute [instance] rawExtension.TypeAssumptions.type_repr
   rawExtension.TypeAssumptions.underlying
-  rawExtension.TypeAssumptions.get_extType
-  rawExtension.TypeAssumptions.set_extType
-  rawExtension.TypeAssumptions.get_data
-  rawExtension.TypeAssumptions.set_data
+  rawExtension.TypeAssumptions.get'extType
+  rawExtension.TypeAssumptions.set'extType
+  rawExtension.TypeAssumptions.get'data
+  rawExtension.TypeAssumptions.set'data
   rawExtension.TypeAssumptions.method_set
   rawExtension.TypeAssumptions.ptr_method_set
 
@@ -2673,7 +2673,7 @@ noncomputable instance ECHRejectionError.zero_val [GooseExts] : ZeroVal ECHRejec
 @[irreducible] noncomputable def ECHRejectionError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ECHRejectionError.fieldsUnsealed
 
-noncomputable instance equals_unfold_ECHRejectionError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ECHRejectionError [GooseExts] [GoGlobalContext] :
     EqualsUnfold ECHRejectionError.fields ECHRejectionError.fieldsUnsealed :=
   ⟨by unfold ECHRejectionError.fields; rfl⟩
 
@@ -2683,15 +2683,15 @@ noncomputable instance equals_unfold_ECHRejectionError [GooseExts] [GoGlobalCont
 class ECHRejectionError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ECHRejectionError.underlying ECHRejectionError
   underlying : go.UnderlyingDirectedEq ECHRejectionError.ty ECHRejectionError.underlying
-  get_RetryConfigList : ∀ (x : ECHRejectionError), go.IsGoStepPureDetTagged under (StructFieldGet ECHRejectionError.underlying go!"RetryConfigList") #x (Val #(x.RetryConfigList'))
-  set_RetryConfigList : ∀ (x : ECHRejectionError) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ECHRejectionError.underlying go!"RetryConfigList") (PairV #x #y) (Val #(({ x with RetryConfigList' := y } : ECHRejectionError)))
+  get'RetryConfigList : ∀ (x : ECHRejectionError), go.IsGoStepPureDetTagged under (StructFieldGet ECHRejectionError.underlying go!"RetryConfigList") #x (Val #(x.RetryConfigList'))
+  set'RetryConfigList : ∀ (x : ECHRejectionError) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ECHRejectionError.underlying go!"RetryConfigList") (PairV #x #y) (Val #(({ x with RetryConfigList' := y } : ECHRejectionError)))
   method_set : go.MethodSetIs ECHRejectionError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ECHRejectionError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] ECHRejectionError.TypeAssumptions.type_repr
   ECHRejectionError.TypeAssumptions.underlying
-  ECHRejectionError.TypeAssumptions.get_RetryConfigList
-  ECHRejectionError.TypeAssumptions.set_RetryConfigList
+  ECHRejectionError.TypeAssumptions.get'RetryConfigList
+  ECHRejectionError.TypeAssumptions.set'RetryConfigList
   ECHRejectionError.TypeAssumptions.method_set
   ECHRejectionError.TypeAssumptions.ptr_method_set
 
@@ -2854,7 +2854,7 @@ noncomputable instance clientHelloMsg.zero_val [GooseExts] : ZeroVal clientHello
 @[irreducible] noncomputable def clientHelloMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   clientHelloMsg.fieldsUnsealed
 
-noncomputable instance equals_unfold_clientHelloMsg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'clientHelloMsg [GooseExts] [GoGlobalContext] :
     EqualsUnfold clientHelloMsg.fields clientHelloMsg.fieldsUnsealed :=
   ⟨by unfold clientHelloMsg.fields; rfl⟩
 
@@ -2864,127 +2864,127 @@ noncomputable instance equals_unfold_clientHelloMsg [GooseExts] [GoGlobalContext
 class clientHelloMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying clientHelloMsg.underlying clientHelloMsg
   underlying : go.UnderlyingDirectedEq clientHelloMsg.ty clientHelloMsg.underlying
-  get_original : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"original") #x (Val #(x.original'))
-  set_original : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"original") (PairV #x #y) (Val #(({ x with original' := y } : clientHelloMsg)))
-  get_vers : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"vers") #x (Val #(x.vers'))
-  set_vers : ∀ (x : clientHelloMsg) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"vers") (PairV #x #y) (Val #(({ x with vers' := y } : clientHelloMsg)))
-  get_random : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"random") #x (Val #(x.random'))
-  set_random : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"random") (PairV #x #y) (Val #(({ x with random' := y } : clientHelloMsg)))
-  get_sessionId : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"sessionId") #x (Val #(x.sessionId'))
-  set_sessionId : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"sessionId") (PairV #x #y) (Val #(({ x with sessionId' := y } : clientHelloMsg)))
-  get_cipherSuites : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"cipherSuites") #x (Val #(x.cipherSuites'))
-  set_cipherSuites : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"cipherSuites") (PairV #x #y) (Val #(({ x with cipherSuites' := y } : clientHelloMsg)))
-  get_compressionMethods : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"compressionMethods") #x (Val #(x.compressionMethods'))
-  set_compressionMethods : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"compressionMethods") (PairV #x #y) (Val #(({ x with compressionMethods' := y } : clientHelloMsg)))
-  get_serverName : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"serverName") #x (Val #(x.serverName'))
-  set_serverName : ∀ (x : clientHelloMsg) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"serverName") (PairV #x #y) (Val #(({ x with serverName' := y } : clientHelloMsg)))
-  get_ocspStapling : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"ocspStapling") #x (Val #(x.ocspStapling'))
-  set_ocspStapling : ∀ (x : clientHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"ocspStapling") (PairV #x #y) (Val #(({ x with ocspStapling' := y } : clientHelloMsg)))
-  get_supportedCurves : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"supportedCurves") #x (Val #(x.supportedCurves'))
-  set_supportedCurves : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"supportedCurves") (PairV #x #y) (Val #(({ x with supportedCurves' := y } : clientHelloMsg)))
-  get_supportedPoints : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"supportedPoints") #x (Val #(x.supportedPoints'))
-  set_supportedPoints : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"supportedPoints") (PairV #x #y) (Val #(({ x with supportedPoints' := y } : clientHelloMsg)))
-  get_ticketSupported : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"ticketSupported") #x (Val #(x.ticketSupported'))
-  set_ticketSupported : ∀ (x : clientHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"ticketSupported") (PairV #x #y) (Val #(({ x with ticketSupported' := y } : clientHelloMsg)))
-  get_sessionTicket : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"sessionTicket") #x (Val #(x.sessionTicket'))
-  set_sessionTicket : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"sessionTicket") (PairV #x #y) (Val #(({ x with sessionTicket' := y } : clientHelloMsg)))
-  get_supportedSignatureAlgorithms : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"supportedSignatureAlgorithms") #x (Val #(x.supportedSignatureAlgorithms'))
-  set_supportedSignatureAlgorithms : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"supportedSignatureAlgorithms") (PairV #x #y) (Val #(({ x with supportedSignatureAlgorithms' := y } : clientHelloMsg)))
-  get_supportedSignatureAlgorithmsCert : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"supportedSignatureAlgorithmsCert") #x (Val #(x.supportedSignatureAlgorithmsCert'))
-  set_supportedSignatureAlgorithmsCert : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"supportedSignatureAlgorithmsCert") (PairV #x #y) (Val #(({ x with supportedSignatureAlgorithmsCert' := y } : clientHelloMsg)))
-  get_secureRenegotiationSupported : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"secureRenegotiationSupported") #x (Val #(x.secureRenegotiationSupported'))
-  set_secureRenegotiationSupported : ∀ (x : clientHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"secureRenegotiationSupported") (PairV #x #y) (Val #(({ x with secureRenegotiationSupported' := y } : clientHelloMsg)))
-  get_secureRenegotiation : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"secureRenegotiation") #x (Val #(x.secureRenegotiation'))
-  set_secureRenegotiation : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"secureRenegotiation") (PairV #x #y) (Val #(({ x with secureRenegotiation' := y } : clientHelloMsg)))
-  get_extendedMasterSecret : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"extendedMasterSecret") #x (Val #(x.extendedMasterSecret'))
-  set_extendedMasterSecret : ∀ (x : clientHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"extendedMasterSecret") (PairV #x #y) (Val #(({ x with extendedMasterSecret' := y } : clientHelloMsg)))
-  get_alpnProtocols : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"alpnProtocols") #x (Val #(x.alpnProtocols'))
-  set_alpnProtocols : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"alpnProtocols") (PairV #x #y) (Val #(({ x with alpnProtocols' := y } : clientHelloMsg)))
-  get_scts : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"scts") #x (Val #(x.scts'))
-  set_scts : ∀ (x : clientHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"scts") (PairV #x #y) (Val #(({ x with scts' := y } : clientHelloMsg)))
-  get_supportedVersions : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"supportedVersions") #x (Val #(x.supportedVersions'))
-  set_supportedVersions : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"supportedVersions") (PairV #x #y) (Val #(({ x with supportedVersions' := y } : clientHelloMsg)))
-  get_cookie : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"cookie") #x (Val #(x.cookie'))
-  set_cookie : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"cookie") (PairV #x #y) (Val #(({ x with cookie' := y } : clientHelloMsg)))
-  get_keyShares : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"keyShares") #x (Val #(x.keyShares'))
-  set_keyShares : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"keyShares") (PairV #x #y) (Val #(({ x with keyShares' := y } : clientHelloMsg)))
-  get_earlyData : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"earlyData") #x (Val #(x.earlyData'))
-  set_earlyData : ∀ (x : clientHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"earlyData") (PairV #x #y) (Val #(({ x with earlyData' := y } : clientHelloMsg)))
-  get_pskModes : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"pskModes") #x (Val #(x.pskModes'))
-  set_pskModes : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"pskModes") (PairV #x #y) (Val #(({ x with pskModes' := y } : clientHelloMsg)))
-  get_pskIdentities : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"pskIdentities") #x (Val #(x.pskIdentities'))
-  set_pskIdentities : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"pskIdentities") (PairV #x #y) (Val #(({ x with pskIdentities' := y } : clientHelloMsg)))
-  get_pskBinders : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"pskBinders") #x (Val #(x.pskBinders'))
-  set_pskBinders : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"pskBinders") (PairV #x #y) (Val #(({ x with pskBinders' := y } : clientHelloMsg)))
-  get_quicTransportParameters : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"quicTransportParameters") #x (Val #(x.quicTransportParameters'))
-  set_quicTransportParameters : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"quicTransportParameters") (PairV #x #y) (Val #(({ x with quicTransportParameters' := y } : clientHelloMsg)))
-  get_encryptedClientHello : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"encryptedClientHello") #x (Val #(x.encryptedClientHello'))
-  set_encryptedClientHello : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"encryptedClientHello") (PairV #x #y) (Val #(({ x with encryptedClientHello' := y } : clientHelloMsg)))
-  get_extensions : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"extensions") #x (Val #(x.extensions'))
-  set_extensions : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"extensions") (PairV #x #y) (Val #(({ x with extensions' := y } : clientHelloMsg)))
+  get'original : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"original") #x (Val #(x.original'))
+  set'original : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"original") (PairV #x #y) (Val #(({ x with original' := y } : clientHelloMsg)))
+  get'vers : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"vers") #x (Val #(x.vers'))
+  set'vers : ∀ (x : clientHelloMsg) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"vers") (PairV #x #y) (Val #(({ x with vers' := y } : clientHelloMsg)))
+  get'random : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"random") #x (Val #(x.random'))
+  set'random : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"random") (PairV #x #y) (Val #(({ x with random' := y } : clientHelloMsg)))
+  get'sessionId : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"sessionId") #x (Val #(x.sessionId'))
+  set'sessionId : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"sessionId") (PairV #x #y) (Val #(({ x with sessionId' := y } : clientHelloMsg)))
+  get'cipherSuites : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"cipherSuites") #x (Val #(x.cipherSuites'))
+  set'cipherSuites : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"cipherSuites") (PairV #x #y) (Val #(({ x with cipherSuites' := y } : clientHelloMsg)))
+  get'compressionMethods : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"compressionMethods") #x (Val #(x.compressionMethods'))
+  set'compressionMethods : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"compressionMethods") (PairV #x #y) (Val #(({ x with compressionMethods' := y } : clientHelloMsg)))
+  get'serverName : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"serverName") #x (Val #(x.serverName'))
+  set'serverName : ∀ (x : clientHelloMsg) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"serverName") (PairV #x #y) (Val #(({ x with serverName' := y } : clientHelloMsg)))
+  get'ocspStapling : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"ocspStapling") #x (Val #(x.ocspStapling'))
+  set'ocspStapling : ∀ (x : clientHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"ocspStapling") (PairV #x #y) (Val #(({ x with ocspStapling' := y } : clientHelloMsg)))
+  get'supportedCurves : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"supportedCurves") #x (Val #(x.supportedCurves'))
+  set'supportedCurves : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"supportedCurves") (PairV #x #y) (Val #(({ x with supportedCurves' := y } : clientHelloMsg)))
+  get'supportedPoints : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"supportedPoints") #x (Val #(x.supportedPoints'))
+  set'supportedPoints : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"supportedPoints") (PairV #x #y) (Val #(({ x with supportedPoints' := y } : clientHelloMsg)))
+  get'ticketSupported : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"ticketSupported") #x (Val #(x.ticketSupported'))
+  set'ticketSupported : ∀ (x : clientHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"ticketSupported") (PairV #x #y) (Val #(({ x with ticketSupported' := y } : clientHelloMsg)))
+  get'sessionTicket : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"sessionTicket") #x (Val #(x.sessionTicket'))
+  set'sessionTicket : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"sessionTicket") (PairV #x #y) (Val #(({ x with sessionTicket' := y } : clientHelloMsg)))
+  get'supportedSignatureAlgorithms : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"supportedSignatureAlgorithms") #x (Val #(x.supportedSignatureAlgorithms'))
+  set'supportedSignatureAlgorithms : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"supportedSignatureAlgorithms") (PairV #x #y) (Val #(({ x with supportedSignatureAlgorithms' := y } : clientHelloMsg)))
+  get'supportedSignatureAlgorithmsCert : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"supportedSignatureAlgorithmsCert") #x (Val #(x.supportedSignatureAlgorithmsCert'))
+  set'supportedSignatureAlgorithmsCert : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"supportedSignatureAlgorithmsCert") (PairV #x #y) (Val #(({ x with supportedSignatureAlgorithmsCert' := y } : clientHelloMsg)))
+  get'secureRenegotiationSupported : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"secureRenegotiationSupported") #x (Val #(x.secureRenegotiationSupported'))
+  set'secureRenegotiationSupported : ∀ (x : clientHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"secureRenegotiationSupported") (PairV #x #y) (Val #(({ x with secureRenegotiationSupported' := y } : clientHelloMsg)))
+  get'secureRenegotiation : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"secureRenegotiation") #x (Val #(x.secureRenegotiation'))
+  set'secureRenegotiation : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"secureRenegotiation") (PairV #x #y) (Val #(({ x with secureRenegotiation' := y } : clientHelloMsg)))
+  get'extendedMasterSecret : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"extendedMasterSecret") #x (Val #(x.extendedMasterSecret'))
+  set'extendedMasterSecret : ∀ (x : clientHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"extendedMasterSecret") (PairV #x #y) (Val #(({ x with extendedMasterSecret' := y } : clientHelloMsg)))
+  get'alpnProtocols : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"alpnProtocols") #x (Val #(x.alpnProtocols'))
+  set'alpnProtocols : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"alpnProtocols") (PairV #x #y) (Val #(({ x with alpnProtocols' := y } : clientHelloMsg)))
+  get'scts : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"scts") #x (Val #(x.scts'))
+  set'scts : ∀ (x : clientHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"scts") (PairV #x #y) (Val #(({ x with scts' := y } : clientHelloMsg)))
+  get'supportedVersions : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"supportedVersions") #x (Val #(x.supportedVersions'))
+  set'supportedVersions : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"supportedVersions") (PairV #x #y) (Val #(({ x with supportedVersions' := y } : clientHelloMsg)))
+  get'cookie : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"cookie") #x (Val #(x.cookie'))
+  set'cookie : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"cookie") (PairV #x #y) (Val #(({ x with cookie' := y } : clientHelloMsg)))
+  get'keyShares : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"keyShares") #x (Val #(x.keyShares'))
+  set'keyShares : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"keyShares") (PairV #x #y) (Val #(({ x with keyShares' := y } : clientHelloMsg)))
+  get'earlyData : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"earlyData") #x (Val #(x.earlyData'))
+  set'earlyData : ∀ (x : clientHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"earlyData") (PairV #x #y) (Val #(({ x with earlyData' := y } : clientHelloMsg)))
+  get'pskModes : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"pskModes") #x (Val #(x.pskModes'))
+  set'pskModes : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"pskModes") (PairV #x #y) (Val #(({ x with pskModes' := y } : clientHelloMsg)))
+  get'pskIdentities : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"pskIdentities") #x (Val #(x.pskIdentities'))
+  set'pskIdentities : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"pskIdentities") (PairV #x #y) (Val #(({ x with pskIdentities' := y } : clientHelloMsg)))
+  get'pskBinders : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"pskBinders") #x (Val #(x.pskBinders'))
+  set'pskBinders : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"pskBinders") (PairV #x #y) (Val #(({ x with pskBinders' := y } : clientHelloMsg)))
+  get'quicTransportParameters : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"quicTransportParameters") #x (Val #(x.quicTransportParameters'))
+  set'quicTransportParameters : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"quicTransportParameters") (PairV #x #y) (Val #(({ x with quicTransportParameters' := y } : clientHelloMsg)))
+  get'encryptedClientHello : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"encryptedClientHello") #x (Val #(x.encryptedClientHello'))
+  set'encryptedClientHello : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"encryptedClientHello") (PairV #x #y) (Val #(({ x with encryptedClientHello' := y } : clientHelloMsg)))
+  get'extensions : ∀ (x : clientHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientHelloMsg.underlying go!"extensions") #x (Val #(x.extensions'))
+  set'extensions : ∀ (x : clientHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientHelloMsg.underlying go!"extensions") (PairV #x #y) (Val #(({ x with extensions' := y } : clientHelloMsg)))
   method_set : go.MethodSetIs clientHelloMsg.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientHelloMsg.ty) [(go!"crypto/tls.clone", (some (go.signature.Signature [] false [(go.GoType.PointerType clientHelloMsg.ty)]))), (go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.marshalMsg", (some (go.signature.Signature [go.bool] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.marshalWithoutBinders", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.originalBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool]))), (go!"crypto/tls.updateBinders", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.SliceType go.byte))] false [go.error])))]
 
 attribute [instance] clientHelloMsg.TypeAssumptions.type_repr
   clientHelloMsg.TypeAssumptions.underlying
-  clientHelloMsg.TypeAssumptions.get_original
-  clientHelloMsg.TypeAssumptions.set_original
-  clientHelloMsg.TypeAssumptions.get_vers
-  clientHelloMsg.TypeAssumptions.set_vers
-  clientHelloMsg.TypeAssumptions.get_random
-  clientHelloMsg.TypeAssumptions.set_random
-  clientHelloMsg.TypeAssumptions.get_sessionId
-  clientHelloMsg.TypeAssumptions.set_sessionId
-  clientHelloMsg.TypeAssumptions.get_cipherSuites
-  clientHelloMsg.TypeAssumptions.set_cipherSuites
-  clientHelloMsg.TypeAssumptions.get_compressionMethods
-  clientHelloMsg.TypeAssumptions.set_compressionMethods
-  clientHelloMsg.TypeAssumptions.get_serverName
-  clientHelloMsg.TypeAssumptions.set_serverName
-  clientHelloMsg.TypeAssumptions.get_ocspStapling
-  clientHelloMsg.TypeAssumptions.set_ocspStapling
-  clientHelloMsg.TypeAssumptions.get_supportedCurves
-  clientHelloMsg.TypeAssumptions.set_supportedCurves
-  clientHelloMsg.TypeAssumptions.get_supportedPoints
-  clientHelloMsg.TypeAssumptions.set_supportedPoints
-  clientHelloMsg.TypeAssumptions.get_ticketSupported
-  clientHelloMsg.TypeAssumptions.set_ticketSupported
-  clientHelloMsg.TypeAssumptions.get_sessionTicket
-  clientHelloMsg.TypeAssumptions.set_sessionTicket
-  clientHelloMsg.TypeAssumptions.get_supportedSignatureAlgorithms
-  clientHelloMsg.TypeAssumptions.set_supportedSignatureAlgorithms
-  clientHelloMsg.TypeAssumptions.get_supportedSignatureAlgorithmsCert
-  clientHelloMsg.TypeAssumptions.set_supportedSignatureAlgorithmsCert
-  clientHelloMsg.TypeAssumptions.get_secureRenegotiationSupported
-  clientHelloMsg.TypeAssumptions.set_secureRenegotiationSupported
-  clientHelloMsg.TypeAssumptions.get_secureRenegotiation
-  clientHelloMsg.TypeAssumptions.set_secureRenegotiation
-  clientHelloMsg.TypeAssumptions.get_extendedMasterSecret
-  clientHelloMsg.TypeAssumptions.set_extendedMasterSecret
-  clientHelloMsg.TypeAssumptions.get_alpnProtocols
-  clientHelloMsg.TypeAssumptions.set_alpnProtocols
-  clientHelloMsg.TypeAssumptions.get_scts
-  clientHelloMsg.TypeAssumptions.set_scts
-  clientHelloMsg.TypeAssumptions.get_supportedVersions
-  clientHelloMsg.TypeAssumptions.set_supportedVersions
-  clientHelloMsg.TypeAssumptions.get_cookie
-  clientHelloMsg.TypeAssumptions.set_cookie
-  clientHelloMsg.TypeAssumptions.get_keyShares
-  clientHelloMsg.TypeAssumptions.set_keyShares
-  clientHelloMsg.TypeAssumptions.get_earlyData
-  clientHelloMsg.TypeAssumptions.set_earlyData
-  clientHelloMsg.TypeAssumptions.get_pskModes
-  clientHelloMsg.TypeAssumptions.set_pskModes
-  clientHelloMsg.TypeAssumptions.get_pskIdentities
-  clientHelloMsg.TypeAssumptions.set_pskIdentities
-  clientHelloMsg.TypeAssumptions.get_pskBinders
-  clientHelloMsg.TypeAssumptions.set_pskBinders
-  clientHelloMsg.TypeAssumptions.get_quicTransportParameters
-  clientHelloMsg.TypeAssumptions.set_quicTransportParameters
-  clientHelloMsg.TypeAssumptions.get_encryptedClientHello
-  clientHelloMsg.TypeAssumptions.set_encryptedClientHello
-  clientHelloMsg.TypeAssumptions.get_extensions
-  clientHelloMsg.TypeAssumptions.set_extensions
+  clientHelloMsg.TypeAssumptions.get'original
+  clientHelloMsg.TypeAssumptions.set'original
+  clientHelloMsg.TypeAssumptions.get'vers
+  clientHelloMsg.TypeAssumptions.set'vers
+  clientHelloMsg.TypeAssumptions.get'random
+  clientHelloMsg.TypeAssumptions.set'random
+  clientHelloMsg.TypeAssumptions.get'sessionId
+  clientHelloMsg.TypeAssumptions.set'sessionId
+  clientHelloMsg.TypeAssumptions.get'cipherSuites
+  clientHelloMsg.TypeAssumptions.set'cipherSuites
+  clientHelloMsg.TypeAssumptions.get'compressionMethods
+  clientHelloMsg.TypeAssumptions.set'compressionMethods
+  clientHelloMsg.TypeAssumptions.get'serverName
+  clientHelloMsg.TypeAssumptions.set'serverName
+  clientHelloMsg.TypeAssumptions.get'ocspStapling
+  clientHelloMsg.TypeAssumptions.set'ocspStapling
+  clientHelloMsg.TypeAssumptions.get'supportedCurves
+  clientHelloMsg.TypeAssumptions.set'supportedCurves
+  clientHelloMsg.TypeAssumptions.get'supportedPoints
+  clientHelloMsg.TypeAssumptions.set'supportedPoints
+  clientHelloMsg.TypeAssumptions.get'ticketSupported
+  clientHelloMsg.TypeAssumptions.set'ticketSupported
+  clientHelloMsg.TypeAssumptions.get'sessionTicket
+  clientHelloMsg.TypeAssumptions.set'sessionTicket
+  clientHelloMsg.TypeAssumptions.get'supportedSignatureAlgorithms
+  clientHelloMsg.TypeAssumptions.set'supportedSignatureAlgorithms
+  clientHelloMsg.TypeAssumptions.get'supportedSignatureAlgorithmsCert
+  clientHelloMsg.TypeAssumptions.set'supportedSignatureAlgorithmsCert
+  clientHelloMsg.TypeAssumptions.get'secureRenegotiationSupported
+  clientHelloMsg.TypeAssumptions.set'secureRenegotiationSupported
+  clientHelloMsg.TypeAssumptions.get'secureRenegotiation
+  clientHelloMsg.TypeAssumptions.set'secureRenegotiation
+  clientHelloMsg.TypeAssumptions.get'extendedMasterSecret
+  clientHelloMsg.TypeAssumptions.set'extendedMasterSecret
+  clientHelloMsg.TypeAssumptions.get'alpnProtocols
+  clientHelloMsg.TypeAssumptions.set'alpnProtocols
+  clientHelloMsg.TypeAssumptions.get'scts
+  clientHelloMsg.TypeAssumptions.set'scts
+  clientHelloMsg.TypeAssumptions.get'supportedVersions
+  clientHelloMsg.TypeAssumptions.set'supportedVersions
+  clientHelloMsg.TypeAssumptions.get'cookie
+  clientHelloMsg.TypeAssumptions.set'cookie
+  clientHelloMsg.TypeAssumptions.get'keyShares
+  clientHelloMsg.TypeAssumptions.set'keyShares
+  clientHelloMsg.TypeAssumptions.get'earlyData
+  clientHelloMsg.TypeAssumptions.set'earlyData
+  clientHelloMsg.TypeAssumptions.get'pskModes
+  clientHelloMsg.TypeAssumptions.set'pskModes
+  clientHelloMsg.TypeAssumptions.get'pskIdentities
+  clientHelloMsg.TypeAssumptions.set'pskIdentities
+  clientHelloMsg.TypeAssumptions.get'pskBinders
+  clientHelloMsg.TypeAssumptions.set'pskBinders
+  clientHelloMsg.TypeAssumptions.get'quicTransportParameters
+  clientHelloMsg.TypeAssumptions.set'quicTransportParameters
+  clientHelloMsg.TypeAssumptions.get'encryptedClientHello
+  clientHelloMsg.TypeAssumptions.set'encryptedClientHello
+  clientHelloMsg.TypeAssumptions.get'extensions
+  clientHelloMsg.TypeAssumptions.set'extensions
   clientHelloMsg.TypeAssumptions.method_set
   clientHelloMsg.TypeAssumptions.ptr_method_set
 
@@ -3043,7 +3043,7 @@ noncomputable instance serverHelloMsg.zero_val [GooseExts] : ZeroVal serverHello
 @[irreducible] noncomputable def serverHelloMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   serverHelloMsg.fieldsUnsealed
 
-noncomputable instance equals_unfold_serverHelloMsg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'serverHelloMsg [GooseExts] [GoGlobalContext] :
     EqualsUnfold serverHelloMsg.fields serverHelloMsg.fieldsUnsealed :=
   ⟨by unfold serverHelloMsg.fields; rfl⟩
 
@@ -3053,99 +3053,99 @@ noncomputable instance equals_unfold_serverHelloMsg [GooseExts] [GoGlobalContext
 class serverHelloMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverHelloMsg.underlying serverHelloMsg
   underlying : go.UnderlyingDirectedEq serverHelloMsg.ty serverHelloMsg.underlying
-  get_original : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"original") #x (Val #(x.original'))
-  set_original : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"original") (PairV #x #y) (Val #(({ x with original' := y } : serverHelloMsg)))
-  get_vers : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"vers") #x (Val #(x.vers'))
-  set_vers : ∀ (x : serverHelloMsg) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"vers") (PairV #x #y) (Val #(({ x with vers' := y } : serverHelloMsg)))
-  get_random : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"random") #x (Val #(x.random'))
-  set_random : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"random") (PairV #x #y) (Val #(({ x with random' := y } : serverHelloMsg)))
-  get_sessionId : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"sessionId") #x (Val #(x.sessionId'))
-  set_sessionId : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"sessionId") (PairV #x #y) (Val #(({ x with sessionId' := y } : serverHelloMsg)))
-  get_cipherSuite : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"cipherSuite") #x (Val #(x.cipherSuite'))
-  set_cipherSuite : ∀ (x : serverHelloMsg) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"cipherSuite") (PairV #x #y) (Val #(({ x with cipherSuite' := y } : serverHelloMsg)))
-  get_compressionMethod : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"compressionMethod") #x (Val #(x.compressionMethod'))
-  set_compressionMethod : ∀ (x : serverHelloMsg) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"compressionMethod") (PairV #x #y) (Val #(({ x with compressionMethod' := y } : serverHelloMsg)))
-  get_ocspStapling : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"ocspStapling") #x (Val #(x.ocspStapling'))
-  set_ocspStapling : ∀ (x : serverHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"ocspStapling") (PairV #x #y) (Val #(({ x with ocspStapling' := y } : serverHelloMsg)))
-  get_ticketSupported : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"ticketSupported") #x (Val #(x.ticketSupported'))
-  set_ticketSupported : ∀ (x : serverHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"ticketSupported") (PairV #x #y) (Val #(({ x with ticketSupported' := y } : serverHelloMsg)))
-  get_secureRenegotiationSupported : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"secureRenegotiationSupported") #x (Val #(x.secureRenegotiationSupported'))
-  set_secureRenegotiationSupported : ∀ (x : serverHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"secureRenegotiationSupported") (PairV #x #y) (Val #(({ x with secureRenegotiationSupported' := y } : serverHelloMsg)))
-  get_secureRenegotiation : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"secureRenegotiation") #x (Val #(x.secureRenegotiation'))
-  set_secureRenegotiation : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"secureRenegotiation") (PairV #x #y) (Val #(({ x with secureRenegotiation' := y } : serverHelloMsg)))
-  get_extendedMasterSecret : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"extendedMasterSecret") #x (Val #(x.extendedMasterSecret'))
-  set_extendedMasterSecret : ∀ (x : serverHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"extendedMasterSecret") (PairV #x #y) (Val #(({ x with extendedMasterSecret' := y } : serverHelloMsg)))
-  get_alpnProtocol : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"alpnProtocol") #x (Val #(x.alpnProtocol'))
-  set_alpnProtocol : ∀ (x : serverHelloMsg) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"alpnProtocol") (PairV #x #y) (Val #(({ x with alpnProtocol' := y } : serverHelloMsg)))
-  get_scts : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"scts") #x (Val #(x.scts'))
-  set_scts : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"scts") (PairV #x #y) (Val #(({ x with scts' := y } : serverHelloMsg)))
-  get_supportedVersion : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"supportedVersion") #x (Val #(x.supportedVersion'))
-  set_supportedVersion : ∀ (x : serverHelloMsg) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"supportedVersion") (PairV #x #y) (Val #(({ x with supportedVersion' := y } : serverHelloMsg)))
-  get_serverShare : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"serverShare") #x (Val #(x.serverShare'))
-  set_serverShare : ∀ (x : serverHelloMsg) (y : keyShare), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"serverShare") (PairV #x #y) (Val #(({ x with serverShare' := y } : serverHelloMsg)))
-  get_selectedIdentityPresent : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"selectedIdentityPresent") #x (Val #(x.selectedIdentityPresent'))
-  set_selectedIdentityPresent : ∀ (x : serverHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"selectedIdentityPresent") (PairV #x #y) (Val #(({ x with selectedIdentityPresent' := y } : serverHelloMsg)))
-  get_selectedIdentity : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"selectedIdentity") #x (Val #(x.selectedIdentity'))
-  set_selectedIdentity : ∀ (x : serverHelloMsg) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"selectedIdentity") (PairV #x #y) (Val #(({ x with selectedIdentity' := y } : serverHelloMsg)))
-  get_supportedPoints : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"supportedPoints") #x (Val #(x.supportedPoints'))
-  set_supportedPoints : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"supportedPoints") (PairV #x #y) (Val #(({ x with supportedPoints' := y } : serverHelloMsg)))
-  get_encryptedClientHello : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"encryptedClientHello") #x (Val #(x.encryptedClientHello'))
-  set_encryptedClientHello : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"encryptedClientHello") (PairV #x #y) (Val #(({ x with encryptedClientHello' := y } : serverHelloMsg)))
-  get_serverNameAck : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"serverNameAck") #x (Val #(x.serverNameAck'))
-  set_serverNameAck : ∀ (x : serverHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"serverNameAck") (PairV #x #y) (Val #(({ x with serverNameAck' := y } : serverHelloMsg)))
-  get_cookie : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"cookie") #x (Val #(x.cookie'))
-  set_cookie : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"cookie") (PairV #x #y) (Val #(({ x with cookie' := y } : serverHelloMsg)))
-  get_selectedGroup : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"selectedGroup") #x (Val #(x.selectedGroup'))
-  set_selectedGroup : ∀ (x : serverHelloMsg) (y : CurveID), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"selectedGroup") (PairV #x #y) (Val #(({ x with selectedGroup' := y } : serverHelloMsg)))
+  get'original : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"original") #x (Val #(x.original'))
+  set'original : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"original") (PairV #x #y) (Val #(({ x with original' := y } : serverHelloMsg)))
+  get'vers : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"vers") #x (Val #(x.vers'))
+  set'vers : ∀ (x : serverHelloMsg) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"vers") (PairV #x #y) (Val #(({ x with vers' := y } : serverHelloMsg)))
+  get'random : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"random") #x (Val #(x.random'))
+  set'random : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"random") (PairV #x #y) (Val #(({ x with random' := y } : serverHelloMsg)))
+  get'sessionId : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"sessionId") #x (Val #(x.sessionId'))
+  set'sessionId : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"sessionId") (PairV #x #y) (Val #(({ x with sessionId' := y } : serverHelloMsg)))
+  get'cipherSuite : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"cipherSuite") #x (Val #(x.cipherSuite'))
+  set'cipherSuite : ∀ (x : serverHelloMsg) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"cipherSuite") (PairV #x #y) (Val #(({ x with cipherSuite' := y } : serverHelloMsg)))
+  get'compressionMethod : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"compressionMethod") #x (Val #(x.compressionMethod'))
+  set'compressionMethod : ∀ (x : serverHelloMsg) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"compressionMethod") (PairV #x #y) (Val #(({ x with compressionMethod' := y } : serverHelloMsg)))
+  get'ocspStapling : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"ocspStapling") #x (Val #(x.ocspStapling'))
+  set'ocspStapling : ∀ (x : serverHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"ocspStapling") (PairV #x #y) (Val #(({ x with ocspStapling' := y } : serverHelloMsg)))
+  get'ticketSupported : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"ticketSupported") #x (Val #(x.ticketSupported'))
+  set'ticketSupported : ∀ (x : serverHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"ticketSupported") (PairV #x #y) (Val #(({ x with ticketSupported' := y } : serverHelloMsg)))
+  get'secureRenegotiationSupported : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"secureRenegotiationSupported") #x (Val #(x.secureRenegotiationSupported'))
+  set'secureRenegotiationSupported : ∀ (x : serverHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"secureRenegotiationSupported") (PairV #x #y) (Val #(({ x with secureRenegotiationSupported' := y } : serverHelloMsg)))
+  get'secureRenegotiation : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"secureRenegotiation") #x (Val #(x.secureRenegotiation'))
+  set'secureRenegotiation : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"secureRenegotiation") (PairV #x #y) (Val #(({ x with secureRenegotiation' := y } : serverHelloMsg)))
+  get'extendedMasterSecret : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"extendedMasterSecret") #x (Val #(x.extendedMasterSecret'))
+  set'extendedMasterSecret : ∀ (x : serverHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"extendedMasterSecret") (PairV #x #y) (Val #(({ x with extendedMasterSecret' := y } : serverHelloMsg)))
+  get'alpnProtocol : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"alpnProtocol") #x (Val #(x.alpnProtocol'))
+  set'alpnProtocol : ∀ (x : serverHelloMsg) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"alpnProtocol") (PairV #x #y) (Val #(({ x with alpnProtocol' := y } : serverHelloMsg)))
+  get'scts : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"scts") #x (Val #(x.scts'))
+  set'scts : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"scts") (PairV #x #y) (Val #(({ x with scts' := y } : serverHelloMsg)))
+  get'supportedVersion : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"supportedVersion") #x (Val #(x.supportedVersion'))
+  set'supportedVersion : ∀ (x : serverHelloMsg) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"supportedVersion") (PairV #x #y) (Val #(({ x with supportedVersion' := y } : serverHelloMsg)))
+  get'serverShare : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"serverShare") #x (Val #(x.serverShare'))
+  set'serverShare : ∀ (x : serverHelloMsg) (y : keyShare), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"serverShare") (PairV #x #y) (Val #(({ x with serverShare' := y } : serverHelloMsg)))
+  get'selectedIdentityPresent : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"selectedIdentityPresent") #x (Val #(x.selectedIdentityPresent'))
+  set'selectedIdentityPresent : ∀ (x : serverHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"selectedIdentityPresent") (PairV #x #y) (Val #(({ x with selectedIdentityPresent' := y } : serverHelloMsg)))
+  get'selectedIdentity : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"selectedIdentity") #x (Val #(x.selectedIdentity'))
+  set'selectedIdentity : ∀ (x : serverHelloMsg) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"selectedIdentity") (PairV #x #y) (Val #(({ x with selectedIdentity' := y } : serverHelloMsg)))
+  get'supportedPoints : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"supportedPoints") #x (Val #(x.supportedPoints'))
+  set'supportedPoints : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"supportedPoints") (PairV #x #y) (Val #(({ x with supportedPoints' := y } : serverHelloMsg)))
+  get'encryptedClientHello : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"encryptedClientHello") #x (Val #(x.encryptedClientHello'))
+  set'encryptedClientHello : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"encryptedClientHello") (PairV #x #y) (Val #(({ x with encryptedClientHello' := y } : serverHelloMsg)))
+  get'serverNameAck : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"serverNameAck") #x (Val #(x.serverNameAck'))
+  set'serverNameAck : ∀ (x : serverHelloMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"serverNameAck") (PairV #x #y) (Val #(({ x with serverNameAck' := y } : serverHelloMsg)))
+  get'cookie : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"cookie") #x (Val #(x.cookie'))
+  set'cookie : ∀ (x : serverHelloMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"cookie") (PairV #x #y) (Val #(({ x with cookie' := y } : serverHelloMsg)))
+  get'selectedGroup : ∀ (x : serverHelloMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverHelloMsg.underlying go!"selectedGroup") #x (Val #(x.selectedGroup'))
+  set'selectedGroup : ∀ (x : serverHelloMsg) (y : CurveID), go.IsGoStepPureDetTagged under (StructFieldSet serverHelloMsg.underlying go!"selectedGroup") (PairV #x #y) (Val #(({ x with selectedGroup' := y } : serverHelloMsg)))
   method_set : go.MethodSetIs serverHelloMsg.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverHelloMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.originalBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] serverHelloMsg.TypeAssumptions.type_repr
   serverHelloMsg.TypeAssumptions.underlying
-  serverHelloMsg.TypeAssumptions.get_original
-  serverHelloMsg.TypeAssumptions.set_original
-  serverHelloMsg.TypeAssumptions.get_vers
-  serverHelloMsg.TypeAssumptions.set_vers
-  serverHelloMsg.TypeAssumptions.get_random
-  serverHelloMsg.TypeAssumptions.set_random
-  serverHelloMsg.TypeAssumptions.get_sessionId
-  serverHelloMsg.TypeAssumptions.set_sessionId
-  serverHelloMsg.TypeAssumptions.get_cipherSuite
-  serverHelloMsg.TypeAssumptions.set_cipherSuite
-  serverHelloMsg.TypeAssumptions.get_compressionMethod
-  serverHelloMsg.TypeAssumptions.set_compressionMethod
-  serverHelloMsg.TypeAssumptions.get_ocspStapling
-  serverHelloMsg.TypeAssumptions.set_ocspStapling
-  serverHelloMsg.TypeAssumptions.get_ticketSupported
-  serverHelloMsg.TypeAssumptions.set_ticketSupported
-  serverHelloMsg.TypeAssumptions.get_secureRenegotiationSupported
-  serverHelloMsg.TypeAssumptions.set_secureRenegotiationSupported
-  serverHelloMsg.TypeAssumptions.get_secureRenegotiation
-  serverHelloMsg.TypeAssumptions.set_secureRenegotiation
-  serverHelloMsg.TypeAssumptions.get_extendedMasterSecret
-  serverHelloMsg.TypeAssumptions.set_extendedMasterSecret
-  serverHelloMsg.TypeAssumptions.get_alpnProtocol
-  serverHelloMsg.TypeAssumptions.set_alpnProtocol
-  serverHelloMsg.TypeAssumptions.get_scts
-  serverHelloMsg.TypeAssumptions.set_scts
-  serverHelloMsg.TypeAssumptions.get_supportedVersion
-  serverHelloMsg.TypeAssumptions.set_supportedVersion
-  serverHelloMsg.TypeAssumptions.get_serverShare
-  serverHelloMsg.TypeAssumptions.set_serverShare
-  serverHelloMsg.TypeAssumptions.get_selectedIdentityPresent
-  serverHelloMsg.TypeAssumptions.set_selectedIdentityPresent
-  serverHelloMsg.TypeAssumptions.get_selectedIdentity
-  serverHelloMsg.TypeAssumptions.set_selectedIdentity
-  serverHelloMsg.TypeAssumptions.get_supportedPoints
-  serverHelloMsg.TypeAssumptions.set_supportedPoints
-  serverHelloMsg.TypeAssumptions.get_encryptedClientHello
-  serverHelloMsg.TypeAssumptions.set_encryptedClientHello
-  serverHelloMsg.TypeAssumptions.get_serverNameAck
-  serverHelloMsg.TypeAssumptions.set_serverNameAck
-  serverHelloMsg.TypeAssumptions.get_cookie
-  serverHelloMsg.TypeAssumptions.set_cookie
-  serverHelloMsg.TypeAssumptions.get_selectedGroup
-  serverHelloMsg.TypeAssumptions.set_selectedGroup
+  serverHelloMsg.TypeAssumptions.get'original
+  serverHelloMsg.TypeAssumptions.set'original
+  serverHelloMsg.TypeAssumptions.get'vers
+  serverHelloMsg.TypeAssumptions.set'vers
+  serverHelloMsg.TypeAssumptions.get'random
+  serverHelloMsg.TypeAssumptions.set'random
+  serverHelloMsg.TypeAssumptions.get'sessionId
+  serverHelloMsg.TypeAssumptions.set'sessionId
+  serverHelloMsg.TypeAssumptions.get'cipherSuite
+  serverHelloMsg.TypeAssumptions.set'cipherSuite
+  serverHelloMsg.TypeAssumptions.get'compressionMethod
+  serverHelloMsg.TypeAssumptions.set'compressionMethod
+  serverHelloMsg.TypeAssumptions.get'ocspStapling
+  serverHelloMsg.TypeAssumptions.set'ocspStapling
+  serverHelloMsg.TypeAssumptions.get'ticketSupported
+  serverHelloMsg.TypeAssumptions.set'ticketSupported
+  serverHelloMsg.TypeAssumptions.get'secureRenegotiationSupported
+  serverHelloMsg.TypeAssumptions.set'secureRenegotiationSupported
+  serverHelloMsg.TypeAssumptions.get'secureRenegotiation
+  serverHelloMsg.TypeAssumptions.set'secureRenegotiation
+  serverHelloMsg.TypeAssumptions.get'extendedMasterSecret
+  serverHelloMsg.TypeAssumptions.set'extendedMasterSecret
+  serverHelloMsg.TypeAssumptions.get'alpnProtocol
+  serverHelloMsg.TypeAssumptions.set'alpnProtocol
+  serverHelloMsg.TypeAssumptions.get'scts
+  serverHelloMsg.TypeAssumptions.set'scts
+  serverHelloMsg.TypeAssumptions.get'supportedVersion
+  serverHelloMsg.TypeAssumptions.set'supportedVersion
+  serverHelloMsg.TypeAssumptions.get'serverShare
+  serverHelloMsg.TypeAssumptions.set'serverShare
+  serverHelloMsg.TypeAssumptions.get'selectedIdentityPresent
+  serverHelloMsg.TypeAssumptions.set'selectedIdentityPresent
+  serverHelloMsg.TypeAssumptions.get'selectedIdentity
+  serverHelloMsg.TypeAssumptions.set'selectedIdentity
+  serverHelloMsg.TypeAssumptions.get'supportedPoints
+  serverHelloMsg.TypeAssumptions.set'supportedPoints
+  serverHelloMsg.TypeAssumptions.get'encryptedClientHello
+  serverHelloMsg.TypeAssumptions.set'encryptedClientHello
+  serverHelloMsg.TypeAssumptions.get'serverNameAck
+  serverHelloMsg.TypeAssumptions.set'serverNameAck
+  serverHelloMsg.TypeAssumptions.get'cookie
+  serverHelloMsg.TypeAssumptions.set'cookie
+  serverHelloMsg.TypeAssumptions.get'selectedGroup
+  serverHelloMsg.TypeAssumptions.set'selectedGroup
   serverHelloMsg.TypeAssumptions.method_set
   serverHelloMsg.TypeAssumptions.ptr_method_set
 
@@ -3170,7 +3170,7 @@ noncomputable instance encryptedExtensionsMsg.zero_val [GooseExts] : ZeroVal enc
 @[irreducible] noncomputable def encryptedExtensionsMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   encryptedExtensionsMsg.fieldsUnsealed
 
-noncomputable instance equals_unfold_encryptedExtensionsMsg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'encryptedExtensionsMsg [GooseExts] [GoGlobalContext] :
     EqualsUnfold encryptedExtensionsMsg.fields encryptedExtensionsMsg.fieldsUnsealed :=
   ⟨by unfold encryptedExtensionsMsg.fields; rfl⟩
 
@@ -3180,31 +3180,31 @@ noncomputable instance equals_unfold_encryptedExtensionsMsg [GooseExts] [GoGloba
 class encryptedExtensionsMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying encryptedExtensionsMsg.underlying encryptedExtensionsMsg
   underlying : go.UnderlyingDirectedEq encryptedExtensionsMsg.ty encryptedExtensionsMsg.underlying
-  get_alpnProtocol : ∀ (x : encryptedExtensionsMsg), go.IsGoStepPureDetTagged under (StructFieldGet encryptedExtensionsMsg.underlying go!"alpnProtocol") #x (Val #(x.alpnProtocol'))
-  set_alpnProtocol : ∀ (x : encryptedExtensionsMsg) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet encryptedExtensionsMsg.underlying go!"alpnProtocol") (PairV #x #y) (Val #(({ x with alpnProtocol' := y } : encryptedExtensionsMsg)))
-  get_quicTransportParameters : ∀ (x : encryptedExtensionsMsg), go.IsGoStepPureDetTagged under (StructFieldGet encryptedExtensionsMsg.underlying go!"quicTransportParameters") #x (Val #(x.quicTransportParameters'))
-  set_quicTransportParameters : ∀ (x : encryptedExtensionsMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet encryptedExtensionsMsg.underlying go!"quicTransportParameters") (PairV #x #y) (Val #(({ x with quicTransportParameters' := y } : encryptedExtensionsMsg)))
-  get_earlyData : ∀ (x : encryptedExtensionsMsg), go.IsGoStepPureDetTagged under (StructFieldGet encryptedExtensionsMsg.underlying go!"earlyData") #x (Val #(x.earlyData'))
-  set_earlyData : ∀ (x : encryptedExtensionsMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet encryptedExtensionsMsg.underlying go!"earlyData") (PairV #x #y) (Val #(({ x with earlyData' := y } : encryptedExtensionsMsg)))
-  get_echRetryConfigs : ∀ (x : encryptedExtensionsMsg), go.IsGoStepPureDetTagged under (StructFieldGet encryptedExtensionsMsg.underlying go!"echRetryConfigs") #x (Val #(x.echRetryConfigs'))
-  set_echRetryConfigs : ∀ (x : encryptedExtensionsMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet encryptedExtensionsMsg.underlying go!"echRetryConfigs") (PairV #x #y) (Val #(({ x with echRetryConfigs' := y } : encryptedExtensionsMsg)))
-  get_serverNameAck : ∀ (x : encryptedExtensionsMsg), go.IsGoStepPureDetTagged under (StructFieldGet encryptedExtensionsMsg.underlying go!"serverNameAck") #x (Val #(x.serverNameAck'))
-  set_serverNameAck : ∀ (x : encryptedExtensionsMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet encryptedExtensionsMsg.underlying go!"serverNameAck") (PairV #x #y) (Val #(({ x with serverNameAck' := y } : encryptedExtensionsMsg)))
+  get'alpnProtocol : ∀ (x : encryptedExtensionsMsg), go.IsGoStepPureDetTagged under (StructFieldGet encryptedExtensionsMsg.underlying go!"alpnProtocol") #x (Val #(x.alpnProtocol'))
+  set'alpnProtocol : ∀ (x : encryptedExtensionsMsg) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet encryptedExtensionsMsg.underlying go!"alpnProtocol") (PairV #x #y) (Val #(({ x with alpnProtocol' := y } : encryptedExtensionsMsg)))
+  get'quicTransportParameters : ∀ (x : encryptedExtensionsMsg), go.IsGoStepPureDetTagged under (StructFieldGet encryptedExtensionsMsg.underlying go!"quicTransportParameters") #x (Val #(x.quicTransportParameters'))
+  set'quicTransportParameters : ∀ (x : encryptedExtensionsMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet encryptedExtensionsMsg.underlying go!"quicTransportParameters") (PairV #x #y) (Val #(({ x with quicTransportParameters' := y } : encryptedExtensionsMsg)))
+  get'earlyData : ∀ (x : encryptedExtensionsMsg), go.IsGoStepPureDetTagged under (StructFieldGet encryptedExtensionsMsg.underlying go!"earlyData") #x (Val #(x.earlyData'))
+  set'earlyData : ∀ (x : encryptedExtensionsMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet encryptedExtensionsMsg.underlying go!"earlyData") (PairV #x #y) (Val #(({ x with earlyData' := y } : encryptedExtensionsMsg)))
+  get'echRetryConfigs : ∀ (x : encryptedExtensionsMsg), go.IsGoStepPureDetTagged under (StructFieldGet encryptedExtensionsMsg.underlying go!"echRetryConfigs") #x (Val #(x.echRetryConfigs'))
+  set'echRetryConfigs : ∀ (x : encryptedExtensionsMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet encryptedExtensionsMsg.underlying go!"echRetryConfigs") (PairV #x #y) (Val #(({ x with echRetryConfigs' := y } : encryptedExtensionsMsg)))
+  get'serverNameAck : ∀ (x : encryptedExtensionsMsg), go.IsGoStepPureDetTagged under (StructFieldGet encryptedExtensionsMsg.underlying go!"serverNameAck") #x (Val #(x.serverNameAck'))
+  set'serverNameAck : ∀ (x : encryptedExtensionsMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet encryptedExtensionsMsg.underlying go!"serverNameAck") (PairV #x #y) (Val #(({ x with serverNameAck' := y } : encryptedExtensionsMsg)))
   method_set : go.MethodSetIs encryptedExtensionsMsg.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType encryptedExtensionsMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] encryptedExtensionsMsg.TypeAssumptions.type_repr
   encryptedExtensionsMsg.TypeAssumptions.underlying
-  encryptedExtensionsMsg.TypeAssumptions.get_alpnProtocol
-  encryptedExtensionsMsg.TypeAssumptions.set_alpnProtocol
-  encryptedExtensionsMsg.TypeAssumptions.get_quicTransportParameters
-  encryptedExtensionsMsg.TypeAssumptions.set_quicTransportParameters
-  encryptedExtensionsMsg.TypeAssumptions.get_earlyData
-  encryptedExtensionsMsg.TypeAssumptions.set_earlyData
-  encryptedExtensionsMsg.TypeAssumptions.get_echRetryConfigs
-  encryptedExtensionsMsg.TypeAssumptions.set_echRetryConfigs
-  encryptedExtensionsMsg.TypeAssumptions.get_serverNameAck
-  encryptedExtensionsMsg.TypeAssumptions.set_serverNameAck
+  encryptedExtensionsMsg.TypeAssumptions.get'alpnProtocol
+  encryptedExtensionsMsg.TypeAssumptions.set'alpnProtocol
+  encryptedExtensionsMsg.TypeAssumptions.get'quicTransportParameters
+  encryptedExtensionsMsg.TypeAssumptions.set'quicTransportParameters
+  encryptedExtensionsMsg.TypeAssumptions.get'earlyData
+  encryptedExtensionsMsg.TypeAssumptions.set'earlyData
+  encryptedExtensionsMsg.TypeAssumptions.get'echRetryConfigs
+  encryptedExtensionsMsg.TypeAssumptions.set'echRetryConfigs
+  encryptedExtensionsMsg.TypeAssumptions.get'serverNameAck
+  encryptedExtensionsMsg.TypeAssumptions.set'serverNameAck
   encryptedExtensionsMsg.TypeAssumptions.method_set
   encryptedExtensionsMsg.TypeAssumptions.ptr_method_set
 
@@ -3220,7 +3220,7 @@ noncomputable instance endOfEarlyDataMsg.zero_val [GooseExts] : ZeroVal endOfEar
 @[irreducible] noncomputable def endOfEarlyDataMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   endOfEarlyDataMsg.fieldsUnsealed
 
-noncomputable instance equals_unfold_endOfEarlyDataMsg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'endOfEarlyDataMsg [GooseExts] [GoGlobalContext] :
     EqualsUnfold endOfEarlyDataMsg.fields endOfEarlyDataMsg.fieldsUnsealed :=
   ⟨by unfold endOfEarlyDataMsg.fields; rfl⟩
 
@@ -3251,7 +3251,7 @@ noncomputable instance keyUpdateMsg.zero_val [GooseExts] : ZeroVal keyUpdateMsg 
 @[irreducible] noncomputable def keyUpdateMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   keyUpdateMsg.fieldsUnsealed
 
-noncomputable instance equals_unfold_keyUpdateMsg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'keyUpdateMsg [GooseExts] [GoGlobalContext] :
     EqualsUnfold keyUpdateMsg.fields keyUpdateMsg.fieldsUnsealed :=
   ⟨by unfold keyUpdateMsg.fields; rfl⟩
 
@@ -3261,15 +3261,15 @@ noncomputable instance equals_unfold_keyUpdateMsg [GooseExts] [GoGlobalContext] 
 class keyUpdateMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying keyUpdateMsg.underlying keyUpdateMsg
   underlying : go.UnderlyingDirectedEq keyUpdateMsg.ty keyUpdateMsg.underlying
-  get_updateRequested : ∀ (x : keyUpdateMsg), go.IsGoStepPureDetTagged under (StructFieldGet keyUpdateMsg.underlying go!"updateRequested") #x (Val #(x.updateRequested'))
-  set_updateRequested : ∀ (x : keyUpdateMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet keyUpdateMsg.underlying go!"updateRequested") (PairV #x #y) (Val #(({ x with updateRequested' := y } : keyUpdateMsg)))
+  get'updateRequested : ∀ (x : keyUpdateMsg), go.IsGoStepPureDetTagged under (StructFieldGet keyUpdateMsg.underlying go!"updateRequested") #x (Val #(x.updateRequested'))
+  set'updateRequested : ∀ (x : keyUpdateMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet keyUpdateMsg.underlying go!"updateRequested") (PairV #x #y) (Val #(({ x with updateRequested' := y } : keyUpdateMsg)))
   method_set : go.MethodSetIs keyUpdateMsg.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType keyUpdateMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] keyUpdateMsg.TypeAssumptions.type_repr
   keyUpdateMsg.TypeAssumptions.underlying
-  keyUpdateMsg.TypeAssumptions.get_updateRequested
-  keyUpdateMsg.TypeAssumptions.set_updateRequested
+  keyUpdateMsg.TypeAssumptions.get'updateRequested
+  keyUpdateMsg.TypeAssumptions.set'updateRequested
   keyUpdateMsg.TypeAssumptions.method_set
   keyUpdateMsg.TypeAssumptions.ptr_method_set
 
@@ -3294,7 +3294,7 @@ noncomputable instance newSessionTicketMsgTLS13.zero_val [GooseExts] : ZeroVal n
 @[irreducible] noncomputable def newSessionTicketMsgTLS13.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   newSessionTicketMsgTLS13.fieldsUnsealed
 
-noncomputable instance equals_unfold_newSessionTicketMsgTLS13 [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'newSessionTicketMsgTLS13 [GooseExts] [GoGlobalContext] :
     EqualsUnfold newSessionTicketMsgTLS13.fields newSessionTicketMsgTLS13.fieldsUnsealed :=
   ⟨by unfold newSessionTicketMsgTLS13.fields; rfl⟩
 
@@ -3304,31 +3304,31 @@ noncomputable instance equals_unfold_newSessionTicketMsgTLS13 [GooseExts] [GoGlo
 class newSessionTicketMsgTLS13.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying newSessionTicketMsgTLS13.underlying newSessionTicketMsgTLS13
   underlying : go.UnderlyingDirectedEq newSessionTicketMsgTLS13.ty newSessionTicketMsgTLS13.underlying
-  get_lifetime : ∀ (x : newSessionTicketMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet newSessionTicketMsgTLS13.underlying go!"lifetime") #x (Val #(x.lifetime'))
-  set_lifetime : ∀ (x : newSessionTicketMsgTLS13) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet newSessionTicketMsgTLS13.underlying go!"lifetime") (PairV #x #y) (Val #(({ x with lifetime' := y } : newSessionTicketMsgTLS13)))
-  get_ageAdd : ∀ (x : newSessionTicketMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet newSessionTicketMsgTLS13.underlying go!"ageAdd") #x (Val #(x.ageAdd'))
-  set_ageAdd : ∀ (x : newSessionTicketMsgTLS13) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet newSessionTicketMsgTLS13.underlying go!"ageAdd") (PairV #x #y) (Val #(({ x with ageAdd' := y } : newSessionTicketMsgTLS13)))
-  get_nonce : ∀ (x : newSessionTicketMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet newSessionTicketMsgTLS13.underlying go!"nonce") #x (Val #(x.nonce'))
-  set_nonce : ∀ (x : newSessionTicketMsgTLS13) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet newSessionTicketMsgTLS13.underlying go!"nonce") (PairV #x #y) (Val #(({ x with nonce' := y } : newSessionTicketMsgTLS13)))
-  get_label : ∀ (x : newSessionTicketMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet newSessionTicketMsgTLS13.underlying go!"label") #x (Val #(x.label'))
-  set_label : ∀ (x : newSessionTicketMsgTLS13) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet newSessionTicketMsgTLS13.underlying go!"label") (PairV #x #y) (Val #(({ x with label' := y } : newSessionTicketMsgTLS13)))
-  get_maxEarlyData : ∀ (x : newSessionTicketMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet newSessionTicketMsgTLS13.underlying go!"maxEarlyData") #x (Val #(x.maxEarlyData'))
-  set_maxEarlyData : ∀ (x : newSessionTicketMsgTLS13) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet newSessionTicketMsgTLS13.underlying go!"maxEarlyData") (PairV #x #y) (Val #(({ x with maxEarlyData' := y } : newSessionTicketMsgTLS13)))
+  get'lifetime : ∀ (x : newSessionTicketMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet newSessionTicketMsgTLS13.underlying go!"lifetime") #x (Val #(x.lifetime'))
+  set'lifetime : ∀ (x : newSessionTicketMsgTLS13) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet newSessionTicketMsgTLS13.underlying go!"lifetime") (PairV #x #y) (Val #(({ x with lifetime' := y } : newSessionTicketMsgTLS13)))
+  get'ageAdd : ∀ (x : newSessionTicketMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet newSessionTicketMsgTLS13.underlying go!"ageAdd") #x (Val #(x.ageAdd'))
+  set'ageAdd : ∀ (x : newSessionTicketMsgTLS13) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet newSessionTicketMsgTLS13.underlying go!"ageAdd") (PairV #x #y) (Val #(({ x with ageAdd' := y } : newSessionTicketMsgTLS13)))
+  get'nonce : ∀ (x : newSessionTicketMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet newSessionTicketMsgTLS13.underlying go!"nonce") #x (Val #(x.nonce'))
+  set'nonce : ∀ (x : newSessionTicketMsgTLS13) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet newSessionTicketMsgTLS13.underlying go!"nonce") (PairV #x #y) (Val #(({ x with nonce' := y } : newSessionTicketMsgTLS13)))
+  get'label : ∀ (x : newSessionTicketMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet newSessionTicketMsgTLS13.underlying go!"label") #x (Val #(x.label'))
+  set'label : ∀ (x : newSessionTicketMsgTLS13) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet newSessionTicketMsgTLS13.underlying go!"label") (PairV #x #y) (Val #(({ x with label' := y } : newSessionTicketMsgTLS13)))
+  get'maxEarlyData : ∀ (x : newSessionTicketMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet newSessionTicketMsgTLS13.underlying go!"maxEarlyData") #x (Val #(x.maxEarlyData'))
+  set'maxEarlyData : ∀ (x : newSessionTicketMsgTLS13) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet newSessionTicketMsgTLS13.underlying go!"maxEarlyData") (PairV #x #y) (Val #(({ x with maxEarlyData' := y } : newSessionTicketMsgTLS13)))
   method_set : go.MethodSetIs newSessionTicketMsgTLS13.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType newSessionTicketMsgTLS13.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] newSessionTicketMsgTLS13.TypeAssumptions.type_repr
   newSessionTicketMsgTLS13.TypeAssumptions.underlying
-  newSessionTicketMsgTLS13.TypeAssumptions.get_lifetime
-  newSessionTicketMsgTLS13.TypeAssumptions.set_lifetime
-  newSessionTicketMsgTLS13.TypeAssumptions.get_ageAdd
-  newSessionTicketMsgTLS13.TypeAssumptions.set_ageAdd
-  newSessionTicketMsgTLS13.TypeAssumptions.get_nonce
-  newSessionTicketMsgTLS13.TypeAssumptions.set_nonce
-  newSessionTicketMsgTLS13.TypeAssumptions.get_label
-  newSessionTicketMsgTLS13.TypeAssumptions.set_label
-  newSessionTicketMsgTLS13.TypeAssumptions.get_maxEarlyData
-  newSessionTicketMsgTLS13.TypeAssumptions.set_maxEarlyData
+  newSessionTicketMsgTLS13.TypeAssumptions.get'lifetime
+  newSessionTicketMsgTLS13.TypeAssumptions.set'lifetime
+  newSessionTicketMsgTLS13.TypeAssumptions.get'ageAdd
+  newSessionTicketMsgTLS13.TypeAssumptions.set'ageAdd
+  newSessionTicketMsgTLS13.TypeAssumptions.get'nonce
+  newSessionTicketMsgTLS13.TypeAssumptions.set'nonce
+  newSessionTicketMsgTLS13.TypeAssumptions.get'label
+  newSessionTicketMsgTLS13.TypeAssumptions.set'label
+  newSessionTicketMsgTLS13.TypeAssumptions.get'maxEarlyData
+  newSessionTicketMsgTLS13.TypeAssumptions.set'maxEarlyData
   newSessionTicketMsgTLS13.TypeAssumptions.method_set
   newSessionTicketMsgTLS13.TypeAssumptions.ptr_method_set
 
@@ -3353,7 +3353,7 @@ noncomputable instance certificateRequestMsgTLS13.zero_val [GooseExts] : ZeroVal
 @[irreducible] noncomputable def certificateRequestMsgTLS13.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   certificateRequestMsgTLS13.fieldsUnsealed
 
-noncomputable instance equals_unfold_certificateRequestMsgTLS13 [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'certificateRequestMsgTLS13 [GooseExts] [GoGlobalContext] :
     EqualsUnfold certificateRequestMsgTLS13.fields certificateRequestMsgTLS13.fieldsUnsealed :=
   ⟨by unfold certificateRequestMsgTLS13.fields; rfl⟩
 
@@ -3363,31 +3363,31 @@ noncomputable instance equals_unfold_certificateRequestMsgTLS13 [GooseExts] [GoG
 class certificateRequestMsgTLS13.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying certificateRequestMsgTLS13.underlying certificateRequestMsgTLS13
   underlying : go.UnderlyingDirectedEq certificateRequestMsgTLS13.ty certificateRequestMsgTLS13.underlying
-  get_ocspStapling : ∀ (x : certificateRequestMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsgTLS13.underlying go!"ocspStapling") #x (Val #(x.ocspStapling'))
-  set_ocspStapling : ∀ (x : certificateRequestMsgTLS13) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsgTLS13.underlying go!"ocspStapling") (PairV #x #y) (Val #(({ x with ocspStapling' := y } : certificateRequestMsgTLS13)))
-  get_scts : ∀ (x : certificateRequestMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsgTLS13.underlying go!"scts") #x (Val #(x.scts'))
-  set_scts : ∀ (x : certificateRequestMsgTLS13) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsgTLS13.underlying go!"scts") (PairV #x #y) (Val #(({ x with scts' := y } : certificateRequestMsgTLS13)))
-  get_supportedSignatureAlgorithms : ∀ (x : certificateRequestMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsgTLS13.underlying go!"supportedSignatureAlgorithms") #x (Val #(x.supportedSignatureAlgorithms'))
-  set_supportedSignatureAlgorithms : ∀ (x : certificateRequestMsgTLS13) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsgTLS13.underlying go!"supportedSignatureAlgorithms") (PairV #x #y) (Val #(({ x with supportedSignatureAlgorithms' := y } : certificateRequestMsgTLS13)))
-  get_supportedSignatureAlgorithmsCert : ∀ (x : certificateRequestMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsgTLS13.underlying go!"supportedSignatureAlgorithmsCert") #x (Val #(x.supportedSignatureAlgorithmsCert'))
-  set_supportedSignatureAlgorithmsCert : ∀ (x : certificateRequestMsgTLS13) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsgTLS13.underlying go!"supportedSignatureAlgorithmsCert") (PairV #x #y) (Val #(({ x with supportedSignatureAlgorithmsCert' := y } : certificateRequestMsgTLS13)))
-  get_certificateAuthorities : ∀ (x : certificateRequestMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsgTLS13.underlying go!"certificateAuthorities") #x (Val #(x.certificateAuthorities'))
-  set_certificateAuthorities : ∀ (x : certificateRequestMsgTLS13) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsgTLS13.underlying go!"certificateAuthorities") (PairV #x #y) (Val #(({ x with certificateAuthorities' := y } : certificateRequestMsgTLS13)))
+  get'ocspStapling : ∀ (x : certificateRequestMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsgTLS13.underlying go!"ocspStapling") #x (Val #(x.ocspStapling'))
+  set'ocspStapling : ∀ (x : certificateRequestMsgTLS13) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsgTLS13.underlying go!"ocspStapling") (PairV #x #y) (Val #(({ x with ocspStapling' := y } : certificateRequestMsgTLS13)))
+  get'scts : ∀ (x : certificateRequestMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsgTLS13.underlying go!"scts") #x (Val #(x.scts'))
+  set'scts : ∀ (x : certificateRequestMsgTLS13) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsgTLS13.underlying go!"scts") (PairV #x #y) (Val #(({ x with scts' := y } : certificateRequestMsgTLS13)))
+  get'supportedSignatureAlgorithms : ∀ (x : certificateRequestMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsgTLS13.underlying go!"supportedSignatureAlgorithms") #x (Val #(x.supportedSignatureAlgorithms'))
+  set'supportedSignatureAlgorithms : ∀ (x : certificateRequestMsgTLS13) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsgTLS13.underlying go!"supportedSignatureAlgorithms") (PairV #x #y) (Val #(({ x with supportedSignatureAlgorithms' := y } : certificateRequestMsgTLS13)))
+  get'supportedSignatureAlgorithmsCert : ∀ (x : certificateRequestMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsgTLS13.underlying go!"supportedSignatureAlgorithmsCert") #x (Val #(x.supportedSignatureAlgorithmsCert'))
+  set'supportedSignatureAlgorithmsCert : ∀ (x : certificateRequestMsgTLS13) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsgTLS13.underlying go!"supportedSignatureAlgorithmsCert") (PairV #x #y) (Val #(({ x with supportedSignatureAlgorithmsCert' := y } : certificateRequestMsgTLS13)))
+  get'certificateAuthorities : ∀ (x : certificateRequestMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsgTLS13.underlying go!"certificateAuthorities") #x (Val #(x.certificateAuthorities'))
+  set'certificateAuthorities : ∀ (x : certificateRequestMsgTLS13) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsgTLS13.underlying go!"certificateAuthorities") (PairV #x #y) (Val #(({ x with certificateAuthorities' := y } : certificateRequestMsgTLS13)))
   method_set : go.MethodSetIs certificateRequestMsgTLS13.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType certificateRequestMsgTLS13.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] certificateRequestMsgTLS13.TypeAssumptions.type_repr
   certificateRequestMsgTLS13.TypeAssumptions.underlying
-  certificateRequestMsgTLS13.TypeAssumptions.get_ocspStapling
-  certificateRequestMsgTLS13.TypeAssumptions.set_ocspStapling
-  certificateRequestMsgTLS13.TypeAssumptions.get_scts
-  certificateRequestMsgTLS13.TypeAssumptions.set_scts
-  certificateRequestMsgTLS13.TypeAssumptions.get_supportedSignatureAlgorithms
-  certificateRequestMsgTLS13.TypeAssumptions.set_supportedSignatureAlgorithms
-  certificateRequestMsgTLS13.TypeAssumptions.get_supportedSignatureAlgorithmsCert
-  certificateRequestMsgTLS13.TypeAssumptions.set_supportedSignatureAlgorithmsCert
-  certificateRequestMsgTLS13.TypeAssumptions.get_certificateAuthorities
-  certificateRequestMsgTLS13.TypeAssumptions.set_certificateAuthorities
+  certificateRequestMsgTLS13.TypeAssumptions.get'ocspStapling
+  certificateRequestMsgTLS13.TypeAssumptions.set'ocspStapling
+  certificateRequestMsgTLS13.TypeAssumptions.get'scts
+  certificateRequestMsgTLS13.TypeAssumptions.set'scts
+  certificateRequestMsgTLS13.TypeAssumptions.get'supportedSignatureAlgorithms
+  certificateRequestMsgTLS13.TypeAssumptions.set'supportedSignatureAlgorithms
+  certificateRequestMsgTLS13.TypeAssumptions.get'supportedSignatureAlgorithmsCert
+  certificateRequestMsgTLS13.TypeAssumptions.set'supportedSignatureAlgorithmsCert
+  certificateRequestMsgTLS13.TypeAssumptions.get'certificateAuthorities
+  certificateRequestMsgTLS13.TypeAssumptions.set'certificateAuthorities
   certificateRequestMsgTLS13.TypeAssumptions.method_set
   certificateRequestMsgTLS13.TypeAssumptions.ptr_method_set
 
@@ -3404,7 +3404,7 @@ noncomputable instance certificateMsg.zero_val [GooseExts] : ZeroVal certificate
 @[irreducible] noncomputable def certificateMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   certificateMsg.fieldsUnsealed
 
-noncomputable instance equals_unfold_certificateMsg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'certificateMsg [GooseExts] [GoGlobalContext] :
     EqualsUnfold certificateMsg.fields certificateMsg.fieldsUnsealed :=
   ⟨by unfold certificateMsg.fields; rfl⟩
 
@@ -3414,15 +3414,15 @@ noncomputable instance equals_unfold_certificateMsg [GooseExts] [GoGlobalContext
 class certificateMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying certificateMsg.underlying certificateMsg
   underlying : go.UnderlyingDirectedEq certificateMsg.ty certificateMsg.underlying
-  get_certificates : ∀ (x : certificateMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateMsg.underlying go!"certificates") #x (Val #(x.certificates'))
-  set_certificates : ∀ (x : certificateMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateMsg.underlying go!"certificates") (PairV #x #y) (Val #(({ x with certificates' := y } : certificateMsg)))
+  get'certificates : ∀ (x : certificateMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateMsg.underlying go!"certificates") #x (Val #(x.certificates'))
+  set'certificates : ∀ (x : certificateMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateMsg.underlying go!"certificates") (PairV #x #y) (Val #(({ x with certificates' := y } : certificateMsg)))
   method_set : go.MethodSetIs certificateMsg.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType certificateMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] certificateMsg.TypeAssumptions.type_repr
   certificateMsg.TypeAssumptions.underlying
-  certificateMsg.TypeAssumptions.get_certificates
-  certificateMsg.TypeAssumptions.set_certificates
+  certificateMsg.TypeAssumptions.get'certificates
+  certificateMsg.TypeAssumptions.set'certificates
   certificateMsg.TypeAssumptions.method_set
   certificateMsg.TypeAssumptions.ptr_method_set
 
@@ -3443,7 +3443,7 @@ noncomputable instance certificateMsgTLS13.zero_val [GooseExts] : ZeroVal certif
 @[irreducible] noncomputable def certificateMsgTLS13.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   certificateMsgTLS13.fieldsUnsealed
 
-noncomputable instance equals_unfold_certificateMsgTLS13 [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'certificateMsgTLS13 [GooseExts] [GoGlobalContext] :
     EqualsUnfold certificateMsgTLS13.fields certificateMsgTLS13.fieldsUnsealed :=
   ⟨by unfold certificateMsgTLS13.fields; rfl⟩
 
@@ -3453,23 +3453,23 @@ noncomputable instance equals_unfold_certificateMsgTLS13 [GooseExts] [GoGlobalCo
 class certificateMsgTLS13.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying certificateMsgTLS13.underlying certificateMsgTLS13
   underlying : go.UnderlyingDirectedEq certificateMsgTLS13.ty certificateMsgTLS13.underlying
-  get_certificate : ∀ (x : certificateMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateMsgTLS13.underlying go!"certificate") #x (Val #(x.certificate'))
-  set_certificate : ∀ (x : certificateMsgTLS13) (y : Certificate), go.IsGoStepPureDetTagged under (StructFieldSet certificateMsgTLS13.underlying go!"certificate") (PairV #x #y) (Val #(({ x with certificate' := y } : certificateMsgTLS13)))
-  get_ocspStapling : ∀ (x : certificateMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateMsgTLS13.underlying go!"ocspStapling") #x (Val #(x.ocspStapling'))
-  set_ocspStapling : ∀ (x : certificateMsgTLS13) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet certificateMsgTLS13.underlying go!"ocspStapling") (PairV #x #y) (Val #(({ x with ocspStapling' := y } : certificateMsgTLS13)))
-  get_scts : ∀ (x : certificateMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateMsgTLS13.underlying go!"scts") #x (Val #(x.scts'))
-  set_scts : ∀ (x : certificateMsgTLS13) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet certificateMsgTLS13.underlying go!"scts") (PairV #x #y) (Val #(({ x with scts' := y } : certificateMsgTLS13)))
+  get'certificate : ∀ (x : certificateMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateMsgTLS13.underlying go!"certificate") #x (Val #(x.certificate'))
+  set'certificate : ∀ (x : certificateMsgTLS13) (y : Certificate), go.IsGoStepPureDetTagged under (StructFieldSet certificateMsgTLS13.underlying go!"certificate") (PairV #x #y) (Val #(({ x with certificate' := y } : certificateMsgTLS13)))
+  get'ocspStapling : ∀ (x : certificateMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateMsgTLS13.underlying go!"ocspStapling") #x (Val #(x.ocspStapling'))
+  set'ocspStapling : ∀ (x : certificateMsgTLS13) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet certificateMsgTLS13.underlying go!"ocspStapling") (PairV #x #y) (Val #(({ x with ocspStapling' := y } : certificateMsgTLS13)))
+  get'scts : ∀ (x : certificateMsgTLS13), go.IsGoStepPureDetTagged under (StructFieldGet certificateMsgTLS13.underlying go!"scts") #x (Val #(x.scts'))
+  set'scts : ∀ (x : certificateMsgTLS13) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet certificateMsgTLS13.underlying go!"scts") (PairV #x #y) (Val #(({ x with scts' := y } : certificateMsgTLS13)))
   method_set : go.MethodSetIs certificateMsgTLS13.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType certificateMsgTLS13.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] certificateMsgTLS13.TypeAssumptions.type_repr
   certificateMsgTLS13.TypeAssumptions.underlying
-  certificateMsgTLS13.TypeAssumptions.get_certificate
-  certificateMsgTLS13.TypeAssumptions.set_certificate
-  certificateMsgTLS13.TypeAssumptions.get_ocspStapling
-  certificateMsgTLS13.TypeAssumptions.set_ocspStapling
-  certificateMsgTLS13.TypeAssumptions.get_scts
-  certificateMsgTLS13.TypeAssumptions.set_scts
+  certificateMsgTLS13.TypeAssumptions.get'certificate
+  certificateMsgTLS13.TypeAssumptions.set'certificate
+  certificateMsgTLS13.TypeAssumptions.get'ocspStapling
+  certificateMsgTLS13.TypeAssumptions.set'ocspStapling
+  certificateMsgTLS13.TypeAssumptions.get'scts
+  certificateMsgTLS13.TypeAssumptions.set'scts
   certificateMsgTLS13.TypeAssumptions.method_set
   certificateMsgTLS13.TypeAssumptions.ptr_method_set
 
@@ -3486,7 +3486,7 @@ noncomputable instance serverKeyExchangeMsg.zero_val [GooseExts] : ZeroVal serve
 @[irreducible] noncomputable def serverKeyExchangeMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   serverKeyExchangeMsg.fieldsUnsealed
 
-noncomputable instance equals_unfold_serverKeyExchangeMsg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'serverKeyExchangeMsg [GooseExts] [GoGlobalContext] :
     EqualsUnfold serverKeyExchangeMsg.fields serverKeyExchangeMsg.fieldsUnsealed :=
   ⟨by unfold serverKeyExchangeMsg.fields; rfl⟩
 
@@ -3496,15 +3496,15 @@ noncomputable instance equals_unfold_serverKeyExchangeMsg [GooseExts] [GoGlobalC
 class serverKeyExchangeMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverKeyExchangeMsg.underlying serverKeyExchangeMsg
   underlying : go.UnderlyingDirectedEq serverKeyExchangeMsg.ty serverKeyExchangeMsg.underlying
-  get_key : ∀ (x : serverKeyExchangeMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverKeyExchangeMsg.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : serverKeyExchangeMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverKeyExchangeMsg.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : serverKeyExchangeMsg)))
+  get'key : ∀ (x : serverKeyExchangeMsg), go.IsGoStepPureDetTagged under (StructFieldGet serverKeyExchangeMsg.underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : serverKeyExchangeMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverKeyExchangeMsg.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : serverKeyExchangeMsg)))
   method_set : go.MethodSetIs serverKeyExchangeMsg.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverKeyExchangeMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] serverKeyExchangeMsg.TypeAssumptions.type_repr
   serverKeyExchangeMsg.TypeAssumptions.underlying
-  serverKeyExchangeMsg.TypeAssumptions.get_key
-  serverKeyExchangeMsg.TypeAssumptions.set_key
+  serverKeyExchangeMsg.TypeAssumptions.get'key
+  serverKeyExchangeMsg.TypeAssumptions.set'key
   serverKeyExchangeMsg.TypeAssumptions.method_set
   serverKeyExchangeMsg.TypeAssumptions.ptr_method_set
 
@@ -3521,7 +3521,7 @@ noncomputable instance certificateStatusMsg.zero_val [GooseExts] : ZeroVal certi
 @[irreducible] noncomputable def certificateStatusMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   certificateStatusMsg.fieldsUnsealed
 
-noncomputable instance equals_unfold_certificateStatusMsg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'certificateStatusMsg [GooseExts] [GoGlobalContext] :
     EqualsUnfold certificateStatusMsg.fields certificateStatusMsg.fieldsUnsealed :=
   ⟨by unfold certificateStatusMsg.fields; rfl⟩
 
@@ -3531,15 +3531,15 @@ noncomputable instance equals_unfold_certificateStatusMsg [GooseExts] [GoGlobalC
 class certificateStatusMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying certificateStatusMsg.underlying certificateStatusMsg
   underlying : go.UnderlyingDirectedEq certificateStatusMsg.ty certificateStatusMsg.underlying
-  get_response : ∀ (x : certificateStatusMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateStatusMsg.underlying go!"response") #x (Val #(x.response'))
-  set_response : ∀ (x : certificateStatusMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateStatusMsg.underlying go!"response") (PairV #x #y) (Val #(({ x with response' := y } : certificateStatusMsg)))
+  get'response : ∀ (x : certificateStatusMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateStatusMsg.underlying go!"response") #x (Val #(x.response'))
+  set'response : ∀ (x : certificateStatusMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateStatusMsg.underlying go!"response") (PairV #x #y) (Val #(({ x with response' := y } : certificateStatusMsg)))
   method_set : go.MethodSetIs certificateStatusMsg.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType certificateStatusMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] certificateStatusMsg.TypeAssumptions.type_repr
   certificateStatusMsg.TypeAssumptions.underlying
-  certificateStatusMsg.TypeAssumptions.get_response
-  certificateStatusMsg.TypeAssumptions.set_response
+  certificateStatusMsg.TypeAssumptions.get'response
+  certificateStatusMsg.TypeAssumptions.set'response
   certificateStatusMsg.TypeAssumptions.method_set
   certificateStatusMsg.TypeAssumptions.ptr_method_set
 
@@ -3555,7 +3555,7 @@ noncomputable instance serverHelloDoneMsg.zero_val [GooseExts] : ZeroVal serverH
 @[irreducible] noncomputable def serverHelloDoneMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   serverHelloDoneMsg.fieldsUnsealed
 
-noncomputable instance equals_unfold_serverHelloDoneMsg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'serverHelloDoneMsg [GooseExts] [GoGlobalContext] :
     EqualsUnfold serverHelloDoneMsg.fields serverHelloDoneMsg.fieldsUnsealed :=
   ⟨by unfold serverHelloDoneMsg.fields; rfl⟩
 
@@ -3586,7 +3586,7 @@ noncomputable instance clientKeyExchangeMsg.zero_val [GooseExts] : ZeroVal clien
 @[irreducible] noncomputable def clientKeyExchangeMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   clientKeyExchangeMsg.fieldsUnsealed
 
-noncomputable instance equals_unfold_clientKeyExchangeMsg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'clientKeyExchangeMsg [GooseExts] [GoGlobalContext] :
     EqualsUnfold clientKeyExchangeMsg.fields clientKeyExchangeMsg.fieldsUnsealed :=
   ⟨by unfold clientKeyExchangeMsg.fields; rfl⟩
 
@@ -3596,15 +3596,15 @@ noncomputable instance equals_unfold_clientKeyExchangeMsg [GooseExts] [GoGlobalC
 class clientKeyExchangeMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying clientKeyExchangeMsg.underlying clientKeyExchangeMsg
   underlying : go.UnderlyingDirectedEq clientKeyExchangeMsg.ty clientKeyExchangeMsg.underlying
-  get_ciphertext : ∀ (x : clientKeyExchangeMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientKeyExchangeMsg.underlying go!"ciphertext") #x (Val #(x.ciphertext'))
-  set_ciphertext : ∀ (x : clientKeyExchangeMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientKeyExchangeMsg.underlying go!"ciphertext") (PairV #x #y) (Val #(({ x with ciphertext' := y } : clientKeyExchangeMsg)))
+  get'ciphertext : ∀ (x : clientKeyExchangeMsg), go.IsGoStepPureDetTagged under (StructFieldGet clientKeyExchangeMsg.underlying go!"ciphertext") #x (Val #(x.ciphertext'))
+  set'ciphertext : ∀ (x : clientKeyExchangeMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clientKeyExchangeMsg.underlying go!"ciphertext") (PairV #x #y) (Val #(({ x with ciphertext' := y } : clientKeyExchangeMsg)))
   method_set : go.MethodSetIs clientKeyExchangeMsg.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientKeyExchangeMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] clientKeyExchangeMsg.TypeAssumptions.type_repr
   clientKeyExchangeMsg.TypeAssumptions.underlying
-  clientKeyExchangeMsg.TypeAssumptions.get_ciphertext
-  clientKeyExchangeMsg.TypeAssumptions.set_ciphertext
+  clientKeyExchangeMsg.TypeAssumptions.get'ciphertext
+  clientKeyExchangeMsg.TypeAssumptions.set'ciphertext
   clientKeyExchangeMsg.TypeAssumptions.method_set
   clientKeyExchangeMsg.TypeAssumptions.ptr_method_set
 
@@ -3621,7 +3621,7 @@ noncomputable instance finishedMsg.zero_val [GooseExts] : ZeroVal finishedMsg :=
 @[irreducible] noncomputable def finishedMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   finishedMsg.fieldsUnsealed
 
-noncomputable instance equals_unfold_finishedMsg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'finishedMsg [GooseExts] [GoGlobalContext] :
     EqualsUnfold finishedMsg.fields finishedMsg.fieldsUnsealed :=
   ⟨by unfold finishedMsg.fields; rfl⟩
 
@@ -3631,15 +3631,15 @@ noncomputable instance equals_unfold_finishedMsg [GooseExts] [GoGlobalContext] :
 class finishedMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying finishedMsg.underlying finishedMsg
   underlying : go.UnderlyingDirectedEq finishedMsg.ty finishedMsg.underlying
-  get_verifyData : ∀ (x : finishedMsg), go.IsGoStepPureDetTagged under (StructFieldGet finishedMsg.underlying go!"verifyData") #x (Val #(x.verifyData'))
-  set_verifyData : ∀ (x : finishedMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet finishedMsg.underlying go!"verifyData") (PairV #x #y) (Val #(({ x with verifyData' := y } : finishedMsg)))
+  get'verifyData : ∀ (x : finishedMsg), go.IsGoStepPureDetTagged under (StructFieldGet finishedMsg.underlying go!"verifyData") #x (Val #(x.verifyData'))
+  set'verifyData : ∀ (x : finishedMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet finishedMsg.underlying go!"verifyData") (PairV #x #y) (Val #(({ x with verifyData' := y } : finishedMsg)))
   method_set : go.MethodSetIs finishedMsg.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType finishedMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] finishedMsg.TypeAssumptions.type_repr
   finishedMsg.TypeAssumptions.underlying
-  finishedMsg.TypeAssumptions.get_verifyData
-  finishedMsg.TypeAssumptions.set_verifyData
+  finishedMsg.TypeAssumptions.get'verifyData
+  finishedMsg.TypeAssumptions.set'verifyData
   finishedMsg.TypeAssumptions.method_set
   finishedMsg.TypeAssumptions.ptr_method_set
 
@@ -3662,7 +3662,7 @@ noncomputable instance certificateRequestMsg.zero_val [GooseExts] : ZeroVal cert
 @[irreducible] noncomputable def certificateRequestMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   certificateRequestMsg.fieldsUnsealed
 
-noncomputable instance equals_unfold_certificateRequestMsg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'certificateRequestMsg [GooseExts] [GoGlobalContext] :
     EqualsUnfold certificateRequestMsg.fields certificateRequestMsg.fieldsUnsealed :=
   ⟨by unfold certificateRequestMsg.fields; rfl⟩
 
@@ -3672,27 +3672,27 @@ noncomputable instance equals_unfold_certificateRequestMsg [GooseExts] [GoGlobal
 class certificateRequestMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying certificateRequestMsg.underlying certificateRequestMsg
   underlying : go.UnderlyingDirectedEq certificateRequestMsg.ty certificateRequestMsg.underlying
-  get_hasSignatureAlgorithm : ∀ (x : certificateRequestMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsg.underlying go!"hasSignatureAlgorithm") #x (Val #(x.hasSignatureAlgorithm'))
-  set_hasSignatureAlgorithm : ∀ (x : certificateRequestMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsg.underlying go!"hasSignatureAlgorithm") (PairV #x #y) (Val #(({ x with hasSignatureAlgorithm' := y } : certificateRequestMsg)))
-  get_certificateTypes : ∀ (x : certificateRequestMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsg.underlying go!"certificateTypes") #x (Val #(x.certificateTypes'))
-  set_certificateTypes : ∀ (x : certificateRequestMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsg.underlying go!"certificateTypes") (PairV #x #y) (Val #(({ x with certificateTypes' := y } : certificateRequestMsg)))
-  get_supportedSignatureAlgorithms : ∀ (x : certificateRequestMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsg.underlying go!"supportedSignatureAlgorithms") #x (Val #(x.supportedSignatureAlgorithms'))
-  set_supportedSignatureAlgorithms : ∀ (x : certificateRequestMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsg.underlying go!"supportedSignatureAlgorithms") (PairV #x #y) (Val #(({ x with supportedSignatureAlgorithms' := y } : certificateRequestMsg)))
-  get_certificateAuthorities : ∀ (x : certificateRequestMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsg.underlying go!"certificateAuthorities") #x (Val #(x.certificateAuthorities'))
-  set_certificateAuthorities : ∀ (x : certificateRequestMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsg.underlying go!"certificateAuthorities") (PairV #x #y) (Val #(({ x with certificateAuthorities' := y } : certificateRequestMsg)))
+  get'hasSignatureAlgorithm : ∀ (x : certificateRequestMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsg.underlying go!"hasSignatureAlgorithm") #x (Val #(x.hasSignatureAlgorithm'))
+  set'hasSignatureAlgorithm : ∀ (x : certificateRequestMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsg.underlying go!"hasSignatureAlgorithm") (PairV #x #y) (Val #(({ x with hasSignatureAlgorithm' := y } : certificateRequestMsg)))
+  get'certificateTypes : ∀ (x : certificateRequestMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsg.underlying go!"certificateTypes") #x (Val #(x.certificateTypes'))
+  set'certificateTypes : ∀ (x : certificateRequestMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsg.underlying go!"certificateTypes") (PairV #x #y) (Val #(({ x with certificateTypes' := y } : certificateRequestMsg)))
+  get'supportedSignatureAlgorithms : ∀ (x : certificateRequestMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsg.underlying go!"supportedSignatureAlgorithms") #x (Val #(x.supportedSignatureAlgorithms'))
+  set'supportedSignatureAlgorithms : ∀ (x : certificateRequestMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsg.underlying go!"supportedSignatureAlgorithms") (PairV #x #y) (Val #(({ x with supportedSignatureAlgorithms' := y } : certificateRequestMsg)))
+  get'certificateAuthorities : ∀ (x : certificateRequestMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateRequestMsg.underlying go!"certificateAuthorities") #x (Val #(x.certificateAuthorities'))
+  set'certificateAuthorities : ∀ (x : certificateRequestMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateRequestMsg.underlying go!"certificateAuthorities") (PairV #x #y) (Val #(({ x with certificateAuthorities' := y } : certificateRequestMsg)))
   method_set : go.MethodSetIs certificateRequestMsg.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType certificateRequestMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] certificateRequestMsg.TypeAssumptions.type_repr
   certificateRequestMsg.TypeAssumptions.underlying
-  certificateRequestMsg.TypeAssumptions.get_hasSignatureAlgorithm
-  certificateRequestMsg.TypeAssumptions.set_hasSignatureAlgorithm
-  certificateRequestMsg.TypeAssumptions.get_certificateTypes
-  certificateRequestMsg.TypeAssumptions.set_certificateTypes
-  certificateRequestMsg.TypeAssumptions.get_supportedSignatureAlgorithms
-  certificateRequestMsg.TypeAssumptions.set_supportedSignatureAlgorithms
-  certificateRequestMsg.TypeAssumptions.get_certificateAuthorities
-  certificateRequestMsg.TypeAssumptions.set_certificateAuthorities
+  certificateRequestMsg.TypeAssumptions.get'hasSignatureAlgorithm
+  certificateRequestMsg.TypeAssumptions.set'hasSignatureAlgorithm
+  certificateRequestMsg.TypeAssumptions.get'certificateTypes
+  certificateRequestMsg.TypeAssumptions.set'certificateTypes
+  certificateRequestMsg.TypeAssumptions.get'supportedSignatureAlgorithms
+  certificateRequestMsg.TypeAssumptions.set'supportedSignatureAlgorithms
+  certificateRequestMsg.TypeAssumptions.get'certificateAuthorities
+  certificateRequestMsg.TypeAssumptions.set'certificateAuthorities
   certificateRequestMsg.TypeAssumptions.method_set
   certificateRequestMsg.TypeAssumptions.ptr_method_set
 
@@ -3713,7 +3713,7 @@ noncomputable instance certificateVerifyMsg.zero_val [GooseExts] : ZeroVal certi
 @[irreducible] noncomputable def certificateVerifyMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   certificateVerifyMsg.fieldsUnsealed
 
-noncomputable instance equals_unfold_certificateVerifyMsg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'certificateVerifyMsg [GooseExts] [GoGlobalContext] :
     EqualsUnfold certificateVerifyMsg.fields certificateVerifyMsg.fieldsUnsealed :=
   ⟨by unfold certificateVerifyMsg.fields; rfl⟩
 
@@ -3723,23 +3723,23 @@ noncomputable instance equals_unfold_certificateVerifyMsg [GooseExts] [GoGlobalC
 class certificateVerifyMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying certificateVerifyMsg.underlying certificateVerifyMsg
   underlying : go.UnderlyingDirectedEq certificateVerifyMsg.ty certificateVerifyMsg.underlying
-  get_hasSignatureAlgorithm : ∀ (x : certificateVerifyMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateVerifyMsg.underlying go!"hasSignatureAlgorithm") #x (Val #(x.hasSignatureAlgorithm'))
-  set_hasSignatureAlgorithm : ∀ (x : certificateVerifyMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet certificateVerifyMsg.underlying go!"hasSignatureAlgorithm") (PairV #x #y) (Val #(({ x with hasSignatureAlgorithm' := y } : certificateVerifyMsg)))
-  get_signatureAlgorithm : ∀ (x : certificateVerifyMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateVerifyMsg.underlying go!"signatureAlgorithm") #x (Val #(x.signatureAlgorithm'))
-  set_signatureAlgorithm : ∀ (x : certificateVerifyMsg) (y : SignatureScheme), go.IsGoStepPureDetTagged under (StructFieldSet certificateVerifyMsg.underlying go!"signatureAlgorithm") (PairV #x #y) (Val #(({ x with signatureAlgorithm' := y } : certificateVerifyMsg)))
-  get_signature : ∀ (x : certificateVerifyMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateVerifyMsg.underlying go!"signature") #x (Val #(x.signature'))
-  set_signature : ∀ (x : certificateVerifyMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateVerifyMsg.underlying go!"signature") (PairV #x #y) (Val #(({ x with signature' := y } : certificateVerifyMsg)))
+  get'hasSignatureAlgorithm : ∀ (x : certificateVerifyMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateVerifyMsg.underlying go!"hasSignatureAlgorithm") #x (Val #(x.hasSignatureAlgorithm'))
+  set'hasSignatureAlgorithm : ∀ (x : certificateVerifyMsg) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet certificateVerifyMsg.underlying go!"hasSignatureAlgorithm") (PairV #x #y) (Val #(({ x with hasSignatureAlgorithm' := y } : certificateVerifyMsg)))
+  get'signatureAlgorithm : ∀ (x : certificateVerifyMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateVerifyMsg.underlying go!"signatureAlgorithm") #x (Val #(x.signatureAlgorithm'))
+  set'signatureAlgorithm : ∀ (x : certificateVerifyMsg) (y : SignatureScheme), go.IsGoStepPureDetTagged under (StructFieldSet certificateVerifyMsg.underlying go!"signatureAlgorithm") (PairV #x #y) (Val #(({ x with signatureAlgorithm' := y } : certificateVerifyMsg)))
+  get'signature : ∀ (x : certificateVerifyMsg), go.IsGoStepPureDetTagged under (StructFieldGet certificateVerifyMsg.underlying go!"signature") #x (Val #(x.signature'))
+  set'signature : ∀ (x : certificateVerifyMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet certificateVerifyMsg.underlying go!"signature") (PairV #x #y) (Val #(({ x with signature' := y } : certificateVerifyMsg)))
   method_set : go.MethodSetIs certificateVerifyMsg.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType certificateVerifyMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] certificateVerifyMsg.TypeAssumptions.type_repr
   certificateVerifyMsg.TypeAssumptions.underlying
-  certificateVerifyMsg.TypeAssumptions.get_hasSignatureAlgorithm
-  certificateVerifyMsg.TypeAssumptions.set_hasSignatureAlgorithm
-  certificateVerifyMsg.TypeAssumptions.get_signatureAlgorithm
-  certificateVerifyMsg.TypeAssumptions.set_signatureAlgorithm
-  certificateVerifyMsg.TypeAssumptions.get_signature
-  certificateVerifyMsg.TypeAssumptions.set_signature
+  certificateVerifyMsg.TypeAssumptions.get'hasSignatureAlgorithm
+  certificateVerifyMsg.TypeAssumptions.set'hasSignatureAlgorithm
+  certificateVerifyMsg.TypeAssumptions.get'signatureAlgorithm
+  certificateVerifyMsg.TypeAssumptions.set'signatureAlgorithm
+  certificateVerifyMsg.TypeAssumptions.get'signature
+  certificateVerifyMsg.TypeAssumptions.set'signature
   certificateVerifyMsg.TypeAssumptions.method_set
   certificateVerifyMsg.TypeAssumptions.ptr_method_set
 
@@ -3756,7 +3756,7 @@ noncomputable instance newSessionTicketMsg.zero_val [GooseExts] : ZeroVal newSes
 @[irreducible] noncomputable def newSessionTicketMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   newSessionTicketMsg.fieldsUnsealed
 
-noncomputable instance equals_unfold_newSessionTicketMsg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'newSessionTicketMsg [GooseExts] [GoGlobalContext] :
     EqualsUnfold newSessionTicketMsg.fields newSessionTicketMsg.fieldsUnsealed :=
   ⟨by unfold newSessionTicketMsg.fields; rfl⟩
 
@@ -3766,15 +3766,15 @@ noncomputable instance equals_unfold_newSessionTicketMsg [GooseExts] [GoGlobalCo
 class newSessionTicketMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying newSessionTicketMsg.underlying newSessionTicketMsg
   underlying : go.UnderlyingDirectedEq newSessionTicketMsg.ty newSessionTicketMsg.underlying
-  get_ticket : ∀ (x : newSessionTicketMsg), go.IsGoStepPureDetTagged under (StructFieldGet newSessionTicketMsg.underlying go!"ticket") #x (Val #(x.ticket'))
-  set_ticket : ∀ (x : newSessionTicketMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet newSessionTicketMsg.underlying go!"ticket") (PairV #x #y) (Val #(({ x with ticket' := y } : newSessionTicketMsg)))
+  get'ticket : ∀ (x : newSessionTicketMsg), go.IsGoStepPureDetTagged under (StructFieldGet newSessionTicketMsg.underlying go!"ticket") #x (Val #(x.ticket'))
+  set'ticket : ∀ (x : newSessionTicketMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet newSessionTicketMsg.underlying go!"ticket") (PairV #x #y) (Val #(({ x with ticket' := y } : newSessionTicketMsg)))
   method_set : go.MethodSetIs newSessionTicketMsg.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType newSessionTicketMsg.ty) [(go!"crypto/tls.marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"crypto/tls.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] newSessionTicketMsg.TypeAssumptions.type_repr
   newSessionTicketMsg.TypeAssumptions.underlying
-  newSessionTicketMsg.TypeAssumptions.get_ticket
-  newSessionTicketMsg.TypeAssumptions.set_ticket
+  newSessionTicketMsg.TypeAssumptions.get'ticket
+  newSessionTicketMsg.TypeAssumptions.set'ticket
   newSessionTicketMsg.TypeAssumptions.method_set
   newSessionTicketMsg.TypeAssumptions.ptr_method_set
 
@@ -3790,7 +3790,7 @@ noncomputable instance helloRequestMsg.zero_val [GooseExts] : ZeroVal helloReque
 @[irreducible] noncomputable def helloRequestMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   helloRequestMsg.fieldsUnsealed
 
-noncomputable instance equals_unfold_helloRequestMsg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'helloRequestMsg [GooseExts] [GoGlobalContext] :
     EqualsUnfold helloRequestMsg.fields helloRequestMsg.fieldsUnsealed :=
   ⟨by unfold helloRequestMsg.fields; rfl⟩
 
@@ -3910,7 +3910,7 @@ noncomputable instance rsaKeyAgreement.zero_val [GooseExts] : ZeroVal rsaKeyAgre
 @[irreducible] noncomputable def rsaKeyAgreement.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   rsaKeyAgreement.fieldsUnsealed
 
-noncomputable instance equals_unfold_rsaKeyAgreement [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'rsaKeyAgreement [GooseExts] [GoGlobalContext] :
     EqualsUnfold rsaKeyAgreement.fields rsaKeyAgreement.fieldsUnsealed :=
   ⟨by unfold rsaKeyAgreement.fields; rfl⟩
 
@@ -3997,7 +3997,7 @@ noncomputable instance mlkem1024KeyExchange.zero_val [GooseExts] : ZeroVal mlkem
 @[irreducible] noncomputable def mlkem1024KeyExchange.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   mlkem1024KeyExchange.fieldsUnsealed
 
-noncomputable instance equals_unfold_mlkem1024KeyExchange [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'mlkem1024KeyExchange [GooseExts] [GoGlobalContext] :
     EqualsUnfold mlkem1024KeyExchange.fields mlkem1024KeyExchange.fieldsUnsealed :=
   ⟨by unfold mlkem1024KeyExchange.fields; rfl⟩
 
@@ -4115,7 +4115,7 @@ noncomputable instance QUICConn.zero_val [GooseExts] : ZeroVal QUICConn :=
 @[irreducible] noncomputable def QUICConn.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   QUICConn.fieldsUnsealed
 
-noncomputable instance equals_unfold_QUICConn [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'QUICConn [GooseExts] [GoGlobalContext] :
     EqualsUnfold QUICConn.fields QUICConn.fieldsUnsealed :=
   ⟨by unfold QUICConn.fields; rfl⟩
 
@@ -4125,19 +4125,19 @@ noncomputable instance equals_unfold_QUICConn [GooseExts] [GoGlobalContext] :
 class QUICConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying QUICConn.underlying QUICConn
   underlying : go.UnderlyingDirectedEq QUICConn.ty QUICConn.underlying
-  get_conn : ∀ (x : QUICConn), go.IsGoStepPureDetTagged under (StructFieldGet QUICConn.underlying go!"conn") #x (Val #(x.conn'))
-  set_conn : ∀ (x : QUICConn) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet QUICConn.underlying go!"conn") (PairV #x #y) (Val #(({ x with conn' := y } : QUICConn)))
-  get_sessionTicketSent : ∀ (x : QUICConn), go.IsGoStepPureDetTagged under (StructFieldGet QUICConn.underlying go!"sessionTicketSent") #x (Val #(x.sessionTicketSent'))
-  set_sessionTicketSent : ∀ (x : QUICConn) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet QUICConn.underlying go!"sessionTicketSent") (PairV #x #y) (Val #(({ x with sessionTicketSent' := y } : QUICConn)))
+  get'conn : ∀ (x : QUICConn), go.IsGoStepPureDetTagged under (StructFieldGet QUICConn.underlying go!"conn") #x (Val #(x.conn'))
+  set'conn : ∀ (x : QUICConn) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet QUICConn.underlying go!"conn") (PairV #x #y) (Val #(({ x with conn' := y } : QUICConn)))
+  get'sessionTicketSent : ∀ (x : QUICConn), go.IsGoStepPureDetTagged under (StructFieldGet QUICConn.underlying go!"sessionTicketSent") #x (Val #(x.sessionTicketSent'))
+  set'sessionTicketSent : ∀ (x : QUICConn) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet QUICConn.underlying go!"sessionTicketSent") (PairV #x #y) (Val #(({ x with sessionTicketSent' := y } : QUICConn)))
   method_set : go.MethodSetIs QUICConn.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType QUICConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"ConnectionState", (some (go.signature.Signature [] false [ConnectionState.ty]))), (go!"HandleData", (some (go.signature.Signature [QUICEncryptionLevel.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"NextEvent", (some (go.signature.Signature [] false [QUICEvent.ty]))), (go!"SendSessionTicket", (some (go.signature.Signature [QUICSessionTicketOptions.ty] false [go.error]))), (go!"SetTransportParameters", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"Start", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"StoreSession", (some (go.signature.Signature [(go.GoType.PointerType SessionState.ty)] false [go.error])))]
 
 attribute [instance] QUICConn.TypeAssumptions.type_repr
   QUICConn.TypeAssumptions.underlying
-  QUICConn.TypeAssumptions.get_conn
-  QUICConn.TypeAssumptions.set_conn
-  QUICConn.TypeAssumptions.get_sessionTicketSent
-  QUICConn.TypeAssumptions.set_sessionTicketSent
+  QUICConn.TypeAssumptions.get'conn
+  QUICConn.TypeAssumptions.set'conn
+  QUICConn.TypeAssumptions.get'sessionTicketSent
+  QUICConn.TypeAssumptions.set'sessionTicketSent
   QUICConn.TypeAssumptions.method_set
   QUICConn.TypeAssumptions.ptr_method_set
 
@@ -4197,7 +4197,7 @@ noncomputable instance QUICEvent.zero_val [GooseExts] : ZeroVal QUICEvent :=
 @[irreducible] noncomputable def QUICEvent.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   QUICEvent.fieldsUnsealed
 
-noncomputable instance equals_unfold_QUICEvent [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'QUICEvent [GooseExts] [GoGlobalContext] :
     EqualsUnfold QUICEvent.fields QUICEvent.fieldsUnsealed :=
   ⟨by unfold QUICEvent.fields; rfl⟩
 
@@ -4207,35 +4207,35 @@ noncomputable instance equals_unfold_QUICEvent [GooseExts] [GoGlobalContext] :
 class QUICEvent.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying QUICEvent.underlying QUICEvent
   underlying : go.UnderlyingDirectedEq QUICEvent.ty QUICEvent.underlying
-  get_Kind : ∀ (x : QUICEvent), go.IsGoStepPureDetTagged under (StructFieldGet QUICEvent.underlying go!"Kind") #x (Val #(x.Kind'))
-  set_Kind : ∀ (x : QUICEvent) (y : QUICEventKind), go.IsGoStepPureDetTagged under (StructFieldSet QUICEvent.underlying go!"Kind") (PairV #x #y) (Val #(({ x with Kind' := y } : QUICEvent)))
-  get_Level : ∀ (x : QUICEvent), go.IsGoStepPureDetTagged under (StructFieldGet QUICEvent.underlying go!"Level") #x (Val #(x.Level'))
-  set_Level : ∀ (x : QUICEvent) (y : QUICEncryptionLevel), go.IsGoStepPureDetTagged under (StructFieldSet QUICEvent.underlying go!"Level") (PairV #x #y) (Val #(({ x with Level' := y } : QUICEvent)))
-  get_Data : ∀ (x : QUICEvent), go.IsGoStepPureDetTagged under (StructFieldGet QUICEvent.underlying go!"Data") #x (Val #(x.Data'))
-  set_Data : ∀ (x : QUICEvent) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet QUICEvent.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : QUICEvent)))
-  get_Suite : ∀ (x : QUICEvent), go.IsGoStepPureDetTagged under (StructFieldGet QUICEvent.underlying go!"Suite") #x (Val #(x.Suite'))
-  set_Suite : ∀ (x : QUICEvent) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet QUICEvent.underlying go!"Suite") (PairV #x #y) (Val #(({ x with Suite' := y } : QUICEvent)))
-  get_SessionState : ∀ (x : QUICEvent), go.IsGoStepPureDetTagged under (StructFieldGet QUICEvent.underlying go!"SessionState") #x (Val #(x.SessionState'))
-  set_SessionState : ∀ (x : QUICEvent) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet QUICEvent.underlying go!"SessionState") (PairV #x #y) (Val #(({ x with SessionState' := y } : QUICEvent)))
-  get_Err : ∀ (x : QUICEvent), go.IsGoStepPureDetTagged under (StructFieldGet QUICEvent.underlying go!"Err") #x (Val #(x.Err'))
-  set_Err : ∀ (x : QUICEvent) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet QUICEvent.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : QUICEvent)))
+  get'Kind : ∀ (x : QUICEvent), go.IsGoStepPureDetTagged under (StructFieldGet QUICEvent.underlying go!"Kind") #x (Val #(x.Kind'))
+  set'Kind : ∀ (x : QUICEvent) (y : QUICEventKind), go.IsGoStepPureDetTagged under (StructFieldSet QUICEvent.underlying go!"Kind") (PairV #x #y) (Val #(({ x with Kind' := y } : QUICEvent)))
+  get'Level : ∀ (x : QUICEvent), go.IsGoStepPureDetTagged under (StructFieldGet QUICEvent.underlying go!"Level") #x (Val #(x.Level'))
+  set'Level : ∀ (x : QUICEvent) (y : QUICEncryptionLevel), go.IsGoStepPureDetTagged under (StructFieldSet QUICEvent.underlying go!"Level") (PairV #x #y) (Val #(({ x with Level' := y } : QUICEvent)))
+  get'Data : ∀ (x : QUICEvent), go.IsGoStepPureDetTagged under (StructFieldGet QUICEvent.underlying go!"Data") #x (Val #(x.Data'))
+  set'Data : ∀ (x : QUICEvent) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet QUICEvent.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : QUICEvent)))
+  get'Suite : ∀ (x : QUICEvent), go.IsGoStepPureDetTagged under (StructFieldGet QUICEvent.underlying go!"Suite") #x (Val #(x.Suite'))
+  set'Suite : ∀ (x : QUICEvent) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet QUICEvent.underlying go!"Suite") (PairV #x #y) (Val #(({ x with Suite' := y } : QUICEvent)))
+  get'SessionState : ∀ (x : QUICEvent), go.IsGoStepPureDetTagged under (StructFieldGet QUICEvent.underlying go!"SessionState") #x (Val #(x.SessionState'))
+  set'SessionState : ∀ (x : QUICEvent) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet QUICEvent.underlying go!"SessionState") (PairV #x #y) (Val #(({ x with SessionState' := y } : QUICEvent)))
+  get'Err : ∀ (x : QUICEvent), go.IsGoStepPureDetTagged under (StructFieldGet QUICEvent.underlying go!"Err") #x (Val #(x.Err'))
+  set'Err : ∀ (x : QUICEvent) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet QUICEvent.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : QUICEvent)))
   method_set : go.MethodSetIs QUICEvent.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType QUICEvent.ty) []
 
 attribute [instance] QUICEvent.TypeAssumptions.type_repr
   QUICEvent.TypeAssumptions.underlying
-  QUICEvent.TypeAssumptions.get_Kind
-  QUICEvent.TypeAssumptions.set_Kind
-  QUICEvent.TypeAssumptions.get_Level
-  QUICEvent.TypeAssumptions.set_Level
-  QUICEvent.TypeAssumptions.get_Data
-  QUICEvent.TypeAssumptions.set_Data
-  QUICEvent.TypeAssumptions.get_Suite
-  QUICEvent.TypeAssumptions.set_Suite
-  QUICEvent.TypeAssumptions.get_SessionState
-  QUICEvent.TypeAssumptions.set_SessionState
-  QUICEvent.TypeAssumptions.get_Err
-  QUICEvent.TypeAssumptions.set_Err
+  QUICEvent.TypeAssumptions.get'Kind
+  QUICEvent.TypeAssumptions.set'Kind
+  QUICEvent.TypeAssumptions.get'Level
+  QUICEvent.TypeAssumptions.set'Level
+  QUICEvent.TypeAssumptions.get'Data
+  QUICEvent.TypeAssumptions.set'Data
+  QUICEvent.TypeAssumptions.get'Suite
+  QUICEvent.TypeAssumptions.set'Suite
+  QUICEvent.TypeAssumptions.get'SessionState
+  QUICEvent.TypeAssumptions.set'SessionState
+  QUICEvent.TypeAssumptions.get'Err
+  QUICEvent.TypeAssumptions.set'Err
   QUICEvent.TypeAssumptions.method_set
   QUICEvent.TypeAssumptions.ptr_method_set
 
@@ -4273,7 +4273,7 @@ noncomputable instance QUICSessionTicketOptions.zero_val [GooseExts] : ZeroVal Q
 @[irreducible] noncomputable def QUICSessionTicketOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   QUICSessionTicketOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_QUICSessionTicketOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'QUICSessionTicketOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold QUICSessionTicketOptions.fields QUICSessionTicketOptions.fieldsUnsealed :=
   ⟨by unfold QUICSessionTicketOptions.fields; rfl⟩
 
@@ -4283,19 +4283,19 @@ noncomputable instance equals_unfold_QUICSessionTicketOptions [GooseExts] [GoGlo
 class QUICSessionTicketOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying QUICSessionTicketOptions.underlying QUICSessionTicketOptions
   underlying : go.UnderlyingDirectedEq QUICSessionTicketOptions.ty QUICSessionTicketOptions.underlying
-  get_EarlyData : ∀ (x : QUICSessionTicketOptions), go.IsGoStepPureDetTagged under (StructFieldGet QUICSessionTicketOptions.underlying go!"EarlyData") #x (Val #(x.EarlyData'))
-  set_EarlyData : ∀ (x : QUICSessionTicketOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet QUICSessionTicketOptions.underlying go!"EarlyData") (PairV #x #y) (Val #(({ x with EarlyData' := y } : QUICSessionTicketOptions)))
-  get_Extra : ∀ (x : QUICSessionTicketOptions), go.IsGoStepPureDetTagged under (StructFieldGet QUICSessionTicketOptions.underlying go!"Extra") #x (Val #(x.Extra'))
-  set_Extra : ∀ (x : QUICSessionTicketOptions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet QUICSessionTicketOptions.underlying go!"Extra") (PairV #x #y) (Val #(({ x with Extra' := y } : QUICSessionTicketOptions)))
+  get'EarlyData : ∀ (x : QUICSessionTicketOptions), go.IsGoStepPureDetTagged under (StructFieldGet QUICSessionTicketOptions.underlying go!"EarlyData") #x (Val #(x.EarlyData'))
+  set'EarlyData : ∀ (x : QUICSessionTicketOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet QUICSessionTicketOptions.underlying go!"EarlyData") (PairV #x #y) (Val #(({ x with EarlyData' := y } : QUICSessionTicketOptions)))
+  get'Extra : ∀ (x : QUICSessionTicketOptions), go.IsGoStepPureDetTagged under (StructFieldGet QUICSessionTicketOptions.underlying go!"Extra") #x (Val #(x.Extra'))
+  set'Extra : ∀ (x : QUICSessionTicketOptions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet QUICSessionTicketOptions.underlying go!"Extra") (PairV #x #y) (Val #(({ x with Extra' := y } : QUICSessionTicketOptions)))
   method_set : go.MethodSetIs QUICSessionTicketOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType QUICSessionTicketOptions.ty) []
 
 attribute [instance] QUICSessionTicketOptions.TypeAssumptions.type_repr
   QUICSessionTicketOptions.TypeAssumptions.underlying
-  QUICSessionTicketOptions.TypeAssumptions.get_EarlyData
-  QUICSessionTicketOptions.TypeAssumptions.set_EarlyData
-  QUICSessionTicketOptions.TypeAssumptions.get_Extra
-  QUICSessionTicketOptions.TypeAssumptions.set_Extra
+  QUICSessionTicketOptions.TypeAssumptions.get'EarlyData
+  QUICSessionTicketOptions.TypeAssumptions.set'EarlyData
+  QUICSessionTicketOptions.TypeAssumptions.get'Extra
+  QUICSessionTicketOptions.TypeAssumptions.set'Extra
   QUICSessionTicketOptions.TypeAssumptions.method_set
   QUICSessionTicketOptions.TypeAssumptions.ptr_method_set
 
@@ -4331,7 +4331,7 @@ noncomputable instance ClientSessionState.zero_val [GooseExts] : ZeroVal ClientS
 @[irreducible] noncomputable def ClientSessionState.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClientSessionState.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClientSessionState [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ClientSessionState [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClientSessionState.fields ClientSessionState.fieldsUnsealed :=
   ⟨by unfold ClientSessionState.fields; rfl⟩
 
@@ -4341,15 +4341,15 @@ noncomputable instance equals_unfold_ClientSessionState [GooseExts] [GoGlobalCon
 class ClientSessionState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClientSessionState.underlying ClientSessionState
   underlying : go.UnderlyingDirectedEq ClientSessionState.ty ClientSessionState.underlying
-  get_session : ∀ (x : ClientSessionState), go.IsGoStepPureDetTagged under (StructFieldGet ClientSessionState.underlying go!"session") #x (Val #(x.session'))
-  set_session : ∀ (x : ClientSessionState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientSessionState.underlying go!"session") (PairV #x #y) (Val #(({ x with session' := y } : ClientSessionState)))
+  get'session : ∀ (x : ClientSessionState), go.IsGoStepPureDetTagged under (StructFieldGet ClientSessionState.underlying go!"session") #x (Val #(x.session'))
+  set'session : ∀ (x : ClientSessionState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClientSessionState.underlying go!"session") (PairV #x #y) (Val #(({ x with session' := y } : ClientSessionState)))
   method_set : go.MethodSetIs ClientSessionState.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientSessionState.ty) [(go!"ResumptionState", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.PointerType SessionState.ty), go.error])))]
 
 attribute [instance] ClientSessionState.TypeAssumptions.type_repr
   ClientSessionState.TypeAssumptions.underlying
-  ClientSessionState.TypeAssumptions.get_session
-  ClientSessionState.TypeAssumptions.set_session
+  ClientSessionState.TypeAssumptions.get'session
+  ClientSessionState.TypeAssumptions.set'session
   ClientSessionState.TypeAssumptions.method_set
   ClientSessionState.TypeAssumptions.ptr_method_set
 
@@ -4384,7 +4384,7 @@ noncomputable instance timeoutError.zero_val [GooseExts] : ZeroVal timeoutError 
 @[irreducible] noncomputable def timeoutError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   timeoutError.fieldsUnsealed
 
-noncomputable instance equals_unfold_timeoutError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'timeoutError [GooseExts] [GoGlobalContext] :
     EqualsUnfold timeoutError.fields timeoutError.fieldsUnsealed :=
   ⟨by unfold timeoutError.fields; rfl⟩
 
@@ -4422,189 +4422,189 @@ attribute [instance] Dialer.TypeAssumptions.type_repr
   Dialer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  AlertError_instance : AlertError.TypeAssumptions
-  alert_instance : alert.TypeAssumptions
-  weakCertCache_instance : weakCertCache.TypeAssumptions
-  CipherSuite_instance : CipherSuite.TypeAssumptions
-  cipherSuite_instance : cipherSuite.TypeAssumptions
-  cipherSuiteTLS13_instance : cipherSuiteTLS13.TypeAssumptions
-  aead_instance : aead.TypeAssumptions
-  prefixNonceAEAD_instance : prefixNonceAEAD.TypeAssumptions
-  xorNonceAEAD_instance : xorNonceAEAD.TypeAssumptions
-  constantTimeHash_instance : constantTimeHash.TypeAssumptions
-  cthWrapper_instance : cthWrapper.TypeAssumptions
-  recordType_instance : recordType.TypeAssumptions
-  CurveID_instance : CurveID.TypeAssumptions
-  keyShare_instance : keyShare.TypeAssumptions
-  pskIdentity_instance : pskIdentity.TypeAssumptions
-  ConnectionState_instance : ConnectionState.TypeAssumptions
-  ClientAuthType_instance : ClientAuthType.TypeAssumptions
-  ClientSessionCache_instance : ClientSessionCache.TypeAssumptions
-  SignatureScheme_instance : SignatureScheme.TypeAssumptions
-  ClientHelloInfo_instance : ClientHelloInfo.TypeAssumptions
-  CertificateRequestInfo_instance : CertificateRequestInfo.TypeAssumptions
-  RenegotiationSupport_instance : RenegotiationSupport.TypeAssumptions
-  Config_instance : Config.TypeAssumptions
-  EncryptedClientHelloKey_instance : EncryptedClientHelloKey.TypeAssumptions
-  ticketKey_instance : ticketKey.TypeAssumptions
-  Certificate_instance : Certificate.TypeAssumptions
-  handshakeMessage_instance : handshakeMessage.TypeAssumptions
-  handshakeMessageWithOriginalBytes_instance : handshakeMessageWithOriginalBytes.TypeAssumptions
-  lruSessionCache_instance : lruSessionCache.TypeAssumptions
-  lruSessionCacheEntry_instance : lruSessionCacheEntry.TypeAssumptions
-  CertificateVerificationError_instance : CertificateVerificationError.TypeAssumptions
-  Conn_instance : Conn.TypeAssumptions
-  halfConn_instance : halfConn.TypeAssumptions
-  permanentError_instance : permanentError.TypeAssumptions
-  cbcMode_instance : cbcMode.TypeAssumptions
-  RecordHeaderError_instance : RecordHeaderError.TypeAssumptions
-  echCipher_instance : echCipher.TypeAssumptions
-  echExtension_instance : echExtension.TypeAssumptions
-  echConfig_instance : echConfig.TypeAssumptions
-  echConfigErr_instance : echConfigErr.TypeAssumptions
-  rawExtension_instance : rawExtension.TypeAssumptions
-  ECHRejectionError_instance : ECHRejectionError.TypeAssumptions
-  echExtType_instance : echExtType.TypeAssumptions
-  clientHandshakeState_instance : clientHandshakeState.TypeAssumptions
-  echClientContext_instance : echClientContext.TypeAssumptions
-  clientHandshakeStateTLS13_instance : clientHandshakeStateTLS13.TypeAssumptions
-  marshalingFunction_instance : marshalingFunction.TypeAssumptions
-  clientHelloMsg_instance : clientHelloMsg.TypeAssumptions
-  serverHelloMsg_instance : serverHelloMsg.TypeAssumptions
-  encryptedExtensionsMsg_instance : encryptedExtensionsMsg.TypeAssumptions
-  endOfEarlyDataMsg_instance : endOfEarlyDataMsg.TypeAssumptions
-  keyUpdateMsg_instance : keyUpdateMsg.TypeAssumptions
-  newSessionTicketMsgTLS13_instance : newSessionTicketMsgTLS13.TypeAssumptions
-  certificateRequestMsgTLS13_instance : certificateRequestMsgTLS13.TypeAssumptions
-  certificateMsg_instance : certificateMsg.TypeAssumptions
-  certificateMsgTLS13_instance : certificateMsgTLS13.TypeAssumptions
-  serverKeyExchangeMsg_instance : serverKeyExchangeMsg.TypeAssumptions
-  certificateStatusMsg_instance : certificateStatusMsg.TypeAssumptions
-  serverHelloDoneMsg_instance : serverHelloDoneMsg.TypeAssumptions
-  clientKeyExchangeMsg_instance : clientKeyExchangeMsg.TypeAssumptions
-  finishedMsg_instance : finishedMsg.TypeAssumptions
-  certificateRequestMsg_instance : certificateRequestMsg.TypeAssumptions
-  certificateVerifyMsg_instance : certificateVerifyMsg.TypeAssumptions
-  newSessionTicketMsg_instance : newSessionTicketMsg.TypeAssumptions
-  helloRequestMsg_instance : helloRequestMsg.TypeAssumptions
-  transcriptHash_instance : transcriptHash.TypeAssumptions
-  serverHandshakeState_instance : serverHandshakeState.TypeAssumptions
-  echServerContext_instance : echServerContext.TypeAssumptions
-  serverHandshakeStateTLS13_instance : serverHandshakeStateTLS13.TypeAssumptions
-  keyAgreement_instance : keyAgreement.TypeAssumptions
-  rsaKeyAgreement_instance : rsaKeyAgreement.TypeAssumptions
-  ecdheKeyAgreement_instance : ecdheKeyAgreement.TypeAssumptions
-  keySharePrivateKeys_instance : keySharePrivateKeys.TypeAssumptions
-  keyExchange_instance : keyExchange.TypeAssumptions
-  mlkem1024KeyExchange_instance : mlkem1024KeyExchange.TypeAssumptions
-  ecdhKeyExchange_instance : ecdhKeyExchange.TypeAssumptions
-  hybridKeyExchange_instance : hybridKeyExchange.TypeAssumptions
-  prfFunc_instance : prfFunc.TypeAssumptions
-  finishedHash_instance : finishedHash.TypeAssumptions
-  QUICEncryptionLevel_instance : QUICEncryptionLevel.TypeAssumptions
-  QUICConn_instance : QUICConn.TypeAssumptions
-  QUICConfig_instance : QUICConfig.TypeAssumptions
-  QUICEventKind_instance : QUICEventKind.TypeAssumptions
-  QUICEvent_instance : QUICEvent.TypeAssumptions
-  quicState_instance : quicState.TypeAssumptions
-  QUICSessionTicketOptions_instance : QUICSessionTicketOptions.TypeAssumptions
-  SessionState_instance : SessionState.TypeAssumptions
-  ClientSessionState_instance : ClientSessionState.TypeAssumptions
-  listener_instance : listener.TypeAssumptions
-  timeoutError_instance : timeoutError.TypeAssumptions
-  Dialer_instance : Dialer.TypeAssumptions
+  instance'AlertError : AlertError.TypeAssumptions
+  instance'alert : alert.TypeAssumptions
+  instance'weakCertCache : weakCertCache.TypeAssumptions
+  instance'CipherSuite : CipherSuite.TypeAssumptions
+  instance'cipherSuite : cipherSuite.TypeAssumptions
+  instance'cipherSuiteTLS13 : cipherSuiteTLS13.TypeAssumptions
+  instance'aead : aead.TypeAssumptions
+  instance'prefixNonceAEAD : prefixNonceAEAD.TypeAssumptions
+  instance'xorNonceAEAD : xorNonceAEAD.TypeAssumptions
+  instance'constantTimeHash : constantTimeHash.TypeAssumptions
+  instance'cthWrapper : cthWrapper.TypeAssumptions
+  instance'recordType : recordType.TypeAssumptions
+  instance'CurveID : CurveID.TypeAssumptions
+  instance'keyShare : keyShare.TypeAssumptions
+  instance'pskIdentity : pskIdentity.TypeAssumptions
+  instance'ConnectionState : ConnectionState.TypeAssumptions
+  instance'ClientAuthType : ClientAuthType.TypeAssumptions
+  instance'ClientSessionCache : ClientSessionCache.TypeAssumptions
+  instance'SignatureScheme : SignatureScheme.TypeAssumptions
+  instance'ClientHelloInfo : ClientHelloInfo.TypeAssumptions
+  instance'CertificateRequestInfo : CertificateRequestInfo.TypeAssumptions
+  instance'RenegotiationSupport : RenegotiationSupport.TypeAssumptions
+  instance'Config : Config.TypeAssumptions
+  instance'EncryptedClientHelloKey : EncryptedClientHelloKey.TypeAssumptions
+  instance'ticketKey : ticketKey.TypeAssumptions
+  instance'Certificate : Certificate.TypeAssumptions
+  instance'handshakeMessage : handshakeMessage.TypeAssumptions
+  instance'handshakeMessageWithOriginalBytes : handshakeMessageWithOriginalBytes.TypeAssumptions
+  instance'lruSessionCache : lruSessionCache.TypeAssumptions
+  instance'lruSessionCacheEntry : lruSessionCacheEntry.TypeAssumptions
+  instance'CertificateVerificationError : CertificateVerificationError.TypeAssumptions
+  instance'Conn : Conn.TypeAssumptions
+  instance'halfConn : halfConn.TypeAssumptions
+  instance'permanentError : permanentError.TypeAssumptions
+  instance'cbcMode : cbcMode.TypeAssumptions
+  instance'RecordHeaderError : RecordHeaderError.TypeAssumptions
+  instance'echCipher : echCipher.TypeAssumptions
+  instance'echExtension : echExtension.TypeAssumptions
+  instance'echConfig : echConfig.TypeAssumptions
+  instance'echConfigErr : echConfigErr.TypeAssumptions
+  instance'rawExtension : rawExtension.TypeAssumptions
+  instance'ECHRejectionError : ECHRejectionError.TypeAssumptions
+  instance'echExtType : echExtType.TypeAssumptions
+  instance'clientHandshakeState : clientHandshakeState.TypeAssumptions
+  instance'echClientContext : echClientContext.TypeAssumptions
+  instance'clientHandshakeStateTLS13 : clientHandshakeStateTLS13.TypeAssumptions
+  instance'marshalingFunction : marshalingFunction.TypeAssumptions
+  instance'clientHelloMsg : clientHelloMsg.TypeAssumptions
+  instance'serverHelloMsg : serverHelloMsg.TypeAssumptions
+  instance'encryptedExtensionsMsg : encryptedExtensionsMsg.TypeAssumptions
+  instance'endOfEarlyDataMsg : endOfEarlyDataMsg.TypeAssumptions
+  instance'keyUpdateMsg : keyUpdateMsg.TypeAssumptions
+  instance'newSessionTicketMsgTLS13 : newSessionTicketMsgTLS13.TypeAssumptions
+  instance'certificateRequestMsgTLS13 : certificateRequestMsgTLS13.TypeAssumptions
+  instance'certificateMsg : certificateMsg.TypeAssumptions
+  instance'certificateMsgTLS13 : certificateMsgTLS13.TypeAssumptions
+  instance'serverKeyExchangeMsg : serverKeyExchangeMsg.TypeAssumptions
+  instance'certificateStatusMsg : certificateStatusMsg.TypeAssumptions
+  instance'serverHelloDoneMsg : serverHelloDoneMsg.TypeAssumptions
+  instance'clientKeyExchangeMsg : clientKeyExchangeMsg.TypeAssumptions
+  instance'finishedMsg : finishedMsg.TypeAssumptions
+  instance'certificateRequestMsg : certificateRequestMsg.TypeAssumptions
+  instance'certificateVerifyMsg : certificateVerifyMsg.TypeAssumptions
+  instance'newSessionTicketMsg : newSessionTicketMsg.TypeAssumptions
+  instance'helloRequestMsg : helloRequestMsg.TypeAssumptions
+  instance'transcriptHash : transcriptHash.TypeAssumptions
+  instance'serverHandshakeState : serverHandshakeState.TypeAssumptions
+  instance'echServerContext : echServerContext.TypeAssumptions
+  instance'serverHandshakeStateTLS13 : serverHandshakeStateTLS13.TypeAssumptions
+  instance'keyAgreement : keyAgreement.TypeAssumptions
+  instance'rsaKeyAgreement : rsaKeyAgreement.TypeAssumptions
+  instance'ecdheKeyAgreement : ecdheKeyAgreement.TypeAssumptions
+  instance'keySharePrivateKeys : keySharePrivateKeys.TypeAssumptions
+  instance'keyExchange : keyExchange.TypeAssumptions
+  instance'mlkem1024KeyExchange : mlkem1024KeyExchange.TypeAssumptions
+  instance'ecdhKeyExchange : ecdhKeyExchange.TypeAssumptions
+  instance'hybridKeyExchange : hybridKeyExchange.TypeAssumptions
+  instance'prfFunc : prfFunc.TypeAssumptions
+  instance'finishedHash : finishedHash.TypeAssumptions
+  instance'QUICEncryptionLevel : QUICEncryptionLevel.TypeAssumptions
+  instance'QUICConn : QUICConn.TypeAssumptions
+  instance'QUICConfig : QUICConfig.TypeAssumptions
+  instance'QUICEventKind : QUICEventKind.TypeAssumptions
+  instance'QUICEvent : QUICEvent.TypeAssumptions
+  instance'quicState : quicState.TypeAssumptions
+  instance'QUICSessionTicketOptions : QUICSessionTicketOptions.TypeAssumptions
+  instance'SessionState : SessionState.TypeAssumptions
+  instance'ClientSessionState : ClientSessionState.TypeAssumptions
+  instance'listener : listener.TypeAssumptions
+  instance'timeoutError : timeoutError.TypeAssumptions
+  instance'Dialer : Dialer.TypeAssumptions
 
-attribute [instance] Assumptions.AlertError_instance
-  Assumptions.alert_instance
-  Assumptions.weakCertCache_instance
-  Assumptions.CipherSuite_instance
-  Assumptions.cipherSuite_instance
-  Assumptions.cipherSuiteTLS13_instance
-  Assumptions.aead_instance
-  Assumptions.prefixNonceAEAD_instance
-  Assumptions.xorNonceAEAD_instance
-  Assumptions.constantTimeHash_instance
-  Assumptions.cthWrapper_instance
-  Assumptions.recordType_instance
-  Assumptions.CurveID_instance
-  Assumptions.keyShare_instance
-  Assumptions.pskIdentity_instance
-  Assumptions.ConnectionState_instance
-  Assumptions.ClientAuthType_instance
-  Assumptions.ClientSessionCache_instance
-  Assumptions.SignatureScheme_instance
-  Assumptions.ClientHelloInfo_instance
-  Assumptions.CertificateRequestInfo_instance
-  Assumptions.RenegotiationSupport_instance
-  Assumptions.Config_instance
-  Assumptions.EncryptedClientHelloKey_instance
-  Assumptions.ticketKey_instance
-  Assumptions.Certificate_instance
-  Assumptions.handshakeMessage_instance
-  Assumptions.handshakeMessageWithOriginalBytes_instance
-  Assumptions.lruSessionCache_instance
-  Assumptions.lruSessionCacheEntry_instance
-  Assumptions.CertificateVerificationError_instance
-  Assumptions.Conn_instance
-  Assumptions.halfConn_instance
-  Assumptions.permanentError_instance
-  Assumptions.cbcMode_instance
-  Assumptions.RecordHeaderError_instance
-  Assumptions.echCipher_instance
-  Assumptions.echExtension_instance
-  Assumptions.echConfig_instance
-  Assumptions.echConfigErr_instance
-  Assumptions.rawExtension_instance
-  Assumptions.ECHRejectionError_instance
-  Assumptions.echExtType_instance
-  Assumptions.clientHandshakeState_instance
-  Assumptions.echClientContext_instance
-  Assumptions.clientHandshakeStateTLS13_instance
-  Assumptions.marshalingFunction_instance
-  Assumptions.clientHelloMsg_instance
-  Assumptions.serverHelloMsg_instance
-  Assumptions.encryptedExtensionsMsg_instance
-  Assumptions.endOfEarlyDataMsg_instance
-  Assumptions.keyUpdateMsg_instance
-  Assumptions.newSessionTicketMsgTLS13_instance
-  Assumptions.certificateRequestMsgTLS13_instance
-  Assumptions.certificateMsg_instance
-  Assumptions.certificateMsgTLS13_instance
-  Assumptions.serverKeyExchangeMsg_instance
-  Assumptions.certificateStatusMsg_instance
-  Assumptions.serverHelloDoneMsg_instance
-  Assumptions.clientKeyExchangeMsg_instance
-  Assumptions.finishedMsg_instance
-  Assumptions.certificateRequestMsg_instance
-  Assumptions.certificateVerifyMsg_instance
-  Assumptions.newSessionTicketMsg_instance
-  Assumptions.helloRequestMsg_instance
-  Assumptions.transcriptHash_instance
-  Assumptions.serverHandshakeState_instance
-  Assumptions.echServerContext_instance
-  Assumptions.serverHandshakeStateTLS13_instance
-  Assumptions.keyAgreement_instance
-  Assumptions.rsaKeyAgreement_instance
-  Assumptions.ecdheKeyAgreement_instance
-  Assumptions.keySharePrivateKeys_instance
-  Assumptions.keyExchange_instance
-  Assumptions.mlkem1024KeyExchange_instance
-  Assumptions.ecdhKeyExchange_instance
-  Assumptions.hybridKeyExchange_instance
-  Assumptions.prfFunc_instance
-  Assumptions.finishedHash_instance
-  Assumptions.QUICEncryptionLevel_instance
-  Assumptions.QUICConn_instance
-  Assumptions.QUICConfig_instance
-  Assumptions.QUICEventKind_instance
-  Assumptions.QUICEvent_instance
-  Assumptions.quicState_instance
-  Assumptions.QUICSessionTicketOptions_instance
-  Assumptions.SessionState_instance
-  Assumptions.ClientSessionState_instance
-  Assumptions.listener_instance
-  Assumptions.timeoutError_instance
-  Assumptions.Dialer_instance
+attribute [instance] Assumptions.instance'AlertError
+  Assumptions.instance'alert
+  Assumptions.instance'weakCertCache
+  Assumptions.instance'CipherSuite
+  Assumptions.instance'cipherSuite
+  Assumptions.instance'cipherSuiteTLS13
+  Assumptions.instance'aead
+  Assumptions.instance'prefixNonceAEAD
+  Assumptions.instance'xorNonceAEAD
+  Assumptions.instance'constantTimeHash
+  Assumptions.instance'cthWrapper
+  Assumptions.instance'recordType
+  Assumptions.instance'CurveID
+  Assumptions.instance'keyShare
+  Assumptions.instance'pskIdentity
+  Assumptions.instance'ConnectionState
+  Assumptions.instance'ClientAuthType
+  Assumptions.instance'ClientSessionCache
+  Assumptions.instance'SignatureScheme
+  Assumptions.instance'ClientHelloInfo
+  Assumptions.instance'CertificateRequestInfo
+  Assumptions.instance'RenegotiationSupport
+  Assumptions.instance'Config
+  Assumptions.instance'EncryptedClientHelloKey
+  Assumptions.instance'ticketKey
+  Assumptions.instance'Certificate
+  Assumptions.instance'handshakeMessage
+  Assumptions.instance'handshakeMessageWithOriginalBytes
+  Assumptions.instance'lruSessionCache
+  Assumptions.instance'lruSessionCacheEntry
+  Assumptions.instance'CertificateVerificationError
+  Assumptions.instance'Conn
+  Assumptions.instance'halfConn
+  Assumptions.instance'permanentError
+  Assumptions.instance'cbcMode
+  Assumptions.instance'RecordHeaderError
+  Assumptions.instance'echCipher
+  Assumptions.instance'echExtension
+  Assumptions.instance'echConfig
+  Assumptions.instance'echConfigErr
+  Assumptions.instance'rawExtension
+  Assumptions.instance'ECHRejectionError
+  Assumptions.instance'echExtType
+  Assumptions.instance'clientHandshakeState
+  Assumptions.instance'echClientContext
+  Assumptions.instance'clientHandshakeStateTLS13
+  Assumptions.instance'marshalingFunction
+  Assumptions.instance'clientHelloMsg
+  Assumptions.instance'serverHelloMsg
+  Assumptions.instance'encryptedExtensionsMsg
+  Assumptions.instance'endOfEarlyDataMsg
+  Assumptions.instance'keyUpdateMsg
+  Assumptions.instance'newSessionTicketMsgTLS13
+  Assumptions.instance'certificateRequestMsgTLS13
+  Assumptions.instance'certificateMsg
+  Assumptions.instance'certificateMsgTLS13
+  Assumptions.instance'serverKeyExchangeMsg
+  Assumptions.instance'certificateStatusMsg
+  Assumptions.instance'serverHelloDoneMsg
+  Assumptions.instance'clientKeyExchangeMsg
+  Assumptions.instance'finishedMsg
+  Assumptions.instance'certificateRequestMsg
+  Assumptions.instance'certificateVerifyMsg
+  Assumptions.instance'newSessionTicketMsg
+  Assumptions.instance'helloRequestMsg
+  Assumptions.instance'transcriptHash
+  Assumptions.instance'serverHandshakeState
+  Assumptions.instance'echServerContext
+  Assumptions.instance'serverHandshakeStateTLS13
+  Assumptions.instance'keyAgreement
+  Assumptions.instance'rsaKeyAgreement
+  Assumptions.instance'ecdheKeyAgreement
+  Assumptions.instance'keySharePrivateKeys
+  Assumptions.instance'keyExchange
+  Assumptions.instance'mlkem1024KeyExchange
+  Assumptions.instance'ecdhKeyExchange
+  Assumptions.instance'hybridKeyExchange
+  Assumptions.instance'prfFunc
+  Assumptions.instance'finishedHash
+  Assumptions.instance'QUICEncryptionLevel
+  Assumptions.instance'QUICConn
+  Assumptions.instance'QUICConfig
+  Assumptions.instance'QUICEventKind
+  Assumptions.instance'QUICEvent
+  Assumptions.instance'quicState
+  Assumptions.instance'QUICSessionTicketOptions
+  Assumptions.instance'SessionState
+  Assumptions.instance'ClientSessionState
+  Assumptions.instance'listener
+  Assumptions.instance'timeoutError
+  Assumptions.instance'Dialer
 
 end crypto.tls
 

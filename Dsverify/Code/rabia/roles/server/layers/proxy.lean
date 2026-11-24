@@ -1004,7 +1004,7 @@ noncomputable instance Proxy.zero_val [GooseExts] : ZeroVal Proxy :=
 @[irreducible] noncomputable def Proxy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Proxy.fieldsUnsealed
 
-noncomputable instance equals_unfold_Proxy [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Proxy [GooseExts] [GoGlobalContext] :
     EqualsUnfold Proxy.fields Proxy.fieldsUnsealed :=
   ⟨by unfold Proxy.fields; rfl⟩
 
@@ -1014,134 +1014,134 @@ noncomputable instance equals_unfold_Proxy [GooseExts] [GoGlobalContext] :
 class Proxy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Proxy.underlying Proxy
   underlying : go.UnderlyingDirectedEq Proxy.ty Proxy.underlying
-  get_SvrId : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"SvrId") #x (Val #(x.SvrId'))
-  set_SvrId : ∀ (x : Proxy) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"SvrId") (PairV #x #y) (Val #(({ x with SvrId' := y } : Proxy)))
-  get_Wg : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"Wg") #x (Val #(x.Wg'))
-  set_Wg : ∀ (x : Proxy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"Wg") (PairV #x #y) (Val #(({ x with Wg' := y } : Proxy)))
-  get_Done : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"Done") #x (Val #(x.Done'))
-  set_Done : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"Done") (PairV #x #y) (Val #(({ x with Done' := y } : Proxy)))
-  get_ClientsIn : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"ClientsIn") #x (Val #(x.ClientsIn'))
-  set_ClientsIn : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"ClientsIn") (PairV #x #y) (Val #(({ x with ClientsIn' := y } : Proxy)))
-  get_ToNet : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"ToNet") #x (Val #(x.ToNet'))
-  set_ToNet : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"ToNet") (PairV #x #y) (Val #(({ x with ToNet' := y } : Proxy)))
-  get_NetIn : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"NetIn") #x (Val #(x.NetIn'))
-  set_NetIn : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"NetIn") (PairV #x #y) (Val #(({ x with NetIn' := y } : Proxy)))
-  get_TCP : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"TCP") #x (Val #(x.TCP'))
-  set_TCP : ∀ (x : Proxy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"TCP") (PairV #x #y) (Val #(({ x with TCP' := y } : Proxy)))
-  get_KVStore : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"KVStore") #x (Val #(x.KVStore'))
-  set_KVStore : ∀ (x : Proxy) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"KVStore") (PairV #x #y) (Val #(({ x with KVStore' := y } : Proxy)))
-  get_RedisClient : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"RedisClient") #x (Val #(x.RedisClient'))
-  set_RedisClient : ∀ (x : Proxy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"RedisClient") (PairV #x #y) (Val #(({ x with RedisClient' := y } : Proxy)))
-  get_RedisCtx : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"RedisCtx") #x (Val #(x.RedisCtx'))
-  set_RedisCtx : ∀ (x : Proxy) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"RedisCtx") (PairV #x #y) (Val #(({ x with RedisCtx' := y } : Proxy)))
-  get_executeCmdFunc : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"executeCmdFunc") #x (Val #(x.executeCmdFunc'))
-  set_executeCmdFunc : ∀ (x : Proxy) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"executeCmdFunc") (PairV #x #y) (Val #(({ x with executeCmdFunc' := y } : Proxy)))
-  get_executeAndReplyFunc : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"executeAndReplyFunc") #x (Val #(x.executeAndReplyFunc'))
-  set_executeAndReplyFunc : ∀ (x : Proxy) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"executeAndReplyFunc") (PairV #x #y) (Val #(({ x with executeAndReplyFunc' := y } : Proxy)))
-  get_Logger : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"Logger") #x (Val #(x.Logger'))
-  set_Logger : ∀ (x : Proxy) (y : _root_.Perennial.github_com.rs.zerolog.Logger), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : Proxy)))
-  get_LogFile : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"LogFile") #x (Val #(x.LogFile'))
-  set_LogFile : ∀ (x : Proxy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"LogFile") (PairV #x #y) (Val #(({ x with LogFile' := y } : Proxy)))
-  get_Ledger : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"Ledger") #x (Val #(x.Ledger'))
-  set_Ledger : ∀ (x : Proxy) (y : _root_.Perennial.rabia.internal.ledger.Ledger), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"Ledger") (PairV #x #y) (Val #(({ x with Ledger' := y } : Proxy)))
-  get_CurrDec : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"CurrDec") #x (Val #(x.CurrDec'))
-  set_CurrDec : ∀ (x : Proxy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"CurrDec") (PairV #x #y) (Val #(({ x with CurrDec' := y } : Proxy)))
-  get_CurrInsId : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"CurrInsId") #x (Val #(x.CurrInsId'))
-  set_CurrInsId : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"CurrInsId") (PairV #x #y) (Val #(({ x with CurrInsId' := y } : Proxy)))
-  get_CurrSeq : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"CurrSeq") #x (Val #(x.CurrSeq'))
-  set_CurrSeq : ∀ (x : Proxy) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"CurrSeq") (PairV #x #y) (Val #(({ x with CurrSeq' := y } : Proxy)))
+  get'SvrId : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"SvrId") #x (Val #(x.SvrId'))
+  set'SvrId : ∀ (x : Proxy) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"SvrId") (PairV #x #y) (Val #(({ x with SvrId' := y } : Proxy)))
+  get'Wg : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"Wg") #x (Val #(x.Wg'))
+  set'Wg : ∀ (x : Proxy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"Wg") (PairV #x #y) (Val #(({ x with Wg' := y } : Proxy)))
+  get'Done : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"Done") #x (Val #(x.Done'))
+  set'Done : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"Done") (PairV #x #y) (Val #(({ x with Done' := y } : Proxy)))
+  get'ClientsIn : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"ClientsIn") #x (Val #(x.ClientsIn'))
+  set'ClientsIn : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"ClientsIn") (PairV #x #y) (Val #(({ x with ClientsIn' := y } : Proxy)))
+  get'ToNet : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"ToNet") #x (Val #(x.ToNet'))
+  set'ToNet : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"ToNet") (PairV #x #y) (Val #(({ x with ToNet' := y } : Proxy)))
+  get'NetIn : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"NetIn") #x (Val #(x.NetIn'))
+  set'NetIn : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"NetIn") (PairV #x #y) (Val #(({ x with NetIn' := y } : Proxy)))
+  get'TCP : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"TCP") #x (Val #(x.TCP'))
+  set'TCP : ∀ (x : Proxy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"TCP") (PairV #x #y) (Val #(({ x with TCP' := y } : Proxy)))
+  get'KVStore : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"KVStore") #x (Val #(x.KVStore'))
+  set'KVStore : ∀ (x : Proxy) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"KVStore") (PairV #x #y) (Val #(({ x with KVStore' := y } : Proxy)))
+  get'RedisClient : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"RedisClient") #x (Val #(x.RedisClient'))
+  set'RedisClient : ∀ (x : Proxy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"RedisClient") (PairV #x #y) (Val #(({ x with RedisClient' := y } : Proxy)))
+  get'RedisCtx : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"RedisCtx") #x (Val #(x.RedisCtx'))
+  set'RedisCtx : ∀ (x : Proxy) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"RedisCtx") (PairV #x #y) (Val #(({ x with RedisCtx' := y } : Proxy)))
+  get'executeCmdFunc : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"executeCmdFunc") #x (Val #(x.executeCmdFunc'))
+  set'executeCmdFunc : ∀ (x : Proxy) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"executeCmdFunc") (PairV #x #y) (Val #(({ x with executeCmdFunc' := y } : Proxy)))
+  get'executeAndReplyFunc : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"executeAndReplyFunc") #x (Val #(x.executeAndReplyFunc'))
+  set'executeAndReplyFunc : ∀ (x : Proxy) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"executeAndReplyFunc") (PairV #x #y) (Val #(({ x with executeAndReplyFunc' := y } : Proxy)))
+  get'Logger : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"Logger") #x (Val #(x.Logger'))
+  set'Logger : ∀ (x : Proxy) (y : _root_.Perennial.github_com.rs.zerolog.Logger), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : Proxy)))
+  get'LogFile : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"LogFile") #x (Val #(x.LogFile'))
+  set'LogFile : ∀ (x : Proxy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"LogFile") (PairV #x #y) (Val #(({ x with LogFile' := y } : Proxy)))
+  get'Ledger : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"Ledger") #x (Val #(x.Ledger'))
+  set'Ledger : ∀ (x : Proxy) (y : _root_.Perennial.rabia.internal.ledger.Ledger), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"Ledger") (PairV #x #y) (Val #(({ x with Ledger' := y } : Proxy)))
+  get'CurrDec : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"CurrDec") #x (Val #(x.CurrDec'))
+  set'CurrDec : ∀ (x : Proxy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"CurrDec") (PairV #x #y) (Val #(({ x with CurrDec' := y } : Proxy)))
+  get'CurrInsId : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"CurrInsId") #x (Val #(x.CurrInsId'))
+  set'CurrInsId : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"CurrInsId") (PairV #x #y) (Val #(({ x with CurrInsId' := y } : Proxy)))
+  get'CurrSeq : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"CurrSeq") #x (Val #(x.CurrSeq'))
+  set'CurrSeq : ∀ (x : Proxy) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"CurrSeq") (PairV #x #y) (Val #(({ x with CurrSeq' := y } : Proxy)))
   method_set : go.MethodSetIs Proxy.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Proxy.ty) [(go!"CmdReceiver", (some (go.signature.Signature [] false []))), (go!"Epilogue", (some (go.signature.Signature [] false []))), (go!"KVSExecutor", (some (go.signature.Signature [] false []))), (go!"Prologue", (some (go.signature.Signature [] false []))), (go!"RedisBatchExecuteCmd", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.SliceType go.string))]))), (go!"rabia/roles/server/layers/proxy.batchExecuteAndReply", (some (go.signature.Signature [] false []))), (go!"rabia/roles/server/layers/proxy.naiveExecuteCmd", (some (go.signature.Signature [go.string] false [go.string]))), (go!"rabia/roles/server/layers/proxy.redisExecuteCmd", (some (go.signature.Signature [go.string] false [go.string]))), (go!"rabia/roles/server/layers/proxy.singleExecuteAndReply", (some (go.signature.Signature [] false [])))]
-  ptr_CmdReceiver_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"CmdReceiver" Proxy.CmdReceiver.impl
-  ptr_Epilogue_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"Epilogue" Proxy.Epilogue.impl
-  ptr_KVSExecutor_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"KVSExecutor" Proxy.KVSExecutor.impl
-  ptr_Prologue_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"Prologue" Proxy.Prologue.impl
-  ptr_RedisBatchExecuteCmd_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"RedisBatchExecuteCmd" Proxy.RedisBatchExecuteCmd.impl
-  ptr_batchExecuteAndReply_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"batchExecuteAndReply" Proxy.batchExecuteAndReply.impl
-  ptr_naiveExecuteCmd_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"naiveExecuteCmd" Proxy.naiveExecuteCmd.impl
-  ptr_singleExecuteAndReply_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"singleExecuteAndReply" Proxy.singleExecuteAndReply.impl
+  ptr_unfold'CmdReceiver : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"CmdReceiver" Proxy.CmdReceiver.impl
+  ptr_unfold'Epilogue : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"Epilogue" Proxy.Epilogue.impl
+  ptr_unfold'KVSExecutor : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"KVSExecutor" Proxy.KVSExecutor.impl
+  ptr_unfold'Prologue : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"Prologue" Proxy.Prologue.impl
+  ptr_unfold'RedisBatchExecuteCmd : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"RedisBatchExecuteCmd" Proxy.RedisBatchExecuteCmd.impl
+  ptr_unfold'batchExecuteAndReply : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"batchExecuteAndReply" Proxy.batchExecuteAndReply.impl
+  ptr_unfold'naiveExecuteCmd : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"naiveExecuteCmd" Proxy.naiveExecuteCmd.impl
+  ptr_unfold'singleExecuteAndReply : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"singleExecuteAndReply" Proxy.singleExecuteAndReply.impl
 
 attribute [instance] Proxy.TypeAssumptions.type_repr
   Proxy.TypeAssumptions.underlying
-  Proxy.TypeAssumptions.get_SvrId
-  Proxy.TypeAssumptions.set_SvrId
-  Proxy.TypeAssumptions.get_Wg
-  Proxy.TypeAssumptions.set_Wg
-  Proxy.TypeAssumptions.get_Done
-  Proxy.TypeAssumptions.set_Done
-  Proxy.TypeAssumptions.get_ClientsIn
-  Proxy.TypeAssumptions.set_ClientsIn
-  Proxy.TypeAssumptions.get_ToNet
-  Proxy.TypeAssumptions.set_ToNet
-  Proxy.TypeAssumptions.get_NetIn
-  Proxy.TypeAssumptions.set_NetIn
-  Proxy.TypeAssumptions.get_TCP
-  Proxy.TypeAssumptions.set_TCP
-  Proxy.TypeAssumptions.get_KVStore
-  Proxy.TypeAssumptions.set_KVStore
-  Proxy.TypeAssumptions.get_RedisClient
-  Proxy.TypeAssumptions.set_RedisClient
-  Proxy.TypeAssumptions.get_RedisCtx
-  Proxy.TypeAssumptions.set_RedisCtx
-  Proxy.TypeAssumptions.get_executeCmdFunc
-  Proxy.TypeAssumptions.set_executeCmdFunc
-  Proxy.TypeAssumptions.get_executeAndReplyFunc
-  Proxy.TypeAssumptions.set_executeAndReplyFunc
-  Proxy.TypeAssumptions.get_Logger
-  Proxy.TypeAssumptions.set_Logger
-  Proxy.TypeAssumptions.get_LogFile
-  Proxy.TypeAssumptions.set_LogFile
-  Proxy.TypeAssumptions.get_Ledger
-  Proxy.TypeAssumptions.set_Ledger
-  Proxy.TypeAssumptions.get_CurrDec
-  Proxy.TypeAssumptions.set_CurrDec
-  Proxy.TypeAssumptions.get_CurrInsId
-  Proxy.TypeAssumptions.set_CurrInsId
-  Proxy.TypeAssumptions.get_CurrSeq
-  Proxy.TypeAssumptions.set_CurrSeq
+  Proxy.TypeAssumptions.get'SvrId
+  Proxy.TypeAssumptions.set'SvrId
+  Proxy.TypeAssumptions.get'Wg
+  Proxy.TypeAssumptions.set'Wg
+  Proxy.TypeAssumptions.get'Done
+  Proxy.TypeAssumptions.set'Done
+  Proxy.TypeAssumptions.get'ClientsIn
+  Proxy.TypeAssumptions.set'ClientsIn
+  Proxy.TypeAssumptions.get'ToNet
+  Proxy.TypeAssumptions.set'ToNet
+  Proxy.TypeAssumptions.get'NetIn
+  Proxy.TypeAssumptions.set'NetIn
+  Proxy.TypeAssumptions.get'TCP
+  Proxy.TypeAssumptions.set'TCP
+  Proxy.TypeAssumptions.get'KVStore
+  Proxy.TypeAssumptions.set'KVStore
+  Proxy.TypeAssumptions.get'RedisClient
+  Proxy.TypeAssumptions.set'RedisClient
+  Proxy.TypeAssumptions.get'RedisCtx
+  Proxy.TypeAssumptions.set'RedisCtx
+  Proxy.TypeAssumptions.get'executeCmdFunc
+  Proxy.TypeAssumptions.set'executeCmdFunc
+  Proxy.TypeAssumptions.get'executeAndReplyFunc
+  Proxy.TypeAssumptions.set'executeAndReplyFunc
+  Proxy.TypeAssumptions.get'Logger
+  Proxy.TypeAssumptions.set'Logger
+  Proxy.TypeAssumptions.get'LogFile
+  Proxy.TypeAssumptions.set'LogFile
+  Proxy.TypeAssumptions.get'Ledger
+  Proxy.TypeAssumptions.set'Ledger
+  Proxy.TypeAssumptions.get'CurrDec
+  Proxy.TypeAssumptions.set'CurrDec
+  Proxy.TypeAssumptions.get'CurrInsId
+  Proxy.TypeAssumptions.set'CurrInsId
+  Proxy.TypeAssumptions.get'CurrSeq
+  Proxy.TypeAssumptions.set'CurrSeq
   Proxy.TypeAssumptions.method_set
   Proxy.TypeAssumptions.ptr_method_set
-  Proxy.TypeAssumptions.ptr_CmdReceiver_unfold
-  Proxy.TypeAssumptions.ptr_Epilogue_unfold
-  Proxy.TypeAssumptions.ptr_KVSExecutor_unfold
-  Proxy.TypeAssumptions.ptr_Prologue_unfold
-  Proxy.TypeAssumptions.ptr_RedisBatchExecuteCmd_unfold
-  Proxy.TypeAssumptions.ptr_batchExecuteAndReply_unfold
-  Proxy.TypeAssumptions.ptr_naiveExecuteCmd_unfold
-  Proxy.TypeAssumptions.ptr_singleExecuteAndReply_unfold
+  Proxy.TypeAssumptions.ptr_unfold'CmdReceiver
+  Proxy.TypeAssumptions.ptr_unfold'Epilogue
+  Proxy.TypeAssumptions.ptr_unfold'KVSExecutor
+  Proxy.TypeAssumptions.ptr_unfold'Prologue
+  Proxy.TypeAssumptions.ptr_unfold'RedisBatchExecuteCmd
+  Proxy.TypeAssumptions.ptr_unfold'batchExecuteAndReply
+  Proxy.TypeAssumptions.ptr_unfold'naiveExecuteCmd
+  Proxy.TypeAssumptions.ptr_unfold'singleExecuteAndReply
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Proxy_instance : Proxy.TypeAssumptions
-  ProxyInit_unfold : FuncUnfold ProxyInit [] ProxyInit.impl
-  RedisInit_unfold : FuncUnfold RedisInit [] RedisInit.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_redis_Assumption : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions
-  import_zerolog_Assumption : _root_.Perennial.github_com.rs.zerolog.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_config_Assumption : _root_.Perennial.rabia.internal.config.Assumptions
-  import_ledger_Assumption : _root_.Perennial.rabia.internal.ledger.Assumptions
-  import_logger_Assumption : _root_.Perennial.rabia.internal.logger.Assumptions
-  import_message_Assumption : _root_.Perennial.rabia.internal.message.Assumptions
-  import_tcp_Assumption : _root_.Perennial.rabia.internal.tcp.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'Proxy : Proxy.TypeAssumptions
+  unfold'ProxyInit : FuncUnfold ProxyInit [] ProxyInit.impl
+  unfold'RedisInit : FuncUnfold RedisInit [] RedisInit.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'redis : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions
+  import'zerolog : _root_.Perennial.github_com.rs.zerolog.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'config : _root_.Perennial.rabia.internal.config.Assumptions
+  import'ledger : _root_.Perennial.rabia.internal.ledger.Assumptions
+  import'logger : _root_.Perennial.rabia.internal.logger.Assumptions
+  import'message : _root_.Perennial.rabia.internal.message.Assumptions
+  import'tcp : _root_.Perennial.rabia.internal.tcp.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.Proxy_instance
-  Assumptions.ProxyInit_unfold
-  Assumptions.RedisInit_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_redis_Assumption
-  Assumptions.import_zerolog_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_config_Assumption
-  Assumptions.import_ledger_Assumption
-  Assumptions.import_logger_Assumption
-  Assumptions.import_message_Assumption
-  Assumptions.import_tcp_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'Proxy
+  Assumptions.unfold'ProxyInit
+  Assumptions.unfold'RedisInit
+  Assumptions.import'context
+  Assumptions.import'fmt
+  Assumptions.import'redis
+  Assumptions.import'zerolog
+  Assumptions.import'os
+  Assumptions.import'config
+  Assumptions.import'ledger
+  Assumptions.import'logger
+  Assumptions.import'message
+  Assumptions.import'tcp
+  Assumptions.import'sync
+  Assumptions.import'time
 
 end rabia.roles.server.layers.proxy
 

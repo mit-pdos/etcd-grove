@@ -2246,97 +2246,97 @@ attribute [instance] yaml_emitter_t.TypeAssumptions.type_repr
   yaml_emitter_t.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  node_instance : node.TypeAssumptions
-  parser_instance : parser.TypeAssumptions
-  decoder_instance : decoder.TypeAssumptions
-  jsonNumber_instance : jsonNumber.TypeAssumptions
-  encoder_instance : encoder.TypeAssumptions
-  resolveMapItem_instance : resolveMapItem.TypeAssumptions
-  keyList_instance : keyList.TypeAssumptions
-  MapSlice_instance : MapSlice.TypeAssumptions
-  MapItem_instance : MapItem.TypeAssumptions
-  Unmarshaler_instance : Unmarshaler.TypeAssumptions
-  Marshaler_instance : Marshaler.TypeAssumptions
-  Decoder_instance : Decoder.TypeAssumptions
-  Encoder_instance : Encoder.TypeAssumptions
-  yamlError_instance : yamlError.TypeAssumptions
-  TypeError_instance : TypeError.TypeAssumptions
-  structInfo_instance : structInfo.TypeAssumptions
-  fieldInfo_instance : fieldInfo.TypeAssumptions
-  IsZeroer_instance : IsZeroer.TypeAssumptions
-  yaml_version_directive_t_instance : yaml_version_directive_t.TypeAssumptions
-  yaml_tag_directive_t_instance : yaml_tag_directive_t.TypeAssumptions
-  yaml_encoding_t_instance : yaml_encoding_t.TypeAssumptions
-  yaml_break_t_instance : yaml_break_t.TypeAssumptions
-  yaml_error_type_t_instance : yaml_error_type_t.TypeAssumptions
-  yaml_mark_t_instance : yaml_mark_t.TypeAssumptions
-  yaml_style_t_instance : yaml_style_t.TypeAssumptions
-  yaml_scalar_style_t_instance : yaml_scalar_style_t.TypeAssumptions
-  yaml_sequence_style_t_instance : yaml_sequence_style_t.TypeAssumptions
-  yaml_mapping_style_t_instance : yaml_mapping_style_t.TypeAssumptions
-  yaml_token_type_t_instance : yaml_token_type_t.TypeAssumptions
-  yaml_token_t_instance : yaml_token_t.TypeAssumptions
-  yaml_event_type_t_instance : yaml_event_type_t.TypeAssumptions
-  yaml_event_t_instance : yaml_event_t.TypeAssumptions
-  yaml_node_type_t_instance : yaml_node_type_t.TypeAssumptions
-  yaml_node_item_t_instance : yaml_node_item_t.TypeAssumptions
-  yaml_node_pair_t_instance : yaml_node_pair_t.TypeAssumptions
-  yaml_node_t_instance : yaml_node_t.TypeAssumptions
-  yaml_document_t_instance : yaml_document_t.TypeAssumptions
-  yaml_read_handler_t_instance : yaml_read_handler_t.TypeAssumptions
-  yaml_simple_key_t_instance : yaml_simple_key_t.TypeAssumptions
-  yaml_parser_state_t_instance : yaml_parser_state_t.TypeAssumptions
-  yaml_alias_data_t_instance : yaml_alias_data_t.TypeAssumptions
-  yaml_parser_t_instance : yaml_parser_t.TypeAssumptions
-  yaml_write_handler_t_instance : yaml_write_handler_t.TypeAssumptions
-  yaml_emitter_state_t_instance : yaml_emitter_state_t.TypeAssumptions
-  yaml_emitter_t_instance : yaml_emitter_t.TypeAssumptions
+  instance'node : node.TypeAssumptions
+  instance'parser : parser.TypeAssumptions
+  instance'decoder : decoder.TypeAssumptions
+  instance'jsonNumber : jsonNumber.TypeAssumptions
+  instance'encoder : encoder.TypeAssumptions
+  instance'resolveMapItem : resolveMapItem.TypeAssumptions
+  instance'keyList : keyList.TypeAssumptions
+  instance'MapSlice : MapSlice.TypeAssumptions
+  instance'MapItem : MapItem.TypeAssumptions
+  instance'Unmarshaler : Unmarshaler.TypeAssumptions
+  instance'Marshaler : Marshaler.TypeAssumptions
+  instance'Decoder : Decoder.TypeAssumptions
+  instance'Encoder : Encoder.TypeAssumptions
+  instance'yamlError : yamlError.TypeAssumptions
+  instance'TypeError : TypeError.TypeAssumptions
+  instance'structInfo : structInfo.TypeAssumptions
+  instance'fieldInfo : fieldInfo.TypeAssumptions
+  instance'IsZeroer : IsZeroer.TypeAssumptions
+  instance'yaml_version_directive_t : yaml_version_directive_t.TypeAssumptions
+  instance'yaml_tag_directive_t : yaml_tag_directive_t.TypeAssumptions
+  instance'yaml_encoding_t : yaml_encoding_t.TypeAssumptions
+  instance'yaml_break_t : yaml_break_t.TypeAssumptions
+  instance'yaml_error_type_t : yaml_error_type_t.TypeAssumptions
+  instance'yaml_mark_t : yaml_mark_t.TypeAssumptions
+  instance'yaml_style_t : yaml_style_t.TypeAssumptions
+  instance'yaml_scalar_style_t : yaml_scalar_style_t.TypeAssumptions
+  instance'yaml_sequence_style_t : yaml_sequence_style_t.TypeAssumptions
+  instance'yaml_mapping_style_t : yaml_mapping_style_t.TypeAssumptions
+  instance'yaml_token_type_t : yaml_token_type_t.TypeAssumptions
+  instance'yaml_token_t : yaml_token_t.TypeAssumptions
+  instance'yaml_event_type_t : yaml_event_type_t.TypeAssumptions
+  instance'yaml_event_t : yaml_event_t.TypeAssumptions
+  instance'yaml_node_type_t : yaml_node_type_t.TypeAssumptions
+  instance'yaml_node_item_t : yaml_node_item_t.TypeAssumptions
+  instance'yaml_node_pair_t : yaml_node_pair_t.TypeAssumptions
+  instance'yaml_node_t : yaml_node_t.TypeAssumptions
+  instance'yaml_document_t : yaml_document_t.TypeAssumptions
+  instance'yaml_read_handler_t : yaml_read_handler_t.TypeAssumptions
+  instance'yaml_simple_key_t : yaml_simple_key_t.TypeAssumptions
+  instance'yaml_parser_state_t : yaml_parser_state_t.TypeAssumptions
+  instance'yaml_alias_data_t : yaml_alias_data_t.TypeAssumptions
+  instance'yaml_parser_t : yaml_parser_t.TypeAssumptions
+  instance'yaml_write_handler_t : yaml_write_handler_t.TypeAssumptions
+  instance'yaml_emitter_state_t : yaml_emitter_state_t.TypeAssumptions
+  instance'yaml_emitter_t : yaml_emitter_t.TypeAssumptions
 
-attribute [instance] Assumptions.node_instance
-  Assumptions.parser_instance
-  Assumptions.decoder_instance
-  Assumptions.jsonNumber_instance
-  Assumptions.encoder_instance
-  Assumptions.resolveMapItem_instance
-  Assumptions.keyList_instance
-  Assumptions.MapSlice_instance
-  Assumptions.MapItem_instance
-  Assumptions.Unmarshaler_instance
-  Assumptions.Marshaler_instance
-  Assumptions.Decoder_instance
-  Assumptions.Encoder_instance
-  Assumptions.yamlError_instance
-  Assumptions.TypeError_instance
-  Assumptions.structInfo_instance
-  Assumptions.fieldInfo_instance
-  Assumptions.IsZeroer_instance
-  Assumptions.yaml_version_directive_t_instance
-  Assumptions.yaml_tag_directive_t_instance
-  Assumptions.yaml_encoding_t_instance
-  Assumptions.yaml_break_t_instance
-  Assumptions.yaml_error_type_t_instance
-  Assumptions.yaml_mark_t_instance
-  Assumptions.yaml_style_t_instance
-  Assumptions.yaml_scalar_style_t_instance
-  Assumptions.yaml_sequence_style_t_instance
-  Assumptions.yaml_mapping_style_t_instance
-  Assumptions.yaml_token_type_t_instance
-  Assumptions.yaml_token_t_instance
-  Assumptions.yaml_event_type_t_instance
-  Assumptions.yaml_event_t_instance
-  Assumptions.yaml_node_type_t_instance
-  Assumptions.yaml_node_item_t_instance
-  Assumptions.yaml_node_pair_t_instance
-  Assumptions.yaml_node_t_instance
-  Assumptions.yaml_document_t_instance
-  Assumptions.yaml_read_handler_t_instance
-  Assumptions.yaml_simple_key_t_instance
-  Assumptions.yaml_parser_state_t_instance
-  Assumptions.yaml_alias_data_t_instance
-  Assumptions.yaml_parser_t_instance
-  Assumptions.yaml_write_handler_t_instance
-  Assumptions.yaml_emitter_state_t_instance
-  Assumptions.yaml_emitter_t_instance
+attribute [instance] Assumptions.instance'node
+  Assumptions.instance'parser
+  Assumptions.instance'decoder
+  Assumptions.instance'jsonNumber
+  Assumptions.instance'encoder
+  Assumptions.instance'resolveMapItem
+  Assumptions.instance'keyList
+  Assumptions.instance'MapSlice
+  Assumptions.instance'MapItem
+  Assumptions.instance'Unmarshaler
+  Assumptions.instance'Marshaler
+  Assumptions.instance'Decoder
+  Assumptions.instance'Encoder
+  Assumptions.instance'yamlError
+  Assumptions.instance'TypeError
+  Assumptions.instance'structInfo
+  Assumptions.instance'fieldInfo
+  Assumptions.instance'IsZeroer
+  Assumptions.instance'yaml_version_directive_t
+  Assumptions.instance'yaml_tag_directive_t
+  Assumptions.instance'yaml_encoding_t
+  Assumptions.instance'yaml_break_t
+  Assumptions.instance'yaml_error_type_t
+  Assumptions.instance'yaml_mark_t
+  Assumptions.instance'yaml_style_t
+  Assumptions.instance'yaml_scalar_style_t
+  Assumptions.instance'yaml_sequence_style_t
+  Assumptions.instance'yaml_mapping_style_t
+  Assumptions.instance'yaml_token_type_t
+  Assumptions.instance'yaml_token_t
+  Assumptions.instance'yaml_event_type_t
+  Assumptions.instance'yaml_event_t
+  Assumptions.instance'yaml_node_type_t
+  Assumptions.instance'yaml_node_item_t
+  Assumptions.instance'yaml_node_pair_t
+  Assumptions.instance'yaml_node_t
+  Assumptions.instance'yaml_document_t
+  Assumptions.instance'yaml_read_handler_t
+  Assumptions.instance'yaml_simple_key_t
+  Assumptions.instance'yaml_parser_state_t
+  Assumptions.instance'yaml_alias_data_t
+  Assumptions.instance'yaml_parser_t
+  Assumptions.instance'yaml_write_handler_t
+  Assumptions.instance'yaml_emitter_state_t
+  Assumptions.instance'yaml_emitter_t
 
 end gopkg_in.yaml_v2
 

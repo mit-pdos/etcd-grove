@@ -25,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.sharding.Assumptions]
 
-noncomputable instance everythingSelector_typed_pointsto :
+noncomputable instance typed_pointsto'everythingSelector :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.sharding.everythingSelector where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -33,7 +33,7 @@ noncomputable instance everythingSelector_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance everythingSelector_into_val_typed :
+noncomputable instance into_val_typed'everythingSelector :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.sharding.everythingSelector k8s_io.apimachinery.pkg.sharding.everythingSelector.underlying := by
   solve_into_val_typed_struct
 
@@ -48,7 +48,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.sharding.Assumptions]
 
-noncomputable instance shardSelector_typed_pointsto :
+noncomputable instance typed_pointsto'shardSelector :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.sharding.shardSelector where
   typedPointstoDef l v dq := iprop(
     "requirements" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.shardSelector go!"requirements" l) v.requirements' dq ∗
@@ -57,11 +57,11 @@ noncomputable instance shardSelector_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance shardSelector_into_val_typed :
+noncomputable instance into_val_typed'shardSelector :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.sharding.shardSelector k8s_io.apimachinery.pkg.sharding.shardSelector.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance shardSelector_access_load_requirements (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.shardSelector) (dq : DFrac) :
+noncomputable instance access_load'shardSelector'requirements (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.shardSelector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.shardSelector go!"requirements" l) v.requirements' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.shardSelector go!"requirements" l) v.requirements' dq)
@@ -69,7 +69,7 @@ noncomputable instance shardSelector_access_load_requirements (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance shardSelector_access_store_requirements (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.shardSelector) (y : GoSlice) :
+noncomputable instance access_store'shardSelector'requirements (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.shardSelector) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.shardSelector go!"requirements" l) v.requirements' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.shardSelector go!"requirements" l) y (DFrac.own 1))
@@ -88,7 +88,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.sharding.Assumptions]
 
-noncomputable instance ShardRangeRequirement_typed_pointsto :
+noncomputable instance typed_pointsto'ShardRangeRequirement :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement where
   typedPointstoDef l v dq := iprop(
     "Key" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Key" l) v.Key' dq ∗
@@ -99,11 +99,11 @@ noncomputable instance ShardRangeRequirement_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ShardRangeRequirement_into_val_typed :
+noncomputable instance into_val_typed'ShardRangeRequirement :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ShardRangeRequirement_access_load_Key (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (dq : DFrac) :
+noncomputable instance access_load'ShardRangeRequirement'Key (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Key" l) v.Key' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Key" l) v.Key' dq)
@@ -111,7 +111,7 @@ noncomputable instance ShardRangeRequirement_access_load_Key (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ShardRangeRequirement_access_store_Key (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (y : GoString) :
+noncomputable instance access_store'ShardRangeRequirement'Key (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Key" l) y (DFrac.own 1))
@@ -119,7 +119,7 @@ noncomputable instance ShardRangeRequirement_access_store_Key (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance ShardRangeRequirement_access_load_Start (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (dq : DFrac) :
+noncomputable instance access_load'ShardRangeRequirement'Start (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Start" l) v.Start' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Start" l) v.Start' dq)
@@ -127,7 +127,7 @@ noncomputable instance ShardRangeRequirement_access_load_Start (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance ShardRangeRequirement_access_store_Start (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (y : GoString) :
+noncomputable instance access_store'ShardRangeRequirement'Start (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Start" l) v.Start' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Start" l) y (DFrac.own 1))
@@ -135,7 +135,7 @@ noncomputable instance ShardRangeRequirement_access_store_Start (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance ShardRangeRequirement_access_load_End (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (dq : DFrac) :
+noncomputable instance access_load'ShardRangeRequirement'End (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"End" l) v.End' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"End" l) v.End' dq)
@@ -143,7 +143,7 @@ noncomputable instance ShardRangeRequirement_access_load_End (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ShardRangeRequirement_access_store_End (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (y : GoString) :
+noncomputable instance access_store'ShardRangeRequirement'End (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"End" l) v.End' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"End" l) y (DFrac.own 1))

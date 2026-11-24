@@ -67,7 +67,7 @@ theorem sort.pdqsort.wp_anyLess : sort.pdqsort.anyLessSpec (GF := GF) (hG := hG)
     sort.breakPatterns.wp_anyLess sort.choosePivot.wp_anyLess sort.reverseRange.wp_anyLess
     sort.partialInsertionSort.wp_anyLess sort.partitionEqual.wp_anyLess sort.partition.wp_anyLess
 /-- `sort.Sort` for any `Less` (until 2026-11-21 an axiom). -/
-theorem sort.«Sort».wp_anyLess : sort.«Sort».anyLessSpec (GF := GF) (hG := hG) :=
+theorem sort.«Sort».wp_anyLess : sort.Sort''.anyLessSpec (GF := GF) (hG := hG) :=
   sort.«Sort».wp_proofAnyLess sort.pdqsort.wp_anyLess _root_.Perennial.math.bits.wp_Len
 
 end link

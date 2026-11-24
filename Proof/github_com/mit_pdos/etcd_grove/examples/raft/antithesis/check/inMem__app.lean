@@ -40,7 +40,7 @@ theorem inMem.app.wp_proof
   unfold InMem.app at Hv
   obtain ⟨l, hl, ht, hf⟩ := andM_ok Hv
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_leads_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_unfold'leads.method_unfold]
   try wp_auto
   wp_apply wp_leads gx x l $$ [Hx]
   · iframe Hx; ipureintro; exact hl
@@ -54,7 +54,7 @@ theorem inMem.app.wp_proof
     simp only [pure_ok, Except.ok.injEq] at Hr
     subst Hr
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_es_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_unfold'es.method_unfold]
     try wp_auto
     wp_apply wp_es gx x es $$ [Hx] as %u #Hu
     · iframe Hx; ipureintro; exact hes

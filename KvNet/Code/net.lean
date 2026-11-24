@@ -1684,7 +1684,7 @@ noncomputable def parseNSSConf [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def parseCriteria [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.parseCriteria"
 
-noncomputable def «open» [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def open'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.open"
 
 noncomputable def stat [GooseExts] [GoGlobalContext] : GoString :=
@@ -3034,15 +3034,15 @@ class IP.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSeman
   underlying : go.UnderlyingDirectedEq IP.ty IP.underlying
   method_set : go.MethodSetIs IP.ty [(go!"AppendText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"DefaultMask", (some (go.signature.Signature [] false [IPMask.ty]))), (go!"Equal", (some (go.signature.Signature [IP.ty] false [go.bool]))), (go!"IsGlobalUnicast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsInterfaceLocalMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLinkLocalMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLinkLocalUnicast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLoopback", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPrivate", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnspecified", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Mask", (some (go.signature.Signature [IPMask.ty] false [IP.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"To16", (some (go.signature.Signature [] false [IP.ty]))), (go!"To4", (some (go.signature.Signature [] false [IP.ty]))), (go!"net.appendTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"net.matchAddrFamily", (some (go.signature.Signature [IP.ty] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType IP.ty) [(go!"AppendText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"DefaultMask", (some (go.signature.Signature [] false [IPMask.ty]))), (go!"Equal", (some (go.signature.Signature [IP.ty] false [go.bool]))), (go!"IsGlobalUnicast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsInterfaceLocalMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLinkLocalMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLinkLocalUnicast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLoopback", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPrivate", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnspecified", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Mask", (some (go.signature.Signature [IPMask.ty] false [IP.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"To16", (some (go.signature.Signature [] false [IP.ty]))), (go!"To4", (some (go.signature.Signature [] false [IP.ty]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"net.appendTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"net.matchAddrFamily", (some (go.signature.Signature [IP.ty] false [go.bool])))]
-  To4_unfold : MethodUnfold IP.ty go!"To4" IP.To4.impl
-  ptr_To4_unfold : MethodUnfold (go.GoType.PointerType IP.ty) go!"To4" (LamV "$r"
+  unfold'To4 : MethodUnfold IP.ty go!"To4" IP.To4.impl
+  ptr_unfold'To4 : MethodUnfold (go.GoType.PointerType IP.ty) go!"To4" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve IP.ty go!"To4"))) (App (Val (GoInstruction (GoLoad IP.ty))) (Var "$r"))))
 
 attribute [instance] IP.TypeAssumptions.underlying
   IP.TypeAssumptions.method_set
   IP.TypeAssumptions.ptr_method_set
-  IP.TypeAssumptions.To4_unfold
-  IP.TypeAssumptions.ptr_To4_unfold
+  IP.TypeAssumptions.unfold'To4
+  IP.TypeAssumptions.ptr_unfold'To4
 
 opaque IPMask.nonempty_type : NonemptyType.{0}
 def IPMask : Type := IPMask.nonempty_type.type
@@ -3248,31 +3248,31 @@ class conn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   underlying : go.UnderlyingDirectedEq conn.ty conn.underlying
   method_set : go.MethodSetIs conn.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType conn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"Close" conn.Close.impl
-  ptr_LocalAddr_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"LocalAddr" conn.LocalAddr.impl
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"Read" conn.Read.impl
-  ptr_RemoteAddr_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"RemoteAddr" conn.RemoteAddr.impl
-  ptr_SetDeadline_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"SetDeadline" conn.SetDeadline.impl
-  ptr_SetReadBuffer_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"SetReadBuffer" conn.SetReadBuffer.impl
-  ptr_SetReadDeadline_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"SetReadDeadline" conn.SetReadDeadline.impl
-  ptr_SetWriteBuffer_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"SetWriteBuffer" conn.SetWriteBuffer.impl
-  ptr_SetWriteDeadline_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"SetWriteDeadline" conn.SetWriteDeadline.impl
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"Write" conn.Write.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType conn.ty) go!"Close" conn.Close.impl
+  ptr_unfold'LocalAddr : MethodUnfold (go.GoType.PointerType conn.ty) go!"LocalAddr" conn.LocalAddr.impl
+  ptr_unfold'Read : MethodUnfold (go.GoType.PointerType conn.ty) go!"Read" conn.Read.impl
+  ptr_unfold'RemoteAddr : MethodUnfold (go.GoType.PointerType conn.ty) go!"RemoteAddr" conn.RemoteAddr.impl
+  ptr_unfold'SetDeadline : MethodUnfold (go.GoType.PointerType conn.ty) go!"SetDeadline" conn.SetDeadline.impl
+  ptr_unfold'SetReadBuffer : MethodUnfold (go.GoType.PointerType conn.ty) go!"SetReadBuffer" conn.SetReadBuffer.impl
+  ptr_unfold'SetReadDeadline : MethodUnfold (go.GoType.PointerType conn.ty) go!"SetReadDeadline" conn.SetReadDeadline.impl
+  ptr_unfold'SetWriteBuffer : MethodUnfold (go.GoType.PointerType conn.ty) go!"SetWriteBuffer" conn.SetWriteBuffer.impl
+  ptr_unfold'SetWriteDeadline : MethodUnfold (go.GoType.PointerType conn.ty) go!"SetWriteDeadline" conn.SetWriteDeadline.impl
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType conn.ty) go!"Write" conn.Write.impl
 
 attribute [instance] conn.TypeAssumptions.type_repr
   conn.TypeAssumptions.underlying
   conn.TypeAssumptions.method_set
   conn.TypeAssumptions.ptr_method_set
-  conn.TypeAssumptions.ptr_Close_unfold
-  conn.TypeAssumptions.ptr_LocalAddr_unfold
-  conn.TypeAssumptions.ptr_Read_unfold
-  conn.TypeAssumptions.ptr_RemoteAddr_unfold
-  conn.TypeAssumptions.ptr_SetDeadline_unfold
-  conn.TypeAssumptions.ptr_SetReadBuffer_unfold
-  conn.TypeAssumptions.ptr_SetReadDeadline_unfold
-  conn.TypeAssumptions.ptr_SetWriteBuffer_unfold
-  conn.TypeAssumptions.ptr_SetWriteDeadline_unfold
-  conn.TypeAssumptions.ptr_Write_unfold
+  conn.TypeAssumptions.ptr_unfold'Close
+  conn.TypeAssumptions.ptr_unfold'LocalAddr
+  conn.TypeAssumptions.ptr_unfold'Read
+  conn.TypeAssumptions.ptr_unfold'RemoteAddr
+  conn.TypeAssumptions.ptr_unfold'SetDeadline
+  conn.TypeAssumptions.ptr_unfold'SetReadBuffer
+  conn.TypeAssumptions.ptr_unfold'SetReadDeadline
+  conn.TypeAssumptions.ptr_unfold'SetWriteBuffer
+  conn.TypeAssumptions.ptr_unfold'SetWriteDeadline
+  conn.TypeAssumptions.ptr_unfold'Write
 
 opaque PacketConn.nonempty_type : NonemptyType.{0}
 def PacketConn : Type := PacketConn.nonempty_type.type
@@ -3361,7 +3361,7 @@ noncomputable instance OpError.zero_val [GooseExts] : ZeroVal OpError :=
 @[irreducible] noncomputable def OpError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   OpError.fieldsUnsealed
 
-noncomputable instance equals_unfold_OpError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'OpError [GooseExts] [GoGlobalContext] :
     EqualsUnfold OpError.fields OpError.fieldsUnsealed :=
   ⟨by unfold OpError.fields; rfl⟩
 
@@ -3371,41 +3371,41 @@ noncomputable instance equals_unfold_OpError [GooseExts] [GoGlobalContext] :
 class OpError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying OpError.underlying OpError
   underlying : go.UnderlyingDirectedEq OpError.ty OpError.underlying
-  get_Op : ∀ (x : OpError), go.IsGoStepPureDetTagged under (StructFieldGet OpError.underlying go!"Op") #x (Val #(x.Op'))
-  set_Op : ∀ (x : OpError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet OpError.underlying go!"Op") (PairV #x #y) (Val #(({ x with Op' := y } : OpError)))
-  get_Net : ∀ (x : OpError), go.IsGoStepPureDetTagged under (StructFieldGet OpError.underlying go!"Net") #x (Val #(x.Net'))
-  set_Net : ∀ (x : OpError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet OpError.underlying go!"Net") (PairV #x #y) (Val #(({ x with Net' := y } : OpError)))
-  get_Source : ∀ (x : OpError), go.IsGoStepPureDetTagged under (StructFieldGet OpError.underlying go!"Source") #x (Val #(x.Source'))
-  set_Source : ∀ (x : OpError) (y : Addr), go.IsGoStepPureDetTagged under (StructFieldSet OpError.underlying go!"Source") (PairV #x #y) (Val #(({ x with Source' := y } : OpError)))
-  get_Addr : ∀ (x : OpError), go.IsGoStepPureDetTagged under (StructFieldGet OpError.underlying go!"Addr") #x (Val #(x.Addr'))
-  set_Addr : ∀ (x : OpError) (y : Addr), go.IsGoStepPureDetTagged under (StructFieldSet OpError.underlying go!"Addr") (PairV #x #y) (Val #(({ x with Addr' := y } : OpError)))
-  get_Err : ∀ (x : OpError), go.IsGoStepPureDetTagged under (StructFieldGet OpError.underlying go!"Err") #x (Val #(x.Err'))
-  set_Err : ∀ (x : OpError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet OpError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : OpError)))
+  get'Op : ∀ (x : OpError), go.IsGoStepPureDetTagged under (StructFieldGet OpError.underlying go!"Op") #x (Val #(x.Op'))
+  set'Op : ∀ (x : OpError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet OpError.underlying go!"Op") (PairV #x #y) (Val #(({ x with Op' := y } : OpError)))
+  get'Net : ∀ (x : OpError), go.IsGoStepPureDetTagged under (StructFieldGet OpError.underlying go!"Net") #x (Val #(x.Net'))
+  set'Net : ∀ (x : OpError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet OpError.underlying go!"Net") (PairV #x #y) (Val #(({ x with Net' := y } : OpError)))
+  get'Source : ∀ (x : OpError), go.IsGoStepPureDetTagged under (StructFieldGet OpError.underlying go!"Source") #x (Val #(x.Source'))
+  set'Source : ∀ (x : OpError) (y : Addr), go.IsGoStepPureDetTagged under (StructFieldSet OpError.underlying go!"Source") (PairV #x #y) (Val #(({ x with Source' := y } : OpError)))
+  get'Addr : ∀ (x : OpError), go.IsGoStepPureDetTagged under (StructFieldGet OpError.underlying go!"Addr") #x (Val #(x.Addr'))
+  set'Addr : ∀ (x : OpError) (y : Addr), go.IsGoStepPureDetTagged under (StructFieldSet OpError.underlying go!"Addr") (PairV #x #y) (Val #(({ x with Addr' := y } : OpError)))
+  get'Err : ∀ (x : OpError), go.IsGoStepPureDetTagged under (StructFieldGet OpError.underlying go!"Err") #x (Val #(x.Err'))
+  set'Err : ∀ (x : OpError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet OpError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : OpError)))
   method_set : go.MethodSetIs OpError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType OpError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType OpError.ty) go!"Error" OpError.Error.impl
-  ptr_Temporary_unfold : MethodUnfold (go.GoType.PointerType OpError.ty) go!"Temporary" OpError.Temporary.impl
-  ptr_Timeout_unfold : MethodUnfold (go.GoType.PointerType OpError.ty) go!"Timeout" OpError.Timeout.impl
-  ptr_Unwrap_unfold : MethodUnfold (go.GoType.PointerType OpError.ty) go!"Unwrap" OpError.Unwrap.impl
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType OpError.ty) go!"Error" OpError.Error.impl
+  ptr_unfold'Temporary : MethodUnfold (go.GoType.PointerType OpError.ty) go!"Temporary" OpError.Temporary.impl
+  ptr_unfold'Timeout : MethodUnfold (go.GoType.PointerType OpError.ty) go!"Timeout" OpError.Timeout.impl
+  ptr_unfold'Unwrap : MethodUnfold (go.GoType.PointerType OpError.ty) go!"Unwrap" OpError.Unwrap.impl
 
 attribute [instance] OpError.TypeAssumptions.type_repr
   OpError.TypeAssumptions.underlying
-  OpError.TypeAssumptions.get_Op
-  OpError.TypeAssumptions.set_Op
-  OpError.TypeAssumptions.get_Net
-  OpError.TypeAssumptions.set_Net
-  OpError.TypeAssumptions.get_Source
-  OpError.TypeAssumptions.set_Source
-  OpError.TypeAssumptions.get_Addr
-  OpError.TypeAssumptions.set_Addr
-  OpError.TypeAssumptions.get_Err
-  OpError.TypeAssumptions.set_Err
+  OpError.TypeAssumptions.get'Op
+  OpError.TypeAssumptions.set'Op
+  OpError.TypeAssumptions.get'Net
+  OpError.TypeAssumptions.set'Net
+  OpError.TypeAssumptions.get'Source
+  OpError.TypeAssumptions.set'Source
+  OpError.TypeAssumptions.get'Addr
+  OpError.TypeAssumptions.set'Addr
+  OpError.TypeAssumptions.get'Err
+  OpError.TypeAssumptions.set'Err
   OpError.TypeAssumptions.method_set
   OpError.TypeAssumptions.ptr_method_set
-  OpError.TypeAssumptions.ptr_Error_unfold
-  OpError.TypeAssumptions.ptr_Temporary_unfold
-  OpError.TypeAssumptions.ptr_Timeout_unfold
-  OpError.TypeAssumptions.ptr_Unwrap_unfold
+  OpError.TypeAssumptions.ptr_unfold'Error
+  OpError.TypeAssumptions.ptr_unfold'Temporary
+  OpError.TypeAssumptions.ptr_unfold'Timeout
+  OpError.TypeAssumptions.ptr_unfold'Unwrap
 
 opaque timeout.nonempty_type : NonemptyType.{0}
 def timeout : Type := timeout.nonempty_type.type
@@ -3533,7 +3533,7 @@ noncomputable instance timeoutError.zero_val [GooseExts] : ZeroVal timeoutError 
 @[irreducible] noncomputable def timeoutError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   timeoutError.fieldsUnsealed
 
-noncomputable instance equals_unfold_timeoutError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'timeoutError [GooseExts] [GoGlobalContext] :
     EqualsUnfold timeoutError.fields timeoutError.fieldsUnsealed :=
   ⟨by unfold timeoutError.fields; rfl⟩
 
@@ -3545,19 +3545,19 @@ class timeoutError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   underlying : go.UnderlyingDirectedEq timeoutError.ty timeoutError.underlying
   method_set : go.MethodSetIs timeoutError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeoutError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType timeoutError.ty) go!"Error" timeoutError.Error.impl
-  ptr_Is_unfold : MethodUnfold (go.GoType.PointerType timeoutError.ty) go!"Is" timeoutError.Is.impl
-  ptr_Temporary_unfold : MethodUnfold (go.GoType.PointerType timeoutError.ty) go!"Temporary" timeoutError.Temporary.impl
-  ptr_Timeout_unfold : MethodUnfold (go.GoType.PointerType timeoutError.ty) go!"Timeout" timeoutError.Timeout.impl
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType timeoutError.ty) go!"Error" timeoutError.Error.impl
+  ptr_unfold'Is : MethodUnfold (go.GoType.PointerType timeoutError.ty) go!"Is" timeoutError.Is.impl
+  ptr_unfold'Temporary : MethodUnfold (go.GoType.PointerType timeoutError.ty) go!"Temporary" timeoutError.Temporary.impl
+  ptr_unfold'Timeout : MethodUnfold (go.GoType.PointerType timeoutError.ty) go!"Timeout" timeoutError.Timeout.impl
 
 attribute [instance] timeoutError.TypeAssumptions.type_repr
   timeoutError.TypeAssumptions.underlying
   timeoutError.TypeAssumptions.method_set
   timeoutError.TypeAssumptions.ptr_method_set
-  timeoutError.TypeAssumptions.ptr_Error_unfold
-  timeoutError.TypeAssumptions.ptr_Is_unfold
-  timeoutError.TypeAssumptions.ptr_Temporary_unfold
-  timeoutError.TypeAssumptions.ptr_Timeout_unfold
+  timeoutError.TypeAssumptions.ptr_unfold'Error
+  timeoutError.TypeAssumptions.ptr_unfold'Is
+  timeoutError.TypeAssumptions.ptr_unfold'Temporary
+  timeoutError.TypeAssumptions.ptr_unfold'Timeout
 
 opaque DNSConfigError.nonempty_type : NonemptyType.{0}
 def DNSConfigError : Type := DNSConfigError.nonempty_type.type
@@ -3975,7 +3975,7 @@ noncomputable instance TCPAddr.zero_val [GooseExts] : ZeroVal TCPAddr :=
 @[irreducible] noncomputable def TCPAddr.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TCPAddr.fieldsUnsealed
 
-noncomputable instance equals_unfold_TCPAddr [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'TCPAddr [GooseExts] [GoGlobalContext] :
     EqualsUnfold TCPAddr.fields TCPAddr.fieldsUnsealed :=
   ⟨by unfold TCPAddr.fields; rfl⟩
 
@@ -3985,80 +3985,80 @@ noncomputable instance equals_unfold_TCPAddr [GooseExts] [GoGlobalContext] :
 class TCPAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TCPAddr.underlying TCPAddr
   underlying : go.UnderlyingDirectedEq TCPAddr.ty TCPAddr.underlying
-  get_IP : ∀ (x : TCPAddr), go.IsGoStepPureDetTagged under (StructFieldGet TCPAddr.underlying go!"IP") #x (Val #(x.IP'))
-  set_IP : ∀ (x : TCPAddr) (y : IP), go.IsGoStepPureDetTagged under (StructFieldSet TCPAddr.underlying go!"IP") (PairV #x #y) (Val #(({ x with IP' := y } : TCPAddr)))
-  get_Port : ∀ (x : TCPAddr), go.IsGoStepPureDetTagged under (StructFieldGet TCPAddr.underlying go!"Port") #x (Val #(x.Port'))
-  set_Port : ∀ (x : TCPAddr) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet TCPAddr.underlying go!"Port") (PairV #x #y) (Val #(({ x with Port' := y } : TCPAddr)))
-  get_Zone : ∀ (x : TCPAddr), go.IsGoStepPureDetTagged under (StructFieldGet TCPAddr.underlying go!"Zone") #x (Val #(x.Zone'))
-  set_Zone : ∀ (x : TCPAddr) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TCPAddr.underlying go!"Zone") (PairV #x #y) (Val #(({ x with Zone' := y } : TCPAddr)))
+  get'IP : ∀ (x : TCPAddr), go.IsGoStepPureDetTagged under (StructFieldGet TCPAddr.underlying go!"IP") #x (Val #(x.IP'))
+  set'IP : ∀ (x : TCPAddr) (y : IP), go.IsGoStepPureDetTagged under (StructFieldSet TCPAddr.underlying go!"IP") (PairV #x #y) (Val #(({ x with IP' := y } : TCPAddr)))
+  get'Port : ∀ (x : TCPAddr), go.IsGoStepPureDetTagged under (StructFieldGet TCPAddr.underlying go!"Port") #x (Val #(x.Port'))
+  set'Port : ∀ (x : TCPAddr) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet TCPAddr.underlying go!"Port") (PairV #x #y) (Val #(({ x with Port' := y } : TCPAddr)))
+  get'Zone : ∀ (x : TCPAddr), go.IsGoStepPureDetTagged under (StructFieldGet TCPAddr.underlying go!"Zone") #x (Val #(x.Zone'))
+  set'Zone : ∀ (x : TCPAddr) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TCPAddr.underlying go!"Zone") (PairV #x #y) (Val #(({ x with Zone' := y } : TCPAddr)))
   method_set : go.MethodSetIs TCPAddr.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType TCPAddr.ty) [(go!"AddrPort", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/netip.AddrPort" [])]))), (go!"Network", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"net.family", (some (go.signature.Signature [] false [go.int]))), (go!"net.isWildcard", (some (go.signature.Signature [] false [go.bool]))), (go!"net.opAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"net.sockaddr", (some (go.signature.Signature [go.int] false [_root_.Perennial.syscall.Sockaddr.ty, go.error]))), (go!"net.toLocal", (some (go.signature.Signature [go.string] false [sockaddr.ty])))]
-  ptr_Network_unfold : MethodUnfold (go.GoType.PointerType TCPAddr.ty) go!"Network" TCPAddr.Network.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType TCPAddr.ty) go!"String" TCPAddr.String.impl
+  ptr_unfold'Network : MethodUnfold (go.GoType.PointerType TCPAddr.ty) go!"Network" TCPAddr.Network.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType TCPAddr.ty) go!"String" TCPAddr.String.impl
 
 attribute [instance] TCPAddr.TypeAssumptions.type_repr
   TCPAddr.TypeAssumptions.underlying
-  TCPAddr.TypeAssumptions.get_IP
-  TCPAddr.TypeAssumptions.set_IP
-  TCPAddr.TypeAssumptions.get_Port
-  TCPAddr.TypeAssumptions.set_Port
-  TCPAddr.TypeAssumptions.get_Zone
-  TCPAddr.TypeAssumptions.set_Zone
+  TCPAddr.TypeAssumptions.get'IP
+  TCPAddr.TypeAssumptions.set'IP
+  TCPAddr.TypeAssumptions.get'Port
+  TCPAddr.TypeAssumptions.set'Port
+  TCPAddr.TypeAssumptions.get'Zone
+  TCPAddr.TypeAssumptions.set'Zone
   TCPAddr.TypeAssumptions.method_set
   TCPAddr.TypeAssumptions.ptr_method_set
-  TCPAddr.TypeAssumptions.ptr_Network_unfold
-  TCPAddr.TypeAssumptions.ptr_String_unfold
+  TCPAddr.TypeAssumptions.ptr_unfold'Network
+  TCPAddr.TypeAssumptions.ptr_unfold'String
 
 class TCPConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TCPConn.underlying TCPConn
   underlying : go.UnderlyingDirectedEq TCPConn.ty TCPConn.underlying
   method_set : go.MethodSetIs TCPConn.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType TCPConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseRead", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetKeepAlive", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetKeepAliveConfig", (some (go.signature.Signature [KeepAliveConfig.ty] false [go.error]))), (go!"SetKeepAlivePeriod", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.error]))), (go!"SetLinger", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetNoDelay", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"Close" (LamV "$r"
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"Close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Close"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
-  ptr_CloseWrite_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"CloseWrite" TCPConn.CloseWrite.impl
-  ptr_LocalAddr_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"LocalAddr" (LamV "$r"
+  ptr_unfold'CloseWrite : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"CloseWrite" TCPConn.CloseWrite.impl
+  ptr_unfold'LocalAddr : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"LocalAddr" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"LocalAddr"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"Read" (LamV "$r"
+  ptr_unfold'Read : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
-  ptr_RemoteAddr_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"RemoteAddr" (LamV "$r"
+  ptr_unfold'RemoteAddr : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"RemoteAddr" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"RemoteAddr"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
-  ptr_SetDeadline_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetDeadline" (LamV "$r"
+  ptr_unfold'SetDeadline : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetDeadline"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
-  ptr_SetKeepAlive_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetKeepAlive" TCPConn.SetKeepAlive.impl
-  ptr_SetKeepAlivePeriod_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetKeepAlivePeriod" TCPConn.SetKeepAlivePeriod.impl
-  ptr_SetLinger_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetLinger" TCPConn.SetLinger.impl
-  ptr_SetNoDelay_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetNoDelay" TCPConn.SetNoDelay.impl
-  ptr_SetReadBuffer_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetReadBuffer" (LamV "$r"
+  ptr_unfold'SetKeepAlive : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetKeepAlive" TCPConn.SetKeepAlive.impl
+  ptr_unfold'SetKeepAlivePeriod : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetKeepAlivePeriod" TCPConn.SetKeepAlivePeriod.impl
+  ptr_unfold'SetLinger : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetLinger" TCPConn.SetLinger.impl
+  ptr_unfold'SetNoDelay : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetNoDelay" TCPConn.SetNoDelay.impl
+  ptr_unfold'SetReadBuffer : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetReadBuffer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetReadBuffer"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
-  ptr_SetReadDeadline_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetReadDeadline" (LamV "$r"
+  ptr_unfold'SetReadDeadline : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetReadDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetReadDeadline"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
-  ptr_SetWriteBuffer_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetWriteBuffer" (LamV "$r"
+  ptr_unfold'SetWriteBuffer : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetWriteBuffer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetWriteBuffer"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
-  ptr_SetWriteDeadline_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetWriteDeadline" (LamV "$r"
+  ptr_unfold'SetWriteDeadline : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetWriteDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetWriteDeadline"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"Write" (LamV "$r"
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"Write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
 
 attribute [instance] TCPConn.TypeAssumptions.type_repr
   TCPConn.TypeAssumptions.underlying
   TCPConn.TypeAssumptions.method_set
   TCPConn.TypeAssumptions.ptr_method_set
-  TCPConn.TypeAssumptions.ptr_Close_unfold
-  TCPConn.TypeAssumptions.ptr_CloseWrite_unfold
-  TCPConn.TypeAssumptions.ptr_LocalAddr_unfold
-  TCPConn.TypeAssumptions.ptr_Read_unfold
-  TCPConn.TypeAssumptions.ptr_RemoteAddr_unfold
-  TCPConn.TypeAssumptions.ptr_SetDeadline_unfold
-  TCPConn.TypeAssumptions.ptr_SetKeepAlive_unfold
-  TCPConn.TypeAssumptions.ptr_SetKeepAlivePeriod_unfold
-  TCPConn.TypeAssumptions.ptr_SetLinger_unfold
-  TCPConn.TypeAssumptions.ptr_SetNoDelay_unfold
-  TCPConn.TypeAssumptions.ptr_SetReadBuffer_unfold
-  TCPConn.TypeAssumptions.ptr_SetReadDeadline_unfold
-  TCPConn.TypeAssumptions.ptr_SetWriteBuffer_unfold
-  TCPConn.TypeAssumptions.ptr_SetWriteDeadline_unfold
-  TCPConn.TypeAssumptions.ptr_Write_unfold
+  TCPConn.TypeAssumptions.ptr_unfold'Close
+  TCPConn.TypeAssumptions.ptr_unfold'CloseWrite
+  TCPConn.TypeAssumptions.ptr_unfold'LocalAddr
+  TCPConn.TypeAssumptions.ptr_unfold'Read
+  TCPConn.TypeAssumptions.ptr_unfold'RemoteAddr
+  TCPConn.TypeAssumptions.ptr_unfold'SetDeadline
+  TCPConn.TypeAssumptions.ptr_unfold'SetKeepAlive
+  TCPConn.TypeAssumptions.ptr_unfold'SetKeepAlivePeriod
+  TCPConn.TypeAssumptions.ptr_unfold'SetLinger
+  TCPConn.TypeAssumptions.ptr_unfold'SetNoDelay
+  TCPConn.TypeAssumptions.ptr_unfold'SetReadBuffer
+  TCPConn.TypeAssumptions.ptr_unfold'SetReadDeadline
+  TCPConn.TypeAssumptions.ptr_unfold'SetWriteBuffer
+  TCPConn.TypeAssumptions.ptr_unfold'SetWriteDeadline
+  TCPConn.TypeAssumptions.ptr_unfold'Write
 
 opaque KeepAliveConfig.nonempty_type : NonemptyType.{0}
 def KeepAliveConfig : Type := KeepAliveConfig.nonempty_type.type
@@ -4084,17 +4084,17 @@ class TCPListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq TCPListener.ty TCPListener.underlying
   method_set : go.MethodSetIs TCPListener.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType TCPListener.ty) [(go!"Accept", (some (go.signature.Signature [] false [Conn.ty, go.error]))), (go!"AcceptTCP", (some (go.signature.Signature [] false [(go.GoType.PointerType TCPConn.ty), go.error]))), (go!"Addr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error]))), (go!"SetDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"net.accept", (some (go.signature.Signature [] false [(go.GoType.PointerType TCPConn.ty), go.error]))), (go!"net.close", (some (go.signature.Signature [] false [go.error]))), (go!"net.file", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool])))]
-  ptr_Accept_unfold : MethodUnfold (go.GoType.PointerType TCPListener.ty) go!"Accept" TCPListener.Accept.impl
-  ptr_Addr_unfold : MethodUnfold (go.GoType.PointerType TCPListener.ty) go!"Addr" TCPListener.Addr.impl
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType TCPListener.ty) go!"Close" TCPListener.Close.impl
+  ptr_unfold'Accept : MethodUnfold (go.GoType.PointerType TCPListener.ty) go!"Accept" TCPListener.Accept.impl
+  ptr_unfold'Addr : MethodUnfold (go.GoType.PointerType TCPListener.ty) go!"Addr" TCPListener.Addr.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType TCPListener.ty) go!"Close" TCPListener.Close.impl
 
 attribute [instance] TCPListener.TypeAssumptions.type_repr
   TCPListener.TypeAssumptions.underlying
   TCPListener.TypeAssumptions.method_set
   TCPListener.TypeAssumptions.ptr_method_set
-  TCPListener.TypeAssumptions.ptr_Accept_unfold
-  TCPListener.TypeAssumptions.ptr_Addr_unfold
-  TCPListener.TypeAssumptions.ptr_Close_unfold
+  TCPListener.TypeAssumptions.ptr_unfold'Accept
+  TCPListener.TypeAssumptions.ptr_unfold'Addr
+  TCPListener.TypeAssumptions.ptr_unfold'Close
 
 opaque UDPAddr.nonempty_type : NonemptyType.{0}
 def UDPAddr : Type := UDPAddr.nonempty_type.type
@@ -4429,221 +4429,221 @@ attribute [instance] _Ctype_void.TypeAssumptions.type_repr
   _Ctype_void.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ipAttr_instance : ipAttr.TypeAssumptions
-  byRFC6724Info_instance : byRFC6724Info.TypeAssumptions
-  policyTableEntry_instance : policyTableEntry.TypeAssumptions
-  policyTable_instance : policyTable.TypeAssumptions
-  scope_instance : scope.TypeAssumptions
-  addrinfoErrno_instance : addrinfoErrno.TypeAssumptions
-  conf_instance : conf.TypeAssumptions
-  mdnsTest_instance : mdnsTest.TypeAssumptions
-  mptcpStatusDial_instance : mptcpStatusDial.TypeAssumptions
-  mptcpStatusListen_instance : mptcpStatusListen.TypeAssumptions
-  Dialer_instance : Dialer.TypeAssumptions
-  sysDialer_instance : sysDialer.TypeAssumptions
-  ListenConfig_instance : ListenConfig.TypeAssumptions
-  sysListener_instance : sysListener.TypeAssumptions
-  SRV_instance : SRV.TypeAssumptions
-  byPriorityWeight_instance : byPriorityWeight.TypeAssumptions
-  MX_instance : MX.TypeAssumptions
-  byPref_instance : byPref.TypeAssumptions
-  NS_instance : NS.TypeAssumptions
-  resolverConfig_instance : resolverConfig.TypeAssumptions
-  hostLookupOrder_instance : hostLookupOrder.TypeAssumptions
-  dnsConfig_instance : dnsConfig.TypeAssumptions
-  netFD_instance : netFD.TypeAssumptions
-  fileAddr_instance : fileAddr.TypeAssumptions
-  byName_instance : byName.TypeAssumptions
-  Interface_instance : Interface.TypeAssumptions
-  Flags_instance : Flags.TypeAssumptions
-  ipv6ZoneCache_instance : ipv6ZoneCache.TypeAssumptions
-  IP_instance : IP.TypeAssumptions
-  IPMask_instance : IPMask.TypeAssumptions
-  IPNet_instance : IPNet.TypeAssumptions
-  IPAddr_instance : IPAddr.TypeAssumptions
-  IPConn_instance : IPConn.TypeAssumptions
-  ipStackCapabilities_instance : ipStackCapabilities.TypeAssumptions
-  addrList_instance : addrList.TypeAssumptions
-  Resolver_instance : Resolver.TypeAssumptions
-  onlyValuesCtx_instance : onlyValuesCtx.TypeAssumptions
-  HardwareAddr_instance : HardwareAddr.TypeAssumptions
-  Addr_instance : Addr.TypeAssumptions
-  Conn_instance : Conn.TypeAssumptions
-  conn_instance : conn.TypeAssumptions
-  PacketConn_instance : PacketConn.TypeAssumptions
-  Listener_instance : Listener.TypeAssumptions
-  Error_instance : Error.TypeAssumptions
-  canceledError_instance : canceledError.TypeAssumptions
-  OpError_instance : OpError.TypeAssumptions
-  timeout_instance : timeout.TypeAssumptions
-  temporary_instance : temporary.TypeAssumptions
-  ParseError_instance : ParseError.TypeAssumptions
-  AddrError_instance : AddrError.TypeAssumptions
-  UnknownNetworkError_instance : UnknownNetworkError.TypeAssumptions
-  InvalidAddrError_instance : InvalidAddrError.TypeAssumptions
-  timeoutError_instance : timeoutError.TypeAssumptions
-  DNSConfigError_instance : DNSConfigError.TypeAssumptions
-  notFoundError_instance : notFoundError.TypeAssumptions
-  temporaryError_instance : temporaryError.TypeAssumptions
-  DNSError_instance : DNSError.TypeAssumptions
-  noReadFrom_instance : noReadFrom.TypeAssumptions
-  tcpConnWithoutReadFrom_instance : tcpConnWithoutReadFrom.TypeAssumptions
-  noWriteTo_instance : noWriteTo.TypeAssumptions
-  tcpConnWithoutWriteTo_instance : tcpConnWithoutWriteTo.TypeAssumptions
-  buffersWriter_instance : buffersWriter.TypeAssumptions
-  Buffers_instance : Buffers.TypeAssumptions
-  nsswitchConfig_instance : nsswitchConfig.TypeAssumptions
-  nssConf_instance : nssConf.TypeAssumptions
-  nssSource_instance : nssSource.TypeAssumptions
-  nssCriterion_instance : nssCriterion.TypeAssumptions
-  file_instance : file.TypeAssumptions
-  pipeDeadline_instance : pipeDeadline.TypeAssumptions
-  pipeAddr_instance : pipeAddr.TypeAssumptions
-  pipe_instance : pipe.TypeAssumptions
-  rawConn_instance : rawConn.TypeAssumptions
-  rawListener_instance : rawListener.TypeAssumptions
-  sockaddr_instance : sockaddr.TypeAssumptions
-  TCPAddr_instance : TCPAddr.TypeAssumptions
-  TCPConn_instance : TCPConn.TypeAssumptions
-  KeepAliveConfig_instance : KeepAliveConfig.TypeAssumptions
-  TCPListener_instance : TCPListener.TypeAssumptions
-  UDPAddr_instance : UDPAddr.TypeAssumptions
-  addrPortUDPAddr_instance : addrPortUDPAddr.TypeAssumptions
-  UDPConn_instance : UDPConn.TypeAssumptions
-  UnixAddr_instance : UnixAddr.TypeAssumptions
-  UnixConn_instance : UnixConn.TypeAssumptions
-  UnixListener_instance : UnixListener.TypeAssumptions
-  __instance : «_».TypeAssumptions
-  _Ctype__GoString__instance : _Ctype__GoString_.TypeAssumptions
-  _Ctype_char_instance : _Ctype_char.TypeAssumptions
-  _Ctype_int_instance : _Ctype_int.TypeAssumptions
-  _Ctype_long_instance : _Ctype_long.TypeAssumptions
-  _Ctype_struct_addrinfo_instance : _Ctype_struct_addrinfo.TypeAssumptions
-  _Ctype_struct_sockaddr_instance : _Ctype_struct_sockaddr.TypeAssumptions
-  _Ctype_uchar_instance : _Ctype_uchar.TypeAssumptions
-  _Ctype_uint_instance : _Ctype_uint.TypeAssumptions
-  _Ctype_ulong_instance : _Ctype_ulong.TypeAssumptions
-  _Ctype_ushort_instance : _Ctype_ushort.TypeAssumptions
-  _Ctype_void_instance : _Ctype_void.TypeAssumptions
-  Dial_unfold : FuncUnfold Dial [] Dial.impl
-  DialTimeout_unfold : FuncUnfold DialTimeout [] DialTimeout.impl
-  Listen_unfold : FuncUnfold Listen [] Listen.impl
-  isZeros_unfold : FuncUnfold isZeros [] isZeros.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_poll_Assumption : _root_.Perennial.internal.poll.Assumptions
+  instance'ipAttr : ipAttr.TypeAssumptions
+  instance'byRFC6724Info : byRFC6724Info.TypeAssumptions
+  instance'policyTableEntry : policyTableEntry.TypeAssumptions
+  instance'policyTable : policyTable.TypeAssumptions
+  instance'scope : scope.TypeAssumptions
+  instance'addrinfoErrno : addrinfoErrno.TypeAssumptions
+  instance'conf : conf.TypeAssumptions
+  instance'mdnsTest : mdnsTest.TypeAssumptions
+  instance'mptcpStatusDial : mptcpStatusDial.TypeAssumptions
+  instance'mptcpStatusListen : mptcpStatusListen.TypeAssumptions
+  instance'Dialer : Dialer.TypeAssumptions
+  instance'sysDialer : sysDialer.TypeAssumptions
+  instance'ListenConfig : ListenConfig.TypeAssumptions
+  instance'sysListener : sysListener.TypeAssumptions
+  instance'SRV : SRV.TypeAssumptions
+  instance'byPriorityWeight : byPriorityWeight.TypeAssumptions
+  instance'MX : MX.TypeAssumptions
+  instance'byPref : byPref.TypeAssumptions
+  instance'NS : NS.TypeAssumptions
+  instance'resolverConfig : resolverConfig.TypeAssumptions
+  instance'hostLookupOrder : hostLookupOrder.TypeAssumptions
+  instance'dnsConfig : dnsConfig.TypeAssumptions
+  instance'netFD : netFD.TypeAssumptions
+  instance'fileAddr : fileAddr.TypeAssumptions
+  instance'byName : byName.TypeAssumptions
+  instance'Interface : Interface.TypeAssumptions
+  instance'Flags : Flags.TypeAssumptions
+  instance'ipv6ZoneCache : ipv6ZoneCache.TypeAssumptions
+  instance'IP : IP.TypeAssumptions
+  instance'IPMask : IPMask.TypeAssumptions
+  instance'IPNet : IPNet.TypeAssumptions
+  instance'IPAddr : IPAddr.TypeAssumptions
+  instance'IPConn : IPConn.TypeAssumptions
+  instance'ipStackCapabilities : ipStackCapabilities.TypeAssumptions
+  instance'addrList : addrList.TypeAssumptions
+  instance'Resolver : Resolver.TypeAssumptions
+  instance'onlyValuesCtx : onlyValuesCtx.TypeAssumptions
+  instance'HardwareAddr : HardwareAddr.TypeAssumptions
+  instance'Addr : Addr.TypeAssumptions
+  instance'Conn : Conn.TypeAssumptions
+  instance'conn : conn.TypeAssumptions
+  instance'PacketConn : PacketConn.TypeAssumptions
+  instance'Listener : Listener.TypeAssumptions
+  instance'Error : Error.TypeAssumptions
+  instance'canceledError : canceledError.TypeAssumptions
+  instance'OpError : OpError.TypeAssumptions
+  instance'timeout : timeout.TypeAssumptions
+  instance'temporary : temporary.TypeAssumptions
+  instance'ParseError : ParseError.TypeAssumptions
+  instance'AddrError : AddrError.TypeAssumptions
+  instance'UnknownNetworkError : UnknownNetworkError.TypeAssumptions
+  instance'InvalidAddrError : InvalidAddrError.TypeAssumptions
+  instance'timeoutError : timeoutError.TypeAssumptions
+  instance'DNSConfigError : DNSConfigError.TypeAssumptions
+  instance'notFoundError : notFoundError.TypeAssumptions
+  instance'temporaryError : temporaryError.TypeAssumptions
+  instance'DNSError : DNSError.TypeAssumptions
+  instance'noReadFrom : noReadFrom.TypeAssumptions
+  instance'tcpConnWithoutReadFrom : tcpConnWithoutReadFrom.TypeAssumptions
+  instance'noWriteTo : noWriteTo.TypeAssumptions
+  instance'tcpConnWithoutWriteTo : tcpConnWithoutWriteTo.TypeAssumptions
+  instance'buffersWriter : buffersWriter.TypeAssumptions
+  instance'Buffers : Buffers.TypeAssumptions
+  instance'nsswitchConfig : nsswitchConfig.TypeAssumptions
+  instance'nssConf : nssConf.TypeAssumptions
+  instance'nssSource : nssSource.TypeAssumptions
+  instance'nssCriterion : nssCriterion.TypeAssumptions
+  instance'file : file.TypeAssumptions
+  instance'pipeDeadline : pipeDeadline.TypeAssumptions
+  instance'pipeAddr : pipeAddr.TypeAssumptions
+  instance'pipe : pipe.TypeAssumptions
+  instance'rawConn : rawConn.TypeAssumptions
+  instance'rawListener : rawListener.TypeAssumptions
+  instance'sockaddr : sockaddr.TypeAssumptions
+  instance'TCPAddr : TCPAddr.TypeAssumptions
+  instance'TCPConn : TCPConn.TypeAssumptions
+  instance'KeepAliveConfig : KeepAliveConfig.TypeAssumptions
+  instance'TCPListener : TCPListener.TypeAssumptions
+  instance'UDPAddr : UDPAddr.TypeAssumptions
+  instance'addrPortUDPAddr : addrPortUDPAddr.TypeAssumptions
+  instance'UDPConn : UDPConn.TypeAssumptions
+  instance'UnixAddr : UnixAddr.TypeAssumptions
+  instance'UnixConn : UnixConn.TypeAssumptions
+  instance'UnixListener : UnixListener.TypeAssumptions
+  instance'_ : «_».TypeAssumptions
+  instance'_Ctype__GoString_ : _Ctype__GoString_.TypeAssumptions
+  instance'_Ctype_char : _Ctype_char.TypeAssumptions
+  instance'_Ctype_int : _Ctype_int.TypeAssumptions
+  instance'_Ctype_long : _Ctype_long.TypeAssumptions
+  instance'_Ctype_struct_addrinfo : _Ctype_struct_addrinfo.TypeAssumptions
+  instance'_Ctype_struct_sockaddr : _Ctype_struct_sockaddr.TypeAssumptions
+  instance'_Ctype_uchar : _Ctype_uchar.TypeAssumptions
+  instance'_Ctype_uint : _Ctype_uint.TypeAssumptions
+  instance'_Ctype_ulong : _Ctype_ulong.TypeAssumptions
+  instance'_Ctype_ushort : _Ctype_ushort.TypeAssumptions
+  instance'_Ctype_void : _Ctype_void.TypeAssumptions
+  unfold'Dial : FuncUnfold Dial [] Dial.impl
+  unfold'DialTimeout : FuncUnfold DialTimeout [] DialTimeout.impl
+  unfold'Listen : FuncUnfold Listen [] Listen.impl
+  unfold'isZeros : FuncUnfold isZeros [] isZeros.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'syscall : _root_.Perennial.syscall.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'poll : _root_.Perennial.internal.poll.Assumptions
 
-attribute [instance] Assumptions.ipAttr_instance
-  Assumptions.byRFC6724Info_instance
-  Assumptions.policyTableEntry_instance
-  Assumptions.policyTable_instance
-  Assumptions.scope_instance
-  Assumptions.addrinfoErrno_instance
-  Assumptions.conf_instance
-  Assumptions.mdnsTest_instance
-  Assumptions.mptcpStatusDial_instance
-  Assumptions.mptcpStatusListen_instance
-  Assumptions.Dialer_instance
-  Assumptions.sysDialer_instance
-  Assumptions.ListenConfig_instance
-  Assumptions.sysListener_instance
-  Assumptions.SRV_instance
-  Assumptions.byPriorityWeight_instance
-  Assumptions.MX_instance
-  Assumptions.byPref_instance
-  Assumptions.NS_instance
-  Assumptions.resolverConfig_instance
-  Assumptions.hostLookupOrder_instance
-  Assumptions.dnsConfig_instance
-  Assumptions.netFD_instance
-  Assumptions.fileAddr_instance
-  Assumptions.byName_instance
-  Assumptions.Interface_instance
-  Assumptions.Flags_instance
-  Assumptions.ipv6ZoneCache_instance
-  Assumptions.IP_instance
-  Assumptions.IPMask_instance
-  Assumptions.IPNet_instance
-  Assumptions.IPAddr_instance
-  Assumptions.IPConn_instance
-  Assumptions.ipStackCapabilities_instance
-  Assumptions.addrList_instance
-  Assumptions.Resolver_instance
-  Assumptions.onlyValuesCtx_instance
-  Assumptions.HardwareAddr_instance
-  Assumptions.Addr_instance
-  Assumptions.Conn_instance
-  Assumptions.conn_instance
-  Assumptions.PacketConn_instance
-  Assumptions.Listener_instance
-  Assumptions.Error_instance
-  Assumptions.canceledError_instance
-  Assumptions.OpError_instance
-  Assumptions.timeout_instance
-  Assumptions.temporary_instance
-  Assumptions.ParseError_instance
-  Assumptions.AddrError_instance
-  Assumptions.UnknownNetworkError_instance
-  Assumptions.InvalidAddrError_instance
-  Assumptions.timeoutError_instance
-  Assumptions.DNSConfigError_instance
-  Assumptions.notFoundError_instance
-  Assumptions.temporaryError_instance
-  Assumptions.DNSError_instance
-  Assumptions.noReadFrom_instance
-  Assumptions.tcpConnWithoutReadFrom_instance
-  Assumptions.noWriteTo_instance
-  Assumptions.tcpConnWithoutWriteTo_instance
-  Assumptions.buffersWriter_instance
-  Assumptions.Buffers_instance
-  Assumptions.nsswitchConfig_instance
-  Assumptions.nssConf_instance
-  Assumptions.nssSource_instance
-  Assumptions.nssCriterion_instance
-  Assumptions.file_instance
-  Assumptions.pipeDeadline_instance
-  Assumptions.pipeAddr_instance
-  Assumptions.pipe_instance
-  Assumptions.rawConn_instance
-  Assumptions.rawListener_instance
-  Assumptions.sockaddr_instance
-  Assumptions.TCPAddr_instance
-  Assumptions.TCPConn_instance
-  Assumptions.KeepAliveConfig_instance
-  Assumptions.TCPListener_instance
-  Assumptions.UDPAddr_instance
-  Assumptions.addrPortUDPAddr_instance
-  Assumptions.UDPConn_instance
-  Assumptions.UnixAddr_instance
-  Assumptions.UnixConn_instance
-  Assumptions.UnixListener_instance
-  Assumptions.__instance
-  Assumptions._Ctype__GoString__instance
-  Assumptions._Ctype_char_instance
-  Assumptions._Ctype_int_instance
-  Assumptions._Ctype_long_instance
-  Assumptions._Ctype_struct_addrinfo_instance
-  Assumptions._Ctype_struct_sockaddr_instance
-  Assumptions._Ctype_uchar_instance
-  Assumptions._Ctype_uint_instance
-  Assumptions._Ctype_ulong_instance
-  Assumptions._Ctype_ushort_instance
-  Assumptions._Ctype_void_instance
-  Assumptions.Dial_unfold
-  Assumptions.DialTimeout_unfold
-  Assumptions.Listen_unfold
-  Assumptions.isZeros_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_syscall_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_poll_Assumption
+attribute [instance] Assumptions.instance'ipAttr
+  Assumptions.instance'byRFC6724Info
+  Assumptions.instance'policyTableEntry
+  Assumptions.instance'policyTable
+  Assumptions.instance'scope
+  Assumptions.instance'addrinfoErrno
+  Assumptions.instance'conf
+  Assumptions.instance'mdnsTest
+  Assumptions.instance'mptcpStatusDial
+  Assumptions.instance'mptcpStatusListen
+  Assumptions.instance'Dialer
+  Assumptions.instance'sysDialer
+  Assumptions.instance'ListenConfig
+  Assumptions.instance'sysListener
+  Assumptions.instance'SRV
+  Assumptions.instance'byPriorityWeight
+  Assumptions.instance'MX
+  Assumptions.instance'byPref
+  Assumptions.instance'NS
+  Assumptions.instance'resolverConfig
+  Assumptions.instance'hostLookupOrder
+  Assumptions.instance'dnsConfig
+  Assumptions.instance'netFD
+  Assumptions.instance'fileAddr
+  Assumptions.instance'byName
+  Assumptions.instance'Interface
+  Assumptions.instance'Flags
+  Assumptions.instance'ipv6ZoneCache
+  Assumptions.instance'IP
+  Assumptions.instance'IPMask
+  Assumptions.instance'IPNet
+  Assumptions.instance'IPAddr
+  Assumptions.instance'IPConn
+  Assumptions.instance'ipStackCapabilities
+  Assumptions.instance'addrList
+  Assumptions.instance'Resolver
+  Assumptions.instance'onlyValuesCtx
+  Assumptions.instance'HardwareAddr
+  Assumptions.instance'Addr
+  Assumptions.instance'Conn
+  Assumptions.instance'conn
+  Assumptions.instance'PacketConn
+  Assumptions.instance'Listener
+  Assumptions.instance'Error
+  Assumptions.instance'canceledError
+  Assumptions.instance'OpError
+  Assumptions.instance'timeout
+  Assumptions.instance'temporary
+  Assumptions.instance'ParseError
+  Assumptions.instance'AddrError
+  Assumptions.instance'UnknownNetworkError
+  Assumptions.instance'InvalidAddrError
+  Assumptions.instance'timeoutError
+  Assumptions.instance'DNSConfigError
+  Assumptions.instance'notFoundError
+  Assumptions.instance'temporaryError
+  Assumptions.instance'DNSError
+  Assumptions.instance'noReadFrom
+  Assumptions.instance'tcpConnWithoutReadFrom
+  Assumptions.instance'noWriteTo
+  Assumptions.instance'tcpConnWithoutWriteTo
+  Assumptions.instance'buffersWriter
+  Assumptions.instance'Buffers
+  Assumptions.instance'nsswitchConfig
+  Assumptions.instance'nssConf
+  Assumptions.instance'nssSource
+  Assumptions.instance'nssCriterion
+  Assumptions.instance'file
+  Assumptions.instance'pipeDeadline
+  Assumptions.instance'pipeAddr
+  Assumptions.instance'pipe
+  Assumptions.instance'rawConn
+  Assumptions.instance'rawListener
+  Assumptions.instance'sockaddr
+  Assumptions.instance'TCPAddr
+  Assumptions.instance'TCPConn
+  Assumptions.instance'KeepAliveConfig
+  Assumptions.instance'TCPListener
+  Assumptions.instance'UDPAddr
+  Assumptions.instance'addrPortUDPAddr
+  Assumptions.instance'UDPConn
+  Assumptions.instance'UnixAddr
+  Assumptions.instance'UnixConn
+  Assumptions.instance'UnixListener
+  Assumptions.instance'_
+  Assumptions.instance'_Ctype__GoString_
+  Assumptions.instance'_Ctype_char
+  Assumptions.instance'_Ctype_int
+  Assumptions.instance'_Ctype_long
+  Assumptions.instance'_Ctype_struct_addrinfo
+  Assumptions.instance'_Ctype_struct_sockaddr
+  Assumptions.instance'_Ctype_uchar
+  Assumptions.instance'_Ctype_uint
+  Assumptions.instance'_Ctype_ulong
+  Assumptions.instance'_Ctype_ushort
+  Assumptions.instance'_Ctype_void
+  Assumptions.unfold'Dial
+  Assumptions.unfold'DialTimeout
+  Assumptions.unfold'Listen
+  Assumptions.unfold'isZeros
+  Assumptions.import'context
+  Assumptions.import'errors
+  Assumptions.import'syscall
+  Assumptions.import'os
+  Assumptions.import'time
+  Assumptions.import'io
+  Assumptions.import'poll
 
 end net
 

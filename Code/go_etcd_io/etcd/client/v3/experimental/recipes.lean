@@ -2744,7 +2744,7 @@ noncomputable instance Barrier.zero_val [GooseExts] : ZeroVal Barrier :=
 @[irreducible] noncomputable def Barrier.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Barrier.fieldsUnsealed
 
-noncomputable instance equals_unfold_Barrier [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Barrier [GooseExts] [GoGlobalContext] :
     EqualsUnfold Barrier.fields Barrier.fieldsUnsealed :=
   ⟨by unfold Barrier.fields; rfl⟩
 
@@ -2754,31 +2754,31 @@ noncomputable instance equals_unfold_Barrier [GooseExts] [GoGlobalContext] :
 class Barrier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Barrier.underlying Barrier
   underlying : go.UnderlyingDirectedEq Barrier.ty Barrier.underlying
-  get_client : ∀ (x : Barrier), go.IsGoStepPureDetTagged under (StructFieldGet Barrier.underlying go!"client") #x (Val #(x.client'))
-  set_client : ∀ (x : Barrier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Barrier.underlying go!"client") (PairV #x #y) (Val #(({ x with client' := y } : Barrier)))
-  get_ctx : ∀ (x : Barrier), go.IsGoStepPureDetTagged under (StructFieldGet Barrier.underlying go!"ctx") #x (Val #(x.ctx'))
-  set_ctx : ∀ (x : Barrier) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Barrier.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : Barrier)))
-  get_key : ∀ (x : Barrier), go.IsGoStepPureDetTagged under (StructFieldGet Barrier.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : Barrier) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Barrier.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : Barrier)))
+  get'client : ∀ (x : Barrier), go.IsGoStepPureDetTagged under (StructFieldGet Barrier.underlying go!"client") #x (Val #(x.client'))
+  set'client : ∀ (x : Barrier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Barrier.underlying go!"client") (PairV #x #y) (Val #(({ x with client' := y } : Barrier)))
+  get'ctx : ∀ (x : Barrier), go.IsGoStepPureDetTagged under (StructFieldGet Barrier.underlying go!"ctx") #x (Val #(x.ctx'))
+  set'ctx : ∀ (x : Barrier) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Barrier.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : Barrier)))
+  get'key : ∀ (x : Barrier), go.IsGoStepPureDetTagged under (StructFieldGet Barrier.underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : Barrier) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Barrier.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : Barrier)))
   method_set : go.MethodSetIs Barrier.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Barrier.ty) [(go!"Hold", (some (go.signature.Signature [] false [go.error]))), (go!"Release", (some (go.signature.Signature [] false [go.error]))), (go!"Wait", (some (go.signature.Signature [] false [go.error])))]
-  ptr_Hold_unfold : MethodUnfold (go.GoType.PointerType Barrier.ty) go!"Hold" Barrier.Hold.impl
-  ptr_Release_unfold : MethodUnfold (go.GoType.PointerType Barrier.ty) go!"Release" Barrier.Release.impl
-  ptr_Wait_unfold : MethodUnfold (go.GoType.PointerType Barrier.ty) go!"Wait" Barrier.Wait.impl
+  ptr_unfold'Hold : MethodUnfold (go.GoType.PointerType Barrier.ty) go!"Hold" Barrier.Hold.impl
+  ptr_unfold'Release : MethodUnfold (go.GoType.PointerType Barrier.ty) go!"Release" Barrier.Release.impl
+  ptr_unfold'Wait : MethodUnfold (go.GoType.PointerType Barrier.ty) go!"Wait" Barrier.Wait.impl
 
 attribute [instance] Barrier.TypeAssumptions.type_repr
   Barrier.TypeAssumptions.underlying
-  Barrier.TypeAssumptions.get_client
-  Barrier.TypeAssumptions.set_client
-  Barrier.TypeAssumptions.get_ctx
-  Barrier.TypeAssumptions.set_ctx
-  Barrier.TypeAssumptions.get_key
-  Barrier.TypeAssumptions.set_key
+  Barrier.TypeAssumptions.get'client
+  Barrier.TypeAssumptions.set'client
+  Barrier.TypeAssumptions.get'ctx
+  Barrier.TypeAssumptions.set'ctx
+  Barrier.TypeAssumptions.get'key
+  Barrier.TypeAssumptions.set'key
   Barrier.TypeAssumptions.method_set
   Barrier.TypeAssumptions.ptr_method_set
-  Barrier.TypeAssumptions.ptr_Hold_unfold
-  Barrier.TypeAssumptions.ptr_Release_unfold
-  Barrier.TypeAssumptions.ptr_Wait_unfold
+  Barrier.TypeAssumptions.ptr_unfold'Hold
+  Barrier.TypeAssumptions.ptr_unfold'Release
+  Barrier.TypeAssumptions.ptr_unfold'Wait
 
 structure DoubleBarrier [GooseExts] where
   mk ::
@@ -2801,7 +2801,7 @@ noncomputable instance DoubleBarrier.zero_val [GooseExts] : ZeroVal DoubleBarrie
 @[irreducible] noncomputable def DoubleBarrier.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DoubleBarrier.fieldsUnsealed
 
-noncomputable instance equals_unfold_DoubleBarrier [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DoubleBarrier [GooseExts] [GoGlobalContext] :
     EqualsUnfold DoubleBarrier.fields DoubleBarrier.fieldsUnsealed :=
   ⟨by unfold DoubleBarrier.fields; rfl⟩
 
@@ -2811,39 +2811,39 @@ noncomputable instance equals_unfold_DoubleBarrier [GooseExts] [GoGlobalContext]
 class DoubleBarrier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DoubleBarrier.underlying DoubleBarrier
   underlying : go.UnderlyingDirectedEq DoubleBarrier.ty DoubleBarrier.underlying
-  get_s : ∀ (x : DoubleBarrier), go.IsGoStepPureDetTagged under (StructFieldGet DoubleBarrier.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : DoubleBarrier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DoubleBarrier.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : DoubleBarrier)))
-  get_ctx : ∀ (x : DoubleBarrier), go.IsGoStepPureDetTagged under (StructFieldGet DoubleBarrier.underlying go!"ctx") #x (Val #(x.ctx'))
-  set_ctx : ∀ (x : DoubleBarrier) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet DoubleBarrier.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : DoubleBarrier)))
-  get_key : ∀ (x : DoubleBarrier), go.IsGoStepPureDetTagged under (StructFieldGet DoubleBarrier.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : DoubleBarrier) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DoubleBarrier.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : DoubleBarrier)))
-  get_count : ∀ (x : DoubleBarrier), go.IsGoStepPureDetTagged under (StructFieldGet DoubleBarrier.underlying go!"count") #x (Val #(x.count'))
-  set_count : ∀ (x : DoubleBarrier) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DoubleBarrier.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : DoubleBarrier)))
-  get_myKey : ∀ (x : DoubleBarrier), go.IsGoStepPureDetTagged under (StructFieldGet DoubleBarrier.underlying go!"myKey") #x (Val #(x.myKey'))
-  set_myKey : ∀ (x : DoubleBarrier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DoubleBarrier.underlying go!"myKey") (PairV #x #y) (Val #(({ x with myKey' := y } : DoubleBarrier)))
+  get's : ∀ (x : DoubleBarrier), go.IsGoStepPureDetTagged under (StructFieldGet DoubleBarrier.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : DoubleBarrier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DoubleBarrier.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : DoubleBarrier)))
+  get'ctx : ∀ (x : DoubleBarrier), go.IsGoStepPureDetTagged under (StructFieldGet DoubleBarrier.underlying go!"ctx") #x (Val #(x.ctx'))
+  set'ctx : ∀ (x : DoubleBarrier) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet DoubleBarrier.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : DoubleBarrier)))
+  get'key : ∀ (x : DoubleBarrier), go.IsGoStepPureDetTagged under (StructFieldGet DoubleBarrier.underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : DoubleBarrier) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DoubleBarrier.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : DoubleBarrier)))
+  get'count : ∀ (x : DoubleBarrier), go.IsGoStepPureDetTagged under (StructFieldGet DoubleBarrier.underlying go!"count") #x (Val #(x.count'))
+  set'count : ∀ (x : DoubleBarrier) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DoubleBarrier.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : DoubleBarrier)))
+  get'myKey : ∀ (x : DoubleBarrier), go.IsGoStepPureDetTagged under (StructFieldGet DoubleBarrier.underlying go!"myKey") #x (Val #(x.myKey'))
+  set'myKey : ∀ (x : DoubleBarrier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DoubleBarrier.underlying go!"myKey") (PairV #x #y) (Val #(({ x with myKey' := y } : DoubleBarrier)))
   method_set : go.MethodSetIs DoubleBarrier.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DoubleBarrier.ty) [(go!"Enter", (some (go.signature.Signature [] false [go.error]))), (go!"Leave", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/client/v3/experimental/recipes.enteredClients", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty), go.error])))]
-  ptr_Enter_unfold : MethodUnfold (go.GoType.PointerType DoubleBarrier.ty) go!"Enter" DoubleBarrier.Enter.impl
-  ptr_Leave_unfold : MethodUnfold (go.GoType.PointerType DoubleBarrier.ty) go!"Leave" DoubleBarrier.Leave.impl
-  ptr_enteredClients_unfold : MethodUnfold (go.GoType.PointerType DoubleBarrier.ty) go!"enteredClients" DoubleBarrier.enteredClients.impl
+  ptr_unfold'Enter : MethodUnfold (go.GoType.PointerType DoubleBarrier.ty) go!"Enter" DoubleBarrier.Enter.impl
+  ptr_unfold'Leave : MethodUnfold (go.GoType.PointerType DoubleBarrier.ty) go!"Leave" DoubleBarrier.Leave.impl
+  ptr_unfold'enteredClients : MethodUnfold (go.GoType.PointerType DoubleBarrier.ty) go!"enteredClients" DoubleBarrier.enteredClients.impl
 
 attribute [instance] DoubleBarrier.TypeAssumptions.type_repr
   DoubleBarrier.TypeAssumptions.underlying
-  DoubleBarrier.TypeAssumptions.get_s
-  DoubleBarrier.TypeAssumptions.set_s
-  DoubleBarrier.TypeAssumptions.get_ctx
-  DoubleBarrier.TypeAssumptions.set_ctx
-  DoubleBarrier.TypeAssumptions.get_key
-  DoubleBarrier.TypeAssumptions.set_key
-  DoubleBarrier.TypeAssumptions.get_count
-  DoubleBarrier.TypeAssumptions.set_count
-  DoubleBarrier.TypeAssumptions.get_myKey
-  DoubleBarrier.TypeAssumptions.set_myKey
+  DoubleBarrier.TypeAssumptions.get's
+  DoubleBarrier.TypeAssumptions.set's
+  DoubleBarrier.TypeAssumptions.get'ctx
+  DoubleBarrier.TypeAssumptions.set'ctx
+  DoubleBarrier.TypeAssumptions.get'key
+  DoubleBarrier.TypeAssumptions.set'key
+  DoubleBarrier.TypeAssumptions.get'count
+  DoubleBarrier.TypeAssumptions.set'count
+  DoubleBarrier.TypeAssumptions.get'myKey
+  DoubleBarrier.TypeAssumptions.set'myKey
   DoubleBarrier.TypeAssumptions.method_set
   DoubleBarrier.TypeAssumptions.ptr_method_set
-  DoubleBarrier.TypeAssumptions.ptr_Enter_unfold
-  DoubleBarrier.TypeAssumptions.ptr_Leave_unfold
-  DoubleBarrier.TypeAssumptions.ptr_enteredClients_unfold
+  DoubleBarrier.TypeAssumptions.ptr_unfold'Enter
+  DoubleBarrier.TypeAssumptions.ptr_unfold'Leave
+  DoubleBarrier.TypeAssumptions.ptr_unfold'enteredClients
 
 structure RemoteKV [GooseExts] where
   mk ::
@@ -2864,7 +2864,7 @@ noncomputable instance RemoteKV.zero_val [GooseExts] : ZeroVal RemoteKV :=
 @[irreducible] noncomputable def RemoteKV.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RemoteKV.fieldsUnsealed
 
-noncomputable instance equals_unfold_RemoteKV [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RemoteKV [GooseExts] [GoGlobalContext] :
     EqualsUnfold RemoteKV.fields RemoteKV.fieldsUnsealed :=
   ⟨by unfold RemoteKV.fields; rfl⟩
 
@@ -2874,39 +2874,39 @@ noncomputable instance equals_unfold_RemoteKV [GooseExts] [GoGlobalContext] :
 class RemoteKV.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RemoteKV.underlying RemoteKV
   underlying : go.UnderlyingDirectedEq RemoteKV.ty RemoteKV.underlying
-  get_kv : ∀ (x : RemoteKV), go.IsGoStepPureDetTagged under (StructFieldGet RemoteKV.underlying go!"kv") #x (Val #(x.kv'))
-  set_kv : ∀ (x : RemoteKV) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.KV), go.IsGoStepPureDetTagged under (StructFieldSet RemoteKV.underlying go!"kv") (PairV #x #y) (Val #(({ x with kv' := y } : RemoteKV)))
-  get_key : ∀ (x : RemoteKV), go.IsGoStepPureDetTagged under (StructFieldGet RemoteKV.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : RemoteKV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RemoteKV.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : RemoteKV)))
-  get_rev : ∀ (x : RemoteKV), go.IsGoStepPureDetTagged under (StructFieldGet RemoteKV.underlying go!"rev") #x (Val #(x.rev'))
-  set_rev : ∀ (x : RemoteKV) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RemoteKV.underlying go!"rev") (PairV #x #y) (Val #(({ x with rev' := y } : RemoteKV)))
-  get_val : ∀ (x : RemoteKV), go.IsGoStepPureDetTagged under (StructFieldGet RemoteKV.underlying go!"val") #x (Val #(x.val'))
-  set_val : ∀ (x : RemoteKV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RemoteKV.underlying go!"val") (PairV #x #y) (Val #(({ x with val' := y } : RemoteKV)))
+  get'kv : ∀ (x : RemoteKV), go.IsGoStepPureDetTagged under (StructFieldGet RemoteKV.underlying go!"kv") #x (Val #(x.kv'))
+  set'kv : ∀ (x : RemoteKV) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.KV), go.IsGoStepPureDetTagged under (StructFieldSet RemoteKV.underlying go!"kv") (PairV #x #y) (Val #(({ x with kv' := y } : RemoteKV)))
+  get'key : ∀ (x : RemoteKV), go.IsGoStepPureDetTagged under (StructFieldGet RemoteKV.underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : RemoteKV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RemoteKV.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : RemoteKV)))
+  get'rev : ∀ (x : RemoteKV), go.IsGoStepPureDetTagged under (StructFieldGet RemoteKV.underlying go!"rev") #x (Val #(x.rev'))
+  set'rev : ∀ (x : RemoteKV) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RemoteKV.underlying go!"rev") (PairV #x #y) (Val #(({ x with rev' := y } : RemoteKV)))
+  get'val : ∀ (x : RemoteKV), go.IsGoStepPureDetTagged under (StructFieldGet RemoteKV.underlying go!"val") #x (Val #(x.val'))
+  set'val : ∀ (x : RemoteKV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RemoteKV.underlying go!"val") (PairV #x #y) (Val #(({ x with val' := y } : RemoteKV)))
   method_set : go.MethodSetIs RemoteKV.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RemoteKV.ty) [(go!"Delete", (some (go.signature.Signature [] false [go.error]))), (go!"Key", (some (go.signature.Signature [] false [go.string]))), (go!"Put", (some (go.signature.Signature [go.string] false [go.error]))), (go!"Revision", (some (go.signature.Signature [] false [go.int64]))), (go!"Value", (some (go.signature.Signature [] false [go.string])))]
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType RemoteKV.ty) go!"Delete" RemoteKV.Delete.impl
-  ptr_Key_unfold : MethodUnfold (go.GoType.PointerType RemoteKV.ty) go!"Key" RemoteKV.Key.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType RemoteKV.ty) go!"Put" RemoteKV.Put.impl
-  ptr_Revision_unfold : MethodUnfold (go.GoType.PointerType RemoteKV.ty) go!"Revision" RemoteKV.Revision.impl
-  ptr_Value_unfold : MethodUnfold (go.GoType.PointerType RemoteKV.ty) go!"Value" RemoteKV.Value.impl
+  ptr_unfold'Delete : MethodUnfold (go.GoType.PointerType RemoteKV.ty) go!"Delete" RemoteKV.Delete.impl
+  ptr_unfold'Key : MethodUnfold (go.GoType.PointerType RemoteKV.ty) go!"Key" RemoteKV.Key.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType RemoteKV.ty) go!"Put" RemoteKV.Put.impl
+  ptr_unfold'Revision : MethodUnfold (go.GoType.PointerType RemoteKV.ty) go!"Revision" RemoteKV.Revision.impl
+  ptr_unfold'Value : MethodUnfold (go.GoType.PointerType RemoteKV.ty) go!"Value" RemoteKV.Value.impl
 
 attribute [instance] RemoteKV.TypeAssumptions.type_repr
   RemoteKV.TypeAssumptions.underlying
-  RemoteKV.TypeAssumptions.get_kv
-  RemoteKV.TypeAssumptions.set_kv
-  RemoteKV.TypeAssumptions.get_key
-  RemoteKV.TypeAssumptions.set_key
-  RemoteKV.TypeAssumptions.get_rev
-  RemoteKV.TypeAssumptions.set_rev
-  RemoteKV.TypeAssumptions.get_val
-  RemoteKV.TypeAssumptions.set_val
+  RemoteKV.TypeAssumptions.get'kv
+  RemoteKV.TypeAssumptions.set'kv
+  RemoteKV.TypeAssumptions.get'key
+  RemoteKV.TypeAssumptions.set'key
+  RemoteKV.TypeAssumptions.get'rev
+  RemoteKV.TypeAssumptions.set'rev
+  RemoteKV.TypeAssumptions.get'val
+  RemoteKV.TypeAssumptions.set'val
   RemoteKV.TypeAssumptions.method_set
   RemoteKV.TypeAssumptions.ptr_method_set
-  RemoteKV.TypeAssumptions.ptr_Delete_unfold
-  RemoteKV.TypeAssumptions.ptr_Key_unfold
-  RemoteKV.TypeAssumptions.ptr_Put_unfold
-  RemoteKV.TypeAssumptions.ptr_Revision_unfold
-  RemoteKV.TypeAssumptions.ptr_Value_unfold
+  RemoteKV.TypeAssumptions.ptr_unfold'Delete
+  RemoteKV.TypeAssumptions.ptr_unfold'Key
+  RemoteKV.TypeAssumptions.ptr_unfold'Put
+  RemoteKV.TypeAssumptions.ptr_unfold'Revision
+  RemoteKV.TypeAssumptions.ptr_unfold'Value
 
 structure EphemeralKV [GooseExts] where
   mk ::
@@ -2921,7 +2921,7 @@ noncomputable instance EphemeralKV.zero_val [GooseExts] : ZeroVal EphemeralKV :=
 @[irreducible] noncomputable def EphemeralKV.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EphemeralKV.fieldsUnsealed
 
-noncomputable instance equals_unfold_EphemeralKV [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'EphemeralKV [GooseExts] [GoGlobalContext] :
     EqualsUnfold EphemeralKV.fields EphemeralKV.fieldsUnsealed :=
   ⟨by unfold EphemeralKV.fields; rfl⟩
 
@@ -2931,32 +2931,32 @@ noncomputable instance equals_unfold_EphemeralKV [GooseExts] [GoGlobalContext] :
 class EphemeralKV.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EphemeralKV.underlying EphemeralKV
   underlying : go.UnderlyingDirectedEq EphemeralKV.ty EphemeralKV.underlying
-  get_RemoteKV : ∀ (x : EphemeralKV), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralKV.underlying go!"RemoteKV") #x (Val #(x.RemoteKV'))
-  set_RemoteKV : ∀ (x : EphemeralKV) (y : RemoteKV), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralKV.underlying go!"RemoteKV") (PairV #x #y) (Val #(({ x with RemoteKV' := y } : EphemeralKV)))
+  get'RemoteKV : ∀ (x : EphemeralKV), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralKV.underlying go!"RemoteKV") #x (Val #(x.RemoteKV'))
+  set'RemoteKV : ∀ (x : EphemeralKV) (y : RemoteKV), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralKV.underlying go!"RemoteKV") (PairV #x #y) (Val #(({ x with RemoteKV' := y } : EphemeralKV)))
   method_set : go.MethodSetIs EphemeralKV.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType EphemeralKV.ty) [(go!"Delete", (some (go.signature.Signature [] false [go.error]))), (go!"Key", (some (go.signature.Signature [] false [go.string]))), (go!"Put", (some (go.signature.Signature [go.string] false [go.error]))), (go!"Revision", (some (go.signature.Signature [] false [go.int64]))), (go!"Value", (some (go.signature.Signature [] false [go.string])))]
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType EphemeralKV.ty) go!"Delete" (LamV "$r"
+  ptr_unfold'Delete : MethodUnfold (go.GoType.PointerType EphemeralKV.ty) go!"Delete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RemoteKV.ty) go!"Delete"))) (App (Val (GoInstruction (StructFieldRef EphemeralKV.ty go!"RemoteKV"))) (Var "$r"))))
-  ptr_Key_unfold : MethodUnfold (go.GoType.PointerType EphemeralKV.ty) go!"Key" (LamV "$r"
+  ptr_unfold'Key : MethodUnfold (go.GoType.PointerType EphemeralKV.ty) go!"Key" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RemoteKV.ty) go!"Key"))) (App (Val (GoInstruction (StructFieldRef EphemeralKV.ty go!"RemoteKV"))) (Var "$r"))))
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType EphemeralKV.ty) go!"Put" (LamV "$r"
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType EphemeralKV.ty) go!"Put" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RemoteKV.ty) go!"Put"))) (App (Val (GoInstruction (StructFieldRef EphemeralKV.ty go!"RemoteKV"))) (Var "$r"))))
-  ptr_Revision_unfold : MethodUnfold (go.GoType.PointerType EphemeralKV.ty) go!"Revision" (LamV "$r"
+  ptr_unfold'Revision : MethodUnfold (go.GoType.PointerType EphemeralKV.ty) go!"Revision" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RemoteKV.ty) go!"Revision"))) (App (Val (GoInstruction (StructFieldRef EphemeralKV.ty go!"RemoteKV"))) (Var "$r"))))
-  ptr_Value_unfold : MethodUnfold (go.GoType.PointerType EphemeralKV.ty) go!"Value" (LamV "$r"
+  ptr_unfold'Value : MethodUnfold (go.GoType.PointerType EphemeralKV.ty) go!"Value" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RemoteKV.ty) go!"Value"))) (App (Val (GoInstruction (StructFieldRef EphemeralKV.ty go!"RemoteKV"))) (Var "$r"))))
 
 attribute [instance] EphemeralKV.TypeAssumptions.type_repr
   EphemeralKV.TypeAssumptions.underlying
-  EphemeralKV.TypeAssumptions.get_RemoteKV
-  EphemeralKV.TypeAssumptions.set_RemoteKV
+  EphemeralKV.TypeAssumptions.get'RemoteKV
+  EphemeralKV.TypeAssumptions.set'RemoteKV
   EphemeralKV.TypeAssumptions.method_set
   EphemeralKV.TypeAssumptions.ptr_method_set
-  EphemeralKV.TypeAssumptions.ptr_Delete_unfold
-  EphemeralKV.TypeAssumptions.ptr_Key_unfold
-  EphemeralKV.TypeAssumptions.ptr_Put_unfold
-  EphemeralKV.TypeAssumptions.ptr_Revision_unfold
-  EphemeralKV.TypeAssumptions.ptr_Value_unfold
+  EphemeralKV.TypeAssumptions.ptr_unfold'Delete
+  EphemeralKV.TypeAssumptions.ptr_unfold'Key
+  EphemeralKV.TypeAssumptions.ptr_unfold'Put
+  EphemeralKV.TypeAssumptions.ptr_unfold'Revision
+  EphemeralKV.TypeAssumptions.ptr_unfold'Value
 
 structure PriorityQueue [GooseExts] where
   mk ::
@@ -2975,7 +2975,7 @@ noncomputable instance PriorityQueue.zero_val [GooseExts] : ZeroVal PriorityQueu
 @[irreducible] noncomputable def PriorityQueue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PriorityQueue.fieldsUnsealed
 
-noncomputable instance equals_unfold_PriorityQueue [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PriorityQueue [GooseExts] [GoGlobalContext] :
     EqualsUnfold PriorityQueue.fields PriorityQueue.fieldsUnsealed :=
   ⟨by unfold PriorityQueue.fields; rfl⟩
 
@@ -2985,29 +2985,29 @@ noncomputable instance equals_unfold_PriorityQueue [GooseExts] [GoGlobalContext]
 class PriorityQueue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PriorityQueue.underlying PriorityQueue
   underlying : go.UnderlyingDirectedEq PriorityQueue.ty PriorityQueue.underlying
-  get_client : ∀ (x : PriorityQueue), go.IsGoStepPureDetTagged under (StructFieldGet PriorityQueue.underlying go!"client") #x (Val #(x.client'))
-  set_client : ∀ (x : PriorityQueue) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PriorityQueue.underlying go!"client") (PairV #x #y) (Val #(({ x with client' := y } : PriorityQueue)))
-  get_ctx : ∀ (x : PriorityQueue), go.IsGoStepPureDetTagged under (StructFieldGet PriorityQueue.underlying go!"ctx") #x (Val #(x.ctx'))
-  set_ctx : ∀ (x : PriorityQueue) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet PriorityQueue.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : PriorityQueue)))
-  get_key : ∀ (x : PriorityQueue), go.IsGoStepPureDetTagged under (StructFieldGet PriorityQueue.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : PriorityQueue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PriorityQueue.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : PriorityQueue)))
+  get'client : ∀ (x : PriorityQueue), go.IsGoStepPureDetTagged under (StructFieldGet PriorityQueue.underlying go!"client") #x (Val #(x.client'))
+  set'client : ∀ (x : PriorityQueue) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PriorityQueue.underlying go!"client") (PairV #x #y) (Val #(({ x with client' := y } : PriorityQueue)))
+  get'ctx : ∀ (x : PriorityQueue), go.IsGoStepPureDetTagged under (StructFieldGet PriorityQueue.underlying go!"ctx") #x (Val #(x.ctx'))
+  set'ctx : ∀ (x : PriorityQueue) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet PriorityQueue.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : PriorityQueue)))
+  get'key : ∀ (x : PriorityQueue), go.IsGoStepPureDetTagged under (StructFieldGet PriorityQueue.underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : PriorityQueue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PriorityQueue.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : PriorityQueue)))
   method_set : go.MethodSetIs PriorityQueue.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PriorityQueue.ty) [(go!"Dequeue", (some (go.signature.Signature [] false [go.string, go.error]))), (go!"Enqueue", (some (go.signature.Signature [go.string, go.uint16] false [go.error])))]
-  ptr_Dequeue_unfold : MethodUnfold (go.GoType.PointerType PriorityQueue.ty) go!"Dequeue" PriorityQueue.Dequeue.impl
-  ptr_Enqueue_unfold : MethodUnfold (go.GoType.PointerType PriorityQueue.ty) go!"Enqueue" PriorityQueue.Enqueue.impl
+  ptr_unfold'Dequeue : MethodUnfold (go.GoType.PointerType PriorityQueue.ty) go!"Dequeue" PriorityQueue.Dequeue.impl
+  ptr_unfold'Enqueue : MethodUnfold (go.GoType.PointerType PriorityQueue.ty) go!"Enqueue" PriorityQueue.Enqueue.impl
 
 attribute [instance] PriorityQueue.TypeAssumptions.type_repr
   PriorityQueue.TypeAssumptions.underlying
-  PriorityQueue.TypeAssumptions.get_client
-  PriorityQueue.TypeAssumptions.set_client
-  PriorityQueue.TypeAssumptions.get_ctx
-  PriorityQueue.TypeAssumptions.set_ctx
-  PriorityQueue.TypeAssumptions.get_key
-  PriorityQueue.TypeAssumptions.set_key
+  PriorityQueue.TypeAssumptions.get'client
+  PriorityQueue.TypeAssumptions.set'client
+  PriorityQueue.TypeAssumptions.get'ctx
+  PriorityQueue.TypeAssumptions.set'ctx
+  PriorityQueue.TypeAssumptions.get'key
+  PriorityQueue.TypeAssumptions.set'key
   PriorityQueue.TypeAssumptions.method_set
   PriorityQueue.TypeAssumptions.ptr_method_set
-  PriorityQueue.TypeAssumptions.ptr_Dequeue_unfold
-  PriorityQueue.TypeAssumptions.ptr_Enqueue_unfold
+  PriorityQueue.TypeAssumptions.ptr_unfold'Dequeue
+  PriorityQueue.TypeAssumptions.ptr_unfold'Enqueue
 
 structure Queue [GooseExts] where
   mk ::
@@ -3026,7 +3026,7 @@ noncomputable instance Queue.zero_val [GooseExts] : ZeroVal Queue :=
 @[irreducible] noncomputable def Queue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Queue.fieldsUnsealed
 
-noncomputable instance equals_unfold_Queue [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Queue [GooseExts] [GoGlobalContext] :
     EqualsUnfold Queue.fields Queue.fieldsUnsealed :=
   ⟨by unfold Queue.fields; rfl⟩
 
@@ -3036,29 +3036,29 @@ noncomputable instance equals_unfold_Queue [GooseExts] [GoGlobalContext] :
 class Queue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Queue.underlying Queue
   underlying : go.UnderlyingDirectedEq Queue.ty Queue.underlying
-  get_client : ∀ (x : Queue), go.IsGoStepPureDetTagged under (StructFieldGet Queue.underlying go!"client") #x (Val #(x.client'))
-  set_client : ∀ (x : Queue) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Queue.underlying go!"client") (PairV #x #y) (Val #(({ x with client' := y } : Queue)))
-  get_ctx : ∀ (x : Queue), go.IsGoStepPureDetTagged under (StructFieldGet Queue.underlying go!"ctx") #x (Val #(x.ctx'))
-  set_ctx : ∀ (x : Queue) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Queue.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : Queue)))
-  get_keyPrefix : ∀ (x : Queue), go.IsGoStepPureDetTagged under (StructFieldGet Queue.underlying go!"keyPrefix") #x (Val #(x.keyPrefix'))
-  set_keyPrefix : ∀ (x : Queue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Queue.underlying go!"keyPrefix") (PairV #x #y) (Val #(({ x with keyPrefix' := y } : Queue)))
+  get'client : ∀ (x : Queue), go.IsGoStepPureDetTagged under (StructFieldGet Queue.underlying go!"client") #x (Val #(x.client'))
+  set'client : ∀ (x : Queue) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Queue.underlying go!"client") (PairV #x #y) (Val #(({ x with client' := y } : Queue)))
+  get'ctx : ∀ (x : Queue), go.IsGoStepPureDetTagged under (StructFieldGet Queue.underlying go!"ctx") #x (Val #(x.ctx'))
+  set'ctx : ∀ (x : Queue) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Queue.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : Queue)))
+  get'keyPrefix : ∀ (x : Queue), go.IsGoStepPureDetTagged under (StructFieldGet Queue.underlying go!"keyPrefix") #x (Val #(x.keyPrefix'))
+  set'keyPrefix : ∀ (x : Queue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Queue.underlying go!"keyPrefix") (PairV #x #y) (Val #(({ x with keyPrefix' := y } : Queue)))
   method_set : go.MethodSetIs Queue.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Queue.ty) [(go!"Dequeue", (some (go.signature.Signature [] false [go.string, go.error]))), (go!"Enqueue", (some (go.signature.Signature [go.string] false [go.error])))]
-  ptr_Dequeue_unfold : MethodUnfold (go.GoType.PointerType Queue.ty) go!"Dequeue" Queue.Dequeue.impl
-  ptr_Enqueue_unfold : MethodUnfold (go.GoType.PointerType Queue.ty) go!"Enqueue" Queue.Enqueue.impl
+  ptr_unfold'Dequeue : MethodUnfold (go.GoType.PointerType Queue.ty) go!"Dequeue" Queue.Dequeue.impl
+  ptr_unfold'Enqueue : MethodUnfold (go.GoType.PointerType Queue.ty) go!"Enqueue" Queue.Enqueue.impl
 
 attribute [instance] Queue.TypeAssumptions.type_repr
   Queue.TypeAssumptions.underlying
-  Queue.TypeAssumptions.get_client
-  Queue.TypeAssumptions.set_client
-  Queue.TypeAssumptions.get_ctx
-  Queue.TypeAssumptions.set_ctx
-  Queue.TypeAssumptions.get_keyPrefix
-  Queue.TypeAssumptions.set_keyPrefix
+  Queue.TypeAssumptions.get'client
+  Queue.TypeAssumptions.set'client
+  Queue.TypeAssumptions.get'ctx
+  Queue.TypeAssumptions.set'ctx
+  Queue.TypeAssumptions.get'keyPrefix
+  Queue.TypeAssumptions.set'keyPrefix
   Queue.TypeAssumptions.method_set
   Queue.TypeAssumptions.ptr_method_set
-  Queue.TypeAssumptions.ptr_Dequeue_unfold
-  Queue.TypeAssumptions.ptr_Enqueue_unfold
+  Queue.TypeAssumptions.ptr_unfold'Dequeue
+  Queue.TypeAssumptions.ptr_unfold'Enqueue
 
 structure RWMutex [GooseExts] where
   mk ::
@@ -3079,7 +3079,7 @@ noncomputable instance RWMutex.zero_val [GooseExts] : ZeroVal RWMutex :=
 @[irreducible] noncomputable def RWMutex.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RWMutex.fieldsUnsealed
 
-noncomputable instance equals_unfold_RWMutex [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RWMutex [GooseExts] [GoGlobalContext] :
     EqualsUnfold RWMutex.fields RWMutex.fieldsUnsealed :=
   ⟨by unfold RWMutex.fields; rfl⟩
 
@@ -3089,108 +3089,108 @@ noncomputable instance equals_unfold_RWMutex [GooseExts] [GoGlobalContext] :
 class RWMutex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RWMutex.underlying RWMutex
   underlying : go.UnderlyingDirectedEq RWMutex.ty RWMutex.underlying
-  get_s : ∀ (x : RWMutex), go.IsGoStepPureDetTagged under (StructFieldGet RWMutex.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : RWMutex) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RWMutex.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : RWMutex)))
-  get_ctx : ∀ (x : RWMutex), go.IsGoStepPureDetTagged under (StructFieldGet RWMutex.underlying go!"ctx") #x (Val #(x.ctx'))
-  set_ctx : ∀ (x : RWMutex) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet RWMutex.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : RWMutex)))
-  get_pfx : ∀ (x : RWMutex), go.IsGoStepPureDetTagged under (StructFieldGet RWMutex.underlying go!"pfx") #x (Val #(x.pfx'))
-  set_pfx : ∀ (x : RWMutex) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RWMutex.underlying go!"pfx") (PairV #x #y) (Val #(({ x with pfx' := y } : RWMutex)))
-  get_myKey : ∀ (x : RWMutex), go.IsGoStepPureDetTagged under (StructFieldGet RWMutex.underlying go!"myKey") #x (Val #(x.myKey'))
-  set_myKey : ∀ (x : RWMutex) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RWMutex.underlying go!"myKey") (PairV #x #y) (Val #(({ x with myKey' := y } : RWMutex)))
+  get's : ∀ (x : RWMutex), go.IsGoStepPureDetTagged under (StructFieldGet RWMutex.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : RWMutex) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RWMutex.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : RWMutex)))
+  get'ctx : ∀ (x : RWMutex), go.IsGoStepPureDetTagged under (StructFieldGet RWMutex.underlying go!"ctx") #x (Val #(x.ctx'))
+  set'ctx : ∀ (x : RWMutex) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet RWMutex.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : RWMutex)))
+  get'pfx : ∀ (x : RWMutex), go.IsGoStepPureDetTagged under (StructFieldGet RWMutex.underlying go!"pfx") #x (Val #(x.pfx'))
+  set'pfx : ∀ (x : RWMutex) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RWMutex.underlying go!"pfx") (PairV #x #y) (Val #(({ x with pfx' := y } : RWMutex)))
+  get'myKey : ∀ (x : RWMutex), go.IsGoStepPureDetTagged under (StructFieldGet RWMutex.underlying go!"myKey") #x (Val #(x.myKey'))
+  set'myKey : ∀ (x : RWMutex) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RWMutex.underlying go!"myKey") (PairV #x #y) (Val #(({ x with myKey' := y } : RWMutex)))
   method_set : go.MethodSetIs RWMutex.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RWMutex.ty) [(go!"Lock", (some (go.signature.Signature [] false [go.error]))), (go!"RLock", (some (go.signature.Signature [] false [go.error]))), (go!"RUnlock", (some (go.signature.Signature [] false [go.error]))), (go!"Unlock", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/client/v3/experimental/recipes.waitOnLastRev", (some (go.signature.Signature [go.string] false [go.bool, go.error])))]
-  ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType RWMutex.ty) go!"Lock" RWMutex.Lock.impl
-  ptr_RLock_unfold : MethodUnfold (go.GoType.PointerType RWMutex.ty) go!"RLock" RWMutex.RLock.impl
-  ptr_RUnlock_unfold : MethodUnfold (go.GoType.PointerType RWMutex.ty) go!"RUnlock" RWMutex.RUnlock.impl
-  ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType RWMutex.ty) go!"Unlock" RWMutex.Unlock.impl
-  ptr_waitOnLastRev_unfold : MethodUnfold (go.GoType.PointerType RWMutex.ty) go!"waitOnLastRev" RWMutex.waitOnLastRev.impl
+  ptr_unfold'Lock : MethodUnfold (go.GoType.PointerType RWMutex.ty) go!"Lock" RWMutex.Lock.impl
+  ptr_unfold'RLock : MethodUnfold (go.GoType.PointerType RWMutex.ty) go!"RLock" RWMutex.RLock.impl
+  ptr_unfold'RUnlock : MethodUnfold (go.GoType.PointerType RWMutex.ty) go!"RUnlock" RWMutex.RUnlock.impl
+  ptr_unfold'Unlock : MethodUnfold (go.GoType.PointerType RWMutex.ty) go!"Unlock" RWMutex.Unlock.impl
+  ptr_unfold'waitOnLastRev : MethodUnfold (go.GoType.PointerType RWMutex.ty) go!"waitOnLastRev" RWMutex.waitOnLastRev.impl
 
 attribute [instance] RWMutex.TypeAssumptions.type_repr
   RWMutex.TypeAssumptions.underlying
-  RWMutex.TypeAssumptions.get_s
-  RWMutex.TypeAssumptions.set_s
-  RWMutex.TypeAssumptions.get_ctx
-  RWMutex.TypeAssumptions.set_ctx
-  RWMutex.TypeAssumptions.get_pfx
-  RWMutex.TypeAssumptions.set_pfx
-  RWMutex.TypeAssumptions.get_myKey
-  RWMutex.TypeAssumptions.set_myKey
+  RWMutex.TypeAssumptions.get's
+  RWMutex.TypeAssumptions.set's
+  RWMutex.TypeAssumptions.get'ctx
+  RWMutex.TypeAssumptions.set'ctx
+  RWMutex.TypeAssumptions.get'pfx
+  RWMutex.TypeAssumptions.set'pfx
+  RWMutex.TypeAssumptions.get'myKey
+  RWMutex.TypeAssumptions.set'myKey
   RWMutex.TypeAssumptions.method_set
   RWMutex.TypeAssumptions.ptr_method_set
-  RWMutex.TypeAssumptions.ptr_Lock_unfold
-  RWMutex.TypeAssumptions.ptr_RLock_unfold
-  RWMutex.TypeAssumptions.ptr_RUnlock_unfold
-  RWMutex.TypeAssumptions.ptr_Unlock_unfold
-  RWMutex.TypeAssumptions.ptr_waitOnLastRev_unfold
+  RWMutex.TypeAssumptions.ptr_unfold'Lock
+  RWMutex.TypeAssumptions.ptr_unfold'RLock
+  RWMutex.TypeAssumptions.ptr_unfold'RUnlock
+  RWMutex.TypeAssumptions.ptr_unfold'Unlock
+  RWMutex.TypeAssumptions.ptr_unfold'waitOnLastRev
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Barrier_instance : Barrier.TypeAssumptions
-  DoubleBarrier_instance : DoubleBarrier.TypeAssumptions
-  RemoteKV_instance : RemoteKV.TypeAssumptions
-  EphemeralKV_instance : EphemeralKV.TypeAssumptions
-  PriorityQueue_instance : PriorityQueue.TypeAssumptions
-  Queue_instance : Queue.TypeAssumptions
-  RWMutex_instance : RWMutex.TypeAssumptions
-  NewBarrier_unfold : FuncUnfold NewBarrier [] NewBarrier.impl
-  deleteRevKey_unfold : FuncUnfold deleteRevKey [] deleteRevKey.impl
-  claimFirstKey_unfold : FuncUnfold claimFirstKey [] claimFirstKey.impl
-  NewDoubleBarrier_unfold : FuncUnfold NewDoubleBarrier [] NewDoubleBarrier.impl
-  newKey_unfold : FuncUnfold newKey [] newKey.impl
-  newKV_unfold : FuncUnfold newKV [] newKV.impl
-  newUniqueKV_unfold : FuncUnfold newUniqueKV [] newUniqueKV.impl
-  putNewKV_unfold : FuncUnfold putNewKV [] putNewKV.impl
-  newSequentialKV_unfold : FuncUnfold newSequentialKV [] newSequentialKV.impl
-  newEphemeralKV_unfold : FuncUnfold newEphemeralKV [] newEphemeralKV.impl
-  newUniqueEphemeralKey_unfold : FuncUnfold newUniqueEphemeralKey [] newUniqueEphemeralKey.impl
-  newUniqueEphemeralKV_unfold : FuncUnfold newUniqueEphemeralKV [] newUniqueEphemeralKV.impl
-  NewPriorityQueue_unfold : FuncUnfold NewPriorityQueue [] NewPriorityQueue.impl
-  NewQueue_unfold : FuncUnfold NewQueue [] NewQueue.impl
-  NewRWMutex_unfold : FuncUnfold NewRWMutex [] NewRWMutex.impl
-  WaitEvents_unfold : FuncUnfold WaitEvents [] WaitEvents.impl
-  WaitPrefixEvents_unfold : FuncUnfold WaitPrefixEvents [] WaitPrefixEvents.impl
-  waitEvents_unfold : FuncUnfold waitEvents [] waitEvents.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_concurrency_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'Barrier : Barrier.TypeAssumptions
+  instance'DoubleBarrier : DoubleBarrier.TypeAssumptions
+  instance'RemoteKV : RemoteKV.TypeAssumptions
+  instance'EphemeralKV : EphemeralKV.TypeAssumptions
+  instance'PriorityQueue : PriorityQueue.TypeAssumptions
+  instance'Queue : Queue.TypeAssumptions
+  instance'RWMutex : RWMutex.TypeAssumptions
+  unfold'NewBarrier : FuncUnfold NewBarrier [] NewBarrier.impl
+  unfold'deleteRevKey : FuncUnfold deleteRevKey [] deleteRevKey.impl
+  unfold'claimFirstKey : FuncUnfold claimFirstKey [] claimFirstKey.impl
+  unfold'NewDoubleBarrier : FuncUnfold NewDoubleBarrier [] NewDoubleBarrier.impl
+  unfold'newKey : FuncUnfold newKey [] newKey.impl
+  unfold'newKV : FuncUnfold newKV [] newKV.impl
+  unfold'newUniqueKV : FuncUnfold newUniqueKV [] newUniqueKV.impl
+  unfold'putNewKV : FuncUnfold putNewKV [] putNewKV.impl
+  unfold'newSequentialKV : FuncUnfold newSequentialKV [] newSequentialKV.impl
+  unfold'newEphemeralKV : FuncUnfold newEphemeralKV [] newEphemeralKV.impl
+  unfold'newUniqueEphemeralKey : FuncUnfold newUniqueEphemeralKey [] newUniqueEphemeralKey.impl
+  unfold'newUniqueEphemeralKV : FuncUnfold newUniqueEphemeralKV [] newUniqueEphemeralKV.impl
+  unfold'NewPriorityQueue : FuncUnfold NewPriorityQueue [] NewPriorityQueue.impl
+  unfold'NewQueue : FuncUnfold NewQueue [] NewQueue.impl
+  unfold'NewRWMutex : FuncUnfold NewRWMutex [] NewRWMutex.impl
+  unfold'WaitEvents : FuncUnfold WaitEvents [] WaitEvents.impl
+  unfold'WaitPrefixEvents : FuncUnfold WaitPrefixEvents [] WaitPrefixEvents.impl
+  unfold'waitEvents : FuncUnfold waitEvents [] waitEvents.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'mvccpb : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'concurrency : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.Barrier_instance
-  Assumptions.DoubleBarrier_instance
-  Assumptions.RemoteKV_instance
-  Assumptions.EphemeralKV_instance
-  Assumptions.PriorityQueue_instance
-  Assumptions.Queue_instance
-  Assumptions.RWMutex_instance
-  Assumptions.NewBarrier_unfold
-  Assumptions.deleteRevKey_unfold
-  Assumptions.claimFirstKey_unfold
-  Assumptions.NewDoubleBarrier_unfold
-  Assumptions.newKey_unfold
-  Assumptions.newKV_unfold
-  Assumptions.newUniqueKV_unfold
-  Assumptions.putNewKV_unfold
-  Assumptions.newSequentialKV_unfold
-  Assumptions.newEphemeralKV_unfold
-  Assumptions.newUniqueEphemeralKey_unfold
-  Assumptions.newUniqueEphemeralKV_unfold
-  Assumptions.NewPriorityQueue_unfold
-  Assumptions.NewQueue_unfold
-  Assumptions.NewRWMutex_unfold
-  Assumptions.WaitEvents_unfold
-  Assumptions.WaitPrefixEvents_unfold
-  Assumptions.waitEvents_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_mvccpb_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_concurrency_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'Barrier
+  Assumptions.instance'DoubleBarrier
+  Assumptions.instance'RemoteKV
+  Assumptions.instance'EphemeralKV
+  Assumptions.instance'PriorityQueue
+  Assumptions.instance'Queue
+  Assumptions.instance'RWMutex
+  Assumptions.unfold'NewBarrier
+  Assumptions.unfold'deleteRevKey
+  Assumptions.unfold'claimFirstKey
+  Assumptions.unfold'NewDoubleBarrier
+  Assumptions.unfold'newKey
+  Assumptions.unfold'newKV
+  Assumptions.unfold'newUniqueKV
+  Assumptions.unfold'putNewKV
+  Assumptions.unfold'newSequentialKV
+  Assumptions.unfold'newEphemeralKV
+  Assumptions.unfold'newUniqueEphemeralKey
+  Assumptions.unfold'newUniqueEphemeralKV
+  Assumptions.unfold'NewPriorityQueue
+  Assumptions.unfold'NewQueue
+  Assumptions.unfold'NewRWMutex
+  Assumptions.unfold'WaitEvents
+  Assumptions.unfold'WaitPrefixEvents
+  Assumptions.unfold'waitEvents
+  Assumptions.import'context
+  Assumptions.import'mvccpb
+  Assumptions.import'clientv3
+  Assumptions.import'errors
+  Assumptions.import'concurrency
+  Assumptions.import'fmt
+  Assumptions.import'strings
+  Assumptions.import'time
 
 end go_etcd_io.etcd.client.v3.experimental.recipes
 

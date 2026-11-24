@@ -44,11 +44,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.imdea_software.swiftpaxos.examples.swiftnet.initialize') (Val #())))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  main_unfold : FuncUnfold main [] main.impl
-  import_swiftnet_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.examples.swiftnet.Assumptions
+  unfold'main : FuncUnfold main [] main.impl
+  import'swiftnet : _root_.Perennial.github_com.imdea_software.swiftpaxos.examples.swiftnet.Assumptions
 
-attribute [instance] Assumptions.main_unfold
-  Assumptions.import_swiftnet_Assumption
+attribute [instance] Assumptions.unfold'main
+  Assumptions.import'swiftnet
 
 end github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.server5
 

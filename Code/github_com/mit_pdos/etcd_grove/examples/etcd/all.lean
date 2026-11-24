@@ -413,49 +413,49 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  holdToken_unfold : FuncUnfold holdToken [] holdToken.impl
-  spawn_unfold : FuncUnfold spawn [] spawn.impl
-  KV_unfold : FuncUnfold KV [] KV.impl
-  Auth_unfold : FuncUnfold Auth [] Auth.impl
-  Lease_unfold : FuncUnfold Lease [] Lease.impl
-  Restart_unfold : FuncUnfold Restart [] Restart.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_authN_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.authN.Assumptions
-  import_authlease_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Assumptions
-  import_cache_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Assumptions
-  import_compacted_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.compacted.Assumptions
-  import_compactwatch_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Assumptions
-  import_leaseN_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Assumptions
-  import_leasecatchup_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Assumptions
-  import_partition_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions
-  import_restart1_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Assumptions
-  import_restartN_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Assumptions
-  import_txnlinfaultsN_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.Assumptions
-  import_cluster3_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
+  unfold'holdToken : FuncUnfold holdToken [] holdToken.impl
+  unfold'spawn : FuncUnfold spawn [] spawn.impl
+  unfold'KV : FuncUnfold KV [] KV.impl
+  unfold'Auth : FuncUnfold Auth [] Auth.impl
+  unfold'Lease : FuncUnfold Lease [] Lease.impl
+  unfold'Restart : FuncUnfold Restart [] Restart.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'authN : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.authN.Assumptions
+  import'authlease : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Assumptions
+  import'cache : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Assumptions
+  import'compacted : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.compacted.Assumptions
+  import'compactwatch : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Assumptions
+  import'leaseN : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Assumptions
+  import'leasecatchup : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Assumptions
+  import'partition : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions
+  import'restart1 : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Assumptions
+  import'restartN : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Assumptions
+  import'txnlinfaultsN : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.Assumptions
+  import'cluster3 : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
 
-attribute [instance] Assumptions.holdToken_unfold
-  Assumptions.spawn_unfold
-  Assumptions.KV_unfold
-  Assumptions.Auth_unfold
-  Assumptions.Lease_unfold
-  Assumptions.Restart_unfold
-  Assumptions.Main_unfold
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_authN_Assumption
-  Assumptions.import_authlease_Assumption
-  Assumptions.import_cache_Assumption
-  Assumptions.import_compacted_Assumption
-  Assumptions.import_compactwatch_Assumption
-  Assumptions.import_leaseN_Assumption
-  Assumptions.import_leasecatchup_Assumption
-  Assumptions.import_partition_Assumption
-  Assumptions.import_restart1_Assumption
-  Assumptions.import_restartN_Assumption
-  Assumptions.import_txnlinfaultsN_Assumption
-  Assumptions.import_cluster3_Assumption
+attribute [instance] Assumptions.unfold'holdToken
+  Assumptions.unfold'spawn
+  Assumptions.unfold'KV
+  Assumptions.unfold'Auth
+  Assumptions.unfold'Lease
+  Assumptions.unfold'Restart
+  Assumptions.unfold'Main
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'authN
+  Assumptions.import'authlease
+  Assumptions.import'cache
+  Assumptions.import'compacted
+  Assumptions.import'compactwatch
+  Assumptions.import'leaseN
+  Assumptions.import'leasecatchup
+  Assumptions.import'partition
+  Assumptions.import'restart1
+  Assumptions.import'restartN
+  Assumptions.import'txnlinfaultsN
+  Assumptions.import'cluster3
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.all
 

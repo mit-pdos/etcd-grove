@@ -28,7 +28,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.otel.propagation.Assumptions]
 
-noncomputable instance Baggage_typed_pointsto :
+noncomputable instance typed_pointsto'Baggage :
     TypedPointsto (GF := GF) go_opentelemetry_io.otel.propagation.Baggage where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -36,7 +36,7 @@ noncomputable instance Baggage_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Baggage_into_val_typed :
+noncomputable instance into_val_typed'Baggage :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.propagation.Baggage go_opentelemetry_io.otel.propagation.Baggage.underlying := by
   solve_into_val_typed_struct
 
@@ -51,7 +51,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.otel.propagation.Assumptions]
 
-noncomputable instance TraceContext_typed_pointsto :
+noncomputable instance typed_pointsto'TraceContext :
     TypedPointsto (GF := GF) go_opentelemetry_io.otel.propagation.TraceContext where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -59,7 +59,7 @@ noncomputable instance TraceContext_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance TraceContext_into_val_typed :
+noncomputable instance into_val_typed'TraceContext :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.propagation.TraceContext go_opentelemetry_io.otel.propagation.TraceContext.underlying := by
   solve_into_val_typed_struct
 

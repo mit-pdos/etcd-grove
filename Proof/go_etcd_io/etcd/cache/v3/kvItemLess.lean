@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 -- Loads from the read-only (`↦□`) `kvItem`s: the field-store `AccessStrict` instances
 -- (which need `DFrac.own 1`) are found first and the search does not backtrack.
-attribute [-instance] kvItem.kvItem_access_store_key kvItem.kvItem_access_store_kv
+attribute [-instance] kvItem.access_store'kvItem'key kvItem.access_store'kvItem'kv
 
 theorem kvItemLess.wp_proof : kvItemLess.spec (GF := GF) (hG := hG) := by
   intro a b ea eb

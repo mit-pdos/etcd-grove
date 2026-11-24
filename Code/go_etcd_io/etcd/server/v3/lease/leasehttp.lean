@@ -121,13 +121,13 @@ attribute [instance] leaseHandler.TypeAssumptions.type_repr
   leaseHandler.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  leaseHandler_instance : leaseHandler.TypeAssumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'leaseHandler : leaseHandler.TypeAssumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.leaseHandler_instance
-  Assumptions.import_errors_Assumption
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'leaseHandler
+  Assumptions.import'errors
+  Assumptions.import'time
 
 end go_etcd_io.etcd.server.v3.lease.leasehttp
 

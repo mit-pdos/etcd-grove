@@ -237,7 +237,7 @@ noncomputable def Client.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (Pair (App (Val (GoInstruction (GoLoad GetResponse.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))))
 
 /-- go: client.go:70:17 -/
-noncomputable def Client.List.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Client.List''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Lam "ctx"
   (Lam "prefix"
@@ -700,7 +700,7 @@ noncomputable instance Client.zero_val [GooseExts] : ZeroVal Client :=
 @[irreducible] noncomputable def Client.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Client.fieldsUnsealed
 
-noncomputable instance equals_unfold_Client [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Client [GooseExts] [GoGlobalContext] :
     EqualsUnfold Client.fields Client.fieldsUnsealed :=
   ⟨by unfold Client.fields; rfl⟩
 
@@ -710,454 +710,454 @@ noncomputable instance equals_unfold_Client [GooseExts] [GoGlobalContext] :
 class Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Client.underlying Client
   underlying : go.UnderlyingDirectedEq Client.ty Client.underlying
-  get_Client : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"Client") #x (Val #(x.Client'))
-  set_Client : ∀ (x : Client) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"Client") (PairV #x #y) (Val #(({ x with Client' := y } : Client)))
-  get_Kubernetes : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"Kubernetes") #x (Val #(x.Kubernetes'))
-  set_Kubernetes : ∀ (x : Client) (y : Interface), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"Kubernetes") (PairV #x #y) (Val #(({ x with Kubernetes' := y } : Client)))
+  get'Client : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"Client") #x (Val #(x.Client'))
+  set'Client : ∀ (x : Client) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"Client") (PairV #x #y) (Val #(({ x with Client' := y } : Client)))
+  get'Kubernetes : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"Kubernetes") #x (Val #(x.Kubernetes'))
+  set'Kubernetes : ∀ (x : Client) (y : Interface), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"Kubernetes") (PairV #x #y) (Val #(({ x with Kubernetes' := y } : Client)))
   method_set : go.MethodSetIs Client.ty [(go!"ActiveConnection", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc.ClientConn" []))]))), (go!"AlarmDisarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AlarmMember.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AlarmResponse.ty), go.error]))), (go!"AlarmList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AlarmResponse.ty), go.error]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthenticateResponse.ty), go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.CompactOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.CompactResponse.ty), go.error]))), (go!"Count", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, CountOptions.ty] false [go.int64, go.error]))), (go!"Ctx", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Defragment", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.DefragmentResponse.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.DeleteResponse.ty), go.error]))), (go!"Dial", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc.ClientConn" [])), go.error]))), (go!"Do", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [_root_.Perennial.go_etcd_io.etcd.client.v3.OpResponse.ty, go.error]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.DowngradeAction.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.DowngradeResponse.ty), go.error]))), (go!"Endpoints", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, GetOptions.ty] false [GetResponse.ty, go.error]))), (go!"GetLogger", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap.Logger" []))]))), (go!"GetStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [_root_.Perennial.go_etcd_io.etcd.client.v3.GetStreamChan.ty, go.error]))), (go!"Grant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseGrantResponse.ty), go.error]))), (go!"HashKV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.HashKVResponse.ty), go.error]))), (go!"KeepAlive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseKeepAliveResponse.ty)), go.error]))), (go!"KeepAliveOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseKeepAliveResponse.ty), go.error]))), (go!"Leases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseLeasesResponse.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, ListOptions.ty] false [ListResponse.ty, go.error]))), (go!"MemberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberAddResponse.ty), go.error]))), (go!"MemberAddAsLearner", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberAddResponse.ty), go.error]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberListResponse.ty), go.error]))), (go!"MemberPromote", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberPromoteResponse.ty), go.error]))), (go!"MemberRemove", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberRemoveResponse.ty), go.error]))), (go!"MemberUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberUpdateResponse.ty), go.error]))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MoveLeaderResponse.ty), go.error]))), (go!"OptimisticDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64, DeleteOptions.ty] false [DeleteResponse.ty, go.error]))), (go!"OptimisticPut", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType go.byte), go.int64, PutOptions.ty] false [PutResponse.ty, go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty), go.error]))), (go!"RequestProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Revoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseRevokeResponse.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string, _root_.Perennial.go_etcd_io.etcd.client.v3.PermissionType.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"SetEndpoints", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true []))), (go!"Snapshot", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.Named go!"io.ReadCloser" []), go.error]))), (go!"SnapshotWithVersion", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.SnapshotResponse.ty), go.error]))), (go!"Status", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.StatusResponse.ty), go.error]))), (go!"Sync", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"TimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserAddResponse.ty), go.error]))), (go!"UserAddWithOptions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.UserAddOptions.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [_root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty]))), (go!"WithLogger", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap.Logger" []))] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)]))), (go!"go.etcd.io/etcd/client/v3.autoSync", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/client/v3.checkVersion", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.credentialsForEndpoint", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" [])]))), (go!"go.etcd.io/etcd/client/v3.dial", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" []), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.DialOption" []))] true [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc.ClientConn" [])), go.error]))), (go!"go.etcd.io/etcd/client/v3.dialSetupOpts", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" []), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.DialOption" []))] true [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.DialOption" []))]))), (go!"go.etcd.io/etcd/client/v3.dialWithBalancer", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.DialOption" []))] true [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc.ClientConn" [])), go.error]))), (go!"go.etcd.io/etcd/client/v3.getToken", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.refreshToken", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.roundRobinQuorumBackoff", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" []), go.float64] false [_root_.Perennial.go_etcd_io.etcd.client.v3.backoffFunc.ty]))), (go!"go.etcd.io/etcd/client/v3.shouldRefreshToken", (some (go.signature.Signature [go.error, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.options.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/client/v3.streamClientInterceptor", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.retryOption.ty)] true [(go.GoType.Named go!"google.golang.org/grpc.StreamClientInterceptor" [])]))), (go!"go.etcd.io/etcd/client/v3.unaryClientInterceptor", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.retryOption.ty)] true [(go.GoType.Named go!"google.golang.org/grpc.UnaryClientInterceptor" [])])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Client.ty) [(go!"ActiveConnection", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc.ClientConn" []))]))), (go!"AlarmDisarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AlarmMember.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AlarmResponse.ty), go.error]))), (go!"AlarmList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AlarmResponse.ty), go.error]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthenticateResponse.ty), go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.CompactOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.CompactResponse.ty), go.error]))), (go!"Count", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, CountOptions.ty] false [go.int64, go.error]))), (go!"Ctx", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Defragment", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.DefragmentResponse.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.DeleteResponse.ty), go.error]))), (go!"Dial", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc.ClientConn" [])), go.error]))), (go!"Do", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [_root_.Perennial.go_etcd_io.etcd.client.v3.OpResponse.ty, go.error]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.DowngradeAction.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.DowngradeResponse.ty), go.error]))), (go!"Endpoints", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, GetOptions.ty] false [GetResponse.ty, go.error]))), (go!"GetLogger", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap.Logger" []))]))), (go!"GetStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [_root_.Perennial.go_etcd_io.etcd.client.v3.GetStreamChan.ty, go.error]))), (go!"Grant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseGrantResponse.ty), go.error]))), (go!"HashKV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.HashKVResponse.ty), go.error]))), (go!"KeepAlive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseKeepAliveResponse.ty)), go.error]))), (go!"KeepAliveOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseKeepAliveResponse.ty), go.error]))), (go!"Leases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseLeasesResponse.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, ListOptions.ty] false [ListResponse.ty, go.error]))), (go!"MemberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberAddResponse.ty), go.error]))), (go!"MemberAddAsLearner", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberAddResponse.ty), go.error]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberListResponse.ty), go.error]))), (go!"MemberPromote", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberPromoteResponse.ty), go.error]))), (go!"MemberRemove", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberRemoveResponse.ty), go.error]))), (go!"MemberUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberUpdateResponse.ty), go.error]))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MoveLeaderResponse.ty), go.error]))), (go!"OptimisticDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64, DeleteOptions.ty] false [DeleteResponse.ty, go.error]))), (go!"OptimisticPut", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType go.byte), go.int64, PutOptions.ty] false [PutResponse.ty, go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty), go.error]))), (go!"RequestProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Revoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseRevokeResponse.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string, _root_.Perennial.go_etcd_io.etcd.client.v3.PermissionType.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"SetEndpoints", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true []))), (go!"Snapshot", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.Named go!"io.ReadCloser" []), go.error]))), (go!"SnapshotWithVersion", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.SnapshotResponse.ty), go.error]))), (go!"Status", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.StatusResponse.ty), go.error]))), (go!"Sync", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"TimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserAddResponse.ty), go.error]))), (go!"UserAddWithOptions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.UserAddOptions.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [_root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty]))), (go!"WithLogger", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap.Logger" []))] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)]))), (go!"go.etcd.io/etcd/client/v3.autoSync", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/client/v3.checkVersion", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.credentialsForEndpoint", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" [])]))), (go!"go.etcd.io/etcd/client/v3.dial", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" []), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.DialOption" []))] true [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc.ClientConn" [])), go.error]))), (go!"go.etcd.io/etcd/client/v3.dialSetupOpts", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" []), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.DialOption" []))] true [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.DialOption" []))]))), (go!"go.etcd.io/etcd/client/v3.dialWithBalancer", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.DialOption" []))] true [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc.ClientConn" [])), go.error]))), (go!"go.etcd.io/etcd/client/v3.getToken", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.refreshToken", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.roundRobinQuorumBackoff", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" []), go.float64] false [_root_.Perennial.go_etcd_io.etcd.client.v3.backoffFunc.ty]))), (go!"go.etcd.io/etcd/client/v3.shouldRefreshToken", (some (go.signature.Signature [go.error, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.options.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/client/v3.streamClientInterceptor", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.retryOption.ty)] true [(go.GoType.Named go!"google.golang.org/grpc.StreamClientInterceptor" [])]))), (go!"go.etcd.io/etcd/client/v3.unaryClientInterceptor", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.retryOption.ty)] true [(go.GoType.Named go!"google.golang.org/grpc.UnaryClientInterceptor" [])])))]
-  ActiveConnection_unfold : MethodUnfold Client.ty go!"ActiveConnection" (LamV "$r"
+  unfold'ActiveConnection : MethodUnfold Client.ty go!"ActiveConnection" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"ActiveConnection"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  AlarmDisarm_unfold : MethodUnfold Client.ty go!"AlarmDisarm" (LamV "$r"
+  unfold'AlarmDisarm : MethodUnfold Client.ty go!"AlarmDisarm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"AlarmDisarm"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  AlarmList_unfold : MethodUnfold Client.ty go!"AlarmList" (LamV "$r"
+  unfold'AlarmList : MethodUnfold Client.ty go!"AlarmList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"AlarmList"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  AuthDisable_unfold : MethodUnfold Client.ty go!"AuthDisable" (LamV "$r"
+  unfold'AuthDisable : MethodUnfold Client.ty go!"AuthDisable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"AuthDisable"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  AuthEnable_unfold : MethodUnfold Client.ty go!"AuthEnable" (LamV "$r"
+  unfold'AuthEnable : MethodUnfold Client.ty go!"AuthEnable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"AuthEnable"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  AuthStatus_unfold : MethodUnfold Client.ty go!"AuthStatus" (LamV "$r"
+  unfold'AuthStatus : MethodUnfold Client.ty go!"AuthStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"AuthStatus"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Authenticate_unfold : MethodUnfold Client.ty go!"Authenticate" (LamV "$r"
+  unfold'Authenticate : MethodUnfold Client.ty go!"Authenticate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Authenticate"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Close_unfold : MethodUnfold Client.ty go!"Close" (LamV "$r"
+  unfold'Close : MethodUnfold Client.ty go!"Close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Close"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Compact_unfold : MethodUnfold Client.ty go!"Compact" (LamV "$r"
+  unfold'Compact : MethodUnfold Client.ty go!"Compact" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Compact"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Count_unfold : MethodUnfold Client.ty go!"Count" Client.Count.impl
-  Ctx_unfold : MethodUnfold Client.ty go!"Ctx" (LamV "$r"
+  unfold'Count : MethodUnfold Client.ty go!"Count" Client.Count.impl
+  unfold'Ctx : MethodUnfold Client.ty go!"Ctx" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Ctx"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Defragment_unfold : MethodUnfold Client.ty go!"Defragment" (LamV "$r"
+  unfold'Defragment : MethodUnfold Client.ty go!"Defragment" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Defragment"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Delete_unfold : MethodUnfold Client.ty go!"Delete" (LamV "$r"
+  unfold'Delete : MethodUnfold Client.ty go!"Delete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Delete"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Dial_unfold : MethodUnfold Client.ty go!"Dial" (LamV "$r"
+  unfold'Dial : MethodUnfold Client.ty go!"Dial" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Dial"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Do_unfold : MethodUnfold Client.ty go!"Do" (LamV "$r"
+  unfold'Do : MethodUnfold Client.ty go!"Do" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Do"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Downgrade_unfold : MethodUnfold Client.ty go!"Downgrade" (LamV "$r"
+  unfold'Downgrade : MethodUnfold Client.ty go!"Downgrade" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Downgrade"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Endpoints_unfold : MethodUnfold Client.ty go!"Endpoints" (LamV "$r"
+  unfold'Endpoints : MethodUnfold Client.ty go!"Endpoints" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Endpoints"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Get_unfold : MethodUnfold Client.ty go!"Get" Client.Get.impl
-  GetLogger_unfold : MethodUnfold Client.ty go!"GetLogger" (LamV "$r"
+  unfold'Get : MethodUnfold Client.ty go!"Get" Client.Get.impl
+  unfold'GetLogger : MethodUnfold Client.ty go!"GetLogger" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"GetLogger"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  GetStream_unfold : MethodUnfold Client.ty go!"GetStream" (LamV "$r"
+  unfold'GetStream : MethodUnfold Client.ty go!"GetStream" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"GetStream"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Grant_unfold : MethodUnfold Client.ty go!"Grant" (LamV "$r"
+  unfold'Grant : MethodUnfold Client.ty go!"Grant" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Grant"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  HashKV_unfold : MethodUnfold Client.ty go!"HashKV" (LamV "$r"
+  unfold'HashKV : MethodUnfold Client.ty go!"HashKV" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"HashKV"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  KeepAlive_unfold : MethodUnfold Client.ty go!"KeepAlive" (LamV "$r"
+  unfold'KeepAlive : MethodUnfold Client.ty go!"KeepAlive" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"KeepAlive"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  KeepAliveOnce_unfold : MethodUnfold Client.ty go!"KeepAliveOnce" (LamV "$r"
+  unfold'KeepAliveOnce : MethodUnfold Client.ty go!"KeepAliveOnce" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"KeepAliveOnce"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Leases_unfold : MethodUnfold Client.ty go!"Leases" (LamV "$r"
+  unfold'Leases : MethodUnfold Client.ty go!"Leases" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Leases"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  List_unfold : MethodUnfold Client.ty go!"List" Client.List.impl
-  MemberAdd_unfold : MethodUnfold Client.ty go!"MemberAdd" (LamV "$r"
+  unfold'List : MethodUnfold Client.ty go!"List" Client.List''.impl
+  unfold'MemberAdd : MethodUnfold Client.ty go!"MemberAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"MemberAdd"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  MemberAddAsLearner_unfold : MethodUnfold Client.ty go!"MemberAddAsLearner" (LamV "$r"
+  unfold'MemberAddAsLearner : MethodUnfold Client.ty go!"MemberAddAsLearner" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"MemberAddAsLearner"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  MemberList_unfold : MethodUnfold Client.ty go!"MemberList" (LamV "$r"
+  unfold'MemberList : MethodUnfold Client.ty go!"MemberList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"MemberList"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  MemberPromote_unfold : MethodUnfold Client.ty go!"MemberPromote" (LamV "$r"
+  unfold'MemberPromote : MethodUnfold Client.ty go!"MemberPromote" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"MemberPromote"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  MemberRemove_unfold : MethodUnfold Client.ty go!"MemberRemove" (LamV "$r"
+  unfold'MemberRemove : MethodUnfold Client.ty go!"MemberRemove" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"MemberRemove"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  MemberUpdate_unfold : MethodUnfold Client.ty go!"MemberUpdate" (LamV "$r"
+  unfold'MemberUpdate : MethodUnfold Client.ty go!"MemberUpdate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"MemberUpdate"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  MoveLeader_unfold : MethodUnfold Client.ty go!"MoveLeader" (LamV "$r"
+  unfold'MoveLeader : MethodUnfold Client.ty go!"MoveLeader" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"MoveLeader"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  OptimisticDelete_unfold : MethodUnfold Client.ty go!"OptimisticDelete" Client.OptimisticDelete.impl
-  OptimisticPut_unfold : MethodUnfold Client.ty go!"OptimisticPut" Client.OptimisticPut.impl
-  Put_unfold : MethodUnfold Client.ty go!"Put" (LamV "$r"
+  unfold'OptimisticDelete : MethodUnfold Client.ty go!"OptimisticDelete" Client.OptimisticDelete.impl
+  unfold'OptimisticPut : MethodUnfold Client.ty go!"OptimisticPut" Client.OptimisticPut.impl
+  unfold'Put : MethodUnfold Client.ty go!"Put" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Put"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  RequestProgress_unfold : MethodUnfold Client.ty go!"RequestProgress" (LamV "$r"
+  unfold'RequestProgress : MethodUnfold Client.ty go!"RequestProgress" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"RequestProgress"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Revoke_unfold : MethodUnfold Client.ty go!"Revoke" (LamV "$r"
+  unfold'Revoke : MethodUnfold Client.ty go!"Revoke" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Revoke"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  RoleAdd_unfold : MethodUnfold Client.ty go!"RoleAdd" (LamV "$r"
+  unfold'RoleAdd : MethodUnfold Client.ty go!"RoleAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"RoleAdd"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  RoleDelete_unfold : MethodUnfold Client.ty go!"RoleDelete" (LamV "$r"
+  unfold'RoleDelete : MethodUnfold Client.ty go!"RoleDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"RoleDelete"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  RoleGet_unfold : MethodUnfold Client.ty go!"RoleGet" (LamV "$r"
+  unfold'RoleGet : MethodUnfold Client.ty go!"RoleGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"RoleGet"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  RoleGrantPermission_unfold : MethodUnfold Client.ty go!"RoleGrantPermission" (LamV "$r"
+  unfold'RoleGrantPermission : MethodUnfold Client.ty go!"RoleGrantPermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"RoleGrantPermission"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  RoleList_unfold : MethodUnfold Client.ty go!"RoleList" (LamV "$r"
+  unfold'RoleList : MethodUnfold Client.ty go!"RoleList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"RoleList"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  RoleRevokePermission_unfold : MethodUnfold Client.ty go!"RoleRevokePermission" (LamV "$r"
+  unfold'RoleRevokePermission : MethodUnfold Client.ty go!"RoleRevokePermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"RoleRevokePermission"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  SetEndpoints_unfold : MethodUnfold Client.ty go!"SetEndpoints" (LamV "$r"
+  unfold'SetEndpoints : MethodUnfold Client.ty go!"SetEndpoints" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"SetEndpoints"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Snapshot_unfold : MethodUnfold Client.ty go!"Snapshot" (LamV "$r"
+  unfold'Snapshot : MethodUnfold Client.ty go!"Snapshot" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Snapshot"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  SnapshotWithVersion_unfold : MethodUnfold Client.ty go!"SnapshotWithVersion" (LamV "$r"
+  unfold'SnapshotWithVersion : MethodUnfold Client.ty go!"SnapshotWithVersion" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"SnapshotWithVersion"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Status_unfold : MethodUnfold Client.ty go!"Status" (LamV "$r"
+  unfold'Status : MethodUnfold Client.ty go!"Status" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Status"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Sync_unfold : MethodUnfold Client.ty go!"Sync" (LamV "$r"
+  unfold'Sync : MethodUnfold Client.ty go!"Sync" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Sync"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  TimeToLive_unfold : MethodUnfold Client.ty go!"TimeToLive" (LamV "$r"
+  unfold'TimeToLive : MethodUnfold Client.ty go!"TimeToLive" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"TimeToLive"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Txn_unfold : MethodUnfold Client.ty go!"Txn" (LamV "$r"
+  unfold'Txn : MethodUnfold Client.ty go!"Txn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Txn"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  UserAdd_unfold : MethodUnfold Client.ty go!"UserAdd" (LamV "$r"
+  unfold'UserAdd : MethodUnfold Client.ty go!"UserAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"UserAdd"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  UserAddWithOptions_unfold : MethodUnfold Client.ty go!"UserAddWithOptions" (LamV "$r"
+  unfold'UserAddWithOptions : MethodUnfold Client.ty go!"UserAddWithOptions" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"UserAddWithOptions"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  UserChangePassword_unfold : MethodUnfold Client.ty go!"UserChangePassword" (LamV "$r"
+  unfold'UserChangePassword : MethodUnfold Client.ty go!"UserChangePassword" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"UserChangePassword"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  UserDelete_unfold : MethodUnfold Client.ty go!"UserDelete" (LamV "$r"
+  unfold'UserDelete : MethodUnfold Client.ty go!"UserDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"UserDelete"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  UserGet_unfold : MethodUnfold Client.ty go!"UserGet" (LamV "$r"
+  unfold'UserGet : MethodUnfold Client.ty go!"UserGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"UserGet"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  UserGrantRole_unfold : MethodUnfold Client.ty go!"UserGrantRole" (LamV "$r"
+  unfold'UserGrantRole : MethodUnfold Client.ty go!"UserGrantRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"UserGrantRole"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  UserList_unfold : MethodUnfold Client.ty go!"UserList" (LamV "$r"
+  unfold'UserList : MethodUnfold Client.ty go!"UserList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"UserList"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  UserRevokeRole_unfold : MethodUnfold Client.ty go!"UserRevokeRole" (LamV "$r"
+  unfold'UserRevokeRole : MethodUnfold Client.ty go!"UserRevokeRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"UserRevokeRole"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  Watch_unfold : MethodUnfold Client.ty go!"Watch" (LamV "$r"
+  unfold'Watch : MethodUnfold Client.ty go!"Watch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Watch"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  WithLogger_unfold : MethodUnfold Client.ty go!"WithLogger" (LamV "$r"
+  unfold'WithLogger : MethodUnfold Client.ty go!"WithLogger" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"WithLogger"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  autoSync_unfold : MethodUnfold Client.ty go!"autoSync" (LamV "$r"
+  unfold'autoSync : MethodUnfold Client.ty go!"autoSync" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"autoSync"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  checkVersion_unfold : MethodUnfold Client.ty go!"checkVersion" (LamV "$r"
+  unfold'checkVersion : MethodUnfold Client.ty go!"checkVersion" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"checkVersion"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  credentialsForEndpoint_unfold : MethodUnfold Client.ty go!"credentialsForEndpoint" (LamV "$r"
+  unfold'credentialsForEndpoint : MethodUnfold Client.ty go!"credentialsForEndpoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"credentialsForEndpoint"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  dial_unfold : MethodUnfold Client.ty go!"dial" (LamV "$r"
+  unfold'dial : MethodUnfold Client.ty go!"dial" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"dial"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  dialSetupOpts_unfold : MethodUnfold Client.ty go!"dialSetupOpts" (LamV "$r"
+  unfold'dialSetupOpts : MethodUnfold Client.ty go!"dialSetupOpts" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"dialSetupOpts"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  dialWithBalancer_unfold : MethodUnfold Client.ty go!"dialWithBalancer" (LamV "$r"
+  unfold'dialWithBalancer : MethodUnfold Client.ty go!"dialWithBalancer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"dialWithBalancer"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  getToken_unfold : MethodUnfold Client.ty go!"getToken" (LamV "$r"
+  unfold'getToken : MethodUnfold Client.ty go!"getToken" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"getToken"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  refreshToken_unfold : MethodUnfold Client.ty go!"refreshToken" (LamV "$r"
+  unfold'refreshToken : MethodUnfold Client.ty go!"refreshToken" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"refreshToken"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  roundRobinQuorumBackoff_unfold : MethodUnfold Client.ty go!"roundRobinQuorumBackoff" (LamV "$r"
+  unfold'roundRobinQuorumBackoff : MethodUnfold Client.ty go!"roundRobinQuorumBackoff" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"roundRobinQuorumBackoff"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  shouldRefreshToken_unfold : MethodUnfold Client.ty go!"shouldRefreshToken" (LamV "$r"
+  unfold'shouldRefreshToken : MethodUnfold Client.ty go!"shouldRefreshToken" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"shouldRefreshToken"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  streamClientInterceptor_unfold : MethodUnfold Client.ty go!"streamClientInterceptor" (LamV "$r"
+  unfold'streamClientInterceptor : MethodUnfold Client.ty go!"streamClientInterceptor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"streamClientInterceptor"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  unaryClientInterceptor_unfold : MethodUnfold Client.ty go!"unaryClientInterceptor" (LamV "$r"
+  unfold'unaryClientInterceptor : MethodUnfold Client.ty go!"unaryClientInterceptor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"unaryClientInterceptor"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  ptr_ActiveConnection_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"ActiveConnection" (LamV "$r"
+  ptr_unfold'ActiveConnection : MethodUnfold (go.GoType.PointerType Client.ty) go!"ActiveConnection" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"ActiveConnection"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_AlarmDisarm_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"AlarmDisarm" (LamV "$r"
+  ptr_unfold'AlarmDisarm : MethodUnfold (go.GoType.PointerType Client.ty) go!"AlarmDisarm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"AlarmDisarm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_AlarmList_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"AlarmList" (LamV "$r"
+  ptr_unfold'AlarmList : MethodUnfold (go.GoType.PointerType Client.ty) go!"AlarmList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"AlarmList"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_AuthDisable_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"AuthDisable" (LamV "$r"
+  ptr_unfold'AuthDisable : MethodUnfold (go.GoType.PointerType Client.ty) go!"AuthDisable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"AuthDisable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_AuthEnable_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"AuthEnable" (LamV "$r"
+  ptr_unfold'AuthEnable : MethodUnfold (go.GoType.PointerType Client.ty) go!"AuthEnable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"AuthEnable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_AuthStatus_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"AuthStatus" (LamV "$r"
+  ptr_unfold'AuthStatus : MethodUnfold (go.GoType.PointerType Client.ty) go!"AuthStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"AuthStatus"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Authenticate_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Authenticate" (LamV "$r"
+  ptr_unfold'Authenticate : MethodUnfold (go.GoType.PointerType Client.ty) go!"Authenticate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Authenticate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Close" (LamV "$r"
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType Client.ty) go!"Close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Compact_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Compact" (LamV "$r"
+  ptr_unfold'Compact : MethodUnfold (go.GoType.PointerType Client.ty) go!"Compact" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Compact"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Count_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Count" (LamV "$r"
+  ptr_unfold'Count : MethodUnfold (go.GoType.PointerType Client.ty) go!"Count" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Client.ty go!"Count"))) (App (Val (GoInstruction (GoLoad Client.ty))) (Var "$r"))))
-  ptr_Ctx_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Ctx" (LamV "$r"
+  ptr_unfold'Ctx : MethodUnfold (go.GoType.PointerType Client.ty) go!"Ctx" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Defragment_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Defragment" (LamV "$r"
+  ptr_unfold'Defragment : MethodUnfold (go.GoType.PointerType Client.ty) go!"Defragment" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Defragment"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Delete" (LamV "$r"
+  ptr_unfold'Delete : MethodUnfold (go.GoType.PointerType Client.ty) go!"Delete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Delete"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Dial_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Dial" (LamV "$r"
+  ptr_unfold'Dial : MethodUnfold (go.GoType.PointerType Client.ty) go!"Dial" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Dial"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Do_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Do" (LamV "$r"
+  ptr_unfold'Do : MethodUnfold (go.GoType.PointerType Client.ty) go!"Do" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Do"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Downgrade_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Downgrade" (LamV "$r"
+  ptr_unfold'Downgrade : MethodUnfold (go.GoType.PointerType Client.ty) go!"Downgrade" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Downgrade"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Endpoints_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Endpoints" (LamV "$r"
+  ptr_unfold'Endpoints : MethodUnfold (go.GoType.PointerType Client.ty) go!"Endpoints" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Endpoints"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Get" (LamV "$r"
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType Client.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Client.ty go!"Get"))) (App (Val (GoInstruction (GoLoad Client.ty))) (Var "$r"))))
-  ptr_GetLogger_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"GetLogger" (LamV "$r"
+  ptr_unfold'GetLogger : MethodUnfold (go.GoType.PointerType Client.ty) go!"GetLogger" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"GetLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_GetStream_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"GetStream" (LamV "$r"
+  ptr_unfold'GetStream : MethodUnfold (go.GoType.PointerType Client.ty) go!"GetStream" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"GetStream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Grant_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Grant" (LamV "$r"
+  ptr_unfold'Grant : MethodUnfold (go.GoType.PointerType Client.ty) go!"Grant" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Grant"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_HashKV_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"HashKV" (LamV "$r"
+  ptr_unfold'HashKV : MethodUnfold (go.GoType.PointerType Client.ty) go!"HashKV" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"HashKV"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_KeepAlive_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"KeepAlive" (LamV "$r"
+  ptr_unfold'KeepAlive : MethodUnfold (go.GoType.PointerType Client.ty) go!"KeepAlive" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"KeepAlive"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_KeepAliveOnce_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"KeepAliveOnce" (LamV "$r"
+  ptr_unfold'KeepAliveOnce : MethodUnfold (go.GoType.PointerType Client.ty) go!"KeepAliveOnce" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"KeepAliveOnce"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Leases_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Leases" (LamV "$r"
+  ptr_unfold'Leases : MethodUnfold (go.GoType.PointerType Client.ty) go!"Leases" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Leases"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"List" (LamV "$r"
+  ptr_unfold'List : MethodUnfold (go.GoType.PointerType Client.ty) go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Client.ty go!"List"))) (App (Val (GoInstruction (GoLoad Client.ty))) (Var "$r"))))
-  ptr_MemberAdd_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"MemberAdd" (LamV "$r"
+  ptr_unfold'MemberAdd : MethodUnfold (go.GoType.PointerType Client.ty) go!"MemberAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"MemberAdd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_MemberAddAsLearner_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"MemberAddAsLearner" (LamV "$r"
+  ptr_unfold'MemberAddAsLearner : MethodUnfold (go.GoType.PointerType Client.ty) go!"MemberAddAsLearner" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"MemberAddAsLearner"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_MemberList_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"MemberList" (LamV "$r"
+  ptr_unfold'MemberList : MethodUnfold (go.GoType.PointerType Client.ty) go!"MemberList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"MemberList"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_MemberPromote_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"MemberPromote" (LamV "$r"
+  ptr_unfold'MemberPromote : MethodUnfold (go.GoType.PointerType Client.ty) go!"MemberPromote" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"MemberPromote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_MemberRemove_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"MemberRemove" (LamV "$r"
+  ptr_unfold'MemberRemove : MethodUnfold (go.GoType.PointerType Client.ty) go!"MemberRemove" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"MemberRemove"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_MemberUpdate_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"MemberUpdate" (LamV "$r"
+  ptr_unfold'MemberUpdate : MethodUnfold (go.GoType.PointerType Client.ty) go!"MemberUpdate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"MemberUpdate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_MoveLeader_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"MoveLeader" (LamV "$r"
+  ptr_unfold'MoveLeader : MethodUnfold (go.GoType.PointerType Client.ty) go!"MoveLeader" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"MoveLeader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_OptimisticDelete_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"OptimisticDelete" (LamV "$r"
+  ptr_unfold'OptimisticDelete : MethodUnfold (go.GoType.PointerType Client.ty) go!"OptimisticDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Client.ty go!"OptimisticDelete"))) (App (Val (GoInstruction (GoLoad Client.ty))) (Var "$r"))))
-  ptr_OptimisticPut_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"OptimisticPut" (LamV "$r"
+  ptr_unfold'OptimisticPut : MethodUnfold (go.GoType.PointerType Client.ty) go!"OptimisticPut" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Client.ty go!"OptimisticPut"))) (App (Val (GoInstruction (GoLoad Client.ty))) (Var "$r"))))
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Put" (LamV "$r"
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType Client.ty) go!"Put" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Put"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_RequestProgress_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"RequestProgress" (LamV "$r"
+  ptr_unfold'RequestProgress : MethodUnfold (go.GoType.PointerType Client.ty) go!"RequestProgress" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"RequestProgress"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Revoke_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Revoke" (LamV "$r"
+  ptr_unfold'Revoke : MethodUnfold (go.GoType.PointerType Client.ty) go!"Revoke" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Revoke"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_RoleAdd_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"RoleAdd" (LamV "$r"
+  ptr_unfold'RoleAdd : MethodUnfold (go.GoType.PointerType Client.ty) go!"RoleAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"RoleAdd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_RoleDelete_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"RoleDelete" (LamV "$r"
+  ptr_unfold'RoleDelete : MethodUnfold (go.GoType.PointerType Client.ty) go!"RoleDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"RoleDelete"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_RoleGet_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"RoleGet" (LamV "$r"
+  ptr_unfold'RoleGet : MethodUnfold (go.GoType.PointerType Client.ty) go!"RoleGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"RoleGet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_RoleGrantPermission_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"RoleGrantPermission" (LamV "$r"
+  ptr_unfold'RoleGrantPermission : MethodUnfold (go.GoType.PointerType Client.ty) go!"RoleGrantPermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"RoleGrantPermission"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_RoleList_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"RoleList" (LamV "$r"
+  ptr_unfold'RoleList : MethodUnfold (go.GoType.PointerType Client.ty) go!"RoleList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"RoleList"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_RoleRevokePermission_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"RoleRevokePermission" (LamV "$r"
+  ptr_unfold'RoleRevokePermission : MethodUnfold (go.GoType.PointerType Client.ty) go!"RoleRevokePermission" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"RoleRevokePermission"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_SetEndpoints_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"SetEndpoints" (LamV "$r"
+  ptr_unfold'SetEndpoints : MethodUnfold (go.GoType.PointerType Client.ty) go!"SetEndpoints" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"SetEndpoints"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Snapshot_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Snapshot" (LamV "$r"
+  ptr_unfold'Snapshot : MethodUnfold (go.GoType.PointerType Client.ty) go!"Snapshot" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Snapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_SnapshotWithVersion_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"SnapshotWithVersion" (LamV "$r"
+  ptr_unfold'SnapshotWithVersion : MethodUnfold (go.GoType.PointerType Client.ty) go!"SnapshotWithVersion" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"SnapshotWithVersion"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Status_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Status" (LamV "$r"
+  ptr_unfold'Status : MethodUnfold (go.GoType.PointerType Client.ty) go!"Status" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Sync_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Sync" (LamV "$r"
+  ptr_unfold'Sync : MethodUnfold (go.GoType.PointerType Client.ty) go!"Sync" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Sync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_TimeToLive_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"TimeToLive" (LamV "$r"
+  ptr_unfold'TimeToLive : MethodUnfold (go.GoType.PointerType Client.ty) go!"TimeToLive" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"TimeToLive"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Txn" (LamV "$r"
+  ptr_unfold'Txn : MethodUnfold (go.GoType.PointerType Client.ty) go!"Txn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Txn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_UserAdd_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"UserAdd" (LamV "$r"
+  ptr_unfold'UserAdd : MethodUnfold (go.GoType.PointerType Client.ty) go!"UserAdd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"UserAdd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_UserAddWithOptions_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"UserAddWithOptions" (LamV "$r"
+  ptr_unfold'UserAddWithOptions : MethodUnfold (go.GoType.PointerType Client.ty) go!"UserAddWithOptions" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"UserAddWithOptions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_UserChangePassword_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"UserChangePassword" (LamV "$r"
+  ptr_unfold'UserChangePassword : MethodUnfold (go.GoType.PointerType Client.ty) go!"UserChangePassword" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"UserChangePassword"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_UserDelete_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"UserDelete" (LamV "$r"
+  ptr_unfold'UserDelete : MethodUnfold (go.GoType.PointerType Client.ty) go!"UserDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"UserDelete"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_UserGet_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"UserGet" (LamV "$r"
+  ptr_unfold'UserGet : MethodUnfold (go.GoType.PointerType Client.ty) go!"UserGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"UserGet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_UserGrantRole_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"UserGrantRole" (LamV "$r"
+  ptr_unfold'UserGrantRole : MethodUnfold (go.GoType.PointerType Client.ty) go!"UserGrantRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"UserGrantRole"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_UserList_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"UserList" (LamV "$r"
+  ptr_unfold'UserList : MethodUnfold (go.GoType.PointerType Client.ty) go!"UserList" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"UserList"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_UserRevokeRole_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"UserRevokeRole" (LamV "$r"
+  ptr_unfold'UserRevokeRole : MethodUnfold (go.GoType.PointerType Client.ty) go!"UserRevokeRole" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"UserRevokeRole"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_Watch_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Watch" (LamV "$r"
+  ptr_unfold'Watch : MethodUnfold (go.GoType.PointerType Client.ty) go!"Watch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Watch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_WithLogger_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"WithLogger" (LamV "$r"
+  ptr_unfold'WithLogger : MethodUnfold (go.GoType.PointerType Client.ty) go!"WithLogger" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"WithLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_autoSync_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"autoSync" (LamV "$r"
+  ptr_unfold'autoSync : MethodUnfold (go.GoType.PointerType Client.ty) go!"autoSync" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"autoSync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_checkVersion_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"checkVersion" (LamV "$r"
+  ptr_unfold'checkVersion : MethodUnfold (go.GoType.PointerType Client.ty) go!"checkVersion" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"checkVersion"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_credentialsForEndpoint_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"credentialsForEndpoint" (LamV "$r"
+  ptr_unfold'credentialsForEndpoint : MethodUnfold (go.GoType.PointerType Client.ty) go!"credentialsForEndpoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"credentialsForEndpoint"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_dial_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dial" (LamV "$r"
+  ptr_unfold'dial : MethodUnfold (go.GoType.PointerType Client.ty) go!"dial" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"dial"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_dialSetupOpts_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dialSetupOpts" (LamV "$r"
+  ptr_unfold'dialSetupOpts : MethodUnfold (go.GoType.PointerType Client.ty) go!"dialSetupOpts" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"dialSetupOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_dialWithBalancer_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dialWithBalancer" (LamV "$r"
+  ptr_unfold'dialWithBalancer : MethodUnfold (go.GoType.PointerType Client.ty) go!"dialWithBalancer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"dialWithBalancer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_getToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"getToken" (LamV "$r"
+  ptr_unfold'getToken : MethodUnfold (go.GoType.PointerType Client.ty) go!"getToken" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"getToken"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_refreshToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"refreshToken" (LamV "$r"
+  ptr_unfold'refreshToken : MethodUnfold (go.GoType.PointerType Client.ty) go!"refreshToken" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"refreshToken"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_roundRobinQuorumBackoff_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"roundRobinQuorumBackoff" (LamV "$r"
+  ptr_unfold'roundRobinQuorumBackoff : MethodUnfold (go.GoType.PointerType Client.ty) go!"roundRobinQuorumBackoff" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"roundRobinQuorumBackoff"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_shouldRefreshToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"shouldRefreshToken" (LamV "$r"
+  ptr_unfold'shouldRefreshToken : MethodUnfold (go.GoType.PointerType Client.ty) go!"shouldRefreshToken" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"shouldRefreshToken"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_streamClientInterceptor_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"streamClientInterceptor" (LamV "$r"
+  ptr_unfold'streamClientInterceptor : MethodUnfold (go.GoType.PointerType Client.ty) go!"streamClientInterceptor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"streamClientInterceptor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_unaryClientInterceptor_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"unaryClientInterceptor" (LamV "$r"
+  ptr_unfold'unaryClientInterceptor : MethodUnfold (go.GoType.PointerType Client.ty) go!"unaryClientInterceptor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"unaryClientInterceptor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
 
 attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.underlying
-  Client.TypeAssumptions.get_Client
-  Client.TypeAssumptions.set_Client
-  Client.TypeAssumptions.get_Kubernetes
-  Client.TypeAssumptions.set_Kubernetes
+  Client.TypeAssumptions.get'Client
+  Client.TypeAssumptions.set'Client
+  Client.TypeAssumptions.get'Kubernetes
+  Client.TypeAssumptions.set'Kubernetes
   Client.TypeAssumptions.method_set
   Client.TypeAssumptions.ptr_method_set
-  Client.TypeAssumptions.ActiveConnection_unfold
-  Client.TypeAssumptions.AlarmDisarm_unfold
-  Client.TypeAssumptions.AlarmList_unfold
-  Client.TypeAssumptions.AuthDisable_unfold
-  Client.TypeAssumptions.AuthEnable_unfold
-  Client.TypeAssumptions.AuthStatus_unfold
-  Client.TypeAssumptions.Authenticate_unfold
-  Client.TypeAssumptions.Close_unfold
-  Client.TypeAssumptions.Compact_unfold
-  Client.TypeAssumptions.Count_unfold
-  Client.TypeAssumptions.Ctx_unfold
-  Client.TypeAssumptions.Defragment_unfold
-  Client.TypeAssumptions.Delete_unfold
-  Client.TypeAssumptions.Dial_unfold
-  Client.TypeAssumptions.Do_unfold
-  Client.TypeAssumptions.Downgrade_unfold
-  Client.TypeAssumptions.Endpoints_unfold
-  Client.TypeAssumptions.Get_unfold
-  Client.TypeAssumptions.GetLogger_unfold
-  Client.TypeAssumptions.GetStream_unfold
-  Client.TypeAssumptions.Grant_unfold
-  Client.TypeAssumptions.HashKV_unfold
-  Client.TypeAssumptions.KeepAlive_unfold
-  Client.TypeAssumptions.KeepAliveOnce_unfold
-  Client.TypeAssumptions.Leases_unfold
-  Client.TypeAssumptions.List_unfold
-  Client.TypeAssumptions.MemberAdd_unfold
-  Client.TypeAssumptions.MemberAddAsLearner_unfold
-  Client.TypeAssumptions.MemberList_unfold
-  Client.TypeAssumptions.MemberPromote_unfold
-  Client.TypeAssumptions.MemberRemove_unfold
-  Client.TypeAssumptions.MemberUpdate_unfold
-  Client.TypeAssumptions.MoveLeader_unfold
-  Client.TypeAssumptions.OptimisticDelete_unfold
-  Client.TypeAssumptions.OptimisticPut_unfold
-  Client.TypeAssumptions.Put_unfold
-  Client.TypeAssumptions.RequestProgress_unfold
-  Client.TypeAssumptions.Revoke_unfold
-  Client.TypeAssumptions.RoleAdd_unfold
-  Client.TypeAssumptions.RoleDelete_unfold
-  Client.TypeAssumptions.RoleGet_unfold
-  Client.TypeAssumptions.RoleGrantPermission_unfold
-  Client.TypeAssumptions.RoleList_unfold
-  Client.TypeAssumptions.RoleRevokePermission_unfold
-  Client.TypeAssumptions.SetEndpoints_unfold
-  Client.TypeAssumptions.Snapshot_unfold
-  Client.TypeAssumptions.SnapshotWithVersion_unfold
-  Client.TypeAssumptions.Status_unfold
-  Client.TypeAssumptions.Sync_unfold
-  Client.TypeAssumptions.TimeToLive_unfold
-  Client.TypeAssumptions.Txn_unfold
-  Client.TypeAssumptions.UserAdd_unfold
-  Client.TypeAssumptions.UserAddWithOptions_unfold
-  Client.TypeAssumptions.UserChangePassword_unfold
-  Client.TypeAssumptions.UserDelete_unfold
-  Client.TypeAssumptions.UserGet_unfold
-  Client.TypeAssumptions.UserGrantRole_unfold
-  Client.TypeAssumptions.UserList_unfold
-  Client.TypeAssumptions.UserRevokeRole_unfold
-  Client.TypeAssumptions.Watch_unfold
-  Client.TypeAssumptions.WithLogger_unfold
-  Client.TypeAssumptions.autoSync_unfold
-  Client.TypeAssumptions.checkVersion_unfold
-  Client.TypeAssumptions.credentialsForEndpoint_unfold
-  Client.TypeAssumptions.dial_unfold
-  Client.TypeAssumptions.dialSetupOpts_unfold
-  Client.TypeAssumptions.dialWithBalancer_unfold
-  Client.TypeAssumptions.getToken_unfold
-  Client.TypeAssumptions.refreshToken_unfold
-  Client.TypeAssumptions.roundRobinQuorumBackoff_unfold
-  Client.TypeAssumptions.shouldRefreshToken_unfold
-  Client.TypeAssumptions.streamClientInterceptor_unfold
-  Client.TypeAssumptions.unaryClientInterceptor_unfold
-  Client.TypeAssumptions.ptr_ActiveConnection_unfold
-  Client.TypeAssumptions.ptr_AlarmDisarm_unfold
-  Client.TypeAssumptions.ptr_AlarmList_unfold
-  Client.TypeAssumptions.ptr_AuthDisable_unfold
-  Client.TypeAssumptions.ptr_AuthEnable_unfold
-  Client.TypeAssumptions.ptr_AuthStatus_unfold
-  Client.TypeAssumptions.ptr_Authenticate_unfold
-  Client.TypeAssumptions.ptr_Close_unfold
-  Client.TypeAssumptions.ptr_Compact_unfold
-  Client.TypeAssumptions.ptr_Count_unfold
-  Client.TypeAssumptions.ptr_Ctx_unfold
-  Client.TypeAssumptions.ptr_Defragment_unfold
-  Client.TypeAssumptions.ptr_Delete_unfold
-  Client.TypeAssumptions.ptr_Dial_unfold
-  Client.TypeAssumptions.ptr_Do_unfold
-  Client.TypeAssumptions.ptr_Downgrade_unfold
-  Client.TypeAssumptions.ptr_Endpoints_unfold
-  Client.TypeAssumptions.ptr_Get_unfold
-  Client.TypeAssumptions.ptr_GetLogger_unfold
-  Client.TypeAssumptions.ptr_GetStream_unfold
-  Client.TypeAssumptions.ptr_Grant_unfold
-  Client.TypeAssumptions.ptr_HashKV_unfold
-  Client.TypeAssumptions.ptr_KeepAlive_unfold
-  Client.TypeAssumptions.ptr_KeepAliveOnce_unfold
-  Client.TypeAssumptions.ptr_Leases_unfold
-  Client.TypeAssumptions.ptr_List_unfold
-  Client.TypeAssumptions.ptr_MemberAdd_unfold
-  Client.TypeAssumptions.ptr_MemberAddAsLearner_unfold
-  Client.TypeAssumptions.ptr_MemberList_unfold
-  Client.TypeAssumptions.ptr_MemberPromote_unfold
-  Client.TypeAssumptions.ptr_MemberRemove_unfold
-  Client.TypeAssumptions.ptr_MemberUpdate_unfold
-  Client.TypeAssumptions.ptr_MoveLeader_unfold
-  Client.TypeAssumptions.ptr_OptimisticDelete_unfold
-  Client.TypeAssumptions.ptr_OptimisticPut_unfold
-  Client.TypeAssumptions.ptr_Put_unfold
-  Client.TypeAssumptions.ptr_RequestProgress_unfold
-  Client.TypeAssumptions.ptr_Revoke_unfold
-  Client.TypeAssumptions.ptr_RoleAdd_unfold
-  Client.TypeAssumptions.ptr_RoleDelete_unfold
-  Client.TypeAssumptions.ptr_RoleGet_unfold
-  Client.TypeAssumptions.ptr_RoleGrantPermission_unfold
-  Client.TypeAssumptions.ptr_RoleList_unfold
-  Client.TypeAssumptions.ptr_RoleRevokePermission_unfold
-  Client.TypeAssumptions.ptr_SetEndpoints_unfold
-  Client.TypeAssumptions.ptr_Snapshot_unfold
-  Client.TypeAssumptions.ptr_SnapshotWithVersion_unfold
-  Client.TypeAssumptions.ptr_Status_unfold
-  Client.TypeAssumptions.ptr_Sync_unfold
-  Client.TypeAssumptions.ptr_TimeToLive_unfold
-  Client.TypeAssumptions.ptr_Txn_unfold
-  Client.TypeAssumptions.ptr_UserAdd_unfold
-  Client.TypeAssumptions.ptr_UserAddWithOptions_unfold
-  Client.TypeAssumptions.ptr_UserChangePassword_unfold
-  Client.TypeAssumptions.ptr_UserDelete_unfold
-  Client.TypeAssumptions.ptr_UserGet_unfold
-  Client.TypeAssumptions.ptr_UserGrantRole_unfold
-  Client.TypeAssumptions.ptr_UserList_unfold
-  Client.TypeAssumptions.ptr_UserRevokeRole_unfold
-  Client.TypeAssumptions.ptr_Watch_unfold
-  Client.TypeAssumptions.ptr_WithLogger_unfold
-  Client.TypeAssumptions.ptr_autoSync_unfold
-  Client.TypeAssumptions.ptr_checkVersion_unfold
-  Client.TypeAssumptions.ptr_credentialsForEndpoint_unfold
-  Client.TypeAssumptions.ptr_dial_unfold
-  Client.TypeAssumptions.ptr_dialSetupOpts_unfold
-  Client.TypeAssumptions.ptr_dialWithBalancer_unfold
-  Client.TypeAssumptions.ptr_getToken_unfold
-  Client.TypeAssumptions.ptr_refreshToken_unfold
-  Client.TypeAssumptions.ptr_roundRobinQuorumBackoff_unfold
-  Client.TypeAssumptions.ptr_shouldRefreshToken_unfold
-  Client.TypeAssumptions.ptr_streamClientInterceptor_unfold
-  Client.TypeAssumptions.ptr_unaryClientInterceptor_unfold
+  Client.TypeAssumptions.unfold'ActiveConnection
+  Client.TypeAssumptions.unfold'AlarmDisarm
+  Client.TypeAssumptions.unfold'AlarmList
+  Client.TypeAssumptions.unfold'AuthDisable
+  Client.TypeAssumptions.unfold'AuthEnable
+  Client.TypeAssumptions.unfold'AuthStatus
+  Client.TypeAssumptions.unfold'Authenticate
+  Client.TypeAssumptions.unfold'Close
+  Client.TypeAssumptions.unfold'Compact
+  Client.TypeAssumptions.unfold'Count
+  Client.TypeAssumptions.unfold'Ctx
+  Client.TypeAssumptions.unfold'Defragment
+  Client.TypeAssumptions.unfold'Delete
+  Client.TypeAssumptions.unfold'Dial
+  Client.TypeAssumptions.unfold'Do
+  Client.TypeAssumptions.unfold'Downgrade
+  Client.TypeAssumptions.unfold'Endpoints
+  Client.TypeAssumptions.unfold'Get
+  Client.TypeAssumptions.unfold'GetLogger
+  Client.TypeAssumptions.unfold'GetStream
+  Client.TypeAssumptions.unfold'Grant
+  Client.TypeAssumptions.unfold'HashKV
+  Client.TypeAssumptions.unfold'KeepAlive
+  Client.TypeAssumptions.unfold'KeepAliveOnce
+  Client.TypeAssumptions.unfold'Leases
+  Client.TypeAssumptions.unfold'List
+  Client.TypeAssumptions.unfold'MemberAdd
+  Client.TypeAssumptions.unfold'MemberAddAsLearner
+  Client.TypeAssumptions.unfold'MemberList
+  Client.TypeAssumptions.unfold'MemberPromote
+  Client.TypeAssumptions.unfold'MemberRemove
+  Client.TypeAssumptions.unfold'MemberUpdate
+  Client.TypeAssumptions.unfold'MoveLeader
+  Client.TypeAssumptions.unfold'OptimisticDelete
+  Client.TypeAssumptions.unfold'OptimisticPut
+  Client.TypeAssumptions.unfold'Put
+  Client.TypeAssumptions.unfold'RequestProgress
+  Client.TypeAssumptions.unfold'Revoke
+  Client.TypeAssumptions.unfold'RoleAdd
+  Client.TypeAssumptions.unfold'RoleDelete
+  Client.TypeAssumptions.unfold'RoleGet
+  Client.TypeAssumptions.unfold'RoleGrantPermission
+  Client.TypeAssumptions.unfold'RoleList
+  Client.TypeAssumptions.unfold'RoleRevokePermission
+  Client.TypeAssumptions.unfold'SetEndpoints
+  Client.TypeAssumptions.unfold'Snapshot
+  Client.TypeAssumptions.unfold'SnapshotWithVersion
+  Client.TypeAssumptions.unfold'Status
+  Client.TypeAssumptions.unfold'Sync
+  Client.TypeAssumptions.unfold'TimeToLive
+  Client.TypeAssumptions.unfold'Txn
+  Client.TypeAssumptions.unfold'UserAdd
+  Client.TypeAssumptions.unfold'UserAddWithOptions
+  Client.TypeAssumptions.unfold'UserChangePassword
+  Client.TypeAssumptions.unfold'UserDelete
+  Client.TypeAssumptions.unfold'UserGet
+  Client.TypeAssumptions.unfold'UserGrantRole
+  Client.TypeAssumptions.unfold'UserList
+  Client.TypeAssumptions.unfold'UserRevokeRole
+  Client.TypeAssumptions.unfold'Watch
+  Client.TypeAssumptions.unfold'WithLogger
+  Client.TypeAssumptions.unfold'autoSync
+  Client.TypeAssumptions.unfold'checkVersion
+  Client.TypeAssumptions.unfold'credentialsForEndpoint
+  Client.TypeAssumptions.unfold'dial
+  Client.TypeAssumptions.unfold'dialSetupOpts
+  Client.TypeAssumptions.unfold'dialWithBalancer
+  Client.TypeAssumptions.unfold'getToken
+  Client.TypeAssumptions.unfold'refreshToken
+  Client.TypeAssumptions.unfold'roundRobinQuorumBackoff
+  Client.TypeAssumptions.unfold'shouldRefreshToken
+  Client.TypeAssumptions.unfold'streamClientInterceptor
+  Client.TypeAssumptions.unfold'unaryClientInterceptor
+  Client.TypeAssumptions.ptr_unfold'ActiveConnection
+  Client.TypeAssumptions.ptr_unfold'AlarmDisarm
+  Client.TypeAssumptions.ptr_unfold'AlarmList
+  Client.TypeAssumptions.ptr_unfold'AuthDisable
+  Client.TypeAssumptions.ptr_unfold'AuthEnable
+  Client.TypeAssumptions.ptr_unfold'AuthStatus
+  Client.TypeAssumptions.ptr_unfold'Authenticate
+  Client.TypeAssumptions.ptr_unfold'Close
+  Client.TypeAssumptions.ptr_unfold'Compact
+  Client.TypeAssumptions.ptr_unfold'Count
+  Client.TypeAssumptions.ptr_unfold'Ctx
+  Client.TypeAssumptions.ptr_unfold'Defragment
+  Client.TypeAssumptions.ptr_unfold'Delete
+  Client.TypeAssumptions.ptr_unfold'Dial
+  Client.TypeAssumptions.ptr_unfold'Do
+  Client.TypeAssumptions.ptr_unfold'Downgrade
+  Client.TypeAssumptions.ptr_unfold'Endpoints
+  Client.TypeAssumptions.ptr_unfold'Get
+  Client.TypeAssumptions.ptr_unfold'GetLogger
+  Client.TypeAssumptions.ptr_unfold'GetStream
+  Client.TypeAssumptions.ptr_unfold'Grant
+  Client.TypeAssumptions.ptr_unfold'HashKV
+  Client.TypeAssumptions.ptr_unfold'KeepAlive
+  Client.TypeAssumptions.ptr_unfold'KeepAliveOnce
+  Client.TypeAssumptions.ptr_unfold'Leases
+  Client.TypeAssumptions.ptr_unfold'List
+  Client.TypeAssumptions.ptr_unfold'MemberAdd
+  Client.TypeAssumptions.ptr_unfold'MemberAddAsLearner
+  Client.TypeAssumptions.ptr_unfold'MemberList
+  Client.TypeAssumptions.ptr_unfold'MemberPromote
+  Client.TypeAssumptions.ptr_unfold'MemberRemove
+  Client.TypeAssumptions.ptr_unfold'MemberUpdate
+  Client.TypeAssumptions.ptr_unfold'MoveLeader
+  Client.TypeAssumptions.ptr_unfold'OptimisticDelete
+  Client.TypeAssumptions.ptr_unfold'OptimisticPut
+  Client.TypeAssumptions.ptr_unfold'Put
+  Client.TypeAssumptions.ptr_unfold'RequestProgress
+  Client.TypeAssumptions.ptr_unfold'Revoke
+  Client.TypeAssumptions.ptr_unfold'RoleAdd
+  Client.TypeAssumptions.ptr_unfold'RoleDelete
+  Client.TypeAssumptions.ptr_unfold'RoleGet
+  Client.TypeAssumptions.ptr_unfold'RoleGrantPermission
+  Client.TypeAssumptions.ptr_unfold'RoleList
+  Client.TypeAssumptions.ptr_unfold'RoleRevokePermission
+  Client.TypeAssumptions.ptr_unfold'SetEndpoints
+  Client.TypeAssumptions.ptr_unfold'Snapshot
+  Client.TypeAssumptions.ptr_unfold'SnapshotWithVersion
+  Client.TypeAssumptions.ptr_unfold'Status
+  Client.TypeAssumptions.ptr_unfold'Sync
+  Client.TypeAssumptions.ptr_unfold'TimeToLive
+  Client.TypeAssumptions.ptr_unfold'Txn
+  Client.TypeAssumptions.ptr_unfold'UserAdd
+  Client.TypeAssumptions.ptr_unfold'UserAddWithOptions
+  Client.TypeAssumptions.ptr_unfold'UserChangePassword
+  Client.TypeAssumptions.ptr_unfold'UserDelete
+  Client.TypeAssumptions.ptr_unfold'UserGet
+  Client.TypeAssumptions.ptr_unfold'UserGrantRole
+  Client.TypeAssumptions.ptr_unfold'UserList
+  Client.TypeAssumptions.ptr_unfold'UserRevokeRole
+  Client.TypeAssumptions.ptr_unfold'Watch
+  Client.TypeAssumptions.ptr_unfold'WithLogger
+  Client.TypeAssumptions.ptr_unfold'autoSync
+  Client.TypeAssumptions.ptr_unfold'checkVersion
+  Client.TypeAssumptions.ptr_unfold'credentialsForEndpoint
+  Client.TypeAssumptions.ptr_unfold'dial
+  Client.TypeAssumptions.ptr_unfold'dialSetupOpts
+  Client.TypeAssumptions.ptr_unfold'dialWithBalancer
+  Client.TypeAssumptions.ptr_unfold'getToken
+  Client.TypeAssumptions.ptr_unfold'refreshToken
+  Client.TypeAssumptions.ptr_unfold'roundRobinQuorumBackoff
+  Client.TypeAssumptions.ptr_unfold'shouldRefreshToken
+  Client.TypeAssumptions.ptr_unfold'streamClientInterceptor
+  Client.TypeAssumptions.ptr_unfold'unaryClientInterceptor
 
 structure GetOptions [GooseExts] where
   mk ::
@@ -1172,7 +1172,7 @@ noncomputable instance GetOptions.zero_val [GooseExts] : ZeroVal GetOptions :=
 @[irreducible] noncomputable def GetOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GetOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_GetOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'GetOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold GetOptions.fields GetOptions.fieldsUnsealed :=
   ⟨by unfold GetOptions.fields; rfl⟩
 
@@ -1182,15 +1182,15 @@ noncomputable instance equals_unfold_GetOptions [GooseExts] [GoGlobalContext] :
 class GetOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GetOptions.underlying GetOptions
   underlying : go.UnderlyingDirectedEq GetOptions.ty GetOptions.underlying
-  get_Revision : ∀ (x : GetOptions), go.IsGoStepPureDetTagged under (StructFieldGet GetOptions.underlying go!"Revision") #x (Val #(x.Revision'))
-  set_Revision : ∀ (x : GetOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet GetOptions.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : GetOptions)))
+  get'Revision : ∀ (x : GetOptions), go.IsGoStepPureDetTagged under (StructFieldGet GetOptions.underlying go!"Revision") #x (Val #(x.Revision'))
+  set'Revision : ∀ (x : GetOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet GetOptions.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : GetOptions)))
   method_set : go.MethodSetIs GetOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GetOptions.ty) []
 
 attribute [instance] GetOptions.TypeAssumptions.type_repr
   GetOptions.TypeAssumptions.underlying
-  GetOptions.TypeAssumptions.get_Revision
-  GetOptions.TypeAssumptions.set_Revision
+  GetOptions.TypeAssumptions.get'Revision
+  GetOptions.TypeAssumptions.set'Revision
   GetOptions.TypeAssumptions.method_set
   GetOptions.TypeAssumptions.ptr_method_set
 
@@ -1211,7 +1211,7 @@ noncomputable instance ListOptions.zero_val [GooseExts] : ZeroVal ListOptions :=
 @[irreducible] noncomputable def ListOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ListOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_ListOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ListOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold ListOptions.fields ListOptions.fieldsUnsealed :=
   ⟨by unfold ListOptions.fields; rfl⟩
 
@@ -1221,23 +1221,23 @@ noncomputable instance equals_unfold_ListOptions [GooseExts] [GoGlobalContext] :
 class ListOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ListOptions.underlying ListOptions
   underlying : go.UnderlyingDirectedEq ListOptions.ty ListOptions.underlying
-  get_Revision : ∀ (x : ListOptions), go.IsGoStepPureDetTagged under (StructFieldGet ListOptions.underlying go!"Revision") #x (Val #(x.Revision'))
-  set_Revision : ∀ (x : ListOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ListOptions.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : ListOptions)))
-  get_Limit : ∀ (x : ListOptions), go.IsGoStepPureDetTagged under (StructFieldGet ListOptions.underlying go!"Limit") #x (Val #(x.Limit'))
-  set_Limit : ∀ (x : ListOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ListOptions.underlying go!"Limit") (PairV #x #y) (Val #(({ x with Limit' := y } : ListOptions)))
-  get_Continue : ∀ (x : ListOptions), go.IsGoStepPureDetTagged under (StructFieldGet ListOptions.underlying go!"Continue") #x (Val #(x.Continue'))
-  set_Continue : ∀ (x : ListOptions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ListOptions.underlying go!"Continue") (PairV #x #y) (Val #(({ x with Continue' := y } : ListOptions)))
+  get'Revision : ∀ (x : ListOptions), go.IsGoStepPureDetTagged under (StructFieldGet ListOptions.underlying go!"Revision") #x (Val #(x.Revision'))
+  set'Revision : ∀ (x : ListOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ListOptions.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : ListOptions)))
+  get'Limit : ∀ (x : ListOptions), go.IsGoStepPureDetTagged under (StructFieldGet ListOptions.underlying go!"Limit") #x (Val #(x.Limit'))
+  set'Limit : ∀ (x : ListOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ListOptions.underlying go!"Limit") (PairV #x #y) (Val #(({ x with Limit' := y } : ListOptions)))
+  get'Continue : ∀ (x : ListOptions), go.IsGoStepPureDetTagged under (StructFieldGet ListOptions.underlying go!"Continue") #x (Val #(x.Continue'))
+  set'Continue : ∀ (x : ListOptions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ListOptions.underlying go!"Continue") (PairV #x #y) (Val #(({ x with Continue' := y } : ListOptions)))
   method_set : go.MethodSetIs ListOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListOptions.ty) []
 
 attribute [instance] ListOptions.TypeAssumptions.type_repr
   ListOptions.TypeAssumptions.underlying
-  ListOptions.TypeAssumptions.get_Revision
-  ListOptions.TypeAssumptions.set_Revision
-  ListOptions.TypeAssumptions.get_Limit
-  ListOptions.TypeAssumptions.set_Limit
-  ListOptions.TypeAssumptions.get_Continue
-  ListOptions.TypeAssumptions.set_Continue
+  ListOptions.TypeAssumptions.get'Revision
+  ListOptions.TypeAssumptions.set'Revision
+  ListOptions.TypeAssumptions.get'Limit
+  ListOptions.TypeAssumptions.set'Limit
+  ListOptions.TypeAssumptions.get'Continue
+  ListOptions.TypeAssumptions.set'Continue
   ListOptions.TypeAssumptions.method_set
   ListOptions.TypeAssumptions.ptr_method_set
 
@@ -1253,7 +1253,7 @@ noncomputable instance CountOptions.zero_val [GooseExts] : ZeroVal CountOptions 
 @[irreducible] noncomputable def CountOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CountOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_CountOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'CountOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold CountOptions.fields CountOptions.fieldsUnsealed :=
   ⟨by unfold CountOptions.fields; rfl⟩
 
@@ -1286,7 +1286,7 @@ noncomputable instance PutOptions.zero_val [GooseExts] : ZeroVal PutOptions :=
 @[irreducible] noncomputable def PutOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PutOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_PutOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PutOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold PutOptions.fields PutOptions.fieldsUnsealed :=
   ⟨by unfold PutOptions.fields; rfl⟩
 
@@ -1296,19 +1296,19 @@ noncomputable instance equals_unfold_PutOptions [GooseExts] [GoGlobalContext] :
 class PutOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PutOptions.underlying PutOptions
   underlying : go.UnderlyingDirectedEq PutOptions.ty PutOptions.underlying
-  get_GetOnFailure : ∀ (x : PutOptions), go.IsGoStepPureDetTagged under (StructFieldGet PutOptions.underlying go!"GetOnFailure") #x (Val #(x.GetOnFailure'))
-  set_GetOnFailure : ∀ (x : PutOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PutOptions.underlying go!"GetOnFailure") (PairV #x #y) (Val #(({ x with GetOnFailure' := y } : PutOptions)))
-  get_LeaseID : ∀ (x : PutOptions), go.IsGoStepPureDetTagged under (StructFieldGet PutOptions.underlying go!"LeaseID") #x (Val #(x.LeaseID'))
-  set_LeaseID : ∀ (x : PutOptions) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID), go.IsGoStepPureDetTagged under (StructFieldSet PutOptions.underlying go!"LeaseID") (PairV #x #y) (Val #(({ x with LeaseID' := y } : PutOptions)))
+  get'GetOnFailure : ∀ (x : PutOptions), go.IsGoStepPureDetTagged under (StructFieldGet PutOptions.underlying go!"GetOnFailure") #x (Val #(x.GetOnFailure'))
+  set'GetOnFailure : ∀ (x : PutOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PutOptions.underlying go!"GetOnFailure") (PairV #x #y) (Val #(({ x with GetOnFailure' := y } : PutOptions)))
+  get'LeaseID : ∀ (x : PutOptions), go.IsGoStepPureDetTagged under (StructFieldGet PutOptions.underlying go!"LeaseID") #x (Val #(x.LeaseID'))
+  set'LeaseID : ∀ (x : PutOptions) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID), go.IsGoStepPureDetTagged under (StructFieldSet PutOptions.underlying go!"LeaseID") (PairV #x #y) (Val #(({ x with LeaseID' := y } : PutOptions)))
   method_set : go.MethodSetIs PutOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PutOptions.ty) []
 
 attribute [instance] PutOptions.TypeAssumptions.type_repr
   PutOptions.TypeAssumptions.underlying
-  PutOptions.TypeAssumptions.get_GetOnFailure
-  PutOptions.TypeAssumptions.set_GetOnFailure
-  PutOptions.TypeAssumptions.get_LeaseID
-  PutOptions.TypeAssumptions.set_LeaseID
+  PutOptions.TypeAssumptions.get'GetOnFailure
+  PutOptions.TypeAssumptions.set'GetOnFailure
+  PutOptions.TypeAssumptions.get'LeaseID
+  PutOptions.TypeAssumptions.set'LeaseID
   PutOptions.TypeAssumptions.method_set
   PutOptions.TypeAssumptions.ptr_method_set
 
@@ -1325,7 +1325,7 @@ noncomputable instance DeleteOptions.zero_val [GooseExts] : ZeroVal DeleteOption
 @[irreducible] noncomputable def DeleteOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DeleteOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_DeleteOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DeleteOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold DeleteOptions.fields DeleteOptions.fieldsUnsealed :=
   ⟨by unfold DeleteOptions.fields; rfl⟩
 
@@ -1335,15 +1335,15 @@ noncomputable instance equals_unfold_DeleteOptions [GooseExts] [GoGlobalContext]
 class DeleteOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeleteOptions.underlying DeleteOptions
   underlying : go.UnderlyingDirectedEq DeleteOptions.ty DeleteOptions.underlying
-  get_GetOnFailure : ∀ (x : DeleteOptions), go.IsGoStepPureDetTagged under (StructFieldGet DeleteOptions.underlying go!"GetOnFailure") #x (Val #(x.GetOnFailure'))
-  set_GetOnFailure : ∀ (x : DeleteOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DeleteOptions.underlying go!"GetOnFailure") (PairV #x #y) (Val #(({ x with GetOnFailure' := y } : DeleteOptions)))
+  get'GetOnFailure : ∀ (x : DeleteOptions), go.IsGoStepPureDetTagged under (StructFieldGet DeleteOptions.underlying go!"GetOnFailure") #x (Val #(x.GetOnFailure'))
+  set'GetOnFailure : ∀ (x : DeleteOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DeleteOptions.underlying go!"GetOnFailure") (PairV #x #y) (Val #(({ x with GetOnFailure' := y } : DeleteOptions)))
   method_set : go.MethodSetIs DeleteOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeleteOptions.ty) []
 
 attribute [instance] DeleteOptions.TypeAssumptions.type_repr
   DeleteOptions.TypeAssumptions.underlying
-  DeleteOptions.TypeAssumptions.get_GetOnFailure
-  DeleteOptions.TypeAssumptions.set_GetOnFailure
+  DeleteOptions.TypeAssumptions.get'GetOnFailure
+  DeleteOptions.TypeAssumptions.set'GetOnFailure
   DeleteOptions.TypeAssumptions.method_set
   DeleteOptions.TypeAssumptions.ptr_method_set
 
@@ -1362,7 +1362,7 @@ noncomputable instance GetResponse.zero_val [GooseExts] : ZeroVal GetResponse :=
 @[irreducible] noncomputable def GetResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GetResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_GetResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'GetResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold GetResponse.fields GetResponse.fieldsUnsealed :=
   ⟨by unfold GetResponse.fields; rfl⟩
 
@@ -1372,19 +1372,19 @@ noncomputable instance equals_unfold_GetResponse [GooseExts] [GoGlobalContext] :
 class GetResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GetResponse.underlying GetResponse
   underlying : go.UnderlyingDirectedEq GetResponse.ty GetResponse.underlying
-  get_KV : ∀ (x : GetResponse), go.IsGoStepPureDetTagged under (StructFieldGet GetResponse.underlying go!"KV") #x (Val #(x.KV'))
-  set_KV : ∀ (x : GetResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet GetResponse.underlying go!"KV") (PairV #x #y) (Val #(({ x with KV' := y } : GetResponse)))
-  get_Revision : ∀ (x : GetResponse), go.IsGoStepPureDetTagged under (StructFieldGet GetResponse.underlying go!"Revision") #x (Val #(x.Revision'))
-  set_Revision : ∀ (x : GetResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet GetResponse.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : GetResponse)))
+  get'KV : ∀ (x : GetResponse), go.IsGoStepPureDetTagged under (StructFieldGet GetResponse.underlying go!"KV") #x (Val #(x.KV'))
+  set'KV : ∀ (x : GetResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet GetResponse.underlying go!"KV") (PairV #x #y) (Val #(({ x with KV' := y } : GetResponse)))
+  get'Revision : ∀ (x : GetResponse), go.IsGoStepPureDetTagged under (StructFieldGet GetResponse.underlying go!"Revision") #x (Val #(x.Revision'))
+  set'Revision : ∀ (x : GetResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet GetResponse.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : GetResponse)))
   method_set : go.MethodSetIs GetResponse.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GetResponse.ty) []
 
 attribute [instance] GetResponse.TypeAssumptions.type_repr
   GetResponse.TypeAssumptions.underlying
-  GetResponse.TypeAssumptions.get_KV
-  GetResponse.TypeAssumptions.set_KV
-  GetResponse.TypeAssumptions.get_Revision
-  GetResponse.TypeAssumptions.set_Revision
+  GetResponse.TypeAssumptions.get'KV
+  GetResponse.TypeAssumptions.set'KV
+  GetResponse.TypeAssumptions.get'Revision
+  GetResponse.TypeAssumptions.set'Revision
   GetResponse.TypeAssumptions.method_set
   GetResponse.TypeAssumptions.ptr_method_set
 
@@ -1405,7 +1405,7 @@ noncomputable instance ListResponse.zero_val [GooseExts] : ZeroVal ListResponse 
 @[irreducible] noncomputable def ListResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ListResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_ListResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ListResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold ListResponse.fields ListResponse.fieldsUnsealed :=
   ⟨by unfold ListResponse.fields; rfl⟩
 
@@ -1415,23 +1415,23 @@ noncomputable instance equals_unfold_ListResponse [GooseExts] [GoGlobalContext] 
 class ListResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ListResponse.underlying ListResponse
   underlying : go.UnderlyingDirectedEq ListResponse.ty ListResponse.underlying
-  get_Kvs : ∀ (x : ListResponse), go.IsGoStepPureDetTagged under (StructFieldGet ListResponse.underlying go!"Kvs") #x (Val #(x.Kvs'))
-  set_Kvs : ∀ (x : ListResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ListResponse.underlying go!"Kvs") (PairV #x #y) (Val #(({ x with Kvs' := y } : ListResponse)))
-  get_Count : ∀ (x : ListResponse), go.IsGoStepPureDetTagged under (StructFieldGet ListResponse.underlying go!"Count") #x (Val #(x.Count'))
-  set_Count : ∀ (x : ListResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ListResponse.underlying go!"Count") (PairV #x #y) (Val #(({ x with Count' := y } : ListResponse)))
-  get_Revision : ∀ (x : ListResponse), go.IsGoStepPureDetTagged under (StructFieldGet ListResponse.underlying go!"Revision") #x (Val #(x.Revision'))
-  set_Revision : ∀ (x : ListResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ListResponse.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : ListResponse)))
+  get'Kvs : ∀ (x : ListResponse), go.IsGoStepPureDetTagged under (StructFieldGet ListResponse.underlying go!"Kvs") #x (Val #(x.Kvs'))
+  set'Kvs : ∀ (x : ListResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ListResponse.underlying go!"Kvs") (PairV #x #y) (Val #(({ x with Kvs' := y } : ListResponse)))
+  get'Count : ∀ (x : ListResponse), go.IsGoStepPureDetTagged under (StructFieldGet ListResponse.underlying go!"Count") #x (Val #(x.Count'))
+  set'Count : ∀ (x : ListResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ListResponse.underlying go!"Count") (PairV #x #y) (Val #(({ x with Count' := y } : ListResponse)))
+  get'Revision : ∀ (x : ListResponse), go.IsGoStepPureDetTagged under (StructFieldGet ListResponse.underlying go!"Revision") #x (Val #(x.Revision'))
+  set'Revision : ∀ (x : ListResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ListResponse.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : ListResponse)))
   method_set : go.MethodSetIs ListResponse.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListResponse.ty) []
 
 attribute [instance] ListResponse.TypeAssumptions.type_repr
   ListResponse.TypeAssumptions.underlying
-  ListResponse.TypeAssumptions.get_Kvs
-  ListResponse.TypeAssumptions.set_Kvs
-  ListResponse.TypeAssumptions.get_Count
-  ListResponse.TypeAssumptions.set_Count
-  ListResponse.TypeAssumptions.get_Revision
-  ListResponse.TypeAssumptions.set_Revision
+  ListResponse.TypeAssumptions.get'Kvs
+  ListResponse.TypeAssumptions.set'Kvs
+  ListResponse.TypeAssumptions.get'Count
+  ListResponse.TypeAssumptions.set'Count
+  ListResponse.TypeAssumptions.get'Revision
+  ListResponse.TypeAssumptions.set'Revision
   ListResponse.TypeAssumptions.method_set
   ListResponse.TypeAssumptions.ptr_method_set
 
@@ -1452,7 +1452,7 @@ noncomputable instance PutResponse.zero_val [GooseExts] : ZeroVal PutResponse :=
 @[irreducible] noncomputable def PutResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PutResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_PutResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PutResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold PutResponse.fields PutResponse.fieldsUnsealed :=
   ⟨by unfold PutResponse.fields; rfl⟩
 
@@ -1462,23 +1462,23 @@ noncomputable instance equals_unfold_PutResponse [GooseExts] [GoGlobalContext] :
 class PutResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PutResponse.underlying PutResponse
   underlying : go.UnderlyingDirectedEq PutResponse.ty PutResponse.underlying
-  get_KV : ∀ (x : PutResponse), go.IsGoStepPureDetTagged under (StructFieldGet PutResponse.underlying go!"KV") #x (Val #(x.KV'))
-  set_KV : ∀ (x : PutResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PutResponse.underlying go!"KV") (PairV #x #y) (Val #(({ x with KV' := y } : PutResponse)))
-  get_Succeeded : ∀ (x : PutResponse), go.IsGoStepPureDetTagged under (StructFieldGet PutResponse.underlying go!"Succeeded") #x (Val #(x.Succeeded'))
-  set_Succeeded : ∀ (x : PutResponse) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PutResponse.underlying go!"Succeeded") (PairV #x #y) (Val #(({ x with Succeeded' := y } : PutResponse)))
-  get_Revision : ∀ (x : PutResponse), go.IsGoStepPureDetTagged under (StructFieldGet PutResponse.underlying go!"Revision") #x (Val #(x.Revision'))
-  set_Revision : ∀ (x : PutResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PutResponse.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : PutResponse)))
+  get'KV : ∀ (x : PutResponse), go.IsGoStepPureDetTagged under (StructFieldGet PutResponse.underlying go!"KV") #x (Val #(x.KV'))
+  set'KV : ∀ (x : PutResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PutResponse.underlying go!"KV") (PairV #x #y) (Val #(({ x with KV' := y } : PutResponse)))
+  get'Succeeded : ∀ (x : PutResponse), go.IsGoStepPureDetTagged under (StructFieldGet PutResponse.underlying go!"Succeeded") #x (Val #(x.Succeeded'))
+  set'Succeeded : ∀ (x : PutResponse) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PutResponse.underlying go!"Succeeded") (PairV #x #y) (Val #(({ x with Succeeded' := y } : PutResponse)))
+  get'Revision : ∀ (x : PutResponse), go.IsGoStepPureDetTagged under (StructFieldGet PutResponse.underlying go!"Revision") #x (Val #(x.Revision'))
+  set'Revision : ∀ (x : PutResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PutResponse.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : PutResponse)))
   method_set : go.MethodSetIs PutResponse.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PutResponse.ty) []
 
 attribute [instance] PutResponse.TypeAssumptions.type_repr
   PutResponse.TypeAssumptions.underlying
-  PutResponse.TypeAssumptions.get_KV
-  PutResponse.TypeAssumptions.set_KV
-  PutResponse.TypeAssumptions.get_Succeeded
-  PutResponse.TypeAssumptions.set_Succeeded
-  PutResponse.TypeAssumptions.get_Revision
-  PutResponse.TypeAssumptions.set_Revision
+  PutResponse.TypeAssumptions.get'KV
+  PutResponse.TypeAssumptions.set'KV
+  PutResponse.TypeAssumptions.get'Succeeded
+  PutResponse.TypeAssumptions.set'Succeeded
+  PutResponse.TypeAssumptions.get'Revision
+  PutResponse.TypeAssumptions.set'Revision
   PutResponse.TypeAssumptions.method_set
   PutResponse.TypeAssumptions.ptr_method_set
 
@@ -1499,7 +1499,7 @@ noncomputable instance DeleteResponse.zero_val [GooseExts] : ZeroVal DeleteRespo
 @[irreducible] noncomputable def DeleteResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DeleteResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_DeleteResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DeleteResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold DeleteResponse.fields DeleteResponse.fieldsUnsealed :=
   ⟨by unfold DeleteResponse.fields; rfl⟩
 
@@ -1509,66 +1509,66 @@ noncomputable instance equals_unfold_DeleteResponse [GooseExts] [GoGlobalContext
 class DeleteResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeleteResponse.underlying DeleteResponse
   underlying : go.UnderlyingDirectedEq DeleteResponse.ty DeleteResponse.underlying
-  get_KV : ∀ (x : DeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet DeleteResponse.underlying go!"KV") #x (Val #(x.KV'))
-  set_KV : ∀ (x : DeleteResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DeleteResponse.underlying go!"KV") (PairV #x #y) (Val #(({ x with KV' := y } : DeleteResponse)))
-  get_Succeeded : ∀ (x : DeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet DeleteResponse.underlying go!"Succeeded") #x (Val #(x.Succeeded'))
-  set_Succeeded : ∀ (x : DeleteResponse) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DeleteResponse.underlying go!"Succeeded") (PairV #x #y) (Val #(({ x with Succeeded' := y } : DeleteResponse)))
-  get_Revision : ∀ (x : DeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet DeleteResponse.underlying go!"Revision") #x (Val #(x.Revision'))
-  set_Revision : ∀ (x : DeleteResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DeleteResponse.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : DeleteResponse)))
+  get'KV : ∀ (x : DeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet DeleteResponse.underlying go!"KV") #x (Val #(x.KV'))
+  set'KV : ∀ (x : DeleteResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DeleteResponse.underlying go!"KV") (PairV #x #y) (Val #(({ x with KV' := y } : DeleteResponse)))
+  get'Succeeded : ∀ (x : DeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet DeleteResponse.underlying go!"Succeeded") #x (Val #(x.Succeeded'))
+  set'Succeeded : ∀ (x : DeleteResponse) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DeleteResponse.underlying go!"Succeeded") (PairV #x #y) (Val #(({ x with Succeeded' := y } : DeleteResponse)))
+  get'Revision : ∀ (x : DeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet DeleteResponse.underlying go!"Revision") #x (Val #(x.Revision'))
+  set'Revision : ∀ (x : DeleteResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DeleteResponse.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : DeleteResponse)))
   method_set : go.MethodSetIs DeleteResponse.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeleteResponse.ty) []
 
 attribute [instance] DeleteResponse.TypeAssumptions.type_repr
   DeleteResponse.TypeAssumptions.underlying
-  DeleteResponse.TypeAssumptions.get_KV
-  DeleteResponse.TypeAssumptions.set_KV
-  DeleteResponse.TypeAssumptions.get_Succeeded
-  DeleteResponse.TypeAssumptions.set_Succeeded
-  DeleteResponse.TypeAssumptions.get_Revision
-  DeleteResponse.TypeAssumptions.set_Revision
+  DeleteResponse.TypeAssumptions.get'KV
+  DeleteResponse.TypeAssumptions.set'KV
+  DeleteResponse.TypeAssumptions.get'Succeeded
+  DeleteResponse.TypeAssumptions.set'Succeeded
+  DeleteResponse.TypeAssumptions.get'Revision
+  DeleteResponse.TypeAssumptions.set'Revision
   DeleteResponse.TypeAssumptions.method_set
   DeleteResponse.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Client_instance : Client.TypeAssumptions
-  Interface_instance : Interface.TypeAssumptions
-  GetOptions_instance : GetOptions.TypeAssumptions
-  ListOptions_instance : ListOptions.TypeAssumptions
-  CountOptions_instance : CountOptions.TypeAssumptions
-  PutOptions_instance : PutOptions.TypeAssumptions
-  DeleteOptions_instance : DeleteOptions.TypeAssumptions
-  GetResponse_instance : GetResponse.TypeAssumptions
-  ListResponse_instance : ListResponse.TypeAssumptions
-  PutResponse_instance : PutResponse.TypeAssumptions
-  DeleteResponse_instance : DeleteResponse.TypeAssumptions
-  New_unfold : FuncUnfold New [] New.impl
-  kvFromTxnResponse_unfold : FuncUnfold kvFromTxnResponse [] kvFromTxnResponse.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  instance'Client : Client.TypeAssumptions
+  instance'Interface : Interface.TypeAssumptions
+  instance'GetOptions : GetOptions.TypeAssumptions
+  instance'ListOptions : ListOptions.TypeAssumptions
+  instance'CountOptions : CountOptions.TypeAssumptions
+  instance'PutOptions : PutOptions.TypeAssumptions
+  instance'DeleteOptions : DeleteOptions.TypeAssumptions
+  instance'GetResponse : GetResponse.TypeAssumptions
+  instance'ListResponse : ListResponse.TypeAssumptions
+  instance'PutResponse : PutResponse.TypeAssumptions
+  instance'DeleteResponse : DeleteResponse.TypeAssumptions
+  unfold'New : FuncUnfold New [] New.impl
+  unfold'kvFromTxnResponse : FuncUnfold kvFromTxnResponse [] kvFromTxnResponse.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'primitive : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'mvccpb : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
 
-attribute [instance] Assumptions.Client_instance
-  Assumptions.Interface_instance
-  Assumptions.GetOptions_instance
-  Assumptions.ListOptions_instance
-  Assumptions.CountOptions_instance
-  Assumptions.PutOptions_instance
-  Assumptions.DeleteOptions_instance
-  Assumptions.GetResponse_instance
-  Assumptions.ListResponse_instance
-  Assumptions.PutResponse_instance
-  Assumptions.DeleteResponse_instance
-  Assumptions.New_unfold
-  Assumptions.kvFromTxnResponse_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_primitive_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_mvccpb_Assumption
-  Assumptions.import_clientv3_Assumption
+attribute [instance] Assumptions.instance'Client
+  Assumptions.instance'Interface
+  Assumptions.instance'GetOptions
+  Assumptions.instance'ListOptions
+  Assumptions.instance'CountOptions
+  Assumptions.instance'PutOptions
+  Assumptions.instance'DeleteOptions
+  Assumptions.instance'GetResponse
+  Assumptions.instance'ListResponse
+  Assumptions.instance'PutResponse
+  Assumptions.instance'DeleteResponse
+  Assumptions.unfold'New
+  Assumptions.unfold'kvFromTxnResponse
+  Assumptions.import'context
+  Assumptions.import'fmt
+  Assumptions.import'primitive
+  Assumptions.import'etcdserverpb
+  Assumptions.import'mvccpb
+  Assumptions.import'clientv3
 
 end go_etcd_io.etcd.client.v3.kubernetes
 

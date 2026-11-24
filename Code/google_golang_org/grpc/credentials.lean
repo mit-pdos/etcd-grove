@@ -239,7 +239,7 @@ noncomputable instance CommonAuthInfo.zero_val [GooseExts] : ZeroVal CommonAuthI
 @[irreducible] noncomputable def CommonAuthInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CommonAuthInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_CommonAuthInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'CommonAuthInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold CommonAuthInfo.fields CommonAuthInfo.fieldsUnsealed :=
   ⟨by unfold CommonAuthInfo.fields; rfl⟩
 
@@ -249,15 +249,15 @@ noncomputable instance equals_unfold_CommonAuthInfo [GooseExts] [GoGlobalContext
 class CommonAuthInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CommonAuthInfo.underlying CommonAuthInfo
   underlying : go.UnderlyingDirectedEq CommonAuthInfo.ty CommonAuthInfo.underlying
-  get_SecurityLevel : ∀ (x : CommonAuthInfo), go.IsGoStepPureDetTagged under (StructFieldGet CommonAuthInfo.underlying go!"SecurityLevel") #x (Val #(x.SecurityLevel'))
-  set_SecurityLevel : ∀ (x : CommonAuthInfo) (y : SecurityLevel), go.IsGoStepPureDetTagged under (StructFieldSet CommonAuthInfo.underlying go!"SecurityLevel") (PairV #x #y) (Val #(({ x with SecurityLevel' := y } : CommonAuthInfo)))
+  get'SecurityLevel : ∀ (x : CommonAuthInfo), go.IsGoStepPureDetTagged under (StructFieldGet CommonAuthInfo.underlying go!"SecurityLevel") #x (Val #(x.SecurityLevel'))
+  set'SecurityLevel : ∀ (x : CommonAuthInfo) (y : SecurityLevel), go.IsGoStepPureDetTagged under (StructFieldSet CommonAuthInfo.underlying go!"SecurityLevel") (PairV #x #y) (Val #(({ x with SecurityLevel' := y } : CommonAuthInfo)))
   method_set : go.MethodSetIs CommonAuthInfo.ty [(go!"GetCommonAuthInfo", (some (go.signature.Signature [] false [CommonAuthInfo.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType CommonAuthInfo.ty) [(go!"GetCommonAuthInfo", (some (go.signature.Signature [] false [CommonAuthInfo.ty])))]
 
 attribute [instance] CommonAuthInfo.TypeAssumptions.type_repr
   CommonAuthInfo.TypeAssumptions.underlying
-  CommonAuthInfo.TypeAssumptions.get_SecurityLevel
-  CommonAuthInfo.TypeAssumptions.set_SecurityLevel
+  CommonAuthInfo.TypeAssumptions.get'SecurityLevel
+  CommonAuthInfo.TypeAssumptions.set'SecurityLevel
   CommonAuthInfo.TypeAssumptions.method_set
   CommonAuthInfo.TypeAssumptions.ptr_method_set
 
@@ -280,7 +280,7 @@ noncomputable instance ProtocolInfo.zero_val [GooseExts] : ZeroVal ProtocolInfo 
 @[irreducible] noncomputable def ProtocolInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProtocolInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProtocolInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProtocolInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProtocolInfo.fields ProtocolInfo.fieldsUnsealed :=
   ⟨by unfold ProtocolInfo.fields; rfl⟩
 
@@ -290,27 +290,27 @@ noncomputable instance equals_unfold_ProtocolInfo [GooseExts] [GoGlobalContext] 
 class ProtocolInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProtocolInfo.underlying ProtocolInfo
   underlying : go.UnderlyingDirectedEq ProtocolInfo.ty ProtocolInfo.underlying
-  get_ProtocolVersion : ∀ (x : ProtocolInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProtocolInfo.underlying go!"ProtocolVersion") #x (Val #(x.ProtocolVersion'))
-  set_ProtocolVersion : ∀ (x : ProtocolInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProtocolInfo.underlying go!"ProtocolVersion") (PairV #x #y) (Val #(({ x with ProtocolVersion' := y } : ProtocolInfo)))
-  get_SecurityProtocol : ∀ (x : ProtocolInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProtocolInfo.underlying go!"SecurityProtocol") #x (Val #(x.SecurityProtocol'))
-  set_SecurityProtocol : ∀ (x : ProtocolInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProtocolInfo.underlying go!"SecurityProtocol") (PairV #x #y) (Val #(({ x with SecurityProtocol' := y } : ProtocolInfo)))
-  get_SecurityVersion : ∀ (x : ProtocolInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProtocolInfo.underlying go!"SecurityVersion") #x (Val #(x.SecurityVersion'))
-  set_SecurityVersion : ∀ (x : ProtocolInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProtocolInfo.underlying go!"SecurityVersion") (PairV #x #y) (Val #(({ x with SecurityVersion' := y } : ProtocolInfo)))
-  get_ServerName : ∀ (x : ProtocolInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProtocolInfo.underlying go!"ServerName") #x (Val #(x.ServerName'))
-  set_ServerName : ∀ (x : ProtocolInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProtocolInfo.underlying go!"ServerName") (PairV #x #y) (Val #(({ x with ServerName' := y } : ProtocolInfo)))
+  get'ProtocolVersion : ∀ (x : ProtocolInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProtocolInfo.underlying go!"ProtocolVersion") #x (Val #(x.ProtocolVersion'))
+  set'ProtocolVersion : ∀ (x : ProtocolInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProtocolInfo.underlying go!"ProtocolVersion") (PairV #x #y) (Val #(({ x with ProtocolVersion' := y } : ProtocolInfo)))
+  get'SecurityProtocol : ∀ (x : ProtocolInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProtocolInfo.underlying go!"SecurityProtocol") #x (Val #(x.SecurityProtocol'))
+  set'SecurityProtocol : ∀ (x : ProtocolInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProtocolInfo.underlying go!"SecurityProtocol") (PairV #x #y) (Val #(({ x with SecurityProtocol' := y } : ProtocolInfo)))
+  get'SecurityVersion : ∀ (x : ProtocolInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProtocolInfo.underlying go!"SecurityVersion") #x (Val #(x.SecurityVersion'))
+  set'SecurityVersion : ∀ (x : ProtocolInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProtocolInfo.underlying go!"SecurityVersion") (PairV #x #y) (Val #(({ x with SecurityVersion' := y } : ProtocolInfo)))
+  get'ServerName : ∀ (x : ProtocolInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProtocolInfo.underlying go!"ServerName") #x (Val #(x.ServerName'))
+  set'ServerName : ∀ (x : ProtocolInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProtocolInfo.underlying go!"ServerName") (PairV #x #y) (Val #(({ x with ServerName' := y } : ProtocolInfo)))
   method_set : go.MethodSetIs ProtocolInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProtocolInfo.ty) []
 
 attribute [instance] ProtocolInfo.TypeAssumptions.type_repr
   ProtocolInfo.TypeAssumptions.underlying
-  ProtocolInfo.TypeAssumptions.get_ProtocolVersion
-  ProtocolInfo.TypeAssumptions.set_ProtocolVersion
-  ProtocolInfo.TypeAssumptions.get_SecurityProtocol
-  ProtocolInfo.TypeAssumptions.set_SecurityProtocol
-  ProtocolInfo.TypeAssumptions.get_SecurityVersion
-  ProtocolInfo.TypeAssumptions.set_SecurityVersion
-  ProtocolInfo.TypeAssumptions.get_ServerName
-  ProtocolInfo.TypeAssumptions.set_ServerName
+  ProtocolInfo.TypeAssumptions.get'ProtocolVersion
+  ProtocolInfo.TypeAssumptions.set'ProtocolVersion
+  ProtocolInfo.TypeAssumptions.get'SecurityProtocol
+  ProtocolInfo.TypeAssumptions.set'SecurityProtocol
+  ProtocolInfo.TypeAssumptions.get'SecurityVersion
+  ProtocolInfo.TypeAssumptions.set'SecurityVersion
+  ProtocolInfo.TypeAssumptions.get'ServerName
+  ProtocolInfo.TypeAssumptions.set'ServerName
   ProtocolInfo.TypeAssumptions.method_set
   ProtocolInfo.TypeAssumptions.ptr_method_set
 
@@ -385,7 +385,7 @@ noncomputable instance RequestInfo.zero_val [GooseExts] : ZeroVal RequestInfo :=
 @[irreducible] noncomputable def RequestInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RequestInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_RequestInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RequestInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold RequestInfo.fields RequestInfo.fieldsUnsealed :=
   ⟨by unfold RequestInfo.fields; rfl⟩
 
@@ -395,19 +395,19 @@ noncomputable instance equals_unfold_RequestInfo [GooseExts] [GoGlobalContext] :
 class RequestInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestInfo.underlying RequestInfo
   underlying : go.UnderlyingDirectedEq RequestInfo.ty RequestInfo.underlying
-  get_Method : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Method") #x (Val #(x.Method'))
-  set_Method : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Method") (PairV #x #y) (Val #(({ x with Method' := y } : RequestInfo)))
-  get_AuthInfo : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"AuthInfo") #x (Val #(x.AuthInfo'))
-  set_AuthInfo : ∀ (x : RequestInfo) (y : AuthInfo), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"AuthInfo") (PairV #x #y) (Val #(({ x with AuthInfo' := y } : RequestInfo)))
+  get'Method : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Method") #x (Val #(x.Method'))
+  set'Method : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Method") (PairV #x #y) (Val #(({ x with Method' := y } : RequestInfo)))
+  get'AuthInfo : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"AuthInfo") #x (Val #(x.AuthInfo'))
+  set'AuthInfo : ∀ (x : RequestInfo) (y : AuthInfo), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"AuthInfo") (PairV #x #y) (Val #(({ x with AuthInfo' := y } : RequestInfo)))
   method_set : go.MethodSetIs RequestInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestInfo.ty) []
 
 attribute [instance] RequestInfo.TypeAssumptions.type_repr
   RequestInfo.TypeAssumptions.underlying
-  RequestInfo.TypeAssumptions.get_Method
-  RequestInfo.TypeAssumptions.set_Method
-  RequestInfo.TypeAssumptions.get_AuthInfo
-  RequestInfo.TypeAssumptions.set_AuthInfo
+  RequestInfo.TypeAssumptions.get'Method
+  RequestInfo.TypeAssumptions.set'Method
+  RequestInfo.TypeAssumptions.get'AuthInfo
+  RequestInfo.TypeAssumptions.set'AuthInfo
   RequestInfo.TypeAssumptions.method_set
   RequestInfo.TypeAssumptions.ptr_method_set
 
@@ -423,7 +423,7 @@ noncomputable instance requestInfoKey.zero_val [GooseExts] : ZeroVal requestInfo
 @[irreducible] noncomputable def requestInfoKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   requestInfoKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_requestInfoKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'requestInfoKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold requestInfoKey.fields requestInfoKey.fieldsUnsealed :=
   ⟨by unfold requestInfoKey.fields; rfl⟩
 
@@ -564,7 +564,7 @@ noncomputable instance TLSChannelzSecurityValue.zero_val [GooseExts] : ZeroVal T
 @[irreducible] noncomputable def TLSChannelzSecurityValue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TLSChannelzSecurityValue.fieldsUnsealed
 
-noncomputable instance equals_unfold_TLSChannelzSecurityValue [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'TLSChannelzSecurityValue [GooseExts] [GoGlobalContext] :
     EqualsUnfold TLSChannelzSecurityValue.fields TLSChannelzSecurityValue.fieldsUnsealed :=
   ⟨by unfold TLSChannelzSecurityValue.fields; rfl⟩
 
@@ -574,70 +574,70 @@ noncomputable instance equals_unfold_TLSChannelzSecurityValue [GooseExts] [GoGlo
 class TLSChannelzSecurityValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TLSChannelzSecurityValue.underlying TLSChannelzSecurityValue
   underlying : go.UnderlyingDirectedEq TLSChannelzSecurityValue.ty TLSChannelzSecurityValue.underlying
-  get_ChannelzSecurityValue : ∀ (x : TLSChannelzSecurityValue), go.IsGoStepPureDetTagged under (StructFieldGet TLSChannelzSecurityValue.underlying go!"ChannelzSecurityValue") #x (Val #(x.ChannelzSecurityValue'))
-  set_ChannelzSecurityValue : ∀ (x : TLSChannelzSecurityValue) (y : ChannelzSecurityValue), go.IsGoStepPureDetTagged under (StructFieldSet TLSChannelzSecurityValue.underlying go!"ChannelzSecurityValue") (PairV #x #y) (Val #(({ x with ChannelzSecurityValue' := y } : TLSChannelzSecurityValue)))
-  get_StandardName : ∀ (x : TLSChannelzSecurityValue), go.IsGoStepPureDetTagged under (StructFieldGet TLSChannelzSecurityValue.underlying go!"StandardName") #x (Val #(x.StandardName'))
-  set_StandardName : ∀ (x : TLSChannelzSecurityValue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSChannelzSecurityValue.underlying go!"StandardName") (PairV #x #y) (Val #(({ x with StandardName' := y } : TLSChannelzSecurityValue)))
-  get_LocalCertificate : ∀ (x : TLSChannelzSecurityValue), go.IsGoStepPureDetTagged under (StructFieldGet TLSChannelzSecurityValue.underlying go!"LocalCertificate") #x (Val #(x.LocalCertificate'))
-  set_LocalCertificate : ∀ (x : TLSChannelzSecurityValue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TLSChannelzSecurityValue.underlying go!"LocalCertificate") (PairV #x #y) (Val #(({ x with LocalCertificate' := y } : TLSChannelzSecurityValue)))
-  get_RemoteCertificate : ∀ (x : TLSChannelzSecurityValue), go.IsGoStepPureDetTagged under (StructFieldGet TLSChannelzSecurityValue.underlying go!"RemoteCertificate") #x (Val #(x.RemoteCertificate'))
-  set_RemoteCertificate : ∀ (x : TLSChannelzSecurityValue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TLSChannelzSecurityValue.underlying go!"RemoteCertificate") (PairV #x #y) (Val #(({ x with RemoteCertificate' := y } : TLSChannelzSecurityValue)))
+  get'ChannelzSecurityValue : ∀ (x : TLSChannelzSecurityValue), go.IsGoStepPureDetTagged under (StructFieldGet TLSChannelzSecurityValue.underlying go!"ChannelzSecurityValue") #x (Val #(x.ChannelzSecurityValue'))
+  set'ChannelzSecurityValue : ∀ (x : TLSChannelzSecurityValue) (y : ChannelzSecurityValue), go.IsGoStepPureDetTagged under (StructFieldSet TLSChannelzSecurityValue.underlying go!"ChannelzSecurityValue") (PairV #x #y) (Val #(({ x with ChannelzSecurityValue' := y } : TLSChannelzSecurityValue)))
+  get'StandardName : ∀ (x : TLSChannelzSecurityValue), go.IsGoStepPureDetTagged under (StructFieldGet TLSChannelzSecurityValue.underlying go!"StandardName") #x (Val #(x.StandardName'))
+  set'StandardName : ∀ (x : TLSChannelzSecurityValue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSChannelzSecurityValue.underlying go!"StandardName") (PairV #x #y) (Val #(({ x with StandardName' := y } : TLSChannelzSecurityValue)))
+  get'LocalCertificate : ∀ (x : TLSChannelzSecurityValue), go.IsGoStepPureDetTagged under (StructFieldGet TLSChannelzSecurityValue.underlying go!"LocalCertificate") #x (Val #(x.LocalCertificate'))
+  set'LocalCertificate : ∀ (x : TLSChannelzSecurityValue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TLSChannelzSecurityValue.underlying go!"LocalCertificate") (PairV #x #y) (Val #(({ x with LocalCertificate' := y } : TLSChannelzSecurityValue)))
+  get'RemoteCertificate : ∀ (x : TLSChannelzSecurityValue), go.IsGoStepPureDetTagged under (StructFieldGet TLSChannelzSecurityValue.underlying go!"RemoteCertificate") #x (Val #(x.RemoteCertificate'))
+  set'RemoteCertificate : ∀ (x : TLSChannelzSecurityValue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TLSChannelzSecurityValue.underlying go!"RemoteCertificate") (PairV #x #y) (Val #(({ x with RemoteCertificate' := y } : TLSChannelzSecurityValue)))
   method_set : go.MethodSetIs TLSChannelzSecurityValue.ty [(go!"google.golang.org/grpc/credentials.isChannelzSecurityValue", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType TLSChannelzSecurityValue.ty) [(go!"google.golang.org/grpc/credentials.isChannelzSecurityValue", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] TLSChannelzSecurityValue.TypeAssumptions.type_repr
   TLSChannelzSecurityValue.TypeAssumptions.underlying
-  TLSChannelzSecurityValue.TypeAssumptions.get_ChannelzSecurityValue
-  TLSChannelzSecurityValue.TypeAssumptions.set_ChannelzSecurityValue
-  TLSChannelzSecurityValue.TypeAssumptions.get_StandardName
-  TLSChannelzSecurityValue.TypeAssumptions.set_StandardName
-  TLSChannelzSecurityValue.TypeAssumptions.get_LocalCertificate
-  TLSChannelzSecurityValue.TypeAssumptions.set_LocalCertificate
-  TLSChannelzSecurityValue.TypeAssumptions.get_RemoteCertificate
-  TLSChannelzSecurityValue.TypeAssumptions.set_RemoteCertificate
+  TLSChannelzSecurityValue.TypeAssumptions.get'ChannelzSecurityValue
+  TLSChannelzSecurityValue.TypeAssumptions.set'ChannelzSecurityValue
+  TLSChannelzSecurityValue.TypeAssumptions.get'StandardName
+  TLSChannelzSecurityValue.TypeAssumptions.set'StandardName
+  TLSChannelzSecurityValue.TypeAssumptions.get'LocalCertificate
+  TLSChannelzSecurityValue.TypeAssumptions.set'LocalCertificate
+  TLSChannelzSecurityValue.TypeAssumptions.get'RemoteCertificate
+  TLSChannelzSecurityValue.TypeAssumptions.set'RemoteCertificate
   TLSChannelzSecurityValue.TypeAssumptions.method_set
   TLSChannelzSecurityValue.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  PerRPCCredentials_instance : PerRPCCredentials.TypeAssumptions
-  SecurityLevel_instance : SecurityLevel.TypeAssumptions
-  CommonAuthInfo_instance : CommonAuthInfo.TypeAssumptions
-  ProtocolInfo_instance : ProtocolInfo.TypeAssumptions
-  AuthInfo_instance : AuthInfo.TypeAssumptions
-  AuthorityValidator_instance : AuthorityValidator.TypeAssumptions
-  TransportCredentials_instance : TransportCredentials.TypeAssumptions
-  Bundle_instance : Bundle.TypeAssumptions
-  RequestInfo_instance : RequestInfo.TypeAssumptions
-  requestInfoKey_instance : requestInfoKey.TypeAssumptions
-  ClientHandshakeInfo_instance : ClientHandshakeInfo.TypeAssumptions
-  ChannelzSecurityInfo_instance : ChannelzSecurityInfo.TypeAssumptions
-  ChannelzSecurityValue_instance : ChannelzSecurityValue.TypeAssumptions
-  OtherChannelzSecurityValue_instance : OtherChannelzSecurityValue.TypeAssumptions
-  TLSInfo_instance : TLSInfo.TypeAssumptions
-  tlsCreds_instance : tlsCreds.TypeAssumptions
-  TLSChannelzSecurityValue_instance : TLSChannelzSecurityValue.TypeAssumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
+  instance'PerRPCCredentials : PerRPCCredentials.TypeAssumptions
+  instance'SecurityLevel : SecurityLevel.TypeAssumptions
+  instance'CommonAuthInfo : CommonAuthInfo.TypeAssumptions
+  instance'ProtocolInfo : ProtocolInfo.TypeAssumptions
+  instance'AuthInfo : AuthInfo.TypeAssumptions
+  instance'AuthorityValidator : AuthorityValidator.TypeAssumptions
+  instance'TransportCredentials : TransportCredentials.TypeAssumptions
+  instance'Bundle : Bundle.TypeAssumptions
+  instance'RequestInfo : RequestInfo.TypeAssumptions
+  instance'requestInfoKey : requestInfoKey.TypeAssumptions
+  instance'ClientHandshakeInfo : ClientHandshakeInfo.TypeAssumptions
+  instance'ChannelzSecurityInfo : ChannelzSecurityInfo.TypeAssumptions
+  instance'ChannelzSecurityValue : ChannelzSecurityValue.TypeAssumptions
+  instance'OtherChannelzSecurityValue : OtherChannelzSecurityValue.TypeAssumptions
+  instance'TLSInfo : TLSInfo.TypeAssumptions
+  instance'tlsCreds : tlsCreds.TypeAssumptions
+  instance'TLSChannelzSecurityValue : TLSChannelzSecurityValue.TypeAssumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'net : _root_.Perennial.net.Assumptions
 
-attribute [instance] Assumptions.PerRPCCredentials_instance
-  Assumptions.SecurityLevel_instance
-  Assumptions.CommonAuthInfo_instance
-  Assumptions.ProtocolInfo_instance
-  Assumptions.AuthInfo_instance
-  Assumptions.AuthorityValidator_instance
-  Assumptions.TransportCredentials_instance
-  Assumptions.Bundle_instance
-  Assumptions.RequestInfo_instance
-  Assumptions.requestInfoKey_instance
-  Assumptions.ClientHandshakeInfo_instance
-  Assumptions.ChannelzSecurityInfo_instance
-  Assumptions.ChannelzSecurityValue_instance
-  Assumptions.OtherChannelzSecurityValue_instance
-  Assumptions.TLSInfo_instance
-  Assumptions.tlsCreds_instance
-  Assumptions.TLSChannelzSecurityValue_instance
-  Assumptions.import_context_Assumption
-  Assumptions.import_net_Assumption
+attribute [instance] Assumptions.instance'PerRPCCredentials
+  Assumptions.instance'SecurityLevel
+  Assumptions.instance'CommonAuthInfo
+  Assumptions.instance'ProtocolInfo
+  Assumptions.instance'AuthInfo
+  Assumptions.instance'AuthorityValidator
+  Assumptions.instance'TransportCredentials
+  Assumptions.instance'Bundle
+  Assumptions.instance'RequestInfo
+  Assumptions.instance'requestInfoKey
+  Assumptions.instance'ClientHandshakeInfo
+  Assumptions.instance'ChannelzSecurityInfo
+  Assumptions.instance'ChannelzSecurityValue
+  Assumptions.instance'OtherChannelzSecurityValue
+  Assumptions.instance'TLSInfo
+  Assumptions.instance'tlsCreds
+  Assumptions.instance'TLSChannelzSecurityValue
+  Assumptions.import'context
+  Assumptions.import'net
 
 end google_golang_org.grpc.credentials
 

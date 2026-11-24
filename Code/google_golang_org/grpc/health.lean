@@ -120,7 +120,7 @@ noncomputable instance producerBuilder.zero_val [GooseExts] : ZeroVal producerBu
 @[irreducible] noncomputable def producerBuilder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   producerBuilder.fieldsUnsealed
 
-noncomputable instance equals_unfold_producerBuilder [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'producerBuilder [GooseExts] [GoGlobalContext] :
     EqualsUnfold producerBuilder.fields producerBuilder.fieldsUnsealed :=
   ⟨by unfold producerBuilder.fields; rfl⟩
 
@@ -178,7 +178,7 @@ noncomputable instance Server.zero_val [GooseExts] : ZeroVal Server :=
 @[irreducible] noncomputable def Server.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Server.fieldsUnsealed
 
-noncomputable instance equals_unfold_Server [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Server [GooseExts] [GoGlobalContext] :
     EqualsUnfold Server.fields Server.fieldsUnsealed :=
   ⟨by unfold Server.fields; rfl⟩
 
@@ -188,46 +188,46 @@ noncomputable instance equals_unfold_Server [GooseExts] [GoGlobalContext] :
 class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Server.underlying Server
   underlying : go.UnderlyingDirectedEq Server.ty Server.underlying
-  get_UnimplementedHealthServer : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"UnimplementedHealthServer") #x (Val #(x.UnimplementedHealthServer'))
-  set_UnimplementedHealthServer : ∀ (x : Server) (y : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"UnimplementedHealthServer") (PairV #x #y) (Val #(({ x with UnimplementedHealthServer' := y } : Server)))
-  get_mu : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : Server) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Server)))
-  get_shutdown : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"shutdown") #x (Val #(x.shutdown'))
-  set_shutdown : ∀ (x : Server) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"shutdown") (PairV #x #y) (Val #(({ x with shutdown' := y } : Server)))
-  get_statusMap : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"statusMap") #x (Val #(x.statusMap'))
-  set_statusMap : ∀ (x : Server) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"statusMap") (PairV #x #y) (Val #(({ x with statusMap' := y } : Server)))
-  get_updates : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"updates") #x (Val #(x.updates'))
-  set_updates : ∀ (x : Server) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"updates") (PairV #x #y) (Val #(({ x with updates' := y } : Server)))
+  get'UnimplementedHealthServer : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"UnimplementedHealthServer") #x (Val #(x.UnimplementedHealthServer'))
+  set'UnimplementedHealthServer : ∀ (x : Server) (y : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"UnimplementedHealthServer") (PairV #x #y) (Val #(({ x with UnimplementedHealthServer' := y } : Server)))
+  get'mu : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : Server) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Server)))
+  get'shutdown : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"shutdown") #x (Val #(x.shutdown'))
+  set'shutdown : ∀ (x : Server) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"shutdown") (PairV #x #y) (Val #(({ x with shutdown' := y } : Server)))
+  get'statusMap : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"statusMap") #x (Val #(x.statusMap'))
+  set'statusMap : ∀ (x : Server) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"statusMap") (PairV #x #y) (Val #(({ x with statusMap' := y } : Server)))
+  get'updates : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"updates") #x (Val #(x.updates'))
+  set'updates : ∀ (x : Server) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"updates") (PairV #x #y) (Val #(({ x with updates' := y } : Server)))
   method_set : go.MethodSetIs Server.ty [(go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"Check", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse.ty), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthListResponse.ty), go.error]))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"SetServingStatus", (some (go.signature.Signature [go.string, _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty] false []))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"Watch", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest.ty), _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Health_WatchServer.ty] false [go.error]))), (go!"google.golang.org/grpc/health.setServingStatusLocked", (some (go.signature.Signature [go.string, _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty] false []))), (go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.underlying
-  Server.TypeAssumptions.get_UnimplementedHealthServer
-  Server.TypeAssumptions.set_UnimplementedHealthServer
-  Server.TypeAssumptions.get_mu
-  Server.TypeAssumptions.set_mu
-  Server.TypeAssumptions.get_shutdown
-  Server.TypeAssumptions.set_shutdown
-  Server.TypeAssumptions.get_statusMap
-  Server.TypeAssumptions.set_statusMap
-  Server.TypeAssumptions.get_updates
-  Server.TypeAssumptions.set_updates
+  Server.TypeAssumptions.get'UnimplementedHealthServer
+  Server.TypeAssumptions.set'UnimplementedHealthServer
+  Server.TypeAssumptions.get'mu
+  Server.TypeAssumptions.set'mu
+  Server.TypeAssumptions.get'shutdown
+  Server.TypeAssumptions.set'shutdown
+  Server.TypeAssumptions.get'statusMap
+  Server.TypeAssumptions.set'statusMap
+  Server.TypeAssumptions.get'updates
+  Server.TypeAssumptions.set'updates
   Server.TypeAssumptions.method_set
   Server.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  producerBuilder_instance : producerBuilder.TypeAssumptions
-  healthServiceProducer_instance : healthServiceProducer.TypeAssumptions
-  Server_instance : Server.TypeAssumptions
-  import_grpc_health_v1_Assumption : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  instance'producerBuilder : producerBuilder.TypeAssumptions
+  instance'healthServiceProducer : healthServiceProducer.TypeAssumptions
+  instance'Server : Server.TypeAssumptions
+  import'grpc_health_v1 : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
 
-attribute [instance] Assumptions.producerBuilder_instance
-  Assumptions.healthServiceProducer_instance
-  Assumptions.Server_instance
-  Assumptions.import_grpc_health_v1_Assumption
-  Assumptions.import_sync_Assumption
+attribute [instance] Assumptions.instance'producerBuilder
+  Assumptions.instance'healthServiceProducer
+  Assumptions.instance'Server
+  Assumptions.import'grpc_health_v1
+  Assumptions.import'sync
 
 end google_golang_org.grpc.health
 

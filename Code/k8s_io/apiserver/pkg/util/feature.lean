@@ -52,9 +52,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc DefaultFeatureGate _root_.Perennial.k8s_io.component_base.featuregate.FeatureGate.ty)) (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  import_featuregate_Assumption : _root_.Perennial.k8s_io.component_base.featuregate.Assumptions
+  import'featuregate : _root_.Perennial.k8s_io.component_base.featuregate.Assumptions
 
-attribute [instance] Assumptions.import_featuregate_Assumption
+attribute [instance] Assumptions.import'featuregate
 
 end k8s_io.apiserver.pkg.util.feature
 

@@ -26,11 +26,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.xiang90.probing.Assumptions]
 
-noncomputable instance prober_typed_pointsto :
+noncomputable instance typed_pointsto'prober :
     TypedPointsto (GF := GF) github_com.xiang90.probing.prober :=
   sorry -- axiomatized type
 
-noncomputable instance prober_into_val_typed :
+noncomputable instance into_val_typed'prober :
     IntoValTypedUnderlying (GF := GF) github_com.xiang90.probing.prober github_com.xiang90.probing.prober.underlying :=
   sorry -- axiomatized type
 
@@ -45,7 +45,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.xiang90.probing.Assumptions]
 
-noncomputable instance httpHealth_typed_pointsto :
+noncomputable instance typed_pointsto'httpHealth :
     TypedPointsto (GF := GF) github_com.xiang90.probing.httpHealth where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -53,7 +53,7 @@ noncomputable instance httpHealth_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance httpHealth_into_val_typed :
+noncomputable instance into_val_typed'httpHealth :
     IntoValTypedUnderlying (GF := GF) github_com.xiang90.probing.httpHealth github_com.xiang90.probing.httpHealth.underlying := by
   solve_into_val_typed_struct
 
@@ -68,7 +68,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.xiang90.probing.Assumptions]
 
-noncomputable instance Health_typed_pointsto :
+noncomputable instance typed_pointsto'Health :
     TypedPointsto (GF := GF) github_com.xiang90.probing.Health where
   typedPointstoDef l v dq := iprop(
     "OK" ∷ typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) v.OK' dq ∗
@@ -78,11 +78,11 @@ noncomputable instance Health_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Health_into_val_typed :
+noncomputable instance into_val_typed'Health :
     IntoValTypedUnderlying (GF := GF) github_com.xiang90.probing.Health github_com.xiang90.probing.Health.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Health_access_load_OK (l : Loc) (v : github_com.xiang90.probing.Health) (dq : DFrac) :
+noncomputable instance access_load'Health'OK (l : Loc) (v : github_com.xiang90.probing.Health) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) v.OK' dq)
       (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) v.OK' dq)
@@ -90,7 +90,7 @@ noncomputable instance Health_access_load_OK (l : Loc) (v : github_com.xiang90.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Health_access_store_OK (l : Loc) (v : github_com.xiang90.probing.Health) (y : Bool) :
+noncomputable instance access_store'Health'OK (l : Loc) (v : github_com.xiang90.probing.Health) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) v.OK' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) y (DFrac.own 1))
@@ -98,7 +98,7 @@ noncomputable instance Health_access_store_OK (l : Loc) (v : github_com.xiang90.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Health_access_load_Now (l : Loc) (v : github_com.xiang90.probing.Health) (dq : DFrac) :
+noncomputable instance access_load'Health'Now (l : Loc) (v : github_com.xiang90.probing.Health) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) v.Now' dq)
       (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) v.Now' dq)
@@ -106,7 +106,7 @@ noncomputable instance Health_access_load_Now (l : Loc) (v : github_com.xiang90.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Health_access_store_Now (l : Loc) (v : github_com.xiang90.probing.Health) (y : _root_.Perennial.time.Time) :
+noncomputable instance access_store'Health'Now (l : Loc) (v : github_com.xiang90.probing.Health) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) v.Now' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) y (DFrac.own 1))
@@ -125,11 +125,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.xiang90.probing.Assumptions]
 
-noncomputable instance status_typed_pointsto :
+noncomputable instance typed_pointsto'status :
     TypedPointsto (GF := GF) github_com.xiang90.probing.status :=
   sorry -- axiomatized type
 
-noncomputable instance status_into_val_typed :
+noncomputable instance into_val_typed'status :
     IntoValTypedUnderlying (GF := GF) github_com.xiang90.probing.status github_com.xiang90.probing.status.underlying :=
   sorry -- axiomatized type
 

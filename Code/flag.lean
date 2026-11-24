@@ -652,7 +652,7 @@ noncomputable instance FlagSet.zero_val [GooseExts] : ZeroVal FlagSet :=
 @[irreducible] noncomputable def FlagSet.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FlagSet.fieldsUnsealed
 
-noncomputable instance equals_unfold_FlagSet [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FlagSet [GooseExts] [GoGlobalContext] :
     EqualsUnfold FlagSet.fields FlagSet.fieldsUnsealed :=
   ⟨by unfold FlagSet.fields; rfl⟩
 
@@ -662,47 +662,47 @@ noncomputable instance equals_unfold_FlagSet [GooseExts] [GoGlobalContext] :
 class FlagSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FlagSet.underlying FlagSet
   underlying : go.UnderlyingDirectedEq FlagSet.ty FlagSet.underlying
-  get_Usage : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"Usage") #x (Val #(x.Usage'))
-  set_Usage : ∀ (x : FlagSet) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"Usage") (PairV #x #y) (Val #(({ x with Usage' := y } : FlagSet)))
-  get_name : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : FlagSet) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : FlagSet)))
-  get_parsed : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"parsed") #x (Val #(x.parsed'))
-  set_parsed : ∀ (x : FlagSet) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"parsed") (PairV #x #y) (Val #(({ x with parsed' := y } : FlagSet)))
-  get_actual : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"actual") #x (Val #(x.actual'))
-  set_actual : ∀ (x : FlagSet) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"actual") (PairV #x #y) (Val #(({ x with actual' := y } : FlagSet)))
-  get_formal : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"formal") #x (Val #(x.formal'))
-  set_formal : ∀ (x : FlagSet) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"formal") (PairV #x #y) (Val #(({ x with formal' := y } : FlagSet)))
-  get_args : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"args") #x (Val #(x.args'))
-  set_args : ∀ (x : FlagSet) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"args") (PairV #x #y) (Val #(({ x with args' := y } : FlagSet)))
-  get_errorHandling : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"errorHandling") #x (Val #(x.errorHandling'))
-  set_errorHandling : ∀ (x : FlagSet) (y : ErrorHandling), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"errorHandling") (PairV #x #y) (Val #(({ x with errorHandling' := y } : FlagSet)))
-  get_output : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"output") #x (Val #(x.output'))
-  set_output : ∀ (x : FlagSet) (y : _root_.Perennial.io.Writer), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"output") (PairV #x #y) (Val #(({ x with output' := y } : FlagSet)))
-  get_undef : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"undef") #x (Val #(x.undef'))
-  set_undef : ∀ (x : FlagSet) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"undef") (PairV #x #y) (Val #(({ x with undef' := y } : FlagSet)))
+  get'Usage : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"Usage") #x (Val #(x.Usage'))
+  set'Usage : ∀ (x : FlagSet) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"Usage") (PairV #x #y) (Val #(({ x with Usage' := y } : FlagSet)))
+  get'name : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : FlagSet) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : FlagSet)))
+  get'parsed : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"parsed") #x (Val #(x.parsed'))
+  set'parsed : ∀ (x : FlagSet) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"parsed") (PairV #x #y) (Val #(({ x with parsed' := y } : FlagSet)))
+  get'actual : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"actual") #x (Val #(x.actual'))
+  set'actual : ∀ (x : FlagSet) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"actual") (PairV #x #y) (Val #(({ x with actual' := y } : FlagSet)))
+  get'formal : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"formal") #x (Val #(x.formal'))
+  set'formal : ∀ (x : FlagSet) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"formal") (PairV #x #y) (Val #(({ x with formal' := y } : FlagSet)))
+  get'args : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"args") #x (Val #(x.args'))
+  set'args : ∀ (x : FlagSet) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"args") (PairV #x #y) (Val #(({ x with args' := y } : FlagSet)))
+  get'errorHandling : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"errorHandling") #x (Val #(x.errorHandling'))
+  set'errorHandling : ∀ (x : FlagSet) (y : ErrorHandling), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"errorHandling") (PairV #x #y) (Val #(({ x with errorHandling' := y } : FlagSet)))
+  get'output : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"output") #x (Val #(x.output'))
+  set'output : ∀ (x : FlagSet) (y : _root_.Perennial.io.Writer), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"output") (PairV #x #y) (Val #(({ x with output' := y } : FlagSet)))
+  get'undef : ∀ (x : FlagSet), go.IsGoStepPureDetTagged under (StructFieldGet FlagSet.underlying go!"undef") #x (Val #(x.undef'))
+  set'undef : ∀ (x : FlagSet) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet FlagSet.underlying go!"undef") (PairV #x #y) (Val #(({ x with undef' := y } : FlagSet)))
   method_set : go.MethodSetIs FlagSet.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FlagSet.ty) [(go!"Arg", (some (go.signature.Signature [go.int] false [go.string]))), (go!"Args", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Bool", (some (go.signature.Signature [go.string, go.bool, go.string] false [(go.GoType.PointerType go.bool)]))), (go!"BoolFunc", (some (go.signature.Signature [go.string, go.string, (go.GoType.FunctionType (go.signature.Signature [go.string] false [go.error]))] false []))), (go!"BoolVar", (some (go.signature.Signature [(go.GoType.PointerType go.bool), go.string, go.bool, go.string] false []))), (go!"Duration", (some (go.signature.Signature [go.string, (go.GoType.Named go!"time.Duration" []), go.string] false [(go.GoType.PointerType (go.GoType.Named go!"time.Duration" []))]))), (go!"DurationVar", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"time.Duration" [])), go.string, (go.GoType.Named go!"time.Duration" []), go.string] false []))), (go!"ErrorHandling", (some (go.signature.Signature [] false [ErrorHandling.ty]))), (go!"Float64", (some (go.signature.Signature [go.string, go.float64, go.string] false [(go.GoType.PointerType go.float64)]))), (go!"Float64Var", (some (go.signature.Signature [(go.GoType.PointerType go.float64), go.string, go.float64, go.string] false []))), (go!"Func", (some (go.signature.Signature [go.string, go.string, (go.GoType.FunctionType (go.signature.Signature [go.string] false [go.error]))] false []))), (go!"Init", (some (go.signature.Signature [go.string, ErrorHandling.ty] false []))), (go!"Int", (some (go.signature.Signature [go.string, go.int, go.string] false [(go.GoType.PointerType go.int)]))), (go!"Int64", (some (go.signature.Signature [go.string, go.int64, go.string] false [(go.GoType.PointerType go.int64)]))), (go!"Int64Var", (some (go.signature.Signature [(go.GoType.PointerType go.int64), go.string, go.int64, go.string] false []))), (go!"IntVar", (some (go.signature.Signature [(go.GoType.PointerType go.int), go.string, go.int, go.string] false []))), (go!"Lookup", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType Flag.ty)]))), (go!"NArg", (some (go.signature.Signature [] false [go.int]))), (go!"NFlag", (some (go.signature.Signature [] false [go.int]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Output", (some (go.signature.Signature [] false [_root_.Perennial.io.Writer.ty]))), (go!"Parse", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.error]))), (go!"Parsed", (some (go.signature.Signature [] false [go.bool]))), (go!"PrintDefaults", (some (go.signature.Signature [] false []))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false [go.error]))), (go!"SetOutput", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"String", (some (go.signature.Signature [go.string, go.string, go.string] false [(go.GoType.PointerType go.string)]))), (go!"StringVar", (some (go.signature.Signature [(go.GoType.PointerType go.string), go.string, go.string, go.string] false []))), (go!"TextVar", (some (go.signature.Signature [(go.GoType.Named go!"encoding.TextUnmarshaler" []), go.string, (go.GoType.Named go!"encoding.TextMarshaler" []), go.string] false []))), (go!"Uint", (some (go.signature.Signature [go.string, go.uint, go.string] false [(go.GoType.PointerType go.uint)]))), (go!"Uint64", (some (go.signature.Signature [go.string, go.uint64, go.string] false [(go.GoType.PointerType go.uint64)]))), (go!"Uint64Var", (some (go.signature.Signature [(go.GoType.PointerType go.uint64), go.string, go.uint64, go.string] false []))), (go!"UintVar", (some (go.signature.Signature [(go.GoType.PointerType go.uint), go.string, go.uint, go.string] false []))), (go!"Var", (some (go.signature.Signature [Value.ty, go.string, go.string] false []))), (go!"Visit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Flag.ty)] false []))] false []))), (go!"VisitAll", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Flag.ty)] false []))] false []))), (go!"flag.defaultUsage", (some (go.signature.Signature [] false []))), (go!"flag.failf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true [go.error]))), (go!"flag.parseOne", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"flag.set", (some (go.signature.Signature [go.string, go.string] false [go.error]))), (go!"flag.sprintf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true [go.string]))), (go!"flag.usage", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] FlagSet.TypeAssumptions.type_repr
   FlagSet.TypeAssumptions.underlying
-  FlagSet.TypeAssumptions.get_Usage
-  FlagSet.TypeAssumptions.set_Usage
-  FlagSet.TypeAssumptions.get_name
-  FlagSet.TypeAssumptions.set_name
-  FlagSet.TypeAssumptions.get_parsed
-  FlagSet.TypeAssumptions.set_parsed
-  FlagSet.TypeAssumptions.get_actual
-  FlagSet.TypeAssumptions.set_actual
-  FlagSet.TypeAssumptions.get_formal
-  FlagSet.TypeAssumptions.set_formal
-  FlagSet.TypeAssumptions.get_args
-  FlagSet.TypeAssumptions.set_args
-  FlagSet.TypeAssumptions.get_errorHandling
-  FlagSet.TypeAssumptions.set_errorHandling
-  FlagSet.TypeAssumptions.get_output
-  FlagSet.TypeAssumptions.set_output
-  FlagSet.TypeAssumptions.get_undef
-  FlagSet.TypeAssumptions.set_undef
+  FlagSet.TypeAssumptions.get'Usage
+  FlagSet.TypeAssumptions.set'Usage
+  FlagSet.TypeAssumptions.get'name
+  FlagSet.TypeAssumptions.set'name
+  FlagSet.TypeAssumptions.get'parsed
+  FlagSet.TypeAssumptions.set'parsed
+  FlagSet.TypeAssumptions.get'actual
+  FlagSet.TypeAssumptions.set'actual
+  FlagSet.TypeAssumptions.get'formal
+  FlagSet.TypeAssumptions.set'formal
+  FlagSet.TypeAssumptions.get'args
+  FlagSet.TypeAssumptions.set'args
+  FlagSet.TypeAssumptions.get'errorHandling
+  FlagSet.TypeAssumptions.set'errorHandling
+  FlagSet.TypeAssumptions.get'output
+  FlagSet.TypeAssumptions.set'output
+  FlagSet.TypeAssumptions.get'undef
+  FlagSet.TypeAssumptions.set'undef
   FlagSet.TypeAssumptions.method_set
   FlagSet.TypeAssumptions.ptr_method_set
 
@@ -725,7 +725,7 @@ noncomputable instance Flag.zero_val [GooseExts] : ZeroVal Flag :=
 @[irreducible] noncomputable def Flag.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Flag.fieldsUnsealed
 
-noncomputable instance equals_unfold_Flag [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Flag [GooseExts] [GoGlobalContext] :
     EqualsUnfold Flag.fields Flag.fieldsUnsealed :=
   ⟨by unfold Flag.fields; rfl⟩
 
@@ -735,78 +735,78 @@ noncomputable instance equals_unfold_Flag [GooseExts] [GoGlobalContext] :
 class Flag.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Flag.underlying Flag
   underlying : go.UnderlyingDirectedEq Flag.ty Flag.underlying
-  get_Name : ∀ (x : Flag), go.IsGoStepPureDetTagged under (StructFieldGet Flag.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : Flag) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Flag.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Flag)))
-  get_Usage : ∀ (x : Flag), go.IsGoStepPureDetTagged under (StructFieldGet Flag.underlying go!"Usage") #x (Val #(x.Usage'))
-  set_Usage : ∀ (x : Flag) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Flag.underlying go!"Usage") (PairV #x #y) (Val #(({ x with Usage' := y } : Flag)))
-  get_Value : ∀ (x : Flag), go.IsGoStepPureDetTagged under (StructFieldGet Flag.underlying go!"Value") #x (Val #(x.Value'))
-  set_Value : ∀ (x : Flag) (y : Value), go.IsGoStepPureDetTagged under (StructFieldSet Flag.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Flag)))
-  get_DefValue : ∀ (x : Flag), go.IsGoStepPureDetTagged under (StructFieldGet Flag.underlying go!"DefValue") #x (Val #(x.DefValue'))
-  set_DefValue : ∀ (x : Flag) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Flag.underlying go!"DefValue") (PairV #x #y) (Val #(({ x with DefValue' := y } : Flag)))
+  get'Name : ∀ (x : Flag), go.IsGoStepPureDetTagged under (StructFieldGet Flag.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : Flag) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Flag.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Flag)))
+  get'Usage : ∀ (x : Flag), go.IsGoStepPureDetTagged under (StructFieldGet Flag.underlying go!"Usage") #x (Val #(x.Usage'))
+  set'Usage : ∀ (x : Flag) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Flag.underlying go!"Usage") (PairV #x #y) (Val #(({ x with Usage' := y } : Flag)))
+  get'Value : ∀ (x : Flag), go.IsGoStepPureDetTagged under (StructFieldGet Flag.underlying go!"Value") #x (Val #(x.Value'))
+  set'Value : ∀ (x : Flag) (y : Value), go.IsGoStepPureDetTagged under (StructFieldSet Flag.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Flag)))
+  get'DefValue : ∀ (x : Flag), go.IsGoStepPureDetTagged under (StructFieldGet Flag.underlying go!"DefValue") #x (Val #(x.DefValue'))
+  set'DefValue : ∀ (x : Flag) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Flag.underlying go!"DefValue") (PairV #x #y) (Val #(({ x with DefValue' := y } : Flag)))
   method_set : go.MethodSetIs Flag.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Flag.ty) []
 
 attribute [instance] Flag.TypeAssumptions.type_repr
   Flag.TypeAssumptions.underlying
-  Flag.TypeAssumptions.get_Name
-  Flag.TypeAssumptions.set_Name
-  Flag.TypeAssumptions.get_Usage
-  Flag.TypeAssumptions.set_Usage
-  Flag.TypeAssumptions.get_Value
-  Flag.TypeAssumptions.set_Value
-  Flag.TypeAssumptions.get_DefValue
-  Flag.TypeAssumptions.set_DefValue
+  Flag.TypeAssumptions.get'Name
+  Flag.TypeAssumptions.set'Name
+  Flag.TypeAssumptions.get'Usage
+  Flag.TypeAssumptions.set'Usage
+  Flag.TypeAssumptions.get'Value
+  Flag.TypeAssumptions.set'Value
+  Flag.TypeAssumptions.get'DefValue
+  Flag.TypeAssumptions.set'DefValue
   Flag.TypeAssumptions.method_set
   Flag.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  boolValue_instance : boolValue.TypeAssumptions
-  boolFlag_instance : boolFlag.TypeAssumptions
-  intValue_instance : intValue.TypeAssumptions
-  int64Value_instance : int64Value.TypeAssumptions
-  uintValue_instance : uintValue.TypeAssumptions
-  uint64Value_instance : uint64Value.TypeAssumptions
-  stringValue_instance : stringValue.TypeAssumptions
-  float64Value_instance : float64Value.TypeAssumptions
-  durationValue_instance : durationValue.TypeAssumptions
-  textValue_instance : textValue.TypeAssumptions
-  funcValue_instance : funcValue.TypeAssumptions
-  boolFuncValue_instance : boolFuncValue.TypeAssumptions
-  Value_instance : Value.TypeAssumptions
-  Getter_instance : Getter.TypeAssumptions
-  ErrorHandling_instance : ErrorHandling.TypeAssumptions
-  FlagSet_instance : FlagSet.TypeAssumptions
-  Flag_instance : Flag.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  NewFlagSet_unfold : FuncUnfold NewFlagSet [] NewFlagSet.impl
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
+  instance'boolValue : boolValue.TypeAssumptions
+  instance'boolFlag : boolFlag.TypeAssumptions
+  instance'intValue : intValue.TypeAssumptions
+  instance'int64Value : int64Value.TypeAssumptions
+  instance'uintValue : uintValue.TypeAssumptions
+  instance'uint64Value : uint64Value.TypeAssumptions
+  instance'stringValue : stringValue.TypeAssumptions
+  instance'float64Value : float64Value.TypeAssumptions
+  instance'durationValue : durationValue.TypeAssumptions
+  instance'textValue : textValue.TypeAssumptions
+  instance'funcValue : funcValue.TypeAssumptions
+  instance'boolFuncValue : boolFuncValue.TypeAssumptions
+  instance'Value : Value.TypeAssumptions
+  instance'Getter : Getter.TypeAssumptions
+  instance'ErrorHandling : ErrorHandling.TypeAssumptions
+  instance'FlagSet : FlagSet.TypeAssumptions
+  instance'Flag : Flag.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'NewFlagSet : FuncUnfold NewFlagSet [] NewFlagSet.impl
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
 
-attribute [instance] Assumptions.boolValue_instance
-  Assumptions.boolFlag_instance
-  Assumptions.intValue_instance
-  Assumptions.int64Value_instance
-  Assumptions.uintValue_instance
-  Assumptions.uint64Value_instance
-  Assumptions.stringValue_instance
-  Assumptions.float64Value_instance
-  Assumptions.durationValue_instance
-  Assumptions.textValue_instance
-  Assumptions.funcValue_instance
-  Assumptions.boolFuncValue_instance
-  Assumptions.Value_instance
-  Assumptions.Getter_instance
-  Assumptions.ErrorHandling_instance
-  Assumptions.FlagSet_instance
-  Assumptions.Flag_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.NewFlagSet_unfold
-  Assumptions.import_errors_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_os_Assumption
+attribute [instance] Assumptions.instance'boolValue
+  Assumptions.instance'boolFlag
+  Assumptions.instance'intValue
+  Assumptions.instance'int64Value
+  Assumptions.instance'uintValue
+  Assumptions.instance'uint64Value
+  Assumptions.instance'stringValue
+  Assumptions.instance'float64Value
+  Assumptions.instance'durationValue
+  Assumptions.instance'textValue
+  Assumptions.instance'funcValue
+  Assumptions.instance'boolFuncValue
+  Assumptions.instance'Value
+  Assumptions.instance'Getter
+  Assumptions.instance'ErrorHandling
+  Assumptions.instance'FlagSet
+  Assumptions.instance'Flag
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'NewFlagSet
+  Assumptions.import'errors
+  Assumptions.import'fmt
+  Assumptions.import'io
+  Assumptions.import'os
 
 end flag
 

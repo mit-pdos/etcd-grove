@@ -43,7 +43,7 @@ attribute [irreducible] noopObserver.ty
 
 opaque DispatchTimeline.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque «namespace» [GooseExts] [GoGlobalContext] : val
+opaque namespace'' [GooseExts] [GoGlobalContext] : val
 
 opaque subsystem [GooseExts] [GoGlobalContext] : val
 
@@ -294,7 +294,7 @@ noncomputable instance WatcherMetricsObservers.zero_val [GooseExts] : ZeroVal Wa
 @[irreducible] noncomputable def WatcherMetricsObservers.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   WatcherMetricsObservers.fieldsUnsealed
 
-noncomputable instance equals_unfold_WatcherMetricsObservers [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'WatcherMetricsObservers [GooseExts] [GoGlobalContext] :
     EqualsUnfold WatcherMetricsObservers.fields WatcherMetricsObservers.fieldsUnsealed :=
   ⟨by unfold WatcherMetricsObservers.fields; rfl⟩
 
@@ -304,15 +304,15 @@ noncomputable instance equals_unfold_WatcherMetricsObservers [GooseExts] [GoGlob
 class WatcherMetricsObservers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatcherMetricsObservers.underlying WatcherMetricsObservers
   underlying : go.UnderlyingDirectedEq WatcherMetricsObservers.ty WatcherMetricsObservers.underlying
-  get_stageDurations : ∀ (x : WatcherMetricsObservers), go.IsGoStepPureDetTagged under (StructFieldGet WatcherMetricsObservers.underlying go!"stageDurations") #x (Val #(x.stageDurations'))
-  set_stageDurations : ∀ (x : WatcherMetricsObservers) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WatcherMetricsObservers.underlying go!"stageDurations") (PairV #x #y) (Val #(({ x with stageDurations' := y } : WatcherMetricsObservers)))
+  get'stageDurations : ∀ (x : WatcherMetricsObservers), go.IsGoStepPureDetTagged under (StructFieldGet WatcherMetricsObservers.underlying go!"stageDurations") #x (Val #(x.stageDurations'))
+  set'stageDurations : ∀ (x : WatcherMetricsObservers) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WatcherMetricsObservers.underlying go!"stageDurations") (PairV #x #y) (Val #(({ x with stageDurations' := y } : WatcherMetricsObservers)))
   method_set : go.MethodSetIs WatcherMetricsObservers.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatcherMetricsObservers.ty) [(go!"ObserveTimeline", (some (go.signature.Signature [(go.GoType.PointerType DispatchTimeline.ty)] false [])))]
 
 attribute [instance] WatcherMetricsObservers.TypeAssumptions.type_repr
   WatcherMetricsObservers.TypeAssumptions.underlying
-  WatcherMetricsObservers.TypeAssumptions.get_stageDurations
-  WatcherMetricsObservers.TypeAssumptions.set_stageDurations
+  WatcherMetricsObservers.TypeAssumptions.get'stageDurations
+  WatcherMetricsObservers.TypeAssumptions.set'stageDurations
   WatcherMetricsObservers.TypeAssumptions.method_set
   WatcherMetricsObservers.TypeAssumptions.ptr_method_set
 
@@ -328,7 +328,7 @@ noncomputable instance noopObserver.zero_val [GooseExts] : ZeroVal noopObserver 
 @[irreducible] noncomputable def noopObserver.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noopObserver.fieldsUnsealed
 
-noncomputable instance equals_unfold_noopObserver [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'noopObserver [GooseExts] [GoGlobalContext] :
     EqualsUnfold noopObserver.fields noopObserver.fieldsUnsealed :=
   ⟨by unfold noopObserver.fields; rfl⟩
 
@@ -347,17 +347,17 @@ attribute [instance] noopObserver.TypeAssumptions.type_repr
   noopObserver.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  DispatchPoint_instance : DispatchPoint.TypeAssumptions
-  DispatchTimeline_instance : DispatchTimeline.TypeAssumptions
-  WatcherMetricsObservers_instance : WatcherMetricsObservers.TypeAssumptions
-  noopObserver_instance : noopObserver.TypeAssumptions
-  import_metrics_Assumption : _root_.Perennial.k8s_io.component_base.metrics.Assumptions
+  instance'DispatchPoint : DispatchPoint.TypeAssumptions
+  instance'DispatchTimeline : DispatchTimeline.TypeAssumptions
+  instance'WatcherMetricsObservers : WatcherMetricsObservers.TypeAssumptions
+  instance'noopObserver : noopObserver.TypeAssumptions
+  import'metrics : _root_.Perennial.k8s_io.component_base.metrics.Assumptions
 
-attribute [instance] Assumptions.DispatchPoint_instance
-  Assumptions.DispatchTimeline_instance
-  Assumptions.WatcherMetricsObservers_instance
-  Assumptions.noopObserver_instance
-  Assumptions.import_metrics_Assumption
+attribute [instance] Assumptions.instance'DispatchPoint
+  Assumptions.instance'DispatchTimeline
+  Assumptions.instance'WatcherMetricsObservers
+  Assumptions.instance'noopObserver
+  Assumptions.import'metrics
 
 end k8s_io.apiserver.pkg.storage.cacher.metrics
 

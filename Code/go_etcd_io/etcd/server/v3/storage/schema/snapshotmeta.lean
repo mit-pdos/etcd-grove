@@ -295,29 +295,29 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ReadConfState_unfold : FuncUnfold ReadConfState [] ReadConfState.impl
-  ReadMembers_unfold : FuncUnfold ReadMembers [] ReadMembers.impl
-  MustParseMemberID_unfold : FuncUnfold MustParseMemberID [] MustParseMemberID.impl
-  import_json_Assumption : _root_.Perennial.encoding.json.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_log_Assumption : _root_.Perennial.log.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
-  import_membership_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions
-  import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
-  import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
+  unfold'ReadConfState : FuncUnfold ReadConfState [] ReadConfState.impl
+  unfold'ReadMembers : FuncUnfold ReadMembers [] ReadMembers.impl
+  unfold'MustParseMemberID : FuncUnfold MustParseMemberID [] MustParseMemberID.impl
+  import'json : _root_.Perennial.encoding.json.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'log : _root_.Perennial.log.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'types : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
+  import'membership : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions
+  import'backend : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
+  import'raftpb : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
 
-attribute [instance] Assumptions.ReadConfState_unfold
-  Assumptions.ReadMembers_unfold
-  Assumptions.MustParseMemberID_unfold
-  Assumptions.import_json_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_log_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_membership_Assumption
-  Assumptions.import_backend_Assumption
-  Assumptions.import_raftpb_Assumption
+attribute [instance] Assumptions.unfold'ReadConfState
+  Assumptions.unfold'ReadMembers
+  Assumptions.unfold'MustParseMemberID
+  Assumptions.import'json
+  Assumptions.import'fmt
+  Assumptions.import'log
+  Assumptions.import'zap
+  Assumptions.import'types
+  Assumptions.import'membership
+  Assumptions.import'backend
+  Assumptions.import'raftpb
 
 end go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta
 

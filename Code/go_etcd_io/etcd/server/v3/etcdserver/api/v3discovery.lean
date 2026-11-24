@@ -176,7 +176,7 @@ noncomputable instance DiscoveryConfig.zero_val [GooseExts] : ZeroVal DiscoveryC
 @[irreducible] noncomputable def DiscoveryConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DiscoveryConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_DiscoveryConfig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DiscoveryConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold DiscoveryConfig.fields DiscoveryConfig.fieldsUnsealed :=
   ⟨by unfold DiscoveryConfig.fields; rfl⟩
 
@@ -186,19 +186,19 @@ noncomputable instance equals_unfold_DiscoveryConfig [GooseExts] [GoGlobalContex
 class DiscoveryConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DiscoveryConfig.underlying DiscoveryConfig
   underlying : go.UnderlyingDirectedEq DiscoveryConfig.ty DiscoveryConfig.underlying
-  get_ConfigSpec : ∀ (x : DiscoveryConfig), go.IsGoStepPureDetTagged under (StructFieldGet DiscoveryConfig.underlying go!"ConfigSpec") #x (Val #(x.ConfigSpec'))
-  set_ConfigSpec : ∀ (x : DiscoveryConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.ConfigSpec), go.IsGoStepPureDetTagged under (StructFieldSet DiscoveryConfig.underlying go!"ConfigSpec") (PairV #x #y) (Val #(({ x with ConfigSpec' := y } : DiscoveryConfig)))
-  get_Token : ∀ (x : DiscoveryConfig), go.IsGoStepPureDetTagged under (StructFieldGet DiscoveryConfig.underlying go!"Token") #x (Val #(x.Token'))
-  set_Token : ∀ (x : DiscoveryConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DiscoveryConfig.underlying go!"Token") (PairV #x #y) (Val #(({ x with Token' := y } : DiscoveryConfig)))
+  get'ConfigSpec : ∀ (x : DiscoveryConfig), go.IsGoStepPureDetTagged under (StructFieldGet DiscoveryConfig.underlying go!"ConfigSpec") #x (Val #(x.ConfigSpec'))
+  set'ConfigSpec : ∀ (x : DiscoveryConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.ConfigSpec), go.IsGoStepPureDetTagged under (StructFieldSet DiscoveryConfig.underlying go!"ConfigSpec") (PairV #x #y) (Val #(({ x with ConfigSpec' := y } : DiscoveryConfig)))
+  get'Token : ∀ (x : DiscoveryConfig), go.IsGoStepPureDetTagged under (StructFieldGet DiscoveryConfig.underlying go!"Token") #x (Val #(x.Token'))
+  set'Token : ∀ (x : DiscoveryConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DiscoveryConfig.underlying go!"Token") (PairV #x #y) (Val #(({ x with Token' := y } : DiscoveryConfig)))
   method_set : go.MethodSetIs DiscoveryConfig.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DiscoveryConfig.ty) [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.ConfigSpec.ty)])))]
 
 attribute [instance] DiscoveryConfig.TypeAssumptions.type_repr
   DiscoveryConfig.TypeAssumptions.underlying
-  DiscoveryConfig.TypeAssumptions.get_ConfigSpec
-  DiscoveryConfig.TypeAssumptions.set_ConfigSpec
-  DiscoveryConfig.TypeAssumptions.get_Token
-  DiscoveryConfig.TypeAssumptions.set_Token
+  DiscoveryConfig.TypeAssumptions.get'ConfigSpec
+  DiscoveryConfig.TypeAssumptions.set'ConfigSpec
+  DiscoveryConfig.TypeAssumptions.get'Token
+  DiscoveryConfig.TypeAssumptions.set'Token
   DiscoveryConfig.TypeAssumptions.method_set
   DiscoveryConfig.TypeAssumptions.ptr_method_set
 
@@ -219,7 +219,7 @@ noncomputable instance memberInfo.zero_val [GooseExts] : ZeroVal memberInfo :=
 @[irreducible] noncomputable def memberInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   memberInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_memberInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'memberInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold memberInfo.fields memberInfo.fieldsUnsealed :=
   ⟨by unfold memberInfo.fields; rfl⟩
 
@@ -229,23 +229,23 @@ noncomputable instance equals_unfold_memberInfo [GooseExts] [GoGlobalContext] :
 class memberInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying memberInfo.underlying memberInfo
   underlying : go.UnderlyingDirectedEq memberInfo.ty memberInfo.underlying
-  get_peerRegKey : ∀ (x : memberInfo), go.IsGoStepPureDetTagged under (StructFieldGet memberInfo.underlying go!"peerRegKey") #x (Val #(x.peerRegKey'))
-  set_peerRegKey : ∀ (x : memberInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet memberInfo.underlying go!"peerRegKey") (PairV #x #y) (Val #(({ x with peerRegKey' := y } : memberInfo)))
-  get_peerURLsMap : ∀ (x : memberInfo), go.IsGoStepPureDetTagged under (StructFieldGet memberInfo.underlying go!"peerURLsMap") #x (Val #(x.peerURLsMap'))
-  set_peerURLsMap : ∀ (x : memberInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet memberInfo.underlying go!"peerURLsMap") (PairV #x #y) (Val #(({ x with peerURLsMap' := y } : memberInfo)))
-  get_createRev : ∀ (x : memberInfo), go.IsGoStepPureDetTagged under (StructFieldGet memberInfo.underlying go!"createRev") #x (Val #(x.createRev'))
-  set_createRev : ∀ (x : memberInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet memberInfo.underlying go!"createRev") (PairV #x #y) (Val #(({ x with createRev' := y } : memberInfo)))
+  get'peerRegKey : ∀ (x : memberInfo), go.IsGoStepPureDetTagged under (StructFieldGet memberInfo.underlying go!"peerRegKey") #x (Val #(x.peerRegKey'))
+  set'peerRegKey : ∀ (x : memberInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet memberInfo.underlying go!"peerRegKey") (PairV #x #y) (Val #(({ x with peerRegKey' := y } : memberInfo)))
+  get'peerURLsMap : ∀ (x : memberInfo), go.IsGoStepPureDetTagged under (StructFieldGet memberInfo.underlying go!"peerURLsMap") #x (Val #(x.peerURLsMap'))
+  set'peerURLsMap : ∀ (x : memberInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet memberInfo.underlying go!"peerURLsMap") (PairV #x #y) (Val #(({ x with peerURLsMap' := y } : memberInfo)))
+  get'createRev : ∀ (x : memberInfo), go.IsGoStepPureDetTagged under (StructFieldGet memberInfo.underlying go!"createRev") #x (Val #(x.createRev'))
+  set'createRev : ∀ (x : memberInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet memberInfo.underlying go!"createRev") (PairV #x #y) (Val #(({ x with createRev' := y } : memberInfo)))
   method_set : go.MethodSetIs memberInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType memberInfo.ty) []
 
 attribute [instance] memberInfo.TypeAssumptions.type_repr
   memberInfo.TypeAssumptions.underlying
-  memberInfo.TypeAssumptions.get_peerRegKey
-  memberInfo.TypeAssumptions.set_peerRegKey
-  memberInfo.TypeAssumptions.get_peerURLsMap
-  memberInfo.TypeAssumptions.set_peerURLsMap
-  memberInfo.TypeAssumptions.get_createRev
-  memberInfo.TypeAssumptions.set_createRev
+  memberInfo.TypeAssumptions.get'peerRegKey
+  memberInfo.TypeAssumptions.set'peerRegKey
+  memberInfo.TypeAssumptions.get'peerURLsMap
+  memberInfo.TypeAssumptions.set'peerURLsMap
+  memberInfo.TypeAssumptions.get'createRev
+  memberInfo.TypeAssumptions.set'createRev
   memberInfo.TypeAssumptions.method_set
   memberInfo.TypeAssumptions.ptr_method_set
 
@@ -264,7 +264,7 @@ noncomputable instance clusterInfo.zero_val [GooseExts] : ZeroVal clusterInfo :=
 @[irreducible] noncomputable def clusterInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   clusterInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_clusterInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'clusterInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold clusterInfo.fields clusterInfo.fieldsUnsealed :=
   ⟨by unfold clusterInfo.fields; rfl⟩
 
@@ -274,19 +274,19 @@ noncomputable instance equals_unfold_clusterInfo [GooseExts] [GoGlobalContext] :
 class clusterInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying clusterInfo.underlying clusterInfo
   underlying : go.UnderlyingDirectedEq clusterInfo.ty clusterInfo.underlying
-  get_clusterToken : ∀ (x : clusterInfo), go.IsGoStepPureDetTagged under (StructFieldGet clusterInfo.underlying go!"clusterToken") #x (Val #(x.clusterToken'))
-  set_clusterToken : ∀ (x : clusterInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet clusterInfo.underlying go!"clusterToken") (PairV #x #y) (Val #(({ x with clusterToken' := y } : clusterInfo)))
-  get_members : ∀ (x : clusterInfo), go.IsGoStepPureDetTagged under (StructFieldGet clusterInfo.underlying go!"members") #x (Val #(x.members'))
-  set_members : ∀ (x : clusterInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clusterInfo.underlying go!"members") (PairV #x #y) (Val #(({ x with members' := y } : clusterInfo)))
+  get'clusterToken : ∀ (x : clusterInfo), go.IsGoStepPureDetTagged under (StructFieldGet clusterInfo.underlying go!"clusterToken") #x (Val #(x.clusterToken'))
+  set'clusterToken : ∀ (x : clusterInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet clusterInfo.underlying go!"clusterToken") (PairV #x #y) (Val #(({ x with clusterToken' := y } : clusterInfo)))
+  get'members : ∀ (x : clusterInfo), go.IsGoStepPureDetTagged under (StructFieldGet clusterInfo.underlying go!"members") #x (Val #(x.members'))
+  set'members : ∀ (x : clusterInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet clusterInfo.underlying go!"members") (PairV #x #y) (Val #(({ x with members' := y } : clusterInfo)))
   method_set : go.MethodSetIs clusterInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType clusterInfo.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.add", (some (go.signature.Signature [go.string, go.string, go.int64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.exist", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.getInitClusterStr", (some (go.signature.Signature [go.int] false [go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.getPeerURLs", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] clusterInfo.TypeAssumptions.type_repr
   clusterInfo.TypeAssumptions.underlying
-  clusterInfo.TypeAssumptions.get_clusterToken
-  clusterInfo.TypeAssumptions.set_clusterToken
-  clusterInfo.TypeAssumptions.get_members
-  clusterInfo.TypeAssumptions.set_members
+  clusterInfo.TypeAssumptions.get'clusterToken
+  clusterInfo.TypeAssumptions.set'clusterToken
+  clusterInfo.TypeAssumptions.get'members
+  clusterInfo.TypeAssumptions.set'members
   clusterInfo.TypeAssumptions.method_set
   clusterInfo.TypeAssumptions.ptr_method_set
 
@@ -310,21 +310,21 @@ attribute [instance] discovery.TypeAssumptions.type_repr
   discovery.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  DiscoveryConfig_instance : DiscoveryConfig.TypeAssumptions
-  memberInfo_instance : memberInfo.TypeAssumptions
-  clusterInfo_instance : clusterInfo.TypeAssumptions
-  discovery_instance : discovery.TypeAssumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_math_Assumption : _root_.Perennial.math.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  instance'DiscoveryConfig : DiscoveryConfig.TypeAssumptions
+  instance'memberInfo : memberInfo.TypeAssumptions
+  instance'clusterInfo : clusterInfo.TypeAssumptions
+  instance'discovery : discovery.TypeAssumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'math : _root_.Perennial.math.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
 
-attribute [instance] Assumptions.DiscoveryConfig_instance
-  Assumptions.memberInfo_instance
-  Assumptions.clusterInfo_instance
-  Assumptions.discovery_instance
-  Assumptions.import_errors_Assumption
-  Assumptions.import_math_Assumption
-  Assumptions.import_clientv3_Assumption
+attribute [instance] Assumptions.instance'DiscoveryConfig
+  Assumptions.instance'memberInfo
+  Assumptions.instance'clusterInfo
+  Assumptions.instance'discovery
+  Assumptions.import'errors
+  Assumptions.import'math
+  Assumptions.import'clientv3
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
 

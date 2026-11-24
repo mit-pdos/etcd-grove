@@ -25,11 +25,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
 
-noncomputable instance MetricType_typed_pointsto :
+noncomputable instance typed_pointsto'MetricType :
     TypedPointsto (GF := GF) github_com.prometheus.client_model.go.MetricType :=
   sorry -- axiomatized type
 
-noncomputable instance MetricType_into_val_typed :
+noncomputable instance into_val_typed'MetricType :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.MetricType github_com.prometheus.client_model.go.MetricType.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +44,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
 
-noncomputable instance LabelPair_typed_pointsto :
+noncomputable instance typed_pointsto'LabelPair :
     TypedPointsto (GF := GF) github_com.prometheus.client_model.go.LabelPair :=
   sorry -- axiomatized type
 
-noncomputable instance LabelPair_into_val_typed :
+noncomputable instance into_val_typed'LabelPair :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.LabelPair github_com.prometheus.client_model.go.LabelPair.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +63,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
 
-noncomputable instance Gauge_typed_pointsto :
+noncomputable instance typed_pointsto'Gauge :
     TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Gauge :=
   sorry -- axiomatized type
 
-noncomputable instance Gauge_into_val_typed :
+noncomputable instance into_val_typed'Gauge :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Gauge github_com.prometheus.client_model.go.Gauge.underlying :=
   sorry -- axiomatized type
 
@@ -82,11 +82,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
 
-noncomputable instance Counter_typed_pointsto :
+noncomputable instance typed_pointsto'Counter :
     TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Counter :=
   sorry -- axiomatized type
 
-noncomputable instance Counter_into_val_typed :
+noncomputable instance into_val_typed'Counter :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Counter github_com.prometheus.client_model.go.Counter.underlying :=
   sorry -- axiomatized type
 
@@ -101,11 +101,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
 
-noncomputable instance Quantile_typed_pointsto :
+noncomputable instance typed_pointsto'Quantile :
     TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Quantile :=
   sorry -- axiomatized type
 
-noncomputable instance Quantile_into_val_typed :
+noncomputable instance into_val_typed'Quantile :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Quantile github_com.prometheus.client_model.go.Quantile.underlying :=
   sorry -- axiomatized type
 
@@ -120,11 +120,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
 
-noncomputable instance Summary_typed_pointsto :
+noncomputable instance typed_pointsto'Summary :
     TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Summary :=
   sorry -- axiomatized type
 
-noncomputable instance Summary_into_val_typed :
+noncomputable instance into_val_typed'Summary :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Summary github_com.prometheus.client_model.go.Summary.underlying :=
   sorry -- axiomatized type
 
@@ -139,11 +139,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
 
-noncomputable instance Untyped_typed_pointsto :
+noncomputable instance typed_pointsto'Untyped :
     TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Untyped :=
   sorry -- axiomatized type
 
-noncomputable instance Untyped_into_val_typed :
+noncomputable instance into_val_typed'Untyped :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Untyped github_com.prometheus.client_model.go.Untyped.underlying :=
   sorry -- axiomatized type
 
@@ -158,11 +158,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
 
-noncomputable instance Histogram_typed_pointsto :
+noncomputable instance typed_pointsto'Histogram :
     TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Histogram :=
   sorry -- axiomatized type
 
-noncomputable instance Histogram_into_val_typed :
+noncomputable instance into_val_typed'Histogram :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Histogram github_com.prometheus.client_model.go.Histogram.underlying :=
   sorry -- axiomatized type
 
@@ -177,11 +177,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
 
-noncomputable instance Bucket_typed_pointsto :
+noncomputable instance typed_pointsto'Bucket :
     TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Bucket :=
   sorry -- axiomatized type
 
-noncomputable instance Bucket_into_val_typed :
+noncomputable instance into_val_typed'Bucket :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Bucket github_com.prometheus.client_model.go.Bucket.underlying :=
   sorry -- axiomatized type
 
@@ -196,11 +196,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
 
-noncomputable instance BucketSpan_typed_pointsto :
+noncomputable instance typed_pointsto'BucketSpan :
     TypedPointsto (GF := GF) github_com.prometheus.client_model.go.BucketSpan :=
   sorry -- axiomatized type
 
-noncomputable instance BucketSpan_into_val_typed :
+noncomputable instance into_val_typed'BucketSpan :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.BucketSpan github_com.prometheus.client_model.go.BucketSpan.underlying :=
   sorry -- axiomatized type
 
@@ -215,11 +215,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
 
-noncomputable instance Exemplar_typed_pointsto :
+noncomputable instance typed_pointsto'Exemplar :
     TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Exemplar :=
   sorry -- axiomatized type
 
-noncomputable instance Exemplar_into_val_typed :
+noncomputable instance into_val_typed'Exemplar :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Exemplar github_com.prometheus.client_model.go.Exemplar.underlying :=
   sorry -- axiomatized type
 
@@ -234,11 +234,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
 
-noncomputable instance Metric_typed_pointsto :
+noncomputable instance typed_pointsto'Metric :
     TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Metric :=
   sorry -- axiomatized type
 
-noncomputable instance Metric_into_val_typed :
+noncomputable instance into_val_typed'Metric :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Metric github_com.prometheus.client_model.go.Metric.underlying :=
   sorry -- axiomatized type
 
@@ -253,11 +253,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
 
-noncomputable instance MetricFamily_typed_pointsto :
+noncomputable instance typed_pointsto'MetricFamily :
     TypedPointsto (GF := GF) github_com.prometheus.client_model.go.MetricFamily :=
   sorry -- axiomatized type
 
-noncomputable instance MetricFamily_into_val_typed :
+noncomputable instance into_val_typed'MetricFamily :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.MetricFamily github_com.prometheus.client_model.go.MetricFamily.underlying :=
   sorry -- axiomatized type
 

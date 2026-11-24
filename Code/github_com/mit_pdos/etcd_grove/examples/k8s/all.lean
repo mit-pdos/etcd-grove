@@ -131,21 +131,21 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  holdToken_unfold : FuncUnfold holdToken [] holdToken.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_compactor_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions
-  import_etcd3_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions
-  import_cluster3_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
+  unfold'holdToken : FuncUnfold holdToken [] holdToken.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'compactor : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions
+  import'etcd3 : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions
+  import'cluster3 : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
 
-attribute [instance] Assumptions.holdToken_unfold
-  Assumptions.Main_unfold
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_compactor_Assumption
-  Assumptions.import_etcd3_Assumption
-  Assumptions.import_cluster3_Assumption
+attribute [instance] Assumptions.unfold'holdToken
+  Assumptions.unfold'Main
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'compactor
+  Assumptions.import'etcd3
+  Assumptions.import'cluster3
 
 end github_com.mit_pdos.etcd_grove.examples.k8s.all
 

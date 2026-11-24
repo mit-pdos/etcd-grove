@@ -1886,7 +1886,7 @@ noncomputable instance Member.zero_val [GooseExts] : ZeroVal Member :=
 @[irreducible] noncomputable def Member.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Member.fieldsUnsealed
 
-noncomputable instance equals_unfold_Member [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Member [GooseExts] [GoGlobalContext] :
     EqualsUnfold Member.fields Member.fieldsUnsealed :=
   ⟨by unfold Member.fields; rfl⟩
 
@@ -1896,23 +1896,23 @@ noncomputable instance equals_unfold_Member [GooseExts] [GoGlobalContext] :
 class Member.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Member.underlying Member
   underlying : go.UnderlyingDirectedEq Member.ty Member.underlying
-  get_Name : ∀ (x : Member), go.IsGoStepPureDetTagged under (StructFieldGet Member.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : Member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Member)))
-  get_Peer : ∀ (x : Member), go.IsGoStepPureDetTagged under (StructFieldGet Member.underlying go!"Peer") #x (Val #(x.Peer'))
-  set_Peer : ∀ (x : Member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"Peer") (PairV #x #y) (Val #(({ x with Peer' := y } : Member)))
-  get_Client : ∀ (x : Member), go.IsGoStepPureDetTagged under (StructFieldGet Member.underlying go!"Client") #x (Val #(x.Client'))
-  set_Client : ∀ (x : Member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"Client") (PairV #x #y) (Val #(({ x with Client' := y } : Member)))
+  get'Name : ∀ (x : Member), go.IsGoStepPureDetTagged under (StructFieldGet Member.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : Member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Member)))
+  get'Peer : ∀ (x : Member), go.IsGoStepPureDetTagged under (StructFieldGet Member.underlying go!"Peer") #x (Val #(x.Peer'))
+  set'Peer : ∀ (x : Member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"Peer") (PairV #x #y) (Val #(({ x with Peer' := y } : Member)))
+  get'Client : ∀ (x : Member), go.IsGoStepPureDetTagged under (StructFieldGet Member.underlying go!"Client") #x (Val #(x.Client'))
+  set'Client : ∀ (x : Member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"Client") (PairV #x #y) (Val #(({ x with Client' := y } : Member)))
   method_set : go.MethodSetIs Member.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Member.ty) []
 
 attribute [instance] Member.TypeAssumptions.type_repr
   Member.TypeAssumptions.underlying
-  Member.TypeAssumptions.get_Name
-  Member.TypeAssumptions.set_Name
-  Member.TypeAssumptions.get_Peer
-  Member.TypeAssumptions.set_Peer
-  Member.TypeAssumptions.get_Client
-  Member.TypeAssumptions.set_Client
+  Member.TypeAssumptions.get'Name
+  Member.TypeAssumptions.set'Name
+  Member.TypeAssumptions.get'Peer
+  Member.TypeAssumptions.set'Peer
+  Member.TypeAssumptions.get'Client
+  Member.TypeAssumptions.set'Client
   Member.TypeAssumptions.method_set
   Member.TypeAssumptions.ptr_method_set
 
@@ -1931,7 +1931,7 @@ noncomputable instance KV.zero_val [GooseExts] : ZeroVal KV :=
 @[irreducible] noncomputable def KV.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   KV.fieldsUnsealed
 
-noncomputable instance equals_unfold_KV [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'KV [GooseExts] [GoGlobalContext] :
     EqualsUnfold KV.fields KV.fieldsUnsealed :=
   ⟨by unfold KV.fields; rfl⟩
 
@@ -1941,19 +1941,19 @@ noncomputable instance equals_unfold_KV [GooseExts] [GoGlobalContext] :
 class KV.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying KV.underlying KV
   underlying : go.UnderlyingDirectedEq KV.ty KV.underlying
-  get_Key : ∀ (x : KV), go.IsGoStepPureDetTagged under (StructFieldGet KV.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : KV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : KV)))
-  get_Val : ∀ (x : KV), go.IsGoStepPureDetTagged under (StructFieldGet KV.underlying go!"Val") #x (Val #(x.Val'))
-  set_Val : ∀ (x : KV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : KV)))
+  get'Key : ∀ (x : KV), go.IsGoStepPureDetTagged under (StructFieldGet KV.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : KV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : KV)))
+  get'Val : ∀ (x : KV), go.IsGoStepPureDetTagged under (StructFieldGet KV.underlying go!"Val") #x (Val #(x.Val'))
+  set'Val : ∀ (x : KV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : KV)))
   method_set : go.MethodSetIs KV.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType KV.ty) []
 
 attribute [instance] KV.TypeAssumptions.type_repr
   KV.TypeAssumptions.underlying
-  KV.TypeAssumptions.get_Key
-  KV.TypeAssumptions.set_Key
-  KV.TypeAssumptions.get_Val
-  KV.TypeAssumptions.set_Val
+  KV.TypeAssumptions.get'Key
+  KV.TypeAssumptions.set'Key
+  KV.TypeAssumptions.get'Val
+  KV.TypeAssumptions.set'Val
   KV.TypeAssumptions.method_set
   KV.TypeAssumptions.ptr_method_set
 
@@ -1974,7 +1974,7 @@ noncomputable instance PutRec.zero_val [GooseExts] : ZeroVal PutRec :=
 @[irreducible] noncomputable def PutRec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PutRec.fieldsUnsealed
 
-noncomputable instance equals_unfold_PutRec [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PutRec [GooseExts] [GoGlobalContext] :
     EqualsUnfold PutRec.fields PutRec.fieldsUnsealed :=
   ⟨by unfold PutRec.fields; rfl⟩
 
@@ -1984,23 +1984,23 @@ noncomputable instance equals_unfold_PutRec [GooseExts] [GoGlobalContext] :
 class PutRec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PutRec.underlying PutRec
   underlying : go.UnderlyingDirectedEq PutRec.ty PutRec.underlying
-  get_Rev : ∀ (x : PutRec), go.IsGoStepPureDetTagged under (StructFieldGet PutRec.underlying go!"Rev") #x (Val #(x.Rev'))
-  set_Rev : ∀ (x : PutRec) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PutRec.underlying go!"Rev") (PairV #x #y) (Val #(({ x with Rev' := y } : PutRec)))
-  get_Key : ∀ (x : PutRec), go.IsGoStepPureDetTagged under (StructFieldGet PutRec.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : PutRec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PutRec.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : PutRec)))
-  get_Val : ∀ (x : PutRec), go.IsGoStepPureDetTagged under (StructFieldGet PutRec.underlying go!"Val") #x (Val #(x.Val'))
-  set_Val : ∀ (x : PutRec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PutRec.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : PutRec)))
+  get'Rev : ∀ (x : PutRec), go.IsGoStepPureDetTagged under (StructFieldGet PutRec.underlying go!"Rev") #x (Val #(x.Rev'))
+  set'Rev : ∀ (x : PutRec) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PutRec.underlying go!"Rev") (PairV #x #y) (Val #(({ x with Rev' := y } : PutRec)))
+  get'Key : ∀ (x : PutRec), go.IsGoStepPureDetTagged under (StructFieldGet PutRec.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : PutRec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PutRec.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : PutRec)))
+  get'Val : ∀ (x : PutRec), go.IsGoStepPureDetTagged under (StructFieldGet PutRec.underlying go!"Val") #x (Val #(x.Val'))
+  set'Val : ∀ (x : PutRec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PutRec.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : PutRec)))
   method_set : go.MethodSetIs PutRec.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PutRec.ty) []
 
 attribute [instance] PutRec.TypeAssumptions.type_repr
   PutRec.TypeAssumptions.underlying
-  PutRec.TypeAssumptions.get_Rev
-  PutRec.TypeAssumptions.set_Rev
-  PutRec.TypeAssumptions.get_Key
-  PutRec.TypeAssumptions.set_Key
-  PutRec.TypeAssumptions.get_Val
-  PutRec.TypeAssumptions.set_Val
+  PutRec.TypeAssumptions.get'Rev
+  PutRec.TypeAssumptions.set'Rev
+  PutRec.TypeAssumptions.get'Key
+  PutRec.TypeAssumptions.set'Key
+  PutRec.TypeAssumptions.get'Val
+  PutRec.TypeAssumptions.set'Val
   PutRec.TypeAssumptions.method_set
   PutRec.TypeAssumptions.ptr_method_set
 
@@ -2023,7 +2023,7 @@ noncomputable instance Event.zero_val [GooseExts] : ZeroVal Event :=
 @[irreducible] noncomputable def Event.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Event.fieldsUnsealed
 
-noncomputable instance equals_unfold_Event [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Event [GooseExts] [GoGlobalContext] :
     EqualsUnfold Event.fields Event.fieldsUnsealed :=
   ⟨by unfold Event.fields; rfl⟩
 
@@ -2033,27 +2033,27 @@ noncomputable instance equals_unfold_Event [GooseExts] [GoGlobalContext] :
 class Event.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Event.underlying Event
   underlying : go.UnderlyingDirectedEq Event.ty Event.underlying
-  get_Rev : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Rev") #x (Val #(x.Rev'))
-  set_Rev : ∀ (x : Event) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Rev") (PairV #x #y) (Val #(({ x with Rev' := y } : Event)))
-  get_Key : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : Event) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Event)))
-  get_Val : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Val") #x (Val #(x.Val'))
-  set_Val : ∀ (x : Event) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : Event)))
-  get_Put : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Put") #x (Val #(x.Put'))
-  set_Put : ∀ (x : Event) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Put") (PairV #x #y) (Val #(({ x with Put' := y } : Event)))
+  get'Rev : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Rev") #x (Val #(x.Rev'))
+  set'Rev : ∀ (x : Event) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Rev") (PairV #x #y) (Val #(({ x with Rev' := y } : Event)))
+  get'Key : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : Event) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Event)))
+  get'Val : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Val") #x (Val #(x.Val'))
+  set'Val : ∀ (x : Event) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : Event)))
+  get'Put : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Put") #x (Val #(x.Put'))
+  set'Put : ∀ (x : Event) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Put") (PairV #x #y) (Val #(({ x with Put' := y } : Event)))
   method_set : go.MethodSetIs Event.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Event.ty) []
 
 attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.underlying
-  Event.TypeAssumptions.get_Rev
-  Event.TypeAssumptions.set_Rev
-  Event.TypeAssumptions.get_Key
-  Event.TypeAssumptions.set_Key
-  Event.TypeAssumptions.get_Val
-  Event.TypeAssumptions.set_Val
-  Event.TypeAssumptions.get_Put
-  Event.TypeAssumptions.set_Put
+  Event.TypeAssumptions.get'Rev
+  Event.TypeAssumptions.set'Rev
+  Event.TypeAssumptions.get'Key
+  Event.TypeAssumptions.set'Key
+  Event.TypeAssumptions.get'Val
+  Event.TypeAssumptions.set'Val
+  Event.TypeAssumptions.get'Put
+  Event.TypeAssumptions.set'Put
   Event.TypeAssumptions.method_set
   Event.TypeAssumptions.ptr_method_set
 
@@ -2072,7 +2072,7 @@ noncomputable instance Writes.zero_val [GooseExts] : ZeroVal Writes :=
 @[irreducible] noncomputable def Writes.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Writes.fieldsUnsealed
 
-noncomputable instance equals_unfold_Writes [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Writes [GooseExts] [GoGlobalContext] :
     EqualsUnfold Writes.fields Writes.fieldsUnsealed :=
   ⟨by unfold Writes.fields; rfl⟩
 
@@ -2082,114 +2082,114 @@ noncomputable instance equals_unfold_Writes [GooseExts] [GoGlobalContext] :
 class Writes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Writes.underlying Writes
   underlying : go.UnderlyingDirectedEq Writes.ty Writes.underlying
-  get_Mu : ∀ (x : Writes), go.IsGoStepPureDetTagged under (StructFieldGet Writes.underlying go!"Mu") #x (Val #(x.Mu'))
-  set_Mu : ∀ (x : Writes) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Writes.underlying go!"Mu") (PairV #x #y) (Val #(({ x with Mu' := y } : Writes)))
-  get_Ok : ∀ (x : Writes), go.IsGoStepPureDetTagged under (StructFieldGet Writes.underlying go!"Ok") #x (Val #(x.Ok'))
-  set_Ok : ∀ (x : Writes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Writes.underlying go!"Ok") (PairV #x #y) (Val #(({ x with Ok' := y } : Writes)))
+  get'Mu : ∀ (x : Writes), go.IsGoStepPureDetTagged under (StructFieldGet Writes.underlying go!"Mu") #x (Val #(x.Mu'))
+  set'Mu : ∀ (x : Writes) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Writes.underlying go!"Mu") (PairV #x #y) (Val #(({ x with Mu' := y } : Writes)))
+  get'Ok : ∀ (x : Writes), go.IsGoStepPureDetTagged under (StructFieldGet Writes.underlying go!"Ok") #x (Val #(x.Ok'))
+  set'Ok : ∀ (x : Writes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Writes.underlying go!"Ok") (PairV #x #y) (Val #(({ x with Ok' := y } : Writes)))
   method_set : go.MethodSetIs Writes.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Writes.ty) []
 
 attribute [instance] Writes.TypeAssumptions.type_repr
   Writes.TypeAssumptions.underlying
-  Writes.TypeAssumptions.get_Mu
-  Writes.TypeAssumptions.set_Mu
-  Writes.TypeAssumptions.get_Ok
-  Writes.TypeAssumptions.set_Ok
+  Writes.TypeAssumptions.get'Mu
+  Writes.TypeAssumptions.set'Mu
+  Writes.TypeAssumptions.get'Ok
+  Writes.TypeAssumptions.set'Ok
   Writes.TypeAssumptions.method_set
   Writes.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Member_instance : Member.TypeAssumptions
-  KV_instance : KV.TypeAssumptions
-  PutRec_instance : PutRec.TypeAssumptions
-  Event_instance : Event.TypeAssumptions
-  Writes_instance : Writes.TypeAssumptions
-  StartMemberAuth_unfold : FuncUnfold StartMemberAuth [] StartMemberAuth.impl
-  StartMembersAuth_unfold : FuncUnfold StartMembersAuth [] StartMembersAuth.impl
-  newServer_unfold : FuncUnfold newServer [] newServer.impl
-  newServerMode_unfold : FuncUnfold newServerMode [] newServerMode.impl
-  StartServer_unfold : FuncUnfold StartServer [] StartServer.impl
-  StartCompactingServer_unfold : FuncUnfold StartCompactingServer [] StartCompactingServer.impl
-  StartPeriodicServer_unfold : FuncUnfold StartPeriodicServer [] StartPeriodicServer.impl
-  BuildServer_unfold : FuncUnfold BuildServer [] BuildServer.impl
-  NewMember_unfold : FuncUnfold NewMember [] NewMember.impl
-  StartMember_unfold : FuncUnfold StartMember [] StartMember.impl
-  Serve_unfold : FuncUnfold Serve [] Serve.impl
-  NewClient_unfold : FuncUnfold NewClient [] NewClient.impl
-  NewClients_unfold : FuncUnfold NewClients [] NewClients.impl
-  Members_unfold : FuncUnfold Members [] Members.impl
-  StartMembers_unfold : FuncUnfold StartMembers [] StartMembers.impl
-  Gen_unfold : FuncUnfold Gen [] Gen.impl
-  GenAll_unfold : FuncUnfold GenAll [] GenAll.impl
-  Writer_unfold : FuncUnfold Writer [] Writer.impl
-  MaxRev_unfold : FuncUnfold MaxRev [] MaxRev.impl
-  Collect_unfold : FuncUnfold Collect [] Collect.impl
-  CompactRev_unfold : FuncUnfold CompactRev [] CompactRev.impl
-  Attempted_unfold : FuncUnfold Attempted [] Attempted.impl
-  Check_unfold : FuncUnfold Check [] Check.impl
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_http_Assumption : _root_.Perennial.net.http.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
-  import_config_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
-  import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_features_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
-  import_keepalive_Assumption : _root_.Perennial.google_golang_org.grpc.keepalive.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_v3rpc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
-  import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
+  instance'Member : Member.TypeAssumptions
+  instance'KV : KV.TypeAssumptions
+  instance'PutRec : PutRec.TypeAssumptions
+  instance'Event : Event.TypeAssumptions
+  instance'Writes : Writes.TypeAssumptions
+  unfold'StartMemberAuth : FuncUnfold StartMemberAuth [] StartMemberAuth.impl
+  unfold'StartMembersAuth : FuncUnfold StartMembersAuth [] StartMembersAuth.impl
+  unfold'newServer : FuncUnfold newServer [] newServer.impl
+  unfold'newServerMode : FuncUnfold newServerMode [] newServerMode.impl
+  unfold'StartServer : FuncUnfold StartServer [] StartServer.impl
+  unfold'StartCompactingServer : FuncUnfold StartCompactingServer [] StartCompactingServer.impl
+  unfold'StartPeriodicServer : FuncUnfold StartPeriodicServer [] StartPeriodicServer.impl
+  unfold'BuildServer : FuncUnfold BuildServer [] BuildServer.impl
+  unfold'NewMember : FuncUnfold NewMember [] NewMember.impl
+  unfold'StartMember : FuncUnfold StartMember [] StartMember.impl
+  unfold'Serve : FuncUnfold Serve [] Serve.impl
+  unfold'NewClient : FuncUnfold NewClient [] NewClient.impl
+  unfold'NewClients : FuncUnfold NewClients [] NewClients.impl
+  unfold'Members : FuncUnfold Members [] Members.impl
+  unfold'StartMembers : FuncUnfold StartMembers [] StartMembers.impl
+  unfold'Gen : FuncUnfold Gen [] Gen.impl
+  unfold'GenAll : FuncUnfold GenAll [] GenAll.impl
+  unfold'Writer : FuncUnfold Writer [] Writer.impl
+  unfold'MaxRev : FuncUnfold MaxRev [] MaxRev.impl
+  unfold'Collect : FuncUnfold Collect [] Collect.impl
+  unfold'CompactRev : FuncUnfold CompactRev [] CompactRev.impl
+  unfold'Attempted : FuncUnfold Attempted [] Attempted.impl
+  unfold'Check : FuncUnfold Check [] Check.impl
+  import'net : _root_.Perennial.net.Assumptions
+  import'http : _root_.Perennial.net.http.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'types : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
+  import'config : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
+  import'etcdserver : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
+  import'features : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'grpc : _root_.Perennial.google_golang_org.grpc.Assumptions
+  import'keepalive : _root_.Perennial.google_golang_org.grpc.keepalive.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'v3rpc : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'primitive : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
+  import'mvccpb : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
 
-attribute [instance] Assumptions.Member_instance
-  Assumptions.KV_instance
-  Assumptions.PutRec_instance
-  Assumptions.Event_instance
-  Assumptions.Writes_instance
-  Assumptions.StartMemberAuth_unfold
-  Assumptions.StartMembersAuth_unfold
-  Assumptions.newServer_unfold
-  Assumptions.newServerMode_unfold
-  Assumptions.StartServer_unfold
-  Assumptions.StartCompactingServer_unfold
-  Assumptions.StartPeriodicServer_unfold
-  Assumptions.BuildServer_unfold
-  Assumptions.NewMember_unfold
-  Assumptions.StartMember_unfold
-  Assumptions.Serve_unfold
-  Assumptions.NewClient_unfold
-  Assumptions.NewClients_unfold
-  Assumptions.Members_unfold
-  Assumptions.StartMembers_unfold
-  Assumptions.Gen_unfold
-  Assumptions.GenAll_unfold
-  Assumptions.Writer_unfold
-  Assumptions.MaxRev_unfold
-  Assumptions.Collect_unfold
-  Assumptions.CompactRev_unfold
-  Assumptions.Attempted_unfold
-  Assumptions.Check_unfold
-  Assumptions.import_net_Assumption
-  Assumptions.import_http_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_config_Assumption
-  Assumptions.import_etcdserver_Assumption
-  Assumptions.import_features_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_grpc_Assumption
-  Assumptions.import_keepalive_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_v3rpc_Assumption
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_context_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_primitive_Assumption
-  Assumptions.import_mvccpb_Assumption
+attribute [instance] Assumptions.instance'Member
+  Assumptions.instance'KV
+  Assumptions.instance'PutRec
+  Assumptions.instance'Event
+  Assumptions.instance'Writes
+  Assumptions.unfold'StartMemberAuth
+  Assumptions.unfold'StartMembersAuth
+  Assumptions.unfold'newServer
+  Assumptions.unfold'newServerMode
+  Assumptions.unfold'StartServer
+  Assumptions.unfold'StartCompactingServer
+  Assumptions.unfold'StartPeriodicServer
+  Assumptions.unfold'BuildServer
+  Assumptions.unfold'NewMember
+  Assumptions.unfold'StartMember
+  Assumptions.unfold'Serve
+  Assumptions.unfold'NewClient
+  Assumptions.unfold'NewClients
+  Assumptions.unfold'Members
+  Assumptions.unfold'StartMembers
+  Assumptions.unfold'Gen
+  Assumptions.unfold'GenAll
+  Assumptions.unfold'Writer
+  Assumptions.unfold'MaxRev
+  Assumptions.unfold'Collect
+  Assumptions.unfold'CompactRev
+  Assumptions.unfold'Attempted
+  Assumptions.unfold'Check
+  Assumptions.import'net
+  Assumptions.import'http
+  Assumptions.import'zap
+  Assumptions.import'types
+  Assumptions.import'config
+  Assumptions.import'etcdserver
+  Assumptions.import'features
+  Assumptions.import'time
+  Assumptions.import'grpc
+  Assumptions.import'keepalive
+  Assumptions.import'clientv3
+  Assumptions.import'v3rpc
+  Assumptions.import'strconv
+  Assumptions.import'context
+  Assumptions.import'sync
+  Assumptions.import'primitive
+  Assumptions.import'mvccpb
 
 end github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 

@@ -1005,71 +1005,71 @@ attribute [instance] SupportsAllVerbs.TypeAssumptions.type_repr
   SupportsAllVerbs.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  StaleGroupVersionError_instance : StaleGroupVersionError.TypeAssumptions
-  DiscoveryInterface_instance : DiscoveryInterface.TypeAssumptions
-  DiscoveryInterfaceWithContext_instance : DiscoveryInterfaceWithContext.TypeAssumptions
-  DiscoveryInterfaces_instance : DiscoveryInterfaces.TypeAssumptions
-  discoveryInterfaceWrapper_instance : discoveryInterfaceWrapper.TypeAssumptions
-  AggregatedDiscoveryInterface_instance : AggregatedDiscoveryInterface.TypeAssumptions
-  AggregatedDiscoveryInterfaceWithContext_instance : AggregatedDiscoveryInterfaceWithContext.TypeAssumptions
-  aggregatedDiscoveryInterfaceWrapper_instance : aggregatedDiscoveryInterfaceWrapper.TypeAssumptions
-  CachedDiscoveryInterface_instance : CachedDiscoveryInterface.TypeAssumptions
-  CachedDiscoveryInterfaceWithContext_instance : CachedDiscoveryInterfaceWithContext.TypeAssumptions
-  cachedDiscoveryInterfaceWrapper_instance : cachedDiscoveryInterfaceWrapper.TypeAssumptions
-  ServerGroupsInterface_instance : ServerGroupsInterface.TypeAssumptions
-  ServerGroupsInterfaceWithContext_instance : ServerGroupsInterfaceWithContext.TypeAssumptions
-  serverGroupsInterfaceWrapper_instance : serverGroupsInterfaceWrapper.TypeAssumptions
-  ServerResourcesInterface_instance : ServerResourcesInterface.TypeAssumptions
-  ServerResourcesInterfaceWithContext_instance : ServerResourcesInterfaceWithContext.TypeAssumptions
-  serverResourcesInterfaceWrapper_instance : serverResourcesInterfaceWrapper.TypeAssumptions
-  ServerVersionInterface_instance : ServerVersionInterface.TypeAssumptions
-  ServerVersionInterfaceWithContext_instance : ServerVersionInterfaceWithContext.TypeAssumptions
-  serverVersionInterfaceWrapper_instance : serverVersionInterfaceWrapper.TypeAssumptions
-  OpenAPISchemaInterface_instance : OpenAPISchemaInterface.TypeAssumptions
-  OpenAPISchemaInterfaceWithContext_instance : OpenAPISchemaInterfaceWithContext.TypeAssumptions
-  openAPISchemaInterfaceWrapper_instance : openAPISchemaInterfaceWrapper.TypeAssumptions
-  OpenAPIV3SchemaInterface_instance : OpenAPIV3SchemaInterface.TypeAssumptions
-  OpenAPIV3SchemaInterfaceWithContext_instance : OpenAPIV3SchemaInterfaceWithContext.TypeAssumptions
-  openAPIV3SchemaInterfaceWrapper_instance : openAPIV3SchemaInterfaceWrapper.TypeAssumptions
-  openAPIClientWrapper_instance : openAPIClientWrapper.TypeAssumptions
-  DiscoveryClient_instance : DiscoveryClient.TypeAssumptions
-  ErrGroupDiscoveryFailed_instance : ErrGroupDiscoveryFailed.TypeAssumptions
-  ResourcePredicate_instance : ResourcePredicate.TypeAssumptions
-  ResourcePredicateFunc_instance : ResourcePredicateFunc.TypeAssumptions
-  SupportsAllVerbs_instance : SupportsAllVerbs.TypeAssumptions
+  instance'StaleGroupVersionError : StaleGroupVersionError.TypeAssumptions
+  instance'DiscoveryInterface : DiscoveryInterface.TypeAssumptions
+  instance'DiscoveryInterfaceWithContext : DiscoveryInterfaceWithContext.TypeAssumptions
+  instance'DiscoveryInterfaces : DiscoveryInterfaces.TypeAssumptions
+  instance'discoveryInterfaceWrapper : discoveryInterfaceWrapper.TypeAssumptions
+  instance'AggregatedDiscoveryInterface : AggregatedDiscoveryInterface.TypeAssumptions
+  instance'AggregatedDiscoveryInterfaceWithContext : AggregatedDiscoveryInterfaceWithContext.TypeAssumptions
+  instance'aggregatedDiscoveryInterfaceWrapper : aggregatedDiscoveryInterfaceWrapper.TypeAssumptions
+  instance'CachedDiscoveryInterface : CachedDiscoveryInterface.TypeAssumptions
+  instance'CachedDiscoveryInterfaceWithContext : CachedDiscoveryInterfaceWithContext.TypeAssumptions
+  instance'cachedDiscoveryInterfaceWrapper : cachedDiscoveryInterfaceWrapper.TypeAssumptions
+  instance'ServerGroupsInterface : ServerGroupsInterface.TypeAssumptions
+  instance'ServerGroupsInterfaceWithContext : ServerGroupsInterfaceWithContext.TypeAssumptions
+  instance'serverGroupsInterfaceWrapper : serverGroupsInterfaceWrapper.TypeAssumptions
+  instance'ServerResourcesInterface : ServerResourcesInterface.TypeAssumptions
+  instance'ServerResourcesInterfaceWithContext : ServerResourcesInterfaceWithContext.TypeAssumptions
+  instance'serverResourcesInterfaceWrapper : serverResourcesInterfaceWrapper.TypeAssumptions
+  instance'ServerVersionInterface : ServerVersionInterface.TypeAssumptions
+  instance'ServerVersionInterfaceWithContext : ServerVersionInterfaceWithContext.TypeAssumptions
+  instance'serverVersionInterfaceWrapper : serverVersionInterfaceWrapper.TypeAssumptions
+  instance'OpenAPISchemaInterface : OpenAPISchemaInterface.TypeAssumptions
+  instance'OpenAPISchemaInterfaceWithContext : OpenAPISchemaInterfaceWithContext.TypeAssumptions
+  instance'openAPISchemaInterfaceWrapper : openAPISchemaInterfaceWrapper.TypeAssumptions
+  instance'OpenAPIV3SchemaInterface : OpenAPIV3SchemaInterface.TypeAssumptions
+  instance'OpenAPIV3SchemaInterfaceWithContext : OpenAPIV3SchemaInterfaceWithContext.TypeAssumptions
+  instance'openAPIV3SchemaInterfaceWrapper : openAPIV3SchemaInterfaceWrapper.TypeAssumptions
+  instance'openAPIClientWrapper : openAPIClientWrapper.TypeAssumptions
+  instance'DiscoveryClient : DiscoveryClient.TypeAssumptions
+  instance'ErrGroupDiscoveryFailed : ErrGroupDiscoveryFailed.TypeAssumptions
+  instance'ResourcePredicate : ResourcePredicate.TypeAssumptions
+  instance'ResourcePredicateFunc : ResourcePredicateFunc.TypeAssumptions
+  instance'SupportsAllVerbs : SupportsAllVerbs.TypeAssumptions
 
-attribute [instance] Assumptions.StaleGroupVersionError_instance
-  Assumptions.DiscoveryInterface_instance
-  Assumptions.DiscoveryInterfaceWithContext_instance
-  Assumptions.DiscoveryInterfaces_instance
-  Assumptions.discoveryInterfaceWrapper_instance
-  Assumptions.AggregatedDiscoveryInterface_instance
-  Assumptions.AggregatedDiscoveryInterfaceWithContext_instance
-  Assumptions.aggregatedDiscoveryInterfaceWrapper_instance
-  Assumptions.CachedDiscoveryInterface_instance
-  Assumptions.CachedDiscoveryInterfaceWithContext_instance
-  Assumptions.cachedDiscoveryInterfaceWrapper_instance
-  Assumptions.ServerGroupsInterface_instance
-  Assumptions.ServerGroupsInterfaceWithContext_instance
-  Assumptions.serverGroupsInterfaceWrapper_instance
-  Assumptions.ServerResourcesInterface_instance
-  Assumptions.ServerResourcesInterfaceWithContext_instance
-  Assumptions.serverResourcesInterfaceWrapper_instance
-  Assumptions.ServerVersionInterface_instance
-  Assumptions.ServerVersionInterfaceWithContext_instance
-  Assumptions.serverVersionInterfaceWrapper_instance
-  Assumptions.OpenAPISchemaInterface_instance
-  Assumptions.OpenAPISchemaInterfaceWithContext_instance
-  Assumptions.openAPISchemaInterfaceWrapper_instance
-  Assumptions.OpenAPIV3SchemaInterface_instance
-  Assumptions.OpenAPIV3SchemaInterfaceWithContext_instance
-  Assumptions.openAPIV3SchemaInterfaceWrapper_instance
-  Assumptions.openAPIClientWrapper_instance
-  Assumptions.DiscoveryClient_instance
-  Assumptions.ErrGroupDiscoveryFailed_instance
-  Assumptions.ResourcePredicate_instance
-  Assumptions.ResourcePredicateFunc_instance
-  Assumptions.SupportsAllVerbs_instance
+attribute [instance] Assumptions.instance'StaleGroupVersionError
+  Assumptions.instance'DiscoveryInterface
+  Assumptions.instance'DiscoveryInterfaceWithContext
+  Assumptions.instance'DiscoveryInterfaces
+  Assumptions.instance'discoveryInterfaceWrapper
+  Assumptions.instance'AggregatedDiscoveryInterface
+  Assumptions.instance'AggregatedDiscoveryInterfaceWithContext
+  Assumptions.instance'aggregatedDiscoveryInterfaceWrapper
+  Assumptions.instance'CachedDiscoveryInterface
+  Assumptions.instance'CachedDiscoveryInterfaceWithContext
+  Assumptions.instance'cachedDiscoveryInterfaceWrapper
+  Assumptions.instance'ServerGroupsInterface
+  Assumptions.instance'ServerGroupsInterfaceWithContext
+  Assumptions.instance'serverGroupsInterfaceWrapper
+  Assumptions.instance'ServerResourcesInterface
+  Assumptions.instance'ServerResourcesInterfaceWithContext
+  Assumptions.instance'serverResourcesInterfaceWrapper
+  Assumptions.instance'ServerVersionInterface
+  Assumptions.instance'ServerVersionInterfaceWithContext
+  Assumptions.instance'serverVersionInterfaceWrapper
+  Assumptions.instance'OpenAPISchemaInterface
+  Assumptions.instance'OpenAPISchemaInterfaceWithContext
+  Assumptions.instance'openAPISchemaInterfaceWrapper
+  Assumptions.instance'OpenAPIV3SchemaInterface
+  Assumptions.instance'OpenAPIV3SchemaInterfaceWithContext
+  Assumptions.instance'openAPIV3SchemaInterfaceWrapper
+  Assumptions.instance'openAPIClientWrapper
+  Assumptions.instance'DiscoveryClient
+  Assumptions.instance'ErrGroupDiscoveryFailed
+  Assumptions.instance'ResourcePredicate
+  Assumptions.instance'ResourcePredicateFunc
+  Assumptions.instance'SupportsAllVerbs
 
 end k8s_io.client_go.discovery
 

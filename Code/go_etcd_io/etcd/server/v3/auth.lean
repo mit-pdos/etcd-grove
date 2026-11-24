@@ -3612,7 +3612,7 @@ noncomputable def authStore.RoleGrantPermission.impl [GooseExts] [GoGlobalContex
   (App (App (Val (GoInstruction (MethodResolve AuthBatchTx.ty go!"UnsafePutRole"))) (App (Val (GoInstruction (GoLoad AuthBatchTx.ty))) (Var "tx"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert permSlice.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty go!"KeyPermission"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role")))))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty go!"KeyPermission"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role"))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -5307,7 +5307,7 @@ noncomputable instance tokenNop.zero_val [GooseExts] : ZeroVal tokenNop :=
 @[irreducible] noncomputable def tokenNop.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   tokenNop.fieldsUnsealed
 
-noncomputable instance equals_unfold_tokenNop [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'tokenNop [GooseExts] [GoGlobalContext] :
     EqualsUnfold tokenNop.fields tokenNop.fieldsUnsealed :=
   ⟨by unfold tokenNop.fields; rfl⟩
 
@@ -5319,23 +5319,23 @@ class tokenNop.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   underlying : go.UnderlyingDirectedEq tokenNop.ty tokenNop.underlying
   method_set : go.MethodSetIs tokenNop.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType tokenNop.ty) [(go!"go.etcd.io/etcd/server/v3/auth.assign", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.uint64] false [go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.disable", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/auth.enable", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/auth.genTokenPrefix", (some (go.signature.Signature [] false [go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.info", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.uint64] false [(go.GoType.PointerType AuthInfo.ty), go.bool]))), (go!"go.etcd.io/etcd/server/v3/auth.invalidateUser", (some (go.signature.Signature [go.string] false [])))]
-  ptr_assign_unfold : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"assign" tokenNop.assign.impl
-  ptr_disable_unfold : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"disable" tokenNop.disable.impl
-  ptr_enable_unfold : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"enable" tokenNop.enable.impl
-  ptr_genTokenPrefix_unfold : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"genTokenPrefix" tokenNop.genTokenPrefix.impl
-  ptr_info_unfold : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"info" tokenNop.info.impl
-  ptr_invalidateUser_unfold : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"invalidateUser" tokenNop.invalidateUser.impl
+  ptr_unfold'assign : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"assign" tokenNop.assign.impl
+  ptr_unfold'disable : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"disable" tokenNop.disable.impl
+  ptr_unfold'enable : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"enable" tokenNop.enable.impl
+  ptr_unfold'genTokenPrefix : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"genTokenPrefix" tokenNop.genTokenPrefix.impl
+  ptr_unfold'info : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"info" tokenNop.info.impl
+  ptr_unfold'invalidateUser : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"invalidateUser" tokenNop.invalidateUser.impl
 
 attribute [instance] tokenNop.TypeAssumptions.type_repr
   tokenNop.TypeAssumptions.underlying
   tokenNop.TypeAssumptions.method_set
   tokenNop.TypeAssumptions.ptr_method_set
-  tokenNop.TypeAssumptions.ptr_assign_unfold
-  tokenNop.TypeAssumptions.ptr_disable_unfold
-  tokenNop.TypeAssumptions.ptr_enable_unfold
-  tokenNop.TypeAssumptions.ptr_genTokenPrefix_unfold
-  tokenNop.TypeAssumptions.ptr_info_unfold
-  tokenNop.TypeAssumptions.ptr_invalidateUser_unfold
+  tokenNop.TypeAssumptions.ptr_unfold'assign
+  tokenNop.TypeAssumptions.ptr_unfold'disable
+  tokenNop.TypeAssumptions.ptr_unfold'enable
+  tokenNop.TypeAssumptions.ptr_unfold'genTokenPrefix
+  tokenNop.TypeAssumptions.ptr_unfold'info
+  tokenNop.TypeAssumptions.ptr_unfold'invalidateUser
 
 opaque jwtOptions.nonempty_type : NonemptyType.{0}
 def jwtOptions : Type := jwtOptions.nonempty_type.type
@@ -5371,7 +5371,7 @@ noncomputable instance unifiedRangePermissions.zero_val [GooseExts] : ZeroVal un
 @[irreducible] noncomputable def unifiedRangePermissions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   unifiedRangePermissions.fieldsUnsealed
 
-noncomputable instance equals_unfold_unifiedRangePermissions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'unifiedRangePermissions [GooseExts] [GoGlobalContext] :
     EqualsUnfold unifiedRangePermissions.fields unifiedRangePermissions.fieldsUnsealed :=
   ⟨by unfold unifiedRangePermissions.fields; rfl⟩
 
@@ -5381,19 +5381,19 @@ noncomputable instance equals_unfold_unifiedRangePermissions [GooseExts] [GoGlob
 class unifiedRangePermissions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying unifiedRangePermissions.underlying unifiedRangePermissions
   underlying : go.UnderlyingDirectedEq unifiedRangePermissions.ty unifiedRangePermissions.underlying
-  get_readPerms : ∀ (x : unifiedRangePermissions), go.IsGoStepPureDetTagged under (StructFieldGet unifiedRangePermissions.underlying go!"readPerms") #x (Val #(x.readPerms'))
-  set_readPerms : ∀ (x : unifiedRangePermissions) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.IntervalTree), go.IsGoStepPureDetTagged under (StructFieldSet unifiedRangePermissions.underlying go!"readPerms") (PairV #x #y) (Val #(({ x with readPerms' := y } : unifiedRangePermissions)))
-  get_writePerms : ∀ (x : unifiedRangePermissions), go.IsGoStepPureDetTagged under (StructFieldGet unifiedRangePermissions.underlying go!"writePerms") #x (Val #(x.writePerms'))
-  set_writePerms : ∀ (x : unifiedRangePermissions) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.IntervalTree), go.IsGoStepPureDetTagged under (StructFieldSet unifiedRangePermissions.underlying go!"writePerms") (PairV #x #y) (Val #(({ x with writePerms' := y } : unifiedRangePermissions)))
+  get'readPerms : ∀ (x : unifiedRangePermissions), go.IsGoStepPureDetTagged under (StructFieldGet unifiedRangePermissions.underlying go!"readPerms") #x (Val #(x.readPerms'))
+  set'readPerms : ∀ (x : unifiedRangePermissions) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.IntervalTree), go.IsGoStepPureDetTagged under (StructFieldSet unifiedRangePermissions.underlying go!"readPerms") (PairV #x #y) (Val #(({ x with readPerms' := y } : unifiedRangePermissions)))
+  get'writePerms : ∀ (x : unifiedRangePermissions), go.IsGoStepPureDetTagged under (StructFieldGet unifiedRangePermissions.underlying go!"writePerms") #x (Val #(x.writePerms'))
+  set'writePerms : ∀ (x : unifiedRangePermissions) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.IntervalTree), go.IsGoStepPureDetTagged under (StructFieldSet unifiedRangePermissions.underlying go!"writePerms") (PairV #x #y) (Val #(({ x with writePerms' := y } : unifiedRangePermissions)))
   method_set : go.MethodSetIs unifiedRangePermissions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType unifiedRangePermissions.ty) []
 
 attribute [instance] unifiedRangePermissions.TypeAssumptions.type_repr
   unifiedRangePermissions.TypeAssumptions.underlying
-  unifiedRangePermissions.TypeAssumptions.get_readPerms
-  unifiedRangePermissions.TypeAssumptions.set_readPerms
-  unifiedRangePermissions.TypeAssumptions.get_writePerms
-  unifiedRangePermissions.TypeAssumptions.set_writePerms
+  unifiedRangePermissions.TypeAssumptions.get'readPerms
+  unifiedRangePermissions.TypeAssumptions.set'readPerms
+  unifiedRangePermissions.TypeAssumptions.get'writePerms
+  unifiedRangePermissions.TypeAssumptions.set'writePerms
   unifiedRangePermissions.TypeAssumptions.method_set
   unifiedRangePermissions.TypeAssumptions.ptr_method_set
 
@@ -5420,7 +5420,7 @@ noncomputable instance simpleTokenTTLKeeper.zero_val [GooseExts] : ZeroVal simpl
 @[irreducible] noncomputable def simpleTokenTTLKeeper.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   simpleTokenTTLKeeper.fieldsUnsealed
 
-noncomputable instance equals_unfold_simpleTokenTTLKeeper [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'simpleTokenTTLKeeper [GooseExts] [GoGlobalContext] :
     EqualsUnfold simpleTokenTTLKeeper.fields simpleTokenTTLKeeper.fieldsUnsealed :=
   ⟨by unfold simpleTokenTTLKeeper.fields; rfl⟩
 
@@ -5430,47 +5430,47 @@ noncomputable instance equals_unfold_simpleTokenTTLKeeper [GooseExts] [GoGlobalC
 class simpleTokenTTLKeeper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying simpleTokenTTLKeeper.underlying simpleTokenTTLKeeper
   underlying : go.UnderlyingDirectedEq simpleTokenTTLKeeper.ty simpleTokenTTLKeeper.underlying
-  get_tokens : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"tokens") #x (Val #(x.tokens'))
-  set_tokens : ∀ (x : simpleTokenTTLKeeper) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"tokens") (PairV #x #y) (Val #(({ x with tokens' := y } : simpleTokenTTLKeeper)))
-  get_donec : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"donec") #x (Val #(x.donec'))
-  set_donec : ∀ (x : simpleTokenTTLKeeper) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : simpleTokenTTLKeeper)))
-  get_stopc : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"stopc") #x (Val #(x.stopc'))
-  set_stopc : ∀ (x : simpleTokenTTLKeeper) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : simpleTokenTTLKeeper)))
-  get_deleteTokenFunc : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"deleteTokenFunc") #x (Val #(x.deleteTokenFunc'))
-  set_deleteTokenFunc : ∀ (x : simpleTokenTTLKeeper) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"deleteTokenFunc") (PairV #x #y) (Val #(({ x with deleteTokenFunc' := y } : simpleTokenTTLKeeper)))
-  get_mu : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : simpleTokenTTLKeeper) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : simpleTokenTTLKeeper)))
-  get_simpleTokenTTL : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"simpleTokenTTL") #x (Val #(x.simpleTokenTTL'))
-  set_simpleTokenTTL : ∀ (x : simpleTokenTTLKeeper) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"simpleTokenTTL") (PairV #x #y) (Val #(({ x with simpleTokenTTL' := y } : simpleTokenTTLKeeper)))
+  get'tokens : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"tokens") #x (Val #(x.tokens'))
+  set'tokens : ∀ (x : simpleTokenTTLKeeper) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"tokens") (PairV #x #y) (Val #(({ x with tokens' := y } : simpleTokenTTLKeeper)))
+  get'donec : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"donec") #x (Val #(x.donec'))
+  set'donec : ∀ (x : simpleTokenTTLKeeper) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : simpleTokenTTLKeeper)))
+  get'stopc : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"stopc") #x (Val #(x.stopc'))
+  set'stopc : ∀ (x : simpleTokenTTLKeeper) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : simpleTokenTTLKeeper)))
+  get'deleteTokenFunc : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"deleteTokenFunc") #x (Val #(x.deleteTokenFunc'))
+  set'deleteTokenFunc : ∀ (x : simpleTokenTTLKeeper) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"deleteTokenFunc") (PairV #x #y) (Val #(({ x with deleteTokenFunc' := y } : simpleTokenTTLKeeper)))
+  get'mu : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : simpleTokenTTLKeeper) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : simpleTokenTTLKeeper)))
+  get'simpleTokenTTL : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"simpleTokenTTL") #x (Val #(x.simpleTokenTTL'))
+  set'simpleTokenTTL : ∀ (x : simpleTokenTTLKeeper) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"simpleTokenTTL") (PairV #x #y) (Val #(({ x with simpleTokenTTL' := y } : simpleTokenTTLKeeper)))
   method_set : go.MethodSetIs simpleTokenTTLKeeper.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType simpleTokenTTLKeeper.ty) [(go!"go.etcd.io/etcd/server/v3/auth.addSimpleToken", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/auth.deleteSimpleToken", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/auth.resetSimpleToken", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/auth.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/auth.stop", (some (go.signature.Signature [] false [])))]
-  ptr_addSimpleToken_unfold : MethodUnfold (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"addSimpleToken" simpleTokenTTLKeeper.addSimpleToken.impl
-  ptr_deleteSimpleToken_unfold : MethodUnfold (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"deleteSimpleToken" simpleTokenTTLKeeper.deleteSimpleToken.impl
-  ptr_resetSimpleToken_unfold : MethodUnfold (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"resetSimpleToken" simpleTokenTTLKeeper.resetSimpleToken.impl
-  ptr_run_unfold : MethodUnfold (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"run" simpleTokenTTLKeeper.run.impl
-  ptr_stop_unfold : MethodUnfold (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"stop" simpleTokenTTLKeeper.stop.impl
+  ptr_unfold'addSimpleToken : MethodUnfold (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"addSimpleToken" simpleTokenTTLKeeper.addSimpleToken.impl
+  ptr_unfold'deleteSimpleToken : MethodUnfold (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"deleteSimpleToken" simpleTokenTTLKeeper.deleteSimpleToken.impl
+  ptr_unfold'resetSimpleToken : MethodUnfold (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"resetSimpleToken" simpleTokenTTLKeeper.resetSimpleToken.impl
+  ptr_unfold'run : MethodUnfold (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"run" simpleTokenTTLKeeper.run.impl
+  ptr_unfold'stop : MethodUnfold (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"stop" simpleTokenTTLKeeper.stop.impl
 
 attribute [instance] simpleTokenTTLKeeper.TypeAssumptions.type_repr
   simpleTokenTTLKeeper.TypeAssumptions.underlying
-  simpleTokenTTLKeeper.TypeAssumptions.get_tokens
-  simpleTokenTTLKeeper.TypeAssumptions.set_tokens
-  simpleTokenTTLKeeper.TypeAssumptions.get_donec
-  simpleTokenTTLKeeper.TypeAssumptions.set_donec
-  simpleTokenTTLKeeper.TypeAssumptions.get_stopc
-  simpleTokenTTLKeeper.TypeAssumptions.set_stopc
-  simpleTokenTTLKeeper.TypeAssumptions.get_deleteTokenFunc
-  simpleTokenTTLKeeper.TypeAssumptions.set_deleteTokenFunc
-  simpleTokenTTLKeeper.TypeAssumptions.get_mu
-  simpleTokenTTLKeeper.TypeAssumptions.set_mu
-  simpleTokenTTLKeeper.TypeAssumptions.get_simpleTokenTTL
-  simpleTokenTTLKeeper.TypeAssumptions.set_simpleTokenTTL
+  simpleTokenTTLKeeper.TypeAssumptions.get'tokens
+  simpleTokenTTLKeeper.TypeAssumptions.set'tokens
+  simpleTokenTTLKeeper.TypeAssumptions.get'donec
+  simpleTokenTTLKeeper.TypeAssumptions.set'donec
+  simpleTokenTTLKeeper.TypeAssumptions.get'stopc
+  simpleTokenTTLKeeper.TypeAssumptions.set'stopc
+  simpleTokenTTLKeeper.TypeAssumptions.get'deleteTokenFunc
+  simpleTokenTTLKeeper.TypeAssumptions.set'deleteTokenFunc
+  simpleTokenTTLKeeper.TypeAssumptions.get'mu
+  simpleTokenTTLKeeper.TypeAssumptions.set'mu
+  simpleTokenTTLKeeper.TypeAssumptions.get'simpleTokenTTL
+  simpleTokenTTLKeeper.TypeAssumptions.set'simpleTokenTTL
   simpleTokenTTLKeeper.TypeAssumptions.method_set
   simpleTokenTTLKeeper.TypeAssumptions.ptr_method_set
-  simpleTokenTTLKeeper.TypeAssumptions.ptr_addSimpleToken_unfold
-  simpleTokenTTLKeeper.TypeAssumptions.ptr_deleteSimpleToken_unfold
-  simpleTokenTTLKeeper.TypeAssumptions.ptr_resetSimpleToken_unfold
-  simpleTokenTTLKeeper.TypeAssumptions.ptr_run_unfold
-  simpleTokenTTLKeeper.TypeAssumptions.ptr_stop_unfold
+  simpleTokenTTLKeeper.TypeAssumptions.ptr_unfold'addSimpleToken
+  simpleTokenTTLKeeper.TypeAssumptions.ptr_unfold'deleteSimpleToken
+  simpleTokenTTLKeeper.TypeAssumptions.ptr_unfold'resetSimpleToken
+  simpleTokenTTLKeeper.TypeAssumptions.ptr_unfold'run
+  simpleTokenTTLKeeper.TypeAssumptions.ptr_unfold'stop
 
 structure tokenSimple [GooseExts] where
   mk ::
@@ -5495,7 +5495,7 @@ noncomputable instance tokenSimple.zero_val [GooseExts] : ZeroVal tokenSimple :=
 @[irreducible] noncomputable def tokenSimple.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   tokenSimple.fieldsUnsealed
 
-noncomputable instance equals_unfold_tokenSimple [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'tokenSimple [GooseExts] [GoGlobalContext] :
     EqualsUnfold tokenSimple.fields tokenSimple.fieldsUnsealed :=
   ⟨by unfold tokenSimple.fields; rfl⟩
 
@@ -5505,53 +5505,53 @@ noncomputable instance equals_unfold_tokenSimple [GooseExts] [GoGlobalContext] :
 class tokenSimple.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tokenSimple.underlying tokenSimple
   underlying : go.UnderlyingDirectedEq tokenSimple.ty tokenSimple.underlying
-  get_lg : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : tokenSimple) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : tokenSimple)))
-  get_indexWaiter : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"indexWaiter") #x (Val #(x.indexWaiter'))
-  set_indexWaiter : ∀ (x : tokenSimple) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"indexWaiter") (PairV #x #y) (Val #(({ x with indexWaiter' := y } : tokenSimple)))
-  get_simpleTokenKeeper : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"simpleTokenKeeper") #x (Val #(x.simpleTokenKeeper'))
-  set_simpleTokenKeeper : ∀ (x : tokenSimple) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"simpleTokenKeeper") (PairV #x #y) (Val #(({ x with simpleTokenKeeper' := y } : tokenSimple)))
-  get_simpleTokensMu : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"simpleTokensMu") #x (Val #(x.simpleTokensMu'))
-  set_simpleTokensMu : ∀ (x : tokenSimple) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"simpleTokensMu") (PairV #x #y) (Val #(({ x with simpleTokensMu' := y } : tokenSimple)))
-  get_simpleTokens : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"simpleTokens") #x (Val #(x.simpleTokens'))
-  set_simpleTokens : ∀ (x : tokenSimple) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"simpleTokens") (PairV #x #y) (Val #(({ x with simpleTokens' := y } : tokenSimple)))
-  get_simpleTokenTTL : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"simpleTokenTTL") #x (Val #(x.simpleTokenTTL'))
-  set_simpleTokenTTL : ∀ (x : tokenSimple) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"simpleTokenTTL") (PairV #x #y) (Val #(({ x with simpleTokenTTL' := y } : tokenSimple)))
+  get'lg : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : tokenSimple) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : tokenSimple)))
+  get'indexWaiter : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"indexWaiter") #x (Val #(x.indexWaiter'))
+  set'indexWaiter : ∀ (x : tokenSimple) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"indexWaiter") (PairV #x #y) (Val #(({ x with indexWaiter' := y } : tokenSimple)))
+  get'simpleTokenKeeper : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"simpleTokenKeeper") #x (Val #(x.simpleTokenKeeper'))
+  set'simpleTokenKeeper : ∀ (x : tokenSimple) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"simpleTokenKeeper") (PairV #x #y) (Val #(({ x with simpleTokenKeeper' := y } : tokenSimple)))
+  get'simpleTokensMu : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"simpleTokensMu") #x (Val #(x.simpleTokensMu'))
+  set'simpleTokensMu : ∀ (x : tokenSimple) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"simpleTokensMu") (PairV #x #y) (Val #(({ x with simpleTokensMu' := y } : tokenSimple)))
+  get'simpleTokens : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"simpleTokens") #x (Val #(x.simpleTokens'))
+  set'simpleTokens : ∀ (x : tokenSimple) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"simpleTokens") (PairV #x #y) (Val #(({ x with simpleTokens' := y } : tokenSimple)))
+  get'simpleTokenTTL : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"simpleTokenTTL") #x (Val #(x.simpleTokenTTL'))
+  set'simpleTokenTTL : ∀ (x : tokenSimple) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"simpleTokenTTL") (PairV #x #y) (Val #(({ x with simpleTokenTTL' := y } : tokenSimple)))
   method_set : go.MethodSetIs tokenSimple.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType tokenSimple.ty) [(go!"go.etcd.io/etcd/server/v3/auth.assign", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.uint64] false [go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.assignSimpleTokenToUser", (some (go.signature.Signature [go.string, go.string] false []))), (go!"go.etcd.io/etcd/server/v3/auth.disable", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/auth.enable", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/auth.genTokenPrefix", (some (go.signature.Signature [] false [go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.info", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.uint64] false [(go.GoType.PointerType AuthInfo.ty), go.bool]))), (go!"go.etcd.io/etcd/server/v3/auth.invalidateUser", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/auth.isValidSimpleToken", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [go.bool])))]
-  ptr_assign_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"assign" tokenSimple.assign.impl
-  ptr_assignSimpleTokenToUser_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"assignSimpleTokenToUser" tokenSimple.assignSimpleTokenToUser.impl
-  ptr_disable_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"disable" tokenSimple.disable.impl
-  ptr_enable_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"enable" tokenSimple.enable.impl
-  ptr_genTokenPrefix_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"genTokenPrefix" tokenSimple.genTokenPrefix.impl
-  ptr_info_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"info" tokenSimple.info.impl
-  ptr_invalidateUser_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"invalidateUser" tokenSimple.invalidateUser.impl
-  ptr_isValidSimpleToken_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"isValidSimpleToken" tokenSimple.isValidSimpleToken.impl
+  ptr_unfold'assign : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"assign" tokenSimple.assign.impl
+  ptr_unfold'assignSimpleTokenToUser : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"assignSimpleTokenToUser" tokenSimple.assignSimpleTokenToUser.impl
+  ptr_unfold'disable : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"disable" tokenSimple.disable.impl
+  ptr_unfold'enable : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"enable" tokenSimple.enable.impl
+  ptr_unfold'genTokenPrefix : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"genTokenPrefix" tokenSimple.genTokenPrefix.impl
+  ptr_unfold'info : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"info" tokenSimple.info.impl
+  ptr_unfold'invalidateUser : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"invalidateUser" tokenSimple.invalidateUser.impl
+  ptr_unfold'isValidSimpleToken : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"isValidSimpleToken" tokenSimple.isValidSimpleToken.impl
 
 attribute [instance] tokenSimple.TypeAssumptions.type_repr
   tokenSimple.TypeAssumptions.underlying
-  tokenSimple.TypeAssumptions.get_lg
-  tokenSimple.TypeAssumptions.set_lg
-  tokenSimple.TypeAssumptions.get_indexWaiter
-  tokenSimple.TypeAssumptions.set_indexWaiter
-  tokenSimple.TypeAssumptions.get_simpleTokenKeeper
-  tokenSimple.TypeAssumptions.set_simpleTokenKeeper
-  tokenSimple.TypeAssumptions.get_simpleTokensMu
-  tokenSimple.TypeAssumptions.set_simpleTokensMu
-  tokenSimple.TypeAssumptions.get_simpleTokens
-  tokenSimple.TypeAssumptions.set_simpleTokens
-  tokenSimple.TypeAssumptions.get_simpleTokenTTL
-  tokenSimple.TypeAssumptions.set_simpleTokenTTL
+  tokenSimple.TypeAssumptions.get'lg
+  tokenSimple.TypeAssumptions.set'lg
+  tokenSimple.TypeAssumptions.get'indexWaiter
+  tokenSimple.TypeAssumptions.set'indexWaiter
+  tokenSimple.TypeAssumptions.get'simpleTokenKeeper
+  tokenSimple.TypeAssumptions.set'simpleTokenKeeper
+  tokenSimple.TypeAssumptions.get'simpleTokensMu
+  tokenSimple.TypeAssumptions.set'simpleTokensMu
+  tokenSimple.TypeAssumptions.get'simpleTokens
+  tokenSimple.TypeAssumptions.set'simpleTokens
+  tokenSimple.TypeAssumptions.get'simpleTokenTTL
+  tokenSimple.TypeAssumptions.set'simpleTokenTTL
   tokenSimple.TypeAssumptions.method_set
   tokenSimple.TypeAssumptions.ptr_method_set
-  tokenSimple.TypeAssumptions.ptr_assign_unfold
-  tokenSimple.TypeAssumptions.ptr_assignSimpleTokenToUser_unfold
-  tokenSimple.TypeAssumptions.ptr_disable_unfold
-  tokenSimple.TypeAssumptions.ptr_enable_unfold
-  tokenSimple.TypeAssumptions.ptr_genTokenPrefix_unfold
-  tokenSimple.TypeAssumptions.ptr_info_unfold
-  tokenSimple.TypeAssumptions.ptr_invalidateUser_unfold
-  tokenSimple.TypeAssumptions.ptr_isValidSimpleToken_unfold
+  tokenSimple.TypeAssumptions.ptr_unfold'assign
+  tokenSimple.TypeAssumptions.ptr_unfold'assignSimpleTokenToUser
+  tokenSimple.TypeAssumptions.ptr_unfold'disable
+  tokenSimple.TypeAssumptions.ptr_unfold'enable
+  tokenSimple.TypeAssumptions.ptr_unfold'genTokenPrefix
+  tokenSimple.TypeAssumptions.ptr_unfold'info
+  tokenSimple.TypeAssumptions.ptr_unfold'invalidateUser
+  tokenSimple.TypeAssumptions.ptr_unfold'isValidSimpleToken
 
 structure AuthInfo [GooseExts] where
   mk ::
@@ -5568,7 +5568,7 @@ noncomputable instance AuthInfo.zero_val [GooseExts] : ZeroVal AuthInfo :=
 @[irreducible] noncomputable def AuthInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AuthInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_AuthInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'AuthInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold AuthInfo.fields AuthInfo.fieldsUnsealed :=
   ⟨by unfold AuthInfo.fields; rfl⟩
 
@@ -5578,19 +5578,19 @@ noncomputable instance equals_unfold_AuthInfo [GooseExts] [GoGlobalContext] :
 class AuthInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthInfo.underlying AuthInfo
   underlying : go.UnderlyingDirectedEq AuthInfo.ty AuthInfo.underlying
-  get_Username : ∀ (x : AuthInfo), go.IsGoStepPureDetTagged under (StructFieldGet AuthInfo.underlying go!"Username") #x (Val #(x.Username'))
-  set_Username : ∀ (x : AuthInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthInfo.underlying go!"Username") (PairV #x #y) (Val #(({ x with Username' := y } : AuthInfo)))
-  get_Revision : ∀ (x : AuthInfo), go.IsGoStepPureDetTagged under (StructFieldGet AuthInfo.underlying go!"Revision") #x (Val #(x.Revision'))
-  set_Revision : ∀ (x : AuthInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet AuthInfo.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : AuthInfo)))
+  get'Username : ∀ (x : AuthInfo), go.IsGoStepPureDetTagged under (StructFieldGet AuthInfo.underlying go!"Username") #x (Val #(x.Username'))
+  set'Username : ∀ (x : AuthInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthInfo.underlying go!"Username") (PairV #x #y) (Val #(({ x with Username' := y } : AuthInfo)))
+  get'Revision : ∀ (x : AuthInfo), go.IsGoStepPureDetTagged under (StructFieldGet AuthInfo.underlying go!"Revision") #x (Val #(x.Revision'))
+  set'Revision : ∀ (x : AuthInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet AuthInfo.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : AuthInfo)))
   method_set : go.MethodSetIs AuthInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthInfo.ty) []
 
 attribute [instance] AuthInfo.TypeAssumptions.type_repr
   AuthInfo.TypeAssumptions.underlying
-  AuthInfo.TypeAssumptions.get_Username
-  AuthInfo.TypeAssumptions.set_Username
-  AuthInfo.TypeAssumptions.get_Revision
-  AuthInfo.TypeAssumptions.set_Revision
+  AuthInfo.TypeAssumptions.get'Username
+  AuthInfo.TypeAssumptions.set'Username
+  AuthInfo.TypeAssumptions.get'Revision
+  AuthInfo.TypeAssumptions.set'Revision
   AuthInfo.TypeAssumptions.method_set
   AuthInfo.TypeAssumptions.ptr_method_set
 
@@ -5606,7 +5606,7 @@ noncomputable instance AuthenticateParamIndex.zero_val [GooseExts] : ZeroVal Aut
 @[irreducible] noncomputable def AuthenticateParamIndex.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AuthenticateParamIndex.fieldsUnsealed
 
-noncomputable instance equals_unfold_AuthenticateParamIndex [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'AuthenticateParamIndex [GooseExts] [GoGlobalContext] :
     EqualsUnfold AuthenticateParamIndex.fields AuthenticateParamIndex.fieldsUnsealed :=
   ⟨by unfold AuthenticateParamIndex.fields; rfl⟩
 
@@ -5636,7 +5636,7 @@ noncomputable instance AuthenticateParamSimpleTokenPrefix.zero_val [GooseExts] :
 @[irreducible] noncomputable def AuthenticateParamSimpleTokenPrefix.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AuthenticateParamSimpleTokenPrefix.fieldsUnsealed
 
-noncomputable instance equals_unfold_AuthenticateParamSimpleTokenPrefix [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'AuthenticateParamSimpleTokenPrefix [GooseExts] [GoGlobalContext] :
     EqualsUnfold AuthenticateParamSimpleTokenPrefix.fields AuthenticateParamSimpleTokenPrefix.fieldsUnsealed :=
   ⟨by unfold AuthenticateParamSimpleTokenPrefix.fields; rfl⟩
 
@@ -5797,7 +5797,7 @@ noncomputable instance authStore.zero_val [GooseExts] : ZeroVal authStore :=
 @[irreducible] noncomputable def authStore.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   authStore.fieldsUnsealed
 
-noncomputable instance equals_unfold_authStore [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'authStore [GooseExts] [GoGlobalContext] :
     EqualsUnfold authStore.fields authStore.fieldsUnsealed :=
   ⟨by unfold authStore.fields; rfl⟩
 
@@ -5807,131 +5807,131 @@ noncomputable instance equals_unfold_authStore [GooseExts] [GoGlobalContext] :
 class authStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying authStore.underlying authStore
   underlying : go.UnderlyingDirectedEq authStore.ty authStore.underlying
-  get_revision : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"revision") #x (Val #(x.revision'))
-  set_revision : ∀ (x : authStore) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"revision") (PairV #x #y) (Val #(({ x with revision' := y } : authStore)))
-  get_lg : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : authStore) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : authStore)))
-  get_be : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"be") #x (Val #(x.be'))
-  set_be : ∀ (x : authStore) (y : AuthBackend), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : authStore)))
-  get_enabled : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"enabled") #x (Val #(x.enabled'))
-  set_enabled : ∀ (x : authStore) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"enabled") (PairV #x #y) (Val #(({ x with enabled' := y } : authStore)))
-  get_enabledMu : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"enabledMu") #x (Val #(x.enabledMu'))
-  set_enabledMu : ∀ (x : authStore) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"enabledMu") (PairV #x #y) (Val #(({ x with enabledMu' := y } : authStore)))
-  get_beMu : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"beMu") #x (Val #(x.beMu'))
-  set_beMu : ∀ (x : authStore) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"beMu") (PairV #x #y) (Val #(({ x with beMu' := y } : authStore)))
-  get_rangePermCache : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"rangePermCache") #x (Val #(x.rangePermCache'))
-  set_rangePermCache : ∀ (x : authStore) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"rangePermCache") (PairV #x #y) (Val #(({ x with rangePermCache' := y } : authStore)))
-  get_rangePermCacheMu : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"rangePermCacheMu") #x (Val #(x.rangePermCacheMu'))
-  set_rangePermCacheMu : ∀ (x : authStore) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"rangePermCacheMu") (PairV #x #y) (Val #(({ x with rangePermCacheMu' := y } : authStore)))
-  get_tokenProvider : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"tokenProvider") #x (Val #(x.tokenProvider'))
-  set_tokenProvider : ∀ (x : authStore) (y : TokenProvider), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"tokenProvider") (PairV #x #y) (Val #(({ x with tokenProvider' := y } : authStore)))
-  get_bcryptCost : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"bcryptCost") #x (Val #(x.bcryptCost'))
-  set_bcryptCost : ∀ (x : authStore) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"bcryptCost") (PairV #x #y) (Val #(({ x with bcryptCost' := y } : authStore)))
+  get'revision : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"revision") #x (Val #(x.revision'))
+  set'revision : ∀ (x : authStore) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"revision") (PairV #x #y) (Val #(({ x with revision' := y } : authStore)))
+  get'lg : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : authStore) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : authStore)))
+  get'be : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"be") #x (Val #(x.be'))
+  set'be : ∀ (x : authStore) (y : AuthBackend), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : authStore)))
+  get'enabled : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"enabled") #x (Val #(x.enabled'))
+  set'enabled : ∀ (x : authStore) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"enabled") (PairV #x #y) (Val #(({ x with enabled' := y } : authStore)))
+  get'enabledMu : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"enabledMu") #x (Val #(x.enabledMu'))
+  set'enabledMu : ∀ (x : authStore) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"enabledMu") (PairV #x #y) (Val #(({ x with enabledMu' := y } : authStore)))
+  get'beMu : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"beMu") #x (Val #(x.beMu'))
+  set'beMu : ∀ (x : authStore) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"beMu") (PairV #x #y) (Val #(({ x with beMu' := y } : authStore)))
+  get'rangePermCache : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"rangePermCache") #x (Val #(x.rangePermCache'))
+  set'rangePermCache : ∀ (x : authStore) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"rangePermCache") (PairV #x #y) (Val #(({ x with rangePermCache' := y } : authStore)))
+  get'rangePermCacheMu : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"rangePermCacheMu") #x (Val #(x.rangePermCacheMu'))
+  set'rangePermCacheMu : ∀ (x : authStore) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"rangePermCacheMu") (PairV #x #y) (Val #(({ x with rangePermCacheMu' := y } : authStore)))
+  get'tokenProvider : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"tokenProvider") #x (Val #(x.tokenProvider'))
+  set'tokenProvider : ∀ (x : authStore) (y : TokenProvider), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"tokenProvider") (PairV #x #y) (Val #(({ x with tokenProvider' := y } : authStore)))
+  get'bcryptCost : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"bcryptCost") #x (Val #(x.bcryptCost'))
+  set'bcryptCost : ∀ (x : authStore) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"bcryptCost") (PairV #x #y) (Val #(({ x with bcryptCost' := y } : authStore)))
   method_set : go.MethodSetIs authStore.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType authStore.ty) [(go!"AuthDisable", (some (go.signature.Signature [] false []))), (go!"AuthEnable", (some (go.signature.Signature [] false [go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthInfo.ty), go.error]))), (go!"AuthInfoFromTLS", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthInfo.ty)]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"BcryptCost", (some (go.signature.Signature [] false [go.int]))), (go!"CheckPassword", (some (go.signature.Signature [go.string, go.string] false [go.uint64, go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"GenTokenPrefix", (some (go.signature.Signature [] false [go.string, go.error]))), (go!"HasRole", (some (go.signature.Signature [go.string, go.string] false [go.bool]))), (go!"IsAdminPermitted", (some (go.signature.Signature [(go.GoType.PointerType AuthInfo.ty)] false [go.error]))), (go!"IsAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeleteRangePermitted", (some (go.signature.Signature [(go.GoType.PointerType AuthInfo.ty), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"IsPutPermitted", (some (go.signature.Signature [(go.GoType.PointerType AuthInfo.ty), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"IsRangePermitted", (some (go.signature.Signature [(go.GoType.PointerType AuthInfo.ty), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"Recover", (some (go.signature.Signature [AuthBackend.ty] false []))), (go!"Revision", (some (go.signature.Signature [] false [go.uint64]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"WithRoot", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.context.Context.ty]))), (go!"go.etcd.io/etcd/server/v3/auth.authInfoFromToken", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthInfo.ty), go.bool]))), (go!"go.etcd.io/etcd/server/v3/auth.commitRevision", (some (go.signature.Signature [UnsafeAuthWriter.ty] false []))), (go!"go.etcd.io/etcd/server/v3/auth.isOpPermitted", (some (go.signature.Signature [go.string, go.uint64, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_Type.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.isRangeOpPermitted", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_Type.ty] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/auth.lockedReadTx", (some (go.signature.Signature [] false [AuthReadTx.ty]))), (go!"go.etcd.io/etcd/server/v3/auth.refreshRangePermCache", (some (go.signature.Signature [UnsafeAuthReader.ty] false []))), (go!"go.etcd.io/etcd/server/v3/auth.selectPassword", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.byte), go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.setRevision", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/auth.setupMetricsReporter", (some (go.signature.Signature [] false [])))]
-  ptr_AuthDisable_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"AuthDisable" authStore.AuthDisable.impl
-  ptr_AuthEnable_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"AuthEnable" authStore.AuthEnable.impl
-  ptr_AuthInfoFromCtx_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"AuthInfoFromCtx" authStore.AuthInfoFromCtx.impl
-  ptr_Authenticate_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"Authenticate" authStore.Authenticate.impl
-  ptr_BcryptCost_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"BcryptCost" authStore.BcryptCost.impl
-  ptr_CheckPassword_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"CheckPassword" authStore.CheckPassword.impl
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"Close" authStore.Close.impl
-  ptr_GenTokenPrefix_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"GenTokenPrefix" authStore.GenTokenPrefix.impl
-  ptr_HasRole_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"HasRole" authStore.HasRole.impl
-  ptr_IsAdminPermitted_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"IsAdminPermitted" authStore.IsAdminPermitted.impl
-  ptr_IsAuthEnabled_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"IsAuthEnabled" authStore.IsAuthEnabled.impl
-  ptr_IsDeleteRangePermitted_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"IsDeleteRangePermitted" authStore.IsDeleteRangePermitted.impl
-  ptr_IsPutPermitted_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"IsPutPermitted" authStore.IsPutPermitted.impl
-  ptr_IsRangePermitted_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"IsRangePermitted" authStore.IsRangePermitted.impl
-  ptr_Recover_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"Recover" authStore.Recover.impl
-  ptr_Revision_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"Revision" authStore.Revision.impl
-  ptr_RoleAdd_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"RoleAdd" authStore.RoleAdd.impl
-  ptr_RoleDelete_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"RoleDelete" authStore.RoleDelete.impl
-  ptr_RoleGet_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"RoleGet" authStore.RoleGet.impl
-  ptr_RoleGrantPermission_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"RoleGrantPermission" authStore.RoleGrantPermission.impl
-  ptr_RoleList_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"RoleList" authStore.RoleList.impl
-  ptr_RoleRevokePermission_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"RoleRevokePermission" authStore.RoleRevokePermission.impl
-  ptr_UserAdd_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserAdd" authStore.UserAdd.impl
-  ptr_UserChangePassword_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserChangePassword" authStore.UserChangePassword.impl
-  ptr_UserDelete_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserDelete" authStore.UserDelete.impl
-  ptr_UserGet_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserGet" authStore.UserGet.impl
-  ptr_UserGrantRole_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserGrantRole" authStore.UserGrantRole.impl
-  ptr_UserList_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserList" authStore.UserList.impl
-  ptr_UserRevokeRole_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserRevokeRole" authStore.UserRevokeRole.impl
-  ptr_WithRoot_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"WithRoot" authStore.WithRoot.impl
-  ptr_authInfoFromToken_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"authInfoFromToken" authStore.authInfoFromToken.impl
-  ptr_commitRevision_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"commitRevision" authStore.commitRevision.impl
-  ptr_isOpPermitted_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"isOpPermitted" authStore.isOpPermitted.impl
-  ptr_isRangeOpPermitted_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"isRangeOpPermitted" authStore.isRangeOpPermitted.impl
-  ptr_lockedReadTx_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"lockedReadTx" authStore.lockedReadTx.impl
-  ptr_refreshRangePermCache_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"refreshRangePermCache" authStore.refreshRangePermCache.impl
-  ptr_selectPassword_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"selectPassword" authStore.selectPassword.impl
-  ptr_setRevision_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"setRevision" authStore.setRevision.impl
-  ptr_setupMetricsReporter_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"setupMetricsReporter" authStore.setupMetricsReporter.impl
+  ptr_unfold'AuthDisable : MethodUnfold (go.GoType.PointerType authStore.ty) go!"AuthDisable" authStore.AuthDisable.impl
+  ptr_unfold'AuthEnable : MethodUnfold (go.GoType.PointerType authStore.ty) go!"AuthEnable" authStore.AuthEnable.impl
+  ptr_unfold'AuthInfoFromCtx : MethodUnfold (go.GoType.PointerType authStore.ty) go!"AuthInfoFromCtx" authStore.AuthInfoFromCtx.impl
+  ptr_unfold'Authenticate : MethodUnfold (go.GoType.PointerType authStore.ty) go!"Authenticate" authStore.Authenticate.impl
+  ptr_unfold'BcryptCost : MethodUnfold (go.GoType.PointerType authStore.ty) go!"BcryptCost" authStore.BcryptCost.impl
+  ptr_unfold'CheckPassword : MethodUnfold (go.GoType.PointerType authStore.ty) go!"CheckPassword" authStore.CheckPassword.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType authStore.ty) go!"Close" authStore.Close.impl
+  ptr_unfold'GenTokenPrefix : MethodUnfold (go.GoType.PointerType authStore.ty) go!"GenTokenPrefix" authStore.GenTokenPrefix.impl
+  ptr_unfold'HasRole : MethodUnfold (go.GoType.PointerType authStore.ty) go!"HasRole" authStore.HasRole.impl
+  ptr_unfold'IsAdminPermitted : MethodUnfold (go.GoType.PointerType authStore.ty) go!"IsAdminPermitted" authStore.IsAdminPermitted.impl
+  ptr_unfold'IsAuthEnabled : MethodUnfold (go.GoType.PointerType authStore.ty) go!"IsAuthEnabled" authStore.IsAuthEnabled.impl
+  ptr_unfold'IsDeleteRangePermitted : MethodUnfold (go.GoType.PointerType authStore.ty) go!"IsDeleteRangePermitted" authStore.IsDeleteRangePermitted.impl
+  ptr_unfold'IsPutPermitted : MethodUnfold (go.GoType.PointerType authStore.ty) go!"IsPutPermitted" authStore.IsPutPermitted.impl
+  ptr_unfold'IsRangePermitted : MethodUnfold (go.GoType.PointerType authStore.ty) go!"IsRangePermitted" authStore.IsRangePermitted.impl
+  ptr_unfold'Recover : MethodUnfold (go.GoType.PointerType authStore.ty) go!"Recover" authStore.Recover.impl
+  ptr_unfold'Revision : MethodUnfold (go.GoType.PointerType authStore.ty) go!"Revision" authStore.Revision.impl
+  ptr_unfold'RoleAdd : MethodUnfold (go.GoType.PointerType authStore.ty) go!"RoleAdd" authStore.RoleAdd.impl
+  ptr_unfold'RoleDelete : MethodUnfold (go.GoType.PointerType authStore.ty) go!"RoleDelete" authStore.RoleDelete.impl
+  ptr_unfold'RoleGet : MethodUnfold (go.GoType.PointerType authStore.ty) go!"RoleGet" authStore.RoleGet.impl
+  ptr_unfold'RoleGrantPermission : MethodUnfold (go.GoType.PointerType authStore.ty) go!"RoleGrantPermission" authStore.RoleGrantPermission.impl
+  ptr_unfold'RoleList : MethodUnfold (go.GoType.PointerType authStore.ty) go!"RoleList" authStore.RoleList.impl
+  ptr_unfold'RoleRevokePermission : MethodUnfold (go.GoType.PointerType authStore.ty) go!"RoleRevokePermission" authStore.RoleRevokePermission.impl
+  ptr_unfold'UserAdd : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserAdd" authStore.UserAdd.impl
+  ptr_unfold'UserChangePassword : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserChangePassword" authStore.UserChangePassword.impl
+  ptr_unfold'UserDelete : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserDelete" authStore.UserDelete.impl
+  ptr_unfold'UserGet : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserGet" authStore.UserGet.impl
+  ptr_unfold'UserGrantRole : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserGrantRole" authStore.UserGrantRole.impl
+  ptr_unfold'UserList : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserList" authStore.UserList.impl
+  ptr_unfold'UserRevokeRole : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserRevokeRole" authStore.UserRevokeRole.impl
+  ptr_unfold'WithRoot : MethodUnfold (go.GoType.PointerType authStore.ty) go!"WithRoot" authStore.WithRoot.impl
+  ptr_unfold'authInfoFromToken : MethodUnfold (go.GoType.PointerType authStore.ty) go!"authInfoFromToken" authStore.authInfoFromToken.impl
+  ptr_unfold'commitRevision : MethodUnfold (go.GoType.PointerType authStore.ty) go!"commitRevision" authStore.commitRevision.impl
+  ptr_unfold'isOpPermitted : MethodUnfold (go.GoType.PointerType authStore.ty) go!"isOpPermitted" authStore.isOpPermitted.impl
+  ptr_unfold'isRangeOpPermitted : MethodUnfold (go.GoType.PointerType authStore.ty) go!"isRangeOpPermitted" authStore.isRangeOpPermitted.impl
+  ptr_unfold'lockedReadTx : MethodUnfold (go.GoType.PointerType authStore.ty) go!"lockedReadTx" authStore.lockedReadTx.impl
+  ptr_unfold'refreshRangePermCache : MethodUnfold (go.GoType.PointerType authStore.ty) go!"refreshRangePermCache" authStore.refreshRangePermCache.impl
+  ptr_unfold'selectPassword : MethodUnfold (go.GoType.PointerType authStore.ty) go!"selectPassword" authStore.selectPassword.impl
+  ptr_unfold'setRevision : MethodUnfold (go.GoType.PointerType authStore.ty) go!"setRevision" authStore.setRevision.impl
+  ptr_unfold'setupMetricsReporter : MethodUnfold (go.GoType.PointerType authStore.ty) go!"setupMetricsReporter" authStore.setupMetricsReporter.impl
 
 attribute [instance] authStore.TypeAssumptions.type_repr
   authStore.TypeAssumptions.underlying
-  authStore.TypeAssumptions.get_revision
-  authStore.TypeAssumptions.set_revision
-  authStore.TypeAssumptions.get_lg
-  authStore.TypeAssumptions.set_lg
-  authStore.TypeAssumptions.get_be
-  authStore.TypeAssumptions.set_be
-  authStore.TypeAssumptions.get_enabled
-  authStore.TypeAssumptions.set_enabled
-  authStore.TypeAssumptions.get_enabledMu
-  authStore.TypeAssumptions.set_enabledMu
-  authStore.TypeAssumptions.get_beMu
-  authStore.TypeAssumptions.set_beMu
-  authStore.TypeAssumptions.get_rangePermCache
-  authStore.TypeAssumptions.set_rangePermCache
-  authStore.TypeAssumptions.get_rangePermCacheMu
-  authStore.TypeAssumptions.set_rangePermCacheMu
-  authStore.TypeAssumptions.get_tokenProvider
-  authStore.TypeAssumptions.set_tokenProvider
-  authStore.TypeAssumptions.get_bcryptCost
-  authStore.TypeAssumptions.set_bcryptCost
+  authStore.TypeAssumptions.get'revision
+  authStore.TypeAssumptions.set'revision
+  authStore.TypeAssumptions.get'lg
+  authStore.TypeAssumptions.set'lg
+  authStore.TypeAssumptions.get'be
+  authStore.TypeAssumptions.set'be
+  authStore.TypeAssumptions.get'enabled
+  authStore.TypeAssumptions.set'enabled
+  authStore.TypeAssumptions.get'enabledMu
+  authStore.TypeAssumptions.set'enabledMu
+  authStore.TypeAssumptions.get'beMu
+  authStore.TypeAssumptions.set'beMu
+  authStore.TypeAssumptions.get'rangePermCache
+  authStore.TypeAssumptions.set'rangePermCache
+  authStore.TypeAssumptions.get'rangePermCacheMu
+  authStore.TypeAssumptions.set'rangePermCacheMu
+  authStore.TypeAssumptions.get'tokenProvider
+  authStore.TypeAssumptions.set'tokenProvider
+  authStore.TypeAssumptions.get'bcryptCost
+  authStore.TypeAssumptions.set'bcryptCost
   authStore.TypeAssumptions.method_set
   authStore.TypeAssumptions.ptr_method_set
-  authStore.TypeAssumptions.ptr_AuthDisable_unfold
-  authStore.TypeAssumptions.ptr_AuthEnable_unfold
-  authStore.TypeAssumptions.ptr_AuthInfoFromCtx_unfold
-  authStore.TypeAssumptions.ptr_Authenticate_unfold
-  authStore.TypeAssumptions.ptr_BcryptCost_unfold
-  authStore.TypeAssumptions.ptr_CheckPassword_unfold
-  authStore.TypeAssumptions.ptr_Close_unfold
-  authStore.TypeAssumptions.ptr_GenTokenPrefix_unfold
-  authStore.TypeAssumptions.ptr_HasRole_unfold
-  authStore.TypeAssumptions.ptr_IsAdminPermitted_unfold
-  authStore.TypeAssumptions.ptr_IsAuthEnabled_unfold
-  authStore.TypeAssumptions.ptr_IsDeleteRangePermitted_unfold
-  authStore.TypeAssumptions.ptr_IsPutPermitted_unfold
-  authStore.TypeAssumptions.ptr_IsRangePermitted_unfold
-  authStore.TypeAssumptions.ptr_Recover_unfold
-  authStore.TypeAssumptions.ptr_Revision_unfold
-  authStore.TypeAssumptions.ptr_RoleAdd_unfold
-  authStore.TypeAssumptions.ptr_RoleDelete_unfold
-  authStore.TypeAssumptions.ptr_RoleGet_unfold
-  authStore.TypeAssumptions.ptr_RoleGrantPermission_unfold
-  authStore.TypeAssumptions.ptr_RoleList_unfold
-  authStore.TypeAssumptions.ptr_RoleRevokePermission_unfold
-  authStore.TypeAssumptions.ptr_UserAdd_unfold
-  authStore.TypeAssumptions.ptr_UserChangePassword_unfold
-  authStore.TypeAssumptions.ptr_UserDelete_unfold
-  authStore.TypeAssumptions.ptr_UserGet_unfold
-  authStore.TypeAssumptions.ptr_UserGrantRole_unfold
-  authStore.TypeAssumptions.ptr_UserList_unfold
-  authStore.TypeAssumptions.ptr_UserRevokeRole_unfold
-  authStore.TypeAssumptions.ptr_WithRoot_unfold
-  authStore.TypeAssumptions.ptr_authInfoFromToken_unfold
-  authStore.TypeAssumptions.ptr_commitRevision_unfold
-  authStore.TypeAssumptions.ptr_isOpPermitted_unfold
-  authStore.TypeAssumptions.ptr_isRangeOpPermitted_unfold
-  authStore.TypeAssumptions.ptr_lockedReadTx_unfold
-  authStore.TypeAssumptions.ptr_refreshRangePermCache_unfold
-  authStore.TypeAssumptions.ptr_selectPassword_unfold
-  authStore.TypeAssumptions.ptr_setRevision_unfold
-  authStore.TypeAssumptions.ptr_setupMetricsReporter_unfold
+  authStore.TypeAssumptions.ptr_unfold'AuthDisable
+  authStore.TypeAssumptions.ptr_unfold'AuthEnable
+  authStore.TypeAssumptions.ptr_unfold'AuthInfoFromCtx
+  authStore.TypeAssumptions.ptr_unfold'Authenticate
+  authStore.TypeAssumptions.ptr_unfold'BcryptCost
+  authStore.TypeAssumptions.ptr_unfold'CheckPassword
+  authStore.TypeAssumptions.ptr_unfold'Close
+  authStore.TypeAssumptions.ptr_unfold'GenTokenPrefix
+  authStore.TypeAssumptions.ptr_unfold'HasRole
+  authStore.TypeAssumptions.ptr_unfold'IsAdminPermitted
+  authStore.TypeAssumptions.ptr_unfold'IsAuthEnabled
+  authStore.TypeAssumptions.ptr_unfold'IsDeleteRangePermitted
+  authStore.TypeAssumptions.ptr_unfold'IsPutPermitted
+  authStore.TypeAssumptions.ptr_unfold'IsRangePermitted
+  authStore.TypeAssumptions.ptr_unfold'Recover
+  authStore.TypeAssumptions.ptr_unfold'Revision
+  authStore.TypeAssumptions.ptr_unfold'RoleAdd
+  authStore.TypeAssumptions.ptr_unfold'RoleDelete
+  authStore.TypeAssumptions.ptr_unfold'RoleGet
+  authStore.TypeAssumptions.ptr_unfold'RoleGrantPermission
+  authStore.TypeAssumptions.ptr_unfold'RoleList
+  authStore.TypeAssumptions.ptr_unfold'RoleRevokePermission
+  authStore.TypeAssumptions.ptr_unfold'UserAdd
+  authStore.TypeAssumptions.ptr_unfold'UserChangePassword
+  authStore.TypeAssumptions.ptr_unfold'UserDelete
+  authStore.TypeAssumptions.ptr_unfold'UserGet
+  authStore.TypeAssumptions.ptr_unfold'UserGrantRole
+  authStore.TypeAssumptions.ptr_unfold'UserList
+  authStore.TypeAssumptions.ptr_unfold'UserRevokeRole
+  authStore.TypeAssumptions.ptr_unfold'WithRoot
+  authStore.TypeAssumptions.ptr_unfold'authInfoFromToken
+  authStore.TypeAssumptions.ptr_unfold'commitRevision
+  authStore.TypeAssumptions.ptr_unfold'isOpPermitted
+  authStore.TypeAssumptions.ptr_unfold'isRangeOpPermitted
+  authStore.TypeAssumptions.ptr_unfold'lockedReadTx
+  authStore.TypeAssumptions.ptr_unfold'refreshRangePermCache
+  authStore.TypeAssumptions.ptr_unfold'selectPassword
+  authStore.TypeAssumptions.ptr_unfold'setRevision
+  authStore.TypeAssumptions.ptr_unfold'setupMetricsReporter
 
 abbrev permSlice [GooseExts] : Type := GoSlice
 
@@ -5942,132 +5942,132 @@ class permSlice.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq permSlice.ty permSlice.underlying
   method_set : go.MethodSetIs permSlice.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType permSlice.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold permSlice.ty go!"Len" permSlice.Len.impl
-  Less_unfold : MethodUnfold permSlice.ty go!"Less" permSlice.Less.impl
-  Swap_unfold : MethodUnfold permSlice.ty go!"Swap" permSlice.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType permSlice.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold permSlice.ty go!"Len" permSlice.Len.impl
+  unfold'Less : MethodUnfold permSlice.ty go!"Less" permSlice.Less.impl
+  unfold'Swap : MethodUnfold permSlice.ty go!"Swap" permSlice.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType permSlice.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve permSlice.ty go!"Len"))) (App (Val (GoInstruction (GoLoad permSlice.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType permSlice.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType permSlice.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve permSlice.ty go!"Less"))) (App (Val (GoInstruction (GoLoad permSlice.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType permSlice.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType permSlice.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve permSlice.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad permSlice.ty))) (Var "$r"))))
 
 attribute [instance] permSlice.TypeAssumptions.underlying
   permSlice.TypeAssumptions.method_set
   permSlice.TypeAssumptions.ptr_method_set
-  permSlice.TypeAssumptions.Len_unfold
-  permSlice.TypeAssumptions.Less_unfold
-  permSlice.TypeAssumptions.Swap_unfold
-  permSlice.TypeAssumptions.ptr_Len_unfold
-  permSlice.TypeAssumptions.ptr_Less_unfold
-  permSlice.TypeAssumptions.ptr_Swap_unfold
+  permSlice.TypeAssumptions.unfold'Len
+  permSlice.TypeAssumptions.unfold'Less
+  permSlice.TypeAssumptions.unfold'Swap
+  permSlice.TypeAssumptions.ptr_unfold'Len
+  permSlice.TypeAssumptions.ptr_unfold'Less
+  permSlice.TypeAssumptions.ptr_unfold'Swap
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  tokenJWT_instance : tokenJWT.TypeAssumptions
-  tokenNop_instance : tokenNop.TypeAssumptions
-  jwtOptions_instance : jwtOptions.TypeAssumptions
-  unifiedRangePermissions_instance : unifiedRangePermissions.TypeAssumptions
-  simpleTokenTTLKeeper_instance : simpleTokenTTLKeeper.TypeAssumptions
-  tokenSimple_instance : tokenSimple.TypeAssumptions
-  AuthInfo_instance : AuthInfo.TypeAssumptions
-  AuthenticateParamIndex_instance : AuthenticateParamIndex.TypeAssumptions
-  AuthenticateParamSimpleTokenPrefix_instance : AuthenticateParamSimpleTokenPrefix.TypeAssumptions
-  AuthStore_instance : AuthStore.TypeAssumptions
-  TokenProvider_instance : TokenProvider.TypeAssumptions
-  AuthBackend_instance : AuthBackend.TypeAssumptions
-  AuthReadTx_instance : AuthReadTx.TypeAssumptions
-  UnsafeAuthReader_instance : UnsafeAuthReader.TypeAssumptions
-  AuthBatchTx_instance : AuthBatchTx.TypeAssumptions
-  UnsafeAuthReadWriter_instance : UnsafeAuthReadWriter.TypeAssumptions
-  UnsafeAuthWriter_instance : UnsafeAuthWriter.TypeAssumptions
-  authStore_instance : authStore.TypeAssumptions
-  permSlice_instance : permSlice.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  newTokenProviderNop_unfold : FuncUnfold newTokenProviderNop [] newTokenProviderNop.impl
-  getMergedPerms_unfold : FuncUnfold getMergedPerms [] getMergedPerms.impl
-  checkKeyInterval_unfold : FuncUnfold checkKeyInterval [] checkKeyInterval.impl
-  checkKeyPoint_unfold : FuncUnfold checkKeyPoint [] checkKeyPoint.impl
-  isOpenEnded_unfold : FuncUnfold isOpenEnded [] isOpenEnded.impl
-  isValidPermissionRange_unfold : FuncUnfold isValidPermissionRange [] isValidPermissionRange.impl
-  newTokenProviderSimple_unfold : FuncUnfold newTokenProviderSimple [] newTokenProviderSimple.impl
-  NewAuthStore_unfold : FuncUnfold NewAuthStore [] NewAuthStore.impl
-  hasRootRole_unfold : FuncUnfold hasRootRole [] hasRootRole.impl
-  decomposeOpts_unfold : FuncUnfold decomposeOpts [] decomposeOpts.impl
-  NewTokenProvider_unfold : FuncUnfold NewTokenProvider [] NewTokenProvider.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_authpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
-  import_adt_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.Assumptions
-  import_rand_Assumption : _root_.Perennial.crypto.rand.Assumptions
-  import_big_Assumption : _root_.Perennial.math.big.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
-  import_base64_Assumption : _root_.Perennial.encoding.base64.Assumptions
-  import_sort_Assumption : _root_.Perennial.sort.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_bcrypt_Assumption : _root_.Perennial.golang_org.x.crypto.bcrypt.Assumptions
-  import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_rpctypes_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions
+  instance'tokenJWT : tokenJWT.TypeAssumptions
+  instance'tokenNop : tokenNop.TypeAssumptions
+  instance'jwtOptions : jwtOptions.TypeAssumptions
+  instance'unifiedRangePermissions : unifiedRangePermissions.TypeAssumptions
+  instance'simpleTokenTTLKeeper : simpleTokenTTLKeeper.TypeAssumptions
+  instance'tokenSimple : tokenSimple.TypeAssumptions
+  instance'AuthInfo : AuthInfo.TypeAssumptions
+  instance'AuthenticateParamIndex : AuthenticateParamIndex.TypeAssumptions
+  instance'AuthenticateParamSimpleTokenPrefix : AuthenticateParamSimpleTokenPrefix.TypeAssumptions
+  instance'AuthStore : AuthStore.TypeAssumptions
+  instance'TokenProvider : TokenProvider.TypeAssumptions
+  instance'AuthBackend : AuthBackend.TypeAssumptions
+  instance'AuthReadTx : AuthReadTx.TypeAssumptions
+  instance'UnsafeAuthReader : UnsafeAuthReader.TypeAssumptions
+  instance'AuthBatchTx : AuthBatchTx.TypeAssumptions
+  instance'UnsafeAuthReadWriter : UnsafeAuthReadWriter.TypeAssumptions
+  instance'UnsafeAuthWriter : UnsafeAuthWriter.TypeAssumptions
+  instance'authStore : authStore.TypeAssumptions
+  instance'permSlice : permSlice.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'newTokenProviderNop : FuncUnfold newTokenProviderNop [] newTokenProviderNop.impl
+  unfold'getMergedPerms : FuncUnfold getMergedPerms [] getMergedPerms.impl
+  unfold'checkKeyInterval : FuncUnfold checkKeyInterval [] checkKeyInterval.impl
+  unfold'checkKeyPoint : FuncUnfold checkKeyPoint [] checkKeyPoint.impl
+  unfold'isOpenEnded : FuncUnfold isOpenEnded [] isOpenEnded.impl
+  unfold'isValidPermissionRange : FuncUnfold isValidPermissionRange [] isValidPermissionRange.impl
+  unfold'newTokenProviderSimple : FuncUnfold newTokenProviderSimple [] newTokenProviderSimple.impl
+  unfold'NewAuthStore : FuncUnfold NewAuthStore [] NewAuthStore.impl
+  unfold'hasRootRole : FuncUnfold hasRootRole [] hasRootRole.impl
+  unfold'decomposeOpts : FuncUnfold decomposeOpts [] decomposeOpts.impl
+  unfold'NewTokenProvider : FuncUnfold NewTokenProvider [] NewTokenProvider.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'prometheus : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'authpb : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
+  import'adt : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.Assumptions
+  import'rand : _root_.Perennial.crypto.rand.Assumptions
+  import'big : _root_.Perennial.math.big.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'bytes : _root_.Perennial.bytes.Assumptions
+  import'base64 : _root_.Perennial.encoding.base64.Assumptions
+  import'sort : _root_.Perennial.sort.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'bcrypt : _root_.Perennial.golang_org.x.crypto.bcrypt.Assumptions
+  import'metadata : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'rpctypes : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions
 
-attribute [instance] Assumptions.tokenJWT_instance
-  Assumptions.tokenNop_instance
-  Assumptions.jwtOptions_instance
-  Assumptions.unifiedRangePermissions_instance
-  Assumptions.simpleTokenTTLKeeper_instance
-  Assumptions.tokenSimple_instance
-  Assumptions.AuthInfo_instance
-  Assumptions.AuthenticateParamIndex_instance
-  Assumptions.AuthenticateParamSimpleTokenPrefix_instance
-  Assumptions.AuthStore_instance
-  Assumptions.TokenProvider_instance
-  Assumptions.AuthBackend_instance
-  Assumptions.AuthReadTx_instance
-  Assumptions.UnsafeAuthReader_instance
-  Assumptions.AuthBatchTx_instance
-  Assumptions.UnsafeAuthReadWriter_instance
-  Assumptions.UnsafeAuthWriter_instance
-  Assumptions.authStore_instance
-  Assumptions.permSlice_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.newTokenProviderNop_unfold
-  Assumptions.getMergedPerms_unfold
-  Assumptions.checkKeyInterval_unfold
-  Assumptions.checkKeyPoint_unfold
-  Assumptions.isOpenEnded_unfold
-  Assumptions.isValidPermissionRange_unfold
-  Assumptions.newTokenProviderSimple_unfold
-  Assumptions.NewAuthStore_unfold
-  Assumptions.hasRootRole_unfold
-  Assumptions.decomposeOpts_unfold
-  Assumptions.NewTokenProvider_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_prometheus_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_authpb_Assumption
-  Assumptions.import_adt_Assumption
-  Assumptions.import_rand_Assumption
-  Assumptions.import_big_Assumption
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_bytes_Assumption
-  Assumptions.import_base64_Assumption
-  Assumptions.import_sort_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_bcrypt_Assumption
-  Assumptions.import_metadata_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_rpctypes_Assumption
+attribute [instance] Assumptions.instance'tokenJWT
+  Assumptions.instance'tokenNop
+  Assumptions.instance'jwtOptions
+  Assumptions.instance'unifiedRangePermissions
+  Assumptions.instance'simpleTokenTTLKeeper
+  Assumptions.instance'tokenSimple
+  Assumptions.instance'AuthInfo
+  Assumptions.instance'AuthenticateParamIndex
+  Assumptions.instance'AuthenticateParamSimpleTokenPrefix
+  Assumptions.instance'AuthStore
+  Assumptions.instance'TokenProvider
+  Assumptions.instance'AuthBackend
+  Assumptions.instance'AuthReadTx
+  Assumptions.instance'UnsafeAuthReader
+  Assumptions.instance'AuthBatchTx
+  Assumptions.instance'UnsafeAuthReadWriter
+  Assumptions.instance'UnsafeAuthWriter
+  Assumptions.instance'authStore
+  Assumptions.instance'permSlice
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'newTokenProviderNop
+  Assumptions.unfold'getMergedPerms
+  Assumptions.unfold'checkKeyInterval
+  Assumptions.unfold'checkKeyPoint
+  Assumptions.unfold'isOpenEnded
+  Assumptions.unfold'isValidPermissionRange
+  Assumptions.unfold'newTokenProviderSimple
+  Assumptions.unfold'NewAuthStore
+  Assumptions.unfold'hasRootRole
+  Assumptions.unfold'decomposeOpts
+  Assumptions.unfold'NewTokenProvider
+  Assumptions.import'context
+  Assumptions.import'errors
+  Assumptions.import'time
+  Assumptions.import'zap
+  Assumptions.import'sync
+  Assumptions.import'prometheus
+  Assumptions.import'fmt
+  Assumptions.import'authpb
+  Assumptions.import'adt
+  Assumptions.import'rand
+  Assumptions.import'big
+  Assumptions.import'strconv
+  Assumptions.import'strings
+  Assumptions.import'bytes
+  Assumptions.import'base64
+  Assumptions.import'sort
+  Assumptions.import'atomic
+  Assumptions.import'bcrypt
+  Assumptions.import'metadata
+  Assumptions.import'etcdserverpb
+  Assumptions.import'rpctypes
 
 end go_etcd_io.etcd.server.v3.auth
 

@@ -30,7 +30,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.apps.v1.Assumptions]
 
-noncomputable instance StatefulSetSpec_typed_pointsto :
+noncomputable instance typed_pointsto'StatefulSetSpec :
     TypedPointsto (GF := GF) k8s_io.api.apps.v1.StatefulSetSpec where
   typedPointstoDef l v dq := iprop(
     "Replicas" ∷ typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Replicas" l) v.Replicas' dq ∗
@@ -49,11 +49,11 @@ noncomputable instance StatefulSetSpec_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance StatefulSetSpec_into_val_typed :
+noncomputable instance into_val_typed'StatefulSetSpec :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.apps.v1.StatefulSetSpec k8s_io.api.apps.v1.StatefulSetSpec.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance StatefulSetSpec_access_load_Replicas (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
+noncomputable instance access_load'StatefulSetSpec'Replicas (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Replicas" l) v.Replicas' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Replicas" l) v.Replicas' dq)
@@ -61,7 +61,7 @@ noncomputable instance StatefulSetSpec_access_load_Replicas (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_store_Replicas (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : Loc) :
+noncomputable instance access_store'StatefulSetSpec'Replicas (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Replicas" l) v.Replicas' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Replicas" l) y (DFrac.own 1))
@@ -69,7 +69,7 @@ noncomputable instance StatefulSetSpec_access_store_Replicas (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_load_Selector (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
+noncomputable instance access_load'StatefulSetSpec'Selector (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Selector" l) v.Selector' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Selector" l) v.Selector' dq)
@@ -77,7 +77,7 @@ noncomputable instance StatefulSetSpec_access_load_Selector (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_store_Selector (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : Loc) :
+noncomputable instance access_store'StatefulSetSpec'Selector (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Selector" l) v.Selector' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Selector" l) y (DFrac.own 1))
@@ -85,7 +85,7 @@ noncomputable instance StatefulSetSpec_access_store_Selector (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_load_Template (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
+noncomputable instance access_load'StatefulSetSpec'Template (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Template" l) v.Template' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Template" l) v.Template' dq)
@@ -93,7 +93,7 @@ noncomputable instance StatefulSetSpec_access_load_Template (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_store_Template (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) :
+noncomputable instance access_store'StatefulSetSpec'Template (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Template" l) v.Template' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Template" l) y (DFrac.own 1))
@@ -101,7 +101,7 @@ noncomputable instance StatefulSetSpec_access_store_Template (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_load_VolumeClaimTemplates (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
+noncomputable instance access_load'StatefulSetSpec'VolumeClaimTemplates (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"VolumeClaimTemplates" l) v.VolumeClaimTemplates' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"VolumeClaimTemplates" l) v.VolumeClaimTemplates' dq)
@@ -109,7 +109,7 @@ noncomputable instance StatefulSetSpec_access_load_VolumeClaimTemplates (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_store_VolumeClaimTemplates (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : GoSlice) :
+noncomputable instance access_store'StatefulSetSpec'VolumeClaimTemplates (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"VolumeClaimTemplates" l) v.VolumeClaimTemplates' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"VolumeClaimTemplates" l) y (DFrac.own 1))
@@ -117,7 +117,7 @@ noncomputable instance StatefulSetSpec_access_store_VolumeClaimTemplates (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_load_ServiceName (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
+noncomputable instance access_load'StatefulSetSpec'ServiceName (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"ServiceName" l) v.ServiceName' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"ServiceName" l) v.ServiceName' dq)
@@ -125,7 +125,7 @@ noncomputable instance StatefulSetSpec_access_load_ServiceName (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_store_ServiceName (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : GoString) :
+noncomputable instance access_store'StatefulSetSpec'ServiceName (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"ServiceName" l) v.ServiceName' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"ServiceName" l) y (DFrac.own 1))
@@ -133,7 +133,7 @@ noncomputable instance StatefulSetSpec_access_store_ServiceName (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_load_PodManagementPolicy (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
+noncomputable instance access_load'StatefulSetSpec'PodManagementPolicy (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"PodManagementPolicy" l) v.PodManagementPolicy' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"PodManagementPolicy" l) v.PodManagementPolicy' dq)
@@ -141,7 +141,7 @@ noncomputable instance StatefulSetSpec_access_load_PodManagementPolicy (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_store_PodManagementPolicy (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : k8s_io.api.apps.v1.PodManagementPolicyType) :
+noncomputable instance access_store'StatefulSetSpec'PodManagementPolicy (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : k8s_io.api.apps.v1.PodManagementPolicyType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"PodManagementPolicy" l) v.PodManagementPolicy' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"PodManagementPolicy" l) y (DFrac.own 1))
@@ -149,7 +149,7 @@ noncomputable instance StatefulSetSpec_access_store_PodManagementPolicy (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_load_UpdateStrategy (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
+noncomputable instance access_load'StatefulSetSpec'UpdateStrategy (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"UpdateStrategy" l) v.UpdateStrategy' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"UpdateStrategy" l) v.UpdateStrategy' dq)
@@ -157,7 +157,7 @@ noncomputable instance StatefulSetSpec_access_load_UpdateStrategy (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_store_UpdateStrategy (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : k8s_io.api.apps.v1.StatefulSetUpdateStrategy) :
+noncomputable instance access_store'StatefulSetSpec'UpdateStrategy (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : k8s_io.api.apps.v1.StatefulSetUpdateStrategy) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"UpdateStrategy" l) v.UpdateStrategy' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"UpdateStrategy" l) y (DFrac.own 1))
@@ -165,7 +165,7 @@ noncomputable instance StatefulSetSpec_access_store_UpdateStrategy (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_load_RevisionHistoryLimit (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
+noncomputable instance access_load'StatefulSetSpec'RevisionHistoryLimit (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"RevisionHistoryLimit" l) v.RevisionHistoryLimit' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"RevisionHistoryLimit" l) v.RevisionHistoryLimit' dq)
@@ -173,7 +173,7 @@ noncomputable instance StatefulSetSpec_access_load_RevisionHistoryLimit (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_store_RevisionHistoryLimit (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : Loc) :
+noncomputable instance access_store'StatefulSetSpec'RevisionHistoryLimit (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"RevisionHistoryLimit" l) v.RevisionHistoryLimit' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"RevisionHistoryLimit" l) y (DFrac.own 1))
@@ -181,7 +181,7 @@ noncomputable instance StatefulSetSpec_access_store_RevisionHistoryLimit (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_load_MinReadySeconds (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
+noncomputable instance access_load'StatefulSetSpec'MinReadySeconds (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"MinReadySeconds" l) v.MinReadySeconds' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"MinReadySeconds" l) v.MinReadySeconds' dq)
@@ -189,7 +189,7 @@ noncomputable instance StatefulSetSpec_access_load_MinReadySeconds (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_store_MinReadySeconds (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : w32) :
+noncomputable instance access_store'StatefulSetSpec'MinReadySeconds (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"MinReadySeconds" l) v.MinReadySeconds' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"MinReadySeconds" l) y (DFrac.own 1))
@@ -197,7 +197,7 @@ noncomputable instance StatefulSetSpec_access_store_MinReadySeconds (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_load_PersistentVolumeClaimRetentionPolicy (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
+noncomputable instance access_load'StatefulSetSpec'PersistentVolumeClaimRetentionPolicy (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"PersistentVolumeClaimRetentionPolicy" l) v.PersistentVolumeClaimRetentionPolicy' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"PersistentVolumeClaimRetentionPolicy" l) v.PersistentVolumeClaimRetentionPolicy' dq)
@@ -205,7 +205,7 @@ noncomputable instance StatefulSetSpec_access_load_PersistentVolumeClaimRetentio
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_store_PersistentVolumeClaimRetentionPolicy (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : Loc) :
+noncomputable instance access_store'StatefulSetSpec'PersistentVolumeClaimRetentionPolicy (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"PersistentVolumeClaimRetentionPolicy" l) v.PersistentVolumeClaimRetentionPolicy' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"PersistentVolumeClaimRetentionPolicy" l) y (DFrac.own 1))
@@ -213,7 +213,7 @@ noncomputable instance StatefulSetSpec_access_store_PersistentVolumeClaimRetenti
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_load_Ordinals (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
+noncomputable instance access_load'StatefulSetSpec'Ordinals (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Ordinals" l) v.Ordinals' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Ordinals" l) v.Ordinals' dq)
@@ -221,7 +221,7 @@ noncomputable instance StatefulSetSpec_access_load_Ordinals (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_store_Ordinals (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : Loc) :
+noncomputable instance access_store'StatefulSetSpec'Ordinals (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Ordinals" l) v.Ordinals' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Ordinals" l) y (DFrac.own 1))
@@ -240,7 +240,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.apps.v1.Assumptions]
 
-noncomputable instance DeploymentSpec_typed_pointsto :
+noncomputable instance typed_pointsto'DeploymentSpec :
     TypedPointsto (GF := GF) k8s_io.api.apps.v1.DeploymentSpec where
   typedPointstoDef l v dq := iprop(
     "Replicas" ∷ typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Replicas" l) v.Replicas' dq ∗
@@ -256,11 +256,11 @@ noncomputable instance DeploymentSpec_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance DeploymentSpec_into_val_typed :
+noncomputable instance into_val_typed'DeploymentSpec :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.apps.v1.DeploymentSpec k8s_io.api.apps.v1.DeploymentSpec.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance DeploymentSpec_access_load_Replicas (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (dq : DFrac) :
+noncomputable instance access_load'DeploymentSpec'Replicas (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Replicas" l) v.Replicas' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Replicas" l) v.Replicas' dq)
@@ -268,7 +268,7 @@ noncomputable instance DeploymentSpec_access_load_Replicas (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentSpec_access_store_Replicas (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (y : Loc) :
+noncomputable instance access_store'DeploymentSpec'Replicas (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Replicas" l) v.Replicas' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Replicas" l) y (DFrac.own 1))
@@ -276,7 +276,7 @@ noncomputable instance DeploymentSpec_access_store_Replicas (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentSpec_access_load_Selector (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (dq : DFrac) :
+noncomputable instance access_load'DeploymentSpec'Selector (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Selector" l) v.Selector' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Selector" l) v.Selector' dq)
@@ -284,7 +284,7 @@ noncomputable instance DeploymentSpec_access_load_Selector (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentSpec_access_store_Selector (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (y : Loc) :
+noncomputable instance access_store'DeploymentSpec'Selector (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Selector" l) v.Selector' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Selector" l) y (DFrac.own 1))
@@ -292,7 +292,7 @@ noncomputable instance DeploymentSpec_access_store_Selector (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentSpec_access_load_Template (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (dq : DFrac) :
+noncomputable instance access_load'DeploymentSpec'Template (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Template" l) v.Template' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Template" l) v.Template' dq)
@@ -300,7 +300,7 @@ noncomputable instance DeploymentSpec_access_load_Template (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentSpec_access_store_Template (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (y : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) :
+noncomputable instance access_store'DeploymentSpec'Template (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (y : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Template" l) v.Template' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Template" l) y (DFrac.own 1))
@@ -308,7 +308,7 @@ noncomputable instance DeploymentSpec_access_store_Template (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentSpec_access_load_Strategy (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (dq : DFrac) :
+noncomputable instance access_load'DeploymentSpec'Strategy (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Strategy" l) v.Strategy' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Strategy" l) v.Strategy' dq)
@@ -316,7 +316,7 @@ noncomputable instance DeploymentSpec_access_load_Strategy (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentSpec_access_store_Strategy (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (y : k8s_io.api.apps.v1.DeploymentStrategy) :
+noncomputable instance access_store'DeploymentSpec'Strategy (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (y : k8s_io.api.apps.v1.DeploymentStrategy) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Strategy" l) v.Strategy' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Strategy" l) y (DFrac.own 1))
@@ -324,7 +324,7 @@ noncomputable instance DeploymentSpec_access_store_Strategy (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentSpec_access_load_MinReadySeconds (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (dq : DFrac) :
+noncomputable instance access_load'DeploymentSpec'MinReadySeconds (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"MinReadySeconds" l) v.MinReadySeconds' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"MinReadySeconds" l) v.MinReadySeconds' dq)
@@ -332,7 +332,7 @@ noncomputable instance DeploymentSpec_access_load_MinReadySeconds (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentSpec_access_store_MinReadySeconds (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (y : w32) :
+noncomputable instance access_store'DeploymentSpec'MinReadySeconds (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"MinReadySeconds" l) v.MinReadySeconds' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"MinReadySeconds" l) y (DFrac.own 1))
@@ -340,7 +340,7 @@ noncomputable instance DeploymentSpec_access_store_MinReadySeconds (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentSpec_access_load_RevisionHistoryLimit (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (dq : DFrac) :
+noncomputable instance access_load'DeploymentSpec'RevisionHistoryLimit (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"RevisionHistoryLimit" l) v.RevisionHistoryLimit' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"RevisionHistoryLimit" l) v.RevisionHistoryLimit' dq)
@@ -348,7 +348,7 @@ noncomputable instance DeploymentSpec_access_load_RevisionHistoryLimit (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentSpec_access_store_RevisionHistoryLimit (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (y : Loc) :
+noncomputable instance access_store'DeploymentSpec'RevisionHistoryLimit (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"RevisionHistoryLimit" l) v.RevisionHistoryLimit' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"RevisionHistoryLimit" l) y (DFrac.own 1))
@@ -356,7 +356,7 @@ noncomputable instance DeploymentSpec_access_store_RevisionHistoryLimit (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentSpec_access_load_Paused (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (dq : DFrac) :
+noncomputable instance access_load'DeploymentSpec'Paused (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Paused" l) v.Paused' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Paused" l) v.Paused' dq)
@@ -364,7 +364,7 @@ noncomputable instance DeploymentSpec_access_load_Paused (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentSpec_access_store_Paused (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (y : Bool) :
+noncomputable instance access_store'DeploymentSpec'Paused (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Paused" l) v.Paused' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Paused" l) y (DFrac.own 1))
@@ -372,7 +372,7 @@ noncomputable instance DeploymentSpec_access_store_Paused (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentSpec_access_load_ProgressDeadlineSeconds (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (dq : DFrac) :
+noncomputable instance access_load'DeploymentSpec'ProgressDeadlineSeconds (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"ProgressDeadlineSeconds" l) v.ProgressDeadlineSeconds' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"ProgressDeadlineSeconds" l) v.ProgressDeadlineSeconds' dq)
@@ -380,7 +380,7 @@ noncomputable instance DeploymentSpec_access_load_ProgressDeadlineSeconds (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentSpec_access_store_ProgressDeadlineSeconds (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (y : Loc) :
+noncomputable instance access_store'DeploymentSpec'ProgressDeadlineSeconds (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"ProgressDeadlineSeconds" l) v.ProgressDeadlineSeconds' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"ProgressDeadlineSeconds" l) y (DFrac.own 1))
@@ -399,7 +399,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.apps.v1.Assumptions]
 
-noncomputable instance DaemonSetSpec_typed_pointsto :
+noncomputable instance typed_pointsto'DaemonSetSpec :
     TypedPointsto (GF := GF) k8s_io.api.apps.v1.DaemonSetSpec where
   typedPointstoDef l v dq := iprop(
     "Selector" ∷ typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"Selector" l) v.Selector' dq ∗
@@ -412,11 +412,11 @@ noncomputable instance DaemonSetSpec_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance DaemonSetSpec_into_val_typed :
+noncomputable instance into_val_typed'DaemonSetSpec :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.apps.v1.DaemonSetSpec k8s_io.api.apps.v1.DaemonSetSpec.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance DaemonSetSpec_access_load_Selector (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (dq : DFrac) :
+noncomputable instance access_load'DaemonSetSpec'Selector (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"Selector" l) v.Selector' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"Selector" l) v.Selector' dq)
@@ -424,7 +424,7 @@ noncomputable instance DaemonSetSpec_access_load_Selector (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetSpec_access_store_Selector (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (y : Loc) :
+noncomputable instance access_store'DaemonSetSpec'Selector (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"Selector" l) v.Selector' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"Selector" l) y (DFrac.own 1))
@@ -432,7 +432,7 @@ noncomputable instance DaemonSetSpec_access_store_Selector (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetSpec_access_load_Template (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (dq : DFrac) :
+noncomputable instance access_load'DaemonSetSpec'Template (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"Template" l) v.Template' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"Template" l) v.Template' dq)
@@ -440,7 +440,7 @@ noncomputable instance DaemonSetSpec_access_load_Template (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetSpec_access_store_Template (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (y : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) :
+noncomputable instance access_store'DaemonSetSpec'Template (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (y : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"Template" l) v.Template' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"Template" l) y (DFrac.own 1))
@@ -448,7 +448,7 @@ noncomputable instance DaemonSetSpec_access_store_Template (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetSpec_access_load_UpdateStrategy (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (dq : DFrac) :
+noncomputable instance access_load'DaemonSetSpec'UpdateStrategy (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"UpdateStrategy" l) v.UpdateStrategy' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"UpdateStrategy" l) v.UpdateStrategy' dq)
@@ -456,7 +456,7 @@ noncomputable instance DaemonSetSpec_access_load_UpdateStrategy (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetSpec_access_store_UpdateStrategy (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (y : k8s_io.api.apps.v1.DaemonSetUpdateStrategy) :
+noncomputable instance access_store'DaemonSetSpec'UpdateStrategy (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (y : k8s_io.api.apps.v1.DaemonSetUpdateStrategy) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"UpdateStrategy" l) v.UpdateStrategy' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"UpdateStrategy" l) y (DFrac.own 1))
@@ -464,7 +464,7 @@ noncomputable instance DaemonSetSpec_access_store_UpdateStrategy (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetSpec_access_load_MinReadySeconds (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (dq : DFrac) :
+noncomputable instance access_load'DaemonSetSpec'MinReadySeconds (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"MinReadySeconds" l) v.MinReadySeconds' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"MinReadySeconds" l) v.MinReadySeconds' dq)
@@ -472,7 +472,7 @@ noncomputable instance DaemonSetSpec_access_load_MinReadySeconds (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetSpec_access_store_MinReadySeconds (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (y : w32) :
+noncomputable instance access_store'DaemonSetSpec'MinReadySeconds (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"MinReadySeconds" l) v.MinReadySeconds' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"MinReadySeconds" l) y (DFrac.own 1))
@@ -480,7 +480,7 @@ noncomputable instance DaemonSetSpec_access_store_MinReadySeconds (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetSpec_access_load_RevisionHistoryLimit (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (dq : DFrac) :
+noncomputable instance access_load'DaemonSetSpec'RevisionHistoryLimit (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"RevisionHistoryLimit" l) v.RevisionHistoryLimit' dq)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"RevisionHistoryLimit" l) v.RevisionHistoryLimit' dq)
@@ -488,7 +488,7 @@ noncomputable instance DaemonSetSpec_access_load_RevisionHistoryLimit (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetSpec_access_store_RevisionHistoryLimit (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (y : Loc) :
+noncomputable instance access_store'DaemonSetSpec'RevisionHistoryLimit (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"RevisionHistoryLimit" l) v.RevisionHistoryLimit' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"RevisionHistoryLimit" l) y (DFrac.own 1))

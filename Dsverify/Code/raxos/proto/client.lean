@@ -786,7 +786,7 @@ noncomputable instance ClientBatch.zero_val [GooseExts] : ZeroVal ClientBatch :=
 @[irreducible] noncomputable def ClientBatch.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClientBatch.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClientBatch [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ClientBatch [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClientBatch.fields ClientBatch.fieldsUnsealed :=
   ⟨by unfold ClientBatch.fields; rfl⟩
 
@@ -796,51 +796,51 @@ noncomputable instance equals_unfold_ClientBatch [GooseExts] [GoGlobalContext] :
 class ClientBatch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClientBatch.underlying ClientBatch
   underlying : go.UnderlyingDirectedEq ClientBatch.ty ClientBatch.underlying
-  get_state : ∀ (x : ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : ClientBatch) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ClientBatch)))
-  get_sizeCache : ∀ (x : ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : ClientBatch) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ClientBatch)))
-  get_unknownFields : ∀ (x : ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : ClientBatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ClientBatch)))
-  get_Sender : ∀ (x : ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch.underlying go!"Sender") #x (Val #(x.Sender'))
-  set_Sender : ∀ (x : ClientBatch) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch.underlying go!"Sender") (PairV #x #y) (Val #(({ x with Sender' := y } : ClientBatch)))
-  get_Messages : ∀ (x : ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch.underlying go!"Messages") #x (Val #(x.Messages'))
-  set_Messages : ∀ (x : ClientBatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch.underlying go!"Messages") (PairV #x #y) (Val #(({ x with Messages' := y } : ClientBatch)))
-  get_Id : ∀ (x : ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch.underlying go!"Id") #x (Val #(x.Id'))
-  set_Id : ∀ (x : ClientBatch) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : ClientBatch)))
+  get'state : ∀ (x : ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : ClientBatch) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ClientBatch)))
+  get'sizeCache : ∀ (x : ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : ClientBatch) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ClientBatch)))
+  get'unknownFields : ∀ (x : ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : ClientBatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ClientBatch)))
+  get'Sender : ∀ (x : ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch.underlying go!"Sender") #x (Val #(x.Sender'))
+  set'Sender : ∀ (x : ClientBatch) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch.underlying go!"Sender") (PairV #x #y) (Val #(({ x with Sender' := y } : ClientBatch)))
+  get'Messages : ∀ (x : ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch.underlying go!"Messages") #x (Val #(x.Messages'))
+  set'Messages : ∀ (x : ClientBatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch.underlying go!"Messages") (PairV #x #y) (Val #(({ x with Messages' := y } : ClientBatch)))
+  get'Id : ∀ (x : ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch.underlying go!"Id") #x (Val #(x.Id'))
+  set'Id : ∀ (x : ClientBatch) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : ClientBatch)))
   method_set : go.MethodSetIs ClientBatch.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientBatch.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetId", (some (go.signature.Signature [] false [go.string]))), (go!"GetMessages", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType ClientBatch_SingleMessage.ty))]))), (go!"GetSender", (some (go.signature.Signature [] false [go.int64]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error]))), (go!"New", (some (go.signature.Signature [] false [_root_.Perennial.raxos.proto.Serializable.ty]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_GetId_unfold : MethodUnfold (go.GoType.PointerType ClientBatch.ty) go!"GetId" ClientBatch.GetId.impl
-  ptr_GetMessages_unfold : MethodUnfold (go.GoType.PointerType ClientBatch.ty) go!"GetMessages" ClientBatch.GetMessages.impl
-  ptr_GetSender_unfold : MethodUnfold (go.GoType.PointerType ClientBatch.ty) go!"GetSender" ClientBatch.GetSender.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType ClientBatch.ty) go!"Marshal" ClientBatch.Marshal.impl
-  ptr_New_unfold : MethodUnfold (go.GoType.PointerType ClientBatch.ty) go!"New" ClientBatch.New.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType ClientBatch.ty) go!"ProtoMessage" ClientBatch.ProtoMessage.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType ClientBatch.ty) go!"Unmarshal" ClientBatch.Unmarshal.impl
+  ptr_unfold'GetId : MethodUnfold (go.GoType.PointerType ClientBatch.ty) go!"GetId" ClientBatch.GetId.impl
+  ptr_unfold'GetMessages : MethodUnfold (go.GoType.PointerType ClientBatch.ty) go!"GetMessages" ClientBatch.GetMessages.impl
+  ptr_unfold'GetSender : MethodUnfold (go.GoType.PointerType ClientBatch.ty) go!"GetSender" ClientBatch.GetSender.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType ClientBatch.ty) go!"Marshal" ClientBatch.Marshal.impl
+  ptr_unfold'New : MethodUnfold (go.GoType.PointerType ClientBatch.ty) go!"New" ClientBatch.New.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType ClientBatch.ty) go!"ProtoMessage" ClientBatch.ProtoMessage.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType ClientBatch.ty) go!"Unmarshal" ClientBatch.Unmarshal.impl
 
 attribute [instance] ClientBatch.TypeAssumptions.type_repr
   ClientBatch.TypeAssumptions.underlying
-  ClientBatch.TypeAssumptions.get_state
-  ClientBatch.TypeAssumptions.set_state
-  ClientBatch.TypeAssumptions.get_sizeCache
-  ClientBatch.TypeAssumptions.set_sizeCache
-  ClientBatch.TypeAssumptions.get_unknownFields
-  ClientBatch.TypeAssumptions.set_unknownFields
-  ClientBatch.TypeAssumptions.get_Sender
-  ClientBatch.TypeAssumptions.set_Sender
-  ClientBatch.TypeAssumptions.get_Messages
-  ClientBatch.TypeAssumptions.set_Messages
-  ClientBatch.TypeAssumptions.get_Id
-  ClientBatch.TypeAssumptions.set_Id
+  ClientBatch.TypeAssumptions.get'state
+  ClientBatch.TypeAssumptions.set'state
+  ClientBatch.TypeAssumptions.get'sizeCache
+  ClientBatch.TypeAssumptions.set'sizeCache
+  ClientBatch.TypeAssumptions.get'unknownFields
+  ClientBatch.TypeAssumptions.set'unknownFields
+  ClientBatch.TypeAssumptions.get'Sender
+  ClientBatch.TypeAssumptions.set'Sender
+  ClientBatch.TypeAssumptions.get'Messages
+  ClientBatch.TypeAssumptions.set'Messages
+  ClientBatch.TypeAssumptions.get'Id
+  ClientBatch.TypeAssumptions.set'Id
   ClientBatch.TypeAssumptions.method_set
   ClientBatch.TypeAssumptions.ptr_method_set
-  ClientBatch.TypeAssumptions.ptr_GetId_unfold
-  ClientBatch.TypeAssumptions.ptr_GetMessages_unfold
-  ClientBatch.TypeAssumptions.ptr_GetSender_unfold
-  ClientBatch.TypeAssumptions.ptr_Marshal_unfold
-  ClientBatch.TypeAssumptions.ptr_New_unfold
-  ClientBatch.TypeAssumptions.ptr_ProtoMessage_unfold
-  ClientBatch.TypeAssumptions.ptr_Unmarshal_unfold
+  ClientBatch.TypeAssumptions.ptr_unfold'GetId
+  ClientBatch.TypeAssumptions.ptr_unfold'GetMessages
+  ClientBatch.TypeAssumptions.ptr_unfold'GetSender
+  ClientBatch.TypeAssumptions.ptr_unfold'Marshal
+  ClientBatch.TypeAssumptions.ptr_unfold'New
+  ClientBatch.TypeAssumptions.ptr_unfold'ProtoMessage
+  ClientBatch.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure ClientStatus [GooseExts] where
   mk ::
@@ -865,7 +865,7 @@ noncomputable instance ClientStatus.zero_val [GooseExts] : ZeroVal ClientStatus 
 @[irreducible] noncomputable def ClientStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClientStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClientStatus [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ClientStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClientStatus.fields ClientStatus.fieldsUnsealed :=
   ⟨by unfold ClientStatus.fields; rfl⟩
 
@@ -875,51 +875,51 @@ noncomputable instance equals_unfold_ClientStatus [GooseExts] [GoGlobalContext] 
 class ClientStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClientStatus.underlying ClientStatus
   underlying : go.UnderlyingDirectedEq ClientStatus.ty ClientStatus.underlying
-  get_state : ∀ (x : ClientStatus), go.IsGoStepPureDetTagged under (StructFieldGet ClientStatus.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : ClientStatus) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ClientStatus.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ClientStatus)))
-  get_sizeCache : ∀ (x : ClientStatus), go.IsGoStepPureDetTagged under (StructFieldGet ClientStatus.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : ClientStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ClientStatus.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ClientStatus)))
-  get_unknownFields : ∀ (x : ClientStatus), go.IsGoStepPureDetTagged under (StructFieldGet ClientStatus.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : ClientStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ClientStatus.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ClientStatus)))
-  get_Sender : ∀ (x : ClientStatus), go.IsGoStepPureDetTagged under (StructFieldGet ClientStatus.underlying go!"Sender") #x (Val #(x.Sender'))
-  set_Sender : ∀ (x : ClientStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ClientStatus.underlying go!"Sender") (PairV #x #y) (Val #(({ x with Sender' := y } : ClientStatus)))
-  get_Operation : ∀ (x : ClientStatus), go.IsGoStepPureDetTagged under (StructFieldGet ClientStatus.underlying go!"Operation") #x (Val #(x.Operation'))
-  set_Operation : ∀ (x : ClientStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ClientStatus.underlying go!"Operation") (PairV #x #y) (Val #(({ x with Operation' := y } : ClientStatus)))
-  get_Message : ∀ (x : ClientStatus), go.IsGoStepPureDetTagged under (StructFieldGet ClientStatus.underlying go!"Message") #x (Val #(x.Message'))
-  set_Message : ∀ (x : ClientStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ClientStatus.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : ClientStatus)))
+  get'state : ∀ (x : ClientStatus), go.IsGoStepPureDetTagged under (StructFieldGet ClientStatus.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : ClientStatus) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ClientStatus.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ClientStatus)))
+  get'sizeCache : ∀ (x : ClientStatus), go.IsGoStepPureDetTagged under (StructFieldGet ClientStatus.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : ClientStatus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ClientStatus.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ClientStatus)))
+  get'unknownFields : ∀ (x : ClientStatus), go.IsGoStepPureDetTagged under (StructFieldGet ClientStatus.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : ClientStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ClientStatus.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ClientStatus)))
+  get'Sender : ∀ (x : ClientStatus), go.IsGoStepPureDetTagged under (StructFieldGet ClientStatus.underlying go!"Sender") #x (Val #(x.Sender'))
+  set'Sender : ∀ (x : ClientStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ClientStatus.underlying go!"Sender") (PairV #x #y) (Val #(({ x with Sender' := y } : ClientStatus)))
+  get'Operation : ∀ (x : ClientStatus), go.IsGoStepPureDetTagged under (StructFieldGet ClientStatus.underlying go!"Operation") #x (Val #(x.Operation'))
+  set'Operation : ∀ (x : ClientStatus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ClientStatus.underlying go!"Operation") (PairV #x #y) (Val #(({ x with Operation' := y } : ClientStatus)))
+  get'Message : ∀ (x : ClientStatus), go.IsGoStepPureDetTagged under (StructFieldGet ClientStatus.underlying go!"Message") #x (Val #(x.Message'))
+  set'Message : ∀ (x : ClientStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ClientStatus.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : ClientStatus)))
   method_set : go.MethodSetIs ClientStatus.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientStatus.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetMessage", (some (go.signature.Signature [] false [go.string]))), (go!"GetOperation", (some (go.signature.Signature [] false [go.int64]))), (go!"GetSender", (some (go.signature.Signature [] false [go.int64]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error]))), (go!"New", (some (go.signature.Signature [] false [_root_.Perennial.raxos.proto.Serializable.ty]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_GetMessage_unfold : MethodUnfold (go.GoType.PointerType ClientStatus.ty) go!"GetMessage" ClientStatus.GetMessage.impl
-  ptr_GetOperation_unfold : MethodUnfold (go.GoType.PointerType ClientStatus.ty) go!"GetOperation" ClientStatus.GetOperation.impl
-  ptr_GetSender_unfold : MethodUnfold (go.GoType.PointerType ClientStatus.ty) go!"GetSender" ClientStatus.GetSender.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType ClientStatus.ty) go!"Marshal" ClientStatus.Marshal.impl
-  ptr_New_unfold : MethodUnfold (go.GoType.PointerType ClientStatus.ty) go!"New" ClientStatus.New.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType ClientStatus.ty) go!"ProtoMessage" ClientStatus.ProtoMessage.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType ClientStatus.ty) go!"Unmarshal" ClientStatus.Unmarshal.impl
+  ptr_unfold'GetMessage : MethodUnfold (go.GoType.PointerType ClientStatus.ty) go!"GetMessage" ClientStatus.GetMessage.impl
+  ptr_unfold'GetOperation : MethodUnfold (go.GoType.PointerType ClientStatus.ty) go!"GetOperation" ClientStatus.GetOperation.impl
+  ptr_unfold'GetSender : MethodUnfold (go.GoType.PointerType ClientStatus.ty) go!"GetSender" ClientStatus.GetSender.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType ClientStatus.ty) go!"Marshal" ClientStatus.Marshal.impl
+  ptr_unfold'New : MethodUnfold (go.GoType.PointerType ClientStatus.ty) go!"New" ClientStatus.New.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType ClientStatus.ty) go!"ProtoMessage" ClientStatus.ProtoMessage.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType ClientStatus.ty) go!"Unmarshal" ClientStatus.Unmarshal.impl
 
 attribute [instance] ClientStatus.TypeAssumptions.type_repr
   ClientStatus.TypeAssumptions.underlying
-  ClientStatus.TypeAssumptions.get_state
-  ClientStatus.TypeAssumptions.set_state
-  ClientStatus.TypeAssumptions.get_sizeCache
-  ClientStatus.TypeAssumptions.set_sizeCache
-  ClientStatus.TypeAssumptions.get_unknownFields
-  ClientStatus.TypeAssumptions.set_unknownFields
-  ClientStatus.TypeAssumptions.get_Sender
-  ClientStatus.TypeAssumptions.set_Sender
-  ClientStatus.TypeAssumptions.get_Operation
-  ClientStatus.TypeAssumptions.set_Operation
-  ClientStatus.TypeAssumptions.get_Message
-  ClientStatus.TypeAssumptions.set_Message
+  ClientStatus.TypeAssumptions.get'state
+  ClientStatus.TypeAssumptions.set'state
+  ClientStatus.TypeAssumptions.get'sizeCache
+  ClientStatus.TypeAssumptions.set'sizeCache
+  ClientStatus.TypeAssumptions.get'unknownFields
+  ClientStatus.TypeAssumptions.set'unknownFields
+  ClientStatus.TypeAssumptions.get'Sender
+  ClientStatus.TypeAssumptions.set'Sender
+  ClientStatus.TypeAssumptions.get'Operation
+  ClientStatus.TypeAssumptions.set'Operation
+  ClientStatus.TypeAssumptions.get'Message
+  ClientStatus.TypeAssumptions.set'Message
   ClientStatus.TypeAssumptions.method_set
   ClientStatus.TypeAssumptions.ptr_method_set
-  ClientStatus.TypeAssumptions.ptr_GetMessage_unfold
-  ClientStatus.TypeAssumptions.ptr_GetOperation_unfold
-  ClientStatus.TypeAssumptions.ptr_GetSender_unfold
-  ClientStatus.TypeAssumptions.ptr_Marshal_unfold
-  ClientStatus.TypeAssumptions.ptr_New_unfold
-  ClientStatus.TypeAssumptions.ptr_ProtoMessage_unfold
-  ClientStatus.TypeAssumptions.ptr_Unmarshal_unfold
+  ClientStatus.TypeAssumptions.ptr_unfold'GetMessage
+  ClientStatus.TypeAssumptions.ptr_unfold'GetOperation
+  ClientStatus.TypeAssumptions.ptr_unfold'GetSender
+  ClientStatus.TypeAssumptions.ptr_unfold'Marshal
+  ClientStatus.TypeAssumptions.ptr_unfold'New
+  ClientStatus.TypeAssumptions.ptr_unfold'ProtoMessage
+  ClientStatus.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure ClientBatch_SingleMessage [GooseExts] where
   mk ::
@@ -940,7 +940,7 @@ noncomputable instance ClientBatch_SingleMessage.zero_val [GooseExts] : ZeroVal 
 @[irreducible] noncomputable def ClientBatch_SingleMessage.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClientBatch_SingleMessage.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClientBatch_SingleMessage [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ClientBatch_SingleMessage [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClientBatch_SingleMessage.fields ClientBatch_SingleMessage.fieldsUnsealed :=
   ⟨by unfold ClientBatch_SingleMessage.fields; rfl⟩
 
@@ -950,60 +950,60 @@ noncomputable instance equals_unfold_ClientBatch_SingleMessage [GooseExts] [GoGl
 class ClientBatch_SingleMessage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClientBatch_SingleMessage.underlying ClientBatch_SingleMessage
   underlying : go.UnderlyingDirectedEq ClientBatch_SingleMessage.ty ClientBatch_SingleMessage.underlying
-  get_state : ∀ (x : ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch_SingleMessage.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : ClientBatch_SingleMessage) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch_SingleMessage.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ClientBatch_SingleMessage)))
-  get_sizeCache : ∀ (x : ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch_SingleMessage.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : ClientBatch_SingleMessage) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch_SingleMessage.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ClientBatch_SingleMessage)))
-  get_unknownFields : ∀ (x : ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch_SingleMessage.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : ClientBatch_SingleMessage) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch_SingleMessage.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ClientBatch_SingleMessage)))
-  get_Message : ∀ (x : ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch_SingleMessage.underlying go!"Message") #x (Val #(x.Message'))
-  set_Message : ∀ (x : ClientBatch_SingleMessage) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch_SingleMessage.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : ClientBatch_SingleMessage)))
+  get'state : ∀ (x : ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch_SingleMessage.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : ClientBatch_SingleMessage) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch_SingleMessage.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ClientBatch_SingleMessage)))
+  get'sizeCache : ∀ (x : ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch_SingleMessage.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : ClientBatch_SingleMessage) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch_SingleMessage.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ClientBatch_SingleMessage)))
+  get'unknownFields : ∀ (x : ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch_SingleMessage.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : ClientBatch_SingleMessage) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch_SingleMessage.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ClientBatch_SingleMessage)))
+  get'Message : ∀ (x : ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatch_SingleMessage.underlying go!"Message") #x (Val #(x.Message'))
+  set'Message : ∀ (x : ClientBatch_SingleMessage) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatch_SingleMessage.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : ClientBatch_SingleMessage)))
   method_set : go.MethodSetIs ClientBatch_SingleMessage.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientBatch_SingleMessage.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetMessage", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetMessage_unfold : MethodUnfold (go.GoType.PointerType ClientBatch_SingleMessage.ty) go!"GetMessage" ClientBatch_SingleMessage.GetMessage.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType ClientBatch_SingleMessage.ty) go!"ProtoMessage" ClientBatch_SingleMessage.ProtoMessage.impl
+  ptr_unfold'GetMessage : MethodUnfold (go.GoType.PointerType ClientBatch_SingleMessage.ty) go!"GetMessage" ClientBatch_SingleMessage.GetMessage.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType ClientBatch_SingleMessage.ty) go!"ProtoMessage" ClientBatch_SingleMessage.ProtoMessage.impl
 
 attribute [instance] ClientBatch_SingleMessage.TypeAssumptions.type_repr
   ClientBatch_SingleMessage.TypeAssumptions.underlying
-  ClientBatch_SingleMessage.TypeAssumptions.get_state
-  ClientBatch_SingleMessage.TypeAssumptions.set_state
-  ClientBatch_SingleMessage.TypeAssumptions.get_sizeCache
-  ClientBatch_SingleMessage.TypeAssumptions.set_sizeCache
-  ClientBatch_SingleMessage.TypeAssumptions.get_unknownFields
-  ClientBatch_SingleMessage.TypeAssumptions.set_unknownFields
-  ClientBatch_SingleMessage.TypeAssumptions.get_Message
-  ClientBatch_SingleMessage.TypeAssumptions.set_Message
+  ClientBatch_SingleMessage.TypeAssumptions.get'state
+  ClientBatch_SingleMessage.TypeAssumptions.set'state
+  ClientBatch_SingleMessage.TypeAssumptions.get'sizeCache
+  ClientBatch_SingleMessage.TypeAssumptions.set'sizeCache
+  ClientBatch_SingleMessage.TypeAssumptions.get'unknownFields
+  ClientBatch_SingleMessage.TypeAssumptions.set'unknownFields
+  ClientBatch_SingleMessage.TypeAssumptions.get'Message
+  ClientBatch_SingleMessage.TypeAssumptions.set'Message
   ClientBatch_SingleMessage.TypeAssumptions.method_set
   ClientBatch_SingleMessage.TypeAssumptions.ptr_method_set
-  ClientBatch_SingleMessage.TypeAssumptions.ptr_GetMessage_unfold
-  ClientBatch_SingleMessage.TypeAssumptions.ptr_ProtoMessage_unfold
+  ClientBatch_SingleMessage.TypeAssumptions.ptr_unfold'GetMessage
+  ClientBatch_SingleMessage.TypeAssumptions.ptr_unfold'ProtoMessage
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ClientBatch_instance : ClientBatch.TypeAssumptions
-  ClientStatus_instance : ClientStatus.TypeAssumptions
-  ClientBatch_SingleMessage_instance : ClientBatch_SingleMessage.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  import_protoreflect_Assumption : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
-  import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
-  import_reflect_Assumption : _root_.Perennial.reflect.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
-  import_protobuf_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_raxos_proto_Assumption : _root_.Perennial.raxos.proto.Assumptions
+  instance'ClientBatch : ClientBatch.TypeAssumptions
+  instance'ClientStatus : ClientStatus.TypeAssumptions
+  instance'ClientBatch_SingleMessage : ClientBatch_SingleMessage.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  import'protoreflect : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
+  import'protoimpl : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
+  import'reflect : _root_.Perennial.reflect.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'binary : _root_.Perennial.encoding.binary.Assumptions
+  import'protobuf_proto : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'raxos_proto : _root_.Perennial.raxos.proto.Assumptions
 
-attribute [instance] Assumptions.ClientBatch_instance
-  Assumptions.ClientStatus_instance
-  Assumptions.ClientBatch_SingleMessage_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.import_protoreflect_Assumption
-  Assumptions.import_protoimpl_Assumption
-  Assumptions.import_reflect_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_binary_Assumption
-  Assumptions.import_protobuf_proto_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_raxos_proto_Assumption
+attribute [instance] Assumptions.instance'ClientBatch
+  Assumptions.instance'ClientStatus
+  Assumptions.instance'ClientBatch_SingleMessage
+  Assumptions.«unfold'init.0»
+  Assumptions.import'protoreflect
+  Assumptions.import'protoimpl
+  Assumptions.import'reflect
+  Assumptions.import'sync
+  Assumptions.import'binary
+  Assumptions.import'protobuf_proto
+  Assumptions.import'io
+  Assumptions.import'raxos_proto
 
 end raxos.proto.client
 

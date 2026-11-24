@@ -2573,7 +2573,7 @@ noncomputable instance fileReader.zero_val [GooseExts] : ZeroVal fileReader :=
 @[irreducible] noncomputable def fileReader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fileReader.fieldsUnsealed
 
-noncomputable instance equals_unfold_fileReader [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'fileReader [GooseExts] [GoGlobalContext] :
     EqualsUnfold fileReader.fields fileReader.fieldsUnsealed :=
   ⟨by unfold fileReader.fields; rfl⟩
 
@@ -2583,283 +2583,283 @@ noncomputable instance equals_unfold_fileReader [GooseExts] [GoGlobalContext] :
 class fileReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fileReader.underlying fileReader
   underlying : go.UnderlyingDirectedEq fileReader.ty fileReader.underlying
-  get_File : ∀ (x : fileReader), go.IsGoStepPureDetTagged under (StructFieldGet fileReader.underlying go!"File") #x (Val #(x.File'))
-  set_File : ∀ (x : fileReader) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fileReader.underlying go!"File") (PairV #x #y) (Val #(({ x with File' := y } : fileReader)))
+  get'File : ∀ (x : fileReader), go.IsGoStepPureDetTagged under (StructFieldGet fileReader.underlying go!"File") #x (Val #(x.File'))
+  set'File : ∀ (x : fileReader) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fileReader.underlying go!"File") (PairV #x #y) (Val #(({ x with File' := y } : fileReader)))
   method_set : go.MethodSetIs fileReader.ty [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [_root_.Perennial.os.FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType _root_.Perennial.os.DirEntry.ty), go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType _root_.Perennial.os.FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [_root_.Perennial.os.FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [_root_.Perennial.os.FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [_root_.Perennial.os.FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [_root_.Perennial.os.FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, _root_.Perennial.os.readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType _root_.Perennial.os.DirEntry.ty), (go.GoType.SliceType _root_.Perennial.os.FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fileReader.ty) [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [_root_.Perennial.os.FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"FileInfo", (some (go.signature.Signature [] false [_root_.Perennial.io.fs.FileInfo.ty, go.error]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType _root_.Perennial.os.DirEntry.ty), go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType _root_.Perennial.os.FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [_root_.Perennial.os.FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [_root_.Perennial.os.FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [_root_.Perennial.os.FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [_root_.Perennial.os.FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, _root_.Perennial.os.readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType _root_.Perennial.os.DirEntry.ty), (go.GoType.SliceType _root_.Perennial.os.FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
-  Chdir_unfold : MethodUnfold fileReader.ty go!"Chdir" (LamV "$r"
+  unfold'Chdir : MethodUnfold fileReader.ty go!"Chdir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Chdir"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  Chmod_unfold : MethodUnfold fileReader.ty go!"Chmod" (LamV "$r"
+  unfold'Chmod : MethodUnfold fileReader.ty go!"Chmod" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Chmod"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  Chown_unfold : MethodUnfold fileReader.ty go!"Chown" (LamV "$r"
+  unfold'Chown : MethodUnfold fileReader.ty go!"Chown" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Chown"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  Close_unfold : MethodUnfold fileReader.ty go!"Close" (LamV "$r"
+  unfold'Close : MethodUnfold fileReader.ty go!"Close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Close"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  Fd_unfold : MethodUnfold fileReader.ty go!"Fd" (LamV "$r"
+  unfold'Fd : MethodUnfold fileReader.ty go!"Fd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Fd"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  Name_unfold : MethodUnfold fileReader.ty go!"Name" (LamV "$r"
+  unfold'Name : MethodUnfold fileReader.ty go!"Name" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Name"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  Read_unfold : MethodUnfold fileReader.ty go!"Read" (LamV "$r"
+  unfold'Read : MethodUnfold fileReader.ty go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  ReadAt_unfold : MethodUnfold fileReader.ty go!"ReadAt" (LamV "$r"
+  unfold'ReadAt : MethodUnfold fileReader.ty go!"ReadAt" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"ReadAt"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  ReadDir_unfold : MethodUnfold fileReader.ty go!"ReadDir" (LamV "$r"
+  unfold'ReadDir : MethodUnfold fileReader.ty go!"ReadDir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"ReadDir"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  ReadFrom_unfold : MethodUnfold fileReader.ty go!"ReadFrom" (LamV "$r"
+  unfold'ReadFrom : MethodUnfold fileReader.ty go!"ReadFrom" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"ReadFrom"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  Readdir_unfold : MethodUnfold fileReader.ty go!"Readdir" (LamV "$r"
+  unfold'Readdir : MethodUnfold fileReader.ty go!"Readdir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Readdir"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  Readdirnames_unfold : MethodUnfold fileReader.ty go!"Readdirnames" (LamV "$r"
+  unfold'Readdirnames : MethodUnfold fileReader.ty go!"Readdirnames" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Readdirnames"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  Seek_unfold : MethodUnfold fileReader.ty go!"Seek" (LamV "$r"
+  unfold'Seek : MethodUnfold fileReader.ty go!"Seek" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Seek"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  SetDeadline_unfold : MethodUnfold fileReader.ty go!"SetDeadline" (LamV "$r"
+  unfold'SetDeadline : MethodUnfold fileReader.ty go!"SetDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"SetDeadline"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  SetReadDeadline_unfold : MethodUnfold fileReader.ty go!"SetReadDeadline" (LamV "$r"
+  unfold'SetReadDeadline : MethodUnfold fileReader.ty go!"SetReadDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"SetReadDeadline"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  SetWriteDeadline_unfold : MethodUnfold fileReader.ty go!"SetWriteDeadline" (LamV "$r"
+  unfold'SetWriteDeadline : MethodUnfold fileReader.ty go!"SetWriteDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"SetWriteDeadline"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  Stat_unfold : MethodUnfold fileReader.ty go!"Stat" (LamV "$r"
+  unfold'Stat : MethodUnfold fileReader.ty go!"Stat" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Stat"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  Sync_unfold : MethodUnfold fileReader.ty go!"Sync" (LamV "$r"
+  unfold'Sync : MethodUnfold fileReader.ty go!"Sync" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Sync"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  SyscallConn_unfold : MethodUnfold fileReader.ty go!"SyscallConn" (LamV "$r"
+  unfold'SyscallConn : MethodUnfold fileReader.ty go!"SyscallConn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"SyscallConn"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  Truncate_unfold : MethodUnfold fileReader.ty go!"Truncate" (LamV "$r"
+  unfold'Truncate : MethodUnfold fileReader.ty go!"Truncate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Truncate"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  Write_unfold : MethodUnfold fileReader.ty go!"Write" (LamV "$r"
+  unfold'Write : MethodUnfold fileReader.ty go!"Write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  WriteAt_unfold : MethodUnfold fileReader.ty go!"WriteAt" (LamV "$r"
+  unfold'WriteAt : MethodUnfold fileReader.ty go!"WriteAt" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"WriteAt"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  WriteString_unfold : MethodUnfold fileReader.ty go!"WriteString" (LamV "$r"
+  unfold'WriteString : MethodUnfold fileReader.ty go!"WriteString" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"WriteString"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  WriteTo_unfold : MethodUnfold fileReader.ty go!"WriteTo" (LamV "$r"
+  unfold'WriteTo : MethodUnfold fileReader.ty go!"WriteTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"WriteTo"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  checkValid_unfold : MethodUnfold fileReader.ty go!"checkValid" (LamV "$r"
+  unfold'checkValid : MethodUnfold fileReader.ty go!"checkValid" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"checkValid"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  chmod_unfold : MethodUnfold fileReader.ty go!"chmod" (LamV "$r"
+  unfold'chmod : MethodUnfold fileReader.ty go!"chmod" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"chmod"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  close_unfold : MethodUnfold fileReader.ty go!"close" (LamV "$r"
+  unfold'close : MethodUnfold fileReader.ty go!"close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"close"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  copyFileRange_unfold : MethodUnfold fileReader.ty go!"copyFileRange" (LamV "$r"
+  unfold'copyFileRange : MethodUnfold fileReader.ty go!"copyFileRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"copyFileRange"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  fd_unfold : MethodUnfold fileReader.ty go!"fd" (LamV "$r"
+  unfold'fd : MethodUnfold fileReader.ty go!"fd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"fd"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  lstatat_unfold : MethodUnfold fileReader.ty go!"lstatat" (LamV "$r"
+  unfold'lstatat : MethodUnfold fileReader.ty go!"lstatat" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"lstatat"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  lstatatNolog_unfold : MethodUnfold fileReader.ty go!"lstatatNolog" (LamV "$r"
+  unfold'lstatatNolog : MethodUnfold fileReader.ty go!"lstatatNolog" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"lstatatNolog"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  pread_unfold : MethodUnfold fileReader.ty go!"pread" (LamV "$r"
+  unfold'pread : MethodUnfold fileReader.ty go!"pread" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"pread"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  pwrite_unfold : MethodUnfold fileReader.ty go!"pwrite" (LamV "$r"
+  unfold'pwrite : MethodUnfold fileReader.ty go!"pwrite" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"pwrite"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  read_unfold : MethodUnfold fileReader.ty go!"read" (LamV "$r"
+  unfold'read : MethodUnfold fileReader.ty go!"read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"read"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  readFrom_unfold : MethodUnfold fileReader.ty go!"readFrom" (LamV "$r"
+  unfold'readFrom : MethodUnfold fileReader.ty go!"readFrom" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"readFrom"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  readdir_unfold : MethodUnfold fileReader.ty go!"readdir" (LamV "$r"
+  unfold'readdir : MethodUnfold fileReader.ty go!"readdir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"readdir"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  seek_unfold : MethodUnfold fileReader.ty go!"seek" (LamV "$r"
+  unfold'seek : MethodUnfold fileReader.ty go!"seek" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"seek"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  setDeadline_unfold : MethodUnfold fileReader.ty go!"setDeadline" (LamV "$r"
+  unfold'setDeadline : MethodUnfold fileReader.ty go!"setDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"setDeadline"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  setReadDeadline_unfold : MethodUnfold fileReader.ty go!"setReadDeadline" (LamV "$r"
+  unfold'setReadDeadline : MethodUnfold fileReader.ty go!"setReadDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"setReadDeadline"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  setWriteDeadline_unfold : MethodUnfold fileReader.ty go!"setWriteDeadline" (LamV "$r"
+  unfold'setWriteDeadline : MethodUnfold fileReader.ty go!"setWriteDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"setWriteDeadline"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  spliceToFile_unfold : MethodUnfold fileReader.ty go!"spliceToFile" (LamV "$r"
+  unfold'spliceToFile : MethodUnfold fileReader.ty go!"spliceToFile" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"spliceToFile"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  wrapErr_unfold : MethodUnfold fileReader.ty go!"wrapErr" (LamV "$r"
+  unfold'wrapErr : MethodUnfold fileReader.ty go!"wrapErr" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"wrapErr"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  write_unfold : MethodUnfold fileReader.ty go!"write" (LamV "$r"
+  unfold'write : MethodUnfold fileReader.ty go!"write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"write"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  writeTo_unfold : MethodUnfold fileReader.ty go!"writeTo" (LamV "$r"
+  unfold'writeTo : MethodUnfold fileReader.ty go!"writeTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"writeTo"))) (App (Val (GoInstruction (StructFieldGet fileReader.ty go!"File"))) (Var "$r"))))
-  ptr_Chdir_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Chdir" (LamV "$r"
+  ptr_unfold'Chdir : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Chdir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Chdir"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_Chmod_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Chmod" (LamV "$r"
+  ptr_unfold'Chmod : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Chmod" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Chmod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_Chown_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Chown" (LamV "$r"
+  ptr_unfold'Chown : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Chown" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Chown"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Close" (LamV "$r"
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_Fd_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Fd" (LamV "$r"
+  ptr_unfold'Fd : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Fd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Fd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_FileInfo_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"FileInfo" fileReader.FileInfo.impl
-  ptr_Name_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Name" (LamV "$r"
+  ptr_unfold'FileInfo : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"FileInfo" fileReader.FileInfo.impl
+  ptr_unfold'Name : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Name" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Read" (LamV "$r"
+  ptr_unfold'Read : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_ReadAt_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"ReadAt" (LamV "$r"
+  ptr_unfold'ReadAt : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"ReadAt" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"ReadAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_ReadDir_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"ReadDir" (LamV "$r"
+  ptr_unfold'ReadDir : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"ReadDir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"ReadDir"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_ReadFrom_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"ReadFrom" (LamV "$r"
+  ptr_unfold'ReadFrom : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"ReadFrom" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"ReadFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_Readdir_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Readdir" (LamV "$r"
+  ptr_unfold'Readdir : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Readdir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Readdir"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_Readdirnames_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Readdirnames" (LamV "$r"
+  ptr_unfold'Readdirnames : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Readdirnames" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Readdirnames"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_Seek_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Seek" (LamV "$r"
+  ptr_unfold'Seek : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Seek" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Seek"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_SetDeadline_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"SetDeadline" (LamV "$r"
+  ptr_unfold'SetDeadline : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"SetDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"SetDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_SetReadDeadline_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"SetReadDeadline" (LamV "$r"
+  ptr_unfold'SetReadDeadline : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"SetReadDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"SetReadDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_SetWriteDeadline_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"SetWriteDeadline" (LamV "$r"
+  ptr_unfold'SetWriteDeadline : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"SetWriteDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"SetWriteDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_Stat_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Stat" (LamV "$r"
+  ptr_unfold'Stat : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Stat" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Stat"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_Sync_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Sync" (LamV "$r"
+  ptr_unfold'Sync : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Sync" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Sync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_SyscallConn_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"SyscallConn" (LamV "$r"
+  ptr_unfold'SyscallConn : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"SyscallConn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"SyscallConn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_Truncate_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Truncate" (LamV "$r"
+  ptr_unfold'Truncate : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Truncate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Truncate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Write" (LamV "$r"
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"Write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_WriteAt_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"WriteAt" (LamV "$r"
+  ptr_unfold'WriteAt : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"WriteAt" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"WriteAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_WriteString_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"WriteString" (LamV "$r"
+  ptr_unfold'WriteString : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"WriteString" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"WriteString"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_WriteTo_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"WriteTo" (LamV "$r"
+  ptr_unfold'WriteTo : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"WriteTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"WriteTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_checkValid_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"checkValid" (LamV "$r"
+  ptr_unfold'checkValid : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"checkValid" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"checkValid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_chmod_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"chmod" (LamV "$r"
+  ptr_unfold'chmod : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"chmod" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"chmod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_close_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"close" (LamV "$r"
+  ptr_unfold'close : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_copyFileRange_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"copyFileRange" (LamV "$r"
+  ptr_unfold'copyFileRange : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"copyFileRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"copyFileRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_fd_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"fd" (LamV "$r"
+  ptr_unfold'fd : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"fd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"fd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_lstatat_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"lstatat" (LamV "$r"
+  ptr_unfold'lstatat : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"lstatat" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"lstatat"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_lstatatNolog_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"lstatatNolog" (LamV "$r"
+  ptr_unfold'lstatatNolog : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"lstatatNolog" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"lstatatNolog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_pread_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"pread" (LamV "$r"
+  ptr_unfold'pread : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"pread" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"pread"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_pwrite_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"pwrite" (LamV "$r"
+  ptr_unfold'pwrite : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"pwrite" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"pwrite"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_read_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"read" (LamV "$r"
+  ptr_unfold'read : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_readFrom_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"readFrom" (LamV "$r"
+  ptr_unfold'readFrom : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"readFrom" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"readFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_readdir_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"readdir" (LamV "$r"
+  ptr_unfold'readdir : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"readdir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"readdir"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_seek_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"seek" (LamV "$r"
+  ptr_unfold'seek : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"seek" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"seek"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_setDeadline_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"setDeadline" (LamV "$r"
+  ptr_unfold'setDeadline : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"setDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"setDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_setReadDeadline_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"setReadDeadline" (LamV "$r"
+  ptr_unfold'setReadDeadline : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"setReadDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"setReadDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_setWriteDeadline_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"setWriteDeadline" (LamV "$r"
+  ptr_unfold'setWriteDeadline : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"setWriteDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"setWriteDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_spliceToFile_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"spliceToFile" (LamV "$r"
+  ptr_unfold'spliceToFile : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"spliceToFile" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"spliceToFile"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_wrapErr_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"wrapErr" (LamV "$r"
+  ptr_unfold'wrapErr : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"wrapErr" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"wrapErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_write_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"write" (LamV "$r"
+  ptr_unfold'write : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
-  ptr_writeTo_unfold : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"writeTo" (LamV "$r"
+  ptr_unfold'writeTo : MethodUnfold (go.GoType.PointerType fileReader.ty) go!"writeTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"writeTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef fileReader.ty go!"File"))) (Var "$r")))))
 
 attribute [instance] fileReader.TypeAssumptions.type_repr
   fileReader.TypeAssumptions.underlying
-  fileReader.TypeAssumptions.get_File
-  fileReader.TypeAssumptions.set_File
+  fileReader.TypeAssumptions.get'File
+  fileReader.TypeAssumptions.set'File
   fileReader.TypeAssumptions.method_set
   fileReader.TypeAssumptions.ptr_method_set
-  fileReader.TypeAssumptions.Chdir_unfold
-  fileReader.TypeAssumptions.Chmod_unfold
-  fileReader.TypeAssumptions.Chown_unfold
-  fileReader.TypeAssumptions.Close_unfold
-  fileReader.TypeAssumptions.Fd_unfold
-  fileReader.TypeAssumptions.Name_unfold
-  fileReader.TypeAssumptions.Read_unfold
-  fileReader.TypeAssumptions.ReadAt_unfold
-  fileReader.TypeAssumptions.ReadDir_unfold
-  fileReader.TypeAssumptions.ReadFrom_unfold
-  fileReader.TypeAssumptions.Readdir_unfold
-  fileReader.TypeAssumptions.Readdirnames_unfold
-  fileReader.TypeAssumptions.Seek_unfold
-  fileReader.TypeAssumptions.SetDeadline_unfold
-  fileReader.TypeAssumptions.SetReadDeadline_unfold
-  fileReader.TypeAssumptions.SetWriteDeadline_unfold
-  fileReader.TypeAssumptions.Stat_unfold
-  fileReader.TypeAssumptions.Sync_unfold
-  fileReader.TypeAssumptions.SyscallConn_unfold
-  fileReader.TypeAssumptions.Truncate_unfold
-  fileReader.TypeAssumptions.Write_unfold
-  fileReader.TypeAssumptions.WriteAt_unfold
-  fileReader.TypeAssumptions.WriteString_unfold
-  fileReader.TypeAssumptions.WriteTo_unfold
-  fileReader.TypeAssumptions.checkValid_unfold
-  fileReader.TypeAssumptions.chmod_unfold
-  fileReader.TypeAssumptions.close_unfold
-  fileReader.TypeAssumptions.copyFileRange_unfold
-  fileReader.TypeAssumptions.fd_unfold
-  fileReader.TypeAssumptions.lstatat_unfold
-  fileReader.TypeAssumptions.lstatatNolog_unfold
-  fileReader.TypeAssumptions.pread_unfold
-  fileReader.TypeAssumptions.pwrite_unfold
-  fileReader.TypeAssumptions.read_unfold
-  fileReader.TypeAssumptions.readFrom_unfold
-  fileReader.TypeAssumptions.readdir_unfold
-  fileReader.TypeAssumptions.seek_unfold
-  fileReader.TypeAssumptions.setDeadline_unfold
-  fileReader.TypeAssumptions.setReadDeadline_unfold
-  fileReader.TypeAssumptions.setWriteDeadline_unfold
-  fileReader.TypeAssumptions.spliceToFile_unfold
-  fileReader.TypeAssumptions.wrapErr_unfold
-  fileReader.TypeAssumptions.write_unfold
-  fileReader.TypeAssumptions.writeTo_unfold
-  fileReader.TypeAssumptions.ptr_Chdir_unfold
-  fileReader.TypeAssumptions.ptr_Chmod_unfold
-  fileReader.TypeAssumptions.ptr_Chown_unfold
-  fileReader.TypeAssumptions.ptr_Close_unfold
-  fileReader.TypeAssumptions.ptr_Fd_unfold
-  fileReader.TypeAssumptions.ptr_FileInfo_unfold
-  fileReader.TypeAssumptions.ptr_Name_unfold
-  fileReader.TypeAssumptions.ptr_Read_unfold
-  fileReader.TypeAssumptions.ptr_ReadAt_unfold
-  fileReader.TypeAssumptions.ptr_ReadDir_unfold
-  fileReader.TypeAssumptions.ptr_ReadFrom_unfold
-  fileReader.TypeAssumptions.ptr_Readdir_unfold
-  fileReader.TypeAssumptions.ptr_Readdirnames_unfold
-  fileReader.TypeAssumptions.ptr_Seek_unfold
-  fileReader.TypeAssumptions.ptr_SetDeadline_unfold
-  fileReader.TypeAssumptions.ptr_SetReadDeadline_unfold
-  fileReader.TypeAssumptions.ptr_SetWriteDeadline_unfold
-  fileReader.TypeAssumptions.ptr_Stat_unfold
-  fileReader.TypeAssumptions.ptr_Sync_unfold
-  fileReader.TypeAssumptions.ptr_SyscallConn_unfold
-  fileReader.TypeAssumptions.ptr_Truncate_unfold
-  fileReader.TypeAssumptions.ptr_Write_unfold
-  fileReader.TypeAssumptions.ptr_WriteAt_unfold
-  fileReader.TypeAssumptions.ptr_WriteString_unfold
-  fileReader.TypeAssumptions.ptr_WriteTo_unfold
-  fileReader.TypeAssumptions.ptr_checkValid_unfold
-  fileReader.TypeAssumptions.ptr_chmod_unfold
-  fileReader.TypeAssumptions.ptr_close_unfold
-  fileReader.TypeAssumptions.ptr_copyFileRange_unfold
-  fileReader.TypeAssumptions.ptr_fd_unfold
-  fileReader.TypeAssumptions.ptr_lstatat_unfold
-  fileReader.TypeAssumptions.ptr_lstatatNolog_unfold
-  fileReader.TypeAssumptions.ptr_pread_unfold
-  fileReader.TypeAssumptions.ptr_pwrite_unfold
-  fileReader.TypeAssumptions.ptr_read_unfold
-  fileReader.TypeAssumptions.ptr_readFrom_unfold
-  fileReader.TypeAssumptions.ptr_readdir_unfold
-  fileReader.TypeAssumptions.ptr_seek_unfold
-  fileReader.TypeAssumptions.ptr_setDeadline_unfold
-  fileReader.TypeAssumptions.ptr_setReadDeadline_unfold
-  fileReader.TypeAssumptions.ptr_setWriteDeadline_unfold
-  fileReader.TypeAssumptions.ptr_spliceToFile_unfold
-  fileReader.TypeAssumptions.ptr_wrapErr_unfold
-  fileReader.TypeAssumptions.ptr_write_unfold
-  fileReader.TypeAssumptions.ptr_writeTo_unfold
+  fileReader.TypeAssumptions.unfold'Chdir
+  fileReader.TypeAssumptions.unfold'Chmod
+  fileReader.TypeAssumptions.unfold'Chown
+  fileReader.TypeAssumptions.unfold'Close
+  fileReader.TypeAssumptions.unfold'Fd
+  fileReader.TypeAssumptions.unfold'Name
+  fileReader.TypeAssumptions.unfold'Read
+  fileReader.TypeAssumptions.unfold'ReadAt
+  fileReader.TypeAssumptions.unfold'ReadDir
+  fileReader.TypeAssumptions.unfold'ReadFrom
+  fileReader.TypeAssumptions.unfold'Readdir
+  fileReader.TypeAssumptions.unfold'Readdirnames
+  fileReader.TypeAssumptions.unfold'Seek
+  fileReader.TypeAssumptions.unfold'SetDeadline
+  fileReader.TypeAssumptions.unfold'SetReadDeadline
+  fileReader.TypeAssumptions.unfold'SetWriteDeadline
+  fileReader.TypeAssumptions.unfold'Stat
+  fileReader.TypeAssumptions.unfold'Sync
+  fileReader.TypeAssumptions.unfold'SyscallConn
+  fileReader.TypeAssumptions.unfold'Truncate
+  fileReader.TypeAssumptions.unfold'Write
+  fileReader.TypeAssumptions.unfold'WriteAt
+  fileReader.TypeAssumptions.unfold'WriteString
+  fileReader.TypeAssumptions.unfold'WriteTo
+  fileReader.TypeAssumptions.unfold'checkValid
+  fileReader.TypeAssumptions.unfold'chmod
+  fileReader.TypeAssumptions.unfold'close
+  fileReader.TypeAssumptions.unfold'copyFileRange
+  fileReader.TypeAssumptions.unfold'fd
+  fileReader.TypeAssumptions.unfold'lstatat
+  fileReader.TypeAssumptions.unfold'lstatatNolog
+  fileReader.TypeAssumptions.unfold'pread
+  fileReader.TypeAssumptions.unfold'pwrite
+  fileReader.TypeAssumptions.unfold'read
+  fileReader.TypeAssumptions.unfold'readFrom
+  fileReader.TypeAssumptions.unfold'readdir
+  fileReader.TypeAssumptions.unfold'seek
+  fileReader.TypeAssumptions.unfold'setDeadline
+  fileReader.TypeAssumptions.unfold'setReadDeadline
+  fileReader.TypeAssumptions.unfold'setWriteDeadline
+  fileReader.TypeAssumptions.unfold'spliceToFile
+  fileReader.TypeAssumptions.unfold'wrapErr
+  fileReader.TypeAssumptions.unfold'write
+  fileReader.TypeAssumptions.unfold'writeTo
+  fileReader.TypeAssumptions.ptr_unfold'Chdir
+  fileReader.TypeAssumptions.ptr_unfold'Chmod
+  fileReader.TypeAssumptions.ptr_unfold'Chown
+  fileReader.TypeAssumptions.ptr_unfold'Close
+  fileReader.TypeAssumptions.ptr_unfold'Fd
+  fileReader.TypeAssumptions.ptr_unfold'FileInfo
+  fileReader.TypeAssumptions.ptr_unfold'Name
+  fileReader.TypeAssumptions.ptr_unfold'Read
+  fileReader.TypeAssumptions.ptr_unfold'ReadAt
+  fileReader.TypeAssumptions.ptr_unfold'ReadDir
+  fileReader.TypeAssumptions.ptr_unfold'ReadFrom
+  fileReader.TypeAssumptions.ptr_unfold'Readdir
+  fileReader.TypeAssumptions.ptr_unfold'Readdirnames
+  fileReader.TypeAssumptions.ptr_unfold'Seek
+  fileReader.TypeAssumptions.ptr_unfold'SetDeadline
+  fileReader.TypeAssumptions.ptr_unfold'SetReadDeadline
+  fileReader.TypeAssumptions.ptr_unfold'SetWriteDeadline
+  fileReader.TypeAssumptions.ptr_unfold'Stat
+  fileReader.TypeAssumptions.ptr_unfold'Sync
+  fileReader.TypeAssumptions.ptr_unfold'SyscallConn
+  fileReader.TypeAssumptions.ptr_unfold'Truncate
+  fileReader.TypeAssumptions.ptr_unfold'Write
+  fileReader.TypeAssumptions.ptr_unfold'WriteAt
+  fileReader.TypeAssumptions.ptr_unfold'WriteString
+  fileReader.TypeAssumptions.ptr_unfold'WriteTo
+  fileReader.TypeAssumptions.ptr_unfold'checkValid
+  fileReader.TypeAssumptions.ptr_unfold'chmod
+  fileReader.TypeAssumptions.ptr_unfold'close
+  fileReader.TypeAssumptions.ptr_unfold'copyFileRange
+  fileReader.TypeAssumptions.ptr_unfold'fd
+  fileReader.TypeAssumptions.ptr_unfold'lstatat
+  fileReader.TypeAssumptions.ptr_unfold'lstatatNolog
+  fileReader.TypeAssumptions.ptr_unfold'pread
+  fileReader.TypeAssumptions.ptr_unfold'pwrite
+  fileReader.TypeAssumptions.ptr_unfold'read
+  fileReader.TypeAssumptions.ptr_unfold'readFrom
+  fileReader.TypeAssumptions.ptr_unfold'readdir
+  fileReader.TypeAssumptions.ptr_unfold'seek
+  fileReader.TypeAssumptions.ptr_unfold'setDeadline
+  fileReader.TypeAssumptions.ptr_unfold'setReadDeadline
+  fileReader.TypeAssumptions.ptr_unfold'setWriteDeadline
+  fileReader.TypeAssumptions.ptr_unfold'spliceToFile
+  fileReader.TypeAssumptions.ptr_unfold'wrapErr
+  fileReader.TypeAssumptions.ptr_unfold'write
+  fileReader.TypeAssumptions.ptr_unfold'writeTo
 
 structure FileBufReader [GooseExts] where
   mk ::
@@ -2878,7 +2878,7 @@ noncomputable instance FileBufReader.zero_val [GooseExts] : ZeroVal FileBufReade
 @[irreducible] noncomputable def FileBufReader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FileBufReader.fieldsUnsealed
 
-noncomputable instance equals_unfold_FileBufReader [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FileBufReader [GooseExts] [GoGlobalContext] :
     EqualsUnfold FileBufReader.fields FileBufReader.fieldsUnsealed :=
   ⟨by unfold FileBufReader.fields; rfl⟩
 
@@ -2888,149 +2888,149 @@ noncomputable instance equals_unfold_FileBufReader [GooseExts] [GoGlobalContext]
 class FileBufReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FileBufReader.underlying FileBufReader
   underlying : go.UnderlyingDirectedEq FileBufReader.ty FileBufReader.underlying
-  get_Reader : ∀ (x : FileBufReader), go.IsGoStepPureDetTagged under (StructFieldGet FileBufReader.underlying go!"Reader") #x (Val #(x.Reader'))
-  set_Reader : ∀ (x : FileBufReader) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet FileBufReader.underlying go!"Reader") (PairV #x #y) (Val #(({ x with Reader' := y } : FileBufReader)))
-  get_fi : ∀ (x : FileBufReader), go.IsGoStepPureDetTagged under (StructFieldGet FileBufReader.underlying go!"fi") #x (Val #(x.fi'))
-  set_fi : ∀ (x : FileBufReader) (y : _root_.Perennial.io.fs.FileInfo), go.IsGoStepPureDetTagged under (StructFieldSet FileBufReader.underlying go!"fi") (PairV #x #y) (Val #(({ x with fi' := y } : FileBufReader)))
-  get_err : ∀ (x : FileBufReader), go.IsGoStepPureDetTagged under (StructFieldGet FileBufReader.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : FileBufReader) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet FileBufReader.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : FileBufReader)))
+  get'Reader : ∀ (x : FileBufReader), go.IsGoStepPureDetTagged under (StructFieldGet FileBufReader.underlying go!"Reader") #x (Val #(x.Reader'))
+  set'Reader : ∀ (x : FileBufReader) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet FileBufReader.underlying go!"Reader") (PairV #x #y) (Val #(({ x with Reader' := y } : FileBufReader)))
+  get'fi : ∀ (x : FileBufReader), go.IsGoStepPureDetTagged under (StructFieldGet FileBufReader.underlying go!"fi") #x (Val #(x.fi'))
+  set'fi : ∀ (x : FileBufReader) (y : _root_.Perennial.io.fs.FileInfo), go.IsGoStepPureDetTagged under (StructFieldSet FileBufReader.underlying go!"fi") (PairV #x #y) (Val #(({ x with fi' := y } : FileBufReader)))
+  get'err : ∀ (x : FileBufReader), go.IsGoStepPureDetTagged under (StructFieldGet FileBufReader.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : FileBufReader) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet FileBufReader.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : FileBufReader)))
   method_set : go.MethodSetIs FileBufReader.ty [(go!"Buffered", (some (go.signature.Signature [] false [go.int]))), (go!"Discard", (some (go.signature.Signature [go.int] false [go.int, go.error]))), (go!"Peek", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadByte", (some (go.signature.Signature [] false [go.byte, go.error]))), (go!"ReadBytes", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadLine", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"ReadRune", (some (go.signature.Signature [] false [go.rune, go.int, go.error]))), (go!"ReadSlice", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadString", (some (go.signature.Signature [go.byte] false [go.string, go.error]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"UnreadByte", (some (go.signature.Signature [] false [go.error]))), (go!"UnreadRune", (some (go.signature.Signature [] false [go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"bufio.collectFragments", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType go.byte), go.int, go.error]))), (go!"bufio.fill", (some (go.signature.Signature [] false []))), (go!"bufio.readErr", (some (go.signature.Signature [] false [go.error]))), (go!"bufio.reset", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.io.Reader.ty] false []))), (go!"bufio.writeBuf", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FileBufReader.ty) [(go!"Buffered", (some (go.signature.Signature [] false [go.int]))), (go!"Discard", (some (go.signature.Signature [go.int] false [go.int, go.error]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"FileInfo", (some (go.signature.Signature [] false [_root_.Perennial.io.fs.FileInfo.ty]))), (go!"Peek", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadByte", (some (go.signature.Signature [] false [go.byte, go.error]))), (go!"ReadBytes", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadLine", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"ReadRune", (some (go.signature.Signature [] false [go.rune, go.int, go.error]))), (go!"ReadSlice", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadString", (some (go.signature.Signature [go.byte] false [go.string, go.error]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"UnreadByte", (some (go.signature.Signature [] false [go.error]))), (go!"UnreadRune", (some (go.signature.Signature [] false [go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"bufio.collectFragments", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType go.byte), go.int, go.error]))), (go!"bufio.fill", (some (go.signature.Signature [] false []))), (go!"bufio.readErr", (some (go.signature.Signature [] false [go.error]))), (go!"bufio.reset", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.io.Reader.ty] false []))), (go!"bufio.writeBuf", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
-  Buffered_unfold : MethodUnfold FileBufReader.ty go!"Buffered" (LamV "$r"
+  unfold'Buffered : MethodUnfold FileBufReader.ty go!"Buffered" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"Buffered"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  Discard_unfold : MethodUnfold FileBufReader.ty go!"Discard" (LamV "$r"
+  unfold'Discard : MethodUnfold FileBufReader.ty go!"Discard" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"Discard"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  Peek_unfold : MethodUnfold FileBufReader.ty go!"Peek" (LamV "$r"
+  unfold'Peek : MethodUnfold FileBufReader.ty go!"Peek" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"Peek"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  Read_unfold : MethodUnfold FileBufReader.ty go!"Read" (LamV "$r"
+  unfold'Read : MethodUnfold FileBufReader.ty go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  ReadByte_unfold : MethodUnfold FileBufReader.ty go!"ReadByte" (LamV "$r"
+  unfold'ReadByte : MethodUnfold FileBufReader.ty go!"ReadByte" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"ReadByte"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  ReadBytes_unfold : MethodUnfold FileBufReader.ty go!"ReadBytes" (LamV "$r"
+  unfold'ReadBytes : MethodUnfold FileBufReader.ty go!"ReadBytes" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"ReadBytes"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  ReadLine_unfold : MethodUnfold FileBufReader.ty go!"ReadLine" (LamV "$r"
+  unfold'ReadLine : MethodUnfold FileBufReader.ty go!"ReadLine" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"ReadLine"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  ReadRune_unfold : MethodUnfold FileBufReader.ty go!"ReadRune" (LamV "$r"
+  unfold'ReadRune : MethodUnfold FileBufReader.ty go!"ReadRune" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"ReadRune"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  ReadSlice_unfold : MethodUnfold FileBufReader.ty go!"ReadSlice" (LamV "$r"
+  unfold'ReadSlice : MethodUnfold FileBufReader.ty go!"ReadSlice" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"ReadSlice"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  ReadString_unfold : MethodUnfold FileBufReader.ty go!"ReadString" (LamV "$r"
+  unfold'ReadString : MethodUnfold FileBufReader.ty go!"ReadString" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"ReadString"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  Reset_unfold : MethodUnfold FileBufReader.ty go!"Reset" (LamV "$r"
+  unfold'Reset : MethodUnfold FileBufReader.ty go!"Reset" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"Reset"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  Size_unfold : MethodUnfold FileBufReader.ty go!"Size" (LamV "$r"
+  unfold'Size : MethodUnfold FileBufReader.ty go!"Size" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"Size"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  UnreadByte_unfold : MethodUnfold FileBufReader.ty go!"UnreadByte" (LamV "$r"
+  unfold'UnreadByte : MethodUnfold FileBufReader.ty go!"UnreadByte" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"UnreadByte"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  UnreadRune_unfold : MethodUnfold FileBufReader.ty go!"UnreadRune" (LamV "$r"
+  unfold'UnreadRune : MethodUnfold FileBufReader.ty go!"UnreadRune" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"UnreadRune"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  WriteTo_unfold : MethodUnfold FileBufReader.ty go!"WriteTo" (LamV "$r"
+  unfold'WriteTo : MethodUnfold FileBufReader.ty go!"WriteTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"WriteTo"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  collectFragments_unfold : MethodUnfold FileBufReader.ty go!"collectFragments" (LamV "$r"
+  unfold'collectFragments : MethodUnfold FileBufReader.ty go!"collectFragments" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"collectFragments"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  fill_unfold : MethodUnfold FileBufReader.ty go!"fill" (LamV "$r"
+  unfold'fill : MethodUnfold FileBufReader.ty go!"fill" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"fill"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  readErr_unfold : MethodUnfold FileBufReader.ty go!"readErr" (LamV "$r"
+  unfold'readErr : MethodUnfold FileBufReader.ty go!"readErr" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"readErr"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  reset_unfold : MethodUnfold FileBufReader.ty go!"reset" (LamV "$r"
+  unfold'reset : MethodUnfold FileBufReader.ty go!"reset" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"reset"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  writeBuf_unfold : MethodUnfold FileBufReader.ty go!"writeBuf" (LamV "$r"
+  unfold'writeBuf : MethodUnfold FileBufReader.ty go!"writeBuf" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"writeBuf"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
-  ptr_Buffered_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Buffered" (LamV "$r"
+  ptr_unfold'Buffered : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Buffered" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"Buffered"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_Discard_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Discard" (LamV "$r"
+  ptr_unfold'Discard : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Discard" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"Discard"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_Err_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Err" FileBufReader.Err.impl
-  ptr_FileInfo_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"FileInfo" FileBufReader.FileInfo.impl
-  ptr_Peek_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Peek" (LamV "$r"
+  ptr_unfold'Err : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Err" FileBufReader.Err.impl
+  ptr_unfold'FileInfo : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"FileInfo" FileBufReader.FileInfo.impl
+  ptr_unfold'Peek : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Peek" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"Peek"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Read" (LamV "$r"
+  ptr_unfold'Read : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"Read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_ReadByte_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"ReadByte" (LamV "$r"
+  ptr_unfold'ReadByte : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"ReadByte" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"ReadByte"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_ReadBytes_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"ReadBytes" (LamV "$r"
+  ptr_unfold'ReadBytes : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"ReadBytes" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"ReadBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_ReadLine_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"ReadLine" (LamV "$r"
+  ptr_unfold'ReadLine : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"ReadLine" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"ReadLine"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_ReadRune_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"ReadRune" (LamV "$r"
+  ptr_unfold'ReadRune : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"ReadRune" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"ReadRune"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_ReadSlice_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"ReadSlice" (LamV "$r"
+  ptr_unfold'ReadSlice : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"ReadSlice" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"ReadSlice"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_ReadString_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"ReadString" (LamV "$r"
+  ptr_unfold'ReadString : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"ReadString" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"ReadString"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Reset" (LamV "$r"
+  ptr_unfold'Reset : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Reset" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"Reset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_Size_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Size" (LamV "$r"
+  ptr_unfold'Size : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Size" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"Size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_UnreadByte_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"UnreadByte" (LamV "$r"
+  ptr_unfold'UnreadByte : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"UnreadByte" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"UnreadByte"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_UnreadRune_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"UnreadRune" (LamV "$r"
+  ptr_unfold'UnreadRune : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"UnreadRune" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"UnreadRune"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_WriteTo_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"WriteTo" (LamV "$r"
+  ptr_unfold'WriteTo : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"WriteTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"WriteTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_collectFragments_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"collectFragments" (LamV "$r"
+  ptr_unfold'collectFragments : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"collectFragments" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"collectFragments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_fill_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"fill" (LamV "$r"
+  ptr_unfold'fill : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"fill" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"fill"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_readErr_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"readErr" (LamV "$r"
+  ptr_unfold'readErr : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"readErr" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"readErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_reset_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"reset" (LamV "$r"
+  ptr_unfold'reset : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"reset" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"reset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
-  ptr_writeBuf_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"writeBuf" (LamV "$r"
+  ptr_unfold'writeBuf : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"writeBuf" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"writeBuf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
 
 attribute [instance] FileBufReader.TypeAssumptions.type_repr
   FileBufReader.TypeAssumptions.underlying
-  FileBufReader.TypeAssumptions.get_Reader
-  FileBufReader.TypeAssumptions.set_Reader
-  FileBufReader.TypeAssumptions.get_fi
-  FileBufReader.TypeAssumptions.set_fi
-  FileBufReader.TypeAssumptions.get_err
-  FileBufReader.TypeAssumptions.set_err
+  FileBufReader.TypeAssumptions.get'Reader
+  FileBufReader.TypeAssumptions.set'Reader
+  FileBufReader.TypeAssumptions.get'fi
+  FileBufReader.TypeAssumptions.set'fi
+  FileBufReader.TypeAssumptions.get'err
+  FileBufReader.TypeAssumptions.set'err
   FileBufReader.TypeAssumptions.method_set
   FileBufReader.TypeAssumptions.ptr_method_set
-  FileBufReader.TypeAssumptions.Buffered_unfold
-  FileBufReader.TypeAssumptions.Discard_unfold
-  FileBufReader.TypeAssumptions.Peek_unfold
-  FileBufReader.TypeAssumptions.Read_unfold
-  FileBufReader.TypeAssumptions.ReadByte_unfold
-  FileBufReader.TypeAssumptions.ReadBytes_unfold
-  FileBufReader.TypeAssumptions.ReadLine_unfold
-  FileBufReader.TypeAssumptions.ReadRune_unfold
-  FileBufReader.TypeAssumptions.ReadSlice_unfold
-  FileBufReader.TypeAssumptions.ReadString_unfold
-  FileBufReader.TypeAssumptions.Reset_unfold
-  FileBufReader.TypeAssumptions.Size_unfold
-  FileBufReader.TypeAssumptions.UnreadByte_unfold
-  FileBufReader.TypeAssumptions.UnreadRune_unfold
-  FileBufReader.TypeAssumptions.WriteTo_unfold
-  FileBufReader.TypeAssumptions.collectFragments_unfold
-  FileBufReader.TypeAssumptions.fill_unfold
-  FileBufReader.TypeAssumptions.readErr_unfold
-  FileBufReader.TypeAssumptions.reset_unfold
-  FileBufReader.TypeAssumptions.writeBuf_unfold
-  FileBufReader.TypeAssumptions.ptr_Buffered_unfold
-  FileBufReader.TypeAssumptions.ptr_Discard_unfold
-  FileBufReader.TypeAssumptions.ptr_Err_unfold
-  FileBufReader.TypeAssumptions.ptr_FileInfo_unfold
-  FileBufReader.TypeAssumptions.ptr_Peek_unfold
-  FileBufReader.TypeAssumptions.ptr_Read_unfold
-  FileBufReader.TypeAssumptions.ptr_ReadByte_unfold
-  FileBufReader.TypeAssumptions.ptr_ReadBytes_unfold
-  FileBufReader.TypeAssumptions.ptr_ReadLine_unfold
-  FileBufReader.TypeAssumptions.ptr_ReadRune_unfold
-  FileBufReader.TypeAssumptions.ptr_ReadSlice_unfold
-  FileBufReader.TypeAssumptions.ptr_ReadString_unfold
-  FileBufReader.TypeAssumptions.ptr_Reset_unfold
-  FileBufReader.TypeAssumptions.ptr_Size_unfold
-  FileBufReader.TypeAssumptions.ptr_UnreadByte_unfold
-  FileBufReader.TypeAssumptions.ptr_UnreadRune_unfold
-  FileBufReader.TypeAssumptions.ptr_WriteTo_unfold
-  FileBufReader.TypeAssumptions.ptr_collectFragments_unfold
-  FileBufReader.TypeAssumptions.ptr_fill_unfold
-  FileBufReader.TypeAssumptions.ptr_readErr_unfold
-  FileBufReader.TypeAssumptions.ptr_reset_unfold
-  FileBufReader.TypeAssumptions.ptr_writeBuf_unfold
+  FileBufReader.TypeAssumptions.unfold'Buffered
+  FileBufReader.TypeAssumptions.unfold'Discard
+  FileBufReader.TypeAssumptions.unfold'Peek
+  FileBufReader.TypeAssumptions.unfold'Read
+  FileBufReader.TypeAssumptions.unfold'ReadByte
+  FileBufReader.TypeAssumptions.unfold'ReadBytes
+  FileBufReader.TypeAssumptions.unfold'ReadLine
+  FileBufReader.TypeAssumptions.unfold'ReadRune
+  FileBufReader.TypeAssumptions.unfold'ReadSlice
+  FileBufReader.TypeAssumptions.unfold'ReadString
+  FileBufReader.TypeAssumptions.unfold'Reset
+  FileBufReader.TypeAssumptions.unfold'Size
+  FileBufReader.TypeAssumptions.unfold'UnreadByte
+  FileBufReader.TypeAssumptions.unfold'UnreadRune
+  FileBufReader.TypeAssumptions.unfold'WriteTo
+  FileBufReader.TypeAssumptions.unfold'collectFragments
+  FileBufReader.TypeAssumptions.unfold'fill
+  FileBufReader.TypeAssumptions.unfold'readErr
+  FileBufReader.TypeAssumptions.unfold'reset
+  FileBufReader.TypeAssumptions.unfold'writeBuf
+  FileBufReader.TypeAssumptions.ptr_unfold'Buffered
+  FileBufReader.TypeAssumptions.ptr_unfold'Discard
+  FileBufReader.TypeAssumptions.ptr_unfold'Err
+  FileBufReader.TypeAssumptions.ptr_unfold'FileInfo
+  FileBufReader.TypeAssumptions.ptr_unfold'Peek
+  FileBufReader.TypeAssumptions.ptr_unfold'Read
+  FileBufReader.TypeAssumptions.ptr_unfold'ReadByte
+  FileBufReader.TypeAssumptions.ptr_unfold'ReadBytes
+  FileBufReader.TypeAssumptions.ptr_unfold'ReadLine
+  FileBufReader.TypeAssumptions.ptr_unfold'ReadRune
+  FileBufReader.TypeAssumptions.ptr_unfold'ReadSlice
+  FileBufReader.TypeAssumptions.ptr_unfold'ReadString
+  FileBufReader.TypeAssumptions.ptr_unfold'Reset
+  FileBufReader.TypeAssumptions.ptr_unfold'Size
+  FileBufReader.TypeAssumptions.ptr_unfold'UnreadByte
+  FileBufReader.TypeAssumptions.ptr_unfold'UnreadRune
+  FileBufReader.TypeAssumptions.ptr_unfold'WriteTo
+  FileBufReader.TypeAssumptions.ptr_unfold'collectFragments
+  FileBufReader.TypeAssumptions.ptr_unfold'fill
+  FileBufReader.TypeAssumptions.ptr_unfold'readErr
+  FileBufReader.TypeAssumptions.ptr_unfold'reset
+  FileBufReader.TypeAssumptions.ptr_unfold'writeBuf
 
 structure LockedFile [GooseExts] where
   mk ::
@@ -3045,7 +3045,7 @@ noncomputable instance LockedFile.zero_val [GooseExts] : ZeroVal LockedFile :=
 @[irreducible] noncomputable def LockedFile.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LockedFile.fieldsUnsealed
 
-noncomputable instance equals_unfold_LockedFile [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LockedFile [GooseExts] [GoGlobalContext] :
     EqualsUnfold LockedFile.fields LockedFile.fieldsUnsealed :=
   ⟨by unfold LockedFile.fields; rfl⟩
 
@@ -3055,281 +3055,281 @@ noncomputable instance equals_unfold_LockedFile [GooseExts] [GoGlobalContext] :
 class LockedFile.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LockedFile.underlying LockedFile
   underlying : go.UnderlyingDirectedEq LockedFile.ty LockedFile.underlying
-  get_File : ∀ (x : LockedFile), go.IsGoStepPureDetTagged under (StructFieldGet LockedFile.underlying go!"File") #x (Val #(x.File'))
-  set_File : ∀ (x : LockedFile) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet LockedFile.underlying go!"File") (PairV #x #y) (Val #(({ x with File' := y } : LockedFile)))
+  get'File : ∀ (x : LockedFile), go.IsGoStepPureDetTagged under (StructFieldGet LockedFile.underlying go!"File") #x (Val #(x.File'))
+  set'File : ∀ (x : LockedFile) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet LockedFile.underlying go!"File") (PairV #x #y) (Val #(({ x with File' := y } : LockedFile)))
   method_set : go.MethodSetIs LockedFile.ty [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [_root_.Perennial.os.FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType _root_.Perennial.os.DirEntry.ty), go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType _root_.Perennial.os.FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [_root_.Perennial.os.FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [_root_.Perennial.os.FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [_root_.Perennial.os.FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [_root_.Perennial.os.FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, _root_.Perennial.os.readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType _root_.Perennial.os.DirEntry.ty), (go.GoType.SliceType _root_.Perennial.os.FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LockedFile.ty) [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [_root_.Perennial.os.FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType _root_.Perennial.os.DirEntry.ty), go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType _root_.Perennial.os.FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [_root_.Perennial.os.FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [_root_.Perennial.os.FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [_root_.Perennial.os.FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [_root_.Perennial.os.FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, _root_.Perennial.os.readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType _root_.Perennial.os.DirEntry.ty), (go.GoType.SliceType _root_.Perennial.os.FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
-  Chdir_unfold : MethodUnfold LockedFile.ty go!"Chdir" (LamV "$r"
+  unfold'Chdir : MethodUnfold LockedFile.ty go!"Chdir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Chdir"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  Chmod_unfold : MethodUnfold LockedFile.ty go!"Chmod" (LamV "$r"
+  unfold'Chmod : MethodUnfold LockedFile.ty go!"Chmod" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Chmod"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  Chown_unfold : MethodUnfold LockedFile.ty go!"Chown" (LamV "$r"
+  unfold'Chown : MethodUnfold LockedFile.ty go!"Chown" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Chown"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  Close_unfold : MethodUnfold LockedFile.ty go!"Close" (LamV "$r"
+  unfold'Close : MethodUnfold LockedFile.ty go!"Close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Close"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  Fd_unfold : MethodUnfold LockedFile.ty go!"Fd" (LamV "$r"
+  unfold'Fd : MethodUnfold LockedFile.ty go!"Fd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Fd"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  Name_unfold : MethodUnfold LockedFile.ty go!"Name" (LamV "$r"
+  unfold'Name : MethodUnfold LockedFile.ty go!"Name" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Name"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  Read_unfold : MethodUnfold LockedFile.ty go!"Read" (LamV "$r"
+  unfold'Read : MethodUnfold LockedFile.ty go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  ReadAt_unfold : MethodUnfold LockedFile.ty go!"ReadAt" (LamV "$r"
+  unfold'ReadAt : MethodUnfold LockedFile.ty go!"ReadAt" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"ReadAt"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  ReadDir_unfold : MethodUnfold LockedFile.ty go!"ReadDir" (LamV "$r"
+  unfold'ReadDir : MethodUnfold LockedFile.ty go!"ReadDir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"ReadDir"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  ReadFrom_unfold : MethodUnfold LockedFile.ty go!"ReadFrom" (LamV "$r"
+  unfold'ReadFrom : MethodUnfold LockedFile.ty go!"ReadFrom" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"ReadFrom"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  Readdir_unfold : MethodUnfold LockedFile.ty go!"Readdir" (LamV "$r"
+  unfold'Readdir : MethodUnfold LockedFile.ty go!"Readdir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Readdir"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  Readdirnames_unfold : MethodUnfold LockedFile.ty go!"Readdirnames" (LamV "$r"
+  unfold'Readdirnames : MethodUnfold LockedFile.ty go!"Readdirnames" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Readdirnames"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  Seek_unfold : MethodUnfold LockedFile.ty go!"Seek" (LamV "$r"
+  unfold'Seek : MethodUnfold LockedFile.ty go!"Seek" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Seek"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  SetDeadline_unfold : MethodUnfold LockedFile.ty go!"SetDeadline" (LamV "$r"
+  unfold'SetDeadline : MethodUnfold LockedFile.ty go!"SetDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"SetDeadline"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  SetReadDeadline_unfold : MethodUnfold LockedFile.ty go!"SetReadDeadline" (LamV "$r"
+  unfold'SetReadDeadline : MethodUnfold LockedFile.ty go!"SetReadDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"SetReadDeadline"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  SetWriteDeadline_unfold : MethodUnfold LockedFile.ty go!"SetWriteDeadline" (LamV "$r"
+  unfold'SetWriteDeadline : MethodUnfold LockedFile.ty go!"SetWriteDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"SetWriteDeadline"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  Stat_unfold : MethodUnfold LockedFile.ty go!"Stat" (LamV "$r"
+  unfold'Stat : MethodUnfold LockedFile.ty go!"Stat" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Stat"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  Sync_unfold : MethodUnfold LockedFile.ty go!"Sync" (LamV "$r"
+  unfold'Sync : MethodUnfold LockedFile.ty go!"Sync" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Sync"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  SyscallConn_unfold : MethodUnfold LockedFile.ty go!"SyscallConn" (LamV "$r"
+  unfold'SyscallConn : MethodUnfold LockedFile.ty go!"SyscallConn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"SyscallConn"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  Truncate_unfold : MethodUnfold LockedFile.ty go!"Truncate" (LamV "$r"
+  unfold'Truncate : MethodUnfold LockedFile.ty go!"Truncate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Truncate"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  Write_unfold : MethodUnfold LockedFile.ty go!"Write" (LamV "$r"
+  unfold'Write : MethodUnfold LockedFile.ty go!"Write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  WriteAt_unfold : MethodUnfold LockedFile.ty go!"WriteAt" (LamV "$r"
+  unfold'WriteAt : MethodUnfold LockedFile.ty go!"WriteAt" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"WriteAt"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  WriteString_unfold : MethodUnfold LockedFile.ty go!"WriteString" (LamV "$r"
+  unfold'WriteString : MethodUnfold LockedFile.ty go!"WriteString" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"WriteString"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  WriteTo_unfold : MethodUnfold LockedFile.ty go!"WriteTo" (LamV "$r"
+  unfold'WriteTo : MethodUnfold LockedFile.ty go!"WriteTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"WriteTo"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  checkValid_unfold : MethodUnfold LockedFile.ty go!"checkValid" (LamV "$r"
+  unfold'checkValid : MethodUnfold LockedFile.ty go!"checkValid" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"checkValid"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  chmod_unfold : MethodUnfold LockedFile.ty go!"chmod" (LamV "$r"
+  unfold'chmod : MethodUnfold LockedFile.ty go!"chmod" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"chmod"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  close_unfold : MethodUnfold LockedFile.ty go!"close" (LamV "$r"
+  unfold'close : MethodUnfold LockedFile.ty go!"close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"close"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  copyFileRange_unfold : MethodUnfold LockedFile.ty go!"copyFileRange" (LamV "$r"
+  unfold'copyFileRange : MethodUnfold LockedFile.ty go!"copyFileRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"copyFileRange"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  fd_unfold : MethodUnfold LockedFile.ty go!"fd" (LamV "$r"
+  unfold'fd : MethodUnfold LockedFile.ty go!"fd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"fd"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  lstatat_unfold : MethodUnfold LockedFile.ty go!"lstatat" (LamV "$r"
+  unfold'lstatat : MethodUnfold LockedFile.ty go!"lstatat" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"lstatat"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  lstatatNolog_unfold : MethodUnfold LockedFile.ty go!"lstatatNolog" (LamV "$r"
+  unfold'lstatatNolog : MethodUnfold LockedFile.ty go!"lstatatNolog" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"lstatatNolog"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  pread_unfold : MethodUnfold LockedFile.ty go!"pread" (LamV "$r"
+  unfold'pread : MethodUnfold LockedFile.ty go!"pread" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"pread"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  pwrite_unfold : MethodUnfold LockedFile.ty go!"pwrite" (LamV "$r"
+  unfold'pwrite : MethodUnfold LockedFile.ty go!"pwrite" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"pwrite"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  read_unfold : MethodUnfold LockedFile.ty go!"read" (LamV "$r"
+  unfold'read : MethodUnfold LockedFile.ty go!"read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"read"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  readFrom_unfold : MethodUnfold LockedFile.ty go!"readFrom" (LamV "$r"
+  unfold'readFrom : MethodUnfold LockedFile.ty go!"readFrom" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"readFrom"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  readdir_unfold : MethodUnfold LockedFile.ty go!"readdir" (LamV "$r"
+  unfold'readdir : MethodUnfold LockedFile.ty go!"readdir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"readdir"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  seek_unfold : MethodUnfold LockedFile.ty go!"seek" (LamV "$r"
+  unfold'seek : MethodUnfold LockedFile.ty go!"seek" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"seek"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  setDeadline_unfold : MethodUnfold LockedFile.ty go!"setDeadline" (LamV "$r"
+  unfold'setDeadline : MethodUnfold LockedFile.ty go!"setDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"setDeadline"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  setReadDeadline_unfold : MethodUnfold LockedFile.ty go!"setReadDeadline" (LamV "$r"
+  unfold'setReadDeadline : MethodUnfold LockedFile.ty go!"setReadDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"setReadDeadline"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  setWriteDeadline_unfold : MethodUnfold LockedFile.ty go!"setWriteDeadline" (LamV "$r"
+  unfold'setWriteDeadline : MethodUnfold LockedFile.ty go!"setWriteDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"setWriteDeadline"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  spliceToFile_unfold : MethodUnfold LockedFile.ty go!"spliceToFile" (LamV "$r"
+  unfold'spliceToFile : MethodUnfold LockedFile.ty go!"spliceToFile" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"spliceToFile"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  wrapErr_unfold : MethodUnfold LockedFile.ty go!"wrapErr" (LamV "$r"
+  unfold'wrapErr : MethodUnfold LockedFile.ty go!"wrapErr" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"wrapErr"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  write_unfold : MethodUnfold LockedFile.ty go!"write" (LamV "$r"
+  unfold'write : MethodUnfold LockedFile.ty go!"write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"write"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  writeTo_unfold : MethodUnfold LockedFile.ty go!"writeTo" (LamV "$r"
+  unfold'writeTo : MethodUnfold LockedFile.ty go!"writeTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"writeTo"))) (App (Val (GoInstruction (StructFieldGet LockedFile.ty go!"File"))) (Var "$r"))))
-  ptr_Chdir_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Chdir" (LamV "$r"
+  ptr_unfold'Chdir : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Chdir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Chdir"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_Chmod_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Chmod" (LamV "$r"
+  ptr_unfold'Chmod : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Chmod" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Chmod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_Chown_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Chown" (LamV "$r"
+  ptr_unfold'Chown : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Chown" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Chown"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Close" (LamV "$r"
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_Fd_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Fd" (LamV "$r"
+  ptr_unfold'Fd : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Fd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Fd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_Name_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Name" (LamV "$r"
+  ptr_unfold'Name : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Name" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Read" (LamV "$r"
+  ptr_unfold'Read : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_ReadAt_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"ReadAt" (LamV "$r"
+  ptr_unfold'ReadAt : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"ReadAt" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"ReadAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_ReadDir_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"ReadDir" (LamV "$r"
+  ptr_unfold'ReadDir : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"ReadDir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"ReadDir"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_ReadFrom_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"ReadFrom" (LamV "$r"
+  ptr_unfold'ReadFrom : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"ReadFrom" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"ReadFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_Readdir_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Readdir" (LamV "$r"
+  ptr_unfold'Readdir : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Readdir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Readdir"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_Readdirnames_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Readdirnames" (LamV "$r"
+  ptr_unfold'Readdirnames : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Readdirnames" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Readdirnames"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_Seek_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Seek" (LamV "$r"
+  ptr_unfold'Seek : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Seek" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Seek"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_SetDeadline_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"SetDeadline" (LamV "$r"
+  ptr_unfold'SetDeadline : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"SetDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"SetDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_SetReadDeadline_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"SetReadDeadline" (LamV "$r"
+  ptr_unfold'SetReadDeadline : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"SetReadDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"SetReadDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_SetWriteDeadline_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"SetWriteDeadline" (LamV "$r"
+  ptr_unfold'SetWriteDeadline : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"SetWriteDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"SetWriteDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_Stat_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Stat" (LamV "$r"
+  ptr_unfold'Stat : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Stat" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Stat"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_Sync_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Sync" (LamV "$r"
+  ptr_unfold'Sync : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Sync" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Sync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_SyscallConn_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"SyscallConn" (LamV "$r"
+  ptr_unfold'SyscallConn : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"SyscallConn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"SyscallConn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_Truncate_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Truncate" (LamV "$r"
+  ptr_unfold'Truncate : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Truncate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Truncate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Write" (LamV "$r"
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"Write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_WriteAt_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"WriteAt" (LamV "$r"
+  ptr_unfold'WriteAt : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"WriteAt" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"WriteAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_WriteString_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"WriteString" (LamV "$r"
+  ptr_unfold'WriteString : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"WriteString" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"WriteString"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_WriteTo_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"WriteTo" (LamV "$r"
+  ptr_unfold'WriteTo : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"WriteTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"WriteTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_checkValid_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"checkValid" (LamV "$r"
+  ptr_unfold'checkValid : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"checkValid" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"checkValid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_chmod_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"chmod" (LamV "$r"
+  ptr_unfold'chmod : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"chmod" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"chmod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_close_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"close" (LamV "$r"
+  ptr_unfold'close : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_copyFileRange_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"copyFileRange" (LamV "$r"
+  ptr_unfold'copyFileRange : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"copyFileRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"copyFileRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_fd_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"fd" (LamV "$r"
+  ptr_unfold'fd : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"fd" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"fd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_lstatat_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"lstatat" (LamV "$r"
+  ptr_unfold'lstatat : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"lstatat" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"lstatat"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_lstatatNolog_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"lstatatNolog" (LamV "$r"
+  ptr_unfold'lstatatNolog : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"lstatatNolog" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"lstatatNolog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_pread_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"pread" (LamV "$r"
+  ptr_unfold'pread : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"pread" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"pread"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_pwrite_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"pwrite" (LamV "$r"
+  ptr_unfold'pwrite : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"pwrite" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"pwrite"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_read_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"read" (LamV "$r"
+  ptr_unfold'read : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_readFrom_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"readFrom" (LamV "$r"
+  ptr_unfold'readFrom : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"readFrom" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"readFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_readdir_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"readdir" (LamV "$r"
+  ptr_unfold'readdir : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"readdir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"readdir"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_seek_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"seek" (LamV "$r"
+  ptr_unfold'seek : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"seek" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"seek"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_setDeadline_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"setDeadline" (LamV "$r"
+  ptr_unfold'setDeadline : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"setDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"setDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_setReadDeadline_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"setReadDeadline" (LamV "$r"
+  ptr_unfold'setReadDeadline : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"setReadDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"setReadDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_setWriteDeadline_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"setWriteDeadline" (LamV "$r"
+  ptr_unfold'setWriteDeadline : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"setWriteDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"setWriteDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_spliceToFile_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"spliceToFile" (LamV "$r"
+  ptr_unfold'spliceToFile : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"spliceToFile" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"spliceToFile"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_wrapErr_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"wrapErr" (LamV "$r"
+  ptr_unfold'wrapErr : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"wrapErr" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"wrapErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_write_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"write" (LamV "$r"
+  ptr_unfold'write : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
-  ptr_writeTo_unfold : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"writeTo" (LamV "$r"
+  ptr_unfold'writeTo : MethodUnfold (go.GoType.PointerType LockedFile.ty) go!"writeTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"writeTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef LockedFile.ty go!"File"))) (Var "$r")))))
 
 attribute [instance] LockedFile.TypeAssumptions.type_repr
   LockedFile.TypeAssumptions.underlying
-  LockedFile.TypeAssumptions.get_File
-  LockedFile.TypeAssumptions.set_File
+  LockedFile.TypeAssumptions.get'File
+  LockedFile.TypeAssumptions.set'File
   LockedFile.TypeAssumptions.method_set
   LockedFile.TypeAssumptions.ptr_method_set
-  LockedFile.TypeAssumptions.Chdir_unfold
-  LockedFile.TypeAssumptions.Chmod_unfold
-  LockedFile.TypeAssumptions.Chown_unfold
-  LockedFile.TypeAssumptions.Close_unfold
-  LockedFile.TypeAssumptions.Fd_unfold
-  LockedFile.TypeAssumptions.Name_unfold
-  LockedFile.TypeAssumptions.Read_unfold
-  LockedFile.TypeAssumptions.ReadAt_unfold
-  LockedFile.TypeAssumptions.ReadDir_unfold
-  LockedFile.TypeAssumptions.ReadFrom_unfold
-  LockedFile.TypeAssumptions.Readdir_unfold
-  LockedFile.TypeAssumptions.Readdirnames_unfold
-  LockedFile.TypeAssumptions.Seek_unfold
-  LockedFile.TypeAssumptions.SetDeadline_unfold
-  LockedFile.TypeAssumptions.SetReadDeadline_unfold
-  LockedFile.TypeAssumptions.SetWriteDeadline_unfold
-  LockedFile.TypeAssumptions.Stat_unfold
-  LockedFile.TypeAssumptions.Sync_unfold
-  LockedFile.TypeAssumptions.SyscallConn_unfold
-  LockedFile.TypeAssumptions.Truncate_unfold
-  LockedFile.TypeAssumptions.Write_unfold
-  LockedFile.TypeAssumptions.WriteAt_unfold
-  LockedFile.TypeAssumptions.WriteString_unfold
-  LockedFile.TypeAssumptions.WriteTo_unfold
-  LockedFile.TypeAssumptions.checkValid_unfold
-  LockedFile.TypeAssumptions.chmod_unfold
-  LockedFile.TypeAssumptions.close_unfold
-  LockedFile.TypeAssumptions.copyFileRange_unfold
-  LockedFile.TypeAssumptions.fd_unfold
-  LockedFile.TypeAssumptions.lstatat_unfold
-  LockedFile.TypeAssumptions.lstatatNolog_unfold
-  LockedFile.TypeAssumptions.pread_unfold
-  LockedFile.TypeAssumptions.pwrite_unfold
-  LockedFile.TypeAssumptions.read_unfold
-  LockedFile.TypeAssumptions.readFrom_unfold
-  LockedFile.TypeAssumptions.readdir_unfold
-  LockedFile.TypeAssumptions.seek_unfold
-  LockedFile.TypeAssumptions.setDeadline_unfold
-  LockedFile.TypeAssumptions.setReadDeadline_unfold
-  LockedFile.TypeAssumptions.setWriteDeadline_unfold
-  LockedFile.TypeAssumptions.spliceToFile_unfold
-  LockedFile.TypeAssumptions.wrapErr_unfold
-  LockedFile.TypeAssumptions.write_unfold
-  LockedFile.TypeAssumptions.writeTo_unfold
-  LockedFile.TypeAssumptions.ptr_Chdir_unfold
-  LockedFile.TypeAssumptions.ptr_Chmod_unfold
-  LockedFile.TypeAssumptions.ptr_Chown_unfold
-  LockedFile.TypeAssumptions.ptr_Close_unfold
-  LockedFile.TypeAssumptions.ptr_Fd_unfold
-  LockedFile.TypeAssumptions.ptr_Name_unfold
-  LockedFile.TypeAssumptions.ptr_Read_unfold
-  LockedFile.TypeAssumptions.ptr_ReadAt_unfold
-  LockedFile.TypeAssumptions.ptr_ReadDir_unfold
-  LockedFile.TypeAssumptions.ptr_ReadFrom_unfold
-  LockedFile.TypeAssumptions.ptr_Readdir_unfold
-  LockedFile.TypeAssumptions.ptr_Readdirnames_unfold
-  LockedFile.TypeAssumptions.ptr_Seek_unfold
-  LockedFile.TypeAssumptions.ptr_SetDeadline_unfold
-  LockedFile.TypeAssumptions.ptr_SetReadDeadline_unfold
-  LockedFile.TypeAssumptions.ptr_SetWriteDeadline_unfold
-  LockedFile.TypeAssumptions.ptr_Stat_unfold
-  LockedFile.TypeAssumptions.ptr_Sync_unfold
-  LockedFile.TypeAssumptions.ptr_SyscallConn_unfold
-  LockedFile.TypeAssumptions.ptr_Truncate_unfold
-  LockedFile.TypeAssumptions.ptr_Write_unfold
-  LockedFile.TypeAssumptions.ptr_WriteAt_unfold
-  LockedFile.TypeAssumptions.ptr_WriteString_unfold
-  LockedFile.TypeAssumptions.ptr_WriteTo_unfold
-  LockedFile.TypeAssumptions.ptr_checkValid_unfold
-  LockedFile.TypeAssumptions.ptr_chmod_unfold
-  LockedFile.TypeAssumptions.ptr_close_unfold
-  LockedFile.TypeAssumptions.ptr_copyFileRange_unfold
-  LockedFile.TypeAssumptions.ptr_fd_unfold
-  LockedFile.TypeAssumptions.ptr_lstatat_unfold
-  LockedFile.TypeAssumptions.ptr_lstatatNolog_unfold
-  LockedFile.TypeAssumptions.ptr_pread_unfold
-  LockedFile.TypeAssumptions.ptr_pwrite_unfold
-  LockedFile.TypeAssumptions.ptr_read_unfold
-  LockedFile.TypeAssumptions.ptr_readFrom_unfold
-  LockedFile.TypeAssumptions.ptr_readdir_unfold
-  LockedFile.TypeAssumptions.ptr_seek_unfold
-  LockedFile.TypeAssumptions.ptr_setDeadline_unfold
-  LockedFile.TypeAssumptions.ptr_setReadDeadline_unfold
-  LockedFile.TypeAssumptions.ptr_setWriteDeadline_unfold
-  LockedFile.TypeAssumptions.ptr_spliceToFile_unfold
-  LockedFile.TypeAssumptions.ptr_wrapErr_unfold
-  LockedFile.TypeAssumptions.ptr_write_unfold
-  LockedFile.TypeAssumptions.ptr_writeTo_unfold
+  LockedFile.TypeAssumptions.unfold'Chdir
+  LockedFile.TypeAssumptions.unfold'Chmod
+  LockedFile.TypeAssumptions.unfold'Chown
+  LockedFile.TypeAssumptions.unfold'Close
+  LockedFile.TypeAssumptions.unfold'Fd
+  LockedFile.TypeAssumptions.unfold'Name
+  LockedFile.TypeAssumptions.unfold'Read
+  LockedFile.TypeAssumptions.unfold'ReadAt
+  LockedFile.TypeAssumptions.unfold'ReadDir
+  LockedFile.TypeAssumptions.unfold'ReadFrom
+  LockedFile.TypeAssumptions.unfold'Readdir
+  LockedFile.TypeAssumptions.unfold'Readdirnames
+  LockedFile.TypeAssumptions.unfold'Seek
+  LockedFile.TypeAssumptions.unfold'SetDeadline
+  LockedFile.TypeAssumptions.unfold'SetReadDeadline
+  LockedFile.TypeAssumptions.unfold'SetWriteDeadline
+  LockedFile.TypeAssumptions.unfold'Stat
+  LockedFile.TypeAssumptions.unfold'Sync
+  LockedFile.TypeAssumptions.unfold'SyscallConn
+  LockedFile.TypeAssumptions.unfold'Truncate
+  LockedFile.TypeAssumptions.unfold'Write
+  LockedFile.TypeAssumptions.unfold'WriteAt
+  LockedFile.TypeAssumptions.unfold'WriteString
+  LockedFile.TypeAssumptions.unfold'WriteTo
+  LockedFile.TypeAssumptions.unfold'checkValid
+  LockedFile.TypeAssumptions.unfold'chmod
+  LockedFile.TypeAssumptions.unfold'close
+  LockedFile.TypeAssumptions.unfold'copyFileRange
+  LockedFile.TypeAssumptions.unfold'fd
+  LockedFile.TypeAssumptions.unfold'lstatat
+  LockedFile.TypeAssumptions.unfold'lstatatNolog
+  LockedFile.TypeAssumptions.unfold'pread
+  LockedFile.TypeAssumptions.unfold'pwrite
+  LockedFile.TypeAssumptions.unfold'read
+  LockedFile.TypeAssumptions.unfold'readFrom
+  LockedFile.TypeAssumptions.unfold'readdir
+  LockedFile.TypeAssumptions.unfold'seek
+  LockedFile.TypeAssumptions.unfold'setDeadline
+  LockedFile.TypeAssumptions.unfold'setReadDeadline
+  LockedFile.TypeAssumptions.unfold'setWriteDeadline
+  LockedFile.TypeAssumptions.unfold'spliceToFile
+  LockedFile.TypeAssumptions.unfold'wrapErr
+  LockedFile.TypeAssumptions.unfold'write
+  LockedFile.TypeAssumptions.unfold'writeTo
+  LockedFile.TypeAssumptions.ptr_unfold'Chdir
+  LockedFile.TypeAssumptions.ptr_unfold'Chmod
+  LockedFile.TypeAssumptions.ptr_unfold'Chown
+  LockedFile.TypeAssumptions.ptr_unfold'Close
+  LockedFile.TypeAssumptions.ptr_unfold'Fd
+  LockedFile.TypeAssumptions.ptr_unfold'Name
+  LockedFile.TypeAssumptions.ptr_unfold'Read
+  LockedFile.TypeAssumptions.ptr_unfold'ReadAt
+  LockedFile.TypeAssumptions.ptr_unfold'ReadDir
+  LockedFile.TypeAssumptions.ptr_unfold'ReadFrom
+  LockedFile.TypeAssumptions.ptr_unfold'Readdir
+  LockedFile.TypeAssumptions.ptr_unfold'Readdirnames
+  LockedFile.TypeAssumptions.ptr_unfold'Seek
+  LockedFile.TypeAssumptions.ptr_unfold'SetDeadline
+  LockedFile.TypeAssumptions.ptr_unfold'SetReadDeadline
+  LockedFile.TypeAssumptions.ptr_unfold'SetWriteDeadline
+  LockedFile.TypeAssumptions.ptr_unfold'Stat
+  LockedFile.TypeAssumptions.ptr_unfold'Sync
+  LockedFile.TypeAssumptions.ptr_unfold'SyscallConn
+  LockedFile.TypeAssumptions.ptr_unfold'Truncate
+  LockedFile.TypeAssumptions.ptr_unfold'Write
+  LockedFile.TypeAssumptions.ptr_unfold'WriteAt
+  LockedFile.TypeAssumptions.ptr_unfold'WriteString
+  LockedFile.TypeAssumptions.ptr_unfold'WriteTo
+  LockedFile.TypeAssumptions.ptr_unfold'checkValid
+  LockedFile.TypeAssumptions.ptr_unfold'chmod
+  LockedFile.TypeAssumptions.ptr_unfold'close
+  LockedFile.TypeAssumptions.ptr_unfold'copyFileRange
+  LockedFile.TypeAssumptions.ptr_unfold'fd
+  LockedFile.TypeAssumptions.ptr_unfold'lstatat
+  LockedFile.TypeAssumptions.ptr_unfold'lstatatNolog
+  LockedFile.TypeAssumptions.ptr_unfold'pread
+  LockedFile.TypeAssumptions.ptr_unfold'pwrite
+  LockedFile.TypeAssumptions.ptr_unfold'read
+  LockedFile.TypeAssumptions.ptr_unfold'readFrom
+  LockedFile.TypeAssumptions.ptr_unfold'readdir
+  LockedFile.TypeAssumptions.ptr_unfold'seek
+  LockedFile.TypeAssumptions.ptr_unfold'setDeadline
+  LockedFile.TypeAssumptions.ptr_unfold'setReadDeadline
+  LockedFile.TypeAssumptions.ptr_unfold'setWriteDeadline
+  LockedFile.TypeAssumptions.ptr_unfold'spliceToFile
+  LockedFile.TypeAssumptions.ptr_unfold'wrapErr
+  LockedFile.TypeAssumptions.ptr_unfold'write
+  LockedFile.TypeAssumptions.ptr_unfold'writeTo
 
 structure ReadDirOp [GooseExts] where
   mk ::
@@ -3344,7 +3344,7 @@ noncomputable instance ReadDirOp.zero_val [GooseExts] : ZeroVal ReadDirOp :=
 @[irreducible] noncomputable def ReadDirOp.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReadDirOp.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReadDirOp [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ReadDirOp [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReadDirOp.fields ReadDirOp.fieldsUnsealed :=
   ⟨by unfold ReadDirOp.fields; rfl⟩
 
@@ -3354,19 +3354,19 @@ noncomputable instance equals_unfold_ReadDirOp [GooseExts] [GoGlobalContext] :
 class ReadDirOp.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReadDirOp.underlying ReadDirOp
   underlying : go.UnderlyingDirectedEq ReadDirOp.ty ReadDirOp.underlying
-  get_ext : ∀ (x : ReadDirOp), go.IsGoStepPureDetTagged under (StructFieldGet ReadDirOp.underlying go!"ext") #x (Val #(x.ext'))
-  set_ext : ∀ (x : ReadDirOp) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReadDirOp.underlying go!"ext") (PairV #x #y) (Val #(({ x with ext' := y } : ReadDirOp)))
+  get'ext : ∀ (x : ReadDirOp), go.IsGoStepPureDetTagged under (StructFieldGet ReadDirOp.underlying go!"ext") #x (Val #(x.ext'))
+  set'ext : ∀ (x : ReadDirOp) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReadDirOp.underlying go!"ext") (PairV #x #y) (Val #(({ x with ext' := y } : ReadDirOp)))
   method_set : go.MethodSetIs ReadDirOp.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReadDirOp.ty) [(go!"go.etcd.io/etcd/client/pkg/v3/fileutil.applyOpts", (some (go.signature.Signature [(go.GoType.SliceType ReadDirOption.ty)] false [])))]
-  ptr_applyOpts_unfold : MethodUnfold (go.GoType.PointerType ReadDirOp.ty) go!"applyOpts" ReadDirOp.applyOpts.impl
+  ptr_unfold'applyOpts : MethodUnfold (go.GoType.PointerType ReadDirOp.ty) go!"applyOpts" ReadDirOp.applyOpts.impl
 
 attribute [instance] ReadDirOp.TypeAssumptions.type_repr
   ReadDirOp.TypeAssumptions.underlying
-  ReadDirOp.TypeAssumptions.get_ext
-  ReadDirOp.TypeAssumptions.set_ext
+  ReadDirOp.TypeAssumptions.get'ext
+  ReadDirOp.TypeAssumptions.set'ext
   ReadDirOp.TypeAssumptions.method_set
   ReadDirOp.TypeAssumptions.ptr_method_set
-  ReadDirOp.TypeAssumptions.ptr_applyOpts_unfold
+  ReadDirOp.TypeAssumptions.ptr_unfold'applyOpts
 
 abbrev ReadDirOption [GooseExts] : Type := GoFunc
 
@@ -3383,113 +3383,113 @@ attribute [instance] ReadDirOption.TypeAssumptions.underlying
   ReadDirOption.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  FileReader_instance : FileReader.TypeAssumptions
-  fileReader_instance : fileReader.TypeAssumptions
-  FileBufReader_instance : FileBufReader.TypeAssumptions
-  LockedFile_instance : LockedFile.TypeAssumptions
-  ReadDirOp_instance : ReadDirOp.TypeAssumptions
-  ReadDirOption_instance : ReadDirOption.TypeAssumptions
-  OpenDir_unfold : FuncUnfold OpenDir [] OpenDir.impl
-  NewFileReader_unfold : FuncUnfold NewFileReader [] NewFileReader.impl
-  NewFileBufReader_unfold : FuncUnfold NewFileBufReader [] NewFileBufReader.impl
-  IsDirWriteable_unfold : FuncUnfold IsDirWriteable [] IsDirWriteable.impl
-  TouchDirAll_unfold : FuncUnfold TouchDirAll [] TouchDirAll.impl
-  syncDir_unfold : FuncUnfold syncDir [] syncDir.impl
-  CreateDirAll_unfold : FuncUnfold CreateDirAll [] CreateDirAll.impl
-  Exist_unfold : FuncUnfold Exist [] Exist.impl
-  DirEmpty_unfold : FuncUnfold DirEmpty [] DirEmpty.impl
-  ZeroToEnd_unfold : FuncUnfold ZeroToEnd [] ZeroToEnd.impl
-  CheckDirPermission_unfold : FuncUnfold CheckDirPermission [] CheckDirPermission.impl
-  RemoveMatchFile_unfold : FuncUnfold RemoveMatchFile [] RemoveMatchFile.impl
-  ListFiles_unfold : FuncUnfold ListFiles [] ListFiles.impl
-  flockTryLockFile_unfold : FuncUnfold flockTryLockFile [] flockTryLockFile.impl
-  flockLockFile_unfold : FuncUnfold flockLockFile [] flockLockFile.impl
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  TryLockFile_unfold : FuncUnfold TryLockFile [] TryLockFile.impl
-  ofdTryLockFile_unfold : FuncUnfold ofdTryLockFile [] ofdTryLockFile.impl
-  LockFile_unfold : FuncUnfold LockFile [] LockFile.impl
-  ofdLockFile_unfold : FuncUnfold ofdLockFile [] ofdLockFile.impl
-  Preallocate_unfold : FuncUnfold Preallocate [] Preallocate.impl
-  preallocExtendTrunc_unfold : FuncUnfold preallocExtendTrunc [] preallocExtendTrunc.impl
-  preallocExtend_unfold : FuncUnfold preallocExtend [] preallocExtend.impl
-  preallocFixed_unfold : FuncUnfold preallocFixed [] preallocFixed.impl
-  PurgeFile_unfold : FuncUnfold PurgeFile [] PurgeFile.impl
-  PurgeFileWithDoneNotify_unfold : FuncUnfold PurgeFileWithDoneNotify [] PurgeFileWithDoneNotify.impl
-  PurgeFileWithoutFlock_unfold : FuncUnfold PurgeFileWithoutFlock [] PurgeFileWithoutFlock.impl
-  purgeFile_unfold : FuncUnfold purgeFile [] purgeFile.impl
-  readDirWithSuffix_unfold : FuncUnfold readDirWithSuffix [] readDirWithSuffix.impl
-  WithExt_unfold : FuncUnfold WithExt [] WithExt.impl
-  ReadDir_unfold : FuncUnfold ReadDir [] ReadDir.impl
-  Fsync_unfold : FuncUnfold Fsync [] Fsync.impl
-  Fdatasync_unfold : FuncUnfold Fdatasync [] Fdatasync.impl
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_fs_Assumption : _root_.Perennial.io.fs.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_filepath_Assumption : _root_.Perennial.path.filepath.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_verify_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
-  import_unix_Assumption : _root_.Perennial.golang_org.x.sys.unix.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_sort_Assumption : _root_.Perennial.sort.Assumptions
+  instance'FileReader : FileReader.TypeAssumptions
+  instance'fileReader : fileReader.TypeAssumptions
+  instance'FileBufReader : FileBufReader.TypeAssumptions
+  instance'LockedFile : LockedFile.TypeAssumptions
+  instance'ReadDirOp : ReadDirOp.TypeAssumptions
+  instance'ReadDirOption : ReadDirOption.TypeAssumptions
+  unfold'OpenDir : FuncUnfold OpenDir [] OpenDir.impl
+  unfold'NewFileReader : FuncUnfold NewFileReader [] NewFileReader.impl
+  unfold'NewFileBufReader : FuncUnfold NewFileBufReader [] NewFileBufReader.impl
+  unfold'IsDirWriteable : FuncUnfold IsDirWriteable [] IsDirWriteable.impl
+  unfold'TouchDirAll : FuncUnfold TouchDirAll [] TouchDirAll.impl
+  unfold'syncDir : FuncUnfold syncDir [] syncDir.impl
+  unfold'CreateDirAll : FuncUnfold CreateDirAll [] CreateDirAll.impl
+  unfold'Exist : FuncUnfold Exist [] Exist.impl
+  unfold'DirEmpty : FuncUnfold DirEmpty [] DirEmpty.impl
+  unfold'ZeroToEnd : FuncUnfold ZeroToEnd [] ZeroToEnd.impl
+  unfold'CheckDirPermission : FuncUnfold CheckDirPermission [] CheckDirPermission.impl
+  unfold'RemoveMatchFile : FuncUnfold RemoveMatchFile [] RemoveMatchFile.impl
+  unfold'ListFiles : FuncUnfold ListFiles [] ListFiles.impl
+  unfold'flockTryLockFile : FuncUnfold flockTryLockFile [] flockTryLockFile.impl
+  unfold'flockLockFile : FuncUnfold flockLockFile [] flockLockFile.impl
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'TryLockFile : FuncUnfold TryLockFile [] TryLockFile.impl
+  unfold'ofdTryLockFile : FuncUnfold ofdTryLockFile [] ofdTryLockFile.impl
+  unfold'LockFile : FuncUnfold LockFile [] LockFile.impl
+  unfold'ofdLockFile : FuncUnfold ofdLockFile [] ofdLockFile.impl
+  unfold'Preallocate : FuncUnfold Preallocate [] Preallocate.impl
+  unfold'preallocExtendTrunc : FuncUnfold preallocExtendTrunc [] preallocExtendTrunc.impl
+  unfold'preallocExtend : FuncUnfold preallocExtend [] preallocExtend.impl
+  unfold'preallocFixed : FuncUnfold preallocFixed [] preallocFixed.impl
+  unfold'PurgeFile : FuncUnfold PurgeFile [] PurgeFile.impl
+  unfold'PurgeFileWithDoneNotify : FuncUnfold PurgeFileWithDoneNotify [] PurgeFileWithDoneNotify.impl
+  unfold'PurgeFileWithoutFlock : FuncUnfold PurgeFileWithoutFlock [] PurgeFileWithoutFlock.impl
+  unfold'purgeFile : FuncUnfold purgeFile [] purgeFile.impl
+  unfold'readDirWithSuffix : FuncUnfold readDirWithSuffix [] readDirWithSuffix.impl
+  unfold'WithExt : FuncUnfold WithExt [] WithExt.impl
+  unfold'ReadDir : FuncUnfold ReadDir [] ReadDir.impl
+  unfold'Fsync : FuncUnfold Fsync [] Fsync.impl
+  unfold'Fdatasync : FuncUnfold Fdatasync [] Fdatasync.impl
+  import'os : _root_.Perennial.os.Assumptions
+  import'bufio : _root_.Perennial.bufio.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'fs : _root_.Perennial.io.fs.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'filepath : _root_.Perennial.path.filepath.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'verify : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'syscall : _root_.Perennial.syscall.Assumptions
+  import'unix : _root_.Perennial.golang_org.x.sys.unix.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'sort : _root_.Perennial.sort.Assumptions
 
-attribute [instance] Assumptions.FileReader_instance
-  Assumptions.fileReader_instance
-  Assumptions.FileBufReader_instance
-  Assumptions.LockedFile_instance
-  Assumptions.ReadDirOp_instance
-  Assumptions.ReadDirOption_instance
-  Assumptions.OpenDir_unfold
-  Assumptions.NewFileReader_unfold
-  Assumptions.NewFileBufReader_unfold
-  Assumptions.IsDirWriteable_unfold
-  Assumptions.TouchDirAll_unfold
-  Assumptions.syncDir_unfold
-  Assumptions.CreateDirAll_unfold
-  Assumptions.Exist_unfold
-  Assumptions.DirEmpty_unfold
-  Assumptions.ZeroToEnd_unfold
-  Assumptions.CheckDirPermission_unfold
-  Assumptions.RemoveMatchFile_unfold
-  Assumptions.ListFiles_unfold
-  Assumptions.flockTryLockFile_unfold
-  Assumptions.flockLockFile_unfold
-  Assumptions.«init.0_unfold»
-  Assumptions.TryLockFile_unfold
-  Assumptions.ofdTryLockFile_unfold
-  Assumptions.LockFile_unfold
-  Assumptions.ofdLockFile_unfold
-  Assumptions.Preallocate_unfold
-  Assumptions.preallocExtendTrunc_unfold
-  Assumptions.preallocExtend_unfold
-  Assumptions.preallocFixed_unfold
-  Assumptions.PurgeFile_unfold
-  Assumptions.PurgeFileWithDoneNotify_unfold
-  Assumptions.PurgeFileWithoutFlock_unfold
-  Assumptions.purgeFile_unfold
-  Assumptions.readDirWithSuffix_unfold
-  Assumptions.WithExt_unfold
-  Assumptions.ReadDir_unfold
-  Assumptions.Fsync_unfold
-  Assumptions.Fdatasync_unfold
-  Assumptions.import_os_Assumption
-  Assumptions.import_bufio_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_fs_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_filepath_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_verify_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_syscall_Assumption
-  Assumptions.import_unix_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_sort_Assumption
+attribute [instance] Assumptions.instance'FileReader
+  Assumptions.instance'fileReader
+  Assumptions.instance'FileBufReader
+  Assumptions.instance'LockedFile
+  Assumptions.instance'ReadDirOp
+  Assumptions.instance'ReadDirOption
+  Assumptions.unfold'OpenDir
+  Assumptions.unfold'NewFileReader
+  Assumptions.unfold'NewFileBufReader
+  Assumptions.unfold'IsDirWriteable
+  Assumptions.unfold'TouchDirAll
+  Assumptions.unfold'syncDir
+  Assumptions.unfold'CreateDirAll
+  Assumptions.unfold'Exist
+  Assumptions.unfold'DirEmpty
+  Assumptions.unfold'ZeroToEnd
+  Assumptions.unfold'CheckDirPermission
+  Assumptions.unfold'RemoveMatchFile
+  Assumptions.unfold'ListFiles
+  Assumptions.unfold'flockTryLockFile
+  Assumptions.unfold'flockLockFile
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'TryLockFile
+  Assumptions.unfold'ofdTryLockFile
+  Assumptions.unfold'LockFile
+  Assumptions.unfold'ofdLockFile
+  Assumptions.unfold'Preallocate
+  Assumptions.unfold'preallocExtendTrunc
+  Assumptions.unfold'preallocExtend
+  Assumptions.unfold'preallocFixed
+  Assumptions.unfold'PurgeFile
+  Assumptions.unfold'PurgeFileWithDoneNotify
+  Assumptions.unfold'PurgeFileWithoutFlock
+  Assumptions.unfold'purgeFile
+  Assumptions.unfold'readDirWithSuffix
+  Assumptions.unfold'WithExt
+  Assumptions.unfold'ReadDir
+  Assumptions.unfold'Fsync
+  Assumptions.unfold'Fdatasync
+  Assumptions.import'os
+  Assumptions.import'bufio
+  Assumptions.import'io
+  Assumptions.import'fs
+  Assumptions.import'fmt
+  Assumptions.import'filepath
+  Assumptions.import'zap
+  Assumptions.import'verify
+  Assumptions.import'errors
+  Assumptions.import'syscall
+  Assumptions.import'unix
+  Assumptions.import'strings
+  Assumptions.import'time
+  Assumptions.import'sort
 
 end go_etcd_io.etcd.client.pkg.v3.fileutil
 

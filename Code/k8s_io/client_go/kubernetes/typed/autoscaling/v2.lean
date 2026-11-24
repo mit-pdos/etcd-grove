@@ -207,19 +207,19 @@ attribute [instance] horizontalPodAutoscalers.TypeAssumptions.type_repr
   horizontalPodAutoscalers.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  AutoscalingV2Interface_instance : AutoscalingV2Interface.TypeAssumptions
-  AutoscalingV2Client_instance : AutoscalingV2Client.TypeAssumptions
-  HorizontalPodAutoscalerExpansion_instance : HorizontalPodAutoscalerExpansion.TypeAssumptions
-  HorizontalPodAutoscalersGetter_instance : HorizontalPodAutoscalersGetter.TypeAssumptions
-  HorizontalPodAutoscalerInterface_instance : HorizontalPodAutoscalerInterface.TypeAssumptions
-  horizontalPodAutoscalers_instance : horizontalPodAutoscalers.TypeAssumptions
+  instance'AutoscalingV2Interface : AutoscalingV2Interface.TypeAssumptions
+  instance'AutoscalingV2Client : AutoscalingV2Client.TypeAssumptions
+  instance'HorizontalPodAutoscalerExpansion : HorizontalPodAutoscalerExpansion.TypeAssumptions
+  instance'HorizontalPodAutoscalersGetter : HorizontalPodAutoscalersGetter.TypeAssumptions
+  instance'HorizontalPodAutoscalerInterface : HorizontalPodAutoscalerInterface.TypeAssumptions
+  instance'horizontalPodAutoscalers : horizontalPodAutoscalers.TypeAssumptions
 
-attribute [instance] Assumptions.AutoscalingV2Interface_instance
-  Assumptions.AutoscalingV2Client_instance
-  Assumptions.HorizontalPodAutoscalerExpansion_instance
-  Assumptions.HorizontalPodAutoscalersGetter_instance
-  Assumptions.HorizontalPodAutoscalerInterface_instance
-  Assumptions.horizontalPodAutoscalers_instance
+attribute [instance] Assumptions.instance'AutoscalingV2Interface
+  Assumptions.instance'AutoscalingV2Client
+  Assumptions.instance'HorizontalPodAutoscalerExpansion
+  Assumptions.instance'HorizontalPodAutoscalersGetter
+  Assumptions.instance'HorizontalPodAutoscalerInterface
+  Assumptions.instance'horizontalPodAutoscalers
 
 end k8s_io.client_go.kubernetes.typed.autoscaling.v2
 

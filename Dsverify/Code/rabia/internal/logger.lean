@@ -187,23 +187,23 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.rabia.internal.config.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  GetLogFilePathAndName_unfold : FuncUnfold GetLogFilePathAndName [] GetLogFilePathAndName.impl
-  GetLogLevel_unfold : FuncUnfold GetLogLevel [] GetLogLevel.impl
-  InitLogger_unfold : FuncUnfold InitLogger [] InitLogger.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_zerolog_Assumption : _root_.Perennial.github_com.rs.zerolog.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_path_Assumption : _root_.Perennial.path.Assumptions
-  import_config_Assumption : _root_.Perennial.rabia.internal.config.Assumptions
+  unfold'GetLogFilePathAndName : FuncUnfold GetLogFilePathAndName [] GetLogFilePathAndName.impl
+  unfold'GetLogLevel : FuncUnfold GetLogLevel [] GetLogLevel.impl
+  unfold'InitLogger : FuncUnfold InitLogger [] InitLogger.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'zerolog : _root_.Perennial.github_com.rs.zerolog.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'path : _root_.Perennial.path.Assumptions
+  import'config : _root_.Perennial.rabia.internal.config.Assumptions
 
-attribute [instance] Assumptions.GetLogFilePathAndName_unfold
-  Assumptions.GetLogLevel_unfold
-  Assumptions.InitLogger_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_zerolog_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_path_Assumption
-  Assumptions.import_config_Assumption
+attribute [instance] Assumptions.unfold'GetLogFilePathAndName
+  Assumptions.unfold'GetLogLevel
+  Assumptions.unfold'InitLogger
+  Assumptions.import'fmt
+  Assumptions.import'zerolog
+  Assumptions.import'os
+  Assumptions.import'path
+  Assumptions.import'config
 
 end rabia.internal.logger
 

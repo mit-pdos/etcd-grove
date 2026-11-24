@@ -74,7 +74,7 @@ opaque Write.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque ResourceTransformers.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque «namespace» [GooseExts] [GoGlobalContext] : val
+opaque namespace'' [GooseExts] [GoGlobalContext] : val
 
 opaque subsystem [GooseExts] [GoGlobalContext] : val
 
@@ -300,7 +300,7 @@ noncomputable instance PrefixTransformer.zero_val [GooseExts] : ZeroVal PrefixTr
 @[irreducible] noncomputable def PrefixTransformer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PrefixTransformer.fieldsUnsealed
 
-noncomputable instance equals_unfold_PrefixTransformer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PrefixTransformer [GooseExts] [GoGlobalContext] :
     EqualsUnfold PrefixTransformer.fields PrefixTransformer.fieldsUnsealed :=
   ⟨by unfold PrefixTransformer.fields; rfl⟩
 
@@ -310,19 +310,19 @@ noncomputable instance equals_unfold_PrefixTransformer [GooseExts] [GoGlobalCont
 class PrefixTransformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PrefixTransformer.underlying PrefixTransformer
   underlying : go.UnderlyingDirectedEq PrefixTransformer.ty PrefixTransformer.underlying
-  get_Prefix : ∀ (x : PrefixTransformer), go.IsGoStepPureDetTagged under (StructFieldGet PrefixTransformer.underlying go!"Prefix") #x (Val #(x.Prefix'))
-  set_Prefix : ∀ (x : PrefixTransformer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PrefixTransformer.underlying go!"Prefix") (PairV #x #y) (Val #(({ x with Prefix' := y } : PrefixTransformer)))
-  get_Transformer : ∀ (x : PrefixTransformer), go.IsGoStepPureDetTagged under (StructFieldGet PrefixTransformer.underlying go!"Transformer") #x (Val #(x.Transformer'))
-  set_Transformer : ∀ (x : PrefixTransformer) (y : Transformer), go.IsGoStepPureDetTagged under (StructFieldSet PrefixTransformer.underlying go!"Transformer") (PairV #x #y) (Val #(({ x with Transformer' := y } : PrefixTransformer)))
+  get'Prefix : ∀ (x : PrefixTransformer), go.IsGoStepPureDetTagged under (StructFieldGet PrefixTransformer.underlying go!"Prefix") #x (Val #(x.Prefix'))
+  set'Prefix : ∀ (x : PrefixTransformer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PrefixTransformer.underlying go!"Prefix") (PairV #x #y) (Val #(({ x with Prefix' := y } : PrefixTransformer)))
+  get'Transformer : ∀ (x : PrefixTransformer), go.IsGoStepPureDetTagged under (StructFieldGet PrefixTransformer.underlying go!"Transformer") #x (Val #(x.Transformer'))
+  set'Transformer : ∀ (x : PrefixTransformer) (y : Transformer), go.IsGoStepPureDetTagged under (StructFieldSet PrefixTransformer.underlying go!"Transformer") (PairV #x #y) (Val #(({ x with Transformer' := y } : PrefixTransformer)))
   method_set : go.MethodSetIs PrefixTransformer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PrefixTransformer.ty) []
 
 attribute [instance] PrefixTransformer.TypeAssumptions.type_repr
   PrefixTransformer.TypeAssumptions.underlying
-  PrefixTransformer.TypeAssumptions.get_Prefix
-  PrefixTransformer.TypeAssumptions.set_Prefix
-  PrefixTransformer.TypeAssumptions.get_Transformer
-  PrefixTransformer.TypeAssumptions.set_Transformer
+  PrefixTransformer.TypeAssumptions.get'Prefix
+  PrefixTransformer.TypeAssumptions.set'Prefix
+  PrefixTransformer.TypeAssumptions.get'Transformer
+  PrefixTransformer.TypeAssumptions.set'Transformer
   PrefixTransformer.TypeAssumptions.method_set
   PrefixTransformer.TypeAssumptions.ptr_method_set
 
@@ -341,7 +341,7 @@ noncomputable instance prefixTransformers.zero_val [GooseExts] : ZeroVal prefixT
 @[irreducible] noncomputable def prefixTransformers.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   prefixTransformers.fieldsUnsealed
 
-noncomputable instance equals_unfold_prefixTransformers [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'prefixTransformers [GooseExts] [GoGlobalContext] :
     EqualsUnfold prefixTransformers.fields prefixTransformers.fieldsUnsealed :=
   ⟨by unfold prefixTransformers.fields; rfl⟩
 
@@ -351,44 +351,44 @@ noncomputable instance equals_unfold_prefixTransformers [GooseExts] [GoGlobalCon
 class prefixTransformers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying prefixTransformers.underlying prefixTransformers
   underlying : go.UnderlyingDirectedEq prefixTransformers.ty prefixTransformers.underlying
-  get_transformers : ∀ (x : prefixTransformers), go.IsGoStepPureDetTagged under (StructFieldGet prefixTransformers.underlying go!"transformers") #x (Val #(x.transformers'))
-  set_transformers : ∀ (x : prefixTransformers) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet prefixTransformers.underlying go!"transformers") (PairV #x #y) (Val #(({ x with transformers' := y } : prefixTransformers)))
-  get_err : ∀ (x : prefixTransformers), go.IsGoStepPureDetTagged under (StructFieldGet prefixTransformers.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : prefixTransformers) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet prefixTransformers.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : prefixTransformers)))
+  get'transformers : ∀ (x : prefixTransformers), go.IsGoStepPureDetTagged under (StructFieldGet prefixTransformers.underlying go!"transformers") #x (Val #(x.transformers'))
+  set'transformers : ∀ (x : prefixTransformers) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet prefixTransformers.underlying go!"transformers") (PairV #x #y) (Val #(({ x with transformers' := y } : prefixTransformers)))
+  get'err : ∀ (x : prefixTransformers), go.IsGoStepPureDetTagged under (StructFieldGet prefixTransformers.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : prefixTransformers) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet prefixTransformers.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : prefixTransformers)))
   method_set : go.MethodSetIs prefixTransformers.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType prefixTransformers.ty) [(go!"TransformFromStorage", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.SliceType go.byte), Context.ty] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"TransformToStorage", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.SliceType go.byte), Context.ty] false [(go.GoType.SliceType go.byte), go.error])))]
 
 attribute [instance] prefixTransformers.TypeAssumptions.type_repr
   prefixTransformers.TypeAssumptions.underlying
-  prefixTransformers.TypeAssumptions.get_transformers
-  prefixTransformers.TypeAssumptions.set_transformers
-  prefixTransformers.TypeAssumptions.get_err
-  prefixTransformers.TypeAssumptions.set_err
+  prefixTransformers.TypeAssumptions.get'transformers
+  prefixTransformers.TypeAssumptions.set'transformers
+  prefixTransformers.TypeAssumptions.get'err
+  prefixTransformers.TypeAssumptions.set'err
   prefixTransformers.TypeAssumptions.method_set
   prefixTransformers.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  gRPCError_instance : gRPCError.TypeAssumptions
-  Context_instance : Context.TypeAssumptions
-  Read_instance : Read.TypeAssumptions
-  Write_instance : Write.TypeAssumptions
-  Transformer_instance : Transformer.TypeAssumptions
-  ResourceTransformers_instance : ResourceTransformers.TypeAssumptions
-  DefaultContext_instance : DefaultContext.TypeAssumptions
-  PrefixTransformer_instance : PrefixTransformer.TypeAssumptions
-  prefixTransformers_instance : prefixTransformers.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  instance'gRPCError : gRPCError.TypeAssumptions
+  instance'Context : Context.TypeAssumptions
+  instance'Read : Read.TypeAssumptions
+  instance'Write : Write.TypeAssumptions
+  instance'Transformer : Transformer.TypeAssumptions
+  instance'ResourceTransformers : ResourceTransformers.TypeAssumptions
+  instance'DefaultContext : DefaultContext.TypeAssumptions
+  instance'PrefixTransformer : PrefixTransformer.TypeAssumptions
+  instance'prefixTransformers : prefixTransformers.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
 
-attribute [instance] Assumptions.gRPCError_instance
-  Assumptions.Context_instance
-  Assumptions.Read_instance
-  Assumptions.Write_instance
-  Assumptions.Transformer_instance
-  Assumptions.ResourceTransformers_instance
-  Assumptions.DefaultContext_instance
-  Assumptions.PrefixTransformer_instance
-  Assumptions.prefixTransformers_instance
-  Assumptions.«init.0_unfold»
+attribute [instance] Assumptions.instance'gRPCError
+  Assumptions.instance'Context
+  Assumptions.instance'Read
+  Assumptions.instance'Write
+  Assumptions.instance'Transformer
+  Assumptions.instance'ResourceTransformers
+  Assumptions.instance'DefaultContext
+  Assumptions.instance'PrefixTransformer
+  Assumptions.instance'prefixTransformers
+  Assumptions.«unfold'init.0»
 
 end k8s_io.apiserver.pkg.storage.value
 

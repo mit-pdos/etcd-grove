@@ -207,19 +207,19 @@ attribute [instance] SchedulingV1Client.TypeAssumptions.type_repr
   SchedulingV1Client.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  PriorityClassExpansion_instance : PriorityClassExpansion.TypeAssumptions
-  PriorityClassesGetter_instance : PriorityClassesGetter.TypeAssumptions
-  PriorityClassInterface_instance : PriorityClassInterface.TypeAssumptions
-  priorityClasses_instance : priorityClasses.TypeAssumptions
-  SchedulingV1Interface_instance : SchedulingV1Interface.TypeAssumptions
-  SchedulingV1Client_instance : SchedulingV1Client.TypeAssumptions
+  instance'PriorityClassExpansion : PriorityClassExpansion.TypeAssumptions
+  instance'PriorityClassesGetter : PriorityClassesGetter.TypeAssumptions
+  instance'PriorityClassInterface : PriorityClassInterface.TypeAssumptions
+  instance'priorityClasses : priorityClasses.TypeAssumptions
+  instance'SchedulingV1Interface : SchedulingV1Interface.TypeAssumptions
+  instance'SchedulingV1Client : SchedulingV1Client.TypeAssumptions
 
-attribute [instance] Assumptions.PriorityClassExpansion_instance
-  Assumptions.PriorityClassesGetter_instance
-  Assumptions.PriorityClassInterface_instance
-  Assumptions.priorityClasses_instance
-  Assumptions.SchedulingV1Interface_instance
-  Assumptions.SchedulingV1Client_instance
+attribute [instance] Assumptions.instance'PriorityClassExpansion
+  Assumptions.instance'PriorityClassesGetter
+  Assumptions.instance'PriorityClassInterface
+  Assumptions.instance'priorityClasses
+  Assumptions.instance'SchedulingV1Interface
+  Assumptions.instance'SchedulingV1Client
 
 end k8s_io.client_go.kubernetes.typed.scheduling.v1
 

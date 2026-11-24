@@ -39,7 +39,7 @@ theorem TxStats.GetRebalance.wp_proof : TxStats.GetRebalance.spec (GF := GF) (hG
   · iexact Hatomic
   imod stats_open K tx r m q ⊤ CoPset.subseteq_top $$ [Ht] with ⟨%s, Hs, Hcl⟩
   · iframe Hc Hreg Ht
-  icases (TxStats.TxStats_access_load_Rebalance _ s (DFrac.own 1)).access_strict $$ Hs
+  icases (TxStats.access_load'TxStats'Rebalance _ s (DFrac.own 1)).access_strict $$ Hs
     with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask

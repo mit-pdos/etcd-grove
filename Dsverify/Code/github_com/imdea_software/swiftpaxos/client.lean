@@ -2197,7 +2197,7 @@ noncomputable instance ReqReply.zero_val [GooseExts] : ZeroVal ReqReply :=
 @[irreducible] noncomputable def ReqReply.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReqReply.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReqReply [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ReqReply [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReqReply.fields ReqReply.fieldsUnsealed :=
   ⟨by unfold ReqReply.fields; rfl⟩
 
@@ -2207,23 +2207,23 @@ noncomputable instance equals_unfold_ReqReply [GooseExts] [GoGlobalContext] :
 class ReqReply.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReqReply.underlying ReqReply
   underlying : go.UnderlyingDirectedEq ReqReply.ty ReqReply.underlying
-  get_Val : ∀ (x : ReqReply), go.IsGoStepPureDetTagged under (StructFieldGet ReqReply.underlying go!"Val") #x (Val #(x.Val'))
-  set_Val : ∀ (x : ReqReply) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Value), go.IsGoStepPureDetTagged under (StructFieldSet ReqReply.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : ReqReply)))
-  get_Seqnum : ∀ (x : ReqReply), go.IsGoStepPureDetTagged under (StructFieldGet ReqReply.underlying go!"Seqnum") #x (Val #(x.Seqnum'))
-  set_Seqnum : ∀ (x : ReqReply) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ReqReply.underlying go!"Seqnum") (PairV #x #y) (Val #(({ x with Seqnum' := y } : ReqReply)))
-  get_Time : ∀ (x : ReqReply), go.IsGoStepPureDetTagged under (StructFieldGet ReqReply.underlying go!"Time") #x (Val #(x.Time'))
-  set_Time : ∀ (x : ReqReply) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet ReqReply.underlying go!"Time") (PairV #x #y) (Val #(({ x with Time' := y } : ReqReply)))
+  get'Val : ∀ (x : ReqReply), go.IsGoStepPureDetTagged under (StructFieldGet ReqReply.underlying go!"Val") #x (Val #(x.Val'))
+  set'Val : ∀ (x : ReqReply) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Value), go.IsGoStepPureDetTagged under (StructFieldSet ReqReply.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : ReqReply)))
+  get'Seqnum : ∀ (x : ReqReply), go.IsGoStepPureDetTagged under (StructFieldGet ReqReply.underlying go!"Seqnum") #x (Val #(x.Seqnum'))
+  set'Seqnum : ∀ (x : ReqReply) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ReqReply.underlying go!"Seqnum") (PairV #x #y) (Val #(({ x with Seqnum' := y } : ReqReply)))
+  get'Time : ∀ (x : ReqReply), go.IsGoStepPureDetTagged under (StructFieldGet ReqReply.underlying go!"Time") #x (Val #(x.Time'))
+  set'Time : ∀ (x : ReqReply) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet ReqReply.underlying go!"Time") (PairV #x #y) (Val #(({ x with Time' := y } : ReqReply)))
   method_set : go.MethodSetIs ReqReply.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReqReply.ty) []
 
 attribute [instance] ReqReply.TypeAssumptions.type_repr
   ReqReply.TypeAssumptions.underlying
-  ReqReply.TypeAssumptions.get_Val
-  ReqReply.TypeAssumptions.set_Val
-  ReqReply.TypeAssumptions.get_Seqnum
-  ReqReply.TypeAssumptions.set_Seqnum
-  ReqReply.TypeAssumptions.get_Time
-  ReqReply.TypeAssumptions.set_Time
+  ReqReply.TypeAssumptions.get'Val
+  ReqReply.TypeAssumptions.set'Val
+  ReqReply.TypeAssumptions.get'Seqnum
+  ReqReply.TypeAssumptions.set'Seqnum
+  ReqReply.TypeAssumptions.get'Time
+  ReqReply.TypeAssumptions.set'Time
   ReqReply.TypeAssumptions.method_set
   ReqReply.TypeAssumptions.ptr_method_set
 
@@ -2266,7 +2266,7 @@ noncomputable instance BufferClient.zero_val [GooseExts] : ZeroVal BufferClient 
 @[irreducible] noncomputable def BufferClient.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   BufferClient.fieldsUnsealed
 
-noncomputable instance equals_unfold_BufferClient [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'BufferClient [GooseExts] [GoGlobalContext] :
     EqualsUnfold BufferClient.fields BufferClient.fieldsUnsealed :=
   ⟨by unfold BufferClient.fields; rfl⟩
 
@@ -2276,195 +2276,195 @@ noncomputable instance equals_unfold_BufferClient [GooseExts] [GoGlobalContext] 
 class BufferClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BufferClient.underlying BufferClient
   underlying : go.UnderlyingDirectedEq BufferClient.ty BufferClient.underlying
-  get_Client : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"Client") #x (Val #(x.Client'))
-  set_Client : ∀ (x : BufferClient) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"Client") (PairV #x #y) (Val #(({ x with Client' := y } : BufferClient)))
-  get_Reply : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"Reply") #x (Val #(x.Reply'))
-  set_Reply : ∀ (x : BufferClient) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"Reply") (PairV #x #y) (Val #(({ x with Reply' := y } : BufferClient)))
-  get_GetClientKey : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"GetClientKey") #x (Val #(x.GetClientKey'))
-  set_GetClientKey : ∀ (x : BufferClient) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"GetClientKey") (PairV #x #y) (Val #(({ x with GetClientKey' := y } : BufferClient)))
-  get_seq : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"seq") #x (Val #(x.seq'))
-  set_seq : ∀ (x : BufferClient) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"seq") (PairV #x #y) (Val #(({ x with seq' := y } : BufferClient)))
-  get_psize : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"psize") #x (Val #(x.psize'))
-  set_psize : ∀ (x : BufferClient) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"psize") (PairV #x #y) (Val #(({ x with psize' := y } : BufferClient)))
-  get_reqNum : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"reqNum") #x (Val #(x.reqNum'))
-  set_reqNum : ∀ (x : BufferClient) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"reqNum") (PairV #x #y) (Val #(({ x with reqNum' := y } : BufferClient)))
-  get_writes : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"writes") #x (Val #(x.writes'))
-  set_writes : ∀ (x : BufferClient) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"writes") (PairV #x #y) (Val #(({ x with writes' := y } : BufferClient)))
-  get_window : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"window") #x (Val #(x.window'))
-  set_window : ∀ (x : BufferClient) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"window") (PairV #x #y) (Val #(({ x with window' := y } : BufferClient)))
-  get_conflict : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"conflict") #x (Val #(x.conflict'))
-  set_conflict : ∀ (x : BufferClient) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"conflict") (PairV #x #y) (Val #(({ x with conflict' := y } : BufferClient)))
-  get_syncFreq : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"syncFreq") #x (Val #(x.syncFreq'))
-  set_syncFreq : ∀ (x : BufferClient) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"syncFreq") (PairV #x #y) (Val #(({ x with syncFreq' := y } : BufferClient)))
-  get_conflictKey : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"conflictKey") #x (Val #(x.conflictKey'))
-  set_conflictKey : ∀ (x : BufferClient) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"conflictKey") (PairV #x #y) (Val #(({ x with conflictKey' := y } : BufferClient)))
-  get_reqTime : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"reqTime") #x (Val #(x.reqTime'))
-  set_reqTime : ∀ (x : BufferClient) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"reqTime") (PairV #x #y) (Val #(({ x with reqTime' := y } : BufferClient)))
-  get_launchTime : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"launchTime") #x (Val #(x.launchTime'))
-  set_launchTime : ∀ (x : BufferClient) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"launchTime") (PairV #x #y) (Val #(({ x with launchTime' := y } : BufferClient)))
-  get_rand : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"rand") #x (Val #(x.rand'))
-  set_rand : ∀ (x : BufferClient) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"rand") (PairV #x #y) (Val #(({ x with rand' := y } : BufferClient)))
+  get'Client : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"Client") #x (Val #(x.Client'))
+  set'Client : ∀ (x : BufferClient) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"Client") (PairV #x #y) (Val #(({ x with Client' := y } : BufferClient)))
+  get'Reply : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"Reply") #x (Val #(x.Reply'))
+  set'Reply : ∀ (x : BufferClient) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"Reply") (PairV #x #y) (Val #(({ x with Reply' := y } : BufferClient)))
+  get'GetClientKey : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"GetClientKey") #x (Val #(x.GetClientKey'))
+  set'GetClientKey : ∀ (x : BufferClient) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"GetClientKey") (PairV #x #y) (Val #(({ x with GetClientKey' := y } : BufferClient)))
+  get'seq : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"seq") #x (Val #(x.seq'))
+  set'seq : ∀ (x : BufferClient) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"seq") (PairV #x #y) (Val #(({ x with seq' := y } : BufferClient)))
+  get'psize : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"psize") #x (Val #(x.psize'))
+  set'psize : ∀ (x : BufferClient) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"psize") (PairV #x #y) (Val #(({ x with psize' := y } : BufferClient)))
+  get'reqNum : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"reqNum") #x (Val #(x.reqNum'))
+  set'reqNum : ∀ (x : BufferClient) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"reqNum") (PairV #x #y) (Val #(({ x with reqNum' := y } : BufferClient)))
+  get'writes : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"writes") #x (Val #(x.writes'))
+  set'writes : ∀ (x : BufferClient) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"writes") (PairV #x #y) (Val #(({ x with writes' := y } : BufferClient)))
+  get'window : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"window") #x (Val #(x.window'))
+  set'window : ∀ (x : BufferClient) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"window") (PairV #x #y) (Val #(({ x with window' := y } : BufferClient)))
+  get'conflict : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"conflict") #x (Val #(x.conflict'))
+  set'conflict : ∀ (x : BufferClient) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"conflict") (PairV #x #y) (Val #(({ x with conflict' := y } : BufferClient)))
+  get'syncFreq : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"syncFreq") #x (Val #(x.syncFreq'))
+  set'syncFreq : ∀ (x : BufferClient) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"syncFreq") (PairV #x #y) (Val #(({ x with syncFreq' := y } : BufferClient)))
+  get'conflictKey : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"conflictKey") #x (Val #(x.conflictKey'))
+  set'conflictKey : ∀ (x : BufferClient) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"conflictKey") (PairV #x #y) (Val #(({ x with conflictKey' := y } : BufferClient)))
+  get'reqTime : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"reqTime") #x (Val #(x.reqTime'))
+  set'reqTime : ∀ (x : BufferClient) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"reqTime") (PairV #x #y) (Val #(({ x with reqTime' := y } : BufferClient)))
+  get'launchTime : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"launchTime") #x (Val #(x.launchTime'))
+  set'launchTime : ∀ (x : BufferClient) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"launchTime") (PairV #x #y) (Val #(({ x with launchTime' := y } : BufferClient)))
+  get'rand : ∀ (x : BufferClient), go.IsGoStepPureDetTagged under (StructFieldGet BufferClient.underlying go!"rand") #x (Val #(x.rand'))
+  set'rand : ∀ (x : BufferClient) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet BufferClient.underlying go!"rand") (PairV #x #y) (Val #(({ x with rand' := y } : BufferClient)))
   method_set : go.MethodSetIs BufferClient.ty [(go!"Connect", (some (go.signature.Signature [] false [go.error]))), (go!"Disconnect", (some (go.signature.Signature [] false []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"GetReplyFrom", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.ProposeReplyTS.ty), go.error]))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Println", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Reconnect", (some (go.signature.Signature [] false [go.error]))), (go!"RegisterRPCTable", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Table.ty)] false []))), (go!"SendMsg", (some (go.signature.Signature [go.int32, go.uint8, _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty] false []))), (go!"SendProposal", (some (go.signature.Signature [_root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.Propose.ty] false []))), (go!"SendRead", (some (go.signature.Signature [go.int64] false [go.int32]))), (go!"SendScan", (some (go.signature.Signature [go.int64, go.int64] false [go.int32]))), (go!"SendWrite", (some (go.signature.Signature [go.int64, (go.GoType.SliceType go.byte)] false [go.int32]))), (go!"github.com/imdea-software/swiftpaxos/client.call", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.rpc.Client.ty), go.string, (go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"github.com/imdea-software/swiftpaxos/client.callMaster", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.error]))), (go!"github.com/imdea-software/swiftpaxos/client.dial", (some (go.signature.Signature [go.string] false [_root_.Perennial.net.Conn.ty, go.error]))), (go!"github.com/imdea-software/swiftpaxos/client.dialMaster", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.net.rpc.Client.ty), go.error]))), (go!"github.com/imdea-software/swiftpaxos/client.findClosest", (some (go.signature.Signature [(go.GoType.SliceType go.bool)] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType BufferClient.ty) [(go!"Connect", (some (go.signature.Signature [] false [go.error]))), (go!"Disconnect", (some (go.signature.Signature [] false []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"GetReplyFrom", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.ProposeReplyTS.ty), go.error]))), (go!"Loop", (some (go.signature.Signature [] false []))), (go!"Pipeline", (some (go.signature.Signature [go.int, go.int32] false []))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Println", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Read", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType go.byte)]))), (go!"Reconnect", (some (go.signature.Signature [] false [go.error]))), (go!"RegisterRPCTable", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Table.ty)] false []))), (go!"RegisterReply", (some (go.signature.Signature [_root_.Perennial.github_com.imdea_software.swiftpaxos.state.Value.ty, go.int32] false []))), (go!"Scan", (some (go.signature.Signature [go.int64, go.int64] false [(go.GoType.SliceType go.byte)]))), (go!"SendMsg", (some (go.signature.Signature [go.int32, go.uint8, _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty] false []))), (go!"SendProposal", (some (go.signature.Signature [_root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.Propose.ty] false []))), (go!"SendRead", (some (go.signature.Signature [go.int64] false [go.int32]))), (go!"SendScan", (some (go.signature.Signature [go.int64, go.int64] false [go.int32]))), (go!"SendWrite", (some (go.signature.Signature [go.int64, (go.GoType.SliceType go.byte)] false [go.int32]))), (go!"WaitReplies", (some (go.signature.Signature [go.int] false []))), (go!"Write", (some (go.signature.Signature [go.int64, (go.GoType.SliceType go.byte)] false []))), (go!"github.com/imdea-software/swiftpaxos/client.call", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.rpc.Client.ty), go.string, (go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"github.com/imdea-software/swiftpaxos/client.callMaster", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.error]))), (go!"github.com/imdea-software/swiftpaxos/client.dial", (some (go.signature.Signature [go.string] false [_root_.Perennial.net.Conn.ty, go.error]))), (go!"github.com/imdea-software/swiftpaxos/client.dialMaster", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.net.rpc.Client.ty), go.error]))), (go!"github.com/imdea-software/swiftpaxos/client.findClosest", (some (go.signature.Signature [(go.GoType.SliceType go.bool)] false [go.error]))), (go!"github.com/imdea-software/swiftpaxos/client.genGetKey", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false [go.int64]))]))), (go!"github.com/imdea-software/swiftpaxos/client.randomTrue", (some (go.signature.Signature [go.int] false [go.bool])))]
-  Connect_unfold : MethodUnfold BufferClient.ty go!"Connect" (LamV "$r"
+  unfold'Connect : MethodUnfold BufferClient.ty go!"Connect" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"Connect"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  Disconnect_unfold : MethodUnfold BufferClient.ty go!"Disconnect" (LamV "$r"
+  unfold'Disconnect : MethodUnfold BufferClient.ty go!"Disconnect" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"Disconnect"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  Fatal_unfold : MethodUnfold BufferClient.ty go!"Fatal" (LamV "$r"
+  unfold'Fatal : MethodUnfold BufferClient.ty go!"Fatal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"Fatal"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  GetReplyFrom_unfold : MethodUnfold BufferClient.ty go!"GetReplyFrom" (LamV "$r"
+  unfold'GetReplyFrom : MethodUnfold BufferClient.ty go!"GetReplyFrom" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"GetReplyFrom"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  Printf_unfold : MethodUnfold BufferClient.ty go!"Printf" (LamV "$r"
+  unfold'Printf : MethodUnfold BufferClient.ty go!"Printf" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"Printf"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  Println_unfold : MethodUnfold BufferClient.ty go!"Println" (LamV "$r"
+  unfold'Println : MethodUnfold BufferClient.ty go!"Println" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"Println"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  Reconnect_unfold : MethodUnfold BufferClient.ty go!"Reconnect" (LamV "$r"
+  unfold'Reconnect : MethodUnfold BufferClient.ty go!"Reconnect" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"Reconnect"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  RegisterRPCTable_unfold : MethodUnfold BufferClient.ty go!"RegisterRPCTable" (LamV "$r"
+  unfold'RegisterRPCTable : MethodUnfold BufferClient.ty go!"RegisterRPCTable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"RegisterRPCTable"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  SendMsg_unfold : MethodUnfold BufferClient.ty go!"SendMsg" (LamV "$r"
+  unfold'SendMsg : MethodUnfold BufferClient.ty go!"SendMsg" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"SendMsg"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  SendProposal_unfold : MethodUnfold BufferClient.ty go!"SendProposal" (LamV "$r"
+  unfold'SendProposal : MethodUnfold BufferClient.ty go!"SendProposal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"SendProposal"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  SendRead_unfold : MethodUnfold BufferClient.ty go!"SendRead" (LamV "$r"
+  unfold'SendRead : MethodUnfold BufferClient.ty go!"SendRead" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"SendRead"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  SendScan_unfold : MethodUnfold BufferClient.ty go!"SendScan" (LamV "$r"
+  unfold'SendScan : MethodUnfold BufferClient.ty go!"SendScan" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"SendScan"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  SendWrite_unfold : MethodUnfold BufferClient.ty go!"SendWrite" (LamV "$r"
+  unfold'SendWrite : MethodUnfold BufferClient.ty go!"SendWrite" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"SendWrite"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  call_unfold : MethodUnfold BufferClient.ty go!"call" (LamV "$r"
+  unfold'call : MethodUnfold BufferClient.ty go!"call" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"call"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  callMaster_unfold : MethodUnfold BufferClient.ty go!"callMaster" (LamV "$r"
+  unfold'callMaster : MethodUnfold BufferClient.ty go!"callMaster" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"callMaster"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  dial_unfold : MethodUnfold BufferClient.ty go!"dial" (LamV "$r"
+  unfold'dial : MethodUnfold BufferClient.ty go!"dial" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"dial"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  dialMaster_unfold : MethodUnfold BufferClient.ty go!"dialMaster" (LamV "$r"
+  unfold'dialMaster : MethodUnfold BufferClient.ty go!"dialMaster" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"dialMaster"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  findClosest_unfold : MethodUnfold BufferClient.ty go!"findClosest" (LamV "$r"
+  unfold'findClosest : MethodUnfold BufferClient.ty go!"findClosest" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"findClosest"))) (App (Val (GoInstruction (StructFieldGet BufferClient.ty go!"Client"))) (Var "$r"))))
-  ptr_Connect_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Connect" (LamV "$r"
+  ptr_unfold'Connect : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Connect" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"Connect"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_Disconnect_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Disconnect" (LamV "$r"
+  ptr_unfold'Disconnect : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Disconnect" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"Disconnect"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_Fatal_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Fatal" (LamV "$r"
+  ptr_unfold'Fatal : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Fatal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"Fatal"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_GetReplyFrom_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"GetReplyFrom" (LamV "$r"
+  ptr_unfold'GetReplyFrom : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"GetReplyFrom" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"GetReplyFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_Loop_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Loop" BufferClient.Loop.impl
-  ptr_Pipeline_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Pipeline" BufferClient.Pipeline.impl
-  ptr_Printf_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Printf" (LamV "$r"
+  ptr_unfold'Loop : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Loop" BufferClient.Loop.impl
+  ptr_unfold'Pipeline : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Pipeline" BufferClient.Pipeline.impl
+  ptr_unfold'Printf : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Printf" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"Printf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_Println_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Println" (LamV "$r"
+  ptr_unfold'Println : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Println" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"Println"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Read" BufferClient.Read.impl
-  ptr_Reconnect_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Reconnect" (LamV "$r"
+  ptr_unfold'Read : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Read" BufferClient.Read.impl
+  ptr_unfold'Reconnect : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Reconnect" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"Reconnect"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_RegisterRPCTable_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"RegisterRPCTable" (LamV "$r"
+  ptr_unfold'RegisterRPCTable : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"RegisterRPCTable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"RegisterRPCTable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_RegisterReply_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"RegisterReply" BufferClient.RegisterReply.impl
-  ptr_Scan_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Scan" BufferClient.Scan.impl
-  ptr_SendMsg_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"SendMsg" (LamV "$r"
+  ptr_unfold'RegisterReply : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"RegisterReply" BufferClient.RegisterReply.impl
+  ptr_unfold'Scan : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Scan" BufferClient.Scan.impl
+  ptr_unfold'SendMsg : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"SendMsg" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"SendMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_SendProposal_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"SendProposal" (LamV "$r"
+  ptr_unfold'SendProposal : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"SendProposal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"SendProposal"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_SendRead_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"SendRead" (LamV "$r"
+  ptr_unfold'SendRead : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"SendRead" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"SendRead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_SendScan_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"SendScan" (LamV "$r"
+  ptr_unfold'SendScan : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"SendScan" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"SendScan"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_SendWrite_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"SendWrite" (LamV "$r"
+  ptr_unfold'SendWrite : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"SendWrite" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"SendWrite"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_WaitReplies_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"WaitReplies" BufferClient.WaitReplies.impl
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Write" BufferClient.Write.impl
-  ptr_call_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"call" (LamV "$r"
+  ptr_unfold'WaitReplies : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"WaitReplies" BufferClient.WaitReplies.impl
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"Write" BufferClient.Write.impl
+  ptr_unfold'call : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"call" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"call"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_callMaster_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"callMaster" (LamV "$r"
+  ptr_unfold'callMaster : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"callMaster" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"callMaster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_dial_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"dial" (LamV "$r"
+  ptr_unfold'dial : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"dial" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"dial"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_dialMaster_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"dialMaster" (LamV "$r"
+  ptr_unfold'dialMaster : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"dialMaster" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"dialMaster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_findClosest_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"findClosest" (LamV "$r"
+  ptr_unfold'findClosest : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"findClosest" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"findClosest"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (Var "$r")))))
-  ptr_genGetKey_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"genGetKey" BufferClient.genGetKey.impl
-  ptr_randomTrue_unfold : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"randomTrue" BufferClient.randomTrue.impl
+  ptr_unfold'genGetKey : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"genGetKey" BufferClient.genGetKey.impl
+  ptr_unfold'randomTrue : MethodUnfold (go.GoType.PointerType BufferClient.ty) go!"randomTrue" BufferClient.randomTrue.impl
 
 attribute [instance] BufferClient.TypeAssumptions.type_repr
   BufferClient.TypeAssumptions.underlying
-  BufferClient.TypeAssumptions.get_Client
-  BufferClient.TypeAssumptions.set_Client
-  BufferClient.TypeAssumptions.get_Reply
-  BufferClient.TypeAssumptions.set_Reply
-  BufferClient.TypeAssumptions.get_GetClientKey
-  BufferClient.TypeAssumptions.set_GetClientKey
-  BufferClient.TypeAssumptions.get_seq
-  BufferClient.TypeAssumptions.set_seq
-  BufferClient.TypeAssumptions.get_psize
-  BufferClient.TypeAssumptions.set_psize
-  BufferClient.TypeAssumptions.get_reqNum
-  BufferClient.TypeAssumptions.set_reqNum
-  BufferClient.TypeAssumptions.get_writes
-  BufferClient.TypeAssumptions.set_writes
-  BufferClient.TypeAssumptions.get_window
-  BufferClient.TypeAssumptions.set_window
-  BufferClient.TypeAssumptions.get_conflict
-  BufferClient.TypeAssumptions.set_conflict
-  BufferClient.TypeAssumptions.get_syncFreq
-  BufferClient.TypeAssumptions.set_syncFreq
-  BufferClient.TypeAssumptions.get_conflictKey
-  BufferClient.TypeAssumptions.set_conflictKey
-  BufferClient.TypeAssumptions.get_reqTime
-  BufferClient.TypeAssumptions.set_reqTime
-  BufferClient.TypeAssumptions.get_launchTime
-  BufferClient.TypeAssumptions.set_launchTime
-  BufferClient.TypeAssumptions.get_rand
-  BufferClient.TypeAssumptions.set_rand
+  BufferClient.TypeAssumptions.get'Client
+  BufferClient.TypeAssumptions.set'Client
+  BufferClient.TypeAssumptions.get'Reply
+  BufferClient.TypeAssumptions.set'Reply
+  BufferClient.TypeAssumptions.get'GetClientKey
+  BufferClient.TypeAssumptions.set'GetClientKey
+  BufferClient.TypeAssumptions.get'seq
+  BufferClient.TypeAssumptions.set'seq
+  BufferClient.TypeAssumptions.get'psize
+  BufferClient.TypeAssumptions.set'psize
+  BufferClient.TypeAssumptions.get'reqNum
+  BufferClient.TypeAssumptions.set'reqNum
+  BufferClient.TypeAssumptions.get'writes
+  BufferClient.TypeAssumptions.set'writes
+  BufferClient.TypeAssumptions.get'window
+  BufferClient.TypeAssumptions.set'window
+  BufferClient.TypeAssumptions.get'conflict
+  BufferClient.TypeAssumptions.set'conflict
+  BufferClient.TypeAssumptions.get'syncFreq
+  BufferClient.TypeAssumptions.set'syncFreq
+  BufferClient.TypeAssumptions.get'conflictKey
+  BufferClient.TypeAssumptions.set'conflictKey
+  BufferClient.TypeAssumptions.get'reqTime
+  BufferClient.TypeAssumptions.set'reqTime
+  BufferClient.TypeAssumptions.get'launchTime
+  BufferClient.TypeAssumptions.set'launchTime
+  BufferClient.TypeAssumptions.get'rand
+  BufferClient.TypeAssumptions.set'rand
   BufferClient.TypeAssumptions.method_set
   BufferClient.TypeAssumptions.ptr_method_set
-  BufferClient.TypeAssumptions.Connect_unfold
-  BufferClient.TypeAssumptions.Disconnect_unfold
-  BufferClient.TypeAssumptions.Fatal_unfold
-  BufferClient.TypeAssumptions.GetReplyFrom_unfold
-  BufferClient.TypeAssumptions.Printf_unfold
-  BufferClient.TypeAssumptions.Println_unfold
-  BufferClient.TypeAssumptions.Reconnect_unfold
-  BufferClient.TypeAssumptions.RegisterRPCTable_unfold
-  BufferClient.TypeAssumptions.SendMsg_unfold
-  BufferClient.TypeAssumptions.SendProposal_unfold
-  BufferClient.TypeAssumptions.SendRead_unfold
-  BufferClient.TypeAssumptions.SendScan_unfold
-  BufferClient.TypeAssumptions.SendWrite_unfold
-  BufferClient.TypeAssumptions.call_unfold
-  BufferClient.TypeAssumptions.callMaster_unfold
-  BufferClient.TypeAssumptions.dial_unfold
-  BufferClient.TypeAssumptions.dialMaster_unfold
-  BufferClient.TypeAssumptions.findClosest_unfold
-  BufferClient.TypeAssumptions.ptr_Connect_unfold
-  BufferClient.TypeAssumptions.ptr_Disconnect_unfold
-  BufferClient.TypeAssumptions.ptr_Fatal_unfold
-  BufferClient.TypeAssumptions.ptr_GetReplyFrom_unfold
-  BufferClient.TypeAssumptions.ptr_Loop_unfold
-  BufferClient.TypeAssumptions.ptr_Pipeline_unfold
-  BufferClient.TypeAssumptions.ptr_Printf_unfold
-  BufferClient.TypeAssumptions.ptr_Println_unfold
-  BufferClient.TypeAssumptions.ptr_Read_unfold
-  BufferClient.TypeAssumptions.ptr_Reconnect_unfold
-  BufferClient.TypeAssumptions.ptr_RegisterRPCTable_unfold
-  BufferClient.TypeAssumptions.ptr_RegisterReply_unfold
-  BufferClient.TypeAssumptions.ptr_Scan_unfold
-  BufferClient.TypeAssumptions.ptr_SendMsg_unfold
-  BufferClient.TypeAssumptions.ptr_SendProposal_unfold
-  BufferClient.TypeAssumptions.ptr_SendRead_unfold
-  BufferClient.TypeAssumptions.ptr_SendScan_unfold
-  BufferClient.TypeAssumptions.ptr_SendWrite_unfold
-  BufferClient.TypeAssumptions.ptr_WaitReplies_unfold
-  BufferClient.TypeAssumptions.ptr_Write_unfold
-  BufferClient.TypeAssumptions.ptr_call_unfold
-  BufferClient.TypeAssumptions.ptr_callMaster_unfold
-  BufferClient.TypeAssumptions.ptr_dial_unfold
-  BufferClient.TypeAssumptions.ptr_dialMaster_unfold
-  BufferClient.TypeAssumptions.ptr_findClosest_unfold
-  BufferClient.TypeAssumptions.ptr_genGetKey_unfold
-  BufferClient.TypeAssumptions.ptr_randomTrue_unfold
+  BufferClient.TypeAssumptions.unfold'Connect
+  BufferClient.TypeAssumptions.unfold'Disconnect
+  BufferClient.TypeAssumptions.unfold'Fatal
+  BufferClient.TypeAssumptions.unfold'GetReplyFrom
+  BufferClient.TypeAssumptions.unfold'Printf
+  BufferClient.TypeAssumptions.unfold'Println
+  BufferClient.TypeAssumptions.unfold'Reconnect
+  BufferClient.TypeAssumptions.unfold'RegisterRPCTable
+  BufferClient.TypeAssumptions.unfold'SendMsg
+  BufferClient.TypeAssumptions.unfold'SendProposal
+  BufferClient.TypeAssumptions.unfold'SendRead
+  BufferClient.TypeAssumptions.unfold'SendScan
+  BufferClient.TypeAssumptions.unfold'SendWrite
+  BufferClient.TypeAssumptions.unfold'call
+  BufferClient.TypeAssumptions.unfold'callMaster
+  BufferClient.TypeAssumptions.unfold'dial
+  BufferClient.TypeAssumptions.unfold'dialMaster
+  BufferClient.TypeAssumptions.unfold'findClosest
+  BufferClient.TypeAssumptions.ptr_unfold'Connect
+  BufferClient.TypeAssumptions.ptr_unfold'Disconnect
+  BufferClient.TypeAssumptions.ptr_unfold'Fatal
+  BufferClient.TypeAssumptions.ptr_unfold'GetReplyFrom
+  BufferClient.TypeAssumptions.ptr_unfold'Loop
+  BufferClient.TypeAssumptions.ptr_unfold'Pipeline
+  BufferClient.TypeAssumptions.ptr_unfold'Printf
+  BufferClient.TypeAssumptions.ptr_unfold'Println
+  BufferClient.TypeAssumptions.ptr_unfold'Read
+  BufferClient.TypeAssumptions.ptr_unfold'Reconnect
+  BufferClient.TypeAssumptions.ptr_unfold'RegisterRPCTable
+  BufferClient.TypeAssumptions.ptr_unfold'RegisterReply
+  BufferClient.TypeAssumptions.ptr_unfold'Scan
+  BufferClient.TypeAssumptions.ptr_unfold'SendMsg
+  BufferClient.TypeAssumptions.ptr_unfold'SendProposal
+  BufferClient.TypeAssumptions.ptr_unfold'SendRead
+  BufferClient.TypeAssumptions.ptr_unfold'SendScan
+  BufferClient.TypeAssumptions.ptr_unfold'SendWrite
+  BufferClient.TypeAssumptions.ptr_unfold'WaitReplies
+  BufferClient.TypeAssumptions.ptr_unfold'Write
+  BufferClient.TypeAssumptions.ptr_unfold'call
+  BufferClient.TypeAssumptions.ptr_unfold'callMaster
+  BufferClient.TypeAssumptions.ptr_unfold'dial
+  BufferClient.TypeAssumptions.ptr_unfold'dialMaster
+  BufferClient.TypeAssumptions.ptr_unfold'findClosest
+  BufferClient.TypeAssumptions.ptr_unfold'genGetKey
+  BufferClient.TypeAssumptions.ptr_unfold'randomTrue
 
 structure Client [GooseExts] where
   mk ::
@@ -2513,7 +2513,7 @@ noncomputable instance Client.zero_val [GooseExts] : ZeroVal Client :=
 @[irreducible] noncomputable def Client.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Client.fieldsUnsealed
 
-noncomputable instance equals_unfold_Client [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Client [GooseExts] [GoGlobalContext] :
     EqualsUnfold Client.fields Client.fieldsUnsealed :=
   ⟨by unfold Client.fields; rfl⟩
 
@@ -2523,133 +2523,133 @@ noncomputable instance equals_unfold_Client [GooseExts] [GoGlobalContext] :
 class Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Client.underlying Client
   underlying : go.UnderlyingDirectedEq Client.ty Client.underlying
-  get_Logger : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"Logger") #x (Val #(x.Logger'))
-  set_Logger : ∀ (x : Client) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : Client)))
-  get_ClientId : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"ClientId") #x (Val #(x.ClientId'))
-  set_ClientId : ∀ (x : Client) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"ClientId") (PairV #x #y) (Val #(({ x with ClientId' := y } : Client)))
-  get_LeaderId : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"LeaderId") #x (Val #(x.LeaderId'))
-  set_LeaderId : ∀ (x : Client) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"LeaderId") (PairV #x #y) (Val #(({ x with LeaderId' := y } : Client)))
-  get_ClosestId : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"ClosestId") #x (Val #(x.ClosestId'))
-  set_ClosestId : ∀ (x : Client) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"ClosestId") (PairV #x #y) (Val #(({ x with ClosestId' := y } : Client)))
-  get_Ping : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"Ping") #x (Val #(x.Ping'))
-  set_Ping : ∀ (x : Client) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"Ping") (PairV #x #y) (Val #(({ x with Ping' := y } : Client)))
-  get_Fast : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"Fast") #x (Val #(x.Fast'))
-  set_Fast : ∀ (x : Client) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"Fast") (PairV #x #y) (Val #(({ x with Fast' := y } : Client)))
-  get_Verbose : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"Verbose") #x (Val #(x.Verbose'))
-  set_Verbose : ∀ (x : Client) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"Verbose") (PairV #x #y) (Val #(({ x with Verbose' := y } : Client)))
-  get_Leaderless : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"Leaderless") #x (Val #(x.Leaderless'))
-  set_Leaderless : ∀ (x : Client) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"Leaderless") (PairV #x #y) (Val #(({ x with Leaderless' := y } : Client)))
-  get_master : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"master") #x (Val #(x.master'))
-  set_master : ∀ (x : Client) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"master") (PairV #x #y) (Val #(({ x with master' := y } : Client)))
-  get_servers : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"servers") #x (Val #(x.servers'))
-  set_servers : ∀ (x : Client) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"servers") (PairV #x #y) (Val #(({ x with servers' := y } : Client)))
-  get_readers : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"readers") #x (Val #(x.readers'))
-  set_readers : ∀ (x : Client) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"readers") (PairV #x #y) (Val #(({ x with readers' := y } : Client)))
-  get_writers : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"writers") #x (Val #(x.writers'))
-  set_writers : ∀ (x : Client) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"writers") (PairV #x #y) (Val #(({ x with writers' := y } : Client)))
-  get_dt : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"dt") #x (Val #(x.dt'))
-  set_dt : ∀ (x : Client) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"dt") (PairV #x #y) (Val #(({ x with dt' := y } : Client)))
-  get_seqnum : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"seqnum") #x (Val #(x.seqnum'))
-  set_seqnum : ∀ (x : Client) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"seqnum") (PairV #x #y) (Val #(({ x with seqnum' := y } : Client)))
-  get_server : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"server") #x (Val #(x.server'))
-  set_server : ∀ (x : Client) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"server") (PairV #x #y) (Val #(({ x with server' := y } : Client)))
-  get_masterPort : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"masterPort") #x (Val #(x.masterPort'))
-  set_masterPort : ∀ (x : Client) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"masterPort") (PairV #x #y) (Val #(({ x with masterPort' := y } : Client)))
-  get_masterAddr : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"masterAddr") #x (Val #(x.masterAddr'))
-  set_masterAddr : ∀ (x : Client) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"masterAddr") (PairV #x #y) (Val #(({ x with masterAddr' := y } : Client)))
-  get_replicas : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"replicas") #x (Val #(x.replicas'))
-  set_replicas : ∀ (x : Client) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"replicas") (PairV #x #y) (Val #(({ x with replicas' := y } : Client)))
+  get'Logger : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"Logger") #x (Val #(x.Logger'))
+  set'Logger : ∀ (x : Client) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : Client)))
+  get'ClientId : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"ClientId") #x (Val #(x.ClientId'))
+  set'ClientId : ∀ (x : Client) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"ClientId") (PairV #x #y) (Val #(({ x with ClientId' := y } : Client)))
+  get'LeaderId : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"LeaderId") #x (Val #(x.LeaderId'))
+  set'LeaderId : ∀ (x : Client) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"LeaderId") (PairV #x #y) (Val #(({ x with LeaderId' := y } : Client)))
+  get'ClosestId : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"ClosestId") #x (Val #(x.ClosestId'))
+  set'ClosestId : ∀ (x : Client) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"ClosestId") (PairV #x #y) (Val #(({ x with ClosestId' := y } : Client)))
+  get'Ping : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"Ping") #x (Val #(x.Ping'))
+  set'Ping : ∀ (x : Client) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"Ping") (PairV #x #y) (Val #(({ x with Ping' := y } : Client)))
+  get'Fast : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"Fast") #x (Val #(x.Fast'))
+  set'Fast : ∀ (x : Client) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"Fast") (PairV #x #y) (Val #(({ x with Fast' := y } : Client)))
+  get'Verbose : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"Verbose") #x (Val #(x.Verbose'))
+  set'Verbose : ∀ (x : Client) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"Verbose") (PairV #x #y) (Val #(({ x with Verbose' := y } : Client)))
+  get'Leaderless : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"Leaderless") #x (Val #(x.Leaderless'))
+  set'Leaderless : ∀ (x : Client) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"Leaderless") (PairV #x #y) (Val #(({ x with Leaderless' := y } : Client)))
+  get'master : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"master") #x (Val #(x.master'))
+  set'master : ∀ (x : Client) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"master") (PairV #x #y) (Val #(({ x with master' := y } : Client)))
+  get'servers : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"servers") #x (Val #(x.servers'))
+  set'servers : ∀ (x : Client) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"servers") (PairV #x #y) (Val #(({ x with servers' := y } : Client)))
+  get'readers : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"readers") #x (Val #(x.readers'))
+  set'readers : ∀ (x : Client) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"readers") (PairV #x #y) (Val #(({ x with readers' := y } : Client)))
+  get'writers : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"writers") #x (Val #(x.writers'))
+  set'writers : ∀ (x : Client) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"writers") (PairV #x #y) (Val #(({ x with writers' := y } : Client)))
+  get'dt : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"dt") #x (Val #(x.dt'))
+  set'dt : ∀ (x : Client) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"dt") (PairV #x #y) (Val #(({ x with dt' := y } : Client)))
+  get'seqnum : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"seqnum") #x (Val #(x.seqnum'))
+  set'seqnum : ∀ (x : Client) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"seqnum") (PairV #x #y) (Val #(({ x with seqnum' := y } : Client)))
+  get'server : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"server") #x (Val #(x.server'))
+  set'server : ∀ (x : Client) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"server") (PairV #x #y) (Val #(({ x with server' := y } : Client)))
+  get'masterPort : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"masterPort") #x (Val #(x.masterPort'))
+  set'masterPort : ∀ (x : Client) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"masterPort") (PairV #x #y) (Val #(({ x with masterPort' := y } : Client)))
+  get'masterAddr : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"masterAddr") #x (Val #(x.masterAddr'))
+  set'masterAddr : ∀ (x : Client) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"masterAddr") (PairV #x #y) (Val #(({ x with masterAddr' := y } : Client)))
+  get'replicas : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"replicas") #x (Val #(x.replicas'))
+  set'replicas : ∀ (x : Client) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"replicas") (PairV #x #y) (Val #(({ x with replicas' := y } : Client)))
   method_set : go.MethodSetIs Client.ty [(go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Println", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Client.ty) [(go!"Connect", (some (go.signature.Signature [] false [go.error]))), (go!"Disconnect", (some (go.signature.Signature [] false []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"GetReplyFrom", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.ProposeReplyTS.ty), go.error]))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Println", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Reconnect", (some (go.signature.Signature [] false [go.error]))), (go!"RegisterRPCTable", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Table.ty)] false []))), (go!"SendMsg", (some (go.signature.Signature [go.int32, go.uint8, _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty] false []))), (go!"SendProposal", (some (go.signature.Signature [_root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.Propose.ty] false []))), (go!"SendRead", (some (go.signature.Signature [go.int64] false [go.int32]))), (go!"SendScan", (some (go.signature.Signature [go.int64, go.int64] false [go.int32]))), (go!"SendWrite", (some (go.signature.Signature [go.int64, (go.GoType.SliceType go.byte)] false [go.int32]))), (go!"github.com/imdea-software/swiftpaxos/client.call", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.rpc.Client.ty), go.string, (go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"github.com/imdea-software/swiftpaxos/client.callMaster", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.error]))), (go!"github.com/imdea-software/swiftpaxos/client.dial", (some (go.signature.Signature [go.string] false [_root_.Perennial.net.Conn.ty, go.error]))), (go!"github.com/imdea-software/swiftpaxos/client.dialMaster", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.net.rpc.Client.ty), go.error]))), (go!"github.com/imdea-software/swiftpaxos/client.findClosest", (some (go.signature.Signature [(go.GoType.SliceType go.bool)] false [go.error])))]
-  Fatal_unfold : MethodUnfold Client.ty go!"Fatal" (LamV "$r"
+  unfold'Fatal : MethodUnfold Client.ty go!"Fatal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger.ty) go!"Fatal"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Logger"))) (Var "$r"))))
-  Printf_unfold : MethodUnfold Client.ty go!"Printf" (LamV "$r"
+  unfold'Printf : MethodUnfold Client.ty go!"Printf" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger.ty) go!"Printf"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Logger"))) (Var "$r"))))
-  Println_unfold : MethodUnfold Client.ty go!"Println" (LamV "$r"
+  unfold'Println : MethodUnfold Client.ty go!"Println" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger.ty) go!"Println"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Logger"))) (Var "$r"))))
-  ptr_Connect_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Connect" Client.Connect.impl
-  ptr_Disconnect_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Disconnect" Client.Disconnect.impl
-  ptr_Fatal_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Fatal" (LamV "$r"
+  ptr_unfold'Connect : MethodUnfold (go.GoType.PointerType Client.ty) go!"Connect" Client.Connect.impl
+  ptr_unfold'Disconnect : MethodUnfold (go.GoType.PointerType Client.ty) go!"Disconnect" Client.Disconnect.impl
+  ptr_unfold'Fatal : MethodUnfold (go.GoType.PointerType Client.ty) go!"Fatal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger.ty) go!"Fatal"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Logger"))) (Var "$r")))))
-  ptr_GetReplyFrom_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"GetReplyFrom" Client.GetReplyFrom.impl
-  ptr_Printf_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Printf" (LamV "$r"
+  ptr_unfold'GetReplyFrom : MethodUnfold (go.GoType.PointerType Client.ty) go!"GetReplyFrom" Client.GetReplyFrom.impl
+  ptr_unfold'Printf : MethodUnfold (go.GoType.PointerType Client.ty) go!"Printf" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger.ty) go!"Printf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Logger"))) (Var "$r")))))
-  ptr_Println_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Println" (LamV "$r"
+  ptr_unfold'Println : MethodUnfold (go.GoType.PointerType Client.ty) go!"Println" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger.ty) go!"Println"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Logger"))) (Var "$r")))))
-  ptr_Reconnect_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Reconnect" Client.Reconnect.impl
-  ptr_RegisterRPCTable_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"RegisterRPCTable" Client.RegisterRPCTable.impl
-  ptr_SendMsg_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"SendMsg" Client.SendMsg.impl
-  ptr_SendProposal_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"SendProposal" Client.SendProposal.impl
-  ptr_SendRead_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"SendRead" Client.SendRead.impl
-  ptr_SendScan_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"SendScan" Client.SendScan.impl
-  ptr_SendWrite_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"SendWrite" Client.SendWrite.impl
-  ptr_call_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"call" Client.call.impl
-  ptr_callMaster_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"callMaster" Client.callMaster.impl
-  ptr_dial_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dial" Client.dial.impl
-  ptr_dialMaster_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dialMaster" Client.dialMaster.impl
-  ptr_findClosest_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"findClosest" Client.findClosest.impl
+  ptr_unfold'Reconnect : MethodUnfold (go.GoType.PointerType Client.ty) go!"Reconnect" Client.Reconnect.impl
+  ptr_unfold'RegisterRPCTable : MethodUnfold (go.GoType.PointerType Client.ty) go!"RegisterRPCTable" Client.RegisterRPCTable.impl
+  ptr_unfold'SendMsg : MethodUnfold (go.GoType.PointerType Client.ty) go!"SendMsg" Client.SendMsg.impl
+  ptr_unfold'SendProposal : MethodUnfold (go.GoType.PointerType Client.ty) go!"SendProposal" Client.SendProposal.impl
+  ptr_unfold'SendRead : MethodUnfold (go.GoType.PointerType Client.ty) go!"SendRead" Client.SendRead.impl
+  ptr_unfold'SendScan : MethodUnfold (go.GoType.PointerType Client.ty) go!"SendScan" Client.SendScan.impl
+  ptr_unfold'SendWrite : MethodUnfold (go.GoType.PointerType Client.ty) go!"SendWrite" Client.SendWrite.impl
+  ptr_unfold'call : MethodUnfold (go.GoType.PointerType Client.ty) go!"call" Client.call.impl
+  ptr_unfold'callMaster : MethodUnfold (go.GoType.PointerType Client.ty) go!"callMaster" Client.callMaster.impl
+  ptr_unfold'dial : MethodUnfold (go.GoType.PointerType Client.ty) go!"dial" Client.dial.impl
+  ptr_unfold'dialMaster : MethodUnfold (go.GoType.PointerType Client.ty) go!"dialMaster" Client.dialMaster.impl
+  ptr_unfold'findClosest : MethodUnfold (go.GoType.PointerType Client.ty) go!"findClosest" Client.findClosest.impl
 
 attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.underlying
-  Client.TypeAssumptions.get_Logger
-  Client.TypeAssumptions.set_Logger
-  Client.TypeAssumptions.get_ClientId
-  Client.TypeAssumptions.set_ClientId
-  Client.TypeAssumptions.get_LeaderId
-  Client.TypeAssumptions.set_LeaderId
-  Client.TypeAssumptions.get_ClosestId
-  Client.TypeAssumptions.set_ClosestId
-  Client.TypeAssumptions.get_Ping
-  Client.TypeAssumptions.set_Ping
-  Client.TypeAssumptions.get_Fast
-  Client.TypeAssumptions.set_Fast
-  Client.TypeAssumptions.get_Verbose
-  Client.TypeAssumptions.set_Verbose
-  Client.TypeAssumptions.get_Leaderless
-  Client.TypeAssumptions.set_Leaderless
-  Client.TypeAssumptions.get_master
-  Client.TypeAssumptions.set_master
-  Client.TypeAssumptions.get_servers
-  Client.TypeAssumptions.set_servers
-  Client.TypeAssumptions.get_readers
-  Client.TypeAssumptions.set_readers
-  Client.TypeAssumptions.get_writers
-  Client.TypeAssumptions.set_writers
-  Client.TypeAssumptions.get_dt
-  Client.TypeAssumptions.set_dt
-  Client.TypeAssumptions.get_seqnum
-  Client.TypeAssumptions.set_seqnum
-  Client.TypeAssumptions.get_server
-  Client.TypeAssumptions.set_server
-  Client.TypeAssumptions.get_masterPort
-  Client.TypeAssumptions.set_masterPort
-  Client.TypeAssumptions.get_masterAddr
-  Client.TypeAssumptions.set_masterAddr
-  Client.TypeAssumptions.get_replicas
-  Client.TypeAssumptions.set_replicas
+  Client.TypeAssumptions.get'Logger
+  Client.TypeAssumptions.set'Logger
+  Client.TypeAssumptions.get'ClientId
+  Client.TypeAssumptions.set'ClientId
+  Client.TypeAssumptions.get'LeaderId
+  Client.TypeAssumptions.set'LeaderId
+  Client.TypeAssumptions.get'ClosestId
+  Client.TypeAssumptions.set'ClosestId
+  Client.TypeAssumptions.get'Ping
+  Client.TypeAssumptions.set'Ping
+  Client.TypeAssumptions.get'Fast
+  Client.TypeAssumptions.set'Fast
+  Client.TypeAssumptions.get'Verbose
+  Client.TypeAssumptions.set'Verbose
+  Client.TypeAssumptions.get'Leaderless
+  Client.TypeAssumptions.set'Leaderless
+  Client.TypeAssumptions.get'master
+  Client.TypeAssumptions.set'master
+  Client.TypeAssumptions.get'servers
+  Client.TypeAssumptions.set'servers
+  Client.TypeAssumptions.get'readers
+  Client.TypeAssumptions.set'readers
+  Client.TypeAssumptions.get'writers
+  Client.TypeAssumptions.set'writers
+  Client.TypeAssumptions.get'dt
+  Client.TypeAssumptions.set'dt
+  Client.TypeAssumptions.get'seqnum
+  Client.TypeAssumptions.set'seqnum
+  Client.TypeAssumptions.get'server
+  Client.TypeAssumptions.set'server
+  Client.TypeAssumptions.get'masterPort
+  Client.TypeAssumptions.set'masterPort
+  Client.TypeAssumptions.get'masterAddr
+  Client.TypeAssumptions.set'masterAddr
+  Client.TypeAssumptions.get'replicas
+  Client.TypeAssumptions.set'replicas
   Client.TypeAssumptions.method_set
   Client.TypeAssumptions.ptr_method_set
-  Client.TypeAssumptions.Fatal_unfold
-  Client.TypeAssumptions.Printf_unfold
-  Client.TypeAssumptions.Println_unfold
-  Client.TypeAssumptions.ptr_Connect_unfold
-  Client.TypeAssumptions.ptr_Disconnect_unfold
-  Client.TypeAssumptions.ptr_Fatal_unfold
-  Client.TypeAssumptions.ptr_GetReplyFrom_unfold
-  Client.TypeAssumptions.ptr_Printf_unfold
-  Client.TypeAssumptions.ptr_Println_unfold
-  Client.TypeAssumptions.ptr_Reconnect_unfold
-  Client.TypeAssumptions.ptr_RegisterRPCTable_unfold
-  Client.TypeAssumptions.ptr_SendMsg_unfold
-  Client.TypeAssumptions.ptr_SendProposal_unfold
-  Client.TypeAssumptions.ptr_SendRead_unfold
-  Client.TypeAssumptions.ptr_SendScan_unfold
-  Client.TypeAssumptions.ptr_SendWrite_unfold
-  Client.TypeAssumptions.ptr_call_unfold
-  Client.TypeAssumptions.ptr_callMaster_unfold
-  Client.TypeAssumptions.ptr_dial_unfold
-  Client.TypeAssumptions.ptr_dialMaster_unfold
-  Client.TypeAssumptions.ptr_findClosest_unfold
+  Client.TypeAssumptions.unfold'Fatal
+  Client.TypeAssumptions.unfold'Printf
+  Client.TypeAssumptions.unfold'Println
+  Client.TypeAssumptions.ptr_unfold'Connect
+  Client.TypeAssumptions.ptr_unfold'Disconnect
+  Client.TypeAssumptions.ptr_unfold'Fatal
+  Client.TypeAssumptions.ptr_unfold'GetReplyFrom
+  Client.TypeAssumptions.ptr_unfold'Printf
+  Client.TypeAssumptions.ptr_unfold'Println
+  Client.TypeAssumptions.ptr_unfold'Reconnect
+  Client.TypeAssumptions.ptr_unfold'RegisterRPCTable
+  Client.TypeAssumptions.ptr_unfold'SendMsg
+  Client.TypeAssumptions.ptr_unfold'SendProposal
+  Client.TypeAssumptions.ptr_unfold'SendRead
+  Client.TypeAssumptions.ptr_unfold'SendScan
+  Client.TypeAssumptions.ptr_unfold'SendWrite
+  Client.TypeAssumptions.ptr_unfold'call
+  Client.TypeAssumptions.ptr_unfold'callMaster
+  Client.TypeAssumptions.ptr_unfold'dial
+  Client.TypeAssumptions.ptr_unfold'dialMaster
+  Client.TypeAssumptions.ptr_unfold'findClosest
 
 structure Ghost [GooseExts] where
   mk ::
@@ -2666,7 +2666,7 @@ noncomputable instance Ghost.zero_val [GooseExts] : ZeroVal Ghost :=
 @[irreducible] noncomputable def Ghost.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Ghost.fieldsUnsealed
 
-noncomputable instance equals_unfold_Ghost [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Ghost [GooseExts] [GoGlobalContext] :
     EqualsUnfold Ghost.fields Ghost.fieldsUnsealed :=
   ⟨by unfold Ghost.fields; rfl⟩
 
@@ -2676,84 +2676,84 @@ noncomputable instance equals_unfold_Ghost [GooseExts] [GoGlobalContext] :
 class Ghost.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Ghost.underlying Ghost
   underlying : go.UnderlyingDirectedEq Ghost.ty Ghost.underlying
-  get_mu : ∀ (x : Ghost), go.IsGoStepPureDetTagged under (StructFieldGet Ghost.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : Ghost) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Ghost.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Ghost)))
-  get_p : ∀ (x : Ghost), go.IsGoStepPureDetTagged under (StructFieldGet Ghost.underlying go!"p") #x (Val #(x.p'))
-  set_p : ∀ (x : Ghost) (y : _root_.Perennial.github_com.goose_lang.primitive.ProphId), go.IsGoStepPureDetTagged under (StructFieldSet Ghost.underlying go!"p") (PairV #x #y) (Val #(({ x with p' := y } : Ghost)))
+  get'mu : ∀ (x : Ghost), go.IsGoStepPureDetTagged under (StructFieldGet Ghost.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : Ghost) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Ghost.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Ghost)))
+  get'p : ∀ (x : Ghost), go.IsGoStepPureDetTagged under (StructFieldGet Ghost.underlying go!"p") #x (Val #(x.p'))
+  set'p : ∀ (x : Ghost) (y : _root_.Perennial.github_com.goose_lang.primitive.ProphId), go.IsGoStepPureDetTagged under (StructFieldSet Ghost.underlying go!"p") (PairV #x #y) (Val #(({ x with p' := y } : Ghost)))
   method_set : go.MethodSetIs Ghost.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Ghost.ty) [(go!"Accept", (some (go.signature.Signature [go.int32, go.int32, (go.GoType.SliceType go.byte)] false []))), (go!"Invoke", (some (go.signature.Signature [go.uint8, go.int32, go.int32, go.int64, (go.GoType.SliceType go.byte)] false []))), (go!"Step", (some (go.signature.Signature [(go.GoType.SliceType go.uint64)] false []))), (go!"github.com/imdea-software/swiftpaxos/client.resolveBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [])))]
-  ptr_Accept_unfold : MethodUnfold (go.GoType.PointerType Ghost.ty) go!"Accept" Ghost.Accept.impl
-  ptr_Invoke_unfold : MethodUnfold (go.GoType.PointerType Ghost.ty) go!"Invoke" Ghost.Invoke.impl
-  ptr_Step_unfold : MethodUnfold (go.GoType.PointerType Ghost.ty) go!"Step" Ghost.Step.impl
-  ptr_resolveBytes_unfold : MethodUnfold (go.GoType.PointerType Ghost.ty) go!"resolveBytes" Ghost.resolveBytes.impl
+  ptr_unfold'Accept : MethodUnfold (go.GoType.PointerType Ghost.ty) go!"Accept" Ghost.Accept.impl
+  ptr_unfold'Invoke : MethodUnfold (go.GoType.PointerType Ghost.ty) go!"Invoke" Ghost.Invoke.impl
+  ptr_unfold'Step : MethodUnfold (go.GoType.PointerType Ghost.ty) go!"Step" Ghost.Step.impl
+  ptr_unfold'resolveBytes : MethodUnfold (go.GoType.PointerType Ghost.ty) go!"resolveBytes" Ghost.resolveBytes.impl
 
 attribute [instance] Ghost.TypeAssumptions.type_repr
   Ghost.TypeAssumptions.underlying
-  Ghost.TypeAssumptions.get_mu
-  Ghost.TypeAssumptions.set_mu
-  Ghost.TypeAssumptions.get_p
-  Ghost.TypeAssumptions.set_p
+  Ghost.TypeAssumptions.get'mu
+  Ghost.TypeAssumptions.set'mu
+  Ghost.TypeAssumptions.get'p
+  Ghost.TypeAssumptions.set'p
   Ghost.TypeAssumptions.method_set
   Ghost.TypeAssumptions.ptr_method_set
-  Ghost.TypeAssumptions.ptr_Accept_unfold
-  Ghost.TypeAssumptions.ptr_Invoke_unfold
-  Ghost.TypeAssumptions.ptr_Step_unfold
-  Ghost.TypeAssumptions.ptr_resolveBytes_unfold
+  Ghost.TypeAssumptions.ptr_unfold'Accept
+  Ghost.TypeAssumptions.ptr_unfold'Invoke
+  Ghost.TypeAssumptions.ptr_unfold'Step
+  Ghost.TypeAssumptions.ptr_unfold'resolveBytes
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ReqReply_instance : ReqReply.TypeAssumptions
-  BufferClient_instance : BufferClient.TypeAssumptions
-  Client_instance : Client.TypeAssumptions
-  Ghost_instance : Ghost.TypeAssumptions
-  NewBufferClient_unfold : FuncUnfold NewBufferClient [] NewBufferClient.impl
-  NewClient_unfold : FuncUnfold NewClient [] NewClient.impl
-  NewClientLog_unfold : FuncUnfold NewClientLog [] NewClientLog.impl
-  NewGhost_unfold : FuncUnfold NewGhost [] NewGhost.impl
-  theGhost_unfold : FuncUnfold theGhost [] theGhost.impl
-  GhostStep_unfold : FuncUnfold GhostStep [] GhostStep.impl
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_uuid_Assumption : _root_.Perennial.github_com.google.uuid.Assumptions
-  import_defs_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.Assumptions
-  import_state_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Assumptions
-  import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
-  import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_net_rpc_Assumption : _root_.Perennial.net.rpc.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_dlog_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Assumptions
-  import_swiftpaxos_rpc_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Assumptions
-  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
+  instance'ReqReply : ReqReply.TypeAssumptions
+  instance'BufferClient : BufferClient.TypeAssumptions
+  instance'Client : Client.TypeAssumptions
+  instance'Ghost : Ghost.TypeAssumptions
+  unfold'NewBufferClient : FuncUnfold NewBufferClient [] NewBufferClient.impl
+  unfold'NewClient : FuncUnfold NewClient [] NewClient.impl
+  unfold'NewClientLog : FuncUnfold NewClientLog [] NewClientLog.impl
+  unfold'NewGhost : FuncUnfold NewGhost [] NewGhost.impl
+  unfold'theGhost : FuncUnfold theGhost [] theGhost.impl
+  unfold'GhostStep : FuncUnfold GhostStep [] GhostStep.impl
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'rand : _root_.Perennial.math.rand.Assumptions
+  import'net : _root_.Perennial.net.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'uuid : _root_.Perennial.github_com.google.uuid.Assumptions
+  import'defs : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.Assumptions
+  import'state : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Assumptions
+  import'bufio : _root_.Perennial.bufio.Assumptions
+  import'binary : _root_.Perennial.encoding.binary.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'net_rpc : _root_.Perennial.net.rpc.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'dlog : _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Assumptions
+  import'swiftpaxos_rpc : _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Assumptions
+  import'primitive : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
 
-attribute [instance] Assumptions.ReqReply_instance
-  Assumptions.BufferClient_instance
-  Assumptions.Client_instance
-  Assumptions.Ghost_instance
-  Assumptions.NewBufferClient_unfold
-  Assumptions.NewClient_unfold
-  Assumptions.NewClientLog_unfold
-  Assumptions.NewGhost_unfold
-  Assumptions.theGhost_unfold
-  Assumptions.GhostStep_unfold
-  Assumptions.import_errors_Assumption
-  Assumptions.import_rand_Assumption
-  Assumptions.import_net_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_uuid_Assumption
-  Assumptions.import_defs_Assumption
-  Assumptions.import_state_Assumption
-  Assumptions.import_bufio_Assumption
-  Assumptions.import_binary_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_net_rpc_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_dlog_Assumption
-  Assumptions.import_swiftpaxos_rpc_Assumption
-  Assumptions.import_primitive_Assumption
+attribute [instance] Assumptions.instance'ReqReply
+  Assumptions.instance'BufferClient
+  Assumptions.instance'Client
+  Assumptions.instance'Ghost
+  Assumptions.unfold'NewBufferClient
+  Assumptions.unfold'NewClient
+  Assumptions.unfold'NewClientLog
+  Assumptions.unfold'NewGhost
+  Assumptions.unfold'theGhost
+  Assumptions.unfold'GhostStep
+  Assumptions.import'errors
+  Assumptions.import'rand
+  Assumptions.import'net
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'uuid
+  Assumptions.import'defs
+  Assumptions.import'state
+  Assumptions.import'bufio
+  Assumptions.import'binary
+  Assumptions.import'fmt
+  Assumptions.import'net_rpc
+  Assumptions.import'strings
+  Assumptions.import'dlog
+  Assumptions.import'swiftpaxos_rpc
+  Assumptions.import'primitive
 
 end github_com.imdea_software.swiftpaxos.client
 

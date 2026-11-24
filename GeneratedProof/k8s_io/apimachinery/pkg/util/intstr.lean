@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.intstr.Assumptions]
 
-noncomputable instance IntOrString_typed_pointsto :
+noncomputable instance typed_pointsto'IntOrString :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.intstr.IntOrString :=
   sorry -- axiomatized type
 
-noncomputable instance IntOrString_into_val_typed :
+noncomputable instance into_val_typed'IntOrString :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.intstr.IntOrString k8s_io.apimachinery.pkg.util.intstr.IntOrString.underlying :=
   sorry -- axiomatized type
 

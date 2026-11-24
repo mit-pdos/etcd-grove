@@ -27,11 +27,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.feature.Assumptions]
 
-noncomputable instance defaultFeatureSupportChecker_typed_pointsto :
+noncomputable instance typed_pointsto'defaultFeatureSupportChecker :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.feature.defaultFeatureSupportChecker :=
   sorry -- axiomatized type
 
-noncomputable instance defaultFeatureSupportChecker_into_val_typed :
+noncomputable instance into_val_typed'defaultFeatureSupportChecker :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.feature.defaultFeatureSupportChecker k8s_io.apiserver.pkg.storage.feature.defaultFeatureSupportChecker.underlying :=
   sorry -- axiomatized type
 

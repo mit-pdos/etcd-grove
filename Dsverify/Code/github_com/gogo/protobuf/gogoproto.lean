@@ -888,9 +888,9 @@ attribute [instance] EnableFunc.TypeAssumptions.type_repr
   EnableFunc.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  EnableFunc_instance : EnableFunc.TypeAssumptions
+  instance'EnableFunc : EnableFunc.TypeAssumptions
 
-attribute [instance] Assumptions.EnableFunc_instance
+attribute [instance] Assumptions.instance'EnableFunc
 
 end github_com.gogo.protobuf.gogoproto
 

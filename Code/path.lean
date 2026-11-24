@@ -129,7 +129,7 @@ noncomputable def lazybuf.append.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
 
 /-- go: path.go:46:19 -/
-noncomputable def lazybuf.string.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def lazybuf.string''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -582,7 +582,7 @@ noncomputable instance lazybuf.zero_val [GooseExts] : ZeroVal lazybuf :=
 @[irreducible] noncomputable def lazybuf.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   lazybuf.fieldsUnsealed
 
-noncomputable instance equals_unfold_lazybuf [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'lazybuf [GooseExts] [GoGlobalContext] :
     EqualsUnfold lazybuf.fields lazybuf.fieldsUnsealed :=
   ⟨by unfold lazybuf.fields; rfl⟩
 
@@ -592,50 +592,50 @@ noncomputable instance equals_unfold_lazybuf [GooseExts] [GoGlobalContext] :
 class lazybuf.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lazybuf.underlying lazybuf
   underlying : go.UnderlyingDirectedEq lazybuf.ty lazybuf.underlying
-  get_s : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : lazybuf) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : lazybuf)))
-  get_buf : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"buf") #x (Val #(x.buf'))
-  set_buf : ∀ (x : lazybuf) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : lazybuf)))
-  get_w : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"w") #x (Val #(x.w'))
-  set_w : ∀ (x : lazybuf) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : lazybuf)))
+  get's : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : lazybuf) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : lazybuf)))
+  get'buf : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"buf") #x (Val #(x.buf'))
+  set'buf : ∀ (x : lazybuf) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : lazybuf)))
+  get'w : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"w") #x (Val #(x.w'))
+  set'w : ∀ (x : lazybuf) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : lazybuf)))
   method_set : go.MethodSetIs lazybuf.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType lazybuf.ty) [(go!"path.append", (some (go.signature.Signature [go.byte] false []))), (go!"path.index", (some (go.signature.Signature [go.int] false [go.byte]))), (go!"path.string", (some (go.signature.Signature [] false [go.string])))]
-  ptr_append_unfold : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"append" lazybuf.append.impl
-  ptr_index_unfold : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"index" lazybuf.index.impl
-  ptr_string_unfold : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"string" lazybuf.string.impl
+  ptr_unfold'append : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"append" lazybuf.append.impl
+  ptr_unfold'index : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"index" lazybuf.index.impl
+  ptr_unfold'string : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"string" lazybuf.string''.impl
 
 attribute [instance] lazybuf.TypeAssumptions.type_repr
   lazybuf.TypeAssumptions.underlying
-  lazybuf.TypeAssumptions.get_s
-  lazybuf.TypeAssumptions.set_s
-  lazybuf.TypeAssumptions.get_buf
-  lazybuf.TypeAssumptions.set_buf
-  lazybuf.TypeAssumptions.get_w
-  lazybuf.TypeAssumptions.set_w
+  lazybuf.TypeAssumptions.get's
+  lazybuf.TypeAssumptions.set's
+  lazybuf.TypeAssumptions.get'buf
+  lazybuf.TypeAssumptions.set'buf
+  lazybuf.TypeAssumptions.get'w
+  lazybuf.TypeAssumptions.set'w
   lazybuf.TypeAssumptions.method_set
   lazybuf.TypeAssumptions.ptr_method_set
-  lazybuf.TypeAssumptions.ptr_append_unfold
-  lazybuf.TypeAssumptions.ptr_index_unfold
-  lazybuf.TypeAssumptions.ptr_string_unfold
+  lazybuf.TypeAssumptions.ptr_unfold'append
+  lazybuf.TypeAssumptions.ptr_unfold'index
+  lazybuf.TypeAssumptions.ptr_unfold'string
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  lazybuf_instance : lazybuf.TypeAssumptions
-  Clean_unfold : FuncUnfold Clean [] Clean.impl
-  Split_unfold : FuncUnfold Split [] Split.impl
-  Join_unfold : FuncUnfold Join [] Join.impl
-  Base_unfold : FuncUnfold Base [] Base.impl
-  Dir_unfold : FuncUnfold Dir [] Dir.impl
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_bytealg_Assumption : _root_.Perennial.internal.bytealg.Assumptions
+  instance'lazybuf : lazybuf.TypeAssumptions
+  unfold'Clean : FuncUnfold Clean [] Clean.impl
+  unfold'Split : FuncUnfold Split [] Split.impl
+  unfold'Join : FuncUnfold Join [] Join.impl
+  unfold'Base : FuncUnfold Base [] Base.impl
+  unfold'Dir : FuncUnfold Dir [] Dir.impl
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'bytealg : _root_.Perennial.internal.bytealg.Assumptions
 
-attribute [instance] Assumptions.lazybuf_instance
-  Assumptions.Clean_unfold
-  Assumptions.Split_unfold
-  Assumptions.Join_unfold
-  Assumptions.Base_unfold
-  Assumptions.Dir_unfold
-  Assumptions.import_errors_Assumption
-  Assumptions.import_bytealg_Assumption
+attribute [instance] Assumptions.instance'lazybuf
+  Assumptions.unfold'Clean
+  Assumptions.unfold'Split
+  Assumptions.unfold'Join
+  Assumptions.unfold'Base
+  Assumptions.unfold'Dir
+  Assumptions.import'errors
+  Assumptions.import'bytealg
 
 end path
 

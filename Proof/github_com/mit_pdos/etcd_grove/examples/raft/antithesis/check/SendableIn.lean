@@ -56,7 +56,7 @@ theorem SendableIn.wp_proof (wp_leadersHas : leadersHas.spec (GF := GF) (hG := h
     iapply HΦ; ipureintro; trivial
   simp only [hl, Bool.not_true, Bool.false_eq_true, ite_false] at Hb
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermLogs.TypeAssumptions.ptr_Has_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermLogs.TypeAssumptions.ptr_unfold'Has.method_unfold]
   try wp_auto
   wp_apply wp_Has lll ll g.Term' $$ [Hll]
   · iexact Hll
@@ -68,7 +68,7 @@ theorem SendableIn.wp_proof (wp_leadersHas : leadersHas.spec (GF := GF) (hG := h
   simp only [hh, Bool.not_true, Bool.false_eq_true, ite_false] at Hb
   obtain ⟨l, hlg, Hb⟩ := bind_ok Hb
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermLogs.TypeAssumptions.ptr_Get_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermLogs.TypeAssumptions.ptr_unfold'Get.method_unfold]
   try wp_auto
   wp_apply wp_Get lll ll g.Term' l $$ [Hll] as %lsl #Hl
   · iframe Hll; ipureintro; rw [hterm]; exact hlg

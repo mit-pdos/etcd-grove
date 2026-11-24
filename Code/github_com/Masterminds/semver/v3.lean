@@ -897,7 +897,7 @@ noncomputable instance Constraints.zero_val [GooseExts] : ZeroVal Constraints :=
 @[irreducible] noncomputable def Constraints.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Constraints.fieldsUnsealed
 
-noncomputable instance equals_unfold_Constraints [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Constraints [GooseExts] [GoGlobalContext] :
     EqualsUnfold Constraints.fields Constraints.fieldsUnsealed :=
   ⟨by unfold Constraints.fields; rfl⟩
 
@@ -907,23 +907,23 @@ noncomputable instance equals_unfold_Constraints [GooseExts] [GoGlobalContext] :
 class Constraints.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Constraints.underlying Constraints
   underlying : go.UnderlyingDirectedEq Constraints.ty Constraints.underlying
-  get_constraints : ∀ (x : Constraints), go.IsGoStepPureDetTagged under (StructFieldGet Constraints.underlying go!"constraints") #x (Val #(x.constraints'))
-  set_constraints : ∀ (x : Constraints) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Constraints.underlying go!"constraints") (PairV #x #y) (Val #(({ x with constraints' := y } : Constraints)))
-  get_containsPre : ∀ (x : Constraints), go.IsGoStepPureDetTagged under (StructFieldGet Constraints.underlying go!"containsPre") #x (Val #(x.containsPre'))
-  set_containsPre : ∀ (x : Constraints) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Constraints.underlying go!"containsPre") (PairV #x #y) (Val #(({ x with containsPre' := y } : Constraints)))
-  get_IncludePrerelease : ∀ (x : Constraints), go.IsGoStepPureDetTagged under (StructFieldGet Constraints.underlying go!"IncludePrerelease") #x (Val #(x.IncludePrerelease'))
-  set_IncludePrerelease : ∀ (x : Constraints) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Constraints.underlying go!"IncludePrerelease") (PairV #x #y) (Val #(({ x with IncludePrerelease' := y } : Constraints)))
+  get'constraints : ∀ (x : Constraints), go.IsGoStepPureDetTagged under (StructFieldGet Constraints.underlying go!"constraints") #x (Val #(x.constraints'))
+  set'constraints : ∀ (x : Constraints) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Constraints.underlying go!"constraints") (PairV #x #y) (Val #(({ x with constraints' := y } : Constraints)))
+  get'containsPre : ∀ (x : Constraints), go.IsGoStepPureDetTagged under (StructFieldGet Constraints.underlying go!"containsPre") #x (Val #(x.containsPre'))
+  set'containsPre : ∀ (x : Constraints) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Constraints.underlying go!"containsPre") (PairV #x #y) (Val #(({ x with containsPre' := y } : Constraints)))
+  get'IncludePrerelease : ∀ (x : Constraints), go.IsGoStepPureDetTagged under (StructFieldGet Constraints.underlying go!"IncludePrerelease") #x (Val #(x.IncludePrerelease'))
+  set'IncludePrerelease : ∀ (x : Constraints) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Constraints.underlying go!"IncludePrerelease") (PairV #x #y) (Val #(({ x with IncludePrerelease' := y } : Constraints)))
   method_set : go.MethodSetIs Constraints.ty [(go!"Check", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Validate", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool, (go.GoType.SliceType go.error)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Constraints.ty) [(go!"Check", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Validate", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool, (go.GoType.SliceType go.error)])))]
 
 attribute [instance] Constraints.TypeAssumptions.type_repr
   Constraints.TypeAssumptions.underlying
-  Constraints.TypeAssumptions.get_constraints
-  Constraints.TypeAssumptions.set_constraints
-  Constraints.TypeAssumptions.get_containsPre
-  Constraints.TypeAssumptions.set_containsPre
-  Constraints.TypeAssumptions.get_IncludePrerelease
-  Constraints.TypeAssumptions.set_IncludePrerelease
+  Constraints.TypeAssumptions.get'constraints
+  Constraints.TypeAssumptions.set'constraints
+  Constraints.TypeAssumptions.get'containsPre
+  Constraints.TypeAssumptions.set'containsPre
+  Constraints.TypeAssumptions.get'IncludePrerelease
+  Constraints.TypeAssumptions.set'IncludePrerelease
   Constraints.TypeAssumptions.method_set
   Constraints.TypeAssumptions.ptr_method_set
 
@@ -950,7 +950,7 @@ noncomputable instance constraint.zero_val [GooseExts] : ZeroVal constraint :=
 @[irreducible] noncomputable def constraint.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   constraint.fieldsUnsealed
 
-noncomputable instance equals_unfold_constraint [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'constraint [GooseExts] [GoGlobalContext] :
     EqualsUnfold constraint.fields constraint.fieldsUnsealed :=
   ⟨by unfold constraint.fields; rfl⟩
 
@@ -960,35 +960,35 @@ noncomputable instance equals_unfold_constraint [GooseExts] [GoGlobalContext] :
 class constraint.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying constraint.underlying constraint
   underlying : go.UnderlyingDirectedEq constraint.ty constraint.underlying
-  get_con : ∀ (x : constraint), go.IsGoStepPureDetTagged under (StructFieldGet constraint.underlying go!"con") #x (Val #(x.con'))
-  set_con : ∀ (x : constraint) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet constraint.underlying go!"con") (PairV #x #y) (Val #(({ x with con' := y } : constraint)))
-  get_orig : ∀ (x : constraint), go.IsGoStepPureDetTagged under (StructFieldGet constraint.underlying go!"orig") #x (Val #(x.orig'))
-  set_orig : ∀ (x : constraint) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet constraint.underlying go!"orig") (PairV #x #y) (Val #(({ x with orig' := y } : constraint)))
-  get_origfunc : ∀ (x : constraint), go.IsGoStepPureDetTagged under (StructFieldGet constraint.underlying go!"origfunc") #x (Val #(x.origfunc'))
-  set_origfunc : ∀ (x : constraint) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet constraint.underlying go!"origfunc") (PairV #x #y) (Val #(({ x with origfunc' := y } : constraint)))
-  get_minorDirty : ∀ (x : constraint), go.IsGoStepPureDetTagged under (StructFieldGet constraint.underlying go!"minorDirty") #x (Val #(x.minorDirty'))
-  set_minorDirty : ∀ (x : constraint) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet constraint.underlying go!"minorDirty") (PairV #x #y) (Val #(({ x with minorDirty' := y } : constraint)))
-  get_dirty : ∀ (x : constraint), go.IsGoStepPureDetTagged under (StructFieldGet constraint.underlying go!"dirty") #x (Val #(x.dirty'))
-  set_dirty : ∀ (x : constraint) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet constraint.underlying go!"dirty") (PairV #x #y) (Val #(({ x with dirty' := y } : constraint)))
-  get_patchDirty : ∀ (x : constraint), go.IsGoStepPureDetTagged under (StructFieldGet constraint.underlying go!"patchDirty") #x (Val #(x.patchDirty'))
-  set_patchDirty : ∀ (x : constraint) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet constraint.underlying go!"patchDirty") (PairV #x #y) (Val #(({ x with patchDirty' := y } : constraint)))
+  get'con : ∀ (x : constraint), go.IsGoStepPureDetTagged under (StructFieldGet constraint.underlying go!"con") #x (Val #(x.con'))
+  set'con : ∀ (x : constraint) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet constraint.underlying go!"con") (PairV #x #y) (Val #(({ x with con' := y } : constraint)))
+  get'orig : ∀ (x : constraint), go.IsGoStepPureDetTagged under (StructFieldGet constraint.underlying go!"orig") #x (Val #(x.orig'))
+  set'orig : ∀ (x : constraint) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet constraint.underlying go!"orig") (PairV #x #y) (Val #(({ x with orig' := y } : constraint)))
+  get'origfunc : ∀ (x : constraint), go.IsGoStepPureDetTagged under (StructFieldGet constraint.underlying go!"origfunc") #x (Val #(x.origfunc'))
+  set'origfunc : ∀ (x : constraint) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet constraint.underlying go!"origfunc") (PairV #x #y) (Val #(({ x with origfunc' := y } : constraint)))
+  get'minorDirty : ∀ (x : constraint), go.IsGoStepPureDetTagged under (StructFieldGet constraint.underlying go!"minorDirty") #x (Val #(x.minorDirty'))
+  set'minorDirty : ∀ (x : constraint) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet constraint.underlying go!"minorDirty") (PairV #x #y) (Val #(({ x with minorDirty' := y } : constraint)))
+  get'dirty : ∀ (x : constraint), go.IsGoStepPureDetTagged under (StructFieldGet constraint.underlying go!"dirty") #x (Val #(x.dirty'))
+  set'dirty : ∀ (x : constraint) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet constraint.underlying go!"dirty") (PairV #x #y) (Val #(({ x with dirty' := y } : constraint)))
+  get'patchDirty : ∀ (x : constraint), go.IsGoStepPureDetTagged under (StructFieldGet constraint.underlying go!"patchDirty") #x (Val #(x.patchDirty'))
+  set'patchDirty : ∀ (x : constraint) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet constraint.underlying go!"patchDirty") (PairV #x #y) (Val #(({ x with patchDirty' := y } : constraint)))
   method_set : go.MethodSetIs constraint.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType constraint.ty) [(go!"github.com/Masterminds/semver/v3.check", (some (go.signature.Signature [(go.GoType.PointerType Version.ty), go.bool] false [go.bool, go.error]))), (go!"github.com/Masterminds/semver/v3.string", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] constraint.TypeAssumptions.type_repr
   constraint.TypeAssumptions.underlying
-  constraint.TypeAssumptions.get_con
-  constraint.TypeAssumptions.set_con
-  constraint.TypeAssumptions.get_orig
-  constraint.TypeAssumptions.set_orig
-  constraint.TypeAssumptions.get_origfunc
-  constraint.TypeAssumptions.set_origfunc
-  constraint.TypeAssumptions.get_minorDirty
-  constraint.TypeAssumptions.set_minorDirty
-  constraint.TypeAssumptions.get_dirty
-  constraint.TypeAssumptions.set_dirty
-  constraint.TypeAssumptions.get_patchDirty
-  constraint.TypeAssumptions.set_patchDirty
+  constraint.TypeAssumptions.get'con
+  constraint.TypeAssumptions.set'con
+  constraint.TypeAssumptions.get'orig
+  constraint.TypeAssumptions.set'orig
+  constraint.TypeAssumptions.get'origfunc
+  constraint.TypeAssumptions.set'origfunc
+  constraint.TypeAssumptions.get'minorDirty
+  constraint.TypeAssumptions.set'minorDirty
+  constraint.TypeAssumptions.get'dirty
+  constraint.TypeAssumptions.set'dirty
+  constraint.TypeAssumptions.get'patchDirty
+  constraint.TypeAssumptions.set'patchDirty
   constraint.TypeAssumptions.method_set
   constraint.TypeAssumptions.ptr_method_set
 
@@ -1029,7 +1029,7 @@ noncomputable instance Version.zero_val [GooseExts] : ZeroVal Version :=
 @[irreducible] noncomputable def Version.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Version.fieldsUnsealed
 
-noncomputable instance equals_unfold_Version [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Version [GooseExts] [GoGlobalContext] :
     EqualsUnfold Version.fields Version.fieldsUnsealed :=
   ⟨by unfold Version.fields; rfl⟩
 
@@ -1039,101 +1039,101 @@ noncomputable instance equals_unfold_Version [GooseExts] [GoGlobalContext] :
 class Version.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Version.underlying Version
   underlying : go.UnderlyingDirectedEq Version.ty Version.underlying
-  get_major : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"major") #x (Val #(x.major'))
-  set_major : ∀ (x : Version) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"major") (PairV #x #y) (Val #(({ x with major' := y } : Version)))
-  get_minor : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"minor") #x (Val #(x.minor'))
-  set_minor : ∀ (x : Version) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"minor") (PairV #x #y) (Val #(({ x with minor' := y } : Version)))
-  get_patch : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"patch") #x (Val #(x.patch'))
-  set_patch : ∀ (x : Version) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"patch") (PairV #x #y) (Val #(({ x with patch' := y } : Version)))
-  get_pre : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"pre") #x (Val #(x.pre'))
-  set_pre : ∀ (x : Version) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"pre") (PairV #x #y) (Val #(({ x with pre' := y } : Version)))
-  get_metadata : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"metadata") #x (Val #(x.metadata'))
-  set_metadata : ∀ (x : Version) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"metadata") (PairV #x #y) (Val #(({ x with metadata' := y } : Version)))
-  get_original : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"original") #x (Val #(x.original'))
-  set_original : ∀ (x : Version) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"original") (PairV #x #y) (Val #(({ x with original' := y } : Version)))
+  get'major : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"major") #x (Val #(x.major'))
+  set'major : ∀ (x : Version) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"major") (PairV #x #y) (Val #(({ x with major' := y } : Version)))
+  get'minor : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"minor") #x (Val #(x.minor'))
+  set'minor : ∀ (x : Version) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"minor") (PairV #x #y) (Val #(({ x with minor' := y } : Version)))
+  get'patch : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"patch") #x (Val #(x.patch'))
+  set'patch : ∀ (x : Version) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"patch") (PairV #x #y) (Val #(({ x with patch' := y } : Version)))
+  get'pre : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"pre") #x (Val #(x.pre'))
+  set'pre : ∀ (x : Version) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"pre") (PairV #x #y) (Val #(({ x with pre' := y } : Version)))
+  get'metadata : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"metadata") #x (Val #(x.metadata'))
+  set'metadata : ∀ (x : Version) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"metadata") (PairV #x #y) (Val #(({ x with metadata' := y } : Version)))
+  get'original : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"original") #x (Val #(x.original'))
+  set'original : ∀ (x : Version) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"original") (PairV #x #y) (Val #(({ x with original' := y } : Version)))
   method_set : go.MethodSetIs Version.ty [(go!"IncMajor", (some (go.signature.Signature [] false [Version.ty]))), (go!"IncMinor", (some (go.signature.Signature [] false [Version.ty]))), (go!"IncPatch", (some (go.signature.Signature [] false [Version.ty]))), (go!"Major", (some (go.signature.Signature [] false [go.uint64]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Metadata", (some (go.signature.Signature [] false [go.string]))), (go!"Minor", (some (go.signature.Signature [] false [go.uint64]))), (go!"Patch", (some (go.signature.Signature [] false [go.uint64]))), (go!"Prerelease", (some (go.signature.Signature [] false [go.string]))), (go!"SetMetadata", (some (go.signature.Signature [go.string] false [Version.ty, go.error]))), (go!"SetPrerelease", (some (go.signature.Signature [go.string] false [Version.ty, go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Value", (some (go.signature.Signature [] false [(go.GoType.Named go!"database/sql/driver.Value" []), go.error]))), (go!"github.com/Masterminds/semver/v3.originalVPrefix", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Version.ty) [(go!"Compare", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.int]))), (go!"Equal", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"GreaterThan", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"GreaterThanEqual", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"IncMajor", (some (go.signature.Signature [] false [Version.ty]))), (go!"IncMinor", (some (go.signature.Signature [] false [Version.ty]))), (go!"IncPatch", (some (go.signature.Signature [] false [Version.ty]))), (go!"LessThan", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"LessThanEqual", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"Major", (some (go.signature.Signature [] false [go.uint64]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Metadata", (some (go.signature.Signature [] false [go.string]))), (go!"Minor", (some (go.signature.Signature [] false [go.uint64]))), (go!"Original", (some (go.signature.Signature [] false [go.string]))), (go!"Patch", (some (go.signature.Signature [] false [go.uint64]))), (go!"Prerelease", (some (go.signature.Signature [] false [go.string]))), (go!"Scan", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"SetMetadata", (some (go.signature.Signature [go.string] false [Version.ty, go.error]))), (go!"SetPrerelease", (some (go.signature.Signature [go.string] false [Version.ty, go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Value", (some (go.signature.Signature [] false [(go.GoType.Named go!"database/sql/driver.Value" []), go.error]))), (go!"github.com/Masterminds/semver/v3.originalVPrefix", (some (go.signature.Signature [] false [go.string])))]
-  Major_unfold : MethodUnfold Version.ty go!"Major" Version.Major.impl
-  Minor_unfold : MethodUnfold Version.ty go!"Minor" Version.Minor.impl
-  Patch_unfold : MethodUnfold Version.ty go!"Patch" Version.Patch.impl
-  Prerelease_unfold : MethodUnfold Version.ty go!"Prerelease" Version.Prerelease.impl
-  String_unfold : MethodUnfold Version.ty go!"String" Version.String.impl
-  ptr_Compare_unfold : MethodUnfold (go.GoType.PointerType Version.ty) go!"Compare" Version.Compare.impl
-  ptr_LessThan_unfold : MethodUnfold (go.GoType.PointerType Version.ty) go!"LessThan" Version.LessThan.impl
-  ptr_Major_unfold : MethodUnfold (go.GoType.PointerType Version.ty) go!"Major" (LamV "$r"
+  unfold'Major : MethodUnfold Version.ty go!"Major" Version.Major.impl
+  unfold'Minor : MethodUnfold Version.ty go!"Minor" Version.Minor.impl
+  unfold'Patch : MethodUnfold Version.ty go!"Patch" Version.Patch.impl
+  unfold'Prerelease : MethodUnfold Version.ty go!"Prerelease" Version.Prerelease.impl
+  unfold'String : MethodUnfold Version.ty go!"String" Version.String.impl
+  ptr_unfold'Compare : MethodUnfold (go.GoType.PointerType Version.ty) go!"Compare" Version.Compare.impl
+  ptr_unfold'LessThan : MethodUnfold (go.GoType.PointerType Version.ty) go!"LessThan" Version.LessThan.impl
+  ptr_unfold'Major : MethodUnfold (go.GoType.PointerType Version.ty) go!"Major" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Version.ty go!"Major"))) (App (Val (GoInstruction (GoLoad Version.ty))) (Var "$r"))))
-  ptr_Minor_unfold : MethodUnfold (go.GoType.PointerType Version.ty) go!"Minor" (LamV "$r"
+  ptr_unfold'Minor : MethodUnfold (go.GoType.PointerType Version.ty) go!"Minor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Version.ty go!"Minor"))) (App (Val (GoInstruction (GoLoad Version.ty))) (Var "$r"))))
-  ptr_Patch_unfold : MethodUnfold (go.GoType.PointerType Version.ty) go!"Patch" (LamV "$r"
+  ptr_unfold'Patch : MethodUnfold (go.GoType.PointerType Version.ty) go!"Patch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Version.ty go!"Patch"))) (App (Val (GoInstruction (GoLoad Version.ty))) (Var "$r"))))
-  ptr_Prerelease_unfold : MethodUnfold (go.GoType.PointerType Version.ty) go!"Prerelease" (LamV "$r"
+  ptr_unfold'Prerelease : MethodUnfold (go.GoType.PointerType Version.ty) go!"Prerelease" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Version.ty go!"Prerelease"))) (App (Val (GoInstruction (GoLoad Version.ty))) (Var "$r"))))
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Version.ty) go!"String" (LamV "$r"
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType Version.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Version.ty go!"String"))) (App (Val (GoInstruction (GoLoad Version.ty))) (Var "$r"))))
 
 attribute [instance] Version.TypeAssumptions.type_repr
   Version.TypeAssumptions.underlying
-  Version.TypeAssumptions.get_major
-  Version.TypeAssumptions.set_major
-  Version.TypeAssumptions.get_minor
-  Version.TypeAssumptions.set_minor
-  Version.TypeAssumptions.get_patch
-  Version.TypeAssumptions.set_patch
-  Version.TypeAssumptions.get_pre
-  Version.TypeAssumptions.set_pre
-  Version.TypeAssumptions.get_metadata
-  Version.TypeAssumptions.set_metadata
-  Version.TypeAssumptions.get_original
-  Version.TypeAssumptions.set_original
+  Version.TypeAssumptions.get'major
+  Version.TypeAssumptions.set'major
+  Version.TypeAssumptions.get'minor
+  Version.TypeAssumptions.set'minor
+  Version.TypeAssumptions.get'patch
+  Version.TypeAssumptions.set'patch
+  Version.TypeAssumptions.get'pre
+  Version.TypeAssumptions.set'pre
+  Version.TypeAssumptions.get'metadata
+  Version.TypeAssumptions.set'metadata
+  Version.TypeAssumptions.get'original
+  Version.TypeAssumptions.set'original
   Version.TypeAssumptions.method_set
   Version.TypeAssumptions.ptr_method_set
-  Version.TypeAssumptions.Major_unfold
-  Version.TypeAssumptions.Minor_unfold
-  Version.TypeAssumptions.Patch_unfold
-  Version.TypeAssumptions.Prerelease_unfold
-  Version.TypeAssumptions.String_unfold
-  Version.TypeAssumptions.ptr_Compare_unfold
-  Version.TypeAssumptions.ptr_LessThan_unfold
-  Version.TypeAssumptions.ptr_Major_unfold
-  Version.TypeAssumptions.ptr_Minor_unfold
-  Version.TypeAssumptions.ptr_Patch_unfold
-  Version.TypeAssumptions.ptr_Prerelease_unfold
-  Version.TypeAssumptions.ptr_String_unfold
+  Version.TypeAssumptions.unfold'Major
+  Version.TypeAssumptions.unfold'Minor
+  Version.TypeAssumptions.unfold'Patch
+  Version.TypeAssumptions.unfold'Prerelease
+  Version.TypeAssumptions.unfold'String
+  Version.TypeAssumptions.ptr_unfold'Compare
+  Version.TypeAssumptions.ptr_unfold'LessThan
+  Version.TypeAssumptions.ptr_unfold'Major
+  Version.TypeAssumptions.ptr_unfold'Minor
+  Version.TypeAssumptions.ptr_unfold'Patch
+  Version.TypeAssumptions.ptr_unfold'Prerelease
+  Version.TypeAssumptions.ptr_unfold'String
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Collection_instance : Collection.TypeAssumptions
-  Constraints_instance : Constraints.TypeAssumptions
-  constraint_instance : constraint.TypeAssumptions
-  cfunc_instance : cfunc.TypeAssumptions
-  Version_instance : Version.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
-  New_unfold : FuncUnfold New [] New.impl
-  MustParse_unfold : FuncUnfold MustParse [] MustParse.impl
-  compareSegment_unfold : FuncUnfold compareSegment [] compareSegment.impl
-  comparePrerelease_unfold : FuncUnfold comparePrerelease [] comparePrerelease.impl
-  comparePrePart_unfold : FuncUnfold comparePrePart [] comparePrePart.impl
-  import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
+  instance'Collection : Collection.TypeAssumptions
+  instance'Constraints : Constraints.TypeAssumptions
+  instance'constraint : constraint.TypeAssumptions
+  instance'cfunc : cfunc.TypeAssumptions
+  instance'Version : Version.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  «unfold'init.1» : FuncUnfold init.«1» [] init.«1».impl
+  unfold'New : FuncUnfold New [] New.impl
+  unfold'MustParse : FuncUnfold MustParse [] MustParse.impl
+  unfold'compareSegment : FuncUnfold compareSegment [] compareSegment.impl
+  unfold'comparePrerelease : FuncUnfold comparePrerelease [] comparePrerelease.impl
+  unfold'comparePrePart : FuncUnfold comparePrePart [] comparePrePart.impl
+  import'bytes : _root_.Perennial.bytes.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
 
-attribute [instance] Assumptions.Collection_instance
-  Assumptions.Constraints_instance
-  Assumptions.constraint_instance
-  Assumptions.cfunc_instance
-  Assumptions.Version_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.«init.1_unfold»
-  Assumptions.New_unfold
-  Assumptions.MustParse_unfold
-  Assumptions.compareSegment_unfold
-  Assumptions.comparePrerelease_unfold
-  Assumptions.comparePrePart_unfold
-  Assumptions.import_bytes_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_strconv_Assumption
+attribute [instance] Assumptions.instance'Collection
+  Assumptions.instance'Constraints
+  Assumptions.instance'constraint
+  Assumptions.instance'cfunc
+  Assumptions.instance'Version
+  Assumptions.«unfold'init.0»
+  Assumptions.«unfold'init.1»
+  Assumptions.unfold'New
+  Assumptions.unfold'MustParse
+  Assumptions.unfold'compareSegment
+  Assumptions.unfold'comparePrerelease
+  Assumptions.unfold'comparePrePart
+  Assumptions.import'bytes
+  Assumptions.import'fmt
+  Assumptions.import'strings
+  Assumptions.import'strconv
 
 end github_com.Masterminds.semver.v3
 

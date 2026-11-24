@@ -443,20 +443,20 @@ class Set''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   underlying : go.UnderlyingDirectedEq Set''.ty Set''.underlying
   method_set : go.MethodSetIs Set''.ty [(go!"AsSelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsSelectorPreValidated", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsValidatedSelector", (some (go.signature.Signature [] false [Selector.ty, go.error]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"Lookup", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Set''.ty) [(go!"AsSelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsSelectorPreValidated", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsValidatedSelector", (some (go.signature.Signature [] false [Selector.ty, go.error]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"Lookup", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  Get_unfold : MethodUnfold Set''.ty go!"Get" Set''.Get.impl
-  Has_unfold : MethodUnfold Set''.ty go!"Has" Set''.Has.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Set''.ty) go!"Get" (LamV "$r"
+  unfold'Get : MethodUnfold Set''.ty go!"Get" Set''.Get.impl
+  unfold'Has : MethodUnfold Set''.ty go!"Has" Set''.Has.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType Set''.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Set''.ty go!"Get"))) (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$r"))))
-  ptr_Has_unfold : MethodUnfold (go.GoType.PointerType Set''.ty) go!"Has" (LamV "$r"
+  ptr_unfold'Has : MethodUnfold (go.GoType.PointerType Set''.ty) go!"Has" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Set''.ty go!"Has"))) (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$r"))))
 
 attribute [instance] Set''.TypeAssumptions.underlying
   Set''.TypeAssumptions.method_set
   Set''.TypeAssumptions.ptr_method_set
-  Set''.TypeAssumptions.Get_unfold
-  Set''.TypeAssumptions.Has_unfold
-  Set''.TypeAssumptions.ptr_Get_unfold
-  Set''.TypeAssumptions.ptr_Has_unfold
+  Set''.TypeAssumptions.unfold'Get
+  Set''.TypeAssumptions.unfold'Has
+  Set''.TypeAssumptions.ptr_unfold'Get
+  Set''.TypeAssumptions.ptr_unfold'Has
 
 abbrev Requirements [GooseExts] : Type := GoSlice
 
@@ -498,7 +498,7 @@ noncomputable instance nothingSelector.zero_val [GooseExts] : ZeroVal nothingSel
 @[irreducible] noncomputable def nothingSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   nothingSelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_nothingSelector [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'nothingSelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold nothingSelector.fields nothingSelector.fieldsUnsealed :=
   ⟨by unfold nothingSelector.fields; rfl⟩
 
@@ -525,15 +525,15 @@ class internalSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   underlying : go.UnderlyingDirectedEq internalSelector.ty internalSelector.underlying
   method_set : go.MethodSetIs internalSelector.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.SliceType Requirement.ty)] true [Selector.ty]))), (go!"DeepCopy", (some (go.signature.Signature [] false [internalSelector.ty]))), (go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty, go.bool]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType internalSelector.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.SliceType Requirement.ty)] true [Selector.ty]))), (go!"DeepCopy", (some (go.signature.Signature [] false [internalSelector.ty]))), (go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty, go.bool]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  Empty_unfold : MethodUnfold internalSelector.ty go!"Empty" internalSelector.Empty.impl
-  ptr_Empty_unfold : MethodUnfold (go.GoType.PointerType internalSelector.ty) go!"Empty" (LamV "$r"
+  unfold'Empty : MethodUnfold internalSelector.ty go!"Empty" internalSelector.Empty.impl
+  ptr_unfold'Empty : MethodUnfold (go.GoType.PointerType internalSelector.ty) go!"Empty" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve internalSelector.ty go!"Empty"))) (App (Val (GoInstruction (GoLoad internalSelector.ty))) (Var "$r"))))
 
 attribute [instance] internalSelector.TypeAssumptions.underlying
   internalSelector.TypeAssumptions.method_set
   internalSelector.TypeAssumptions.ptr_method_set
-  internalSelector.TypeAssumptions.Empty_unfold
-  internalSelector.TypeAssumptions.ptr_Empty_unfold
+  internalSelector.TypeAssumptions.unfold'Empty
+  internalSelector.TypeAssumptions.ptr_unfold'Empty
 
 abbrev ByKey [GooseExts] : Type := GoSlice
 
@@ -566,7 +566,7 @@ noncomputable instance Requirement.zero_val [GooseExts] : ZeroVal Requirement :=
 @[irreducible] noncomputable def Requirement.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Requirement.fieldsUnsealed
 
-noncomputable instance equals_unfold_Requirement [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Requirement [GooseExts] [GoGlobalContext] :
     EqualsUnfold Requirement.fields Requirement.fieldsUnsealed :=
   ⟨by unfold Requirement.fields; rfl⟩
 
@@ -576,23 +576,23 @@ noncomputable instance equals_unfold_Requirement [GooseExts] [GoGlobalContext] :
 class Requirement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Requirement.underlying Requirement
   underlying : go.UnderlyingDirectedEq Requirement.ty Requirement.underlying
-  get_key : ∀ (x : Requirement), go.IsGoStepPureDetTagged under (StructFieldGet Requirement.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : Requirement) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Requirement.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : Requirement)))
-  get_operator : ∀ (x : Requirement), go.IsGoStepPureDetTagged under (StructFieldGet Requirement.underlying go!"operator") #x (Val #(x.operator'))
-  set_operator : ∀ (x : Requirement) (y : _root_.Perennial.k8s_io.apimachinery.pkg.selection.Operator), go.IsGoStepPureDetTagged under (StructFieldSet Requirement.underlying go!"operator") (PairV #x #y) (Val #(({ x with operator' := y } : Requirement)))
-  get_strValues : ∀ (x : Requirement), go.IsGoStepPureDetTagged under (StructFieldGet Requirement.underlying go!"strValues") #x (Val #(x.strValues'))
-  set_strValues : ∀ (x : Requirement) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Requirement.underlying go!"strValues") (PairV #x #y) (Val #(({ x with strValues' := y } : Requirement)))
+  get'key : ∀ (x : Requirement), go.IsGoStepPureDetTagged under (StructFieldGet Requirement.underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : Requirement) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Requirement.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : Requirement)))
+  get'operator : ∀ (x : Requirement), go.IsGoStepPureDetTagged under (StructFieldGet Requirement.underlying go!"operator") #x (Val #(x.operator'))
+  set'operator : ∀ (x : Requirement) (y : _root_.Perennial.k8s_io.apimachinery.pkg.selection.Operator), go.IsGoStepPureDetTagged under (StructFieldSet Requirement.underlying go!"operator") (PairV #x #y) (Val #(({ x with operator' := y } : Requirement)))
+  get'strValues : ∀ (x : Requirement), go.IsGoStepPureDetTagged under (StructFieldGet Requirement.underlying go!"strValues") #x (Val #(x.strValues'))
+  set'strValues : ∀ (x : Requirement) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Requirement.underlying go!"strValues") (PairV #x #y) (Val #(({ x with strValues' := y } : Requirement)))
   method_set : go.MethodSetIs Requirement.ty [(go!"Equal", (some (go.signature.Signature [Requirement.ty] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Requirement.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Requirement.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Requirement.ty)] false []))), (go!"Equal", (some (go.signature.Signature [Requirement.ty] false [go.bool]))), (go!"Key", (some (go.signature.Signature [] false [go.string]))), (go!"Matches", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"Operator", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.selection.Operator.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/sets.String" [])]))), (go!"ValuesUnsorted", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"k8s.io/apimachinery/pkg/labels.hasValue", (some (go.signature.Signature [go.string] false [go.bool])))]
 
 attribute [instance] Requirement.TypeAssumptions.type_repr
   Requirement.TypeAssumptions.underlying
-  Requirement.TypeAssumptions.get_key
-  Requirement.TypeAssumptions.set_key
-  Requirement.TypeAssumptions.get_operator
-  Requirement.TypeAssumptions.set_operator
-  Requirement.TypeAssumptions.get_strValues
-  Requirement.TypeAssumptions.set_strValues
+  Requirement.TypeAssumptions.get'key
+  Requirement.TypeAssumptions.set'key
+  Requirement.TypeAssumptions.get'operator
+  Requirement.TypeAssumptions.set'operator
+  Requirement.TypeAssumptions.get'strValues
+  Requirement.TypeAssumptions.set'strValues
   Requirement.TypeAssumptions.method_set
   Requirement.TypeAssumptions.ptr_method_set
 
@@ -625,7 +625,7 @@ noncomputable instance ScannedItem.zero_val [GooseExts] : ZeroVal ScannedItem :=
 @[irreducible] noncomputable def ScannedItem.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ScannedItem.fieldsUnsealed
 
-noncomputable instance equals_unfold_ScannedItem [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ScannedItem [GooseExts] [GoGlobalContext] :
     EqualsUnfold ScannedItem.fields ScannedItem.fieldsUnsealed :=
   ⟨by unfold ScannedItem.fields; rfl⟩
 
@@ -635,19 +635,19 @@ noncomputable instance equals_unfold_ScannedItem [GooseExts] [GoGlobalContext] :
 class ScannedItem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ScannedItem.underlying ScannedItem
   underlying : go.UnderlyingDirectedEq ScannedItem.ty ScannedItem.underlying
-  get_tok : ∀ (x : ScannedItem), go.IsGoStepPureDetTagged under (StructFieldGet ScannedItem.underlying go!"tok") #x (Val #(x.tok'))
-  set_tok : ∀ (x : ScannedItem) (y : Token), go.IsGoStepPureDetTagged under (StructFieldSet ScannedItem.underlying go!"tok") (PairV #x #y) (Val #(({ x with tok' := y } : ScannedItem)))
-  get_literal : ∀ (x : ScannedItem), go.IsGoStepPureDetTagged under (StructFieldGet ScannedItem.underlying go!"literal") #x (Val #(x.literal'))
-  set_literal : ∀ (x : ScannedItem) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ScannedItem.underlying go!"literal") (PairV #x #y) (Val #(({ x with literal' := y } : ScannedItem)))
+  get'tok : ∀ (x : ScannedItem), go.IsGoStepPureDetTagged under (StructFieldGet ScannedItem.underlying go!"tok") #x (Val #(x.tok'))
+  set'tok : ∀ (x : ScannedItem) (y : Token), go.IsGoStepPureDetTagged under (StructFieldSet ScannedItem.underlying go!"tok") (PairV #x #y) (Val #(({ x with tok' := y } : ScannedItem)))
+  get'literal : ∀ (x : ScannedItem), go.IsGoStepPureDetTagged under (StructFieldGet ScannedItem.underlying go!"literal") #x (Val #(x.literal'))
+  set'literal : ∀ (x : ScannedItem) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ScannedItem.underlying go!"literal") (PairV #x #y) (Val #(({ x with literal' := y } : ScannedItem)))
   method_set : go.MethodSetIs ScannedItem.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ScannedItem.ty) []
 
 attribute [instance] ScannedItem.TypeAssumptions.type_repr
   ScannedItem.TypeAssumptions.underlying
-  ScannedItem.TypeAssumptions.get_tok
-  ScannedItem.TypeAssumptions.set_tok
-  ScannedItem.TypeAssumptions.get_literal
-  ScannedItem.TypeAssumptions.set_literal
+  ScannedItem.TypeAssumptions.get'tok
+  ScannedItem.TypeAssumptions.set'tok
+  ScannedItem.TypeAssumptions.get'literal
+  ScannedItem.TypeAssumptions.set'literal
   ScannedItem.TypeAssumptions.method_set
   ScannedItem.TypeAssumptions.ptr_method_set
 
@@ -666,7 +666,7 @@ noncomputable instance Lexer.zero_val [GooseExts] : ZeroVal Lexer :=
 @[irreducible] noncomputable def Lexer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Lexer.fieldsUnsealed
 
-noncomputable instance equals_unfold_Lexer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Lexer [GooseExts] [GoGlobalContext] :
     EqualsUnfold Lexer.fields Lexer.fieldsUnsealed :=
   ⟨by unfold Lexer.fields; rfl⟩
 
@@ -676,19 +676,19 @@ noncomputable instance equals_unfold_Lexer [GooseExts] [GoGlobalContext] :
 class Lexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Lexer.underlying Lexer
   underlying : go.UnderlyingDirectedEq Lexer.ty Lexer.underlying
-  get_s : ∀ (x : Lexer), go.IsGoStepPureDetTagged under (StructFieldGet Lexer.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : Lexer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Lexer.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : Lexer)))
-  get_pos : ∀ (x : Lexer), go.IsGoStepPureDetTagged under (StructFieldGet Lexer.underlying go!"pos") #x (Val #(x.pos'))
-  set_pos : ∀ (x : Lexer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Lexer.underlying go!"pos") (PairV #x #y) (Val #(({ x with pos' := y } : Lexer)))
+  get's : ∀ (x : Lexer), go.IsGoStepPureDetTagged under (StructFieldGet Lexer.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : Lexer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Lexer.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : Lexer)))
+  get'pos : ∀ (x : Lexer), go.IsGoStepPureDetTagged under (StructFieldGet Lexer.underlying go!"pos") #x (Val #(x.pos'))
+  set'pos : ∀ (x : Lexer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Lexer.underlying go!"pos") (PairV #x #y) (Val #(({ x with pos' := y } : Lexer)))
   method_set : go.MethodSetIs Lexer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Lexer.ty) [(go!"Lex", (some (go.signature.Signature [] false [Token.ty, go.string]))), (go!"k8s.io/apimachinery/pkg/labels.read", (some (go.signature.Signature [] false [go.byte]))), (go!"k8s.io/apimachinery/pkg/labels.scanIDOrKeyword", (some (go.signature.Signature [] false [Token.ty, go.string]))), (go!"k8s.io/apimachinery/pkg/labels.scanSpecialSymbol", (some (go.signature.Signature [] false [Token.ty, go.string]))), (go!"k8s.io/apimachinery/pkg/labels.skipWhiteSpaces", (some (go.signature.Signature [go.byte] false [go.byte]))), (go!"k8s.io/apimachinery/pkg/labels.unread", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Lexer.TypeAssumptions.type_repr
   Lexer.TypeAssumptions.underlying
-  Lexer.TypeAssumptions.get_s
-  Lexer.TypeAssumptions.set_s
-  Lexer.TypeAssumptions.get_pos
-  Lexer.TypeAssumptions.set_pos
+  Lexer.TypeAssumptions.get's
+  Lexer.TypeAssumptions.set's
+  Lexer.TypeAssumptions.get'pos
+  Lexer.TypeAssumptions.set'pos
   Lexer.TypeAssumptions.method_set
   Lexer.TypeAssumptions.ptr_method_set
 
@@ -740,41 +740,41 @@ attribute [instance] ValidatedSetSelector.TypeAssumptions.underlying
   ValidatedSetSelector.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Labels_instance : Labels.TypeAssumptions
-  Set_instance : Set''.TypeAssumptions
-  Requirements_instance : Requirements.TypeAssumptions
-  Selector_instance : Selector.TypeAssumptions
-  nothingSelector_instance : nothingSelector.TypeAssumptions
-  internalSelector_instance : internalSelector.TypeAssumptions
-  ByKey_instance : ByKey.TypeAssumptions
-  Requirement_instance : Requirement.TypeAssumptions
-  Token_instance : Token.TypeAssumptions
-  ScannedItem_instance : ScannedItem.TypeAssumptions
-  Lexer_instance : Lexer.TypeAssumptions
-  Parser_instance : Parser.TypeAssumptions
-  ParserContext_instance : ParserContext.TypeAssumptions
-  ValidatedSetSelector_instance : ValidatedSetSelector.TypeAssumptions
-  Everything_unfold : FuncUnfold Everything [] Everything.impl
-  MatchesNothing_unfold : FuncUnfold MatchesNothing [] MatchesNothing.impl
-  import_selection_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.selection.Assumptions
+  instance'Labels : Labels.TypeAssumptions
+  instance'Set : Set''.TypeAssumptions
+  instance'Requirements : Requirements.TypeAssumptions
+  instance'Selector : Selector.TypeAssumptions
+  instance'nothingSelector : nothingSelector.TypeAssumptions
+  instance'internalSelector : internalSelector.TypeAssumptions
+  instance'ByKey : ByKey.TypeAssumptions
+  instance'Requirement : Requirement.TypeAssumptions
+  instance'Token : Token.TypeAssumptions
+  instance'ScannedItem : ScannedItem.TypeAssumptions
+  instance'Lexer : Lexer.TypeAssumptions
+  instance'Parser : Parser.TypeAssumptions
+  instance'ParserContext : ParserContext.TypeAssumptions
+  instance'ValidatedSetSelector : ValidatedSetSelector.TypeAssumptions
+  unfold'Everything : FuncUnfold Everything [] Everything.impl
+  unfold'MatchesNothing : FuncUnfold MatchesNothing [] MatchesNothing.impl
+  import'selection : _root_.Perennial.k8s_io.apimachinery.pkg.selection.Assumptions
 
-attribute [instance] Assumptions.Labels_instance
-  Assumptions.Set_instance
-  Assumptions.Requirements_instance
-  Assumptions.Selector_instance
-  Assumptions.nothingSelector_instance
-  Assumptions.internalSelector_instance
-  Assumptions.ByKey_instance
-  Assumptions.Requirement_instance
-  Assumptions.Token_instance
-  Assumptions.ScannedItem_instance
-  Assumptions.Lexer_instance
-  Assumptions.Parser_instance
-  Assumptions.ParserContext_instance
-  Assumptions.ValidatedSetSelector_instance
-  Assumptions.Everything_unfold
-  Assumptions.MatchesNothing_unfold
-  Assumptions.import_selection_Assumption
+attribute [instance] Assumptions.instance'Labels
+  Assumptions.instance'Set
+  Assumptions.instance'Requirements
+  Assumptions.instance'Selector
+  Assumptions.instance'nothingSelector
+  Assumptions.instance'internalSelector
+  Assumptions.instance'ByKey
+  Assumptions.instance'Requirement
+  Assumptions.instance'Token
+  Assumptions.instance'ScannedItem
+  Assumptions.instance'Lexer
+  Assumptions.instance'Parser
+  Assumptions.instance'ParserContext
+  Assumptions.instance'ValidatedSetSelector
+  Assumptions.unfold'Everything
+  Assumptions.unfold'MatchesNothing
+  Assumptions.import'selection
 
 end k8s_io.apimachinery.pkg.labels
 

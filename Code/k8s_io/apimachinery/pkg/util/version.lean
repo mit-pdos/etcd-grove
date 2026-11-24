@@ -113,7 +113,7 @@ noncomputable instance Version.zero_val [GooseExts] : ZeroVal Version :=
 @[irreducible] noncomputable def Version.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Version.fieldsUnsealed
 
-noncomputable instance equals_unfold_Version [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Version [GooseExts] [GoGlobalContext] :
     EqualsUnfold Version.fields Version.fieldsUnsealed :=
   ⟨by unfold Version.fields; rfl⟩
 
@@ -123,34 +123,34 @@ noncomputable instance equals_unfold_Version [GooseExts] [GoGlobalContext] :
 class Version.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Version.underlying Version
   underlying : go.UnderlyingDirectedEq Version.ty Version.underlying
-  get_components : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"components") #x (Val #(x.components'))
-  set_components : ∀ (x : Version) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"components") (PairV #x #y) (Val #(({ x with components' := y } : Version)))
-  get_semver : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"semver") #x (Val #(x.semver'))
-  set_semver : ∀ (x : Version) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"semver") (PairV #x #y) (Val #(({ x with semver' := y } : Version)))
-  get_preRelease : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"preRelease") #x (Val #(x.preRelease'))
-  set_preRelease : ∀ (x : Version) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"preRelease") (PairV #x #y) (Val #(({ x with preRelease' := y } : Version)))
-  get_buildMetadata : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"buildMetadata") #x (Val #(x.buildMetadata'))
-  set_buildMetadata : ∀ (x : Version) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"buildMetadata") (PairV #x #y) (Val #(({ x with buildMetadata' := y } : Version)))
+  get'components : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"components") #x (Val #(x.components'))
+  set'components : ∀ (x : Version) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"components") (PairV #x #y) (Val #(({ x with components' := y } : Version)))
+  get'semver : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"semver") #x (Val #(x.semver'))
+  set'semver : ∀ (x : Version) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"semver") (PairV #x #y) (Val #(({ x with semver' := y } : Version)))
+  get'preRelease : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"preRelease") #x (Val #(x.preRelease'))
+  set'preRelease : ∀ (x : Version) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"preRelease") (PairV #x #y) (Val #(({ x with preRelease' := y } : Version)))
+  get'buildMetadata : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"buildMetadata") #x (Val #(x.buildMetadata'))
+  set'buildMetadata : ∀ (x : Version) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Version.underlying go!"buildMetadata") (PairV #x #y) (Val #(({ x with buildMetadata' := y } : Version)))
   method_set : go.MethodSetIs Version.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Version.ty) [(go!"AddMinor", (some (go.signature.Signature [go.uint] false [(go.GoType.PointerType Version.ty)]))), (go!"AtLeast", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"BuildMetadata", (some (go.signature.Signature [] false [go.string]))), (go!"Compare", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"Components", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint)]))), (go!"EqualTo", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"GreaterThan", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"Info", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" []))]))), (go!"LessThan", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.bool]))), (go!"Major", (some (go.signature.Signature [] false [go.uint]))), (go!"Minor", (some (go.signature.Signature [] false [go.uint]))), (go!"OffsetMinor", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType Version.ty)]))), (go!"Patch", (some (go.signature.Signature [] false [go.uint]))), (go!"PreRelease", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SubtractMinor", (some (go.signature.Signature [go.uint] false [(go.GoType.PointerType Version.ty)]))), (go!"WithBuildMetadata", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType Version.ty)]))), (go!"WithInfo", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/version.Info" [])] false [(go.GoType.PointerType Version.ty)]))), (go!"WithMajor", (some (go.signature.Signature [go.uint] false [(go.GoType.PointerType Version.ty)]))), (go!"WithMinor", (some (go.signature.Signature [go.uint] false [(go.GoType.PointerType Version.ty)]))), (go!"WithPatch", (some (go.signature.Signature [go.uint] false [(go.GoType.PointerType Version.ty)]))), (go!"WithPreRelease", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType Version.ty)]))), (go!"k8s.io/apimachinery/pkg/util/version.compareInternal", (some (go.signature.Signature [(go.GoType.PointerType Version.ty)] false [go.int])))]
 
 attribute [instance] Version.TypeAssumptions.type_repr
   Version.TypeAssumptions.underlying
-  Version.TypeAssumptions.get_components
-  Version.TypeAssumptions.set_components
-  Version.TypeAssumptions.get_semver
-  Version.TypeAssumptions.set_semver
-  Version.TypeAssumptions.get_preRelease
-  Version.TypeAssumptions.set_preRelease
-  Version.TypeAssumptions.get_buildMetadata
-  Version.TypeAssumptions.set_buildMetadata
+  Version.TypeAssumptions.get'components
+  Version.TypeAssumptions.set'components
+  Version.TypeAssumptions.get'semver
+  Version.TypeAssumptions.set'semver
+  Version.TypeAssumptions.get'preRelease
+  Version.TypeAssumptions.set'preRelease
+  Version.TypeAssumptions.get'buildMetadata
+  Version.TypeAssumptions.set'buildMetadata
   Version.TypeAssumptions.method_set
   Version.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Version_instance : Version.TypeAssumptions
+  instance'Version : Version.TypeAssumptions
 
-attribute [instance] Assumptions.Version_instance
+attribute [instance] Assumptions.instance'Version
 
 end k8s_io.apimachinery.pkg.util.version
 

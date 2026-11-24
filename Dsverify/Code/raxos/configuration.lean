@@ -225,7 +225,7 @@ noncomputable instance ReplicaInstance.zero_val [GooseExts] : ZeroVal ReplicaIns
 @[irreducible] noncomputable def ReplicaInstance.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReplicaInstance.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReplicaInstance [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ReplicaInstance [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReplicaInstance.fields ReplicaInstance.fieldsUnsealed :=
   ⟨by unfold ReplicaInstance.fields; rfl⟩
 
@@ -235,27 +235,27 @@ noncomputable instance equals_unfold_ReplicaInstance [GooseExts] [GoGlobalContex
 class ReplicaInstance.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplicaInstance.underlying ReplicaInstance
   underlying : go.UnderlyingDirectedEq ReplicaInstance.ty ReplicaInstance.underlying
-  get_Name : ∀ (x : ReplicaInstance), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaInstance.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : ReplicaInstance) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaInstance.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : ReplicaInstance)))
-  get_IP : ∀ (x : ReplicaInstance), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaInstance.underlying go!"IP") #x (Val #(x.IP'))
-  set_IP : ∀ (x : ReplicaInstance) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaInstance.underlying go!"IP") (PairV #x #y) (Val #(({ x with IP' := y } : ReplicaInstance)))
-  get_PROXYPORT : ∀ (x : ReplicaInstance), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaInstance.underlying go!"PROXYPORT") #x (Val #(x.PROXYPORT'))
-  set_PROXYPORT : ∀ (x : ReplicaInstance) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaInstance.underlying go!"PROXYPORT") (PairV #x #y) (Val #(({ x with PROXYPORT' := y } : ReplicaInstance)))
-  get_RECORDERPORT : ∀ (x : ReplicaInstance), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaInstance.underlying go!"RECORDERPORT") #x (Val #(x.RECORDERPORT'))
-  set_RECORDERPORT : ∀ (x : ReplicaInstance) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaInstance.underlying go!"RECORDERPORT") (PairV #x #y) (Val #(({ x with RECORDERPORT' := y } : ReplicaInstance)))
+  get'Name : ∀ (x : ReplicaInstance), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaInstance.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : ReplicaInstance) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaInstance.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : ReplicaInstance)))
+  get'IP : ∀ (x : ReplicaInstance), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaInstance.underlying go!"IP") #x (Val #(x.IP'))
+  set'IP : ∀ (x : ReplicaInstance) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaInstance.underlying go!"IP") (PairV #x #y) (Val #(({ x with IP' := y } : ReplicaInstance)))
+  get'PROXYPORT : ∀ (x : ReplicaInstance), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaInstance.underlying go!"PROXYPORT") #x (Val #(x.PROXYPORT'))
+  set'PROXYPORT : ∀ (x : ReplicaInstance) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaInstance.underlying go!"PROXYPORT") (PairV #x #y) (Val #(({ x with PROXYPORT' := y } : ReplicaInstance)))
+  get'RECORDERPORT : ∀ (x : ReplicaInstance), go.IsGoStepPureDetTagged under (StructFieldGet ReplicaInstance.underlying go!"RECORDERPORT") #x (Val #(x.RECORDERPORT'))
+  set'RECORDERPORT : ∀ (x : ReplicaInstance) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ReplicaInstance.underlying go!"RECORDERPORT") (PairV #x #y) (Val #(({ x with RECORDERPORT' := y } : ReplicaInstance)))
   method_set : go.MethodSetIs ReplicaInstance.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicaInstance.ty) []
 
 attribute [instance] ReplicaInstance.TypeAssumptions.type_repr
   ReplicaInstance.TypeAssumptions.underlying
-  ReplicaInstance.TypeAssumptions.get_Name
-  ReplicaInstance.TypeAssumptions.set_Name
-  ReplicaInstance.TypeAssumptions.get_IP
-  ReplicaInstance.TypeAssumptions.set_IP
-  ReplicaInstance.TypeAssumptions.get_PROXYPORT
-  ReplicaInstance.TypeAssumptions.set_PROXYPORT
-  ReplicaInstance.TypeAssumptions.get_RECORDERPORT
-  ReplicaInstance.TypeAssumptions.set_RECORDERPORT
+  ReplicaInstance.TypeAssumptions.get'Name
+  ReplicaInstance.TypeAssumptions.set'Name
+  ReplicaInstance.TypeAssumptions.get'IP
+  ReplicaInstance.TypeAssumptions.set'IP
+  ReplicaInstance.TypeAssumptions.get'PROXYPORT
+  ReplicaInstance.TypeAssumptions.set'PROXYPORT
+  ReplicaInstance.TypeAssumptions.get'RECORDERPORT
+  ReplicaInstance.TypeAssumptions.set'RECORDERPORT
   ReplicaInstance.TypeAssumptions.method_set
   ReplicaInstance.TypeAssumptions.ptr_method_set
 
@@ -276,7 +276,7 @@ noncomputable instance ClientInstance.zero_val [GooseExts] : ZeroVal ClientInsta
 @[irreducible] noncomputable def ClientInstance.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClientInstance.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClientInstance [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ClientInstance [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClientInstance.fields ClientInstance.fieldsUnsealed :=
   ⟨by unfold ClientInstance.fields; rfl⟩
 
@@ -286,23 +286,23 @@ noncomputable instance equals_unfold_ClientInstance [GooseExts] [GoGlobalContext
 class ClientInstance.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClientInstance.underlying ClientInstance
   underlying : go.UnderlyingDirectedEq ClientInstance.ty ClientInstance.underlying
-  get_Name : ∀ (x : ClientInstance), go.IsGoStepPureDetTagged under (StructFieldGet ClientInstance.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : ClientInstance) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ClientInstance.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : ClientInstance)))
-  get_IP : ∀ (x : ClientInstance), go.IsGoStepPureDetTagged under (StructFieldGet ClientInstance.underlying go!"IP") #x (Val #(x.IP'))
-  set_IP : ∀ (x : ClientInstance) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ClientInstance.underlying go!"IP") (PairV #x #y) (Val #(({ x with IP' := y } : ClientInstance)))
-  get_CLIENTPORT : ∀ (x : ClientInstance), go.IsGoStepPureDetTagged under (StructFieldGet ClientInstance.underlying go!"CLIENTPORT") #x (Val #(x.CLIENTPORT'))
-  set_CLIENTPORT : ∀ (x : ClientInstance) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ClientInstance.underlying go!"CLIENTPORT") (PairV #x #y) (Val #(({ x with CLIENTPORT' := y } : ClientInstance)))
+  get'Name : ∀ (x : ClientInstance), go.IsGoStepPureDetTagged under (StructFieldGet ClientInstance.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : ClientInstance) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ClientInstance.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : ClientInstance)))
+  get'IP : ∀ (x : ClientInstance), go.IsGoStepPureDetTagged under (StructFieldGet ClientInstance.underlying go!"IP") #x (Val #(x.IP'))
+  set'IP : ∀ (x : ClientInstance) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ClientInstance.underlying go!"IP") (PairV #x #y) (Val #(({ x with IP' := y } : ClientInstance)))
+  get'CLIENTPORT : ∀ (x : ClientInstance), go.IsGoStepPureDetTagged under (StructFieldGet ClientInstance.underlying go!"CLIENTPORT") #x (Val #(x.CLIENTPORT'))
+  set'CLIENTPORT : ∀ (x : ClientInstance) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ClientInstance.underlying go!"CLIENTPORT") (PairV #x #y) (Val #(({ x with CLIENTPORT' := y } : ClientInstance)))
   method_set : go.MethodSetIs ClientInstance.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientInstance.ty) []
 
 attribute [instance] ClientInstance.TypeAssumptions.type_repr
   ClientInstance.TypeAssumptions.underlying
-  ClientInstance.TypeAssumptions.get_Name
-  ClientInstance.TypeAssumptions.set_Name
-  ClientInstance.TypeAssumptions.get_IP
-  ClientInstance.TypeAssumptions.set_IP
-  ClientInstance.TypeAssumptions.get_CLIENTPORT
-  ClientInstance.TypeAssumptions.set_CLIENTPORT
+  ClientInstance.TypeAssumptions.get'Name
+  ClientInstance.TypeAssumptions.set'Name
+  ClientInstance.TypeAssumptions.get'IP
+  ClientInstance.TypeAssumptions.set'IP
+  ClientInstance.TypeAssumptions.get'CLIENTPORT
+  ClientInstance.TypeAssumptions.set'CLIENTPORT
   ClientInstance.TypeAssumptions.method_set
   ClientInstance.TypeAssumptions.ptr_method_set
 
@@ -321,7 +321,7 @@ noncomputable instance InstanceConfig.zero_val [GooseExts] : ZeroVal InstanceCon
 @[irreducible] noncomputable def InstanceConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InstanceConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_InstanceConfig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'InstanceConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold InstanceConfig.fields InstanceConfig.fieldsUnsealed :=
   ⟨by unfold InstanceConfig.fields; rfl⟩
 
@@ -331,40 +331,40 @@ noncomputable instance equals_unfold_InstanceConfig [GooseExts] [GoGlobalContext
 class InstanceConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InstanceConfig.underlying InstanceConfig
   underlying : go.UnderlyingDirectedEq InstanceConfig.ty InstanceConfig.underlying
-  get_Peers : ∀ (x : InstanceConfig), go.IsGoStepPureDetTagged under (StructFieldGet InstanceConfig.underlying go!"Peers") #x (Val #(x.Peers'))
-  set_Peers : ∀ (x : InstanceConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet InstanceConfig.underlying go!"Peers") (PairV #x #y) (Val #(({ x with Peers' := y } : InstanceConfig)))
-  get_Clients : ∀ (x : InstanceConfig), go.IsGoStepPureDetTagged under (StructFieldGet InstanceConfig.underlying go!"Clients") #x (Val #(x.Clients'))
-  set_Clients : ∀ (x : InstanceConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet InstanceConfig.underlying go!"Clients") (PairV #x #y) (Val #(({ x with Clients' := y } : InstanceConfig)))
+  get'Peers : ∀ (x : InstanceConfig), go.IsGoStepPureDetTagged under (StructFieldGet InstanceConfig.underlying go!"Peers") #x (Val #(x.Peers'))
+  set'Peers : ∀ (x : InstanceConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet InstanceConfig.underlying go!"Peers") (PairV #x #y) (Val #(({ x with Peers' := y } : InstanceConfig)))
+  get'Clients : ∀ (x : InstanceConfig), go.IsGoStepPureDetTagged under (StructFieldGet InstanceConfig.underlying go!"Clients") #x (Val #(x.Clients'))
+  set'Clients : ∀ (x : InstanceConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet InstanceConfig.underlying go!"Clients") (PairV #x #y) (Val #(({ x with Clients' := y } : InstanceConfig)))
   method_set : go.MethodSetIs InstanceConfig.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType InstanceConfig.ty) []
 
 attribute [instance] InstanceConfig.TypeAssumptions.type_repr
   InstanceConfig.TypeAssumptions.underlying
-  InstanceConfig.TypeAssumptions.get_Peers
-  InstanceConfig.TypeAssumptions.set_Peers
-  InstanceConfig.TypeAssumptions.get_Clients
-  InstanceConfig.TypeAssumptions.set_Clients
+  InstanceConfig.TypeAssumptions.get'Peers
+  InstanceConfig.TypeAssumptions.set'Peers
+  InstanceConfig.TypeAssumptions.get'Clients
+  InstanceConfig.TypeAssumptions.set'Clients
   InstanceConfig.TypeAssumptions.method_set
   InstanceConfig.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ReplicaInstance_instance : ReplicaInstance.TypeAssumptions
-  ClientInstance_instance : ClientInstance.TypeAssumptions
-  InstanceConfig_instance : InstanceConfig.TypeAssumptions
-  NewInstanceConfig_unfold : FuncUnfold NewInstanceConfig [] NewInstanceConfig.impl
-  configureSelfIP_unfold : FuncUnfold configureSelfIP [] configureSelfIP.impl
-  import_yaml_Assumption : _root_.Perennial.gopkg_in.yaml_v2.Assumptions
-  import_ioutil_Assumption : _root_.Perennial.io.ioutil.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
+  instance'ReplicaInstance : ReplicaInstance.TypeAssumptions
+  instance'ClientInstance : ClientInstance.TypeAssumptions
+  instance'InstanceConfig : InstanceConfig.TypeAssumptions
+  unfold'NewInstanceConfig : FuncUnfold NewInstanceConfig [] NewInstanceConfig.impl
+  unfold'configureSelfIP : FuncUnfold configureSelfIP [] configureSelfIP.impl
+  import'yaml : _root_.Perennial.gopkg_in.yaml_v2.Assumptions
+  import'ioutil : _root_.Perennial.io.ioutil.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
 
-attribute [instance] Assumptions.ReplicaInstance_instance
-  Assumptions.ClientInstance_instance
-  Assumptions.InstanceConfig_instance
-  Assumptions.NewInstanceConfig_unfold
-  Assumptions.configureSelfIP_unfold
-  Assumptions.import_yaml_Assumption
-  Assumptions.import_ioutil_Assumption
-  Assumptions.import_strconv_Assumption
+attribute [instance] Assumptions.instance'ReplicaInstance
+  Assumptions.instance'ClientInstance
+  Assumptions.instance'InstanceConfig
+  Assumptions.unfold'NewInstanceConfig
+  Assumptions.unfold'configureSelfIP
+  Assumptions.import'yaml
+  Assumptions.import'ioutil
+  Assumptions.import'strconv
 
 end raxos.configuration
 

@@ -39,7 +39,7 @@ end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.dsmain
 
-@[reducible] noncomputable def «namespace» [GooseExts] [GoGlobalContext] : val :=
+@[reducible] noncomputable def namespace'' [GooseExts] [GoGlobalContext] : val :=
   #(go!"default")
 
 @[reducible] noncomputable def nodeName [GooseExts] [GoGlobalContext] : val :=
@@ -164,7 +164,7 @@ noncomputable def newDaemonSet.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "grace" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val dsName))
-  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val «namespace»))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val namespace''))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v1")))]))))
   (Let "$v1" (Let "$v0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector.ty))) (Let "$v0" (Let "$k0" (Val #(go!"app"))
   (Let "$v1" (Val #(go!"nginx"))
@@ -255,7 +255,7 @@ noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"CoreV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (Var "admin"))) (Val #()))
   (Let "core" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val «namespace»))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val namespace''))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"Pods"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (Var "core"))) (Var "$a0")))
   (Let "podClient" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -447,7 +447,7 @@ noncomputable def run.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Clientset.ty) go!"AppsV1"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Clientset.ty)))) (Var "admin"))) (Val #()))
   (Let "adminApps" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val «namespace»))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val namespace''))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty go!"DaemonSets"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty))) (Var "adminApps"))) (Var "$a0")))
   (Let "adminDaemonSets" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -658,61 +658,61 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  serverConfig_unfold : FuncUnfold serverConfig [] serverConfig.impl
-  setFeatureGates_unfold : FuncUnfold setFeatureGates [] setFeatureGates.impl
-  newNode_unfold : FuncUnfold newNode [] newNode.impl
-  newDaemonSet_unfold : FuncUnfold newDaemonSet [] newDaemonSet.impl
-  controlledBy_unfold : FuncUnfold controlledBy [] controlledBy.impl
-  check_unfold : FuncUnfold check [] check.impl
-  run_unfold : FuncUnfold run [] run.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_api_apps_v1_Assumption : _root_.Perennial.k8s_io.api.apps.v1.Assumptions
-  import_api_core_v1_Assumption : _root_.Perennial.k8s_io.api.core.v1.Assumptions
-  import_apis_meta_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_types_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
-  import_feature_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
-  import_informers_Assumption : _root_.Perennial.k8s_io.client_go.informers.Assumptions
-  import_apps_Assumption : _root_.Perennial.k8s_io.client_go.informers.apps.Assumptions
-  import_informers_apps_v1_Assumption : _root_.Perennial.k8s_io.client_go.informers.apps.v1.Assumptions
-  import_core_Assumption : _root_.Perennial.k8s_io.client_go.informers.core.Assumptions
-  import_informers_core_v1_Assumption : _root_.Perennial.k8s_io.client_go.informers.core.v1.Assumptions
-  import_kubernetes_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.Assumptions
-  import_typed_apps_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions
-  import_typed_core_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.Assumptions
-  import_flowcontrol_Assumption : _root_.Perennial.k8s_io.client_go.util.flowcontrol.Assumptions
-  import_daemon_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.controller.daemon.Assumptions
-  import_util_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.controller.daemon.util.Assumptions
-  import_apimodel_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Assumptions
+  unfold'serverConfig : FuncUnfold serverConfig [] serverConfig.impl
+  unfold'setFeatureGates : FuncUnfold setFeatureGates [] setFeatureGates.impl
+  unfold'newNode : FuncUnfold newNode [] newNode.impl
+  unfold'newDaemonSet : FuncUnfold newDaemonSet [] newDaemonSet.impl
+  unfold'controlledBy : FuncUnfold controlledBy [] controlledBy.impl
+  unfold'check : FuncUnfold check [] check.impl
+  unfold'run : FuncUnfold run [] run.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'api_apps_v1 : _root_.Perennial.k8s_io.api.apps.v1.Assumptions
+  import'api_core_v1 : _root_.Perennial.k8s_io.api.core.v1.Assumptions
+  import'apis_meta_v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'types : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
+  import'feature : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
+  import'informers : _root_.Perennial.k8s_io.client_go.informers.Assumptions
+  import'apps : _root_.Perennial.k8s_io.client_go.informers.apps.Assumptions
+  import'informers_apps_v1 : _root_.Perennial.k8s_io.client_go.informers.apps.v1.Assumptions
+  import'core : _root_.Perennial.k8s_io.client_go.informers.core.Assumptions
+  import'informers_core_v1 : _root_.Perennial.k8s_io.client_go.informers.core.v1.Assumptions
+  import'kubernetes : _root_.Perennial.k8s_io.client_go.kubernetes.Assumptions
+  import'typed_apps_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions
+  import'typed_core_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.Assumptions
+  import'flowcontrol : _root_.Perennial.k8s_io.client_go.util.flowcontrol.Assumptions
+  import'daemon : _root_.Perennial.k8s_io.kubernetes.pkg.controller.daemon.Assumptions
+  import'util : _root_.Perennial.k8s_io.kubernetes.pkg.controller.daemon.util.Assumptions
+  import'apimodel : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Assumptions
 
-attribute [instance] Assumptions.serverConfig_unfold
-  Assumptions.setFeatureGates_unfold
-  Assumptions.newNode_unfold
-  Assumptions.newDaemonSet_unfold
-  Assumptions.controlledBy_unfold
-  Assumptions.check_unfold
-  Assumptions.run_unfold
-  Assumptions.Main_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_api_apps_v1_Assumption
-  Assumptions.import_api_core_v1_Assumption
-  Assumptions.import_apis_meta_v1_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_feature_Assumption
-  Assumptions.import_informers_Assumption
-  Assumptions.import_apps_Assumption
-  Assumptions.import_informers_apps_v1_Assumption
-  Assumptions.import_core_Assumption
-  Assumptions.import_informers_core_v1_Assumption
-  Assumptions.import_kubernetes_Assumption
-  Assumptions.import_typed_apps_v1_Assumption
-  Assumptions.import_typed_core_v1_Assumption
-  Assumptions.import_flowcontrol_Assumption
-  Assumptions.import_daemon_Assumption
-  Assumptions.import_util_Assumption
-  Assumptions.import_apimodel_Assumption
+attribute [instance] Assumptions.unfold'serverConfig
+  Assumptions.unfold'setFeatureGates
+  Assumptions.unfold'newNode
+  Assumptions.unfold'newDaemonSet
+  Assumptions.unfold'controlledBy
+  Assumptions.unfold'check
+  Assumptions.unfold'run
+  Assumptions.unfold'Main
+  Assumptions.import'context
+  Assumptions.import'time
+  Assumptions.import'api_apps_v1
+  Assumptions.import'api_core_v1
+  Assumptions.import'apis_meta_v1
+  Assumptions.import'types
+  Assumptions.import'feature
+  Assumptions.import'informers
+  Assumptions.import'apps
+  Assumptions.import'informers_apps_v1
+  Assumptions.import'core
+  Assumptions.import'informers_core_v1
+  Assumptions.import'kubernetes
+  Assumptions.import'typed_apps_v1
+  Assumptions.import'typed_core_v1
+  Assumptions.import'flowcontrol
+  Assumptions.import'daemon
+  Assumptions.import'util
+  Assumptions.import'apimodel
 
 end github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.dsmain
 

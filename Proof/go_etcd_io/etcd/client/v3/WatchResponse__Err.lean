@@ -29,13 +29,13 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 -- Loads from the fractional response: the field-store `AccessStrict` instances (which need
 -- `DFrac.own 1`) are found first and the search does not backtrack.
-attribute [-instance] go_etcd_io.etcd.client.v3.WatchResponse.WatchResponse_access_store_Header
-  go_etcd_io.etcd.client.v3.WatchResponse.WatchResponse_access_store_Events
-  go_etcd_io.etcd.client.v3.WatchResponse.WatchResponse_access_store_CompactRevision
-  go_etcd_io.etcd.client.v3.WatchResponse.WatchResponse_access_store_Canceled
-  go_etcd_io.etcd.client.v3.WatchResponse.WatchResponse_access_store_Created
-  go_etcd_io.etcd.client.v3.WatchResponse.WatchResponse_access_store_closeErr
-  go_etcd_io.etcd.client.v3.WatchResponse.WatchResponse_access_store_CancelReason
+attribute [-instance] go_etcd_io.etcd.client.v3.WatchResponse.access_store'WatchResponse'Header
+  go_etcd_io.etcd.client.v3.WatchResponse.access_store'WatchResponse'Events
+  go_etcd_io.etcd.client.v3.WatchResponse.access_store'WatchResponse'CompactRevision
+  go_etcd_io.etcd.client.v3.WatchResponse.access_store'WatchResponse'Canceled
+  go_etcd_io.etcd.client.v3.WatchResponse.access_store'WatchResponse'Created
+  go_etcd_io.etcd.client.v3.WatchResponse.access_store'WatchResponse'closeErr
+  go_etcd_io.etcd.client.v3.WatchResponse.access_store'WatchResponse'CancelReason
 
 /-- An `EtcdError` value's `Error` is `Error() string`, from `rpctypesEtcdErrorTy` (fmt soundness 2). -/
 theorem rpctypesEtcdErrorTy_errorSig (hty : rpctypesEtcdErrorTy (GF := GF) (hG := hG)) (e : GoInterfaceOk)

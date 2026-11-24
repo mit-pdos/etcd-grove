@@ -85,7 +85,7 @@ hypothesis on the semantics in use; see the file header). -/
 class DialWithBalancerBody [GooseExts] [GoGlobalContext] [GoLocalContext]
     [GoSemanticsFunctions] : Prop where
   /-- The method's body is `trustedImpl`: what the generated `Client.TypeAssumptions` would hold
-  as `ptr_dialWithBalancer_unfold`. -/
+  as `ptr_unfold'dialWithBalancer`. -/
   unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dialWithBalancer"
     Client.dialWithBalancer.trustedImpl
   /-- grpc's `resolver.Builder` is the interface type the translation says: grpc `resolver`'s

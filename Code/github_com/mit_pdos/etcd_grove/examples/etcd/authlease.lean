@@ -1490,43 +1490,43 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  newUserClient_unfold : FuncUnfold newUserClient [] newUserClient.impl
-  reqCtx_unfold : FuncUnfold reqCtx [] reqCtx.impl
-  refused_unfold : FuncUnfold refused [] refused.impl
-  barrier_unfold : FuncUnfold barrier [] barrier.impl
-  barriers_unfold : FuncUnfold barriers [] barriers.impl
-  grantPut_unfold : FuncUnfold grantPut [] grantPut.impl
-  noAuth_unfold : FuncUnfold noAuth [] noAuth.impl
-  foreign_unfold : FuncUnfold foreign [] foreign.impl
-  absent_unfold : FuncUnfold absent [] absent.impl
-  run_unfold : FuncUnfold run [] run.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_auth_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions
-  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
+  unfold'newUserClient : FuncUnfold newUserClient [] newUserClient.impl
+  unfold'reqCtx : FuncUnfold reqCtx [] reqCtx.impl
+  unfold'refused : FuncUnfold refused [] refused.impl
+  unfold'barrier : FuncUnfold barrier [] barrier.impl
+  unfold'barriers : FuncUnfold barriers [] barriers.impl
+  unfold'grantPut : FuncUnfold grantPut [] grantPut.impl
+  unfold'noAuth : FuncUnfold noAuth [] noAuth.impl
+  unfold'foreign : FuncUnfold foreign [] foreign.impl
+  unfold'absent : FuncUnfold absent [] absent.impl
+  unfold'run : FuncUnfold run [] run.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'metadata : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'etcdserver : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
+  import'auth : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions
+  import'etcdstart : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
 
-attribute [instance] Assumptions.newUserClient_unfold
-  Assumptions.reqCtx_unfold
-  Assumptions.refused_unfold
-  Assumptions.barrier_unfold
-  Assumptions.barriers_unfold
-  Assumptions.grantPut_unfold
-  Assumptions.noAuth_unfold
-  Assumptions.foreign_unfold
-  Assumptions.absent_unfold
-  Assumptions.run_unfold
-  Assumptions.Main_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_metadata_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_etcdserver_Assumption
-  Assumptions.import_auth_Assumption
-  Assumptions.import_etcdstart_Assumption
+attribute [instance] Assumptions.unfold'newUserClient
+  Assumptions.unfold'reqCtx
+  Assumptions.unfold'refused
+  Assumptions.unfold'barrier
+  Assumptions.unfold'barriers
+  Assumptions.unfold'grantPut
+  Assumptions.unfold'noAuth
+  Assumptions.unfold'foreign
+  Assumptions.unfold'absent
+  Assumptions.unfold'run
+  Assumptions.unfold'Main
+  Assumptions.import'context
+  Assumptions.import'zap
+  Assumptions.import'metadata
+  Assumptions.import'clientv3
+  Assumptions.import'etcdserver
+  Assumptions.import'auth
+  Assumptions.import'etcdstart
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.authlease
 

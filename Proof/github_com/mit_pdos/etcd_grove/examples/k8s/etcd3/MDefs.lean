@@ -164,21 +164,21 @@ theorem Obj_intoVal_inj : Function.Injective (intoVal (V := github_com.mit_pdos.
   intro x y h
   have h : (#x : val) = #y := h
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get_Namespace x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get_Namespace y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get'Namespace x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get'Namespace y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get_Name x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get_Name y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get'Name x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get'Name y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get_UID x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get_UID y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get'UID x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get'UID y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get_Value x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get_Value y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get'Value x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get'Value y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get_Node x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get_Node y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get'Node x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get'Node y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get_App x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get_App y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get'App x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get'App y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get_ResourceVersion x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get_ResourceVersion y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get'ResourceVersion x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get'ResourceVersion y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get_Annotated x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get_Annotated y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get'Annotated x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.TypeAssumptions.get'Annotated y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -186,69 +186,69 @@ theorem Input_intoVal_inj : Function.Injective (intoVal (V := Input)) := by
   intro x y h
   have h : (#x : val) = #y := h
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_Kind x) (Input.TypeAssumptions.get_Kind y) h))
+    (Input.TypeAssumptions.get'Kind x) (Input.TypeAssumptions.get'Kind y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_Key x) (Input.TypeAssumptions.get_Key y) h))
+    (Input.TypeAssumptions.get'Key x) (Input.TypeAssumptions.get'Key y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_Val x) (Input.TypeAssumptions.get_Val y) h))
+    (Input.TypeAssumptions.get'Val x) (Input.TypeAssumptions.get'Val y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_Node x) (Input.TypeAssumptions.get_Node y) h))
+    (Input.TypeAssumptions.get'Node x) (Input.TypeAssumptions.get'Node y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_App x) (Input.TypeAssumptions.get_App y) h))
+    (Input.TypeAssumptions.get'App x) (Input.TypeAssumptions.get'App y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_HasReject x) (Input.TypeAssumptions.get_HasReject y) h))
+    (Input.TypeAssumptions.get'HasReject x) (Input.TypeAssumptions.get'HasReject y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_Reject x) (Input.TypeAssumptions.get_Reject y) h))
+    (Input.TypeAssumptions.get'Reject x) (Input.TypeAssumptions.get'Reject y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_NoOp x) (Input.TypeAssumptions.get_NoOp y) h))
+    (Input.TypeAssumptions.get'NoOp x) (Input.TypeAssumptions.get'NoOp y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_IgnoreNotFound x) (Input.TypeAssumptions.get_IgnoreNotFound y) h))
+    (Input.TypeAssumptions.get'IgnoreNotFound x) (Input.TypeAssumptions.get'IgnoreNotFound y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_UID x) (Input.TypeAssumptions.get_UID y) h))
+    (Input.TypeAssumptions.get'UID x) (Input.TypeAssumptions.get'UID y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_HasPreUID x) (Input.TypeAssumptions.get_HasPreUID y) h))
+    (Input.TypeAssumptions.get'HasPreUID x) (Input.TypeAssumptions.get'HasPreUID y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_PreUID x) (Input.TypeAssumptions.get_PreUID y) h))
+    (Input.TypeAssumptions.get'PreUID x) (Input.TypeAssumptions.get'PreUID y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_HasPreRV x) (Input.TypeAssumptions.get_HasPreRV y) h))
+    (Input.TypeAssumptions.get'HasPreRV x) (Input.TypeAssumptions.get'HasPreRV y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_PreRV x) (Input.TypeAssumptions.get_PreRV y) h))
+    (Input.TypeAssumptions.get'PreRV x) (Input.TypeAssumptions.get'PreRV y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_UseCached x) (Input.TypeAssumptions.get_UseCached y) h))
+    (Input.TypeAssumptions.get'UseCached x) (Input.TypeAssumptions.get'UseCached y) h))
   have := Obj_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_Cached x) (Input.TypeAssumptions.get_Cached y) h))
+    (Input.TypeAssumptions.get'Cached x) (Input.TypeAssumptions.get'Cached y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_MinRV x) (Input.TypeAssumptions.get_MinRV y) h))
+    (Input.TypeAssumptions.get'MinRV x) (Input.TypeAssumptions.get'MinRV y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_ListKey x) (Input.TypeAssumptions.get_ListKey y) h))
+    (Input.TypeAssumptions.get'ListKey x) (Input.TypeAssumptions.get'ListKey y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_Recursive x) (Input.TypeAssumptions.get_Recursive y) h))
+    (Input.TypeAssumptions.get'Recursive x) (Input.TypeAssumptions.get'Recursive y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_Match x) (Input.TypeAssumptions.get_Match y) h))
+    (Input.TypeAssumptions.get'Match x) (Input.TypeAssumptions.get'Match y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_Field x) (Input.TypeAssumptions.get_Field y) h))
+    (Input.TypeAssumptions.get'Field x) (Input.TypeAssumptions.get'Field y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_SelNS x) (Input.TypeAssumptions.get_SelNS y) h))
+    (Input.TypeAssumptions.get'SelNS x) (Input.TypeAssumptions.get'SelNS y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_SelName x) (Input.TypeAssumptions.get_SelName y) h))
+    (Input.TypeAssumptions.get'SelName x) (Input.TypeAssumptions.get'SelName y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_SelNode x) (Input.TypeAssumptions.get_SelNode y) h))
+    (Input.TypeAssumptions.get'SelNode x) (Input.TypeAssumptions.get'SelNode y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_SelApp x) (Input.TypeAssumptions.get_SelApp y) h))
+    (Input.TypeAssumptions.get'SelApp x) (Input.TypeAssumptions.get'SelApp y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_Limit x) (Input.TypeAssumptions.get_Limit y) h))
+    (Input.TypeAssumptions.get'Limit x) (Input.TypeAssumptions.get'Limit y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_Client x) (Input.TypeAssumptions.get_Client y) h))
+    (Input.TypeAssumptions.get'Client x) (Input.TypeAssumptions.get'Client y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_WKey x) (Input.TypeAssumptions.get_WKey y) h))
+    (Input.TypeAssumptions.get'WKey x) (Input.TypeAssumptions.get'WKey y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_SendInit x) (Input.TypeAssumptions.get_SendInit y) h))
+    (Input.TypeAssumptions.get'SendInit x) (Input.TypeAssumptions.get'SendInit y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_Bookmarks x) (Input.TypeAssumptions.get_Bookmarks y) h))
+    (Input.TypeAssumptions.get'Bookmarks x) (Input.TypeAssumptions.get'Bookmarks y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_Behavior x) (Input.TypeAssumptions.get_Behavior y) h))
+    (Input.TypeAssumptions.get'Behavior x) (Input.TypeAssumptions.get'Behavior y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (Input.TypeAssumptions.get_Skip x) (Input.TypeAssumptions.get_Skip y) h))
+    (Input.TypeAssumptions.get'Skip x) (Input.TypeAssumptions.get'Skip y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -256,11 +256,11 @@ theorem Raw_intoVal_inj : Function.Injective (intoVal (V := github_com.mit_pdos.
   intro x y h
   have h : (#x : val) = #y := h
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get_Object x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get_Object y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get'Object x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get'Object y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get_Err x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get_Err y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get'Err x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get'Err y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get_Events x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get_Events y) h))
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get'Events x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get'Events y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -268,43 +268,43 @@ theorem Output_intoVal_inj : Function.Injective (intoVal (V := Output)) := by
   intro x y h
   have h : (#x : val) = #y := h
   have := Raw_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_Raw x) (Output.TypeAssumptions.get_Raw y) h))
+    (Output.TypeAssumptions.get'Raw x) (Output.TypeAssumptions.get'Raw y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_Err x) (Output.TypeAssumptions.get_Err y) h))
+    (Output.TypeAssumptions.get'Err x) (Output.TypeAssumptions.get'Err y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_ErrKey x) (Output.TypeAssumptions.get_ErrKey y) h))
+    (Output.TypeAssumptions.get'ErrKey x) (Output.TypeAssumptions.get'ErrKey y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_ErrRV x) (Output.TypeAssumptions.get_ErrRV y) h))
+    (Output.TypeAssumptions.get'ErrRV x) (Output.TypeAssumptions.get'ErrRV y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_ErrMsg x) (Output.TypeAssumptions.get_ErrMsg y) h))
+    (Output.TypeAssumptions.get'ErrMsg x) (Output.TypeAssumptions.get'ErrMsg y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_Namespace x) (Output.TypeAssumptions.get_Namespace y) h))
+    (Output.TypeAssumptions.get'Namespace x) (Output.TypeAssumptions.get'Namespace y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_Name x) (Output.TypeAssumptions.get_Name y) h))
+    (Output.TypeAssumptions.get'Name x) (Output.TypeAssumptions.get'Name y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_UID x) (Output.TypeAssumptions.get_UID y) h))
+    (Output.TypeAssumptions.get'UID x) (Output.TypeAssumptions.get'UID y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_Value x) (Output.TypeAssumptions.get_Value y) h))
+    (Output.TypeAssumptions.get'Value x) (Output.TypeAssumptions.get'Value y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_Node x) (Output.TypeAssumptions.get_Node y) h))
+    (Output.TypeAssumptions.get'Node x) (Output.TypeAssumptions.get'Node y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_App x) (Output.TypeAssumptions.get_App y) h))
+    (Output.TypeAssumptions.get'App x) (Output.TypeAssumptions.get'App y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_RV x) (Output.TypeAssumptions.get_RV y) h))
+    (Output.TypeAssumptions.get'RV x) (Output.TypeAssumptions.get'RV y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_Items x) (Output.TypeAssumptions.get_Items y) h))
+    (Output.TypeAssumptions.get'Items x) (Output.TypeAssumptions.get'Items y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_ListRV x) (Output.TypeAssumptions.get_ListRV y) h))
+    (Output.TypeAssumptions.get'ListRV x) (Output.TypeAssumptions.get'ListRV y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_Continue x) (Output.TypeAssumptions.get_Continue y) h))
+    (Output.TypeAssumptions.get'Continue x) (Output.TypeAssumptions.get'Continue y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_HasRemaining x) (Output.TypeAssumptions.get_HasRemaining y) h))
+    (Output.TypeAssumptions.get'HasRemaining x) (Output.TypeAssumptions.get'HasRemaining y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_Remaining x) (Output.TypeAssumptions.get_Remaining y) h))
+    (Output.TypeAssumptions.get'Remaining x) (Output.TypeAssumptions.get'Remaining y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_WEvents x) (Output.TypeAssumptions.get_WEvents y) h))
+    (Output.TypeAssumptions.get'WEvents x) (Output.TypeAssumptions.get'WEvents y) h))
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (Output.TypeAssumptions.get_WFailed x) (Output.TypeAssumptions.get_WFailed y) h))
+    (Output.TypeAssumptions.get'WFailed x) (Output.TypeAssumptions.get'WFailed y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in

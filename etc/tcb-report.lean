@@ -128,7 +128,7 @@ def Interned.union (t : Interned) (a b : Nat) : Interned × Nat :=
 replacing a text search). Perennial's model of `fmt.Errorf` is `errors.New(format)` (`%w` and the
 arguments' formatting methods not modelled). A proof that steps into it (`wp_start`/`wp_apply` on a
 call of `@! fmt.Errorf`, or a hand-written `func_unfold`) needs `#(functions "fmt.Errorf" []) =
-fmt.Errorf.impl`, which only the `FuncUnfold` instance `fmt.Assumptions.Errorf_unfold` (a field of
+fmt.Errorf.impl`, which only the `FuncUnfold` instance `fmt.Assumptions.unfold'Errorf` (a field of
 the class `fmt.Assumptions`) gives: `functions` is uninterpreted otherwise. So its proof term
 mentions one of `errorfAtoms` (the field's projection; the model's body `fmt.Errorf.impl`, which
 the instance's type names; the class's recursors), or a raw `Expr.proj` of the class at the
@@ -139,7 +139,7 @@ argument an error or with methods, so its statement is true of Go); a sanctioned
 are not propagated. `etc/errorf-wrap-check.py` fails on a step outside its reviewed modules. -/
 
 def errorfCls : Name := `Perennial.fmt.Assumptions
-def errorfField : Name := `Perennial.fmt.Assumptions.Errorf_unfold
+def errorfField : Name := `Perennial.fmt.Assumptions.unfold'Errorf
 
 def errorfAtoms : NameSet := ({} : NameSet)
   |>.insert errorfField

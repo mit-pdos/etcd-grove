@@ -24,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : models_lab.jsoncodec.Assumptions]
 
-noncomputable instance Error_typed_pointsto :
+noncomputable instance typed_pointsto'Error :
     TypedPointsto (GF := GF) models_lab.jsoncodec.Error where
   typedPointstoDef l v dq := iprop(
     "Msg" ∷ typedPointsto (structFieldRef models_lab.jsoncodec.Error go!"Msg" l) v.Msg' dq ∗
@@ -33,11 +33,11 @@ noncomputable instance Error_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Error_into_val_typed :
+noncomputable instance into_val_typed'Error :
     IntoValTypedUnderlying (GF := GF) models_lab.jsoncodec.Error models_lab.jsoncodec.Error.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Error_access_load_Msg (l : Loc) (v : models_lab.jsoncodec.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'Msg (l : Loc) (v : models_lab.jsoncodec.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef models_lab.jsoncodec.Error go!"Msg" l) v.Msg' dq)
       (typedPointsto (structFieldRef models_lab.jsoncodec.Error go!"Msg" l) v.Msg' dq)
@@ -45,7 +45,7 @@ noncomputable instance Error_access_load_Msg (l : Loc) (v : models_lab.jsoncodec
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_store_Msg (l : Loc) (v : models_lab.jsoncodec.Error) (y : GoString) :
+noncomputable instance access_store'Error'Msg (l : Loc) (v : models_lab.jsoncodec.Error) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef models_lab.jsoncodec.Error go!"Msg" l) v.Msg' (DFrac.own 1))
       (typedPointsto (structFieldRef models_lab.jsoncodec.Error go!"Msg" l) y (DFrac.own 1))

@@ -102,7 +102,7 @@ abbrev port.spec : Prop :=
 abbrev at.spec : Prop :=
   ∀ (sl : GoSlice) (dq : DFrac) (id off : w64), uint.nat id < 13 →
   {{ isPkgInit (PROP := IProp GF) swiftnetPkg ∗ sl ↦*{dq} addrs }}
-    (App (App (App (Val (@! examples.swiftnet.«at»)) (Val #sl)) (Val #id)) (Val #off))
+    (App (App (App (Val (@! examples.swiftnet.at'')) (Val #sl)) (Val #id)) (Val #off))
   {{ RET #(atStr (uint.nat id) off); sl ↦*{dq} addrs }}
 
 /-- `nodeConfig(id, port, conf)`: a fresh `*config.Config`, plain (`config.plain`: no quorum

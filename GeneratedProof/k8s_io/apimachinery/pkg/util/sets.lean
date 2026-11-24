@@ -26,7 +26,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.sets.Assumptions]
 
-noncomputable instance Empty_typed_pointsto :
+noncomputable instance typed_pointsto'Empty :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.sets.Empty where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -34,7 +34,7 @@ noncomputable instance Empty_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Empty_into_val_typed :
+noncomputable instance into_val_typed'Empty :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.sets.Empty k8s_io.apimachinery.pkg.util.sets.Empty.underlying := by
   solve_into_val_typed_struct
 

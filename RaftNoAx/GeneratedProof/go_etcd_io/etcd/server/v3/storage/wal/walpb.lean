@@ -31,7 +31,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 
-noncomputable instance Record_typed_pointsto :
+noncomputable instance typed_pointsto'Record :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.walpb.Record where
   typedPointstoDef l v dq := iprop(
     "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) v.state' dq ∗
@@ -45,11 +45,11 @@ noncomputable instance Record_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Record_into_val_typed :
+noncomputable instance into_val_typed'Record :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Record_access_load_state (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
+noncomputable instance access_load'Record'state (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) v.state' dq)
@@ -57,7 +57,7 @@ noncomputable instance Record_access_load_state (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Record_access_store_state (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'Record'state (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) y (DFrac.own 1))
@@ -65,7 +65,7 @@ noncomputable instance Record_access_store_state (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Record_access_load_Type (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
+noncomputable instance access_load'Record'Type (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Type" l) v.Type' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Type" l) v.Type' dq)
@@ -73,7 +73,7 @@ noncomputable instance Record_access_load_Type (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Record_access_store_Type (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : Loc) :
+noncomputable instance access_store'Record'Type (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Type" l) y (DFrac.own 1))
@@ -81,7 +81,7 @@ noncomputable instance Record_access_store_Type (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Record_access_load_Crc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
+noncomputable instance access_load'Record'Crc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Crc" l) v.Crc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Crc" l) v.Crc' dq)
@@ -89,7 +89,7 @@ noncomputable instance Record_access_load_Crc (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance Record_access_store_Crc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : Loc) :
+noncomputable instance access_store'Record'Crc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Crc" l) v.Crc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Crc" l) y (DFrac.own 1))
@@ -97,7 +97,7 @@ noncomputable instance Record_access_store_Crc (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Record_access_load_Data (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
+noncomputable instance access_load'Record'Data (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Data" l) v.Data' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Data" l) v.Data' dq)
@@ -105,7 +105,7 @@ noncomputable instance Record_access_load_Data (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Record_access_store_Data (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : GoSlice) :
+noncomputable instance access_store'Record'Data (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Data" l) v.Data' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Data" l) y (DFrac.own 1))
@@ -113,7 +113,7 @@ noncomputable instance Record_access_store_Data (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Record_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
+noncomputable instance access_load'Record'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"unknownFields" l) v.unknownFields' dq)
@@ -121,7 +121,7 @@ noncomputable instance Record_access_load_unknownFields (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Record_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : GoSlice) :
+noncomputable instance access_store'Record'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"unknownFields" l) y (DFrac.own 1))
@@ -129,7 +129,7 @@ noncomputable instance Record_access_store_unknownFields (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Record_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
+noncomputable instance access_load'Record'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"sizeCache" l) v.sizeCache' dq)
@@ -137,7 +137,7 @@ noncomputable instance Record_access_load_sizeCache (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance Record_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : w32) :
+noncomputable instance access_store'Record'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"sizeCache" l) y (DFrac.own 1))
@@ -156,7 +156,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 
-noncomputable instance Snapshot_typed_pointsto :
+noncomputable instance typed_pointsto'Snapshot :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot where
   typedPointstoDef l v dq := iprop(
     "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) v.state' dq ∗
@@ -170,11 +170,11 @@ noncomputable instance Snapshot_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Snapshot_into_val_typed :
+noncomputable instance into_val_typed'Snapshot :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Snapshot_access_load_state (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
+noncomputable instance access_load'Snapshot'state (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) v.state' dq)
@@ -182,7 +182,7 @@ noncomputable instance Snapshot_access_load_state (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Snapshot_access_store_state (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'Snapshot'state (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) y (DFrac.own 1))
@@ -190,7 +190,7 @@ noncomputable instance Snapshot_access_store_state (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Snapshot_access_load_Index (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
+noncomputable instance access_load'Snapshot'Index (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Index" l) v.Index' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Index" l) v.Index' dq)
@@ -198,7 +198,7 @@ noncomputable instance Snapshot_access_load_Index (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Snapshot_access_store_Index (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : Loc) :
+noncomputable instance access_store'Snapshot'Index (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Index" l) v.Index' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Index" l) y (DFrac.own 1))
@@ -206,7 +206,7 @@ noncomputable instance Snapshot_access_store_Index (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Snapshot_access_load_Term (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
+noncomputable instance access_load'Snapshot'Term (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Term" l) v.Term' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Term" l) v.Term' dq)
@@ -214,7 +214,7 @@ noncomputable instance Snapshot_access_load_Term (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Snapshot_access_store_Term (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : Loc) :
+noncomputable instance access_store'Snapshot'Term (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Term" l) v.Term' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Term" l) y (DFrac.own 1))
@@ -222,7 +222,7 @@ noncomputable instance Snapshot_access_store_Term (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Snapshot_access_load_ConfState (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
+noncomputable instance access_load'Snapshot'ConfState (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"ConfState" l) v.ConfState' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"ConfState" l) v.ConfState' dq)
@@ -230,7 +230,7 @@ noncomputable instance Snapshot_access_load_ConfState (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Snapshot_access_store_ConfState (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : Loc) :
+noncomputable instance access_store'Snapshot'ConfState (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"ConfState" l) v.ConfState' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"ConfState" l) y (DFrac.own 1))
@@ -238,7 +238,7 @@ noncomputable instance Snapshot_access_store_ConfState (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance Snapshot_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
+noncomputable instance access_load'Snapshot'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"unknownFields" l) v.unknownFields' dq)
@@ -246,7 +246,7 @@ noncomputable instance Snapshot_access_load_unknownFields (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Snapshot_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : GoSlice) :
+noncomputable instance access_store'Snapshot'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"unknownFields" l) y (DFrac.own 1))
@@ -254,7 +254,7 @@ noncomputable instance Snapshot_access_store_unknownFields (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Snapshot_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
+noncomputable instance access_load'Snapshot'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"sizeCache" l) v.sizeCache' dq)
@@ -262,7 +262,7 @@ noncomputable instance Snapshot_access_load_sizeCache (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Snapshot_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : w32) :
+noncomputable instance access_store'Snapshot'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"sizeCache" l) y (DFrac.own 1))

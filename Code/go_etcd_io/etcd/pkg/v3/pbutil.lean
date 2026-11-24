@@ -160,19 +160,19 @@ attribute [instance] Unmarshaler.TypeAssumptions.underlying
   Unmarshaler.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Marshaler_instance : Marshaler.TypeAssumptions
-  Unmarshaler_instance : Unmarshaler.TypeAssumptions
-  MustMarshalMessage_unfold : FuncUnfold MustMarshalMessage [] MustMarshalMessage.impl
-  MustUnmarshalMessage_unfold : FuncUnfold MustUnmarshalMessage [] MustUnmarshalMessage.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
+  instance'Marshaler : Marshaler.TypeAssumptions
+  instance'Unmarshaler : Unmarshaler.TypeAssumptions
+  unfold'MustMarshalMessage : FuncUnfold MustMarshalMessage [] MustMarshalMessage.impl
+  unfold'MustUnmarshalMessage : FuncUnfold MustUnmarshalMessage [] MustUnmarshalMessage.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'proto : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
 
-attribute [instance] Assumptions.Marshaler_instance
-  Assumptions.Unmarshaler_instance
-  Assumptions.MustMarshalMessage_unfold
-  Assumptions.MustUnmarshalMessage_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_proto_Assumption
+attribute [instance] Assumptions.instance'Marshaler
+  Assumptions.instance'Unmarshaler
+  Assumptions.unfold'MustMarshalMessage
+  Assumptions.unfold'MustUnmarshalMessage
+  Assumptions.import'fmt
+  Assumptions.import'proto
 
 end go_etcd_io.etcd.pkg.v3.pbutil
 

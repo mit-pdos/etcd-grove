@@ -55,10 +55,10 @@ instance sorterAnySpec_persistent {E : Type} (x : GoInterfaceOk) (R : List E →
 
 /-- **`sort.Sort(x)` for any `Less`**: a list of at most `2^62` elements (as `sort.Sort.spec`)
 ends a permutation of itself. -/
-abbrev sort.«Sort».anyLessSpec : Prop :=
+abbrev sort.Sort''.anyLessSpec : Prop :=
   ∀ (E : Type) (x : GoInterfaceOk) (R : List E → IProp GF) (l : List E),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sort ∗ sorterAnySpec x R ∗ R l ∗ ⌜l.length ≤ 2 ^ 62⌝ }}
-    (App (Val (@! sort.«Sort»)) (Val #(GoInterface.ok x)))
+    (App (Val (@! sort.Sort'')) (Val #(GoInterface.ok x)))
   {{ (l' : List E), RET #(); R l' ∗ ⌜l.Perm l'⌝ }}
 
 end spec

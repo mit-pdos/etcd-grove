@@ -187,7 +187,7 @@ noncomputable instance ConditionalProgressRequester.zero_val [GooseExts] : ZeroV
 @[irreducible] noncomputable def ConditionalProgressRequester.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConditionalProgressRequester.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConditionalProgressRequester [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ConditionalProgressRequester [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConditionalProgressRequester.fields ConditionalProgressRequester.fieldsUnsealed :=
   ⟨by unfold ConditionalProgressRequester.fields; rfl⟩
 
@@ -197,74 +197,74 @@ noncomputable instance equals_unfold_ConditionalProgressRequester [GooseExts] [G
 class ConditionalProgressRequester.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConditionalProgressRequester.underlying ConditionalProgressRequester
   underlying : go.UnderlyingDirectedEq ConditionalProgressRequester.ty ConditionalProgressRequester.underlying
-  get_clock : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"clock") #x (Val #(x.clock'))
-  set_clock : ∀ (x : ConditionalProgressRequester) (y : TickerFactory), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : ConditionalProgressRequester)))
-  get_requestWatchProgress : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"requestWatchProgress") #x (Val #(x.requestWatchProgress'))
-  set_requestWatchProgress : ∀ (x : ConditionalProgressRequester) (y : WatchProgressRequester), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"requestWatchProgress") (PairV #x #y) (Val #(({ x with requestWatchProgress' := y } : ConditionalProgressRequester)))
-  get_contextMetadata : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"contextMetadata") #x (Val #(x.contextMetadata'))
-  set_contextMetadata : ∀ (x : ConditionalProgressRequester) (y : _root_.Perennial.google_golang_org.grpc.metadata.MD), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"contextMetadata") (PairV #x #y) (Val #(({ x with contextMetadata' := y } : ConditionalProgressRequester)))
-  get_mux : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"mux") #x (Val #(x.mux'))
-  set_mux : ∀ (x : ConditionalProgressRequester) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"mux") (PairV #x #y) (Val #(({ x with mux' := y } : ConditionalProgressRequester)))
-  get_cond : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"cond") #x (Val #(x.cond'))
-  set_cond : ∀ (x : ConditionalProgressRequester) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"cond") (PairV #x #y) (Val #(({ x with cond' := y } : ConditionalProgressRequester)))
-  get_waiting : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"waiting") #x (Val #(x.waiting'))
-  set_waiting : ∀ (x : ConditionalProgressRequester) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"waiting") (PairV #x #y) (Val #(({ x with waiting' := y } : ConditionalProgressRequester)))
-  get_stopped : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"stopped") #x (Val #(x.stopped'))
-  set_stopped : ∀ (x : ConditionalProgressRequester) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"stopped") (PairV #x #y) (Val #(({ x with stopped' := y } : ConditionalProgressRequester)))
+  get'clock : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"clock") #x (Val #(x.clock'))
+  set'clock : ∀ (x : ConditionalProgressRequester) (y : TickerFactory), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : ConditionalProgressRequester)))
+  get'requestWatchProgress : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"requestWatchProgress") #x (Val #(x.requestWatchProgress'))
+  set'requestWatchProgress : ∀ (x : ConditionalProgressRequester) (y : WatchProgressRequester), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"requestWatchProgress") (PairV #x #y) (Val #(({ x with requestWatchProgress' := y } : ConditionalProgressRequester)))
+  get'contextMetadata : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"contextMetadata") #x (Val #(x.contextMetadata'))
+  set'contextMetadata : ∀ (x : ConditionalProgressRequester) (y : _root_.Perennial.google_golang_org.grpc.metadata.MD), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"contextMetadata") (PairV #x #y) (Val #(({ x with contextMetadata' := y } : ConditionalProgressRequester)))
+  get'mux : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"mux") #x (Val #(x.mux'))
+  set'mux : ∀ (x : ConditionalProgressRequester) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"mux") (PairV #x #y) (Val #(({ x with mux' := y } : ConditionalProgressRequester)))
+  get'cond : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"cond") #x (Val #(x.cond'))
+  set'cond : ∀ (x : ConditionalProgressRequester) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"cond") (PairV #x #y) (Val #(({ x with cond' := y } : ConditionalProgressRequester)))
+  get'waiting : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"waiting") #x (Val #(x.waiting'))
+  set'waiting : ∀ (x : ConditionalProgressRequester) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"waiting") (PairV #x #y) (Val #(({ x with waiting' := y } : ConditionalProgressRequester)))
+  get'stopped : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"stopped") #x (Val #(x.stopped'))
+  set'stopped : ∀ (x : ConditionalProgressRequester) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"stopped") (PairV #x #y) (Val #(({ x with stopped' := y } : ConditionalProgressRequester)))
   method_set : go.MethodSetIs ConditionalProgressRequester.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionalProgressRequester.ty) [(go!"Add", (some (go.signature.Signature [] false []))), (go!"Remove", (some (go.signature.Signature [] false []))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [])))]
-  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType ConditionalProgressRequester.ty) go!"Add" ConditionalProgressRequester.Add.impl
-  ptr_Remove_unfold : MethodUnfold (go.GoType.PointerType ConditionalProgressRequester.ty) go!"Remove" ConditionalProgressRequester.Remove.impl
+  ptr_unfold'Add : MethodUnfold (go.GoType.PointerType ConditionalProgressRequester.ty) go!"Add" ConditionalProgressRequester.Add.impl
+  ptr_unfold'Remove : MethodUnfold (go.GoType.PointerType ConditionalProgressRequester.ty) go!"Remove" ConditionalProgressRequester.Remove.impl
 
 attribute [instance] ConditionalProgressRequester.TypeAssumptions.type_repr
   ConditionalProgressRequester.TypeAssumptions.underlying
-  ConditionalProgressRequester.TypeAssumptions.get_clock
-  ConditionalProgressRequester.TypeAssumptions.set_clock
-  ConditionalProgressRequester.TypeAssumptions.get_requestWatchProgress
-  ConditionalProgressRequester.TypeAssumptions.set_requestWatchProgress
-  ConditionalProgressRequester.TypeAssumptions.get_contextMetadata
-  ConditionalProgressRequester.TypeAssumptions.set_contextMetadata
-  ConditionalProgressRequester.TypeAssumptions.get_mux
-  ConditionalProgressRequester.TypeAssumptions.set_mux
-  ConditionalProgressRequester.TypeAssumptions.get_cond
-  ConditionalProgressRequester.TypeAssumptions.set_cond
-  ConditionalProgressRequester.TypeAssumptions.get_waiting
-  ConditionalProgressRequester.TypeAssumptions.set_waiting
-  ConditionalProgressRequester.TypeAssumptions.get_stopped
-  ConditionalProgressRequester.TypeAssumptions.set_stopped
+  ConditionalProgressRequester.TypeAssumptions.get'clock
+  ConditionalProgressRequester.TypeAssumptions.set'clock
+  ConditionalProgressRequester.TypeAssumptions.get'requestWatchProgress
+  ConditionalProgressRequester.TypeAssumptions.set'requestWatchProgress
+  ConditionalProgressRequester.TypeAssumptions.get'contextMetadata
+  ConditionalProgressRequester.TypeAssumptions.set'contextMetadata
+  ConditionalProgressRequester.TypeAssumptions.get'mux
+  ConditionalProgressRequester.TypeAssumptions.set'mux
+  ConditionalProgressRequester.TypeAssumptions.get'cond
+  ConditionalProgressRequester.TypeAssumptions.set'cond
+  ConditionalProgressRequester.TypeAssumptions.get'waiting
+  ConditionalProgressRequester.TypeAssumptions.set'waiting
+  ConditionalProgressRequester.TypeAssumptions.get'stopped
+  ConditionalProgressRequester.TypeAssumptions.set'stopped
   ConditionalProgressRequester.TypeAssumptions.method_set
   ConditionalProgressRequester.TypeAssumptions.ptr_method_set
-  ConditionalProgressRequester.TypeAssumptions.ptr_Add_unfold
-  ConditionalProgressRequester.TypeAssumptions.ptr_Remove_unfold
+  ConditionalProgressRequester.TypeAssumptions.ptr_unfold'Add
+  ConditionalProgressRequester.TypeAssumptions.ptr_unfold'Remove
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  WatchProgressRequester_instance : WatchProgressRequester.TypeAssumptions
-  TickerFactory_instance : TickerFactory.TypeAssumptions
-  ConditionalProgressRequester_instance : ConditionalProgressRequester.TypeAssumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.Assumptions
-  import_wait_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Assumptions
-  import_storage_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.storage.Assumptions
-  import_feature_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.storage.feature.Assumptions
-  import_klog_Assumption : _root_.Perennial.k8s_io.klog.v2.Assumptions
-  import_clock_Assumption : _root_.Perennial.k8s_io.utils.clock.Assumptions
+  instance'WatchProgressRequester : WatchProgressRequester.TypeAssumptions
+  instance'TickerFactory : TickerFactory.TypeAssumptions
+  instance'ConditionalProgressRequester : ConditionalProgressRequester.TypeAssumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'metadata : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.Assumptions
+  import'wait : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Assumptions
+  import'storage : _root_.Perennial.k8s_io.apiserver.pkg.storage.Assumptions
+  import'feature : _root_.Perennial.k8s_io.apiserver.pkg.storage.feature.Assumptions
+  import'klog : _root_.Perennial.k8s_io.klog.v2.Assumptions
+  import'clock : _root_.Perennial.k8s_io.utils.clock.Assumptions
 
-attribute [instance] Assumptions.WatchProgressRequester_instance
-  Assumptions.TickerFactory_instance
-  Assumptions.ConditionalProgressRequester_instance
-  Assumptions.import_context_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_metadata_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_wait_Assumption
-  Assumptions.import_storage_Assumption
-  Assumptions.import_feature_Assumption
-  Assumptions.import_klog_Assumption
-  Assumptions.import_clock_Assumption
+attribute [instance] Assumptions.instance'WatchProgressRequester
+  Assumptions.instance'TickerFactory
+  Assumptions.instance'ConditionalProgressRequester
+  Assumptions.import'context
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'metadata
+  Assumptions.import'runtime
+  Assumptions.import'wait
+  Assumptions.import'storage
+  Assumptions.import'feature
+  Assumptions.import'klog
+  Assumptions.import'clock
 
 end k8s_io.apiserver.pkg.storage.cacher.progress
 

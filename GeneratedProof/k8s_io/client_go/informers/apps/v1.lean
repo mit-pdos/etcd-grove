@@ -35,7 +35,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.apps.v1.Assumptions]
 
-noncomputable instance controllerRevisionInformer_typed_pointsto :
+noncomputable instance typed_pointsto'controllerRevisionInformer :
     TypedPointsto (GF := GF) k8s_io.client_go.informers.apps.v1.controllerRevisionInformer where
   typedPointstoDef l v dq := iprop(
     "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionInformer go!"factory" l) v.factory' dq ∗
@@ -46,11 +46,11 @@ noncomputable instance controllerRevisionInformer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance controllerRevisionInformer_into_val_typed :
+noncomputable instance into_val_typed'controllerRevisionInformer :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.apps.v1.controllerRevisionInformer k8s_io.client_go.informers.apps.v1.controllerRevisionInformer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance controllerRevisionInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.controllerRevisionInformer) (dq : DFrac) :
+noncomputable instance access_load'controllerRevisionInformer'factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.controllerRevisionInformer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionInformer go!"factory" l) v.factory' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionInformer go!"factory" l) v.factory' dq)
@@ -58,7 +58,7 @@ noncomputable instance controllerRevisionInformer_access_load_factory (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance controllerRevisionInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.controllerRevisionInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+noncomputable instance access_store'controllerRevisionInformer'factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.controllerRevisionInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionInformer go!"factory" l) v.factory' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionInformer go!"factory" l) y (DFrac.own 1))
@@ -66,7 +66,7 @@ noncomputable instance controllerRevisionInformer_access_store_factory (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance controllerRevisionInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.controllerRevisionInformer) (dq : DFrac) :
+noncomputable instance access_load'controllerRevisionInformer'tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.controllerRevisionInformer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
@@ -74,7 +74,7 @@ noncomputable instance controllerRevisionInformer_access_load_tweakListOptions (
  by
   solve_pointsto_access_struct
 
-noncomputable instance controllerRevisionInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.controllerRevisionInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+noncomputable instance access_store'controllerRevisionInformer'tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.controllerRevisionInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionInformer go!"tweakListOptions" l) y (DFrac.own 1))
@@ -82,7 +82,7 @@ noncomputable instance controllerRevisionInformer_access_store_tweakListOptions 
  by
   solve_pointsto_access_struct
 
-noncomputable instance controllerRevisionInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.controllerRevisionInformer) (dq : DFrac) :
+noncomputable instance access_load'controllerRevisionInformer'namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.controllerRevisionInformer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionInformer go!"namespace" l) v.namespace' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionInformer go!"namespace" l) v.namespace' dq)
@@ -90,7 +90,7 @@ noncomputable instance controllerRevisionInformer_access_load_namespace (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance controllerRevisionInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.controllerRevisionInformer) (y : GoString) :
+noncomputable instance access_store'controllerRevisionInformer'namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.controllerRevisionInformer) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionInformer go!"namespace" l) v.namespace' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionInformer go!"namespace" l) y (DFrac.own 1))
@@ -109,7 +109,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.apps.v1.Assumptions]
 
-noncomputable instance controllerRevisionTypedInformerAdapter_typed_pointsto :
+noncomputable instance typed_pointsto'controllerRevisionTypedInformerAdapter :
     TypedPointsto (GF := GF) k8s_io.client_go.informers.apps.v1.controllerRevisionTypedInformerAdapter where
   typedPointstoDef l v dq := iprop(
     "ControllerRevisionInformer" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionTypedInformerAdapter go!"ControllerRevisionInformer" l) v.ControllerRevisionInformer' dq ∗
@@ -118,11 +118,11 @@ noncomputable instance controllerRevisionTypedInformerAdapter_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance controllerRevisionTypedInformerAdapter_into_val_typed :
+noncomputable instance into_val_typed'controllerRevisionTypedInformerAdapter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.apps.v1.controllerRevisionTypedInformerAdapter k8s_io.client_go.informers.apps.v1.controllerRevisionTypedInformerAdapter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance controllerRevisionTypedInformerAdapter_access_load_ControllerRevisionInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.controllerRevisionTypedInformerAdapter) (dq : DFrac) :
+noncomputable instance access_load'controllerRevisionTypedInformerAdapter'ControllerRevisionInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.controllerRevisionTypedInformerAdapter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionTypedInformerAdapter go!"ControllerRevisionInformer" l) v.ControllerRevisionInformer' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionTypedInformerAdapter go!"ControllerRevisionInformer" l) v.ControllerRevisionInformer' dq)
@@ -130,7 +130,7 @@ noncomputable instance controllerRevisionTypedInformerAdapter_access_load_Contro
  by
   solve_pointsto_access_struct
 
-noncomputable instance controllerRevisionTypedInformerAdapter_access_store_ControllerRevisionInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.controllerRevisionTypedInformerAdapter) (y : k8s_io.client_go.informers.apps.v1.ControllerRevisionInformer) :
+noncomputable instance access_store'controllerRevisionTypedInformerAdapter'ControllerRevisionInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.controllerRevisionTypedInformerAdapter) (y : k8s_io.client_go.informers.apps.v1.ControllerRevisionInformer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionTypedInformerAdapter go!"ControllerRevisionInformer" l) v.ControllerRevisionInformer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.controllerRevisionTypedInformerAdapter go!"ControllerRevisionInformer" l) y (DFrac.own 1))
@@ -149,7 +149,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.apps.v1.Assumptions]
 
-noncomputable instance daemonSetInformer_typed_pointsto :
+noncomputable instance typed_pointsto'daemonSetInformer :
     TypedPointsto (GF := GF) k8s_io.client_go.informers.apps.v1.daemonSetInformer where
   typedPointstoDef l v dq := iprop(
     "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetInformer go!"factory" l) v.factory' dq ∗
@@ -160,11 +160,11 @@ noncomputable instance daemonSetInformer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance daemonSetInformer_into_val_typed :
+noncomputable instance into_val_typed'daemonSetInformer :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.apps.v1.daemonSetInformer k8s_io.client_go.informers.apps.v1.daemonSetInformer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance daemonSetInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.daemonSetInformer) (dq : DFrac) :
+noncomputable instance access_load'daemonSetInformer'factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.daemonSetInformer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetInformer go!"factory" l) v.factory' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetInformer go!"factory" l) v.factory' dq)
@@ -172,7 +172,7 @@ noncomputable instance daemonSetInformer_access_load_factory (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance daemonSetInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.daemonSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+noncomputable instance access_store'daemonSetInformer'factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.daemonSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetInformer go!"factory" l) v.factory' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetInformer go!"factory" l) y (DFrac.own 1))
@@ -180,7 +180,7 @@ noncomputable instance daemonSetInformer_access_store_factory (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance daemonSetInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.daemonSetInformer) (dq : DFrac) :
+noncomputable instance access_load'daemonSetInformer'tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.daemonSetInformer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
@@ -188,7 +188,7 @@ noncomputable instance daemonSetInformer_access_load_tweakListOptions (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance daemonSetInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.daemonSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+noncomputable instance access_store'daemonSetInformer'tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.daemonSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetInformer go!"tweakListOptions" l) y (DFrac.own 1))
@@ -196,7 +196,7 @@ noncomputable instance daemonSetInformer_access_store_tweakListOptions (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance daemonSetInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.daemonSetInformer) (dq : DFrac) :
+noncomputable instance access_load'daemonSetInformer'namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.daemonSetInformer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetInformer go!"namespace" l) v.namespace' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetInformer go!"namespace" l) v.namespace' dq)
@@ -204,7 +204,7 @@ noncomputable instance daemonSetInformer_access_load_namespace (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance daemonSetInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.daemonSetInformer) (y : GoString) :
+noncomputable instance access_store'daemonSetInformer'namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.daemonSetInformer) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetInformer go!"namespace" l) v.namespace' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetInformer go!"namespace" l) y (DFrac.own 1))
@@ -223,7 +223,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.apps.v1.Assumptions]
 
-noncomputable instance daemonSetTypedInformerAdapter_typed_pointsto :
+noncomputable instance typed_pointsto'daemonSetTypedInformerAdapter :
     TypedPointsto (GF := GF) k8s_io.client_go.informers.apps.v1.daemonSetTypedInformerAdapter where
   typedPointstoDef l v dq := iprop(
     "DaemonSetInformer" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetTypedInformerAdapter go!"DaemonSetInformer" l) v.DaemonSetInformer' dq ∗
@@ -232,11 +232,11 @@ noncomputable instance daemonSetTypedInformerAdapter_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance daemonSetTypedInformerAdapter_into_val_typed :
+noncomputable instance into_val_typed'daemonSetTypedInformerAdapter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.apps.v1.daemonSetTypedInformerAdapter k8s_io.client_go.informers.apps.v1.daemonSetTypedInformerAdapter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance daemonSetTypedInformerAdapter_access_load_DaemonSetInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.daemonSetTypedInformerAdapter) (dq : DFrac) :
+noncomputable instance access_load'daemonSetTypedInformerAdapter'DaemonSetInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.daemonSetTypedInformerAdapter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetTypedInformerAdapter go!"DaemonSetInformer" l) v.DaemonSetInformer' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetTypedInformerAdapter go!"DaemonSetInformer" l) v.DaemonSetInformer' dq)
@@ -244,7 +244,7 @@ noncomputable instance daemonSetTypedInformerAdapter_access_load_DaemonSetInform
  by
   solve_pointsto_access_struct
 
-noncomputable instance daemonSetTypedInformerAdapter_access_store_DaemonSetInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.daemonSetTypedInformerAdapter) (y : k8s_io.client_go.informers.apps.v1.DaemonSetInformer) :
+noncomputable instance access_store'daemonSetTypedInformerAdapter'DaemonSetInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.daemonSetTypedInformerAdapter) (y : k8s_io.client_go.informers.apps.v1.DaemonSetInformer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetTypedInformerAdapter go!"DaemonSetInformer" l) v.DaemonSetInformer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.daemonSetTypedInformerAdapter go!"DaemonSetInformer" l) y (DFrac.own 1))
@@ -263,7 +263,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.apps.v1.Assumptions]
 
-noncomputable instance deploymentInformer_typed_pointsto :
+noncomputable instance typed_pointsto'deploymentInformer :
     TypedPointsto (GF := GF) k8s_io.client_go.informers.apps.v1.deploymentInformer where
   typedPointstoDef l v dq := iprop(
     "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentInformer go!"factory" l) v.factory' dq ∗
@@ -274,11 +274,11 @@ noncomputable instance deploymentInformer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance deploymentInformer_into_val_typed :
+noncomputable instance into_val_typed'deploymentInformer :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.apps.v1.deploymentInformer k8s_io.client_go.informers.apps.v1.deploymentInformer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance deploymentInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.deploymentInformer) (dq : DFrac) :
+noncomputable instance access_load'deploymentInformer'factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.deploymentInformer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentInformer go!"factory" l) v.factory' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentInformer go!"factory" l) v.factory' dq)
@@ -286,7 +286,7 @@ noncomputable instance deploymentInformer_access_load_factory (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance deploymentInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.deploymentInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+noncomputable instance access_store'deploymentInformer'factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.deploymentInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentInformer go!"factory" l) v.factory' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentInformer go!"factory" l) y (DFrac.own 1))
@@ -294,7 +294,7 @@ noncomputable instance deploymentInformer_access_store_factory (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance deploymentInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.deploymentInformer) (dq : DFrac) :
+noncomputable instance access_load'deploymentInformer'tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.deploymentInformer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
@@ -302,7 +302,7 @@ noncomputable instance deploymentInformer_access_load_tweakListOptions (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance deploymentInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.deploymentInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+noncomputable instance access_store'deploymentInformer'tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.deploymentInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentInformer go!"tweakListOptions" l) y (DFrac.own 1))
@@ -310,7 +310,7 @@ noncomputable instance deploymentInformer_access_store_tweakListOptions (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance deploymentInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.deploymentInformer) (dq : DFrac) :
+noncomputable instance access_load'deploymentInformer'namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.deploymentInformer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentInformer go!"namespace" l) v.namespace' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentInformer go!"namespace" l) v.namespace' dq)
@@ -318,7 +318,7 @@ noncomputable instance deploymentInformer_access_load_namespace (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance deploymentInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.deploymentInformer) (y : GoString) :
+noncomputable instance access_store'deploymentInformer'namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.deploymentInformer) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentInformer go!"namespace" l) v.namespace' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentInformer go!"namespace" l) y (DFrac.own 1))
@@ -337,7 +337,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.apps.v1.Assumptions]
 
-noncomputable instance deploymentTypedInformerAdapter_typed_pointsto :
+noncomputable instance typed_pointsto'deploymentTypedInformerAdapter :
     TypedPointsto (GF := GF) k8s_io.client_go.informers.apps.v1.deploymentTypedInformerAdapter where
   typedPointstoDef l v dq := iprop(
     "DeploymentInformer" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentTypedInformerAdapter go!"DeploymentInformer" l) v.DeploymentInformer' dq ∗
@@ -346,11 +346,11 @@ noncomputable instance deploymentTypedInformerAdapter_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance deploymentTypedInformerAdapter_into_val_typed :
+noncomputable instance into_val_typed'deploymentTypedInformerAdapter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.apps.v1.deploymentTypedInformerAdapter k8s_io.client_go.informers.apps.v1.deploymentTypedInformerAdapter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance deploymentTypedInformerAdapter_access_load_DeploymentInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.deploymentTypedInformerAdapter) (dq : DFrac) :
+noncomputable instance access_load'deploymentTypedInformerAdapter'DeploymentInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.deploymentTypedInformerAdapter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentTypedInformerAdapter go!"DeploymentInformer" l) v.DeploymentInformer' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentTypedInformerAdapter go!"DeploymentInformer" l) v.DeploymentInformer' dq)
@@ -358,7 +358,7 @@ noncomputable instance deploymentTypedInformerAdapter_access_load_DeploymentInfo
  by
   solve_pointsto_access_struct
 
-noncomputable instance deploymentTypedInformerAdapter_access_store_DeploymentInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.deploymentTypedInformerAdapter) (y : k8s_io.client_go.informers.apps.v1.DeploymentInformer) :
+noncomputable instance access_store'deploymentTypedInformerAdapter'DeploymentInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.deploymentTypedInformerAdapter) (y : k8s_io.client_go.informers.apps.v1.DeploymentInformer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentTypedInformerAdapter go!"DeploymentInformer" l) v.DeploymentInformer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.deploymentTypedInformerAdapter go!"DeploymentInformer" l) y (DFrac.own 1))
@@ -377,7 +377,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.apps.v1.Assumptions]
 
-noncomputable instance version_typed_pointsto :
+noncomputable instance typed_pointsto'version :
     TypedPointsto (GF := GF) k8s_io.client_go.informers.apps.v1.version where
   typedPointstoDef l v dq := iprop(
     "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.version go!"factory" l) v.factory' dq ∗
@@ -388,11 +388,11 @@ noncomputable instance version_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance version_into_val_typed :
+noncomputable instance into_val_typed'version :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.apps.v1.version k8s_io.client_go.informers.apps.v1.version.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance version_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.version) (dq : DFrac) :
+noncomputable instance access_load'version'factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.version) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.version go!"factory" l) v.factory' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.version go!"factory" l) v.factory' dq)
@@ -400,7 +400,7 @@ noncomputable instance version_access_load_factory (l : Loc) (v : k8s_io.client_
  by
   solve_pointsto_access_struct
 
-noncomputable instance version_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.version) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+noncomputable instance access_store'version'factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.version) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.version go!"factory" l) v.factory' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.version go!"factory" l) y (DFrac.own 1))
@@ -408,7 +408,7 @@ noncomputable instance version_access_store_factory (l : Loc) (v : k8s_io.client
  by
   solve_pointsto_access_struct
 
-noncomputable instance version_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.version) (dq : DFrac) :
+noncomputable instance access_load'version'namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.version) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.version go!"namespace" l) v.namespace' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.version go!"namespace" l) v.namespace' dq)
@@ -416,7 +416,7 @@ noncomputable instance version_access_load_namespace (l : Loc) (v : k8s_io.clien
  by
   solve_pointsto_access_struct
 
-noncomputable instance version_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.version) (y : GoString) :
+noncomputable instance access_store'version'namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.version) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.version go!"namespace" l) v.namespace' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.version go!"namespace" l) y (DFrac.own 1))
@@ -424,7 +424,7 @@ noncomputable instance version_access_store_namespace (l : Loc) (v : k8s_io.clie
  by
   solve_pointsto_access_struct
 
-noncomputable instance version_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.version) (dq : DFrac) :
+noncomputable instance access_load'version'tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.version) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.version go!"tweakListOptions" l) v.tweakListOptions' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.version go!"tweakListOptions" l) v.tweakListOptions' dq)
@@ -432,7 +432,7 @@ noncomputable instance version_access_load_tweakListOptions (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance version_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.version) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+noncomputable instance access_store'version'tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.version) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.version go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.version go!"tweakListOptions" l) y (DFrac.own 1))
@@ -451,7 +451,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.apps.v1.Assumptions]
 
-noncomputable instance replicaSetInformer_typed_pointsto :
+noncomputable instance typed_pointsto'replicaSetInformer :
     TypedPointsto (GF := GF) k8s_io.client_go.informers.apps.v1.replicaSetInformer where
   typedPointstoDef l v dq := iprop(
     "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetInformer go!"factory" l) v.factory' dq ∗
@@ -462,11 +462,11 @@ noncomputable instance replicaSetInformer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance replicaSetInformer_into_val_typed :
+noncomputable instance into_val_typed'replicaSetInformer :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.apps.v1.replicaSetInformer k8s_io.client_go.informers.apps.v1.replicaSetInformer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance replicaSetInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.replicaSetInformer) (dq : DFrac) :
+noncomputable instance access_load'replicaSetInformer'factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.replicaSetInformer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetInformer go!"factory" l) v.factory' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetInformer go!"factory" l) v.factory' dq)
@@ -474,7 +474,7 @@ noncomputable instance replicaSetInformer_access_load_factory (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance replicaSetInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.replicaSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+noncomputable instance access_store'replicaSetInformer'factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.replicaSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetInformer go!"factory" l) v.factory' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetInformer go!"factory" l) y (DFrac.own 1))
@@ -482,7 +482,7 @@ noncomputable instance replicaSetInformer_access_store_factory (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance replicaSetInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.replicaSetInformer) (dq : DFrac) :
+noncomputable instance access_load'replicaSetInformer'tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.replicaSetInformer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
@@ -490,7 +490,7 @@ noncomputable instance replicaSetInformer_access_load_tweakListOptions (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance replicaSetInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.replicaSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+noncomputable instance access_store'replicaSetInformer'tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.replicaSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetInformer go!"tweakListOptions" l) y (DFrac.own 1))
@@ -498,7 +498,7 @@ noncomputable instance replicaSetInformer_access_store_tweakListOptions (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance replicaSetInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.replicaSetInformer) (dq : DFrac) :
+noncomputable instance access_load'replicaSetInformer'namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.replicaSetInformer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetInformer go!"namespace" l) v.namespace' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetInformer go!"namespace" l) v.namespace' dq)
@@ -506,7 +506,7 @@ noncomputable instance replicaSetInformer_access_load_namespace (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance replicaSetInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.replicaSetInformer) (y : GoString) :
+noncomputable instance access_store'replicaSetInformer'namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.replicaSetInformer) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetInformer go!"namespace" l) v.namespace' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetInformer go!"namespace" l) y (DFrac.own 1))
@@ -525,7 +525,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.apps.v1.Assumptions]
 
-noncomputable instance replicaSetTypedInformerAdapter_typed_pointsto :
+noncomputable instance typed_pointsto'replicaSetTypedInformerAdapter :
     TypedPointsto (GF := GF) k8s_io.client_go.informers.apps.v1.replicaSetTypedInformerAdapter where
   typedPointstoDef l v dq := iprop(
     "ReplicaSetInformer" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetTypedInformerAdapter go!"ReplicaSetInformer" l) v.ReplicaSetInformer' dq ∗
@@ -534,11 +534,11 @@ noncomputable instance replicaSetTypedInformerAdapter_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance replicaSetTypedInformerAdapter_into_val_typed :
+noncomputable instance into_val_typed'replicaSetTypedInformerAdapter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.apps.v1.replicaSetTypedInformerAdapter k8s_io.client_go.informers.apps.v1.replicaSetTypedInformerAdapter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance replicaSetTypedInformerAdapter_access_load_ReplicaSetInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.replicaSetTypedInformerAdapter) (dq : DFrac) :
+noncomputable instance access_load'replicaSetTypedInformerAdapter'ReplicaSetInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.replicaSetTypedInformerAdapter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetTypedInformerAdapter go!"ReplicaSetInformer" l) v.ReplicaSetInformer' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetTypedInformerAdapter go!"ReplicaSetInformer" l) v.ReplicaSetInformer' dq)
@@ -546,7 +546,7 @@ noncomputable instance replicaSetTypedInformerAdapter_access_load_ReplicaSetInfo
  by
   solve_pointsto_access_struct
 
-noncomputable instance replicaSetTypedInformerAdapter_access_store_ReplicaSetInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.replicaSetTypedInformerAdapter) (y : k8s_io.client_go.informers.apps.v1.ReplicaSetInformer) :
+noncomputable instance access_store'replicaSetTypedInformerAdapter'ReplicaSetInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.replicaSetTypedInformerAdapter) (y : k8s_io.client_go.informers.apps.v1.ReplicaSetInformer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetTypedInformerAdapter go!"ReplicaSetInformer" l) v.ReplicaSetInformer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.replicaSetTypedInformerAdapter go!"ReplicaSetInformer" l) y (DFrac.own 1))
@@ -565,7 +565,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.apps.v1.Assumptions]
 
-noncomputable instance statefulSetInformer_typed_pointsto :
+noncomputable instance typed_pointsto'statefulSetInformer :
     TypedPointsto (GF := GF) k8s_io.client_go.informers.apps.v1.statefulSetInformer where
   typedPointstoDef l v dq := iprop(
     "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetInformer go!"factory" l) v.factory' dq ∗
@@ -576,11 +576,11 @@ noncomputable instance statefulSetInformer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance statefulSetInformer_into_val_typed :
+noncomputable instance into_val_typed'statefulSetInformer :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.apps.v1.statefulSetInformer k8s_io.client_go.informers.apps.v1.statefulSetInformer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance statefulSetInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.statefulSetInformer) (dq : DFrac) :
+noncomputable instance access_load'statefulSetInformer'factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.statefulSetInformer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetInformer go!"factory" l) v.factory' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetInformer go!"factory" l) v.factory' dq)
@@ -588,7 +588,7 @@ noncomputable instance statefulSetInformer_access_load_factory (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance statefulSetInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.statefulSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+noncomputable instance access_store'statefulSetInformer'factory (l : Loc) (v : k8s_io.client_go.informers.apps.v1.statefulSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetInformer go!"factory" l) v.factory' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetInformer go!"factory" l) y (DFrac.own 1))
@@ -596,7 +596,7 @@ noncomputable instance statefulSetInformer_access_store_factory (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance statefulSetInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.statefulSetInformer) (dq : DFrac) :
+noncomputable instance access_load'statefulSetInformer'tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.statefulSetInformer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
@@ -604,7 +604,7 @@ noncomputable instance statefulSetInformer_access_load_tweakListOptions (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance statefulSetInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.statefulSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+noncomputable instance access_store'statefulSetInformer'tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.apps.v1.statefulSetInformer) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetInformer go!"tweakListOptions" l) y (DFrac.own 1))
@@ -612,7 +612,7 @@ noncomputable instance statefulSetInformer_access_store_tweakListOptions (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance statefulSetInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.statefulSetInformer) (dq : DFrac) :
+noncomputable instance access_load'statefulSetInformer'namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.statefulSetInformer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetInformer go!"namespace" l) v.namespace' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetInformer go!"namespace" l) v.namespace' dq)
@@ -620,7 +620,7 @@ noncomputable instance statefulSetInformer_access_load_namespace (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance statefulSetInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.statefulSetInformer) (y : GoString) :
+noncomputable instance access_store'statefulSetInformer'namespace (l : Loc) (v : k8s_io.client_go.informers.apps.v1.statefulSetInformer) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetInformer go!"namespace" l) v.namespace' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetInformer go!"namespace" l) y (DFrac.own 1))
@@ -639,7 +639,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.apps.v1.Assumptions]
 
-noncomputable instance statefulSetTypedInformerAdapter_typed_pointsto :
+noncomputable instance typed_pointsto'statefulSetTypedInformerAdapter :
     TypedPointsto (GF := GF) k8s_io.client_go.informers.apps.v1.statefulSetTypedInformerAdapter where
   typedPointstoDef l v dq := iprop(
     "StatefulSetInformer" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetTypedInformerAdapter go!"StatefulSetInformer" l) v.StatefulSetInformer' dq ∗
@@ -648,11 +648,11 @@ noncomputable instance statefulSetTypedInformerAdapter_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance statefulSetTypedInformerAdapter_into_val_typed :
+noncomputable instance into_val_typed'statefulSetTypedInformerAdapter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.apps.v1.statefulSetTypedInformerAdapter k8s_io.client_go.informers.apps.v1.statefulSetTypedInformerAdapter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance statefulSetTypedInformerAdapter_access_load_StatefulSetInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.statefulSetTypedInformerAdapter) (dq : DFrac) :
+noncomputable instance access_load'statefulSetTypedInformerAdapter'StatefulSetInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.statefulSetTypedInformerAdapter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetTypedInformerAdapter go!"StatefulSetInformer" l) v.StatefulSetInformer' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetTypedInformerAdapter go!"StatefulSetInformer" l) v.StatefulSetInformer' dq)
@@ -660,7 +660,7 @@ noncomputable instance statefulSetTypedInformerAdapter_access_load_StatefulSetIn
  by
   solve_pointsto_access_struct
 
-noncomputable instance statefulSetTypedInformerAdapter_access_store_StatefulSetInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.statefulSetTypedInformerAdapter) (y : k8s_io.client_go.informers.apps.v1.StatefulSetInformer) :
+noncomputable instance access_store'statefulSetTypedInformerAdapter'StatefulSetInformer (l : Loc) (v : k8s_io.client_go.informers.apps.v1.statefulSetTypedInformerAdapter) (y : k8s_io.client_go.informers.apps.v1.StatefulSetInformer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetTypedInformerAdapter go!"StatefulSetInformer" l) v.StatefulSetInformer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.apps.v1.statefulSetTypedInformerAdapter go!"StatefulSetInformer" l) y (DFrac.own 1))

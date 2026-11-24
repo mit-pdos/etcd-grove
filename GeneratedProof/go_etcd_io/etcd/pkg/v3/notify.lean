@@ -25,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.notify.Assumptions]
 
-noncomputable instance Notifier_typed_pointsto :
+noncomputable instance typed_pointsto'Notifier :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.notify.Notifier where
   typedPointstoDef l v dq := iprop(
     "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"mu" l) v.mu' dq ∗
@@ -35,11 +35,11 @@ noncomputable instance Notifier_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Notifier_into_val_typed :
+noncomputable instance into_val_typed'Notifier :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.notify.Notifier go_etcd_io.etcd.pkg.v3.notify.Notifier.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Notifier_access_load_mu (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (dq : DFrac) :
+noncomputable instance access_load'Notifier'mu (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"mu" l) v.mu' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"mu" l) v.mu' dq)
@@ -47,7 +47,7 @@ noncomputable instance Notifier_access_load_mu (l : Loc) (v : go_etcd_io.etcd.pk
  by
   solve_pointsto_access_struct
 
-noncomputable instance Notifier_access_store_mu (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'Notifier'mu (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"mu" l) y (DFrac.own 1))
@@ -55,7 +55,7 @@ noncomputable instance Notifier_access_store_mu (l : Loc) (v : go_etcd_io.etcd.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Notifier_access_load_channel (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (dq : DFrac) :
+noncomputable instance access_load'Notifier'channel (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"channel" l) v.channel' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"channel" l) v.channel' dq)
@@ -63,7 +63,7 @@ noncomputable instance Notifier_access_load_channel (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance Notifier_access_store_channel (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (y : GoChan) :
+noncomputable instance access_store'Notifier'channel (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"channel" l) v.channel' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"channel" l) y (DFrac.own 1))

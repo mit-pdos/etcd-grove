@@ -62,9 +62,9 @@ attribute [instance] TimeoutDetector.TypeAssumptions.type_repr
   TimeoutDetector.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  TimeoutDetector_instance : TimeoutDetector.TypeAssumptions
+  instance'TimeoutDetector : TimeoutDetector.TypeAssumptions
 
-attribute [instance] Assumptions.TimeoutDetector_instance
+attribute [instance] Assumptions.instance'TimeoutDetector
 
 end go_etcd_io.etcd.pkg.v3.contention
 

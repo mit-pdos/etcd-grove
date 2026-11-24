@@ -62,7 +62,7 @@ theorem Bag.Equal.wp_proof (wp_Count : Bag.Count.spec (GF := GF) (hG := hG)) :
         · iexact Hits
         ipureintro; exact Hy
       try wp_auto
-      rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_Count_unfold.method_unfold]
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'Count.method_unfold]
       try wp_auto
       wp_apply wp_Count h c y.msg' x.1 $$ [Hh Hyx] as %cc %Hcc
       · iframe Hh Hyx

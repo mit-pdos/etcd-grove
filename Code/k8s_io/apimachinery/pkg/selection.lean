@@ -79,9 +79,9 @@ attribute [instance] Operator.TypeAssumptions.underlying
   Operator.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Operator_instance : Operator.TypeAssumptions
+  instance'Operator : Operator.TypeAssumptions
 
-attribute [instance] Assumptions.Operator_instance
+attribute [instance] Assumptions.instance'Operator
 
 end k8s_io.apimachinery.pkg.selection
 

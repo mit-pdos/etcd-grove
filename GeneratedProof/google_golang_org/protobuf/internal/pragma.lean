@@ -25,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.pragma.Assumptions]
 
-noncomputable instance NoUnkeyedLiterals_typed_pointsto :
+noncomputable instance typed_pointsto'NoUnkeyedLiterals :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -33,7 +33,7 @@ noncomputable instance NoUnkeyedLiterals_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance NoUnkeyedLiterals_into_val_typed :
+noncomputable instance into_val_typed'NoUnkeyedLiterals :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.underlying := by
   solve_into_val_typed_struct
 

@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance DeviceClassesGetter_typed_pointsto :
+noncomputable instance typed_pointsto'DeviceClassesGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceClassesGetter :=
   sorry -- axiomatized type
 
-noncomputable instance DeviceClassesGetter_into_val_typed :
+noncomputable instance into_val_typed'DeviceClassesGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceClassesGetter k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceClassesGetter.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance DeviceClassInterface_typed_pointsto :
+noncomputable instance typed_pointsto'DeviceClassInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceClassInterface :=
   sorry -- axiomatized type
 
-noncomputable instance DeviceClassInterface_into_val_typed :
+noncomputable instance into_val_typed'DeviceClassInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceClassInterface k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceClassInterface.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance deviceClasses_typed_pointsto :
+noncomputable instance typed_pointsto'deviceClasses :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.deviceClasses :=
   sorry -- axiomatized type
 
-noncomputable instance deviceClasses_into_val_typed :
+noncomputable instance into_val_typed'deviceClasses :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.deviceClasses k8s_io.client_go.kubernetes.typed.resource.v1beta2.deviceClasses.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance DeviceTaintRulesGetter_typed_pointsto :
+noncomputable instance typed_pointsto'DeviceTaintRulesGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceTaintRulesGetter :=
   sorry -- axiomatized type
 
-noncomputable instance DeviceTaintRulesGetter_into_val_typed :
+noncomputable instance into_val_typed'DeviceTaintRulesGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceTaintRulesGetter k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceTaintRulesGetter.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance DeviceTaintRuleInterface_typed_pointsto :
+noncomputable instance typed_pointsto'DeviceTaintRuleInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceTaintRuleInterface :=
   sorry -- axiomatized type
 
-noncomputable instance DeviceTaintRuleInterface_into_val_typed :
+noncomputable instance into_val_typed'DeviceTaintRuleInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceTaintRuleInterface k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceTaintRuleInterface.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance deviceTaintRules_typed_pointsto :
+noncomputable instance typed_pointsto'deviceTaintRules :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.deviceTaintRules :=
   sorry -- axiomatized type
 
-noncomputable instance deviceTaintRules_into_val_typed :
+noncomputable instance into_val_typed'deviceTaintRules :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.deviceTaintRules k8s_io.client_go.kubernetes.typed.resource.v1beta2.deviceTaintRules.underlying :=
   sorry -- axiomatized type
 
@@ -138,11 +138,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance DeviceClassExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'DeviceClassExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceClassExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance DeviceClassExpansion_into_val_typed :
+noncomputable instance into_val_typed'DeviceClassExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceClassExpansion k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceClassExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -157,11 +157,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance DeviceTaintRuleExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'DeviceTaintRuleExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceTaintRuleExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance DeviceTaintRuleExpansion_into_val_typed :
+noncomputable instance into_val_typed'DeviceTaintRuleExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceTaintRuleExpansion k8s_io.client_go.kubernetes.typed.resource.v1beta2.DeviceTaintRuleExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -176,11 +176,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance ResourceClaimExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'ResourceClaimExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance ResourceClaimExpansion_into_val_typed :
+noncomputable instance into_val_typed'ResourceClaimExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimExpansion k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -195,11 +195,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance ResourceClaimTemplateExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'ResourceClaimTemplateExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimTemplateExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance ResourceClaimTemplateExpansion_into_val_typed :
+noncomputable instance into_val_typed'ResourceClaimTemplateExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimTemplateExpansion k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimTemplateExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -214,11 +214,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance ResourceSliceExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'ResourceSliceExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceSliceExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance ResourceSliceExpansion_into_val_typed :
+noncomputable instance into_val_typed'ResourceSliceExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceSliceExpansion k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceSliceExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -233,11 +233,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance ResourceV1beta2Interface_typed_pointsto :
+noncomputable instance typed_pointsto'ResourceV1beta2Interface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceV1beta2Interface :=
   sorry -- axiomatized type
 
-noncomputable instance ResourceV1beta2Interface_into_val_typed :
+noncomputable instance into_val_typed'ResourceV1beta2Interface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceV1beta2Interface k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceV1beta2Interface.underlying :=
   sorry -- axiomatized type
 
@@ -252,11 +252,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance ResourceV1beta2Client_typed_pointsto :
+noncomputable instance typed_pointsto'ResourceV1beta2Client :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceV1beta2Client :=
   sorry -- axiomatized type
 
-noncomputable instance ResourceV1beta2Client_into_val_typed :
+noncomputable instance into_val_typed'ResourceV1beta2Client :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceV1beta2Client k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceV1beta2Client.underlying :=
   sorry -- axiomatized type
 
@@ -271,11 +271,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance ResourceClaimsGetter_typed_pointsto :
+noncomputable instance typed_pointsto'ResourceClaimsGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimsGetter :=
   sorry -- axiomatized type
 
-noncomputable instance ResourceClaimsGetter_into_val_typed :
+noncomputable instance into_val_typed'ResourceClaimsGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimsGetter k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimsGetter.underlying :=
   sorry -- axiomatized type
 
@@ -290,11 +290,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance ResourceClaimInterface_typed_pointsto :
+noncomputable instance typed_pointsto'ResourceClaimInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimInterface :=
   sorry -- axiomatized type
 
-noncomputable instance ResourceClaimInterface_into_val_typed :
+noncomputable instance into_val_typed'ResourceClaimInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimInterface k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimInterface.underlying :=
   sorry -- axiomatized type
 
@@ -309,11 +309,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance resourceClaims_typed_pointsto :
+noncomputable instance typed_pointsto'resourceClaims :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.resourceClaims :=
   sorry -- axiomatized type
 
-noncomputable instance resourceClaims_into_val_typed :
+noncomputable instance into_val_typed'resourceClaims :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.resourceClaims k8s_io.client_go.kubernetes.typed.resource.v1beta2.resourceClaims.underlying :=
   sorry -- axiomatized type
 
@@ -328,11 +328,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance ResourceClaimTemplatesGetter_typed_pointsto :
+noncomputable instance typed_pointsto'ResourceClaimTemplatesGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimTemplatesGetter :=
   sorry -- axiomatized type
 
-noncomputable instance ResourceClaimTemplatesGetter_into_val_typed :
+noncomputable instance into_val_typed'ResourceClaimTemplatesGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimTemplatesGetter k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimTemplatesGetter.underlying :=
   sorry -- axiomatized type
 
@@ -347,11 +347,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance ResourceClaimTemplateInterface_typed_pointsto :
+noncomputable instance typed_pointsto'ResourceClaimTemplateInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimTemplateInterface :=
   sorry -- axiomatized type
 
-noncomputable instance ResourceClaimTemplateInterface_into_val_typed :
+noncomputable instance into_val_typed'ResourceClaimTemplateInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimTemplateInterface k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceClaimTemplateInterface.underlying :=
   sorry -- axiomatized type
 
@@ -366,11 +366,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance resourceClaimTemplates_typed_pointsto :
+noncomputable instance typed_pointsto'resourceClaimTemplates :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.resourceClaimTemplates :=
   sorry -- axiomatized type
 
-noncomputable instance resourceClaimTemplates_into_val_typed :
+noncomputable instance into_val_typed'resourceClaimTemplates :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.resourceClaimTemplates k8s_io.client_go.kubernetes.typed.resource.v1beta2.resourceClaimTemplates.underlying :=
   sorry -- axiomatized type
 
@@ -385,11 +385,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance ResourceSlicesGetter_typed_pointsto :
+noncomputable instance typed_pointsto'ResourceSlicesGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceSlicesGetter :=
   sorry -- axiomatized type
 
-noncomputable instance ResourceSlicesGetter_into_val_typed :
+noncomputable instance into_val_typed'ResourceSlicesGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceSlicesGetter k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceSlicesGetter.underlying :=
   sorry -- axiomatized type
 
@@ -404,11 +404,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance ResourceSliceInterface_typed_pointsto :
+noncomputable instance typed_pointsto'ResourceSliceInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceSliceInterface :=
   sorry -- axiomatized type
 
-noncomputable instance ResourceSliceInterface_into_val_typed :
+noncomputable instance into_val_typed'ResourceSliceInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceSliceInterface k8s_io.client_go.kubernetes.typed.resource.v1beta2.ResourceSliceInterface.underlying :=
   sorry -- axiomatized type
 
@@ -423,11 +423,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta2.Assumptions]
 
-noncomputable instance resourceSlices_typed_pointsto :
+noncomputable instance typed_pointsto'resourceSlices :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.resourceSlices :=
   sorry -- axiomatized type
 
-noncomputable instance resourceSlices_into_val_typed :
+noncomputable instance into_val_typed'resourceSlices :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta2.resourceSlices k8s_io.client_go.kubernetes.typed.resource.v1beta2.resourceSlices.underlying :=
   sorry -- axiomatized type
 

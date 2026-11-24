@@ -143,9 +143,9 @@ theorem labelSel_intoVal_inj : Function.Injective (intoVal (V := labelSel)) := b
   intro x y h
   have h : (#x : val) = #y := h
   have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
-    (labelSel.TypeAssumptions.get_all x) (labelSel.TypeAssumptions.get_all y) h))
+    (labelSel.TypeAssumptions.get'all x) (labelSel.TypeAssumptions.get'all y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (labelSel.TypeAssumptions.get_app x) (labelSel.TypeAssumptions.get_app y) h))
+    (labelSel.TypeAssumptions.get'app x) (labelSel.TypeAssumptions.get'app y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -153,15 +153,15 @@ theorem fieldSel_intoVal_inj : Function.Injective (intoVal (V := fieldSel)) := b
   intro x y h
   have h : (#x : val) = #y := h
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (fieldSel.TypeAssumptions.get_n x) (fieldSel.TypeAssumptions.get_n y) h))
+    (fieldSel.TypeAssumptions.get'n x) (fieldSel.TypeAssumptions.get'n y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (fieldSel.TypeAssumptions.get_f1 x) (fieldSel.TypeAssumptions.get_f1 y) h))
+    (fieldSel.TypeAssumptions.get'f1 x) (fieldSel.TypeAssumptions.get'f1 y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (fieldSel.TypeAssumptions.get_v1 x) (fieldSel.TypeAssumptions.get_v1 y) h))
+    (fieldSel.TypeAssumptions.get'v1 x) (fieldSel.TypeAssumptions.get'v1 y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (fieldSel.TypeAssumptions.get_f2 x) (fieldSel.TypeAssumptions.get_f2 y) h))
+    (fieldSel.TypeAssumptions.get'f2 x) (fieldSel.TypeAssumptions.get'f2 y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
-    (fieldSel.TypeAssumptions.get_v2 x) (fieldSel.TypeAssumptions.get_v2 y) h))
+    (fieldSel.TypeAssumptions.get'v2 x) (fieldSel.TypeAssumptions.get'v2 y) h))
   cases x; cases y; simp_all
 
 theorem optStrPtr_agree (l : Loc) (a b : Option GoString) :

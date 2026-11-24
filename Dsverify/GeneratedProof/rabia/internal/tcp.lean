@@ -31,7 +31,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : rabia.internal.tcp.Assumptions]
 
-noncomputable instance ClientTCP_typed_pointsto :
+noncomputable instance typed_pointsto'ClientTCP :
     TypedPointsto (GF := GF) rabia.internal.tcp.ClientTCP where
   typedPointstoDef l v dq := iprop(
     "Id" ∷ typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Id" l) v.Id' dq ∗
@@ -48,11 +48,11 @@ noncomputable instance ClientTCP_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ClientTCP_into_val_typed :
+noncomputable instance into_val_typed'ClientTCP :
     IntoValTypedUnderlying (GF := GF) rabia.internal.tcp.ClientTCP rabia.internal.tcp.ClientTCP.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ClientTCP_access_load_Id (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
+noncomputable instance access_load'ClientTCP'Id (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Id" l) v.Id' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Id" l) v.Id' dq)
@@ -60,7 +60,7 @@ noncomputable instance ClientTCP_access_load_Id (l : Loc) (v : rabia.internal.tc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_store_Id (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : w32) :
+noncomputable instance access_store'ClientTCP'Id (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Id" l) v.Id' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Id" l) y (DFrac.own 1))
@@ -68,7 +68,7 @@ noncomputable instance ClientTCP_access_store_Id (l : Loc) (v : rabia.internal.t
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_load_Wg (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
+noncomputable instance access_load'ClientTCP'Wg (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Wg" l) v.Wg' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Wg" l) v.Wg' dq)
@@ -76,7 +76,7 @@ noncomputable instance ClientTCP_access_load_Wg (l : Loc) (v : rabia.internal.tc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_store_Wg (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : Loc) :
+noncomputable instance access_store'ClientTCP'Wg (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Wg" l) v.Wg' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Wg" l) y (DFrac.own 1))
@@ -84,7 +84,7 @@ noncomputable instance ClientTCP_access_store_Wg (l : Loc) (v : rabia.internal.t
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_load_Done (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
+noncomputable instance access_load'ClientTCP'Done (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Done" l) v.Done' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Done" l) v.Done' dq)
@@ -92,7 +92,7 @@ noncomputable instance ClientTCP_access_load_Done (l : Loc) (v : rabia.internal.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_store_Done (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : GoChan) :
+noncomputable instance access_store'ClientTCP'Done (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Done" l) v.Done' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Done" l) y (DFrac.own 1))
@@ -100,7 +100,7 @@ noncomputable instance ClientTCP_access_store_Done (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_load_ProxyAddr (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
+noncomputable instance access_load'ClientTCP'ProxyAddr (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"ProxyAddr" l) v.ProxyAddr' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"ProxyAddr" l) v.ProxyAddr' dq)
@@ -108,7 +108,7 @@ noncomputable instance ClientTCP_access_load_ProxyAddr (l : Loc) (v : rabia.inte
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_store_ProxyAddr (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : GoString) :
+noncomputable instance access_store'ClientTCP'ProxyAddr (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"ProxyAddr" l) v.ProxyAddr' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"ProxyAddr" l) y (DFrac.own 1))
@@ -116,7 +116,7 @@ noncomputable instance ClientTCP_access_store_ProxyAddr (l : Loc) (v : rabia.int
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_load_RecvChan (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
+noncomputable instance access_load'ClientTCP'RecvChan (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"RecvChan" l) v.RecvChan' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"RecvChan" l) v.RecvChan' dq)
@@ -124,7 +124,7 @@ noncomputable instance ClientTCP_access_load_RecvChan (l : Loc) (v : rabia.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_store_RecvChan (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : GoChan) :
+noncomputable instance access_store'ClientTCP'RecvChan (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"RecvChan" l) v.RecvChan' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"RecvChan" l) y (DFrac.own 1))
@@ -132,7 +132,7 @@ noncomputable instance ClientTCP_access_store_RecvChan (l : Loc) (v : rabia.inte
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_load_SendChan (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
+noncomputable instance access_load'ClientTCP'SendChan (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"SendChan" l) v.SendChan' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"SendChan" l) v.SendChan' dq)
@@ -140,7 +140,7 @@ noncomputable instance ClientTCP_access_load_SendChan (l : Loc) (v : rabia.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_store_SendChan (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : GoChan) :
+noncomputable instance access_store'ClientTCP'SendChan (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"SendChan" l) v.SendChan' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"SendChan" l) y (DFrac.own 1))
@@ -148,7 +148,7 @@ noncomputable instance ClientTCP_access_store_SendChan (l : Loc) (v : rabia.inte
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_load_Conn (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
+noncomputable instance access_load'ClientTCP'Conn (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Conn" l) v.Conn' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Conn" l) v.Conn' dq)
@@ -156,7 +156,7 @@ noncomputable instance ClientTCP_access_load_Conn (l : Loc) (v : rabia.internal.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_store_Conn (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : Loc) :
+noncomputable instance access_store'ClientTCP'Conn (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Conn" l) v.Conn' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Conn" l) y (DFrac.own 1))
@@ -164,7 +164,7 @@ noncomputable instance ClientTCP_access_store_Conn (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_load_Reader (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
+noncomputable instance access_load'ClientTCP'Reader (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Reader" l) v.Reader' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Reader" l) v.Reader' dq)
@@ -172,7 +172,7 @@ noncomputable instance ClientTCP_access_load_Reader (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_store_Reader (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : Loc) :
+noncomputable instance access_store'ClientTCP'Reader (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Reader" l) v.Reader' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Reader" l) y (DFrac.own 1))
@@ -180,7 +180,7 @@ noncomputable instance ClientTCP_access_store_Reader (l : Loc) (v : rabia.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_load_Writer (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
+noncomputable instance access_load'ClientTCP'Writer (l : Loc) (v : rabia.internal.tcp.ClientTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Writer" l) v.Writer' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Writer" l) v.Writer' dq)
@@ -188,7 +188,7 @@ noncomputable instance ClientTCP_access_load_Writer (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientTCP_access_store_Writer (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : Loc) :
+noncomputable instance access_store'ClientTCP'Writer (l : Loc) (v : rabia.internal.tcp.ClientTCP) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Writer" l) v.Writer' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ClientTCP go!"Writer" l) y (DFrac.own 1))
@@ -207,7 +207,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : rabia.internal.tcp.Assumptions]
 
-noncomputable instance ProxyTCP_typed_pointsto :
+noncomputable instance typed_pointsto'ProxyTCP :
     TypedPointsto (GF := GF) rabia.internal.tcp.ProxyTCP where
   typedPointstoDef l v dq := iprop(
     "Id" ∷ typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Id" l) v.Id' dq ∗
@@ -226,11 +226,11 @@ noncomputable instance ProxyTCP_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ProxyTCP_into_val_typed :
+noncomputable instance into_val_typed'ProxyTCP :
     IntoValTypedUnderlying (GF := GF) rabia.internal.tcp.ProxyTCP rabia.internal.tcp.ProxyTCP.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ProxyTCP_access_load_Id (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
+noncomputable instance access_load'ProxyTCP'Id (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Id" l) v.Id' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Id" l) v.Id' dq)
@@ -238,7 +238,7 @@ noncomputable instance ProxyTCP_access_load_Id (l : Loc) (v : rabia.internal.tcp
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_store_Id (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : w32) :
+noncomputable instance access_store'ProxyTCP'Id (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Id" l) v.Id' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Id" l) y (DFrac.own 1))
@@ -246,7 +246,7 @@ noncomputable instance ProxyTCP_access_store_Id (l : Loc) (v : rabia.internal.tc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_load_Wg (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
+noncomputable instance access_load'ProxyTCP'Wg (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Wg" l) v.Wg' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Wg" l) v.Wg' dq)
@@ -254,7 +254,7 @@ noncomputable instance ProxyTCP_access_load_Wg (l : Loc) (v : rabia.internal.tcp
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_store_Wg (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : Loc) :
+noncomputable instance access_store'ProxyTCP'Wg (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Wg" l) v.Wg' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Wg" l) y (DFrac.own 1))
@@ -262,7 +262,7 @@ noncomputable instance ProxyTCP_access_store_Wg (l : Loc) (v : rabia.internal.tc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_load_Done (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
+noncomputable instance access_load'ProxyTCP'Done (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Done" l) v.Done' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Done" l) v.Done' dq)
@@ -270,7 +270,7 @@ noncomputable instance ProxyTCP_access_load_Done (l : Loc) (v : rabia.internal.t
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_store_Done (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : GoChan) :
+noncomputable instance access_store'ProxyTCP'Done (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Done" l) v.Done' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Done" l) y (DFrac.own 1))
@@ -278,7 +278,7 @@ noncomputable instance ProxyTCP_access_store_Done (l : Loc) (v : rabia.internal.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_load_ProxyAddr (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
+noncomputable instance access_load'ProxyTCP'ProxyAddr (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"ProxyAddr" l) v.ProxyAddr' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"ProxyAddr" l) v.ProxyAddr' dq)
@@ -286,7 +286,7 @@ noncomputable instance ProxyTCP_access_load_ProxyAddr (l : Loc) (v : rabia.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_store_ProxyAddr (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : GoString) :
+noncomputable instance access_store'ProxyTCP'ProxyAddr (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"ProxyAddr" l) v.ProxyAddr' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"ProxyAddr" l) y (DFrac.own 1))
@@ -294,7 +294,7 @@ noncomputable instance ProxyTCP_access_store_ProxyAddr (l : Loc) (v : rabia.inte
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_load_RecvChan (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
+noncomputable instance access_load'ProxyTCP'RecvChan (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"RecvChan" l) v.RecvChan' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"RecvChan" l) v.RecvChan' dq)
@@ -302,7 +302,7 @@ noncomputable instance ProxyTCP_access_load_RecvChan (l : Loc) (v : rabia.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_store_RecvChan (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : GoChan) :
+noncomputable instance access_store'ProxyTCP'RecvChan (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"RecvChan" l) v.RecvChan' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"RecvChan" l) y (DFrac.own 1))
@@ -310,7 +310,7 @@ noncomputable instance ProxyTCP_access_store_RecvChan (l : Loc) (v : rabia.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_load_SendChan (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
+noncomputable instance access_load'ProxyTCP'SendChan (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"SendChan" l) v.SendChan' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"SendChan" l) v.SendChan' dq)
@@ -318,7 +318,7 @@ noncomputable instance ProxyTCP_access_load_SendChan (l : Loc) (v : rabia.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_store_SendChan (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : GoSlice) :
+noncomputable instance access_store'ProxyTCP'SendChan (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"SendChan" l) v.SendChan' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"SendChan" l) y (DFrac.own 1))
@@ -326,7 +326,7 @@ noncomputable instance ProxyTCP_access_store_SendChan (l : Loc) (v : rabia.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_load_Listener (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
+noncomputable instance access_load'ProxyTCP'Listener (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Listener" l) v.Listener' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Listener" l) v.Listener' dq)
@@ -334,7 +334,7 @@ noncomputable instance ProxyTCP_access_load_Listener (l : Loc) (v : rabia.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_store_Listener (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : _root_.Perennial.net.Listener) :
+noncomputable instance access_store'ProxyTCP'Listener (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : _root_.Perennial.net.Listener) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Listener" l) v.Listener' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Listener" l) y (DFrac.own 1))
@@ -342,7 +342,7 @@ noncomputable instance ProxyTCP_access_store_Listener (l : Loc) (v : rabia.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_load_Conns (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
+noncomputable instance access_load'ProxyTCP'Conns (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Conns" l) v.Conns' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Conns" l) v.Conns' dq)
@@ -350,7 +350,7 @@ noncomputable instance ProxyTCP_access_load_Conns (l : Loc) (v : rabia.internal.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_store_Conns (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : GoSlice) :
+noncomputable instance access_store'ProxyTCP'Conns (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Conns" l) v.Conns' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Conns" l) y (DFrac.own 1))
@@ -358,7 +358,7 @@ noncomputable instance ProxyTCP_access_store_Conns (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_load_Readers (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
+noncomputable instance access_load'ProxyTCP'Readers (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Readers" l) v.Readers' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Readers" l) v.Readers' dq)
@@ -366,7 +366,7 @@ noncomputable instance ProxyTCP_access_load_Readers (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_store_Readers (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : GoSlice) :
+noncomputable instance access_store'ProxyTCP'Readers (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Readers" l) v.Readers' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Readers" l) y (DFrac.own 1))
@@ -374,7 +374,7 @@ noncomputable instance ProxyTCP_access_store_Readers (l : Loc) (v : rabia.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_load_Writers (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
+noncomputable instance access_load'ProxyTCP'Writers (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Writers" l) v.Writers' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Writers" l) v.Writers' dq)
@@ -382,7 +382,7 @@ noncomputable instance ProxyTCP_access_load_Writers (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_store_Writers (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : GoSlice) :
+noncomputable instance access_store'ProxyTCP'Writers (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Writers" l) v.Writers' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Writers" l) y (DFrac.own 1))
@@ -390,7 +390,7 @@ noncomputable instance ProxyTCP_access_store_Writers (l : Loc) (v : rabia.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_load_ConnsLock (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
+noncomputable instance access_load'ProxyTCP'ConnsLock (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"ConnsLock" l) v.ConnsLock' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"ConnsLock" l) v.ConnsLock' dq)
@@ -398,7 +398,7 @@ noncomputable instance ProxyTCP_access_load_ConnsLock (l : Loc) (v : rabia.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_store_ConnsLock (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'ProxyTCP'ConnsLock (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"ConnsLock" l) v.ConnsLock' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"ConnsLock" l) y (DFrac.own 1))
@@ -417,7 +417,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : rabia.internal.tcp.Assumptions]
 
-noncomputable instance NetTCP_typed_pointsto :
+noncomputable instance typed_pointsto'NetTCP :
     TypedPointsto (GF := GF) rabia.internal.tcp.NetTCP where
   typedPointstoDef l v dq := iprop(
     "Id" ∷ typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Id" l) v.Id' dq ∗
@@ -436,11 +436,11 @@ noncomputable instance NetTCP_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance NetTCP_into_val_typed :
+noncomputable instance into_val_typed'NetTCP :
     IntoValTypedUnderlying (GF := GF) rabia.internal.tcp.NetTCP rabia.internal.tcp.NetTCP.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance NetTCP_access_load_Id (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
+noncomputable instance access_load'NetTCP'Id (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Id" l) v.Id' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Id" l) v.Id' dq)
@@ -448,7 +448,7 @@ noncomputable instance NetTCP_access_load_Id (l : Loc) (v : rabia.internal.tcp.N
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_store_Id (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : w32) :
+noncomputable instance access_store'NetTCP'Id (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Id" l) v.Id' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Id" l) y (DFrac.own 1))
@@ -456,7 +456,7 @@ noncomputable instance NetTCP_access_store_Id (l : Loc) (v : rabia.internal.tcp.
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_load_Done (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
+noncomputable instance access_load'NetTCP'Done (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Done" l) v.Done' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Done" l) v.Done' dq)
@@ -464,7 +464,7 @@ noncomputable instance NetTCP_access_load_Done (l : Loc) (v : rabia.internal.tcp
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_store_Done (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : GoChan) :
+noncomputable instance access_store'NetTCP'Done (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Done" l) v.Done' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Done" l) y (DFrac.own 1))
@@ -472,7 +472,7 @@ noncomputable instance NetTCP_access_store_Done (l : Loc) (v : rabia.internal.tc
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_load_Wg (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
+noncomputable instance access_load'NetTCP'Wg (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Wg" l) v.Wg' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Wg" l) v.Wg' dq)
@@ -480,7 +480,7 @@ noncomputable instance NetTCP_access_load_Wg (l : Loc) (v : rabia.internal.tcp.N
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_store_Wg (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : Loc) :
+noncomputable instance access_store'NetTCP'Wg (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Wg" l) v.Wg' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Wg" l) y (DFrac.own 1))
@@ -488,7 +488,7 @@ noncomputable instance NetTCP_access_store_Wg (l : Loc) (v : rabia.internal.tcp.
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_load_NetAddr (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
+noncomputable instance access_load'NetTCP'NetAddr (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"NetAddr" l) v.NetAddr' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"NetAddr" l) v.NetAddr' dq)
@@ -496,7 +496,7 @@ noncomputable instance NetTCP_access_load_NetAddr (l : Loc) (v : rabia.internal.
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_store_NetAddr (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : GoString) :
+noncomputable instance access_store'NetTCP'NetAddr (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"NetAddr" l) v.NetAddr' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"NetAddr" l) y (DFrac.own 1))
@@ -504,7 +504,7 @@ noncomputable instance NetTCP_access_store_NetAddr (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_load_RecvChan (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
+noncomputable instance access_load'NetTCP'RecvChan (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"RecvChan" l) v.RecvChan' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"RecvChan" l) v.RecvChan' dq)
@@ -512,7 +512,7 @@ noncomputable instance NetTCP_access_load_RecvChan (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_store_RecvChan (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : GoChan) :
+noncomputable instance access_store'NetTCP'RecvChan (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"RecvChan" l) v.RecvChan' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"RecvChan" l) y (DFrac.own 1))
@@ -520,7 +520,7 @@ noncomputable instance NetTCP_access_store_RecvChan (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_load_SendChan (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
+noncomputable instance access_load'NetTCP'SendChan (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"SendChan" l) v.SendChan' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"SendChan" l) v.SendChan' dq)
@@ -528,7 +528,7 @@ noncomputable instance NetTCP_access_load_SendChan (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_store_SendChan (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : GoSlice) :
+noncomputable instance access_store'NetTCP'SendChan (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"SendChan" l) v.SendChan' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"SendChan" l) y (DFrac.own 1))
@@ -536,7 +536,7 @@ noncomputable instance NetTCP_access_store_SendChan (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_load_Listener (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
+noncomputable instance access_load'NetTCP'Listener (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Listener" l) v.Listener' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Listener" l) v.Listener' dq)
@@ -544,7 +544,7 @@ noncomputable instance NetTCP_access_load_Listener (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_store_Listener (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : _root_.Perennial.net.Listener) :
+noncomputable instance access_store'NetTCP'Listener (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : _root_.Perennial.net.Listener) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Listener" l) v.Listener' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Listener" l) y (DFrac.own 1))
@@ -552,7 +552,7 @@ noncomputable instance NetTCP_access_store_Listener (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_load_RecvConn (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
+noncomputable instance access_load'NetTCP'RecvConn (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"RecvConn" l) v.RecvConn' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"RecvConn" l) v.RecvConn' dq)
@@ -560,7 +560,7 @@ noncomputable instance NetTCP_access_load_RecvConn (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_store_RecvConn (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : GoSlice) :
+noncomputable instance access_store'NetTCP'RecvConn (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"RecvConn" l) v.RecvConn' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"RecvConn" l) y (DFrac.own 1))
@@ -568,7 +568,7 @@ noncomputable instance NetTCP_access_store_RecvConn (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_load_SendConn (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
+noncomputable instance access_load'NetTCP'SendConn (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"SendConn" l) v.SendConn' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"SendConn" l) v.SendConn' dq)
@@ -576,7 +576,7 @@ noncomputable instance NetTCP_access_load_SendConn (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_store_SendConn (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : GoSlice) :
+noncomputable instance access_store'NetTCP'SendConn (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"SendConn" l) v.SendConn' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"SendConn" l) y (DFrac.own 1))
@@ -584,7 +584,7 @@ noncomputable instance NetTCP_access_store_SendConn (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_load_Readers (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
+noncomputable instance access_load'NetTCP'Readers (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Readers" l) v.Readers' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Readers" l) v.Readers' dq)
@@ -592,7 +592,7 @@ noncomputable instance NetTCP_access_load_Readers (l : Loc) (v : rabia.internal.
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_store_Readers (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : GoSlice) :
+noncomputable instance access_store'NetTCP'Readers (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Readers" l) v.Readers' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Readers" l) y (DFrac.own 1))
@@ -600,7 +600,7 @@ noncomputable instance NetTCP_access_store_Readers (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_load_Writers (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
+noncomputable instance access_load'NetTCP'Writers (l : Loc) (v : rabia.internal.tcp.NetTCP) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Writers" l) v.Writers' dq)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Writers" l) v.Writers' dq)
@@ -608,7 +608,7 @@ noncomputable instance NetTCP_access_load_Writers (l : Loc) (v : rabia.internal.
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_store_Writers (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : GoSlice) :
+noncomputable instance access_store'NetTCP'Writers (l : Loc) (v : rabia.internal.tcp.NetTCP) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Writers" l) v.Writers' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Writers" l) y (DFrac.own 1))

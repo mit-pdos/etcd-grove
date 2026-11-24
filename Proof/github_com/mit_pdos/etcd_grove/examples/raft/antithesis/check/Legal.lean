@@ -83,7 +83,7 @@ theorem Legal.wp_proof (wp_rec : Value.rec.spec (GF := GF) (hG := hG))
   have hrd := Legal_asRec d r hr
   subst hrd
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Value.TypeAssumptions.ptr_rec_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Value.TypeAssumptions.ptr_unfold'rec.method_unfold]
   try wp_auto
   wp_apply wp_rec h r r $$ [Hd] as #Hr
   · iframe Hd; ipureintro; exact hr
@@ -145,12 +145,12 @@ theorem Legal.wp_proof (wp_rec : Value.rec.spec (GF := GF) (hG := hG))
         · rw [hj] at Ht'
           simp only [Bool.false_or] at Ht'
           try wp_auto
-          rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.TypeAssumptions.ptr_Minus_unfold.method_unfold]
+          rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.TypeAssumptions.ptr_unfold'Minus.method_unfold]
           try wp_auto
           wp_apply wp_Minus u t g.In' c.cin $$ [Hu Hin] as %u1 #Hu1
           · iframe Hu Hin
           try wp_auto
-          rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.TypeAssumptions.ptr_Minus_unfold.method_unfold]
+          rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.TypeAssumptions.ptr_unfold'Minus.method_unfold]
           try wp_auto
           wp_apply wp_Minus g.In' c.cin u t $$ [Hu Hin] as %u2 #Hu2
           · iframe Hu Hin

@@ -361,29 +361,29 @@ attribute [instance] taintsFilterFunc.TypeAssumptions.underlying
   taintsFilterFunc.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  taintsFilterFunc_instance : taintsFilterFunc.TypeAssumptions
-  PodPriority_unfold : FuncUnfold PodPriority [] PodPriority.impl
-  MatchNodeSelectorTerms_unfold : FuncUnfold MatchNodeSelectorTerms [] MatchNodeSelectorTerms.impl
-  GetAvoidPodsFromNodeAnnotations_unfold : FuncUnfold GetAvoidPodsFromNodeAnnotations [] GetAvoidPodsFromNodeAnnotations.impl
-  TolerationsTolerateTaint_unfold : FuncUnfold TolerationsTolerateTaint [] TolerationsTolerateTaint.impl
-  FindMatchingUntoleratedTaint_unfold : FuncUnfold FindMatchingUntoleratedTaint [] FindMatchingUntoleratedTaint.impl
-  getFilteredTaints_unfold : FuncUnfold getFilteredTaints [] getFilteredTaints.impl
-  import_json_Assumption : _root_.Perennial.encoding.json.Assumptions
-  import_v1_Assumption : _root_.Perennial.k8s_io.api.core.v1.Assumptions
-  import_nodeaffinity_Assumption : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions
-  import_klog_Assumption : _root_.Perennial.k8s_io.klog.v2.Assumptions
+  instance'taintsFilterFunc : taintsFilterFunc.TypeAssumptions
+  unfold'PodPriority : FuncUnfold PodPriority [] PodPriority.impl
+  unfold'MatchNodeSelectorTerms : FuncUnfold MatchNodeSelectorTerms [] MatchNodeSelectorTerms.impl
+  unfold'GetAvoidPodsFromNodeAnnotations : FuncUnfold GetAvoidPodsFromNodeAnnotations [] GetAvoidPodsFromNodeAnnotations.impl
+  unfold'TolerationsTolerateTaint : FuncUnfold TolerationsTolerateTaint [] TolerationsTolerateTaint.impl
+  unfold'FindMatchingUntoleratedTaint : FuncUnfold FindMatchingUntoleratedTaint [] FindMatchingUntoleratedTaint.impl
+  unfold'getFilteredTaints : FuncUnfold getFilteredTaints [] getFilteredTaints.impl
+  import'json : _root_.Perennial.encoding.json.Assumptions
+  import'v1 : _root_.Perennial.k8s_io.api.core.v1.Assumptions
+  import'nodeaffinity : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions
+  import'klog : _root_.Perennial.k8s_io.klog.v2.Assumptions
 
-attribute [instance] Assumptions.taintsFilterFunc_instance
-  Assumptions.PodPriority_unfold
-  Assumptions.MatchNodeSelectorTerms_unfold
-  Assumptions.GetAvoidPodsFromNodeAnnotations_unfold
-  Assumptions.TolerationsTolerateTaint_unfold
-  Assumptions.FindMatchingUntoleratedTaint_unfold
-  Assumptions.getFilteredTaints_unfold
-  Assumptions.import_json_Assumption
-  Assumptions.import_v1_Assumption
-  Assumptions.import_nodeaffinity_Assumption
-  Assumptions.import_klog_Assumption
+attribute [instance] Assumptions.instance'taintsFilterFunc
+  Assumptions.unfold'PodPriority
+  Assumptions.unfold'MatchNodeSelectorTerms
+  Assumptions.unfold'GetAvoidPodsFromNodeAnnotations
+  Assumptions.unfold'TolerationsTolerateTaint
+  Assumptions.unfold'FindMatchingUntoleratedTaint
+  Assumptions.unfold'getFilteredTaints
+  Assumptions.import'json
+  Assumptions.import'v1
+  Assumptions.import'nodeaffinity
+  Assumptions.import'klog
 
 end k8s_io.component_helpers.scheduling.corev1
 

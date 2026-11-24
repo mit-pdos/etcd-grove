@@ -764,7 +764,7 @@ noncomputable instance digest.zero_val [GooseExts] : ZeroVal digest :=
 @[irreducible] noncomputable def digest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   digest.fieldsUnsealed
 
-noncomputable instance equals_unfold_digest [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'digest [GooseExts] [GoGlobalContext] :
     EqualsUnfold digest.fields digest.fieldsUnsealed :=
   ⟨by unfold digest.fields; rfl⟩
 
@@ -774,25 +774,25 @@ noncomputable instance equals_unfold_digest [GooseExts] [GoGlobalContext] :
 class digest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying digest.underlying digest
   underlying : go.UnderlyingDirectedEq digest.ty digest.underlying
-  get_crc : ∀ (x : digest), go.IsGoStepPureDetTagged under (StructFieldGet digest.underlying go!"crc") #x (Val #(x.crc'))
-  set_crc : ∀ (x : digest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet digest.underlying go!"crc") (PairV #x #y) (Val #(({ x with crc' := y } : digest)))
-  get_tab : ∀ (x : digest), go.IsGoStepPureDetTagged under (StructFieldGet digest.underlying go!"tab") #x (Val #(x.tab'))
-  set_tab : ∀ (x : digest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet digest.underlying go!"tab") (PairV #x #y) (Val #(({ x with tab' := y } : digest)))
+  get'crc : ∀ (x : digest), go.IsGoStepPureDetTagged under (StructFieldGet digest.underlying go!"crc") #x (Val #(x.crc'))
+  set'crc : ∀ (x : digest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet digest.underlying go!"crc") (PairV #x #y) (Val #(({ x with crc' := y } : digest)))
+  get'tab : ∀ (x : digest), go.IsGoStepPureDetTagged under (StructFieldGet digest.underlying go!"tab") #x (Val #(x.tab'))
+  set'tab : ∀ (x : digest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet digest.underlying go!"tab") (PairV #x #y) (Val #(({ x with tab' := y } : digest)))
   method_set : go.MethodSetIs digest.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType digest.ty) [(go!"AppendBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"BlockSize", (some (go.signature.Signature [] false [go.int]))), (go!"Clone", (some (go.signature.Signature [] false [_root_.Perennial.hash.Cloner.ty, go.error]))), (go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Sum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"Sum32", (some (go.signature.Signature [] false [go.uint32]))), (go!"UnmarshalBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
-  ptr_Sum32_unfold : MethodUnfold (go.GoType.PointerType digest.ty) go!"Sum32" digest.Sum32.impl
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType digest.ty) go!"Write" digest.Write.impl
+  ptr_unfold'Sum32 : MethodUnfold (go.GoType.PointerType digest.ty) go!"Sum32" digest.Sum32.impl
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType digest.ty) go!"Write" digest.Write.impl
 
 attribute [instance] digest.TypeAssumptions.type_repr
   digest.TypeAssumptions.underlying
-  digest.TypeAssumptions.get_crc
-  digest.TypeAssumptions.set_crc
-  digest.TypeAssumptions.get_tab
-  digest.TypeAssumptions.set_tab
+  digest.TypeAssumptions.get'crc
+  digest.TypeAssumptions.set'crc
+  digest.TypeAssumptions.get'tab
+  digest.TypeAssumptions.set'tab
   digest.TypeAssumptions.method_set
   digest.TypeAssumptions.ptr_method_set
-  digest.TypeAssumptions.ptr_Sum32_unfold
-  digest.TypeAssumptions.ptr_Write_unfold
+  digest.TypeAssumptions.ptr_unfold'Sum32
+  digest.TypeAssumptions.ptr_unfold'Write
 
 abbrev sse42Table [GooseExts] : Type := (GoArray Table 4)
 
@@ -823,47 +823,47 @@ attribute [instance] slicing8Table.TypeAssumptions.underlying
   slicing8Table.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Table_instance : Table.TypeAssumptions
-  digest_instance : digest.TypeAssumptions
-  sse42Table_instance : sse42Table.TypeAssumptions
-  slicing8Table_instance : slicing8Table.TypeAssumptions
-  MakeTable_unfold : FuncUnfold MakeTable [] MakeTable.impl
-  New_unfold : FuncUnfold New [] New.impl
-  update_unfold : FuncUnfold update [] update.impl
-  Update_unfold : FuncUnfold Update [] Update.impl
-  archAvailableCastagnoli_unfold : FuncUnfold archAvailableCastagnoli [] archAvailableCastagnoli.impl
-  archInitCastagnoli_unfold : FuncUnfold archInitCastagnoli [] archInitCastagnoli.impl
-  archUpdateCastagnoli_unfold : FuncUnfold archUpdateCastagnoli [] archUpdateCastagnoli.impl
-  simpleMakeTable_unfold : FuncUnfold simpleMakeTable [] simpleMakeTable.impl
-  simplePopulateTable_unfold : FuncUnfold simplePopulateTable [] simplePopulateTable.impl
-  simpleUpdate_unfold : FuncUnfold simpleUpdate [] simpleUpdate.impl
-  slicingMakeTable_unfold : FuncUnfold slicingMakeTable [] slicingMakeTable.impl
-  slicingUpdate_unfold : FuncUnfold slicingUpdate [] slicingUpdate.impl
-  import_hash_Assumption : _root_.Perennial.hash.Assumptions
-  import_byteorder_Assumption : _root_.Perennial.internal.byteorder.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
+  instance'Table : Table.TypeAssumptions
+  instance'digest : digest.TypeAssumptions
+  instance'sse42Table : sse42Table.TypeAssumptions
+  instance'slicing8Table : slicing8Table.TypeAssumptions
+  unfold'MakeTable : FuncUnfold MakeTable [] MakeTable.impl
+  unfold'New : FuncUnfold New [] New.impl
+  unfold'update : FuncUnfold update [] update.impl
+  unfold'Update : FuncUnfold Update [] Update.impl
+  unfold'archAvailableCastagnoli : FuncUnfold archAvailableCastagnoli [] archAvailableCastagnoli.impl
+  unfold'archInitCastagnoli : FuncUnfold archInitCastagnoli [] archInitCastagnoli.impl
+  unfold'archUpdateCastagnoli : FuncUnfold archUpdateCastagnoli [] archUpdateCastagnoli.impl
+  unfold'simpleMakeTable : FuncUnfold simpleMakeTable [] simpleMakeTable.impl
+  unfold'simplePopulateTable : FuncUnfold simplePopulateTable [] simplePopulateTable.impl
+  unfold'simpleUpdate : FuncUnfold simpleUpdate [] simpleUpdate.impl
+  unfold'slicingMakeTable : FuncUnfold slicingMakeTable [] slicingMakeTable.impl
+  unfold'slicingUpdate : FuncUnfold slicingUpdate [] slicingUpdate.impl
+  import'hash : _root_.Perennial.hash.Assumptions
+  import'byteorder : _root_.Perennial.internal.byteorder.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
 
-attribute [instance] Assumptions.Table_instance
-  Assumptions.digest_instance
-  Assumptions.sse42Table_instance
-  Assumptions.slicing8Table_instance
-  Assumptions.MakeTable_unfold
-  Assumptions.New_unfold
-  Assumptions.update_unfold
-  Assumptions.Update_unfold
-  Assumptions.archAvailableCastagnoli_unfold
-  Assumptions.archInitCastagnoli_unfold
-  Assumptions.archUpdateCastagnoli_unfold
-  Assumptions.simpleMakeTable_unfold
-  Assumptions.simplePopulateTable_unfold
-  Assumptions.simpleUpdate_unfold
-  Assumptions.slicingMakeTable_unfold
-  Assumptions.slicingUpdate_unfold
-  Assumptions.import_hash_Assumption
-  Assumptions.import_byteorder_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_atomic_Assumption
+attribute [instance] Assumptions.instance'Table
+  Assumptions.instance'digest
+  Assumptions.instance'sse42Table
+  Assumptions.instance'slicing8Table
+  Assumptions.unfold'MakeTable
+  Assumptions.unfold'New
+  Assumptions.unfold'update
+  Assumptions.unfold'Update
+  Assumptions.unfold'archAvailableCastagnoli
+  Assumptions.unfold'archInitCastagnoli
+  Assumptions.unfold'archUpdateCastagnoli
+  Assumptions.unfold'simpleMakeTable
+  Assumptions.unfold'simplePopulateTable
+  Assumptions.unfold'simpleUpdate
+  Assumptions.unfold'slicingMakeTable
+  Assumptions.unfold'slicingUpdate
+  Assumptions.import'hash
+  Assumptions.import'byteorder
+  Assumptions.import'sync
+  Assumptions.import'atomic
 
 end hash.crc32
 

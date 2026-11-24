@@ -173,7 +173,7 @@ noncomputable instance contextKey.zero_val [GooseExts] : ZeroVal contextKey :=
 @[irreducible] noncomputable def contextKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   contextKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_contextKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'contextKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold contextKey.fields contextKey.fieldsUnsealed :=
   ⟨by unfold contextKey.fields; rfl⟩
 
@@ -203,7 +203,7 @@ noncomputable instance notFoundError.zero_val [GooseExts] : ZeroVal notFoundErro
 @[irreducible] noncomputable def notFoundError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   notFoundError.fieldsUnsealed
 
-noncomputable instance equals_unfold_notFoundError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'notFoundError [GooseExts] [GoGlobalContext] :
     EqualsUnfold notFoundError.fields notFoundError.fieldsUnsealed :=
   ⟨by unfold notFoundError.fields; rfl⟩
 
@@ -250,7 +250,7 @@ noncomputable instance Logger.zero_val [GooseExts] : ZeroVal Logger :=
 @[irreducible] noncomputable def Logger.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Logger.fieldsUnsealed
 
-noncomputable instance equals_unfold_Logger [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Logger [GooseExts] [GoGlobalContext] :
     EqualsUnfold Logger.fields Logger.fieldsUnsealed :=
   ⟨by unfold Logger.fields; rfl⟩
 
@@ -260,19 +260,19 @@ noncomputable instance equals_unfold_Logger [GooseExts] [GoGlobalContext] :
 class Logger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Logger.underlying Logger
   underlying : go.UnderlyingDirectedEq Logger.ty Logger.underlying
-  get_sink : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"sink") #x (Val #(x.sink'))
-  set_sink : ∀ (x : Logger) (y : LogSink), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"sink") (PairV #x #y) (Val #(({ x with sink' := y } : Logger)))
-  get_level : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"level") #x (Val #(x.level'))
-  set_level : ∀ (x : Logger) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"level") (PairV #x #y) (Val #(({ x with level' := y } : Logger)))
+  get'sink : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"sink") #x (Val #(x.sink'))
+  set'sink : ∀ (x : Logger) (y : LogSink), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"sink") (PairV #x #y) (Val #(({ x with sink' := y } : Logger)))
+  get'level : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"level") #x (Val #(x.level'))
+  set'level : ∀ (x : Logger) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"level") (PairV #x #y) (Val #(({ x with level' := y } : Logger)))
   method_set : go.MethodSetIs Logger.ty [(go!"Enabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Error", (some (go.signature.Signature [go.error, go.string, (go.GoType.SliceType go.any)] true []))), (go!"GetSink", (some (go.signature.Signature [] false [LogSink.ty]))), (go!"GetV", (some (go.signature.Signature [] false [go.int]))), (go!"Info", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"IsZero", (some (go.signature.Signature [] false [go.bool]))), (go!"V", (some (go.signature.Signature [go.int] false [Logger.ty]))), (go!"WithCallDepth", (some (go.signature.Signature [go.int] false [Logger.ty]))), (go!"WithCallStackHelper", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false [])), Logger.ty]))), (go!"WithName", (some (go.signature.Signature [go.string] false [Logger.ty]))), (go!"WithSink", (some (go.signature.Signature [LogSink.ty] false [Logger.ty]))), (go!"WithValues", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true [Logger.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Logger.ty) [(go!"Enabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Error", (some (go.signature.Signature [go.error, go.string, (go.GoType.SliceType go.any)] true []))), (go!"GetSink", (some (go.signature.Signature [] false [LogSink.ty]))), (go!"GetV", (some (go.signature.Signature [] false [go.int]))), (go!"Info", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"IsZero", (some (go.signature.Signature [] false [go.bool]))), (go!"V", (some (go.signature.Signature [go.int] false [Logger.ty]))), (go!"WithCallDepth", (some (go.signature.Signature [go.int] false [Logger.ty]))), (go!"WithCallStackHelper", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false [])), Logger.ty]))), (go!"WithName", (some (go.signature.Signature [go.string] false [Logger.ty]))), (go!"WithSink", (some (go.signature.Signature [LogSink.ty] false [Logger.ty]))), (go!"WithValues", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true [Logger.ty]))), (go!"github.com/go-logr/logr.setSink", (some (go.signature.Signature [LogSink.ty] false [])))]
 
 attribute [instance] Logger.TypeAssumptions.type_repr
   Logger.TypeAssumptions.underlying
-  Logger.TypeAssumptions.get_sink
-  Logger.TypeAssumptions.set_sink
-  Logger.TypeAssumptions.get_level
-  Logger.TypeAssumptions.set_level
+  Logger.TypeAssumptions.get'sink
+  Logger.TypeAssumptions.set'sink
+  Logger.TypeAssumptions.get'level
+  Logger.TypeAssumptions.set'level
   Logger.TypeAssumptions.method_set
   Logger.TypeAssumptions.ptr_method_set
 
@@ -289,7 +289,7 @@ noncomputable instance RuntimeInfo.zero_val [GooseExts] : ZeroVal RuntimeInfo :=
 @[irreducible] noncomputable def RuntimeInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RuntimeInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_RuntimeInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RuntimeInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold RuntimeInfo.fields RuntimeInfo.fieldsUnsealed :=
   ⟨by unfold RuntimeInfo.fields; rfl⟩
 
@@ -299,15 +299,15 @@ noncomputable instance equals_unfold_RuntimeInfo [GooseExts] [GoGlobalContext] :
 class RuntimeInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RuntimeInfo.underlying RuntimeInfo
   underlying : go.UnderlyingDirectedEq RuntimeInfo.ty RuntimeInfo.underlying
-  get_CallDepth : ∀ (x : RuntimeInfo), go.IsGoStepPureDetTagged under (StructFieldGet RuntimeInfo.underlying go!"CallDepth") #x (Val #(x.CallDepth'))
-  set_CallDepth : ∀ (x : RuntimeInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RuntimeInfo.underlying go!"CallDepth") (PairV #x #y) (Val #(({ x with CallDepth' := y } : RuntimeInfo)))
+  get'CallDepth : ∀ (x : RuntimeInfo), go.IsGoStepPureDetTagged under (StructFieldGet RuntimeInfo.underlying go!"CallDepth") #x (Val #(x.CallDepth'))
+  set'CallDepth : ∀ (x : RuntimeInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RuntimeInfo.underlying go!"CallDepth") (PairV #x #y) (Val #(({ x with CallDepth' := y } : RuntimeInfo)))
   method_set : go.MethodSetIs RuntimeInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RuntimeInfo.ty) []
 
 attribute [instance] RuntimeInfo.TypeAssumptions.type_repr
   RuntimeInfo.TypeAssumptions.underlying
-  RuntimeInfo.TypeAssumptions.get_CallDepth
-  RuntimeInfo.TypeAssumptions.set_CallDepth
+  RuntimeInfo.TypeAssumptions.get'CallDepth
+  RuntimeInfo.TypeAssumptions.set'CallDepth
   RuntimeInfo.TypeAssumptions.method_set
   RuntimeInfo.TypeAssumptions.ptr_method_set
 
@@ -430,31 +430,31 @@ attribute [instance] slogSink.TypeAssumptions.type_repr
   slogSink.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  contextKey_instance : contextKey.TypeAssumptions
-  notFoundError_instance : notFoundError.TypeAssumptions
-  Logger_instance : Logger.TypeAssumptions
-  RuntimeInfo_instance : RuntimeInfo.TypeAssumptions
-  LogSink_instance : LogSink.TypeAssumptions
-  CallDepthLogSink_instance : CallDepthLogSink.TypeAssumptions
-  CallStackHelperLogSink_instance : CallStackHelperLogSink.TypeAssumptions
-  Marshaler_instance : Marshaler.TypeAssumptions
-  slogHandler_instance : slogHandler.TypeAssumptions
-  SlogSink_instance : SlogSink.TypeAssumptions
-  Underlier_instance : Underlier.TypeAssumptions
-  slogSink_instance : slogSink.TypeAssumptions
+  instance'contextKey : contextKey.TypeAssumptions
+  instance'notFoundError : notFoundError.TypeAssumptions
+  instance'Logger : Logger.TypeAssumptions
+  instance'RuntimeInfo : RuntimeInfo.TypeAssumptions
+  instance'LogSink : LogSink.TypeAssumptions
+  instance'CallDepthLogSink : CallDepthLogSink.TypeAssumptions
+  instance'CallStackHelperLogSink : CallStackHelperLogSink.TypeAssumptions
+  instance'Marshaler : Marshaler.TypeAssumptions
+  instance'slogHandler : slogHandler.TypeAssumptions
+  instance'SlogSink : SlogSink.TypeAssumptions
+  instance'Underlier : Underlier.TypeAssumptions
+  instance'slogSink : slogSink.TypeAssumptions
 
-attribute [instance] Assumptions.contextKey_instance
-  Assumptions.notFoundError_instance
-  Assumptions.Logger_instance
-  Assumptions.RuntimeInfo_instance
-  Assumptions.LogSink_instance
-  Assumptions.CallDepthLogSink_instance
-  Assumptions.CallStackHelperLogSink_instance
-  Assumptions.Marshaler_instance
-  Assumptions.slogHandler_instance
-  Assumptions.SlogSink_instance
-  Assumptions.Underlier_instance
-  Assumptions.slogSink_instance
+attribute [instance] Assumptions.instance'contextKey
+  Assumptions.instance'notFoundError
+  Assumptions.instance'Logger
+  Assumptions.instance'RuntimeInfo
+  Assumptions.instance'LogSink
+  Assumptions.instance'CallDepthLogSink
+  Assumptions.instance'CallStackHelperLogSink
+  Assumptions.instance'Marshaler
+  Assumptions.instance'slogHandler
+  Assumptions.instance'SlogSink
+  Assumptions.instance'Underlier
+  Assumptions.instance'slogSink
 
 end github_com.go_logr.logr
 

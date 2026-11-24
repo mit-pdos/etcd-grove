@@ -350,12 +350,12 @@ theorem State.ConfEv.wp_proof
     try rw [show (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Leader : val) = #leader from rfl]
     first | rw [decide_eq_true hrl] | rw [decide_eq_true hrl0]
     try wp_auto
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermConfs.TypeAssumptions.ptr_With_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermConfs.TypeAssumptions.ptr_unfold'With.method_unfold]
     try wp_auto
     wp_apply wp_load_at _ _ ct Hn $$ [Hcta]
     · iexact Hcta
     try wp_auto
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermConfs.TypeAssumptions.ptr_With_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermConfs.TypeAssumptions.ptr_unfold'With.method_unfold]
     try wp_auto
     wp_apply wp_ConfWith g.LedConf' s.ledConf ct gc c $$ [HLedConf Hgc] as %lc #Hlc
     · iframe HLedConf Hgc; ipureintro; have := HW.ledConf_len; omega
@@ -363,12 +363,12 @@ theorem State.ConfEv.wp_proof
     wp_apply wp_set_ledConf q { s with config := s.config.set (sint.nat n) c } lc (s.ledConf.with (sint.Z ct) c) $$ [Hq Hlc] as Hq
     · iframe Hq Hlc
     try wp_auto
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_With_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_unfold'With.method_unfold]
     try wp_auto
     wp_apply wp_load_at _ _ ct Hn $$ [Hcta]
     · iexact Hcta
     try wp_auto
-    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_With_unfold.method_unfold]
+    try rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_unfold'With.method_unfold]
     try wp_auto
     wp_apply wp_IntWith g.LedAt' s.ledAt ct uk $$ [HLedAt] as %lt #Hlt'
     · iframe HLedAt; ipureintro; have := HW.ledAt.1; omega

@@ -122,7 +122,7 @@ noncomputable instance Lease.zero_val [GooseExts] : ZeroVal Lease :=
 @[irreducible] noncomputable def Lease.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Lease.fieldsUnsealed
 
-noncomputable instance equals_unfold_Lease [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Lease [GooseExts] [GoGlobalContext] :
     EqualsUnfold Lease.fields Lease.fieldsUnsealed :=
   ⟨by unfold Lease.fields; rfl⟩
 
@@ -132,35 +132,35 @@ noncomputable instance equals_unfold_Lease [GooseExts] [GoGlobalContext] :
 class Lease.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Lease.underlying Lease
   underlying : go.UnderlyingDirectedEq Lease.ty Lease.underlying
-  get_state : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : Lease) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Lease)))
-  get_ID : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"ID") #x (Val #(x.ID'))
-  set_ID : ∀ (x : Lease) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : Lease)))
-  get_TTL : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"TTL") #x (Val #(x.TTL'))
-  set_TTL : ∀ (x : Lease) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"TTL") (PairV #x #y) (Val #(({ x with TTL' := y } : Lease)))
-  get_RemainingTTL : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"RemainingTTL") #x (Val #(x.RemainingTTL'))
-  set_RemainingTTL : ∀ (x : Lease) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"RemainingTTL") (PairV #x #y) (Val #(({ x with RemainingTTL' := y } : Lease)))
-  get_unknownFields : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : Lease) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Lease)))
-  get_sizeCache : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : Lease) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Lease)))
+  get'state : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : Lease) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Lease)))
+  get'ID : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"ID") #x (Val #(x.ID'))
+  set'ID : ∀ (x : Lease) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : Lease)))
+  get'TTL : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"TTL") #x (Val #(x.TTL'))
+  set'TTL : ∀ (x : Lease) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"TTL") (PairV #x #y) (Val #(({ x with TTL' := y } : Lease)))
+  get'RemainingTTL : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"RemainingTTL") #x (Val #(x.RemainingTTL'))
+  set'RemainingTTL : ∀ (x : Lease) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"RemainingTTL") (PairV #x #y) (Val #(({ x with RemainingTTL' := y } : Lease)))
+  get'unknownFields : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : Lease) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Lease)))
+  get'sizeCache : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : Lease) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Lease)))
   method_set : go.MethodSetIs Lease.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Lease.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetID", (some (go.signature.Signature [] false [go.int64]))), (go!"GetRemainingTTL", (some (go.signature.Signature [] false [go.int64]))), (go!"GetTTL", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Lease.TypeAssumptions.type_repr
   Lease.TypeAssumptions.underlying
-  Lease.TypeAssumptions.get_state
-  Lease.TypeAssumptions.set_state
-  Lease.TypeAssumptions.get_ID
-  Lease.TypeAssumptions.set_ID
-  Lease.TypeAssumptions.get_TTL
-  Lease.TypeAssumptions.set_TTL
-  Lease.TypeAssumptions.get_RemainingTTL
-  Lease.TypeAssumptions.set_RemainingTTL
-  Lease.TypeAssumptions.get_unknownFields
-  Lease.TypeAssumptions.set_unknownFields
-  Lease.TypeAssumptions.get_sizeCache
-  Lease.TypeAssumptions.set_sizeCache
+  Lease.TypeAssumptions.get'state
+  Lease.TypeAssumptions.set'state
+  Lease.TypeAssumptions.get'ID
+  Lease.TypeAssumptions.set'ID
+  Lease.TypeAssumptions.get'TTL
+  Lease.TypeAssumptions.set'TTL
+  Lease.TypeAssumptions.get'RemainingTTL
+  Lease.TypeAssumptions.set'RemainingTTL
+  Lease.TypeAssumptions.get'unknownFields
+  Lease.TypeAssumptions.set'unknownFields
+  Lease.TypeAssumptions.get'sizeCache
+  Lease.TypeAssumptions.set'sizeCache
   Lease.TypeAssumptions.method_set
   Lease.TypeAssumptions.ptr_method_set
 
@@ -203,17 +203,17 @@ attribute [instance] LeaseInternalResponse.TypeAssumptions.type_repr
   LeaseInternalResponse.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Lease_instance : Lease.TypeAssumptions
-  LeaseInternalRequest_instance : LeaseInternalRequest.TypeAssumptions
-  LeaseInternalResponse_instance : LeaseInternalResponse.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
+  instance'Lease : Lease.TypeAssumptions
+  instance'LeaseInternalRequest : LeaseInternalRequest.TypeAssumptions
+  instance'LeaseInternalResponse : LeaseInternalResponse.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  import'protoimpl : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
 
-attribute [instance] Assumptions.Lease_instance
-  Assumptions.LeaseInternalRequest_instance
-  Assumptions.LeaseInternalResponse_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.import_protoimpl_Assumption
+attribute [instance] Assumptions.instance'Lease
+  Assumptions.instance'LeaseInternalRequest
+  Assumptions.instance'LeaseInternalResponse
+  Assumptions.«unfold'init.0»
+  Assumptions.import'protoimpl
 
 end go_etcd_io.etcd.server.v3.lease.leasepb
 

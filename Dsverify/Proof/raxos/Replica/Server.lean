@@ -58,13 +58,13 @@ variable [gh : hyp.grpc.GrpcHyp qv.grpc] [hr : hyp.RandHyp GF] [ha : hyp.AtoiSpe
 variable [QpPrintfDeps GF] [QpNetDeps GF]
 
 -- the generated `sync.Map`/`ClientBatchStore` instances are `sorry` (`StoreInst.lean`)
-attribute [-instance] Perennial.raxos.replica.src.ClientBatchStore.ClientBatchStore_typed_pointsto
-  Perennial.raxos.replica.src.ClientBatchStore.ClientBatchStore_into_val_typed
-  Perennial.raxos.replica.src.ClientBatchStore.ClientBatchStore_access_load_clientBatches
-  Perennial.raxos.replica.src.ClientBatchStore.ClientBatchStore_access_store_clientBatches
-  Perennial.sync.Map.Map_typed_pointsto Perennial.sync.Map.Map_into_val_typed
-  Perennial.internal.sync.HashTrieMap.HashTrieMap_typed_pointsto
-  Perennial.internal.sync.HashTrieMap.HashTrieMap_into_val_typed
+attribute [-instance] Perennial.raxos.replica.src.ClientBatchStore.typed_pointsto'ClientBatchStore
+  Perennial.raxos.replica.src.ClientBatchStore.into_val_typed'ClientBatchStore
+  Perennial.raxos.replica.src.ClientBatchStore.access_load'ClientBatchStore'clientBatches
+  Perennial.raxos.replica.src.ClientBatchStore.access_store'ClientBatchStore'clientBatches
+  Perennial.sync.Map.typed_pointsto'Map Perennial.sync.Map.into_val_typed'Map
+  Perennial.internal.sync.HashTrieMap.typed_pointsto'HashTrieMap
+  Perennial.internal.sync.HashTrieMap.into_val_typed'HashTrieMap
 
 set_option goose.wp.extras true
 

@@ -207,19 +207,19 @@ attribute [instance] leases.TypeAssumptions.type_repr
   leases.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  CoordinationV1Interface_instance : CoordinationV1Interface.TypeAssumptions
-  CoordinationV1Client_instance : CoordinationV1Client.TypeAssumptions
-  LeaseExpansion_instance : LeaseExpansion.TypeAssumptions
-  LeasesGetter_instance : LeasesGetter.TypeAssumptions
-  LeaseInterface_instance : LeaseInterface.TypeAssumptions
-  leases_instance : leases.TypeAssumptions
+  instance'CoordinationV1Interface : CoordinationV1Interface.TypeAssumptions
+  instance'CoordinationV1Client : CoordinationV1Client.TypeAssumptions
+  instance'LeaseExpansion : LeaseExpansion.TypeAssumptions
+  instance'LeasesGetter : LeasesGetter.TypeAssumptions
+  instance'LeaseInterface : LeaseInterface.TypeAssumptions
+  instance'leases : leases.TypeAssumptions
 
-attribute [instance] Assumptions.CoordinationV1Interface_instance
-  Assumptions.CoordinationV1Client_instance
-  Assumptions.LeaseExpansion_instance
-  Assumptions.LeasesGetter_instance
-  Assumptions.LeaseInterface_instance
-  Assumptions.leases_instance
+attribute [instance] Assumptions.instance'CoordinationV1Interface
+  Assumptions.instance'CoordinationV1Client
+  Assumptions.instance'LeaseExpansion
+  Assumptions.instance'LeasesGetter
+  Assumptions.instance'LeaseInterface
+  Assumptions.instance'leases
 
 end k8s_io.client_go.kubernetes.typed.coordination.v1
 

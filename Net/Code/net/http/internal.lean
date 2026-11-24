@@ -407,7 +407,7 @@ noncomputable instance chunkedReader.zero_val [GooseExts] : ZeroVal chunkedReade
 @[irreducible] noncomputable def chunkedReader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   chunkedReader.fieldsUnsealed
 
-noncomputable instance equals_unfold_chunkedReader [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'chunkedReader [GooseExts] [GoGlobalContext] :
     EqualsUnfold chunkedReader.fields chunkedReader.fieldsUnsealed :=
   ⟨by unfold chunkedReader.fields; rfl⟩
 
@@ -417,35 +417,35 @@ noncomputable instance equals_unfold_chunkedReader [GooseExts] [GoGlobalContext]
 class chunkedReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying chunkedReader.underlying chunkedReader
   underlying : go.UnderlyingDirectedEq chunkedReader.ty chunkedReader.underlying
-  get_r : ∀ (x : chunkedReader), go.IsGoStepPureDetTagged under (StructFieldGet chunkedReader.underlying go!"r") #x (Val #(x.r'))
-  set_r : ∀ (x : chunkedReader) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet chunkedReader.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : chunkedReader)))
-  get_n : ∀ (x : chunkedReader), go.IsGoStepPureDetTagged under (StructFieldGet chunkedReader.underlying go!"n") #x (Val #(x.n'))
-  set_n : ∀ (x : chunkedReader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet chunkedReader.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : chunkedReader)))
-  get_err : ∀ (x : chunkedReader), go.IsGoStepPureDetTagged under (StructFieldGet chunkedReader.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : chunkedReader) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet chunkedReader.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : chunkedReader)))
-  get_buf : ∀ (x : chunkedReader), go.IsGoStepPureDetTagged under (StructFieldGet chunkedReader.underlying go!"buf") #x (Val #(x.buf'))
-  set_buf : ∀ (x : chunkedReader) (y : (GoArray w8 2)), go.IsGoStepPureDetTagged under (StructFieldSet chunkedReader.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : chunkedReader)))
-  get_checkEnd : ∀ (x : chunkedReader), go.IsGoStepPureDetTagged under (StructFieldGet chunkedReader.underlying go!"checkEnd") #x (Val #(x.checkEnd'))
-  set_checkEnd : ∀ (x : chunkedReader) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet chunkedReader.underlying go!"checkEnd") (PairV #x #y) (Val #(({ x with checkEnd' := y } : chunkedReader)))
-  get_excess : ∀ (x : chunkedReader), go.IsGoStepPureDetTagged under (StructFieldGet chunkedReader.underlying go!"excess") #x (Val #(x.excess'))
-  set_excess : ∀ (x : chunkedReader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet chunkedReader.underlying go!"excess") (PairV #x #y) (Val #(({ x with excess' := y } : chunkedReader)))
+  get'r : ∀ (x : chunkedReader), go.IsGoStepPureDetTagged under (StructFieldGet chunkedReader.underlying go!"r") #x (Val #(x.r'))
+  set'r : ∀ (x : chunkedReader) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet chunkedReader.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : chunkedReader)))
+  get'n : ∀ (x : chunkedReader), go.IsGoStepPureDetTagged under (StructFieldGet chunkedReader.underlying go!"n") #x (Val #(x.n'))
+  set'n : ∀ (x : chunkedReader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet chunkedReader.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : chunkedReader)))
+  get'err : ∀ (x : chunkedReader), go.IsGoStepPureDetTagged under (StructFieldGet chunkedReader.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : chunkedReader) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet chunkedReader.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : chunkedReader)))
+  get'buf : ∀ (x : chunkedReader), go.IsGoStepPureDetTagged under (StructFieldGet chunkedReader.underlying go!"buf") #x (Val #(x.buf'))
+  set'buf : ∀ (x : chunkedReader) (y : (GoArray w8 2)), go.IsGoStepPureDetTagged under (StructFieldSet chunkedReader.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : chunkedReader)))
+  get'checkEnd : ∀ (x : chunkedReader), go.IsGoStepPureDetTagged under (StructFieldGet chunkedReader.underlying go!"checkEnd") #x (Val #(x.checkEnd'))
+  set'checkEnd : ∀ (x : chunkedReader) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet chunkedReader.underlying go!"checkEnd") (PairV #x #y) (Val #(({ x with checkEnd' := y } : chunkedReader)))
+  get'excess : ∀ (x : chunkedReader), go.IsGoStepPureDetTagged under (StructFieldGet chunkedReader.underlying go!"excess") #x (Val #(x.excess'))
+  set'excess : ∀ (x : chunkedReader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet chunkedReader.underlying go!"excess") (PairV #x #y) (Val #(({ x with excess' := y } : chunkedReader)))
   method_set : go.MethodSetIs chunkedReader.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType chunkedReader.ty) [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.uint8)] false [go.int, go.error]))), (go!"net/http/internal.beginChunk", (some (go.signature.Signature [] false []))), (go!"net/http/internal.chunkHeaderAvailable", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] chunkedReader.TypeAssumptions.type_repr
   chunkedReader.TypeAssumptions.underlying
-  chunkedReader.TypeAssumptions.get_r
-  chunkedReader.TypeAssumptions.set_r
-  chunkedReader.TypeAssumptions.get_n
-  chunkedReader.TypeAssumptions.set_n
-  chunkedReader.TypeAssumptions.get_err
-  chunkedReader.TypeAssumptions.set_err
-  chunkedReader.TypeAssumptions.get_buf
-  chunkedReader.TypeAssumptions.set_buf
-  chunkedReader.TypeAssumptions.get_checkEnd
-  chunkedReader.TypeAssumptions.set_checkEnd
-  chunkedReader.TypeAssumptions.get_excess
-  chunkedReader.TypeAssumptions.set_excess
+  chunkedReader.TypeAssumptions.get'r
+  chunkedReader.TypeAssumptions.set'r
+  chunkedReader.TypeAssumptions.get'n
+  chunkedReader.TypeAssumptions.set'n
+  chunkedReader.TypeAssumptions.get'err
+  chunkedReader.TypeAssumptions.set'err
+  chunkedReader.TypeAssumptions.get'buf
+  chunkedReader.TypeAssumptions.set'buf
+  chunkedReader.TypeAssumptions.get'checkEnd
+  chunkedReader.TypeAssumptions.set'checkEnd
+  chunkedReader.TypeAssumptions.get'excess
+  chunkedReader.TypeAssumptions.set'excess
   chunkedReader.TypeAssumptions.method_set
   chunkedReader.TypeAssumptions.ptr_method_set
 
@@ -462,7 +462,7 @@ noncomputable instance chunkedWriter.zero_val [GooseExts] : ZeroVal chunkedWrite
 @[irreducible] noncomputable def chunkedWriter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   chunkedWriter.fieldsUnsealed
 
-noncomputable instance equals_unfold_chunkedWriter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'chunkedWriter [GooseExts] [GoGlobalContext] :
     EqualsUnfold chunkedWriter.fields chunkedWriter.fieldsUnsealed :=
   ⟨by unfold chunkedWriter.fields; rfl⟩
 
@@ -472,21 +472,21 @@ noncomputable instance equals_unfold_chunkedWriter [GooseExts] [GoGlobalContext]
 class chunkedWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying chunkedWriter.underlying chunkedWriter
   underlying : go.UnderlyingDirectedEq chunkedWriter.ty chunkedWriter.underlying
-  get_Wire : ∀ (x : chunkedWriter), go.IsGoStepPureDetTagged under (StructFieldGet chunkedWriter.underlying go!"Wire") #x (Val #(x.Wire'))
-  set_Wire : ∀ (x : chunkedWriter) (y : _root_.Perennial.io.Writer), go.IsGoStepPureDetTagged under (StructFieldSet chunkedWriter.underlying go!"Wire") (PairV #x #y) (Val #(({ x with Wire' := y } : chunkedWriter)))
+  get'Wire : ∀ (x : chunkedWriter), go.IsGoStepPureDetTagged under (StructFieldGet chunkedWriter.underlying go!"Wire") #x (Val #(x.Wire'))
+  set'Wire : ∀ (x : chunkedWriter) (y : _root_.Perennial.io.Writer), go.IsGoStepPureDetTagged under (StructFieldSet chunkedWriter.underlying go!"Wire") (PairV #x #y) (Val #(({ x with Wire' := y } : chunkedWriter)))
   method_set : go.MethodSetIs chunkedWriter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType chunkedWriter.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType chunkedWriter.ty) go!"Close" chunkedWriter.Close.impl
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType chunkedWriter.ty) go!"Write" chunkedWriter.Write.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType chunkedWriter.ty) go!"Close" chunkedWriter.Close.impl
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType chunkedWriter.ty) go!"Write" chunkedWriter.Write.impl
 
 attribute [instance] chunkedWriter.TypeAssumptions.type_repr
   chunkedWriter.TypeAssumptions.underlying
-  chunkedWriter.TypeAssumptions.get_Wire
-  chunkedWriter.TypeAssumptions.set_Wire
+  chunkedWriter.TypeAssumptions.get'Wire
+  chunkedWriter.TypeAssumptions.set'Wire
   chunkedWriter.TypeAssumptions.method_set
   chunkedWriter.TypeAssumptions.ptr_method_set
-  chunkedWriter.TypeAssumptions.ptr_Close_unfold
-  chunkedWriter.TypeAssumptions.ptr_Write_unfold
+  chunkedWriter.TypeAssumptions.ptr_unfold'Close
+  chunkedWriter.TypeAssumptions.ptr_unfold'Write
 
 structure FlushAfterChunkWriter [GooseExts] where
   mk ::
@@ -501,7 +501,7 @@ noncomputable instance FlushAfterChunkWriter.zero_val [GooseExts] : ZeroVal Flus
 @[irreducible] noncomputable def FlushAfterChunkWriter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FlushAfterChunkWriter.fieldsUnsealed
 
-noncomputable instance equals_unfold_FlushAfterChunkWriter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FlushAfterChunkWriter [GooseExts] [GoGlobalContext] :
     EqualsUnfold FlushAfterChunkWriter.fields FlushAfterChunkWriter.fieldsUnsealed :=
   ⟨by unfold FlushAfterChunkWriter.fields; rfl⟩
 
@@ -511,15 +511,15 @@ noncomputable instance equals_unfold_FlushAfterChunkWriter [GooseExts] [GoGlobal
 class FlushAfterChunkWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FlushAfterChunkWriter.underlying FlushAfterChunkWriter
   underlying : go.UnderlyingDirectedEq FlushAfterChunkWriter.ty FlushAfterChunkWriter.underlying
-  get_Writer : ∀ (x : FlushAfterChunkWriter), go.IsGoStepPureDetTagged under (StructFieldGet FlushAfterChunkWriter.underlying go!"Writer") #x (Val #(x.Writer'))
-  set_Writer : ∀ (x : FlushAfterChunkWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet FlushAfterChunkWriter.underlying go!"Writer") (PairV #x #y) (Val #(({ x with Writer' := y } : FlushAfterChunkWriter)))
+  get'Writer : ∀ (x : FlushAfterChunkWriter), go.IsGoStepPureDetTagged under (StructFieldGet FlushAfterChunkWriter.underlying go!"Writer") #x (Val #(x.Writer'))
+  set'Writer : ∀ (x : FlushAfterChunkWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet FlushAfterChunkWriter.underlying go!"Writer") (PairV #x #y) (Val #(({ x with Writer' := y } : FlushAfterChunkWriter)))
   method_set : go.MethodSetIs FlushAfterChunkWriter.ty [(go!"Available", (some (go.signature.Signature [] false [go.int]))), (go!"AvailableBuffer", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Buffered", (some (go.signature.Signature [] false [go.int]))), (go!"Flush", (some (go.signature.Signature [] false [go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteByte", (some (go.signature.Signature [go.byte] false [go.error]))), (go!"WriteRune", (some (go.signature.Signature [go.rune] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FlushAfterChunkWriter.ty) [(go!"Available", (some (go.signature.Signature [] false [go.int]))), (go!"AvailableBuffer", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Buffered", (some (go.signature.Signature [] false [go.int]))), (go!"Flush", (some (go.signature.Signature [] false [go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteByte", (some (go.signature.Signature [go.byte] false [go.error]))), (go!"WriteRune", (some (go.signature.Signature [go.rune] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error])))]
 
 attribute [instance] FlushAfterChunkWriter.TypeAssumptions.type_repr
   FlushAfterChunkWriter.TypeAssumptions.underlying
-  FlushAfterChunkWriter.TypeAssumptions.get_Writer
-  FlushAfterChunkWriter.TypeAssumptions.set_Writer
+  FlushAfterChunkWriter.TypeAssumptions.get'Writer
+  FlushAfterChunkWriter.TypeAssumptions.set'Writer
   FlushAfterChunkWriter.TypeAssumptions.method_set
   FlushAfterChunkWriter.TypeAssumptions.ptr_method_set
 
@@ -552,7 +552,7 @@ noncomputable instance exactSig.zero_val [GooseExts] : ZeroVal exactSig :=
 @[irreducible] noncomputable def exactSig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   exactSig.fieldsUnsealed
 
-noncomputable instance equals_unfold_exactSig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'exactSig [GooseExts] [GoGlobalContext] :
     EqualsUnfold exactSig.fields exactSig.fieldsUnsealed :=
   ⟨by unfold exactSig.fields; rfl⟩
 
@@ -562,19 +562,19 @@ noncomputable instance equals_unfold_exactSig [GooseExts] [GoGlobalContext] :
 class exactSig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying exactSig.underlying exactSig
   underlying : go.UnderlyingDirectedEq exactSig.ty exactSig.underlying
-  get_sig : ∀ (x : exactSig), go.IsGoStepPureDetTagged under (StructFieldGet exactSig.underlying go!"sig") #x (Val #(x.sig'))
-  set_sig : ∀ (x : exactSig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet exactSig.underlying go!"sig") (PairV #x #y) (Val #(({ x with sig' := y } : exactSig)))
-  get_ct : ∀ (x : exactSig), go.IsGoStepPureDetTagged under (StructFieldGet exactSig.underlying go!"ct") #x (Val #(x.ct'))
-  set_ct : ∀ (x : exactSig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet exactSig.underlying go!"ct") (PairV #x #y) (Val #(({ x with ct' := y } : exactSig)))
+  get'sig : ∀ (x : exactSig), go.IsGoStepPureDetTagged under (StructFieldGet exactSig.underlying go!"sig") #x (Val #(x.sig'))
+  set'sig : ∀ (x : exactSig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet exactSig.underlying go!"sig") (PairV #x #y) (Val #(({ x with sig' := y } : exactSig)))
+  get'ct : ∀ (x : exactSig), go.IsGoStepPureDetTagged under (StructFieldGet exactSig.underlying go!"ct") #x (Val #(x.ct'))
+  set'ct : ∀ (x : exactSig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet exactSig.underlying go!"ct") (PairV #x #y) (Val #(({ x with ct' := y } : exactSig)))
   method_set : go.MethodSetIs exactSig.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType exactSig.ty) [(go!"net/http/internal.match", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int] false [go.string])))]
 
 attribute [instance] exactSig.TypeAssumptions.type_repr
   exactSig.TypeAssumptions.underlying
-  exactSig.TypeAssumptions.get_sig
-  exactSig.TypeAssumptions.set_sig
-  exactSig.TypeAssumptions.get_ct
-  exactSig.TypeAssumptions.set_ct
+  exactSig.TypeAssumptions.get'sig
+  exactSig.TypeAssumptions.set'sig
+  exactSig.TypeAssumptions.get'ct
+  exactSig.TypeAssumptions.set'ct
   exactSig.TypeAssumptions.method_set
   exactSig.TypeAssumptions.ptr_method_set
 
@@ -597,7 +597,7 @@ noncomputable instance maskedSig.zero_val [GooseExts] : ZeroVal maskedSig :=
 @[irreducible] noncomputable def maskedSig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   maskedSig.fieldsUnsealed
 
-noncomputable instance equals_unfold_maskedSig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'maskedSig [GooseExts] [GoGlobalContext] :
     EqualsUnfold maskedSig.fields maskedSig.fieldsUnsealed :=
   ⟨by unfold maskedSig.fields; rfl⟩
 
@@ -607,27 +607,27 @@ noncomputable instance equals_unfold_maskedSig [GooseExts] [GoGlobalContext] :
 class maskedSig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying maskedSig.underlying maskedSig
   underlying : go.UnderlyingDirectedEq maskedSig.ty maskedSig.underlying
-  get_mask : ∀ (x : maskedSig), go.IsGoStepPureDetTagged under (StructFieldGet maskedSig.underlying go!"mask") #x (Val #(x.mask'))
-  set_mask : ∀ (x : maskedSig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet maskedSig.underlying go!"mask") (PairV #x #y) (Val #(({ x with mask' := y } : maskedSig)))
-  get_pat : ∀ (x : maskedSig), go.IsGoStepPureDetTagged under (StructFieldGet maskedSig.underlying go!"pat") #x (Val #(x.pat'))
-  set_pat : ∀ (x : maskedSig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet maskedSig.underlying go!"pat") (PairV #x #y) (Val #(({ x with pat' := y } : maskedSig)))
-  get_skipWS : ∀ (x : maskedSig), go.IsGoStepPureDetTagged under (StructFieldGet maskedSig.underlying go!"skipWS") #x (Val #(x.skipWS'))
-  set_skipWS : ∀ (x : maskedSig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet maskedSig.underlying go!"skipWS") (PairV #x #y) (Val #(({ x with skipWS' := y } : maskedSig)))
-  get_ct : ∀ (x : maskedSig), go.IsGoStepPureDetTagged under (StructFieldGet maskedSig.underlying go!"ct") #x (Val #(x.ct'))
-  set_ct : ∀ (x : maskedSig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet maskedSig.underlying go!"ct") (PairV #x #y) (Val #(({ x with ct' := y } : maskedSig)))
+  get'mask : ∀ (x : maskedSig), go.IsGoStepPureDetTagged under (StructFieldGet maskedSig.underlying go!"mask") #x (Val #(x.mask'))
+  set'mask : ∀ (x : maskedSig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet maskedSig.underlying go!"mask") (PairV #x #y) (Val #(({ x with mask' := y } : maskedSig)))
+  get'pat : ∀ (x : maskedSig), go.IsGoStepPureDetTagged under (StructFieldGet maskedSig.underlying go!"pat") #x (Val #(x.pat'))
+  set'pat : ∀ (x : maskedSig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet maskedSig.underlying go!"pat") (PairV #x #y) (Val #(({ x with pat' := y } : maskedSig)))
+  get'skipWS : ∀ (x : maskedSig), go.IsGoStepPureDetTagged under (StructFieldGet maskedSig.underlying go!"skipWS") #x (Val #(x.skipWS'))
+  set'skipWS : ∀ (x : maskedSig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet maskedSig.underlying go!"skipWS") (PairV #x #y) (Val #(({ x with skipWS' := y } : maskedSig)))
+  get'ct : ∀ (x : maskedSig), go.IsGoStepPureDetTagged under (StructFieldGet maskedSig.underlying go!"ct") #x (Val #(x.ct'))
+  set'ct : ∀ (x : maskedSig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet maskedSig.underlying go!"ct") (PairV #x #y) (Val #(({ x with ct' := y } : maskedSig)))
   method_set : go.MethodSetIs maskedSig.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType maskedSig.ty) [(go!"net/http/internal.match", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int] false [go.string])))]
 
 attribute [instance] maskedSig.TypeAssumptions.type_repr
   maskedSig.TypeAssumptions.underlying
-  maskedSig.TypeAssumptions.get_mask
-  maskedSig.TypeAssumptions.set_mask
-  maskedSig.TypeAssumptions.get_pat
-  maskedSig.TypeAssumptions.set_pat
-  maskedSig.TypeAssumptions.get_skipWS
-  maskedSig.TypeAssumptions.set_skipWS
-  maskedSig.TypeAssumptions.get_ct
-  maskedSig.TypeAssumptions.set_ct
+  maskedSig.TypeAssumptions.get'mask
+  maskedSig.TypeAssumptions.set'mask
+  maskedSig.TypeAssumptions.get'pat
+  maskedSig.TypeAssumptions.set'pat
+  maskedSig.TypeAssumptions.get'skipWS
+  maskedSig.TypeAssumptions.set'skipWS
+  maskedSig.TypeAssumptions.get'ct
+  maskedSig.TypeAssumptions.set'ct
   maskedSig.TypeAssumptions.method_set
   maskedSig.TypeAssumptions.ptr_method_set
 
@@ -657,7 +657,7 @@ noncomputable instance mp4Sig.zero_val [GooseExts] : ZeroVal mp4Sig :=
 @[irreducible] noncomputable def mp4Sig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   mp4Sig.fieldsUnsealed
 
-noncomputable instance equals_unfold_mp4Sig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'mp4Sig [GooseExts] [GoGlobalContext] :
     EqualsUnfold mp4Sig.fields mp4Sig.fieldsUnsealed :=
   ⟨by unfold mp4Sig.fields; rfl⟩
 
@@ -687,7 +687,7 @@ noncomputable instance textSig.zero_val [GooseExts] : ZeroVal textSig :=
 @[irreducible] noncomputable def textSig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   textSig.fieldsUnsealed
 
-noncomputable instance equals_unfold_textSig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'textSig [GooseExts] [GoGlobalContext] :
     EqualsUnfold textSig.fields textSig.fieldsUnsealed :=
   ⟨by unfold textSig.fields; rfl⟩
 
@@ -706,35 +706,35 @@ attribute [instance] textSig.TypeAssumptions.type_repr
   textSig.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  chunkedReader_instance : chunkedReader.TypeAssumptions
-  chunkedWriter_instance : chunkedWriter.TypeAssumptions
-  FlushAfterChunkWriter_instance : FlushAfterChunkWriter.TypeAssumptions
-  sniffSig_instance : sniffSig.TypeAssumptions
-  exactSig_instance : exactSig.TypeAssumptions
-  maskedSig_instance : maskedSig.TypeAssumptions
-  htmlSig_instance : htmlSig.TypeAssumptions
-  mp4Sig_instance : mp4Sig.TypeAssumptions
-  textSig_instance : textSig.TypeAssumptions
-  NewChunkedWriter_unfold : FuncUnfold NewChunkedWriter [] NewChunkedWriter.impl
-  import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
+  instance'chunkedReader : chunkedReader.TypeAssumptions
+  instance'chunkedWriter : chunkedWriter.TypeAssumptions
+  instance'FlushAfterChunkWriter : FlushAfterChunkWriter.TypeAssumptions
+  instance'sniffSig : sniffSig.TypeAssumptions
+  instance'exactSig : exactSig.TypeAssumptions
+  instance'maskedSig : maskedSig.TypeAssumptions
+  instance'htmlSig : htmlSig.TypeAssumptions
+  instance'mp4Sig : mp4Sig.TypeAssumptions
+  instance'textSig : textSig.TypeAssumptions
+  unfold'NewChunkedWriter : FuncUnfold NewChunkedWriter [] NewChunkedWriter.impl
+  import'bufio : _root_.Perennial.bufio.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
 
-attribute [instance] Assumptions.chunkedReader_instance
-  Assumptions.chunkedWriter_instance
-  Assumptions.FlushAfterChunkWriter_instance
-  Assumptions.sniffSig_instance
-  Assumptions.exactSig_instance
-  Assumptions.maskedSig_instance
-  Assumptions.htmlSig_instance
-  Assumptions.mp4Sig_instance
-  Assumptions.textSig_instance
-  Assumptions.NewChunkedWriter_unfold
-  Assumptions.import_bufio_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_io_Assumption
+attribute [instance] Assumptions.instance'chunkedReader
+  Assumptions.instance'chunkedWriter
+  Assumptions.instance'FlushAfterChunkWriter
+  Assumptions.instance'sniffSig
+  Assumptions.instance'exactSig
+  Assumptions.instance'maskedSig
+  Assumptions.instance'htmlSig
+  Assumptions.instance'mp4Sig
+  Assumptions.instance'textSig
+  Assumptions.unfold'NewChunkedWriter
+  Assumptions.import'bufio
+  Assumptions.import'errors
+  Assumptions.import'fmt
+  Assumptions.import'io
 
 end net.http.internal
 

@@ -27,7 +27,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.imdea_software.swiftpaxos.hook.Assumptions]
 
-noncomputable instance CondF_typed_pointsto :
+noncomputable instance typed_pointsto'CondF :
     TypedPointsto (GF := GF) github_com.imdea_software.swiftpaxos.hook.CondF where
   typedPointstoDef l v dq := iprop(
     "cond" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"cond" l) v.cond' dq ∗
@@ -38,11 +38,11 @@ noncomputable instance CondF_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance CondF_into_val_typed :
+noncomputable instance into_val_typed'CondF :
     IntoValTypedUnderlying (GF := GF) github_com.imdea_software.swiftpaxos.hook.CondF github_com.imdea_software.swiftpaxos.hook.CondF.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance CondF_access_load_cond (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (dq : DFrac) :
+noncomputable instance access_load'CondF'cond (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"cond" l) v.cond' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"cond" l) v.cond' dq)
@@ -50,7 +50,7 @@ noncomputable instance CondF_access_load_cond (l : Loc) (v : github_com.imdea_so
  by
   solve_pointsto_access_struct
 
-noncomputable instance CondF_access_store_cond (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (y : GoFunc) :
+noncomputable instance access_store'CondF'cond (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"cond" l) v.cond' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"cond" l) y (DFrac.own 1))
@@ -58,7 +58,7 @@ noncomputable instance CondF_access_store_cond (l : Loc) (v : github_com.imdea_s
  by
   solve_pointsto_access_struct
 
-noncomputable instance CondF_access_load_fun (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (dq : DFrac) :
+noncomputable instance access_load'CondF'fun (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"fun" l) v.fun' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"fun" l) v.fun' dq)
@@ -66,7 +66,7 @@ noncomputable instance CondF_access_load_fun (l : Loc) (v : github_com.imdea_sof
  by
   solve_pointsto_access_struct
 
-noncomputable instance CondF_access_store_fun (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (y : GoFunc) :
+noncomputable instance access_store'CondF'fun (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"fun" l) v.fun' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"fun" l) y (DFrac.own 1))
@@ -74,7 +74,7 @@ noncomputable instance CondF_access_store_fun (l : Loc) (v : github_com.imdea_so
  by
   solve_pointsto_access_struct
 
-noncomputable instance CondF_access_load_wanna (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (dq : DFrac) :
+noncomputable instance access_load'CondF'wanna (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"wanna" l) v.wanna' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"wanna" l) v.wanna' dq)
@@ -82,7 +82,7 @@ noncomputable instance CondF_access_load_wanna (l : Loc) (v : github_com.imdea_s
  by
   solve_pointsto_access_struct
 
-noncomputable instance CondF_access_store_wanna (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (y : Bool) :
+noncomputable instance access_store'CondF'wanna (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"wanna" l) v.wanna' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"wanna" l) y (DFrac.own 1))
@@ -101,7 +101,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.imdea_software.swiftpaxos.hook.Assumptions]
 
-noncomputable instance OptCondF_typed_pointsto :
+noncomputable instance typed_pointsto'OptCondF :
     TypedPointsto (GF := GF) github_com.imdea_software.swiftpaxos.hook.OptCondF where
   typedPointstoDef l v dq := iprop(
     "cond" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"cond" l) v.cond' dq ∗
@@ -112,11 +112,11 @@ noncomputable instance OptCondF_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance OptCondF_into_val_typed :
+noncomputable instance into_val_typed'OptCondF :
     IntoValTypedUnderlying (GF := GF) github_com.imdea_software.swiftpaxos.hook.OptCondF github_com.imdea_software.swiftpaxos.hook.OptCondF.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance OptCondF_access_load_cond (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (dq : DFrac) :
+noncomputable instance access_load'OptCondF'cond (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"cond" l) v.cond' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"cond" l) v.cond' dq)
@@ -124,7 +124,7 @@ noncomputable instance OptCondF_access_load_cond (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance OptCondF_access_store_cond (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (y : GoFunc) :
+noncomputable instance access_store'OptCondF'cond (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"cond" l) v.cond' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"cond" l) y (DFrac.own 1))
@@ -132,7 +132,7 @@ noncomputable instance OptCondF_access_store_cond (l : Loc) (v : github_com.imde
  by
   solve_pointsto_access_struct
 
-noncomputable instance OptCondF_access_load_funs (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (dq : DFrac) :
+noncomputable instance access_load'OptCondF'funs (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"funs" l) v.funs' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"funs" l) v.funs' dq)
@@ -140,7 +140,7 @@ noncomputable instance OptCondF_access_load_funs (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance OptCondF_access_store_funs (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (y : GoSlice) :
+noncomputable instance access_store'OptCondF'funs (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"funs" l) v.funs' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"funs" l) y (DFrac.own 1))
@@ -148,7 +148,7 @@ noncomputable instance OptCondF_access_store_funs (l : Loc) (v : github_com.imde
  by
   solve_pointsto_access_struct
 
-noncomputable instance OptCondF_access_load_funs_num (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (dq : DFrac) :
+noncomputable instance access_load'OptCondF'funs_num (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"funs_num" l) v.funs_num' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"funs_num" l) v.funs_num' dq)
@@ -156,7 +156,7 @@ noncomputable instance OptCondF_access_load_funs_num (l : Loc) (v : github_com.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance OptCondF_access_store_funs_num (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (y : w64) :
+noncomputable instance access_store'OptCondF'funs_num (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"funs_num" l) v.funs_num' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"funs_num" l) y (DFrac.own 1))

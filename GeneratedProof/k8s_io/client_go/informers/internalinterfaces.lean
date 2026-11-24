@@ -29,7 +29,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.internalinterfaces.Assumptions]
 
-noncomputable instance InformerOptions_typed_pointsto :
+noncomputable instance typed_pointsto'InformerOptions :
     TypedPointsto (GF := GF) k8s_io.client_go.informers.internalinterfaces.InformerOptions where
   typedPointstoDef l v dq := iprop(
     "ResyncPeriod" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) v.ResyncPeriod' dq ∗
@@ -41,11 +41,11 @@ noncomputable instance InformerOptions_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance InformerOptions_into_val_typed :
+noncomputable instance into_val_typed'InformerOptions :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.internalinterfaces.InformerOptions k8s_io.client_go.informers.internalinterfaces.InformerOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance InformerOptions_access_load_ResyncPeriod (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dq : DFrac) :
+noncomputable instance access_load'InformerOptions'ResyncPeriod (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) v.ResyncPeriod' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) v.ResyncPeriod' dq)
@@ -53,7 +53,7 @@ noncomputable instance InformerOptions_access_load_ResyncPeriod (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance InformerOptions_access_store_ResyncPeriod (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'InformerOptions'ResyncPeriod (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) v.ResyncPeriod' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) y (DFrac.own 1))
@@ -61,7 +61,7 @@ noncomputable instance InformerOptions_access_store_ResyncPeriod (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InformerOptions_access_load_Indexers (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dq : DFrac) :
+noncomputable instance access_load'InformerOptions'Indexers (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"Indexers" l) v.Indexers' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"Indexers" l) v.Indexers' dq)
@@ -69,7 +69,7 @@ noncomputable instance InformerOptions_access_load_Indexers (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance InformerOptions_access_store_Indexers (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Indexers) :
+noncomputable instance access_store'InformerOptions'Indexers (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Indexers) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"Indexers" l) v.Indexers' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"Indexers" l) y (DFrac.own 1))
@@ -77,7 +77,7 @@ noncomputable instance InformerOptions_access_store_Indexers (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance InformerOptions_access_load_InformerName (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dq : DFrac) :
+noncomputable instance access_load'InformerOptions'InformerName (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"InformerName" l) v.InformerName' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"InformerName" l) v.InformerName' dq)
@@ -85,7 +85,7 @@ noncomputable instance InformerOptions_access_load_InformerName (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance InformerOptions_access_store_InformerName (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (y : Loc) :
+noncomputable instance access_store'InformerOptions'InformerName (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"InformerName" l) v.InformerName' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"InformerName" l) y (DFrac.own 1))
@@ -93,7 +93,7 @@ noncomputable instance InformerOptions_access_store_InformerName (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance InformerOptions_access_load_TweakListOptions (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dq : DFrac) :
+noncomputable instance access_load'InformerOptions'TweakListOptions (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"TweakListOptions" l) v.TweakListOptions' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"TweakListOptions" l) v.TweakListOptions' dq)
@@ -101,7 +101,7 @@ noncomputable instance InformerOptions_access_load_TweakListOptions (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance InformerOptions_access_store_TweakListOptions (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (y : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+noncomputable instance access_store'InformerOptions'TweakListOptions (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (y : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"TweakListOptions" l) v.TweakListOptions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"TweakListOptions" l) y (DFrac.own 1))

@@ -2033,7 +2033,7 @@ noncomputable def listSnapshot.OrderedListPrefix.impl [GooseExts] [GoGlobalConte
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert sortableStoreElements.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "result")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0")))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (App (Val (GoInstruction (StructFieldRef listSnapshot.ty go!"Items"))) (Var "l")))
   (Let "item" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [])))) (Val #())))
   (App (App (Val (slice.forRange (go.GoType.InterfaceType []))) (Var "$range"))
@@ -2708,7 +2708,7 @@ noncomputable instance btreeStore.zero_val [GooseExts] : ZeroVal btreeStore :=
 @[irreducible] noncomputable def btreeStore.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   btreeStore.fieldsUnsealed
 
-noncomputable instance equals_unfold_btreeStore [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'btreeStore [GooseExts] [GoGlobalContext] :
     EqualsUnfold btreeStore.fields btreeStore.fieldsUnsealed :=
   ⟨by unfold btreeStore.fields; rfl⟩
 
@@ -2718,43 +2718,43 @@ noncomputable instance equals_unfold_btreeStore [GooseExts] [GoGlobalContext] :
 class btreeStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying btreeStore.underlying btreeStore
   underlying : go.UnderlyingDirectedEq btreeStore.ty btreeStore.underlying
-  get_tree : ∀ (x : btreeStore), go.IsGoStepPureDetTagged under (StructFieldGet btreeStore.underlying go!"tree") #x (Val #(x.tree'))
-  set_tree : ∀ (x : btreeStore) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet btreeStore.underlying go!"tree") (PairV #x #y) (Val #(({ x with tree' := y } : btreeStore)))
-  get_resourceVersion : ∀ (x : btreeStore), go.IsGoStepPureDetTagged under (StructFieldGet btreeStore.underlying go!"resourceVersion") #x (Val #(x.resourceVersion'))
-  set_resourceVersion : ∀ (x : btreeStore) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet btreeStore.underlying go!"resourceVersion") (PairV #x #y) (Val #(({ x with resourceVersion' := y } : btreeStore)))
+  get'tree : ∀ (x : btreeStore), go.IsGoStepPureDetTagged under (StructFieldGet btreeStore.underlying go!"tree") #x (Val #(x.tree'))
+  set'tree : ∀ (x : btreeStore) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet btreeStore.underlying go!"tree") (PairV #x #y) (Val #(({ x with tree' := y } : btreeStore)))
+  get'resourceVersion : ∀ (x : btreeStore), go.IsGoStepPureDetTagged under (StructFieldGet btreeStore.underlying go!"resourceVersion") #x (Val #(x.resourceVersion'))
+  set'resourceVersion : ∀ (x : btreeStore) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet btreeStore.underlying go!"resourceVersion") (PairV #x #y) (Val #(({ x with resourceVersion' := y } : btreeStore)))
   method_set : go.MethodSetIs btreeStore.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType btreeStore.ty) [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType btreeStore.ty)]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"OrderedListPrefix", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"RangePrefix", (some (go.signature.Signature [go.string, go.string] false [Range.ty]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType Element.ty)), go.uint64] false []))), (go!"ResourceVersion", (some (go.signature.Signature [] false [go.uint64]))), (go!"k8s.io/apiserver/pkg/storage/cacher/store.addOrUpdateElem", (some (go.signature.Signature [(go.GoType.PointerType Element.ty), go.uint64] false [(go.GoType.PointerType Element.ty)]))), (go!"k8s.io/apiserver/pkg/storage/cacher/store.countPrefix", (some (go.signature.Signature [go.string, go.string] false [go.int]))), (go!"k8s.io/apiserver/pkg/storage/cacher/store.deleteElem", (some (go.signature.Signature [(go.GoType.PointerType Element.ty), go.uint64] false [(go.GoType.PointerType Element.ty)]))), (go!"k8s.io/apiserver/pkg/storage/cacher/store.getByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher/store.rangePrefix", (some (go.signature.Signature [go.string, go.string] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType Element.ty) go.error)])))]
-  ptr_Clone_unfold : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"Clone" btreeStore.Clone.impl
-  ptr_GetByKey_unfold : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"GetByKey" btreeStore.GetByKey.impl
-  ptr_OrderedListPrefix_unfold : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"OrderedListPrefix" btreeStore.OrderedListPrefix.impl
-  ptr_RangePrefix_unfold : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"RangePrefix" btreeStore.RangePrefix.impl
-  ptr_Replace_unfold : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"Replace" btreeStore.Replace.impl
-  ptr_ResourceVersion_unfold : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"ResourceVersion" btreeStore.ResourceVersion.impl
-  ptr_addOrUpdateElem_unfold : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"addOrUpdateElem" btreeStore.addOrUpdateElem.impl
-  ptr_countPrefix_unfold : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"countPrefix" btreeStore.countPrefix.impl
-  ptr_deleteElem_unfold : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"deleteElem" btreeStore.deleteElem.impl
-  ptr_getByKey_unfold : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"getByKey" btreeStore.getByKey.impl
-  ptr_rangePrefix_unfold : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"rangePrefix" btreeStore.rangePrefix.impl
+  ptr_unfold'Clone : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"Clone" btreeStore.Clone.impl
+  ptr_unfold'GetByKey : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"GetByKey" btreeStore.GetByKey.impl
+  ptr_unfold'OrderedListPrefix : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"OrderedListPrefix" btreeStore.OrderedListPrefix.impl
+  ptr_unfold'RangePrefix : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"RangePrefix" btreeStore.RangePrefix.impl
+  ptr_unfold'Replace : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"Replace" btreeStore.Replace.impl
+  ptr_unfold'ResourceVersion : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"ResourceVersion" btreeStore.ResourceVersion.impl
+  ptr_unfold'addOrUpdateElem : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"addOrUpdateElem" btreeStore.addOrUpdateElem.impl
+  ptr_unfold'countPrefix : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"countPrefix" btreeStore.countPrefix.impl
+  ptr_unfold'deleteElem : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"deleteElem" btreeStore.deleteElem.impl
+  ptr_unfold'getByKey : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"getByKey" btreeStore.getByKey.impl
+  ptr_unfold'rangePrefix : MethodUnfold (go.GoType.PointerType btreeStore.ty) go!"rangePrefix" btreeStore.rangePrefix.impl
 
 attribute [instance] btreeStore.TypeAssumptions.type_repr
   btreeStore.TypeAssumptions.underlying
-  btreeStore.TypeAssumptions.get_tree
-  btreeStore.TypeAssumptions.set_tree
-  btreeStore.TypeAssumptions.get_resourceVersion
-  btreeStore.TypeAssumptions.set_resourceVersion
+  btreeStore.TypeAssumptions.get'tree
+  btreeStore.TypeAssumptions.set'tree
+  btreeStore.TypeAssumptions.get'resourceVersion
+  btreeStore.TypeAssumptions.set'resourceVersion
   btreeStore.TypeAssumptions.method_set
   btreeStore.TypeAssumptions.ptr_method_set
-  btreeStore.TypeAssumptions.ptr_Clone_unfold
-  btreeStore.TypeAssumptions.ptr_GetByKey_unfold
-  btreeStore.TypeAssumptions.ptr_OrderedListPrefix_unfold
-  btreeStore.TypeAssumptions.ptr_RangePrefix_unfold
-  btreeStore.TypeAssumptions.ptr_Replace_unfold
-  btreeStore.TypeAssumptions.ptr_ResourceVersion_unfold
-  btreeStore.TypeAssumptions.ptr_addOrUpdateElem_unfold
-  btreeStore.TypeAssumptions.ptr_countPrefix_unfold
-  btreeStore.TypeAssumptions.ptr_deleteElem_unfold
-  btreeStore.TypeAssumptions.ptr_getByKey_unfold
-  btreeStore.TypeAssumptions.ptr_rangePrefix_unfold
+  btreeStore.TypeAssumptions.ptr_unfold'Clone
+  btreeStore.TypeAssumptions.ptr_unfold'GetByKey
+  btreeStore.TypeAssumptions.ptr_unfold'OrderedListPrefix
+  btreeStore.TypeAssumptions.ptr_unfold'RangePrefix
+  btreeStore.TypeAssumptions.ptr_unfold'Replace
+  btreeStore.TypeAssumptions.ptr_unfold'ResourceVersion
+  btreeStore.TypeAssumptions.ptr_unfold'addOrUpdateElem
+  btreeStore.TypeAssumptions.ptr_unfold'countPrefix
+  btreeStore.TypeAssumptions.ptr_unfold'deleteElem
+  btreeStore.TypeAssumptions.ptr_unfold'getByKey
+  btreeStore.TypeAssumptions.ptr_unfold'rangePrefix
 
 structure indexer [GooseExts] where
   mk ::
@@ -2773,7 +2773,7 @@ noncomputable instance indexer.zero_val [GooseExts] : ZeroVal indexer :=
 @[irreducible] noncomputable def indexer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   indexer.fieldsUnsealed
 
-noncomputable instance equals_unfold_indexer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'indexer [GooseExts] [GoGlobalContext] :
     EqualsUnfold indexer.fields indexer.fieldsUnsealed :=
   ⟨by unfold indexer.fields; rfl⟩
 
@@ -2783,35 +2783,35 @@ noncomputable instance equals_unfold_indexer [GooseExts] [GoGlobalContext] :
 class indexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying indexer.underlying indexer
   underlying : go.UnderlyingDirectedEq indexer.ty indexer.underlying
-  get_indices : ∀ (x : indexer), go.IsGoStepPureDetTagged under (StructFieldGet indexer.underlying go!"indices") #x (Val #(x.indices'))
-  set_indices : ∀ (x : indexer) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet indexer.underlying go!"indices") (PairV #x #y) (Val #(({ x with indices' := y } : indexer)))
-  get_indexers : ∀ (x : indexer), go.IsGoStepPureDetTagged under (StructFieldGet indexer.underlying go!"indexers") #x (Val #(x.indexers'))
-  set_indexers : ∀ (x : indexer) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Indexers), go.IsGoStepPureDetTagged under (StructFieldSet indexer.underlying go!"indexers") (PairV #x #y) (Val #(({ x with indexers' := y } : indexer)))
-  get_resourceVersion : ∀ (x : indexer), go.IsGoStepPureDetTagged under (StructFieldGet indexer.underlying go!"resourceVersion") #x (Val #(x.resourceVersion'))
-  set_resourceVersion : ∀ (x : indexer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet indexer.underlying go!"resourceVersion") (PairV #x #y) (Val #(({ x with resourceVersion' := y } : indexer)))
+  get'indices : ∀ (x : indexer), go.IsGoStepPureDetTagged under (StructFieldGet indexer.underlying go!"indices") #x (Val #(x.indices'))
+  set'indices : ∀ (x : indexer) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet indexer.underlying go!"indices") (PairV #x #y) (Val #(({ x with indices' := y } : indexer)))
+  get'indexers : ∀ (x : indexer), go.IsGoStepPureDetTagged under (StructFieldGet indexer.underlying go!"indexers") #x (Val #(x.indexers'))
+  set'indexers : ∀ (x : indexer) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Indexers), go.IsGoStepPureDetTagged under (StructFieldSet indexer.underlying go!"indexers") (PairV #x #y) (Val #(({ x with indexers' := y } : indexer)))
+  get'resourceVersion : ∀ (x : indexer), go.IsGoStepPureDetTagged under (StructFieldGet indexer.underlying go!"resourceVersion") #x (Val #(x.resourceVersion'))
+  set'resourceVersion : ∀ (x : indexer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet indexer.underlying go!"resourceVersion") (PairV #x #y) (Val #(({ x with resourceVersion' := y } : indexer)))
   method_set : go.MethodSetIs indexer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType indexer.ty) [(go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.uint64, go.error]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType Element.ty)), go.uint64] false [go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher/store.add", (some (go.signature.Signature [go.string, go.string, (go.GoType.PointerType Element.ty), (go.GoType.MapType go.string (go.GoType.MapType go.string (go.GoType.PointerType Element.ty)))] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher/store.delete", (some (go.signature.Signature [go.string, go.string, (go.GoType.MapType go.string (go.GoType.MapType go.string (go.GoType.PointerType Element.ty)))] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher/store.updateElem", (some (go.signature.Signature [go.string, (go.GoType.PointerType Element.ty), (go.GoType.PointerType Element.ty), go.uint64] false [go.error])))]
-  ptr_ByIndex_unfold : MethodUnfold (go.GoType.PointerType indexer.ty) go!"ByIndex" indexer.ByIndex.impl
-  ptr_Replace_unfold : MethodUnfold (go.GoType.PointerType indexer.ty) go!"Replace" indexer.Replace.impl
-  ptr_add_unfold : MethodUnfold (go.GoType.PointerType indexer.ty) go!"add" indexer.add.impl
-  ptr_delete_unfold : MethodUnfold (go.GoType.PointerType indexer.ty) go!"delete" indexer.delete.impl
-  ptr_updateElem_unfold : MethodUnfold (go.GoType.PointerType indexer.ty) go!"updateElem" indexer.updateElem.impl
+  ptr_unfold'ByIndex : MethodUnfold (go.GoType.PointerType indexer.ty) go!"ByIndex" indexer.ByIndex.impl
+  ptr_unfold'Replace : MethodUnfold (go.GoType.PointerType indexer.ty) go!"Replace" indexer.Replace.impl
+  ptr_unfold'add : MethodUnfold (go.GoType.PointerType indexer.ty) go!"add" indexer.add.impl
+  ptr_unfold'delete : MethodUnfold (go.GoType.PointerType indexer.ty) go!"delete" indexer.delete.impl
+  ptr_unfold'updateElem : MethodUnfold (go.GoType.PointerType indexer.ty) go!"updateElem" indexer.updateElem.impl
 
 attribute [instance] indexer.TypeAssumptions.type_repr
   indexer.TypeAssumptions.underlying
-  indexer.TypeAssumptions.get_indices
-  indexer.TypeAssumptions.set_indices
-  indexer.TypeAssumptions.get_indexers
-  indexer.TypeAssumptions.set_indexers
-  indexer.TypeAssumptions.get_resourceVersion
-  indexer.TypeAssumptions.set_resourceVersion
+  indexer.TypeAssumptions.get'indices
+  indexer.TypeAssumptions.set'indices
+  indexer.TypeAssumptions.get'indexers
+  indexer.TypeAssumptions.set'indexers
+  indexer.TypeAssumptions.get'resourceVersion
+  indexer.TypeAssumptions.set'resourceVersion
   indexer.TypeAssumptions.method_set
   indexer.TypeAssumptions.ptr_method_set
-  indexer.TypeAssumptions.ptr_ByIndex_unfold
-  indexer.TypeAssumptions.ptr_Replace_unfold
-  indexer.TypeAssumptions.ptr_add_unfold
-  indexer.TypeAssumptions.ptr_delete_unfold
-  indexer.TypeAssumptions.ptr_updateElem_unfold
+  indexer.TypeAssumptions.ptr_unfold'ByIndex
+  indexer.TypeAssumptions.ptr_unfold'Replace
+  indexer.TypeAssumptions.ptr_unfold'add
+  indexer.TypeAssumptions.ptr_unfold'delete
+  indexer.TypeAssumptions.ptr_unfold'updateElem
 
 abbrev Snapshot [GooseExts] : Type := GoInterface
 
@@ -2850,20 +2850,20 @@ class elements.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   underlying : go.UnderlyingDirectedEq elements.ty elements.underlying
   method_set : go.MethodSetIs elements.ty [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType Element.ty) go.error)]))), (go!"Count", (some (go.signature.Signature [] false [go.int])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType elements.ty) [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType Element.ty) go.error)]))), (go!"Count", (some (go.signature.Signature [] false [go.int])))]
-  All_unfold : MethodUnfold elements.ty go!"All" elements.All.impl
-  Count_unfold : MethodUnfold elements.ty go!"Count" elements.Count.impl
-  ptr_All_unfold : MethodUnfold (go.GoType.PointerType elements.ty) go!"All" (LamV "$r"
+  unfold'All : MethodUnfold elements.ty go!"All" elements.All.impl
+  unfold'Count : MethodUnfold elements.ty go!"Count" elements.Count.impl
+  ptr_unfold'All : MethodUnfold (go.GoType.PointerType elements.ty) go!"All" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve elements.ty go!"All"))) (App (Val (GoInstruction (GoLoad elements.ty))) (Var "$r"))))
-  ptr_Count_unfold : MethodUnfold (go.GoType.PointerType elements.ty) go!"Count" (LamV "$r"
+  ptr_unfold'Count : MethodUnfold (go.GoType.PointerType elements.ty) go!"Count" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve elements.ty go!"Count"))) (App (Val (GoInstruction (GoLoad elements.ty))) (Var "$r"))))
 
 attribute [instance] elements.TypeAssumptions.underlying
   elements.TypeAssumptions.method_set
   elements.TypeAssumptions.ptr_method_set
-  elements.TypeAssumptions.All_unfold
-  elements.TypeAssumptions.Count_unfold
-  elements.TypeAssumptions.ptr_All_unfold
-  elements.TypeAssumptions.ptr_Count_unfold
+  elements.TypeAssumptions.unfold'All
+  elements.TypeAssumptions.unfold'Count
+  elements.TypeAssumptions.ptr_unfold'All
+  elements.TypeAssumptions.ptr_unfold'Count
 
 abbrev prefixRanger [GooseExts] : Type := GoInterface
 
@@ -2896,7 +2896,7 @@ noncomputable instance prefixRange.zero_val [GooseExts] : ZeroVal prefixRange :=
 @[irreducible] noncomputable def prefixRange.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   prefixRange.fieldsUnsealed
 
-noncomputable instance equals_unfold_prefixRange [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'prefixRange [GooseExts] [GoGlobalContext] :
     EqualsUnfold prefixRange.fields prefixRange.fieldsUnsealed :=
   ⟨by unfold prefixRange.fields; rfl⟩
 
@@ -2906,35 +2906,35 @@ noncomputable instance equals_unfold_prefixRange [GooseExts] [GoGlobalContext] :
 class prefixRange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying prefixRange.underlying prefixRange
   underlying : go.UnderlyingDirectedEq prefixRange.ty prefixRange.underlying
-  get_snapshot : ∀ (x : prefixRange), go.IsGoStepPureDetTagged under (StructFieldGet prefixRange.underlying go!"snapshot") #x (Val #(x.snapshot'))
-  set_snapshot : ∀ (x : prefixRange) (y : prefixRanger), go.IsGoStepPureDetTagged under (StructFieldSet prefixRange.underlying go!"snapshot") (PairV #x #y) (Val #(({ x with snapshot' := y } : prefixRange)))
-  get_prefix : ∀ (x : prefixRange), go.IsGoStepPureDetTagged under (StructFieldGet prefixRange.underlying go!"prefix") #x (Val #(x.prefix'))
-  set_prefix : ∀ (x : prefixRange) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet prefixRange.underlying go!"prefix") (PairV #x #y) (Val #(({ x with prefix' := y } : prefixRange)))
-  get_continueKey : ∀ (x : prefixRange), go.IsGoStepPureDetTagged under (StructFieldGet prefixRange.underlying go!"continueKey") #x (Val #(x.continueKey'))
-  set_continueKey : ∀ (x : prefixRange) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet prefixRange.underlying go!"continueKey") (PairV #x #y) (Val #(({ x with continueKey' := y } : prefixRange)))
+  get'snapshot : ∀ (x : prefixRange), go.IsGoStepPureDetTagged under (StructFieldGet prefixRange.underlying go!"snapshot") #x (Val #(x.snapshot'))
+  set'snapshot : ∀ (x : prefixRange) (y : prefixRanger), go.IsGoStepPureDetTagged under (StructFieldSet prefixRange.underlying go!"snapshot") (PairV #x #y) (Val #(({ x with snapshot' := y } : prefixRange)))
+  get'prefix : ∀ (x : prefixRange), go.IsGoStepPureDetTagged under (StructFieldGet prefixRange.underlying go!"prefix") #x (Val #(x.prefix'))
+  set'prefix : ∀ (x : prefixRange) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet prefixRange.underlying go!"prefix") (PairV #x #y) (Val #(({ x with prefix' := y } : prefixRange)))
+  get'continueKey : ∀ (x : prefixRange), go.IsGoStepPureDetTagged under (StructFieldGet prefixRange.underlying go!"continueKey") #x (Val #(x.continueKey'))
+  set'continueKey : ∀ (x : prefixRange) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet prefixRange.underlying go!"continueKey") (PairV #x #y) (Val #(({ x with continueKey' := y } : prefixRange)))
   method_set : go.MethodSetIs prefixRange.ty [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType Element.ty) go.error)]))), (go!"Count", (some (go.signature.Signature [] false [go.int])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType prefixRange.ty) [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType Element.ty) go.error)]))), (go!"Count", (some (go.signature.Signature [] false [go.int])))]
-  All_unfold : MethodUnfold prefixRange.ty go!"All" prefixRange.All.impl
-  Count_unfold : MethodUnfold prefixRange.ty go!"Count" prefixRange.Count.impl
-  ptr_All_unfold : MethodUnfold (go.GoType.PointerType prefixRange.ty) go!"All" (LamV "$r"
+  unfold'All : MethodUnfold prefixRange.ty go!"All" prefixRange.All.impl
+  unfold'Count : MethodUnfold prefixRange.ty go!"Count" prefixRange.Count.impl
+  ptr_unfold'All : MethodUnfold (go.GoType.PointerType prefixRange.ty) go!"All" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve prefixRange.ty go!"All"))) (App (Val (GoInstruction (GoLoad prefixRange.ty))) (Var "$r"))))
-  ptr_Count_unfold : MethodUnfold (go.GoType.PointerType prefixRange.ty) go!"Count" (LamV "$r"
+  ptr_unfold'Count : MethodUnfold (go.GoType.PointerType prefixRange.ty) go!"Count" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve prefixRange.ty go!"Count"))) (App (Val (GoInstruction (GoLoad prefixRange.ty))) (Var "$r"))))
 
 attribute [instance] prefixRange.TypeAssumptions.type_repr
   prefixRange.TypeAssumptions.underlying
-  prefixRange.TypeAssumptions.get_snapshot
-  prefixRange.TypeAssumptions.set_snapshot
-  prefixRange.TypeAssumptions.get_prefix
-  prefixRange.TypeAssumptions.set_prefix
-  prefixRange.TypeAssumptions.get_continueKey
-  prefixRange.TypeAssumptions.set_continueKey
+  prefixRange.TypeAssumptions.get'snapshot
+  prefixRange.TypeAssumptions.set'snapshot
+  prefixRange.TypeAssumptions.get'prefix
+  prefixRange.TypeAssumptions.set'prefix
+  prefixRange.TypeAssumptions.get'continueKey
+  prefixRange.TypeAssumptions.set'continueKey
   prefixRange.TypeAssumptions.method_set
   prefixRange.TypeAssumptions.ptr_method_set
-  prefixRange.TypeAssumptions.All_unfold
-  prefixRange.TypeAssumptions.Count_unfold
-  prefixRange.TypeAssumptions.ptr_All_unfold
-  prefixRange.TypeAssumptions.ptr_Count_unfold
+  prefixRange.TypeAssumptions.unfold'All
+  prefixRange.TypeAssumptions.unfold'Count
+  prefixRange.TypeAssumptions.ptr_unfold'All
+  prefixRange.TypeAssumptions.ptr_unfold'Count
 
 structure Element [GooseExts] where
   mk ::
@@ -2955,7 +2955,7 @@ noncomputable instance Element.zero_val [GooseExts] : ZeroVal Element :=
 @[irreducible] noncomputable def Element.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Element.fieldsUnsealed
 
-noncomputable instance equals_unfold_Element [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Element [GooseExts] [GoGlobalContext] :
     EqualsUnfold Element.fields Element.fieldsUnsealed :=
   ⟨by unfold Element.fields; rfl⟩
 
@@ -2965,27 +2965,27 @@ noncomputable instance equals_unfold_Element [GooseExts] [GoGlobalContext] :
 class Element.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Element.underlying Element
   underlying : go.UnderlyingDirectedEq Element.ty Element.underlying
-  get_Key : ∀ (x : Element), go.IsGoStepPureDetTagged under (StructFieldGet Element.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : Element) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Element.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Element)))
-  get_Object : ∀ (x : Element), go.IsGoStepPureDetTagged under (StructFieldGet Element.underlying go!"Object") #x (Val #(x.Object'))
-  set_Object : ∀ (x : Element) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object), go.IsGoStepPureDetTagged under (StructFieldSet Element.underlying go!"Object") (PairV #x #y) (Val #(({ x with Object' := y } : Element)))
-  get_Labels : ∀ (x : Element), go.IsGoStepPureDetTagged under (StructFieldGet Element.underlying go!"Labels") #x (Val #(x.Labels'))
-  set_Labels : ∀ (x : Element) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''), go.IsGoStepPureDetTagged under (StructFieldSet Element.underlying go!"Labels") (PairV #x #y) (Val #(({ x with Labels' := y } : Element)))
-  get_Fields : ∀ (x : Element), go.IsGoStepPureDetTagged under (StructFieldGet Element.underlying go!"Fields") #x (Val #(x.Fields'))
-  set_Fields : ∀ (x : Element) (y : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''), go.IsGoStepPureDetTagged under (StructFieldSet Element.underlying go!"Fields") (PairV #x #y) (Val #(({ x with Fields' := y } : Element)))
+  get'Key : ∀ (x : Element), go.IsGoStepPureDetTagged under (StructFieldGet Element.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : Element) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Element.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Element)))
+  get'Object : ∀ (x : Element), go.IsGoStepPureDetTagged under (StructFieldGet Element.underlying go!"Object") #x (Val #(x.Object'))
+  set'Object : ∀ (x : Element) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object), go.IsGoStepPureDetTagged under (StructFieldSet Element.underlying go!"Object") (PairV #x #y) (Val #(({ x with Object' := y } : Element)))
+  get'Labels : ∀ (x : Element), go.IsGoStepPureDetTagged under (StructFieldGet Element.underlying go!"Labels") #x (Val #(x.Labels'))
+  set'Labels : ∀ (x : Element) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''), go.IsGoStepPureDetTagged under (StructFieldSet Element.underlying go!"Labels") (PairV #x #y) (Val #(({ x with Labels' := y } : Element)))
+  get'Fields : ∀ (x : Element), go.IsGoStepPureDetTagged under (StructFieldGet Element.underlying go!"Fields") #x (Val #(x.Fields'))
+  set'Fields : ∀ (x : Element) (y : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''), go.IsGoStepPureDetTagged under (StructFieldSet Element.underlying go!"Fields") (PairV #x #y) (Val #(({ x with Fields' := y } : Element)))
   method_set : go.MethodSetIs Element.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Element.ty) []
 
 attribute [instance] Element.TypeAssumptions.type_repr
   Element.TypeAssumptions.underlying
-  Element.TypeAssumptions.get_Key
-  Element.TypeAssumptions.set_Key
-  Element.TypeAssumptions.get_Object
-  Element.TypeAssumptions.set_Object
-  Element.TypeAssumptions.get_Labels
-  Element.TypeAssumptions.set_Labels
-  Element.TypeAssumptions.get_Fields
-  Element.TypeAssumptions.set_Fields
+  Element.TypeAssumptions.get'Key
+  Element.TypeAssumptions.set'Key
+  Element.TypeAssumptions.get'Object
+  Element.TypeAssumptions.set'Object
+  Element.TypeAssumptions.get'Labels
+  Element.TypeAssumptions.set'Labels
+  Element.TypeAssumptions.get'Fields
+  Element.TypeAssumptions.set'Fields
   Element.TypeAssumptions.method_set
   Element.TypeAssumptions.ptr_method_set
 
@@ -3006,7 +3006,7 @@ noncomputable instance snapshotter.zero_val [GooseExts] : ZeroVal snapshotter :=
 @[irreducible] noncomputable def snapshotter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   snapshotter.fieldsUnsealed
 
-noncomputable instance equals_unfold_snapshotter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'snapshotter [GooseExts] [GoGlobalContext] :
     EqualsUnfold snapshotter.fields snapshotter.fieldsUnsealed :=
   ⟨by unfold snapshotter.fields; rfl⟩
 
@@ -3016,45 +3016,45 @@ noncomputable instance equals_unfold_snapshotter [GooseExts] [GoGlobalContext] :
 class snapshotter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying snapshotter.underlying snapshotter
   underlying : go.UnderlyingDirectedEq snapshotter.ty snapshotter.underlying
-  get_snapshots : ∀ (x : snapshotter), go.IsGoStepPureDetTagged under (StructFieldGet snapshotter.underlying go!"snapshots") #x (Val #(x.snapshots'))
-  set_snapshots : ∀ (x : snapshotter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet snapshotter.underlying go!"snapshots") (PairV #x #y) (Val #(({ x with snapshots' := y } : snapshotter)))
-  get_resourceVersion : ∀ (x : snapshotter), go.IsGoStepPureDetTagged under (StructFieldGet snapshotter.underlying go!"resourceVersion") #x (Val #(x.resourceVersion'))
-  set_resourceVersion : ∀ (x : snapshotter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet snapshotter.underlying go!"resourceVersion") (PairV #x #y) (Val #(({ x with resourceVersion' := y } : snapshotter)))
-  get_enabled : ∀ (x : snapshotter), go.IsGoStepPureDetTagged under (StructFieldGet snapshotter.underlying go!"enabled") #x (Val #(x.enabled'))
-  set_enabled : ∀ (x : snapshotter) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet snapshotter.underlying go!"enabled") (PairV #x #y) (Val #(({ x with enabled' := y } : snapshotter)))
+  get'snapshots : ∀ (x : snapshotter), go.IsGoStepPureDetTagged under (StructFieldGet snapshotter.underlying go!"snapshots") #x (Val #(x.snapshots'))
+  set'snapshots : ∀ (x : snapshotter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet snapshotter.underlying go!"snapshots") (PairV #x #y) (Val #(({ x with snapshots' := y } : snapshotter)))
+  get'resourceVersion : ∀ (x : snapshotter), go.IsGoStepPureDetTagged under (StructFieldGet snapshotter.underlying go!"resourceVersion") #x (Val #(x.resourceVersion'))
+  set'resourceVersion : ∀ (x : snapshotter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet snapshotter.underlying go!"resourceVersion") (PairV #x #y) (Val #(({ x with resourceVersion' := y } : snapshotter)))
+  get'enabled : ∀ (x : snapshotter), go.IsGoStepPureDetTagged under (StructFieldGet snapshotter.underlying go!"enabled") #x (Val #(x.enabled'))
+  set'enabled : ∀ (x : snapshotter) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet snapshotter.underlying go!"enabled") (PairV #x #y) (Val #(({ x with enabled' := y } : snapshotter)))
   method_set : go.MethodSetIs snapshotter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType snapshotter.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.PointerType btreeStore.ty)] false []))), (go!"Enabled", (some (go.signature.Signature [] false [go.bool]))), (go!"GetSnapshot", (some (go.signature.Signature [go.uint64] false [(go.GoType.PointerType btreeStore.ty), go.error]))), (go!"HasSnapshot", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"RemoveLess", (some (go.signature.Signature [go.uint64] false []))), (go!"Replace", (some (go.signature.Signature [(go.GoType.PointerType btreeStore.ty)] false []))), (go!"SetEnabled", (some (go.signature.Signature [go.bool] false []))), (go!"UpdateResourceVersion", (some (go.signature.Signature [go.uint64] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher/store.reset", (some (go.signature.Signature [] false [])))]
-  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"Add" snapshotter.Add.impl
-  ptr_Enabled_unfold : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"Enabled" snapshotter.Enabled.impl
-  ptr_GetSnapshot_unfold : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"GetSnapshot" snapshotter.GetSnapshot.impl
-  ptr_HasSnapshot_unfold : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"HasSnapshot" snapshotter.HasSnapshot.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"Len" snapshotter.Len.impl
-  ptr_RemoveLess_unfold : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"RemoveLess" snapshotter.RemoveLess.impl
-  ptr_Replace_unfold : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"Replace" snapshotter.Replace.impl
-  ptr_SetEnabled_unfold : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"SetEnabled" snapshotter.SetEnabled.impl
-  ptr_UpdateResourceVersion_unfold : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"UpdateResourceVersion" snapshotter.UpdateResourceVersion.impl
-  ptr_reset_unfold : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"reset" snapshotter.reset.impl
+  ptr_unfold'Add : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"Add" snapshotter.Add.impl
+  ptr_unfold'Enabled : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"Enabled" snapshotter.Enabled.impl
+  ptr_unfold'GetSnapshot : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"GetSnapshot" snapshotter.GetSnapshot.impl
+  ptr_unfold'HasSnapshot : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"HasSnapshot" snapshotter.HasSnapshot.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"Len" snapshotter.Len.impl
+  ptr_unfold'RemoveLess : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"RemoveLess" snapshotter.RemoveLess.impl
+  ptr_unfold'Replace : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"Replace" snapshotter.Replace.impl
+  ptr_unfold'SetEnabled : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"SetEnabled" snapshotter.SetEnabled.impl
+  ptr_unfold'UpdateResourceVersion : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"UpdateResourceVersion" snapshotter.UpdateResourceVersion.impl
+  ptr_unfold'reset : MethodUnfold (go.GoType.PointerType snapshotter.ty) go!"reset" snapshotter.reset.impl
 
 attribute [instance] snapshotter.TypeAssumptions.type_repr
   snapshotter.TypeAssumptions.underlying
-  snapshotter.TypeAssumptions.get_snapshots
-  snapshotter.TypeAssumptions.set_snapshots
-  snapshotter.TypeAssumptions.get_resourceVersion
-  snapshotter.TypeAssumptions.set_resourceVersion
-  snapshotter.TypeAssumptions.get_enabled
-  snapshotter.TypeAssumptions.set_enabled
+  snapshotter.TypeAssumptions.get'snapshots
+  snapshotter.TypeAssumptions.set'snapshots
+  snapshotter.TypeAssumptions.get'resourceVersion
+  snapshotter.TypeAssumptions.set'resourceVersion
+  snapshotter.TypeAssumptions.get'enabled
+  snapshotter.TypeAssumptions.set'enabled
   snapshotter.TypeAssumptions.method_set
   snapshotter.TypeAssumptions.ptr_method_set
-  snapshotter.TypeAssumptions.ptr_Add_unfold
-  snapshotter.TypeAssumptions.ptr_Enabled_unfold
-  snapshotter.TypeAssumptions.ptr_GetSnapshot_unfold
-  snapshotter.TypeAssumptions.ptr_HasSnapshot_unfold
-  snapshotter.TypeAssumptions.ptr_Len_unfold
-  snapshotter.TypeAssumptions.ptr_RemoveLess_unfold
-  snapshotter.TypeAssumptions.ptr_Replace_unfold
-  snapshotter.TypeAssumptions.ptr_SetEnabled_unfold
-  snapshotter.TypeAssumptions.ptr_UpdateResourceVersion_unfold
-  snapshotter.TypeAssumptions.ptr_reset_unfold
+  snapshotter.TypeAssumptions.ptr_unfold'Add
+  snapshotter.TypeAssumptions.ptr_unfold'Enabled
+  snapshotter.TypeAssumptions.ptr_unfold'GetSnapshot
+  snapshotter.TypeAssumptions.ptr_unfold'HasSnapshot
+  snapshotter.TypeAssumptions.ptr_unfold'Len
+  snapshotter.TypeAssumptions.ptr_unfold'RemoveLess
+  snapshotter.TypeAssumptions.ptr_unfold'Replace
+  snapshotter.TypeAssumptions.ptr_unfold'SetEnabled
+  snapshotter.TypeAssumptions.ptr_unfold'UpdateResourceVersion
+  snapshotter.TypeAssumptions.ptr_unfold'reset
 
 structure WatchCacheStorage [GooseExts] where
   mk ::
@@ -3077,7 +3077,7 @@ noncomputable instance WatchCacheStorage.zero_val [GooseExts] : ZeroVal WatchCac
 @[irreducible] noncomputable def WatchCacheStorage.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   WatchCacheStorage.fieldsUnsealed
 
-noncomputable instance equals_unfold_WatchCacheStorage [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'WatchCacheStorage [GooseExts] [GoGlobalContext] :
     EqualsUnfold WatchCacheStorage.fields WatchCacheStorage.fieldsUnsealed :=
   ⟨by unfold WatchCacheStorage.fields; rfl⟩
 
@@ -3087,55 +3087,55 @@ noncomputable instance equals_unfold_WatchCacheStorage [GooseExts] [GoGlobalCont
 class WatchCacheStorage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatchCacheStorage.underlying WatchCacheStorage
   underlying : go.UnderlyingDirectedEq WatchCacheStorage.ty WatchCacheStorage.underlying
-  get_latestSnapshot : ∀ (x : WatchCacheStorage), go.IsGoStepPureDetTagged under (StructFieldGet WatchCacheStorage.underlying go!"latestSnapshot") #x (Val #(x.latestSnapshot'))
-  set_latestSnapshot : ∀ (x : WatchCacheStorage) (y : (_root_.Perennial.sync.atomic.Pointer btreeStore)), go.IsGoStepPureDetTagged under (StructFieldSet WatchCacheStorage.underlying go!"latestSnapshot") (PairV #x #y) (Val #(({ x with latestSnapshot' := y } : WatchCacheStorage)))
-  get_lock : ∀ (x : WatchCacheStorage), go.IsGoStepPureDetTagged under (StructFieldGet WatchCacheStorage.underlying go!"lock") #x (Val #(x.lock'))
-  set_lock : ∀ (x : WatchCacheStorage) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet WatchCacheStorage.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : WatchCacheStorage)))
-  get_store : ∀ (x : WatchCacheStorage), go.IsGoStepPureDetTagged under (StructFieldGet WatchCacheStorage.underlying go!"store") #x (Val #(x.store'))
-  set_store : ∀ (x : WatchCacheStorage) (y : btreeStore), go.IsGoStepPureDetTagged under (StructFieldSet WatchCacheStorage.underlying go!"store") (PairV #x #y) (Val #(({ x with store' := y } : WatchCacheStorage)))
-  get_indexer : ∀ (x : WatchCacheStorage), go.IsGoStepPureDetTagged under (StructFieldGet WatchCacheStorage.underlying go!"indexer") #x (Val #(x.indexer'))
-  set_indexer : ∀ (x : WatchCacheStorage) (y : indexer), go.IsGoStepPureDetTagged under (StructFieldSet WatchCacheStorage.underlying go!"indexer") (PairV #x #y) (Val #(({ x with indexer' := y } : WatchCacheStorage)))
-  get_snapshots : ∀ (x : WatchCacheStorage), go.IsGoStepPureDetTagged under (StructFieldGet WatchCacheStorage.underlying go!"snapshots") #x (Val #(x.snapshots'))
-  set_snapshots : ∀ (x : WatchCacheStorage) (y : snapshotter), go.IsGoStepPureDetTagged under (StructFieldSet WatchCacheStorage.underlying go!"snapshots") (PairV #x #y) (Val #(({ x with snapshots' := y } : WatchCacheStorage)))
+  get'latestSnapshot : ∀ (x : WatchCacheStorage), go.IsGoStepPureDetTagged under (StructFieldGet WatchCacheStorage.underlying go!"latestSnapshot") #x (Val #(x.latestSnapshot'))
+  set'latestSnapshot : ∀ (x : WatchCacheStorage) (y : (_root_.Perennial.sync.atomic.Pointer btreeStore)), go.IsGoStepPureDetTagged under (StructFieldSet WatchCacheStorage.underlying go!"latestSnapshot") (PairV #x #y) (Val #(({ x with latestSnapshot' := y } : WatchCacheStorage)))
+  get'lock : ∀ (x : WatchCacheStorage), go.IsGoStepPureDetTagged under (StructFieldGet WatchCacheStorage.underlying go!"lock") #x (Val #(x.lock'))
+  set'lock : ∀ (x : WatchCacheStorage) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet WatchCacheStorage.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : WatchCacheStorage)))
+  get'store : ∀ (x : WatchCacheStorage), go.IsGoStepPureDetTagged under (StructFieldGet WatchCacheStorage.underlying go!"store") #x (Val #(x.store'))
+  set'store : ∀ (x : WatchCacheStorage) (y : btreeStore), go.IsGoStepPureDetTagged under (StructFieldSet WatchCacheStorage.underlying go!"store") (PairV #x #y) (Val #(({ x with store' := y } : WatchCacheStorage)))
+  get'indexer : ∀ (x : WatchCacheStorage), go.IsGoStepPureDetTagged under (StructFieldGet WatchCacheStorage.underlying go!"indexer") #x (Val #(x.indexer'))
+  set'indexer : ∀ (x : WatchCacheStorage) (y : indexer), go.IsGoStepPureDetTagged under (StructFieldSet WatchCacheStorage.underlying go!"indexer") (PairV #x #y) (Val #(({ x with indexer' := y } : WatchCacheStorage)))
+  get'snapshots : ∀ (x : WatchCacheStorage), go.IsGoStepPureDetTagged under (StructFieldGet WatchCacheStorage.underlying go!"snapshots") #x (Val #(x.snapshots'))
+  set'snapshots : ∀ (x : WatchCacheStorage) (y : snapshotter), go.IsGoStepPureDetTagged under (StructFieldSet WatchCacheStorage.underlying go!"snapshots") (PairV #x #y) (Val #(({ x with snapshots' := y } : WatchCacheStorage)))
   method_set : go.MethodSetIs WatchCacheStorage.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchCacheStorage.ty) [(go!"CanServeExactRV", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"Compact", (some (go.signature.Signature [go.uint64] false []))), (go!"CompactSnapshotsLocked", (some (go.signature.Signature [go.uint64] false []))), (go!"GetByIndexSnapshot", (some (go.signature.Signature [go.string, go.string] false [Snapshot.ty, go.error]))), (go!"GetExactSnapshotLocked", (some (go.signature.Signature [go.uint64] false [Snapshot.ty, go.error]))), (go!"LatestSnapshot", (some (go.signature.Signature [] false [Snapshot.ty]))), (go!"MarkConsistent", (some (go.signature.Signature [go.bool] false []))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType Element.ty)), go.uint64] false [go.error]))), (go!"SnapshottingEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"UpdateResourceVersion", (some (go.signature.Signature [go.uint64] false []))), (go!"UpdateStore", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty, (go.GoType.PointerType Element.ty), go.uint64] false [(go.GoType.PointerType Element.ty), go.error])))]
-  ptr_CanServeExactRV_unfold : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"CanServeExactRV" WatchCacheStorage.CanServeExactRV.impl
-  ptr_Compact_unfold : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"Compact" WatchCacheStorage.Compact.impl
-  ptr_CompactSnapshotsLocked_unfold : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"CompactSnapshotsLocked" WatchCacheStorage.CompactSnapshotsLocked.impl
-  ptr_GetByIndexSnapshot_unfold : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"GetByIndexSnapshot" WatchCacheStorage.GetByIndexSnapshot.impl
-  ptr_GetExactSnapshotLocked_unfold : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"GetExactSnapshotLocked" WatchCacheStorage.GetExactSnapshotLocked.impl
-  ptr_LatestSnapshot_unfold : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"LatestSnapshot" WatchCacheStorage.LatestSnapshot.impl
-  ptr_MarkConsistent_unfold : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"MarkConsistent" WatchCacheStorage.MarkConsistent.impl
-  ptr_Replace_unfold : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"Replace" WatchCacheStorage.Replace.impl
-  ptr_SnapshottingEnabled_unfold : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"SnapshottingEnabled" WatchCacheStorage.SnapshottingEnabled.impl
-  ptr_UpdateResourceVersion_unfold : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"UpdateResourceVersion" WatchCacheStorage.UpdateResourceVersion.impl
-  ptr_UpdateStore_unfold : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"UpdateStore" WatchCacheStorage.UpdateStore.impl
+  ptr_unfold'CanServeExactRV : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"CanServeExactRV" WatchCacheStorage.CanServeExactRV.impl
+  ptr_unfold'Compact : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"Compact" WatchCacheStorage.Compact.impl
+  ptr_unfold'CompactSnapshotsLocked : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"CompactSnapshotsLocked" WatchCacheStorage.CompactSnapshotsLocked.impl
+  ptr_unfold'GetByIndexSnapshot : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"GetByIndexSnapshot" WatchCacheStorage.GetByIndexSnapshot.impl
+  ptr_unfold'GetExactSnapshotLocked : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"GetExactSnapshotLocked" WatchCacheStorage.GetExactSnapshotLocked.impl
+  ptr_unfold'LatestSnapshot : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"LatestSnapshot" WatchCacheStorage.LatestSnapshot.impl
+  ptr_unfold'MarkConsistent : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"MarkConsistent" WatchCacheStorage.MarkConsistent.impl
+  ptr_unfold'Replace : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"Replace" WatchCacheStorage.Replace.impl
+  ptr_unfold'SnapshottingEnabled : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"SnapshottingEnabled" WatchCacheStorage.SnapshottingEnabled.impl
+  ptr_unfold'UpdateResourceVersion : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"UpdateResourceVersion" WatchCacheStorage.UpdateResourceVersion.impl
+  ptr_unfold'UpdateStore : MethodUnfold (go.GoType.PointerType WatchCacheStorage.ty) go!"UpdateStore" WatchCacheStorage.UpdateStore.impl
 
 attribute [instance] WatchCacheStorage.TypeAssumptions.type_repr
   WatchCacheStorage.TypeAssumptions.underlying
-  WatchCacheStorage.TypeAssumptions.get_latestSnapshot
-  WatchCacheStorage.TypeAssumptions.set_latestSnapshot
-  WatchCacheStorage.TypeAssumptions.get_lock
-  WatchCacheStorage.TypeAssumptions.set_lock
-  WatchCacheStorage.TypeAssumptions.get_store
-  WatchCacheStorage.TypeAssumptions.set_store
-  WatchCacheStorage.TypeAssumptions.get_indexer
-  WatchCacheStorage.TypeAssumptions.set_indexer
-  WatchCacheStorage.TypeAssumptions.get_snapshots
-  WatchCacheStorage.TypeAssumptions.set_snapshots
+  WatchCacheStorage.TypeAssumptions.get'latestSnapshot
+  WatchCacheStorage.TypeAssumptions.set'latestSnapshot
+  WatchCacheStorage.TypeAssumptions.get'lock
+  WatchCacheStorage.TypeAssumptions.set'lock
+  WatchCacheStorage.TypeAssumptions.get'store
+  WatchCacheStorage.TypeAssumptions.set'store
+  WatchCacheStorage.TypeAssumptions.get'indexer
+  WatchCacheStorage.TypeAssumptions.set'indexer
+  WatchCacheStorage.TypeAssumptions.get'snapshots
+  WatchCacheStorage.TypeAssumptions.set'snapshots
   WatchCacheStorage.TypeAssumptions.method_set
   WatchCacheStorage.TypeAssumptions.ptr_method_set
-  WatchCacheStorage.TypeAssumptions.ptr_CanServeExactRV_unfold
-  WatchCacheStorage.TypeAssumptions.ptr_Compact_unfold
-  WatchCacheStorage.TypeAssumptions.ptr_CompactSnapshotsLocked_unfold
-  WatchCacheStorage.TypeAssumptions.ptr_GetByIndexSnapshot_unfold
-  WatchCacheStorage.TypeAssumptions.ptr_GetExactSnapshotLocked_unfold
-  WatchCacheStorage.TypeAssumptions.ptr_LatestSnapshot_unfold
-  WatchCacheStorage.TypeAssumptions.ptr_MarkConsistent_unfold
-  WatchCacheStorage.TypeAssumptions.ptr_Replace_unfold
-  WatchCacheStorage.TypeAssumptions.ptr_SnapshottingEnabled_unfold
-  WatchCacheStorage.TypeAssumptions.ptr_UpdateResourceVersion_unfold
-  WatchCacheStorage.TypeAssumptions.ptr_UpdateStore_unfold
+  WatchCacheStorage.TypeAssumptions.ptr_unfold'CanServeExactRV
+  WatchCacheStorage.TypeAssumptions.ptr_unfold'Compact
+  WatchCacheStorage.TypeAssumptions.ptr_unfold'CompactSnapshotsLocked
+  WatchCacheStorage.TypeAssumptions.ptr_unfold'GetByIndexSnapshot
+  WatchCacheStorage.TypeAssumptions.ptr_unfold'GetExactSnapshotLocked
+  WatchCacheStorage.TypeAssumptions.ptr_unfold'LatestSnapshot
+  WatchCacheStorage.TypeAssumptions.ptr_unfold'MarkConsistent
+  WatchCacheStorage.TypeAssumptions.ptr_unfold'Replace
+  WatchCacheStorage.TypeAssumptions.ptr_unfold'SnapshottingEnabled
+  WatchCacheStorage.TypeAssumptions.ptr_unfold'UpdateResourceVersion
+  WatchCacheStorage.TypeAssumptions.ptr_unfold'UpdateStore
 
 structure listSnapshot [GooseExts] where
   mk ::
@@ -3152,7 +3152,7 @@ noncomputable instance listSnapshot.zero_val [GooseExts] : ZeroVal listSnapshot 
 @[irreducible] noncomputable def listSnapshot.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   listSnapshot.fieldsUnsealed
 
-noncomputable instance equals_unfold_listSnapshot [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'listSnapshot [GooseExts] [GoGlobalContext] :
     EqualsUnfold listSnapshot.fields listSnapshot.fieldsUnsealed :=
   ⟨by unfold listSnapshot.fields; rfl⟩
 
@@ -3162,41 +3162,41 @@ noncomputable instance equals_unfold_listSnapshot [GooseExts] [GoGlobalContext] 
 class listSnapshot.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying listSnapshot.underlying listSnapshot
   underlying : go.UnderlyingDirectedEq listSnapshot.ty listSnapshot.underlying
-  get_Items : ∀ (x : listSnapshot), go.IsGoStepPureDetTagged under (StructFieldGet listSnapshot.underlying go!"Items") #x (Val #(x.Items'))
-  set_Items : ∀ (x : listSnapshot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet listSnapshot.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : listSnapshot)))
-  get_resourceVersion : ∀ (x : listSnapshot), go.IsGoStepPureDetTagged under (StructFieldGet listSnapshot.underlying go!"resourceVersion") #x (Val #(x.resourceVersion'))
-  set_resourceVersion : ∀ (x : listSnapshot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet listSnapshot.underlying go!"resourceVersion") (PairV #x #y) (Val #(({ x with resourceVersion' := y } : listSnapshot)))
+  get'Items : ∀ (x : listSnapshot), go.IsGoStepPureDetTagged under (StructFieldGet listSnapshot.underlying go!"Items") #x (Val #(x.Items'))
+  set'Items : ∀ (x : listSnapshot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet listSnapshot.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : listSnapshot)))
+  get'resourceVersion : ∀ (x : listSnapshot), go.IsGoStepPureDetTagged under (StructFieldGet listSnapshot.underlying go!"resourceVersion") #x (Val #(x.resourceVersion'))
+  set'resourceVersion : ∀ (x : listSnapshot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet listSnapshot.underlying go!"resourceVersion") (PairV #x #y) (Val #(({ x with resourceVersion' := y } : listSnapshot)))
   method_set : go.MethodSetIs listSnapshot.ty [(go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"OrderedListPrefix", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"RangePrefix", (some (go.signature.Signature [go.string, go.string] false [Range.ty]))), (go!"ResourceVersion", (some (go.signature.Signature [] false [go.uint64])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType listSnapshot.ty) [(go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"OrderedListPrefix", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"RangePrefix", (some (go.signature.Signature [go.string, go.string] false [Range.ty]))), (go!"ResourceVersion", (some (go.signature.Signature [] false [go.uint64])))]
-  GetByKey_unfold : MethodUnfold listSnapshot.ty go!"GetByKey" listSnapshot.GetByKey.impl
-  OrderedListPrefix_unfold : MethodUnfold listSnapshot.ty go!"OrderedListPrefix" listSnapshot.OrderedListPrefix.impl
-  RangePrefix_unfold : MethodUnfold listSnapshot.ty go!"RangePrefix" listSnapshot.RangePrefix.impl
-  ResourceVersion_unfold : MethodUnfold listSnapshot.ty go!"ResourceVersion" listSnapshot.ResourceVersion.impl
-  ptr_GetByKey_unfold : MethodUnfold (go.GoType.PointerType listSnapshot.ty) go!"GetByKey" (LamV "$r"
+  unfold'GetByKey : MethodUnfold listSnapshot.ty go!"GetByKey" listSnapshot.GetByKey.impl
+  unfold'OrderedListPrefix : MethodUnfold listSnapshot.ty go!"OrderedListPrefix" listSnapshot.OrderedListPrefix.impl
+  unfold'RangePrefix : MethodUnfold listSnapshot.ty go!"RangePrefix" listSnapshot.RangePrefix.impl
+  unfold'ResourceVersion : MethodUnfold listSnapshot.ty go!"ResourceVersion" listSnapshot.ResourceVersion.impl
+  ptr_unfold'GetByKey : MethodUnfold (go.GoType.PointerType listSnapshot.ty) go!"GetByKey" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve listSnapshot.ty go!"GetByKey"))) (App (Val (GoInstruction (GoLoad listSnapshot.ty))) (Var "$r"))))
-  ptr_OrderedListPrefix_unfold : MethodUnfold (go.GoType.PointerType listSnapshot.ty) go!"OrderedListPrefix" (LamV "$r"
+  ptr_unfold'OrderedListPrefix : MethodUnfold (go.GoType.PointerType listSnapshot.ty) go!"OrderedListPrefix" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve listSnapshot.ty go!"OrderedListPrefix"))) (App (Val (GoInstruction (GoLoad listSnapshot.ty))) (Var "$r"))))
-  ptr_RangePrefix_unfold : MethodUnfold (go.GoType.PointerType listSnapshot.ty) go!"RangePrefix" (LamV "$r"
+  ptr_unfold'RangePrefix : MethodUnfold (go.GoType.PointerType listSnapshot.ty) go!"RangePrefix" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve listSnapshot.ty go!"RangePrefix"))) (App (Val (GoInstruction (GoLoad listSnapshot.ty))) (Var "$r"))))
-  ptr_ResourceVersion_unfold : MethodUnfold (go.GoType.PointerType listSnapshot.ty) go!"ResourceVersion" (LamV "$r"
+  ptr_unfold'ResourceVersion : MethodUnfold (go.GoType.PointerType listSnapshot.ty) go!"ResourceVersion" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve listSnapshot.ty go!"ResourceVersion"))) (App (Val (GoInstruction (GoLoad listSnapshot.ty))) (Var "$r"))))
 
 attribute [instance] listSnapshot.TypeAssumptions.type_repr
   listSnapshot.TypeAssumptions.underlying
-  listSnapshot.TypeAssumptions.get_Items
-  listSnapshot.TypeAssumptions.set_Items
-  listSnapshot.TypeAssumptions.get_resourceVersion
-  listSnapshot.TypeAssumptions.set_resourceVersion
+  listSnapshot.TypeAssumptions.get'Items
+  listSnapshot.TypeAssumptions.set'Items
+  listSnapshot.TypeAssumptions.get'resourceVersion
+  listSnapshot.TypeAssumptions.set'resourceVersion
   listSnapshot.TypeAssumptions.method_set
   listSnapshot.TypeAssumptions.ptr_method_set
-  listSnapshot.TypeAssumptions.GetByKey_unfold
-  listSnapshot.TypeAssumptions.OrderedListPrefix_unfold
-  listSnapshot.TypeAssumptions.RangePrefix_unfold
-  listSnapshot.TypeAssumptions.ResourceVersion_unfold
-  listSnapshot.TypeAssumptions.ptr_GetByKey_unfold
-  listSnapshot.TypeAssumptions.ptr_OrderedListPrefix_unfold
-  listSnapshot.TypeAssumptions.ptr_RangePrefix_unfold
-  listSnapshot.TypeAssumptions.ptr_ResourceVersion_unfold
+  listSnapshot.TypeAssumptions.unfold'GetByKey
+  listSnapshot.TypeAssumptions.unfold'OrderedListPrefix
+  listSnapshot.TypeAssumptions.unfold'RangePrefix
+  listSnapshot.TypeAssumptions.unfold'ResourceVersion
+  listSnapshot.TypeAssumptions.ptr_unfold'GetByKey
+  listSnapshot.TypeAssumptions.ptr_unfold'OrderedListPrefix
+  listSnapshot.TypeAssumptions.ptr_unfold'RangePrefix
+  listSnapshot.TypeAssumptions.ptr_unfold'ResourceVersion
 
 structure failedRange [GooseExts] where
   mk ::
@@ -3211,7 +3211,7 @@ noncomputable instance failedRange.zero_val [GooseExts] : ZeroVal failedRange :=
 @[irreducible] noncomputable def failedRange.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   failedRange.fieldsUnsealed
 
-noncomputable instance equals_unfold_failedRange [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'failedRange [GooseExts] [GoGlobalContext] :
     EqualsUnfold failedRange.fields failedRange.fieldsUnsealed :=
   ⟨by unfold failedRange.fields; rfl⟩
 
@@ -3221,27 +3221,27 @@ noncomputable instance equals_unfold_failedRange [GooseExts] [GoGlobalContext] :
 class failedRange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying failedRange.underlying failedRange
   underlying : go.UnderlyingDirectedEq failedRange.ty failedRange.underlying
-  get_err : ∀ (x : failedRange), go.IsGoStepPureDetTagged under (StructFieldGet failedRange.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : failedRange) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet failedRange.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : failedRange)))
+  get'err : ∀ (x : failedRange), go.IsGoStepPureDetTagged under (StructFieldGet failedRange.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : failedRange) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet failedRange.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : failedRange)))
   method_set : go.MethodSetIs failedRange.ty [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType Element.ty) go.error)]))), (go!"Count", (some (go.signature.Signature [] false [go.int])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType failedRange.ty) [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType Element.ty) go.error)]))), (go!"Count", (some (go.signature.Signature [] false [go.int])))]
-  All_unfold : MethodUnfold failedRange.ty go!"All" failedRange.All.impl
-  Count_unfold : MethodUnfold failedRange.ty go!"Count" failedRange.Count.impl
-  ptr_All_unfold : MethodUnfold (go.GoType.PointerType failedRange.ty) go!"All" (LamV "$r"
+  unfold'All : MethodUnfold failedRange.ty go!"All" failedRange.All.impl
+  unfold'Count : MethodUnfold failedRange.ty go!"Count" failedRange.Count.impl
+  ptr_unfold'All : MethodUnfold (go.GoType.PointerType failedRange.ty) go!"All" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve failedRange.ty go!"All"))) (App (Val (GoInstruction (GoLoad failedRange.ty))) (Var "$r"))))
-  ptr_Count_unfold : MethodUnfold (go.GoType.PointerType failedRange.ty) go!"Count" (LamV "$r"
+  ptr_unfold'Count : MethodUnfold (go.GoType.PointerType failedRange.ty) go!"Count" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve failedRange.ty go!"Count"))) (App (Val (GoInstruction (GoLoad failedRange.ty))) (Var "$r"))))
 
 attribute [instance] failedRange.TypeAssumptions.type_repr
   failedRange.TypeAssumptions.underlying
-  failedRange.TypeAssumptions.get_err
-  failedRange.TypeAssumptions.set_err
+  failedRange.TypeAssumptions.get'err
+  failedRange.TypeAssumptions.set'err
   failedRange.TypeAssumptions.method_set
   failedRange.TypeAssumptions.ptr_method_set
-  failedRange.TypeAssumptions.All_unfold
-  failedRange.TypeAssumptions.Count_unfold
-  failedRange.TypeAssumptions.ptr_All_unfold
-  failedRange.TypeAssumptions.ptr_Count_unfold
+  failedRange.TypeAssumptions.unfold'All
+  failedRange.TypeAssumptions.unfold'Count
+  failedRange.TypeAssumptions.ptr_unfold'All
+  failedRange.TypeAssumptions.ptr_unfold'Count
 
 abbrev sortableStoreElements [GooseExts] : Type := GoSlice
 
@@ -3252,112 +3252,112 @@ class sortableStoreElements.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   underlying : go.UnderlyingDirectedEq sortableStoreElements.ty sortableStoreElements.underlying
   method_set : go.MethodSetIs sortableStoreElements.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType sortableStoreElements.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold sortableStoreElements.ty go!"Len" sortableStoreElements.Len.impl
-  Less_unfold : MethodUnfold sortableStoreElements.ty go!"Less" sortableStoreElements.Less.impl
-  Swap_unfold : MethodUnfold sortableStoreElements.ty go!"Swap" sortableStoreElements.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType sortableStoreElements.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold sortableStoreElements.ty go!"Len" sortableStoreElements.Len.impl
+  unfold'Less : MethodUnfold sortableStoreElements.ty go!"Less" sortableStoreElements.Less.impl
+  unfold'Swap : MethodUnfold sortableStoreElements.ty go!"Swap" sortableStoreElements.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType sortableStoreElements.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve sortableStoreElements.ty go!"Len"))) (App (Val (GoInstruction (GoLoad sortableStoreElements.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType sortableStoreElements.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType sortableStoreElements.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve sortableStoreElements.ty go!"Less"))) (App (Val (GoInstruction (GoLoad sortableStoreElements.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType sortableStoreElements.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType sortableStoreElements.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve sortableStoreElements.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad sortableStoreElements.ty))) (Var "$r"))))
 
 attribute [instance] sortableStoreElements.TypeAssumptions.underlying
   sortableStoreElements.TypeAssumptions.method_set
   sortableStoreElements.TypeAssumptions.ptr_method_set
-  sortableStoreElements.TypeAssumptions.Len_unfold
-  sortableStoreElements.TypeAssumptions.Less_unfold
-  sortableStoreElements.TypeAssumptions.Swap_unfold
-  sortableStoreElements.TypeAssumptions.ptr_Len_unfold
-  sortableStoreElements.TypeAssumptions.ptr_Less_unfold
-  sortableStoreElements.TypeAssumptions.ptr_Swap_unfold
+  sortableStoreElements.TypeAssumptions.unfold'Len
+  sortableStoreElements.TypeAssumptions.unfold'Less
+  sortableStoreElements.TypeAssumptions.unfold'Swap
+  sortableStoreElements.TypeAssumptions.ptr_unfold'Len
+  sortableStoreElements.TypeAssumptions.ptr_unfold'Less
+  sortableStoreElements.TypeAssumptions.ptr_unfold'Swap
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  btreeStore_instance : btreeStore.TypeAssumptions
-  indexer_instance : indexer.TypeAssumptions
-  Snapshot_instance : Snapshot.TypeAssumptions
-  Range_instance : Range.TypeAssumptions
-  elements_instance : elements.TypeAssumptions
-  prefixRanger_instance : prefixRanger.TypeAssumptions
-  prefixRange_instance : prefixRange.TypeAssumptions
-  Element_instance : Element.TypeAssumptions
-  snapshotter_instance : snapshotter.TypeAssumptions
-  WatchCacheStorage_instance : WatchCacheStorage.TypeAssumptions
-  listSnapshot_instance : listSnapshot.TypeAssumptions
-  failedRange_instance : failedRange.TypeAssumptions
-  sortableStoreElements_instance : sortableStoreElements.TypeAssumptions
-  newBtreeStore_unfold : FuncUnfold newBtreeStore [] newBtreeStore.impl
-  newIndexer_unfold : FuncUnfold newIndexer [] newIndexer.impl
-  SingleElementRange_unfold : FuncUnfold SingleElementRange [] SingleElementRange.impl
-  EmptyRange_unfold : FuncUnfold EmptyRange [] EmptyRange.impl
-  ElementKey_unfold : FuncUnfold ElementKey [] ElementKey.impl
-  ElementObject_unfold : FuncUnfold ElementObject [] ElementObject.impl
-  ElementIndexFunc_unfold : FuncUnfold ElementIndexFunc [] ElementIndexFunc.impl
-  ElementIndexers_unfold : FuncUnfold ElementIndexers [] ElementIndexers.impl
-  newSnapshotter_unfold : FuncUnfold newSnapshotter [] newSnapshotter.impl
-  NewWatchCacheStorage_unfold : FuncUnfold NewWatchCacheStorage [] NewWatchCacheStorage.impl
-  import_iter_Assumption : _root_.Perennial.iter.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_btree_Assumption : _root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_cache_Assumption : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions
-  import_fields_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Assumptions
-  import_labels_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
-  import_errors_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.Assumptions
-  import_storage_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.storage.Assumptions
-  import_consistency_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.consistency.Assumptions
-  import_klog_Assumption : _root_.Perennial.k8s_io.klog.v2.Assumptions
-  import_sort_Assumption : _root_.Perennial.sort.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_watch_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions
-  import_features_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.features.Assumptions
-  import_key_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.key.Assumptions
-  import_feature_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
+  instance'btreeStore : btreeStore.TypeAssumptions
+  instance'indexer : indexer.TypeAssumptions
+  instance'Snapshot : Snapshot.TypeAssumptions
+  instance'Range : Range.TypeAssumptions
+  instance'elements : elements.TypeAssumptions
+  instance'prefixRanger : prefixRanger.TypeAssumptions
+  instance'prefixRange : prefixRange.TypeAssumptions
+  instance'Element : Element.TypeAssumptions
+  instance'snapshotter : snapshotter.TypeAssumptions
+  instance'WatchCacheStorage : WatchCacheStorage.TypeAssumptions
+  instance'listSnapshot : listSnapshot.TypeAssumptions
+  instance'failedRange : failedRange.TypeAssumptions
+  instance'sortableStoreElements : sortableStoreElements.TypeAssumptions
+  unfold'newBtreeStore : FuncUnfold newBtreeStore [] newBtreeStore.impl
+  unfold'newIndexer : FuncUnfold newIndexer [] newIndexer.impl
+  unfold'SingleElementRange : FuncUnfold SingleElementRange [] SingleElementRange.impl
+  unfold'EmptyRange : FuncUnfold EmptyRange [] EmptyRange.impl
+  unfold'ElementKey : FuncUnfold ElementKey [] ElementKey.impl
+  unfold'ElementObject : FuncUnfold ElementObject [] ElementObject.impl
+  unfold'ElementIndexFunc : FuncUnfold ElementIndexFunc [] ElementIndexFunc.impl
+  unfold'ElementIndexers : FuncUnfold ElementIndexers [] ElementIndexers.impl
+  unfold'newSnapshotter : FuncUnfold newSnapshotter [] newSnapshotter.impl
+  unfold'NewWatchCacheStorage : FuncUnfold NewWatchCacheStorage [] NewWatchCacheStorage.impl
+  import'iter : _root_.Perennial.iter.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'btree : _root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'cache : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions
+  import'fields : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Assumptions
+  import'labels : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  import'errors : _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.Assumptions
+  import'storage : _root_.Perennial.k8s_io.apiserver.pkg.storage.Assumptions
+  import'consistency : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.consistency.Assumptions
+  import'klog : _root_.Perennial.k8s_io.klog.v2.Assumptions
+  import'sort : _root_.Perennial.sort.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'watch : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions
+  import'features : _root_.Perennial.k8s_io.apiserver.pkg.features.Assumptions
+  import'key : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.key.Assumptions
+  import'feature : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
 
-attribute [instance] Assumptions.btreeStore_instance
-  Assumptions.indexer_instance
-  Assumptions.Snapshot_instance
-  Assumptions.Range_instance
-  Assumptions.elements_instance
-  Assumptions.prefixRanger_instance
-  Assumptions.prefixRange_instance
-  Assumptions.Element_instance
-  Assumptions.snapshotter_instance
-  Assumptions.WatchCacheStorage_instance
-  Assumptions.listSnapshot_instance
-  Assumptions.failedRange_instance
-  Assumptions.sortableStoreElements_instance
-  Assumptions.newBtreeStore_unfold
-  Assumptions.newIndexer_unfold
-  Assumptions.SingleElementRange_unfold
-  Assumptions.EmptyRange_unfold
-  Assumptions.ElementKey_unfold
-  Assumptions.ElementObject_unfold
-  Assumptions.ElementIndexFunc_unfold
-  Assumptions.ElementIndexers_unfold
-  Assumptions.newSnapshotter_unfold
-  Assumptions.NewWatchCacheStorage_unfold
-  Assumptions.import_iter_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_btree_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_cache_Assumption
-  Assumptions.import_fields_Assumption
-  Assumptions.import_labels_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_storage_Assumption
-  Assumptions.import_consistency_Assumption
-  Assumptions.import_klog_Assumption
-  Assumptions.import_sort_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_watch_Assumption
-  Assumptions.import_features_Assumption
-  Assumptions.import_key_Assumption
-  Assumptions.import_feature_Assumption
+attribute [instance] Assumptions.instance'btreeStore
+  Assumptions.instance'indexer
+  Assumptions.instance'Snapshot
+  Assumptions.instance'Range
+  Assumptions.instance'elements
+  Assumptions.instance'prefixRanger
+  Assumptions.instance'prefixRange
+  Assumptions.instance'Element
+  Assumptions.instance'snapshotter
+  Assumptions.instance'WatchCacheStorage
+  Assumptions.instance'listSnapshot
+  Assumptions.instance'failedRange
+  Assumptions.instance'sortableStoreElements
+  Assumptions.unfold'newBtreeStore
+  Assumptions.unfold'newIndexer
+  Assumptions.unfold'SingleElementRange
+  Assumptions.unfold'EmptyRange
+  Assumptions.unfold'ElementKey
+  Assumptions.unfold'ElementObject
+  Assumptions.unfold'ElementIndexFunc
+  Assumptions.unfold'ElementIndexers
+  Assumptions.unfold'newSnapshotter
+  Assumptions.unfold'NewWatchCacheStorage
+  Assumptions.import'iter
+  Assumptions.import'strings
+  Assumptions.import'btree
+  Assumptions.import'fmt
+  Assumptions.import'cache
+  Assumptions.import'fields
+  Assumptions.import'labels
+  Assumptions.import'runtime
+  Assumptions.import'errors
+  Assumptions.import'storage
+  Assumptions.import'consistency
+  Assumptions.import'klog
+  Assumptions.import'sort
+  Assumptions.import'sync
+  Assumptions.import'atomic
+  Assumptions.import'watch
+  Assumptions.import'features
+  Assumptions.import'key
+  Assumptions.import'feature
 
 end k8s_io.apiserver.pkg.storage.cacher.store
 

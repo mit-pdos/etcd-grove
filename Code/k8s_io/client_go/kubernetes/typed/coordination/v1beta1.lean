@@ -314,27 +314,27 @@ attribute [instance] leaseCandidates.TypeAssumptions.type_repr
   leaseCandidates.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  CoordinationV1beta1Interface_instance : CoordinationV1beta1Interface.TypeAssumptions
-  CoordinationV1beta1Client_instance : CoordinationV1beta1Client.TypeAssumptions
-  LeaseExpansion_instance : LeaseExpansion.TypeAssumptions
-  LeaseCandidateExpansion_instance : LeaseCandidateExpansion.TypeAssumptions
-  LeasesGetter_instance : LeasesGetter.TypeAssumptions
-  LeaseInterface_instance : LeaseInterface.TypeAssumptions
-  leases_instance : leases.TypeAssumptions
-  LeaseCandidatesGetter_instance : LeaseCandidatesGetter.TypeAssumptions
-  LeaseCandidateInterface_instance : LeaseCandidateInterface.TypeAssumptions
-  leaseCandidates_instance : leaseCandidates.TypeAssumptions
+  instance'CoordinationV1beta1Interface : CoordinationV1beta1Interface.TypeAssumptions
+  instance'CoordinationV1beta1Client : CoordinationV1beta1Client.TypeAssumptions
+  instance'LeaseExpansion : LeaseExpansion.TypeAssumptions
+  instance'LeaseCandidateExpansion : LeaseCandidateExpansion.TypeAssumptions
+  instance'LeasesGetter : LeasesGetter.TypeAssumptions
+  instance'LeaseInterface : LeaseInterface.TypeAssumptions
+  instance'leases : leases.TypeAssumptions
+  instance'LeaseCandidatesGetter : LeaseCandidatesGetter.TypeAssumptions
+  instance'LeaseCandidateInterface : LeaseCandidateInterface.TypeAssumptions
+  instance'leaseCandidates : leaseCandidates.TypeAssumptions
 
-attribute [instance] Assumptions.CoordinationV1beta1Interface_instance
-  Assumptions.CoordinationV1beta1Client_instance
-  Assumptions.LeaseExpansion_instance
-  Assumptions.LeaseCandidateExpansion_instance
-  Assumptions.LeasesGetter_instance
-  Assumptions.LeaseInterface_instance
-  Assumptions.leases_instance
-  Assumptions.LeaseCandidatesGetter_instance
-  Assumptions.LeaseCandidateInterface_instance
-  Assumptions.leaseCandidates_instance
+attribute [instance] Assumptions.instance'CoordinationV1beta1Interface
+  Assumptions.instance'CoordinationV1beta1Client
+  Assumptions.instance'LeaseExpansion
+  Assumptions.instance'LeaseCandidateExpansion
+  Assumptions.instance'LeasesGetter
+  Assumptions.instance'LeaseInterface
+  Assumptions.instance'leases
+  Assumptions.instance'LeaseCandidatesGetter
+  Assumptions.instance'LeaseCandidateInterface
+  Assumptions.instance'leaseCandidates
 
 end k8s_io.client_go.kubernetes.typed.coordination.v1beta1
 

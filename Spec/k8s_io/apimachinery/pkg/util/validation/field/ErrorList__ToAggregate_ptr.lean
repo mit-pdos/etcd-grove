@@ -1,7 +1,7 @@
 /-
 `(*field.ErrorList).ToAggregate()`, the pointer-receiver wrapper Go generates for the value method
 `ErrorList.ToAggregate` (`errs.ToAggregate()` on an addressable local `errs`, as
-`authorizer.validateConditions`'s): goose's `ptr_ToAggregate_unfold` (since `ToAggregate` is
+`authorizer.validateConditions`'s): goose's `ptr_unfold'ToAggregate` (since `ToAggregate` is
 translated with its body, 2026-11-19; until then this was a trust-boundary workaround) makes it load
 `*l` and run the value method, so it is proved from `ErrorList.ToAggregate.spec`, whose premises it
 shares. Lean-first (no Rocq counterpart).

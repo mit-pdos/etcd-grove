@@ -97,7 +97,7 @@ noncomputable instance everythingSelector.zero_val [GooseExts] : ZeroVal everyth
 @[irreducible] noncomputable def everythingSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   everythingSelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_everythingSelector [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'everythingSelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold everythingSelector.fields everythingSelector.fieldsUnsealed :=
   ⟨by unfold everythingSelector.fields; rfl⟩
 
@@ -128,7 +128,7 @@ noncomputable instance shardSelector.zero_val [GooseExts] : ZeroVal shardSelecto
 @[irreducible] noncomputable def shardSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   shardSelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_shardSelector [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'shardSelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold shardSelector.fields shardSelector.fieldsUnsealed :=
   ⟨by unfold shardSelector.fields; rfl⟩
 
@@ -138,15 +138,15 @@ noncomputable instance equals_unfold_shardSelector [GooseExts] [GoGlobalContext]
 class shardSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying shardSelector.underlying shardSelector
   underlying : go.UnderlyingDirectedEq shardSelector.ty shardSelector.underlying
-  get_requirements : ∀ (x : shardSelector), go.IsGoStepPureDetTagged under (StructFieldGet shardSelector.underlying go!"requirements") #x (Val #(x.requirements'))
-  set_requirements : ∀ (x : shardSelector) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet shardSelector.underlying go!"requirements") (PairV #x #y) (Val #(({ x with requirements' := y } : shardSelector)))
+  get'requirements : ∀ (x : shardSelector), go.IsGoStepPureDetTagged under (StructFieldGet shardSelector.underlying go!"requirements") #x (Val #(x.requirements'))
+  set'requirements : ∀ (x : shardSelector) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet shardSelector.underlying go!"requirements") (PairV #x #y) (Val #(({ x with requirements' := y } : shardSelector)))
   method_set : go.MethodSetIs shardSelector.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType shardSelector.ty) [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"Requirements", (some (go.signature.Signature [] false [(go.GoType.SliceType ShardRangeRequirement.ty)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] shardSelector.TypeAssumptions.type_repr
   shardSelector.TypeAssumptions.underlying
-  shardSelector.TypeAssumptions.get_requirements
-  shardSelector.TypeAssumptions.set_requirements
+  shardSelector.TypeAssumptions.get'requirements
+  shardSelector.TypeAssumptions.set'requirements
   shardSelector.TypeAssumptions.method_set
   shardSelector.TypeAssumptions.ptr_method_set
 
@@ -167,7 +167,7 @@ noncomputable instance ShardRangeRequirement.zero_val [GooseExts] : ZeroVal Shar
 @[irreducible] noncomputable def ShardRangeRequirement.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ShardRangeRequirement.fieldsUnsealed
 
-noncomputable instance equals_unfold_ShardRangeRequirement [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ShardRangeRequirement [GooseExts] [GoGlobalContext] :
     EqualsUnfold ShardRangeRequirement.fields ShardRangeRequirement.fieldsUnsealed :=
   ⟨by unfold ShardRangeRequirement.fields; rfl⟩
 
@@ -177,38 +177,38 @@ noncomputable instance equals_unfold_ShardRangeRequirement [GooseExts] [GoGlobal
 class ShardRangeRequirement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ShardRangeRequirement.underlying ShardRangeRequirement
   underlying : go.UnderlyingDirectedEq ShardRangeRequirement.ty ShardRangeRequirement.underlying
-  get_Key : ∀ (x : ShardRangeRequirement), go.IsGoStepPureDetTagged under (StructFieldGet ShardRangeRequirement.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : ShardRangeRequirement) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ShardRangeRequirement.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : ShardRangeRequirement)))
-  get_Start : ∀ (x : ShardRangeRequirement), go.IsGoStepPureDetTagged under (StructFieldGet ShardRangeRequirement.underlying go!"Start") #x (Val #(x.Start'))
-  set_Start : ∀ (x : ShardRangeRequirement) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ShardRangeRequirement.underlying go!"Start") (PairV #x #y) (Val #(({ x with Start' := y } : ShardRangeRequirement)))
-  get_End : ∀ (x : ShardRangeRequirement), go.IsGoStepPureDetTagged under (StructFieldGet ShardRangeRequirement.underlying go!"End") #x (Val #(x.End'))
-  set_End : ∀ (x : ShardRangeRequirement) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ShardRangeRequirement.underlying go!"End") (PairV #x #y) (Val #(({ x with End' := y } : ShardRangeRequirement)))
+  get'Key : ∀ (x : ShardRangeRequirement), go.IsGoStepPureDetTagged under (StructFieldGet ShardRangeRequirement.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : ShardRangeRequirement) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ShardRangeRequirement.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : ShardRangeRequirement)))
+  get'Start : ∀ (x : ShardRangeRequirement), go.IsGoStepPureDetTagged under (StructFieldGet ShardRangeRequirement.underlying go!"Start") #x (Val #(x.Start'))
+  set'Start : ∀ (x : ShardRangeRequirement) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ShardRangeRequirement.underlying go!"Start") (PairV #x #y) (Val #(({ x with Start' := y } : ShardRangeRequirement)))
+  get'End : ∀ (x : ShardRangeRequirement), go.IsGoStepPureDetTagged under (StructFieldGet ShardRangeRequirement.underlying go!"End") #x (Val #(x.End'))
+  set'End : ∀ (x : ShardRangeRequirement) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ShardRangeRequirement.underlying go!"End") (PairV #x #y) (Val #(({ x with End' := y } : ShardRangeRequirement)))
   method_set : go.MethodSetIs ShardRangeRequirement.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ShardRangeRequirement.ty) []
 
 attribute [instance] ShardRangeRequirement.TypeAssumptions.type_repr
   ShardRangeRequirement.TypeAssumptions.underlying
-  ShardRangeRequirement.TypeAssumptions.get_Key
-  ShardRangeRequirement.TypeAssumptions.set_Key
-  ShardRangeRequirement.TypeAssumptions.get_Start
-  ShardRangeRequirement.TypeAssumptions.set_Start
-  ShardRangeRequirement.TypeAssumptions.get_End
-  ShardRangeRequirement.TypeAssumptions.set_End
+  ShardRangeRequirement.TypeAssumptions.get'Key
+  ShardRangeRequirement.TypeAssumptions.set'Key
+  ShardRangeRequirement.TypeAssumptions.get'Start
+  ShardRangeRequirement.TypeAssumptions.set'Start
+  ShardRangeRequirement.TypeAssumptions.get'End
+  ShardRangeRequirement.TypeAssumptions.set'End
   ShardRangeRequirement.TypeAssumptions.method_set
   ShardRangeRequirement.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Selector_instance : Selector.TypeAssumptions
-  everythingSelector_instance : everythingSelector.TypeAssumptions
-  shardSelector_instance : shardSelector.TypeAssumptions
-  ShardRangeRequirement_instance : ShardRangeRequirement.TypeAssumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  instance'Selector : Selector.TypeAssumptions
+  instance'everythingSelector : everythingSelector.TypeAssumptions
+  instance'shardSelector : shardSelector.TypeAssumptions
+  instance'ShardRangeRequirement : ShardRangeRequirement.TypeAssumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
 
-attribute [instance] Assumptions.Selector_instance
-  Assumptions.everythingSelector_instance
-  Assumptions.shardSelector_instance
-  Assumptions.ShardRangeRequirement_instance
-  Assumptions.import_runtime_Assumption
+attribute [instance] Assumptions.instance'Selector
+  Assumptions.instance'everythingSelector
+  Assumptions.instance'shardSelector
+  Assumptions.instance'ShardRangeRequirement
+  Assumptions.import'runtime
 
 end k8s_io.apimachinery.pkg.sharding
 

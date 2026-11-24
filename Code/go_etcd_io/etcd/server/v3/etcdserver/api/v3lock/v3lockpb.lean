@@ -330,7 +330,7 @@ noncomputable instance LockRequest.zero_val [GooseExts] : ZeroVal LockRequest :=
 @[irreducible] noncomputable def LockRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LockRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_LockRequest [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LockRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold LockRequest.fields LockRequest.fieldsUnsealed :=
   ⟨by unfold LockRequest.fields; rfl⟩
 
@@ -340,37 +340,37 @@ noncomputable instance equals_unfold_LockRequest [GooseExts] [GoGlobalContext] :
 class LockRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LockRequest.underlying LockRequest
   underlying : go.UnderlyingDirectedEq LockRequest.ty LockRequest.underlying
-  get_state : ∀ (x : LockRequest), go.IsGoStepPureDetTagged under (StructFieldGet LockRequest.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : LockRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet LockRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : LockRequest)))
-  get_Name : ∀ (x : LockRequest), go.IsGoStepPureDetTagged under (StructFieldGet LockRequest.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : LockRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LockRequest.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : LockRequest)))
-  get_Lease : ∀ (x : LockRequest), go.IsGoStepPureDetTagged under (StructFieldGet LockRequest.underlying go!"Lease") #x (Val #(x.Lease'))
-  set_Lease : ∀ (x : LockRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LockRequest.underlying go!"Lease") (PairV #x #y) (Val #(({ x with Lease' := y } : LockRequest)))
-  get_unknownFields : ∀ (x : LockRequest), go.IsGoStepPureDetTagged under (StructFieldGet LockRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : LockRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LockRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LockRequest)))
-  get_sizeCache : ∀ (x : LockRequest), go.IsGoStepPureDetTagged under (StructFieldGet LockRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : LockRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LockRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LockRequest)))
+  get'state : ∀ (x : LockRequest), go.IsGoStepPureDetTagged under (StructFieldGet LockRequest.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : LockRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet LockRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : LockRequest)))
+  get'Name : ∀ (x : LockRequest), go.IsGoStepPureDetTagged under (StructFieldGet LockRequest.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : LockRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LockRequest.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : LockRequest)))
+  get'Lease : ∀ (x : LockRequest), go.IsGoStepPureDetTagged under (StructFieldGet LockRequest.underlying go!"Lease") #x (Val #(x.Lease'))
+  set'Lease : ∀ (x : LockRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LockRequest.underlying go!"Lease") (PairV #x #y) (Val #(({ x with Lease' := y } : LockRequest)))
+  get'unknownFields : ∀ (x : LockRequest), go.IsGoStepPureDetTagged under (StructFieldGet LockRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : LockRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LockRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LockRequest)))
+  get'sizeCache : ∀ (x : LockRequest), go.IsGoStepPureDetTagged under (StructFieldGet LockRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : LockRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LockRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LockRequest)))
   method_set : go.MethodSetIs LockRequest.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LockRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetLease", (some (go.signature.Signature [] false [go.int64]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetLease_unfold : MethodUnfold (go.GoType.PointerType LockRequest.ty) go!"GetLease" LockRequest.GetLease.impl
-  ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType LockRequest.ty) go!"GetName" LockRequest.GetName.impl
+  ptr_unfold'GetLease : MethodUnfold (go.GoType.PointerType LockRequest.ty) go!"GetLease" LockRequest.GetLease.impl
+  ptr_unfold'GetName : MethodUnfold (go.GoType.PointerType LockRequest.ty) go!"GetName" LockRequest.GetName.impl
 
 attribute [instance] LockRequest.TypeAssumptions.type_repr
   LockRequest.TypeAssumptions.underlying
-  LockRequest.TypeAssumptions.get_state
-  LockRequest.TypeAssumptions.set_state
-  LockRequest.TypeAssumptions.get_Name
-  LockRequest.TypeAssumptions.set_Name
-  LockRequest.TypeAssumptions.get_Lease
-  LockRequest.TypeAssumptions.set_Lease
-  LockRequest.TypeAssumptions.get_unknownFields
-  LockRequest.TypeAssumptions.set_unknownFields
-  LockRequest.TypeAssumptions.get_sizeCache
-  LockRequest.TypeAssumptions.set_sizeCache
+  LockRequest.TypeAssumptions.get'state
+  LockRequest.TypeAssumptions.set'state
+  LockRequest.TypeAssumptions.get'Name
+  LockRequest.TypeAssumptions.set'Name
+  LockRequest.TypeAssumptions.get'Lease
+  LockRequest.TypeAssumptions.set'Lease
+  LockRequest.TypeAssumptions.get'unknownFields
+  LockRequest.TypeAssumptions.set'unknownFields
+  LockRequest.TypeAssumptions.get'sizeCache
+  LockRequest.TypeAssumptions.set'sizeCache
   LockRequest.TypeAssumptions.method_set
   LockRequest.TypeAssumptions.ptr_method_set
-  LockRequest.TypeAssumptions.ptr_GetLease_unfold
-  LockRequest.TypeAssumptions.ptr_GetName_unfold
+  LockRequest.TypeAssumptions.ptr_unfold'GetLease
+  LockRequest.TypeAssumptions.ptr_unfold'GetName
 
 structure LockResponse [GooseExts] where
   mk ::
@@ -393,7 +393,7 @@ noncomputable instance LockResponse.zero_val [GooseExts] : ZeroVal LockResponse 
 @[irreducible] noncomputable def LockResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LockResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_LockResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LockResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold LockResponse.fields LockResponse.fieldsUnsealed :=
   ⟨by unfold LockResponse.fields; rfl⟩
 
@@ -403,37 +403,37 @@ noncomputable instance equals_unfold_LockResponse [GooseExts] [GoGlobalContext] 
 class LockResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LockResponse.underlying LockResponse
   underlying : go.UnderlyingDirectedEq LockResponse.ty LockResponse.underlying
-  get_state : ∀ (x : LockResponse), go.IsGoStepPureDetTagged under (StructFieldGet LockResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : LockResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet LockResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : LockResponse)))
-  get_Header : ∀ (x : LockResponse), go.IsGoStepPureDetTagged under (StructFieldGet LockResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : LockResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet LockResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : LockResponse)))
-  get_Key : ∀ (x : LockResponse), go.IsGoStepPureDetTagged under (StructFieldGet LockResponse.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : LockResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LockResponse.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : LockResponse)))
-  get_unknownFields : ∀ (x : LockResponse), go.IsGoStepPureDetTagged under (StructFieldGet LockResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : LockResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LockResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LockResponse)))
-  get_sizeCache : ∀ (x : LockResponse), go.IsGoStepPureDetTagged under (StructFieldGet LockResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : LockResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LockResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LockResponse)))
+  get'state : ∀ (x : LockResponse), go.IsGoStepPureDetTagged under (StructFieldGet LockResponse.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : LockResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet LockResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : LockResponse)))
+  get'Header : ∀ (x : LockResponse), go.IsGoStepPureDetTagged under (StructFieldGet LockResponse.underlying go!"Header") #x (Val #(x.Header'))
+  set'Header : ∀ (x : LockResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet LockResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : LockResponse)))
+  get'Key : ∀ (x : LockResponse), go.IsGoStepPureDetTagged under (StructFieldGet LockResponse.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : LockResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LockResponse.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : LockResponse)))
+  get'unknownFields : ∀ (x : LockResponse), go.IsGoStepPureDetTagged under (StructFieldGet LockResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : LockResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LockResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LockResponse)))
+  get'sizeCache : ∀ (x : LockResponse), go.IsGoStepPureDetTagged under (StructFieldGet LockResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : LockResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LockResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LockResponse)))
   method_set : go.MethodSetIs LockResponse.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LockResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"GetKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetHeader_unfold : MethodUnfold (go.GoType.PointerType LockResponse.ty) go!"GetHeader" LockResponse.GetHeader.impl
-  ptr_GetKey_unfold : MethodUnfold (go.GoType.PointerType LockResponse.ty) go!"GetKey" LockResponse.GetKey.impl
+  ptr_unfold'GetHeader : MethodUnfold (go.GoType.PointerType LockResponse.ty) go!"GetHeader" LockResponse.GetHeader.impl
+  ptr_unfold'GetKey : MethodUnfold (go.GoType.PointerType LockResponse.ty) go!"GetKey" LockResponse.GetKey.impl
 
 attribute [instance] LockResponse.TypeAssumptions.type_repr
   LockResponse.TypeAssumptions.underlying
-  LockResponse.TypeAssumptions.get_state
-  LockResponse.TypeAssumptions.set_state
-  LockResponse.TypeAssumptions.get_Header
-  LockResponse.TypeAssumptions.set_Header
-  LockResponse.TypeAssumptions.get_Key
-  LockResponse.TypeAssumptions.set_Key
-  LockResponse.TypeAssumptions.get_unknownFields
-  LockResponse.TypeAssumptions.set_unknownFields
-  LockResponse.TypeAssumptions.get_sizeCache
-  LockResponse.TypeAssumptions.set_sizeCache
+  LockResponse.TypeAssumptions.get'state
+  LockResponse.TypeAssumptions.set'state
+  LockResponse.TypeAssumptions.get'Header
+  LockResponse.TypeAssumptions.set'Header
+  LockResponse.TypeAssumptions.get'Key
+  LockResponse.TypeAssumptions.set'Key
+  LockResponse.TypeAssumptions.get'unknownFields
+  LockResponse.TypeAssumptions.set'unknownFields
+  LockResponse.TypeAssumptions.get'sizeCache
+  LockResponse.TypeAssumptions.set'sizeCache
   LockResponse.TypeAssumptions.method_set
   LockResponse.TypeAssumptions.ptr_method_set
-  LockResponse.TypeAssumptions.ptr_GetHeader_unfold
-  LockResponse.TypeAssumptions.ptr_GetKey_unfold
+  LockResponse.TypeAssumptions.ptr_unfold'GetHeader
+  LockResponse.TypeAssumptions.ptr_unfold'GetKey
 
 structure UnlockRequest [GooseExts] where
   mk ::
@@ -454,7 +454,7 @@ noncomputable instance UnlockRequest.zero_val [GooseExts] : ZeroVal UnlockReques
 @[irreducible] noncomputable def UnlockRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UnlockRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_UnlockRequest [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'UnlockRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold UnlockRequest.fields UnlockRequest.fieldsUnsealed :=
   ⟨by unfold UnlockRequest.fields; rfl⟩
 
@@ -464,31 +464,31 @@ noncomputable instance equals_unfold_UnlockRequest [GooseExts] [GoGlobalContext]
 class UnlockRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnlockRequest.underlying UnlockRequest
   underlying : go.UnderlyingDirectedEq UnlockRequest.ty UnlockRequest.underlying
-  get_state : ∀ (x : UnlockRequest), go.IsGoStepPureDetTagged under (StructFieldGet UnlockRequest.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : UnlockRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet UnlockRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : UnlockRequest)))
-  get_Key : ∀ (x : UnlockRequest), go.IsGoStepPureDetTagged under (StructFieldGet UnlockRequest.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : UnlockRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet UnlockRequest.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : UnlockRequest)))
-  get_unknownFields : ∀ (x : UnlockRequest), go.IsGoStepPureDetTagged under (StructFieldGet UnlockRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : UnlockRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet UnlockRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : UnlockRequest)))
-  get_sizeCache : ∀ (x : UnlockRequest), go.IsGoStepPureDetTagged under (StructFieldGet UnlockRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : UnlockRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet UnlockRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : UnlockRequest)))
+  get'state : ∀ (x : UnlockRequest), go.IsGoStepPureDetTagged under (StructFieldGet UnlockRequest.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : UnlockRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet UnlockRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : UnlockRequest)))
+  get'Key : ∀ (x : UnlockRequest), go.IsGoStepPureDetTagged under (StructFieldGet UnlockRequest.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : UnlockRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet UnlockRequest.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : UnlockRequest)))
+  get'unknownFields : ∀ (x : UnlockRequest), go.IsGoStepPureDetTagged under (StructFieldGet UnlockRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : UnlockRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet UnlockRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : UnlockRequest)))
+  get'sizeCache : ∀ (x : UnlockRequest), go.IsGoStepPureDetTagged under (StructFieldGet UnlockRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : UnlockRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet UnlockRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : UnlockRequest)))
   method_set : go.MethodSetIs UnlockRequest.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnlockRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetKey_unfold : MethodUnfold (go.GoType.PointerType UnlockRequest.ty) go!"GetKey" UnlockRequest.GetKey.impl
+  ptr_unfold'GetKey : MethodUnfold (go.GoType.PointerType UnlockRequest.ty) go!"GetKey" UnlockRequest.GetKey.impl
 
 attribute [instance] UnlockRequest.TypeAssumptions.type_repr
   UnlockRequest.TypeAssumptions.underlying
-  UnlockRequest.TypeAssumptions.get_state
-  UnlockRequest.TypeAssumptions.set_state
-  UnlockRequest.TypeAssumptions.get_Key
-  UnlockRequest.TypeAssumptions.set_Key
-  UnlockRequest.TypeAssumptions.get_unknownFields
-  UnlockRequest.TypeAssumptions.set_unknownFields
-  UnlockRequest.TypeAssumptions.get_sizeCache
-  UnlockRequest.TypeAssumptions.set_sizeCache
+  UnlockRequest.TypeAssumptions.get'state
+  UnlockRequest.TypeAssumptions.set'state
+  UnlockRequest.TypeAssumptions.get'Key
+  UnlockRequest.TypeAssumptions.set'Key
+  UnlockRequest.TypeAssumptions.get'unknownFields
+  UnlockRequest.TypeAssumptions.set'unknownFields
+  UnlockRequest.TypeAssumptions.get'sizeCache
+  UnlockRequest.TypeAssumptions.set'sizeCache
   UnlockRequest.TypeAssumptions.method_set
   UnlockRequest.TypeAssumptions.ptr_method_set
-  UnlockRequest.TypeAssumptions.ptr_GetKey_unfold
+  UnlockRequest.TypeAssumptions.ptr_unfold'GetKey
 
 structure UnlockResponse [GooseExts] where
   mk ::
@@ -509,7 +509,7 @@ noncomputable instance UnlockResponse.zero_val [GooseExts] : ZeroVal UnlockRespo
 @[irreducible] noncomputable def UnlockResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UnlockResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_UnlockResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'UnlockResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold UnlockResponse.fields UnlockResponse.fieldsUnsealed :=
   ⟨by unfold UnlockResponse.fields; rfl⟩
 
@@ -519,31 +519,31 @@ noncomputable instance equals_unfold_UnlockResponse [GooseExts] [GoGlobalContext
 class UnlockResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnlockResponse.underlying UnlockResponse
   underlying : go.UnderlyingDirectedEq UnlockResponse.ty UnlockResponse.underlying
-  get_state : ∀ (x : UnlockResponse), go.IsGoStepPureDetTagged under (StructFieldGet UnlockResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : UnlockResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet UnlockResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : UnlockResponse)))
-  get_Header : ∀ (x : UnlockResponse), go.IsGoStepPureDetTagged under (StructFieldGet UnlockResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : UnlockResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet UnlockResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : UnlockResponse)))
-  get_unknownFields : ∀ (x : UnlockResponse), go.IsGoStepPureDetTagged under (StructFieldGet UnlockResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : UnlockResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet UnlockResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : UnlockResponse)))
-  get_sizeCache : ∀ (x : UnlockResponse), go.IsGoStepPureDetTagged under (StructFieldGet UnlockResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : UnlockResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet UnlockResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : UnlockResponse)))
+  get'state : ∀ (x : UnlockResponse), go.IsGoStepPureDetTagged under (StructFieldGet UnlockResponse.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : UnlockResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet UnlockResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : UnlockResponse)))
+  get'Header : ∀ (x : UnlockResponse), go.IsGoStepPureDetTagged under (StructFieldGet UnlockResponse.underlying go!"Header") #x (Val #(x.Header'))
+  set'Header : ∀ (x : UnlockResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet UnlockResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : UnlockResponse)))
+  get'unknownFields : ∀ (x : UnlockResponse), go.IsGoStepPureDetTagged under (StructFieldGet UnlockResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : UnlockResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet UnlockResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : UnlockResponse)))
+  get'sizeCache : ∀ (x : UnlockResponse), go.IsGoStepPureDetTagged under (StructFieldGet UnlockResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : UnlockResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet UnlockResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : UnlockResponse)))
   method_set : go.MethodSetIs UnlockResponse.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnlockResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetHeader_unfold : MethodUnfold (go.GoType.PointerType UnlockResponse.ty) go!"GetHeader" UnlockResponse.GetHeader.impl
+  ptr_unfold'GetHeader : MethodUnfold (go.GoType.PointerType UnlockResponse.ty) go!"GetHeader" UnlockResponse.GetHeader.impl
 
 attribute [instance] UnlockResponse.TypeAssumptions.type_repr
   UnlockResponse.TypeAssumptions.underlying
-  UnlockResponse.TypeAssumptions.get_state
-  UnlockResponse.TypeAssumptions.set_state
-  UnlockResponse.TypeAssumptions.get_Header
-  UnlockResponse.TypeAssumptions.set_Header
-  UnlockResponse.TypeAssumptions.get_unknownFields
-  UnlockResponse.TypeAssumptions.set_unknownFields
-  UnlockResponse.TypeAssumptions.get_sizeCache
-  UnlockResponse.TypeAssumptions.set_sizeCache
+  UnlockResponse.TypeAssumptions.get'state
+  UnlockResponse.TypeAssumptions.set'state
+  UnlockResponse.TypeAssumptions.get'Header
+  UnlockResponse.TypeAssumptions.set'Header
+  UnlockResponse.TypeAssumptions.get'unknownFields
+  UnlockResponse.TypeAssumptions.set'unknownFields
+  UnlockResponse.TypeAssumptions.get'sizeCache
+  UnlockResponse.TypeAssumptions.set'sizeCache
   UnlockResponse.TypeAssumptions.method_set
   UnlockResponse.TypeAssumptions.ptr_method_set
-  UnlockResponse.TypeAssumptions.ptr_GetHeader_unfold
+  UnlockResponse.TypeAssumptions.ptr_unfold'GetHeader
 
 opaque LockClient.nonempty_type : NonemptyType.{0}
 def LockClient : Type := LockClient.nonempty_type.type
@@ -609,7 +609,7 @@ noncomputable instance UnimplementedLockServer.zero_val [GooseExts] : ZeroVal Un
 @[irreducible] noncomputable def UnimplementedLockServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UnimplementedLockServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_UnimplementedLockServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'UnimplementedLockServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold UnimplementedLockServer.fields UnimplementedLockServer.fieldsUnsealed :=
   ⟨by unfold UnimplementedLockServer.fields; rfl⟩
 
@@ -642,33 +642,33 @@ attribute [instance] UnsafeLockServer.TypeAssumptions.underlying
   UnsafeLockServer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  LockRequest_instance : LockRequest.TypeAssumptions
-  LockResponse_instance : LockResponse.TypeAssumptions
-  UnlockRequest_instance : UnlockRequest.TypeAssumptions
-  UnlockResponse_instance : UnlockResponse.TypeAssumptions
-  LockClient_instance : LockClient.TypeAssumptions
-  lockClient_instance : lockClient.TypeAssumptions
-  LockServer_instance : LockServer.TypeAssumptions
-  UnimplementedLockServer_instance : UnimplementedLockServer.TypeAssumptions
-  UnsafeLockServer_instance : UnsafeLockServer.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_protoreflect_Assumption : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
-  import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
+  instance'LockRequest : LockRequest.TypeAssumptions
+  instance'LockResponse : LockResponse.TypeAssumptions
+  instance'UnlockRequest : UnlockRequest.TypeAssumptions
+  instance'UnlockResponse : UnlockResponse.TypeAssumptions
+  instance'LockClient : LockClient.TypeAssumptions
+  instance'lockClient : lockClient.TypeAssumptions
+  instance'LockServer : LockServer.TypeAssumptions
+  instance'UnimplementedLockServer : UnimplementedLockServer.TypeAssumptions
+  instance'UnsafeLockServer : UnsafeLockServer.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'protoreflect : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
+  import'protoimpl : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
 
-attribute [instance] Assumptions.LockRequest_instance
-  Assumptions.LockResponse_instance
-  Assumptions.UnlockRequest_instance
-  Assumptions.UnlockResponse_instance
-  Assumptions.LockClient_instance
-  Assumptions.lockClient_instance
-  Assumptions.LockServer_instance
-  Assumptions.UnimplementedLockServer_instance
-  Assumptions.UnsafeLockServer_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_protoreflect_Assumption
-  Assumptions.import_protoimpl_Assumption
+attribute [instance] Assumptions.instance'LockRequest
+  Assumptions.instance'LockResponse
+  Assumptions.instance'UnlockRequest
+  Assumptions.instance'UnlockResponse
+  Assumptions.instance'LockClient
+  Assumptions.instance'lockClient
+  Assumptions.instance'LockServer
+  Assumptions.instance'UnimplementedLockServer
+  Assumptions.instance'UnsafeLockServer
+  Assumptions.«unfold'init.0»
+  Assumptions.import'etcdserverpb
+  Assumptions.import'protoreflect
+  Assumptions.import'protoimpl
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb
 

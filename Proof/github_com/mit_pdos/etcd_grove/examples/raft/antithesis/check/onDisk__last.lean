@@ -48,7 +48,7 @@ theorem onDisk.last.wp_proof
   unfold bigOk at hfw
   wp_auto
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_f_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'f.method_unfold]
   try wp_auto
   wp_apply wp_f gx x f $$ [Hx] as %u2 #Hu2
   · iframe Hx; ipureintro; exact hf

@@ -1555,7 +1555,7 @@ noncomputable instance Error.zero_val [GooseExts] : ZeroVal Error :=
 @[irreducible] noncomputable def Error.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Error.fieldsUnsealed
 
-noncomputable instance equals_unfold_Error [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Error [GooseExts] [GoGlobalContext] :
     EqualsUnfold Error.fields Error.fieldsUnsealed :=
   ⟨by unfold Error.fields; rfl⟩
 
@@ -1565,72 +1565,72 @@ noncomputable instance equals_unfold_Error [GooseExts] [GoGlobalContext] :
 class Error.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Error.underlying Error
   underlying : go.UnderlyingDirectedEq Error.ty Error.underlying
-  get_Msg : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Msg") #x (Val #(x.Msg'))
-  set_Msg : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Msg") (PairV #x #y) (Val #(({ x with Msg' := y } : Error)))
+  get'Msg : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Msg") #x (Val #(x.Msg'))
+  set'Msg : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Msg") (PairV #x #y) (Val #(({ x with Msg' := y } : Error)))
   method_set : go.MethodSetIs Error.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Error.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType Error.ty) go!"Error" Error.Error.impl
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType Error.ty) go!"Error" Error.Error.impl
 
 attribute [instance] Error.TypeAssumptions.type_repr
   Error.TypeAssumptions.underlying
-  Error.TypeAssumptions.get_Msg
-  Error.TypeAssumptions.set_Msg
+  Error.TypeAssumptions.get'Msg
+  Error.TypeAssumptions.set'Msg
   Error.TypeAssumptions.method_set
   Error.TypeAssumptions.ptr_method_set
-  Error.TypeAssumptions.ptr_Error_unfold
+  Error.TypeAssumptions.ptr_unfold'Error
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Error_instance : Error.TypeAssumptions
-  SizeVarint_unfold : FuncUnfold SizeVarint [] SizeVarint.impl
-  AppendVarint_unfold : FuncUnfold AppendVarint [] AppendVarint.impl
-  AppendTag_unfold : FuncUnfold AppendTag [] AppendTag.impl
-  AppendBytes_unfold : FuncUnfold AppendBytes [] AppendBytes.impl
-  AppendString_unfold : FuncUnfold AppendString [] AppendString.impl
-  AppendFixed32_unfold : FuncUnfold AppendFixed32 [] AppendFixed32.impl
-  AppendFixed64_unfold : FuncUnfold AppendFixed64 [] AppendFixed64.impl
-  EncodeZigZag_unfold : FuncUnfold EncodeZigZag [] EncodeZigZag.impl
-  DecodeZigZag_unfold : FuncUnfold DecodeZigZag [] DecodeZigZag.impl
-  EncodeBool_unfold : FuncUnfold EncodeBool [] EncodeBool.impl
-  CopyBytes_unfold : FuncUnfold CopyBytes [] CopyBytes.impl
-  CopyBytesOrNil_unfold : FuncUnfold CopyBytesOrNil [] CopyBytesOrNil.impl
-  DecodeZigZag32_unfold : FuncUnfold DecodeZigZag32 [] DecodeZigZag32.impl
-  ConsumeVarint_unfold : FuncUnfold ConsumeVarint [] ConsumeVarint.impl
-  ConsumeTag_unfold : FuncUnfold ConsumeTag [] ConsumeTag.impl
-  ConsumeFieldTag_unfold : FuncUnfold ConsumeFieldTag [] ConsumeFieldTag.impl
-  ConsumeBytes_unfold : FuncUnfold ConsumeBytes [] ConsumeBytes.impl
-  ConsumeFixed32_unfold : FuncUnfold ConsumeFixed32 [] ConsumeFixed32.impl
-  ConsumeFixed64_unfold : FuncUnfold ConsumeFixed64 [] ConsumeFixed64.impl
-  skipScalar_unfold : FuncUnfold skipScalar [] skipScalar.impl
-  SkipField_unfold : FuncUnfold SkipField [] SkipField.impl
-  cont_unfold : FuncUnfold cont [] cont.impl
-  ValidUTF8_unfold : FuncUnfold ValidUTF8 [] ValidUTF8.impl
-  ValidString_unfold : FuncUnfold ValidString [] ValidString.impl
+  instance'Error : Error.TypeAssumptions
+  unfold'SizeVarint : FuncUnfold SizeVarint [] SizeVarint.impl
+  unfold'AppendVarint : FuncUnfold AppendVarint [] AppendVarint.impl
+  unfold'AppendTag : FuncUnfold AppendTag [] AppendTag.impl
+  unfold'AppendBytes : FuncUnfold AppendBytes [] AppendBytes.impl
+  unfold'AppendString : FuncUnfold AppendString [] AppendString.impl
+  unfold'AppendFixed32 : FuncUnfold AppendFixed32 [] AppendFixed32.impl
+  unfold'AppendFixed64 : FuncUnfold AppendFixed64 [] AppendFixed64.impl
+  unfold'EncodeZigZag : FuncUnfold EncodeZigZag [] EncodeZigZag.impl
+  unfold'DecodeZigZag : FuncUnfold DecodeZigZag [] DecodeZigZag.impl
+  unfold'EncodeBool : FuncUnfold EncodeBool [] EncodeBool.impl
+  unfold'CopyBytes : FuncUnfold CopyBytes [] CopyBytes.impl
+  unfold'CopyBytesOrNil : FuncUnfold CopyBytesOrNil [] CopyBytesOrNil.impl
+  unfold'DecodeZigZag32 : FuncUnfold DecodeZigZag32 [] DecodeZigZag32.impl
+  unfold'ConsumeVarint : FuncUnfold ConsumeVarint [] ConsumeVarint.impl
+  unfold'ConsumeTag : FuncUnfold ConsumeTag [] ConsumeTag.impl
+  unfold'ConsumeFieldTag : FuncUnfold ConsumeFieldTag [] ConsumeFieldTag.impl
+  unfold'ConsumeBytes : FuncUnfold ConsumeBytes [] ConsumeBytes.impl
+  unfold'ConsumeFixed32 : FuncUnfold ConsumeFixed32 [] ConsumeFixed32.impl
+  unfold'ConsumeFixed64 : FuncUnfold ConsumeFixed64 [] ConsumeFixed64.impl
+  unfold'skipScalar : FuncUnfold skipScalar [] skipScalar.impl
+  unfold'SkipField : FuncUnfold SkipField [] SkipField.impl
+  unfold'cont : FuncUnfold cont [] cont.impl
+  unfold'ValidUTF8 : FuncUnfold ValidUTF8 [] ValidUTF8.impl
+  unfold'ValidString : FuncUnfold ValidString [] ValidString.impl
 
-attribute [instance] Assumptions.Error_instance
-  Assumptions.SizeVarint_unfold
-  Assumptions.AppendVarint_unfold
-  Assumptions.AppendTag_unfold
-  Assumptions.AppendBytes_unfold
-  Assumptions.AppendString_unfold
-  Assumptions.AppendFixed32_unfold
-  Assumptions.AppendFixed64_unfold
-  Assumptions.EncodeZigZag_unfold
-  Assumptions.DecodeZigZag_unfold
-  Assumptions.EncodeBool_unfold
-  Assumptions.CopyBytes_unfold
-  Assumptions.CopyBytesOrNil_unfold
-  Assumptions.DecodeZigZag32_unfold
-  Assumptions.ConsumeVarint_unfold
-  Assumptions.ConsumeTag_unfold
-  Assumptions.ConsumeFieldTag_unfold
-  Assumptions.ConsumeBytes_unfold
-  Assumptions.ConsumeFixed32_unfold
-  Assumptions.ConsumeFixed64_unfold
-  Assumptions.skipScalar_unfold
-  Assumptions.SkipField_unfold
-  Assumptions.cont_unfold
-  Assumptions.ValidUTF8_unfold
-  Assumptions.ValidString_unfold
+attribute [instance] Assumptions.instance'Error
+  Assumptions.unfold'SizeVarint
+  Assumptions.unfold'AppendVarint
+  Assumptions.unfold'AppendTag
+  Assumptions.unfold'AppendBytes
+  Assumptions.unfold'AppendString
+  Assumptions.unfold'AppendFixed32
+  Assumptions.unfold'AppendFixed64
+  Assumptions.unfold'EncodeZigZag
+  Assumptions.unfold'DecodeZigZag
+  Assumptions.unfold'EncodeBool
+  Assumptions.unfold'CopyBytes
+  Assumptions.unfold'CopyBytesOrNil
+  Assumptions.unfold'DecodeZigZag32
+  Assumptions.unfold'ConsumeVarint
+  Assumptions.unfold'ConsumeTag
+  Assumptions.unfold'ConsumeFieldTag
+  Assumptions.unfold'ConsumeBytes
+  Assumptions.unfold'ConsumeFixed32
+  Assumptions.unfold'ConsumeFixed64
+  Assumptions.unfold'skipScalar
+  Assumptions.unfold'SkipField
+  Assumptions.unfold'cont
+  Assumptions.unfold'ValidUTF8
+  Assumptions.unfold'ValidString
 
 end models_lab.pbcodec
 

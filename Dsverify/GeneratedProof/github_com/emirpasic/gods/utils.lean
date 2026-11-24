@@ -28,7 +28,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.emirpasic.gods.utils.Assumptions]
 
-noncomputable instance sortable_typed_pointsto :
+noncomputable instance typed_pointsto'sortable :
     TypedPointsto (GF := GF) github_com.emirpasic.gods.utils.sortable where
   typedPointstoDef l v dq := iprop(
     "values" ∷ typedPointsto (structFieldRef github_com.emirpasic.gods.utils.sortable go!"values" l) v.values' dq ∗
@@ -38,11 +38,11 @@ noncomputable instance sortable_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance sortable_into_val_typed :
+noncomputable instance into_val_typed'sortable :
     IntoValTypedUnderlying (GF := GF) github_com.emirpasic.gods.utils.sortable github_com.emirpasic.gods.utils.sortable.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance sortable_access_load_values (l : Loc) (v : github_com.emirpasic.gods.utils.sortable) (dq : DFrac) :
+noncomputable instance access_load'sortable'values (l : Loc) (v : github_com.emirpasic.gods.utils.sortable) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.emirpasic.gods.utils.sortable go!"values" l) v.values' dq)
       (typedPointsto (structFieldRef github_com.emirpasic.gods.utils.sortable go!"values" l) v.values' dq)
@@ -50,7 +50,7 @@ noncomputable instance sortable_access_load_values (l : Loc) (v : github_com.emi
  by
   solve_pointsto_access_struct
 
-noncomputable instance sortable_access_store_values (l : Loc) (v : github_com.emirpasic.gods.utils.sortable) (y : GoSlice) :
+noncomputable instance access_store'sortable'values (l : Loc) (v : github_com.emirpasic.gods.utils.sortable) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.emirpasic.gods.utils.sortable go!"values" l) v.values' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.emirpasic.gods.utils.sortable go!"values" l) y (DFrac.own 1))
@@ -58,7 +58,7 @@ noncomputable instance sortable_access_store_values (l : Loc) (v : github_com.em
  by
   solve_pointsto_access_struct
 
-noncomputable instance sortable_access_load_comparator (l : Loc) (v : github_com.emirpasic.gods.utils.sortable) (dq : DFrac) :
+noncomputable instance access_load'sortable'comparator (l : Loc) (v : github_com.emirpasic.gods.utils.sortable) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.emirpasic.gods.utils.sortable go!"comparator" l) v.comparator' dq)
       (typedPointsto (structFieldRef github_com.emirpasic.gods.utils.sortable go!"comparator" l) v.comparator' dq)
@@ -66,7 +66,7 @@ noncomputable instance sortable_access_load_comparator (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance sortable_access_store_comparator (l : Loc) (v : github_com.emirpasic.gods.utils.sortable) (y : github_com.emirpasic.gods.utils.Comparator) :
+noncomputable instance access_store'sortable'comparator (l : Loc) (v : github_com.emirpasic.gods.utils.sortable) (y : github_com.emirpasic.gods.utils.Comparator) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.emirpasic.gods.utils.sortable go!"comparator" l) v.comparator' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.emirpasic.gods.utils.sortable go!"comparator" l) y (DFrac.own 1))

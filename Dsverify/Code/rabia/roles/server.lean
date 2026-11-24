@@ -494,7 +494,7 @@ noncomputable instance Server.zero_val [GooseExts] : ZeroVal Server :=
 @[irreducible] noncomputable def Server.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Server.fieldsUnsealed
 
-noncomputable instance equals_unfold_Server [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Server [GooseExts] [GoGlobalContext] :
     EqualsUnfold Server.fields Server.fieldsUnsealed :=
   ⟨by unfold Server.fields; rfl⟩
 
@@ -504,118 +504,118 @@ noncomputable instance equals_unfold_Server [GooseExts] [GoGlobalContext] :
 class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Server.underlying Server
   underlying : go.UnderlyingDirectedEq Server.ty Server.underlying
-  get_SvrId : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"SvrId") #x (Val #(x.SvrId'))
-  set_SvrId : ∀ (x : Server) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"SvrId") (PairV #x #y) (Val #(({ x with SvrId' := y } : Server)))
-  get_Wg : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"Wg") #x (Val #(x.Wg'))
-  set_Wg : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"Wg") (PairV #x #y) (Val #(({ x with Wg' := y } : Server)))
-  get_Done : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"Done") #x (Val #(x.Done'))
-  set_Done : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"Done") (PairV #x #y) (Val #(({ x with Done' := y } : Server)))
-  get_Ledger : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"Ledger") #x (Val #(x.Ledger'))
-  set_Ledger : ∀ (x : Server) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"Ledger") (PairV #x #y) (Val #(({ x with Ledger' := y } : Server)))
-  get_Logger : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"Logger") #x (Val #(x.Logger'))
-  set_Logger : ∀ (x : Server) (y : _root_.Perennial.github_com.rs.zerolog.Logger), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : Server)))
-  get_LogFile : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"LogFile") #x (Val #(x.LogFile'))
-  set_LogFile : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"LogFile") (PairV #x #y) (Val #(({ x with LogFile' := y } : Server)))
-  get_Proxy : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"Proxy") #x (Val #(x.Proxy'))
-  set_Proxy : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"Proxy") (PairV #x #y) (Val #(({ x with Proxy' := y } : Server)))
-  get_Network : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"Network") #x (Val #(x.Network'))
-  set_Network : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"Network") (PairV #x #y) (Val #(({ x with Network' := y } : Server)))
-  get_Consensus : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"Consensus") #x (Val #(x.Consensus'))
-  set_Consensus : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"Consensus") (PairV #x #y) (Val #(({ x with Consensus' := y } : Server)))
-  get_ClientsToProxy : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"ClientsToProxy") #x (Val #(x.ClientsToProxy'))
-  set_ClientsToProxy : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"ClientsToProxy") (PairV #x #y) (Val #(({ x with ClientsToProxy' := y } : Server)))
-  get_ProxyToNet : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"ProxyToNet") #x (Val #(x.ProxyToNet'))
-  set_ProxyToNet : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"ProxyToNet") (PairV #x #y) (Val #(({ x with ProxyToNet' := y } : Server)))
-  get_NetToProxy : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"NetToProxy") #x (Val #(x.NetToProxy'))
-  set_NetToProxy : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"NetToProxy") (PairV #x #y) (Val #(({ x with NetToProxy' := y } : Server)))
-  get_MsgHandlerToNet : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"MsgHandlerToNet") #x (Val #(x.MsgHandlerToNet'))
-  set_MsgHandlerToNet : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"MsgHandlerToNet") (PairV #x #y) (Val #(({ x with MsgHandlerToNet' := y } : Server)))
-  get_ConExecutorToNet : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"ConExecutorToNet") #x (Val #(x.ConExecutorToNet'))
-  set_ConExecutorToNet : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"ConExecutorToNet") (PairV #x #y) (Val #(({ x with ConExecutorToNet' := y } : Server)))
-  get_NetToMsgHandler : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"NetToMsgHandler") #x (Val #(x.NetToMsgHandler'))
-  set_NetToMsgHandler : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"NetToMsgHandler") (PairV #x #y) (Val #(({ x with NetToMsgHandler' := y } : Server)))
-  get_NetToConExecutor : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"NetToConExecutor") #x (Val #(x.NetToConExecutor'))
-  set_NetToConExecutor : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"NetToConExecutor") (PairV #x #y) (Val #(({ x with NetToConExecutor' := y } : Server)))
+  get'SvrId : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"SvrId") #x (Val #(x.SvrId'))
+  set'SvrId : ∀ (x : Server) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"SvrId") (PairV #x #y) (Val #(({ x with SvrId' := y } : Server)))
+  get'Wg : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"Wg") #x (Val #(x.Wg'))
+  set'Wg : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"Wg") (PairV #x #y) (Val #(({ x with Wg' := y } : Server)))
+  get'Done : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"Done") #x (Val #(x.Done'))
+  set'Done : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"Done") (PairV #x #y) (Val #(({ x with Done' := y } : Server)))
+  get'Ledger : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"Ledger") #x (Val #(x.Ledger'))
+  set'Ledger : ∀ (x : Server) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"Ledger") (PairV #x #y) (Val #(({ x with Ledger' := y } : Server)))
+  get'Logger : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"Logger") #x (Val #(x.Logger'))
+  set'Logger : ∀ (x : Server) (y : _root_.Perennial.github_com.rs.zerolog.Logger), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : Server)))
+  get'LogFile : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"LogFile") #x (Val #(x.LogFile'))
+  set'LogFile : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"LogFile") (PairV #x #y) (Val #(({ x with LogFile' := y } : Server)))
+  get'Proxy : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"Proxy") #x (Val #(x.Proxy'))
+  set'Proxy : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"Proxy") (PairV #x #y) (Val #(({ x with Proxy' := y } : Server)))
+  get'Network : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"Network") #x (Val #(x.Network'))
+  set'Network : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"Network") (PairV #x #y) (Val #(({ x with Network' := y } : Server)))
+  get'Consensus : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"Consensus") #x (Val #(x.Consensus'))
+  set'Consensus : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"Consensus") (PairV #x #y) (Val #(({ x with Consensus' := y } : Server)))
+  get'ClientsToProxy : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"ClientsToProxy") #x (Val #(x.ClientsToProxy'))
+  set'ClientsToProxy : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"ClientsToProxy") (PairV #x #y) (Val #(({ x with ClientsToProxy' := y } : Server)))
+  get'ProxyToNet : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"ProxyToNet") #x (Val #(x.ProxyToNet'))
+  set'ProxyToNet : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"ProxyToNet") (PairV #x #y) (Val #(({ x with ProxyToNet' := y } : Server)))
+  get'NetToProxy : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"NetToProxy") #x (Val #(x.NetToProxy'))
+  set'NetToProxy : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"NetToProxy") (PairV #x #y) (Val #(({ x with NetToProxy' := y } : Server)))
+  get'MsgHandlerToNet : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"MsgHandlerToNet") #x (Val #(x.MsgHandlerToNet'))
+  set'MsgHandlerToNet : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"MsgHandlerToNet") (PairV #x #y) (Val #(({ x with MsgHandlerToNet' := y } : Server)))
+  get'ConExecutorToNet : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"ConExecutorToNet") #x (Val #(x.ConExecutorToNet'))
+  set'ConExecutorToNet : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"ConExecutorToNet") (PairV #x #y) (Val #(({ x with ConExecutorToNet' := y } : Server)))
+  get'NetToMsgHandler : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"NetToMsgHandler") #x (Val #(x.NetToMsgHandler'))
+  set'NetToMsgHandler : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"NetToMsgHandler") (PairV #x #y) (Val #(({ x with NetToMsgHandler' := y } : Server)))
+  get'NetToConExecutor : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"NetToConExecutor") #x (Val #(x.NetToConExecutor'))
+  set'NetToConExecutor : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"NetToConExecutor") (PairV #x #y) (Val #(({ x with NetToConExecutor' := y } : Server)))
   method_set : go.MethodSetIs Server.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"Epilogue", (some (go.signature.Signature [] false []))), (go!"Prologue", (some (go.signature.Signature [] false []))), (go!"ServerMain", (some (go.signature.Signature [] false []))), (go!"TerminalLogger", (some (go.signature.Signature [] false [])))]
-  ptr_Epilogue_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"Epilogue" Server.Epilogue.impl
-  ptr_Prologue_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"Prologue" Server.Prologue.impl
-  ptr_ServerMain_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"ServerMain" Server.ServerMain.impl
-  ptr_TerminalLogger_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"TerminalLogger" Server.TerminalLogger.impl
+  ptr_unfold'Epilogue : MethodUnfold (go.GoType.PointerType Server.ty) go!"Epilogue" Server.Epilogue.impl
+  ptr_unfold'Prologue : MethodUnfold (go.GoType.PointerType Server.ty) go!"Prologue" Server.Prologue.impl
+  ptr_unfold'ServerMain : MethodUnfold (go.GoType.PointerType Server.ty) go!"ServerMain" Server.ServerMain.impl
+  ptr_unfold'TerminalLogger : MethodUnfold (go.GoType.PointerType Server.ty) go!"TerminalLogger" Server.TerminalLogger.impl
 
 attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.underlying
-  Server.TypeAssumptions.get_SvrId
-  Server.TypeAssumptions.set_SvrId
-  Server.TypeAssumptions.get_Wg
-  Server.TypeAssumptions.set_Wg
-  Server.TypeAssumptions.get_Done
-  Server.TypeAssumptions.set_Done
-  Server.TypeAssumptions.get_Ledger
-  Server.TypeAssumptions.set_Ledger
-  Server.TypeAssumptions.get_Logger
-  Server.TypeAssumptions.set_Logger
-  Server.TypeAssumptions.get_LogFile
-  Server.TypeAssumptions.set_LogFile
-  Server.TypeAssumptions.get_Proxy
-  Server.TypeAssumptions.set_Proxy
-  Server.TypeAssumptions.get_Network
-  Server.TypeAssumptions.set_Network
-  Server.TypeAssumptions.get_Consensus
-  Server.TypeAssumptions.set_Consensus
-  Server.TypeAssumptions.get_ClientsToProxy
-  Server.TypeAssumptions.set_ClientsToProxy
-  Server.TypeAssumptions.get_ProxyToNet
-  Server.TypeAssumptions.set_ProxyToNet
-  Server.TypeAssumptions.get_NetToProxy
-  Server.TypeAssumptions.set_NetToProxy
-  Server.TypeAssumptions.get_MsgHandlerToNet
-  Server.TypeAssumptions.set_MsgHandlerToNet
-  Server.TypeAssumptions.get_ConExecutorToNet
-  Server.TypeAssumptions.set_ConExecutorToNet
-  Server.TypeAssumptions.get_NetToMsgHandler
-  Server.TypeAssumptions.set_NetToMsgHandler
-  Server.TypeAssumptions.get_NetToConExecutor
-  Server.TypeAssumptions.set_NetToConExecutor
+  Server.TypeAssumptions.get'SvrId
+  Server.TypeAssumptions.set'SvrId
+  Server.TypeAssumptions.get'Wg
+  Server.TypeAssumptions.set'Wg
+  Server.TypeAssumptions.get'Done
+  Server.TypeAssumptions.set'Done
+  Server.TypeAssumptions.get'Ledger
+  Server.TypeAssumptions.set'Ledger
+  Server.TypeAssumptions.get'Logger
+  Server.TypeAssumptions.set'Logger
+  Server.TypeAssumptions.get'LogFile
+  Server.TypeAssumptions.set'LogFile
+  Server.TypeAssumptions.get'Proxy
+  Server.TypeAssumptions.set'Proxy
+  Server.TypeAssumptions.get'Network
+  Server.TypeAssumptions.set'Network
+  Server.TypeAssumptions.get'Consensus
+  Server.TypeAssumptions.set'Consensus
+  Server.TypeAssumptions.get'ClientsToProxy
+  Server.TypeAssumptions.set'ClientsToProxy
+  Server.TypeAssumptions.get'ProxyToNet
+  Server.TypeAssumptions.set'ProxyToNet
+  Server.TypeAssumptions.get'NetToProxy
+  Server.TypeAssumptions.set'NetToProxy
+  Server.TypeAssumptions.get'MsgHandlerToNet
+  Server.TypeAssumptions.set'MsgHandlerToNet
+  Server.TypeAssumptions.get'ConExecutorToNet
+  Server.TypeAssumptions.set'ConExecutorToNet
+  Server.TypeAssumptions.get'NetToMsgHandler
+  Server.TypeAssumptions.set'NetToMsgHandler
+  Server.TypeAssumptions.get'NetToConExecutor
+  Server.TypeAssumptions.set'NetToConExecutor
   Server.TypeAssumptions.method_set
   Server.TypeAssumptions.ptr_method_set
-  Server.TypeAssumptions.ptr_Epilogue_unfold
-  Server.TypeAssumptions.ptr_Prologue_unfold
-  Server.TypeAssumptions.ptr_ServerMain_unfold
-  Server.TypeAssumptions.ptr_TerminalLogger_unfold
+  Server.TypeAssumptions.ptr_unfold'Epilogue
+  Server.TypeAssumptions.ptr_unfold'Prologue
+  Server.TypeAssumptions.ptr_unfold'ServerMain
+  Server.TypeAssumptions.ptr_unfold'TerminalLogger
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Server_instance : Server.TypeAssumptions
-  ServerInit_unfold : FuncUnfold ServerInit [] ServerInit.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_zerolog_Assumption : _root_.Perennial.github_com.rs.zerolog.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_config_Assumption : _root_.Perennial.rabia.internal.config.Assumptions
-  import_ledger_Assumption : _root_.Perennial.rabia.internal.ledger.Assumptions
-  import_logger_Assumption : _root_.Perennial.rabia.internal.logger.Assumptions
-  import_message_Assumption : _root_.Perennial.rabia.internal.message.Assumptions
-  import_system_Assumption : _root_.Perennial.rabia.internal.system.Assumptions
-  import_consensus_Assumption : _root_.Perennial.rabia.roles.server.layers.consensus.Assumptions
-  import_network_Assumption : _root_.Perennial.rabia.roles.server.layers.network.Assumptions
-  import_proxy_Assumption : _root_.Perennial.rabia.roles.server.layers.proxy.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'Server : Server.TypeAssumptions
+  unfold'ServerInit : FuncUnfold ServerInit [] ServerInit.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'zerolog : _root_.Perennial.github_com.rs.zerolog.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'config : _root_.Perennial.rabia.internal.config.Assumptions
+  import'ledger : _root_.Perennial.rabia.internal.ledger.Assumptions
+  import'logger : _root_.Perennial.rabia.internal.logger.Assumptions
+  import'message : _root_.Perennial.rabia.internal.message.Assumptions
+  import'system : _root_.Perennial.rabia.internal.system.Assumptions
+  import'consensus : _root_.Perennial.rabia.roles.server.layers.consensus.Assumptions
+  import'network : _root_.Perennial.rabia.roles.server.layers.network.Assumptions
+  import'proxy : _root_.Perennial.rabia.roles.server.layers.proxy.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.Server_instance
-  Assumptions.ServerInit_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_zerolog_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_config_Assumption
-  Assumptions.import_ledger_Assumption
-  Assumptions.import_logger_Assumption
-  Assumptions.import_message_Assumption
-  Assumptions.import_system_Assumption
-  Assumptions.import_consensus_Assumption
-  Assumptions.import_network_Assumption
-  Assumptions.import_proxy_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'Server
+  Assumptions.unfold'ServerInit
+  Assumptions.import'fmt
+  Assumptions.import'zerolog
+  Assumptions.import'os
+  Assumptions.import'config
+  Assumptions.import'ledger
+  Assumptions.import'logger
+  Assumptions.import'message
+  Assumptions.import'system
+  Assumptions.import'consensus
+  Assumptions.import'network
+  Assumptions.import'proxy
+  Assumptions.import'sync
+  Assumptions.import'time
 
 end rabia.roles.server
 

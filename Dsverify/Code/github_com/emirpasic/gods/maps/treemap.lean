@@ -1127,7 +1127,7 @@ noncomputable instance Iterator.zero_val [GooseExts] : ZeroVal Iterator :=
 @[irreducible] noncomputable def Iterator.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Iterator.fieldsUnsealed
 
-noncomputable instance equals_unfold_Iterator [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Iterator [GooseExts] [GoGlobalContext] :
     EqualsUnfold Iterator.fields Iterator.fieldsUnsealed :=
   ⟨by unfold Iterator.fields; rfl⟩
 
@@ -1137,37 +1137,37 @@ noncomputable instance equals_unfold_Iterator [GooseExts] [GoGlobalContext] :
 class Iterator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Iterator.underlying Iterator
   underlying : go.UnderlyingDirectedEq Iterator.ty Iterator.underlying
-  get_iterator : ∀ (x : Iterator), go.IsGoStepPureDetTagged under (StructFieldGet Iterator.underlying go!"iterator") #x (Val #(x.iterator'))
-  set_iterator : ∀ (x : Iterator) (y : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator), go.IsGoStepPureDetTagged under (StructFieldSet Iterator.underlying go!"iterator") (PairV #x #y) (Val #(({ x with iterator' := y } : Iterator)))
+  get'iterator : ∀ (x : Iterator), go.IsGoStepPureDetTagged under (StructFieldGet Iterator.underlying go!"iterator") #x (Val #(x.iterator'))
+  set'iterator : ∀ (x : Iterator) (y : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator), go.IsGoStepPureDetTagged under (StructFieldSet Iterator.underlying go!"iterator") (PairV #x #y) (Val #(({ x with iterator' := y } : Iterator)))
   method_set : go.MethodSetIs Iterator.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Iterator.ty) [(go!"Begin", (some (go.signature.Signature [] false []))), (go!"End", (some (go.signature.Signature [] false []))), (go!"First", (some (go.signature.Signature [] false [go.bool]))), (go!"Key", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Last", (some (go.signature.Signature [] false [go.bool]))), (go!"Next", (some (go.signature.Signature [] false [go.bool]))), (go!"NextTo", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))] false [go.bool]))), (go!"Prev", (some (go.signature.Signature [] false [go.bool]))), (go!"PrevTo", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))] false [go.bool]))), (go!"Value", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])])))]
-  ptr_Begin_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Begin" Iterator.Begin.impl
-  ptr_End_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"End" Iterator.End.impl
-  ptr_First_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"First" Iterator.First.impl
-  ptr_Key_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Key" Iterator.Key.impl
-  ptr_Last_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Last" Iterator.Last.impl
-  ptr_Next_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Next" Iterator.Next.impl
-  ptr_NextTo_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"NextTo" Iterator.NextTo.impl
-  ptr_Prev_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Prev" Iterator.Prev.impl
-  ptr_PrevTo_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"PrevTo" Iterator.PrevTo.impl
-  ptr_Value_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Value" Iterator.Value.impl
+  ptr_unfold'Begin : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Begin" Iterator.Begin.impl
+  ptr_unfold'End : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"End" Iterator.End.impl
+  ptr_unfold'First : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"First" Iterator.First.impl
+  ptr_unfold'Key : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Key" Iterator.Key.impl
+  ptr_unfold'Last : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Last" Iterator.Last.impl
+  ptr_unfold'Next : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Next" Iterator.Next.impl
+  ptr_unfold'NextTo : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"NextTo" Iterator.NextTo.impl
+  ptr_unfold'Prev : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Prev" Iterator.Prev.impl
+  ptr_unfold'PrevTo : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"PrevTo" Iterator.PrevTo.impl
+  ptr_unfold'Value : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Value" Iterator.Value.impl
 
 attribute [instance] Iterator.TypeAssumptions.type_repr
   Iterator.TypeAssumptions.underlying
-  Iterator.TypeAssumptions.get_iterator
-  Iterator.TypeAssumptions.set_iterator
+  Iterator.TypeAssumptions.get'iterator
+  Iterator.TypeAssumptions.set'iterator
   Iterator.TypeAssumptions.method_set
   Iterator.TypeAssumptions.ptr_method_set
-  Iterator.TypeAssumptions.ptr_Begin_unfold
-  Iterator.TypeAssumptions.ptr_End_unfold
-  Iterator.TypeAssumptions.ptr_First_unfold
-  Iterator.TypeAssumptions.ptr_Key_unfold
-  Iterator.TypeAssumptions.ptr_Last_unfold
-  Iterator.TypeAssumptions.ptr_Next_unfold
-  Iterator.TypeAssumptions.ptr_NextTo_unfold
-  Iterator.TypeAssumptions.ptr_Prev_unfold
-  Iterator.TypeAssumptions.ptr_PrevTo_unfold
-  Iterator.TypeAssumptions.ptr_Value_unfold
+  Iterator.TypeAssumptions.ptr_unfold'Begin
+  Iterator.TypeAssumptions.ptr_unfold'End
+  Iterator.TypeAssumptions.ptr_unfold'First
+  Iterator.TypeAssumptions.ptr_unfold'Key
+  Iterator.TypeAssumptions.ptr_unfold'Last
+  Iterator.TypeAssumptions.ptr_unfold'Next
+  Iterator.TypeAssumptions.ptr_unfold'NextTo
+  Iterator.TypeAssumptions.ptr_unfold'Prev
+  Iterator.TypeAssumptions.ptr_unfold'PrevTo
+  Iterator.TypeAssumptions.ptr_unfold'Value
 
 structure Map [GooseExts] where
   mk ::
@@ -1182,7 +1182,7 @@ noncomputable instance Map.zero_val [GooseExts] : ZeroVal Map :=
 @[irreducible] noncomputable def Map.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Map.fieldsUnsealed
 
-noncomputable instance equals_unfold_Map [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Map [GooseExts] [GoGlobalContext] :
     EqualsUnfold Map.fields Map.fieldsUnsealed :=
   ⟨by unfold Map.fields; rfl⟩
 
@@ -1192,90 +1192,90 @@ noncomputable instance equals_unfold_Map [GooseExts] [GoGlobalContext] :
 class Map.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Map.underlying Map
   underlying : go.UnderlyingDirectedEq Map.ty Map.underlying
-  get_tree : ∀ (x : Map), go.IsGoStepPureDetTagged under (StructFieldGet Map.underlying go!"tree") #x (Val #(x.tree'))
-  set_tree : ∀ (x : Map) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Map.underlying go!"tree") (PairV #x #y) (Val #(({ x with tree' := y } : Map)))
+  get'tree : ∀ (x : Map), go.IsGoStepPureDetTagged under (StructFieldGet Map.underlying go!"tree") #x (Val #(x.tree'))
+  set'tree : ∀ (x : Map) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Map.underlying go!"tree") (PairV #x #y) (Val #(({ x with tree' := y } : Map)))
   method_set : go.MethodSetIs Map.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Map.ty) [(go!"All", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))] false [go.bool]))), (go!"Any", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))] false [go.bool]))), (go!"Ceiling", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])]))), (go!"Clear", (some (go.signature.Signature [] false []))), (go!"Each", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false []))] false []))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Find", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))] false [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])]))), (go!"Floor", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])]))), (go!"FromJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool]))), (go!"Iterator", (some (go.signature.Signature [] false [Iterator.ty]))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"Map", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])]))] false [(go.GoType.PointerType Map.ty)]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Max", (some (go.signature.Signature [] false [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])]))), (go!"Min", (some (go.signature.Signature [] false [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])]))), (go!"Put", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false []))), (go!"Remove", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"Select", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))] false [(go.GoType.PointerType Map.ty)]))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"ToJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))])))]
-  ptr_All_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"All" Map.All.impl
-  ptr_Any_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Any" Map.Any.impl
-  ptr_Ceiling_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Ceiling" Map.Ceiling.impl
-  ptr_Clear_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Clear" Map.Clear.impl
-  ptr_Each_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Each" Map.Each.impl
-  ptr_Empty_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Empty" Map.Empty.impl
-  ptr_Find_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Find" Map.Find.impl
-  ptr_Floor_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Floor" Map.Floor.impl
-  ptr_FromJSON_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"FromJSON" Map.FromJSON.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Get" Map.Get.impl
-  ptr_Iterator_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Iterator" Map.Iterator.impl
-  ptr_Keys_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Keys" Map.Keys.impl
-  ptr_Map_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Map" Map.Map.impl
-  ptr_MarshalJSON_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"MarshalJSON" Map.MarshalJSON.impl
-  ptr_Max_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Max" Map.Max.impl
-  ptr_Min_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Min" Map.Min.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Put" Map.Put.impl
-  ptr_Remove_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Remove" Map.Remove.impl
-  ptr_Select_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Select" Map.Select.impl
-  ptr_Size_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Size" Map.Size.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"String" Map.String.impl
-  ptr_ToJSON_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"ToJSON" Map.ToJSON.impl
-  ptr_UnmarshalJSON_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"UnmarshalJSON" Map.UnmarshalJSON.impl
-  ptr_Values_unfold : MethodUnfold (go.GoType.PointerType Map.ty) go!"Values" Map.Values.impl
+  ptr_unfold'All : MethodUnfold (go.GoType.PointerType Map.ty) go!"All" Map.All.impl
+  ptr_unfold'Any : MethodUnfold (go.GoType.PointerType Map.ty) go!"Any" Map.Any.impl
+  ptr_unfold'Ceiling : MethodUnfold (go.GoType.PointerType Map.ty) go!"Ceiling" Map.Ceiling.impl
+  ptr_unfold'Clear : MethodUnfold (go.GoType.PointerType Map.ty) go!"Clear" Map.Clear.impl
+  ptr_unfold'Each : MethodUnfold (go.GoType.PointerType Map.ty) go!"Each" Map.Each.impl
+  ptr_unfold'Empty : MethodUnfold (go.GoType.PointerType Map.ty) go!"Empty" Map.Empty.impl
+  ptr_unfold'Find : MethodUnfold (go.GoType.PointerType Map.ty) go!"Find" Map.Find.impl
+  ptr_unfold'Floor : MethodUnfold (go.GoType.PointerType Map.ty) go!"Floor" Map.Floor.impl
+  ptr_unfold'FromJSON : MethodUnfold (go.GoType.PointerType Map.ty) go!"FromJSON" Map.FromJSON.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType Map.ty) go!"Get" Map.Get.impl
+  ptr_unfold'Iterator : MethodUnfold (go.GoType.PointerType Map.ty) go!"Iterator" Map.Iterator.impl
+  ptr_unfold'Keys : MethodUnfold (go.GoType.PointerType Map.ty) go!"Keys" Map.Keys.impl
+  ptr_unfold'Map : MethodUnfold (go.GoType.PointerType Map.ty) go!"Map" Map.Map.impl
+  ptr_unfold'MarshalJSON : MethodUnfold (go.GoType.PointerType Map.ty) go!"MarshalJSON" Map.MarshalJSON.impl
+  ptr_unfold'Max : MethodUnfold (go.GoType.PointerType Map.ty) go!"Max" Map.Max.impl
+  ptr_unfold'Min : MethodUnfold (go.GoType.PointerType Map.ty) go!"Min" Map.Min.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType Map.ty) go!"Put" Map.Put.impl
+  ptr_unfold'Remove : MethodUnfold (go.GoType.PointerType Map.ty) go!"Remove" Map.Remove.impl
+  ptr_unfold'Select : MethodUnfold (go.GoType.PointerType Map.ty) go!"Select" Map.Select.impl
+  ptr_unfold'Size : MethodUnfold (go.GoType.PointerType Map.ty) go!"Size" Map.Size.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType Map.ty) go!"String" Map.String.impl
+  ptr_unfold'ToJSON : MethodUnfold (go.GoType.PointerType Map.ty) go!"ToJSON" Map.ToJSON.impl
+  ptr_unfold'UnmarshalJSON : MethodUnfold (go.GoType.PointerType Map.ty) go!"UnmarshalJSON" Map.UnmarshalJSON.impl
+  ptr_unfold'Values : MethodUnfold (go.GoType.PointerType Map.ty) go!"Values" Map.Values.impl
 
 attribute [instance] Map.TypeAssumptions.type_repr
   Map.TypeAssumptions.underlying
-  Map.TypeAssumptions.get_tree
-  Map.TypeAssumptions.set_tree
+  Map.TypeAssumptions.get'tree
+  Map.TypeAssumptions.set'tree
   Map.TypeAssumptions.method_set
   Map.TypeAssumptions.ptr_method_set
-  Map.TypeAssumptions.ptr_All_unfold
-  Map.TypeAssumptions.ptr_Any_unfold
-  Map.TypeAssumptions.ptr_Ceiling_unfold
-  Map.TypeAssumptions.ptr_Clear_unfold
-  Map.TypeAssumptions.ptr_Each_unfold
-  Map.TypeAssumptions.ptr_Empty_unfold
-  Map.TypeAssumptions.ptr_Find_unfold
-  Map.TypeAssumptions.ptr_Floor_unfold
-  Map.TypeAssumptions.ptr_FromJSON_unfold
-  Map.TypeAssumptions.ptr_Get_unfold
-  Map.TypeAssumptions.ptr_Iterator_unfold
-  Map.TypeAssumptions.ptr_Keys_unfold
-  Map.TypeAssumptions.ptr_Map_unfold
-  Map.TypeAssumptions.ptr_MarshalJSON_unfold
-  Map.TypeAssumptions.ptr_Max_unfold
-  Map.TypeAssumptions.ptr_Min_unfold
-  Map.TypeAssumptions.ptr_Put_unfold
-  Map.TypeAssumptions.ptr_Remove_unfold
-  Map.TypeAssumptions.ptr_Select_unfold
-  Map.TypeAssumptions.ptr_Size_unfold
-  Map.TypeAssumptions.ptr_String_unfold
-  Map.TypeAssumptions.ptr_ToJSON_unfold
-  Map.TypeAssumptions.ptr_UnmarshalJSON_unfold
-  Map.TypeAssumptions.ptr_Values_unfold
+  Map.TypeAssumptions.ptr_unfold'All
+  Map.TypeAssumptions.ptr_unfold'Any
+  Map.TypeAssumptions.ptr_unfold'Ceiling
+  Map.TypeAssumptions.ptr_unfold'Clear
+  Map.TypeAssumptions.ptr_unfold'Each
+  Map.TypeAssumptions.ptr_unfold'Empty
+  Map.TypeAssumptions.ptr_unfold'Find
+  Map.TypeAssumptions.ptr_unfold'Floor
+  Map.TypeAssumptions.ptr_unfold'FromJSON
+  Map.TypeAssumptions.ptr_unfold'Get
+  Map.TypeAssumptions.ptr_unfold'Iterator
+  Map.TypeAssumptions.ptr_unfold'Keys
+  Map.TypeAssumptions.ptr_unfold'Map
+  Map.TypeAssumptions.ptr_unfold'MarshalJSON
+  Map.TypeAssumptions.ptr_unfold'Max
+  Map.TypeAssumptions.ptr_unfold'Min
+  Map.TypeAssumptions.ptr_unfold'Put
+  Map.TypeAssumptions.ptr_unfold'Remove
+  Map.TypeAssumptions.ptr_unfold'Select
+  Map.TypeAssumptions.ptr_unfold'Size
+  Map.TypeAssumptions.ptr_unfold'String
+  Map.TypeAssumptions.ptr_unfold'ToJSON
+  Map.TypeAssumptions.ptr_unfold'UnmarshalJSON
+  Map.TypeAssumptions.ptr_unfold'Values
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Iterator_instance : Iterator.TypeAssumptions
-  Map_instance : Map.TypeAssumptions
-  NewWith_unfold : FuncUnfold NewWith [] NewWith.impl
-  NewWithIntComparator_unfold : FuncUnfold NewWithIntComparator [] NewWithIntComparator.impl
-  NewWithStringComparator_unfold : FuncUnfold NewWithStringComparator [] NewWithStringComparator.impl
-  import_containers_Assumption : _root_.Perennial.github_com.emirpasic.gods.containers.Assumptions
-  import_redblacktree_Assumption : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_maps_Assumption : _root_.Perennial.github_com.emirpasic.gods.maps.Assumptions
-  import_utils_Assumption : _root_.Perennial.github_com.emirpasic.gods.utils.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
+  instance'Iterator : Iterator.TypeAssumptions
+  instance'Map : Map.TypeAssumptions
+  unfold'NewWith : FuncUnfold NewWith [] NewWith.impl
+  unfold'NewWithIntComparator : FuncUnfold NewWithIntComparator [] NewWithIntComparator.impl
+  unfold'NewWithStringComparator : FuncUnfold NewWithStringComparator [] NewWithStringComparator.impl
+  import'containers : _root_.Perennial.github_com.emirpasic.gods.containers.Assumptions
+  import'redblacktree : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'maps : _root_.Perennial.github_com.emirpasic.gods.maps.Assumptions
+  import'utils : _root_.Perennial.github_com.emirpasic.gods.utils.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
 
-attribute [instance] Assumptions.Iterator_instance
-  Assumptions.Map_instance
-  Assumptions.NewWith_unfold
-  Assumptions.NewWithIntComparator_unfold
-  Assumptions.NewWithStringComparator_unfold
-  Assumptions.import_containers_Assumption
-  Assumptions.import_redblacktree_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_maps_Assumption
-  Assumptions.import_utils_Assumption
-  Assumptions.import_strings_Assumption
+attribute [instance] Assumptions.instance'Iterator
+  Assumptions.instance'Map
+  Assumptions.unfold'NewWith
+  Assumptions.unfold'NewWithIntComparator
+  Assumptions.unfold'NewWithStringComparator
+  Assumptions.import'containers
+  Assumptions.import'redblacktree
+  Assumptions.import'fmt
+  Assumptions.import'maps
+  Assumptions.import'utils
+  Assumptions.import'strings
 
 end github_com.emirpasic.gods.maps.treemap
 

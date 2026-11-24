@@ -8599,7 +8599,7 @@ noncomputable def backoffLinearWithJitter.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoLoad backoffFunc.ty))) (Var "$res0"))))))
 
 /-- go: txn.go:73:17 -/
-noncomputable def txn.If.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def txn.If''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "txn"
   (Lam "cs"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Txn.ty))) (App (Val (GoInstruction (GoZeroVal Txn.ty))) (Val #())))
@@ -11783,7 +11783,7 @@ noncomputable instance authClient.zero_val [GooseExts] : ZeroVal authClient :=
 @[irreducible] noncomputable def authClient.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   authClient.fieldsUnsealed
 
-noncomputable instance equals_unfold_authClient [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'authClient [GooseExts] [GoGlobalContext] :
     EqualsUnfold authClient.fields authClient.fieldsUnsealed :=
   ⟨by unfold authClient.fields; rfl⟩
 
@@ -11817,7 +11817,7 @@ noncomputable instance blockLogger.zero_val [GooseExts] : ZeroVal blockLogger :=
 @[irreducible] noncomputable def blockLogger.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   blockLogger.fieldsUnsealed
 
-noncomputable instance equals_unfold_blockLogger [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'blockLogger [GooseExts] [GoGlobalContext] :
     EqualsUnfold blockLogger.fields blockLogger.fieldsUnsealed :=
   ⟨by unfold blockLogger.fields; rfl⟩
 
@@ -11900,7 +11900,7 @@ noncomputable instance Config.zero_val [GooseExts] : ZeroVal Config :=
 @[irreducible] noncomputable def Config.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Config.fieldsUnsealed
 
-noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Config [GooseExts] [GoGlobalContext] :
     EqualsUnfold Config.fields Config.fieldsUnsealed :=
   ⟨by unfold Config.fields; rfl⟩
 
@@ -11958,7 +11958,7 @@ noncomputable instance Client.zero_val [GooseExts] : ZeroVal Client :=
 @[irreducible] noncomputable def Client.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Client.fieldsUnsealed
 
-noncomputable instance equals_unfold_Client [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Client [GooseExts] [GoGlobalContext] :
     EqualsUnfold Client.fields Client.fieldsUnsealed :=
   ⟨by unfold Client.fields; rfl⟩
 
@@ -12015,7 +12015,7 @@ noncomputable instance cluster.zero_val [GooseExts] : ZeroVal cluster :=
 @[irreducible] noncomputable def cluster.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   cluster.fieldsUnsealed
 
-noncomputable instance equals_unfold_cluster [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'cluster [GooseExts] [GoGlobalContext] :
     EqualsUnfold cluster.fields cluster.fieldsUnsealed :=
   ⟨by unfold cluster.fields; rfl⟩
 
@@ -12037,7 +12037,7 @@ noncomputable instance CompactOp.zero_val [GooseExts] : ZeroVal CompactOp :=
 @[irreducible] noncomputable def CompactOp.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CompactOp.fieldsUnsealed
 
-noncomputable instance equals_unfold_CompactOp [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'CompactOp [GooseExts] [GoGlobalContext] :
     EqualsUnfold CompactOp.fields CompactOp.fieldsUnsealed :=
   ⟨by unfold CompactOp.fields; rfl⟩
 
@@ -12072,7 +12072,7 @@ noncomputable instance Cmp.zero_val [GooseExts] : ZeroVal Cmp :=
 @[irreducible] noncomputable def Cmp.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Cmp.fieldsUnsealed
 
-noncomputable instance equals_unfold_Cmp [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Cmp [GooseExts] [GoGlobalContext] :
     EqualsUnfold Cmp.fields Cmp.fieldsUnsealed :=
   ⟨by unfold Cmp.fields; rfl⟩
 
@@ -12108,7 +12108,7 @@ noncomputable instance ConfigSpec.zero_val [GooseExts] : ZeroVal ConfigSpec :=
 @[irreducible] noncomputable def ConfigSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConfigSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConfigSpec [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ConfigSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConfigSpec.fields ConfigSpec.fieldsUnsealed :=
   ⟨by unfold ConfigSpec.fields; rfl⟩
 
@@ -12138,7 +12138,7 @@ noncomputable instance SecureConfig.zero_val [GooseExts] : ZeroVal SecureConfig 
 @[irreducible] noncomputable def SecureConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SecureConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_SecureConfig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SecureConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold SecureConfig.fields SecureConfig.fieldsUnsealed :=
   ⟨by unfold SecureConfig.fields; rfl⟩
 
@@ -12162,7 +12162,7 @@ noncomputable instance AuthConfig.zero_val [GooseExts] : ZeroVal AuthConfig :=
 @[irreducible] noncomputable def AuthConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AuthConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_AuthConfig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'AuthConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold AuthConfig.fields AuthConfig.fieldsUnsealed :=
   ⟨by unfold AuthConfig.fields; rfl⟩
 
@@ -12214,7 +12214,7 @@ noncomputable instance RangeStreamResponse.zero_val [GooseExts] : ZeroVal RangeS
 @[irreducible] noncomputable def RangeStreamResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RangeStreamResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_RangeStreamResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RangeStreamResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold RangeStreamResponse.fields RangeStreamResponse.fieldsUnsealed :=
   ⟨by unfold RangeStreamResponse.fields; rfl⟩
 
@@ -12240,7 +12240,7 @@ noncomputable instance OpResponse.zero_val [GooseExts] : ZeroVal OpResponse :=
 @[irreducible] noncomputable def OpResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   OpResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_OpResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'OpResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold OpResponse.fields OpResponse.fieldsUnsealed :=
   ⟨by unfold OpResponse.fields; rfl⟩
 
@@ -12262,7 +12262,7 @@ noncomputable instance kv.zero_val [GooseExts] : ZeroVal kv :=
 @[irreducible] noncomputable def kv.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kv.fieldsUnsealed
 
-noncomputable instance equals_unfold_kv [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'kv [GooseExts] [GoGlobalContext] :
     EqualsUnfold kv.fields kv.fieldsUnsealed :=
   ⟨by unfold kv.fields; rfl⟩
 
@@ -12298,7 +12298,7 @@ noncomputable instance LeaseGrantResponse.zero_val [GooseExts] : ZeroVal LeaseGr
 @[irreducible] noncomputable def LeaseGrantResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LeaseGrantResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_LeaseGrantResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LeaseGrantResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold LeaseGrantResponse.fields LeaseGrantResponse.fieldsUnsealed :=
   ⟨by unfold LeaseGrantResponse.fields; rfl⟩
 
@@ -12322,7 +12322,7 @@ noncomputable instance LeaseKeepAliveResponse.zero_val [GooseExts] : ZeroVal Lea
 @[irreducible] noncomputable def LeaseKeepAliveResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LeaseKeepAliveResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_LeaseKeepAliveResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LeaseKeepAliveResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold LeaseKeepAliveResponse.fields LeaseKeepAliveResponse.fieldsUnsealed :=
   ⟨by unfold LeaseKeepAliveResponse.fields; rfl⟩
 
@@ -12350,7 +12350,7 @@ noncomputable instance LeaseTimeToLiveResponse.zero_val [GooseExts] : ZeroVal Le
 @[irreducible] noncomputable def LeaseTimeToLiveResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LeaseTimeToLiveResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_LeaseTimeToLiveResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LeaseTimeToLiveResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold LeaseTimeToLiveResponse.fields LeaseTimeToLiveResponse.fieldsUnsealed :=
   ⟨by unfold LeaseTimeToLiveResponse.fields; rfl⟩
 
@@ -12370,7 +12370,7 @@ noncomputable instance LeaseStatus.zero_val [GooseExts] : ZeroVal LeaseStatus :=
 @[irreducible] noncomputable def LeaseStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LeaseStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_LeaseStatus [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LeaseStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold LeaseStatus.fields LeaseStatus.fieldsUnsealed :=
   ⟨by unfold LeaseStatus.fields; rfl⟩
 
@@ -12392,7 +12392,7 @@ noncomputable instance LeaseLeasesResponse.zero_val [GooseExts] : ZeroVal LeaseL
 @[irreducible] noncomputable def LeaseLeasesResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LeaseLeasesResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_LeaseLeasesResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LeaseLeasesResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold LeaseLeasesResponse.fields LeaseLeasesResponse.fieldsUnsealed :=
   ⟨by unfold LeaseLeasesResponse.fields; rfl⟩
 
@@ -12412,7 +12412,7 @@ noncomputable instance ErrKeepAliveHalted.zero_val [GooseExts] : ZeroVal ErrKeep
 @[irreducible] noncomputable def ErrKeepAliveHalted.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ErrKeepAliveHalted.fieldsUnsealed
 
-noncomputable instance equals_unfold_ErrKeepAliveHalted [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ErrKeepAliveHalted [GooseExts] [GoGlobalContext] :
     EqualsUnfold ErrKeepAliveHalted.fields ErrKeepAliveHalted.fieldsUnsealed :=
   ⟨by unfold ErrKeepAliveHalted.fields; rfl⟩
 
@@ -12456,7 +12456,7 @@ noncomputable instance lessor.zero_val [GooseExts] : ZeroVal lessor :=
 @[irreducible] noncomputable def lessor.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   lessor.fieldsUnsealed
 
-noncomputable instance equals_unfold_lessor [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'lessor [GooseExts] [GoGlobalContext] :
     EqualsUnfold lessor.fields lessor.fieldsUnsealed :=
   ⟨by unfold lessor.fields; rfl⟩
 
@@ -12484,7 +12484,7 @@ noncomputable instance keepAlive.zero_val [GooseExts] : ZeroVal keepAlive :=
 @[irreducible] noncomputable def keepAlive.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   keepAlive.fieldsUnsealed
 
-noncomputable instance equals_unfold_keepAlive [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'keepAlive [GooseExts] [GoGlobalContext] :
     EqualsUnfold keepAlive.fields keepAlive.fieldsUnsealed :=
   ⟨by unfold keepAlive.fields; rfl⟩
 
@@ -12503,7 +12503,7 @@ noncomputable instance keepAliveCtxKey.zero_val [GooseExts] : ZeroVal keepAliveC
 @[irreducible] noncomputable def keepAliveCtxKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   keepAliveCtxKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_keepAliveCtxKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'keepAliveCtxKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold keepAliveCtxKey.fields keepAliveCtxKey.fieldsUnsealed :=
   ⟨by unfold keepAliveCtxKey.fields; rfl⟩
 
@@ -12567,7 +12567,7 @@ noncomputable instance SnapshotResponse.zero_val [GooseExts] : ZeroVal SnapshotR
 @[irreducible] noncomputable def SnapshotResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SnapshotResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_SnapshotResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SnapshotResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold SnapshotResponse.fields SnapshotResponse.fieldsUnsealed :=
   ⟨by unfold SnapshotResponse.fields; rfl⟩
 
@@ -12593,7 +12593,7 @@ noncomputable instance maintenance.zero_val [GooseExts] : ZeroVal maintenance :=
 @[irreducible] noncomputable def maintenance.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   maintenance.fieldsUnsealed
 
-noncomputable instance equals_unfold_maintenance [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'maintenance [GooseExts] [GoGlobalContext] :
     EqualsUnfold maintenance.fields maintenance.fieldsUnsealed :=
   ⟨by unfold maintenance.fields; rfl⟩
 
@@ -12615,7 +12615,7 @@ noncomputable instance snapshotReadCloser.zero_val [GooseExts] : ZeroVal snapsho
 @[irreducible] noncomputable def snapshotReadCloser.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   snapshotReadCloser.fieldsUnsealed
 
-noncomputable instance equals_unfold_snapshotReadCloser [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'snapshotReadCloser [GooseExts] [GoGlobalContext] :
     EqualsUnfold snapshotReadCloser.fields snapshotReadCloser.fieldsUnsealed :=
   ⟨by unfold snapshotReadCloser.fields; rfl⟩
 
@@ -12696,7 +12696,7 @@ noncomputable instance Op.zero_val [GooseExts] : ZeroVal Op :=
 @[irreducible] noncomputable def Op.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Op.fieldsUnsealed
 
-noncomputable instance equals_unfold_Op [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Op [GooseExts] [GoGlobalContext] :
     EqualsUnfold Op.fields Op.fieldsUnsealed :=
   ⟨by unfold Op.fields; rfl⟩
 
@@ -12723,7 +12723,7 @@ noncomputable instance LeaseOp.zero_val [GooseExts] : ZeroVal LeaseOp :=
 @[irreducible] noncomputable def LeaseOp.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LeaseOp.fieldsUnsealed
 
-noncomputable instance equals_unfold_LeaseOp [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LeaseOp [GooseExts] [GoGlobalContext] :
     EqualsUnfold LeaseOp.fields LeaseOp.fieldsUnsealed :=
   ⟨by unfold LeaseOp.fields; rfl⟩
 
@@ -12753,7 +12753,7 @@ noncomputable instance retryKVClient.zero_val [GooseExts] : ZeroVal retryKVClien
 @[irreducible] noncomputable def retryKVClient.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   retryKVClient.fieldsUnsealed
 
-noncomputable instance equals_unfold_retryKVClient [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'retryKVClient [GooseExts] [GoGlobalContext] :
     EqualsUnfold retryKVClient.fields retryKVClient.fieldsUnsealed :=
   ⟨by unfold retryKVClient.fields; rfl⟩
 
@@ -12773,7 +12773,7 @@ noncomputable instance retryLeaseClient.zero_val [GooseExts] : ZeroVal retryLeas
 @[irreducible] noncomputable def retryLeaseClient.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   retryLeaseClient.fieldsUnsealed
 
-noncomputable instance equals_unfold_retryLeaseClient [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'retryLeaseClient [GooseExts] [GoGlobalContext] :
     EqualsUnfold retryLeaseClient.fields retryLeaseClient.fieldsUnsealed :=
   ⟨by unfold retryLeaseClient.fields; rfl⟩
 
@@ -12793,7 +12793,7 @@ noncomputable instance retryClusterClient.zero_val [GooseExts] : ZeroVal retryCl
 @[irreducible] noncomputable def retryClusterClient.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   retryClusterClient.fieldsUnsealed
 
-noncomputable instance equals_unfold_retryClusterClient [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'retryClusterClient [GooseExts] [GoGlobalContext] :
     EqualsUnfold retryClusterClient.fields retryClusterClient.fieldsUnsealed :=
   ⟨by unfold retryClusterClient.fields; rfl⟩
 
@@ -12813,7 +12813,7 @@ noncomputable instance retryMaintenanceClient.zero_val [GooseExts] : ZeroVal ret
 @[irreducible] noncomputable def retryMaintenanceClient.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   retryMaintenanceClient.fieldsUnsealed
 
-noncomputable instance equals_unfold_retryMaintenanceClient [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'retryMaintenanceClient [GooseExts] [GoGlobalContext] :
     EqualsUnfold retryMaintenanceClient.fields retryMaintenanceClient.fieldsUnsealed :=
   ⟨by unfold retryMaintenanceClient.fields; rfl⟩
 
@@ -12833,7 +12833,7 @@ noncomputable instance retryAuthClient.zero_val [GooseExts] : ZeroVal retryAuthC
 @[irreducible] noncomputable def retryAuthClient.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   retryAuthClient.fieldsUnsealed
 
-noncomputable instance equals_unfold_retryAuthClient [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'retryAuthClient [GooseExts] [GoGlobalContext] :
     EqualsUnfold retryAuthClient.fields retryAuthClient.fieldsUnsealed :=
   ⟨by unfold retryAuthClient.fields; rfl⟩
 
@@ -12869,7 +12869,7 @@ noncomputable instance serverStreamingRetryingStream.zero_val [GooseExts] : Zero
 @[irreducible] noncomputable def serverStreamingRetryingStream.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   serverStreamingRetryingStream.fieldsUnsealed
 
-noncomputable instance equals_unfold_serverStreamingRetryingStream [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'serverStreamingRetryingStream [GooseExts] [GoGlobalContext] :
     EqualsUnfold serverStreamingRetryingStream.fields serverStreamingRetryingStream.fieldsUnsealed :=
   ⟨by unfold serverStreamingRetryingStream.fields; rfl⟩
 
@@ -12900,7 +12900,7 @@ noncomputable instance options.zero_val [GooseExts] : ZeroVal options :=
 @[irreducible] noncomputable def options.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   options.fieldsUnsealed
 
-noncomputable instance equals_unfold_options [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'options [GooseExts] [GoGlobalContext] :
     EqualsUnfold options.fields options.fieldsUnsealed :=
   ⟨by unfold options.fields; rfl⟩
 
@@ -12922,7 +12922,7 @@ noncomputable instance retryOption.zero_val [GooseExts] : ZeroVal retryOption :=
 @[irreducible] noncomputable def retryOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   retryOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_retryOption [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'retryOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold retryOption.fields retryOption.fieldsUnsealed :=
   ⟨by unfold retryOption.fields; rfl⟩
 
@@ -12954,7 +12954,7 @@ noncomputable instance SortOption.zero_val [GooseExts] : ZeroVal SortOption :=
 @[irreducible] noncomputable def SortOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SortOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_SortOption [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SortOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold SortOption.fields SortOption.fieldsUnsealed :=
   ⟨by unfold SortOption.fields; rfl⟩
 
@@ -12999,7 +12999,7 @@ noncomputable instance txn.zero_val [GooseExts] : ZeroVal txn :=
 @[irreducible] noncomputable def txn.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   txn.fieldsUnsealed
 
-noncomputable instance equals_unfold_txn [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'txn [GooseExts] [GoGlobalContext] :
     EqualsUnfold txn.fields txn.fieldsUnsealed :=
   ⟨by unfold txn.fields; rfl⟩
 
@@ -13036,7 +13036,7 @@ noncomputable instance WatchResponse.zero_val [GooseExts] : ZeroVal WatchRespons
 @[irreducible] noncomputable def WatchResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   WatchResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_WatchResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'WatchResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold WatchResponse.fields WatchResponse.fieldsUnsealed :=
   ⟨by unfold WatchResponse.fields; rfl⟩
 
@@ -13064,7 +13064,7 @@ noncomputable instance watcher.zero_val [GooseExts] : ZeroVal watcher :=
 @[irreducible] noncomputable def watcher.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watcher.fieldsUnsealed
 
-noncomputable instance equals_unfold_watcher [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'watcher [GooseExts] [GoGlobalContext] :
     EqualsUnfold watcher.fields watcher.fieldsUnsealed :=
   ⟨by unfold watcher.fields; rfl⟩
 
@@ -13116,7 +13116,7 @@ noncomputable instance watchGRPCStream.zero_val [GooseExts] : ZeroVal watchGRPCS
 @[irreducible] noncomputable def watchGRPCStream.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watchGRPCStream.fieldsUnsealed
 
-noncomputable instance equals_unfold_watchGRPCStream [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'watchGRPCStream [GooseExts] [GoGlobalContext] :
     EqualsUnfold watchGRPCStream.fields watchGRPCStream.fieldsUnsealed :=
   ⟨by unfold watchGRPCStream.fields; rfl⟩
 
@@ -13161,7 +13161,7 @@ noncomputable instance watchRequest.zero_val [GooseExts] : ZeroVal watchRequest 
 @[irreducible] noncomputable def watchRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watchRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_watchRequest [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'watchRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold watchRequest.fields watchRequest.fieldsUnsealed :=
   ⟨by unfold watchRequest.fields; rfl⟩
 
@@ -13180,7 +13180,7 @@ noncomputable instance progressRequest.zero_val [GooseExts] : ZeroVal progressRe
 @[irreducible] noncomputable def progressRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   progressRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_progressRequest [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'progressRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold progressRequest.fields progressRequest.fieldsUnsealed :=
   ⟨by unfold progressRequest.fields; rfl⟩
 
@@ -13216,7 +13216,7 @@ noncomputable instance watcherStream.zero_val [GooseExts] : ZeroVal watcherStrea
 @[irreducible] noncomputable def watcherStream.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watcherStream.fieldsUnsealed
 
-noncomputable instance equals_unfold_watcherStream [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'watcherStream [GooseExts] [GoGlobalContext] :
     EqualsUnfold watcherStream.fields watcherStream.fieldsUnsealed :=
   ⟨by unfold watcherStream.fields; rfl⟩
 
@@ -13236,7 +13236,7 @@ noncomputable instance valCtx.zero_val [GooseExts] : ZeroVal valCtx :=
 @[irreducible] noncomputable def valCtx.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   valCtx.fieldsUnsealed
 
-noncomputable instance equals_unfold_valCtx [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'valCtx [GooseExts] [GoGlobalContext] :
     EqualsUnfold valCtx.fields valCtx.fieldsUnsealed :=
   ⟨by unfold valCtx.fields; rfl⟩
 

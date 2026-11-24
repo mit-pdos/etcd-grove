@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance ClusterRolesGetter_typed_pointsto :
+noncomputable instance typed_pointsto'ClusterRolesGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRolesGetter :=
   sorry -- axiomatized type
 
-noncomputable instance ClusterRolesGetter_into_val_typed :
+noncomputable instance into_val_typed'ClusterRolesGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRolesGetter k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRolesGetter.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance ClusterRoleInterface_typed_pointsto :
+noncomputable instance typed_pointsto'ClusterRoleInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleInterface :=
   sorry -- axiomatized type
 
-noncomputable instance ClusterRoleInterface_into_val_typed :
+noncomputable instance into_val_typed'ClusterRoleInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleInterface k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleInterface.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance clusterRoles_typed_pointsto :
+noncomputable instance typed_pointsto'clusterRoles :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoles :=
   sorry -- axiomatized type
 
-noncomputable instance clusterRoles_into_val_typed :
+noncomputable instance into_val_typed'clusterRoles :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoles k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoles.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance ClusterRoleBindingsGetter_typed_pointsto :
+noncomputable instance typed_pointsto'ClusterRoleBindingsGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingsGetter :=
   sorry -- axiomatized type
 
-noncomputable instance ClusterRoleBindingsGetter_into_val_typed :
+noncomputable instance into_val_typed'ClusterRoleBindingsGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingsGetter k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingsGetter.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance ClusterRoleBindingInterface_typed_pointsto :
+noncomputable instance typed_pointsto'ClusterRoleBindingInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingInterface :=
   sorry -- axiomatized type
 
-noncomputable instance ClusterRoleBindingInterface_into_val_typed :
+noncomputable instance into_val_typed'ClusterRoleBindingInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingInterface k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingInterface.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance clusterRoleBindings_typed_pointsto :
+noncomputable instance typed_pointsto'clusterRoleBindings :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoleBindings :=
   sorry -- axiomatized type
 
-noncomputable instance clusterRoleBindings_into_val_typed :
+noncomputable instance into_val_typed'clusterRoleBindings :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoleBindings k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoleBindings.underlying :=
   sorry -- axiomatized type
 
@@ -138,11 +138,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance ClusterRoleExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'ClusterRoleExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance ClusterRoleExpansion_into_val_typed :
+noncomputable instance into_val_typed'ClusterRoleExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleExpansion k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -157,11 +157,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance ClusterRoleBindingExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'ClusterRoleBindingExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance ClusterRoleBindingExpansion_into_val_typed :
+noncomputable instance into_val_typed'ClusterRoleBindingExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingExpansion k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -176,11 +176,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance RoleExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'RoleExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance RoleExpansion_into_val_typed :
+noncomputable instance into_val_typed'RoleExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleExpansion k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -195,11 +195,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance RoleBindingExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'RoleBindingExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance RoleBindingExpansion_into_val_typed :
+noncomputable instance into_val_typed'RoleBindingExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingExpansion k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -214,11 +214,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance RbacV1alpha1Interface_typed_pointsto :
+noncomputable instance typed_pointsto'RbacV1alpha1Interface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Interface :=
   sorry -- axiomatized type
 
-noncomputable instance RbacV1alpha1Interface_into_val_typed :
+noncomputable instance into_val_typed'RbacV1alpha1Interface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Interface k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Interface.underlying :=
   sorry -- axiomatized type
 
@@ -233,11 +233,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance RbacV1alpha1Client_typed_pointsto :
+noncomputable instance typed_pointsto'RbacV1alpha1Client :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Client :=
   sorry -- axiomatized type
 
-noncomputable instance RbacV1alpha1Client_into_val_typed :
+noncomputable instance into_val_typed'RbacV1alpha1Client :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Client k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Client.underlying :=
   sorry -- axiomatized type
 
@@ -252,11 +252,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance RolesGetter_typed_pointsto :
+noncomputable instance typed_pointsto'RolesGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RolesGetter :=
   sorry -- axiomatized type
 
-noncomputable instance RolesGetter_into_val_typed :
+noncomputable instance into_val_typed'RolesGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RolesGetter k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RolesGetter.underlying :=
   sorry -- axiomatized type
 
@@ -271,11 +271,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance RoleInterface_typed_pointsto :
+noncomputable instance typed_pointsto'RoleInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleInterface :=
   sorry -- axiomatized type
 
-noncomputable instance RoleInterface_into_val_typed :
+noncomputable instance into_val_typed'RoleInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleInterface k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleInterface.underlying :=
   sorry -- axiomatized type
 
@@ -290,11 +290,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance roles_typed_pointsto :
+noncomputable instance typed_pointsto'roles :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roles :=
   sorry -- axiomatized type
 
-noncomputable instance roles_into_val_typed :
+noncomputable instance into_val_typed'roles :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roles k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roles.underlying :=
   sorry -- axiomatized type
 
@@ -309,11 +309,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance RoleBindingsGetter_typed_pointsto :
+noncomputable instance typed_pointsto'RoleBindingsGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingsGetter :=
   sorry -- axiomatized type
 
-noncomputable instance RoleBindingsGetter_into_val_typed :
+noncomputable instance into_val_typed'RoleBindingsGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingsGetter k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingsGetter.underlying :=
   sorry -- axiomatized type
 
@@ -328,11 +328,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance RoleBindingInterface_typed_pointsto :
+noncomputable instance typed_pointsto'RoleBindingInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingInterface :=
   sorry -- axiomatized type
 
-noncomputable instance RoleBindingInterface_into_val_typed :
+noncomputable instance into_val_typed'RoleBindingInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingInterface k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingInterface.underlying :=
   sorry -- axiomatized type
 
@@ -347,11 +347,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
-noncomputable instance roleBindings_typed_pointsto :
+noncomputable instance typed_pointsto'roleBindings :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roleBindings :=
   sorry -- axiomatized type
 
-noncomputable instance roleBindings_into_val_typed :
+noncomputable instance into_val_typed'roleBindings :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roleBindings k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roleBindings.underlying :=
   sorry -- axiomatized type
 

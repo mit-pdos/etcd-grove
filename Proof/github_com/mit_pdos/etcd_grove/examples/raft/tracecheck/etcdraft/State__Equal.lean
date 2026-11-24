@@ -47,7 +47,7 @@ theorem State.Equal.wp_proof (wp_SetEqual : Set.Equal.spec (GF := GF) (hG := hG)
   icases Hpsf with ⟨#S1, #S2, #S3, #S4, #S5, #S6, #S7, -⟩
   icases Hptf with ⟨#T1, #T2, #T3, #T4, #T5, #T6, #T7, -⟩
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_unfold'Equal.method_unfold]
   wp_auto
   wp_apply wp_SetEqual _ _ _ _ $$ [Hsrvs Hsrvt] as -
   · iframe Hsrvs Hsrvt
@@ -62,14 +62,14 @@ theorem State.Equal.wp_proof (wp_SetEqual : Set.Equal.spec (GF := GF) (hG := hG)
   · rw [decide_eq_false (fun x => h2 (e2.1 x))]; eq_fail h2
   rw [decide_eq_true (e2.2 h2)]
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'Equal.method_unfold]
   wp_auto
   wp_apply wp_BagEqual _ _ _ _ $$ [Hms Hmt] as -
   · iframe Hms Hmt
   cases h3 : s.messages.eq t.messages
   · eq_fail h3
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'Equal.method_unfold]
   wp_auto
   wp_apply wp_BagEqual _ _ _ _ $$ [Hpms Hpmt] as -
   · iframe Hpms Hpmt

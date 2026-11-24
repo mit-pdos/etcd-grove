@@ -1362,12 +1362,12 @@ noncomputable def sortRangeResults.impl [GooseExts] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Var "sortOrder")) (Val #(W32 1))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.sort.Interface.ty))) (Var "sorter"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0"))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Var "sortOrder")) (Val #(W32 2))))))
   (App (Val doExecute)
   (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.sort.Interface.ty))) (Var "sorter"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Reverse []))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0"))))
   (App (Val doExecute)
   (Val #())))))))
   (Let "$sw" (Val #true)
@@ -3443,7 +3443,7 @@ noncomputable instance kvSort.zero_val [GooseExts] : ZeroVal kvSort :=
 @[irreducible] noncomputable def kvSort.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kvSort.fieldsUnsealed
 
-noncomputable instance equals_unfold_kvSort [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'kvSort [GooseExts] [GoGlobalContext] :
     EqualsUnfold kvSort.fields kvSort.fieldsUnsealed :=
   ⟨by unfold kvSort.fields; rfl⟩
 
@@ -3453,21 +3453,21 @@ noncomputable instance equals_unfold_kvSort [GooseExts] [GoGlobalContext] :
 class kvSort.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kvSort.underlying kvSort
   underlying : go.UnderlyingDirectedEq kvSort.ty kvSort.underlying
-  get_kvs : ∀ (x : kvSort), go.IsGoStepPureDetTagged under (StructFieldGet kvSort.underlying go!"kvs") #x (Val #(x.kvs'))
-  set_kvs : ∀ (x : kvSort) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet kvSort.underlying go!"kvs") (PairV #x #y) (Val #(({ x with kvs' := y } : kvSort)))
+  get'kvs : ∀ (x : kvSort), go.IsGoStepPureDetTagged under (StructFieldGet kvSort.underlying go!"kvs") #x (Val #(x.kvs'))
+  set'kvs : ∀ (x : kvSort) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet kvSort.underlying go!"kvs") (PairV #x #y) (Val #(({ x with kvs' := y } : kvSort)))
   method_set : go.MethodSetIs kvSort.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType kvSort.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType kvSort.ty) go!"Len" kvSort.Len.impl
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType kvSort.ty) go!"Swap" kvSort.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType kvSort.ty) go!"Len" kvSort.Len.impl
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType kvSort.ty) go!"Swap" kvSort.Swap.impl
 
 attribute [instance] kvSort.TypeAssumptions.type_repr
   kvSort.TypeAssumptions.underlying
-  kvSort.TypeAssumptions.get_kvs
-  kvSort.TypeAssumptions.set_kvs
+  kvSort.TypeAssumptions.get'kvs
+  kvSort.TypeAssumptions.set'kvs
   kvSort.TypeAssumptions.method_set
   kvSort.TypeAssumptions.ptr_method_set
-  kvSort.TypeAssumptions.ptr_Len_unfold
-  kvSort.TypeAssumptions.ptr_Swap_unfold
+  kvSort.TypeAssumptions.ptr_unfold'Len
+  kvSort.TypeAssumptions.ptr_unfold'Swap
 
 structure kvSortByKey [GooseExts] where
   mk ::
@@ -3482,7 +3482,7 @@ noncomputable instance kvSortByKey.zero_val [GooseExts] : ZeroVal kvSortByKey :=
 @[irreducible] noncomputable def kvSortByKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kvSortByKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_kvSortByKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'kvSortByKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold kvSortByKey.fields kvSortByKey.fieldsUnsealed :=
   ⟨by unfold kvSortByKey.fields; rfl⟩
 
@@ -3492,31 +3492,31 @@ noncomputable instance equals_unfold_kvSortByKey [GooseExts] [GoGlobalContext] :
 class kvSortByKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kvSortByKey.underlying kvSortByKey
   underlying : go.UnderlyingDirectedEq kvSortByKey.ty kvSortByKey.underlying
-  get_kvSort : ∀ (x : kvSortByKey), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByKey.underlying go!"kvSort") #x (Val #(x.kvSort'))
-  set_kvSort : ∀ (x : kvSortByKey) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvSortByKey.underlying go!"kvSort") (PairV #x #y) (Val #(({ x with kvSort' := y } : kvSortByKey)))
+  get'kvSort : ∀ (x : kvSortByKey), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByKey.underlying go!"kvSort") #x (Val #(x.kvSort'))
+  set'kvSort : ∀ (x : kvSortByKey) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvSortByKey.underlying go!"kvSort") (PairV #x #y) (Val #(({ x with kvSort' := y } : kvSortByKey)))
   method_set : go.MethodSetIs kvSortByKey.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType kvSortByKey.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold kvSortByKey.ty go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold kvSortByKey.ty go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Len"))) (App (Val (GoInstruction (StructFieldGet kvSortByKey.ty go!"kvSort"))) (Var "$r"))))
-  Swap_unfold : MethodUnfold kvSortByKey.ty go!"Swap" (LamV "$r"
+  unfold'Swap : MethodUnfold kvSortByKey.ty go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Swap"))) (App (Val (GoInstruction (StructFieldGet kvSortByKey.ty go!"kvSort"))) (Var "$r"))))
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType kvSortByKey.ty) go!"Len" (LamV "$r"
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType kvSortByKey.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Len"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByKey.ty go!"kvSort"))) (Var "$r")))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType kvSortByKey.ty) go!"Less" kvSortByKey.Less.impl
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType kvSortByKey.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType kvSortByKey.ty) go!"Less" kvSortByKey.Less.impl
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType kvSortByKey.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Swap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByKey.ty go!"kvSort"))) (Var "$r")))))
 
 attribute [instance] kvSortByKey.TypeAssumptions.type_repr
   kvSortByKey.TypeAssumptions.underlying
-  kvSortByKey.TypeAssumptions.get_kvSort
-  kvSortByKey.TypeAssumptions.set_kvSort
+  kvSortByKey.TypeAssumptions.get'kvSort
+  kvSortByKey.TypeAssumptions.set'kvSort
   kvSortByKey.TypeAssumptions.method_set
   kvSortByKey.TypeAssumptions.ptr_method_set
-  kvSortByKey.TypeAssumptions.Len_unfold
-  kvSortByKey.TypeAssumptions.Swap_unfold
-  kvSortByKey.TypeAssumptions.ptr_Len_unfold
-  kvSortByKey.TypeAssumptions.ptr_Less_unfold
-  kvSortByKey.TypeAssumptions.ptr_Swap_unfold
+  kvSortByKey.TypeAssumptions.unfold'Len
+  kvSortByKey.TypeAssumptions.unfold'Swap
+  kvSortByKey.TypeAssumptions.ptr_unfold'Len
+  kvSortByKey.TypeAssumptions.ptr_unfold'Less
+  kvSortByKey.TypeAssumptions.ptr_unfold'Swap
 
 structure kvSortByVersion [GooseExts] where
   mk ::
@@ -3531,7 +3531,7 @@ noncomputable instance kvSortByVersion.zero_val [GooseExts] : ZeroVal kvSortByVe
 @[irreducible] noncomputable def kvSortByVersion.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kvSortByVersion.fieldsUnsealed
 
-noncomputable instance equals_unfold_kvSortByVersion [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'kvSortByVersion [GooseExts] [GoGlobalContext] :
     EqualsUnfold kvSortByVersion.fields kvSortByVersion.fieldsUnsealed :=
   ⟨by unfold kvSortByVersion.fields; rfl⟩
 
@@ -3541,31 +3541,31 @@ noncomputable instance equals_unfold_kvSortByVersion [GooseExts] [GoGlobalContex
 class kvSortByVersion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kvSortByVersion.underlying kvSortByVersion
   underlying : go.UnderlyingDirectedEq kvSortByVersion.ty kvSortByVersion.underlying
-  get_kvSort : ∀ (x : kvSortByVersion), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByVersion.underlying go!"kvSort") #x (Val #(x.kvSort'))
-  set_kvSort : ∀ (x : kvSortByVersion) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvSortByVersion.underlying go!"kvSort") (PairV #x #y) (Val #(({ x with kvSort' := y } : kvSortByVersion)))
+  get'kvSort : ∀ (x : kvSortByVersion), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByVersion.underlying go!"kvSort") #x (Val #(x.kvSort'))
+  set'kvSort : ∀ (x : kvSortByVersion) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvSortByVersion.underlying go!"kvSort") (PairV #x #y) (Val #(({ x with kvSort' := y } : kvSortByVersion)))
   method_set : go.MethodSetIs kvSortByVersion.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType kvSortByVersion.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold kvSortByVersion.ty go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold kvSortByVersion.ty go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Len"))) (App (Val (GoInstruction (StructFieldGet kvSortByVersion.ty go!"kvSort"))) (Var "$r"))))
-  Swap_unfold : MethodUnfold kvSortByVersion.ty go!"Swap" (LamV "$r"
+  unfold'Swap : MethodUnfold kvSortByVersion.ty go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Swap"))) (App (Val (GoInstruction (StructFieldGet kvSortByVersion.ty go!"kvSort"))) (Var "$r"))))
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType kvSortByVersion.ty) go!"Len" (LamV "$r"
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType kvSortByVersion.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Len"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByVersion.ty go!"kvSort"))) (Var "$r")))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType kvSortByVersion.ty) go!"Less" kvSortByVersion.Less.impl
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType kvSortByVersion.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType kvSortByVersion.ty) go!"Less" kvSortByVersion.Less.impl
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType kvSortByVersion.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Swap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByVersion.ty go!"kvSort"))) (Var "$r")))))
 
 attribute [instance] kvSortByVersion.TypeAssumptions.type_repr
   kvSortByVersion.TypeAssumptions.underlying
-  kvSortByVersion.TypeAssumptions.get_kvSort
-  kvSortByVersion.TypeAssumptions.set_kvSort
+  kvSortByVersion.TypeAssumptions.get'kvSort
+  kvSortByVersion.TypeAssumptions.set'kvSort
   kvSortByVersion.TypeAssumptions.method_set
   kvSortByVersion.TypeAssumptions.ptr_method_set
-  kvSortByVersion.TypeAssumptions.Len_unfold
-  kvSortByVersion.TypeAssumptions.Swap_unfold
-  kvSortByVersion.TypeAssumptions.ptr_Len_unfold
-  kvSortByVersion.TypeAssumptions.ptr_Less_unfold
-  kvSortByVersion.TypeAssumptions.ptr_Swap_unfold
+  kvSortByVersion.TypeAssumptions.unfold'Len
+  kvSortByVersion.TypeAssumptions.unfold'Swap
+  kvSortByVersion.TypeAssumptions.ptr_unfold'Len
+  kvSortByVersion.TypeAssumptions.ptr_unfold'Less
+  kvSortByVersion.TypeAssumptions.ptr_unfold'Swap
 
 structure kvSortByCreate [GooseExts] where
   mk ::
@@ -3580,7 +3580,7 @@ noncomputable instance kvSortByCreate.zero_val [GooseExts] : ZeroVal kvSortByCre
 @[irreducible] noncomputable def kvSortByCreate.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kvSortByCreate.fieldsUnsealed
 
-noncomputable instance equals_unfold_kvSortByCreate [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'kvSortByCreate [GooseExts] [GoGlobalContext] :
     EqualsUnfold kvSortByCreate.fields kvSortByCreate.fieldsUnsealed :=
   ⟨by unfold kvSortByCreate.fields; rfl⟩
 
@@ -3590,31 +3590,31 @@ noncomputable instance equals_unfold_kvSortByCreate [GooseExts] [GoGlobalContext
 class kvSortByCreate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kvSortByCreate.underlying kvSortByCreate
   underlying : go.UnderlyingDirectedEq kvSortByCreate.ty kvSortByCreate.underlying
-  get_kvSort : ∀ (x : kvSortByCreate), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByCreate.underlying go!"kvSort") #x (Val #(x.kvSort'))
-  set_kvSort : ∀ (x : kvSortByCreate) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvSortByCreate.underlying go!"kvSort") (PairV #x #y) (Val #(({ x with kvSort' := y } : kvSortByCreate)))
+  get'kvSort : ∀ (x : kvSortByCreate), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByCreate.underlying go!"kvSort") #x (Val #(x.kvSort'))
+  set'kvSort : ∀ (x : kvSortByCreate) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvSortByCreate.underlying go!"kvSort") (PairV #x #y) (Val #(({ x with kvSort' := y } : kvSortByCreate)))
   method_set : go.MethodSetIs kvSortByCreate.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType kvSortByCreate.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold kvSortByCreate.ty go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold kvSortByCreate.ty go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Len"))) (App (Val (GoInstruction (StructFieldGet kvSortByCreate.ty go!"kvSort"))) (Var "$r"))))
-  Swap_unfold : MethodUnfold kvSortByCreate.ty go!"Swap" (LamV "$r"
+  unfold'Swap : MethodUnfold kvSortByCreate.ty go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Swap"))) (App (Val (GoInstruction (StructFieldGet kvSortByCreate.ty go!"kvSort"))) (Var "$r"))))
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType kvSortByCreate.ty) go!"Len" (LamV "$r"
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType kvSortByCreate.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Len"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByCreate.ty go!"kvSort"))) (Var "$r")))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType kvSortByCreate.ty) go!"Less" kvSortByCreate.Less.impl
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType kvSortByCreate.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType kvSortByCreate.ty) go!"Less" kvSortByCreate.Less.impl
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType kvSortByCreate.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Swap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByCreate.ty go!"kvSort"))) (Var "$r")))))
 
 attribute [instance] kvSortByCreate.TypeAssumptions.type_repr
   kvSortByCreate.TypeAssumptions.underlying
-  kvSortByCreate.TypeAssumptions.get_kvSort
-  kvSortByCreate.TypeAssumptions.set_kvSort
+  kvSortByCreate.TypeAssumptions.get'kvSort
+  kvSortByCreate.TypeAssumptions.set'kvSort
   kvSortByCreate.TypeAssumptions.method_set
   kvSortByCreate.TypeAssumptions.ptr_method_set
-  kvSortByCreate.TypeAssumptions.Len_unfold
-  kvSortByCreate.TypeAssumptions.Swap_unfold
-  kvSortByCreate.TypeAssumptions.ptr_Len_unfold
-  kvSortByCreate.TypeAssumptions.ptr_Less_unfold
-  kvSortByCreate.TypeAssumptions.ptr_Swap_unfold
+  kvSortByCreate.TypeAssumptions.unfold'Len
+  kvSortByCreate.TypeAssumptions.unfold'Swap
+  kvSortByCreate.TypeAssumptions.ptr_unfold'Len
+  kvSortByCreate.TypeAssumptions.ptr_unfold'Less
+  kvSortByCreate.TypeAssumptions.ptr_unfold'Swap
 
 structure kvSortByMod [GooseExts] where
   mk ::
@@ -3629,7 +3629,7 @@ noncomputable instance kvSortByMod.zero_val [GooseExts] : ZeroVal kvSortByMod :=
 @[irreducible] noncomputable def kvSortByMod.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kvSortByMod.fieldsUnsealed
 
-noncomputable instance equals_unfold_kvSortByMod [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'kvSortByMod [GooseExts] [GoGlobalContext] :
     EqualsUnfold kvSortByMod.fields kvSortByMod.fieldsUnsealed :=
   ⟨by unfold kvSortByMod.fields; rfl⟩
 
@@ -3639,31 +3639,31 @@ noncomputable instance equals_unfold_kvSortByMod [GooseExts] [GoGlobalContext] :
 class kvSortByMod.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kvSortByMod.underlying kvSortByMod
   underlying : go.UnderlyingDirectedEq kvSortByMod.ty kvSortByMod.underlying
-  get_kvSort : ∀ (x : kvSortByMod), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByMod.underlying go!"kvSort") #x (Val #(x.kvSort'))
-  set_kvSort : ∀ (x : kvSortByMod) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvSortByMod.underlying go!"kvSort") (PairV #x #y) (Val #(({ x with kvSort' := y } : kvSortByMod)))
+  get'kvSort : ∀ (x : kvSortByMod), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByMod.underlying go!"kvSort") #x (Val #(x.kvSort'))
+  set'kvSort : ∀ (x : kvSortByMod) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvSortByMod.underlying go!"kvSort") (PairV #x #y) (Val #(({ x with kvSort' := y } : kvSortByMod)))
   method_set : go.MethodSetIs kvSortByMod.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType kvSortByMod.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold kvSortByMod.ty go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold kvSortByMod.ty go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Len"))) (App (Val (GoInstruction (StructFieldGet kvSortByMod.ty go!"kvSort"))) (Var "$r"))))
-  Swap_unfold : MethodUnfold kvSortByMod.ty go!"Swap" (LamV "$r"
+  unfold'Swap : MethodUnfold kvSortByMod.ty go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Swap"))) (App (Val (GoInstruction (StructFieldGet kvSortByMod.ty go!"kvSort"))) (Var "$r"))))
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType kvSortByMod.ty) go!"Len" (LamV "$r"
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType kvSortByMod.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Len"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByMod.ty go!"kvSort"))) (Var "$r")))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType kvSortByMod.ty) go!"Less" kvSortByMod.Less.impl
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType kvSortByMod.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType kvSortByMod.ty) go!"Less" kvSortByMod.Less.impl
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType kvSortByMod.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Swap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByMod.ty go!"kvSort"))) (Var "$r")))))
 
 attribute [instance] kvSortByMod.TypeAssumptions.type_repr
   kvSortByMod.TypeAssumptions.underlying
-  kvSortByMod.TypeAssumptions.get_kvSort
-  kvSortByMod.TypeAssumptions.set_kvSort
+  kvSortByMod.TypeAssumptions.get'kvSort
+  kvSortByMod.TypeAssumptions.set'kvSort
   kvSortByMod.TypeAssumptions.method_set
   kvSortByMod.TypeAssumptions.ptr_method_set
-  kvSortByMod.TypeAssumptions.Len_unfold
-  kvSortByMod.TypeAssumptions.Swap_unfold
-  kvSortByMod.TypeAssumptions.ptr_Len_unfold
-  kvSortByMod.TypeAssumptions.ptr_Less_unfold
-  kvSortByMod.TypeAssumptions.ptr_Swap_unfold
+  kvSortByMod.TypeAssumptions.unfold'Len
+  kvSortByMod.TypeAssumptions.unfold'Swap
+  kvSortByMod.TypeAssumptions.ptr_unfold'Len
+  kvSortByMod.TypeAssumptions.ptr_unfold'Less
+  kvSortByMod.TypeAssumptions.ptr_unfold'Swap
 
 structure kvSortByValue [GooseExts] where
   mk ::
@@ -3678,7 +3678,7 @@ noncomputable instance kvSortByValue.zero_val [GooseExts] : ZeroVal kvSortByValu
 @[irreducible] noncomputable def kvSortByValue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kvSortByValue.fieldsUnsealed
 
-noncomputable instance equals_unfold_kvSortByValue [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'kvSortByValue [GooseExts] [GoGlobalContext] :
     EqualsUnfold kvSortByValue.fields kvSortByValue.fieldsUnsealed :=
   ⟨by unfold kvSortByValue.fields; rfl⟩
 
@@ -3688,160 +3688,160 @@ noncomputable instance equals_unfold_kvSortByValue [GooseExts] [GoGlobalContext]
 class kvSortByValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kvSortByValue.underlying kvSortByValue
   underlying : go.UnderlyingDirectedEq kvSortByValue.ty kvSortByValue.underlying
-  get_kvSort : ∀ (x : kvSortByValue), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByValue.underlying go!"kvSort") #x (Val #(x.kvSort'))
-  set_kvSort : ∀ (x : kvSortByValue) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvSortByValue.underlying go!"kvSort") (PairV #x #y) (Val #(({ x with kvSort' := y } : kvSortByValue)))
+  get'kvSort : ∀ (x : kvSortByValue), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByValue.underlying go!"kvSort") #x (Val #(x.kvSort'))
+  set'kvSort : ∀ (x : kvSortByValue) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvSortByValue.underlying go!"kvSort") (PairV #x #y) (Val #(({ x with kvSort' := y } : kvSortByValue)))
   method_set : go.MethodSetIs kvSortByValue.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType kvSortByValue.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold kvSortByValue.ty go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold kvSortByValue.ty go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Len"))) (App (Val (GoInstruction (StructFieldGet kvSortByValue.ty go!"kvSort"))) (Var "$r"))))
-  Swap_unfold : MethodUnfold kvSortByValue.ty go!"Swap" (LamV "$r"
+  unfold'Swap : MethodUnfold kvSortByValue.ty go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Swap"))) (App (Val (GoInstruction (StructFieldGet kvSortByValue.ty go!"kvSort"))) (Var "$r"))))
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType kvSortByValue.ty) go!"Len" (LamV "$r"
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType kvSortByValue.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Len"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByValue.ty go!"kvSort"))) (Var "$r")))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType kvSortByValue.ty) go!"Less" kvSortByValue.Less.impl
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType kvSortByValue.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType kvSortByValue.ty) go!"Less" kvSortByValue.Less.impl
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType kvSortByValue.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Swap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByValue.ty go!"kvSort"))) (Var "$r")))))
 
 attribute [instance] kvSortByValue.TypeAssumptions.type_repr
   kvSortByValue.TypeAssumptions.underlying
-  kvSortByValue.TypeAssumptions.get_kvSort
-  kvSortByValue.TypeAssumptions.set_kvSort
+  kvSortByValue.TypeAssumptions.get'kvSort
+  kvSortByValue.TypeAssumptions.set'kvSort
   kvSortByValue.TypeAssumptions.method_set
   kvSortByValue.TypeAssumptions.ptr_method_set
-  kvSortByValue.TypeAssumptions.Len_unfold
-  kvSortByValue.TypeAssumptions.Swap_unfold
-  kvSortByValue.TypeAssumptions.ptr_Len_unfold
-  kvSortByValue.TypeAssumptions.ptr_Less_unfold
-  kvSortByValue.TypeAssumptions.ptr_Swap_unfold
+  kvSortByValue.TypeAssumptions.unfold'Len
+  kvSortByValue.TypeAssumptions.unfold'Swap
+  kvSortByValue.TypeAssumptions.ptr_unfold'Len
+  kvSortByValue.TypeAssumptions.ptr_unfold'Less
+  kvSortByValue.TypeAssumptions.ptr_unfold'Swap
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  kvSort_instance : kvSort.TypeAssumptions
-  kvSortByKey_instance : kvSortByKey.TypeAssumptions
-  kvSortByVersion_instance : kvSortByVersion.TypeAssumptions
-  kvSortByCreate_instance : kvSortByCreate.TypeAssumptions
-  kvSortByMod_instance : kvSortByMod.TypeAssumptions
-  kvSortByValue_instance : kvSortByValue.TypeAssumptions
-  DeleteRange_unfold : FuncUnfold DeleteRange [] DeleteRange.impl
-  deleteRange_unfold : FuncUnfold deleteRange [] deleteRange.impl
-  mkGteRange_unfold : FuncUnfold mkGteRange [] mkGteRange.impl
-  ApplySecObserve_unfold : FuncUnfold ApplySecObserve [] ApplySecObserve.impl
-  RangeSecObserve_unfold : FuncUnfold RangeSecObserve [] RangeSecObserve.impl
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  Put_unfold : FuncUnfold Put [] Put.impl
-  put_unfold : FuncUnfold put [] put.impl
-  checkPut_unfold : FuncUnfold checkPut [] checkPut.impl
-  checkLease_unfold : FuncUnfold checkLease [] checkLease.impl
-  checkAndGetPrevKV_unfold : FuncUnfold checkAndGetPrevKV [] checkAndGetPrevKV.impl
-  getPrevKV_unfold : FuncUnfold getPrevKV [] getPrevKV.impl
-  Count_unfold : FuncUnfold Count [] Count.impl
-  Range_unfold : FuncUnfold Range [] Range.impl
-  executeRange_unfold : FuncUnfold executeRange [] executeRange.impl
-  rangeLimit_unfold : FuncUnfold rangeLimit [] rangeLimit.impl
-  IsDefaultOrdering_unfold : FuncUnfold IsDefaultOrdering [] IsDefaultOrdering.impl
-  HasRevisionFilters_unfold : FuncUnfold HasRevisionFilters [] HasRevisionFilters.impl
-  filterRangeResults_unfold : FuncUnfold filterRangeResults [] filterRangeResults.impl
-  sortRangeResults_unfold : FuncUnfold sortRangeResults [] sortRangeResults.impl
-  asembleRangeResponse_unfold : FuncUnfold asembleRangeResponse [] asembleRangeResponse.impl
-  checkRange_unfold : FuncUnfold checkRange [] checkRange.impl
-  pruneKVs_unfold : FuncUnfold pruneKVs [] pruneKVs.impl
-  Txn_unfold : FuncUnfold Txn [] Txn.impl
-  txn_unfold : FuncUnfold txn [] txn.impl
-  newTxnResp_unfold : FuncUnfold newTxnResp [] newTxnResp.impl
-  executeTxn_unfold : FuncUnfold executeTxn [] executeTxn.impl
-  checkTxn_unfold : FuncUnfold checkTxn [] checkTxn.impl
-  compareInt64_unfold : FuncUnfold compareInt64 [] compareInt64.impl
-  compareToPath_unfold : FuncUnfold compareToPath [] compareToPath.impl
-  applyCompares_unfold : FuncUnfold applyCompares [] applyCompares.impl
-  applyCompare_unfold : FuncUnfold applyCompare [] applyCompare.impl
-  compareKV_unfold : FuncUnfold compareKV [] compareKV.impl
-  IsTxnSerializable_unfold : FuncUnfold IsTxnSerializable [] IsTxnSerializable.impl
-  IsTxnReadonly_unfold : FuncUnfold IsTxnReadonly [] IsTxnReadonly.impl
-  WarnOfExpensiveReadOnlyTxnRequest_unfold : FuncUnfold WarnOfExpensiveReadOnlyTxnRequest [] WarnOfExpensiveReadOnlyTxnRequest.impl
-  WarnOfExpensiveReadOnlyRangeRequest_unfold : FuncUnfold WarnOfExpensiveReadOnlyRangeRequest [] WarnOfExpensiveReadOnlyRangeRequest.impl
-  warnOfExpensiveGenericRequest_unfold : FuncUnfold warnOfExpensiveGenericRequest [] warnOfExpensiveGenericRequest.impl
-  isNil_unfold : FuncUnfold isNil [] isNil.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
-  import_traceutil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Assumptions
-  import_mvcc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
-  import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
-  import_errors_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.Assumptions
-  import_lease_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Assumptions
-  import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
-  import_math_Assumption : _root_.Perennial.math.Assumptions
-  import_sort_Assumption : _root_.Perennial.sort.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_reflect_Assumption : _root_.Perennial.reflect.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
+  instance'kvSort : kvSort.TypeAssumptions
+  instance'kvSortByKey : kvSortByKey.TypeAssumptions
+  instance'kvSortByVersion : kvSortByVersion.TypeAssumptions
+  instance'kvSortByCreate : kvSortByCreate.TypeAssumptions
+  instance'kvSortByMod : kvSortByMod.TypeAssumptions
+  instance'kvSortByValue : kvSortByValue.TypeAssumptions
+  unfold'DeleteRange : FuncUnfold DeleteRange [] DeleteRange.impl
+  unfold'deleteRange : FuncUnfold deleteRange [] deleteRange.impl
+  unfold'mkGteRange : FuncUnfold mkGteRange [] mkGteRange.impl
+  unfold'ApplySecObserve : FuncUnfold ApplySecObserve [] ApplySecObserve.impl
+  unfold'RangeSecObserve : FuncUnfold RangeSecObserve [] RangeSecObserve.impl
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'Put : FuncUnfold Put [] Put.impl
+  unfold'put : FuncUnfold put [] put.impl
+  unfold'checkPut : FuncUnfold checkPut [] checkPut.impl
+  unfold'checkLease : FuncUnfold checkLease [] checkLease.impl
+  unfold'checkAndGetPrevKV : FuncUnfold checkAndGetPrevKV [] checkAndGetPrevKV.impl
+  unfold'getPrevKV : FuncUnfold getPrevKV [] getPrevKV.impl
+  unfold'Count : FuncUnfold Count [] Count.impl
+  unfold'Range : FuncUnfold Range [] Range.impl
+  unfold'executeRange : FuncUnfold executeRange [] executeRange.impl
+  unfold'rangeLimit : FuncUnfold rangeLimit [] rangeLimit.impl
+  unfold'IsDefaultOrdering : FuncUnfold IsDefaultOrdering [] IsDefaultOrdering.impl
+  unfold'HasRevisionFilters : FuncUnfold HasRevisionFilters [] HasRevisionFilters.impl
+  unfold'filterRangeResults : FuncUnfold filterRangeResults [] filterRangeResults.impl
+  unfold'sortRangeResults : FuncUnfold sortRangeResults [] sortRangeResults.impl
+  unfold'asembleRangeResponse : FuncUnfold asembleRangeResponse [] asembleRangeResponse.impl
+  unfold'checkRange : FuncUnfold checkRange [] checkRange.impl
+  unfold'pruneKVs : FuncUnfold pruneKVs [] pruneKVs.impl
+  unfold'Txn : FuncUnfold Txn [] Txn.impl
+  unfold'txn : FuncUnfold txn [] txn.impl
+  unfold'newTxnResp : FuncUnfold newTxnResp [] newTxnResp.impl
+  unfold'executeTxn : FuncUnfold executeTxn [] executeTxn.impl
+  unfold'checkTxn : FuncUnfold checkTxn [] checkTxn.impl
+  unfold'compareInt64 : FuncUnfold compareInt64 [] compareInt64.impl
+  unfold'compareToPath : FuncUnfold compareToPath [] compareToPath.impl
+  unfold'applyCompares : FuncUnfold applyCompares [] applyCompares.impl
+  unfold'applyCompare : FuncUnfold applyCompare [] applyCompare.impl
+  unfold'compareKV : FuncUnfold compareKV [] compareKV.impl
+  unfold'IsTxnSerializable : FuncUnfold IsTxnSerializable [] IsTxnSerializable.impl
+  unfold'IsTxnReadonly : FuncUnfold IsTxnReadonly [] IsTxnReadonly.impl
+  unfold'WarnOfExpensiveReadOnlyTxnRequest : FuncUnfold WarnOfExpensiveReadOnlyTxnRequest [] WarnOfExpensiveReadOnlyTxnRequest.impl
+  unfold'WarnOfExpensiveReadOnlyRangeRequest : FuncUnfold WarnOfExpensiveReadOnlyRangeRequest [] WarnOfExpensiveReadOnlyRangeRequest.impl
+  unfold'warnOfExpensiveGenericRequest : FuncUnfold warnOfExpensiveGenericRequest [] warnOfExpensiveGenericRequest.impl
+  unfold'isNil : FuncUnfold isNil [] isNil.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'mvccpb : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
+  import'traceutil : _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Assumptions
+  import'mvcc : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'prometheus : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  import'proto : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
+  import'errors : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.Assumptions
+  import'lease : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Assumptions
+  import'bytes : _root_.Perennial.bytes.Assumptions
+  import'math : _root_.Perennial.math.Assumptions
+  import'sort : _root_.Perennial.sort.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'reflect : _root_.Perennial.reflect.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
 
-attribute [instance] Assumptions.kvSort_instance
-  Assumptions.kvSortByKey_instance
-  Assumptions.kvSortByVersion_instance
-  Assumptions.kvSortByCreate_instance
-  Assumptions.kvSortByMod_instance
-  Assumptions.kvSortByValue_instance
-  Assumptions.DeleteRange_unfold
-  Assumptions.deleteRange_unfold
-  Assumptions.mkGteRange_unfold
-  Assumptions.ApplySecObserve_unfold
-  Assumptions.RangeSecObserve_unfold
-  Assumptions.«init.0_unfold»
-  Assumptions.Put_unfold
-  Assumptions.put_unfold
-  Assumptions.checkPut_unfold
-  Assumptions.checkLease_unfold
-  Assumptions.checkAndGetPrevKV_unfold
-  Assumptions.getPrevKV_unfold
-  Assumptions.Count_unfold
-  Assumptions.Range_unfold
-  Assumptions.executeRange_unfold
-  Assumptions.rangeLimit_unfold
-  Assumptions.IsDefaultOrdering_unfold
-  Assumptions.HasRevisionFilters_unfold
-  Assumptions.filterRangeResults_unfold
-  Assumptions.sortRangeResults_unfold
-  Assumptions.asembleRangeResponse_unfold
-  Assumptions.checkRange_unfold
-  Assumptions.pruneKVs_unfold
-  Assumptions.Txn_unfold
-  Assumptions.txn_unfold
-  Assumptions.newTxnResp_unfold
-  Assumptions.executeTxn_unfold
-  Assumptions.checkTxn_unfold
-  Assumptions.compareInt64_unfold
-  Assumptions.compareToPath_unfold
-  Assumptions.applyCompares_unfold
-  Assumptions.applyCompare_unfold
-  Assumptions.compareKV_unfold
-  Assumptions.IsTxnSerializable_unfold
-  Assumptions.IsTxnReadonly_unfold
-  Assumptions.WarnOfExpensiveReadOnlyTxnRequest_unfold
-  Assumptions.WarnOfExpensiveReadOnlyRangeRequest_unfold
-  Assumptions.warnOfExpensiveGenericRequest_unfold
-  Assumptions.isNil_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_mvccpb_Assumption
-  Assumptions.import_traceutil_Assumption
-  Assumptions.import_mvcc_Assumption
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_prometheus_Assumption
-  Assumptions.import_proto_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_lease_Assumption
-  Assumptions.import_bytes_Assumption
-  Assumptions.import_math_Assumption
-  Assumptions.import_sort_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_reflect_Assumption
-  Assumptions.import_strings_Assumption
+attribute [instance] Assumptions.instance'kvSort
+  Assumptions.instance'kvSortByKey
+  Assumptions.instance'kvSortByVersion
+  Assumptions.instance'kvSortByCreate
+  Assumptions.instance'kvSortByMod
+  Assumptions.instance'kvSortByValue
+  Assumptions.unfold'DeleteRange
+  Assumptions.unfold'deleteRange
+  Assumptions.unfold'mkGteRange
+  Assumptions.unfold'ApplySecObserve
+  Assumptions.unfold'RangeSecObserve
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'Put
+  Assumptions.unfold'put
+  Assumptions.unfold'checkPut
+  Assumptions.unfold'checkLease
+  Assumptions.unfold'checkAndGetPrevKV
+  Assumptions.unfold'getPrevKV
+  Assumptions.unfold'Count
+  Assumptions.unfold'Range
+  Assumptions.unfold'executeRange
+  Assumptions.unfold'rangeLimit
+  Assumptions.unfold'IsDefaultOrdering
+  Assumptions.unfold'HasRevisionFilters
+  Assumptions.unfold'filterRangeResults
+  Assumptions.unfold'sortRangeResults
+  Assumptions.unfold'asembleRangeResponse
+  Assumptions.unfold'checkRange
+  Assumptions.unfold'pruneKVs
+  Assumptions.unfold'Txn
+  Assumptions.unfold'txn
+  Assumptions.unfold'newTxnResp
+  Assumptions.unfold'executeTxn
+  Assumptions.unfold'checkTxn
+  Assumptions.unfold'compareInt64
+  Assumptions.unfold'compareToPath
+  Assumptions.unfold'applyCompares
+  Assumptions.unfold'applyCompare
+  Assumptions.unfold'compareKV
+  Assumptions.unfold'IsTxnSerializable
+  Assumptions.unfold'IsTxnReadonly
+  Assumptions.unfold'WarnOfExpensiveReadOnlyTxnRequest
+  Assumptions.unfold'WarnOfExpensiveReadOnlyRangeRequest
+  Assumptions.unfold'warnOfExpensiveGenericRequest
+  Assumptions.unfold'isNil
+  Assumptions.import'context
+  Assumptions.import'zap
+  Assumptions.import'etcdserverpb
+  Assumptions.import'mvccpb
+  Assumptions.import'traceutil
+  Assumptions.import'mvcc
+  Assumptions.import'strconv
+  Assumptions.import'time
+  Assumptions.import'prometheus
+  Assumptions.import'proto
+  Assumptions.import'errors
+  Assumptions.import'lease
+  Assumptions.import'bytes
+  Assumptions.import'math
+  Assumptions.import'sort
+  Assumptions.import'fmt
+  Assumptions.import'reflect
+  Assumptions.import'strings
 
 end go_etcd_io.etcd.server.v3.etcdserver.txn
 

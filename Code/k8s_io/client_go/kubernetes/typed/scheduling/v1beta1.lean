@@ -421,35 +421,35 @@ attribute [instance] workloads.TypeAssumptions.type_repr
   workloads.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  PodGroupExpansion_instance : PodGroupExpansion.TypeAssumptions
-  PriorityClassExpansion_instance : PriorityClassExpansion.TypeAssumptions
-  WorkloadExpansion_instance : WorkloadExpansion.TypeAssumptions
-  PodGroupsGetter_instance : PodGroupsGetter.TypeAssumptions
-  PodGroupInterface_instance : PodGroupInterface.TypeAssumptions
-  podGroups_instance : podGroups.TypeAssumptions
-  PriorityClassesGetter_instance : PriorityClassesGetter.TypeAssumptions
-  PriorityClassInterface_instance : PriorityClassInterface.TypeAssumptions
-  priorityClasses_instance : priorityClasses.TypeAssumptions
-  SchedulingV1beta1Interface_instance : SchedulingV1beta1Interface.TypeAssumptions
-  SchedulingV1beta1Client_instance : SchedulingV1beta1Client.TypeAssumptions
-  WorkloadsGetter_instance : WorkloadsGetter.TypeAssumptions
-  WorkloadInterface_instance : WorkloadInterface.TypeAssumptions
-  workloads_instance : workloads.TypeAssumptions
+  instance'PodGroupExpansion : PodGroupExpansion.TypeAssumptions
+  instance'PriorityClassExpansion : PriorityClassExpansion.TypeAssumptions
+  instance'WorkloadExpansion : WorkloadExpansion.TypeAssumptions
+  instance'PodGroupsGetter : PodGroupsGetter.TypeAssumptions
+  instance'PodGroupInterface : PodGroupInterface.TypeAssumptions
+  instance'podGroups : podGroups.TypeAssumptions
+  instance'PriorityClassesGetter : PriorityClassesGetter.TypeAssumptions
+  instance'PriorityClassInterface : PriorityClassInterface.TypeAssumptions
+  instance'priorityClasses : priorityClasses.TypeAssumptions
+  instance'SchedulingV1beta1Interface : SchedulingV1beta1Interface.TypeAssumptions
+  instance'SchedulingV1beta1Client : SchedulingV1beta1Client.TypeAssumptions
+  instance'WorkloadsGetter : WorkloadsGetter.TypeAssumptions
+  instance'WorkloadInterface : WorkloadInterface.TypeAssumptions
+  instance'workloads : workloads.TypeAssumptions
 
-attribute [instance] Assumptions.PodGroupExpansion_instance
-  Assumptions.PriorityClassExpansion_instance
-  Assumptions.WorkloadExpansion_instance
-  Assumptions.PodGroupsGetter_instance
-  Assumptions.PodGroupInterface_instance
-  Assumptions.podGroups_instance
-  Assumptions.PriorityClassesGetter_instance
-  Assumptions.PriorityClassInterface_instance
-  Assumptions.priorityClasses_instance
-  Assumptions.SchedulingV1beta1Interface_instance
-  Assumptions.SchedulingV1beta1Client_instance
-  Assumptions.WorkloadsGetter_instance
-  Assumptions.WorkloadInterface_instance
-  Assumptions.workloads_instance
+attribute [instance] Assumptions.instance'PodGroupExpansion
+  Assumptions.instance'PriorityClassExpansion
+  Assumptions.instance'WorkloadExpansion
+  Assumptions.instance'PodGroupsGetter
+  Assumptions.instance'PodGroupInterface
+  Assumptions.instance'podGroups
+  Assumptions.instance'PriorityClassesGetter
+  Assumptions.instance'PriorityClassInterface
+  Assumptions.instance'priorityClasses
+  Assumptions.instance'SchedulingV1beta1Interface
+  Assumptions.instance'SchedulingV1beta1Client
+  Assumptions.instance'WorkloadsGetter
+  Assumptions.instance'WorkloadInterface
+  Assumptions.instance'workloads
 
 end k8s_io.client_go.kubernetes.typed.scheduling.v1beta1
 

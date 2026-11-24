@@ -26,11 +26,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.lease.leasehttp.Assumptions]
 
-noncomputable instance leaseHandler_typed_pointsto :
+noncomputable instance typed_pointsto'leaseHandler :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.lease.leasehttp.leaseHandler :=
   sorry -- axiomatized type
 
-noncomputable instance leaseHandler_into_val_typed :
+noncomputable instance into_val_typed'leaseHandler :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.lease.leasehttp.leaseHandler go_etcd_io.etcd.server.v3.lease.leasehttp.leaseHandler.underlying :=
   sorry -- axiomatized type
 

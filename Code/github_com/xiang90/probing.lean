@@ -154,7 +154,7 @@ noncomputable instance httpHealth.zero_val [GooseExts] : ZeroVal httpHealth :=
 @[irreducible] noncomputable def httpHealth.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   httpHealth.fieldsUnsealed
 
-noncomputable instance equals_unfold_httpHealth [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'httpHealth [GooseExts] [GoGlobalContext] :
     EqualsUnfold httpHealth.fields httpHealth.fieldsUnsealed :=
   ⟨by unfold httpHealth.fields; rfl⟩
 
@@ -187,7 +187,7 @@ noncomputable instance Health.zero_val [GooseExts] : ZeroVal Health :=
 @[irreducible] noncomputable def Health.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Health.fieldsUnsealed
 
-noncomputable instance equals_unfold_Health [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Health [GooseExts] [GoGlobalContext] :
     EqualsUnfold Health.fields Health.fieldsUnsealed :=
   ⟨by unfold Health.fields; rfl⟩
 
@@ -197,19 +197,19 @@ noncomputable instance equals_unfold_Health [GooseExts] [GoGlobalContext] :
 class Health.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Health.underlying Health
   underlying : go.UnderlyingDirectedEq Health.ty Health.underlying
-  get_OK : ∀ (x : Health), go.IsGoStepPureDetTagged under (StructFieldGet Health.underlying go!"OK") #x (Val #(x.OK'))
-  set_OK : ∀ (x : Health) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Health.underlying go!"OK") (PairV #x #y) (Val #(({ x with OK' := y } : Health)))
-  get_Now : ∀ (x : Health), go.IsGoStepPureDetTagged under (StructFieldGet Health.underlying go!"Now") #x (Val #(x.Now'))
-  set_Now : ∀ (x : Health) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Health.underlying go!"Now") (PairV #x #y) (Val #(({ x with Now' := y } : Health)))
+  get'OK : ∀ (x : Health), go.IsGoStepPureDetTagged under (StructFieldGet Health.underlying go!"OK") #x (Val #(x.OK'))
+  set'OK : ∀ (x : Health) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Health.underlying go!"OK") (PairV #x #y) (Val #(({ x with OK' := y } : Health)))
+  get'Now : ∀ (x : Health), go.IsGoStepPureDetTagged under (StructFieldGet Health.underlying go!"Now") #x (Val #(x.Now'))
+  set'Now : ∀ (x : Health) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Health.underlying go!"Now") (PairV #x #y) (Val #(({ x with Now' := y } : Health)))
   method_set : go.MethodSetIs Health.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Health.ty) []
 
 attribute [instance] Health.TypeAssumptions.type_repr
   Health.TypeAssumptions.underlying
-  Health.TypeAssumptions.get_OK
-  Health.TypeAssumptions.set_OK
-  Health.TypeAssumptions.get_Now
-  Health.TypeAssumptions.set_Now
+  Health.TypeAssumptions.get'OK
+  Health.TypeAssumptions.set'OK
+  Health.TypeAssumptions.get'Now
+  Health.TypeAssumptions.set'Now
   Health.TypeAssumptions.method_set
   Health.TypeAssumptions.ptr_method_set
 
@@ -247,23 +247,23 @@ attribute [instance] status.TypeAssumptions.type_repr
   status.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Prober_instance : Prober.TypeAssumptions
-  prober_instance : prober.TypeAssumptions
-  httpHealth_instance : httpHealth.TypeAssumptions
-  Health_instance : Health.TypeAssumptions
-  Status_instance : Status.TypeAssumptions
-  status_instance : status.TypeAssumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'Prober : Prober.TypeAssumptions
+  instance'prober : prober.TypeAssumptions
+  instance'httpHealth : httpHealth.TypeAssumptions
+  instance'Health : Health.TypeAssumptions
+  instance'Status : Status.TypeAssumptions
+  instance'status : status.TypeAssumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.Prober_instance
-  Assumptions.prober_instance
-  Assumptions.httpHealth_instance
-  Assumptions.Health_instance
-  Assumptions.Status_instance
-  Assumptions.status_instance
-  Assumptions.import_errors_Assumption
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'Prober
+  Assumptions.instance'prober
+  Assumptions.instance'httpHealth
+  Assumptions.instance'Health
+  Assumptions.instance'Status
+  Assumptions.instance'status
+  Assumptions.import'errors
+  Assumptions.import'time
 
 end github_com.xiang90.probing
 

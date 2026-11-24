@@ -41,17 +41,17 @@ instance semver.Version.intoValInj [go.BasicIntoValInj] :
     go.IntoValInj github_com.Masterminds.semver.v3.Version where
   intoVal_inj x y h := by
     have h1 := go.intoVal_inj (semver.field_eq _ _ (fun z =>
-      (github_com.Masterminds.semver.v3.Version.TypeAssumptions.get_major z).isGoStep_det_internal.isGoStep_pure_det) h)
+      (github_com.Masterminds.semver.v3.Version.TypeAssumptions.get'major z).isGoStep_det_internal.isGoStep_pure_det) h)
     have h2 := go.intoVal_inj (semver.field_eq _ _ (fun z =>
-      (github_com.Masterminds.semver.v3.Version.TypeAssumptions.get_minor z).isGoStep_det_internal.isGoStep_pure_det) h)
+      (github_com.Masterminds.semver.v3.Version.TypeAssumptions.get'minor z).isGoStep_det_internal.isGoStep_pure_det) h)
     have h3 := go.intoVal_inj (semver.field_eq _ _ (fun z =>
-      (github_com.Masterminds.semver.v3.Version.TypeAssumptions.get_patch z).isGoStep_det_internal.isGoStep_pure_det) h)
+      (github_com.Masterminds.semver.v3.Version.TypeAssumptions.get'patch z).isGoStep_det_internal.isGoStep_pure_det) h)
     have h4 := go.intoVal_inj (semver.field_eq _ _ (fun z =>
-      (github_com.Masterminds.semver.v3.Version.TypeAssumptions.get_pre z).isGoStep_det_internal.isGoStep_pure_det) h)
+      (github_com.Masterminds.semver.v3.Version.TypeAssumptions.get'pre z).isGoStep_det_internal.isGoStep_pure_det) h)
     have h5 := go.intoVal_inj (semver.field_eq _ _ (fun z =>
-      (github_com.Masterminds.semver.v3.Version.TypeAssumptions.get_metadata z).isGoStep_det_internal.isGoStep_pure_det) h)
+      (github_com.Masterminds.semver.v3.Version.TypeAssumptions.get'metadata z).isGoStep_det_internal.isGoStep_pure_det) h)
     have h6 := go.intoVal_inj (semver.field_eq _ _ (fun z =>
-      (github_com.Masterminds.semver.v3.Version.TypeAssumptions.get_original z).isGoStep_det_internal.isGoStep_pure_det) h)
+      (github_com.Masterminds.semver.v3.Version.TypeAssumptions.get'original z).isGoStep_det_internal.isGoStep_pure_det) h)
     cases x; cases y
     simp only at h1 h2 h3 h4 h5 h6
     subst h1 h2 h3 h4 h5 h6; rfl

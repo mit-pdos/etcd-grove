@@ -540,7 +540,7 @@ noncomputable instance Backoff.zero_val [GooseExts] : ZeroVal Backoff :=
 @[irreducible] noncomputable def Backoff.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Backoff.fieldsUnsealed
 
-noncomputable instance equals_unfold_Backoff [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Backoff [GooseExts] [GoGlobalContext] :
     EqualsUnfold Backoff.fields Backoff.fieldsUnsealed :=
   ⟨by unfold Backoff.fields; rfl⟩
 
@@ -550,31 +550,31 @@ noncomputable instance equals_unfold_Backoff [GooseExts] [GoGlobalContext] :
 class Backoff.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Backoff.underlying Backoff
   underlying : go.UnderlyingDirectedEq Backoff.ty Backoff.underlying
-  get_Duration : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"Duration") #x (Val #(x.Duration'))
-  set_Duration : ∀ (x : Backoff) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"Duration") (PairV #x #y) (Val #(({ x with Duration' := y } : Backoff)))
-  get_Factor : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"Factor") #x (Val #(x.Factor'))
-  set_Factor : ∀ (x : Backoff) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"Factor") (PairV #x #y) (Val #(({ x with Factor' := y } : Backoff)))
-  get_Jitter : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"Jitter") #x (Val #(x.Jitter'))
-  set_Jitter : ∀ (x : Backoff) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"Jitter") (PairV #x #y) (Val #(({ x with Jitter' := y } : Backoff)))
-  get_Steps : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"Steps") #x (Val #(x.Steps'))
-  set_Steps : ∀ (x : Backoff) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"Steps") (PairV #x #y) (Val #(({ x with Steps' := y } : Backoff)))
-  get_Cap : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"Cap") #x (Val #(x.Cap'))
-  set_Cap : ∀ (x : Backoff) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"Cap") (PairV #x #y) (Val #(({ x with Cap' := y } : Backoff)))
+  get'Duration : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"Duration") #x (Val #(x.Duration'))
+  set'Duration : ∀ (x : Backoff) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"Duration") (PairV #x #y) (Val #(({ x with Duration' := y } : Backoff)))
+  get'Factor : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"Factor") #x (Val #(x.Factor'))
+  set'Factor : ∀ (x : Backoff) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"Factor") (PairV #x #y) (Val #(({ x with Factor' := y } : Backoff)))
+  get'Jitter : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"Jitter") #x (Val #(x.Jitter'))
+  set'Jitter : ∀ (x : Backoff) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"Jitter") (PairV #x #y) (Val #(({ x with Jitter' := y } : Backoff)))
+  get'Steps : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"Steps") #x (Val #(x.Steps'))
+  set'Steps : ∀ (x : Backoff) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"Steps") (PairV #x #y) (Val #(({ x with Steps' := y } : Backoff)))
+  get'Cap : ∀ (x : Backoff), go.IsGoStepPureDetTagged under (StructFieldGet Backoff.underlying go!"Cap") #x (Val #(x.Cap'))
+  set'Cap : ∀ (x : Backoff) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Backoff.underlying go!"Cap") (PairV #x #y) (Val #(({ x with Cap' := y } : Backoff)))
   method_set : go.MethodSetIs Backoff.ty [(go!"DelayFunc", (some (go.signature.Signature [] false [DelayFunc.ty]))), (go!"DelayWithReset", (some (go.signature.Signature [_root_.Perennial.k8s_io.utils.clock.Clock.ty, _root_.Perennial.time.Duration.ty] false [DelayFunc.ty]))), (go!"Timer", (some (go.signature.Signature [] false [Timer.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Backoff.ty) [(go!"DelayFunc", (some (go.signature.Signature [] false [DelayFunc.ty]))), (go!"DelayWithReset", (some (go.signature.Signature [_root_.Perennial.k8s_io.utils.clock.Clock.ty, _root_.Perennial.time.Duration.ty] false [DelayFunc.ty]))), (go!"Step", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"Timer", (some (go.signature.Signature [] false [Timer.ty])))]
 
 attribute [instance] Backoff.TypeAssumptions.type_repr
   Backoff.TypeAssumptions.underlying
-  Backoff.TypeAssumptions.get_Duration
-  Backoff.TypeAssumptions.set_Duration
-  Backoff.TypeAssumptions.get_Factor
-  Backoff.TypeAssumptions.set_Factor
-  Backoff.TypeAssumptions.get_Jitter
-  Backoff.TypeAssumptions.set_Jitter
-  Backoff.TypeAssumptions.get_Steps
-  Backoff.TypeAssumptions.set_Steps
-  Backoff.TypeAssumptions.get_Cap
-  Backoff.TypeAssumptions.set_Cap
+  Backoff.TypeAssumptions.get'Duration
+  Backoff.TypeAssumptions.set'Duration
+  Backoff.TypeAssumptions.get'Factor
+  Backoff.TypeAssumptions.set'Factor
+  Backoff.TypeAssumptions.get'Jitter
+  Backoff.TypeAssumptions.set'Jitter
+  Backoff.TypeAssumptions.get'Steps
+  Backoff.TypeAssumptions.set'Steps
+  Backoff.TypeAssumptions.get'Cap
+  Backoff.TypeAssumptions.set'Cap
   Backoff.TypeAssumptions.method_set
   Backoff.TypeAssumptions.ptr_method_set
 
@@ -603,7 +603,7 @@ noncomputable instance backoffManager.zero_val [GooseExts] : ZeroVal backoffMana
 @[irreducible] noncomputable def backoffManager.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   backoffManager.fieldsUnsealed
 
-noncomputable instance equals_unfold_backoffManager [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'backoffManager [GooseExts] [GoGlobalContext] :
     EqualsUnfold backoffManager.fields backoffManager.fieldsUnsealed :=
   ⟨by unfold backoffManager.fields; rfl⟩
 
@@ -613,39 +613,39 @@ noncomputable instance equals_unfold_backoffManager [GooseExts] [GoGlobalContext
 class backoffManager.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying backoffManager.underlying backoffManager
   underlying : go.UnderlyingDirectedEq backoffManager.ty backoffManager.underlying
-  get_backoff : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"backoff") #x (Val #(x.backoff'))
-  set_backoff : ∀ (x : backoffManager) (y : Backoff), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"backoff") (PairV #x #y) (Val #(({ x with backoff' := y } : backoffManager)))
-  get_initialBackoff : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"initialBackoff") #x (Val #(x.initialBackoff'))
-  set_initialBackoff : ∀ (x : backoffManager) (y : Backoff), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"initialBackoff") (PairV #x #y) (Val #(({ x with initialBackoff' := y } : backoffManager)))
-  get_resetInterval : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"resetInterval") #x (Val #(x.resetInterval'))
-  set_resetInterval : ∀ (x : backoffManager) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"resetInterval") (PairV #x #y) (Val #(({ x with resetInterval' := y } : backoffManager)))
-  get_clock : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"clock") #x (Val #(x.clock'))
-  set_clock : ∀ (x : backoffManager) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : backoffManager)))
-  get_lock : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"lock") #x (Val #(x.lock'))
-  set_lock : ∀ (x : backoffManager) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : backoffManager)))
-  get_lastStart : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"lastStart") #x (Val #(x.lastStart'))
-  set_lastStart : ∀ (x : backoffManager) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"lastStart") (PairV #x #y) (Val #(({ x with lastStart' := y } : backoffManager)))
-  get_timer : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"timer") #x (Val #(x.timer'))
-  set_timer : ∀ (x : backoffManager) (y : _root_.Perennial.k8s_io.utils.clock.Timer), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"timer") (PairV #x #y) (Val #(({ x with timer' := y } : backoffManager)))
+  get'backoff : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"backoff") #x (Val #(x.backoff'))
+  set'backoff : ∀ (x : backoffManager) (y : Backoff), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"backoff") (PairV #x #y) (Val #(({ x with backoff' := y } : backoffManager)))
+  get'initialBackoff : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"initialBackoff") #x (Val #(x.initialBackoff'))
+  set'initialBackoff : ∀ (x : backoffManager) (y : Backoff), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"initialBackoff") (PairV #x #y) (Val #(({ x with initialBackoff' := y } : backoffManager)))
+  get'resetInterval : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"resetInterval") #x (Val #(x.resetInterval'))
+  set'resetInterval : ∀ (x : backoffManager) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"resetInterval") (PairV #x #y) (Val #(({ x with resetInterval' := y } : backoffManager)))
+  get'clock : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"clock") #x (Val #(x.clock'))
+  set'clock : ∀ (x : backoffManager) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : backoffManager)))
+  get'lock : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"lock") #x (Val #(x.lock'))
+  set'lock : ∀ (x : backoffManager) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : backoffManager)))
+  get'lastStart : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"lastStart") #x (Val #(x.lastStart'))
+  set'lastStart : ∀ (x : backoffManager) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"lastStart") (PairV #x #y) (Val #(({ x with lastStart' := y } : backoffManager)))
+  get'timer : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"timer") #x (Val #(x.timer'))
+  set'timer : ∀ (x : backoffManager) (y : _root_.Perennial.k8s_io.utils.clock.Timer), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"timer") (PairV #x #y) (Val #(({ x with timer' := y } : backoffManager)))
   method_set : go.MethodSetIs backoffManager.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType backoffManager.ty) [(go!"Backoff", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.utils.clock.Timer.ty]))), (go!"Step", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"Timer", (some (go.signature.Signature [] false [Timer.ty])))]
 
 attribute [instance] backoffManager.TypeAssumptions.type_repr
   backoffManager.TypeAssumptions.underlying
-  backoffManager.TypeAssumptions.get_backoff
-  backoffManager.TypeAssumptions.set_backoff
-  backoffManager.TypeAssumptions.get_initialBackoff
-  backoffManager.TypeAssumptions.set_initialBackoff
-  backoffManager.TypeAssumptions.get_resetInterval
-  backoffManager.TypeAssumptions.set_resetInterval
-  backoffManager.TypeAssumptions.get_clock
-  backoffManager.TypeAssumptions.set_clock
-  backoffManager.TypeAssumptions.get_lock
-  backoffManager.TypeAssumptions.set_lock
-  backoffManager.TypeAssumptions.get_lastStart
-  backoffManager.TypeAssumptions.set_lastStart
-  backoffManager.TypeAssumptions.get_timer
-  backoffManager.TypeAssumptions.set_timer
+  backoffManager.TypeAssumptions.get'backoff
+  backoffManager.TypeAssumptions.set'backoff
+  backoffManager.TypeAssumptions.get'initialBackoff
+  backoffManager.TypeAssumptions.set'initialBackoff
+  backoffManager.TypeAssumptions.get'resetInterval
+  backoffManager.TypeAssumptions.set'resetInterval
+  backoffManager.TypeAssumptions.get'clock
+  backoffManager.TypeAssumptions.set'clock
+  backoffManager.TypeAssumptions.get'lock
+  backoffManager.TypeAssumptions.set'lock
+  backoffManager.TypeAssumptions.get'lastStart
+  backoffManager.TypeAssumptions.set'lastStart
+  backoffManager.TypeAssumptions.get'timer
+  backoffManager.TypeAssumptions.set'timer
   backoffManager.TypeAssumptions.method_set
   backoffManager.TypeAssumptions.ptr_method_set
 
@@ -686,7 +686,7 @@ noncomputable instance exponentialBackoffManagerImpl.zero_val [GooseExts] : Zero
 @[irreducible] noncomputable def exponentialBackoffManagerImpl.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   exponentialBackoffManagerImpl.fieldsUnsealed
 
-noncomputable instance equals_unfold_exponentialBackoffManagerImpl [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'exponentialBackoffManagerImpl [GooseExts] [GoGlobalContext] :
     EqualsUnfold exponentialBackoffManagerImpl.fields exponentialBackoffManagerImpl.fieldsUnsealed :=
   ⟨by unfold exponentialBackoffManagerImpl.fields; rfl⟩
 
@@ -696,35 +696,35 @@ noncomputable instance equals_unfold_exponentialBackoffManagerImpl [GooseExts] [
 class exponentialBackoffManagerImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying exponentialBackoffManagerImpl.underlying exponentialBackoffManagerImpl
   underlying : go.UnderlyingDirectedEq exponentialBackoffManagerImpl.ty exponentialBackoffManagerImpl.underlying
-  get_backoff : ∀ (x : exponentialBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet exponentialBackoffManagerImpl.underlying go!"backoff") #x (Val #(x.backoff'))
-  set_backoff : ∀ (x : exponentialBackoffManagerImpl) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet exponentialBackoffManagerImpl.underlying go!"backoff") (PairV #x #y) (Val #(({ x with backoff' := y } : exponentialBackoffManagerImpl)))
-  get_backoffTimer : ∀ (x : exponentialBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet exponentialBackoffManagerImpl.underlying go!"backoffTimer") #x (Val #(x.backoffTimer'))
-  set_backoffTimer : ∀ (x : exponentialBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Timer), go.IsGoStepPureDetTagged under (StructFieldSet exponentialBackoffManagerImpl.underlying go!"backoffTimer") (PairV #x #y) (Val #(({ x with backoffTimer' := y } : exponentialBackoffManagerImpl)))
-  get_lastBackoffStart : ∀ (x : exponentialBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet exponentialBackoffManagerImpl.underlying go!"lastBackoffStart") #x (Val #(x.lastBackoffStart'))
-  set_lastBackoffStart : ∀ (x : exponentialBackoffManagerImpl) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet exponentialBackoffManagerImpl.underlying go!"lastBackoffStart") (PairV #x #y) (Val #(({ x with lastBackoffStart' := y } : exponentialBackoffManagerImpl)))
-  get_initialBackoff : ∀ (x : exponentialBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet exponentialBackoffManagerImpl.underlying go!"initialBackoff") #x (Val #(x.initialBackoff'))
-  set_initialBackoff : ∀ (x : exponentialBackoffManagerImpl) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet exponentialBackoffManagerImpl.underlying go!"initialBackoff") (PairV #x #y) (Val #(({ x with initialBackoff' := y } : exponentialBackoffManagerImpl)))
-  get_backoffResetDuration : ∀ (x : exponentialBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet exponentialBackoffManagerImpl.underlying go!"backoffResetDuration") #x (Val #(x.backoffResetDuration'))
-  set_backoffResetDuration : ∀ (x : exponentialBackoffManagerImpl) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet exponentialBackoffManagerImpl.underlying go!"backoffResetDuration") (PairV #x #y) (Val #(({ x with backoffResetDuration' := y } : exponentialBackoffManagerImpl)))
-  get_clock : ∀ (x : exponentialBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet exponentialBackoffManagerImpl.underlying go!"clock") #x (Val #(x.clock'))
-  set_clock : ∀ (x : exponentialBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet exponentialBackoffManagerImpl.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : exponentialBackoffManagerImpl)))
+  get'backoff : ∀ (x : exponentialBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet exponentialBackoffManagerImpl.underlying go!"backoff") #x (Val #(x.backoff'))
+  set'backoff : ∀ (x : exponentialBackoffManagerImpl) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet exponentialBackoffManagerImpl.underlying go!"backoff") (PairV #x #y) (Val #(({ x with backoff' := y } : exponentialBackoffManagerImpl)))
+  get'backoffTimer : ∀ (x : exponentialBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet exponentialBackoffManagerImpl.underlying go!"backoffTimer") #x (Val #(x.backoffTimer'))
+  set'backoffTimer : ∀ (x : exponentialBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Timer), go.IsGoStepPureDetTagged under (StructFieldSet exponentialBackoffManagerImpl.underlying go!"backoffTimer") (PairV #x #y) (Val #(({ x with backoffTimer' := y } : exponentialBackoffManagerImpl)))
+  get'lastBackoffStart : ∀ (x : exponentialBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet exponentialBackoffManagerImpl.underlying go!"lastBackoffStart") #x (Val #(x.lastBackoffStart'))
+  set'lastBackoffStart : ∀ (x : exponentialBackoffManagerImpl) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet exponentialBackoffManagerImpl.underlying go!"lastBackoffStart") (PairV #x #y) (Val #(({ x with lastBackoffStart' := y } : exponentialBackoffManagerImpl)))
+  get'initialBackoff : ∀ (x : exponentialBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet exponentialBackoffManagerImpl.underlying go!"initialBackoff") #x (Val #(x.initialBackoff'))
+  set'initialBackoff : ∀ (x : exponentialBackoffManagerImpl) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet exponentialBackoffManagerImpl.underlying go!"initialBackoff") (PairV #x #y) (Val #(({ x with initialBackoff' := y } : exponentialBackoffManagerImpl)))
+  get'backoffResetDuration : ∀ (x : exponentialBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet exponentialBackoffManagerImpl.underlying go!"backoffResetDuration") #x (Val #(x.backoffResetDuration'))
+  set'backoffResetDuration : ∀ (x : exponentialBackoffManagerImpl) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet exponentialBackoffManagerImpl.underlying go!"backoffResetDuration") (PairV #x #y) (Val #(({ x with backoffResetDuration' := y } : exponentialBackoffManagerImpl)))
+  get'clock : ∀ (x : exponentialBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet exponentialBackoffManagerImpl.underlying go!"clock") #x (Val #(x.clock'))
+  set'clock : ∀ (x : exponentialBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet exponentialBackoffManagerImpl.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : exponentialBackoffManagerImpl)))
   method_set : go.MethodSetIs exponentialBackoffManagerImpl.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType exponentialBackoffManagerImpl.ty) [(go!"Backoff", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.utils.clock.Timer.ty]))), (go!"k8s.io/apimachinery/pkg/util/wait.getNextBackoff", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])))]
 
 attribute [instance] exponentialBackoffManagerImpl.TypeAssumptions.type_repr
   exponentialBackoffManagerImpl.TypeAssumptions.underlying
-  exponentialBackoffManagerImpl.TypeAssumptions.get_backoff
-  exponentialBackoffManagerImpl.TypeAssumptions.set_backoff
-  exponentialBackoffManagerImpl.TypeAssumptions.get_backoffTimer
-  exponentialBackoffManagerImpl.TypeAssumptions.set_backoffTimer
-  exponentialBackoffManagerImpl.TypeAssumptions.get_lastBackoffStart
-  exponentialBackoffManagerImpl.TypeAssumptions.set_lastBackoffStart
-  exponentialBackoffManagerImpl.TypeAssumptions.get_initialBackoff
-  exponentialBackoffManagerImpl.TypeAssumptions.set_initialBackoff
-  exponentialBackoffManagerImpl.TypeAssumptions.get_backoffResetDuration
-  exponentialBackoffManagerImpl.TypeAssumptions.set_backoffResetDuration
-  exponentialBackoffManagerImpl.TypeAssumptions.get_clock
-  exponentialBackoffManagerImpl.TypeAssumptions.set_clock
+  exponentialBackoffManagerImpl.TypeAssumptions.get'backoff
+  exponentialBackoffManagerImpl.TypeAssumptions.set'backoff
+  exponentialBackoffManagerImpl.TypeAssumptions.get'backoffTimer
+  exponentialBackoffManagerImpl.TypeAssumptions.set'backoffTimer
+  exponentialBackoffManagerImpl.TypeAssumptions.get'lastBackoffStart
+  exponentialBackoffManagerImpl.TypeAssumptions.set'lastBackoffStart
+  exponentialBackoffManagerImpl.TypeAssumptions.get'initialBackoff
+  exponentialBackoffManagerImpl.TypeAssumptions.set'initialBackoff
+  exponentialBackoffManagerImpl.TypeAssumptions.get'backoffResetDuration
+  exponentialBackoffManagerImpl.TypeAssumptions.set'backoffResetDuration
+  exponentialBackoffManagerImpl.TypeAssumptions.get'clock
+  exponentialBackoffManagerImpl.TypeAssumptions.set'clock
   exponentialBackoffManagerImpl.TypeAssumptions.method_set
   exponentialBackoffManagerImpl.TypeAssumptions.ptr_method_set
 
@@ -747,7 +747,7 @@ noncomputable instance jitteredBackoffManagerImpl.zero_val [GooseExts] : ZeroVal
 @[irreducible] noncomputable def jitteredBackoffManagerImpl.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   jitteredBackoffManagerImpl.fieldsUnsealed
 
-noncomputable instance equals_unfold_jitteredBackoffManagerImpl [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'jitteredBackoffManagerImpl [GooseExts] [GoGlobalContext] :
     EqualsUnfold jitteredBackoffManagerImpl.fields jitteredBackoffManagerImpl.fieldsUnsealed :=
   ⟨by unfold jitteredBackoffManagerImpl.fields; rfl⟩
 
@@ -757,27 +757,27 @@ noncomputable instance equals_unfold_jitteredBackoffManagerImpl [GooseExts] [GoG
 class jitteredBackoffManagerImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying jitteredBackoffManagerImpl.underlying jitteredBackoffManagerImpl
   underlying : go.UnderlyingDirectedEq jitteredBackoffManagerImpl.ty jitteredBackoffManagerImpl.underlying
-  get_clock : ∀ (x : jitteredBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet jitteredBackoffManagerImpl.underlying go!"clock") #x (Val #(x.clock'))
-  set_clock : ∀ (x : jitteredBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet jitteredBackoffManagerImpl.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : jitteredBackoffManagerImpl)))
-  get_duration : ∀ (x : jitteredBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet jitteredBackoffManagerImpl.underlying go!"duration") #x (Val #(x.duration'))
-  set_duration : ∀ (x : jitteredBackoffManagerImpl) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet jitteredBackoffManagerImpl.underlying go!"duration") (PairV #x #y) (Val #(({ x with duration' := y } : jitteredBackoffManagerImpl)))
-  get_jitter : ∀ (x : jitteredBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet jitteredBackoffManagerImpl.underlying go!"jitter") #x (Val #(x.jitter'))
-  set_jitter : ∀ (x : jitteredBackoffManagerImpl) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet jitteredBackoffManagerImpl.underlying go!"jitter") (PairV #x #y) (Val #(({ x with jitter' := y } : jitteredBackoffManagerImpl)))
-  get_backoffTimer : ∀ (x : jitteredBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet jitteredBackoffManagerImpl.underlying go!"backoffTimer") #x (Val #(x.backoffTimer'))
-  set_backoffTimer : ∀ (x : jitteredBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Timer), go.IsGoStepPureDetTagged under (StructFieldSet jitteredBackoffManagerImpl.underlying go!"backoffTimer") (PairV #x #y) (Val #(({ x with backoffTimer' := y } : jitteredBackoffManagerImpl)))
+  get'clock : ∀ (x : jitteredBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet jitteredBackoffManagerImpl.underlying go!"clock") #x (Val #(x.clock'))
+  set'clock : ∀ (x : jitteredBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet jitteredBackoffManagerImpl.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : jitteredBackoffManagerImpl)))
+  get'duration : ∀ (x : jitteredBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet jitteredBackoffManagerImpl.underlying go!"duration") #x (Val #(x.duration'))
+  set'duration : ∀ (x : jitteredBackoffManagerImpl) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet jitteredBackoffManagerImpl.underlying go!"duration") (PairV #x #y) (Val #(({ x with duration' := y } : jitteredBackoffManagerImpl)))
+  get'jitter : ∀ (x : jitteredBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet jitteredBackoffManagerImpl.underlying go!"jitter") #x (Val #(x.jitter'))
+  set'jitter : ∀ (x : jitteredBackoffManagerImpl) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet jitteredBackoffManagerImpl.underlying go!"jitter") (PairV #x #y) (Val #(({ x with jitter' := y } : jitteredBackoffManagerImpl)))
+  get'backoffTimer : ∀ (x : jitteredBackoffManagerImpl), go.IsGoStepPureDetTagged under (StructFieldGet jitteredBackoffManagerImpl.underlying go!"backoffTimer") #x (Val #(x.backoffTimer'))
+  set'backoffTimer : ∀ (x : jitteredBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Timer), go.IsGoStepPureDetTagged under (StructFieldSet jitteredBackoffManagerImpl.underlying go!"backoffTimer") (PairV #x #y) (Val #(({ x with backoffTimer' := y } : jitteredBackoffManagerImpl)))
   method_set : go.MethodSetIs jitteredBackoffManagerImpl.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType jitteredBackoffManagerImpl.ty) [(go!"Backoff", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.utils.clock.Timer.ty]))), (go!"k8s.io/apimachinery/pkg/util/wait.getNextBackoff", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])))]
 
 attribute [instance] jitteredBackoffManagerImpl.TypeAssumptions.type_repr
   jitteredBackoffManagerImpl.TypeAssumptions.underlying
-  jitteredBackoffManagerImpl.TypeAssumptions.get_clock
-  jitteredBackoffManagerImpl.TypeAssumptions.set_clock
-  jitteredBackoffManagerImpl.TypeAssumptions.get_duration
-  jitteredBackoffManagerImpl.TypeAssumptions.set_duration
-  jitteredBackoffManagerImpl.TypeAssumptions.get_jitter
-  jitteredBackoffManagerImpl.TypeAssumptions.set_jitter
-  jitteredBackoffManagerImpl.TypeAssumptions.get_backoffTimer
-  jitteredBackoffManagerImpl.TypeAssumptions.set_backoffTimer
+  jitteredBackoffManagerImpl.TypeAssumptions.get'clock
+  jitteredBackoffManagerImpl.TypeAssumptions.set'clock
+  jitteredBackoffManagerImpl.TypeAssumptions.get'duration
+  jitteredBackoffManagerImpl.TypeAssumptions.set'duration
+  jitteredBackoffManagerImpl.TypeAssumptions.get'jitter
+  jitteredBackoffManagerImpl.TypeAssumptions.set'jitter
+  jitteredBackoffManagerImpl.TypeAssumptions.get'backoffTimer
+  jitteredBackoffManagerImpl.TypeAssumptions.set'backoffTimer
   jitteredBackoffManagerImpl.TypeAssumptions.method_set
   jitteredBackoffManagerImpl.TypeAssumptions.ptr_method_set
 
@@ -808,7 +808,7 @@ noncomputable instance errInterrupted.zero_val [GooseExts] : ZeroVal errInterrup
 @[irreducible] noncomputable def errInterrupted.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   errInterrupted.fieldsUnsealed
 
-noncomputable instance equals_unfold_errInterrupted [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'errInterrupted [GooseExts] [GoGlobalContext] :
     EqualsUnfold errInterrupted.fields errInterrupted.fieldsUnsealed :=
   ⟨by unfold errInterrupted.fields; rfl⟩
 
@@ -818,15 +818,15 @@ noncomputable instance equals_unfold_errInterrupted [GooseExts] [GoGlobalContext
 class errInterrupted.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying errInterrupted.underlying errInterrupted
   underlying : go.UnderlyingDirectedEq errInterrupted.ty errInterrupted.underlying
-  get_cause : ∀ (x : errInterrupted), go.IsGoStepPureDetTagged under (StructFieldGet errInterrupted.underlying go!"cause") #x (Val #(x.cause'))
-  set_cause : ∀ (x : errInterrupted) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet errInterrupted.underlying go!"cause") (PairV #x #y) (Val #(({ x with cause' := y } : errInterrupted)))
+  get'cause : ∀ (x : errInterrupted), go.IsGoStepPureDetTagged under (StructFieldGet errInterrupted.underlying go!"cause") #x (Val #(x.cause'))
+  set'cause : ∀ (x : errInterrupted) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet errInterrupted.underlying go!"cause") (PairV #x #y) (Val #(({ x with cause' := y } : errInterrupted)))
   method_set : go.MethodSetIs errInterrupted.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType errInterrupted.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] errInterrupted.TypeAssumptions.type_repr
   errInterrupted.TypeAssumptions.underlying
-  errInterrupted.TypeAssumptions.get_cause
-  errInterrupted.TypeAssumptions.set_cause
+  errInterrupted.TypeAssumptions.get'cause
+  errInterrupted.TypeAssumptions.set'cause
   errInterrupted.TypeAssumptions.method_set
   errInterrupted.TypeAssumptions.ptr_method_set
 
@@ -857,7 +857,7 @@ noncomputable instance noopTimer.zero_val [GooseExts] : ZeroVal noopTimer :=
 @[irreducible] noncomputable def noopTimer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noopTimer.fieldsUnsealed
 
-noncomputable instance equals_unfold_noopTimer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'noopTimer [GooseExts] [GoGlobalContext] :
     EqualsUnfold noopTimer.fields noopTimer.fieldsUnsealed :=
   ⟨by unfold noopTimer.fields; rfl⟩
 
@@ -867,15 +867,15 @@ noncomputable instance equals_unfold_noopTimer [GooseExts] [GoGlobalContext] :
 class noopTimer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopTimer.underlying noopTimer
   underlying : go.UnderlyingDirectedEq noopTimer.ty noopTimer.underlying
-  get_closedCh : ∀ (x : noopTimer), go.IsGoStepPureDetTagged under (StructFieldGet noopTimer.underlying go!"closedCh") #x (Val #(x.closedCh'))
-  set_closedCh : ∀ (x : noopTimer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet noopTimer.underlying go!"closedCh") (PairV #x #y) (Val #(({ x with closedCh' := y } : noopTimer)))
+  get'closedCh : ∀ (x : noopTimer), go.IsGoStepPureDetTagged under (StructFieldGet noopTimer.underlying go!"closedCh") #x (Val #(x.closedCh'))
+  set'closedCh : ∀ (x : noopTimer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet noopTimer.underlying go!"closedCh") (PairV #x #y) (Val #(({ x with closedCh' := y } : noopTimer)))
   method_set : go.MethodSetIs noopTimer.ty [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Next", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopTimer.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Next", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] noopTimer.TypeAssumptions.type_repr
   noopTimer.TypeAssumptions.underlying
-  noopTimer.TypeAssumptions.get_closedCh
-  noopTimer.TypeAssumptions.set_closedCh
+  noopTimer.TypeAssumptions.get'closedCh
+  noopTimer.TypeAssumptions.set'closedCh
   noopTimer.TypeAssumptions.method_set
   noopTimer.TypeAssumptions.ptr_method_set
 
@@ -896,7 +896,7 @@ noncomputable instance variableTimer.zero_val [GooseExts] : ZeroVal variableTime
 @[irreducible] noncomputable def variableTimer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   variableTimer.fieldsUnsealed
 
-noncomputable instance equals_unfold_variableTimer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'variableTimer [GooseExts] [GoGlobalContext] :
     EqualsUnfold variableTimer.fields variableTimer.fieldsUnsealed :=
   ⟨by unfold variableTimer.fields; rfl⟩
 
@@ -906,23 +906,23 @@ noncomputable instance equals_unfold_variableTimer [GooseExts] [GoGlobalContext]
 class variableTimer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying variableTimer.underlying variableTimer
   underlying : go.UnderlyingDirectedEq variableTimer.ty variableTimer.underlying
-  get_fn : ∀ (x : variableTimer), go.IsGoStepPureDetTagged under (StructFieldGet variableTimer.underlying go!"fn") #x (Val #(x.fn'))
-  set_fn : ∀ (x : variableTimer) (y : DelayFunc), go.IsGoStepPureDetTagged under (StructFieldSet variableTimer.underlying go!"fn") (PairV #x #y) (Val #(({ x with fn' := y } : variableTimer)))
-  get_t : ∀ (x : variableTimer), go.IsGoStepPureDetTagged under (StructFieldGet variableTimer.underlying go!"t") #x (Val #(x.t'))
-  set_t : ∀ (x : variableTimer) (y : _root_.Perennial.k8s_io.utils.clock.Timer), go.IsGoStepPureDetTagged under (StructFieldSet variableTimer.underlying go!"t") (PairV #x #y) (Val #(({ x with t' := y } : variableTimer)))
-  get_new : ∀ (x : variableTimer), go.IsGoStepPureDetTagged under (StructFieldGet variableTimer.underlying go!"new") #x (Val #(x.new'))
-  set_new : ∀ (x : variableTimer) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet variableTimer.underlying go!"new") (PairV #x #y) (Val #(({ x with new' := y } : variableTimer)))
+  get'fn : ∀ (x : variableTimer), go.IsGoStepPureDetTagged under (StructFieldGet variableTimer.underlying go!"fn") #x (Val #(x.fn'))
+  set'fn : ∀ (x : variableTimer) (y : DelayFunc), go.IsGoStepPureDetTagged under (StructFieldSet variableTimer.underlying go!"fn") (PairV #x #y) (Val #(({ x with fn' := y } : variableTimer)))
+  get't : ∀ (x : variableTimer), go.IsGoStepPureDetTagged under (StructFieldGet variableTimer.underlying go!"t") #x (Val #(x.t'))
+  set't : ∀ (x : variableTimer) (y : _root_.Perennial.k8s_io.utils.clock.Timer), go.IsGoStepPureDetTagged under (StructFieldSet variableTimer.underlying go!"t") (PairV #x #y) (Val #(({ x with t' := y } : variableTimer)))
+  get'new : ∀ (x : variableTimer), go.IsGoStepPureDetTagged under (StructFieldGet variableTimer.underlying go!"new") #x (Val #(x.new'))
+  set'new : ∀ (x : variableTimer) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet variableTimer.underlying go!"new") (PairV #x #y) (Val #(({ x with new' := y } : variableTimer)))
   method_set : go.MethodSetIs variableTimer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType variableTimer.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Next", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] variableTimer.TypeAssumptions.type_repr
   variableTimer.TypeAssumptions.underlying
-  variableTimer.TypeAssumptions.get_fn
-  variableTimer.TypeAssumptions.set_fn
-  variableTimer.TypeAssumptions.get_t
-  variableTimer.TypeAssumptions.set_t
-  variableTimer.TypeAssumptions.get_new
-  variableTimer.TypeAssumptions.set_new
+  variableTimer.TypeAssumptions.get'fn
+  variableTimer.TypeAssumptions.set'fn
+  variableTimer.TypeAssumptions.get't
+  variableTimer.TypeAssumptions.set't
+  variableTimer.TypeAssumptions.get'new
+  variableTimer.TypeAssumptions.set'new
   variableTimer.TypeAssumptions.method_set
   variableTimer.TypeAssumptions.ptr_method_set
 
@@ -943,7 +943,7 @@ noncomputable instance fixedTimer.zero_val [GooseExts] : ZeroVal fixedTimer :=
 @[irreducible] noncomputable def fixedTimer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fixedTimer.fieldsUnsealed
 
-noncomputable instance equals_unfold_fixedTimer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'fixedTimer [GooseExts] [GoGlobalContext] :
     EqualsUnfold fixedTimer.fields fixedTimer.fieldsUnsealed :=
   ⟨by unfold fixedTimer.fields; rfl⟩
 
@@ -953,23 +953,23 @@ noncomputable instance equals_unfold_fixedTimer [GooseExts] [GoGlobalContext] :
 class fixedTimer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fixedTimer.underlying fixedTimer
   underlying : go.UnderlyingDirectedEq fixedTimer.ty fixedTimer.underlying
-  get_interval : ∀ (x : fixedTimer), go.IsGoStepPureDetTagged under (StructFieldGet fixedTimer.underlying go!"interval") #x (Val #(x.interval'))
-  set_interval : ∀ (x : fixedTimer) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet fixedTimer.underlying go!"interval") (PairV #x #y) (Val #(({ x with interval' := y } : fixedTimer)))
-  get_t : ∀ (x : fixedTimer), go.IsGoStepPureDetTagged under (StructFieldGet fixedTimer.underlying go!"t") #x (Val #(x.t'))
-  set_t : ∀ (x : fixedTimer) (y : _root_.Perennial.k8s_io.utils.clock.Ticker), go.IsGoStepPureDetTagged under (StructFieldSet fixedTimer.underlying go!"t") (PairV #x #y) (Val #(({ x with t' := y } : fixedTimer)))
-  get_new : ∀ (x : fixedTimer), go.IsGoStepPureDetTagged under (StructFieldGet fixedTimer.underlying go!"new") #x (Val #(x.new'))
-  set_new : ∀ (x : fixedTimer) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet fixedTimer.underlying go!"new") (PairV #x #y) (Val #(({ x with new' := y } : fixedTimer)))
+  get'interval : ∀ (x : fixedTimer), go.IsGoStepPureDetTagged under (StructFieldGet fixedTimer.underlying go!"interval") #x (Val #(x.interval'))
+  set'interval : ∀ (x : fixedTimer) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet fixedTimer.underlying go!"interval") (PairV #x #y) (Val #(({ x with interval' := y } : fixedTimer)))
+  get't : ∀ (x : fixedTimer), go.IsGoStepPureDetTagged under (StructFieldGet fixedTimer.underlying go!"t") #x (Val #(x.t'))
+  set't : ∀ (x : fixedTimer) (y : _root_.Perennial.k8s_io.utils.clock.Ticker), go.IsGoStepPureDetTagged under (StructFieldSet fixedTimer.underlying go!"t") (PairV #x #y) (Val #(({ x with t' := y } : fixedTimer)))
+  get'new : ∀ (x : fixedTimer), go.IsGoStepPureDetTagged under (StructFieldGet fixedTimer.underlying go!"new") #x (Val #(x.new'))
+  set'new : ∀ (x : fixedTimer) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet fixedTimer.underlying go!"new") (PairV #x #y) (Val #(({ x with new' := y } : fixedTimer)))
   method_set : go.MethodSetIs fixedTimer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fixedTimer.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Next", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] fixedTimer.TypeAssumptions.type_repr
   fixedTimer.TypeAssumptions.underlying
-  fixedTimer.TypeAssumptions.get_interval
-  fixedTimer.TypeAssumptions.set_interval
-  fixedTimer.TypeAssumptions.get_t
-  fixedTimer.TypeAssumptions.set_t
-  fixedTimer.TypeAssumptions.get_new
-  fixedTimer.TypeAssumptions.set_new
+  fixedTimer.TypeAssumptions.get'interval
+  fixedTimer.TypeAssumptions.set'interval
+  fixedTimer.TypeAssumptions.get't
+  fixedTimer.TypeAssumptions.set't
+  fixedTimer.TypeAssumptions.get'new
+  fixedTimer.TypeAssumptions.set'new
   fixedTimer.TypeAssumptions.method_set
   fixedTimer.TypeAssumptions.ptr_method_set
 
@@ -986,7 +986,7 @@ noncomputable instance Group.zero_val [GooseExts] : ZeroVal Group :=
 @[irreducible] noncomputable def Group.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Group.fieldsUnsealed
 
-noncomputable instance equals_unfold_Group [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Group [GooseExts] [GoGlobalContext] :
     EqualsUnfold Group.fields Group.fieldsUnsealed :=
   ⟨by unfold Group.fields; rfl⟩
 
@@ -996,15 +996,15 @@ noncomputable instance equals_unfold_Group [GooseExts] [GoGlobalContext] :
 class Group.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Group.underlying Group
   underlying : go.UnderlyingDirectedEq Group.ty Group.underlying
-  get_wg : ∀ (x : Group), go.IsGoStepPureDetTagged under (StructFieldGet Group.underlying go!"wg") #x (Val #(x.wg'))
-  set_wg : ∀ (x : Group) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet Group.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : Group)))
+  get'wg : ∀ (x : Group), go.IsGoStepPureDetTagged under (StructFieldGet Group.underlying go!"wg") #x (Val #(x.wg'))
+  set'wg : ∀ (x : Group) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet Group.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : Group)))
   method_set : go.MethodSetIs Group.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Group.ty) [(go!"Start", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"StartWithChannel", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))] false []))), (go!"StartWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))] false []))), (go!"Wait", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Group.TypeAssumptions.type_repr
   Group.TypeAssumptions.underlying
-  Group.TypeAssumptions.get_wg
-  Group.TypeAssumptions.set_wg
+  Group.TypeAssumptions.get'wg
+  Group.TypeAssumptions.set'wg
   Group.TypeAssumptions.method_set
   Group.TypeAssumptions.ptr_method_set
 
@@ -1049,7 +1049,7 @@ noncomputable instance channelContext.zero_val [GooseExts] : ZeroVal channelCont
 @[irreducible] noncomputable def channelContext.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   channelContext.fieldsUnsealed
 
-noncomputable instance equals_unfold_channelContext [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'channelContext [GooseExts] [GoGlobalContext] :
     EqualsUnfold channelContext.fields channelContext.fieldsUnsealed :=
   ⟨by unfold channelContext.fields; rfl⟩
 
@@ -1059,37 +1059,37 @@ noncomputable instance equals_unfold_channelContext [GooseExts] [GoGlobalContext
 class channelContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying channelContext.underlying channelContext
   underlying : go.UnderlyingDirectedEq channelContext.ty channelContext.underlying
-  get_stopCh : ∀ (x : channelContext), go.IsGoStepPureDetTagged under (StructFieldGet channelContext.underlying go!"stopCh") #x (Val #(x.stopCh'))
-  set_stopCh : ∀ (x : channelContext) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet channelContext.underlying go!"stopCh") (PairV #x #y) (Val #(({ x with stopCh' := y } : channelContext)))
+  get'stopCh : ∀ (x : channelContext), go.IsGoStepPureDetTagged under (StructFieldGet channelContext.underlying go!"stopCh") #x (Val #(x.stopCh'))
+  set'stopCh : ∀ (x : channelContext) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet channelContext.underlying go!"stopCh") (PairV #x #y) (Val #(({ x with stopCh' := y } : channelContext)))
   method_set : go.MethodSetIs channelContext.ty [(go!"Deadline", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty, go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType channelContext.ty) [(go!"Deadline", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty, go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
-  Deadline_unfold : MethodUnfold channelContext.ty go!"Deadline" channelContext.Deadline.impl
-  Done_unfold : MethodUnfold channelContext.ty go!"Done" channelContext.Done.impl
-  Err_unfold : MethodUnfold channelContext.ty go!"Err" channelContext.Err.impl
-  Value_unfold : MethodUnfold channelContext.ty go!"Value" channelContext.Value.impl
-  ptr_Deadline_unfold : MethodUnfold (go.GoType.PointerType channelContext.ty) go!"Deadline" (LamV "$r"
+  unfold'Deadline : MethodUnfold channelContext.ty go!"Deadline" channelContext.Deadline.impl
+  unfold'Done : MethodUnfold channelContext.ty go!"Done" channelContext.Done.impl
+  unfold'Err : MethodUnfold channelContext.ty go!"Err" channelContext.Err.impl
+  unfold'Value : MethodUnfold channelContext.ty go!"Value" channelContext.Value.impl
+  ptr_unfold'Deadline : MethodUnfold (go.GoType.PointerType channelContext.ty) go!"Deadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve channelContext.ty go!"Deadline"))) (App (Val (GoInstruction (GoLoad channelContext.ty))) (Var "$r"))))
-  ptr_Done_unfold : MethodUnfold (go.GoType.PointerType channelContext.ty) go!"Done" (LamV "$r"
+  ptr_unfold'Done : MethodUnfold (go.GoType.PointerType channelContext.ty) go!"Done" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve channelContext.ty go!"Done"))) (App (Val (GoInstruction (GoLoad channelContext.ty))) (Var "$r"))))
-  ptr_Err_unfold : MethodUnfold (go.GoType.PointerType channelContext.ty) go!"Err" (LamV "$r"
+  ptr_unfold'Err : MethodUnfold (go.GoType.PointerType channelContext.ty) go!"Err" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve channelContext.ty go!"Err"))) (App (Val (GoInstruction (GoLoad channelContext.ty))) (Var "$r"))))
-  ptr_Value_unfold : MethodUnfold (go.GoType.PointerType channelContext.ty) go!"Value" (LamV "$r"
+  ptr_unfold'Value : MethodUnfold (go.GoType.PointerType channelContext.ty) go!"Value" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve channelContext.ty go!"Value"))) (App (Val (GoInstruction (GoLoad channelContext.ty))) (Var "$r"))))
 
 attribute [instance] channelContext.TypeAssumptions.type_repr
   channelContext.TypeAssumptions.underlying
-  channelContext.TypeAssumptions.get_stopCh
-  channelContext.TypeAssumptions.set_stopCh
+  channelContext.TypeAssumptions.get'stopCh
+  channelContext.TypeAssumptions.set'stopCh
   channelContext.TypeAssumptions.method_set
   channelContext.TypeAssumptions.ptr_method_set
-  channelContext.TypeAssumptions.Deadline_unfold
-  channelContext.TypeAssumptions.Done_unfold
-  channelContext.TypeAssumptions.Err_unfold
-  channelContext.TypeAssumptions.Value_unfold
-  channelContext.TypeAssumptions.ptr_Deadline_unfold
-  channelContext.TypeAssumptions.ptr_Done_unfold
-  channelContext.TypeAssumptions.ptr_Err_unfold
-  channelContext.TypeAssumptions.ptr_Value_unfold
+  channelContext.TypeAssumptions.unfold'Deadline
+  channelContext.TypeAssumptions.unfold'Done
+  channelContext.TypeAssumptions.unfold'Err
+  channelContext.TypeAssumptions.unfold'Value
+  channelContext.TypeAssumptions.ptr_unfold'Deadline
+  channelContext.TypeAssumptions.ptr_unfold'Done
+  channelContext.TypeAssumptions.ptr_unfold'Err
+  channelContext.TypeAssumptions.ptr_unfold'Value
 
 abbrev waitFunc [GooseExts] : Type := GoFunc
 
@@ -1120,59 +1120,59 @@ attribute [instance] waitWithContextFunc.TypeAssumptions.underlying
   waitWithContextFunc.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Backoff_instance : Backoff.TypeAssumptions
-  backoffManager_instance : backoffManager.TypeAssumptions
-  BackoffManager_instance : BackoffManager.TypeAssumptions
-  exponentialBackoffManagerImpl_instance : exponentialBackoffManagerImpl.TypeAssumptions
-  jitteredBackoffManagerImpl_instance : jitteredBackoffManagerImpl.TypeAssumptions
-  DelayFunc_instance : DelayFunc.TypeAssumptions
-  errInterrupted_instance : errInterrupted.TypeAssumptions
-  Timer_instance : Timer.TypeAssumptions
-  noopTimer_instance : noopTimer.TypeAssumptions
-  variableTimer_instance : variableTimer.TypeAssumptions
-  fixedTimer_instance : fixedTimer.TypeAssumptions
-  Group_instance : Group.TypeAssumptions
-  ConditionFunc_instance : ConditionFunc.TypeAssumptions
-  ConditionWithContextFunc_instance : ConditionWithContextFunc.TypeAssumptions
-  channelContext_instance : channelContext.TypeAssumptions
-  waitFunc_instance : waitFunc.TypeAssumptions
-  waitWithContextFunc_instance : waitWithContextFunc.TypeAssumptions
-  ExponentialBackoff_unfold : FuncUnfold ExponentialBackoff [] ExponentialBackoff.impl
-  ErrorInterrupted_unfold : FuncUnfold ErrorInterrupted [] ErrorInterrupted.impl
-  ContextForChannel_unfold : FuncUnfold ContextForChannel [] ContextForChannel.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_clock_Assumption : _root_.Perennial.k8s_io.utils.clock.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
+  instance'Backoff : Backoff.TypeAssumptions
+  instance'backoffManager : backoffManager.TypeAssumptions
+  instance'BackoffManager : BackoffManager.TypeAssumptions
+  instance'exponentialBackoffManagerImpl : exponentialBackoffManagerImpl.TypeAssumptions
+  instance'jitteredBackoffManagerImpl : jitteredBackoffManagerImpl.TypeAssumptions
+  instance'DelayFunc : DelayFunc.TypeAssumptions
+  instance'errInterrupted : errInterrupted.TypeAssumptions
+  instance'Timer : Timer.TypeAssumptions
+  instance'noopTimer : noopTimer.TypeAssumptions
+  instance'variableTimer : variableTimer.TypeAssumptions
+  instance'fixedTimer : fixedTimer.TypeAssumptions
+  instance'Group : Group.TypeAssumptions
+  instance'ConditionFunc : ConditionFunc.TypeAssumptions
+  instance'ConditionWithContextFunc : ConditionWithContextFunc.TypeAssumptions
+  instance'channelContext : channelContext.TypeAssumptions
+  instance'waitFunc : waitFunc.TypeAssumptions
+  instance'waitWithContextFunc : waitWithContextFunc.TypeAssumptions
+  unfold'ExponentialBackoff : FuncUnfold ExponentialBackoff [] ExponentialBackoff.impl
+  unfold'ErrorInterrupted : FuncUnfold ErrorInterrupted [] ErrorInterrupted.impl
+  unfold'ContextForChannel : FuncUnfold ContextForChannel [] ContextForChannel.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'clock : _root_.Perennial.k8s_io.utils.clock.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'rand : _root_.Perennial.math.rand.Assumptions
 
-attribute [instance] Assumptions.Backoff_instance
-  Assumptions.backoffManager_instance
-  Assumptions.BackoffManager_instance
-  Assumptions.exponentialBackoffManagerImpl_instance
-  Assumptions.jitteredBackoffManagerImpl_instance
-  Assumptions.DelayFunc_instance
-  Assumptions.errInterrupted_instance
-  Assumptions.Timer_instance
-  Assumptions.noopTimer_instance
-  Assumptions.variableTimer_instance
-  Assumptions.fixedTimer_instance
-  Assumptions.Group_instance
-  Assumptions.ConditionFunc_instance
-  Assumptions.ConditionWithContextFunc_instance
-  Assumptions.channelContext_instance
-  Assumptions.waitFunc_instance
-  Assumptions.waitWithContextFunc_instance
-  Assumptions.ExponentialBackoff_unfold
-  Assumptions.ErrorInterrupted_unfold
-  Assumptions.ContextForChannel_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_clock_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_rand_Assumption
+attribute [instance] Assumptions.instance'Backoff
+  Assumptions.instance'backoffManager
+  Assumptions.instance'BackoffManager
+  Assumptions.instance'exponentialBackoffManagerImpl
+  Assumptions.instance'jitteredBackoffManagerImpl
+  Assumptions.instance'DelayFunc
+  Assumptions.instance'errInterrupted
+  Assumptions.instance'Timer
+  Assumptions.instance'noopTimer
+  Assumptions.instance'variableTimer
+  Assumptions.instance'fixedTimer
+  Assumptions.instance'Group
+  Assumptions.instance'ConditionFunc
+  Assumptions.instance'ConditionWithContextFunc
+  Assumptions.instance'channelContext
+  Assumptions.instance'waitFunc
+  Assumptions.instance'waitWithContextFunc
+  Assumptions.unfold'ExponentialBackoff
+  Assumptions.unfold'ErrorInterrupted
+  Assumptions.unfold'ContextForChannel
+  Assumptions.import'context
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'clock
+  Assumptions.import'errors
+  Assumptions.import'rand
 
 end k8s_io.apimachinery.pkg.util.wait
 

@@ -198,7 +198,7 @@ noncomputable instance Form.zero_val [GooseExts] : ZeroVal Form :=
 @[irreducible] noncomputable def Form.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Form.fieldsUnsealed
 
-noncomputable instance equals_unfold_Form [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Form [GooseExts] [GoGlobalContext] :
     EqualsUnfold Form.fields Form.fieldsUnsealed :=
   ⟨by unfold Form.fields; rfl⟩
 
@@ -208,19 +208,19 @@ noncomputable instance equals_unfold_Form [GooseExts] [GoGlobalContext] :
 class Form.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Form.underlying Form
   underlying : go.UnderlyingDirectedEq Form.ty Form.underlying
-  get_Value : ∀ (x : Form), go.IsGoStepPureDetTagged under (StructFieldGet Form.underlying go!"Value") #x (Val #(x.Value'))
-  set_Value : ∀ (x : Form) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Form.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Form)))
-  get_File : ∀ (x : Form), go.IsGoStepPureDetTagged under (StructFieldGet Form.underlying go!"File") #x (Val #(x.File'))
-  set_File : ∀ (x : Form) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Form.underlying go!"File") (PairV #x #y) (Val #(({ x with File' := y } : Form)))
+  get'Value : ∀ (x : Form), go.IsGoStepPureDetTagged under (StructFieldGet Form.underlying go!"Value") #x (Val #(x.Value'))
+  set'Value : ∀ (x : Form) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Form.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Form)))
+  get'File : ∀ (x : Form), go.IsGoStepPureDetTagged under (StructFieldGet Form.underlying go!"File") #x (Val #(x.File'))
+  set'File : ∀ (x : Form) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Form.underlying go!"File") (PairV #x #y) (Val #(({ x with File' := y } : Form)))
   method_set : go.MethodSetIs Form.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Form.ty) [(go!"RemoveAll", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] Form.TypeAssumptions.type_repr
   Form.TypeAssumptions.underlying
-  Form.TypeAssumptions.get_Value
-  Form.TypeAssumptions.set_Value
-  Form.TypeAssumptions.get_File
-  Form.TypeAssumptions.set_File
+  Form.TypeAssumptions.get'Value
+  Form.TypeAssumptions.set'Value
+  Form.TypeAssumptions.get'File
+  Form.TypeAssumptions.set'File
   Form.TypeAssumptions.method_set
   Form.TypeAssumptions.ptr_method_set
 
@@ -249,7 +249,7 @@ noncomputable instance FileHeader.zero_val [GooseExts] : ZeroVal FileHeader :=
 @[irreducible] noncomputable def FileHeader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FileHeader.fieldsUnsealed
 
-noncomputable instance equals_unfold_FileHeader [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FileHeader [GooseExts] [GoGlobalContext] :
     EqualsUnfold FileHeader.fields FileHeader.fieldsUnsealed :=
   ⟨by unfold FileHeader.fields; rfl⟩
 
@@ -259,39 +259,39 @@ noncomputable instance equals_unfold_FileHeader [GooseExts] [GoGlobalContext] :
 class FileHeader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FileHeader.underlying FileHeader
   underlying : go.UnderlyingDirectedEq FileHeader.ty FileHeader.underlying
-  get_Filename : ∀ (x : FileHeader), go.IsGoStepPureDetTagged under (StructFieldGet FileHeader.underlying go!"Filename") #x (Val #(x.Filename'))
-  set_Filename : ∀ (x : FileHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet FileHeader.underlying go!"Filename") (PairV #x #y) (Val #(({ x with Filename' := y } : FileHeader)))
-  get_Header : ∀ (x : FileHeader), go.IsGoStepPureDetTagged under (StructFieldGet FileHeader.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : FileHeader) (y : _root_.Perennial.net.textproto.MIMEHeader), go.IsGoStepPureDetTagged under (StructFieldSet FileHeader.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : FileHeader)))
-  get_Size : ∀ (x : FileHeader), go.IsGoStepPureDetTagged under (StructFieldGet FileHeader.underlying go!"Size") #x (Val #(x.Size'))
-  set_Size : ∀ (x : FileHeader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet FileHeader.underlying go!"Size") (PairV #x #y) (Val #(({ x with Size' := y } : FileHeader)))
-  get_content : ∀ (x : FileHeader), go.IsGoStepPureDetTagged under (StructFieldGet FileHeader.underlying go!"content") #x (Val #(x.content'))
-  set_content : ∀ (x : FileHeader) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FileHeader.underlying go!"content") (PairV #x #y) (Val #(({ x with content' := y } : FileHeader)))
-  get_tmpfile : ∀ (x : FileHeader), go.IsGoStepPureDetTagged under (StructFieldGet FileHeader.underlying go!"tmpfile") #x (Val #(x.tmpfile'))
-  set_tmpfile : ∀ (x : FileHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet FileHeader.underlying go!"tmpfile") (PairV #x #y) (Val #(({ x with tmpfile' := y } : FileHeader)))
-  get_tmpoff : ∀ (x : FileHeader), go.IsGoStepPureDetTagged under (StructFieldGet FileHeader.underlying go!"tmpoff") #x (Val #(x.tmpoff'))
-  set_tmpoff : ∀ (x : FileHeader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet FileHeader.underlying go!"tmpoff") (PairV #x #y) (Val #(({ x with tmpoff' := y } : FileHeader)))
-  get_tmpshared : ∀ (x : FileHeader), go.IsGoStepPureDetTagged under (StructFieldGet FileHeader.underlying go!"tmpshared") #x (Val #(x.tmpshared'))
-  set_tmpshared : ∀ (x : FileHeader) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FileHeader.underlying go!"tmpshared") (PairV #x #y) (Val #(({ x with tmpshared' := y } : FileHeader)))
+  get'Filename : ∀ (x : FileHeader), go.IsGoStepPureDetTagged under (StructFieldGet FileHeader.underlying go!"Filename") #x (Val #(x.Filename'))
+  set'Filename : ∀ (x : FileHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet FileHeader.underlying go!"Filename") (PairV #x #y) (Val #(({ x with Filename' := y } : FileHeader)))
+  get'Header : ∀ (x : FileHeader), go.IsGoStepPureDetTagged under (StructFieldGet FileHeader.underlying go!"Header") #x (Val #(x.Header'))
+  set'Header : ∀ (x : FileHeader) (y : _root_.Perennial.net.textproto.MIMEHeader), go.IsGoStepPureDetTagged under (StructFieldSet FileHeader.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : FileHeader)))
+  get'Size : ∀ (x : FileHeader), go.IsGoStepPureDetTagged under (StructFieldGet FileHeader.underlying go!"Size") #x (Val #(x.Size'))
+  set'Size : ∀ (x : FileHeader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet FileHeader.underlying go!"Size") (PairV #x #y) (Val #(({ x with Size' := y } : FileHeader)))
+  get'content : ∀ (x : FileHeader), go.IsGoStepPureDetTagged under (StructFieldGet FileHeader.underlying go!"content") #x (Val #(x.content'))
+  set'content : ∀ (x : FileHeader) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FileHeader.underlying go!"content") (PairV #x #y) (Val #(({ x with content' := y } : FileHeader)))
+  get'tmpfile : ∀ (x : FileHeader), go.IsGoStepPureDetTagged under (StructFieldGet FileHeader.underlying go!"tmpfile") #x (Val #(x.tmpfile'))
+  set'tmpfile : ∀ (x : FileHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet FileHeader.underlying go!"tmpfile") (PairV #x #y) (Val #(({ x with tmpfile' := y } : FileHeader)))
+  get'tmpoff : ∀ (x : FileHeader), go.IsGoStepPureDetTagged under (StructFieldGet FileHeader.underlying go!"tmpoff") #x (Val #(x.tmpoff'))
+  set'tmpoff : ∀ (x : FileHeader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet FileHeader.underlying go!"tmpoff") (PairV #x #y) (Val #(({ x with tmpoff' := y } : FileHeader)))
+  get'tmpshared : ∀ (x : FileHeader), go.IsGoStepPureDetTagged under (StructFieldGet FileHeader.underlying go!"tmpshared") #x (Val #(x.tmpshared'))
+  set'tmpshared : ∀ (x : FileHeader) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FileHeader.underlying go!"tmpshared") (PairV #x #y) (Val #(({ x with tmpshared' := y } : FileHeader)))
   method_set : go.MethodSetIs FileHeader.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FileHeader.ty) [(go!"Open", (some (go.signature.Signature [] false [File.ty, go.error])))]
 
 attribute [instance] FileHeader.TypeAssumptions.type_repr
   FileHeader.TypeAssumptions.underlying
-  FileHeader.TypeAssumptions.get_Filename
-  FileHeader.TypeAssumptions.set_Filename
-  FileHeader.TypeAssumptions.get_Header
-  FileHeader.TypeAssumptions.set_Header
-  FileHeader.TypeAssumptions.get_Size
-  FileHeader.TypeAssumptions.set_Size
-  FileHeader.TypeAssumptions.get_content
-  FileHeader.TypeAssumptions.set_content
-  FileHeader.TypeAssumptions.get_tmpfile
-  FileHeader.TypeAssumptions.set_tmpfile
-  FileHeader.TypeAssumptions.get_tmpoff
-  FileHeader.TypeAssumptions.set_tmpoff
-  FileHeader.TypeAssumptions.get_tmpshared
-  FileHeader.TypeAssumptions.set_tmpshared
+  FileHeader.TypeAssumptions.get'Filename
+  FileHeader.TypeAssumptions.set'Filename
+  FileHeader.TypeAssumptions.get'Header
+  FileHeader.TypeAssumptions.set'Header
+  FileHeader.TypeAssumptions.get'Size
+  FileHeader.TypeAssumptions.set'Size
+  FileHeader.TypeAssumptions.get'content
+  FileHeader.TypeAssumptions.set'content
+  FileHeader.TypeAssumptions.get'tmpfile
+  FileHeader.TypeAssumptions.set'tmpfile
+  FileHeader.TypeAssumptions.get'tmpoff
+  FileHeader.TypeAssumptions.set'tmpoff
+  FileHeader.TypeAssumptions.get'tmpshared
+  FileHeader.TypeAssumptions.set'tmpshared
   FileHeader.TypeAssumptions.method_set
   FileHeader.TypeAssumptions.ptr_method_set
 
@@ -384,7 +384,7 @@ noncomputable instance partReader.zero_val [GooseExts] : ZeroVal partReader :=
 @[irreducible] noncomputable def partReader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   partReader.fieldsUnsealed
 
-noncomputable instance equals_unfold_partReader [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'partReader [GooseExts] [GoGlobalContext] :
     EqualsUnfold partReader.fields partReader.fieldsUnsealed :=
   ⟨by unfold partReader.fields; rfl⟩
 
@@ -394,15 +394,15 @@ noncomputable instance equals_unfold_partReader [GooseExts] [GoGlobalContext] :
 class partReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying partReader.underlying partReader
   underlying : go.UnderlyingDirectedEq partReader.ty partReader.underlying
-  get_p : ∀ (x : partReader), go.IsGoStepPureDetTagged under (StructFieldGet partReader.underlying go!"p") #x (Val #(x.p'))
-  set_p : ∀ (x : partReader) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet partReader.underlying go!"p") (PairV #x #y) (Val #(({ x with p' := y } : partReader)))
+  get'p : ∀ (x : partReader), go.IsGoStepPureDetTagged under (StructFieldGet partReader.underlying go!"p") #x (Val #(x.p'))
+  set'p : ∀ (x : partReader) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet partReader.underlying go!"p") (PairV #x #y) (Val #(({ x with p' := y } : partReader)))
   method_set : go.MethodSetIs partReader.ty [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType partReader.ty) [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] partReader.TypeAssumptions.type_repr
   partReader.TypeAssumptions.underlying
-  partReader.TypeAssumptions.get_p
-  partReader.TypeAssumptions.set_p
+  partReader.TypeAssumptions.get'p
+  partReader.TypeAssumptions.set'p
   partReader.TypeAssumptions.method_set
   partReader.TypeAssumptions.ptr_method_set
 
@@ -461,7 +461,7 @@ noncomputable instance part.zero_val [GooseExts] : ZeroVal part :=
 @[irreducible] noncomputable def part.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   part.fieldsUnsealed
 
-noncomputable instance equals_unfold_part [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'part [GooseExts] [GoGlobalContext] :
     EqualsUnfold part.fields part.fieldsUnsealed :=
   ⟨by unfold part.fields; rfl⟩
 
@@ -471,50 +471,50 @@ noncomputable instance equals_unfold_part [GooseExts] [GoGlobalContext] :
 class part.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying part.underlying part
   underlying : go.UnderlyingDirectedEq part.ty part.underlying
-  get_mw : ∀ (x : part), go.IsGoStepPureDetTagged under (StructFieldGet part.underlying go!"mw") #x (Val #(x.mw'))
-  set_mw : ∀ (x : part) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet part.underlying go!"mw") (PairV #x #y) (Val #(({ x with mw' := y } : part)))
-  get_closed : ∀ (x : part), go.IsGoStepPureDetTagged under (StructFieldGet part.underlying go!"closed") #x (Val #(x.closed'))
-  set_closed : ∀ (x : part) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet part.underlying go!"closed") (PairV #x #y) (Val #(({ x with closed' := y } : part)))
-  get_we : ∀ (x : part), go.IsGoStepPureDetTagged under (StructFieldGet part.underlying go!"we") #x (Val #(x.we'))
-  set_we : ∀ (x : part) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet part.underlying go!"we") (PairV #x #y) (Val #(({ x with we' := y } : part)))
+  get'mw : ∀ (x : part), go.IsGoStepPureDetTagged under (StructFieldGet part.underlying go!"mw") #x (Val #(x.mw'))
+  set'mw : ∀ (x : part) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet part.underlying go!"mw") (PairV #x #y) (Val #(({ x with mw' := y } : part)))
+  get'closed : ∀ (x : part), go.IsGoStepPureDetTagged under (StructFieldGet part.underlying go!"closed") #x (Val #(x.closed'))
+  set'closed : ∀ (x : part) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet part.underlying go!"closed") (PairV #x #y) (Val #(({ x with closed' := y } : part)))
+  get'we : ∀ (x : part), go.IsGoStepPureDetTagged under (StructFieldGet part.underlying go!"we") #x (Val #(x.we'))
+  set'we : ∀ (x : part) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet part.underlying go!"we") (PairV #x #y) (Val #(({ x with we' := y } : part)))
   method_set : go.MethodSetIs part.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType part.ty) [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"mime/multipart.close", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] part.TypeAssumptions.type_repr
   part.TypeAssumptions.underlying
-  part.TypeAssumptions.get_mw
-  part.TypeAssumptions.set_mw
-  part.TypeAssumptions.get_closed
-  part.TypeAssumptions.set_closed
-  part.TypeAssumptions.get_we
-  part.TypeAssumptions.set_we
+  part.TypeAssumptions.get'mw
+  part.TypeAssumptions.set'mw
+  part.TypeAssumptions.get'closed
+  part.TypeAssumptions.set'closed
+  part.TypeAssumptions.get'we
+  part.TypeAssumptions.set'we
   part.TypeAssumptions.method_set
   part.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Form_instance : Form.TypeAssumptions
-  FileHeader_instance : FileHeader.TypeAssumptions
-  File_instance : File.TypeAssumptions
-  sectionReadCloser_instance : sectionReadCloser.TypeAssumptions
-  Part_instance : Part.TypeAssumptions
-  stickyErrorReader_instance : stickyErrorReader.TypeAssumptions
-  partReader_instance : partReader.TypeAssumptions
-  Reader_instance : Reader.TypeAssumptions
-  Writer_instance : Writer.TypeAssumptions
-  part_instance : part.TypeAssumptions
-  import_textproto_Assumption : _root_.Perennial.net.textproto.Assumptions
+  instance'Form : Form.TypeAssumptions
+  instance'FileHeader : FileHeader.TypeAssumptions
+  instance'File : File.TypeAssumptions
+  instance'sectionReadCloser : sectionReadCloser.TypeAssumptions
+  instance'Part : Part.TypeAssumptions
+  instance'stickyErrorReader : stickyErrorReader.TypeAssumptions
+  instance'partReader : partReader.TypeAssumptions
+  instance'Reader : Reader.TypeAssumptions
+  instance'Writer : Writer.TypeAssumptions
+  instance'part : part.TypeAssumptions
+  import'textproto : _root_.Perennial.net.textproto.Assumptions
 
-attribute [instance] Assumptions.Form_instance
-  Assumptions.FileHeader_instance
-  Assumptions.File_instance
-  Assumptions.sectionReadCloser_instance
-  Assumptions.Part_instance
-  Assumptions.stickyErrorReader_instance
-  Assumptions.partReader_instance
-  Assumptions.Reader_instance
-  Assumptions.Writer_instance
-  Assumptions.part_instance
-  Assumptions.import_textproto_Assumption
+attribute [instance] Assumptions.instance'Form
+  Assumptions.instance'FileHeader
+  Assumptions.instance'File
+  Assumptions.instance'sectionReadCloser
+  Assumptions.instance'Part
+  Assumptions.instance'stickyErrorReader
+  Assumptions.instance'partReader
+  Assumptions.instance'Reader
+  Assumptions.instance'Writer
+  Assumptions.instance'part
+  Assumptions.import'textproto
 
 end mime.multipart
 

@@ -256,13 +256,13 @@ noncomputable def CookieJar.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] CookieJar.ty
 
-noncomputable def mapping.ty [GooseExts] [GoGlobalContext] (K : go.GoType) (V : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"net/http.mapping" [K, V])
+noncomputable def mapping.ty [GooseExts] [GoGlobalContext] (K₀ : go.GoType) (V₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"net/http.mapping" [K₀, V₀])
 
 attribute [irreducible] mapping.ty
 
-noncomputable def entry.ty [GooseExts] [GoGlobalContext] (K : go.GoType) (V : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"net/http.entry" [K, V])
+noncomputable def entry.ty [GooseExts] [GoGlobalContext] (K₀ : go.GoType) (V₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"net/http.entry" [K₀, V₀])
 
 attribute [irreducible] entry.ty
 
@@ -1904,7 +1904,7 @@ noncomputable def defaultTransportDialContext [GooseExts] [GoGlobalContext] : Go
     To use non-canonical keys, assign to the map directly.
 
     go: header.go:39:17 -/
-noncomputable def Header.Set.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Header.Set''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "key"
   (Lam "value"
@@ -3044,7 +3044,7 @@ noncomputable instance http1ClientConn.zero_val [GooseExts] : ZeroVal http1Clien
 @[irreducible] noncomputable def http1ClientConn.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   http1ClientConn.fieldsUnsealed
 
-noncomputable instance equals_unfold_http1ClientConn [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'http1ClientConn [GooseExts] [GoGlobalContext] :
     EqualsUnfold http1ClientConn.fields http1ClientConn.fieldsUnsealed :=
   ⟨by unfold http1ClientConn.fields; rfl⟩
 
@@ -3054,15 +3054,15 @@ noncomputable instance equals_unfold_http1ClientConn [GooseExts] [GoGlobalContex
 class http1ClientConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying http1ClientConn.underlying http1ClientConn
   underlying : go.UnderlyingDirectedEq http1ClientConn.ty http1ClientConn.underlying
-  get_pconn : ∀ (x : http1ClientConn), go.IsGoStepPureDetTagged under (StructFieldGet http1ClientConn.underlying go!"pconn") #x (Val #(x.pconn'))
-  set_pconn : ∀ (x : http1ClientConn) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet http1ClientConn.underlying go!"pconn") (PairV #x #y) (Val #(({ x with pconn' := y } : http1ClientConn)))
+  get'pconn : ∀ (x : http1ClientConn), go.IsGoStepPureDetTagged under (StructFieldGet http1ClientConn.underlying go!"pconn") #x (Val #(x.pconn'))
+  set'pconn : ∀ (x : http1ClientConn) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet http1ClientConn.underlying go!"pconn") (PairV #x #y) (Val #(({ x with pconn' := y } : http1ClientConn)))
   method_set : go.MethodSetIs http1ClientConn.ty [(go!"Available", (some (go.signature.Signature [] false [go.int]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"InFlight", (some (go.signature.Signature [] false [go.int]))), (go!"Release", (some (go.signature.Signature [] false []))), (go!"Reserve", (some (go.signature.Signature [] false [go.error]))), (go!"RoundTrip", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [(go.GoType.PointerType Response.ty), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType http1ClientConn.ty) [(go!"Available", (some (go.signature.Signature [] false [go.int]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"InFlight", (some (go.signature.Signature [] false [go.int]))), (go!"Release", (some (go.signature.Signature [] false []))), (go!"Reserve", (some (go.signature.Signature [] false [go.error]))), (go!"RoundTrip", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [(go.GoType.PointerType Response.ty), go.error])))]
 
 attribute [instance] http1ClientConn.TypeAssumptions.type_repr
   http1ClientConn.TypeAssumptions.underlying
-  http1ClientConn.TypeAssumptions.get_pconn
-  http1ClientConn.TypeAssumptions.set_pconn
+  http1ClientConn.TypeAssumptions.get'pconn
+  http1ClientConn.TypeAssumptions.set'pconn
   http1ClientConn.TypeAssumptions.method_set
   http1ClientConn.TypeAssumptions.ptr_method_set
 
@@ -3130,7 +3130,7 @@ noncomputable instance noopHandler.zero_val [GooseExts] : ZeroVal noopHandler :=
 @[irreducible] noncomputable def noopHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noopHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_noopHandler [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'noopHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold noopHandler.fields noopHandler.fieldsUnsealed :=
   ⟨by unfold noopHandler.fields; rfl⟩
 
@@ -3175,7 +3175,7 @@ noncomputable instance fileHandler.zero_val [GooseExts] : ZeroVal fileHandler :=
 @[irreducible] noncomputable def fileHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fileHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_fileHandler [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'fileHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold fileHandler.fields fileHandler.fieldsUnsealed :=
   ⟨by unfold fileHandler.fields; rfl⟩
 
@@ -3185,15 +3185,15 @@ noncomputable instance equals_unfold_fileHandler [GooseExts] [GoGlobalContext] :
 class fileHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fileHandler.underlying fileHandler
   underlying : go.UnderlyingDirectedEq fileHandler.ty fileHandler.underlying
-  get_root : ∀ (x : fileHandler), go.IsGoStepPureDetTagged under (StructFieldGet fileHandler.underlying go!"root") #x (Val #(x.root'))
-  set_root : ∀ (x : fileHandler) (y : FileSystem), go.IsGoStepPureDetTagged under (StructFieldSet fileHandler.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : fileHandler)))
+  get'root : ∀ (x : fileHandler), go.IsGoStepPureDetTagged under (StructFieldGet fileHandler.underlying go!"root") #x (Val #(x.root'))
+  set'root : ∀ (x : fileHandler) (y : FileSystem), go.IsGoStepPureDetTagged under (StructFieldSet fileHandler.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : fileHandler)))
   method_set : go.MethodSetIs fileHandler.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fileHandler.ty) [(go!"ServeHTTP", (some (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false [])))]
 
 attribute [instance] fileHandler.TypeAssumptions.type_repr
   fileHandler.TypeAssumptions.underlying
-  fileHandler.TypeAssumptions.get_root
-  fileHandler.TypeAssumptions.set_root
+  fileHandler.TypeAssumptions.get'root
+  fileHandler.TypeAssumptions.set'root
   fileHandler.TypeAssumptions.method_set
   fileHandler.TypeAssumptions.ptr_method_set
 
@@ -3210,7 +3210,7 @@ noncomputable instance fileTransport.zero_val [GooseExts] : ZeroVal fileTranspor
 @[irreducible] noncomputable def fileTransport.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fileTransport.fieldsUnsealed
 
-noncomputable instance equals_unfold_fileTransport [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'fileTransport [GooseExts] [GoGlobalContext] :
     EqualsUnfold fileTransport.fields fileTransport.fieldsUnsealed :=
   ⟨by unfold fileTransport.fields; rfl⟩
 
@@ -3220,15 +3220,15 @@ noncomputable instance equals_unfold_fileTransport [GooseExts] [GoGlobalContext]
 class fileTransport.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fileTransport.underlying fileTransport
   underlying : go.UnderlyingDirectedEq fileTransport.ty fileTransport.underlying
-  get_fh : ∀ (x : fileTransport), go.IsGoStepPureDetTagged under (StructFieldGet fileTransport.underlying go!"fh") #x (Val #(x.fh'))
-  set_fh : ∀ (x : fileTransport) (y : fileHandler), go.IsGoStepPureDetTagged under (StructFieldSet fileTransport.underlying go!"fh") (PairV #x #y) (Val #(({ x with fh' := y } : fileTransport)))
+  get'fh : ∀ (x : fileTransport), go.IsGoStepPureDetTagged under (StructFieldGet fileTransport.underlying go!"fh") #x (Val #(x.fh'))
+  set'fh : ∀ (x : fileTransport) (y : fileHandler), go.IsGoStepPureDetTagged under (StructFieldSet fileTransport.underlying go!"fh") (PairV #x #y) (Val #(({ x with fh' := y } : fileTransport)))
   method_set : go.MethodSetIs fileTransport.ty [(go!"RoundTrip", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [(go.GoType.PointerType Response.ty), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fileTransport.ty) [(go!"RoundTrip", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [(go.GoType.PointerType Response.ty), go.error])))]
 
 attribute [instance] fileTransport.TypeAssumptions.type_repr
   fileTransport.TypeAssumptions.underlying
-  fileTransport.TypeAssumptions.get_fh
-  fileTransport.TypeAssumptions.set_fh
+  fileTransport.TypeAssumptions.get'fh
+  fileTransport.TypeAssumptions.set'fh
   fileTransport.TypeAssumptions.method_set
   fileTransport.TypeAssumptions.ptr_method_set
 
@@ -3403,7 +3403,7 @@ noncomputable instance httpRange.zero_val [GooseExts] : ZeroVal httpRange :=
 @[irreducible] noncomputable def httpRange.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   httpRange.fieldsUnsealed
 
-noncomputable instance equals_unfold_httpRange [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'httpRange [GooseExts] [GoGlobalContext] :
     EqualsUnfold httpRange.fields httpRange.fieldsUnsealed :=
   ⟨by unfold httpRange.fields; rfl⟩
 
@@ -3413,19 +3413,19 @@ noncomputable instance equals_unfold_httpRange [GooseExts] [GoGlobalContext] :
 class httpRange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying httpRange.underlying httpRange
   underlying : go.UnderlyingDirectedEq httpRange.ty httpRange.underlying
-  get_start : ∀ (x : httpRange), go.IsGoStepPureDetTagged under (StructFieldGet httpRange.underlying go!"start") #x (Val #(x.start'))
-  set_start : ∀ (x : httpRange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet httpRange.underlying go!"start") (PairV #x #y) (Val #(({ x with start' := y } : httpRange)))
-  get_length : ∀ (x : httpRange), go.IsGoStepPureDetTagged under (StructFieldGet httpRange.underlying go!"length") #x (Val #(x.length'))
-  set_length : ∀ (x : httpRange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet httpRange.underlying go!"length") (PairV #x #y) (Val #(({ x with length' := y } : httpRange)))
+  get'start : ∀ (x : httpRange), go.IsGoStepPureDetTagged under (StructFieldGet httpRange.underlying go!"start") #x (Val #(x.start'))
+  set'start : ∀ (x : httpRange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet httpRange.underlying go!"start") (PairV #x #y) (Val #(({ x with start' := y } : httpRange)))
+  get'length : ∀ (x : httpRange), go.IsGoStepPureDetTagged under (StructFieldGet httpRange.underlying go!"length") #x (Val #(x.length'))
+  set'length : ∀ (x : httpRange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet httpRange.underlying go!"length") (PairV #x #y) (Val #(({ x with length' := y } : httpRange)))
   method_set : go.MethodSetIs httpRange.ty [(go!"net/http.contentRange", (some (go.signature.Signature [go.int64] false [go.string]))), (go!"net/http.mimeHeader", (some (go.signature.Signature [go.string, go.int64] false [_root_.Perennial.net.textproto.MIMEHeader.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType httpRange.ty) [(go!"net/http.contentRange", (some (go.signature.Signature [go.int64] false [go.string]))), (go!"net/http.mimeHeader", (some (go.signature.Signature [go.string, go.int64] false [_root_.Perennial.net.textproto.MIMEHeader.ty])))]
 
 attribute [instance] httpRange.TypeAssumptions.type_repr
   httpRange.TypeAssumptions.underlying
-  httpRange.TypeAssumptions.get_start
-  httpRange.TypeAssumptions.set_start
-  httpRange.TypeAssumptions.get_length
-  httpRange.TypeAssumptions.set_length
+  httpRange.TypeAssumptions.get'start
+  httpRange.TypeAssumptions.set'start
+  httpRange.TypeAssumptions.get'length
+  httpRange.TypeAssumptions.set'length
   httpRange.TypeAssumptions.method_set
   httpRange.TypeAssumptions.ptr_method_set
 
@@ -3452,20 +3452,20 @@ class Header.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   underlying : go.UnderlyingDirectedEq Header.ty Header.underlying
   method_set : go.MethodSetIs Header.ty [(go!"Add", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Clone", (some (go.signature.Signature [] false [Header.ty]))), (go!"Del", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Values", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"Write", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.error]))), (go!"WriteSubset", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" []), (go.GoType.MapType go.string go.bool)] false [go.error]))), (go!"net/http.get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"net/http.has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"net/http.sortedKeyValues", (some (go.signature.Signature [(go.GoType.MapType go.string go.bool)] false [(go.GoType.SliceType keyValues.ty), (go.GoType.PointerType headerSorter.ty)]))), (go!"net/http.write", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" []), (go.GoType.PointerType (go.GoType.Named go!"net/http/httptrace.ClientTrace" []))] false [go.error]))), (go!"net/http.writeSubset", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" []), (go.GoType.MapType go.string go.bool), (go.GoType.PointerType (go.GoType.Named go!"net/http/httptrace.ClientTrace" []))] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Header.ty) [(go!"Add", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Clone", (some (go.signature.Signature [] false [Header.ty]))), (go!"Del", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Values", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"Write", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.error]))), (go!"WriteSubset", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" []), (go.GoType.MapType go.string go.bool)] false [go.error]))), (go!"net/http.get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"net/http.has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"net/http.sortedKeyValues", (some (go.signature.Signature [(go.GoType.MapType go.string go.bool)] false [(go.GoType.SliceType keyValues.ty), (go.GoType.PointerType headerSorter.ty)]))), (go!"net/http.write", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" []), (go.GoType.PointerType (go.GoType.Named go!"net/http/httptrace.ClientTrace" []))] false [go.error]))), (go!"net/http.writeSubset", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" []), (go.GoType.MapType go.string go.bool), (go.GoType.PointerType (go.GoType.Named go!"net/http/httptrace.ClientTrace" []))] false [go.error])))]
-  Get_unfold : MethodUnfold Header.ty go!"Get" Header.Get.impl
-  Set_unfold : MethodUnfold Header.ty go!"Set" Header.Set.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Header.ty) go!"Get" (LamV "$r"
+  unfold'Get : MethodUnfold Header.ty go!"Get" Header.Get.impl
+  unfold'Set : MethodUnfold Header.ty go!"Set" Header.Set''.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType Header.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Header.ty go!"Get"))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "$r"))))
-  ptr_Set_unfold : MethodUnfold (go.GoType.PointerType Header.ty) go!"Set" (LamV "$r"
+  ptr_unfold'Set : MethodUnfold (go.GoType.PointerType Header.ty) go!"Set" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Header.ty go!"Set"))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "$r"))))
 
 attribute [instance] Header.TypeAssumptions.underlying
   Header.TypeAssumptions.method_set
   Header.TypeAssumptions.ptr_method_set
-  Header.TypeAssumptions.Get_unfold
-  Header.TypeAssumptions.Set_unfold
-  Header.TypeAssumptions.ptr_Get_unfold
-  Header.TypeAssumptions.ptr_Set_unfold
+  Header.TypeAssumptions.unfold'Get
+  Header.TypeAssumptions.unfold'Set
+  Header.TypeAssumptions.ptr_unfold'Get
+  Header.TypeAssumptions.ptr_unfold'Set
 
 opaque stringWriter.nonempty_type : NonemptyType.{0}
 def stringWriter : Type := stringWriter.nonempty_type.type
@@ -3501,7 +3501,7 @@ noncomputable instance keyValues.zero_val [GooseExts] : ZeroVal keyValues :=
 @[irreducible] noncomputable def keyValues.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   keyValues.fieldsUnsealed
 
-noncomputable instance equals_unfold_keyValues [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'keyValues [GooseExts] [GoGlobalContext] :
     EqualsUnfold keyValues.fields keyValues.fieldsUnsealed :=
   ⟨by unfold keyValues.fields; rfl⟩
 
@@ -3511,19 +3511,19 @@ noncomputable instance equals_unfold_keyValues [GooseExts] [GoGlobalContext] :
 class keyValues.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying keyValues.underlying keyValues
   underlying : go.UnderlyingDirectedEq keyValues.ty keyValues.underlying
-  get_key : ∀ (x : keyValues), go.IsGoStepPureDetTagged under (StructFieldGet keyValues.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : keyValues) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet keyValues.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : keyValues)))
-  get_values : ∀ (x : keyValues), go.IsGoStepPureDetTagged under (StructFieldGet keyValues.underlying go!"values") #x (Val #(x.values'))
-  set_values : ∀ (x : keyValues) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet keyValues.underlying go!"values") (PairV #x #y) (Val #(({ x with values' := y } : keyValues)))
+  get'key : ∀ (x : keyValues), go.IsGoStepPureDetTagged under (StructFieldGet keyValues.underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : keyValues) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet keyValues.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : keyValues)))
+  get'values : ∀ (x : keyValues), go.IsGoStepPureDetTagged under (StructFieldGet keyValues.underlying go!"values") #x (Val #(x.values'))
+  set'values : ∀ (x : keyValues) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet keyValues.underlying go!"values") (PairV #x #y) (Val #(({ x with values' := y } : keyValues)))
   method_set : go.MethodSetIs keyValues.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType keyValues.ty) []
 
 attribute [instance] keyValues.TypeAssumptions.type_repr
   keyValues.TypeAssumptions.underlying
-  keyValues.TypeAssumptions.get_key
-  keyValues.TypeAssumptions.set_key
-  keyValues.TypeAssumptions.get_values
-  keyValues.TypeAssumptions.set_values
+  keyValues.TypeAssumptions.get'key
+  keyValues.TypeAssumptions.set'key
+  keyValues.TypeAssumptions.get'values
+  keyValues.TypeAssumptions.set'values
   keyValues.TypeAssumptions.method_set
   keyValues.TypeAssumptions.ptr_method_set
 
@@ -3540,7 +3540,7 @@ noncomputable instance headerSorter.zero_val [GooseExts] : ZeroVal headerSorter 
 @[irreducible] noncomputable def headerSorter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   headerSorter.fieldsUnsealed
 
-noncomputable instance equals_unfold_headerSorter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'headerSorter [GooseExts] [GoGlobalContext] :
     EqualsUnfold headerSorter.fields headerSorter.fieldsUnsealed :=
   ⟨by unfold headerSorter.fields; rfl⟩
 
@@ -3550,15 +3550,15 @@ noncomputable instance equals_unfold_headerSorter [GooseExts] [GoGlobalContext] 
 class headerSorter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying headerSorter.underlying headerSorter
   underlying : go.UnderlyingDirectedEq headerSorter.ty headerSorter.underlying
-  get_kvs : ∀ (x : headerSorter), go.IsGoStepPureDetTagged under (StructFieldGet headerSorter.underlying go!"kvs") #x (Val #(x.kvs'))
-  set_kvs : ∀ (x : headerSorter) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet headerSorter.underlying go!"kvs") (PairV #x #y) (Val #(({ x with kvs' := y } : headerSorter)))
+  get'kvs : ∀ (x : headerSorter), go.IsGoStepPureDetTagged under (StructFieldGet headerSorter.underlying go!"kvs") #x (Val #(x.kvs'))
+  set'kvs : ∀ (x : headerSorter) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet headerSorter.underlying go!"kvs") (PairV #x #y) (Val #(({ x with kvs' := y } : headerSorter)))
   method_set : go.MethodSetIs headerSorter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType headerSorter.ty) []
 
 attribute [instance] headerSorter.TypeAssumptions.type_repr
   headerSorter.TypeAssumptions.underlying
-  headerSorter.TypeAssumptions.get_kvs
-  headerSorter.TypeAssumptions.set_kvs
+  headerSorter.TypeAssumptions.get'kvs
+  headerSorter.TypeAssumptions.set'kvs
   headerSorter.TypeAssumptions.method_set
   headerSorter.TypeAssumptions.ptr_method_set
 
@@ -3575,7 +3575,7 @@ noncomputable instance Protocols.zero_val [GooseExts] : ZeroVal Protocols :=
 @[irreducible] noncomputable def Protocols.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Protocols.fieldsUnsealed
 
-noncomputable instance equals_unfold_Protocols [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Protocols [GooseExts] [GoGlobalContext] :
     EqualsUnfold Protocols.fields Protocols.fieldsUnsealed :=
   ⟨by unfold Protocols.fields; rfl⟩
 
@@ -3585,15 +3585,15 @@ noncomputable instance equals_unfold_Protocols [GooseExts] [GoGlobalContext] :
 class Protocols.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Protocols.underlying Protocols
   underlying : go.UnderlyingDirectedEq Protocols.ty Protocols.underlying
-  get_bits : ∀ (x : Protocols), go.IsGoStepPureDetTagged under (StructFieldGet Protocols.underlying go!"bits") #x (Val #(x.bits'))
-  set_bits : ∀ (x : Protocols) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet Protocols.underlying go!"bits") (PairV #x #y) (Val #(({ x with bits' := y } : Protocols)))
+  get'bits : ∀ (x : Protocols), go.IsGoStepPureDetTagged under (StructFieldGet Protocols.underlying go!"bits") #x (Val #(x.bits'))
+  set'bits : ∀ (x : Protocols) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet Protocols.underlying go!"bits") (PairV #x #y) (Val #(({ x with bits' := y } : Protocols)))
   method_set : go.MethodSetIs Protocols.ty [(go!"HTTP1", (some (go.signature.Signature [] false [go.bool]))), (go!"HTTP2", (some (go.signature.Signature [] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnencryptedHTTP2", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.empty", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.http3", (some (go.signature.Signature [] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Protocols.ty) [(go!"HTTP1", (some (go.signature.Signature [] false [go.bool]))), (go!"HTTP2", (some (go.signature.Signature [] false [go.bool]))), (go!"SetHTTP1", (some (go.signature.Signature [go.bool] false []))), (go!"SetHTTP2", (some (go.signature.Signature [go.bool] false []))), (go!"SetUnencryptedHTTP2", (some (go.signature.Signature [go.bool] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnencryptedHTTP2", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.empty", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.http3", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.setBit", (some (go.signature.Signature [go.uint8, go.bool] false []))), (go!"net/http.setHTTP3", (some (go.signature.Signature [go.bool] false [])))]
 
 attribute [instance] Protocols.TypeAssumptions.type_repr
   Protocols.TypeAssumptions.underlying
-  Protocols.TypeAssumptions.get_bits
-  Protocols.TypeAssumptions.set_bits
+  Protocols.TypeAssumptions.get'bits
+  Protocols.TypeAssumptions.set'bits
   Protocols.TypeAssumptions.method_set
   Protocols.TypeAssumptions.ptr_method_set
 
@@ -3624,7 +3624,7 @@ noncomputable instance contextKey.zero_val [GooseExts] : ZeroVal contextKey :=
 @[irreducible] noncomputable def contextKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   contextKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_contextKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'contextKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold contextKey.fields contextKey.fieldsUnsealed :=
   ⟨by unfold contextKey.fields; rfl⟩
 
@@ -3634,15 +3634,15 @@ noncomputable instance equals_unfold_contextKey [GooseExts] [GoGlobalContext] :
 class contextKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying contextKey.underlying contextKey
   underlying : go.UnderlyingDirectedEq contextKey.ty contextKey.underlying
-  get_name : ∀ (x : contextKey), go.IsGoStepPureDetTagged under (StructFieldGet contextKey.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : contextKey) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet contextKey.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : contextKey)))
+  get'name : ∀ (x : contextKey), go.IsGoStepPureDetTagged under (StructFieldGet contextKey.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : contextKey) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet contextKey.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : contextKey)))
   method_set : go.MethodSetIs contextKey.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType contextKey.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] contextKey.TypeAssumptions.type_repr
   contextKey.TypeAssumptions.underlying
-  contextKey.TypeAssumptions.get_name
-  contextKey.TypeAssumptions.set_name
+  contextKey.TypeAssumptions.get'name
+  contextKey.TypeAssumptions.set'name
   contextKey.TypeAssumptions.method_set
   contextKey.TypeAssumptions.ptr_method_set
 
@@ -3658,7 +3658,7 @@ noncomputable instance noBody.zero_val [GooseExts] : ZeroVal noBody :=
 @[irreducible] noncomputable def noBody.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noBody.fieldsUnsealed
 
-noncomputable instance equals_unfold_noBody [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'noBody [GooseExts] [GoGlobalContext] :
     EqualsUnfold noBody.fields noBody.fieldsUnsealed :=
   ⟨by unfold noBody.fields; rfl⟩
 
@@ -3691,7 +3691,7 @@ noncomputable instance PushOptions.zero_val [GooseExts] : ZeroVal PushOptions :=
 @[irreducible] noncomputable def PushOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PushOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_PushOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PushOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold PushOptions.fields PushOptions.fieldsUnsealed :=
   ⟨by unfold PushOptions.fields; rfl⟩
 
@@ -3701,19 +3701,19 @@ noncomputable instance equals_unfold_PushOptions [GooseExts] [GoGlobalContext] :
 class PushOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PushOptions.underlying PushOptions
   underlying : go.UnderlyingDirectedEq PushOptions.ty PushOptions.underlying
-  get_Method : ∀ (x : PushOptions), go.IsGoStepPureDetTagged under (StructFieldGet PushOptions.underlying go!"Method") #x (Val #(x.Method'))
-  set_Method : ∀ (x : PushOptions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PushOptions.underlying go!"Method") (PairV #x #y) (Val #(({ x with Method' := y } : PushOptions)))
-  get_Header : ∀ (x : PushOptions), go.IsGoStepPureDetTagged under (StructFieldGet PushOptions.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : PushOptions) (y : Header), go.IsGoStepPureDetTagged under (StructFieldSet PushOptions.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : PushOptions)))
+  get'Method : ∀ (x : PushOptions), go.IsGoStepPureDetTagged under (StructFieldGet PushOptions.underlying go!"Method") #x (Val #(x.Method'))
+  set'Method : ∀ (x : PushOptions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PushOptions.underlying go!"Method") (PairV #x #y) (Val #(({ x with Method' := y } : PushOptions)))
+  get'Header : ∀ (x : PushOptions), go.IsGoStepPureDetTagged under (StructFieldGet PushOptions.underlying go!"Header") #x (Val #(x.Header'))
+  set'Header : ∀ (x : PushOptions) (y : Header), go.IsGoStepPureDetTagged under (StructFieldSet PushOptions.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : PushOptions)))
   method_set : go.MethodSetIs PushOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PushOptions.ty) []
 
 attribute [instance] PushOptions.TypeAssumptions.type_repr
   PushOptions.TypeAssumptions.underlying
-  PushOptions.TypeAssumptions.get_Method
-  PushOptions.TypeAssumptions.set_Method
-  PushOptions.TypeAssumptions.get_Header
-  PushOptions.TypeAssumptions.set_Header
+  PushOptions.TypeAssumptions.get'Method
+  PushOptions.TypeAssumptions.set'Method
+  PushOptions.TypeAssumptions.get'Header
+  PushOptions.TypeAssumptions.set'Header
   PushOptions.TypeAssumptions.method_set
   PushOptions.TypeAssumptions.ptr_method_set
 
@@ -3777,7 +3777,7 @@ noncomputable instance http2Handler.zero_val [GooseExts] : ZeroVal http2Handler 
 @[irreducible] noncomputable def http2Handler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   http2Handler.fieldsUnsealed
 
-noncomputable instance equals_unfold_http2Handler [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'http2Handler [GooseExts] [GoGlobalContext] :
     EqualsUnfold http2Handler.fields http2Handler.fieldsUnsealed :=
   ⟨by unfold http2Handler.fields; rfl⟩
 
@@ -3787,15 +3787,15 @@ noncomputable instance equals_unfold_http2Handler [GooseExts] [GoGlobalContext] 
 class http2Handler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying http2Handler.underlying http2Handler
   underlying : go.UnderlyingDirectedEq http2Handler.ty http2Handler.underlying
-  get_h : ∀ (x : http2Handler), go.IsGoStepPureDetTagged under (StructFieldGet http2Handler.underlying go!"h") #x (Val #(x.h'))
-  set_h : ∀ (x : http2Handler) (y : Handler), go.IsGoStepPureDetTagged under (StructFieldSet http2Handler.underlying go!"h") (PairV #x #y) (Val #(({ x with h' := y } : http2Handler)))
+  get'h : ∀ (x : http2Handler), go.IsGoStepPureDetTagged under (StructFieldGet http2Handler.underlying go!"h") #x (Val #(x.h'))
+  set'h : ∀ (x : http2Handler) (y : Handler), go.IsGoStepPureDetTagged under (StructFieldSet http2Handler.underlying go!"h") (PairV #x #y) (Val #(({ x with h' := y } : http2Handler)))
   method_set : go.MethodSetIs http2Handler.ty [(go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http/internal/http2.responseWriter" [])), (go.GoType.PointerType (go.GoType.Named go!"net/http/internal/http2.ServerRequest" []))] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType http2Handler.ty) [(go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http/internal/http2.responseWriter" [])), (go.GoType.PointerType (go.GoType.Named go!"net/http/internal/http2.ServerRequest" []))] false [])))]
 
 attribute [instance] http2Handler.TypeAssumptions.type_repr
   http2Handler.TypeAssumptions.underlying
-  http2Handler.TypeAssumptions.get_h
-  http2Handler.TypeAssumptions.set_h
+  http2Handler.TypeAssumptions.get'h
+  http2Handler.TypeAssumptions.set'h
   http2Handler.TypeAssumptions.method_set
   http2Handler.TypeAssumptions.ptr_method_set
 
@@ -3831,7 +3831,7 @@ noncomputable instance http2ServerConfig.zero_val [GooseExts] : ZeroVal http2Ser
 @[irreducible] noncomputable def http2ServerConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   http2ServerConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_http2ServerConfig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'http2ServerConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold http2ServerConfig.fields http2ServerConfig.fieldsUnsealed :=
   ⟨by unfold http2ServerConfig.fields; rfl⟩
 
@@ -3841,15 +3841,15 @@ noncomputable instance equals_unfold_http2ServerConfig [GooseExts] [GoGlobalCont
 class http2ServerConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying http2ServerConfig.underlying http2ServerConfig
   underlying : go.UnderlyingDirectedEq http2ServerConfig.ty http2ServerConfig.underlying
-  get_s : ∀ (x : http2ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet http2ServerConfig.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : http2ServerConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet http2ServerConfig.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : http2ServerConfig)))
+  get's : ∀ (x : http2ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet http2ServerConfig.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : http2ServerConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet http2ServerConfig.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : http2ServerConfig)))
   method_set : go.MethodSetIs http2ServerConfig.ty [(go!"ConnState", (some (go.signature.Signature [(go.GoType.Named go!"net.Conn" []), (go.GoType.Named go!"net/http/internal/http2.ConnState" [])] false []))), (go!"DisableClientPriority", (some (go.signature.Signature [] false [go.bool]))), (go!"DoKeepAlives", (some (go.signature.Signature [] false [go.bool]))), (go!"ErrorLog", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"log.Logger" []))]))), (go!"HTTP2Config", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/http/internal/http2.Config" [])]))), (go!"IdleTimeout", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"MaxHeaderBytes", (some (go.signature.Signature [] false [go.int]))), (go!"MaxHeaderValueCount", (some (go.signature.Signature [] false [go.int]))), (go!"ReadTimeout", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"SendPingTimeout", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"WriteTimeout", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType http2ServerConfig.ty) [(go!"ConnState", (some (go.signature.Signature [(go.GoType.Named go!"net.Conn" []), (go.GoType.Named go!"net/http/internal/http2.ConnState" [])] false []))), (go!"DisableClientPriority", (some (go.signature.Signature [] false [go.bool]))), (go!"DoKeepAlives", (some (go.signature.Signature [] false [go.bool]))), (go!"ErrorLog", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"log.Logger" []))]))), (go!"HTTP2Config", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/http/internal/http2.Config" [])]))), (go!"IdleTimeout", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"MaxHeaderBytes", (some (go.signature.Signature [] false [go.int]))), (go!"MaxHeaderValueCount", (some (go.signature.Signature [] false [go.int]))), (go!"ReadTimeout", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"SendPingTimeout", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"WriteTimeout", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])])))]
 
 attribute [instance] http2ServerConfig.TypeAssumptions.type_repr
   http2ServerConfig.TypeAssumptions.underlying
-  http2ServerConfig.TypeAssumptions.get_s
-  http2ServerConfig.TypeAssumptions.set_s
+  http2ServerConfig.TypeAssumptions.get's
+  http2ServerConfig.TypeAssumptions.set's
   http2ServerConfig.TypeAssumptions.method_set
   http2ServerConfig.TypeAssumptions.ptr_method_set
 
@@ -3904,7 +3904,7 @@ noncomputable instance http2ErringRoundTripper.zero_val [GooseExts] : ZeroVal ht
 @[irreducible] noncomputable def http2ErringRoundTripper.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   http2ErringRoundTripper.fieldsUnsealed
 
-noncomputable instance equals_unfold_http2ErringRoundTripper [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'http2ErringRoundTripper [GooseExts] [GoGlobalContext] :
     EqualsUnfold http2ErringRoundTripper.fields http2ErringRoundTripper.fieldsUnsealed :=
   ⟨by unfold http2ErringRoundTripper.fields; rfl⟩
 
@@ -3914,15 +3914,15 @@ noncomputable instance equals_unfold_http2ErringRoundTripper [GooseExts] [GoGlob
 class http2ErringRoundTripper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying http2ErringRoundTripper.underlying http2ErringRoundTripper
   underlying : go.UnderlyingDirectedEq http2ErringRoundTripper.ty http2ErringRoundTripper.underlying
-  get_err : ∀ (x : http2ErringRoundTripper), go.IsGoStepPureDetTagged under (StructFieldGet http2ErringRoundTripper.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : http2ErringRoundTripper) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet http2ErringRoundTripper.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : http2ErringRoundTripper)))
+  get'err : ∀ (x : http2ErringRoundTripper), go.IsGoStepPureDetTagged under (StructFieldGet http2ErringRoundTripper.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : http2ErringRoundTripper) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet http2ErringRoundTripper.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : http2ErringRoundTripper)))
   method_set : go.MethodSetIs http2ErringRoundTripper.ty [(go!"RoundTrip", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [(go.GoType.PointerType Response.ty), go.error]))), (go!"RoundTripErr", (some (go.signature.Signature [] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType http2ErringRoundTripper.ty) [(go!"RoundTrip", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [(go.GoType.PointerType Response.ty), go.error]))), (go!"RoundTripErr", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] http2ErringRoundTripper.TypeAssumptions.type_repr
   http2ErringRoundTripper.TypeAssumptions.underlying
-  http2ErringRoundTripper.TypeAssumptions.get_err
-  http2ErringRoundTripper.TypeAssumptions.set_err
+  http2ErringRoundTripper.TypeAssumptions.get'err
+  http2ErringRoundTripper.TypeAssumptions.set'err
   http2ErringRoundTripper.TypeAssumptions.method_set
   http2ErringRoundTripper.TypeAssumptions.ptr_method_set
 
@@ -3977,7 +3977,7 @@ noncomputable instance transportConfig.zero_val [GooseExts] : ZeroVal transportC
 @[irreducible] noncomputable def transportConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   transportConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_transportConfig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'transportConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold transportConfig.fields transportConfig.fieldsUnsealed :=
   ⟨by unfold transportConfig.fields; rfl⟩
 
@@ -3987,15 +3987,15 @@ noncomputable instance equals_unfold_transportConfig [GooseExts] [GoGlobalContex
 class transportConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying transportConfig.underlying transportConfig
   underlying : go.UnderlyingDirectedEq transportConfig.ty transportConfig.underlying
-  get_t : ∀ (x : transportConfig), go.IsGoStepPureDetTagged under (StructFieldGet transportConfig.underlying go!"t") #x (Val #(x.t'))
-  set_t : ∀ (x : transportConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet transportConfig.underlying go!"t") (PairV #x #y) (Val #(({ x with t' := y } : transportConfig)))
+  get't : ∀ (x : transportConfig), go.IsGoStepPureDetTagged under (StructFieldGet transportConfig.underlying go!"t") #x (Val #(x.t'))
+  set't : ∀ (x : transportConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet transportConfig.underlying go!"t") (PairV #x #y) (Val #(({ x with t' := y } : transportConfig)))
   method_set : go.MethodSetIs transportConfig.ty [(go!"DisableCompression", (some (go.signature.Signature [] false [go.bool]))), (go!"DisableKeepAlives", (some (go.signature.Signature [] false [go.bool]))), (go!"ExpectContinueTimeout", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"HTTP2Config", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/http/internal/http2.Config" [])]))), (go!"IdleConnTimeout", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"MaxHeaderListSize", (some (go.signature.Signature [] false [go.int64]))), (go!"MaxResponseHeaderBytes", (some (go.signature.Signature [] false [go.int64]))), (go!"ResponseHeaderTimeout", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType transportConfig.ty) [(go!"DisableCompression", (some (go.signature.Signature [] false [go.bool]))), (go!"DisableKeepAlives", (some (go.signature.Signature [] false [go.bool]))), (go!"ExpectContinueTimeout", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"HTTP2Config", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/http/internal/http2.Config" [])]))), (go!"IdleConnTimeout", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"MaxHeaderListSize", (some (go.signature.Signature [] false [go.int64]))), (go!"MaxResponseHeaderBytes", (some (go.signature.Signature [] false [go.int64]))), (go!"ResponseHeaderTimeout", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])])))]
 
 attribute [instance] transportConfig.TypeAssumptions.type_repr
   transportConfig.TypeAssumptions.underlying
-  transportConfig.TypeAssumptions.get_t
-  transportConfig.TypeAssumptions.set_t
+  transportConfig.TypeAssumptions.get't
+  transportConfig.TypeAssumptions.set't
   transportConfig.TypeAssumptions.method_set
   transportConfig.TypeAssumptions.ptr_method_set
 
@@ -4032,85 +4032,85 @@ attribute [instance] CookieJar.TypeAssumptions.type_repr
   CookieJar.TypeAssumptions.method_set
   CookieJar.TypeAssumptions.ptr_method_set
 
-structure mapping [GooseExts] (K V : Type) where
+structure mapping [GooseExts] (K₀ V₀ : Type) where
   mk ::
   s' : GoSlice
   m' : GoMap
 
-noncomputable instance mapping.zero_val [GooseExts] {K V : Type} [ZeroVal K] [ZeroVal V] : ZeroVal (mapping K V) :=
+noncomputable instance mapping.zero_val [GooseExts] {K₀ V₀ : Type} [ZeroVal K₀] [ZeroVal V₀] : ZeroVal (mapping K₀ V₀) :=
   ⟨mapping.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def mapping.fieldsUnsealed [GooseExts] [GoGlobalContext] (K V : go.GoType) : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"s" (go.GoType.SliceType (entry.ty K V))),
-(go.field_decl.FieldDecl go!"m" (go.GoType.MapType K V))]
+@[reducible] noncomputable def mapping.fieldsUnsealed [GooseExts] [GoGlobalContext] (K₀ V₀ : go.GoType) : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"s" (go.GoType.SliceType (entry.ty K₀ V₀))),
+(go.field_decl.FieldDecl go!"m" (go.GoType.MapType K₀ V₀))]
 
-@[irreducible] noncomputable def mapping.fields [GooseExts] [GoGlobalContext] (K V : go.GoType) : List go.field_decl :=
-  (mapping.fieldsUnsealed K V)
+@[irreducible] noncomputable def mapping.fields [GooseExts] [GoGlobalContext] (K₀ V₀ : go.GoType) : List go.field_decl :=
+  (mapping.fieldsUnsealed K₀ V₀)
 
-noncomputable instance equals_unfold_mapping [GooseExts] [GoGlobalContext] (K V : go.GoType) :
-    EqualsUnfold (mapping.fields K V) (mapping.fieldsUnsealed K V) :=
+noncomputable instance equals_unfold'mapping [GooseExts] [GoGlobalContext] (K₀ V₀ : go.GoType) :
+    EqualsUnfold (mapping.fields K₀ V₀) (mapping.fieldsUnsealed K₀ V₀) :=
   ⟨by unfold mapping.fields; rfl⟩
 
-@[reducible] noncomputable def mapping.underlying [GooseExts] [GoGlobalContext] (K : go.GoType) (V : go.GoType) : go.GoType :=
-  (go.GoType.StructType (mapping.fields K V))
+@[reducible] noncomputable def mapping.underlying [GooseExts] [GoGlobalContext] (K₀ : go.GoType) (V₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (mapping.fields K₀ V₀))
 
 class mapping.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : ∀ (K V : go.GoType) (K' V' : Type) [ZeroVal K'] [TypeRepr K K'] [ZeroVal V'] [TypeRepr V V'], go.TypeReprUnderlying (mapping.underlying K V) (mapping K' V')
-  underlying : ∀ (K V : go.GoType), go.UnderlyingDirectedEq (mapping.ty K V) (mapping.underlying K V)
-  get_s : ∀ (K V : go.GoType) (K' V' : Type) (x : (mapping K' V')), go.IsGoStepPureDetTagged under (StructFieldGet (mapping.underlying K V) go!"s") #x (Val #(x.s'))
-  set_s : ∀ (K V : go.GoType) (K' V' : Type) (x : (mapping K' V')) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet (mapping.underlying K V) go!"s") (PairV #x #y) (Val #(({ x with s' := y } : (mapping K' V'))))
-  get_m : ∀ (K V : go.GoType) (K' V' : Type) (x : (mapping K' V')), go.IsGoStepPureDetTagged under (StructFieldGet (mapping.underlying K V) go!"m") #x (Val #(x.m'))
-  set_m : ∀ (K V : go.GoType) (K' V' : Type) (x : (mapping K' V')) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet (mapping.underlying K V) go!"m") (PairV #x #y) (Val #(({ x with m' := y } : (mapping K' V'))))
-  method_set : ∀ (K V : go.GoType), go.MethodSetIs (mapping.ty K V) []
-  ptr_method_set : ∀ (K V : go.GoType), go.MethodSetIs (go.GoType.PointerType (mapping.ty K V)) [(go!"net/http.add", (some (go.signature.Signature [K, V] false []))), (go!"net/http.eachPair", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [K, V] false [go.bool]))] false []))), (go!"net/http.find", (some (go.signature.Signature [K] false [V, go.bool])))]
+  type_repr : ∀ (K₀ V₀ : go.GoType) (K₀' V₀' : Type) [ZeroVal K₀'] [TypeRepr K₀ K₀'] [ZeroVal V₀'] [TypeRepr V₀ V₀'], go.TypeReprUnderlying (mapping.underlying K₀ V₀) (mapping K₀' V₀')
+  underlying : ∀ (K₀ V₀ : go.GoType), go.UnderlyingDirectedEq (mapping.ty K₀ V₀) (mapping.underlying K₀ V₀)
+  get's : ∀ (K₀ V₀ : go.GoType) (K₀' V₀' : Type) (x : (mapping K₀' V₀')), go.IsGoStepPureDetTagged under (StructFieldGet (mapping.underlying K₀ V₀) go!"s") #x (Val #(x.s'))
+  set's : ∀ (K₀ V₀ : go.GoType) (K₀' V₀' : Type) (x : (mapping K₀' V₀')) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet (mapping.underlying K₀ V₀) go!"s") (PairV #x #y) (Val #(({ x with s' := y } : (mapping K₀' V₀'))))
+  get'm : ∀ (K₀ V₀ : go.GoType) (K₀' V₀' : Type) (x : (mapping K₀' V₀')), go.IsGoStepPureDetTagged under (StructFieldGet (mapping.underlying K₀ V₀) go!"m") #x (Val #(x.m'))
+  set'm : ∀ (K₀ V₀ : go.GoType) (K₀' V₀' : Type) (x : (mapping K₀' V₀')) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet (mapping.underlying K₀ V₀) go!"m") (PairV #x #y) (Val #(({ x with m' := y } : (mapping K₀' V₀'))))
+  method_set : ∀ (K₀ V₀ : go.GoType), go.MethodSetIs (mapping.ty K₀ V₀) []
+  ptr_method_set : ∀ (K₀ V₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (mapping.ty K₀ V₀)) [(go!"net/http.add", (some (go.signature.Signature [K₀, V₀] false []))), (go!"net/http.eachPair", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [K₀, V₀] false [go.bool]))] false []))), (go!"net/http.find", (some (go.signature.Signature [K₀] false [V₀, go.bool])))]
 
 attribute [instance] mapping.TypeAssumptions.type_repr
   mapping.TypeAssumptions.underlying
-  mapping.TypeAssumptions.get_s
-  mapping.TypeAssumptions.set_s
-  mapping.TypeAssumptions.get_m
-  mapping.TypeAssumptions.set_m
+  mapping.TypeAssumptions.get's
+  mapping.TypeAssumptions.set's
+  mapping.TypeAssumptions.get'm
+  mapping.TypeAssumptions.set'm
   mapping.TypeAssumptions.method_set
   mapping.TypeAssumptions.ptr_method_set
 
-structure entry [GooseExts] (K V : Type) where
+structure entry [GooseExts] (K₀ V₀ : Type) where
   mk ::
-  key' : K
-  value' : V
+  key' : K₀
+  value' : V₀
 
-noncomputable instance entry.zero_val [GooseExts] {K V : Type} [ZeroVal K] [ZeroVal V] : ZeroVal (entry K V) :=
+noncomputable instance entry.zero_val [GooseExts] {K₀ V₀ : Type} [ZeroVal K₀] [ZeroVal V₀] : ZeroVal (entry K₀ V₀) :=
   ⟨entry.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def entry.fieldsUnsealed [GooseExts] [GoGlobalContext] (K V : go.GoType) : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"key" K),
-(go.field_decl.FieldDecl go!"value" V)]
+@[reducible] noncomputable def entry.fieldsUnsealed [GooseExts] [GoGlobalContext] (K₀ V₀ : go.GoType) : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"key" K₀),
+(go.field_decl.FieldDecl go!"value" V₀)]
 
-@[irreducible] noncomputable def entry.fields [GooseExts] [GoGlobalContext] (K V : go.GoType) : List go.field_decl :=
-  (entry.fieldsUnsealed K V)
+@[irreducible] noncomputable def entry.fields [GooseExts] [GoGlobalContext] (K₀ V₀ : go.GoType) : List go.field_decl :=
+  (entry.fieldsUnsealed K₀ V₀)
 
-noncomputable instance equals_unfold_entry [GooseExts] [GoGlobalContext] (K V : go.GoType) :
-    EqualsUnfold (entry.fields K V) (entry.fieldsUnsealed K V) :=
+noncomputable instance equals_unfold'entry [GooseExts] [GoGlobalContext] (K₀ V₀ : go.GoType) :
+    EqualsUnfold (entry.fields K₀ V₀) (entry.fieldsUnsealed K₀ V₀) :=
   ⟨by unfold entry.fields; rfl⟩
 
-@[reducible] noncomputable def entry.underlying [GooseExts] [GoGlobalContext] (K : go.GoType) (V : go.GoType) : go.GoType :=
-  (go.GoType.StructType (entry.fields K V))
+@[reducible] noncomputable def entry.underlying [GooseExts] [GoGlobalContext] (K₀ : go.GoType) (V₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (entry.fields K₀ V₀))
 
 class entry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : ∀ (K V : go.GoType) (K' V' : Type) [ZeroVal K'] [TypeRepr K K'] [ZeroVal V'] [TypeRepr V V'], go.TypeReprUnderlying (entry.underlying K V) (entry K' V')
-  underlying : ∀ (K V : go.GoType), go.UnderlyingDirectedEq (entry.ty K V) (entry.underlying K V)
-  get_key : ∀ (K V : go.GoType) (K' V' : Type) (x : (entry K' V')), go.IsGoStepPureDetTagged under (StructFieldGet (entry.underlying K V) go!"key") #x (Val #(x.key'))
-  set_key : ∀ (K V : go.GoType) (K' V' : Type) (x : (entry K' V')) (y : K'), go.IsGoStepPureDetTagged under (StructFieldSet (entry.underlying K V) go!"key") (PairV #x #y) (Val #(({ x with key' := y } : (entry K' V'))))
-  get_value : ∀ (K V : go.GoType) (K' V' : Type) (x : (entry K' V')), go.IsGoStepPureDetTagged under (StructFieldGet (entry.underlying K V) go!"value") #x (Val #(x.value'))
-  set_value : ∀ (K V : go.GoType) (K' V' : Type) (x : (entry K' V')) (y : V'), go.IsGoStepPureDetTagged under (StructFieldSet (entry.underlying K V) go!"value") (PairV #x #y) (Val #(({ x with value' := y } : (entry K' V'))))
-  method_set : ∀ (K V : go.GoType), go.MethodSetIs (entry.ty K V) []
-  ptr_method_set : ∀ (K V : go.GoType), go.MethodSetIs (go.GoType.PointerType (entry.ty K V)) []
+  type_repr : ∀ (K₀ V₀ : go.GoType) (K₀' V₀' : Type) [ZeroVal K₀'] [TypeRepr K₀ K₀'] [ZeroVal V₀'] [TypeRepr V₀ V₀'], go.TypeReprUnderlying (entry.underlying K₀ V₀) (entry K₀' V₀')
+  underlying : ∀ (K₀ V₀ : go.GoType), go.UnderlyingDirectedEq (entry.ty K₀ V₀) (entry.underlying K₀ V₀)
+  get'key : ∀ (K₀ V₀ : go.GoType) (K₀' V₀' : Type) (x : (entry K₀' V₀')), go.IsGoStepPureDetTagged under (StructFieldGet (entry.underlying K₀ V₀) go!"key") #x (Val #(x.key'))
+  set'key : ∀ (K₀ V₀ : go.GoType) (K₀' V₀' : Type) (x : (entry K₀' V₀')) (y : K₀'), go.IsGoStepPureDetTagged under (StructFieldSet (entry.underlying K₀ V₀) go!"key") (PairV #x #y) (Val #(({ x with key' := y } : (entry K₀' V₀'))))
+  get'value : ∀ (K₀ V₀ : go.GoType) (K₀' V₀' : Type) (x : (entry K₀' V₀')), go.IsGoStepPureDetTagged under (StructFieldGet (entry.underlying K₀ V₀) go!"value") #x (Val #(x.value'))
+  set'value : ∀ (K₀ V₀ : go.GoType) (K₀' V₀' : Type) (x : (entry K₀' V₀')) (y : V₀'), go.IsGoStepPureDetTagged under (StructFieldSet (entry.underlying K₀ V₀) go!"value") (PairV #x #y) (Val #(({ x with value' := y } : (entry K₀' V₀'))))
+  method_set : ∀ (K₀ V₀ : go.GoType), go.MethodSetIs (entry.ty K₀ V₀) []
+  ptr_method_set : ∀ (K₀ V₀ : go.GoType), go.MethodSetIs (go.GoType.PointerType (entry.ty K₀ V₀)) []
 
 attribute [instance] entry.TypeAssumptions.type_repr
   entry.TypeAssumptions.underlying
-  entry.TypeAssumptions.get_key
-  entry.TypeAssumptions.set_key
-  entry.TypeAssumptions.get_value
-  entry.TypeAssumptions.set_value
+  entry.TypeAssumptions.get'key
+  entry.TypeAssumptions.set'key
+  entry.TypeAssumptions.get'value
+  entry.TypeAssumptions.set'value
   entry.TypeAssumptions.method_set
   entry.TypeAssumptions.ptr_method_set
 
@@ -4135,7 +4135,7 @@ noncomputable instance pattern.zero_val [GooseExts] : ZeroVal pattern :=
 @[irreducible] noncomputable def pattern.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   pattern.fieldsUnsealed
 
-noncomputable instance equals_unfold_pattern [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'pattern [GooseExts] [GoGlobalContext] :
     EqualsUnfold pattern.fields pattern.fieldsUnsealed :=
   ⟨by unfold pattern.fields; rfl⟩
 
@@ -4145,31 +4145,31 @@ noncomputable instance equals_unfold_pattern [GooseExts] [GoGlobalContext] :
 class pattern.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying pattern.underlying pattern
   underlying : go.UnderlyingDirectedEq pattern.ty pattern.underlying
-  get_str : ∀ (x : pattern), go.IsGoStepPureDetTagged under (StructFieldGet pattern.underlying go!"str") #x (Val #(x.str'))
-  set_str : ∀ (x : pattern) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet pattern.underlying go!"str") (PairV #x #y) (Val #(({ x with str' := y } : pattern)))
-  get_method : ∀ (x : pattern), go.IsGoStepPureDetTagged under (StructFieldGet pattern.underlying go!"method") #x (Val #(x.method'))
-  set_method : ∀ (x : pattern) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet pattern.underlying go!"method") (PairV #x #y) (Val #(({ x with method' := y } : pattern)))
-  get_host : ∀ (x : pattern), go.IsGoStepPureDetTagged under (StructFieldGet pattern.underlying go!"host") #x (Val #(x.host'))
-  set_host : ∀ (x : pattern) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet pattern.underlying go!"host") (PairV #x #y) (Val #(({ x with host' := y } : pattern)))
-  get_segments : ∀ (x : pattern), go.IsGoStepPureDetTagged under (StructFieldGet pattern.underlying go!"segments") #x (Val #(x.segments'))
-  set_segments : ∀ (x : pattern) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet pattern.underlying go!"segments") (PairV #x #y) (Val #(({ x with segments' := y } : pattern)))
-  get_loc : ∀ (x : pattern), go.IsGoStepPureDetTagged under (StructFieldGet pattern.underlying go!"loc") #x (Val #(x.loc'))
-  set_loc : ∀ (x : pattern) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet pattern.underlying go!"loc") (PairV #x #y) (Val #(({ x with loc' := y } : pattern)))
+  get'str : ∀ (x : pattern), go.IsGoStepPureDetTagged under (StructFieldGet pattern.underlying go!"str") #x (Val #(x.str'))
+  set'str : ∀ (x : pattern) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet pattern.underlying go!"str") (PairV #x #y) (Val #(({ x with str' := y } : pattern)))
+  get'method : ∀ (x : pattern), go.IsGoStepPureDetTagged under (StructFieldGet pattern.underlying go!"method") #x (Val #(x.method'))
+  set'method : ∀ (x : pattern) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet pattern.underlying go!"method") (PairV #x #y) (Val #(({ x with method' := y } : pattern)))
+  get'host : ∀ (x : pattern), go.IsGoStepPureDetTagged under (StructFieldGet pattern.underlying go!"host") #x (Val #(x.host'))
+  set'host : ∀ (x : pattern) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet pattern.underlying go!"host") (PairV #x #y) (Val #(({ x with host' := y } : pattern)))
+  get'segments : ∀ (x : pattern), go.IsGoStepPureDetTagged under (StructFieldGet pattern.underlying go!"segments") #x (Val #(x.segments'))
+  set'segments : ∀ (x : pattern) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet pattern.underlying go!"segments") (PairV #x #y) (Val #(({ x with segments' := y } : pattern)))
+  get'loc : ∀ (x : pattern), go.IsGoStepPureDetTagged under (StructFieldGet pattern.underlying go!"loc") #x (Val #(x.loc'))
+  set'loc : ∀ (x : pattern) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet pattern.underlying go!"loc") (PairV #x #y) (Val #(({ x with loc' := y } : pattern)))
   method_set : go.MethodSetIs pattern.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType pattern.ty) [(go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"net/http.compareMethods", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [relationship.ty]))), (go!"net/http.comparePaths", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [relationship.ty]))), (go!"net/http.comparePathsAndMethods", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [relationship.ty]))), (go!"net/http.conflictsWith", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [go.bool]))), (go!"net/http.lastSegment", (some (go.signature.Signature [] false [segment.ty])))]
 
 attribute [instance] pattern.TypeAssumptions.type_repr
   pattern.TypeAssumptions.underlying
-  pattern.TypeAssumptions.get_str
-  pattern.TypeAssumptions.set_str
-  pattern.TypeAssumptions.get_method
-  pattern.TypeAssumptions.set_method
-  pattern.TypeAssumptions.get_host
-  pattern.TypeAssumptions.set_host
-  pattern.TypeAssumptions.get_segments
-  pattern.TypeAssumptions.set_segments
-  pattern.TypeAssumptions.get_loc
-  pattern.TypeAssumptions.set_loc
+  pattern.TypeAssumptions.get'str
+  pattern.TypeAssumptions.set'str
+  pattern.TypeAssumptions.get'method
+  pattern.TypeAssumptions.set'method
+  pattern.TypeAssumptions.get'host
+  pattern.TypeAssumptions.set'host
+  pattern.TypeAssumptions.get'segments
+  pattern.TypeAssumptions.set'segments
+  pattern.TypeAssumptions.get'loc
+  pattern.TypeAssumptions.set'loc
   pattern.TypeAssumptions.method_set
   pattern.TypeAssumptions.ptr_method_set
 
@@ -4190,7 +4190,7 @@ noncomputable instance segment.zero_val [GooseExts] : ZeroVal segment :=
 @[irreducible] noncomputable def segment.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   segment.fieldsUnsealed
 
-noncomputable instance equals_unfold_segment [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'segment [GooseExts] [GoGlobalContext] :
     EqualsUnfold segment.fields segment.fieldsUnsealed :=
   ⟨by unfold segment.fields; rfl⟩
 
@@ -4200,23 +4200,23 @@ noncomputable instance equals_unfold_segment [GooseExts] [GoGlobalContext] :
 class segment.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying segment.underlying segment
   underlying : go.UnderlyingDirectedEq segment.ty segment.underlying
-  get_s : ∀ (x : segment), go.IsGoStepPureDetTagged under (StructFieldGet segment.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : segment) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet segment.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : segment)))
-  get_wild : ∀ (x : segment), go.IsGoStepPureDetTagged under (StructFieldGet segment.underlying go!"wild") #x (Val #(x.wild'))
-  set_wild : ∀ (x : segment) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet segment.underlying go!"wild") (PairV #x #y) (Val #(({ x with wild' := y } : segment)))
-  get_multi : ∀ (x : segment), go.IsGoStepPureDetTagged under (StructFieldGet segment.underlying go!"multi") #x (Val #(x.multi'))
-  set_multi : ∀ (x : segment) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet segment.underlying go!"multi") (PairV #x #y) (Val #(({ x with multi' := y } : segment)))
+  get's : ∀ (x : segment), go.IsGoStepPureDetTagged under (StructFieldGet segment.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : segment) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet segment.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : segment)))
+  get'wild : ∀ (x : segment), go.IsGoStepPureDetTagged under (StructFieldGet segment.underlying go!"wild") #x (Val #(x.wild'))
+  set'wild : ∀ (x : segment) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet segment.underlying go!"wild") (PairV #x #y) (Val #(({ x with wild' := y } : segment)))
+  get'multi : ∀ (x : segment), go.IsGoStepPureDetTagged under (StructFieldGet segment.underlying go!"multi") #x (Val #(x.multi'))
+  set'multi : ∀ (x : segment) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet segment.underlying go!"multi") (PairV #x #y) (Val #(({ x with multi' := y } : segment)))
   method_set : go.MethodSetIs segment.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType segment.ty) []
 
 attribute [instance] segment.TypeAssumptions.type_repr
   segment.TypeAssumptions.underlying
-  segment.TypeAssumptions.get_s
-  segment.TypeAssumptions.set_s
-  segment.TypeAssumptions.get_wild
-  segment.TypeAssumptions.set_wild
-  segment.TypeAssumptions.get_multi
-  segment.TypeAssumptions.set_multi
+  segment.TypeAssumptions.get's
+  segment.TypeAssumptions.set's
+  segment.TypeAssumptions.get'wild
+  segment.TypeAssumptions.set'wild
+  segment.TypeAssumptions.get'multi
+  segment.TypeAssumptions.set'multi
   segment.TypeAssumptions.method_set
   segment.TypeAssumptions.ptr_method_set
 
@@ -4247,7 +4247,7 @@ noncomputable instance ProtocolError.zero_val [GooseExts] : ZeroVal ProtocolErro
 @[irreducible] noncomputable def ProtocolError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProtocolError.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProtocolError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProtocolError [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProtocolError.fields ProtocolError.fieldsUnsealed :=
   ⟨by unfold ProtocolError.fields; rfl⟩
 
@@ -4257,15 +4257,15 @@ noncomputable instance equals_unfold_ProtocolError [GooseExts] [GoGlobalContext]
 class ProtocolError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProtocolError.underlying ProtocolError
   underlying : go.UnderlyingDirectedEq ProtocolError.ty ProtocolError.underlying
-  get_ErrorString : ∀ (x : ProtocolError), go.IsGoStepPureDetTagged under (StructFieldGet ProtocolError.underlying go!"ErrorString") #x (Val #(x.ErrorString'))
-  set_ErrorString : ∀ (x : ProtocolError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProtocolError.underlying go!"ErrorString") (PairV #x #y) (Val #(({ x with ErrorString' := y } : ProtocolError)))
+  get'ErrorString : ∀ (x : ProtocolError), go.IsGoStepPureDetTagged under (StructFieldGet ProtocolError.underlying go!"ErrorString") #x (Val #(x.ErrorString'))
+  set'ErrorString : ∀ (x : ProtocolError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProtocolError.underlying go!"ErrorString") (PairV #x #y) (Val #(({ x with ErrorString' := y } : ProtocolError)))
   method_set : go.MethodSetIs ProtocolError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProtocolError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool])))]
 
 attribute [instance] ProtocolError.TypeAssumptions.type_repr
   ProtocolError.TypeAssumptions.underlying
-  ProtocolError.TypeAssumptions.get_ErrorString
-  ProtocolError.TypeAssumptions.set_ErrorString
+  ProtocolError.TypeAssumptions.get'ErrorString
+  ProtocolError.TypeAssumptions.set'ErrorString
   ProtocolError.TypeAssumptions.method_set
   ProtocolError.TypeAssumptions.ptr_method_set
 
@@ -4301,7 +4301,7 @@ noncomputable instance requestBodyReadError.zero_val [GooseExts] : ZeroVal reque
 @[irreducible] noncomputable def requestBodyReadError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   requestBodyReadError.fieldsUnsealed
 
-noncomputable instance equals_unfold_requestBodyReadError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'requestBodyReadError [GooseExts] [GoGlobalContext] :
     EqualsUnfold requestBodyReadError.fields requestBodyReadError.fieldsUnsealed :=
   ⟨by unfold requestBodyReadError.fields; rfl⟩
 
@@ -4311,15 +4311,15 @@ noncomputable instance equals_unfold_requestBodyReadError [GooseExts] [GoGlobalC
 class requestBodyReadError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying requestBodyReadError.underlying requestBodyReadError
   underlying : go.UnderlyingDirectedEq requestBodyReadError.ty requestBodyReadError.underlying
-  get_error : ∀ (x : requestBodyReadError), go.IsGoStepPureDetTagged under (StructFieldGet requestBodyReadError.underlying go!"error") #x (Val #(x.error'))
-  set_error : ∀ (x : requestBodyReadError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet requestBodyReadError.underlying go!"error") (PairV #x #y) (Val #(({ x with error' := y } : requestBodyReadError)))
+  get'error : ∀ (x : requestBodyReadError), go.IsGoStepPureDetTagged under (StructFieldGet requestBodyReadError.underlying go!"error") #x (Val #(x.error'))
+  set'error : ∀ (x : requestBodyReadError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet requestBodyReadError.underlying go!"error") (PairV #x #y) (Val #(({ x with error' := y } : requestBodyReadError)))
   method_set : go.MethodSetIs requestBodyReadError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType requestBodyReadError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] requestBodyReadError.TypeAssumptions.type_repr
   requestBodyReadError.TypeAssumptions.underlying
-  requestBodyReadError.TypeAssumptions.get_error
-  requestBodyReadError.TypeAssumptions.set_error
+  requestBodyReadError.TypeAssumptions.get'error
+  requestBodyReadError.TypeAssumptions.set'error
   requestBodyReadError.TypeAssumptions.method_set
   requestBodyReadError.TypeAssumptions.ptr_method_set
 
@@ -4336,7 +4336,7 @@ noncomputable instance MaxBytesError.zero_val [GooseExts] : ZeroVal MaxBytesErro
 @[irreducible] noncomputable def MaxBytesError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MaxBytesError.fieldsUnsealed
 
-noncomputable instance equals_unfold_MaxBytesError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'MaxBytesError [GooseExts] [GoGlobalContext] :
     EqualsUnfold MaxBytesError.fields MaxBytesError.fieldsUnsealed :=
   ⟨by unfold MaxBytesError.fields; rfl⟩
 
@@ -4346,15 +4346,15 @@ noncomputable instance equals_unfold_MaxBytesError [GooseExts] [GoGlobalContext]
 class MaxBytesError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MaxBytesError.underlying MaxBytesError
   underlying : go.UnderlyingDirectedEq MaxBytesError.ty MaxBytesError.underlying
-  get_Limit : ∀ (x : MaxBytesError), go.IsGoStepPureDetTagged under (StructFieldGet MaxBytesError.underlying go!"Limit") #x (Val #(x.Limit'))
-  set_Limit : ∀ (x : MaxBytesError) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet MaxBytesError.underlying go!"Limit") (PairV #x #y) (Val #(({ x with Limit' := y } : MaxBytesError)))
+  get'Limit : ∀ (x : MaxBytesError), go.IsGoStepPureDetTagged under (StructFieldGet MaxBytesError.underlying go!"Limit") #x (Val #(x.Limit'))
+  set'Limit : ∀ (x : MaxBytesError) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet MaxBytesError.underlying go!"Limit") (PairV #x #y) (Val #(({ x with Limit' := y } : MaxBytesError)))
   method_set : go.MethodSetIs MaxBytesError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MaxBytesError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] MaxBytesError.TypeAssumptions.type_repr
   MaxBytesError.TypeAssumptions.underlying
-  MaxBytesError.TypeAssumptions.get_Limit
-  MaxBytesError.TypeAssumptions.set_Limit
+  MaxBytesError.TypeAssumptions.get'Limit
+  MaxBytesError.TypeAssumptions.set'Limit
   MaxBytesError.TypeAssumptions.method_set
   MaxBytesError.TypeAssumptions.ptr_method_set
 
@@ -4423,7 +4423,7 @@ noncomputable instance ResponseController.zero_val [GooseExts] : ZeroVal Respons
 @[irreducible] noncomputable def ResponseController.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResponseController.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResponseController [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ResponseController [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResponseController.fields ResponseController.fieldsUnsealed :=
   ⟨by unfold ResponseController.fields; rfl⟩
 
@@ -4433,15 +4433,15 @@ noncomputable instance equals_unfold_ResponseController [GooseExts] [GoGlobalCon
 class ResponseController.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResponseController.underlying ResponseController
   underlying : go.UnderlyingDirectedEq ResponseController.ty ResponseController.underlying
-  get_rw : ∀ (x : ResponseController), go.IsGoStepPureDetTagged under (StructFieldGet ResponseController.underlying go!"rw") #x (Val #(x.rw'))
-  set_rw : ∀ (x : ResponseController) (y : ResponseWriter), go.IsGoStepPureDetTagged under (StructFieldSet ResponseController.underlying go!"rw") (PairV #x #y) (Val #(({ x with rw' := y } : ResponseController)))
+  get'rw : ∀ (x : ResponseController), go.IsGoStepPureDetTagged under (StructFieldGet ResponseController.underlying go!"rw") #x (Val #(x.rw'))
+  set'rw : ∀ (x : ResponseController) (y : ResponseWriter), go.IsGoStepPureDetTagged under (StructFieldSet ResponseController.underlying go!"rw") (PairV #x #y) (Val #(({ x with rw' := y } : ResponseController)))
   method_set : go.MethodSetIs ResponseController.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResponseController.ty) [(go!"EnableFullDuplex", (some (go.signature.Signature [] false [go.error]))), (go!"Flush", (some (go.signature.Signature [] false [go.error]))), (go!"Hijack", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Conn" []), (go.GoType.PointerType (go.GoType.Named go!"bufio.ReadWriter" [])), go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error])))]
 
 attribute [instance] ResponseController.TypeAssumptions.type_repr
   ResponseController.TypeAssumptions.underlying
-  ResponseController.TypeAssumptions.get_rw
-  ResponseController.TypeAssumptions.set_rw
+  ResponseController.TypeAssumptions.get'rw
+  ResponseController.TypeAssumptions.set'rw
   ResponseController.TypeAssumptions.method_set
   ResponseController.TypeAssumptions.ptr_method_set
 
@@ -4474,7 +4474,7 @@ noncomputable instance routingIndex.zero_val [GooseExts] : ZeroVal routingIndex 
 @[irreducible] noncomputable def routingIndex.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   routingIndex.fieldsUnsealed
 
-noncomputable instance equals_unfold_routingIndex [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'routingIndex [GooseExts] [GoGlobalContext] :
     EqualsUnfold routingIndex.fields routingIndex.fieldsUnsealed :=
   ⟨by unfold routingIndex.fields; rfl⟩
 
@@ -4484,19 +4484,19 @@ noncomputable instance equals_unfold_routingIndex [GooseExts] [GoGlobalContext] 
 class routingIndex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying routingIndex.underlying routingIndex
   underlying : go.UnderlyingDirectedEq routingIndex.ty routingIndex.underlying
-  get_segments : ∀ (x : routingIndex), go.IsGoStepPureDetTagged under (StructFieldGet routingIndex.underlying go!"segments") #x (Val #(x.segments'))
-  set_segments : ∀ (x : routingIndex) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet routingIndex.underlying go!"segments") (PairV #x #y) (Val #(({ x with segments' := y } : routingIndex)))
-  get_multis : ∀ (x : routingIndex), go.IsGoStepPureDetTagged under (StructFieldGet routingIndex.underlying go!"multis") #x (Val #(x.multis'))
-  set_multis : ∀ (x : routingIndex) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet routingIndex.underlying go!"multis") (PairV #x #y) (Val #(({ x with multis' := y } : routingIndex)))
+  get'segments : ∀ (x : routingIndex), go.IsGoStepPureDetTagged under (StructFieldGet routingIndex.underlying go!"segments") #x (Val #(x.segments'))
+  set'segments : ∀ (x : routingIndex) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet routingIndex.underlying go!"segments") (PairV #x #y) (Val #(({ x with segments' := y } : routingIndex)))
+  get'multis : ∀ (x : routingIndex), go.IsGoStepPureDetTagged under (StructFieldGet routingIndex.underlying go!"multis") #x (Val #(x.multis'))
+  set'multis : ∀ (x : routingIndex) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet routingIndex.underlying go!"multis") (PairV #x #y) (Val #(({ x with multis' := y } : routingIndex)))
   method_set : go.MethodSetIs routingIndex.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType routingIndex.ty) [(go!"net/http.addPattern", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false []))), (go!"net/http.possiblyConflictingPatterns", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [go.error]))] false [go.error])))]
 
 attribute [instance] routingIndex.TypeAssumptions.type_repr
   routingIndex.TypeAssumptions.underlying
-  routingIndex.TypeAssumptions.get_segments
-  routingIndex.TypeAssumptions.set_segments
-  routingIndex.TypeAssumptions.get_multis
-  routingIndex.TypeAssumptions.set_multis
+  routingIndex.TypeAssumptions.get'segments
+  routingIndex.TypeAssumptions.set'segments
+  routingIndex.TypeAssumptions.get'multis
+  routingIndex.TypeAssumptions.set'multis
   routingIndex.TypeAssumptions.method_set
   routingIndex.TypeAssumptions.ptr_method_set
 
@@ -4515,7 +4515,7 @@ noncomputable instance routingIndexKey.zero_val [GooseExts] : ZeroVal routingInd
 @[irreducible] noncomputable def routingIndexKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   routingIndexKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_routingIndexKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'routingIndexKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold routingIndexKey.fields routingIndexKey.fieldsUnsealed :=
   ⟨by unfold routingIndexKey.fields; rfl⟩
 
@@ -4525,19 +4525,19 @@ noncomputable instance equals_unfold_routingIndexKey [GooseExts] [GoGlobalContex
 class routingIndexKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying routingIndexKey.underlying routingIndexKey
   underlying : go.UnderlyingDirectedEq routingIndexKey.ty routingIndexKey.underlying
-  get_pos : ∀ (x : routingIndexKey), go.IsGoStepPureDetTagged under (StructFieldGet routingIndexKey.underlying go!"pos") #x (Val #(x.pos'))
-  set_pos : ∀ (x : routingIndexKey) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet routingIndexKey.underlying go!"pos") (PairV #x #y) (Val #(({ x with pos' := y } : routingIndexKey)))
-  get_s : ∀ (x : routingIndexKey), go.IsGoStepPureDetTagged under (StructFieldGet routingIndexKey.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : routingIndexKey) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet routingIndexKey.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : routingIndexKey)))
+  get'pos : ∀ (x : routingIndexKey), go.IsGoStepPureDetTagged under (StructFieldGet routingIndexKey.underlying go!"pos") #x (Val #(x.pos'))
+  set'pos : ∀ (x : routingIndexKey) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet routingIndexKey.underlying go!"pos") (PairV #x #y) (Val #(({ x with pos' := y } : routingIndexKey)))
+  get's : ∀ (x : routingIndexKey), go.IsGoStepPureDetTagged under (StructFieldGet routingIndexKey.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : routingIndexKey) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet routingIndexKey.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : routingIndexKey)))
   method_set : go.MethodSetIs routingIndexKey.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType routingIndexKey.ty) []
 
 attribute [instance] routingIndexKey.TypeAssumptions.type_repr
   routingIndexKey.TypeAssumptions.underlying
-  routingIndexKey.TypeAssumptions.get_pos
-  routingIndexKey.TypeAssumptions.set_pos
-  routingIndexKey.TypeAssumptions.get_s
-  routingIndexKey.TypeAssumptions.set_s
+  routingIndexKey.TypeAssumptions.get'pos
+  routingIndexKey.TypeAssumptions.set'pos
+  routingIndexKey.TypeAssumptions.get's
+  routingIndexKey.TypeAssumptions.set's
   routingIndexKey.TypeAssumptions.method_set
   routingIndexKey.TypeAssumptions.ptr_method_set
 
@@ -4562,7 +4562,7 @@ noncomputable instance routingNode.zero_val [GooseExts] : ZeroVal routingNode :=
 @[irreducible] noncomputable def routingNode.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   routingNode.fieldsUnsealed
 
-noncomputable instance equals_unfold_routingNode [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'routingNode [GooseExts] [GoGlobalContext] :
     EqualsUnfold routingNode.fields routingNode.fieldsUnsealed :=
   ⟨by unfold routingNode.fields; rfl⟩
 
@@ -4572,31 +4572,31 @@ noncomputable instance equals_unfold_routingNode [GooseExts] [GoGlobalContext] :
 class routingNode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying routingNode.underlying routingNode
   underlying : go.UnderlyingDirectedEq routingNode.ty routingNode.underlying
-  get_pattern : ∀ (x : routingNode), go.IsGoStepPureDetTagged under (StructFieldGet routingNode.underlying go!"pattern") #x (Val #(x.pattern'))
-  set_pattern : ∀ (x : routingNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet routingNode.underlying go!"pattern") (PairV #x #y) (Val #(({ x with pattern' := y } : routingNode)))
-  get_handler : ∀ (x : routingNode), go.IsGoStepPureDetTagged under (StructFieldGet routingNode.underlying go!"handler") #x (Val #(x.handler'))
-  set_handler : ∀ (x : routingNode) (y : Handler), go.IsGoStepPureDetTagged under (StructFieldSet routingNode.underlying go!"handler") (PairV #x #y) (Val #(({ x with handler' := y } : routingNode)))
-  get_children : ∀ (x : routingNode), go.IsGoStepPureDetTagged under (StructFieldGet routingNode.underlying go!"children") #x (Val #(x.children'))
-  set_children : ∀ (x : routingNode) (y : (mapping GoString Loc)), go.IsGoStepPureDetTagged under (StructFieldSet routingNode.underlying go!"children") (PairV #x #y) (Val #(({ x with children' := y } : routingNode)))
-  get_multiChild : ∀ (x : routingNode), go.IsGoStepPureDetTagged under (StructFieldGet routingNode.underlying go!"multiChild") #x (Val #(x.multiChild'))
-  set_multiChild : ∀ (x : routingNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet routingNode.underlying go!"multiChild") (PairV #x #y) (Val #(({ x with multiChild' := y } : routingNode)))
-  get_emptyChild : ∀ (x : routingNode), go.IsGoStepPureDetTagged under (StructFieldGet routingNode.underlying go!"emptyChild") #x (Val #(x.emptyChild'))
-  set_emptyChild : ∀ (x : routingNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet routingNode.underlying go!"emptyChild") (PairV #x #y) (Val #(({ x with emptyChild' := y } : routingNode)))
+  get'pattern : ∀ (x : routingNode), go.IsGoStepPureDetTagged under (StructFieldGet routingNode.underlying go!"pattern") #x (Val #(x.pattern'))
+  set'pattern : ∀ (x : routingNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet routingNode.underlying go!"pattern") (PairV #x #y) (Val #(({ x with pattern' := y } : routingNode)))
+  get'handler : ∀ (x : routingNode), go.IsGoStepPureDetTagged under (StructFieldGet routingNode.underlying go!"handler") #x (Val #(x.handler'))
+  set'handler : ∀ (x : routingNode) (y : Handler), go.IsGoStepPureDetTagged under (StructFieldSet routingNode.underlying go!"handler") (PairV #x #y) (Val #(({ x with handler' := y } : routingNode)))
+  get'children : ∀ (x : routingNode), go.IsGoStepPureDetTagged under (StructFieldGet routingNode.underlying go!"children") #x (Val #(x.children'))
+  set'children : ∀ (x : routingNode) (y : (mapping GoString Loc)), go.IsGoStepPureDetTagged under (StructFieldSet routingNode.underlying go!"children") (PairV #x #y) (Val #(({ x with children' := y } : routingNode)))
+  get'multiChild : ∀ (x : routingNode), go.IsGoStepPureDetTagged under (StructFieldGet routingNode.underlying go!"multiChild") #x (Val #(x.multiChild'))
+  set'multiChild : ∀ (x : routingNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet routingNode.underlying go!"multiChild") (PairV #x #y) (Val #(({ x with multiChild' := y } : routingNode)))
+  get'emptyChild : ∀ (x : routingNode), go.IsGoStepPureDetTagged under (StructFieldGet routingNode.underlying go!"emptyChild") #x (Val #(x.emptyChild'))
+  set'emptyChild : ∀ (x : routingNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet routingNode.underlying go!"emptyChild") (PairV #x #y) (Val #(({ x with emptyChild' := y } : routingNode)))
   method_set : go.MethodSetIs routingNode.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType routingNode.ty) [(go!"net/http.addChild", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType routingNode.ty)]))), (go!"net/http.addPattern", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty), Handler.ty] false []))), (go!"net/http.addSegments", (some (go.signature.Signature [(go.GoType.SliceType segment.ty), (go.GoType.PointerType pattern.ty), Handler.ty] false []))), (go!"net/http.findChild", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType routingNode.ty)]))), (go!"net/http.match", (some (go.signature.Signature [go.string, go.string, go.string] false [(go.GoType.PointerType routingNode.ty), (go.GoType.SliceType go.string)]))), (go!"net/http.matchMethodAndPath", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.PointerType routingNode.ty), (go.GoType.SliceType go.string)]))), (go!"net/http.matchPath", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType routingNode.ty), (go.GoType.SliceType go.string)]))), (go!"net/http.matchingMethods", (some (go.signature.Signature [go.string, go.string, (go.GoType.MapType go.string go.bool)] false []))), (go!"net/http.matchingMethodsPath", (some (go.signature.Signature [go.string, (go.GoType.MapType go.string go.bool)] false []))), (go!"net/http.set", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty), Handler.ty] false [])))]
 
 attribute [instance] routingNode.TypeAssumptions.type_repr
   routingNode.TypeAssumptions.underlying
-  routingNode.TypeAssumptions.get_pattern
-  routingNode.TypeAssumptions.set_pattern
-  routingNode.TypeAssumptions.get_handler
-  routingNode.TypeAssumptions.set_handler
-  routingNode.TypeAssumptions.get_children
-  routingNode.TypeAssumptions.set_children
-  routingNode.TypeAssumptions.get_multiChild
-  routingNode.TypeAssumptions.set_multiChild
-  routingNode.TypeAssumptions.get_emptyChild
-  routingNode.TypeAssumptions.set_emptyChild
+  routingNode.TypeAssumptions.get'pattern
+  routingNode.TypeAssumptions.set'pattern
+  routingNode.TypeAssumptions.get'handler
+  routingNode.TypeAssumptions.set'handler
+  routingNode.TypeAssumptions.get'children
+  routingNode.TypeAssumptions.set'children
+  routingNode.TypeAssumptions.get'multiChild
+  routingNode.TypeAssumptions.set'multiChild
+  routingNode.TypeAssumptions.get'emptyChild
+  routingNode.TypeAssumptions.set'emptyChild
   routingNode.TypeAssumptions.method_set
   routingNode.TypeAssumptions.ptr_method_set
 
@@ -4634,7 +4634,7 @@ noncomputable instance muxEntry.zero_val [GooseExts] : ZeroVal muxEntry :=
 @[irreducible] noncomputable def muxEntry.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   muxEntry.fieldsUnsealed
 
-noncomputable instance equals_unfold_muxEntry [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'muxEntry [GooseExts] [GoGlobalContext] :
     EqualsUnfold muxEntry.fields muxEntry.fieldsUnsealed :=
   ⟨by unfold muxEntry.fields; rfl⟩
 
@@ -4644,19 +4644,19 @@ noncomputable instance equals_unfold_muxEntry [GooseExts] [GoGlobalContext] :
 class muxEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying muxEntry.underlying muxEntry
   underlying : go.UnderlyingDirectedEq muxEntry.ty muxEntry.underlying
-  get_h : ∀ (x : muxEntry), go.IsGoStepPureDetTagged under (StructFieldGet muxEntry.underlying go!"h") #x (Val #(x.h'))
-  set_h : ∀ (x : muxEntry) (y : Handler), go.IsGoStepPureDetTagged under (StructFieldSet muxEntry.underlying go!"h") (PairV #x #y) (Val #(({ x with h' := y } : muxEntry)))
-  get_pattern : ∀ (x : muxEntry), go.IsGoStepPureDetTagged under (StructFieldGet muxEntry.underlying go!"pattern") #x (Val #(x.pattern'))
-  set_pattern : ∀ (x : muxEntry) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet muxEntry.underlying go!"pattern") (PairV #x #y) (Val #(({ x with pattern' := y } : muxEntry)))
+  get'h : ∀ (x : muxEntry), go.IsGoStepPureDetTagged under (StructFieldGet muxEntry.underlying go!"h") #x (Val #(x.h'))
+  set'h : ∀ (x : muxEntry) (y : Handler), go.IsGoStepPureDetTagged under (StructFieldSet muxEntry.underlying go!"h") (PairV #x #y) (Val #(({ x with h' := y } : muxEntry)))
+  get'pattern : ∀ (x : muxEntry), go.IsGoStepPureDetTagged under (StructFieldGet muxEntry.underlying go!"pattern") #x (Val #(x.pattern'))
+  set'pattern : ∀ (x : muxEntry) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet muxEntry.underlying go!"pattern") (PairV #x #y) (Val #(({ x with pattern' := y } : muxEntry)))
   method_set : go.MethodSetIs muxEntry.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType muxEntry.ty) []
 
 attribute [instance] muxEntry.TypeAssumptions.type_repr
   muxEntry.TypeAssumptions.underlying
-  muxEntry.TypeAssumptions.get_h
-  muxEntry.TypeAssumptions.set_h
-  muxEntry.TypeAssumptions.get_pattern
-  muxEntry.TypeAssumptions.set_pattern
+  muxEntry.TypeAssumptions.get'h
+  muxEntry.TypeAssumptions.set'h
+  muxEntry.TypeAssumptions.get'pattern
+  muxEntry.TypeAssumptions.set'pattern
   muxEntry.TypeAssumptions.method_set
   muxEntry.TypeAssumptions.ptr_method_set
 
@@ -4745,7 +4745,7 @@ noncomputable instance chunkWriter.zero_val [GooseExts] : ZeroVal chunkWriter :=
 @[irreducible] noncomputable def chunkWriter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   chunkWriter.fieldsUnsealed
 
-noncomputable instance equals_unfold_chunkWriter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'chunkWriter [GooseExts] [GoGlobalContext] :
     EqualsUnfold chunkWriter.fields chunkWriter.fieldsUnsealed :=
   ⟨by unfold chunkWriter.fields; rfl⟩
 
@@ -4755,27 +4755,27 @@ noncomputable instance equals_unfold_chunkWriter [GooseExts] [GoGlobalContext] :
 class chunkWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying chunkWriter.underlying chunkWriter
   underlying : go.UnderlyingDirectedEq chunkWriter.ty chunkWriter.underlying
-  get_res : ∀ (x : chunkWriter), go.IsGoStepPureDetTagged under (StructFieldGet chunkWriter.underlying go!"res") #x (Val #(x.res'))
-  set_res : ∀ (x : chunkWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet chunkWriter.underlying go!"res") (PairV #x #y) (Val #(({ x with res' := y } : chunkWriter)))
-  get_header : ∀ (x : chunkWriter), go.IsGoStepPureDetTagged under (StructFieldGet chunkWriter.underlying go!"header") #x (Val #(x.header'))
-  set_header : ∀ (x : chunkWriter) (y : Header), go.IsGoStepPureDetTagged under (StructFieldSet chunkWriter.underlying go!"header") (PairV #x #y) (Val #(({ x with header' := y } : chunkWriter)))
-  get_wroteHeader : ∀ (x : chunkWriter), go.IsGoStepPureDetTagged under (StructFieldGet chunkWriter.underlying go!"wroteHeader") #x (Val #(x.wroteHeader'))
-  set_wroteHeader : ∀ (x : chunkWriter) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet chunkWriter.underlying go!"wroteHeader") (PairV #x #y) (Val #(({ x with wroteHeader' := y } : chunkWriter)))
-  get_chunking : ∀ (x : chunkWriter), go.IsGoStepPureDetTagged under (StructFieldGet chunkWriter.underlying go!"chunking") #x (Val #(x.chunking'))
-  set_chunking : ∀ (x : chunkWriter) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet chunkWriter.underlying go!"chunking") (PairV #x #y) (Val #(({ x with chunking' := y } : chunkWriter)))
+  get'res : ∀ (x : chunkWriter), go.IsGoStepPureDetTagged under (StructFieldGet chunkWriter.underlying go!"res") #x (Val #(x.res'))
+  set'res : ∀ (x : chunkWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet chunkWriter.underlying go!"res") (PairV #x #y) (Val #(({ x with res' := y } : chunkWriter)))
+  get'header : ∀ (x : chunkWriter), go.IsGoStepPureDetTagged under (StructFieldGet chunkWriter.underlying go!"header") #x (Val #(x.header'))
+  set'header : ∀ (x : chunkWriter) (y : Header), go.IsGoStepPureDetTagged under (StructFieldSet chunkWriter.underlying go!"header") (PairV #x #y) (Val #(({ x with header' := y } : chunkWriter)))
+  get'wroteHeader : ∀ (x : chunkWriter), go.IsGoStepPureDetTagged under (StructFieldGet chunkWriter.underlying go!"wroteHeader") #x (Val #(x.wroteHeader'))
+  set'wroteHeader : ∀ (x : chunkWriter) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet chunkWriter.underlying go!"wroteHeader") (PairV #x #y) (Val #(({ x with wroteHeader' := y } : chunkWriter)))
+  get'chunking : ∀ (x : chunkWriter), go.IsGoStepPureDetTagged under (StructFieldGet chunkWriter.underlying go!"chunking") #x (Val #(x.chunking'))
+  set'chunking : ∀ (x : chunkWriter) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet chunkWriter.underlying go!"chunking") (PairV #x #y) (Val #(({ x with chunking' := y } : chunkWriter)))
   method_set : go.MethodSetIs chunkWriter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType chunkWriter.ty) [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"net/http.close", (some (go.signature.Signature [] false []))), (go!"net/http.flush", (some (go.signature.Signature [] false [go.error]))), (go!"net/http.writeHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [])))]
 
 attribute [instance] chunkWriter.TypeAssumptions.type_repr
   chunkWriter.TypeAssumptions.underlying
-  chunkWriter.TypeAssumptions.get_res
-  chunkWriter.TypeAssumptions.set_res
-  chunkWriter.TypeAssumptions.get_header
-  chunkWriter.TypeAssumptions.set_header
-  chunkWriter.TypeAssumptions.get_wroteHeader
-  chunkWriter.TypeAssumptions.set_wroteHeader
-  chunkWriter.TypeAssumptions.get_chunking
-  chunkWriter.TypeAssumptions.set_chunking
+  chunkWriter.TypeAssumptions.get'res
+  chunkWriter.TypeAssumptions.set'res
+  chunkWriter.TypeAssumptions.get'header
+  chunkWriter.TypeAssumptions.set'header
+  chunkWriter.TypeAssumptions.get'wroteHeader
+  chunkWriter.TypeAssumptions.set'wroteHeader
+  chunkWriter.TypeAssumptions.get'chunking
+  chunkWriter.TypeAssumptions.set'chunking
   chunkWriter.TypeAssumptions.method_set
   chunkWriter.TypeAssumptions.ptr_method_set
 
@@ -4836,7 +4836,7 @@ noncomputable instance readResult.zero_val [GooseExts] : ZeroVal readResult :=
 @[irreducible] noncomputable def readResult.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   readResult.fieldsUnsealed
 
-noncomputable instance equals_unfold_readResult [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'readResult [GooseExts] [GoGlobalContext] :
     EqualsUnfold readResult.fields readResult.fieldsUnsealed :=
   ⟨by unfold readResult.fields; rfl⟩
 
@@ -4846,27 +4846,27 @@ noncomputable instance equals_unfold_readResult [GooseExts] [GoGlobalContext] :
 class readResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying readResult.underlying readResult
   underlying : go.UnderlyingDirectedEq readResult.ty readResult.underlying
-  «get__#0» : ∀ (x : readResult), go.IsGoStepPureDetTagged under (StructFieldGet readResult.underlying go!"_#0") #x (Val #(x.«_#0'»))
-  «set__#0» : ∀ (x : readResult) (y : incomparable), go.IsGoStepPureDetTagged under (StructFieldSet readResult.underlying go!"_#0") (PairV #x #y) (Val #(({ x with «_#0'» := y } : readResult)))
-  get_n : ∀ (x : readResult), go.IsGoStepPureDetTagged under (StructFieldGet readResult.underlying go!"n") #x (Val #(x.n'))
-  set_n : ∀ (x : readResult) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet readResult.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : readResult)))
-  get_err : ∀ (x : readResult), go.IsGoStepPureDetTagged under (StructFieldGet readResult.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : readResult) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet readResult.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : readResult)))
-  get_b : ∀ (x : readResult), go.IsGoStepPureDetTagged under (StructFieldGet readResult.underlying go!"b") #x (Val #(x.b'))
-  set_b : ∀ (x : readResult) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet readResult.underlying go!"b") (PairV #x #y) (Val #(({ x with b' := y } : readResult)))
+  «get'_#0» : ∀ (x : readResult), go.IsGoStepPureDetTagged under (StructFieldGet readResult.underlying go!"_#0") #x (Val #(x.«_#0'»))
+  «set'_#0» : ∀ (x : readResult) (y : incomparable), go.IsGoStepPureDetTagged under (StructFieldSet readResult.underlying go!"_#0") (PairV #x #y) (Val #(({ x with «_#0'» := y } : readResult)))
+  get'n : ∀ (x : readResult), go.IsGoStepPureDetTagged under (StructFieldGet readResult.underlying go!"n") #x (Val #(x.n'))
+  set'n : ∀ (x : readResult) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet readResult.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : readResult)))
+  get'err : ∀ (x : readResult), go.IsGoStepPureDetTagged under (StructFieldGet readResult.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : readResult) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet readResult.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : readResult)))
+  get'b : ∀ (x : readResult), go.IsGoStepPureDetTagged under (StructFieldGet readResult.underlying go!"b") #x (Val #(x.b'))
+  set'b : ∀ (x : readResult) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet readResult.underlying go!"b") (PairV #x #y) (Val #(({ x with b' := y } : readResult)))
   method_set : go.MethodSetIs readResult.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType readResult.ty) []
 
 attribute [instance] readResult.TypeAssumptions.type_repr
   readResult.TypeAssumptions.underlying
-  readResult.TypeAssumptions.«get__#0»
-  readResult.TypeAssumptions.«set__#0»
-  readResult.TypeAssumptions.get_n
-  readResult.TypeAssumptions.set_n
-  readResult.TypeAssumptions.get_err
-  readResult.TypeAssumptions.set_err
-  readResult.TypeAssumptions.get_b
-  readResult.TypeAssumptions.set_b
+  readResult.TypeAssumptions.«get'_#0»
+  readResult.TypeAssumptions.«set'_#0»
+  readResult.TypeAssumptions.get'n
+  readResult.TypeAssumptions.set'n
+  readResult.TypeAssumptions.get'err
+  readResult.TypeAssumptions.set'err
+  readResult.TypeAssumptions.get'b
+  readResult.TypeAssumptions.set'b
   readResult.TypeAssumptions.method_set
   readResult.TypeAssumptions.ptr_method_set
 
@@ -4929,7 +4929,7 @@ noncomputable instance extraHeader.zero_val [GooseExts] : ZeroVal extraHeader :=
 @[irreducible] noncomputable def extraHeader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   extraHeader.fieldsUnsealed
 
-noncomputable instance equals_unfold_extraHeader [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'extraHeader [GooseExts] [GoGlobalContext] :
     EqualsUnfold extraHeader.fields extraHeader.fieldsUnsealed :=
   ⟨by unfold extraHeader.fields; rfl⟩
 
@@ -4939,31 +4939,31 @@ noncomputable instance equals_unfold_extraHeader [GooseExts] [GoGlobalContext] :
 class extraHeader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying extraHeader.underlying extraHeader
   underlying : go.UnderlyingDirectedEq extraHeader.ty extraHeader.underlying
-  get_contentType : ∀ (x : extraHeader), go.IsGoStepPureDetTagged under (StructFieldGet extraHeader.underlying go!"contentType") #x (Val #(x.contentType'))
-  set_contentType : ∀ (x : extraHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet extraHeader.underlying go!"contentType") (PairV #x #y) (Val #(({ x with contentType' := y } : extraHeader)))
-  get_connection : ∀ (x : extraHeader), go.IsGoStepPureDetTagged under (StructFieldGet extraHeader.underlying go!"connection") #x (Val #(x.connection'))
-  set_connection : ∀ (x : extraHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet extraHeader.underlying go!"connection") (PairV #x #y) (Val #(({ x with connection' := y } : extraHeader)))
-  get_transferEncoding : ∀ (x : extraHeader), go.IsGoStepPureDetTagged under (StructFieldGet extraHeader.underlying go!"transferEncoding") #x (Val #(x.transferEncoding'))
-  set_transferEncoding : ∀ (x : extraHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet extraHeader.underlying go!"transferEncoding") (PairV #x #y) (Val #(({ x with transferEncoding' := y } : extraHeader)))
-  get_date : ∀ (x : extraHeader), go.IsGoStepPureDetTagged under (StructFieldGet extraHeader.underlying go!"date") #x (Val #(x.date'))
-  set_date : ∀ (x : extraHeader) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet extraHeader.underlying go!"date") (PairV #x #y) (Val #(({ x with date' := y } : extraHeader)))
-  get_contentLength : ∀ (x : extraHeader), go.IsGoStepPureDetTagged under (StructFieldGet extraHeader.underlying go!"contentLength") #x (Val #(x.contentLength'))
-  set_contentLength : ∀ (x : extraHeader) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet extraHeader.underlying go!"contentLength") (PairV #x #y) (Val #(({ x with contentLength' := y } : extraHeader)))
+  get'contentType : ∀ (x : extraHeader), go.IsGoStepPureDetTagged under (StructFieldGet extraHeader.underlying go!"contentType") #x (Val #(x.contentType'))
+  set'contentType : ∀ (x : extraHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet extraHeader.underlying go!"contentType") (PairV #x #y) (Val #(({ x with contentType' := y } : extraHeader)))
+  get'connection : ∀ (x : extraHeader), go.IsGoStepPureDetTagged under (StructFieldGet extraHeader.underlying go!"connection") #x (Val #(x.connection'))
+  set'connection : ∀ (x : extraHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet extraHeader.underlying go!"connection") (PairV #x #y) (Val #(({ x with connection' := y } : extraHeader)))
+  get'transferEncoding : ∀ (x : extraHeader), go.IsGoStepPureDetTagged under (StructFieldGet extraHeader.underlying go!"transferEncoding") #x (Val #(x.transferEncoding'))
+  set'transferEncoding : ∀ (x : extraHeader) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet extraHeader.underlying go!"transferEncoding") (PairV #x #y) (Val #(({ x with transferEncoding' := y } : extraHeader)))
+  get'date : ∀ (x : extraHeader), go.IsGoStepPureDetTagged under (StructFieldGet extraHeader.underlying go!"date") #x (Val #(x.date'))
+  set'date : ∀ (x : extraHeader) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet extraHeader.underlying go!"date") (PairV #x #y) (Val #(({ x with date' := y } : extraHeader)))
+  get'contentLength : ∀ (x : extraHeader), go.IsGoStepPureDetTagged under (StructFieldGet extraHeader.underlying go!"contentLength") #x (Val #(x.contentLength'))
+  set'contentLength : ∀ (x : extraHeader) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet extraHeader.underlying go!"contentLength") (PairV #x #y) (Val #(({ x with contentLength' := y } : extraHeader)))
   method_set : go.MethodSetIs extraHeader.ty [(go!"Write", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"bufio.Writer" []))] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType extraHeader.ty) [(go!"Write", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"bufio.Writer" []))] false [])))]
 
 attribute [instance] extraHeader.TypeAssumptions.type_repr
   extraHeader.TypeAssumptions.underlying
-  extraHeader.TypeAssumptions.get_contentType
-  extraHeader.TypeAssumptions.set_contentType
-  extraHeader.TypeAssumptions.get_connection
-  extraHeader.TypeAssumptions.set_connection
-  extraHeader.TypeAssumptions.get_transferEncoding
-  extraHeader.TypeAssumptions.set_transferEncoding
-  extraHeader.TypeAssumptions.get_date
-  extraHeader.TypeAssumptions.set_date
-  extraHeader.TypeAssumptions.get_contentLength
-  extraHeader.TypeAssumptions.set_contentLength
+  extraHeader.TypeAssumptions.get'contentType
+  extraHeader.TypeAssumptions.set'contentType
+  extraHeader.TypeAssumptions.get'connection
+  extraHeader.TypeAssumptions.set'connection
+  extraHeader.TypeAssumptions.get'transferEncoding
+  extraHeader.TypeAssumptions.set'transferEncoding
+  extraHeader.TypeAssumptions.get'date
+  extraHeader.TypeAssumptions.set'date
+  extraHeader.TypeAssumptions.get'contentLength
+  extraHeader.TypeAssumptions.set'contentLength
   extraHeader.TypeAssumptions.method_set
   extraHeader.TypeAssumptions.ptr_method_set
 
@@ -4996,7 +4996,7 @@ noncomputable instance statusError.zero_val [GooseExts] : ZeroVal statusError :=
 @[irreducible] noncomputable def statusError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   statusError.fieldsUnsealed
 
-noncomputable instance equals_unfold_statusError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'statusError [GooseExts] [GoGlobalContext] :
     EqualsUnfold statusError.fields statusError.fieldsUnsealed :=
   ⟨by unfold statusError.fields; rfl⟩
 
@@ -5006,19 +5006,19 @@ noncomputable instance equals_unfold_statusError [GooseExts] [GoGlobalContext] :
 class statusError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying statusError.underlying statusError
   underlying : go.UnderlyingDirectedEq statusError.ty statusError.underlying
-  get_code : ∀ (x : statusError), go.IsGoStepPureDetTagged under (StructFieldGet statusError.underlying go!"code") #x (Val #(x.code'))
-  set_code : ∀ (x : statusError) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet statusError.underlying go!"code") (PairV #x #y) (Val #(({ x with code' := y } : statusError)))
-  get_text : ∀ (x : statusError), go.IsGoStepPureDetTagged under (StructFieldGet statusError.underlying go!"text") #x (Val #(x.text'))
-  set_text : ∀ (x : statusError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet statusError.underlying go!"text") (PairV #x #y) (Val #(({ x with text' := y } : statusError)))
+  get'code : ∀ (x : statusError), go.IsGoStepPureDetTagged under (StructFieldGet statusError.underlying go!"code") #x (Val #(x.code'))
+  set'code : ∀ (x : statusError) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet statusError.underlying go!"code") (PairV #x #y) (Val #(({ x with code' := y } : statusError)))
+  get'text : ∀ (x : statusError), go.IsGoStepPureDetTagged under (StructFieldGet statusError.underlying go!"text") #x (Val #(x.text'))
+  set'text : ∀ (x : statusError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet statusError.underlying go!"text") (PairV #x #y) (Val #(({ x with text' := y } : statusError)))
   method_set : go.MethodSetIs statusError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType statusError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] statusError.TypeAssumptions.type_repr
   statusError.TypeAssumptions.underlying
-  statusError.TypeAssumptions.get_code
-  statusError.TypeAssumptions.set_code
-  statusError.TypeAssumptions.get_text
-  statusError.TypeAssumptions.set_text
+  statusError.TypeAssumptions.get'code
+  statusError.TypeAssumptions.set'code
+  statusError.TypeAssumptions.get'text
+  statusError.TypeAssumptions.set'text
   statusError.TypeAssumptions.method_set
   statusError.TypeAssumptions.ptr_method_set
 
@@ -5089,7 +5089,7 @@ noncomputable instance redirectHandler.zero_val [GooseExts] : ZeroVal redirectHa
 @[irreducible] noncomputable def redirectHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   redirectHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_redirectHandler [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'redirectHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold redirectHandler.fields redirectHandler.fieldsUnsealed :=
   ⟨by unfold redirectHandler.fields; rfl⟩
 
@@ -5099,19 +5099,19 @@ noncomputable instance equals_unfold_redirectHandler [GooseExts] [GoGlobalContex
 class redirectHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying redirectHandler.underlying redirectHandler
   underlying : go.UnderlyingDirectedEq redirectHandler.ty redirectHandler.underlying
-  get_url : ∀ (x : redirectHandler), go.IsGoStepPureDetTagged under (StructFieldGet redirectHandler.underlying go!"url") #x (Val #(x.url'))
-  set_url : ∀ (x : redirectHandler) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet redirectHandler.underlying go!"url") (PairV #x #y) (Val #(({ x with url' := y } : redirectHandler)))
-  get_code : ∀ (x : redirectHandler), go.IsGoStepPureDetTagged under (StructFieldGet redirectHandler.underlying go!"code") #x (Val #(x.code'))
-  set_code : ∀ (x : redirectHandler) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet redirectHandler.underlying go!"code") (PairV #x #y) (Val #(({ x with code' := y } : redirectHandler)))
+  get'url : ∀ (x : redirectHandler), go.IsGoStepPureDetTagged under (StructFieldGet redirectHandler.underlying go!"url") #x (Val #(x.url'))
+  set'url : ∀ (x : redirectHandler) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet redirectHandler.underlying go!"url") (PairV #x #y) (Val #(({ x with url' := y } : redirectHandler)))
+  get'code : ∀ (x : redirectHandler), go.IsGoStepPureDetTagged under (StructFieldGet redirectHandler.underlying go!"code") #x (Val #(x.code'))
+  set'code : ∀ (x : redirectHandler) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet redirectHandler.underlying go!"code") (PairV #x #y) (Val #(({ x with code' := y } : redirectHandler)))
   method_set : go.MethodSetIs redirectHandler.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType redirectHandler.ty) [(go!"ServeHTTP", (some (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false [])))]
 
 attribute [instance] redirectHandler.TypeAssumptions.type_repr
   redirectHandler.TypeAssumptions.underlying
-  redirectHandler.TypeAssumptions.get_url
-  redirectHandler.TypeAssumptions.set_url
-  redirectHandler.TypeAssumptions.get_code
-  redirectHandler.TypeAssumptions.set_code
+  redirectHandler.TypeAssumptions.get'url
+  redirectHandler.TypeAssumptions.set'url
+  redirectHandler.TypeAssumptions.get'code
+  redirectHandler.TypeAssumptions.set'code
   redirectHandler.TypeAssumptions.method_set
   redirectHandler.TypeAssumptions.ptr_method_set
 
@@ -5180,7 +5180,7 @@ noncomputable instance serverHandler.zero_val [GooseExts] : ZeroVal serverHandle
 @[irreducible] noncomputable def serverHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   serverHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_serverHandler [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'serverHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold serverHandler.fields serverHandler.fieldsUnsealed :=
   ⟨by unfold serverHandler.fields; rfl⟩
 
@@ -5190,15 +5190,15 @@ noncomputable instance equals_unfold_serverHandler [GooseExts] [GoGlobalContext]
 class serverHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverHandler.underlying serverHandler
   underlying : go.UnderlyingDirectedEq serverHandler.ty serverHandler.underlying
-  get_srv : ∀ (x : serverHandler), go.IsGoStepPureDetTagged under (StructFieldGet serverHandler.underlying go!"srv") #x (Val #(x.srv'))
-  set_srv : ∀ (x : serverHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet serverHandler.underlying go!"srv") (PairV #x #y) (Val #(({ x with srv' := y } : serverHandler)))
+  get'srv : ∀ (x : serverHandler), go.IsGoStepPureDetTagged under (StructFieldGet serverHandler.underlying go!"srv") #x (Val #(x.srv'))
+  set'srv : ∀ (x : serverHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet serverHandler.underlying go!"srv") (PairV #x #y) (Val #(({ x with srv' := y } : serverHandler)))
   method_set : go.MethodSetIs serverHandler.ty [(go!"ServeHTTP", (some (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverHandler.ty) [(go!"ServeHTTP", (some (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false [])))]
 
 attribute [instance] serverHandler.TypeAssumptions.type_repr
   serverHandler.TypeAssumptions.underlying
-  serverHandler.TypeAssumptions.get_srv
-  serverHandler.TypeAssumptions.set_srv
+  serverHandler.TypeAssumptions.get'srv
+  serverHandler.TypeAssumptions.set'srv
   serverHandler.TypeAssumptions.method_set
   serverHandler.TypeAssumptions.ptr_method_set
 
@@ -5290,7 +5290,7 @@ noncomputable instance globalOptionsHandler.zero_val [GooseExts] : ZeroVal globa
 @[irreducible] noncomputable def globalOptionsHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   globalOptionsHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_globalOptionsHandler [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'globalOptionsHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold globalOptionsHandler.fields globalOptionsHandler.fieldsUnsealed :=
   ⟨by unfold globalOptionsHandler.fields; rfl⟩
 
@@ -5359,7 +5359,7 @@ noncomputable instance checkConnErrorWriter.zero_val [GooseExts] : ZeroVal check
 @[irreducible] noncomputable def checkConnErrorWriter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   checkConnErrorWriter.fieldsUnsealed
 
-noncomputable instance equals_unfold_checkConnErrorWriter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'checkConnErrorWriter [GooseExts] [GoGlobalContext] :
     EqualsUnfold checkConnErrorWriter.fields checkConnErrorWriter.fieldsUnsealed :=
   ⟨by unfold checkConnErrorWriter.fields; rfl⟩
 
@@ -5369,15 +5369,15 @@ noncomputable instance equals_unfold_checkConnErrorWriter [GooseExts] [GoGlobalC
 class checkConnErrorWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying checkConnErrorWriter.underlying checkConnErrorWriter
   underlying : go.UnderlyingDirectedEq checkConnErrorWriter.ty checkConnErrorWriter.underlying
-  get_c : ∀ (x : checkConnErrorWriter), go.IsGoStepPureDetTagged under (StructFieldGet checkConnErrorWriter.underlying go!"c") #x (Val #(x.c'))
-  set_c : ∀ (x : checkConnErrorWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet checkConnErrorWriter.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : checkConnErrorWriter)))
+  get'c : ∀ (x : checkConnErrorWriter), go.IsGoStepPureDetTagged under (StructFieldGet checkConnErrorWriter.underlying go!"c") #x (Val #(x.c'))
+  set'c : ∀ (x : checkConnErrorWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet checkConnErrorWriter.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : checkConnErrorWriter)))
   method_set : go.MethodSetIs checkConnErrorWriter.ty [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType checkConnErrorWriter.ty) [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] checkConnErrorWriter.TypeAssumptions.type_repr
   checkConnErrorWriter.TypeAssumptions.underlying
-  checkConnErrorWriter.TypeAssumptions.get_c
-  checkConnErrorWriter.TypeAssumptions.set_c
+  checkConnErrorWriter.TypeAssumptions.get'c
+  checkConnErrorWriter.TypeAssumptions.set'c
   checkConnErrorWriter.TypeAssumptions.method_set
   checkConnErrorWriter.TypeAssumptions.ptr_method_set
 
@@ -5495,7 +5495,7 @@ noncomputable instance socksUsernamePassword.zero_val [GooseExts] : ZeroVal sock
 @[irreducible] noncomputable def socksUsernamePassword.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   socksUsernamePassword.fieldsUnsealed
 
-noncomputable instance equals_unfold_socksUsernamePassword [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'socksUsernamePassword [GooseExts] [GoGlobalContext] :
     EqualsUnfold socksUsernamePassword.fields socksUsernamePassword.fieldsUnsealed :=
   ⟨by unfold socksUsernamePassword.fields; rfl⟩
 
@@ -5505,19 +5505,19 @@ noncomputable instance equals_unfold_socksUsernamePassword [GooseExts] [GoGlobal
 class socksUsernamePassword.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying socksUsernamePassword.underlying socksUsernamePassword
   underlying : go.UnderlyingDirectedEq socksUsernamePassword.ty socksUsernamePassword.underlying
-  get_Username : ∀ (x : socksUsernamePassword), go.IsGoStepPureDetTagged under (StructFieldGet socksUsernamePassword.underlying go!"Username") #x (Val #(x.Username'))
-  set_Username : ∀ (x : socksUsernamePassword) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet socksUsernamePassword.underlying go!"Username") (PairV #x #y) (Val #(({ x with Username' := y } : socksUsernamePassword)))
-  get_Password : ∀ (x : socksUsernamePassword), go.IsGoStepPureDetTagged under (StructFieldGet socksUsernamePassword.underlying go!"Password") #x (Val #(x.Password'))
-  set_Password : ∀ (x : socksUsernamePassword) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet socksUsernamePassword.underlying go!"Password") (PairV #x #y) (Val #(({ x with Password' := y } : socksUsernamePassword)))
+  get'Username : ∀ (x : socksUsernamePassword), go.IsGoStepPureDetTagged under (StructFieldGet socksUsernamePassword.underlying go!"Username") #x (Val #(x.Username'))
+  set'Username : ∀ (x : socksUsernamePassword) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet socksUsernamePassword.underlying go!"Username") (PairV #x #y) (Val #(({ x with Username' := y } : socksUsernamePassword)))
+  get'Password : ∀ (x : socksUsernamePassword), go.IsGoStepPureDetTagged under (StructFieldGet socksUsernamePassword.underlying go!"Password") #x (Val #(x.Password'))
+  set'Password : ∀ (x : socksUsernamePassword) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet socksUsernamePassword.underlying go!"Password") (PairV #x #y) (Val #(({ x with Password' := y } : socksUsernamePassword)))
   method_set : go.MethodSetIs socksUsernamePassword.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType socksUsernamePassword.ty) [(go!"Authenticate", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"io.ReadWriter" []), socksAuthMethod.ty] false [go.error])))]
 
 attribute [instance] socksUsernamePassword.TypeAssumptions.type_repr
   socksUsernamePassword.TypeAssumptions.underlying
-  socksUsernamePassword.TypeAssumptions.get_Username
-  socksUsernamePassword.TypeAssumptions.set_Username
-  socksUsernamePassword.TypeAssumptions.get_Password
-  socksUsernamePassword.TypeAssumptions.set_Password
+  socksUsernamePassword.TypeAssumptions.get'Username
+  socksUsernamePassword.TypeAssumptions.set'Username
+  socksUsernamePassword.TypeAssumptions.get'Password
+  socksUsernamePassword.TypeAssumptions.set'Password
   socksUsernamePassword.TypeAssumptions.method_set
   socksUsernamePassword.TypeAssumptions.ptr_method_set
 
@@ -5534,7 +5534,7 @@ noncomputable instance errorReader.zero_val [GooseExts] : ZeroVal errorReader :=
 @[irreducible] noncomputable def errorReader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   errorReader.fieldsUnsealed
 
-noncomputable instance equals_unfold_errorReader [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'errorReader [GooseExts] [GoGlobalContext] :
     EqualsUnfold errorReader.fields errorReader.fieldsUnsealed :=
   ⟨by unfold errorReader.fields; rfl⟩
 
@@ -5544,15 +5544,15 @@ noncomputable instance equals_unfold_errorReader [GooseExts] [GoGlobalContext] :
 class errorReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying errorReader.underlying errorReader
   underlying : go.UnderlyingDirectedEq errorReader.ty errorReader.underlying
-  get_err : ∀ (x : errorReader), go.IsGoStepPureDetTagged under (StructFieldGet errorReader.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : errorReader) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet errorReader.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : errorReader)))
+  get'err : ∀ (x : errorReader), go.IsGoStepPureDetTagged under (StructFieldGet errorReader.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : errorReader) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet errorReader.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : errorReader)))
   method_set : go.MethodSetIs errorReader.ty [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType errorReader.ty) [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] errorReader.TypeAssumptions.type_repr
   errorReader.TypeAssumptions.underlying
-  errorReader.TypeAssumptions.get_err
-  errorReader.TypeAssumptions.set_err
+  errorReader.TypeAssumptions.get'err
+  errorReader.TypeAssumptions.set'err
   errorReader.TypeAssumptions.method_set
   errorReader.TypeAssumptions.ptr_method_set
 
@@ -5571,7 +5571,7 @@ noncomputable instance byteReader.zero_val [GooseExts] : ZeroVal byteReader :=
 @[irreducible] noncomputable def byteReader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   byteReader.fieldsUnsealed
 
-noncomputable instance equals_unfold_byteReader [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'byteReader [GooseExts] [GoGlobalContext] :
     EqualsUnfold byteReader.fields byteReader.fieldsUnsealed :=
   ⟨by unfold byteReader.fields; rfl⟩
 
@@ -5581,19 +5581,19 @@ noncomputable instance equals_unfold_byteReader [GooseExts] [GoGlobalContext] :
 class byteReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying byteReader.underlying byteReader
   underlying : go.UnderlyingDirectedEq byteReader.ty byteReader.underlying
-  get_b : ∀ (x : byteReader), go.IsGoStepPureDetTagged under (StructFieldGet byteReader.underlying go!"b") #x (Val #(x.b'))
-  set_b : ∀ (x : byteReader) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet byteReader.underlying go!"b") (PairV #x #y) (Val #(({ x with b' := y } : byteReader)))
-  get_done : ∀ (x : byteReader), go.IsGoStepPureDetTagged under (StructFieldGet byteReader.underlying go!"done") #x (Val #(x.done'))
-  set_done : ∀ (x : byteReader) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet byteReader.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : byteReader)))
+  get'b : ∀ (x : byteReader), go.IsGoStepPureDetTagged under (StructFieldGet byteReader.underlying go!"b") #x (Val #(x.b'))
+  set'b : ∀ (x : byteReader) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet byteReader.underlying go!"b") (PairV #x #y) (Val #(({ x with b' := y } : byteReader)))
+  get'done : ∀ (x : byteReader), go.IsGoStepPureDetTagged under (StructFieldGet byteReader.underlying go!"done") #x (Val #(x.done'))
+  set'done : ∀ (x : byteReader) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet byteReader.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : byteReader)))
   method_set : go.MethodSetIs byteReader.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType byteReader.ty) [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] byteReader.TypeAssumptions.type_repr
   byteReader.TypeAssumptions.underlying
-  byteReader.TypeAssumptions.get_b
-  byteReader.TypeAssumptions.set_b
-  byteReader.TypeAssumptions.get_done
-  byteReader.TypeAssumptions.set_done
+  byteReader.TypeAssumptions.get'b
+  byteReader.TypeAssumptions.set'b
+  byteReader.TypeAssumptions.get'done
+  byteReader.TypeAssumptions.set'done
   byteReader.TypeAssumptions.method_set
   byteReader.TypeAssumptions.ptr_method_set
 
@@ -5648,7 +5648,7 @@ noncomputable instance unsupportedTEError.zero_val [GooseExts] : ZeroVal unsuppo
 @[irreducible] noncomputable def unsupportedTEError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   unsupportedTEError.fieldsUnsealed
 
-noncomputable instance equals_unfold_unsupportedTEError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'unsupportedTEError [GooseExts] [GoGlobalContext] :
     EqualsUnfold unsupportedTEError.fields unsupportedTEError.fieldsUnsealed :=
   ⟨by unfold unsupportedTEError.fields; rfl⟩
 
@@ -5658,15 +5658,15 @@ noncomputable instance equals_unfold_unsupportedTEError [GooseExts] [GoGlobalCon
 class unsupportedTEError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying unsupportedTEError.underlying unsupportedTEError
   underlying : go.UnderlyingDirectedEq unsupportedTEError.ty unsupportedTEError.underlying
-  get_err : ∀ (x : unsupportedTEError), go.IsGoStepPureDetTagged under (StructFieldGet unsupportedTEError.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : unsupportedTEError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet unsupportedTEError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : unsupportedTEError)))
+  get'err : ∀ (x : unsupportedTEError), go.IsGoStepPureDetTagged under (StructFieldGet unsupportedTEError.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : unsupportedTEError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet unsupportedTEError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : unsupportedTEError)))
   method_set : go.MethodSetIs unsupportedTEError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType unsupportedTEError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] unsupportedTEError.TypeAssumptions.type_repr
   unsupportedTEError.TypeAssumptions.underlying
-  unsupportedTEError.TypeAssumptions.get_err
-  unsupportedTEError.TypeAssumptions.set_err
+  unsupportedTEError.TypeAssumptions.get'err
+  unsupportedTEError.TypeAssumptions.set'err
   unsupportedTEError.TypeAssumptions.method_set
   unsupportedTEError.TypeAssumptions.ptr_method_set
 
@@ -5702,7 +5702,7 @@ noncomputable instance bodyLocked.zero_val [GooseExts] : ZeroVal bodyLocked :=
 @[irreducible] noncomputable def bodyLocked.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bodyLocked.fieldsUnsealed
 
-noncomputable instance equals_unfold_bodyLocked [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'bodyLocked [GooseExts] [GoGlobalContext] :
     EqualsUnfold bodyLocked.fields bodyLocked.fieldsUnsealed :=
   ⟨by unfold bodyLocked.fields; rfl⟩
 
@@ -5712,15 +5712,15 @@ noncomputable instance equals_unfold_bodyLocked [GooseExts] [GoGlobalContext] :
 class bodyLocked.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bodyLocked.underlying bodyLocked
   underlying : go.UnderlyingDirectedEq bodyLocked.ty bodyLocked.underlying
-  get_b : ∀ (x : bodyLocked), go.IsGoStepPureDetTagged under (StructFieldGet bodyLocked.underlying go!"b") #x (Val #(x.b'))
-  set_b : ∀ (x : bodyLocked) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bodyLocked.underlying go!"b") (PairV #x #y) (Val #(({ x with b' := y } : bodyLocked)))
+  get'b : ∀ (x : bodyLocked), go.IsGoStepPureDetTagged under (StructFieldGet bodyLocked.underlying go!"b") #x (Val #(x.b'))
+  set'b : ∀ (x : bodyLocked) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bodyLocked.underlying go!"b") (PairV #x #y) (Val #(({ x with b' := y } : bodyLocked)))
   method_set : go.MethodSetIs bodyLocked.ty [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bodyLocked.ty) [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] bodyLocked.TypeAssumptions.type_repr
   bodyLocked.TypeAssumptions.underlying
-  bodyLocked.TypeAssumptions.get_b
-  bodyLocked.TypeAssumptions.set_b
+  bodyLocked.TypeAssumptions.get'b
+  bodyLocked.TypeAssumptions.set'b
   bodyLocked.TypeAssumptions.method_set
   bodyLocked.TypeAssumptions.ptr_method_set
 
@@ -5737,7 +5737,7 @@ noncomputable instance finishAsyncByteRead.zero_val [GooseExts] : ZeroVal finish
 @[irreducible] noncomputable def finishAsyncByteRead.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   finishAsyncByteRead.fieldsUnsealed
 
-noncomputable instance equals_unfold_finishAsyncByteRead [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'finishAsyncByteRead [GooseExts] [GoGlobalContext] :
     EqualsUnfold finishAsyncByteRead.fields finishAsyncByteRead.fieldsUnsealed :=
   ⟨by unfold finishAsyncByteRead.fields; rfl⟩
 
@@ -5747,15 +5747,15 @@ noncomputable instance equals_unfold_finishAsyncByteRead [GooseExts] [GoGlobalCo
 class finishAsyncByteRead.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying finishAsyncByteRead.underlying finishAsyncByteRead
   underlying : go.UnderlyingDirectedEq finishAsyncByteRead.ty finishAsyncByteRead.underlying
-  get_tw : ∀ (x : finishAsyncByteRead), go.IsGoStepPureDetTagged under (StructFieldGet finishAsyncByteRead.underlying go!"tw") #x (Val #(x.tw'))
-  set_tw : ∀ (x : finishAsyncByteRead) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet finishAsyncByteRead.underlying go!"tw") (PairV #x #y) (Val #(({ x with tw' := y } : finishAsyncByteRead)))
+  get'tw : ∀ (x : finishAsyncByteRead), go.IsGoStepPureDetTagged under (StructFieldGet finishAsyncByteRead.underlying go!"tw") #x (Val #(x.tw'))
+  set'tw : ∀ (x : finishAsyncByteRead) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet finishAsyncByteRead.underlying go!"tw") (PairV #x #y) (Val #(({ x with tw' := y } : finishAsyncByteRead)))
   method_set : go.MethodSetIs finishAsyncByteRead.ty [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType finishAsyncByteRead.ty) [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] finishAsyncByteRead.TypeAssumptions.type_repr
   finishAsyncByteRead.TypeAssumptions.underlying
-  finishAsyncByteRead.TypeAssumptions.get_tw
-  finishAsyncByteRead.TypeAssumptions.set_tw
+  finishAsyncByteRead.TypeAssumptions.get'tw
+  finishAsyncByteRead.TypeAssumptions.set'tw
   finishAsyncByteRead.TypeAssumptions.method_set
   finishAsyncByteRead.TypeAssumptions.ptr_method_set
 
@@ -5881,7 +5881,7 @@ noncomputable instance transportReadFromServerError.zero_val [GooseExts] : ZeroV
 @[irreducible] noncomputable def transportReadFromServerError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   transportReadFromServerError.fieldsUnsealed
 
-noncomputable instance equals_unfold_transportReadFromServerError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'transportReadFromServerError [GooseExts] [GoGlobalContext] :
     EqualsUnfold transportReadFromServerError.fields transportReadFromServerError.fieldsUnsealed :=
   ⟨by unfold transportReadFromServerError.fields; rfl⟩
 
@@ -5891,15 +5891,15 @@ noncomputable instance equals_unfold_transportReadFromServerError [GooseExts] [G
 class transportReadFromServerError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying transportReadFromServerError.underlying transportReadFromServerError
   underlying : go.UnderlyingDirectedEq transportReadFromServerError.ty transportReadFromServerError.underlying
-  get_err : ∀ (x : transportReadFromServerError), go.IsGoStepPureDetTagged under (StructFieldGet transportReadFromServerError.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : transportReadFromServerError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet transportReadFromServerError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : transportReadFromServerError)))
+  get'err : ∀ (x : transportReadFromServerError), go.IsGoStepPureDetTagged under (StructFieldGet transportReadFromServerError.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : transportReadFromServerError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet transportReadFromServerError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : transportReadFromServerError)))
   method_set : go.MethodSetIs transportReadFromServerError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType transportReadFromServerError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] transportReadFromServerError.TypeAssumptions.type_repr
   transportReadFromServerError.TypeAssumptions.underlying
-  transportReadFromServerError.TypeAssumptions.get_err
-  transportReadFromServerError.TypeAssumptions.set_err
+  transportReadFromServerError.TypeAssumptions.get'err
+  transportReadFromServerError.TypeAssumptions.set'err
   transportReadFromServerError.TypeAssumptions.method_set
   transportReadFromServerError.TypeAssumptions.ptr_method_set
 
@@ -5958,7 +5958,7 @@ noncomputable instance wantConnQueue.zero_val [GooseExts] : ZeroVal wantConnQueu
 @[irreducible] noncomputable def wantConnQueue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   wantConnQueue.fieldsUnsealed
 
-noncomputable instance equals_unfold_wantConnQueue [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'wantConnQueue [GooseExts] [GoGlobalContext] :
     EqualsUnfold wantConnQueue.fields wantConnQueue.fieldsUnsealed :=
   ⟨by unfold wantConnQueue.fields; rfl⟩
 
@@ -5968,23 +5968,23 @@ noncomputable instance equals_unfold_wantConnQueue [GooseExts] [GoGlobalContext]
 class wantConnQueue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying wantConnQueue.underlying wantConnQueue
   underlying : go.UnderlyingDirectedEq wantConnQueue.ty wantConnQueue.underlying
-  get_head : ∀ (x : wantConnQueue), go.IsGoStepPureDetTagged under (StructFieldGet wantConnQueue.underlying go!"head") #x (Val #(x.head'))
-  set_head : ∀ (x : wantConnQueue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet wantConnQueue.underlying go!"head") (PairV #x #y) (Val #(({ x with head' := y } : wantConnQueue)))
-  get_headPos : ∀ (x : wantConnQueue), go.IsGoStepPureDetTagged under (StructFieldGet wantConnQueue.underlying go!"headPos") #x (Val #(x.headPos'))
-  set_headPos : ∀ (x : wantConnQueue) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet wantConnQueue.underlying go!"headPos") (PairV #x #y) (Val #(({ x with headPos' := y } : wantConnQueue)))
-  get_tail : ∀ (x : wantConnQueue), go.IsGoStepPureDetTagged under (StructFieldGet wantConnQueue.underlying go!"tail") #x (Val #(x.tail'))
-  set_tail : ∀ (x : wantConnQueue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet wantConnQueue.underlying go!"tail") (PairV #x #y) (Val #(({ x with tail' := y } : wantConnQueue)))
+  get'head : ∀ (x : wantConnQueue), go.IsGoStepPureDetTagged under (StructFieldGet wantConnQueue.underlying go!"head") #x (Val #(x.head'))
+  set'head : ∀ (x : wantConnQueue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet wantConnQueue.underlying go!"head") (PairV #x #y) (Val #(({ x with head' := y } : wantConnQueue)))
+  get'headPos : ∀ (x : wantConnQueue), go.IsGoStepPureDetTagged under (StructFieldGet wantConnQueue.underlying go!"headPos") #x (Val #(x.headPos'))
+  set'headPos : ∀ (x : wantConnQueue) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet wantConnQueue.underlying go!"headPos") (PairV #x #y) (Val #(({ x with headPos' := y } : wantConnQueue)))
+  get'tail : ∀ (x : wantConnQueue), go.IsGoStepPureDetTagged under (StructFieldGet wantConnQueue.underlying go!"tail") #x (Val #(x.tail'))
+  set'tail : ∀ (x : wantConnQueue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet wantConnQueue.underlying go!"tail") (PairV #x #y) (Val #(({ x with tail' := y } : wantConnQueue)))
   method_set : go.MethodSetIs wantConnQueue.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType wantConnQueue.ty) [(go!"net/http.all", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType wantConn.ty)] false []))] false []))), (go!"net/http.cleanFrontCanceled", (some (go.signature.Signature [] false []))), (go!"net/http.cleanFrontNotWaiting", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.len", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.peekFront", (some (go.signature.Signature [] false [(go.GoType.PointerType wantConn.ty)]))), (go!"net/http.popFront", (some (go.signature.Signature [] false [(go.GoType.PointerType wantConn.ty)]))), (go!"net/http.pushBack", (some (go.signature.Signature [(go.GoType.PointerType wantConn.ty)] false [])))]
 
 attribute [instance] wantConnQueue.TypeAssumptions.type_repr
   wantConnQueue.TypeAssumptions.underlying
-  wantConnQueue.TypeAssumptions.get_head
-  wantConnQueue.TypeAssumptions.set_head
-  wantConnQueue.TypeAssumptions.get_headPos
-  wantConnQueue.TypeAssumptions.set_headPos
-  wantConnQueue.TypeAssumptions.get_tail
-  wantConnQueue.TypeAssumptions.set_tail
+  wantConnQueue.TypeAssumptions.get'head
+  wantConnQueue.TypeAssumptions.set'head
+  wantConnQueue.TypeAssumptions.get'headPos
+  wantConnQueue.TypeAssumptions.set'headPos
+  wantConnQueue.TypeAssumptions.get'tail
+  wantConnQueue.TypeAssumptions.set'tail
   wantConnQueue.TypeAssumptions.method_set
   wantConnQueue.TypeAssumptions.ptr_method_set
 
@@ -6015,7 +6015,7 @@ noncomputable instance persistConnWriter.zero_val [GooseExts] : ZeroVal persistC
 @[irreducible] noncomputable def persistConnWriter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   persistConnWriter.fieldsUnsealed
 
-noncomputable instance equals_unfold_persistConnWriter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'persistConnWriter [GooseExts] [GoGlobalContext] :
     EqualsUnfold persistConnWriter.fields persistConnWriter.fieldsUnsealed :=
   ⟨by unfold persistConnWriter.fields; rfl⟩
 
@@ -6025,15 +6025,15 @@ noncomputable instance equals_unfold_persistConnWriter [GooseExts] [GoGlobalCont
 class persistConnWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying persistConnWriter.underlying persistConnWriter
   underlying : go.UnderlyingDirectedEq persistConnWriter.ty persistConnWriter.underlying
-  get_pc : ∀ (x : persistConnWriter), go.IsGoStepPureDetTagged under (StructFieldGet persistConnWriter.underlying go!"pc") #x (Val #(x.pc'))
-  set_pc : ∀ (x : persistConnWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet persistConnWriter.underlying go!"pc") (PairV #x #y) (Val #(({ x with pc' := y } : persistConnWriter)))
+  get'pc : ∀ (x : persistConnWriter), go.IsGoStepPureDetTagged under (StructFieldGet persistConnWriter.underlying go!"pc") #x (Val #(x.pc'))
+  set'pc : ∀ (x : persistConnWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet persistConnWriter.underlying go!"pc") (PairV #x #y) (Val #(({ x with pc' := y } : persistConnWriter)))
   method_set : go.MethodSetIs persistConnWriter.ty [(go!"ReadFrom", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [go.int64, go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType persistConnWriter.ty) [(go!"ReadFrom", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [go.int64, go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] persistConnWriter.TypeAssumptions.type_repr
   persistConnWriter.TypeAssumptions.underlying
-  persistConnWriter.TypeAssumptions.get_pc
-  persistConnWriter.TypeAssumptions.set_pc
+  persistConnWriter.TypeAssumptions.get'pc
+  persistConnWriter.TypeAssumptions.set'pc
   persistConnWriter.TypeAssumptions.method_set
   persistConnWriter.TypeAssumptions.ptr_method_set
 
@@ -6075,7 +6075,7 @@ noncomputable instance connectMethodKey.zero_val [GooseExts] : ZeroVal connectMe
 @[irreducible] noncomputable def connectMethodKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   connectMethodKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_connectMethodKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'connectMethodKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold connectMethodKey.fields connectMethodKey.fieldsUnsealed :=
   ⟨by unfold connectMethodKey.fields; rfl⟩
 
@@ -6085,27 +6085,27 @@ noncomputable instance equals_unfold_connectMethodKey [GooseExts] [GoGlobalConte
 class connectMethodKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying connectMethodKey.underlying connectMethodKey
   underlying : go.UnderlyingDirectedEq connectMethodKey.ty connectMethodKey.underlying
-  get_proxy : ∀ (x : connectMethodKey), go.IsGoStepPureDetTagged under (StructFieldGet connectMethodKey.underlying go!"proxy") #x (Val #(x.proxy'))
-  set_proxy : ∀ (x : connectMethodKey) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet connectMethodKey.underlying go!"proxy") (PairV #x #y) (Val #(({ x with proxy' := y } : connectMethodKey)))
-  get_scheme : ∀ (x : connectMethodKey), go.IsGoStepPureDetTagged under (StructFieldGet connectMethodKey.underlying go!"scheme") #x (Val #(x.scheme'))
-  set_scheme : ∀ (x : connectMethodKey) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet connectMethodKey.underlying go!"scheme") (PairV #x #y) (Val #(({ x with scheme' := y } : connectMethodKey)))
-  get_addr : ∀ (x : connectMethodKey), go.IsGoStepPureDetTagged under (StructFieldGet connectMethodKey.underlying go!"addr") #x (Val #(x.addr'))
-  set_addr : ∀ (x : connectMethodKey) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet connectMethodKey.underlying go!"addr") (PairV #x #y) (Val #(({ x with addr' := y } : connectMethodKey)))
-  get_onlyH1 : ∀ (x : connectMethodKey), go.IsGoStepPureDetTagged under (StructFieldGet connectMethodKey.underlying go!"onlyH1") #x (Val #(x.onlyH1'))
-  set_onlyH1 : ∀ (x : connectMethodKey) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet connectMethodKey.underlying go!"onlyH1") (PairV #x #y) (Val #(({ x with onlyH1' := y } : connectMethodKey)))
+  get'proxy : ∀ (x : connectMethodKey), go.IsGoStepPureDetTagged under (StructFieldGet connectMethodKey.underlying go!"proxy") #x (Val #(x.proxy'))
+  set'proxy : ∀ (x : connectMethodKey) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet connectMethodKey.underlying go!"proxy") (PairV #x #y) (Val #(({ x with proxy' := y } : connectMethodKey)))
+  get'scheme : ∀ (x : connectMethodKey), go.IsGoStepPureDetTagged under (StructFieldGet connectMethodKey.underlying go!"scheme") #x (Val #(x.scheme'))
+  set'scheme : ∀ (x : connectMethodKey) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet connectMethodKey.underlying go!"scheme") (PairV #x #y) (Val #(({ x with scheme' := y } : connectMethodKey)))
+  get'addr : ∀ (x : connectMethodKey), go.IsGoStepPureDetTagged under (StructFieldGet connectMethodKey.underlying go!"addr") #x (Val #(x.addr'))
+  set'addr : ∀ (x : connectMethodKey) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet connectMethodKey.underlying go!"addr") (PairV #x #y) (Val #(({ x with addr' := y } : connectMethodKey)))
+  get'onlyH1 : ∀ (x : connectMethodKey), go.IsGoStepPureDetTagged under (StructFieldGet connectMethodKey.underlying go!"onlyH1") #x (Val #(x.onlyH1'))
+  set'onlyH1 : ∀ (x : connectMethodKey) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet connectMethodKey.underlying go!"onlyH1") (PairV #x #y) (Val #(({ x with onlyH1' := y } : connectMethodKey)))
   method_set : go.MethodSetIs connectMethodKey.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType connectMethodKey.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] connectMethodKey.TypeAssumptions.type_repr
   connectMethodKey.TypeAssumptions.underlying
-  connectMethodKey.TypeAssumptions.get_proxy
-  connectMethodKey.TypeAssumptions.set_proxy
-  connectMethodKey.TypeAssumptions.get_scheme
-  connectMethodKey.TypeAssumptions.set_scheme
-  connectMethodKey.TypeAssumptions.get_addr
-  connectMethodKey.TypeAssumptions.set_addr
-  connectMethodKey.TypeAssumptions.get_onlyH1
-  connectMethodKey.TypeAssumptions.set_onlyH1
+  connectMethodKey.TypeAssumptions.get'proxy
+  connectMethodKey.TypeAssumptions.set'proxy
+  connectMethodKey.TypeAssumptions.get'scheme
+  connectMethodKey.TypeAssumptions.set'scheme
+  connectMethodKey.TypeAssumptions.get'addr
+  connectMethodKey.TypeAssumptions.set'addr
+  connectMethodKey.TypeAssumptions.get'onlyH1
+  connectMethodKey.TypeAssumptions.set'onlyH1
   connectMethodKey.TypeAssumptions.method_set
   connectMethodKey.TypeAssumptions.ptr_method_set
 
@@ -6160,7 +6160,7 @@ noncomputable instance nothingWrittenError.zero_val [GooseExts] : ZeroVal nothin
 @[irreducible] noncomputable def nothingWrittenError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   nothingWrittenError.fieldsUnsealed
 
-noncomputable instance equals_unfold_nothingWrittenError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'nothingWrittenError [GooseExts] [GoGlobalContext] :
     EqualsUnfold nothingWrittenError.fields nothingWrittenError.fieldsUnsealed :=
   ⟨by unfold nothingWrittenError.fields; rfl⟩
 
@@ -6170,15 +6170,15 @@ noncomputable instance equals_unfold_nothingWrittenError [GooseExts] [GoGlobalCo
 class nothingWrittenError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying nothingWrittenError.underlying nothingWrittenError
   underlying : go.UnderlyingDirectedEq nothingWrittenError.ty nothingWrittenError.underlying
-  get_error : ∀ (x : nothingWrittenError), go.IsGoStepPureDetTagged under (StructFieldGet nothingWrittenError.underlying go!"error") #x (Val #(x.error'))
-  set_error : ∀ (x : nothingWrittenError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet nothingWrittenError.underlying go!"error") (PairV #x #y) (Val #(({ x with error' := y } : nothingWrittenError)))
+  get'error : ∀ (x : nothingWrittenError), go.IsGoStepPureDetTagged under (StructFieldGet nothingWrittenError.underlying go!"error") #x (Val #(x.error'))
+  set'error : ∀ (x : nothingWrittenError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet nothingWrittenError.underlying go!"error") (PairV #x #y) (Val #(({ x with error' := y } : nothingWrittenError)))
   method_set : go.MethodSetIs nothingWrittenError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType nothingWrittenError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] nothingWrittenError.TypeAssumptions.type_repr
   nothingWrittenError.TypeAssumptions.underlying
-  nothingWrittenError.TypeAssumptions.get_error
-  nothingWrittenError.TypeAssumptions.set_error
+  nothingWrittenError.TypeAssumptions.get'error
+  nothingWrittenError.TypeAssumptions.set'error
   nothingWrittenError.TypeAssumptions.method_set
   nothingWrittenError.TypeAssumptions.ptr_method_set
 
@@ -6199,7 +6199,7 @@ noncomputable instance responseAndError.zero_val [GooseExts] : ZeroVal responseA
 @[irreducible] noncomputable def responseAndError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   responseAndError.fieldsUnsealed
 
-noncomputable instance equals_unfold_responseAndError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'responseAndError [GooseExts] [GoGlobalContext] :
     EqualsUnfold responseAndError.fields responseAndError.fieldsUnsealed :=
   ⟨by unfold responseAndError.fields; rfl⟩
 
@@ -6209,23 +6209,23 @@ noncomputable instance equals_unfold_responseAndError [GooseExts] [GoGlobalConte
 class responseAndError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying responseAndError.underlying responseAndError
   underlying : go.UnderlyingDirectedEq responseAndError.ty responseAndError.underlying
-  «get__#0» : ∀ (x : responseAndError), go.IsGoStepPureDetTagged under (StructFieldGet responseAndError.underlying go!"_#0") #x (Val #(x.«_#0'»))
-  «set__#0» : ∀ (x : responseAndError) (y : incomparable), go.IsGoStepPureDetTagged under (StructFieldSet responseAndError.underlying go!"_#0") (PairV #x #y) (Val #(({ x with «_#0'» := y } : responseAndError)))
-  get_res : ∀ (x : responseAndError), go.IsGoStepPureDetTagged under (StructFieldGet responseAndError.underlying go!"res") #x (Val #(x.res'))
-  set_res : ∀ (x : responseAndError) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet responseAndError.underlying go!"res") (PairV #x #y) (Val #(({ x with res' := y } : responseAndError)))
-  get_err : ∀ (x : responseAndError), go.IsGoStepPureDetTagged under (StructFieldGet responseAndError.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : responseAndError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet responseAndError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : responseAndError)))
+  «get'_#0» : ∀ (x : responseAndError), go.IsGoStepPureDetTagged under (StructFieldGet responseAndError.underlying go!"_#0") #x (Val #(x.«_#0'»))
+  «set'_#0» : ∀ (x : responseAndError) (y : incomparable), go.IsGoStepPureDetTagged under (StructFieldSet responseAndError.underlying go!"_#0") (PairV #x #y) (Val #(({ x with «_#0'» := y } : responseAndError)))
+  get'res : ∀ (x : responseAndError), go.IsGoStepPureDetTagged under (StructFieldGet responseAndError.underlying go!"res") #x (Val #(x.res'))
+  set'res : ∀ (x : responseAndError) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet responseAndError.underlying go!"res") (PairV #x #y) (Val #(({ x with res' := y } : responseAndError)))
+  get'err : ∀ (x : responseAndError), go.IsGoStepPureDetTagged under (StructFieldGet responseAndError.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : responseAndError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet responseAndError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : responseAndError)))
   method_set : go.MethodSetIs responseAndError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType responseAndError.ty) []
 
 attribute [instance] responseAndError.TypeAssumptions.type_repr
   responseAndError.TypeAssumptions.underlying
-  responseAndError.TypeAssumptions.«get__#0»
-  responseAndError.TypeAssumptions.«set__#0»
-  responseAndError.TypeAssumptions.get_res
-  responseAndError.TypeAssumptions.set_res
-  responseAndError.TypeAssumptions.get_err
-  responseAndError.TypeAssumptions.set_err
+  responseAndError.TypeAssumptions.«get'_#0»
+  responseAndError.TypeAssumptions.«set'_#0»
+  responseAndError.TypeAssumptions.get'res
+  responseAndError.TypeAssumptions.set'res
+  responseAndError.TypeAssumptions.get'err
+  responseAndError.TypeAssumptions.set'err
   responseAndError.TypeAssumptions.method_set
   responseAndError.TypeAssumptions.ptr_method_set
 
@@ -6252,7 +6252,7 @@ noncomputable instance requestAndChan.zero_val [GooseExts] : ZeroVal requestAndC
 @[irreducible] noncomputable def requestAndChan.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   requestAndChan.fieldsUnsealed
 
-noncomputable instance equals_unfold_requestAndChan [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'requestAndChan [GooseExts] [GoGlobalContext] :
     EqualsUnfold requestAndChan.fields requestAndChan.fieldsUnsealed :=
   ⟨by unfold requestAndChan.fields; rfl⟩
 
@@ -6262,35 +6262,35 @@ noncomputable instance equals_unfold_requestAndChan [GooseExts] [GoGlobalContext
 class requestAndChan.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying requestAndChan.underlying requestAndChan
   underlying : go.UnderlyingDirectedEq requestAndChan.ty requestAndChan.underlying
-  «get__#0» : ∀ (x : requestAndChan), go.IsGoStepPureDetTagged under (StructFieldGet requestAndChan.underlying go!"_#0") #x (Val #(x.«_#0'»))
-  «set__#0» : ∀ (x : requestAndChan) (y : incomparable), go.IsGoStepPureDetTagged under (StructFieldSet requestAndChan.underlying go!"_#0") (PairV #x #y) (Val #(({ x with «_#0'» := y } : requestAndChan)))
-  get_treq : ∀ (x : requestAndChan), go.IsGoStepPureDetTagged under (StructFieldGet requestAndChan.underlying go!"treq") #x (Val #(x.treq'))
-  set_treq : ∀ (x : requestAndChan) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet requestAndChan.underlying go!"treq") (PairV #x #y) (Val #(({ x with treq' := y } : requestAndChan)))
-  get_ch : ∀ (x : requestAndChan), go.IsGoStepPureDetTagged under (StructFieldGet requestAndChan.underlying go!"ch") #x (Val #(x.ch'))
-  set_ch : ∀ (x : requestAndChan) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet requestAndChan.underlying go!"ch") (PairV #x #y) (Val #(({ x with ch' := y } : requestAndChan)))
-  get_addedGzip : ∀ (x : requestAndChan), go.IsGoStepPureDetTagged under (StructFieldGet requestAndChan.underlying go!"addedGzip") #x (Val #(x.addedGzip'))
-  set_addedGzip : ∀ (x : requestAndChan) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet requestAndChan.underlying go!"addedGzip") (PairV #x #y) (Val #(({ x with addedGzip' := y } : requestAndChan)))
-  get_continueCh : ∀ (x : requestAndChan), go.IsGoStepPureDetTagged under (StructFieldGet requestAndChan.underlying go!"continueCh") #x (Val #(x.continueCh'))
-  set_continueCh : ∀ (x : requestAndChan) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet requestAndChan.underlying go!"continueCh") (PairV #x #y) (Val #(({ x with continueCh' := y } : requestAndChan)))
-  get_callerGone : ∀ (x : requestAndChan), go.IsGoStepPureDetTagged under (StructFieldGet requestAndChan.underlying go!"callerGone") #x (Val #(x.callerGone'))
-  set_callerGone : ∀ (x : requestAndChan) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet requestAndChan.underlying go!"callerGone") (PairV #x #y) (Val #(({ x with callerGone' := y } : requestAndChan)))
+  «get'_#0» : ∀ (x : requestAndChan), go.IsGoStepPureDetTagged under (StructFieldGet requestAndChan.underlying go!"_#0") #x (Val #(x.«_#0'»))
+  «set'_#0» : ∀ (x : requestAndChan) (y : incomparable), go.IsGoStepPureDetTagged under (StructFieldSet requestAndChan.underlying go!"_#0") (PairV #x #y) (Val #(({ x with «_#0'» := y } : requestAndChan)))
+  get'treq : ∀ (x : requestAndChan), go.IsGoStepPureDetTagged under (StructFieldGet requestAndChan.underlying go!"treq") #x (Val #(x.treq'))
+  set'treq : ∀ (x : requestAndChan) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet requestAndChan.underlying go!"treq") (PairV #x #y) (Val #(({ x with treq' := y } : requestAndChan)))
+  get'ch : ∀ (x : requestAndChan), go.IsGoStepPureDetTagged under (StructFieldGet requestAndChan.underlying go!"ch") #x (Val #(x.ch'))
+  set'ch : ∀ (x : requestAndChan) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet requestAndChan.underlying go!"ch") (PairV #x #y) (Val #(({ x with ch' := y } : requestAndChan)))
+  get'addedGzip : ∀ (x : requestAndChan), go.IsGoStepPureDetTagged under (StructFieldGet requestAndChan.underlying go!"addedGzip") #x (Val #(x.addedGzip'))
+  set'addedGzip : ∀ (x : requestAndChan) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet requestAndChan.underlying go!"addedGzip") (PairV #x #y) (Val #(({ x with addedGzip' := y } : requestAndChan)))
+  get'continueCh : ∀ (x : requestAndChan), go.IsGoStepPureDetTagged under (StructFieldGet requestAndChan.underlying go!"continueCh") #x (Val #(x.continueCh'))
+  set'continueCh : ∀ (x : requestAndChan) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet requestAndChan.underlying go!"continueCh") (PairV #x #y) (Val #(({ x with continueCh' := y } : requestAndChan)))
+  get'callerGone : ∀ (x : requestAndChan), go.IsGoStepPureDetTagged under (StructFieldGet requestAndChan.underlying go!"callerGone") #x (Val #(x.callerGone'))
+  set'callerGone : ∀ (x : requestAndChan) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet requestAndChan.underlying go!"callerGone") (PairV #x #y) (Val #(({ x with callerGone' := y } : requestAndChan)))
   method_set : go.MethodSetIs requestAndChan.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType requestAndChan.ty) []
 
 attribute [instance] requestAndChan.TypeAssumptions.type_repr
   requestAndChan.TypeAssumptions.underlying
-  requestAndChan.TypeAssumptions.«get__#0»
-  requestAndChan.TypeAssumptions.«set__#0»
-  requestAndChan.TypeAssumptions.get_treq
-  requestAndChan.TypeAssumptions.set_treq
-  requestAndChan.TypeAssumptions.get_ch
-  requestAndChan.TypeAssumptions.set_ch
-  requestAndChan.TypeAssumptions.get_addedGzip
-  requestAndChan.TypeAssumptions.set_addedGzip
-  requestAndChan.TypeAssumptions.get_continueCh
-  requestAndChan.TypeAssumptions.set_continueCh
-  requestAndChan.TypeAssumptions.get_callerGone
-  requestAndChan.TypeAssumptions.set_callerGone
+  requestAndChan.TypeAssumptions.«get'_#0»
+  requestAndChan.TypeAssumptions.«set'_#0»
+  requestAndChan.TypeAssumptions.get'treq
+  requestAndChan.TypeAssumptions.set'treq
+  requestAndChan.TypeAssumptions.get'ch
+  requestAndChan.TypeAssumptions.set'ch
+  requestAndChan.TypeAssumptions.get'addedGzip
+  requestAndChan.TypeAssumptions.set'addedGzip
+  requestAndChan.TypeAssumptions.get'continueCh
+  requestAndChan.TypeAssumptions.set'continueCh
+  requestAndChan.TypeAssumptions.get'callerGone
+  requestAndChan.TypeAssumptions.set'callerGone
   requestAndChan.TypeAssumptions.method_set
   requestAndChan.TypeAssumptions.ptr_method_set
 
@@ -6311,7 +6311,7 @@ noncomputable instance writeRequest.zero_val [GooseExts] : ZeroVal writeRequest 
 @[irreducible] noncomputable def writeRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   writeRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_writeRequest [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'writeRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold writeRequest.fields writeRequest.fieldsUnsealed :=
   ⟨by unfold writeRequest.fields; rfl⟩
 
@@ -6321,23 +6321,23 @@ noncomputable instance equals_unfold_writeRequest [GooseExts] [GoGlobalContext] 
 class writeRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying writeRequest.underlying writeRequest
   underlying : go.UnderlyingDirectedEq writeRequest.ty writeRequest.underlying
-  get_req : ∀ (x : writeRequest), go.IsGoStepPureDetTagged under (StructFieldGet writeRequest.underlying go!"req") #x (Val #(x.req'))
-  set_req : ∀ (x : writeRequest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet writeRequest.underlying go!"req") (PairV #x #y) (Val #(({ x with req' := y } : writeRequest)))
-  get_ch : ∀ (x : writeRequest), go.IsGoStepPureDetTagged under (StructFieldGet writeRequest.underlying go!"ch") #x (Val #(x.ch'))
-  set_ch : ∀ (x : writeRequest) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet writeRequest.underlying go!"ch") (PairV #x #y) (Val #(({ x with ch' := y } : writeRequest)))
-  get_continueCh : ∀ (x : writeRequest), go.IsGoStepPureDetTagged under (StructFieldGet writeRequest.underlying go!"continueCh") #x (Val #(x.continueCh'))
-  set_continueCh : ∀ (x : writeRequest) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet writeRequest.underlying go!"continueCh") (PairV #x #y) (Val #(({ x with continueCh' := y } : writeRequest)))
+  get'req : ∀ (x : writeRequest), go.IsGoStepPureDetTagged under (StructFieldGet writeRequest.underlying go!"req") #x (Val #(x.req'))
+  set'req : ∀ (x : writeRequest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet writeRequest.underlying go!"req") (PairV #x #y) (Val #(({ x with req' := y } : writeRequest)))
+  get'ch : ∀ (x : writeRequest), go.IsGoStepPureDetTagged under (StructFieldGet writeRequest.underlying go!"ch") #x (Val #(x.ch'))
+  set'ch : ∀ (x : writeRequest) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet writeRequest.underlying go!"ch") (PairV #x #y) (Val #(({ x with ch' := y } : writeRequest)))
+  get'continueCh : ∀ (x : writeRequest), go.IsGoStepPureDetTagged under (StructFieldGet writeRequest.underlying go!"continueCh") #x (Val #(x.continueCh'))
+  set'continueCh : ∀ (x : writeRequest) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet writeRequest.underlying go!"continueCh") (PairV #x #y) (Val #(({ x with continueCh' := y } : writeRequest)))
   method_set : go.MethodSetIs writeRequest.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType writeRequest.ty) []
 
 attribute [instance] writeRequest.TypeAssumptions.type_repr
   writeRequest.TypeAssumptions.underlying
-  writeRequest.TypeAssumptions.get_req
-  writeRequest.TypeAssumptions.set_req
-  writeRequest.TypeAssumptions.get_ch
-  writeRequest.TypeAssumptions.set_ch
-  writeRequest.TypeAssumptions.get_continueCh
-  writeRequest.TypeAssumptions.set_continueCh
+  writeRequest.TypeAssumptions.get'req
+  writeRequest.TypeAssumptions.set'req
+  writeRequest.TypeAssumptions.get'ch
+  writeRequest.TypeAssumptions.set'ch
+  writeRequest.TypeAssumptions.get'continueCh
+  writeRequest.TypeAssumptions.set'continueCh
   writeRequest.TypeAssumptions.method_set
   writeRequest.TypeAssumptions.ptr_method_set
 
@@ -6354,7 +6354,7 @@ noncomputable instance timeoutError.zero_val [GooseExts] : ZeroVal timeoutError 
 @[irreducible] noncomputable def timeoutError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   timeoutError.fieldsUnsealed
 
-noncomputable instance equals_unfold_timeoutError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'timeoutError [GooseExts] [GoGlobalContext] :
     EqualsUnfold timeoutError.fields timeoutError.fieldsUnsealed :=
   ⟨by unfold timeoutError.fields; rfl⟩
 
@@ -6364,15 +6364,15 @@ noncomputable instance equals_unfold_timeoutError [GooseExts] [GoGlobalContext] 
 class timeoutError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying timeoutError.underlying timeoutError
   underlying : go.UnderlyingDirectedEq timeoutError.ty timeoutError.underlying
-  get_err : ∀ (x : timeoutError), go.IsGoStepPureDetTagged under (StructFieldGet timeoutError.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : timeoutError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet timeoutError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : timeoutError)))
+  get'err : ∀ (x : timeoutError), go.IsGoStepPureDetTagged under (StructFieldGet timeoutError.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : timeoutError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet timeoutError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : timeoutError)))
   method_set : go.MethodSetIs timeoutError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeoutError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] timeoutError.TypeAssumptions.type_repr
   timeoutError.TypeAssumptions.underlying
-  timeoutError.TypeAssumptions.get_err
-  timeoutError.TypeAssumptions.set_err
+  timeoutError.TypeAssumptions.get'err
+  timeoutError.TypeAssumptions.set'err
   timeoutError.TypeAssumptions.method_set
   timeoutError.TypeAssumptions.ptr_method_set
 
@@ -6388,7 +6388,7 @@ noncomputable instance tLogKey.zero_val [GooseExts] : ZeroVal tLogKey :=
 @[irreducible] noncomputable def tLogKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   tLogKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_tLogKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'tLogKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold tLogKey.fields tLogKey.fieldsUnsealed :=
   ⟨by unfold tLogKey.fields; rfl⟩
 
@@ -6456,7 +6456,7 @@ noncomputable instance eofReader.zero_val [GooseExts] : ZeroVal eofReader :=
 @[irreducible] noncomputable def eofReader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   eofReader.fieldsUnsealed
 
-noncomputable instance equals_unfold_eofReader [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'eofReader [GooseExts] [GoGlobalContext] :
     EqualsUnfold eofReader.fields eofReader.fieldsUnsealed :=
   ⟨by unfold eofReader.fields; rfl⟩
 
@@ -6486,7 +6486,7 @@ noncomputable instance tlsHandshakeTimeoutError.zero_val [GooseExts] : ZeroVal t
 @[irreducible] noncomputable def tlsHandshakeTimeoutError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   tlsHandshakeTimeoutError.fieldsUnsealed
 
-noncomputable instance equals_unfold_tlsHandshakeTimeoutError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'tlsHandshakeTimeoutError [GooseExts] [GoGlobalContext] :
     EqualsUnfold tlsHandshakeTimeoutError.fields tlsHandshakeTimeoutError.fieldsUnsealed :=
   ⟨by unfold tlsHandshakeTimeoutError.fields; rfl⟩
 
@@ -6516,7 +6516,7 @@ noncomputable instance fakeLocker.zero_val [GooseExts] : ZeroVal fakeLocker :=
 @[irreducible] noncomputable def fakeLocker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fakeLocker.fieldsUnsealed
 
-noncomputable instance equals_unfold_fakeLocker [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'fakeLocker [GooseExts] [GoGlobalContext] :
     EqualsUnfold fakeLocker.fields fakeLocker.fieldsUnsealed :=
   ⟨by unfold fakeLocker.fields; rfl⟩
 
@@ -6554,289 +6554,289 @@ attribute [instance] connLRU.TypeAssumptions.type_repr
   connLRU.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Client_instance : Client.TypeAssumptions
-  RoundTripper_instance : RoundTripper.TypeAssumptions
-  cancelTimerBody_instance : cancelTimerBody.TypeAssumptions
-  ClientConn_instance : ClientConn.TypeAssumptions
-  newClientConner_instance : newClientConner.TypeAssumptions
-  genericClientConn_instance : genericClientConn.TypeAssumptions
-  http1ClientConn_instance : http1ClientConn.TypeAssumptions
-  Cookie_instance : Cookie.TypeAssumptions
-  SameSite_instance : SameSite.TypeAssumptions
-  CrossOriginProtection_instance : CrossOriginProtection.TypeAssumptions
-  noopHandler_instance : noopHandler.TypeAssumptions
-  fileTransport_instance : fileTransport.TypeAssumptions
-  populateResponse_instance : populateResponse.TypeAssumptions
-  Dir_instance : Dir.TypeAssumptions
-  FileSystem_instance : FileSystem.TypeAssumptions
-  File_instance : File.TypeAssumptions
-  anyDirs_instance : anyDirs.TypeAssumptions
-  fileInfoDirs_instance : fileInfoDirs.TypeAssumptions
-  dirEntryDirs_instance : dirEntryDirs.TypeAssumptions
-  condResult_instance : condResult.TypeAssumptions
-  fileHandler_instance : fileHandler.TypeAssumptions
-  ioFS_instance : ioFS.TypeAssumptions
-  ioFile_instance : ioFile.TypeAssumptions
-  httpRange_instance : httpRange.TypeAssumptions
-  countingWriter_instance : countingWriter.TypeAssumptions
-  Header_instance : Header.TypeAssumptions
-  stringWriter_instance : stringWriter.TypeAssumptions
-  keyValues_instance : keyValues.TypeAssumptions
-  headerSorter_instance : headerSorter.TypeAssumptions
-  Protocols_instance : Protocols.TypeAssumptions
-  incomparable_instance : incomparable.TypeAssumptions
-  contextKey_instance : contextKey.TypeAssumptions
-  noBody_instance : noBody.TypeAssumptions
-  PushOptions_instance : PushOptions.TypeAssumptions
-  Pusher_instance : Pusher.TypeAssumptions
-  HTTP2Config_instance : HTTP2Config.TypeAssumptions
-  http2Handler_instance : http2Handler.TypeAssumptions
-  http2ResponseWriter_instance : http2ResponseWriter.TypeAssumptions
-  http2ServerConfig_instance : http2ServerConfig.TypeAssumptions
-  http2ExternalServerConfig_instance : http2ExternalServerConfig.TypeAssumptions
-  http2ExternalTransportConfig_instance : http2ExternalTransportConfig.TypeAssumptions
-  http2ErringRoundTripper_instance : http2ErringRoundTripper.TypeAssumptions
-  http2RoundTripper_instance : http2RoundTripper.TypeAssumptions
-  http2ClientConn_instance : http2ClientConn.TypeAssumptions
-  transportConfig_instance : transportConfig.TypeAssumptions
-  http2Configer_instance : http2Configer.TypeAssumptions
-  CookieJar_instance : CookieJar.TypeAssumptions
-  mapping_instance : mapping.TypeAssumptions
-  entry_instance : entry.TypeAssumptions
-  pattern_instance : pattern.TypeAssumptions
-  segment_instance : segment.TypeAssumptions
-  relationship_instance : relationship.TypeAssumptions
-  ProtocolError_instance : ProtocolError.TypeAssumptions
-  Request_instance : Request.TypeAssumptions
-  requestBodyReadError_instance : requestBodyReadError.TypeAssumptions
-  MaxBytesError_instance : MaxBytesError.TypeAssumptions
-  maxBytesReader_instance : maxBytesReader.TypeAssumptions
-  Response_instance : Response.TypeAssumptions
-  ResponseController_instance : ResponseController.TypeAssumptions
-  rwUnwrapper_instance : rwUnwrapper.TypeAssumptions
-  routingIndex_instance : routingIndex.TypeAssumptions
-  routingIndexKey_instance : routingIndexKey.TypeAssumptions
-  routingNode_instance : routingNode.TypeAssumptions
-  serveMux121_instance : serveMux121.TypeAssumptions
-  muxEntry_instance : muxEntry.TypeAssumptions
-  Handler_instance : Handler.TypeAssumptions
-  ResponseWriter_instance : ResponseWriter.TypeAssumptions
-  Flusher_instance : Flusher.TypeAssumptions
-  Hijacker_instance : Hijacker.TypeAssumptions
-  CloseNotifier_instance : CloseNotifier.TypeAssumptions
-  conn_instance : conn.TypeAssumptions
-  chunkWriter_instance : chunkWriter.TypeAssumptions
-  response_instance : response.TypeAssumptions
-  writerOnly_instance : writerOnly.TypeAssumptions
-  readResult_instance : readResult.TypeAssumptions
-  connReader_instance : connReader.TypeAssumptions
-  expectContinueReader_instance : expectContinueReader.TypeAssumptions
-  extraHeader_instance : extraHeader.TypeAssumptions
-  closeWriter_instance : closeWriter.TypeAssumptions
-  statusError_instance : statusError.TypeAssumptions
-  unencryptedHTTP2Request_instance : unencryptedHTTP2Request.TypeAssumptions
-  unencryptedNetConnInTLSConn_instance : unencryptedNetConnInTLSConn.TypeAssumptions
-  HandlerFunc_instance : HandlerFunc.TypeAssumptions
-  redirectHandler_instance : redirectHandler.TypeAssumptions
-  ServeMux_instance : ServeMux.TypeAssumptions
-  Server_instance : Server.TypeAssumptions
-  ConnState_instance : ConnState.TypeAssumptions
-  serverHandler_instance : serverHandler.TypeAssumptions
-  http3ServerHandler_instance : http3ServerHandler.TypeAssumptions
-  timeoutHandler_instance : timeoutHandler.TypeAssumptions
-  timeoutWriter_instance : timeoutWriter.TypeAssumptions
-  onceCloseListener_instance : onceCloseListener.TypeAssumptions
-  globalOptionsHandler_instance : globalOptionsHandler.TypeAssumptions
-  initALPNRequest_instance : initALPNRequest.TypeAssumptions
-  loggingConn_instance : loggingConn.TypeAssumptions
-  checkConnErrorWriter_instance : checkConnErrorWriter.TypeAssumptions
-  socksCommand_instance : socksCommand.TypeAssumptions
-  socksAuthMethod_instance : socksAuthMethod.TypeAssumptions
-  socksReply_instance : socksReply.TypeAssumptions
-  socksAddr_instance : socksAddr.TypeAssumptions
-  socksConn_instance : socksConn.TypeAssumptions
-  socksDialer_instance : socksDialer.TypeAssumptions
-  socksUsernamePassword_instance : socksUsernamePassword.TypeAssumptions
-  errorReader_instance : errorReader.TypeAssumptions
-  byteReader_instance : byteReader.TypeAssumptions
-  transferWriter_instance : transferWriter.TypeAssumptions
-  transferReader_instance : transferReader.TypeAssumptions
-  unsupportedTEError_instance : unsupportedTEError.TypeAssumptions
-  body_instance : body.TypeAssumptions
-  bodyLocked_instance : bodyLocked.TypeAssumptions
-  finishAsyncByteRead_instance : finishAsyncByteRead.TypeAssumptions
-  bufioFlushWriter_instance : bufioFlushWriter.TypeAssumptions
-  Transport_instance : Transport.TypeAssumptions
-  dialClientConner_instance : dialClientConner.TypeAssumptions
-  closeIdleConnectionser_instance : closeIdleConnectionser.TypeAssumptions
-  transportRequest_instance : transportRequest.TypeAssumptions
-  readTrackingBody_instance : readTrackingBody.TypeAssumptions
-  transportReadFromServerError_instance : transportReadFromServerError.TypeAssumptions
-  wantConn_instance : wantConn.TypeAssumptions
-  connOrError_instance : connOrError.TypeAssumptions
-  wantConnQueue_instance : wantConnQueue.TypeAssumptions
-  erringRoundTripper_instance : erringRoundTripper.TypeAssumptions
-  persistConnWriter_instance : persistConnWriter.TypeAssumptions
-  connectMethod_instance : connectMethod.TypeAssumptions
-  connectMethodKey_instance : connectMethodKey.TypeAssumptions
-  persistConn_instance : persistConn.TypeAssumptions
-  readWriteCloserBody_instance : readWriteCloserBody.TypeAssumptions
-  nothingWrittenError_instance : nothingWrittenError.TypeAssumptions
-  responseAndError_instance : responseAndError.TypeAssumptions
-  requestAndChan_instance : requestAndChan.TypeAssumptions
-  writeRequest_instance : writeRequest.TypeAssumptions
-  timeoutError_instance : timeoutError.TypeAssumptions
-  tLogKey_instance : tLogKey.TypeAssumptions
-  bodyEOFSignal_instance : bodyEOFSignal.TypeAssumptions
-  gzipReader_instance : gzipReader.TypeAssumptions
-  eofReader_instance : eofReader.TypeAssumptions
-  tlsHandshakeTimeoutError_instance : tlsHandshakeTimeoutError.TypeAssumptions
-  fakeLocker_instance : fakeLocker.TypeAssumptions
-  connLRU_instance : connLRU.TypeAssumptions
-  StatusText_unfold : FuncUnfold StatusText [] StatusText.impl
-  import_textproto_Assumption : _root_.Perennial.net.textproto.Assumptions
+  instance'Client : Client.TypeAssumptions
+  instance'RoundTripper : RoundTripper.TypeAssumptions
+  instance'cancelTimerBody : cancelTimerBody.TypeAssumptions
+  instance'ClientConn : ClientConn.TypeAssumptions
+  instance'newClientConner : newClientConner.TypeAssumptions
+  instance'genericClientConn : genericClientConn.TypeAssumptions
+  instance'http1ClientConn : http1ClientConn.TypeAssumptions
+  instance'Cookie : Cookie.TypeAssumptions
+  instance'SameSite : SameSite.TypeAssumptions
+  instance'CrossOriginProtection : CrossOriginProtection.TypeAssumptions
+  instance'noopHandler : noopHandler.TypeAssumptions
+  instance'fileTransport : fileTransport.TypeAssumptions
+  instance'populateResponse : populateResponse.TypeAssumptions
+  instance'Dir : Dir.TypeAssumptions
+  instance'FileSystem : FileSystem.TypeAssumptions
+  instance'File : File.TypeAssumptions
+  instance'anyDirs : anyDirs.TypeAssumptions
+  instance'fileInfoDirs : fileInfoDirs.TypeAssumptions
+  instance'dirEntryDirs : dirEntryDirs.TypeAssumptions
+  instance'condResult : condResult.TypeAssumptions
+  instance'fileHandler : fileHandler.TypeAssumptions
+  instance'ioFS : ioFS.TypeAssumptions
+  instance'ioFile : ioFile.TypeAssumptions
+  instance'httpRange : httpRange.TypeAssumptions
+  instance'countingWriter : countingWriter.TypeAssumptions
+  instance'Header : Header.TypeAssumptions
+  instance'stringWriter : stringWriter.TypeAssumptions
+  instance'keyValues : keyValues.TypeAssumptions
+  instance'headerSorter : headerSorter.TypeAssumptions
+  instance'Protocols : Protocols.TypeAssumptions
+  instance'incomparable : incomparable.TypeAssumptions
+  instance'contextKey : contextKey.TypeAssumptions
+  instance'noBody : noBody.TypeAssumptions
+  instance'PushOptions : PushOptions.TypeAssumptions
+  instance'Pusher : Pusher.TypeAssumptions
+  instance'HTTP2Config : HTTP2Config.TypeAssumptions
+  instance'http2Handler : http2Handler.TypeAssumptions
+  instance'http2ResponseWriter : http2ResponseWriter.TypeAssumptions
+  instance'http2ServerConfig : http2ServerConfig.TypeAssumptions
+  instance'http2ExternalServerConfig : http2ExternalServerConfig.TypeAssumptions
+  instance'http2ExternalTransportConfig : http2ExternalTransportConfig.TypeAssumptions
+  instance'http2ErringRoundTripper : http2ErringRoundTripper.TypeAssumptions
+  instance'http2RoundTripper : http2RoundTripper.TypeAssumptions
+  instance'http2ClientConn : http2ClientConn.TypeAssumptions
+  instance'transportConfig : transportConfig.TypeAssumptions
+  instance'http2Configer : http2Configer.TypeAssumptions
+  instance'CookieJar : CookieJar.TypeAssumptions
+  instance'mapping : mapping.TypeAssumptions
+  instance'entry : entry.TypeAssumptions
+  instance'pattern : pattern.TypeAssumptions
+  instance'segment : segment.TypeAssumptions
+  instance'relationship : relationship.TypeAssumptions
+  instance'ProtocolError : ProtocolError.TypeAssumptions
+  instance'Request : Request.TypeAssumptions
+  instance'requestBodyReadError : requestBodyReadError.TypeAssumptions
+  instance'MaxBytesError : MaxBytesError.TypeAssumptions
+  instance'maxBytesReader : maxBytesReader.TypeAssumptions
+  instance'Response : Response.TypeAssumptions
+  instance'ResponseController : ResponseController.TypeAssumptions
+  instance'rwUnwrapper : rwUnwrapper.TypeAssumptions
+  instance'routingIndex : routingIndex.TypeAssumptions
+  instance'routingIndexKey : routingIndexKey.TypeAssumptions
+  instance'routingNode : routingNode.TypeAssumptions
+  instance'serveMux121 : serveMux121.TypeAssumptions
+  instance'muxEntry : muxEntry.TypeAssumptions
+  instance'Handler : Handler.TypeAssumptions
+  instance'ResponseWriter : ResponseWriter.TypeAssumptions
+  instance'Flusher : Flusher.TypeAssumptions
+  instance'Hijacker : Hijacker.TypeAssumptions
+  instance'CloseNotifier : CloseNotifier.TypeAssumptions
+  instance'conn : conn.TypeAssumptions
+  instance'chunkWriter : chunkWriter.TypeAssumptions
+  instance'response : response.TypeAssumptions
+  instance'writerOnly : writerOnly.TypeAssumptions
+  instance'readResult : readResult.TypeAssumptions
+  instance'connReader : connReader.TypeAssumptions
+  instance'expectContinueReader : expectContinueReader.TypeAssumptions
+  instance'extraHeader : extraHeader.TypeAssumptions
+  instance'closeWriter : closeWriter.TypeAssumptions
+  instance'statusError : statusError.TypeAssumptions
+  instance'unencryptedHTTP2Request : unencryptedHTTP2Request.TypeAssumptions
+  instance'unencryptedNetConnInTLSConn : unencryptedNetConnInTLSConn.TypeAssumptions
+  instance'HandlerFunc : HandlerFunc.TypeAssumptions
+  instance'redirectHandler : redirectHandler.TypeAssumptions
+  instance'ServeMux : ServeMux.TypeAssumptions
+  instance'Server : Server.TypeAssumptions
+  instance'ConnState : ConnState.TypeAssumptions
+  instance'serverHandler : serverHandler.TypeAssumptions
+  instance'http3ServerHandler : http3ServerHandler.TypeAssumptions
+  instance'timeoutHandler : timeoutHandler.TypeAssumptions
+  instance'timeoutWriter : timeoutWriter.TypeAssumptions
+  instance'onceCloseListener : onceCloseListener.TypeAssumptions
+  instance'globalOptionsHandler : globalOptionsHandler.TypeAssumptions
+  instance'initALPNRequest : initALPNRequest.TypeAssumptions
+  instance'loggingConn : loggingConn.TypeAssumptions
+  instance'checkConnErrorWriter : checkConnErrorWriter.TypeAssumptions
+  instance'socksCommand : socksCommand.TypeAssumptions
+  instance'socksAuthMethod : socksAuthMethod.TypeAssumptions
+  instance'socksReply : socksReply.TypeAssumptions
+  instance'socksAddr : socksAddr.TypeAssumptions
+  instance'socksConn : socksConn.TypeAssumptions
+  instance'socksDialer : socksDialer.TypeAssumptions
+  instance'socksUsernamePassword : socksUsernamePassword.TypeAssumptions
+  instance'errorReader : errorReader.TypeAssumptions
+  instance'byteReader : byteReader.TypeAssumptions
+  instance'transferWriter : transferWriter.TypeAssumptions
+  instance'transferReader : transferReader.TypeAssumptions
+  instance'unsupportedTEError : unsupportedTEError.TypeAssumptions
+  instance'body : body.TypeAssumptions
+  instance'bodyLocked : bodyLocked.TypeAssumptions
+  instance'finishAsyncByteRead : finishAsyncByteRead.TypeAssumptions
+  instance'bufioFlushWriter : bufioFlushWriter.TypeAssumptions
+  instance'Transport : Transport.TypeAssumptions
+  instance'dialClientConner : dialClientConner.TypeAssumptions
+  instance'closeIdleConnectionser : closeIdleConnectionser.TypeAssumptions
+  instance'transportRequest : transportRequest.TypeAssumptions
+  instance'readTrackingBody : readTrackingBody.TypeAssumptions
+  instance'transportReadFromServerError : transportReadFromServerError.TypeAssumptions
+  instance'wantConn : wantConn.TypeAssumptions
+  instance'connOrError : connOrError.TypeAssumptions
+  instance'wantConnQueue : wantConnQueue.TypeAssumptions
+  instance'erringRoundTripper : erringRoundTripper.TypeAssumptions
+  instance'persistConnWriter : persistConnWriter.TypeAssumptions
+  instance'connectMethod : connectMethod.TypeAssumptions
+  instance'connectMethodKey : connectMethodKey.TypeAssumptions
+  instance'persistConn : persistConn.TypeAssumptions
+  instance'readWriteCloserBody : readWriteCloserBody.TypeAssumptions
+  instance'nothingWrittenError : nothingWrittenError.TypeAssumptions
+  instance'responseAndError : responseAndError.TypeAssumptions
+  instance'requestAndChan : requestAndChan.TypeAssumptions
+  instance'writeRequest : writeRequest.TypeAssumptions
+  instance'timeoutError : timeoutError.TypeAssumptions
+  instance'tLogKey : tLogKey.TypeAssumptions
+  instance'bodyEOFSignal : bodyEOFSignal.TypeAssumptions
+  instance'gzipReader : gzipReader.TypeAssumptions
+  instance'eofReader : eofReader.TypeAssumptions
+  instance'tlsHandshakeTimeoutError : tlsHandshakeTimeoutError.TypeAssumptions
+  instance'fakeLocker : fakeLocker.TypeAssumptions
+  instance'connLRU : connLRU.TypeAssumptions
+  unfold'StatusText : FuncUnfold StatusText [] StatusText.impl
+  import'textproto : _root_.Perennial.net.textproto.Assumptions
 
-attribute [instance] Assumptions.Client_instance
-  Assumptions.RoundTripper_instance
-  Assumptions.cancelTimerBody_instance
-  Assumptions.ClientConn_instance
-  Assumptions.newClientConner_instance
-  Assumptions.genericClientConn_instance
-  Assumptions.http1ClientConn_instance
-  Assumptions.Cookie_instance
-  Assumptions.SameSite_instance
-  Assumptions.CrossOriginProtection_instance
-  Assumptions.noopHandler_instance
-  Assumptions.fileTransport_instance
-  Assumptions.populateResponse_instance
-  Assumptions.Dir_instance
-  Assumptions.FileSystem_instance
-  Assumptions.File_instance
-  Assumptions.anyDirs_instance
-  Assumptions.fileInfoDirs_instance
-  Assumptions.dirEntryDirs_instance
-  Assumptions.condResult_instance
-  Assumptions.fileHandler_instance
-  Assumptions.ioFS_instance
-  Assumptions.ioFile_instance
-  Assumptions.httpRange_instance
-  Assumptions.countingWriter_instance
-  Assumptions.Header_instance
-  Assumptions.stringWriter_instance
-  Assumptions.keyValues_instance
-  Assumptions.headerSorter_instance
-  Assumptions.Protocols_instance
-  Assumptions.incomparable_instance
-  Assumptions.contextKey_instance
-  Assumptions.noBody_instance
-  Assumptions.PushOptions_instance
-  Assumptions.Pusher_instance
-  Assumptions.HTTP2Config_instance
-  Assumptions.http2Handler_instance
-  Assumptions.http2ResponseWriter_instance
-  Assumptions.http2ServerConfig_instance
-  Assumptions.http2ExternalServerConfig_instance
-  Assumptions.http2ExternalTransportConfig_instance
-  Assumptions.http2ErringRoundTripper_instance
-  Assumptions.http2RoundTripper_instance
-  Assumptions.http2ClientConn_instance
-  Assumptions.transportConfig_instance
-  Assumptions.http2Configer_instance
-  Assumptions.CookieJar_instance
-  Assumptions.mapping_instance
-  Assumptions.entry_instance
-  Assumptions.pattern_instance
-  Assumptions.segment_instance
-  Assumptions.relationship_instance
-  Assumptions.ProtocolError_instance
-  Assumptions.Request_instance
-  Assumptions.requestBodyReadError_instance
-  Assumptions.MaxBytesError_instance
-  Assumptions.maxBytesReader_instance
-  Assumptions.Response_instance
-  Assumptions.ResponseController_instance
-  Assumptions.rwUnwrapper_instance
-  Assumptions.routingIndex_instance
-  Assumptions.routingIndexKey_instance
-  Assumptions.routingNode_instance
-  Assumptions.serveMux121_instance
-  Assumptions.muxEntry_instance
-  Assumptions.Handler_instance
-  Assumptions.ResponseWriter_instance
-  Assumptions.Flusher_instance
-  Assumptions.Hijacker_instance
-  Assumptions.CloseNotifier_instance
-  Assumptions.conn_instance
-  Assumptions.chunkWriter_instance
-  Assumptions.response_instance
-  Assumptions.writerOnly_instance
-  Assumptions.readResult_instance
-  Assumptions.connReader_instance
-  Assumptions.expectContinueReader_instance
-  Assumptions.extraHeader_instance
-  Assumptions.closeWriter_instance
-  Assumptions.statusError_instance
-  Assumptions.unencryptedHTTP2Request_instance
-  Assumptions.unencryptedNetConnInTLSConn_instance
-  Assumptions.HandlerFunc_instance
-  Assumptions.redirectHandler_instance
-  Assumptions.ServeMux_instance
-  Assumptions.Server_instance
-  Assumptions.ConnState_instance
-  Assumptions.serverHandler_instance
-  Assumptions.http3ServerHandler_instance
-  Assumptions.timeoutHandler_instance
-  Assumptions.timeoutWriter_instance
-  Assumptions.onceCloseListener_instance
-  Assumptions.globalOptionsHandler_instance
-  Assumptions.initALPNRequest_instance
-  Assumptions.loggingConn_instance
-  Assumptions.checkConnErrorWriter_instance
-  Assumptions.socksCommand_instance
-  Assumptions.socksAuthMethod_instance
-  Assumptions.socksReply_instance
-  Assumptions.socksAddr_instance
-  Assumptions.socksConn_instance
-  Assumptions.socksDialer_instance
-  Assumptions.socksUsernamePassword_instance
-  Assumptions.errorReader_instance
-  Assumptions.byteReader_instance
-  Assumptions.transferWriter_instance
-  Assumptions.transferReader_instance
-  Assumptions.unsupportedTEError_instance
-  Assumptions.body_instance
-  Assumptions.bodyLocked_instance
-  Assumptions.finishAsyncByteRead_instance
-  Assumptions.bufioFlushWriter_instance
-  Assumptions.Transport_instance
-  Assumptions.dialClientConner_instance
-  Assumptions.closeIdleConnectionser_instance
-  Assumptions.transportRequest_instance
-  Assumptions.readTrackingBody_instance
-  Assumptions.transportReadFromServerError_instance
-  Assumptions.wantConn_instance
-  Assumptions.connOrError_instance
-  Assumptions.wantConnQueue_instance
-  Assumptions.erringRoundTripper_instance
-  Assumptions.persistConnWriter_instance
-  Assumptions.connectMethod_instance
-  Assumptions.connectMethodKey_instance
-  Assumptions.persistConn_instance
-  Assumptions.readWriteCloserBody_instance
-  Assumptions.nothingWrittenError_instance
-  Assumptions.responseAndError_instance
-  Assumptions.requestAndChan_instance
-  Assumptions.writeRequest_instance
-  Assumptions.timeoutError_instance
-  Assumptions.tLogKey_instance
-  Assumptions.bodyEOFSignal_instance
-  Assumptions.gzipReader_instance
-  Assumptions.eofReader_instance
-  Assumptions.tlsHandshakeTimeoutError_instance
-  Assumptions.fakeLocker_instance
-  Assumptions.connLRU_instance
-  Assumptions.StatusText_unfold
-  Assumptions.import_textproto_Assumption
+attribute [instance] Assumptions.instance'Client
+  Assumptions.instance'RoundTripper
+  Assumptions.instance'cancelTimerBody
+  Assumptions.instance'ClientConn
+  Assumptions.instance'newClientConner
+  Assumptions.instance'genericClientConn
+  Assumptions.instance'http1ClientConn
+  Assumptions.instance'Cookie
+  Assumptions.instance'SameSite
+  Assumptions.instance'CrossOriginProtection
+  Assumptions.instance'noopHandler
+  Assumptions.instance'fileTransport
+  Assumptions.instance'populateResponse
+  Assumptions.instance'Dir
+  Assumptions.instance'FileSystem
+  Assumptions.instance'File
+  Assumptions.instance'anyDirs
+  Assumptions.instance'fileInfoDirs
+  Assumptions.instance'dirEntryDirs
+  Assumptions.instance'condResult
+  Assumptions.instance'fileHandler
+  Assumptions.instance'ioFS
+  Assumptions.instance'ioFile
+  Assumptions.instance'httpRange
+  Assumptions.instance'countingWriter
+  Assumptions.instance'Header
+  Assumptions.instance'stringWriter
+  Assumptions.instance'keyValues
+  Assumptions.instance'headerSorter
+  Assumptions.instance'Protocols
+  Assumptions.instance'incomparable
+  Assumptions.instance'contextKey
+  Assumptions.instance'noBody
+  Assumptions.instance'PushOptions
+  Assumptions.instance'Pusher
+  Assumptions.instance'HTTP2Config
+  Assumptions.instance'http2Handler
+  Assumptions.instance'http2ResponseWriter
+  Assumptions.instance'http2ServerConfig
+  Assumptions.instance'http2ExternalServerConfig
+  Assumptions.instance'http2ExternalTransportConfig
+  Assumptions.instance'http2ErringRoundTripper
+  Assumptions.instance'http2RoundTripper
+  Assumptions.instance'http2ClientConn
+  Assumptions.instance'transportConfig
+  Assumptions.instance'http2Configer
+  Assumptions.instance'CookieJar
+  Assumptions.instance'mapping
+  Assumptions.instance'entry
+  Assumptions.instance'pattern
+  Assumptions.instance'segment
+  Assumptions.instance'relationship
+  Assumptions.instance'ProtocolError
+  Assumptions.instance'Request
+  Assumptions.instance'requestBodyReadError
+  Assumptions.instance'MaxBytesError
+  Assumptions.instance'maxBytesReader
+  Assumptions.instance'Response
+  Assumptions.instance'ResponseController
+  Assumptions.instance'rwUnwrapper
+  Assumptions.instance'routingIndex
+  Assumptions.instance'routingIndexKey
+  Assumptions.instance'routingNode
+  Assumptions.instance'serveMux121
+  Assumptions.instance'muxEntry
+  Assumptions.instance'Handler
+  Assumptions.instance'ResponseWriter
+  Assumptions.instance'Flusher
+  Assumptions.instance'Hijacker
+  Assumptions.instance'CloseNotifier
+  Assumptions.instance'conn
+  Assumptions.instance'chunkWriter
+  Assumptions.instance'response
+  Assumptions.instance'writerOnly
+  Assumptions.instance'readResult
+  Assumptions.instance'connReader
+  Assumptions.instance'expectContinueReader
+  Assumptions.instance'extraHeader
+  Assumptions.instance'closeWriter
+  Assumptions.instance'statusError
+  Assumptions.instance'unencryptedHTTP2Request
+  Assumptions.instance'unencryptedNetConnInTLSConn
+  Assumptions.instance'HandlerFunc
+  Assumptions.instance'redirectHandler
+  Assumptions.instance'ServeMux
+  Assumptions.instance'Server
+  Assumptions.instance'ConnState
+  Assumptions.instance'serverHandler
+  Assumptions.instance'http3ServerHandler
+  Assumptions.instance'timeoutHandler
+  Assumptions.instance'timeoutWriter
+  Assumptions.instance'onceCloseListener
+  Assumptions.instance'globalOptionsHandler
+  Assumptions.instance'initALPNRequest
+  Assumptions.instance'loggingConn
+  Assumptions.instance'checkConnErrorWriter
+  Assumptions.instance'socksCommand
+  Assumptions.instance'socksAuthMethod
+  Assumptions.instance'socksReply
+  Assumptions.instance'socksAddr
+  Assumptions.instance'socksConn
+  Assumptions.instance'socksDialer
+  Assumptions.instance'socksUsernamePassword
+  Assumptions.instance'errorReader
+  Assumptions.instance'byteReader
+  Assumptions.instance'transferWriter
+  Assumptions.instance'transferReader
+  Assumptions.instance'unsupportedTEError
+  Assumptions.instance'body
+  Assumptions.instance'bodyLocked
+  Assumptions.instance'finishAsyncByteRead
+  Assumptions.instance'bufioFlushWriter
+  Assumptions.instance'Transport
+  Assumptions.instance'dialClientConner
+  Assumptions.instance'closeIdleConnectionser
+  Assumptions.instance'transportRequest
+  Assumptions.instance'readTrackingBody
+  Assumptions.instance'transportReadFromServerError
+  Assumptions.instance'wantConn
+  Assumptions.instance'connOrError
+  Assumptions.instance'wantConnQueue
+  Assumptions.instance'erringRoundTripper
+  Assumptions.instance'persistConnWriter
+  Assumptions.instance'connectMethod
+  Assumptions.instance'connectMethodKey
+  Assumptions.instance'persistConn
+  Assumptions.instance'readWriteCloserBody
+  Assumptions.instance'nothingWrittenError
+  Assumptions.instance'responseAndError
+  Assumptions.instance'requestAndChan
+  Assumptions.instance'writeRequest
+  Assumptions.instance'timeoutError
+  Assumptions.instance'tLogKey
+  Assumptions.instance'bodyEOFSignal
+  Assumptions.instance'gzipReader
+  Assumptions.instance'eofReader
+  Assumptions.instance'tlsHandshakeTimeoutError
+  Assumptions.instance'fakeLocker
+  Assumptions.instance'connLRU
+  Assumptions.unfold'StatusText
+  Assumptions.import'textproto
 
 end net.http
 

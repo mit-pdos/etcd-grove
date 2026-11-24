@@ -46,7 +46,7 @@ theorem onDisk.below.wp_proof (wp_isApp : onDisk.isApp.spec (GF := GF) (hG := hG
   unfold OnDisk.below at Hv
   obtain ⟨a, ha, ht, hf⟩ := andM_ok Hv
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_isApp_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'isApp.method_unfold]
   try wp_auto
   wp_apply wp_isApp gx x a $$ [Hx]
   · iframe Hx; ipureintro; exact ha
@@ -59,7 +59,7 @@ theorem onDisk.below.wp_proof (wp_isApp : onDisk.isApp.spec (GF := GF) (hG := hG
   simp only [pure_ok, Except.ok.injEq] at Hr
   subst Hr
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_fm_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'fm.method_unfold]
   try wp_auto
   wp_apply wp_fm gx x fm $$ [Hx] as %u #Hu
   · iframe Hx; ipureintro; exact hfm

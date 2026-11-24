@@ -177,13 +177,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  LEUint32_unfold : FuncUnfold LEUint32 [] LEUint32.impl
-  BEPutUint32_unfold : FuncUnfold BEPutUint32 [] BEPutUint32.impl
-  BEPutUint64_unfold : FuncUnfold BEPutUint64 [] BEPutUint64.impl
+  unfold'LEUint32 : FuncUnfold LEUint32 [] LEUint32.impl
+  unfold'BEPutUint32 : FuncUnfold BEPutUint32 [] BEPutUint32.impl
+  unfold'BEPutUint64 : FuncUnfold BEPutUint64 [] BEPutUint64.impl
 
-attribute [instance] Assumptions.LEUint32_unfold
-  Assumptions.BEPutUint32_unfold
-  Assumptions.BEPutUint64_unfold
+attribute [instance] Assumptions.unfold'LEUint32
+  Assumptions.unfold'BEPutUint32
+  Assumptions.unfold'BEPutUint64
 
 end internal.byteorder
 

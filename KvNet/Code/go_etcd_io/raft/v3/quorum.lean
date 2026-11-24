@@ -314,7 +314,7 @@ noncomputable def MajorityConfig.String.impl [GooseExts] [GoGlobalContext] : val
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.strings.Builder.ty) go!"WriteByte"))) (Var "buf")) (Var "$a0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "sl"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.«Sort» [(go.GoType.SliceType go.uint64), go.uint64]))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.Sort'' [(go.GoType.SliceType go.uint64), go.uint64]))) (Val #())) (Var "$a0")))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (Var "c"))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val (map.forRange go.uint64 (go.GoType.StructType []))) (Var "$range"))
@@ -531,7 +531,7 @@ noncomputable def MajorityConfig.Describe.impl [GooseExts] [GoGlobalContext] : v
 /-- Slice returns the MajorityConfig as a sorted slice.
 
     go: majority.go:109:25 -/
-noncomputable def MajorityConfig.Slice.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def MajorityConfig.Slice''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
@@ -548,7 +548,7 @@ noncomputable def MajorityConfig.Slice.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.uint64)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "sl"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.«Sort» [(go.GoType.SliceType go.uint64), go.uint64]))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.Sort'' [(go.GoType.SliceType go.uint64), go.uint64]))) (Val #())) (Var "$a0")))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (Var "c"))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val (map.forRange go.uint64 (go.GoType.StructType []))) (Var "$range"))
@@ -599,7 +599,7 @@ noncomputable def MajorityConfig.CommittedIndex.impl [GooseExts] [GoGlobalContex
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "pos") (Var "$r0")))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "srt"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.«Sort» [(go.GoType.SliceType go.uint64), go.uint64]))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.Sort'' [(go.GoType.SliceType go.uint64), go.uint64]))) (Val #())) (Var "$a0")))))))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 1))))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -889,35 +889,35 @@ class MajorityConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq MajorityConfig.ty MajorityConfig.underlying
   method_set : go.MethodSetIs MajorityConfig.ty [(go!"CommittedIndex", (some (go.signature.Signature [AckedIndexer.ty] false [Index''.ty]))), (go!"Describe", (some (go.signature.Signature [AckedIndexer.ty] false [go.string]))), (go!"Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint64)]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"VoteResult", (some (go.signature.Signature [(go.GoType.MapType go.uint64 go.bool)] false [VoteResult.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MajorityConfig.ty) [(go!"CommittedIndex", (some (go.signature.Signature [AckedIndexer.ty] false [Index''.ty]))), (go!"Describe", (some (go.signature.Signature [AckedIndexer.ty] false [go.string]))), (go!"Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint64)]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"VoteResult", (some (go.signature.Signature [(go.GoType.MapType go.uint64 go.bool)] false [VoteResult.ty])))]
-  CommittedIndex_unfold : MethodUnfold MajorityConfig.ty go!"CommittedIndex" MajorityConfig.CommittedIndex.impl
-  Describe_unfold : MethodUnfold MajorityConfig.ty go!"Describe" MajorityConfig.Describe.impl
-  Slice_unfold : MethodUnfold MajorityConfig.ty go!"Slice" MajorityConfig.Slice.impl
-  String_unfold : MethodUnfold MajorityConfig.ty go!"String" MajorityConfig.String.impl
-  VoteResult_unfold : MethodUnfold MajorityConfig.ty go!"VoteResult" MajorityConfig.VoteResult.impl
-  ptr_CommittedIndex_unfold : MethodUnfold (go.GoType.PointerType MajorityConfig.ty) go!"CommittedIndex" (LamV "$r"
+  unfold'CommittedIndex : MethodUnfold MajorityConfig.ty go!"CommittedIndex" MajorityConfig.CommittedIndex.impl
+  unfold'Describe : MethodUnfold MajorityConfig.ty go!"Describe" MajorityConfig.Describe.impl
+  unfold'Slice : MethodUnfold MajorityConfig.ty go!"Slice" MajorityConfig.Slice''.impl
+  unfold'String : MethodUnfold MajorityConfig.ty go!"String" MajorityConfig.String.impl
+  unfold'VoteResult : MethodUnfold MajorityConfig.ty go!"VoteResult" MajorityConfig.VoteResult.impl
+  ptr_unfold'CommittedIndex : MethodUnfold (go.GoType.PointerType MajorityConfig.ty) go!"CommittedIndex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve MajorityConfig.ty go!"CommittedIndex"))) (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (Var "$r"))))
-  ptr_Describe_unfold : MethodUnfold (go.GoType.PointerType MajorityConfig.ty) go!"Describe" (LamV "$r"
+  ptr_unfold'Describe : MethodUnfold (go.GoType.PointerType MajorityConfig.ty) go!"Describe" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve MajorityConfig.ty go!"Describe"))) (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (Var "$r"))))
-  ptr_Slice_unfold : MethodUnfold (go.GoType.PointerType MajorityConfig.ty) go!"Slice" (LamV "$r"
+  ptr_unfold'Slice : MethodUnfold (go.GoType.PointerType MajorityConfig.ty) go!"Slice" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve MajorityConfig.ty go!"Slice"))) (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (Var "$r"))))
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType MajorityConfig.ty) go!"String" (LamV "$r"
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType MajorityConfig.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve MajorityConfig.ty go!"String"))) (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (Var "$r"))))
-  ptr_VoteResult_unfold : MethodUnfold (go.GoType.PointerType MajorityConfig.ty) go!"VoteResult" (LamV "$r"
+  ptr_unfold'VoteResult : MethodUnfold (go.GoType.PointerType MajorityConfig.ty) go!"VoteResult" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve MajorityConfig.ty go!"VoteResult"))) (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (Var "$r"))))
 
 attribute [instance] MajorityConfig.TypeAssumptions.underlying
   MajorityConfig.TypeAssumptions.method_set
   MajorityConfig.TypeAssumptions.ptr_method_set
-  MajorityConfig.TypeAssumptions.CommittedIndex_unfold
-  MajorityConfig.TypeAssumptions.Describe_unfold
-  MajorityConfig.TypeAssumptions.Slice_unfold
-  MajorityConfig.TypeAssumptions.String_unfold
-  MajorityConfig.TypeAssumptions.VoteResult_unfold
-  MajorityConfig.TypeAssumptions.ptr_CommittedIndex_unfold
-  MajorityConfig.TypeAssumptions.ptr_Describe_unfold
-  MajorityConfig.TypeAssumptions.ptr_Slice_unfold
-  MajorityConfig.TypeAssumptions.ptr_String_unfold
-  MajorityConfig.TypeAssumptions.ptr_VoteResult_unfold
+  MajorityConfig.TypeAssumptions.unfold'CommittedIndex
+  MajorityConfig.TypeAssumptions.unfold'Describe
+  MajorityConfig.TypeAssumptions.unfold'Slice
+  MajorityConfig.TypeAssumptions.unfold'String
+  MajorityConfig.TypeAssumptions.unfold'VoteResult
+  MajorityConfig.TypeAssumptions.ptr_unfold'CommittedIndex
+  MajorityConfig.TypeAssumptions.ptr_unfold'Describe
+  MajorityConfig.TypeAssumptions.ptr_unfold'Slice
+  MajorityConfig.TypeAssumptions.ptr_unfold'String
+  MajorityConfig.TypeAssumptions.ptr_unfold'VoteResult
 
 abbrev JointConfig [GooseExts] : Type := (GoArray MajorityConfig 2)
 
@@ -928,35 +928,35 @@ class JointConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq JointConfig.ty JointConfig.underlying
   method_set : go.MethodSetIs JointConfig.ty [(go!"CommittedIndex", (some (go.signature.Signature [AckedIndexer.ty] false [Index''.ty]))), (go!"Describe", (some (go.signature.Signature [AckedIndexer.ty] false [go.string]))), (go!"IDs", (some (go.signature.Signature [] false [(go.GoType.MapType go.uint64 (go.GoType.StructType []))]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"VoteResult", (some (go.signature.Signature [(go.GoType.MapType go.uint64 go.bool)] false [VoteResult.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType JointConfig.ty) [(go!"CommittedIndex", (some (go.signature.Signature [AckedIndexer.ty] false [Index''.ty]))), (go!"Describe", (some (go.signature.Signature [AckedIndexer.ty] false [go.string]))), (go!"IDs", (some (go.signature.Signature [] false [(go.GoType.MapType go.uint64 (go.GoType.StructType []))]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"VoteResult", (some (go.signature.Signature [(go.GoType.MapType go.uint64 go.bool)] false [VoteResult.ty])))]
-  CommittedIndex_unfold : MethodUnfold JointConfig.ty go!"CommittedIndex" JointConfig.CommittedIndex.impl
-  Describe_unfold : MethodUnfold JointConfig.ty go!"Describe" JointConfig.Describe.impl
-  IDs_unfold : MethodUnfold JointConfig.ty go!"IDs" JointConfig.IDs.impl
-  String_unfold : MethodUnfold JointConfig.ty go!"String" JointConfig.String.impl
-  VoteResult_unfold : MethodUnfold JointConfig.ty go!"VoteResult" JointConfig.VoteResult.impl
-  ptr_CommittedIndex_unfold : MethodUnfold (go.GoType.PointerType JointConfig.ty) go!"CommittedIndex" (LamV "$r"
+  unfold'CommittedIndex : MethodUnfold JointConfig.ty go!"CommittedIndex" JointConfig.CommittedIndex.impl
+  unfold'Describe : MethodUnfold JointConfig.ty go!"Describe" JointConfig.Describe.impl
+  unfold'IDs : MethodUnfold JointConfig.ty go!"IDs" JointConfig.IDs.impl
+  unfold'String : MethodUnfold JointConfig.ty go!"String" JointConfig.String.impl
+  unfold'VoteResult : MethodUnfold JointConfig.ty go!"VoteResult" JointConfig.VoteResult.impl
+  ptr_unfold'CommittedIndex : MethodUnfold (go.GoType.PointerType JointConfig.ty) go!"CommittedIndex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve JointConfig.ty go!"CommittedIndex"))) (App (Val (GoInstruction (GoLoad JointConfig.ty))) (Var "$r"))))
-  ptr_Describe_unfold : MethodUnfold (go.GoType.PointerType JointConfig.ty) go!"Describe" (LamV "$r"
+  ptr_unfold'Describe : MethodUnfold (go.GoType.PointerType JointConfig.ty) go!"Describe" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve JointConfig.ty go!"Describe"))) (App (Val (GoInstruction (GoLoad JointConfig.ty))) (Var "$r"))))
-  ptr_IDs_unfold : MethodUnfold (go.GoType.PointerType JointConfig.ty) go!"IDs" (LamV "$r"
+  ptr_unfold'IDs : MethodUnfold (go.GoType.PointerType JointConfig.ty) go!"IDs" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve JointConfig.ty go!"IDs"))) (App (Val (GoInstruction (GoLoad JointConfig.ty))) (Var "$r"))))
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType JointConfig.ty) go!"String" (LamV "$r"
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType JointConfig.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve JointConfig.ty go!"String"))) (App (Val (GoInstruction (GoLoad JointConfig.ty))) (Var "$r"))))
-  ptr_VoteResult_unfold : MethodUnfold (go.GoType.PointerType JointConfig.ty) go!"VoteResult" (LamV "$r"
+  ptr_unfold'VoteResult : MethodUnfold (go.GoType.PointerType JointConfig.ty) go!"VoteResult" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve JointConfig.ty go!"VoteResult"))) (App (Val (GoInstruction (GoLoad JointConfig.ty))) (Var "$r"))))
 
 attribute [instance] JointConfig.TypeAssumptions.underlying
   JointConfig.TypeAssumptions.method_set
   JointConfig.TypeAssumptions.ptr_method_set
-  JointConfig.TypeAssumptions.CommittedIndex_unfold
-  JointConfig.TypeAssumptions.Describe_unfold
-  JointConfig.TypeAssumptions.IDs_unfold
-  JointConfig.TypeAssumptions.String_unfold
-  JointConfig.TypeAssumptions.VoteResult_unfold
-  JointConfig.TypeAssumptions.ptr_CommittedIndex_unfold
-  JointConfig.TypeAssumptions.ptr_Describe_unfold
-  JointConfig.TypeAssumptions.ptr_IDs_unfold
-  JointConfig.TypeAssumptions.ptr_String_unfold
-  JointConfig.TypeAssumptions.ptr_VoteResult_unfold
+  JointConfig.TypeAssumptions.unfold'CommittedIndex
+  JointConfig.TypeAssumptions.unfold'Describe
+  JointConfig.TypeAssumptions.unfold'IDs
+  JointConfig.TypeAssumptions.unfold'String
+  JointConfig.TypeAssumptions.unfold'VoteResult
+  JointConfig.TypeAssumptions.ptr_unfold'CommittedIndex
+  JointConfig.TypeAssumptions.ptr_unfold'Describe
+  JointConfig.TypeAssumptions.ptr_unfold'IDs
+  JointConfig.TypeAssumptions.ptr_unfold'String
+  JointConfig.TypeAssumptions.ptr_unfold'VoteResult
 
 abbrev Index'' [GooseExts] : Type := w64
 
@@ -967,15 +967,15 @@ class Index''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   underlying : go.UnderlyingDirectedEq Index''.ty Index''.underlying
   method_set : go.MethodSetIs Index''.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Index''.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
-  String_unfold : MethodUnfold Index''.ty go!"String" Index''.String.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Index''.ty) go!"String" (LamV "$r"
+  unfold'String : MethodUnfold Index''.ty go!"String" Index''.String.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType Index''.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Index''.ty go!"String"))) (App (Val (GoInstruction (GoLoad Index''.ty))) (Var "$r"))))
 
 attribute [instance] Index''.TypeAssumptions.underlying
   Index''.TypeAssumptions.method_set
   Index''.TypeAssumptions.ptr_method_set
-  Index''.TypeAssumptions.String_unfold
-  Index''.TypeAssumptions.ptr_String_unfold
+  Index''.TypeAssumptions.unfold'String
+  Index''.TypeAssumptions.ptr_unfold'String
 
 structure tup [GooseExts] where
   mk ::
@@ -996,7 +996,7 @@ noncomputable instance tup.zero_val [GooseExts] : ZeroVal tup :=
 @[irreducible] noncomputable def tup.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   tup.fieldsUnsealed
 
-noncomputable instance equals_unfold_tup [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'tup [GooseExts] [GoGlobalContext] :
     EqualsUnfold tup.fields tup.fieldsUnsealed :=
   ⟨by unfold tup.fields; rfl⟩
 
@@ -1006,27 +1006,27 @@ noncomputable instance equals_unfold_tup [GooseExts] [GoGlobalContext] :
 class tup.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tup.underlying tup
   underlying : go.UnderlyingDirectedEq tup.ty tup.underlying
-  get_id : ∀ (x : tup), go.IsGoStepPureDetTagged under (StructFieldGet tup.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : tup) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet tup.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : tup)))
-  get_idx : ∀ (x : tup), go.IsGoStepPureDetTagged under (StructFieldGet tup.underlying go!"idx") #x (Val #(x.idx'))
-  set_idx : ∀ (x : tup) (y : Index''), go.IsGoStepPureDetTagged under (StructFieldSet tup.underlying go!"idx") (PairV #x #y) (Val #(({ x with idx' := y } : tup)))
-  get_ok : ∀ (x : tup), go.IsGoStepPureDetTagged under (StructFieldGet tup.underlying go!"ok") #x (Val #(x.ok'))
-  set_ok : ∀ (x : tup) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet tup.underlying go!"ok") (PairV #x #y) (Val #(({ x with ok' := y } : tup)))
-  get_bar : ∀ (x : tup), go.IsGoStepPureDetTagged under (StructFieldGet tup.underlying go!"bar") #x (Val #(x.bar'))
-  set_bar : ∀ (x : tup) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet tup.underlying go!"bar") (PairV #x #y) (Val #(({ x with bar' := y } : tup)))
+  get'id : ∀ (x : tup), go.IsGoStepPureDetTagged under (StructFieldGet tup.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : tup) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet tup.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : tup)))
+  get'idx : ∀ (x : tup), go.IsGoStepPureDetTagged under (StructFieldGet tup.underlying go!"idx") #x (Val #(x.idx'))
+  set'idx : ∀ (x : tup) (y : Index''), go.IsGoStepPureDetTagged under (StructFieldSet tup.underlying go!"idx") (PairV #x #y) (Val #(({ x with idx' := y } : tup)))
+  get'ok : ∀ (x : tup), go.IsGoStepPureDetTagged under (StructFieldGet tup.underlying go!"ok") #x (Val #(x.ok'))
+  set'ok : ∀ (x : tup) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet tup.underlying go!"ok") (PairV #x #y) (Val #(({ x with ok' := y } : tup)))
+  get'bar : ∀ (x : tup), go.IsGoStepPureDetTagged under (StructFieldGet tup.underlying go!"bar") #x (Val #(x.bar'))
+  set'bar : ∀ (x : tup) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet tup.underlying go!"bar") (PairV #x #y) (Val #(({ x with bar' := y } : tup)))
   method_set : go.MethodSetIs tup.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType tup.ty) []
 
 attribute [instance] tup.TypeAssumptions.type_repr
   tup.TypeAssumptions.underlying
-  tup.TypeAssumptions.get_id
-  tup.TypeAssumptions.set_id
-  tup.TypeAssumptions.get_idx
-  tup.TypeAssumptions.set_idx
-  tup.TypeAssumptions.get_ok
-  tup.TypeAssumptions.set_ok
-  tup.TypeAssumptions.get_bar
-  tup.TypeAssumptions.set_bar
+  tup.TypeAssumptions.get'id
+  tup.TypeAssumptions.set'id
+  tup.TypeAssumptions.get'idx
+  tup.TypeAssumptions.set'idx
+  tup.TypeAssumptions.get'ok
+  tup.TypeAssumptions.set'ok
+  tup.TypeAssumptions.get'bar
+  tup.TypeAssumptions.set'bar
   tup.TypeAssumptions.method_set
   tup.TypeAssumptions.ptr_method_set
 
@@ -1053,15 +1053,15 @@ class mapAckIndexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   underlying : go.UnderlyingDirectedEq mapAckIndexer.ty mapAckIndexer.underlying
   method_set : go.MethodSetIs mapAckIndexer.ty [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [Index''.ty, go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType mapAckIndexer.ty) [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [Index''.ty, go.bool])))]
-  AckedIndex_unfold : MethodUnfold mapAckIndexer.ty go!"AckedIndex" mapAckIndexer.AckedIndex.impl
-  ptr_AckedIndex_unfold : MethodUnfold (go.GoType.PointerType mapAckIndexer.ty) go!"AckedIndex" (LamV "$r"
+  unfold'AckedIndex : MethodUnfold mapAckIndexer.ty go!"AckedIndex" mapAckIndexer.AckedIndex.impl
+  ptr_unfold'AckedIndex : MethodUnfold (go.GoType.PointerType mapAckIndexer.ty) go!"AckedIndex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve mapAckIndexer.ty go!"AckedIndex"))) (App (Val (GoInstruction (GoLoad mapAckIndexer.ty))) (Var "$r"))))
 
 attribute [instance] mapAckIndexer.TypeAssumptions.underlying
   mapAckIndexer.TypeAssumptions.method_set
   mapAckIndexer.TypeAssumptions.ptr_method_set
-  mapAckIndexer.TypeAssumptions.AckedIndex_unfold
-  mapAckIndexer.TypeAssumptions.ptr_AckedIndex_unfold
+  mapAckIndexer.TypeAssumptions.unfold'AckedIndex
+  mapAckIndexer.TypeAssumptions.ptr_unfold'AckedIndex
 
 abbrev VoteResult [GooseExts] : Type := w8
 
@@ -1072,44 +1072,44 @@ class VoteResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq VoteResult.ty VoteResult.underlying
   method_set : go.MethodSetIs VoteResult.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType VoteResult.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
-  String_unfold : MethodUnfold VoteResult.ty go!"String" VoteResult.String.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType VoteResult.ty) go!"String" (LamV "$r"
+  unfold'String : MethodUnfold VoteResult.ty go!"String" VoteResult.String.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType VoteResult.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve VoteResult.ty go!"String"))) (App (Val (GoInstruction (GoLoad VoteResult.ty))) (Var "$r"))))
 
 attribute [instance] VoteResult.TypeAssumptions.underlying
   VoteResult.TypeAssumptions.method_set
   VoteResult.TypeAssumptions.ptr_method_set
-  VoteResult.TypeAssumptions.String_unfold
-  VoteResult.TypeAssumptions.ptr_String_unfold
+  VoteResult.TypeAssumptions.unfold'String
+  VoteResult.TypeAssumptions.ptr_unfold'String
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  JointConfig_instance : JointConfig.TypeAssumptions
-  MajorityConfig_instance : MajorityConfig.TypeAssumptions
-  tup_instance : tup.TypeAssumptions
-  Index_instance : Index''.TypeAssumptions
-  AckedIndexer_instance : AckedIndexer.TypeAssumptions
-  mapAckIndexer_instance : mapAckIndexer.TypeAssumptions
-  VoteResult_instance : VoteResult.TypeAssumptions
-  import_cmp_Assumption : _root_.Perennial.cmp.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_math_Assumption : _root_.Perennial.math.Assumptions
-  import_slices_Assumption : _root_.Perennial.slices.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
+  instance'JointConfig : JointConfig.TypeAssumptions
+  instance'MajorityConfig : MajorityConfig.TypeAssumptions
+  instance'tup : tup.TypeAssumptions
+  instance'Index : Index''.TypeAssumptions
+  instance'AckedIndexer : AckedIndexer.TypeAssumptions
+  instance'mapAckIndexer : mapAckIndexer.TypeAssumptions
+  instance'VoteResult : VoteResult.TypeAssumptions
+  import'cmp : _root_.Perennial.cmp.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'math : _root_.Perennial.math.Assumptions
+  import'slices : _root_.Perennial.slices.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
 
-attribute [instance] Assumptions.JointConfig_instance
-  Assumptions.MajorityConfig_instance
-  Assumptions.tup_instance
-  Assumptions.Index_instance
-  Assumptions.AckedIndexer_instance
-  Assumptions.mapAckIndexer_instance
-  Assumptions.VoteResult_instance
-  Assumptions.import_cmp_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_math_Assumption
-  Assumptions.import_slices_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_strconv_Assumption
+attribute [instance] Assumptions.instance'JointConfig
+  Assumptions.instance'MajorityConfig
+  Assumptions.instance'tup
+  Assumptions.instance'Index
+  Assumptions.instance'AckedIndexer
+  Assumptions.instance'mapAckIndexer
+  Assumptions.instance'VoteResult
+  Assumptions.import'cmp
+  Assumptions.import'fmt
+  Assumptions.import'math
+  Assumptions.import'slices
+  Assumptions.import'strings
+  Assumptions.import'strconv
 
 end go_etcd_io.raft.v3.quorum
 

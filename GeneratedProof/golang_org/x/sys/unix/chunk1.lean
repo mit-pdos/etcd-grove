@@ -26,11 +26,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance CPUSet_typed_pointsto :
+noncomputable instance typed_pointsto'CPUSet :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.CPUSet :=
   sorry -- axiomatized type
 
-noncomputable instance CPUSet_into_val_typed :
+noncomputable instance into_val_typed'CPUSet :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.CPUSet golang_org.x.sys.unix.CPUSet.underlying :=
   sorry -- axiomatized type
 
@@ -45,11 +45,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance CPUSetDynamic_typed_pointsto :
+noncomputable instance typed_pointsto'CPUSetDynamic :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.CPUSetDynamic :=
   sorry -- axiomatized type
 
-noncomputable instance CPUSetDynamic_into_val_typed :
+noncomputable instance into_val_typed'CPUSetDynamic :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.CPUSetDynamic golang_org.x.sys.unix.CPUSetDynamic.underlying :=
   sorry -- axiomatized type
 
@@ -64,11 +64,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance Ifreq_typed_pointsto :
+noncomputable instance typed_pointsto'Ifreq :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.Ifreq :=
   sorry -- axiomatized type
 
-noncomputable instance Ifreq_into_val_typed :
+noncomputable instance into_val_typed'Ifreq :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Ifreq golang_org.x.sys.unix.Ifreq.underlying :=
   sorry -- axiomatized type
 
@@ -83,11 +83,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance ifreqData_typed_pointsto :
+noncomputable instance typed_pointsto'ifreqData :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.ifreqData :=
   sorry -- axiomatized type
 
-noncomputable instance ifreqData_into_val_typed :
+noncomputable instance into_val_typed'ifreqData :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.ifreqData golang_org.x.sys.unix.ifreqData.underlying :=
   sorry -- axiomatized type
 
@@ -102,11 +102,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance FileDedupeRange_typed_pointsto :
+noncomputable instance typed_pointsto'FileDedupeRange :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.FileDedupeRange :=
   sorry -- axiomatized type
 
-noncomputable instance FileDedupeRange_into_val_typed :
+noncomputable instance into_val_typed'FileDedupeRange :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.FileDedupeRange golang_org.x.sys.unix.FileDedupeRange.underlying :=
   sorry -- axiomatized type
 
@@ -121,11 +121,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance FileDedupeRangeInfo_typed_pointsto :
+noncomputable instance typed_pointsto'FileDedupeRangeInfo :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.FileDedupeRangeInfo :=
   sorry -- axiomatized type
 
-noncomputable instance FileDedupeRangeInfo_into_val_typed :
+noncomputable instance into_val_typed'FileDedupeRangeInfo :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.FileDedupeRangeInfo golang_org.x.sys.unix.FileDedupeRangeInfo.underlying :=
   sorry -- axiomatized type
 
@@ -140,11 +140,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance mremapMmapper_typed_pointsto :
+noncomputable instance typed_pointsto'mremapMmapper :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.mremapMmapper :=
   sorry -- axiomatized type
 
-noncomputable instance mremapMmapper_into_val_typed :
+noncomputable instance into_val_typed'mremapMmapper :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.mremapMmapper golang_org.x.sys.unix.mremapMmapper.underlying :=
   sorry -- axiomatized type
 
@@ -159,11 +159,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SocketControlMessage_typed_pointsto :
+noncomputable instance typed_pointsto'SocketControlMessage :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SocketControlMessage :=
   sorry -- axiomatized type
 
-noncomputable instance SocketControlMessage_into_val_typed :
+noncomputable instance into_val_typed'SocketControlMessage :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SocketControlMessage golang_org.x.sys.unix.SocketControlMessage.underlying :=
   sorry -- axiomatized type
 
@@ -178,11 +178,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance WaitStatus_typed_pointsto :
+noncomputable instance typed_pointsto'WaitStatus :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.WaitStatus :=
   sorry -- axiomatized type
 
-noncomputable instance WaitStatus_into_val_typed :
+noncomputable instance into_val_typed'WaitStatus :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.WaitStatus golang_org.x.sys.unix.WaitStatus.underlying :=
   sorry -- axiomatized type
 
@@ -197,11 +197,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrLinklayer_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrLinklayer :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrLinklayer :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrLinklayer_into_val_typed :
+noncomputable instance into_val_typed'SockaddrLinklayer :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrLinklayer golang_org.x.sys.unix.SockaddrLinklayer.underlying :=
   sorry -- axiomatized type
 
@@ -216,11 +216,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrNetlink_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrNetlink :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrNetlink :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrNetlink_into_val_typed :
+noncomputable instance into_val_typed'SockaddrNetlink :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrNetlink golang_org.x.sys.unix.SockaddrNetlink.underlying :=
   sorry -- axiomatized type
 
@@ -235,11 +235,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrHCI_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrHCI :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrHCI :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrHCI_into_val_typed :
+noncomputable instance into_val_typed'SockaddrHCI :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrHCI golang_org.x.sys.unix.SockaddrHCI.underlying :=
   sorry -- axiomatized type
 
@@ -254,11 +254,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrL2_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrL2 :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrL2 :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrL2_into_val_typed :
+noncomputable instance into_val_typed'SockaddrL2 :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrL2 golang_org.x.sys.unix.SockaddrL2.underlying :=
   sorry -- axiomatized type
 
@@ -273,11 +273,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrRFCOMM_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrRFCOMM :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrRFCOMM :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrRFCOMM_into_val_typed :
+noncomputable instance into_val_typed'SockaddrRFCOMM :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrRFCOMM golang_org.x.sys.unix.SockaddrRFCOMM.underlying :=
   sorry -- axiomatized type
 
@@ -292,11 +292,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrCAN_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrCAN :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrCAN :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrCAN_into_val_typed :
+noncomputable instance into_val_typed'SockaddrCAN :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrCAN golang_org.x.sys.unix.SockaddrCAN.underlying :=
   sorry -- axiomatized type
 
@@ -311,11 +311,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrCANJ1939_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrCANJ1939 :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrCANJ1939 :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrCANJ1939_into_val_typed :
+noncomputable instance into_val_typed'SockaddrCANJ1939 :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrCANJ1939 golang_org.x.sys.unix.SockaddrCANJ1939.underlying :=
   sorry -- axiomatized type
 
@@ -330,11 +330,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrALG_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrALG :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrALG :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrALG_into_val_typed :
+noncomputable instance into_val_typed'SockaddrALG :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrALG golang_org.x.sys.unix.SockaddrALG.underlying :=
   sorry -- axiomatized type
 
@@ -349,11 +349,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrVM_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrVM :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrVM :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrVM_into_val_typed :
+noncomputable instance into_val_typed'SockaddrVM :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrVM golang_org.x.sys.unix.SockaddrVM.underlying :=
   sorry -- axiomatized type
 
@@ -368,11 +368,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrXDP_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrXDP :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrXDP :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrXDP_into_val_typed :
+noncomputable instance into_val_typed'SockaddrXDP :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrXDP golang_org.x.sys.unix.SockaddrXDP.underlying :=
   sorry -- axiomatized type
 
@@ -387,11 +387,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrPPPoE_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrPPPoE :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrPPPoE :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrPPPoE_into_val_typed :
+noncomputable instance into_val_typed'SockaddrPPPoE :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrPPPoE golang_org.x.sys.unix.SockaddrPPPoE.underlying :=
   sorry -- axiomatized type
 
@@ -406,11 +406,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrTIPC_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrTIPC :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrTIPC :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrTIPC_into_val_typed :
+noncomputable instance into_val_typed'SockaddrTIPC :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrTIPC golang_org.x.sys.unix.SockaddrTIPC.underlying :=
   sorry -- axiomatized type
 
@@ -425,11 +425,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance TIPCAddr_typed_pointsto :
+noncomputable instance typed_pointsto'TIPCAddr :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.TIPCAddr :=
   sorry -- axiomatized type
 
-noncomputable instance TIPCAddr_into_val_typed :
+noncomputable instance into_val_typed'TIPCAddr :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.TIPCAddr golang_org.x.sys.unix.TIPCAddr.underlying :=
   sorry -- axiomatized type
 
@@ -444,11 +444,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrL2TPIP_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrL2TPIP :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrL2TPIP :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrL2TPIP_into_val_typed :
+noncomputable instance into_val_typed'SockaddrL2TPIP :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrL2TPIP golang_org.x.sys.unix.SockaddrL2TPIP.underlying :=
   sorry -- axiomatized type
 
@@ -463,11 +463,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrL2TPIP6_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrL2TPIP6 :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrL2TPIP6 :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrL2TPIP6_into_val_typed :
+noncomputable instance into_val_typed'SockaddrL2TPIP6 :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrL2TPIP6 golang_org.x.sys.unix.SockaddrL2TPIP6.underlying :=
   sorry -- axiomatized type
 
@@ -482,11 +482,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrIUCV_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrIUCV :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrIUCV :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrIUCV_into_val_typed :
+noncomputable instance into_val_typed'SockaddrIUCV :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrIUCV golang_org.x.sys.unix.SockaddrIUCV.underlying :=
   sorry -- axiomatized type
 
@@ -501,11 +501,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrNFC_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrNFC :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrNFC :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrNFC_into_val_typed :
+noncomputable instance into_val_typed'SockaddrNFC :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrNFC golang_org.x.sys.unix.SockaddrNFC.underlying :=
   sorry -- axiomatized type
 
@@ -520,11 +520,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrNFCLLCP_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrNFCLLCP :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrNFCLLCP :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrNFCLLCP_into_val_typed :
+noncomputable instance into_val_typed'SockaddrNFCLLCP :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrNFCLLCP golang_org.x.sys.unix.SockaddrNFCLLCP.underlying :=
   sorry -- axiomatized type
 
@@ -539,11 +539,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance fileHandle_typed_pointsto :
+noncomputable instance typed_pointsto'fileHandle :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.fileHandle :=
   sorry -- axiomatized type
 
-noncomputable instance fileHandle_into_val_typed :
+noncomputable instance into_val_typed'fileHandle :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.fileHandle golang_org.x.sys.unix.fileHandle.underlying :=
   sorry -- axiomatized type
 
@@ -558,11 +558,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance FileHandle_typed_pointsto :
+noncomputable instance typed_pointsto'FileHandle :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.FileHandle :=
   sorry -- axiomatized type
 
-noncomputable instance FileHandle_into_val_typed :
+noncomputable instance into_val_typed'FileHandle :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.FileHandle golang_org.x.sys.unix.FileHandle.underlying :=
   sorry -- axiomatized type
 
@@ -577,11 +577,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance RemoteIovec_typed_pointsto :
+noncomputable instance typed_pointsto'RemoteIovec :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.RemoteIovec :=
   sorry -- axiomatized type
 
-noncomputable instance RemoteIovec_into_val_typed :
+noncomputable instance into_val_typed'RemoteIovec :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RemoteIovec golang_org.x.sys.unix.RemoteIovec.underlying :=
   sorry -- axiomatized type
 
@@ -596,11 +596,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance ItimerWhich_typed_pointsto :
+noncomputable instance typed_pointsto'ItimerWhich :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.ItimerWhich :=
   sorry -- axiomatized type
 
-noncomputable instance ItimerWhich_into_val_typed :
+noncomputable instance into_val_typed'ItimerWhich :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.ItimerWhich golang_org.x.sys.unix.ItimerWhich.underlying :=
   sorry -- axiomatized type
 
@@ -615,11 +615,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance mmapper_typed_pointsto :
+noncomputable instance typed_pointsto'mmapper :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.mmapper :=
   sorry -- axiomatized type
 
-noncomputable instance mmapper_into_val_typed :
+noncomputable instance into_val_typed'mmapper :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.mmapper golang_org.x.sys.unix.mmapper.underlying :=
   sorry -- axiomatized type
 
@@ -634,11 +634,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance Sockaddr_typed_pointsto :
+noncomputable instance typed_pointsto'Sockaddr :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.Sockaddr :=
   sorry -- axiomatized type
 
-noncomputable instance Sockaddr_into_val_typed :
+noncomputable instance into_val_typed'Sockaddr :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Sockaddr golang_org.x.sys.unix.Sockaddr.underlying :=
   sorry -- axiomatized type
 
@@ -653,11 +653,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrInet4_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrInet4 :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrInet4 :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrInet4_into_val_typed :
+noncomputable instance into_val_typed'SockaddrInet4 :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrInet4 golang_org.x.sys.unix.SockaddrInet4.underlying :=
   sorry -- axiomatized type
 
@@ -672,11 +672,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrInet6_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrInet6 :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrInet6 :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrInet6_into_val_typed :
+noncomputable instance into_val_typed'SockaddrInet6 :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrInet6 golang_org.x.sys.unix.SockaddrInet6.underlying :=
   sorry -- axiomatized type
 
@@ -691,11 +691,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance SockaddrUnix_typed_pointsto :
+noncomputable instance typed_pointsto'SockaddrUnix :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.SockaddrUnix :=
   sorry -- axiomatized type
 
-noncomputable instance SockaddrUnix_into_val_typed :
+noncomputable instance into_val_typed'SockaddrUnix :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockaddrUnix golang_org.x.sys.unix.SockaddrUnix.underlying :=
   sorry -- axiomatized type
 
@@ -710,11 +710,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance PtraceRegs386_typed_pointsto :
+noncomputable instance typed_pointsto'PtraceRegs386 :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.PtraceRegs386 :=
   sorry -- axiomatized type
 
-noncomputable instance PtraceRegs386_into_val_typed :
+noncomputable instance into_val_typed'PtraceRegs386 :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.PtraceRegs386 golang_org.x.sys.unix.PtraceRegs386.underlying :=
   sorry -- axiomatized type
 
@@ -729,11 +729,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance PtraceRegsAmd64_typed_pointsto :
+noncomputable instance typed_pointsto'PtraceRegsAmd64 :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.PtraceRegsAmd64 :=
   sorry -- axiomatized type
 
-noncomputable instance PtraceRegsAmd64_into_val_typed :
+noncomputable instance into_val_typed'PtraceRegsAmd64 :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.PtraceRegsAmd64 golang_org.x.sys.unix.PtraceRegsAmd64.underlying :=
   sorry -- axiomatized type
 
@@ -748,11 +748,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance _C_short_typed_pointsto :
+noncomputable instance typed_pointsto'_C_short :
     TypedPointsto (GF := GF) golang_org.x.sys.unix._C_short :=
   sorry -- axiomatized type
 
-noncomputable instance _C_short_into_val_typed :
+noncomputable instance into_val_typed'_C_short :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix._C_short golang_org.x.sys.unix._C_short.underlying :=
   sorry -- axiomatized type
 
@@ -767,11 +767,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance _C_int_typed_pointsto :
+noncomputable instance typed_pointsto'_C_int :
     TypedPointsto (GF := GF) golang_org.x.sys.unix._C_int :=
   sorry -- axiomatized type
 
-noncomputable instance _C_int_into_val_typed :
+noncomputable instance into_val_typed'_C_int :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix._C_int golang_org.x.sys.unix._C_int.underlying :=
   sorry -- axiomatized type
 
@@ -786,11 +786,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance _C_long_long_typed_pointsto :
+noncomputable instance typed_pointsto'_C_long_long :
     TypedPointsto (GF := GF) golang_org.x.sys.unix._C_long_long :=
   sorry -- axiomatized type
 
-noncomputable instance _C_long_long_into_val_typed :
+noncomputable instance into_val_typed'_C_long_long :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix._C_long_long golang_org.x.sys.unix._C_long_long.underlying :=
   sorry -- axiomatized type
 
@@ -805,11 +805,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance KernelTimespec_typed_pointsto :
+noncomputable instance typed_pointsto'KernelTimespec :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.KernelTimespec :=
   sorry -- axiomatized type
 
-noncomputable instance KernelTimespec_into_val_typed :
+noncomputable instance into_val_typed'KernelTimespec :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.KernelTimespec golang_org.x.sys.unix.KernelTimespec.underlying :=
   sorry -- axiomatized type
 
@@ -824,11 +824,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance ItimerSpec_typed_pointsto :
+noncomputable instance typed_pointsto'ItimerSpec :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.ItimerSpec :=
   sorry -- axiomatized type
 
-noncomputable instance ItimerSpec_into_val_typed :
+noncomputable instance into_val_typed'ItimerSpec :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.ItimerSpec golang_org.x.sys.unix.ItimerSpec.underlying :=
   sorry -- axiomatized type
 
@@ -843,11 +843,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance Itimerval_typed_pointsto :
+noncomputable instance typed_pointsto'Itimerval :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.Itimerval :=
   sorry -- axiomatized type
 
-noncomputable instance Itimerval_into_val_typed :
+noncomputable instance into_val_typed'Itimerval :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Itimerval golang_org.x.sys.unix.Itimerval.underlying :=
   sorry -- axiomatized type
 
@@ -862,11 +862,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance Rlimit_typed_pointsto :
+noncomputable instance typed_pointsto'Rlimit :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.Rlimit :=
   sorry -- axiomatized type
 
-noncomputable instance Rlimit_into_val_typed :
+noncomputable instance into_val_typed'Rlimit :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Rlimit golang_org.x.sys.unix.Rlimit.underlying :=
   sorry -- axiomatized type
 
@@ -881,11 +881,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance _Gid_t_typed_pointsto :
+noncomputable instance typed_pointsto'_Gid_t :
     TypedPointsto (GF := GF) golang_org.x.sys.unix._Gid_t :=
   sorry -- axiomatized type
 
-noncomputable instance _Gid_t_into_val_typed :
+noncomputable instance into_val_typed'_Gid_t :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix._Gid_t golang_org.x.sys.unix._Gid_t.underlying :=
   sorry -- axiomatized type
 
@@ -900,11 +900,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance StatxTimestamp_typed_pointsto :
+noncomputable instance typed_pointsto'StatxTimestamp :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.StatxTimestamp :=
   sorry -- axiomatized type
 
-noncomputable instance StatxTimestamp_into_val_typed :
+noncomputable instance into_val_typed'StatxTimestamp :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.StatxTimestamp golang_org.x.sys.unix.StatxTimestamp.underlying :=
   sorry -- axiomatized type
 
@@ -919,11 +919,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance Statx_t_typed_pointsto :
+noncomputable instance typed_pointsto'Statx_t :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.Statx_t :=
   sorry -- axiomatized type
 
-noncomputable instance Statx_t_into_val_typed :
+noncomputable instance into_val_typed'Statx_t :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Statx_t golang_org.x.sys.unix.Statx_t.underlying :=
   sorry -- axiomatized type
 
@@ -938,11 +938,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance Fsid_typed_pointsto :
+noncomputable instance typed_pointsto'Fsid :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.Fsid :=
   sorry -- axiomatized type
 
-noncomputable instance Fsid_into_val_typed :
+noncomputable instance into_val_typed'Fsid :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Fsid golang_org.x.sys.unix.Fsid.underlying :=
   sorry -- axiomatized type
 
@@ -957,11 +957,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance FileCloneRange_typed_pointsto :
+noncomputable instance typed_pointsto'FileCloneRange :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.FileCloneRange :=
   sorry -- axiomatized type
 
-noncomputable instance FileCloneRange_into_val_typed :
+noncomputable instance into_val_typed'FileCloneRange :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.FileCloneRange golang_org.x.sys.unix.FileCloneRange.underlying :=
   sorry -- axiomatized type
 
@@ -976,11 +976,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance RawFileDedupeRange_typed_pointsto :
+noncomputable instance typed_pointsto'RawFileDedupeRange :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.RawFileDedupeRange :=
   sorry -- axiomatized type
 
-noncomputable instance RawFileDedupeRange_into_val_typed :
+noncomputable instance into_val_typed'RawFileDedupeRange :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawFileDedupeRange golang_org.x.sys.unix.RawFileDedupeRange.underlying :=
   sorry -- axiomatized type
 
@@ -995,11 +995,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance RawFileDedupeRangeInfo_typed_pointsto :
+noncomputable instance typed_pointsto'RawFileDedupeRangeInfo :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.RawFileDedupeRangeInfo :=
   sorry -- axiomatized type
 
-noncomputable instance RawFileDedupeRangeInfo_into_val_typed :
+noncomputable instance into_val_typed'RawFileDedupeRangeInfo :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawFileDedupeRangeInfo golang_org.x.sys.unix.RawFileDedupeRangeInfo.underlying :=
   sorry -- axiomatized type
 
@@ -1014,11 +1014,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance FscryptPolicy_typed_pointsto :
+noncomputable instance typed_pointsto'FscryptPolicy :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.FscryptPolicy :=
   sorry -- axiomatized type
 
-noncomputable instance FscryptPolicy_into_val_typed :
+noncomputable instance into_val_typed'FscryptPolicy :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.FscryptPolicy golang_org.x.sys.unix.FscryptPolicy.underlying :=
   sorry -- axiomatized type
 
@@ -1033,11 +1033,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance FscryptKey_typed_pointsto :
+noncomputable instance typed_pointsto'FscryptKey :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.FscryptKey :=
   sorry -- axiomatized type
 
-noncomputable instance FscryptKey_into_val_typed :
+noncomputable instance into_val_typed'FscryptKey :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.FscryptKey golang_org.x.sys.unix.FscryptKey.underlying :=
   sorry -- axiomatized type
 
@@ -1052,11 +1052,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance FscryptPolicyV1_typed_pointsto :
+noncomputable instance typed_pointsto'FscryptPolicyV1 :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.FscryptPolicyV1 :=
   sorry -- axiomatized type
 
-noncomputable instance FscryptPolicyV1_into_val_typed :
+noncomputable instance into_val_typed'FscryptPolicyV1 :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.FscryptPolicyV1 golang_org.x.sys.unix.FscryptPolicyV1.underlying :=
   sorry -- axiomatized type
 
@@ -1071,11 +1071,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance FscryptPolicyV2_typed_pointsto :
+noncomputable instance typed_pointsto'FscryptPolicyV2 :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.FscryptPolicyV2 :=
   sorry -- axiomatized type
 
-noncomputable instance FscryptPolicyV2_into_val_typed :
+noncomputable instance into_val_typed'FscryptPolicyV2 :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.FscryptPolicyV2 golang_org.x.sys.unix.FscryptPolicyV2.underlying :=
   sorry -- axiomatized type
 
@@ -1090,11 +1090,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance FscryptGetPolicyExArg_typed_pointsto :
+noncomputable instance typed_pointsto'FscryptGetPolicyExArg :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.FscryptGetPolicyExArg :=
   sorry -- axiomatized type
 
-noncomputable instance FscryptGetPolicyExArg_into_val_typed :
+noncomputable instance into_val_typed'FscryptGetPolicyExArg :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.FscryptGetPolicyExArg golang_org.x.sys.unix.FscryptGetPolicyExArg.underlying :=
   sorry -- axiomatized type
 
@@ -1109,11 +1109,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance FscryptKeySpecifier_typed_pointsto :
+noncomputable instance typed_pointsto'FscryptKeySpecifier :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.FscryptKeySpecifier :=
   sorry -- axiomatized type
 
-noncomputable instance FscryptKeySpecifier_into_val_typed :
+noncomputable instance into_val_typed'FscryptKeySpecifier :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.FscryptKeySpecifier golang_org.x.sys.unix.FscryptKeySpecifier.underlying :=
   sorry -- axiomatized type
 
@@ -1128,11 +1128,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance FscryptAddKeyArg_typed_pointsto :
+noncomputable instance typed_pointsto'FscryptAddKeyArg :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.FscryptAddKeyArg :=
   sorry -- axiomatized type
 
-noncomputable instance FscryptAddKeyArg_into_val_typed :
+noncomputable instance into_val_typed'FscryptAddKeyArg :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.FscryptAddKeyArg golang_org.x.sys.unix.FscryptAddKeyArg.underlying :=
   sorry -- axiomatized type
 
@@ -1147,11 +1147,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance FscryptRemoveKeyArg_typed_pointsto :
+noncomputable instance typed_pointsto'FscryptRemoveKeyArg :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.FscryptRemoveKeyArg :=
   sorry -- axiomatized type
 
-noncomputable instance FscryptRemoveKeyArg_into_val_typed :
+noncomputable instance into_val_typed'FscryptRemoveKeyArg :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.FscryptRemoveKeyArg golang_org.x.sys.unix.FscryptRemoveKeyArg.underlying :=
   sorry -- axiomatized type
 
@@ -1166,11 +1166,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance FscryptGetKeyStatusArg_typed_pointsto :
+noncomputable instance typed_pointsto'FscryptGetKeyStatusArg :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.FscryptGetKeyStatusArg :=
   sorry -- axiomatized type
 
-noncomputable instance FscryptGetKeyStatusArg_into_val_typed :
+noncomputable instance into_val_typed'FscryptGetKeyStatusArg :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.FscryptGetKeyStatusArg golang_org.x.sys.unix.FscryptGetKeyStatusArg.underlying :=
   sorry -- axiomatized type
 
@@ -1185,11 +1185,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance DmIoctl_typed_pointsto :
+noncomputable instance typed_pointsto'DmIoctl :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.DmIoctl :=
   sorry -- axiomatized type
 
-noncomputable instance DmIoctl_into_val_typed :
+noncomputable instance into_val_typed'DmIoctl :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.DmIoctl golang_org.x.sys.unix.DmIoctl.underlying :=
   sorry -- axiomatized type
 
@@ -1204,11 +1204,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance DmTargetSpec_typed_pointsto :
+noncomputable instance typed_pointsto'DmTargetSpec :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.DmTargetSpec :=
   sorry -- axiomatized type
 
-noncomputable instance DmTargetSpec_into_val_typed :
+noncomputable instance into_val_typed'DmTargetSpec :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.DmTargetSpec golang_org.x.sys.unix.DmTargetSpec.underlying :=
   sorry -- axiomatized type
 
@@ -1223,11 +1223,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance DmTargetDeps_typed_pointsto :
+noncomputable instance typed_pointsto'DmTargetDeps :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.DmTargetDeps :=
   sorry -- axiomatized type
 
-noncomputable instance DmTargetDeps_into_val_typed :
+noncomputable instance into_val_typed'DmTargetDeps :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.DmTargetDeps golang_org.x.sys.unix.DmTargetDeps.underlying :=
   sorry -- axiomatized type
 
@@ -1242,11 +1242,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance DmTargetVersions_typed_pointsto :
+noncomputable instance typed_pointsto'DmTargetVersions :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.DmTargetVersions :=
   sorry -- axiomatized type
 
-noncomputable instance DmTargetVersions_into_val_typed :
+noncomputable instance into_val_typed'DmTargetVersions :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.DmTargetVersions golang_org.x.sys.unix.DmTargetVersions.underlying :=
   sorry -- axiomatized type
 
@@ -1261,11 +1261,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance DmTargetMsg_typed_pointsto :
+noncomputable instance typed_pointsto'DmTargetMsg :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.DmTargetMsg :=
   sorry -- axiomatized type
 
-noncomputable instance DmTargetMsg_into_val_typed :
+noncomputable instance into_val_typed'DmTargetMsg :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.DmTargetMsg golang_org.x.sys.unix.DmTargetMsg.underlying :=
   sorry -- axiomatized type
 
@@ -1280,11 +1280,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance KeyctlDHParams_typed_pointsto :
+noncomputable instance typed_pointsto'KeyctlDHParams :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.KeyctlDHParams :=
   sorry -- axiomatized type
 
-noncomputable instance KeyctlDHParams_into_val_typed :
+noncomputable instance into_val_typed'KeyctlDHParams :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.KeyctlDHParams golang_org.x.sys.unix.KeyctlDHParams.underlying :=
   sorry -- axiomatized type
 
@@ -1299,11 +1299,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance RawSockaddrInet4_typed_pointsto :
+noncomputable instance typed_pointsto'RawSockaddrInet4 :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrInet4 :=
   sorry -- axiomatized type
 
-noncomputable instance RawSockaddrInet4_into_val_typed :
+noncomputable instance into_val_typed'RawSockaddrInet4 :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrInet4 golang_org.x.sys.unix.RawSockaddrInet4.underlying :=
   sorry -- axiomatized type
 
@@ -1318,11 +1318,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance RawSockaddrInet6_typed_pointsto :
+noncomputable instance typed_pointsto'RawSockaddrInet6 :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrInet6 :=
   sorry -- axiomatized type
 
-noncomputable instance RawSockaddrInet6_into_val_typed :
+noncomputable instance into_val_typed'RawSockaddrInet6 :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrInet6 golang_org.x.sys.unix.RawSockaddrInet6.underlying :=
   sorry -- axiomatized type
 
@@ -1337,11 +1337,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance RawSockaddrUnix_typed_pointsto :
+noncomputable instance typed_pointsto'RawSockaddrUnix :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrUnix :=
   sorry -- axiomatized type
 
-noncomputable instance RawSockaddrUnix_into_val_typed :
+noncomputable instance into_val_typed'RawSockaddrUnix :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrUnix golang_org.x.sys.unix.RawSockaddrUnix.underlying :=
   sorry -- axiomatized type
 
@@ -1356,11 +1356,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance RawSockaddrLinklayer_typed_pointsto :
+noncomputable instance typed_pointsto'RawSockaddrLinklayer :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrLinklayer :=
   sorry -- axiomatized type
 
-noncomputable instance RawSockaddrLinklayer_into_val_typed :
+noncomputable instance into_val_typed'RawSockaddrLinklayer :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrLinklayer golang_org.x.sys.unix.RawSockaddrLinklayer.underlying :=
   sorry -- axiomatized type
 
@@ -1375,11 +1375,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance RawSockaddrNetlink_typed_pointsto :
+noncomputable instance typed_pointsto'RawSockaddrNetlink :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrNetlink :=
   sorry -- axiomatized type
 
-noncomputable instance RawSockaddrNetlink_into_val_typed :
+noncomputable instance into_val_typed'RawSockaddrNetlink :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrNetlink golang_org.x.sys.unix.RawSockaddrNetlink.underlying :=
   sorry -- axiomatized type
 
@@ -1394,11 +1394,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance RawSockaddrHCI_typed_pointsto :
+noncomputable instance typed_pointsto'RawSockaddrHCI :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrHCI :=
   sorry -- axiomatized type
 
-noncomputable instance RawSockaddrHCI_into_val_typed :
+noncomputable instance into_val_typed'RawSockaddrHCI :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrHCI golang_org.x.sys.unix.RawSockaddrHCI.underlying :=
   sorry -- axiomatized type
 
@@ -1413,11 +1413,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance RawSockaddrL2_typed_pointsto :
+noncomputable instance typed_pointsto'RawSockaddrL2 :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrL2 :=
   sorry -- axiomatized type
 
-noncomputable instance RawSockaddrL2_into_val_typed :
+noncomputable instance into_val_typed'RawSockaddrL2 :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrL2 golang_org.x.sys.unix.RawSockaddrL2.underlying :=
   sorry -- axiomatized type
 
@@ -1432,11 +1432,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
-noncomputable instance RawSockaddrRFCOMM_typed_pointsto :
+noncomputable instance typed_pointsto'RawSockaddrRFCOMM :
     TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrRFCOMM :=
   sorry -- axiomatized type
 
-noncomputable instance RawSockaddrRFCOMM_into_val_typed :
+noncomputable instance into_val_typed'RawSockaddrRFCOMM :
     IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrRFCOMM golang_org.x.sys.unix.RawSockaddrRFCOMM.underlying :=
   sorry -- axiomatized type
 

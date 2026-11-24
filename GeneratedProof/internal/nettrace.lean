@@ -24,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : internal.nettrace.Assumptions]
 
-noncomputable instance TraceKey_typed_pointsto :
+noncomputable instance typed_pointsto'TraceKey :
     TypedPointsto (GF := GF) internal.nettrace.TraceKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -32,7 +32,7 @@ noncomputable instance TraceKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance TraceKey_into_val_typed :
+noncomputable instance into_val_typed'TraceKey :
     IntoValTypedUnderlying (GF := GF) internal.nettrace.TraceKey internal.nettrace.TraceKey.underlying := by
   solve_into_val_typed_struct
 
@@ -47,7 +47,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : internal.nettrace.Assumptions]
 
-noncomputable instance LookupIPAltResolverKey_typed_pointsto :
+noncomputable instance typed_pointsto'LookupIPAltResolverKey :
     TypedPointsto (GF := GF) internal.nettrace.LookupIPAltResolverKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -55,7 +55,7 @@ noncomputable instance LookupIPAltResolverKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance LookupIPAltResolverKey_into_val_typed :
+noncomputable instance into_val_typed'LookupIPAltResolverKey :
     IntoValTypedUnderlying (GF := GF) internal.nettrace.LookupIPAltResolverKey internal.nettrace.LookupIPAltResolverKey.underlying := by
   solve_into_val_typed_struct
 
@@ -70,7 +70,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : internal.nettrace.Assumptions]
 
-noncomputable instance Trace_typed_pointsto :
+noncomputable instance typed_pointsto'Trace :
     TypedPointsto (GF := GF) internal.nettrace.Trace where
   typedPointstoDef l v dq := iprop(
     "DNSStart" ∷ typedPointsto (structFieldRef internal.nettrace.Trace go!"DNSStart" l) v.DNSStart' dq ∗
@@ -82,11 +82,11 @@ noncomputable instance Trace_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Trace_into_val_typed :
+noncomputable instance into_val_typed'Trace :
     IntoValTypedUnderlying (GF := GF) internal.nettrace.Trace internal.nettrace.Trace.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Trace_access_load_DNSStart (l : Loc) (v : internal.nettrace.Trace) (dq : DFrac) :
+noncomputable instance access_load'Trace'DNSStart (l : Loc) (v : internal.nettrace.Trace) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"DNSStart" l) v.DNSStart' dq)
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"DNSStart" l) v.DNSStart' dq)
@@ -94,7 +94,7 @@ noncomputable instance Trace_access_load_DNSStart (l : Loc) (v : internal.nettra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_DNSStart (l : Loc) (v : internal.nettrace.Trace) (y : GoFunc) :
+noncomputable instance access_store'Trace'DNSStart (l : Loc) (v : internal.nettrace.Trace) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"DNSStart" l) v.DNSStart' (DFrac.own 1))
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"DNSStart" l) y (DFrac.own 1))
@@ -102,7 +102,7 @@ noncomputable instance Trace_access_store_DNSStart (l : Loc) (v : internal.nettr
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_load_DNSDone (l : Loc) (v : internal.nettrace.Trace) (dq : DFrac) :
+noncomputable instance access_load'Trace'DNSDone (l : Loc) (v : internal.nettrace.Trace) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"DNSDone" l) v.DNSDone' dq)
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"DNSDone" l) v.DNSDone' dq)
@@ -110,7 +110,7 @@ noncomputable instance Trace_access_load_DNSDone (l : Loc) (v : internal.nettrac
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_DNSDone (l : Loc) (v : internal.nettrace.Trace) (y : GoFunc) :
+noncomputable instance access_store'Trace'DNSDone (l : Loc) (v : internal.nettrace.Trace) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"DNSDone" l) v.DNSDone' (DFrac.own 1))
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"DNSDone" l) y (DFrac.own 1))
@@ -118,7 +118,7 @@ noncomputable instance Trace_access_store_DNSDone (l : Loc) (v : internal.nettra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_load_ConnectStart (l : Loc) (v : internal.nettrace.Trace) (dq : DFrac) :
+noncomputable instance access_load'Trace'ConnectStart (l : Loc) (v : internal.nettrace.Trace) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"ConnectStart" l) v.ConnectStart' dq)
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"ConnectStart" l) v.ConnectStart' dq)
@@ -126,7 +126,7 @@ noncomputable instance Trace_access_load_ConnectStart (l : Loc) (v : internal.ne
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_ConnectStart (l : Loc) (v : internal.nettrace.Trace) (y : GoFunc) :
+noncomputable instance access_store'Trace'ConnectStart (l : Loc) (v : internal.nettrace.Trace) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"ConnectStart" l) v.ConnectStart' (DFrac.own 1))
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"ConnectStart" l) y (DFrac.own 1))
@@ -134,7 +134,7 @@ noncomputable instance Trace_access_store_ConnectStart (l : Loc) (v : internal.n
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_load_ConnectDone (l : Loc) (v : internal.nettrace.Trace) (dq : DFrac) :
+noncomputable instance access_load'Trace'ConnectDone (l : Loc) (v : internal.nettrace.Trace) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"ConnectDone" l) v.ConnectDone' dq)
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"ConnectDone" l) v.ConnectDone' dq)
@@ -142,7 +142,7 @@ noncomputable instance Trace_access_load_ConnectDone (l : Loc) (v : internal.net
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_ConnectDone (l : Loc) (v : internal.nettrace.Trace) (y : GoFunc) :
+noncomputable instance access_store'Trace'ConnectDone (l : Loc) (v : internal.nettrace.Trace) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"ConnectDone" l) v.ConnectDone' (DFrac.own 1))
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"ConnectDone" l) y (DFrac.own 1))

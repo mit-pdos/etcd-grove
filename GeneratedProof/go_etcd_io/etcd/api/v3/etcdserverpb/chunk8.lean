@@ -31,7 +31,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance RangeStreamResponse_typed_pointsto :
+noncomputable instance typed_pointsto'RangeStreamResponse :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse where
   typedPointstoDef l v dq := iprop(
     "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"state" l) v.state' dq ∗
@@ -43,11 +43,11 @@ noncomputable instance RangeStreamResponse_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance RangeStreamResponse_into_val_typed :
+noncomputable instance into_val_typed'RangeStreamResponse :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance RangeStreamResponse_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (dq : DFrac) :
+noncomputable instance access_load'RangeStreamResponse'state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"state" l) v.state' dq)
@@ -55,7 +55,7 @@ noncomputable instance RangeStreamResponse_access_load_state (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeStreamResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'RangeStreamResponse'state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"state" l) y (DFrac.own 1))
@@ -63,7 +63,7 @@ noncomputable instance RangeStreamResponse_access_store_state (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeStreamResponse_access_load_RangeResponse (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (dq : DFrac) :
+noncomputable instance access_load'RangeStreamResponse'RangeResponse (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"RangeResponse" l) v.RangeResponse' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"RangeResponse" l) v.RangeResponse' dq)
@@ -71,7 +71,7 @@ noncomputable instance RangeStreamResponse_access_load_RangeResponse (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeStreamResponse_access_store_RangeResponse (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (y : Loc) :
+noncomputable instance access_store'RangeStreamResponse'RangeResponse (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"RangeResponse" l) v.RangeResponse' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"RangeResponse" l) y (DFrac.own 1))
@@ -79,7 +79,7 @@ noncomputable instance RangeStreamResponse_access_store_RangeResponse (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeStreamResponse_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (dq : DFrac) :
+noncomputable instance access_load'RangeStreamResponse'unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"unknownFields" l) v.unknownFields' dq)
@@ -87,7 +87,7 @@ noncomputable instance RangeStreamResponse_access_load_unknownFields (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeStreamResponse_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (y : GoSlice) :
+noncomputable instance access_store'RangeStreamResponse'unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"unknownFields" l) y (DFrac.own 1))
@@ -95,7 +95,7 @@ noncomputable instance RangeStreamResponse_access_store_unknownFields (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeStreamResponse_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (dq : DFrac) :
+noncomputable instance access_load'RangeStreamResponse'sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"sizeCache" l) v.sizeCache' dq)
@@ -103,7 +103,7 @@ noncomputable instance RangeStreamResponse_access_load_sizeCache (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeStreamResponse_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (y : w32) :
+noncomputable instance access_store'RangeStreamResponse'sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"sizeCache" l) y (DFrac.own 1))
@@ -122,7 +122,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance kVClient_typed_pointsto :
+noncomputable instance typed_pointsto'kVClient :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.kVClient where
   typedPointstoDef l v dq := iprop(
     "cc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.kVClient go!"cc" l) v.cc' dq ∗
@@ -131,11 +131,11 @@ noncomputable instance kVClient_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance kVClient_into_val_typed :
+noncomputable instance into_val_typed'kVClient :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.kVClient go_etcd_io.etcd.api.v3.etcdserverpb.kVClient.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance kVClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.kVClient) (dq : DFrac) :
+noncomputable instance access_load'kVClient'cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.kVClient) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.kVClient go!"cc" l) v.cc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.kVClient go!"cc" l) v.cc' dq)
@@ -143,7 +143,7 @@ noncomputable instance kVClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance kVClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.kVClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
+noncomputable instance access_store'kVClient'cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.kVClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.kVClient go!"cc" l) v.cc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.kVClient go!"cc" l) y (DFrac.own 1))
@@ -162,7 +162,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance UnimplementedKVServer_typed_pointsto :
+noncomputable instance typed_pointsto'UnimplementedKVServer :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedKVServer where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -170,7 +170,7 @@ noncomputable instance UnimplementedKVServer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance UnimplementedKVServer_into_val_typed :
+noncomputable instance into_val_typed'UnimplementedKVServer :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedKVServer go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedKVServer.underlying := by
   solve_into_val_typed_struct
 
@@ -185,7 +185,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance watchClient_typed_pointsto :
+noncomputable instance typed_pointsto'watchClient :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.watchClient where
   typedPointstoDef l v dq := iprop(
     "cc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.watchClient go!"cc" l) v.cc' dq ∗
@@ -194,11 +194,11 @@ noncomputable instance watchClient_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance watchClient_into_val_typed :
+noncomputable instance into_val_typed'watchClient :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.watchClient go_etcd_io.etcd.api.v3.etcdserverpb.watchClient.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance watchClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.watchClient) (dq : DFrac) :
+noncomputable instance access_load'watchClient'cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.watchClient) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.watchClient go!"cc" l) v.cc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.watchClient go!"cc" l) v.cc' dq)
@@ -206,7 +206,7 @@ noncomputable instance watchClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance watchClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.watchClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
+noncomputable instance access_store'watchClient'cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.watchClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.watchClient go!"cc" l) v.cc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.watchClient go!"cc" l) y (DFrac.own 1))
@@ -225,7 +225,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance UnimplementedWatchServer_typed_pointsto :
+noncomputable instance typed_pointsto'UnimplementedWatchServer :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedWatchServer where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -233,7 +233,7 @@ noncomputable instance UnimplementedWatchServer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance UnimplementedWatchServer_into_val_typed :
+noncomputable instance into_val_typed'UnimplementedWatchServer :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedWatchServer go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedWatchServer.underlying := by
   solve_into_val_typed_struct
 
@@ -248,7 +248,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance leaseClient_typed_pointsto :
+noncomputable instance typed_pointsto'leaseClient :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient where
   typedPointstoDef l v dq := iprop(
     "cc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient go!"cc" l) v.cc' dq ∗
@@ -257,11 +257,11 @@ noncomputable instance leaseClient_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance leaseClient_into_val_typed :
+noncomputable instance into_val_typed'leaseClient :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance leaseClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient) (dq : DFrac) :
+noncomputable instance access_load'leaseClient'cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient go!"cc" l) v.cc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient go!"cc" l) v.cc' dq)
@@ -269,7 +269,7 @@ noncomputable instance leaseClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance leaseClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
+noncomputable instance access_store'leaseClient'cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient go!"cc" l) v.cc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient go!"cc" l) y (DFrac.own 1))
@@ -288,7 +288,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance UnimplementedLeaseServer_typed_pointsto :
+noncomputable instance typed_pointsto'UnimplementedLeaseServer :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedLeaseServer where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -296,7 +296,7 @@ noncomputable instance UnimplementedLeaseServer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance UnimplementedLeaseServer_into_val_typed :
+noncomputable instance into_val_typed'UnimplementedLeaseServer :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedLeaseServer go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedLeaseServer.underlying := by
   solve_into_val_typed_struct
 
@@ -311,7 +311,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance clusterClient_typed_pointsto :
+noncomputable instance typed_pointsto'clusterClient :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient where
   typedPointstoDef l v dq := iprop(
     "cc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient go!"cc" l) v.cc' dq ∗
@@ -320,11 +320,11 @@ noncomputable instance clusterClient_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance clusterClient_into_val_typed :
+noncomputable instance into_val_typed'clusterClient :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance clusterClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient) (dq : DFrac) :
+noncomputable instance access_load'clusterClient'cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient go!"cc" l) v.cc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient go!"cc" l) v.cc' dq)
@@ -332,7 +332,7 @@ noncomputable instance clusterClient_access_load_cc (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance clusterClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
+noncomputable instance access_store'clusterClient'cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient go!"cc" l) v.cc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient go!"cc" l) y (DFrac.own 1))
@@ -351,7 +351,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance UnimplementedClusterServer_typed_pointsto :
+noncomputable instance typed_pointsto'UnimplementedClusterServer :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedClusterServer where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -359,7 +359,7 @@ noncomputable instance UnimplementedClusterServer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance UnimplementedClusterServer_into_val_typed :
+noncomputable instance into_val_typed'UnimplementedClusterServer :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedClusterServer go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedClusterServer.underlying := by
   solve_into_val_typed_struct
 
@@ -374,7 +374,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance maintenanceClient_typed_pointsto :
+noncomputable instance typed_pointsto'maintenanceClient :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient where
   typedPointstoDef l v dq := iprop(
     "cc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient go!"cc" l) v.cc' dq ∗
@@ -383,11 +383,11 @@ noncomputable instance maintenanceClient_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance maintenanceClient_into_val_typed :
+noncomputable instance into_val_typed'maintenanceClient :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance maintenanceClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient) (dq : DFrac) :
+noncomputable instance access_load'maintenanceClient'cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient go!"cc" l) v.cc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient go!"cc" l) v.cc' dq)
@@ -395,7 +395,7 @@ noncomputable instance maintenanceClient_access_load_cc (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance maintenanceClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
+noncomputable instance access_store'maintenanceClient'cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient go!"cc" l) v.cc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient go!"cc" l) y (DFrac.own 1))
@@ -414,7 +414,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance UnimplementedMaintenanceServer_typed_pointsto :
+noncomputable instance typed_pointsto'UnimplementedMaintenanceServer :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedMaintenanceServer where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -422,7 +422,7 @@ noncomputable instance UnimplementedMaintenanceServer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance UnimplementedMaintenanceServer_into_val_typed :
+noncomputable instance into_val_typed'UnimplementedMaintenanceServer :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedMaintenanceServer go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedMaintenanceServer.underlying := by
   solve_into_val_typed_struct
 
@@ -437,7 +437,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance authClient_typed_pointsto :
+noncomputable instance typed_pointsto'authClient :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.authClient where
   typedPointstoDef l v dq := iprop(
     "cc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.authClient go!"cc" l) v.cc' dq ∗
@@ -446,11 +446,11 @@ noncomputable instance authClient_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance authClient_into_val_typed :
+noncomputable instance into_val_typed'authClient :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.authClient go_etcd_io.etcd.api.v3.etcdserverpb.authClient.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance authClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.authClient) (dq : DFrac) :
+noncomputable instance access_load'authClient'cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.authClient) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.authClient go!"cc" l) v.cc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.authClient go!"cc" l) v.cc' dq)
@@ -458,7 +458,7 @@ noncomputable instance authClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance authClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.authClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
+noncomputable instance access_store'authClient'cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.authClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.authClient go!"cc" l) v.cc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.authClient go!"cc" l) y (DFrac.own 1))
@@ -477,7 +477,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-noncomputable instance UnimplementedAuthServer_typed_pointsto :
+noncomputable instance typed_pointsto'UnimplementedAuthServer :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedAuthServer where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -485,7 +485,7 @@ noncomputable instance UnimplementedAuthServer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance UnimplementedAuthServer_into_val_typed :
+noncomputable instance into_val_typed'UnimplementedAuthServer :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedAuthServer go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedAuthServer.underlying := by
   solve_into_val_typed_struct
 

@@ -19,617 +19,617 @@ namespace github_com.imdea_software.swiftpaxos.swift
 class AckCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AckCache.underlying AckCache
   underlying : go.UnderlyingDirectedEq AckCache.ty AckCache.underlying
-  get_mu : ∀ (x : AckCache), go.IsGoStepPureDetTagged under (StructFieldGet AckCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : AckCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet AckCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : AckCache)))
-  get_cache : ∀ (x : AckCache), go.IsGoStepPureDetTagged under (StructFieldGet AckCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : AckCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AckCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : AckCache)))
+  get'mu : ∀ (x : AckCache), go.IsGoStepPureDetTagged under (StructFieldGet AckCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : AckCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet AckCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : AckCache)))
+  get'cache : ∀ (x : AckCache), go.IsGoStepPureDetTagged under (StructFieldGet AckCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : AckCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AckCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : AckCache)))
   method_set : go.MethodSetIs AckCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType AckCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType Ack.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType Ack.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType AckCache.ty) go!"Get" AckCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType AckCache.ty) go!"Put" AckCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType AckCache.ty) go!"Get" AckCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType AckCache.ty) go!"Put" AckCache.Put.impl
 
 attribute [instance] AckCache.TypeAssumptions.type_repr
   AckCache.TypeAssumptions.underlying
-  AckCache.TypeAssumptions.get_mu
-  AckCache.TypeAssumptions.set_mu
-  AckCache.TypeAssumptions.get_cache
-  AckCache.TypeAssumptions.set_cache
+  AckCache.TypeAssumptions.get'mu
+  AckCache.TypeAssumptions.set'mu
+  AckCache.TypeAssumptions.get'cache
+  AckCache.TypeAssumptions.set'cache
   AckCache.TypeAssumptions.method_set
   AckCache.TypeAssumptions.ptr_method_set
-  AckCache.TypeAssumptions.ptr_Get_unfold
-  AckCache.TypeAssumptions.ptr_Put_unfold
+  AckCache.TypeAssumptions.ptr_unfold'Get
+  AckCache.TypeAssumptions.ptr_unfold'Put
 
 class MNewLeaderAckCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MNewLeaderAckCache.underlying MNewLeaderAckCache
   underlying : go.UnderlyingDirectedEq MNewLeaderAckCache.ty MNewLeaderAckCache.underlying
-  get_mu : ∀ (x : MNewLeaderAckCache), go.IsGoStepPureDetTagged under (StructFieldGet MNewLeaderAckCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : MNewLeaderAckCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MNewLeaderAckCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MNewLeaderAckCache)))
-  get_cache : ∀ (x : MNewLeaderAckCache), go.IsGoStepPureDetTagged under (StructFieldGet MNewLeaderAckCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : MNewLeaderAckCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MNewLeaderAckCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MNewLeaderAckCache)))
+  get'mu : ∀ (x : MNewLeaderAckCache), go.IsGoStepPureDetTagged under (StructFieldGet MNewLeaderAckCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : MNewLeaderAckCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MNewLeaderAckCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MNewLeaderAckCache)))
+  get'cache : ∀ (x : MNewLeaderAckCache), go.IsGoStepPureDetTagged under (StructFieldGet MNewLeaderAckCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : MNewLeaderAckCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MNewLeaderAckCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MNewLeaderAckCache)))
   method_set : go.MethodSetIs MNewLeaderAckCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MNewLeaderAckCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType MNewLeaderAck.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType MNewLeaderAck.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MNewLeaderAckCache.ty) go!"Get" MNewLeaderAckCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType MNewLeaderAckCache.ty) go!"Put" MNewLeaderAckCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MNewLeaderAckCache.ty) go!"Get" MNewLeaderAckCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType MNewLeaderAckCache.ty) go!"Put" MNewLeaderAckCache.Put.impl
 
 attribute [instance] MNewLeaderAckCache.TypeAssumptions.type_repr
   MNewLeaderAckCache.TypeAssumptions.underlying
-  MNewLeaderAckCache.TypeAssumptions.get_mu
-  MNewLeaderAckCache.TypeAssumptions.set_mu
-  MNewLeaderAckCache.TypeAssumptions.get_cache
-  MNewLeaderAckCache.TypeAssumptions.set_cache
+  MNewLeaderAckCache.TypeAssumptions.get'mu
+  MNewLeaderAckCache.TypeAssumptions.set'mu
+  MNewLeaderAckCache.TypeAssumptions.get'cache
+  MNewLeaderAckCache.TypeAssumptions.set'cache
   MNewLeaderAckCache.TypeAssumptions.method_set
   MNewLeaderAckCache.TypeAssumptions.ptr_method_set
-  MNewLeaderAckCache.TypeAssumptions.ptr_Get_unfold
-  MNewLeaderAckCache.TypeAssumptions.ptr_Put_unfold
+  MNewLeaderAckCache.TypeAssumptions.ptr_unfold'Get
+  MNewLeaderAckCache.TypeAssumptions.ptr_unfold'Put
 
 class MLightSyncCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MLightSyncCache.underlying MLightSyncCache
   underlying : go.UnderlyingDirectedEq MLightSyncCache.ty MLightSyncCache.underlying
-  get_mu : ∀ (x : MLightSyncCache), go.IsGoStepPureDetTagged under (StructFieldGet MLightSyncCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : MLightSyncCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MLightSyncCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MLightSyncCache)))
-  get_cache : ∀ (x : MLightSyncCache), go.IsGoStepPureDetTagged under (StructFieldGet MLightSyncCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : MLightSyncCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MLightSyncCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MLightSyncCache)))
+  get'mu : ∀ (x : MLightSyncCache), go.IsGoStepPureDetTagged under (StructFieldGet MLightSyncCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : MLightSyncCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MLightSyncCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MLightSyncCache)))
+  get'cache : ∀ (x : MLightSyncCache), go.IsGoStepPureDetTagged under (StructFieldGet MLightSyncCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : MLightSyncCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MLightSyncCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MLightSyncCache)))
   method_set : go.MethodSetIs MLightSyncCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MLightSyncCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType MLightSync.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType MLightSync.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MLightSyncCache.ty) go!"Get" MLightSyncCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType MLightSyncCache.ty) go!"Put" MLightSyncCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MLightSyncCache.ty) go!"Get" MLightSyncCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType MLightSyncCache.ty) go!"Put" MLightSyncCache.Put.impl
 
 attribute [instance] MLightSyncCache.TypeAssumptions.type_repr
   MLightSyncCache.TypeAssumptions.underlying
-  MLightSyncCache.TypeAssumptions.get_mu
-  MLightSyncCache.TypeAssumptions.set_mu
-  MLightSyncCache.TypeAssumptions.get_cache
-  MLightSyncCache.TypeAssumptions.set_cache
+  MLightSyncCache.TypeAssumptions.get'mu
+  MLightSyncCache.TypeAssumptions.set'mu
+  MLightSyncCache.TypeAssumptions.get'cache
+  MLightSyncCache.TypeAssumptions.set'cache
   MLightSyncCache.TypeAssumptions.method_set
   MLightSyncCache.TypeAssumptions.ptr_method_set
-  MLightSyncCache.TypeAssumptions.ptr_Get_unfold
-  MLightSyncCache.TypeAssumptions.ptr_Put_unfold
+  MLightSyncCache.TypeAssumptions.ptr_unfold'Get
+  MLightSyncCache.TypeAssumptions.ptr_unfold'Put
 
 class MFastAckCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MFastAckCache.underlying MFastAckCache
   underlying : go.UnderlyingDirectedEq MFastAckCache.ty MFastAckCache.underlying
-  get_mu : ∀ (x : MFastAckCache), go.IsGoStepPureDetTagged under (StructFieldGet MFastAckCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : MFastAckCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MFastAckCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MFastAckCache)))
-  get_cache : ∀ (x : MFastAckCache), go.IsGoStepPureDetTagged under (StructFieldGet MFastAckCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : MFastAckCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MFastAckCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MFastAckCache)))
+  get'mu : ∀ (x : MFastAckCache), go.IsGoStepPureDetTagged under (StructFieldGet MFastAckCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : MFastAckCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MFastAckCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MFastAckCache)))
+  get'cache : ∀ (x : MFastAckCache), go.IsGoStepPureDetTagged under (StructFieldGet MFastAckCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : MFastAckCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MFastAckCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MFastAckCache)))
   method_set : go.MethodSetIs MFastAckCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MFastAckCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType MFastAck.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType MFastAck.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MFastAckCache.ty) go!"Get" MFastAckCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType MFastAckCache.ty) go!"Put" MFastAckCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MFastAckCache.ty) go!"Get" MFastAckCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType MFastAckCache.ty) go!"Put" MFastAckCache.Put.impl
 
 attribute [instance] MFastAckCache.TypeAssumptions.type_repr
   MFastAckCache.TypeAssumptions.underlying
-  MFastAckCache.TypeAssumptions.get_mu
-  MFastAckCache.TypeAssumptions.set_mu
-  MFastAckCache.TypeAssumptions.get_cache
-  MFastAckCache.TypeAssumptions.set_cache
+  MFastAckCache.TypeAssumptions.get'mu
+  MFastAckCache.TypeAssumptions.set'mu
+  MFastAckCache.TypeAssumptions.get'cache
+  MFastAckCache.TypeAssumptions.set'cache
   MFastAckCache.TypeAssumptions.method_set
   MFastAckCache.TypeAssumptions.ptr_method_set
-  MFastAckCache.TypeAssumptions.ptr_Get_unfold
-  MFastAckCache.TypeAssumptions.ptr_Put_unfold
+  MFastAckCache.TypeAssumptions.ptr_unfold'Get
+  MFastAckCache.TypeAssumptions.ptr_unfold'Put
 
 class MFastAckClientCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MFastAckClientCache.underlying MFastAckClientCache
   underlying : go.UnderlyingDirectedEq MFastAckClientCache.ty MFastAckClientCache.underlying
-  get_mu : ∀ (x : MFastAckClientCache), go.IsGoStepPureDetTagged under (StructFieldGet MFastAckClientCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : MFastAckClientCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MFastAckClientCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MFastAckClientCache)))
-  get_cache : ∀ (x : MFastAckClientCache), go.IsGoStepPureDetTagged under (StructFieldGet MFastAckClientCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : MFastAckClientCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MFastAckClientCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MFastAckClientCache)))
+  get'mu : ∀ (x : MFastAckClientCache), go.IsGoStepPureDetTagged under (StructFieldGet MFastAckClientCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : MFastAckClientCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MFastAckClientCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MFastAckClientCache)))
+  get'cache : ∀ (x : MFastAckClientCache), go.IsGoStepPureDetTagged under (StructFieldGet MFastAckClientCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : MFastAckClientCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MFastAckClientCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MFastAckClientCache)))
   method_set : go.MethodSetIs MFastAckClientCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MFastAckClientCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType MFastAckClient.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType MFastAckClient.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MFastAckClientCache.ty) go!"Get" MFastAckClientCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType MFastAckClientCache.ty) go!"Put" MFastAckClientCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MFastAckClientCache.ty) go!"Get" MFastAckClientCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType MFastAckClientCache.ty) go!"Put" MFastAckClientCache.Put.impl
 
 attribute [instance] MFastAckClientCache.TypeAssumptions.type_repr
   MFastAckClientCache.TypeAssumptions.underlying
-  MFastAckClientCache.TypeAssumptions.get_mu
-  MFastAckClientCache.TypeAssumptions.set_mu
-  MFastAckClientCache.TypeAssumptions.get_cache
-  MFastAckClientCache.TypeAssumptions.set_cache
+  MFastAckClientCache.TypeAssumptions.get'mu
+  MFastAckClientCache.TypeAssumptions.set'mu
+  MFastAckClientCache.TypeAssumptions.get'cache
+  MFastAckClientCache.TypeAssumptions.set'cache
   MFastAckClientCache.TypeAssumptions.method_set
   MFastAckClientCache.TypeAssumptions.ptr_method_set
-  MFastAckClientCache.TypeAssumptions.ptr_Get_unfold
-  MFastAckClientCache.TypeAssumptions.ptr_Put_unfold
+  MFastAckClientCache.TypeAssumptions.ptr_unfold'Get
+  MFastAckClientCache.TypeAssumptions.ptr_unfold'Put
 
 class MLightSlowAckCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MLightSlowAckCache.underlying MLightSlowAckCache
   underlying : go.UnderlyingDirectedEq MLightSlowAckCache.ty MLightSlowAckCache.underlying
-  get_mu : ∀ (x : MLightSlowAckCache), go.IsGoStepPureDetTagged under (StructFieldGet MLightSlowAckCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : MLightSlowAckCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MLightSlowAckCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MLightSlowAckCache)))
-  get_cache : ∀ (x : MLightSlowAckCache), go.IsGoStepPureDetTagged under (StructFieldGet MLightSlowAckCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : MLightSlowAckCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MLightSlowAckCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MLightSlowAckCache)))
+  get'mu : ∀ (x : MLightSlowAckCache), go.IsGoStepPureDetTagged under (StructFieldGet MLightSlowAckCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : MLightSlowAckCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MLightSlowAckCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MLightSlowAckCache)))
+  get'cache : ∀ (x : MLightSlowAckCache), go.IsGoStepPureDetTagged under (StructFieldGet MLightSlowAckCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : MLightSlowAckCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MLightSlowAckCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MLightSlowAckCache)))
   method_set : go.MethodSetIs MLightSlowAckCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MLightSlowAckCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType MLightSlowAck.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType MLightSlowAck.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MLightSlowAckCache.ty) go!"Get" MLightSlowAckCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType MLightSlowAckCache.ty) go!"Put" MLightSlowAckCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MLightSlowAckCache.ty) go!"Get" MLightSlowAckCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType MLightSlowAckCache.ty) go!"Put" MLightSlowAckCache.Put.impl
 
 attribute [instance] MLightSlowAckCache.TypeAssumptions.type_repr
   MLightSlowAckCache.TypeAssumptions.underlying
-  MLightSlowAckCache.TypeAssumptions.get_mu
-  MLightSlowAckCache.TypeAssumptions.set_mu
-  MLightSlowAckCache.TypeAssumptions.get_cache
-  MLightSlowAckCache.TypeAssumptions.set_cache
+  MLightSlowAckCache.TypeAssumptions.get'mu
+  MLightSlowAckCache.TypeAssumptions.set'mu
+  MLightSlowAckCache.TypeAssumptions.get'cache
+  MLightSlowAckCache.TypeAssumptions.set'cache
   MLightSlowAckCache.TypeAssumptions.method_set
   MLightSlowAckCache.TypeAssumptions.ptr_method_set
-  MLightSlowAckCache.TypeAssumptions.ptr_Get_unfold
-  MLightSlowAckCache.TypeAssumptions.ptr_Put_unfold
+  MLightSlowAckCache.TypeAssumptions.ptr_unfold'Get
+  MLightSlowAckCache.TypeAssumptions.ptr_unfold'Put
 
 class MAcceptCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MAcceptCache.underlying MAcceptCache
   underlying : go.UnderlyingDirectedEq MAcceptCache.ty MAcceptCache.underlying
-  get_mu : ∀ (x : MAcceptCache), go.IsGoStepPureDetTagged under (StructFieldGet MAcceptCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : MAcceptCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MAcceptCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MAcceptCache)))
-  get_cache : ∀ (x : MAcceptCache), go.IsGoStepPureDetTagged under (StructFieldGet MAcceptCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : MAcceptCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MAcceptCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MAcceptCache)))
+  get'mu : ∀ (x : MAcceptCache), go.IsGoStepPureDetTagged under (StructFieldGet MAcceptCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : MAcceptCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MAcceptCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MAcceptCache)))
+  get'cache : ∀ (x : MAcceptCache), go.IsGoStepPureDetTagged under (StructFieldGet MAcceptCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : MAcceptCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MAcceptCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MAcceptCache)))
   method_set : go.MethodSetIs MAcceptCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MAcceptCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType MAccept.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType MAccept.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MAcceptCache.ty) go!"Get" MAcceptCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType MAcceptCache.ty) go!"Put" MAcceptCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MAcceptCache.ty) go!"Get" MAcceptCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType MAcceptCache.ty) go!"Put" MAcceptCache.Put.impl
 
 attribute [instance] MAcceptCache.TypeAssumptions.type_repr
   MAcceptCache.TypeAssumptions.underlying
-  MAcceptCache.TypeAssumptions.get_mu
-  MAcceptCache.TypeAssumptions.set_mu
-  MAcceptCache.TypeAssumptions.get_cache
-  MAcceptCache.TypeAssumptions.set_cache
+  MAcceptCache.TypeAssumptions.get'mu
+  MAcceptCache.TypeAssumptions.set'mu
+  MAcceptCache.TypeAssumptions.get'cache
+  MAcceptCache.TypeAssumptions.set'cache
   MAcceptCache.TypeAssumptions.method_set
   MAcceptCache.TypeAssumptions.ptr_method_set
-  MAcceptCache.TypeAssumptions.ptr_Get_unfold
-  MAcceptCache.TypeAssumptions.ptr_Put_unfold
+  MAcceptCache.TypeAssumptions.ptr_unfold'Get
+  MAcceptCache.TypeAssumptions.ptr_unfold'Put
 
 class MNewLeaderCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MNewLeaderCache.underlying MNewLeaderCache
   underlying : go.UnderlyingDirectedEq MNewLeaderCache.ty MNewLeaderCache.underlying
-  get_mu : ∀ (x : MNewLeaderCache), go.IsGoStepPureDetTagged under (StructFieldGet MNewLeaderCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : MNewLeaderCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MNewLeaderCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MNewLeaderCache)))
-  get_cache : ∀ (x : MNewLeaderCache), go.IsGoStepPureDetTagged under (StructFieldGet MNewLeaderCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : MNewLeaderCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MNewLeaderCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MNewLeaderCache)))
+  get'mu : ∀ (x : MNewLeaderCache), go.IsGoStepPureDetTagged under (StructFieldGet MNewLeaderCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : MNewLeaderCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MNewLeaderCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MNewLeaderCache)))
+  get'cache : ∀ (x : MNewLeaderCache), go.IsGoStepPureDetTagged under (StructFieldGet MNewLeaderCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : MNewLeaderCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MNewLeaderCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MNewLeaderCache)))
   method_set : go.MethodSetIs MNewLeaderCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MNewLeaderCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType MNewLeader.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType MNewLeader.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MNewLeaderCache.ty) go!"Get" MNewLeaderCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType MNewLeaderCache.ty) go!"Put" MNewLeaderCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MNewLeaderCache.ty) go!"Get" MNewLeaderCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType MNewLeaderCache.ty) go!"Put" MNewLeaderCache.Put.impl
 
 attribute [instance] MNewLeaderCache.TypeAssumptions.type_repr
   MNewLeaderCache.TypeAssumptions.underlying
-  MNewLeaderCache.TypeAssumptions.get_mu
-  MNewLeaderCache.TypeAssumptions.set_mu
-  MNewLeaderCache.TypeAssumptions.get_cache
-  MNewLeaderCache.TypeAssumptions.set_cache
+  MNewLeaderCache.TypeAssumptions.get'mu
+  MNewLeaderCache.TypeAssumptions.set'mu
+  MNewLeaderCache.TypeAssumptions.get'cache
+  MNewLeaderCache.TypeAssumptions.set'cache
   MNewLeaderCache.TypeAssumptions.method_set
   MNewLeaderCache.TypeAssumptions.ptr_method_set
-  MNewLeaderCache.TypeAssumptions.ptr_Get_unfold
-  MNewLeaderCache.TypeAssumptions.ptr_Put_unfold
+  MNewLeaderCache.TypeAssumptions.ptr_unfold'Get
+  MNewLeaderCache.TypeAssumptions.ptr_unfold'Put
 
 class SDepCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SDepCache.underlying SDepCache
   underlying : go.UnderlyingDirectedEq SDepCache.ty SDepCache.underlying
-  get_mu : ∀ (x : SDepCache), go.IsGoStepPureDetTagged under (StructFieldGet SDepCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : SDepCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet SDepCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : SDepCache)))
-  get_cache : ∀ (x : SDepCache), go.IsGoStepPureDetTagged under (StructFieldGet SDepCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : SDepCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet SDepCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : SDepCache)))
+  get'mu : ∀ (x : SDepCache), go.IsGoStepPureDetTagged under (StructFieldGet SDepCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : SDepCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet SDepCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : SDepCache)))
+  get'cache : ∀ (x : SDepCache), go.IsGoStepPureDetTagged under (StructFieldGet SDepCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : SDepCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet SDepCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : SDepCache)))
   method_set : go.MethodSetIs SDepCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SDepCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType SDep.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType SDep.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType SDepCache.ty) go!"Get" SDepCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType SDepCache.ty) go!"Put" SDepCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType SDepCache.ty) go!"Get" SDepCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType SDepCache.ty) go!"Put" SDepCache.Put.impl
 
 attribute [instance] SDepCache.TypeAssumptions.type_repr
   SDepCache.TypeAssumptions.underlying
-  SDepCache.TypeAssumptions.get_mu
-  SDepCache.TypeAssumptions.set_mu
-  SDepCache.TypeAssumptions.get_cache
-  SDepCache.TypeAssumptions.set_cache
+  SDepCache.TypeAssumptions.get'mu
+  SDepCache.TypeAssumptions.set'mu
+  SDepCache.TypeAssumptions.get'cache
+  SDepCache.TypeAssumptions.set'cache
   SDepCache.TypeAssumptions.method_set
   SDepCache.TypeAssumptions.ptr_method_set
-  SDepCache.TypeAssumptions.ptr_Get_unfold
-  SDepCache.TypeAssumptions.ptr_Put_unfold
+  SDepCache.TypeAssumptions.ptr_unfold'Get
+  SDepCache.TypeAssumptions.ptr_unfold'Put
 
 class MShareStateCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MShareStateCache.underlying MShareStateCache
   underlying : go.UnderlyingDirectedEq MShareStateCache.ty MShareStateCache.underlying
-  get_mu : ∀ (x : MShareStateCache), go.IsGoStepPureDetTagged under (StructFieldGet MShareStateCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : MShareStateCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MShareStateCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MShareStateCache)))
-  get_cache : ∀ (x : MShareStateCache), go.IsGoStepPureDetTagged under (StructFieldGet MShareStateCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : MShareStateCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MShareStateCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MShareStateCache)))
+  get'mu : ∀ (x : MShareStateCache), go.IsGoStepPureDetTagged under (StructFieldGet MShareStateCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : MShareStateCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MShareStateCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MShareStateCache)))
+  get'cache : ∀ (x : MShareStateCache), go.IsGoStepPureDetTagged under (StructFieldGet MShareStateCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : MShareStateCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MShareStateCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MShareStateCache)))
   method_set : go.MethodSetIs MShareStateCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MShareStateCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType MShareState.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType MShareState.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MShareStateCache.ty) go!"Get" MShareStateCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType MShareStateCache.ty) go!"Put" MShareStateCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MShareStateCache.ty) go!"Get" MShareStateCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType MShareStateCache.ty) go!"Put" MShareStateCache.Put.impl
 
 attribute [instance] MShareStateCache.TypeAssumptions.type_repr
   MShareStateCache.TypeAssumptions.underlying
-  MShareStateCache.TypeAssumptions.get_mu
-  MShareStateCache.TypeAssumptions.set_mu
-  MShareStateCache.TypeAssumptions.get_cache
-  MShareStateCache.TypeAssumptions.set_cache
+  MShareStateCache.TypeAssumptions.get'mu
+  MShareStateCache.TypeAssumptions.set'mu
+  MShareStateCache.TypeAssumptions.get'cache
+  MShareStateCache.TypeAssumptions.set'cache
   MShareStateCache.TypeAssumptions.method_set
   MShareStateCache.TypeAssumptions.ptr_method_set
-  MShareStateCache.TypeAssumptions.ptr_Get_unfold
-  MShareStateCache.TypeAssumptions.ptr_Put_unfold
+  MShareStateCache.TypeAssumptions.ptr_unfold'Get
+  MShareStateCache.TypeAssumptions.ptr_unfold'Put
 
 class MOptAcksCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MOptAcksCache.underlying MOptAcksCache
   underlying : go.UnderlyingDirectedEq MOptAcksCache.ty MOptAcksCache.underlying
-  get_mu : ∀ (x : MOptAcksCache), go.IsGoStepPureDetTagged under (StructFieldGet MOptAcksCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : MOptAcksCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MOptAcksCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MOptAcksCache)))
-  get_cache : ∀ (x : MOptAcksCache), go.IsGoStepPureDetTagged under (StructFieldGet MOptAcksCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : MOptAcksCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MOptAcksCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MOptAcksCache)))
+  get'mu : ∀ (x : MOptAcksCache), go.IsGoStepPureDetTagged under (StructFieldGet MOptAcksCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : MOptAcksCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MOptAcksCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MOptAcksCache)))
+  get'cache : ∀ (x : MOptAcksCache), go.IsGoStepPureDetTagged under (StructFieldGet MOptAcksCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : MOptAcksCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MOptAcksCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MOptAcksCache)))
   method_set : go.MethodSetIs MOptAcksCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MOptAcksCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType MOptAcks.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType MOptAcks.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MOptAcksCache.ty) go!"Get" MOptAcksCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType MOptAcksCache.ty) go!"Put" MOptAcksCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MOptAcksCache.ty) go!"Get" MOptAcksCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType MOptAcksCache.ty) go!"Put" MOptAcksCache.Put.impl
 
 attribute [instance] MOptAcksCache.TypeAssumptions.type_repr
   MOptAcksCache.TypeAssumptions.underlying
-  MOptAcksCache.TypeAssumptions.get_mu
-  MOptAcksCache.TypeAssumptions.set_mu
-  MOptAcksCache.TypeAssumptions.get_cache
-  MOptAcksCache.TypeAssumptions.set_cache
+  MOptAcksCache.TypeAssumptions.get'mu
+  MOptAcksCache.TypeAssumptions.set'mu
+  MOptAcksCache.TypeAssumptions.get'cache
+  MOptAcksCache.TypeAssumptions.set'cache
   MOptAcksCache.TypeAssumptions.method_set
   MOptAcksCache.TypeAssumptions.ptr_method_set
-  MOptAcksCache.TypeAssumptions.ptr_Get_unfold
-  MOptAcksCache.TypeAssumptions.ptr_Put_unfold
+  MOptAcksCache.TypeAssumptions.ptr_unfold'Get
+  MOptAcksCache.TypeAssumptions.ptr_unfold'Put
 
 class MPingCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MPingCache.underlying MPingCache
   underlying : go.UnderlyingDirectedEq MPingCache.ty MPingCache.underlying
-  get_mu : ∀ (x : MPingCache), go.IsGoStepPureDetTagged under (StructFieldGet MPingCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : MPingCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MPingCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MPingCache)))
-  get_cache : ∀ (x : MPingCache), go.IsGoStepPureDetTagged under (StructFieldGet MPingCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : MPingCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MPingCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MPingCache)))
+  get'mu : ∀ (x : MPingCache), go.IsGoStepPureDetTagged under (StructFieldGet MPingCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : MPingCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MPingCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MPingCache)))
+  get'cache : ∀ (x : MPingCache), go.IsGoStepPureDetTagged under (StructFieldGet MPingCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : MPingCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MPingCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MPingCache)))
   method_set : go.MethodSetIs MPingCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MPingCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType MPing.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType MPing.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MPingCache.ty) go!"Get" MPingCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType MPingCache.ty) go!"Put" MPingCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MPingCache.ty) go!"Get" MPingCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType MPingCache.ty) go!"Put" MPingCache.Put.impl
 
 attribute [instance] MPingCache.TypeAssumptions.type_repr
   MPingCache.TypeAssumptions.underlying
-  MPingCache.TypeAssumptions.get_mu
-  MPingCache.TypeAssumptions.set_mu
-  MPingCache.TypeAssumptions.get_cache
-  MPingCache.TypeAssumptions.set_cache
+  MPingCache.TypeAssumptions.get'mu
+  MPingCache.TypeAssumptions.set'mu
+  MPingCache.TypeAssumptions.get'cache
+  MPingCache.TypeAssumptions.set'cache
   MPingCache.TypeAssumptions.method_set
   MPingCache.TypeAssumptions.ptr_method_set
-  MPingCache.TypeAssumptions.ptr_Get_unfold
-  MPingCache.TypeAssumptions.ptr_Put_unfold
+  MPingCache.TypeAssumptions.ptr_unfold'Get
+  MPingCache.TypeAssumptions.ptr_unfold'Put
 
 class MSlowAckCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MSlowAckCache.underlying MSlowAckCache
   underlying : go.UnderlyingDirectedEq MSlowAckCache.ty MSlowAckCache.underlying
-  get_mu : ∀ (x : MSlowAckCache), go.IsGoStepPureDetTagged under (StructFieldGet MSlowAckCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : MSlowAckCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MSlowAckCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MSlowAckCache)))
-  get_cache : ∀ (x : MSlowAckCache), go.IsGoStepPureDetTagged under (StructFieldGet MSlowAckCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : MSlowAckCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MSlowAckCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MSlowAckCache)))
+  get'mu : ∀ (x : MSlowAckCache), go.IsGoStepPureDetTagged under (StructFieldGet MSlowAckCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : MSlowAckCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MSlowAckCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MSlowAckCache)))
+  get'cache : ∀ (x : MSlowAckCache), go.IsGoStepPureDetTagged under (StructFieldGet MSlowAckCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : MSlowAckCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MSlowAckCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MSlowAckCache)))
   method_set : go.MethodSetIs MSlowAckCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MSlowAckCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType MSlowAck.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType MSlowAck.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MSlowAckCache.ty) go!"Get" MSlowAckCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType MSlowAckCache.ty) go!"Put" MSlowAckCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MSlowAckCache.ty) go!"Get" MSlowAckCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType MSlowAckCache.ty) go!"Put" MSlowAckCache.Put.impl
 
 attribute [instance] MSlowAckCache.TypeAssumptions.type_repr
   MSlowAckCache.TypeAssumptions.underlying
-  MSlowAckCache.TypeAssumptions.get_mu
-  MSlowAckCache.TypeAssumptions.set_mu
-  MSlowAckCache.TypeAssumptions.get_cache
-  MSlowAckCache.TypeAssumptions.set_cache
+  MSlowAckCache.TypeAssumptions.get'mu
+  MSlowAckCache.TypeAssumptions.set'mu
+  MSlowAckCache.TypeAssumptions.get'cache
+  MSlowAckCache.TypeAssumptions.set'cache
   MSlowAckCache.TypeAssumptions.method_set
   MSlowAckCache.TypeAssumptions.ptr_method_set
-  MSlowAckCache.TypeAssumptions.ptr_Get_unfold
-  MSlowAckCache.TypeAssumptions.ptr_Put_unfold
+  MSlowAckCache.TypeAssumptions.ptr_unfold'Get
+  MSlowAckCache.TypeAssumptions.ptr_unfold'Put
 
 class MAcksCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MAcksCache.underlying MAcksCache
   underlying : go.UnderlyingDirectedEq MAcksCache.ty MAcksCache.underlying
-  get_mu : ∀ (x : MAcksCache), go.IsGoStepPureDetTagged under (StructFieldGet MAcksCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : MAcksCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MAcksCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MAcksCache)))
-  get_cache : ∀ (x : MAcksCache), go.IsGoStepPureDetTagged under (StructFieldGet MAcksCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : MAcksCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MAcksCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MAcksCache)))
+  get'mu : ∀ (x : MAcksCache), go.IsGoStepPureDetTagged under (StructFieldGet MAcksCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : MAcksCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MAcksCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MAcksCache)))
+  get'cache : ∀ (x : MAcksCache), go.IsGoStepPureDetTagged under (StructFieldGet MAcksCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : MAcksCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MAcksCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MAcksCache)))
   method_set : go.MethodSetIs MAcksCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MAcksCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType MAcks.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType MAcks.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MAcksCache.ty) go!"Get" MAcksCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType MAcksCache.ty) go!"Put" MAcksCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MAcksCache.ty) go!"Get" MAcksCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType MAcksCache.ty) go!"Put" MAcksCache.Put.impl
 
 attribute [instance] MAcksCache.TypeAssumptions.type_repr
   MAcksCache.TypeAssumptions.underlying
-  MAcksCache.TypeAssumptions.get_mu
-  MAcksCache.TypeAssumptions.set_mu
-  MAcksCache.TypeAssumptions.get_cache
-  MAcksCache.TypeAssumptions.set_cache
+  MAcksCache.TypeAssumptions.get'mu
+  MAcksCache.TypeAssumptions.set'mu
+  MAcksCache.TypeAssumptions.get'cache
+  MAcksCache.TypeAssumptions.set'cache
   MAcksCache.TypeAssumptions.method_set
   MAcksCache.TypeAssumptions.ptr_method_set
-  MAcksCache.TypeAssumptions.ptr_Get_unfold
-  MAcksCache.TypeAssumptions.ptr_Put_unfold
+  MAcksCache.TypeAssumptions.ptr_unfold'Get
+  MAcksCache.TypeAssumptions.ptr_unfold'Put
 
 class MReplyCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MReplyCache.underlying MReplyCache
   underlying : go.UnderlyingDirectedEq MReplyCache.ty MReplyCache.underlying
-  get_mu : ∀ (x : MReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet MReplyCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : MReplyCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MReplyCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MReplyCache)))
-  get_cache : ∀ (x : MReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet MReplyCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : MReplyCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MReplyCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MReplyCache)))
+  get'mu : ∀ (x : MReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet MReplyCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : MReplyCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MReplyCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MReplyCache)))
+  get'cache : ∀ (x : MReplyCache), go.IsGoStepPureDetTagged under (StructFieldGet MReplyCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : MReplyCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MReplyCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MReplyCache)))
   method_set : go.MethodSetIs MReplyCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MReplyCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType MReply.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType MReply.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MReplyCache.ty) go!"Get" MReplyCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType MReplyCache.ty) go!"Put" MReplyCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MReplyCache.ty) go!"Get" MReplyCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType MReplyCache.ty) go!"Put" MReplyCache.Put.impl
 
 attribute [instance] MReplyCache.TypeAssumptions.type_repr
   MReplyCache.TypeAssumptions.underlying
-  MReplyCache.TypeAssumptions.get_mu
-  MReplyCache.TypeAssumptions.set_mu
-  MReplyCache.TypeAssumptions.get_cache
-  MReplyCache.TypeAssumptions.set_cache
+  MReplyCache.TypeAssumptions.get'mu
+  MReplyCache.TypeAssumptions.set'mu
+  MReplyCache.TypeAssumptions.get'cache
+  MReplyCache.TypeAssumptions.set'cache
   MReplyCache.TypeAssumptions.method_set
   MReplyCache.TypeAssumptions.ptr_method_set
-  MReplyCache.TypeAssumptions.ptr_Get_unfold
-  MReplyCache.TypeAssumptions.ptr_Put_unfold
+  MReplyCache.TypeAssumptions.ptr_unfold'Get
+  MReplyCache.TypeAssumptions.ptr_unfold'Put
 
 class MNewLeaderAckNCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MNewLeaderAckNCache.underlying MNewLeaderAckNCache
   underlying : go.UnderlyingDirectedEq MNewLeaderAckNCache.ty MNewLeaderAckNCache.underlying
-  get_mu : ∀ (x : MNewLeaderAckNCache), go.IsGoStepPureDetTagged under (StructFieldGet MNewLeaderAckNCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : MNewLeaderAckNCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MNewLeaderAckNCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MNewLeaderAckNCache)))
-  get_cache : ∀ (x : MNewLeaderAckNCache), go.IsGoStepPureDetTagged under (StructFieldGet MNewLeaderAckNCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : MNewLeaderAckNCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MNewLeaderAckNCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MNewLeaderAckNCache)))
+  get'mu : ∀ (x : MNewLeaderAckNCache), go.IsGoStepPureDetTagged under (StructFieldGet MNewLeaderAckNCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : MNewLeaderAckNCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MNewLeaderAckNCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MNewLeaderAckNCache)))
+  get'cache : ∀ (x : MNewLeaderAckNCache), go.IsGoStepPureDetTagged under (StructFieldGet MNewLeaderAckNCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : MNewLeaderAckNCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MNewLeaderAckNCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MNewLeaderAckNCache)))
   method_set : go.MethodSetIs MNewLeaderAckNCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MNewLeaderAckNCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType MNewLeaderAckN.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType MNewLeaderAckN.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MNewLeaderAckNCache.ty) go!"Get" MNewLeaderAckNCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType MNewLeaderAckNCache.ty) go!"Put" MNewLeaderAckNCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MNewLeaderAckNCache.ty) go!"Get" MNewLeaderAckNCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType MNewLeaderAckNCache.ty) go!"Put" MNewLeaderAckNCache.Put.impl
 
 attribute [instance] MNewLeaderAckNCache.TypeAssumptions.type_repr
   MNewLeaderAckNCache.TypeAssumptions.underlying
-  MNewLeaderAckNCache.TypeAssumptions.get_mu
-  MNewLeaderAckNCache.TypeAssumptions.set_mu
-  MNewLeaderAckNCache.TypeAssumptions.get_cache
-  MNewLeaderAckNCache.TypeAssumptions.set_cache
+  MNewLeaderAckNCache.TypeAssumptions.get'mu
+  MNewLeaderAckNCache.TypeAssumptions.set'mu
+  MNewLeaderAckNCache.TypeAssumptions.get'cache
+  MNewLeaderAckNCache.TypeAssumptions.set'cache
   MNewLeaderAckNCache.TypeAssumptions.method_set
   MNewLeaderAckNCache.TypeAssumptions.ptr_method_set
-  MNewLeaderAckNCache.TypeAssumptions.ptr_Get_unfold
-  MNewLeaderAckNCache.TypeAssumptions.ptr_Put_unfold
+  MNewLeaderAckNCache.TypeAssumptions.ptr_unfold'Get
+  MNewLeaderAckNCache.TypeAssumptions.ptr_unfold'Put
 
 class MCollectCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MCollectCache.underlying MCollectCache
   underlying : go.UnderlyingDirectedEq MCollectCache.ty MCollectCache.underlying
-  get_mu : ∀ (x : MCollectCache), go.IsGoStepPureDetTagged under (StructFieldGet MCollectCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : MCollectCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MCollectCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MCollectCache)))
-  get_cache : ∀ (x : MCollectCache), go.IsGoStepPureDetTagged under (StructFieldGet MCollectCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : MCollectCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MCollectCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MCollectCache)))
+  get'mu : ∀ (x : MCollectCache), go.IsGoStepPureDetTagged under (StructFieldGet MCollectCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : MCollectCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MCollectCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MCollectCache)))
+  get'cache : ∀ (x : MCollectCache), go.IsGoStepPureDetTagged under (StructFieldGet MCollectCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : MCollectCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MCollectCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MCollectCache)))
   method_set : go.MethodSetIs MCollectCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MCollectCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType MCollect.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType MCollect.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MCollectCache.ty) go!"Get" MCollectCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType MCollectCache.ty) go!"Put" MCollectCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MCollectCache.ty) go!"Get" MCollectCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType MCollectCache.ty) go!"Put" MCollectCache.Put.impl
 
 attribute [instance] MCollectCache.TypeAssumptions.type_repr
   MCollectCache.TypeAssumptions.underlying
-  MCollectCache.TypeAssumptions.get_mu
-  MCollectCache.TypeAssumptions.set_mu
-  MCollectCache.TypeAssumptions.get_cache
-  MCollectCache.TypeAssumptions.set_cache
+  MCollectCache.TypeAssumptions.get'mu
+  MCollectCache.TypeAssumptions.set'mu
+  MCollectCache.TypeAssumptions.get'cache
+  MCollectCache.TypeAssumptions.set'cache
   MCollectCache.TypeAssumptions.method_set
   MCollectCache.TypeAssumptions.ptr_method_set
-  MCollectCache.TypeAssumptions.ptr_Get_unfold
-  MCollectCache.TypeAssumptions.ptr_Put_unfold
+  MCollectCache.TypeAssumptions.ptr_unfold'Get
+  MCollectCache.TypeAssumptions.ptr_unfold'Put
 
 class MPingRepCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MPingRepCache.underlying MPingRepCache
   underlying : go.UnderlyingDirectedEq MPingRepCache.ty MPingRepCache.underlying
-  get_mu : ∀ (x : MPingRepCache), go.IsGoStepPureDetTagged under (StructFieldGet MPingRepCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : MPingRepCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MPingRepCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MPingRepCache)))
-  get_cache : ∀ (x : MPingRepCache), go.IsGoStepPureDetTagged under (StructFieldGet MPingRepCache.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : MPingRepCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MPingRepCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MPingRepCache)))
+  get'mu : ∀ (x : MPingRepCache), go.IsGoStepPureDetTagged under (StructFieldGet MPingRepCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : MPingRepCache) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet MPingRepCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : MPingRepCache)))
+  get'cache : ∀ (x : MPingRepCache), go.IsGoStepPureDetTagged under (StructFieldGet MPingRepCache.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : MPingRepCache) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MPingRepCache.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : MPingRepCache)))
   method_set : go.MethodSetIs MPingRepCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MPingRepCache.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType MPingRep.ty)]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType MPingRep.ty)] false [])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MPingRepCache.ty) go!"Get" MPingRepCache.Get.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType MPingRepCache.ty) go!"Put" MPingRepCache.Put.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MPingRepCache.ty) go!"Get" MPingRepCache.Get.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType MPingRepCache.ty) go!"Put" MPingRepCache.Put.impl
 
 attribute [instance] MPingRepCache.TypeAssumptions.type_repr
   MPingRepCache.TypeAssumptions.underlying
-  MPingRepCache.TypeAssumptions.get_mu
-  MPingRepCache.TypeAssumptions.set_mu
-  MPingRepCache.TypeAssumptions.get_cache
-  MPingRepCache.TypeAssumptions.set_cache
+  MPingRepCache.TypeAssumptions.get'mu
+  MPingRepCache.TypeAssumptions.set'mu
+  MPingRepCache.TypeAssumptions.get'cache
+  MPingRepCache.TypeAssumptions.set'cache
   MPingRepCache.TypeAssumptions.method_set
   MPingRepCache.TypeAssumptions.ptr_method_set
-  MPingRepCache.TypeAssumptions.ptr_Get_unfold
-  MPingRepCache.TypeAssumptions.ptr_Put_unfold
+  MPingRepCache.TypeAssumptions.ptr_unfold'Get
+  MPingRepCache.TypeAssumptions.ptr_unfold'Put
 
 class DelayEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DelayEntry.underlying DelayEntry
   underlying : go.UnderlyingDirectedEq DelayEntry.ty DelayEntry.underlying
-  get_now : ∀ (x : DelayEntry), go.IsGoStepPureDetTagged under (StructFieldGet DelayEntry.underlying go!"now") #x (Val #(x.now'))
-  set_now : ∀ (x : DelayEntry) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet DelayEntry.underlying go!"now") (PairV #x #y) (Val #(({ x with now' := y } : DelayEntry)))
-  get_badCount : ∀ (x : DelayEntry), go.IsGoStepPureDetTagged under (StructFieldGet DelayEntry.underlying go!"badCount") #x (Val #(x.badCount'))
-  set_badCount : ∀ (x : DelayEntry) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DelayEntry.underlying go!"badCount") (PairV #x #y) (Val #(({ x with badCount' := y } : DelayEntry)))
+  get'now : ∀ (x : DelayEntry), go.IsGoStepPureDetTagged under (StructFieldGet DelayEntry.underlying go!"now") #x (Val #(x.now'))
+  set'now : ∀ (x : DelayEntry) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet DelayEntry.underlying go!"now") (PairV #x #y) (Val #(({ x with now' := y } : DelayEntry)))
+  get'badCount : ∀ (x : DelayEntry), go.IsGoStepPureDetTagged under (StructFieldGet DelayEntry.underlying go!"badCount") #x (Val #(x.badCount'))
+  set'badCount : ∀ (x : DelayEntry) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DelayEntry.underlying go!"badCount") (PairV #x #y) (Val #(({ x with badCount' := y } : DelayEntry)))
   method_set : go.MethodSetIs DelayEntry.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DelayEntry.ty) []
 
 attribute [instance] DelayEntry.TypeAssumptions.type_repr
   DelayEntry.TypeAssumptions.underlying
-  DelayEntry.TypeAssumptions.get_now
-  DelayEntry.TypeAssumptions.set_now
-  DelayEntry.TypeAssumptions.get_badCount
-  DelayEntry.TypeAssumptions.set_badCount
+  DelayEntry.TypeAssumptions.get'now
+  DelayEntry.TypeAssumptions.set'now
+  DelayEntry.TypeAssumptions.get'badCount
+  DelayEntry.TypeAssumptions.set'badCount
   DelayEntry.TypeAssumptions.method_set
   DelayEntry.TypeAssumptions.ptr_method_set
 
 class SwapValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SwapValue.underlying SwapValue
   underlying : go.UnderlyingDirectedEq SwapValue.ty SwapValue.underlying
-  get_oldFast : ∀ (x : SwapValue), go.IsGoStepPureDetTagged under (StructFieldGet SwapValue.underlying go!"oldFast") #x (Val #(x.oldFast'))
-  set_oldFast : ∀ (x : SwapValue) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet SwapValue.underlying go!"oldFast") (PairV #x #y) (Val #(({ x with oldFast' := y } : SwapValue)))
-  get_newFast : ∀ (x : SwapValue), go.IsGoStepPureDetTagged under (StructFieldGet SwapValue.underlying go!"newFast") #x (Val #(x.newFast'))
-  set_newFast : ∀ (x : SwapValue) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet SwapValue.underlying go!"newFast") (PairV #x #y) (Val #(({ x with newFast' := y } : SwapValue)))
+  get'oldFast : ∀ (x : SwapValue), go.IsGoStepPureDetTagged under (StructFieldGet SwapValue.underlying go!"oldFast") #x (Val #(x.oldFast'))
+  set'oldFast : ∀ (x : SwapValue) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet SwapValue.underlying go!"oldFast") (PairV #x #y) (Val #(({ x with oldFast' := y } : SwapValue)))
+  get'newFast : ∀ (x : SwapValue), go.IsGoStepPureDetTagged under (StructFieldGet SwapValue.underlying go!"newFast") #x (Val #(x.newFast'))
+  set'newFast : ∀ (x : SwapValue) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet SwapValue.underlying go!"newFast") (PairV #x #y) (Val #(({ x with newFast' := y } : SwapValue)))
   method_set : go.MethodSetIs SwapValue.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SwapValue.ty) []
 
 attribute [instance] SwapValue.TypeAssumptions.type_repr
   SwapValue.TypeAssumptions.underlying
-  SwapValue.TypeAssumptions.get_oldFast
-  SwapValue.TypeAssumptions.set_oldFast
-  SwapValue.TypeAssumptions.get_newFast
-  SwapValue.TypeAssumptions.set_newFast
+  SwapValue.TypeAssumptions.get'oldFast
+  SwapValue.TypeAssumptions.set'oldFast
+  SwapValue.TypeAssumptions.get'newFast
+  SwapValue.TypeAssumptions.set'newFast
   SwapValue.TypeAssumptions.method_set
   SwapValue.TypeAssumptions.ptr_method_set
 
 class DelayLog.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DelayLog.underlying DelayLog
   underlying : go.UnderlyingDirectedEq DelayLog.ty DelayLog.underlying
-  get_id : ∀ (x : DelayLog), go.IsGoStepPureDetTagged under (StructFieldGet DelayLog.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : DelayLog) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DelayLog.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : DelayLog)))
-  get_log : ∀ (x : DelayLog), go.IsGoStepPureDetTagged under (StructFieldGet DelayLog.underlying go!"log") #x (Val #(x.log'))
-  set_log : ∀ (x : DelayLog) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DelayLog.underlying go!"log") (PairV #x #y) (Val #(({ x with log' := y } : DelayLog)))
-  get_swap : ∀ (x : DelayLog), go.IsGoStepPureDetTagged under (StructFieldGet DelayLog.underlying go!"swap") #x (Val #(x.swap'))
-  set_swap : ∀ (x : DelayLog) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet DelayLog.underlying go!"swap") (PairV #x #y) (Val #(({ x with swap' := y } : DelayLog)))
-  get_ping : ∀ (x : DelayLog), go.IsGoStepPureDetTagged under (StructFieldGet DelayLog.underlying go!"ping") #x (Val #(x.ping'))
-  set_ping : ∀ (x : DelayLog) (y : MPing), go.IsGoStepPureDetTagged under (StructFieldSet DelayLog.underlying go!"ping") (PairV #x #y) (Val #(({ x with ping' := y } : DelayLog)))
-  get_ballot : ∀ (x : DelayLog), go.IsGoStepPureDetTagged under (StructFieldGet DelayLog.underlying go!"ballot") #x (Val #(x.ballot'))
-  set_ballot : ∀ (x : DelayLog) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DelayLog.underlying go!"ballot") (PairV #x #y) (Val #(({ x with ballot' := y } : DelayLog)))
-  get_lastValue : ∀ (x : DelayLog), go.IsGoStepPureDetTagged under (StructFieldGet DelayLog.underlying go!"lastValue") #x (Val #(x.lastValue'))
-  set_lastValue : ∀ (x : DelayLog) (y : SwapValue), go.IsGoStepPureDetTagged under (StructFieldSet DelayLog.underlying go!"lastValue") (PairV #x #y) (Val #(({ x with lastValue' := y } : DelayLog)))
-  get_fastestSlowD : ∀ (x : DelayLog), go.IsGoStepPureDetTagged under (StructFieldGet DelayLog.underlying go!"fastestSlowD") #x (Val #(x.fastestSlowD'))
-  set_fastestSlowD : ∀ (x : DelayLog) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet DelayLog.underlying go!"fastestSlowD") (PairV #x #y) (Val #(({ x with fastestSlowD' := y } : DelayLog)))
-  get_fastestSlowId : ∀ (x : DelayLog), go.IsGoStepPureDetTagged under (StructFieldGet DelayLog.underlying go!"fastestSlowId") #x (Val #(x.fastestSlowId'))
-  set_fastestSlowId : ∀ (x : DelayLog) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DelayLog.underlying go!"fastestSlowId") (PairV #x #y) (Val #(({ x with fastestSlowId' := y } : DelayLog)))
+  get'id : ∀ (x : DelayLog), go.IsGoStepPureDetTagged under (StructFieldGet DelayLog.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : DelayLog) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DelayLog.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : DelayLog)))
+  get'log : ∀ (x : DelayLog), go.IsGoStepPureDetTagged under (StructFieldGet DelayLog.underlying go!"log") #x (Val #(x.log'))
+  set'log : ∀ (x : DelayLog) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DelayLog.underlying go!"log") (PairV #x #y) (Val #(({ x with log' := y } : DelayLog)))
+  get'swap : ∀ (x : DelayLog), go.IsGoStepPureDetTagged under (StructFieldGet DelayLog.underlying go!"swap") #x (Val #(x.swap'))
+  set'swap : ∀ (x : DelayLog) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet DelayLog.underlying go!"swap") (PairV #x #y) (Val #(({ x with swap' := y } : DelayLog)))
+  get'ping : ∀ (x : DelayLog), go.IsGoStepPureDetTagged under (StructFieldGet DelayLog.underlying go!"ping") #x (Val #(x.ping'))
+  set'ping : ∀ (x : DelayLog) (y : MPing), go.IsGoStepPureDetTagged under (StructFieldSet DelayLog.underlying go!"ping") (PairV #x #y) (Val #(({ x with ping' := y } : DelayLog)))
+  get'ballot : ∀ (x : DelayLog), go.IsGoStepPureDetTagged under (StructFieldGet DelayLog.underlying go!"ballot") #x (Val #(x.ballot'))
+  set'ballot : ∀ (x : DelayLog) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DelayLog.underlying go!"ballot") (PairV #x #y) (Val #(({ x with ballot' := y } : DelayLog)))
+  get'lastValue : ∀ (x : DelayLog), go.IsGoStepPureDetTagged under (StructFieldGet DelayLog.underlying go!"lastValue") #x (Val #(x.lastValue'))
+  set'lastValue : ∀ (x : DelayLog) (y : SwapValue), go.IsGoStepPureDetTagged under (StructFieldSet DelayLog.underlying go!"lastValue") (PairV #x #y) (Val #(({ x with lastValue' := y } : DelayLog)))
+  get'fastestSlowD : ∀ (x : DelayLog), go.IsGoStepPureDetTagged under (StructFieldGet DelayLog.underlying go!"fastestSlowD") #x (Val #(x.fastestSlowD'))
+  set'fastestSlowD : ∀ (x : DelayLog) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet DelayLog.underlying go!"fastestSlowD") (PairV #x #y) (Val #(({ x with fastestSlowD' := y } : DelayLog)))
+  get'fastestSlowId : ∀ (x : DelayLog), go.IsGoStepPureDetTagged under (StructFieldGet DelayLog.underlying go!"fastestSlowId") #x (Val #(x.fastestSlowId'))
+  set'fastestSlowId : ∀ (x : DelayLog) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DelayLog.underlying go!"fastestSlowId") (PairV #x #y) (Val #(({ x with fastestSlowId' := y } : DelayLog)))
   method_set : go.MethodSetIs DelayLog.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DelayLog.ty) [(go!"BTick", (some (go.signature.Signature [go.int32, go.int32, go.bool] false []))), (go!"Reinit", (some (go.signature.Signature [(go.GoType.PointerType Replica.ty)] false []))), (go!"Tick", (some (go.signature.Signature [go.int32, go.bool] false [go.int32])))]
-  ptr_BTick_unfold : MethodUnfold (go.GoType.PointerType DelayLog.ty) go!"BTick" DelayLog.BTick.impl
-  ptr_Reinit_unfold : MethodUnfold (go.GoType.PointerType DelayLog.ty) go!"Reinit" DelayLog.Reinit.impl
-  ptr_Tick_unfold : MethodUnfold (go.GoType.PointerType DelayLog.ty) go!"Tick" DelayLog.Tick.impl
+  ptr_unfold'BTick : MethodUnfold (go.GoType.PointerType DelayLog.ty) go!"BTick" DelayLog.BTick.impl
+  ptr_unfold'Reinit : MethodUnfold (go.GoType.PointerType DelayLog.ty) go!"Reinit" DelayLog.Reinit.impl
+  ptr_unfold'Tick : MethodUnfold (go.GoType.PointerType DelayLog.ty) go!"Tick" DelayLog.Tick.impl
 
 attribute [instance] DelayLog.TypeAssumptions.type_repr
   DelayLog.TypeAssumptions.underlying
-  DelayLog.TypeAssumptions.get_id
-  DelayLog.TypeAssumptions.set_id
-  DelayLog.TypeAssumptions.get_log
-  DelayLog.TypeAssumptions.set_log
-  DelayLog.TypeAssumptions.get_swap
-  DelayLog.TypeAssumptions.set_swap
-  DelayLog.TypeAssumptions.get_ping
-  DelayLog.TypeAssumptions.set_ping
-  DelayLog.TypeAssumptions.get_ballot
-  DelayLog.TypeAssumptions.set_ballot
-  DelayLog.TypeAssumptions.get_lastValue
-  DelayLog.TypeAssumptions.set_lastValue
-  DelayLog.TypeAssumptions.get_fastestSlowD
-  DelayLog.TypeAssumptions.set_fastestSlowD
-  DelayLog.TypeAssumptions.get_fastestSlowId
-  DelayLog.TypeAssumptions.set_fastestSlowId
+  DelayLog.TypeAssumptions.get'id
+  DelayLog.TypeAssumptions.set'id
+  DelayLog.TypeAssumptions.get'log
+  DelayLog.TypeAssumptions.set'log
+  DelayLog.TypeAssumptions.get'swap
+  DelayLog.TypeAssumptions.set'swap
+  DelayLog.TypeAssumptions.get'ping
+  DelayLog.TypeAssumptions.set'ping
+  DelayLog.TypeAssumptions.get'ballot
+  DelayLog.TypeAssumptions.set'ballot
+  DelayLog.TypeAssumptions.get'lastValue
+  DelayLog.TypeAssumptions.set'lastValue
+  DelayLog.TypeAssumptions.get'fastestSlowD
+  DelayLog.TypeAssumptions.set'fastestSlowD
+  DelayLog.TypeAssumptions.get'fastestSlowId
+  DelayLog.TypeAssumptions.set'fastestSlowId
   DelayLog.TypeAssumptions.method_set
   DelayLog.TypeAssumptions.ptr_method_set
-  DelayLog.TypeAssumptions.ptr_BTick_unfold
-  DelayLog.TypeAssumptions.ptr_Reinit_unfold
-  DelayLog.TypeAssumptions.ptr_Tick_unfold
+  DelayLog.TypeAssumptions.ptr_unfold'BTick
+  DelayLog.TypeAssumptions.ptr_unfold'Reinit
+  DelayLog.TypeAssumptions.ptr_unfold'Tick
 
 class SHash.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SHash.underlying SHash
   underlying : go.UnderlyingDirectedEq SHash.ty SHash.underlying
-  get_H : ∀ (x : SHash), go.IsGoStepPureDetTagged under (StructFieldGet SHash.underlying go!"H") #x (Val #(x.H'))
-  set_H : ∀ (x : SHash) (y : (GoArray w8 32)), go.IsGoStepPureDetTagged under (StructFieldSet SHash.underlying go!"H") (PairV #x #y) (Val #(({ x with H' := y } : SHash)))
+  get'H : ∀ (x : SHash), go.IsGoStepPureDetTagged under (StructFieldGet SHash.underlying go!"H") #x (Val #(x.H'))
+  set'H : ∀ (x : SHash) (y : (GoArray w8 32)), go.IsGoStepPureDetTagged under (StructFieldSet SHash.underlying go!"H") (PairV #x #y) (Val #(({ x with H' := y } : SHash)))
   method_set : go.MethodSetIs SHash.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SHash.ty) [(go!"BinarySize", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_BinarySize_unfold : MethodUnfold (go.GoType.PointerType SHash.ty) go!"BinarySize" SHash.BinarySize.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType SHash.ty) go!"Marshal" SHash.Marshal.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType SHash.ty) go!"Unmarshal" SHash.Unmarshal.impl
+  ptr_unfold'BinarySize : MethodUnfold (go.GoType.PointerType SHash.ty) go!"BinarySize" SHash.BinarySize.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType SHash.ty) go!"Marshal" SHash.Marshal.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType SHash.ty) go!"Unmarshal" SHash.Unmarshal.impl
 
 attribute [instance] SHash.TypeAssumptions.type_repr
   SHash.TypeAssumptions.underlying
-  SHash.TypeAssumptions.get_H
-  SHash.TypeAssumptions.set_H
+  SHash.TypeAssumptions.get'H
+  SHash.TypeAssumptions.set'H
   SHash.TypeAssumptions.method_set
   SHash.TypeAssumptions.ptr_method_set
-  SHash.TypeAssumptions.ptr_BinarySize_unfold
-  SHash.TypeAssumptions.ptr_Marshal_unfold
-  SHash.TypeAssumptions.ptr_Unmarshal_unfold
+  SHash.TypeAssumptions.ptr_unfold'BinarySize
+  SHash.TypeAssumptions.ptr_unfold'Marshal
+  SHash.TypeAssumptions.ptr_unfold'Unmarshal
 
 class HashNode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HashNode.underlying HashNode
   underlying : go.UnderlyingDirectedEq HashNode.ty HashNode.underlying
-  get_id : ∀ (x : HashNode), go.IsGoStepPureDetTagged under (StructFieldGet HashNode.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : HashNode) (y : CommandId), go.IsGoStepPureDetTagged under (StructFieldSet HashNode.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : HashNode)))
-  get_next : ∀ (x : HashNode), go.IsGoStepPureDetTagged under (StructFieldGet HashNode.underlying go!"next") #x (Val #(x.next'))
-  set_next : ∀ (x : HashNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HashNode.underlying go!"next") (PairV #x #y) (Val #(({ x with next' := y } : HashNode)))
-  get_previous : ∀ (x : HashNode), go.IsGoStepPureDetTagged under (StructFieldGet HashNode.underlying go!"previous") #x (Val #(x.previous'))
-  set_previous : ∀ (x : HashNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HashNode.underlying go!"previous") (PairV #x #y) (Val #(({ x with previous' := y } : HashNode)))
+  get'id : ∀ (x : HashNode), go.IsGoStepPureDetTagged under (StructFieldGet HashNode.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : HashNode) (y : CommandId), go.IsGoStepPureDetTagged under (StructFieldSet HashNode.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : HashNode)))
+  get'next : ∀ (x : HashNode), go.IsGoStepPureDetTagged under (StructFieldGet HashNode.underlying go!"next") #x (Val #(x.next'))
+  set'next : ∀ (x : HashNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HashNode.underlying go!"next") (PairV #x #y) (Val #(({ x with next' := y } : HashNode)))
+  get'previous : ∀ (x : HashNode), go.IsGoStepPureDetTagged under (StructFieldGet HashNode.underlying go!"previous") #x (Val #(x.previous'))
+  set'previous : ∀ (x : HashNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HashNode.underlying go!"previous") (PairV #x #y) (Val #(({ x with previous' := y } : HashNode)))
   method_set : go.MethodSetIs HashNode.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType HashNode.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType HashNode.ty) go!"String" HashNode.String.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType HashNode.ty) go!"String" HashNode.String.impl
 
 attribute [instance] HashNode.TypeAssumptions.type_repr
   HashNode.TypeAssumptions.underlying
-  HashNode.TypeAssumptions.get_id
-  HashNode.TypeAssumptions.set_id
-  HashNode.TypeAssumptions.get_next
-  HashNode.TypeAssumptions.set_next
-  HashNode.TypeAssumptions.get_previous
-  HashNode.TypeAssumptions.set_previous
+  HashNode.TypeAssumptions.get'id
+  HashNode.TypeAssumptions.set'id
+  HashNode.TypeAssumptions.get'next
+  HashNode.TypeAssumptions.set'next
+  HashNode.TypeAssumptions.get'previous
+  HashNode.TypeAssumptions.set'previous
   HashNode.TypeAssumptions.method_set
   HashNode.TypeAssumptions.ptr_method_set
-  HashNode.TypeAssumptions.ptr_String_unfold
+  HashNode.TypeAssumptions.ptr_unfold'String
 
 class UpdateEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UpdateEntry.underlying UpdateEntry
   underlying : go.UnderlyingDirectedEq UpdateEntry.ty UpdateEntry.underlying
-  get_hash : ∀ (x : UpdateEntry), go.IsGoStepPureDetTagged under (StructFieldGet UpdateEntry.underlying go!"hash") #x (Val #(x.hash'))
-  set_hash : ∀ (x : UpdateEntry) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet UpdateEntry.underlying go!"hash") (PairV #x #y) (Val #(({ x with hash' := y } : UpdateEntry)))
-  get_seqnum : ∀ (x : UpdateEntry), go.IsGoStepPureDetTagged under (StructFieldGet UpdateEntry.underlying go!"seqnum") #x (Val #(x.seqnum'))
-  set_seqnum : ∀ (x : UpdateEntry) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet UpdateEntry.underlying go!"seqnum") (PairV #x #y) (Val #(({ x with seqnum' := y } : UpdateEntry)))
+  get'hash : ∀ (x : UpdateEntry), go.IsGoStepPureDetTagged under (StructFieldGet UpdateEntry.underlying go!"hash") #x (Val #(x.hash'))
+  set'hash : ∀ (x : UpdateEntry) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet UpdateEntry.underlying go!"hash") (PairV #x #y) (Val #(({ x with hash' := y } : UpdateEntry)))
+  get'seqnum : ∀ (x : UpdateEntry), go.IsGoStepPureDetTagged under (StructFieldGet UpdateEntry.underlying go!"seqnum") #x (Val #(x.seqnum'))
+  set'seqnum : ∀ (x : UpdateEntry) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet UpdateEntry.underlying go!"seqnum") (PairV #x #y) (Val #(({ x with seqnum' := y } : UpdateEntry)))
   method_set : go.MethodSetIs UpdateEntry.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UpdateEntry.ty) []
 
 attribute [instance] UpdateEntry.TypeAssumptions.type_repr
   UpdateEntry.TypeAssumptions.underlying
-  UpdateEntry.TypeAssumptions.get_hash
-  UpdateEntry.TypeAssumptions.set_hash
-  UpdateEntry.TypeAssumptions.get_seqnum
-  UpdateEntry.TypeAssumptions.set_seqnum
+  UpdateEntry.TypeAssumptions.get'hash
+  UpdateEntry.TypeAssumptions.set'hash
+  UpdateEntry.TypeAssumptions.get'seqnum
+  UpdateEntry.TypeAssumptions.set'seqnum
   UpdateEntry.TypeAssumptions.method_set
   UpdateEntry.TypeAssumptions.ptr_method_set
 
 class HashLog.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HashLog.underlying HashLog
   underlying : go.UnderlyingDirectedEq HashLog.ty HashLog.underlying
-  get_synced : ∀ (x : HashLog), go.IsGoStepPureDetTagged under (StructFieldGet HashLog.underlying go!"synced") #x (Val #(x.synced'))
-  set_synced : ∀ (x : HashLog) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet HashLog.underlying go!"synced") (PairV #x #y) (Val #(({ x with synced' := y } : HashLog)))
-  get_syncedHash : ∀ (x : HashLog), go.IsGoStepPureDetTagged under (StructFieldGet HashLog.underlying go!"syncedHash") #x (Val #(x.syncedHash'))
-  set_syncedHash : ∀ (x : HashLog) (y : SHash), go.IsGoStepPureDetTagged under (StructFieldSet HashLog.underlying go!"syncedHash") (PairV #x #y) (Val #(({ x with syncedHash' := y } : HashLog)))
-  get_pendingHead : ∀ (x : HashLog), go.IsGoStepPureDetTagged under (StructFieldGet HashLog.underlying go!"pendingHead") #x (Val #(x.pendingHead'))
-  set_pendingHead : ∀ (x : HashLog) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HashLog.underlying go!"pendingHead") (PairV #x #y) (Val #(({ x with pendingHead' := y } : HashLog)))
-  get_pendingTail : ∀ (x : HashLog), go.IsGoStepPureDetTagged under (StructFieldGet HashLog.underlying go!"pendingTail") #x (Val #(x.pendingTail'))
-  set_pendingTail : ∀ (x : HashLog) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HashLog.underlying go!"pendingTail") (PairV #x #y) (Val #(({ x with pendingTail' := y } : HashLog)))
-  get_hash : ∀ (x : HashLog), go.IsGoStepPureDetTagged under (StructFieldGet HashLog.underlying go!"hash") #x (Val #(x.hash'))
-  set_hash : ∀ (x : HashLog) (y : SHash), go.IsGoStepPureDetTagged under (StructFieldSet HashLog.underlying go!"hash") (PairV #x #y) (Val #(({ x with hash' := y } : HashLog)))
-  get_nodes : ∀ (x : HashLog), go.IsGoStepPureDetTagged under (StructFieldGet HashLog.underlying go!"nodes") #x (Val #(x.nodes'))
-  set_nodes : ∀ (x : HashLog) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet HashLog.underlying go!"nodes") (PairV #x #y) (Val #(({ x with nodes' := y } : HashLog)))
-  get_pendingUpd : ∀ (x : HashLog), go.IsGoStepPureDetTagged under (StructFieldGet HashLog.underlying go!"pendingUpd") #x (Val #(x.pendingUpd'))
-  set_pendingUpd : ∀ (x : HashLog) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet HashLog.underlying go!"pendingUpd") (PairV #x #y) (Val #(({ x with pendingUpd' := y } : HashLog)))
+  get'synced : ∀ (x : HashLog), go.IsGoStepPureDetTagged under (StructFieldGet HashLog.underlying go!"synced") #x (Val #(x.synced'))
+  set'synced : ∀ (x : HashLog) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet HashLog.underlying go!"synced") (PairV #x #y) (Val #(({ x with synced' := y } : HashLog)))
+  get'syncedHash : ∀ (x : HashLog), go.IsGoStepPureDetTagged under (StructFieldGet HashLog.underlying go!"syncedHash") #x (Val #(x.syncedHash'))
+  set'syncedHash : ∀ (x : HashLog) (y : SHash), go.IsGoStepPureDetTagged under (StructFieldSet HashLog.underlying go!"syncedHash") (PairV #x #y) (Val #(({ x with syncedHash' := y } : HashLog)))
+  get'pendingHead : ∀ (x : HashLog), go.IsGoStepPureDetTagged under (StructFieldGet HashLog.underlying go!"pendingHead") #x (Val #(x.pendingHead'))
+  set'pendingHead : ∀ (x : HashLog) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HashLog.underlying go!"pendingHead") (PairV #x #y) (Val #(({ x with pendingHead' := y } : HashLog)))
+  get'pendingTail : ∀ (x : HashLog), go.IsGoStepPureDetTagged under (StructFieldGet HashLog.underlying go!"pendingTail") #x (Val #(x.pendingTail'))
+  set'pendingTail : ∀ (x : HashLog) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HashLog.underlying go!"pendingTail") (PairV #x #y) (Val #(({ x with pendingTail' := y } : HashLog)))
+  get'hash : ∀ (x : HashLog), go.IsGoStepPureDetTagged under (StructFieldGet HashLog.underlying go!"hash") #x (Val #(x.hash'))
+  set'hash : ∀ (x : HashLog) (y : SHash), go.IsGoStepPureDetTagged under (StructFieldSet HashLog.underlying go!"hash") (PairV #x #y) (Val #(({ x with hash' := y } : HashLog)))
+  get'nodes : ∀ (x : HashLog), go.IsGoStepPureDetTagged under (StructFieldGet HashLog.underlying go!"nodes") #x (Val #(x.nodes'))
+  set'nodes : ∀ (x : HashLog) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet HashLog.underlying go!"nodes") (PairV #x #y) (Val #(({ x with nodes' := y } : HashLog)))
+  get'pendingUpd : ∀ (x : HashLog), go.IsGoStepPureDetTagged under (StructFieldGet HashLog.underlying go!"pendingUpd") #x (Val #(x.pendingUpd'))
+  set'pendingUpd : ∀ (x : HashLog) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet HashLog.underlying go!"pendingUpd") (PairV #x #y) (Val #(({ x with pendingUpd' := y } : HashLog)))
   method_set : go.MethodSetIs HashLog.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType HashLog.ty) [(go!"Append", (some (go.signature.Signature [_root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command.ty, CommandId.ty] false [SHash.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Update", (some (go.signature.Signature [CommandId.ty, go.int, SHash.ty] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.chain", (some (go.signature.Signature [(go.GoType.ArrayType 32 go.byte), go.bool, CommandId.ty] false [(go.GoType.ArrayType 32 go.byte)]))), (go!"github.com/imdea-software/swiftpaxos/swift.update", (some (go.signature.Signature [CommandId.ty, go.int, SHash.ty, go.bool] false [])))]
-  ptr_Append_unfold : MethodUnfold (go.GoType.PointerType HashLog.ty) go!"Append" HashLog.Append.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType HashLog.ty) go!"String" HashLog.String.impl
-  ptr_Update_unfold : MethodUnfold (go.GoType.PointerType HashLog.ty) go!"Update" HashLog.Update.impl
-  ptr_chain_unfold : MethodUnfold (go.GoType.PointerType HashLog.ty) go!"chain" HashLog.chain.impl
-  ptr_update_unfold : MethodUnfold (go.GoType.PointerType HashLog.ty) go!"update" HashLog.update.impl
+  ptr_unfold'Append : MethodUnfold (go.GoType.PointerType HashLog.ty) go!"Append" HashLog.Append.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType HashLog.ty) go!"String" HashLog.String.impl
+  ptr_unfold'Update : MethodUnfold (go.GoType.PointerType HashLog.ty) go!"Update" HashLog.Update.impl
+  ptr_unfold'chain : MethodUnfold (go.GoType.PointerType HashLog.ty) go!"chain" HashLog.chain.impl
+  ptr_unfold'update : MethodUnfold (go.GoType.PointerType HashLog.ty) go!"update" HashLog.update.impl
 
 attribute [instance] HashLog.TypeAssumptions.type_repr
   HashLog.TypeAssumptions.underlying
-  HashLog.TypeAssumptions.get_synced
-  HashLog.TypeAssumptions.set_synced
-  HashLog.TypeAssumptions.get_syncedHash
-  HashLog.TypeAssumptions.set_syncedHash
-  HashLog.TypeAssumptions.get_pendingHead
-  HashLog.TypeAssumptions.set_pendingHead
-  HashLog.TypeAssumptions.get_pendingTail
-  HashLog.TypeAssumptions.set_pendingTail
-  HashLog.TypeAssumptions.get_hash
-  HashLog.TypeAssumptions.set_hash
-  HashLog.TypeAssumptions.get_nodes
-  HashLog.TypeAssumptions.set_nodes
-  HashLog.TypeAssumptions.get_pendingUpd
-  HashLog.TypeAssumptions.set_pendingUpd
+  HashLog.TypeAssumptions.get'synced
+  HashLog.TypeAssumptions.set'synced
+  HashLog.TypeAssumptions.get'syncedHash
+  HashLog.TypeAssumptions.set'syncedHash
+  HashLog.TypeAssumptions.get'pendingHead
+  HashLog.TypeAssumptions.set'pendingHead
+  HashLog.TypeAssumptions.get'pendingTail
+  HashLog.TypeAssumptions.set'pendingTail
+  HashLog.TypeAssumptions.get'hash
+  HashLog.TypeAssumptions.set'hash
+  HashLog.TypeAssumptions.get'nodes
+  HashLog.TypeAssumptions.set'nodes
+  HashLog.TypeAssumptions.get'pendingUpd
+  HashLog.TypeAssumptions.set'pendingUpd
   HashLog.TypeAssumptions.method_set
   HashLog.TypeAssumptions.ptr_method_set
-  HashLog.TypeAssumptions.ptr_Append_unfold
-  HashLog.TypeAssumptions.ptr_String_unfold
-  HashLog.TypeAssumptions.ptr_Update_unfold
-  HashLog.TypeAssumptions.ptr_chain_unfold
-  HashLog.TypeAssumptions.ptr_update_unfold
+  HashLog.TypeAssumptions.ptr_unfold'Append
+  HashLog.TypeAssumptions.ptr_unfold'String
+  HashLog.TypeAssumptions.ptr_unfold'Update
+  HashLog.TypeAssumptions.ptr_unfold'chain
+  HashLog.TypeAssumptions.ptr_unfold'update
 
 class keyInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq keyInfo.ty keyInfo.underlying
@@ -643,581 +643,581 @@ attribute [instance] keyInfo.TypeAssumptions.underlying
 class fullKeyInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fullKeyInfo.underlying fullKeyInfo
   underlying : go.UnderlyingDirectedEq fullKeyInfo.ty fullKeyInfo.underlying
-  get_clientLastWrite : ∀ (x : fullKeyInfo), go.IsGoStepPureDetTagged under (StructFieldGet fullKeyInfo.underlying go!"clientLastWrite") #x (Val #(x.clientLastWrite'))
-  set_clientLastWrite : ∀ (x : fullKeyInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet fullKeyInfo.underlying go!"clientLastWrite") (PairV #x #y) (Val #(({ x with clientLastWrite' := y } : fullKeyInfo)))
-  get_clientLastCmd : ∀ (x : fullKeyInfo), go.IsGoStepPureDetTagged under (StructFieldGet fullKeyInfo.underlying go!"clientLastCmd") #x (Val #(x.clientLastCmd'))
-  set_clientLastCmd : ∀ (x : fullKeyInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet fullKeyInfo.underlying go!"clientLastCmd") (PairV #x #y) (Val #(({ x with clientLastCmd' := y } : fullKeyInfo)))
-  get_lastWriteIndex : ∀ (x : fullKeyInfo), go.IsGoStepPureDetTagged under (StructFieldGet fullKeyInfo.underlying go!"lastWriteIndex") #x (Val #(x.lastWriteIndex'))
-  set_lastWriteIndex : ∀ (x : fullKeyInfo) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet fullKeyInfo.underlying go!"lastWriteIndex") (PairV #x #y) (Val #(({ x with lastWriteIndex' := y } : fullKeyInfo)))
-  get_lastCmdIndex : ∀ (x : fullKeyInfo), go.IsGoStepPureDetTagged under (StructFieldGet fullKeyInfo.underlying go!"lastCmdIndex") #x (Val #(x.lastCmdIndex'))
-  set_lastCmdIndex : ∀ (x : fullKeyInfo) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet fullKeyInfo.underlying go!"lastCmdIndex") (PairV #x #y) (Val #(({ x with lastCmdIndex' := y } : fullKeyInfo)))
+  get'clientLastWrite : ∀ (x : fullKeyInfo), go.IsGoStepPureDetTagged under (StructFieldGet fullKeyInfo.underlying go!"clientLastWrite") #x (Val #(x.clientLastWrite'))
+  set'clientLastWrite : ∀ (x : fullKeyInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet fullKeyInfo.underlying go!"clientLastWrite") (PairV #x #y) (Val #(({ x with clientLastWrite' := y } : fullKeyInfo)))
+  get'clientLastCmd : ∀ (x : fullKeyInfo), go.IsGoStepPureDetTagged under (StructFieldGet fullKeyInfo.underlying go!"clientLastCmd") #x (Val #(x.clientLastCmd'))
+  set'clientLastCmd : ∀ (x : fullKeyInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet fullKeyInfo.underlying go!"clientLastCmd") (PairV #x #y) (Val #(({ x with clientLastCmd' := y } : fullKeyInfo)))
+  get'lastWriteIndex : ∀ (x : fullKeyInfo), go.IsGoStepPureDetTagged under (StructFieldGet fullKeyInfo.underlying go!"lastWriteIndex") #x (Val #(x.lastWriteIndex'))
+  set'lastWriteIndex : ∀ (x : fullKeyInfo) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet fullKeyInfo.underlying go!"lastWriteIndex") (PairV #x #y) (Val #(({ x with lastWriteIndex' := y } : fullKeyInfo)))
+  get'lastCmdIndex : ∀ (x : fullKeyInfo), go.IsGoStepPureDetTagged under (StructFieldGet fullKeyInfo.underlying go!"lastCmdIndex") #x (Val #(x.lastCmdIndex'))
+  set'lastCmdIndex : ∀ (x : fullKeyInfo) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet fullKeyInfo.underlying go!"lastCmdIndex") (PairV #x #y) (Val #(({ x with lastCmdIndex' := y } : fullKeyInfo)))
   method_set : go.MethodSetIs fullKeyInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fullKeyInfo.ty) [(go!"github.com/imdea-software/swiftpaxos/swift.add", (some (go.signature.Signature [_root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command.ty, CommandId.ty] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.getConflictCmds", (some (go.signature.Signature [_root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command.ty] false [(go.GoType.SliceType CommandId.ty)]))), (go!"github.com/imdea-software/swiftpaxos/swift.remove", (some (go.signature.Signature [_root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command.ty, CommandId.ty] false [])))]
-  ptr_add_unfold : MethodUnfold (go.GoType.PointerType fullKeyInfo.ty) go!"add" fullKeyInfo.add.impl
-  ptr_getConflictCmds_unfold : MethodUnfold (go.GoType.PointerType fullKeyInfo.ty) go!"getConflictCmds" fullKeyInfo.getConflictCmds.impl
-  ptr_remove_unfold : MethodUnfold (go.GoType.PointerType fullKeyInfo.ty) go!"remove" fullKeyInfo.remove.impl
+  ptr_unfold'add : MethodUnfold (go.GoType.PointerType fullKeyInfo.ty) go!"add" fullKeyInfo.add.impl
+  ptr_unfold'getConflictCmds : MethodUnfold (go.GoType.PointerType fullKeyInfo.ty) go!"getConflictCmds" fullKeyInfo.getConflictCmds.impl
+  ptr_unfold'remove : MethodUnfold (go.GoType.PointerType fullKeyInfo.ty) go!"remove" fullKeyInfo.remove.impl
 
 attribute [instance] fullKeyInfo.TypeAssumptions.type_repr
   fullKeyInfo.TypeAssumptions.underlying
-  fullKeyInfo.TypeAssumptions.get_clientLastWrite
-  fullKeyInfo.TypeAssumptions.set_clientLastWrite
-  fullKeyInfo.TypeAssumptions.get_clientLastCmd
-  fullKeyInfo.TypeAssumptions.set_clientLastCmd
-  fullKeyInfo.TypeAssumptions.get_lastWriteIndex
-  fullKeyInfo.TypeAssumptions.set_lastWriteIndex
-  fullKeyInfo.TypeAssumptions.get_lastCmdIndex
-  fullKeyInfo.TypeAssumptions.set_lastCmdIndex
+  fullKeyInfo.TypeAssumptions.get'clientLastWrite
+  fullKeyInfo.TypeAssumptions.set'clientLastWrite
+  fullKeyInfo.TypeAssumptions.get'clientLastCmd
+  fullKeyInfo.TypeAssumptions.set'clientLastCmd
+  fullKeyInfo.TypeAssumptions.get'lastWriteIndex
+  fullKeyInfo.TypeAssumptions.set'lastWriteIndex
+  fullKeyInfo.TypeAssumptions.get'lastCmdIndex
+  fullKeyInfo.TypeAssumptions.set'lastCmdIndex
   fullKeyInfo.TypeAssumptions.method_set
   fullKeyInfo.TypeAssumptions.ptr_method_set
-  fullKeyInfo.TypeAssumptions.ptr_add_unfold
-  fullKeyInfo.TypeAssumptions.ptr_getConflictCmds_unfold
-  fullKeyInfo.TypeAssumptions.ptr_remove_unfold
+  fullKeyInfo.TypeAssumptions.ptr_unfold'add
+  fullKeyInfo.TypeAssumptions.ptr_unfold'getConflictCmds
+  fullKeyInfo.TypeAssumptions.ptr_unfold'remove
 
 class lightKeyInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lightKeyInfo.underlying lightKeyInfo
   underlying : go.UnderlyingDirectedEq lightKeyInfo.ty lightKeyInfo.underlying
-  get_lastWrite : ∀ (x : lightKeyInfo), go.IsGoStepPureDetTagged under (StructFieldGet lightKeyInfo.underlying go!"lastWrite") #x (Val #(x.lastWrite'))
-  set_lastWrite : ∀ (x : lightKeyInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet lightKeyInfo.underlying go!"lastWrite") (PairV #x #y) (Val #(({ x with lastWrite' := y } : lightKeyInfo)))
-  get_lastCmd : ∀ (x : lightKeyInfo), go.IsGoStepPureDetTagged under (StructFieldGet lightKeyInfo.underlying go!"lastCmd") #x (Val #(x.lastCmd'))
-  set_lastCmd : ∀ (x : lightKeyInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet lightKeyInfo.underlying go!"lastCmd") (PairV #x #y) (Val #(({ x with lastCmd' := y } : lightKeyInfo)))
+  get'lastWrite : ∀ (x : lightKeyInfo), go.IsGoStepPureDetTagged under (StructFieldGet lightKeyInfo.underlying go!"lastWrite") #x (Val #(x.lastWrite'))
+  set'lastWrite : ∀ (x : lightKeyInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet lightKeyInfo.underlying go!"lastWrite") (PairV #x #y) (Val #(({ x with lastWrite' := y } : lightKeyInfo)))
+  get'lastCmd : ∀ (x : lightKeyInfo), go.IsGoStepPureDetTagged under (StructFieldGet lightKeyInfo.underlying go!"lastCmd") #x (Val #(x.lastCmd'))
+  set'lastCmd : ∀ (x : lightKeyInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet lightKeyInfo.underlying go!"lastCmd") (PairV #x #y) (Val #(({ x with lastCmd' := y } : lightKeyInfo)))
   method_set : go.MethodSetIs lightKeyInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType lightKeyInfo.ty) [(go!"github.com/imdea-software/swiftpaxos/swift.add", (some (go.signature.Signature [_root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command.ty, CommandId.ty] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.getConflictCmds", (some (go.signature.Signature [_root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command.ty] false [(go.GoType.SliceType CommandId.ty)]))), (go!"github.com/imdea-software/swiftpaxos/swift.remove", (some (go.signature.Signature [_root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command.ty, CommandId.ty] false [])))]
-  ptr_add_unfold : MethodUnfold (go.GoType.PointerType lightKeyInfo.ty) go!"add" lightKeyInfo.add.impl
-  ptr_getConflictCmds_unfold : MethodUnfold (go.GoType.PointerType lightKeyInfo.ty) go!"getConflictCmds" lightKeyInfo.getConflictCmds.impl
-  ptr_remove_unfold : MethodUnfold (go.GoType.PointerType lightKeyInfo.ty) go!"remove" lightKeyInfo.remove.impl
+  ptr_unfold'add : MethodUnfold (go.GoType.PointerType lightKeyInfo.ty) go!"add" lightKeyInfo.add.impl
+  ptr_unfold'getConflictCmds : MethodUnfold (go.GoType.PointerType lightKeyInfo.ty) go!"getConflictCmds" lightKeyInfo.getConflictCmds.impl
+  ptr_unfold'remove : MethodUnfold (go.GoType.PointerType lightKeyInfo.ty) go!"remove" lightKeyInfo.remove.impl
 
 attribute [instance] lightKeyInfo.TypeAssumptions.type_repr
   lightKeyInfo.TypeAssumptions.underlying
-  lightKeyInfo.TypeAssumptions.get_lastWrite
-  lightKeyInfo.TypeAssumptions.set_lastWrite
-  lightKeyInfo.TypeAssumptions.get_lastCmd
-  lightKeyInfo.TypeAssumptions.set_lastCmd
+  lightKeyInfo.TypeAssumptions.get'lastWrite
+  lightKeyInfo.TypeAssumptions.set'lastWrite
+  lightKeyInfo.TypeAssumptions.get'lastCmd
+  lightKeyInfo.TypeAssumptions.set'lastCmd
   lightKeyInfo.TypeAssumptions.method_set
   lightKeyInfo.TypeAssumptions.ptr_method_set
-  lightKeyInfo.TypeAssumptions.ptr_add_unfold
-  lightKeyInfo.TypeAssumptions.ptr_getConflictCmds_unfold
-  lightKeyInfo.TypeAssumptions.ptr_remove_unfold
+  lightKeyInfo.TypeAssumptions.ptr_unfold'add
+  lightKeyInfo.TypeAssumptions.ptr_unfold'getConflictCmds
+  lightKeyInfo.TypeAssumptions.ptr_unfold'remove
 
 class recEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying recEntry.underlying recEntry
   underlying : go.UnderlyingDirectedEq recEntry.ty recEntry.underlying
-  get_phase : ∀ (x : recEntry), go.IsGoStepPureDetTagged under (StructFieldGet recEntry.underlying go!"phase") #x (Val #(x.phase'))
-  set_phase : ∀ (x : recEntry) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet recEntry.underlying go!"phase") (PairV #x #y) (Val #(({ x with phase' := y } : recEntry)))
-  get_cmd : ∀ (x : recEntry), go.IsGoStepPureDetTagged under (StructFieldGet recEntry.underlying go!"cmd") #x (Val #(x.cmd'))
-  set_cmd : ∀ (x : recEntry) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command), go.IsGoStepPureDetTagged under (StructFieldSet recEntry.underlying go!"cmd") (PairV #x #y) (Val #(({ x with cmd' := y } : recEntry)))
-  get_dep : ∀ (x : recEntry), go.IsGoStepPureDetTagged under (StructFieldGet recEntry.underlying go!"dep") #x (Val #(x.dep'))
-  set_dep : ∀ (x : recEntry) (y : Dep), go.IsGoStepPureDetTagged under (StructFieldSet recEntry.underlying go!"dep") (PairV #x #y) (Val #(({ x with dep' := y } : recEntry)))
-  get_class : ∀ (x : recEntry), go.IsGoStepPureDetTagged under (StructFieldGet recEntry.underlying go!"class") #x (Val #(x.class'))
-  set_class : ∀ (x : recEntry) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet recEntry.underlying go!"class") (PairV #x #y) (Val #(({ x with class' := y } : recEntry)))
+  get'phase : ∀ (x : recEntry), go.IsGoStepPureDetTagged under (StructFieldGet recEntry.underlying go!"phase") #x (Val #(x.phase'))
+  set'phase : ∀ (x : recEntry) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet recEntry.underlying go!"phase") (PairV #x #y) (Val #(({ x with phase' := y } : recEntry)))
+  get'cmd : ∀ (x : recEntry), go.IsGoStepPureDetTagged under (StructFieldGet recEntry.underlying go!"cmd") #x (Val #(x.cmd'))
+  set'cmd : ∀ (x : recEntry) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command), go.IsGoStepPureDetTagged under (StructFieldSet recEntry.underlying go!"cmd") (PairV #x #y) (Val #(({ x with cmd' := y } : recEntry)))
+  get'dep : ∀ (x : recEntry), go.IsGoStepPureDetTagged under (StructFieldGet recEntry.underlying go!"dep") #x (Val #(x.dep'))
+  set'dep : ∀ (x : recEntry) (y : Dep), go.IsGoStepPureDetTagged under (StructFieldSet recEntry.underlying go!"dep") (PairV #x #y) (Val #(({ x with dep' := y } : recEntry)))
+  get'class : ∀ (x : recEntry), go.IsGoStepPureDetTagged under (StructFieldGet recEntry.underlying go!"class") #x (Val #(x.class'))
+  set'class : ∀ (x : recEntry) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet recEntry.underlying go!"class") (PairV #x #y) (Val #(({ x with class' := y } : recEntry)))
   method_set : go.MethodSetIs recEntry.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType recEntry.ty) []
 
 attribute [instance] recEntry.TypeAssumptions.type_repr
   recEntry.TypeAssumptions.underlying
-  recEntry.TypeAssumptions.get_phase
-  recEntry.TypeAssumptions.set_phase
-  recEntry.TypeAssumptions.get_cmd
-  recEntry.TypeAssumptions.set_cmd
-  recEntry.TypeAssumptions.get_dep
-  recEntry.TypeAssumptions.set_dep
-  recEntry.TypeAssumptions.get_class
-  recEntry.TypeAssumptions.set_class
+  recEntry.TypeAssumptions.get'phase
+  recEntry.TypeAssumptions.set'phase
+  recEntry.TypeAssumptions.get'cmd
+  recEntry.TypeAssumptions.set'cmd
+  recEntry.TypeAssumptions.get'dep
+  recEntry.TypeAssumptions.set'dep
+  recEntry.TypeAssumptions.get'class
+  recEntry.TypeAssumptions.set'class
   recEntry.TypeAssumptions.method_set
   recEntry.TypeAssumptions.ptr_method_set
 
 class syncEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying syncEntry.underlying syncEntry
   underlying : go.UnderlyingDirectedEq syncEntry.ty syncEntry.underlying
-  get_propose : ∀ (x : syncEntry), go.IsGoStepPureDetTagged under (StructFieldGet syncEntry.underlying go!"propose") #x (Val #(x.propose'))
-  set_propose : ∀ (x : syncEntry) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet syncEntry.underlying go!"propose") (PairV #x #y) (Val #(({ x with propose' := y } : syncEntry)))
-  get_cmd : ∀ (x : syncEntry), go.IsGoStepPureDetTagged under (StructFieldGet syncEntry.underlying go!"cmd") #x (Val #(x.cmd'))
-  set_cmd : ∀ (x : syncEntry) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command), go.IsGoStepPureDetTagged under (StructFieldSet syncEntry.underlying go!"cmd") (PairV #x #y) (Val #(({ x with cmd' := y } : syncEntry)))
-  get_dep : ∀ (x : syncEntry), go.IsGoStepPureDetTagged under (StructFieldGet syncEntry.underlying go!"dep") #x (Val #(x.dep'))
-  set_dep : ∀ (x : syncEntry) (y : Dep), go.IsGoStepPureDetTagged under (StructFieldSet syncEntry.underlying go!"dep") (PairV #x #y) (Val #(({ x with dep' := y } : syncEntry)))
+  get'propose : ∀ (x : syncEntry), go.IsGoStepPureDetTagged under (StructFieldGet syncEntry.underlying go!"propose") #x (Val #(x.propose'))
+  set'propose : ∀ (x : syncEntry) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet syncEntry.underlying go!"propose") (PairV #x #y) (Val #(({ x with propose' := y } : syncEntry)))
+  get'cmd : ∀ (x : syncEntry), go.IsGoStepPureDetTagged under (StructFieldGet syncEntry.underlying go!"cmd") #x (Val #(x.cmd'))
+  set'cmd : ∀ (x : syncEntry) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command), go.IsGoStepPureDetTagged under (StructFieldSet syncEntry.underlying go!"cmd") (PairV #x #y) (Val #(({ x with cmd' := y } : syncEntry)))
+  get'dep : ∀ (x : syncEntry), go.IsGoStepPureDetTagged under (StructFieldGet syncEntry.underlying go!"dep") #x (Val #(x.dep'))
+  set'dep : ∀ (x : syncEntry) (y : Dep), go.IsGoStepPureDetTagged under (StructFieldSet syncEntry.underlying go!"dep") (PairV #x #y) (Val #(({ x with dep' := y } : syncEntry)))
   method_set : go.MethodSetIs syncEntry.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType syncEntry.ty) []
 
 attribute [instance] syncEntry.TypeAssumptions.type_repr
   syncEntry.TypeAssumptions.underlying
-  syncEntry.TypeAssumptions.get_propose
-  syncEntry.TypeAssumptions.set_propose
-  syncEntry.TypeAssumptions.get_cmd
-  syncEntry.TypeAssumptions.set_cmd
-  syncEntry.TypeAssumptions.get_dep
-  syncEntry.TypeAssumptions.set_dep
+  syncEntry.TypeAssumptions.get'propose
+  syncEntry.TypeAssumptions.set'propose
+  syncEntry.TypeAssumptions.get'cmd
+  syncEntry.TypeAssumptions.set'cmd
+  syncEntry.TypeAssumptions.get'dep
+  syncEntry.TypeAssumptions.set'dep
   syncEntry.TypeAssumptions.method_set
   syncEntry.TypeAssumptions.ptr_method_set
 
 class replyArgs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying replyArgs.underlying replyArgs
   underlying : go.UnderlyingDirectedEq replyArgs.ty replyArgs.underlying
-  get_dep : ∀ (x : replyArgs), go.IsGoStepPureDetTagged under (StructFieldGet replyArgs.underlying go!"dep") #x (Val #(x.dep'))
-  set_dep : ∀ (x : replyArgs) (y : Dep), go.IsGoStepPureDetTagged under (StructFieldSet replyArgs.underlying go!"dep") (PairV #x #y) (Val #(({ x with dep' := y } : replyArgs)))
-  get_hs : ∀ (x : replyArgs), go.IsGoStepPureDetTagged under (StructFieldGet replyArgs.underlying go!"hs") #x (Val #(x.hs'))
-  set_hs : ∀ (x : replyArgs) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet replyArgs.underlying go!"hs") (PairV #x #y) (Val #(({ x with hs' := y } : replyArgs)))
-  get_val : ∀ (x : replyArgs), go.IsGoStepPureDetTagged under (StructFieldGet replyArgs.underlying go!"val") #x (Val #(x.val'))
-  set_val : ∀ (x : replyArgs) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Value), go.IsGoStepPureDetTagged under (StructFieldSet replyArgs.underlying go!"val") (PairV #x #y) (Val #(({ x with val' := y } : replyArgs)))
-  get_cmdId : ∀ (x : replyArgs), go.IsGoStepPureDetTagged under (StructFieldGet replyArgs.underlying go!"cmdId") #x (Val #(x.cmdId'))
-  set_cmdId : ∀ (x : replyArgs) (y : CommandId), go.IsGoStepPureDetTagged under (StructFieldSet replyArgs.underlying go!"cmdId") (PairV #x #y) (Val #(({ x with cmdId' := y } : replyArgs)))
-  get_finish : ∀ (x : replyArgs), go.IsGoStepPureDetTagged under (StructFieldGet replyArgs.underlying go!"finish") #x (Val #(x.finish'))
-  set_finish : ∀ (x : replyArgs) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet replyArgs.underlying go!"finish") (PairV #x #y) (Val #(({ x with finish' := y } : replyArgs)))
-  get_propose : ∀ (x : replyArgs), go.IsGoStepPureDetTagged under (StructFieldGet replyArgs.underlying go!"propose") #x (Val #(x.propose'))
-  set_propose : ∀ (x : replyArgs) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet replyArgs.underlying go!"propose") (PairV #x #y) (Val #(({ x with propose' := y } : replyArgs)))
+  get'dep : ∀ (x : replyArgs), go.IsGoStepPureDetTagged under (StructFieldGet replyArgs.underlying go!"dep") #x (Val #(x.dep'))
+  set'dep : ∀ (x : replyArgs) (y : Dep), go.IsGoStepPureDetTagged under (StructFieldSet replyArgs.underlying go!"dep") (PairV #x #y) (Val #(({ x with dep' := y } : replyArgs)))
+  get'hs : ∀ (x : replyArgs), go.IsGoStepPureDetTagged under (StructFieldGet replyArgs.underlying go!"hs") #x (Val #(x.hs'))
+  set'hs : ∀ (x : replyArgs) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet replyArgs.underlying go!"hs") (PairV #x #y) (Val #(({ x with hs' := y } : replyArgs)))
+  get'val : ∀ (x : replyArgs), go.IsGoStepPureDetTagged under (StructFieldGet replyArgs.underlying go!"val") #x (Val #(x.val'))
+  set'val : ∀ (x : replyArgs) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Value), go.IsGoStepPureDetTagged under (StructFieldSet replyArgs.underlying go!"val") (PairV #x #y) (Val #(({ x with val' := y } : replyArgs)))
+  get'cmdId : ∀ (x : replyArgs), go.IsGoStepPureDetTagged under (StructFieldGet replyArgs.underlying go!"cmdId") #x (Val #(x.cmdId'))
+  set'cmdId : ∀ (x : replyArgs) (y : CommandId), go.IsGoStepPureDetTagged under (StructFieldSet replyArgs.underlying go!"cmdId") (PairV #x #y) (Val #(({ x with cmdId' := y } : replyArgs)))
+  get'finish : ∀ (x : replyArgs), go.IsGoStepPureDetTagged under (StructFieldGet replyArgs.underlying go!"finish") #x (Val #(x.finish'))
+  set'finish : ∀ (x : replyArgs) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet replyArgs.underlying go!"finish") (PairV #x #y) (Val #(({ x with finish' := y } : replyArgs)))
+  get'propose : ∀ (x : replyArgs), go.IsGoStepPureDetTagged under (StructFieldGet replyArgs.underlying go!"propose") #x (Val #(x.propose'))
+  set'propose : ∀ (x : replyArgs) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet replyArgs.underlying go!"propose") (PairV #x #y) (Val #(({ x with propose' := y } : replyArgs)))
   method_set : go.MethodSetIs replyArgs.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType replyArgs.ty) []
 
 attribute [instance] replyArgs.TypeAssumptions.type_repr
   replyArgs.TypeAssumptions.underlying
-  replyArgs.TypeAssumptions.get_dep
-  replyArgs.TypeAssumptions.set_dep
-  replyArgs.TypeAssumptions.get_hs
-  replyArgs.TypeAssumptions.set_hs
-  replyArgs.TypeAssumptions.get_val
-  replyArgs.TypeAssumptions.set_val
-  replyArgs.TypeAssumptions.get_cmdId
-  replyArgs.TypeAssumptions.set_cmdId
-  replyArgs.TypeAssumptions.get_finish
-  replyArgs.TypeAssumptions.set_finish
-  replyArgs.TypeAssumptions.get_propose
-  replyArgs.TypeAssumptions.set_propose
+  replyArgs.TypeAssumptions.get'dep
+  replyArgs.TypeAssumptions.set'dep
+  replyArgs.TypeAssumptions.get'hs
+  replyArgs.TypeAssumptions.set'hs
+  replyArgs.TypeAssumptions.get'val
+  replyArgs.TypeAssumptions.set'val
+  replyArgs.TypeAssumptions.get'cmdId
+  replyArgs.TypeAssumptions.set'cmdId
+  replyArgs.TypeAssumptions.get'finish
+  replyArgs.TypeAssumptions.set'finish
+  replyArgs.TypeAssumptions.get'propose
+  replyArgs.TypeAssumptions.set'propose
   replyArgs.TypeAssumptions.method_set
   replyArgs.TypeAssumptions.ptr_method_set
 
 class replyChan.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying replyChan.underlying replyChan
   underlying : go.UnderlyingDirectedEq replyChan.ty replyChan.underlying
-  get_rep : ∀ (x : replyChan), go.IsGoStepPureDetTagged under (StructFieldGet replyChan.underlying go!"rep") #x (Val #(x.rep'))
-  set_rep : ∀ (x : replyChan) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet replyChan.underlying go!"rep") (PairV #x #y) (Val #(({ x with rep' := y } : replyChan)))
-  get_ok : ∀ (x : replyChan), go.IsGoStepPureDetTagged under (StructFieldGet replyChan.underlying go!"ok") #x (Val #(x.ok'))
-  set_ok : ∀ (x : replyChan) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet replyChan.underlying go!"ok") (PairV #x #y) (Val #(({ x with ok' := y } : replyChan)))
-  get_exit : ∀ (x : replyChan), go.IsGoStepPureDetTagged under (StructFieldGet replyChan.underlying go!"exit") #x (Val #(x.exit'))
-  set_exit : ∀ (x : replyChan) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet replyChan.underlying go!"exit") (PairV #x #y) (Val #(({ x with exit' := y } : replyChan)))
-  get_args : ∀ (x : replyChan), go.IsGoStepPureDetTagged under (StructFieldGet replyChan.underlying go!"args") #x (Val #(x.args'))
-  set_args : ∀ (x : replyChan) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet replyChan.underlying go!"args") (PairV #x #y) (Val #(({ x with args' := y } : replyChan)))
+  get'rep : ∀ (x : replyChan), go.IsGoStepPureDetTagged under (StructFieldGet replyChan.underlying go!"rep") #x (Val #(x.rep'))
+  set'rep : ∀ (x : replyChan) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet replyChan.underlying go!"rep") (PairV #x #y) (Val #(({ x with rep' := y } : replyChan)))
+  get'ok : ∀ (x : replyChan), go.IsGoStepPureDetTagged under (StructFieldGet replyChan.underlying go!"ok") #x (Val #(x.ok'))
+  set'ok : ∀ (x : replyChan) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet replyChan.underlying go!"ok") (PairV #x #y) (Val #(({ x with ok' := y } : replyChan)))
+  get'exit : ∀ (x : replyChan), go.IsGoStepPureDetTagged under (StructFieldGet replyChan.underlying go!"exit") #x (Val #(x.exit'))
+  set'exit : ∀ (x : replyChan) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet replyChan.underlying go!"exit") (PairV #x #y) (Val #(({ x with exit' := y } : replyChan)))
+  get'args : ∀ (x : replyChan), go.IsGoStepPureDetTagged under (StructFieldGet replyChan.underlying go!"args") #x (Val #(x.args'))
+  set'args : ∀ (x : replyChan) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet replyChan.underlying go!"args") (PairV #x #y) (Val #(({ x with args' := y } : replyChan)))
   method_set : go.MethodSetIs replyChan.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType replyChan.ty) [(go!"github.com/imdea-software/swiftpaxos/swift.reply", (some (go.signature.Signature [(go.GoType.PointerType commandDesc.ty), CommandId.ty, _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Value.ty] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.stop", (some (go.signature.Signature [] false [])))]
-  ptr_reply_unfold : MethodUnfold (go.GoType.PointerType replyChan.ty) go!"reply" replyChan.reply.impl
-  ptr_stop_unfold : MethodUnfold (go.GoType.PointerType replyChan.ty) go!"stop" replyChan.stop.impl
+  ptr_unfold'reply : MethodUnfold (go.GoType.PointerType replyChan.ty) go!"reply" replyChan.reply.impl
+  ptr_unfold'stop : MethodUnfold (go.GoType.PointerType replyChan.ty) go!"stop" replyChan.stop.impl
 
 attribute [instance] replyChan.TypeAssumptions.type_repr
   replyChan.TypeAssumptions.underlying
-  replyChan.TypeAssumptions.get_rep
-  replyChan.TypeAssumptions.set_rep
-  replyChan.TypeAssumptions.get_ok
-  replyChan.TypeAssumptions.set_ok
-  replyChan.TypeAssumptions.get_exit
-  replyChan.TypeAssumptions.set_exit
-  replyChan.TypeAssumptions.get_args
-  replyChan.TypeAssumptions.set_args
+  replyChan.TypeAssumptions.get'rep
+  replyChan.TypeAssumptions.set'rep
+  replyChan.TypeAssumptions.get'ok
+  replyChan.TypeAssumptions.set'ok
+  replyChan.TypeAssumptions.get'exit
+  replyChan.TypeAssumptions.set'exit
+  replyChan.TypeAssumptions.get'args
+  replyChan.TypeAssumptions.set'args
   replyChan.TypeAssumptions.method_set
   replyChan.TypeAssumptions.ptr_method_set
-  replyChan.TypeAssumptions.ptr_reply_unfold
-  replyChan.TypeAssumptions.ptr_stop_unfold
+  replyChan.TypeAssumptions.ptr_unfold'reply
+  replyChan.TypeAssumptions.ptr_unfold'stop
 
 class Replica.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Replica.underlying Replica
   underlying : go.UnderlyingDirectedEq Replica.ty Replica.underlying
-  get_Replica : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"Replica") #x (Val #(x.Replica'))
-  set_Replica : ∀ (x : Replica) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"Replica") (PairV #x #y) (Val #(({ x with Replica' := y } : Replica)))
-  get_ballotL : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"ballotL") #x (Val #(x.ballotL'))
-  set_ballotL : ∀ (x : Replica) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"ballotL") (PairV #x #y) (Val #(({ x with ballotL' := y } : Replica)))
-  get_ballot : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"ballot") #x (Val #(x.ballot'))
-  set_ballot : ∀ (x : Replica) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"ballot") (PairV #x #y) (Val #(({ x with ballot' := y } : Replica)))
-  get_cballot : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"cballot") #x (Val #(x.cballot'))
-  set_cballot : ∀ (x : Replica) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"cballot") (PairV #x #y) (Val #(({ x with cballot' := y } : Replica)))
-  get_status : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"status") #x (Val #(x.status'))
-  set_status : ∀ (x : Replica) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"status") (PairV #x #y) (Val #(({ x with status' := y } : Replica)))
-  get_cmdDescs : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"cmdDescs") #x (Val #(x.cmdDescs'))
-  set_cmdDescs : ∀ (x : Replica) (y : _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"cmdDescs") (PairV #x #y) (Val #(({ x with cmdDescs' := y } : Replica)))
-  get_delivered : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"delivered") #x (Val #(x.delivered'))
-  set_delivered : ∀ (x : Replica) (y : _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"delivered") (PairV #x #y) (Val #(({ x with delivered' := y } : Replica)))
-  get_deliveredAny : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"deliveredAny") #x (Val #(x.deliveredAny'))
-  set_deliveredAny : ∀ (x : Replica) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"deliveredAny") (PairV #x #y) (Val #(({ x with deliveredAny' := y } : Replica)))
-  get_sender : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"sender") #x (Val #(x.sender'))
-  set_sender : ∀ (x : Replica) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Sender), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"sender") (PairV #x #y) (Val #(({ x with sender' := y } : Replica)))
-  get_batcher : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"batcher") #x (Val #(x.batcher'))
-  set_batcher : ∀ (x : Replica) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"batcher") (PairV #x #y) (Val #(({ x with batcher' := y } : Replica)))
-  get_repchan : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"repchan") #x (Val #(x.repchan'))
-  set_repchan : ∀ (x : Replica) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"repchan") (PairV #x #y) (Val #(({ x with repchan' := y } : Replica)))
-  get_keys : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"keys") #x (Val #(x.keys'))
-  set_keys : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"keys") (PairV #x #y) (Val #(({ x with keys' := y } : Replica)))
-  get_hlog : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"hlog") #x (Val #(x.hlog'))
-  set_hlog : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"hlog") (PairV #x #y) (Val #(({ x with hlog' := y } : Replica)))
-  get_cntL : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"cntL") #x (Val #(x.cntL'))
-  set_cntL : ∀ (x : Replica) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"cntL") (PairV #x #y) (Val #(({ x with cntL' := y } : Replica)))
-  get_seqnum : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"seqnum") #x (Val #(x.seqnum'))
-  set_seqnum : ∀ (x : Replica) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"seqnum") (PairV #x #y) (Val #(({ x with seqnum' := y } : Replica)))
-  get_pendingHashUpds : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"pendingHashUpds") #x (Val #(x.pendingHashUpds'))
-  set_pendingHashUpds : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"pendingHashUpds") (PairV #x #y) (Val #(({ x with pendingHashUpds' := y } : Replica)))
-  get_historyL : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"historyL") #x (Val #(x.historyL'))
-  set_historyL : ∀ (x : Replica) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"historyL") (PairV #x #y) (Val #(({ x with historyL' := y } : Replica)))
-  get_history : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"history") #x (Val #(x.history'))
-  set_history : ∀ (x : Replica) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"history") (PairV #x #y) (Val #(({ x with history' := y } : Replica)))
-  get_historySize : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"historySize") #x (Val #(x.historySize'))
-  set_historySize : ∀ (x : Replica) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"historySize") (PairV #x #y) (Val #(({ x with historySize' := y } : Replica)))
-  get_historyStart : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"historyStart") #x (Val #(x.historyStart'))
-  set_historyStart : ∀ (x : Replica) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"historyStart") (PairV #x #y) (Val #(({ x with historyStart' := y } : Replica)))
-  get_qs : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"qs") #x (Val #(x.qs'))
-  set_qs : ∀ (x : Replica) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"qs") (PairV #x #y) (Val #(({ x with qs' := y } : Replica)))
-  get_SQ : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"SQ") #x (Val #(x.SQ'))
-  set_SQ : ∀ (x : Replica) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.QuorumI), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"SQ") (PairV #x #y) (Val #(({ x with SQ' := y } : Replica)))
-  get_FQ : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"FQ") #x (Val #(x.FQ'))
-  set_FQ : ∀ (x : Replica) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.QuorumI), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"FQ") (PairV #x #y) (Val #(({ x with FQ' := y } : Replica)))
-  get_cs : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"cs") #x (Val #(x.cs'))
-  set_cs : ∀ (x : Replica) (y : CommunicationSupply), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"cs") (PairV #x #y) (Val #(({ x with cs' := y } : Replica)))
-  get_fixedMajority : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"fixedMajority") #x (Val #(x.fixedMajority'))
-  set_fixedMajority : ∀ (x : Replica) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"fixedMajority") (PairV #x #y) (Val #(({ x with fixedMajority' := y } : Replica)))
-  get_optExec : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"optExec") #x (Val #(x.optExec'))
-  set_optExec : ∀ (x : Replica) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"optExec") (PairV #x #y) (Val #(({ x with optExec' := y } : Replica)))
-  get_fastRead : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"fastRead") #x (Val #(x.fastRead'))
-  set_fastRead : ∀ (x : Replica) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"fastRead") (PairV #x #y) (Val #(({ x with fastRead' := y } : Replica)))
-  get_deliverChan : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"deliverChan") #x (Val #(x.deliverChan'))
-  set_deliverChan : ∀ (x : Replica) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"deliverChan") (PairV #x #y) (Val #(({ x with deliverChan' := y } : Replica)))
-  get_execL : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"execL") #x (Val #(x.execL'))
-  set_execL : ∀ (x : Replica) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"execL") (PairV #x #y) (Val #(({ x with execL' := y } : Replica)))
-  get_execLog : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"execLog") #x (Val #(x.execLog'))
-  set_execLog : ∀ (x : Replica) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"execLog") (PairV #x #y) (Val #(({ x with execLog' := y } : Replica)))
-  get_descPool : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"descPool") #x (Val #(x.descPool'))
-  set_descPool : ∀ (x : Replica) (y : _root_.Perennial.sync.Pool), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"descPool") (PairV #x #y) (Val #(({ x with descPool' := y } : Replica)))
-  get_poolLevel : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"poolLevel") #x (Val #(x.poolLevel'))
-  set_poolLevel : ∀ (x : Replica) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"poolLevel") (PairV #x #y) (Val #(({ x with poolLevel' := y } : Replica)))
-  get_routineCount : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"routineCount") #x (Val #(x.routineCount'))
-  set_routineCount : ∀ (x : Replica) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"routineCount") (PairV #x #y) (Val #(({ x with routineCount' := y } : Replica)))
-  get_recover : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"recover") #x (Val #(x.recover'))
-  set_recover : ∀ (x : Replica) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"recover") (PairV #x #y) (Val #(({ x with recover' := y } : Replica)))
-  get_recStart : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"recStart") #x (Val #(x.recStart'))
-  set_recStart : ∀ (x : Replica) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"recStart") (PairV #x #y) (Val #(({ x with recStart' := y } : Replica)))
-  get_newLeaderAckNs : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"newLeaderAckNs") #x (Val #(x.newLeaderAckNs'))
-  set_newLeaderAckNs : ∀ (x : Replica) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"newLeaderAckNs") (PairV #x #y) (Val #(({ x with newLeaderAckNs' := y } : Replica)))
-  get_newLeaderAckNsBallot : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"newLeaderAckNsBallot") #x (Val #(x.newLeaderAckNsBallot'))
-  set_newLeaderAckNsBallot : ∀ (x : Replica) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"newLeaderAckNsBallot") (PairV #x #y) (Val #(({ x with newLeaderAckNsBallot' := y } : Replica)))
-  get_proposes : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"proposes") #x (Val #(x.proposes'))
-  set_proposes : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"proposes") (PairV #x #y) (Val #(({ x with proposes' := y } : Replica)))
-  get_proposeDeps : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"proposeDeps") #x (Val #(x.proposeDeps'))
-  set_proposeDeps : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"proposeDeps") (PairV #x #y) (Val #(({ x with proposeDeps' := y } : Replica)))
-  get_handled : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"handled") #x (Val #(x.handled'))
-  set_handled : ∀ (x : Replica) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"handled") (PairV #x #y) (Val #(({ x with handled' := y } : Replica)))
-  get_lastSync : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"lastSync") #x (Val #(x.lastSync'))
-  set_lastSync : ∀ (x : Replica) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"lastSync") (PairV #x #y) (Val #(({ x with lastSync' := y } : Replica)))
-  get_acceptL : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"acceptL") #x (Val #(x.acceptL'))
-  set_acceptL : ∀ (x : Replica) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"acceptL") (PairV #x #y) (Val #(({ x with acceptL' := y } : Replica)))
-  get_accepted : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"accepted") #x (Val #(x.accepted'))
-  set_accepted : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"accepted") (PairV #x #y) (Val #(({ x with accepted' := y } : Replica)))
-  get_waiting : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"waiting") #x (Val #(x.waiting'))
-  set_waiting : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"waiting") (PairV #x #y) (Val #(({ x with waiting' := y } : Replica)))
-  get_recheckChan : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"recheckChan") #x (Val #(x.recheckChan'))
-  set_recheckChan : ∀ (x : Replica) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"recheckChan") (PairV #x #y) (Val #(({ x with recheckChan' := y } : Replica)))
-  get_rechecks : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"rechecks") #x (Val #(x.rechecks'))
-  set_rechecks : ∀ (x : Replica) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"rechecks") (PairV #x #y) (Val #(({ x with rechecks' := y } : Replica)))
-  get_slowAddrs : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"slowAddrs") #x (Val #(x.slowAddrs'))
-  set_slowAddrs : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"slowAddrs") (PairV #x #y) (Val #(({ x with slowAddrs' := y } : Replica)))
+  get'Replica : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"Replica") #x (Val #(x.Replica'))
+  set'Replica : ∀ (x : Replica) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"Replica") (PairV #x #y) (Val #(({ x with Replica' := y } : Replica)))
+  get'ballotL : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"ballotL") #x (Val #(x.ballotL'))
+  set'ballotL : ∀ (x : Replica) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"ballotL") (PairV #x #y) (Val #(({ x with ballotL' := y } : Replica)))
+  get'ballot : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"ballot") #x (Val #(x.ballot'))
+  set'ballot : ∀ (x : Replica) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"ballot") (PairV #x #y) (Val #(({ x with ballot' := y } : Replica)))
+  get'cballot : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"cballot") #x (Val #(x.cballot'))
+  set'cballot : ∀ (x : Replica) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"cballot") (PairV #x #y) (Val #(({ x with cballot' := y } : Replica)))
+  get'status : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"status") #x (Val #(x.status'))
+  set'status : ∀ (x : Replica) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"status") (PairV #x #y) (Val #(({ x with status' := y } : Replica)))
+  get'cmdDescs : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"cmdDescs") #x (Val #(x.cmdDescs'))
+  set'cmdDescs : ∀ (x : Replica) (y : _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"cmdDescs") (PairV #x #y) (Val #(({ x with cmdDescs' := y } : Replica)))
+  get'delivered : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"delivered") #x (Val #(x.delivered'))
+  set'delivered : ∀ (x : Replica) (y : _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"delivered") (PairV #x #y) (Val #(({ x with delivered' := y } : Replica)))
+  get'deliveredAny : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"deliveredAny") #x (Val #(x.deliveredAny'))
+  set'deliveredAny : ∀ (x : Replica) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"deliveredAny") (PairV #x #y) (Val #(({ x with deliveredAny' := y } : Replica)))
+  get'sender : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"sender") #x (Val #(x.sender'))
+  set'sender : ∀ (x : Replica) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Sender), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"sender") (PairV #x #y) (Val #(({ x with sender' := y } : Replica)))
+  get'batcher : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"batcher") #x (Val #(x.batcher'))
+  set'batcher : ∀ (x : Replica) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"batcher") (PairV #x #y) (Val #(({ x with batcher' := y } : Replica)))
+  get'repchan : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"repchan") #x (Val #(x.repchan'))
+  set'repchan : ∀ (x : Replica) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"repchan") (PairV #x #y) (Val #(({ x with repchan' := y } : Replica)))
+  get'keys : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"keys") #x (Val #(x.keys'))
+  set'keys : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"keys") (PairV #x #y) (Val #(({ x with keys' := y } : Replica)))
+  get'hlog : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"hlog") #x (Val #(x.hlog'))
+  set'hlog : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"hlog") (PairV #x #y) (Val #(({ x with hlog' := y } : Replica)))
+  get'cntL : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"cntL") #x (Val #(x.cntL'))
+  set'cntL : ∀ (x : Replica) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"cntL") (PairV #x #y) (Val #(({ x with cntL' := y } : Replica)))
+  get'seqnum : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"seqnum") #x (Val #(x.seqnum'))
+  set'seqnum : ∀ (x : Replica) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"seqnum") (PairV #x #y) (Val #(({ x with seqnum' := y } : Replica)))
+  get'pendingHashUpds : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"pendingHashUpds") #x (Val #(x.pendingHashUpds'))
+  set'pendingHashUpds : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"pendingHashUpds") (PairV #x #y) (Val #(({ x with pendingHashUpds' := y } : Replica)))
+  get'historyL : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"historyL") #x (Val #(x.historyL'))
+  set'historyL : ∀ (x : Replica) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"historyL") (PairV #x #y) (Val #(({ x with historyL' := y } : Replica)))
+  get'history : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"history") #x (Val #(x.history'))
+  set'history : ∀ (x : Replica) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"history") (PairV #x #y) (Val #(({ x with history' := y } : Replica)))
+  get'historySize : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"historySize") #x (Val #(x.historySize'))
+  set'historySize : ∀ (x : Replica) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"historySize") (PairV #x #y) (Val #(({ x with historySize' := y } : Replica)))
+  get'historyStart : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"historyStart") #x (Val #(x.historyStart'))
+  set'historyStart : ∀ (x : Replica) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"historyStart") (PairV #x #y) (Val #(({ x with historyStart' := y } : Replica)))
+  get'qs : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"qs") #x (Val #(x.qs'))
+  set'qs : ∀ (x : Replica) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"qs") (PairV #x #y) (Val #(({ x with qs' := y } : Replica)))
+  get'SQ : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"SQ") #x (Val #(x.SQ'))
+  set'SQ : ∀ (x : Replica) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.QuorumI), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"SQ") (PairV #x #y) (Val #(({ x with SQ' := y } : Replica)))
+  get'FQ : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"FQ") #x (Val #(x.FQ'))
+  set'FQ : ∀ (x : Replica) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.QuorumI), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"FQ") (PairV #x #y) (Val #(({ x with FQ' := y } : Replica)))
+  get'cs : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"cs") #x (Val #(x.cs'))
+  set'cs : ∀ (x : Replica) (y : CommunicationSupply), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"cs") (PairV #x #y) (Val #(({ x with cs' := y } : Replica)))
+  get'fixedMajority : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"fixedMajority") #x (Val #(x.fixedMajority'))
+  set'fixedMajority : ∀ (x : Replica) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"fixedMajority") (PairV #x #y) (Val #(({ x with fixedMajority' := y } : Replica)))
+  get'optExec : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"optExec") #x (Val #(x.optExec'))
+  set'optExec : ∀ (x : Replica) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"optExec") (PairV #x #y) (Val #(({ x with optExec' := y } : Replica)))
+  get'fastRead : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"fastRead") #x (Val #(x.fastRead'))
+  set'fastRead : ∀ (x : Replica) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"fastRead") (PairV #x #y) (Val #(({ x with fastRead' := y } : Replica)))
+  get'deliverChan : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"deliverChan") #x (Val #(x.deliverChan'))
+  set'deliverChan : ∀ (x : Replica) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"deliverChan") (PairV #x #y) (Val #(({ x with deliverChan' := y } : Replica)))
+  get'execL : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"execL") #x (Val #(x.execL'))
+  set'execL : ∀ (x : Replica) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"execL") (PairV #x #y) (Val #(({ x with execL' := y } : Replica)))
+  get'execLog : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"execLog") #x (Val #(x.execLog'))
+  set'execLog : ∀ (x : Replica) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"execLog") (PairV #x #y) (Val #(({ x with execLog' := y } : Replica)))
+  get'descPool : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"descPool") #x (Val #(x.descPool'))
+  set'descPool : ∀ (x : Replica) (y : _root_.Perennial.sync.Pool), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"descPool") (PairV #x #y) (Val #(({ x with descPool' := y } : Replica)))
+  get'poolLevel : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"poolLevel") #x (Val #(x.poolLevel'))
+  set'poolLevel : ∀ (x : Replica) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"poolLevel") (PairV #x #y) (Val #(({ x with poolLevel' := y } : Replica)))
+  get'routineCount : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"routineCount") #x (Val #(x.routineCount'))
+  set'routineCount : ∀ (x : Replica) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"routineCount") (PairV #x #y) (Val #(({ x with routineCount' := y } : Replica)))
+  get'recover : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"recover") #x (Val #(x.recover'))
+  set'recover : ∀ (x : Replica) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"recover") (PairV #x #y) (Val #(({ x with recover' := y } : Replica)))
+  get'recStart : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"recStart") #x (Val #(x.recStart'))
+  set'recStart : ∀ (x : Replica) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"recStart") (PairV #x #y) (Val #(({ x with recStart' := y } : Replica)))
+  get'newLeaderAckNs : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"newLeaderAckNs") #x (Val #(x.newLeaderAckNs'))
+  set'newLeaderAckNs : ∀ (x : Replica) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"newLeaderAckNs") (PairV #x #y) (Val #(({ x with newLeaderAckNs' := y } : Replica)))
+  get'newLeaderAckNsBallot : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"newLeaderAckNsBallot") #x (Val #(x.newLeaderAckNsBallot'))
+  set'newLeaderAckNsBallot : ∀ (x : Replica) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"newLeaderAckNsBallot") (PairV #x #y) (Val #(({ x with newLeaderAckNsBallot' := y } : Replica)))
+  get'proposes : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"proposes") #x (Val #(x.proposes'))
+  set'proposes : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"proposes") (PairV #x #y) (Val #(({ x with proposes' := y } : Replica)))
+  get'proposeDeps : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"proposeDeps") #x (Val #(x.proposeDeps'))
+  set'proposeDeps : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"proposeDeps") (PairV #x #y) (Val #(({ x with proposeDeps' := y } : Replica)))
+  get'handled : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"handled") #x (Val #(x.handled'))
+  set'handled : ∀ (x : Replica) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"handled") (PairV #x #y) (Val #(({ x with handled' := y } : Replica)))
+  get'lastSync : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"lastSync") #x (Val #(x.lastSync'))
+  set'lastSync : ∀ (x : Replica) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"lastSync") (PairV #x #y) (Val #(({ x with lastSync' := y } : Replica)))
+  get'acceptL : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"acceptL") #x (Val #(x.acceptL'))
+  set'acceptL : ∀ (x : Replica) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"acceptL") (PairV #x #y) (Val #(({ x with acceptL' := y } : Replica)))
+  get'accepted : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"accepted") #x (Val #(x.accepted'))
+  set'accepted : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"accepted") (PairV #x #y) (Val #(({ x with accepted' := y } : Replica)))
+  get'waiting : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"waiting") #x (Val #(x.waiting'))
+  set'waiting : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"waiting") (PairV #x #y) (Val #(({ x with waiting' := y } : Replica)))
+  get'recheckChan : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"recheckChan") #x (Val #(x.recheckChan'))
+  set'recheckChan : ∀ (x : Replica) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"recheckChan") (PairV #x #y) (Val #(({ x with recheckChan' := y } : Replica)))
+  get'rechecks : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"rechecks") #x (Val #(x.rechecks'))
+  set'rechecks : ∀ (x : Replica) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"rechecks") (PairV #x #y) (Val #(({ x with rechecks' := y } : Replica)))
+  get'slowAddrs : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"slowAddrs") #x (Val #(x.slowAddrs'))
+  set'slowAddrs : ∀ (x : Replica) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"slowAddrs") (PairV #x #y) (Val #(({ x with slowAddrs' := y } : Replica)))
   method_set : go.MethodSetIs Replica.ty [(go!"ComputeClosestPeers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.float64)]))), (go!"ConnectToPeers", (some (go.signature.Signature [] false []))), (go!"ConnectToPeersNoListeners", (some (go.signature.Signature [] false []))), (go!"FastQuorumSize", (some (go.signature.Signature [] false [go.int]))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Ping", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.PingArgs.ty), (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.PingReply.ty)] false [go.error]))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Println", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"ReadQuorumSize", (some (go.signature.Signature [] false [go.int]))), (go!"ReplyBeacon", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.GBeacon.ty)] false []))), (go!"ReplyProposeTS", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.ProposeReplyTS.ty), (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty), (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty)] false []))), (go!"SendBeacon", (some (go.signature.Signature [go.int32] false []))), (go!"SendClientMsg", (some (go.signature.Signature [go.int32, go.uint8, _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty] false []))), (go!"SendMsg", (some (go.signature.Signature [go.int32, go.uint8, _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty] false []))), (go!"SendMsgNoFlush", (some (go.signature.Signature [go.int32, go.uint8, _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty] false []))), (go!"SlowQuorumSize", (some (go.signature.Signature [] false [go.int]))), (go!"UpdatePreferredPeerOrder", (some (go.signature.Signature [(go.GoType.SliceType go.int32)] false []))), (go!"WaitForClientConnections", (some (go.signature.Signature [] false []))), (go!"WriteQuorumSize", (some (go.signature.Signature [] false [go.int]))), (go!"github.com/imdea-software/swiftpaxos/replica.clientListener", (some (go.signature.Signature [(go.GoType.Named go!"net.Conn" []), (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty), go.byte, go.bool] false []))), (go!"github.com/imdea-software/swiftpaxos/replica.replicaListener", (some (go.signature.Signature [go.int, (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)] false []))), (go!"github.com/imdea-software/swiftpaxos/replica.waitForPeerConnections", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendrecv go.bool)] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Replica.ty) [(go!"BeTheLeader", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.BeTheLeaderArgs.ty), (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.BeTheLeaderReply.ty)] false [go.error]))), (go!"ComputeClosestPeers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.float64)]))), (go!"ConnectToPeers", (some (go.signature.Signature [] false []))), (go!"ConnectToPeersNoListeners", (some (go.signature.Signature [] false []))), (go!"FastQuorumSize", (some (go.signature.Signature [] false [go.int]))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Ping", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.PingArgs.ty), (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.PingReply.ty)] false [go.error]))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Println", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"ReadQuorumSize", (some (go.signature.Signature [] false [go.int]))), (go!"ReplyBeacon", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.GBeacon.ty)] false []))), (go!"ReplyProposeTS", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.ProposeReplyTS.ty), (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty), (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty)] false []))), (go!"SendBeacon", (some (go.signature.Signature [go.int32] false []))), (go!"SendClientMsg", (some (go.signature.Signature [go.int32, go.uint8, _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty] false []))), (go!"SendMsg", (some (go.signature.Signature [go.int32, go.uint8, _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty] false []))), (go!"SendMsgNoFlush", (some (go.signature.Signature [go.int32, go.uint8, _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty] false []))), (go!"SlowQuorumSize", (some (go.signature.Signature [] false [go.int]))), (go!"UpdatePreferredPeerOrder", (some (go.signature.Signature [(go.GoType.SliceType go.int32)] false []))), (go!"WaitForClientConnections", (some (go.signature.Signature [] false []))), (go!"WriteQuorumSize", (some (go.signature.Signature [] false [go.int]))), (go!"github.com/imdea-software/swiftpaxos/replica.clientListener", (some (go.signature.Signature [(go.GoType.Named go!"net.Conn" []), (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty), go.byte, go.bool] false []))), (go!"github.com/imdea-software/swiftpaxos/replica.replicaListener", (some (go.signature.Signature [go.int, (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)] false []))), (go!"github.com/imdea-software/swiftpaxos/replica.waitForPeerConnections", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendrecv go.bool)] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.aliveQuorumBallot", (some (go.signature.Signature [go.int32] false [go.int32, go.bool]))), (go!"github.com/imdea-software/swiftpaxos/swift.allocDesc", (some (go.signature.Signature [] false [(go.GoType.PointerType commandDesc.ty)]))), (go!"github.com/imdea-software/swiftpaxos/swift.commonCaseFastAck", (some (go.signature.Signature [(go.GoType.PointerType MFastAck.ty), (go.GoType.PointerType commandDesc.ty)] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.deliver", (some (go.signature.Signature [(go.GoType.PointerType commandDesc.ty), CommandId.ty] false [go.bool]))), (go!"github.com/imdea-software/swiftpaxos/swift.depsAccepted", (some (go.signature.Signature [(go.GoType.SliceType CommandId.ty), CommandId.ty] false [go.bool]))), (go!"github.com/imdea-software/swiftpaxos/swift.drainRechecks", (some (go.signature.Signature [] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.drainStops", (some (go.signature.Signature [(go.GoType.PointerType commandDesc.ty)] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.fastAckFromLeader", (some (go.signature.Signature [(go.GoType.PointerType MFastAck.ty), (go.GoType.PointerType commandDesc.ty)] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.fillNewLeaderAckN", (some (go.signature.Signature [(go.GoType.PointerType MNewLeaderAckN.ty)] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.freeDesc", (some (go.signature.Signature [(go.GoType.PointerType commandDesc.ty)] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.getCmdDesc", (some (go.signature.Signature [CommandId.ty, (go.GoType.InterfaceType []), Dep.ty] false [(go.GoType.PointerType commandDesc.ty)]))), (go!"github.com/imdea-software/swiftpaxos/swift.getCmdDescSeq", (some (go.signature.Signature [CommandId.ty, (go.GoType.InterfaceType []), Dep.ty, (go.GoType.SliceType SHash.ty), go.bool] false [(go.GoType.PointerType commandDesc.ty)]))), (go!"github.com/imdea-software/swiftpaxos/swift.getCmdDescWith", (some (go.signature.Signature [CommandId.ty, (go.GoType.InterfaceType []), go.bool] false [(go.GoType.PointerType commandDesc.ty)]))), (go!"github.com/imdea-software/swiftpaxos/swift.getDepAndHashes", (some (go.signature.Signature [_root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command.ty, CommandId.ty] false [Dep.ty, (go.GoType.SliceType SHash.ty)]))), (go!"github.com/imdea-software/swiftpaxos/swift.handleDesc", (some (go.signature.Signature [(go.GoType.PointerType commandDesc.ty), CommandId.ty] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.handleFastAck", (some (go.signature.Signature [(go.GoType.PointerType MFastAck.ty), (go.GoType.PointerType commandDesc.ty)] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.handleLightSlowAck", (some (go.signature.Signature [(go.GoType.PointerType MLightSlowAck.ty), (go.GoType.PointerType commandDesc.ty)] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.handleMsg", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.PointerType commandDesc.ty), CommandId.ty] false [go.bool]))), (go!"github.com/imdea-software/swiftpaxos/swift.handleNewLeader", (some (go.signature.Signature [(go.GoType.PointerType MNewLeader.ty)] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.handleNewLeaderAckN", (some (go.signature.Signature [(go.GoType.PointerType MNewLeaderAckN.ty)] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.handleNewLeaderAckNs", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.SliceType (go.GoType.InterfaceType []))] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.handleProposal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.GPropose.ty)] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.handlePropose", (some (go.signature.Signature [(go.GoType.PointerType proposeMsg.ty), (go.GoType.PointerType commandDesc.ty), CommandId.ty] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.handleSync", (some (go.signature.Signature [(go.GoType.PointerType MSync.ty)] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.handleSyncEntry", (some (go.signature.Signature [(go.GoType.PointerType syncEntry.ty), (go.GoType.PointerType commandDesc.ty), CommandId.ty] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.leader", (some (go.signature.Signature [] false [go.int32]))), (go!"github.com/imdea-software/swiftpaxos/swift.leaderAckHash", (some (go.signature.Signature [(go.GoType.PointerType MFastAck.ty)] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.markAccepted", (some (go.signature.Signature [CommandId.ty, go.bool] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.newDesc", (some (go.signature.Signature [] false [(go.GoType.PointerType commandDesc.ty)]))), (go!"github.com/imdea-software/swiftpaxos/swift.recordLeaderHash", (some (go.signature.Signature [CommandId.ty, go.int, (go.GoType.SliceType SHash.ty)] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.recoveredSync", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] false [(go.GoType.PointerType MSync.ty)]))), (go!"github.com/imdea-software/swiftpaxos/swift.recoveryBallot", (some (go.signature.Signature [go.int32] false [go.int32, go.bool]))), (go!"github.com/imdea-software/swiftpaxos/swift.reinitNewLeaderAckNs", (some (go.signature.Signature [go.int32] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.run", (some (go.signature.Signature [] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.stopDescs", (some (go.signature.Signature [] false []))), (go!"github.com/imdea-software/swiftpaxos/swift.updateLogs", (some (go.signature.Signature [_root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command.ty, CommandId.ty, go.int, (go.GoType.SliceType SHash.ty)] false [])))]
-  ComputeClosestPeers_unfold : MethodUnfold Replica.ty go!"ComputeClosestPeers" (LamV "$r"
+  unfold'ComputeClosestPeers : MethodUnfold Replica.ty go!"ComputeClosestPeers" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"ComputeClosestPeers"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  ConnectToPeers_unfold : MethodUnfold Replica.ty go!"ConnectToPeers" (LamV "$r"
+  unfold'ConnectToPeers : MethodUnfold Replica.ty go!"ConnectToPeers" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"ConnectToPeers"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  ConnectToPeersNoListeners_unfold : MethodUnfold Replica.ty go!"ConnectToPeersNoListeners" (LamV "$r"
+  unfold'ConnectToPeersNoListeners : MethodUnfold Replica.ty go!"ConnectToPeersNoListeners" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"ConnectToPeersNoListeners"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  FastQuorumSize_unfold : MethodUnfold Replica.ty go!"FastQuorumSize" (LamV "$r"
+  unfold'FastQuorumSize : MethodUnfold Replica.ty go!"FastQuorumSize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"FastQuorumSize"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  Fatal_unfold : MethodUnfold Replica.ty go!"Fatal" (LamV "$r"
+  unfold'Fatal : MethodUnfold Replica.ty go!"Fatal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"Fatal"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  Ping_unfold : MethodUnfold Replica.ty go!"Ping" (LamV "$r"
+  unfold'Ping : MethodUnfold Replica.ty go!"Ping" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"Ping"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  Printf_unfold : MethodUnfold Replica.ty go!"Printf" (LamV "$r"
+  unfold'Printf : MethodUnfold Replica.ty go!"Printf" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"Printf"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  Println_unfold : MethodUnfold Replica.ty go!"Println" (LamV "$r"
+  unfold'Println : MethodUnfold Replica.ty go!"Println" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"Println"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  ReadQuorumSize_unfold : MethodUnfold Replica.ty go!"ReadQuorumSize" (LamV "$r"
+  unfold'ReadQuorumSize : MethodUnfold Replica.ty go!"ReadQuorumSize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"ReadQuorumSize"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  ReplyBeacon_unfold : MethodUnfold Replica.ty go!"ReplyBeacon" (LamV "$r"
+  unfold'ReplyBeacon : MethodUnfold Replica.ty go!"ReplyBeacon" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"ReplyBeacon"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  ReplyProposeTS_unfold : MethodUnfold Replica.ty go!"ReplyProposeTS" (LamV "$r"
+  unfold'ReplyProposeTS : MethodUnfold Replica.ty go!"ReplyProposeTS" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"ReplyProposeTS"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  SendBeacon_unfold : MethodUnfold Replica.ty go!"SendBeacon" (LamV "$r"
+  unfold'SendBeacon : MethodUnfold Replica.ty go!"SendBeacon" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"SendBeacon"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  SendClientMsg_unfold : MethodUnfold Replica.ty go!"SendClientMsg" (LamV "$r"
+  unfold'SendClientMsg : MethodUnfold Replica.ty go!"SendClientMsg" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"SendClientMsg"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  SendMsg_unfold : MethodUnfold Replica.ty go!"SendMsg" (LamV "$r"
+  unfold'SendMsg : MethodUnfold Replica.ty go!"SendMsg" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"SendMsg"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  SendMsgNoFlush_unfold : MethodUnfold Replica.ty go!"SendMsgNoFlush" (LamV "$r"
+  unfold'SendMsgNoFlush : MethodUnfold Replica.ty go!"SendMsgNoFlush" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"SendMsgNoFlush"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  SlowQuorumSize_unfold : MethodUnfold Replica.ty go!"SlowQuorumSize" (LamV "$r"
+  unfold'SlowQuorumSize : MethodUnfold Replica.ty go!"SlowQuorumSize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"SlowQuorumSize"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  UpdatePreferredPeerOrder_unfold : MethodUnfold Replica.ty go!"UpdatePreferredPeerOrder" (LamV "$r"
+  unfold'UpdatePreferredPeerOrder : MethodUnfold Replica.ty go!"UpdatePreferredPeerOrder" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"UpdatePreferredPeerOrder"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  WaitForClientConnections_unfold : MethodUnfold Replica.ty go!"WaitForClientConnections" (LamV "$r"
+  unfold'WaitForClientConnections : MethodUnfold Replica.ty go!"WaitForClientConnections" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"WaitForClientConnections"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  WriteQuorumSize_unfold : MethodUnfold Replica.ty go!"WriteQuorumSize" (LamV "$r"
+  unfold'WriteQuorumSize : MethodUnfold Replica.ty go!"WriteQuorumSize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"WriteQuorumSize"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  clientListener_unfold : MethodUnfold Replica.ty go!"clientListener" (LamV "$r"
+  unfold'clientListener : MethodUnfold Replica.ty go!"clientListener" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"clientListener"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  replicaListener_unfold : MethodUnfold Replica.ty go!"replicaListener" (LamV "$r"
+  unfold'replicaListener : MethodUnfold Replica.ty go!"replicaListener" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"replicaListener"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  waitForPeerConnections_unfold : MethodUnfold Replica.ty go!"waitForPeerConnections" (LamV "$r"
+  unfold'waitForPeerConnections : MethodUnfold Replica.ty go!"waitForPeerConnections" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"waitForPeerConnections"))) (App (Val (GoInstruction (StructFieldGet Replica.ty go!"Replica"))) (Var "$r"))))
-  ptr_BeTheLeader_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"BeTheLeader" Replica.BeTheLeader.impl
-  ptr_ComputeClosestPeers_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"ComputeClosestPeers" (LamV "$r"
+  ptr_unfold'BeTheLeader : MethodUnfold (go.GoType.PointerType Replica.ty) go!"BeTheLeader" Replica.BeTheLeader.impl
+  ptr_unfold'ComputeClosestPeers : MethodUnfold (go.GoType.PointerType Replica.ty) go!"ComputeClosestPeers" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"ComputeClosestPeers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_ConnectToPeers_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"ConnectToPeers" (LamV "$r"
+  ptr_unfold'ConnectToPeers : MethodUnfold (go.GoType.PointerType Replica.ty) go!"ConnectToPeers" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"ConnectToPeers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_ConnectToPeersNoListeners_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"ConnectToPeersNoListeners" (LamV "$r"
+  ptr_unfold'ConnectToPeersNoListeners : MethodUnfold (go.GoType.PointerType Replica.ty) go!"ConnectToPeersNoListeners" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"ConnectToPeersNoListeners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_FastQuorumSize_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"FastQuorumSize" (LamV "$r"
+  ptr_unfold'FastQuorumSize : MethodUnfold (go.GoType.PointerType Replica.ty) go!"FastQuorumSize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"FastQuorumSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_Fatal_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"Fatal" (LamV "$r"
+  ptr_unfold'Fatal : MethodUnfold (go.GoType.PointerType Replica.ty) go!"Fatal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"Fatal"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_Ping_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"Ping" (LamV "$r"
+  ptr_unfold'Ping : MethodUnfold (go.GoType.PointerType Replica.ty) go!"Ping" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"Ping"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_Printf_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"Printf" (LamV "$r"
+  ptr_unfold'Printf : MethodUnfold (go.GoType.PointerType Replica.ty) go!"Printf" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"Printf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_Println_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"Println" (LamV "$r"
+  ptr_unfold'Println : MethodUnfold (go.GoType.PointerType Replica.ty) go!"Println" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"Println"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_ReadQuorumSize_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"ReadQuorumSize" (LamV "$r"
+  ptr_unfold'ReadQuorumSize : MethodUnfold (go.GoType.PointerType Replica.ty) go!"ReadQuorumSize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"ReadQuorumSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_ReplyBeacon_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"ReplyBeacon" (LamV "$r"
+  ptr_unfold'ReplyBeacon : MethodUnfold (go.GoType.PointerType Replica.ty) go!"ReplyBeacon" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"ReplyBeacon"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_ReplyProposeTS_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"ReplyProposeTS" (LamV "$r"
+  ptr_unfold'ReplyProposeTS : MethodUnfold (go.GoType.PointerType Replica.ty) go!"ReplyProposeTS" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"ReplyProposeTS"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_SendBeacon_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"SendBeacon" (LamV "$r"
+  ptr_unfold'SendBeacon : MethodUnfold (go.GoType.PointerType Replica.ty) go!"SendBeacon" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"SendBeacon"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_SendClientMsg_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"SendClientMsg" (LamV "$r"
+  ptr_unfold'SendClientMsg : MethodUnfold (go.GoType.PointerType Replica.ty) go!"SendClientMsg" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"SendClientMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_SendMsg_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"SendMsg" (LamV "$r"
+  ptr_unfold'SendMsg : MethodUnfold (go.GoType.PointerType Replica.ty) go!"SendMsg" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"SendMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_SendMsgNoFlush_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"SendMsgNoFlush" (LamV "$r"
+  ptr_unfold'SendMsgNoFlush : MethodUnfold (go.GoType.PointerType Replica.ty) go!"SendMsgNoFlush" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"SendMsgNoFlush"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_SlowQuorumSize_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"SlowQuorumSize" (LamV "$r"
+  ptr_unfold'SlowQuorumSize : MethodUnfold (go.GoType.PointerType Replica.ty) go!"SlowQuorumSize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"SlowQuorumSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_UpdatePreferredPeerOrder_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"UpdatePreferredPeerOrder" (LamV "$r"
+  ptr_unfold'UpdatePreferredPeerOrder : MethodUnfold (go.GoType.PointerType Replica.ty) go!"UpdatePreferredPeerOrder" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"UpdatePreferredPeerOrder"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_WaitForClientConnections_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"WaitForClientConnections" (LamV "$r"
+  ptr_unfold'WaitForClientConnections : MethodUnfold (go.GoType.PointerType Replica.ty) go!"WaitForClientConnections" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"WaitForClientConnections"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_WriteQuorumSize_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"WriteQuorumSize" (LamV "$r"
+  ptr_unfold'WriteQuorumSize : MethodUnfold (go.GoType.PointerType Replica.ty) go!"WriteQuorumSize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"WriteQuorumSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_clientListener_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"clientListener" (LamV "$r"
+  ptr_unfold'clientListener : MethodUnfold (go.GoType.PointerType Replica.ty) go!"clientListener" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"clientListener"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_replicaListener_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"replicaListener" (LamV "$r"
+  ptr_unfold'replicaListener : MethodUnfold (go.GoType.PointerType Replica.ty) go!"replicaListener" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"replicaListener"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_waitForPeerConnections_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"waitForPeerConnections" (LamV "$r"
+  ptr_unfold'waitForPeerConnections : MethodUnfold (go.GoType.PointerType Replica.ty) go!"waitForPeerConnections" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty) go!"waitForPeerConnections"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (Var "$r")))))
-  ptr_aliveQuorumBallot_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"aliveQuorumBallot" Replica.aliveQuorumBallot.impl
-  ptr_allocDesc_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"allocDesc" Replica.allocDesc.impl
-  ptr_commonCaseFastAck_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"commonCaseFastAck" Replica.commonCaseFastAck.impl
-  ptr_deliver_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"deliver" Replica.deliver.impl
-  ptr_depsAccepted_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"depsAccepted" Replica.depsAccepted.impl
-  ptr_drainRechecks_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"drainRechecks" Replica.drainRechecks.impl
-  ptr_drainStops_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"drainStops" Replica.drainStops.impl
-  ptr_fastAckFromLeader_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"fastAckFromLeader" Replica.fastAckFromLeader.impl
-  ptr_fillNewLeaderAckN_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"fillNewLeaderAckN" Replica.fillNewLeaderAckN.impl
-  ptr_freeDesc_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"freeDesc" Replica.freeDesc.impl
-  ptr_getCmdDesc_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"getCmdDesc" Replica.getCmdDesc.impl
-  ptr_getCmdDescSeq_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"getCmdDescSeq" Replica.getCmdDescSeq.impl
-  ptr_getCmdDescWith_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"getCmdDescWith" Replica.getCmdDescWith.impl
-  ptr_getDepAndHashes_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"getDepAndHashes" Replica.getDepAndHashes.impl
-  ptr_handleDesc_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleDesc" Replica.handleDesc.impl
-  ptr_handleFastAck_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleFastAck" Replica.handleFastAck.impl
-  ptr_handleLightSlowAck_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleLightSlowAck" Replica.handleLightSlowAck.impl
-  ptr_handleMsg_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleMsg" Replica.handleMsg.impl
-  ptr_handleNewLeader_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleNewLeader" Replica.handleNewLeader.impl
-  ptr_handleNewLeaderAckN_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleNewLeaderAckN" Replica.handleNewLeaderAckN.impl
-  ptr_handleNewLeaderAckNs_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleNewLeaderAckNs" Replica.handleNewLeaderAckNs.impl
-  ptr_handleProposal_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleProposal" Replica.handleProposal.impl
-  ptr_handlePropose_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handlePropose" Replica.handlePropose.impl
-  ptr_handleSync_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleSync" Replica.handleSync.impl
-  ptr_handleSyncEntry_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleSyncEntry" Replica.handleSyncEntry.impl
-  ptr_leader_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"leader" Replica.leader.impl
-  ptr_leaderAckHash_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"leaderAckHash" Replica.leaderAckHash.impl
-  ptr_markAccepted_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"markAccepted" Replica.markAccepted.impl
-  ptr_newDesc_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"newDesc" Replica.newDesc.impl
-  ptr_recordLeaderHash_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"recordLeaderHash" Replica.recordLeaderHash.impl
-  ptr_recoveredSync_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"recoveredSync" Replica.recoveredSync.impl
-  ptr_recoveryBallot_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"recoveryBallot" Replica.recoveryBallot.impl
-  ptr_reinitNewLeaderAckNs_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"reinitNewLeaderAckNs" Replica.reinitNewLeaderAckNs.impl
-  ptr_run_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"run" Replica.run.impl
-  ptr_stopDescs_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"stopDescs" Replica.stopDescs.impl
-  ptr_updateLogs_unfold : MethodUnfold (go.GoType.PointerType Replica.ty) go!"updateLogs" Replica.updateLogs.impl
+  ptr_unfold'aliveQuorumBallot : MethodUnfold (go.GoType.PointerType Replica.ty) go!"aliveQuorumBallot" Replica.aliveQuorumBallot.impl
+  ptr_unfold'allocDesc : MethodUnfold (go.GoType.PointerType Replica.ty) go!"allocDesc" Replica.allocDesc.impl
+  ptr_unfold'commonCaseFastAck : MethodUnfold (go.GoType.PointerType Replica.ty) go!"commonCaseFastAck" Replica.commonCaseFastAck.impl
+  ptr_unfold'deliver : MethodUnfold (go.GoType.PointerType Replica.ty) go!"deliver" Replica.deliver.impl
+  ptr_unfold'depsAccepted : MethodUnfold (go.GoType.PointerType Replica.ty) go!"depsAccepted" Replica.depsAccepted.impl
+  ptr_unfold'drainRechecks : MethodUnfold (go.GoType.PointerType Replica.ty) go!"drainRechecks" Replica.drainRechecks.impl
+  ptr_unfold'drainStops : MethodUnfold (go.GoType.PointerType Replica.ty) go!"drainStops" Replica.drainStops.impl
+  ptr_unfold'fastAckFromLeader : MethodUnfold (go.GoType.PointerType Replica.ty) go!"fastAckFromLeader" Replica.fastAckFromLeader.impl
+  ptr_unfold'fillNewLeaderAckN : MethodUnfold (go.GoType.PointerType Replica.ty) go!"fillNewLeaderAckN" Replica.fillNewLeaderAckN.impl
+  ptr_unfold'freeDesc : MethodUnfold (go.GoType.PointerType Replica.ty) go!"freeDesc" Replica.freeDesc.impl
+  ptr_unfold'getCmdDesc : MethodUnfold (go.GoType.PointerType Replica.ty) go!"getCmdDesc" Replica.getCmdDesc.impl
+  ptr_unfold'getCmdDescSeq : MethodUnfold (go.GoType.PointerType Replica.ty) go!"getCmdDescSeq" Replica.getCmdDescSeq.impl
+  ptr_unfold'getCmdDescWith : MethodUnfold (go.GoType.PointerType Replica.ty) go!"getCmdDescWith" Replica.getCmdDescWith.impl
+  ptr_unfold'getDepAndHashes : MethodUnfold (go.GoType.PointerType Replica.ty) go!"getDepAndHashes" Replica.getDepAndHashes.impl
+  ptr_unfold'handleDesc : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleDesc" Replica.handleDesc.impl
+  ptr_unfold'handleFastAck : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleFastAck" Replica.handleFastAck.impl
+  ptr_unfold'handleLightSlowAck : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleLightSlowAck" Replica.handleLightSlowAck.impl
+  ptr_unfold'handleMsg : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleMsg" Replica.handleMsg.impl
+  ptr_unfold'handleNewLeader : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleNewLeader" Replica.handleNewLeader.impl
+  ptr_unfold'handleNewLeaderAckN : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleNewLeaderAckN" Replica.handleNewLeaderAckN.impl
+  ptr_unfold'handleNewLeaderAckNs : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleNewLeaderAckNs" Replica.handleNewLeaderAckNs.impl
+  ptr_unfold'handleProposal : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleProposal" Replica.handleProposal.impl
+  ptr_unfold'handlePropose : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handlePropose" Replica.handlePropose.impl
+  ptr_unfold'handleSync : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleSync" Replica.handleSync.impl
+  ptr_unfold'handleSyncEntry : MethodUnfold (go.GoType.PointerType Replica.ty) go!"handleSyncEntry" Replica.handleSyncEntry.impl
+  ptr_unfold'leader : MethodUnfold (go.GoType.PointerType Replica.ty) go!"leader" Replica.leader.impl
+  ptr_unfold'leaderAckHash : MethodUnfold (go.GoType.PointerType Replica.ty) go!"leaderAckHash" Replica.leaderAckHash.impl
+  ptr_unfold'markAccepted : MethodUnfold (go.GoType.PointerType Replica.ty) go!"markAccepted" Replica.markAccepted.impl
+  ptr_unfold'newDesc : MethodUnfold (go.GoType.PointerType Replica.ty) go!"newDesc" Replica.newDesc.impl
+  ptr_unfold'recordLeaderHash : MethodUnfold (go.GoType.PointerType Replica.ty) go!"recordLeaderHash" Replica.recordLeaderHash.impl
+  ptr_unfold'recoveredSync : MethodUnfold (go.GoType.PointerType Replica.ty) go!"recoveredSync" Replica.recoveredSync.impl
+  ptr_unfold'recoveryBallot : MethodUnfold (go.GoType.PointerType Replica.ty) go!"recoveryBallot" Replica.recoveryBallot.impl
+  ptr_unfold'reinitNewLeaderAckNs : MethodUnfold (go.GoType.PointerType Replica.ty) go!"reinitNewLeaderAckNs" Replica.reinitNewLeaderAckNs.impl
+  ptr_unfold'run : MethodUnfold (go.GoType.PointerType Replica.ty) go!"run" Replica.run.impl
+  ptr_unfold'stopDescs : MethodUnfold (go.GoType.PointerType Replica.ty) go!"stopDescs" Replica.stopDescs.impl
+  ptr_unfold'updateLogs : MethodUnfold (go.GoType.PointerType Replica.ty) go!"updateLogs" Replica.updateLogs.impl
 
 attribute [instance] Replica.TypeAssumptions.type_repr
   Replica.TypeAssumptions.underlying
-  Replica.TypeAssumptions.get_Replica
-  Replica.TypeAssumptions.set_Replica
-  Replica.TypeAssumptions.get_ballotL
-  Replica.TypeAssumptions.set_ballotL
-  Replica.TypeAssumptions.get_ballot
-  Replica.TypeAssumptions.set_ballot
-  Replica.TypeAssumptions.get_cballot
-  Replica.TypeAssumptions.set_cballot
-  Replica.TypeAssumptions.get_status
-  Replica.TypeAssumptions.set_status
-  Replica.TypeAssumptions.get_cmdDescs
-  Replica.TypeAssumptions.set_cmdDescs
-  Replica.TypeAssumptions.get_delivered
-  Replica.TypeAssumptions.set_delivered
-  Replica.TypeAssumptions.get_deliveredAny
-  Replica.TypeAssumptions.set_deliveredAny
-  Replica.TypeAssumptions.get_sender
-  Replica.TypeAssumptions.set_sender
-  Replica.TypeAssumptions.get_batcher
-  Replica.TypeAssumptions.set_batcher
-  Replica.TypeAssumptions.get_repchan
-  Replica.TypeAssumptions.set_repchan
-  Replica.TypeAssumptions.get_keys
-  Replica.TypeAssumptions.set_keys
-  Replica.TypeAssumptions.get_hlog
-  Replica.TypeAssumptions.set_hlog
-  Replica.TypeAssumptions.get_cntL
-  Replica.TypeAssumptions.set_cntL
-  Replica.TypeAssumptions.get_seqnum
-  Replica.TypeAssumptions.set_seqnum
-  Replica.TypeAssumptions.get_pendingHashUpds
-  Replica.TypeAssumptions.set_pendingHashUpds
-  Replica.TypeAssumptions.get_historyL
-  Replica.TypeAssumptions.set_historyL
-  Replica.TypeAssumptions.get_history
-  Replica.TypeAssumptions.set_history
-  Replica.TypeAssumptions.get_historySize
-  Replica.TypeAssumptions.set_historySize
-  Replica.TypeAssumptions.get_historyStart
-  Replica.TypeAssumptions.set_historyStart
-  Replica.TypeAssumptions.get_qs
-  Replica.TypeAssumptions.set_qs
-  Replica.TypeAssumptions.get_SQ
-  Replica.TypeAssumptions.set_SQ
-  Replica.TypeAssumptions.get_FQ
-  Replica.TypeAssumptions.set_FQ
-  Replica.TypeAssumptions.get_cs
-  Replica.TypeAssumptions.set_cs
-  Replica.TypeAssumptions.get_fixedMajority
-  Replica.TypeAssumptions.set_fixedMajority
-  Replica.TypeAssumptions.get_optExec
-  Replica.TypeAssumptions.set_optExec
-  Replica.TypeAssumptions.get_fastRead
-  Replica.TypeAssumptions.set_fastRead
-  Replica.TypeAssumptions.get_deliverChan
-  Replica.TypeAssumptions.set_deliverChan
-  Replica.TypeAssumptions.get_execL
-  Replica.TypeAssumptions.set_execL
-  Replica.TypeAssumptions.get_execLog
-  Replica.TypeAssumptions.set_execLog
-  Replica.TypeAssumptions.get_descPool
-  Replica.TypeAssumptions.set_descPool
-  Replica.TypeAssumptions.get_poolLevel
-  Replica.TypeAssumptions.set_poolLevel
-  Replica.TypeAssumptions.get_routineCount
-  Replica.TypeAssumptions.set_routineCount
-  Replica.TypeAssumptions.get_recover
-  Replica.TypeAssumptions.set_recover
-  Replica.TypeAssumptions.get_recStart
-  Replica.TypeAssumptions.set_recStart
-  Replica.TypeAssumptions.get_newLeaderAckNs
-  Replica.TypeAssumptions.set_newLeaderAckNs
-  Replica.TypeAssumptions.get_newLeaderAckNsBallot
-  Replica.TypeAssumptions.set_newLeaderAckNsBallot
-  Replica.TypeAssumptions.get_proposes
-  Replica.TypeAssumptions.set_proposes
-  Replica.TypeAssumptions.get_proposeDeps
-  Replica.TypeAssumptions.set_proposeDeps
-  Replica.TypeAssumptions.get_handled
-  Replica.TypeAssumptions.set_handled
-  Replica.TypeAssumptions.get_lastSync
-  Replica.TypeAssumptions.set_lastSync
-  Replica.TypeAssumptions.get_acceptL
-  Replica.TypeAssumptions.set_acceptL
-  Replica.TypeAssumptions.get_accepted
-  Replica.TypeAssumptions.set_accepted
-  Replica.TypeAssumptions.get_waiting
-  Replica.TypeAssumptions.set_waiting
-  Replica.TypeAssumptions.get_recheckChan
-  Replica.TypeAssumptions.set_recheckChan
-  Replica.TypeAssumptions.get_rechecks
-  Replica.TypeAssumptions.set_rechecks
-  Replica.TypeAssumptions.get_slowAddrs
-  Replica.TypeAssumptions.set_slowAddrs
+  Replica.TypeAssumptions.get'Replica
+  Replica.TypeAssumptions.set'Replica
+  Replica.TypeAssumptions.get'ballotL
+  Replica.TypeAssumptions.set'ballotL
+  Replica.TypeAssumptions.get'ballot
+  Replica.TypeAssumptions.set'ballot
+  Replica.TypeAssumptions.get'cballot
+  Replica.TypeAssumptions.set'cballot
+  Replica.TypeAssumptions.get'status
+  Replica.TypeAssumptions.set'status
+  Replica.TypeAssumptions.get'cmdDescs
+  Replica.TypeAssumptions.set'cmdDescs
+  Replica.TypeAssumptions.get'delivered
+  Replica.TypeAssumptions.set'delivered
+  Replica.TypeAssumptions.get'deliveredAny
+  Replica.TypeAssumptions.set'deliveredAny
+  Replica.TypeAssumptions.get'sender
+  Replica.TypeAssumptions.set'sender
+  Replica.TypeAssumptions.get'batcher
+  Replica.TypeAssumptions.set'batcher
+  Replica.TypeAssumptions.get'repchan
+  Replica.TypeAssumptions.set'repchan
+  Replica.TypeAssumptions.get'keys
+  Replica.TypeAssumptions.set'keys
+  Replica.TypeAssumptions.get'hlog
+  Replica.TypeAssumptions.set'hlog
+  Replica.TypeAssumptions.get'cntL
+  Replica.TypeAssumptions.set'cntL
+  Replica.TypeAssumptions.get'seqnum
+  Replica.TypeAssumptions.set'seqnum
+  Replica.TypeAssumptions.get'pendingHashUpds
+  Replica.TypeAssumptions.set'pendingHashUpds
+  Replica.TypeAssumptions.get'historyL
+  Replica.TypeAssumptions.set'historyL
+  Replica.TypeAssumptions.get'history
+  Replica.TypeAssumptions.set'history
+  Replica.TypeAssumptions.get'historySize
+  Replica.TypeAssumptions.set'historySize
+  Replica.TypeAssumptions.get'historyStart
+  Replica.TypeAssumptions.set'historyStart
+  Replica.TypeAssumptions.get'qs
+  Replica.TypeAssumptions.set'qs
+  Replica.TypeAssumptions.get'SQ
+  Replica.TypeAssumptions.set'SQ
+  Replica.TypeAssumptions.get'FQ
+  Replica.TypeAssumptions.set'FQ
+  Replica.TypeAssumptions.get'cs
+  Replica.TypeAssumptions.set'cs
+  Replica.TypeAssumptions.get'fixedMajority
+  Replica.TypeAssumptions.set'fixedMajority
+  Replica.TypeAssumptions.get'optExec
+  Replica.TypeAssumptions.set'optExec
+  Replica.TypeAssumptions.get'fastRead
+  Replica.TypeAssumptions.set'fastRead
+  Replica.TypeAssumptions.get'deliverChan
+  Replica.TypeAssumptions.set'deliverChan
+  Replica.TypeAssumptions.get'execL
+  Replica.TypeAssumptions.set'execL
+  Replica.TypeAssumptions.get'execLog
+  Replica.TypeAssumptions.set'execLog
+  Replica.TypeAssumptions.get'descPool
+  Replica.TypeAssumptions.set'descPool
+  Replica.TypeAssumptions.get'poolLevel
+  Replica.TypeAssumptions.set'poolLevel
+  Replica.TypeAssumptions.get'routineCount
+  Replica.TypeAssumptions.set'routineCount
+  Replica.TypeAssumptions.get'recover
+  Replica.TypeAssumptions.set'recover
+  Replica.TypeAssumptions.get'recStart
+  Replica.TypeAssumptions.set'recStart
+  Replica.TypeAssumptions.get'newLeaderAckNs
+  Replica.TypeAssumptions.set'newLeaderAckNs
+  Replica.TypeAssumptions.get'newLeaderAckNsBallot
+  Replica.TypeAssumptions.set'newLeaderAckNsBallot
+  Replica.TypeAssumptions.get'proposes
+  Replica.TypeAssumptions.set'proposes
+  Replica.TypeAssumptions.get'proposeDeps
+  Replica.TypeAssumptions.set'proposeDeps
+  Replica.TypeAssumptions.get'handled
+  Replica.TypeAssumptions.set'handled
+  Replica.TypeAssumptions.get'lastSync
+  Replica.TypeAssumptions.set'lastSync
+  Replica.TypeAssumptions.get'acceptL
+  Replica.TypeAssumptions.set'acceptL
+  Replica.TypeAssumptions.get'accepted
+  Replica.TypeAssumptions.set'accepted
+  Replica.TypeAssumptions.get'waiting
+  Replica.TypeAssumptions.set'waiting
+  Replica.TypeAssumptions.get'recheckChan
+  Replica.TypeAssumptions.set'recheckChan
+  Replica.TypeAssumptions.get'rechecks
+  Replica.TypeAssumptions.set'rechecks
+  Replica.TypeAssumptions.get'slowAddrs
+  Replica.TypeAssumptions.set'slowAddrs
   Replica.TypeAssumptions.method_set
   Replica.TypeAssumptions.ptr_method_set
-  Replica.TypeAssumptions.ComputeClosestPeers_unfold
-  Replica.TypeAssumptions.ConnectToPeers_unfold
-  Replica.TypeAssumptions.ConnectToPeersNoListeners_unfold
-  Replica.TypeAssumptions.FastQuorumSize_unfold
-  Replica.TypeAssumptions.Fatal_unfold
-  Replica.TypeAssumptions.Ping_unfold
-  Replica.TypeAssumptions.Printf_unfold
-  Replica.TypeAssumptions.Println_unfold
-  Replica.TypeAssumptions.ReadQuorumSize_unfold
-  Replica.TypeAssumptions.ReplyBeacon_unfold
-  Replica.TypeAssumptions.ReplyProposeTS_unfold
-  Replica.TypeAssumptions.SendBeacon_unfold
-  Replica.TypeAssumptions.SendClientMsg_unfold
-  Replica.TypeAssumptions.SendMsg_unfold
-  Replica.TypeAssumptions.SendMsgNoFlush_unfold
-  Replica.TypeAssumptions.SlowQuorumSize_unfold
-  Replica.TypeAssumptions.UpdatePreferredPeerOrder_unfold
-  Replica.TypeAssumptions.WaitForClientConnections_unfold
-  Replica.TypeAssumptions.WriteQuorumSize_unfold
-  Replica.TypeAssumptions.clientListener_unfold
-  Replica.TypeAssumptions.replicaListener_unfold
-  Replica.TypeAssumptions.waitForPeerConnections_unfold
-  Replica.TypeAssumptions.ptr_BeTheLeader_unfold
-  Replica.TypeAssumptions.ptr_ComputeClosestPeers_unfold
-  Replica.TypeAssumptions.ptr_ConnectToPeers_unfold
-  Replica.TypeAssumptions.ptr_ConnectToPeersNoListeners_unfold
-  Replica.TypeAssumptions.ptr_FastQuorumSize_unfold
-  Replica.TypeAssumptions.ptr_Fatal_unfold
-  Replica.TypeAssumptions.ptr_Ping_unfold
-  Replica.TypeAssumptions.ptr_Printf_unfold
-  Replica.TypeAssumptions.ptr_Println_unfold
-  Replica.TypeAssumptions.ptr_ReadQuorumSize_unfold
-  Replica.TypeAssumptions.ptr_ReplyBeacon_unfold
-  Replica.TypeAssumptions.ptr_ReplyProposeTS_unfold
-  Replica.TypeAssumptions.ptr_SendBeacon_unfold
-  Replica.TypeAssumptions.ptr_SendClientMsg_unfold
-  Replica.TypeAssumptions.ptr_SendMsg_unfold
-  Replica.TypeAssumptions.ptr_SendMsgNoFlush_unfold
-  Replica.TypeAssumptions.ptr_SlowQuorumSize_unfold
-  Replica.TypeAssumptions.ptr_UpdatePreferredPeerOrder_unfold
-  Replica.TypeAssumptions.ptr_WaitForClientConnections_unfold
-  Replica.TypeAssumptions.ptr_WriteQuorumSize_unfold
-  Replica.TypeAssumptions.ptr_clientListener_unfold
-  Replica.TypeAssumptions.ptr_replicaListener_unfold
-  Replica.TypeAssumptions.ptr_waitForPeerConnections_unfold
-  Replica.TypeAssumptions.ptr_aliveQuorumBallot_unfold
-  Replica.TypeAssumptions.ptr_allocDesc_unfold
-  Replica.TypeAssumptions.ptr_commonCaseFastAck_unfold
-  Replica.TypeAssumptions.ptr_deliver_unfold
-  Replica.TypeAssumptions.ptr_depsAccepted_unfold
-  Replica.TypeAssumptions.ptr_drainRechecks_unfold
-  Replica.TypeAssumptions.ptr_drainStops_unfold
-  Replica.TypeAssumptions.ptr_fastAckFromLeader_unfold
-  Replica.TypeAssumptions.ptr_fillNewLeaderAckN_unfold
-  Replica.TypeAssumptions.ptr_freeDesc_unfold
-  Replica.TypeAssumptions.ptr_getCmdDesc_unfold
-  Replica.TypeAssumptions.ptr_getCmdDescSeq_unfold
-  Replica.TypeAssumptions.ptr_getCmdDescWith_unfold
-  Replica.TypeAssumptions.ptr_getDepAndHashes_unfold
-  Replica.TypeAssumptions.ptr_handleDesc_unfold
-  Replica.TypeAssumptions.ptr_handleFastAck_unfold
-  Replica.TypeAssumptions.ptr_handleLightSlowAck_unfold
-  Replica.TypeAssumptions.ptr_handleMsg_unfold
-  Replica.TypeAssumptions.ptr_handleNewLeader_unfold
-  Replica.TypeAssumptions.ptr_handleNewLeaderAckN_unfold
-  Replica.TypeAssumptions.ptr_handleNewLeaderAckNs_unfold
-  Replica.TypeAssumptions.ptr_handleProposal_unfold
-  Replica.TypeAssumptions.ptr_handlePropose_unfold
-  Replica.TypeAssumptions.ptr_handleSync_unfold
-  Replica.TypeAssumptions.ptr_handleSyncEntry_unfold
-  Replica.TypeAssumptions.ptr_leader_unfold
-  Replica.TypeAssumptions.ptr_leaderAckHash_unfold
-  Replica.TypeAssumptions.ptr_markAccepted_unfold
-  Replica.TypeAssumptions.ptr_newDesc_unfold
-  Replica.TypeAssumptions.ptr_recordLeaderHash_unfold
-  Replica.TypeAssumptions.ptr_recoveredSync_unfold
-  Replica.TypeAssumptions.ptr_recoveryBallot_unfold
-  Replica.TypeAssumptions.ptr_reinitNewLeaderAckNs_unfold
-  Replica.TypeAssumptions.ptr_run_unfold
-  Replica.TypeAssumptions.ptr_stopDescs_unfold
-  Replica.TypeAssumptions.ptr_updateLogs_unfold
+  Replica.TypeAssumptions.unfold'ComputeClosestPeers
+  Replica.TypeAssumptions.unfold'ConnectToPeers
+  Replica.TypeAssumptions.unfold'ConnectToPeersNoListeners
+  Replica.TypeAssumptions.unfold'FastQuorumSize
+  Replica.TypeAssumptions.unfold'Fatal
+  Replica.TypeAssumptions.unfold'Ping
+  Replica.TypeAssumptions.unfold'Printf
+  Replica.TypeAssumptions.unfold'Println
+  Replica.TypeAssumptions.unfold'ReadQuorumSize
+  Replica.TypeAssumptions.unfold'ReplyBeacon
+  Replica.TypeAssumptions.unfold'ReplyProposeTS
+  Replica.TypeAssumptions.unfold'SendBeacon
+  Replica.TypeAssumptions.unfold'SendClientMsg
+  Replica.TypeAssumptions.unfold'SendMsg
+  Replica.TypeAssumptions.unfold'SendMsgNoFlush
+  Replica.TypeAssumptions.unfold'SlowQuorumSize
+  Replica.TypeAssumptions.unfold'UpdatePreferredPeerOrder
+  Replica.TypeAssumptions.unfold'WaitForClientConnections
+  Replica.TypeAssumptions.unfold'WriteQuorumSize
+  Replica.TypeAssumptions.unfold'clientListener
+  Replica.TypeAssumptions.unfold'replicaListener
+  Replica.TypeAssumptions.unfold'waitForPeerConnections
+  Replica.TypeAssumptions.ptr_unfold'BeTheLeader
+  Replica.TypeAssumptions.ptr_unfold'ComputeClosestPeers
+  Replica.TypeAssumptions.ptr_unfold'ConnectToPeers
+  Replica.TypeAssumptions.ptr_unfold'ConnectToPeersNoListeners
+  Replica.TypeAssumptions.ptr_unfold'FastQuorumSize
+  Replica.TypeAssumptions.ptr_unfold'Fatal
+  Replica.TypeAssumptions.ptr_unfold'Ping
+  Replica.TypeAssumptions.ptr_unfold'Printf
+  Replica.TypeAssumptions.ptr_unfold'Println
+  Replica.TypeAssumptions.ptr_unfold'ReadQuorumSize
+  Replica.TypeAssumptions.ptr_unfold'ReplyBeacon
+  Replica.TypeAssumptions.ptr_unfold'ReplyProposeTS
+  Replica.TypeAssumptions.ptr_unfold'SendBeacon
+  Replica.TypeAssumptions.ptr_unfold'SendClientMsg
+  Replica.TypeAssumptions.ptr_unfold'SendMsg
+  Replica.TypeAssumptions.ptr_unfold'SendMsgNoFlush
+  Replica.TypeAssumptions.ptr_unfold'SlowQuorumSize
+  Replica.TypeAssumptions.ptr_unfold'UpdatePreferredPeerOrder
+  Replica.TypeAssumptions.ptr_unfold'WaitForClientConnections
+  Replica.TypeAssumptions.ptr_unfold'WriteQuorumSize
+  Replica.TypeAssumptions.ptr_unfold'clientListener
+  Replica.TypeAssumptions.ptr_unfold'replicaListener
+  Replica.TypeAssumptions.ptr_unfold'waitForPeerConnections
+  Replica.TypeAssumptions.ptr_unfold'aliveQuorumBallot
+  Replica.TypeAssumptions.ptr_unfold'allocDesc
+  Replica.TypeAssumptions.ptr_unfold'commonCaseFastAck
+  Replica.TypeAssumptions.ptr_unfold'deliver
+  Replica.TypeAssumptions.ptr_unfold'depsAccepted
+  Replica.TypeAssumptions.ptr_unfold'drainRechecks
+  Replica.TypeAssumptions.ptr_unfold'drainStops
+  Replica.TypeAssumptions.ptr_unfold'fastAckFromLeader
+  Replica.TypeAssumptions.ptr_unfold'fillNewLeaderAckN
+  Replica.TypeAssumptions.ptr_unfold'freeDesc
+  Replica.TypeAssumptions.ptr_unfold'getCmdDesc
+  Replica.TypeAssumptions.ptr_unfold'getCmdDescSeq
+  Replica.TypeAssumptions.ptr_unfold'getCmdDescWith
+  Replica.TypeAssumptions.ptr_unfold'getDepAndHashes
+  Replica.TypeAssumptions.ptr_unfold'handleDesc
+  Replica.TypeAssumptions.ptr_unfold'handleFastAck
+  Replica.TypeAssumptions.ptr_unfold'handleLightSlowAck
+  Replica.TypeAssumptions.ptr_unfold'handleMsg
+  Replica.TypeAssumptions.ptr_unfold'handleNewLeader
+  Replica.TypeAssumptions.ptr_unfold'handleNewLeaderAckN
+  Replica.TypeAssumptions.ptr_unfold'handleNewLeaderAckNs
+  Replica.TypeAssumptions.ptr_unfold'handleProposal
+  Replica.TypeAssumptions.ptr_unfold'handlePropose
+  Replica.TypeAssumptions.ptr_unfold'handleSync
+  Replica.TypeAssumptions.ptr_unfold'handleSyncEntry
+  Replica.TypeAssumptions.ptr_unfold'leader
+  Replica.TypeAssumptions.ptr_unfold'leaderAckHash
+  Replica.TypeAssumptions.ptr_unfold'markAccepted
+  Replica.TypeAssumptions.ptr_unfold'newDesc
+  Replica.TypeAssumptions.ptr_unfold'recordLeaderHash
+  Replica.TypeAssumptions.ptr_unfold'recoveredSync
+  Replica.TypeAssumptions.ptr_unfold'recoveryBallot
+  Replica.TypeAssumptions.ptr_unfold'reinitNewLeaderAckNs
+  Replica.TypeAssumptions.ptr_unfold'run
+  Replica.TypeAssumptions.ptr_unfold'stopDescs
+  Replica.TypeAssumptions.ptr_unfold'updateLogs
 
 end github_com.imdea_software.swiftpaxos.swift
 

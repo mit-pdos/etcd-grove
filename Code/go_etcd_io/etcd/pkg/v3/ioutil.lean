@@ -497,7 +497,7 @@ noncomputable instance PageWriter.zero_val [GooseExts] : ZeroVal PageWriter :=
 @[irreducible] noncomputable def PageWriter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PageWriter.fieldsUnsealed
 
-noncomputable instance equals_unfold_PageWriter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PageWriter [GooseExts] [GoGlobalContext] :
     EqualsUnfold PageWriter.fields PageWriter.fieldsUnsealed :=
   ⟨by unfold PageWriter.fields; rfl⟩
 
@@ -507,43 +507,43 @@ noncomputable instance equals_unfold_PageWriter [GooseExts] [GoGlobalContext] :
 class PageWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PageWriter.underlying PageWriter
   underlying : go.UnderlyingDirectedEq PageWriter.ty PageWriter.underlying
-  get_w : ∀ (x : PageWriter), go.IsGoStepPureDetTagged under (StructFieldGet PageWriter.underlying go!"w") #x (Val #(x.w'))
-  set_w : ∀ (x : PageWriter) (y : _root_.Perennial.io.Writer), go.IsGoStepPureDetTagged under (StructFieldSet PageWriter.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : PageWriter)))
-  get_pageOffset : ∀ (x : PageWriter), go.IsGoStepPureDetTagged under (StructFieldGet PageWriter.underlying go!"pageOffset") #x (Val #(x.pageOffset'))
-  set_pageOffset : ∀ (x : PageWriter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageWriter.underlying go!"pageOffset") (PairV #x #y) (Val #(({ x with pageOffset' := y } : PageWriter)))
-  get_pageBytes : ∀ (x : PageWriter), go.IsGoStepPureDetTagged under (StructFieldGet PageWriter.underlying go!"pageBytes") #x (Val #(x.pageBytes'))
-  set_pageBytes : ∀ (x : PageWriter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageWriter.underlying go!"pageBytes") (PairV #x #y) (Val #(({ x with pageBytes' := y } : PageWriter)))
-  get_bufferedBytes : ∀ (x : PageWriter), go.IsGoStepPureDetTagged under (StructFieldGet PageWriter.underlying go!"bufferedBytes") #x (Val #(x.bufferedBytes'))
-  set_bufferedBytes : ∀ (x : PageWriter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageWriter.underlying go!"bufferedBytes") (PairV #x #y) (Val #(({ x with bufferedBytes' := y } : PageWriter)))
-  get_buf : ∀ (x : PageWriter), go.IsGoStepPureDetTagged under (StructFieldGet PageWriter.underlying go!"buf") #x (Val #(x.buf'))
-  set_buf : ∀ (x : PageWriter) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PageWriter.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : PageWriter)))
-  get_bufWatermarkBytes : ∀ (x : PageWriter), go.IsGoStepPureDetTagged under (StructFieldGet PageWriter.underlying go!"bufWatermarkBytes") #x (Val #(x.bufWatermarkBytes'))
-  set_bufWatermarkBytes : ∀ (x : PageWriter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageWriter.underlying go!"bufWatermarkBytes") (PairV #x #y) (Val #(({ x with bufWatermarkBytes' := y } : PageWriter)))
+  get'w : ∀ (x : PageWriter), go.IsGoStepPureDetTagged under (StructFieldGet PageWriter.underlying go!"w") #x (Val #(x.w'))
+  set'w : ∀ (x : PageWriter) (y : _root_.Perennial.io.Writer), go.IsGoStepPureDetTagged under (StructFieldSet PageWriter.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : PageWriter)))
+  get'pageOffset : ∀ (x : PageWriter), go.IsGoStepPureDetTagged under (StructFieldGet PageWriter.underlying go!"pageOffset") #x (Val #(x.pageOffset'))
+  set'pageOffset : ∀ (x : PageWriter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageWriter.underlying go!"pageOffset") (PairV #x #y) (Val #(({ x with pageOffset' := y } : PageWriter)))
+  get'pageBytes : ∀ (x : PageWriter), go.IsGoStepPureDetTagged under (StructFieldGet PageWriter.underlying go!"pageBytes") #x (Val #(x.pageBytes'))
+  set'pageBytes : ∀ (x : PageWriter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageWriter.underlying go!"pageBytes") (PairV #x #y) (Val #(({ x with pageBytes' := y } : PageWriter)))
+  get'bufferedBytes : ∀ (x : PageWriter), go.IsGoStepPureDetTagged under (StructFieldGet PageWriter.underlying go!"bufferedBytes") #x (Val #(x.bufferedBytes'))
+  set'bufferedBytes : ∀ (x : PageWriter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageWriter.underlying go!"bufferedBytes") (PairV #x #y) (Val #(({ x with bufferedBytes' := y } : PageWriter)))
+  get'buf : ∀ (x : PageWriter), go.IsGoStepPureDetTagged under (StructFieldGet PageWriter.underlying go!"buf") #x (Val #(x.buf'))
+  set'buf : ∀ (x : PageWriter) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PageWriter.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : PageWriter)))
+  get'bufWatermarkBytes : ∀ (x : PageWriter), go.IsGoStepPureDetTagged under (StructFieldGet PageWriter.underlying go!"bufWatermarkBytes") #x (Val #(x.bufWatermarkBytes'))
+  set'bufWatermarkBytes : ∀ (x : PageWriter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageWriter.underlying go!"bufWatermarkBytes") (PairV #x #y) (Val #(({ x with bufWatermarkBytes' := y } : PageWriter)))
   method_set : go.MethodSetIs PageWriter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PageWriter.ty) [(go!"Flush", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"go.etcd.io/etcd/pkg/v3/ioutil.flush", (some (go.signature.Signature [] false [go.int, go.error])))]
-  ptr_Flush_unfold : MethodUnfold (go.GoType.PointerType PageWriter.ty) go!"Flush" PageWriter.Flush.impl
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType PageWriter.ty) go!"Write" PageWriter.Write.impl
-  ptr_flush_unfold : MethodUnfold (go.GoType.PointerType PageWriter.ty) go!"flush" PageWriter.flush.impl
+  ptr_unfold'Flush : MethodUnfold (go.GoType.PointerType PageWriter.ty) go!"Flush" PageWriter.Flush.impl
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType PageWriter.ty) go!"Write" PageWriter.Write.impl
+  ptr_unfold'flush : MethodUnfold (go.GoType.PointerType PageWriter.ty) go!"flush" PageWriter.flush.impl
 
 attribute [instance] PageWriter.TypeAssumptions.type_repr
   PageWriter.TypeAssumptions.underlying
-  PageWriter.TypeAssumptions.get_w
-  PageWriter.TypeAssumptions.set_w
-  PageWriter.TypeAssumptions.get_pageOffset
-  PageWriter.TypeAssumptions.set_pageOffset
-  PageWriter.TypeAssumptions.get_pageBytes
-  PageWriter.TypeAssumptions.set_pageBytes
-  PageWriter.TypeAssumptions.get_bufferedBytes
-  PageWriter.TypeAssumptions.set_bufferedBytes
-  PageWriter.TypeAssumptions.get_buf
-  PageWriter.TypeAssumptions.set_buf
-  PageWriter.TypeAssumptions.get_bufWatermarkBytes
-  PageWriter.TypeAssumptions.set_bufWatermarkBytes
+  PageWriter.TypeAssumptions.get'w
+  PageWriter.TypeAssumptions.set'w
+  PageWriter.TypeAssumptions.get'pageOffset
+  PageWriter.TypeAssumptions.set'pageOffset
+  PageWriter.TypeAssumptions.get'pageBytes
+  PageWriter.TypeAssumptions.set'pageBytes
+  PageWriter.TypeAssumptions.get'bufferedBytes
+  PageWriter.TypeAssumptions.set'bufferedBytes
+  PageWriter.TypeAssumptions.get'buf
+  PageWriter.TypeAssumptions.set'buf
+  PageWriter.TypeAssumptions.get'bufWatermarkBytes
+  PageWriter.TypeAssumptions.set'bufWatermarkBytes
   PageWriter.TypeAssumptions.method_set
   PageWriter.TypeAssumptions.ptr_method_set
-  PageWriter.TypeAssumptions.ptr_Flush_unfold
-  PageWriter.TypeAssumptions.ptr_Write_unfold
-  PageWriter.TypeAssumptions.ptr_flush_unfold
+  PageWriter.TypeAssumptions.ptr_unfold'Flush
+  PageWriter.TypeAssumptions.ptr_unfold'Write
+  PageWriter.TypeAssumptions.ptr_unfold'flush
 
 structure ReaderAndCloser [GooseExts] where
   mk ::
@@ -560,7 +560,7 @@ noncomputable instance ReaderAndCloser.zero_val [GooseExts] : ZeroVal ReaderAndC
 @[irreducible] noncomputable def ReaderAndCloser.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReaderAndCloser.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReaderAndCloser [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ReaderAndCloser [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReaderAndCloser.fields ReaderAndCloser.fieldsUnsealed :=
   ⟨by unfold ReaderAndCloser.fields; rfl⟩
 
@@ -570,33 +570,33 @@ noncomputable instance equals_unfold_ReaderAndCloser [GooseExts] [GoGlobalContex
 class ReaderAndCloser.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReaderAndCloser.underlying ReaderAndCloser
   underlying : go.UnderlyingDirectedEq ReaderAndCloser.ty ReaderAndCloser.underlying
-  get_Reader : ∀ (x : ReaderAndCloser), go.IsGoStepPureDetTagged under (StructFieldGet ReaderAndCloser.underlying go!"Reader") #x (Val #(x.Reader'))
-  set_Reader : ∀ (x : ReaderAndCloser) (y : _root_.Perennial.io.Reader), go.IsGoStepPureDetTagged under (StructFieldSet ReaderAndCloser.underlying go!"Reader") (PairV #x #y) (Val #(({ x with Reader' := y } : ReaderAndCloser)))
-  get_Closer : ∀ (x : ReaderAndCloser), go.IsGoStepPureDetTagged under (StructFieldGet ReaderAndCloser.underlying go!"Closer") #x (Val #(x.Closer'))
-  set_Closer : ∀ (x : ReaderAndCloser) (y : _root_.Perennial.io.Closer), go.IsGoStepPureDetTagged under (StructFieldSet ReaderAndCloser.underlying go!"Closer") (PairV #x #y) (Val #(({ x with Closer' := y } : ReaderAndCloser)))
+  get'Reader : ∀ (x : ReaderAndCloser), go.IsGoStepPureDetTagged under (StructFieldGet ReaderAndCloser.underlying go!"Reader") #x (Val #(x.Reader'))
+  set'Reader : ∀ (x : ReaderAndCloser) (y : _root_.Perennial.io.Reader), go.IsGoStepPureDetTagged under (StructFieldSet ReaderAndCloser.underlying go!"Reader") (PairV #x #y) (Val #(({ x with Reader' := y } : ReaderAndCloser)))
+  get'Closer : ∀ (x : ReaderAndCloser), go.IsGoStepPureDetTagged under (StructFieldGet ReaderAndCloser.underlying go!"Closer") #x (Val #(x.Closer'))
+  set'Closer : ∀ (x : ReaderAndCloser) (y : _root_.Perennial.io.Closer), go.IsGoStepPureDetTagged under (StructFieldSet ReaderAndCloser.underlying go!"Closer") (PairV #x #y) (Val #(({ x with Closer' := y } : ReaderAndCloser)))
   method_set : go.MethodSetIs ReaderAndCloser.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReaderAndCloser.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
-  Close_unfold : MethodUnfold ReaderAndCloser.ty go!"Close" (LamV "$r"
+  unfold'Close : MethodUnfold ReaderAndCloser.ty go!"Close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Closer.ty go!"Close"))) (App (Val (GoInstruction (StructFieldGet ReaderAndCloser.ty go!"Closer"))) (Var "$r"))))
-  Read_unfold : MethodUnfold ReaderAndCloser.ty go!"Read" (LamV "$r"
+  unfold'Read : MethodUnfold ReaderAndCloser.ty go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Reader.ty go!"Read"))) (App (Val (GoInstruction (StructFieldGet ReaderAndCloser.ty go!"Reader"))) (Var "$r"))))
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType ReaderAndCloser.ty) go!"Close" (LamV "$r"
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType ReaderAndCloser.ty) go!"Close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Closer.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Closer.ty))) (App (Val (GoInstruction (StructFieldRef ReaderAndCloser.ty go!"Closer"))) (Var "$r")))))
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType ReaderAndCloser.ty) go!"Read" (LamV "$r"
+  ptr_unfold'Read : MethodUnfold (go.GoType.PointerType ReaderAndCloser.ty) go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Reader.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (StructFieldRef ReaderAndCloser.ty go!"Reader"))) (Var "$r")))))
 
 attribute [instance] ReaderAndCloser.TypeAssumptions.type_repr
   ReaderAndCloser.TypeAssumptions.underlying
-  ReaderAndCloser.TypeAssumptions.get_Reader
-  ReaderAndCloser.TypeAssumptions.set_Reader
-  ReaderAndCloser.TypeAssumptions.get_Closer
-  ReaderAndCloser.TypeAssumptions.set_Closer
+  ReaderAndCloser.TypeAssumptions.get'Reader
+  ReaderAndCloser.TypeAssumptions.set'Reader
+  ReaderAndCloser.TypeAssumptions.get'Closer
+  ReaderAndCloser.TypeAssumptions.set'Closer
   ReaderAndCloser.TypeAssumptions.method_set
   ReaderAndCloser.TypeAssumptions.ptr_method_set
-  ReaderAndCloser.TypeAssumptions.Close_unfold
-  ReaderAndCloser.TypeAssumptions.Read_unfold
-  ReaderAndCloser.TypeAssumptions.ptr_Close_unfold
-  ReaderAndCloser.TypeAssumptions.ptr_Read_unfold
+  ReaderAndCloser.TypeAssumptions.unfold'Close
+  ReaderAndCloser.TypeAssumptions.unfold'Read
+  ReaderAndCloser.TypeAssumptions.ptr_unfold'Close
+  ReaderAndCloser.TypeAssumptions.ptr_unfold'Read
 
 structure exactReadCloser [GooseExts] where
   mk ::
@@ -615,7 +615,7 @@ noncomputable instance exactReadCloser.zero_val [GooseExts] : ZeroVal exactReadC
 @[irreducible] noncomputable def exactReadCloser.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   exactReadCloser.fieldsUnsealed
 
-noncomputable instance equals_unfold_exactReadCloser [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'exactReadCloser [GooseExts] [GoGlobalContext] :
     EqualsUnfold exactReadCloser.fields exactReadCloser.fieldsUnsealed :=
   ⟨by unfold exactReadCloser.fields; rfl⟩
 
@@ -625,23 +625,23 @@ noncomputable instance equals_unfold_exactReadCloser [GooseExts] [GoGlobalContex
 class exactReadCloser.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying exactReadCloser.underlying exactReadCloser
   underlying : go.UnderlyingDirectedEq exactReadCloser.ty exactReadCloser.underlying
-  get_rc : ∀ (x : exactReadCloser), go.IsGoStepPureDetTagged under (StructFieldGet exactReadCloser.underlying go!"rc") #x (Val #(x.rc'))
-  set_rc : ∀ (x : exactReadCloser) (y : _root_.Perennial.io.ReadCloser), go.IsGoStepPureDetTagged under (StructFieldSet exactReadCloser.underlying go!"rc") (PairV #x #y) (Val #(({ x with rc' := y } : exactReadCloser)))
-  get_br : ∀ (x : exactReadCloser), go.IsGoStepPureDetTagged under (StructFieldGet exactReadCloser.underlying go!"br") #x (Val #(x.br'))
-  set_br : ∀ (x : exactReadCloser) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet exactReadCloser.underlying go!"br") (PairV #x #y) (Val #(({ x with br' := y } : exactReadCloser)))
-  get_totalBytes : ∀ (x : exactReadCloser), go.IsGoStepPureDetTagged under (StructFieldGet exactReadCloser.underlying go!"totalBytes") #x (Val #(x.totalBytes'))
-  set_totalBytes : ∀ (x : exactReadCloser) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet exactReadCloser.underlying go!"totalBytes") (PairV #x #y) (Val #(({ x with totalBytes' := y } : exactReadCloser)))
+  get'rc : ∀ (x : exactReadCloser), go.IsGoStepPureDetTagged under (StructFieldGet exactReadCloser.underlying go!"rc") #x (Val #(x.rc'))
+  set'rc : ∀ (x : exactReadCloser) (y : _root_.Perennial.io.ReadCloser), go.IsGoStepPureDetTagged under (StructFieldSet exactReadCloser.underlying go!"rc") (PairV #x #y) (Val #(({ x with rc' := y } : exactReadCloser)))
+  get'br : ∀ (x : exactReadCloser), go.IsGoStepPureDetTagged under (StructFieldGet exactReadCloser.underlying go!"br") #x (Val #(x.br'))
+  set'br : ∀ (x : exactReadCloser) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet exactReadCloser.underlying go!"br") (PairV #x #y) (Val #(({ x with br' := y } : exactReadCloser)))
+  get'totalBytes : ∀ (x : exactReadCloser), go.IsGoStepPureDetTagged under (StructFieldGet exactReadCloser.underlying go!"totalBytes") #x (Val #(x.totalBytes'))
+  set'totalBytes : ∀ (x : exactReadCloser) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet exactReadCloser.underlying go!"totalBytes") (PairV #x #y) (Val #(({ x with totalBytes' := y } : exactReadCloser)))
   method_set : go.MethodSetIs exactReadCloser.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType exactReadCloser.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] exactReadCloser.TypeAssumptions.type_repr
   exactReadCloser.TypeAssumptions.underlying
-  exactReadCloser.TypeAssumptions.get_rc
-  exactReadCloser.TypeAssumptions.set_rc
-  exactReadCloser.TypeAssumptions.get_br
-  exactReadCloser.TypeAssumptions.set_br
-  exactReadCloser.TypeAssumptions.get_totalBytes
-  exactReadCloser.TypeAssumptions.set_totalBytes
+  exactReadCloser.TypeAssumptions.get'rc
+  exactReadCloser.TypeAssumptions.set'rc
+  exactReadCloser.TypeAssumptions.get'br
+  exactReadCloser.TypeAssumptions.set'br
+  exactReadCloser.TypeAssumptions.get'totalBytes
+  exactReadCloser.TypeAssumptions.set'totalBytes
   exactReadCloser.TypeAssumptions.method_set
   exactReadCloser.TypeAssumptions.ptr_method_set
 
@@ -660,7 +660,7 @@ noncomputable instance limitedBufferReader.zero_val [GooseExts] : ZeroVal limite
 @[irreducible] noncomputable def limitedBufferReader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   limitedBufferReader.fieldsUnsealed
 
-noncomputable instance equals_unfold_limitedBufferReader [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'limitedBufferReader [GooseExts] [GoGlobalContext] :
     EqualsUnfold limitedBufferReader.fields limitedBufferReader.fieldsUnsealed :=
   ⟨by unfold limitedBufferReader.fields; rfl⟩
 
@@ -670,44 +670,44 @@ noncomputable instance equals_unfold_limitedBufferReader [GooseExts] [GoGlobalCo
 class limitedBufferReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying limitedBufferReader.underlying limitedBufferReader
   underlying : go.UnderlyingDirectedEq limitedBufferReader.ty limitedBufferReader.underlying
-  get_r : ∀ (x : limitedBufferReader), go.IsGoStepPureDetTagged under (StructFieldGet limitedBufferReader.underlying go!"r") #x (Val #(x.r'))
-  set_r : ∀ (x : limitedBufferReader) (y : _root_.Perennial.io.Reader), go.IsGoStepPureDetTagged under (StructFieldSet limitedBufferReader.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : limitedBufferReader)))
-  get_n : ∀ (x : limitedBufferReader), go.IsGoStepPureDetTagged under (StructFieldGet limitedBufferReader.underlying go!"n") #x (Val #(x.n'))
-  set_n : ∀ (x : limitedBufferReader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet limitedBufferReader.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : limitedBufferReader)))
+  get'r : ∀ (x : limitedBufferReader), go.IsGoStepPureDetTagged under (StructFieldGet limitedBufferReader.underlying go!"r") #x (Val #(x.r'))
+  set'r : ∀ (x : limitedBufferReader) (y : _root_.Perennial.io.Reader), go.IsGoStepPureDetTagged under (StructFieldSet limitedBufferReader.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : limitedBufferReader)))
+  get'n : ∀ (x : limitedBufferReader), go.IsGoStepPureDetTagged under (StructFieldGet limitedBufferReader.underlying go!"n") #x (Val #(x.n'))
+  set'n : ∀ (x : limitedBufferReader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet limitedBufferReader.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : limitedBufferReader)))
   method_set : go.MethodSetIs limitedBufferReader.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType limitedBufferReader.ty) [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType limitedBufferReader.ty) go!"Read" limitedBufferReader.Read.impl
+  ptr_unfold'Read : MethodUnfold (go.GoType.PointerType limitedBufferReader.ty) go!"Read" limitedBufferReader.Read.impl
 
 attribute [instance] limitedBufferReader.TypeAssumptions.type_repr
   limitedBufferReader.TypeAssumptions.underlying
-  limitedBufferReader.TypeAssumptions.get_r
-  limitedBufferReader.TypeAssumptions.set_r
-  limitedBufferReader.TypeAssumptions.get_n
-  limitedBufferReader.TypeAssumptions.set_n
+  limitedBufferReader.TypeAssumptions.get'r
+  limitedBufferReader.TypeAssumptions.set'r
+  limitedBufferReader.TypeAssumptions.get'n
+  limitedBufferReader.TypeAssumptions.set'n
   limitedBufferReader.TypeAssumptions.method_set
   limitedBufferReader.TypeAssumptions.ptr_method_set
-  limitedBufferReader.TypeAssumptions.ptr_Read_unfold
+  limitedBufferReader.TypeAssumptions.ptr_unfold'Read
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  PageWriter_instance : PageWriter.TypeAssumptions
-  ReaderAndCloser_instance : ReaderAndCloser.TypeAssumptions
-  exactReadCloser_instance : exactReadCloser.TypeAssumptions
-  limitedBufferReader_instance : limitedBufferReader.TypeAssumptions
-  NewPageWriter_unfold : FuncUnfold NewPageWriter [] NewPageWriter.impl
-  NewLimitedBufferReader_unfold : FuncUnfold NewLimitedBufferReader [] NewLimitedBufferReader.impl
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_verify_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
+  instance'PageWriter : PageWriter.TypeAssumptions
+  instance'ReaderAndCloser : ReaderAndCloser.TypeAssumptions
+  instance'exactReadCloser : exactReadCloser.TypeAssumptions
+  instance'limitedBufferReader : limitedBufferReader.TypeAssumptions
+  unfold'NewPageWriter : FuncUnfold NewPageWriter [] NewPageWriter.impl
+  unfold'NewLimitedBufferReader : FuncUnfold NewLimitedBufferReader [] NewLimitedBufferReader.impl
+  import'io : _root_.Perennial.io.Assumptions
+  import'verify : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
 
-attribute [instance] Assumptions.PageWriter_instance
-  Assumptions.ReaderAndCloser_instance
-  Assumptions.exactReadCloser_instance
-  Assumptions.limitedBufferReader_instance
-  Assumptions.NewPageWriter_unfold
-  Assumptions.NewLimitedBufferReader_unfold
-  Assumptions.import_io_Assumption
-  Assumptions.import_verify_Assumption
-  Assumptions.import_fmt_Assumption
+attribute [instance] Assumptions.instance'PageWriter
+  Assumptions.instance'ReaderAndCloser
+  Assumptions.instance'exactReadCloser
+  Assumptions.instance'limitedBufferReader
+  Assumptions.unfold'NewPageWriter
+  Assumptions.unfold'NewLimitedBufferReader
+  Assumptions.import'io
+  Assumptions.import'verify
+  Assumptions.import'fmt
 
 end go_etcd_io.etcd.pkg.v3.ioutil
 

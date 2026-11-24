@@ -2184,7 +2184,7 @@ theorem raft.wp_load_trk_EpochC' (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) 
   icases ownRaftPhysC_tracker c r id s $$ H with ⟨%tv, Hf, Htrk, Hback⟩
   icases ownTrackerC_epochOk c tv _ $$ Htrk with ⟨#He, Htrk⟩
   wp_apply wp_load_access _ tv.Epoch' _
-    (tracker.ProgressTracker.ProgressTracker_access_load_Epoch _ _ _) $$ Hf as Hf
+    (tracker.ProgressTracker.access_load'ProgressTracker'Epoch _ _ _) $$ Hf as Hf
   ihave H := Hback $$ %tv %s.votes Hf Htrk
   iapply HΦ
   iframe He
@@ -2202,7 +2202,7 @@ theorem raft.wp_load_trk_EpochC (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (
   icases ownRaftPhysC_tracker c r id s $$ H with ⟨%tv, Hf, Htrk, Hback⟩
   icases ownTrackerC_epoch c hw tv _ $$ Htrk with ⟨#He, Htrk⟩
   wp_apply wp_load_access _ tv.Epoch' _
-    (tracker.ProgressTracker.ProgressTracker_access_load_Epoch _ _ _) $$ Hf as Hf
+    (tracker.ProgressTracker.access_load'ProgressTracker'Epoch _ _ _) $$ Hf as Hf
   ihave H := Hback $$ %tv %s.votes Hf Htrk
   iapply HΦ
   iframe He

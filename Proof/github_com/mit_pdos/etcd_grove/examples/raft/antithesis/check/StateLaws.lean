@@ -452,7 +452,7 @@ theorem wp_set_currentTerm (q : Loc) (s : State) (sl : GoSlice) (xs : List Int)
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_CurrentTerm (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'CurrentTerm (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -490,7 +490,7 @@ theorem wp_set_voteTerm (q : Loc) (s : State) (sl : GoSlice) (xs : List Int)
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_VoteTerm (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'VoteTerm (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -528,7 +528,7 @@ theorem wp_set_voteFor (q : Loc) (s : State) (sl : GoSlice) (xs : List Str)
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_VoteFor (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'VoteFor (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -566,7 +566,7 @@ theorem wp_set_log (q : Loc) (s : State) (sl : GoSlice) (xs : List (List Entry))
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_Log (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'Log (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -604,7 +604,7 @@ theorem wp_set_commitIndex (q : Loc) (s : State) (sl : GoSlice) (xs : List Int)
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_CommitIndex (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'CommitIndex (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -642,7 +642,7 @@ theorem wp_set_role (q : Loc) (s : State) (sl : GoSlice) (xs : List Str)
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_Role (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'Role (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -680,7 +680,7 @@ theorem wp_set_lastApplied (q : Loc) (s : State) (sl : GoSlice) (xs : List Int)
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_LastApplied (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'LastApplied (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -718,7 +718,7 @@ theorem wp_set_config (q : Loc) (s : State) (sl : GoSlice) (xs : List Conf)
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_Config (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'Config (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -756,7 +756,7 @@ theorem wp_set_confAt (q : Loc) (s : State) (sl : GoSlice) (xs : List Int)
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_ConfAt (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'ConfAt (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -794,7 +794,7 @@ theorem wp_set_confirmed (q : Loc) (s : State) (sl : GoSlice) (xs : List Confirm
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_Confirmed (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'Confirmed (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -829,7 +829,7 @@ theorem wp_set_msgs (q : Loc) (s : State) (sl : GoSlice) (xs : List Fact) :
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_Msgs (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'Msgs (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -864,7 +864,7 @@ theorem wp_set_votes (q : Loc) (s : State) (sl : GoSlice) (xs : List VoteRec) :
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_Votes (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'Votes (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -899,7 +899,7 @@ theorem wp_set_leaders (q : Loc) (s : State) (sl : GoSlice) (xs : List LeaderRec
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_Leaders (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'Leaders (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -934,7 +934,7 @@ theorem wp_set_ledLog (q : Loc) (s : State) (sl : GoSlice) (xs : TermFn (List En
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_LedLog (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'LedLog (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -969,7 +969,7 @@ theorem wp_set_ledConf (q : Loc) (s : State) (sl : GoSlice) (xs : TermFn Conf) :
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_LedConf (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'LedConf (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -1004,7 +1004,7 @@ theorem wp_set_ledAt (q : Loc) (s : State) (sl : GoSlice) (xs : TermFn Int) :
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_LedAt (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'LedAt (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -1039,7 +1039,7 @@ theorem wp_set_elAt (q : Loc) (s : State) (sl : GoSlice) (xs : TermFn Int) :
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_ElAt (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'ElAt (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -1077,7 +1077,7 @@ theorem wp_set_undo (q : Loc) (s : State) (sl : GoSlice) (xs : List (Option Pre)
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_Undo (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'Undo (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -1115,7 +1115,7 @@ theorem wp_set_pending (q : Loc) (s : State) (sl : GoSlice) (xs : List (List Msg
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_Pending (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'Pending (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -1153,7 +1153,7 @@ theorem wp_set_queue (q : Loc) (s : State) (sl : GoSlice) (xs : List (List QItem
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_Queue (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'Queue (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -1191,7 +1191,7 @@ theorem wp_set_reads (q : Loc) (s : State) (sl : GoSlice) (xs : List (List ReadR
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_Reads (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'Reads (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -1226,7 +1226,7 @@ theorem wp_set_chain (q : Loc) (s : State) (sl : GoSlice) (xs : List Entry) :
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_Chain (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'Chain (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -1261,7 +1261,7 @@ theorem wp_set_termLen (q : Loc) (s : State) (sl : GoSlice) (xs : TermFn Int) :
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_TermLen (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'TermLen (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -1296,7 +1296,7 @@ theorem wp_set_viol (q : Loc) (s : State) (sl : GoSlice) (xs : SSet) :
   iintro %Φ ⟨Hq, #Hn⟩ HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_Viol (GF := GF) q g sl).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'Viol (GF := GF) q g sl).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld
@@ -1330,7 +1330,7 @@ theorem wp_set_i (q : Loc) (s : State) (w : w64) :
   iintro %Φ Hq HΦ
   iunfold stateOwn at Hq
   iNamed Hq
-  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_I (GF := GF) q g w).access_strict
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.access_store'State'I (GF := GF) q g w).access_strict
     $$ Hp with ⟨Hfld, Hclose⟩
   wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
   ihave Hp := Hclose $$ Hfld

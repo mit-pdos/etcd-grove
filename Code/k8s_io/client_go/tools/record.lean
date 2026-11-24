@@ -378,7 +378,7 @@ noncomputable instance EventRecorderAdapter.zero_val [GooseExts] : ZeroVal Event
 @[irreducible] noncomputable def EventRecorderAdapter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EventRecorderAdapter.fieldsUnsealed
 
-noncomputable instance equals_unfold_EventRecorderAdapter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'EventRecorderAdapter [GooseExts] [GoGlobalContext] :
     EqualsUnfold EventRecorderAdapter.fields EventRecorderAdapter.fieldsUnsealed :=
   ⟨by unfold EventRecorderAdapter.fields; rfl⟩
 
@@ -388,15 +388,15 @@ noncomputable instance equals_unfold_EventRecorderAdapter [GooseExts] [GoGlobalC
 class EventRecorderAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventRecorderAdapter.underlying EventRecorderAdapter
   underlying : go.UnderlyingDirectedEq EventRecorderAdapter.ty EventRecorderAdapter.underlying
-  get_recorder : ∀ (x : EventRecorderAdapter), go.IsGoStepPureDetTagged under (StructFieldGet EventRecorderAdapter.underlying go!"recorder") #x (Val #(x.recorder'))
-  set_recorder : ∀ (x : EventRecorderAdapter) (y : EventRecorderLogger), go.IsGoStepPureDetTagged under (StructFieldSet EventRecorderAdapter.underlying go!"recorder") (PairV #x #y) (Val #(({ x with recorder' := y } : EventRecorderAdapter)))
+  get'recorder : ∀ (x : EventRecorderAdapter), go.IsGoStepPureDetTagged under (StructFieldGet EventRecorderAdapter.underlying go!"recorder") #x (Val #(x.recorder'))
+  set'recorder : ∀ (x : EventRecorderAdapter) (y : EventRecorderLogger), go.IsGoStepPureDetTagged under (StructFieldSet EventRecorderAdapter.underlying go!"recorder") (PairV #x #y) (Val #(({ x with recorder' := y } : EventRecorderAdapter)))
   method_set : go.MethodSetIs EventRecorderAdapter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventRecorderAdapter.ty) [(go!"AnnotatedEventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.MapType go.string go.string), go.string, go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Eventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"WithLogger", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty] false [(go.GoType.Named go!"k8s.io/client-go/tools/internal/events.EventRecorderLogger" [])])))]
 
 attribute [instance] EventRecorderAdapter.TypeAssumptions.type_repr
   EventRecorderAdapter.TypeAssumptions.underlying
-  EventRecorderAdapter.TypeAssumptions.get_recorder
-  EventRecorderAdapter.TypeAssumptions.set_recorder
+  EventRecorderAdapter.TypeAssumptions.get'recorder
+  EventRecorderAdapter.TypeAssumptions.set'recorder
   EventRecorderAdapter.TypeAssumptions.method_set
   EventRecorderAdapter.TypeAssumptions.ptr_method_set
 
@@ -641,7 +641,7 @@ noncomputable instance eventLog.zero_val [GooseExts] : ZeroVal eventLog :=
 @[irreducible] noncomputable def eventLog.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   eventLog.fieldsUnsealed
 
-noncomputable instance equals_unfold_eventLog [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'eventLog [GooseExts] [GoGlobalContext] :
     EqualsUnfold eventLog.fields eventLog.fieldsUnsealed :=
   ⟨by unfold eventLog.fields; rfl⟩
 
@@ -651,27 +651,27 @@ noncomputable instance equals_unfold_eventLog [GooseExts] [GoGlobalContext] :
 class eventLog.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying eventLog.underlying eventLog
   underlying : go.UnderlyingDirectedEq eventLog.ty eventLog.underlying
-  get_count : ∀ (x : eventLog), go.IsGoStepPureDetTagged under (StructFieldGet eventLog.underlying go!"count") #x (Val #(x.count'))
-  set_count : ∀ (x : eventLog) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet eventLog.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : eventLog)))
-  get_firstTimestamp : ∀ (x : eventLog), go.IsGoStepPureDetTagged under (StructFieldGet eventLog.underlying go!"firstTimestamp") #x (Val #(x.firstTimestamp'))
-  set_firstTimestamp : ∀ (x : eventLog) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time), go.IsGoStepPureDetTagged under (StructFieldSet eventLog.underlying go!"firstTimestamp") (PairV #x #y) (Val #(({ x with firstTimestamp' := y } : eventLog)))
-  get_name : ∀ (x : eventLog), go.IsGoStepPureDetTagged under (StructFieldGet eventLog.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : eventLog) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet eventLog.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : eventLog)))
-  get_resourceVersion : ∀ (x : eventLog), go.IsGoStepPureDetTagged under (StructFieldGet eventLog.underlying go!"resourceVersion") #x (Val #(x.resourceVersion'))
-  set_resourceVersion : ∀ (x : eventLog) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet eventLog.underlying go!"resourceVersion") (PairV #x #y) (Val #(({ x with resourceVersion' := y } : eventLog)))
+  get'count : ∀ (x : eventLog), go.IsGoStepPureDetTagged under (StructFieldGet eventLog.underlying go!"count") #x (Val #(x.count'))
+  set'count : ∀ (x : eventLog) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet eventLog.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : eventLog)))
+  get'firstTimestamp : ∀ (x : eventLog), go.IsGoStepPureDetTagged under (StructFieldGet eventLog.underlying go!"firstTimestamp") #x (Val #(x.firstTimestamp'))
+  set'firstTimestamp : ∀ (x : eventLog) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time), go.IsGoStepPureDetTagged under (StructFieldSet eventLog.underlying go!"firstTimestamp") (PairV #x #y) (Val #(({ x with firstTimestamp' := y } : eventLog)))
+  get'name : ∀ (x : eventLog), go.IsGoStepPureDetTagged under (StructFieldGet eventLog.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : eventLog) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet eventLog.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : eventLog)))
+  get'resourceVersion : ∀ (x : eventLog), go.IsGoStepPureDetTagged under (StructFieldGet eventLog.underlying go!"resourceVersion") #x (Val #(x.resourceVersion'))
+  set'resourceVersion : ∀ (x : eventLog) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet eventLog.underlying go!"resourceVersion") (PairV #x #y) (Val #(({ x with resourceVersion' := y } : eventLog)))
   method_set : go.MethodSetIs eventLog.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType eventLog.ty) []
 
 attribute [instance] eventLog.TypeAssumptions.type_repr
   eventLog.TypeAssumptions.underlying
-  eventLog.TypeAssumptions.get_count
-  eventLog.TypeAssumptions.set_count
-  eventLog.TypeAssumptions.get_firstTimestamp
-  eventLog.TypeAssumptions.set_firstTimestamp
-  eventLog.TypeAssumptions.get_name
-  eventLog.TypeAssumptions.set_name
-  eventLog.TypeAssumptions.get_resourceVersion
-  eventLog.TypeAssumptions.set_resourceVersion
+  eventLog.TypeAssumptions.get'count
+  eventLog.TypeAssumptions.set'count
+  eventLog.TypeAssumptions.get'firstTimestamp
+  eventLog.TypeAssumptions.set'firstTimestamp
+  eventLog.TypeAssumptions.get'name
+  eventLog.TypeAssumptions.set'name
+  eventLog.TypeAssumptions.get'resourceVersion
+  eventLog.TypeAssumptions.set'resourceVersion
   eventLog.TypeAssumptions.method_set
   eventLog.TypeAssumptions.ptr_method_set
 
@@ -711,7 +711,7 @@ noncomputable instance EventCorrelator.zero_val [GooseExts] : ZeroVal EventCorre
 @[irreducible] noncomputable def EventCorrelator.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EventCorrelator.fieldsUnsealed
 
-noncomputable instance equals_unfold_EventCorrelator [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'EventCorrelator [GooseExts] [GoGlobalContext] :
     EqualsUnfold EventCorrelator.fields EventCorrelator.fieldsUnsealed :=
   ⟨by unfold EventCorrelator.fields; rfl⟩
 
@@ -721,23 +721,23 @@ noncomputable instance equals_unfold_EventCorrelator [GooseExts] [GoGlobalContex
 class EventCorrelator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventCorrelator.underlying EventCorrelator
   underlying : go.UnderlyingDirectedEq EventCorrelator.ty EventCorrelator.underlying
-  get_filterFunc : ∀ (x : EventCorrelator), go.IsGoStepPureDetTagged under (StructFieldGet EventCorrelator.underlying go!"filterFunc") #x (Val #(x.filterFunc'))
-  set_filterFunc : ∀ (x : EventCorrelator) (y : EventFilterFunc), go.IsGoStepPureDetTagged under (StructFieldSet EventCorrelator.underlying go!"filterFunc") (PairV #x #y) (Val #(({ x with filterFunc' := y } : EventCorrelator)))
-  get_aggregator : ∀ (x : EventCorrelator), go.IsGoStepPureDetTagged under (StructFieldGet EventCorrelator.underlying go!"aggregator") #x (Val #(x.aggregator'))
-  set_aggregator : ∀ (x : EventCorrelator) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EventCorrelator.underlying go!"aggregator") (PairV #x #y) (Val #(({ x with aggregator' := y } : EventCorrelator)))
-  get_logger : ∀ (x : EventCorrelator), go.IsGoStepPureDetTagged under (StructFieldGet EventCorrelator.underlying go!"logger") #x (Val #(x.logger'))
-  set_logger : ∀ (x : EventCorrelator) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EventCorrelator.underlying go!"logger") (PairV #x #y) (Val #(({ x with logger' := y } : EventCorrelator)))
+  get'filterFunc : ∀ (x : EventCorrelator), go.IsGoStepPureDetTagged under (StructFieldGet EventCorrelator.underlying go!"filterFunc") #x (Val #(x.filterFunc'))
+  set'filterFunc : ∀ (x : EventCorrelator) (y : EventFilterFunc), go.IsGoStepPureDetTagged under (StructFieldSet EventCorrelator.underlying go!"filterFunc") (PairV #x #y) (Val #(({ x with filterFunc' := y } : EventCorrelator)))
+  get'aggregator : ∀ (x : EventCorrelator), go.IsGoStepPureDetTagged under (StructFieldGet EventCorrelator.underlying go!"aggregator") #x (Val #(x.aggregator'))
+  set'aggregator : ∀ (x : EventCorrelator) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EventCorrelator.underlying go!"aggregator") (PairV #x #y) (Val #(({ x with aggregator' := y } : EventCorrelator)))
+  get'logger : ∀ (x : EventCorrelator), go.IsGoStepPureDetTagged under (StructFieldGet EventCorrelator.underlying go!"logger") #x (Val #(x.logger'))
+  set'logger : ∀ (x : EventCorrelator) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EventCorrelator.underlying go!"logger") (PairV #x #y) (Val #(({ x with logger' := y } : EventCorrelator)))
   method_set : go.MethodSetIs EventCorrelator.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventCorrelator.ty) [(go!"EventCorrelate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [(go.GoType.PointerType EventCorrelateResult.ty), go.error]))), (go!"UpdateState", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [])))]
 
 attribute [instance] EventCorrelator.TypeAssumptions.type_repr
   EventCorrelator.TypeAssumptions.underlying
-  EventCorrelator.TypeAssumptions.get_filterFunc
-  EventCorrelator.TypeAssumptions.set_filterFunc
-  EventCorrelator.TypeAssumptions.get_aggregator
-  EventCorrelator.TypeAssumptions.set_aggregator
-  EventCorrelator.TypeAssumptions.get_logger
-  EventCorrelator.TypeAssumptions.set_logger
+  EventCorrelator.TypeAssumptions.get'filterFunc
+  EventCorrelator.TypeAssumptions.set'filterFunc
+  EventCorrelator.TypeAssumptions.get'aggregator
+  EventCorrelator.TypeAssumptions.set'aggregator
+  EventCorrelator.TypeAssumptions.get'logger
+  EventCorrelator.TypeAssumptions.set'logger
   EventCorrelator.TypeAssumptions.method_set
   EventCorrelator.TypeAssumptions.ptr_method_set
 
@@ -758,7 +758,7 @@ noncomputable instance EventCorrelateResult.zero_val [GooseExts] : ZeroVal Event
 @[irreducible] noncomputable def EventCorrelateResult.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EventCorrelateResult.fieldsUnsealed
 
-noncomputable instance equals_unfold_EventCorrelateResult [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'EventCorrelateResult [GooseExts] [GoGlobalContext] :
     EqualsUnfold EventCorrelateResult.fields EventCorrelateResult.fieldsUnsealed :=
   ⟨by unfold EventCorrelateResult.fields; rfl⟩
 
@@ -768,23 +768,23 @@ noncomputable instance equals_unfold_EventCorrelateResult [GooseExts] [GoGlobalC
 class EventCorrelateResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EventCorrelateResult.underlying EventCorrelateResult
   underlying : go.UnderlyingDirectedEq EventCorrelateResult.ty EventCorrelateResult.underlying
-  get_Event : ∀ (x : EventCorrelateResult), go.IsGoStepPureDetTagged under (StructFieldGet EventCorrelateResult.underlying go!"Event") #x (Val #(x.Event'))
-  set_Event : ∀ (x : EventCorrelateResult) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EventCorrelateResult.underlying go!"Event") (PairV #x #y) (Val #(({ x with Event' := y } : EventCorrelateResult)))
-  get_Patch : ∀ (x : EventCorrelateResult), go.IsGoStepPureDetTagged under (StructFieldGet EventCorrelateResult.underlying go!"Patch") #x (Val #(x.Patch'))
-  set_Patch : ∀ (x : EventCorrelateResult) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EventCorrelateResult.underlying go!"Patch") (PairV #x #y) (Val #(({ x with Patch' := y } : EventCorrelateResult)))
-  get_Skip : ∀ (x : EventCorrelateResult), go.IsGoStepPureDetTagged under (StructFieldGet EventCorrelateResult.underlying go!"Skip") #x (Val #(x.Skip'))
-  set_Skip : ∀ (x : EventCorrelateResult) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EventCorrelateResult.underlying go!"Skip") (PairV #x #y) (Val #(({ x with Skip' := y } : EventCorrelateResult)))
+  get'Event : ∀ (x : EventCorrelateResult), go.IsGoStepPureDetTagged under (StructFieldGet EventCorrelateResult.underlying go!"Event") #x (Val #(x.Event'))
+  set'Event : ∀ (x : EventCorrelateResult) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EventCorrelateResult.underlying go!"Event") (PairV #x #y) (Val #(({ x with Event' := y } : EventCorrelateResult)))
+  get'Patch : ∀ (x : EventCorrelateResult), go.IsGoStepPureDetTagged under (StructFieldGet EventCorrelateResult.underlying go!"Patch") #x (Val #(x.Patch'))
+  set'Patch : ∀ (x : EventCorrelateResult) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EventCorrelateResult.underlying go!"Patch") (PairV #x #y) (Val #(({ x with Patch' := y } : EventCorrelateResult)))
+  get'Skip : ∀ (x : EventCorrelateResult), go.IsGoStepPureDetTagged under (StructFieldGet EventCorrelateResult.underlying go!"Skip") #x (Val #(x.Skip'))
+  set'Skip : ∀ (x : EventCorrelateResult) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EventCorrelateResult.underlying go!"Skip") (PairV #x #y) (Val #(({ x with Skip' := y } : EventCorrelateResult)))
   method_set : go.MethodSetIs EventCorrelateResult.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventCorrelateResult.ty) []
 
 attribute [instance] EventCorrelateResult.TypeAssumptions.type_repr
   EventCorrelateResult.TypeAssumptions.underlying
-  EventCorrelateResult.TypeAssumptions.get_Event
-  EventCorrelateResult.TypeAssumptions.set_Event
-  EventCorrelateResult.TypeAssumptions.get_Patch
-  EventCorrelateResult.TypeAssumptions.set_Patch
-  EventCorrelateResult.TypeAssumptions.get_Skip
-  EventCorrelateResult.TypeAssumptions.set_Skip
+  EventCorrelateResult.TypeAssumptions.get'Event
+  EventCorrelateResult.TypeAssumptions.set'Event
+  EventCorrelateResult.TypeAssumptions.get'Patch
+  EventCorrelateResult.TypeAssumptions.set'Patch
+  EventCorrelateResult.TypeAssumptions.get'Skip
+  EventCorrelateResult.TypeAssumptions.set'Skip
   EventCorrelateResult.TypeAssumptions.method_set
   EventCorrelateResult.TypeAssumptions.ptr_method_set
 
@@ -803,7 +803,7 @@ noncomputable instance FakeRecorder.zero_val [GooseExts] : ZeroVal FakeRecorder 
 @[irreducible] noncomputable def FakeRecorder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FakeRecorder.fieldsUnsealed
 
-noncomputable instance equals_unfold_FakeRecorder [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FakeRecorder [GooseExts] [GoGlobalContext] :
     EqualsUnfold FakeRecorder.fields FakeRecorder.fieldsUnsealed :=
   ⟨by unfold FakeRecorder.fields; rfl⟩
 
@@ -813,84 +813,84 @@ noncomputable instance equals_unfold_FakeRecorder [GooseExts] [GoGlobalContext] 
 class FakeRecorder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FakeRecorder.underlying FakeRecorder
   underlying : go.UnderlyingDirectedEq FakeRecorder.ty FakeRecorder.underlying
-  get_Events : ∀ (x : FakeRecorder), go.IsGoStepPureDetTagged under (StructFieldGet FakeRecorder.underlying go!"Events") #x (Val #(x.Events'))
-  set_Events : ∀ (x : FakeRecorder) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet FakeRecorder.underlying go!"Events") (PairV #x #y) (Val #(({ x with Events' := y } : FakeRecorder)))
-  get_IncludeObject : ∀ (x : FakeRecorder), go.IsGoStepPureDetTagged under (StructFieldGet FakeRecorder.underlying go!"IncludeObject") #x (Val #(x.IncludeObject'))
-  set_IncludeObject : ∀ (x : FakeRecorder) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FakeRecorder.underlying go!"IncludeObject") (PairV #x #y) (Val #(({ x with IncludeObject' := y } : FakeRecorder)))
+  get'Events : ∀ (x : FakeRecorder), go.IsGoStepPureDetTagged under (StructFieldGet FakeRecorder.underlying go!"Events") #x (Val #(x.Events'))
+  set'Events : ∀ (x : FakeRecorder) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet FakeRecorder.underlying go!"Events") (PairV #x #y) (Val #(({ x with Events' := y } : FakeRecorder)))
+  get'IncludeObject : ∀ (x : FakeRecorder), go.IsGoStepPureDetTagged under (StructFieldGet FakeRecorder.underlying go!"IncludeObject") #x (Val #(x.IncludeObject'))
+  set'IncludeObject : ∀ (x : FakeRecorder) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FakeRecorder.underlying go!"IncludeObject") (PairV #x #y) (Val #(({ x with IncludeObject' := y } : FakeRecorder)))
   method_set : go.MethodSetIs FakeRecorder.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FakeRecorder.ty) [(go!"AnnotatedEventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.MapType go.string go.string), go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Event", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string] false []))), (go!"Eventf", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"WithLogger", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty] false [EventRecorderLogger.ty]))), (go!"k8s.io/client-go/tools/record.writeEvent", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.MapType go.string go.string), go.string, go.string, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true [])))]
 
 attribute [instance] FakeRecorder.TypeAssumptions.type_repr
   FakeRecorder.TypeAssumptions.underlying
-  FakeRecorder.TypeAssumptions.get_Events
-  FakeRecorder.TypeAssumptions.set_Events
-  FakeRecorder.TypeAssumptions.get_IncludeObject
-  FakeRecorder.TypeAssumptions.set_IncludeObject
+  FakeRecorder.TypeAssumptions.get'Events
+  FakeRecorder.TypeAssumptions.set'Events
+  FakeRecorder.TypeAssumptions.get'IncludeObject
+  FakeRecorder.TypeAssumptions.set'IncludeObject
   FakeRecorder.TypeAssumptions.method_set
   FakeRecorder.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  EventSink_instance : EventSink.TypeAssumptions
-  CorrelatorOptions_instance : CorrelatorOptions.TypeAssumptions
-  EventRecorder_instance : EventRecorder.TypeAssumptions
-  EventRecorderLogger_instance : EventRecorderLogger.TypeAssumptions
-  EventBroadcaster_instance : EventBroadcaster.TypeAssumptions
-  EventRecorderAdapter_instance : EventRecorderAdapter.TypeAssumptions
-  BroadcasterOption_instance : BroadcasterOption.TypeAssumptions
-  config_instance : config.TypeAssumptions
-  eventBroadcasterImpl_instance : eventBroadcasterImpl.TypeAssumptions
-  recorderImpl_instance : recorderImpl.TypeAssumptions
-  recorderImplLogger_instance : recorderImplLogger.TypeAssumptions
-  EventSpamKeyFunc_instance : EventSpamKeyFunc.TypeAssumptions
-  EventFilterFunc_instance : EventFilterFunc.TypeAssumptions
-  EventSourceObjectSpamFilter_instance : EventSourceObjectSpamFilter.TypeAssumptions
-  spamRecord_instance : spamRecord.TypeAssumptions
-  EventAggregatorKeyFunc_instance : EventAggregatorKeyFunc.TypeAssumptions
-  EventAggregatorMessageFunc_instance : EventAggregatorMessageFunc.TypeAssumptions
-  EventAggregator_instance : EventAggregator.TypeAssumptions
-  aggregateRecord_instance : aggregateRecord.TypeAssumptions
-  eventLog_instance : eventLog.TypeAssumptions
-  eventLogger_instance : eventLogger.TypeAssumptions
-  EventCorrelator_instance : EventCorrelator.TypeAssumptions
-  EventCorrelateResult_instance : EventCorrelateResult.TypeAssumptions
-  FakeRecorder_instance : FakeRecorder.TypeAssumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_core_v1_Assumption : _root_.Perennial.k8s_io.api.core.v1.Assumptions
-  import_meta_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
-  import_watch_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions
-  import_klog_Assumption : _root_.Perennial.k8s_io.klog.v2.Assumptions
+  instance'EventSink : EventSink.TypeAssumptions
+  instance'CorrelatorOptions : CorrelatorOptions.TypeAssumptions
+  instance'EventRecorder : EventRecorder.TypeAssumptions
+  instance'EventRecorderLogger : EventRecorderLogger.TypeAssumptions
+  instance'EventBroadcaster : EventBroadcaster.TypeAssumptions
+  instance'EventRecorderAdapter : EventRecorderAdapter.TypeAssumptions
+  instance'BroadcasterOption : BroadcasterOption.TypeAssumptions
+  instance'config : config.TypeAssumptions
+  instance'eventBroadcasterImpl : eventBroadcasterImpl.TypeAssumptions
+  instance'recorderImpl : recorderImpl.TypeAssumptions
+  instance'recorderImplLogger : recorderImplLogger.TypeAssumptions
+  instance'EventSpamKeyFunc : EventSpamKeyFunc.TypeAssumptions
+  instance'EventFilterFunc : EventFilterFunc.TypeAssumptions
+  instance'EventSourceObjectSpamFilter : EventSourceObjectSpamFilter.TypeAssumptions
+  instance'spamRecord : spamRecord.TypeAssumptions
+  instance'EventAggregatorKeyFunc : EventAggregatorKeyFunc.TypeAssumptions
+  instance'EventAggregatorMessageFunc : EventAggregatorMessageFunc.TypeAssumptions
+  instance'EventAggregator : EventAggregator.TypeAssumptions
+  instance'aggregateRecord : aggregateRecord.TypeAssumptions
+  instance'eventLog : eventLog.TypeAssumptions
+  instance'eventLogger : eventLogger.TypeAssumptions
+  instance'EventCorrelator : EventCorrelator.TypeAssumptions
+  instance'EventCorrelateResult : EventCorrelateResult.TypeAssumptions
+  instance'FakeRecorder : FakeRecorder.TypeAssumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'core_v1 : _root_.Perennial.k8s_io.api.core.v1.Assumptions
+  import'meta_v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  import'watch : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions
+  import'klog : _root_.Perennial.k8s_io.klog.v2.Assumptions
 
-attribute [instance] Assumptions.EventSink_instance
-  Assumptions.CorrelatorOptions_instance
-  Assumptions.EventRecorder_instance
-  Assumptions.EventRecorderLogger_instance
-  Assumptions.EventBroadcaster_instance
-  Assumptions.EventRecorderAdapter_instance
-  Assumptions.BroadcasterOption_instance
-  Assumptions.config_instance
-  Assumptions.eventBroadcasterImpl_instance
-  Assumptions.recorderImpl_instance
-  Assumptions.recorderImplLogger_instance
-  Assumptions.EventSpamKeyFunc_instance
-  Assumptions.EventFilterFunc_instance
-  Assumptions.EventSourceObjectSpamFilter_instance
-  Assumptions.spamRecord_instance
-  Assumptions.EventAggregatorKeyFunc_instance
-  Assumptions.EventAggregatorMessageFunc_instance
-  Assumptions.EventAggregator_instance
-  Assumptions.aggregateRecord_instance
-  Assumptions.eventLog_instance
-  Assumptions.eventLogger_instance
-  Assumptions.EventCorrelator_instance
-  Assumptions.EventCorrelateResult_instance
-  Assumptions.FakeRecorder_instance
-  Assumptions.import_context_Assumption
-  Assumptions.import_core_v1_Assumption
-  Assumptions.import_meta_v1_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_watch_Assumption
-  Assumptions.import_klog_Assumption
+attribute [instance] Assumptions.instance'EventSink
+  Assumptions.instance'CorrelatorOptions
+  Assumptions.instance'EventRecorder
+  Assumptions.instance'EventRecorderLogger
+  Assumptions.instance'EventBroadcaster
+  Assumptions.instance'EventRecorderAdapter
+  Assumptions.instance'BroadcasterOption
+  Assumptions.instance'config
+  Assumptions.instance'eventBroadcasterImpl
+  Assumptions.instance'recorderImpl
+  Assumptions.instance'recorderImplLogger
+  Assumptions.instance'EventSpamKeyFunc
+  Assumptions.instance'EventFilterFunc
+  Assumptions.instance'EventSourceObjectSpamFilter
+  Assumptions.instance'spamRecord
+  Assumptions.instance'EventAggregatorKeyFunc
+  Assumptions.instance'EventAggregatorMessageFunc
+  Assumptions.instance'EventAggregator
+  Assumptions.instance'aggregateRecord
+  Assumptions.instance'eventLog
+  Assumptions.instance'eventLogger
+  Assumptions.instance'EventCorrelator
+  Assumptions.instance'EventCorrelateResult
+  Assumptions.instance'FakeRecorder
+  Assumptions.import'context
+  Assumptions.import'core_v1
+  Assumptions.import'meta_v1
+  Assumptions.import'runtime
+  Assumptions.import'watch
+  Assumptions.import'klog
 
 end k8s_io.client_go.tools.record
 

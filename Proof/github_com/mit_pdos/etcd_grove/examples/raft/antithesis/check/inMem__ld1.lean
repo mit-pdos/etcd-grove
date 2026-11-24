@@ -51,7 +51,7 @@ theorem inMem.ld1.wp_proof
   iNamed Hf
   iStructNamed Hp
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_wins_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_unfold'wins.method_unfold]
   try wp_auto
   wp_apply wp_wins gx x w $$ [Hx]
   · iframe Hx; ipureintro; exact hw
@@ -73,7 +73,7 @@ theorem inMem.ld1.wp_proof
     wp_apply wp_load_at _ _ _ Hn0 $$ [Hme] as -
     · iexact Hme
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_T_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_unfold'T.method_unfold]
     try wp_auto
     wp_apply wp_T gx x t $$ [Hx] as %ut %Hut
     · iframe Hx; ipureintro; exact ht

@@ -80,7 +80,7 @@ theorem Bag.Minus.wp_proof (wp_sub : Bag.sub.spec (GF := GF) (hG := hG)) :
       · iexact Hcits
       ipureintro; exact Hy
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_sub_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'sub.method_unfold]
     try wp_auto
     have htake : (c.take (sint.nat (j + W64 1))).foldl (fun acc it => acc.sub it.1 it.2) b =
         ((c.take (sint.nat j)).foldl (fun acc it => acc.sub it.1 it.2) b).sub x.1 x.2 := by

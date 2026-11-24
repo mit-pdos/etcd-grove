@@ -45,8 +45,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 -- `wp_load` from a persistent struct points-to (see `Cache__waitTillRevision.lean`).
-attribute [-instance] Config.Config_access_store_PerWatcherBufferSize
-  Config.Config_access_store_ProgressNotifyInterval
+attribute [-instance] Config.access_store'Config'PerWatcherBufferSize
+  Config.access_store'Config'ProgressNotifyInterval
 
 /-- A new channel as `Cache.Watch`'s: an SPSC channel of `cacheWatchElem`s, the log of what is sent
 on it (`fwd`) empty, with the producer's and the consumer's views. -/

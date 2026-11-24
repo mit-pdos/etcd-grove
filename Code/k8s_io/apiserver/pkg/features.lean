@@ -142,9 +142,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.k8s_io.apiserver.pkg.util.feature.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  import_feature_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
+  import'feature : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
 
-attribute [instance] Assumptions.import_feature_Assumption
+attribute [instance] Assumptions.import'feature
 
 end k8s_io.apiserver.pkg.features
 

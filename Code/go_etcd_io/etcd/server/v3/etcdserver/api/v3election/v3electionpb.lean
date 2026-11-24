@@ -657,7 +657,7 @@ noncomputable instance CampaignRequest.zero_val [GooseExts] : ZeroVal CampaignRe
 @[irreducible] noncomputable def CampaignRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CampaignRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_CampaignRequest [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'CampaignRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold CampaignRequest.fields CampaignRequest.fieldsUnsealed :=
   ⟨by unfold CampaignRequest.fields; rfl⟩
 
@@ -667,43 +667,43 @@ noncomputable instance equals_unfold_CampaignRequest [GooseExts] [GoGlobalContex
 class CampaignRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CampaignRequest.underlying CampaignRequest
   underlying : go.UnderlyingDirectedEq CampaignRequest.ty CampaignRequest.underlying
-  get_state : ∀ (x : CampaignRequest), go.IsGoStepPureDetTagged under (StructFieldGet CampaignRequest.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : CampaignRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet CampaignRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : CampaignRequest)))
-  get_Name : ∀ (x : CampaignRequest), go.IsGoStepPureDetTagged under (StructFieldGet CampaignRequest.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : CampaignRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CampaignRequest.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : CampaignRequest)))
-  get_Lease : ∀ (x : CampaignRequest), go.IsGoStepPureDetTagged under (StructFieldGet CampaignRequest.underlying go!"Lease") #x (Val #(x.Lease'))
-  set_Lease : ∀ (x : CampaignRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet CampaignRequest.underlying go!"Lease") (PairV #x #y) (Val #(({ x with Lease' := y } : CampaignRequest)))
-  get_Value : ∀ (x : CampaignRequest), go.IsGoStepPureDetTagged under (StructFieldGet CampaignRequest.underlying go!"Value") #x (Val #(x.Value'))
-  set_Value : ∀ (x : CampaignRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CampaignRequest.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : CampaignRequest)))
-  get_unknownFields : ∀ (x : CampaignRequest), go.IsGoStepPureDetTagged under (StructFieldGet CampaignRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : CampaignRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CampaignRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : CampaignRequest)))
-  get_sizeCache : ∀ (x : CampaignRequest), go.IsGoStepPureDetTagged under (StructFieldGet CampaignRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : CampaignRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet CampaignRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : CampaignRequest)))
+  get'state : ∀ (x : CampaignRequest), go.IsGoStepPureDetTagged under (StructFieldGet CampaignRequest.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : CampaignRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet CampaignRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : CampaignRequest)))
+  get'Name : ∀ (x : CampaignRequest), go.IsGoStepPureDetTagged under (StructFieldGet CampaignRequest.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : CampaignRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CampaignRequest.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : CampaignRequest)))
+  get'Lease : ∀ (x : CampaignRequest), go.IsGoStepPureDetTagged under (StructFieldGet CampaignRequest.underlying go!"Lease") #x (Val #(x.Lease'))
+  set'Lease : ∀ (x : CampaignRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet CampaignRequest.underlying go!"Lease") (PairV #x #y) (Val #(({ x with Lease' := y } : CampaignRequest)))
+  get'Value : ∀ (x : CampaignRequest), go.IsGoStepPureDetTagged under (StructFieldGet CampaignRequest.underlying go!"Value") #x (Val #(x.Value'))
+  set'Value : ∀ (x : CampaignRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CampaignRequest.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : CampaignRequest)))
+  get'unknownFields : ∀ (x : CampaignRequest), go.IsGoStepPureDetTagged under (StructFieldGet CampaignRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : CampaignRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CampaignRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : CampaignRequest)))
+  get'sizeCache : ∀ (x : CampaignRequest), go.IsGoStepPureDetTagged under (StructFieldGet CampaignRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : CampaignRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet CampaignRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : CampaignRequest)))
   method_set : go.MethodSetIs CampaignRequest.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType CampaignRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetLease", (some (go.signature.Signature [] false [go.int64]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetValue", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetLease_unfold : MethodUnfold (go.GoType.PointerType CampaignRequest.ty) go!"GetLease" CampaignRequest.GetLease.impl
-  ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType CampaignRequest.ty) go!"GetName" CampaignRequest.GetName.impl
-  ptr_GetValue_unfold : MethodUnfold (go.GoType.PointerType CampaignRequest.ty) go!"GetValue" CampaignRequest.GetValue.impl
+  ptr_unfold'GetLease : MethodUnfold (go.GoType.PointerType CampaignRequest.ty) go!"GetLease" CampaignRequest.GetLease.impl
+  ptr_unfold'GetName : MethodUnfold (go.GoType.PointerType CampaignRequest.ty) go!"GetName" CampaignRequest.GetName.impl
+  ptr_unfold'GetValue : MethodUnfold (go.GoType.PointerType CampaignRequest.ty) go!"GetValue" CampaignRequest.GetValue.impl
 
 attribute [instance] CampaignRequest.TypeAssumptions.type_repr
   CampaignRequest.TypeAssumptions.underlying
-  CampaignRequest.TypeAssumptions.get_state
-  CampaignRequest.TypeAssumptions.set_state
-  CampaignRequest.TypeAssumptions.get_Name
-  CampaignRequest.TypeAssumptions.set_Name
-  CampaignRequest.TypeAssumptions.get_Lease
-  CampaignRequest.TypeAssumptions.set_Lease
-  CampaignRequest.TypeAssumptions.get_Value
-  CampaignRequest.TypeAssumptions.set_Value
-  CampaignRequest.TypeAssumptions.get_unknownFields
-  CampaignRequest.TypeAssumptions.set_unknownFields
-  CampaignRequest.TypeAssumptions.get_sizeCache
-  CampaignRequest.TypeAssumptions.set_sizeCache
+  CampaignRequest.TypeAssumptions.get'state
+  CampaignRequest.TypeAssumptions.set'state
+  CampaignRequest.TypeAssumptions.get'Name
+  CampaignRequest.TypeAssumptions.set'Name
+  CampaignRequest.TypeAssumptions.get'Lease
+  CampaignRequest.TypeAssumptions.set'Lease
+  CampaignRequest.TypeAssumptions.get'Value
+  CampaignRequest.TypeAssumptions.set'Value
+  CampaignRequest.TypeAssumptions.get'unknownFields
+  CampaignRequest.TypeAssumptions.set'unknownFields
+  CampaignRequest.TypeAssumptions.get'sizeCache
+  CampaignRequest.TypeAssumptions.set'sizeCache
   CampaignRequest.TypeAssumptions.method_set
   CampaignRequest.TypeAssumptions.ptr_method_set
-  CampaignRequest.TypeAssumptions.ptr_GetLease_unfold
-  CampaignRequest.TypeAssumptions.ptr_GetName_unfold
-  CampaignRequest.TypeAssumptions.ptr_GetValue_unfold
+  CampaignRequest.TypeAssumptions.ptr_unfold'GetLease
+  CampaignRequest.TypeAssumptions.ptr_unfold'GetName
+  CampaignRequest.TypeAssumptions.ptr_unfold'GetValue
 
 structure CampaignResponse [GooseExts] where
   mk ::
@@ -726,7 +726,7 @@ noncomputable instance CampaignResponse.zero_val [GooseExts] : ZeroVal CampaignR
 @[irreducible] noncomputable def CampaignResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CampaignResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_CampaignResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'CampaignResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold CampaignResponse.fields CampaignResponse.fieldsUnsealed :=
   ⟨by unfold CampaignResponse.fields; rfl⟩
 
@@ -736,37 +736,37 @@ noncomputable instance equals_unfold_CampaignResponse [GooseExts] [GoGlobalConte
 class CampaignResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CampaignResponse.underlying CampaignResponse
   underlying : go.UnderlyingDirectedEq CampaignResponse.ty CampaignResponse.underlying
-  get_state : ∀ (x : CampaignResponse), go.IsGoStepPureDetTagged under (StructFieldGet CampaignResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : CampaignResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet CampaignResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : CampaignResponse)))
-  get_Header : ∀ (x : CampaignResponse), go.IsGoStepPureDetTagged under (StructFieldGet CampaignResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : CampaignResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet CampaignResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : CampaignResponse)))
-  get_Leader : ∀ (x : CampaignResponse), go.IsGoStepPureDetTagged under (StructFieldGet CampaignResponse.underlying go!"Leader") #x (Val #(x.Leader'))
-  set_Leader : ∀ (x : CampaignResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet CampaignResponse.underlying go!"Leader") (PairV #x #y) (Val #(({ x with Leader' := y } : CampaignResponse)))
-  get_unknownFields : ∀ (x : CampaignResponse), go.IsGoStepPureDetTagged under (StructFieldGet CampaignResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : CampaignResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CampaignResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : CampaignResponse)))
-  get_sizeCache : ∀ (x : CampaignResponse), go.IsGoStepPureDetTagged under (StructFieldGet CampaignResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : CampaignResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet CampaignResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : CampaignResponse)))
+  get'state : ∀ (x : CampaignResponse), go.IsGoStepPureDetTagged under (StructFieldGet CampaignResponse.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : CampaignResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet CampaignResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : CampaignResponse)))
+  get'Header : ∀ (x : CampaignResponse), go.IsGoStepPureDetTagged under (StructFieldGet CampaignResponse.underlying go!"Header") #x (Val #(x.Header'))
+  set'Header : ∀ (x : CampaignResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet CampaignResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : CampaignResponse)))
+  get'Leader : ∀ (x : CampaignResponse), go.IsGoStepPureDetTagged under (StructFieldGet CampaignResponse.underlying go!"Leader") #x (Val #(x.Leader'))
+  set'Leader : ∀ (x : CampaignResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet CampaignResponse.underlying go!"Leader") (PairV #x #y) (Val #(({ x with Leader' := y } : CampaignResponse)))
+  get'unknownFields : ∀ (x : CampaignResponse), go.IsGoStepPureDetTagged under (StructFieldGet CampaignResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : CampaignResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CampaignResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : CampaignResponse)))
+  get'sizeCache : ∀ (x : CampaignResponse), go.IsGoStepPureDetTagged under (StructFieldGet CampaignResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : CampaignResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet CampaignResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : CampaignResponse)))
   method_set : go.MethodSetIs CampaignResponse.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType CampaignResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"GetLeader", (some (go.signature.Signature [] false [(go.GoType.PointerType LeaderKey.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetHeader_unfold : MethodUnfold (go.GoType.PointerType CampaignResponse.ty) go!"GetHeader" CampaignResponse.GetHeader.impl
-  ptr_GetLeader_unfold : MethodUnfold (go.GoType.PointerType CampaignResponse.ty) go!"GetLeader" CampaignResponse.GetLeader.impl
+  ptr_unfold'GetHeader : MethodUnfold (go.GoType.PointerType CampaignResponse.ty) go!"GetHeader" CampaignResponse.GetHeader.impl
+  ptr_unfold'GetLeader : MethodUnfold (go.GoType.PointerType CampaignResponse.ty) go!"GetLeader" CampaignResponse.GetLeader.impl
 
 attribute [instance] CampaignResponse.TypeAssumptions.type_repr
   CampaignResponse.TypeAssumptions.underlying
-  CampaignResponse.TypeAssumptions.get_state
-  CampaignResponse.TypeAssumptions.set_state
-  CampaignResponse.TypeAssumptions.get_Header
-  CampaignResponse.TypeAssumptions.set_Header
-  CampaignResponse.TypeAssumptions.get_Leader
-  CampaignResponse.TypeAssumptions.set_Leader
-  CampaignResponse.TypeAssumptions.get_unknownFields
-  CampaignResponse.TypeAssumptions.set_unknownFields
-  CampaignResponse.TypeAssumptions.get_sizeCache
-  CampaignResponse.TypeAssumptions.set_sizeCache
+  CampaignResponse.TypeAssumptions.get'state
+  CampaignResponse.TypeAssumptions.set'state
+  CampaignResponse.TypeAssumptions.get'Header
+  CampaignResponse.TypeAssumptions.set'Header
+  CampaignResponse.TypeAssumptions.get'Leader
+  CampaignResponse.TypeAssumptions.set'Leader
+  CampaignResponse.TypeAssumptions.get'unknownFields
+  CampaignResponse.TypeAssumptions.set'unknownFields
+  CampaignResponse.TypeAssumptions.get'sizeCache
+  CampaignResponse.TypeAssumptions.set'sizeCache
   CampaignResponse.TypeAssumptions.method_set
   CampaignResponse.TypeAssumptions.ptr_method_set
-  CampaignResponse.TypeAssumptions.ptr_GetHeader_unfold
-  CampaignResponse.TypeAssumptions.ptr_GetLeader_unfold
+  CampaignResponse.TypeAssumptions.ptr_unfold'GetHeader
+  CampaignResponse.TypeAssumptions.ptr_unfold'GetLeader
 
 structure LeaderKey [GooseExts] where
   mk ::
@@ -793,7 +793,7 @@ noncomputable instance LeaderKey.zero_val [GooseExts] : ZeroVal LeaderKey :=
 @[irreducible] noncomputable def LeaderKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LeaderKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_LeaderKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LeaderKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold LeaderKey.fields LeaderKey.fieldsUnsealed :=
   ⟨by unfold LeaderKey.fields; rfl⟩
 
@@ -803,49 +803,49 @@ noncomputable instance equals_unfold_LeaderKey [GooseExts] [GoGlobalContext] :
 class LeaderKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaderKey.underlying LeaderKey
   underlying : go.UnderlyingDirectedEq LeaderKey.ty LeaderKey.underlying
-  get_state : ∀ (x : LeaderKey), go.IsGoStepPureDetTagged under (StructFieldGet LeaderKey.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : LeaderKey) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet LeaderKey.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : LeaderKey)))
-  get_Name : ∀ (x : LeaderKey), go.IsGoStepPureDetTagged under (StructFieldGet LeaderKey.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : LeaderKey) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaderKey.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : LeaderKey)))
-  get_Key : ∀ (x : LeaderKey), go.IsGoStepPureDetTagged under (StructFieldGet LeaderKey.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : LeaderKey) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaderKey.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : LeaderKey)))
-  get_Rev : ∀ (x : LeaderKey), go.IsGoStepPureDetTagged under (StructFieldGet LeaderKey.underlying go!"Rev") #x (Val #(x.Rev'))
-  set_Rev : ∀ (x : LeaderKey) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LeaderKey.underlying go!"Rev") (PairV #x #y) (Val #(({ x with Rev' := y } : LeaderKey)))
-  get_Lease : ∀ (x : LeaderKey), go.IsGoStepPureDetTagged under (StructFieldGet LeaderKey.underlying go!"Lease") #x (Val #(x.Lease'))
-  set_Lease : ∀ (x : LeaderKey) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LeaderKey.underlying go!"Lease") (PairV #x #y) (Val #(({ x with Lease' := y } : LeaderKey)))
-  get_unknownFields : ∀ (x : LeaderKey), go.IsGoStepPureDetTagged under (StructFieldGet LeaderKey.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : LeaderKey) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaderKey.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LeaderKey)))
-  get_sizeCache : ∀ (x : LeaderKey), go.IsGoStepPureDetTagged under (StructFieldGet LeaderKey.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : LeaderKey) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LeaderKey.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LeaderKey)))
+  get'state : ∀ (x : LeaderKey), go.IsGoStepPureDetTagged under (StructFieldGet LeaderKey.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : LeaderKey) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet LeaderKey.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : LeaderKey)))
+  get'Name : ∀ (x : LeaderKey), go.IsGoStepPureDetTagged under (StructFieldGet LeaderKey.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : LeaderKey) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaderKey.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : LeaderKey)))
+  get'Key : ∀ (x : LeaderKey), go.IsGoStepPureDetTagged under (StructFieldGet LeaderKey.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : LeaderKey) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaderKey.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : LeaderKey)))
+  get'Rev : ∀ (x : LeaderKey), go.IsGoStepPureDetTagged under (StructFieldGet LeaderKey.underlying go!"Rev") #x (Val #(x.Rev'))
+  set'Rev : ∀ (x : LeaderKey) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LeaderKey.underlying go!"Rev") (PairV #x #y) (Val #(({ x with Rev' := y } : LeaderKey)))
+  get'Lease : ∀ (x : LeaderKey), go.IsGoStepPureDetTagged under (StructFieldGet LeaderKey.underlying go!"Lease") #x (Val #(x.Lease'))
+  set'Lease : ∀ (x : LeaderKey) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LeaderKey.underlying go!"Lease") (PairV #x #y) (Val #(({ x with Lease' := y } : LeaderKey)))
+  get'unknownFields : ∀ (x : LeaderKey), go.IsGoStepPureDetTagged under (StructFieldGet LeaderKey.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : LeaderKey) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaderKey.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LeaderKey)))
+  get'sizeCache : ∀ (x : LeaderKey), go.IsGoStepPureDetTagged under (StructFieldGet LeaderKey.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : LeaderKey) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LeaderKey.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LeaderKey)))
   method_set : go.MethodSetIs LeaderKey.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaderKey.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetLease", (some (go.signature.Signature [] false [go.int64]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetRev", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetKey_unfold : MethodUnfold (go.GoType.PointerType LeaderKey.ty) go!"GetKey" LeaderKey.GetKey.impl
-  ptr_GetLease_unfold : MethodUnfold (go.GoType.PointerType LeaderKey.ty) go!"GetLease" LeaderKey.GetLease.impl
-  ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType LeaderKey.ty) go!"GetName" LeaderKey.GetName.impl
-  ptr_GetRev_unfold : MethodUnfold (go.GoType.PointerType LeaderKey.ty) go!"GetRev" LeaderKey.GetRev.impl
+  ptr_unfold'GetKey : MethodUnfold (go.GoType.PointerType LeaderKey.ty) go!"GetKey" LeaderKey.GetKey.impl
+  ptr_unfold'GetLease : MethodUnfold (go.GoType.PointerType LeaderKey.ty) go!"GetLease" LeaderKey.GetLease.impl
+  ptr_unfold'GetName : MethodUnfold (go.GoType.PointerType LeaderKey.ty) go!"GetName" LeaderKey.GetName.impl
+  ptr_unfold'GetRev : MethodUnfold (go.GoType.PointerType LeaderKey.ty) go!"GetRev" LeaderKey.GetRev.impl
 
 attribute [instance] LeaderKey.TypeAssumptions.type_repr
   LeaderKey.TypeAssumptions.underlying
-  LeaderKey.TypeAssumptions.get_state
-  LeaderKey.TypeAssumptions.set_state
-  LeaderKey.TypeAssumptions.get_Name
-  LeaderKey.TypeAssumptions.set_Name
-  LeaderKey.TypeAssumptions.get_Key
-  LeaderKey.TypeAssumptions.set_Key
-  LeaderKey.TypeAssumptions.get_Rev
-  LeaderKey.TypeAssumptions.set_Rev
-  LeaderKey.TypeAssumptions.get_Lease
-  LeaderKey.TypeAssumptions.set_Lease
-  LeaderKey.TypeAssumptions.get_unknownFields
-  LeaderKey.TypeAssumptions.set_unknownFields
-  LeaderKey.TypeAssumptions.get_sizeCache
-  LeaderKey.TypeAssumptions.set_sizeCache
+  LeaderKey.TypeAssumptions.get'state
+  LeaderKey.TypeAssumptions.set'state
+  LeaderKey.TypeAssumptions.get'Name
+  LeaderKey.TypeAssumptions.set'Name
+  LeaderKey.TypeAssumptions.get'Key
+  LeaderKey.TypeAssumptions.set'Key
+  LeaderKey.TypeAssumptions.get'Rev
+  LeaderKey.TypeAssumptions.set'Rev
+  LeaderKey.TypeAssumptions.get'Lease
+  LeaderKey.TypeAssumptions.set'Lease
+  LeaderKey.TypeAssumptions.get'unknownFields
+  LeaderKey.TypeAssumptions.set'unknownFields
+  LeaderKey.TypeAssumptions.get'sizeCache
+  LeaderKey.TypeAssumptions.set'sizeCache
   LeaderKey.TypeAssumptions.method_set
   LeaderKey.TypeAssumptions.ptr_method_set
-  LeaderKey.TypeAssumptions.ptr_GetKey_unfold
-  LeaderKey.TypeAssumptions.ptr_GetLease_unfold
-  LeaderKey.TypeAssumptions.ptr_GetName_unfold
-  LeaderKey.TypeAssumptions.ptr_GetRev_unfold
+  LeaderKey.TypeAssumptions.ptr_unfold'GetKey
+  LeaderKey.TypeAssumptions.ptr_unfold'GetLease
+  LeaderKey.TypeAssumptions.ptr_unfold'GetName
+  LeaderKey.TypeAssumptions.ptr_unfold'GetRev
 
 structure LeaderRequest [GooseExts] where
   mk ::
@@ -866,7 +866,7 @@ noncomputable instance LeaderRequest.zero_val [GooseExts] : ZeroVal LeaderReques
 @[irreducible] noncomputable def LeaderRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LeaderRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_LeaderRequest [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LeaderRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold LeaderRequest.fields LeaderRequest.fieldsUnsealed :=
   ⟨by unfold LeaderRequest.fields; rfl⟩
 
@@ -876,31 +876,31 @@ noncomputable instance equals_unfold_LeaderRequest [GooseExts] [GoGlobalContext]
 class LeaderRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaderRequest.underlying LeaderRequest
   underlying : go.UnderlyingDirectedEq LeaderRequest.ty LeaderRequest.underlying
-  get_state : ∀ (x : LeaderRequest), go.IsGoStepPureDetTagged under (StructFieldGet LeaderRequest.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : LeaderRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet LeaderRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : LeaderRequest)))
-  get_Name : ∀ (x : LeaderRequest), go.IsGoStepPureDetTagged under (StructFieldGet LeaderRequest.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : LeaderRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaderRequest.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : LeaderRequest)))
-  get_unknownFields : ∀ (x : LeaderRequest), go.IsGoStepPureDetTagged under (StructFieldGet LeaderRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : LeaderRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaderRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LeaderRequest)))
-  get_sizeCache : ∀ (x : LeaderRequest), go.IsGoStepPureDetTagged under (StructFieldGet LeaderRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : LeaderRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LeaderRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LeaderRequest)))
+  get'state : ∀ (x : LeaderRequest), go.IsGoStepPureDetTagged under (StructFieldGet LeaderRequest.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : LeaderRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet LeaderRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : LeaderRequest)))
+  get'Name : ∀ (x : LeaderRequest), go.IsGoStepPureDetTagged under (StructFieldGet LeaderRequest.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : LeaderRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaderRequest.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : LeaderRequest)))
+  get'unknownFields : ∀ (x : LeaderRequest), go.IsGoStepPureDetTagged under (StructFieldGet LeaderRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : LeaderRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaderRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LeaderRequest)))
+  get'sizeCache : ∀ (x : LeaderRequest), go.IsGoStepPureDetTagged under (StructFieldGet LeaderRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : LeaderRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LeaderRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LeaderRequest)))
   method_set : go.MethodSetIs LeaderRequest.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaderRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType LeaderRequest.ty) go!"GetName" LeaderRequest.GetName.impl
+  ptr_unfold'GetName : MethodUnfold (go.GoType.PointerType LeaderRequest.ty) go!"GetName" LeaderRequest.GetName.impl
 
 attribute [instance] LeaderRequest.TypeAssumptions.type_repr
   LeaderRequest.TypeAssumptions.underlying
-  LeaderRequest.TypeAssumptions.get_state
-  LeaderRequest.TypeAssumptions.set_state
-  LeaderRequest.TypeAssumptions.get_Name
-  LeaderRequest.TypeAssumptions.set_Name
-  LeaderRequest.TypeAssumptions.get_unknownFields
-  LeaderRequest.TypeAssumptions.set_unknownFields
-  LeaderRequest.TypeAssumptions.get_sizeCache
-  LeaderRequest.TypeAssumptions.set_sizeCache
+  LeaderRequest.TypeAssumptions.get'state
+  LeaderRequest.TypeAssumptions.set'state
+  LeaderRequest.TypeAssumptions.get'Name
+  LeaderRequest.TypeAssumptions.set'Name
+  LeaderRequest.TypeAssumptions.get'unknownFields
+  LeaderRequest.TypeAssumptions.set'unknownFields
+  LeaderRequest.TypeAssumptions.get'sizeCache
+  LeaderRequest.TypeAssumptions.set'sizeCache
   LeaderRequest.TypeAssumptions.method_set
   LeaderRequest.TypeAssumptions.ptr_method_set
-  LeaderRequest.TypeAssumptions.ptr_GetName_unfold
+  LeaderRequest.TypeAssumptions.ptr_unfold'GetName
 
 structure LeaderResponse [GooseExts] where
   mk ::
@@ -923,7 +923,7 @@ noncomputable instance LeaderResponse.zero_val [GooseExts] : ZeroVal LeaderRespo
 @[irreducible] noncomputable def LeaderResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LeaderResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_LeaderResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LeaderResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold LeaderResponse.fields LeaderResponse.fieldsUnsealed :=
   ⟨by unfold LeaderResponse.fields; rfl⟩
 
@@ -933,37 +933,37 @@ noncomputable instance equals_unfold_LeaderResponse [GooseExts] [GoGlobalContext
 class LeaderResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaderResponse.underlying LeaderResponse
   underlying : go.UnderlyingDirectedEq LeaderResponse.ty LeaderResponse.underlying
-  get_state : ∀ (x : LeaderResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaderResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : LeaderResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet LeaderResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : LeaderResponse)))
-  get_Header : ∀ (x : LeaderResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaderResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : LeaderResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet LeaderResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : LeaderResponse)))
-  get_Kv : ∀ (x : LeaderResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaderResponse.underlying go!"Kv") #x (Val #(x.Kv'))
-  set_Kv : ∀ (x : LeaderResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet LeaderResponse.underlying go!"Kv") (PairV #x #y) (Val #(({ x with Kv' := y } : LeaderResponse)))
-  get_unknownFields : ∀ (x : LeaderResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaderResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : LeaderResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaderResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LeaderResponse)))
-  get_sizeCache : ∀ (x : LeaderResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaderResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : LeaderResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LeaderResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LeaderResponse)))
+  get'state : ∀ (x : LeaderResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaderResponse.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : LeaderResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet LeaderResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : LeaderResponse)))
+  get'Header : ∀ (x : LeaderResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaderResponse.underlying go!"Header") #x (Val #(x.Header'))
+  set'Header : ∀ (x : LeaderResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet LeaderResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : LeaderResponse)))
+  get'Kv : ∀ (x : LeaderResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaderResponse.underlying go!"Kv") #x (Val #(x.Kv'))
+  set'Kv : ∀ (x : LeaderResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet LeaderResponse.underlying go!"Kv") (PairV #x #y) (Val #(({ x with Kv' := y } : LeaderResponse)))
+  get'unknownFields : ∀ (x : LeaderResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaderResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : LeaderResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaderResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LeaderResponse)))
+  get'sizeCache : ∀ (x : LeaderResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaderResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : LeaderResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LeaderResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LeaderResponse)))
   method_set : go.MethodSetIs LeaderResponse.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaderResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"GetKv", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetHeader_unfold : MethodUnfold (go.GoType.PointerType LeaderResponse.ty) go!"GetHeader" LeaderResponse.GetHeader.impl
-  ptr_GetKv_unfold : MethodUnfold (go.GoType.PointerType LeaderResponse.ty) go!"GetKv" LeaderResponse.GetKv.impl
+  ptr_unfold'GetHeader : MethodUnfold (go.GoType.PointerType LeaderResponse.ty) go!"GetHeader" LeaderResponse.GetHeader.impl
+  ptr_unfold'GetKv : MethodUnfold (go.GoType.PointerType LeaderResponse.ty) go!"GetKv" LeaderResponse.GetKv.impl
 
 attribute [instance] LeaderResponse.TypeAssumptions.type_repr
   LeaderResponse.TypeAssumptions.underlying
-  LeaderResponse.TypeAssumptions.get_state
-  LeaderResponse.TypeAssumptions.set_state
-  LeaderResponse.TypeAssumptions.get_Header
-  LeaderResponse.TypeAssumptions.set_Header
-  LeaderResponse.TypeAssumptions.get_Kv
-  LeaderResponse.TypeAssumptions.set_Kv
-  LeaderResponse.TypeAssumptions.get_unknownFields
-  LeaderResponse.TypeAssumptions.set_unknownFields
-  LeaderResponse.TypeAssumptions.get_sizeCache
-  LeaderResponse.TypeAssumptions.set_sizeCache
+  LeaderResponse.TypeAssumptions.get'state
+  LeaderResponse.TypeAssumptions.set'state
+  LeaderResponse.TypeAssumptions.get'Header
+  LeaderResponse.TypeAssumptions.set'Header
+  LeaderResponse.TypeAssumptions.get'Kv
+  LeaderResponse.TypeAssumptions.set'Kv
+  LeaderResponse.TypeAssumptions.get'unknownFields
+  LeaderResponse.TypeAssumptions.set'unknownFields
+  LeaderResponse.TypeAssumptions.get'sizeCache
+  LeaderResponse.TypeAssumptions.set'sizeCache
   LeaderResponse.TypeAssumptions.method_set
   LeaderResponse.TypeAssumptions.ptr_method_set
-  LeaderResponse.TypeAssumptions.ptr_GetHeader_unfold
-  LeaderResponse.TypeAssumptions.ptr_GetKv_unfold
+  LeaderResponse.TypeAssumptions.ptr_unfold'GetHeader
+  LeaderResponse.TypeAssumptions.ptr_unfold'GetKv
 
 structure ResignRequest [GooseExts] where
   mk ::
@@ -984,7 +984,7 @@ noncomputable instance ResignRequest.zero_val [GooseExts] : ZeroVal ResignReques
 @[irreducible] noncomputable def ResignRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResignRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResignRequest [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ResignRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResignRequest.fields ResignRequest.fieldsUnsealed :=
   ⟨by unfold ResignRequest.fields; rfl⟩
 
@@ -994,31 +994,31 @@ noncomputable instance equals_unfold_ResignRequest [GooseExts] [GoGlobalContext]
 class ResignRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResignRequest.underlying ResignRequest
   underlying : go.UnderlyingDirectedEq ResignRequest.ty ResignRequest.underlying
-  get_state : ∀ (x : ResignRequest), go.IsGoStepPureDetTagged under (StructFieldGet ResignRequest.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : ResignRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ResignRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ResignRequest)))
-  get_Leader : ∀ (x : ResignRequest), go.IsGoStepPureDetTagged under (StructFieldGet ResignRequest.underlying go!"Leader") #x (Val #(x.Leader'))
-  set_Leader : ∀ (x : ResignRequest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ResignRequest.underlying go!"Leader") (PairV #x #y) (Val #(({ x with Leader' := y } : ResignRequest)))
-  get_unknownFields : ∀ (x : ResignRequest), go.IsGoStepPureDetTagged under (StructFieldGet ResignRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : ResignRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ResignRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ResignRequest)))
-  get_sizeCache : ∀ (x : ResignRequest), go.IsGoStepPureDetTagged under (StructFieldGet ResignRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : ResignRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ResignRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ResignRequest)))
+  get'state : ∀ (x : ResignRequest), go.IsGoStepPureDetTagged under (StructFieldGet ResignRequest.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : ResignRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ResignRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ResignRequest)))
+  get'Leader : ∀ (x : ResignRequest), go.IsGoStepPureDetTagged under (StructFieldGet ResignRequest.underlying go!"Leader") #x (Val #(x.Leader'))
+  set'Leader : ∀ (x : ResignRequest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ResignRequest.underlying go!"Leader") (PairV #x #y) (Val #(({ x with Leader' := y } : ResignRequest)))
+  get'unknownFields : ∀ (x : ResignRequest), go.IsGoStepPureDetTagged under (StructFieldGet ResignRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : ResignRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ResignRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ResignRequest)))
+  get'sizeCache : ∀ (x : ResignRequest), go.IsGoStepPureDetTagged under (StructFieldGet ResignRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : ResignRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ResignRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ResignRequest)))
   method_set : go.MethodSetIs ResignRequest.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResignRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetLeader", (some (go.signature.Signature [] false [(go.GoType.PointerType LeaderKey.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetLeader_unfold : MethodUnfold (go.GoType.PointerType ResignRequest.ty) go!"GetLeader" ResignRequest.GetLeader.impl
+  ptr_unfold'GetLeader : MethodUnfold (go.GoType.PointerType ResignRequest.ty) go!"GetLeader" ResignRequest.GetLeader.impl
 
 attribute [instance] ResignRequest.TypeAssumptions.type_repr
   ResignRequest.TypeAssumptions.underlying
-  ResignRequest.TypeAssumptions.get_state
-  ResignRequest.TypeAssumptions.set_state
-  ResignRequest.TypeAssumptions.get_Leader
-  ResignRequest.TypeAssumptions.set_Leader
-  ResignRequest.TypeAssumptions.get_unknownFields
-  ResignRequest.TypeAssumptions.set_unknownFields
-  ResignRequest.TypeAssumptions.get_sizeCache
-  ResignRequest.TypeAssumptions.set_sizeCache
+  ResignRequest.TypeAssumptions.get'state
+  ResignRequest.TypeAssumptions.set'state
+  ResignRequest.TypeAssumptions.get'Leader
+  ResignRequest.TypeAssumptions.set'Leader
+  ResignRequest.TypeAssumptions.get'unknownFields
+  ResignRequest.TypeAssumptions.set'unknownFields
+  ResignRequest.TypeAssumptions.get'sizeCache
+  ResignRequest.TypeAssumptions.set'sizeCache
   ResignRequest.TypeAssumptions.method_set
   ResignRequest.TypeAssumptions.ptr_method_set
-  ResignRequest.TypeAssumptions.ptr_GetLeader_unfold
+  ResignRequest.TypeAssumptions.ptr_unfold'GetLeader
 
 structure ResignResponse [GooseExts] where
   mk ::
@@ -1039,7 +1039,7 @@ noncomputable instance ResignResponse.zero_val [GooseExts] : ZeroVal ResignRespo
 @[irreducible] noncomputable def ResignResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResignResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResignResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ResignResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResignResponse.fields ResignResponse.fieldsUnsealed :=
   ⟨by unfold ResignResponse.fields; rfl⟩
 
@@ -1049,31 +1049,31 @@ noncomputable instance equals_unfold_ResignResponse [GooseExts] [GoGlobalContext
 class ResignResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResignResponse.underlying ResignResponse
   underlying : go.UnderlyingDirectedEq ResignResponse.ty ResignResponse.underlying
-  get_state : ∀ (x : ResignResponse), go.IsGoStepPureDetTagged under (StructFieldGet ResignResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : ResignResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ResignResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ResignResponse)))
-  get_Header : ∀ (x : ResignResponse), go.IsGoStepPureDetTagged under (StructFieldGet ResignResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : ResignResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ResignResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : ResignResponse)))
-  get_unknownFields : ∀ (x : ResignResponse), go.IsGoStepPureDetTagged under (StructFieldGet ResignResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : ResignResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ResignResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ResignResponse)))
-  get_sizeCache : ∀ (x : ResignResponse), go.IsGoStepPureDetTagged under (StructFieldGet ResignResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : ResignResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ResignResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ResignResponse)))
+  get'state : ∀ (x : ResignResponse), go.IsGoStepPureDetTagged under (StructFieldGet ResignResponse.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : ResignResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ResignResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ResignResponse)))
+  get'Header : ∀ (x : ResignResponse), go.IsGoStepPureDetTagged under (StructFieldGet ResignResponse.underlying go!"Header") #x (Val #(x.Header'))
+  set'Header : ∀ (x : ResignResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ResignResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : ResignResponse)))
+  get'unknownFields : ∀ (x : ResignResponse), go.IsGoStepPureDetTagged under (StructFieldGet ResignResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : ResignResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ResignResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ResignResponse)))
+  get'sizeCache : ∀ (x : ResignResponse), go.IsGoStepPureDetTagged under (StructFieldGet ResignResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : ResignResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ResignResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ResignResponse)))
   method_set : go.MethodSetIs ResignResponse.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResignResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetHeader_unfold : MethodUnfold (go.GoType.PointerType ResignResponse.ty) go!"GetHeader" ResignResponse.GetHeader.impl
+  ptr_unfold'GetHeader : MethodUnfold (go.GoType.PointerType ResignResponse.ty) go!"GetHeader" ResignResponse.GetHeader.impl
 
 attribute [instance] ResignResponse.TypeAssumptions.type_repr
   ResignResponse.TypeAssumptions.underlying
-  ResignResponse.TypeAssumptions.get_state
-  ResignResponse.TypeAssumptions.set_state
-  ResignResponse.TypeAssumptions.get_Header
-  ResignResponse.TypeAssumptions.set_Header
-  ResignResponse.TypeAssumptions.get_unknownFields
-  ResignResponse.TypeAssumptions.set_unknownFields
-  ResignResponse.TypeAssumptions.get_sizeCache
-  ResignResponse.TypeAssumptions.set_sizeCache
+  ResignResponse.TypeAssumptions.get'state
+  ResignResponse.TypeAssumptions.set'state
+  ResignResponse.TypeAssumptions.get'Header
+  ResignResponse.TypeAssumptions.set'Header
+  ResignResponse.TypeAssumptions.get'unknownFields
+  ResignResponse.TypeAssumptions.set'unknownFields
+  ResignResponse.TypeAssumptions.get'sizeCache
+  ResignResponse.TypeAssumptions.set'sizeCache
   ResignResponse.TypeAssumptions.method_set
   ResignResponse.TypeAssumptions.ptr_method_set
-  ResignResponse.TypeAssumptions.ptr_GetHeader_unfold
+  ResignResponse.TypeAssumptions.ptr_unfold'GetHeader
 
 structure ProclaimRequest [GooseExts] where
   mk ::
@@ -1096,7 +1096,7 @@ noncomputable instance ProclaimRequest.zero_val [GooseExts] : ZeroVal ProclaimRe
 @[irreducible] noncomputable def ProclaimRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProclaimRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProclaimRequest [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProclaimRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProclaimRequest.fields ProclaimRequest.fieldsUnsealed :=
   ⟨by unfold ProclaimRequest.fields; rfl⟩
 
@@ -1106,37 +1106,37 @@ noncomputable instance equals_unfold_ProclaimRequest [GooseExts] [GoGlobalContex
 class ProclaimRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProclaimRequest.underlying ProclaimRequest
   underlying : go.UnderlyingDirectedEq ProclaimRequest.ty ProclaimRequest.underlying
-  get_state : ∀ (x : ProclaimRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimRequest.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : ProclaimRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ProclaimRequest)))
-  get_Leader : ∀ (x : ProclaimRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimRequest.underlying go!"Leader") #x (Val #(x.Leader'))
-  set_Leader : ∀ (x : ProclaimRequest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimRequest.underlying go!"Leader") (PairV #x #y) (Val #(({ x with Leader' := y } : ProclaimRequest)))
-  get_Value : ∀ (x : ProclaimRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimRequest.underlying go!"Value") #x (Val #(x.Value'))
-  set_Value : ∀ (x : ProclaimRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimRequest.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : ProclaimRequest)))
-  get_unknownFields : ∀ (x : ProclaimRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : ProclaimRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ProclaimRequest)))
-  get_sizeCache : ∀ (x : ProclaimRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : ProclaimRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ProclaimRequest)))
+  get'state : ∀ (x : ProclaimRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimRequest.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : ProclaimRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ProclaimRequest)))
+  get'Leader : ∀ (x : ProclaimRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimRequest.underlying go!"Leader") #x (Val #(x.Leader'))
+  set'Leader : ∀ (x : ProclaimRequest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimRequest.underlying go!"Leader") (PairV #x #y) (Val #(({ x with Leader' := y } : ProclaimRequest)))
+  get'Value : ∀ (x : ProclaimRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimRequest.underlying go!"Value") #x (Val #(x.Value'))
+  set'Value : ∀ (x : ProclaimRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimRequest.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : ProclaimRequest)))
+  get'unknownFields : ∀ (x : ProclaimRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : ProclaimRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ProclaimRequest)))
+  get'sizeCache : ∀ (x : ProclaimRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : ProclaimRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ProclaimRequest)))
   method_set : go.MethodSetIs ProclaimRequest.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProclaimRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetLeader", (some (go.signature.Signature [] false [(go.GoType.PointerType LeaderKey.ty)]))), (go!"GetValue", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetLeader_unfold : MethodUnfold (go.GoType.PointerType ProclaimRequest.ty) go!"GetLeader" ProclaimRequest.GetLeader.impl
-  ptr_GetValue_unfold : MethodUnfold (go.GoType.PointerType ProclaimRequest.ty) go!"GetValue" ProclaimRequest.GetValue.impl
+  ptr_unfold'GetLeader : MethodUnfold (go.GoType.PointerType ProclaimRequest.ty) go!"GetLeader" ProclaimRequest.GetLeader.impl
+  ptr_unfold'GetValue : MethodUnfold (go.GoType.PointerType ProclaimRequest.ty) go!"GetValue" ProclaimRequest.GetValue.impl
 
 attribute [instance] ProclaimRequest.TypeAssumptions.type_repr
   ProclaimRequest.TypeAssumptions.underlying
-  ProclaimRequest.TypeAssumptions.get_state
-  ProclaimRequest.TypeAssumptions.set_state
-  ProclaimRequest.TypeAssumptions.get_Leader
-  ProclaimRequest.TypeAssumptions.set_Leader
-  ProclaimRequest.TypeAssumptions.get_Value
-  ProclaimRequest.TypeAssumptions.set_Value
-  ProclaimRequest.TypeAssumptions.get_unknownFields
-  ProclaimRequest.TypeAssumptions.set_unknownFields
-  ProclaimRequest.TypeAssumptions.get_sizeCache
-  ProclaimRequest.TypeAssumptions.set_sizeCache
+  ProclaimRequest.TypeAssumptions.get'state
+  ProclaimRequest.TypeAssumptions.set'state
+  ProclaimRequest.TypeAssumptions.get'Leader
+  ProclaimRequest.TypeAssumptions.set'Leader
+  ProclaimRequest.TypeAssumptions.get'Value
+  ProclaimRequest.TypeAssumptions.set'Value
+  ProclaimRequest.TypeAssumptions.get'unknownFields
+  ProclaimRequest.TypeAssumptions.set'unknownFields
+  ProclaimRequest.TypeAssumptions.get'sizeCache
+  ProclaimRequest.TypeAssumptions.set'sizeCache
   ProclaimRequest.TypeAssumptions.method_set
   ProclaimRequest.TypeAssumptions.ptr_method_set
-  ProclaimRequest.TypeAssumptions.ptr_GetLeader_unfold
-  ProclaimRequest.TypeAssumptions.ptr_GetValue_unfold
+  ProclaimRequest.TypeAssumptions.ptr_unfold'GetLeader
+  ProclaimRequest.TypeAssumptions.ptr_unfold'GetValue
 
 structure ProclaimResponse [GooseExts] where
   mk ::
@@ -1157,7 +1157,7 @@ noncomputable instance ProclaimResponse.zero_val [GooseExts] : ZeroVal ProclaimR
 @[irreducible] noncomputable def ProclaimResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProclaimResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProclaimResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProclaimResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProclaimResponse.fields ProclaimResponse.fieldsUnsealed :=
   ⟨by unfold ProclaimResponse.fields; rfl⟩
 
@@ -1167,31 +1167,31 @@ noncomputable instance equals_unfold_ProclaimResponse [GooseExts] [GoGlobalConte
 class ProclaimResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProclaimResponse.underlying ProclaimResponse
   underlying : go.UnderlyingDirectedEq ProclaimResponse.ty ProclaimResponse.underlying
-  get_state : ∀ (x : ProclaimResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : ProclaimResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ProclaimResponse)))
-  get_Header : ∀ (x : ProclaimResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : ProclaimResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : ProclaimResponse)))
-  get_unknownFields : ∀ (x : ProclaimResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : ProclaimResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ProclaimResponse)))
-  get_sizeCache : ∀ (x : ProclaimResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : ProclaimResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ProclaimResponse)))
+  get'state : ∀ (x : ProclaimResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimResponse.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : ProclaimResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ProclaimResponse)))
+  get'Header : ∀ (x : ProclaimResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimResponse.underlying go!"Header") #x (Val #(x.Header'))
+  set'Header : ∀ (x : ProclaimResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : ProclaimResponse)))
+  get'unknownFields : ∀ (x : ProclaimResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : ProclaimResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ProclaimResponse)))
+  get'sizeCache : ∀ (x : ProclaimResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : ProclaimResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ProclaimResponse)))
   method_set : go.MethodSetIs ProclaimResponse.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProclaimResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetHeader_unfold : MethodUnfold (go.GoType.PointerType ProclaimResponse.ty) go!"GetHeader" ProclaimResponse.GetHeader.impl
+  ptr_unfold'GetHeader : MethodUnfold (go.GoType.PointerType ProclaimResponse.ty) go!"GetHeader" ProclaimResponse.GetHeader.impl
 
 attribute [instance] ProclaimResponse.TypeAssumptions.type_repr
   ProclaimResponse.TypeAssumptions.underlying
-  ProclaimResponse.TypeAssumptions.get_state
-  ProclaimResponse.TypeAssumptions.set_state
-  ProclaimResponse.TypeAssumptions.get_Header
-  ProclaimResponse.TypeAssumptions.set_Header
-  ProclaimResponse.TypeAssumptions.get_unknownFields
-  ProclaimResponse.TypeAssumptions.set_unknownFields
-  ProclaimResponse.TypeAssumptions.get_sizeCache
-  ProclaimResponse.TypeAssumptions.set_sizeCache
+  ProclaimResponse.TypeAssumptions.get'state
+  ProclaimResponse.TypeAssumptions.set'state
+  ProclaimResponse.TypeAssumptions.get'Header
+  ProclaimResponse.TypeAssumptions.set'Header
+  ProclaimResponse.TypeAssumptions.get'unknownFields
+  ProclaimResponse.TypeAssumptions.set'unknownFields
+  ProclaimResponse.TypeAssumptions.get'sizeCache
+  ProclaimResponse.TypeAssumptions.set'sizeCache
   ProclaimResponse.TypeAssumptions.method_set
   ProclaimResponse.TypeAssumptions.ptr_method_set
-  ProclaimResponse.TypeAssumptions.ptr_GetHeader_unfold
+  ProclaimResponse.TypeAssumptions.ptr_unfold'GetHeader
 
 opaque ElectionClient.nonempty_type : NonemptyType.{0}
 def ElectionClient : Type := ElectionClient.nonempty_type.type
@@ -1257,7 +1257,7 @@ noncomputable instance UnimplementedElectionServer.zero_val [GooseExts] : ZeroVa
 @[irreducible] noncomputable def UnimplementedElectionServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UnimplementedElectionServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_UnimplementedElectionServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'UnimplementedElectionServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold UnimplementedElectionServer.fields UnimplementedElectionServer.fieldsUnsealed :=
   ⟨by unfold UnimplementedElectionServer.fields; rfl⟩
 
@@ -1290,45 +1290,45 @@ attribute [instance] UnsafeElectionServer.TypeAssumptions.underlying
   UnsafeElectionServer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  CampaignRequest_instance : CampaignRequest.TypeAssumptions
-  CampaignResponse_instance : CampaignResponse.TypeAssumptions
-  LeaderKey_instance : LeaderKey.TypeAssumptions
-  LeaderRequest_instance : LeaderRequest.TypeAssumptions
-  LeaderResponse_instance : LeaderResponse.TypeAssumptions
-  ResignRequest_instance : ResignRequest.TypeAssumptions
-  ResignResponse_instance : ResignResponse.TypeAssumptions
-  ProclaimRequest_instance : ProclaimRequest.TypeAssumptions
-  ProclaimResponse_instance : ProclaimResponse.TypeAssumptions
-  ElectionClient_instance : ElectionClient.TypeAssumptions
-  electionClient_instance : electionClient.TypeAssumptions
-  ElectionServer_instance : ElectionServer.TypeAssumptions
-  UnimplementedElectionServer_instance : UnimplementedElectionServer.TypeAssumptions
-  UnsafeElectionServer_instance : UnsafeElectionServer.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
-  import_protoreflect_Assumption : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
-  import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
+  instance'CampaignRequest : CampaignRequest.TypeAssumptions
+  instance'CampaignResponse : CampaignResponse.TypeAssumptions
+  instance'LeaderKey : LeaderKey.TypeAssumptions
+  instance'LeaderRequest : LeaderRequest.TypeAssumptions
+  instance'LeaderResponse : LeaderResponse.TypeAssumptions
+  instance'ResignRequest : ResignRequest.TypeAssumptions
+  instance'ResignResponse : ResignResponse.TypeAssumptions
+  instance'ProclaimRequest : ProclaimRequest.TypeAssumptions
+  instance'ProclaimResponse : ProclaimResponse.TypeAssumptions
+  instance'ElectionClient : ElectionClient.TypeAssumptions
+  instance'electionClient : electionClient.TypeAssumptions
+  instance'ElectionServer : ElectionServer.TypeAssumptions
+  instance'UnimplementedElectionServer : UnimplementedElectionServer.TypeAssumptions
+  instance'UnsafeElectionServer : UnsafeElectionServer.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'mvccpb : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
+  import'protoreflect : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
+  import'protoimpl : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
 
-attribute [instance] Assumptions.CampaignRequest_instance
-  Assumptions.CampaignResponse_instance
-  Assumptions.LeaderKey_instance
-  Assumptions.LeaderRequest_instance
-  Assumptions.LeaderResponse_instance
-  Assumptions.ResignRequest_instance
-  Assumptions.ResignResponse_instance
-  Assumptions.ProclaimRequest_instance
-  Assumptions.ProclaimResponse_instance
-  Assumptions.ElectionClient_instance
-  Assumptions.electionClient_instance
-  Assumptions.ElectionServer_instance
-  Assumptions.UnimplementedElectionServer_instance
-  Assumptions.UnsafeElectionServer_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_mvccpb_Assumption
-  Assumptions.import_protoreflect_Assumption
-  Assumptions.import_protoimpl_Assumption
+attribute [instance] Assumptions.instance'CampaignRequest
+  Assumptions.instance'CampaignResponse
+  Assumptions.instance'LeaderKey
+  Assumptions.instance'LeaderRequest
+  Assumptions.instance'LeaderResponse
+  Assumptions.instance'ResignRequest
+  Assumptions.instance'ResignResponse
+  Assumptions.instance'ProclaimRequest
+  Assumptions.instance'ProclaimResponse
+  Assumptions.instance'ElectionClient
+  Assumptions.instance'electionClient
+  Assumptions.instance'ElectionServer
+  Assumptions.instance'UnimplementedElectionServer
+  Assumptions.instance'UnsafeElectionServer
+  Assumptions.«unfold'init.0»
+  Assumptions.import'etcdserverpb
+  Assumptions.import'mvccpb
+  Assumptions.import'protoreflect
+  Assumptions.import'protoimpl
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb
 

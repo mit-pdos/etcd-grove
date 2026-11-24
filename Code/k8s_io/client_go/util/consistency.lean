@@ -719,7 +719,7 @@ noncomputable instance ConsistencyError.zero_val [GooseExts] : ZeroVal Consisten
 @[irreducible] noncomputable def ConsistencyError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConsistencyError.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConsistencyError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ConsistencyError [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConsistencyError.fields ConsistencyError.fieldsUnsealed :=
   ⟨by unfold ConsistencyError.fields; rfl⟩
 
@@ -729,27 +729,27 @@ noncomputable instance equals_unfold_ConsistencyError [GooseExts] [GoGlobalConte
 class ConsistencyError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConsistencyError.underlying ConsistencyError
   underlying : go.UnderlyingDirectedEq ConsistencyError.ty ConsistencyError.underlying
-  get_ReadRV : ∀ (x : ConsistencyError), go.IsGoStepPureDetTagged under (StructFieldGet ConsistencyError.underlying go!"ReadRV") #x (Val #(x.ReadRV'))
-  set_ReadRV : ∀ (x : ConsistencyError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ConsistencyError.underlying go!"ReadRV") (PairV #x #y) (Val #(({ x with ReadRV' := y } : ConsistencyError)))
-  get_WroteRV : ∀ (x : ConsistencyError), go.IsGoStepPureDetTagged under (StructFieldGet ConsistencyError.underlying go!"WroteRV") #x (Val #(x.WroteRV'))
-  set_WroteRV : ∀ (x : ConsistencyError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ConsistencyError.underlying go!"WroteRV") (PairV #x #y) (Val #(({ x with WroteRV' := y } : ConsistencyError)))
-  get_GroupResource : ∀ (x : ConsistencyError), go.IsGoStepPureDetTagged under (StructFieldGet ConsistencyError.underlying go!"GroupResource") #x (Val #(x.GroupResource'))
-  set_GroupResource : ∀ (x : ConsistencyError) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource), go.IsGoStepPureDetTagged under (StructFieldSet ConsistencyError.underlying go!"GroupResource") (PairV #x #y) (Val #(({ x with GroupResource' := y } : ConsistencyError)))
+  get'ReadRV : ∀ (x : ConsistencyError), go.IsGoStepPureDetTagged under (StructFieldGet ConsistencyError.underlying go!"ReadRV") #x (Val #(x.ReadRV'))
+  set'ReadRV : ∀ (x : ConsistencyError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ConsistencyError.underlying go!"ReadRV") (PairV #x #y) (Val #(({ x with ReadRV' := y } : ConsistencyError)))
+  get'WroteRV : ∀ (x : ConsistencyError), go.IsGoStepPureDetTagged under (StructFieldGet ConsistencyError.underlying go!"WroteRV") #x (Val #(x.WroteRV'))
+  set'WroteRV : ∀ (x : ConsistencyError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ConsistencyError.underlying go!"WroteRV") (PairV #x #y) (Val #(({ x with WroteRV' := y } : ConsistencyError)))
+  get'GroupResource : ∀ (x : ConsistencyError), go.IsGoStepPureDetTagged under (StructFieldGet ConsistencyError.underlying go!"GroupResource") #x (Val #(x.GroupResource'))
+  set'GroupResource : ∀ (x : ConsistencyError) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource), go.IsGoStepPureDetTagged under (StructFieldSet ConsistencyError.underlying go!"GroupResource") (PairV #x #y) (Val #(({ x with GroupResource' := y } : ConsistencyError)))
   method_set : go.MethodSetIs ConsistencyError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConsistencyError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType ConsistencyError.ty) go!"Error" ConsistencyError.Error.impl
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType ConsistencyError.ty) go!"Error" ConsistencyError.Error.impl
 
 attribute [instance] ConsistencyError.TypeAssumptions.type_repr
   ConsistencyError.TypeAssumptions.underlying
-  ConsistencyError.TypeAssumptions.get_ReadRV
-  ConsistencyError.TypeAssumptions.set_ReadRV
-  ConsistencyError.TypeAssumptions.get_WroteRV
-  ConsistencyError.TypeAssumptions.set_WroteRV
-  ConsistencyError.TypeAssumptions.get_GroupResource
-  ConsistencyError.TypeAssumptions.set_GroupResource
+  ConsistencyError.TypeAssumptions.get'ReadRV
+  ConsistencyError.TypeAssumptions.set'ReadRV
+  ConsistencyError.TypeAssumptions.get'WroteRV
+  ConsistencyError.TypeAssumptions.set'WroteRV
+  ConsistencyError.TypeAssumptions.get'GroupResource
+  ConsistencyError.TypeAssumptions.set'GroupResource
   ConsistencyError.TypeAssumptions.method_set
   ConsistencyError.TypeAssumptions.ptr_method_set
-  ConsistencyError.TypeAssumptions.ptr_Error_unfold
+  ConsistencyError.TypeAssumptions.ptr_unfold'Error
 
 abbrev LastSyncRVGetter [GooseExts] : Type := GoInterface
 
@@ -782,7 +782,7 @@ noncomputable instance consistencyStore.zero_val [GooseExts] : ZeroVal consisten
 @[irreducible] noncomputable def consistencyStore.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   consistencyStore.fieldsUnsealed
 
-noncomputable instance equals_unfold_consistencyStore [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'consistencyStore [GooseExts] [GoGlobalContext] :
     EqualsUnfold consistencyStore.fields consistencyStore.fieldsUnsealed :=
   ⟨by unfold consistencyStore.fields; rfl⟩
 
@@ -792,35 +792,35 @@ noncomputable instance equals_unfold_consistencyStore [GooseExts] [GoGlobalConte
 class consistencyStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying consistencyStore.underlying consistencyStore
   underlying : go.UnderlyingDirectedEq consistencyStore.ty consistencyStore.underlying
-  get_writesLock : ∀ (x : consistencyStore), go.IsGoStepPureDetTagged under (StructFieldGet consistencyStore.underlying go!"writesLock") #x (Val #(x.writesLock'))
-  set_writesLock : ∀ (x : consistencyStore) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet consistencyStore.underlying go!"writesLock") (PairV #x #y) (Val #(({ x with writesLock' := y } : consistencyStore)))
-  get_writes : ∀ (x : consistencyStore), go.IsGoStepPureDetTagged under (StructFieldGet consistencyStore.underlying go!"writes") #x (Val #(x.writes'))
-  set_writes : ∀ (x : consistencyStore) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet consistencyStore.underlying go!"writes") (PairV #x #y) (Val #(({ x with writes' := y } : consistencyStore)))
-  get_stores : ∀ (x : consistencyStore), go.IsGoStepPureDetTagged under (StructFieldGet consistencyStore.underlying go!"stores") #x (Val #(x.stores'))
-  set_stores : ∀ (x : consistencyStore) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet consistencyStore.underlying go!"stores") (PairV #x #y) (Val #(({ x with stores' := y } : consistencyStore)))
+  get'writesLock : ∀ (x : consistencyStore), go.IsGoStepPureDetTagged under (StructFieldGet consistencyStore.underlying go!"writesLock") #x (Val #(x.writesLock'))
+  set'writesLock : ∀ (x : consistencyStore) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet consistencyStore.underlying go!"writesLock") (PairV #x #y) (Val #(({ x with writesLock' := y } : consistencyStore)))
+  get'writes : ∀ (x : consistencyStore), go.IsGoStepPureDetTagged under (StructFieldGet consistencyStore.underlying go!"writes") #x (Val #(x.writes'))
+  set'writes : ∀ (x : consistencyStore) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet consistencyStore.underlying go!"writes") (PairV #x #y) (Val #(({ x with writes' := y } : consistencyStore)))
+  get'stores : ∀ (x : consistencyStore), go.IsGoStepPureDetTagged under (StructFieldGet consistencyStore.underlying go!"stores") #x (Val #(x.stores'))
+  set'stores : ∀ (x : consistencyStore) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet consistencyStore.underlying go!"stores") (PairV #x #y) (Val #(({ x with stores' := y } : consistencyStore)))
   method_set : go.MethodSetIs consistencyStore.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType consistencyStore.ty) [(go!"Clear", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty, _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false []))), (go!"EnsureReady", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty] false [go.error]))), (go!"WroteAt", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty, _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty, go.string] false []))), (go!"k8s.io/client-go/util/consistency.ensureWrittenRecord", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty, _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false [(go.GoType.PointerType ownerRecord.ty)]))), (go!"k8s.io/client-go/util/consistency.getWrittenRecord", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty] false [(go.GoType.PointerType ownerRecord.ty)])))]
-  ptr_Clear_unfold : MethodUnfold (go.GoType.PointerType consistencyStore.ty) go!"Clear" consistencyStore.Clear.impl
-  ptr_EnsureReady_unfold : MethodUnfold (go.GoType.PointerType consistencyStore.ty) go!"EnsureReady" consistencyStore.EnsureReady.impl
-  ptr_WroteAt_unfold : MethodUnfold (go.GoType.PointerType consistencyStore.ty) go!"WroteAt" consistencyStore.WroteAt.impl
-  ptr_ensureWrittenRecord_unfold : MethodUnfold (go.GoType.PointerType consistencyStore.ty) go!"ensureWrittenRecord" consistencyStore.ensureWrittenRecord.impl
-  ptr_getWrittenRecord_unfold : MethodUnfold (go.GoType.PointerType consistencyStore.ty) go!"getWrittenRecord" consistencyStore.getWrittenRecord.impl
+  ptr_unfold'Clear : MethodUnfold (go.GoType.PointerType consistencyStore.ty) go!"Clear" consistencyStore.Clear.impl
+  ptr_unfold'EnsureReady : MethodUnfold (go.GoType.PointerType consistencyStore.ty) go!"EnsureReady" consistencyStore.EnsureReady.impl
+  ptr_unfold'WroteAt : MethodUnfold (go.GoType.PointerType consistencyStore.ty) go!"WroteAt" consistencyStore.WroteAt.impl
+  ptr_unfold'ensureWrittenRecord : MethodUnfold (go.GoType.PointerType consistencyStore.ty) go!"ensureWrittenRecord" consistencyStore.ensureWrittenRecord.impl
+  ptr_unfold'getWrittenRecord : MethodUnfold (go.GoType.PointerType consistencyStore.ty) go!"getWrittenRecord" consistencyStore.getWrittenRecord.impl
 
 attribute [instance] consistencyStore.TypeAssumptions.type_repr
   consistencyStore.TypeAssumptions.underlying
-  consistencyStore.TypeAssumptions.get_writesLock
-  consistencyStore.TypeAssumptions.set_writesLock
-  consistencyStore.TypeAssumptions.get_writes
-  consistencyStore.TypeAssumptions.set_writes
-  consistencyStore.TypeAssumptions.get_stores
-  consistencyStore.TypeAssumptions.set_stores
+  consistencyStore.TypeAssumptions.get'writesLock
+  consistencyStore.TypeAssumptions.set'writesLock
+  consistencyStore.TypeAssumptions.get'writes
+  consistencyStore.TypeAssumptions.set'writes
+  consistencyStore.TypeAssumptions.get'stores
+  consistencyStore.TypeAssumptions.set'stores
   consistencyStore.TypeAssumptions.method_set
   consistencyStore.TypeAssumptions.ptr_method_set
-  consistencyStore.TypeAssumptions.ptr_Clear_unfold
-  consistencyStore.TypeAssumptions.ptr_EnsureReady_unfold
-  consistencyStore.TypeAssumptions.ptr_WroteAt_unfold
-  consistencyStore.TypeAssumptions.ptr_ensureWrittenRecord_unfold
-  consistencyStore.TypeAssumptions.ptr_getWrittenRecord_unfold
+  consistencyStore.TypeAssumptions.ptr_unfold'Clear
+  consistencyStore.TypeAssumptions.ptr_unfold'EnsureReady
+  consistencyStore.TypeAssumptions.ptr_unfold'WroteAt
+  consistencyStore.TypeAssumptions.ptr_unfold'ensureWrittenRecord
+  consistencyStore.TypeAssumptions.ptr_unfold'getWrittenRecord
 
 structure ownerRecord [GooseExts] where
   mk ::
@@ -839,7 +839,7 @@ noncomputable instance ownerRecord.zero_val [GooseExts] : ZeroVal ownerRecord :=
 @[irreducible] noncomputable def ownerRecord.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ownerRecord.fieldsUnsealed
 
-noncomputable instance equals_unfold_ownerRecord [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ownerRecord [GooseExts] [GoGlobalContext] :
     EqualsUnfold ownerRecord.fields ownerRecord.fieldsUnsealed :=
   ⟨by unfold ownerRecord.fields; rfl⟩
 
@@ -849,29 +849,29 @@ noncomputable instance equals_unfold_ownerRecord [GooseExts] [GoGlobalContext] :
 class ownerRecord.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ownerRecord.underlying ownerRecord
   underlying : go.UnderlyingDirectedEq ownerRecord.ty ownerRecord.underlying
-  get_ownerUID : ∀ (x : ownerRecord), go.IsGoStepPureDetTagged under (StructFieldGet ownerRecord.underlying go!"ownerUID") #x (Val #(x.ownerUID'))
-  set_ownerUID : ∀ (x : ownerRecord) (y : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID), go.IsGoStepPureDetTagged under (StructFieldSet ownerRecord.underlying go!"ownerUID") (PairV #x #y) (Val #(({ x with ownerUID' := y } : ownerRecord)))
-  get_versionsLock : ∀ (x : ownerRecord), go.IsGoStepPureDetTagged under (StructFieldGet ownerRecord.underlying go!"versionsLock") #x (Val #(x.versionsLock'))
-  set_versionsLock : ∀ (x : ownerRecord) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ownerRecord.underlying go!"versionsLock") (PairV #x #y) (Val #(({ x with versionsLock' := y } : ownerRecord)))
-  get_versions : ∀ (x : ownerRecord), go.IsGoStepPureDetTagged under (StructFieldGet ownerRecord.underlying go!"versions") #x (Val #(x.versions'))
-  set_versions : ∀ (x : ownerRecord) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ownerRecord.underlying go!"versions") (PairV #x #y) (Val #(({ x with versions' := y } : ownerRecord)))
+  get'ownerUID : ∀ (x : ownerRecord), go.IsGoStepPureDetTagged under (StructFieldGet ownerRecord.underlying go!"ownerUID") #x (Val #(x.ownerUID'))
+  set'ownerUID : ∀ (x : ownerRecord) (y : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID), go.IsGoStepPureDetTagged under (StructFieldSet ownerRecord.underlying go!"ownerUID") (PairV #x #y) (Val #(({ x with ownerUID' := y } : ownerRecord)))
+  get'versionsLock : ∀ (x : ownerRecord), go.IsGoStepPureDetTagged under (StructFieldGet ownerRecord.underlying go!"versionsLock") #x (Val #(x.versionsLock'))
+  set'versionsLock : ∀ (x : ownerRecord) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet ownerRecord.underlying go!"versionsLock") (PairV #x #y) (Val #(({ x with versionsLock' := y } : ownerRecord)))
+  get'versions : ∀ (x : ownerRecord), go.IsGoStepPureDetTagged under (StructFieldGet ownerRecord.underlying go!"versions") #x (Val #(x.versions'))
+  set'versions : ∀ (x : ownerRecord) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ownerRecord.underlying go!"versions") (PairV #x #y) (Val #(({ x with versions' := y } : ownerRecord)))
   method_set : go.MethodSetIs ownerRecord.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ownerRecord.ty) [(go!"EnsureReady", (some (go.signature.Signature [(go.GoType.PointerType consistencyStore.ty)] false [go.error]))), (go!"WroteAt", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty, go.string] false [])))]
-  ptr_EnsureReady_unfold : MethodUnfold (go.GoType.PointerType ownerRecord.ty) go!"EnsureReady" ownerRecord.EnsureReady.impl
-  ptr_WroteAt_unfold : MethodUnfold (go.GoType.PointerType ownerRecord.ty) go!"WroteAt" ownerRecord.WroteAt.impl
+  ptr_unfold'EnsureReady : MethodUnfold (go.GoType.PointerType ownerRecord.ty) go!"EnsureReady" ownerRecord.EnsureReady.impl
+  ptr_unfold'WroteAt : MethodUnfold (go.GoType.PointerType ownerRecord.ty) go!"WroteAt" ownerRecord.WroteAt.impl
 
 attribute [instance] ownerRecord.TypeAssumptions.type_repr
   ownerRecord.TypeAssumptions.underlying
-  ownerRecord.TypeAssumptions.get_ownerUID
-  ownerRecord.TypeAssumptions.set_ownerUID
-  ownerRecord.TypeAssumptions.get_versionsLock
-  ownerRecord.TypeAssumptions.set_versionsLock
-  ownerRecord.TypeAssumptions.get_versions
-  ownerRecord.TypeAssumptions.set_versions
+  ownerRecord.TypeAssumptions.get'ownerUID
+  ownerRecord.TypeAssumptions.set'ownerUID
+  ownerRecord.TypeAssumptions.get'versionsLock
+  ownerRecord.TypeAssumptions.set'versionsLock
+  ownerRecord.TypeAssumptions.get'versions
+  ownerRecord.TypeAssumptions.set'versions
   ownerRecord.TypeAssumptions.method_set
   ownerRecord.TypeAssumptions.ptr_method_set
-  ownerRecord.TypeAssumptions.ptr_EnsureReady_unfold
-  ownerRecord.TypeAssumptions.ptr_WroteAt_unfold
+  ownerRecord.TypeAssumptions.ptr_unfold'EnsureReady
+  ownerRecord.TypeAssumptions.ptr_unfold'WroteAt
 
 structure noopConsistencyStore [GooseExts] where
   mk ::
@@ -885,7 +885,7 @@ noncomputable instance noopConsistencyStore.zero_val [GooseExts] : ZeroVal noopC
 @[irreducible] noncomputable def noopConsistencyStore.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noopConsistencyStore.fieldsUnsealed
 
-noncomputable instance equals_unfold_noopConsistencyStore [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'noopConsistencyStore [GooseExts] [GoGlobalContext] :
     EqualsUnfold noopConsistencyStore.fields noopConsistencyStore.fieldsUnsealed :=
   ⟨by unfold noopConsistencyStore.fields; rfl⟩
 
@@ -897,50 +897,50 @@ class noopConsistencyStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   underlying : go.UnderlyingDirectedEq noopConsistencyStore.ty noopConsistencyStore.underlying
   method_set : go.MethodSetIs noopConsistencyStore.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopConsistencyStore.ty) [(go!"Clear", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty, _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false []))), (go!"EnsureReady", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty] false [go.error]))), (go!"WroteAt", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty, _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty, go.string] false [])))]
-  ptr_Clear_unfold : MethodUnfold (go.GoType.PointerType noopConsistencyStore.ty) go!"Clear" noopConsistencyStore.Clear.impl
-  ptr_EnsureReady_unfold : MethodUnfold (go.GoType.PointerType noopConsistencyStore.ty) go!"EnsureReady" noopConsistencyStore.EnsureReady.impl
-  ptr_WroteAt_unfold : MethodUnfold (go.GoType.PointerType noopConsistencyStore.ty) go!"WroteAt" noopConsistencyStore.WroteAt.impl
+  ptr_unfold'Clear : MethodUnfold (go.GoType.PointerType noopConsistencyStore.ty) go!"Clear" noopConsistencyStore.Clear.impl
+  ptr_unfold'EnsureReady : MethodUnfold (go.GoType.PointerType noopConsistencyStore.ty) go!"EnsureReady" noopConsistencyStore.EnsureReady.impl
+  ptr_unfold'WroteAt : MethodUnfold (go.GoType.PointerType noopConsistencyStore.ty) go!"WroteAt" noopConsistencyStore.WroteAt.impl
 
 attribute [instance] noopConsistencyStore.TypeAssumptions.type_repr
   noopConsistencyStore.TypeAssumptions.underlying
   noopConsistencyStore.TypeAssumptions.method_set
   noopConsistencyStore.TypeAssumptions.ptr_method_set
-  noopConsistencyStore.TypeAssumptions.ptr_Clear_unfold
-  noopConsistencyStore.TypeAssumptions.ptr_EnsureReady_unfold
-  noopConsistencyStore.TypeAssumptions.ptr_WroteAt_unfold
+  noopConsistencyStore.TypeAssumptions.ptr_unfold'Clear
+  noopConsistencyStore.TypeAssumptions.ptr_unfold'EnsureReady
+  noopConsistencyStore.TypeAssumptions.ptr_unfold'WroteAt
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ConsistencyStore_instance : ConsistencyStore.TypeAssumptions
-  ConsistencyError_instance : ConsistencyError.TypeAssumptions
-  LastSyncRVGetter_instance : LastSyncRVGetter.TypeAssumptions
-  consistencyStore_instance : consistencyStore.TypeAssumptions
-  ownerRecord_instance : ownerRecord.TypeAssumptions
-  noopConsistencyStore_instance : noopConsistencyStore.TypeAssumptions
-  NewConsistencyStore_unfold : FuncUnfold NewConsistencyStore [] NewConsistencyStore.impl
-  newConsistencyStore_unfold : FuncUnfold newConsistencyStore [] newConsistencyStore.impl
-  newOwnerRecord_unfold : FuncUnfold newOwnerRecord [] newOwnerRecord.impl
-  NewNoopConsistencyStore_unfold : FuncUnfold NewNoopConsistencyStore [] NewNoopConsistencyStore.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_schema_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
-  import_types_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
-  import_resourceversion_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.resourceversion.Assumptions
+  instance'ConsistencyStore : ConsistencyStore.TypeAssumptions
+  instance'ConsistencyError : ConsistencyError.TypeAssumptions
+  instance'LastSyncRVGetter : LastSyncRVGetter.TypeAssumptions
+  instance'consistencyStore : consistencyStore.TypeAssumptions
+  instance'ownerRecord : ownerRecord.TypeAssumptions
+  instance'noopConsistencyStore : noopConsistencyStore.TypeAssumptions
+  unfold'NewConsistencyStore : FuncUnfold NewConsistencyStore [] NewConsistencyStore.impl
+  unfold'newConsistencyStore : FuncUnfold newConsistencyStore [] newConsistencyStore.impl
+  unfold'newOwnerRecord : FuncUnfold newOwnerRecord [] newOwnerRecord.impl
+  unfold'NewNoopConsistencyStore : FuncUnfold NewNoopConsistencyStore [] NewNoopConsistencyStore.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'schema : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
+  import'types : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
+  import'resourceversion : _root_.Perennial.k8s_io.apimachinery.pkg.util.resourceversion.Assumptions
 
-attribute [instance] Assumptions.ConsistencyStore_instance
-  Assumptions.ConsistencyError_instance
-  Assumptions.LastSyncRVGetter_instance
-  Assumptions.consistencyStore_instance
-  Assumptions.ownerRecord_instance
-  Assumptions.noopConsistencyStore_instance
-  Assumptions.NewConsistencyStore_unfold
-  Assumptions.newConsistencyStore_unfold
-  Assumptions.newOwnerRecord_unfold
-  Assumptions.NewNoopConsistencyStore_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_schema_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_resourceversion_Assumption
+attribute [instance] Assumptions.instance'ConsistencyStore
+  Assumptions.instance'ConsistencyError
+  Assumptions.instance'LastSyncRVGetter
+  Assumptions.instance'consistencyStore
+  Assumptions.instance'ownerRecord
+  Assumptions.instance'noopConsistencyStore
+  Assumptions.unfold'NewConsistencyStore
+  Assumptions.unfold'newConsistencyStore
+  Assumptions.unfold'newOwnerRecord
+  Assumptions.unfold'NewNoopConsistencyStore
+  Assumptions.import'fmt
+  Assumptions.import'sync
+  Assumptions.import'schema
+  Assumptions.import'types
+  Assumptions.import'resourceversion
 
 end k8s_io.client_go.util.consistency
 

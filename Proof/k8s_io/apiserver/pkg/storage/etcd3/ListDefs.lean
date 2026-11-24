@@ -226,13 +226,13 @@ def listContractOk' (S : ObjSpec GF Obj) (L : ListSpec GF Obj) : IProp GF :=
           #(L.itemsRef pl) : GoInterface) #GoInterface.nil) -∗
       WP (App (Val (@! k8s_io.apimachinery.pkg.api.«meta».GetItemsPtr))
         (Val #(interface.mkOk (go.GoType.PointerType L.listTy) #pl : GoInterface))) {{ Φ }}) ∗
-    (□ ∀ (rt : _root_.Perennial.reflect.«Type») (m : w64) (Φ : val → IProp GF),
+    (□ ∀ (rt : _root_.Perennial.reflect.Type'') (m : w64) (Φ : val → IProp GF),
       ⌜reflType rt (go.GoType.SliceType S.objTy) ∧ 0 ≤ sint.Z m ∧ sint.Z m ≤ 2 ^ 41⌝ -∗
       ▷ (∀ (w : _root_.Perennial.reflect.Value) (s' : GoSlice), ⌜reflSliceV w S.objTy s'⌝ -∗
           ⌜s' ≠ slice.nil⌝ -∗ L.itemsAt s' [] -∗ Φ #w) -∗
       WP (App (App (App (Val (@! _root_.Perennial.reflect.MakeSlice)) (Val #rt)) (Val #(W64 0)))
         (Val #m)) {{ Φ }}) ∗
-    (□ ∀ (rt : _root_.Perennial.reflect.«Type») (n m : w64) (os : List (Obj × GoString))
+    (□ ∀ (rt : _root_.Perennial.reflect.Type'') (n m : w64) (os : List (Obj × GoString))
         (Φ : val → IProp GF),
       ⌜reflType rt (go.GoType.SliceType S.objTy) ∧ sint.nat n = os.length ∧ 0 ≤ sint.Z n ∧
         sint.Z n ≤ sint.Z m ∧ sint.Z m ≤ 2 ^ 41⌝ -∗

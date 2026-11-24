@@ -26,9 +26,9 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 -- `wp_load` from a fractional struct points-to: a field-store `AccessStrict` instance
 -- (which needs `DFrac.own 1`) is found first and the search does not backtrack to the
 -- load instance, so the store instances are switched off here (this proof only loads).
-attribute [-instance] ringBuffer.ringBuffer_access_store_buffer
-  ringBuffer.ringBuffer_access_store_head ringBuffer.ringBuffer_access_store_tail
-  ringBuffer.ringBuffer_access_store_size ringBuffer.ringBuffer_access_store_revisionOf
+attribute [-instance] ringBuffer.access_store'ringBuffer'buffer
+  ringBuffer.access_store'ringBuffer'head ringBuffer.access_store'ringBuffer'tail
+  ringBuffer.access_store'ringBuffer'size ringBuffer.access_store'ringBuffer'revisionOf
 
 /-- The binary search keeps `left ≤ right + 1` in `[0, n]`, every item before `left`
 at most `pivot`, every item after `right` above it. -/

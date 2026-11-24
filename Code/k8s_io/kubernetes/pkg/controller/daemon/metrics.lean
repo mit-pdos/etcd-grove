@@ -87,15 +87,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc registerMetrics _root_.Perennial.sync.Once.ty)) (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Register_unfold : FuncUnfold Register [] Register.impl
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_metrics_Assumption : _root_.Perennial.k8s_io.component_base.metrics.Assumptions
-  import_legacyregistry_Assumption : _root_.Perennial.k8s_io.component_base.metrics.legacyregistry.Assumptions
+  unfold'Register : FuncUnfold Register [] Register.impl
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'metrics : _root_.Perennial.k8s_io.component_base.metrics.Assumptions
+  import'legacyregistry : _root_.Perennial.k8s_io.component_base.metrics.legacyregistry.Assumptions
 
-attribute [instance] Assumptions.Register_unfold
-  Assumptions.import_sync_Assumption
-  Assumptions.import_metrics_Assumption
-  Assumptions.import_legacyregistry_Assumption
+attribute [instance] Assumptions.unfold'Register
+  Assumptions.import'sync
+  Assumptions.import'metrics
+  Assumptions.import'legacyregistry
 
 end k8s_io.kubernetes.pkg.controller.daemon.metrics
 

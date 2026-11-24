@@ -40,7 +40,7 @@ theorem onDisk.isApp.wp_proof (wp_bat : onDisk.bat.spec (GF := GF) (hG := hG))
   wp_start as ⟨#Hx, %Hv⟩
   unfold OnDisk.isApp at Hv
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_bat_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'bat.method_unfold]
   try wp_auto
   wp_apply wp_bat gx x $$ [Hx]
   · iexact Hx
@@ -50,7 +50,7 @@ theorem onDisk.isApp.wp_proof (wp_bat : onDisk.bat.spec (GF := GF) (hG := hG))
     iapply HΦ; ipureintro; trivial
   rw [hb] at Hv; simp only [pure_ok, andM_ok_true] at Hv
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_hasM_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'hasM.method_unfold]
   try wp_auto
   wp_apply wp_hasM gx x $$ [Hx]
   · iexact Hx
@@ -64,7 +64,7 @@ theorem onDisk.isApp.wp_proof (wp_bat : onDisk.bat.spec (GF := GF) (hG := hG))
   obtain ⟨ty, hty, hc⟩ := bind_ok hc
   simp only [pure_ok, Except.ok.injEq] at hc
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_m_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'm.method_unfold]
   try wp_auto
   wp_apply wp_m gx x m $$ [Hx] as %u #Hu
   · iframe Hx; ipureintro; exact hm
@@ -89,7 +89,7 @@ theorem onDisk.isApp.wp_proof (wp_bat : onDisk.bat.spec (GF := GF) (hG := hG))
   simp only [pure_ok, Except.ok.injEq] at Hr
   subst Hr
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_m_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'm.method_unfold]
   try wp_auto
   wp_apply wp_m gx x m $$ [Hx] as %u' #Hu'
   · iframe Hx; ipureintro; exact hm
@@ -97,7 +97,7 @@ theorem onDisk.isApp.wp_proof (wp_bat : onDisk.bat.spec (GF := GF) (hG := hG))
   wp_apply wp_term u' m mt $$ [Hu'] as %w1 %Hw1
   · iframe Hu'; ipureintro; exact hmt
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_T1_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'T1.method_unfold]
   try wp_auto
   wp_apply wp_T1 gx x t1 $$ [Hx] as %w2 %Hw2
   · iframe Hx; ipureintro; exact ht1

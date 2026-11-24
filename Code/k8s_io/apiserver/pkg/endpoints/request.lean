@@ -410,7 +410,7 @@ noncomputable instance RequestInfo.zero_val [GooseExts] : ZeroVal RequestInfo :=
 @[irreducible] noncomputable def RequestInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RequestInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_RequestInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RequestInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold RequestInfo.fields RequestInfo.fieldsUnsealed :=
   ⟨by unfold RequestInfo.fields; rfl⟩
 
@@ -420,63 +420,63 @@ noncomputable instance equals_unfold_RequestInfo [GooseExts] [GoGlobalContext] :
 class RequestInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestInfo.underlying RequestInfo
   underlying : go.UnderlyingDirectedEq RequestInfo.ty RequestInfo.underlying
-  get_IsResourceRequest : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"IsResourceRequest") #x (Val #(x.IsResourceRequest'))
-  set_IsResourceRequest : ∀ (x : RequestInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"IsResourceRequest") (PairV #x #y) (Val #(({ x with IsResourceRequest' := y } : RequestInfo)))
-  get_Path : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Path") #x (Val #(x.Path'))
-  set_Path : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : RequestInfo)))
-  get_Verb : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Verb") #x (Val #(x.Verb'))
-  set_Verb : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Verb") (PairV #x #y) (Val #(({ x with Verb' := y } : RequestInfo)))
-  get_APIPrefix : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"APIPrefix") #x (Val #(x.APIPrefix'))
-  set_APIPrefix : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"APIPrefix") (PairV #x #y) (Val #(({ x with APIPrefix' := y } : RequestInfo)))
-  get_APIGroup : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"APIGroup") #x (Val #(x.APIGroup'))
-  set_APIGroup : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"APIGroup") (PairV #x #y) (Val #(({ x with APIGroup' := y } : RequestInfo)))
-  get_APIVersion : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"APIVersion") #x (Val #(x.APIVersion'))
-  set_APIVersion : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"APIVersion") (PairV #x #y) (Val #(({ x with APIVersion' := y } : RequestInfo)))
-  get_Namespace : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Namespace") #x (Val #(x.Namespace'))
-  set_Namespace : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : RequestInfo)))
-  get_Resource : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Resource") #x (Val #(x.Resource'))
-  set_Resource : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Resource") (PairV #x #y) (Val #(({ x with Resource' := y } : RequestInfo)))
-  get_Subresource : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Subresource") #x (Val #(x.Subresource'))
-  set_Subresource : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Subresource") (PairV #x #y) (Val #(({ x with Subresource' := y } : RequestInfo)))
-  get_Name : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : RequestInfo)))
-  get_Parts : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Parts") #x (Val #(x.Parts'))
-  set_Parts : ∀ (x : RequestInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Parts") (PairV #x #y) (Val #(({ x with Parts' := y } : RequestInfo)))
-  get_FieldSelector : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"FieldSelector") #x (Val #(x.FieldSelector'))
-  set_FieldSelector : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"FieldSelector") (PairV #x #y) (Val #(({ x with FieldSelector' := y } : RequestInfo)))
-  get_LabelSelector : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"LabelSelector") #x (Val #(x.LabelSelector'))
-  set_LabelSelector : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"LabelSelector") (PairV #x #y) (Val #(({ x with LabelSelector' := y } : RequestInfo)))
+  get'IsResourceRequest : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"IsResourceRequest") #x (Val #(x.IsResourceRequest'))
+  set'IsResourceRequest : ∀ (x : RequestInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"IsResourceRequest") (PairV #x #y) (Val #(({ x with IsResourceRequest' := y } : RequestInfo)))
+  get'Path : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Path") #x (Val #(x.Path'))
+  set'Path : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : RequestInfo)))
+  get'Verb : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Verb") #x (Val #(x.Verb'))
+  set'Verb : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Verb") (PairV #x #y) (Val #(({ x with Verb' := y } : RequestInfo)))
+  get'APIPrefix : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"APIPrefix") #x (Val #(x.APIPrefix'))
+  set'APIPrefix : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"APIPrefix") (PairV #x #y) (Val #(({ x with APIPrefix' := y } : RequestInfo)))
+  get'APIGroup : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"APIGroup") #x (Val #(x.APIGroup'))
+  set'APIGroup : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"APIGroup") (PairV #x #y) (Val #(({ x with APIGroup' := y } : RequestInfo)))
+  get'APIVersion : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"APIVersion") #x (Val #(x.APIVersion'))
+  set'APIVersion : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"APIVersion") (PairV #x #y) (Val #(({ x with APIVersion' := y } : RequestInfo)))
+  get'Namespace : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Namespace") #x (Val #(x.Namespace'))
+  set'Namespace : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : RequestInfo)))
+  get'Resource : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Resource") #x (Val #(x.Resource'))
+  set'Resource : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Resource") (PairV #x #y) (Val #(({ x with Resource' := y } : RequestInfo)))
+  get'Subresource : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Subresource") #x (Val #(x.Subresource'))
+  set'Subresource : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Subresource") (PairV #x #y) (Val #(({ x with Subresource' := y } : RequestInfo)))
+  get'Name : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : RequestInfo)))
+  get'Parts : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"Parts") #x (Val #(x.Parts'))
+  set'Parts : ∀ (x : RequestInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Parts") (PairV #x #y) (Val #(({ x with Parts' := y } : RequestInfo)))
+  get'FieldSelector : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"FieldSelector") #x (Val #(x.FieldSelector'))
+  set'FieldSelector : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"FieldSelector") (PairV #x #y) (Val #(({ x with FieldSelector' := y } : RequestInfo)))
+  get'LabelSelector : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"LabelSelector") #x (Val #(x.LabelSelector'))
+  set'LabelSelector : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"LabelSelector") (PairV #x #y) (Val #(({ x with LabelSelector' := y } : RequestInfo)))
   method_set : go.MethodSetIs RequestInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestInfo.ty) []
 
 attribute [instance] RequestInfo.TypeAssumptions.type_repr
   RequestInfo.TypeAssumptions.underlying
-  RequestInfo.TypeAssumptions.get_IsResourceRequest
-  RequestInfo.TypeAssumptions.set_IsResourceRequest
-  RequestInfo.TypeAssumptions.get_Path
-  RequestInfo.TypeAssumptions.set_Path
-  RequestInfo.TypeAssumptions.get_Verb
-  RequestInfo.TypeAssumptions.set_Verb
-  RequestInfo.TypeAssumptions.get_APIPrefix
-  RequestInfo.TypeAssumptions.set_APIPrefix
-  RequestInfo.TypeAssumptions.get_APIGroup
-  RequestInfo.TypeAssumptions.set_APIGroup
-  RequestInfo.TypeAssumptions.get_APIVersion
-  RequestInfo.TypeAssumptions.set_APIVersion
-  RequestInfo.TypeAssumptions.get_Namespace
-  RequestInfo.TypeAssumptions.set_Namespace
-  RequestInfo.TypeAssumptions.get_Resource
-  RequestInfo.TypeAssumptions.set_Resource
-  RequestInfo.TypeAssumptions.get_Subresource
-  RequestInfo.TypeAssumptions.set_Subresource
-  RequestInfo.TypeAssumptions.get_Name
-  RequestInfo.TypeAssumptions.set_Name
-  RequestInfo.TypeAssumptions.get_Parts
-  RequestInfo.TypeAssumptions.set_Parts
-  RequestInfo.TypeAssumptions.get_FieldSelector
-  RequestInfo.TypeAssumptions.set_FieldSelector
-  RequestInfo.TypeAssumptions.get_LabelSelector
-  RequestInfo.TypeAssumptions.set_LabelSelector
+  RequestInfo.TypeAssumptions.get'IsResourceRequest
+  RequestInfo.TypeAssumptions.set'IsResourceRequest
+  RequestInfo.TypeAssumptions.get'Path
+  RequestInfo.TypeAssumptions.set'Path
+  RequestInfo.TypeAssumptions.get'Verb
+  RequestInfo.TypeAssumptions.set'Verb
+  RequestInfo.TypeAssumptions.get'APIPrefix
+  RequestInfo.TypeAssumptions.set'APIPrefix
+  RequestInfo.TypeAssumptions.get'APIGroup
+  RequestInfo.TypeAssumptions.set'APIGroup
+  RequestInfo.TypeAssumptions.get'APIVersion
+  RequestInfo.TypeAssumptions.set'APIVersion
+  RequestInfo.TypeAssumptions.get'Namespace
+  RequestInfo.TypeAssumptions.set'Namespace
+  RequestInfo.TypeAssumptions.get'Resource
+  RequestInfo.TypeAssumptions.set'Resource
+  RequestInfo.TypeAssumptions.get'Subresource
+  RequestInfo.TypeAssumptions.set'Subresource
+  RequestInfo.TypeAssumptions.get'Name
+  RequestInfo.TypeAssumptions.set'Name
+  RequestInfo.TypeAssumptions.get'Parts
+  RequestInfo.TypeAssumptions.set'Parts
+  RequestInfo.TypeAssumptions.get'FieldSelector
+  RequestInfo.TypeAssumptions.set'FieldSelector
+  RequestInfo.TypeAssumptions.get'LabelSelector
+  RequestInfo.TypeAssumptions.set'LabelSelector
   RequestInfo.TypeAssumptions.method_set
   RequestInfo.TypeAssumptions.ptr_method_set
 
@@ -495,7 +495,7 @@ noncomputable instance RequestInfoFactory.zero_val [GooseExts] : ZeroVal Request
 @[irreducible] noncomputable def RequestInfoFactory.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RequestInfoFactory.fieldsUnsealed
 
-noncomputable instance equals_unfold_RequestInfoFactory [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RequestInfoFactory [GooseExts] [GoGlobalContext] :
     EqualsUnfold RequestInfoFactory.fields RequestInfoFactory.fieldsUnsealed :=
   ⟨by unfold RequestInfoFactory.fields; rfl⟩
 
@@ -505,19 +505,19 @@ noncomputable instance equals_unfold_RequestInfoFactory [GooseExts] [GoGlobalCon
 class RequestInfoFactory.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestInfoFactory.underlying RequestInfoFactory
   underlying : go.UnderlyingDirectedEq RequestInfoFactory.ty RequestInfoFactory.underlying
-  get_APIPrefixes : ∀ (x : RequestInfoFactory), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfoFactory.underlying go!"APIPrefixes") #x (Val #(x.APIPrefixes'))
-  set_APIPrefixes : ∀ (x : RequestInfoFactory) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfoFactory.underlying go!"APIPrefixes") (PairV #x #y) (Val #(({ x with APIPrefixes' := y } : RequestInfoFactory)))
-  get_GrouplessAPIPrefixes : ∀ (x : RequestInfoFactory), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfoFactory.underlying go!"GrouplessAPIPrefixes") #x (Val #(x.GrouplessAPIPrefixes'))
-  set_GrouplessAPIPrefixes : ∀ (x : RequestInfoFactory) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfoFactory.underlying go!"GrouplessAPIPrefixes") (PairV #x #y) (Val #(({ x with GrouplessAPIPrefixes' := y } : RequestInfoFactory)))
+  get'APIPrefixes : ∀ (x : RequestInfoFactory), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfoFactory.underlying go!"APIPrefixes") #x (Val #(x.APIPrefixes'))
+  set'APIPrefixes : ∀ (x : RequestInfoFactory) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfoFactory.underlying go!"APIPrefixes") (PairV #x #y) (Val #(({ x with APIPrefixes' := y } : RequestInfoFactory)))
+  get'GrouplessAPIPrefixes : ∀ (x : RequestInfoFactory), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfoFactory.underlying go!"GrouplessAPIPrefixes") #x (Val #(x.GrouplessAPIPrefixes'))
+  set'GrouplessAPIPrefixes : ∀ (x : RequestInfoFactory) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfoFactory.underlying go!"GrouplessAPIPrefixes") (PairV #x #y) (Val #(({ x with GrouplessAPIPrefixes' := y } : RequestInfoFactory)))
   method_set : go.MethodSetIs RequestInfoFactory.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestInfoFactory.ty) [(go!"NewRequestInfo", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [(go.GoType.PointerType RequestInfo.ty), go.error])))]
 
 attribute [instance] RequestInfoFactory.TypeAssumptions.type_repr
   RequestInfoFactory.TypeAssumptions.underlying
-  RequestInfoFactory.TypeAssumptions.get_APIPrefixes
-  RequestInfoFactory.TypeAssumptions.set_APIPrefixes
-  RequestInfoFactory.TypeAssumptions.get_GrouplessAPIPrefixes
-  RequestInfoFactory.TypeAssumptions.set_GrouplessAPIPrefixes
+  RequestInfoFactory.TypeAssumptions.get'APIPrefixes
+  RequestInfoFactory.TypeAssumptions.set'APIPrefixes
+  RequestInfoFactory.TypeAssumptions.get'GrouplessAPIPrefixes
+  RequestInfoFactory.TypeAssumptions.set'GrouplessAPIPrefixes
   RequestInfoFactory.TypeAssumptions.method_set
   RequestInfoFactory.TypeAssumptions.ptr_method_set
 
@@ -634,7 +634,7 @@ noncomputable instance LatencyTrackers.zero_val [GooseExts] : ZeroVal LatencyTra
 @[irreducible] noncomputable def LatencyTrackers.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LatencyTrackers.fieldsUnsealed
 
-noncomputable instance equals_unfold_LatencyTrackers [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LatencyTrackers [GooseExts] [GoGlobalContext] :
     EqualsUnfold LatencyTrackers.fields LatencyTrackers.fieldsUnsealed :=
   ⟨by unfold LatencyTrackers.fields; rfl⟩
 
@@ -644,55 +644,55 @@ noncomputable instance equals_unfold_LatencyTrackers [GooseExts] [GoGlobalContex
 class LatencyTrackers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LatencyTrackers.underlying LatencyTrackers
   underlying : go.UnderlyingDirectedEq LatencyTrackers.ty LatencyTrackers.underlying
-  get_MutatingWebhookTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"MutatingWebhookTracker") #x (Val #(x.MutatingWebhookTracker'))
-  set_MutatingWebhookTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"MutatingWebhookTracker") (PairV #x #y) (Val #(({ x with MutatingWebhookTracker' := y } : LatencyTrackers)))
-  get_ValidatingWebhookTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"ValidatingWebhookTracker") #x (Val #(x.ValidatingWebhookTracker'))
-  set_ValidatingWebhookTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"ValidatingWebhookTracker") (PairV #x #y) (Val #(({ x with ValidatingWebhookTracker' := y } : LatencyTrackers)))
-  get_AuthenticationTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"AuthenticationTracker") #x (Val #(x.AuthenticationTracker'))
-  set_AuthenticationTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"AuthenticationTracker") (PairV #x #y) (Val #(({ x with AuthenticationTracker' := y } : LatencyTrackers)))
-  get_AuthorizationTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"AuthorizationTracker") #x (Val #(x.AuthorizationTracker'))
-  set_AuthorizationTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"AuthorizationTracker") (PairV #x #y) (Val #(({ x with AuthorizationTracker' := y } : LatencyTrackers)))
-  get_APFQueueWaitTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"APFQueueWaitTracker") #x (Val #(x.APFQueueWaitTracker'))
-  set_APFQueueWaitTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"APFQueueWaitTracker") (PairV #x #y) (Val #(({ x with APFQueueWaitTracker' := y } : LatencyTrackers)))
-  get_StorageTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"StorageTracker") #x (Val #(x.StorageTracker'))
-  set_StorageTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"StorageTracker") (PairV #x #y) (Val #(({ x with StorageTracker' := y } : LatencyTrackers)))
-  get_TransformTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"TransformTracker") #x (Val #(x.TransformTracker'))
-  set_TransformTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"TransformTracker") (PairV #x #y) (Val #(({ x with TransformTracker' := y } : LatencyTrackers)))
-  get_SerializationTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"SerializationTracker") #x (Val #(x.SerializationTracker'))
-  set_SerializationTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"SerializationTracker") (PairV #x #y) (Val #(({ x with SerializationTracker' := y } : LatencyTrackers)))
-  get_ResponseWriteTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"ResponseWriteTracker") #x (Val #(x.ResponseWriteTracker'))
-  set_ResponseWriteTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"ResponseWriteTracker") (PairV #x #y) (Val #(({ x with ResponseWriteTracker' := y } : LatencyTrackers)))
-  get_DecodeTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"DecodeTracker") #x (Val #(x.DecodeTracker'))
-  set_DecodeTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"DecodeTracker") (PairV #x #y) (Val #(({ x with DecodeTracker' := y } : LatencyTrackers)))
-  get_ImpersonationTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"ImpersonationTracker") #x (Val #(x.ImpersonationTracker'))
-  set_ImpersonationTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"ImpersonationTracker") (PairV #x #y) (Val #(({ x with ImpersonationTracker' := y } : LatencyTrackers)))
+  get'MutatingWebhookTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"MutatingWebhookTracker") #x (Val #(x.MutatingWebhookTracker'))
+  set'MutatingWebhookTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"MutatingWebhookTracker") (PairV #x #y) (Val #(({ x with MutatingWebhookTracker' := y } : LatencyTrackers)))
+  get'ValidatingWebhookTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"ValidatingWebhookTracker") #x (Val #(x.ValidatingWebhookTracker'))
+  set'ValidatingWebhookTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"ValidatingWebhookTracker") (PairV #x #y) (Val #(({ x with ValidatingWebhookTracker' := y } : LatencyTrackers)))
+  get'AuthenticationTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"AuthenticationTracker") #x (Val #(x.AuthenticationTracker'))
+  set'AuthenticationTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"AuthenticationTracker") (PairV #x #y) (Val #(({ x with AuthenticationTracker' := y } : LatencyTrackers)))
+  get'AuthorizationTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"AuthorizationTracker") #x (Val #(x.AuthorizationTracker'))
+  set'AuthorizationTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"AuthorizationTracker") (PairV #x #y) (Val #(({ x with AuthorizationTracker' := y } : LatencyTrackers)))
+  get'APFQueueWaitTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"APFQueueWaitTracker") #x (Val #(x.APFQueueWaitTracker'))
+  set'APFQueueWaitTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"APFQueueWaitTracker") (PairV #x #y) (Val #(({ x with APFQueueWaitTracker' := y } : LatencyTrackers)))
+  get'StorageTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"StorageTracker") #x (Val #(x.StorageTracker'))
+  set'StorageTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"StorageTracker") (PairV #x #y) (Val #(({ x with StorageTracker' := y } : LatencyTrackers)))
+  get'TransformTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"TransformTracker") #x (Val #(x.TransformTracker'))
+  set'TransformTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"TransformTracker") (PairV #x #y) (Val #(({ x with TransformTracker' := y } : LatencyTrackers)))
+  get'SerializationTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"SerializationTracker") #x (Val #(x.SerializationTracker'))
+  set'SerializationTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"SerializationTracker") (PairV #x #y) (Val #(({ x with SerializationTracker' := y } : LatencyTrackers)))
+  get'ResponseWriteTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"ResponseWriteTracker") #x (Val #(x.ResponseWriteTracker'))
+  set'ResponseWriteTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"ResponseWriteTracker") (PairV #x #y) (Val #(({ x with ResponseWriteTracker' := y } : LatencyTrackers)))
+  get'DecodeTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"DecodeTracker") #x (Val #(x.DecodeTracker'))
+  set'DecodeTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"DecodeTracker") (PairV #x #y) (Val #(({ x with DecodeTracker' := y } : LatencyTrackers)))
+  get'ImpersonationTracker : ∀ (x : LatencyTrackers), go.IsGoStepPureDetTagged under (StructFieldGet LatencyTrackers.underlying go!"ImpersonationTracker") #x (Val #(x.ImpersonationTracker'))
+  set'ImpersonationTracker : ∀ (x : LatencyTrackers) (y : DurationTracker), go.IsGoStepPureDetTagged under (StructFieldSet LatencyTrackers.underlying go!"ImpersonationTracker") (PairV #x #y) (Val #(({ x with ImpersonationTracker' := y } : LatencyTrackers)))
   method_set : go.MethodSetIs LatencyTrackers.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LatencyTrackers.ty) []
 
 attribute [instance] LatencyTrackers.TypeAssumptions.type_repr
   LatencyTrackers.TypeAssumptions.underlying
-  LatencyTrackers.TypeAssumptions.get_MutatingWebhookTracker
-  LatencyTrackers.TypeAssumptions.set_MutatingWebhookTracker
-  LatencyTrackers.TypeAssumptions.get_ValidatingWebhookTracker
-  LatencyTrackers.TypeAssumptions.set_ValidatingWebhookTracker
-  LatencyTrackers.TypeAssumptions.get_AuthenticationTracker
-  LatencyTrackers.TypeAssumptions.set_AuthenticationTracker
-  LatencyTrackers.TypeAssumptions.get_AuthorizationTracker
-  LatencyTrackers.TypeAssumptions.set_AuthorizationTracker
-  LatencyTrackers.TypeAssumptions.get_APFQueueWaitTracker
-  LatencyTrackers.TypeAssumptions.set_APFQueueWaitTracker
-  LatencyTrackers.TypeAssumptions.get_StorageTracker
-  LatencyTrackers.TypeAssumptions.set_StorageTracker
-  LatencyTrackers.TypeAssumptions.get_TransformTracker
-  LatencyTrackers.TypeAssumptions.set_TransformTracker
-  LatencyTrackers.TypeAssumptions.get_SerializationTracker
-  LatencyTrackers.TypeAssumptions.set_SerializationTracker
-  LatencyTrackers.TypeAssumptions.get_ResponseWriteTracker
-  LatencyTrackers.TypeAssumptions.set_ResponseWriteTracker
-  LatencyTrackers.TypeAssumptions.get_DecodeTracker
-  LatencyTrackers.TypeAssumptions.set_DecodeTracker
-  LatencyTrackers.TypeAssumptions.get_ImpersonationTracker
-  LatencyTrackers.TypeAssumptions.set_ImpersonationTracker
+  LatencyTrackers.TypeAssumptions.get'MutatingWebhookTracker
+  LatencyTrackers.TypeAssumptions.set'MutatingWebhookTracker
+  LatencyTrackers.TypeAssumptions.get'ValidatingWebhookTracker
+  LatencyTrackers.TypeAssumptions.set'ValidatingWebhookTracker
+  LatencyTrackers.TypeAssumptions.get'AuthenticationTracker
+  LatencyTrackers.TypeAssumptions.set'AuthenticationTracker
+  LatencyTrackers.TypeAssumptions.get'AuthorizationTracker
+  LatencyTrackers.TypeAssumptions.set'AuthorizationTracker
+  LatencyTrackers.TypeAssumptions.get'APFQueueWaitTracker
+  LatencyTrackers.TypeAssumptions.set'APFQueueWaitTracker
+  LatencyTrackers.TypeAssumptions.get'StorageTracker
+  LatencyTrackers.TypeAssumptions.set'StorageTracker
+  LatencyTrackers.TypeAssumptions.get'TransformTracker
+  LatencyTrackers.TypeAssumptions.set'TransformTracker
+  LatencyTrackers.TypeAssumptions.get'SerializationTracker
+  LatencyTrackers.TypeAssumptions.set'SerializationTracker
+  LatencyTrackers.TypeAssumptions.get'ResponseWriteTracker
+  LatencyTrackers.TypeAssumptions.set'ResponseWriteTracker
+  LatencyTrackers.TypeAssumptions.get'DecodeTracker
+  LatencyTrackers.TypeAssumptions.set'DecodeTracker
+  LatencyTrackers.TypeAssumptions.get'ImpersonationTracker
+  LatencyTrackers.TypeAssumptions.set'ImpersonationTracker
   LatencyTrackers.TypeAssumptions.method_set
   LatencyTrackers.TypeAssumptions.ptr_method_set
 
@@ -711,35 +711,35 @@ attribute [instance] latencyTrackersKeyType.TypeAssumptions.underlying
   latencyTrackersKeyType.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  key_instance : key.TypeAssumptions
-  requestReceivedTimestampKeyType_instance : requestReceivedTimestampKeyType.TypeAssumptions
-  LongRunningRequestCheck_instance : LongRunningRequestCheck.TypeAssumptions
-  RequestInfoResolver_instance : RequestInfoResolver.TypeAssumptions
-  RequestInfo_instance : RequestInfo.TypeAssumptions
-  RequestInfoFactory_instance : RequestInfoFactory.TypeAssumptions
-  requestInfoKeyType_instance : requestInfoKeyType.TypeAssumptions
-  serverShutdownSignalKeyType_instance : serverShutdownSignalKeyType.TypeAssumptions
-  ServerShutdownSignal_instance : ServerShutdownSignal.TypeAssumptions
-  DurationTracker_instance : DurationTracker.TypeAssumptions
-  durationTracker_instance : durationTracker.TypeAssumptions
-  LatencyTrackers_instance : LatencyTrackers.TypeAssumptions
-  latencyTrackersKeyType_instance : latencyTrackersKeyType.TypeAssumptions
-  import_sets_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
+  instance'key : key.TypeAssumptions
+  instance'requestReceivedTimestampKeyType : requestReceivedTimestampKeyType.TypeAssumptions
+  instance'LongRunningRequestCheck : LongRunningRequestCheck.TypeAssumptions
+  instance'RequestInfoResolver : RequestInfoResolver.TypeAssumptions
+  instance'RequestInfo : RequestInfo.TypeAssumptions
+  instance'RequestInfoFactory : RequestInfoFactory.TypeAssumptions
+  instance'requestInfoKeyType : requestInfoKeyType.TypeAssumptions
+  instance'serverShutdownSignalKeyType : serverShutdownSignalKeyType.TypeAssumptions
+  instance'ServerShutdownSignal : ServerShutdownSignal.TypeAssumptions
+  instance'DurationTracker : DurationTracker.TypeAssumptions
+  instance'durationTracker : durationTracker.TypeAssumptions
+  instance'LatencyTrackers : LatencyTrackers.TypeAssumptions
+  instance'latencyTrackersKeyType : latencyTrackersKeyType.TypeAssumptions
+  import'sets : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
 
-attribute [instance] Assumptions.key_instance
-  Assumptions.requestReceivedTimestampKeyType_instance
-  Assumptions.LongRunningRequestCheck_instance
-  Assumptions.RequestInfoResolver_instance
-  Assumptions.RequestInfo_instance
-  Assumptions.RequestInfoFactory_instance
-  Assumptions.requestInfoKeyType_instance
-  Assumptions.serverShutdownSignalKeyType_instance
-  Assumptions.ServerShutdownSignal_instance
-  Assumptions.DurationTracker_instance
-  Assumptions.durationTracker_instance
-  Assumptions.LatencyTrackers_instance
-  Assumptions.latencyTrackersKeyType_instance
-  Assumptions.import_sets_Assumption
+attribute [instance] Assumptions.instance'key
+  Assumptions.instance'requestReceivedTimestampKeyType
+  Assumptions.instance'LongRunningRequestCheck
+  Assumptions.instance'RequestInfoResolver
+  Assumptions.instance'RequestInfo
+  Assumptions.instance'RequestInfoFactory
+  Assumptions.instance'requestInfoKeyType
+  Assumptions.instance'serverShutdownSignalKeyType
+  Assumptions.instance'ServerShutdownSignal
+  Assumptions.instance'DurationTracker
+  Assumptions.instance'durationTracker
+  Assumptions.instance'LatencyTrackers
+  Assumptions.instance'latencyTrackersKeyType
+  Assumptions.import'sets
 
 end k8s_io.apiserver.pkg.endpoints.request
 

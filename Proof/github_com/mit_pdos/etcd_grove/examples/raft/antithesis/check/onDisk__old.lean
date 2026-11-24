@@ -48,12 +48,12 @@ theorem onDisk.old.wp_proof
   obtain ⟨t1, ht1, Hv⟩ := bind_ok Hv
   wp_auto
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_T1_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'T1.method_unfold]
   try wp_auto
   wp_apply wp_T1 gx x t1 $$ [Hx] as %ut %Hut
   · iframe Hx; ipureintro; exact ht1
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_Has_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_unfold'Has.method_unfold]
   try wp_auto
   wp_apply wp_Has gx.tl' x.tl ut $$ [Htl]
   · iexact Htl
@@ -66,12 +66,12 @@ theorem onDisk.old.wp_proof
   · simp only [hh, ite_true] at Hv
     try wp_auto
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_T1_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'T1.method_unfold]
     try wp_auto
     wp_apply wp_T1 gx x t1 $$ [Hx] as %ut2 %Hut2
     · iframe Hx; ipureintro; exact ht1
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_Get_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_unfold'Get.method_unfold]
     try wp_auto
     wp_apply wp_Get gx.tl' x.tl ut2 v $$ [Htl] as %u %Hu
     · iframe Htl; ipureintro; rw [Hut2]; exact Hv

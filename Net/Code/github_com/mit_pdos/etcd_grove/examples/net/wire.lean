@@ -94,11 +94,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.net.initialize') (Val #())))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ReadFull_unfold : FuncUnfold ReadFull [] ReadFull.impl
-  import_net_Assumption : _root_.Perennial.net.Assumptions
+  unfold'ReadFull : FuncUnfold ReadFull [] ReadFull.impl
+  import'net : _root_.Perennial.net.Assumptions
 
-attribute [instance] Assumptions.ReadFull_unfold
-  Assumptions.import_net_Assumption
+attribute [instance] Assumptions.unfold'ReadFull
+  Assumptions.import'net
 
 end github_com.mit_pdos.etcd_grove.examples.net.wire
 

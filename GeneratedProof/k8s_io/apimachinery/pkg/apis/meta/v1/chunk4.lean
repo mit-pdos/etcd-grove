@@ -29,7 +29,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
-noncomputable instance APIVersions_typed_pointsto :
+noncomputable instance typed_pointsto'APIVersions :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions where
   typedPointstoDef l v dq := iprop(
     "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions go!"TypeMeta" l) v.TypeMeta' dq ∗
@@ -40,11 +40,11 @@ noncomputable instance APIVersions_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance APIVersions_into_val_typed :
+noncomputable instance into_val_typed'APIVersions :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance APIVersions_access_load_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions) (dq : DFrac) :
+noncomputable instance access_load'APIVersions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions go!"TypeMeta" l) v.TypeMeta' dq)
@@ -52,7 +52,7 @@ noncomputable instance APIVersions_access_load_TypeMeta (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIVersions_access_store_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'APIVersions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions go!"TypeMeta" l) y (DFrac.own 1))
@@ -60,7 +60,7 @@ noncomputable instance APIVersions_access_store_TypeMeta (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIVersions_access_load_Versions (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions) (dq : DFrac) :
+noncomputable instance access_load'APIVersions'Versions (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions go!"Versions" l) v.Versions' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions go!"Versions" l) v.Versions' dq)
@@ -68,7 +68,7 @@ noncomputable instance APIVersions_access_load_Versions (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIVersions_access_store_Versions (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions) (y : GoSlice) :
+noncomputable instance access_store'APIVersions'Versions (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions go!"Versions" l) v.Versions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions go!"Versions" l) y (DFrac.own 1))
@@ -76,7 +76,7 @@ noncomputable instance APIVersions_access_store_Versions (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIVersions_access_load_ServerAddressByClientCIDRs (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions) (dq : DFrac) :
+noncomputable instance access_load'APIVersions'ServerAddressByClientCIDRs (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions go!"ServerAddressByClientCIDRs" l) v.ServerAddressByClientCIDRs' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions go!"ServerAddressByClientCIDRs" l) v.ServerAddressByClientCIDRs' dq)
@@ -84,7 +84,7 @@ noncomputable instance APIVersions_access_load_ServerAddressByClientCIDRs (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIVersions_access_store_ServerAddressByClientCIDRs (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions) (y : GoSlice) :
+noncomputable instance access_store'APIVersions'ServerAddressByClientCIDRs (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions go!"ServerAddressByClientCIDRs" l) v.ServerAddressByClientCIDRs' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIVersions go!"ServerAddressByClientCIDRs" l) y (DFrac.own 1))
@@ -103,7 +103,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
-noncomputable instance APIGroupList_typed_pointsto :
+noncomputable instance typed_pointsto'APIGroupList :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList where
   typedPointstoDef l v dq := iprop(
     "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList go!"TypeMeta" l) v.TypeMeta' dq ∗
@@ -113,11 +113,11 @@ noncomputable instance APIGroupList_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance APIGroupList_into_val_typed :
+noncomputable instance into_val_typed'APIGroupList :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance APIGroupList_access_load_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList) (dq : DFrac) :
+noncomputable instance access_load'APIGroupList'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList go!"TypeMeta" l) v.TypeMeta' dq)
@@ -125,7 +125,7 @@ noncomputable instance APIGroupList_access_load_TypeMeta (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIGroupList_access_store_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'APIGroupList'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList go!"TypeMeta" l) y (DFrac.own 1))
@@ -133,7 +133,7 @@ noncomputable instance APIGroupList_access_store_TypeMeta (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIGroupList_access_load_Groups (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList) (dq : DFrac) :
+noncomputable instance access_load'APIGroupList'Groups (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList go!"Groups" l) v.Groups' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList go!"Groups" l) v.Groups' dq)
@@ -141,7 +141,7 @@ noncomputable instance APIGroupList_access_load_Groups (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIGroupList_access_store_Groups (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList) (y : GoSlice) :
+noncomputable instance access_store'APIGroupList'Groups (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList go!"Groups" l) v.Groups' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroupList go!"Groups" l) y (DFrac.own 1))
@@ -160,7 +160,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
-noncomputable instance APIGroup_typed_pointsto :
+noncomputable instance typed_pointsto'APIGroup :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup where
   typedPointstoDef l v dq := iprop(
     "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"TypeMeta" l) v.TypeMeta' dq ∗
@@ -173,11 +173,11 @@ noncomputable instance APIGroup_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance APIGroup_into_val_typed :
+noncomputable instance into_val_typed'APIGroup :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance APIGroup_access_load_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (dq : DFrac) :
+noncomputable instance access_load'APIGroup'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"TypeMeta" l) v.TypeMeta' dq)
@@ -185,7 +185,7 @@ noncomputable instance APIGroup_access_load_TypeMeta (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIGroup_access_store_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'APIGroup'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"TypeMeta" l) y (DFrac.own 1))
@@ -193,7 +193,7 @@ noncomputable instance APIGroup_access_store_TypeMeta (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIGroup_access_load_Name (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (dq : DFrac) :
+noncomputable instance access_load'APIGroup'Name (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"Name" l) v.Name' dq)
@@ -201,7 +201,7 @@ noncomputable instance APIGroup_access_load_Name (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIGroup_access_store_Name (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (y : GoString) :
+noncomputable instance access_store'APIGroup'Name (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"Name" l) y (DFrac.own 1))
@@ -209,7 +209,7 @@ noncomputable instance APIGroup_access_store_Name (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIGroup_access_load_Versions (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (dq : DFrac) :
+noncomputable instance access_load'APIGroup'Versions (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"Versions" l) v.Versions' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"Versions" l) v.Versions' dq)
@@ -217,7 +217,7 @@ noncomputable instance APIGroup_access_load_Versions (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIGroup_access_store_Versions (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (y : GoSlice) :
+noncomputable instance access_store'APIGroup'Versions (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"Versions" l) v.Versions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"Versions" l) y (DFrac.own 1))
@@ -225,7 +225,7 @@ noncomputable instance APIGroup_access_store_Versions (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIGroup_access_load_PreferredVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (dq : DFrac) :
+noncomputable instance access_load'APIGroup'PreferredVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"PreferredVersion" l) v.PreferredVersion' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"PreferredVersion" l) v.PreferredVersion' dq)
@@ -233,7 +233,7 @@ noncomputable instance APIGroup_access_load_PreferredVersion (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIGroup_access_store_PreferredVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.GroupVersionForDiscovery) :
+noncomputable instance access_store'APIGroup'PreferredVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.GroupVersionForDiscovery) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"PreferredVersion" l) v.PreferredVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"PreferredVersion" l) y (DFrac.own 1))
@@ -241,7 +241,7 @@ noncomputable instance APIGroup_access_store_PreferredVersion (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIGroup_access_load_ServerAddressByClientCIDRs (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (dq : DFrac) :
+noncomputable instance access_load'APIGroup'ServerAddressByClientCIDRs (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"ServerAddressByClientCIDRs" l) v.ServerAddressByClientCIDRs' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"ServerAddressByClientCIDRs" l) v.ServerAddressByClientCIDRs' dq)
@@ -249,7 +249,7 @@ noncomputable instance APIGroup_access_load_ServerAddressByClientCIDRs (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIGroup_access_store_ServerAddressByClientCIDRs (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (y : GoSlice) :
+noncomputable instance access_store'APIGroup'ServerAddressByClientCIDRs (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"ServerAddressByClientCIDRs" l) v.ServerAddressByClientCIDRs' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIGroup go!"ServerAddressByClientCIDRs" l) y (DFrac.own 1))
@@ -268,7 +268,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
-noncomputable instance APIResource_typed_pointsto :
+noncomputable instance typed_pointsto'APIResource :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource where
   typedPointstoDef l v dq := iprop(
     "Name" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Name" l) v.Name' dq ∗
@@ -286,11 +286,11 @@ noncomputable instance APIResource_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance APIResource_into_val_typed :
+noncomputable instance into_val_typed'APIResource :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance APIResource_access_load_Name (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
+noncomputable instance access_load'APIResource'Name (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Name" l) v.Name' dq)
@@ -298,7 +298,7 @@ noncomputable instance APIResource_access_load_Name (l : Loc) (v : k8s_io.apimac
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_store_Name (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : GoString) :
+noncomputable instance access_store'APIResource'Name (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Name" l) y (DFrac.own 1))
@@ -306,7 +306,7 @@ noncomputable instance APIResource_access_store_Name (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_load_SingularName (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
+noncomputable instance access_load'APIResource'SingularName (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"SingularName" l) v.SingularName' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"SingularName" l) v.SingularName' dq)
@@ -314,7 +314,7 @@ noncomputable instance APIResource_access_load_SingularName (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_store_SingularName (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : GoString) :
+noncomputable instance access_store'APIResource'SingularName (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"SingularName" l) v.SingularName' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"SingularName" l) y (DFrac.own 1))
@@ -322,7 +322,7 @@ noncomputable instance APIResource_access_store_SingularName (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_load_Namespaced (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
+noncomputable instance access_load'APIResource'Namespaced (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Namespaced" l) v.Namespaced' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Namespaced" l) v.Namespaced' dq)
@@ -330,7 +330,7 @@ noncomputable instance APIResource_access_load_Namespaced (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_store_Namespaced (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : Bool) :
+noncomputable instance access_store'APIResource'Namespaced (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Namespaced" l) v.Namespaced' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Namespaced" l) y (DFrac.own 1))
@@ -338,7 +338,7 @@ noncomputable instance APIResource_access_store_Namespaced (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_load_Group (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
+noncomputable instance access_load'APIResource'Group (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Group" l) v.Group' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Group" l) v.Group' dq)
@@ -346,7 +346,7 @@ noncomputable instance APIResource_access_load_Group (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_store_Group (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : GoString) :
+noncomputable instance access_store'APIResource'Group (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Group" l) v.Group' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Group" l) y (DFrac.own 1))
@@ -354,7 +354,7 @@ noncomputable instance APIResource_access_store_Group (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_load_Version (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
+noncomputable instance access_load'APIResource'Version (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Version" l) v.Version' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Version" l) v.Version' dq)
@@ -362,7 +362,7 @@ noncomputable instance APIResource_access_load_Version (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_store_Version (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : GoString) :
+noncomputable instance access_store'APIResource'Version (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Version" l) v.Version' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Version" l) y (DFrac.own 1))
@@ -370,7 +370,7 @@ noncomputable instance APIResource_access_store_Version (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_load_Kind (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
+noncomputable instance access_load'APIResource'Kind (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Kind" l) v.Kind' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Kind" l) v.Kind' dq)
@@ -378,7 +378,7 @@ noncomputable instance APIResource_access_load_Kind (l : Loc) (v : k8s_io.apimac
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_store_Kind (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : GoString) :
+noncomputable instance access_store'APIResource'Kind (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Kind" l) v.Kind' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Kind" l) y (DFrac.own 1))
@@ -386,7 +386,7 @@ noncomputable instance APIResource_access_store_Kind (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_load_Verbs (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
+noncomputable instance access_load'APIResource'Verbs (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Verbs" l) v.Verbs' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Verbs" l) v.Verbs' dq)
@@ -394,7 +394,7 @@ noncomputable instance APIResource_access_load_Verbs (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_store_Verbs (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.Verbs) :
+noncomputable instance access_store'APIResource'Verbs (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.Verbs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Verbs" l) v.Verbs' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Verbs" l) y (DFrac.own 1))
@@ -402,7 +402,7 @@ noncomputable instance APIResource_access_store_Verbs (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_load_ShortNames (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
+noncomputable instance access_load'APIResource'ShortNames (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"ShortNames" l) v.ShortNames' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"ShortNames" l) v.ShortNames' dq)
@@ -410,7 +410,7 @@ noncomputable instance APIResource_access_load_ShortNames (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_store_ShortNames (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : GoSlice) :
+noncomputable instance access_store'APIResource'ShortNames (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"ShortNames" l) v.ShortNames' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"ShortNames" l) y (DFrac.own 1))
@@ -418,7 +418,7 @@ noncomputable instance APIResource_access_store_ShortNames (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_load_Categories (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
+noncomputable instance access_load'APIResource'Categories (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Categories" l) v.Categories' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Categories" l) v.Categories' dq)
@@ -426,7 +426,7 @@ noncomputable instance APIResource_access_load_Categories (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_store_Categories (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : GoSlice) :
+noncomputable instance access_store'APIResource'Categories (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Categories" l) v.Categories' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"Categories" l) y (DFrac.own 1))
@@ -434,7 +434,7 @@ noncomputable instance APIResource_access_store_Categories (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_load_StorageVersionHash (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
+noncomputable instance access_load'APIResource'StorageVersionHash (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"StorageVersionHash" l) v.StorageVersionHash' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"StorageVersionHash" l) v.StorageVersionHash' dq)
@@ -442,7 +442,7 @@ noncomputable instance APIResource_access_load_StorageVersionHash (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResource_access_store_StorageVersionHash (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : GoString) :
+noncomputable instance access_store'APIResource'StorageVersionHash (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"StorageVersionHash" l) v.StorageVersionHash' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResource go!"StorageVersionHash" l) y (DFrac.own 1))
@@ -461,7 +461,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
-noncomputable instance APIResourceList_typed_pointsto :
+noncomputable instance typed_pointsto'APIResourceList :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList where
   typedPointstoDef l v dq := iprop(
     "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList go!"TypeMeta" l) v.TypeMeta' dq ∗
@@ -472,11 +472,11 @@ noncomputable instance APIResourceList_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance APIResourceList_into_val_typed :
+noncomputable instance into_val_typed'APIResourceList :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance APIResourceList_access_load_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList) (dq : DFrac) :
+noncomputable instance access_load'APIResourceList'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList go!"TypeMeta" l) v.TypeMeta' dq)
@@ -484,7 +484,7 @@ noncomputable instance APIResourceList_access_load_TypeMeta (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResourceList_access_store_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'APIResourceList'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList go!"TypeMeta" l) y (DFrac.own 1))
@@ -492,7 +492,7 @@ noncomputable instance APIResourceList_access_store_TypeMeta (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResourceList_access_load_GroupVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList) (dq : DFrac) :
+noncomputable instance access_load'APIResourceList'GroupVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList go!"GroupVersion" l) v.GroupVersion' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList go!"GroupVersion" l) v.GroupVersion' dq)
@@ -500,7 +500,7 @@ noncomputable instance APIResourceList_access_load_GroupVersion (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResourceList_access_store_GroupVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList) (y : GoString) :
+noncomputable instance access_store'APIResourceList'GroupVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList go!"GroupVersion" l) v.GroupVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList go!"GroupVersion" l) y (DFrac.own 1))
@@ -508,7 +508,7 @@ noncomputable instance APIResourceList_access_store_GroupVersion (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResourceList_access_load_APIResources (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList) (dq : DFrac) :
+noncomputable instance access_load'APIResourceList'APIResources (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList go!"APIResources" l) v.APIResources' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList go!"APIResources" l) v.APIResources' dq)
@@ -516,7 +516,7 @@ noncomputable instance APIResourceList_access_load_APIResources (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance APIResourceList_access_store_APIResources (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList) (y : GoSlice) :
+noncomputable instance access_store'APIResourceList'APIResources (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList go!"APIResources" l) v.APIResources' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.APIResourceList go!"APIResources" l) y (DFrac.own 1))
@@ -535,7 +535,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
-noncomputable instance LabelSelectorRequirement_typed_pointsto :
+noncomputable instance typed_pointsto'LabelSelectorRequirement :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement where
   typedPointstoDef l v dq := iprop(
     "Key" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement go!"Key" l) v.Key' dq ∗
@@ -546,11 +546,11 @@ noncomputable instance LabelSelectorRequirement_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance LabelSelectorRequirement_into_val_typed :
+noncomputable instance into_val_typed'LabelSelectorRequirement :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance LabelSelectorRequirement_access_load_Key (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement) (dq : DFrac) :
+noncomputable instance access_load'LabelSelectorRequirement'Key (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement go!"Key" l) v.Key' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement go!"Key" l) v.Key' dq)
@@ -558,7 +558,7 @@ noncomputable instance LabelSelectorRequirement_access_load_Key (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance LabelSelectorRequirement_access_store_Key (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement) (y : GoString) :
+noncomputable instance access_store'LabelSelectorRequirement'Key (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement go!"Key" l) y (DFrac.own 1))
@@ -566,7 +566,7 @@ noncomputable instance LabelSelectorRequirement_access_store_Key (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LabelSelectorRequirement_access_load_Operator (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement) (dq : DFrac) :
+noncomputable instance access_load'LabelSelectorRequirement'Operator (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement go!"Operator" l) v.Operator' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement go!"Operator" l) v.Operator' dq)
@@ -574,7 +574,7 @@ noncomputable instance LabelSelectorRequirement_access_load_Operator (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance LabelSelectorRequirement_access_store_Operator (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorOperator) :
+noncomputable instance access_store'LabelSelectorRequirement'Operator (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorOperator) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement go!"Operator" l) v.Operator' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement go!"Operator" l) y (DFrac.own 1))
@@ -582,7 +582,7 @@ noncomputable instance LabelSelectorRequirement_access_store_Operator (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LabelSelectorRequirement_access_load_Values (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement) (dq : DFrac) :
+noncomputable instance access_load'LabelSelectorRequirement'Values (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement go!"Values" l) v.Values' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement go!"Values" l) v.Values' dq)
@@ -590,7 +590,7 @@ noncomputable instance LabelSelectorRequirement_access_load_Values (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LabelSelectorRequirement_access_store_Values (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement) (y : GoSlice) :
+noncomputable instance access_store'LabelSelectorRequirement'Values (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement go!"Values" l) v.Values' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement go!"Values" l) y (DFrac.own 1))
@@ -609,7 +609,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
-noncomputable instance FieldSelectorRequirement_typed_pointsto :
+noncomputable instance typed_pointsto'FieldSelectorRequirement :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement where
   typedPointstoDef l v dq := iprop(
     "Key" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement go!"Key" l) v.Key' dq ∗
@@ -620,11 +620,11 @@ noncomputable instance FieldSelectorRequirement_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance FieldSelectorRequirement_into_val_typed :
+noncomputable instance into_val_typed'FieldSelectorRequirement :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance FieldSelectorRequirement_access_load_Key (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement) (dq : DFrac) :
+noncomputable instance access_load'FieldSelectorRequirement'Key (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement go!"Key" l) v.Key' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement go!"Key" l) v.Key' dq)
@@ -632,7 +632,7 @@ noncomputable instance FieldSelectorRequirement_access_load_Key (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance FieldSelectorRequirement_access_store_Key (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement) (y : GoString) :
+noncomputable instance access_store'FieldSelectorRequirement'Key (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement go!"Key" l) y (DFrac.own 1))
@@ -640,7 +640,7 @@ noncomputable instance FieldSelectorRequirement_access_store_Key (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance FieldSelectorRequirement_access_load_Operator (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement) (dq : DFrac) :
+noncomputable instance access_load'FieldSelectorRequirement'Operator (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement go!"Operator" l) v.Operator' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement go!"Operator" l) v.Operator' dq)
@@ -648,7 +648,7 @@ noncomputable instance FieldSelectorRequirement_access_load_Operator (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance FieldSelectorRequirement_access_store_Operator (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorOperator) :
+noncomputable instance access_store'FieldSelectorRequirement'Operator (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorOperator) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement go!"Operator" l) v.Operator' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement go!"Operator" l) y (DFrac.own 1))
@@ -656,7 +656,7 @@ noncomputable instance FieldSelectorRequirement_access_store_Operator (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance FieldSelectorRequirement_access_load_Values (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement) (dq : DFrac) :
+noncomputable instance access_load'FieldSelectorRequirement'Values (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement go!"Values" l) v.Values' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement go!"Values" l) v.Values' dq)
@@ -664,7 +664,7 @@ noncomputable instance FieldSelectorRequirement_access_load_Values (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance FieldSelectorRequirement_access_store_Values (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement) (y : GoSlice) :
+noncomputable instance access_store'FieldSelectorRequirement'Values (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement go!"Values" l) v.Values' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.FieldSelectorRequirement go!"Values" l) y (DFrac.own 1))
@@ -683,7 +683,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
-noncomputable instance ManagedFieldsEntry_typed_pointsto :
+noncomputable instance typed_pointsto'ManagedFieldsEntry :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry where
   typedPointstoDef l v dq := iprop(
     "Manager" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Manager" l) v.Manager' dq ∗
@@ -698,11 +698,11 @@ noncomputable instance ManagedFieldsEntry_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ManagedFieldsEntry_into_val_typed :
+noncomputable instance into_val_typed'ManagedFieldsEntry :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ManagedFieldsEntry_access_load_Manager (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) :
+noncomputable instance access_load'ManagedFieldsEntry'Manager (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Manager" l) v.Manager' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Manager" l) v.Manager' dq)
@@ -710,7 +710,7 @@ noncomputable instance ManagedFieldsEntry_access_load_Manager (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance ManagedFieldsEntry_access_store_Manager (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (y : GoString) :
+noncomputable instance access_store'ManagedFieldsEntry'Manager (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Manager" l) v.Manager' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Manager" l) y (DFrac.own 1))
@@ -718,7 +718,7 @@ noncomputable instance ManagedFieldsEntry_access_store_Manager (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance ManagedFieldsEntry_access_load_Operation (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) :
+noncomputable instance access_load'ManagedFieldsEntry'Operation (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Operation" l) v.Operation' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Operation" l) v.Operation' dq)
@@ -726,7 +726,7 @@ noncomputable instance ManagedFieldsEntry_access_load_Operation (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance ManagedFieldsEntry_access_store_Operation (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsOperationType) :
+noncomputable instance access_store'ManagedFieldsEntry'Operation (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsOperationType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Operation" l) v.Operation' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Operation" l) y (DFrac.own 1))
@@ -734,7 +734,7 @@ noncomputable instance ManagedFieldsEntry_access_store_Operation (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ManagedFieldsEntry_access_load_APIVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) :
+noncomputable instance access_load'ManagedFieldsEntry'APIVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"APIVersion" l) v.APIVersion' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"APIVersion" l) v.APIVersion' dq)
@@ -742,7 +742,7 @@ noncomputable instance ManagedFieldsEntry_access_load_APIVersion (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ManagedFieldsEntry_access_store_APIVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (y : GoString) :
+noncomputable instance access_store'ManagedFieldsEntry'APIVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"APIVersion" l) v.APIVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"APIVersion" l) y (DFrac.own 1))
@@ -750,7 +750,7 @@ noncomputable instance ManagedFieldsEntry_access_store_APIVersion (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ManagedFieldsEntry_access_load_Time (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) :
+noncomputable instance access_load'ManagedFieldsEntry'Time (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Time" l) v.Time' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Time" l) v.Time' dq)
@@ -758,7 +758,7 @@ noncomputable instance ManagedFieldsEntry_access_load_Time (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance ManagedFieldsEntry_access_store_Time (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (y : Loc) :
+noncomputable instance access_store'ManagedFieldsEntry'Time (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Time" l) v.Time' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Time" l) y (DFrac.own 1))
@@ -766,7 +766,7 @@ noncomputable instance ManagedFieldsEntry_access_store_Time (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ManagedFieldsEntry_access_load_FieldsType (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) :
+noncomputable instance access_load'ManagedFieldsEntry'FieldsType (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"FieldsType" l) v.FieldsType' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"FieldsType" l) v.FieldsType' dq)
@@ -774,7 +774,7 @@ noncomputable instance ManagedFieldsEntry_access_load_FieldsType (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ManagedFieldsEntry_access_store_FieldsType (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (y : GoString) :
+noncomputable instance access_store'ManagedFieldsEntry'FieldsType (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"FieldsType" l) v.FieldsType' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"FieldsType" l) y (DFrac.own 1))
@@ -782,7 +782,7 @@ noncomputable instance ManagedFieldsEntry_access_store_FieldsType (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ManagedFieldsEntry_access_load_FieldsV1 (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) :
+noncomputable instance access_load'ManagedFieldsEntry'FieldsV1 (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"FieldsV1" l) v.FieldsV1' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"FieldsV1" l) v.FieldsV1' dq)
@@ -790,7 +790,7 @@ noncomputable instance ManagedFieldsEntry_access_load_FieldsV1 (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance ManagedFieldsEntry_access_store_FieldsV1 (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (y : Loc) :
+noncomputable instance access_store'ManagedFieldsEntry'FieldsV1 (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"FieldsV1" l) v.FieldsV1' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"FieldsV1" l) y (DFrac.own 1))
@@ -798,7 +798,7 @@ noncomputable instance ManagedFieldsEntry_access_store_FieldsV1 (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance ManagedFieldsEntry_access_load_Subresource (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) :
+noncomputable instance access_load'ManagedFieldsEntry'Subresource (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Subresource" l) v.Subresource' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Subresource" l) v.Subresource' dq)
@@ -806,7 +806,7 @@ noncomputable instance ManagedFieldsEntry_access_load_Subresource (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ManagedFieldsEntry_access_store_Subresource (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (y : GoString) :
+noncomputable instance access_store'ManagedFieldsEntry'Subresource (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Subresource" l) v.Subresource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry go!"Subresource" l) y (DFrac.own 1))
@@ -825,7 +825,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
-noncomputable instance Table_typed_pointsto :
+noncomputable instance typed_pointsto'Table :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.Table where
   typedPointstoDef l v dq := iprop(
     "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"TypeMeta" l) v.TypeMeta' dq ∗
@@ -837,11 +837,11 @@ noncomputable instance Table_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Table_into_val_typed :
+noncomputable instance into_val_typed'Table :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.Table k8s_io.apimachinery.pkg.apis.«meta».v1.Table.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Table_access_load_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Table) (dq : DFrac) :
+noncomputable instance access_load'Table'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Table) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"TypeMeta" l) v.TypeMeta' dq)
@@ -849,7 +849,7 @@ noncomputable instance Table_access_load_TypeMeta (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Table_access_store_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Table) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'Table'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Table) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"TypeMeta" l) y (DFrac.own 1))
@@ -857,7 +857,7 @@ noncomputable instance Table_access_store_TypeMeta (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance Table_access_load_ListMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Table) (dq : DFrac) :
+noncomputable instance access_load'Table'ListMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Table) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"ListMeta" l) v.ListMeta' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"ListMeta" l) v.ListMeta' dq)
@@ -865,7 +865,7 @@ noncomputable instance Table_access_load_ListMeta (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Table_access_store_ListMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Table) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
+noncomputable instance access_store'Table'ListMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Table) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"ListMeta" l) v.ListMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"ListMeta" l) y (DFrac.own 1))
@@ -873,7 +873,7 @@ noncomputable instance Table_access_store_ListMeta (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance Table_access_load_ColumnDefinitions (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Table) (dq : DFrac) :
+noncomputable instance access_load'Table'ColumnDefinitions (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Table) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"ColumnDefinitions" l) v.ColumnDefinitions' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"ColumnDefinitions" l) v.ColumnDefinitions' dq)
@@ -881,7 +881,7 @@ noncomputable instance Table_access_load_ColumnDefinitions (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance Table_access_store_ColumnDefinitions (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Table) (y : GoSlice) :
+noncomputable instance access_store'Table'ColumnDefinitions (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Table) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"ColumnDefinitions" l) v.ColumnDefinitions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"ColumnDefinitions" l) y (DFrac.own 1))
@@ -889,7 +889,7 @@ noncomputable instance Table_access_store_ColumnDefinitions (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Table_access_load_Rows (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Table) (dq : DFrac) :
+noncomputable instance access_load'Table'Rows (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Table) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"Rows" l) v.Rows' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"Rows" l) v.Rows' dq)
@@ -897,7 +897,7 @@ noncomputable instance Table_access_load_Rows (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-noncomputable instance Table_access_store_Rows (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Table) (y : GoSlice) :
+noncomputable instance access_store'Table'Rows (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Table) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"Rows" l) v.Rows' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Table go!"Rows" l) y (DFrac.own 1))
@@ -916,7 +916,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
-noncomputable instance TableRowCondition_typed_pointsto :
+noncomputable instance typed_pointsto'TableRowCondition :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition where
   typedPointstoDef l v dq := iprop(
     "Type'" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Type" l) v.Type' dq ∗
@@ -928,11 +928,11 @@ noncomputable instance TableRowCondition_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance TableRowCondition_into_val_typed :
+noncomputable instance into_val_typed'TableRowCondition :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance TableRowCondition_access_load_Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition) (dq : DFrac) :
+noncomputable instance access_load'TableRowCondition'Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Type" l) v.Type' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Type" l) v.Type' dq)
@@ -940,7 +940,7 @@ noncomputable instance TableRowCondition_access_load_Type (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance TableRowCondition_access_store_Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.RowConditionType) :
+noncomputable instance access_store'TableRowCondition'Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.RowConditionType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Type" l) y (DFrac.own 1))
@@ -948,7 +948,7 @@ noncomputable instance TableRowCondition_access_store_Type (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance TableRowCondition_access_load_Status (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition) (dq : DFrac) :
+noncomputable instance access_load'TableRowCondition'Status (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Status" l) v.Status' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Status" l) v.Status' dq)
@@ -956,7 +956,7 @@ noncomputable instance TableRowCondition_access_load_Status (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance TableRowCondition_access_store_Status (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.ConditionStatus) :
+noncomputable instance access_store'TableRowCondition'Status (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.ConditionStatus) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Status" l) v.Status' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Status" l) y (DFrac.own 1))
@@ -964,7 +964,7 @@ noncomputable instance TableRowCondition_access_store_Status (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance TableRowCondition_access_load_Reason (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition) (dq : DFrac) :
+noncomputable instance access_load'TableRowCondition'Reason (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Reason" l) v.Reason' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Reason" l) v.Reason' dq)
@@ -972,7 +972,7 @@ noncomputable instance TableRowCondition_access_load_Reason (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance TableRowCondition_access_store_Reason (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition) (y : GoString) :
+noncomputable instance access_store'TableRowCondition'Reason (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Reason" l) v.Reason' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Reason" l) y (DFrac.own 1))
@@ -980,7 +980,7 @@ noncomputable instance TableRowCondition_access_store_Reason (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance TableRowCondition_access_load_Message (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition) (dq : DFrac) :
+noncomputable instance access_load'TableRowCondition'Message (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Message" l) v.Message' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Message" l) v.Message' dq)
@@ -988,7 +988,7 @@ noncomputable instance TableRowCondition_access_load_Message (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance TableRowCondition_access_store_Message (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition) (y : GoString) :
+noncomputable instance access_store'TableRowCondition'Message (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Message" l) v.Message' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRowCondition go!"Message" l) y (DFrac.own 1))
@@ -1007,7 +1007,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
-noncomputable instance TableOptions_typed_pointsto :
+noncomputable instance typed_pointsto'TableOptions :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions where
   typedPointstoDef l v dq := iprop(
     "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions go!"TypeMeta" l) v.TypeMeta' dq ∗
@@ -1018,11 +1018,11 @@ noncomputable instance TableOptions_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance TableOptions_into_val_typed :
+noncomputable instance into_val_typed'TableOptions :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance TableOptions_access_load_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions) (dq : DFrac) :
+noncomputable instance access_load'TableOptions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions go!"TypeMeta" l) v.TypeMeta' dq)
@@ -1030,7 +1030,7 @@ noncomputable instance TableOptions_access_load_TypeMeta (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance TableOptions_access_store_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'TableOptions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions go!"TypeMeta" l) y (DFrac.own 1))
@@ -1038,7 +1038,7 @@ noncomputable instance TableOptions_access_store_TypeMeta (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance TableOptions_access_load_NoHeaders (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions) (dq : DFrac) :
+noncomputable instance access_load'TableOptions'NoHeaders (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions go!"NoHeaders" l) v.NoHeaders' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions go!"NoHeaders" l) v.NoHeaders' dq)
@@ -1046,7 +1046,7 @@ noncomputable instance TableOptions_access_load_NoHeaders (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance TableOptions_access_store_NoHeaders (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions) (y : Bool) :
+noncomputable instance access_store'TableOptions'NoHeaders (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions go!"NoHeaders" l) v.NoHeaders' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions go!"NoHeaders" l) y (DFrac.own 1))
@@ -1054,7 +1054,7 @@ noncomputable instance TableOptions_access_store_NoHeaders (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance TableOptions_access_load_IncludeObject (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions) (dq : DFrac) :
+noncomputable instance access_load'TableOptions'IncludeObject (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions go!"IncludeObject" l) v.IncludeObject' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions go!"IncludeObject" l) v.IncludeObject' dq)
@@ -1062,7 +1062,7 @@ noncomputable instance TableOptions_access_load_IncludeObject (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance TableOptions_access_store_IncludeObject (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.IncludeObjectPolicy) :
+noncomputable instance access_store'TableOptions'IncludeObject (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.IncludeObjectPolicy) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions go!"IncludeObject" l) v.IncludeObject' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableOptions go!"IncludeObject" l) y (DFrac.own 1))
@@ -1081,7 +1081,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
-noncomputable instance PartialObjectMetadataList_typed_pointsto :
+noncomputable instance typed_pointsto'PartialObjectMetadataList :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList where
   typedPointstoDef l v dq := iprop(
     "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList go!"TypeMeta" l) v.TypeMeta' dq ∗
@@ -1092,11 +1092,11 @@ noncomputable instance PartialObjectMetadataList_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance PartialObjectMetadataList_into_val_typed :
+noncomputable instance into_val_typed'PartialObjectMetadataList :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance PartialObjectMetadataList_access_load_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList) (dq : DFrac) :
+noncomputable instance access_load'PartialObjectMetadataList'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList go!"TypeMeta" l) v.TypeMeta' dq)
@@ -1104,7 +1104,7 @@ noncomputable instance PartialObjectMetadataList_access_load_TypeMeta (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance PartialObjectMetadataList_access_store_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'PartialObjectMetadataList'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList go!"TypeMeta" l) y (DFrac.own 1))
@@ -1112,7 +1112,7 @@ noncomputable instance PartialObjectMetadataList_access_store_TypeMeta (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance PartialObjectMetadataList_access_load_ListMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList) (dq : DFrac) :
+noncomputable instance access_load'PartialObjectMetadataList'ListMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList go!"ListMeta" l) v.ListMeta' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList go!"ListMeta" l) v.ListMeta' dq)
@@ -1120,7 +1120,7 @@ noncomputable instance PartialObjectMetadataList_access_load_ListMeta (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance PartialObjectMetadataList_access_store_ListMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
+noncomputable instance access_store'PartialObjectMetadataList'ListMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList go!"ListMeta" l) v.ListMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList go!"ListMeta" l) y (DFrac.own 1))
@@ -1128,7 +1128,7 @@ noncomputable instance PartialObjectMetadataList_access_store_ListMeta (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance PartialObjectMetadataList_access_load_Items (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList) (dq : DFrac) :
+noncomputable instance access_load'PartialObjectMetadataList'Items (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList go!"Items" l) v.Items' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList go!"Items" l) v.Items' dq)
@@ -1136,7 +1136,7 @@ noncomputable instance PartialObjectMetadataList_access_load_Items (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance PartialObjectMetadataList_access_store_Items (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList) (y : GoSlice) :
+noncomputable instance access_store'PartialObjectMetadataList'Items (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList go!"Items" l) v.Items' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadataList go!"Items" l) y (DFrac.own 1))
@@ -1155,7 +1155,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
-noncomputable instance Condition_typed_pointsto :
+noncomputable instance typed_pointsto'Condition :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.Condition where
   typedPointstoDef l v dq := iprop(
     "Type'" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Type" l) v.Type' dq ∗
@@ -1169,11 +1169,11 @@ noncomputable instance Condition_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Condition_into_val_typed :
+noncomputable instance into_val_typed'Condition :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.Condition k8s_io.apimachinery.pkg.apis.«meta».v1.Condition.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Condition_access_load_Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (dq : DFrac) :
+noncomputable instance access_load'Condition'Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Type" l) v.Type' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Type" l) v.Type' dq)
@@ -1181,7 +1181,7 @@ noncomputable instance Condition_access_load_Type (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Condition_access_store_Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (y : GoString) :
+noncomputable instance access_store'Condition'Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Type" l) y (DFrac.own 1))
@@ -1189,7 +1189,7 @@ noncomputable instance Condition_access_store_Type (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance Condition_access_load_Status (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (dq : DFrac) :
+noncomputable instance access_load'Condition'Status (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Status" l) v.Status' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Status" l) v.Status' dq)
@@ -1197,7 +1197,7 @@ noncomputable instance Condition_access_load_Status (l : Loc) (v : k8s_io.apimac
  by
   solve_pointsto_access_struct
 
-noncomputable instance Condition_access_store_Status (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.ConditionStatus) :
+noncomputable instance access_store'Condition'Status (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.ConditionStatus) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Status" l) v.Status' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Status" l) y (DFrac.own 1))
@@ -1205,7 +1205,7 @@ noncomputable instance Condition_access_store_Status (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance Condition_access_load_ObservedGeneration (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (dq : DFrac) :
+noncomputable instance access_load'Condition'ObservedGeneration (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"ObservedGeneration" l) v.ObservedGeneration' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"ObservedGeneration" l) v.ObservedGeneration' dq)
@@ -1213,7 +1213,7 @@ noncomputable instance Condition_access_load_ObservedGeneration (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance Condition_access_store_ObservedGeneration (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (y : w64) :
+noncomputable instance access_store'Condition'ObservedGeneration (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"ObservedGeneration" l) v.ObservedGeneration' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"ObservedGeneration" l) y (DFrac.own 1))
@@ -1221,7 +1221,7 @@ noncomputable instance Condition_access_store_ObservedGeneration (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Condition_access_load_LastTransitionTime (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (dq : DFrac) :
+noncomputable instance access_load'Condition'LastTransitionTime (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"LastTransitionTime" l) v.LastTransitionTime' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"LastTransitionTime" l) v.LastTransitionTime' dq)
@@ -1229,7 +1229,7 @@ noncomputable instance Condition_access_load_LastTransitionTime (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance Condition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance access_store'Condition'LastTransitionTime (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"LastTransitionTime" l) v.LastTransitionTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"LastTransitionTime" l) y (DFrac.own 1))
@@ -1237,7 +1237,7 @@ noncomputable instance Condition_access_store_LastTransitionTime (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Condition_access_load_Reason (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (dq : DFrac) :
+noncomputable instance access_load'Condition'Reason (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Reason" l) v.Reason' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Reason" l) v.Reason' dq)
@@ -1245,7 +1245,7 @@ noncomputable instance Condition_access_load_Reason (l : Loc) (v : k8s_io.apimac
  by
   solve_pointsto_access_struct
 
-noncomputable instance Condition_access_store_Reason (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (y : GoString) :
+noncomputable instance access_store'Condition'Reason (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Reason" l) v.Reason' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Reason" l) y (DFrac.own 1))
@@ -1253,7 +1253,7 @@ noncomputable instance Condition_access_store_Reason (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance Condition_access_load_Message (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (dq : DFrac) :
+noncomputable instance access_load'Condition'Message (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Message" l) v.Message' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Message" l) v.Message' dq)
@@ -1261,7 +1261,7 @@ noncomputable instance Condition_access_load_Message (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance Condition_access_store_Message (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (y : GoString) :
+noncomputable instance access_store'Condition'Message (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Condition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Message" l) v.Message' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Condition go!"Message" l) y (DFrac.own 1))

@@ -147,7 +147,7 @@ theorem Bag.Plus.wp_proof (wp_add : Bag.add.spec (GF := GF) (hG := hG)) :
       · iexact Hcits
       ipureintro; exact Hy
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_add_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'add.method_unfold]
     try wp_auto
     have htake : (c.take (sint.nat (j + W64 1))).foldl (fun acc it => acc.add it.1 it.2) b =
         ((c.take (sint.nat j)).foldl (fun acc it => acc.add it.1 it.2) b).add x.1 x.2 := by

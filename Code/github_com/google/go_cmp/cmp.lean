@@ -1644,117 +1644,117 @@ attribute [instance] reportRecord.TypeAssumptions.type_repr
   reportRecord.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  state_instance : state.TypeAssumptions
-  recChecker_instance : recChecker.TypeAssumptions
-  dynChecker_instance : dynChecker.TypeAssumptions
-  Option_instance : Option.TypeAssumptions
-  applicableOption_instance : applicableOption.TypeAssumptions
-  coreOption_instance : coreOption.TypeAssumptions
-  core_instance : core.TypeAssumptions
-  Options_instance : Options.TypeAssumptions
-  pathFilter_instance : pathFilter.TypeAssumptions
-  valuesFilter_instance : valuesFilter.TypeAssumptions
-  ignore_instance : ignore.TypeAssumptions
-  validator_instance : validator.TypeAssumptions
-  transformer_instance : transformer.TypeAssumptions
-  comparer_instance : comparer.TypeAssumptions
-  exporter_instance : exporter.TypeAssumptions
-  Result_instance : Result.TypeAssumptions
-  resultFlags_instance : resultFlags.TypeAssumptions
-  reporter_instance : reporter.TypeAssumptions
-  reporterIface_instance : reporterIface.TypeAssumptions
-  Path_instance : Path.TypeAssumptions
-  PathStep_instance : PathStep.TypeAssumptions
-  pathStep_instance : pathStep.TypeAssumptions
-  StructField_instance : StructField.TypeAssumptions
-  structField_instance : structField.TypeAssumptions
-  SliceIndex_instance : SliceIndex.TypeAssumptions
-  sliceIndex_instance : sliceIndex.TypeAssumptions
-  MapIndex_instance : MapIndex.TypeAssumptions
-  mapIndex_instance : mapIndex.TypeAssumptions
-  Indirect_instance : Indirect.TypeAssumptions
-  indirect_instance : indirect.TypeAssumptions
-  TypeAssertion_instance : TypeAssertion.TypeAssumptions
-  typeAssertion_instance : typeAssertion.TypeAssumptions
-  Transform_instance : Transform.TypeAssumptions
-  transform_instance : transform.TypeAssumptions
-  pointerPath_instance : pointerPath.TypeAssumptions
-  defaultReporter_instance : defaultReporter.TypeAssumptions
-  diffMode_instance : diffMode.TypeAssumptions
-  typeMode_instance : typeMode.TypeAssumptions
-  formatOptions_instance : formatOptions.TypeAssumptions
-  pointerReferences_instance : pointerReferences.TypeAssumptions
-  trunkReferences_instance : trunkReferences.TypeAssumptions
-  trunkReference_instance : trunkReference.TypeAssumptions
-  leafReference_instance : leafReference.TypeAssumptions
-  formatValueOptions_instance : formatValueOptions.TypeAssumptions
-  indentMode_instance : indentMode.TypeAssumptions
-  repeatCount_instance : repeatCount.TypeAssumptions
-  textNode_instance : textNode.TypeAssumptions
-  textWrap_instance : textWrap.TypeAssumptions
-  textList_instance : textList.TypeAssumptions
-  textRecord_instance : textRecord.TypeAssumptions
-  textLine_instance : textLine.TypeAssumptions
-  diffStats_instance : diffStats.TypeAssumptions
-  commentString_instance : commentString.TypeAssumptions
-  valueNode_instance : valueNode.TypeAssumptions
-  reportRecord_instance : reportRecord.TypeAssumptions
+  instance'state : state.TypeAssumptions
+  instance'recChecker : recChecker.TypeAssumptions
+  instance'dynChecker : dynChecker.TypeAssumptions
+  instance'Option : Option.TypeAssumptions
+  instance'applicableOption : applicableOption.TypeAssumptions
+  instance'coreOption : coreOption.TypeAssumptions
+  instance'core : core.TypeAssumptions
+  instance'Options : Options.TypeAssumptions
+  instance'pathFilter : pathFilter.TypeAssumptions
+  instance'valuesFilter : valuesFilter.TypeAssumptions
+  instance'ignore : ignore.TypeAssumptions
+  instance'validator : validator.TypeAssumptions
+  instance'transformer : transformer.TypeAssumptions
+  instance'comparer : comparer.TypeAssumptions
+  instance'exporter : exporter.TypeAssumptions
+  instance'Result : Result.TypeAssumptions
+  instance'resultFlags : resultFlags.TypeAssumptions
+  instance'reporter : reporter.TypeAssumptions
+  instance'reporterIface : reporterIface.TypeAssumptions
+  instance'Path : Path.TypeAssumptions
+  instance'PathStep : PathStep.TypeAssumptions
+  instance'pathStep : pathStep.TypeAssumptions
+  instance'StructField : StructField.TypeAssumptions
+  instance'structField : structField.TypeAssumptions
+  instance'SliceIndex : SliceIndex.TypeAssumptions
+  instance'sliceIndex : sliceIndex.TypeAssumptions
+  instance'MapIndex : MapIndex.TypeAssumptions
+  instance'mapIndex : mapIndex.TypeAssumptions
+  instance'Indirect : Indirect.TypeAssumptions
+  instance'indirect : indirect.TypeAssumptions
+  instance'TypeAssertion : TypeAssertion.TypeAssumptions
+  instance'typeAssertion : typeAssertion.TypeAssumptions
+  instance'Transform : Transform.TypeAssumptions
+  instance'transform : transform.TypeAssumptions
+  instance'pointerPath : pointerPath.TypeAssumptions
+  instance'defaultReporter : defaultReporter.TypeAssumptions
+  instance'diffMode : diffMode.TypeAssumptions
+  instance'typeMode : typeMode.TypeAssumptions
+  instance'formatOptions : formatOptions.TypeAssumptions
+  instance'pointerReferences : pointerReferences.TypeAssumptions
+  instance'trunkReferences : trunkReferences.TypeAssumptions
+  instance'trunkReference : trunkReference.TypeAssumptions
+  instance'leafReference : leafReference.TypeAssumptions
+  instance'formatValueOptions : formatValueOptions.TypeAssumptions
+  instance'indentMode : indentMode.TypeAssumptions
+  instance'repeatCount : repeatCount.TypeAssumptions
+  instance'textNode : textNode.TypeAssumptions
+  instance'textWrap : textWrap.TypeAssumptions
+  instance'textList : textList.TypeAssumptions
+  instance'textRecord : textRecord.TypeAssumptions
+  instance'textLine : textLine.TypeAssumptions
+  instance'diffStats : diffStats.TypeAssumptions
+  instance'commentString : commentString.TypeAssumptions
+  instance'valueNode : valueNode.TypeAssumptions
+  instance'reportRecord : reportRecord.TypeAssumptions
 
-attribute [instance] Assumptions.state_instance
-  Assumptions.recChecker_instance
-  Assumptions.dynChecker_instance
-  Assumptions.Option_instance
-  Assumptions.applicableOption_instance
-  Assumptions.coreOption_instance
-  Assumptions.core_instance
-  Assumptions.Options_instance
-  Assumptions.pathFilter_instance
-  Assumptions.valuesFilter_instance
-  Assumptions.ignore_instance
-  Assumptions.validator_instance
-  Assumptions.transformer_instance
-  Assumptions.comparer_instance
-  Assumptions.exporter_instance
-  Assumptions.Result_instance
-  Assumptions.resultFlags_instance
-  Assumptions.reporter_instance
-  Assumptions.reporterIface_instance
-  Assumptions.Path_instance
-  Assumptions.PathStep_instance
-  Assumptions.pathStep_instance
-  Assumptions.StructField_instance
-  Assumptions.structField_instance
-  Assumptions.SliceIndex_instance
-  Assumptions.sliceIndex_instance
-  Assumptions.MapIndex_instance
-  Assumptions.mapIndex_instance
-  Assumptions.Indirect_instance
-  Assumptions.indirect_instance
-  Assumptions.TypeAssertion_instance
-  Assumptions.typeAssertion_instance
-  Assumptions.Transform_instance
-  Assumptions.transform_instance
-  Assumptions.pointerPath_instance
-  Assumptions.defaultReporter_instance
-  Assumptions.diffMode_instance
-  Assumptions.typeMode_instance
-  Assumptions.formatOptions_instance
-  Assumptions.pointerReferences_instance
-  Assumptions.trunkReferences_instance
-  Assumptions.trunkReference_instance
-  Assumptions.leafReference_instance
-  Assumptions.formatValueOptions_instance
-  Assumptions.indentMode_instance
-  Assumptions.repeatCount_instance
-  Assumptions.textNode_instance
-  Assumptions.textWrap_instance
-  Assumptions.textList_instance
-  Assumptions.textRecord_instance
-  Assumptions.textLine_instance
-  Assumptions.diffStats_instance
-  Assumptions.commentString_instance
-  Assumptions.valueNode_instance
-  Assumptions.reportRecord_instance
+attribute [instance] Assumptions.instance'state
+  Assumptions.instance'recChecker
+  Assumptions.instance'dynChecker
+  Assumptions.instance'Option
+  Assumptions.instance'applicableOption
+  Assumptions.instance'coreOption
+  Assumptions.instance'core
+  Assumptions.instance'Options
+  Assumptions.instance'pathFilter
+  Assumptions.instance'valuesFilter
+  Assumptions.instance'ignore
+  Assumptions.instance'validator
+  Assumptions.instance'transformer
+  Assumptions.instance'comparer
+  Assumptions.instance'exporter
+  Assumptions.instance'Result
+  Assumptions.instance'resultFlags
+  Assumptions.instance'reporter
+  Assumptions.instance'reporterIface
+  Assumptions.instance'Path
+  Assumptions.instance'PathStep
+  Assumptions.instance'pathStep
+  Assumptions.instance'StructField
+  Assumptions.instance'structField
+  Assumptions.instance'SliceIndex
+  Assumptions.instance'sliceIndex
+  Assumptions.instance'MapIndex
+  Assumptions.instance'mapIndex
+  Assumptions.instance'Indirect
+  Assumptions.instance'indirect
+  Assumptions.instance'TypeAssertion
+  Assumptions.instance'typeAssertion
+  Assumptions.instance'Transform
+  Assumptions.instance'transform
+  Assumptions.instance'pointerPath
+  Assumptions.instance'defaultReporter
+  Assumptions.instance'diffMode
+  Assumptions.instance'typeMode
+  Assumptions.instance'formatOptions
+  Assumptions.instance'pointerReferences
+  Assumptions.instance'trunkReferences
+  Assumptions.instance'trunkReference
+  Assumptions.instance'leafReference
+  Assumptions.instance'formatValueOptions
+  Assumptions.instance'indentMode
+  Assumptions.instance'repeatCount
+  Assumptions.instance'textNode
+  Assumptions.instance'textWrap
+  Assumptions.instance'textList
+  Assumptions.instance'textRecord
+  Assumptions.instance'textLine
+  Assumptions.instance'diffStats
+  Assumptions.instance'commentString
+  Assumptions.instance'valueNode
+  Assumptions.instance'reportRecord
 
 end github_com.google.go_cmp.cmp
 

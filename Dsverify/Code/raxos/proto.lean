@@ -51,11 +51,11 @@ attribute [instance] Serializable.TypeAssumptions.underlying
   Serializable.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Serializable_instance : Serializable.TypeAssumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
+  instance'Serializable : Serializable.TypeAssumptions
+  import'io : _root_.Perennial.io.Assumptions
 
-attribute [instance] Assumptions.Serializable_instance
-  Assumptions.import_io_Assumption
+attribute [instance] Assumptions.instance'Serializable
+  Assumptions.import'io
 
 end raxos.proto
 

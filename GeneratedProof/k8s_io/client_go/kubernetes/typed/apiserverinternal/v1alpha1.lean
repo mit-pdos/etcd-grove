@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
 
-noncomputable instance InternalV1alpha1Interface_typed_pointsto :
+noncomputable instance typed_pointsto'InternalV1alpha1Interface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Interface :=
   sorry -- axiomatized type
 
-noncomputable instance InternalV1alpha1Interface_into_val_typed :
+noncomputable instance into_val_typed'InternalV1alpha1Interface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Interface k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Interface.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
 
-noncomputable instance InternalV1alpha1Client_typed_pointsto :
+noncomputable instance typed_pointsto'InternalV1alpha1Client :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Client :=
   sorry -- axiomatized type
 
-noncomputable instance InternalV1alpha1Client_into_val_typed :
+noncomputable instance into_val_typed'InternalV1alpha1Client :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Client k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Client.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
 
-noncomputable instance StorageVersionExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'StorageVersionExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance StorageVersionExpansion_into_val_typed :
+noncomputable instance into_val_typed'StorageVersionExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionExpansion k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
 
-noncomputable instance StorageVersionsGetter_typed_pointsto :
+noncomputable instance typed_pointsto'StorageVersionsGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionsGetter :=
   sorry -- axiomatized type
 
-noncomputable instance StorageVersionsGetter_into_val_typed :
+noncomputable instance into_val_typed'StorageVersionsGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionsGetter k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionsGetter.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
 
-noncomputable instance StorageVersionInterface_typed_pointsto :
+noncomputable instance typed_pointsto'StorageVersionInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionInterface :=
   sorry -- axiomatized type
 
-noncomputable instance StorageVersionInterface_into_val_typed :
+noncomputable instance into_val_typed'StorageVersionInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionInterface k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionInterface.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
 
-noncomputable instance storageVersions_typed_pointsto :
+noncomputable instance typed_pointsto'storageVersions :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.storageVersions :=
   sorry -- axiomatized type
 
-noncomputable instance storageVersions_into_val_typed :
+noncomputable instance into_val_typed'storageVersions :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.storageVersions k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.storageVersions.underlying :=
   sorry -- axiomatized type
 

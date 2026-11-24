@@ -82,7 +82,7 @@ noncomputable def RuneComparator [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def TimeComparator [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/emirpasic/gods/utils.TimeComparator"
 
-noncomputable def «Sort» [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Sort'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/emirpasic/gods/utils.Sort"
 
 noncomputable def ToString [GooseExts] [GoGlobalContext] : GoString :=
@@ -832,7 +832,7 @@ noncomputable def TimeComparator.impl [GooseExts] [GoGlobalContext] : val :=
     Uses Go's sort (hybrid of quicksort for large and then insertion sort for smaller slices).
 
     go: sort.go:12:6 -/
-noncomputable def «Sort».impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Sort''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "values"
   (Lam "comparator"
   (Seq (App (Val exceptionDo)
@@ -842,7 +842,7 @@ noncomputable def «Sort».impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (Convert sortable.ty _root_.Perennial.sort.Interface.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "values"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad Comparator.ty))) (Var "comparator"))
   (App (Val (GoInstruction (CompositeLiteral sortable.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.SliceType (go.GoType.InterfaceType [])) (Var "$v0"))), (KeyedElement none (ElementExpression Comparator.ty (Var "$v1")))])))))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0")))))))
   (Val #()))))
 
 /-- go: sort.go:21:19 -/
@@ -1126,7 +1126,7 @@ noncomputable instance sortable.zero_val [GooseExts] : ZeroVal sortable :=
 @[irreducible] noncomputable def sortable.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   sortable.fieldsUnsealed
 
-noncomputable instance equals_unfold_sortable [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'sortable [GooseExts] [GoGlobalContext] :
     EqualsUnfold sortable.fields sortable.fieldsUnsealed :=
   ⟨by unfold sortable.fields; rfl⟩
 
@@ -1136,87 +1136,87 @@ noncomputable instance equals_unfold_sortable [GooseExts] [GoGlobalContext] :
 class sortable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying sortable.underlying sortable
   underlying : go.UnderlyingDirectedEq sortable.ty sortable.underlying
-  get_values : ∀ (x : sortable), go.IsGoStepPureDetTagged under (StructFieldGet sortable.underlying go!"values") #x (Val #(x.values'))
-  set_values : ∀ (x : sortable) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet sortable.underlying go!"values") (PairV #x #y) (Val #(({ x with values' := y } : sortable)))
-  get_comparator : ∀ (x : sortable), go.IsGoStepPureDetTagged under (StructFieldGet sortable.underlying go!"comparator") #x (Val #(x.comparator'))
-  set_comparator : ∀ (x : sortable) (y : Comparator), go.IsGoStepPureDetTagged under (StructFieldSet sortable.underlying go!"comparator") (PairV #x #y) (Val #(({ x with comparator' := y } : sortable)))
+  get'values : ∀ (x : sortable), go.IsGoStepPureDetTagged under (StructFieldGet sortable.underlying go!"values") #x (Val #(x.values'))
+  set'values : ∀ (x : sortable) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet sortable.underlying go!"values") (PairV #x #y) (Val #(({ x with values' := y } : sortable)))
+  get'comparator : ∀ (x : sortable), go.IsGoStepPureDetTagged under (StructFieldGet sortable.underlying go!"comparator") #x (Val #(x.comparator'))
+  set'comparator : ∀ (x : sortable) (y : Comparator), go.IsGoStepPureDetTagged under (StructFieldSet sortable.underlying go!"comparator") (PairV #x #y) (Val #(({ x with comparator' := y } : sortable)))
   method_set : go.MethodSetIs sortable.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType sortable.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold sortable.ty go!"Len" sortable.Len.impl
-  Less_unfold : MethodUnfold sortable.ty go!"Less" sortable.Less.impl
-  Swap_unfold : MethodUnfold sortable.ty go!"Swap" sortable.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType sortable.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold sortable.ty go!"Len" sortable.Len.impl
+  unfold'Less : MethodUnfold sortable.ty go!"Less" sortable.Less.impl
+  unfold'Swap : MethodUnfold sortable.ty go!"Swap" sortable.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType sortable.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve sortable.ty go!"Len"))) (App (Val (GoInstruction (GoLoad sortable.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType sortable.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType sortable.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve sortable.ty go!"Less"))) (App (Val (GoInstruction (GoLoad sortable.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType sortable.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType sortable.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve sortable.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad sortable.ty))) (Var "$r"))))
 
 attribute [instance] sortable.TypeAssumptions.type_repr
   sortable.TypeAssumptions.underlying
-  sortable.TypeAssumptions.get_values
-  sortable.TypeAssumptions.set_values
-  sortable.TypeAssumptions.get_comparator
-  sortable.TypeAssumptions.set_comparator
+  sortable.TypeAssumptions.get'values
+  sortable.TypeAssumptions.set'values
+  sortable.TypeAssumptions.get'comparator
+  sortable.TypeAssumptions.set'comparator
   sortable.TypeAssumptions.method_set
   sortable.TypeAssumptions.ptr_method_set
-  sortable.TypeAssumptions.Len_unfold
-  sortable.TypeAssumptions.Less_unfold
-  sortable.TypeAssumptions.Swap_unfold
-  sortable.TypeAssumptions.ptr_Len_unfold
-  sortable.TypeAssumptions.ptr_Less_unfold
-  sortable.TypeAssumptions.ptr_Swap_unfold
+  sortable.TypeAssumptions.unfold'Len
+  sortable.TypeAssumptions.unfold'Less
+  sortable.TypeAssumptions.unfold'Swap
+  sortable.TypeAssumptions.ptr_unfold'Len
+  sortable.TypeAssumptions.ptr_unfold'Less
+  sortable.TypeAssumptions.ptr_unfold'Swap
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Comparator_instance : Comparator.TypeAssumptions
-  sortable_instance : sortable.TypeAssumptions
-  StringComparator_unfold : FuncUnfold StringComparator [] StringComparator.impl
-  IntComparator_unfold : FuncUnfold IntComparator [] IntComparator.impl
-  Int8Comparator_unfold : FuncUnfold Int8Comparator [] Int8Comparator.impl
-  Int16Comparator_unfold : FuncUnfold Int16Comparator [] Int16Comparator.impl
-  Int32Comparator_unfold : FuncUnfold Int32Comparator [] Int32Comparator.impl
-  Int64Comparator_unfold : FuncUnfold Int64Comparator [] Int64Comparator.impl
-  UIntComparator_unfold : FuncUnfold UIntComparator [] UIntComparator.impl
-  UInt8Comparator_unfold : FuncUnfold UInt8Comparator [] UInt8Comparator.impl
-  UInt16Comparator_unfold : FuncUnfold UInt16Comparator [] UInt16Comparator.impl
-  UInt32Comparator_unfold : FuncUnfold UInt32Comparator [] UInt32Comparator.impl
-  UInt64Comparator_unfold : FuncUnfold UInt64Comparator [] UInt64Comparator.impl
-  Float32Comparator_unfold : FuncUnfold Float32Comparator [] Float32Comparator.impl
-  Float64Comparator_unfold : FuncUnfold Float64Comparator [] Float64Comparator.impl
-  ByteComparator_unfold : FuncUnfold ByteComparator [] ByteComparator.impl
-  RuneComparator_unfold : FuncUnfold RuneComparator [] RuneComparator.impl
-  TimeComparator_unfold : FuncUnfold TimeComparator [] TimeComparator.impl
-  Sort_unfold : FuncUnfold «Sort» [] «Sort».impl
-  ToString_unfold : FuncUnfold ToString [] ToString.impl
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_sort_Assumption : _root_.Perennial.sort.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
+  instance'Comparator : Comparator.TypeAssumptions
+  instance'sortable : sortable.TypeAssumptions
+  unfold'StringComparator : FuncUnfold StringComparator [] StringComparator.impl
+  unfold'IntComparator : FuncUnfold IntComparator [] IntComparator.impl
+  unfold'Int8Comparator : FuncUnfold Int8Comparator [] Int8Comparator.impl
+  unfold'Int16Comparator : FuncUnfold Int16Comparator [] Int16Comparator.impl
+  unfold'Int32Comparator : FuncUnfold Int32Comparator [] Int32Comparator.impl
+  unfold'Int64Comparator : FuncUnfold Int64Comparator [] Int64Comparator.impl
+  unfold'UIntComparator : FuncUnfold UIntComparator [] UIntComparator.impl
+  unfold'UInt8Comparator : FuncUnfold UInt8Comparator [] UInt8Comparator.impl
+  unfold'UInt16Comparator : FuncUnfold UInt16Comparator [] UInt16Comparator.impl
+  unfold'UInt32Comparator : FuncUnfold UInt32Comparator [] UInt32Comparator.impl
+  unfold'UInt64Comparator : FuncUnfold UInt64Comparator [] UInt64Comparator.impl
+  unfold'Float32Comparator : FuncUnfold Float32Comparator [] Float32Comparator.impl
+  unfold'Float64Comparator : FuncUnfold Float64Comparator [] Float64Comparator.impl
+  unfold'ByteComparator : FuncUnfold ByteComparator [] ByteComparator.impl
+  unfold'RuneComparator : FuncUnfold RuneComparator [] RuneComparator.impl
+  unfold'TimeComparator : FuncUnfold TimeComparator [] TimeComparator.impl
+  unfold'Sort : FuncUnfold Sort'' [] Sort''.impl
+  unfold'ToString : FuncUnfold ToString [] ToString.impl
+  import'time : _root_.Perennial.time.Assumptions
+  import'sort : _root_.Perennial.sort.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
 
-attribute [instance] Assumptions.Comparator_instance
-  Assumptions.sortable_instance
-  Assumptions.StringComparator_unfold
-  Assumptions.IntComparator_unfold
-  Assumptions.Int8Comparator_unfold
-  Assumptions.Int16Comparator_unfold
-  Assumptions.Int32Comparator_unfold
-  Assumptions.Int64Comparator_unfold
-  Assumptions.UIntComparator_unfold
-  Assumptions.UInt8Comparator_unfold
-  Assumptions.UInt16Comparator_unfold
-  Assumptions.UInt32Comparator_unfold
-  Assumptions.UInt64Comparator_unfold
-  Assumptions.Float32Comparator_unfold
-  Assumptions.Float64Comparator_unfold
-  Assumptions.ByteComparator_unfold
-  Assumptions.RuneComparator_unfold
-  Assumptions.TimeComparator_unfold
-  Assumptions.Sort_unfold
-  Assumptions.ToString_unfold
-  Assumptions.import_time_Assumption
-  Assumptions.import_sort_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_strconv_Assumption
+attribute [instance] Assumptions.instance'Comparator
+  Assumptions.instance'sortable
+  Assumptions.unfold'StringComparator
+  Assumptions.unfold'IntComparator
+  Assumptions.unfold'Int8Comparator
+  Assumptions.unfold'Int16Comparator
+  Assumptions.unfold'Int32Comparator
+  Assumptions.unfold'Int64Comparator
+  Assumptions.unfold'UIntComparator
+  Assumptions.unfold'UInt8Comparator
+  Assumptions.unfold'UInt16Comparator
+  Assumptions.unfold'UInt32Comparator
+  Assumptions.unfold'UInt64Comparator
+  Assumptions.unfold'Float32Comparator
+  Assumptions.unfold'Float64Comparator
+  Assumptions.unfold'ByteComparator
+  Assumptions.unfold'RuneComparator
+  Assumptions.unfold'TimeComparator
+  Assumptions.unfold'Sort
+  Assumptions.unfold'ToString
+  Assumptions.import'time
+  Assumptions.import'sort
+  Assumptions.import'fmt
+  Assumptions.import'strconv
 
 end github_com.emirpasic.gods.utils
 

@@ -28,7 +28,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : raxos.common.Assumptions]
 
-noncomputable instance RPCPair_typed_pointsto :
+noncomputable instance typed_pointsto'RPCPair :
     TypedPointsto (GF := GF) raxos.common.RPCPair where
   typedPointstoDef l v dq := iprop(
     "Code" ∷ typedPointsto (structFieldRef raxos.common.RPCPair go!"Code" l) v.Code' dq ∗
@@ -38,11 +38,11 @@ noncomputable instance RPCPair_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance RPCPair_into_val_typed :
+noncomputable instance into_val_typed'RPCPair :
     IntoValTypedUnderlying (GF := GF) raxos.common.RPCPair raxos.common.RPCPair.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance RPCPair_access_load_Code (l : Loc) (v : raxos.common.RPCPair) (dq : DFrac) :
+noncomputable instance access_load'RPCPair'Code (l : Loc) (v : raxos.common.RPCPair) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.RPCPair go!"Code" l) v.Code' dq)
       (typedPointsto (structFieldRef raxos.common.RPCPair go!"Code" l) v.Code' dq)
@@ -50,7 +50,7 @@ noncomputable instance RPCPair_access_load_Code (l : Loc) (v : raxos.common.RPCP
  by
   solve_pointsto_access_struct
 
-noncomputable instance RPCPair_access_store_Code (l : Loc) (v : raxos.common.RPCPair) (y : w8) :
+noncomputable instance access_store'RPCPair'Code (l : Loc) (v : raxos.common.RPCPair) (y : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.RPCPair go!"Code" l) v.Code' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.common.RPCPair go!"Code" l) y (DFrac.own 1))
@@ -58,7 +58,7 @@ noncomputable instance RPCPair_access_store_Code (l : Loc) (v : raxos.common.RPC
  by
   solve_pointsto_access_struct
 
-noncomputable instance RPCPair_access_load_Obj (l : Loc) (v : raxos.common.RPCPair) (dq : DFrac) :
+noncomputable instance access_load'RPCPair'Obj (l : Loc) (v : raxos.common.RPCPair) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.RPCPair go!"Obj" l) v.Obj' dq)
       (typedPointsto (structFieldRef raxos.common.RPCPair go!"Obj" l) v.Obj' dq)
@@ -66,7 +66,7 @@ noncomputable instance RPCPair_access_load_Obj (l : Loc) (v : raxos.common.RPCPa
  by
   solve_pointsto_access_struct
 
-noncomputable instance RPCPair_access_store_Obj (l : Loc) (v : raxos.common.RPCPair) (y : _root_.Perennial.raxos.proto.Serializable) :
+noncomputable instance access_store'RPCPair'Obj (l : Loc) (v : raxos.common.RPCPair) (y : _root_.Perennial.raxos.proto.Serializable) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.RPCPair go!"Obj" l) v.Obj' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.common.RPCPair go!"Obj" l) y (DFrac.own 1))
@@ -85,7 +85,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : raxos.common.Assumptions]
 
-noncomputable instance OutgoingRPC_typed_pointsto :
+noncomputable instance typed_pointsto'OutgoingRPC :
     TypedPointsto (GF := GF) raxos.common.OutgoingRPC where
   typedPointstoDef l v dq := iprop(
     "RpcPair" ∷ typedPointsto (structFieldRef raxos.common.OutgoingRPC go!"RpcPair" l) v.RpcPair' dq ∗
@@ -95,11 +95,11 @@ noncomputable instance OutgoingRPC_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance OutgoingRPC_into_val_typed :
+noncomputable instance into_val_typed'OutgoingRPC :
     IntoValTypedUnderlying (GF := GF) raxos.common.OutgoingRPC raxos.common.OutgoingRPC.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance OutgoingRPC_access_load_RpcPair (l : Loc) (v : raxos.common.OutgoingRPC) (dq : DFrac) :
+noncomputable instance access_load'OutgoingRPC'RpcPair (l : Loc) (v : raxos.common.OutgoingRPC) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.OutgoingRPC go!"RpcPair" l) v.RpcPair' dq)
       (typedPointsto (structFieldRef raxos.common.OutgoingRPC go!"RpcPair" l) v.RpcPair' dq)
@@ -107,7 +107,7 @@ noncomputable instance OutgoingRPC_access_load_RpcPair (l : Loc) (v : raxos.comm
  by
   solve_pointsto_access_struct
 
-noncomputable instance OutgoingRPC_access_store_RpcPair (l : Loc) (v : raxos.common.OutgoingRPC) (y : Loc) :
+noncomputable instance access_store'OutgoingRPC'RpcPair (l : Loc) (v : raxos.common.OutgoingRPC) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.OutgoingRPC go!"RpcPair" l) v.RpcPair' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.common.OutgoingRPC go!"RpcPair" l) y (DFrac.own 1))
@@ -115,7 +115,7 @@ noncomputable instance OutgoingRPC_access_store_RpcPair (l : Loc) (v : raxos.com
  by
   solve_pointsto_access_struct
 
-noncomputable instance OutgoingRPC_access_load_Peer (l : Loc) (v : raxos.common.OutgoingRPC) (dq : DFrac) :
+noncomputable instance access_load'OutgoingRPC'Peer (l : Loc) (v : raxos.common.OutgoingRPC) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.OutgoingRPC go!"Peer" l) v.Peer' dq)
       (typedPointsto (structFieldRef raxos.common.OutgoingRPC go!"Peer" l) v.Peer' dq)
@@ -123,7 +123,7 @@ noncomputable instance OutgoingRPC_access_load_Peer (l : Loc) (v : raxos.common.
  by
   solve_pointsto_access_struct
 
-noncomputable instance OutgoingRPC_access_store_Peer (l : Loc) (v : raxos.common.OutgoingRPC) (y : w64) :
+noncomputable instance access_store'OutgoingRPC'Peer (l : Loc) (v : raxos.common.OutgoingRPC) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.OutgoingRPC go!"Peer" l) v.Peer' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.common.OutgoingRPC go!"Peer" l) y (DFrac.own 1))
@@ -142,7 +142,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : raxos.common.Assumptions]
 
-noncomputable instance TimerWithCancel_typed_pointsto :
+noncomputable instance typed_pointsto'TimerWithCancel :
     TypedPointsto (GF := GF) raxos.common.TimerWithCancel where
   typedPointstoDef l v dq := iprop(
     "t" ∷ typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"t" l) v.t' dq ∗
@@ -154,11 +154,11 @@ noncomputable instance TimerWithCancel_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance TimerWithCancel_into_val_typed :
+noncomputable instance into_val_typed'TimerWithCancel :
     IntoValTypedUnderlying (GF := GF) raxos.common.TimerWithCancel raxos.common.TimerWithCancel.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance TimerWithCancel_access_load_t (l : Loc) (v : raxos.common.TimerWithCancel) (dq : DFrac) :
+noncomputable instance access_load'TimerWithCancel't (l : Loc) (v : raxos.common.TimerWithCancel) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"t" l) v.t' dq)
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"t" l) v.t' dq)
@@ -166,7 +166,7 @@ noncomputable instance TimerWithCancel_access_load_t (l : Loc) (v : raxos.common
  by
   solve_pointsto_access_struct
 
-noncomputable instance TimerWithCancel_access_store_t (l : Loc) (v : raxos.common.TimerWithCancel) (y : Loc) :
+noncomputable instance access_store'TimerWithCancel't (l : Loc) (v : raxos.common.TimerWithCancel) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"t" l) v.t' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"t" l) y (DFrac.own 1))
@@ -174,7 +174,7 @@ noncomputable instance TimerWithCancel_access_store_t (l : Loc) (v : raxos.commo
  by
   solve_pointsto_access_struct
 
-noncomputable instance TimerWithCancel_access_load_d (l : Loc) (v : raxos.common.TimerWithCancel) (dq : DFrac) :
+noncomputable instance access_load'TimerWithCancel'd (l : Loc) (v : raxos.common.TimerWithCancel) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"d" l) v.d' dq)
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"d" l) v.d' dq)
@@ -182,7 +182,7 @@ noncomputable instance TimerWithCancel_access_load_d (l : Loc) (v : raxos.common
  by
   solve_pointsto_access_struct
 
-noncomputable instance TimerWithCancel_access_store_d (l : Loc) (v : raxos.common.TimerWithCancel) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'TimerWithCancel'd (l : Loc) (v : raxos.common.TimerWithCancel) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"d" l) v.d' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"d" l) y (DFrac.own 1))
@@ -190,7 +190,7 @@ noncomputable instance TimerWithCancel_access_store_d (l : Loc) (v : raxos.commo
  by
   solve_pointsto_access_struct
 
-noncomputable instance TimerWithCancel_access_load_c (l : Loc) (v : raxos.common.TimerWithCancel) (dq : DFrac) :
+noncomputable instance access_load'TimerWithCancel'c (l : Loc) (v : raxos.common.TimerWithCancel) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"c" l) v.c' dq)
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"c" l) v.c' dq)
@@ -198,7 +198,7 @@ noncomputable instance TimerWithCancel_access_load_c (l : Loc) (v : raxos.common
  by
   solve_pointsto_access_struct
 
-noncomputable instance TimerWithCancel_access_store_c (l : Loc) (v : raxos.common.TimerWithCancel) (y : GoChan) :
+noncomputable instance access_store'TimerWithCancel'c (l : Loc) (v : raxos.common.TimerWithCancel) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"c" l) v.c' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"c" l) y (DFrac.own 1))
@@ -206,7 +206,7 @@ noncomputable instance TimerWithCancel_access_store_c (l : Loc) (v : raxos.commo
  by
   solve_pointsto_access_struct
 
-noncomputable instance TimerWithCancel_access_load_f (l : Loc) (v : raxos.common.TimerWithCancel) (dq : DFrac) :
+noncomputable instance access_load'TimerWithCancel'f (l : Loc) (v : raxos.common.TimerWithCancel) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"f" l) v.f' dq)
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"f" l) v.f' dq)
@@ -214,7 +214,7 @@ noncomputable instance TimerWithCancel_access_load_f (l : Loc) (v : raxos.common
  by
   solve_pointsto_access_struct
 
-noncomputable instance TimerWithCancel_access_store_f (l : Loc) (v : raxos.common.TimerWithCancel) (y : GoFunc) :
+noncomputable instance access_store'TimerWithCancel'f (l : Loc) (v : raxos.common.TimerWithCancel) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"f" l) v.f' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"f" l) y (DFrac.own 1))

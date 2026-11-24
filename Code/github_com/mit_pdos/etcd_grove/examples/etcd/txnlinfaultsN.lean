@@ -476,35 +476,35 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  bridgeAddr_unfold : FuncUnfold bridgeAddr [] bridgeAddr.impl
-  holdToken_unfold : FuncUnfold holdToken [] holdToken.impl
-  startCluster_unfold : FuncUnfold startCluster [] startCluster.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_partition_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions
-  import_cluster3_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
-  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
-  import_bridge_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions
+  unfold'bridgeAddr : FuncUnfold bridgeAddr [] bridgeAddr.impl
+  unfold'holdToken : FuncUnfold holdToken [] holdToken.impl
+  unfold'startCluster : FuncUnfold startCluster [] startCluster.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'porcupine : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'etcdserver : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
+  import'partition : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions
+  import'cluster3 : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
+  import'etcdstart : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
+  import'bridge : _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions
 
-attribute [instance] Assumptions.bridgeAddr_unfold
-  Assumptions.holdToken_unfold
-  Assumptions.startCluster_unfold
-  Assumptions.Main_unfold
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_porcupine_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_etcdserver_Assumption
-  Assumptions.import_partition_Assumption
-  Assumptions.import_cluster3_Assumption
-  Assumptions.import_etcdstart_Assumption
-  Assumptions.import_bridge_Assumption
+attribute [instance] Assumptions.unfold'bridgeAddr
+  Assumptions.unfold'holdToken
+  Assumptions.unfold'startCluster
+  Assumptions.unfold'Main
+  Assumptions.import'strconv
+  Assumptions.import'time
+  Assumptions.import'porcupine
+  Assumptions.import'zap
+  Assumptions.import'clientv3
+  Assumptions.import'etcdserver
+  Assumptions.import'partition
+  Assumptions.import'cluster3
+  Assumptions.import'etcdstart
+  Assumptions.import'bridge
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN
 

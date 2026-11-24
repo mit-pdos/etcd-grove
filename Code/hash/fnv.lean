@@ -252,14 +252,14 @@ class sum64a.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   underlying : go.UnderlyingDirectedEq sum64a.ty sum64a.underlying
   method_set : go.MethodSetIs sum64a.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType sum64a.ty) [(go!"AppendBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"BlockSize", (some (go.signature.Signature [] false [go.int]))), (go!"Clone", (some (go.signature.Signature [] false [_root_.Perennial.hash.Cloner.ty, go.error]))), (go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Sum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"Sum64", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnmarshalBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
-  ptr_Sum64_unfold : MethodUnfold (go.GoType.PointerType sum64a.ty) go!"Sum64" sum64a.Sum64.impl
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType sum64a.ty) go!"Write" sum64a.Write.impl
+  ptr_unfold'Sum64 : MethodUnfold (go.GoType.PointerType sum64a.ty) go!"Sum64" sum64a.Sum64.impl
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType sum64a.ty) go!"Write" sum64a.Write.impl
 
 attribute [instance] sum64a.TypeAssumptions.underlying
   sum64a.TypeAssumptions.method_set
   sum64a.TypeAssumptions.ptr_method_set
-  sum64a.TypeAssumptions.ptr_Sum64_unfold
-  sum64a.TypeAssumptions.ptr_Write_unfold
+  sum64a.TypeAssumptions.ptr_unfold'Sum64
+  sum64a.TypeAssumptions.ptr_unfold'Write
 
 abbrev sum128 [GooseExts] : Type := (GoArray w64 2)
 
@@ -290,23 +290,23 @@ attribute [instance] sum128a.TypeAssumptions.underlying
   sum128a.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  sum32_instance : sum32.TypeAssumptions
-  sum32a_instance : sum32a.TypeAssumptions
-  sum64_instance : sum64.TypeAssumptions
-  sum64a_instance : sum64a.TypeAssumptions
-  sum128_instance : sum128.TypeAssumptions
-  sum128a_instance : sum128a.TypeAssumptions
-  New64a_unfold : FuncUnfold New64a [] New64a.impl
-  import_hash_Assumption : _root_.Perennial.hash.Assumptions
+  instance'sum32 : sum32.TypeAssumptions
+  instance'sum32a : sum32a.TypeAssumptions
+  instance'sum64 : sum64.TypeAssumptions
+  instance'sum64a : sum64a.TypeAssumptions
+  instance'sum128 : sum128.TypeAssumptions
+  instance'sum128a : sum128a.TypeAssumptions
+  unfold'New64a : FuncUnfold New64a [] New64a.impl
+  import'hash : _root_.Perennial.hash.Assumptions
 
-attribute [instance] Assumptions.sum32_instance
-  Assumptions.sum32a_instance
-  Assumptions.sum64_instance
-  Assumptions.sum64a_instance
-  Assumptions.sum128_instance
-  Assumptions.sum128a_instance
-  Assumptions.New64a_unfold
-  Assumptions.import_hash_Assumption
+attribute [instance] Assumptions.instance'sum32
+  Assumptions.instance'sum32a
+  Assumptions.instance'sum64
+  Assumptions.instance'sum64a
+  Assumptions.instance'sum128
+  Assumptions.instance'sum128a
+  Assumptions.unfold'New64a
+  Assumptions.import'hash
 
 end hash.fnv
 

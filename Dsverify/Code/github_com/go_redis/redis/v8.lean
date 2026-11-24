@@ -19,263 +19,263 @@ noncomputable section
 namespace github_com.go_redis.redis.v8
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ClusterOptions_instance : ClusterOptions.TypeAssumptions
-  clusterNode_instance : clusterNode.TypeAssumptions
-  clusterNodes_instance : clusterNodes.TypeAssumptions
-  clusterSlot_instance : clusterSlot.TypeAssumptions
-  clusterSlotSlice_instance : clusterSlotSlice.TypeAssumptions
-  clusterState_instance : clusterState.TypeAssumptions
-  clusterStateHolder_instance : clusterStateHolder.TypeAssumptions
-  clusterClient_instance : clusterClient.TypeAssumptions
-  ClusterClient_instance : ClusterClient.TypeAssumptions
-  cmdsMap_instance : cmdsMap.TypeAssumptions
-  Cmder_instance : Cmder.TypeAssumptions
-  baseCmd_instance : baseCmd.TypeAssumptions
-  Cmd_instance : Cmd.TypeAssumptions
-  SliceCmd_instance : SliceCmd.TypeAssumptions
-  StatusCmd_instance : StatusCmd.TypeAssumptions
-  IntCmd_instance : IntCmd.TypeAssumptions
-  IntSliceCmd_instance : IntSliceCmd.TypeAssumptions
-  DurationCmd_instance : DurationCmd.TypeAssumptions
-  TimeCmd_instance : TimeCmd.TypeAssumptions
-  BoolCmd_instance : BoolCmd.TypeAssumptions
-  StringCmd_instance : StringCmd.TypeAssumptions
-  FloatCmd_instance : FloatCmd.TypeAssumptions
-  FloatSliceCmd_instance : FloatSliceCmd.TypeAssumptions
-  StringSliceCmd_instance : StringSliceCmd.TypeAssumptions
-  BoolSliceCmd_instance : BoolSliceCmd.TypeAssumptions
-  StringStringMapCmd_instance : StringStringMapCmd.TypeAssumptions
-  StringIntMapCmd_instance : StringIntMapCmd.TypeAssumptions
-  StringStructMapCmd_instance : StringStructMapCmd.TypeAssumptions
-  XMessage_instance : XMessage.TypeAssumptions
-  XMessageSliceCmd_instance : XMessageSliceCmd.TypeAssumptions
-  XStream_instance : XStream.TypeAssumptions
-  XStreamSliceCmd_instance : XStreamSliceCmd.TypeAssumptions
-  XPending_instance : XPending.TypeAssumptions
-  XPendingCmd_instance : XPendingCmd.TypeAssumptions
-  XPendingExt_instance : XPendingExt.TypeAssumptions
-  XPendingExtCmd_instance : XPendingExtCmd.TypeAssumptions
-  XAutoClaimCmd_instance : XAutoClaimCmd.TypeAssumptions
-  XAutoClaimJustIDCmd_instance : XAutoClaimJustIDCmd.TypeAssumptions
-  XInfoConsumersCmd_instance : XInfoConsumersCmd.TypeAssumptions
-  XInfoConsumer_instance : XInfoConsumer.TypeAssumptions
-  XInfoGroupsCmd_instance : XInfoGroupsCmd.TypeAssumptions
-  XInfoGroup_instance : XInfoGroup.TypeAssumptions
-  XInfoStreamCmd_instance : XInfoStreamCmd.TypeAssumptions
-  XInfoStream_instance : XInfoStream.TypeAssumptions
-  XInfoStreamFullCmd_instance : XInfoStreamFullCmd.TypeAssumptions
-  XInfoStreamFull_instance : XInfoStreamFull.TypeAssumptions
-  XInfoStreamGroup_instance : XInfoStreamGroup.TypeAssumptions
-  XInfoStreamGroupPending_instance : XInfoStreamGroupPending.TypeAssumptions
-  XInfoStreamConsumer_instance : XInfoStreamConsumer.TypeAssumptions
-  XInfoStreamConsumerPending_instance : XInfoStreamConsumerPending.TypeAssumptions
-  ZSliceCmd_instance : ZSliceCmd.TypeAssumptions
-  ZWithKeyCmd_instance : ZWithKeyCmd.TypeAssumptions
-  ScanCmd_instance : ScanCmd.TypeAssumptions
-  ClusterNode_instance : ClusterNode.TypeAssumptions
-  ClusterSlot_instance : ClusterSlot.TypeAssumptions
-  ClusterSlotsCmd_instance : ClusterSlotsCmd.TypeAssumptions
-  GeoLocation_instance : GeoLocation.TypeAssumptions
-  GeoRadiusQuery_instance : GeoRadiusQuery.TypeAssumptions
-  GeoLocationCmd_instance : GeoLocationCmd.TypeAssumptions
-  GeoSearchQuery_instance : GeoSearchQuery.TypeAssumptions
-  GeoSearchLocationQuery_instance : GeoSearchLocationQuery.TypeAssumptions
-  GeoSearchStoreQuery_instance : GeoSearchStoreQuery.TypeAssumptions
-  GeoSearchLocationCmd_instance : GeoSearchLocationCmd.TypeAssumptions
-  GeoPos_instance : GeoPos.TypeAssumptions
-  GeoPosCmd_instance : GeoPosCmd.TypeAssumptions
-  CommandInfo_instance : CommandInfo.TypeAssumptions
-  CommandsInfoCmd_instance : CommandsInfoCmd.TypeAssumptions
-  cmdsInfoCache_instance : cmdsInfoCache.TypeAssumptions
-  SlowLog_instance : SlowLog.TypeAssumptions
-  SlowLogCmd_instance : SlowLogCmd.TypeAssumptions
-  Cmdable_instance : Cmdable.TypeAssumptions
-  StatefulCmdable_instance : StatefulCmdable.TypeAssumptions
-  cmdable_instance : cmdable.TypeAssumptions
-  statefulCmdable_instance : statefulCmdable.TypeAssumptions
-  Sort_instance : «Sort».TypeAssumptions
-  SetArgs_instance : SetArgs.TypeAssumptions
-  BitCount_instance : BitCount.TypeAssumptions
-  LPosArgs_instance : LPosArgs.TypeAssumptions
-  XAddArgs_instance : XAddArgs.TypeAssumptions
-  XReadArgs_instance : XReadArgs.TypeAssumptions
-  XReadGroupArgs_instance : XReadGroupArgs.TypeAssumptions
-  XPendingExtArgs_instance : XPendingExtArgs.TypeAssumptions
-  XAutoClaimArgs_instance : XAutoClaimArgs.TypeAssumptions
-  XClaimArgs_instance : XClaimArgs.TypeAssumptions
-  Z_instance : Z.TypeAssumptions
-  ZWithKey_instance : ZWithKey.TypeAssumptions
-  ZStore_instance : ZStore.TypeAssumptions
-  ZAddArgs_instance : ZAddArgs.TypeAssumptions
-  ZRangeArgs_instance : ZRangeArgs.TypeAssumptions
-  ZRangeBy_instance : ZRangeBy.TypeAssumptions
-  Error_instance : Error.TypeAssumptions
-  timeoutError_instance : timeoutError.TypeAssumptions
-  ScanIterator_instance : ScanIterator.TypeAssumptions
-  Limiter_instance : Limiter.TypeAssumptions
-  Options_instance : Options.TypeAssumptions
-  queryOptions_instance : queryOptions.TypeAssumptions
-  pipelineExecer_instance : pipelineExecer.TypeAssumptions
-  Pipeliner_instance : Pipeliner.TypeAssumptions
-  Pipeline_instance : Pipeline.TypeAssumptions
-  PubSub_instance : PubSub.TypeAssumptions
-  Subscription_instance : Subscription.TypeAssumptions
-  Message_instance : Message.TypeAssumptions
-  Pong_instance : Pong.TypeAssumptions
-  ChannelOption_instance : ChannelOption.TypeAssumptions
-  channel_instance : channel.TypeAssumptions
-  Hook_instance : Hook.TypeAssumptions
-  hooks_instance : hooks.TypeAssumptions
-  baseClient_instance : baseClient.TypeAssumptions
-  pipelineProcessor_instance : pipelineProcessor.TypeAssumptions
-  Client_instance : Client.TypeAssumptions
-  PoolStats_instance : PoolStats.TypeAssumptions
-  conn_instance : conn.TypeAssumptions
-  Conn_instance : Conn.TypeAssumptions
-  ConsistentHash_instance : ConsistentHash.TypeAssumptions
-  rendezvousWrapper_instance : rendezvousWrapper.TypeAssumptions
-  RingOptions_instance : RingOptions.TypeAssumptions
-  ringShard_instance : ringShard.TypeAssumptions
-  ringShards_instance : ringShards.TypeAssumptions
-  ring_instance : ring.TypeAssumptions
-  Ring_instance : Ring.TypeAssumptions
-  Scripter_instance : Scripter.TypeAssumptions
-  Script_instance : Script.TypeAssumptions
-  FailoverOptions_instance : FailoverOptions.TypeAssumptions
-  SentinelClient_instance : SentinelClient.TypeAssumptions
-  sentinelFailover_instance : sentinelFailover.TypeAssumptions
-  Tx_instance : Tx.TypeAssumptions
-  UniversalOptions_instance : UniversalOptions.TypeAssumptions
-  UniversalClient_instance : UniversalClient.TypeAssumptions
+  instance'ClusterOptions : ClusterOptions.TypeAssumptions
+  instance'clusterNode : clusterNode.TypeAssumptions
+  instance'clusterNodes : clusterNodes.TypeAssumptions
+  instance'clusterSlot : clusterSlot.TypeAssumptions
+  instance'clusterSlotSlice : clusterSlotSlice.TypeAssumptions
+  instance'clusterState : clusterState.TypeAssumptions
+  instance'clusterStateHolder : clusterStateHolder.TypeAssumptions
+  instance'clusterClient : clusterClient.TypeAssumptions
+  instance'ClusterClient : ClusterClient.TypeAssumptions
+  instance'cmdsMap : cmdsMap.TypeAssumptions
+  instance'Cmder : Cmder.TypeAssumptions
+  instance'baseCmd : baseCmd.TypeAssumptions
+  instance'Cmd : Cmd.TypeAssumptions
+  instance'SliceCmd : SliceCmd.TypeAssumptions
+  instance'StatusCmd : StatusCmd.TypeAssumptions
+  instance'IntCmd : IntCmd.TypeAssumptions
+  instance'IntSliceCmd : IntSliceCmd.TypeAssumptions
+  instance'DurationCmd : DurationCmd.TypeAssumptions
+  instance'TimeCmd : TimeCmd.TypeAssumptions
+  instance'BoolCmd : BoolCmd.TypeAssumptions
+  instance'StringCmd : StringCmd.TypeAssumptions
+  instance'FloatCmd : FloatCmd.TypeAssumptions
+  instance'FloatSliceCmd : FloatSliceCmd.TypeAssumptions
+  instance'StringSliceCmd : StringSliceCmd.TypeAssumptions
+  instance'BoolSliceCmd : BoolSliceCmd.TypeAssumptions
+  instance'StringStringMapCmd : StringStringMapCmd.TypeAssumptions
+  instance'StringIntMapCmd : StringIntMapCmd.TypeAssumptions
+  instance'StringStructMapCmd : StringStructMapCmd.TypeAssumptions
+  instance'XMessage : XMessage.TypeAssumptions
+  instance'XMessageSliceCmd : XMessageSliceCmd.TypeAssumptions
+  instance'XStream : XStream.TypeAssumptions
+  instance'XStreamSliceCmd : XStreamSliceCmd.TypeAssumptions
+  instance'XPending : XPending.TypeAssumptions
+  instance'XPendingCmd : XPendingCmd.TypeAssumptions
+  instance'XPendingExt : XPendingExt.TypeAssumptions
+  instance'XPendingExtCmd : XPendingExtCmd.TypeAssumptions
+  instance'XAutoClaimCmd : XAutoClaimCmd.TypeAssumptions
+  instance'XAutoClaimJustIDCmd : XAutoClaimJustIDCmd.TypeAssumptions
+  instance'XInfoConsumersCmd : XInfoConsumersCmd.TypeAssumptions
+  instance'XInfoConsumer : XInfoConsumer.TypeAssumptions
+  instance'XInfoGroupsCmd : XInfoGroupsCmd.TypeAssumptions
+  instance'XInfoGroup : XInfoGroup.TypeAssumptions
+  instance'XInfoStreamCmd : XInfoStreamCmd.TypeAssumptions
+  instance'XInfoStream : XInfoStream.TypeAssumptions
+  instance'XInfoStreamFullCmd : XInfoStreamFullCmd.TypeAssumptions
+  instance'XInfoStreamFull : XInfoStreamFull.TypeAssumptions
+  instance'XInfoStreamGroup : XInfoStreamGroup.TypeAssumptions
+  instance'XInfoStreamGroupPending : XInfoStreamGroupPending.TypeAssumptions
+  instance'XInfoStreamConsumer : XInfoStreamConsumer.TypeAssumptions
+  instance'XInfoStreamConsumerPending : XInfoStreamConsumerPending.TypeAssumptions
+  instance'ZSliceCmd : ZSliceCmd.TypeAssumptions
+  instance'ZWithKeyCmd : ZWithKeyCmd.TypeAssumptions
+  instance'ScanCmd : ScanCmd.TypeAssumptions
+  instance'ClusterNode : ClusterNode.TypeAssumptions
+  instance'ClusterSlot : ClusterSlot.TypeAssumptions
+  instance'ClusterSlotsCmd : ClusterSlotsCmd.TypeAssumptions
+  instance'GeoLocation : GeoLocation.TypeAssumptions
+  instance'GeoRadiusQuery : GeoRadiusQuery.TypeAssumptions
+  instance'GeoLocationCmd : GeoLocationCmd.TypeAssumptions
+  instance'GeoSearchQuery : GeoSearchQuery.TypeAssumptions
+  instance'GeoSearchLocationQuery : GeoSearchLocationQuery.TypeAssumptions
+  instance'GeoSearchStoreQuery : GeoSearchStoreQuery.TypeAssumptions
+  instance'GeoSearchLocationCmd : GeoSearchLocationCmd.TypeAssumptions
+  instance'GeoPos : GeoPos.TypeAssumptions
+  instance'GeoPosCmd : GeoPosCmd.TypeAssumptions
+  instance'CommandInfo : CommandInfo.TypeAssumptions
+  instance'CommandsInfoCmd : CommandsInfoCmd.TypeAssumptions
+  instance'cmdsInfoCache : cmdsInfoCache.TypeAssumptions
+  instance'SlowLog : SlowLog.TypeAssumptions
+  instance'SlowLogCmd : SlowLogCmd.TypeAssumptions
+  instance'Cmdable : Cmdable.TypeAssumptions
+  instance'StatefulCmdable : StatefulCmdable.TypeAssumptions
+  instance'cmdable : cmdable.TypeAssumptions
+  instance'statefulCmdable : statefulCmdable.TypeAssumptions
+  instance'Sort : Sort''.TypeAssumptions
+  instance'SetArgs : SetArgs.TypeAssumptions
+  instance'BitCount : BitCount.TypeAssumptions
+  instance'LPosArgs : LPosArgs.TypeAssumptions
+  instance'XAddArgs : XAddArgs.TypeAssumptions
+  instance'XReadArgs : XReadArgs.TypeAssumptions
+  instance'XReadGroupArgs : XReadGroupArgs.TypeAssumptions
+  instance'XPendingExtArgs : XPendingExtArgs.TypeAssumptions
+  instance'XAutoClaimArgs : XAutoClaimArgs.TypeAssumptions
+  instance'XClaimArgs : XClaimArgs.TypeAssumptions
+  instance'Z : Z.TypeAssumptions
+  instance'ZWithKey : ZWithKey.TypeAssumptions
+  instance'ZStore : ZStore.TypeAssumptions
+  instance'ZAddArgs : ZAddArgs.TypeAssumptions
+  instance'ZRangeArgs : ZRangeArgs.TypeAssumptions
+  instance'ZRangeBy : ZRangeBy.TypeAssumptions
+  instance'Error : Error.TypeAssumptions
+  instance'timeoutError : timeoutError.TypeAssumptions
+  instance'ScanIterator : ScanIterator.TypeAssumptions
+  instance'Limiter : Limiter.TypeAssumptions
+  instance'Options : Options.TypeAssumptions
+  instance'queryOptions : queryOptions.TypeAssumptions
+  instance'pipelineExecer : pipelineExecer.TypeAssumptions
+  instance'Pipeliner : Pipeliner.TypeAssumptions
+  instance'Pipeline : Pipeline.TypeAssumptions
+  instance'PubSub : PubSub.TypeAssumptions
+  instance'Subscription : Subscription.TypeAssumptions
+  instance'Message : Message.TypeAssumptions
+  instance'Pong : Pong.TypeAssumptions
+  instance'ChannelOption : ChannelOption.TypeAssumptions
+  instance'channel : channel.TypeAssumptions
+  instance'Hook : Hook.TypeAssumptions
+  instance'hooks : hooks.TypeAssumptions
+  instance'baseClient : baseClient.TypeAssumptions
+  instance'pipelineProcessor : pipelineProcessor.TypeAssumptions
+  instance'Client : Client.TypeAssumptions
+  instance'PoolStats : PoolStats.TypeAssumptions
+  instance'conn : conn.TypeAssumptions
+  instance'Conn : Conn.TypeAssumptions
+  instance'ConsistentHash : ConsistentHash.TypeAssumptions
+  instance'rendezvousWrapper : rendezvousWrapper.TypeAssumptions
+  instance'RingOptions : RingOptions.TypeAssumptions
+  instance'ringShard : ringShard.TypeAssumptions
+  instance'ringShards : ringShards.TypeAssumptions
+  instance'ring : ring.TypeAssumptions
+  instance'Ring : Ring.TypeAssumptions
+  instance'Scripter : Scripter.TypeAssumptions
+  instance'Script : Script.TypeAssumptions
+  instance'FailoverOptions : FailoverOptions.TypeAssumptions
+  instance'SentinelClient : SentinelClient.TypeAssumptions
+  instance'sentinelFailover : sentinelFailover.TypeAssumptions
+  instance'Tx : Tx.TypeAssumptions
+  instance'UniversalOptions : UniversalOptions.TypeAssumptions
+  instance'UniversalClient : UniversalClient.TypeAssumptions
 
-attribute [instance] Assumptions.ClusterOptions_instance
-  Assumptions.clusterNode_instance
-  Assumptions.clusterNodes_instance
-  Assumptions.clusterSlot_instance
-  Assumptions.clusterSlotSlice_instance
-  Assumptions.clusterState_instance
-  Assumptions.clusterStateHolder_instance
-  Assumptions.clusterClient_instance
-  Assumptions.ClusterClient_instance
-  Assumptions.cmdsMap_instance
-  Assumptions.Cmder_instance
-  Assumptions.baseCmd_instance
-  Assumptions.Cmd_instance
-  Assumptions.SliceCmd_instance
-  Assumptions.StatusCmd_instance
-  Assumptions.IntCmd_instance
-  Assumptions.IntSliceCmd_instance
-  Assumptions.DurationCmd_instance
-  Assumptions.TimeCmd_instance
-  Assumptions.BoolCmd_instance
-  Assumptions.StringCmd_instance
-  Assumptions.FloatCmd_instance
-  Assumptions.FloatSliceCmd_instance
-  Assumptions.StringSliceCmd_instance
-  Assumptions.BoolSliceCmd_instance
-  Assumptions.StringStringMapCmd_instance
-  Assumptions.StringIntMapCmd_instance
-  Assumptions.StringStructMapCmd_instance
-  Assumptions.XMessage_instance
-  Assumptions.XMessageSliceCmd_instance
-  Assumptions.XStream_instance
-  Assumptions.XStreamSliceCmd_instance
-  Assumptions.XPending_instance
-  Assumptions.XPendingCmd_instance
-  Assumptions.XPendingExt_instance
-  Assumptions.XPendingExtCmd_instance
-  Assumptions.XAutoClaimCmd_instance
-  Assumptions.XAutoClaimJustIDCmd_instance
-  Assumptions.XInfoConsumersCmd_instance
-  Assumptions.XInfoConsumer_instance
-  Assumptions.XInfoGroupsCmd_instance
-  Assumptions.XInfoGroup_instance
-  Assumptions.XInfoStreamCmd_instance
-  Assumptions.XInfoStream_instance
-  Assumptions.XInfoStreamFullCmd_instance
-  Assumptions.XInfoStreamFull_instance
-  Assumptions.XInfoStreamGroup_instance
-  Assumptions.XInfoStreamGroupPending_instance
-  Assumptions.XInfoStreamConsumer_instance
-  Assumptions.XInfoStreamConsumerPending_instance
-  Assumptions.ZSliceCmd_instance
-  Assumptions.ZWithKeyCmd_instance
-  Assumptions.ScanCmd_instance
-  Assumptions.ClusterNode_instance
-  Assumptions.ClusterSlot_instance
-  Assumptions.ClusterSlotsCmd_instance
-  Assumptions.GeoLocation_instance
-  Assumptions.GeoRadiusQuery_instance
-  Assumptions.GeoLocationCmd_instance
-  Assumptions.GeoSearchQuery_instance
-  Assumptions.GeoSearchLocationQuery_instance
-  Assumptions.GeoSearchStoreQuery_instance
-  Assumptions.GeoSearchLocationCmd_instance
-  Assumptions.GeoPos_instance
-  Assumptions.GeoPosCmd_instance
-  Assumptions.CommandInfo_instance
-  Assumptions.CommandsInfoCmd_instance
-  Assumptions.cmdsInfoCache_instance
-  Assumptions.SlowLog_instance
-  Assumptions.SlowLogCmd_instance
-  Assumptions.Cmdable_instance
-  Assumptions.StatefulCmdable_instance
-  Assumptions.cmdable_instance
-  Assumptions.statefulCmdable_instance
-  Assumptions.Sort_instance
-  Assumptions.SetArgs_instance
-  Assumptions.BitCount_instance
-  Assumptions.LPosArgs_instance
-  Assumptions.XAddArgs_instance
-  Assumptions.XReadArgs_instance
-  Assumptions.XReadGroupArgs_instance
-  Assumptions.XPendingExtArgs_instance
-  Assumptions.XAutoClaimArgs_instance
-  Assumptions.XClaimArgs_instance
-  Assumptions.Z_instance
-  Assumptions.ZWithKey_instance
-  Assumptions.ZStore_instance
-  Assumptions.ZAddArgs_instance
-  Assumptions.ZRangeArgs_instance
-  Assumptions.ZRangeBy_instance
-  Assumptions.Error_instance
-  Assumptions.timeoutError_instance
-  Assumptions.ScanIterator_instance
-  Assumptions.Limiter_instance
-  Assumptions.Options_instance
-  Assumptions.queryOptions_instance
-  Assumptions.pipelineExecer_instance
-  Assumptions.Pipeliner_instance
-  Assumptions.Pipeline_instance
-  Assumptions.PubSub_instance
-  Assumptions.Subscription_instance
-  Assumptions.Message_instance
-  Assumptions.Pong_instance
-  Assumptions.ChannelOption_instance
-  Assumptions.channel_instance
-  Assumptions.Hook_instance
-  Assumptions.hooks_instance
-  Assumptions.baseClient_instance
-  Assumptions.pipelineProcessor_instance
-  Assumptions.Client_instance
-  Assumptions.PoolStats_instance
-  Assumptions.conn_instance
-  Assumptions.Conn_instance
-  Assumptions.ConsistentHash_instance
-  Assumptions.rendezvousWrapper_instance
-  Assumptions.RingOptions_instance
-  Assumptions.ringShard_instance
-  Assumptions.ringShards_instance
-  Assumptions.ring_instance
-  Assumptions.Ring_instance
-  Assumptions.Scripter_instance
-  Assumptions.Script_instance
-  Assumptions.FailoverOptions_instance
-  Assumptions.SentinelClient_instance
-  Assumptions.sentinelFailover_instance
-  Assumptions.Tx_instance
-  Assumptions.UniversalOptions_instance
-  Assumptions.UniversalClient_instance
+attribute [instance] Assumptions.instance'ClusterOptions
+  Assumptions.instance'clusterNode
+  Assumptions.instance'clusterNodes
+  Assumptions.instance'clusterSlot
+  Assumptions.instance'clusterSlotSlice
+  Assumptions.instance'clusterState
+  Assumptions.instance'clusterStateHolder
+  Assumptions.instance'clusterClient
+  Assumptions.instance'ClusterClient
+  Assumptions.instance'cmdsMap
+  Assumptions.instance'Cmder
+  Assumptions.instance'baseCmd
+  Assumptions.instance'Cmd
+  Assumptions.instance'SliceCmd
+  Assumptions.instance'StatusCmd
+  Assumptions.instance'IntCmd
+  Assumptions.instance'IntSliceCmd
+  Assumptions.instance'DurationCmd
+  Assumptions.instance'TimeCmd
+  Assumptions.instance'BoolCmd
+  Assumptions.instance'StringCmd
+  Assumptions.instance'FloatCmd
+  Assumptions.instance'FloatSliceCmd
+  Assumptions.instance'StringSliceCmd
+  Assumptions.instance'BoolSliceCmd
+  Assumptions.instance'StringStringMapCmd
+  Assumptions.instance'StringIntMapCmd
+  Assumptions.instance'StringStructMapCmd
+  Assumptions.instance'XMessage
+  Assumptions.instance'XMessageSliceCmd
+  Assumptions.instance'XStream
+  Assumptions.instance'XStreamSliceCmd
+  Assumptions.instance'XPending
+  Assumptions.instance'XPendingCmd
+  Assumptions.instance'XPendingExt
+  Assumptions.instance'XPendingExtCmd
+  Assumptions.instance'XAutoClaimCmd
+  Assumptions.instance'XAutoClaimJustIDCmd
+  Assumptions.instance'XInfoConsumersCmd
+  Assumptions.instance'XInfoConsumer
+  Assumptions.instance'XInfoGroupsCmd
+  Assumptions.instance'XInfoGroup
+  Assumptions.instance'XInfoStreamCmd
+  Assumptions.instance'XInfoStream
+  Assumptions.instance'XInfoStreamFullCmd
+  Assumptions.instance'XInfoStreamFull
+  Assumptions.instance'XInfoStreamGroup
+  Assumptions.instance'XInfoStreamGroupPending
+  Assumptions.instance'XInfoStreamConsumer
+  Assumptions.instance'XInfoStreamConsumerPending
+  Assumptions.instance'ZSliceCmd
+  Assumptions.instance'ZWithKeyCmd
+  Assumptions.instance'ScanCmd
+  Assumptions.instance'ClusterNode
+  Assumptions.instance'ClusterSlot
+  Assumptions.instance'ClusterSlotsCmd
+  Assumptions.instance'GeoLocation
+  Assumptions.instance'GeoRadiusQuery
+  Assumptions.instance'GeoLocationCmd
+  Assumptions.instance'GeoSearchQuery
+  Assumptions.instance'GeoSearchLocationQuery
+  Assumptions.instance'GeoSearchStoreQuery
+  Assumptions.instance'GeoSearchLocationCmd
+  Assumptions.instance'GeoPos
+  Assumptions.instance'GeoPosCmd
+  Assumptions.instance'CommandInfo
+  Assumptions.instance'CommandsInfoCmd
+  Assumptions.instance'cmdsInfoCache
+  Assumptions.instance'SlowLog
+  Assumptions.instance'SlowLogCmd
+  Assumptions.instance'Cmdable
+  Assumptions.instance'StatefulCmdable
+  Assumptions.instance'cmdable
+  Assumptions.instance'statefulCmdable
+  Assumptions.instance'Sort
+  Assumptions.instance'SetArgs
+  Assumptions.instance'BitCount
+  Assumptions.instance'LPosArgs
+  Assumptions.instance'XAddArgs
+  Assumptions.instance'XReadArgs
+  Assumptions.instance'XReadGroupArgs
+  Assumptions.instance'XPendingExtArgs
+  Assumptions.instance'XAutoClaimArgs
+  Assumptions.instance'XClaimArgs
+  Assumptions.instance'Z
+  Assumptions.instance'ZWithKey
+  Assumptions.instance'ZStore
+  Assumptions.instance'ZAddArgs
+  Assumptions.instance'ZRangeArgs
+  Assumptions.instance'ZRangeBy
+  Assumptions.instance'Error
+  Assumptions.instance'timeoutError
+  Assumptions.instance'ScanIterator
+  Assumptions.instance'Limiter
+  Assumptions.instance'Options
+  Assumptions.instance'queryOptions
+  Assumptions.instance'pipelineExecer
+  Assumptions.instance'Pipeliner
+  Assumptions.instance'Pipeline
+  Assumptions.instance'PubSub
+  Assumptions.instance'Subscription
+  Assumptions.instance'Message
+  Assumptions.instance'Pong
+  Assumptions.instance'ChannelOption
+  Assumptions.instance'channel
+  Assumptions.instance'Hook
+  Assumptions.instance'hooks
+  Assumptions.instance'baseClient
+  Assumptions.instance'pipelineProcessor
+  Assumptions.instance'Client
+  Assumptions.instance'PoolStats
+  Assumptions.instance'conn
+  Assumptions.instance'Conn
+  Assumptions.instance'ConsistentHash
+  Assumptions.instance'rendezvousWrapper
+  Assumptions.instance'RingOptions
+  Assumptions.instance'ringShard
+  Assumptions.instance'ringShards
+  Assumptions.instance'ring
+  Assumptions.instance'Ring
+  Assumptions.instance'Scripter
+  Assumptions.instance'Script
+  Assumptions.instance'FailoverOptions
+  Assumptions.instance'SentinelClient
+  Assumptions.instance'sentinelFailover
+  Assumptions.instance'Tx
+  Assumptions.instance'UniversalOptions
+  Assumptions.instance'UniversalClient
 
 end github_com.go_redis.redis.v8
 

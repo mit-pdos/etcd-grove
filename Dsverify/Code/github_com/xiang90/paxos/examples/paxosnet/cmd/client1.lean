@@ -44,11 +44,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.xiang90.paxos.examples.paxosnet.initialize') (Val #())))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  main_unfold : FuncUnfold main [] main.impl
-  import_paxosnet_Assumption : _root_.Perennial.github_com.xiang90.paxos.examples.paxosnet.Assumptions
+  unfold'main : FuncUnfold main [] main.impl
+  import'paxosnet : _root_.Perennial.github_com.xiang90.paxos.examples.paxosnet.Assumptions
 
-attribute [instance] Assumptions.main_unfold
-  Assumptions.import_paxosnet_Assumption
+attribute [instance] Assumptions.unfold'main
+  Assumptions.import'paxosnet
 
 end github_com.xiang90.paxos.examples.paxosnet.cmd.client1
 

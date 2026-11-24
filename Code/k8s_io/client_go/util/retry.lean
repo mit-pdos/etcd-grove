@@ -214,17 +214,17 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc DefaultBackoff _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Backoff.ty)) (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  OnError_unfold : FuncUnfold OnError [] OnError.impl
-  RetryOnConflict_unfold : FuncUnfold RetryOnConflict [] RetryOnConflict.impl
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_errors_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.Assumptions
-  import_wait_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Assumptions
+  unfold'OnError : FuncUnfold OnError [] OnError.impl
+  unfold'RetryOnConflict : FuncUnfold RetryOnConflict [] RetryOnConflict.impl
+  import'time : _root_.Perennial.time.Assumptions
+  import'errors : _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.Assumptions
+  import'wait : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Assumptions
 
-attribute [instance] Assumptions.OnError_unfold
-  Assumptions.RetryOnConflict_unfold
-  Assumptions.import_time_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_wait_Assumption
+attribute [instance] Assumptions.unfold'OnError
+  Assumptions.unfold'RetryOnConflict
+  Assumptions.import'time
+  Assumptions.import'errors
+  Assumptions.import'wait
 
 end k8s_io.client_go.util.retry
 

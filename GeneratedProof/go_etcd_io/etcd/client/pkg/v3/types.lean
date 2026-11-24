@@ -26,7 +26,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.types.Assumptions]
 
-noncomputable instance unsafeSet_typed_pointsto :
+noncomputable instance typed_pointsto'unsafeSet :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.types.unsafeSet where
   typedPointstoDef l v dq := iprop(
     "d" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) v.d' dq ∗
@@ -35,11 +35,11 @@ noncomputable instance unsafeSet_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance unsafeSet_into_val_typed :
+noncomputable instance into_val_typed'unsafeSet :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go_etcd_io.etcd.client.pkg.v3.types.unsafeSet.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance unsafeSet_access_load_d (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.types.unsafeSet) (dq : DFrac) :
+noncomputable instance access_load'unsafeSet'd (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.types.unsafeSet) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) v.d' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) v.d' dq)
@@ -47,7 +47,7 @@ noncomputable instance unsafeSet_access_load_d (l : Loc) (v : go_etcd_io.etcd.cl
  by
   solve_pointsto_access_struct
 
-noncomputable instance unsafeSet_access_store_d (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.types.unsafeSet) (y : GoMap) :
+noncomputable instance access_store'unsafeSet'd (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.types.unsafeSet) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) v.d' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) y (DFrac.own 1))
@@ -66,11 +66,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.types.Assumptions]
 
-noncomputable instance tsafeSet_typed_pointsto :
+noncomputable instance typed_pointsto'tsafeSet :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.types.tsafeSet :=
   sorry -- axiomatized type
 
-noncomputable instance tsafeSet_into_val_typed :
+noncomputable instance into_val_typed'tsafeSet :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.types.tsafeSet go_etcd_io.etcd.client.pkg.v3.types.tsafeSet.underlying :=
   sorry -- axiomatized type
 

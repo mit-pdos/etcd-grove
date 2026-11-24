@@ -28,7 +28,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.internal.Assumptions]
 
-noncomputable instance chunkedReader_typed_pointsto :
+noncomputable instance typed_pointsto'chunkedReader :
     TypedPointsto (GF := GF) net.http.internal.chunkedReader where
   typedPointstoDef l v dq := iprop(
     "r" ∷ typedPointsto (structFieldRef net.http.internal.chunkedReader go!"r" l) v.r' dq ∗
@@ -42,11 +42,11 @@ noncomputable instance chunkedReader_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance chunkedReader_into_val_typed :
+noncomputable instance into_val_typed'chunkedReader :
     IntoValTypedUnderlying (GF := GF) net.http.internal.chunkedReader net.http.internal.chunkedReader.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance chunkedReader_access_load_r (l : Loc) (v : net.http.internal.chunkedReader) (dq : DFrac) :
+noncomputable instance access_load'chunkedReader'r (l : Loc) (v : net.http.internal.chunkedReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"r" l) v.r' dq)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"r" l) v.r' dq)
@@ -54,7 +54,7 @@ noncomputable instance chunkedReader_access_load_r (l : Loc) (v : net.http.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance chunkedReader_access_store_r (l : Loc) (v : net.http.internal.chunkedReader) (y : Loc) :
+noncomputable instance access_store'chunkedReader'r (l : Loc) (v : net.http.internal.chunkedReader) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"r" l) v.r' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"r" l) y (DFrac.own 1))
@@ -62,7 +62,7 @@ noncomputable instance chunkedReader_access_store_r (l : Loc) (v : net.http.inte
  by
   solve_pointsto_access_struct
 
-noncomputable instance chunkedReader_access_load_n (l : Loc) (v : net.http.internal.chunkedReader) (dq : DFrac) :
+noncomputable instance access_load'chunkedReader'n (l : Loc) (v : net.http.internal.chunkedReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"n" l) v.n' dq)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"n" l) v.n' dq)
@@ -70,7 +70,7 @@ noncomputable instance chunkedReader_access_load_n (l : Loc) (v : net.http.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance chunkedReader_access_store_n (l : Loc) (v : net.http.internal.chunkedReader) (y : w64) :
+noncomputable instance access_store'chunkedReader'n (l : Loc) (v : net.http.internal.chunkedReader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"n" l) v.n' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"n" l) y (DFrac.own 1))
@@ -78,7 +78,7 @@ noncomputable instance chunkedReader_access_store_n (l : Loc) (v : net.http.inte
  by
   solve_pointsto_access_struct
 
-noncomputable instance chunkedReader_access_load_err (l : Loc) (v : net.http.internal.chunkedReader) (dq : DFrac) :
+noncomputable instance access_load'chunkedReader'err (l : Loc) (v : net.http.internal.chunkedReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"err" l) v.err' dq)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"err" l) v.err' dq)
@@ -86,7 +86,7 @@ noncomputable instance chunkedReader_access_load_err (l : Loc) (v : net.http.int
  by
   solve_pointsto_access_struct
 
-noncomputable instance chunkedReader_access_store_err (l : Loc) (v : net.http.internal.chunkedReader) (y : GoError) :
+noncomputable instance access_store'chunkedReader'err (l : Loc) (v : net.http.internal.chunkedReader) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"err" l) v.err' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"err" l) y (DFrac.own 1))
@@ -94,7 +94,7 @@ noncomputable instance chunkedReader_access_store_err (l : Loc) (v : net.http.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance chunkedReader_access_load_buf (l : Loc) (v : net.http.internal.chunkedReader) (dq : DFrac) :
+noncomputable instance access_load'chunkedReader'buf (l : Loc) (v : net.http.internal.chunkedReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"buf" l) v.buf' dq)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"buf" l) v.buf' dq)
@@ -102,7 +102,7 @@ noncomputable instance chunkedReader_access_load_buf (l : Loc) (v : net.http.int
  by
   solve_pointsto_access_struct
 
-noncomputable instance chunkedReader_access_store_buf (l : Loc) (v : net.http.internal.chunkedReader) (y : (GoArray w8 2)) :
+noncomputable instance access_store'chunkedReader'buf (l : Loc) (v : net.http.internal.chunkedReader) (y : (GoArray w8 2)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"buf" l) v.buf' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"buf" l) y (DFrac.own 1))
@@ -110,7 +110,7 @@ noncomputable instance chunkedReader_access_store_buf (l : Loc) (v : net.http.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance chunkedReader_access_load_checkEnd (l : Loc) (v : net.http.internal.chunkedReader) (dq : DFrac) :
+noncomputable instance access_load'chunkedReader'checkEnd (l : Loc) (v : net.http.internal.chunkedReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"checkEnd" l) v.checkEnd' dq)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"checkEnd" l) v.checkEnd' dq)
@@ -118,7 +118,7 @@ noncomputable instance chunkedReader_access_load_checkEnd (l : Loc) (v : net.htt
  by
   solve_pointsto_access_struct
 
-noncomputable instance chunkedReader_access_store_checkEnd (l : Loc) (v : net.http.internal.chunkedReader) (y : Bool) :
+noncomputable instance access_store'chunkedReader'checkEnd (l : Loc) (v : net.http.internal.chunkedReader) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"checkEnd" l) v.checkEnd' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"checkEnd" l) y (DFrac.own 1))
@@ -126,7 +126,7 @@ noncomputable instance chunkedReader_access_store_checkEnd (l : Loc) (v : net.ht
  by
   solve_pointsto_access_struct
 
-noncomputable instance chunkedReader_access_load_excess (l : Loc) (v : net.http.internal.chunkedReader) (dq : DFrac) :
+noncomputable instance access_load'chunkedReader'excess (l : Loc) (v : net.http.internal.chunkedReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"excess" l) v.excess' dq)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"excess" l) v.excess' dq)
@@ -134,7 +134,7 @@ noncomputable instance chunkedReader_access_load_excess (l : Loc) (v : net.http.
  by
   solve_pointsto_access_struct
 
-noncomputable instance chunkedReader_access_store_excess (l : Loc) (v : net.http.internal.chunkedReader) (y : w64) :
+noncomputable instance access_store'chunkedReader'excess (l : Loc) (v : net.http.internal.chunkedReader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"excess" l) v.excess' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.internal.chunkedReader go!"excess" l) y (DFrac.own 1))
@@ -153,7 +153,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.internal.Assumptions]
 
-noncomputable instance chunkedWriter_typed_pointsto :
+noncomputable instance typed_pointsto'chunkedWriter :
     TypedPointsto (GF := GF) net.http.internal.chunkedWriter where
   typedPointstoDef l v dq := iprop(
     "Wire" ∷ typedPointsto (structFieldRef net.http.internal.chunkedWriter go!"Wire" l) v.Wire' dq ∗
@@ -162,11 +162,11 @@ noncomputable instance chunkedWriter_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance chunkedWriter_into_val_typed :
+noncomputable instance into_val_typed'chunkedWriter :
     IntoValTypedUnderlying (GF := GF) net.http.internal.chunkedWriter net.http.internal.chunkedWriter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance chunkedWriter_access_load_Wire (l : Loc) (v : net.http.internal.chunkedWriter) (dq : DFrac) :
+noncomputable instance access_load'chunkedWriter'Wire (l : Loc) (v : net.http.internal.chunkedWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.chunkedWriter go!"Wire" l) v.Wire' dq)
       (typedPointsto (structFieldRef net.http.internal.chunkedWriter go!"Wire" l) v.Wire' dq)
@@ -174,7 +174,7 @@ noncomputable instance chunkedWriter_access_load_Wire (l : Loc) (v : net.http.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance chunkedWriter_access_store_Wire (l : Loc) (v : net.http.internal.chunkedWriter) (y : _root_.Perennial.io.Writer) :
+noncomputable instance access_store'chunkedWriter'Wire (l : Loc) (v : net.http.internal.chunkedWriter) (y : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.chunkedWriter go!"Wire" l) v.Wire' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.internal.chunkedWriter go!"Wire" l) y (DFrac.own 1))
@@ -193,7 +193,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.internal.Assumptions]
 
-noncomputable instance FlushAfterChunkWriter_typed_pointsto :
+noncomputable instance typed_pointsto'FlushAfterChunkWriter :
     TypedPointsto (GF := GF) net.http.internal.FlushAfterChunkWriter where
   typedPointstoDef l v dq := iprop(
     "Writer" ∷ typedPointsto (structFieldRef net.http.internal.FlushAfterChunkWriter go!"Writer" l) v.Writer' dq ∗
@@ -202,11 +202,11 @@ noncomputable instance FlushAfterChunkWriter_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance FlushAfterChunkWriter_into_val_typed :
+noncomputable instance into_val_typed'FlushAfterChunkWriter :
     IntoValTypedUnderlying (GF := GF) net.http.internal.FlushAfterChunkWriter net.http.internal.FlushAfterChunkWriter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance FlushAfterChunkWriter_access_load_Writer (l : Loc) (v : net.http.internal.FlushAfterChunkWriter) (dq : DFrac) :
+noncomputable instance access_load'FlushAfterChunkWriter'Writer (l : Loc) (v : net.http.internal.FlushAfterChunkWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.FlushAfterChunkWriter go!"Writer" l) v.Writer' dq)
       (typedPointsto (structFieldRef net.http.internal.FlushAfterChunkWriter go!"Writer" l) v.Writer' dq)
@@ -214,7 +214,7 @@ noncomputable instance FlushAfterChunkWriter_access_load_Writer (l : Loc) (v : n
  by
   solve_pointsto_access_struct
 
-noncomputable instance FlushAfterChunkWriter_access_store_Writer (l : Loc) (v : net.http.internal.FlushAfterChunkWriter) (y : Loc) :
+noncomputable instance access_store'FlushAfterChunkWriter'Writer (l : Loc) (v : net.http.internal.FlushAfterChunkWriter) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.FlushAfterChunkWriter go!"Writer" l) v.Writer' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.internal.FlushAfterChunkWriter go!"Writer" l) y (DFrac.own 1))
@@ -233,7 +233,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.internal.Assumptions]
 
-noncomputable instance exactSig_typed_pointsto :
+noncomputable instance typed_pointsto'exactSig :
     TypedPointsto (GF := GF) net.http.internal.exactSig where
   typedPointstoDef l v dq := iprop(
     "sig" ∷ typedPointsto (structFieldRef net.http.internal.exactSig go!"sig" l) v.sig' dq ∗
@@ -243,11 +243,11 @@ noncomputable instance exactSig_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance exactSig_into_val_typed :
+noncomputable instance into_val_typed'exactSig :
     IntoValTypedUnderlying (GF := GF) net.http.internal.exactSig net.http.internal.exactSig.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance exactSig_access_load_sig (l : Loc) (v : net.http.internal.exactSig) (dq : DFrac) :
+noncomputable instance access_load'exactSig'sig (l : Loc) (v : net.http.internal.exactSig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.exactSig go!"sig" l) v.sig' dq)
       (typedPointsto (structFieldRef net.http.internal.exactSig go!"sig" l) v.sig' dq)
@@ -255,7 +255,7 @@ noncomputable instance exactSig_access_load_sig (l : Loc) (v : net.http.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance exactSig_access_store_sig (l : Loc) (v : net.http.internal.exactSig) (y : GoSlice) :
+noncomputable instance access_store'exactSig'sig (l : Loc) (v : net.http.internal.exactSig) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.exactSig go!"sig" l) v.sig' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.internal.exactSig go!"sig" l) y (DFrac.own 1))
@@ -263,7 +263,7 @@ noncomputable instance exactSig_access_store_sig (l : Loc) (v : net.http.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance exactSig_access_load_ct (l : Loc) (v : net.http.internal.exactSig) (dq : DFrac) :
+noncomputable instance access_load'exactSig'ct (l : Loc) (v : net.http.internal.exactSig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.exactSig go!"ct" l) v.ct' dq)
       (typedPointsto (structFieldRef net.http.internal.exactSig go!"ct" l) v.ct' dq)
@@ -271,7 +271,7 @@ noncomputable instance exactSig_access_load_ct (l : Loc) (v : net.http.internal.
  by
   solve_pointsto_access_struct
 
-noncomputable instance exactSig_access_store_ct (l : Loc) (v : net.http.internal.exactSig) (y : GoString) :
+noncomputable instance access_store'exactSig'ct (l : Loc) (v : net.http.internal.exactSig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.exactSig go!"ct" l) v.ct' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.internal.exactSig go!"ct" l) y (DFrac.own 1))
@@ -290,7 +290,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.internal.Assumptions]
 
-noncomputable instance maskedSig_typed_pointsto :
+noncomputable instance typed_pointsto'maskedSig :
     TypedPointsto (GF := GF) net.http.internal.maskedSig where
   typedPointstoDef l v dq := iprop(
     "mask" ∷ typedPointsto (structFieldRef net.http.internal.maskedSig go!"mask" l) v.mask' dq ∗
@@ -302,11 +302,11 @@ noncomputable instance maskedSig_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance maskedSig_into_val_typed :
+noncomputable instance into_val_typed'maskedSig :
     IntoValTypedUnderlying (GF := GF) net.http.internal.maskedSig net.http.internal.maskedSig.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance maskedSig_access_load_mask (l : Loc) (v : net.http.internal.maskedSig) (dq : DFrac) :
+noncomputable instance access_load'maskedSig'mask (l : Loc) (v : net.http.internal.maskedSig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.maskedSig go!"mask" l) v.mask' dq)
       (typedPointsto (structFieldRef net.http.internal.maskedSig go!"mask" l) v.mask' dq)
@@ -314,7 +314,7 @@ noncomputable instance maskedSig_access_load_mask (l : Loc) (v : net.http.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance maskedSig_access_store_mask (l : Loc) (v : net.http.internal.maskedSig) (y : GoSlice) :
+noncomputable instance access_store'maskedSig'mask (l : Loc) (v : net.http.internal.maskedSig) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.maskedSig go!"mask" l) v.mask' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.internal.maskedSig go!"mask" l) y (DFrac.own 1))
@@ -322,7 +322,7 @@ noncomputable instance maskedSig_access_store_mask (l : Loc) (v : net.http.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance maskedSig_access_load_pat (l : Loc) (v : net.http.internal.maskedSig) (dq : DFrac) :
+noncomputable instance access_load'maskedSig'pat (l : Loc) (v : net.http.internal.maskedSig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.maskedSig go!"pat" l) v.pat' dq)
       (typedPointsto (structFieldRef net.http.internal.maskedSig go!"pat" l) v.pat' dq)
@@ -330,7 +330,7 @@ noncomputable instance maskedSig_access_load_pat (l : Loc) (v : net.http.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance maskedSig_access_store_pat (l : Loc) (v : net.http.internal.maskedSig) (y : GoSlice) :
+noncomputable instance access_store'maskedSig'pat (l : Loc) (v : net.http.internal.maskedSig) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.maskedSig go!"pat" l) v.pat' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.internal.maskedSig go!"pat" l) y (DFrac.own 1))
@@ -338,7 +338,7 @@ noncomputable instance maskedSig_access_store_pat (l : Loc) (v : net.http.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance maskedSig_access_load_skipWS (l : Loc) (v : net.http.internal.maskedSig) (dq : DFrac) :
+noncomputable instance access_load'maskedSig'skipWS (l : Loc) (v : net.http.internal.maskedSig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.maskedSig go!"skipWS" l) v.skipWS' dq)
       (typedPointsto (structFieldRef net.http.internal.maskedSig go!"skipWS" l) v.skipWS' dq)
@@ -346,7 +346,7 @@ noncomputable instance maskedSig_access_load_skipWS (l : Loc) (v : net.http.inte
  by
   solve_pointsto_access_struct
 
-noncomputable instance maskedSig_access_store_skipWS (l : Loc) (v : net.http.internal.maskedSig) (y : Bool) :
+noncomputable instance access_store'maskedSig'skipWS (l : Loc) (v : net.http.internal.maskedSig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.maskedSig go!"skipWS" l) v.skipWS' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.internal.maskedSig go!"skipWS" l) y (DFrac.own 1))
@@ -354,7 +354,7 @@ noncomputable instance maskedSig_access_store_skipWS (l : Loc) (v : net.http.int
  by
   solve_pointsto_access_struct
 
-noncomputable instance maskedSig_access_load_ct (l : Loc) (v : net.http.internal.maskedSig) (dq : DFrac) :
+noncomputable instance access_load'maskedSig'ct (l : Loc) (v : net.http.internal.maskedSig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.maskedSig go!"ct" l) v.ct' dq)
       (typedPointsto (structFieldRef net.http.internal.maskedSig go!"ct" l) v.ct' dq)
@@ -362,7 +362,7 @@ noncomputable instance maskedSig_access_load_ct (l : Loc) (v : net.http.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance maskedSig_access_store_ct (l : Loc) (v : net.http.internal.maskedSig) (y : GoString) :
+noncomputable instance access_store'maskedSig'ct (l : Loc) (v : net.http.internal.maskedSig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.internal.maskedSig go!"ct" l) v.ct' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.internal.maskedSig go!"ct" l) y (DFrac.own 1))
@@ -381,7 +381,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.internal.Assumptions]
 
-noncomputable instance mp4Sig_typed_pointsto :
+noncomputable instance typed_pointsto'mp4Sig :
     TypedPointsto (GF := GF) net.http.internal.mp4Sig where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -389,7 +389,7 @@ noncomputable instance mp4Sig_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance mp4Sig_into_val_typed :
+noncomputable instance into_val_typed'mp4Sig :
     IntoValTypedUnderlying (GF := GF) net.http.internal.mp4Sig net.http.internal.mp4Sig.underlying := by
   solve_into_val_typed_struct
 
@@ -404,7 +404,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.internal.Assumptions]
 
-noncomputable instance textSig_typed_pointsto :
+noncomputable instance typed_pointsto'textSig :
     TypedPointsto (GF := GF) net.http.internal.textSig where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -412,7 +412,7 @@ noncomputable instance textSig_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance textSig_into_val_typed :
+noncomputable instance into_val_typed'textSig :
     IntoValTypedUnderlying (GF := GF) net.http.internal.textSig net.http.internal.textSig.underlying := by
   solve_into_val_typed_struct
 

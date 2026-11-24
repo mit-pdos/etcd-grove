@@ -356,7 +356,7 @@ noncomputable instance NullUUID.zero_val [GooseExts] : ZeroVal NullUUID :=
 @[irreducible] noncomputable def NullUUID.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NullUUID.fieldsUnsealed
 
-noncomputable instance equals_unfold_NullUUID [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'NullUUID [GooseExts] [GoGlobalContext] :
     EqualsUnfold NullUUID.fields NullUUID.fieldsUnsealed :=
   ⟨by unfold NullUUID.fields; rfl⟩
 
@@ -366,19 +366,19 @@ noncomputable instance equals_unfold_NullUUID [GooseExts] [GoGlobalContext] :
 class NullUUID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NullUUID.underlying NullUUID
   underlying : go.UnderlyingDirectedEq NullUUID.ty NullUUID.underlying
-  get_UUID : ∀ (x : NullUUID), go.IsGoStepPureDetTagged under (StructFieldGet NullUUID.underlying go!"UUID") #x (Val #(x.UUID'))
-  set_UUID : ∀ (x : NullUUID) (y : UUID), go.IsGoStepPureDetTagged under (StructFieldSet NullUUID.underlying go!"UUID") (PairV #x #y) (Val #(({ x with UUID' := y } : NullUUID)))
-  get_Valid : ∀ (x : NullUUID), go.IsGoStepPureDetTagged under (StructFieldGet NullUUID.underlying go!"Valid") #x (Val #(x.Valid'))
-  set_Valid : ∀ (x : NullUUID) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet NullUUID.underlying go!"Valid") (PairV #x #y) (Val #(({ x with Valid' := y } : NullUUID)))
+  get'UUID : ∀ (x : NullUUID), go.IsGoStepPureDetTagged under (StructFieldGet NullUUID.underlying go!"UUID") #x (Val #(x.UUID'))
+  set'UUID : ∀ (x : NullUUID) (y : UUID), go.IsGoStepPureDetTagged under (StructFieldSet NullUUID.underlying go!"UUID") (PairV #x #y) (Val #(({ x with UUID' := y } : NullUUID)))
+  get'Valid : ∀ (x : NullUUID), go.IsGoStepPureDetTagged under (StructFieldGet NullUUID.underlying go!"Valid") #x (Val #(x.Valid'))
+  set'Valid : ∀ (x : NullUUID) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet NullUUID.underlying go!"Valid") (PairV #x #y) (Val #(({ x with Valid' := y } : NullUUID)))
   method_set : go.MethodSetIs NullUUID.ty [(go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Value", (some (go.signature.Signature [] false [(go.GoType.Named go!"database/sql/driver.Value" []), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType NullUUID.ty) [(go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Scan", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"UnmarshalBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Value", (some (go.signature.Signature [] false [(go.GoType.Named go!"database/sql/driver.Value" []), go.error])))]
 
 attribute [instance] NullUUID.TypeAssumptions.type_repr
   NullUUID.TypeAssumptions.underlying
-  NullUUID.TypeAssumptions.get_UUID
-  NullUUID.TypeAssumptions.set_UUID
-  NullUUID.TypeAssumptions.get_Valid
-  NullUUID.TypeAssumptions.set_Valid
+  NullUUID.TypeAssumptions.get'UUID
+  NullUUID.TypeAssumptions.set'UUID
+  NullUUID.TypeAssumptions.get'Valid
+  NullUUID.TypeAssumptions.set'Valid
   NullUUID.TypeAssumptions.method_set
   NullUUID.TypeAssumptions.ptr_method_set
 
@@ -437,7 +437,7 @@ noncomputable instance invalidLengthError.zero_val [GooseExts] : ZeroVal invalid
 @[irreducible] noncomputable def invalidLengthError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   invalidLengthError.fieldsUnsealed
 
-noncomputable instance equals_unfold_invalidLengthError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'invalidLengthError [GooseExts] [GoGlobalContext] :
     EqualsUnfold invalidLengthError.fields invalidLengthError.fieldsUnsealed :=
   ⟨by unfold invalidLengthError.fields; rfl⟩
 
@@ -447,34 +447,34 @@ noncomputable instance equals_unfold_invalidLengthError [GooseExts] [GoGlobalCon
 class invalidLengthError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying invalidLengthError.underlying invalidLengthError
   underlying : go.UnderlyingDirectedEq invalidLengthError.ty invalidLengthError.underlying
-  get_len : ∀ (x : invalidLengthError), go.IsGoStepPureDetTagged under (StructFieldGet invalidLengthError.underlying go!"len") #x (Val #(x.len'))
-  set_len : ∀ (x : invalidLengthError) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet invalidLengthError.underlying go!"len") (PairV #x #y) (Val #(({ x with len' := y } : invalidLengthError)))
+  get'len : ∀ (x : invalidLengthError), go.IsGoStepPureDetTagged under (StructFieldGet invalidLengthError.underlying go!"len") #x (Val #(x.len'))
+  set'len : ∀ (x : invalidLengthError) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet invalidLengthError.underlying go!"len") (PairV #x #y) (Val #(({ x with len' := y } : invalidLengthError)))
   method_set : go.MethodSetIs invalidLengthError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType invalidLengthError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] invalidLengthError.TypeAssumptions.type_repr
   invalidLengthError.TypeAssumptions.underlying
-  invalidLengthError.TypeAssumptions.get_len
-  invalidLengthError.TypeAssumptions.set_len
+  invalidLengthError.TypeAssumptions.get'len
+  invalidLengthError.TypeAssumptions.set'len
   invalidLengthError.TypeAssumptions.method_set
   invalidLengthError.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Domain_instance : Domain.TypeAssumptions
-  NullUUID_instance : NullUUID.TypeAssumptions
-  Time_instance : Time.TypeAssumptions
-  UUID_instance : UUID.TypeAssumptions
-  Version_instance : Version.TypeAssumptions
-  Variant_instance : Variant.TypeAssumptions
-  invalidLengthError_instance : invalidLengthError.TypeAssumptions
+  instance'Domain : Domain.TypeAssumptions
+  instance'NullUUID : NullUUID.TypeAssumptions
+  instance'Time : Time.TypeAssumptions
+  instance'UUID : UUID.TypeAssumptions
+  instance'Version : Version.TypeAssumptions
+  instance'Variant : Variant.TypeAssumptions
+  instance'invalidLengthError : invalidLengthError.TypeAssumptions
 
-attribute [instance] Assumptions.Domain_instance
-  Assumptions.NullUUID_instance
-  Assumptions.Time_instance
-  Assumptions.UUID_instance
-  Assumptions.Version_instance
-  Assumptions.Variant_instance
-  Assumptions.invalidLengthError_instance
+attribute [instance] Assumptions.instance'Domain
+  Assumptions.instance'NullUUID
+  Assumptions.instance'Time
+  Assumptions.instance'UUID
+  Assumptions.instance'Version
+  Assumptions.instance'Variant
+  Assumptions.instance'invalidLengthError
 
 end github_com.google.uuid
 

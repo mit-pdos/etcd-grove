@@ -59,7 +59,7 @@ theorem watchCache.waitAndGetLatestSnapshot.wp_proof
   · iframe #
   rw [← Hci]
   (try wp_auto)
-  rw [watchCache.TypeAssumptions.ptr_RLock_unfold.method_unfold]
+  rw [watchCache.TypeAssumptions.ptr_unfold'RLock.method_unfold]
   wp_pures
   (try wp_auto)
   wp_apply (sync.RWMutex.wp_RLock (structFieldRef watchCache go!"RWMutex" wc) (wcLockP wc γ)) $$ [Htok] as ⟨Hrl, HP⟩
@@ -75,7 +75,7 @@ theorem watchCache.waitAndGetLatestSnapshot.wp_proof
   | ok ei =>
     -- the wait's error
     (try wp_auto)
-    rw [watchCache.TypeAssumptions.ptr_RUnlock_unfold.method_unfold]
+    rw [watchCache.TypeAssumptions.ptr_unfold'RUnlock.method_unfold]
     wp_pures
     (try wp_auto)
     wp_apply (sync.RWMutex.wp_RUnlock (structFieldRef watchCache go!"RWMutex" wc) (wcLockP wc γ)) $$ [Hrl Hl] as Htok
@@ -95,7 +95,7 @@ theorem watchCache.waitAndGetLatestSnapshot.wp_proof
   iunfold wcLockPSt at Hl
   icases Hl with ⟨Hrv, Hown⟩
   (try wp_auto)
-  rw [watchCache.TypeAssumptions.ptr_RUnlock_unfold.method_unfold]
+  rw [watchCache.TypeAssumptions.ptr_unfold'RUnlock.method_unfold]
   wp_pures
   (try wp_auto)
   wp_apply (sync.RWMutex.wp_RUnlock (structFieldRef watchCache go!"RWMutex" wc) (wcLockP wc γ)) $$ [Hrl Hrv Hown] as Htok

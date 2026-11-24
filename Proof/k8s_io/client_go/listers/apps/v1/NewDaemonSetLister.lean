@@ -42,7 +42,7 @@ theorem NewDaemonSetLister.wp_proof (wp_Resource : appsv1.Resource.spec (GF := G
   (try wp_auto)
   wp_apply wp_alloc as %l Hl
   (try wp_auto)
-  ihave Hacc := (daemonSetLister.daemonSetLister_access_load_ResourceIndexer l _ (DFrac.own 1)).access_strict $$ Hl
+  ihave Hacc := (daemonSetLister.access_load'daemonSetLister'ResourceIndexer l _ (DFrac.own 1)).access_strict $$ Hl
   icases Hacc with ⟨Hf, -⟩
   iapply HΦ
   iexact Hf

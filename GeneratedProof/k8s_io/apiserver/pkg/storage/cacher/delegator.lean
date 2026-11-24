@@ -24,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.delegator.Assumptions]
 
-noncomputable instance Result_typed_pointsto :
+noncomputable instance typed_pointsto'Result :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.delegator.Result where
   typedPointstoDef l v dq := iprop(
     "ShouldDelegate" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) v.ShouldDelegate' dq ∗
@@ -34,11 +34,11 @@ noncomputable instance Result_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Result_into_val_typed :
+noncomputable instance into_val_typed'Result :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.delegator.Result k8s_io.apiserver.pkg.storage.cacher.delegator.Result.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Result_access_load_ShouldDelegate (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (dq : DFrac) :
+noncomputable instance access_load'Result'ShouldDelegate (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) v.ShouldDelegate' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) v.ShouldDelegate' dq)
@@ -46,7 +46,7 @@ noncomputable instance Result_access_load_ShouldDelegate (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance Result_access_store_ShouldDelegate (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (y : Bool) :
+noncomputable instance access_store'Result'ShouldDelegate (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) v.ShouldDelegate' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) y (DFrac.own 1))
@@ -54,7 +54,7 @@ noncomputable instance Result_access_store_ShouldDelegate (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Result_access_load_ConsistentRead (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (dq : DFrac) :
+noncomputable instance access_load'Result'ConsistentRead (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) v.ConsistentRead' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) v.ConsistentRead' dq)
@@ -62,7 +62,7 @@ noncomputable instance Result_access_load_ConsistentRead (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance Result_access_store_ConsistentRead (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (y : Bool) :
+noncomputable instance access_store'Result'ConsistentRead (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) v.ConsistentRead' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) y (DFrac.own 1))
@@ -81,7 +81,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.delegator.Assumptions]
 
-noncomputable instance CacheWithoutSnapshots_typed_pointsto :
+noncomputable instance typed_pointsto'CacheWithoutSnapshots :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.delegator.CacheWithoutSnapshots where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -89,7 +89,7 @@ noncomputable instance CacheWithoutSnapshots_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance CacheWithoutSnapshots_into_val_typed :
+noncomputable instance into_val_typed'CacheWithoutSnapshots :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.delegator.CacheWithoutSnapshots k8s_io.apiserver.pkg.storage.cacher.delegator.CacheWithoutSnapshots.underlying := by
   solve_into_val_typed_struct
 

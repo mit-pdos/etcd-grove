@@ -25,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.grpclog.Assumptions]
 
-noncomputable instance componentData_typed_pointsto :
+noncomputable instance typed_pointsto'componentData :
     TypedPointsto (GF := GF) google_golang_org.grpc.grpclog.componentData where
   typedPointstoDef l v dq := iprop(
     "name" ∷ typedPointsto (structFieldRef google_golang_org.grpc.grpclog.componentData go!"name" l) v.name' dq ∗
@@ -34,11 +34,11 @@ noncomputable instance componentData_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance componentData_into_val_typed :
+noncomputable instance into_val_typed'componentData :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.grpclog.componentData google_golang_org.grpc.grpclog.componentData.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance componentData_access_load_name (l : Loc) (v : google_golang_org.grpc.grpclog.componentData) (dq : DFrac) :
+noncomputable instance access_load'componentData'name (l : Loc) (v : google_golang_org.grpc.grpclog.componentData) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.componentData go!"name" l) v.name' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.componentData go!"name" l) v.name' dq)
@@ -46,7 +46,7 @@ noncomputable instance componentData_access_load_name (l : Loc) (v : google_gola
  by
   solve_pointsto_access_struct
 
-noncomputable instance componentData_access_store_name (l : Loc) (v : google_golang_org.grpc.grpclog.componentData) (y : GoString) :
+noncomputable instance access_store'componentData'name (l : Loc) (v : google_golang_org.grpc.grpclog.componentData) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.componentData go!"name" l) v.name' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.componentData go!"name" l) y (DFrac.own 1))

@@ -117,7 +117,7 @@ noncomputable def formatInt16.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "i"))
-  (let digits := #(go!"0123456789abcdefghijklmnopqrstuvwxyz");
+  (let digits₀ := #(go!"0123456789abcdefghijklmnopqrstuvwxyz");
   (Let "$r0" (App (Val (GoInstruction (Convert go.int64 go.uint64))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "i")))
   (Let "u" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -140,7 +140,7 @@ noncomputable def formatInt16.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val digits) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (Convert go.uint64 go.uint))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "u"))))))
+  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val digits₀) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (Convert go.uint64 go.uint))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "u"))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (Let "$s" (Var "a")
@@ -166,7 +166,7 @@ noncomputable def formatInt16.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "u")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "b")))))) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val digits) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoAnd go.uint))) (Pair (App (Val (GoInstruction (Convert go.uint64 go.uint))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "u"))) (App (Val (GoInstruction (GoLoad go.uint))) (Var "m")))))))
+  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val digits₀) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoAnd go.uint))) (Pair (App (Val (GoInstruction (Convert go.uint64 go.uint))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "u"))) (App (Val (GoInstruction (GoLoad go.uint))) (Var "m")))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "u") (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "u")) (App (Val (GoInstruction (Convert go.uint go.uint64))) (App (Val (GoInstruction (GoLoad go.uint))) (Var "shift"))))))))))
@@ -252,7 +252,7 @@ noncomputable def hexEncodeToString.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "src" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "src"))
-  (let hextable := #(go!"0123456789abcdef");
+  (let hextable₀ := #(go!"0123456789abcdef");
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "src"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 2)))))
   (Let "dst" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -274,9 +274,9 @@ noncomputable def hexEncodeToString.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val hextable) (App (Val (GoInstruction (Convert go.byte go.int))) (App (Val (GoInstruction (GoOp GoShiftr go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "v")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(4 : Int))))))))
+  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val hextable₀) (App (Val (GoInstruction (Convert go.byte go.int))) (App (Val (GoInstruction (GoOp GoShiftr go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "v")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(4 : Int))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val hextable) (App (Val (GoInstruction (Convert go.byte go.int))) (App (Val (GoInstruction (GoOp GoAnd go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "v")) (Val #(W8 15)))))))
+  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val hextable₀) (App (Val (GoInstruction (Convert go.byte go.int))) (App (Val (GoInstruction (GoOp GoAnd go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "v")) (Val #(W8 15)))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Val #(W64 2)))))))))
@@ -1157,14 +1157,14 @@ class Operation.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq Operation.ty Operation.underlying
   method_set : go.MethodSetIs Operation.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Operation.ty) [(go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType Operation.ty) go!"Marshal" Operation.Marshal.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType Operation.ty) go!"Unmarshal" Operation.Unmarshal.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType Operation.ty) go!"Marshal" Operation.Marshal.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType Operation.ty) go!"Unmarshal" Operation.Unmarshal.impl
 
 attribute [instance] Operation.TypeAssumptions.underlying
   Operation.TypeAssumptions.method_set
   Operation.TypeAssumptions.ptr_method_set
-  Operation.TypeAssumptions.ptr_Marshal_unfold
-  Operation.TypeAssumptions.ptr_Unmarshal_unfold
+  Operation.TypeAssumptions.ptr_unfold'Marshal
+  Operation.TypeAssumptions.ptr_unfold'Unmarshal
 
 abbrev Value [GooseExts] : Type := GoSlice
 
@@ -1175,16 +1175,16 @@ class Value.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   underlying : go.UnderlyingDirectedEq Value.ty Value.underlying
   method_set : go.MethodSetIs Value.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Value.ty) [(go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType Value.ty) go!"Marshal" Value.Marshal.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Value.ty) go!"String" Value.String.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType Value.ty) go!"Unmarshal" Value.Unmarshal.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType Value.ty) go!"Marshal" Value.Marshal.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType Value.ty) go!"String" Value.String.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType Value.ty) go!"Unmarshal" Value.Unmarshal.impl
 
 attribute [instance] Value.TypeAssumptions.underlying
   Value.TypeAssumptions.method_set
   Value.TypeAssumptions.ptr_method_set
-  Value.TypeAssumptions.ptr_Marshal_unfold
-  Value.TypeAssumptions.ptr_String_unfold
-  Value.TypeAssumptions.ptr_Unmarshal_unfold
+  Value.TypeAssumptions.ptr_unfold'Marshal
+  Value.TypeAssumptions.ptr_unfold'String
+  Value.TypeAssumptions.ptr_unfold'Unmarshal
 
 abbrev Key [GooseExts] : Type := w64
 
@@ -1195,16 +1195,16 @@ class Key.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSema
   underlying : go.UnderlyingDirectedEq Key.ty Key.underlying
   method_set : go.MethodSetIs Key.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Key.ty) [(go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType Key.ty) go!"Marshal" Key.Marshal.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Key.ty) go!"String" Key.String.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType Key.ty) go!"Unmarshal" Key.Unmarshal.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType Key.ty) go!"Marshal" Key.Marshal.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType Key.ty) go!"String" Key.String.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType Key.ty) go!"Unmarshal" Key.Unmarshal.impl
 
 attribute [instance] Key.TypeAssumptions.underlying
   Key.TypeAssumptions.method_set
   Key.TypeAssumptions.ptr_method_set
-  Key.TypeAssumptions.ptr_Marshal_unfold
-  Key.TypeAssumptions.ptr_String_unfold
-  Key.TypeAssumptions.ptr_Unmarshal_unfold
+  Key.TypeAssumptions.ptr_unfold'Marshal
+  Key.TypeAssumptions.ptr_unfold'String
+  Key.TypeAssumptions.ptr_unfold'Unmarshal
 
 structure Command [GooseExts] where
   mk ::
@@ -1223,7 +1223,7 @@ noncomputable instance Command.zero_val [GooseExts] : ZeroVal Command :=
 @[irreducible] noncomputable def Command.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Command.fieldsUnsealed
 
-noncomputable instance equals_unfold_Command [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Command [GooseExts] [GoGlobalContext] :
     EqualsUnfold Command.fields Command.fieldsUnsealed :=
   ⟨by unfold Command.fields; rfl⟩
 
@@ -1233,33 +1233,33 @@ noncomputable instance equals_unfold_Command [GooseExts] [GoGlobalContext] :
 class Command.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Command.underlying Command
   underlying : go.UnderlyingDirectedEq Command.ty Command.underlying
-  get_Op : ∀ (x : Command), go.IsGoStepPureDetTagged under (StructFieldGet Command.underlying go!"Op") #x (Val #(x.Op'))
-  set_Op : ∀ (x : Command) (y : Operation), go.IsGoStepPureDetTagged under (StructFieldSet Command.underlying go!"Op") (PairV #x #y) (Val #(({ x with Op' := y } : Command)))
-  get_K : ∀ (x : Command), go.IsGoStepPureDetTagged under (StructFieldGet Command.underlying go!"K") #x (Val #(x.K'))
-  set_K : ∀ (x : Command) (y : Key), go.IsGoStepPureDetTagged under (StructFieldSet Command.underlying go!"K") (PairV #x #y) (Val #(({ x with K' := y } : Command)))
-  get_V : ∀ (x : Command), go.IsGoStepPureDetTagged under (StructFieldGet Command.underlying go!"V") #x (Val #(x.V'))
-  set_V : ∀ (x : Command) (y : Value), go.IsGoStepPureDetTagged under (StructFieldSet Command.underlying go!"V") (PairV #x #y) (Val #(({ x with V' := y } : Command)))
+  get'Op : ∀ (x : Command), go.IsGoStepPureDetTagged under (StructFieldGet Command.underlying go!"Op") #x (Val #(x.Op'))
+  set'Op : ∀ (x : Command) (y : Operation), go.IsGoStepPureDetTagged under (StructFieldSet Command.underlying go!"Op") (PairV #x #y) (Val #(({ x with Op' := y } : Command)))
+  get'K : ∀ (x : Command), go.IsGoStepPureDetTagged under (StructFieldGet Command.underlying go!"K") #x (Val #(x.K'))
+  set'K : ∀ (x : Command) (y : Key), go.IsGoStepPureDetTagged under (StructFieldSet Command.underlying go!"K") (PairV #x #y) (Val #(({ x with K' := y } : Command)))
+  get'V : ∀ (x : Command), go.IsGoStepPureDetTagged under (StructFieldGet Command.underlying go!"V") #x (Val #(x.V'))
+  set'V : ∀ (x : Command) (y : Value), go.IsGoStepPureDetTagged under (StructFieldSet Command.underlying go!"V") (PairV #x #y) (Val #(({ x with V' := y } : Command)))
   method_set : go.MethodSetIs Command.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Command.ty) [(go!"Execute", (some (go.signature.Signature [(go.GoType.PointerType State.ty)] false [Value.ty]))), (go!"Marshal", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.error])))]
-  ptr_Execute_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"Execute" Command.Execute.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"Marshal" Command.Marshal.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"String" Command.String.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"Unmarshal" Command.Unmarshal.impl
+  ptr_unfold'Execute : MethodUnfold (go.GoType.PointerType Command.ty) go!"Execute" Command.Execute.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType Command.ty) go!"Marshal" Command.Marshal.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType Command.ty) go!"String" Command.String.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType Command.ty) go!"Unmarshal" Command.Unmarshal.impl
 
 attribute [instance] Command.TypeAssumptions.type_repr
   Command.TypeAssumptions.underlying
-  Command.TypeAssumptions.get_Op
-  Command.TypeAssumptions.set_Op
-  Command.TypeAssumptions.get_K
-  Command.TypeAssumptions.set_K
-  Command.TypeAssumptions.get_V
-  Command.TypeAssumptions.set_V
+  Command.TypeAssumptions.get'Op
+  Command.TypeAssumptions.set'Op
+  Command.TypeAssumptions.get'K
+  Command.TypeAssumptions.set'K
+  Command.TypeAssumptions.get'V
+  Command.TypeAssumptions.set'V
   Command.TypeAssumptions.method_set
   Command.TypeAssumptions.ptr_method_set
-  Command.TypeAssumptions.ptr_Execute_unfold
-  Command.TypeAssumptions.ptr_Marshal_unfold
-  Command.TypeAssumptions.ptr_String_unfold
-  Command.TypeAssumptions.ptr_Unmarshal_unfold
+  Command.TypeAssumptions.ptr_unfold'Execute
+  Command.TypeAssumptions.ptr_unfold'Marshal
+  Command.TypeAssumptions.ptr_unfold'String
+  Command.TypeAssumptions.ptr_unfold'Unmarshal
 
 abbrev Id [GooseExts] : Type := w64
 
@@ -1304,7 +1304,7 @@ noncomputable instance State.zero_val [GooseExts] : ZeroVal State :=
 @[irreducible] noncomputable def State.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   State.fieldsUnsealed
 
-noncomputable instance equals_unfold_State [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'State [GooseExts] [GoGlobalContext] :
     EqualsUnfold State.fields State.fieldsUnsealed :=
   ⟨by unfold State.fields; rfl⟩
 
@@ -1314,68 +1314,68 @@ noncomputable instance equals_unfold_State [GooseExts] [GoGlobalContext] :
 class State.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying State.underlying State
   underlying : go.UnderlyingDirectedEq State.ty State.underlying
-  get_mutex : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"mutex") #x (Val #(x.mutex'))
-  set_mutex : ∀ (x : State) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"mutex") (PairV #x #y) (Val #(({ x with mutex' := y } : State)))
-  get_Store : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Store") #x (Val #(x.Store'))
-  set_Store : ∀ (x : State) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Store") (PairV #x #y) (Val #(({ x with Store' := y } : State)))
+  get'mutex : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"mutex") #x (Val #(x.mutex'))
+  set'mutex : ∀ (x : State) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"mutex") (PairV #x #y) (Val #(({ x with mutex' := y } : State)))
+  get'Store : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Store") #x (Val #(x.Store'))
+  set'Store : ∀ (x : State) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Store") (PairV #x #y) (Val #(({ x with Store' := y } : State)))
   method_set : go.MethodSetIs State.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType State.ty) []
 
 attribute [instance] State.TypeAssumptions.type_repr
   State.TypeAssumptions.underlying
-  State.TypeAssumptions.get_mutex
-  State.TypeAssumptions.set_mutex
-  State.TypeAssumptions.get_Store
-  State.TypeAssumptions.set_Store
+  State.TypeAssumptions.get'mutex
+  State.TypeAssumptions.set'mutex
+  State.TypeAssumptions.get'Store
+  State.TypeAssumptions.set'Store
   State.TypeAssumptions.method_set
   State.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Operation_instance : Operation.TypeAssumptions
-  Value_instance : Value.TypeAssumptions
-  Key_instance : Key.TypeAssumptions
-  Command_instance : Command.TypeAssumptions
-  Id_instance : Id.TypeAssumptions
-  Phase_instance : Phase.TypeAssumptions
-  State_instance : State.TypeAssumptions
-  formatInt16_unfold : FuncUnfold formatInt16 [] formatInt16.impl
-  formatUint10_unfold : FuncUnfold formatUint10 [] formatUint10.impl
-  hexEncodeToString_unfold : FuncUnfold hexEncodeToString [] hexEncodeToString.impl
-  NIL_unfold : FuncUnfold NIL [] NIL.impl
-  NOOP_unfold : FuncUnfold NOOP [] NOOP.impl
-  KeyComparator_unfold : FuncUnfold KeyComparator [] KeyComparator.impl
-  concat_unfold : FuncUnfold concat [] concat.impl
-  InitState_unfold : FuncUnfold InitState [] InitState.impl
-  Conflict_unfold : FuncUnfold Conflict [] Conflict.impl
-  ConflictBatch_unfold : FuncUnfold ConflictBatch [] ConflictBatch.impl
-  IsRead_unfold : FuncUnfold IsRead [] IsRead.impl
-  import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_treemap_Assumption : _root_.Perennial.github_com.emirpasic.gods.maps.treemap.Assumptions
+  instance'Operation : Operation.TypeAssumptions
+  instance'Value : Value.TypeAssumptions
+  instance'Key : Key.TypeAssumptions
+  instance'Command : Command.TypeAssumptions
+  instance'Id : Id.TypeAssumptions
+  instance'Phase : Phase.TypeAssumptions
+  instance'State : State.TypeAssumptions
+  unfold'formatInt16 : FuncUnfold formatInt16 [] formatInt16.impl
+  unfold'formatUint10 : FuncUnfold formatUint10 [] formatUint10.impl
+  unfold'hexEncodeToString : FuncUnfold hexEncodeToString [] hexEncodeToString.impl
+  unfold'NIL : FuncUnfold NIL [] NIL.impl
+  unfold'NOOP : FuncUnfold NOOP [] NOOP.impl
+  unfold'KeyComparator : FuncUnfold KeyComparator [] KeyComparator.impl
+  unfold'concat : FuncUnfold concat [] concat.impl
+  unfold'InitState : FuncUnfold InitState [] InitState.impl
+  unfold'Conflict : FuncUnfold Conflict [] Conflict.impl
+  unfold'ConflictBatch : FuncUnfold ConflictBatch [] ConflictBatch.impl
+  unfold'IsRead : FuncUnfold IsRead [] IsRead.impl
+  import'binary : _root_.Perennial.encoding.binary.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'treemap : _root_.Perennial.github_com.emirpasic.gods.maps.treemap.Assumptions
 
-attribute [instance] Assumptions.Operation_instance
-  Assumptions.Value_instance
-  Assumptions.Key_instance
-  Assumptions.Command_instance
-  Assumptions.Id_instance
-  Assumptions.Phase_instance
-  Assumptions.State_instance
-  Assumptions.formatInt16_unfold
-  Assumptions.formatUint10_unfold
-  Assumptions.hexEncodeToString_unfold
-  Assumptions.NIL_unfold
-  Assumptions.NOOP_unfold
-  Assumptions.KeyComparator_unfold
-  Assumptions.concat_unfold
-  Assumptions.InitState_unfold
-  Assumptions.Conflict_unfold
-  Assumptions.ConflictBatch_unfold
-  Assumptions.IsRead_unfold
-  Assumptions.import_binary_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_treemap_Assumption
+attribute [instance] Assumptions.instance'Operation
+  Assumptions.instance'Value
+  Assumptions.instance'Key
+  Assumptions.instance'Command
+  Assumptions.instance'Id
+  Assumptions.instance'Phase
+  Assumptions.instance'State
+  Assumptions.unfold'formatInt16
+  Assumptions.unfold'formatUint10
+  Assumptions.unfold'hexEncodeToString
+  Assumptions.unfold'NIL
+  Assumptions.unfold'NOOP
+  Assumptions.unfold'KeyComparator
+  Assumptions.unfold'concat
+  Assumptions.unfold'InitState
+  Assumptions.unfold'Conflict
+  Assumptions.unfold'ConflictBatch
+  Assumptions.unfold'IsRead
+  Assumptions.import'binary
+  Assumptions.import'io
+  Assumptions.import'sync
+  Assumptions.import'treemap
 
 end github_com.imdea_software.swiftpaxos_epaxos.state
 

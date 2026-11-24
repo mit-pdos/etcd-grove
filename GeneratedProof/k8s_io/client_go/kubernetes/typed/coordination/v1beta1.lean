@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1beta1.Assumptions]
 
-noncomputable instance CoordinationV1beta1Interface_typed_pointsto :
+noncomputable instance typed_pointsto'CoordinationV1beta1Interface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.CoordinationV1beta1Interface :=
   sorry -- axiomatized type
 
-noncomputable instance CoordinationV1beta1Interface_into_val_typed :
+noncomputable instance into_val_typed'CoordinationV1beta1Interface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.CoordinationV1beta1Interface k8s_io.client_go.kubernetes.typed.coordination.v1beta1.CoordinationV1beta1Interface.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1beta1.Assumptions]
 
-noncomputable instance CoordinationV1beta1Client_typed_pointsto :
+noncomputable instance typed_pointsto'CoordinationV1beta1Client :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.CoordinationV1beta1Client :=
   sorry -- axiomatized type
 
-noncomputable instance CoordinationV1beta1Client_into_val_typed :
+noncomputable instance into_val_typed'CoordinationV1beta1Client :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.CoordinationV1beta1Client k8s_io.client_go.kubernetes.typed.coordination.v1beta1.CoordinationV1beta1Client.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1beta1.Assumptions]
 
-noncomputable instance LeaseExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'LeaseExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeaseExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance LeaseExpansion_into_val_typed :
+noncomputable instance into_val_typed'LeaseExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeaseExpansion k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeaseExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1beta1.Assumptions]
 
-noncomputable instance LeaseCandidateExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'LeaseCandidateExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeaseCandidateExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance LeaseCandidateExpansion_into_val_typed :
+noncomputable instance into_val_typed'LeaseCandidateExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeaseCandidateExpansion k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeaseCandidateExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1beta1.Assumptions]
 
-noncomputable instance LeasesGetter_typed_pointsto :
+noncomputable instance typed_pointsto'LeasesGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeasesGetter :=
   sorry -- axiomatized type
 
-noncomputable instance LeasesGetter_into_val_typed :
+noncomputable instance into_val_typed'LeasesGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeasesGetter k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeasesGetter.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1beta1.Assumptions]
 
-noncomputable instance LeaseInterface_typed_pointsto :
+noncomputable instance typed_pointsto'LeaseInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeaseInterface :=
   sorry -- axiomatized type
 
-noncomputable instance LeaseInterface_into_val_typed :
+noncomputable instance into_val_typed'LeaseInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeaseInterface k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeaseInterface.underlying :=
   sorry -- axiomatized type
 
@@ -138,11 +138,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1beta1.Assumptions]
 
-noncomputable instance leases_typed_pointsto :
+noncomputable instance typed_pointsto'leases :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.leases :=
   sorry -- axiomatized type
 
-noncomputable instance leases_into_val_typed :
+noncomputable instance into_val_typed'leases :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.leases k8s_io.client_go.kubernetes.typed.coordination.v1beta1.leases.underlying :=
   sorry -- axiomatized type
 
@@ -157,11 +157,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1beta1.Assumptions]
 
-noncomputable instance LeaseCandidatesGetter_typed_pointsto :
+noncomputable instance typed_pointsto'LeaseCandidatesGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeaseCandidatesGetter :=
   sorry -- axiomatized type
 
-noncomputable instance LeaseCandidatesGetter_into_val_typed :
+noncomputable instance into_val_typed'LeaseCandidatesGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeaseCandidatesGetter k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeaseCandidatesGetter.underlying :=
   sorry -- axiomatized type
 
@@ -176,11 +176,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1beta1.Assumptions]
 
-noncomputable instance LeaseCandidateInterface_typed_pointsto :
+noncomputable instance typed_pointsto'LeaseCandidateInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeaseCandidateInterface :=
   sorry -- axiomatized type
 
-noncomputable instance LeaseCandidateInterface_into_val_typed :
+noncomputable instance into_val_typed'LeaseCandidateInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeaseCandidateInterface k8s_io.client_go.kubernetes.typed.coordination.v1beta1.LeaseCandidateInterface.underlying :=
   sorry -- axiomatized type
 
@@ -195,11 +195,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1beta1.Assumptions]
 
-noncomputable instance leaseCandidates_typed_pointsto :
+noncomputable instance typed_pointsto'leaseCandidates :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.leaseCandidates :=
   sorry -- axiomatized type
 
-noncomputable instance leaseCandidates_into_val_typed :
+noncomputable instance into_val_typed'leaseCandidates :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1beta1.leaseCandidates k8s_io.client_go.kubernetes.typed.coordination.v1beta1.leaseCandidates.underlying :=
   sorry -- axiomatized type
 

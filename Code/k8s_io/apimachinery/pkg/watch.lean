@@ -272,7 +272,7 @@ noncomputable instance filteredWatch.zero_val [GooseExts] : ZeroVal filteredWatc
 @[irreducible] noncomputable def filteredWatch.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   filteredWatch.fieldsUnsealed
 
-noncomputable instance equals_unfold_filteredWatch [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'filteredWatch [GooseExts] [GoGlobalContext] :
     EqualsUnfold filteredWatch.fields filteredWatch.fieldsUnsealed :=
   ⟨by unfold filteredWatch.fields; rfl⟩
 
@@ -282,23 +282,23 @@ noncomputable instance equals_unfold_filteredWatch [GooseExts] [GoGlobalContext]
 class filteredWatch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying filteredWatch.underlying filteredWatch
   underlying : go.UnderlyingDirectedEq filteredWatch.ty filteredWatch.underlying
-  get_incoming : ∀ (x : filteredWatch), go.IsGoStepPureDetTagged under (StructFieldGet filteredWatch.underlying go!"incoming") #x (Val #(x.incoming'))
-  set_incoming : ∀ (x : filteredWatch) (y : Interface), go.IsGoStepPureDetTagged under (StructFieldSet filteredWatch.underlying go!"incoming") (PairV #x #y) (Val #(({ x with incoming' := y } : filteredWatch)))
-  get_result : ∀ (x : filteredWatch), go.IsGoStepPureDetTagged under (StructFieldGet filteredWatch.underlying go!"result") #x (Val #(x.result'))
-  set_result : ∀ (x : filteredWatch) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet filteredWatch.underlying go!"result") (PairV #x #y) (Val #(({ x with result' := y } : filteredWatch)))
-  get_f : ∀ (x : filteredWatch), go.IsGoStepPureDetTagged under (StructFieldGet filteredWatch.underlying go!"f") #x (Val #(x.f'))
-  set_f : ∀ (x : filteredWatch) (y : FilterFunc), go.IsGoStepPureDetTagged under (StructFieldSet filteredWatch.underlying go!"f") (PairV #x #y) (Val #(({ x with f' := y } : filteredWatch)))
+  get'incoming : ∀ (x : filteredWatch), go.IsGoStepPureDetTagged under (StructFieldGet filteredWatch.underlying go!"incoming") #x (Val #(x.incoming'))
+  set'incoming : ∀ (x : filteredWatch) (y : Interface), go.IsGoStepPureDetTagged under (StructFieldSet filteredWatch.underlying go!"incoming") (PairV #x #y) (Val #(({ x with incoming' := y } : filteredWatch)))
+  get'result : ∀ (x : filteredWatch), go.IsGoStepPureDetTagged under (StructFieldGet filteredWatch.underlying go!"result") #x (Val #(x.result'))
+  set'result : ∀ (x : filteredWatch) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet filteredWatch.underlying go!"result") (PairV #x #y) (Val #(({ x with result' := y } : filteredWatch)))
+  get'f : ∀ (x : filteredWatch), go.IsGoStepPureDetTagged under (StructFieldGet filteredWatch.underlying go!"f") #x (Val #(x.f'))
+  set'f : ∀ (x : filteredWatch) (y : FilterFunc), go.IsGoStepPureDetTagged under (StructFieldSet filteredWatch.underlying go!"f") (PairV #x #y) (Val #(({ x with f' := y } : filteredWatch)))
   method_set : go.MethodSetIs filteredWatch.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType filteredWatch.ty) [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.loop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] filteredWatch.TypeAssumptions.type_repr
   filteredWatch.TypeAssumptions.underlying
-  filteredWatch.TypeAssumptions.get_incoming
-  filteredWatch.TypeAssumptions.set_incoming
-  filteredWatch.TypeAssumptions.get_result
-  filteredWatch.TypeAssumptions.set_result
-  filteredWatch.TypeAssumptions.get_f
-  filteredWatch.TypeAssumptions.set_f
+  filteredWatch.TypeAssumptions.get'incoming
+  filteredWatch.TypeAssumptions.set'incoming
+  filteredWatch.TypeAssumptions.get'result
+  filteredWatch.TypeAssumptions.set'result
+  filteredWatch.TypeAssumptions.get'f
+  filteredWatch.TypeAssumptions.set'f
   filteredWatch.TypeAssumptions.method_set
   filteredWatch.TypeAssumptions.ptr_method_set
 
@@ -463,7 +463,7 @@ noncomputable instance Event.zero_val [GooseExts] : ZeroVal Event :=
 @[irreducible] noncomputable def Event.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Event.fieldsUnsealed
 
-noncomputable instance equals_unfold_Event [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Event [GooseExts] [GoGlobalContext] :
     EqualsUnfold Event.fields Event.fieldsUnsealed :=
   ⟨by unfold Event.fields; rfl⟩
 
@@ -473,19 +473,19 @@ noncomputable instance equals_unfold_Event [GooseExts] [GoGlobalContext] :
 class Event.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Event.underlying Event
   underlying : go.UnderlyingDirectedEq Event.ty Event.underlying
-  get_Type : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : Event) (y : EventType), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Event)))
-  get_Object : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Object") #x (Val #(x.Object'))
-  set_Object : ∀ (x : Event) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Object") (PairV #x #y) (Val #(({ x with Object' := y } : Event)))
+  get'Type : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Type") #x (Val #(x.Type'))
+  set'Type : ∀ (x : Event) (y : EventType), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Event)))
+  get'Object : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Object") #x (Val #(x.Object'))
+  set'Object : ∀ (x : Event) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Object") (PairV #x #y) (Val #(({ x with Object' := y } : Event)))
   method_set : go.MethodSetIs Event.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Event.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Event.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Event.ty)] false [])))]
 
 attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.underlying
-  Event.TypeAssumptions.get_Type
-  Event.TypeAssumptions.set_Type
-  Event.TypeAssumptions.get_Object
-  Event.TypeAssumptions.set_Object
+  Event.TypeAssumptions.get'Type
+  Event.TypeAssumptions.set'Type
+  Event.TypeAssumptions.get'Object
+  Event.TypeAssumptions.set'Object
   Event.TypeAssumptions.method_set
   Event.TypeAssumptions.ptr_method_set
 
@@ -594,7 +594,7 @@ noncomputable instance MockWatcher.zero_val [GooseExts] : ZeroVal MockWatcher :=
 @[irreducible] noncomputable def MockWatcher.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MockWatcher.fieldsUnsealed
 
-noncomputable instance equals_unfold_MockWatcher [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'MockWatcher [GooseExts] [GoGlobalContext] :
     EqualsUnfold MockWatcher.fields MockWatcher.fieldsUnsealed :=
   ⟨by unfold MockWatcher.fields; rfl⟩
 
@@ -604,64 +604,64 @@ noncomputable instance equals_unfold_MockWatcher [GooseExts] [GoGlobalContext] :
 class MockWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MockWatcher.underlying MockWatcher
   underlying : go.UnderlyingDirectedEq MockWatcher.ty MockWatcher.underlying
-  get_StopFunc : ∀ (x : MockWatcher), go.IsGoStepPureDetTagged under (StructFieldGet MockWatcher.underlying go!"StopFunc") #x (Val #(x.StopFunc'))
-  set_StopFunc : ∀ (x : MockWatcher) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet MockWatcher.underlying go!"StopFunc") (PairV #x #y) (Val #(({ x with StopFunc' := y } : MockWatcher)))
-  get_ResultChanFunc : ∀ (x : MockWatcher), go.IsGoStepPureDetTagged under (StructFieldGet MockWatcher.underlying go!"ResultChanFunc") #x (Val #(x.ResultChanFunc'))
-  set_ResultChanFunc : ∀ (x : MockWatcher) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet MockWatcher.underlying go!"ResultChanFunc") (PairV #x #y) (Val #(({ x with ResultChanFunc' := y } : MockWatcher)))
+  get'StopFunc : ∀ (x : MockWatcher), go.IsGoStepPureDetTagged under (StructFieldGet MockWatcher.underlying go!"StopFunc") #x (Val #(x.StopFunc'))
+  set'StopFunc : ∀ (x : MockWatcher) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet MockWatcher.underlying go!"StopFunc") (PairV #x #y) (Val #(({ x with StopFunc' := y } : MockWatcher)))
+  get'ResultChanFunc : ∀ (x : MockWatcher), go.IsGoStepPureDetTagged under (StructFieldGet MockWatcher.underlying go!"ResultChanFunc") #x (Val #(x.ResultChanFunc'))
+  set'ResultChanFunc : ∀ (x : MockWatcher) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet MockWatcher.underlying go!"ResultChanFunc") (PairV #x #y) (Val #(({ x with ResultChanFunc' := y } : MockWatcher)))
   method_set : go.MethodSetIs MockWatcher.ty [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MockWatcher.ty) [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] MockWatcher.TypeAssumptions.type_repr
   MockWatcher.TypeAssumptions.underlying
-  MockWatcher.TypeAssumptions.get_StopFunc
-  MockWatcher.TypeAssumptions.set_StopFunc
-  MockWatcher.TypeAssumptions.get_ResultChanFunc
-  MockWatcher.TypeAssumptions.set_ResultChanFunc
+  MockWatcher.TypeAssumptions.get'StopFunc
+  MockWatcher.TypeAssumptions.set'StopFunc
+  MockWatcher.TypeAssumptions.get'ResultChanFunc
+  MockWatcher.TypeAssumptions.set'ResultChanFunc
   MockWatcher.TypeAssumptions.method_set
   MockWatcher.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  FilterFunc_instance : FilterFunc.TypeAssumptions
-  filteredWatch_instance : filteredWatch.TypeAssumptions
-  Recorder_instance : Recorder.TypeAssumptions
-  FullChannelBehavior_instance : FullChannelBehavior.TypeAssumptions
-  Broadcaster_instance : Broadcaster.TypeAssumptions
-  functionFakeRuntimeObject_instance : functionFakeRuntimeObject.TypeAssumptions
-  broadcasterWatcher_instance : broadcasterWatcher.TypeAssumptions
-  Decoder_instance : Decoder.TypeAssumptions
-  Reporter_instance : Reporter.TypeAssumptions
-  StreamWatcher_instance : StreamWatcher.TypeAssumptions
-  Interface_instance : Interface.TypeAssumptions
-  EventType_instance : EventType.TypeAssumptions
-  Event_instance : Event.TypeAssumptions
-  emptyWatch_instance : emptyWatch.TypeAssumptions
-  FakeWatcher_instance : FakeWatcher.TypeAssumptions
-  FakeOptions_instance : FakeOptions.TypeAssumptions
-  RaceFreeFakeWatcher_instance : RaceFreeFakeWatcher.TypeAssumptions
-  ProxyWatcher_instance : ProxyWatcher.TypeAssumptions
-  MockWatcher_instance : MockWatcher.TypeAssumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  instance'FilterFunc : FilterFunc.TypeAssumptions
+  instance'filteredWatch : filteredWatch.TypeAssumptions
+  instance'Recorder : Recorder.TypeAssumptions
+  instance'FullChannelBehavior : FullChannelBehavior.TypeAssumptions
+  instance'Broadcaster : Broadcaster.TypeAssumptions
+  instance'functionFakeRuntimeObject : functionFakeRuntimeObject.TypeAssumptions
+  instance'broadcasterWatcher : broadcasterWatcher.TypeAssumptions
+  instance'Decoder : Decoder.TypeAssumptions
+  instance'Reporter : Reporter.TypeAssumptions
+  instance'StreamWatcher : StreamWatcher.TypeAssumptions
+  instance'Interface : Interface.TypeAssumptions
+  instance'EventType : EventType.TypeAssumptions
+  instance'Event : Event.TypeAssumptions
+  instance'emptyWatch : emptyWatch.TypeAssumptions
+  instance'FakeWatcher : FakeWatcher.TypeAssumptions
+  instance'FakeOptions : FakeOptions.TypeAssumptions
+  instance'RaceFreeFakeWatcher : RaceFreeFakeWatcher.TypeAssumptions
+  instance'ProxyWatcher : ProxyWatcher.TypeAssumptions
+  instance'MockWatcher : MockWatcher.TypeAssumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
 
-attribute [instance] Assumptions.FilterFunc_instance
-  Assumptions.filteredWatch_instance
-  Assumptions.Recorder_instance
-  Assumptions.FullChannelBehavior_instance
-  Assumptions.Broadcaster_instance
-  Assumptions.functionFakeRuntimeObject_instance
-  Assumptions.broadcasterWatcher_instance
-  Assumptions.Decoder_instance
-  Assumptions.Reporter_instance
-  Assumptions.StreamWatcher_instance
-  Assumptions.Interface_instance
-  Assumptions.EventType_instance
-  Assumptions.Event_instance
-  Assumptions.emptyWatch_instance
-  Assumptions.FakeWatcher_instance
-  Assumptions.FakeOptions_instance
-  Assumptions.RaceFreeFakeWatcher_instance
-  Assumptions.ProxyWatcher_instance
-  Assumptions.MockWatcher_instance
-  Assumptions.import_runtime_Assumption
+attribute [instance] Assumptions.instance'FilterFunc
+  Assumptions.instance'filteredWatch
+  Assumptions.instance'Recorder
+  Assumptions.instance'FullChannelBehavior
+  Assumptions.instance'Broadcaster
+  Assumptions.instance'functionFakeRuntimeObject
+  Assumptions.instance'broadcasterWatcher
+  Assumptions.instance'Decoder
+  Assumptions.instance'Reporter
+  Assumptions.instance'StreamWatcher
+  Assumptions.instance'Interface
+  Assumptions.instance'EventType
+  Assumptions.instance'Event
+  Assumptions.instance'emptyWatch
+  Assumptions.instance'FakeWatcher
+  Assumptions.instance'FakeOptions
+  Assumptions.instance'RaceFreeFakeWatcher
+  Assumptions.instance'ProxyWatcher
+  Assumptions.instance'MockWatcher
+  Assumptions.import'runtime
 
 end k8s_io.apimachinery.pkg.watch
 

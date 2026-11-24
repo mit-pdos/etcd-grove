@@ -34,7 +34,7 @@ variable [package_sem : _root_.Perennial.sort.Assumptions]
 theorem sort.«Sort».wp_proofAnyLess
     (wp_pdqsort : EtcdGrove.sort.pdqsort.anyLessSpec (GF := GF) (hG := hG))
     (wp_Len : _root_.Perennial.math.bits.Len.spec (GF := GF) (hG := hG)) :
-    sort.«Sort».anyLessSpec (GF := GF) (hG := hG) := fun E x R l => by
+    sort.Sort''.anyLessSpec (GF := GF) (hG := hG) := fun E x R l => by
   wp_start as ⟨#Hs, Hl, %Hlen⟩
   wp_auto
   wp_apply wp_any_Len x R l $$ [$Hs $Hl] as Hl

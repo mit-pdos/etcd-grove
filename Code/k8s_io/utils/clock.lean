@@ -295,7 +295,7 @@ noncomputable instance RealClock.zero_val [GooseExts] : ZeroVal RealClock :=
 @[irreducible] noncomputable def RealClock.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RealClock.fieldsUnsealed
 
-noncomputable instance equals_unfold_RealClock [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RealClock [GooseExts] [GoGlobalContext] :
     EqualsUnfold RealClock.fields RealClock.fieldsUnsealed :=
   ⟨by unfold RealClock.fields; rfl⟩
 
@@ -307,26 +307,26 @@ class RealClock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq RealClock.ty RealClock.underlying
   method_set : go.MethodSetIs RealClock.ty [(go!"After", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"AfterFunc", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, (go.GoType.FunctionType (go.signature.Signature [] false []))] false [Timer.ty]))), (go!"NewTicker", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Ticker.ty]))), (go!"NewTimer", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Timer.ty]))), (go!"Now", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"Since", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [_root_.Perennial.time.Duration.ty]))), (go!"Sleep", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"Tick", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RealClock.ty) [(go!"After", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"AfterFunc", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, (go.GoType.FunctionType (go.signature.Signature [] false []))] false [Timer.ty]))), (go!"NewTicker", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Ticker.ty]))), (go!"NewTimer", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Timer.ty]))), (go!"Now", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"Since", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [_root_.Perennial.time.Duration.ty]))), (go!"Sleep", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"Tick", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)])))]
-  NewTicker_unfold : MethodUnfold RealClock.ty go!"NewTicker" RealClock.NewTicker.impl
-  NewTimer_unfold : MethodUnfold RealClock.ty go!"NewTimer" RealClock.NewTimer.impl
-  Now_unfold : MethodUnfold RealClock.ty go!"Now" RealClock.Now.impl
-  ptr_NewTicker_unfold : MethodUnfold (go.GoType.PointerType RealClock.ty) go!"NewTicker" (LamV "$r"
+  unfold'NewTicker : MethodUnfold RealClock.ty go!"NewTicker" RealClock.NewTicker.impl
+  unfold'NewTimer : MethodUnfold RealClock.ty go!"NewTimer" RealClock.NewTimer.impl
+  unfold'Now : MethodUnfold RealClock.ty go!"Now" RealClock.Now.impl
+  ptr_unfold'NewTicker : MethodUnfold (go.GoType.PointerType RealClock.ty) go!"NewTicker" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve RealClock.ty go!"NewTicker"))) (App (Val (GoInstruction (GoLoad RealClock.ty))) (Var "$r"))))
-  ptr_NewTimer_unfold : MethodUnfold (go.GoType.PointerType RealClock.ty) go!"NewTimer" (LamV "$r"
+  ptr_unfold'NewTimer : MethodUnfold (go.GoType.PointerType RealClock.ty) go!"NewTimer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve RealClock.ty go!"NewTimer"))) (App (Val (GoInstruction (GoLoad RealClock.ty))) (Var "$r"))))
-  ptr_Now_unfold : MethodUnfold (go.GoType.PointerType RealClock.ty) go!"Now" (LamV "$r"
+  ptr_unfold'Now : MethodUnfold (go.GoType.PointerType RealClock.ty) go!"Now" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve RealClock.ty go!"Now"))) (App (Val (GoInstruction (GoLoad RealClock.ty))) (Var "$r"))))
 
 attribute [instance] RealClock.TypeAssumptions.type_repr
   RealClock.TypeAssumptions.underlying
   RealClock.TypeAssumptions.method_set
   RealClock.TypeAssumptions.ptr_method_set
-  RealClock.TypeAssumptions.NewTicker_unfold
-  RealClock.TypeAssumptions.NewTimer_unfold
-  RealClock.TypeAssumptions.Now_unfold
-  RealClock.TypeAssumptions.ptr_NewTicker_unfold
-  RealClock.TypeAssumptions.ptr_NewTimer_unfold
-  RealClock.TypeAssumptions.ptr_Now_unfold
+  RealClock.TypeAssumptions.unfold'NewTicker
+  RealClock.TypeAssumptions.unfold'NewTimer
+  RealClock.TypeAssumptions.unfold'Now
+  RealClock.TypeAssumptions.ptr_unfold'NewTicker
+  RealClock.TypeAssumptions.ptr_unfold'NewTimer
+  RealClock.TypeAssumptions.ptr_unfold'Now
 
 abbrev Timer [GooseExts] : Type := GoInterface
 
@@ -355,7 +355,7 @@ noncomputable instance realTimer.zero_val [GooseExts] : ZeroVal realTimer :=
 @[irreducible] noncomputable def realTimer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   realTimer.fieldsUnsealed
 
-noncomputable instance equals_unfold_realTimer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'realTimer [GooseExts] [GoGlobalContext] :
     EqualsUnfold realTimer.fields realTimer.fieldsUnsealed :=
   ⟨by unfold realTimer.fields; rfl⟩
 
@@ -365,21 +365,21 @@ noncomputable instance equals_unfold_realTimer [GooseExts] [GoGlobalContext] :
 class realTimer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying realTimer.underlying realTimer
   underlying : go.UnderlyingDirectedEq realTimer.ty realTimer.underlying
-  get_timer : ∀ (x : realTimer), go.IsGoStepPureDetTagged under (StructFieldGet realTimer.underlying go!"timer") #x (Val #(x.timer'))
-  set_timer : ∀ (x : realTimer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet realTimer.underlying go!"timer") (PairV #x #y) (Val #(({ x with timer' := y } : realTimer)))
+  get'timer : ∀ (x : realTimer), go.IsGoStepPureDetTagged under (StructFieldGet realTimer.underlying go!"timer") #x (Val #(x.timer'))
+  set'timer : ∀ (x : realTimer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet realTimer.underlying go!"timer") (PairV #x #y) (Val #(({ x with timer' := y } : realTimer)))
   method_set : go.MethodSetIs realTimer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType realTimer.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.bool]))), (go!"Stop", (some (go.signature.Signature [] false [go.bool])))]
-  ptr_C_unfold : MethodUnfold (go.GoType.PointerType realTimer.ty) go!"C" realTimer.C.impl
-  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType realTimer.ty) go!"Stop" realTimer.Stop.impl
+  ptr_unfold'C : MethodUnfold (go.GoType.PointerType realTimer.ty) go!"C" realTimer.C.impl
+  ptr_unfold'Stop : MethodUnfold (go.GoType.PointerType realTimer.ty) go!"Stop" realTimer.Stop.impl
 
 attribute [instance] realTimer.TypeAssumptions.type_repr
   realTimer.TypeAssumptions.underlying
-  realTimer.TypeAssumptions.get_timer
-  realTimer.TypeAssumptions.set_timer
+  realTimer.TypeAssumptions.get'timer
+  realTimer.TypeAssumptions.set'timer
   realTimer.TypeAssumptions.method_set
   realTimer.TypeAssumptions.ptr_method_set
-  realTimer.TypeAssumptions.ptr_C_unfold
-  realTimer.TypeAssumptions.ptr_Stop_unfold
+  realTimer.TypeAssumptions.ptr_unfold'C
+  realTimer.TypeAssumptions.ptr_unfold'Stop
 
 structure realTicker [GooseExts] where
   mk ::
@@ -394,7 +394,7 @@ noncomputable instance realTicker.zero_val [GooseExts] : ZeroVal realTicker :=
 @[irreducible] noncomputable def realTicker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   realTicker.fieldsUnsealed
 
-noncomputable instance equals_unfold_realTicker [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'realTicker [GooseExts] [GoGlobalContext] :
     EqualsUnfold realTicker.fields realTicker.fieldsUnsealed :=
   ⟨by unfold realTicker.fields; rfl⟩
 
@@ -404,46 +404,46 @@ noncomputable instance equals_unfold_realTicker [GooseExts] [GoGlobalContext] :
 class realTicker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying realTicker.underlying realTicker
   underlying : go.UnderlyingDirectedEq realTicker.ty realTicker.underlying
-  get_ticker : ∀ (x : realTicker), go.IsGoStepPureDetTagged under (StructFieldGet realTicker.underlying go!"ticker") #x (Val #(x.ticker'))
-  set_ticker : ∀ (x : realTicker) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet realTicker.underlying go!"ticker") (PairV #x #y) (Val #(({ x with ticker' := y } : realTicker)))
+  get'ticker : ∀ (x : realTicker), go.IsGoStepPureDetTagged under (StructFieldGet realTicker.underlying go!"ticker") #x (Val #(x.ticker'))
+  set'ticker : ∀ (x : realTicker) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet realTicker.underlying go!"ticker") (PairV #x #y) (Val #(({ x with ticker' := y } : realTicker)))
   method_set : go.MethodSetIs realTicker.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType realTicker.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
-  ptr_C_unfold : MethodUnfold (go.GoType.PointerType realTicker.ty) go!"C" realTicker.C.impl
-  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType realTicker.ty) go!"Stop" realTicker.Stop.impl
+  ptr_unfold'C : MethodUnfold (go.GoType.PointerType realTicker.ty) go!"C" realTicker.C.impl
+  ptr_unfold'Stop : MethodUnfold (go.GoType.PointerType realTicker.ty) go!"Stop" realTicker.Stop.impl
 
 attribute [instance] realTicker.TypeAssumptions.type_repr
   realTicker.TypeAssumptions.underlying
-  realTicker.TypeAssumptions.get_ticker
-  realTicker.TypeAssumptions.set_ticker
+  realTicker.TypeAssumptions.get'ticker
+  realTicker.TypeAssumptions.set'ticker
   realTicker.TypeAssumptions.method_set
   realTicker.TypeAssumptions.ptr_method_set
-  realTicker.TypeAssumptions.ptr_C_unfold
-  realTicker.TypeAssumptions.ptr_Stop_unfold
+  realTicker.TypeAssumptions.ptr_unfold'C
+  realTicker.TypeAssumptions.ptr_unfold'Stop
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  PassiveClock_instance : PassiveClock.TypeAssumptions
-  Clock_instance : Clock.TypeAssumptions
-  WithTicker_instance : WithTicker.TypeAssumptions
-  WithDelayedExecution_instance : WithDelayedExecution.TypeAssumptions
-  WithTickerAndDelayedExecution_instance : WithTickerAndDelayedExecution.TypeAssumptions
-  Ticker_instance : Ticker.TypeAssumptions
-  RealClock_instance : RealClock.TypeAssumptions
-  Timer_instance : Timer.TypeAssumptions
-  realTimer_instance : realTimer.TypeAssumptions
-  realTicker_instance : realTicker.TypeAssumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'PassiveClock : PassiveClock.TypeAssumptions
+  instance'Clock : Clock.TypeAssumptions
+  instance'WithTicker : WithTicker.TypeAssumptions
+  instance'WithDelayedExecution : WithDelayedExecution.TypeAssumptions
+  instance'WithTickerAndDelayedExecution : WithTickerAndDelayedExecution.TypeAssumptions
+  instance'Ticker : Ticker.TypeAssumptions
+  instance'RealClock : RealClock.TypeAssumptions
+  instance'Timer : Timer.TypeAssumptions
+  instance'realTimer : realTimer.TypeAssumptions
+  instance'realTicker : realTicker.TypeAssumptions
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.PassiveClock_instance
-  Assumptions.Clock_instance
-  Assumptions.WithTicker_instance
-  Assumptions.WithDelayedExecution_instance
-  Assumptions.WithTickerAndDelayedExecution_instance
-  Assumptions.Ticker_instance
-  Assumptions.RealClock_instance
-  Assumptions.Timer_instance
-  Assumptions.realTimer_instance
-  Assumptions.realTicker_instance
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'PassiveClock
+  Assumptions.instance'Clock
+  Assumptions.instance'WithTicker
+  Assumptions.instance'WithDelayedExecution
+  Assumptions.instance'WithTickerAndDelayedExecution
+  Assumptions.instance'Ticker
+  Assumptions.instance'RealClock
+  Assumptions.instance'Timer
+  Assumptions.instance'realTimer
+  Assumptions.instance'realTicker
+  Assumptions.import'time
 
 end k8s_io.utils.clock
 

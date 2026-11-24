@@ -649,7 +649,7 @@ noncomputable instance ErrorMatcher.zero_val [GooseExts] : ZeroVal ErrorMatcher 
 @[irreducible] noncomputable def ErrorMatcher.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ErrorMatcher.fieldsUnsealed
 
-noncomputable instance equals_unfold_ErrorMatcher [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ErrorMatcher [GooseExts] [GoGlobalContext] :
     EqualsUnfold ErrorMatcher.fields ErrorMatcher.fieldsUnsealed :=
   ⟨by unfold ErrorMatcher.fields; rfl⟩
 
@@ -659,59 +659,59 @@ noncomputable instance equals_unfold_ErrorMatcher [GooseExts] [GoGlobalContext] 
 class ErrorMatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ErrorMatcher.underlying ErrorMatcher
   underlying : go.UnderlyingDirectedEq ErrorMatcher.ty ErrorMatcher.underlying
-  get_matchType : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchType") #x (Val #(x.matchType'))
-  set_matchType : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchType") (PairV #x #y) (Val #(({ x with matchType' := y } : ErrorMatcher)))
-  get_matchField : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchField") #x (Val #(x.matchField'))
-  set_matchField : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchField") (PairV #x #y) (Val #(({ x with matchField' := y } : ErrorMatcher)))
-  get_matchValue : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchValue") #x (Val #(x.matchValue'))
-  set_matchValue : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchValue") (PairV #x #y) (Val #(({ x with matchValue' := y } : ErrorMatcher)))
-  get_matchOrigin : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchOrigin") #x (Val #(x.matchOrigin'))
-  set_matchOrigin : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchOrigin") (PairV #x #y) (Val #(({ x with matchOrigin' := y } : ErrorMatcher)))
-  get_matchDetail : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchDetail") #x (Val #(x.matchDetail'))
-  set_matchDetail : ∀ (x : ErrorMatcher) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchDetail") (PairV #x #y) (Val #(({ x with matchDetail' := y } : ErrorMatcher)))
-  get_requireOriginWhenInvalid : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"requireOriginWhenInvalid") #x (Val #(x.requireOriginWhenInvalid'))
-  set_requireOriginWhenInvalid : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"requireOriginWhenInvalid") (PairV #x #y) (Val #(({ x with requireOriginWhenInvalid' := y } : ErrorMatcher)))
-  get_matchValidationStabilityLevel : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchValidationStabilityLevel") #x (Val #(x.matchValidationStabilityLevel'))
-  set_matchValidationStabilityLevel : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchValidationStabilityLevel") (PairV #x #y) (Val #(({ x with matchValidationStabilityLevel' := y } : ErrorMatcher)))
-  get_matchSource : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchSource") #x (Val #(x.matchSource'))
-  set_matchSource : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchSource") (PairV #x #y) (Val #(({ x with matchSource' := y } : ErrorMatcher)))
-  get_matchAncestorShortCircuit : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchAncestorShortCircuit") #x (Val #(x.matchAncestorShortCircuit'))
-  set_matchAncestorShortCircuit : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchAncestorShortCircuit") (PairV #x #y) (Val #(({ x with matchAncestorShortCircuit' := y } : ErrorMatcher)))
-  get_matchShortCircuit : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchShortCircuit") #x (Val #(x.matchShortCircuit'))
-  set_matchShortCircuit : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchShortCircuit") (PairV #x #y) (Val #(({ x with matchShortCircuit' := y } : ErrorMatcher)))
-  get_matchCoveredByDeclarative : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchCoveredByDeclarative") #x (Val #(x.matchCoveredByDeclarative'))
-  set_matchCoveredByDeclarative : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchCoveredByDeclarative") (PairV #x #y) (Val #(({ x with matchCoveredByDeclarative' := y } : ErrorMatcher)))
-  get_normalizationRules : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"normalizationRules") #x (Val #(x.normalizationRules'))
-  set_normalizationRules : ∀ (x : ErrorMatcher) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"normalizationRules") (PairV #x #y) (Val #(({ x with normalizationRules' := y } : ErrorMatcher)))
+  get'matchType : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchType") #x (Val #(x.matchType'))
+  set'matchType : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchType") (PairV #x #y) (Val #(({ x with matchType' := y } : ErrorMatcher)))
+  get'matchField : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchField") #x (Val #(x.matchField'))
+  set'matchField : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchField") (PairV #x #y) (Val #(({ x with matchField' := y } : ErrorMatcher)))
+  get'matchValue : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchValue") #x (Val #(x.matchValue'))
+  set'matchValue : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchValue") (PairV #x #y) (Val #(({ x with matchValue' := y } : ErrorMatcher)))
+  get'matchOrigin : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchOrigin") #x (Val #(x.matchOrigin'))
+  set'matchOrigin : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchOrigin") (PairV #x #y) (Val #(({ x with matchOrigin' := y } : ErrorMatcher)))
+  get'matchDetail : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchDetail") #x (Val #(x.matchDetail'))
+  set'matchDetail : ∀ (x : ErrorMatcher) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchDetail") (PairV #x #y) (Val #(({ x with matchDetail' := y } : ErrorMatcher)))
+  get'requireOriginWhenInvalid : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"requireOriginWhenInvalid") #x (Val #(x.requireOriginWhenInvalid'))
+  set'requireOriginWhenInvalid : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"requireOriginWhenInvalid") (PairV #x #y) (Val #(({ x with requireOriginWhenInvalid' := y } : ErrorMatcher)))
+  get'matchValidationStabilityLevel : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchValidationStabilityLevel") #x (Val #(x.matchValidationStabilityLevel'))
+  set'matchValidationStabilityLevel : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchValidationStabilityLevel") (PairV #x #y) (Val #(({ x with matchValidationStabilityLevel' := y } : ErrorMatcher)))
+  get'matchSource : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchSource") #x (Val #(x.matchSource'))
+  set'matchSource : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchSource") (PairV #x #y) (Val #(({ x with matchSource' := y } : ErrorMatcher)))
+  get'matchAncestorShortCircuit : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchAncestorShortCircuit") #x (Val #(x.matchAncestorShortCircuit'))
+  set'matchAncestorShortCircuit : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchAncestorShortCircuit") (PairV #x #y) (Val #(({ x with matchAncestorShortCircuit' := y } : ErrorMatcher)))
+  get'matchShortCircuit : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchShortCircuit") #x (Val #(x.matchShortCircuit'))
+  set'matchShortCircuit : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchShortCircuit") (PairV #x #y) (Val #(({ x with matchShortCircuit' := y } : ErrorMatcher)))
+  get'matchCoveredByDeclarative : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"matchCoveredByDeclarative") #x (Val #(x.matchCoveredByDeclarative'))
+  set'matchCoveredByDeclarative : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchCoveredByDeclarative") (PairV #x #y) (Val #(({ x with matchCoveredByDeclarative' := y } : ErrorMatcher)))
+  get'normalizationRules : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"normalizationRules") #x (Val #(x.normalizationRules'))
+  set'normalizationRules : ∀ (x : ErrorMatcher) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"normalizationRules") (PairV #x #y) (Val #(({ x with normalizationRules' := y } : ErrorMatcher)))
   method_set : go.MethodSetIs ErrorMatcher.ty [(go!"ByCoveredByDeclarative", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByDetailExact", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByDetailRegexp", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByDetailSubstring", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByField", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByFieldNormalized", (some (go.signature.Signature [(go.GoType.SliceType NormalizationRule.ty)] false [ErrorMatcher.ty]))), (go!"ByOrigin", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"BySource", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByType", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByValidationStabilityLevel", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByValue", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"Exactly", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"MatchAncestorShortCircuit", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"MatchShortCircuit", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"Matches", (some (go.signature.Signature [(go.GoType.PointerType Error.ty), (go.GoType.PointerType Error.ty)] false [go.bool]))), (go!"Render", (some (go.signature.Signature [(go.GoType.PointerType Error.ty)] false [go.string]))), (go!"RequireOriginWhenInvalid", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"Test", (some (go.signature.Signature [TestIntf.ty, ErrorList.ty, ErrorList.ty] false []))), (go!"k8s.io/apimachinery/pkg/util/validation/field.normalizePath", (some (go.signature.Signature [go.string] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ErrorMatcher.ty) [(go!"ByCoveredByDeclarative", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByDetailExact", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByDetailRegexp", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByDetailSubstring", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByField", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByFieldNormalized", (some (go.signature.Signature [(go.GoType.SliceType NormalizationRule.ty)] false [ErrorMatcher.ty]))), (go!"ByOrigin", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"BySource", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByType", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByValidationStabilityLevel", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByValue", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"Exactly", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"MatchAncestorShortCircuit", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"MatchShortCircuit", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"Matches", (some (go.signature.Signature [(go.GoType.PointerType Error.ty), (go.GoType.PointerType Error.ty)] false [go.bool]))), (go!"Render", (some (go.signature.Signature [(go.GoType.PointerType Error.ty)] false [go.string]))), (go!"RequireOriginWhenInvalid", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"Test", (some (go.signature.Signature [TestIntf.ty, ErrorList.ty, ErrorList.ty] false []))), (go!"k8s.io/apimachinery/pkg/util/validation/field.normalizePath", (some (go.signature.Signature [go.string] false [go.string])))]
 
 attribute [instance] ErrorMatcher.TypeAssumptions.type_repr
   ErrorMatcher.TypeAssumptions.underlying
-  ErrorMatcher.TypeAssumptions.get_matchType
-  ErrorMatcher.TypeAssumptions.set_matchType
-  ErrorMatcher.TypeAssumptions.get_matchField
-  ErrorMatcher.TypeAssumptions.set_matchField
-  ErrorMatcher.TypeAssumptions.get_matchValue
-  ErrorMatcher.TypeAssumptions.set_matchValue
-  ErrorMatcher.TypeAssumptions.get_matchOrigin
-  ErrorMatcher.TypeAssumptions.set_matchOrigin
-  ErrorMatcher.TypeAssumptions.get_matchDetail
-  ErrorMatcher.TypeAssumptions.set_matchDetail
-  ErrorMatcher.TypeAssumptions.get_requireOriginWhenInvalid
-  ErrorMatcher.TypeAssumptions.set_requireOriginWhenInvalid
-  ErrorMatcher.TypeAssumptions.get_matchValidationStabilityLevel
-  ErrorMatcher.TypeAssumptions.set_matchValidationStabilityLevel
-  ErrorMatcher.TypeAssumptions.get_matchSource
-  ErrorMatcher.TypeAssumptions.set_matchSource
-  ErrorMatcher.TypeAssumptions.get_matchAncestorShortCircuit
-  ErrorMatcher.TypeAssumptions.set_matchAncestorShortCircuit
-  ErrorMatcher.TypeAssumptions.get_matchShortCircuit
-  ErrorMatcher.TypeAssumptions.set_matchShortCircuit
-  ErrorMatcher.TypeAssumptions.get_matchCoveredByDeclarative
-  ErrorMatcher.TypeAssumptions.set_matchCoveredByDeclarative
-  ErrorMatcher.TypeAssumptions.get_normalizationRules
-  ErrorMatcher.TypeAssumptions.set_normalizationRules
+  ErrorMatcher.TypeAssumptions.get'matchType
+  ErrorMatcher.TypeAssumptions.set'matchType
+  ErrorMatcher.TypeAssumptions.get'matchField
+  ErrorMatcher.TypeAssumptions.set'matchField
+  ErrorMatcher.TypeAssumptions.get'matchValue
+  ErrorMatcher.TypeAssumptions.set'matchValue
+  ErrorMatcher.TypeAssumptions.get'matchOrigin
+  ErrorMatcher.TypeAssumptions.set'matchOrigin
+  ErrorMatcher.TypeAssumptions.get'matchDetail
+  ErrorMatcher.TypeAssumptions.set'matchDetail
+  ErrorMatcher.TypeAssumptions.get'requireOriginWhenInvalid
+  ErrorMatcher.TypeAssumptions.set'requireOriginWhenInvalid
+  ErrorMatcher.TypeAssumptions.get'matchValidationStabilityLevel
+  ErrorMatcher.TypeAssumptions.set'matchValidationStabilityLevel
+  ErrorMatcher.TypeAssumptions.get'matchSource
+  ErrorMatcher.TypeAssumptions.set'matchSource
+  ErrorMatcher.TypeAssumptions.get'matchAncestorShortCircuit
+  ErrorMatcher.TypeAssumptions.set'matchAncestorShortCircuit
+  ErrorMatcher.TypeAssumptions.get'matchShortCircuit
+  ErrorMatcher.TypeAssumptions.set'matchShortCircuit
+  ErrorMatcher.TypeAssumptions.get'matchCoveredByDeclarative
+  ErrorMatcher.TypeAssumptions.set'matchCoveredByDeclarative
+  ErrorMatcher.TypeAssumptions.get'normalizationRules
+  ErrorMatcher.TypeAssumptions.set'normalizationRules
   ErrorMatcher.TypeAssumptions.method_set
   ErrorMatcher.TypeAssumptions.ptr_method_set
 
@@ -738,15 +738,15 @@ class ErrorType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq ErrorType.ty ErrorType.underlying
   method_set : go.MethodSetIs ErrorType.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ErrorType.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
-  String_unfold : MethodUnfold ErrorType.ty go!"String" ErrorType.String.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType ErrorType.ty) go!"String" (LamV "$r"
+  unfold'String : MethodUnfold ErrorType.ty go!"String" ErrorType.String.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType ErrorType.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ErrorType.ty go!"String"))) (App (Val (GoInstruction (GoLoad ErrorType.ty))) (Var "$r"))))
 
 attribute [instance] ErrorType.TypeAssumptions.underlying
   ErrorType.TypeAssumptions.method_set
   ErrorType.TypeAssumptions.ptr_method_set
-  ErrorType.TypeAssumptions.String_unfold
-  ErrorType.TypeAssumptions.ptr_String_unfold
+  ErrorType.TypeAssumptions.unfold'String
+  ErrorType.TypeAssumptions.ptr_unfold'String
 
 abbrev ValidationStabilityLevel [GooseExts] : Type := w64
 
@@ -793,7 +793,7 @@ noncomputable instance Error.zero_val [GooseExts] : ZeroVal Error :=
 @[irreducible] noncomputable def Error.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Error.fieldsUnsealed
 
-noncomputable instance equals_unfold_Error [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Error [GooseExts] [GoGlobalContext] :
     EqualsUnfold Error.fields Error.fieldsUnsealed :=
   ⟨by unfold Error.fields; rfl⟩
 
@@ -803,57 +803,57 @@ noncomputable instance equals_unfold_Error [GooseExts] [GoGlobalContext] :
 class Error.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Error.underlying Error
   underlying : go.UnderlyingDirectedEq Error.ty Error.underlying
-  get_Type : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : Error) (y : ErrorType), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Error)))
-  get_Field : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Field") #x (Val #(x.Field'))
-  set_Field : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Field") (PairV #x #y) (Val #(({ x with Field' := y } : Error)))
-  get_BadValue : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"BadValue") #x (Val #(x.BadValue'))
-  set_BadValue : ∀ (x : Error) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"BadValue") (PairV #x #y) (Val #(({ x with BadValue' := y } : Error)))
-  get_Detail : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Detail") #x (Val #(x.Detail'))
-  set_Detail : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Detail") (PairV #x #y) (Val #(({ x with Detail' := y } : Error)))
-  get_Origin : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Origin") #x (Val #(x.Origin'))
-  set_Origin : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Origin") (PairV #x #y) (Val #(({ x with Origin' := y } : Error)))
-  get_CoveredByDeclarative : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"CoveredByDeclarative") #x (Val #(x.CoveredByDeclarative'))
-  set_CoveredByDeclarative : ∀ (x : Error) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"CoveredByDeclarative") (PairV #x #y) (Val #(({ x with CoveredByDeclarative' := y } : Error)))
-  get_FromImperative : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"FromImperative") #x (Val #(x.FromImperative'))
-  set_FromImperative : ∀ (x : Error) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"FromImperative") (PairV #x #y) (Val #(({ x with FromImperative' := y } : Error)))
-  get_ShortCircuit : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"ShortCircuit") #x (Val #(x.ShortCircuit'))
-  set_ShortCircuit : ∀ (x : Error) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"ShortCircuit") (PairV #x #y) (Val #(({ x with ShortCircuit' := y } : Error)))
-  get_ShortCircuitedInDeclarative : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"ShortCircuitedInDeclarative") #x (Val #(x.ShortCircuitedInDeclarative'))
-  set_ShortCircuitedInDeclarative : ∀ (x : Error) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"ShortCircuitedInDeclarative") (PairV #x #y) (Val #(({ x with ShortCircuitedInDeclarative' := y } : Error)))
-  get_ValidationStabilityLevel : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"ValidationStabilityLevel") #x (Val #(x.ValidationStabilityLevel'))
-  set_ValidationStabilityLevel : ∀ (x : Error) (y : ValidationStabilityLevel), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"ValidationStabilityLevel") (PairV #x #y) (Val #(({ x with ValidationStabilityLevel' := y } : Error)))
+  get'Type : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Type") #x (Val #(x.Type'))
+  set'Type : ∀ (x : Error) (y : ErrorType), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Error)))
+  get'Field : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Field") #x (Val #(x.Field'))
+  set'Field : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Field") (PairV #x #y) (Val #(({ x with Field' := y } : Error)))
+  get'BadValue : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"BadValue") #x (Val #(x.BadValue'))
+  set'BadValue : ∀ (x : Error) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"BadValue") (PairV #x #y) (Val #(({ x with BadValue' := y } : Error)))
+  get'Detail : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Detail") #x (Val #(x.Detail'))
+  set'Detail : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Detail") (PairV #x #y) (Val #(({ x with Detail' := y } : Error)))
+  get'Origin : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Origin") #x (Val #(x.Origin'))
+  set'Origin : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Origin") (PairV #x #y) (Val #(({ x with Origin' := y } : Error)))
+  get'CoveredByDeclarative : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"CoveredByDeclarative") #x (Val #(x.CoveredByDeclarative'))
+  set'CoveredByDeclarative : ∀ (x : Error) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"CoveredByDeclarative") (PairV #x #y) (Val #(({ x with CoveredByDeclarative' := y } : Error)))
+  get'FromImperative : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"FromImperative") #x (Val #(x.FromImperative'))
+  set'FromImperative : ∀ (x : Error) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"FromImperative") (PairV #x #y) (Val #(({ x with FromImperative' := y } : Error)))
+  get'ShortCircuit : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"ShortCircuit") #x (Val #(x.ShortCircuit'))
+  set'ShortCircuit : ∀ (x : Error) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"ShortCircuit") (PairV #x #y) (Val #(({ x with ShortCircuit' := y } : Error)))
+  get'ShortCircuitedInDeclarative : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"ShortCircuitedInDeclarative") #x (Val #(x.ShortCircuitedInDeclarative'))
+  set'ShortCircuitedInDeclarative : ∀ (x : Error) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"ShortCircuitedInDeclarative") (PairV #x #y) (Val #(({ x with ShortCircuitedInDeclarative' := y } : Error)))
+  get'ValidationStabilityLevel : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"ValidationStabilityLevel") #x (Val #(x.ValidationStabilityLevel'))
+  set'ValidationStabilityLevel : ∀ (x : Error) (y : ValidationStabilityLevel), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"ValidationStabilityLevel") (PairV #x #y) (Val #(({ x with ValidationStabilityLevel' := y } : Error)))
   method_set : go.MethodSetIs Error.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Error.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"ErrorBody", (some (go.signature.Signature [] false [go.string]))), (go!"IsAlpha", (some (go.signature.Signature [] false [go.bool]))), (go!"IsBeta", (some (go.signature.Signature [] false [go.bool]))), (go!"MarkAlpha", (some (go.signature.Signature [] false [(go.GoType.PointerType Error.ty)]))), (go!"MarkBeta", (some (go.signature.Signature [] false [(go.GoType.PointerType Error.ty)]))), (go!"MarkCoveredByDeclarative", (some (go.signature.Signature [] false [(go.GoType.PointerType Error.ty)]))), (go!"MarkFromImperative", (some (go.signature.Signature [] false [(go.GoType.PointerType Error.ty)]))), (go!"MarkShortCircuitedInDV", (some (go.signature.Signature [] false [(go.GoType.PointerType Error.ty)]))), (go!"WithOrigin", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType Error.ty)])))]
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType Error.ty) go!"Error" Error.Error.impl
-  ptr_ErrorBody_unfold : MethodUnfold (go.GoType.PointerType Error.ty) go!"ErrorBody" Error.ErrorBody.impl
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType Error.ty) go!"Error" Error.Error.impl
+  ptr_unfold'ErrorBody : MethodUnfold (go.GoType.PointerType Error.ty) go!"ErrorBody" Error.ErrorBody.impl
 
 attribute [instance] Error.TypeAssumptions.type_repr
   Error.TypeAssumptions.underlying
-  Error.TypeAssumptions.get_Type
-  Error.TypeAssumptions.set_Type
-  Error.TypeAssumptions.get_Field
-  Error.TypeAssumptions.set_Field
-  Error.TypeAssumptions.get_BadValue
-  Error.TypeAssumptions.set_BadValue
-  Error.TypeAssumptions.get_Detail
-  Error.TypeAssumptions.set_Detail
-  Error.TypeAssumptions.get_Origin
-  Error.TypeAssumptions.set_Origin
-  Error.TypeAssumptions.get_CoveredByDeclarative
-  Error.TypeAssumptions.set_CoveredByDeclarative
-  Error.TypeAssumptions.get_FromImperative
-  Error.TypeAssumptions.set_FromImperative
-  Error.TypeAssumptions.get_ShortCircuit
-  Error.TypeAssumptions.set_ShortCircuit
-  Error.TypeAssumptions.get_ShortCircuitedInDeclarative
-  Error.TypeAssumptions.set_ShortCircuitedInDeclarative
-  Error.TypeAssumptions.get_ValidationStabilityLevel
-  Error.TypeAssumptions.set_ValidationStabilityLevel
+  Error.TypeAssumptions.get'Type
+  Error.TypeAssumptions.set'Type
+  Error.TypeAssumptions.get'Field
+  Error.TypeAssumptions.set'Field
+  Error.TypeAssumptions.get'BadValue
+  Error.TypeAssumptions.set'BadValue
+  Error.TypeAssumptions.get'Detail
+  Error.TypeAssumptions.set'Detail
+  Error.TypeAssumptions.get'Origin
+  Error.TypeAssumptions.set'Origin
+  Error.TypeAssumptions.get'CoveredByDeclarative
+  Error.TypeAssumptions.set'CoveredByDeclarative
+  Error.TypeAssumptions.get'FromImperative
+  Error.TypeAssumptions.set'FromImperative
+  Error.TypeAssumptions.get'ShortCircuit
+  Error.TypeAssumptions.set'ShortCircuit
+  Error.TypeAssumptions.get'ShortCircuitedInDeclarative
+  Error.TypeAssumptions.set'ShortCircuitedInDeclarative
+  Error.TypeAssumptions.get'ValidationStabilityLevel
+  Error.TypeAssumptions.set'ValidationStabilityLevel
   Error.TypeAssumptions.method_set
   Error.TypeAssumptions.ptr_method_set
-  Error.TypeAssumptions.ptr_Error_unfold
-  Error.TypeAssumptions.ptr_ErrorBody_unfold
+  Error.TypeAssumptions.ptr_unfold'Error
+  Error.TypeAssumptions.ptr_unfold'ErrorBody
 
 structure OmitValueType [GooseExts] where
   mk ::
@@ -867,7 +867,7 @@ noncomputable instance OmitValueType.zero_val [GooseExts] : ZeroVal OmitValueTyp
 @[irreducible] noncomputable def OmitValueType.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   OmitValueType.fieldsUnsealed
 
-noncomputable instance equals_unfold_OmitValueType [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'OmitValueType [GooseExts] [GoGlobalContext] :
     EqualsUnfold OmitValueType.fields OmitValueType.fieldsUnsealed :=
   ⟨by unfold OmitValueType.fields; rfl⟩
 
@@ -894,15 +894,15 @@ class ErrorList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq ErrorList.ty ErrorList.underlying
   method_set : go.MethodSetIs ErrorList.ty [(go!"ExtractCoveredByDeclarative", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"Filter", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Matcher.ty)] true [ErrorList.ty]))), (go!"MarkAlpha", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"MarkBeta", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"MarkCoveredByDeclarative", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"MarkFromImperative", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"MarkShortCircuit", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"PrefixDetail", (some (go.signature.Signature [go.string] false [ErrorList.ty]))), (go!"RemoveCoveredByDeclarative", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"ToAggregate", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Aggregate.ty]))), (go!"WithOrigin", (some (go.signature.Signature [go.string] false [ErrorList.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ErrorList.ty) [(go!"ExtractCoveredByDeclarative", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"Filter", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Matcher.ty)] true [ErrorList.ty]))), (go!"MarkAlpha", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"MarkBeta", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"MarkCoveredByDeclarative", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"MarkFromImperative", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"MarkShortCircuit", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"PrefixDetail", (some (go.signature.Signature [go.string] false [ErrorList.ty]))), (go!"RemoveCoveredByDeclarative", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"ToAggregate", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Aggregate.ty]))), (go!"WithOrigin", (some (go.signature.Signature [go.string] false [ErrorList.ty])))]
-  ToAggregate_unfold : MethodUnfold ErrorList.ty go!"ToAggregate" ErrorList.ToAggregate.impl
-  ptr_ToAggregate_unfold : MethodUnfold (go.GoType.PointerType ErrorList.ty) go!"ToAggregate" (LamV "$r"
+  unfold'ToAggregate : MethodUnfold ErrorList.ty go!"ToAggregate" ErrorList.ToAggregate.impl
+  ptr_unfold'ToAggregate : MethodUnfold (go.GoType.PointerType ErrorList.ty) go!"ToAggregate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ErrorList.ty go!"ToAggregate"))) (App (Val (GoInstruction (GoLoad ErrorList.ty))) (Var "$r"))))
 
 attribute [instance] ErrorList.TypeAssumptions.underlying
   ErrorList.TypeAssumptions.method_set
   ErrorList.TypeAssumptions.ptr_method_set
-  ErrorList.TypeAssumptions.ToAggregate_unfold
-  ErrorList.TypeAssumptions.ptr_ToAggregate_unfold
+  ErrorList.TypeAssumptions.unfold'ToAggregate
+  ErrorList.TypeAssumptions.ptr_unfold'ToAggregate
 
 structure pathOptions [GooseExts] where
   mk ::
@@ -917,7 +917,7 @@ noncomputable instance pathOptions.zero_val [GooseExts] : ZeroVal pathOptions :=
 @[irreducible] noncomputable def pathOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   pathOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_pathOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'pathOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold pathOptions.fields pathOptions.fieldsUnsealed :=
   ⟨by unfold pathOptions.fields; rfl⟩
 
@@ -927,15 +927,15 @@ noncomputable instance equals_unfold_pathOptions [GooseExts] [GoGlobalContext] :
 class pathOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying pathOptions.underlying pathOptions
   underlying : go.UnderlyingDirectedEq pathOptions.ty pathOptions.underlying
-  get_path : ∀ (x : pathOptions), go.IsGoStepPureDetTagged under (StructFieldGet pathOptions.underlying go!"path") #x (Val #(x.path'))
-  set_path : ∀ (x : pathOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet pathOptions.underlying go!"path") (PairV #x #y) (Val #(({ x with path' := y } : pathOptions)))
+  get'path : ∀ (x : pathOptions), go.IsGoStepPureDetTagged under (StructFieldGet pathOptions.underlying go!"path") #x (Val #(x.path'))
+  set'path : ∀ (x : pathOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet pathOptions.underlying go!"path") (PairV #x #y) (Val #(({ x with path' := y } : pathOptions)))
   method_set : go.MethodSetIs pathOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType pathOptions.ty) []
 
 attribute [instance] pathOptions.TypeAssumptions.type_repr
   pathOptions.TypeAssumptions.underlying
-  pathOptions.TypeAssumptions.get_path
-  pathOptions.TypeAssumptions.set_path
+  pathOptions.TypeAssumptions.get'path
+  pathOptions.TypeAssumptions.set'path
   pathOptions.TypeAssumptions.method_set
   pathOptions.TypeAssumptions.ptr_method_set
 
@@ -970,7 +970,7 @@ noncomputable instance Path.zero_val [GooseExts] : ZeroVal Path :=
 @[irreducible] noncomputable def Path.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Path.fieldsUnsealed
 
-noncomputable instance equals_unfold_Path [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Path [GooseExts] [GoGlobalContext] :
     EqualsUnfold Path.fields Path.fieldsUnsealed :=
   ⟨by unfold Path.fields; rfl⟩
 
@@ -980,60 +980,60 @@ noncomputable instance equals_unfold_Path [GooseExts] [GoGlobalContext] :
 class Path.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Path.underlying Path
   underlying : go.UnderlyingDirectedEq Path.ty Path.underlying
-  get_name : ∀ (x : Path), go.IsGoStepPureDetTagged under (StructFieldGet Path.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : Path) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Path.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : Path)))
-  get_index : ∀ (x : Path), go.IsGoStepPureDetTagged under (StructFieldGet Path.underlying go!"index") #x (Val #(x.index'))
-  set_index : ∀ (x : Path) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Path.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : Path)))
-  get_parent : ∀ (x : Path), go.IsGoStepPureDetTagged under (StructFieldGet Path.underlying go!"parent") #x (Val #(x.parent'))
-  set_parent : ∀ (x : Path) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Path.underlying go!"parent") (PairV #x #y) (Val #(({ x with parent' := y } : Path)))
+  get'name : ∀ (x : Path), go.IsGoStepPureDetTagged under (StructFieldGet Path.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : Path) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Path.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : Path)))
+  get'index : ∀ (x : Path), go.IsGoStepPureDetTagged under (StructFieldGet Path.underlying go!"index") #x (Val #(x.index'))
+  set'index : ∀ (x : Path) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Path.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : Path)))
+  get'parent : ∀ (x : Path), go.IsGoStepPureDetTagged under (StructFieldGet Path.underlying go!"parent") #x (Val #(x.parent'))
+  set'parent : ∀ (x : Path) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Path.underlying go!"parent") (PairV #x #y) (Val #(({ x with parent' := y } : Path)))
   method_set : go.MethodSetIs Path.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Path.ty) [(go!"Child", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.string)] true [(go.GoType.PointerType Path.ty)]))), (go!"Index", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType Path.ty)]))), (go!"Key", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType Path.ty)]))), (go!"Root", (some (go.signature.Signature [] false [(go.GoType.PointerType Path.ty)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Path.TypeAssumptions.type_repr
   Path.TypeAssumptions.underlying
-  Path.TypeAssumptions.get_name
-  Path.TypeAssumptions.set_name
-  Path.TypeAssumptions.get_index
-  Path.TypeAssumptions.set_index
-  Path.TypeAssumptions.get_parent
-  Path.TypeAssumptions.set_parent
+  Path.TypeAssumptions.get'name
+  Path.TypeAssumptions.set'name
+  Path.TypeAssumptions.get'index
+  Path.TypeAssumptions.set'index
+  Path.TypeAssumptions.get'parent
+  Path.TypeAssumptions.set'parent
   Path.TypeAssumptions.method_set
   Path.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  NormalizationRule_instance : NormalizationRule.TypeAssumptions
-  ErrorMatcher_instance : ErrorMatcher.TypeAssumptions
-  TestIntf_instance : TestIntf.TypeAssumptions
-  Error_instance : Error.TypeAssumptions
-  ValidationStabilityLevel_instance : ValidationStabilityLevel.TypeAssumptions
-  OmitValueType_instance : OmitValueType.TypeAssumptions
-  ErrorType_instance : ErrorType.TypeAssumptions
-  ErrorList_instance : ErrorList.TypeAssumptions
-  pathOptions_instance : pathOptions.TypeAssumptions
-  PathOption_instance : PathOption.TypeAssumptions
-  Path_instance : Path.TypeAssumptions
-  NewPath_unfold : FuncUnfold NewPath [] NewPath.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_json_Assumption : _root_.Perennial.encoding.json.Assumptions
-  import_errors_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Assumptions
-  import_sets_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
+  instance'NormalizationRule : NormalizationRule.TypeAssumptions
+  instance'ErrorMatcher : ErrorMatcher.TypeAssumptions
+  instance'TestIntf : TestIntf.TypeAssumptions
+  instance'Error : Error.TypeAssumptions
+  instance'ValidationStabilityLevel : ValidationStabilityLevel.TypeAssumptions
+  instance'OmitValueType : OmitValueType.TypeAssumptions
+  instance'ErrorType : ErrorType.TypeAssumptions
+  instance'ErrorList : ErrorList.TypeAssumptions
+  instance'pathOptions : pathOptions.TypeAssumptions
+  instance'PathOption : PathOption.TypeAssumptions
+  instance'Path : Path.TypeAssumptions
+  unfold'NewPath : FuncUnfold NewPath [] NewPath.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'json : _root_.Perennial.encoding.json.Assumptions
+  import'errors : _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Assumptions
+  import'sets : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
 
-attribute [instance] Assumptions.NormalizationRule_instance
-  Assumptions.ErrorMatcher_instance
-  Assumptions.TestIntf_instance
-  Assumptions.Error_instance
-  Assumptions.ValidationStabilityLevel_instance
-  Assumptions.OmitValueType_instance
-  Assumptions.ErrorType_instance
-  Assumptions.ErrorList_instance
-  Assumptions.pathOptions_instance
-  Assumptions.PathOption_instance
-  Assumptions.Path_instance
-  Assumptions.NewPath_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_json_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_sets_Assumption
+attribute [instance] Assumptions.instance'NormalizationRule
+  Assumptions.instance'ErrorMatcher
+  Assumptions.instance'TestIntf
+  Assumptions.instance'Error
+  Assumptions.instance'ValidationStabilityLevel
+  Assumptions.instance'OmitValueType
+  Assumptions.instance'ErrorType
+  Assumptions.instance'ErrorList
+  Assumptions.instance'pathOptions
+  Assumptions.instance'PathOption
+  Assumptions.instance'Path
+  Assumptions.unfold'NewPath
+  Assumptions.import'fmt
+  Assumptions.import'json
+  Assumptions.import'errors
+  Assumptions.import'sets
 
 end k8s_io.apimachinery.pkg.util.validation.field
 

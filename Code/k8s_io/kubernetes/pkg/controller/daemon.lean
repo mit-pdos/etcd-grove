@@ -2601,7 +2601,7 @@ noncomputable def DaemonSetsController.podsShouldBeOnNode.impl [GooseExts] [GoGl
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Pair (Var "pod") (Var "$value")))))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert podByCreationTimestampAndPhase.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))))) (Var "daemonPodsRunning")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))))) (Var "daemonPodsRunning"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2643,7 +2643,7 @@ noncomputable def DaemonSetsController.podsShouldBeOnNode.impl [GooseExts] [GoGl
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert podByCreationTimestampAndPhase.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))))) (Var "daemonPodsRunning")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))))) (Var "daemonPodsRunning"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))
   (App (Val doBreak) (Val #()))
@@ -3872,7 +3872,7 @@ noncomputable def DaemonSetsController.updateDaemonSetStatus.impl [GooseExts] [G
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Pair (Var "pod") (Var "$r0")))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert podByCreationTimestampAndPhase.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))))) (Var "daemonPods")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
   (Var "$r1")))))
   (App (Val doExecute)
@@ -6085,7 +6085,7 @@ noncomputable def DaemonSetsController.cleanupHistory.impl [GooseExts] [GoGlobal
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)))) (Pair (Var "history") (Var "$value")))))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert historiesByRevision.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty))))) (Var "old")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0")))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))))) (Var "nodesToDaemonPods"))
   (Let "pods" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))))) (Val #())))
   (App (App (Val (map.forRange go.string (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "$range"))
@@ -7558,7 +7558,7 @@ noncomputable instance DaemonSetsController.zero_val [GooseExts] : ZeroVal Daemo
 @[irreducible] noncomputable def DaemonSetsController.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DaemonSetsController.fieldsUnsealed
 
-noncomputable instance equals_unfold_DaemonSetsController [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DaemonSetsController [GooseExts] [GoGlobalContext] :
     EqualsUnfold DaemonSetsController.fields DaemonSetsController.fieldsUnsealed :=
   ⟨by unfold DaemonSetsController.fields; rfl⟩
 
@@ -7568,173 +7568,173 @@ noncomputable instance equals_unfold_DaemonSetsController [GooseExts] [GoGlobalC
 class DaemonSetsController.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DaemonSetsController.underlying DaemonSetsController
   underlying : go.UnderlyingDirectedEq DaemonSetsController.ty DaemonSetsController.underlying
-  get_kubeClient : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"kubeClient") #x (Val #(x.kubeClient'))
-  set_kubeClient : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"kubeClient") (PairV #x #y) (Val #(({ x with kubeClient' := y } : DaemonSetsController)))
-  get_eventBroadcaster : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"eventBroadcaster") #x (Val #(x.eventBroadcaster'))
-  set_eventBroadcaster : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.tools.record.EventBroadcaster), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"eventBroadcaster") (PairV #x #y) (Val #(({ x with eventBroadcaster' := y } : DaemonSetsController)))
-  get_eventRecorder : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"eventRecorder") #x (Val #(x.eventRecorder'))
-  set_eventRecorder : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.tools.record.EventRecorder), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"eventRecorder") (PairV #x #y) (Val #(({ x with eventRecorder' := y } : DaemonSetsController)))
-  get_podControl : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"podControl") #x (Val #(x.podControl'))
-  set_podControl : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.kubernetes.pkg.controller.PodControlInterface), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"podControl") (PairV #x #y) (Val #(({ x with podControl' := y } : DaemonSetsController)))
-  get_crControl : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"crControl") #x (Val #(x.crControl'))
-  set_crControl : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.kubernetes.pkg.controller.ControllerRevisionControlInterface), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"crControl") (PairV #x #y) (Val #(({ x with crControl' := y } : DaemonSetsController)))
-  get_burstReplicas : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"burstReplicas") #x (Val #(x.burstReplicas'))
-  set_burstReplicas : ∀ (x : DaemonSetsController) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"burstReplicas") (PairV #x #y) (Val #(({ x with burstReplicas' := y } : DaemonSetsController)))
-  get_syncHandler : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"syncHandler") #x (Val #(x.syncHandler'))
-  set_syncHandler : ∀ (x : DaemonSetsController) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"syncHandler") (PairV #x #y) (Val #(({ x with syncHandler' := y } : DaemonSetsController)))
-  get_enqueueDaemonSet : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"enqueueDaemonSet") #x (Val #(x.enqueueDaemonSet'))
-  set_enqueueDaemonSet : ∀ (x : DaemonSetsController) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"enqueueDaemonSet") (PairV #x #y) (Val #(({ x with enqueueDaemonSet' := y } : DaemonSetsController)))
-  get_expectations : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"expectations") #x (Val #(x.expectations'))
-  set_expectations : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.kubernetes.pkg.controller.ControllerExpectationsInterface), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"expectations") (PairV #x #y) (Val #(({ x with expectations' := y } : DaemonSetsController)))
-  get_dsLister : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"dsLister") #x (Val #(x.dsLister'))
-  set_dsLister : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.listers.apps.v1.DaemonSetLister), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"dsLister") (PairV #x #y) (Val #(({ x with dsLister' := y } : DaemonSetsController)))
-  get_dsStoreSynced : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"dsStoreSynced") #x (Val #(x.dsStoreSynced'))
-  set_dsStoreSynced : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.tools.cache.InformerSynced), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"dsStoreSynced") (PairV #x #y) (Val #(({ x with dsStoreSynced' := y } : DaemonSetsController)))
-  get_historyLister : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"historyLister") #x (Val #(x.historyLister'))
-  set_historyLister : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.listers.apps.v1.ControllerRevisionLister), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"historyLister") (PairV #x #y) (Val #(({ x with historyLister' := y } : DaemonSetsController)))
-  get_historyStoreSynced : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"historyStoreSynced") #x (Val #(x.historyStoreSynced'))
-  set_historyStoreSynced : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.tools.cache.InformerSynced), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"historyStoreSynced") (PairV #x #y) (Val #(({ x with historyStoreSynced' := y } : DaemonSetsController)))
-  get_podLister : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"podLister") #x (Val #(x.podLister'))
-  set_podLister : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.listers.core.v1.PodLister), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"podLister") (PairV #x #y) (Val #(({ x with podLister' := y } : DaemonSetsController)))
-  get_podIndexer : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"podIndexer") #x (Val #(x.podIndexer'))
-  set_podIndexer : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Indexer), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"podIndexer") (PairV #x #y) (Val #(({ x with podIndexer' := y } : DaemonSetsController)))
-  get_podStoreSynced : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"podStoreSynced") #x (Val #(x.podStoreSynced'))
-  set_podStoreSynced : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.tools.cache.InformerSynced), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"podStoreSynced") (PairV #x #y) (Val #(({ x with podStoreSynced' := y } : DaemonSetsController)))
-  get_nodeLister : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"nodeLister") #x (Val #(x.nodeLister'))
-  set_nodeLister : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.listers.core.v1.NodeLister), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"nodeLister") (PairV #x #y) (Val #(({ x with nodeLister' := y } : DaemonSetsController)))
-  get_nodeStoreSynced : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"nodeStoreSynced") #x (Val #(x.nodeStoreSynced'))
-  set_nodeStoreSynced : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.tools.cache.InformerSynced), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"nodeStoreSynced") (PairV #x #y) (Val #(({ x with nodeStoreSynced' := y } : DaemonSetsController)))
-  get_queue : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"queue") #x (Val #(x.queue'))
-  set_queue : ∀ (x : DaemonSetsController) (y : (_root_.Perennial.k8s_io.client_go.util.workqueue.TypedRateLimitingInterface GoString)), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"queue") (PairV #x #y) (Val #(({ x with queue' := y } : DaemonSetsController)))
-  get_nodeUpdateQueue : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"nodeUpdateQueue") #x (Val #(x.nodeUpdateQueue'))
-  set_nodeUpdateQueue : ∀ (x : DaemonSetsController) (y : (_root_.Perennial.k8s_io.client_go.util.workqueue.TypedRateLimitingInterface GoString)), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"nodeUpdateQueue") (PairV #x #y) (Val #(({ x with nodeUpdateQueue' := y } : DaemonSetsController)))
-  get_failedPodsBackoff : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"failedPodsBackoff") #x (Val #(x.failedPodsBackoff'))
-  set_failedPodsBackoff : ∀ (x : DaemonSetsController) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"failedPodsBackoff") (PairV #x #y) (Val #(({ x with failedPodsBackoff' := y } : DaemonSetsController)))
-  get_consistencyStore : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"consistencyStore") #x (Val #(x.consistencyStore'))
-  set_consistencyStore : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.util.consistency.ConsistencyStore), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"consistencyStore") (PairV #x #y) (Val #(({ x with consistencyStore' := y } : DaemonSetsController)))
+  get'kubeClient : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"kubeClient") #x (Val #(x.kubeClient'))
+  set'kubeClient : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"kubeClient") (PairV #x #y) (Val #(({ x with kubeClient' := y } : DaemonSetsController)))
+  get'eventBroadcaster : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"eventBroadcaster") #x (Val #(x.eventBroadcaster'))
+  set'eventBroadcaster : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.tools.record.EventBroadcaster), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"eventBroadcaster") (PairV #x #y) (Val #(({ x with eventBroadcaster' := y } : DaemonSetsController)))
+  get'eventRecorder : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"eventRecorder") #x (Val #(x.eventRecorder'))
+  set'eventRecorder : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.tools.record.EventRecorder), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"eventRecorder") (PairV #x #y) (Val #(({ x with eventRecorder' := y } : DaemonSetsController)))
+  get'podControl : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"podControl") #x (Val #(x.podControl'))
+  set'podControl : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.kubernetes.pkg.controller.PodControlInterface), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"podControl") (PairV #x #y) (Val #(({ x with podControl' := y } : DaemonSetsController)))
+  get'crControl : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"crControl") #x (Val #(x.crControl'))
+  set'crControl : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.kubernetes.pkg.controller.ControllerRevisionControlInterface), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"crControl") (PairV #x #y) (Val #(({ x with crControl' := y } : DaemonSetsController)))
+  get'burstReplicas : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"burstReplicas") #x (Val #(x.burstReplicas'))
+  set'burstReplicas : ∀ (x : DaemonSetsController) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"burstReplicas") (PairV #x #y) (Val #(({ x with burstReplicas' := y } : DaemonSetsController)))
+  get'syncHandler : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"syncHandler") #x (Val #(x.syncHandler'))
+  set'syncHandler : ∀ (x : DaemonSetsController) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"syncHandler") (PairV #x #y) (Val #(({ x with syncHandler' := y } : DaemonSetsController)))
+  get'enqueueDaemonSet : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"enqueueDaemonSet") #x (Val #(x.enqueueDaemonSet'))
+  set'enqueueDaemonSet : ∀ (x : DaemonSetsController) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"enqueueDaemonSet") (PairV #x #y) (Val #(({ x with enqueueDaemonSet' := y } : DaemonSetsController)))
+  get'expectations : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"expectations") #x (Val #(x.expectations'))
+  set'expectations : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.kubernetes.pkg.controller.ControllerExpectationsInterface), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"expectations") (PairV #x #y) (Val #(({ x with expectations' := y } : DaemonSetsController)))
+  get'dsLister : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"dsLister") #x (Val #(x.dsLister'))
+  set'dsLister : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.listers.apps.v1.DaemonSetLister), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"dsLister") (PairV #x #y) (Val #(({ x with dsLister' := y } : DaemonSetsController)))
+  get'dsStoreSynced : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"dsStoreSynced") #x (Val #(x.dsStoreSynced'))
+  set'dsStoreSynced : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.tools.cache.InformerSynced), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"dsStoreSynced") (PairV #x #y) (Val #(({ x with dsStoreSynced' := y } : DaemonSetsController)))
+  get'historyLister : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"historyLister") #x (Val #(x.historyLister'))
+  set'historyLister : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.listers.apps.v1.ControllerRevisionLister), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"historyLister") (PairV #x #y) (Val #(({ x with historyLister' := y } : DaemonSetsController)))
+  get'historyStoreSynced : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"historyStoreSynced") #x (Val #(x.historyStoreSynced'))
+  set'historyStoreSynced : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.tools.cache.InformerSynced), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"historyStoreSynced") (PairV #x #y) (Val #(({ x with historyStoreSynced' := y } : DaemonSetsController)))
+  get'podLister : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"podLister") #x (Val #(x.podLister'))
+  set'podLister : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.listers.core.v1.PodLister), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"podLister") (PairV #x #y) (Val #(({ x with podLister' := y } : DaemonSetsController)))
+  get'podIndexer : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"podIndexer") #x (Val #(x.podIndexer'))
+  set'podIndexer : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Indexer), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"podIndexer") (PairV #x #y) (Val #(({ x with podIndexer' := y } : DaemonSetsController)))
+  get'podStoreSynced : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"podStoreSynced") #x (Val #(x.podStoreSynced'))
+  set'podStoreSynced : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.tools.cache.InformerSynced), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"podStoreSynced") (PairV #x #y) (Val #(({ x with podStoreSynced' := y } : DaemonSetsController)))
+  get'nodeLister : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"nodeLister") #x (Val #(x.nodeLister'))
+  set'nodeLister : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.listers.core.v1.NodeLister), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"nodeLister") (PairV #x #y) (Val #(({ x with nodeLister' := y } : DaemonSetsController)))
+  get'nodeStoreSynced : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"nodeStoreSynced") #x (Val #(x.nodeStoreSynced'))
+  set'nodeStoreSynced : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.tools.cache.InformerSynced), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"nodeStoreSynced") (PairV #x #y) (Val #(({ x with nodeStoreSynced' := y } : DaemonSetsController)))
+  get'queue : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"queue") #x (Val #(x.queue'))
+  set'queue : ∀ (x : DaemonSetsController) (y : (_root_.Perennial.k8s_io.client_go.util.workqueue.TypedRateLimitingInterface GoString)), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"queue") (PairV #x #y) (Val #(({ x with queue' := y } : DaemonSetsController)))
+  get'nodeUpdateQueue : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"nodeUpdateQueue") #x (Val #(x.nodeUpdateQueue'))
+  set'nodeUpdateQueue : ∀ (x : DaemonSetsController) (y : (_root_.Perennial.k8s_io.client_go.util.workqueue.TypedRateLimitingInterface GoString)), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"nodeUpdateQueue") (PairV #x #y) (Val #(({ x with nodeUpdateQueue' := y } : DaemonSetsController)))
+  get'failedPodsBackoff : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"failedPodsBackoff") #x (Val #(x.failedPodsBackoff'))
+  set'failedPodsBackoff : ∀ (x : DaemonSetsController) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"failedPodsBackoff") (PairV #x #y) (Val #(({ x with failedPodsBackoff' := y } : DaemonSetsController)))
+  get'consistencyStore : ∀ (x : DaemonSetsController), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSetsController.underlying go!"consistencyStore") #x (Val #(x.consistencyStore'))
+  set'consistencyStore : ∀ (x : DaemonSetsController) (y : _root_.Perennial.k8s_io.client_go.util.consistency.ConsistencyStore), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSetsController.underlying go!"consistencyStore") (PairV #x #y) (Val #(({ x with consistencyStore' := y } : DaemonSetsController)))
   method_set : go.MethodSetIs DaemonSetsController.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DaemonSetsController.ty) [(go!"Run", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int] false []))), (go!"k8s.io/kubernetes/pkg/controller/daemon.addDaemonset", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, (go.GoType.InterfaceType [])] false []))), (go!"k8s.io/kubernetes/pkg/controller/daemon.addHistory", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, (go.GoType.InterfaceType [])] false []))), (go!"k8s.io/kubernetes/pkg/controller/daemon.addNode", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, (go.GoType.InterfaceType [])] false []))), (go!"k8s.io/kubernetes/pkg/controller/daemon.addPod", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, (go.GoType.InterfaceType [])] false []))), (go!"k8s.io/kubernetes/pkg/controller/daemon.cleanupHistory", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty))] false [go.error]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.constructHistory", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)), go.error]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.controlledHistories", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)), go.error]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.dedupCurHistories", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty))] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty), go.error]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.deleteDaemonset", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, (go.GoType.InterfaceType [])] false []))), (go!"k8s.io/kubernetes/pkg/controller/daemon.deleteHistory", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, (go.GoType.InterfaceType [])] false []))), (go!"k8s.io/kubernetes/pkg/controller/daemon.deletePod", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, (go.GoType.InterfaceType [])] false []))), (go!"k8s.io/kubernetes/pkg/controller/daemon.enqueue", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)] false []))), (go!"k8s.io/kubernetes/pkg/controller/daemon.enqueueDaemonSetAfter", (some (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.time.Duration.ty] false []))), (go!"k8s.io/kubernetes/pkg/controller/daemon.getDaemonPods", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)), go.error]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.getDaemonSetsForHistory", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty))]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.getDaemonSetsForPod", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty))]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.getNodesToDaemonPods", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.bool] false [(go.GoType.MapType go.string (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))), go.error]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.manage", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)), go.string] false [go.error]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.podsShouldBeOnNode", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), (go.GoType.MapType go.string (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))), (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.string, (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.Toleration.ty), _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType go.string)]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.processNextNodeUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.bool]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.processNextWorkItem", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.bool]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.resolveControllerRef", (some (go.signature.Signature [go.string, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.rollingUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)), go.string] false [go.error]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.runNodeUpdateWorker", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"k8s.io/kubernetes/pkg/controller/daemon.runWorker", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"k8s.io/kubernetes/pkg/controller/daemon.snapshot", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.int64] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty), go.error]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.syncDaemonSet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [go.error]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.syncNodeUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [go.error]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.syncNodes", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), (go.GoType.SliceType go.string), (go.GoType.SliceType go.string), go.string] false [go.error]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.updateDaemonSet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)), go.string, go.string, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty))] false [go.error]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.updateDaemonSetStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)), go.string, go.bool] false [go.error]))), (go!"k8s.io/kubernetes/pkg/controller/daemon.updateDaemonset", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, (go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false []))), (go!"k8s.io/kubernetes/pkg/controller/daemon.updateHistory", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, (go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false []))), (go!"k8s.io/kubernetes/pkg/controller/daemon.updateNode", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, (go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false []))), (go!"k8s.io/kubernetes/pkg/controller/daemon.updatePod", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.Logger.ty, (go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false []))), (go!"k8s.io/kubernetes/pkg/controller/daemon.updatedDesiredNodeCounts", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)), (go.GoType.MapType go.string (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))] false [go.int, go.int, go.int, go.error])))]
-  ptr_Run_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"Run" DaemonSetsController.Run.impl
-  ptr_addDaemonset_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"addDaemonset" DaemonSetsController.addDaemonset.impl
-  ptr_addHistory_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"addHistory" DaemonSetsController.addHistory.impl
-  ptr_addNode_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"addNode" DaemonSetsController.addNode.impl
-  ptr_addPod_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"addPod" DaemonSetsController.addPod.impl
-  ptr_cleanupHistory_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"cleanupHistory" DaemonSetsController.cleanupHistory.impl
-  ptr_constructHistory_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"constructHistory" DaemonSetsController.constructHistory.impl
-  ptr_controlledHistories_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"controlledHistories" DaemonSetsController.controlledHistories.impl
-  ptr_dedupCurHistories_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"dedupCurHistories" DaemonSetsController.dedupCurHistories.impl
-  ptr_deleteDaemonset_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"deleteDaemonset" DaemonSetsController.deleteDaemonset.impl
-  ptr_deleteHistory_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"deleteHistory" DaemonSetsController.deleteHistory.impl
-  ptr_deletePod_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"deletePod" DaemonSetsController.deletePod.impl
-  ptr_enqueue_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"enqueue" DaemonSetsController.enqueue.impl
-  ptr_enqueueDaemonSetAfter_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"enqueueDaemonSetAfter" DaemonSetsController.enqueueDaemonSetAfter.impl
-  ptr_getDaemonPods_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"getDaemonPods" DaemonSetsController.getDaemonPods.impl
-  ptr_getDaemonSetsForHistory_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"getDaemonSetsForHistory" DaemonSetsController.getDaemonSetsForHistory.impl
-  ptr_getDaemonSetsForPod_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"getDaemonSetsForPod" DaemonSetsController.getDaemonSetsForPod.impl
-  ptr_getNodesToDaemonPods_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"getNodesToDaemonPods" DaemonSetsController.getNodesToDaemonPods.impl
-  ptr_manage_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"manage" DaemonSetsController.manage.impl
-  ptr_podsShouldBeOnNode_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"podsShouldBeOnNode" DaemonSetsController.podsShouldBeOnNode.impl
-  ptr_processNextNodeUpdate_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"processNextNodeUpdate" DaemonSetsController.processNextNodeUpdate.impl
-  ptr_processNextWorkItem_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"processNextWorkItem" DaemonSetsController.processNextWorkItem.impl
-  ptr_resolveControllerRef_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"resolveControllerRef" DaemonSetsController.resolveControllerRef.impl
-  ptr_rollingUpdate_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"rollingUpdate" DaemonSetsController.rollingUpdate.impl
-  ptr_runNodeUpdateWorker_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"runNodeUpdateWorker" DaemonSetsController.runNodeUpdateWorker.impl
-  ptr_runWorker_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"runWorker" DaemonSetsController.runWorker.impl
-  ptr_snapshot_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"snapshot" DaemonSetsController.snapshot.impl
-  ptr_syncNodeUpdate_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"syncNodeUpdate" DaemonSetsController.syncNodeUpdate.impl
-  ptr_syncNodes_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"syncNodes" DaemonSetsController.syncNodes.impl
-  ptr_updateDaemonSet_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"updateDaemonSet" DaemonSetsController.updateDaemonSet.impl
-  ptr_updateDaemonSetStatus_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"updateDaemonSetStatus" DaemonSetsController.updateDaemonSetStatus.impl
-  ptr_updateDaemonset_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"updateDaemonset" DaemonSetsController.updateDaemonset.impl
-  ptr_updateHistory_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"updateHistory" DaemonSetsController.updateHistory.impl
-  ptr_updateNode_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"updateNode" DaemonSetsController.updateNode.impl
-  ptr_updatePod_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"updatePod" DaemonSetsController.updatePod.impl
-  ptr_updatedDesiredNodeCounts_unfold : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"updatedDesiredNodeCounts" DaemonSetsController.updatedDesiredNodeCounts.impl
+  ptr_unfold'Run : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"Run" DaemonSetsController.Run.impl
+  ptr_unfold'addDaemonset : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"addDaemonset" DaemonSetsController.addDaemonset.impl
+  ptr_unfold'addHistory : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"addHistory" DaemonSetsController.addHistory.impl
+  ptr_unfold'addNode : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"addNode" DaemonSetsController.addNode.impl
+  ptr_unfold'addPod : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"addPod" DaemonSetsController.addPod.impl
+  ptr_unfold'cleanupHistory : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"cleanupHistory" DaemonSetsController.cleanupHistory.impl
+  ptr_unfold'constructHistory : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"constructHistory" DaemonSetsController.constructHistory.impl
+  ptr_unfold'controlledHistories : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"controlledHistories" DaemonSetsController.controlledHistories.impl
+  ptr_unfold'dedupCurHistories : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"dedupCurHistories" DaemonSetsController.dedupCurHistories.impl
+  ptr_unfold'deleteDaemonset : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"deleteDaemonset" DaemonSetsController.deleteDaemonset.impl
+  ptr_unfold'deleteHistory : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"deleteHistory" DaemonSetsController.deleteHistory.impl
+  ptr_unfold'deletePod : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"deletePod" DaemonSetsController.deletePod.impl
+  ptr_unfold'enqueue : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"enqueue" DaemonSetsController.enqueue.impl
+  ptr_unfold'enqueueDaemonSetAfter : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"enqueueDaemonSetAfter" DaemonSetsController.enqueueDaemonSetAfter.impl
+  ptr_unfold'getDaemonPods : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"getDaemonPods" DaemonSetsController.getDaemonPods.impl
+  ptr_unfold'getDaemonSetsForHistory : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"getDaemonSetsForHistory" DaemonSetsController.getDaemonSetsForHistory.impl
+  ptr_unfold'getDaemonSetsForPod : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"getDaemonSetsForPod" DaemonSetsController.getDaemonSetsForPod.impl
+  ptr_unfold'getNodesToDaemonPods : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"getNodesToDaemonPods" DaemonSetsController.getNodesToDaemonPods.impl
+  ptr_unfold'manage : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"manage" DaemonSetsController.manage.impl
+  ptr_unfold'podsShouldBeOnNode : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"podsShouldBeOnNode" DaemonSetsController.podsShouldBeOnNode.impl
+  ptr_unfold'processNextNodeUpdate : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"processNextNodeUpdate" DaemonSetsController.processNextNodeUpdate.impl
+  ptr_unfold'processNextWorkItem : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"processNextWorkItem" DaemonSetsController.processNextWorkItem.impl
+  ptr_unfold'resolveControllerRef : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"resolveControllerRef" DaemonSetsController.resolveControllerRef.impl
+  ptr_unfold'rollingUpdate : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"rollingUpdate" DaemonSetsController.rollingUpdate.impl
+  ptr_unfold'runNodeUpdateWorker : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"runNodeUpdateWorker" DaemonSetsController.runNodeUpdateWorker.impl
+  ptr_unfold'runWorker : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"runWorker" DaemonSetsController.runWorker.impl
+  ptr_unfold'snapshot : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"snapshot" DaemonSetsController.snapshot.impl
+  ptr_unfold'syncNodeUpdate : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"syncNodeUpdate" DaemonSetsController.syncNodeUpdate.impl
+  ptr_unfold'syncNodes : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"syncNodes" DaemonSetsController.syncNodes.impl
+  ptr_unfold'updateDaemonSet : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"updateDaemonSet" DaemonSetsController.updateDaemonSet.impl
+  ptr_unfold'updateDaemonSetStatus : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"updateDaemonSetStatus" DaemonSetsController.updateDaemonSetStatus.impl
+  ptr_unfold'updateDaemonset : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"updateDaemonset" DaemonSetsController.updateDaemonset.impl
+  ptr_unfold'updateHistory : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"updateHistory" DaemonSetsController.updateHistory.impl
+  ptr_unfold'updateNode : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"updateNode" DaemonSetsController.updateNode.impl
+  ptr_unfold'updatePod : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"updatePod" DaemonSetsController.updatePod.impl
+  ptr_unfold'updatedDesiredNodeCounts : MethodUnfold (go.GoType.PointerType DaemonSetsController.ty) go!"updatedDesiredNodeCounts" DaemonSetsController.updatedDesiredNodeCounts.impl
 
 attribute [instance] DaemonSetsController.TypeAssumptions.type_repr
   DaemonSetsController.TypeAssumptions.underlying
-  DaemonSetsController.TypeAssumptions.get_kubeClient
-  DaemonSetsController.TypeAssumptions.set_kubeClient
-  DaemonSetsController.TypeAssumptions.get_eventBroadcaster
-  DaemonSetsController.TypeAssumptions.set_eventBroadcaster
-  DaemonSetsController.TypeAssumptions.get_eventRecorder
-  DaemonSetsController.TypeAssumptions.set_eventRecorder
-  DaemonSetsController.TypeAssumptions.get_podControl
-  DaemonSetsController.TypeAssumptions.set_podControl
-  DaemonSetsController.TypeAssumptions.get_crControl
-  DaemonSetsController.TypeAssumptions.set_crControl
-  DaemonSetsController.TypeAssumptions.get_burstReplicas
-  DaemonSetsController.TypeAssumptions.set_burstReplicas
-  DaemonSetsController.TypeAssumptions.get_syncHandler
-  DaemonSetsController.TypeAssumptions.set_syncHandler
-  DaemonSetsController.TypeAssumptions.get_enqueueDaemonSet
-  DaemonSetsController.TypeAssumptions.set_enqueueDaemonSet
-  DaemonSetsController.TypeAssumptions.get_expectations
-  DaemonSetsController.TypeAssumptions.set_expectations
-  DaemonSetsController.TypeAssumptions.get_dsLister
-  DaemonSetsController.TypeAssumptions.set_dsLister
-  DaemonSetsController.TypeAssumptions.get_dsStoreSynced
-  DaemonSetsController.TypeAssumptions.set_dsStoreSynced
-  DaemonSetsController.TypeAssumptions.get_historyLister
-  DaemonSetsController.TypeAssumptions.set_historyLister
-  DaemonSetsController.TypeAssumptions.get_historyStoreSynced
-  DaemonSetsController.TypeAssumptions.set_historyStoreSynced
-  DaemonSetsController.TypeAssumptions.get_podLister
-  DaemonSetsController.TypeAssumptions.set_podLister
-  DaemonSetsController.TypeAssumptions.get_podIndexer
-  DaemonSetsController.TypeAssumptions.set_podIndexer
-  DaemonSetsController.TypeAssumptions.get_podStoreSynced
-  DaemonSetsController.TypeAssumptions.set_podStoreSynced
-  DaemonSetsController.TypeAssumptions.get_nodeLister
-  DaemonSetsController.TypeAssumptions.set_nodeLister
-  DaemonSetsController.TypeAssumptions.get_nodeStoreSynced
-  DaemonSetsController.TypeAssumptions.set_nodeStoreSynced
-  DaemonSetsController.TypeAssumptions.get_queue
-  DaemonSetsController.TypeAssumptions.set_queue
-  DaemonSetsController.TypeAssumptions.get_nodeUpdateQueue
-  DaemonSetsController.TypeAssumptions.set_nodeUpdateQueue
-  DaemonSetsController.TypeAssumptions.get_failedPodsBackoff
-  DaemonSetsController.TypeAssumptions.set_failedPodsBackoff
-  DaemonSetsController.TypeAssumptions.get_consistencyStore
-  DaemonSetsController.TypeAssumptions.set_consistencyStore
+  DaemonSetsController.TypeAssumptions.get'kubeClient
+  DaemonSetsController.TypeAssumptions.set'kubeClient
+  DaemonSetsController.TypeAssumptions.get'eventBroadcaster
+  DaemonSetsController.TypeAssumptions.set'eventBroadcaster
+  DaemonSetsController.TypeAssumptions.get'eventRecorder
+  DaemonSetsController.TypeAssumptions.set'eventRecorder
+  DaemonSetsController.TypeAssumptions.get'podControl
+  DaemonSetsController.TypeAssumptions.set'podControl
+  DaemonSetsController.TypeAssumptions.get'crControl
+  DaemonSetsController.TypeAssumptions.set'crControl
+  DaemonSetsController.TypeAssumptions.get'burstReplicas
+  DaemonSetsController.TypeAssumptions.set'burstReplicas
+  DaemonSetsController.TypeAssumptions.get'syncHandler
+  DaemonSetsController.TypeAssumptions.set'syncHandler
+  DaemonSetsController.TypeAssumptions.get'enqueueDaemonSet
+  DaemonSetsController.TypeAssumptions.set'enqueueDaemonSet
+  DaemonSetsController.TypeAssumptions.get'expectations
+  DaemonSetsController.TypeAssumptions.set'expectations
+  DaemonSetsController.TypeAssumptions.get'dsLister
+  DaemonSetsController.TypeAssumptions.set'dsLister
+  DaemonSetsController.TypeAssumptions.get'dsStoreSynced
+  DaemonSetsController.TypeAssumptions.set'dsStoreSynced
+  DaemonSetsController.TypeAssumptions.get'historyLister
+  DaemonSetsController.TypeAssumptions.set'historyLister
+  DaemonSetsController.TypeAssumptions.get'historyStoreSynced
+  DaemonSetsController.TypeAssumptions.set'historyStoreSynced
+  DaemonSetsController.TypeAssumptions.get'podLister
+  DaemonSetsController.TypeAssumptions.set'podLister
+  DaemonSetsController.TypeAssumptions.get'podIndexer
+  DaemonSetsController.TypeAssumptions.set'podIndexer
+  DaemonSetsController.TypeAssumptions.get'podStoreSynced
+  DaemonSetsController.TypeAssumptions.set'podStoreSynced
+  DaemonSetsController.TypeAssumptions.get'nodeLister
+  DaemonSetsController.TypeAssumptions.set'nodeLister
+  DaemonSetsController.TypeAssumptions.get'nodeStoreSynced
+  DaemonSetsController.TypeAssumptions.set'nodeStoreSynced
+  DaemonSetsController.TypeAssumptions.get'queue
+  DaemonSetsController.TypeAssumptions.set'queue
+  DaemonSetsController.TypeAssumptions.get'nodeUpdateQueue
+  DaemonSetsController.TypeAssumptions.set'nodeUpdateQueue
+  DaemonSetsController.TypeAssumptions.get'failedPodsBackoff
+  DaemonSetsController.TypeAssumptions.set'failedPodsBackoff
+  DaemonSetsController.TypeAssumptions.get'consistencyStore
+  DaemonSetsController.TypeAssumptions.set'consistencyStore
   DaemonSetsController.TypeAssumptions.method_set
   DaemonSetsController.TypeAssumptions.ptr_method_set
-  DaemonSetsController.TypeAssumptions.ptr_Run_unfold
-  DaemonSetsController.TypeAssumptions.ptr_addDaemonset_unfold
-  DaemonSetsController.TypeAssumptions.ptr_addHistory_unfold
-  DaemonSetsController.TypeAssumptions.ptr_addNode_unfold
-  DaemonSetsController.TypeAssumptions.ptr_addPod_unfold
-  DaemonSetsController.TypeAssumptions.ptr_cleanupHistory_unfold
-  DaemonSetsController.TypeAssumptions.ptr_constructHistory_unfold
-  DaemonSetsController.TypeAssumptions.ptr_controlledHistories_unfold
-  DaemonSetsController.TypeAssumptions.ptr_dedupCurHistories_unfold
-  DaemonSetsController.TypeAssumptions.ptr_deleteDaemonset_unfold
-  DaemonSetsController.TypeAssumptions.ptr_deleteHistory_unfold
-  DaemonSetsController.TypeAssumptions.ptr_deletePod_unfold
-  DaemonSetsController.TypeAssumptions.ptr_enqueue_unfold
-  DaemonSetsController.TypeAssumptions.ptr_enqueueDaemonSetAfter_unfold
-  DaemonSetsController.TypeAssumptions.ptr_getDaemonPods_unfold
-  DaemonSetsController.TypeAssumptions.ptr_getDaemonSetsForHistory_unfold
-  DaemonSetsController.TypeAssumptions.ptr_getDaemonSetsForPod_unfold
-  DaemonSetsController.TypeAssumptions.ptr_getNodesToDaemonPods_unfold
-  DaemonSetsController.TypeAssumptions.ptr_manage_unfold
-  DaemonSetsController.TypeAssumptions.ptr_podsShouldBeOnNode_unfold
-  DaemonSetsController.TypeAssumptions.ptr_processNextNodeUpdate_unfold
-  DaemonSetsController.TypeAssumptions.ptr_processNextWorkItem_unfold
-  DaemonSetsController.TypeAssumptions.ptr_resolveControllerRef_unfold
-  DaemonSetsController.TypeAssumptions.ptr_rollingUpdate_unfold
-  DaemonSetsController.TypeAssumptions.ptr_runNodeUpdateWorker_unfold
-  DaemonSetsController.TypeAssumptions.ptr_runWorker_unfold
-  DaemonSetsController.TypeAssumptions.ptr_snapshot_unfold
-  DaemonSetsController.TypeAssumptions.ptr_syncNodeUpdate_unfold
-  DaemonSetsController.TypeAssumptions.ptr_syncNodes_unfold
-  DaemonSetsController.TypeAssumptions.ptr_updateDaemonSet_unfold
-  DaemonSetsController.TypeAssumptions.ptr_updateDaemonSetStatus_unfold
-  DaemonSetsController.TypeAssumptions.ptr_updateDaemonset_unfold
-  DaemonSetsController.TypeAssumptions.ptr_updateHistory_unfold
-  DaemonSetsController.TypeAssumptions.ptr_updateNode_unfold
-  DaemonSetsController.TypeAssumptions.ptr_updatePod_unfold
-  DaemonSetsController.TypeAssumptions.ptr_updatedDesiredNodeCounts_unfold
+  DaemonSetsController.TypeAssumptions.ptr_unfold'Run
+  DaemonSetsController.TypeAssumptions.ptr_unfold'addDaemonset
+  DaemonSetsController.TypeAssumptions.ptr_unfold'addHistory
+  DaemonSetsController.TypeAssumptions.ptr_unfold'addNode
+  DaemonSetsController.TypeAssumptions.ptr_unfold'addPod
+  DaemonSetsController.TypeAssumptions.ptr_unfold'cleanupHistory
+  DaemonSetsController.TypeAssumptions.ptr_unfold'constructHistory
+  DaemonSetsController.TypeAssumptions.ptr_unfold'controlledHistories
+  DaemonSetsController.TypeAssumptions.ptr_unfold'dedupCurHistories
+  DaemonSetsController.TypeAssumptions.ptr_unfold'deleteDaemonset
+  DaemonSetsController.TypeAssumptions.ptr_unfold'deleteHistory
+  DaemonSetsController.TypeAssumptions.ptr_unfold'deletePod
+  DaemonSetsController.TypeAssumptions.ptr_unfold'enqueue
+  DaemonSetsController.TypeAssumptions.ptr_unfold'enqueueDaemonSetAfter
+  DaemonSetsController.TypeAssumptions.ptr_unfold'getDaemonPods
+  DaemonSetsController.TypeAssumptions.ptr_unfold'getDaemonSetsForHistory
+  DaemonSetsController.TypeAssumptions.ptr_unfold'getDaemonSetsForPod
+  DaemonSetsController.TypeAssumptions.ptr_unfold'getNodesToDaemonPods
+  DaemonSetsController.TypeAssumptions.ptr_unfold'manage
+  DaemonSetsController.TypeAssumptions.ptr_unfold'podsShouldBeOnNode
+  DaemonSetsController.TypeAssumptions.ptr_unfold'processNextNodeUpdate
+  DaemonSetsController.TypeAssumptions.ptr_unfold'processNextWorkItem
+  DaemonSetsController.TypeAssumptions.ptr_unfold'resolveControllerRef
+  DaemonSetsController.TypeAssumptions.ptr_unfold'rollingUpdate
+  DaemonSetsController.TypeAssumptions.ptr_unfold'runNodeUpdateWorker
+  DaemonSetsController.TypeAssumptions.ptr_unfold'runWorker
+  DaemonSetsController.TypeAssumptions.ptr_unfold'snapshot
+  DaemonSetsController.TypeAssumptions.ptr_unfold'syncNodeUpdate
+  DaemonSetsController.TypeAssumptions.ptr_unfold'syncNodes
+  DaemonSetsController.TypeAssumptions.ptr_unfold'updateDaemonSet
+  DaemonSetsController.TypeAssumptions.ptr_unfold'updateDaemonSetStatus
+  DaemonSetsController.TypeAssumptions.ptr_unfold'updateDaemonset
+  DaemonSetsController.TypeAssumptions.ptr_unfold'updateHistory
+  DaemonSetsController.TypeAssumptions.ptr_unfold'updateNode
+  DaemonSetsController.TypeAssumptions.ptr_unfold'updatePod
+  DaemonSetsController.TypeAssumptions.ptr_unfold'updatedDesiredNodeCounts
 
 abbrev podByCreationTimestampAndPhase [GooseExts] : Type := GoSlice
 
@@ -7745,25 +7745,25 @@ class podByCreationTimestampAndPhase.TypeAssumptions [GooseExts] [GoGlobalContex
   underlying : go.UnderlyingDirectedEq podByCreationTimestampAndPhase.ty podByCreationTimestampAndPhase.underlying
   method_set : go.MethodSetIs podByCreationTimestampAndPhase.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType podByCreationTimestampAndPhase.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold podByCreationTimestampAndPhase.ty go!"Len" podByCreationTimestampAndPhase.Len.impl
-  Less_unfold : MethodUnfold podByCreationTimestampAndPhase.ty go!"Less" podByCreationTimestampAndPhase.Less.impl
-  Swap_unfold : MethodUnfold podByCreationTimestampAndPhase.ty go!"Swap" podByCreationTimestampAndPhase.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType podByCreationTimestampAndPhase.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold podByCreationTimestampAndPhase.ty go!"Len" podByCreationTimestampAndPhase.Len.impl
+  unfold'Less : MethodUnfold podByCreationTimestampAndPhase.ty go!"Less" podByCreationTimestampAndPhase.Less.impl
+  unfold'Swap : MethodUnfold podByCreationTimestampAndPhase.ty go!"Swap" podByCreationTimestampAndPhase.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType podByCreationTimestampAndPhase.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve podByCreationTimestampAndPhase.ty go!"Len"))) (App (Val (GoInstruction (GoLoad podByCreationTimestampAndPhase.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType podByCreationTimestampAndPhase.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType podByCreationTimestampAndPhase.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve podByCreationTimestampAndPhase.ty go!"Less"))) (App (Val (GoInstruction (GoLoad podByCreationTimestampAndPhase.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType podByCreationTimestampAndPhase.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType podByCreationTimestampAndPhase.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve podByCreationTimestampAndPhase.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad podByCreationTimestampAndPhase.ty))) (Var "$r"))))
 
 attribute [instance] podByCreationTimestampAndPhase.TypeAssumptions.underlying
   podByCreationTimestampAndPhase.TypeAssumptions.method_set
   podByCreationTimestampAndPhase.TypeAssumptions.ptr_method_set
-  podByCreationTimestampAndPhase.TypeAssumptions.Len_unfold
-  podByCreationTimestampAndPhase.TypeAssumptions.Less_unfold
-  podByCreationTimestampAndPhase.TypeAssumptions.Swap_unfold
-  podByCreationTimestampAndPhase.TypeAssumptions.ptr_Len_unfold
-  podByCreationTimestampAndPhase.TypeAssumptions.ptr_Less_unfold
-  podByCreationTimestampAndPhase.TypeAssumptions.ptr_Swap_unfold
+  podByCreationTimestampAndPhase.TypeAssumptions.unfold'Len
+  podByCreationTimestampAndPhase.TypeAssumptions.unfold'Less
+  podByCreationTimestampAndPhase.TypeAssumptions.unfold'Swap
+  podByCreationTimestampAndPhase.TypeAssumptions.ptr_unfold'Len
+  podByCreationTimestampAndPhase.TypeAssumptions.ptr_unfold'Less
+  podByCreationTimestampAndPhase.TypeAssumptions.ptr_unfold'Swap
 
 abbrev historiesByRevision [GooseExts] : Type := GoSlice
 
@@ -7774,152 +7774,152 @@ class historiesByRevision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   underlying : go.UnderlyingDirectedEq historiesByRevision.ty historiesByRevision.underlying
   method_set : go.MethodSetIs historiesByRevision.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType historiesByRevision.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold historiesByRevision.ty go!"Len" historiesByRevision.Len.impl
-  Less_unfold : MethodUnfold historiesByRevision.ty go!"Less" historiesByRevision.Less.impl
-  Swap_unfold : MethodUnfold historiesByRevision.ty go!"Swap" historiesByRevision.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType historiesByRevision.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold historiesByRevision.ty go!"Len" historiesByRevision.Len.impl
+  unfold'Less : MethodUnfold historiesByRevision.ty go!"Less" historiesByRevision.Less.impl
+  unfold'Swap : MethodUnfold historiesByRevision.ty go!"Swap" historiesByRevision.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType historiesByRevision.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve historiesByRevision.ty go!"Len"))) (App (Val (GoInstruction (GoLoad historiesByRevision.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType historiesByRevision.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType historiesByRevision.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve historiesByRevision.ty go!"Less"))) (App (Val (GoInstruction (GoLoad historiesByRevision.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType historiesByRevision.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType historiesByRevision.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve historiesByRevision.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad historiesByRevision.ty))) (Var "$r"))))
 
 attribute [instance] historiesByRevision.TypeAssumptions.underlying
   historiesByRevision.TypeAssumptions.method_set
   historiesByRevision.TypeAssumptions.ptr_method_set
-  historiesByRevision.TypeAssumptions.Len_unfold
-  historiesByRevision.TypeAssumptions.Less_unfold
-  historiesByRevision.TypeAssumptions.Swap_unfold
-  historiesByRevision.TypeAssumptions.ptr_Len_unfold
-  historiesByRevision.TypeAssumptions.ptr_Less_unfold
-  historiesByRevision.TypeAssumptions.ptr_Swap_unfold
+  historiesByRevision.TypeAssumptions.unfold'Len
+  historiesByRevision.TypeAssumptions.unfold'Less
+  historiesByRevision.TypeAssumptions.unfold'Swap
+  historiesByRevision.TypeAssumptions.ptr_unfold'Len
+  historiesByRevision.TypeAssumptions.ptr_unfold'Less
+  historiesByRevision.TypeAssumptions.ptr_unfold'Swap
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  DaemonSetsController_instance : DaemonSetsController.TypeAssumptions
-  podByCreationTimestampAndPhase_instance : podByCreationTimestampAndPhase.TypeAssumptions
-  historiesByRevision_instance : historiesByRevision.TypeAssumptions
-  NewDaemonSetsController_unfold : FuncUnfold NewDaemonSetsController [] NewDaemonSetsController.impl
-  shouldIgnoreNodeUpdate_unfold : FuncUnfold shouldIgnoreNodeUpdate [] shouldIgnoreNodeUpdate.impl
-  storeDaemonSetStatus_unfold : FuncUnfold storeDaemonSetStatus [] storeDaemonSetStatus.impl
-  NodeShouldRunDaemonPod_unfold : FuncUnfold NodeShouldRunDaemonPod [] NodeShouldRunDaemonPod.impl
-  daemonPodTolerations_unfold : FuncUnfold daemonPodTolerations [] daemonPodTolerations.impl
-  nodeShouldRunDaemonPod_unfold : FuncUnfold nodeShouldRunDaemonPod [] nodeShouldRunDaemonPod.impl
-  predicates_unfold : FuncUnfold predicates [] predicates.impl
-  NewPod_unfold : FuncUnfold NewPod [] NewPod.impl
-  failedPodsBackoffKey_unfold : FuncUnfold failedPodsBackoffKey [] failedPodsBackoffKey.impl
-  getUnscheduledPodsWithoutNode_unfold : FuncUnfold getUnscheduledPodsWithoutNode [] getUnscheduledPodsWithoutNode.impl
-  findUpdatedPodsOnNode_unfold : FuncUnfold findUpdatedPodsOnNode [] findUpdatedPodsOnNode.impl
-  maxRevision_unfold : FuncUnfold maxRevision [] maxRevision.impl
-  Match_unfold : FuncUnfold Match [] Match.impl
-  getPatch_unfold : FuncUnfold getPatch [] getPatch.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_reflect_Assumption : _root_.Perennial.reflect.Assumptions
-  import_sort_Assumption : _root_.Perennial.sort.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_api_apps_v1_Assumption : _root_.Perennial.k8s_io.api.apps.v1.Assumptions
-  import_api_core_v1_Assumption : _root_.Perennial.k8s_io.api.core.v1.Assumptions
-  import_equality_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.api.equality.Assumptions
-  import_api_errors_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.Assumptions
-  import_apis_meta_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_pkg_labels_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
-  import_schema_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
-  import_types_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
-  import_util_errors_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Assumptions
-  import_util_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.Assumptions
-  import_wait_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Assumptions
-  import_feature_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
-  import_informers_apps_v1_Assumption : _root_.Perennial.k8s_io.client_go.informers.apps.v1.Assumptions
-  import_informers_core_v1_Assumption : _root_.Perennial.k8s_io.client_go.informers.core.v1.Assumptions
-  import_kubernetes_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.Assumptions
-  import_scheme_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.scheme.Assumptions
-  import_typed_apps_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions
-  import_typed_core_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.Assumptions
-  import_listers_apps_v1_Assumption : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions
-  import_listers_core_v1_Assumption : _root_.Perennial.k8s_io.client_go.listers.core.v1.Assumptions
-  import_cache_Assumption : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions
-  import_record_Assumption : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions
-  import_consistency_Assumption : _root_.Perennial.k8s_io.client_go.util.consistency.Assumptions
-  import_flowcontrol_Assumption : _root_.Perennial.k8s_io.client_go.util.flowcontrol.Assumptions
-  import_workqueue_Assumption : _root_.Perennial.k8s_io.client_go.util.workqueue.Assumptions
-  import_corev1_Assumption : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.Assumptions
-  import_nodeaffinity_Assumption : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions
-  import_klog_Assumption : _root_.Perennial.k8s_io.klog.v2.Assumptions
-  import_pod_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.api.v1.pod.Assumptions
-  import_controller_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.controller.Assumptions
-  import_metrics_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.controller.daemon.metrics.Assumptions
-  import_util_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.controller.daemon.util.Assumptions
-  import_features_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.features.Assumptions
-  import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
-  import_pkg_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
-  import_json_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.json.Assumptions
-  import_util_labels_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.util.labels.Assumptions
-  import_ptr_Assumption : _root_.Perennial.k8s_io.utils.ptr.Assumptions
+  instance'DaemonSetsController : DaemonSetsController.TypeAssumptions
+  instance'podByCreationTimestampAndPhase : podByCreationTimestampAndPhase.TypeAssumptions
+  instance'historiesByRevision : historiesByRevision.TypeAssumptions
+  unfold'NewDaemonSetsController : FuncUnfold NewDaemonSetsController [] NewDaemonSetsController.impl
+  unfold'shouldIgnoreNodeUpdate : FuncUnfold shouldIgnoreNodeUpdate [] shouldIgnoreNodeUpdate.impl
+  unfold'storeDaemonSetStatus : FuncUnfold storeDaemonSetStatus [] storeDaemonSetStatus.impl
+  unfold'NodeShouldRunDaemonPod : FuncUnfold NodeShouldRunDaemonPod [] NodeShouldRunDaemonPod.impl
+  unfold'daemonPodTolerations : FuncUnfold daemonPodTolerations [] daemonPodTolerations.impl
+  unfold'nodeShouldRunDaemonPod : FuncUnfold nodeShouldRunDaemonPod [] nodeShouldRunDaemonPod.impl
+  unfold'predicates : FuncUnfold predicates [] predicates.impl
+  unfold'NewPod : FuncUnfold NewPod [] NewPod.impl
+  unfold'failedPodsBackoffKey : FuncUnfold failedPodsBackoffKey [] failedPodsBackoffKey.impl
+  unfold'getUnscheduledPodsWithoutNode : FuncUnfold getUnscheduledPodsWithoutNode [] getUnscheduledPodsWithoutNode.impl
+  unfold'findUpdatedPodsOnNode : FuncUnfold findUpdatedPodsOnNode [] findUpdatedPodsOnNode.impl
+  unfold'maxRevision : FuncUnfold maxRevision [] maxRevision.impl
+  unfold'Match : FuncUnfold Match [] Match.impl
+  unfold'getPatch : FuncUnfold getPatch [] getPatch.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'reflect : _root_.Perennial.reflect.Assumptions
+  import'sort : _root_.Perennial.sort.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'api_apps_v1 : _root_.Perennial.k8s_io.api.apps.v1.Assumptions
+  import'api_core_v1 : _root_.Perennial.k8s_io.api.core.v1.Assumptions
+  import'equality : _root_.Perennial.k8s_io.apimachinery.pkg.api.equality.Assumptions
+  import'api_errors : _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.Assumptions
+  import'apis_meta_v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'pkg_labels : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Assumptions
+  import'schema : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
+  import'types : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
+  import'util_errors : _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Assumptions
+  import'util_runtime : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.Assumptions
+  import'wait : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Assumptions
+  import'feature : _root_.Perennial.k8s_io.apiserver.pkg.util.feature.Assumptions
+  import'informers_apps_v1 : _root_.Perennial.k8s_io.client_go.informers.apps.v1.Assumptions
+  import'informers_core_v1 : _root_.Perennial.k8s_io.client_go.informers.core.v1.Assumptions
+  import'kubernetes : _root_.Perennial.k8s_io.client_go.kubernetes.Assumptions
+  import'scheme : _root_.Perennial.k8s_io.client_go.kubernetes.scheme.Assumptions
+  import'typed_apps_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions
+  import'typed_core_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.Assumptions
+  import'listers_apps_v1 : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions
+  import'listers_core_v1 : _root_.Perennial.k8s_io.client_go.listers.core.v1.Assumptions
+  import'cache : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions
+  import'record : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions
+  import'consistency : _root_.Perennial.k8s_io.client_go.util.consistency.Assumptions
+  import'flowcontrol : _root_.Perennial.k8s_io.client_go.util.flowcontrol.Assumptions
+  import'workqueue : _root_.Perennial.k8s_io.client_go.util.workqueue.Assumptions
+  import'corev1 : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.Assumptions
+  import'nodeaffinity : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions
+  import'klog : _root_.Perennial.k8s_io.klog.v2.Assumptions
+  import'pod : _root_.Perennial.k8s_io.kubernetes.pkg.api.v1.pod.Assumptions
+  import'controller : _root_.Perennial.k8s_io.kubernetes.pkg.controller.Assumptions
+  import'metrics : _root_.Perennial.k8s_io.kubernetes.pkg.controller.daemon.metrics.Assumptions
+  import'util : _root_.Perennial.k8s_io.kubernetes.pkg.controller.daemon.util.Assumptions
+  import'features : _root_.Perennial.k8s_io.kubernetes.pkg.features.Assumptions
+  import'bytes : _root_.Perennial.bytes.Assumptions
+  import'pkg_runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  import'json : _root_.Perennial.k8s_io.apimachinery.pkg.util.json.Assumptions
+  import'util_labels : _root_.Perennial.k8s_io.kubernetes.pkg.util.labels.Assumptions
+  import'ptr : _root_.Perennial.k8s_io.utils.ptr.Assumptions
 
-attribute [instance] Assumptions.DaemonSetsController_instance
-  Assumptions.podByCreationTimestampAndPhase_instance
-  Assumptions.historiesByRevision_instance
-  Assumptions.NewDaemonSetsController_unfold
-  Assumptions.shouldIgnoreNodeUpdate_unfold
-  Assumptions.storeDaemonSetStatus_unfold
-  Assumptions.NodeShouldRunDaemonPod_unfold
-  Assumptions.daemonPodTolerations_unfold
-  Assumptions.nodeShouldRunDaemonPod_unfold
-  Assumptions.predicates_unfold
-  Assumptions.NewPod_unfold
-  Assumptions.failedPodsBackoffKey_unfold
-  Assumptions.getUnscheduledPodsWithoutNode_unfold
-  Assumptions.findUpdatedPodsOnNode_unfold
-  Assumptions.maxRevision_unfold
-  Assumptions.Match_unfold
-  Assumptions.getPatch_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_reflect_Assumption
-  Assumptions.import_sort_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_api_apps_v1_Assumption
-  Assumptions.import_api_core_v1_Assumption
-  Assumptions.import_equality_Assumption
-  Assumptions.import_api_errors_Assumption
-  Assumptions.import_apis_meta_v1_Assumption
-  Assumptions.import_pkg_labels_Assumption
-  Assumptions.import_schema_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_util_errors_Assumption
-  Assumptions.import_util_runtime_Assumption
-  Assumptions.import_wait_Assumption
-  Assumptions.import_feature_Assumption
-  Assumptions.import_informers_apps_v1_Assumption
-  Assumptions.import_informers_core_v1_Assumption
-  Assumptions.import_kubernetes_Assumption
-  Assumptions.import_scheme_Assumption
-  Assumptions.import_typed_apps_v1_Assumption
-  Assumptions.import_typed_core_v1_Assumption
-  Assumptions.import_listers_apps_v1_Assumption
-  Assumptions.import_listers_core_v1_Assumption
-  Assumptions.import_cache_Assumption
-  Assumptions.import_record_Assumption
-  Assumptions.import_consistency_Assumption
-  Assumptions.import_flowcontrol_Assumption
-  Assumptions.import_workqueue_Assumption
-  Assumptions.import_corev1_Assumption
-  Assumptions.import_nodeaffinity_Assumption
-  Assumptions.import_klog_Assumption
-  Assumptions.import_pod_Assumption
-  Assumptions.import_controller_Assumption
-  Assumptions.import_metrics_Assumption
-  Assumptions.import_util_Assumption
-  Assumptions.import_features_Assumption
-  Assumptions.import_bytes_Assumption
-  Assumptions.import_pkg_runtime_Assumption
-  Assumptions.import_json_Assumption
-  Assumptions.import_util_labels_Assumption
-  Assumptions.import_ptr_Assumption
+attribute [instance] Assumptions.instance'DaemonSetsController
+  Assumptions.instance'podByCreationTimestampAndPhase
+  Assumptions.instance'historiesByRevision
+  Assumptions.unfold'NewDaemonSetsController
+  Assumptions.unfold'shouldIgnoreNodeUpdate
+  Assumptions.unfold'storeDaemonSetStatus
+  Assumptions.unfold'NodeShouldRunDaemonPod
+  Assumptions.unfold'daemonPodTolerations
+  Assumptions.unfold'nodeShouldRunDaemonPod
+  Assumptions.unfold'predicates
+  Assumptions.unfold'NewPod
+  Assumptions.unfold'failedPodsBackoffKey
+  Assumptions.unfold'getUnscheduledPodsWithoutNode
+  Assumptions.unfold'findUpdatedPodsOnNode
+  Assumptions.unfold'maxRevision
+  Assumptions.unfold'Match
+  Assumptions.unfold'getPatch
+  Assumptions.import'context
+  Assumptions.import'errors
+  Assumptions.import'fmt
+  Assumptions.import'reflect
+  Assumptions.import'sort
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'api_apps_v1
+  Assumptions.import'api_core_v1
+  Assumptions.import'equality
+  Assumptions.import'api_errors
+  Assumptions.import'apis_meta_v1
+  Assumptions.import'pkg_labels
+  Assumptions.import'schema
+  Assumptions.import'types
+  Assumptions.import'util_errors
+  Assumptions.import'util_runtime
+  Assumptions.import'wait
+  Assumptions.import'feature
+  Assumptions.import'informers_apps_v1
+  Assumptions.import'informers_core_v1
+  Assumptions.import'kubernetes
+  Assumptions.import'scheme
+  Assumptions.import'typed_apps_v1
+  Assumptions.import'typed_core_v1
+  Assumptions.import'listers_apps_v1
+  Assumptions.import'listers_core_v1
+  Assumptions.import'cache
+  Assumptions.import'record
+  Assumptions.import'consistency
+  Assumptions.import'flowcontrol
+  Assumptions.import'workqueue
+  Assumptions.import'corev1
+  Assumptions.import'nodeaffinity
+  Assumptions.import'klog
+  Assumptions.import'pod
+  Assumptions.import'controller
+  Assumptions.import'metrics
+  Assumptions.import'util
+  Assumptions.import'features
+  Assumptions.import'bytes
+  Assumptions.import'pkg_runtime
+  Assumptions.import'json
+  Assumptions.import'util_labels
+  Assumptions.import'ptr
 
 end k8s_io.kubernetes.pkg.controller.daemon
 

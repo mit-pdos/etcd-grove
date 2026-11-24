@@ -25,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.imdea_software.swiftpaxos.rpc.Assumptions]
 
-noncomputable instance Pair_typed_pointsto :
+noncomputable instance typed_pointsto'Pair :
     TypedPointsto (GF := GF) github_com.imdea_software.swiftpaxos.rpc.Pair'' where
   typedPointstoDef l v dq := iprop(
     "Obj" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Pair'' go!"Obj" l) v.Obj' dq ∗
@@ -35,11 +35,11 @@ noncomputable instance Pair_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Pair_into_val_typed :
+noncomputable instance into_val_typed'Pair :
     IntoValTypedUnderlying (GF := GF) github_com.imdea_software.swiftpaxos.rpc.Pair'' github_com.imdea_software.swiftpaxos.rpc.Pair''.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Pair_access_load_Obj (l : Loc) (v : github_com.imdea_software.swiftpaxos.rpc.Pair'') (dq : DFrac) :
+noncomputable instance access_load'Pair'Obj (l : Loc) (v : github_com.imdea_software.swiftpaxos.rpc.Pair'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Pair'' go!"Obj" l) v.Obj' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Pair'' go!"Obj" l) v.Obj' dq)
@@ -47,7 +47,7 @@ noncomputable instance Pair_access_load_Obj (l : Loc) (v : github_com.imdea_soft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pair_access_store_Obj (l : Loc) (v : github_com.imdea_software.swiftpaxos.rpc.Pair'') (y : github_com.imdea_software.swiftpaxos.rpc.Serializable) :
+noncomputable instance access_store'Pair'Obj (l : Loc) (v : github_com.imdea_software.swiftpaxos.rpc.Pair'') (y : github_com.imdea_software.swiftpaxos.rpc.Serializable) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Pair'' go!"Obj" l) v.Obj' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Pair'' go!"Obj" l) y (DFrac.own 1))
@@ -55,7 +55,7 @@ noncomputable instance Pair_access_store_Obj (l : Loc) (v : github_com.imdea_sof
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pair_access_load_Chan (l : Loc) (v : github_com.imdea_software.swiftpaxos.rpc.Pair'') (dq : DFrac) :
+noncomputable instance access_load'Pair'Chan (l : Loc) (v : github_com.imdea_software.swiftpaxos.rpc.Pair'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Pair'' go!"Chan" l) v.Chan' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Pair'' go!"Chan" l) v.Chan' dq)
@@ -63,7 +63,7 @@ noncomputable instance Pair_access_load_Chan (l : Loc) (v : github_com.imdea_sof
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pair_access_store_Chan (l : Loc) (v : github_com.imdea_software.swiftpaxos.rpc.Pair'') (y : GoChan) :
+noncomputable instance access_store'Pair'Chan (l : Loc) (v : github_com.imdea_software.swiftpaxos.rpc.Pair'') (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Pair'' go!"Chan" l) v.Chan' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Pair'' go!"Chan" l) y (DFrac.own 1))
@@ -82,7 +82,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.imdea_software.swiftpaxos.rpc.Assumptions]
 
-noncomputable instance Table_typed_pointsto :
+noncomputable instance typed_pointsto'Table :
     TypedPointsto (GF := GF) github_com.imdea_software.swiftpaxos.rpc.Table where
   typedPointstoDef l v dq := iprop(
     "id" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Table go!"id" l) v.id' dq ∗
@@ -92,11 +92,11 @@ noncomputable instance Table_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Table_into_val_typed :
+noncomputable instance into_val_typed'Table :
     IntoValTypedUnderlying (GF := GF) github_com.imdea_software.swiftpaxos.rpc.Table github_com.imdea_software.swiftpaxos.rpc.Table.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Table_access_load_id (l : Loc) (v : github_com.imdea_software.swiftpaxos.rpc.Table) (dq : DFrac) :
+noncomputable instance access_load'Table'id (l : Loc) (v : github_com.imdea_software.swiftpaxos.rpc.Table) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Table go!"id" l) v.id' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Table go!"id" l) v.id' dq)
@@ -104,7 +104,7 @@ noncomputable instance Table_access_load_id (l : Loc) (v : github_com.imdea_soft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Table_access_store_id (l : Loc) (v : github_com.imdea_software.swiftpaxos.rpc.Table) (y : w8) :
+noncomputable instance access_store'Table'id (l : Loc) (v : github_com.imdea_software.swiftpaxos.rpc.Table) (y : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Table go!"id" l) v.id' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Table go!"id" l) y (DFrac.own 1))
@@ -112,7 +112,7 @@ noncomputable instance Table_access_store_id (l : Loc) (v : github_com.imdea_sof
  by
   solve_pointsto_access_struct
 
-noncomputable instance Table_access_load_pairs (l : Loc) (v : github_com.imdea_software.swiftpaxos.rpc.Table) (dq : DFrac) :
+noncomputable instance access_load'Table'pairs (l : Loc) (v : github_com.imdea_software.swiftpaxos.rpc.Table) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Table go!"pairs" l) v.pairs' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Table go!"pairs" l) v.pairs' dq)
@@ -120,7 +120,7 @@ noncomputable instance Table_access_load_pairs (l : Loc) (v : github_com.imdea_s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Table_access_store_pairs (l : Loc) (v : github_com.imdea_software.swiftpaxos.rpc.Table) (y : GoMap) :
+noncomputable instance access_store'Table'pairs (l : Loc) (v : github_com.imdea_software.swiftpaxos.rpc.Table) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Table go!"pairs" l) v.pairs' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.rpc.Table go!"pairs" l) y (DFrac.own 1))

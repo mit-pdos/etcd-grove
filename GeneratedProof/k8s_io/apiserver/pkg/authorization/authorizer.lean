@@ -40,7 +40,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.authorization.authorizer.Assumptions]
 
-noncomputable instance ConditionsMap_typed_pointsto :
+noncomputable instance typed_pointsto'ConditionsMap :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap where
   typedPointstoDef l v dq := iprop(
     "denyConditions" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"denyConditions" l) v.denyConditions' dq ∗
@@ -51,11 +51,11 @@ noncomputable instance ConditionsMap_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ConditionsMap_into_val_typed :
+noncomputable instance into_val_typed'ConditionsMap :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ConditionsMap_access_load_denyConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (dq : DFrac) :
+noncomputable instance access_load'ConditionsMap'denyConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"denyConditions" l) v.denyConditions' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"denyConditions" l) v.denyConditions' dq)
@@ -63,7 +63,7 @@ noncomputable instance ConditionsMap_access_load_denyConditions (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsMap_access_store_denyConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (y : GoSlice) :
+noncomputable instance access_store'ConditionsMap'denyConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"denyConditions" l) v.denyConditions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"denyConditions" l) y (DFrac.own 1))
@@ -71,7 +71,7 @@ noncomputable instance ConditionsMap_access_store_denyConditions (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsMap_access_load_noOpinionConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (dq : DFrac) :
+noncomputable instance access_load'ConditionsMap'noOpinionConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"noOpinionConditions" l) v.noOpinionConditions' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"noOpinionConditions" l) v.noOpinionConditions' dq)
@@ -79,7 +79,7 @@ noncomputable instance ConditionsMap_access_load_noOpinionConditions (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsMap_access_store_noOpinionConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (y : GoSlice) :
+noncomputable instance access_store'ConditionsMap'noOpinionConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"noOpinionConditions" l) v.noOpinionConditions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"noOpinionConditions" l) y (DFrac.own 1))
@@ -87,7 +87,7 @@ noncomputable instance ConditionsMap_access_store_noOpinionConditions (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsMap_access_load_allowConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (dq : DFrac) :
+noncomputable instance access_load'ConditionsMap'allowConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"allowConditions" l) v.allowConditions' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"allowConditions" l) v.allowConditions' dq)
@@ -95,7 +95,7 @@ noncomputable instance ConditionsMap_access_load_allowConditions (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsMap_access_store_allowConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (y : GoSlice) :
+noncomputable instance access_store'ConditionsMap'allowConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"allowConditions" l) v.allowConditions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"allowConditions" l) y (DFrac.own 1))
@@ -114,7 +114,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.authorization.authorizer.Assumptions]
 
-noncomputable instance ConditionsAwareDecisionUnion_typed_pointsto :
+noncomputable instance typed_pointsto'ConditionsAwareDecisionUnion :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion where
   typedPointstoDef l v dq := iprop(
     "inner" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"inner" l) v.inner' dq ∗
@@ -126,11 +126,11 @@ noncomputable instance ConditionsAwareDecisionUnion_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ConditionsAwareDecisionUnion_into_val_typed :
+noncomputable instance into_val_typed'ConditionsAwareDecisionUnion :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ConditionsAwareDecisionUnion_access_load_inner (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (dq : DFrac) :
+noncomputable instance access_load'ConditionsAwareDecisionUnion'inner (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"inner" l) v.inner' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"inner" l) v.inner' dq)
@@ -138,7 +138,7 @@ noncomputable instance ConditionsAwareDecisionUnion_access_load_inner (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecisionUnion_access_store_inner (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (y : GoSlice) :
+noncomputable instance access_store'ConditionsAwareDecisionUnion'inner (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"inner" l) v.inner' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"inner" l) y (DFrac.own 1))
@@ -146,7 +146,7 @@ noncomputable instance ConditionsAwareDecisionUnion_access_store_inner (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecisionUnion_access_load_errs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (dq : DFrac) :
+noncomputable instance access_load'ConditionsAwareDecisionUnion'errs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"errs" l) v.errs' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"errs" l) v.errs' dq)
@@ -154,7 +154,7 @@ noncomputable instance ConditionsAwareDecisionUnion_access_load_errs (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecisionUnion_access_store_errs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (y : GoSlice) :
+noncomputable instance access_store'ConditionsAwareDecisionUnion'errs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"errs" l) v.errs' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"errs" l) y (DFrac.own 1))
@@ -162,7 +162,7 @@ noncomputable instance ConditionsAwareDecisionUnion_access_store_errs (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecisionUnion_access_load_containsUnconditionalAllowOrDeny (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (dq : DFrac) :
+noncomputable instance access_load'ConditionsAwareDecisionUnion'containsUnconditionalAllowOrDeny (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"containsUnconditionalAllowOrDeny" l) v.containsUnconditionalAllowOrDeny' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"containsUnconditionalAllowOrDeny" l) v.containsUnconditionalAllowOrDeny' dq)
@@ -170,7 +170,7 @@ noncomputable instance ConditionsAwareDecisionUnion_access_load_containsUncondit
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecisionUnion_access_store_containsUnconditionalAllowOrDeny (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (y : Bool) :
+noncomputable instance access_store'ConditionsAwareDecisionUnion'containsUnconditionalAllowOrDeny (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"containsUnconditionalAllowOrDeny" l) v.containsUnconditionalAllowOrDeny' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"containsUnconditionalAllowOrDeny" l) y (DFrac.own 1))
@@ -178,7 +178,7 @@ noncomputable instance ConditionsAwareDecisionUnion_access_store_containsUncondi
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecisionUnion_access_load_subDecisionsPossibleDecisions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (dq : DFrac) :
+noncomputable instance access_load'ConditionsAwareDecisionUnion'subDecisionsPossibleDecisions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"subDecisionsPossibleDecisions" l) v.subDecisionsPossibleDecisions' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"subDecisionsPossibleDecisions" l) v.subDecisionsPossibleDecisions' dq)
@@ -186,7 +186,7 @@ noncomputable instance ConditionsAwareDecisionUnion_access_load_subDecisionsPoss
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecisionUnion_access_store_subDecisionsPossibleDecisions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (y : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' k8s_io.apiserver.pkg.authorization.authorizer.Decision)) :
+noncomputable instance access_store'ConditionsAwareDecisionUnion'subDecisionsPossibleDecisions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (y : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' k8s_io.apiserver.pkg.authorization.authorizer.Decision)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"subDecisionsPossibleDecisions" l) v.subDecisionsPossibleDecisions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"subDecisionsPossibleDecisions" l) y (DFrac.own 1))
@@ -205,7 +205,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.authorization.authorizer.Assumptions]
 
-noncomputable instance ConditionsAwareDecision_typed_pointsto :
+noncomputable instance typed_pointsto'ConditionsAwareDecision :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision where
   typedPointstoDef l v dq := iprop(
     "decisionType" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"decisionType" l) v.decisionType' dq ∗
@@ -218,11 +218,11 @@ noncomputable instance ConditionsAwareDecision_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ConditionsAwareDecision_into_val_typed :
+noncomputable instance into_val_typed'ConditionsAwareDecision :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ConditionsAwareDecision_access_load_decisionType (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (dq : DFrac) :
+noncomputable instance access_load'ConditionsAwareDecision'decisionType (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"decisionType" l) v.decisionType' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"decisionType" l) v.decisionType' dq)
@@ -230,7 +230,7 @@ noncomputable instance ConditionsAwareDecision_access_load_decisionType (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecision_access_store_decisionType (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (y : k8s_io.apiserver.pkg.authorization.authorizer.conditionsAwareDecisionType) :
+noncomputable instance access_store'ConditionsAwareDecision'decisionType (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (y : k8s_io.apiserver.pkg.authorization.authorizer.conditionsAwareDecisionType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"decisionType" l) v.decisionType' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"decisionType" l) y (DFrac.own 1))
@@ -238,7 +238,7 @@ noncomputable instance ConditionsAwareDecision_access_store_decisionType (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecision_access_load_conditionsMap (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (dq : DFrac) :
+noncomputable instance access_load'ConditionsAwareDecision'conditionsMap (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"conditionsMap" l) v.conditionsMap' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"conditionsMap" l) v.conditionsMap' dq)
@@ -246,7 +246,7 @@ noncomputable instance ConditionsAwareDecision_access_load_conditionsMap (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecision_access_store_conditionsMap (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (y : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) :
+noncomputable instance access_store'ConditionsAwareDecision'conditionsMap (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (y : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"conditionsMap" l) v.conditionsMap' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"conditionsMap" l) y (DFrac.own 1))
@@ -254,7 +254,7 @@ noncomputable instance ConditionsAwareDecision_access_store_conditionsMap (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecision_access_load_union (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (dq : DFrac) :
+noncomputable instance access_load'ConditionsAwareDecision'union (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"union" l) v.union' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"union" l) v.union' dq)
@@ -262,7 +262,7 @@ noncomputable instance ConditionsAwareDecision_access_load_union (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecision_access_store_union (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (y : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) :
+noncomputable instance access_store'ConditionsAwareDecision'union (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (y : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"union" l) v.union' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"union" l) y (DFrac.own 1))
@@ -270,7 +270,7 @@ noncomputable instance ConditionsAwareDecision_access_store_union (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecision_access_load_reason (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (dq : DFrac) :
+noncomputable instance access_load'ConditionsAwareDecision'reason (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"reason" l) v.reason' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"reason" l) v.reason' dq)
@@ -278,7 +278,7 @@ noncomputable instance ConditionsAwareDecision_access_load_reason (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecision_access_store_reason (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (y : GoString) :
+noncomputable instance access_store'ConditionsAwareDecision'reason (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"reason" l) v.reason' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"reason" l) y (DFrac.own 1))
@@ -286,7 +286,7 @@ noncomputable instance ConditionsAwareDecision_access_store_reason (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecision_access_load_err (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (dq : DFrac) :
+noncomputable instance access_load'ConditionsAwareDecision'err (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"err" l) v.err' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"err" l) v.err' dq)
@@ -294,7 +294,7 @@ noncomputable instance ConditionsAwareDecision_access_load_err (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecision_access_store_err (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (y : GoError) :
+noncomputable instance access_store'ConditionsAwareDecision'err (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"err" l) v.err' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"err" l) y (DFrac.own 1))
@@ -313,7 +313,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.authorization.authorizer.Assumptions]
 
-noncomputable instance GenericCondition_typed_pointsto :
+noncomputable instance typed_pointsto'GenericCondition :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition where
   typedPointstoDef l v dq := iprop(
     "ID" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"ID" l) v.ID' dq ∗
@@ -326,11 +326,11 @@ noncomputable instance GenericCondition_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance GenericCondition_into_val_typed :
+noncomputable instance into_val_typed'GenericCondition :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance GenericCondition_access_load_ID (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (dq : DFrac) :
+noncomputable instance access_load'GenericCondition'ID (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"ID" l) v.ID' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"ID" l) v.ID' dq)
@@ -338,7 +338,7 @@ noncomputable instance GenericCondition_access_load_ID (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance GenericCondition_access_store_ID (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (y : GoString) :
+noncomputable instance access_store'GenericCondition'ID (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"ID" l) v.ID' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"ID" l) y (DFrac.own 1))
@@ -346,7 +346,7 @@ noncomputable instance GenericCondition_access_store_ID (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance GenericCondition_access_load_Condition (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (dq : DFrac) :
+noncomputable instance access_load'GenericCondition'Condition (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Condition" l) v.Condition' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Condition" l) v.Condition' dq)
@@ -354,7 +354,7 @@ noncomputable instance GenericCondition_access_load_Condition (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance GenericCondition_access_store_Condition (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (y : GoString) :
+noncomputable instance access_store'GenericCondition'Condition (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Condition" l) v.Condition' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Condition" l) y (DFrac.own 1))
@@ -362,7 +362,7 @@ noncomputable instance GenericCondition_access_store_Condition (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance GenericCondition_access_load_Type (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (dq : DFrac) :
+noncomputable instance access_load'GenericCondition'Type (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Type" l) v.Type' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Type" l) v.Type' dq)
@@ -370,7 +370,7 @@ noncomputable instance GenericCondition_access_load_Type (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance GenericCondition_access_store_Type (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (y : GoString) :
+noncomputable instance access_store'GenericCondition'Type (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Type" l) y (DFrac.own 1))
@@ -378,7 +378,7 @@ noncomputable instance GenericCondition_access_store_Type (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance GenericCondition_access_load_Description (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (dq : DFrac) :
+noncomputable instance access_load'GenericCondition'Description (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Description" l) v.Description' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Description" l) v.Description' dq)
@@ -386,7 +386,7 @@ noncomputable instance GenericCondition_access_load_Description (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance GenericCondition_access_store_Description (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (y : GoString) :
+noncomputable instance access_store'GenericCondition'Description (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Description" l) v.Description' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Description" l) y (DFrac.own 1))
@@ -394,7 +394,7 @@ noncomputable instance GenericCondition_access_store_Description (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance GenericCondition_access_load_EvaluateFunc (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (dq : DFrac) :
+noncomputable instance access_load'GenericCondition'EvaluateFunc (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"EvaluateFunc" l) v.EvaluateFunc' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"EvaluateFunc" l) v.EvaluateFunc' dq)
@@ -402,7 +402,7 @@ noncomputable instance GenericCondition_access_load_EvaluateFunc (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance GenericCondition_access_store_EvaluateFunc (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (y : GoFunc) :
+noncomputable instance access_store'GenericCondition'EvaluateFunc (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"EvaluateFunc" l) v.EvaluateFunc' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"EvaluateFunc" l) y (DFrac.own 1))
@@ -421,7 +421,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.authorization.authorizer.Assumptions]
 
-noncomputable instance namedConditionsAwareDecision_typed_pointsto :
+noncomputable instance typed_pointsto'namedConditionsAwareDecision :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision where
   typedPointstoDef l v dq := iprop(
     "conditionalAuthorizerName" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision go!"conditionalAuthorizerName" l) v.conditionalAuthorizerName' dq ∗
@@ -431,11 +431,11 @@ noncomputable instance namedConditionsAwareDecision_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance namedConditionsAwareDecision_into_val_typed :
+noncomputable instance into_val_typed'namedConditionsAwareDecision :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance namedConditionsAwareDecision_access_load_conditionalAuthorizerName (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision) (dq : DFrac) :
+noncomputable instance access_load'namedConditionsAwareDecision'conditionalAuthorizerName (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision go!"conditionalAuthorizerName" l) v.conditionalAuthorizerName' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision go!"conditionalAuthorizerName" l) v.conditionalAuthorizerName' dq)
@@ -443,7 +443,7 @@ noncomputable instance namedConditionsAwareDecision_access_load_conditionalAutho
  by
   solve_pointsto_access_struct
 
-noncomputable instance namedConditionsAwareDecision_access_store_conditionalAuthorizerName (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision) (y : GoString) :
+noncomputable instance access_store'namedConditionsAwareDecision'conditionalAuthorizerName (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision go!"conditionalAuthorizerName" l) v.conditionalAuthorizerName' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision go!"conditionalAuthorizerName" l) y (DFrac.own 1))
@@ -451,7 +451,7 @@ noncomputable instance namedConditionsAwareDecision_access_store_conditionalAuth
  by
   solve_pointsto_access_struct
 
-noncomputable instance namedConditionsAwareDecision_access_load_d (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision) (dq : DFrac) :
+noncomputable instance access_load'namedConditionsAwareDecision'd (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision go!"d" l) v.d' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision go!"d" l) v.d' dq)
@@ -459,7 +459,7 @@ noncomputable instance namedConditionsAwareDecision_access_load_d (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance namedConditionsAwareDecision_access_store_d (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision) (y : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) :
+noncomputable instance access_store'namedConditionsAwareDecision'd (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision) (y : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision go!"d" l) v.d' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision go!"d" l) y (DFrac.own 1))
@@ -478,7 +478,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.authorization.authorizer.Assumptions]
 
-noncomputable instance ConditionEvaluationResult_typed_pointsto :
+noncomputable instance typed_pointsto'ConditionEvaluationResult :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult where
   typedPointstoDef l v dq := iprop(
     "resultType" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult go!"resultType" l) v.resultType' dq ∗
@@ -488,11 +488,11 @@ noncomputable instance ConditionEvaluationResult_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ConditionEvaluationResult_into_val_typed :
+noncomputable instance into_val_typed'ConditionEvaluationResult :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ConditionEvaluationResult_access_load_resultType (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult) (dq : DFrac) :
+noncomputable instance access_load'ConditionEvaluationResult'resultType (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult go!"resultType" l) v.resultType' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult go!"resultType" l) v.resultType' dq)
@@ -500,7 +500,7 @@ noncomputable instance ConditionEvaluationResult_access_load_resultType (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionEvaluationResult_access_store_resultType (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult) (y : k8s_io.apiserver.pkg.authorization.authorizer.partialConditionEvaluationResultType) :
+noncomputable instance access_store'ConditionEvaluationResult'resultType (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult) (y : k8s_io.apiserver.pkg.authorization.authorizer.partialConditionEvaluationResultType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult go!"resultType" l) v.resultType' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult go!"resultType" l) y (DFrac.own 1))
@@ -508,7 +508,7 @@ noncomputable instance ConditionEvaluationResult_access_store_resultType (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionEvaluationResult_access_load_err (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult) (dq : DFrac) :
+noncomputable instance access_load'ConditionEvaluationResult'err (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult go!"err" l) v.err' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult go!"err" l) v.err' dq)
@@ -516,7 +516,7 @@ noncomputable instance ConditionEvaluationResult_access_load_err (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionEvaluationResult_access_store_err (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult) (y : GoError) :
+noncomputable instance access_store'ConditionEvaluationResult'err (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult go!"err" l) v.err' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult go!"err" l) y (DFrac.own 1))
@@ -535,7 +535,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.authorization.authorizer.Assumptions]
 
-noncomputable instance AttributesRecord_typed_pointsto :
+noncomputable instance typed_pointsto'AttributesRecord :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord where
   typedPointstoDef l v dq := iprop(
     "User" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"User" l) v.User' dq ∗
@@ -557,11 +557,11 @@ noncomputable instance AttributesRecord_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance AttributesRecord_into_val_typed :
+noncomputable instance into_val_typed'AttributesRecord :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance AttributesRecord_access_load_User (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
+noncomputable instance access_load'AttributesRecord'User (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"User" l) v.User' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"User" l) v.User' dq)
@@ -569,7 +569,7 @@ noncomputable instance AttributesRecord_access_load_User (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_User (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info) :
+noncomputable instance access_store'AttributesRecord'User (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"User" l) v.User' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"User" l) y (DFrac.own 1))
@@ -577,7 +577,7 @@ noncomputable instance AttributesRecord_access_store_User (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_load_Verb (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
+noncomputable instance access_load'AttributesRecord'Verb (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Verb" l) v.Verb' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Verb" l) v.Verb' dq)
@@ -585,7 +585,7 @@ noncomputable instance AttributesRecord_access_load_Verb (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_Verb (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
+noncomputable instance access_store'AttributesRecord'Verb (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Verb" l) v.Verb' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Verb" l) y (DFrac.own 1))
@@ -593,7 +593,7 @@ noncomputable instance AttributesRecord_access_store_Verb (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_load_Namespace (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
+noncomputable instance access_load'AttributesRecord'Namespace (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Namespace" l) v.Namespace' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Namespace" l) v.Namespace' dq)
@@ -601,7 +601,7 @@ noncomputable instance AttributesRecord_access_load_Namespace (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_Namespace (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
+noncomputable instance access_store'AttributesRecord'Namespace (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Namespace" l) v.Namespace' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Namespace" l) y (DFrac.own 1))
@@ -609,7 +609,7 @@ noncomputable instance AttributesRecord_access_store_Namespace (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_load_APIGroup (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
+noncomputable instance access_load'AttributesRecord'APIGroup (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"APIGroup" l) v.APIGroup' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"APIGroup" l) v.APIGroup' dq)
@@ -617,7 +617,7 @@ noncomputable instance AttributesRecord_access_load_APIGroup (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_APIGroup (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
+noncomputable instance access_store'AttributesRecord'APIGroup (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"APIGroup" l) v.APIGroup' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"APIGroup" l) y (DFrac.own 1))
@@ -625,7 +625,7 @@ noncomputable instance AttributesRecord_access_store_APIGroup (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_load_APIVersion (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
+noncomputable instance access_load'AttributesRecord'APIVersion (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"APIVersion" l) v.APIVersion' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"APIVersion" l) v.APIVersion' dq)
@@ -633,7 +633,7 @@ noncomputable instance AttributesRecord_access_load_APIVersion (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_APIVersion (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
+noncomputable instance access_store'AttributesRecord'APIVersion (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"APIVersion" l) v.APIVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"APIVersion" l) y (DFrac.own 1))
@@ -641,7 +641,7 @@ noncomputable instance AttributesRecord_access_store_APIVersion (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_load_Resource (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
+noncomputable instance access_load'AttributesRecord'Resource (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Resource" l) v.Resource' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Resource" l) v.Resource' dq)
@@ -649,7 +649,7 @@ noncomputable instance AttributesRecord_access_load_Resource (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_Resource (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
+noncomputable instance access_store'AttributesRecord'Resource (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Resource" l) v.Resource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Resource" l) y (DFrac.own 1))
@@ -657,7 +657,7 @@ noncomputable instance AttributesRecord_access_store_Resource (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_load_Subresource (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
+noncomputable instance access_load'AttributesRecord'Subresource (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Subresource" l) v.Subresource' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Subresource" l) v.Subresource' dq)
@@ -665,7 +665,7 @@ noncomputable instance AttributesRecord_access_load_Subresource (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_Subresource (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
+noncomputable instance access_store'AttributesRecord'Subresource (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Subresource" l) v.Subresource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Subresource" l) y (DFrac.own 1))
@@ -673,7 +673,7 @@ noncomputable instance AttributesRecord_access_store_Subresource (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_load_Name (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
+noncomputable instance access_load'AttributesRecord'Name (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Name" l) v.Name' dq)
@@ -681,7 +681,7 @@ noncomputable instance AttributesRecord_access_load_Name (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_Name (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
+noncomputable instance access_store'AttributesRecord'Name (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Name" l) y (DFrac.own 1))
@@ -689,7 +689,7 @@ noncomputable instance AttributesRecord_access_store_Name (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_load_ResourceRequest (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
+noncomputable instance access_load'AttributesRecord'ResourceRequest (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"ResourceRequest" l) v.ResourceRequest' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"ResourceRequest" l) v.ResourceRequest' dq)
@@ -697,7 +697,7 @@ noncomputable instance AttributesRecord_access_load_ResourceRequest (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_ResourceRequest (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : Bool) :
+noncomputable instance access_store'AttributesRecord'ResourceRequest (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"ResourceRequest" l) v.ResourceRequest' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"ResourceRequest" l) y (DFrac.own 1))
@@ -705,7 +705,7 @@ noncomputable instance AttributesRecord_access_store_ResourceRequest (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_load_Path (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
+noncomputable instance access_load'AttributesRecord'Path (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Path" l) v.Path' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Path" l) v.Path' dq)
@@ -713,7 +713,7 @@ noncomputable instance AttributesRecord_access_load_Path (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_Path (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
+noncomputable instance access_store'AttributesRecord'Path (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Path" l) v.Path' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Path" l) y (DFrac.own 1))
@@ -721,7 +721,7 @@ noncomputable instance AttributesRecord_access_store_Path (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_load_FieldSelectorRequirements (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
+noncomputable instance access_load'AttributesRecord'FieldSelectorRequirements (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"FieldSelectorRequirements" l) v.FieldSelectorRequirements' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"FieldSelectorRequirements" l) v.FieldSelectorRequirements' dq)
@@ -729,7 +729,7 @@ noncomputable instance AttributesRecord_access_load_FieldSelectorRequirements (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_FieldSelectorRequirements (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Requirements) :
+noncomputable instance access_store'AttributesRecord'FieldSelectorRequirements (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Requirements) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"FieldSelectorRequirements" l) v.FieldSelectorRequirements' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"FieldSelectorRequirements" l) y (DFrac.own 1))
@@ -737,7 +737,7 @@ noncomputable instance AttributesRecord_access_store_FieldSelectorRequirements (
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_load_FieldSelectorParsingErr (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
+noncomputable instance access_load'AttributesRecord'FieldSelectorParsingErr (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"FieldSelectorParsingErr" l) v.FieldSelectorParsingErr' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"FieldSelectorParsingErr" l) v.FieldSelectorParsingErr' dq)
@@ -745,7 +745,7 @@ noncomputable instance AttributesRecord_access_load_FieldSelectorParsingErr (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_FieldSelectorParsingErr (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoError) :
+noncomputable instance access_store'AttributesRecord'FieldSelectorParsingErr (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"FieldSelectorParsingErr" l) v.FieldSelectorParsingErr' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"FieldSelectorParsingErr" l) y (DFrac.own 1))
@@ -753,7 +753,7 @@ noncomputable instance AttributesRecord_access_store_FieldSelectorParsingErr (l 
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_load_LabelSelectorRequirements (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
+noncomputable instance access_load'AttributesRecord'LabelSelectorRequirements (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"LabelSelectorRequirements" l) v.LabelSelectorRequirements' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"LabelSelectorRequirements" l) v.LabelSelectorRequirements' dq)
@@ -761,7 +761,7 @@ noncomputable instance AttributesRecord_access_load_LabelSelectorRequirements (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_LabelSelectorRequirements (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Requirements) :
+noncomputable instance access_store'AttributesRecord'LabelSelectorRequirements (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Requirements) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"LabelSelectorRequirements" l) v.LabelSelectorRequirements' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"LabelSelectorRequirements" l) y (DFrac.own 1))
@@ -769,7 +769,7 @@ noncomputable instance AttributesRecord_access_store_LabelSelectorRequirements (
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_load_LabelSelectorParsingErr (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
+noncomputable instance access_load'AttributesRecord'LabelSelectorParsingErr (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"LabelSelectorParsingErr" l) v.LabelSelectorParsingErr' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"LabelSelectorParsingErr" l) v.LabelSelectorParsingErr' dq)
@@ -777,7 +777,7 @@ noncomputable instance AttributesRecord_access_load_LabelSelectorParsingErr (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_LabelSelectorParsingErr (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoError) :
+noncomputable instance access_store'AttributesRecord'LabelSelectorParsingErr (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"LabelSelectorParsingErr" l) v.LabelSelectorParsingErr' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"LabelSelectorParsingErr" l) y (DFrac.own 1))
@@ -796,7 +796,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.authorization.authorizer.Assumptions]
 
-noncomputable instance DefaultResourceRuleInfo_typed_pointsto :
+noncomputable instance typed_pointsto'DefaultResourceRuleInfo :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo where
   typedPointstoDef l v dq := iprop(
     "Verbs" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"Verbs" l) v.Verbs' dq ∗
@@ -808,11 +808,11 @@ noncomputable instance DefaultResourceRuleInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance DefaultResourceRuleInfo_into_val_typed :
+noncomputable instance into_val_typed'DefaultResourceRuleInfo :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance DefaultResourceRuleInfo_access_load_Verbs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (dq : DFrac) :
+noncomputable instance access_load'DefaultResourceRuleInfo'Verbs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"Verbs" l) v.Verbs' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"Verbs" l) v.Verbs' dq)
@@ -820,7 +820,7 @@ noncomputable instance DefaultResourceRuleInfo_access_load_Verbs (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultResourceRuleInfo_access_store_Verbs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (y : GoSlice) :
+noncomputable instance access_store'DefaultResourceRuleInfo'Verbs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"Verbs" l) v.Verbs' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"Verbs" l) y (DFrac.own 1))
@@ -828,7 +828,7 @@ noncomputable instance DefaultResourceRuleInfo_access_store_Verbs (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultResourceRuleInfo_access_load_APIGroups (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (dq : DFrac) :
+noncomputable instance access_load'DefaultResourceRuleInfo'APIGroups (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"APIGroups" l) v.APIGroups' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"APIGroups" l) v.APIGroups' dq)
@@ -836,7 +836,7 @@ noncomputable instance DefaultResourceRuleInfo_access_load_APIGroups (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultResourceRuleInfo_access_store_APIGroups (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (y : GoSlice) :
+noncomputable instance access_store'DefaultResourceRuleInfo'APIGroups (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"APIGroups" l) v.APIGroups' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"APIGroups" l) y (DFrac.own 1))
@@ -844,7 +844,7 @@ noncomputable instance DefaultResourceRuleInfo_access_store_APIGroups (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultResourceRuleInfo_access_load_Resources (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (dq : DFrac) :
+noncomputable instance access_load'DefaultResourceRuleInfo'Resources (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"Resources" l) v.Resources' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"Resources" l) v.Resources' dq)
@@ -852,7 +852,7 @@ noncomputable instance DefaultResourceRuleInfo_access_load_Resources (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultResourceRuleInfo_access_store_Resources (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (y : GoSlice) :
+noncomputable instance access_store'DefaultResourceRuleInfo'Resources (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"Resources" l) v.Resources' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"Resources" l) y (DFrac.own 1))
@@ -860,7 +860,7 @@ noncomputable instance DefaultResourceRuleInfo_access_store_Resources (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultResourceRuleInfo_access_load_ResourceNames (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (dq : DFrac) :
+noncomputable instance access_load'DefaultResourceRuleInfo'ResourceNames (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"ResourceNames" l) v.ResourceNames' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"ResourceNames" l) v.ResourceNames' dq)
@@ -868,7 +868,7 @@ noncomputable instance DefaultResourceRuleInfo_access_load_ResourceNames (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultResourceRuleInfo_access_store_ResourceNames (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (y : GoSlice) :
+noncomputable instance access_store'DefaultResourceRuleInfo'ResourceNames (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"ResourceNames" l) v.ResourceNames' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"ResourceNames" l) y (DFrac.own 1))
@@ -887,7 +887,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.authorization.authorizer.Assumptions]
 
-noncomputable instance DefaultNonResourceRuleInfo_typed_pointsto :
+noncomputable instance typed_pointsto'DefaultNonResourceRuleInfo :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo where
   typedPointstoDef l v dq := iprop(
     "Verbs" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo go!"Verbs" l) v.Verbs' dq ∗
@@ -897,11 +897,11 @@ noncomputable instance DefaultNonResourceRuleInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance DefaultNonResourceRuleInfo_into_val_typed :
+noncomputable instance into_val_typed'DefaultNonResourceRuleInfo :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance DefaultNonResourceRuleInfo_access_load_Verbs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo) (dq : DFrac) :
+noncomputable instance access_load'DefaultNonResourceRuleInfo'Verbs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo go!"Verbs" l) v.Verbs' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo go!"Verbs" l) v.Verbs' dq)
@@ -909,7 +909,7 @@ noncomputable instance DefaultNonResourceRuleInfo_access_load_Verbs (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultNonResourceRuleInfo_access_store_Verbs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo) (y : GoSlice) :
+noncomputable instance access_store'DefaultNonResourceRuleInfo'Verbs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo go!"Verbs" l) v.Verbs' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo go!"Verbs" l) y (DFrac.own 1))
@@ -917,7 +917,7 @@ noncomputable instance DefaultNonResourceRuleInfo_access_store_Verbs (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultNonResourceRuleInfo_access_load_NonResourceURLs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo) (dq : DFrac) :
+noncomputable instance access_load'DefaultNonResourceRuleInfo'NonResourceURLs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo go!"NonResourceURLs" l) v.NonResourceURLs' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo go!"NonResourceURLs" l) v.NonResourceURLs' dq)
@@ -925,7 +925,7 @@ noncomputable instance DefaultNonResourceRuleInfo_access_load_NonResourceURLs (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultNonResourceRuleInfo_access_store_NonResourceURLs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo) (y : GoSlice) :
+noncomputable instance access_store'DefaultNonResourceRuleInfo'NonResourceURLs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo go!"NonResourceURLs" l) v.NonResourceURLs' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo go!"NonResourceURLs" l) y (DFrac.own 1))

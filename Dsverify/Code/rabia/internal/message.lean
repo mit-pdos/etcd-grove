@@ -1794,7 +1794,7 @@ noncomputable def Msg.Equal.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- go: message.pb.go:456:22 -/
-noncomputable def Command.GoString.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Command.GoString''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "this"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -1880,7 +1880,7 @@ noncomputable def Command.GoString.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
 /-- go: message.pb.go:469:27 -/
-noncomputable def ConsensusObj.GoString.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def ConsensusObj.GoString''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "this"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -1996,7 +1996,7 @@ noncomputable def ConsensusObj.GoString.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
 /-- go: message.pb.go:485:18 -/
-noncomputable def Msg.GoString.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Msg.GoString''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "this"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -6948,20 +6948,20 @@ class MsgType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   underlying : go.UnderlyingDirectedEq MsgType.ty MsgType.underlying
   method_set : go.MethodSetIs MsgType.ty [(go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MsgType.ty) [(go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  EnumDescriptor_unfold : MethodUnfold MsgType.ty go!"EnumDescriptor" MsgType.EnumDescriptor.impl
-  String_unfold : MethodUnfold MsgType.ty go!"String" MsgType.String.impl
-  ptr_EnumDescriptor_unfold : MethodUnfold (go.GoType.PointerType MsgType.ty) go!"EnumDescriptor" (LamV "$r"
+  unfold'EnumDescriptor : MethodUnfold MsgType.ty go!"EnumDescriptor" MsgType.EnumDescriptor.impl
+  unfold'String : MethodUnfold MsgType.ty go!"String" MsgType.String.impl
+  ptr_unfold'EnumDescriptor : MethodUnfold (go.GoType.PointerType MsgType.ty) go!"EnumDescriptor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve MsgType.ty go!"EnumDescriptor"))) (App (Val (GoInstruction (GoLoad MsgType.ty))) (Var "$r"))))
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType MsgType.ty) go!"String" (LamV "$r"
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType MsgType.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve MsgType.ty go!"String"))) (App (Val (GoInstruction (GoLoad MsgType.ty))) (Var "$r"))))
 
 attribute [instance] MsgType.TypeAssumptions.underlying
   MsgType.TypeAssumptions.method_set
   MsgType.TypeAssumptions.ptr_method_set
-  MsgType.TypeAssumptions.EnumDescriptor_unfold
-  MsgType.TypeAssumptions.String_unfold
-  MsgType.TypeAssumptions.ptr_EnumDescriptor_unfold
-  MsgType.TypeAssumptions.ptr_String_unfold
+  MsgType.TypeAssumptions.unfold'EnumDescriptor
+  MsgType.TypeAssumptions.unfold'String
+  MsgType.TypeAssumptions.ptr_unfold'EnumDescriptor
+  MsgType.TypeAssumptions.ptr_unfold'String
 
 structure Command [GooseExts] where
   mk ::
@@ -6982,7 +6982,7 @@ noncomputable instance Command.zero_val [GooseExts] : ZeroVal Command :=
 @[irreducible] noncomputable def Command.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Command.fieldsUnsealed
 
-noncomputable instance equals_unfold_Command [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Command [GooseExts] [GoGlobalContext] :
     EqualsUnfold Command.fields Command.fieldsUnsealed :=
   ⟨by unfold Command.fields; rfl⟩
 
@@ -6992,65 +6992,65 @@ noncomputable instance equals_unfold_Command [GooseExts] [GoGlobalContext] :
 class Command.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Command.underlying Command
   underlying : go.UnderlyingDirectedEq Command.ty Command.underlying
-  get_CliId : ∀ (x : Command), go.IsGoStepPureDetTagged under (StructFieldGet Command.underlying go!"CliId") #x (Val #(x.CliId'))
-  set_CliId : ∀ (x : Command) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Command.underlying go!"CliId") (PairV #x #y) (Val #(({ x with CliId' := y } : Command)))
-  get_CliSeq : ∀ (x : Command), go.IsGoStepPureDetTagged under (StructFieldGet Command.underlying go!"CliSeq") #x (Val #(x.CliSeq'))
-  set_CliSeq : ∀ (x : Command) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Command.underlying go!"CliSeq") (PairV #x #y) (Val #(({ x with CliSeq' := y } : Command)))
-  get_SvrSeq : ∀ (x : Command), go.IsGoStepPureDetTagged under (StructFieldGet Command.underlying go!"SvrSeq") #x (Val #(x.SvrSeq'))
-  set_SvrSeq : ∀ (x : Command) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Command.underlying go!"SvrSeq") (PairV #x #y) (Val #(({ x with SvrSeq' := y } : Command)))
-  get_Commands : ∀ (x : Command), go.IsGoStepPureDetTagged under (StructFieldGet Command.underlying go!"Commands") #x (Val #(x.Commands'))
-  set_Commands : ∀ (x : Command) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Command.underlying go!"Commands") (PairV #x #y) (Val #(({ x with Commands' := y } : Command)))
+  get'CliId : ∀ (x : Command), go.IsGoStepPureDetTagged under (StructFieldGet Command.underlying go!"CliId") #x (Val #(x.CliId'))
+  set'CliId : ∀ (x : Command) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Command.underlying go!"CliId") (PairV #x #y) (Val #(({ x with CliId' := y } : Command)))
+  get'CliSeq : ∀ (x : Command), go.IsGoStepPureDetTagged under (StructFieldGet Command.underlying go!"CliSeq") #x (Val #(x.CliSeq'))
+  set'CliSeq : ∀ (x : Command) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Command.underlying go!"CliSeq") (PairV #x #y) (Val #(({ x with CliSeq' := y } : Command)))
+  get'SvrSeq : ∀ (x : Command), go.IsGoStepPureDetTagged under (StructFieldGet Command.underlying go!"SvrSeq") #x (Val #(x.SvrSeq'))
+  set'SvrSeq : ∀ (x : Command) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Command.underlying go!"SvrSeq") (PairV #x #y) (Val #(({ x with SvrSeq' := y } : Command)))
+  get'Commands : ∀ (x : Command), go.IsGoStepPureDetTagged under (StructFieldGet Command.underlying go!"Commands") #x (Val #(x.Commands'))
+  set'Commands : ∀ (x : Command) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Command.underlying go!"Commands") (PairV #x #y) (Val #(({ x with Commands' := y } : Command)))
   method_set : go.MethodSetIs Command.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Command.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Equal", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.bool]))), (go!"GoString", (some (go.signature.Signature [] false [go.string]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalWriteFlush", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)] false [go.error]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ReadUnmarshal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.bufio.Reader.ty), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"XXX_DiscardUnknown", (some (go.signature.Signature [] false []))), (go!"XXX_Marshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.bool] false [(go.GoType.SliceType go.byte), go.error]))), (go!"XXX_Merge", (some (go.signature.Signature [_root_.Perennial.github_com.gogo.protobuf.proto.Message.ty] false []))), (go!"XXX_Size", (some (go.signature.Signature [] false [go.int]))), (go!"XXX_Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-  ptr_Descriptor_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"Descriptor" Command.Descriptor.impl
-  ptr_Equal_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"Equal" Command.Equal.impl
-  ptr_GoString_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"GoString" Command.GoString.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"Marshal" Command.Marshal.impl
-  ptr_MarshalTo_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"MarshalTo" Command.MarshalTo.impl
-  ptr_MarshalToSizedBuffer_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"MarshalToSizedBuffer" Command.MarshalToSizedBuffer.impl
-  ptr_MarshalWriteFlush_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"MarshalWriteFlush" Command.MarshalWriteFlush.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"ProtoMessage" Command.ProtoMessage.impl
-  ptr_ReadUnmarshal_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"ReadUnmarshal" Command.ReadUnmarshal.impl
-  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"Reset" Command.Reset.impl
-  ptr_Size_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"Size" Command.Size.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"String" Command.String.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"Unmarshal" Command.Unmarshal.impl
-  ptr_XXX_DiscardUnknown_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"XXX_DiscardUnknown" Command.XXX_DiscardUnknown.impl
-  ptr_XXX_Marshal_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"XXX_Marshal" Command.XXX_Marshal.impl
-  ptr_XXX_Merge_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"XXX_Merge" Command.XXX_Merge.impl
-  ptr_XXX_Size_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"XXX_Size" Command.XXX_Size.impl
-  ptr_XXX_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType Command.ty) go!"XXX_Unmarshal" Command.XXX_Unmarshal.impl
+  ptr_unfold'Descriptor : MethodUnfold (go.GoType.PointerType Command.ty) go!"Descriptor" Command.Descriptor.impl
+  ptr_unfold'Equal : MethodUnfold (go.GoType.PointerType Command.ty) go!"Equal" Command.Equal.impl
+  ptr_unfold'GoString : MethodUnfold (go.GoType.PointerType Command.ty) go!"GoString" Command.GoString''.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType Command.ty) go!"Marshal" Command.Marshal.impl
+  ptr_unfold'MarshalTo : MethodUnfold (go.GoType.PointerType Command.ty) go!"MarshalTo" Command.MarshalTo.impl
+  ptr_unfold'MarshalToSizedBuffer : MethodUnfold (go.GoType.PointerType Command.ty) go!"MarshalToSizedBuffer" Command.MarshalToSizedBuffer.impl
+  ptr_unfold'MarshalWriteFlush : MethodUnfold (go.GoType.PointerType Command.ty) go!"MarshalWriteFlush" Command.MarshalWriteFlush.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType Command.ty) go!"ProtoMessage" Command.ProtoMessage.impl
+  ptr_unfold'ReadUnmarshal : MethodUnfold (go.GoType.PointerType Command.ty) go!"ReadUnmarshal" Command.ReadUnmarshal.impl
+  ptr_unfold'Reset : MethodUnfold (go.GoType.PointerType Command.ty) go!"Reset" Command.Reset.impl
+  ptr_unfold'Size : MethodUnfold (go.GoType.PointerType Command.ty) go!"Size" Command.Size.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType Command.ty) go!"String" Command.String.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType Command.ty) go!"Unmarshal" Command.Unmarshal.impl
+  ptr_unfold'XXX_DiscardUnknown : MethodUnfold (go.GoType.PointerType Command.ty) go!"XXX_DiscardUnknown" Command.XXX_DiscardUnknown.impl
+  ptr_unfold'XXX_Marshal : MethodUnfold (go.GoType.PointerType Command.ty) go!"XXX_Marshal" Command.XXX_Marshal.impl
+  ptr_unfold'XXX_Merge : MethodUnfold (go.GoType.PointerType Command.ty) go!"XXX_Merge" Command.XXX_Merge.impl
+  ptr_unfold'XXX_Size : MethodUnfold (go.GoType.PointerType Command.ty) go!"XXX_Size" Command.XXX_Size.impl
+  ptr_unfold'XXX_Unmarshal : MethodUnfold (go.GoType.PointerType Command.ty) go!"XXX_Unmarshal" Command.XXX_Unmarshal.impl
 
 attribute [instance] Command.TypeAssumptions.type_repr
   Command.TypeAssumptions.underlying
-  Command.TypeAssumptions.get_CliId
-  Command.TypeAssumptions.set_CliId
-  Command.TypeAssumptions.get_CliSeq
-  Command.TypeAssumptions.set_CliSeq
-  Command.TypeAssumptions.get_SvrSeq
-  Command.TypeAssumptions.set_SvrSeq
-  Command.TypeAssumptions.get_Commands
-  Command.TypeAssumptions.set_Commands
+  Command.TypeAssumptions.get'CliId
+  Command.TypeAssumptions.set'CliId
+  Command.TypeAssumptions.get'CliSeq
+  Command.TypeAssumptions.set'CliSeq
+  Command.TypeAssumptions.get'SvrSeq
+  Command.TypeAssumptions.set'SvrSeq
+  Command.TypeAssumptions.get'Commands
+  Command.TypeAssumptions.set'Commands
   Command.TypeAssumptions.method_set
   Command.TypeAssumptions.ptr_method_set
-  Command.TypeAssumptions.ptr_Descriptor_unfold
-  Command.TypeAssumptions.ptr_Equal_unfold
-  Command.TypeAssumptions.ptr_GoString_unfold
-  Command.TypeAssumptions.ptr_Marshal_unfold
-  Command.TypeAssumptions.ptr_MarshalTo_unfold
-  Command.TypeAssumptions.ptr_MarshalToSizedBuffer_unfold
-  Command.TypeAssumptions.ptr_MarshalWriteFlush_unfold
-  Command.TypeAssumptions.ptr_ProtoMessage_unfold
-  Command.TypeAssumptions.ptr_ReadUnmarshal_unfold
-  Command.TypeAssumptions.ptr_Reset_unfold
-  Command.TypeAssumptions.ptr_Size_unfold
-  Command.TypeAssumptions.ptr_String_unfold
-  Command.TypeAssumptions.ptr_Unmarshal_unfold
-  Command.TypeAssumptions.ptr_XXX_DiscardUnknown_unfold
-  Command.TypeAssumptions.ptr_XXX_Marshal_unfold
-  Command.TypeAssumptions.ptr_XXX_Merge_unfold
-  Command.TypeAssumptions.ptr_XXX_Size_unfold
-  Command.TypeAssumptions.ptr_XXX_Unmarshal_unfold
+  Command.TypeAssumptions.ptr_unfold'Descriptor
+  Command.TypeAssumptions.ptr_unfold'Equal
+  Command.TypeAssumptions.ptr_unfold'GoString
+  Command.TypeAssumptions.ptr_unfold'Marshal
+  Command.TypeAssumptions.ptr_unfold'MarshalTo
+  Command.TypeAssumptions.ptr_unfold'MarshalToSizedBuffer
+  Command.TypeAssumptions.ptr_unfold'MarshalWriteFlush
+  Command.TypeAssumptions.ptr_unfold'ProtoMessage
+  Command.TypeAssumptions.ptr_unfold'ReadUnmarshal
+  Command.TypeAssumptions.ptr_unfold'Reset
+  Command.TypeAssumptions.ptr_unfold'Size
+  Command.TypeAssumptions.ptr_unfold'String
+  Command.TypeAssumptions.ptr_unfold'Unmarshal
+  Command.TypeAssumptions.ptr_unfold'XXX_DiscardUnknown
+  Command.TypeAssumptions.ptr_unfold'XXX_Marshal
+  Command.TypeAssumptions.ptr_unfold'XXX_Merge
+  Command.TypeAssumptions.ptr_unfold'XXX_Size
+  Command.TypeAssumptions.ptr_unfold'XXX_Unmarshal
 
 structure ConsensusObj [GooseExts] where
   mk ::
@@ -7077,7 +7077,7 @@ noncomputable instance ConsensusObj.zero_val [GooseExts] : ZeroVal ConsensusObj 
 @[irreducible] noncomputable def ConsensusObj.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConsensusObj.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConsensusObj [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ConsensusObj [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConsensusObj.fields ConsensusObj.fieldsUnsealed :=
   ⟨by unfold ConsensusObj.fields; rfl⟩
 
@@ -7087,75 +7087,75 @@ noncomputable instance equals_unfold_ConsensusObj [GooseExts] [GoGlobalContext] 
 class ConsensusObj.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConsensusObj.underlying ConsensusObj
   underlying : go.UnderlyingDirectedEq ConsensusObj.ty ConsensusObj.underlying
-  get_ProId : ∀ (x : ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldGet ConsensusObj.underlying go!"ProId") #x (Val #(x.ProId'))
-  set_ProId : ∀ (x : ConsensusObj) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ConsensusObj.underlying go!"ProId") (PairV #x #y) (Val #(({ x with ProId' := y } : ConsensusObj)))
-  get_ProSeq : ∀ (x : ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldGet ConsensusObj.underlying go!"ProSeq") #x (Val #(x.ProSeq'))
-  set_ProSeq : ∀ (x : ConsensusObj) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ConsensusObj.underlying go!"ProSeq") (PairV #x #y) (Val #(({ x with ProSeq' := y } : ConsensusObj)))
-  get_SvrSeq : ∀ (x : ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldGet ConsensusObj.underlying go!"SvrSeq") #x (Val #(x.SvrSeq'))
-  set_SvrSeq : ∀ (x : ConsensusObj) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ConsensusObj.underlying go!"SvrSeq") (PairV #x #y) (Val #(({ x with SvrSeq' := y } : ConsensusObj)))
-  get_IsNull : ∀ (x : ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldGet ConsensusObj.underlying go!"IsNull") #x (Val #(x.IsNull'))
-  set_IsNull : ∀ (x : ConsensusObj) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ConsensusObj.underlying go!"IsNull") (PairV #x #y) (Val #(({ x with IsNull' := y } : ConsensusObj)))
-  get_CliIds : ∀ (x : ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldGet ConsensusObj.underlying go!"CliIds") #x (Val #(x.CliIds'))
-  set_CliIds : ∀ (x : ConsensusObj) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConsensusObj.underlying go!"CliIds") (PairV #x #y) (Val #(({ x with CliIds' := y } : ConsensusObj)))
-  get_CliSeqs : ∀ (x : ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldGet ConsensusObj.underlying go!"CliSeqs") #x (Val #(x.CliSeqs'))
-  set_CliSeqs : ∀ (x : ConsensusObj) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConsensusObj.underlying go!"CliSeqs") (PairV #x #y) (Val #(({ x with CliSeqs' := y } : ConsensusObj)))
-  get_Commands : ∀ (x : ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldGet ConsensusObj.underlying go!"Commands") #x (Val #(x.Commands'))
-  set_Commands : ∀ (x : ConsensusObj) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConsensusObj.underlying go!"Commands") (PairV #x #y) (Val #(({ x with Commands' := y } : ConsensusObj)))
+  get'ProId : ∀ (x : ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldGet ConsensusObj.underlying go!"ProId") #x (Val #(x.ProId'))
+  set'ProId : ∀ (x : ConsensusObj) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ConsensusObj.underlying go!"ProId") (PairV #x #y) (Val #(({ x with ProId' := y } : ConsensusObj)))
+  get'ProSeq : ∀ (x : ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldGet ConsensusObj.underlying go!"ProSeq") #x (Val #(x.ProSeq'))
+  set'ProSeq : ∀ (x : ConsensusObj) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ConsensusObj.underlying go!"ProSeq") (PairV #x #y) (Val #(({ x with ProSeq' := y } : ConsensusObj)))
+  get'SvrSeq : ∀ (x : ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldGet ConsensusObj.underlying go!"SvrSeq") #x (Val #(x.SvrSeq'))
+  set'SvrSeq : ∀ (x : ConsensusObj) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ConsensusObj.underlying go!"SvrSeq") (PairV #x #y) (Val #(({ x with SvrSeq' := y } : ConsensusObj)))
+  get'IsNull : ∀ (x : ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldGet ConsensusObj.underlying go!"IsNull") #x (Val #(x.IsNull'))
+  set'IsNull : ∀ (x : ConsensusObj) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ConsensusObj.underlying go!"IsNull") (PairV #x #y) (Val #(({ x with IsNull' := y } : ConsensusObj)))
+  get'CliIds : ∀ (x : ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldGet ConsensusObj.underlying go!"CliIds") #x (Val #(x.CliIds'))
+  set'CliIds : ∀ (x : ConsensusObj) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConsensusObj.underlying go!"CliIds") (PairV #x #y) (Val #(({ x with CliIds' := y } : ConsensusObj)))
+  get'CliSeqs : ∀ (x : ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldGet ConsensusObj.underlying go!"CliSeqs") #x (Val #(x.CliSeqs'))
+  set'CliSeqs : ∀ (x : ConsensusObj) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConsensusObj.underlying go!"CliSeqs") (PairV #x #y) (Val #(({ x with CliSeqs' := y } : ConsensusObj)))
+  get'Commands : ∀ (x : ConsensusObj), go.IsGoStepPureDetTagged under (StructFieldGet ConsensusObj.underlying go!"Commands") #x (Val #(x.Commands'))
+  set'Commands : ∀ (x : ConsensusObj) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConsensusObj.underlying go!"Commands") (PairV #x #y) (Val #(({ x with Commands' := y } : ConsensusObj)))
   method_set : go.MethodSetIs ConsensusObj.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConsensusObj.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Equal", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.bool]))), (go!"GetIdSeq", (some (go.signature.Signature [] false [go.string]))), (go!"GoString", (some (go.signature.Signature [] false [go.string]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"XXX_DiscardUnknown", (some (go.signature.Signature [] false []))), (go!"XXX_Marshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.bool] false [(go.GoType.SliceType go.byte), go.error]))), (go!"XXX_Merge", (some (go.signature.Signature [_root_.Perennial.github_com.gogo.protobuf.proto.Message.ty] false []))), (go!"XXX_Size", (some (go.signature.Signature [] false [go.int]))), (go!"XXX_Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-  ptr_Descriptor_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"Descriptor" ConsensusObj.Descriptor.impl
-  ptr_Equal_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"Equal" ConsensusObj.Equal.impl
-  ptr_GetIdSeq_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"GetIdSeq" ConsensusObj.GetIdSeq.impl
-  ptr_GoString_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"GoString" ConsensusObj.GoString.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"Marshal" ConsensusObj.Marshal.impl
-  ptr_MarshalTo_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"MarshalTo" ConsensusObj.MarshalTo.impl
-  ptr_MarshalToSizedBuffer_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"MarshalToSizedBuffer" ConsensusObj.MarshalToSizedBuffer.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"ProtoMessage" ConsensusObj.ProtoMessage.impl
-  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"Reset" ConsensusObj.Reset.impl
-  ptr_Size_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"Size" ConsensusObj.Size.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"String" ConsensusObj.String.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"Unmarshal" ConsensusObj.Unmarshal.impl
-  ptr_XXX_DiscardUnknown_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"XXX_DiscardUnknown" ConsensusObj.XXX_DiscardUnknown.impl
-  ptr_XXX_Marshal_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"XXX_Marshal" ConsensusObj.XXX_Marshal.impl
-  ptr_XXX_Merge_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"XXX_Merge" ConsensusObj.XXX_Merge.impl
-  ptr_XXX_Size_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"XXX_Size" ConsensusObj.XXX_Size.impl
-  ptr_XXX_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"XXX_Unmarshal" ConsensusObj.XXX_Unmarshal.impl
+  ptr_unfold'Descriptor : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"Descriptor" ConsensusObj.Descriptor.impl
+  ptr_unfold'Equal : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"Equal" ConsensusObj.Equal.impl
+  ptr_unfold'GetIdSeq : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"GetIdSeq" ConsensusObj.GetIdSeq.impl
+  ptr_unfold'GoString : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"GoString" ConsensusObj.GoString''.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"Marshal" ConsensusObj.Marshal.impl
+  ptr_unfold'MarshalTo : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"MarshalTo" ConsensusObj.MarshalTo.impl
+  ptr_unfold'MarshalToSizedBuffer : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"MarshalToSizedBuffer" ConsensusObj.MarshalToSizedBuffer.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"ProtoMessage" ConsensusObj.ProtoMessage.impl
+  ptr_unfold'Reset : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"Reset" ConsensusObj.Reset.impl
+  ptr_unfold'Size : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"Size" ConsensusObj.Size.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"String" ConsensusObj.String.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"Unmarshal" ConsensusObj.Unmarshal.impl
+  ptr_unfold'XXX_DiscardUnknown : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"XXX_DiscardUnknown" ConsensusObj.XXX_DiscardUnknown.impl
+  ptr_unfold'XXX_Marshal : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"XXX_Marshal" ConsensusObj.XXX_Marshal.impl
+  ptr_unfold'XXX_Merge : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"XXX_Merge" ConsensusObj.XXX_Merge.impl
+  ptr_unfold'XXX_Size : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"XXX_Size" ConsensusObj.XXX_Size.impl
+  ptr_unfold'XXX_Unmarshal : MethodUnfold (go.GoType.PointerType ConsensusObj.ty) go!"XXX_Unmarshal" ConsensusObj.XXX_Unmarshal.impl
 
 attribute [instance] ConsensusObj.TypeAssumptions.type_repr
   ConsensusObj.TypeAssumptions.underlying
-  ConsensusObj.TypeAssumptions.get_ProId
-  ConsensusObj.TypeAssumptions.set_ProId
-  ConsensusObj.TypeAssumptions.get_ProSeq
-  ConsensusObj.TypeAssumptions.set_ProSeq
-  ConsensusObj.TypeAssumptions.get_SvrSeq
-  ConsensusObj.TypeAssumptions.set_SvrSeq
-  ConsensusObj.TypeAssumptions.get_IsNull
-  ConsensusObj.TypeAssumptions.set_IsNull
-  ConsensusObj.TypeAssumptions.get_CliIds
-  ConsensusObj.TypeAssumptions.set_CliIds
-  ConsensusObj.TypeAssumptions.get_CliSeqs
-  ConsensusObj.TypeAssumptions.set_CliSeqs
-  ConsensusObj.TypeAssumptions.get_Commands
-  ConsensusObj.TypeAssumptions.set_Commands
+  ConsensusObj.TypeAssumptions.get'ProId
+  ConsensusObj.TypeAssumptions.set'ProId
+  ConsensusObj.TypeAssumptions.get'ProSeq
+  ConsensusObj.TypeAssumptions.set'ProSeq
+  ConsensusObj.TypeAssumptions.get'SvrSeq
+  ConsensusObj.TypeAssumptions.set'SvrSeq
+  ConsensusObj.TypeAssumptions.get'IsNull
+  ConsensusObj.TypeAssumptions.set'IsNull
+  ConsensusObj.TypeAssumptions.get'CliIds
+  ConsensusObj.TypeAssumptions.set'CliIds
+  ConsensusObj.TypeAssumptions.get'CliSeqs
+  ConsensusObj.TypeAssumptions.set'CliSeqs
+  ConsensusObj.TypeAssumptions.get'Commands
+  ConsensusObj.TypeAssumptions.set'Commands
   ConsensusObj.TypeAssumptions.method_set
   ConsensusObj.TypeAssumptions.ptr_method_set
-  ConsensusObj.TypeAssumptions.ptr_Descriptor_unfold
-  ConsensusObj.TypeAssumptions.ptr_Equal_unfold
-  ConsensusObj.TypeAssumptions.ptr_GetIdSeq_unfold
-  ConsensusObj.TypeAssumptions.ptr_GoString_unfold
-  ConsensusObj.TypeAssumptions.ptr_Marshal_unfold
-  ConsensusObj.TypeAssumptions.ptr_MarshalTo_unfold
-  ConsensusObj.TypeAssumptions.ptr_MarshalToSizedBuffer_unfold
-  ConsensusObj.TypeAssumptions.ptr_ProtoMessage_unfold
-  ConsensusObj.TypeAssumptions.ptr_Reset_unfold
-  ConsensusObj.TypeAssumptions.ptr_Size_unfold
-  ConsensusObj.TypeAssumptions.ptr_String_unfold
-  ConsensusObj.TypeAssumptions.ptr_Unmarshal_unfold
-  ConsensusObj.TypeAssumptions.ptr_XXX_DiscardUnknown_unfold
-  ConsensusObj.TypeAssumptions.ptr_XXX_Marshal_unfold
-  ConsensusObj.TypeAssumptions.ptr_XXX_Merge_unfold
-  ConsensusObj.TypeAssumptions.ptr_XXX_Size_unfold
-  ConsensusObj.TypeAssumptions.ptr_XXX_Unmarshal_unfold
+  ConsensusObj.TypeAssumptions.ptr_unfold'Descriptor
+  ConsensusObj.TypeAssumptions.ptr_unfold'Equal
+  ConsensusObj.TypeAssumptions.ptr_unfold'GetIdSeq
+  ConsensusObj.TypeAssumptions.ptr_unfold'GoString
+  ConsensusObj.TypeAssumptions.ptr_unfold'Marshal
+  ConsensusObj.TypeAssumptions.ptr_unfold'MarshalTo
+  ConsensusObj.TypeAssumptions.ptr_unfold'MarshalToSizedBuffer
+  ConsensusObj.TypeAssumptions.ptr_unfold'ProtoMessage
+  ConsensusObj.TypeAssumptions.ptr_unfold'Reset
+  ConsensusObj.TypeAssumptions.ptr_unfold'Size
+  ConsensusObj.TypeAssumptions.ptr_unfold'String
+  ConsensusObj.TypeAssumptions.ptr_unfold'Unmarshal
+  ConsensusObj.TypeAssumptions.ptr_unfold'XXX_DiscardUnknown
+  ConsensusObj.TypeAssumptions.ptr_unfold'XXX_Marshal
+  ConsensusObj.TypeAssumptions.ptr_unfold'XXX_Merge
+  ConsensusObj.TypeAssumptions.ptr_unfold'XXX_Size
+  ConsensusObj.TypeAssumptions.ptr_unfold'XXX_Unmarshal
 
 structure Msg [GooseExts] where
   mk ::
@@ -7176,7 +7176,7 @@ noncomputable instance Msg.zero_val [GooseExts] : ZeroVal Msg :=
 @[irreducible] noncomputable def Msg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Msg.fieldsUnsealed
 
-noncomputable instance equals_unfold_Msg [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Msg [GooseExts] [GoGlobalContext] :
     EqualsUnfold Msg.fields Msg.fieldsUnsealed :=
   ⟨by unfold Msg.fields; rfl⟩
 
@@ -7186,65 +7186,65 @@ noncomputable instance equals_unfold_Msg [GooseExts] [GoGlobalContext] :
 class Msg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Msg.underlying Msg
   underlying : go.UnderlyingDirectedEq Msg.ty Msg.underlying
-  get_Type : ∀ (x : Msg), go.IsGoStepPureDetTagged under (StructFieldGet Msg.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : Msg) (y : MsgType), go.IsGoStepPureDetTagged under (StructFieldSet Msg.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Msg)))
-  get_Phase : ∀ (x : Msg), go.IsGoStepPureDetTagged under (StructFieldGet Msg.underlying go!"Phase") #x (Val #(x.Phase'))
-  set_Phase : ∀ (x : Msg) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Msg.underlying go!"Phase") (PairV #x #y) (Val #(({ x with Phase' := y } : Msg)))
-  get_Value : ∀ (x : Msg), go.IsGoStepPureDetTagged under (StructFieldGet Msg.underlying go!"Value") #x (Val #(x.Value'))
-  set_Value : ∀ (x : Msg) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Msg.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Msg)))
-  get_Obj : ∀ (x : Msg), go.IsGoStepPureDetTagged under (StructFieldGet Msg.underlying go!"Obj") #x (Val #(x.Obj'))
-  set_Obj : ∀ (x : Msg) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Msg.underlying go!"Obj") (PairV #x #y) (Val #(({ x with Obj' := y } : Msg)))
+  get'Type : ∀ (x : Msg), go.IsGoStepPureDetTagged under (StructFieldGet Msg.underlying go!"Type") #x (Val #(x.Type'))
+  set'Type : ∀ (x : Msg) (y : MsgType), go.IsGoStepPureDetTagged under (StructFieldSet Msg.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Msg)))
+  get'Phase : ∀ (x : Msg), go.IsGoStepPureDetTagged under (StructFieldGet Msg.underlying go!"Phase") #x (Val #(x.Phase'))
+  set'Phase : ∀ (x : Msg) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Msg.underlying go!"Phase") (PairV #x #y) (Val #(({ x with Phase' := y } : Msg)))
+  get'Value : ∀ (x : Msg), go.IsGoStepPureDetTagged under (StructFieldGet Msg.underlying go!"Value") #x (Val #(x.Value'))
+  set'Value : ∀ (x : Msg) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Msg.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Msg)))
+  get'Obj : ∀ (x : Msg), go.IsGoStepPureDetTagged under (StructFieldGet Msg.underlying go!"Obj") #x (Val #(x.Obj'))
+  set'Obj : ∀ (x : Msg) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Msg.underlying go!"Obj") (PairV #x #y) (Val #(({ x with Obj' := y } : Msg)))
   method_set : go.MethodSetIs Msg.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Msg.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Equal", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.bool]))), (go!"GoString", (some (go.signature.Signature [] false [go.string]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalWriteFlush", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)] false [go.error]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ReadUnmarshal", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.bufio.Reader.ty), (go.GoType.SliceType go.byte)] false [go.error, go.int]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"XXX_DiscardUnknown", (some (go.signature.Signature [] false []))), (go!"XXX_Marshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.bool] false [(go.GoType.SliceType go.byte), go.error]))), (go!"XXX_Merge", (some (go.signature.Signature [_root_.Perennial.github_com.gogo.protobuf.proto.Message.ty] false []))), (go!"XXX_Size", (some (go.signature.Signature [] false [go.int]))), (go!"XXX_Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-  ptr_Descriptor_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"Descriptor" Msg.Descriptor.impl
-  ptr_Equal_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"Equal" Msg.Equal.impl
-  ptr_GoString_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"GoString" Msg.GoString.impl
-  ptr_Marshal_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"Marshal" Msg.Marshal.impl
-  ptr_MarshalTo_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"MarshalTo" Msg.MarshalTo.impl
-  ptr_MarshalToSizedBuffer_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"MarshalToSizedBuffer" Msg.MarshalToSizedBuffer.impl
-  ptr_MarshalWriteFlush_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"MarshalWriteFlush" Msg.MarshalWriteFlush.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"ProtoMessage" Msg.ProtoMessage.impl
-  ptr_ReadUnmarshal_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"ReadUnmarshal" Msg.ReadUnmarshal.impl
-  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"Reset" Msg.Reset.impl
-  ptr_Size_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"Size" Msg.Size.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"String" Msg.String.impl
-  ptr_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"Unmarshal" Msg.Unmarshal.impl
-  ptr_XXX_DiscardUnknown_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"XXX_DiscardUnknown" Msg.XXX_DiscardUnknown.impl
-  ptr_XXX_Marshal_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"XXX_Marshal" Msg.XXX_Marshal.impl
-  ptr_XXX_Merge_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"XXX_Merge" Msg.XXX_Merge.impl
-  ptr_XXX_Size_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"XXX_Size" Msg.XXX_Size.impl
-  ptr_XXX_Unmarshal_unfold : MethodUnfold (go.GoType.PointerType Msg.ty) go!"XXX_Unmarshal" Msg.XXX_Unmarshal.impl
+  ptr_unfold'Descriptor : MethodUnfold (go.GoType.PointerType Msg.ty) go!"Descriptor" Msg.Descriptor.impl
+  ptr_unfold'Equal : MethodUnfold (go.GoType.PointerType Msg.ty) go!"Equal" Msg.Equal.impl
+  ptr_unfold'GoString : MethodUnfold (go.GoType.PointerType Msg.ty) go!"GoString" Msg.GoString''.impl
+  ptr_unfold'Marshal : MethodUnfold (go.GoType.PointerType Msg.ty) go!"Marshal" Msg.Marshal.impl
+  ptr_unfold'MarshalTo : MethodUnfold (go.GoType.PointerType Msg.ty) go!"MarshalTo" Msg.MarshalTo.impl
+  ptr_unfold'MarshalToSizedBuffer : MethodUnfold (go.GoType.PointerType Msg.ty) go!"MarshalToSizedBuffer" Msg.MarshalToSizedBuffer.impl
+  ptr_unfold'MarshalWriteFlush : MethodUnfold (go.GoType.PointerType Msg.ty) go!"MarshalWriteFlush" Msg.MarshalWriteFlush.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType Msg.ty) go!"ProtoMessage" Msg.ProtoMessage.impl
+  ptr_unfold'ReadUnmarshal : MethodUnfold (go.GoType.PointerType Msg.ty) go!"ReadUnmarshal" Msg.ReadUnmarshal.impl
+  ptr_unfold'Reset : MethodUnfold (go.GoType.PointerType Msg.ty) go!"Reset" Msg.Reset.impl
+  ptr_unfold'Size : MethodUnfold (go.GoType.PointerType Msg.ty) go!"Size" Msg.Size.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType Msg.ty) go!"String" Msg.String.impl
+  ptr_unfold'Unmarshal : MethodUnfold (go.GoType.PointerType Msg.ty) go!"Unmarshal" Msg.Unmarshal.impl
+  ptr_unfold'XXX_DiscardUnknown : MethodUnfold (go.GoType.PointerType Msg.ty) go!"XXX_DiscardUnknown" Msg.XXX_DiscardUnknown.impl
+  ptr_unfold'XXX_Marshal : MethodUnfold (go.GoType.PointerType Msg.ty) go!"XXX_Marshal" Msg.XXX_Marshal.impl
+  ptr_unfold'XXX_Merge : MethodUnfold (go.GoType.PointerType Msg.ty) go!"XXX_Merge" Msg.XXX_Merge.impl
+  ptr_unfold'XXX_Size : MethodUnfold (go.GoType.PointerType Msg.ty) go!"XXX_Size" Msg.XXX_Size.impl
+  ptr_unfold'XXX_Unmarshal : MethodUnfold (go.GoType.PointerType Msg.ty) go!"XXX_Unmarshal" Msg.XXX_Unmarshal.impl
 
 attribute [instance] Msg.TypeAssumptions.type_repr
   Msg.TypeAssumptions.underlying
-  Msg.TypeAssumptions.get_Type
-  Msg.TypeAssumptions.set_Type
-  Msg.TypeAssumptions.get_Phase
-  Msg.TypeAssumptions.set_Phase
-  Msg.TypeAssumptions.get_Value
-  Msg.TypeAssumptions.set_Value
-  Msg.TypeAssumptions.get_Obj
-  Msg.TypeAssumptions.set_Obj
+  Msg.TypeAssumptions.get'Type
+  Msg.TypeAssumptions.set'Type
+  Msg.TypeAssumptions.get'Phase
+  Msg.TypeAssumptions.set'Phase
+  Msg.TypeAssumptions.get'Value
+  Msg.TypeAssumptions.set'Value
+  Msg.TypeAssumptions.get'Obj
+  Msg.TypeAssumptions.set'Obj
   Msg.TypeAssumptions.method_set
   Msg.TypeAssumptions.ptr_method_set
-  Msg.TypeAssumptions.ptr_Descriptor_unfold
-  Msg.TypeAssumptions.ptr_Equal_unfold
-  Msg.TypeAssumptions.ptr_GoString_unfold
-  Msg.TypeAssumptions.ptr_Marshal_unfold
-  Msg.TypeAssumptions.ptr_MarshalTo_unfold
-  Msg.TypeAssumptions.ptr_MarshalToSizedBuffer_unfold
-  Msg.TypeAssumptions.ptr_MarshalWriteFlush_unfold
-  Msg.TypeAssumptions.ptr_ProtoMessage_unfold
-  Msg.TypeAssumptions.ptr_ReadUnmarshal_unfold
-  Msg.TypeAssumptions.ptr_Reset_unfold
-  Msg.TypeAssumptions.ptr_Size_unfold
-  Msg.TypeAssumptions.ptr_String_unfold
-  Msg.TypeAssumptions.ptr_Unmarshal_unfold
-  Msg.TypeAssumptions.ptr_XXX_DiscardUnknown_unfold
-  Msg.TypeAssumptions.ptr_XXX_Marshal_unfold
-  Msg.TypeAssumptions.ptr_XXX_Merge_unfold
-  Msg.TypeAssumptions.ptr_XXX_Size_unfold
-  Msg.TypeAssumptions.ptr_XXX_Unmarshal_unfold
+  Msg.TypeAssumptions.ptr_unfold'Descriptor
+  Msg.TypeAssumptions.ptr_unfold'Equal
+  Msg.TypeAssumptions.ptr_unfold'GoString
+  Msg.TypeAssumptions.ptr_unfold'Marshal
+  Msg.TypeAssumptions.ptr_unfold'MarshalTo
+  Msg.TypeAssumptions.ptr_unfold'MarshalToSizedBuffer
+  Msg.TypeAssumptions.ptr_unfold'MarshalWriteFlush
+  Msg.TypeAssumptions.ptr_unfold'ProtoMessage
+  Msg.TypeAssumptions.ptr_unfold'ReadUnmarshal
+  Msg.TypeAssumptions.ptr_unfold'Reset
+  Msg.TypeAssumptions.ptr_unfold'Size
+  Msg.TypeAssumptions.ptr_unfold'String
+  Msg.TypeAssumptions.ptr_unfold'Unmarshal
+  Msg.TypeAssumptions.ptr_unfold'XXX_DiscardUnknown
+  Msg.TypeAssumptions.ptr_unfold'XXX_Marshal
+  Msg.TypeAssumptions.ptr_unfold'XXX_Merge
+  Msg.TypeAssumptions.ptr_unfold'XXX_Size
+  Msg.TypeAssumptions.ptr_unfold'XXX_Unmarshal
 
 abbrev randyMessage [GooseExts] : Type := GoInterface
 
@@ -7261,83 +7261,83 @@ attribute [instance] randyMessage.TypeAssumptions.underlying
   randyMessage.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  MsgType_instance : MsgType.TypeAssumptions
-  Command_instance : Command.TypeAssumptions
-  ConsensusObj_instance : ConsensusObj.TypeAssumptions
-  Msg_instance : Msg.TypeAssumptions
-  randyMessage_instance : randyMessage.TypeAssumptions
-  ProxySeqIdEqual_unfold : FuncUnfold ProxySeqIdEqual [] ProxySeqIdEqual.impl
-  ProxySeqIdLessThan_unfold : FuncUnfold ProxySeqIdLessThan [] ProxySeqIdLessThan.impl
-  BufWrite_unfold : FuncUnfold BufWrite [] BufWrite.impl
-  BufRead_unfold : FuncUnfold BufRead [] BufRead.impl
-  WriteFlush_unfold : FuncUnfold WriteFlush [] WriteFlush.impl
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
-  valueToGoStringMessage_unfold : FuncUnfold valueToGoStringMessage [] valueToGoStringMessage.impl
-  encodeVarintMessage_unfold : FuncUnfold encodeVarintMessage [] encodeVarintMessage.impl
-  NewPopulatedCommand_unfold : FuncUnfold NewPopulatedCommand [] NewPopulatedCommand.impl
-  NewPopulatedConsensusObj_unfold : FuncUnfold NewPopulatedConsensusObj [] NewPopulatedConsensusObj.impl
-  NewPopulatedMsg_unfold : FuncUnfold NewPopulatedMsg [] NewPopulatedMsg.impl
-  randUTF8RuneMessage_unfold : FuncUnfold randUTF8RuneMessage [] randUTF8RuneMessage.impl
-  randStringMessage_unfold : FuncUnfold randStringMessage [] randStringMessage.impl
-  randUnrecognizedMessage_unfold : FuncUnfold randUnrecognizedMessage [] randUnrecognizedMessage.impl
-  randFieldMessage_unfold : FuncUnfold randFieldMessage [] randFieldMessage.impl
-  encodeVarintPopulateMessage_unfold : FuncUnfold encodeVarintPopulateMessage [] encodeVarintPopulateMessage.impl
-  sovMessage_unfold : FuncUnfold sovMessage [] sovMessage.impl
-  sozMessage_unfold : FuncUnfold sozMessage [] sozMessage.impl
-  valueToStringMessage_unfold : FuncUnfold valueToStringMessage [] valueToStringMessage.impl
-  skipMessage_unfold : FuncUnfold skipMessage [] skipMessage.impl
-  import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
-  import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_gogoproto_Assumption : _root_.Perennial.github_com.gogo.protobuf.gogoproto.Assumptions
-  import_proto_Assumption : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions
-  import_math_Assumption : _root_.Perennial.math.Assumptions
-  import_bits_Assumption : _root_.Perennial.math.bits.Assumptions
-  import_reflect_Assumption : _root_.Perennial.reflect.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
+  instance'MsgType : MsgType.TypeAssumptions
+  instance'Command : Command.TypeAssumptions
+  instance'ConsensusObj : ConsensusObj.TypeAssumptions
+  instance'Msg : Msg.TypeAssumptions
+  instance'randyMessage : randyMessage.TypeAssumptions
+  unfold'ProxySeqIdEqual : FuncUnfold ProxySeqIdEqual [] ProxySeqIdEqual.impl
+  unfold'ProxySeqIdLessThan : FuncUnfold ProxySeqIdLessThan [] ProxySeqIdLessThan.impl
+  unfold'BufWrite : FuncUnfold BufWrite [] BufWrite.impl
+  unfold'BufRead : FuncUnfold BufRead [] BufRead.impl
+  unfold'WriteFlush : FuncUnfold WriteFlush [] WriteFlush.impl
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  «unfold'init.1» : FuncUnfold init.«1» [] init.«1».impl
+  unfold'valueToGoStringMessage : FuncUnfold valueToGoStringMessage [] valueToGoStringMessage.impl
+  unfold'encodeVarintMessage : FuncUnfold encodeVarintMessage [] encodeVarintMessage.impl
+  unfold'NewPopulatedCommand : FuncUnfold NewPopulatedCommand [] NewPopulatedCommand.impl
+  unfold'NewPopulatedConsensusObj : FuncUnfold NewPopulatedConsensusObj [] NewPopulatedConsensusObj.impl
+  unfold'NewPopulatedMsg : FuncUnfold NewPopulatedMsg [] NewPopulatedMsg.impl
+  unfold'randUTF8RuneMessage : FuncUnfold randUTF8RuneMessage [] randUTF8RuneMessage.impl
+  unfold'randStringMessage : FuncUnfold randStringMessage [] randStringMessage.impl
+  unfold'randUnrecognizedMessage : FuncUnfold randUnrecognizedMessage [] randUnrecognizedMessage.impl
+  unfold'randFieldMessage : FuncUnfold randFieldMessage [] randFieldMessage.impl
+  unfold'encodeVarintPopulateMessage : FuncUnfold encodeVarintPopulateMessage [] encodeVarintPopulateMessage.impl
+  unfold'sovMessage : FuncUnfold sovMessage [] sovMessage.impl
+  unfold'sozMessage : FuncUnfold sozMessage [] sozMessage.impl
+  unfold'valueToStringMessage : FuncUnfold valueToStringMessage [] valueToStringMessage.impl
+  unfold'skipMessage : FuncUnfold skipMessage [] skipMessage.impl
+  import'bufio : _root_.Perennial.bufio.Assumptions
+  import'binary : _root_.Perennial.encoding.binary.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'gogoproto : _root_.Perennial.github_com.gogo.protobuf.gogoproto.Assumptions
+  import'proto : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions
+  import'math : _root_.Perennial.math.Assumptions
+  import'bits : _root_.Perennial.math.bits.Assumptions
+  import'reflect : _root_.Perennial.reflect.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
 
-attribute [instance] Assumptions.MsgType_instance
-  Assumptions.Command_instance
-  Assumptions.ConsensusObj_instance
-  Assumptions.Msg_instance
-  Assumptions.randyMessage_instance
-  Assumptions.ProxySeqIdEqual_unfold
-  Assumptions.ProxySeqIdLessThan_unfold
-  Assumptions.BufWrite_unfold
-  Assumptions.BufRead_unfold
-  Assumptions.WriteFlush_unfold
-  Assumptions.«init.0_unfold»
-  Assumptions.«init.1_unfold»
-  Assumptions.valueToGoStringMessage_unfold
-  Assumptions.encodeVarintMessage_unfold
-  Assumptions.NewPopulatedCommand_unfold
-  Assumptions.NewPopulatedConsensusObj_unfold
-  Assumptions.NewPopulatedMsg_unfold
-  Assumptions.randUTF8RuneMessage_unfold
-  Assumptions.randStringMessage_unfold
-  Assumptions.randUnrecognizedMessage_unfold
-  Assumptions.randFieldMessage_unfold
-  Assumptions.encodeVarintPopulateMessage_unfold
-  Assumptions.sovMessage_unfold
-  Assumptions.sozMessage_unfold
-  Assumptions.valueToStringMessage_unfold
-  Assumptions.skipMessage_unfold
-  Assumptions.import_bufio_Assumption
-  Assumptions.import_binary_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_gogoproto_Assumption
-  Assumptions.import_proto_Assumption
-  Assumptions.import_math_Assumption
-  Assumptions.import_bits_Assumption
-  Assumptions.import_reflect_Assumption
-  Assumptions.import_strings_Assumption
+attribute [instance] Assumptions.instance'MsgType
+  Assumptions.instance'Command
+  Assumptions.instance'ConsensusObj
+  Assumptions.instance'Msg
+  Assumptions.instance'randyMessage
+  Assumptions.unfold'ProxySeqIdEqual
+  Assumptions.unfold'ProxySeqIdLessThan
+  Assumptions.unfold'BufWrite
+  Assumptions.unfold'BufRead
+  Assumptions.unfold'WriteFlush
+  Assumptions.«unfold'init.0»
+  Assumptions.«unfold'init.1»
+  Assumptions.unfold'valueToGoStringMessage
+  Assumptions.unfold'encodeVarintMessage
+  Assumptions.unfold'NewPopulatedCommand
+  Assumptions.unfold'NewPopulatedConsensusObj
+  Assumptions.unfold'NewPopulatedMsg
+  Assumptions.unfold'randUTF8RuneMessage
+  Assumptions.unfold'randStringMessage
+  Assumptions.unfold'randUnrecognizedMessage
+  Assumptions.unfold'randFieldMessage
+  Assumptions.unfold'encodeVarintPopulateMessage
+  Assumptions.unfold'sovMessage
+  Assumptions.unfold'sozMessage
+  Assumptions.unfold'valueToStringMessage
+  Assumptions.unfold'skipMessage
+  Assumptions.import'bufio
+  Assumptions.import'binary
+  Assumptions.import'errors
+  Assumptions.import'fmt
+  Assumptions.import'io
+  Assumptions.import'strconv
+  Assumptions.import'gogoproto
+  Assumptions.import'proto
+  Assumptions.import'math
+  Assumptions.import'bits
+  Assumptions.import'reflect
+  Assumptions.import'strings
 
 end rabia.internal.message
 

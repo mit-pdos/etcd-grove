@@ -197,7 +197,7 @@ noncomputable instance digest.zero_val [GooseExts] : ZeroVal digest :=
 @[irreducible] noncomputable def digest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   digest.fieldsUnsealed
 
-noncomputable instance equals_unfold_digest [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'digest [GooseExts] [GoGlobalContext] :
     EqualsUnfold digest.fields digest.fieldsUnsealed :=
   ⟨by unfold digest.fields; rfl⟩
 
@@ -207,44 +207,44 @@ noncomputable instance equals_unfold_digest [GooseExts] [GoGlobalContext] :
 class digest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying digest.underlying digest
   underlying : go.UnderlyingDirectedEq digest.ty digest.underlying
-  get_crc : ∀ (x : digest), go.IsGoStepPureDetTagged under (StructFieldGet digest.underlying go!"crc") #x (Val #(x.crc'))
-  set_crc : ∀ (x : digest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet digest.underlying go!"crc") (PairV #x #y) (Val #(({ x with crc' := y } : digest)))
-  get_tab : ∀ (x : digest), go.IsGoStepPureDetTagged under (StructFieldGet digest.underlying go!"tab") #x (Val #(x.tab'))
-  set_tab : ∀ (x : digest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet digest.underlying go!"tab") (PairV #x #y) (Val #(({ x with tab' := y } : digest)))
+  get'crc : ∀ (x : digest), go.IsGoStepPureDetTagged under (StructFieldGet digest.underlying go!"crc") #x (Val #(x.crc'))
+  set'crc : ∀ (x : digest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet digest.underlying go!"crc") (PairV #x #y) (Val #(({ x with crc' := y } : digest)))
+  get'tab : ∀ (x : digest), go.IsGoStepPureDetTagged under (StructFieldGet digest.underlying go!"tab") #x (Val #(x.tab'))
+  set'tab : ∀ (x : digest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet digest.underlying go!"tab") (PairV #x #y) (Val #(({ x with tab' := y } : digest)))
   method_set : go.MethodSetIs digest.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType digest.ty) [(go!"BlockSize", (some (go.signature.Signature [] false [go.int]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Sum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"Sum32", (some (go.signature.Signature [] false [go.uint32]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
-  ptr_BlockSize_unfold : MethodUnfold (go.GoType.PointerType digest.ty) go!"BlockSize" digest.BlockSize.impl
-  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType digest.ty) go!"Reset" digest.Reset.impl
-  ptr_Size_unfold : MethodUnfold (go.GoType.PointerType digest.ty) go!"Size" digest.Size.impl
-  ptr_Sum_unfold : MethodUnfold (go.GoType.PointerType digest.ty) go!"Sum" digest.Sum.impl
-  ptr_Sum32_unfold : MethodUnfold (go.GoType.PointerType digest.ty) go!"Sum32" digest.Sum32.impl
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType digest.ty) go!"Write" digest.Write.impl
+  ptr_unfold'BlockSize : MethodUnfold (go.GoType.PointerType digest.ty) go!"BlockSize" digest.BlockSize.impl
+  ptr_unfold'Reset : MethodUnfold (go.GoType.PointerType digest.ty) go!"Reset" digest.Reset.impl
+  ptr_unfold'Size : MethodUnfold (go.GoType.PointerType digest.ty) go!"Size" digest.Size.impl
+  ptr_unfold'Sum : MethodUnfold (go.GoType.PointerType digest.ty) go!"Sum" digest.Sum.impl
+  ptr_unfold'Sum32 : MethodUnfold (go.GoType.PointerType digest.ty) go!"Sum32" digest.Sum32.impl
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType digest.ty) go!"Write" digest.Write.impl
 
 attribute [instance] digest.TypeAssumptions.type_repr
   digest.TypeAssumptions.underlying
-  digest.TypeAssumptions.get_crc
-  digest.TypeAssumptions.set_crc
-  digest.TypeAssumptions.get_tab
-  digest.TypeAssumptions.set_tab
+  digest.TypeAssumptions.get'crc
+  digest.TypeAssumptions.set'crc
+  digest.TypeAssumptions.get'tab
+  digest.TypeAssumptions.set'tab
   digest.TypeAssumptions.method_set
   digest.TypeAssumptions.ptr_method_set
-  digest.TypeAssumptions.ptr_BlockSize_unfold
-  digest.TypeAssumptions.ptr_Reset_unfold
-  digest.TypeAssumptions.ptr_Size_unfold
-  digest.TypeAssumptions.ptr_Sum_unfold
-  digest.TypeAssumptions.ptr_Sum32_unfold
-  digest.TypeAssumptions.ptr_Write_unfold
+  digest.TypeAssumptions.ptr_unfold'BlockSize
+  digest.TypeAssumptions.ptr_unfold'Reset
+  digest.TypeAssumptions.ptr_unfold'Size
+  digest.TypeAssumptions.ptr_unfold'Sum
+  digest.TypeAssumptions.ptr_unfold'Sum32
+  digest.TypeAssumptions.ptr_unfold'Write
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  digest_instance : digest.TypeAssumptions
-  New_unfold : FuncUnfold New [] New.impl
-  import_hash_Assumption : _root_.Perennial.hash.Assumptions
-  import_crc32_Assumption : _root_.Perennial.hash.crc32.Assumptions
+  instance'digest : digest.TypeAssumptions
+  unfold'New : FuncUnfold New [] New.impl
+  import'hash : _root_.Perennial.hash.Assumptions
+  import'crc32 : _root_.Perennial.hash.crc32.Assumptions
 
-attribute [instance] Assumptions.digest_instance
-  Assumptions.New_unfold
-  Assumptions.import_hash_Assumption
-  Assumptions.import_crc32_Assumption
+attribute [instance] Assumptions.instance'digest
+  Assumptions.unfold'New
+  Assumptions.import'hash
+  Assumptions.import'crc32
 
 end go_etcd_io.etcd.pkg.v3.crc
 

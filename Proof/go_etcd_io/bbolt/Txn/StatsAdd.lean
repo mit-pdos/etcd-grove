@@ -59,7 +59,7 @@ theorem wp_TxStats_IncPageCount_plain (s : Loc) (v : TxStats) (d : w64) :
   wp_auto
   wp_apply_core sync.atomic.wp_AddInt64 $$ [] [Hs HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_store_PageCount _ v (v.PageCount' + d)).access_strict $$ Hs
+  icases (TxStats.access_store'TxStats'PageCount _ v (v.PageCount' + d)).access_strict $$ Hs
     with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -85,7 +85,7 @@ theorem wp_TxStats_GetPageCount_plain (o : Loc) (w : TxStats) (dq : DFrac) :
   wp_auto
   wp_apply_core sync.atomic.wp_LoadInt64 $$ [] [Ho HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_load_PageCount _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
+  icases (TxStats.access_load'TxStats'PageCount _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -109,7 +109,7 @@ theorem wp_TxStats_IncPageAlloc_plain (s : Loc) (v : TxStats) (d : w64) :
   wp_auto
   wp_apply_core sync.atomic.wp_AddInt64 $$ [] [Hs HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_store_PageAlloc _ v (v.PageAlloc' + d)).access_strict $$ Hs
+  icases (TxStats.access_store'TxStats'PageAlloc _ v (v.PageAlloc' + d)).access_strict $$ Hs
     with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -135,7 +135,7 @@ theorem wp_TxStats_GetPageAlloc_plain (o : Loc) (w : TxStats) (dq : DFrac) :
   wp_auto
   wp_apply_core sync.atomic.wp_LoadInt64 $$ [] [Ho HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_load_PageAlloc _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
+  icases (TxStats.access_load'TxStats'PageAlloc _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -159,7 +159,7 @@ theorem wp_TxStats_IncCursorCount_plain (s : Loc) (v : TxStats) (d : w64) :
   wp_auto
   wp_apply_core sync.atomic.wp_AddInt64 $$ [] [Hs HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_store_CursorCount _ v (v.CursorCount' + d)).access_strict $$ Hs
+  icases (TxStats.access_store'TxStats'CursorCount _ v (v.CursorCount' + d)).access_strict $$ Hs
     with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -185,7 +185,7 @@ theorem wp_TxStats_GetCursorCount_plain (o : Loc) (w : TxStats) (dq : DFrac) :
   wp_auto
   wp_apply_core sync.atomic.wp_LoadInt64 $$ [] [Ho HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_load_CursorCount _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
+  icases (TxStats.access_load'TxStats'CursorCount _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -209,7 +209,7 @@ theorem wp_TxStats_IncNodeCount_plain (s : Loc) (v : TxStats) (d : w64) :
   wp_auto
   wp_apply_core sync.atomic.wp_AddInt64 $$ [] [Hs HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_store_NodeCount _ v (v.NodeCount' + d)).access_strict $$ Hs
+  icases (TxStats.access_store'TxStats'NodeCount _ v (v.NodeCount' + d)).access_strict $$ Hs
     with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -235,7 +235,7 @@ theorem wp_TxStats_GetNodeCount_plain (o : Loc) (w : TxStats) (dq : DFrac) :
   wp_auto
   wp_apply_core sync.atomic.wp_LoadInt64 $$ [] [Ho HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_load_NodeCount _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
+  icases (TxStats.access_load'TxStats'NodeCount _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -259,7 +259,7 @@ theorem wp_TxStats_IncNodeDeref_plain (s : Loc) (v : TxStats) (d : w64) :
   wp_auto
   wp_apply_core sync.atomic.wp_AddInt64 $$ [] [Hs HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_store_NodeDeref _ v (v.NodeDeref' + d)).access_strict $$ Hs
+  icases (TxStats.access_store'TxStats'NodeDeref _ v (v.NodeDeref' + d)).access_strict $$ Hs
     with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -285,7 +285,7 @@ theorem wp_TxStats_GetNodeDeref_plain (o : Loc) (w : TxStats) (dq : DFrac) :
   wp_auto
   wp_apply_core sync.atomic.wp_LoadInt64 $$ [] [Ho HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_load_NodeDeref _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
+  icases (TxStats.access_load'TxStats'NodeDeref _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -309,7 +309,7 @@ theorem wp_TxStats_IncRebalance_plain (s : Loc) (v : TxStats) (d : w64) :
   wp_auto
   wp_apply_core sync.atomic.wp_AddInt64 $$ [] [Hs HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_store_Rebalance _ v (v.Rebalance' + d)).access_strict $$ Hs
+  icases (TxStats.access_store'TxStats'Rebalance _ v (v.Rebalance' + d)).access_strict $$ Hs
     with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -335,7 +335,7 @@ theorem wp_TxStats_GetRebalance_plain (o : Loc) (w : TxStats) (dq : DFrac) :
   wp_auto
   wp_apply_core sync.atomic.wp_LoadInt64 $$ [] [Ho HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_load_Rebalance _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
+  icases (TxStats.access_load'TxStats'Rebalance _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -356,7 +356,7 @@ theorem wp_TxStats_IncRebalanceTime_plain (s : Loc) (v : TxStats) (d : time.Dura
   wp_auto
   wp_apply_core wp_atomicAddDuration $$ [] [Hs HΦ «$res0»]
   · iexact Hpkg
-  icases (TxStats.TxStats_access_store_RebalanceTime _ v (v.RebalanceTime' + d)).access_strict $$ Hs
+  icases (TxStats.access_store'TxStats'RebalanceTime _ v (v.RebalanceTime' + d)).access_strict $$ Hs
     with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -380,7 +380,7 @@ theorem wp_TxStats_GetRebalanceTime_plain (o : Loc) (w : TxStats) (dq : DFrac) :
   wp_auto
   wp_apply_core wp_atomicLoadDuration_dq $$ [] [Ho HΦ «$res0»]
   · iexact Hpkg
-  icases (TxStats.TxStats_access_load_RebalanceTime _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
+  icases (TxStats.access_load'TxStats'RebalanceTime _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -404,7 +404,7 @@ theorem wp_TxStats_IncSplit_plain (s : Loc) (v : TxStats) (d : w64) :
   wp_auto
   wp_apply_core sync.atomic.wp_AddInt64 $$ [] [Hs HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_store_Split _ v (v.Split' + d)).access_strict $$ Hs
+  icases (TxStats.access_store'TxStats'Split _ v (v.Split' + d)).access_strict $$ Hs
     with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -430,7 +430,7 @@ theorem wp_TxStats_GetSplit_plain (o : Loc) (w : TxStats) (dq : DFrac) :
   wp_auto
   wp_apply_core sync.atomic.wp_LoadInt64 $$ [] [Ho HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_load_Split _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
+  icases (TxStats.access_load'TxStats'Split _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -454,7 +454,7 @@ theorem wp_TxStats_IncSpill_plain (s : Loc) (v : TxStats) (d : w64) :
   wp_auto
   wp_apply_core sync.atomic.wp_AddInt64 $$ [] [Hs HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_store_Spill _ v (v.Spill' + d)).access_strict $$ Hs
+  icases (TxStats.access_store'TxStats'Spill _ v (v.Spill' + d)).access_strict $$ Hs
     with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -480,7 +480,7 @@ theorem wp_TxStats_GetSpill_plain (o : Loc) (w : TxStats) (dq : DFrac) :
   wp_auto
   wp_apply_core sync.atomic.wp_LoadInt64 $$ [] [Ho HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_load_Spill _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
+  icases (TxStats.access_load'TxStats'Spill _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -501,7 +501,7 @@ theorem wp_TxStats_IncSpillTime_plain (s : Loc) (v : TxStats) (d : time.Duration
   wp_auto
   wp_apply_core wp_atomicAddDuration $$ [] [Hs HΦ «$res0»]
   · iexact Hpkg
-  icases (TxStats.TxStats_access_store_SpillTime _ v (v.SpillTime' + d)).access_strict $$ Hs
+  icases (TxStats.access_store'TxStats'SpillTime _ v (v.SpillTime' + d)).access_strict $$ Hs
     with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -525,7 +525,7 @@ theorem wp_TxStats_GetSpillTime_plain (o : Loc) (w : TxStats) (dq : DFrac) :
   wp_auto
   wp_apply_core wp_atomicLoadDuration_dq $$ [] [Ho HΦ «$res0»]
   · iexact Hpkg
-  icases (TxStats.TxStats_access_load_SpillTime _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
+  icases (TxStats.access_load'TxStats'SpillTime _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -549,7 +549,7 @@ theorem wp_TxStats_IncWrite_plain (s : Loc) (v : TxStats) (d : w64) :
   wp_auto
   wp_apply_core sync.atomic.wp_AddInt64 $$ [] [Hs HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_store_Write _ v (v.Write' + d)).access_strict $$ Hs
+  icases (TxStats.access_store'TxStats'Write _ v (v.Write' + d)).access_strict $$ Hs
     with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -575,7 +575,7 @@ theorem wp_TxStats_GetWrite_plain (o : Loc) (w : TxStats) (dq : DFrac) :
   wp_auto
   wp_apply_core sync.atomic.wp_LoadInt64 $$ [] [Ho HΦ «$res0»]
   · iexact Hatomic
-  icases (TxStats.TxStats_access_load_Write _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
+  icases (TxStats.access_load'TxStats'Write _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -596,7 +596,7 @@ theorem wp_TxStats_IncWriteTime_plain (s : Loc) (v : TxStats) (d : time.Duration
   wp_auto
   wp_apply_core wp_atomicAddDuration $$ [] [Hs HΦ «$res0»]
   · iexact Hpkg
-  icases (TxStats.TxStats_access_store_WriteTime _ v (v.WriteTime' + d)).access_strict $$ Hs
+  icases (TxStats.access_store'TxStats'WriteTime _ v (v.WriteTime' + d)).access_strict $$ Hs
     with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -620,7 +620,7 @@ theorem wp_TxStats_GetWriteTime_plain (o : Loc) (w : TxStats) (dq : DFrac) :
   wp_auto
   wp_apply_core wp_atomicLoadDuration_dq $$ [] [Ho HΦ «$res0»]
   · iexact Hpkg
-  icases (TxStats.TxStats_access_load_WriteTime _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
+  icases (TxStats.access_load'TxStats'WriteTime _ w dq).access_strict $$ Ho with ⟨Hf, Hclose⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext

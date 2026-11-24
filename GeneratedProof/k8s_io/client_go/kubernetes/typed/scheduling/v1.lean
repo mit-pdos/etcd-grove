@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.scheduling.v1.Assumptions]
 
-noncomputable instance PriorityClassExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'PriorityClassExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.scheduling.v1.PriorityClassExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance PriorityClassExpansion_into_val_typed :
+noncomputable instance into_val_typed'PriorityClassExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.scheduling.v1.PriorityClassExpansion k8s_io.client_go.kubernetes.typed.scheduling.v1.PriorityClassExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.scheduling.v1.Assumptions]
 
-noncomputable instance PriorityClassesGetter_typed_pointsto :
+noncomputable instance typed_pointsto'PriorityClassesGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.scheduling.v1.PriorityClassesGetter :=
   sorry -- axiomatized type
 
-noncomputable instance PriorityClassesGetter_into_val_typed :
+noncomputable instance into_val_typed'PriorityClassesGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.scheduling.v1.PriorityClassesGetter k8s_io.client_go.kubernetes.typed.scheduling.v1.PriorityClassesGetter.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.scheduling.v1.Assumptions]
 
-noncomputable instance PriorityClassInterface_typed_pointsto :
+noncomputable instance typed_pointsto'PriorityClassInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.scheduling.v1.PriorityClassInterface :=
   sorry -- axiomatized type
 
-noncomputable instance PriorityClassInterface_into_val_typed :
+noncomputable instance into_val_typed'PriorityClassInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.scheduling.v1.PriorityClassInterface k8s_io.client_go.kubernetes.typed.scheduling.v1.PriorityClassInterface.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.scheduling.v1.Assumptions]
 
-noncomputable instance priorityClasses_typed_pointsto :
+noncomputable instance typed_pointsto'priorityClasses :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.scheduling.v1.priorityClasses :=
   sorry -- axiomatized type
 
-noncomputable instance priorityClasses_into_val_typed :
+noncomputable instance into_val_typed'priorityClasses :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.scheduling.v1.priorityClasses k8s_io.client_go.kubernetes.typed.scheduling.v1.priorityClasses.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.scheduling.v1.Assumptions]
 
-noncomputable instance SchedulingV1Interface_typed_pointsto :
+noncomputable instance typed_pointsto'SchedulingV1Interface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.scheduling.v1.SchedulingV1Interface :=
   sorry -- axiomatized type
 
-noncomputable instance SchedulingV1Interface_into_val_typed :
+noncomputable instance into_val_typed'SchedulingV1Interface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.scheduling.v1.SchedulingV1Interface k8s_io.client_go.kubernetes.typed.scheduling.v1.SchedulingV1Interface.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.scheduling.v1.Assumptions]
 
-noncomputable instance SchedulingV1Client_typed_pointsto :
+noncomputable instance typed_pointsto'SchedulingV1Client :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.scheduling.v1.SchedulingV1Client :=
   sorry -- axiomatized type
 
-noncomputable instance SchedulingV1Client_into_val_typed :
+noncomputable instance into_val_typed'SchedulingV1Client :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.scheduling.v1.SchedulingV1Client k8s_io.client_go.kubernetes.typed.scheduling.v1.SchedulingV1Client.underlying :=
   sorry -- axiomatized type
 

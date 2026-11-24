@@ -219,21 +219,21 @@ attribute [instance] Cluster.TypeAssumptions.underlying
   Cluster.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Capability_instance : Capability.TypeAssumptions
-  Cluster_instance : Cluster.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  IsCapabilityEnabled_unfold : FuncUnfold IsCapabilityEnabled [] IsCapabilityEnabled.impl
-  import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
-  import_membership_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions
+  instance'Capability : Capability.TypeAssumptions
+  instance'Cluster : Cluster.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'IsCapabilityEnabled : FuncUnfold IsCapabilityEnabled [] IsCapabilityEnabled.impl
+  import'semver : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
+  import'types : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
+  import'membership : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions
 
-attribute [instance] Assumptions.Capability_instance
-  Assumptions.Cluster_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.IsCapabilityEnabled_unfold
-  Assumptions.import_semver_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_membership_Assumption
+attribute [instance] Assumptions.instance'Capability
+  Assumptions.instance'Cluster
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'IsCapabilityEnabled
+  Assumptions.import'semver
+  Assumptions.import'types
+  Assumptions.import'membership
 
 end go_etcd_io.etcd.server.v3.etcdserver.api
 

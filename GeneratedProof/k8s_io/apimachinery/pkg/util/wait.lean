@@ -30,7 +30,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-noncomputable instance Backoff_typed_pointsto :
+noncomputable instance typed_pointsto'Backoff :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.Backoff where
   typedPointstoDef l v dq := iprop(
     "Duration" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Duration" l) v.Duration' dq ∗
@@ -43,11 +43,11 @@ noncomputable instance Backoff_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Backoff_into_val_typed :
+noncomputable instance into_val_typed'Backoff :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.Backoff k8s_io.apimachinery.pkg.util.wait.Backoff.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Backoff_access_load_Duration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (dq : DFrac) :
+noncomputable instance access_load'Backoff'Duration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Duration" l) v.Duration' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Duration" l) v.Duration' dq)
@@ -55,7 +55,7 @@ noncomputable instance Backoff_access_load_Duration (l : Loc) (v : k8s_io.apimac
  by
   solve_pointsto_access_struct
 
-noncomputable instance Backoff_access_store_Duration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Backoff'Duration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Duration" l) v.Duration' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Duration" l) y (DFrac.own 1))
@@ -63,7 +63,7 @@ noncomputable instance Backoff_access_store_Duration (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance Backoff_access_load_Factor (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (dq : DFrac) :
+noncomputable instance access_load'Backoff'Factor (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Factor" l) v.Factor' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Factor" l) v.Factor' dq)
@@ -71,7 +71,7 @@ noncomputable instance Backoff_access_load_Factor (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Backoff_access_store_Factor (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (y : w64) :
+noncomputable instance access_store'Backoff'Factor (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Factor" l) v.Factor' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Factor" l) y (DFrac.own 1))
@@ -79,7 +79,7 @@ noncomputable instance Backoff_access_store_Factor (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance Backoff_access_load_Jitter (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (dq : DFrac) :
+noncomputable instance access_load'Backoff'Jitter (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Jitter" l) v.Jitter' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Jitter" l) v.Jitter' dq)
@@ -87,7 +87,7 @@ noncomputable instance Backoff_access_load_Jitter (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Backoff_access_store_Jitter (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (y : w64) :
+noncomputable instance access_store'Backoff'Jitter (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Jitter" l) v.Jitter' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Jitter" l) y (DFrac.own 1))
@@ -95,7 +95,7 @@ noncomputable instance Backoff_access_store_Jitter (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance Backoff_access_load_Steps (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (dq : DFrac) :
+noncomputable instance access_load'Backoff'Steps (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Steps" l) v.Steps' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Steps" l) v.Steps' dq)
@@ -103,7 +103,7 @@ noncomputable instance Backoff_access_load_Steps (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-noncomputable instance Backoff_access_store_Steps (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (y : w64) :
+noncomputable instance access_store'Backoff'Steps (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Steps" l) v.Steps' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Steps" l) y (DFrac.own 1))
@@ -111,7 +111,7 @@ noncomputable instance Backoff_access_store_Steps (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Backoff_access_load_Cap (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (dq : DFrac) :
+noncomputable instance access_load'Backoff'Cap (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Cap" l) v.Cap' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Cap" l) v.Cap' dq)
@@ -119,7 +119,7 @@ noncomputable instance Backoff_access_load_Cap (l : Loc) (v : k8s_io.apimachiner
  by
   solve_pointsto_access_struct
 
-noncomputable instance Backoff_access_store_Cap (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Backoff'Cap (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Cap" l) v.Cap' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Cap" l) y (DFrac.own 1))
@@ -138,7 +138,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-noncomputable instance backoffManager_typed_pointsto :
+noncomputable instance typed_pointsto'backoffManager :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.backoffManager where
   typedPointstoDef l v dq := iprop(
     "backoff" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"backoff" l) v.backoff' dq ∗
@@ -153,11 +153,11 @@ noncomputable instance backoffManager_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance backoffManager_into_val_typed :
+noncomputable instance into_val_typed'backoffManager :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.backoffManager k8s_io.apimachinery.pkg.util.wait.backoffManager.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance backoffManager_access_load_backoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (dq : DFrac) :
+noncomputable instance access_load'backoffManager'backoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"backoff" l) v.backoff' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"backoff" l) v.backoff' dq)
@@ -165,7 +165,7 @@ noncomputable instance backoffManager_access_load_backoff (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance backoffManager_access_store_backoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (y : k8s_io.apimachinery.pkg.util.wait.Backoff) :
+noncomputable instance access_store'backoffManager'backoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (y : k8s_io.apimachinery.pkg.util.wait.Backoff) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"backoff" l) v.backoff' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"backoff" l) y (DFrac.own 1))
@@ -173,7 +173,7 @@ noncomputable instance backoffManager_access_store_backoff (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance backoffManager_access_load_initialBackoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (dq : DFrac) :
+noncomputable instance access_load'backoffManager'initialBackoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"initialBackoff" l) v.initialBackoff' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"initialBackoff" l) v.initialBackoff' dq)
@@ -181,7 +181,7 @@ noncomputable instance backoffManager_access_load_initialBackoff (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance backoffManager_access_store_initialBackoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (y : k8s_io.apimachinery.pkg.util.wait.Backoff) :
+noncomputable instance access_store'backoffManager'initialBackoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (y : k8s_io.apimachinery.pkg.util.wait.Backoff) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"initialBackoff" l) v.initialBackoff' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"initialBackoff" l) y (DFrac.own 1))
@@ -189,7 +189,7 @@ noncomputable instance backoffManager_access_store_initialBackoff (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance backoffManager_access_load_resetInterval (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (dq : DFrac) :
+noncomputable instance access_load'backoffManager'resetInterval (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"resetInterval" l) v.resetInterval' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"resetInterval" l) v.resetInterval' dq)
@@ -197,7 +197,7 @@ noncomputable instance backoffManager_access_load_resetInterval (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance backoffManager_access_store_resetInterval (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'backoffManager'resetInterval (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"resetInterval" l) v.resetInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"resetInterval" l) y (DFrac.own 1))
@@ -205,7 +205,7 @@ noncomputable instance backoffManager_access_store_resetInterval (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance backoffManager_access_load_clock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (dq : DFrac) :
+noncomputable instance access_load'backoffManager'clock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"clock" l) v.clock' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"clock" l) v.clock' dq)
@@ -213,7 +213,7 @@ noncomputable instance backoffManager_access_load_clock (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance backoffManager_access_store_clock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
+noncomputable instance access_store'backoffManager'clock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"clock" l) y (DFrac.own 1))
@@ -221,7 +221,7 @@ noncomputable instance backoffManager_access_store_clock (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance backoffManager_access_load_lock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (dq : DFrac) :
+noncomputable instance access_load'backoffManager'lock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"lock" l) v.lock' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"lock" l) v.lock' dq)
@@ -229,7 +229,7 @@ noncomputable instance backoffManager_access_load_lock (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance backoffManager_access_store_lock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'backoffManager'lock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"lock" l) v.lock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"lock" l) y (DFrac.own 1))
@@ -237,7 +237,7 @@ noncomputable instance backoffManager_access_store_lock (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance backoffManager_access_load_lastStart (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (dq : DFrac) :
+noncomputable instance access_load'backoffManager'lastStart (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"lastStart" l) v.lastStart' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"lastStart" l) v.lastStart' dq)
@@ -245,7 +245,7 @@ noncomputable instance backoffManager_access_load_lastStart (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance backoffManager_access_store_lastStart (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (y : _root_.Perennial.time.Time) :
+noncomputable instance access_store'backoffManager'lastStart (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"lastStart" l) v.lastStart' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"lastStart" l) y (DFrac.own 1))
@@ -253,7 +253,7 @@ noncomputable instance backoffManager_access_store_lastStart (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance backoffManager_access_load_timer (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (dq : DFrac) :
+noncomputable instance access_load'backoffManager'timer (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"timer" l) v.timer' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"timer" l) v.timer' dq)
@@ -261,7 +261,7 @@ noncomputable instance backoffManager_access_load_timer (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance backoffManager_access_store_timer (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (y : _root_.Perennial.k8s_io.utils.clock.Timer) :
+noncomputable instance access_store'backoffManager'timer (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.backoffManager) (y : _root_.Perennial.k8s_io.utils.clock.Timer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"timer" l) v.timer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.backoffManager go!"timer" l) y (DFrac.own 1))
@@ -280,7 +280,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-noncomputable instance exponentialBackoffManagerImpl_typed_pointsto :
+noncomputable instance typed_pointsto'exponentialBackoffManagerImpl :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl where
   typedPointstoDef l v dq := iprop(
     "backoff" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoff" l) v.backoff' dq ∗
@@ -294,11 +294,11 @@ noncomputable instance exponentialBackoffManagerImpl_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance exponentialBackoffManagerImpl_into_val_typed :
+noncomputable instance into_val_typed'exponentialBackoffManagerImpl :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance exponentialBackoffManagerImpl_access_load_backoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
+noncomputable instance access_load'exponentialBackoffManagerImpl'backoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoff" l) v.backoff' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoff" l) v.backoff' dq)
@@ -306,7 +306,7 @@ noncomputable instance exponentialBackoffManagerImpl_access_load_backoff (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance exponentialBackoffManagerImpl_access_store_backoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (y : Loc) :
+noncomputable instance access_store'exponentialBackoffManagerImpl'backoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoff" l) v.backoff' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoff" l) y (DFrac.own 1))
@@ -314,7 +314,7 @@ noncomputable instance exponentialBackoffManagerImpl_access_store_backoff (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance exponentialBackoffManagerImpl_access_load_backoffTimer (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
+noncomputable instance access_load'exponentialBackoffManagerImpl'backoffTimer (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffTimer" l) v.backoffTimer' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffTimer" l) v.backoffTimer' dq)
@@ -322,7 +322,7 @@ noncomputable instance exponentialBackoffManagerImpl_access_load_backoffTimer (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance exponentialBackoffManagerImpl_access_store_backoffTimer (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Timer) :
+noncomputable instance access_store'exponentialBackoffManagerImpl'backoffTimer (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Timer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffTimer" l) v.backoffTimer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffTimer" l) y (DFrac.own 1))
@@ -330,7 +330,7 @@ noncomputable instance exponentialBackoffManagerImpl_access_store_backoffTimer (
  by
   solve_pointsto_access_struct
 
-noncomputable instance exponentialBackoffManagerImpl_access_load_lastBackoffStart (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
+noncomputable instance access_load'exponentialBackoffManagerImpl'lastBackoffStart (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"lastBackoffStart" l) v.lastBackoffStart' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"lastBackoffStart" l) v.lastBackoffStart' dq)
@@ -338,7 +338,7 @@ noncomputable instance exponentialBackoffManagerImpl_access_load_lastBackoffStar
  by
   solve_pointsto_access_struct
 
-noncomputable instance exponentialBackoffManagerImpl_access_store_lastBackoffStart (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (y : _root_.Perennial.time.Time) :
+noncomputable instance access_store'exponentialBackoffManagerImpl'lastBackoffStart (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"lastBackoffStart" l) v.lastBackoffStart' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"lastBackoffStart" l) y (DFrac.own 1))
@@ -346,7 +346,7 @@ noncomputable instance exponentialBackoffManagerImpl_access_store_lastBackoffSta
  by
   solve_pointsto_access_struct
 
-noncomputable instance exponentialBackoffManagerImpl_access_load_initialBackoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
+noncomputable instance access_load'exponentialBackoffManagerImpl'initialBackoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"initialBackoff" l) v.initialBackoff' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"initialBackoff" l) v.initialBackoff' dq)
@@ -354,7 +354,7 @@ noncomputable instance exponentialBackoffManagerImpl_access_load_initialBackoff 
  by
   solve_pointsto_access_struct
 
-noncomputable instance exponentialBackoffManagerImpl_access_store_initialBackoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'exponentialBackoffManagerImpl'initialBackoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"initialBackoff" l) v.initialBackoff' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"initialBackoff" l) y (DFrac.own 1))
@@ -362,7 +362,7 @@ noncomputable instance exponentialBackoffManagerImpl_access_store_initialBackoff
  by
   solve_pointsto_access_struct
 
-noncomputable instance exponentialBackoffManagerImpl_access_load_backoffResetDuration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
+noncomputable instance access_load'exponentialBackoffManagerImpl'backoffResetDuration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffResetDuration" l) v.backoffResetDuration' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffResetDuration" l) v.backoffResetDuration' dq)
@@ -370,7 +370,7 @@ noncomputable instance exponentialBackoffManagerImpl_access_load_backoffResetDur
  by
   solve_pointsto_access_struct
 
-noncomputable instance exponentialBackoffManagerImpl_access_store_backoffResetDuration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'exponentialBackoffManagerImpl'backoffResetDuration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffResetDuration" l) v.backoffResetDuration' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffResetDuration" l) y (DFrac.own 1))
@@ -378,7 +378,7 @@ noncomputable instance exponentialBackoffManagerImpl_access_store_backoffResetDu
  by
   solve_pointsto_access_struct
 
-noncomputable instance exponentialBackoffManagerImpl_access_load_clock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
+noncomputable instance access_load'exponentialBackoffManagerImpl'clock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"clock" l) v.clock' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"clock" l) v.clock' dq)
@@ -386,7 +386,7 @@ noncomputable instance exponentialBackoffManagerImpl_access_load_clock (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance exponentialBackoffManagerImpl_access_store_clock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
+noncomputable instance access_store'exponentialBackoffManagerImpl'clock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"clock" l) y (DFrac.own 1))
@@ -405,7 +405,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-noncomputable instance jitteredBackoffManagerImpl_typed_pointsto :
+noncomputable instance typed_pointsto'jitteredBackoffManagerImpl :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl where
   typedPointstoDef l v dq := iprop(
     "clock" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"clock" l) v.clock' dq ∗
@@ -417,11 +417,11 @@ noncomputable instance jitteredBackoffManagerImpl_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance jitteredBackoffManagerImpl_into_val_typed :
+noncomputable instance into_val_typed'jitteredBackoffManagerImpl :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance jitteredBackoffManagerImpl_access_load_clock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (dq : DFrac) :
+noncomputable instance access_load'jitteredBackoffManagerImpl'clock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"clock" l) v.clock' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"clock" l) v.clock' dq)
@@ -429,7 +429,7 @@ noncomputable instance jitteredBackoffManagerImpl_access_load_clock (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance jitteredBackoffManagerImpl_access_store_clock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
+noncomputable instance access_store'jitteredBackoffManagerImpl'clock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"clock" l) y (DFrac.own 1))
@@ -437,7 +437,7 @@ noncomputable instance jitteredBackoffManagerImpl_access_store_clock (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance jitteredBackoffManagerImpl_access_load_duration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (dq : DFrac) :
+noncomputable instance access_load'jitteredBackoffManagerImpl'duration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"duration" l) v.duration' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"duration" l) v.duration' dq)
@@ -445,7 +445,7 @@ noncomputable instance jitteredBackoffManagerImpl_access_load_duration (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance jitteredBackoffManagerImpl_access_store_duration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'jitteredBackoffManagerImpl'duration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"duration" l) v.duration' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"duration" l) y (DFrac.own 1))
@@ -453,7 +453,7 @@ noncomputable instance jitteredBackoffManagerImpl_access_store_duration (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance jitteredBackoffManagerImpl_access_load_jitter (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (dq : DFrac) :
+noncomputable instance access_load'jitteredBackoffManagerImpl'jitter (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"jitter" l) v.jitter' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"jitter" l) v.jitter' dq)
@@ -461,7 +461,7 @@ noncomputable instance jitteredBackoffManagerImpl_access_load_jitter (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance jitteredBackoffManagerImpl_access_store_jitter (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (y : w64) :
+noncomputable instance access_store'jitteredBackoffManagerImpl'jitter (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"jitter" l) v.jitter' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"jitter" l) y (DFrac.own 1))
@@ -469,7 +469,7 @@ noncomputable instance jitteredBackoffManagerImpl_access_store_jitter (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance jitteredBackoffManagerImpl_access_load_backoffTimer (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (dq : DFrac) :
+noncomputable instance access_load'jitteredBackoffManagerImpl'backoffTimer (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"backoffTimer" l) v.backoffTimer' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"backoffTimer" l) v.backoffTimer' dq)
@@ -477,7 +477,7 @@ noncomputable instance jitteredBackoffManagerImpl_access_load_backoffTimer (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance jitteredBackoffManagerImpl_access_store_backoffTimer (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Timer) :
+noncomputable instance access_store'jitteredBackoffManagerImpl'backoffTimer (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (y : _root_.Perennial.k8s_io.utils.clock.Timer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"backoffTimer" l) v.backoffTimer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"backoffTimer" l) y (DFrac.own 1))
@@ -496,7 +496,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-noncomputable instance errInterrupted_typed_pointsto :
+noncomputable instance typed_pointsto'errInterrupted :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.errInterrupted where
   typedPointstoDef l v dq := iprop(
     "cause" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.errInterrupted go!"cause" l) v.cause' dq ∗
@@ -505,11 +505,11 @@ noncomputable instance errInterrupted_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance errInterrupted_into_val_typed :
+noncomputable instance into_val_typed'errInterrupted :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.errInterrupted k8s_io.apimachinery.pkg.util.wait.errInterrupted.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance errInterrupted_access_load_cause (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.errInterrupted) (dq : DFrac) :
+noncomputable instance access_load'errInterrupted'cause (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.errInterrupted) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.errInterrupted go!"cause" l) v.cause' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.errInterrupted go!"cause" l) v.cause' dq)
@@ -517,7 +517,7 @@ noncomputable instance errInterrupted_access_load_cause (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance errInterrupted_access_store_cause (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.errInterrupted) (y : GoError) :
+noncomputable instance access_store'errInterrupted'cause (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.errInterrupted) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.errInterrupted go!"cause" l) v.cause' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.errInterrupted go!"cause" l) y (DFrac.own 1))
@@ -536,7 +536,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-noncomputable instance noopTimer_typed_pointsto :
+noncomputable instance typed_pointsto'noopTimer :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.noopTimer where
   typedPointstoDef l v dq := iprop(
     "closedCh" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.noopTimer go!"closedCh" l) v.closedCh' dq ∗
@@ -545,11 +545,11 @@ noncomputable instance noopTimer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance noopTimer_into_val_typed :
+noncomputable instance into_val_typed'noopTimer :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.noopTimer k8s_io.apimachinery.pkg.util.wait.noopTimer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance noopTimer_access_load_closedCh (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.noopTimer) (dq : DFrac) :
+noncomputable instance access_load'noopTimer'closedCh (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.noopTimer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.noopTimer go!"closedCh" l) v.closedCh' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.noopTimer go!"closedCh" l) v.closedCh' dq)
@@ -557,7 +557,7 @@ noncomputable instance noopTimer_access_load_closedCh (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance noopTimer_access_store_closedCh (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.noopTimer) (y : GoChan) :
+noncomputable instance access_store'noopTimer'closedCh (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.noopTimer) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.noopTimer go!"closedCh" l) v.closedCh' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.noopTimer go!"closedCh" l) y (DFrac.own 1))
@@ -576,7 +576,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-noncomputable instance variableTimer_typed_pointsto :
+noncomputable instance typed_pointsto'variableTimer :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.variableTimer where
   typedPointstoDef l v dq := iprop(
     "fn" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"fn" l) v.fn' dq ∗
@@ -587,11 +587,11 @@ noncomputable instance variableTimer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance variableTimer_into_val_typed :
+noncomputable instance into_val_typed'variableTimer :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.variableTimer k8s_io.apimachinery.pkg.util.wait.variableTimer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance variableTimer_access_load_fn (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (dq : DFrac) :
+noncomputable instance access_load'variableTimer'fn (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"fn" l) v.fn' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"fn" l) v.fn' dq)
@@ -599,7 +599,7 @@ noncomputable instance variableTimer_access_load_fn (l : Loc) (v : k8s_io.apimac
  by
   solve_pointsto_access_struct
 
-noncomputable instance variableTimer_access_store_fn (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (y : k8s_io.apimachinery.pkg.util.wait.DelayFunc) :
+noncomputable instance access_store'variableTimer'fn (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (y : k8s_io.apimachinery.pkg.util.wait.DelayFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"fn" l) v.fn' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"fn" l) y (DFrac.own 1))
@@ -607,7 +607,7 @@ noncomputable instance variableTimer_access_store_fn (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance variableTimer_access_load_t (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (dq : DFrac) :
+noncomputable instance access_load'variableTimer't (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"t" l) v.t' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"t" l) v.t' dq)
@@ -615,7 +615,7 @@ noncomputable instance variableTimer_access_load_t (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance variableTimer_access_store_t (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (y : _root_.Perennial.k8s_io.utils.clock.Timer) :
+noncomputable instance access_store'variableTimer't (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (y : _root_.Perennial.k8s_io.utils.clock.Timer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"t" l) v.t' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"t" l) y (DFrac.own 1))
@@ -623,7 +623,7 @@ noncomputable instance variableTimer_access_store_t (l : Loc) (v : k8s_io.apimac
  by
   solve_pointsto_access_struct
 
-noncomputable instance variableTimer_access_load_new (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (dq : DFrac) :
+noncomputable instance access_load'variableTimer'new (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"new" l) v.new' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"new" l) v.new' dq)
@@ -631,7 +631,7 @@ noncomputable instance variableTimer_access_load_new (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance variableTimer_access_store_new (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (y : GoFunc) :
+noncomputable instance access_store'variableTimer'new (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"new" l) v.new' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"new" l) y (DFrac.own 1))
@@ -650,7 +650,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-noncomputable instance fixedTimer_typed_pointsto :
+noncomputable instance typed_pointsto'fixedTimer :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.fixedTimer where
   typedPointstoDef l v dq := iprop(
     "interval" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"interval" l) v.interval' dq ∗
@@ -661,11 +661,11 @@ noncomputable instance fixedTimer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance fixedTimer_into_val_typed :
+noncomputable instance into_val_typed'fixedTimer :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.fixedTimer k8s_io.apimachinery.pkg.util.wait.fixedTimer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance fixedTimer_access_load_interval (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (dq : DFrac) :
+noncomputable instance access_load'fixedTimer'interval (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"interval" l) v.interval' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"interval" l) v.interval' dq)
@@ -673,7 +673,7 @@ noncomputable instance fixedTimer_access_load_interval (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance fixedTimer_access_store_interval (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'fixedTimer'interval (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"interval" l) v.interval' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"interval" l) y (DFrac.own 1))
@@ -681,7 +681,7 @@ noncomputable instance fixedTimer_access_store_interval (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance fixedTimer_access_load_t (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (dq : DFrac) :
+noncomputable instance access_load'fixedTimer't (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"t" l) v.t' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"t" l) v.t' dq)
@@ -689,7 +689,7 @@ noncomputable instance fixedTimer_access_load_t (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-noncomputable instance fixedTimer_access_store_t (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (y : _root_.Perennial.k8s_io.utils.clock.Ticker) :
+noncomputable instance access_store'fixedTimer't (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (y : _root_.Perennial.k8s_io.utils.clock.Ticker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"t" l) v.t' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"t" l) y (DFrac.own 1))
@@ -697,7 +697,7 @@ noncomputable instance fixedTimer_access_store_t (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-noncomputable instance fixedTimer_access_load_new (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (dq : DFrac) :
+noncomputable instance access_load'fixedTimer'new (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"new" l) v.new' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"new" l) v.new' dq)
@@ -705,7 +705,7 @@ noncomputable instance fixedTimer_access_load_new (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance fixedTimer_access_store_new (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (y : GoFunc) :
+noncomputable instance access_store'fixedTimer'new (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"new" l) v.new' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"new" l) y (DFrac.own 1))
@@ -724,7 +724,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-noncomputable instance Group_typed_pointsto :
+noncomputable instance typed_pointsto'Group :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.Group where
   typedPointstoDef l v dq := iprop(
     "wg" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Group go!"wg" l) v.wg' dq ∗
@@ -733,11 +733,11 @@ noncomputable instance Group_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Group_into_val_typed :
+noncomputable instance into_val_typed'Group :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.Group k8s_io.apimachinery.pkg.util.wait.Group.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Group_access_load_wg (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Group) (dq : DFrac) :
+noncomputable instance access_load'Group'wg (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Group) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Group go!"wg" l) v.wg' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Group go!"wg" l) v.wg' dq)
@@ -745,7 +745,7 @@ noncomputable instance Group_access_load_wg (l : Loc) (v : k8s_io.apimachinery.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Group_access_store_wg (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Group) (y : _root_.Perennial.sync.WaitGroup) :
+noncomputable instance access_store'Group'wg (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Group) (y : _root_.Perennial.sync.WaitGroup) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Group go!"wg" l) v.wg' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Group go!"wg" l) y (DFrac.own 1))
@@ -764,7 +764,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-noncomputable instance channelContext_typed_pointsto :
+noncomputable instance typed_pointsto'channelContext :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.channelContext where
   typedPointstoDef l v dq := iprop(
     "stopCh" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.channelContext go!"stopCh" l) v.stopCh' dq ∗
@@ -773,11 +773,11 @@ noncomputable instance channelContext_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance channelContext_into_val_typed :
+noncomputable instance into_val_typed'channelContext :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.channelContext k8s_io.apimachinery.pkg.util.wait.channelContext.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance channelContext_access_load_stopCh (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.channelContext) (dq : DFrac) :
+noncomputable instance access_load'channelContext'stopCh (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.channelContext) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.channelContext go!"stopCh" l) v.stopCh' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.channelContext go!"stopCh" l) v.stopCh' dq)
@@ -785,7 +785,7 @@ noncomputable instance channelContext_access_load_stopCh (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance channelContext_access_store_stopCh (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.channelContext) (y : GoChan) :
+noncomputable instance access_store'channelContext'stopCh (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.channelContext) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.channelContext go!"stopCh" l) v.stopCh' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.channelContext go!"stopCh" l) y (DFrac.own 1))

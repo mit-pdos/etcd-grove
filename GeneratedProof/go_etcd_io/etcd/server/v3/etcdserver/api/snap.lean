@@ -28,7 +28,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions]
 
-noncomputable instance Message_typed_pointsto :
+noncomputable instance typed_pointsto'Message :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message where
   typedPointstoDef l v dq := iprop(
     "Message" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" l) v.Message' dq ∗
@@ -40,11 +40,11 @@ noncomputable instance Message_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Message_into_val_typed :
+noncomputable instance into_val_typed'Message :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Message_access_load_Message (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (dq : DFrac) :
+noncomputable instance access_load'Message'Message (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" l) v.Message' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" l) v.Message' dq)
@@ -52,7 +52,7 @@ noncomputable instance Message_access_load_Message (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Message_access_store_Message (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (y : Loc) :
+noncomputable instance access_store'Message'Message (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" l) v.Message' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" l) y (DFrac.own 1))
@@ -60,7 +60,7 @@ noncomputable instance Message_access_store_Message (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance Message_access_load_ReadCloser (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (dq : DFrac) :
+noncomputable instance access_load'Message'ReadCloser (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"ReadCloser" l) v.ReadCloser' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"ReadCloser" l) v.ReadCloser' dq)
@@ -68,7 +68,7 @@ noncomputable instance Message_access_load_ReadCloser (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Message_access_store_ReadCloser (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (y : _root_.Perennial.io.ReadCloser) :
+noncomputable instance access_store'Message'ReadCloser (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (y : _root_.Perennial.io.ReadCloser) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"ReadCloser" l) v.ReadCloser' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"ReadCloser" l) y (DFrac.own 1))
@@ -76,7 +76,7 @@ noncomputable instance Message_access_store_ReadCloser (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance Message_access_load_TotalSize (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (dq : DFrac) :
+noncomputable instance access_load'Message'TotalSize (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"TotalSize" l) v.TotalSize' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"TotalSize" l) v.TotalSize' dq)
@@ -84,7 +84,7 @@ noncomputable instance Message_access_load_TotalSize (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance Message_access_store_TotalSize (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (y : w64) :
+noncomputable instance access_store'Message'TotalSize (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"TotalSize" l) v.TotalSize' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"TotalSize" l) y (DFrac.own 1))
@@ -92,7 +92,7 @@ noncomputable instance Message_access_store_TotalSize (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Message_access_load_closeC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (dq : DFrac) :
+noncomputable instance access_load'Message'closeC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" l) v.closeC' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" l) v.closeC' dq)
@@ -100,7 +100,7 @@ noncomputable instance Message_access_load_closeC (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Message_access_store_closeC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (y : GoChan) :
+noncomputable instance access_store'Message'closeC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" l) v.closeC' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" l) y (DFrac.own 1))
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions]
 
-noncomputable instance Snapshotter_typed_pointsto :
+noncomputable instance typed_pointsto'Snapshotter :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter :=
   sorry -- axiomatized type
 
-noncomputable instance Snapshotter_into_val_typed :
+noncomputable instance into_val_typed'Snapshotter :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.underlying :=
   sorry -- axiomatized type
 

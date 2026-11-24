@@ -1,6 +1,6 @@
 /-
 The `*Set[T]` method set's wrappers of `Set[T]`'s value methods (Go calls `s.Has(x)` on an
-addressable `s` through them: goose's `ptr_Has_unfold`, ...): the value method on `*l`, from its
+addressable `s` through them: goose's `ptr_unfold'Has`, ...): the value method on `*l`, from its
 spec (`X_of`, a hypothesis). Lean-first; for client-go's work queue, which calls them on its
 struct's fields.
 -/

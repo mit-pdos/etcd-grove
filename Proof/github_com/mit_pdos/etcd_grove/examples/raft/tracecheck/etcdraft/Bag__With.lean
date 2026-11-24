@@ -28,7 +28,7 @@ theorem Bag.With.wp_proof (wp_add : Bag.add.spec (GF := GF) (hG := hG)) :
   intro g b p m
   wp_start as ⟨#Hg, #Hm, %Hnd, %Hb⟩
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_add_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'add.method_unfold]
   try wp_auto
   wp_apply wp_add g b p m (W64 1) 1 $$ [Hg Hm] as %g' #Hg'
   · iframe Hg Hm

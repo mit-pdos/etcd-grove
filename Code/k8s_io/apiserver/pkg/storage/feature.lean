@@ -148,19 +148,19 @@ attribute [instance] client.TypeAssumptions.underlying
   client.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  FeatureSupportChecker_instance : FeatureSupportChecker.TypeAssumptions
-  defaultFeatureSupportChecker_instance : defaultFeatureSupportChecker.TypeAssumptions
-  client_instance : client.TypeAssumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_storage_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.storage.Assumptions
+  instance'FeatureSupportChecker : FeatureSupportChecker.TypeAssumptions
+  instance'defaultFeatureSupportChecker : defaultFeatureSupportChecker.TypeAssumptions
+  instance'client : client.TypeAssumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'storage : _root_.Perennial.k8s_io.apiserver.pkg.storage.Assumptions
 
-attribute [instance] Assumptions.FeatureSupportChecker_instance
-  Assumptions.defaultFeatureSupportChecker_instance
-  Assumptions.client_instance
-  Assumptions.import_context_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_storage_Assumption
+attribute [instance] Assumptions.instance'FeatureSupportChecker
+  Assumptions.instance'defaultFeatureSupportChecker
+  Assumptions.instance'client
+  Assumptions.import'context
+  Assumptions.import'clientv3
+  Assumptions.import'storage
 
 end k8s_io.apiserver.pkg.storage.feature
 

@@ -37,7 +37,7 @@ theorem onDisk.stores.wp_proof
   subst Hv
   wp_auto
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_es_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'es.method_unfold]
   try wp_auto
   wp_apply wp_es gx x es $$ [Hx] as %u #Hu
   · iframe Hx; ipureintro; exact hes

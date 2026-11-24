@@ -224,7 +224,7 @@ noncomputable instance lockServer.zero_val [GooseExts] : ZeroVal lockServer :=
 @[irreducible] noncomputable def lockServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   lockServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_lockServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'lockServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold lockServer.fields lockServer.fieldsUnsealed :=
   ⟨by unfold lockServer.fields; rfl⟩
 
@@ -234,40 +234,40 @@ noncomputable instance equals_unfold_lockServer [GooseExts] [GoGlobalContext] :
 class lockServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lockServer.underlying lockServer
   underlying : go.UnderlyingDirectedEq lockServer.ty lockServer.underlying
-  get_c : ∀ (x : lockServer), go.IsGoStepPureDetTagged under (StructFieldGet lockServer.underlying go!"c") #x (Val #(x.c'))
-  set_c : ∀ (x : lockServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet lockServer.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : lockServer)))
-  get_UnsafeLockServer : ∀ (x : lockServer), go.IsGoStepPureDetTagged under (StructFieldGet lockServer.underlying go!"UnsafeLockServer") #x (Val #(x.UnsafeLockServer'))
-  set_UnsafeLockServer : ∀ (x : lockServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnsafeLockServer), go.IsGoStepPureDetTagged under (StructFieldSet lockServer.underlying go!"UnsafeLockServer") (PairV #x #y) (Val #(({ x with UnsafeLockServer' := y } : lockServer)))
+  get'c : ∀ (x : lockServer), go.IsGoStepPureDetTagged under (StructFieldGet lockServer.underlying go!"c") #x (Val #(x.c'))
+  set'c : ∀ (x : lockServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet lockServer.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : lockServer)))
+  get'UnsafeLockServer : ∀ (x : lockServer), go.IsGoStepPureDetTagged under (StructFieldGet lockServer.underlying go!"UnsafeLockServer") #x (Val #(x.UnsafeLockServer'))
+  set'UnsafeLockServer : ∀ (x : lockServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnsafeLockServer), go.IsGoStepPureDetTagged under (StructFieldSet lockServer.underlying go!"UnsafeLockServer") (PairV #x #y) (Val #(({ x with UnsafeLockServer' := y } : lockServer)))
   method_set : go.MethodSetIs lockServer.ty [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.mustEmbedUnimplementedLockServer", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType lockServer.ty) [(go!"Lock", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse.ty), go.error]))), (go!"Unlock", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.mustEmbedUnimplementedLockServer", (some (go.signature.Signature [] false [])))]
-  ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType lockServer.ty) go!"Lock" lockServer.Lock.impl
-  ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType lockServer.ty) go!"Unlock" lockServer.Unlock.impl
+  ptr_unfold'Lock : MethodUnfold (go.GoType.PointerType lockServer.ty) go!"Lock" lockServer.Lock.impl
+  ptr_unfold'Unlock : MethodUnfold (go.GoType.PointerType lockServer.ty) go!"Unlock" lockServer.Unlock.impl
 
 attribute [instance] lockServer.TypeAssumptions.type_repr
   lockServer.TypeAssumptions.underlying
-  lockServer.TypeAssumptions.get_c
-  lockServer.TypeAssumptions.set_c
-  lockServer.TypeAssumptions.get_UnsafeLockServer
-  lockServer.TypeAssumptions.set_UnsafeLockServer
+  lockServer.TypeAssumptions.get'c
+  lockServer.TypeAssumptions.set'c
+  lockServer.TypeAssumptions.get'UnsafeLockServer
+  lockServer.TypeAssumptions.set'UnsafeLockServer
   lockServer.TypeAssumptions.method_set
   lockServer.TypeAssumptions.ptr_method_set
-  lockServer.TypeAssumptions.ptr_Lock_unfold
-  lockServer.TypeAssumptions.ptr_Unlock_unfold
+  lockServer.TypeAssumptions.ptr_unfold'Lock
+  lockServer.TypeAssumptions.ptr_unfold'Unlock
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  lockServer_instance : lockServer.TypeAssumptions
-  NewLockServer_unfold : FuncUnfold NewLockServer [] NewLockServer.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_concurrency_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions
-  import_v3lockpb_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.Assumptions
+  instance'lockServer : lockServer.TypeAssumptions
+  unfold'NewLockServer : FuncUnfold NewLockServer [] NewLockServer.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'concurrency : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions
+  import'v3lockpb : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.Assumptions
 
-attribute [instance] Assumptions.lockServer_instance
-  Assumptions.NewLockServer_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_concurrency_Assumption
-  Assumptions.import_v3lockpb_Assumption
+attribute [instance] Assumptions.instance'lockServer
+  Assumptions.unfold'NewLockServer
+  Assumptions.import'context
+  Assumptions.import'clientv3
+  Assumptions.import'concurrency
+  Assumptions.import'v3lockpb
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3lock
 

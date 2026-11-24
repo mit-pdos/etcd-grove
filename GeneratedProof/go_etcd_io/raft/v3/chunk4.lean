@@ -44,7 +44,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
-noncomputable instance Status_typed_pointsto :
+noncomputable instance typed_pointsto'Status :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.Status where
   typedPointstoDef l v dq := iprop(
     "BasicStatus" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"BasicStatus" l) v.BasicStatus' dq ∗
@@ -55,11 +55,11 @@ noncomputable instance Status_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Status_into_val_typed :
+noncomputable instance into_val_typed'Status :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.Status go_etcd_io.raft.v3.Status.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Status_access_load_BasicStatus (l : Loc) (v : go_etcd_io.raft.v3.Status) (dq : DFrac) :
+noncomputable instance access_load'Status'BasicStatus (l : Loc) (v : go_etcd_io.raft.v3.Status) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"BasicStatus" l) v.BasicStatus' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"BasicStatus" l) v.BasicStatus' dq)
@@ -67,7 +67,7 @@ noncomputable instance Status_access_load_BasicStatus (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Status_access_store_BasicStatus (l : Loc) (v : go_etcd_io.raft.v3.Status) (y : go_etcd_io.raft.v3.BasicStatus) :
+noncomputable instance access_store'Status'BasicStatus (l : Loc) (v : go_etcd_io.raft.v3.Status) (y : go_etcd_io.raft.v3.BasicStatus) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"BasicStatus" l) v.BasicStatus' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"BasicStatus" l) y (DFrac.own 1))
@@ -75,7 +75,7 @@ noncomputable instance Status_access_store_BasicStatus (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance Status_access_load_Config (l : Loc) (v : go_etcd_io.raft.v3.Status) (dq : DFrac) :
+noncomputable instance access_load'Status'Config (l : Loc) (v : go_etcd_io.raft.v3.Status) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"Config" l) v.Config' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"Config" l) v.Config' dq)
@@ -83,7 +83,7 @@ noncomputable instance Status_access_load_Config (l : Loc) (v : go_etcd_io.raft.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Status_access_store_Config (l : Loc) (v : go_etcd_io.raft.v3.Status) (y : _root_.Perennial.go_etcd_io.raft.v3.tracker.Config) :
+noncomputable instance access_store'Status'Config (l : Loc) (v : go_etcd_io.raft.v3.Status) (y : _root_.Perennial.go_etcd_io.raft.v3.tracker.Config) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"Config" l) v.Config' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"Config" l) y (DFrac.own 1))
@@ -91,7 +91,7 @@ noncomputable instance Status_access_store_Config (l : Loc) (v : go_etcd_io.raft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Status_access_load_Progress (l : Loc) (v : go_etcd_io.raft.v3.Status) (dq : DFrac) :
+noncomputable instance access_load'Status'Progress (l : Loc) (v : go_etcd_io.raft.v3.Status) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"Progress" l) v.Progress' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"Progress" l) v.Progress' dq)
@@ -99,7 +99,7 @@ noncomputable instance Status_access_load_Progress (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Status_access_store_Progress (l : Loc) (v : go_etcd_io.raft.v3.Status) (y : GoMap) :
+noncomputable instance access_store'Status'Progress (l : Loc) (v : go_etcd_io.raft.v3.Status) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"Progress" l) v.Progress' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"Progress" l) y (DFrac.own 1))

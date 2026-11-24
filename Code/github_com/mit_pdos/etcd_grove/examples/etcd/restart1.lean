@@ -511,37 +511,37 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  key_unfold : FuncUnfold key [] key.impl
-  value_unfold : FuncUnfold value [] value.impl
-  startMember_unfold : FuncUnfold startMember [] startMember.impl
-  put_unfold : FuncUnfold put [] put.impl
-  stop_unfold : FuncUnfold stop [] stop.impl
-  check_unfold : FuncUnfold check [] check.impl
-  Run_unfold : FuncUnfold Run [] Run.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
-  import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
+  unfold'key : FuncUnfold key [] key.impl
+  unfold'value : FuncUnfold value [] value.impl
+  unfold'startMember : FuncUnfold startMember [] startMember.impl
+  unfold'put : FuncUnfold put [] put.impl
+  unfold'stop : FuncUnfold stop [] stop.impl
+  unfold'check : FuncUnfold check [] check.impl
+  unfold'Run : FuncUnfold Run [] Run.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'types : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
+  import'etcdserver : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
+  import'etcdstart : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
 
-attribute [instance] Assumptions.key_unfold
-  Assumptions.value_unfold
-  Assumptions.startMember_unfold
-  Assumptions.put_unfold
-  Assumptions.stop_unfold
-  Assumptions.check_unfold
-  Assumptions.Run_unfold
-  Assumptions.Main_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_etcdserver_Assumption
-  Assumptions.import_etcdstart_Assumption
+attribute [instance] Assumptions.unfold'key
+  Assumptions.unfold'value
+  Assumptions.unfold'startMember
+  Assumptions.unfold'put
+  Assumptions.unfold'stop
+  Assumptions.unfold'check
+  Assumptions.unfold'Run
+  Assumptions.unfold'Main
+  Assumptions.import'context
+  Assumptions.import'time
+  Assumptions.import'zap
+  Assumptions.import'etcdserverpb
+  Assumptions.import'types
+  Assumptions.import'etcdserver
+  Assumptions.import'etcdstart
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.restart1
 

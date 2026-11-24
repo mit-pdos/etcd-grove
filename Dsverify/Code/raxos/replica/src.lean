@@ -8804,7 +8804,7 @@ noncomputable instance ClientBatchStore.zero_val [GooseExts] : ZeroVal ClientBat
 @[irreducible] noncomputable def ClientBatchStore.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClientBatchStore.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClientBatchStore [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ClientBatchStore [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClientBatchStore.fields ClientBatchStore.fieldsUnsealed :=
   ⟨by unfold ClientBatchStore.fields; rfl⟩
 
@@ -8814,27 +8814,27 @@ noncomputable instance equals_unfold_ClientBatchStore [GooseExts] [GoGlobalConte
 class ClientBatchStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClientBatchStore.underlying ClientBatchStore
   underlying : go.UnderlyingDirectedEq ClientBatchStore.ty ClientBatchStore.underlying
-  get_clientBatches : ∀ (x : ClientBatchStore), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatchStore.underlying go!"clientBatches") #x (Val #(x.clientBatches'))
-  set_clientBatches : ∀ (x : ClientBatchStore) (y : _root_.Perennial.sync.Map), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatchStore.underlying go!"clientBatches") (PairV #x #y) (Val #(({ x with clientBatches' := y } : ClientBatchStore)))
+  get'clientBatches : ∀ (x : ClientBatchStore), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatchStore.underlying go!"clientBatches") #x (Val #(x.clientBatches'))
+  set'clientBatches : ∀ (x : ClientBatchStore) (y : _root_.Perennial.sync.Map), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatchStore.underlying go!"clientBatches") (PairV #x #y) (Val #(({ x with clientBatches' := y } : ClientBatchStore)))
   method_set : go.MethodSetIs ClientBatchStore.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientBatchStore.ty) [(go!"Add", (some (go.signature.Signature [_root_.Perennial.raxos.proto.client.ClientBatch.ty] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [_root_.Perennial.raxos.proto.client.ClientBatch.ty, go.bool]))), (go!"Remove", (some (go.signature.Signature [go.string] false []))), (go!"raxos/replica/src.convertToRegularMap", (some (go.signature.Signature [] false [(go.GoType.MapType go.string _root_.Perennial.raxos.proto.client.ClientBatch.ty)]))), (go!"raxos/replica/src.printStore", (some (go.signature.Signature [go.string, go.int64] false [])))]
-  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType ClientBatchStore.ty) go!"Add" ClientBatchStore.Add.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType ClientBatchStore.ty) go!"Get" ClientBatchStore.Get.impl
-  ptr_Remove_unfold : MethodUnfold (go.GoType.PointerType ClientBatchStore.ty) go!"Remove" ClientBatchStore.Remove.impl
-  ptr_convertToRegularMap_unfold : MethodUnfold (go.GoType.PointerType ClientBatchStore.ty) go!"convertToRegularMap" ClientBatchStore.convertToRegularMap.impl
-  ptr_printStore_unfold : MethodUnfold (go.GoType.PointerType ClientBatchStore.ty) go!"printStore" ClientBatchStore.printStore.impl
+  ptr_unfold'Add : MethodUnfold (go.GoType.PointerType ClientBatchStore.ty) go!"Add" ClientBatchStore.Add.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType ClientBatchStore.ty) go!"Get" ClientBatchStore.Get.impl
+  ptr_unfold'Remove : MethodUnfold (go.GoType.PointerType ClientBatchStore.ty) go!"Remove" ClientBatchStore.Remove.impl
+  ptr_unfold'convertToRegularMap : MethodUnfold (go.GoType.PointerType ClientBatchStore.ty) go!"convertToRegularMap" ClientBatchStore.convertToRegularMap.impl
+  ptr_unfold'printStore : MethodUnfold (go.GoType.PointerType ClientBatchStore.ty) go!"printStore" ClientBatchStore.printStore.impl
 
 attribute [instance] ClientBatchStore.TypeAssumptions.type_repr
   ClientBatchStore.TypeAssumptions.underlying
-  ClientBatchStore.TypeAssumptions.get_clientBatches
-  ClientBatchStore.TypeAssumptions.set_clientBatches
+  ClientBatchStore.TypeAssumptions.get'clientBatches
+  ClientBatchStore.TypeAssumptions.set'clientBatches
   ClientBatchStore.TypeAssumptions.method_set
   ClientBatchStore.TypeAssumptions.ptr_method_set
-  ClientBatchStore.TypeAssumptions.ptr_Add_unfold
-  ClientBatchStore.TypeAssumptions.ptr_Get_unfold
-  ClientBatchStore.TypeAssumptions.ptr_Remove_unfold
-  ClientBatchStore.TypeAssumptions.ptr_convertToRegularMap_unfold
-  ClientBatchStore.TypeAssumptions.ptr_printStore_unfold
+  ClientBatchStore.TypeAssumptions.ptr_unfold'Add
+  ClientBatchStore.TypeAssumptions.ptr_unfold'Get
+  ClientBatchStore.TypeAssumptions.ptr_unfold'Remove
+  ClientBatchStore.TypeAssumptions.ptr_unfold'convertToRegularMap
+  ClientBatchStore.TypeAssumptions.ptr_unfold'printStore
 
 structure GRPCConnection [GooseExts] where
   mk ::
@@ -8849,7 +8849,7 @@ noncomputable instance GRPCConnection.zero_val [GooseExts] : ZeroVal GRPCConnect
 @[irreducible] noncomputable def GRPCConnection.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GRPCConnection.fieldsUnsealed
 
-noncomputable instance equals_unfold_GRPCConnection [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'GRPCConnection [GooseExts] [GoGlobalContext] :
     EqualsUnfold GRPCConnection.fields GRPCConnection.fieldsUnsealed :=
   ⟨by unfold GRPCConnection.fields; rfl⟩
 
@@ -8859,25 +8859,25 @@ noncomputable instance equals_unfold_GRPCConnection [GooseExts] [GoGlobalContext
 class GRPCConnection.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GRPCConnection.underlying GRPCConnection
   underlying : go.UnderlyingDirectedEq GRPCConnection.ty GRPCConnection.underlying
-  get_Recorder : ∀ (x : GRPCConnection), go.IsGoStepPureDetTagged under (StructFieldGet GRPCConnection.underlying go!"Recorder") #x (Val #(x.Recorder'))
-  set_Recorder : ∀ (x : GRPCConnection) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet GRPCConnection.underlying go!"Recorder") (PairV #x #y) (Val #(({ x with Recorder' := y } : GRPCConnection)))
+  get'Recorder : ∀ (x : GRPCConnection), go.IsGoStepPureDetTagged under (StructFieldGet GRPCConnection.underlying go!"Recorder") #x (Val #(x.Recorder'))
+  set'Recorder : ∀ (x : GRPCConnection) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet GRPCConnection.underlying go!"Recorder") (PairV #x #y) (Val #(({ x with Recorder' := y } : GRPCConnection)))
   method_set : go.MethodSetIs GRPCConnection.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GRPCConnection.ty) [(go!"ESP", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType ProposerMessage.ty)] false [(go.GoType.PointerType RecorderResponse.ty), go.error]))), (go!"FetchBatches", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType DecideRequest.ty)] false [(go.GoType.PointerType DecideResponse.ty), go.error]))), (go!"InformDecision", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType Decisions.ty)] false [(go.GoType.PointerType Empty.ty), go.error]))), (go!"raxos/replica/src.mustEmbedUnimplementedConsensusServer", (some (go.signature.Signature [] false [])))]
-  ptr_ESP_unfold : MethodUnfold (go.GoType.PointerType GRPCConnection.ty) go!"ESP" GRPCConnection.ESP.impl
-  ptr_FetchBatches_unfold : MethodUnfold (go.GoType.PointerType GRPCConnection.ty) go!"FetchBatches" GRPCConnection.FetchBatches.impl
-  ptr_InformDecision_unfold : MethodUnfold (go.GoType.PointerType GRPCConnection.ty) go!"InformDecision" GRPCConnection.InformDecision.impl
-  ptr_mustEmbedUnimplementedConsensusServer_unfold : MethodUnfold (go.GoType.PointerType GRPCConnection.ty) go!"mustEmbedUnimplementedConsensusServer" GRPCConnection.mustEmbedUnimplementedConsensusServer.impl
+  ptr_unfold'ESP : MethodUnfold (go.GoType.PointerType GRPCConnection.ty) go!"ESP" GRPCConnection.ESP.impl
+  ptr_unfold'FetchBatches : MethodUnfold (go.GoType.PointerType GRPCConnection.ty) go!"FetchBatches" GRPCConnection.FetchBatches.impl
+  ptr_unfold'InformDecision : MethodUnfold (go.GoType.PointerType GRPCConnection.ty) go!"InformDecision" GRPCConnection.InformDecision.impl
+  ptr_unfold'mustEmbedUnimplementedConsensusServer : MethodUnfold (go.GoType.PointerType GRPCConnection.ty) go!"mustEmbedUnimplementedConsensusServer" GRPCConnection.mustEmbedUnimplementedConsensusServer.impl
 
 attribute [instance] GRPCConnection.TypeAssumptions.type_repr
   GRPCConnection.TypeAssumptions.underlying
-  GRPCConnection.TypeAssumptions.get_Recorder
-  GRPCConnection.TypeAssumptions.set_Recorder
+  GRPCConnection.TypeAssumptions.get'Recorder
+  GRPCConnection.TypeAssumptions.set'Recorder
   GRPCConnection.TypeAssumptions.method_set
   GRPCConnection.TypeAssumptions.ptr_method_set
-  GRPCConnection.TypeAssumptions.ptr_ESP_unfold
-  GRPCConnection.TypeAssumptions.ptr_FetchBatches_unfold
-  GRPCConnection.TypeAssumptions.ptr_InformDecision_unfold
-  GRPCConnection.TypeAssumptions.ptr_mustEmbedUnimplementedConsensusServer_unfold
+  GRPCConnection.TypeAssumptions.ptr_unfold'ESP
+  GRPCConnection.TypeAssumptions.ptr_unfold'FetchBatches
+  GRPCConnection.TypeAssumptions.ptr_unfold'InformDecision
+  GRPCConnection.TypeAssumptions.ptr_unfold'mustEmbedUnimplementedConsensusServer
 
 structure ProposerMessage [GooseExts] where
   mk ::
@@ -8906,7 +8906,7 @@ noncomputable instance ProposerMessage.zero_val [GooseExts] : ZeroVal ProposerMe
 @[irreducible] noncomputable def ProposerMessage.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposerMessage.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposerMessage [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposerMessage [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposerMessage.fields ProposerMessage.fieldsUnsealed :=
   ⟨by unfold ProposerMessage.fields; rfl⟩
 
@@ -8916,57 +8916,57 @@ noncomputable instance equals_unfold_ProposerMessage [GooseExts] [GoGlobalContex
 class ProposerMessage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposerMessage.underlying ProposerMessage
   underlying : go.UnderlyingDirectedEq ProposerMessage.ty ProposerMessage.underlying
-  get_state : ∀ (x : ProposerMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : ProposerMessage) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ProposerMessage)))
-  get_sizeCache : ∀ (x : ProposerMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : ProposerMessage) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ProposerMessage)))
-  get_unknownFields : ∀ (x : ProposerMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : ProposerMessage) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ProposerMessage)))
-  get_Sender : ∀ (x : ProposerMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage.underlying go!"Sender") #x (Val #(x.Sender'))
-  set_Sender : ∀ (x : ProposerMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage.underlying go!"Sender") (PairV #x #y) (Val #(({ x with Sender' := y } : ProposerMessage)))
-  get_Index : ∀ (x : ProposerMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage.underlying go!"Index") #x (Val #(x.Index'))
-  set_Index : ∀ (x : ProposerMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage.underlying go!"Index") (PairV #x #y) (Val #(({ x with Index' := y } : ProposerMessage)))
-  get_P : ∀ (x : ProposerMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage.underlying go!"P") #x (Val #(x.P'))
-  set_P : ∀ (x : ProposerMessage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage.underlying go!"P") (PairV #x #y) (Val #(({ x with P' := y } : ProposerMessage)))
-  get_S : ∀ (x : ProposerMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage.underlying go!"S") #x (Val #(x.S'))
-  set_S : ∀ (x : ProposerMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage.underlying go!"S") (PairV #x #y) (Val #(({ x with S' := y } : ProposerMessage)))
-  get_DecidedSlots : ∀ (x : ProposerMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage.underlying go!"DecidedSlots") #x (Val #(x.DecidedSlots'))
-  set_DecidedSlots : ∀ (x : ProposerMessage) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage.underlying go!"DecidedSlots") (PairV #x #y) (Val #(({ x with DecidedSlots' := y } : ProposerMessage)))
+  get'state : ∀ (x : ProposerMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : ProposerMessage) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ProposerMessage)))
+  get'sizeCache : ∀ (x : ProposerMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : ProposerMessage) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ProposerMessage)))
+  get'unknownFields : ∀ (x : ProposerMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : ProposerMessage) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ProposerMessage)))
+  get'Sender : ∀ (x : ProposerMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage.underlying go!"Sender") #x (Val #(x.Sender'))
+  set'Sender : ∀ (x : ProposerMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage.underlying go!"Sender") (PairV #x #y) (Val #(({ x with Sender' := y } : ProposerMessage)))
+  get'Index : ∀ (x : ProposerMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage.underlying go!"Index") #x (Val #(x.Index'))
+  set'Index : ∀ (x : ProposerMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage.underlying go!"Index") (PairV #x #y) (Val #(({ x with Index' := y } : ProposerMessage)))
+  get'P : ∀ (x : ProposerMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage.underlying go!"P") #x (Val #(x.P'))
+  set'P : ∀ (x : ProposerMessage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage.underlying go!"P") (PairV #x #y) (Val #(({ x with P' := y } : ProposerMessage)))
+  get'S : ∀ (x : ProposerMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage.underlying go!"S") #x (Val #(x.S'))
+  set'S : ∀ (x : ProposerMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage.underlying go!"S") (PairV #x #y) (Val #(({ x with S' := y } : ProposerMessage)))
+  get'DecidedSlots : ∀ (x : ProposerMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage.underlying go!"DecidedSlots") #x (Val #(x.DecidedSlots'))
+  set'DecidedSlots : ∀ (x : ProposerMessage) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage.underlying go!"DecidedSlots") (PairV #x #y) (Val #(({ x with DecidedSlots' := y } : ProposerMessage)))
   method_set : go.MethodSetIs ProposerMessage.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposerMessage.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetDecidedSlots", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType ProposerMessage_DecidedSlot.ty))]))), (go!"GetIndex", (some (go.signature.Signature [] false [go.int64]))), (go!"GetP", (some (go.signature.Signature [] false [(go.GoType.PointerType ProposerMessage_Proposal.ty)]))), (go!"GetS", (some (go.signature.Signature [] false [go.int64]))), (go!"GetSender", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetDecidedSlots_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage.ty) go!"GetDecidedSlots" ProposerMessage.GetDecidedSlots.impl
-  ptr_GetIndex_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage.ty) go!"GetIndex" ProposerMessage.GetIndex.impl
-  ptr_GetP_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage.ty) go!"GetP" ProposerMessage.GetP.impl
-  ptr_GetS_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage.ty) go!"GetS" ProposerMessage.GetS.impl
-  ptr_GetSender_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage.ty) go!"GetSender" ProposerMessage.GetSender.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage.ty) go!"ProtoMessage" ProposerMessage.ProtoMessage.impl
+  ptr_unfold'GetDecidedSlots : MethodUnfold (go.GoType.PointerType ProposerMessage.ty) go!"GetDecidedSlots" ProposerMessage.GetDecidedSlots.impl
+  ptr_unfold'GetIndex : MethodUnfold (go.GoType.PointerType ProposerMessage.ty) go!"GetIndex" ProposerMessage.GetIndex.impl
+  ptr_unfold'GetP : MethodUnfold (go.GoType.PointerType ProposerMessage.ty) go!"GetP" ProposerMessage.GetP.impl
+  ptr_unfold'GetS : MethodUnfold (go.GoType.PointerType ProposerMessage.ty) go!"GetS" ProposerMessage.GetS.impl
+  ptr_unfold'GetSender : MethodUnfold (go.GoType.PointerType ProposerMessage.ty) go!"GetSender" ProposerMessage.GetSender.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType ProposerMessage.ty) go!"ProtoMessage" ProposerMessage.ProtoMessage.impl
 
 attribute [instance] ProposerMessage.TypeAssumptions.type_repr
   ProposerMessage.TypeAssumptions.underlying
-  ProposerMessage.TypeAssumptions.get_state
-  ProposerMessage.TypeAssumptions.set_state
-  ProposerMessage.TypeAssumptions.get_sizeCache
-  ProposerMessage.TypeAssumptions.set_sizeCache
-  ProposerMessage.TypeAssumptions.get_unknownFields
-  ProposerMessage.TypeAssumptions.set_unknownFields
-  ProposerMessage.TypeAssumptions.get_Sender
-  ProposerMessage.TypeAssumptions.set_Sender
-  ProposerMessage.TypeAssumptions.get_Index
-  ProposerMessage.TypeAssumptions.set_Index
-  ProposerMessage.TypeAssumptions.get_P
-  ProposerMessage.TypeAssumptions.set_P
-  ProposerMessage.TypeAssumptions.get_S
-  ProposerMessage.TypeAssumptions.set_S
-  ProposerMessage.TypeAssumptions.get_DecidedSlots
-  ProposerMessage.TypeAssumptions.set_DecidedSlots
+  ProposerMessage.TypeAssumptions.get'state
+  ProposerMessage.TypeAssumptions.set'state
+  ProposerMessage.TypeAssumptions.get'sizeCache
+  ProposerMessage.TypeAssumptions.set'sizeCache
+  ProposerMessage.TypeAssumptions.get'unknownFields
+  ProposerMessage.TypeAssumptions.set'unknownFields
+  ProposerMessage.TypeAssumptions.get'Sender
+  ProposerMessage.TypeAssumptions.set'Sender
+  ProposerMessage.TypeAssumptions.get'Index
+  ProposerMessage.TypeAssumptions.set'Index
+  ProposerMessage.TypeAssumptions.get'P
+  ProposerMessage.TypeAssumptions.set'P
+  ProposerMessage.TypeAssumptions.get'S
+  ProposerMessage.TypeAssumptions.set'S
+  ProposerMessage.TypeAssumptions.get'DecidedSlots
+  ProposerMessage.TypeAssumptions.set'DecidedSlots
   ProposerMessage.TypeAssumptions.method_set
   ProposerMessage.TypeAssumptions.ptr_method_set
-  ProposerMessage.TypeAssumptions.ptr_GetDecidedSlots_unfold
-  ProposerMessage.TypeAssumptions.ptr_GetIndex_unfold
-  ProposerMessage.TypeAssumptions.ptr_GetP_unfold
-  ProposerMessage.TypeAssumptions.ptr_GetS_unfold
-  ProposerMessage.TypeAssumptions.ptr_GetSender_unfold
-  ProposerMessage.TypeAssumptions.ptr_ProtoMessage_unfold
+  ProposerMessage.TypeAssumptions.ptr_unfold'GetDecidedSlots
+  ProposerMessage.TypeAssumptions.ptr_unfold'GetIndex
+  ProposerMessage.TypeAssumptions.ptr_unfold'GetP
+  ProposerMessage.TypeAssumptions.ptr_unfold'GetS
+  ProposerMessage.TypeAssumptions.ptr_unfold'GetSender
+  ProposerMessage.TypeAssumptions.ptr_unfold'ProtoMessage
 
 structure RecorderResponse [GooseExts] where
   mk ::
@@ -8993,7 +8993,7 @@ noncomputable instance RecorderResponse.zero_val [GooseExts] : ZeroVal RecorderR
 @[irreducible] noncomputable def RecorderResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RecorderResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_RecorderResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RecorderResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold RecorderResponse.fields RecorderResponse.fieldsUnsealed :=
   ⟨by unfold RecorderResponse.fields; rfl⟩
 
@@ -9003,51 +9003,51 @@ noncomputable instance equals_unfold_RecorderResponse [GooseExts] [GoGlobalConte
 class RecorderResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RecorderResponse.underlying RecorderResponse
   underlying : go.UnderlyingDirectedEq RecorderResponse.ty RecorderResponse.underlying
-  get_state : ∀ (x : RecorderResponse), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : RecorderResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : RecorderResponse)))
-  get_sizeCache : ∀ (x : RecorderResponse), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : RecorderResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : RecorderResponse)))
-  get_unknownFields : ∀ (x : RecorderResponse), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : RecorderResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : RecorderResponse)))
-  get_S : ∀ (x : RecorderResponse), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse.underlying go!"S") #x (Val #(x.S'))
-  set_S : ∀ (x : RecorderResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse.underlying go!"S") (PairV #x #y) (Val #(({ x with S' := y } : RecorderResponse)))
-  get_F : ∀ (x : RecorderResponse), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse.underlying go!"F") #x (Val #(x.F'))
-  set_F : ∀ (x : RecorderResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse.underlying go!"F") (PairV #x #y) (Val #(({ x with F' := y } : RecorderResponse)))
-  get_M : ∀ (x : RecorderResponse), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse.underlying go!"M") #x (Val #(x.M'))
-  set_M : ∀ (x : RecorderResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse.underlying go!"M") (PairV #x #y) (Val #(({ x with M' := y } : RecorderResponse)))
-  get_ClientBatchesNotFound : ∀ (x : RecorderResponse), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse.underlying go!"ClientBatchesNotFound") #x (Val #(x.ClientBatchesNotFound'))
-  set_ClientBatchesNotFound : ∀ (x : RecorderResponse) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse.underlying go!"ClientBatchesNotFound") (PairV #x #y) (Val #(({ x with ClientBatchesNotFound' := y } : RecorderResponse)))
+  get'state : ∀ (x : RecorderResponse), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : RecorderResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : RecorderResponse)))
+  get'sizeCache : ∀ (x : RecorderResponse), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : RecorderResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : RecorderResponse)))
+  get'unknownFields : ∀ (x : RecorderResponse), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : RecorderResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : RecorderResponse)))
+  get'S : ∀ (x : RecorderResponse), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse.underlying go!"S") #x (Val #(x.S'))
+  set'S : ∀ (x : RecorderResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse.underlying go!"S") (PairV #x #y) (Val #(({ x with S' := y } : RecorderResponse)))
+  get'F : ∀ (x : RecorderResponse), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse.underlying go!"F") #x (Val #(x.F'))
+  set'F : ∀ (x : RecorderResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse.underlying go!"F") (PairV #x #y) (Val #(({ x with F' := y } : RecorderResponse)))
+  get'M : ∀ (x : RecorderResponse), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse.underlying go!"M") #x (Val #(x.M'))
+  set'M : ∀ (x : RecorderResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse.underlying go!"M") (PairV #x #y) (Val #(({ x with M' := y } : RecorderResponse)))
+  get'ClientBatchesNotFound : ∀ (x : RecorderResponse), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse.underlying go!"ClientBatchesNotFound") #x (Val #(x.ClientBatchesNotFound'))
+  set'ClientBatchesNotFound : ∀ (x : RecorderResponse) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse.underlying go!"ClientBatchesNotFound") (PairV #x #y) (Val #(({ x with ClientBatchesNotFound' := y } : RecorderResponse)))
   method_set : go.MethodSetIs RecorderResponse.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RecorderResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetClientBatchesNotFound", (some (go.signature.Signature [] false [go.bool]))), (go!"GetF", (some (go.signature.Signature [] false [(go.GoType.PointerType RecorderResponse_Proposal.ty)]))), (go!"GetM", (some (go.signature.Signature [] false [(go.GoType.PointerType RecorderResponse_Proposal.ty)]))), (go!"GetS", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetClientBatchesNotFound_unfold : MethodUnfold (go.GoType.PointerType RecorderResponse.ty) go!"GetClientBatchesNotFound" RecorderResponse.GetClientBatchesNotFound.impl
-  ptr_GetF_unfold : MethodUnfold (go.GoType.PointerType RecorderResponse.ty) go!"GetF" RecorderResponse.GetF.impl
-  ptr_GetM_unfold : MethodUnfold (go.GoType.PointerType RecorderResponse.ty) go!"GetM" RecorderResponse.GetM.impl
-  ptr_GetS_unfold : MethodUnfold (go.GoType.PointerType RecorderResponse.ty) go!"GetS" RecorderResponse.GetS.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType RecorderResponse.ty) go!"ProtoMessage" RecorderResponse.ProtoMessage.impl
+  ptr_unfold'GetClientBatchesNotFound : MethodUnfold (go.GoType.PointerType RecorderResponse.ty) go!"GetClientBatchesNotFound" RecorderResponse.GetClientBatchesNotFound.impl
+  ptr_unfold'GetF : MethodUnfold (go.GoType.PointerType RecorderResponse.ty) go!"GetF" RecorderResponse.GetF.impl
+  ptr_unfold'GetM : MethodUnfold (go.GoType.PointerType RecorderResponse.ty) go!"GetM" RecorderResponse.GetM.impl
+  ptr_unfold'GetS : MethodUnfold (go.GoType.PointerType RecorderResponse.ty) go!"GetS" RecorderResponse.GetS.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType RecorderResponse.ty) go!"ProtoMessage" RecorderResponse.ProtoMessage.impl
 
 attribute [instance] RecorderResponse.TypeAssumptions.type_repr
   RecorderResponse.TypeAssumptions.underlying
-  RecorderResponse.TypeAssumptions.get_state
-  RecorderResponse.TypeAssumptions.set_state
-  RecorderResponse.TypeAssumptions.get_sizeCache
-  RecorderResponse.TypeAssumptions.set_sizeCache
-  RecorderResponse.TypeAssumptions.get_unknownFields
-  RecorderResponse.TypeAssumptions.set_unknownFields
-  RecorderResponse.TypeAssumptions.get_S
-  RecorderResponse.TypeAssumptions.set_S
-  RecorderResponse.TypeAssumptions.get_F
-  RecorderResponse.TypeAssumptions.set_F
-  RecorderResponse.TypeAssumptions.get_M
-  RecorderResponse.TypeAssumptions.set_M
-  RecorderResponse.TypeAssumptions.get_ClientBatchesNotFound
-  RecorderResponse.TypeAssumptions.set_ClientBatchesNotFound
+  RecorderResponse.TypeAssumptions.get'state
+  RecorderResponse.TypeAssumptions.set'state
+  RecorderResponse.TypeAssumptions.get'sizeCache
+  RecorderResponse.TypeAssumptions.set'sizeCache
+  RecorderResponse.TypeAssumptions.get'unknownFields
+  RecorderResponse.TypeAssumptions.set'unknownFields
+  RecorderResponse.TypeAssumptions.get'S
+  RecorderResponse.TypeAssumptions.set'S
+  RecorderResponse.TypeAssumptions.get'F
+  RecorderResponse.TypeAssumptions.set'F
+  RecorderResponse.TypeAssumptions.get'M
+  RecorderResponse.TypeAssumptions.set'M
+  RecorderResponse.TypeAssumptions.get'ClientBatchesNotFound
+  RecorderResponse.TypeAssumptions.set'ClientBatchesNotFound
   RecorderResponse.TypeAssumptions.method_set
   RecorderResponse.TypeAssumptions.ptr_method_set
-  RecorderResponse.TypeAssumptions.ptr_GetClientBatchesNotFound_unfold
-  RecorderResponse.TypeAssumptions.ptr_GetF_unfold
-  RecorderResponse.TypeAssumptions.ptr_GetM_unfold
-  RecorderResponse.TypeAssumptions.ptr_GetS_unfold
-  RecorderResponse.TypeAssumptions.ptr_ProtoMessage_unfold
+  RecorderResponse.TypeAssumptions.ptr_unfold'GetClientBatchesNotFound
+  RecorderResponse.TypeAssumptions.ptr_unfold'GetF
+  RecorderResponse.TypeAssumptions.ptr_unfold'GetM
+  RecorderResponse.TypeAssumptions.ptr_unfold'GetS
+  RecorderResponse.TypeAssumptions.ptr_unfold'ProtoMessage
 
 structure DecideRequest [GooseExts] where
   mk ::
@@ -9068,7 +9068,7 @@ noncomputable instance DecideRequest.zero_val [GooseExts] : ZeroVal DecideReques
 @[irreducible] noncomputable def DecideRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DecideRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_DecideRequest [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DecideRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold DecideRequest.fields DecideRequest.fieldsUnsealed :=
   ⟨by unfold DecideRequest.fields; rfl⟩
 
@@ -9078,33 +9078,33 @@ noncomputable instance equals_unfold_DecideRequest [GooseExts] [GoGlobalContext]
 class DecideRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DecideRequest.underlying DecideRequest
   underlying : go.UnderlyingDirectedEq DecideRequest.ty DecideRequest.underlying
-  get_state : ∀ (x : DecideRequest), go.IsGoStepPureDetTagged under (StructFieldGet DecideRequest.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : DecideRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet DecideRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : DecideRequest)))
-  get_sizeCache : ∀ (x : DecideRequest), go.IsGoStepPureDetTagged under (StructFieldGet DecideRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : DecideRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DecideRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : DecideRequest)))
-  get_unknownFields : ∀ (x : DecideRequest), go.IsGoStepPureDetTagged under (StructFieldGet DecideRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : DecideRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DecideRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : DecideRequest)))
-  get_Ids : ∀ (x : DecideRequest), go.IsGoStepPureDetTagged under (StructFieldGet DecideRequest.underlying go!"Ids") #x (Val #(x.Ids'))
-  set_Ids : ∀ (x : DecideRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DecideRequest.underlying go!"Ids") (PairV #x #y) (Val #(({ x with Ids' := y } : DecideRequest)))
+  get'state : ∀ (x : DecideRequest), go.IsGoStepPureDetTagged under (StructFieldGet DecideRequest.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : DecideRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet DecideRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : DecideRequest)))
+  get'sizeCache : ∀ (x : DecideRequest), go.IsGoStepPureDetTagged under (StructFieldGet DecideRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : DecideRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DecideRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : DecideRequest)))
+  get'unknownFields : ∀ (x : DecideRequest), go.IsGoStepPureDetTagged under (StructFieldGet DecideRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : DecideRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DecideRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : DecideRequest)))
+  get'Ids : ∀ (x : DecideRequest), go.IsGoStepPureDetTagged under (StructFieldGet DecideRequest.underlying go!"Ids") #x (Val #(x.Ids'))
+  set'Ids : ∀ (x : DecideRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DecideRequest.underlying go!"Ids") (PairV #x #y) (Val #(({ x with Ids' := y } : DecideRequest)))
   method_set : go.MethodSetIs DecideRequest.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DecideRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetIds", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetIds_unfold : MethodUnfold (go.GoType.PointerType DecideRequest.ty) go!"GetIds" DecideRequest.GetIds.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType DecideRequest.ty) go!"ProtoMessage" DecideRequest.ProtoMessage.impl
+  ptr_unfold'GetIds : MethodUnfold (go.GoType.PointerType DecideRequest.ty) go!"GetIds" DecideRequest.GetIds.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType DecideRequest.ty) go!"ProtoMessage" DecideRequest.ProtoMessage.impl
 
 attribute [instance] DecideRequest.TypeAssumptions.type_repr
   DecideRequest.TypeAssumptions.underlying
-  DecideRequest.TypeAssumptions.get_state
-  DecideRequest.TypeAssumptions.set_state
-  DecideRequest.TypeAssumptions.get_sizeCache
-  DecideRequest.TypeAssumptions.set_sizeCache
-  DecideRequest.TypeAssumptions.get_unknownFields
-  DecideRequest.TypeAssumptions.set_unknownFields
-  DecideRequest.TypeAssumptions.get_Ids
-  DecideRequest.TypeAssumptions.set_Ids
+  DecideRequest.TypeAssumptions.get'state
+  DecideRequest.TypeAssumptions.set'state
+  DecideRequest.TypeAssumptions.get'sizeCache
+  DecideRequest.TypeAssumptions.set'sizeCache
+  DecideRequest.TypeAssumptions.get'unknownFields
+  DecideRequest.TypeAssumptions.set'unknownFields
+  DecideRequest.TypeAssumptions.get'Ids
+  DecideRequest.TypeAssumptions.set'Ids
   DecideRequest.TypeAssumptions.method_set
   DecideRequest.TypeAssumptions.ptr_method_set
-  DecideRequest.TypeAssumptions.ptr_GetIds_unfold
-  DecideRequest.TypeAssumptions.ptr_ProtoMessage_unfold
+  DecideRequest.TypeAssumptions.ptr_unfold'GetIds
+  DecideRequest.TypeAssumptions.ptr_unfold'ProtoMessage
 
 structure DecideResponse [GooseExts] where
   mk ::
@@ -9125,7 +9125,7 @@ noncomputable instance DecideResponse.zero_val [GooseExts] : ZeroVal DecideRespo
 @[irreducible] noncomputable def DecideResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DecideResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_DecideResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DecideResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold DecideResponse.fields DecideResponse.fieldsUnsealed :=
   ⟨by unfold DecideResponse.fields; rfl⟩
 
@@ -9135,33 +9135,33 @@ noncomputable instance equals_unfold_DecideResponse [GooseExts] [GoGlobalContext
 class DecideResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DecideResponse.underlying DecideResponse
   underlying : go.UnderlyingDirectedEq DecideResponse.ty DecideResponse.underlying
-  get_state : ∀ (x : DecideResponse), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : DecideResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : DecideResponse)))
-  get_sizeCache : ∀ (x : DecideResponse), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : DecideResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : DecideResponse)))
-  get_unknownFields : ∀ (x : DecideResponse), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : DecideResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : DecideResponse)))
-  get_ClientBatches : ∀ (x : DecideResponse), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse.underlying go!"ClientBatches") #x (Val #(x.ClientBatches'))
-  set_ClientBatches : ∀ (x : DecideResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse.underlying go!"ClientBatches") (PairV #x #y) (Val #(({ x with ClientBatches' := y } : DecideResponse)))
+  get'state : ∀ (x : DecideResponse), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : DecideResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : DecideResponse)))
+  get'sizeCache : ∀ (x : DecideResponse), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : DecideResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : DecideResponse)))
+  get'unknownFields : ∀ (x : DecideResponse), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : DecideResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : DecideResponse)))
+  get'ClientBatches : ∀ (x : DecideResponse), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse.underlying go!"ClientBatches") #x (Val #(x.ClientBatches'))
+  set'ClientBatches : ∀ (x : DecideResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse.underlying go!"ClientBatches") (PairV #x #y) (Val #(({ x with ClientBatches' := y } : DecideResponse)))
   method_set : go.MethodSetIs DecideResponse.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DecideResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetClientBatches", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType DecideResponse_ClientBatch.ty))]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetClientBatches_unfold : MethodUnfold (go.GoType.PointerType DecideResponse.ty) go!"GetClientBatches" DecideResponse.GetClientBatches.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType DecideResponse.ty) go!"ProtoMessage" DecideResponse.ProtoMessage.impl
+  ptr_unfold'GetClientBatches : MethodUnfold (go.GoType.PointerType DecideResponse.ty) go!"GetClientBatches" DecideResponse.GetClientBatches.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType DecideResponse.ty) go!"ProtoMessage" DecideResponse.ProtoMessage.impl
 
 attribute [instance] DecideResponse.TypeAssumptions.type_repr
   DecideResponse.TypeAssumptions.underlying
-  DecideResponse.TypeAssumptions.get_state
-  DecideResponse.TypeAssumptions.set_state
-  DecideResponse.TypeAssumptions.get_sizeCache
-  DecideResponse.TypeAssumptions.set_sizeCache
-  DecideResponse.TypeAssumptions.get_unknownFields
-  DecideResponse.TypeAssumptions.set_unknownFields
-  DecideResponse.TypeAssumptions.get_ClientBatches
-  DecideResponse.TypeAssumptions.set_ClientBatches
+  DecideResponse.TypeAssumptions.get'state
+  DecideResponse.TypeAssumptions.set'state
+  DecideResponse.TypeAssumptions.get'sizeCache
+  DecideResponse.TypeAssumptions.set'sizeCache
+  DecideResponse.TypeAssumptions.get'unknownFields
+  DecideResponse.TypeAssumptions.set'unknownFields
+  DecideResponse.TypeAssumptions.get'ClientBatches
+  DecideResponse.TypeAssumptions.set'ClientBatches
   DecideResponse.TypeAssumptions.method_set
   DecideResponse.TypeAssumptions.ptr_method_set
-  DecideResponse.TypeAssumptions.ptr_GetClientBatches_unfold
-  DecideResponse.TypeAssumptions.ptr_ProtoMessage_unfold
+  DecideResponse.TypeAssumptions.ptr_unfold'GetClientBatches
+  DecideResponse.TypeAssumptions.ptr_unfold'ProtoMessage
 
 structure Decisions [GooseExts] where
   mk ::
@@ -9182,7 +9182,7 @@ noncomputable instance Decisions.zero_val [GooseExts] : ZeroVal Decisions :=
 @[irreducible] noncomputable def Decisions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Decisions.fieldsUnsealed
 
-noncomputable instance equals_unfold_Decisions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Decisions [GooseExts] [GoGlobalContext] :
     EqualsUnfold Decisions.fields Decisions.fieldsUnsealed :=
   ⟨by unfold Decisions.fields; rfl⟩
 
@@ -9192,33 +9192,33 @@ noncomputable instance equals_unfold_Decisions [GooseExts] [GoGlobalContext] :
 class Decisions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Decisions.underlying Decisions
   underlying : go.UnderlyingDirectedEq Decisions.ty Decisions.underlying
-  get_state : ∀ (x : Decisions), go.IsGoStepPureDetTagged under (StructFieldGet Decisions.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : Decisions) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Decisions.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Decisions)))
-  get_sizeCache : ∀ (x : Decisions), go.IsGoStepPureDetTagged under (StructFieldGet Decisions.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : Decisions) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Decisions.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Decisions)))
-  get_unknownFields : ∀ (x : Decisions), go.IsGoStepPureDetTagged under (StructFieldGet Decisions.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : Decisions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Decisions.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Decisions)))
-  get_DecidedSlots : ∀ (x : Decisions), go.IsGoStepPureDetTagged under (StructFieldGet Decisions.underlying go!"DecidedSlots") #x (Val #(x.DecidedSlots'))
-  set_DecidedSlots : ∀ (x : Decisions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Decisions.underlying go!"DecidedSlots") (PairV #x #y) (Val #(({ x with DecidedSlots' := y } : Decisions)))
+  get'state : ∀ (x : Decisions), go.IsGoStepPureDetTagged under (StructFieldGet Decisions.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : Decisions) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Decisions.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Decisions)))
+  get'sizeCache : ∀ (x : Decisions), go.IsGoStepPureDetTagged under (StructFieldGet Decisions.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : Decisions) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Decisions.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Decisions)))
+  get'unknownFields : ∀ (x : Decisions), go.IsGoStepPureDetTagged under (StructFieldGet Decisions.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : Decisions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Decisions.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Decisions)))
+  get'DecidedSlots : ∀ (x : Decisions), go.IsGoStepPureDetTagged under (StructFieldGet Decisions.underlying go!"DecidedSlots") #x (Val #(x.DecidedSlots'))
+  set'DecidedSlots : ∀ (x : Decisions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Decisions.underlying go!"DecidedSlots") (PairV #x #y) (Val #(({ x with DecidedSlots' := y } : Decisions)))
   method_set : go.MethodSetIs Decisions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Decisions.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetDecidedSlots", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Decisions_DecidedSlot.ty))]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetDecidedSlots_unfold : MethodUnfold (go.GoType.PointerType Decisions.ty) go!"GetDecidedSlots" Decisions.GetDecidedSlots.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType Decisions.ty) go!"ProtoMessage" Decisions.ProtoMessage.impl
+  ptr_unfold'GetDecidedSlots : MethodUnfold (go.GoType.PointerType Decisions.ty) go!"GetDecidedSlots" Decisions.GetDecidedSlots.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType Decisions.ty) go!"ProtoMessage" Decisions.ProtoMessage.impl
 
 attribute [instance] Decisions.TypeAssumptions.type_repr
   Decisions.TypeAssumptions.underlying
-  Decisions.TypeAssumptions.get_state
-  Decisions.TypeAssumptions.set_state
-  Decisions.TypeAssumptions.get_sizeCache
-  Decisions.TypeAssumptions.set_sizeCache
-  Decisions.TypeAssumptions.get_unknownFields
-  Decisions.TypeAssumptions.set_unknownFields
-  Decisions.TypeAssumptions.get_DecidedSlots
-  Decisions.TypeAssumptions.set_DecidedSlots
+  Decisions.TypeAssumptions.get'state
+  Decisions.TypeAssumptions.set'state
+  Decisions.TypeAssumptions.get'sizeCache
+  Decisions.TypeAssumptions.set'sizeCache
+  Decisions.TypeAssumptions.get'unknownFields
+  Decisions.TypeAssumptions.set'unknownFields
+  Decisions.TypeAssumptions.get'DecidedSlots
+  Decisions.TypeAssumptions.set'DecidedSlots
   Decisions.TypeAssumptions.method_set
   Decisions.TypeAssumptions.ptr_method_set
-  Decisions.TypeAssumptions.ptr_GetDecidedSlots_unfold
-  Decisions.TypeAssumptions.ptr_ProtoMessage_unfold
+  Decisions.TypeAssumptions.ptr_unfold'GetDecidedSlots
+  Decisions.TypeAssumptions.ptr_unfold'ProtoMessage
 
 structure Empty [GooseExts] where
   mk ::
@@ -9237,7 +9237,7 @@ noncomputable instance Empty.zero_val [GooseExts] : ZeroVal Empty :=
 @[irreducible] noncomputable def Empty.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Empty.fieldsUnsealed
 
-noncomputable instance equals_unfold_Empty [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Empty [GooseExts] [GoGlobalContext] :
     EqualsUnfold Empty.fields Empty.fieldsUnsealed :=
   ⟨by unfold Empty.fields; rfl⟩
 
@@ -9247,27 +9247,27 @@ noncomputable instance equals_unfold_Empty [GooseExts] [GoGlobalContext] :
 class Empty.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Empty.underlying Empty
   underlying : go.UnderlyingDirectedEq Empty.ty Empty.underlying
-  get_state : ∀ (x : Empty), go.IsGoStepPureDetTagged under (StructFieldGet Empty.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : Empty) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Empty.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Empty)))
-  get_sizeCache : ∀ (x : Empty), go.IsGoStepPureDetTagged under (StructFieldGet Empty.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : Empty) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Empty.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Empty)))
-  get_unknownFields : ∀ (x : Empty), go.IsGoStepPureDetTagged under (StructFieldGet Empty.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : Empty) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Empty.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Empty)))
+  get'state : ∀ (x : Empty), go.IsGoStepPureDetTagged under (StructFieldGet Empty.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : Empty) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Empty.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Empty)))
+  get'sizeCache : ∀ (x : Empty), go.IsGoStepPureDetTagged under (StructFieldGet Empty.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : Empty) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Empty.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Empty)))
+  get'unknownFields : ∀ (x : Empty), go.IsGoStepPureDetTagged under (StructFieldGet Empty.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : Empty) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Empty.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Empty)))
   method_set : go.MethodSetIs Empty.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Empty.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType Empty.ty) go!"ProtoMessage" Empty.ProtoMessage.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType Empty.ty) go!"ProtoMessage" Empty.ProtoMessage.impl
 
 attribute [instance] Empty.TypeAssumptions.type_repr
   Empty.TypeAssumptions.underlying
-  Empty.TypeAssumptions.get_state
-  Empty.TypeAssumptions.set_state
-  Empty.TypeAssumptions.get_sizeCache
-  Empty.TypeAssumptions.set_sizeCache
-  Empty.TypeAssumptions.get_unknownFields
-  Empty.TypeAssumptions.set_unknownFields
+  Empty.TypeAssumptions.get'state
+  Empty.TypeAssumptions.set'state
+  Empty.TypeAssumptions.get'sizeCache
+  Empty.TypeAssumptions.set'sizeCache
+  Empty.TypeAssumptions.get'unknownFields
+  Empty.TypeAssumptions.set'unknownFields
   Empty.TypeAssumptions.method_set
   Empty.TypeAssumptions.ptr_method_set
-  Empty.TypeAssumptions.ptr_ProtoMessage_unfold
+  Empty.TypeAssumptions.ptr_unfold'ProtoMessage
 
 structure ProposerMessage_ClientBatch [GooseExts] where
   mk ::
@@ -9292,7 +9292,7 @@ noncomputable instance ProposerMessage_ClientBatch.zero_val [GooseExts] : ZeroVa
 @[irreducible] noncomputable def ProposerMessage_ClientBatch.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposerMessage_ClientBatch.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposerMessage_ClientBatch [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposerMessage_ClientBatch [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposerMessage_ClientBatch.fields ProposerMessage_ClientBatch.fieldsUnsealed :=
   ⟨by unfold ProposerMessage_ClientBatch.fields; rfl⟩
 
@@ -9302,45 +9302,45 @@ noncomputable instance equals_unfold_ProposerMessage_ClientBatch [GooseExts] [Go
 class ProposerMessage_ClientBatch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposerMessage_ClientBatch.underlying ProposerMessage_ClientBatch
   underlying : go.UnderlyingDirectedEq ProposerMessage_ClientBatch.ty ProposerMessage_ClientBatch.underlying
-  get_state : ∀ (x : ProposerMessage_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : ProposerMessage_ClientBatch) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ProposerMessage_ClientBatch)))
-  get_sizeCache : ∀ (x : ProposerMessage_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : ProposerMessage_ClientBatch) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ProposerMessage_ClientBatch)))
-  get_unknownFields : ∀ (x : ProposerMessage_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : ProposerMessage_ClientBatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ProposerMessage_ClientBatch)))
-  get_Sender : ∀ (x : ProposerMessage_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch.underlying go!"Sender") #x (Val #(x.Sender'))
-  set_Sender : ∀ (x : ProposerMessage_ClientBatch) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch.underlying go!"Sender") (PairV #x #y) (Val #(({ x with Sender' := y } : ProposerMessage_ClientBatch)))
-  get_Messages : ∀ (x : ProposerMessage_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch.underlying go!"Messages") #x (Val #(x.Messages'))
-  set_Messages : ∀ (x : ProposerMessage_ClientBatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch.underlying go!"Messages") (PairV #x #y) (Val #(({ x with Messages' := y } : ProposerMessage_ClientBatch)))
-  get_Id : ∀ (x : ProposerMessage_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch.underlying go!"Id") #x (Val #(x.Id'))
-  set_Id : ∀ (x : ProposerMessage_ClientBatch) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : ProposerMessage_ClientBatch)))
+  get'state : ∀ (x : ProposerMessage_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : ProposerMessage_ClientBatch) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ProposerMessage_ClientBatch)))
+  get'sizeCache : ∀ (x : ProposerMessage_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : ProposerMessage_ClientBatch) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ProposerMessage_ClientBatch)))
+  get'unknownFields : ∀ (x : ProposerMessage_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : ProposerMessage_ClientBatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ProposerMessage_ClientBatch)))
+  get'Sender : ∀ (x : ProposerMessage_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch.underlying go!"Sender") #x (Val #(x.Sender'))
+  set'Sender : ∀ (x : ProposerMessage_ClientBatch) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch.underlying go!"Sender") (PairV #x #y) (Val #(({ x with Sender' := y } : ProposerMessage_ClientBatch)))
+  get'Messages : ∀ (x : ProposerMessage_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch.underlying go!"Messages") #x (Val #(x.Messages'))
+  set'Messages : ∀ (x : ProposerMessage_ClientBatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch.underlying go!"Messages") (PairV #x #y) (Val #(({ x with Messages' := y } : ProposerMessage_ClientBatch)))
+  get'Id : ∀ (x : ProposerMessage_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch.underlying go!"Id") #x (Val #(x.Id'))
+  set'Id : ∀ (x : ProposerMessage_ClientBatch) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : ProposerMessage_ClientBatch)))
   method_set : go.MethodSetIs ProposerMessage_ClientBatch.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposerMessage_ClientBatch.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetId", (some (go.signature.Signature [] false [go.string]))), (go!"GetMessages", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType ProposerMessage_ClientBatch_SingleMessage.ty))]))), (go!"GetSender", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetId_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage_ClientBatch.ty) go!"GetId" ProposerMessage_ClientBatch.GetId.impl
-  ptr_GetMessages_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage_ClientBatch.ty) go!"GetMessages" ProposerMessage_ClientBatch.GetMessages.impl
-  ptr_GetSender_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage_ClientBatch.ty) go!"GetSender" ProposerMessage_ClientBatch.GetSender.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage_ClientBatch.ty) go!"ProtoMessage" ProposerMessage_ClientBatch.ProtoMessage.impl
+  ptr_unfold'GetId : MethodUnfold (go.GoType.PointerType ProposerMessage_ClientBatch.ty) go!"GetId" ProposerMessage_ClientBatch.GetId.impl
+  ptr_unfold'GetMessages : MethodUnfold (go.GoType.PointerType ProposerMessage_ClientBatch.ty) go!"GetMessages" ProposerMessage_ClientBatch.GetMessages.impl
+  ptr_unfold'GetSender : MethodUnfold (go.GoType.PointerType ProposerMessage_ClientBatch.ty) go!"GetSender" ProposerMessage_ClientBatch.GetSender.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType ProposerMessage_ClientBatch.ty) go!"ProtoMessage" ProposerMessage_ClientBatch.ProtoMessage.impl
 
 attribute [instance] ProposerMessage_ClientBatch.TypeAssumptions.type_repr
   ProposerMessage_ClientBatch.TypeAssumptions.underlying
-  ProposerMessage_ClientBatch.TypeAssumptions.get_state
-  ProposerMessage_ClientBatch.TypeAssumptions.set_state
-  ProposerMessage_ClientBatch.TypeAssumptions.get_sizeCache
-  ProposerMessage_ClientBatch.TypeAssumptions.set_sizeCache
-  ProposerMessage_ClientBatch.TypeAssumptions.get_unknownFields
-  ProposerMessage_ClientBatch.TypeAssumptions.set_unknownFields
-  ProposerMessage_ClientBatch.TypeAssumptions.get_Sender
-  ProposerMessage_ClientBatch.TypeAssumptions.set_Sender
-  ProposerMessage_ClientBatch.TypeAssumptions.get_Messages
-  ProposerMessage_ClientBatch.TypeAssumptions.set_Messages
-  ProposerMessage_ClientBatch.TypeAssumptions.get_Id
-  ProposerMessage_ClientBatch.TypeAssumptions.set_Id
+  ProposerMessage_ClientBatch.TypeAssumptions.get'state
+  ProposerMessage_ClientBatch.TypeAssumptions.set'state
+  ProposerMessage_ClientBatch.TypeAssumptions.get'sizeCache
+  ProposerMessage_ClientBatch.TypeAssumptions.set'sizeCache
+  ProposerMessage_ClientBatch.TypeAssumptions.get'unknownFields
+  ProposerMessage_ClientBatch.TypeAssumptions.set'unknownFields
+  ProposerMessage_ClientBatch.TypeAssumptions.get'Sender
+  ProposerMessage_ClientBatch.TypeAssumptions.set'Sender
+  ProposerMessage_ClientBatch.TypeAssumptions.get'Messages
+  ProposerMessage_ClientBatch.TypeAssumptions.set'Messages
+  ProposerMessage_ClientBatch.TypeAssumptions.get'Id
+  ProposerMessage_ClientBatch.TypeAssumptions.set'Id
   ProposerMessage_ClientBatch.TypeAssumptions.method_set
   ProposerMessage_ClientBatch.TypeAssumptions.ptr_method_set
-  ProposerMessage_ClientBatch.TypeAssumptions.ptr_GetId_unfold
-  ProposerMessage_ClientBatch.TypeAssumptions.ptr_GetMessages_unfold
-  ProposerMessage_ClientBatch.TypeAssumptions.ptr_GetSender_unfold
-  ProposerMessage_ClientBatch.TypeAssumptions.ptr_ProtoMessage_unfold
+  ProposerMessage_ClientBatch.TypeAssumptions.ptr_unfold'GetId
+  ProposerMessage_ClientBatch.TypeAssumptions.ptr_unfold'GetMessages
+  ProposerMessage_ClientBatch.TypeAssumptions.ptr_unfold'GetSender
+  ProposerMessage_ClientBatch.TypeAssumptions.ptr_unfold'ProtoMessage
 
 structure ProposerMessage_Proposal [GooseExts] where
   mk ::
@@ -9369,7 +9369,7 @@ noncomputable instance ProposerMessage_Proposal.zero_val [GooseExts] : ZeroVal P
 @[irreducible] noncomputable def ProposerMessage_Proposal.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposerMessage_Proposal.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposerMessage_Proposal [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposerMessage_Proposal [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposerMessage_Proposal.fields ProposerMessage_Proposal.fieldsUnsealed :=
   ⟨by unfold ProposerMessage_Proposal.fields; rfl⟩
 
@@ -9379,57 +9379,57 @@ noncomputable instance equals_unfold_ProposerMessage_Proposal [GooseExts] [GoGlo
 class ProposerMessage_Proposal.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposerMessage_Proposal.underlying ProposerMessage_Proposal
   underlying : go.UnderlyingDirectedEq ProposerMessage_Proposal.ty ProposerMessage_Proposal.underlying
-  get_state : ∀ (x : ProposerMessage_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_Proposal.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : ProposerMessage_Proposal) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_Proposal.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ProposerMessage_Proposal)))
-  get_sizeCache : ∀ (x : ProposerMessage_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_Proposal.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : ProposerMessage_Proposal) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_Proposal.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ProposerMessage_Proposal)))
-  get_unknownFields : ∀ (x : ProposerMessage_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_Proposal.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : ProposerMessage_Proposal) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_Proposal.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ProposerMessage_Proposal)))
-  get_Priority : ∀ (x : ProposerMessage_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_Proposal.underlying go!"Priority") #x (Val #(x.Priority'))
-  set_Priority : ∀ (x : ProposerMessage_Proposal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_Proposal.underlying go!"Priority") (PairV #x #y) (Val #(({ x with Priority' := y } : ProposerMessage_Proposal)))
-  get_ProposerId : ∀ (x : ProposerMessage_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_Proposal.underlying go!"ProposerId") #x (Val #(x.ProposerId'))
-  set_ProposerId : ∀ (x : ProposerMessage_Proposal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_Proposal.underlying go!"ProposerId") (PairV #x #y) (Val #(({ x with ProposerId' := y } : ProposerMessage_Proposal)))
-  get_ThreadId : ∀ (x : ProposerMessage_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_Proposal.underlying go!"ThreadId") #x (Val #(x.ThreadId'))
-  set_ThreadId : ∀ (x : ProposerMessage_Proposal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_Proposal.underlying go!"ThreadId") (PairV #x #y) (Val #(({ x with ThreadId' := y } : ProposerMessage_Proposal)))
-  get_Ids : ∀ (x : ProposerMessage_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_Proposal.underlying go!"Ids") #x (Val #(x.Ids'))
-  set_Ids : ∀ (x : ProposerMessage_Proposal) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_Proposal.underlying go!"Ids") (PairV #x #y) (Val #(({ x with Ids' := y } : ProposerMessage_Proposal)))
-  get_ClientBatches : ∀ (x : ProposerMessage_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_Proposal.underlying go!"ClientBatches") #x (Val #(x.ClientBatches'))
-  set_ClientBatches : ∀ (x : ProposerMessage_Proposal) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_Proposal.underlying go!"ClientBatches") (PairV #x #y) (Val #(({ x with ClientBatches' := y } : ProposerMessage_Proposal)))
+  get'state : ∀ (x : ProposerMessage_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_Proposal.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : ProposerMessage_Proposal) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_Proposal.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ProposerMessage_Proposal)))
+  get'sizeCache : ∀ (x : ProposerMessage_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_Proposal.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : ProposerMessage_Proposal) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_Proposal.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ProposerMessage_Proposal)))
+  get'unknownFields : ∀ (x : ProposerMessage_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_Proposal.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : ProposerMessage_Proposal) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_Proposal.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ProposerMessage_Proposal)))
+  get'Priority : ∀ (x : ProposerMessage_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_Proposal.underlying go!"Priority") #x (Val #(x.Priority'))
+  set'Priority : ∀ (x : ProposerMessage_Proposal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_Proposal.underlying go!"Priority") (PairV #x #y) (Val #(({ x with Priority' := y } : ProposerMessage_Proposal)))
+  get'ProposerId : ∀ (x : ProposerMessage_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_Proposal.underlying go!"ProposerId") #x (Val #(x.ProposerId'))
+  set'ProposerId : ∀ (x : ProposerMessage_Proposal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_Proposal.underlying go!"ProposerId") (PairV #x #y) (Val #(({ x with ProposerId' := y } : ProposerMessage_Proposal)))
+  get'ThreadId : ∀ (x : ProposerMessage_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_Proposal.underlying go!"ThreadId") #x (Val #(x.ThreadId'))
+  set'ThreadId : ∀ (x : ProposerMessage_Proposal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_Proposal.underlying go!"ThreadId") (PairV #x #y) (Val #(({ x with ThreadId' := y } : ProposerMessage_Proposal)))
+  get'Ids : ∀ (x : ProposerMessage_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_Proposal.underlying go!"Ids") #x (Val #(x.Ids'))
+  set'Ids : ∀ (x : ProposerMessage_Proposal) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_Proposal.underlying go!"Ids") (PairV #x #y) (Val #(({ x with Ids' := y } : ProposerMessage_Proposal)))
+  get'ClientBatches : ∀ (x : ProposerMessage_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_Proposal.underlying go!"ClientBatches") #x (Val #(x.ClientBatches'))
+  set'ClientBatches : ∀ (x : ProposerMessage_Proposal) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_Proposal.underlying go!"ClientBatches") (PairV #x #y) (Val #(({ x with ClientBatches' := y } : ProposerMessage_Proposal)))
   method_set : go.MethodSetIs ProposerMessage_Proposal.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposerMessage_Proposal.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetClientBatches", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType ProposerMessage_ClientBatch.ty))]))), (go!"GetIds", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetPriority", (some (go.signature.Signature [] false [go.int64]))), (go!"GetProposerId", (some (go.signature.Signature [] false [go.int64]))), (go!"GetThreadId", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetClientBatches_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage_Proposal.ty) go!"GetClientBatches" ProposerMessage_Proposal.GetClientBatches.impl
-  ptr_GetIds_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage_Proposal.ty) go!"GetIds" ProposerMessage_Proposal.GetIds.impl
-  ptr_GetPriority_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage_Proposal.ty) go!"GetPriority" ProposerMessage_Proposal.GetPriority.impl
-  ptr_GetProposerId_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage_Proposal.ty) go!"GetProposerId" ProposerMessage_Proposal.GetProposerId.impl
-  ptr_GetThreadId_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage_Proposal.ty) go!"GetThreadId" ProposerMessage_Proposal.GetThreadId.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage_Proposal.ty) go!"ProtoMessage" ProposerMessage_Proposal.ProtoMessage.impl
+  ptr_unfold'GetClientBatches : MethodUnfold (go.GoType.PointerType ProposerMessage_Proposal.ty) go!"GetClientBatches" ProposerMessage_Proposal.GetClientBatches.impl
+  ptr_unfold'GetIds : MethodUnfold (go.GoType.PointerType ProposerMessage_Proposal.ty) go!"GetIds" ProposerMessage_Proposal.GetIds.impl
+  ptr_unfold'GetPriority : MethodUnfold (go.GoType.PointerType ProposerMessage_Proposal.ty) go!"GetPriority" ProposerMessage_Proposal.GetPriority.impl
+  ptr_unfold'GetProposerId : MethodUnfold (go.GoType.PointerType ProposerMessage_Proposal.ty) go!"GetProposerId" ProposerMessage_Proposal.GetProposerId.impl
+  ptr_unfold'GetThreadId : MethodUnfold (go.GoType.PointerType ProposerMessage_Proposal.ty) go!"GetThreadId" ProposerMessage_Proposal.GetThreadId.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType ProposerMessage_Proposal.ty) go!"ProtoMessage" ProposerMessage_Proposal.ProtoMessage.impl
 
 attribute [instance] ProposerMessage_Proposal.TypeAssumptions.type_repr
   ProposerMessage_Proposal.TypeAssumptions.underlying
-  ProposerMessage_Proposal.TypeAssumptions.get_state
-  ProposerMessage_Proposal.TypeAssumptions.set_state
-  ProposerMessage_Proposal.TypeAssumptions.get_sizeCache
-  ProposerMessage_Proposal.TypeAssumptions.set_sizeCache
-  ProposerMessage_Proposal.TypeAssumptions.get_unknownFields
-  ProposerMessage_Proposal.TypeAssumptions.set_unknownFields
-  ProposerMessage_Proposal.TypeAssumptions.get_Priority
-  ProposerMessage_Proposal.TypeAssumptions.set_Priority
-  ProposerMessage_Proposal.TypeAssumptions.get_ProposerId
-  ProposerMessage_Proposal.TypeAssumptions.set_ProposerId
-  ProposerMessage_Proposal.TypeAssumptions.get_ThreadId
-  ProposerMessage_Proposal.TypeAssumptions.set_ThreadId
-  ProposerMessage_Proposal.TypeAssumptions.get_Ids
-  ProposerMessage_Proposal.TypeAssumptions.set_Ids
-  ProposerMessage_Proposal.TypeAssumptions.get_ClientBatches
-  ProposerMessage_Proposal.TypeAssumptions.set_ClientBatches
+  ProposerMessage_Proposal.TypeAssumptions.get'state
+  ProposerMessage_Proposal.TypeAssumptions.set'state
+  ProposerMessage_Proposal.TypeAssumptions.get'sizeCache
+  ProposerMessage_Proposal.TypeAssumptions.set'sizeCache
+  ProposerMessage_Proposal.TypeAssumptions.get'unknownFields
+  ProposerMessage_Proposal.TypeAssumptions.set'unknownFields
+  ProposerMessage_Proposal.TypeAssumptions.get'Priority
+  ProposerMessage_Proposal.TypeAssumptions.set'Priority
+  ProposerMessage_Proposal.TypeAssumptions.get'ProposerId
+  ProposerMessage_Proposal.TypeAssumptions.set'ProposerId
+  ProposerMessage_Proposal.TypeAssumptions.get'ThreadId
+  ProposerMessage_Proposal.TypeAssumptions.set'ThreadId
+  ProposerMessage_Proposal.TypeAssumptions.get'Ids
+  ProposerMessage_Proposal.TypeAssumptions.set'Ids
+  ProposerMessage_Proposal.TypeAssumptions.get'ClientBatches
+  ProposerMessage_Proposal.TypeAssumptions.set'ClientBatches
   ProposerMessage_Proposal.TypeAssumptions.method_set
   ProposerMessage_Proposal.TypeAssumptions.ptr_method_set
-  ProposerMessage_Proposal.TypeAssumptions.ptr_GetClientBatches_unfold
-  ProposerMessage_Proposal.TypeAssumptions.ptr_GetIds_unfold
-  ProposerMessage_Proposal.TypeAssumptions.ptr_GetPriority_unfold
-  ProposerMessage_Proposal.TypeAssumptions.ptr_GetProposerId_unfold
-  ProposerMessage_Proposal.TypeAssumptions.ptr_GetThreadId_unfold
-  ProposerMessage_Proposal.TypeAssumptions.ptr_ProtoMessage_unfold
+  ProposerMessage_Proposal.TypeAssumptions.ptr_unfold'GetClientBatches
+  ProposerMessage_Proposal.TypeAssumptions.ptr_unfold'GetIds
+  ProposerMessage_Proposal.TypeAssumptions.ptr_unfold'GetPriority
+  ProposerMessage_Proposal.TypeAssumptions.ptr_unfold'GetProposerId
+  ProposerMessage_Proposal.TypeAssumptions.ptr_unfold'GetThreadId
+  ProposerMessage_Proposal.TypeAssumptions.ptr_unfold'ProtoMessage
 
 structure ProposerMessage_DecidedSlot [GooseExts] where
   mk ::
@@ -9454,7 +9454,7 @@ noncomputable instance ProposerMessage_DecidedSlot.zero_val [GooseExts] : ZeroVa
 @[irreducible] noncomputable def ProposerMessage_DecidedSlot.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposerMessage_DecidedSlot.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposerMessage_DecidedSlot [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposerMessage_DecidedSlot [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposerMessage_DecidedSlot.fields ProposerMessage_DecidedSlot.fieldsUnsealed :=
   ⟨by unfold ProposerMessage_DecidedSlot.fields; rfl⟩
 
@@ -9464,45 +9464,45 @@ noncomputable instance equals_unfold_ProposerMessage_DecidedSlot [GooseExts] [Go
 class ProposerMessage_DecidedSlot.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposerMessage_DecidedSlot.underlying ProposerMessage_DecidedSlot
   underlying : go.UnderlyingDirectedEq ProposerMessage_DecidedSlot.ty ProposerMessage_DecidedSlot.underlying
-  get_state : ∀ (x : ProposerMessage_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_DecidedSlot.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : ProposerMessage_DecidedSlot) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_DecidedSlot.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ProposerMessage_DecidedSlot)))
-  get_sizeCache : ∀ (x : ProposerMessage_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_DecidedSlot.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : ProposerMessage_DecidedSlot) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_DecidedSlot.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ProposerMessage_DecidedSlot)))
-  get_unknownFields : ∀ (x : ProposerMessage_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_DecidedSlot.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : ProposerMessage_DecidedSlot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_DecidedSlot.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ProposerMessage_DecidedSlot)))
-  get_Index : ∀ (x : ProposerMessage_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_DecidedSlot.underlying go!"Index") #x (Val #(x.Index'))
-  set_Index : ∀ (x : ProposerMessage_DecidedSlot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_DecidedSlot.underlying go!"Index") (PairV #x #y) (Val #(({ x with Index' := y } : ProposerMessage_DecidedSlot)))
-  get_Ids : ∀ (x : ProposerMessage_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_DecidedSlot.underlying go!"Ids") #x (Val #(x.Ids'))
-  set_Ids : ∀ (x : ProposerMessage_DecidedSlot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_DecidedSlot.underlying go!"Ids") (PairV #x #y) (Val #(({ x with Ids' := y } : ProposerMessage_DecidedSlot)))
-  get_Proposer : ∀ (x : ProposerMessage_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_DecidedSlot.underlying go!"Proposer") #x (Val #(x.Proposer'))
-  set_Proposer : ∀ (x : ProposerMessage_DecidedSlot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_DecidedSlot.underlying go!"Proposer") (PairV #x #y) (Val #(({ x with Proposer' := y } : ProposerMessage_DecidedSlot)))
+  get'state : ∀ (x : ProposerMessage_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_DecidedSlot.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : ProposerMessage_DecidedSlot) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_DecidedSlot.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ProposerMessage_DecidedSlot)))
+  get'sizeCache : ∀ (x : ProposerMessage_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_DecidedSlot.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : ProposerMessage_DecidedSlot) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_DecidedSlot.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ProposerMessage_DecidedSlot)))
+  get'unknownFields : ∀ (x : ProposerMessage_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_DecidedSlot.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : ProposerMessage_DecidedSlot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_DecidedSlot.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ProposerMessage_DecidedSlot)))
+  get'Index : ∀ (x : ProposerMessage_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_DecidedSlot.underlying go!"Index") #x (Val #(x.Index'))
+  set'Index : ∀ (x : ProposerMessage_DecidedSlot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_DecidedSlot.underlying go!"Index") (PairV #x #y) (Val #(({ x with Index' := y } : ProposerMessage_DecidedSlot)))
+  get'Ids : ∀ (x : ProposerMessage_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_DecidedSlot.underlying go!"Ids") #x (Val #(x.Ids'))
+  set'Ids : ∀ (x : ProposerMessage_DecidedSlot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_DecidedSlot.underlying go!"Ids") (PairV #x #y) (Val #(({ x with Ids' := y } : ProposerMessage_DecidedSlot)))
+  get'Proposer : ∀ (x : ProposerMessage_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_DecidedSlot.underlying go!"Proposer") #x (Val #(x.Proposer'))
+  set'Proposer : ∀ (x : ProposerMessage_DecidedSlot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_DecidedSlot.underlying go!"Proposer") (PairV #x #y) (Val #(({ x with Proposer' := y } : ProposerMessage_DecidedSlot)))
   method_set : go.MethodSetIs ProposerMessage_DecidedSlot.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposerMessage_DecidedSlot.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetIds", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetIndex", (some (go.signature.Signature [] false [go.int64]))), (go!"GetProposer", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetIds_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage_DecidedSlot.ty) go!"GetIds" ProposerMessage_DecidedSlot.GetIds.impl
-  ptr_GetIndex_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage_DecidedSlot.ty) go!"GetIndex" ProposerMessage_DecidedSlot.GetIndex.impl
-  ptr_GetProposer_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage_DecidedSlot.ty) go!"GetProposer" ProposerMessage_DecidedSlot.GetProposer.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage_DecidedSlot.ty) go!"ProtoMessage" ProposerMessage_DecidedSlot.ProtoMessage.impl
+  ptr_unfold'GetIds : MethodUnfold (go.GoType.PointerType ProposerMessage_DecidedSlot.ty) go!"GetIds" ProposerMessage_DecidedSlot.GetIds.impl
+  ptr_unfold'GetIndex : MethodUnfold (go.GoType.PointerType ProposerMessage_DecidedSlot.ty) go!"GetIndex" ProposerMessage_DecidedSlot.GetIndex.impl
+  ptr_unfold'GetProposer : MethodUnfold (go.GoType.PointerType ProposerMessage_DecidedSlot.ty) go!"GetProposer" ProposerMessage_DecidedSlot.GetProposer.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType ProposerMessage_DecidedSlot.ty) go!"ProtoMessage" ProposerMessage_DecidedSlot.ProtoMessage.impl
 
 attribute [instance] ProposerMessage_DecidedSlot.TypeAssumptions.type_repr
   ProposerMessage_DecidedSlot.TypeAssumptions.underlying
-  ProposerMessage_DecidedSlot.TypeAssumptions.get_state
-  ProposerMessage_DecidedSlot.TypeAssumptions.set_state
-  ProposerMessage_DecidedSlot.TypeAssumptions.get_sizeCache
-  ProposerMessage_DecidedSlot.TypeAssumptions.set_sizeCache
-  ProposerMessage_DecidedSlot.TypeAssumptions.get_unknownFields
-  ProposerMessage_DecidedSlot.TypeAssumptions.set_unknownFields
-  ProposerMessage_DecidedSlot.TypeAssumptions.get_Index
-  ProposerMessage_DecidedSlot.TypeAssumptions.set_Index
-  ProposerMessage_DecidedSlot.TypeAssumptions.get_Ids
-  ProposerMessage_DecidedSlot.TypeAssumptions.set_Ids
-  ProposerMessage_DecidedSlot.TypeAssumptions.get_Proposer
-  ProposerMessage_DecidedSlot.TypeAssumptions.set_Proposer
+  ProposerMessage_DecidedSlot.TypeAssumptions.get'state
+  ProposerMessage_DecidedSlot.TypeAssumptions.set'state
+  ProposerMessage_DecidedSlot.TypeAssumptions.get'sizeCache
+  ProposerMessage_DecidedSlot.TypeAssumptions.set'sizeCache
+  ProposerMessage_DecidedSlot.TypeAssumptions.get'unknownFields
+  ProposerMessage_DecidedSlot.TypeAssumptions.set'unknownFields
+  ProposerMessage_DecidedSlot.TypeAssumptions.get'Index
+  ProposerMessage_DecidedSlot.TypeAssumptions.set'Index
+  ProposerMessage_DecidedSlot.TypeAssumptions.get'Ids
+  ProposerMessage_DecidedSlot.TypeAssumptions.set'Ids
+  ProposerMessage_DecidedSlot.TypeAssumptions.get'Proposer
+  ProposerMessage_DecidedSlot.TypeAssumptions.set'Proposer
   ProposerMessage_DecidedSlot.TypeAssumptions.method_set
   ProposerMessage_DecidedSlot.TypeAssumptions.ptr_method_set
-  ProposerMessage_DecidedSlot.TypeAssumptions.ptr_GetIds_unfold
-  ProposerMessage_DecidedSlot.TypeAssumptions.ptr_GetIndex_unfold
-  ProposerMessage_DecidedSlot.TypeAssumptions.ptr_GetProposer_unfold
-  ProposerMessage_DecidedSlot.TypeAssumptions.ptr_ProtoMessage_unfold
+  ProposerMessage_DecidedSlot.TypeAssumptions.ptr_unfold'GetIds
+  ProposerMessage_DecidedSlot.TypeAssumptions.ptr_unfold'GetIndex
+  ProposerMessage_DecidedSlot.TypeAssumptions.ptr_unfold'GetProposer
+  ProposerMessage_DecidedSlot.TypeAssumptions.ptr_unfold'ProtoMessage
 
 structure ProposerMessage_ClientBatch_SingleMessage [GooseExts] where
   mk ::
@@ -9523,7 +9523,7 @@ noncomputable instance ProposerMessage_ClientBatch_SingleMessage.zero_val [Goose
 @[irreducible] noncomputable def ProposerMessage_ClientBatch_SingleMessage.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposerMessage_ClientBatch_SingleMessage.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposerMessage_ClientBatch_SingleMessage [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposerMessage_ClientBatch_SingleMessage [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposerMessage_ClientBatch_SingleMessage.fields ProposerMessage_ClientBatch_SingleMessage.fieldsUnsealed :=
   ⟨by unfold ProposerMessage_ClientBatch_SingleMessage.fields; rfl⟩
 
@@ -9533,33 +9533,33 @@ noncomputable instance equals_unfold_ProposerMessage_ClientBatch_SingleMessage [
 class ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposerMessage_ClientBatch_SingleMessage.underlying ProposerMessage_ClientBatch_SingleMessage
   underlying : go.UnderlyingDirectedEq ProposerMessage_ClientBatch_SingleMessage.ty ProposerMessage_ClientBatch_SingleMessage.underlying
-  get_state : ∀ (x : ProposerMessage_ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch_SingleMessage.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : ProposerMessage_ClientBatch_SingleMessage) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch_SingleMessage.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ProposerMessage_ClientBatch_SingleMessage)))
-  get_sizeCache : ∀ (x : ProposerMessage_ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch_SingleMessage.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : ProposerMessage_ClientBatch_SingleMessage) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch_SingleMessage.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ProposerMessage_ClientBatch_SingleMessage)))
-  get_unknownFields : ∀ (x : ProposerMessage_ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch_SingleMessage.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : ProposerMessage_ClientBatch_SingleMessage) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch_SingleMessage.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ProposerMessage_ClientBatch_SingleMessage)))
-  get_Message : ∀ (x : ProposerMessage_ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch_SingleMessage.underlying go!"Message") #x (Val #(x.Message'))
-  set_Message : ∀ (x : ProposerMessage_ClientBatch_SingleMessage) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch_SingleMessage.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : ProposerMessage_ClientBatch_SingleMessage)))
+  get'state : ∀ (x : ProposerMessage_ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch_SingleMessage.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : ProposerMessage_ClientBatch_SingleMessage) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch_SingleMessage.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : ProposerMessage_ClientBatch_SingleMessage)))
+  get'sizeCache : ∀ (x : ProposerMessage_ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch_SingleMessage.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : ProposerMessage_ClientBatch_SingleMessage) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch_SingleMessage.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ProposerMessage_ClientBatch_SingleMessage)))
+  get'unknownFields : ∀ (x : ProposerMessage_ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch_SingleMessage.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : ProposerMessage_ClientBatch_SingleMessage) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch_SingleMessage.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ProposerMessage_ClientBatch_SingleMessage)))
+  get'Message : ∀ (x : ProposerMessage_ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet ProposerMessage_ClientBatch_SingleMessage.underlying go!"Message") #x (Val #(x.Message'))
+  set'Message : ∀ (x : ProposerMessage_ClientBatch_SingleMessage) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProposerMessage_ClientBatch_SingleMessage.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : ProposerMessage_ClientBatch_SingleMessage)))
   method_set : go.MethodSetIs ProposerMessage_ClientBatch_SingleMessage.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposerMessage_ClientBatch_SingleMessage.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetMessage", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetMessage_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage_ClientBatch_SingleMessage.ty) go!"GetMessage" ProposerMessage_ClientBatch_SingleMessage.GetMessage.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType ProposerMessage_ClientBatch_SingleMessage.ty) go!"ProtoMessage" ProposerMessage_ClientBatch_SingleMessage.ProtoMessage.impl
+  ptr_unfold'GetMessage : MethodUnfold (go.GoType.PointerType ProposerMessage_ClientBatch_SingleMessage.ty) go!"GetMessage" ProposerMessage_ClientBatch_SingleMessage.GetMessage.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType ProposerMessage_ClientBatch_SingleMessage.ty) go!"ProtoMessage" ProposerMessage_ClientBatch_SingleMessage.ProtoMessage.impl
 
 attribute [instance] ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.type_repr
   ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.underlying
-  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.get_state
-  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.set_state
-  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.get_sizeCache
-  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.set_sizeCache
-  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.get_unknownFields
-  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.set_unknownFields
-  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.get_Message
-  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.set_Message
+  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.get'state
+  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.set'state
+  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.get'sizeCache
+  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.set'sizeCache
+  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.get'unknownFields
+  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.set'unknownFields
+  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.get'Message
+  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.set'Message
   ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.method_set
   ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.ptr_method_set
-  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.ptr_GetMessage_unfold
-  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.ptr_ProtoMessage_unfold
+  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.ptr_unfold'GetMessage
+  ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions.ptr_unfold'ProtoMessage
 
 structure RecorderResponse_Proposal [GooseExts] where
   mk ::
@@ -9586,7 +9586,7 @@ noncomputable instance RecorderResponse_Proposal.zero_val [GooseExts] : ZeroVal 
 @[irreducible] noncomputable def RecorderResponse_Proposal.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RecorderResponse_Proposal.fieldsUnsealed
 
-noncomputable instance equals_unfold_RecorderResponse_Proposal [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RecorderResponse_Proposal [GooseExts] [GoGlobalContext] :
     EqualsUnfold RecorderResponse_Proposal.fields RecorderResponse_Proposal.fieldsUnsealed :=
   ⟨by unfold RecorderResponse_Proposal.fields; rfl⟩
 
@@ -9596,51 +9596,51 @@ noncomputable instance equals_unfold_RecorderResponse_Proposal [GooseExts] [GoGl
 class RecorderResponse_Proposal.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RecorderResponse_Proposal.underlying RecorderResponse_Proposal
   underlying : go.UnderlyingDirectedEq RecorderResponse_Proposal.ty RecorderResponse_Proposal.underlying
-  get_state : ∀ (x : RecorderResponse_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse_Proposal.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : RecorderResponse_Proposal) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse_Proposal.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : RecorderResponse_Proposal)))
-  get_sizeCache : ∀ (x : RecorderResponse_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse_Proposal.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : RecorderResponse_Proposal) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse_Proposal.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : RecorderResponse_Proposal)))
-  get_unknownFields : ∀ (x : RecorderResponse_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse_Proposal.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : RecorderResponse_Proposal) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse_Proposal.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : RecorderResponse_Proposal)))
-  get_Priority : ∀ (x : RecorderResponse_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse_Proposal.underlying go!"Priority") #x (Val #(x.Priority'))
-  set_Priority : ∀ (x : RecorderResponse_Proposal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse_Proposal.underlying go!"Priority") (PairV #x #y) (Val #(({ x with Priority' := y } : RecorderResponse_Proposal)))
-  get_ProposerId : ∀ (x : RecorderResponse_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse_Proposal.underlying go!"ProposerId") #x (Val #(x.ProposerId'))
-  set_ProposerId : ∀ (x : RecorderResponse_Proposal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse_Proposal.underlying go!"ProposerId") (PairV #x #y) (Val #(({ x with ProposerId' := y } : RecorderResponse_Proposal)))
-  get_ThreadId : ∀ (x : RecorderResponse_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse_Proposal.underlying go!"ThreadId") #x (Val #(x.ThreadId'))
-  set_ThreadId : ∀ (x : RecorderResponse_Proposal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse_Proposal.underlying go!"ThreadId") (PairV #x #y) (Val #(({ x with ThreadId' := y } : RecorderResponse_Proposal)))
-  get_Ids : ∀ (x : RecorderResponse_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse_Proposal.underlying go!"Ids") #x (Val #(x.Ids'))
-  set_Ids : ∀ (x : RecorderResponse_Proposal) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse_Proposal.underlying go!"Ids") (PairV #x #y) (Val #(({ x with Ids' := y } : RecorderResponse_Proposal)))
+  get'state : ∀ (x : RecorderResponse_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse_Proposal.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : RecorderResponse_Proposal) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse_Proposal.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : RecorderResponse_Proposal)))
+  get'sizeCache : ∀ (x : RecorderResponse_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse_Proposal.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : RecorderResponse_Proposal) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse_Proposal.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : RecorderResponse_Proposal)))
+  get'unknownFields : ∀ (x : RecorderResponse_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse_Proposal.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : RecorderResponse_Proposal) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse_Proposal.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : RecorderResponse_Proposal)))
+  get'Priority : ∀ (x : RecorderResponse_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse_Proposal.underlying go!"Priority") #x (Val #(x.Priority'))
+  set'Priority : ∀ (x : RecorderResponse_Proposal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse_Proposal.underlying go!"Priority") (PairV #x #y) (Val #(({ x with Priority' := y } : RecorderResponse_Proposal)))
+  get'ProposerId : ∀ (x : RecorderResponse_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse_Proposal.underlying go!"ProposerId") #x (Val #(x.ProposerId'))
+  set'ProposerId : ∀ (x : RecorderResponse_Proposal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse_Proposal.underlying go!"ProposerId") (PairV #x #y) (Val #(({ x with ProposerId' := y } : RecorderResponse_Proposal)))
+  get'ThreadId : ∀ (x : RecorderResponse_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse_Proposal.underlying go!"ThreadId") #x (Val #(x.ThreadId'))
+  set'ThreadId : ∀ (x : RecorderResponse_Proposal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse_Proposal.underlying go!"ThreadId") (PairV #x #y) (Val #(({ x with ThreadId' := y } : RecorderResponse_Proposal)))
+  get'Ids : ∀ (x : RecorderResponse_Proposal), go.IsGoStepPureDetTagged under (StructFieldGet RecorderResponse_Proposal.underlying go!"Ids") #x (Val #(x.Ids'))
+  set'Ids : ∀ (x : RecorderResponse_Proposal) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RecorderResponse_Proposal.underlying go!"Ids") (PairV #x #y) (Val #(({ x with Ids' := y } : RecorderResponse_Proposal)))
   method_set : go.MethodSetIs RecorderResponse_Proposal.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RecorderResponse_Proposal.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetIds", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetPriority", (some (go.signature.Signature [] false [go.int64]))), (go!"GetProposerId", (some (go.signature.Signature [] false [go.int64]))), (go!"GetThreadId", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetIds_unfold : MethodUnfold (go.GoType.PointerType RecorderResponse_Proposal.ty) go!"GetIds" RecorderResponse_Proposal.GetIds.impl
-  ptr_GetPriority_unfold : MethodUnfold (go.GoType.PointerType RecorderResponse_Proposal.ty) go!"GetPriority" RecorderResponse_Proposal.GetPriority.impl
-  ptr_GetProposerId_unfold : MethodUnfold (go.GoType.PointerType RecorderResponse_Proposal.ty) go!"GetProposerId" RecorderResponse_Proposal.GetProposerId.impl
-  ptr_GetThreadId_unfold : MethodUnfold (go.GoType.PointerType RecorderResponse_Proposal.ty) go!"GetThreadId" RecorderResponse_Proposal.GetThreadId.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType RecorderResponse_Proposal.ty) go!"ProtoMessage" RecorderResponse_Proposal.ProtoMessage.impl
+  ptr_unfold'GetIds : MethodUnfold (go.GoType.PointerType RecorderResponse_Proposal.ty) go!"GetIds" RecorderResponse_Proposal.GetIds.impl
+  ptr_unfold'GetPriority : MethodUnfold (go.GoType.PointerType RecorderResponse_Proposal.ty) go!"GetPriority" RecorderResponse_Proposal.GetPriority.impl
+  ptr_unfold'GetProposerId : MethodUnfold (go.GoType.PointerType RecorderResponse_Proposal.ty) go!"GetProposerId" RecorderResponse_Proposal.GetProposerId.impl
+  ptr_unfold'GetThreadId : MethodUnfold (go.GoType.PointerType RecorderResponse_Proposal.ty) go!"GetThreadId" RecorderResponse_Proposal.GetThreadId.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType RecorderResponse_Proposal.ty) go!"ProtoMessage" RecorderResponse_Proposal.ProtoMessage.impl
 
 attribute [instance] RecorderResponse_Proposal.TypeAssumptions.type_repr
   RecorderResponse_Proposal.TypeAssumptions.underlying
-  RecorderResponse_Proposal.TypeAssumptions.get_state
-  RecorderResponse_Proposal.TypeAssumptions.set_state
-  RecorderResponse_Proposal.TypeAssumptions.get_sizeCache
-  RecorderResponse_Proposal.TypeAssumptions.set_sizeCache
-  RecorderResponse_Proposal.TypeAssumptions.get_unknownFields
-  RecorderResponse_Proposal.TypeAssumptions.set_unknownFields
-  RecorderResponse_Proposal.TypeAssumptions.get_Priority
-  RecorderResponse_Proposal.TypeAssumptions.set_Priority
-  RecorderResponse_Proposal.TypeAssumptions.get_ProposerId
-  RecorderResponse_Proposal.TypeAssumptions.set_ProposerId
-  RecorderResponse_Proposal.TypeAssumptions.get_ThreadId
-  RecorderResponse_Proposal.TypeAssumptions.set_ThreadId
-  RecorderResponse_Proposal.TypeAssumptions.get_Ids
-  RecorderResponse_Proposal.TypeAssumptions.set_Ids
+  RecorderResponse_Proposal.TypeAssumptions.get'state
+  RecorderResponse_Proposal.TypeAssumptions.set'state
+  RecorderResponse_Proposal.TypeAssumptions.get'sizeCache
+  RecorderResponse_Proposal.TypeAssumptions.set'sizeCache
+  RecorderResponse_Proposal.TypeAssumptions.get'unknownFields
+  RecorderResponse_Proposal.TypeAssumptions.set'unknownFields
+  RecorderResponse_Proposal.TypeAssumptions.get'Priority
+  RecorderResponse_Proposal.TypeAssumptions.set'Priority
+  RecorderResponse_Proposal.TypeAssumptions.get'ProposerId
+  RecorderResponse_Proposal.TypeAssumptions.set'ProposerId
+  RecorderResponse_Proposal.TypeAssumptions.get'ThreadId
+  RecorderResponse_Proposal.TypeAssumptions.set'ThreadId
+  RecorderResponse_Proposal.TypeAssumptions.get'Ids
+  RecorderResponse_Proposal.TypeAssumptions.set'Ids
   RecorderResponse_Proposal.TypeAssumptions.method_set
   RecorderResponse_Proposal.TypeAssumptions.ptr_method_set
-  RecorderResponse_Proposal.TypeAssumptions.ptr_GetIds_unfold
-  RecorderResponse_Proposal.TypeAssumptions.ptr_GetPriority_unfold
-  RecorderResponse_Proposal.TypeAssumptions.ptr_GetProposerId_unfold
-  RecorderResponse_Proposal.TypeAssumptions.ptr_GetThreadId_unfold
-  RecorderResponse_Proposal.TypeAssumptions.ptr_ProtoMessage_unfold
+  RecorderResponse_Proposal.TypeAssumptions.ptr_unfold'GetIds
+  RecorderResponse_Proposal.TypeAssumptions.ptr_unfold'GetPriority
+  RecorderResponse_Proposal.TypeAssumptions.ptr_unfold'GetProposerId
+  RecorderResponse_Proposal.TypeAssumptions.ptr_unfold'GetThreadId
+  RecorderResponse_Proposal.TypeAssumptions.ptr_unfold'ProtoMessage
 
 structure DecideResponse_ClientBatch [GooseExts] where
   mk ::
@@ -9665,7 +9665,7 @@ noncomputable instance DecideResponse_ClientBatch.zero_val [GooseExts] : ZeroVal
 @[irreducible] noncomputable def DecideResponse_ClientBatch.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DecideResponse_ClientBatch.fieldsUnsealed
 
-noncomputable instance equals_unfold_DecideResponse_ClientBatch [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DecideResponse_ClientBatch [GooseExts] [GoGlobalContext] :
     EqualsUnfold DecideResponse_ClientBatch.fields DecideResponse_ClientBatch.fieldsUnsealed :=
   ⟨by unfold DecideResponse_ClientBatch.fields; rfl⟩
 
@@ -9675,45 +9675,45 @@ noncomputable instance equals_unfold_DecideResponse_ClientBatch [GooseExts] [GoG
 class DecideResponse_ClientBatch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DecideResponse_ClientBatch.underlying DecideResponse_ClientBatch
   underlying : go.UnderlyingDirectedEq DecideResponse_ClientBatch.ty DecideResponse_ClientBatch.underlying
-  get_state : ∀ (x : DecideResponse_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : DecideResponse_ClientBatch) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : DecideResponse_ClientBatch)))
-  get_sizeCache : ∀ (x : DecideResponse_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : DecideResponse_ClientBatch) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : DecideResponse_ClientBatch)))
-  get_unknownFields : ∀ (x : DecideResponse_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : DecideResponse_ClientBatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : DecideResponse_ClientBatch)))
-  get_Sender : ∀ (x : DecideResponse_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch.underlying go!"Sender") #x (Val #(x.Sender'))
-  set_Sender : ∀ (x : DecideResponse_ClientBatch) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch.underlying go!"Sender") (PairV #x #y) (Val #(({ x with Sender' := y } : DecideResponse_ClientBatch)))
-  get_Messages : ∀ (x : DecideResponse_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch.underlying go!"Messages") #x (Val #(x.Messages'))
-  set_Messages : ∀ (x : DecideResponse_ClientBatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch.underlying go!"Messages") (PairV #x #y) (Val #(({ x with Messages' := y } : DecideResponse_ClientBatch)))
-  get_Id : ∀ (x : DecideResponse_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch.underlying go!"Id") #x (Val #(x.Id'))
-  set_Id : ∀ (x : DecideResponse_ClientBatch) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : DecideResponse_ClientBatch)))
+  get'state : ∀ (x : DecideResponse_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : DecideResponse_ClientBatch) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : DecideResponse_ClientBatch)))
+  get'sizeCache : ∀ (x : DecideResponse_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : DecideResponse_ClientBatch) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : DecideResponse_ClientBatch)))
+  get'unknownFields : ∀ (x : DecideResponse_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : DecideResponse_ClientBatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : DecideResponse_ClientBatch)))
+  get'Sender : ∀ (x : DecideResponse_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch.underlying go!"Sender") #x (Val #(x.Sender'))
+  set'Sender : ∀ (x : DecideResponse_ClientBatch) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch.underlying go!"Sender") (PairV #x #y) (Val #(({ x with Sender' := y } : DecideResponse_ClientBatch)))
+  get'Messages : ∀ (x : DecideResponse_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch.underlying go!"Messages") #x (Val #(x.Messages'))
+  set'Messages : ∀ (x : DecideResponse_ClientBatch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch.underlying go!"Messages") (PairV #x #y) (Val #(({ x with Messages' := y } : DecideResponse_ClientBatch)))
+  get'Id : ∀ (x : DecideResponse_ClientBatch), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch.underlying go!"Id") #x (Val #(x.Id'))
+  set'Id : ∀ (x : DecideResponse_ClientBatch) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : DecideResponse_ClientBatch)))
   method_set : go.MethodSetIs DecideResponse_ClientBatch.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DecideResponse_ClientBatch.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetId", (some (go.signature.Signature [] false [go.string]))), (go!"GetMessages", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType DecideResponse_ClientBatch_SingleMessage.ty))]))), (go!"GetSender", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetId_unfold : MethodUnfold (go.GoType.PointerType DecideResponse_ClientBatch.ty) go!"GetId" DecideResponse_ClientBatch.GetId.impl
-  ptr_GetMessages_unfold : MethodUnfold (go.GoType.PointerType DecideResponse_ClientBatch.ty) go!"GetMessages" DecideResponse_ClientBatch.GetMessages.impl
-  ptr_GetSender_unfold : MethodUnfold (go.GoType.PointerType DecideResponse_ClientBatch.ty) go!"GetSender" DecideResponse_ClientBatch.GetSender.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType DecideResponse_ClientBatch.ty) go!"ProtoMessage" DecideResponse_ClientBatch.ProtoMessage.impl
+  ptr_unfold'GetId : MethodUnfold (go.GoType.PointerType DecideResponse_ClientBatch.ty) go!"GetId" DecideResponse_ClientBatch.GetId.impl
+  ptr_unfold'GetMessages : MethodUnfold (go.GoType.PointerType DecideResponse_ClientBatch.ty) go!"GetMessages" DecideResponse_ClientBatch.GetMessages.impl
+  ptr_unfold'GetSender : MethodUnfold (go.GoType.PointerType DecideResponse_ClientBatch.ty) go!"GetSender" DecideResponse_ClientBatch.GetSender.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType DecideResponse_ClientBatch.ty) go!"ProtoMessage" DecideResponse_ClientBatch.ProtoMessage.impl
 
 attribute [instance] DecideResponse_ClientBatch.TypeAssumptions.type_repr
   DecideResponse_ClientBatch.TypeAssumptions.underlying
-  DecideResponse_ClientBatch.TypeAssumptions.get_state
-  DecideResponse_ClientBatch.TypeAssumptions.set_state
-  DecideResponse_ClientBatch.TypeAssumptions.get_sizeCache
-  DecideResponse_ClientBatch.TypeAssumptions.set_sizeCache
-  DecideResponse_ClientBatch.TypeAssumptions.get_unknownFields
-  DecideResponse_ClientBatch.TypeAssumptions.set_unknownFields
-  DecideResponse_ClientBatch.TypeAssumptions.get_Sender
-  DecideResponse_ClientBatch.TypeAssumptions.set_Sender
-  DecideResponse_ClientBatch.TypeAssumptions.get_Messages
-  DecideResponse_ClientBatch.TypeAssumptions.set_Messages
-  DecideResponse_ClientBatch.TypeAssumptions.get_Id
-  DecideResponse_ClientBatch.TypeAssumptions.set_Id
+  DecideResponse_ClientBatch.TypeAssumptions.get'state
+  DecideResponse_ClientBatch.TypeAssumptions.set'state
+  DecideResponse_ClientBatch.TypeAssumptions.get'sizeCache
+  DecideResponse_ClientBatch.TypeAssumptions.set'sizeCache
+  DecideResponse_ClientBatch.TypeAssumptions.get'unknownFields
+  DecideResponse_ClientBatch.TypeAssumptions.set'unknownFields
+  DecideResponse_ClientBatch.TypeAssumptions.get'Sender
+  DecideResponse_ClientBatch.TypeAssumptions.set'Sender
+  DecideResponse_ClientBatch.TypeAssumptions.get'Messages
+  DecideResponse_ClientBatch.TypeAssumptions.set'Messages
+  DecideResponse_ClientBatch.TypeAssumptions.get'Id
+  DecideResponse_ClientBatch.TypeAssumptions.set'Id
   DecideResponse_ClientBatch.TypeAssumptions.method_set
   DecideResponse_ClientBatch.TypeAssumptions.ptr_method_set
-  DecideResponse_ClientBatch.TypeAssumptions.ptr_GetId_unfold
-  DecideResponse_ClientBatch.TypeAssumptions.ptr_GetMessages_unfold
-  DecideResponse_ClientBatch.TypeAssumptions.ptr_GetSender_unfold
-  DecideResponse_ClientBatch.TypeAssumptions.ptr_ProtoMessage_unfold
+  DecideResponse_ClientBatch.TypeAssumptions.ptr_unfold'GetId
+  DecideResponse_ClientBatch.TypeAssumptions.ptr_unfold'GetMessages
+  DecideResponse_ClientBatch.TypeAssumptions.ptr_unfold'GetSender
+  DecideResponse_ClientBatch.TypeAssumptions.ptr_unfold'ProtoMessage
 
 structure DecideResponse_ClientBatch_SingleMessage [GooseExts] where
   mk ::
@@ -9734,7 +9734,7 @@ noncomputable instance DecideResponse_ClientBatch_SingleMessage.zero_val [GooseE
 @[irreducible] noncomputable def DecideResponse_ClientBatch_SingleMessage.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DecideResponse_ClientBatch_SingleMessage.fieldsUnsealed
 
-noncomputable instance equals_unfold_DecideResponse_ClientBatch_SingleMessage [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DecideResponse_ClientBatch_SingleMessage [GooseExts] [GoGlobalContext] :
     EqualsUnfold DecideResponse_ClientBatch_SingleMessage.fields DecideResponse_ClientBatch_SingleMessage.fieldsUnsealed :=
   ⟨by unfold DecideResponse_ClientBatch_SingleMessage.fields; rfl⟩
 
@@ -9744,33 +9744,33 @@ noncomputable instance equals_unfold_DecideResponse_ClientBatch_SingleMessage [G
 class DecideResponse_ClientBatch_SingleMessage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DecideResponse_ClientBatch_SingleMessage.underlying DecideResponse_ClientBatch_SingleMessage
   underlying : go.UnderlyingDirectedEq DecideResponse_ClientBatch_SingleMessage.ty DecideResponse_ClientBatch_SingleMessage.underlying
-  get_state : ∀ (x : DecideResponse_ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch_SingleMessage.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : DecideResponse_ClientBatch_SingleMessage) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch_SingleMessage.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : DecideResponse_ClientBatch_SingleMessage)))
-  get_sizeCache : ∀ (x : DecideResponse_ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch_SingleMessage.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : DecideResponse_ClientBatch_SingleMessage) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch_SingleMessage.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : DecideResponse_ClientBatch_SingleMessage)))
-  get_unknownFields : ∀ (x : DecideResponse_ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch_SingleMessage.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : DecideResponse_ClientBatch_SingleMessage) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch_SingleMessage.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : DecideResponse_ClientBatch_SingleMessage)))
-  get_Message : ∀ (x : DecideResponse_ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch_SingleMessage.underlying go!"Message") #x (Val #(x.Message'))
-  set_Message : ∀ (x : DecideResponse_ClientBatch_SingleMessage) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch_SingleMessage.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : DecideResponse_ClientBatch_SingleMessage)))
+  get'state : ∀ (x : DecideResponse_ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch_SingleMessage.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : DecideResponse_ClientBatch_SingleMessage) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch_SingleMessage.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : DecideResponse_ClientBatch_SingleMessage)))
+  get'sizeCache : ∀ (x : DecideResponse_ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch_SingleMessage.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : DecideResponse_ClientBatch_SingleMessage) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch_SingleMessage.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : DecideResponse_ClientBatch_SingleMessage)))
+  get'unknownFields : ∀ (x : DecideResponse_ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch_SingleMessage.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : DecideResponse_ClientBatch_SingleMessage) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch_SingleMessage.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : DecideResponse_ClientBatch_SingleMessage)))
+  get'Message : ∀ (x : DecideResponse_ClientBatch_SingleMessage), go.IsGoStepPureDetTagged under (StructFieldGet DecideResponse_ClientBatch_SingleMessage.underlying go!"Message") #x (Val #(x.Message'))
+  set'Message : ∀ (x : DecideResponse_ClientBatch_SingleMessage) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DecideResponse_ClientBatch_SingleMessage.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : DecideResponse_ClientBatch_SingleMessage)))
   method_set : go.MethodSetIs DecideResponse_ClientBatch_SingleMessage.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DecideResponse_ClientBatch_SingleMessage.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetMessage", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetMessage_unfold : MethodUnfold (go.GoType.PointerType DecideResponse_ClientBatch_SingleMessage.ty) go!"GetMessage" DecideResponse_ClientBatch_SingleMessage.GetMessage.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType DecideResponse_ClientBatch_SingleMessage.ty) go!"ProtoMessage" DecideResponse_ClientBatch_SingleMessage.ProtoMessage.impl
+  ptr_unfold'GetMessage : MethodUnfold (go.GoType.PointerType DecideResponse_ClientBatch_SingleMessage.ty) go!"GetMessage" DecideResponse_ClientBatch_SingleMessage.GetMessage.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType DecideResponse_ClientBatch_SingleMessage.ty) go!"ProtoMessage" DecideResponse_ClientBatch_SingleMessage.ProtoMessage.impl
 
 attribute [instance] DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.type_repr
   DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.underlying
-  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.get_state
-  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.set_state
-  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.get_sizeCache
-  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.set_sizeCache
-  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.get_unknownFields
-  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.set_unknownFields
-  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.get_Message
-  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.set_Message
+  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.get'state
+  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.set'state
+  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.get'sizeCache
+  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.set'sizeCache
+  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.get'unknownFields
+  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.set'unknownFields
+  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.get'Message
+  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.set'Message
   DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.method_set
   DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.ptr_method_set
-  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.ptr_GetMessage_unfold
-  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.ptr_ProtoMessage_unfold
+  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.ptr_unfold'GetMessage
+  DecideResponse_ClientBatch_SingleMessage.TypeAssumptions.ptr_unfold'ProtoMessage
 
 structure Decisions_DecidedSlot [GooseExts] where
   mk ::
@@ -9795,7 +9795,7 @@ noncomputable instance Decisions_DecidedSlot.zero_val [GooseExts] : ZeroVal Deci
 @[irreducible] noncomputable def Decisions_DecidedSlot.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Decisions_DecidedSlot.fieldsUnsealed
 
-noncomputable instance equals_unfold_Decisions_DecidedSlot [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Decisions_DecidedSlot [GooseExts] [GoGlobalContext] :
     EqualsUnfold Decisions_DecidedSlot.fields Decisions_DecidedSlot.fieldsUnsealed :=
   ⟨by unfold Decisions_DecidedSlot.fields; rfl⟩
 
@@ -9805,45 +9805,45 @@ noncomputable instance equals_unfold_Decisions_DecidedSlot [GooseExts] [GoGlobal
 class Decisions_DecidedSlot.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Decisions_DecidedSlot.underlying Decisions_DecidedSlot
   underlying : go.UnderlyingDirectedEq Decisions_DecidedSlot.ty Decisions_DecidedSlot.underlying
-  get_state : ∀ (x : Decisions_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet Decisions_DecidedSlot.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : Decisions_DecidedSlot) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Decisions_DecidedSlot.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Decisions_DecidedSlot)))
-  get_sizeCache : ∀ (x : Decisions_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet Decisions_DecidedSlot.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : Decisions_DecidedSlot) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Decisions_DecidedSlot.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Decisions_DecidedSlot)))
-  get_unknownFields : ∀ (x : Decisions_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet Decisions_DecidedSlot.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : Decisions_DecidedSlot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Decisions_DecidedSlot.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Decisions_DecidedSlot)))
-  get_Index : ∀ (x : Decisions_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet Decisions_DecidedSlot.underlying go!"Index") #x (Val #(x.Index'))
-  set_Index : ∀ (x : Decisions_DecidedSlot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Decisions_DecidedSlot.underlying go!"Index") (PairV #x #y) (Val #(({ x with Index' := y } : Decisions_DecidedSlot)))
-  get_Ids : ∀ (x : Decisions_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet Decisions_DecidedSlot.underlying go!"Ids") #x (Val #(x.Ids'))
-  set_Ids : ∀ (x : Decisions_DecidedSlot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Decisions_DecidedSlot.underlying go!"Ids") (PairV #x #y) (Val #(({ x with Ids' := y } : Decisions_DecidedSlot)))
-  get_Proposer : ∀ (x : Decisions_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet Decisions_DecidedSlot.underlying go!"Proposer") #x (Val #(x.Proposer'))
-  set_Proposer : ∀ (x : Decisions_DecidedSlot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Decisions_DecidedSlot.underlying go!"Proposer") (PairV #x #y) (Val #(({ x with Proposer' := y } : Decisions_DecidedSlot)))
+  get'state : ∀ (x : Decisions_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet Decisions_DecidedSlot.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : Decisions_DecidedSlot) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Decisions_DecidedSlot.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Decisions_DecidedSlot)))
+  get'sizeCache : ∀ (x : Decisions_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet Decisions_DecidedSlot.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : Decisions_DecidedSlot) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Decisions_DecidedSlot.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Decisions_DecidedSlot)))
+  get'unknownFields : ∀ (x : Decisions_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet Decisions_DecidedSlot.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : Decisions_DecidedSlot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Decisions_DecidedSlot.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Decisions_DecidedSlot)))
+  get'Index : ∀ (x : Decisions_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet Decisions_DecidedSlot.underlying go!"Index") #x (Val #(x.Index'))
+  set'Index : ∀ (x : Decisions_DecidedSlot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Decisions_DecidedSlot.underlying go!"Index") (PairV #x #y) (Val #(({ x with Index' := y } : Decisions_DecidedSlot)))
+  get'Ids : ∀ (x : Decisions_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet Decisions_DecidedSlot.underlying go!"Ids") #x (Val #(x.Ids'))
+  set'Ids : ∀ (x : Decisions_DecidedSlot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Decisions_DecidedSlot.underlying go!"Ids") (PairV #x #y) (Val #(({ x with Ids' := y } : Decisions_DecidedSlot)))
+  get'Proposer : ∀ (x : Decisions_DecidedSlot), go.IsGoStepPureDetTagged under (StructFieldGet Decisions_DecidedSlot.underlying go!"Proposer") #x (Val #(x.Proposer'))
+  set'Proposer : ∀ (x : Decisions_DecidedSlot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Decisions_DecidedSlot.underlying go!"Proposer") (PairV #x #y) (Val #(({ x with Proposer' := y } : Decisions_DecidedSlot)))
   method_set : go.MethodSetIs Decisions_DecidedSlot.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Decisions_DecidedSlot.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetIds", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetIndex", (some (go.signature.Signature [] false [go.int64]))), (go!"GetProposer", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetIds_unfold : MethodUnfold (go.GoType.PointerType Decisions_DecidedSlot.ty) go!"GetIds" Decisions_DecidedSlot.GetIds.impl
-  ptr_GetIndex_unfold : MethodUnfold (go.GoType.PointerType Decisions_DecidedSlot.ty) go!"GetIndex" Decisions_DecidedSlot.GetIndex.impl
-  ptr_GetProposer_unfold : MethodUnfold (go.GoType.PointerType Decisions_DecidedSlot.ty) go!"GetProposer" Decisions_DecidedSlot.GetProposer.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType Decisions_DecidedSlot.ty) go!"ProtoMessage" Decisions_DecidedSlot.ProtoMessage.impl
+  ptr_unfold'GetIds : MethodUnfold (go.GoType.PointerType Decisions_DecidedSlot.ty) go!"GetIds" Decisions_DecidedSlot.GetIds.impl
+  ptr_unfold'GetIndex : MethodUnfold (go.GoType.PointerType Decisions_DecidedSlot.ty) go!"GetIndex" Decisions_DecidedSlot.GetIndex.impl
+  ptr_unfold'GetProposer : MethodUnfold (go.GoType.PointerType Decisions_DecidedSlot.ty) go!"GetProposer" Decisions_DecidedSlot.GetProposer.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType Decisions_DecidedSlot.ty) go!"ProtoMessage" Decisions_DecidedSlot.ProtoMessage.impl
 
 attribute [instance] Decisions_DecidedSlot.TypeAssumptions.type_repr
   Decisions_DecidedSlot.TypeAssumptions.underlying
-  Decisions_DecidedSlot.TypeAssumptions.get_state
-  Decisions_DecidedSlot.TypeAssumptions.set_state
-  Decisions_DecidedSlot.TypeAssumptions.get_sizeCache
-  Decisions_DecidedSlot.TypeAssumptions.set_sizeCache
-  Decisions_DecidedSlot.TypeAssumptions.get_unknownFields
-  Decisions_DecidedSlot.TypeAssumptions.set_unknownFields
-  Decisions_DecidedSlot.TypeAssumptions.get_Index
-  Decisions_DecidedSlot.TypeAssumptions.set_Index
-  Decisions_DecidedSlot.TypeAssumptions.get_Ids
-  Decisions_DecidedSlot.TypeAssumptions.set_Ids
-  Decisions_DecidedSlot.TypeAssumptions.get_Proposer
-  Decisions_DecidedSlot.TypeAssumptions.set_Proposer
+  Decisions_DecidedSlot.TypeAssumptions.get'state
+  Decisions_DecidedSlot.TypeAssumptions.set'state
+  Decisions_DecidedSlot.TypeAssumptions.get'sizeCache
+  Decisions_DecidedSlot.TypeAssumptions.set'sizeCache
+  Decisions_DecidedSlot.TypeAssumptions.get'unknownFields
+  Decisions_DecidedSlot.TypeAssumptions.set'unknownFields
+  Decisions_DecidedSlot.TypeAssumptions.get'Index
+  Decisions_DecidedSlot.TypeAssumptions.set'Index
+  Decisions_DecidedSlot.TypeAssumptions.get'Ids
+  Decisions_DecidedSlot.TypeAssumptions.set'Ids
+  Decisions_DecidedSlot.TypeAssumptions.get'Proposer
+  Decisions_DecidedSlot.TypeAssumptions.set'Proposer
   Decisions_DecidedSlot.TypeAssumptions.method_set
   Decisions_DecidedSlot.TypeAssumptions.ptr_method_set
-  Decisions_DecidedSlot.TypeAssumptions.ptr_GetIds_unfold
-  Decisions_DecidedSlot.TypeAssumptions.ptr_GetIndex_unfold
-  Decisions_DecidedSlot.TypeAssumptions.ptr_GetProposer_unfold
-  Decisions_DecidedSlot.TypeAssumptions.ptr_ProtoMessage_unfold
+  Decisions_DecidedSlot.TypeAssumptions.ptr_unfold'GetIds
+  Decisions_DecidedSlot.TypeAssumptions.ptr_unfold'GetIndex
+  Decisions_DecidedSlot.TypeAssumptions.ptr_unfold'GetProposer
+  Decisions_DecidedSlot.TypeAssumptions.ptr_unfold'ProtoMessage
 
 abbrev ConsensusClient [GooseExts] : Type := GoInterface
 
@@ -9872,7 +9872,7 @@ noncomputable instance consensusClient.zero_val [GooseExts] : ZeroVal consensusC
 @[irreducible] noncomputable def consensusClient.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   consensusClient.fieldsUnsealed
 
-noncomputable instance equals_unfold_consensusClient [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'consensusClient [GooseExts] [GoGlobalContext] :
     EqualsUnfold consensusClient.fields consensusClient.fieldsUnsealed :=
   ⟨by unfold consensusClient.fields; rfl⟩
 
@@ -9882,23 +9882,23 @@ noncomputable instance equals_unfold_consensusClient [GooseExts] [GoGlobalContex
 class consensusClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying consensusClient.underlying consensusClient
   underlying : go.UnderlyingDirectedEq consensusClient.ty consensusClient.underlying
-  get_cc : ∀ (x : consensusClient), go.IsGoStepPureDetTagged under (StructFieldGet consensusClient.underlying go!"cc") #x (Val #(x.cc'))
-  set_cc : ∀ (x : consensusClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet consensusClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : consensusClient)))
+  get'cc : ∀ (x : consensusClient), go.IsGoStepPureDetTagged under (StructFieldGet consensusClient.underlying go!"cc") #x (Val #(x.cc'))
+  set'cc : ∀ (x : consensusClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet consensusClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : consensusClient)))
   method_set : go.MethodSetIs consensusClient.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType consensusClient.ty) [(go!"ESP", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType ProposerMessage.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType RecorderResponse.ty), go.error]))), (go!"FetchBatches", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType DecideRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType DecideResponse.ty), go.error]))), (go!"InformDecision", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType Decisions.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType Empty.ty), go.error])))]
-  ptr_ESP_unfold : MethodUnfold (go.GoType.PointerType consensusClient.ty) go!"ESP" consensusClient.ESP.impl
-  ptr_FetchBatches_unfold : MethodUnfold (go.GoType.PointerType consensusClient.ty) go!"FetchBatches" consensusClient.FetchBatches.impl
-  ptr_InformDecision_unfold : MethodUnfold (go.GoType.PointerType consensusClient.ty) go!"InformDecision" consensusClient.InformDecision.impl
+  ptr_unfold'ESP : MethodUnfold (go.GoType.PointerType consensusClient.ty) go!"ESP" consensusClient.ESP.impl
+  ptr_unfold'FetchBatches : MethodUnfold (go.GoType.PointerType consensusClient.ty) go!"FetchBatches" consensusClient.FetchBatches.impl
+  ptr_unfold'InformDecision : MethodUnfold (go.GoType.PointerType consensusClient.ty) go!"InformDecision" consensusClient.InformDecision.impl
 
 attribute [instance] consensusClient.TypeAssumptions.type_repr
   consensusClient.TypeAssumptions.underlying
-  consensusClient.TypeAssumptions.get_cc
-  consensusClient.TypeAssumptions.set_cc
+  consensusClient.TypeAssumptions.get'cc
+  consensusClient.TypeAssumptions.set'cc
   consensusClient.TypeAssumptions.method_set
   consensusClient.TypeAssumptions.ptr_method_set
-  consensusClient.TypeAssumptions.ptr_ESP_unfold
-  consensusClient.TypeAssumptions.ptr_FetchBatches_unfold
-  consensusClient.TypeAssumptions.ptr_InformDecision_unfold
+  consensusClient.TypeAssumptions.ptr_unfold'ESP
+  consensusClient.TypeAssumptions.ptr_unfold'FetchBatches
+  consensusClient.TypeAssumptions.ptr_unfold'InformDecision
 
 abbrev ConsensusServer [GooseExts] : Type := GoInterface
 
@@ -9926,7 +9926,7 @@ noncomputable instance UnimplementedConsensusServer.zero_val [GooseExts] : ZeroV
 @[irreducible] noncomputable def UnimplementedConsensusServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UnimplementedConsensusServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_UnimplementedConsensusServer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'UnimplementedConsensusServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold UnimplementedConsensusServer.fields UnimplementedConsensusServer.fieldsUnsealed :=
   ⟨by unfold UnimplementedConsensusServer.fields; rfl⟩
 
@@ -9938,31 +9938,31 @@ class UnimplementedConsensusServer.TypeAssumptions [GooseExts] [GoGlobalContext]
   underlying : go.UnderlyingDirectedEq UnimplementedConsensusServer.ty UnimplementedConsensusServer.underlying
   method_set : go.MethodSetIs UnimplementedConsensusServer.ty [(go!"ESP", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType ProposerMessage.ty)] false [(go.GoType.PointerType RecorderResponse.ty), go.error]))), (go!"FetchBatches", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType DecideRequest.ty)] false [(go.GoType.PointerType DecideResponse.ty), go.error]))), (go!"InformDecision", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType Decisions.ty)] false [(go.GoType.PointerType Empty.ty), go.error]))), (go!"raxos/replica/src.mustEmbedUnimplementedConsensusServer", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnimplementedConsensusServer.ty) [(go!"ESP", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType ProposerMessage.ty)] false [(go.GoType.PointerType RecorderResponse.ty), go.error]))), (go!"FetchBatches", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType DecideRequest.ty)] false [(go.GoType.PointerType DecideResponse.ty), go.error]))), (go!"InformDecision", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType Decisions.ty)] false [(go.GoType.PointerType Empty.ty), go.error]))), (go!"raxos/replica/src.mustEmbedUnimplementedConsensusServer", (some (go.signature.Signature [] false [])))]
-  ESP_unfold : MethodUnfold UnimplementedConsensusServer.ty go!"ESP" UnimplementedConsensusServer.ESP.impl
-  FetchBatches_unfold : MethodUnfold UnimplementedConsensusServer.ty go!"FetchBatches" UnimplementedConsensusServer.FetchBatches.impl
-  InformDecision_unfold : MethodUnfold UnimplementedConsensusServer.ty go!"InformDecision" UnimplementedConsensusServer.InformDecision.impl
-  mustEmbedUnimplementedConsensusServer_unfold : MethodUnfold UnimplementedConsensusServer.ty go!"mustEmbedUnimplementedConsensusServer" UnimplementedConsensusServer.mustEmbedUnimplementedConsensusServer.impl
-  ptr_ESP_unfold : MethodUnfold (go.GoType.PointerType UnimplementedConsensusServer.ty) go!"ESP" (LamV "$r"
+  unfold'ESP : MethodUnfold UnimplementedConsensusServer.ty go!"ESP" UnimplementedConsensusServer.ESP.impl
+  unfold'FetchBatches : MethodUnfold UnimplementedConsensusServer.ty go!"FetchBatches" UnimplementedConsensusServer.FetchBatches.impl
+  unfold'InformDecision : MethodUnfold UnimplementedConsensusServer.ty go!"InformDecision" UnimplementedConsensusServer.InformDecision.impl
+  unfold'mustEmbedUnimplementedConsensusServer : MethodUnfold UnimplementedConsensusServer.ty go!"mustEmbedUnimplementedConsensusServer" UnimplementedConsensusServer.mustEmbedUnimplementedConsensusServer.impl
+  ptr_unfold'ESP : MethodUnfold (go.GoType.PointerType UnimplementedConsensusServer.ty) go!"ESP" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve UnimplementedConsensusServer.ty go!"ESP"))) (App (Val (GoInstruction (GoLoad UnimplementedConsensusServer.ty))) (Var "$r"))))
-  ptr_FetchBatches_unfold : MethodUnfold (go.GoType.PointerType UnimplementedConsensusServer.ty) go!"FetchBatches" (LamV "$r"
+  ptr_unfold'FetchBatches : MethodUnfold (go.GoType.PointerType UnimplementedConsensusServer.ty) go!"FetchBatches" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve UnimplementedConsensusServer.ty go!"FetchBatches"))) (App (Val (GoInstruction (GoLoad UnimplementedConsensusServer.ty))) (Var "$r"))))
-  ptr_InformDecision_unfold : MethodUnfold (go.GoType.PointerType UnimplementedConsensusServer.ty) go!"InformDecision" (LamV "$r"
+  ptr_unfold'InformDecision : MethodUnfold (go.GoType.PointerType UnimplementedConsensusServer.ty) go!"InformDecision" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve UnimplementedConsensusServer.ty go!"InformDecision"))) (App (Val (GoInstruction (GoLoad UnimplementedConsensusServer.ty))) (Var "$r"))))
-  ptr_mustEmbedUnimplementedConsensusServer_unfold : MethodUnfold (go.GoType.PointerType UnimplementedConsensusServer.ty) go!"mustEmbedUnimplementedConsensusServer" (LamV "$r"
+  ptr_unfold'mustEmbedUnimplementedConsensusServer : MethodUnfold (go.GoType.PointerType UnimplementedConsensusServer.ty) go!"mustEmbedUnimplementedConsensusServer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve UnimplementedConsensusServer.ty go!"mustEmbedUnimplementedConsensusServer"))) (App (Val (GoInstruction (GoLoad UnimplementedConsensusServer.ty))) (Var "$r"))))
 
 attribute [instance] UnimplementedConsensusServer.TypeAssumptions.type_repr
   UnimplementedConsensusServer.TypeAssumptions.underlying
   UnimplementedConsensusServer.TypeAssumptions.method_set
   UnimplementedConsensusServer.TypeAssumptions.ptr_method_set
-  UnimplementedConsensusServer.TypeAssumptions.ESP_unfold
-  UnimplementedConsensusServer.TypeAssumptions.FetchBatches_unfold
-  UnimplementedConsensusServer.TypeAssumptions.InformDecision_unfold
-  UnimplementedConsensusServer.TypeAssumptions.mustEmbedUnimplementedConsensusServer_unfold
-  UnimplementedConsensusServer.TypeAssumptions.ptr_ESP_unfold
-  UnimplementedConsensusServer.TypeAssumptions.ptr_FetchBatches_unfold
-  UnimplementedConsensusServer.TypeAssumptions.ptr_InformDecision_unfold
-  UnimplementedConsensusServer.TypeAssumptions.ptr_mustEmbedUnimplementedConsensusServer_unfold
+  UnimplementedConsensusServer.TypeAssumptions.unfold'ESP
+  UnimplementedConsensusServer.TypeAssumptions.unfold'FetchBatches
+  UnimplementedConsensusServer.TypeAssumptions.unfold'InformDecision
+  UnimplementedConsensusServer.TypeAssumptions.unfold'mustEmbedUnimplementedConsensusServer
+  UnimplementedConsensusServer.TypeAssumptions.ptr_unfold'ESP
+  UnimplementedConsensusServer.TypeAssumptions.ptr_unfold'FetchBatches
+  UnimplementedConsensusServer.TypeAssumptions.ptr_unfold'InformDecision
+  UnimplementedConsensusServer.TypeAssumptions.ptr_unfold'mustEmbedUnimplementedConsensusServer
 
 abbrev UnsafeConsensusServer [GooseExts] : Type := GoInterface
 
@@ -10003,7 +10003,7 @@ noncomputable instance Benchmark.zero_val [GooseExts] : ZeroVal Benchmark :=
 @[irreducible] noncomputable def Benchmark.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Benchmark.fieldsUnsealed
 
-noncomputable instance equals_unfold_Benchmark [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Benchmark [GooseExts] [GoGlobalContext] :
     EqualsUnfold Benchmark.fields Benchmark.fieldsUnsealed :=
   ⟨by unfold Benchmark.fields; rfl⟩
 
@@ -10013,47 +10013,47 @@ noncomputable instance equals_unfold_Benchmark [GooseExts] [GoGlobalContext] :
 class Benchmark.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Benchmark.underlying Benchmark
   underlying : go.UnderlyingDirectedEq Benchmark.ty Benchmark.underlying
-  get_mode : ∀ (x : Benchmark), go.IsGoStepPureDetTagged under (StructFieldGet Benchmark.underlying go!"mode") #x (Val #(x.mode'))
-  set_mode : ∀ (x : Benchmark) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Benchmark.underlying go!"mode") (PairV #x #y) (Val #(({ x with mode' := y } : Benchmark)))
-  get_RedisClient : ∀ (x : Benchmark), go.IsGoStepPureDetTagged under (StructFieldGet Benchmark.underlying go!"RedisClient") #x (Val #(x.RedisClient'))
-  set_RedisClient : ∀ (x : Benchmark) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Benchmark.underlying go!"RedisClient") (PairV #x #y) (Val #(({ x with RedisClient' := y } : Benchmark)))
-  get_RedisCtx : ∀ (x : Benchmark), go.IsGoStepPureDetTagged under (StructFieldGet Benchmark.underlying go!"RedisCtx") #x (Val #(x.RedisCtx'))
-  set_RedisCtx : ∀ (x : Benchmark) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Benchmark.underlying go!"RedisCtx") (PairV #x #y) (Val #(({ x with RedisCtx' := y } : Benchmark)))
-  get_KVStore : ∀ (x : Benchmark), go.IsGoStepPureDetTagged under (StructFieldGet Benchmark.underlying go!"KVStore") #x (Val #(x.KVStore'))
-  set_KVStore : ∀ (x : Benchmark) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Benchmark.underlying go!"KVStore") (PairV #x #y) (Val #(({ x with KVStore' := y } : Benchmark)))
-  get_name : ∀ (x : Benchmark), go.IsGoStepPureDetTagged under (StructFieldGet Benchmark.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : Benchmark) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Benchmark.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : Benchmark)))
-  get_keyLen : ∀ (x : Benchmark), go.IsGoStepPureDetTagged under (StructFieldGet Benchmark.underlying go!"keyLen") #x (Val #(x.keyLen'))
-  set_keyLen : ∀ (x : Benchmark) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Benchmark.underlying go!"keyLen") (PairV #x #y) (Val #(({ x with keyLen' := y } : Benchmark)))
-  get_valueLen : ∀ (x : Benchmark), go.IsGoStepPureDetTagged under (StructFieldGet Benchmark.underlying go!"valueLen") #x (Val #(x.valueLen'))
-  set_valueLen : ∀ (x : Benchmark) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Benchmark.underlying go!"valueLen") (PairV #x #y) (Val #(({ x with valueLen' := y } : Benchmark)))
+  get'mode : ∀ (x : Benchmark), go.IsGoStepPureDetTagged under (StructFieldGet Benchmark.underlying go!"mode") #x (Val #(x.mode'))
+  set'mode : ∀ (x : Benchmark) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Benchmark.underlying go!"mode") (PairV #x #y) (Val #(({ x with mode' := y } : Benchmark)))
+  get'RedisClient : ∀ (x : Benchmark), go.IsGoStepPureDetTagged under (StructFieldGet Benchmark.underlying go!"RedisClient") #x (Val #(x.RedisClient'))
+  set'RedisClient : ∀ (x : Benchmark) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Benchmark.underlying go!"RedisClient") (PairV #x #y) (Val #(({ x with RedisClient' := y } : Benchmark)))
+  get'RedisCtx : ∀ (x : Benchmark), go.IsGoStepPureDetTagged under (StructFieldGet Benchmark.underlying go!"RedisCtx") #x (Val #(x.RedisCtx'))
+  set'RedisCtx : ∀ (x : Benchmark) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Benchmark.underlying go!"RedisCtx") (PairV #x #y) (Val #(({ x with RedisCtx' := y } : Benchmark)))
+  get'KVStore : ∀ (x : Benchmark), go.IsGoStepPureDetTagged under (StructFieldGet Benchmark.underlying go!"KVStore") #x (Val #(x.KVStore'))
+  set'KVStore : ∀ (x : Benchmark) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Benchmark.underlying go!"KVStore") (PairV #x #y) (Val #(({ x with KVStore' := y } : Benchmark)))
+  get'name : ∀ (x : Benchmark), go.IsGoStepPureDetTagged under (StructFieldGet Benchmark.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : Benchmark) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Benchmark.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : Benchmark)))
+  get'keyLen : ∀ (x : Benchmark), go.IsGoStepPureDetTagged under (StructFieldGet Benchmark.underlying go!"keyLen") #x (Val #(x.keyLen'))
+  set'keyLen : ∀ (x : Benchmark) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Benchmark.underlying go!"keyLen") (PairV #x #y) (Val #(({ x with keyLen' := y } : Benchmark)))
+  get'valueLen : ∀ (x : Benchmark), go.IsGoStepPureDetTagged under (StructFieldGet Benchmark.underlying go!"valueLen") #x (Val #(x.valueLen'))
+  set'valueLen : ∀ (x : Benchmark) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Benchmark.underlying go!"valueLen") (PairV #x #y) (Val #(({ x with valueLen' := y } : Benchmark)))
   method_set : go.MethodSetIs Benchmark.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Benchmark.ty) [(go!"Execute", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.raxos.proto.client.ClientBatch.ty)] false [(go.GoType.SliceType _root_.Perennial.raxos.proto.client.ClientBatch.ty)]))), (go!"raxos/replica/src.redisExecute", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.raxos.proto.client.ClientBatch.ty)] false [(go.GoType.SliceType _root_.Perennial.raxos.proto.client.ClientBatch.ty)]))), (go!"raxos/replica/src.residentExecute", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.raxos.proto.client.ClientBatch.ty)] false [(go.GoType.SliceType _root_.Perennial.raxos.proto.client.ClientBatch.ty)])))]
-  ptr_Execute_unfold : MethodUnfold (go.GoType.PointerType Benchmark.ty) go!"Execute" Benchmark.Execute.impl
-  ptr_redisExecute_unfold : MethodUnfold (go.GoType.PointerType Benchmark.ty) go!"redisExecute" Benchmark.redisExecute.impl
-  ptr_residentExecute_unfold : MethodUnfold (go.GoType.PointerType Benchmark.ty) go!"residentExecute" Benchmark.residentExecute.impl
+  ptr_unfold'Execute : MethodUnfold (go.GoType.PointerType Benchmark.ty) go!"Execute" Benchmark.Execute.impl
+  ptr_unfold'redisExecute : MethodUnfold (go.GoType.PointerType Benchmark.ty) go!"redisExecute" Benchmark.redisExecute.impl
+  ptr_unfold'residentExecute : MethodUnfold (go.GoType.PointerType Benchmark.ty) go!"residentExecute" Benchmark.residentExecute.impl
 
 attribute [instance] Benchmark.TypeAssumptions.type_repr
   Benchmark.TypeAssumptions.underlying
-  Benchmark.TypeAssumptions.get_mode
-  Benchmark.TypeAssumptions.set_mode
-  Benchmark.TypeAssumptions.get_RedisClient
-  Benchmark.TypeAssumptions.set_RedisClient
-  Benchmark.TypeAssumptions.get_RedisCtx
-  Benchmark.TypeAssumptions.set_RedisCtx
-  Benchmark.TypeAssumptions.get_KVStore
-  Benchmark.TypeAssumptions.set_KVStore
-  Benchmark.TypeAssumptions.get_name
-  Benchmark.TypeAssumptions.set_name
-  Benchmark.TypeAssumptions.get_keyLen
-  Benchmark.TypeAssumptions.set_keyLen
-  Benchmark.TypeAssumptions.get_valueLen
-  Benchmark.TypeAssumptions.set_valueLen
+  Benchmark.TypeAssumptions.get'mode
+  Benchmark.TypeAssumptions.set'mode
+  Benchmark.TypeAssumptions.get'RedisClient
+  Benchmark.TypeAssumptions.set'RedisClient
+  Benchmark.TypeAssumptions.get'RedisCtx
+  Benchmark.TypeAssumptions.set'RedisCtx
+  Benchmark.TypeAssumptions.get'KVStore
+  Benchmark.TypeAssumptions.set'KVStore
+  Benchmark.TypeAssumptions.get'name
+  Benchmark.TypeAssumptions.set'name
+  Benchmark.TypeAssumptions.get'keyLen
+  Benchmark.TypeAssumptions.set'keyLen
+  Benchmark.TypeAssumptions.get'valueLen
+  Benchmark.TypeAssumptions.set'valueLen
   Benchmark.TypeAssumptions.method_set
   Benchmark.TypeAssumptions.ptr_method_set
-  Benchmark.TypeAssumptions.ptr_Execute_unfold
-  Benchmark.TypeAssumptions.ptr_redisExecute_unfold
-  Benchmark.TypeAssumptions.ptr_residentExecute_unfold
+  Benchmark.TypeAssumptions.ptr_unfold'Execute
+  Benchmark.TypeAssumptions.ptr_unfold'redisExecute
+  Benchmark.TypeAssumptions.ptr_unfold'residentExecute
 
 structure Proposer [GooseExts] where
   mk ::
@@ -10102,7 +10102,7 @@ noncomputable instance Proposer.zero_val [GooseExts] : ZeroVal Proposer :=
 @[irreducible] noncomputable def Proposer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Proposer.fieldsUnsealed
 
-noncomputable instance equals_unfold_Proposer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Proposer [GooseExts] [GoGlobalContext] :
     EqualsUnfold Proposer.fields Proposer.fieldsUnsealed :=
   ⟨by unfold Proposer.fields; rfl⟩
 
@@ -10112,123 +10112,123 @@ noncomputable instance equals_unfold_Proposer [GooseExts] [GoGlobalContext] :
 class Proposer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Proposer.underlying Proposer
   underlying : go.UnderlyingDirectedEq Proposer.ty Proposer.underlying
-  get_numReplicas : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"numReplicas") #x (Val #(x.numReplicas'))
-  set_numReplicas : ∀ (x : Proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"numReplicas") (PairV #x #y) (Val #(({ x with numReplicas' := y } : Proposer)))
-  get_name : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : Proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : Proposer)))
-  get_threadId : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"threadId") #x (Val #(x.threadId'))
-  set_threadId : ∀ (x : Proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"threadId") (PairV #x #y) (Val #(({ x with threadId' := y } : Proposer)))
-  get_peers : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"peers") #x (Val #(x.peers'))
-  set_peers : ∀ (x : Proposer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"peers") (PairV #x #y) (Val #(({ x with peers' := y } : Proposer)))
-  get_proxyToProposerChan : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"proxyToProposerChan") #x (Val #(x.proxyToProposerChan'))
-  set_proxyToProposerChan : ∀ (x : Proposer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"proxyToProposerChan") (PairV #x #y) (Val #(({ x with proxyToProposerChan' := y } : Proposer)))
-  get_proposerToProxyChan : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"proposerToProxyChan") #x (Val #(x.proposerToProxyChan'))
-  set_proposerToProxyChan : ∀ (x : Proposer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"proposerToProxyChan") (PairV #x #y) (Val #(({ x with proposerToProxyChan' := y } : Proposer)))
-  get_proxyToProposerFetchChan : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"proxyToProposerFetchChan") #x (Val #(x.proxyToProposerFetchChan'))
-  set_proxyToProposerFetchChan : ∀ (x : Proposer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"proxyToProposerFetchChan") (PairV #x #y) (Val #(({ x with proxyToProposerFetchChan' := y } : Proposer)))
-  get_proposerToProxyFetchChan : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"proposerToProxyFetchChan") #x (Val #(x.proposerToProxyFetchChan'))
-  set_proposerToProxyFetchChan : ∀ (x : Proposer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"proposerToProxyFetchChan") (PairV #x #y) (Val #(({ x with proposerToProxyFetchChan' := y } : Proposer)))
-  get_debugOn : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"debugOn") #x (Val #(x.debugOn'))
-  set_debugOn : ∀ (x : Proposer) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"debugOn") (PairV #x #y) (Val #(({ x with debugOn' := y } : Proposer)))
-  get_debugLevel : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"debugLevel") #x (Val #(x.debugLevel'))
-  set_debugLevel : ∀ (x : Proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"debugLevel") (PairV #x #y) (Val #(({ x with debugLevel' := y } : Proposer)))
-  get_hi : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"hi") #x (Val #(x.hi'))
-  set_hi : ∀ (x : Proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"hi") (PairV #x #y) (Val #(({ x with hi' := y } : Proposer)))
-  get_serverMode : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"serverMode") #x (Val #(x.serverMode'))
-  set_serverMode : ∀ (x : Proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"serverMode") (PairV #x #y) (Val #(({ x with serverMode' := y } : Proposer)))
-  get_proxyToProposerDecisionChan : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"proxyToProposerDecisionChan") #x (Val #(x.proxyToProposerDecisionChan'))
-  set_proxyToProposerDecisionChan : ∀ (x : Proposer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"proxyToProposerDecisionChan") (PairV #x #y) (Val #(({ x with proxyToProposerDecisionChan' := y } : Proposer)))
-  get_isAsynchronous : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"isAsynchronous") #x (Val #(x.isAsynchronous'))
-  set_isAsynchronous : ∀ (x : Proposer) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"isAsynchronous") (PairV #x #y) (Val #(({ x with isAsynchronous' := y } : Proposer)))
-  get_asyncSimulationTimeOut : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"asyncSimulationTimeOut") #x (Val #(x.asyncSimulationTimeOut'))
-  set_asyncSimulationTimeOut : ∀ (x : Proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"asyncSimulationTimeOut") (PairV #x #y) (Val #(({ x with asyncSimulationTimeOut' := y } : Proposer)))
-  get_asynchronousReplicas : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"asynchronousReplicas") #x (Val #(x.asynchronousReplicas'))
-  set_asynchronousReplicas : ∀ (x : Proposer) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"asynchronousReplicas") (PairV #x #y) (Val #(({ x with asynchronousReplicas' := y } : Proposer)))
-  get_timeEpochSize : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"timeEpochSize") #x (Val #(x.timeEpochSize'))
-  set_timeEpochSize : ∀ (x : Proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"timeEpochSize") (PairV #x #y) (Val #(({ x with timeEpochSize' := y } : Proposer)))
-  get_startTime : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"startTime") #x (Val #(x.startTime'))
-  set_startTime : ∀ (x : Proposer) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"startTime") (PairV #x #y) (Val #(({ x with startTime' := y } : Proposer)))
+  get'numReplicas : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"numReplicas") #x (Val #(x.numReplicas'))
+  set'numReplicas : ∀ (x : Proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"numReplicas") (PairV #x #y) (Val #(({ x with numReplicas' := y } : Proposer)))
+  get'name : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : Proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : Proposer)))
+  get'threadId : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"threadId") #x (Val #(x.threadId'))
+  set'threadId : ∀ (x : Proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"threadId") (PairV #x #y) (Val #(({ x with threadId' := y } : Proposer)))
+  get'peers : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"peers") #x (Val #(x.peers'))
+  set'peers : ∀ (x : Proposer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"peers") (PairV #x #y) (Val #(({ x with peers' := y } : Proposer)))
+  get'proxyToProposerChan : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"proxyToProposerChan") #x (Val #(x.proxyToProposerChan'))
+  set'proxyToProposerChan : ∀ (x : Proposer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"proxyToProposerChan") (PairV #x #y) (Val #(({ x with proxyToProposerChan' := y } : Proposer)))
+  get'proposerToProxyChan : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"proposerToProxyChan") #x (Val #(x.proposerToProxyChan'))
+  set'proposerToProxyChan : ∀ (x : Proposer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"proposerToProxyChan") (PairV #x #y) (Val #(({ x with proposerToProxyChan' := y } : Proposer)))
+  get'proxyToProposerFetchChan : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"proxyToProposerFetchChan") #x (Val #(x.proxyToProposerFetchChan'))
+  set'proxyToProposerFetchChan : ∀ (x : Proposer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"proxyToProposerFetchChan") (PairV #x #y) (Val #(({ x with proxyToProposerFetchChan' := y } : Proposer)))
+  get'proposerToProxyFetchChan : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"proposerToProxyFetchChan") #x (Val #(x.proposerToProxyFetchChan'))
+  set'proposerToProxyFetchChan : ∀ (x : Proposer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"proposerToProxyFetchChan") (PairV #x #y) (Val #(({ x with proposerToProxyFetchChan' := y } : Proposer)))
+  get'debugOn : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"debugOn") #x (Val #(x.debugOn'))
+  set'debugOn : ∀ (x : Proposer) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"debugOn") (PairV #x #y) (Val #(({ x with debugOn' := y } : Proposer)))
+  get'debugLevel : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"debugLevel") #x (Val #(x.debugLevel'))
+  set'debugLevel : ∀ (x : Proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"debugLevel") (PairV #x #y) (Val #(({ x with debugLevel' := y } : Proposer)))
+  get'hi : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"hi") #x (Val #(x.hi'))
+  set'hi : ∀ (x : Proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"hi") (PairV #x #y) (Val #(({ x with hi' := y } : Proposer)))
+  get'serverMode : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"serverMode") #x (Val #(x.serverMode'))
+  set'serverMode : ∀ (x : Proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"serverMode") (PairV #x #y) (Val #(({ x with serverMode' := y } : Proposer)))
+  get'proxyToProposerDecisionChan : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"proxyToProposerDecisionChan") #x (Val #(x.proxyToProposerDecisionChan'))
+  set'proxyToProposerDecisionChan : ∀ (x : Proposer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"proxyToProposerDecisionChan") (PairV #x #y) (Val #(({ x with proxyToProposerDecisionChan' := y } : Proposer)))
+  get'isAsynchronous : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"isAsynchronous") #x (Val #(x.isAsynchronous'))
+  set'isAsynchronous : ∀ (x : Proposer) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"isAsynchronous") (PairV #x #y) (Val #(({ x with isAsynchronous' := y } : Proposer)))
+  get'asyncSimulationTimeOut : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"asyncSimulationTimeOut") #x (Val #(x.asyncSimulationTimeOut'))
+  set'asyncSimulationTimeOut : ∀ (x : Proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"asyncSimulationTimeOut") (PairV #x #y) (Val #(({ x with asyncSimulationTimeOut' := y } : Proposer)))
+  get'asynchronousReplicas : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"asynchronousReplicas") #x (Val #(x.asynchronousReplicas'))
+  set'asynchronousReplicas : ∀ (x : Proposer) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"asynchronousReplicas") (PairV #x #y) (Val #(({ x with asynchronousReplicas' := y } : Proposer)))
+  get'timeEpochSize : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"timeEpochSize") #x (Val #(x.timeEpochSize'))
+  set'timeEpochSize : ∀ (x : Proposer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"timeEpochSize") (PairV #x #y) (Val #(({ x with timeEpochSize' := y } : Proposer)))
+  get'startTime : ∀ (x : Proposer), go.IsGoStepPureDetTagged under (StructFieldGet Proposer.underlying go!"startTime") #x (Val #(x.startTime'))
+  set'startTime : ∀ (x : Proposer) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Proposer.underlying go!"startTime") (PairV #x #y) (Val #(({ x with startTime' := y } : Proposer)))
   method_set : go.MethodSetIs Proposer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Proposer.ty) [(go!"raxos/replica/src.amIAttacked", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"raxos/replica/src.convertToClientBatchMessages", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType DecideResponse_ClientBatch_SingleMessage.ty))] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.raxos.proto.client.ClientBatch_SingleMessage.ty))]))), (go!"raxos/replica/src.convertToClientBatches", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType DecideResponse_ClientBatch.ty))] false [(go.GoType.SliceType _root_.Perennial.raxos.proto.client.ClientBatch.ty)]))), (go!"raxos/replica/src.convertToClientBtchMessages", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.raxos.proto.client.ClientBatch_SingleMessage.ty))] false [(go.GoType.SliceType (go.GoType.PointerType ProposerMessage_ClientBatch_SingleMessage.ty))]))), (go!"raxos/replica/src.extractDecidedSlots", (some (go.signature.Signature [(go.GoType.SliceType go.int), (go.GoType.SliceType (go.GoType.SliceType go.string)), (go.GoType.SliceType go.int32)] false [(go.GoType.SliceType (go.GoType.PointerType ProposerMessage_DecidedSlot.ty))]))), (go!"raxos/replica/src.extractDecisionSlots", (some (go.signature.Signature [(go.GoType.SliceType go.int), (go.GoType.SliceType (go.GoType.SliceType go.string)), (go.GoType.SliceType go.int32)] false [(go.GoType.SliceType (go.GoType.PointerType Decisions_DecidedSlot.ty))]))), (go!"raxos/replica/src.findClientByName", (some (go.signature.Signature [go.int64] false [peer.ty]))), (go!"raxos/replica/src.getMaxFromResponses", (some (go.signature.Signature [(go.GoType.SliceType RecorderResponse.ty), go.string] false [ProposerMessage_Proposal.ty]))), (go!"raxos/replica/src.getProposeClientBatches", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.raxos.proto.client.ClientBatch.ty)] false [(go.GoType.SliceType (go.GoType.PointerType ProposerMessage_ClientBatch.ty))]))), (go!"raxos/replica/src.getRandomClient", (some (go.signature.Signature [] false [peer.ty]))), (go!"raxos/replica/src.handleDecisionRequest", (some (go.signature.Signature [Decision.ty] false []))), (go!"raxos/replica/src.handleFetchRequest", (some (go.signature.Signature [FetchRequest.ty] false [FetchResposne.ty]))), (go!"raxos/replica/src.handleProposeRequest", (some (go.signature.Signature [ProposeRequest.ty] false [ProposeResponse.ty]))), (go!"raxos/replica/src.inArray", (some (go.signature.Signature [(go.GoType.SliceType go.int), go.int] false [go.bool]))), (go!"raxos/replica/src.isEqual", (some (go.signature.Signature [(go.GoType.PointerType ProposerMessage_ClientBatch.ty), (go.GoType.PointerType ProposerMessage_ClientBatch.ty)] false [go.bool]))), (go!"raxos/replica/src.isEqualClientBatches", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType ProposerMessage_ClientBatch.ty)), (go.GoType.SliceType (go.GoType.PointerType ProposerMessage_ClientBatch.ty))] false [go.bool]))), (go!"raxos/replica/src.isEqualProposal", (some (go.signature.Signature [ProposerMessage_Proposal.ty, ProposerMessage_Proposal.ty] false [go.bool]))), (go!"raxos/replica/src.isGreaterThan", (some (go.signature.Signature [RecorderResponse.ty, (go.GoType.PointerType RecorderResponse_Proposal.ty), go.string] false [go.bool]))), (go!"raxos/replica/src.runProposer", (some (go.signature.Signature [] false [])))]
-  ptr_amIAttacked_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"amIAttacked" Proposer.amIAttacked.impl
-  ptr_convertToClientBatchMessages_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"convertToClientBatchMessages" Proposer.convertToClientBatchMessages.impl
-  ptr_convertToClientBatches_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"convertToClientBatches" Proposer.convertToClientBatches.impl
-  ptr_convertToClientBtchMessages_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"convertToClientBtchMessages" Proposer.convertToClientBtchMessages.impl
-  ptr_extractDecidedSlots_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"extractDecidedSlots" Proposer.extractDecidedSlots.impl
-  ptr_extractDecisionSlots_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"extractDecisionSlots" Proposer.extractDecisionSlots.impl
-  ptr_findClientByName_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"findClientByName" Proposer.findClientByName.impl
-  ptr_getMaxFromResponses_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"getMaxFromResponses" Proposer.getMaxFromResponses.impl
-  ptr_getProposeClientBatches_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"getProposeClientBatches" Proposer.getProposeClientBatches.impl
-  ptr_getRandomClient_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"getRandomClient" Proposer.getRandomClient.impl
-  ptr_handleDecisionRequest_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"handleDecisionRequest" Proposer.handleDecisionRequest.impl
-  ptr_handleFetchRequest_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"handleFetchRequest" Proposer.handleFetchRequest.impl
-  ptr_handleProposeRequest_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"handleProposeRequest" Proposer.handleProposeRequest.impl
-  ptr_inArray_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"inArray" Proposer.inArray.impl
-  ptr_isEqual_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"isEqual" Proposer.isEqual.impl
-  ptr_isEqualClientBatches_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"isEqualClientBatches" Proposer.isEqualClientBatches.impl
-  ptr_isEqualProposal_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"isEqualProposal" Proposer.isEqualProposal.impl
-  ptr_isGreaterThan_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"isGreaterThan" Proposer.isGreaterThan.impl
-  ptr_runProposer_unfold : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"runProposer" Proposer.runProposer.impl
+  ptr_unfold'amIAttacked : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"amIAttacked" Proposer.amIAttacked.impl
+  ptr_unfold'convertToClientBatchMessages : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"convertToClientBatchMessages" Proposer.convertToClientBatchMessages.impl
+  ptr_unfold'convertToClientBatches : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"convertToClientBatches" Proposer.convertToClientBatches.impl
+  ptr_unfold'convertToClientBtchMessages : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"convertToClientBtchMessages" Proposer.convertToClientBtchMessages.impl
+  ptr_unfold'extractDecidedSlots : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"extractDecidedSlots" Proposer.extractDecidedSlots.impl
+  ptr_unfold'extractDecisionSlots : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"extractDecisionSlots" Proposer.extractDecisionSlots.impl
+  ptr_unfold'findClientByName : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"findClientByName" Proposer.findClientByName.impl
+  ptr_unfold'getMaxFromResponses : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"getMaxFromResponses" Proposer.getMaxFromResponses.impl
+  ptr_unfold'getProposeClientBatches : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"getProposeClientBatches" Proposer.getProposeClientBatches.impl
+  ptr_unfold'getRandomClient : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"getRandomClient" Proposer.getRandomClient.impl
+  ptr_unfold'handleDecisionRequest : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"handleDecisionRequest" Proposer.handleDecisionRequest.impl
+  ptr_unfold'handleFetchRequest : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"handleFetchRequest" Proposer.handleFetchRequest.impl
+  ptr_unfold'handleProposeRequest : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"handleProposeRequest" Proposer.handleProposeRequest.impl
+  ptr_unfold'inArray : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"inArray" Proposer.inArray.impl
+  ptr_unfold'isEqual : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"isEqual" Proposer.isEqual.impl
+  ptr_unfold'isEqualClientBatches : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"isEqualClientBatches" Proposer.isEqualClientBatches.impl
+  ptr_unfold'isEqualProposal : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"isEqualProposal" Proposer.isEqualProposal.impl
+  ptr_unfold'isGreaterThan : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"isGreaterThan" Proposer.isGreaterThan.impl
+  ptr_unfold'runProposer : MethodUnfold (go.GoType.PointerType Proposer.ty) go!"runProposer" Proposer.runProposer.impl
 
 attribute [instance] Proposer.TypeAssumptions.type_repr
   Proposer.TypeAssumptions.underlying
-  Proposer.TypeAssumptions.get_numReplicas
-  Proposer.TypeAssumptions.set_numReplicas
-  Proposer.TypeAssumptions.get_name
-  Proposer.TypeAssumptions.set_name
-  Proposer.TypeAssumptions.get_threadId
-  Proposer.TypeAssumptions.set_threadId
-  Proposer.TypeAssumptions.get_peers
-  Proposer.TypeAssumptions.set_peers
-  Proposer.TypeAssumptions.get_proxyToProposerChan
-  Proposer.TypeAssumptions.set_proxyToProposerChan
-  Proposer.TypeAssumptions.get_proposerToProxyChan
-  Proposer.TypeAssumptions.set_proposerToProxyChan
-  Proposer.TypeAssumptions.get_proxyToProposerFetchChan
-  Proposer.TypeAssumptions.set_proxyToProposerFetchChan
-  Proposer.TypeAssumptions.get_proposerToProxyFetchChan
-  Proposer.TypeAssumptions.set_proposerToProxyFetchChan
-  Proposer.TypeAssumptions.get_debugOn
-  Proposer.TypeAssumptions.set_debugOn
-  Proposer.TypeAssumptions.get_debugLevel
-  Proposer.TypeAssumptions.set_debugLevel
-  Proposer.TypeAssumptions.get_hi
-  Proposer.TypeAssumptions.set_hi
-  Proposer.TypeAssumptions.get_serverMode
-  Proposer.TypeAssumptions.set_serverMode
-  Proposer.TypeAssumptions.get_proxyToProposerDecisionChan
-  Proposer.TypeAssumptions.set_proxyToProposerDecisionChan
-  Proposer.TypeAssumptions.get_isAsynchronous
-  Proposer.TypeAssumptions.set_isAsynchronous
-  Proposer.TypeAssumptions.get_asyncSimulationTimeOut
-  Proposer.TypeAssumptions.set_asyncSimulationTimeOut
-  Proposer.TypeAssumptions.get_asynchronousReplicas
-  Proposer.TypeAssumptions.set_asynchronousReplicas
-  Proposer.TypeAssumptions.get_timeEpochSize
-  Proposer.TypeAssumptions.set_timeEpochSize
-  Proposer.TypeAssumptions.get_startTime
-  Proposer.TypeAssumptions.set_startTime
+  Proposer.TypeAssumptions.get'numReplicas
+  Proposer.TypeAssumptions.set'numReplicas
+  Proposer.TypeAssumptions.get'name
+  Proposer.TypeAssumptions.set'name
+  Proposer.TypeAssumptions.get'threadId
+  Proposer.TypeAssumptions.set'threadId
+  Proposer.TypeAssumptions.get'peers
+  Proposer.TypeAssumptions.set'peers
+  Proposer.TypeAssumptions.get'proxyToProposerChan
+  Proposer.TypeAssumptions.set'proxyToProposerChan
+  Proposer.TypeAssumptions.get'proposerToProxyChan
+  Proposer.TypeAssumptions.set'proposerToProxyChan
+  Proposer.TypeAssumptions.get'proxyToProposerFetchChan
+  Proposer.TypeAssumptions.set'proxyToProposerFetchChan
+  Proposer.TypeAssumptions.get'proposerToProxyFetchChan
+  Proposer.TypeAssumptions.set'proposerToProxyFetchChan
+  Proposer.TypeAssumptions.get'debugOn
+  Proposer.TypeAssumptions.set'debugOn
+  Proposer.TypeAssumptions.get'debugLevel
+  Proposer.TypeAssumptions.set'debugLevel
+  Proposer.TypeAssumptions.get'hi
+  Proposer.TypeAssumptions.set'hi
+  Proposer.TypeAssumptions.get'serverMode
+  Proposer.TypeAssumptions.set'serverMode
+  Proposer.TypeAssumptions.get'proxyToProposerDecisionChan
+  Proposer.TypeAssumptions.set'proxyToProposerDecisionChan
+  Proposer.TypeAssumptions.get'isAsynchronous
+  Proposer.TypeAssumptions.set'isAsynchronous
+  Proposer.TypeAssumptions.get'asyncSimulationTimeOut
+  Proposer.TypeAssumptions.set'asyncSimulationTimeOut
+  Proposer.TypeAssumptions.get'asynchronousReplicas
+  Proposer.TypeAssumptions.set'asynchronousReplicas
+  Proposer.TypeAssumptions.get'timeEpochSize
+  Proposer.TypeAssumptions.set'timeEpochSize
+  Proposer.TypeAssumptions.get'startTime
+  Proposer.TypeAssumptions.set'startTime
   Proposer.TypeAssumptions.method_set
   Proposer.TypeAssumptions.ptr_method_set
-  Proposer.TypeAssumptions.ptr_amIAttacked_unfold
-  Proposer.TypeAssumptions.ptr_convertToClientBatchMessages_unfold
-  Proposer.TypeAssumptions.ptr_convertToClientBatches_unfold
-  Proposer.TypeAssumptions.ptr_convertToClientBtchMessages_unfold
-  Proposer.TypeAssumptions.ptr_extractDecidedSlots_unfold
-  Proposer.TypeAssumptions.ptr_extractDecisionSlots_unfold
-  Proposer.TypeAssumptions.ptr_findClientByName_unfold
-  Proposer.TypeAssumptions.ptr_getMaxFromResponses_unfold
-  Proposer.TypeAssumptions.ptr_getProposeClientBatches_unfold
-  Proposer.TypeAssumptions.ptr_getRandomClient_unfold
-  Proposer.TypeAssumptions.ptr_handleDecisionRequest_unfold
-  Proposer.TypeAssumptions.ptr_handleFetchRequest_unfold
-  Proposer.TypeAssumptions.ptr_handleProposeRequest_unfold
-  Proposer.TypeAssumptions.ptr_inArray_unfold
-  Proposer.TypeAssumptions.ptr_isEqual_unfold
-  Proposer.TypeAssumptions.ptr_isEqualClientBatches_unfold
-  Proposer.TypeAssumptions.ptr_isEqualProposal_unfold
-  Proposer.TypeAssumptions.ptr_isGreaterThan_unfold
-  Proposer.TypeAssumptions.ptr_runProposer_unfold
+  Proposer.TypeAssumptions.ptr_unfold'amIAttacked
+  Proposer.TypeAssumptions.ptr_unfold'convertToClientBatchMessages
+  Proposer.TypeAssumptions.ptr_unfold'convertToClientBatches
+  Proposer.TypeAssumptions.ptr_unfold'convertToClientBtchMessages
+  Proposer.TypeAssumptions.ptr_unfold'extractDecidedSlots
+  Proposer.TypeAssumptions.ptr_unfold'extractDecisionSlots
+  Proposer.TypeAssumptions.ptr_unfold'findClientByName
+  Proposer.TypeAssumptions.ptr_unfold'getMaxFromResponses
+  Proposer.TypeAssumptions.ptr_unfold'getProposeClientBatches
+  Proposer.TypeAssumptions.ptr_unfold'getRandomClient
+  Proposer.TypeAssumptions.ptr_unfold'handleDecisionRequest
+  Proposer.TypeAssumptions.ptr_unfold'handleFetchRequest
+  Proposer.TypeAssumptions.ptr_unfold'handleProposeRequest
+  Proposer.TypeAssumptions.ptr_unfold'inArray
+  Proposer.TypeAssumptions.ptr_unfold'isEqual
+  Proposer.TypeAssumptions.ptr_unfold'isEqualClientBatches
+  Proposer.TypeAssumptions.ptr_unfold'isEqualProposal
+  Proposer.TypeAssumptions.ptr_unfold'isGreaterThan
+  Proposer.TypeAssumptions.ptr_unfold'runProposer
 
 structure Slot [GooseExts] where
   mk ::
@@ -10253,7 +10253,7 @@ noncomputable instance Slot.zero_val [GooseExts] : ZeroVal Slot :=
 @[irreducible] noncomputable def Slot.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Slot.fieldsUnsealed
 
-noncomputable instance equals_unfold_Slot [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Slot [GooseExts] [GoGlobalContext] :
     EqualsUnfold Slot.fields Slot.fieldsUnsealed :=
   ⟨by unfold Slot.fields; rfl⟩
 
@@ -10263,35 +10263,35 @@ noncomputable instance equals_unfold_Slot [GooseExts] [GoGlobalContext] :
 class Slot.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Slot.underlying Slot
   underlying : go.UnderlyingDirectedEq Slot.ty Slot.underlying
-  get_proposedBatch : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"proposedBatch") #x (Val #(x.proposedBatch'))
-  set_proposedBatch : ∀ (x : Slot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"proposedBatch") (PairV #x #y) (Val #(({ x with proposedBatch' := y } : Slot)))
-  get_decidedBatch : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"decidedBatch") #x (Val #(x.decidedBatch'))
-  set_decidedBatch : ∀ (x : Slot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"decidedBatch") (PairV #x #y) (Val #(({ x with decidedBatch' := y } : Slot)))
-  get_decided : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"decided") #x (Val #(x.decided'))
-  set_decided : ∀ (x : Slot) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"decided") (PairV #x #y) (Val #(({ x with decided' := y } : Slot)))
-  get_committed : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"committed") #x (Val #(x.committed'))
-  set_committed : ∀ (x : Slot) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"committed") (PairV #x #y) (Val #(({ x with committed' := y } : Slot)))
-  get_proposer : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"proposer") #x (Val #(x.proposer'))
-  set_proposer : ∀ (x : Slot) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"proposer") (PairV #x #y) (Val #(({ x with proposer' := y } : Slot)))
-  get_s : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : Slot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : Slot)))
+  get'proposedBatch : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"proposedBatch") #x (Val #(x.proposedBatch'))
+  set'proposedBatch : ∀ (x : Slot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"proposedBatch") (PairV #x #y) (Val #(({ x with proposedBatch' := y } : Slot)))
+  get'decidedBatch : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"decidedBatch") #x (Val #(x.decidedBatch'))
+  set'decidedBatch : ∀ (x : Slot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"decidedBatch") (PairV #x #y) (Val #(({ x with decidedBatch' := y } : Slot)))
+  get'decided : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"decided") #x (Val #(x.decided'))
+  set'decided : ∀ (x : Slot) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"decided") (PairV #x #y) (Val #(({ x with decided' := y } : Slot)))
+  get'committed : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"committed") #x (Val #(x.committed'))
+  set'committed : ∀ (x : Slot) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"committed") (PairV #x #y) (Val #(({ x with committed' := y } : Slot)))
+  get'proposer : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"proposer") #x (Val #(x.proposer'))
+  set'proposer : ∀ (x : Slot) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"proposer") (PairV #x #y) (Val #(({ x with proposer' := y } : Slot)))
+  get's : ∀ (x : Slot), go.IsGoStepPureDetTagged under (StructFieldGet Slot.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : Slot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Slot.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : Slot)))
   method_set : go.MethodSetIs Slot.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Slot.ty) []
 
 attribute [instance] Slot.TypeAssumptions.type_repr
   Slot.TypeAssumptions.underlying
-  Slot.TypeAssumptions.get_proposedBatch
-  Slot.TypeAssumptions.set_proposedBatch
-  Slot.TypeAssumptions.get_decidedBatch
-  Slot.TypeAssumptions.set_decidedBatch
-  Slot.TypeAssumptions.get_decided
-  Slot.TypeAssumptions.set_decided
-  Slot.TypeAssumptions.get_committed
-  Slot.TypeAssumptions.set_committed
-  Slot.TypeAssumptions.get_proposer
-  Slot.TypeAssumptions.set_proposer
-  Slot.TypeAssumptions.get_s
-  Slot.TypeAssumptions.set_s
+  Slot.TypeAssumptions.get'proposedBatch
+  Slot.TypeAssumptions.set'proposedBatch
+  Slot.TypeAssumptions.get'decidedBatch
+  Slot.TypeAssumptions.set'decidedBatch
+  Slot.TypeAssumptions.get'decided
+  Slot.TypeAssumptions.set'decided
+  Slot.TypeAssumptions.get'committed
+  Slot.TypeAssumptions.set'committed
+  Slot.TypeAssumptions.get'proposer
+  Slot.TypeAssumptions.set'proposer
+  Slot.TypeAssumptions.get's
+  Slot.TypeAssumptions.set's
   Slot.TypeAssumptions.method_set
   Slot.TypeAssumptions.ptr_method_set
 
@@ -10410,7 +10410,7 @@ noncomputable instance Proxy.zero_val [GooseExts] : ZeroVal Proxy :=
 @[irreducible] noncomputable def Proxy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Proxy.fieldsUnsealed
 
-noncomputable instance equals_unfold_Proxy [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Proxy [GooseExts] [GoGlobalContext] :
     EqualsUnfold Proxy.fields Proxy.fieldsUnsealed :=
   ⟨by unfold Proxy.fields; rfl⟩
 
@@ -10420,303 +10420,303 @@ noncomputable instance equals_unfold_Proxy [GooseExts] [GoGlobalContext] :
 class Proxy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Proxy.underlying Proxy
   underlying : go.UnderlyingDirectedEq Proxy.ty Proxy.underlying
-  get_name : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : Proxy)))
-  get_numReplicas : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"numReplicas") #x (Val #(x.numReplicas'))
-  set_numReplicas : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"numReplicas") (PairV #x #y) (Val #(({ x with numReplicas' := y } : Proxy)))
-  get_numClients : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"numClients") #x (Val #(x.numClients'))
-  set_numClients : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"numClients") (PairV #x #y) (Val #(({ x with numClients' := y } : Proxy)))
-  get_clientAddrList : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"clientAddrList") #x (Val #(x.clientAddrList'))
-  set_clientAddrList : ∀ (x : Proxy) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"clientAddrList") (PairV #x #y) (Val #(({ x with clientAddrList' := y } : Proxy)))
-  get_incomingClientReaders : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"incomingClientReaders") #x (Val #(x.incomingClientReaders'))
-  set_incomingClientReaders : ∀ (x : Proxy) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"incomingClientReaders") (PairV #x #y) (Val #(({ x with incomingClientReaders' := y } : Proxy)))
-  get_outgoingClientWriters : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"outgoingClientWriters") #x (Val #(x.outgoingClientWriters'))
-  set_outgoingClientWriters : ∀ (x : Proxy) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"outgoingClientWriters") (PairV #x #y) (Val #(({ x with outgoingClientWriters' := y } : Proxy)))
-  get_clientWritersMutex : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"clientWritersMutex") #x (Val #(x.clientWritersMutex'))
-  set_clientWritersMutex : ∀ (x : Proxy) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"clientWritersMutex") (PairV #x #y) (Val #(({ x with clientWritersMutex' := y } : Proxy)))
-  get_buffioWriterMutexes : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"buffioWriterMutexes") #x (Val #(x.buffioWriterMutexes'))
-  set_buffioWriterMutexes : ∀ (x : Proxy) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"buffioWriterMutexes") (PairV #x #y) (Val #(({ x with buffioWriterMutexes' := y } : Proxy)))
-  get_serverAddress : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"serverAddress") #x (Val #(x.serverAddress'))
-  set_serverAddress : ∀ (x : Proxy) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"serverAddress") (PairV #x #y) (Val #(({ x with serverAddress' := y } : Proxy)))
-  get_Listener : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"Listener") #x (Val #(x.Listener'))
-  set_Listener : ∀ (x : Proxy) (y : _root_.Perennial.net.Listener), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"Listener") (PairV #x #y) (Val #(({ x with Listener' := y } : Proxy)))
-  get_rpcTable : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"rpcTable") #x (Val #(x.rpcTable'))
-  set_rpcTable : ∀ (x : Proxy) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"rpcTable") (PairV #x #y) (Val #(({ x with rpcTable' := y } : Proxy)))
-  get_incomingChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"incomingChan") #x (Val #(x.incomingChan'))
-  set_incomingChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"incomingChan") (PairV #x #y) (Val #(({ x with incomingChan' := y } : Proxy)))
-  get_outgoingMessageChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"outgoingMessageChan") #x (Val #(x.outgoingMessageChan'))
-  set_outgoingMessageChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"outgoingMessageChan") (PairV #x #y) (Val #(({ x with outgoingMessageChan' := y } : Proxy)))
-  get_proxyToProposerChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"proxyToProposerChan") #x (Val #(x.proxyToProposerChan'))
-  set_proxyToProposerChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"proxyToProposerChan") (PairV #x #y) (Val #(({ x with proxyToProposerChan' := y } : Proxy)))
-  get_proposerToProxyChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"proposerToProxyChan") #x (Val #(x.proposerToProxyChan'))
-  set_proposerToProxyChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"proposerToProxyChan") (PairV #x #y) (Val #(({ x with proposerToProxyChan' := y } : Proxy)))
-  get_recorderToProxyChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"recorderToProxyChan") #x (Val #(x.recorderToProxyChan'))
-  set_recorderToProxyChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"recorderToProxyChan") (PairV #x #y) (Val #(({ x with recorderToProxyChan' := y } : Proxy)))
-  get_proxyToProposerFetchChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"proxyToProposerFetchChan") #x (Val #(x.proxyToProposerFetchChan'))
-  set_proxyToProposerFetchChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"proxyToProposerFetchChan") (PairV #x #y) (Val #(({ x with proxyToProposerFetchChan' := y } : Proxy)))
-  get_proposerToProxyFetchChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"proposerToProxyFetchChan") #x (Val #(x.proposerToProxyFetchChan'))
-  set_proposerToProxyFetchChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"proposerToProxyFetchChan") (PairV #x #y) (Val #(({ x with proposerToProxyFetchChan' := y } : Proxy)))
-  get_clientBatchRpc : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"clientBatchRpc") #x (Val #(x.clientBatchRpc'))
-  set_clientBatchRpc : ∀ (x : Proxy) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"clientBatchRpc") (PairV #x #y) (Val #(({ x with clientBatchRpc' := y } : Proxy)))
-  get_clientStatusRpc : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"clientStatusRpc") #x (Val #(x.clientStatusRpc'))
-  set_clientStatusRpc : ∀ (x : Proxy) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"clientStatusRpc") (PairV #x #y) (Val #(({ x with clientStatusRpc' := y } : Proxy)))
-  get_replicatedLog : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"replicatedLog") #x (Val #(x.replicatedLog'))
-  set_replicatedLog : ∀ (x : Proxy) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"replicatedLog") (PairV #x #y) (Val #(({ x with replicatedLog' := y } : Proxy)))
-  get_committedIndex : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"committedIndex") #x (Val #(x.committedIndex'))
-  set_committedIndex : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"committedIndex") (PairV #x #y) (Val #(({ x with committedIndex' := y } : Proxy)))
-  get_lastProposedIndex : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"lastProposedIndex") #x (Val #(x.lastProposedIndex'))
-  set_lastProposedIndex : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"lastProposedIndex") (PairV #x #y) (Val #(({ x with lastProposedIndex' := y } : Proxy)))
-  get_lastTimeCommitted : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"lastTimeCommitted") #x (Val #(x.lastTimeCommitted'))
-  set_lastTimeCommitted : ∀ (x : Proxy) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"lastTimeCommitted") (PairV #x #y) (Val #(({ x with lastTimeCommitted' := y } : Proxy)))
-  get_logFilePath : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"logFilePath") #x (Val #(x.logFilePath'))
-  set_logFilePath : ∀ (x : Proxy) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"logFilePath") (PairV #x #y) (Val #(({ x with logFilePath' := y } : Proxy)))
-  get_batchSize : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"batchSize") #x (Val #(x.batchSize'))
-  set_batchSize : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"batchSize") (PairV #x #y) (Val #(({ x with batchSize' := y } : Proxy)))
-  get_batchTime : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"batchTime") #x (Val #(x.batchTime'))
-  set_batchTime : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"batchTime") (PairV #x #y) (Val #(({ x with batchTime' := y } : Proxy)))
-  get_pipelineLength : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"pipelineLength") #x (Val #(x.pipelineLength'))
-  set_pipelineLength : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"pipelineLength") (PairV #x #y) (Val #(({ x with pipelineLength' := y } : Proxy)))
-  get_clientBatchStore : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"clientBatchStore") #x (Val #(x.clientBatchStore'))
-  set_clientBatchStore : ∀ (x : Proxy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"clientBatchStore") (PairV #x #y) (Val #(({ x with clientBatchStore' := y } : Proxy)))
-  get_leaderTimeout : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"leaderTimeout") #x (Val #(x.leaderTimeout'))
-  set_leaderTimeout : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"leaderTimeout") (PairV #x #y) (Val #(({ x with leaderTimeout' := y } : Proxy)))
-  get_debugOn : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"debugOn") #x (Val #(x.debugOn'))
-  set_debugOn : ∀ (x : Proxy) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"debugOn") (PairV #x #y) (Val #(({ x with debugOn' := y } : Proxy)))
-  get_debugLevel : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"debugLevel") #x (Val #(x.debugLevel'))
-  set_debugLevel : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"debugLevel") (PairV #x #y) (Val #(({ x with debugLevel' := y } : Proxy)))
-  get_serverStarted : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"serverStarted") #x (Val #(x.serverStarted'))
-  set_serverStarted : ∀ (x : Proxy) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"serverStarted") (PairV #x #y) (Val #(({ x with serverStarted' := y } : Proxy)))
-  get_server : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"server") #x (Val #(x.server'))
-  set_server : ∀ (x : Proxy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"server") (PairV #x #y) (Val #(({ x with server' := y } : Proxy)))
-  get_toBeProposed : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"toBeProposed") #x (Val #(x.toBeProposed'))
-  set_toBeProposed : ∀ (x : Proxy) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"toBeProposed") (PairV #x #y) (Val #(({ x with toBeProposed' := y } : Proxy)))
-  get_lastDecidedIndexes : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"lastDecidedIndexes") #x (Val #(x.lastDecidedIndexes'))
-  set_lastDecidedIndexes : ∀ (x : Proxy) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"lastDecidedIndexes") (PairV #x #y) (Val #(({ x with lastDecidedIndexes' := y } : Proxy)))
-  get_lastDecidedProposers : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"lastDecidedProposers") #x (Val #(x.lastDecidedProposers'))
-  set_lastDecidedProposers : ∀ (x : Proxy) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"lastDecidedProposers") (PairV #x #y) (Val #(({ x with lastDecidedProposers' := y } : Proxy)))
-  get_lastDecidedDecisions : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"lastDecidedDecisions") #x (Val #(x.lastDecidedDecisions'))
-  set_lastDecidedDecisions : ∀ (x : Proxy) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"lastDecidedDecisions") (PairV #x #y) (Val #(({ x with lastDecidedDecisions' := y } : Proxy)))
-  get_leaderMode : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"leaderMode") #x (Val #(x.leaderMode'))
-  set_leaderMode : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"leaderMode") (PairV #x #y) (Val #(({ x with leaderMode' := y } : Proxy)))
-  get_serverMode : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"serverMode") #x (Val #(x.serverMode'))
-  set_serverMode : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"serverMode") (PairV #x #y) (Val #(({ x with serverMode' := y } : Proxy)))
-  get_instanceTimeouts : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"instanceTimeouts") #x (Val #(x.instanceTimeouts'))
-  set_instanceTimeouts : ∀ (x : Proxy) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"instanceTimeouts") (PairV #x #y) (Val #(({ x with instanceTimeouts' := y } : Proxy)))
-  get_proposeRequestIndex : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"proposeRequestIndex") #x (Val #(x.proposeRequestIndex'))
-  set_proposeRequestIndex : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"proposeRequestIndex") (PairV #x #y) (Val #(({ x with proposeRequestIndex' := y } : Proxy)))
-  get_lastTimeProposed : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"lastTimeProposed") #x (Val #(x.lastTimeProposed'))
-  set_lastTimeProposed : ∀ (x : Proxy) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"lastTimeProposed") (PairV #x #y) (Val #(({ x with lastTimeProposed' := y } : Proxy)))
-  get_epochSize : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"epochSize") #x (Val #(x.epochSize'))
-  set_epochSize : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"epochSize") (PairV #x #y) (Val #(({ x with epochSize' := y } : Proxy)))
-  get_epochTimes : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"epochTimes") #x (Val #(x.epochTimes'))
-  set_epochTimes : ∀ (x : Proxy) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"epochTimes") (PairV #x #y) (Val #(({ x with epochTimes' := y } : Proxy)))
-  get_proxyToProposerDecisionChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"proxyToProposerDecisionChan") #x (Val #(x.proxyToProposerDecisionChan'))
-  set_proxyToProposerDecisionChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"proxyToProposerDecisionChan") (PairV #x #y) (Val #(({ x with proxyToProposerDecisionChan' := y } : Proxy)))
-  get_clientBatchTimer : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"clientBatchTimer") #x (Val #(x.clientBatchTimer'))
-  set_clientBatchTimer : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"clientBatchTimer") (PairV #x #y) (Val #(({ x with clientBatchTimer' := y } : Proxy)))
-  get_benchmark : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"benchmark") #x (Val #(x.benchmark'))
-  set_benchmark : ∀ (x : Proxy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"benchmark") (PairV #x #y) (Val #(({ x with benchmark' := y } : Proxy)))
-  get_startTime : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"startTime") #x (Val #(x.startTime'))
-  set_startTime : ∀ (x : Proxy) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"startTime") (PairV #x #y) (Val #(({ x with startTime' := y } : Proxy)))
-  get_requestPropogationTime : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"requestPropogationTime") #x (Val #(x.requestPropogationTime'))
-  set_requestPropogationTime : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"requestPropogationTime") (PairV #x #y) (Val #(({ x with requestPropogationTime' := y } : Proxy)))
-  get_clientRequestsChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"clientRequestsChan") #x (Val #(x.clientRequestsChan'))
-  set_clientRequestsChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"clientRequestsChan") (PairV #x #y) (Val #(({ x with clientRequestsChan' := y } : Proxy)))
-  get_executedBatches : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"executedBatches") #x (Val #(x.executedBatches'))
-  set_executedBatches : ∀ (x : Proxy) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"executedBatches") (PairV #x #y) (Val #(({ x with executedBatches' := y } : Proxy)))
+  get'name : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : Proxy)))
+  get'numReplicas : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"numReplicas") #x (Val #(x.numReplicas'))
+  set'numReplicas : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"numReplicas") (PairV #x #y) (Val #(({ x with numReplicas' := y } : Proxy)))
+  get'numClients : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"numClients") #x (Val #(x.numClients'))
+  set'numClients : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"numClients") (PairV #x #y) (Val #(({ x with numClients' := y } : Proxy)))
+  get'clientAddrList : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"clientAddrList") #x (Val #(x.clientAddrList'))
+  set'clientAddrList : ∀ (x : Proxy) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"clientAddrList") (PairV #x #y) (Val #(({ x with clientAddrList' := y } : Proxy)))
+  get'incomingClientReaders : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"incomingClientReaders") #x (Val #(x.incomingClientReaders'))
+  set'incomingClientReaders : ∀ (x : Proxy) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"incomingClientReaders") (PairV #x #y) (Val #(({ x with incomingClientReaders' := y } : Proxy)))
+  get'outgoingClientWriters : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"outgoingClientWriters") #x (Val #(x.outgoingClientWriters'))
+  set'outgoingClientWriters : ∀ (x : Proxy) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"outgoingClientWriters") (PairV #x #y) (Val #(({ x with outgoingClientWriters' := y } : Proxy)))
+  get'clientWritersMutex : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"clientWritersMutex") #x (Val #(x.clientWritersMutex'))
+  set'clientWritersMutex : ∀ (x : Proxy) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"clientWritersMutex") (PairV #x #y) (Val #(({ x with clientWritersMutex' := y } : Proxy)))
+  get'buffioWriterMutexes : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"buffioWriterMutexes") #x (Val #(x.buffioWriterMutexes'))
+  set'buffioWriterMutexes : ∀ (x : Proxy) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"buffioWriterMutexes") (PairV #x #y) (Val #(({ x with buffioWriterMutexes' := y } : Proxy)))
+  get'serverAddress : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"serverAddress") #x (Val #(x.serverAddress'))
+  set'serverAddress : ∀ (x : Proxy) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"serverAddress") (PairV #x #y) (Val #(({ x with serverAddress' := y } : Proxy)))
+  get'Listener : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"Listener") #x (Val #(x.Listener'))
+  set'Listener : ∀ (x : Proxy) (y : _root_.Perennial.net.Listener), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"Listener") (PairV #x #y) (Val #(({ x with Listener' := y } : Proxy)))
+  get'rpcTable : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"rpcTable") #x (Val #(x.rpcTable'))
+  set'rpcTable : ∀ (x : Proxy) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"rpcTable") (PairV #x #y) (Val #(({ x with rpcTable' := y } : Proxy)))
+  get'incomingChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"incomingChan") #x (Val #(x.incomingChan'))
+  set'incomingChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"incomingChan") (PairV #x #y) (Val #(({ x with incomingChan' := y } : Proxy)))
+  get'outgoingMessageChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"outgoingMessageChan") #x (Val #(x.outgoingMessageChan'))
+  set'outgoingMessageChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"outgoingMessageChan") (PairV #x #y) (Val #(({ x with outgoingMessageChan' := y } : Proxy)))
+  get'proxyToProposerChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"proxyToProposerChan") #x (Val #(x.proxyToProposerChan'))
+  set'proxyToProposerChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"proxyToProposerChan") (PairV #x #y) (Val #(({ x with proxyToProposerChan' := y } : Proxy)))
+  get'proposerToProxyChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"proposerToProxyChan") #x (Val #(x.proposerToProxyChan'))
+  set'proposerToProxyChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"proposerToProxyChan") (PairV #x #y) (Val #(({ x with proposerToProxyChan' := y } : Proxy)))
+  get'recorderToProxyChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"recorderToProxyChan") #x (Val #(x.recorderToProxyChan'))
+  set'recorderToProxyChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"recorderToProxyChan") (PairV #x #y) (Val #(({ x with recorderToProxyChan' := y } : Proxy)))
+  get'proxyToProposerFetchChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"proxyToProposerFetchChan") #x (Val #(x.proxyToProposerFetchChan'))
+  set'proxyToProposerFetchChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"proxyToProposerFetchChan") (PairV #x #y) (Val #(({ x with proxyToProposerFetchChan' := y } : Proxy)))
+  get'proposerToProxyFetchChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"proposerToProxyFetchChan") #x (Val #(x.proposerToProxyFetchChan'))
+  set'proposerToProxyFetchChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"proposerToProxyFetchChan") (PairV #x #y) (Val #(({ x with proposerToProxyFetchChan' := y } : Proxy)))
+  get'clientBatchRpc : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"clientBatchRpc") #x (Val #(x.clientBatchRpc'))
+  set'clientBatchRpc : ∀ (x : Proxy) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"clientBatchRpc") (PairV #x #y) (Val #(({ x with clientBatchRpc' := y } : Proxy)))
+  get'clientStatusRpc : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"clientStatusRpc") #x (Val #(x.clientStatusRpc'))
+  set'clientStatusRpc : ∀ (x : Proxy) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"clientStatusRpc") (PairV #x #y) (Val #(({ x with clientStatusRpc' := y } : Proxy)))
+  get'replicatedLog : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"replicatedLog") #x (Val #(x.replicatedLog'))
+  set'replicatedLog : ∀ (x : Proxy) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"replicatedLog") (PairV #x #y) (Val #(({ x with replicatedLog' := y } : Proxy)))
+  get'committedIndex : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"committedIndex") #x (Val #(x.committedIndex'))
+  set'committedIndex : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"committedIndex") (PairV #x #y) (Val #(({ x with committedIndex' := y } : Proxy)))
+  get'lastProposedIndex : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"lastProposedIndex") #x (Val #(x.lastProposedIndex'))
+  set'lastProposedIndex : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"lastProposedIndex") (PairV #x #y) (Val #(({ x with lastProposedIndex' := y } : Proxy)))
+  get'lastTimeCommitted : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"lastTimeCommitted") #x (Val #(x.lastTimeCommitted'))
+  set'lastTimeCommitted : ∀ (x : Proxy) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"lastTimeCommitted") (PairV #x #y) (Val #(({ x with lastTimeCommitted' := y } : Proxy)))
+  get'logFilePath : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"logFilePath") #x (Val #(x.logFilePath'))
+  set'logFilePath : ∀ (x : Proxy) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"logFilePath") (PairV #x #y) (Val #(({ x with logFilePath' := y } : Proxy)))
+  get'batchSize : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"batchSize") #x (Val #(x.batchSize'))
+  set'batchSize : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"batchSize") (PairV #x #y) (Val #(({ x with batchSize' := y } : Proxy)))
+  get'batchTime : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"batchTime") #x (Val #(x.batchTime'))
+  set'batchTime : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"batchTime") (PairV #x #y) (Val #(({ x with batchTime' := y } : Proxy)))
+  get'pipelineLength : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"pipelineLength") #x (Val #(x.pipelineLength'))
+  set'pipelineLength : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"pipelineLength") (PairV #x #y) (Val #(({ x with pipelineLength' := y } : Proxy)))
+  get'clientBatchStore : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"clientBatchStore") #x (Val #(x.clientBatchStore'))
+  set'clientBatchStore : ∀ (x : Proxy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"clientBatchStore") (PairV #x #y) (Val #(({ x with clientBatchStore' := y } : Proxy)))
+  get'leaderTimeout : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"leaderTimeout") #x (Val #(x.leaderTimeout'))
+  set'leaderTimeout : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"leaderTimeout") (PairV #x #y) (Val #(({ x with leaderTimeout' := y } : Proxy)))
+  get'debugOn : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"debugOn") #x (Val #(x.debugOn'))
+  set'debugOn : ∀ (x : Proxy) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"debugOn") (PairV #x #y) (Val #(({ x with debugOn' := y } : Proxy)))
+  get'debugLevel : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"debugLevel") #x (Val #(x.debugLevel'))
+  set'debugLevel : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"debugLevel") (PairV #x #y) (Val #(({ x with debugLevel' := y } : Proxy)))
+  get'serverStarted : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"serverStarted") #x (Val #(x.serverStarted'))
+  set'serverStarted : ∀ (x : Proxy) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"serverStarted") (PairV #x #y) (Val #(({ x with serverStarted' := y } : Proxy)))
+  get'server : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"server") #x (Val #(x.server'))
+  set'server : ∀ (x : Proxy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"server") (PairV #x #y) (Val #(({ x with server' := y } : Proxy)))
+  get'toBeProposed : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"toBeProposed") #x (Val #(x.toBeProposed'))
+  set'toBeProposed : ∀ (x : Proxy) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"toBeProposed") (PairV #x #y) (Val #(({ x with toBeProposed' := y } : Proxy)))
+  get'lastDecidedIndexes : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"lastDecidedIndexes") #x (Val #(x.lastDecidedIndexes'))
+  set'lastDecidedIndexes : ∀ (x : Proxy) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"lastDecidedIndexes") (PairV #x #y) (Val #(({ x with lastDecidedIndexes' := y } : Proxy)))
+  get'lastDecidedProposers : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"lastDecidedProposers") #x (Val #(x.lastDecidedProposers'))
+  set'lastDecidedProposers : ∀ (x : Proxy) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"lastDecidedProposers") (PairV #x #y) (Val #(({ x with lastDecidedProposers' := y } : Proxy)))
+  get'lastDecidedDecisions : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"lastDecidedDecisions") #x (Val #(x.lastDecidedDecisions'))
+  set'lastDecidedDecisions : ∀ (x : Proxy) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"lastDecidedDecisions") (PairV #x #y) (Val #(({ x with lastDecidedDecisions' := y } : Proxy)))
+  get'leaderMode : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"leaderMode") #x (Val #(x.leaderMode'))
+  set'leaderMode : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"leaderMode") (PairV #x #y) (Val #(({ x with leaderMode' := y } : Proxy)))
+  get'serverMode : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"serverMode") #x (Val #(x.serverMode'))
+  set'serverMode : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"serverMode") (PairV #x #y) (Val #(({ x with serverMode' := y } : Proxy)))
+  get'instanceTimeouts : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"instanceTimeouts") #x (Val #(x.instanceTimeouts'))
+  set'instanceTimeouts : ∀ (x : Proxy) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"instanceTimeouts") (PairV #x #y) (Val #(({ x with instanceTimeouts' := y } : Proxy)))
+  get'proposeRequestIndex : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"proposeRequestIndex") #x (Val #(x.proposeRequestIndex'))
+  set'proposeRequestIndex : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"proposeRequestIndex") (PairV #x #y) (Val #(({ x with proposeRequestIndex' := y } : Proxy)))
+  get'lastTimeProposed : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"lastTimeProposed") #x (Val #(x.lastTimeProposed'))
+  set'lastTimeProposed : ∀ (x : Proxy) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"lastTimeProposed") (PairV #x #y) (Val #(({ x with lastTimeProposed' := y } : Proxy)))
+  get'epochSize : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"epochSize") #x (Val #(x.epochSize'))
+  set'epochSize : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"epochSize") (PairV #x #y) (Val #(({ x with epochSize' := y } : Proxy)))
+  get'epochTimes : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"epochTimes") #x (Val #(x.epochTimes'))
+  set'epochTimes : ∀ (x : Proxy) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"epochTimes") (PairV #x #y) (Val #(({ x with epochTimes' := y } : Proxy)))
+  get'proxyToProposerDecisionChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"proxyToProposerDecisionChan") #x (Val #(x.proxyToProposerDecisionChan'))
+  set'proxyToProposerDecisionChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"proxyToProposerDecisionChan") (PairV #x #y) (Val #(({ x with proxyToProposerDecisionChan' := y } : Proxy)))
+  get'clientBatchTimer : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"clientBatchTimer") #x (Val #(x.clientBatchTimer'))
+  set'clientBatchTimer : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"clientBatchTimer") (PairV #x #y) (Val #(({ x with clientBatchTimer' := y } : Proxy)))
+  get'benchmark : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"benchmark") #x (Val #(x.benchmark'))
+  set'benchmark : ∀ (x : Proxy) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"benchmark") (PairV #x #y) (Val #(({ x with benchmark' := y } : Proxy)))
+  get'startTime : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"startTime") #x (Val #(x.startTime'))
+  set'startTime : ∀ (x : Proxy) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"startTime") (PairV #x #y) (Val #(({ x with startTime' := y } : Proxy)))
+  get'requestPropogationTime : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"requestPropogationTime") #x (Val #(x.requestPropogationTime'))
+  set'requestPropogationTime : ∀ (x : Proxy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"requestPropogationTime") (PairV #x #y) (Val #(({ x with requestPropogationTime' := y } : Proxy)))
+  get'clientRequestsChan : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"clientRequestsChan") #x (Val #(x.clientRequestsChan'))
+  set'clientRequestsChan : ∀ (x : Proxy) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"clientRequestsChan") (PairV #x #y) (Val #(({ x with clientRequestsChan' := y } : Proxy)))
+  get'executedBatches : ∀ (x : Proxy), go.IsGoStepPureDetTagged under (StructFieldGet Proxy.underlying go!"executedBatches") #x (Val #(x.executedBatches'))
+  set'executedBatches : ∀ (x : Proxy) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Proxy.underlying go!"executedBatches") (PairV #x #y) (Val #(({ x with executedBatches' := y } : Proxy)))
   method_set : go.MethodSetIs Proxy.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Proxy.ty) [(go!"NetworkInit", (some (go.signature.Signature [] false []))), (go!"RegisterRPC", (some (go.signature.Signature [_root_.Perennial.raxos.proto.Serializable.ty, go.uint8] false []))), (go!"Run", (some (go.signature.Signature [] false []))), (go!"raxos/replica/src.applySMRLogic", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.raxos.proto.client.ClientBatch.ty)] false [(go.GoType.SliceType _root_.Perennial.raxos.proto.client.ClientBatch.ty)]))), (go!"raxos/replica/src.calculateSequence", (some (go.signature.Signature [go.int] false [go.string]))), (go!"raxos/replica/src.calculateStepsPerSlot", (some (go.signature.Signature [] false [go.float64, go.int, go.int]))), (go!"raxos/replica/src.connectToClient", (some (go.signature.Signature [go.int32] false []))), (go!"raxos/replica/src.connectionListener", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.bufio.Reader.ty), go.int32] false []))), (go!"raxos/replica/src.convertToIntArray", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.int64)]))), (go!"raxos/replica/src.decidedTheProposedValue", (some (go.signature.Signature [go.int, (go.GoType.SliceType go.string)] false [go.bool]))), (go!"raxos/replica/src.executeClientBatches", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [(go.GoType.SliceType _root_.Perennial.raxos.proto.client.ClientBatch.ty)]))), (go!"raxos/replica/src.getHighestIndex", (some (go.signature.Signature [(go.GoType.SliceType go.int)] false [go.int]))), (go!"raxos/replica/src.getLeaderSequence", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType go.int64)]))), (go!"raxos/replica/src.getLeaderSequenceFromLastEpoch", (some (go.signature.Signature [go.int64] false [(go.GoType.SliceType go.int64)]))), (go!"raxos/replica/src.getLeaderWait", (some (go.signature.Signature [(go.GoType.SliceType go.int64)] false [go.int64]))), (go!"raxos/replica/src.handleClientBatch", (some (go.signature.Signature [_root_.Perennial.raxos.proto.client.ClientBatch.ty] false []))), (go!"raxos/replica/src.handleClientStatus", (some (go.signature.Signature [_root_.Perennial.raxos.proto.client.ClientStatus.ty] false []))), (go!"raxos/replica/src.handleDecisionNotification", (some (go.signature.Signature [] false []))), (go!"raxos/replica/src.handleFetchResponse", (some (go.signature.Signature [FetchResposne.ty] false []))), (go!"raxos/replica/src.handleProposeResponse", (some (go.signature.Signature [ProposeResponse.ty] false []))), (go!"raxos/replica/src.handleRecorderResponse", (some (go.signature.Signature [Decision.ty] false []))), (go!"raxos/replica/src.hasAllDecided", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"raxos/replica/src.hasSameBatches", (some (go.signature.Signature [(go.GoType.SliceType go.string), (go.GoType.SliceType go.string)] false [go.bool]))), (go!"raxos/replica/src.internalSendMessage", (some (go.signature.Signature [go.int64, _root_.Perennial.raxos.common.RPCPair.ty] false []))), (go!"raxos/replica/src.isBeginningOfEpoch", (some (go.signature.Signature [go.int64] false [go.bool]))), (go!"raxos/replica/src.notInarray", (some (go.signature.Signature [(go.GoType.SliceType go.int), go.int] false [go.bool]))), (go!"raxos/replica/src.printConsensusLog", (some (go.signature.Signature [] false []))), (go!"raxos/replica/src.printLog", (some (go.signature.Signature [] false []))), (go!"raxos/replica/src.proposePreviousEpochSummary", (some (go.signature.Signature [go.int64] false []))), (go!"raxos/replica/src.proposeToIndex", (some (go.signature.Signature [go.int64] false []))), (go!"raxos/replica/src.putBackProposedBatches", (some (go.signature.Signature [go.int] false []))), (go!"raxos/replica/src.removeDecidedItemsFromFutureProposals", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"raxos/replica/src.revokeInstance", (some (go.signature.Signature [go.int64] false []))), (go!"raxos/replica/src.revokeInstances", (some (go.signature.Signature [] false []))), (go!"raxos/replica/src.sendClientResponse", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.raxos.proto.client.ClientBatch.ty)] false []))), (go!"raxos/replica/src.sendMessage", (some (go.signature.Signature [go.int64, _root_.Perennial.raxos.common.RPCPair.ty] false []))), (go!"raxos/replica/src.sequenceWithSelfLast", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int64)]))), (go!"raxos/replica/src.startOutgoingLinks", (some (go.signature.Signature [] false []))), (go!"raxos/replica/src.updateEpochTime", (some (go.signature.Signature [go.int] false []))), (go!"raxos/replica/src.updateStateMachine", (some (go.signature.Signature [go.bool] false []))), (go!"raxos/replica/src.waitForConnections", (some (go.signature.Signature [] false [])))]
-  ptr_NetworkInit_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"NetworkInit" Proxy.NetworkInit.impl
-  ptr_RegisterRPC_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"RegisterRPC" Proxy.RegisterRPC.impl
-  ptr_Run_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"Run" Proxy.Run.impl
-  ptr_applySMRLogic_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"applySMRLogic" Proxy.applySMRLogic.impl
-  ptr_calculateSequence_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"calculateSequence" Proxy.calculateSequence.impl
-  ptr_calculateStepsPerSlot_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"calculateStepsPerSlot" Proxy.calculateStepsPerSlot.impl
-  ptr_connectToClient_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"connectToClient" Proxy.connectToClient.impl
-  ptr_connectionListener_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"connectionListener" Proxy.connectionListener.impl
-  ptr_convertToIntArray_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"convertToIntArray" Proxy.convertToIntArray.impl
-  ptr_decidedTheProposedValue_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"decidedTheProposedValue" Proxy.decidedTheProposedValue.impl
-  ptr_executeClientBatches_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"executeClientBatches" Proxy.executeClientBatches.impl
-  ptr_getHighestIndex_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"getHighestIndex" Proxy.getHighestIndex.impl
-  ptr_getLeaderSequence_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"getLeaderSequence" Proxy.getLeaderSequence.impl
-  ptr_getLeaderSequenceFromLastEpoch_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"getLeaderSequenceFromLastEpoch" Proxy.getLeaderSequenceFromLastEpoch.impl
-  ptr_getLeaderWait_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"getLeaderWait" Proxy.getLeaderWait.impl
-  ptr_handleClientBatch_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"handleClientBatch" Proxy.handleClientBatch.impl
-  ptr_handleClientStatus_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"handleClientStatus" Proxy.handleClientStatus.impl
-  ptr_handleDecisionNotification_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"handleDecisionNotification" Proxy.handleDecisionNotification.impl
-  ptr_handleFetchResponse_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"handleFetchResponse" Proxy.handleFetchResponse.impl
-  ptr_handleProposeResponse_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"handleProposeResponse" Proxy.handleProposeResponse.impl
-  ptr_handleRecorderResponse_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"handleRecorderResponse" Proxy.handleRecorderResponse.impl
-  ptr_hasAllDecided_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"hasAllDecided" Proxy.hasAllDecided.impl
-  ptr_hasSameBatches_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"hasSameBatches" Proxy.hasSameBatches.impl
-  ptr_internalSendMessage_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"internalSendMessage" Proxy.internalSendMessage.impl
-  ptr_isBeginningOfEpoch_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"isBeginningOfEpoch" Proxy.isBeginningOfEpoch.impl
-  ptr_notInarray_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"notInarray" Proxy.notInarray.impl
-  ptr_printConsensusLog_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"printConsensusLog" Proxy.printConsensusLog.impl
-  ptr_printLog_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"printLog" Proxy.printLog.impl
-  ptr_proposePreviousEpochSummary_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"proposePreviousEpochSummary" Proxy.proposePreviousEpochSummary.impl
-  ptr_proposeToIndex_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"proposeToIndex" Proxy.proposeToIndex.impl
-  ptr_putBackProposedBatches_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"putBackProposedBatches" Proxy.putBackProposedBatches.impl
-  ptr_removeDecidedItemsFromFutureProposals_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"removeDecidedItemsFromFutureProposals" Proxy.removeDecidedItemsFromFutureProposals.impl
-  ptr_revokeInstance_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"revokeInstance" Proxy.revokeInstance.impl
-  ptr_revokeInstances_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"revokeInstances" Proxy.revokeInstances.impl
-  ptr_sendClientResponse_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"sendClientResponse" Proxy.sendClientResponse.impl
-  ptr_sendMessage_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"sendMessage" Proxy.sendMessage.impl
-  ptr_sequenceWithSelfLast_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"sequenceWithSelfLast" Proxy.sequenceWithSelfLast.impl
-  ptr_startOutgoingLinks_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"startOutgoingLinks" Proxy.startOutgoingLinks.impl
-  ptr_updateEpochTime_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"updateEpochTime" Proxy.updateEpochTime.impl
-  ptr_updateStateMachine_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"updateStateMachine" Proxy.updateStateMachine.impl
-  ptr_waitForConnections_unfold : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"waitForConnections" Proxy.waitForConnections.impl
+  ptr_unfold'NetworkInit : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"NetworkInit" Proxy.NetworkInit.impl
+  ptr_unfold'RegisterRPC : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"RegisterRPC" Proxy.RegisterRPC.impl
+  ptr_unfold'Run : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"Run" Proxy.Run.impl
+  ptr_unfold'applySMRLogic : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"applySMRLogic" Proxy.applySMRLogic.impl
+  ptr_unfold'calculateSequence : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"calculateSequence" Proxy.calculateSequence.impl
+  ptr_unfold'calculateStepsPerSlot : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"calculateStepsPerSlot" Proxy.calculateStepsPerSlot.impl
+  ptr_unfold'connectToClient : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"connectToClient" Proxy.connectToClient.impl
+  ptr_unfold'connectionListener : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"connectionListener" Proxy.connectionListener.impl
+  ptr_unfold'convertToIntArray : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"convertToIntArray" Proxy.convertToIntArray.impl
+  ptr_unfold'decidedTheProposedValue : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"decidedTheProposedValue" Proxy.decidedTheProposedValue.impl
+  ptr_unfold'executeClientBatches : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"executeClientBatches" Proxy.executeClientBatches.impl
+  ptr_unfold'getHighestIndex : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"getHighestIndex" Proxy.getHighestIndex.impl
+  ptr_unfold'getLeaderSequence : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"getLeaderSequence" Proxy.getLeaderSequence.impl
+  ptr_unfold'getLeaderSequenceFromLastEpoch : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"getLeaderSequenceFromLastEpoch" Proxy.getLeaderSequenceFromLastEpoch.impl
+  ptr_unfold'getLeaderWait : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"getLeaderWait" Proxy.getLeaderWait.impl
+  ptr_unfold'handleClientBatch : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"handleClientBatch" Proxy.handleClientBatch.impl
+  ptr_unfold'handleClientStatus : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"handleClientStatus" Proxy.handleClientStatus.impl
+  ptr_unfold'handleDecisionNotification : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"handleDecisionNotification" Proxy.handleDecisionNotification.impl
+  ptr_unfold'handleFetchResponse : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"handleFetchResponse" Proxy.handleFetchResponse.impl
+  ptr_unfold'handleProposeResponse : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"handleProposeResponse" Proxy.handleProposeResponse.impl
+  ptr_unfold'handleRecorderResponse : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"handleRecorderResponse" Proxy.handleRecorderResponse.impl
+  ptr_unfold'hasAllDecided : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"hasAllDecided" Proxy.hasAllDecided.impl
+  ptr_unfold'hasSameBatches : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"hasSameBatches" Proxy.hasSameBatches.impl
+  ptr_unfold'internalSendMessage : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"internalSendMessage" Proxy.internalSendMessage.impl
+  ptr_unfold'isBeginningOfEpoch : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"isBeginningOfEpoch" Proxy.isBeginningOfEpoch.impl
+  ptr_unfold'notInarray : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"notInarray" Proxy.notInarray.impl
+  ptr_unfold'printConsensusLog : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"printConsensusLog" Proxy.printConsensusLog.impl
+  ptr_unfold'printLog : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"printLog" Proxy.printLog.impl
+  ptr_unfold'proposePreviousEpochSummary : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"proposePreviousEpochSummary" Proxy.proposePreviousEpochSummary.impl
+  ptr_unfold'proposeToIndex : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"proposeToIndex" Proxy.proposeToIndex.impl
+  ptr_unfold'putBackProposedBatches : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"putBackProposedBatches" Proxy.putBackProposedBatches.impl
+  ptr_unfold'removeDecidedItemsFromFutureProposals : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"removeDecidedItemsFromFutureProposals" Proxy.removeDecidedItemsFromFutureProposals.impl
+  ptr_unfold'revokeInstance : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"revokeInstance" Proxy.revokeInstance.impl
+  ptr_unfold'revokeInstances : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"revokeInstances" Proxy.revokeInstances.impl
+  ptr_unfold'sendClientResponse : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"sendClientResponse" Proxy.sendClientResponse.impl
+  ptr_unfold'sendMessage : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"sendMessage" Proxy.sendMessage.impl
+  ptr_unfold'sequenceWithSelfLast : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"sequenceWithSelfLast" Proxy.sequenceWithSelfLast.impl
+  ptr_unfold'startOutgoingLinks : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"startOutgoingLinks" Proxy.startOutgoingLinks.impl
+  ptr_unfold'updateEpochTime : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"updateEpochTime" Proxy.updateEpochTime.impl
+  ptr_unfold'updateStateMachine : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"updateStateMachine" Proxy.updateStateMachine.impl
+  ptr_unfold'waitForConnections : MethodUnfold (go.GoType.PointerType Proxy.ty) go!"waitForConnections" Proxy.waitForConnections.impl
 
 attribute [instance] Proxy.TypeAssumptions.type_repr
   Proxy.TypeAssumptions.underlying
-  Proxy.TypeAssumptions.get_name
-  Proxy.TypeAssumptions.set_name
-  Proxy.TypeAssumptions.get_numReplicas
-  Proxy.TypeAssumptions.set_numReplicas
-  Proxy.TypeAssumptions.get_numClients
-  Proxy.TypeAssumptions.set_numClients
-  Proxy.TypeAssumptions.get_clientAddrList
-  Proxy.TypeAssumptions.set_clientAddrList
-  Proxy.TypeAssumptions.get_incomingClientReaders
-  Proxy.TypeAssumptions.set_incomingClientReaders
-  Proxy.TypeAssumptions.get_outgoingClientWriters
-  Proxy.TypeAssumptions.set_outgoingClientWriters
-  Proxy.TypeAssumptions.get_clientWritersMutex
-  Proxy.TypeAssumptions.set_clientWritersMutex
-  Proxy.TypeAssumptions.get_buffioWriterMutexes
-  Proxy.TypeAssumptions.set_buffioWriterMutexes
-  Proxy.TypeAssumptions.get_serverAddress
-  Proxy.TypeAssumptions.set_serverAddress
-  Proxy.TypeAssumptions.get_Listener
-  Proxy.TypeAssumptions.set_Listener
-  Proxy.TypeAssumptions.get_rpcTable
-  Proxy.TypeAssumptions.set_rpcTable
-  Proxy.TypeAssumptions.get_incomingChan
-  Proxy.TypeAssumptions.set_incomingChan
-  Proxy.TypeAssumptions.get_outgoingMessageChan
-  Proxy.TypeAssumptions.set_outgoingMessageChan
-  Proxy.TypeAssumptions.get_proxyToProposerChan
-  Proxy.TypeAssumptions.set_proxyToProposerChan
-  Proxy.TypeAssumptions.get_proposerToProxyChan
-  Proxy.TypeAssumptions.set_proposerToProxyChan
-  Proxy.TypeAssumptions.get_recorderToProxyChan
-  Proxy.TypeAssumptions.set_recorderToProxyChan
-  Proxy.TypeAssumptions.get_proxyToProposerFetchChan
-  Proxy.TypeAssumptions.set_proxyToProposerFetchChan
-  Proxy.TypeAssumptions.get_proposerToProxyFetchChan
-  Proxy.TypeAssumptions.set_proposerToProxyFetchChan
-  Proxy.TypeAssumptions.get_clientBatchRpc
-  Proxy.TypeAssumptions.set_clientBatchRpc
-  Proxy.TypeAssumptions.get_clientStatusRpc
-  Proxy.TypeAssumptions.set_clientStatusRpc
-  Proxy.TypeAssumptions.get_replicatedLog
-  Proxy.TypeAssumptions.set_replicatedLog
-  Proxy.TypeAssumptions.get_committedIndex
-  Proxy.TypeAssumptions.set_committedIndex
-  Proxy.TypeAssumptions.get_lastProposedIndex
-  Proxy.TypeAssumptions.set_lastProposedIndex
-  Proxy.TypeAssumptions.get_lastTimeCommitted
-  Proxy.TypeAssumptions.set_lastTimeCommitted
-  Proxy.TypeAssumptions.get_logFilePath
-  Proxy.TypeAssumptions.set_logFilePath
-  Proxy.TypeAssumptions.get_batchSize
-  Proxy.TypeAssumptions.set_batchSize
-  Proxy.TypeAssumptions.get_batchTime
-  Proxy.TypeAssumptions.set_batchTime
-  Proxy.TypeAssumptions.get_pipelineLength
-  Proxy.TypeAssumptions.set_pipelineLength
-  Proxy.TypeAssumptions.get_clientBatchStore
-  Proxy.TypeAssumptions.set_clientBatchStore
-  Proxy.TypeAssumptions.get_leaderTimeout
-  Proxy.TypeAssumptions.set_leaderTimeout
-  Proxy.TypeAssumptions.get_debugOn
-  Proxy.TypeAssumptions.set_debugOn
-  Proxy.TypeAssumptions.get_debugLevel
-  Proxy.TypeAssumptions.set_debugLevel
-  Proxy.TypeAssumptions.get_serverStarted
-  Proxy.TypeAssumptions.set_serverStarted
-  Proxy.TypeAssumptions.get_server
-  Proxy.TypeAssumptions.set_server
-  Proxy.TypeAssumptions.get_toBeProposed
-  Proxy.TypeAssumptions.set_toBeProposed
-  Proxy.TypeAssumptions.get_lastDecidedIndexes
-  Proxy.TypeAssumptions.set_lastDecidedIndexes
-  Proxy.TypeAssumptions.get_lastDecidedProposers
-  Proxy.TypeAssumptions.set_lastDecidedProposers
-  Proxy.TypeAssumptions.get_lastDecidedDecisions
-  Proxy.TypeAssumptions.set_lastDecidedDecisions
-  Proxy.TypeAssumptions.get_leaderMode
-  Proxy.TypeAssumptions.set_leaderMode
-  Proxy.TypeAssumptions.get_serverMode
-  Proxy.TypeAssumptions.set_serverMode
-  Proxy.TypeAssumptions.get_instanceTimeouts
-  Proxy.TypeAssumptions.set_instanceTimeouts
-  Proxy.TypeAssumptions.get_proposeRequestIndex
-  Proxy.TypeAssumptions.set_proposeRequestIndex
-  Proxy.TypeAssumptions.get_lastTimeProposed
-  Proxy.TypeAssumptions.set_lastTimeProposed
-  Proxy.TypeAssumptions.get_epochSize
-  Proxy.TypeAssumptions.set_epochSize
-  Proxy.TypeAssumptions.get_epochTimes
-  Proxy.TypeAssumptions.set_epochTimes
-  Proxy.TypeAssumptions.get_proxyToProposerDecisionChan
-  Proxy.TypeAssumptions.set_proxyToProposerDecisionChan
-  Proxy.TypeAssumptions.get_clientBatchTimer
-  Proxy.TypeAssumptions.set_clientBatchTimer
-  Proxy.TypeAssumptions.get_benchmark
-  Proxy.TypeAssumptions.set_benchmark
-  Proxy.TypeAssumptions.get_startTime
-  Proxy.TypeAssumptions.set_startTime
-  Proxy.TypeAssumptions.get_requestPropogationTime
-  Proxy.TypeAssumptions.set_requestPropogationTime
-  Proxy.TypeAssumptions.get_clientRequestsChan
-  Proxy.TypeAssumptions.set_clientRequestsChan
-  Proxy.TypeAssumptions.get_executedBatches
-  Proxy.TypeAssumptions.set_executedBatches
+  Proxy.TypeAssumptions.get'name
+  Proxy.TypeAssumptions.set'name
+  Proxy.TypeAssumptions.get'numReplicas
+  Proxy.TypeAssumptions.set'numReplicas
+  Proxy.TypeAssumptions.get'numClients
+  Proxy.TypeAssumptions.set'numClients
+  Proxy.TypeAssumptions.get'clientAddrList
+  Proxy.TypeAssumptions.set'clientAddrList
+  Proxy.TypeAssumptions.get'incomingClientReaders
+  Proxy.TypeAssumptions.set'incomingClientReaders
+  Proxy.TypeAssumptions.get'outgoingClientWriters
+  Proxy.TypeAssumptions.set'outgoingClientWriters
+  Proxy.TypeAssumptions.get'clientWritersMutex
+  Proxy.TypeAssumptions.set'clientWritersMutex
+  Proxy.TypeAssumptions.get'buffioWriterMutexes
+  Proxy.TypeAssumptions.set'buffioWriterMutexes
+  Proxy.TypeAssumptions.get'serverAddress
+  Proxy.TypeAssumptions.set'serverAddress
+  Proxy.TypeAssumptions.get'Listener
+  Proxy.TypeAssumptions.set'Listener
+  Proxy.TypeAssumptions.get'rpcTable
+  Proxy.TypeAssumptions.set'rpcTable
+  Proxy.TypeAssumptions.get'incomingChan
+  Proxy.TypeAssumptions.set'incomingChan
+  Proxy.TypeAssumptions.get'outgoingMessageChan
+  Proxy.TypeAssumptions.set'outgoingMessageChan
+  Proxy.TypeAssumptions.get'proxyToProposerChan
+  Proxy.TypeAssumptions.set'proxyToProposerChan
+  Proxy.TypeAssumptions.get'proposerToProxyChan
+  Proxy.TypeAssumptions.set'proposerToProxyChan
+  Proxy.TypeAssumptions.get'recorderToProxyChan
+  Proxy.TypeAssumptions.set'recorderToProxyChan
+  Proxy.TypeAssumptions.get'proxyToProposerFetchChan
+  Proxy.TypeAssumptions.set'proxyToProposerFetchChan
+  Proxy.TypeAssumptions.get'proposerToProxyFetchChan
+  Proxy.TypeAssumptions.set'proposerToProxyFetchChan
+  Proxy.TypeAssumptions.get'clientBatchRpc
+  Proxy.TypeAssumptions.set'clientBatchRpc
+  Proxy.TypeAssumptions.get'clientStatusRpc
+  Proxy.TypeAssumptions.set'clientStatusRpc
+  Proxy.TypeAssumptions.get'replicatedLog
+  Proxy.TypeAssumptions.set'replicatedLog
+  Proxy.TypeAssumptions.get'committedIndex
+  Proxy.TypeAssumptions.set'committedIndex
+  Proxy.TypeAssumptions.get'lastProposedIndex
+  Proxy.TypeAssumptions.set'lastProposedIndex
+  Proxy.TypeAssumptions.get'lastTimeCommitted
+  Proxy.TypeAssumptions.set'lastTimeCommitted
+  Proxy.TypeAssumptions.get'logFilePath
+  Proxy.TypeAssumptions.set'logFilePath
+  Proxy.TypeAssumptions.get'batchSize
+  Proxy.TypeAssumptions.set'batchSize
+  Proxy.TypeAssumptions.get'batchTime
+  Proxy.TypeAssumptions.set'batchTime
+  Proxy.TypeAssumptions.get'pipelineLength
+  Proxy.TypeAssumptions.set'pipelineLength
+  Proxy.TypeAssumptions.get'clientBatchStore
+  Proxy.TypeAssumptions.set'clientBatchStore
+  Proxy.TypeAssumptions.get'leaderTimeout
+  Proxy.TypeAssumptions.set'leaderTimeout
+  Proxy.TypeAssumptions.get'debugOn
+  Proxy.TypeAssumptions.set'debugOn
+  Proxy.TypeAssumptions.get'debugLevel
+  Proxy.TypeAssumptions.set'debugLevel
+  Proxy.TypeAssumptions.get'serverStarted
+  Proxy.TypeAssumptions.set'serverStarted
+  Proxy.TypeAssumptions.get'server
+  Proxy.TypeAssumptions.set'server
+  Proxy.TypeAssumptions.get'toBeProposed
+  Proxy.TypeAssumptions.set'toBeProposed
+  Proxy.TypeAssumptions.get'lastDecidedIndexes
+  Proxy.TypeAssumptions.set'lastDecidedIndexes
+  Proxy.TypeAssumptions.get'lastDecidedProposers
+  Proxy.TypeAssumptions.set'lastDecidedProposers
+  Proxy.TypeAssumptions.get'lastDecidedDecisions
+  Proxy.TypeAssumptions.set'lastDecidedDecisions
+  Proxy.TypeAssumptions.get'leaderMode
+  Proxy.TypeAssumptions.set'leaderMode
+  Proxy.TypeAssumptions.get'serverMode
+  Proxy.TypeAssumptions.set'serverMode
+  Proxy.TypeAssumptions.get'instanceTimeouts
+  Proxy.TypeAssumptions.set'instanceTimeouts
+  Proxy.TypeAssumptions.get'proposeRequestIndex
+  Proxy.TypeAssumptions.set'proposeRequestIndex
+  Proxy.TypeAssumptions.get'lastTimeProposed
+  Proxy.TypeAssumptions.set'lastTimeProposed
+  Proxy.TypeAssumptions.get'epochSize
+  Proxy.TypeAssumptions.set'epochSize
+  Proxy.TypeAssumptions.get'epochTimes
+  Proxy.TypeAssumptions.set'epochTimes
+  Proxy.TypeAssumptions.get'proxyToProposerDecisionChan
+  Proxy.TypeAssumptions.set'proxyToProposerDecisionChan
+  Proxy.TypeAssumptions.get'clientBatchTimer
+  Proxy.TypeAssumptions.set'clientBatchTimer
+  Proxy.TypeAssumptions.get'benchmark
+  Proxy.TypeAssumptions.set'benchmark
+  Proxy.TypeAssumptions.get'startTime
+  Proxy.TypeAssumptions.set'startTime
+  Proxy.TypeAssumptions.get'requestPropogationTime
+  Proxy.TypeAssumptions.set'requestPropogationTime
+  Proxy.TypeAssumptions.get'clientRequestsChan
+  Proxy.TypeAssumptions.set'clientRequestsChan
+  Proxy.TypeAssumptions.get'executedBatches
+  Proxy.TypeAssumptions.set'executedBatches
   Proxy.TypeAssumptions.method_set
   Proxy.TypeAssumptions.ptr_method_set
-  Proxy.TypeAssumptions.ptr_NetworkInit_unfold
-  Proxy.TypeAssumptions.ptr_RegisterRPC_unfold
-  Proxy.TypeAssumptions.ptr_Run_unfold
-  Proxy.TypeAssumptions.ptr_applySMRLogic_unfold
-  Proxy.TypeAssumptions.ptr_calculateSequence_unfold
-  Proxy.TypeAssumptions.ptr_calculateStepsPerSlot_unfold
-  Proxy.TypeAssumptions.ptr_connectToClient_unfold
-  Proxy.TypeAssumptions.ptr_connectionListener_unfold
-  Proxy.TypeAssumptions.ptr_convertToIntArray_unfold
-  Proxy.TypeAssumptions.ptr_decidedTheProposedValue_unfold
-  Proxy.TypeAssumptions.ptr_executeClientBatches_unfold
-  Proxy.TypeAssumptions.ptr_getHighestIndex_unfold
-  Proxy.TypeAssumptions.ptr_getLeaderSequence_unfold
-  Proxy.TypeAssumptions.ptr_getLeaderSequenceFromLastEpoch_unfold
-  Proxy.TypeAssumptions.ptr_getLeaderWait_unfold
-  Proxy.TypeAssumptions.ptr_handleClientBatch_unfold
-  Proxy.TypeAssumptions.ptr_handleClientStatus_unfold
-  Proxy.TypeAssumptions.ptr_handleDecisionNotification_unfold
-  Proxy.TypeAssumptions.ptr_handleFetchResponse_unfold
-  Proxy.TypeAssumptions.ptr_handleProposeResponse_unfold
-  Proxy.TypeAssumptions.ptr_handleRecorderResponse_unfold
-  Proxy.TypeAssumptions.ptr_hasAllDecided_unfold
-  Proxy.TypeAssumptions.ptr_hasSameBatches_unfold
-  Proxy.TypeAssumptions.ptr_internalSendMessage_unfold
-  Proxy.TypeAssumptions.ptr_isBeginningOfEpoch_unfold
-  Proxy.TypeAssumptions.ptr_notInarray_unfold
-  Proxy.TypeAssumptions.ptr_printConsensusLog_unfold
-  Proxy.TypeAssumptions.ptr_printLog_unfold
-  Proxy.TypeAssumptions.ptr_proposePreviousEpochSummary_unfold
-  Proxy.TypeAssumptions.ptr_proposeToIndex_unfold
-  Proxy.TypeAssumptions.ptr_putBackProposedBatches_unfold
-  Proxy.TypeAssumptions.ptr_removeDecidedItemsFromFutureProposals_unfold
-  Proxy.TypeAssumptions.ptr_revokeInstance_unfold
-  Proxy.TypeAssumptions.ptr_revokeInstances_unfold
-  Proxy.TypeAssumptions.ptr_sendClientResponse_unfold
-  Proxy.TypeAssumptions.ptr_sendMessage_unfold
-  Proxy.TypeAssumptions.ptr_sequenceWithSelfLast_unfold
-  Proxy.TypeAssumptions.ptr_startOutgoingLinks_unfold
-  Proxy.TypeAssumptions.ptr_updateEpochTime_unfold
-  Proxy.TypeAssumptions.ptr_updateStateMachine_unfold
-  Proxy.TypeAssumptions.ptr_waitForConnections_unfold
+  Proxy.TypeAssumptions.ptr_unfold'NetworkInit
+  Proxy.TypeAssumptions.ptr_unfold'RegisterRPC
+  Proxy.TypeAssumptions.ptr_unfold'Run
+  Proxy.TypeAssumptions.ptr_unfold'applySMRLogic
+  Proxy.TypeAssumptions.ptr_unfold'calculateSequence
+  Proxy.TypeAssumptions.ptr_unfold'calculateStepsPerSlot
+  Proxy.TypeAssumptions.ptr_unfold'connectToClient
+  Proxy.TypeAssumptions.ptr_unfold'connectionListener
+  Proxy.TypeAssumptions.ptr_unfold'convertToIntArray
+  Proxy.TypeAssumptions.ptr_unfold'decidedTheProposedValue
+  Proxy.TypeAssumptions.ptr_unfold'executeClientBatches
+  Proxy.TypeAssumptions.ptr_unfold'getHighestIndex
+  Proxy.TypeAssumptions.ptr_unfold'getLeaderSequence
+  Proxy.TypeAssumptions.ptr_unfold'getLeaderSequenceFromLastEpoch
+  Proxy.TypeAssumptions.ptr_unfold'getLeaderWait
+  Proxy.TypeAssumptions.ptr_unfold'handleClientBatch
+  Proxy.TypeAssumptions.ptr_unfold'handleClientStatus
+  Proxy.TypeAssumptions.ptr_unfold'handleDecisionNotification
+  Proxy.TypeAssumptions.ptr_unfold'handleFetchResponse
+  Proxy.TypeAssumptions.ptr_unfold'handleProposeResponse
+  Proxy.TypeAssumptions.ptr_unfold'handleRecorderResponse
+  Proxy.TypeAssumptions.ptr_unfold'hasAllDecided
+  Proxy.TypeAssumptions.ptr_unfold'hasSameBatches
+  Proxy.TypeAssumptions.ptr_unfold'internalSendMessage
+  Proxy.TypeAssumptions.ptr_unfold'isBeginningOfEpoch
+  Proxy.TypeAssumptions.ptr_unfold'notInarray
+  Proxy.TypeAssumptions.ptr_unfold'printConsensusLog
+  Proxy.TypeAssumptions.ptr_unfold'printLog
+  Proxy.TypeAssumptions.ptr_unfold'proposePreviousEpochSummary
+  Proxy.TypeAssumptions.ptr_unfold'proposeToIndex
+  Proxy.TypeAssumptions.ptr_unfold'putBackProposedBatches
+  Proxy.TypeAssumptions.ptr_unfold'removeDecidedItemsFromFutureProposals
+  Proxy.TypeAssumptions.ptr_unfold'revokeInstance
+  Proxy.TypeAssumptions.ptr_unfold'revokeInstances
+  Proxy.TypeAssumptions.ptr_unfold'sendClientResponse
+  Proxy.TypeAssumptions.ptr_unfold'sendMessage
+  Proxy.TypeAssumptions.ptr_unfold'sequenceWithSelfLast
+  Proxy.TypeAssumptions.ptr_unfold'startOutgoingLinks
+  Proxy.TypeAssumptions.ptr_unfold'updateEpochTime
+  Proxy.TypeAssumptions.ptr_unfold'updateStateMachine
+  Proxy.TypeAssumptions.ptr_unfold'waitForConnections
 
 structure EpochTime [GooseExts] where
   mk ::
@@ -10737,7 +10737,7 @@ noncomputable instance EpochTime.zero_val [GooseExts] : ZeroVal EpochTime :=
 @[irreducible] noncomputable def EpochTime.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EpochTime.fieldsUnsealed
 
-noncomputable instance equals_unfold_EpochTime [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'EpochTime [GooseExts] [GoGlobalContext] :
     EqualsUnfold EpochTime.fields EpochTime.fieldsUnsealed :=
   ⟨by unfold EpochTime.fields; rfl⟩
 
@@ -10747,27 +10747,27 @@ noncomputable instance equals_unfold_EpochTime [GooseExts] [GoGlobalContext] :
 class EpochTime.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EpochTime.underlying EpochTime
   underlying : go.UnderlyingDirectedEq EpochTime.ty EpochTime.underlying
-  get_startTime : ∀ (x : EpochTime), go.IsGoStepPureDetTagged under (StructFieldGet EpochTime.underlying go!"startTime") #x (Val #(x.startTime'))
-  set_startTime : ∀ (x : EpochTime) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet EpochTime.underlying go!"startTime") (PairV #x #y) (Val #(({ x with startTime' := y } : EpochTime)))
-  get_endTime : ∀ (x : EpochTime), go.IsGoStepPureDetTagged under (StructFieldGet EpochTime.underlying go!"endTime") #x (Val #(x.endTime'))
-  set_endTime : ∀ (x : EpochTime) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet EpochTime.underlying go!"endTime") (PairV #x #y) (Val #(({ x with endTime' := y } : EpochTime)))
-  get_started : ∀ (x : EpochTime), go.IsGoStepPureDetTagged under (StructFieldGet EpochTime.underlying go!"started") #x (Val #(x.started'))
-  set_started : ∀ (x : EpochTime) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EpochTime.underlying go!"started") (PairV #x #y) (Val #(({ x with started' := y } : EpochTime)))
-  get_ended : ∀ (x : EpochTime), go.IsGoStepPureDetTagged under (StructFieldGet EpochTime.underlying go!"ended") #x (Val #(x.ended'))
-  set_ended : ∀ (x : EpochTime) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EpochTime.underlying go!"ended") (PairV #x #y) (Val #(({ x with ended' := y } : EpochTime)))
+  get'startTime : ∀ (x : EpochTime), go.IsGoStepPureDetTagged under (StructFieldGet EpochTime.underlying go!"startTime") #x (Val #(x.startTime'))
+  set'startTime : ∀ (x : EpochTime) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet EpochTime.underlying go!"startTime") (PairV #x #y) (Val #(({ x with startTime' := y } : EpochTime)))
+  get'endTime : ∀ (x : EpochTime), go.IsGoStepPureDetTagged under (StructFieldGet EpochTime.underlying go!"endTime") #x (Val #(x.endTime'))
+  set'endTime : ∀ (x : EpochTime) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet EpochTime.underlying go!"endTime") (PairV #x #y) (Val #(({ x with endTime' := y } : EpochTime)))
+  get'started : ∀ (x : EpochTime), go.IsGoStepPureDetTagged under (StructFieldGet EpochTime.underlying go!"started") #x (Val #(x.started'))
+  set'started : ∀ (x : EpochTime) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EpochTime.underlying go!"started") (PairV #x #y) (Val #(({ x with started' := y } : EpochTime)))
+  get'ended : ∀ (x : EpochTime), go.IsGoStepPureDetTagged under (StructFieldGet EpochTime.underlying go!"ended") #x (Val #(x.ended'))
+  set'ended : ∀ (x : EpochTime) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EpochTime.underlying go!"ended") (PairV #x #y) (Val #(({ x with ended' := y } : EpochTime)))
   method_set : go.MethodSetIs EpochTime.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType EpochTime.ty) []
 
 attribute [instance] EpochTime.TypeAssumptions.type_repr
   EpochTime.TypeAssumptions.underlying
-  EpochTime.TypeAssumptions.get_startTime
-  EpochTime.TypeAssumptions.set_startTime
-  EpochTime.TypeAssumptions.get_endTime
-  EpochTime.TypeAssumptions.set_endTime
-  EpochTime.TypeAssumptions.get_started
-  EpochTime.TypeAssumptions.set_started
-  EpochTime.TypeAssumptions.get_ended
-  EpochTime.TypeAssumptions.set_ended
+  EpochTime.TypeAssumptions.get'startTime
+  EpochTime.TypeAssumptions.set'startTime
+  EpochTime.TypeAssumptions.get'endTime
+  EpochTime.TypeAssumptions.set'endTime
+  EpochTime.TypeAssumptions.get'started
+  EpochTime.TypeAssumptions.set'started
+  EpochTime.TypeAssumptions.get'ended
+  EpochTime.TypeAssumptions.set'ended
   EpochTime.TypeAssumptions.method_set
   EpochTime.TypeAssumptions.ptr_method_set
 
@@ -10784,7 +10784,7 @@ noncomputable instance ProposeRequestIndex.zero_val [GooseExts] : ZeroVal Propos
 @[irreducible] noncomputable def ProposeRequestIndex.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposeRequestIndex.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposeRequestIndex [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposeRequestIndex [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposeRequestIndex.fields ProposeRequestIndex.fieldsUnsealed :=
   ⟨by unfold ProposeRequestIndex.fields; rfl⟩
 
@@ -10794,15 +10794,15 @@ noncomputable instance equals_unfold_ProposeRequestIndex [GooseExts] [GoGlobalCo
 class ProposeRequestIndex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposeRequestIndex.underlying ProposeRequestIndex
   underlying : go.UnderlyingDirectedEq ProposeRequestIndex.ty ProposeRequestIndex.underlying
-  get_index : ∀ (x : ProposeRequestIndex), go.IsGoStepPureDetTagged under (StructFieldGet ProposeRequestIndex.underlying go!"index") #x (Val #(x.index'))
-  set_index : ∀ (x : ProposeRequestIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposeRequestIndex.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : ProposeRequestIndex)))
+  get'index : ∀ (x : ProposeRequestIndex), go.IsGoStepPureDetTagged under (StructFieldGet ProposeRequestIndex.underlying go!"index") #x (Val #(x.index'))
+  set'index : ∀ (x : ProposeRequestIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposeRequestIndex.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : ProposeRequestIndex)))
   method_set : go.MethodSetIs ProposeRequestIndex.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposeRequestIndex.ty) []
 
 attribute [instance] ProposeRequestIndex.TypeAssumptions.type_repr
   ProposeRequestIndex.TypeAssumptions.underlying
-  ProposeRequestIndex.TypeAssumptions.get_index
-  ProposeRequestIndex.TypeAssumptions.set_index
+  ProposeRequestIndex.TypeAssumptions.get'index
+  ProposeRequestIndex.TypeAssumptions.set'index
   ProposeRequestIndex.TypeAssumptions.method_set
   ProposeRequestIndex.TypeAssumptions.ptr_method_set
 
@@ -10821,7 +10821,7 @@ noncomputable instance ClientBatchTime.zero_val [GooseExts] : ZeroVal ClientBatc
 @[irreducible] noncomputable def ClientBatchTime.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClientBatchTime.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClientBatchTime [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ClientBatchTime [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClientBatchTime.fields ClientBatchTime.fieldsUnsealed :=
   ⟨by unfold ClientBatchTime.fields; rfl⟩
 
@@ -10831,19 +10831,19 @@ noncomputable instance equals_unfold_ClientBatchTime [GooseExts] [GoGlobalContex
 class ClientBatchTime.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClientBatchTime.underlying ClientBatchTime
   underlying : go.UnderlyingDirectedEq ClientBatchTime.ty ClientBatchTime.underlying
-  get_batch : ∀ (x : ClientBatchTime), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatchTime.underlying go!"batch") #x (Val #(x.batch'))
-  set_batch : ∀ (x : ClientBatchTime) (y : _root_.Perennial.raxos.proto.client.ClientBatch), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatchTime.underlying go!"batch") (PairV #x #y) (Val #(({ x with batch' := y } : ClientBatchTime)))
-  get_incomingTime : ∀ (x : ClientBatchTime), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatchTime.underlying go!"incomingTime") #x (Val #(x.incomingTime'))
-  set_incomingTime : ∀ (x : ClientBatchTime) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatchTime.underlying go!"incomingTime") (PairV #x #y) (Val #(({ x with incomingTime' := y } : ClientBatchTime)))
+  get'batch : ∀ (x : ClientBatchTime), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatchTime.underlying go!"batch") #x (Val #(x.batch'))
+  set'batch : ∀ (x : ClientBatchTime) (y : _root_.Perennial.raxos.proto.client.ClientBatch), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatchTime.underlying go!"batch") (PairV #x #y) (Val #(({ x with batch' := y } : ClientBatchTime)))
+  get'incomingTime : ∀ (x : ClientBatchTime), go.IsGoStepPureDetTagged under (StructFieldGet ClientBatchTime.underlying go!"incomingTime") #x (Val #(x.incomingTime'))
+  set'incomingTime : ∀ (x : ClientBatchTime) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet ClientBatchTime.underlying go!"incomingTime") (PairV #x #y) (Val #(({ x with incomingTime' := y } : ClientBatchTime)))
   method_set : go.MethodSetIs ClientBatchTime.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientBatchTime.ty) []
 
 attribute [instance] ClientBatchTime.TypeAssumptions.type_repr
   ClientBatchTime.TypeAssumptions.underlying
-  ClientBatchTime.TypeAssumptions.get_batch
-  ClientBatchTime.TypeAssumptions.set_batch
-  ClientBatchTime.TypeAssumptions.get_incomingTime
-  ClientBatchTime.TypeAssumptions.set_incomingTime
+  ClientBatchTime.TypeAssumptions.get'batch
+  ClientBatchTime.TypeAssumptions.set'batch
+  ClientBatchTime.TypeAssumptions.get'incomingTime
+  ClientBatchTime.TypeAssumptions.set'incomingTime
   ClientBatchTime.TypeAssumptions.method_set
   ClientBatchTime.TypeAssumptions.ptr_method_set
 
@@ -10860,7 +10860,7 @@ noncomputable instance msgBuffer.zero_val [GooseExts] : ZeroVal msgBuffer :=
 @[irreducible] noncomputable def msgBuffer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   msgBuffer.fieldsUnsealed
 
-noncomputable instance equals_unfold_msgBuffer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'msgBuffer [GooseExts] [GoGlobalContext] :
     EqualsUnfold msgBuffer.fields msgBuffer.fieldsUnsealed :=
   ⟨by unfold msgBuffer.fields; rfl⟩
 
@@ -10870,19 +10870,19 @@ noncomputable instance equals_unfold_msgBuffer [GooseExts] [GoGlobalContext] :
 class msgBuffer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying msgBuffer.underlying msgBuffer
   underlying : go.UnderlyingDirectedEq msgBuffer.ty msgBuffer.underlying
-  get_b : ∀ (x : msgBuffer), go.IsGoStepPureDetTagged under (StructFieldGet msgBuffer.underlying go!"b") #x (Val #(x.b'))
-  set_b : ∀ (x : msgBuffer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet msgBuffer.underlying go!"b") (PairV #x #y) (Val #(({ x with b' := y } : msgBuffer)))
+  get'b : ∀ (x : msgBuffer), go.IsGoStepPureDetTagged under (StructFieldGet msgBuffer.underlying go!"b") #x (Val #(x.b'))
+  set'b : ∀ (x : msgBuffer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet msgBuffer.underlying go!"b") (PairV #x #y) (Val #(({ x with b' := y } : msgBuffer)))
   method_set : go.MethodSetIs msgBuffer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType msgBuffer.ty) [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType msgBuffer.ty) go!"Write" msgBuffer.Write.impl
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType msgBuffer.ty) go!"Write" msgBuffer.Write.impl
 
 attribute [instance] msgBuffer.TypeAssumptions.type_repr
   msgBuffer.TypeAssumptions.underlying
-  msgBuffer.TypeAssumptions.get_b
-  msgBuffer.TypeAssumptions.set_b
+  msgBuffer.TypeAssumptions.get'b
+  msgBuffer.TypeAssumptions.set'b
   msgBuffer.TypeAssumptions.method_set
   msgBuffer.TypeAssumptions.ptr_method_set
-  msgBuffer.TypeAssumptions.ptr_Write_unfold
+  msgBuffer.TypeAssumptions.ptr_unfold'Write
 
 structure Value [GooseExts] where
   mk ::
@@ -10903,7 +10903,7 @@ noncomputable instance Value.zero_val [GooseExts] : ZeroVal Value :=
 @[irreducible] noncomputable def Value.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Value.fieldsUnsealed
 
-noncomputable instance equals_unfold_Value [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Value [GooseExts] [GoGlobalContext] :
     EqualsUnfold Value.fields Value.fieldsUnsealed :=
   ⟨by unfold Value.fields; rfl⟩
 
@@ -10913,27 +10913,27 @@ noncomputable instance equals_unfold_Value [GooseExts] [GoGlobalContext] :
 class Value.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Value.underlying Value
   underlying : go.UnderlyingDirectedEq Value.ty Value.underlying
-  get_priority : ∀ (x : Value), go.IsGoStepPureDetTagged under (StructFieldGet Value.underlying go!"priority") #x (Val #(x.priority'))
-  set_priority : ∀ (x : Value) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"priority") (PairV #x #y) (Val #(({ x with priority' := y } : Value)))
-  get_proposer_id : ∀ (x : Value), go.IsGoStepPureDetTagged under (StructFieldGet Value.underlying go!"proposer_id") #x (Val #(x.proposer_id'))
-  set_proposer_id : ∀ (x : Value) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"proposer_id") (PairV #x #y) (Val #(({ x with proposer_id' := y } : Value)))
-  get_thread_id : ∀ (x : Value), go.IsGoStepPureDetTagged under (StructFieldGet Value.underlying go!"thread_id") #x (Val #(x.thread_id'))
-  set_thread_id : ∀ (x : Value) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"thread_id") (PairV #x #y) (Val #(({ x with thread_id' := y } : Value)))
-  get_ids : ∀ (x : Value), go.IsGoStepPureDetTagged under (StructFieldGet Value.underlying go!"ids") #x (Val #(x.ids'))
-  set_ids : ∀ (x : Value) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"ids") (PairV #x #y) (Val #(({ x with ids' := y } : Value)))
+  get'priority : ∀ (x : Value), go.IsGoStepPureDetTagged under (StructFieldGet Value.underlying go!"priority") #x (Val #(x.priority'))
+  set'priority : ∀ (x : Value) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"priority") (PairV #x #y) (Val #(({ x with priority' := y } : Value)))
+  get'proposer_id : ∀ (x : Value), go.IsGoStepPureDetTagged under (StructFieldGet Value.underlying go!"proposer_id") #x (Val #(x.proposer_id'))
+  set'proposer_id : ∀ (x : Value) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"proposer_id") (PairV #x #y) (Val #(({ x with proposer_id' := y } : Value)))
+  get'thread_id : ∀ (x : Value), go.IsGoStepPureDetTagged under (StructFieldGet Value.underlying go!"thread_id") #x (Val #(x.thread_id'))
+  set'thread_id : ∀ (x : Value) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"thread_id") (PairV #x #y) (Val #(({ x with thread_id' := y } : Value)))
+  get'ids : ∀ (x : Value), go.IsGoStepPureDetTagged under (StructFieldGet Value.underlying go!"ids") #x (Val #(x.ids'))
+  set'ids : ∀ (x : Value) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"ids") (PairV #x #y) (Val #(({ x with ids' := y } : Value)))
   method_set : go.MethodSetIs Value.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Value.ty) []
 
 attribute [instance] Value.TypeAssumptions.type_repr
   Value.TypeAssumptions.underlying
-  Value.TypeAssumptions.get_priority
-  Value.TypeAssumptions.set_priority
-  Value.TypeAssumptions.get_proposer_id
-  Value.TypeAssumptions.set_proposer_id
-  Value.TypeAssumptions.get_thread_id
-  Value.TypeAssumptions.set_thread_id
-  Value.TypeAssumptions.get_ids
-  Value.TypeAssumptions.set_ids
+  Value.TypeAssumptions.get'priority
+  Value.TypeAssumptions.set'priority
+  Value.TypeAssumptions.get'proposer_id
+  Value.TypeAssumptions.set'proposer_id
+  Value.TypeAssumptions.get'thread_id
+  Value.TypeAssumptions.set'thread_id
+  Value.TypeAssumptions.get'ids
+  Value.TypeAssumptions.set'ids
   Value.TypeAssumptions.method_set
   Value.TypeAssumptions.ptr_method_set
 
@@ -10956,7 +10956,7 @@ noncomputable instance RecorderSlot.zero_val [GooseExts] : ZeroVal RecorderSlot 
 @[irreducible] noncomputable def RecorderSlot.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RecorderSlot.fieldsUnsealed
 
-noncomputable instance equals_unfold_RecorderSlot [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RecorderSlot [GooseExts] [GoGlobalContext] :
     EqualsUnfold RecorderSlot.fields RecorderSlot.fieldsUnsealed :=
   ⟨by unfold RecorderSlot.fields; rfl⟩
 
@@ -10966,27 +10966,27 @@ noncomputable instance equals_unfold_RecorderSlot [GooseExts] [GoGlobalContext] 
 class RecorderSlot.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RecorderSlot.underlying RecorderSlot
   underlying : go.UnderlyingDirectedEq RecorderSlot.ty RecorderSlot.underlying
-  get_S : ∀ (x : RecorderSlot), go.IsGoStepPureDetTagged under (StructFieldGet RecorderSlot.underlying go!"S") #x (Val #(x.S'))
-  set_S : ∀ (x : RecorderSlot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RecorderSlot.underlying go!"S") (PairV #x #y) (Val #(({ x with S' := y } : RecorderSlot)))
-  get_F : ∀ (x : RecorderSlot), go.IsGoStepPureDetTagged under (StructFieldGet RecorderSlot.underlying go!"F") #x (Val #(x.F'))
-  set_F : ∀ (x : RecorderSlot) (y : Value), go.IsGoStepPureDetTagged under (StructFieldSet RecorderSlot.underlying go!"F") (PairV #x #y) (Val #(({ x with F' := y } : RecorderSlot)))
-  get_A : ∀ (x : RecorderSlot), go.IsGoStepPureDetTagged under (StructFieldGet RecorderSlot.underlying go!"A") #x (Val #(x.A'))
-  set_A : ∀ (x : RecorderSlot) (y : Value), go.IsGoStepPureDetTagged under (StructFieldSet RecorderSlot.underlying go!"A") (PairV #x #y) (Val #(({ x with A' := y } : RecorderSlot)))
-  get_M : ∀ (x : RecorderSlot), go.IsGoStepPureDetTagged under (StructFieldGet RecorderSlot.underlying go!"M") #x (Val #(x.M'))
-  set_M : ∀ (x : RecorderSlot) (y : Value), go.IsGoStepPureDetTagged under (StructFieldSet RecorderSlot.underlying go!"M") (PairV #x #y) (Val #(({ x with M' := y } : RecorderSlot)))
+  get'S : ∀ (x : RecorderSlot), go.IsGoStepPureDetTagged under (StructFieldGet RecorderSlot.underlying go!"S") #x (Val #(x.S'))
+  set'S : ∀ (x : RecorderSlot) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RecorderSlot.underlying go!"S") (PairV #x #y) (Val #(({ x with S' := y } : RecorderSlot)))
+  get'F : ∀ (x : RecorderSlot), go.IsGoStepPureDetTagged under (StructFieldGet RecorderSlot.underlying go!"F") #x (Val #(x.F'))
+  set'F : ∀ (x : RecorderSlot) (y : Value), go.IsGoStepPureDetTagged under (StructFieldSet RecorderSlot.underlying go!"F") (PairV #x #y) (Val #(({ x with F' := y } : RecorderSlot)))
+  get'A : ∀ (x : RecorderSlot), go.IsGoStepPureDetTagged under (StructFieldGet RecorderSlot.underlying go!"A") #x (Val #(x.A'))
+  set'A : ∀ (x : RecorderSlot) (y : Value), go.IsGoStepPureDetTagged under (StructFieldSet RecorderSlot.underlying go!"A") (PairV #x #y) (Val #(({ x with A' := y } : RecorderSlot)))
+  get'M : ∀ (x : RecorderSlot), go.IsGoStepPureDetTagged under (StructFieldGet RecorderSlot.underlying go!"M") #x (Val #(x.M'))
+  set'M : ∀ (x : RecorderSlot) (y : Value), go.IsGoStepPureDetTagged under (StructFieldSet RecorderSlot.underlying go!"M") (PairV #x #y) (Val #(({ x with M' := y } : RecorderSlot)))
   method_set : go.MethodSetIs RecorderSlot.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RecorderSlot.ty) []
 
 attribute [instance] RecorderSlot.TypeAssumptions.type_repr
   RecorderSlot.TypeAssumptions.underlying
-  RecorderSlot.TypeAssumptions.get_S
-  RecorderSlot.TypeAssumptions.set_S
-  RecorderSlot.TypeAssumptions.get_F
-  RecorderSlot.TypeAssumptions.set_F
-  RecorderSlot.TypeAssumptions.get_A
-  RecorderSlot.TypeAssumptions.set_A
-  RecorderSlot.TypeAssumptions.get_M
-  RecorderSlot.TypeAssumptions.set_M
+  RecorderSlot.TypeAssumptions.get'S
+  RecorderSlot.TypeAssumptions.set'S
+  RecorderSlot.TypeAssumptions.get'F
+  RecorderSlot.TypeAssumptions.set'F
+  RecorderSlot.TypeAssumptions.get'A
+  RecorderSlot.TypeAssumptions.set'A
+  RecorderSlot.TypeAssumptions.get'M
+  RecorderSlot.TypeAssumptions.set'M
   RecorderSlot.TypeAssumptions.method_set
   RecorderSlot.TypeAssumptions.ptr_method_set
 
@@ -11025,7 +11025,7 @@ noncomputable instance Recorder.zero_val [GooseExts] : ZeroVal Recorder :=
 @[irreducible] noncomputable def Recorder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Recorder.fieldsUnsealed
 
-noncomputable instance equals_unfold_Recorder [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Recorder [GooseExts] [GoGlobalContext] :
     EqualsUnfold Recorder.fields Recorder.fieldsUnsealed :=
   ⟨by unfold Recorder.fields; rfl⟩
 
@@ -11035,81 +11035,81 @@ noncomputable instance equals_unfold_Recorder [GooseExts] [GoGlobalContext] :
 class Recorder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Recorder.underlying Recorder
   underlying : go.UnderlyingDirectedEq Recorder.ty Recorder.underlying
-  get_address : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"address") #x (Val #(x.address'))
-  set_address : ∀ (x : Recorder) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"address") (PairV #x #y) (Val #(({ x with address' := y } : Recorder)))
-  get_listener : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"listener") #x (Val #(x.listener'))
-  set_listener : ∀ (x : Recorder) (y : _root_.Perennial.net.Listener), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"listener") (PairV #x #y) (Val #(({ x with listener' := y } : Recorder)))
-  get_server : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"server") #x (Val #(x.server'))
-  set_server : ∀ (x : Recorder) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"server") (PairV #x #y) (Val #(({ x with server' := y } : Recorder)))
-  get_connection : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"connection") #x (Val #(x.connection'))
-  set_connection : ∀ (x : Recorder) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"connection") (PairV #x #y) (Val #(({ x with connection' := y } : Recorder)))
-  get_clientBatches : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"clientBatches") #x (Val #(x.clientBatches'))
-  set_clientBatches : ∀ (x : Recorder) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"clientBatches") (PairV #x #y) (Val #(({ x with clientBatches' := y } : Recorder)))
-  get_recorderToProxyChan : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"recorderToProxyChan") #x (Val #(x.recorderToProxyChan'))
-  set_recorderToProxyChan : ∀ (x : Recorder) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"recorderToProxyChan") (PairV #x #y) (Val #(({ x with recorderToProxyChan' := y } : Recorder)))
-  get_name : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : Recorder) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : Recorder)))
-  get_slots : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"slots") #x (Val #(x.slots'))
-  set_slots : ∀ (x : Recorder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"slots") (PairV #x #y) (Val #(({ x with slots' := y } : Recorder)))
-  get_cfg : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"cfg") #x (Val #(x.cfg'))
-  set_cfg : ∀ (x : Recorder) (y : _root_.Perennial.raxos.configuration.InstanceConfig), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"cfg") (PairV #x #y) (Val #(({ x with cfg' := y } : Recorder)))
-  get_instanceMutex : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"instanceMutex") #x (Val #(x.instanceMutex'))
-  set_instanceMutex : ∀ (x : Recorder) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"instanceMutex") (PairV #x #y) (Val #(({ x with instanceMutex' := y } : Recorder)))
-  get_debugOn : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"debugOn") #x (Val #(x.debugOn'))
-  set_debugOn : ∀ (x : Recorder) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"debugOn") (PairV #x #y) (Val #(({ x with debugOn' := y } : Recorder)))
-  get_debugLevel : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"debugLevel") #x (Val #(x.debugLevel'))
-  set_debugLevel : ∀ (x : Recorder) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"debugLevel") (PairV #x #y) (Val #(({ x with debugLevel' := y } : Recorder)))
+  get'address : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"address") #x (Val #(x.address'))
+  set'address : ∀ (x : Recorder) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"address") (PairV #x #y) (Val #(({ x with address' := y } : Recorder)))
+  get'listener : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"listener") #x (Val #(x.listener'))
+  set'listener : ∀ (x : Recorder) (y : _root_.Perennial.net.Listener), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"listener") (PairV #x #y) (Val #(({ x with listener' := y } : Recorder)))
+  get'server : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"server") #x (Val #(x.server'))
+  set'server : ∀ (x : Recorder) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"server") (PairV #x #y) (Val #(({ x with server' := y } : Recorder)))
+  get'connection : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"connection") #x (Val #(x.connection'))
+  set'connection : ∀ (x : Recorder) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"connection") (PairV #x #y) (Val #(({ x with connection' := y } : Recorder)))
+  get'clientBatches : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"clientBatches") #x (Val #(x.clientBatches'))
+  set'clientBatches : ∀ (x : Recorder) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"clientBatches") (PairV #x #y) (Val #(({ x with clientBatches' := y } : Recorder)))
+  get'recorderToProxyChan : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"recorderToProxyChan") #x (Val #(x.recorderToProxyChan'))
+  set'recorderToProxyChan : ∀ (x : Recorder) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"recorderToProxyChan") (PairV #x #y) (Val #(({ x with recorderToProxyChan' := y } : Recorder)))
+  get'name : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : Recorder) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : Recorder)))
+  get'slots : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"slots") #x (Val #(x.slots'))
+  set'slots : ∀ (x : Recorder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"slots") (PairV #x #y) (Val #(({ x with slots' := y } : Recorder)))
+  get'cfg : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"cfg") #x (Val #(x.cfg'))
+  set'cfg : ∀ (x : Recorder) (y : _root_.Perennial.raxos.configuration.InstanceConfig), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"cfg") (PairV #x #y) (Val #(({ x with cfg' := y } : Recorder)))
+  get'instanceMutex : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"instanceMutex") #x (Val #(x.instanceMutex'))
+  set'instanceMutex : ∀ (x : Recorder) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"instanceMutex") (PairV #x #y) (Val #(({ x with instanceMutex' := y } : Recorder)))
+  get'debugOn : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"debugOn") #x (Val #(x.debugOn'))
+  set'debugOn : ∀ (x : Recorder) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"debugOn") (PairV #x #y) (Val #(({ x with debugOn' := y } : Recorder)))
+  get'debugLevel : ∀ (x : Recorder), go.IsGoStepPureDetTagged under (StructFieldGet Recorder.underlying go!"debugLevel") #x (Val #(x.debugLevel'))
+  set'debugLevel : ∀ (x : Recorder) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Recorder.underlying go!"debugLevel") (PairV #x #y) (Val #(({ x with debugLevel' := y } : Recorder)))
   method_set : go.MethodSetIs Recorder.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Recorder.ty) [(go!"HandleDecisions", (some (go.signature.Signature [(go.GoType.PointerType Decisions.ty)] false []))), (go!"HandleESP", (some (go.signature.Signature [(go.GoType.PointerType ProposerMessage.ty)] false [(go.GoType.PointerType RecorderResponse.ty)]))), (go!"HandleFetch", (some (go.signature.Signature [(go.GoType.PointerType DecideRequest.ty)] false [(go.GoType.PointerType DecideResponse.ty)]))), (go!"NetworkInit", (some (go.signature.Signature [] false []))), (go!"raxos/replica/src.convertToClientBatchMessages", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType ProposerMessage_ClientBatch_SingleMessage.ty))] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.raxos.proto.client.ClientBatch_SingleMessage.ty))]))), (go!"raxos/replica/src.convertToDecideResponseClientBatchMessages", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.raxos.proto.client.ClientBatch_SingleMessage.ty))] false [(go.GoType.SliceType (go.GoType.PointerType DecideResponse_ClientBatch_SingleMessage.ty))]))), (go!"raxos/replica/src.espImpl", (some (go.signature.Signature [go.int64, go.int, (go.GoType.PointerType ProposerMessage_Proposal.ty)] false [go.int64, Value.ty, Value.ty]))), (go!"raxos/replica/src.findAllBatches", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.bool]))), (go!"raxos/replica/src.max", (some (go.signature.Signature [Value.ty, (go.GoType.PointerType ProposerMessage_Proposal.ty)] false [Value.ty]))), (go!"raxos/replica/src.serve", (some (go.signature.Signature [] false [])))]
-  ptr_HandleDecisions_unfold : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"HandleDecisions" Recorder.HandleDecisions.impl
-  ptr_HandleESP_unfold : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"HandleESP" Recorder.HandleESP.impl
-  ptr_HandleFetch_unfold : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"HandleFetch" Recorder.HandleFetch.impl
-  ptr_NetworkInit_unfold : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"NetworkInit" Recorder.NetworkInit.impl
-  ptr_convertToClientBatchMessages_unfold : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"convertToClientBatchMessages" Recorder.convertToClientBatchMessages.impl
-  ptr_convertToDecideResponseClientBatchMessages_unfold : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"convertToDecideResponseClientBatchMessages" Recorder.convertToDecideResponseClientBatchMessages.impl
-  ptr_espImpl_unfold : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"espImpl" Recorder.espImpl.impl
-  ptr_findAllBatches_unfold : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"findAllBatches" Recorder.findAllBatches.impl
-  ptr_max_unfold : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"max" Recorder.max.impl
-  ptr_serve_unfold : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"serve" Recorder.serve.impl
+  ptr_unfold'HandleDecisions : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"HandleDecisions" Recorder.HandleDecisions.impl
+  ptr_unfold'HandleESP : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"HandleESP" Recorder.HandleESP.impl
+  ptr_unfold'HandleFetch : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"HandleFetch" Recorder.HandleFetch.impl
+  ptr_unfold'NetworkInit : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"NetworkInit" Recorder.NetworkInit.impl
+  ptr_unfold'convertToClientBatchMessages : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"convertToClientBatchMessages" Recorder.convertToClientBatchMessages.impl
+  ptr_unfold'convertToDecideResponseClientBatchMessages : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"convertToDecideResponseClientBatchMessages" Recorder.convertToDecideResponseClientBatchMessages.impl
+  ptr_unfold'espImpl : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"espImpl" Recorder.espImpl.impl
+  ptr_unfold'findAllBatches : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"findAllBatches" Recorder.findAllBatches.impl
+  ptr_unfold'max : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"max" Recorder.max.impl
+  ptr_unfold'serve : MethodUnfold (go.GoType.PointerType Recorder.ty) go!"serve" Recorder.serve.impl
 
 attribute [instance] Recorder.TypeAssumptions.type_repr
   Recorder.TypeAssumptions.underlying
-  Recorder.TypeAssumptions.get_address
-  Recorder.TypeAssumptions.set_address
-  Recorder.TypeAssumptions.get_listener
-  Recorder.TypeAssumptions.set_listener
-  Recorder.TypeAssumptions.get_server
-  Recorder.TypeAssumptions.set_server
-  Recorder.TypeAssumptions.get_connection
-  Recorder.TypeAssumptions.set_connection
-  Recorder.TypeAssumptions.get_clientBatches
-  Recorder.TypeAssumptions.set_clientBatches
-  Recorder.TypeAssumptions.get_recorderToProxyChan
-  Recorder.TypeAssumptions.set_recorderToProxyChan
-  Recorder.TypeAssumptions.get_name
-  Recorder.TypeAssumptions.set_name
-  Recorder.TypeAssumptions.get_slots
-  Recorder.TypeAssumptions.set_slots
-  Recorder.TypeAssumptions.get_cfg
-  Recorder.TypeAssumptions.set_cfg
-  Recorder.TypeAssumptions.get_instanceMutex
-  Recorder.TypeAssumptions.set_instanceMutex
-  Recorder.TypeAssumptions.get_debugOn
-  Recorder.TypeAssumptions.set_debugOn
-  Recorder.TypeAssumptions.get_debugLevel
-  Recorder.TypeAssumptions.set_debugLevel
+  Recorder.TypeAssumptions.get'address
+  Recorder.TypeAssumptions.set'address
+  Recorder.TypeAssumptions.get'listener
+  Recorder.TypeAssumptions.set'listener
+  Recorder.TypeAssumptions.get'server
+  Recorder.TypeAssumptions.set'server
+  Recorder.TypeAssumptions.get'connection
+  Recorder.TypeAssumptions.set'connection
+  Recorder.TypeAssumptions.get'clientBatches
+  Recorder.TypeAssumptions.set'clientBatches
+  Recorder.TypeAssumptions.get'recorderToProxyChan
+  Recorder.TypeAssumptions.set'recorderToProxyChan
+  Recorder.TypeAssumptions.get'name
+  Recorder.TypeAssumptions.set'name
+  Recorder.TypeAssumptions.get'slots
+  Recorder.TypeAssumptions.set'slots
+  Recorder.TypeAssumptions.get'cfg
+  Recorder.TypeAssumptions.set'cfg
+  Recorder.TypeAssumptions.get'instanceMutex
+  Recorder.TypeAssumptions.set'instanceMutex
+  Recorder.TypeAssumptions.get'debugOn
+  Recorder.TypeAssumptions.set'debugOn
+  Recorder.TypeAssumptions.get'debugLevel
+  Recorder.TypeAssumptions.set'debugLevel
   Recorder.TypeAssumptions.method_set
   Recorder.TypeAssumptions.ptr_method_set
-  Recorder.TypeAssumptions.ptr_HandleDecisions_unfold
-  Recorder.TypeAssumptions.ptr_HandleESP_unfold
-  Recorder.TypeAssumptions.ptr_HandleFetch_unfold
-  Recorder.TypeAssumptions.ptr_NetworkInit_unfold
-  Recorder.TypeAssumptions.ptr_convertToClientBatchMessages_unfold
-  Recorder.TypeAssumptions.ptr_convertToDecideResponseClientBatchMessages_unfold
-  Recorder.TypeAssumptions.ptr_espImpl_unfold
-  Recorder.TypeAssumptions.ptr_findAllBatches_unfold
-  Recorder.TypeAssumptions.ptr_max_unfold
-  Recorder.TypeAssumptions.ptr_serve_unfold
+  Recorder.TypeAssumptions.ptr_unfold'HandleDecisions
+  Recorder.TypeAssumptions.ptr_unfold'HandleESP
+  Recorder.TypeAssumptions.ptr_unfold'HandleFetch
+  Recorder.TypeAssumptions.ptr_unfold'NetworkInit
+  Recorder.TypeAssumptions.ptr_unfold'convertToClientBatchMessages
+  Recorder.TypeAssumptions.ptr_unfold'convertToDecideResponseClientBatchMessages
+  Recorder.TypeAssumptions.ptr_unfold'espImpl
+  Recorder.TypeAssumptions.ptr_unfold'findAllBatches
+  Recorder.TypeAssumptions.ptr_unfold'max
+  Recorder.TypeAssumptions.ptr_unfold'serve
 
 structure Server [GooseExts] where
   mk ::
@@ -11168,7 +11168,7 @@ noncomputable instance Server.zero_val [GooseExts] : ZeroVal Server :=
 @[irreducible] noncomputable def Server.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Server.fieldsUnsealed
 
-noncomputable instance equals_unfold_Server [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Server [GooseExts] [GoGlobalContext] :
     EqualsUnfold Server.fields Server.fieldsUnsealed :=
   ⟨by unfold Server.fields; rfl⟩
 
@@ -11178,115 +11178,115 @@ noncomputable instance equals_unfold_Server [GooseExts] [GoGlobalContext] :
 class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Server.underlying Server
   underlying : go.UnderlyingDirectedEq Server.ty Server.underlying
-  get_name : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : Server)))
-  get_ProxyInstance : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"ProxyInstance") #x (Val #(x.ProxyInstance'))
-  set_ProxyInstance : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"ProxyInstance") (PairV #x #y) (Val #(({ x with ProxyInstance' := y } : Server)))
-  get_ProposerInstances : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"ProposerInstances") #x (Val #(x.ProposerInstances'))
-  set_ProposerInstances : ∀ (x : Server) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"ProposerInstances") (PairV #x #y) (Val #(({ x with ProposerInstances' := y } : Server)))
-  get_RecorderInstance : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"RecorderInstance") #x (Val #(x.RecorderInstance'))
-  set_RecorderInstance : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"RecorderInstance") (PairV #x #y) (Val #(({ x with RecorderInstance' := y } : Server)))
-  get_proxyToProposerChan : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"proxyToProposerChan") #x (Val #(x.proxyToProposerChan'))
-  set_proxyToProposerChan : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"proxyToProposerChan") (PairV #x #y) (Val #(({ x with proxyToProposerChan' := y } : Server)))
-  get_proposerToProxyChan : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"proposerToProxyChan") #x (Val #(x.proposerToProxyChan'))
-  set_proposerToProxyChan : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"proposerToProxyChan") (PairV #x #y) (Val #(({ x with proposerToProxyChan' := y } : Server)))
-  get_recorderToProxyChan : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"recorderToProxyChan") #x (Val #(x.recorderToProxyChan'))
-  set_recorderToProxyChan : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"recorderToProxyChan") (PairV #x #y) (Val #(({ x with recorderToProxyChan' := y } : Server)))
-  get_proxyToProposerFetchChan : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"proxyToProposerFetchChan") #x (Val #(x.proxyToProposerFetchChan'))
-  set_proxyToProposerFetchChan : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"proxyToProposerFetchChan") (PairV #x #y) (Val #(({ x with proxyToProposerFetchChan' := y } : Server)))
-  get_proposerToProxyFetchChan : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"proposerToProxyFetchChan") #x (Val #(x.proposerToProxyFetchChan'))
-  set_proposerToProxyFetchChan : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"proposerToProxyFetchChan") (PairV #x #y) (Val #(({ x with proposerToProxyFetchChan' := y } : Server)))
-  get_cfg : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"cfg") #x (Val #(x.cfg'))
-  set_cfg : ∀ (x : Server) (y : _root_.Perennial.raxos.configuration.InstanceConfig), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"cfg") (PairV #x #y) (Val #(({ x with cfg' := y } : Server)))
-  get_numProposers : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"numProposers") #x (Val #(x.numProposers'))
-  set_numProposers : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"numProposers") (PairV #x #y) (Val #(({ x with numProposers' := y } : Server)))
-  get_store : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"store") #x (Val #(x.store'))
-  set_store : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"store") (PairV #x #y) (Val #(({ x with store' := y } : Server)))
-  get_serverMode : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"serverMode") #x (Val #(x.serverMode'))
-  set_serverMode : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"serverMode") (PairV #x #y) (Val #(({ x with serverMode' := y } : Server)))
-  get_debugOn : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"debugOn") #x (Val #(x.debugOn'))
-  set_debugOn : ∀ (x : Server) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"debugOn") (PairV #x #y) (Val #(({ x with debugOn' := y } : Server)))
-  get_debugLevel : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"debugLevel") #x (Val #(x.debugLevel'))
-  set_debugLevel : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"debugLevel") (PairV #x #y) (Val #(({ x with debugLevel' := y } : Server)))
-  get_leaderTimeout : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"leaderTimeout") #x (Val #(x.leaderTimeout'))
-  set_leaderTimeout : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"leaderTimeout") (PairV #x #y) (Val #(({ x with leaderTimeout' := y } : Server)))
-  get_leaderMode : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"leaderMode") #x (Val #(x.leaderMode'))
-  set_leaderMode : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"leaderMode") (PairV #x #y) (Val #(({ x with leaderMode' := y } : Server)))
-  get_batchTime : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"batchTime") #x (Val #(x.batchTime'))
-  set_batchTime : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"batchTime") (PairV #x #y) (Val #(({ x with batchTime' := y } : Server)))
-  get_epochSize : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"epochSize") #x (Val #(x.epochSize'))
-  set_epochSize : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"epochSize") (PairV #x #y) (Val #(({ x with epochSize' := y } : Server)))
-  get_proxyToProposerDecisionChan : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"proxyToProposerDecisionChan") #x (Val #(x.proxyToProposerDecisionChan'))
-  set_proxyToProposerDecisionChan : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"proxyToProposerDecisionChan") (PairV #x #y) (Val #(({ x with proxyToProposerDecisionChan' := y } : Server)))
-  get_isAsync : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"isAsync") #x (Val #(x.isAsync'))
-  set_isAsync : ∀ (x : Server) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"isAsync") (PairV #x #y) (Val #(({ x with isAsync' := y } : Server)))
-  get_asyncTimeOut : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"asyncTimeOut") #x (Val #(x.asyncTimeOut'))
-  set_asyncTimeOut : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"asyncTimeOut") (PairV #x #y) (Val #(({ x with asyncTimeOut' := y } : Server)))
-  get_timeEpochSize : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"timeEpochSize") #x (Val #(x.timeEpochSize'))
-  set_timeEpochSize : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"timeEpochSize") (PairV #x #y) (Val #(({ x with timeEpochSize' := y } : Server)))
+  get'name : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : Server)))
+  get'ProxyInstance : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"ProxyInstance") #x (Val #(x.ProxyInstance'))
+  set'ProxyInstance : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"ProxyInstance") (PairV #x #y) (Val #(({ x with ProxyInstance' := y } : Server)))
+  get'ProposerInstances : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"ProposerInstances") #x (Val #(x.ProposerInstances'))
+  set'ProposerInstances : ∀ (x : Server) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"ProposerInstances") (PairV #x #y) (Val #(({ x with ProposerInstances' := y } : Server)))
+  get'RecorderInstance : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"RecorderInstance") #x (Val #(x.RecorderInstance'))
+  set'RecorderInstance : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"RecorderInstance") (PairV #x #y) (Val #(({ x with RecorderInstance' := y } : Server)))
+  get'proxyToProposerChan : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"proxyToProposerChan") #x (Val #(x.proxyToProposerChan'))
+  set'proxyToProposerChan : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"proxyToProposerChan") (PairV #x #y) (Val #(({ x with proxyToProposerChan' := y } : Server)))
+  get'proposerToProxyChan : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"proposerToProxyChan") #x (Val #(x.proposerToProxyChan'))
+  set'proposerToProxyChan : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"proposerToProxyChan") (PairV #x #y) (Val #(({ x with proposerToProxyChan' := y } : Server)))
+  get'recorderToProxyChan : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"recorderToProxyChan") #x (Val #(x.recorderToProxyChan'))
+  set'recorderToProxyChan : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"recorderToProxyChan") (PairV #x #y) (Val #(({ x with recorderToProxyChan' := y } : Server)))
+  get'proxyToProposerFetchChan : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"proxyToProposerFetchChan") #x (Val #(x.proxyToProposerFetchChan'))
+  set'proxyToProposerFetchChan : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"proxyToProposerFetchChan") (PairV #x #y) (Val #(({ x with proxyToProposerFetchChan' := y } : Server)))
+  get'proposerToProxyFetchChan : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"proposerToProxyFetchChan") #x (Val #(x.proposerToProxyFetchChan'))
+  set'proposerToProxyFetchChan : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"proposerToProxyFetchChan") (PairV #x #y) (Val #(({ x with proposerToProxyFetchChan' := y } : Server)))
+  get'cfg : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"cfg") #x (Val #(x.cfg'))
+  set'cfg : ∀ (x : Server) (y : _root_.Perennial.raxos.configuration.InstanceConfig), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"cfg") (PairV #x #y) (Val #(({ x with cfg' := y } : Server)))
+  get'numProposers : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"numProposers") #x (Val #(x.numProposers'))
+  set'numProposers : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"numProposers") (PairV #x #y) (Val #(({ x with numProposers' := y } : Server)))
+  get'store : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"store") #x (Val #(x.store'))
+  set'store : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"store") (PairV #x #y) (Val #(({ x with store' := y } : Server)))
+  get'serverMode : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"serverMode") #x (Val #(x.serverMode'))
+  set'serverMode : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"serverMode") (PairV #x #y) (Val #(({ x with serverMode' := y } : Server)))
+  get'debugOn : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"debugOn") #x (Val #(x.debugOn'))
+  set'debugOn : ∀ (x : Server) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"debugOn") (PairV #x #y) (Val #(({ x with debugOn' := y } : Server)))
+  get'debugLevel : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"debugLevel") #x (Val #(x.debugLevel'))
+  set'debugLevel : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"debugLevel") (PairV #x #y) (Val #(({ x with debugLevel' := y } : Server)))
+  get'leaderTimeout : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"leaderTimeout") #x (Val #(x.leaderTimeout'))
+  set'leaderTimeout : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"leaderTimeout") (PairV #x #y) (Val #(({ x with leaderTimeout' := y } : Server)))
+  get'leaderMode : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"leaderMode") #x (Val #(x.leaderMode'))
+  set'leaderMode : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"leaderMode") (PairV #x #y) (Val #(({ x with leaderMode' := y } : Server)))
+  get'batchTime : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"batchTime") #x (Val #(x.batchTime'))
+  set'batchTime : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"batchTime") (PairV #x #y) (Val #(({ x with batchTime' := y } : Server)))
+  get'epochSize : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"epochSize") #x (Val #(x.epochSize'))
+  set'epochSize : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"epochSize") (PairV #x #y) (Val #(({ x with epochSize' := y } : Server)))
+  get'proxyToProposerDecisionChan : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"proxyToProposerDecisionChan") #x (Val #(x.proxyToProposerDecisionChan'))
+  set'proxyToProposerDecisionChan : ∀ (x : Server) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"proxyToProposerDecisionChan") (PairV #x #y) (Val #(({ x with proxyToProposerDecisionChan' := y } : Server)))
+  get'isAsync : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"isAsync") #x (Val #(x.isAsync'))
+  set'isAsync : ∀ (x : Server) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"isAsync") (PairV #x #y) (Val #(({ x with isAsync' := y } : Server)))
+  get'asyncTimeOut : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"asyncTimeOut") #x (Val #(x.asyncTimeOut'))
+  set'asyncTimeOut : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"asyncTimeOut") (PairV #x #y) (Val #(({ x with asyncTimeOut' := y } : Server)))
+  get'timeEpochSize : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"timeEpochSize") #x (Val #(x.timeEpochSize'))
+  set'timeEpochSize : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"timeEpochSize") (PairV #x #y) (Val #(({ x with timeEpochSize' := y } : Server)))
   method_set : go.MethodSetIs Server.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"NetworkInit", (some (go.signature.Signature [] false []))), (go!"Run", (some (go.signature.Signature [] false []))), (go!"StartProposers", (some (go.signature.Signature [] false []))), (go!"raxos/replica/src.createProposers", (some (go.signature.Signature [] false []))), (go!"raxos/replica/src.setupgRPC", (some (go.signature.Signature [] false [(go.GoType.SliceType peer.ty)])))]
-  ptr_NetworkInit_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"NetworkInit" Server.NetworkInit.impl
-  ptr_Run_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"Run" Server.Run.impl
-  ptr_StartProposers_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"StartProposers" Server.StartProposers.impl
-  ptr_createProposers_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"createProposers" Server.createProposers.impl
-  ptr_setupgRPC_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"setupgRPC" Server.setupgRPC.impl
+  ptr_unfold'NetworkInit : MethodUnfold (go.GoType.PointerType Server.ty) go!"NetworkInit" Server.NetworkInit.impl
+  ptr_unfold'Run : MethodUnfold (go.GoType.PointerType Server.ty) go!"Run" Server.Run.impl
+  ptr_unfold'StartProposers : MethodUnfold (go.GoType.PointerType Server.ty) go!"StartProposers" Server.StartProposers.impl
+  ptr_unfold'createProposers : MethodUnfold (go.GoType.PointerType Server.ty) go!"createProposers" Server.createProposers.impl
+  ptr_unfold'setupgRPC : MethodUnfold (go.GoType.PointerType Server.ty) go!"setupgRPC" Server.setupgRPC.impl
 
 attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.underlying
-  Server.TypeAssumptions.get_name
-  Server.TypeAssumptions.set_name
-  Server.TypeAssumptions.get_ProxyInstance
-  Server.TypeAssumptions.set_ProxyInstance
-  Server.TypeAssumptions.get_ProposerInstances
-  Server.TypeAssumptions.set_ProposerInstances
-  Server.TypeAssumptions.get_RecorderInstance
-  Server.TypeAssumptions.set_RecorderInstance
-  Server.TypeAssumptions.get_proxyToProposerChan
-  Server.TypeAssumptions.set_proxyToProposerChan
-  Server.TypeAssumptions.get_proposerToProxyChan
-  Server.TypeAssumptions.set_proposerToProxyChan
-  Server.TypeAssumptions.get_recorderToProxyChan
-  Server.TypeAssumptions.set_recorderToProxyChan
-  Server.TypeAssumptions.get_proxyToProposerFetchChan
-  Server.TypeAssumptions.set_proxyToProposerFetchChan
-  Server.TypeAssumptions.get_proposerToProxyFetchChan
-  Server.TypeAssumptions.set_proposerToProxyFetchChan
-  Server.TypeAssumptions.get_cfg
-  Server.TypeAssumptions.set_cfg
-  Server.TypeAssumptions.get_numProposers
-  Server.TypeAssumptions.set_numProposers
-  Server.TypeAssumptions.get_store
-  Server.TypeAssumptions.set_store
-  Server.TypeAssumptions.get_serverMode
-  Server.TypeAssumptions.set_serverMode
-  Server.TypeAssumptions.get_debugOn
-  Server.TypeAssumptions.set_debugOn
-  Server.TypeAssumptions.get_debugLevel
-  Server.TypeAssumptions.set_debugLevel
-  Server.TypeAssumptions.get_leaderTimeout
-  Server.TypeAssumptions.set_leaderTimeout
-  Server.TypeAssumptions.get_leaderMode
-  Server.TypeAssumptions.set_leaderMode
-  Server.TypeAssumptions.get_batchTime
-  Server.TypeAssumptions.set_batchTime
-  Server.TypeAssumptions.get_epochSize
-  Server.TypeAssumptions.set_epochSize
-  Server.TypeAssumptions.get_proxyToProposerDecisionChan
-  Server.TypeAssumptions.set_proxyToProposerDecisionChan
-  Server.TypeAssumptions.get_isAsync
-  Server.TypeAssumptions.set_isAsync
-  Server.TypeAssumptions.get_asyncTimeOut
-  Server.TypeAssumptions.set_asyncTimeOut
-  Server.TypeAssumptions.get_timeEpochSize
-  Server.TypeAssumptions.set_timeEpochSize
+  Server.TypeAssumptions.get'name
+  Server.TypeAssumptions.set'name
+  Server.TypeAssumptions.get'ProxyInstance
+  Server.TypeAssumptions.set'ProxyInstance
+  Server.TypeAssumptions.get'ProposerInstances
+  Server.TypeAssumptions.set'ProposerInstances
+  Server.TypeAssumptions.get'RecorderInstance
+  Server.TypeAssumptions.set'RecorderInstance
+  Server.TypeAssumptions.get'proxyToProposerChan
+  Server.TypeAssumptions.set'proxyToProposerChan
+  Server.TypeAssumptions.get'proposerToProxyChan
+  Server.TypeAssumptions.set'proposerToProxyChan
+  Server.TypeAssumptions.get'recorderToProxyChan
+  Server.TypeAssumptions.set'recorderToProxyChan
+  Server.TypeAssumptions.get'proxyToProposerFetchChan
+  Server.TypeAssumptions.set'proxyToProposerFetchChan
+  Server.TypeAssumptions.get'proposerToProxyFetchChan
+  Server.TypeAssumptions.set'proposerToProxyFetchChan
+  Server.TypeAssumptions.get'cfg
+  Server.TypeAssumptions.set'cfg
+  Server.TypeAssumptions.get'numProposers
+  Server.TypeAssumptions.set'numProposers
+  Server.TypeAssumptions.get'store
+  Server.TypeAssumptions.set'store
+  Server.TypeAssumptions.get'serverMode
+  Server.TypeAssumptions.set'serverMode
+  Server.TypeAssumptions.get'debugOn
+  Server.TypeAssumptions.set'debugOn
+  Server.TypeAssumptions.get'debugLevel
+  Server.TypeAssumptions.set'debugLevel
+  Server.TypeAssumptions.get'leaderTimeout
+  Server.TypeAssumptions.set'leaderTimeout
+  Server.TypeAssumptions.get'leaderMode
+  Server.TypeAssumptions.set'leaderMode
+  Server.TypeAssumptions.get'batchTime
+  Server.TypeAssumptions.set'batchTime
+  Server.TypeAssumptions.get'epochSize
+  Server.TypeAssumptions.set'epochSize
+  Server.TypeAssumptions.get'proxyToProposerDecisionChan
+  Server.TypeAssumptions.set'proxyToProposerDecisionChan
+  Server.TypeAssumptions.get'isAsync
+  Server.TypeAssumptions.set'isAsync
+  Server.TypeAssumptions.get'asyncTimeOut
+  Server.TypeAssumptions.set'asyncTimeOut
+  Server.TypeAssumptions.get'timeEpochSize
+  Server.TypeAssumptions.set'timeEpochSize
   Server.TypeAssumptions.method_set
   Server.TypeAssumptions.ptr_method_set
-  Server.TypeAssumptions.ptr_NetworkInit_unfold
-  Server.TypeAssumptions.ptr_Run_unfold
-  Server.TypeAssumptions.ptr_StartProposers_unfold
-  Server.TypeAssumptions.ptr_createProposers_unfold
-  Server.TypeAssumptions.ptr_setupgRPC_unfold
+  Server.TypeAssumptions.ptr_unfold'NetworkInit
+  Server.TypeAssumptions.ptr_unfold'Run
+  Server.TypeAssumptions.ptr_unfold'StartProposers
+  Server.TypeAssumptions.ptr_unfold'createProposers
+  Server.TypeAssumptions.ptr_unfold'setupgRPC
 
 structure FetchRequest [GooseExts] where
   mk ::
@@ -11301,7 +11301,7 @@ noncomputable instance FetchRequest.zero_val [GooseExts] : ZeroVal FetchRequest 
 @[irreducible] noncomputable def FetchRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FetchRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_FetchRequest [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FetchRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold FetchRequest.fields FetchRequest.fieldsUnsealed :=
   ⟨by unfold FetchRequest.fields; rfl⟩
 
@@ -11311,15 +11311,15 @@ noncomputable instance equals_unfold_FetchRequest [GooseExts] [GoGlobalContext] 
 class FetchRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FetchRequest.underlying FetchRequest
   underlying : go.UnderlyingDirectedEq FetchRequest.ty FetchRequest.underlying
-  get_ids : ∀ (x : FetchRequest), go.IsGoStepPureDetTagged under (StructFieldGet FetchRequest.underlying go!"ids") #x (Val #(x.ids'))
-  set_ids : ∀ (x : FetchRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FetchRequest.underlying go!"ids") (PairV #x #y) (Val #(({ x with ids' := y } : FetchRequest)))
+  get'ids : ∀ (x : FetchRequest), go.IsGoStepPureDetTagged under (StructFieldGet FetchRequest.underlying go!"ids") #x (Val #(x.ids'))
+  set'ids : ∀ (x : FetchRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FetchRequest.underlying go!"ids") (PairV #x #y) (Val #(({ x with ids' := y } : FetchRequest)))
   method_set : go.MethodSetIs FetchRequest.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FetchRequest.ty) []
 
 attribute [instance] FetchRequest.TypeAssumptions.type_repr
   FetchRequest.TypeAssumptions.underlying
-  FetchRequest.TypeAssumptions.get_ids
-  FetchRequest.TypeAssumptions.set_ids
+  FetchRequest.TypeAssumptions.get'ids
+  FetchRequest.TypeAssumptions.set'ids
   FetchRequest.TypeAssumptions.method_set
   FetchRequest.TypeAssumptions.ptr_method_set
 
@@ -11336,7 +11336,7 @@ noncomputable instance FetchResposne.zero_val [GooseExts] : ZeroVal FetchResposn
 @[irreducible] noncomputable def FetchResposne.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FetchResposne.fieldsUnsealed
 
-noncomputable instance equals_unfold_FetchResposne [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FetchResposne [GooseExts] [GoGlobalContext] :
     EqualsUnfold FetchResposne.fields FetchResposne.fieldsUnsealed :=
   ⟨by unfold FetchResposne.fields; rfl⟩
 
@@ -11346,15 +11346,15 @@ noncomputable instance equals_unfold_FetchResposne [GooseExts] [GoGlobalContext]
 class FetchResposne.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FetchResposne.underlying FetchResposne
   underlying : go.UnderlyingDirectedEq FetchResposne.ty FetchResposne.underlying
-  get_batches : ∀ (x : FetchResposne), go.IsGoStepPureDetTagged under (StructFieldGet FetchResposne.underlying go!"batches") #x (Val #(x.batches'))
-  set_batches : ∀ (x : FetchResposne) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FetchResposne.underlying go!"batches") (PairV #x #y) (Val #(({ x with batches' := y } : FetchResposne)))
+  get'batches : ∀ (x : FetchResposne), go.IsGoStepPureDetTagged under (StructFieldGet FetchResposne.underlying go!"batches") #x (Val #(x.batches'))
+  set'batches : ∀ (x : FetchResposne) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet FetchResposne.underlying go!"batches") (PairV #x #y) (Val #(({ x with batches' := y } : FetchResposne)))
   method_set : go.MethodSetIs FetchResposne.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FetchResposne.ty) []
 
 attribute [instance] FetchResposne.TypeAssumptions.type_repr
   FetchResposne.TypeAssumptions.underlying
-  FetchResposne.TypeAssumptions.get_batches
-  FetchResposne.TypeAssumptions.set_batches
+  FetchResposne.TypeAssumptions.get'batches
+  FetchResposne.TypeAssumptions.set'batches
   FetchResposne.TypeAssumptions.method_set
   FetchResposne.TypeAssumptions.ptr_method_set
 
@@ -11383,7 +11383,7 @@ noncomputable instance ProposeRequest.zero_val [GooseExts] : ZeroVal ProposeRequ
 @[irreducible] noncomputable def ProposeRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposeRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposeRequest [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposeRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposeRequest.fields ProposeRequest.fieldsUnsealed :=
   ⟨by unfold ProposeRequest.fields; rfl⟩
 
@@ -11393,39 +11393,39 @@ noncomputable instance equals_unfold_ProposeRequest [GooseExts] [GoGlobalContext
 class ProposeRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposeRequest.underlying ProposeRequest
   underlying : go.UnderlyingDirectedEq ProposeRequest.ty ProposeRequest.underlying
-  get_instance : ∀ (x : ProposeRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProposeRequest.underlying go!"instance") #x (Val #(x.instance'))
-  set_instance : ∀ (x : ProposeRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposeRequest.underlying go!"instance") (PairV #x #y) (Val #(({ x with instance' := y } : ProposeRequest)))
-  get_proposalStr : ∀ (x : ProposeRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProposeRequest.underlying go!"proposalStr") #x (Val #(x.proposalStr'))
-  set_proposalStr : ∀ (x : ProposeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeRequest.underlying go!"proposalStr") (PairV #x #y) (Val #(({ x with proposalStr' := y } : ProposeRequest)))
-  get_proposalBtch : ∀ (x : ProposeRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProposeRequest.underlying go!"proposalBtch") #x (Val #(x.proposalBtch'))
-  set_proposalBtch : ∀ (x : ProposeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeRequest.underlying go!"proposalBtch") (PairV #x #y) (Val #(({ x with proposalBtch' := y } : ProposeRequest)))
-  get_isLeader : ∀ (x : ProposeRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProposeRequest.underlying go!"isLeader") #x (Val #(x.isLeader'))
-  set_isLeader : ∀ (x : ProposeRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ProposeRequest.underlying go!"isLeader") (PairV #x #y) (Val #(({ x with isLeader' := y } : ProposeRequest)))
-  get_lastDecidedIndexes : ∀ (x : ProposeRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProposeRequest.underlying go!"lastDecidedIndexes") #x (Val #(x.lastDecidedIndexes'))
-  set_lastDecidedIndexes : ∀ (x : ProposeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeRequest.underlying go!"lastDecidedIndexes") (PairV #x #y) (Val #(({ x with lastDecidedIndexes' := y } : ProposeRequest)))
-  get_lastDecidedProposers : ∀ (x : ProposeRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProposeRequest.underlying go!"lastDecidedProposers") #x (Val #(x.lastDecidedProposers'))
-  set_lastDecidedProposers : ∀ (x : ProposeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeRequest.underlying go!"lastDecidedProposers") (PairV #x #y) (Val #(({ x with lastDecidedProposers' := y } : ProposeRequest)))
-  get_lastDecidedDecisions : ∀ (x : ProposeRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProposeRequest.underlying go!"lastDecidedDecisions") #x (Val #(x.lastDecidedDecisions'))
-  set_lastDecidedDecisions : ∀ (x : ProposeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeRequest.underlying go!"lastDecidedDecisions") (PairV #x #y) (Val #(({ x with lastDecidedDecisions' := y } : ProposeRequest)))
+  get'instance : ∀ (x : ProposeRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProposeRequest.underlying go!"instance") #x (Val #(x.instance'))
+  set'instance : ∀ (x : ProposeRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposeRequest.underlying go!"instance") (PairV #x #y) (Val #(({ x with instance' := y } : ProposeRequest)))
+  get'proposalStr : ∀ (x : ProposeRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProposeRequest.underlying go!"proposalStr") #x (Val #(x.proposalStr'))
+  set'proposalStr : ∀ (x : ProposeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeRequest.underlying go!"proposalStr") (PairV #x #y) (Val #(({ x with proposalStr' := y } : ProposeRequest)))
+  get'proposalBtch : ∀ (x : ProposeRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProposeRequest.underlying go!"proposalBtch") #x (Val #(x.proposalBtch'))
+  set'proposalBtch : ∀ (x : ProposeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeRequest.underlying go!"proposalBtch") (PairV #x #y) (Val #(({ x with proposalBtch' := y } : ProposeRequest)))
+  get'isLeader : ∀ (x : ProposeRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProposeRequest.underlying go!"isLeader") #x (Val #(x.isLeader'))
+  set'isLeader : ∀ (x : ProposeRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ProposeRequest.underlying go!"isLeader") (PairV #x #y) (Val #(({ x with isLeader' := y } : ProposeRequest)))
+  get'lastDecidedIndexes : ∀ (x : ProposeRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProposeRequest.underlying go!"lastDecidedIndexes") #x (Val #(x.lastDecidedIndexes'))
+  set'lastDecidedIndexes : ∀ (x : ProposeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeRequest.underlying go!"lastDecidedIndexes") (PairV #x #y) (Val #(({ x with lastDecidedIndexes' := y } : ProposeRequest)))
+  get'lastDecidedProposers : ∀ (x : ProposeRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProposeRequest.underlying go!"lastDecidedProposers") #x (Val #(x.lastDecidedProposers'))
+  set'lastDecidedProposers : ∀ (x : ProposeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeRequest.underlying go!"lastDecidedProposers") (PairV #x #y) (Val #(({ x with lastDecidedProposers' := y } : ProposeRequest)))
+  get'lastDecidedDecisions : ∀ (x : ProposeRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProposeRequest.underlying go!"lastDecidedDecisions") #x (Val #(x.lastDecidedDecisions'))
+  set'lastDecidedDecisions : ∀ (x : ProposeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeRequest.underlying go!"lastDecidedDecisions") (PairV #x #y) (Val #(({ x with lastDecidedDecisions' := y } : ProposeRequest)))
   method_set : go.MethodSetIs ProposeRequest.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposeRequest.ty) []
 
 attribute [instance] ProposeRequest.TypeAssumptions.type_repr
   ProposeRequest.TypeAssumptions.underlying
-  ProposeRequest.TypeAssumptions.get_instance
-  ProposeRequest.TypeAssumptions.set_instance
-  ProposeRequest.TypeAssumptions.get_proposalStr
-  ProposeRequest.TypeAssumptions.set_proposalStr
-  ProposeRequest.TypeAssumptions.get_proposalBtch
-  ProposeRequest.TypeAssumptions.set_proposalBtch
-  ProposeRequest.TypeAssumptions.get_isLeader
-  ProposeRequest.TypeAssumptions.set_isLeader
-  ProposeRequest.TypeAssumptions.get_lastDecidedIndexes
-  ProposeRequest.TypeAssumptions.set_lastDecidedIndexes
-  ProposeRequest.TypeAssumptions.get_lastDecidedProposers
-  ProposeRequest.TypeAssumptions.set_lastDecidedProposers
-  ProposeRequest.TypeAssumptions.get_lastDecidedDecisions
-  ProposeRequest.TypeAssumptions.set_lastDecidedDecisions
+  ProposeRequest.TypeAssumptions.get'instance
+  ProposeRequest.TypeAssumptions.set'instance
+  ProposeRequest.TypeAssumptions.get'proposalStr
+  ProposeRequest.TypeAssumptions.set'proposalStr
+  ProposeRequest.TypeAssumptions.get'proposalBtch
+  ProposeRequest.TypeAssumptions.set'proposalBtch
+  ProposeRequest.TypeAssumptions.get'isLeader
+  ProposeRequest.TypeAssumptions.set'isLeader
+  ProposeRequest.TypeAssumptions.get'lastDecidedIndexes
+  ProposeRequest.TypeAssumptions.set'lastDecidedIndexes
+  ProposeRequest.TypeAssumptions.get'lastDecidedProposers
+  ProposeRequest.TypeAssumptions.set'lastDecidedProposers
+  ProposeRequest.TypeAssumptions.get'lastDecidedDecisions
+  ProposeRequest.TypeAssumptions.set'lastDecidedDecisions
   ProposeRequest.TypeAssumptions.method_set
   ProposeRequest.TypeAssumptions.ptr_method_set
 
@@ -11448,7 +11448,7 @@ noncomputable instance ProposeResponse.zero_val [GooseExts] : ZeroVal ProposeRes
 @[irreducible] noncomputable def ProposeResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProposeResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProposeResponse [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ProposeResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProposeResponse.fields ProposeResponse.fieldsUnsealed :=
   ⟨by unfold ProposeResponse.fields; rfl⟩
 
@@ -11458,27 +11458,27 @@ noncomputable instance equals_unfold_ProposeResponse [GooseExts] [GoGlobalContex
 class ProposeResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProposeResponse.underlying ProposeResponse
   underlying : go.UnderlyingDirectedEq ProposeResponse.ty ProposeResponse.underlying
-  get_index : ∀ (x : ProposeResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProposeResponse.underlying go!"index") #x (Val #(x.index'))
-  set_index : ∀ (x : ProposeResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposeResponse.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : ProposeResponse)))
-  get_decisions : ∀ (x : ProposeResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProposeResponse.underlying go!"decisions") #x (Val #(x.decisions'))
-  set_decisions : ∀ (x : ProposeResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeResponse.underlying go!"decisions") (PairV #x #y) (Val #(({ x with decisions' := y } : ProposeResponse)))
-  get_proposer : ∀ (x : ProposeResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProposeResponse.underlying go!"proposer") #x (Val #(x.proposer'))
-  set_proposer : ∀ (x : ProposeResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposeResponse.underlying go!"proposer") (PairV #x #y) (Val #(({ x with proposer' := y } : ProposeResponse)))
-  get_s : ∀ (x : ProposeResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProposeResponse.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : ProposeResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposeResponse.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : ProposeResponse)))
+  get'index : ∀ (x : ProposeResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProposeResponse.underlying go!"index") #x (Val #(x.index'))
+  set'index : ∀ (x : ProposeResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposeResponse.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : ProposeResponse)))
+  get'decisions : ∀ (x : ProposeResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProposeResponse.underlying go!"decisions") #x (Val #(x.decisions'))
+  set'decisions : ∀ (x : ProposeResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProposeResponse.underlying go!"decisions") (PairV #x #y) (Val #(({ x with decisions' := y } : ProposeResponse)))
+  get'proposer : ∀ (x : ProposeResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProposeResponse.underlying go!"proposer") #x (Val #(x.proposer'))
+  set'proposer : ∀ (x : ProposeResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProposeResponse.underlying go!"proposer") (PairV #x #y) (Val #(({ x with proposer' := y } : ProposeResponse)))
+  get's : ∀ (x : ProposeResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProposeResponse.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : ProposeResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProposeResponse.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : ProposeResponse)))
   method_set : go.MethodSetIs ProposeResponse.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProposeResponse.ty) []
 
 attribute [instance] ProposeResponse.TypeAssumptions.type_repr
   ProposeResponse.TypeAssumptions.underlying
-  ProposeResponse.TypeAssumptions.get_index
-  ProposeResponse.TypeAssumptions.set_index
-  ProposeResponse.TypeAssumptions.get_decisions
-  ProposeResponse.TypeAssumptions.set_decisions
-  ProposeResponse.TypeAssumptions.get_proposer
-  ProposeResponse.TypeAssumptions.set_proposer
-  ProposeResponse.TypeAssumptions.get_s
-  ProposeResponse.TypeAssumptions.set_s
+  ProposeResponse.TypeAssumptions.get'index
+  ProposeResponse.TypeAssumptions.set'index
+  ProposeResponse.TypeAssumptions.get'decisions
+  ProposeResponse.TypeAssumptions.set'decisions
+  ProposeResponse.TypeAssumptions.get'proposer
+  ProposeResponse.TypeAssumptions.set'proposer
+  ProposeResponse.TypeAssumptions.get's
+  ProposeResponse.TypeAssumptions.set's
   ProposeResponse.TypeAssumptions.method_set
   ProposeResponse.TypeAssumptions.ptr_method_set
 
@@ -11499,7 +11499,7 @@ noncomputable instance Decision.zero_val [GooseExts] : ZeroVal Decision :=
 @[irreducible] noncomputable def Decision.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Decision.fieldsUnsealed
 
-noncomputable instance equals_unfold_Decision [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Decision [GooseExts] [GoGlobalContext] :
     EqualsUnfold Decision.fields Decision.fieldsUnsealed :=
   ⟨by unfold Decision.fields; rfl⟩
 
@@ -11509,23 +11509,23 @@ noncomputable instance equals_unfold_Decision [GooseExts] [GoGlobalContext] :
 class Decision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Decision.underlying Decision
   underlying : go.UnderlyingDirectedEq Decision.ty Decision.underlying
-  get_indexes : ∀ (x : Decision), go.IsGoStepPureDetTagged under (StructFieldGet Decision.underlying go!"indexes") #x (Val #(x.indexes'))
-  set_indexes : ∀ (x : Decision) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Decision.underlying go!"indexes") (PairV #x #y) (Val #(({ x with indexes' := y } : Decision)))
-  get_decisions : ∀ (x : Decision), go.IsGoStepPureDetTagged under (StructFieldGet Decision.underlying go!"decisions") #x (Val #(x.decisions'))
-  set_decisions : ∀ (x : Decision) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Decision.underlying go!"decisions") (PairV #x #y) (Val #(({ x with decisions' := y } : Decision)))
-  get_proposers : ∀ (x : Decision), go.IsGoStepPureDetTagged under (StructFieldGet Decision.underlying go!"proposers") #x (Val #(x.proposers'))
-  set_proposers : ∀ (x : Decision) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Decision.underlying go!"proposers") (PairV #x #y) (Val #(({ x with proposers' := y } : Decision)))
+  get'indexes : ∀ (x : Decision), go.IsGoStepPureDetTagged under (StructFieldGet Decision.underlying go!"indexes") #x (Val #(x.indexes'))
+  set'indexes : ∀ (x : Decision) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Decision.underlying go!"indexes") (PairV #x #y) (Val #(({ x with indexes' := y } : Decision)))
+  get'decisions : ∀ (x : Decision), go.IsGoStepPureDetTagged under (StructFieldGet Decision.underlying go!"decisions") #x (Val #(x.decisions'))
+  set'decisions : ∀ (x : Decision) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Decision.underlying go!"decisions") (PairV #x #y) (Val #(({ x with decisions' := y } : Decision)))
+  get'proposers : ∀ (x : Decision), go.IsGoStepPureDetTagged under (StructFieldGet Decision.underlying go!"proposers") #x (Val #(x.proposers'))
+  set'proposers : ∀ (x : Decision) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Decision.underlying go!"proposers") (PairV #x #y) (Val #(({ x with proposers' := y } : Decision)))
   method_set : go.MethodSetIs Decision.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Decision.ty) []
 
 attribute [instance] Decision.TypeAssumptions.type_repr
   Decision.TypeAssumptions.underlying
-  Decision.TypeAssumptions.get_indexes
-  Decision.TypeAssumptions.set_indexes
-  Decision.TypeAssumptions.get_decisions
-  Decision.TypeAssumptions.set_decisions
-  Decision.TypeAssumptions.get_proposers
-  Decision.TypeAssumptions.set_proposers
+  Decision.TypeAssumptions.get'indexes
+  Decision.TypeAssumptions.set'indexes
+  Decision.TypeAssumptions.get'decisions
+  Decision.TypeAssumptions.set'decisions
+  Decision.TypeAssumptions.get'proposers
+  Decision.TypeAssumptions.set'proposers
   Decision.TypeAssumptions.method_set
   Decision.TypeAssumptions.ptr_method_set
 
@@ -11544,7 +11544,7 @@ noncomputable instance peer.zero_val [GooseExts] : ZeroVal peer :=
 @[irreducible] noncomputable def peer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   peer.fieldsUnsealed
 
-noncomputable instance equals_unfold_peer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'peer [GooseExts] [GoGlobalContext] :
     EqualsUnfold peer.fields peer.fieldsUnsealed :=
   ⟨by unfold peer.fields; rfl⟩
 
@@ -11554,174 +11554,174 @@ noncomputable instance equals_unfold_peer [GooseExts] [GoGlobalContext] :
 class peer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying peer.underlying peer
   underlying : go.UnderlyingDirectedEq peer.ty peer.underlying
-  get_name : ∀ (x : peer), go.IsGoStepPureDetTagged under (StructFieldGet peer.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : peer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet peer.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : peer)))
-  get_client : ∀ (x : peer), go.IsGoStepPureDetTagged under (StructFieldGet peer.underlying go!"client") #x (Val #(x.client'))
-  set_client : ∀ (x : peer) (y : ConsensusClient), go.IsGoStepPureDetTagged under (StructFieldSet peer.underlying go!"client") (PairV #x #y) (Val #(({ x with client' := y } : peer)))
+  get'name : ∀ (x : peer), go.IsGoStepPureDetTagged under (StructFieldGet peer.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : peer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet peer.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : peer)))
+  get'client : ∀ (x : peer), go.IsGoStepPureDetTagged under (StructFieldGet peer.underlying go!"client") #x (Val #(x.client'))
+  set'client : ∀ (x : peer) (y : ConsensusClient), go.IsGoStepPureDetTagged under (StructFieldSet peer.underlying go!"client") (PairV #x #y) (Val #(({ x with client' := y } : peer)))
   method_set : go.MethodSetIs peer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType peer.ty) []
 
 attribute [instance] peer.TypeAssumptions.type_repr
   peer.TypeAssumptions.underlying
-  peer.TypeAssumptions.get_name
-  peer.TypeAssumptions.set_name
-  peer.TypeAssumptions.get_client
-  peer.TypeAssumptions.set_client
+  peer.TypeAssumptions.get'name
+  peer.TypeAssumptions.set'name
+  peer.TypeAssumptions.get'client
+  peer.TypeAssumptions.set'client
   peer.TypeAssumptions.method_set
   peer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ClientBatchStore_instance : ClientBatchStore.TypeAssumptions
-  GRPCConnection_instance : GRPCConnection.TypeAssumptions
-  ProposerMessage_instance : ProposerMessage.TypeAssumptions
-  RecorderResponse_instance : RecorderResponse.TypeAssumptions
-  DecideRequest_instance : DecideRequest.TypeAssumptions
-  DecideResponse_instance : DecideResponse.TypeAssumptions
-  Decisions_instance : Decisions.TypeAssumptions
-  Empty_instance : Empty.TypeAssumptions
-  ProposerMessage_ClientBatch_instance : ProposerMessage_ClientBatch.TypeAssumptions
-  ProposerMessage_Proposal_instance : ProposerMessage_Proposal.TypeAssumptions
-  ProposerMessage_DecidedSlot_instance : ProposerMessage_DecidedSlot.TypeAssumptions
-  ProposerMessage_ClientBatch_SingleMessage_instance : ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions
-  RecorderResponse_Proposal_instance : RecorderResponse_Proposal.TypeAssumptions
-  DecideResponse_ClientBatch_instance : DecideResponse_ClientBatch.TypeAssumptions
-  DecideResponse_ClientBatch_SingleMessage_instance : DecideResponse_ClientBatch_SingleMessage.TypeAssumptions
-  Decisions_DecidedSlot_instance : Decisions_DecidedSlot.TypeAssumptions
-  ConsensusClient_instance : ConsensusClient.TypeAssumptions
-  consensusClient_instance : consensusClient.TypeAssumptions
-  ConsensusServer_instance : ConsensusServer.TypeAssumptions
-  UnimplementedConsensusServer_instance : UnimplementedConsensusServer.TypeAssumptions
-  UnsafeConsensusServer_instance : UnsafeConsensusServer.TypeAssumptions
-  Benchmark_instance : Benchmark.TypeAssumptions
-  Proposer_instance : Proposer.TypeAssumptions
-  Slot_instance : Slot.TypeAssumptions
-  Proxy_instance : Proxy.TypeAssumptions
-  EpochTime_instance : EpochTime.TypeAssumptions
-  ProposeRequestIndex_instance : ProposeRequestIndex.TypeAssumptions
-  ClientBatchTime_instance : ClientBatchTime.TypeAssumptions
-  msgBuffer_instance : msgBuffer.TypeAssumptions
-  Value_instance : Value.TypeAssumptions
-  RecorderSlot_instance : RecorderSlot.TypeAssumptions
-  Recorder_instance : Recorder.TypeAssumptions
-  Server_instance : Server.TypeAssumptions
-  FetchRequest_instance : FetchRequest.TypeAssumptions
-  FetchResposne_instance : FetchResposne.TypeAssumptions
-  ProposeRequest_instance : ProposeRequest.TypeAssumptions
-  ProposeResponse_instance : ProposeResponse.TypeAssumptions
-  Decision_instance : Decision.TypeAssumptions
-  peer_instance : peer.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  NewConsensusClient_unfold : FuncUnfold NewConsensusClient [] NewConsensusClient.impl
-  RegisterConsensusServer_unfold : FuncUnfold RegisterConsensusServer [] RegisterConsensusServer.impl
-  _Consensus_ESP_Handler_unfold : FuncUnfold _Consensus_ESP_Handler [] _Consensus_ESP_Handler.impl
-  _Consensus_FetchBatches_Handler_unfold : FuncUnfold _Consensus_FetchBatches_Handler [] _Consensus_FetchBatches_Handler.impl
-  _Consensus_InformDecision_Handler_unfold : FuncUnfold _Consensus_InformDecision_Handler [] _Consensus_InformDecision_Handler.impl
-  Init_unfold : FuncUnfold Init [] Init.impl
-  NewProposer_unfold : FuncUnfold NewProposer [] NewProposer.impl
-  NewProxy_unfold : FuncUnfold NewProxy [] NewProxy.impl
-  NewRecorder_unfold : FuncUnfold NewRecorder [] NewRecorder.impl
-  New_unfold : FuncUnfold New [] New.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_log_Assumption : _root_.Perennial.log.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_client_Assumption : _root_.Perennial.raxos.proto.client.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_protoreflect_Assumption : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
-  import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
-  import_reflect_Assumption : _root_.Perennial.reflect.Assumptions
-  import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
-  import_codes_Assumption : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
-  import_status_Assumption : _root_.Perennial.google_golang_org.grpc.status.Assumptions
-  import_redis_Assumption : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions
-  import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_common_Assumption : _root_.Perennial.raxos.common.Assumptions
-  import_configuration_Assumption : _root_.Perennial.raxos.configuration.Assumptions
-  import_sort_Assumption : _root_.Perennial.sort.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_proto_Assumption : _root_.Perennial.raxos.proto.Assumptions
+  instance'ClientBatchStore : ClientBatchStore.TypeAssumptions
+  instance'GRPCConnection : GRPCConnection.TypeAssumptions
+  instance'ProposerMessage : ProposerMessage.TypeAssumptions
+  instance'RecorderResponse : RecorderResponse.TypeAssumptions
+  instance'DecideRequest : DecideRequest.TypeAssumptions
+  instance'DecideResponse : DecideResponse.TypeAssumptions
+  instance'Decisions : Decisions.TypeAssumptions
+  instance'Empty : Empty.TypeAssumptions
+  instance'ProposerMessage_ClientBatch : ProposerMessage_ClientBatch.TypeAssumptions
+  instance'ProposerMessage_Proposal : ProposerMessage_Proposal.TypeAssumptions
+  instance'ProposerMessage_DecidedSlot : ProposerMessage_DecidedSlot.TypeAssumptions
+  instance'ProposerMessage_ClientBatch_SingleMessage : ProposerMessage_ClientBatch_SingleMessage.TypeAssumptions
+  instance'RecorderResponse_Proposal : RecorderResponse_Proposal.TypeAssumptions
+  instance'DecideResponse_ClientBatch : DecideResponse_ClientBatch.TypeAssumptions
+  instance'DecideResponse_ClientBatch_SingleMessage : DecideResponse_ClientBatch_SingleMessage.TypeAssumptions
+  instance'Decisions_DecidedSlot : Decisions_DecidedSlot.TypeAssumptions
+  instance'ConsensusClient : ConsensusClient.TypeAssumptions
+  instance'consensusClient : consensusClient.TypeAssumptions
+  instance'ConsensusServer : ConsensusServer.TypeAssumptions
+  instance'UnimplementedConsensusServer : UnimplementedConsensusServer.TypeAssumptions
+  instance'UnsafeConsensusServer : UnsafeConsensusServer.TypeAssumptions
+  instance'Benchmark : Benchmark.TypeAssumptions
+  instance'Proposer : Proposer.TypeAssumptions
+  instance'Slot : Slot.TypeAssumptions
+  instance'Proxy : Proxy.TypeAssumptions
+  instance'EpochTime : EpochTime.TypeAssumptions
+  instance'ProposeRequestIndex : ProposeRequestIndex.TypeAssumptions
+  instance'ClientBatchTime : ClientBatchTime.TypeAssumptions
+  instance'msgBuffer : msgBuffer.TypeAssumptions
+  instance'Value : Value.TypeAssumptions
+  instance'RecorderSlot : RecorderSlot.TypeAssumptions
+  instance'Recorder : Recorder.TypeAssumptions
+  instance'Server : Server.TypeAssumptions
+  instance'FetchRequest : FetchRequest.TypeAssumptions
+  instance'FetchResposne : FetchResposne.TypeAssumptions
+  instance'ProposeRequest : ProposeRequest.TypeAssumptions
+  instance'ProposeResponse : ProposeResponse.TypeAssumptions
+  instance'Decision : Decision.TypeAssumptions
+  instance'peer : peer.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'NewConsensusClient : FuncUnfold NewConsensusClient [] NewConsensusClient.impl
+  unfold'RegisterConsensusServer : FuncUnfold RegisterConsensusServer [] RegisterConsensusServer.impl
+  unfold'_Consensus_ESP_Handler : FuncUnfold _Consensus_ESP_Handler [] _Consensus_ESP_Handler.impl
+  unfold'_Consensus_FetchBatches_Handler : FuncUnfold _Consensus_FetchBatches_Handler [] _Consensus_FetchBatches_Handler.impl
+  unfold'_Consensus_InformDecision_Handler : FuncUnfold _Consensus_InformDecision_Handler [] _Consensus_InformDecision_Handler.impl
+  unfold'Init : FuncUnfold Init [] Init.impl
+  unfold'NewProposer : FuncUnfold NewProposer [] NewProposer.impl
+  unfold'NewProxy : FuncUnfold NewProxy [] NewProxy.impl
+  unfold'NewRecorder : FuncUnfold NewRecorder [] NewRecorder.impl
+  unfold'New : FuncUnfold New [] New.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'log : _root_.Perennial.log.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'client : _root_.Perennial.raxos.proto.client.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'protoreflect : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
+  import'protoimpl : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
+  import'reflect : _root_.Perennial.reflect.Assumptions
+  import'grpc : _root_.Perennial.google_golang_org.grpc.Assumptions
+  import'codes : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
+  import'status : _root_.Perennial.google_golang_org.grpc.status.Assumptions
+  import'redis : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions
+  import'rand : _root_.Perennial.math.rand.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'bufio : _root_.Perennial.bufio.Assumptions
+  import'net : _root_.Perennial.net.Assumptions
+  import'common : _root_.Perennial.raxos.common.Assumptions
+  import'configuration : _root_.Perennial.raxos.configuration.Assumptions
+  import'sort : _root_.Perennial.sort.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'binary : _root_.Perennial.encoding.binary.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'proto : _root_.Perennial.raxos.proto.Assumptions
 
-attribute [instance] Assumptions.ClientBatchStore_instance
-  Assumptions.GRPCConnection_instance
-  Assumptions.ProposerMessage_instance
-  Assumptions.RecorderResponse_instance
-  Assumptions.DecideRequest_instance
-  Assumptions.DecideResponse_instance
-  Assumptions.Decisions_instance
-  Assumptions.Empty_instance
-  Assumptions.ProposerMessage_ClientBatch_instance
-  Assumptions.ProposerMessage_Proposal_instance
-  Assumptions.ProposerMessage_DecidedSlot_instance
-  Assumptions.ProposerMessage_ClientBatch_SingleMessage_instance
-  Assumptions.RecorderResponse_Proposal_instance
-  Assumptions.DecideResponse_ClientBatch_instance
-  Assumptions.DecideResponse_ClientBatch_SingleMessage_instance
-  Assumptions.Decisions_DecidedSlot_instance
-  Assumptions.ConsensusClient_instance
-  Assumptions.consensusClient_instance
-  Assumptions.ConsensusServer_instance
-  Assumptions.UnimplementedConsensusServer_instance
-  Assumptions.UnsafeConsensusServer_instance
-  Assumptions.Benchmark_instance
-  Assumptions.Proposer_instance
-  Assumptions.Slot_instance
-  Assumptions.Proxy_instance
-  Assumptions.EpochTime_instance
-  Assumptions.ProposeRequestIndex_instance
-  Assumptions.ClientBatchTime_instance
-  Assumptions.msgBuffer_instance
-  Assumptions.Value_instance
-  Assumptions.RecorderSlot_instance
-  Assumptions.Recorder_instance
-  Assumptions.Server_instance
-  Assumptions.FetchRequest_instance
-  Assumptions.FetchResposne_instance
-  Assumptions.ProposeRequest_instance
-  Assumptions.ProposeResponse_instance
-  Assumptions.Decision_instance
-  Assumptions.peer_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.NewConsensusClient_unfold
-  Assumptions.RegisterConsensusServer_unfold
-  Assumptions._Consensus_ESP_Handler_unfold
-  Assumptions._Consensus_FetchBatches_Handler_unfold
-  Assumptions._Consensus_InformDecision_Handler_unfold
-  Assumptions.Init_unfold
-  Assumptions.NewProposer_unfold
-  Assumptions.NewProxy_unfold
-  Assumptions.NewRecorder_unfold
-  Assumptions.New_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_log_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_client_Assumption
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_context_Assumption
-  Assumptions.import_protoreflect_Assumption
-  Assumptions.import_protoimpl_Assumption
-  Assumptions.import_reflect_Assumption
-  Assumptions.import_grpc_Assumption
-  Assumptions.import_codes_Assumption
-  Assumptions.import_status_Assumption
-  Assumptions.import_redis_Assumption
-  Assumptions.import_rand_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_bufio_Assumption
-  Assumptions.import_net_Assumption
-  Assumptions.import_common_Assumption
-  Assumptions.import_configuration_Assumption
-  Assumptions.import_sort_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_binary_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_proto_Assumption
+attribute [instance] Assumptions.instance'ClientBatchStore
+  Assumptions.instance'GRPCConnection
+  Assumptions.instance'ProposerMessage
+  Assumptions.instance'RecorderResponse
+  Assumptions.instance'DecideRequest
+  Assumptions.instance'DecideResponse
+  Assumptions.instance'Decisions
+  Assumptions.instance'Empty
+  Assumptions.instance'ProposerMessage_ClientBatch
+  Assumptions.instance'ProposerMessage_Proposal
+  Assumptions.instance'ProposerMessage_DecidedSlot
+  Assumptions.instance'ProposerMessage_ClientBatch_SingleMessage
+  Assumptions.instance'RecorderResponse_Proposal
+  Assumptions.instance'DecideResponse_ClientBatch
+  Assumptions.instance'DecideResponse_ClientBatch_SingleMessage
+  Assumptions.instance'Decisions_DecidedSlot
+  Assumptions.instance'ConsensusClient
+  Assumptions.instance'consensusClient
+  Assumptions.instance'ConsensusServer
+  Assumptions.instance'UnimplementedConsensusServer
+  Assumptions.instance'UnsafeConsensusServer
+  Assumptions.instance'Benchmark
+  Assumptions.instance'Proposer
+  Assumptions.instance'Slot
+  Assumptions.instance'Proxy
+  Assumptions.instance'EpochTime
+  Assumptions.instance'ProposeRequestIndex
+  Assumptions.instance'ClientBatchTime
+  Assumptions.instance'msgBuffer
+  Assumptions.instance'Value
+  Assumptions.instance'RecorderSlot
+  Assumptions.instance'Recorder
+  Assumptions.instance'Server
+  Assumptions.instance'FetchRequest
+  Assumptions.instance'FetchResposne
+  Assumptions.instance'ProposeRequest
+  Assumptions.instance'ProposeResponse
+  Assumptions.instance'Decision
+  Assumptions.instance'peer
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'NewConsensusClient
+  Assumptions.unfold'RegisterConsensusServer
+  Assumptions.unfold'_Consensus_ESP_Handler
+  Assumptions.unfold'_Consensus_FetchBatches_Handler
+  Assumptions.unfold'_Consensus_InformDecision_Handler
+  Assumptions.unfold'Init
+  Assumptions.unfold'NewProposer
+  Assumptions.unfold'NewProxy
+  Assumptions.unfold'NewRecorder
+  Assumptions.unfold'New
+  Assumptions.import'fmt
+  Assumptions.import'log
+  Assumptions.import'os
+  Assumptions.import'client
+  Assumptions.import'strconv
+  Assumptions.import'sync
+  Assumptions.import'context
+  Assumptions.import'protoreflect
+  Assumptions.import'protoimpl
+  Assumptions.import'reflect
+  Assumptions.import'grpc
+  Assumptions.import'codes
+  Assumptions.import'status
+  Assumptions.import'redis
+  Assumptions.import'rand
+  Assumptions.import'time
+  Assumptions.import'bufio
+  Assumptions.import'net
+  Assumptions.import'common
+  Assumptions.import'configuration
+  Assumptions.import'sort
+  Assumptions.import'strings
+  Assumptions.import'binary
+  Assumptions.import'io
+  Assumptions.import'proto
 
 end raxos.replica.src
 

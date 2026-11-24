@@ -51,11 +51,11 @@ attribute [instance] Tree.TypeAssumptions.underlying
   Tree.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Tree_instance : Tree.TypeAssumptions
-  import_containers_Assumption : _root_.Perennial.github_com.emirpasic.gods.containers.Assumptions
+  instance'Tree : Tree.TypeAssumptions
+  import'containers : _root_.Perennial.github_com.emirpasic.gods.containers.Assumptions
 
-attribute [instance] Assumptions.Tree_instance
-  Assumptions.import_containers_Assumption
+attribute [instance] Assumptions.instance'Tree
+  Assumptions.import'containers
 
 end github_com.emirpasic.gods.trees
 

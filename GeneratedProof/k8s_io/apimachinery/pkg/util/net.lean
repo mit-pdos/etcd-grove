@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.net.Assumptions]
 
-noncomputable instance RoundTripperWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'RoundTripperWrapper :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.net.RoundTripperWrapper :=
   sorry -- axiomatized type
 
-noncomputable instance RoundTripperWrapper_into_val_typed :
+noncomputable instance into_val_typed'RoundTripperWrapper :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.net.RoundTripperWrapper k8s_io.apimachinery.pkg.util.net.RoundTripperWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.net.Assumptions]
 
-noncomputable instance DialFunc_typed_pointsto :
+noncomputable instance typed_pointsto'DialFunc :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.net.DialFunc :=
   sorry -- axiomatized type
 
-noncomputable instance DialFunc_into_val_typed :
+noncomputable instance into_val_typed'DialFunc :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.net.DialFunc k8s_io.apimachinery.pkg.util.net.DialFunc.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.net.Assumptions]
 
-noncomputable instance TLSClientConfigHolder_typed_pointsto :
+noncomputable instance typed_pointsto'TLSClientConfigHolder :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.net.TLSClientConfigHolder :=
   sorry -- axiomatized type
 
-noncomputable instance TLSClientConfigHolder_into_val_typed :
+noncomputable instance into_val_typed'TLSClientConfigHolder :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.net.TLSClientConfigHolder k8s_io.apimachinery.pkg.util.net.TLSClientConfigHolder.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.net.Assumptions]
 
-noncomputable instance DialerFunc_typed_pointsto :
+noncomputable instance typed_pointsto'DialerFunc :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.net.DialerFunc :=
   sorry -- axiomatized type
 
-noncomputable instance DialerFunc_into_val_typed :
+noncomputable instance into_val_typed'DialerFunc :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.net.DialerFunc k8s_io.apimachinery.pkg.util.net.DialerFunc.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.net.Assumptions]
 
-noncomputable instance Dialer_typed_pointsto :
+noncomputable instance typed_pointsto'Dialer :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.net.Dialer :=
   sorry -- axiomatized type
 
-noncomputable instance Dialer_into_val_typed :
+noncomputable instance into_val_typed'Dialer :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.net.Dialer k8s_io.apimachinery.pkg.util.net.Dialer.underlying :=
   sorry -- axiomatized type
 
@@ -119,7 +119,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.net.Assumptions]
 
-noncomputable instance WarningHeader_typed_pointsto :
+noncomputable instance typed_pointsto'WarningHeader :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.net.WarningHeader where
   typedPointstoDef l v dq := iprop(
     "Code" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Code" l) v.Code' dq ∗
@@ -130,11 +130,11 @@ noncomputable instance WarningHeader_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance WarningHeader_into_val_typed :
+noncomputable instance into_val_typed'WarningHeader :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.net.WarningHeader k8s_io.apimachinery.pkg.util.net.WarningHeader.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance WarningHeader_access_load_Code (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (dq : DFrac) :
+noncomputable instance access_load'WarningHeader'Code (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Code" l) v.Code' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Code" l) v.Code' dq)
@@ -142,7 +142,7 @@ noncomputable instance WarningHeader_access_load_Code (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance WarningHeader_access_store_Code (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (y : w64) :
+noncomputable instance access_store'WarningHeader'Code (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Code" l) v.Code' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Code" l) y (DFrac.own 1))
@@ -150,7 +150,7 @@ noncomputable instance WarningHeader_access_store_Code (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance WarningHeader_access_load_Agent (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (dq : DFrac) :
+noncomputable instance access_load'WarningHeader'Agent (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Agent" l) v.Agent' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Agent" l) v.Agent' dq)
@@ -158,7 +158,7 @@ noncomputable instance WarningHeader_access_load_Agent (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance WarningHeader_access_store_Agent (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (y : GoString) :
+noncomputable instance access_store'WarningHeader'Agent (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Agent" l) v.Agent' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Agent" l) y (DFrac.own 1))
@@ -166,7 +166,7 @@ noncomputable instance WarningHeader_access_store_Agent (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance WarningHeader_access_load_Text (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (dq : DFrac) :
+noncomputable instance access_load'WarningHeader'Text (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Text" l) v.Text' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Text" l) v.Text' dq)
@@ -174,7 +174,7 @@ noncomputable instance WarningHeader_access_load_Text (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance WarningHeader_access_store_Text (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (y : GoString) :
+noncomputable instance access_store'WarningHeader'Text (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Text" l) v.Text' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Text" l) y (DFrac.own 1))
@@ -193,11 +193,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.net.Assumptions]
 
-noncomputable instance Route_typed_pointsto :
+noncomputable instance typed_pointsto'Route :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.net.Route :=
   sorry -- axiomatized type
 
-noncomputable instance Route_into_val_typed :
+noncomputable instance into_val_typed'Route :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.net.Route k8s_io.apimachinery.pkg.util.net.Route.underlying :=
   sorry -- axiomatized type
 
@@ -212,11 +212,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.net.Assumptions]
 
-noncomputable instance RouteFile_typed_pointsto :
+noncomputable instance typed_pointsto'RouteFile :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.net.RouteFile :=
   sorry -- axiomatized type
 
-noncomputable instance RouteFile_into_val_typed :
+noncomputable instance into_val_typed'RouteFile :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.net.RouteFile k8s_io.apimachinery.pkg.util.net.RouteFile.underlying :=
   sorry -- axiomatized type
 
@@ -231,7 +231,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.net.Assumptions]
 
-noncomputable instance noRoutesError_typed_pointsto :
+noncomputable instance typed_pointsto'noRoutesError :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.net.noRoutesError where
   typedPointstoDef l v dq := iprop(
     "message" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.noRoutesError go!"message" l) v.message' dq ∗
@@ -240,11 +240,11 @@ noncomputable instance noRoutesError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance noRoutesError_into_val_typed :
+noncomputable instance into_val_typed'noRoutesError :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.net.noRoutesError k8s_io.apimachinery.pkg.util.net.noRoutesError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance noRoutesError_access_load_message (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.noRoutesError) (dq : DFrac) :
+noncomputable instance access_load'noRoutesError'message (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.noRoutesError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.noRoutesError go!"message" l) v.message' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.noRoutesError go!"message" l) v.message' dq)
@@ -252,7 +252,7 @@ noncomputable instance noRoutesError_access_load_message (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance noRoutesError_access_store_message (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.noRoutesError) (y : GoString) :
+noncomputable instance access_store'noRoutesError'message (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.noRoutesError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.noRoutesError go!"message" l) v.message' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.noRoutesError go!"message" l) y (DFrac.own 1))
@@ -271,11 +271,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.net.Assumptions]
 
-noncomputable instance networkInterfacer_typed_pointsto :
+noncomputable instance typed_pointsto'networkInterfacer :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.net.networkInterfacer :=
   sorry -- axiomatized type
 
-noncomputable instance networkInterfacer_into_val_typed :
+noncomputable instance into_val_typed'networkInterfacer :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.net.networkInterfacer k8s_io.apimachinery.pkg.util.net.networkInterfacer.underlying :=
   sorry -- axiomatized type
 
@@ -290,7 +290,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.net.Assumptions]
 
-noncomputable instance networkInterface_typed_pointsto :
+noncomputable instance typed_pointsto'networkInterface :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.net.networkInterface where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -298,7 +298,7 @@ noncomputable instance networkInterface_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance networkInterface_into_val_typed :
+noncomputable instance into_val_typed'networkInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.net.networkInterface k8s_io.apimachinery.pkg.util.net.networkInterface.underlying := by
   solve_into_val_typed_struct
 
@@ -313,7 +313,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.net.Assumptions]
 
-noncomputable instance PortRange_typed_pointsto :
+noncomputable instance typed_pointsto'PortRange :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.net.PortRange where
   typedPointstoDef l v dq := iprop(
     "Base" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.PortRange go!"Base" l) v.Base' dq ∗
@@ -323,11 +323,11 @@ noncomputable instance PortRange_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance PortRange_into_val_typed :
+noncomputable instance into_val_typed'PortRange :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.net.PortRange k8s_io.apimachinery.pkg.util.net.PortRange.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance PortRange_access_load_Base (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.PortRange) (dq : DFrac) :
+noncomputable instance access_load'PortRange'Base (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.PortRange) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.PortRange go!"Base" l) v.Base' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.PortRange go!"Base" l) v.Base' dq)
@@ -335,7 +335,7 @@ noncomputable instance PortRange_access_load_Base (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance PortRange_access_store_Base (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.PortRange) (y : w64) :
+noncomputable instance access_store'PortRange'Base (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.PortRange) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.PortRange go!"Base" l) v.Base' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.PortRange go!"Base" l) y (DFrac.own 1))
@@ -343,7 +343,7 @@ noncomputable instance PortRange_access_store_Base (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance PortRange_access_load_Size (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.PortRange) (dq : DFrac) :
+noncomputable instance access_load'PortRange'Size (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.PortRange) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.PortRange go!"Size" l) v.Size' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.PortRange go!"Size" l) v.Size' dq)
@@ -351,7 +351,7 @@ noncomputable instance PortRange_access_load_Size (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance PortRange_access_store_Size (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.PortRange) (y : w64) :
+noncomputable instance access_store'PortRange'Size (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.PortRange) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.PortRange go!"Size" l) v.Size' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.PortRange go!"Size" l) y (DFrac.own 1))

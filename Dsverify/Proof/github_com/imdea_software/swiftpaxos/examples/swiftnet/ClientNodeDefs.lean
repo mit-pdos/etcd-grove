@@ -161,7 +161,7 @@ abbrev AddrsC.spec : Prop :=
 abbrev atConf.spec : Prop :=
   ∀ (sl : GoSlice) (dq : DFrac) (c : Nat), c < 6 →
   {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg ∗ sl ↦*{dq} addrs }}
-    (App (App (App (Val (@! examples.swiftnet.«at»)) (Val #sl)) (Val #(W64 1 + W64 (c : Int))))
+    (App (App (App (Val (@! examples.swiftnet.at'')) (Val #sl)) (Val #(W64 1 + W64 (c : Int))))
       (Val #(W64 2000)))
   {{ RET #(clientConfAddrs.getD c go!""); sl ↦*{dq} addrs }}
 
@@ -169,7 +169,7 @@ abbrev atConf.spec : Prop :=
 abbrev atStart.spec : Prop :=
   ∀ (sl : GoSlice) (dq : DFrac) (c : Nat), c < 6 →
   {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg ∗ sl ↦*{dq} addrs }}
-    (App (App (App (Val (@! examples.swiftnet.«at»)) (Val #sl)) (Val #(W64 1 + W64 (c : Int))))
+    (App (App (App (Val (@! examples.swiftnet.at'')) (Val #sl)) (Val #(W64 1 + W64 (c : Int))))
       (Val #(W64 3000)))
   {{ RET #(clientStartAddrs.getD c go!""); sl ↦*{dq} addrs }}
 
@@ -196,7 +196,7 @@ abbrev Register.spec : Prop :=
 abbrev atRpc.spec : Prop :=
   ∀ (sl : GoSlice) (dq : DFrac) (node : w64), 2 ≤ uint.nat node → uint.nat node ≤ 6 →
   {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg ∗ sl ↦*{dq} addrs }}
-    (App (App (App (Val (@! examples.swiftnet.«at»)) (Val #sl)) (Val #(W64 6 + node)))
+    (App (App (App (Val (@! examples.swiftnet.at'')) (Val #sl)) (Val #(W64 6 + node)))
       (Val #(W64 1000)))
   {{ RET #(replicaRpcAddrs.getD (uint.nat node - 2) go!""); sl ↦*{dq} addrs }}
 

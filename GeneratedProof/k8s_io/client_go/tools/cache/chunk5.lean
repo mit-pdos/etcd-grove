@@ -70,7 +70,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance heapData_typed_pointsto :
+noncomputable instance typed_pointsto'heapData :
     TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.heapData where
   typedPointstoDef l v dq := iprop(
     "items" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"items" l) v.items' dq ∗
@@ -82,11 +82,11 @@ noncomputable instance heapData_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance heapData_into_val_typed :
+noncomputable instance into_val_typed'heapData :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.heapData k8s_io.client_go.tools.cache.heapData.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance heapData_access_load_items (l : Loc) (v : k8s_io.client_go.tools.cache.heapData) (dq : DFrac) :
+noncomputable instance access_load'heapData'items (l : Loc) (v : k8s_io.client_go.tools.cache.heapData) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"items" l) v.items' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"items" l) v.items' dq)
@@ -94,7 +94,7 @@ noncomputable instance heapData_access_load_items (l : Loc) (v : k8s_io.client_g
  by
   solve_pointsto_access_struct
 
-noncomputable instance heapData_access_store_items (l : Loc) (v : k8s_io.client_go.tools.cache.heapData) (y : GoMap) :
+noncomputable instance access_store'heapData'items (l : Loc) (v : k8s_io.client_go.tools.cache.heapData) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"items" l) v.items' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"items" l) y (DFrac.own 1))
@@ -102,7 +102,7 @@ noncomputable instance heapData_access_store_items (l : Loc) (v : k8s_io.client_
  by
   solve_pointsto_access_struct
 
-noncomputable instance heapData_access_load_queue (l : Loc) (v : k8s_io.client_go.tools.cache.heapData) (dq : DFrac) :
+noncomputable instance access_load'heapData'queue (l : Loc) (v : k8s_io.client_go.tools.cache.heapData) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"queue" l) v.queue' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"queue" l) v.queue' dq)
@@ -110,7 +110,7 @@ noncomputable instance heapData_access_load_queue (l : Loc) (v : k8s_io.client_g
  by
   solve_pointsto_access_struct
 
-noncomputable instance heapData_access_store_queue (l : Loc) (v : k8s_io.client_go.tools.cache.heapData) (y : GoSlice) :
+noncomputable instance access_store'heapData'queue (l : Loc) (v : k8s_io.client_go.tools.cache.heapData) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"queue" l) v.queue' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"queue" l) y (DFrac.own 1))
@@ -118,7 +118,7 @@ noncomputable instance heapData_access_store_queue (l : Loc) (v : k8s_io.client_
  by
   solve_pointsto_access_struct
 
-noncomputable instance heapData_access_load_keyFunc (l : Loc) (v : k8s_io.client_go.tools.cache.heapData) (dq : DFrac) :
+noncomputable instance access_load'heapData'keyFunc (l : Loc) (v : k8s_io.client_go.tools.cache.heapData) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"keyFunc" l) v.keyFunc' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"keyFunc" l) v.keyFunc' dq)
@@ -126,7 +126,7 @@ noncomputable instance heapData_access_load_keyFunc (l : Loc) (v : k8s_io.client
  by
   solve_pointsto_access_struct
 
-noncomputable instance heapData_access_store_keyFunc (l : Loc) (v : k8s_io.client_go.tools.cache.heapData) (y : k8s_io.client_go.tools.cache.KeyFunc) :
+noncomputable instance access_store'heapData'keyFunc (l : Loc) (v : k8s_io.client_go.tools.cache.heapData) (y : k8s_io.client_go.tools.cache.KeyFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"keyFunc" l) v.keyFunc' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"keyFunc" l) y (DFrac.own 1))
@@ -134,7 +134,7 @@ noncomputable instance heapData_access_store_keyFunc (l : Loc) (v : k8s_io.clien
  by
   solve_pointsto_access_struct
 
-noncomputable instance heapData_access_load_lessFunc (l : Loc) (v : k8s_io.client_go.tools.cache.heapData) (dq : DFrac) :
+noncomputable instance access_load'heapData'lessFunc (l : Loc) (v : k8s_io.client_go.tools.cache.heapData) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"lessFunc" l) v.lessFunc' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"lessFunc" l) v.lessFunc' dq)
@@ -142,7 +142,7 @@ noncomputable instance heapData_access_load_lessFunc (l : Loc) (v : k8s_io.clien
  by
   solve_pointsto_access_struct
 
-noncomputable instance heapData_access_store_lessFunc (l : Loc) (v : k8s_io.client_go.tools.cache.heapData) (y : k8s_io.client_go.tools.cache.LessFunc) :
+noncomputable instance access_store'heapData'lessFunc (l : Loc) (v : k8s_io.client_go.tools.cache.heapData) (y : k8s_io.client_go.tools.cache.LessFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"lessFunc" l) v.lessFunc' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.heapData go!"lessFunc" l) y (DFrac.own 1))
@@ -161,7 +161,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance fifoMetrics_typed_pointsto :
+noncomputable instance typed_pointsto'fifoMetrics :
     TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.fifoMetrics where
   typedPointstoDef l v dq := iprop(
     "numberOfQueuedItem" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.fifoMetrics go!"numberOfQueuedItem" l) v.numberOfQueuedItem' dq ∗
@@ -171,11 +171,11 @@ noncomputable instance fifoMetrics_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance fifoMetrics_into_val_typed :
+noncomputable instance into_val_typed'fifoMetrics :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.fifoMetrics k8s_io.client_go.tools.cache.fifoMetrics.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance fifoMetrics_access_load_numberOfQueuedItem (l : Loc) (v : k8s_io.client_go.tools.cache.fifoMetrics) (dq : DFrac) :
+noncomputable instance access_load'fifoMetrics'numberOfQueuedItem (l : Loc) (v : k8s_io.client_go.tools.cache.fifoMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.fifoMetrics go!"numberOfQueuedItem" l) v.numberOfQueuedItem' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.fifoMetrics go!"numberOfQueuedItem" l) v.numberOfQueuedItem' dq)
@@ -183,7 +183,7 @@ noncomputable instance fifoMetrics_access_load_numberOfQueuedItem (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance fifoMetrics_access_store_numberOfQueuedItem (l : Loc) (v : k8s_io.client_go.tools.cache.fifoMetrics) (y : k8s_io.client_go.tools.cache.GaugeMetric) :
+noncomputable instance access_store'fifoMetrics'numberOfQueuedItem (l : Loc) (v : k8s_io.client_go.tools.cache.fifoMetrics) (y : k8s_io.client_go.tools.cache.GaugeMetric) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.fifoMetrics go!"numberOfQueuedItem" l) v.numberOfQueuedItem' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.fifoMetrics go!"numberOfQueuedItem" l) y (DFrac.own 1))
@@ -191,7 +191,7 @@ noncomputable instance fifoMetrics_access_store_numberOfQueuedItem (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance fifoMetrics_access_load_processingLatency (l : Loc) (v : k8s_io.client_go.tools.cache.fifoMetrics) (dq : DFrac) :
+noncomputable instance access_load'fifoMetrics'processingLatency (l : Loc) (v : k8s_io.client_go.tools.cache.fifoMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.fifoMetrics go!"processingLatency" l) v.processingLatency' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.fifoMetrics go!"processingLatency" l) v.processingLatency' dq)
@@ -199,7 +199,7 @@ noncomputable instance fifoMetrics_access_load_processingLatency (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance fifoMetrics_access_store_processingLatency (l : Loc) (v : k8s_io.client_go.tools.cache.fifoMetrics) (y : k8s_io.client_go.tools.cache.HistogramMetric) :
+noncomputable instance access_store'fifoMetrics'processingLatency (l : Loc) (v : k8s_io.client_go.tools.cache.fifoMetrics) (y : k8s_io.client_go.tools.cache.HistogramMetric) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.fifoMetrics go!"processingLatency" l) v.processingLatency' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.fifoMetrics go!"processingLatency" l) y (DFrac.own 1))
@@ -218,7 +218,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance storeMetrics_typed_pointsto :
+noncomputable instance typed_pointsto'storeMetrics :
     TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.storeMetrics where
   typedPointstoDef l v dq := iprop(
     "storeResourceVersion" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeMetrics go!"storeResourceVersion" l) v.storeResourceVersion' dq ∗
@@ -227,11 +227,11 @@ noncomputable instance storeMetrics_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance storeMetrics_into_val_typed :
+noncomputable instance into_val_typed'storeMetrics :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.storeMetrics k8s_io.client_go.tools.cache.storeMetrics.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance storeMetrics_access_load_storeResourceVersion (l : Loc) (v : k8s_io.client_go.tools.cache.storeMetrics) (dq : DFrac) :
+noncomputable instance access_load'storeMetrics'storeResourceVersion (l : Loc) (v : k8s_io.client_go.tools.cache.storeMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeMetrics go!"storeResourceVersion" l) v.storeResourceVersion' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeMetrics go!"storeResourceVersion" l) v.storeResourceVersion' dq)
@@ -239,7 +239,7 @@ noncomputable instance storeMetrics_access_load_storeResourceVersion (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance storeMetrics_access_store_storeResourceVersion (l : Loc) (v : k8s_io.client_go.tools.cache.storeMetrics) (y : k8s_io.client_go.tools.cache.GaugeMetric) :
+noncomputable instance access_store'storeMetrics'storeResourceVersion (l : Loc) (v : k8s_io.client_go.tools.cache.storeMetrics) (y : k8s_io.client_go.tools.cache.GaugeMetric) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeMetrics go!"storeResourceVersion" l) v.storeResourceVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeMetrics go!"storeResourceVersion" l) y (DFrac.own 1))
@@ -258,7 +258,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance genericLister_typed_pointsto :
+noncomputable instance typed_pointsto'genericLister :
     TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.genericLister where
   typedPointstoDef l v dq := iprop(
     "indexer" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericLister go!"indexer" l) v.indexer' dq ∗
@@ -268,11 +268,11 @@ noncomputable instance genericLister_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance genericLister_into_val_typed :
+noncomputable instance into_val_typed'genericLister :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.genericLister k8s_io.client_go.tools.cache.genericLister.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance genericLister_access_load_indexer (l : Loc) (v : k8s_io.client_go.tools.cache.genericLister) (dq : DFrac) :
+noncomputable instance access_load'genericLister'indexer (l : Loc) (v : k8s_io.client_go.tools.cache.genericLister) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericLister go!"indexer" l) v.indexer' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericLister go!"indexer" l) v.indexer' dq)
@@ -280,7 +280,7 @@ noncomputable instance genericLister_access_load_indexer (l : Loc) (v : k8s_io.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance genericLister_access_store_indexer (l : Loc) (v : k8s_io.client_go.tools.cache.genericLister) (y : k8s_io.client_go.tools.cache.Indexer) :
+noncomputable instance access_store'genericLister'indexer (l : Loc) (v : k8s_io.client_go.tools.cache.genericLister) (y : k8s_io.client_go.tools.cache.Indexer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericLister go!"indexer" l) v.indexer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericLister go!"indexer" l) y (DFrac.own 1))
@@ -288,7 +288,7 @@ noncomputable instance genericLister_access_store_indexer (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance genericLister_access_load_resource (l : Loc) (v : k8s_io.client_go.tools.cache.genericLister) (dq : DFrac) :
+noncomputable instance access_load'genericLister'resource (l : Loc) (v : k8s_io.client_go.tools.cache.genericLister) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericLister go!"resource" l) v.resource' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericLister go!"resource" l) v.resource' dq)
@@ -296,7 +296,7 @@ noncomputable instance genericLister_access_load_resource (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance genericLister_access_store_resource (l : Loc) (v : k8s_io.client_go.tools.cache.genericLister) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
+noncomputable instance access_store'genericLister'resource (l : Loc) (v : k8s_io.client_go.tools.cache.genericLister) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericLister go!"resource" l) v.resource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericLister go!"resource" l) y (DFrac.own 1))
@@ -315,7 +315,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance genericNamespaceLister_typed_pointsto :
+noncomputable instance typed_pointsto'genericNamespaceLister :
     TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.genericNamespaceLister where
   typedPointstoDef l v dq := iprop(
     "indexer" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericNamespaceLister go!"indexer" l) v.indexer' dq ∗
@@ -326,11 +326,11 @@ noncomputable instance genericNamespaceLister_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance genericNamespaceLister_into_val_typed :
+noncomputable instance into_val_typed'genericNamespaceLister :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.genericNamespaceLister k8s_io.client_go.tools.cache.genericNamespaceLister.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance genericNamespaceLister_access_load_indexer (l : Loc) (v : k8s_io.client_go.tools.cache.genericNamespaceLister) (dq : DFrac) :
+noncomputable instance access_load'genericNamespaceLister'indexer (l : Loc) (v : k8s_io.client_go.tools.cache.genericNamespaceLister) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericNamespaceLister go!"indexer" l) v.indexer' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericNamespaceLister go!"indexer" l) v.indexer' dq)
@@ -338,7 +338,7 @@ noncomputable instance genericNamespaceLister_access_load_indexer (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance genericNamespaceLister_access_store_indexer (l : Loc) (v : k8s_io.client_go.tools.cache.genericNamespaceLister) (y : k8s_io.client_go.tools.cache.Indexer) :
+noncomputable instance access_store'genericNamespaceLister'indexer (l : Loc) (v : k8s_io.client_go.tools.cache.genericNamespaceLister) (y : k8s_io.client_go.tools.cache.Indexer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericNamespaceLister go!"indexer" l) v.indexer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericNamespaceLister go!"indexer" l) y (DFrac.own 1))
@@ -346,7 +346,7 @@ noncomputable instance genericNamespaceLister_access_store_indexer (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance genericNamespaceLister_access_load_namespace (l : Loc) (v : k8s_io.client_go.tools.cache.genericNamespaceLister) (dq : DFrac) :
+noncomputable instance access_load'genericNamespaceLister'namespace (l : Loc) (v : k8s_io.client_go.tools.cache.genericNamespaceLister) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericNamespaceLister go!"namespace" l) v.namespace' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericNamespaceLister go!"namespace" l) v.namespace' dq)
@@ -354,7 +354,7 @@ noncomputable instance genericNamespaceLister_access_load_namespace (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance genericNamespaceLister_access_store_namespace (l : Loc) (v : k8s_io.client_go.tools.cache.genericNamespaceLister) (y : GoString) :
+noncomputable instance access_store'genericNamespaceLister'namespace (l : Loc) (v : k8s_io.client_go.tools.cache.genericNamespaceLister) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericNamespaceLister go!"namespace" l) v.namespace' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericNamespaceLister go!"namespace" l) y (DFrac.own 1))
@@ -362,7 +362,7 @@ noncomputable instance genericNamespaceLister_access_store_namespace (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance genericNamespaceLister_access_load_resource (l : Loc) (v : k8s_io.client_go.tools.cache.genericNamespaceLister) (dq : DFrac) :
+noncomputable instance access_load'genericNamespaceLister'resource (l : Loc) (v : k8s_io.client_go.tools.cache.genericNamespaceLister) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericNamespaceLister go!"resource" l) v.resource' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericNamespaceLister go!"resource" l) v.resource' dq)
@@ -370,7 +370,7 @@ noncomputable instance genericNamespaceLister_access_load_resource (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance genericNamespaceLister_access_store_resource (l : Loc) (v : k8s_io.client_go.tools.cache.genericNamespaceLister) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
+noncomputable instance access_store'genericNamespaceLister'resource (l : Loc) (v : k8s_io.client_go.tools.cache.genericNamespaceLister) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericNamespaceLister go!"resource" l) v.resource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.genericNamespaceLister go!"resource" l) y (DFrac.own 1))
@@ -389,7 +389,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance listerWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'listerWrapper :
     TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.listerWrapper where
   typedPointstoDef l v dq := iprop(
     "parent" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.listerWrapper go!"parent" l) v.parent' dq ∗
@@ -398,11 +398,11 @@ noncomputable instance listerWrapper_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance listerWrapper_into_val_typed :
+noncomputable instance into_val_typed'listerWrapper :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.listerWrapper k8s_io.client_go.tools.cache.listerWrapper.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance listerWrapper_access_load_parent (l : Loc) (v : k8s_io.client_go.tools.cache.listerWrapper) (dq : DFrac) :
+noncomputable instance access_load'listerWrapper'parent (l : Loc) (v : k8s_io.client_go.tools.cache.listerWrapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.listerWrapper go!"parent" l) v.parent' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.listerWrapper go!"parent" l) v.parent' dq)
@@ -410,7 +410,7 @@ noncomputable instance listerWrapper_access_load_parent (l : Loc) (v : k8s_io.cl
  by
   solve_pointsto_access_struct
 
-noncomputable instance listerWrapper_access_store_parent (l : Loc) (v : k8s_io.client_go.tools.cache.listerWrapper) (y : k8s_io.client_go.tools.cache.Lister) :
+noncomputable instance access_store'listerWrapper'parent (l : Loc) (v : k8s_io.client_go.tools.cache.listerWrapper) (y : k8s_io.client_go.tools.cache.Lister) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.listerWrapper go!"parent" l) v.parent' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.listerWrapper go!"parent" l) y (DFrac.own 1))
@@ -429,7 +429,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance watcherWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'watcherWrapper :
     TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.watcherWrapper where
   typedPointstoDef l v dq := iprop(
     "parent" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.watcherWrapper go!"parent" l) v.parent' dq ∗
@@ -438,11 +438,11 @@ noncomputable instance watcherWrapper_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance watcherWrapper_into_val_typed :
+noncomputable instance into_val_typed'watcherWrapper :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.watcherWrapper k8s_io.client_go.tools.cache.watcherWrapper.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance watcherWrapper_access_load_parent (l : Loc) (v : k8s_io.client_go.tools.cache.watcherWrapper) (dq : DFrac) :
+noncomputable instance access_load'watcherWrapper'parent (l : Loc) (v : k8s_io.client_go.tools.cache.watcherWrapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.watcherWrapper go!"parent" l) v.parent' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.watcherWrapper go!"parent" l) v.parent' dq)
@@ -450,7 +450,7 @@ noncomputable instance watcherWrapper_access_load_parent (l : Loc) (v : k8s_io.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance watcherWrapper_access_store_parent (l : Loc) (v : k8s_io.client_go.tools.cache.watcherWrapper) (y : k8s_io.client_go.tools.cache.Watcher) :
+noncomputable instance access_store'watcherWrapper'parent (l : Loc) (v : k8s_io.client_go.tools.cache.watcherWrapper) (y : k8s_io.client_go.tools.cache.Watcher) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.watcherWrapper go!"parent" l) v.parent' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.watcherWrapper go!"parent" l) y (DFrac.own 1))
@@ -469,7 +469,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance listerWatcherWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'listerWatcherWrapper :
     TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.listerWatcherWrapper where
   typedPointstoDef l v dq := iprop(
     "ListerWithContext" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.listerWatcherWrapper go!"ListerWithContext" l) v.ListerWithContext' dq ∗
@@ -479,11 +479,11 @@ noncomputable instance listerWatcherWrapper_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance listerWatcherWrapper_into_val_typed :
+noncomputable instance into_val_typed'listerWatcherWrapper :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.listerWatcherWrapper k8s_io.client_go.tools.cache.listerWatcherWrapper.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance listerWatcherWrapper_access_load_ListerWithContext (l : Loc) (v : k8s_io.client_go.tools.cache.listerWatcherWrapper) (dq : DFrac) :
+noncomputable instance access_load'listerWatcherWrapper'ListerWithContext (l : Loc) (v : k8s_io.client_go.tools.cache.listerWatcherWrapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.listerWatcherWrapper go!"ListerWithContext" l) v.ListerWithContext' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.listerWatcherWrapper go!"ListerWithContext" l) v.ListerWithContext' dq)
@@ -491,7 +491,7 @@ noncomputable instance listerWatcherWrapper_access_load_ListerWithContext (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance listerWatcherWrapper_access_store_ListerWithContext (l : Loc) (v : k8s_io.client_go.tools.cache.listerWatcherWrapper) (y : k8s_io.client_go.tools.cache.ListerWithContext) :
+noncomputable instance access_store'listerWatcherWrapper'ListerWithContext (l : Loc) (v : k8s_io.client_go.tools.cache.listerWatcherWrapper) (y : k8s_io.client_go.tools.cache.ListerWithContext) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.listerWatcherWrapper go!"ListerWithContext" l) v.ListerWithContext' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.listerWatcherWrapper go!"ListerWithContext" l) y (DFrac.own 1))
@@ -499,7 +499,7 @@ noncomputable instance listerWatcherWrapper_access_store_ListerWithContext (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance listerWatcherWrapper_access_load_WatcherWithContext (l : Loc) (v : k8s_io.client_go.tools.cache.listerWatcherWrapper) (dq : DFrac) :
+noncomputable instance access_load'listerWatcherWrapper'WatcherWithContext (l : Loc) (v : k8s_io.client_go.tools.cache.listerWatcherWrapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.listerWatcherWrapper go!"WatcherWithContext" l) v.WatcherWithContext' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.listerWatcherWrapper go!"WatcherWithContext" l) v.WatcherWithContext' dq)
@@ -507,7 +507,7 @@ noncomputable instance listerWatcherWrapper_access_load_WatcherWithContext (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance listerWatcherWrapper_access_store_WatcherWithContext (l : Loc) (v : k8s_io.client_go.tools.cache.listerWatcherWrapper) (y : k8s_io.client_go.tools.cache.WatcherWithContext) :
+noncomputable instance access_store'listerWatcherWrapper'WatcherWithContext (l : Loc) (v : k8s_io.client_go.tools.cache.listerWatcherWrapper) (y : k8s_io.client_go.tools.cache.WatcherWithContext) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.listerWatcherWrapper go!"WatcherWithContext" l) v.WatcherWithContext' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.listerWatcherWrapper go!"WatcherWithContext" l) y (DFrac.own 1))
@@ -526,7 +526,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance ListWatch_typed_pointsto :
+noncomputable instance typed_pointsto'ListWatch :
     TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.ListWatch where
   typedPointstoDef l v dq := iprop(
     "ListFunc" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"ListFunc" l) v.ListFunc' dq ∗
@@ -539,11 +539,11 @@ noncomputable instance ListWatch_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ListWatch_into_val_typed :
+noncomputable instance into_val_typed'ListWatch :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.ListWatch k8s_io.client_go.tools.cache.ListWatch.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ListWatch_access_load_ListFunc (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (dq : DFrac) :
+noncomputable instance access_load'ListWatch'ListFunc (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"ListFunc" l) v.ListFunc' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"ListFunc" l) v.ListFunc' dq)
@@ -551,7 +551,7 @@ noncomputable instance ListWatch_access_load_ListFunc (l : Loc) (v : k8s_io.clie
  by
   solve_pointsto_access_struct
 
-noncomputable instance ListWatch_access_store_ListFunc (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (y : k8s_io.client_go.tools.cache.ListFunc) :
+noncomputable instance access_store'ListWatch'ListFunc (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (y : k8s_io.client_go.tools.cache.ListFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"ListFunc" l) v.ListFunc' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"ListFunc" l) y (DFrac.own 1))
@@ -559,7 +559,7 @@ noncomputable instance ListWatch_access_store_ListFunc (l : Loc) (v : k8s_io.cli
  by
   solve_pointsto_access_struct
 
-noncomputable instance ListWatch_access_load_WatchFunc (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (dq : DFrac) :
+noncomputable instance access_load'ListWatch'WatchFunc (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"WatchFunc" l) v.WatchFunc' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"WatchFunc" l) v.WatchFunc' dq)
@@ -567,7 +567,7 @@ noncomputable instance ListWatch_access_load_WatchFunc (l : Loc) (v : k8s_io.cli
  by
   solve_pointsto_access_struct
 
-noncomputable instance ListWatch_access_store_WatchFunc (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (y : k8s_io.client_go.tools.cache.WatchFunc) :
+noncomputable instance access_store'ListWatch'WatchFunc (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (y : k8s_io.client_go.tools.cache.WatchFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"WatchFunc" l) v.WatchFunc' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"WatchFunc" l) y (DFrac.own 1))
@@ -575,7 +575,7 @@ noncomputable instance ListWatch_access_store_WatchFunc (l : Loc) (v : k8s_io.cl
  by
   solve_pointsto_access_struct
 
-noncomputable instance ListWatch_access_load_ListWithContextFunc (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (dq : DFrac) :
+noncomputable instance access_load'ListWatch'ListWithContextFunc (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"ListWithContextFunc" l) v.ListWithContextFunc' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"ListWithContextFunc" l) v.ListWithContextFunc' dq)
@@ -583,7 +583,7 @@ noncomputable instance ListWatch_access_load_ListWithContextFunc (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ListWatch_access_store_ListWithContextFunc (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (y : k8s_io.client_go.tools.cache.ListWithContextFunc) :
+noncomputable instance access_store'ListWatch'ListWithContextFunc (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (y : k8s_io.client_go.tools.cache.ListWithContextFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"ListWithContextFunc" l) v.ListWithContextFunc' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"ListWithContextFunc" l) y (DFrac.own 1))
@@ -591,7 +591,7 @@ noncomputable instance ListWatch_access_store_ListWithContextFunc (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ListWatch_access_load_WatchFuncWithContext (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (dq : DFrac) :
+noncomputable instance access_load'ListWatch'WatchFuncWithContext (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"WatchFuncWithContext" l) v.WatchFuncWithContext' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"WatchFuncWithContext" l) v.WatchFuncWithContext' dq)
@@ -599,7 +599,7 @@ noncomputable instance ListWatch_access_load_WatchFuncWithContext (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ListWatch_access_store_WatchFuncWithContext (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (y : k8s_io.client_go.tools.cache.WatchFuncWithContext) :
+noncomputable instance access_store'ListWatch'WatchFuncWithContext (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (y : k8s_io.client_go.tools.cache.WatchFuncWithContext) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"WatchFuncWithContext" l) v.WatchFuncWithContext' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"WatchFuncWithContext" l) y (DFrac.own 1))
@@ -607,7 +607,7 @@ noncomputable instance ListWatch_access_store_WatchFuncWithContext (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ListWatch_access_load_DisableChunking (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (dq : DFrac) :
+noncomputable instance access_load'ListWatch'DisableChunking (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"DisableChunking" l) v.DisableChunking' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"DisableChunking" l) v.DisableChunking' dq)
@@ -615,7 +615,7 @@ noncomputable instance ListWatch_access_load_DisableChunking (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ListWatch_access_store_DisableChunking (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (y : Bool) :
+noncomputable instance access_store'ListWatch'DisableChunking (l : Loc) (v : k8s_io.client_go.tools.cache.ListWatch) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"DisableChunking" l) v.DisableChunking' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ListWatch go!"DisableChunking" l) y (DFrac.own 1))
@@ -634,7 +634,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance shardedListWatch_typed_pointsto :
+noncomputable instance typed_pointsto'shardedListWatch :
     TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.shardedListWatch where
   typedPointstoDef l v dq := iprop(
     "rawLW" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"rawLW" l) v.rawLW' dq ∗
@@ -646,11 +646,11 @@ noncomputable instance shardedListWatch_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance shardedListWatch_into_val_typed :
+noncomputable instance into_val_typed'shardedListWatch :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.shardedListWatch k8s_io.client_go.tools.cache.shardedListWatch.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance shardedListWatch_access_load_rawLW (l : Loc) (v : k8s_io.client_go.tools.cache.shardedListWatch) (dq : DFrac) :
+noncomputable instance access_load'shardedListWatch'rawLW (l : Loc) (v : k8s_io.client_go.tools.cache.shardedListWatch) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"rawLW" l) v.rawLW' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"rawLW" l) v.rawLW' dq)
@@ -658,7 +658,7 @@ noncomputable instance shardedListWatch_access_load_rawLW (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance shardedListWatch_access_store_rawLW (l : Loc) (v : k8s_io.client_go.tools.cache.shardedListWatch) (y : k8s_io.client_go.tools.cache.ListerWatcher) :
+noncomputable instance access_store'shardedListWatch'rawLW (l : Loc) (v : k8s_io.client_go.tools.cache.shardedListWatch) (y : k8s_io.client_go.tools.cache.ListerWatcher) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"rawLW" l) v.rawLW' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"rawLW" l) y (DFrac.own 1))
@@ -666,7 +666,7 @@ noncomputable instance shardedListWatch_access_store_rawLW (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance shardedListWatch_access_load_lw (l : Loc) (v : k8s_io.client_go.tools.cache.shardedListWatch) (dq : DFrac) :
+noncomputable instance access_load'shardedListWatch'lw (l : Loc) (v : k8s_io.client_go.tools.cache.shardedListWatch) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"lw" l) v.lw' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"lw" l) v.lw' dq)
@@ -674,7 +674,7 @@ noncomputable instance shardedListWatch_access_load_lw (l : Loc) (v : k8s_io.cli
  by
   solve_pointsto_access_struct
 
-noncomputable instance shardedListWatch_access_store_lw (l : Loc) (v : k8s_io.client_go.tools.cache.shardedListWatch) (y : k8s_io.client_go.tools.cache.ListerWatcherWithContext) :
+noncomputable instance access_store'shardedListWatch'lw (l : Loc) (v : k8s_io.client_go.tools.cache.shardedListWatch) (y : k8s_io.client_go.tools.cache.ListerWatcherWithContext) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"lw" l) v.lw' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"lw" l) y (DFrac.own 1))
@@ -682,7 +682,7 @@ noncomputable instance shardedListWatch_access_store_lw (l : Loc) (v : k8s_io.cl
  by
   solve_pointsto_access_struct
 
-noncomputable instance shardedListWatch_access_load_selector (l : Loc) (v : k8s_io.client_go.tools.cache.shardedListWatch) (dq : DFrac) :
+noncomputable instance access_load'shardedListWatch'selector (l : Loc) (v : k8s_io.client_go.tools.cache.shardedListWatch) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"selector" l) v.selector' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"selector" l) v.selector' dq)
@@ -690,7 +690,7 @@ noncomputable instance shardedListWatch_access_load_selector (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance shardedListWatch_access_store_selector (l : Loc) (v : k8s_io.client_go.tools.cache.shardedListWatch) (y : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector) :
+noncomputable instance access_store'shardedListWatch'selector (l : Loc) (v : k8s_io.client_go.tools.cache.shardedListWatch) (y : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"selector" l) v.selector' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"selector" l) y (DFrac.own 1))
@@ -698,7 +698,7 @@ noncomputable instance shardedListWatch_access_store_selector (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance shardedListWatch_access_load_fallbackOnce (l : Loc) (v : k8s_io.client_go.tools.cache.shardedListWatch) (dq : DFrac) :
+noncomputable instance access_load'shardedListWatch'fallbackOnce (l : Loc) (v : k8s_io.client_go.tools.cache.shardedListWatch) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"fallbackOnce" l) v.fallbackOnce' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"fallbackOnce" l) v.fallbackOnce' dq)
@@ -706,7 +706,7 @@ noncomputable instance shardedListWatch_access_load_fallbackOnce (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance shardedListWatch_access_store_fallbackOnce (l : Loc) (v : k8s_io.client_go.tools.cache.shardedListWatch) (y : _root_.Perennial.sync.Once) :
+noncomputable instance access_store'shardedListWatch'fallbackOnce (l : Loc) (v : k8s_io.client_go.tools.cache.shardedListWatch) (y : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"fallbackOnce" l) v.fallbackOnce' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.shardedListWatch go!"fallbackOnce" l) y (DFrac.own 1))
@@ -725,7 +725,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance MutationCacheOptions_typed_pointsto :
+noncomputable instance typed_pointsto'MutationCacheOptions :
     TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.MutationCacheOptions where
   typedPointstoDef l v dq := iprop(
     "Indexer" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"Indexer" l) v.Indexer' dq ∗
@@ -737,11 +737,11 @@ noncomputable instance MutationCacheOptions_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance MutationCacheOptions_into_val_typed :
+noncomputable instance into_val_typed'MutationCacheOptions :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.MutationCacheOptions k8s_io.client_go.tools.cache.MutationCacheOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance MutationCacheOptions_access_load_Indexer (l : Loc) (v : k8s_io.client_go.tools.cache.MutationCacheOptions) (dq : DFrac) :
+noncomputable instance access_load'MutationCacheOptions'Indexer (l : Loc) (v : k8s_io.client_go.tools.cache.MutationCacheOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"Indexer" l) v.Indexer' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"Indexer" l) v.Indexer' dq)
@@ -749,7 +749,7 @@ noncomputable instance MutationCacheOptions_access_load_Indexer (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance MutationCacheOptions_access_store_Indexer (l : Loc) (v : k8s_io.client_go.tools.cache.MutationCacheOptions) (y : k8s_io.client_go.tools.cache.Indexer) :
+noncomputable instance access_store'MutationCacheOptions'Indexer (l : Loc) (v : k8s_io.client_go.tools.cache.MutationCacheOptions) (y : k8s_io.client_go.tools.cache.Indexer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"Indexer" l) v.Indexer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"Indexer" l) y (DFrac.own 1))
@@ -757,7 +757,7 @@ noncomputable instance MutationCacheOptions_access_store_Indexer (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance MutationCacheOptions_access_load_TTL (l : Loc) (v : k8s_io.client_go.tools.cache.MutationCacheOptions) (dq : DFrac) :
+noncomputable instance access_load'MutationCacheOptions'TTL (l : Loc) (v : k8s_io.client_go.tools.cache.MutationCacheOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"TTL" l) v.TTL' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"TTL" l) v.TTL' dq)
@@ -765,7 +765,7 @@ noncomputable instance MutationCacheOptions_access_load_TTL (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance MutationCacheOptions_access_store_TTL (l : Loc) (v : k8s_io.client_go.tools.cache.MutationCacheOptions) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'MutationCacheOptions'TTL (l : Loc) (v : k8s_io.client_go.tools.cache.MutationCacheOptions) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"TTL" l) v.TTL' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"TTL" l) y (DFrac.own 1))
@@ -773,7 +773,7 @@ noncomputable instance MutationCacheOptions_access_store_TTL (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance MutationCacheOptions_access_load_IncludeAdds (l : Loc) (v : k8s_io.client_go.tools.cache.MutationCacheOptions) (dq : DFrac) :
+noncomputable instance access_load'MutationCacheOptions'IncludeAdds (l : Loc) (v : k8s_io.client_go.tools.cache.MutationCacheOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"IncludeAdds" l) v.IncludeAdds' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"IncludeAdds" l) v.IncludeAdds' dq)
@@ -781,7 +781,7 @@ noncomputable instance MutationCacheOptions_access_load_IncludeAdds (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance MutationCacheOptions_access_store_IncludeAdds (l : Loc) (v : k8s_io.client_go.tools.cache.MutationCacheOptions) (y : Bool) :
+noncomputable instance access_store'MutationCacheOptions'IncludeAdds (l : Loc) (v : k8s_io.client_go.tools.cache.MutationCacheOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"IncludeAdds" l) v.IncludeAdds' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"IncludeAdds" l) y (DFrac.own 1))
@@ -789,7 +789,7 @@ noncomputable instance MutationCacheOptions_access_store_IncludeAdds (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance MutationCacheOptions_access_load_MaxCacheSize (l : Loc) (v : k8s_io.client_go.tools.cache.MutationCacheOptions) (dq : DFrac) :
+noncomputable instance access_load'MutationCacheOptions'MaxCacheSize (l : Loc) (v : k8s_io.client_go.tools.cache.MutationCacheOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"MaxCacheSize" l) v.MaxCacheSize' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"MaxCacheSize" l) v.MaxCacheSize' dq)
@@ -797,7 +797,7 @@ noncomputable instance MutationCacheOptions_access_load_MaxCacheSize (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance MutationCacheOptions_access_store_MaxCacheSize (l : Loc) (v : k8s_io.client_go.tools.cache.MutationCacheOptions) (y : w64) :
+noncomputable instance access_store'MutationCacheOptions'MaxCacheSize (l : Loc) (v : k8s_io.client_go.tools.cache.MutationCacheOptions) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"MaxCacheSize" l) v.MaxCacheSize' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.MutationCacheOptions go!"MaxCacheSize" l) y (DFrac.own 1))
@@ -816,7 +816,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance mutationCache_typed_pointsto :
+noncomputable instance typed_pointsto'mutationCache :
     TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.mutationCache where
   typedPointstoDef l v dq := iprop(
     "logger" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"logger" l) v.logger' dq ∗
@@ -832,11 +832,11 @@ noncomputable instance mutationCache_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance mutationCache_into_val_typed :
+noncomputable instance into_val_typed'mutationCache :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.mutationCache k8s_io.client_go.tools.cache.mutationCache.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance mutationCache_access_load_logger (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (dq : DFrac) :
+noncomputable instance access_load'mutationCache'logger (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"logger" l) v.logger' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"logger" l) v.logger' dq)
@@ -844,7 +844,7 @@ noncomputable instance mutationCache_access_load_logger (l : Loc) (v : k8s_io.cl
  by
   solve_pointsto_access_struct
 
-noncomputable instance mutationCache_access_store_logger (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (y : _root_.Perennial.github_com.go_logr.logr.Logger) :
+noncomputable instance access_store'mutationCache'logger (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (y : _root_.Perennial.github_com.go_logr.logr.Logger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"logger" l) v.logger' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"logger" l) y (DFrac.own 1))
@@ -852,7 +852,7 @@ noncomputable instance mutationCache_access_store_logger (l : Loc) (v : k8s_io.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance mutationCache_access_load_lock (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (dq : DFrac) :
+noncomputable instance access_load'mutationCache'lock (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"lock" l) v.lock' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"lock" l) v.lock' dq)
@@ -860,7 +860,7 @@ noncomputable instance mutationCache_access_load_lock (l : Loc) (v : k8s_io.clie
  by
   solve_pointsto_access_struct
 
-noncomputable instance mutationCache_access_store_lock (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'mutationCache'lock (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"lock" l) v.lock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"lock" l) y (DFrac.own 1))
@@ -868,7 +868,7 @@ noncomputable instance mutationCache_access_store_lock (l : Loc) (v : k8s_io.cli
  by
   solve_pointsto_access_struct
 
-noncomputable instance mutationCache_access_load_backingCache (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (dq : DFrac) :
+noncomputable instance access_load'mutationCache'backingCache (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"backingCache" l) v.backingCache' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"backingCache" l) v.backingCache' dq)
@@ -876,7 +876,7 @@ noncomputable instance mutationCache_access_load_backingCache (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance mutationCache_access_store_backingCache (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (y : k8s_io.client_go.tools.cache.Store) :
+noncomputable instance access_store'mutationCache'backingCache (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (y : k8s_io.client_go.tools.cache.Store) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"backingCache" l) v.backingCache' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"backingCache" l) y (DFrac.own 1))
@@ -884,7 +884,7 @@ noncomputable instance mutationCache_access_store_backingCache (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance mutationCache_access_load_indexer (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (dq : DFrac) :
+noncomputable instance access_load'mutationCache'indexer (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"indexer" l) v.indexer' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"indexer" l) v.indexer' dq)
@@ -892,7 +892,7 @@ noncomputable instance mutationCache_access_load_indexer (l : Loc) (v : k8s_io.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance mutationCache_access_store_indexer (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (y : k8s_io.client_go.tools.cache.Indexer) :
+noncomputable instance access_store'mutationCache'indexer (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (y : k8s_io.client_go.tools.cache.Indexer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"indexer" l) v.indexer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"indexer" l) y (DFrac.own 1))
@@ -900,7 +900,7 @@ noncomputable instance mutationCache_access_store_indexer (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance mutationCache_access_load_mutationCache (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (dq : DFrac) :
+noncomputable instance access_load'mutationCache'mutationCache (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"mutationCache" l) v.mutationCache' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"mutationCache" l) v.mutationCache' dq)
@@ -908,7 +908,7 @@ noncomputable instance mutationCache_access_load_mutationCache (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance mutationCache_access_store_mutationCache (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (y : Loc) :
+noncomputable instance access_store'mutationCache'mutationCache (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"mutationCache" l) v.mutationCache' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"mutationCache" l) y (DFrac.own 1))
@@ -916,7 +916,7 @@ noncomputable instance mutationCache_access_store_mutationCache (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance mutationCache_access_load_includeAdds (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (dq : DFrac) :
+noncomputable instance access_load'mutationCache'includeAdds (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"includeAdds" l) v.includeAdds' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"includeAdds" l) v.includeAdds' dq)
@@ -924,7 +924,7 @@ noncomputable instance mutationCache_access_load_includeAdds (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance mutationCache_access_store_includeAdds (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (y : Bool) :
+noncomputable instance access_store'mutationCache'includeAdds (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"includeAdds" l) v.includeAdds' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"includeAdds" l) y (DFrac.own 1))
@@ -932,7 +932,7 @@ noncomputable instance mutationCache_access_store_includeAdds (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance mutationCache_access_load_ttl (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (dq : DFrac) :
+noncomputable instance access_load'mutationCache'ttl (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"ttl" l) v.ttl' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"ttl" l) v.ttl' dq)
@@ -940,7 +940,7 @@ noncomputable instance mutationCache_access_load_ttl (l : Loc) (v : k8s_io.clien
  by
   solve_pointsto_access_struct
 
-noncomputable instance mutationCache_access_store_ttl (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'mutationCache'ttl (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"ttl" l) v.ttl' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"ttl" l) y (DFrac.own 1))
@@ -948,7 +948,7 @@ noncomputable instance mutationCache_access_store_ttl (l : Loc) (v : k8s_io.clie
  by
   solve_pointsto_access_struct
 
-noncomputable instance mutationCache_access_load_comparator (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (dq : DFrac) :
+noncomputable instance access_load'mutationCache'comparator (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"comparator" l) v.comparator' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"comparator" l) v.comparator' dq)
@@ -956,7 +956,7 @@ noncomputable instance mutationCache_access_load_comparator (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance mutationCache_access_store_comparator (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (y : k8s_io.client_go.tools.cache.ResourceVersionComparator) :
+noncomputable instance access_store'mutationCache'comparator (l : Loc) (v : k8s_io.client_go.tools.cache.mutationCache) (y : k8s_io.client_go.tools.cache.ResourceVersionComparator) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"comparator" l) v.comparator' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.mutationCache go!"comparator" l) y (DFrac.own 1))
@@ -975,7 +975,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance Reflector_typed_pointsto :
+noncomputable instance typed_pointsto'Reflector :
     TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.Reflector where
   typedPointstoDef l v dq := iprop(
     "logger" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"logger" l) v.logger' dq ∗
@@ -1004,11 +1004,11 @@ noncomputable instance Reflector_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Reflector_into_val_typed :
+noncomputable instance into_val_typed'Reflector :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.Reflector k8s_io.client_go.tools.cache.Reflector.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Reflector_access_load_logger (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'logger (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"logger" l) v.logger' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"logger" l) v.logger' dq)
@@ -1016,7 +1016,7 @@ noncomputable instance Reflector_access_load_logger (l : Loc) (v : k8s_io.client
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_logger (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.github_com.go_logr.logr.Logger) :
+noncomputable instance access_store'Reflector'logger (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.github_com.go_logr.logr.Logger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"logger" l) v.logger' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"logger" l) y (DFrac.own 1))
@@ -1024,7 +1024,7 @@ noncomputable instance Reflector_access_store_logger (l : Loc) (v : k8s_io.clien
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_name (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'name (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"name" l) v.name' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"name" l) v.name' dq)
@@ -1032,7 +1032,7 @@ noncomputable instance Reflector_access_load_name (l : Loc) (v : k8s_io.client_g
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_name (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : GoString) :
+noncomputable instance access_store'Reflector'name (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"name" l) v.name' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"name" l) y (DFrac.own 1))
@@ -1040,7 +1040,7 @@ noncomputable instance Reflector_access_store_name (l : Loc) (v : k8s_io.client_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_typeDescription (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'typeDescription (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"typeDescription" l) v.typeDescription' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"typeDescription" l) v.typeDescription' dq)
@@ -1048,7 +1048,7 @@ noncomputable instance Reflector_access_load_typeDescription (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_typeDescription (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : GoString) :
+noncomputable instance access_store'Reflector'typeDescription (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"typeDescription" l) v.typeDescription' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"typeDescription" l) y (DFrac.own 1))
@@ -1056,7 +1056,7 @@ noncomputable instance Reflector_access_store_typeDescription (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_expectedType (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'expectedType (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"expectedType" l) v.expectedType' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"expectedType" l) v.expectedType' dq)
@@ -1064,7 +1064,7 @@ noncomputable instance Reflector_access_load_expectedType (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_expectedType (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.reflect.«Type») :
+noncomputable instance access_store'Reflector'expectedType (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.reflect.Type'') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"expectedType" l) v.expectedType' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"expectedType" l) y (DFrac.own 1))
@@ -1072,7 +1072,7 @@ noncomputable instance Reflector_access_store_expectedType (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_expectedGVK (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'expectedGVK (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"expectedGVK" l) v.expectedGVK' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"expectedGVK" l) v.expectedGVK' dq)
@@ -1080,7 +1080,7 @@ noncomputable instance Reflector_access_load_expectedGVK (l : Loc) (v : k8s_io.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_expectedGVK (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : Loc) :
+noncomputable instance access_store'Reflector'expectedGVK (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"expectedGVK" l) v.expectedGVK' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"expectedGVK" l) y (DFrac.own 1))
@@ -1088,7 +1088,7 @@ noncomputable instance Reflector_access_store_expectedGVK (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_store (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'store (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"store" l) v.store' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"store" l) v.store' dq)
@@ -1096,7 +1096,7 @@ noncomputable instance Reflector_access_load_store (l : Loc) (v : k8s_io.client_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_store (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : k8s_io.client_go.tools.cache.ReflectorStore) :
+noncomputable instance access_store'Reflector'store (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : k8s_io.client_go.tools.cache.ReflectorStore) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"store" l) v.store' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"store" l) y (DFrac.own 1))
@@ -1104,7 +1104,7 @@ noncomputable instance Reflector_access_store_store (l : Loc) (v : k8s_io.client
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_listerWatcher (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'listerWatcher (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"listerWatcher" l) v.listerWatcher' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"listerWatcher" l) v.listerWatcher' dq)
@@ -1112,7 +1112,7 @@ noncomputable instance Reflector_access_load_listerWatcher (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_listerWatcher (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : k8s_io.client_go.tools.cache.ListerWatcherWithContext) :
+noncomputable instance access_store'Reflector'listerWatcher (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : k8s_io.client_go.tools.cache.ListerWatcherWithContext) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"listerWatcher" l) v.listerWatcher' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"listerWatcher" l) y (DFrac.own 1))
@@ -1120,7 +1120,7 @@ noncomputable instance Reflector_access_store_listerWatcher (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_resyncPeriod (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'resyncPeriod (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"resyncPeriod" l) v.resyncPeriod' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"resyncPeriod" l) v.resyncPeriod' dq)
@@ -1128,7 +1128,7 @@ noncomputable instance Reflector_access_load_resyncPeriod (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_resyncPeriod (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Reflector'resyncPeriod (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"resyncPeriod" l) v.resyncPeriod' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"resyncPeriod" l) y (DFrac.own 1))
@@ -1136,7 +1136,7 @@ noncomputable instance Reflector_access_store_resyncPeriod (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_delayHandler (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'delayHandler (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"delayHandler" l) v.delayHandler' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"delayHandler" l) v.delayHandler' dq)
@@ -1144,7 +1144,7 @@ noncomputable instance Reflector_access_load_delayHandler (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_delayHandler (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.DelayFunc) :
+noncomputable instance access_store'Reflector'delayHandler (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.DelayFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"delayHandler" l) v.delayHandler' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"delayHandler" l) y (DFrac.own 1))
@@ -1152,7 +1152,7 @@ noncomputable instance Reflector_access_store_delayHandler (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_minWatchTimeout (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'minWatchTimeout (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"minWatchTimeout" l) v.minWatchTimeout' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"minWatchTimeout" l) v.minWatchTimeout' dq)
@@ -1160,7 +1160,7 @@ noncomputable instance Reflector_access_load_minWatchTimeout (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_minWatchTimeout (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Reflector'minWatchTimeout (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"minWatchTimeout" l) v.minWatchTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"minWatchTimeout" l) y (DFrac.own 1))
@@ -1168,7 +1168,7 @@ noncomputable instance Reflector_access_store_minWatchTimeout (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_maxWatchTimeout (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'maxWatchTimeout (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"maxWatchTimeout" l) v.maxWatchTimeout' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"maxWatchTimeout" l) v.maxWatchTimeout' dq)
@@ -1176,7 +1176,7 @@ noncomputable instance Reflector_access_load_maxWatchTimeout (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_maxWatchTimeout (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Reflector'maxWatchTimeout (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"maxWatchTimeout" l) v.maxWatchTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"maxWatchTimeout" l) y (DFrac.own 1))
@@ -1184,7 +1184,7 @@ noncomputable instance Reflector_access_store_maxWatchTimeout (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_clock (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'clock (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"clock" l) v.clock' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"clock" l) v.clock' dq)
@@ -1192,7 +1192,7 @@ noncomputable instance Reflector_access_load_clock (l : Loc) (v : k8s_io.client_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_clock (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
+noncomputable instance access_store'Reflector'clock (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"clock" l) y (DFrac.own 1))
@@ -1200,7 +1200,7 @@ noncomputable instance Reflector_access_store_clock (l : Loc) (v : k8s_io.client
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_paginatedResult (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'paginatedResult (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"paginatedResult" l) v.paginatedResult' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"paginatedResult" l) v.paginatedResult' dq)
@@ -1208,7 +1208,7 @@ noncomputable instance Reflector_access_load_paginatedResult (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_paginatedResult (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : Bool) :
+noncomputable instance access_store'Reflector'paginatedResult (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"paginatedResult" l) v.paginatedResult' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"paginatedResult" l) y (DFrac.own 1))
@@ -1216,7 +1216,7 @@ noncomputable instance Reflector_access_store_paginatedResult (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_lastSyncResourceVersion (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'lastSyncResourceVersion (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"lastSyncResourceVersion" l) v.lastSyncResourceVersion' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"lastSyncResourceVersion" l) v.lastSyncResourceVersion' dq)
@@ -1224,7 +1224,7 @@ noncomputable instance Reflector_access_load_lastSyncResourceVersion (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_lastSyncResourceVersion (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : GoString) :
+noncomputable instance access_store'Reflector'lastSyncResourceVersion (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"lastSyncResourceVersion" l) v.lastSyncResourceVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"lastSyncResourceVersion" l) y (DFrac.own 1))
@@ -1232,7 +1232,7 @@ noncomputable instance Reflector_access_store_lastSyncResourceVersion (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_isLastSyncResourceVersionUnavailable (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'isLastSyncResourceVersionUnavailable (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"isLastSyncResourceVersionUnavailable" l) v.isLastSyncResourceVersionUnavailable' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"isLastSyncResourceVersionUnavailable" l) v.isLastSyncResourceVersionUnavailable' dq)
@@ -1240,7 +1240,7 @@ noncomputable instance Reflector_access_load_isLastSyncResourceVersionUnavailabl
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_isLastSyncResourceVersionUnavailable (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : Bool) :
+noncomputable instance access_store'Reflector'isLastSyncResourceVersionUnavailable (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"isLastSyncResourceVersionUnavailable" l) v.isLastSyncResourceVersionUnavailable' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"isLastSyncResourceVersionUnavailable" l) y (DFrac.own 1))
@@ -1248,7 +1248,7 @@ noncomputable instance Reflector_access_store_isLastSyncResourceVersionUnavailab
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_lastSyncResourceVersionMutex (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'lastSyncResourceVersionMutex (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"lastSyncResourceVersionMutex" l) v.lastSyncResourceVersionMutex' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"lastSyncResourceVersionMutex" l) v.lastSyncResourceVersionMutex' dq)
@@ -1256,7 +1256,7 @@ noncomputable instance Reflector_access_load_lastSyncResourceVersionMutex (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_lastSyncResourceVersionMutex (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'Reflector'lastSyncResourceVersionMutex (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"lastSyncResourceVersionMutex" l) v.lastSyncResourceVersionMutex' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"lastSyncResourceVersionMutex" l) y (DFrac.own 1))
@@ -1264,7 +1264,7 @@ noncomputable instance Reflector_access_store_lastSyncResourceVersionMutex (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_watchErrorHandler (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'watchErrorHandler (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"watchErrorHandler" l) v.watchErrorHandler' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"watchErrorHandler" l) v.watchErrorHandler' dq)
@@ -1272,7 +1272,7 @@ noncomputable instance Reflector_access_load_watchErrorHandler (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_watchErrorHandler (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : k8s_io.client_go.tools.cache.WatchErrorHandlerWithContext) :
+noncomputable instance access_store'Reflector'watchErrorHandler (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : k8s_io.client_go.tools.cache.WatchErrorHandlerWithContext) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"watchErrorHandler" l) v.watchErrorHandler' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"watchErrorHandler" l) y (DFrac.own 1))
@@ -1280,7 +1280,7 @@ noncomputable instance Reflector_access_store_watchErrorHandler (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_WatchListPageSize (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'WatchListPageSize (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"WatchListPageSize" l) v.WatchListPageSize' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"WatchListPageSize" l) v.WatchListPageSize' dq)
@@ -1288,7 +1288,7 @@ noncomputable instance Reflector_access_load_WatchListPageSize (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_WatchListPageSize (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : w64) :
+noncomputable instance access_store'Reflector'WatchListPageSize (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"WatchListPageSize" l) v.WatchListPageSize' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"WatchListPageSize" l) y (DFrac.own 1))
@@ -1296,7 +1296,7 @@ noncomputable instance Reflector_access_store_WatchListPageSize (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_ShouldResync (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'ShouldResync (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"ShouldResync" l) v.ShouldResync' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"ShouldResync" l) v.ShouldResync' dq)
@@ -1304,7 +1304,7 @@ noncomputable instance Reflector_access_load_ShouldResync (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_ShouldResync (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : GoFunc) :
+noncomputable instance access_store'Reflector'ShouldResync (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"ShouldResync" l) v.ShouldResync' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"ShouldResync" l) y (DFrac.own 1))
@@ -1312,7 +1312,7 @@ noncomputable instance Reflector_access_store_ShouldResync (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_MaxInternalErrorRetryDuration (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'MaxInternalErrorRetryDuration (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"MaxInternalErrorRetryDuration" l) v.MaxInternalErrorRetryDuration' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"MaxInternalErrorRetryDuration" l) v.MaxInternalErrorRetryDuration' dq)
@@ -1320,7 +1320,7 @@ noncomputable instance Reflector_access_load_MaxInternalErrorRetryDuration (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_MaxInternalErrorRetryDuration (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Reflector'MaxInternalErrorRetryDuration (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"MaxInternalErrorRetryDuration" l) v.MaxInternalErrorRetryDuration' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"MaxInternalErrorRetryDuration" l) y (DFrac.own 1))
@@ -1328,7 +1328,7 @@ noncomputable instance Reflector_access_store_MaxInternalErrorRetryDuration (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_load_useWatchList (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
+noncomputable instance access_load'Reflector'useWatchList (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"useWatchList" l) v.useWatchList' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"useWatchList" l) v.useWatchList' dq)
@@ -1336,7 +1336,7 @@ noncomputable instance Reflector_access_load_useWatchList (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reflector_access_store_useWatchList (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : Bool) :
+noncomputable instance access_store'Reflector'useWatchList (l : Loc) (v : k8s_io.client_go.tools.cache.Reflector) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"useWatchList" l) v.useWatchList' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Reflector go!"useWatchList" l) y (DFrac.own 1))
@@ -1355,32 +1355,32 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance typedSharedIndexInformer_typed_pointsto {T' : Type} [TypedPointsto (GF := GF) T'] :
-    TypedPointsto (GF := GF) (k8s_io.client_go.tools.cache.typedSharedIndexInformer T') where
+noncomputable instance typed_pointsto'typedSharedIndexInformer {T₀' : Type} [TypedPointsto (GF := GF) T₀'] :
+    TypedPointsto (GF := GF) (k8s_io.client_go.tools.cache.typedSharedIndexInformer T₀') where
   typedPointstoDef l v dq := iprop(
-    "SharedIndexInformer" ∷ typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedSharedIndexInformer T') go!"SharedIndexInformer" l) v.SharedIndexInformer' dq ∗
+    "SharedIndexInformer" ∷ typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedSharedIndexInformer T₀') go!"SharedIndexInformer" l) v.SharedIndexInformer' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance typedSharedIndexInformer_into_val_typed (T : go.GoType) {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T'] [IntoValTyped (GF := GF) T' T] :
-    IntoValTypedUnderlying (GF := GF) (k8s_io.client_go.tools.cache.typedSharedIndexInformer T') (k8s_io.client_go.tools.cache.typedSharedIndexInformer.underlying T) := by
+noncomputable instance into_val_typed'typedSharedIndexInformer (T₀ : go.GoType) {T₀' : Type} [ZeroVal T₀'] [TypedPointsto (GF := GF) T₀'] [IntoValTyped (GF := GF) T₀' T₀] :
+    IntoValTypedUnderlying (GF := GF) (k8s_io.client_go.tools.cache.typedSharedIndexInformer T₀') (k8s_io.client_go.tools.cache.typedSharedIndexInformer.underlying T₀) := by
   solve_into_val_typed_struct
 
-noncomputable instance typedSharedIndexInformer_access_load_SharedIndexInformer {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.tools.cache.typedSharedIndexInformer T')) (dq : DFrac) :
+noncomputable instance access_load'typedSharedIndexInformer'SharedIndexInformer {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.client_go.tools.cache.typedSharedIndexInformer T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedSharedIndexInformer T') go!"SharedIndexInformer" l) v.SharedIndexInformer' dq)
-      (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedSharedIndexInformer T') go!"SharedIndexInformer" l) v.SharedIndexInformer' dq)
+      (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedSharedIndexInformer T₀') go!"SharedIndexInformer" l) v.SharedIndexInformer' dq)
+      (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedSharedIndexInformer T₀') go!"SharedIndexInformer" l) v.SharedIndexInformer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance typedSharedIndexInformer_access_store_SharedIndexInformer {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.tools.cache.typedSharedIndexInformer T')) (y : k8s_io.client_go.tools.cache.SharedIndexInformer) :
+noncomputable instance access_store'typedSharedIndexInformer'SharedIndexInformer {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.client_go.tools.cache.typedSharedIndexInformer T₀')) (y : k8s_io.client_go.tools.cache.SharedIndexInformer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedSharedIndexInformer T') go!"SharedIndexInformer" l) v.SharedIndexInformer' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedSharedIndexInformer T') go!"SharedIndexInformer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SharedIndexInformer' := y } : (k8s_io.client_go.tools.cache.typedSharedIndexInformer T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedSharedIndexInformer T₀') go!"SharedIndexInformer" l) v.SharedIndexInformer' (DFrac.own 1))
+      (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedSharedIndexInformer T₀') go!"SharedIndexInformer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SharedIndexInformer' := y } : (k8s_io.client_go.tools.cache.typedSharedIndexInformer T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1395,32 +1395,32 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance typedResourceEventHandler_typed_pointsto {T' : Type} [TypedPointsto (GF := GF) T'] :
-    TypedPointsto (GF := GF) (k8s_io.client_go.tools.cache.typedResourceEventHandler T') where
+noncomputable instance typed_pointsto'typedResourceEventHandler {T₀' : Type} [TypedPointsto (GF := GF) T₀'] :
+    TypedPointsto (GF := GF) (k8s_io.client_go.tools.cache.typedResourceEventHandler T₀') where
   typedPointstoDef l v dq := iprop(
-    "handler" ∷ typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedResourceEventHandler T') go!"handler" l) v.handler' dq ∗
+    "handler" ∷ typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedResourceEventHandler T₀') go!"handler" l) v.handler' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance typedResourceEventHandler_into_val_typed (T : go.GoType) {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T'] [IntoValTyped (GF := GF) T' T] :
-    IntoValTypedUnderlying (GF := GF) (k8s_io.client_go.tools.cache.typedResourceEventHandler T') (k8s_io.client_go.tools.cache.typedResourceEventHandler.underlying T) := by
+noncomputable instance into_val_typed'typedResourceEventHandler (T₀ : go.GoType) {T₀' : Type} [ZeroVal T₀'] [TypedPointsto (GF := GF) T₀'] [IntoValTyped (GF := GF) T₀' T₀] :
+    IntoValTypedUnderlying (GF := GF) (k8s_io.client_go.tools.cache.typedResourceEventHandler T₀') (k8s_io.client_go.tools.cache.typedResourceEventHandler.underlying T₀) := by
   solve_into_val_typed_struct
 
-noncomputable instance typedResourceEventHandler_access_load_handler {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.tools.cache.typedResourceEventHandler T')) (dq : DFrac) :
+noncomputable instance access_load'typedResourceEventHandler'handler {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.client_go.tools.cache.typedResourceEventHandler T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedResourceEventHandler T') go!"handler" l) v.handler' dq)
-      (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedResourceEventHandler T') go!"handler" l) v.handler' dq)
+      (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedResourceEventHandler T₀') go!"handler" l) v.handler' dq)
+      (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedResourceEventHandler T₀') go!"handler" l) v.handler' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance typedResourceEventHandler_access_store_handler {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.tools.cache.typedResourceEventHandler T')) (y : (k8s_io.client_go.tools.cache.TypedResourceEventHandler T')) :
+noncomputable instance access_store'typedResourceEventHandler'handler {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.client_go.tools.cache.typedResourceEventHandler T₀')) (y : (k8s_io.client_go.tools.cache.TypedResourceEventHandler T₀')) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedResourceEventHandler T') go!"handler" l) v.handler' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedResourceEventHandler T') go!"handler" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with handler' := y } : (k8s_io.client_go.tools.cache.typedResourceEventHandler T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedResourceEventHandler T₀') go!"handler" l) v.handler' (DFrac.own 1))
+      (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.typedResourceEventHandler T₀') go!"handler" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with handler' := y } : (k8s_io.client_go.tools.cache.typedResourceEventHandler T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

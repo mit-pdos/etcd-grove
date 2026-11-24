@@ -339,7 +339,7 @@ noncomputable instance Network.zero_val [GooseExts] : ZeroVal Network :=
 @[irreducible] noncomputable def Network.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Network.fieldsUnsealed
 
-noncomputable instance equals_unfold_Network [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Network [GooseExts] [GoGlobalContext] :
     EqualsUnfold Network.fields Network.fieldsUnsealed :=
   ⟨by unfold Network.fields; rfl⟩
 
@@ -349,82 +349,82 @@ noncomputable instance equals_unfold_Network [GooseExts] [GoGlobalContext] :
 class Network.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Network.underlying Network
   underlying : go.UnderlyingDirectedEq Network.ty Network.underlying
-  get_SvrId : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"SvrId") #x (Val #(x.SvrId'))
-  set_SvrId : ∀ (x : Network) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"SvrId") (PairV #x #y) (Val #(({ x with SvrId' := y } : Network)))
-  get_Wg : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"Wg") #x (Val #(x.Wg'))
-  set_Wg : ∀ (x : Network) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"Wg") (PairV #x #y) (Val #(({ x with Wg' := y } : Network)))
-  get_Done : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"Done") #x (Val #(x.Done'))
-  set_Done : ∀ (x : Network) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"Done") (PairV #x #y) (Val #(({ x with Done' := y } : Network)))
-  get_ToProxy : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"ToProxy") #x (Val #(x.ToProxy'))
-  set_ToProxy : ∀ (x : Network) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"ToProxy") (PairV #x #y) (Val #(({ x with ToProxy' := y } : Network)))
-  get_ProxyIn : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"ProxyIn") #x (Val #(x.ProxyIn'))
-  set_ProxyIn : ∀ (x : Network) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"ProxyIn") (PairV #x #y) (Val #(({ x with ProxyIn' := y } : Network)))
-  get_MsgHandlerIn : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"MsgHandlerIn") #x (Val #(x.MsgHandlerIn'))
-  set_MsgHandlerIn : ∀ (x : Network) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"MsgHandlerIn") (PairV #x #y) (Val #(({ x with MsgHandlerIn' := y } : Network)))
-  get_ConExecutorIn : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"ConExecutorIn") #x (Val #(x.ConExecutorIn'))
-  set_ConExecutorIn : ∀ (x : Network) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"ConExecutorIn") (PairV #x #y) (Val #(({ x with ConExecutorIn' := y } : Network)))
-  get_ToMsgHandler : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"ToMsgHandler") #x (Val #(x.ToMsgHandler'))
-  set_ToMsgHandler : ∀ (x : Network) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"ToMsgHandler") (PairV #x #y) (Val #(({ x with ToMsgHandler' := y } : Network)))
-  get_ToConExecutor : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"ToConExecutor") #x (Val #(x.ToConExecutor'))
-  set_ToConExecutor : ∀ (x : Network) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"ToConExecutor") (PairV #x #y) (Val #(({ x with ToConExecutor' := y } : Network)))
-  get_ToSerializer : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"ToSerializer") #x (Val #(x.ToSerializer'))
-  set_ToSerializer : ∀ (x : Network) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"ToSerializer") (PairV #x #y) (Val #(({ x with ToSerializer' := y } : Network)))
-  get_TCP : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"TCP") #x (Val #(x.TCP'))
-  set_TCP : ∀ (x : Network) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"TCP") (PairV #x #y) (Val #(({ x with TCP' := y } : Network)))
+  get'SvrId : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"SvrId") #x (Val #(x.SvrId'))
+  set'SvrId : ∀ (x : Network) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"SvrId") (PairV #x #y) (Val #(({ x with SvrId' := y } : Network)))
+  get'Wg : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"Wg") #x (Val #(x.Wg'))
+  set'Wg : ∀ (x : Network) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"Wg") (PairV #x #y) (Val #(({ x with Wg' := y } : Network)))
+  get'Done : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"Done") #x (Val #(x.Done'))
+  set'Done : ∀ (x : Network) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"Done") (PairV #x #y) (Val #(({ x with Done' := y } : Network)))
+  get'ToProxy : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"ToProxy") #x (Val #(x.ToProxy'))
+  set'ToProxy : ∀ (x : Network) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"ToProxy") (PairV #x #y) (Val #(({ x with ToProxy' := y } : Network)))
+  get'ProxyIn : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"ProxyIn") #x (Val #(x.ProxyIn'))
+  set'ProxyIn : ∀ (x : Network) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"ProxyIn") (PairV #x #y) (Val #(({ x with ProxyIn' := y } : Network)))
+  get'MsgHandlerIn : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"MsgHandlerIn") #x (Val #(x.MsgHandlerIn'))
+  set'MsgHandlerIn : ∀ (x : Network) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"MsgHandlerIn") (PairV #x #y) (Val #(({ x with MsgHandlerIn' := y } : Network)))
+  get'ConExecutorIn : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"ConExecutorIn") #x (Val #(x.ConExecutorIn'))
+  set'ConExecutorIn : ∀ (x : Network) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"ConExecutorIn") (PairV #x #y) (Val #(({ x with ConExecutorIn' := y } : Network)))
+  get'ToMsgHandler : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"ToMsgHandler") #x (Val #(x.ToMsgHandler'))
+  set'ToMsgHandler : ∀ (x : Network) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"ToMsgHandler") (PairV #x #y) (Val #(({ x with ToMsgHandler' := y } : Network)))
+  get'ToConExecutor : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"ToConExecutor") #x (Val #(x.ToConExecutor'))
+  set'ToConExecutor : ∀ (x : Network) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"ToConExecutor") (PairV #x #y) (Val #(({ x with ToConExecutor' := y } : Network)))
+  get'ToSerializer : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"ToSerializer") #x (Val #(x.ToSerializer'))
+  set'ToSerializer : ∀ (x : Network) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"ToSerializer") (PairV #x #y) (Val #(({ x with ToSerializer' := y } : Network)))
+  get'TCP : ∀ (x : Network), go.IsGoStepPureDetTagged under (StructFieldGet Network.underlying go!"TCP") #x (Val #(x.TCP'))
+  set'TCP : ∀ (x : Network) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Network.underlying go!"TCP") (PairV #x #y) (Val #(({ x with TCP' := y } : Network)))
   method_set : go.MethodSetIs Network.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Network.ty) [(go!"Epilogue", (some (go.signature.Signature [] false []))), (go!"MsgRouter", (some (go.signature.Signature [] false []))), (go!"MsgSerializer", (some (go.signature.Signature [] false []))), (go!"Prologue", (some (go.signature.Signature [] false [])))]
-  ptr_Epilogue_unfold : MethodUnfold (go.GoType.PointerType Network.ty) go!"Epilogue" Network.Epilogue.impl
-  ptr_MsgRouter_unfold : MethodUnfold (go.GoType.PointerType Network.ty) go!"MsgRouter" Network.MsgRouter.impl
-  ptr_MsgSerializer_unfold : MethodUnfold (go.GoType.PointerType Network.ty) go!"MsgSerializer" Network.MsgSerializer.impl
-  ptr_Prologue_unfold : MethodUnfold (go.GoType.PointerType Network.ty) go!"Prologue" Network.Prologue.impl
+  ptr_unfold'Epilogue : MethodUnfold (go.GoType.PointerType Network.ty) go!"Epilogue" Network.Epilogue.impl
+  ptr_unfold'MsgRouter : MethodUnfold (go.GoType.PointerType Network.ty) go!"MsgRouter" Network.MsgRouter.impl
+  ptr_unfold'MsgSerializer : MethodUnfold (go.GoType.PointerType Network.ty) go!"MsgSerializer" Network.MsgSerializer.impl
+  ptr_unfold'Prologue : MethodUnfold (go.GoType.PointerType Network.ty) go!"Prologue" Network.Prologue.impl
 
 attribute [instance] Network.TypeAssumptions.type_repr
   Network.TypeAssumptions.underlying
-  Network.TypeAssumptions.get_SvrId
-  Network.TypeAssumptions.set_SvrId
-  Network.TypeAssumptions.get_Wg
-  Network.TypeAssumptions.set_Wg
-  Network.TypeAssumptions.get_Done
-  Network.TypeAssumptions.set_Done
-  Network.TypeAssumptions.get_ToProxy
-  Network.TypeAssumptions.set_ToProxy
-  Network.TypeAssumptions.get_ProxyIn
-  Network.TypeAssumptions.set_ProxyIn
-  Network.TypeAssumptions.get_MsgHandlerIn
-  Network.TypeAssumptions.set_MsgHandlerIn
-  Network.TypeAssumptions.get_ConExecutorIn
-  Network.TypeAssumptions.set_ConExecutorIn
-  Network.TypeAssumptions.get_ToMsgHandler
-  Network.TypeAssumptions.set_ToMsgHandler
-  Network.TypeAssumptions.get_ToConExecutor
-  Network.TypeAssumptions.set_ToConExecutor
-  Network.TypeAssumptions.get_ToSerializer
-  Network.TypeAssumptions.set_ToSerializer
-  Network.TypeAssumptions.get_TCP
-  Network.TypeAssumptions.set_TCP
+  Network.TypeAssumptions.get'SvrId
+  Network.TypeAssumptions.set'SvrId
+  Network.TypeAssumptions.get'Wg
+  Network.TypeAssumptions.set'Wg
+  Network.TypeAssumptions.get'Done
+  Network.TypeAssumptions.set'Done
+  Network.TypeAssumptions.get'ToProxy
+  Network.TypeAssumptions.set'ToProxy
+  Network.TypeAssumptions.get'ProxyIn
+  Network.TypeAssumptions.set'ProxyIn
+  Network.TypeAssumptions.get'MsgHandlerIn
+  Network.TypeAssumptions.set'MsgHandlerIn
+  Network.TypeAssumptions.get'ConExecutorIn
+  Network.TypeAssumptions.set'ConExecutorIn
+  Network.TypeAssumptions.get'ToMsgHandler
+  Network.TypeAssumptions.set'ToMsgHandler
+  Network.TypeAssumptions.get'ToConExecutor
+  Network.TypeAssumptions.set'ToConExecutor
+  Network.TypeAssumptions.get'ToSerializer
+  Network.TypeAssumptions.set'ToSerializer
+  Network.TypeAssumptions.get'TCP
+  Network.TypeAssumptions.set'TCP
   Network.TypeAssumptions.method_set
   Network.TypeAssumptions.ptr_method_set
-  Network.TypeAssumptions.ptr_Epilogue_unfold
-  Network.TypeAssumptions.ptr_MsgRouter_unfold
-  Network.TypeAssumptions.ptr_MsgSerializer_unfold
-  Network.TypeAssumptions.ptr_Prologue_unfold
+  Network.TypeAssumptions.ptr_unfold'Epilogue
+  Network.TypeAssumptions.ptr_unfold'MsgRouter
+  Network.TypeAssumptions.ptr_unfold'MsgSerializer
+  Network.TypeAssumptions.ptr_unfold'Prologue
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Network_instance : Network.TypeAssumptions
-  NetworkInit_unfold : FuncUnfold NetworkInit [] NetworkInit.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_config_Assumption : _root_.Perennial.rabia.internal.config.Assumptions
-  import_message_Assumption : _root_.Perennial.rabia.internal.message.Assumptions
-  import_tcp_Assumption : _root_.Perennial.rabia.internal.tcp.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  instance'Network : Network.TypeAssumptions
+  unfold'NetworkInit : FuncUnfold NetworkInit [] NetworkInit.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'config : _root_.Perennial.rabia.internal.config.Assumptions
+  import'message : _root_.Perennial.rabia.internal.message.Assumptions
+  import'tcp : _root_.Perennial.rabia.internal.tcp.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
 
-attribute [instance] Assumptions.Network_instance
-  Assumptions.NetworkInit_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_config_Assumption
-  Assumptions.import_message_Assumption
-  Assumptions.import_tcp_Assumption
-  Assumptions.import_sync_Assumption
+attribute [instance] Assumptions.instance'Network
+  Assumptions.unfold'NetworkInit
+  Assumptions.import'fmt
+  Assumptions.import'config
+  Assumptions.import'message
+  Assumptions.import'tcp
+  Assumptions.import'sync
 
 end rabia.roles.server.layers.network
 

@@ -167,7 +167,7 @@ noncomputable instance handler.zero_val [GooseExts] : ZeroVal handler :=
 @[irreducible] noncomputable def handler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   handler.fieldsUnsealed
 
-noncomputable instance equals_unfold_handler [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'handler [GooseExts] [GoGlobalContext] :
     EqualsUnfold handler.fields handler.fieldsUnsealed :=
   ⟨by unfold handler.fields; rfl⟩
 
@@ -177,15 +177,15 @@ noncomputable instance equals_unfold_handler [GooseExts] [GoGlobalContext] :
 class handler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying handler.underlying handler
   underlying : go.UnderlyingDirectedEq handler.ty handler.underlying
-  get_mask : ∀ (x : handler), go.IsGoStepPureDetTagged under (StructFieldGet handler.underlying go!"mask") #x (Val #(x.mask'))
-  set_mask : ∀ (x : handler) (y : (GoArray w32 3)), go.IsGoStepPureDetTagged under (StructFieldSet handler.underlying go!"mask") (PairV #x #y) (Val #(({ x with mask' := y } : handler)))
+  get'mask : ∀ (x : handler), go.IsGoStepPureDetTagged under (StructFieldGet handler.underlying go!"mask") #x (Val #(x.mask'))
+  set'mask : ∀ (x : handler) (y : (GoArray w32 3)), go.IsGoStepPureDetTagged under (StructFieldSet handler.underlying go!"mask") (PairV #x #y) (Val #(({ x with mask' := y } : handler)))
   method_set : go.MethodSetIs handler.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType handler.ty) [(go!"os/signal.clear", (some (go.signature.Signature [go.int] false []))), (go!"os/signal.set", (some (go.signature.Signature [go.int] false []))), (go!"os/signal.want", (some (go.signature.Signature [go.int] false [go.bool])))]
 
 attribute [instance] handler.TypeAssumptions.type_repr
   handler.TypeAssumptions.underlying
-  handler.TypeAssumptions.get_mask
-  handler.TypeAssumptions.set_mask
+  handler.TypeAssumptions.get'mask
+  handler.TypeAssumptions.set'mask
   handler.TypeAssumptions.method_set
   handler.TypeAssumptions.ptr_method_set
 
@@ -237,17 +237,17 @@ attribute [instance] signalError.TypeAssumptions.underlying
   signalError.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  stopping_instance : stopping.TypeAssumptions
-  handler_instance : handler.TypeAssumptions
-  signalCtx_instance : signalCtx.TypeAssumptions
-  stringer_instance : stringer.TypeAssumptions
-  signalError_instance : signalError.TypeAssumptions
+  instance'stopping : stopping.TypeAssumptions
+  instance'handler : handler.TypeAssumptions
+  instance'signalCtx : signalCtx.TypeAssumptions
+  instance'stringer : stringer.TypeAssumptions
+  instance'signalError : signalError.TypeAssumptions
 
-attribute [instance] Assumptions.stopping_instance
-  Assumptions.handler_instance
-  Assumptions.signalCtx_instance
-  Assumptions.stringer_instance
-  Assumptions.signalError_instance
+attribute [instance] Assumptions.instance'stopping
+  Assumptions.instance'handler
+  Assumptions.instance'signalCtx
+  Assumptions.instance'stringer
+  Assumptions.instance'signalError
 
 end os.signal
 

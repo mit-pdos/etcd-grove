@@ -24,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.uuid.Assumptions]
 
-noncomputable instance NullUUID_typed_pointsto :
+noncomputable instance typed_pointsto'NullUUID :
     TypedPointsto (GF := GF) github_com.google.uuid.NullUUID where
   typedPointstoDef l v dq := iprop(
     "UUID" ∷ typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"UUID" l) v.UUID' dq ∗
@@ -34,11 +34,11 @@ noncomputable instance NullUUID_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance NullUUID_into_val_typed :
+noncomputable instance into_val_typed'NullUUID :
     IntoValTypedUnderlying (GF := GF) github_com.google.uuid.NullUUID github_com.google.uuid.NullUUID.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance NullUUID_access_load_UUID (l : Loc) (v : github_com.google.uuid.NullUUID) (dq : DFrac) :
+noncomputable instance access_load'NullUUID'UUID (l : Loc) (v : github_com.google.uuid.NullUUID) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"UUID" l) v.UUID' dq)
       (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"UUID" l) v.UUID' dq)
@@ -46,7 +46,7 @@ noncomputable instance NullUUID_access_load_UUID (l : Loc) (v : github_com.googl
  by
   solve_pointsto_access_struct
 
-noncomputable instance NullUUID_access_store_UUID (l : Loc) (v : github_com.google.uuid.NullUUID) (y : github_com.google.uuid.UUID) :
+noncomputable instance access_store'NullUUID'UUID (l : Loc) (v : github_com.google.uuid.NullUUID) (y : github_com.google.uuid.UUID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"UUID" l) v.UUID' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"UUID" l) y (DFrac.own 1))
@@ -54,7 +54,7 @@ noncomputable instance NullUUID_access_store_UUID (l : Loc) (v : github_com.goog
  by
   solve_pointsto_access_struct
 
-noncomputable instance NullUUID_access_load_Valid (l : Loc) (v : github_com.google.uuid.NullUUID) (dq : DFrac) :
+noncomputable instance access_load'NullUUID'Valid (l : Loc) (v : github_com.google.uuid.NullUUID) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"Valid" l) v.Valid' dq)
       (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"Valid" l) v.Valid' dq)
@@ -62,7 +62,7 @@ noncomputable instance NullUUID_access_load_Valid (l : Loc) (v : github_com.goog
  by
   solve_pointsto_access_struct
 
-noncomputable instance NullUUID_access_store_Valid (l : Loc) (v : github_com.google.uuid.NullUUID) (y : Bool) :
+noncomputable instance access_store'NullUUID'Valid (l : Loc) (v : github_com.google.uuid.NullUUID) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"Valid" l) v.Valid' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"Valid" l) y (DFrac.own 1))
@@ -81,7 +81,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.google.uuid.Assumptions]
 
-noncomputable instance invalidLengthError_typed_pointsto :
+noncomputable instance typed_pointsto'invalidLengthError :
     TypedPointsto (GF := GF) github_com.google.uuid.invalidLengthError where
   typedPointstoDef l v dq := iprop(
     "len" ∷ typedPointsto (structFieldRef github_com.google.uuid.invalidLengthError go!"len" l) v.len' dq ∗
@@ -90,11 +90,11 @@ noncomputable instance invalidLengthError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance invalidLengthError_into_val_typed :
+noncomputable instance into_val_typed'invalidLengthError :
     IntoValTypedUnderlying (GF := GF) github_com.google.uuid.invalidLengthError github_com.google.uuid.invalidLengthError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance invalidLengthError_access_load_len (l : Loc) (v : github_com.google.uuid.invalidLengthError) (dq : DFrac) :
+noncomputable instance access_load'invalidLengthError'len (l : Loc) (v : github_com.google.uuid.invalidLengthError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.google.uuid.invalidLengthError go!"len" l) v.len' dq)
       (typedPointsto (structFieldRef github_com.google.uuid.invalidLengthError go!"len" l) v.len' dq)
@@ -102,7 +102,7 @@ noncomputable instance invalidLengthError_access_load_len (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance invalidLengthError_access_store_len (l : Loc) (v : github_com.google.uuid.invalidLengthError) (y : w64) :
+noncomputable instance access_store'invalidLengthError'len (l : Loc) (v : github_com.google.uuid.invalidLengthError) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.google.uuid.invalidLengthError go!"len" l) v.len' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.google.uuid.invalidLengthError go!"len" l) y (DFrac.own 1))

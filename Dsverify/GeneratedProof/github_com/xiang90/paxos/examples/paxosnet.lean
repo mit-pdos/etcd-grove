@@ -28,7 +28,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.xiang90.paxos.examples.paxosnet.Assumptions]
 
-noncomputable instance Out_typed_pointsto :
+noncomputable instance typed_pointsto'Out :
     TypedPointsto (GF := GF) github_com.xiang90.paxos.examples.paxosnet.Out where
   typedPointstoDef l v dq := iprop(
     "Unknown" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.Out go!"Unknown" l) v.Unknown' dq ∗
@@ -38,11 +38,11 @@ noncomputable instance Out_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Out_into_val_typed :
+noncomputable instance into_val_typed'Out :
     IntoValTypedUnderlying (GF := GF) github_com.xiang90.paxos.examples.paxosnet.Out github_com.xiang90.paxos.examples.paxosnet.Out.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Out_access_load_Unknown (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.Out) (dq : DFrac) :
+noncomputable instance access_load'Out'Unknown (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.Out) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.Out go!"Unknown" l) v.Unknown' dq)
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.Out go!"Unknown" l) v.Unknown' dq)
@@ -50,7 +50,7 @@ noncomputable instance Out_access_load_Unknown (l : Loc) (v : github_com.xiang90
  by
   solve_pointsto_access_struct
 
-noncomputable instance Out_access_store_Unknown (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.Out) (y : Bool) :
+noncomputable instance access_store'Out'Unknown (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.Out) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.Out go!"Unknown" l) v.Unknown' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.Out go!"Unknown" l) y (DFrac.own 1))
@@ -58,7 +58,7 @@ noncomputable instance Out_access_store_Unknown (l : Loc) (v : github_com.xiang9
  by
   solve_pointsto_access_struct
 
-noncomputable instance Out_access_load_V (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.Out) (dq : DFrac) :
+noncomputable instance access_load'Out'V (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.Out) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.Out go!"V" l) v.V' dq)
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.Out go!"V" l) v.V' dq)
@@ -66,7 +66,7 @@ noncomputable instance Out_access_load_V (l : Loc) (v : github_com.xiang90.paxos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Out_access_store_V (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.Out) (y : GoString) :
+noncomputable instance access_store'Out'V (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.Out) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.Out go!"V" l) v.V' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.Out go!"V" l) y (DFrac.own 1))
@@ -85,7 +85,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.xiang90.paxos.examples.paxosnet.Assumptions]
 
-noncomputable instance State_typed_pointsto :
+noncomputable instance typed_pointsto'State :
     TypedPointsto (GF := GF) github_com.xiang90.paxos.examples.paxosnet.State where
   typedPointstoDef l v dq := iprop(
     "Known" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.State go!"Known" l) v.Known' dq ∗
@@ -96,11 +96,11 @@ noncomputable instance State_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance State_into_val_typed :
+noncomputable instance into_val_typed'State :
     IntoValTypedUnderlying (GF := GF) github_com.xiang90.paxos.examples.paxosnet.State github_com.xiang90.paxos.examples.paxosnet.State.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance State_access_load_Known (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.State) (dq : DFrac) :
+noncomputable instance access_load'State'Known (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.State) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.State go!"Known" l) v.Known' dq)
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.State go!"Known" l) v.Known' dq)
@@ -108,7 +108,7 @@ noncomputable instance State_access_load_Known (l : Loc) (v : github_com.xiang90
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Known (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.State) (y : Bool) :
+noncomputable instance access_store'State'Known (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.State) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.State go!"Known" l) v.Known' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.State go!"Known" l) y (DFrac.own 1))
@@ -116,7 +116,7 @@ noncomputable instance State_access_store_Known (l : Loc) (v : github_com.xiang9
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_load_Val (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.State) (dq : DFrac) :
+noncomputable instance access_load'State'Val (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.State) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.State go!"Val" l) v.Val' dq)
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.State go!"Val" l) v.Val' dq)
@@ -124,7 +124,7 @@ noncomputable instance State_access_load_Val (l : Loc) (v : github_com.xiang90.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Val (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.State) (y : GoString) :
+noncomputable instance access_store'State'Val (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.State) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.State go!"Val" l) v.Val' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.State go!"Val" l) y (DFrac.own 1))
@@ -132,7 +132,7 @@ noncomputable instance State_access_store_Val (l : Loc) (v : github_com.xiang90.
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_load_Pend (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.State) (dq : DFrac) :
+noncomputable instance access_load'State'Pend (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.State) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.State go!"Pend" l) v.Pend' dq)
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.State go!"Pend" l) v.Pend' dq)
@@ -140,7 +140,7 @@ noncomputable instance State_access_load_Pend (l : Loc) (v : github_com.xiang90.
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Pend (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.State) (y : GoSlice) :
+noncomputable instance access_store'State'Pend (l : Loc) (v : github_com.xiang90.paxos.examples.paxosnet.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.State go!"Pend" l) v.Pend' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.xiang90.paxos.examples.paxosnet.State go!"Pend" l) y (DFrac.own 1))

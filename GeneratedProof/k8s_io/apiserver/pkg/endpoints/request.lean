@@ -25,11 +25,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.endpoints.request.Assumptions]
 
-noncomputable instance LongRunningRequestCheck_typed_pointsto :
+noncomputable instance typed_pointsto'LongRunningRequestCheck :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.endpoints.request.LongRunningRequestCheck :=
   sorry -- axiomatized type
 
-noncomputable instance LongRunningRequestCheck_into_val_typed :
+noncomputable instance into_val_typed'LongRunningRequestCheck :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.endpoints.request.LongRunningRequestCheck k8s_io.apiserver.pkg.endpoints.request.LongRunningRequestCheck.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +44,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.endpoints.request.Assumptions]
 
-noncomputable instance RequestInfoResolver_typed_pointsto :
+noncomputable instance typed_pointsto'RequestInfoResolver :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.endpoints.request.RequestInfoResolver :=
   sorry -- axiomatized type
 
-noncomputable instance RequestInfoResolver_into_val_typed :
+noncomputable instance into_val_typed'RequestInfoResolver :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.endpoints.request.RequestInfoResolver k8s_io.apiserver.pkg.endpoints.request.RequestInfoResolver.underlying :=
   sorry -- axiomatized type
 
@@ -63,7 +63,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.endpoints.request.Assumptions]
 
-noncomputable instance RequestInfo_typed_pointsto :
+noncomputable instance typed_pointsto'RequestInfo :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.endpoints.request.RequestInfo where
   typedPointstoDef l v dq := iprop(
     "IsResourceRequest" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"IsResourceRequest" l) v.IsResourceRequest' dq ∗
@@ -84,11 +84,11 @@ noncomputable instance RequestInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance RequestInfo_into_val_typed :
+noncomputable instance into_val_typed'RequestInfo :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.endpoints.request.RequestInfo k8s_io.apiserver.pkg.endpoints.request.RequestInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance RequestInfo_access_load_IsResourceRequest (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
+noncomputable instance access_load'RequestInfo'IsResourceRequest (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"IsResourceRequest" l) v.IsResourceRequest' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"IsResourceRequest" l) v.IsResourceRequest' dq)
@@ -96,7 +96,7 @@ noncomputable instance RequestInfo_access_load_IsResourceRequest (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_store_IsResourceRequest (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : Bool) :
+noncomputable instance access_store'RequestInfo'IsResourceRequest (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"IsResourceRequest" l) v.IsResourceRequest' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"IsResourceRequest" l) y (DFrac.own 1))
@@ -104,7 +104,7 @@ noncomputable instance RequestInfo_access_store_IsResourceRequest (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_load_Path (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
+noncomputable instance access_load'RequestInfo'Path (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Path" l) v.Path' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Path" l) v.Path' dq)
@@ -112,7 +112,7 @@ noncomputable instance RequestInfo_access_load_Path (l : Loc) (v : k8s_io.apiser
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_store_Path (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
+noncomputable instance access_store'RequestInfo'Path (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Path" l) v.Path' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Path" l) y (DFrac.own 1))
@@ -120,7 +120,7 @@ noncomputable instance RequestInfo_access_store_Path (l : Loc) (v : k8s_io.apise
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_load_Verb (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
+noncomputable instance access_load'RequestInfo'Verb (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Verb" l) v.Verb' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Verb" l) v.Verb' dq)
@@ -128,7 +128,7 @@ noncomputable instance RequestInfo_access_load_Verb (l : Loc) (v : k8s_io.apiser
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_store_Verb (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
+noncomputable instance access_store'RequestInfo'Verb (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Verb" l) v.Verb' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Verb" l) y (DFrac.own 1))
@@ -136,7 +136,7 @@ noncomputable instance RequestInfo_access_store_Verb (l : Loc) (v : k8s_io.apise
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_load_APIPrefix (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
+noncomputable instance access_load'RequestInfo'APIPrefix (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"APIPrefix" l) v.APIPrefix' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"APIPrefix" l) v.APIPrefix' dq)
@@ -144,7 +144,7 @@ noncomputable instance RequestInfo_access_load_APIPrefix (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_store_APIPrefix (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
+noncomputable instance access_store'RequestInfo'APIPrefix (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"APIPrefix" l) v.APIPrefix' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"APIPrefix" l) y (DFrac.own 1))
@@ -152,7 +152,7 @@ noncomputable instance RequestInfo_access_store_APIPrefix (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_load_APIGroup (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
+noncomputable instance access_load'RequestInfo'APIGroup (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"APIGroup" l) v.APIGroup' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"APIGroup" l) v.APIGroup' dq)
@@ -160,7 +160,7 @@ noncomputable instance RequestInfo_access_load_APIGroup (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_store_APIGroup (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
+noncomputable instance access_store'RequestInfo'APIGroup (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"APIGroup" l) v.APIGroup' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"APIGroup" l) y (DFrac.own 1))
@@ -168,7 +168,7 @@ noncomputable instance RequestInfo_access_store_APIGroup (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_load_APIVersion (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
+noncomputable instance access_load'RequestInfo'APIVersion (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"APIVersion" l) v.APIVersion' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"APIVersion" l) v.APIVersion' dq)
@@ -176,7 +176,7 @@ noncomputable instance RequestInfo_access_load_APIVersion (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_store_APIVersion (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
+noncomputable instance access_store'RequestInfo'APIVersion (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"APIVersion" l) v.APIVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"APIVersion" l) y (DFrac.own 1))
@@ -184,7 +184,7 @@ noncomputable instance RequestInfo_access_store_APIVersion (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_load_Namespace (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
+noncomputable instance access_load'RequestInfo'Namespace (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Namespace" l) v.Namespace' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Namespace" l) v.Namespace' dq)
@@ -192,7 +192,7 @@ noncomputable instance RequestInfo_access_load_Namespace (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_store_Namespace (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
+noncomputable instance access_store'RequestInfo'Namespace (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Namespace" l) v.Namespace' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Namespace" l) y (DFrac.own 1))
@@ -200,7 +200,7 @@ noncomputable instance RequestInfo_access_store_Namespace (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_load_Resource (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
+noncomputable instance access_load'RequestInfo'Resource (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Resource" l) v.Resource' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Resource" l) v.Resource' dq)
@@ -208,7 +208,7 @@ noncomputable instance RequestInfo_access_load_Resource (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_store_Resource (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
+noncomputable instance access_store'RequestInfo'Resource (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Resource" l) v.Resource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Resource" l) y (DFrac.own 1))
@@ -216,7 +216,7 @@ noncomputable instance RequestInfo_access_store_Resource (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_load_Subresource (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
+noncomputable instance access_load'RequestInfo'Subresource (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Subresource" l) v.Subresource' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Subresource" l) v.Subresource' dq)
@@ -224,7 +224,7 @@ noncomputable instance RequestInfo_access_load_Subresource (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_store_Subresource (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
+noncomputable instance access_store'RequestInfo'Subresource (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Subresource" l) v.Subresource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Subresource" l) y (DFrac.own 1))
@@ -232,7 +232,7 @@ noncomputable instance RequestInfo_access_store_Subresource (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_load_Name (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
+noncomputable instance access_load'RequestInfo'Name (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Name" l) v.Name' dq)
@@ -240,7 +240,7 @@ noncomputable instance RequestInfo_access_load_Name (l : Loc) (v : k8s_io.apiser
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_store_Name (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
+noncomputable instance access_store'RequestInfo'Name (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Name" l) y (DFrac.own 1))
@@ -248,7 +248,7 @@ noncomputable instance RequestInfo_access_store_Name (l : Loc) (v : k8s_io.apise
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_load_Parts (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
+noncomputable instance access_load'RequestInfo'Parts (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Parts" l) v.Parts' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Parts" l) v.Parts' dq)
@@ -256,7 +256,7 @@ noncomputable instance RequestInfo_access_load_Parts (l : Loc) (v : k8s_io.apise
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_store_Parts (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoSlice) :
+noncomputable instance access_store'RequestInfo'Parts (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Parts" l) v.Parts' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"Parts" l) y (DFrac.own 1))
@@ -264,7 +264,7 @@ noncomputable instance RequestInfo_access_store_Parts (l : Loc) (v : k8s_io.apis
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_load_FieldSelector (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
+noncomputable instance access_load'RequestInfo'FieldSelector (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"FieldSelector" l) v.FieldSelector' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"FieldSelector" l) v.FieldSelector' dq)
@@ -272,7 +272,7 @@ noncomputable instance RequestInfo_access_load_FieldSelector (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_store_FieldSelector (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
+noncomputable instance access_store'RequestInfo'FieldSelector (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"FieldSelector" l) v.FieldSelector' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"FieldSelector" l) y (DFrac.own 1))
@@ -280,7 +280,7 @@ noncomputable instance RequestInfo_access_store_FieldSelector (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_load_LabelSelector (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
+noncomputable instance access_load'RequestInfo'LabelSelector (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"LabelSelector" l) v.LabelSelector' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"LabelSelector" l) v.LabelSelector' dq)
@@ -288,7 +288,7 @@ noncomputable instance RequestInfo_access_load_LabelSelector (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfo_access_store_LabelSelector (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
+noncomputable instance access_store'RequestInfo'LabelSelector (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"LabelSelector" l) v.LabelSelector' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfo go!"LabelSelector" l) y (DFrac.own 1))
@@ -307,7 +307,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.endpoints.request.Assumptions]
 
-noncomputable instance RequestInfoFactory_typed_pointsto :
+noncomputable instance typed_pointsto'RequestInfoFactory :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory where
   typedPointstoDef l v dq := iprop(
     "APIPrefixes" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"APIPrefixes" l) v.APIPrefixes' dq ∗
@@ -317,11 +317,11 @@ noncomputable instance RequestInfoFactory_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance RequestInfoFactory_into_val_typed :
+noncomputable instance into_val_typed'RequestInfoFactory :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance RequestInfoFactory_access_load_APIPrefixes (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (dq : DFrac) :
+noncomputable instance access_load'RequestInfoFactory'APIPrefixes (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"APIPrefixes" l) v.APIPrefixes' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"APIPrefixes" l) v.APIPrefixes' dq)
@@ -329,7 +329,7 @@ noncomputable instance RequestInfoFactory_access_load_APIPrefixes (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfoFactory_access_store_APIPrefixes (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String) :
+noncomputable instance access_store'RequestInfoFactory'APIPrefixes (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"APIPrefixes" l) v.APIPrefixes' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"APIPrefixes" l) y (DFrac.own 1))
@@ -337,7 +337,7 @@ noncomputable instance RequestInfoFactory_access_store_APIPrefixes (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfoFactory_access_load_GrouplessAPIPrefixes (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (dq : DFrac) :
+noncomputable instance access_load'RequestInfoFactory'GrouplessAPIPrefixes (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"GrouplessAPIPrefixes" l) v.GrouplessAPIPrefixes' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"GrouplessAPIPrefixes" l) v.GrouplessAPIPrefixes' dq)
@@ -345,7 +345,7 @@ noncomputable instance RequestInfoFactory_access_load_GrouplessAPIPrefixes (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfoFactory_access_store_GrouplessAPIPrefixes (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String) :
+noncomputable instance access_store'RequestInfoFactory'GrouplessAPIPrefixes (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"GrouplessAPIPrefixes" l) v.GrouplessAPIPrefixes' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"GrouplessAPIPrefixes" l) y (DFrac.own 1))
@@ -364,11 +364,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.endpoints.request.Assumptions]
 
-noncomputable instance DurationTracker_typed_pointsto :
+noncomputable instance typed_pointsto'DurationTracker :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.endpoints.request.DurationTracker :=
   sorry -- axiomatized type
 
-noncomputable instance DurationTracker_into_val_typed :
+noncomputable instance into_val_typed'DurationTracker :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.endpoints.request.DurationTracker k8s_io.apiserver.pkg.endpoints.request.DurationTracker.underlying :=
   sorry -- axiomatized type
 
@@ -383,11 +383,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.endpoints.request.Assumptions]
 
-noncomputable instance durationTracker_typed_pointsto :
+noncomputable instance typed_pointsto'durationTracker :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.endpoints.request.durationTracker :=
   sorry -- axiomatized type
 
-noncomputable instance durationTracker_into_val_typed :
+noncomputable instance into_val_typed'durationTracker :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.endpoints.request.durationTracker k8s_io.apiserver.pkg.endpoints.request.durationTracker.underlying :=
   sorry -- axiomatized type
 
@@ -402,7 +402,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.endpoints.request.Assumptions]
 
-noncomputable instance LatencyTrackers_typed_pointsto :
+noncomputable instance typed_pointsto'LatencyTrackers :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers where
   typedPointstoDef l v dq := iprop(
     "MutatingWebhookTracker" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"MutatingWebhookTracker" l) v.MutatingWebhookTracker' dq ∗
@@ -421,11 +421,11 @@ noncomputable instance LatencyTrackers_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance LatencyTrackers_into_val_typed :
+noncomputable instance into_val_typed'LatencyTrackers :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance LatencyTrackers_access_load_MutatingWebhookTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
+noncomputable instance access_load'LatencyTrackers'MutatingWebhookTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"MutatingWebhookTracker" l) v.MutatingWebhookTracker' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"MutatingWebhookTracker" l) v.MutatingWebhookTracker' dq)
@@ -433,7 +433,7 @@ noncomputable instance LatencyTrackers_access_load_MutatingWebhookTracker (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_store_MutatingWebhookTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
+noncomputable instance access_store'LatencyTrackers'MutatingWebhookTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"MutatingWebhookTracker" l) v.MutatingWebhookTracker' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"MutatingWebhookTracker" l) y (DFrac.own 1))
@@ -441,7 +441,7 @@ noncomputable instance LatencyTrackers_access_store_MutatingWebhookTracker (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_load_ValidatingWebhookTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
+noncomputable instance access_load'LatencyTrackers'ValidatingWebhookTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"ValidatingWebhookTracker" l) v.ValidatingWebhookTracker' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"ValidatingWebhookTracker" l) v.ValidatingWebhookTracker' dq)
@@ -449,7 +449,7 @@ noncomputable instance LatencyTrackers_access_load_ValidatingWebhookTracker (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_store_ValidatingWebhookTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
+noncomputable instance access_store'LatencyTrackers'ValidatingWebhookTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"ValidatingWebhookTracker" l) v.ValidatingWebhookTracker' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"ValidatingWebhookTracker" l) y (DFrac.own 1))
@@ -457,7 +457,7 @@ noncomputable instance LatencyTrackers_access_store_ValidatingWebhookTracker (l 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_load_AuthenticationTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
+noncomputable instance access_load'LatencyTrackers'AuthenticationTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"AuthenticationTracker" l) v.AuthenticationTracker' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"AuthenticationTracker" l) v.AuthenticationTracker' dq)
@@ -465,7 +465,7 @@ noncomputable instance LatencyTrackers_access_load_AuthenticationTracker (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_store_AuthenticationTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
+noncomputable instance access_store'LatencyTrackers'AuthenticationTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"AuthenticationTracker" l) v.AuthenticationTracker' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"AuthenticationTracker" l) y (DFrac.own 1))
@@ -473,7 +473,7 @@ noncomputable instance LatencyTrackers_access_store_AuthenticationTracker (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_load_AuthorizationTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
+noncomputable instance access_load'LatencyTrackers'AuthorizationTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"AuthorizationTracker" l) v.AuthorizationTracker' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"AuthorizationTracker" l) v.AuthorizationTracker' dq)
@@ -481,7 +481,7 @@ noncomputable instance LatencyTrackers_access_load_AuthorizationTracker (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_store_AuthorizationTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
+noncomputable instance access_store'LatencyTrackers'AuthorizationTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"AuthorizationTracker" l) v.AuthorizationTracker' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"AuthorizationTracker" l) y (DFrac.own 1))
@@ -489,7 +489,7 @@ noncomputable instance LatencyTrackers_access_store_AuthorizationTracker (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_load_APFQueueWaitTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
+noncomputable instance access_load'LatencyTrackers'APFQueueWaitTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"APFQueueWaitTracker" l) v.APFQueueWaitTracker' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"APFQueueWaitTracker" l) v.APFQueueWaitTracker' dq)
@@ -497,7 +497,7 @@ noncomputable instance LatencyTrackers_access_load_APFQueueWaitTracker (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_store_APFQueueWaitTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
+noncomputable instance access_store'LatencyTrackers'APFQueueWaitTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"APFQueueWaitTracker" l) v.APFQueueWaitTracker' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"APFQueueWaitTracker" l) y (DFrac.own 1))
@@ -505,7 +505,7 @@ noncomputable instance LatencyTrackers_access_store_APFQueueWaitTracker (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_load_StorageTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
+noncomputable instance access_load'LatencyTrackers'StorageTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"StorageTracker" l) v.StorageTracker' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"StorageTracker" l) v.StorageTracker' dq)
@@ -513,7 +513,7 @@ noncomputable instance LatencyTrackers_access_load_StorageTracker (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_store_StorageTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
+noncomputable instance access_store'LatencyTrackers'StorageTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"StorageTracker" l) v.StorageTracker' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"StorageTracker" l) y (DFrac.own 1))
@@ -521,7 +521,7 @@ noncomputable instance LatencyTrackers_access_store_StorageTracker (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_load_TransformTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
+noncomputable instance access_load'LatencyTrackers'TransformTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"TransformTracker" l) v.TransformTracker' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"TransformTracker" l) v.TransformTracker' dq)
@@ -529,7 +529,7 @@ noncomputable instance LatencyTrackers_access_load_TransformTracker (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_store_TransformTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
+noncomputable instance access_store'LatencyTrackers'TransformTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"TransformTracker" l) v.TransformTracker' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"TransformTracker" l) y (DFrac.own 1))
@@ -537,7 +537,7 @@ noncomputable instance LatencyTrackers_access_store_TransformTracker (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_load_SerializationTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
+noncomputable instance access_load'LatencyTrackers'SerializationTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"SerializationTracker" l) v.SerializationTracker' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"SerializationTracker" l) v.SerializationTracker' dq)
@@ -545,7 +545,7 @@ noncomputable instance LatencyTrackers_access_load_SerializationTracker (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_store_SerializationTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
+noncomputable instance access_store'LatencyTrackers'SerializationTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"SerializationTracker" l) v.SerializationTracker' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"SerializationTracker" l) y (DFrac.own 1))
@@ -553,7 +553,7 @@ noncomputable instance LatencyTrackers_access_store_SerializationTracker (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_load_ResponseWriteTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
+noncomputable instance access_load'LatencyTrackers'ResponseWriteTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"ResponseWriteTracker" l) v.ResponseWriteTracker' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"ResponseWriteTracker" l) v.ResponseWriteTracker' dq)
@@ -561,7 +561,7 @@ noncomputable instance LatencyTrackers_access_load_ResponseWriteTracker (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_store_ResponseWriteTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
+noncomputable instance access_store'LatencyTrackers'ResponseWriteTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"ResponseWriteTracker" l) v.ResponseWriteTracker' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"ResponseWriteTracker" l) y (DFrac.own 1))
@@ -569,7 +569,7 @@ noncomputable instance LatencyTrackers_access_store_ResponseWriteTracker (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_load_DecodeTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
+noncomputable instance access_load'LatencyTrackers'DecodeTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"DecodeTracker" l) v.DecodeTracker' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"DecodeTracker" l) v.DecodeTracker' dq)
@@ -577,7 +577,7 @@ noncomputable instance LatencyTrackers_access_load_DecodeTracker (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_store_DecodeTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
+noncomputable instance access_store'LatencyTrackers'DecodeTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"DecodeTracker" l) v.DecodeTracker' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"DecodeTracker" l) y (DFrac.own 1))
@@ -585,7 +585,7 @@ noncomputable instance LatencyTrackers_access_store_DecodeTracker (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_load_ImpersonationTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
+noncomputable instance access_load'LatencyTrackers'ImpersonationTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"ImpersonationTracker" l) v.ImpersonationTracker' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"ImpersonationTracker" l) v.ImpersonationTracker' dq)
@@ -593,7 +593,7 @@ noncomputable instance LatencyTrackers_access_load_ImpersonationTracker (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTrackers_access_store_ImpersonationTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
+noncomputable instance access_store'LatencyTrackers'ImpersonationTracker (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers) (y : k8s_io.apiserver.pkg.endpoints.request.DurationTracker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"ImpersonationTracker" l) v.ImpersonationTracker' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.LatencyTrackers go!"ImpersonationTracker" l) y (DFrac.own 1))

@@ -51,7 +51,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-noncomputable instance authApplierV3_typed_pointsto :
+noncomputable instance typed_pointsto'authApplierV3 :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 where
   typedPointstoDef l v dq := iprop(
     "applierV3" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"applierV3" l) v.applierV3' dq ∗
@@ -64,11 +64,11 @@ noncomputable instance authApplierV3_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance authApplierV3_into_val_typed :
+noncomputable instance into_val_typed'authApplierV3 :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance authApplierV3_access_load_applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (dq : DFrac) :
+noncomputable instance access_load'authApplierV3'applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"applierV3" l) v.applierV3' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"applierV3" l) v.applierV3' dq)
@@ -76,7 +76,7 @@ noncomputable instance authApplierV3_access_load_applierV3 (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance authApplierV3_access_store_applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
+noncomputable instance access_store'authApplierV3'applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"applierV3" l) v.applierV3' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"applierV3" l) y (DFrac.own 1))
@@ -84,7 +84,7 @@ noncomputable instance authApplierV3_access_store_applierV3 (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance authApplierV3_access_load_as (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (dq : DFrac) :
+noncomputable instance access_load'authApplierV3'as (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"as" l) v.as' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"as" l) v.as' dq)
@@ -92,7 +92,7 @@ noncomputable instance authApplierV3_access_load_as (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance authApplierV3_access_store_as (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore) :
+noncomputable instance access_store'authApplierV3'as (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"as" l) v.as' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"as" l) y (DFrac.own 1))
@@ -100,7 +100,7 @@ noncomputable instance authApplierV3_access_store_as (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance authApplierV3_access_load_lessor (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (dq : DFrac) :
+noncomputable instance access_load'authApplierV3'lessor (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"lessor" l) v.lessor' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"lessor" l) v.lessor' dq)
@@ -108,7 +108,7 @@ noncomputable instance authApplierV3_access_load_lessor (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance authApplierV3_access_store_lessor (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor) :
+noncomputable instance access_store'authApplierV3'lessor (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"lessor" l) v.lessor' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"lessor" l) y (DFrac.own 1))
@@ -116,7 +116,7 @@ noncomputable instance authApplierV3_access_store_lessor (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance authApplierV3_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (dq : DFrac) :
+noncomputable instance access_load'authApplierV3'mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"mu" l) v.mu' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"mu" l) v.mu' dq)
@@ -124,7 +124,7 @@ noncomputable instance authApplierV3_access_load_mu (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance authApplierV3_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'authApplierV3'mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"mu" l) y (DFrac.own 1))
@@ -132,7 +132,7 @@ noncomputable instance authApplierV3_access_store_mu (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance authApplierV3_access_load_authInfo (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (dq : DFrac) :
+noncomputable instance access_load'authApplierV3'authInfo (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"authInfo" l) v.authInfo' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"authInfo" l) v.authInfo' dq)
@@ -140,7 +140,7 @@ noncomputable instance authApplierV3_access_load_authInfo (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance authApplierV3_access_store_authInfo (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+noncomputable instance access_store'authApplierV3'authInfo (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"authInfo" l) v.authInfo' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"authInfo" l) y (DFrac.own 1))
@@ -159,7 +159,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-noncomputable instance ApplierOptions_typed_pointsto :
+noncomputable instance typed_pointsto'ApplierOptions :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions where
   typedPointstoDef l v dq := iprop(
     "Logger" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Logger" l) v.Logger' dq ∗
@@ -180,11 +180,11 @@ noncomputable instance ApplierOptions_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ApplierOptions_into_val_typed :
+noncomputable instance into_val_typed'ApplierOptions :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ApplierOptions_access_load_Logger (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplierOptions'Logger (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Logger" l) v.Logger' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Logger" l) v.Logger' dq)
@@ -192,7 +192,7 @@ noncomputable instance ApplierOptions_access_load_Logger (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_store_Logger (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : Loc) :
+noncomputable instance access_store'ApplierOptions'Logger (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Logger" l) v.Logger' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Logger" l) y (DFrac.own 1))
@@ -200,7 +200,7 @@ noncomputable instance ApplierOptions_access_store_Logger (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_load_KV (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplierOptions'KV (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"KV" l) v.KV' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"KV" l) v.KV' dq)
@@ -208,7 +208,7 @@ noncomputable instance ApplierOptions_access_load_KV (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_store_KV (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV) :
+noncomputable instance access_store'ApplierOptions'KV (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"KV" l) v.KV' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"KV" l) y (DFrac.own 1))
@@ -216,7 +216,7 @@ noncomputable instance ApplierOptions_access_store_KV (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_load_AlarmStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplierOptions'AlarmStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AlarmStore" l) v.AlarmStore' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AlarmStore" l) v.AlarmStore' dq)
@@ -224,7 +224,7 @@ noncomputable instance ApplierOptions_access_load_AlarmStore (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_store_AlarmStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : Loc) :
+noncomputable instance access_store'ApplierOptions'AlarmStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AlarmStore" l) v.AlarmStore' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AlarmStore" l) y (DFrac.own 1))
@@ -232,7 +232,7 @@ noncomputable instance ApplierOptions_access_store_AlarmStore (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_load_AuthStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplierOptions'AuthStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AuthStore" l) v.AuthStore' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AuthStore" l) v.AuthStore' dq)
@@ -240,7 +240,7 @@ noncomputable instance ApplierOptions_access_load_AuthStore (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_store_AuthStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore) :
+noncomputable instance access_store'ApplierOptions'AuthStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AuthStore" l) v.AuthStore' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AuthStore" l) y (DFrac.own 1))
@@ -248,7 +248,7 @@ noncomputable instance ApplierOptions_access_store_AuthStore (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_load_Lessor (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplierOptions'Lessor (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Lessor" l) v.Lessor' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Lessor" l) v.Lessor' dq)
@@ -256,7 +256,7 @@ noncomputable instance ApplierOptions_access_load_Lessor (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_store_Lessor (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor) :
+noncomputable instance access_store'ApplierOptions'Lessor (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Lessor" l) v.Lessor' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Lessor" l) y (DFrac.own 1))
@@ -264,7 +264,7 @@ noncomputable instance ApplierOptions_access_store_Lessor (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_load_Cluster (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplierOptions'Cluster (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Cluster" l) v.Cluster' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Cluster" l) v.Cluster' dq)
@@ -272,7 +272,7 @@ noncomputable instance ApplierOptions_access_load_Cluster (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_store_Cluster (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : Loc) :
+noncomputable instance access_store'ApplierOptions'Cluster (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Cluster" l) v.Cluster' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Cluster" l) y (DFrac.own 1))
@@ -280,7 +280,7 @@ noncomputable instance ApplierOptions_access_store_Cluster (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_load_RaftStatus (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplierOptions'RaftStatus (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"RaftStatus" l) v.RaftStatus' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"RaftStatus" l) v.RaftStatus' dq)
@@ -288,7 +288,7 @@ noncomputable instance ApplierOptions_access_load_RaftStatus (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_store_RaftStatus (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter) :
+noncomputable instance access_store'ApplierOptions'RaftStatus (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"RaftStatus" l) v.RaftStatus' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"RaftStatus" l) y (DFrac.own 1))
@@ -296,7 +296,7 @@ noncomputable instance ApplierOptions_access_store_RaftStatus (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_load_SnapshotServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplierOptions'SnapshotServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"SnapshotServer" l) v.SnapshotServer' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"SnapshotServer" l) v.SnapshotServer' dq)
@@ -304,7 +304,7 @@ noncomputable instance ApplierOptions_access_load_SnapshotServer (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_store_SnapshotServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.SnapshotServer) :
+noncomputable instance access_store'ApplierOptions'SnapshotServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.SnapshotServer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"SnapshotServer" l) v.SnapshotServer' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"SnapshotServer" l) y (DFrac.own 1))
@@ -312,7 +312,7 @@ noncomputable instance ApplierOptions_access_store_SnapshotServer (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_load_ConsistentIndex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplierOptions'ConsistentIndex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"ConsistentIndex" l) v.ConsistentIndex' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"ConsistentIndex" l) v.ConsistentIndex' dq)
@@ -320,7 +320,7 @@ noncomputable instance ApplierOptions_access_load_ConsistentIndex (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_store_ConsistentIndex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer) :
+noncomputable instance access_store'ApplierOptions'ConsistentIndex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"ConsistentIndex" l) v.ConsistentIndex' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"ConsistentIndex" l) y (DFrac.own 1))
@@ -328,7 +328,7 @@ noncomputable instance ApplierOptions_access_store_ConsistentIndex (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_load_TxnModeWriteWithSharedBuffer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplierOptions'TxnModeWriteWithSharedBuffer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"TxnModeWriteWithSharedBuffer" l) v.TxnModeWriteWithSharedBuffer' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"TxnModeWriteWithSharedBuffer" l) v.TxnModeWriteWithSharedBuffer' dq)
@@ -336,7 +336,7 @@ noncomputable instance ApplierOptions_access_load_TxnModeWriteWithSharedBuffer (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_store_TxnModeWriteWithSharedBuffer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : Bool) :
+noncomputable instance access_store'ApplierOptions'TxnModeWriteWithSharedBuffer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"TxnModeWriteWithSharedBuffer" l) v.TxnModeWriteWithSharedBuffer' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"TxnModeWriteWithSharedBuffer" l) y (DFrac.own 1))
@@ -344,7 +344,7 @@ noncomputable instance ApplierOptions_access_store_TxnModeWriteWithSharedBuffer 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_load_Backend (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplierOptions'Backend (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Backend" l) v.Backend' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Backend" l) v.Backend' dq)
@@ -352,7 +352,7 @@ noncomputable instance ApplierOptions_access_load_Backend (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_store_Backend (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend) :
+noncomputable instance access_store'ApplierOptions'Backend (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Backend" l) v.Backend' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Backend" l) y (DFrac.own 1))
@@ -360,7 +360,7 @@ noncomputable instance ApplierOptions_access_store_Backend (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_load_QuotaBackendBytesCfg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplierOptions'QuotaBackendBytesCfg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"QuotaBackendBytesCfg" l) v.QuotaBackendBytesCfg' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"QuotaBackendBytesCfg" l) v.QuotaBackendBytesCfg' dq)
@@ -368,7 +368,7 @@ noncomputable instance ApplierOptions_access_load_QuotaBackendBytesCfg (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_store_QuotaBackendBytesCfg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : w64) :
+noncomputable instance access_store'ApplierOptions'QuotaBackendBytesCfg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"QuotaBackendBytesCfg" l) v.QuotaBackendBytesCfg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"QuotaBackendBytesCfg" l) y (DFrac.own 1))
@@ -376,7 +376,7 @@ noncomputable instance ApplierOptions_access_store_QuotaBackendBytesCfg (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_load_WarningApplyDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplierOptions'WarningApplyDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"WarningApplyDuration" l) v.WarningApplyDuration' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"WarningApplyDuration" l) v.WarningApplyDuration' dq)
@@ -384,7 +384,7 @@ noncomputable instance ApplierOptions_access_load_WarningApplyDuration (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance ApplierOptions_access_store_WarningApplyDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'ApplierOptions'WarningApplyDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"WarningApplyDuration" l) v.WarningApplyDuration' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"WarningApplyDuration" l) y (DFrac.own 1))
@@ -403,7 +403,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-noncomputable instance applierV3backend_typed_pointsto :
+noncomputable instance typed_pointsto'applierV3backend :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend where
   typedPointstoDef l v dq := iprop(
     "options" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend go!"options" l) v.options' dq ∗
@@ -412,11 +412,11 @@ noncomputable instance applierV3backend_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance applierV3backend_into_val_typed :
+noncomputable instance into_val_typed'applierV3backend :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance applierV3backend_access_load_options (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend) (dq : DFrac) :
+noncomputable instance access_load'applierV3backend'options (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend go!"options" l) v.options' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend go!"options" l) v.options' dq)
@@ -424,7 +424,7 @@ noncomputable instance applierV3backend_access_load_options (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance applierV3backend_access_store_options (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) :
+noncomputable instance access_store'applierV3backend'options (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend go!"options" l) v.options' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend go!"options" l) y (DFrac.own 1))
@@ -443,7 +443,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-noncomputable instance applierV3Capped_typed_pointsto :
+noncomputable instance typed_pointsto'applierV3Capped :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped where
   typedPointstoDef l v dq := iprop(
     "applierV3" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"applierV3" l) v.applierV3' dq ∗
@@ -453,11 +453,11 @@ noncomputable instance applierV3Capped_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance applierV3Capped_into_val_typed :
+noncomputable instance into_val_typed'applierV3Capped :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance applierV3Capped_access_load_applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped) (dq : DFrac) :
+noncomputable instance access_load'applierV3Capped'applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"applierV3" l) v.applierV3' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"applierV3" l) v.applierV3' dq)
@@ -465,7 +465,7 @@ noncomputable instance applierV3Capped_access_load_applierV3 (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance applierV3Capped_access_store_applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
+noncomputable instance access_store'applierV3Capped'applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"applierV3" l) v.applierV3' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"applierV3" l) y (DFrac.own 1))
@@ -473,7 +473,7 @@ noncomputable instance applierV3Capped_access_store_applierV3 (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance applierV3Capped_access_load_q (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped) (dq : DFrac) :
+noncomputable instance access_load'applierV3Capped'q (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"q" l) v.q' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"q" l) v.q' dq)
@@ -481,7 +481,7 @@ noncomputable instance applierV3Capped_access_load_q (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance applierV3Capped_access_store_q (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.BackendQuota) :
+noncomputable instance access_store'applierV3Capped'q (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.BackendQuota) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"q" l) v.q' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"q" l) y (DFrac.own 1))
@@ -500,7 +500,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-noncomputable instance applierV3Corrupt_typed_pointsto :
+noncomputable instance typed_pointsto'applierV3Corrupt :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt where
   typedPointstoDef l v dq := iprop(
     "applierV3" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt go!"applierV3" l) v.applierV3' dq ∗
@@ -509,11 +509,11 @@ noncomputable instance applierV3Corrupt_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance applierV3Corrupt_into_val_typed :
+noncomputable instance into_val_typed'applierV3Corrupt :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance applierV3Corrupt_access_load_applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt) (dq : DFrac) :
+noncomputable instance access_load'applierV3Corrupt'applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt go!"applierV3" l) v.applierV3' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt go!"applierV3" l) v.applierV3' dq)
@@ -521,7 +521,7 @@ noncomputable instance applierV3Corrupt_access_load_applierV3 (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance applierV3Corrupt_access_store_applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
+noncomputable instance access_store'applierV3Corrupt'applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt go!"applierV3" l) v.applierV3' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt go!"applierV3" l) y (DFrac.own 1))
@@ -540,7 +540,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-noncomputable instance InternalRaftRequestWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'InternalRaftRequestWrapper :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper where
   typedPointstoDef l v dq := iprop(
     "InternalRaftRequest" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"InternalRaftRequest" l) v.InternalRaftRequest' dq ∗
@@ -550,11 +550,11 @@ noncomputable instance InternalRaftRequestWrapper_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance InternalRaftRequestWrapper_into_val_typed :
+noncomputable instance into_val_typed'InternalRaftRequestWrapper :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance InternalRaftRequestWrapper_access_load_InternalRaftRequest (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequestWrapper'InternalRaftRequest (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"InternalRaftRequest" l) v.InternalRaftRequest' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"InternalRaftRequest" l) v.InternalRaftRequest' dq)
@@ -562,7 +562,7 @@ noncomputable instance InternalRaftRequestWrapper_access_load_InternalRaftReques
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequestWrapper_access_store_InternalRaftRequest (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper) (y : Loc) :
+noncomputable instance access_store'InternalRaftRequestWrapper'InternalRaftRequest (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"InternalRaftRequest" l) v.InternalRaftRequest' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"InternalRaftRequest" l) y (DFrac.own 1))
@@ -570,7 +570,7 @@ noncomputable instance InternalRaftRequestWrapper_access_store_InternalRaftReque
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequestWrapper_access_load_SkipRangeExecution (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper) (dq : DFrac) :
+noncomputable instance access_load'InternalRaftRequestWrapper'SkipRangeExecution (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"SkipRangeExecution" l) v.SkipRangeExecution' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"SkipRangeExecution" l) v.SkipRangeExecution' dq)
@@ -578,7 +578,7 @@ noncomputable instance InternalRaftRequestWrapper_access_load_SkipRangeExecution
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequestWrapper_access_store_SkipRangeExecution (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper) (y : Bool) :
+noncomputable instance access_store'InternalRaftRequestWrapper'SkipRangeExecution (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"SkipRangeExecution" l) v.SkipRangeExecution' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"SkipRangeExecution" l) y (DFrac.own 1))
@@ -597,7 +597,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-noncomputable instance Result_typed_pointsto :
+noncomputable instance typed_pointsto'Result :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.Result where
   typedPointstoDef l v dq := iprop(
     "Resp" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Resp" l) v.Resp' dq ∗
@@ -609,11 +609,11 @@ noncomputable instance Result_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Result_into_val_typed :
+noncomputable instance into_val_typed'Result :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.Result go_etcd_io.etcd.server.v3.etcdserver.apply.Result.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Result_access_load_Resp (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (dq : DFrac) :
+noncomputable instance access_load'Result'Resp (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Resp" l) v.Resp' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Resp" l) v.Resp' dq)
@@ -621,7 +621,7 @@ noncomputable instance Result_access_load_Resp (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Result_access_store_Resp (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (y : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.ProtoMessage) :
+noncomputable instance access_store'Result'Resp (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (y : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.ProtoMessage) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Resp" l) v.Resp' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Resp" l) y (DFrac.own 1))
@@ -629,7 +629,7 @@ noncomputable instance Result_access_store_Resp (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Result_access_load_Err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (dq : DFrac) :
+noncomputable instance access_load'Result'Err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" l) v.Err' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" l) v.Err' dq)
@@ -637,7 +637,7 @@ noncomputable instance Result_access_load_Err (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance Result_access_store_Err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (y : GoError) :
+noncomputable instance access_store'Result'Err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" l) v.Err' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" l) y (DFrac.own 1))
@@ -645,7 +645,7 @@ noncomputable instance Result_access_store_Err (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Result_access_load_Physc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (dq : DFrac) :
+noncomputable instance access_load'Result'Physc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Physc" l) v.Physc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Physc" l) v.Physc' dq)
@@ -653,7 +653,7 @@ noncomputable instance Result_access_load_Physc (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Result_access_store_Physc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (y : GoChan) :
+noncomputable instance access_store'Result'Physc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Physc" l) v.Physc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Physc" l) y (DFrac.own 1))
@@ -661,7 +661,7 @@ noncomputable instance Result_access_store_Physc (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Result_access_load_Trace (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (dq : DFrac) :
+noncomputable instance access_load'Result'Trace (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Trace" l) v.Trace' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Trace" l) v.Trace' dq)
@@ -669,7 +669,7 @@ noncomputable instance Result_access_load_Trace (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Result_access_store_Trace (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (y : Loc) :
+noncomputable instance access_store'Result'Trace (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Trace" l) v.Trace' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Trace" l) y (DFrac.own 1))
@@ -688,7 +688,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-noncomputable instance quotaApplierV3_typed_pointsto :
+noncomputable instance typed_pointsto'quotaApplierV3 :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 where
   typedPointstoDef l v dq := iprop(
     "applierV3" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"applierV3" l) v.applierV3' dq ∗
@@ -698,11 +698,11 @@ noncomputable instance quotaApplierV3_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance quotaApplierV3_into_val_typed :
+noncomputable instance into_val_typed'quotaApplierV3 :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance quotaApplierV3_access_load_applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3) (dq : DFrac) :
+noncomputable instance access_load'quotaApplierV3'applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"applierV3" l) v.applierV3' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"applierV3" l) v.applierV3' dq)
@@ -710,7 +710,7 @@ noncomputable instance quotaApplierV3_access_load_applierV3 (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance quotaApplierV3_access_store_applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
+noncomputable instance access_store'quotaApplierV3'applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"applierV3" l) v.applierV3' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"applierV3" l) y (DFrac.own 1))
@@ -718,7 +718,7 @@ noncomputable instance quotaApplierV3_access_store_applierV3 (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance quotaApplierV3_access_load_q (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3) (dq : DFrac) :
+noncomputable instance access_load'quotaApplierV3'q (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"q" l) v.q' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"q" l) v.q' dq)
@@ -726,7 +726,7 @@ noncomputable instance quotaApplierV3_access_load_q (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance quotaApplierV3_access_store_q (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota) :
+noncomputable instance access_store'quotaApplierV3'q (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"q" l) v.q' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"q" l) y (DFrac.own 1))
@@ -745,7 +745,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-noncomputable instance uberApplier_typed_pointsto :
+noncomputable instance typed_pointsto'uberApplier :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier where
   typedPointstoDef l v dq := iprop(
     "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"lg" l) v.lg' dq ∗
@@ -758,11 +758,11 @@ noncomputable instance uberApplier_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance uberApplier_into_val_typed :
+noncomputable instance into_val_typed'uberApplier :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance uberApplier_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (dq : DFrac) :
+noncomputable instance access_load'uberApplier'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"lg" l) v.lg' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"lg" l) v.lg' dq)
@@ -770,7 +770,7 @@ noncomputable instance uberApplier_access_load_lg (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance uberApplier_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (y : Loc) :
+noncomputable instance access_store'uberApplier'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"lg" l) v.lg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"lg" l) y (DFrac.own 1))
@@ -778,7 +778,7 @@ noncomputable instance uberApplier_access_store_lg (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance uberApplier_access_load_alarmStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (dq : DFrac) :
+noncomputable instance access_load'uberApplier'alarmStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"alarmStore" l) v.alarmStore' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"alarmStore" l) v.alarmStore' dq)
@@ -786,7 +786,7 @@ noncomputable instance uberApplier_access_load_alarmStore (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance uberApplier_access_store_alarmStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (y : Loc) :
+noncomputable instance access_store'uberApplier'alarmStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"alarmStore" l) v.alarmStore' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"alarmStore" l) y (DFrac.own 1))
@@ -794,7 +794,7 @@ noncomputable instance uberApplier_access_store_alarmStore (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance uberApplier_access_load_warningApplyDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (dq : DFrac) :
+noncomputable instance access_load'uberApplier'warningApplyDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"warningApplyDuration" l) v.warningApplyDuration' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"warningApplyDuration" l) v.warningApplyDuration' dq)
@@ -802,7 +802,7 @@ noncomputable instance uberApplier_access_load_warningApplyDuration (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance uberApplier_access_store_warningApplyDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'uberApplier'warningApplyDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"warningApplyDuration" l) v.warningApplyDuration' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"warningApplyDuration" l) y (DFrac.own 1))
@@ -810,7 +810,7 @@ noncomputable instance uberApplier_access_store_warningApplyDuration (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance uberApplier_access_load_applyV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (dq : DFrac) :
+noncomputable instance access_load'uberApplier'applyV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3" l) v.applyV3' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3" l) v.applyV3' dq)
@@ -818,7 +818,7 @@ noncomputable instance uberApplier_access_load_applyV3 (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance uberApplier_access_store_applyV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
+noncomputable instance access_store'uberApplier'applyV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3" l) v.applyV3' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3" l) y (DFrac.own 1))
@@ -826,7 +826,7 @@ noncomputable instance uberApplier_access_store_applyV3 (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance uberApplier_access_load_applyV3base (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (dq : DFrac) :
+noncomputable instance access_load'uberApplier'applyV3base (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3base" l) v.applyV3base' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3base" l) v.applyV3base' dq)
@@ -834,7 +834,7 @@ noncomputable instance uberApplier_access_load_applyV3base (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance uberApplier_access_store_applyV3base (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
+noncomputable instance access_store'uberApplier'applyV3base (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (y : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3base" l) v.applyV3base' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3base" l) y (DFrac.own 1))

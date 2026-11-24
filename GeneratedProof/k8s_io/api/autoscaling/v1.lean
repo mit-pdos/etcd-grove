@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance CrossVersionObjectReference_typed_pointsto :
+noncomputable instance typed_pointsto'CrossVersionObjectReference :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.CrossVersionObjectReference :=
   sorry -- axiomatized type
 
-noncomputable instance CrossVersionObjectReference_into_val_typed :
+noncomputable instance into_val_typed'CrossVersionObjectReference :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.CrossVersionObjectReference k8s_io.api.autoscaling.v1.CrossVersionObjectReference.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance HorizontalPodAutoscalerSpec_typed_pointsto :
+noncomputable instance typed_pointsto'HorizontalPodAutoscalerSpec :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.HorizontalPodAutoscalerSpec :=
   sorry -- axiomatized type
 
-noncomputable instance HorizontalPodAutoscalerSpec_into_val_typed :
+noncomputable instance into_val_typed'HorizontalPodAutoscalerSpec :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.HorizontalPodAutoscalerSpec k8s_io.api.autoscaling.v1.HorizontalPodAutoscalerSpec.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance HorizontalPodAutoscalerStatus_typed_pointsto :
+noncomputable instance typed_pointsto'HorizontalPodAutoscalerStatus :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.HorizontalPodAutoscalerStatus :=
   sorry -- axiomatized type
 
-noncomputable instance HorizontalPodAutoscalerStatus_into_val_typed :
+noncomputable instance into_val_typed'HorizontalPodAutoscalerStatus :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.HorizontalPodAutoscalerStatus k8s_io.api.autoscaling.v1.HorizontalPodAutoscalerStatus.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance HorizontalPodAutoscaler_typed_pointsto :
+noncomputable instance typed_pointsto'HorizontalPodAutoscaler :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.HorizontalPodAutoscaler :=
   sorry -- axiomatized type
 
-noncomputable instance HorizontalPodAutoscaler_into_val_typed :
+noncomputable instance into_val_typed'HorizontalPodAutoscaler :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.HorizontalPodAutoscaler k8s_io.api.autoscaling.v1.HorizontalPodAutoscaler.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance HorizontalPodAutoscalerList_typed_pointsto :
+noncomputable instance typed_pointsto'HorizontalPodAutoscalerList :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.HorizontalPodAutoscalerList :=
   sorry -- axiomatized type
 
-noncomputable instance HorizontalPodAutoscalerList_into_val_typed :
+noncomputable instance into_val_typed'HorizontalPodAutoscalerList :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.HorizontalPodAutoscalerList k8s_io.api.autoscaling.v1.HorizontalPodAutoscalerList.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance Scale_typed_pointsto :
+noncomputable instance typed_pointsto'Scale :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.Scale :=
   sorry -- axiomatized type
 
-noncomputable instance Scale_into_val_typed :
+noncomputable instance into_val_typed'Scale :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.Scale k8s_io.api.autoscaling.v1.Scale.underlying :=
   sorry -- axiomatized type
 
@@ -138,11 +138,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance ScaleSpec_typed_pointsto :
+noncomputable instance typed_pointsto'ScaleSpec :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.ScaleSpec :=
   sorry -- axiomatized type
 
-noncomputable instance ScaleSpec_into_val_typed :
+noncomputable instance into_val_typed'ScaleSpec :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.ScaleSpec k8s_io.api.autoscaling.v1.ScaleSpec.underlying :=
   sorry -- axiomatized type
 
@@ -157,11 +157,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance ScaleStatus_typed_pointsto :
+noncomputable instance typed_pointsto'ScaleStatus :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.ScaleStatus :=
   sorry -- axiomatized type
 
-noncomputable instance ScaleStatus_into_val_typed :
+noncomputable instance into_val_typed'ScaleStatus :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.ScaleStatus k8s_io.api.autoscaling.v1.ScaleStatus.underlying :=
   sorry -- axiomatized type
 
@@ -176,11 +176,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance MetricSourceType_typed_pointsto :
+noncomputable instance typed_pointsto'MetricSourceType :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.MetricSourceType :=
   sorry -- axiomatized type
 
-noncomputable instance MetricSourceType_into_val_typed :
+noncomputable instance into_val_typed'MetricSourceType :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.MetricSourceType k8s_io.api.autoscaling.v1.MetricSourceType.underlying :=
   sorry -- axiomatized type
 
@@ -195,11 +195,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance MetricSpec_typed_pointsto :
+noncomputable instance typed_pointsto'MetricSpec :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.MetricSpec :=
   sorry -- axiomatized type
 
-noncomputable instance MetricSpec_into_val_typed :
+noncomputable instance into_val_typed'MetricSpec :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.MetricSpec k8s_io.api.autoscaling.v1.MetricSpec.underlying :=
   sorry -- axiomatized type
 
@@ -214,11 +214,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance ObjectMetricSource_typed_pointsto :
+noncomputable instance typed_pointsto'ObjectMetricSource :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.ObjectMetricSource :=
   sorry -- axiomatized type
 
-noncomputable instance ObjectMetricSource_into_val_typed :
+noncomputable instance into_val_typed'ObjectMetricSource :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.ObjectMetricSource k8s_io.api.autoscaling.v1.ObjectMetricSource.underlying :=
   sorry -- axiomatized type
 
@@ -233,11 +233,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance PodsMetricSource_typed_pointsto :
+noncomputable instance typed_pointsto'PodsMetricSource :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.PodsMetricSource :=
   sorry -- axiomatized type
 
-noncomputable instance PodsMetricSource_into_val_typed :
+noncomputable instance into_val_typed'PodsMetricSource :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.PodsMetricSource k8s_io.api.autoscaling.v1.PodsMetricSource.underlying :=
   sorry -- axiomatized type
 
@@ -252,11 +252,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance ResourceMetricSource_typed_pointsto :
+noncomputable instance typed_pointsto'ResourceMetricSource :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.ResourceMetricSource :=
   sorry -- axiomatized type
 
-noncomputable instance ResourceMetricSource_into_val_typed :
+noncomputable instance into_val_typed'ResourceMetricSource :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.ResourceMetricSource k8s_io.api.autoscaling.v1.ResourceMetricSource.underlying :=
   sorry -- axiomatized type
 
@@ -271,11 +271,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance ContainerResourceMetricSource_typed_pointsto :
+noncomputable instance typed_pointsto'ContainerResourceMetricSource :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.ContainerResourceMetricSource :=
   sorry -- axiomatized type
 
-noncomputable instance ContainerResourceMetricSource_into_val_typed :
+noncomputable instance into_val_typed'ContainerResourceMetricSource :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.ContainerResourceMetricSource k8s_io.api.autoscaling.v1.ContainerResourceMetricSource.underlying :=
   sorry -- axiomatized type
 
@@ -290,11 +290,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance ExternalMetricSource_typed_pointsto :
+noncomputable instance typed_pointsto'ExternalMetricSource :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.ExternalMetricSource :=
   sorry -- axiomatized type
 
-noncomputable instance ExternalMetricSource_into_val_typed :
+noncomputable instance into_val_typed'ExternalMetricSource :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.ExternalMetricSource k8s_io.api.autoscaling.v1.ExternalMetricSource.underlying :=
   sorry -- axiomatized type
 
@@ -309,11 +309,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance MetricStatus_typed_pointsto :
+noncomputable instance typed_pointsto'MetricStatus :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.MetricStatus :=
   sorry -- axiomatized type
 
-noncomputable instance MetricStatus_into_val_typed :
+noncomputable instance into_val_typed'MetricStatus :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.MetricStatus k8s_io.api.autoscaling.v1.MetricStatus.underlying :=
   sorry -- axiomatized type
 
@@ -328,11 +328,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance HorizontalPodAutoscalerConditionType_typed_pointsto :
+noncomputable instance typed_pointsto'HorizontalPodAutoscalerConditionType :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.HorizontalPodAutoscalerConditionType :=
   sorry -- axiomatized type
 
-noncomputable instance HorizontalPodAutoscalerConditionType_into_val_typed :
+noncomputable instance into_val_typed'HorizontalPodAutoscalerConditionType :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.HorizontalPodAutoscalerConditionType k8s_io.api.autoscaling.v1.HorizontalPodAutoscalerConditionType.underlying :=
   sorry -- axiomatized type
 
@@ -347,11 +347,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance HorizontalPodAutoscalerCondition_typed_pointsto :
+noncomputable instance typed_pointsto'HorizontalPodAutoscalerCondition :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.HorizontalPodAutoscalerCondition :=
   sorry -- axiomatized type
 
-noncomputable instance HorizontalPodAutoscalerCondition_into_val_typed :
+noncomputable instance into_val_typed'HorizontalPodAutoscalerCondition :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.HorizontalPodAutoscalerCondition k8s_io.api.autoscaling.v1.HorizontalPodAutoscalerCondition.underlying :=
   sorry -- axiomatized type
 
@@ -366,11 +366,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance ObjectMetricStatus_typed_pointsto :
+noncomputable instance typed_pointsto'ObjectMetricStatus :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.ObjectMetricStatus :=
   sorry -- axiomatized type
 
-noncomputable instance ObjectMetricStatus_into_val_typed :
+noncomputable instance into_val_typed'ObjectMetricStatus :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.ObjectMetricStatus k8s_io.api.autoscaling.v1.ObjectMetricStatus.underlying :=
   sorry -- axiomatized type
 
@@ -385,11 +385,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance PodsMetricStatus_typed_pointsto :
+noncomputable instance typed_pointsto'PodsMetricStatus :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.PodsMetricStatus :=
   sorry -- axiomatized type
 
-noncomputable instance PodsMetricStatus_into_val_typed :
+noncomputable instance into_val_typed'PodsMetricStatus :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.PodsMetricStatus k8s_io.api.autoscaling.v1.PodsMetricStatus.underlying :=
   sorry -- axiomatized type
 
@@ -404,11 +404,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance ResourceMetricStatus_typed_pointsto :
+noncomputable instance typed_pointsto'ResourceMetricStatus :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.ResourceMetricStatus :=
   sorry -- axiomatized type
 
-noncomputable instance ResourceMetricStatus_into_val_typed :
+noncomputable instance into_val_typed'ResourceMetricStatus :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.ResourceMetricStatus k8s_io.api.autoscaling.v1.ResourceMetricStatus.underlying :=
   sorry -- axiomatized type
 
@@ -423,11 +423,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance ContainerResourceMetricStatus_typed_pointsto :
+noncomputable instance typed_pointsto'ContainerResourceMetricStatus :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.ContainerResourceMetricStatus :=
   sorry -- axiomatized type
 
-noncomputable instance ContainerResourceMetricStatus_into_val_typed :
+noncomputable instance into_val_typed'ContainerResourceMetricStatus :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.ContainerResourceMetricStatus k8s_io.api.autoscaling.v1.ContainerResourceMetricStatus.underlying :=
   sorry -- axiomatized type
 
@@ -442,11 +442,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.autoscaling.v1.Assumptions]
 
-noncomputable instance ExternalMetricStatus_typed_pointsto :
+noncomputable instance typed_pointsto'ExternalMetricStatus :
     TypedPointsto (GF := GF) k8s_io.api.autoscaling.v1.ExternalMetricStatus :=
   sorry -- axiomatized type
 
-noncomputable instance ExternalMetricStatus_into_val_typed :
+noncomputable instance into_val_typed'ExternalMetricStatus :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.autoscaling.v1.ExternalMetricStatus k8s_io.api.autoscaling.v1.ExternalMetricStatus.underlying :=
   sorry -- axiomatized type
 

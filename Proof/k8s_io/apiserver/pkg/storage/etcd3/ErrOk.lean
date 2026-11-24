@@ -358,7 +358,7 @@ theorem kErrOk_statusError (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG :=
   · unfold fmt.stringMethodSpec
     iintro !> %Φ HΦ
     simp only []
-    rw [k8s_io.apimachinery.pkg.api.errors.StatusError.TypeAssumptions.ptr_Error_unfold.method_unfold]
+    rw [k8s_io.apimachinery.pkg.api.errors.StatusError.TypeAssumptions.ptr_unfold'Error.method_unfold]
     ihave Hl' := Hl
     iStructNamed Hl'
     iStructNamed ErrStatus
@@ -380,7 +380,7 @@ theorem kErrOk_statusError (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG :=
     go_type_set <;> simp
   · iintro !> %- %Φ HΦ
     simp only []
-    rw [k8s_io.apimachinery.pkg.api.errors.StatusError.TypeAssumptions.ptr_Status_unfold.method_unfold]
+    rw [k8s_io.apimachinery.pkg.api.errors.StatusError.TypeAssumptions.ptr_unfold'Status.method_unfold]
     ihave Hl' := Hl
     iStructNamed Hl'
     wp_auto

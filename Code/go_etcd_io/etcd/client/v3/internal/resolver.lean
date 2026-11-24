@@ -163,7 +163,7 @@ noncomputable instance EtcdManualResolver.zero_val [GooseExts] : ZeroVal EtcdMan
 @[irreducible] noncomputable def EtcdManualResolver.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EtcdManualResolver.fieldsUnsealed
 
-noncomputable instance equals_unfold_EtcdManualResolver [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'EtcdManualResolver [GooseExts] [GoGlobalContext] :
     EqualsUnfold EtcdManualResolver.fields EtcdManualResolver.fieldsUnsealed :=
   ⟨by unfold EtcdManualResolver.fields; rfl⟩
 
@@ -173,59 +173,59 @@ noncomputable instance equals_unfold_EtcdManualResolver [GooseExts] [GoGlobalCon
 class EtcdManualResolver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EtcdManualResolver.underlying EtcdManualResolver
   underlying : go.UnderlyingDirectedEq EtcdManualResolver.ty EtcdManualResolver.underlying
-  get_Resolver : ∀ (x : EtcdManualResolver), go.IsGoStepPureDetTagged under (StructFieldGet EtcdManualResolver.underlying go!"Resolver") #x (Val #(x.Resolver'))
-  set_Resolver : ∀ (x : EtcdManualResolver) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdManualResolver.underlying go!"Resolver") (PairV #x #y) (Val #(({ x with Resolver' := y } : EtcdManualResolver)))
-  get_endpoints : ∀ (x : EtcdManualResolver), go.IsGoStepPureDetTagged under (StructFieldGet EtcdManualResolver.underlying go!"endpoints") #x (Val #(x.endpoints'))
-  set_endpoints : ∀ (x : EtcdManualResolver) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EtcdManualResolver.underlying go!"endpoints") (PairV #x #y) (Val #(({ x with endpoints' := y } : EtcdManualResolver)))
-  get_serviceConfig : ∀ (x : EtcdManualResolver), go.IsGoStepPureDetTagged under (StructFieldGet EtcdManualResolver.underlying go!"serviceConfig") #x (Val #(x.serviceConfig'))
-  set_serviceConfig : ∀ (x : EtcdManualResolver) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdManualResolver.underlying go!"serviceConfig") (PairV #x #y) (Val #(({ x with serviceConfig' := y } : EtcdManualResolver)))
+  get'Resolver : ∀ (x : EtcdManualResolver), go.IsGoStepPureDetTagged under (StructFieldGet EtcdManualResolver.underlying go!"Resolver") #x (Val #(x.Resolver'))
+  set'Resolver : ∀ (x : EtcdManualResolver) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdManualResolver.underlying go!"Resolver") (PairV #x #y) (Val #(({ x with Resolver' := y } : EtcdManualResolver)))
+  get'endpoints : ∀ (x : EtcdManualResolver), go.IsGoStepPureDetTagged under (StructFieldGet EtcdManualResolver.underlying go!"endpoints") #x (Val #(x.endpoints'))
+  set'endpoints : ∀ (x : EtcdManualResolver) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EtcdManualResolver.underlying go!"endpoints") (PairV #x #y) (Val #(({ x with endpoints' := y } : EtcdManualResolver)))
+  get'serviceConfig : ∀ (x : EtcdManualResolver), go.IsGoStepPureDetTagged under (StructFieldGet EtcdManualResolver.underlying go!"serviceConfig") #x (Val #(x.serviceConfig'))
+  set'serviceConfig : ∀ (x : EtcdManualResolver) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdManualResolver.underlying go!"serviceConfig") (PairV #x #y) (Val #(({ x with serviceConfig' := y } : EtcdManualResolver)))
   method_set : go.MethodSetIs EtcdManualResolver.ty [(go!"CC", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.resolver.ClientConn.ty]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"InitialState", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.resolver.State.ty] false []))), (go!"ResolveNow", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.resolver.ResolveNowOptions.ty] false []))), (go!"Scheme", (some (go.signature.Signature [] false [go.string]))), (go!"UpdateState", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.resolver.State.ty] false []))), (go!"go.etcd.io/etcd/client/v3/internal/resolver.state", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.resolver.State.ty]))), (go!"go.etcd.io/etcd/client/v3/internal/resolver.updateState", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType EtcdManualResolver.ty) [(go!"Build", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.resolver.Target.ty, _root_.Perennial.google_golang_org.grpc.resolver.ClientConn.ty, _root_.Perennial.google_golang_org.grpc.resolver.BuildOptions.ty] false [_root_.Perennial.google_golang_org.grpc.resolver.Resolver.ty, go.error]))), (go!"CC", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.resolver.ClientConn.ty]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"InitialState", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.resolver.State.ty] false []))), (go!"ResolveNow", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.resolver.ResolveNowOptions.ty] false []))), (go!"Scheme", (some (go.signature.Signature [] false [go.string]))), (go!"SetEndpoints", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"UpdateState", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.resolver.State.ty] false []))), (go!"go.etcd.io/etcd/client/v3/internal/resolver.state", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.resolver.State.ty]))), (go!"go.etcd.io/etcd/client/v3/internal/resolver.updateState", (some (go.signature.Signature [] false [])))]
-  CC_unfold : MethodUnfold EtcdManualResolver.ty go!"CC" (LamV "$r"
+  unfold'CC : MethodUnfold EtcdManualResolver.ty go!"CC" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.resolver.manual.Resolver.ty) go!"CC"))) (App (Val (GoInstruction (StructFieldGet EtcdManualResolver.ty go!"Resolver"))) (Var "$r"))))
-  Close_unfold : MethodUnfold EtcdManualResolver.ty go!"Close" (LamV "$r"
+  unfold'Close : MethodUnfold EtcdManualResolver.ty go!"Close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.resolver.manual.Resolver.ty) go!"Close"))) (App (Val (GoInstruction (StructFieldGet EtcdManualResolver.ty go!"Resolver"))) (Var "$r"))))
-  updateState_unfold : MethodUnfold EtcdManualResolver.ty go!"updateState" EtcdManualResolver.updateState.impl
-  ptr_CC_unfold : MethodUnfold (go.GoType.PointerType EtcdManualResolver.ty) go!"CC" (LamV "$r"
+  unfold'updateState : MethodUnfold EtcdManualResolver.ty go!"updateState" EtcdManualResolver.updateState.impl
+  ptr_unfold'CC : MethodUnfold (go.GoType.PointerType EtcdManualResolver.ty) go!"CC" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.resolver.manual.Resolver.ty) go!"CC"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.resolver.manual.Resolver.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdManualResolver.ty go!"Resolver"))) (Var "$r")))))
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType EtcdManualResolver.ty) go!"Close" (LamV "$r"
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType EtcdManualResolver.ty) go!"Close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.resolver.manual.Resolver.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.resolver.manual.Resolver.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdManualResolver.ty go!"Resolver"))) (Var "$r")))))
-  ptr_SetEndpoints_unfold : MethodUnfold (go.GoType.PointerType EtcdManualResolver.ty) go!"SetEndpoints" EtcdManualResolver.SetEndpoints.impl
-  ptr_updateState_unfold : MethodUnfold (go.GoType.PointerType EtcdManualResolver.ty) go!"updateState" (LamV "$r"
+  ptr_unfold'SetEndpoints : MethodUnfold (go.GoType.PointerType EtcdManualResolver.ty) go!"SetEndpoints" EtcdManualResolver.SetEndpoints.impl
+  ptr_unfold'updateState : MethodUnfold (go.GoType.PointerType EtcdManualResolver.ty) go!"updateState" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve EtcdManualResolver.ty go!"updateState"))) (App (Val (GoInstruction (GoLoad EtcdManualResolver.ty))) (Var "$r"))))
 
 attribute [instance] EtcdManualResolver.TypeAssumptions.type_repr
   EtcdManualResolver.TypeAssumptions.underlying
-  EtcdManualResolver.TypeAssumptions.get_Resolver
-  EtcdManualResolver.TypeAssumptions.set_Resolver
-  EtcdManualResolver.TypeAssumptions.get_endpoints
-  EtcdManualResolver.TypeAssumptions.set_endpoints
-  EtcdManualResolver.TypeAssumptions.get_serviceConfig
-  EtcdManualResolver.TypeAssumptions.set_serviceConfig
+  EtcdManualResolver.TypeAssumptions.get'Resolver
+  EtcdManualResolver.TypeAssumptions.set'Resolver
+  EtcdManualResolver.TypeAssumptions.get'endpoints
+  EtcdManualResolver.TypeAssumptions.set'endpoints
+  EtcdManualResolver.TypeAssumptions.get'serviceConfig
+  EtcdManualResolver.TypeAssumptions.set'serviceConfig
   EtcdManualResolver.TypeAssumptions.method_set
   EtcdManualResolver.TypeAssumptions.ptr_method_set
-  EtcdManualResolver.TypeAssumptions.CC_unfold
-  EtcdManualResolver.TypeAssumptions.Close_unfold
-  EtcdManualResolver.TypeAssumptions.updateState_unfold
-  EtcdManualResolver.TypeAssumptions.ptr_CC_unfold
-  EtcdManualResolver.TypeAssumptions.ptr_Close_unfold
-  EtcdManualResolver.TypeAssumptions.ptr_SetEndpoints_unfold
-  EtcdManualResolver.TypeAssumptions.ptr_updateState_unfold
+  EtcdManualResolver.TypeAssumptions.unfold'CC
+  EtcdManualResolver.TypeAssumptions.unfold'Close
+  EtcdManualResolver.TypeAssumptions.unfold'updateState
+  EtcdManualResolver.TypeAssumptions.ptr_unfold'CC
+  EtcdManualResolver.TypeAssumptions.ptr_unfold'Close
+  EtcdManualResolver.TypeAssumptions.ptr_unfold'SetEndpoints
+  EtcdManualResolver.TypeAssumptions.ptr_unfold'updateState
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  EtcdManualResolver_instance : EtcdManualResolver.TypeAssumptions
-  New_unfold : FuncUnfold New [] New.impl
-  getCC_unfold : FuncUnfold getCC [] getCC.impl
-  import_resolver_Assumption : _root_.Perennial.google_golang_org.grpc.resolver.Assumptions
-  import_manual_Assumption : _root_.Perennial.google_golang_org.grpc.resolver.manual.Assumptions
-  import_serviceconfig_Assumption : _root_.Perennial.google_golang_org.grpc.serviceconfig.Assumptions
+  instance'EtcdManualResolver : EtcdManualResolver.TypeAssumptions
+  unfold'New : FuncUnfold New [] New.impl
+  unfold'getCC : FuncUnfold getCC [] getCC.impl
+  import'resolver : _root_.Perennial.google_golang_org.grpc.resolver.Assumptions
+  import'manual : _root_.Perennial.google_golang_org.grpc.resolver.manual.Assumptions
+  import'serviceconfig : _root_.Perennial.google_golang_org.grpc.serviceconfig.Assumptions
 
-attribute [instance] Assumptions.EtcdManualResolver_instance
-  Assumptions.New_unfold
-  Assumptions.getCC_unfold
-  Assumptions.import_resolver_Assumption
-  Assumptions.import_manual_Assumption
-  Assumptions.import_serviceconfig_Assumption
+attribute [instance] Assumptions.instance'EtcdManualResolver
+  Assumptions.unfold'New
+  Assumptions.unfold'getCC
+  Assumptions.import'resolver
+  Assumptions.import'manual
+  Assumptions.import'serviceconfig
 
 end go_etcd_io.etcd.client.v3.internal.resolver
 

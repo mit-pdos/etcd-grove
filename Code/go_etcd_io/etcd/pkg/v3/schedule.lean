@@ -425,7 +425,7 @@ noncomputable instance job.zero_val [GooseExts] : ZeroVal job :=
 @[irreducible] noncomputable def job.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   job.fieldsUnsealed
 
-noncomputable instance equals_unfold_job [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'job [GooseExts] [GoGlobalContext] :
     EqualsUnfold job.fields job.fieldsUnsealed :=
   ⟨by unfold job.fields; rfl⟩
 
@@ -435,31 +435,31 @@ noncomputable instance equals_unfold_job [GooseExts] [GoGlobalContext] :
 class job.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying job.underlying job
   underlying : go.UnderlyingDirectedEq job.ty job.underlying
-  get_name : ∀ (x : job), go.IsGoStepPureDetTagged under (StructFieldGet job.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : job) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet job.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : job)))
-  get_do : ∀ (x : job), go.IsGoStepPureDetTagged under (StructFieldGet job.underlying go!"do") #x (Val #(x.do'))
-  set_do : ∀ (x : job) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet job.underlying go!"do") (PairV #x #y) (Val #(({ x with do' := y } : job)))
+  get'name : ∀ (x : job), go.IsGoStepPureDetTagged under (StructFieldGet job.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : job) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet job.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : job)))
+  get'do : ∀ (x : job), go.IsGoStepPureDetTagged under (StructFieldGet job.underlying go!"do") #x (Val #(x.do'))
+  set'do : ∀ (x : job) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet job.underlying go!"do") (PairV #x #y) (Val #(({ x with do' := y } : job)))
   method_set : go.MethodSetIs job.ty [(go!"Do", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"Name", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType job.ty) [(go!"Do", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"Name", (some (go.signature.Signature [] false [go.string])))]
-  Do_unfold : MethodUnfold job.ty go!"Do" job.Do.impl
-  Name_unfold : MethodUnfold job.ty go!"Name" job.Name.impl
-  ptr_Do_unfold : MethodUnfold (go.GoType.PointerType job.ty) go!"Do" (LamV "$r"
+  unfold'Do : MethodUnfold job.ty go!"Do" job.Do.impl
+  unfold'Name : MethodUnfold job.ty go!"Name" job.Name.impl
+  ptr_unfold'Do : MethodUnfold (go.GoType.PointerType job.ty) go!"Do" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve job.ty go!"Do"))) (App (Val (GoInstruction (GoLoad job.ty))) (Var "$r"))))
-  ptr_Name_unfold : MethodUnfold (go.GoType.PointerType job.ty) go!"Name" (LamV "$r"
+  ptr_unfold'Name : MethodUnfold (go.GoType.PointerType job.ty) go!"Name" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve job.ty go!"Name"))) (App (Val (GoInstruction (GoLoad job.ty))) (Var "$r"))))
 
 attribute [instance] job.TypeAssumptions.type_repr
   job.TypeAssumptions.underlying
-  job.TypeAssumptions.get_name
-  job.TypeAssumptions.set_name
-  job.TypeAssumptions.get_do
-  job.TypeAssumptions.set_do
+  job.TypeAssumptions.get'name
+  job.TypeAssumptions.set'name
+  job.TypeAssumptions.get'do
+  job.TypeAssumptions.set'do
   job.TypeAssumptions.method_set
   job.TypeAssumptions.ptr_method_set
-  job.TypeAssumptions.Do_unfold
-  job.TypeAssumptions.Name_unfold
-  job.TypeAssumptions.ptr_Do_unfold
-  job.TypeAssumptions.ptr_Name_unfold
+  job.TypeAssumptions.unfold'Do
+  job.TypeAssumptions.unfold'Name
+  job.TypeAssumptions.ptr_unfold'Do
+  job.TypeAssumptions.ptr_unfold'Name
 
 abbrev Scheduler [GooseExts] : Type := GoInterface
 
@@ -506,7 +506,7 @@ noncomputable instance fifo.zero_val [GooseExts] : ZeroVal fifo :=
 @[irreducible] noncomputable def fifo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fifo.fieldsUnsealed
 
-noncomputable instance equals_unfold_fifo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'fifo [GooseExts] [GoGlobalContext] :
     EqualsUnfold fifo.fields fifo.fieldsUnsealed :=
   ⟨by unfold fifo.fields; rfl⟩
 
@@ -516,84 +516,84 @@ noncomputable instance equals_unfold_fifo [GooseExts] [GoGlobalContext] :
 class fifo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fifo.underlying fifo
   underlying : go.UnderlyingDirectedEq fifo.ty fifo.underlying
-  get_mu : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : fifo) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : fifo)))
-  get_resume : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"resume") #x (Val #(x.resume'))
-  set_resume : ∀ (x : fifo) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"resume") (PairV #x #y) (Val #(({ x with resume' := y } : fifo)))
-  get_scheduled : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"scheduled") #x (Val #(x.scheduled'))
-  set_scheduled : ∀ (x : fifo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"scheduled") (PairV #x #y) (Val #(({ x with scheduled' := y } : fifo)))
-  get_finished : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"finished") #x (Val #(x.finished'))
-  set_finished : ∀ (x : fifo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"finished") (PairV #x #y) (Val #(({ x with finished' := y } : fifo)))
-  get_pendings : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"pendings") #x (Val #(x.pendings'))
-  set_pendings : ∀ (x : fifo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"pendings") (PairV #x #y) (Val #(({ x with pendings' := y } : fifo)))
-  get_ctx : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"ctx") #x (Val #(x.ctx'))
-  set_ctx : ∀ (x : fifo) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : fifo)))
-  get_cancel : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"cancel") #x (Val #(x.cancel'))
-  set_cancel : ∀ (x : fifo) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : fifo)))
-  get_finishCond : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"finishCond") #x (Val #(x.finishCond'))
-  set_finishCond : ∀ (x : fifo) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"finishCond") (PairV #x #y) (Val #(({ x with finishCond' := y } : fifo)))
-  get_donec : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"donec") #x (Val #(x.donec'))
-  set_donec : ∀ (x : fifo) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : fifo)))
-  get_lg : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : fifo) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : fifo)))
+  get'mu : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : fifo) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : fifo)))
+  get'resume : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"resume") #x (Val #(x.resume'))
+  set'resume : ∀ (x : fifo) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"resume") (PairV #x #y) (Val #(({ x with resume' := y } : fifo)))
+  get'scheduled : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"scheduled") #x (Val #(x.scheduled'))
+  set'scheduled : ∀ (x : fifo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"scheduled") (PairV #x #y) (Val #(({ x with scheduled' := y } : fifo)))
+  get'finished : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"finished") #x (Val #(x.finished'))
+  set'finished : ∀ (x : fifo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"finished") (PairV #x #y) (Val #(({ x with finished' := y } : fifo)))
+  get'pendings : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"pendings") #x (Val #(x.pendings'))
+  set'pendings : ∀ (x : fifo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"pendings") (PairV #x #y) (Val #(({ x with pendings' := y } : fifo)))
+  get'ctx : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"ctx") #x (Val #(x.ctx'))
+  set'ctx : ∀ (x : fifo) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : fifo)))
+  get'cancel : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"cancel") #x (Val #(x.cancel'))
+  set'cancel : ∀ (x : fifo) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : fifo)))
+  get'finishCond : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"finishCond") #x (Val #(x.finishCond'))
+  set'finishCond : ∀ (x : fifo) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"finishCond") (PairV #x #y) (Val #(({ x with finishCond' := y } : fifo)))
+  get'donec : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"donec") #x (Val #(x.donec'))
+  set'donec : ∀ (x : fifo) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : fifo)))
+  get'lg : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : fifo) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : fifo)))
   method_set : go.MethodSetIs fifo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fifo.ty) [(go!"Finished", (some (go.signature.Signature [] false [go.int]))), (go!"Pending", (some (go.signature.Signature [] false [go.int]))), (go!"Schedule", (some (go.signature.Signature [Job.ty] false []))), (go!"Scheduled", (some (go.signature.Signature [] false [go.int]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"WaitFinish", (some (go.signature.Signature [go.int] false []))), (go!"go.etcd.io/etcd/pkg/v3/schedule.executeJob", (some (go.signature.Signature [Job.ty, go.bool] false []))), (go!"go.etcd.io/etcd/pkg/v3/schedule.run", (some (go.signature.Signature [] false [])))]
-  ptr_Schedule_unfold : MethodUnfold (go.GoType.PointerType fifo.ty) go!"Schedule" fifo.Schedule.impl
-  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType fifo.ty) go!"Stop" fifo.Stop.impl
-  ptr_executeJob_unfold : MethodUnfold (go.GoType.PointerType fifo.ty) go!"executeJob" fifo.executeJob.impl
-  ptr_run_unfold : MethodUnfold (go.GoType.PointerType fifo.ty) go!"run" fifo.run.impl
+  ptr_unfold'Schedule : MethodUnfold (go.GoType.PointerType fifo.ty) go!"Schedule" fifo.Schedule.impl
+  ptr_unfold'Stop : MethodUnfold (go.GoType.PointerType fifo.ty) go!"Stop" fifo.Stop.impl
+  ptr_unfold'executeJob : MethodUnfold (go.GoType.PointerType fifo.ty) go!"executeJob" fifo.executeJob.impl
+  ptr_unfold'run : MethodUnfold (go.GoType.PointerType fifo.ty) go!"run" fifo.run.impl
 
 attribute [instance] fifo.TypeAssumptions.type_repr
   fifo.TypeAssumptions.underlying
-  fifo.TypeAssumptions.get_mu
-  fifo.TypeAssumptions.set_mu
-  fifo.TypeAssumptions.get_resume
-  fifo.TypeAssumptions.set_resume
-  fifo.TypeAssumptions.get_scheduled
-  fifo.TypeAssumptions.set_scheduled
-  fifo.TypeAssumptions.get_finished
-  fifo.TypeAssumptions.set_finished
-  fifo.TypeAssumptions.get_pendings
-  fifo.TypeAssumptions.set_pendings
-  fifo.TypeAssumptions.get_ctx
-  fifo.TypeAssumptions.set_ctx
-  fifo.TypeAssumptions.get_cancel
-  fifo.TypeAssumptions.set_cancel
-  fifo.TypeAssumptions.get_finishCond
-  fifo.TypeAssumptions.set_finishCond
-  fifo.TypeAssumptions.get_donec
-  fifo.TypeAssumptions.set_donec
-  fifo.TypeAssumptions.get_lg
-  fifo.TypeAssumptions.set_lg
+  fifo.TypeAssumptions.get'mu
+  fifo.TypeAssumptions.set'mu
+  fifo.TypeAssumptions.get'resume
+  fifo.TypeAssumptions.set'resume
+  fifo.TypeAssumptions.get'scheduled
+  fifo.TypeAssumptions.set'scheduled
+  fifo.TypeAssumptions.get'finished
+  fifo.TypeAssumptions.set'finished
+  fifo.TypeAssumptions.get'pendings
+  fifo.TypeAssumptions.set'pendings
+  fifo.TypeAssumptions.get'ctx
+  fifo.TypeAssumptions.set'ctx
+  fifo.TypeAssumptions.get'cancel
+  fifo.TypeAssumptions.set'cancel
+  fifo.TypeAssumptions.get'finishCond
+  fifo.TypeAssumptions.set'finishCond
+  fifo.TypeAssumptions.get'donec
+  fifo.TypeAssumptions.set'donec
+  fifo.TypeAssumptions.get'lg
+  fifo.TypeAssumptions.set'lg
   fifo.TypeAssumptions.method_set
   fifo.TypeAssumptions.ptr_method_set
-  fifo.TypeAssumptions.ptr_Schedule_unfold
-  fifo.TypeAssumptions.ptr_Stop_unfold
-  fifo.TypeAssumptions.ptr_executeJob_unfold
-  fifo.TypeAssumptions.ptr_run_unfold
+  fifo.TypeAssumptions.ptr_unfold'Schedule
+  fifo.TypeAssumptions.ptr_unfold'Stop
+  fifo.TypeAssumptions.ptr_unfold'executeJob
+  fifo.TypeAssumptions.ptr_unfold'run
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Job_instance : Job.TypeAssumptions
-  job_instance : job.TypeAssumptions
-  Scheduler_instance : Scheduler.TypeAssumptions
-  fifo_instance : fifo.TypeAssumptions
-  NewJob_unfold : FuncUnfold NewJob [] NewJob.impl
-  NewFIFOScheduler_unfold : FuncUnfold NewFIFOScheduler [] NewFIFOScheduler.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_verify_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assumptions
+  instance'Job : Job.TypeAssumptions
+  instance'job : job.TypeAssumptions
+  instance'Scheduler : Scheduler.TypeAssumptions
+  instance'fifo : fifo.TypeAssumptions
+  unfold'NewJob : FuncUnfold NewJob [] NewJob.impl
+  unfold'NewFIFOScheduler : FuncUnfold NewFIFOScheduler [] NewFIFOScheduler.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'verify : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assumptions
 
-attribute [instance] Assumptions.Job_instance
-  Assumptions.job_instance
-  Assumptions.Scheduler_instance
-  Assumptions.fifo_instance
-  Assumptions.NewJob_unfold
-  Assumptions.NewFIFOScheduler_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_verify_Assumption
+attribute [instance] Assumptions.instance'Job
+  Assumptions.instance'job
+  Assumptions.instance'Scheduler
+  Assumptions.instance'fifo
+  Assumptions.unfold'NewJob
+  Assumptions.unfold'NewFIFOScheduler
+  Assumptions.import'context
+  Assumptions.import'sync
+  Assumptions.import'zap
+  Assumptions.import'verify
 
 end go_etcd_io.etcd.pkg.v3.schedule
 

@@ -25,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-noncomputable instance nothingWrittenError_typed_pointsto :
+noncomputable instance typed_pointsto'nothingWrittenError :
     TypedPointsto (GF := GF) net.http.nothingWrittenError where
   typedPointstoDef l v dq := iprop(
     "error" ∷ typedPointsto (structFieldRef net.http.nothingWrittenError go!"error" l) v.error' dq ∗
@@ -34,11 +34,11 @@ noncomputable instance nothingWrittenError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance nothingWrittenError_into_val_typed :
+noncomputable instance into_val_typed'nothingWrittenError :
     IntoValTypedUnderlying (GF := GF) net.http.nothingWrittenError net.http.nothingWrittenError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance nothingWrittenError_access_load_error (l : Loc) (v : net.http.nothingWrittenError) (dq : DFrac) :
+noncomputable instance access_load'nothingWrittenError'error (l : Loc) (v : net.http.nothingWrittenError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.nothingWrittenError go!"error" l) v.error' dq)
       (typedPointsto (structFieldRef net.http.nothingWrittenError go!"error" l) v.error' dq)
@@ -46,7 +46,7 @@ noncomputable instance nothingWrittenError_access_load_error (l : Loc) (v : net.
  by
   solve_pointsto_access_struct
 
-noncomputable instance nothingWrittenError_access_store_error (l : Loc) (v : net.http.nothingWrittenError) (y : GoError) :
+noncomputable instance access_store'nothingWrittenError'error (l : Loc) (v : net.http.nothingWrittenError) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.nothingWrittenError go!"error" l) v.error' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.nothingWrittenError go!"error" l) y (DFrac.own 1))
@@ -65,7 +65,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-noncomputable instance writeRequest_typed_pointsto :
+noncomputable instance typed_pointsto'writeRequest :
     TypedPointsto (GF := GF) net.http.writeRequest where
   typedPointstoDef l v dq := iprop(
     "req" ∷ typedPointsto (structFieldRef net.http.writeRequest go!"req" l) v.req' dq ∗
@@ -76,11 +76,11 @@ noncomputable instance writeRequest_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance writeRequest_into_val_typed :
+noncomputable instance into_val_typed'writeRequest :
     IntoValTypedUnderlying (GF := GF) net.http.writeRequest net.http.writeRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance writeRequest_access_load_req (l : Loc) (v : net.http.writeRequest) (dq : DFrac) :
+noncomputable instance access_load'writeRequest'req (l : Loc) (v : net.http.writeRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.writeRequest go!"req" l) v.req' dq)
       (typedPointsto (structFieldRef net.http.writeRequest go!"req" l) v.req' dq)
@@ -88,7 +88,7 @@ noncomputable instance writeRequest_access_load_req (l : Loc) (v : net.http.writ
  by
   solve_pointsto_access_struct
 
-noncomputable instance writeRequest_access_store_req (l : Loc) (v : net.http.writeRequest) (y : Loc) :
+noncomputable instance access_store'writeRequest'req (l : Loc) (v : net.http.writeRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.writeRequest go!"req" l) v.req' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.writeRequest go!"req" l) y (DFrac.own 1))
@@ -96,7 +96,7 @@ noncomputable instance writeRequest_access_store_req (l : Loc) (v : net.http.wri
  by
   solve_pointsto_access_struct
 
-noncomputable instance writeRequest_access_load_ch (l : Loc) (v : net.http.writeRequest) (dq : DFrac) :
+noncomputable instance access_load'writeRequest'ch (l : Loc) (v : net.http.writeRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.writeRequest go!"ch" l) v.ch' dq)
       (typedPointsto (structFieldRef net.http.writeRequest go!"ch" l) v.ch' dq)
@@ -104,7 +104,7 @@ noncomputable instance writeRequest_access_load_ch (l : Loc) (v : net.http.write
  by
   solve_pointsto_access_struct
 
-noncomputable instance writeRequest_access_store_ch (l : Loc) (v : net.http.writeRequest) (y : GoChan) :
+noncomputable instance access_store'writeRequest'ch (l : Loc) (v : net.http.writeRequest) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.writeRequest go!"ch" l) v.ch' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.writeRequest go!"ch" l) y (DFrac.own 1))
@@ -112,7 +112,7 @@ noncomputable instance writeRequest_access_store_ch (l : Loc) (v : net.http.writ
  by
   solve_pointsto_access_struct
 
-noncomputable instance writeRequest_access_load_continueCh (l : Loc) (v : net.http.writeRequest) (dq : DFrac) :
+noncomputable instance access_load'writeRequest'continueCh (l : Loc) (v : net.http.writeRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.writeRequest go!"continueCh" l) v.continueCh' dq)
       (typedPointsto (structFieldRef net.http.writeRequest go!"continueCh" l) v.continueCh' dq)
@@ -120,7 +120,7 @@ noncomputable instance writeRequest_access_load_continueCh (l : Loc) (v : net.ht
  by
   solve_pointsto_access_struct
 
-noncomputable instance writeRequest_access_store_continueCh (l : Loc) (v : net.http.writeRequest) (y : GoChan) :
+noncomputable instance access_store'writeRequest'continueCh (l : Loc) (v : net.http.writeRequest) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.writeRequest go!"continueCh" l) v.continueCh' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.writeRequest go!"continueCh" l) y (DFrac.own 1))
@@ -139,7 +139,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-noncomputable instance timeoutError_typed_pointsto :
+noncomputable instance typed_pointsto'timeoutError :
     TypedPointsto (GF := GF) net.http.timeoutError where
   typedPointstoDef l v dq := iprop(
     "err" ∷ typedPointsto (structFieldRef net.http.timeoutError go!"err" l) v.err' dq ∗
@@ -148,11 +148,11 @@ noncomputable instance timeoutError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance timeoutError_into_val_typed :
+noncomputable instance into_val_typed'timeoutError :
     IntoValTypedUnderlying (GF := GF) net.http.timeoutError net.http.timeoutError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance timeoutError_access_load_err (l : Loc) (v : net.http.timeoutError) (dq : DFrac) :
+noncomputable instance access_load'timeoutError'err (l : Loc) (v : net.http.timeoutError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.timeoutError go!"err" l) v.err' dq)
       (typedPointsto (structFieldRef net.http.timeoutError go!"err" l) v.err' dq)
@@ -160,7 +160,7 @@ noncomputable instance timeoutError_access_load_err (l : Loc) (v : net.http.time
  by
   solve_pointsto_access_struct
 
-noncomputable instance timeoutError_access_store_err (l : Loc) (v : net.http.timeoutError) (y : GoString) :
+noncomputable instance access_store'timeoutError'err (l : Loc) (v : net.http.timeoutError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.timeoutError go!"err" l) v.err' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.timeoutError go!"err" l) y (DFrac.own 1))
@@ -179,7 +179,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-noncomputable instance tLogKey_typed_pointsto :
+noncomputable instance typed_pointsto'tLogKey :
     TypedPointsto (GF := GF) net.http.tLogKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -187,7 +187,7 @@ noncomputable instance tLogKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance tLogKey_into_val_typed :
+noncomputable instance into_val_typed'tLogKey :
     IntoValTypedUnderlying (GF := GF) net.http.tLogKey net.http.tLogKey.underlying := by
   solve_into_val_typed_struct
 
@@ -202,11 +202,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-noncomputable instance bodyEOFSignal_typed_pointsto :
+noncomputable instance typed_pointsto'bodyEOFSignal :
     TypedPointsto (GF := GF) net.http.bodyEOFSignal :=
   sorry -- axiomatized type
 
-noncomputable instance bodyEOFSignal_into_val_typed :
+noncomputable instance into_val_typed'bodyEOFSignal :
     IntoValTypedUnderlying (GF := GF) net.http.bodyEOFSignal net.http.bodyEOFSignal.underlying :=
   sorry -- axiomatized type
 
@@ -221,11 +221,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-noncomputable instance gzipReader_typed_pointsto :
+noncomputable instance typed_pointsto'gzipReader :
     TypedPointsto (GF := GF) net.http.gzipReader :=
   sorry -- axiomatized type
 
-noncomputable instance gzipReader_into_val_typed :
+noncomputable instance into_val_typed'gzipReader :
     IntoValTypedUnderlying (GF := GF) net.http.gzipReader net.http.gzipReader.underlying :=
   sorry -- axiomatized type
 
@@ -240,7 +240,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-noncomputable instance eofReader_typed_pointsto :
+noncomputable instance typed_pointsto'eofReader :
     TypedPointsto (GF := GF) net.http.eofReader where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -248,7 +248,7 @@ noncomputable instance eofReader_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance eofReader_into_val_typed :
+noncomputable instance into_val_typed'eofReader :
     IntoValTypedUnderlying (GF := GF) net.http.eofReader net.http.eofReader.underlying := by
   solve_into_val_typed_struct
 
@@ -263,7 +263,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-noncomputable instance tlsHandshakeTimeoutError_typed_pointsto :
+noncomputable instance typed_pointsto'tlsHandshakeTimeoutError :
     TypedPointsto (GF := GF) net.http.tlsHandshakeTimeoutError where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -271,7 +271,7 @@ noncomputable instance tlsHandshakeTimeoutError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance tlsHandshakeTimeoutError_into_val_typed :
+noncomputable instance into_val_typed'tlsHandshakeTimeoutError :
     IntoValTypedUnderlying (GF := GF) net.http.tlsHandshakeTimeoutError net.http.tlsHandshakeTimeoutError.underlying := by
   solve_into_val_typed_struct
 
@@ -286,7 +286,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-noncomputable instance fakeLocker_typed_pointsto :
+noncomputable instance typed_pointsto'fakeLocker :
     TypedPointsto (GF := GF) net.http.fakeLocker where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -294,7 +294,7 @@ noncomputable instance fakeLocker_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance fakeLocker_into_val_typed :
+noncomputable instance into_val_typed'fakeLocker :
     IntoValTypedUnderlying (GF := GF) net.http.fakeLocker net.http.fakeLocker.underlying := by
   solve_into_val_typed_struct
 
@@ -309,11 +309,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-noncomputable instance connLRU_typed_pointsto :
+noncomputable instance typed_pointsto'connLRU :
     TypedPointsto (GF := GF) net.http.connLRU :=
   sorry -- axiomatized type
 
-noncomputable instance connLRU_into_val_typed :
+noncomputable instance into_val_typed'connLRU :
     IntoValTypedUnderlying (GF := GF) net.http.connLRU net.http.connLRU.underlying :=
   sorry -- axiomatized type
 

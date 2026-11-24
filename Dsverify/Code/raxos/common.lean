@@ -206,7 +206,7 @@ noncomputable instance RPCPair.zero_val [GooseExts] : ZeroVal RPCPair :=
 @[irreducible] noncomputable def RPCPair.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RPCPair.fieldsUnsealed
 
-noncomputable instance equals_unfold_RPCPair [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RPCPair [GooseExts] [GoGlobalContext] :
     EqualsUnfold RPCPair.fields RPCPair.fieldsUnsealed :=
   ⟨by unfold RPCPair.fields; rfl⟩
 
@@ -216,19 +216,19 @@ noncomputable instance equals_unfold_RPCPair [GooseExts] [GoGlobalContext] :
 class RPCPair.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RPCPair.underlying RPCPair
   underlying : go.UnderlyingDirectedEq RPCPair.ty RPCPair.underlying
-  get_Code : ∀ (x : RPCPair), go.IsGoStepPureDetTagged under (StructFieldGet RPCPair.underlying go!"Code") #x (Val #(x.Code'))
-  set_Code : ∀ (x : RPCPair) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet RPCPair.underlying go!"Code") (PairV #x #y) (Val #(({ x with Code' := y } : RPCPair)))
-  get_Obj : ∀ (x : RPCPair), go.IsGoStepPureDetTagged under (StructFieldGet RPCPair.underlying go!"Obj") #x (Val #(x.Obj'))
-  set_Obj : ∀ (x : RPCPair) (y : _root_.Perennial.raxos.proto.Serializable), go.IsGoStepPureDetTagged under (StructFieldSet RPCPair.underlying go!"Obj") (PairV #x #y) (Val #(({ x with Obj' := y } : RPCPair)))
+  get'Code : ∀ (x : RPCPair), go.IsGoStepPureDetTagged under (StructFieldGet RPCPair.underlying go!"Code") #x (Val #(x.Code'))
+  set'Code : ∀ (x : RPCPair) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet RPCPair.underlying go!"Code") (PairV #x #y) (Val #(({ x with Code' := y } : RPCPair)))
+  get'Obj : ∀ (x : RPCPair), go.IsGoStepPureDetTagged under (StructFieldGet RPCPair.underlying go!"Obj") #x (Val #(x.Obj'))
+  set'Obj : ∀ (x : RPCPair) (y : _root_.Perennial.raxos.proto.Serializable), go.IsGoStepPureDetTagged under (StructFieldSet RPCPair.underlying go!"Obj") (PairV #x #y) (Val #(({ x with Obj' := y } : RPCPair)))
   method_set : go.MethodSetIs RPCPair.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RPCPair.ty) []
 
 attribute [instance] RPCPair.TypeAssumptions.type_repr
   RPCPair.TypeAssumptions.underlying
-  RPCPair.TypeAssumptions.get_Code
-  RPCPair.TypeAssumptions.set_Code
-  RPCPair.TypeAssumptions.get_Obj
-  RPCPair.TypeAssumptions.set_Obj
+  RPCPair.TypeAssumptions.get'Code
+  RPCPair.TypeAssumptions.set'Code
+  RPCPair.TypeAssumptions.get'Obj
+  RPCPair.TypeAssumptions.set'Obj
   RPCPair.TypeAssumptions.method_set
   RPCPair.TypeAssumptions.ptr_method_set
 
@@ -247,7 +247,7 @@ noncomputable instance OutgoingRPC.zero_val [GooseExts] : ZeroVal OutgoingRPC :=
 @[irreducible] noncomputable def OutgoingRPC.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   OutgoingRPC.fieldsUnsealed
 
-noncomputable instance equals_unfold_OutgoingRPC [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'OutgoingRPC [GooseExts] [GoGlobalContext] :
     EqualsUnfold OutgoingRPC.fields OutgoingRPC.fieldsUnsealed :=
   ⟨by unfold OutgoingRPC.fields; rfl⟩
 
@@ -257,19 +257,19 @@ noncomputable instance equals_unfold_OutgoingRPC [GooseExts] [GoGlobalContext] :
 class OutgoingRPC.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying OutgoingRPC.underlying OutgoingRPC
   underlying : go.UnderlyingDirectedEq OutgoingRPC.ty OutgoingRPC.underlying
-  get_RpcPair : ∀ (x : OutgoingRPC), go.IsGoStepPureDetTagged under (StructFieldGet OutgoingRPC.underlying go!"RpcPair") #x (Val #(x.RpcPair'))
-  set_RpcPair : ∀ (x : OutgoingRPC) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet OutgoingRPC.underlying go!"RpcPair") (PairV #x #y) (Val #(({ x with RpcPair' := y } : OutgoingRPC)))
-  get_Peer : ∀ (x : OutgoingRPC), go.IsGoStepPureDetTagged under (StructFieldGet OutgoingRPC.underlying go!"Peer") #x (Val #(x.Peer'))
-  set_Peer : ∀ (x : OutgoingRPC) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet OutgoingRPC.underlying go!"Peer") (PairV #x #y) (Val #(({ x with Peer' := y } : OutgoingRPC)))
+  get'RpcPair : ∀ (x : OutgoingRPC), go.IsGoStepPureDetTagged under (StructFieldGet OutgoingRPC.underlying go!"RpcPair") #x (Val #(x.RpcPair'))
+  set'RpcPair : ∀ (x : OutgoingRPC) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet OutgoingRPC.underlying go!"RpcPair") (PairV #x #y) (Val #(({ x with RpcPair' := y } : OutgoingRPC)))
+  get'Peer : ∀ (x : OutgoingRPC), go.IsGoStepPureDetTagged under (StructFieldGet OutgoingRPC.underlying go!"Peer") #x (Val #(x.Peer'))
+  set'Peer : ∀ (x : OutgoingRPC) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet OutgoingRPC.underlying go!"Peer") (PairV #x #y) (Val #(({ x with Peer' := y } : OutgoingRPC)))
   method_set : go.MethodSetIs OutgoingRPC.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType OutgoingRPC.ty) []
 
 attribute [instance] OutgoingRPC.TypeAssumptions.type_repr
   OutgoingRPC.TypeAssumptions.underlying
-  OutgoingRPC.TypeAssumptions.get_RpcPair
-  OutgoingRPC.TypeAssumptions.set_RpcPair
-  OutgoingRPC.TypeAssumptions.get_Peer
-  OutgoingRPC.TypeAssumptions.set_Peer
+  OutgoingRPC.TypeAssumptions.get'RpcPair
+  OutgoingRPC.TypeAssumptions.set'RpcPair
+  OutgoingRPC.TypeAssumptions.get'Peer
+  OutgoingRPC.TypeAssumptions.set'Peer
   OutgoingRPC.TypeAssumptions.method_set
   OutgoingRPC.TypeAssumptions.ptr_method_set
 
@@ -292,7 +292,7 @@ noncomputable instance TimerWithCancel.zero_val [GooseExts] : ZeroVal TimerWithC
 @[irreducible] noncomputable def TimerWithCancel.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TimerWithCancel.fieldsUnsealed
 
-noncomputable instance equals_unfold_TimerWithCancel [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'TimerWithCancel [GooseExts] [GoGlobalContext] :
     EqualsUnfold TimerWithCancel.fields TimerWithCancel.fieldsUnsealed :=
   ⟨by unfold TimerWithCancel.fields; rfl⟩
 
@@ -302,56 +302,56 @@ noncomputable instance equals_unfold_TimerWithCancel [GooseExts] [GoGlobalContex
 class TimerWithCancel.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TimerWithCancel.underlying TimerWithCancel
   underlying : go.UnderlyingDirectedEq TimerWithCancel.ty TimerWithCancel.underlying
-  get_t : ∀ (x : TimerWithCancel), go.IsGoStepPureDetTagged under (StructFieldGet TimerWithCancel.underlying go!"t") #x (Val #(x.t'))
-  set_t : ∀ (x : TimerWithCancel) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TimerWithCancel.underlying go!"t") (PairV #x #y) (Val #(({ x with t' := y } : TimerWithCancel)))
-  get_d : ∀ (x : TimerWithCancel), go.IsGoStepPureDetTagged under (StructFieldGet TimerWithCancel.underlying go!"d") #x (Val #(x.d'))
-  set_d : ∀ (x : TimerWithCancel) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet TimerWithCancel.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : TimerWithCancel)))
-  get_c : ∀ (x : TimerWithCancel), go.IsGoStepPureDetTagged under (StructFieldGet TimerWithCancel.underlying go!"c") #x (Val #(x.c'))
-  set_c : ∀ (x : TimerWithCancel) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet TimerWithCancel.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : TimerWithCancel)))
-  get_f : ∀ (x : TimerWithCancel), go.IsGoStepPureDetTagged under (StructFieldGet TimerWithCancel.underlying go!"f") #x (Val #(x.f'))
-  set_f : ∀ (x : TimerWithCancel) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet TimerWithCancel.underlying go!"f") (PairV #x #y) (Val #(({ x with f' := y } : TimerWithCancel)))
+  get't : ∀ (x : TimerWithCancel), go.IsGoStepPureDetTagged under (StructFieldGet TimerWithCancel.underlying go!"t") #x (Val #(x.t'))
+  set't : ∀ (x : TimerWithCancel) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TimerWithCancel.underlying go!"t") (PairV #x #y) (Val #(({ x with t' := y } : TimerWithCancel)))
+  get'd : ∀ (x : TimerWithCancel), go.IsGoStepPureDetTagged under (StructFieldGet TimerWithCancel.underlying go!"d") #x (Val #(x.d'))
+  set'd : ∀ (x : TimerWithCancel) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet TimerWithCancel.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : TimerWithCancel)))
+  get'c : ∀ (x : TimerWithCancel), go.IsGoStepPureDetTagged under (StructFieldGet TimerWithCancel.underlying go!"c") #x (Val #(x.c'))
+  set'c : ∀ (x : TimerWithCancel) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet TimerWithCancel.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : TimerWithCancel)))
+  get'f : ∀ (x : TimerWithCancel), go.IsGoStepPureDetTagged under (StructFieldGet TimerWithCancel.underlying go!"f") #x (Val #(x.f'))
+  set'f : ∀ (x : TimerWithCancel) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet TimerWithCancel.underlying go!"f") (PairV #x #y) (Val #(({ x with f' := y } : TimerWithCancel)))
   method_set : go.MethodSetIs TimerWithCancel.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType TimerWithCancel.ty) [(go!"Cancel", (some (go.signature.Signature [] false []))), (go!"SetTimeoutFuntion", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Start", (some (go.signature.Signature [] false [])))]
-  ptr_Cancel_unfold : MethodUnfold (go.GoType.PointerType TimerWithCancel.ty) go!"Cancel" TimerWithCancel.Cancel.impl
-  ptr_SetTimeoutFuntion_unfold : MethodUnfold (go.GoType.PointerType TimerWithCancel.ty) go!"SetTimeoutFuntion" TimerWithCancel.SetTimeoutFuntion.impl
-  ptr_Start_unfold : MethodUnfold (go.GoType.PointerType TimerWithCancel.ty) go!"Start" TimerWithCancel.Start.impl
+  ptr_unfold'Cancel : MethodUnfold (go.GoType.PointerType TimerWithCancel.ty) go!"Cancel" TimerWithCancel.Cancel.impl
+  ptr_unfold'SetTimeoutFuntion : MethodUnfold (go.GoType.PointerType TimerWithCancel.ty) go!"SetTimeoutFuntion" TimerWithCancel.SetTimeoutFuntion.impl
+  ptr_unfold'Start : MethodUnfold (go.GoType.PointerType TimerWithCancel.ty) go!"Start" TimerWithCancel.Start.impl
 
 attribute [instance] TimerWithCancel.TypeAssumptions.type_repr
   TimerWithCancel.TypeAssumptions.underlying
-  TimerWithCancel.TypeAssumptions.get_t
-  TimerWithCancel.TypeAssumptions.set_t
-  TimerWithCancel.TypeAssumptions.get_d
-  TimerWithCancel.TypeAssumptions.set_d
-  TimerWithCancel.TypeAssumptions.get_c
-  TimerWithCancel.TypeAssumptions.set_c
-  TimerWithCancel.TypeAssumptions.get_f
-  TimerWithCancel.TypeAssumptions.set_f
+  TimerWithCancel.TypeAssumptions.get't
+  TimerWithCancel.TypeAssumptions.set't
+  TimerWithCancel.TypeAssumptions.get'd
+  TimerWithCancel.TypeAssumptions.set'd
+  TimerWithCancel.TypeAssumptions.get'c
+  TimerWithCancel.TypeAssumptions.set'c
+  TimerWithCancel.TypeAssumptions.get'f
+  TimerWithCancel.TypeAssumptions.set'f
   TimerWithCancel.TypeAssumptions.method_set
   TimerWithCancel.TypeAssumptions.ptr_method_set
-  TimerWithCancel.TypeAssumptions.ptr_Cancel_unfold
-  TimerWithCancel.TypeAssumptions.ptr_SetTimeoutFuntion_unfold
-  TimerWithCancel.TypeAssumptions.ptr_Start_unfold
+  TimerWithCancel.TypeAssumptions.ptr_unfold'Cancel
+  TimerWithCancel.TypeAssumptions.ptr_unfold'SetTimeoutFuntion
+  TimerWithCancel.TypeAssumptions.ptr_unfold'Start
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  RPCPair_instance : RPCPair.TypeAssumptions
-  OutgoingRPC_instance : OutgoingRPC.TypeAssumptions
-  TimerWithCancel_instance : TimerWithCancel.TypeAssumptions
-  NewTimerWithCancel_unfold : FuncUnfold NewTimerWithCancel [] NewTimerWithCancel.impl
-  GetRealSizeOf_unfold : FuncUnfold GetRealSizeOf [] GetRealSizeOf.impl
-  import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
-  import_gob_Assumption : _root_.Perennial.encoding.gob.Assumptions
-  import_proto_Assumption : _root_.Perennial.raxos.proto.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'RPCPair : RPCPair.TypeAssumptions
+  instance'OutgoingRPC : OutgoingRPC.TypeAssumptions
+  instance'TimerWithCancel : TimerWithCancel.TypeAssumptions
+  unfold'NewTimerWithCancel : FuncUnfold NewTimerWithCancel [] NewTimerWithCancel.impl
+  unfold'GetRealSizeOf : FuncUnfold GetRealSizeOf [] GetRealSizeOf.impl
+  import'bytes : _root_.Perennial.bytes.Assumptions
+  import'gob : _root_.Perennial.encoding.gob.Assumptions
+  import'proto : _root_.Perennial.raxos.proto.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.RPCPair_instance
-  Assumptions.OutgoingRPC_instance
-  Assumptions.TimerWithCancel_instance
-  Assumptions.NewTimerWithCancel_unfold
-  Assumptions.GetRealSizeOf_unfold
-  Assumptions.import_bytes_Assumption
-  Assumptions.import_gob_Assumption
-  Assumptions.import_proto_Assumption
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'RPCPair
+  Assumptions.instance'OutgoingRPC
+  Assumptions.instance'TimerWithCancel
+  Assumptions.unfold'NewTimerWithCancel
+  Assumptions.unfold'GetRealSizeOf
+  Assumptions.import'bytes
+  Assumptions.import'gob
+  Assumptions.import'proto
+  Assumptions.import'time
 
 end raxos.common
 

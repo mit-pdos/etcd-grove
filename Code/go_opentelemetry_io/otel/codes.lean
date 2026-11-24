@@ -92,9 +92,9 @@ attribute [instance] Code.TypeAssumptions.underlying
   Code.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Code_instance : Code.TypeAssumptions
+  instance'Code : Code.TypeAssumptions
 
-attribute [instance] Assumptions.Code_instance
+attribute [instance] Assumptions.instance'Code
 
 end go_opentelemetry_io.otel.codes
 

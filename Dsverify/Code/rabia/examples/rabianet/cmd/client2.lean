@@ -44,11 +44,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.rabia.examples.rabianet.initialize') (Val #())))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  main_unfold : FuncUnfold main [] main.impl
-  import_rabianet_Assumption : _root_.Perennial.rabia.examples.rabianet.Assumptions
+  unfold'main : FuncUnfold main [] main.impl
+  import'rabianet : _root_.Perennial.rabia.examples.rabianet.Assumptions
 
-attribute [instance] Assumptions.main_unfold
-  Assumptions.import_rabianet_Assumption
+attribute [instance] Assumptions.unfold'main
+  Assumptions.import'rabianet
 
 end rabia.examples.rabianet.cmd.client2
 

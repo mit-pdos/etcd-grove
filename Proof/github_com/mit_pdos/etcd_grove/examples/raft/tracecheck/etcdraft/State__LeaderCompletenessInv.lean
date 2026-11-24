@@ -297,7 +297,7 @@ theorem State.LeaderCompletenessInv.wp_proof (wp_Committed : State.Committed.spe
               rw [hidxz, hzl]; omega
             rw [ite_eq_left_of_eq_true _ _ (eq_true hbl)]
             try wp_auto
-            rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Entry.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+            rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Entry.TypeAssumptions.ptr_unfold'Equal.method_unfold]
             try wp_auto
             wp_apply wp_load_slice_index gl.Log' (sint.Z (k - W64 1)) esl DFrac.discard el hpos $$ [Hesl] as -
             · isplitr

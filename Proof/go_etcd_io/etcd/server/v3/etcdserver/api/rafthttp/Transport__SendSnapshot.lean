@@ -94,7 +94,7 @@ theorem rafthttp.Transport.SendSnapshot.wp_proof
     Hts⟩
   (try wp_auto)
   -- `m.GetTo()`: the raft message's (promoted from the embedded `*raftpb.Message`)
-  rw [go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.TypeAssumptions.ptr_GetTo_unfold.method_unfold]
+  rw [go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.TypeAssumptions.ptr_unfold'GetTo.method_unfold]
   (try wp_auto)
   wp_apply hGetTo.1 ml DFrac.discard DFrac.discard false st $$ [$Hml] as -
   (try wp_auto)

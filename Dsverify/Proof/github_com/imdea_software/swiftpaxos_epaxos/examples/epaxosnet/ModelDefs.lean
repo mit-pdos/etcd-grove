@@ -32,10 +32,10 @@ variable [package_sem : github_com.imdea_software.swiftpaxos_epaxos.examples.epa
 
 /-- `Out`'s values are injective (`Unknown` and `V` are read off by deterministic steps). -/
 theorem out_intoVal_inj {x y : Out} (h : (#x : val) = #y) : x = y := by
-  have hV := (Out.TypeAssumptions.get_V x).isGoStep_det_internal.isGoStep_pure_det
-  have hV' := (Out.TypeAssumptions.get_V y).isGoStep_det_internal.isGoStep_pure_det
-  have hU := (Out.TypeAssumptions.get_Unknown x).isGoStep_det_internal.isGoStep_pure_det
-  have hU' := (Out.TypeAssumptions.get_Unknown y).isGoStep_det_internal.isGoStep_pure_det
+  have hV := (Out.TypeAssumptions.get'V x).isGoStep_det_internal.isGoStep_pure_det
+  have hV' := (Out.TypeAssumptions.get'V y).isGoStep_det_internal.isGoStep_pure_det
+  have hU := (Out.TypeAssumptions.get'Unknown x).isGoStep_det_internal.isGoStep_pure_det
+  have hU' := (Out.TypeAssumptions.get'Unknown y).isGoStep_det_internal.isGoStep_pure_det
   rw [h, hV'] at hV
   rw [h, hU'] at hU
   have eV : Val #x.V' = Val #y.V' := (congrFun hV (Val #y.V')) ▸ rfl
@@ -51,14 +51,14 @@ theorem out_intoVal_inj {x y : Out} (h : (#x : val) = #y) : x = y := by
 
 /-- `In`'s values are injective. -/
 theorem in_intoVal_inj {x y : In} (h : (#x : val) = #y) : x = y := by
-  have hO := (In.TypeAssumptions.get_Op x).isGoStep_det_internal.isGoStep_pure_det
-  have hO' := (In.TypeAssumptions.get_Op y).isGoStep_det_internal.isGoStep_pure_det
-  have hK := (In.TypeAssumptions.get_K x).isGoStep_det_internal.isGoStep_pure_det
-  have hK' := (In.TypeAssumptions.get_K y).isGoStep_det_internal.isGoStep_pure_det
-  have hN := (In.TypeAssumptions.get_N x).isGoStep_det_internal.isGoStep_pure_det
-  have hN' := (In.TypeAssumptions.get_N y).isGoStep_det_internal.isGoStep_pure_det
-  have hV := (In.TypeAssumptions.get_V x).isGoStep_det_internal.isGoStep_pure_det
-  have hV' := (In.TypeAssumptions.get_V y).isGoStep_det_internal.isGoStep_pure_det
+  have hO := (In.TypeAssumptions.get'Op x).isGoStep_det_internal.isGoStep_pure_det
+  have hO' := (In.TypeAssumptions.get'Op y).isGoStep_det_internal.isGoStep_pure_det
+  have hK := (In.TypeAssumptions.get'K x).isGoStep_det_internal.isGoStep_pure_det
+  have hK' := (In.TypeAssumptions.get'K y).isGoStep_det_internal.isGoStep_pure_det
+  have hN := (In.TypeAssumptions.get'N x).isGoStep_det_internal.isGoStep_pure_det
+  have hN' := (In.TypeAssumptions.get'N y).isGoStep_det_internal.isGoStep_pure_det
+  have hV := (In.TypeAssumptions.get'V x).isGoStep_det_internal.isGoStep_pure_det
+  have hV' := (In.TypeAssumptions.get'V y).isGoStep_det_internal.isGoStep_pure_det
   rw [h, hO'] at hO
   rw [h, hK'] at hK
   rw [h, hN'] at hN

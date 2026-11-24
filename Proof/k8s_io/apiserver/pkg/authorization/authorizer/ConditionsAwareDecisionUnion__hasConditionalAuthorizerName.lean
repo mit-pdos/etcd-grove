@@ -33,7 +33,7 @@ theorem ConditionsAwareDecisionUnion.hasConditionalAuthorizerName.wp_proof
     ConditionsAwareDecisionUnion.hasConditionalAuthorizerName.spec (GF := GF) (hG := hG) := by
   intro p dq u dq' nds name
   wp_start as ⟨Hp, Hs⟩
-  icases (ConditionsAwareDecisionUnion.ConditionsAwareDecisionUnion_access_load_inner p u dq).access_strict
+  icases (ConditionsAwareDecisionUnion.access_load'ConditionsAwareDecisionUnion'inner p u dq).access_strict
     $$ Hp with ⟨Hi, Hclose⟩
   wp_auto
   ipersist conditionalAuthorizerName

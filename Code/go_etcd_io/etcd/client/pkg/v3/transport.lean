@@ -435,7 +435,7 @@ noncomputable instance TLSInfo.zero_val [GooseExts] : ZeroVal TLSInfo :=
 @[irreducible] noncomputable def TLSInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TLSInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_TLSInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'TLSInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold TLSInfo.fields TLSInfo.fieldsUnsealed :=
   ⟨by unfold TLSInfo.fields; rfl⟩
 
@@ -445,103 +445,103 @@ noncomputable instance equals_unfold_TLSInfo [GooseExts] [GoGlobalContext] :
 class TLSInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TLSInfo.underlying TLSInfo
   underlying : go.UnderlyingDirectedEq TLSInfo.ty TLSInfo.underlying
-  get_CertFile : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"CertFile") #x (Val #(x.CertFile'))
-  set_CertFile : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"CertFile") (PairV #x #y) (Val #(({ x with CertFile' := y } : TLSInfo)))
-  get_KeyFile : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"KeyFile") #x (Val #(x.KeyFile'))
-  set_KeyFile : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"KeyFile") (PairV #x #y) (Val #(({ x with KeyFile' := y } : TLSInfo)))
-  get_ClientCertFile : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"ClientCertFile") #x (Val #(x.ClientCertFile'))
-  set_ClientCertFile : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"ClientCertFile") (PairV #x #y) (Val #(({ x with ClientCertFile' := y } : TLSInfo)))
-  get_ClientKeyFile : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"ClientKeyFile") #x (Val #(x.ClientKeyFile'))
-  set_ClientKeyFile : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"ClientKeyFile") (PairV #x #y) (Val #(({ x with ClientKeyFile' := y } : TLSInfo)))
-  get_TrustedCAFile : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"TrustedCAFile") #x (Val #(x.TrustedCAFile'))
-  set_TrustedCAFile : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"TrustedCAFile") (PairV #x #y) (Val #(({ x with TrustedCAFile' := y } : TLSInfo)))
-  get_ClientCertAuth : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"ClientCertAuth") #x (Val #(x.ClientCertAuth'))
-  set_ClientCertAuth : ∀ (x : TLSInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"ClientCertAuth") (PairV #x #y) (Val #(({ x with ClientCertAuth' := y } : TLSInfo)))
-  get_CRLFile : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"CRLFile") #x (Val #(x.CRLFile'))
-  set_CRLFile : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"CRLFile") (PairV #x #y) (Val #(({ x with CRLFile' := y } : TLSInfo)))
-  get_InsecureSkipVerify : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"InsecureSkipVerify") #x (Val #(x.InsecureSkipVerify'))
-  set_InsecureSkipVerify : ∀ (x : TLSInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"InsecureSkipVerify") (PairV #x #y) (Val #(({ x with InsecureSkipVerify' := y } : TLSInfo)))
-  get_SkipClientSANVerify : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"SkipClientSANVerify") #x (Val #(x.SkipClientSANVerify'))
-  set_SkipClientSANVerify : ∀ (x : TLSInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"SkipClientSANVerify") (PairV #x #y) (Val #(({ x with SkipClientSANVerify' := y } : TLSInfo)))
-  get_ServerName : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"ServerName") #x (Val #(x.ServerName'))
-  set_ServerName : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"ServerName") (PairV #x #y) (Val #(({ x with ServerName' := y } : TLSInfo)))
-  get_HandshakeFailure : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"HandshakeFailure") #x (Val #(x.HandshakeFailure'))
-  set_HandshakeFailure : ∀ (x : TLSInfo) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"HandshakeFailure") (PairV #x #y) (Val #(({ x with HandshakeFailure' := y } : TLSInfo)))
-  get_CipherSuites : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"CipherSuites") #x (Val #(x.CipherSuites'))
-  set_CipherSuites : ∀ (x : TLSInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"CipherSuites") (PairV #x #y) (Val #(({ x with CipherSuites' := y } : TLSInfo)))
-  get_MinVersion : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"MinVersion") #x (Val #(x.MinVersion'))
-  set_MinVersion : ∀ (x : TLSInfo) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"MinVersion") (PairV #x #y) (Val #(({ x with MinVersion' := y } : TLSInfo)))
-  get_MaxVersion : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"MaxVersion") #x (Val #(x.MaxVersion'))
-  set_MaxVersion : ∀ (x : TLSInfo) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"MaxVersion") (PairV #x #y) (Val #(({ x with MaxVersion' := y } : TLSInfo)))
-  get_selfCert : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"selfCert") #x (Val #(x.selfCert'))
-  set_selfCert : ∀ (x : TLSInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"selfCert") (PairV #x #y) (Val #(({ x with selfCert' := y } : TLSInfo)))
-  get_parseFunc : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"parseFunc") #x (Val #(x.parseFunc'))
-  set_parseFunc : ∀ (x : TLSInfo) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"parseFunc") (PairV #x #y) (Val #(({ x with parseFunc' := y } : TLSInfo)))
-  get_AllowedCN : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"AllowedCN") #x (Val #(x.AllowedCN'))
-  set_AllowedCN : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"AllowedCN") (PairV #x #y) (Val #(({ x with AllowedCN' := y } : TLSInfo)))
-  get_AllowedHostname : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"AllowedHostname") #x (Val #(x.AllowedHostname'))
-  set_AllowedHostname : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"AllowedHostname") (PairV #x #y) (Val #(({ x with AllowedHostname' := y } : TLSInfo)))
-  get_AllowedCNs : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"AllowedCNs") #x (Val #(x.AllowedCNs'))
-  set_AllowedCNs : ∀ (x : TLSInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"AllowedCNs") (PairV #x #y) (Val #(({ x with AllowedCNs' := y } : TLSInfo)))
-  get_AllowedHostnames : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"AllowedHostnames") #x (Val #(x.AllowedHostnames'))
-  set_AllowedHostnames : ∀ (x : TLSInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"AllowedHostnames") (PairV #x #y) (Val #(({ x with AllowedHostnames' := y } : TLSInfo)))
-  get_Logger : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"Logger") #x (Val #(x.Logger'))
-  set_Logger : ∀ (x : TLSInfo) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : TLSInfo)))
-  get_EmptyCN : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"EmptyCN") #x (Val #(x.EmptyCN'))
-  set_EmptyCN : ∀ (x : TLSInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"EmptyCN") (PairV #x #y) (Val #(({ x with EmptyCN' := y } : TLSInfo)))
-  get_LocalAddr : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"LocalAddr") #x (Val #(x.LocalAddr'))
-  set_LocalAddr : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"LocalAddr") (PairV #x #y) (Val #(({ x with LocalAddr' := y } : TLSInfo)))
+  get'CertFile : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"CertFile") #x (Val #(x.CertFile'))
+  set'CertFile : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"CertFile") (PairV #x #y) (Val #(({ x with CertFile' := y } : TLSInfo)))
+  get'KeyFile : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"KeyFile") #x (Val #(x.KeyFile'))
+  set'KeyFile : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"KeyFile") (PairV #x #y) (Val #(({ x with KeyFile' := y } : TLSInfo)))
+  get'ClientCertFile : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"ClientCertFile") #x (Val #(x.ClientCertFile'))
+  set'ClientCertFile : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"ClientCertFile") (PairV #x #y) (Val #(({ x with ClientCertFile' := y } : TLSInfo)))
+  get'ClientKeyFile : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"ClientKeyFile") #x (Val #(x.ClientKeyFile'))
+  set'ClientKeyFile : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"ClientKeyFile") (PairV #x #y) (Val #(({ x with ClientKeyFile' := y } : TLSInfo)))
+  get'TrustedCAFile : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"TrustedCAFile") #x (Val #(x.TrustedCAFile'))
+  set'TrustedCAFile : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"TrustedCAFile") (PairV #x #y) (Val #(({ x with TrustedCAFile' := y } : TLSInfo)))
+  get'ClientCertAuth : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"ClientCertAuth") #x (Val #(x.ClientCertAuth'))
+  set'ClientCertAuth : ∀ (x : TLSInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"ClientCertAuth") (PairV #x #y) (Val #(({ x with ClientCertAuth' := y } : TLSInfo)))
+  get'CRLFile : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"CRLFile") #x (Val #(x.CRLFile'))
+  set'CRLFile : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"CRLFile") (PairV #x #y) (Val #(({ x with CRLFile' := y } : TLSInfo)))
+  get'InsecureSkipVerify : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"InsecureSkipVerify") #x (Val #(x.InsecureSkipVerify'))
+  set'InsecureSkipVerify : ∀ (x : TLSInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"InsecureSkipVerify") (PairV #x #y) (Val #(({ x with InsecureSkipVerify' := y } : TLSInfo)))
+  get'SkipClientSANVerify : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"SkipClientSANVerify") #x (Val #(x.SkipClientSANVerify'))
+  set'SkipClientSANVerify : ∀ (x : TLSInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"SkipClientSANVerify") (PairV #x #y) (Val #(({ x with SkipClientSANVerify' := y } : TLSInfo)))
+  get'ServerName : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"ServerName") #x (Val #(x.ServerName'))
+  set'ServerName : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"ServerName") (PairV #x #y) (Val #(({ x with ServerName' := y } : TLSInfo)))
+  get'HandshakeFailure : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"HandshakeFailure") #x (Val #(x.HandshakeFailure'))
+  set'HandshakeFailure : ∀ (x : TLSInfo) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"HandshakeFailure") (PairV #x #y) (Val #(({ x with HandshakeFailure' := y } : TLSInfo)))
+  get'CipherSuites : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"CipherSuites") #x (Val #(x.CipherSuites'))
+  set'CipherSuites : ∀ (x : TLSInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"CipherSuites") (PairV #x #y) (Val #(({ x with CipherSuites' := y } : TLSInfo)))
+  get'MinVersion : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"MinVersion") #x (Val #(x.MinVersion'))
+  set'MinVersion : ∀ (x : TLSInfo) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"MinVersion") (PairV #x #y) (Val #(({ x with MinVersion' := y } : TLSInfo)))
+  get'MaxVersion : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"MaxVersion") #x (Val #(x.MaxVersion'))
+  set'MaxVersion : ∀ (x : TLSInfo) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"MaxVersion") (PairV #x #y) (Val #(({ x with MaxVersion' := y } : TLSInfo)))
+  get'selfCert : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"selfCert") #x (Val #(x.selfCert'))
+  set'selfCert : ∀ (x : TLSInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"selfCert") (PairV #x #y) (Val #(({ x with selfCert' := y } : TLSInfo)))
+  get'parseFunc : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"parseFunc") #x (Val #(x.parseFunc'))
+  set'parseFunc : ∀ (x : TLSInfo) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"parseFunc") (PairV #x #y) (Val #(({ x with parseFunc' := y } : TLSInfo)))
+  get'AllowedCN : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"AllowedCN") #x (Val #(x.AllowedCN'))
+  set'AllowedCN : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"AllowedCN") (PairV #x #y) (Val #(({ x with AllowedCN' := y } : TLSInfo)))
+  get'AllowedHostname : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"AllowedHostname") #x (Val #(x.AllowedHostname'))
+  set'AllowedHostname : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"AllowedHostname") (PairV #x #y) (Val #(({ x with AllowedHostname' := y } : TLSInfo)))
+  get'AllowedCNs : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"AllowedCNs") #x (Val #(x.AllowedCNs'))
+  set'AllowedCNs : ∀ (x : TLSInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"AllowedCNs") (PairV #x #y) (Val #(({ x with AllowedCNs' := y } : TLSInfo)))
+  get'AllowedHostnames : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"AllowedHostnames") #x (Val #(x.AllowedHostnames'))
+  set'AllowedHostnames : ∀ (x : TLSInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"AllowedHostnames") (PairV #x #y) (Val #(({ x with AllowedHostnames' := y } : TLSInfo)))
+  get'Logger : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"Logger") #x (Val #(x.Logger'))
+  set'Logger : ∀ (x : TLSInfo) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : TLSInfo)))
+  get'EmptyCN : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"EmptyCN") #x (Val #(x.EmptyCN'))
+  set'EmptyCN : ∀ (x : TLSInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"EmptyCN") (PairV #x #y) (Val #(({ x with EmptyCN' := y } : TLSInfo)))
+  get'LocalAddr : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"LocalAddr") #x (Val #(x.LocalAddr'))
+  set'LocalAddr : ∀ (x : TLSInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"LocalAddr") (PairV #x #y) (Val #(({ x with LocalAddr' := y } : TLSInfo)))
   method_set : go.MethodSetIs TLSInfo.ty [(go!"ClientConfig", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty), go.error]))), (go!"ConfigureCRLVerification", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)] false []))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"ServerConfig", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.baseConfig", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty), go.error]))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.cafiles", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType TLSInfo.ty) [(go!"ClientConfig", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty), go.error]))), (go!"ConfigureCRLVerification", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)] false []))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"ServerConfig", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.baseConfig", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty), go.error]))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.cafiles", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] TLSInfo.TypeAssumptions.type_repr
   TLSInfo.TypeAssumptions.underlying
-  TLSInfo.TypeAssumptions.get_CertFile
-  TLSInfo.TypeAssumptions.set_CertFile
-  TLSInfo.TypeAssumptions.get_KeyFile
-  TLSInfo.TypeAssumptions.set_KeyFile
-  TLSInfo.TypeAssumptions.get_ClientCertFile
-  TLSInfo.TypeAssumptions.set_ClientCertFile
-  TLSInfo.TypeAssumptions.get_ClientKeyFile
-  TLSInfo.TypeAssumptions.set_ClientKeyFile
-  TLSInfo.TypeAssumptions.get_TrustedCAFile
-  TLSInfo.TypeAssumptions.set_TrustedCAFile
-  TLSInfo.TypeAssumptions.get_ClientCertAuth
-  TLSInfo.TypeAssumptions.set_ClientCertAuth
-  TLSInfo.TypeAssumptions.get_CRLFile
-  TLSInfo.TypeAssumptions.set_CRLFile
-  TLSInfo.TypeAssumptions.get_InsecureSkipVerify
-  TLSInfo.TypeAssumptions.set_InsecureSkipVerify
-  TLSInfo.TypeAssumptions.get_SkipClientSANVerify
-  TLSInfo.TypeAssumptions.set_SkipClientSANVerify
-  TLSInfo.TypeAssumptions.get_ServerName
-  TLSInfo.TypeAssumptions.set_ServerName
-  TLSInfo.TypeAssumptions.get_HandshakeFailure
-  TLSInfo.TypeAssumptions.set_HandshakeFailure
-  TLSInfo.TypeAssumptions.get_CipherSuites
-  TLSInfo.TypeAssumptions.set_CipherSuites
-  TLSInfo.TypeAssumptions.get_MinVersion
-  TLSInfo.TypeAssumptions.set_MinVersion
-  TLSInfo.TypeAssumptions.get_MaxVersion
-  TLSInfo.TypeAssumptions.set_MaxVersion
-  TLSInfo.TypeAssumptions.get_selfCert
-  TLSInfo.TypeAssumptions.set_selfCert
-  TLSInfo.TypeAssumptions.get_parseFunc
-  TLSInfo.TypeAssumptions.set_parseFunc
-  TLSInfo.TypeAssumptions.get_AllowedCN
-  TLSInfo.TypeAssumptions.set_AllowedCN
-  TLSInfo.TypeAssumptions.get_AllowedHostname
-  TLSInfo.TypeAssumptions.set_AllowedHostname
-  TLSInfo.TypeAssumptions.get_AllowedCNs
-  TLSInfo.TypeAssumptions.set_AllowedCNs
-  TLSInfo.TypeAssumptions.get_AllowedHostnames
-  TLSInfo.TypeAssumptions.set_AllowedHostnames
-  TLSInfo.TypeAssumptions.get_Logger
-  TLSInfo.TypeAssumptions.set_Logger
-  TLSInfo.TypeAssumptions.get_EmptyCN
-  TLSInfo.TypeAssumptions.set_EmptyCN
-  TLSInfo.TypeAssumptions.get_LocalAddr
-  TLSInfo.TypeAssumptions.set_LocalAddr
+  TLSInfo.TypeAssumptions.get'CertFile
+  TLSInfo.TypeAssumptions.set'CertFile
+  TLSInfo.TypeAssumptions.get'KeyFile
+  TLSInfo.TypeAssumptions.set'KeyFile
+  TLSInfo.TypeAssumptions.get'ClientCertFile
+  TLSInfo.TypeAssumptions.set'ClientCertFile
+  TLSInfo.TypeAssumptions.get'ClientKeyFile
+  TLSInfo.TypeAssumptions.set'ClientKeyFile
+  TLSInfo.TypeAssumptions.get'TrustedCAFile
+  TLSInfo.TypeAssumptions.set'TrustedCAFile
+  TLSInfo.TypeAssumptions.get'ClientCertAuth
+  TLSInfo.TypeAssumptions.set'ClientCertAuth
+  TLSInfo.TypeAssumptions.get'CRLFile
+  TLSInfo.TypeAssumptions.set'CRLFile
+  TLSInfo.TypeAssumptions.get'InsecureSkipVerify
+  TLSInfo.TypeAssumptions.set'InsecureSkipVerify
+  TLSInfo.TypeAssumptions.get'SkipClientSANVerify
+  TLSInfo.TypeAssumptions.set'SkipClientSANVerify
+  TLSInfo.TypeAssumptions.get'ServerName
+  TLSInfo.TypeAssumptions.set'ServerName
+  TLSInfo.TypeAssumptions.get'HandshakeFailure
+  TLSInfo.TypeAssumptions.set'HandshakeFailure
+  TLSInfo.TypeAssumptions.get'CipherSuites
+  TLSInfo.TypeAssumptions.set'CipherSuites
+  TLSInfo.TypeAssumptions.get'MinVersion
+  TLSInfo.TypeAssumptions.set'MinVersion
+  TLSInfo.TypeAssumptions.get'MaxVersion
+  TLSInfo.TypeAssumptions.set'MaxVersion
+  TLSInfo.TypeAssumptions.get'selfCert
+  TLSInfo.TypeAssumptions.set'selfCert
+  TLSInfo.TypeAssumptions.get'parseFunc
+  TLSInfo.TypeAssumptions.set'parseFunc
+  TLSInfo.TypeAssumptions.get'AllowedCN
+  TLSInfo.TypeAssumptions.set'AllowedCN
+  TLSInfo.TypeAssumptions.get'AllowedHostname
+  TLSInfo.TypeAssumptions.set'AllowedHostname
+  TLSInfo.TypeAssumptions.get'AllowedCNs
+  TLSInfo.TypeAssumptions.set'AllowedCNs
+  TLSInfo.TypeAssumptions.get'AllowedHostnames
+  TLSInfo.TypeAssumptions.set'AllowedHostnames
+  TLSInfo.TypeAssumptions.get'Logger
+  TLSInfo.TypeAssumptions.set'Logger
+  TLSInfo.TypeAssumptions.get'EmptyCN
+  TLSInfo.TypeAssumptions.set'EmptyCN
+  TLSInfo.TypeAssumptions.get'LocalAddr
+  TLSInfo.TypeAssumptions.set'LocalAddr
   TLSInfo.TypeAssumptions.method_set
   TLSInfo.TypeAssumptions.ptr_method_set
 
@@ -650,7 +650,7 @@ noncomputable instance SocketOpts.zero_val [GooseExts] : ZeroVal SocketOpts :=
 @[irreducible] noncomputable def SocketOpts.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SocketOpts.fieldsUnsealed
 
-noncomputable instance equals_unfold_SocketOpts [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SocketOpts [GooseExts] [GoGlobalContext] :
     EqualsUnfold SocketOpts.fields SocketOpts.fieldsUnsealed :=
   ⟨by unfold SocketOpts.fields; rfl⟩
 
@@ -660,19 +660,19 @@ noncomputable instance equals_unfold_SocketOpts [GooseExts] [GoGlobalContext] :
 class SocketOpts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SocketOpts.underlying SocketOpts
   underlying : go.UnderlyingDirectedEq SocketOpts.ty SocketOpts.underlying
-  get_ReusePort : ∀ (x : SocketOpts), go.IsGoStepPureDetTagged under (StructFieldGet SocketOpts.underlying go!"ReusePort") #x (Val #(x.ReusePort'))
-  set_ReusePort : ∀ (x : SocketOpts) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SocketOpts.underlying go!"ReusePort") (PairV #x #y) (Val #(({ x with ReusePort' := y } : SocketOpts)))
-  get_ReuseAddress : ∀ (x : SocketOpts), go.IsGoStepPureDetTagged under (StructFieldGet SocketOpts.underlying go!"ReuseAddress") #x (Val #(x.ReuseAddress'))
-  set_ReuseAddress : ∀ (x : SocketOpts) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SocketOpts.underlying go!"ReuseAddress") (PairV #x #y) (Val #(({ x with ReuseAddress' := y } : SocketOpts)))
+  get'ReusePort : ∀ (x : SocketOpts), go.IsGoStepPureDetTagged under (StructFieldGet SocketOpts.underlying go!"ReusePort") #x (Val #(x.ReusePort'))
+  set'ReusePort : ∀ (x : SocketOpts) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SocketOpts.underlying go!"ReusePort") (PairV #x #y) (Val #(({ x with ReusePort' := y } : SocketOpts)))
+  get'ReuseAddress : ∀ (x : SocketOpts), go.IsGoStepPureDetTagged under (StructFieldGet SocketOpts.underlying go!"ReuseAddress") #x (Val #(x.ReuseAddress'))
+  set'ReuseAddress : ∀ (x : SocketOpts) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SocketOpts.underlying go!"ReuseAddress") (PairV #x #y) (Val #(({ x with ReuseAddress' := y } : SocketOpts)))
   method_set : go.MethodSetIs SocketOpts.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SocketOpts.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] SocketOpts.TypeAssumptions.type_repr
   SocketOpts.TypeAssumptions.underlying
-  SocketOpts.TypeAssumptions.get_ReusePort
-  SocketOpts.TypeAssumptions.set_ReusePort
-  SocketOpts.TypeAssumptions.get_ReuseAddress
-  SocketOpts.TypeAssumptions.set_ReuseAddress
+  SocketOpts.TypeAssumptions.get'ReusePort
+  SocketOpts.TypeAssumptions.set'ReusePort
+  SocketOpts.TypeAssumptions.get'ReuseAddress
+  SocketOpts.TypeAssumptions.set'ReuseAddress
   SocketOpts.TypeAssumptions.method_set
   SocketOpts.TypeAssumptions.ptr_method_set
 
@@ -772,51 +772,51 @@ attribute [instance] unixListener.TypeAssumptions.type_repr
   unixListener.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  keepaliveListener_instance : keepaliveListener.TypeAssumptions
-  keepAliveConn_instance : keepAliveConn.TypeAssumptions
-  tlsKeepaliveListener_instance : tlsKeepaliveListener.TypeAssumptions
-  limitListener_instance : limitListener.TypeAssumptions
-  limitListenerConn_instance : limitListenerConn.TypeAssumptions
-  TLSInfo_instance : TLSInfo.TypeAssumptions
-  ListenerOptions_instance : ListenerOptions.TypeAssumptions
-  ListenerOption_instance : ListenerOption.TypeAssumptions
-  tlsListener_instance : tlsListener.TypeAssumptions
-  tlsCheckFunc_instance : tlsCheckFunc.TypeAssumptions
-  Controls_instance : Controls.TypeAssumptions
-  SocketOpts_instance : SocketOpts.TypeAssumptions
-  timeoutConn_instance : timeoutConn.TypeAssumptions
-  rwTimeoutDialer_instance : rwTimeoutDialer.TypeAssumptions
-  rwTimeoutListener_instance : rwTimeoutListener.TypeAssumptions
-  unixTransport_instance : unixTransport.TypeAssumptions
-  unixListener_instance : unixListener.TypeAssumptions
-  IsClosedConnError_unfold : FuncUnfold IsClosedConnError [] IsClosedConnError.impl
-  import_tls_Assumption : _root_.Perennial.crypto.tls.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
+  instance'keepaliveListener : keepaliveListener.TypeAssumptions
+  instance'keepAliveConn : keepAliveConn.TypeAssumptions
+  instance'tlsKeepaliveListener : tlsKeepaliveListener.TypeAssumptions
+  instance'limitListener : limitListener.TypeAssumptions
+  instance'limitListenerConn : limitListenerConn.TypeAssumptions
+  instance'TLSInfo : TLSInfo.TypeAssumptions
+  instance'ListenerOptions : ListenerOptions.TypeAssumptions
+  instance'ListenerOption : ListenerOption.TypeAssumptions
+  instance'tlsListener : tlsListener.TypeAssumptions
+  instance'tlsCheckFunc : tlsCheckFunc.TypeAssumptions
+  instance'Controls : Controls.TypeAssumptions
+  instance'SocketOpts : SocketOpts.TypeAssumptions
+  instance'timeoutConn : timeoutConn.TypeAssumptions
+  instance'rwTimeoutDialer : rwTimeoutDialer.TypeAssumptions
+  instance'rwTimeoutListener : rwTimeoutListener.TypeAssumptions
+  instance'unixTransport : unixTransport.TypeAssumptions
+  instance'unixListener : unixListener.TypeAssumptions
+  unfold'IsClosedConnError : FuncUnfold IsClosedConnError [] IsClosedConnError.impl
+  import'tls : _root_.Perennial.crypto.tls.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
 
-attribute [instance] Assumptions.keepaliveListener_instance
-  Assumptions.keepAliveConn_instance
-  Assumptions.tlsKeepaliveListener_instance
-  Assumptions.limitListener_instance
-  Assumptions.limitListenerConn_instance
-  Assumptions.TLSInfo_instance
-  Assumptions.ListenerOptions_instance
-  Assumptions.ListenerOption_instance
-  Assumptions.tlsListener_instance
-  Assumptions.tlsCheckFunc_instance
-  Assumptions.Controls_instance
-  Assumptions.SocketOpts_instance
-  Assumptions.timeoutConn_instance
-  Assumptions.rwTimeoutDialer_instance
-  Assumptions.rwTimeoutListener_instance
-  Assumptions.unixTransport_instance
-  Assumptions.unixListener_instance
-  Assumptions.IsClosedConnError_unfold
-  Assumptions.import_tls_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_zap_Assumption
+attribute [instance] Assumptions.instance'keepaliveListener
+  Assumptions.instance'keepAliveConn
+  Assumptions.instance'tlsKeepaliveListener
+  Assumptions.instance'limitListener
+  Assumptions.instance'limitListenerConn
+  Assumptions.instance'TLSInfo
+  Assumptions.instance'ListenerOptions
+  Assumptions.instance'ListenerOption
+  Assumptions.instance'tlsListener
+  Assumptions.instance'tlsCheckFunc
+  Assumptions.instance'Controls
+  Assumptions.instance'SocketOpts
+  Assumptions.instance'timeoutConn
+  Assumptions.instance'rwTimeoutDialer
+  Assumptions.instance'rwTimeoutListener
+  Assumptions.instance'unixTransport
+  Assumptions.instance'unixListener
+  Assumptions.unfold'IsClosedConnError
+  Assumptions.import'tls
+  Assumptions.import'errors
+  Assumptions.import'strings
+  Assumptions.import'zap
 
 end go_etcd_io.etcd.client.pkg.v3.transport
 

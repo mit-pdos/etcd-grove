@@ -36,10 +36,10 @@ noncomputable def Syntax.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Syntax.ty
 
-noncomputable def «syntax».ty [GooseExts] [GoGlobalContext] : go.GoType :=
+noncomputable def syntax''.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.syntax" [])
 
-attribute [irreducible] «syntax».ty
+attribute [irreducible] syntax''.ty
 
 noncomputable def Cardinality.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Cardinality" [])
@@ -329,7 +329,7 @@ attribute [irreducible] value.ty
 @[irreducible] noncomputable def «struct#39c24ac0».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#39c24ac0».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#39c24ac0» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#39c24ac0» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#39c24ac0».fields «struct#39c24ac0».fieldsUnsealed :=
   ⟨by unfold «struct#39c24ac0».fields; rfl⟩
 
@@ -343,7 +343,7 @@ noncomputable instance «equals_unfold_struct#39c24ac0» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#09ab9bd9».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#09ab9bd9».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#09ab9bd9» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#09ab9bd9» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#09ab9bd9».fields «struct#09ab9bd9».fieldsUnsealed :=
   ⟨by unfold «struct#09ab9bd9».fields; rfl⟩
 
@@ -359,7 +359,7 @@ noncomputable instance «equals_unfold_struct#09ab9bd9» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#85bf90eb».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#85bf90eb».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#85bf90eb» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#85bf90eb» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#85bf90eb».fields «struct#85bf90eb».fieldsUnsealed :=
   ⟨by unfold «struct#85bf90eb».fields; rfl⟩
 
@@ -373,7 +373,7 @@ noncomputable instance «equals_unfold_struct#85bf90eb» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#69fc66c6».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#69fc66c6».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#69fc66c6» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#69fc66c6» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#69fc66c6».fields «struct#69fc66c6».fieldsUnsealed :=
   ⟨by unfold «struct#69fc66c6».fields; rfl⟩
 
@@ -391,7 +391,7 @@ noncomputable instance «equals_unfold_struct#69fc66c6» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#a47ca8a7».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#a47ca8a7».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#a47ca8a7» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#a47ca8a7» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#a47ca8a7».fields «struct#a47ca8a7».fieldsUnsealed :=
   ⟨by unfold «struct#a47ca8a7».fields; rfl⟩
 
@@ -405,7 +405,7 @@ noncomputable instance «equals_unfold_struct#a47ca8a7» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#9d85598c».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#9d85598c».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#9d85598c» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#9d85598c» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#9d85598c».fields «struct#9d85598c».fieldsUnsealed :=
   ⟨by unfold «struct#9d85598c».fields; rfl⟩
 
@@ -420,7 +420,7 @@ noncomputable instance «equals_unfold_struct#9d85598c» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#07f26e0d».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#07f26e0d».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#07f26e0d» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#07f26e0d» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#07f26e0d».fields «struct#07f26e0d».fieldsUnsealed :=
   ⟨by unfold «struct#07f26e0d».fields; rfl⟩
 
@@ -434,7 +434,7 @@ noncomputable instance «equals_unfold_struct#07f26e0d» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#dc47f379».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#dc47f379».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#dc47f379» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#dc47f379» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#dc47f379».fields «struct#dc47f379».fieldsUnsealed :=
   ⟨by unfold «struct#dc47f379».fields; rfl⟩
 
@@ -447,7 +447,7 @@ noncomputable instance «equals_unfold_struct#dc47f379» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#26ca81e8».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#26ca81e8».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#26ca81e8» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#26ca81e8» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#26ca81e8».fields «struct#26ca81e8».fieldsUnsealed :=
   ⟨by unfold «struct#26ca81e8».fields; rfl⟩
 
@@ -462,7 +462,7 @@ noncomputable instance «equals_unfold_struct#26ca81e8» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#9d8af3ce».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#9d8af3ce».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#9d8af3ce» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#9d8af3ce» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#9d8af3ce».fields «struct#9d8af3ce».fieldsUnsealed :=
   ⟨by unfold «struct#9d8af3ce».fields; rfl⟩
 
@@ -476,7 +476,7 @@ noncomputable instance «equals_unfold_struct#9d8af3ce» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#f228ed0d».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#f228ed0d».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#f228ed0d» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#f228ed0d» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#f228ed0d».fields «struct#f228ed0d».fieldsUnsealed :=
   ⟨by unfold «struct#f228ed0d».fields; rfl⟩
 
@@ -496,7 +496,7 @@ noncomputable instance «equals_unfold_struct#f228ed0d» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#9f4eeae4».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#9f4eeae4».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#9f4eeae4» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#9f4eeae4» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#9f4eeae4».fields «struct#9f4eeae4».fieldsUnsealed :=
   ⟨by unfold «struct#9f4eeae4».fields; rfl⟩
 
@@ -792,24 +792,24 @@ attribute [instance] ProtoMessage.TypeAssumptions.underlying
   ProtoMessage.TypeAssumptions.method_set
   ProtoMessage.TypeAssumptions.ptr_method_set
 
-abbrev «syntax» [GooseExts] : Type := w8
+abbrev syntax'' [GooseExts] : Type := w8
 
-@[reducible] noncomputable def «syntax».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def syntax''.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int8
 
-class «syntax».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq «syntax».ty «syntax».underlying
-  method_set : go.MethodSetIs «syntax».ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType «syntax».ty) []
+class syntax''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq syntax''.ty syntax''.underlying
+  method_set : go.MethodSetIs syntax''.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType syntax''.ty) []
 
-attribute [instance] «syntax».TypeAssumptions.underlying
-  «syntax».TypeAssumptions.method_set
-  «syntax».TypeAssumptions.ptr_method_set
+attribute [instance] syntax''.TypeAssumptions.underlying
+  syntax''.TypeAssumptions.method_set
+  syntax''.TypeAssumptions.ptr_method_set
 
-abbrev Syntax [GooseExts] : Type := «syntax»
+abbrev Syntax [GooseExts] : Type := syntax''
 
 @[reducible] noncomputable def Syntax.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  «syntax».ty
+  syntax''.ty
 
 class Syntax.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Syntax.ty Syntax.underlying
@@ -1031,7 +1031,7 @@ noncomputable instance SourceLocation.zero_val [GooseExts] : ZeroVal SourceLocat
 @[irreducible] noncomputable def SourceLocation.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SourceLocation.fieldsUnsealed
 
-noncomputable instance equals_unfold_SourceLocation [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SourceLocation [GooseExts] [GoGlobalContext] :
     EqualsUnfold SourceLocation.fields SourceLocation.fieldsUnsealed :=
   ⟨by unfold SourceLocation.fields; rfl⟩
 
@@ -1041,47 +1041,47 @@ noncomputable instance equals_unfold_SourceLocation [GooseExts] [GoGlobalContext
 class SourceLocation.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SourceLocation.underlying SourceLocation
   underlying : go.UnderlyingDirectedEq SourceLocation.ty SourceLocation.underlying
-  get_Path : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"Path") #x (Val #(x.Path'))
-  set_Path : ∀ (x : SourceLocation) (y : SourcePath), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : SourceLocation)))
-  get_StartLine : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"StartLine") #x (Val #(x.StartLine'))
-  set_StartLine : ∀ (x : SourceLocation) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"StartLine") (PairV #x #y) (Val #(({ x with StartLine' := y } : SourceLocation)))
-  get_StartColumn : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"StartColumn") #x (Val #(x.StartColumn'))
-  set_StartColumn : ∀ (x : SourceLocation) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"StartColumn") (PairV #x #y) (Val #(({ x with StartColumn' := y } : SourceLocation)))
-  get_EndLine : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"EndLine") #x (Val #(x.EndLine'))
-  set_EndLine : ∀ (x : SourceLocation) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"EndLine") (PairV #x #y) (Val #(({ x with EndLine' := y } : SourceLocation)))
-  get_EndColumn : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"EndColumn") #x (Val #(x.EndColumn'))
-  set_EndColumn : ∀ (x : SourceLocation) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"EndColumn") (PairV #x #y) (Val #(({ x with EndColumn' := y } : SourceLocation)))
-  get_LeadingDetachedComments : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"LeadingDetachedComments") #x (Val #(x.LeadingDetachedComments'))
-  set_LeadingDetachedComments : ∀ (x : SourceLocation) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"LeadingDetachedComments") (PairV #x #y) (Val #(({ x with LeadingDetachedComments' := y } : SourceLocation)))
-  get_LeadingComments : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"LeadingComments") #x (Val #(x.LeadingComments'))
-  set_LeadingComments : ∀ (x : SourceLocation) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"LeadingComments") (PairV #x #y) (Val #(({ x with LeadingComments' := y } : SourceLocation)))
-  get_TrailingComments : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"TrailingComments") #x (Val #(x.TrailingComments'))
-  set_TrailingComments : ∀ (x : SourceLocation) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"TrailingComments") (PairV #x #y) (Val #(({ x with TrailingComments' := y } : SourceLocation)))
-  get_Next : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"Next") #x (Val #(x.Next'))
-  set_Next : ∀ (x : SourceLocation) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"Next") (PairV #x #y) (Val #(({ x with Next' := y } : SourceLocation)))
+  get'Path : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"Path") #x (Val #(x.Path'))
+  set'Path : ∀ (x : SourceLocation) (y : SourcePath), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"Path") (PairV #x #y) (Val #(({ x with Path' := y } : SourceLocation)))
+  get'StartLine : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"StartLine") #x (Val #(x.StartLine'))
+  set'StartLine : ∀ (x : SourceLocation) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"StartLine") (PairV #x #y) (Val #(({ x with StartLine' := y } : SourceLocation)))
+  get'StartColumn : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"StartColumn") #x (Val #(x.StartColumn'))
+  set'StartColumn : ∀ (x : SourceLocation) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"StartColumn") (PairV #x #y) (Val #(({ x with StartColumn' := y } : SourceLocation)))
+  get'EndLine : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"EndLine") #x (Val #(x.EndLine'))
+  set'EndLine : ∀ (x : SourceLocation) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"EndLine") (PairV #x #y) (Val #(({ x with EndLine' := y } : SourceLocation)))
+  get'EndColumn : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"EndColumn") #x (Val #(x.EndColumn'))
+  set'EndColumn : ∀ (x : SourceLocation) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"EndColumn") (PairV #x #y) (Val #(({ x with EndColumn' := y } : SourceLocation)))
+  get'LeadingDetachedComments : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"LeadingDetachedComments") #x (Val #(x.LeadingDetachedComments'))
+  set'LeadingDetachedComments : ∀ (x : SourceLocation) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"LeadingDetachedComments") (PairV #x #y) (Val #(({ x with LeadingDetachedComments' := y } : SourceLocation)))
+  get'LeadingComments : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"LeadingComments") #x (Val #(x.LeadingComments'))
+  set'LeadingComments : ∀ (x : SourceLocation) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"LeadingComments") (PairV #x #y) (Val #(({ x with LeadingComments' := y } : SourceLocation)))
+  get'TrailingComments : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"TrailingComments") #x (Val #(x.TrailingComments'))
+  set'TrailingComments : ∀ (x : SourceLocation) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"TrailingComments") (PairV #x #y) (Val #(({ x with TrailingComments' := y } : SourceLocation)))
+  get'Next : ∀ (x : SourceLocation), go.IsGoStepPureDetTagged under (StructFieldGet SourceLocation.underlying go!"Next") #x (Val #(x.Next'))
+  set'Next : ∀ (x : SourceLocation) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SourceLocation.underlying go!"Next") (PairV #x #y) (Val #(({ x with Next' := y } : SourceLocation)))
   method_set : go.MethodSetIs SourceLocation.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SourceLocation.ty) []
 
 attribute [instance] SourceLocation.TypeAssumptions.type_repr
   SourceLocation.TypeAssumptions.underlying
-  SourceLocation.TypeAssumptions.get_Path
-  SourceLocation.TypeAssumptions.set_Path
-  SourceLocation.TypeAssumptions.get_StartLine
-  SourceLocation.TypeAssumptions.set_StartLine
-  SourceLocation.TypeAssumptions.get_StartColumn
-  SourceLocation.TypeAssumptions.set_StartColumn
-  SourceLocation.TypeAssumptions.get_EndLine
-  SourceLocation.TypeAssumptions.set_EndLine
-  SourceLocation.TypeAssumptions.get_EndColumn
-  SourceLocation.TypeAssumptions.set_EndColumn
-  SourceLocation.TypeAssumptions.get_LeadingDetachedComments
-  SourceLocation.TypeAssumptions.set_LeadingDetachedComments
-  SourceLocation.TypeAssumptions.get_LeadingComments
-  SourceLocation.TypeAssumptions.set_LeadingComments
-  SourceLocation.TypeAssumptions.get_TrailingComments
-  SourceLocation.TypeAssumptions.set_TrailingComments
-  SourceLocation.TypeAssumptions.get_Next
-  SourceLocation.TypeAssumptions.set_Next
+  SourceLocation.TypeAssumptions.get'Path
+  SourceLocation.TypeAssumptions.set'Path
+  SourceLocation.TypeAssumptions.get'StartLine
+  SourceLocation.TypeAssumptions.set'StartLine
+  SourceLocation.TypeAssumptions.get'StartColumn
+  SourceLocation.TypeAssumptions.set'StartColumn
+  SourceLocation.TypeAssumptions.get'EndLine
+  SourceLocation.TypeAssumptions.set'EndLine
+  SourceLocation.TypeAssumptions.get'EndColumn
+  SourceLocation.TypeAssumptions.set'EndColumn
+  SourceLocation.TypeAssumptions.get'LeadingDetachedComments
+  SourceLocation.TypeAssumptions.set'LeadingDetachedComments
+  SourceLocation.TypeAssumptions.get'LeadingComments
+  SourceLocation.TypeAssumptions.set'LeadingComments
+  SourceLocation.TypeAssumptions.get'TrailingComments
+  SourceLocation.TypeAssumptions.set'TrailingComments
+  SourceLocation.TypeAssumptions.get'Next
+  SourceLocation.TypeAssumptions.set'Next
   SourceLocation.TypeAssumptions.method_set
   SourceLocation.TypeAssumptions.ptr_method_set
 
@@ -1172,7 +1172,7 @@ noncomputable instance FileImport.zero_val [GooseExts] : ZeroVal FileImport :=
 @[irreducible] noncomputable def FileImport.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FileImport.fieldsUnsealed
 
-noncomputable instance equals_unfold_FileImport [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FileImport [GooseExts] [GoGlobalContext] :
     EqualsUnfold FileImport.fields FileImport.fieldsUnsealed :=
   ⟨by unfold FileImport.fields; rfl⟩
 
@@ -1182,23 +1182,23 @@ noncomputable instance equals_unfold_FileImport [GooseExts] [GoGlobalContext] :
 class FileImport.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FileImport.underlying FileImport
   underlying : go.UnderlyingDirectedEq FileImport.ty FileImport.underlying
-  get_FileDescriptor : ∀ (x : FileImport), go.IsGoStepPureDetTagged under (StructFieldGet FileImport.underlying go!"FileDescriptor") #x (Val #(x.FileDescriptor'))
-  set_FileDescriptor : ∀ (x : FileImport) (y : FileDescriptor), go.IsGoStepPureDetTagged under (StructFieldSet FileImport.underlying go!"FileDescriptor") (PairV #x #y) (Val #(({ x with FileDescriptor' := y } : FileImport)))
-  get_IsPublic : ∀ (x : FileImport), go.IsGoStepPureDetTagged under (StructFieldGet FileImport.underlying go!"IsPublic") #x (Val #(x.IsPublic'))
-  set_IsPublic : ∀ (x : FileImport) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FileImport.underlying go!"IsPublic") (PairV #x #y) (Val #(({ x with IsPublic' := y } : FileImport)))
-  get_IsWeak : ∀ (x : FileImport), go.IsGoStepPureDetTagged under (StructFieldGet FileImport.underlying go!"IsWeak") #x (Val #(x.IsWeak'))
-  set_IsWeak : ∀ (x : FileImport) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FileImport.underlying go!"IsWeak") (PairV #x #y) (Val #(({ x with IsWeak' := y } : FileImport)))
+  get'FileDescriptor : ∀ (x : FileImport), go.IsGoStepPureDetTagged under (StructFieldGet FileImport.underlying go!"FileDescriptor") #x (Val #(x.FileDescriptor'))
+  set'FileDescriptor : ∀ (x : FileImport) (y : FileDescriptor), go.IsGoStepPureDetTagged under (StructFieldSet FileImport.underlying go!"FileDescriptor") (PairV #x #y) (Val #(({ x with FileDescriptor' := y } : FileImport)))
+  get'IsPublic : ∀ (x : FileImport), go.IsGoStepPureDetTagged under (StructFieldGet FileImport.underlying go!"IsPublic") #x (Val #(x.IsPublic'))
+  set'IsPublic : ∀ (x : FileImport) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FileImport.underlying go!"IsPublic") (PairV #x #y) (Val #(({ x with IsPublic' := y } : FileImport)))
+  get'IsWeak : ∀ (x : FileImport), go.IsGoStepPureDetTagged under (StructFieldGet FileImport.underlying go!"IsWeak") #x (Val #(x.IsWeak'))
+  set'IsWeak : ∀ (x : FileImport) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FileImport.underlying go!"IsWeak") (PairV #x #y) (Val #(({ x with IsWeak' := y } : FileImport)))
   method_set : go.MethodSetIs FileImport.ty [(go!"Enums", (some (go.signature.Signature [] false [EnumDescriptors.ty]))), (go!"Extensions", (some (go.signature.Signature [] false [ExtensionDescriptors.ty]))), (go!"FullName", (some (go.signature.Signature [] false [FullName.ty]))), (go!"Imports", (some (go.signature.Signature [] false [FileImports.ty]))), (go!"Index", (some (go.signature.Signature [] false [go.int]))), (go!"IsPlaceholder", (some (go.signature.Signature [] false [go.bool]))), (go!"Messages", (some (go.signature.Signature [] false [MessageDescriptors.ty]))), (go!"Name", (some (go.signature.Signature [] false [Name.ty]))), (go!"Options", (some (go.signature.Signature [] false [ProtoMessage.ty]))), (go!"Package", (some (go.signature.Signature [] false [FullName.ty]))), (go!"Parent", (some (go.signature.Signature [] false [Descriptor.ty]))), (go!"ParentFile", (some (go.signature.Signature [] false [FileDescriptor.ty]))), (go!"Path", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoInternal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false []))), (go!"ProtoType", (some (go.signature.Signature [FileDescriptor.ty] false []))), (go!"Services", (some (go.signature.Signature [] false [ServiceDescriptors.ty]))), (go!"SourceLocations", (some (go.signature.Signature [] false [SourceLocations.ty]))), (go!"Syntax", (some (go.signature.Signature [] false [Syntax.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FileImport.ty) [(go!"Enums", (some (go.signature.Signature [] false [EnumDescriptors.ty]))), (go!"Extensions", (some (go.signature.Signature [] false [ExtensionDescriptors.ty]))), (go!"FullName", (some (go.signature.Signature [] false [FullName.ty]))), (go!"Imports", (some (go.signature.Signature [] false [FileImports.ty]))), (go!"Index", (some (go.signature.Signature [] false [go.int]))), (go!"IsPlaceholder", (some (go.signature.Signature [] false [go.bool]))), (go!"Messages", (some (go.signature.Signature [] false [MessageDescriptors.ty]))), (go!"Name", (some (go.signature.Signature [] false [Name.ty]))), (go!"Options", (some (go.signature.Signature [] false [ProtoMessage.ty]))), (go!"Package", (some (go.signature.Signature [] false [FullName.ty]))), (go!"Parent", (some (go.signature.Signature [] false [Descriptor.ty]))), (go!"ParentFile", (some (go.signature.Signature [] false [FileDescriptor.ty]))), (go!"Path", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoInternal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])] false []))), (go!"ProtoType", (some (go.signature.Signature [FileDescriptor.ty] false []))), (go!"Services", (some (go.signature.Signature [] false [ServiceDescriptors.ty]))), (go!"SourceLocations", (some (go.signature.Signature [] false [SourceLocations.ty]))), (go!"Syntax", (some (go.signature.Signature [] false [Syntax.ty])))]
 
 attribute [instance] FileImport.TypeAssumptions.type_repr
   FileImport.TypeAssumptions.underlying
-  FileImport.TypeAssumptions.get_FileDescriptor
-  FileImport.TypeAssumptions.set_FileDescriptor
-  FileImport.TypeAssumptions.get_IsPublic
-  FileImport.TypeAssumptions.set_IsPublic
-  FileImport.TypeAssumptions.get_IsWeak
-  FileImport.TypeAssumptions.set_IsWeak
+  FileImport.TypeAssumptions.get'FileDescriptor
+  FileImport.TypeAssumptions.set'FileDescriptor
+  FileImport.TypeAssumptions.get'IsPublic
+  FileImport.TypeAssumptions.set'IsPublic
+  FileImport.TypeAssumptions.get'IsWeak
+  FileImport.TypeAssumptions.set'IsWeak
   FileImport.TypeAssumptions.method_set
   FileImport.TypeAssumptions.ptr_method_set
 
@@ -1714,7 +1714,7 @@ noncomputable instance ifaceHeader.zero_val [GooseExts] : ZeroVal ifaceHeader :=
 @[irreducible] noncomputable def ifaceHeader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ifaceHeader.fieldsUnsealed
 
-noncomputable instance equals_unfold_ifaceHeader [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ifaceHeader [GooseExts] [GoGlobalContext] :
     EqualsUnfold ifaceHeader.fields ifaceHeader.fieldsUnsealed :=
   ⟨by unfold ifaceHeader.fields; rfl⟩
 
@@ -1724,23 +1724,23 @@ noncomputable instance equals_unfold_ifaceHeader [GooseExts] [GoGlobalContext] :
 class ifaceHeader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ifaceHeader.underlying ifaceHeader
   underlying : go.UnderlyingDirectedEq ifaceHeader.ty ifaceHeader.underlying
-  «get__#0» : ∀ (x : ifaceHeader), go.IsGoStepPureDetTagged under (StructFieldGet ifaceHeader.underlying go!"_#0") #x (Val #(x.«_#0'»))
-  «set__#0» : ∀ (x : ifaceHeader) (y : (GoArray GoInterface 0)), go.IsGoStepPureDetTagged under (StructFieldSet ifaceHeader.underlying go!"_#0") (PairV #x #y) (Val #(({ x with «_#0'» := y } : ifaceHeader)))
-  get_Type : ∀ (x : ifaceHeader), go.IsGoStepPureDetTagged under (StructFieldGet ifaceHeader.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : ifaceHeader) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ifaceHeader.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : ifaceHeader)))
-  get_Data : ∀ (x : ifaceHeader), go.IsGoStepPureDetTagged under (StructFieldGet ifaceHeader.underlying go!"Data") #x (Val #(x.Data'))
-  set_Data : ∀ (x : ifaceHeader) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ifaceHeader.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : ifaceHeader)))
+  «get'_#0» : ∀ (x : ifaceHeader), go.IsGoStepPureDetTagged under (StructFieldGet ifaceHeader.underlying go!"_#0") #x (Val #(x.«_#0'»))
+  «set'_#0» : ∀ (x : ifaceHeader) (y : (GoArray GoInterface 0)), go.IsGoStepPureDetTagged under (StructFieldSet ifaceHeader.underlying go!"_#0") (PairV #x #y) (Val #(({ x with «_#0'» := y } : ifaceHeader)))
+  get'Type : ∀ (x : ifaceHeader), go.IsGoStepPureDetTagged under (StructFieldGet ifaceHeader.underlying go!"Type") #x (Val #(x.Type'))
+  set'Type : ∀ (x : ifaceHeader) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ifaceHeader.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : ifaceHeader)))
+  get'Data : ∀ (x : ifaceHeader), go.IsGoStepPureDetTagged under (StructFieldGet ifaceHeader.underlying go!"Data") #x (Val #(x.Data'))
+  set'Data : ∀ (x : ifaceHeader) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ifaceHeader.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : ifaceHeader)))
   method_set : go.MethodSetIs ifaceHeader.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ifaceHeader.ty) []
 
 attribute [instance] ifaceHeader.TypeAssumptions.type_repr
   ifaceHeader.TypeAssumptions.underlying
-  ifaceHeader.TypeAssumptions.«get__#0»
-  ifaceHeader.TypeAssumptions.«set__#0»
-  ifaceHeader.TypeAssumptions.get_Type
-  ifaceHeader.TypeAssumptions.set_Type
-  ifaceHeader.TypeAssumptions.get_Data
-  ifaceHeader.TypeAssumptions.set_Data
+  ifaceHeader.TypeAssumptions.«get'_#0»
+  ifaceHeader.TypeAssumptions.«set'_#0»
+  ifaceHeader.TypeAssumptions.get'Type
+  ifaceHeader.TypeAssumptions.set'Type
+  ifaceHeader.TypeAssumptions.get'Data
+  ifaceHeader.TypeAssumptions.set'Data
   ifaceHeader.TypeAssumptions.method_set
   ifaceHeader.TypeAssumptions.ptr_method_set
 
@@ -1877,151 +1877,151 @@ class «struct#9f4eeae4».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 attribute [instance] «struct#9f4eeae4».TypeAssumptions.type_repr
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  doNotImplement_instance : doNotImplement.TypeAssumptions
-  ProtoMessage_instance : ProtoMessage.TypeAssumptions
-  Syntax_instance : Syntax.TypeAssumptions
-  syntax_instance : «syntax».TypeAssumptions
-  Cardinality_instance : Cardinality.TypeAssumptions
-  cardinality_instance : cardinality.TypeAssumptions
-  Kind_instance : Kind.TypeAssumptions
-  kind_instance : kind.TypeAssumptions
-  FieldNumbers_instance : FieldNumbers.TypeAssumptions
-  FieldRanges_instance : FieldRanges.TypeAssumptions
-  EnumNumber_instance : EnumNumber.TypeAssumptions
-  EnumRanges_instance : EnumRanges.TypeAssumptions
-  Name_instance : Name.TypeAssumptions
-  Names_instance : Names.TypeAssumptions
-  FullName_instance : FullName.TypeAssumptions
-  SourceLocations_instance : SourceLocations.TypeAssumptions
-  SourceLocation_instance : SourceLocation.TypeAssumptions
-  SourcePath_instance : SourcePath.TypeAssumptions
-  appendFunc_instance : appendFunc.TypeAssumptions
-  Descriptor_instance : Descriptor.TypeAssumptions
-  FileDescriptor_instance : FileDescriptor.TypeAssumptions
-  isFileDescriptor_instance : isFileDescriptor.TypeAssumptions
-  FileImports_instance : FileImports.TypeAssumptions
-  FileImport_instance : FileImport.TypeAssumptions
-  MessageDescriptor_instance : MessageDescriptor.TypeAssumptions
-  isMessageDescriptor_instance : isMessageDescriptor.TypeAssumptions
-  MessageType_instance : MessageType.TypeAssumptions
-  MessageFieldTypes_instance : MessageFieldTypes.TypeAssumptions
-  MessageDescriptors_instance : MessageDescriptors.TypeAssumptions
-  FieldDescriptor_instance : FieldDescriptor.TypeAssumptions
-  isFieldDescriptor_instance : isFieldDescriptor.TypeAssumptions
-  FieldDescriptors_instance : FieldDescriptors.TypeAssumptions
-  OneofDescriptor_instance : OneofDescriptor.TypeAssumptions
-  isOneofDescriptor_instance : isOneofDescriptor.TypeAssumptions
-  OneofDescriptors_instance : OneofDescriptors.TypeAssumptions
-  ExtensionTypeDescriptor_instance : ExtensionTypeDescriptor.TypeAssumptions
-  ExtensionDescriptors_instance : ExtensionDescriptors.TypeAssumptions
-  ExtensionType_instance : ExtensionType.TypeAssumptions
-  EnumDescriptor_instance : EnumDescriptor.TypeAssumptions
-  isEnumDescriptor_instance : isEnumDescriptor.TypeAssumptions
-  EnumType_instance : EnumType.TypeAssumptions
-  EnumDescriptors_instance : EnumDescriptors.TypeAssumptions
-  EnumValueDescriptor_instance : EnumValueDescriptor.TypeAssumptions
-  isEnumValueDescriptor_instance : isEnumValueDescriptor.TypeAssumptions
-  EnumValueDescriptors_instance : EnumValueDescriptors.TypeAssumptions
-  ServiceDescriptor_instance : ServiceDescriptor.TypeAssumptions
-  isServiceDescriptor_instance : isServiceDescriptor.TypeAssumptions
-  ServiceDescriptors_instance : ServiceDescriptors.TypeAssumptions
-  MethodDescriptor_instance : MethodDescriptor.TypeAssumptions
-  isMethodDescriptor_instance : isMethodDescriptor.TypeAssumptions
-  MethodDescriptors_instance : MethodDescriptors.TypeAssumptions
-  Enum_instance : Enum.TypeAssumptions
-  Message_instance : Message.TypeAssumptions
-  RawFields_instance : RawFields.TypeAssumptions
-  List_instance : List''.TypeAssumptions
-  Map_instance : Map.TypeAssumptions
-  Value_instance : Value.TypeAssumptions
-  MapKey_instance : MapKey.TypeAssumptions
-  ifaceHeader_instance : ifaceHeader.TypeAssumptions
-  value_instance : value.TypeAssumptions
-  «struct#39c24ac0_instance» : «struct#39c24ac0».TypeAssumptions
-  «struct#09ab9bd9_instance» : «struct#09ab9bd9».TypeAssumptions
-  «struct#85bf90eb_instance» : «struct#85bf90eb».TypeAssumptions
-  «struct#69fc66c6_instance» : «struct#69fc66c6».TypeAssumptions
-  «struct#a47ca8a7_instance» : «struct#a47ca8a7».TypeAssumptions
-  «struct#9d85598c_instance» : «struct#9d85598c».TypeAssumptions
-  «struct#07f26e0d_instance» : «struct#07f26e0d».TypeAssumptions
-  «struct#dc47f379_instance» : «struct#dc47f379».TypeAssumptions
-  «struct#26ca81e8_instance» : «struct#26ca81e8».TypeAssumptions
-  «struct#9d8af3ce_instance» : «struct#9d8af3ce».TypeAssumptions
-  «struct#f228ed0d_instance» : «struct#f228ed0d».TypeAssumptions
-  «struct#9f4eeae4_instance» : «struct#9f4eeae4».TypeAssumptions
+  instance'doNotImplement : doNotImplement.TypeAssumptions
+  instance'ProtoMessage : ProtoMessage.TypeAssumptions
+  instance'Syntax : Syntax.TypeAssumptions
+  instance'syntax : syntax''.TypeAssumptions
+  instance'Cardinality : Cardinality.TypeAssumptions
+  instance'cardinality : cardinality.TypeAssumptions
+  instance'Kind : Kind.TypeAssumptions
+  instance'kind : kind.TypeAssumptions
+  instance'FieldNumbers : FieldNumbers.TypeAssumptions
+  instance'FieldRanges : FieldRanges.TypeAssumptions
+  instance'EnumNumber : EnumNumber.TypeAssumptions
+  instance'EnumRanges : EnumRanges.TypeAssumptions
+  instance'Name : Name.TypeAssumptions
+  instance'Names : Names.TypeAssumptions
+  instance'FullName : FullName.TypeAssumptions
+  instance'SourceLocations : SourceLocations.TypeAssumptions
+  instance'SourceLocation : SourceLocation.TypeAssumptions
+  instance'SourcePath : SourcePath.TypeAssumptions
+  instance'appendFunc : appendFunc.TypeAssumptions
+  instance'Descriptor : Descriptor.TypeAssumptions
+  instance'FileDescriptor : FileDescriptor.TypeAssumptions
+  instance'isFileDescriptor : isFileDescriptor.TypeAssumptions
+  instance'FileImports : FileImports.TypeAssumptions
+  instance'FileImport : FileImport.TypeAssumptions
+  instance'MessageDescriptor : MessageDescriptor.TypeAssumptions
+  instance'isMessageDescriptor : isMessageDescriptor.TypeAssumptions
+  instance'MessageType : MessageType.TypeAssumptions
+  instance'MessageFieldTypes : MessageFieldTypes.TypeAssumptions
+  instance'MessageDescriptors : MessageDescriptors.TypeAssumptions
+  instance'FieldDescriptor : FieldDescriptor.TypeAssumptions
+  instance'isFieldDescriptor : isFieldDescriptor.TypeAssumptions
+  instance'FieldDescriptors : FieldDescriptors.TypeAssumptions
+  instance'OneofDescriptor : OneofDescriptor.TypeAssumptions
+  instance'isOneofDescriptor : isOneofDescriptor.TypeAssumptions
+  instance'OneofDescriptors : OneofDescriptors.TypeAssumptions
+  instance'ExtensionTypeDescriptor : ExtensionTypeDescriptor.TypeAssumptions
+  instance'ExtensionDescriptors : ExtensionDescriptors.TypeAssumptions
+  instance'ExtensionType : ExtensionType.TypeAssumptions
+  instance'EnumDescriptor : EnumDescriptor.TypeAssumptions
+  instance'isEnumDescriptor : isEnumDescriptor.TypeAssumptions
+  instance'EnumType : EnumType.TypeAssumptions
+  instance'EnumDescriptors : EnumDescriptors.TypeAssumptions
+  instance'EnumValueDescriptor : EnumValueDescriptor.TypeAssumptions
+  instance'isEnumValueDescriptor : isEnumValueDescriptor.TypeAssumptions
+  instance'EnumValueDescriptors : EnumValueDescriptors.TypeAssumptions
+  instance'ServiceDescriptor : ServiceDescriptor.TypeAssumptions
+  instance'isServiceDescriptor : isServiceDescriptor.TypeAssumptions
+  instance'ServiceDescriptors : ServiceDescriptors.TypeAssumptions
+  instance'MethodDescriptor : MethodDescriptor.TypeAssumptions
+  instance'isMethodDescriptor : isMethodDescriptor.TypeAssumptions
+  instance'MethodDescriptors : MethodDescriptors.TypeAssumptions
+  instance'Enum : Enum.TypeAssumptions
+  instance'Message : Message.TypeAssumptions
+  instance'RawFields : RawFields.TypeAssumptions
+  instance'List : List''.TypeAssumptions
+  instance'Map : Map.TypeAssumptions
+  instance'Value : Value.TypeAssumptions
+  instance'MapKey : MapKey.TypeAssumptions
+  instance'ifaceHeader : ifaceHeader.TypeAssumptions
+  instance'value : value.TypeAssumptions
+  «instance'struct#39c24ac0» : «struct#39c24ac0».TypeAssumptions
+  «instance'struct#09ab9bd9» : «struct#09ab9bd9».TypeAssumptions
+  «instance'struct#85bf90eb» : «struct#85bf90eb».TypeAssumptions
+  «instance'struct#69fc66c6» : «struct#69fc66c6».TypeAssumptions
+  «instance'struct#a47ca8a7» : «struct#a47ca8a7».TypeAssumptions
+  «instance'struct#9d85598c» : «struct#9d85598c».TypeAssumptions
+  «instance'struct#07f26e0d» : «struct#07f26e0d».TypeAssumptions
+  «instance'struct#dc47f379» : «struct#dc47f379».TypeAssumptions
+  «instance'struct#26ca81e8» : «struct#26ca81e8».TypeAssumptions
+  «instance'struct#9d8af3ce» : «struct#9d8af3ce».TypeAssumptions
+  «instance'struct#f228ed0d» : «struct#f228ed0d».TypeAssumptions
+  «instance'struct#9f4eeae4» : «struct#9f4eeae4».TypeAssumptions
 
-attribute [instance] Assumptions.doNotImplement_instance
-  Assumptions.ProtoMessage_instance
-  Assumptions.Syntax_instance
-  Assumptions.syntax_instance
-  Assumptions.Cardinality_instance
-  Assumptions.cardinality_instance
-  Assumptions.Kind_instance
-  Assumptions.kind_instance
-  Assumptions.FieldNumbers_instance
-  Assumptions.FieldRanges_instance
-  Assumptions.EnumNumber_instance
-  Assumptions.EnumRanges_instance
-  Assumptions.Name_instance
-  Assumptions.Names_instance
-  Assumptions.FullName_instance
-  Assumptions.SourceLocations_instance
-  Assumptions.SourceLocation_instance
-  Assumptions.SourcePath_instance
-  Assumptions.appendFunc_instance
-  Assumptions.Descriptor_instance
-  Assumptions.FileDescriptor_instance
-  Assumptions.isFileDescriptor_instance
-  Assumptions.FileImports_instance
-  Assumptions.FileImport_instance
-  Assumptions.MessageDescriptor_instance
-  Assumptions.isMessageDescriptor_instance
-  Assumptions.MessageType_instance
-  Assumptions.MessageFieldTypes_instance
-  Assumptions.MessageDescriptors_instance
-  Assumptions.FieldDescriptor_instance
-  Assumptions.isFieldDescriptor_instance
-  Assumptions.FieldDescriptors_instance
-  Assumptions.OneofDescriptor_instance
-  Assumptions.isOneofDescriptor_instance
-  Assumptions.OneofDescriptors_instance
-  Assumptions.ExtensionTypeDescriptor_instance
-  Assumptions.ExtensionDescriptors_instance
-  Assumptions.ExtensionType_instance
-  Assumptions.EnumDescriptor_instance
-  Assumptions.isEnumDescriptor_instance
-  Assumptions.EnumType_instance
-  Assumptions.EnumDescriptors_instance
-  Assumptions.EnumValueDescriptor_instance
-  Assumptions.isEnumValueDescriptor_instance
-  Assumptions.EnumValueDescriptors_instance
-  Assumptions.ServiceDescriptor_instance
-  Assumptions.isServiceDescriptor_instance
-  Assumptions.ServiceDescriptors_instance
-  Assumptions.MethodDescriptor_instance
-  Assumptions.isMethodDescriptor_instance
-  Assumptions.MethodDescriptors_instance
-  Assumptions.Enum_instance
-  Assumptions.Message_instance
-  Assumptions.RawFields_instance
-  Assumptions.List_instance
-  Assumptions.Map_instance
-  Assumptions.Value_instance
-  Assumptions.MapKey_instance
-  Assumptions.ifaceHeader_instance
-  Assumptions.value_instance
-  Assumptions.«struct#39c24ac0_instance»
-  Assumptions.«struct#09ab9bd9_instance»
-  Assumptions.«struct#85bf90eb_instance»
-  Assumptions.«struct#69fc66c6_instance»
-  Assumptions.«struct#a47ca8a7_instance»
-  Assumptions.«struct#9d85598c_instance»
-  Assumptions.«struct#07f26e0d_instance»
-  Assumptions.«struct#dc47f379_instance»
-  Assumptions.«struct#26ca81e8_instance»
-  Assumptions.«struct#9d8af3ce_instance»
-  Assumptions.«struct#f228ed0d_instance»
-  Assumptions.«struct#9f4eeae4_instance»
+attribute [instance] Assumptions.instance'doNotImplement
+  Assumptions.instance'ProtoMessage
+  Assumptions.instance'Syntax
+  Assumptions.instance'syntax
+  Assumptions.instance'Cardinality
+  Assumptions.instance'cardinality
+  Assumptions.instance'Kind
+  Assumptions.instance'kind
+  Assumptions.instance'FieldNumbers
+  Assumptions.instance'FieldRanges
+  Assumptions.instance'EnumNumber
+  Assumptions.instance'EnumRanges
+  Assumptions.instance'Name
+  Assumptions.instance'Names
+  Assumptions.instance'FullName
+  Assumptions.instance'SourceLocations
+  Assumptions.instance'SourceLocation
+  Assumptions.instance'SourcePath
+  Assumptions.instance'appendFunc
+  Assumptions.instance'Descriptor
+  Assumptions.instance'FileDescriptor
+  Assumptions.instance'isFileDescriptor
+  Assumptions.instance'FileImports
+  Assumptions.instance'FileImport
+  Assumptions.instance'MessageDescriptor
+  Assumptions.instance'isMessageDescriptor
+  Assumptions.instance'MessageType
+  Assumptions.instance'MessageFieldTypes
+  Assumptions.instance'MessageDescriptors
+  Assumptions.instance'FieldDescriptor
+  Assumptions.instance'isFieldDescriptor
+  Assumptions.instance'FieldDescriptors
+  Assumptions.instance'OneofDescriptor
+  Assumptions.instance'isOneofDescriptor
+  Assumptions.instance'OneofDescriptors
+  Assumptions.instance'ExtensionTypeDescriptor
+  Assumptions.instance'ExtensionDescriptors
+  Assumptions.instance'ExtensionType
+  Assumptions.instance'EnumDescriptor
+  Assumptions.instance'isEnumDescriptor
+  Assumptions.instance'EnumType
+  Assumptions.instance'EnumDescriptors
+  Assumptions.instance'EnumValueDescriptor
+  Assumptions.instance'isEnumValueDescriptor
+  Assumptions.instance'EnumValueDescriptors
+  Assumptions.instance'ServiceDescriptor
+  Assumptions.instance'isServiceDescriptor
+  Assumptions.instance'ServiceDescriptors
+  Assumptions.instance'MethodDescriptor
+  Assumptions.instance'isMethodDescriptor
+  Assumptions.instance'MethodDescriptors
+  Assumptions.instance'Enum
+  Assumptions.instance'Message
+  Assumptions.instance'RawFields
+  Assumptions.instance'List
+  Assumptions.instance'Map
+  Assumptions.instance'Value
+  Assumptions.instance'MapKey
+  Assumptions.instance'ifaceHeader
+  Assumptions.instance'value
+  Assumptions.«instance'struct#39c24ac0»
+  Assumptions.«instance'struct#09ab9bd9»
+  Assumptions.«instance'struct#85bf90eb»
+  Assumptions.«instance'struct#69fc66c6»
+  Assumptions.«instance'struct#a47ca8a7»
+  Assumptions.«instance'struct#9d85598c»
+  Assumptions.«instance'struct#07f26e0d»
+  Assumptions.«instance'struct#dc47f379»
+  Assumptions.«instance'struct#26ca81e8»
+  Assumptions.«instance'struct#9d8af3ce»
+  Assumptions.«instance'struct#f228ed0d»
+  Assumptions.«instance'struct#9f4eeae4»
 
 end google_golang_org.protobuf.reflect.protoreflect
 

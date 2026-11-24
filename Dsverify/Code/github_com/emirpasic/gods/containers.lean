@@ -94,7 +94,7 @@ noncomputable def GetSortedValues.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "values"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.emirpasic.gods.utils.Comparator.ty))) (Var "comparator"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.emirpasic.gods.utils.«Sort» []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.emirpasic.gods.utils.Sort'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "values"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.InterfaceType []))]))) (Val #())) (Var "$a0"))) (Val #(W64 2)))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "values"))
@@ -246,29 +246,29 @@ attribute [instance] JSONDeserializer.TypeAssumptions.underlying
   JSONDeserializer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Container_instance : Container.TypeAssumptions
-  EnumerableWithIndex_instance : EnumerableWithIndex.TypeAssumptions
-  EnumerableWithKey_instance : EnumerableWithKey.TypeAssumptions
-  IteratorWithIndex_instance : IteratorWithIndex.TypeAssumptions
-  IteratorWithKey_instance : IteratorWithKey.TypeAssumptions
-  ReverseIteratorWithIndex_instance : ReverseIteratorWithIndex.TypeAssumptions
-  ReverseIteratorWithKey_instance : ReverseIteratorWithKey.TypeAssumptions
-  JSONSerializer_instance : JSONSerializer.TypeAssumptions
-  JSONDeserializer_instance : JSONDeserializer.TypeAssumptions
-  GetSortedValues_unfold : FuncUnfold GetSortedValues [] GetSortedValues.impl
-  import_utils_Assumption : _root_.Perennial.github_com.emirpasic.gods.utils.Assumptions
+  instance'Container : Container.TypeAssumptions
+  instance'EnumerableWithIndex : EnumerableWithIndex.TypeAssumptions
+  instance'EnumerableWithKey : EnumerableWithKey.TypeAssumptions
+  instance'IteratorWithIndex : IteratorWithIndex.TypeAssumptions
+  instance'IteratorWithKey : IteratorWithKey.TypeAssumptions
+  instance'ReverseIteratorWithIndex : ReverseIteratorWithIndex.TypeAssumptions
+  instance'ReverseIteratorWithKey : ReverseIteratorWithKey.TypeAssumptions
+  instance'JSONSerializer : JSONSerializer.TypeAssumptions
+  instance'JSONDeserializer : JSONDeserializer.TypeAssumptions
+  unfold'GetSortedValues : FuncUnfold GetSortedValues [] GetSortedValues.impl
+  import'utils : _root_.Perennial.github_com.emirpasic.gods.utils.Assumptions
 
-attribute [instance] Assumptions.Container_instance
-  Assumptions.EnumerableWithIndex_instance
-  Assumptions.EnumerableWithKey_instance
-  Assumptions.IteratorWithIndex_instance
-  Assumptions.IteratorWithKey_instance
-  Assumptions.ReverseIteratorWithIndex_instance
-  Assumptions.ReverseIteratorWithKey_instance
-  Assumptions.JSONSerializer_instance
-  Assumptions.JSONDeserializer_instance
-  Assumptions.GetSortedValues_unfold
-  Assumptions.import_utils_Assumption
+attribute [instance] Assumptions.instance'Container
+  Assumptions.instance'EnumerableWithIndex
+  Assumptions.instance'EnumerableWithKey
+  Assumptions.instance'IteratorWithIndex
+  Assumptions.instance'IteratorWithKey
+  Assumptions.instance'ReverseIteratorWithIndex
+  Assumptions.instance'ReverseIteratorWithKey
+  Assumptions.instance'JSONSerializer
+  Assumptions.instance'JSONDeserializer
+  Assumptions.unfold'GetSortedValues
+  Assumptions.import'utils
 
 end github_com.emirpasic.gods.containers
 

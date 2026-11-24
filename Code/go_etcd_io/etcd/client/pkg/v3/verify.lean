@@ -224,27 +224,27 @@ attribute [instance] VerifyFunc.TypeAssumptions.underlying
   VerifyFunc.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  VerificationType_instance : VerificationType.TypeAssumptions
-  VerifyFunc_instance : VerifyFunc.TypeAssumptions
-  getEnvVerify_unfold : FuncUnfold getEnvVerify [] getEnvVerify.impl
-  IsVerificationEnabled_unfold : FuncUnfold IsVerificationEnabled [] IsVerificationEnabled.impl
-  Verify_unfold : FuncUnfold Verify [] Verify.impl
-  verifier_unfold : FuncUnfold verifier [] verifier.impl
-  Assert_unfold : FuncUnfold Assert [] Assert.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
+  instance'VerificationType : VerificationType.TypeAssumptions
+  instance'VerifyFunc : VerifyFunc.TypeAssumptions
+  unfold'getEnvVerify : FuncUnfold getEnvVerify [] getEnvVerify.impl
+  unfold'IsVerificationEnabled : FuncUnfold IsVerificationEnabled [] IsVerificationEnabled.impl
+  unfold'Verify : FuncUnfold Verify [] Verify.impl
+  unfold'verifier : FuncUnfold verifier [] verifier.impl
+  unfold'Assert : FuncUnfold Assert [] Assert.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
 
-attribute [instance] Assumptions.VerificationType_instance
-  Assumptions.VerifyFunc_instance
-  Assumptions.getEnvVerify_unfold
-  Assumptions.IsVerificationEnabled_unfold
-  Assumptions.Verify_unfold
-  Assumptions.verifier_unfold
-  Assumptions.Assert_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_strings_Assumption
+attribute [instance] Assumptions.instance'VerificationType
+  Assumptions.instance'VerifyFunc
+  Assumptions.unfold'getEnvVerify
+  Assumptions.unfold'IsVerificationEnabled
+  Assumptions.unfold'Verify
+  Assumptions.unfold'verifier
+  Assumptions.unfold'Assert
+  Assumptions.import'fmt
+  Assumptions.import'os
+  Assumptions.import'strings
 
 end go_etcd_io.etcd.client.pkg.v3.verify
 

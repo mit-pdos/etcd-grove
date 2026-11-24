@@ -105,13 +105,13 @@ noncomputable def Object.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Object.ty
 
-noncomputable def TypedResourceEventHandler.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedResourceEventHandler" [T])
+noncomputable def TypedResourceEventHandler.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedResourceEventHandler" [T₀])
 
 attribute [irreducible] TypedResourceEventHandler.ty
 
-noncomputable def DeletedObject.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/tools/cache.DeletedObject" [T])
+noncomputable def DeletedObject.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/tools/cache.DeletedObject" [T₀])
 
 attribute [irreducible] DeletedObject.ty
 
@@ -120,8 +120,8 @@ noncomputable def ResourceEventHandlerFuncs.ty [GooseExts] [GoGlobalContext] : g
 
 attribute [irreducible] ResourceEventHandlerFuncs.ty
 
-noncomputable def TypedResourceEventHandlerFuncs.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedResourceEventHandlerFuncs" [T])
+noncomputable def TypedResourceEventHandlerFuncs.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedResourceEventHandlerFuncs" [T₀])
 
 attribute [irreducible] TypedResourceEventHandlerFuncs.ty
 
@@ -130,8 +130,8 @@ noncomputable def ResourceEventHandlerDetailedFuncs.ty [GooseExts] [GoGlobalCont
 
 attribute [irreducible] ResourceEventHandlerDetailedFuncs.ty
 
-noncomputable def TypedResourceEventHandlerDetailedFuncs.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedResourceEventHandlerDetailedFuncs" [T])
+noncomputable def TypedResourceEventHandlerDetailedFuncs.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedResourceEventHandlerDetailedFuncs" [T₀])
 
 attribute [irreducible] TypedResourceEventHandlerDetailedFuncs.ty
 
@@ -140,8 +140,8 @@ noncomputable def FilteringResourceEventHandler.ty [GooseExts] [GoGlobalContext]
 
 attribute [irreducible] FilteringResourceEventHandler.ty
 
-noncomputable def TypedFilteringResourceEventHandler.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedFilteringResourceEventHandler" [T])
+noncomputable def TypedFilteringResourceEventHandler.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedFilteringResourceEventHandler" [T₀])
 
 attribute [irreducible] TypedFilteringResourceEventHandler.ty
 
@@ -320,18 +320,18 @@ noncomputable def Indices.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Indices.ty
 
-noncomputable def TypedIndexers.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedIndexers" [T])
+noncomputable def TypedIndexers.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedIndexers" [T₀])
 
 attribute [irreducible] TypedIndexers.ty
 
-noncomputable def TypedIndexFunc.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedIndexFunc" [T])
+noncomputable def TypedIndexFunc.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedIndexFunc" [T₀])
 
 attribute [irreducible] TypedIndexFunc.ty
 
-noncomputable def TypedIndexer.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedIndexer" [T])
+noncomputable def TypedIndexer.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedIndexer" [T₀])
 
 attribute [irreducible] TypedIndexer.ty
 
@@ -640,23 +640,23 @@ noncomputable def SharedIndexInformer.ty [GooseExts] [GoGlobalContext] : go.GoTy
 
 attribute [irreducible] SharedIndexInformer.ty
 
-noncomputable def TypedSharedIndexInformer.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedSharedIndexInformer" [T])
+noncomputable def TypedSharedIndexInformer.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedSharedIndexInformer" [T₀])
 
 attribute [irreducible] TypedSharedIndexInformer.ty
 
-noncomputable def typedSharedIndexInformer.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/tools/cache.typedSharedIndexInformer" [T])
+noncomputable def typedSharedIndexInformer.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/tools/cache.typedSharedIndexInformer" [T₀])
 
 attribute [irreducible] typedSharedIndexInformer.ty
 
-noncomputable def typedResourceEventHandler.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/tools/cache.typedResourceEventHandler" [T])
+noncomputable def typedResourceEventHandler.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/tools/cache.typedResourceEventHandler" [T₀])
 
 attribute [irreducible] typedResourceEventHandler.ty
 
-noncomputable def typedIndexer.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.Named go!"k8s.io/client-go/tools/cache.typedIndexer" [T])
+noncomputable def typedIndexer.ty [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.Named go!"k8s.io/client-go/tools/cache.typedIndexer" [T₀])
 
 attribute [irreducible] typedIndexer.ty
 
@@ -1569,30 +1569,30 @@ noncomputable def controller.processLoop.impl [GooseExts] [GoGlobalContext] : va
     name without a namespace.
 
     go: controller.go:347:27 -/
-noncomputable def DeletedObject.GetObjectName.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def DeletedObject.GetObjectName.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "d"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc ObjectName.ty))) (App (Val (GoInstruction (GoZeroVal ObjectName.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "d" (App (Val (GoInstruction (GoAlloc (DeletedObject.ty T)))) (Var "d"))
+  (Let "d" (App (Val (GoInstruction (GoAlloc (DeletedObject.ty T₀)))) (Var "d"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "null" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "null" (App (Val (GoInstruction (GoAlloc T₀))) (App (Val (GoInstruction (GoZeroVal T₀))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (App (App (Val (GoInstruction (MethodResolve T go!"GetName"))) (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T) go!"OptionalObj"))) (Var "d")))) (Val #()))
+  (Let "$r0" (Let "$v0" (App (App (Val (GoInstruction (MethodResolve T₀ go!"GetName"))) (App (Val (GoInstruction (GoLoad T₀))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T₀) go!"OptionalObj"))) (Var "d")))) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral ObjectName.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0")))])))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ObjectName.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve T go!"GetNamespace"))) (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T) go!"OptionalObj"))) (Var "d")))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve T₀ go!"GetNamespace"))) (App (Val (GoInstruction (GoLoad T₀))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T₀) go!"OptionalObj"))) (Var "d")))) (Val #()))
   (Let "namespace" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "namespace"))
   (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "namespace"))
-  (Let "$v1" (App (App (Val (GoInstruction (MethodResolve T go!"GetName"))) (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T) go!"OptionalObj"))) (Var "d")))) (Val #()))
+  (Let "$v1" (App (App (Val (GoInstruction (MethodResolve T₀ go!"GetName"))) (App (Val (GoInstruction (GoLoad T₀))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T₀) go!"OptionalObj"))) (Var "d")))) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral ObjectName.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v1")))]))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1603,7 +1603,7 @@ noncomputable def DeletedObject.GetObjectName.impl [GooseExts] [GoGlobalContext]
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "namespace") (Var "$r0"))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals T))) (Pair (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T) go!"OptionalObj"))) (Var "d"))) (App (Val (GoInstruction (GoLoad T))) (Var "null")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals T₀))) (Pair (App (Val (GoInstruction (GoLoad T₀))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T₀) go!"OptionalObj"))) (Var "d"))) (App (Val (GoInstruction (GoLoad T₀))) (Var "null")))))
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral ObjectName.ty))) (LiteralValue []))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1612,8 +1612,8 @@ noncomputable def DeletedObject.GetObjectName.impl [GooseExts] [GoGlobalContext]
   (App (Val (GoInstruction (GoStore ObjectName.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType DeletedFinalStateUnknown.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeletedFinalStateUnknown.ty)))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T) go!"FinalStateUnknown"))) (Var "d"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType DeletedFinalStateUnknown.ty)))) (Val UntypedNil))))))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef DeletedFinalStateUnknown.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeletedFinalStateUnknown.ty)))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T) go!"FinalStateUnknown"))) (Var "d")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType DeletedFinalStateUnknown.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeletedFinalStateUnknown.ty)))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T₀) go!"FinalStateUnknown"))) (Var "d"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType DeletedFinalStateUnknown.ty)))) (Val UntypedNil))))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef DeletedFinalStateUnknown.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeletedFinalStateUnknown.ty)))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T₀) go!"FinalStateUnknown"))) (Var "d")))))
   (Let "$a1" (Val #(go!"/"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.Cut []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Fst (Var "__p")))
@@ -1662,13 +1662,13 @@ noncomputable def DeletedObject.GetObjectName.impl [GooseExts] [GoGlobalContext]
     struct.
 
     go: controller.go:378:27 -/
-noncomputable def DeletedObject.GetName.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def DeletedObject.GetName.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "d"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "d" (App (Val (GoInstruction (GoAlloc (DeletedObject.ty T)))) (Var "d"))
-  (Let "$r0" (App (Val (GoInstruction (StructFieldGet ObjectName.ty go!"Name"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (DeletedObject.ty T)) go!"GetObjectName"))) (Var "d")) (Val #())))
+  (Let "d" (App (Val (GoInstruction (GoAlloc (DeletedObject.ty T₀)))) (Var "d"))
+  (Let "$r0" (App (Val (GoInstruction (StructFieldGet ObjectName.ty go!"Name"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (DeletedObject.ty T₀)) go!"GetObjectName"))) (Var "d")) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -1679,13 +1679,13 @@ noncomputable def DeletedObject.GetName.impl [GooseExts] [GoGlobalContext] (T : 
 /-- GetNamespace returns the namespace if there is one, otherwise the empty string.
 
     go: controller.go:383:27 -/
-noncomputable def DeletedObject.GetNamespace.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def DeletedObject.GetNamespace.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "d"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "d" (App (Val (GoInstruction (GoAlloc (DeletedObject.ty T)))) (Var "d"))
-  (Let "$r0" (App (Val (GoInstruction (StructFieldGet ObjectName.ty go!"Namespace"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (DeletedObject.ty T)) go!"GetObjectName"))) (Var "d")) (Val #())))
+  (Let "d" (App (Val (GoInstruction (GoAlloc (DeletedObject.ty T₀)))) (Var "d"))
+  (Let "$r0" (App (Val (GoInstruction (StructFieldGet ObjectName.ty go!"Namespace"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (DeletedObject.ty T₀)) go!"GetObjectName"))) (Var "d")) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -1699,28 +1699,28 @@ noncomputable def DeletedObject.GetNamespace.impl [GooseExts] [GoGlobalContext] 
     which cannot fail because T is guaranteed to have a name and namespace.
 
     go: controller.go:391:27 -/
-noncomputable def DeletedObject.GetKey.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def DeletedObject.GetKey.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "d"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "d" (App (Val (GoInstruction (GoAlloc (DeletedObject.ty T)))) (Var "d"))
+  (Let "d" (App (Val (GoInstruction (GoAlloc (DeletedObject.ty T₀)))) (Var "d"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "null" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "null" (App (Val (GoInstruction (GoAlloc T₀))) (App (Val (GoInstruction (GoZeroVal T₀))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve T go!"GetName"))) (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T) go!"OptionalObj"))) (Var "d")))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve T₀ go!"GetName"))) (App (Val (GoInstruction (GoLoad T₀))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T₀) go!"OptionalObj"))) (Var "d")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve T go!"GetNamespace"))) (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T) go!"OptionalObj"))) (Var "d")))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve T₀ go!"GetNamespace"))) (App (Val (GoInstruction (GoLoad T₀))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T₀) go!"OptionalObj"))) (Var "d")))) (Val #()))
   (Let "namespace" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "namespace"))
   (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "namespace")) (Val #(go!"/")))) (App (App (Val (GoInstruction (MethodResolve T go!"GetName"))) (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T) go!"OptionalObj"))) (Var "d")))) (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "namespace")) (Val #(go!"/")))) (App (App (Val (GoInstruction (MethodResolve T₀ go!"GetName"))) (App (Val (GoInstruction (GoLoad T₀))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T₀) go!"OptionalObj"))) (Var "d")))) (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -1730,7 +1730,7 @@ noncomputable def DeletedObject.GetKey.impl [GooseExts] [GoGlobalContext] (T : g
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "namespace") (Var "$r0"))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals T))) (Pair (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T) go!"OptionalObj"))) (Var "d"))) (App (Val (GoInstruction (GoLoad T))) (Var "null")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals T₀))) (Pair (App (Val (GoInstruction (GoLoad T₀))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T₀) go!"OptionalObj"))) (Var "d"))) (App (Val (GoInstruction (GoLoad T₀))) (Var "null")))))
   (Let "$r0" (Val #(go!""))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1739,8 +1739,8 @@ noncomputable def DeletedObject.GetKey.impl [GooseExts] [GoGlobalContext] (T : g
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType DeletedFinalStateUnknown.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeletedFinalStateUnknown.ty)))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T) go!"FinalStateUnknown"))) (Var "d"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType DeletedFinalStateUnknown.ty)))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef DeletedFinalStateUnknown.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeletedFinalStateUnknown.ty)))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T) go!"FinalStateUnknown"))) (Var "d")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType DeletedFinalStateUnknown.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeletedFinalStateUnknown.ty)))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T₀) go!"FinalStateUnknown"))) (Var "d"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType DeletedFinalStateUnknown.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef DeletedFinalStateUnknown.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeletedFinalStateUnknown.ty)))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T₀) go!"FinalStateUnknown"))) (Var "d")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -1807,51 +1807,51 @@ noncomputable def ResourceEventHandlerFuncs.OnDelete.impl [GooseExts] [GoGlobalC
   (Val #()))))
 
 /-- go: controller.go:449:44 -/
-noncomputable def TypedResourceEventHandlerFuncs.OnAdd.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedResourceEventHandlerFuncs.OnAdd.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "obj"
   (Lam "isInInitialList"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedResourceEventHandlerFuncs.ty T)))) (Var "r"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedResourceEventHandlerFuncs.ty T₀)))) (Var "r"))
   (Let "isInInitialList" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "isInInitialList"))
-  (Let "obj" (App (Val (GoInstruction (GoAlloc T))) (Var "obj"))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [T] false []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerFuncs.ty T) go!"AddFunc"))) (Var "r"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [T] false []))))) (Val UntypedNil))))))
+  (Let "obj" (App (Val (GoInstruction (GoAlloc T₀))) (Var "obj"))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [T₀] false []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T₀] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerFuncs.ty T₀) go!"AddFunc"))) (Var "r"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [T₀] false []))))) (Val UntypedNil))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "obj"))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerFuncs.ty T) go!"AddFunc"))) (Var "r"))) (Var "$a0"))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad T₀))) (Var "obj"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T₀] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerFuncs.ty T₀) go!"AddFunc"))) (Var "r"))) (Var "$a0"))))
   (App (Val doExecute)
   (Val #())))))))
   (Val #())))))
 
 /-- go: controller.go:455:44 -/
-noncomputable def TypedResourceEventHandlerFuncs.OnUpdate.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedResourceEventHandlerFuncs.OnUpdate.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "oldObj"
   (Lam "newObj"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedResourceEventHandlerFuncs.ty T)))) (Var "r"))
-  (Let "newObj" (App (Val (GoInstruction (GoAlloc T))) (Var "newObj"))
-  (Let "oldObj" (App (Val (GoInstruction (GoAlloc T))) (Var "oldObj"))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [T, T] false []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T, T] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerFuncs.ty T) go!"UpdateFunc"))) (Var "r"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [T, T] false []))))) (Val UntypedNil))))))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedResourceEventHandlerFuncs.ty T₀)))) (Var "r"))
+  (Let "newObj" (App (Val (GoInstruction (GoAlloc T₀))) (Var "newObj"))
+  (Let "oldObj" (App (Val (GoInstruction (GoAlloc T₀))) (Var "oldObj"))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [T₀, T₀] false []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T₀, T₀] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerFuncs.ty T₀) go!"UpdateFunc"))) (Var "r"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [T₀, T₀] false []))))) (Val UntypedNil))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "oldObj"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad T))) (Var "newObj"))
-  (App (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T, T] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerFuncs.ty T) go!"UpdateFunc"))) (Var "r"))) (Var "$a0")) (Var "$a1")))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad T₀))) (Var "oldObj"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad T₀))) (Var "newObj"))
+  (App (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T₀, T₀] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerFuncs.ty T₀) go!"UpdateFunc"))) (Var "r"))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #())))))))
   (Val #())))))
 
 /-- go: controller.go:461:44 -/
-noncomputable def TypedResourceEventHandlerFuncs.OnDelete.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedResourceEventHandlerFuncs.OnDelete.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "obj"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedResourceEventHandlerFuncs.ty T)))) (Var "r"))
-  (Let "obj" (App (Val (GoInstruction (GoAlloc (DeletedObject.ty T)))) (Var "obj"))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T)] false []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T)] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerFuncs.ty T) go!"DeleteFunc"))) (Var "r"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T)] false []))))) (Val UntypedNil))))))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedResourceEventHandlerFuncs.ty T₀)))) (Var "r"))
+  (Let "obj" (App (Val (GoInstruction (GoAlloc (DeletedObject.ty T₀)))) (Var "obj"))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T₀)] false []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T₀)] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerFuncs.ty T₀) go!"DeleteFunc"))) (Var "r"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T₀)] false []))))) (Val UntypedNil))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (DeletedObject.ty T)))) (Var "obj"))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T)] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerFuncs.ty T) go!"DeleteFunc"))) (Var "r"))) (Var "$a0"))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (DeletedObject.ty T₀)))) (Var "obj"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T₀)] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerFuncs.ty T₀) go!"DeleteFunc"))) (Var "r"))) (Var "$a0"))))
   (App (Val doExecute)
   (Val #()))))))
   (Val #()))))
@@ -1914,52 +1914,52 @@ noncomputable def ResourceEventHandlerDetailedFuncs.OnDelete.impl [GooseExts] [G
   (Val #()))))
 
 /-- go: controller.go:505:52 -/
-noncomputable def TypedResourceEventHandlerDetailedFuncs.OnAdd.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedResourceEventHandlerDetailedFuncs.OnAdd.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "obj"
   (Lam "isInInitialList"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedResourceEventHandlerDetailedFuncs.ty T)))) (Var "r"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedResourceEventHandlerDetailedFuncs.ty T₀)))) (Var "r"))
   (Let "isInInitialList" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "isInInitialList"))
-  (Let "obj" (App (Val (GoInstruction (GoAlloc T))) (Var "obj"))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [T, go.bool] false []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T, go.bool] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerDetailedFuncs.ty T) go!"AddFunc"))) (Var "r"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [T, go.bool] false []))))) (Val UntypedNil))))))
+  (Let "obj" (App (Val (GoInstruction (GoAlloc T₀))) (Var "obj"))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [T₀, go.bool] false []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T₀, go.bool] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerDetailedFuncs.ty T₀) go!"AddFunc"))) (Var "r"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [T₀, go.bool] false []))))) (Val UntypedNil))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "obj"))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad T₀))) (Var "obj"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "isInInitialList"))
-  (App (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T, go.bool] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerDetailedFuncs.ty T) go!"AddFunc"))) (Var "r"))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T₀, go.bool] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerDetailedFuncs.ty T₀) go!"AddFunc"))) (Var "r"))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #())))))))
   (Val #())))))
 
 /-- go: controller.go:511:52 -/
-noncomputable def TypedResourceEventHandlerDetailedFuncs.OnUpdate.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedResourceEventHandlerDetailedFuncs.OnUpdate.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "oldObj"
   (Lam "newObj"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedResourceEventHandlerDetailedFuncs.ty T)))) (Var "r"))
-  (Let "newObj" (App (Val (GoInstruction (GoAlloc T))) (Var "newObj"))
-  (Let "oldObj" (App (Val (GoInstruction (GoAlloc T))) (Var "oldObj"))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [T, T] false []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T, T] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerDetailedFuncs.ty T) go!"UpdateFunc"))) (Var "r"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [T, T] false []))))) (Val UntypedNil))))))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedResourceEventHandlerDetailedFuncs.ty T₀)))) (Var "r"))
+  (Let "newObj" (App (Val (GoInstruction (GoAlloc T₀))) (Var "newObj"))
+  (Let "oldObj" (App (Val (GoInstruction (GoAlloc T₀))) (Var "oldObj"))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [T₀, T₀] false []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T₀, T₀] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerDetailedFuncs.ty T₀) go!"UpdateFunc"))) (Var "r"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [T₀, T₀] false []))))) (Val UntypedNil))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "oldObj"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad T))) (Var "newObj"))
-  (App (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T, T] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerDetailedFuncs.ty T) go!"UpdateFunc"))) (Var "r"))) (Var "$a0")) (Var "$a1")))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad T₀))) (Var "oldObj"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad T₀))) (Var "newObj"))
+  (App (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T₀, T₀] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerDetailedFuncs.ty T₀) go!"UpdateFunc"))) (Var "r"))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #())))))))
   (Val #())))))
 
 /-- go: controller.go:517:52 -/
-noncomputable def TypedResourceEventHandlerDetailedFuncs.OnDelete.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedResourceEventHandlerDetailedFuncs.OnDelete.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "obj"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedResourceEventHandlerDetailedFuncs.ty T)))) (Var "r"))
-  (Let "obj" (App (Val (GoInstruction (GoAlloc (DeletedObject.ty T)))) (Var "obj"))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T)] false []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T)] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerDetailedFuncs.ty T) go!"DeleteFunc"))) (Var "r"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T)] false []))))) (Val UntypedNil))))))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedResourceEventHandlerDetailedFuncs.ty T₀)))) (Var "r"))
+  (Let "obj" (App (Val (GoInstruction (GoAlloc (DeletedObject.ty T₀)))) (Var "obj"))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T₀)] false []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T₀)] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerDetailedFuncs.ty T₀) go!"DeleteFunc"))) (Var "r"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T₀)] false []))))) (Val UntypedNil))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (DeletedObject.ty T)))) (Var "obj"))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T)] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerDetailedFuncs.ty T) go!"DeleteFunc"))) (Var "r"))) (Var "$a0"))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (DeletedObject.ty T₀)))) (Var "obj"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T₀)] false []))))) (App (Val (GoInstruction (StructFieldRef (TypedResourceEventHandlerDetailedFuncs.ty T₀) go!"DeleteFunc"))) (Var "r"))) (Var "$a0"))))
   (App (Val doExecute)
   (Val #()))))))
   (Val #()))))
@@ -2054,21 +2054,21 @@ noncomputable def FilteringResourceEventHandler.OnDelete.impl [GooseExts] [GoGlo
 /-- OnAdd calls the nested handler only if the filter succeeds
 
     go: controller.go:573:48 -/
-noncomputable def TypedFilteringResourceEventHandler.OnAdd.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedFilteringResourceEventHandler.OnAdd.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "obj"
   (Lam "isInInitialList"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedFilteringResourceEventHandler.ty T)))) (Var "r"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedFilteringResourceEventHandler.ty T₀)))) (Var "r"))
   (Let "isInInitialList" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "isInInitialList"))
-  (Let "obj" (App (Val (GoInstruction (GoAlloc T))) (Var "obj"))
+  (Let "obj" (App (Val (GoInstruction (GoAlloc T₀))) (Var "obj"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "obj"))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad T₀))) (Var "obj"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "isInInitialList"))
-  (App (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T) go!"OnAdd"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T)))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T) go!"Handler"))) (Var "r")))) (Var "$a0")) (Var "$a1")))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "obj"))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T] false [go.bool]))))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T) go!"FilterFunc"))) (Var "r"))) (Var "$a0"))))
+  (App (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T₀) go!"OnAdd"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T₀) go!"Handler"))) (Var "r")))) (Var "$a0")) (Var "$a1")))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad T₀))) (Var "obj"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T₀] false [go.bool]))))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T₀) go!"FilterFunc"))) (Var "r"))) (Var "$a0"))))
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
@@ -2078,38 +2078,38 @@ noncomputable def TypedFilteringResourceEventHandler.OnAdd.impl [GooseExts] [GoG
 /-- OnUpdate ensures the proper handler is called depending on whether the filter matches
 
     go: controller.go:581:48 -/
-noncomputable def TypedFilteringResourceEventHandler.OnUpdate.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedFilteringResourceEventHandler.OnUpdate.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "oldObj"
   (Lam "newObj"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedFilteringResourceEventHandler.ty T)))) (Var "r"))
-  (Let "newObj" (App (Val (GoInstruction (GoAlloc T))) (Var "newObj"))
-  (Let "oldObj" (App (Val (GoInstruction (GoAlloc T))) (Var "oldObj"))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "newObj"))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T] false [go.bool]))))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T) go!"FilterFunc"))) (Var "r"))) (Var "$a0")))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedFilteringResourceEventHandler.ty T₀)))) (Var "r"))
+  (Let "newObj" (App (Val (GoInstruction (GoAlloc T₀))) (Var "newObj"))
+  (Let "oldObj" (App (Val (GoInstruction (GoAlloc T₀))) (Var "oldObj"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad T₀))) (Var "newObj"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T₀] false [go.bool]))))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T₀) go!"FilterFunc"))) (Var "r"))) (Var "$a0")))
   (Let "newer" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "oldObj"))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T] false [go.bool]))))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T) go!"FilterFunc"))) (Var "r"))) (Var "$a0")))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad T₀))) (Var "oldObj"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T₀] false [go.bool]))))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T₀) go!"FilterFunc"))) (Var "r"))) (Var "$a0")))
   (Let "older" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$sw" (Val #true)
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "newer")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "older")) (Val #false))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "oldObj"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad T))) (Var "newObj"))
-  (App (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T) go!"OnUpdate"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T)))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T) go!"Handler"))) (Var "r")))) (Var "$a0")) (Var "$a1")))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad T₀))) (Var "oldObj"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad T₀))) (Var "newObj"))
+  (App (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T₀) go!"OnUpdate"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T₀) go!"Handler"))) (Var "r")))) (Var "$a0")) (Var "$a1")))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "newer")) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "older"))) (Val #false))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "newObj"))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad T₀))) (Var "newObj"))
   (Let "$a1" (Val #false)
-  (App (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T) go!"OnAdd"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T)))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T) go!"Handler"))) (Var "r")))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T₀) go!"OnAdd"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T₀) go!"Handler"))) (Var "r")))) (Var "$a0")) (Var "$a1")))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "newer"))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "older")) (Val #false))))
   (App (Val doExecute)
-  (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad T))) (Var "oldObj"))
-  (App (Val (GoInstruction (CompositeLiteral (DeletedObject.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"OptionalObj")) (ElementExpression T (Var "$v0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T) go!"OnDelete"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T)))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T) go!"Handler"))) (Var "r")))) (Var "$a0"))))
+  (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad T₀))) (Var "oldObj"))
+  (App (Val (GoInstruction (CompositeLiteral (DeletedObject.ty T₀)))) (LiteralValue [(KeyedElement (some (KeyField go!"OptionalObj")) (ElementExpression T₀ (Var "$v0")))])))
+  (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T₀) go!"OnDelete"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T₀) go!"Handler"))) (Var "r")))) (Var "$a0"))))
   (App (Val doExecute)
   (Val #()))))))))
   (App (Val doExecute)
@@ -2124,18 +2124,18 @@ noncomputable def TypedFilteringResourceEventHandler.OnUpdate.impl [GooseExts] [
     having a valid state must handle that case itself.
 
     go: controller.go:600:48 -/
-noncomputable def TypedFilteringResourceEventHandler.OnDelete.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedFilteringResourceEventHandler.OnDelete.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "r"
   (Lam "obj"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedFilteringResourceEventHandler.ty T)))) (Var "r"))
-  (Let "obj" (App (Val (GoInstruction (GoAlloc (DeletedObject.ty T)))) (Var "obj"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (TypedFilteringResourceEventHandler.ty T₀)))) (Var "r"))
+  (Let "obj" (App (Val (GoInstruction (GoAlloc (DeletedObject.ty T₀)))) (Var "obj"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (DeletedObject.ty T)))) (Var "obj"))
-  (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T) go!"OnDelete"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T)))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T) go!"Handler"))) (Var "r")))) (Var "$a0"))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T) go!"OptionalObj"))) (Var "obj")))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T] false [go.bool]))))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T) go!"FilterFunc"))) (Var "r"))) (Var "$a0"))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (DeletedObject.ty T₀)))) (Var "obj"))
+  (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T₀) go!"OnDelete"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T₀)))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T₀) go!"Handler"))) (Var "r")))) (Var "$a0"))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad T₀))) (App (Val (GoInstruction (StructFieldRef (DeletedObject.ty T₀) go!"OptionalObj"))) (Var "obj")))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [T₀] false [go.bool]))))) (App (Val (GoInstruction (StructFieldRef (TypedFilteringResourceEventHandler.ty T₀) go!"FilterFunc"))) (Var "r"))) (Var "$a0"))))
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
@@ -5367,7 +5367,7 @@ noncomputable def nameForHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.«Type».ty go!"PkgPath"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Var "value")) (Val #()))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Type''.ty go!"PkgPath"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Var "value")) (Val #()))) (Val #()))
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5378,7 +5378,7 @@ noncomputable def nameForHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.«Type».ty go!"Name"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Var "value")) (Val #()))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Type''.ty go!"Name"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Var "value")) (Val #()))) (Val #()))
   (Let "typeName" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "typeName")) (Val #(go!""))))))
@@ -5395,7 +5395,7 @@ noncomputable def nameForHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "name") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.reflect.Kind.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.«Type».ty go!"Kind"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Var "value")) (Val #()))) (Val #())) (Val #(W64 22)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.reflect.Kind.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Type''.ty go!"Kind"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Var "value")) (Val #()))) (Val #())) (Val #(W64 22)))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"IsNil"))) (Var "value")) (Val #())))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Elem"))) (Var "value")) (Val #()))
   (App (Val doExecute)
@@ -5404,7 +5404,7 @@ noncomputable def nameForHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.reflect.Kind.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.«Type».ty go!"Kind"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Var "value")) (Val #()))) (Val #())) (Val #(W64 20)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.reflect.Kind.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Type''.ty go!"Kind"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Var "value")) (Val #()))) (Val #())) (Val #(W64 20)))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Elem"))) (Var "value")) (Val #()))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.reflect.Value.ty))) (Pair (Var "value") (Var "$r0")))))
@@ -5844,7 +5844,7 @@ noncomputable def ExpirationCache.Get.impl [GooseExts] [GoGlobalContext] : val :
     items in the process.
 
     go: expiration_cache.go:127:27 -/
-noncomputable def ExpirationCache.List.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def ExpirationCache.List''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Val #())))
@@ -6436,7 +6436,7 @@ noncomputable def FakeCustomStore.Delete.impl [GooseExts] [GoGlobalContext] : va
 /-- List calls the custom List function if defined
 
     go: fake_custom_store.go:61:27 -/
-noncomputable def FakeCustomStore.List.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def FakeCustomStore.List''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Val #())))
@@ -8184,7 +8184,7 @@ noncomputable def Heap.Pop.impl [GooseExts] [GoGlobalContext] : val :=
 /-- List returns a list of all the items.
 
     go: heap.go:262:16 -/
-noncomputable def Heap.List.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Heap.List''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Val #())))
@@ -8821,13 +8821,13 @@ noncomputable def MetaNamespaceIndexFunc.impl [GooseExts] [GoGlobalContext] : va
     the conversion is done automatically.
 
     go: index.go:117:6 -/
-noncomputable def TypedIndexersToIndexers.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedIndexersToIndexers.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "indexers"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Indexers.ty))) (App (Val (GoInstruction (GoZeroVal Indexers.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "indexers" (App (Val (GoInstruction (GoAlloc (TypedIndexers.ty T)))) (Var "indexers"))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [Indexers.ty]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (TypedIndexers.ty T)))) (Var "indexers"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(TypedIndexers.ty T)]))) (Val #())) (Var "$a0"))))
+  (Let "indexers" (App (Val (GoInstruction (GoAlloc (TypedIndexers.ty T₀)))) (Var "indexers"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [Indexers.ty]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (TypedIndexers.ty T₀)))) (Var "indexers"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(TypedIndexers.ty T₀)]))) (Val #())) (Var "$a0"))))
   (Let "untyped" (App (Val (GoInstruction (GoAlloc Indexers.ty))) (App (Val (GoInstruction (GoZeroVal Indexers.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8837,22 +8837,22 @@ noncomputable def TypedIndexersToIndexers.impl [GooseExts] [GoGlobalContext] (T 
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Indexers.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (TypedIndexers.ty T)))) (Var "indexers"))
-  (Let "indexer" (App (Val (GoInstruction (GoAlloc (TypedIndexFunc.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedIndexFunc.ty T)))) (Val #())))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (TypedIndexers.ty T₀)))) (Var "indexers"))
+  (Let "indexer" (App (Val (GoInstruction (GoAlloc (TypedIndexFunc.ty T₀)))) (App (Val (GoInstruction (GoZeroVal (TypedIndexFunc.ty T₀)))) (Val #())))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val (map.forRange go.string (TypedIndexFunc.ty T))) (Var "$range"))
+  (App (App (Val (map.forRange go.string (TypedIndexFunc.ty T₀))) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (TypedIndexFunc.ty T)))) (Var "indexer"))
-  (App (App (Val (GoInstruction (FuncResolve TypedIndexerFuncToIndexerFunc [T]))) (Val #())) (Var "$a0")))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (TypedIndexFunc.ty T₀)))) (Var "indexer"))
+  (App (App (Val (GoInstruction (FuncResolve TypedIndexerFuncToIndexerFunc [T₀]))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
   (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad Indexers.ty))) (Var "untyped"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "i"))) (Var "$r0"))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "i") (Var "$key")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (TypedIndexFunc.ty T)))) (Pair (Var "indexer") (Var "$value"))))))))))))))
+  (App (Val (GoInstruction (GoStore (TypedIndexFunc.ty T₀)))) (Pair (Var "indexer") (Var "$value"))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Indexers.ty))) (Pair (Var "untyped") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad Indexers.ty))) (Var "$res0")))))
@@ -8864,18 +8864,18 @@ noncomputable def TypedIndexersToIndexers.impl [GooseExts] [GoGlobalContext] (T 
     the conversion is done automatically.
 
     go: index.go:130:6 -/
-noncomputable def TypedIndexerFuncToIndexerFunc.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def TypedIndexerFuncToIndexerFunc.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "indexer"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc IndexFunc.ty))) (App (Val (GoInstruction (GoZeroVal IndexFunc.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "indexer" (App (Val (GoInstruction (GoAlloc (TypedIndexFunc.ty T)))) (Var "indexer"))
+  (Let "indexer" (App (Val (GoInstruction (GoAlloc (TypedIndexFunc.ty T₀)))) (Var "indexer"))
   (Let "$r0" (Lam "obj"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc go.any))) (Var "obj"))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (TypeAssert T))) (App (Val (GoInstruction (GoLoad go.any))) (Var "obj")))
-  (App (App (Val (GoInstruction (GoLoad (TypedIndexFunc.ty T)))) (Var "indexer")) (Var "$a0")))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (TypeAssert T₀))) (App (Val (GoInstruction (GoLoad go.any))) (Var "obj")))
+  (App (App (Val (GoInstruction (GoLoad (TypedIndexFunc.ty T₀)))) (Var "indexer")) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -9326,7 +9326,7 @@ noncomputable def NewGenericLister.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad GenericLister.ty))) (Var "$res0"))))))
 
 /-- go: listers.go:140:25 -/
-noncomputable def genericLister.List.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def genericLister.List''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "selector"
   (Let "ret" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (Val #())))
@@ -9455,7 +9455,7 @@ noncomputable def genericLister.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- go: listers.go:168:34 -/
-noncomputable def genericNamespaceLister.List.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def genericNamespaceLister.List''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "selector"
   (Let "ret" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (Val #())))
@@ -9987,7 +9987,7 @@ noncomputable def NewFilteredListWatchFromClient.impl [GooseExts] [GoGlobalConte
     Deprecated: use ListWatchWithContext.ListWithContext instead.
 
     go: listwatch.go:283:22 -/
-noncomputable def ListWatch.List.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def ListWatch.List''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lw"
   (Lam "options"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val #())))
@@ -10232,7 +10232,7 @@ noncomputable def shardedListWatch.logClientFallback.impl [GooseExts] [GoGlobalC
   (Val #()))))
 
 /-- go: listwatch.go:353:28 -/
-noncomputable def shardedListWatch.List.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def shardedListWatch.List''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "options"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val #())))
@@ -13090,7 +13090,7 @@ noncomputable def NewReflectorWithOptions.impl [GooseExts] [GoGlobalContext] : v
   (Let "$v9" (App (Val (GoInstruction (FuncResolve DefaultWatchErrorHandler []))) (Val #()))
   (Let "$v10" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "expectedType"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.reflect.TypeOf []))) (Val #())) (Var "$a0")))
-  (App (Val (GoInstruction (CompositeLiteral Reflector.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"resyncPeriod")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"minWatchTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"maxWatchTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"typeDescription")) (ElementExpression go.string (Var "$v4"))), (KeyedElement (some (KeyField go!"listerWatcher")) (ElementExpression ListerWatcherWithContext.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"store")) (ElementExpression ReflectorStore.ty (Var "$v6"))), (KeyedElement (some (KeyField go!"delayHandler")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.DelayFunc.ty (Var "$v7"))), (KeyedElement (some (KeyField go!"clock")) (ElementExpression _root_.Perennial.k8s_io.utils.clock.Clock.ty (Var "$v8"))), (KeyedElement (some (KeyField go!"watchErrorHandler")) (ElementExpression WatchErrorHandlerWithContext.ty (Var "$v9"))), (KeyedElement (some (KeyField go!"expectedType")) (ElementExpression _root_.Perennial.reflect.«Type».ty (Var "$v10")))]))))))))))))))
+  (App (Val (GoInstruction (CompositeLiteral Reflector.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"resyncPeriod")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"minWatchTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"maxWatchTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"typeDescription")) (ElementExpression go.string (Var "$v4"))), (KeyedElement (some (KeyField go!"listerWatcher")) (ElementExpression ListerWatcherWithContext.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"store")) (ElementExpression ReflectorStore.ty (Var "$v6"))), (KeyedElement (some (KeyField go!"delayHandler")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.DelayFunc.ty (Var "$v7"))), (KeyedElement (some (KeyField go!"clock")) (ElementExpression _root_.Perennial.k8s_io.utils.clock.Clock.ty (Var "$v8"))), (KeyedElement (some (KeyField go!"watchErrorHandler")) (ElementExpression WatchErrorHandlerWithContext.ty (Var "$v9"))), (KeyedElement (some (KeyField go!"expectedType")) (ElementExpression _root_.Perennial.reflect.Type''.ty (Var "$v10")))]))))))))))))))
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Reflector.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Reflector.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -13229,7 +13229,7 @@ noncomputable def getTypeDescriptionFromObject.impl [GooseExts] [GoGlobalContext
   (Seq (App (Val exceptionDo)
   (Let "expectedType" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "expectedType"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.«Type».ty go!"String"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "expectedType"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Type''.ty go!"String"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "expectedType"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.reflect.TypeOf []))) (Val #())) (Var "$a0")))) (Val #()))
   (Let "reflectDescription" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -13865,7 +13865,7 @@ noncomputable def Reflector.watch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "start"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty))) (Var "w"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad ReflectorStore.ty))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"store"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"expectedType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type''.ty))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"expectedType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
   (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"expectedGVK"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
   (Let "$a6" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
   (Let "$a7" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"typeDescription"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
@@ -14112,7 +14112,7 @@ noncomputable def Reflector.watch.impl [GooseExts] [GoGlobalContext] : val :=
     the resource version can be used for further progress notification (aka. watch).
 
     go: reflector.go:674:21 -/
-noncomputable def Reflector.list.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Reflector.list''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ctx"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -14701,7 +14701,7 @@ noncomputable def Reflector.watchList.impl [GooseExts] [GoGlobalContext] : val :
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "start"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty))) (Var "w"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad Store.ty))) (Var "temporaryStore"))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"expectedType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type''.ty))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"expectedType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
   (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"expectedGVK"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
   (Let "$a6" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
   (Let "$a7" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"typeDescription"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
@@ -14944,7 +14944,7 @@ noncomputable def handleListWatch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "expectedTypeName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "expectedTypeName"))
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
   (Let "expectedGVK" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Var "expectedGVK"))
-  (Let "expectedType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.«Type».ty))) (Var "expectedType"))
+  (Let "expectedType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.Type''.ty))) (Var "expectedType"))
   (Let "store" (App (Val (GoInstruction (GoAlloc Store.ty))) (Var "store"))
   (Let "w" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty))) (Var "w"))
   (Let "start" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "start"))
@@ -14956,7 +14956,7 @@ noncomputable def handleListWatch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "start"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty))) (Var "w"))
   (Let "$a3" (App (Val (GoInstruction (Convert Store.ty ReflectorStore.ty))) (App (Val (GoInstruction (GoLoad Store.ty))) (Var "store")))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (Var "expectedType"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type''.ty))) (Var "expectedType"))
   (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Var "expectedGVK"))
   (Let "$a6" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (Let "$a7" (App (Val (GoInstruction (GoLoad go.string))) (Var "expectedTypeName"))
@@ -15006,7 +15006,7 @@ noncomputable def handleWatch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "expectedTypeName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "expectedTypeName"))
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
   (Let "expectedGVK" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Var "expectedGVK"))
-  (Let "expectedType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.«Type».ty))) (Var "expectedType"))
+  (Let "expectedType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.Type''.ty))) (Var "expectedType"))
   (Let "store" (App (Val (GoInstruction (GoAlloc ReflectorStore.ty))) (Var "store"))
   (Let "w" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty))) (Var "w"))
   (Let "start" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "start"))
@@ -15018,7 +15018,7 @@ noncomputable def handleWatch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "start"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty))) (Var "w"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad ReflectorStore.ty))) (Var "store"))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (Var "expectedType"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type''.ty))) (Var "expectedType"))
   (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Var "expectedGVK"))
   (Let "$a6" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (Let "$a7" (App (Val (GoInstruction (GoLoad go.string))) (Var "expectedTypeName"))
@@ -15721,7 +15721,7 @@ noncomputable def isUnsupportedTableListObject.impl [GooseExts] [GoGlobalContext
     This is intentional because we want to catch it in the CI.
 
     go: reflector_data_consistency_detector.go:36:6 -/
-noncomputable def checkWatchListDataConsistencyIfRequested.impl [GooseExts] [GoGlobalContext] (T U : go.GoType) : val :=
+noncomputable def checkWatchListDataConsistencyIfRequested.impl [GooseExts] [GoGlobalContext] (T₀ U₀ : go.GoType) : val :=
   (LamV "ctx"
   (Lam "identity"
   (Lam "lastSyncedResourceVersion"
@@ -15729,9 +15729,9 @@ noncomputable def checkWatchListDataConsistencyIfRequested.impl [GooseExts] [GoG
   (Lam "listItemTransformFunc"
   (Lam "retrieveItemsFn"
   (Seq (App (Val exceptionDo)
-  (Let "retrieveItemsFn" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.client_go.util.consistencydetector.RetrieveItemsFunc.ty U)))) (Var "retrieveItemsFn"))
+  (Let "retrieveItemsFn" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.client_go.util.consistencydetector.RetrieveItemsFunc.ty U₀)))) (Var "retrieveItemsFn"))
   (Let "listItemTransformFunc" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (Var "listItemTransformFunc"))
-  (Let "listFn" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.client_go.util.consistencydetector.ListFunc.ty T)))) (Var "listFn"))
+  (Let "listFn" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.client_go.util.consistencydetector.ListFunc.ty T₀)))) (Var "listFn"))
   (Let "lastSyncedResourceVersion" (App (Val (GoInstruction (GoAlloc go.string))) (Var "lastSyncedResourceVersion"))
   (Let "identity" (App (Val (GoInstruction (GoAlloc go.string))) (Var "identity"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
@@ -15740,11 +15740,11 @@ noncomputable def checkWatchListDataConsistencyIfRequested.impl [GooseExts] [GoG
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "identity"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "lastSyncedResourceVersion"))
-  (Let "$a3" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.client_go.util.consistencydetector.ListFunc.ty T)))) (Var "listFn"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.client_go.util.consistencydetector.ListFunc.ty T₀)))) (Var "listFn"))
   (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (Var "listItemTransformFunc"))
   (Let "$a5" (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty))) (LiteralValue []))
-  (Let "$a6" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.client_go.util.consistencydetector.RetrieveItemsFunc.ty U)))) (Var "retrieveItemsFn"))
-  (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.client_go.util.consistencydetector.CheckDataConsistency [T, U]))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6"))))))))))))
+  (Let "$a6" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.client_go.util.consistencydetector.RetrieveItemsFunc.ty U₀)))) (Var "retrieveItemsFn"))
+  (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.client_go.util.consistencydetector.CheckDataConsistency [T₀, U₀]))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6"))))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.client_go.util.consistencydetector.IsDataConsistencyDetectionForWatchListEnabled []))) (Val #())) (Val #())))
   (App (Val doReturn)
   (Val #()))
@@ -15780,7 +15780,7 @@ noncomputable def noopMetric.Observe.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
 
 /-- go: reflector_metrics.go:54:19 -/
-noncomputable def noopMetric.Set.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def noopMetric.Set''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
   (Seq (App (Val exceptionDo)
@@ -16019,37 +16019,37 @@ noncomputable def retryWithDeadlineImpl.ShouldRetry.impl [GooseExts] [GoGlobalCo
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- go: shared_informer.go:325:6 -/
-noncomputable def NewTypedSharedIndexInformer.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def NewTypedSharedIndexInformer.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "informer"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedSharedIndexInformer.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedSharedIndexInformer.ty T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedSharedIndexInformer.ty T₀)))) (App (Val (GoInstruction (GoZeroVal (TypedSharedIndexInformer.ty T₀)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "informer" (App (Val (GoInstruction (GoAlloc SharedIndexInformer.ty))) (Var "informer"))
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (typedSharedIndexInformer.ty T)) (TypedSharedIndexInformer.ty T)))) (App (Val (GoInstruction (GoAlloc (typedSharedIndexInformer.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad SharedIndexInformer.ty))) (Var "informer"))
-  (App (Val (GoInstruction (CompositeLiteral (typedSharedIndexInformer.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"SharedIndexInformer")) (ElementExpression SharedIndexInformer.ty (Var "$v0")))])))))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (typedSharedIndexInformer.ty T₀)) (TypedSharedIndexInformer.ty T₀)))) (App (Val (GoInstruction (GoAlloc (typedSharedIndexInformer.ty T₀)))) (Let "$v0" (App (Val (GoInstruction (GoLoad SharedIndexInformer.ty))) (Var "informer"))
+  (App (Val (GoInstruction (CompositeLiteral (typedSharedIndexInformer.ty T₀)))) (LiteralValue [(KeyedElement (some (KeyField go!"SharedIndexInformer")) (ElementExpression SharedIndexInformer.ty (Var "$v0")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (TypedSharedIndexInformer.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad (TypedSharedIndexInformer.ty T)))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore (TypedSharedIndexInformer.ty T₀)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (TypedSharedIndexInformer.ty T₀)))) (Var "$res0")))))
 
 /-- go: shared_informer.go:333:38 -/
-noncomputable def typedSharedIndexInformer.AddTypedEventHandler.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def typedSharedIndexInformer.AddTypedEventHandler.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "s"
   (Lam "handler"
   (Lam "options"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc ResourceEventHandlerRegistration.ty))) (App (Val (GoInstruction (GoZeroVal ResourceEventHandlerRegistration.ty))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc (typedSharedIndexInformer.ty T)))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (typedSharedIndexInformer.ty T₀)))) (Var "s"))
   (Let "options" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType HandlerOptions.ty)))) (Var "options"))
-  (Let "handler" (App (Val (GoInstruction (GoAlloc (TypedResourceEventHandler.ty T)))) (Var "handler"))
+  (Let "handler" (App (Val (GoInstruction (GoAlloc (TypedResourceEventHandler.ty T₀)))) (Var "handler"))
   (Let "o" (App (Val (GoInstruction (GoAlloc HandlerOptions.ty))) (App (Val (GoInstruction (GoZeroVal HandlerOptions.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (typedResourceEventHandler.ty T)) ResourceEventHandler.ty))) (App (Val (GoInstruction (GoAlloc (typedResourceEventHandler.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T)))) (Var "handler"))
-  (App (Val (GoInstruction (CompositeLiteral (typedResourceEventHandler.ty T)))) (LiteralValue [(KeyedElement none (ElementExpression (TypedResourceEventHandler.ty T) (Var "$v0")))])))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (typedResourceEventHandler.ty T₀)) ResourceEventHandler.ty))) (App (Val (GoInstruction (GoAlloc (typedResourceEventHandler.ty T₀)))) (Let "$v0" (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T₀)))) (Var "handler"))
+  (App (Val (GoInstruction (CompositeLiteral (typedResourceEventHandler.ty T₀)))) (LiteralValue [(KeyedElement none (ElementExpression (TypedResourceEventHandler.ty T₀) (Var "$v0")))])))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad HandlerOptions.ty))) (Var "o"))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (typedSharedIndexInformer.ty T)) go!"AddEventHandlerWithOptions"))) (Var "s")) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (typedSharedIndexInformer.ty T₀)) go!"AddEventHandlerWithOptions"))) (Var "s")) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -16088,16 +16088,16 @@ noncomputable def typedSharedIndexInformer.AddTypedEventHandler.impl [GooseExts]
   (Pair (App (Val (GoInstruction (GoLoad ResourceEventHandlerRegistration.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
 /-- go: shared_informer.go:345:38 -/
-noncomputable def typedSharedIndexInformer.AddTypedIndexers.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def typedSharedIndexInformer.AddTypedIndexers.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "s"
   (Lam "indexers"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc (typedSharedIndexInformer.ty T)))) (Var "s"))
-  (Let "indexers" (App (Val (GoInstruction (GoAlloc (TypedIndexers.ty T)))) (Var "indexers"))
-  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (TypedIndexers.ty T)))) (Var "indexers"))
-  (App (App (Val (GoInstruction (FuncResolve TypedIndexersToIndexers [T]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (typedSharedIndexInformer.ty T)) go!"AddIndexers"))) (Var "s")) (Var "$a0")))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (typedSharedIndexInformer.ty T₀)))) (Var "s"))
+  (Let "indexers" (App (Val (GoInstruction (GoAlloc (TypedIndexers.ty T₀)))) (Var "indexers"))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (TypedIndexers.ty T₀)))) (Var "indexers"))
+  (App (App (Val (GoInstruction (FuncResolve TypedIndexersToIndexers [T₀]))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (typedSharedIndexInformer.ty T₀)) go!"AddIndexers"))) (Var "s")) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -16106,63 +16106,63 @@ noncomputable def typedSharedIndexInformer.AddTypedIndexers.impl [GooseExts] [Go
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- go: shared_informer.go:349:38 -/
-noncomputable def typedSharedIndexInformer.GetTypedIndexer.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def typedSharedIndexInformer.GetTypedIndexer.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "s"
   (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedIndexer.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedIndexer.ty T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedIndexer.ty T₀)))) (App (Val (GoInstruction (GoZeroVal (TypedIndexer.ty T₀)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc (typedSharedIndexInformer.ty T)))) (Var "s"))
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (typedIndexer.ty T)) (TypedIndexer.ty T)))) (App (Val (GoInstruction (GoAlloc (typedIndexer.ty T)))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (typedSharedIndexInformer.ty T)) go!"GetIndexer"))) (Var "s")) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral (typedIndexer.ty T)))) (LiteralValue [(KeyedElement none (ElementExpression Indexer.ty (Var "$v0")))])))))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (typedSharedIndexInformer.ty T₀)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (typedIndexer.ty T₀)) (TypedIndexer.ty T₀)))) (App (Val (GoInstruction (GoAlloc (typedIndexer.ty T₀)))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (typedSharedIndexInformer.ty T₀)) go!"GetIndexer"))) (Var "s")) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (typedIndexer.ty T₀)))) (LiteralValue [(KeyedElement none (ElementExpression Indexer.ty (Var "$v0")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (TypedIndexer.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad (TypedIndexer.ty T)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (TypedIndexer.ty T₀)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (TypedIndexer.ty T₀)))) (Var "$res0"))))))
 
 /-- go: shared_informer.go:361:40 -/
-noncomputable def typedResourceEventHandler.OnAdd.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def typedResourceEventHandler.OnAdd.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "h"
   (Lam "obj"
   (Lam "isInitialList"
   (Seq (App (Val exceptionDo)
-  (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (typedResourceEventHandler.ty T))))) (Var "h"))
+  (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (typedResourceEventHandler.ty T₀))))) (Var "h"))
   (Let "isInitialList" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "isInitialList"))
   (Let "obj" (App (Val (GoInstruction (GoAlloc go.any))) (Var "obj"))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (TypeAssert T))) (App (Val (GoInstruction (GoLoad go.any))) (Var "obj")))
+  (Let "$a0" (App (Val (GoInstruction (TypeAssert T₀))) (App (Val (GoInstruction (GoLoad go.any))) (Var "obj")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "isInitialList"))
-  (App (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T) go!"OnAdd"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T)))) (App (Val (GoInstruction (StructFieldRef (typedResourceEventHandler.ty T) go!"handler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (typedResourceEventHandler.ty T))))) (Var "h"))))) (Var "$a0")) (Var "$a1")))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T₀) go!"OnAdd"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T₀)))) (App (Val (GoInstruction (StructFieldRef (typedResourceEventHandler.ty T₀) go!"handler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (typedResourceEventHandler.ty T₀))))) (Var "h"))))) (Var "$a0")) (Var "$a1")))))))))
   (Val #())))))
 
 /-- go: shared_informer.go:365:40 -/
-noncomputable def typedResourceEventHandler.OnUpdate.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def typedResourceEventHandler.OnUpdate.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "h"
   (Lam "oldObj"
   (Lam "newObj"
   (Seq (App (Val exceptionDo)
-  (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (typedResourceEventHandler.ty T))))) (Var "h"))
+  (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (typedResourceEventHandler.ty T₀))))) (Var "h"))
   (Let "newObj" (App (Val (GoInstruction (GoAlloc go.any))) (Var "newObj"))
   (Let "oldObj" (App (Val (GoInstruction (GoAlloc go.any))) (Var "oldObj"))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (TypeAssert T))) (App (Val (GoInstruction (GoLoad go.any))) (Var "oldObj")))
-  (Let "$a1" (App (Val (GoInstruction (TypeAssert T))) (App (Val (GoInstruction (GoLoad go.any))) (Var "newObj")))
-  (App (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T) go!"OnUpdate"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T)))) (App (Val (GoInstruction (StructFieldRef (typedResourceEventHandler.ty T) go!"handler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (typedResourceEventHandler.ty T))))) (Var "h"))))) (Var "$a0")) (Var "$a1")))))))))
+  (Let "$a0" (App (Val (GoInstruction (TypeAssert T₀))) (App (Val (GoInstruction (GoLoad go.any))) (Var "oldObj")))
+  (Let "$a1" (App (Val (GoInstruction (TypeAssert T₀))) (App (Val (GoInstruction (GoLoad go.any))) (Var "newObj")))
+  (App (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T₀) go!"OnUpdate"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T₀)))) (App (Val (GoInstruction (StructFieldRef (typedResourceEventHandler.ty T₀) go!"handler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (typedResourceEventHandler.ty T₀))))) (Var "h"))))) (Var "$a0")) (Var "$a1")))))))))
   (Val #())))))
 
 /-- go: shared_informer.go:369:40 -/
-noncomputable def typedResourceEventHandler.OnDelete.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def typedResourceEventHandler.OnDelete.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "h"
   (Lam "obj"
   (Seq (App (Val exceptionDo)
-  (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (typedResourceEventHandler.ty T))))) (Var "h"))
+  (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (typedResourceEventHandler.ty T₀))))) (Var "h"))
   (Let "obj" (App (Val (GoInstruction (GoAlloc go.any))) (Var "obj"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (Let "$v0" (App (Val (GoInstruction (TypeAssert T))) (App (Val (GoInstruction (GoLoad go.any))) (Var "obj")))
-  (App (Val (GoInstruction (CompositeLiteral (DeletedObject.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"OptionalObj")) (ElementExpression T (Var "$v0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T) go!"OnDelete"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T)))) (App (Val (GoInstruction (StructFieldRef (typedResourceEventHandler.ty T) go!"handler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (typedResourceEventHandler.ty T))))) (Var "h"))))) (Var "$a0"))))))
+  (Let "$a0" (Let "$v0" (App (Val (GoInstruction (TypeAssert T₀))) (App (Val (GoInstruction (GoLoad go.any))) (Var "obj")))
+  (App (Val (GoInstruction (CompositeLiteral (DeletedObject.ty T₀)))) (LiteralValue [(KeyedElement (some (KeyField go!"OptionalObj")) (ElementExpression T₀ (Var "$v0")))])))
+  (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T₀) go!"OnDelete"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T₀)))) (App (Val (GoInstruction (StructFieldRef (typedResourceEventHandler.ty T₀) go!"handler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (typedResourceEventHandler.ty T₀))))) (Var "h"))))) (Var "$a0"))))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 DeletedFinalStateUnknown.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "obj")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -16178,18 +16178,18 @@ noncomputable def typedResourceEventHandler.OnDelete.impl [GooseExts] [GoGlobalC
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (Let "$a0" (Let "$v0" (App (Val (GoInstruction (TypeAssert T))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (StructFieldRef DeletedFinalStateUnknown.ty go!"Obj"))) (Var "tomb"))))
+  (Let "$a0" (Let "$v0" (App (Val (GoInstruction (TypeAssert T₀))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (StructFieldRef DeletedFinalStateUnknown.ty go!"Obj"))) (Var "tomb"))))
   (Let "$v1" (Var "tomb")
-  (App (Val (GoInstruction (CompositeLiteral (DeletedObject.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"OptionalObj")) (ElementExpression T (Var "$v0"))), (KeyedElement (some (KeyField go!"FinalStateUnknown")) (ElementExpression (go.GoType.PointerType DeletedFinalStateUnknown.ty) (Var "$v1")))]))))
-  (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T) go!"OnDelete"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T)))) (App (Val (GoInstruction (StructFieldRef (typedResourceEventHandler.ty T) go!"handler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (typedResourceEventHandler.ty T))))) (Var "h"))))) (Var "$a0")))))))
+  (App (Val (GoInstruction (CompositeLiteral (DeletedObject.ty T₀)))) (LiteralValue [(KeyedElement (some (KeyField go!"OptionalObj")) (ElementExpression T₀ (Var "$v0"))), (KeyedElement (some (KeyField go!"FinalStateUnknown")) (ElementExpression (go.GoType.PointerType DeletedFinalStateUnknown.ty) (Var "$v1")))]))))
+  (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T₀) go!"OnDelete"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T₀)))) (App (Val (GoInstruction (StructFieldRef (typedResourceEventHandler.ty T₀) go!"handler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (typedResourceEventHandler.ty T₀))))) (Var "h"))))) (Var "$a0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.InterfaceType [])))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (StructFieldRef DeletedFinalStateUnknown.ty go!"Obj"))) (Var "tomb"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.InterfaceType [])))) (Val UntypedNil)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (Let "$v0" (Var "tomb")
-  (App (Val (GoInstruction (CompositeLiteral (DeletedObject.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"FinalStateUnknown")) (ElementExpression (go.GoType.PointerType DeletedFinalStateUnknown.ty) (Var "$v0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T) go!"OnDelete"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T)))) (App (Val (GoInstruction (StructFieldRef (typedResourceEventHandler.ty T) go!"handler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (typedResourceEventHandler.ty T))))) (Var "h"))))) (Var "$a0")))))
+  (App (Val (GoInstruction (CompositeLiteral (DeletedObject.ty T₀)))) (LiteralValue [(KeyedElement (some (KeyField go!"FinalStateUnknown")) (ElementExpression (go.GoType.PointerType DeletedFinalStateUnknown.ty) (Var "$v0")))])))
+  (App (App (Val (GoInstruction (MethodResolve (TypedResourceEventHandler.ty T₀) go!"OnDelete"))) (App (Val (GoInstruction (GoLoad (TypedResourceEventHandler.ty T₀)))) (App (Val (GoInstruction (StructFieldRef (typedResourceEventHandler.ty T₀) go!"handler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (typedResourceEventHandler.ty T₀))))) (Var "h"))))) (Var "$a0")))))
   (App (Val doExecute)
   (Val #()))))
   (App (Val doExecute)
@@ -16201,19 +16201,19 @@ noncomputable def typedResourceEventHandler.OnDelete.impl [GooseExts] [GoGlobalC
   (Val #()))))
 
 /-- go: shared_informer.go:385:26 -/
-noncomputable def typedIndexer.TypedIndex.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def typedIndexer.TypedIndex.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "i"
   (Lam "indexName"
   (Lam "obj"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T₀)))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "i" (App (Val (GoInstruction (GoAlloc (typedIndexer.ty T)))) (Var "i"))
-  (Let "obj" (App (Val (GoInstruction (GoAlloc T))) (Var "obj"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc (typedIndexer.ty T₀)))) (Var "i"))
+  (Let "obj" (App (Val (GoInstruction (GoAlloc T₀))) (Var "obj"))
   (Let "indexName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "indexName"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "indexName"))
-  (Let "$a1" (App (Val (GoInstruction (Convert T (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad T))) (Var "obj")))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (typedIndexer.ty T)) go!"Index"))) (Var "i")) (Var "$a0")) (Var "$a1"))))
+  (Let "$a1" (App (Val (GoInstruction (Convert T₀ (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad T₀))) (Var "obj")))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (typedIndexer.ty T₀)) go!"Index"))) (Var "i")) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -16223,12 +16223,12 @@ noncomputable def typedIndexer.TypedIndex.impl [GooseExts] [GoGlobalContext] (T 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "untyped"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T₀)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "untyped"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.InterfaceType []))]))) (Val #())) (Var "$a0"))))
-  (Let "typed" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T)))) (Val #())))
+  (Let "typed" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T₀)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "typed"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "typed"))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -16237,7 +16237,7 @@ noncomputable def typedIndexer.TypedIndex.impl [GooseExts] [GoGlobalContext] (T 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T₀)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "untyped"))
   (Let "obj" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [])))) (Val #())))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -16246,17 +16246,17 @@ noncomputable def typedIndexer.TypedIndex.impl [GooseExts] [GoGlobalContext] (T 
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (TypeAssert T))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "obj")))
+  (Let "$r0" (App (Val (GoInstruction (TypeAssert T₀))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "obj")))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType T)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "typed")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType T₀)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "typed")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [])))) (Pair (Var "obj") (Var "$value"))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "typed") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T₀)))) (Pair (Var "typed") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType T)))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType T₀)))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -16265,29 +16265,29 @@ noncomputable def typedIndexer.TypedIndex.impl [GooseExts] [GoGlobalContext] (T 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T₀)))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Pair (Var "untyped") (Var "$r0"))))))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
 /-- go: shared_informer.go:397:26 -/
-noncomputable def typedIndexer.ByTypedIndex.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def typedIndexer.ByTypedIndex.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "i"
   (Lam "indexName"
   (Lam "indexedValue"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T₀)))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "i" (App (Val (GoInstruction (GoAlloc (typedIndexer.ty T)))) (Var "i"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc (typedIndexer.ty T₀)))) (Var "i"))
   (Let "indexedValue" (App (Val (GoInstruction (GoAlloc go.string))) (Var "indexedValue"))
   (Let "indexName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "indexName"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "indexName"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "indexedValue"))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (typedIndexer.ty T)) go!"ByIndex"))) (Var "i")) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (typedIndexer.ty T₀)) go!"ByIndex"))) (Var "i")) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -16297,12 +16297,12 @@ noncomputable def typedIndexer.ByTypedIndex.impl [GooseExts] [GoGlobalContext] (
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "untyped"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType T₀)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "untyped"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.InterfaceType []))]))) (Val #())) (Var "$a0"))))
-  (Let "typed" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T)))) (Val #())))
+  (Let "typed" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T₀)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T₀)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "typed"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "typed"))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -16311,7 +16311,7 @@ noncomputable def typedIndexer.ByTypedIndex.impl [GooseExts] [GoGlobalContext] (
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T₀)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "untyped"))
   (Let "obj" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [])))) (Val #())))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -16320,17 +16320,17 @@ noncomputable def typedIndexer.ByTypedIndex.impl [GooseExts] [GoGlobalContext] (
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (TypeAssert T))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "obj")))
+  (Let "$r0" (App (Val (GoInstruction (TypeAssert T₀))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "obj")))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore T))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType T)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "typed")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore T₀))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType T₀)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "typed")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [])))) (Pair (Var "obj") (Var "$value"))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "typed") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T₀)))) (Pair (Var "typed") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType T)))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType T₀)))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -16339,49 +16339,49 @@ noncomputable def typedIndexer.ByTypedIndex.impl [GooseExts] [GoGlobalContext] (
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType T₀)))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Pair (Var "untyped") (Var "$r0"))))))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T₀)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
 /-- go: shared_informer.go:409:26 -/
-noncomputable def typedIndexer.AddTypedIndexers.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def typedIndexer.AddTypedIndexers.impl [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : val :=
   (LamV "i"
   (Lam "newIndexers"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "i" (App (Val (GoInstruction (GoAlloc (typedIndexer.ty T)))) (Var "i"))
-  (Let "newIndexers" (App (Val (GoInstruction (GoAlloc (TypedIndexers.ty T)))) (Var "newIndexers"))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [Indexers.ty]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (TypedIndexers.ty T)))) (Var "newIndexers"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(TypedIndexers.ty T)]))) (Val #())) (Var "$a0"))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc (typedIndexer.ty T₀)))) (Var "i"))
+  (Let "newIndexers" (App (Val (GoInstruction (GoAlloc (TypedIndexers.ty T₀)))) (Var "newIndexers"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [Indexers.ty]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (TypedIndexers.ty T₀)))) (Var "newIndexers"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(TypedIndexers.ty T₀)]))) (Val #())) (Var "$a0"))))
   (Let "untyped" (App (Val (GoInstruction (GoAlloc Indexers.ty))) (App (Val (GoInstruction (GoZeroVal Indexers.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Indexers.ty))) (Var "untyped"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (typedIndexer.ty T)) go!"AddIndexers"))) (Var "i")) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (typedIndexer.ty T₀)) go!"AddIndexers"))) (Var "i")) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (TypedIndexers.ty T)))) (Var "newIndexers"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (TypedIndexers.ty T₀)))) (Var "newIndexers"))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val (map.forRange go.string (TypedIndexFunc.ty T))) (Var "$range"))
+  (App (App (Val (map.forRange go.string (TypedIndexFunc.ty T₀))) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
-  (Let "indexer" (App (Val (GoInstruction (GoAlloc (TypedIndexFunc.ty T)))) (Var "$value"))
+  (Let "indexer" (App (Val (GoInstruction (GoAlloc (TypedIndexFunc.ty T₀)))) (Var "$value"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Lam "obj"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc go.any))) (Var "obj"))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (TypeAssert T))) (App (Val (GoInstruction (GoLoad go.any))) (Var "obj")))
-  (App (App (Val (GoInstruction (GoLoad (TypedIndexFunc.ty T)))) (Var "indexer")) (Var "$a0")))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (TypeAssert T₀))) (App (Val (GoInstruction (GoLoad go.any))) (Var "obj")))
+  (App (App (Val (GoInstruction (GoLoad (TypedIndexFunc.ty T₀)))) (Var "indexer")) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -16791,7 +16791,7 @@ noncomputable def WaitFor.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.go_logr.logr.Logger.ty) go!"Info"))) (Var "logger")) (Var "$a0")) (Var "$a1")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "instances"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.«Sort» [(go.GoType.SliceType go.string), go.string]))) (Val #())) (Var "$a0")))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.Sort'' [(go.GoType.SliceType go.string), go.string]))) (Val #())) (Var "$a0")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -16938,8 +16938,8 @@ noncomputable def SyncResult.AsError.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc SyncResult.ty))) (Var "c"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType go.string)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)))) (App (Val (GoInstruction (StructFieldRef SyncResult.ty go!"Synced"))) (Var "c")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)]))) (Val #())) (Var "$a0"))))
+  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType go.string)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)))) (App (Val (GoInstruction (StructFieldRef SyncResult.ty go!"Synced"))) (Var "c")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)]))) (Val #())) (Var "$a0"))))
   (Let "unsynced" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -16958,18 +16958,18 @@ noncomputable def SyncResult.AsError.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "unsynced"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.«Sort» [(go.GoType.SliceType go.string), go.string]))) (Val #())) (Var "$a0")))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)))) (App (Val (GoInstruction (StructFieldRef SyncResult.ty go!"Synced"))) (Var "c")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.Sort'' [(go.GoType.SliceType go.string), go.string]))) (Val #())) (Var "$a0")))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)))) (App (Val (GoInstruction (StructFieldRef SyncResult.ty go!"Synced"))) (Var "c")))
   (Let "synced" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.«Type».ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.reflect.«Type».ty))) (Val #())))
-  (App (App (Val (map.forRange _root_.Perennial.reflect.«Type».ty go.bool)) (Var "$range"))
+  (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.Type''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.reflect.Type''.ty))) (Val #())))
+  (App (App (Val (map.forRange _root_.Perennial.reflect.Type''.ty go.bool)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "synced")))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "unsynced"))
-  (Let "$a1" (Let "$sl0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.«Type».ty go!"String"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (Var "t"))) (Val #()))
+  (Let "$a1" (Let "$sl0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Type''.ty go!"String"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type''.ty))) (Var "t"))) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
@@ -16977,7 +16977,7 @@ noncomputable def SyncResult.AsError.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.reflect.«Type».ty))) (Pair (Var "t") (Var "$key")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.reflect.Type''.ty))) (Pair (Var "t") (Var "$key")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "synced") (Var "$value"))))))))))))))
   (App (Val doExecute)
@@ -19928,7 +19928,7 @@ noncomputable def cache.Delete.impl [GooseExts] [GoGlobalContext] : val :=
     List is completely threadsafe as long as you treat all items as immutable.
 
     go: store.go:298:17 -/
-noncomputable def cache.List.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def cache.List''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Val #())))
@@ -20008,7 +20008,7 @@ noncomputable def cache.GetIndexers.impl [GooseExts] [GoGlobalContext] : val :=
     Index is thread-safe so long as you treat all items as immutable
 
     go: store.go:323:17 -/
-noncomputable def cache.Index.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def cache.Index''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "indexName"
   (Lam "obj"
@@ -23135,7 +23135,7 @@ noncomputable def threadSafeMap.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))))
 
 /-- go: thread_safe_store.go:369:25 -/
-noncomputable def threadSafeMap.List.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def threadSafeMap.List''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Val #())))
@@ -23364,7 +23364,7 @@ noncomputable def rvFromObject.impl [GooseExts] [GoGlobalContext] : val :=
     Index is thread-safe so long as you treat all items as immutable.
 
     go: thread_safe_store.go:422:25 -/
-noncomputable def threadSafeMap.Index.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def threadSafeMap.Index''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "indexName"
   (Lam "obj"
@@ -24445,7 +24445,7 @@ noncomputable instance Config.zero_val [GooseExts] : ZeroVal Config :=
 @[irreducible] noncomputable def Config.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Config.fieldsUnsealed
 
-noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Config [GooseExts] [GoGlobalContext] :
     EqualsUnfold Config.fields Config.fieldsUnsealed :=
   ⟨by unfold Config.fields; rfl⟩
 
@@ -24471,7 +24471,7 @@ noncomputable instance controller.zero_val [GooseExts] : ZeroVal controller :=
 @[irreducible] noncomputable def controller.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   controller.fieldsUnsealed
 
-noncomputable instance equals_unfold_controller [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'controller [GooseExts] [GoGlobalContext] :
     EqualsUnfold controller.fields controller.fieldsUnsealed :=
   ⟨by unfold controller.fields; rfl⟩
 
@@ -24494,32 +24494,32 @@ instance Object.nonempty : Nonempty Object := Object.nonempty_type.property
 opaque Object.zero_val : ZeroVal Object := ⟨Classical.ofNonempty⟩
 attribute [instance] Object.zero_val
 
-abbrev TypedResourceEventHandler [GooseExts] (T : Type) : Type := GoInterface
+abbrev TypedResourceEventHandler [GooseExts] (T₀ : Type) : Type := GoInterface
 
-@[reducible] noncomputable def TypedResourceEventHandler.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"OnAdd" (go.signature.Signature [T, go.bool] false [])), (go.InterfaceElem.MethodElem go!"OnDelete" (go.signature.Signature [(DeletedObject.ty T)] false [])), (go.InterfaceElem.MethodElem go!"OnUpdate" (go.signature.Signature [T, T] false []))])
+@[reducible] noncomputable def TypedResourceEventHandler.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"OnAdd" (go.signature.Signature [T₀, go.bool] false [])), (go.InterfaceElem.MethodElem go!"OnDelete" (go.signature.Signature [(DeletedObject.ty T₀)] false [])), (go.InterfaceElem.MethodElem go!"OnUpdate" (go.signature.Signature [T₀, T₀] false []))])
 
-structure DeletedObject [GooseExts] (T : Type) where
+structure DeletedObject [GooseExts] (T₀ : Type) where
   mk ::
-  OptionalObj' : T
+  OptionalObj' : T₀
   FinalStateUnknown' : Loc
 
-noncomputable instance DeletedObject.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (DeletedObject T) :=
+noncomputable instance DeletedObject.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (DeletedObject T₀) :=
   ⟨DeletedObject.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DeletedObject.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"OptionalObj" T),
+@[reducible] noncomputable def DeletedObject.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"OptionalObj" T₀),
 (go.field_decl.FieldDecl go!"FinalStateUnknown" (go.GoType.PointerType DeletedFinalStateUnknown.ty))]
 
-@[irreducible] noncomputable def DeletedObject.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (DeletedObject.fieldsUnsealed T)
+@[irreducible] noncomputable def DeletedObject.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (DeletedObject.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_DeletedObject [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (DeletedObject.fields T) (DeletedObject.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'DeletedObject [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (DeletedObject.fields T₀) (DeletedObject.fieldsUnsealed T₀) :=
   ⟨by unfold DeletedObject.fields; rfl⟩
 
-@[reducible] noncomputable def DeletedObject.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (DeletedObject.fields T))
+@[reducible] noncomputable def DeletedObject.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (DeletedObject.fields T₀))
 
 structure ResourceEventHandlerFuncs [GooseExts] where
   mk ::
@@ -24538,36 +24538,36 @@ noncomputable instance ResourceEventHandlerFuncs.zero_val [GooseExts] : ZeroVal 
 @[irreducible] noncomputable def ResourceEventHandlerFuncs.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResourceEventHandlerFuncs.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResourceEventHandlerFuncs [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ResourceEventHandlerFuncs [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResourceEventHandlerFuncs.fields ResourceEventHandlerFuncs.fieldsUnsealed :=
   ⟨by unfold ResourceEventHandlerFuncs.fields; rfl⟩
 
 @[reducible] noncomputable def ResourceEventHandlerFuncs.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ResourceEventHandlerFuncs.fields)
 
-structure TypedResourceEventHandlerFuncs [GooseExts] (T : Type) where
+structure TypedResourceEventHandlerFuncs [GooseExts] (T₀ : Type) where
   mk ::
   AddFunc' : GoFunc
   UpdateFunc' : GoFunc
   DeleteFunc' : GoFunc
 
-noncomputable instance TypedResourceEventHandlerFuncs.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (TypedResourceEventHandlerFuncs T) :=
+noncomputable instance TypedResourceEventHandlerFuncs.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (TypedResourceEventHandlerFuncs T₀) :=
   ⟨TypedResourceEventHandlerFuncs.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TypedResourceEventHandlerFuncs.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"AddFunc" (go.GoType.FunctionType (go.signature.Signature [T] false []))),
-(go.field_decl.FieldDecl go!"UpdateFunc" (go.GoType.FunctionType (go.signature.Signature [T, T] false []))),
-(go.field_decl.FieldDecl go!"DeleteFunc" (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T)] false [])))]
+@[reducible] noncomputable def TypedResourceEventHandlerFuncs.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"AddFunc" (go.GoType.FunctionType (go.signature.Signature [T₀] false []))),
+(go.field_decl.FieldDecl go!"UpdateFunc" (go.GoType.FunctionType (go.signature.Signature [T₀, T₀] false []))),
+(go.field_decl.FieldDecl go!"DeleteFunc" (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T₀)] false [])))]
 
-@[irreducible] noncomputable def TypedResourceEventHandlerFuncs.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (TypedResourceEventHandlerFuncs.fieldsUnsealed T)
+@[irreducible] noncomputable def TypedResourceEventHandlerFuncs.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (TypedResourceEventHandlerFuncs.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_TypedResourceEventHandlerFuncs [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (TypedResourceEventHandlerFuncs.fields T) (TypedResourceEventHandlerFuncs.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'TypedResourceEventHandlerFuncs [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (TypedResourceEventHandlerFuncs.fields T₀) (TypedResourceEventHandlerFuncs.fieldsUnsealed T₀) :=
   ⟨by unfold TypedResourceEventHandlerFuncs.fields; rfl⟩
 
-@[reducible] noncomputable def TypedResourceEventHandlerFuncs.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (TypedResourceEventHandlerFuncs.fields T))
+@[reducible] noncomputable def TypedResourceEventHandlerFuncs.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (TypedResourceEventHandlerFuncs.fields T₀))
 
 structure ResourceEventHandlerDetailedFuncs [GooseExts] where
   mk ::
@@ -24586,36 +24586,36 @@ noncomputable instance ResourceEventHandlerDetailedFuncs.zero_val [GooseExts] : 
 @[irreducible] noncomputable def ResourceEventHandlerDetailedFuncs.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResourceEventHandlerDetailedFuncs.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResourceEventHandlerDetailedFuncs [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ResourceEventHandlerDetailedFuncs [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResourceEventHandlerDetailedFuncs.fields ResourceEventHandlerDetailedFuncs.fieldsUnsealed :=
   ⟨by unfold ResourceEventHandlerDetailedFuncs.fields; rfl⟩
 
 @[reducible] noncomputable def ResourceEventHandlerDetailedFuncs.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ResourceEventHandlerDetailedFuncs.fields)
 
-structure TypedResourceEventHandlerDetailedFuncs [GooseExts] (T : Type) where
+structure TypedResourceEventHandlerDetailedFuncs [GooseExts] (T₀ : Type) where
   mk ::
   AddFunc' : GoFunc
   UpdateFunc' : GoFunc
   DeleteFunc' : GoFunc
 
-noncomputable instance TypedResourceEventHandlerDetailedFuncs.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (TypedResourceEventHandlerDetailedFuncs T) :=
+noncomputable instance TypedResourceEventHandlerDetailedFuncs.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (TypedResourceEventHandlerDetailedFuncs T₀) :=
   ⟨TypedResourceEventHandlerDetailedFuncs.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TypedResourceEventHandlerDetailedFuncs.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"AddFunc" (go.GoType.FunctionType (go.signature.Signature [T, go.bool] false []))),
-(go.field_decl.FieldDecl go!"UpdateFunc" (go.GoType.FunctionType (go.signature.Signature [T, T] false []))),
-(go.field_decl.FieldDecl go!"DeleteFunc" (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T)] false [])))]
+@[reducible] noncomputable def TypedResourceEventHandlerDetailedFuncs.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"AddFunc" (go.GoType.FunctionType (go.signature.Signature [T₀, go.bool] false []))),
+(go.field_decl.FieldDecl go!"UpdateFunc" (go.GoType.FunctionType (go.signature.Signature [T₀, T₀] false []))),
+(go.field_decl.FieldDecl go!"DeleteFunc" (go.GoType.FunctionType (go.signature.Signature [(DeletedObject.ty T₀)] false [])))]
 
-@[irreducible] noncomputable def TypedResourceEventHandlerDetailedFuncs.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (TypedResourceEventHandlerDetailedFuncs.fieldsUnsealed T)
+@[irreducible] noncomputable def TypedResourceEventHandlerDetailedFuncs.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (TypedResourceEventHandlerDetailedFuncs.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_TypedResourceEventHandlerDetailedFuncs [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (TypedResourceEventHandlerDetailedFuncs.fields T) (TypedResourceEventHandlerDetailedFuncs.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'TypedResourceEventHandlerDetailedFuncs [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (TypedResourceEventHandlerDetailedFuncs.fields T₀) (TypedResourceEventHandlerDetailedFuncs.fieldsUnsealed T₀) :=
   ⟨by unfold TypedResourceEventHandlerDetailedFuncs.fields; rfl⟩
 
-@[reducible] noncomputable def TypedResourceEventHandlerDetailedFuncs.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (TypedResourceEventHandlerDetailedFuncs.fields T))
+@[reducible] noncomputable def TypedResourceEventHandlerDetailedFuncs.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (TypedResourceEventHandlerDetailedFuncs.fields T₀))
 
 structure FilteringResourceEventHandler [GooseExts] where
   mk ::
@@ -24632,34 +24632,34 @@ noncomputable instance FilteringResourceEventHandler.zero_val [GooseExts] : Zero
 @[irreducible] noncomputable def FilteringResourceEventHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FilteringResourceEventHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_FilteringResourceEventHandler [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FilteringResourceEventHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold FilteringResourceEventHandler.fields FilteringResourceEventHandler.fieldsUnsealed :=
   ⟨by unfold FilteringResourceEventHandler.fields; rfl⟩
 
 @[reducible] noncomputable def FilteringResourceEventHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType FilteringResourceEventHandler.fields)
 
-structure TypedFilteringResourceEventHandler [GooseExts] (T : Type) where
+structure TypedFilteringResourceEventHandler [GooseExts] (T₀ : Type) where
   mk ::
   FilterFunc' : GoFunc
-  Handler' : (TypedResourceEventHandler T)
+  Handler' : (TypedResourceEventHandler T₀)
 
-noncomputable instance TypedFilteringResourceEventHandler.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (TypedFilteringResourceEventHandler T) :=
+noncomputable instance TypedFilteringResourceEventHandler.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (TypedFilteringResourceEventHandler T₀) :=
   ⟨TypedFilteringResourceEventHandler.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def TypedFilteringResourceEventHandler.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"FilterFunc" (go.GoType.FunctionType (go.signature.Signature [T] false [go.bool]))),
-(go.field_decl.FieldDecl go!"Handler" (TypedResourceEventHandler.ty T))]
+@[reducible] noncomputable def TypedFilteringResourceEventHandler.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"FilterFunc" (go.GoType.FunctionType (go.signature.Signature [T₀] false [go.bool]))),
+(go.field_decl.FieldDecl go!"Handler" (TypedResourceEventHandler.ty T₀))]
 
-@[irreducible] noncomputable def TypedFilteringResourceEventHandler.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (TypedFilteringResourceEventHandler.fieldsUnsealed T)
+@[irreducible] noncomputable def TypedFilteringResourceEventHandler.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (TypedFilteringResourceEventHandler.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_TypedFilteringResourceEventHandler [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (TypedFilteringResourceEventHandler.fields T) (TypedFilteringResourceEventHandler.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'TypedFilteringResourceEventHandler [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (TypedFilteringResourceEventHandler.fields T₀) (TypedFilteringResourceEventHandler.fieldsUnsealed T₀) :=
   ⟨by unfold TypedFilteringResourceEventHandler.fields; rfl⟩
 
-@[reducible] noncomputable def TypedFilteringResourceEventHandler.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (TypedFilteringResourceEventHandler.fields T))
+@[reducible] noncomputable def TypedFilteringResourceEventHandler.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (TypedFilteringResourceEventHandler.fields T₀))
 
 abbrev Indexers [GooseExts] : Type := GoMap
 
@@ -24688,7 +24688,7 @@ noncomputable instance InformerNameAndResource.zero_val [GooseExts] : ZeroVal In
 @[irreducible] noncomputable def InformerNameAndResource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InformerNameAndResource.fieldsUnsealed
 
-noncomputable instance equals_unfold_InformerNameAndResource [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'InformerNameAndResource [GooseExts] [GoGlobalContext] :
     EqualsUnfold InformerNameAndResource.fields InformerNameAndResource.fieldsUnsealed :=
   ⟨by unfold InformerNameAndResource.fields; rfl⟩
 
@@ -24731,7 +24731,7 @@ noncomputable instance InformerOptions.zero_val [GooseExts] : ZeroVal InformerOp
 @[irreducible] noncomputable def InformerOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InformerOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_InformerOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'InformerOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold InformerOptions.fields InformerOptions.fieldsUnsealed :=
   ⟨by unfold InformerOptions.fields; rfl⟩
 
@@ -24753,7 +24753,7 @@ noncomputable instance replacement.zero_val [GooseExts] : ZeroVal replacement :=
 @[irreducible] noncomputable def replacement.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   replacement.fieldsUnsealed
 
-noncomputable instance equals_unfold_replacement [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'replacement [GooseExts] [GoGlobalContext] :
     EqualsUnfold replacement.fields replacement.fieldsUnsealed :=
   ⟨by unfold replacement.fields; rfl⟩
 
@@ -24793,7 +24793,7 @@ noncomputable instance DeltaFIFOOptions.zero_val [GooseExts] : ZeroVal DeltaFIFO
 @[irreducible] noncomputable def DeltaFIFOOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DeltaFIFOOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_DeltaFIFOOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DeltaFIFOOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold DeltaFIFOOptions.fields DeltaFIFOOptions.fieldsUnsealed :=
   ⟨by unfold DeltaFIFOOptions.fields; rfl⟩
 
@@ -24841,7 +24841,7 @@ noncomputable instance DeltaFIFO.zero_val [GooseExts] : ZeroVal DeltaFIFO :=
 @[irreducible] noncomputable def DeltaFIFO.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DeltaFIFO.fieldsUnsealed
 
-noncomputable instance equals_unfold_DeltaFIFO [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DeltaFIFO [GooseExts] [GoGlobalContext] :
     EqualsUnfold DeltaFIFO.fields DeltaFIFO.fieldsUnsealed :=
   ⟨by unfold DeltaFIFO.fields; rfl⟩
 
@@ -24868,7 +24868,7 @@ noncomputable instance Delta.zero_val [GooseExts] : ZeroVal Delta :=
 @[irreducible] noncomputable def Delta.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Delta.fieldsUnsealed
 
-noncomputable instance equals_unfold_Delta [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Delta [GooseExts] [GoGlobalContext] :
     EqualsUnfold Delta.fields Delta.fieldsUnsealed :=
   ⟨by unfold Delta.fields; rfl⟩
 
@@ -24905,7 +24905,7 @@ noncomputable instance DeletedFinalStateUnknown.zero_val [GooseExts] : ZeroVal D
 @[irreducible] noncomputable def DeletedFinalStateUnknown.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DeletedFinalStateUnknown.fieldsUnsealed
 
-noncomputable instance equals_unfold_DeletedFinalStateUnknown [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DeletedFinalStateUnknown [GooseExts] [GoGlobalContext] :
     EqualsUnfold DeletedFinalStateUnknown.fields DeletedFinalStateUnknown.fieldsUnsealed :=
   ⟨by unfold DeletedFinalStateUnknown.fields; rfl⟩
 
@@ -24943,7 +24943,7 @@ noncomputable instance ExpirationCache.zero_val [GooseExts] : ZeroVal Expiration
 @[irreducible] noncomputable def ExpirationCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ExpirationCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_ExpirationCache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ExpirationCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold ExpirationCache.fields ExpirationCache.fieldsUnsealed :=
   ⟨by unfold ExpirationCache.fields; rfl⟩
 
@@ -24965,7 +24965,7 @@ noncomputable instance TTLPolicy.zero_val [GooseExts] : ZeroVal TTLPolicy :=
 @[irreducible] noncomputable def TTLPolicy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TTLPolicy.fieldsUnsealed
 
-noncomputable instance equals_unfold_TTLPolicy [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'TTLPolicy [GooseExts] [GoGlobalContext] :
     EqualsUnfold TTLPolicy.fields TTLPolicy.fieldsUnsealed :=
   ⟨by unfold TTLPolicy.fields; rfl⟩
 
@@ -24989,7 +24989,7 @@ noncomputable instance TimestampedEntry.zero_val [GooseExts] : ZeroVal Timestamp
 @[irreducible] noncomputable def TimestampedEntry.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TimestampedEntry.fieldsUnsealed
 
-noncomputable instance equals_unfold_TimestampedEntry [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'TimestampedEntry [GooseExts] [GoGlobalContext] :
     EqualsUnfold TimestampedEntry.fields TimestampedEntry.fieldsUnsealed :=
   ⟨by unfold TimestampedEntry.fields; rfl⟩
 
@@ -25011,7 +25011,7 @@ noncomputable instance fakeThreadSafeMap.zero_val [GooseExts] : ZeroVal fakeThre
 @[irreducible] noncomputable def fakeThreadSafeMap.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fakeThreadSafeMap.fieldsUnsealed
 
-noncomputable instance equals_unfold_fakeThreadSafeMap [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'fakeThreadSafeMap [GooseExts] [GoGlobalContext] :
     EqualsUnfold fakeThreadSafeMap.fields fakeThreadSafeMap.fieldsUnsealed :=
   ⟨by unfold fakeThreadSafeMap.fields; rfl⟩
 
@@ -25033,7 +25033,7 @@ noncomputable instance FakeExpirationPolicy.zero_val [GooseExts] : ZeroVal FakeE
 @[irreducible] noncomputable def FakeExpirationPolicy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FakeExpirationPolicy.fieldsUnsealed
 
-noncomputable instance equals_unfold_FakeExpirationPolicy [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FakeExpirationPolicy [GooseExts] [GoGlobalContext] :
     EqualsUnfold FakeExpirationPolicy.fields FakeExpirationPolicy.fieldsUnsealed :=
   ⟨by unfold FakeExpirationPolicy.fields; rfl⟩
 
@@ -25073,7 +25073,7 @@ noncomputable instance FakeCustomStore.zero_val [GooseExts] : ZeroVal FakeCustom
 @[irreducible] noncomputable def FakeCustomStore.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FakeCustomStore.fieldsUnsealed
 
-noncomputable instance equals_unfold_FakeCustomStore [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FakeCustomStore [GooseExts] [GoGlobalContext] :
     EqualsUnfold FakeCustomStore.fields FakeCustomStore.fieldsUnsealed :=
   ⟨by unfold FakeCustomStore.fields; rfl⟩
 
@@ -25121,7 +25121,7 @@ noncomputable instance FIFO.zero_val [GooseExts] : ZeroVal FIFO :=
 @[irreducible] noncomputable def FIFO.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FIFO.fieldsUnsealed
 
-noncomputable instance equals_unfold_FIFO [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'FIFO [GooseExts] [GoGlobalContext] :
     EqualsUnfold FIFO.fields FIFO.fieldsUnsealed :=
   ⟨by unfold FIFO.fields; rfl⟩
 
@@ -25148,7 +25148,7 @@ noncomputable instance heapItem.zero_val [GooseExts] : ZeroVal heapItem :=
 @[irreducible] noncomputable def heapItem.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   heapItem.fieldsUnsealed
 
-noncomputable instance equals_unfold_heapItem [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'heapItem [GooseExts] [GoGlobalContext] :
     EqualsUnfold heapItem.fields heapItem.fieldsUnsealed :=
   ⟨by unfold heapItem.fields; rfl⟩
 
@@ -25170,7 +25170,7 @@ noncomputable instance itemKeyValue.zero_val [GooseExts] : ZeroVal itemKeyValue 
 @[irreducible] noncomputable def itemKeyValue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   itemKeyValue.fieldsUnsealed
 
-noncomputable instance equals_unfold_itemKeyValue [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'itemKeyValue [GooseExts] [GoGlobalContext] :
     EqualsUnfold itemKeyValue.fields itemKeyValue.fieldsUnsealed :=
   ⟨by unfold itemKeyValue.fields; rfl⟩
 
@@ -25196,7 +25196,7 @@ noncomputable instance heapData.zero_val [GooseExts] : ZeroVal heapData :=
 @[irreducible] noncomputable def heapData.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   heapData.fieldsUnsealed
 
-noncomputable instance equals_unfold_heapData [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'heapData [GooseExts] [GoGlobalContext] :
     EqualsUnfold heapData.fields heapData.fieldsUnsealed :=
   ⟨by unfold heapData.fields; rfl⟩
 
@@ -25222,7 +25222,7 @@ noncomputable instance Heap.zero_val [GooseExts] : ZeroVal Heap :=
 @[irreducible] noncomputable def Heap.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Heap.fieldsUnsealed
 
-noncomputable instance equals_unfold_Heap [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Heap [GooseExts] [GoGlobalContext] :
     EqualsUnfold Heap.fields Heap.fieldsUnsealed :=
   ⟨by unfold Heap.fields; rfl⟩
 
@@ -25248,7 +25248,7 @@ noncomputable instance InformerName.zero_val [GooseExts] : ZeroVal InformerName 
 @[irreducible] noncomputable def InformerName.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InformerName.fieldsUnsealed
 
-noncomputable instance equals_unfold_InformerName [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'InformerName [GooseExts] [GoGlobalContext] :
     EqualsUnfold InformerName.fields InformerName.fieldsUnsealed :=
   ⟨by unfold InformerName.fields; rfl⟩
 
@@ -25275,20 +25275,20 @@ abbrev Indices [GooseExts] : Type := GoMap
 @[reducible] noncomputable def Indices.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.string index.ty)
 
-abbrev TypedIndexers [GooseExts] (T : Type) : Type := GoMap
+abbrev TypedIndexers [GooseExts] (T₀ : Type) : Type := GoMap
 
-@[reducible] noncomputable def TypedIndexers.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.MapType go.string (TypedIndexFunc.ty T))
+@[reducible] noncomputable def TypedIndexers.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.MapType go.string (TypedIndexFunc.ty T₀))
 
-abbrev TypedIndexFunc [GooseExts] (T : Type) : Type := GoFunc
+abbrev TypedIndexFunc [GooseExts] (T₀ : Type) : Type := GoFunc
 
-@[reducible] noncomputable def TypedIndexFunc.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.FunctionType (go.signature.Signature [T] false [(go.GoType.SliceType go.string), go.error]))
+@[reducible] noncomputable def TypedIndexFunc.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.FunctionType (go.signature.Signature [T₀] false [(go.GoType.SliceType go.string), go.error]))
 
-abbrev TypedIndexer [GooseExts] (T : Type) : Type := GoInterface
+abbrev TypedIndexer [GooseExts] (T₀ : Type) : Type := GoInterface
 
-@[reducible] noncomputable def TypedIndexer.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Add" (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), (go.InterfaceElem.MethodElem go!"AddIndexers" (go.signature.Signature [Indexers.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"AddTypedIndexers" (go.signature.Signature [(TypedIndexers.ty T)] false [go.error])), (go.InterfaceElem.MethodElem go!"Bookmark" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"ByIndex" (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error])), (go.InterfaceElem.MethodElem go!"ByTypedIndex" (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType T), go.error])), (go.InterfaceElem.MethodElem go!"Delete" (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error])), (go.InterfaceElem.MethodElem go!"GetByKey" (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error])), (go.InterfaceElem.MethodElem go!"GetIndexers" (go.signature.Signature [] false [Indexers.ty])), (go.InterfaceElem.MethodElem go!"Index" (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error])), (go.InterfaceElem.MethodElem go!"IndexKeys" (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error])), (go.InterfaceElem.MethodElem go!"LastStoreSyncResourceVersion" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"List" (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))])), (go.InterfaceElem.MethodElem go!"ListIndexFuncValues" (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)])), (go.InterfaceElem.MethodElem go!"ListKeys" (go.signature.Signature [] false [(go.GoType.SliceType go.string)])), (go.InterfaceElem.MethodElem go!"Replace" (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error])), (go.InterfaceElem.MethodElem go!"Resync" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"TypedIndex" (go.signature.Signature [go.string, T] false [(go.GoType.SliceType T), go.error])), (go.InterfaceElem.MethodElem go!"Update" (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))])
+@[reducible] noncomputable def TypedIndexer.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Add" (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), (go.InterfaceElem.MethodElem go!"AddIndexers" (go.signature.Signature [Indexers.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"AddTypedIndexers" (go.signature.Signature [(TypedIndexers.ty T₀)] false [go.error])), (go.InterfaceElem.MethodElem go!"Bookmark" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"ByIndex" (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error])), (go.InterfaceElem.MethodElem go!"ByTypedIndex" (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType T₀), go.error])), (go.InterfaceElem.MethodElem go!"Delete" (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error])), (go.InterfaceElem.MethodElem go!"GetByKey" (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error])), (go.InterfaceElem.MethodElem go!"GetIndexers" (go.signature.Signature [] false [Indexers.ty])), (go.InterfaceElem.MethodElem go!"Index" (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error])), (go.InterfaceElem.MethodElem go!"IndexKeys" (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error])), (go.InterfaceElem.MethodElem go!"LastStoreSyncResourceVersion" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"List" (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))])), (go.InterfaceElem.MethodElem go!"ListIndexFuncValues" (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)])), (go.InterfaceElem.MethodElem go!"ListKeys" (go.signature.Signature [] false [(go.GoType.SliceType go.string)])), (go.InterfaceElem.MethodElem go!"Replace" (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error])), (go.InterfaceElem.MethodElem go!"Resync" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"TypedIndex" (go.signature.Signature [go.string, T₀] false [(go.GoType.SliceType T₀), go.error])), (go.InterfaceElem.MethodElem go!"Update" (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))])
 
 structure noopInformerMetricsProvider [GooseExts] where
   mk ::
@@ -25302,7 +25302,7 @@ noncomputable instance noopInformerMetricsProvider.zero_val [GooseExts] : ZeroVa
 @[irreducible] noncomputable def noopInformerMetricsProvider.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noopInformerMetricsProvider.fieldsUnsealed
 
-noncomputable instance equals_unfold_noopInformerMetricsProvider [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'noopInformerMetricsProvider [GooseExts] [GoGlobalContext] :
     EqualsUnfold noopInformerMetricsProvider.fields noopInformerMetricsProvider.fieldsUnsealed :=
   ⟨by unfold noopInformerMetricsProvider.fields; rfl⟩
 
@@ -25334,7 +25334,7 @@ noncomputable instance fifoMetrics.zero_val [GooseExts] : ZeroVal fifoMetrics :=
 @[irreducible] noncomputable def fifoMetrics.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fifoMetrics.fieldsUnsealed
 
-noncomputable instance equals_unfold_fifoMetrics [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'fifoMetrics [GooseExts] [GoGlobalContext] :
     EqualsUnfold fifoMetrics.fields fifoMetrics.fieldsUnsealed :=
   ⟨by unfold fifoMetrics.fields; rfl⟩
 
@@ -25354,7 +25354,7 @@ noncomputable instance storeMetrics.zero_val [GooseExts] : ZeroVal storeMetrics 
 @[irreducible] noncomputable def storeMetrics.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   storeMetrics.fieldsUnsealed
 
-noncomputable instance equals_unfold_storeMetrics [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'storeMetrics [GooseExts] [GoGlobalContext] :
     EqualsUnfold storeMetrics.fields storeMetrics.fieldsUnsealed :=
   ⟨by unfold storeMetrics.fields; rfl⟩
 
@@ -25391,7 +25391,7 @@ noncomputable instance genericLister.zero_val [GooseExts] : ZeroVal genericListe
 @[irreducible] noncomputable def genericLister.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   genericLister.fieldsUnsealed
 
-noncomputable instance equals_unfold_genericLister [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'genericLister [GooseExts] [GoGlobalContext] :
     EqualsUnfold genericLister.fields genericLister.fieldsUnsealed :=
   ⟨by unfold genericLister.fields; rfl⟩
 
@@ -25415,7 +25415,7 @@ noncomputable instance genericNamespaceLister.zero_val [GooseExts] : ZeroVal gen
 @[irreducible] noncomputable def genericNamespaceLister.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   genericNamespaceLister.fieldsUnsealed
 
-noncomputable instance equals_unfold_genericNamespaceLister [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'genericNamespaceLister [GooseExts] [GoGlobalContext] :
     EqualsUnfold genericNamespaceLister.fields genericNamespaceLister.fieldsUnsealed :=
   ⟨by unfold genericNamespaceLister.fields; rfl⟩
 
@@ -25445,7 +25445,7 @@ noncomputable instance listerWrapper.zero_val [GooseExts] : ZeroVal listerWrappe
 @[irreducible] noncomputable def listerWrapper.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   listerWrapper.fieldsUnsealed
 
-noncomputable instance equals_unfold_listerWrapper [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'listerWrapper [GooseExts] [GoGlobalContext] :
     EqualsUnfold listerWrapper.fields listerWrapper.fieldsUnsealed :=
   ⟨by unfold listerWrapper.fields; rfl⟩
 
@@ -25475,7 +25475,7 @@ noncomputable instance watcherWrapper.zero_val [GooseExts] : ZeroVal watcherWrap
 @[irreducible] noncomputable def watcherWrapper.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watcherWrapper.fieldsUnsealed
 
-noncomputable instance equals_unfold_watcherWrapper [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'watcherWrapper [GooseExts] [GoGlobalContext] :
     EqualsUnfold watcherWrapper.fields watcherWrapper.fieldsUnsealed :=
   ⟨by unfold watcherWrapper.fields; rfl⟩
 
@@ -25502,7 +25502,7 @@ noncomputable instance listerWatcherWrapper.zero_val [GooseExts] : ZeroVal liste
 @[irreducible] noncomputable def listerWatcherWrapper.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   listerWatcherWrapper.fieldsUnsealed
 
-noncomputable instance equals_unfold_listerWatcherWrapper [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'listerWatcherWrapper [GooseExts] [GoGlobalContext] :
     EqualsUnfold listerWatcherWrapper.fields listerWatcherWrapper.fieldsUnsealed :=
   ⟨by unfold listerWatcherWrapper.fields; rfl⟩
 
@@ -25524,7 +25524,7 @@ noncomputable instance listWatcherWithWatchListSemanticsWrapper.zero_val [GooseE
 @[irreducible] noncomputable def listWatcherWithWatchListSemanticsWrapper.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   listWatcherWithWatchListSemanticsWrapper.fieldsUnsealed
 
-noncomputable instance equals_unfold_listWatcherWithWatchListSemanticsWrapper [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'listWatcherWithWatchListSemanticsWrapper [GooseExts] [GoGlobalContext] :
     EqualsUnfold listWatcherWithWatchListSemanticsWrapper.fields listWatcherWithWatchListSemanticsWrapper.fieldsUnsealed :=
   ⟨by unfold listWatcherWithWatchListSemanticsWrapper.fields; rfl⟩
 
@@ -25572,7 +25572,7 @@ noncomputable instance ListWatch.zero_val [GooseExts] : ZeroVal ListWatch :=
 @[irreducible] noncomputable def ListWatch.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ListWatch.fieldsUnsealed
 
-noncomputable instance equals_unfold_ListWatch [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ListWatch [GooseExts] [GoGlobalContext] :
     EqualsUnfold ListWatch.fields ListWatch.fieldsUnsealed :=
   ⟨by unfold ListWatch.fields; rfl⟩
 
@@ -25603,7 +25603,7 @@ noncomputable instance shardedListWatch.zero_val [GooseExts] : ZeroVal shardedLi
 @[irreducible] noncomputable def shardedListWatch.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   shardedListWatch.fieldsUnsealed
 
-noncomputable instance equals_unfold_shardedListWatch [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'shardedListWatch [GooseExts] [GoGlobalContext] :
     EqualsUnfold shardedListWatch.fields shardedListWatch.fieldsUnsealed :=
   ⟨by unfold shardedListWatch.fields; rfl⟩
 
@@ -25639,7 +25639,7 @@ noncomputable instance MutationCacheOptions.zero_val [GooseExts] : ZeroVal Mutat
 @[irreducible] noncomputable def MutationCacheOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MutationCacheOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_MutationCacheOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'MutationCacheOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold MutationCacheOptions.fields MutationCacheOptions.fieldsUnsealed :=
   ⟨by unfold MutationCacheOptions.fields; rfl⟩
 
@@ -25678,7 +25678,7 @@ noncomputable instance mutationCache.zero_val [GooseExts] : ZeroVal mutationCach
 @[irreducible] noncomputable def mutationCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   mutationCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_mutationCache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'mutationCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold mutationCache.fields mutationCache.fieldsUnsealed :=
   ⟨by unfold mutationCache.fields; rfl⟩
 
@@ -25697,7 +25697,7 @@ noncomputable instance etcdObjectVersioner.zero_val [GooseExts] : ZeroVal etcdOb
 @[irreducible] noncomputable def etcdObjectVersioner.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   etcdObjectVersioner.fieldsUnsealed
 
-noncomputable instance equals_unfold_etcdObjectVersioner [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'etcdObjectVersioner [GooseExts] [GoGlobalContext] :
     EqualsUnfold etcdObjectVersioner.fields etcdObjectVersioner.fieldsUnsealed :=
   ⟨by unfold etcdObjectVersioner.fields; rfl⟩
 
@@ -25723,7 +25723,7 @@ noncomputable instance tombstone.zero_val [GooseExts] : ZeroVal tombstone :=
 @[irreducible] noncomputable def tombstone.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   tombstone.fieldsUnsealed
 
-noncomputable instance equals_unfold_tombstone [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'tombstone [GooseExts] [GoGlobalContext] :
     EqualsUnfold tombstone.fields tombstone.fieldsUnsealed :=
   ⟨by unfold tombstone.fields; rfl⟩
 
@@ -25747,7 +25747,7 @@ noncomputable instance dummyMutationDetector.zero_val [GooseExts] : ZeroVal dumm
 @[irreducible] noncomputable def dummyMutationDetector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   dummyMutationDetector.fieldsUnsealed
 
-noncomputable instance equals_unfold_dummyMutationDetector [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'dummyMutationDetector [GooseExts] [GoGlobalContext] :
     EqualsUnfold dummyMutationDetector.fields dummyMutationDetector.fieldsUnsealed :=
   ⟨by unfold dummyMutationDetector.fields; rfl⟩
 
@@ -25785,7 +25785,7 @@ noncomputable instance defaultCacheMutationDetector.zero_val [GooseExts] : ZeroV
 @[irreducible] noncomputable def defaultCacheMutationDetector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   defaultCacheMutationDetector.fieldsUnsealed
 
-noncomputable instance equals_unfold_defaultCacheMutationDetector [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'defaultCacheMutationDetector [GooseExts] [GoGlobalContext] :
     EqualsUnfold defaultCacheMutationDetector.fields defaultCacheMutationDetector.fieldsUnsealed :=
   ⟨by unfold defaultCacheMutationDetector.fields; rfl⟩
 
@@ -25807,7 +25807,7 @@ noncomputable instance cacheObj.zero_val [GooseExts] : ZeroVal cacheObj :=
 @[irreducible] noncomputable def cacheObj.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   cacheObj.fieldsUnsealed
 
-noncomputable instance equals_unfold_cacheObj [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'cacheObj [GooseExts] [GoGlobalContext] :
     EqualsUnfold cacheObj.fields cacheObj.fieldsUnsealed :=
   ⟨by unfold cacheObj.fields; rfl⟩
 
@@ -25829,7 +25829,7 @@ noncomputable instance ObjectName.zero_val [GooseExts] : ZeroVal ObjectName :=
 @[irreducible] noncomputable def ObjectName.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ObjectName.fieldsUnsealed
 
-noncomputable instance equals_unfold_ObjectName [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ObjectName [GooseExts] [GoGlobalContext] :
     EqualsUnfold ObjectName.fields ObjectName.fieldsUnsealed :=
   ⟨by unfold ObjectName.fields; rfl⟩
 
@@ -25856,7 +25856,7 @@ structure Reflector [GooseExts] where
   logger' : _root_.Perennial.github_com.go_logr.logr.Logger
   name' : GoString
   typeDescription' : GoString
-  expectedType' : _root_.Perennial.reflect.«Type»
+  expectedType' : _root_.Perennial.reflect.Type''
   expectedGVK' : Loc
   store' : ReflectorStore
   listerWatcher' : ListerWatcherWithContext
@@ -25882,7 +25882,7 @@ noncomputable instance Reflector.zero_val [GooseExts] : ZeroVal Reflector :=
   [(go.field_decl.FieldDecl go!"logger" _root_.Perennial.k8s_io.klog.v2.Logger.ty),
 (go.field_decl.FieldDecl go!"name" go.string),
 (go.field_decl.FieldDecl go!"typeDescription" go.string),
-(go.field_decl.FieldDecl go!"expectedType" _root_.Perennial.reflect.«Type».ty),
+(go.field_decl.FieldDecl go!"expectedType" _root_.Perennial.reflect.Type''.ty),
 (go.field_decl.FieldDecl go!"expectedGVK" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)),
 (go.field_decl.FieldDecl go!"store" ReflectorStore.ty),
 (go.field_decl.FieldDecl go!"listerWatcher" ListerWatcherWithContext.ty),
@@ -25904,7 +25904,7 @@ noncomputable instance Reflector.zero_val [GooseExts] : ZeroVal Reflector :=
 @[irreducible] noncomputable def Reflector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Reflector.fieldsUnsealed
 
-noncomputable instance equals_unfold_Reflector [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Reflector [GooseExts] [GoGlobalContext] :
     EqualsUnfold Reflector.fields Reflector.fieldsUnsealed :=
   ⟨by unfold Reflector.fields; rfl⟩
 
@@ -25941,7 +25941,7 @@ noncomputable instance ReflectorOptions.zero_val [GooseExts] : ZeroVal Reflector
 @[irreducible] noncomputable def ReflectorOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReflectorOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReflectorOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ReflectorOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReflectorOptions.fields ReflectorOptions.fieldsUnsealed :=
   ⟨by unfold ReflectorOptions.fields; rfl⟩
 
@@ -25973,7 +25973,7 @@ noncomputable instance initialEventsEndBookmarkTicker.zero_val [GooseExts] : Zer
 @[irreducible] noncomputable def initialEventsEndBookmarkTicker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   initialEventsEndBookmarkTicker.fieldsUnsealed
 
-noncomputable instance equals_unfold_initialEventsEndBookmarkTicker [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'initialEventsEndBookmarkTicker [GooseExts] [GoGlobalContext] :
     EqualsUnfold initialEventsEndBookmarkTicker.fields initialEventsEndBookmarkTicker.fieldsUnsealed :=
   ⟨by unfold initialEventsEndBookmarkTicker.fields; rfl⟩
 
@@ -25992,7 +25992,7 @@ noncomputable instance noopTicker.zero_val [GooseExts] : ZeroVal noopTicker :=
 @[irreducible] noncomputable def noopTicker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noopTicker.fieldsUnsealed
 
-noncomputable instance equals_unfold_noopTicker [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'noopTicker [GooseExts] [GoGlobalContext] :
     EqualsUnfold noopTicker.fields noopTicker.fieldsUnsealed :=
   ⟨by unfold noopTicker.fields; rfl⟩
 
@@ -26012,7 +26012,7 @@ noncomputable instance VeryShortWatchError.zero_val [GooseExts] : ZeroVal VerySh
 @[irreducible] noncomputable def VeryShortWatchError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   VeryShortWatchError.fieldsUnsealed
 
-noncomputable instance equals_unfold_VeryShortWatchError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'VeryShortWatchError [GooseExts] [GoGlobalContext] :
     EqualsUnfold VeryShortWatchError.fields VeryShortWatchError.fieldsUnsealed :=
   ⟨by unfold VeryShortWatchError.fields; rfl⟩
 
@@ -26041,7 +26041,7 @@ noncomputable instance noopMetric.zero_val [GooseExts] : ZeroVal noopMetric :=
 @[irreducible] noncomputable def noopMetric.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noopMetric.fieldsUnsealed
 
-noncomputable instance equals_unfold_noopMetric [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'noopMetric [GooseExts] [GoGlobalContext] :
     EqualsUnfold noopMetric.fields noopMetric.fieldsUnsealed :=
   ⟨by unfold noopMetric.fields; rfl⟩
 
@@ -26065,7 +26065,7 @@ noncomputable instance noopMetricsProvider.zero_val [GooseExts] : ZeroVal noopMe
 @[irreducible] noncomputable def noopMetricsProvider.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noopMetricsProvider.fieldsUnsealed
 
-noncomputable instance equals_unfold_noopMetricsProvider [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'noopMetricsProvider [GooseExts] [GoGlobalContext] :
     EqualsUnfold noopMetricsProvider.fields noopMetricsProvider.fieldsUnsealed :=
   ⟨by unfold noopMetricsProvider.fields; rfl⟩
 
@@ -26100,7 +26100,7 @@ noncomputable instance retryWithDeadlineImpl.zero_val [GooseExts] : ZeroVal retr
 @[irreducible] noncomputable def retryWithDeadlineImpl.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   retryWithDeadlineImpl.fieldsUnsealed
 
-noncomputable instance equals_unfold_retryWithDeadlineImpl [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'retryWithDeadlineImpl [GooseExts] [GoGlobalContext] :
     EqualsUnfold retryWithDeadlineImpl.fields retryWithDeadlineImpl.fieldsUnsealed :=
   ⟨by unfold retryWithDeadlineImpl.fields; rfl⟩
 
@@ -26132,7 +26132,7 @@ noncomputable instance HandlerOptions.zero_val [GooseExts] : ZeroVal HandlerOpti
 @[irreducible] noncomputable def HandlerOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   HandlerOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_HandlerOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'HandlerOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold HandlerOptions.fields HandlerOptions.fieldsUnsealed :=
   ⟨by unfold HandlerOptions.fields; rfl⟩
 
@@ -26144,70 +26144,70 @@ abbrev SharedIndexInformer [GooseExts] : Type := GoInterface
 @[reducible] noncomputable def SharedIndexInformer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AddEventHandler" (go.signature.Signature [ResourceEventHandler.ty] false [ResourceEventHandlerRegistration.ty, go.error])), (go.InterfaceElem.MethodElem go!"AddEventHandlerWithOptions" (go.signature.Signature [ResourceEventHandler.ty, HandlerOptions.ty] false [ResourceEventHandlerRegistration.ty, go.error])), (go.InterfaceElem.MethodElem go!"AddEventHandlerWithResyncPeriod" (go.signature.Signature [ResourceEventHandler.ty, _root_.Perennial.time.Duration.ty] false [ResourceEventHandlerRegistration.ty, go.error])), (go.InterfaceElem.MethodElem go!"AddIndexers" (go.signature.Signature [Indexers.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"GetController" (go.signature.Signature [] false [Controller.ty])), (go.InterfaceElem.MethodElem go!"GetIndexer" (go.signature.Signature [] false [Indexer.ty])), (go.InterfaceElem.MethodElem go!"GetStore" (go.signature.Signature [] false [Store.ty])), (go.InterfaceElem.MethodElem go!"HasSynced" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"HasSyncedChecker" (go.signature.Signature [] false [DoneChecker.ty])), (go.InterfaceElem.MethodElem go!"IsStopped" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"LastSyncResourceVersion" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"RemoveEventHandler" (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"Run" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [])), (go.InterfaceElem.MethodElem go!"RunWithContext" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [])), (go.InterfaceElem.MethodElem go!"SetShardSelector" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetTransform" (go.signature.Signature [TransformFunc.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetWatchErrorHandler" (go.signature.Signature [WatchErrorHandler.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetWatchErrorHandlerWithContext" (go.signature.Signature [WatchErrorHandlerWithContext.ty] false [go.error]))])
 
-abbrev TypedSharedIndexInformer [GooseExts] (T : Type) : Type := GoInterface
+abbrev TypedSharedIndexInformer [GooseExts] (T₀ : Type) : Type := GoInterface
 
-@[reducible] noncomputable def TypedSharedIndexInformer.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AddEventHandler" (go.signature.Signature [ResourceEventHandler.ty] false [ResourceEventHandlerRegistration.ty, go.error])), (go.InterfaceElem.MethodElem go!"AddEventHandlerWithOptions" (go.signature.Signature [ResourceEventHandler.ty, HandlerOptions.ty] false [ResourceEventHandlerRegistration.ty, go.error])), (go.InterfaceElem.MethodElem go!"AddEventHandlerWithResyncPeriod" (go.signature.Signature [ResourceEventHandler.ty, _root_.Perennial.time.Duration.ty] false [ResourceEventHandlerRegistration.ty, go.error])), (go.InterfaceElem.MethodElem go!"AddIndexers" (go.signature.Signature [Indexers.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"AddTypedEventHandler" (go.signature.Signature [(TypedResourceEventHandler.ty T), (go.GoType.SliceType HandlerOptions.ty)] true [ResourceEventHandlerRegistration.ty, go.error])), (go.InterfaceElem.MethodElem go!"AddTypedIndexers" (go.signature.Signature [(TypedIndexers.ty T)] false [go.error])), (go.InterfaceElem.MethodElem go!"GetController" (go.signature.Signature [] false [Controller.ty])), (go.InterfaceElem.MethodElem go!"GetIndexer" (go.signature.Signature [] false [Indexer.ty])), (go.InterfaceElem.MethodElem go!"GetStore" (go.signature.Signature [] false [Store.ty])), (go.InterfaceElem.MethodElem go!"GetTypedIndexer" (go.signature.Signature [] false [(TypedIndexer.ty T)])), (go.InterfaceElem.MethodElem go!"HasSynced" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"HasSyncedChecker" (go.signature.Signature [] false [DoneChecker.ty])), (go.InterfaceElem.MethodElem go!"IsStopped" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"LastSyncResourceVersion" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"RemoveEventHandler" (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"Run" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [])), (go.InterfaceElem.MethodElem go!"RunWithContext" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [])), (go.InterfaceElem.MethodElem go!"SetShardSelector" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetTransform" (go.signature.Signature [TransformFunc.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetWatchErrorHandler" (go.signature.Signature [WatchErrorHandler.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetWatchErrorHandlerWithContext" (go.signature.Signature [WatchErrorHandlerWithContext.ty] false [go.error]))])
+@[reducible] noncomputable def TypedSharedIndexInformer.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AddEventHandler" (go.signature.Signature [ResourceEventHandler.ty] false [ResourceEventHandlerRegistration.ty, go.error])), (go.InterfaceElem.MethodElem go!"AddEventHandlerWithOptions" (go.signature.Signature [ResourceEventHandler.ty, HandlerOptions.ty] false [ResourceEventHandlerRegistration.ty, go.error])), (go.InterfaceElem.MethodElem go!"AddEventHandlerWithResyncPeriod" (go.signature.Signature [ResourceEventHandler.ty, _root_.Perennial.time.Duration.ty] false [ResourceEventHandlerRegistration.ty, go.error])), (go.InterfaceElem.MethodElem go!"AddIndexers" (go.signature.Signature [Indexers.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"AddTypedEventHandler" (go.signature.Signature [(TypedResourceEventHandler.ty T₀), (go.GoType.SliceType HandlerOptions.ty)] true [ResourceEventHandlerRegistration.ty, go.error])), (go.InterfaceElem.MethodElem go!"AddTypedIndexers" (go.signature.Signature [(TypedIndexers.ty T₀)] false [go.error])), (go.InterfaceElem.MethodElem go!"GetController" (go.signature.Signature [] false [Controller.ty])), (go.InterfaceElem.MethodElem go!"GetIndexer" (go.signature.Signature [] false [Indexer.ty])), (go.InterfaceElem.MethodElem go!"GetStore" (go.signature.Signature [] false [Store.ty])), (go.InterfaceElem.MethodElem go!"GetTypedIndexer" (go.signature.Signature [] false [(TypedIndexer.ty T₀)])), (go.InterfaceElem.MethodElem go!"HasSynced" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"HasSyncedChecker" (go.signature.Signature [] false [DoneChecker.ty])), (go.InterfaceElem.MethodElem go!"IsStopped" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"LastSyncResourceVersion" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"RemoveEventHandler" (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"Run" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [])), (go.InterfaceElem.MethodElem go!"RunWithContext" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [])), (go.InterfaceElem.MethodElem go!"SetShardSelector" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetTransform" (go.signature.Signature [TransformFunc.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetWatchErrorHandler" (go.signature.Signature [WatchErrorHandler.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetWatchErrorHandlerWithContext" (go.signature.Signature [WatchErrorHandlerWithContext.ty] false [go.error]))])
 
-structure typedSharedIndexInformer [GooseExts] (T : Type) where
+structure typedSharedIndexInformer [GooseExts] (T₀ : Type) where
   mk ::
   SharedIndexInformer' : SharedIndexInformer
 
-noncomputable instance typedSharedIndexInformer.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (typedSharedIndexInformer T) :=
+noncomputable instance typedSharedIndexInformer.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (typedSharedIndexInformer T₀) :=
   ⟨typedSharedIndexInformer.mk zeroValDef⟩
 
-@[reducible] noncomputable def typedSharedIndexInformer.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def typedSharedIndexInformer.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"SharedIndexInformer" SharedIndexInformer.ty)]
 
-@[irreducible] noncomputable def typedSharedIndexInformer.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (typedSharedIndexInformer.fieldsUnsealed T)
+@[irreducible] noncomputable def typedSharedIndexInformer.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (typedSharedIndexInformer.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_typedSharedIndexInformer [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (typedSharedIndexInformer.fields T) (typedSharedIndexInformer.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'typedSharedIndexInformer [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (typedSharedIndexInformer.fields T₀) (typedSharedIndexInformer.fieldsUnsealed T₀) :=
   ⟨by unfold typedSharedIndexInformer.fields; rfl⟩
 
-@[reducible] noncomputable def typedSharedIndexInformer.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (typedSharedIndexInformer.fields T))
+@[reducible] noncomputable def typedSharedIndexInformer.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (typedSharedIndexInformer.fields T₀))
 
-structure typedResourceEventHandler [GooseExts] (T : Type) where
+structure typedResourceEventHandler [GooseExts] (T₀ : Type) where
   mk ::
-  handler' : (TypedResourceEventHandler T)
+  handler' : (TypedResourceEventHandler T₀)
 
-noncomputable instance typedResourceEventHandler.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (typedResourceEventHandler T) :=
+noncomputable instance typedResourceEventHandler.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (typedResourceEventHandler T₀) :=
   ⟨typedResourceEventHandler.mk zeroValDef⟩
 
-@[reducible] noncomputable def typedResourceEventHandler.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"handler" (TypedResourceEventHandler.ty T))]
+@[reducible] noncomputable def typedResourceEventHandler.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"handler" (TypedResourceEventHandler.ty T₀))]
 
-@[irreducible] noncomputable def typedResourceEventHandler.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (typedResourceEventHandler.fieldsUnsealed T)
+@[irreducible] noncomputable def typedResourceEventHandler.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (typedResourceEventHandler.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_typedResourceEventHandler [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (typedResourceEventHandler.fields T) (typedResourceEventHandler.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'typedResourceEventHandler [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (typedResourceEventHandler.fields T₀) (typedResourceEventHandler.fieldsUnsealed T₀) :=
   ⟨by unfold typedResourceEventHandler.fields; rfl⟩
 
-@[reducible] noncomputable def typedResourceEventHandler.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (typedResourceEventHandler.fields T))
+@[reducible] noncomputable def typedResourceEventHandler.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (typedResourceEventHandler.fields T₀))
 
-structure typedIndexer [GooseExts] (T : Type) where
+structure typedIndexer [GooseExts] (T₀ : Type) where
   mk ::
   Indexer' : Indexer
 
-noncomputable instance typedIndexer.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (typedIndexer T) :=
+noncomputable instance typedIndexer.zero_val [GooseExts] {T₀ : Type} [ZeroVal T₀] : ZeroVal (typedIndexer T₀) :=
   ⟨typedIndexer.mk zeroValDef⟩
 
-@[reducible] noncomputable def typedIndexer.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def typedIndexer.fieldsUnsealed [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Indexer" Indexer.ty)]
 
-@[irreducible] noncomputable def typedIndexer.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
-  (typedIndexer.fieldsUnsealed T)
+@[irreducible] noncomputable def typedIndexer.fields [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : List go.field_decl :=
+  (typedIndexer.fieldsUnsealed T₀)
 
-noncomputable instance equals_unfold_typedIndexer [GooseExts] [GoGlobalContext] (T : go.GoType) :
-    EqualsUnfold (typedIndexer.fields T) (typedIndexer.fieldsUnsealed T) :=
+noncomputable instance equals_unfold'typedIndexer [GooseExts] [GoGlobalContext] (T₀ : go.GoType) :
+    EqualsUnfold (typedIndexer.fields T₀) (typedIndexer.fieldsUnsealed T₀) :=
   ⟨by unfold typedIndexer.fields; rfl⟩
 
-@[reducible] noncomputable def typedIndexer.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.StructType (typedIndexer.fields T))
+@[reducible] noncomputable def typedIndexer.underlying [GooseExts] [GoGlobalContext] (T₀ : go.GoType) : go.GoType :=
+  (go.GoType.StructType (typedIndexer.fields T₀))
 
 structure SharedIndexInformerOptions [GooseExts] where
   mk ::
@@ -26232,7 +26232,7 @@ noncomputable instance SharedIndexInformerOptions.zero_val [GooseExts] : ZeroVal
 @[irreducible] noncomputable def SharedIndexInformerOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SharedIndexInformerOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_SharedIndexInformerOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SharedIndexInformerOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold SharedIndexInformerOptions.fields SharedIndexInformerOptions.fieldsUnsealed :=
   ⟨by unfold SharedIndexInformerOptions.fields; rfl⟩
 
@@ -26264,7 +26264,7 @@ noncomputable instance result.zero_val [GooseExts] : ZeroVal result :=
 @[irreducible] noncomputable def result.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   result.fieldsUnsealed
 
-noncomputable instance equals_unfold_result [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'result [GooseExts] [GoGlobalContext] :
     EqualsUnfold result.fields result.fieldsUnsealed :=
   ⟨by unfold result.fields; rfl⟩
 
@@ -26281,12 +26281,12 @@ noncomputable instance SyncResult.zero_val [GooseExts] : ZeroVal SyncResult :=
 
 @[reducible] noncomputable def SyncResult.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Err" go.error),
-(go.field_decl.FieldDecl go!"Synced" (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool))]
+(go.field_decl.FieldDecl go!"Synced" (go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool))]
 
 @[irreducible] noncomputable def SyncResult.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SyncResult.fieldsUnsealed
 
-noncomputable instance equals_unfold_SyncResult [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SyncResult [GooseExts] [GoGlobalContext] :
     EqualsUnfold SyncResult.fields SyncResult.fieldsUnsealed :=
   ⟨by unfold SyncResult.fields; rfl⟩
 
@@ -26346,7 +26346,7 @@ noncomputable instance sharedIndexInformer.zero_val [GooseExts] : ZeroVal shared
 @[irreducible] noncomputable def sharedIndexInformer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   sharedIndexInformer.fieldsUnsealed
 
-noncomputable instance equals_unfold_sharedIndexInformer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'sharedIndexInformer [GooseExts] [GoGlobalContext] :
     EqualsUnfold sharedIndexInformer.fields sharedIndexInformer.fieldsUnsealed :=
   ⟨by unfold sharedIndexInformer.fields; rfl⟩
 
@@ -26366,7 +26366,7 @@ noncomputable instance dummyController.zero_val [GooseExts] : ZeroVal dummyContr
 @[irreducible] noncomputable def dummyController.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   dummyController.fieldsUnsealed
 
-noncomputable instance equals_unfold_dummyController [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'dummyController [GooseExts] [GoGlobalContext] :
     EqualsUnfold dummyController.fields dummyController.fieldsUnsealed :=
   ⟨by unfold dummyController.fields; rfl⟩
 
@@ -26388,7 +26388,7 @@ noncomputable instance updateNotification.zero_val [GooseExts] : ZeroVal updateN
 @[irreducible] noncomputable def updateNotification.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   updateNotification.fieldsUnsealed
 
-noncomputable instance equals_unfold_updateNotification [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'updateNotification [GooseExts] [GoGlobalContext] :
     EqualsUnfold updateNotification.fields updateNotification.fieldsUnsealed :=
   ⟨by unfold updateNotification.fields; rfl⟩
 
@@ -26410,7 +26410,7 @@ noncomputable instance addNotification.zero_val [GooseExts] : ZeroVal addNotific
 @[irreducible] noncomputable def addNotification.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   addNotification.fieldsUnsealed
 
-noncomputable instance equals_unfold_addNotification [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'addNotification [GooseExts] [GoGlobalContext] :
     EqualsUnfold addNotification.fields addNotification.fieldsUnsealed :=
   ⟨by unfold addNotification.fields; rfl⟩
 
@@ -26430,7 +26430,7 @@ noncomputable instance deleteNotification.zero_val [GooseExts] : ZeroVal deleteN
 @[irreducible] noncomputable def deleteNotification.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   deleteNotification.fieldsUnsealed
 
-noncomputable instance equals_unfold_deleteNotification [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'deleteNotification [GooseExts] [GoGlobalContext] :
     EqualsUnfold deleteNotification.fields deleteNotification.fieldsUnsealed :=
   ⟨by unfold deleteNotification.fields; rfl⟩
 
@@ -26450,7 +26450,7 @@ noncomputable instance sharedIndexInformerDone.zero_val [GooseExts] : ZeroVal sh
 @[irreducible] noncomputable def sharedIndexInformerDone.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   sharedIndexInformerDone.fieldsUnsealed
 
-noncomputable instance equals_unfold_sharedIndexInformerDone [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'sharedIndexInformerDone [GooseExts] [GoGlobalContext] :
     EqualsUnfold sharedIndexInformerDone.fields sharedIndexInformerDone.fieldsUnsealed :=
   ⟨by unfold sharedIndexInformerDone.fields; rfl⟩
 
@@ -26480,7 +26480,7 @@ noncomputable instance sharedProcessor.zero_val [GooseExts] : ZeroVal sharedProc
 @[irreducible] noncomputable def sharedProcessor.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   sharedProcessor.fieldsUnsealed
 
-noncomputable instance equals_unfold_sharedProcessor [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'sharedProcessor [GooseExts] [GoGlobalContext] :
     EqualsUnfold sharedProcessor.fields sharedProcessor.fieldsUnsealed :=
   ⟨by unfold sharedProcessor.fields; rfl⟩
 
@@ -26528,7 +26528,7 @@ noncomputable instance processorListener.zero_val [GooseExts] : ZeroVal processo
 @[irreducible] noncomputable def processorListener.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   processorListener.fieldsUnsealed
 
-noncomputable instance equals_unfold_processorListener [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'processorListener [GooseExts] [GoGlobalContext] :
     EqualsUnfold processorListener.fields processorListener.fieldsUnsealed :=
   ⟨by unfold processorListener.fields; rfl⟩
 
@@ -26555,7 +26555,7 @@ noncomputable instance Transaction.zero_val [GooseExts] : ZeroVal Transaction :=
 @[irreducible] noncomputable def Transaction.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Transaction.fieldsUnsealed
 
-noncomputable instance equals_unfold_Transaction [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Transaction [GooseExts] [GoGlobalContext] :
     EqualsUnfold Transaction.fields Transaction.fieldsUnsealed :=
   ⟨by unfold Transaction.fields; rfl⟩
 
@@ -26584,7 +26584,7 @@ noncomputable instance TransactionError.zero_val [GooseExts] : ZeroVal Transacti
 @[irreducible] noncomputable def TransactionError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TransactionError.fieldsUnsealed
 
-noncomputable instance equals_unfold_TransactionError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'TransactionError [GooseExts] [GoGlobalContext] :
     EqualsUnfold TransactionError.fields TransactionError.fieldsUnsealed :=
   ⟨by unfold TransactionError.fields; rfl⟩
 
@@ -26606,7 +26606,7 @@ noncomputable instance KeyError.zero_val [GooseExts] : ZeroVal KeyError :=
 @[irreducible] noncomputable def KeyError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   KeyError.fieldsUnsealed
 
-noncomputable instance equals_unfold_KeyError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'KeyError [GooseExts] [GoGlobalContext] :
     EqualsUnfold KeyError.fields KeyError.fieldsUnsealed :=
   ⟨by unfold KeyError.fields; rfl⟩
 
@@ -26639,7 +26639,7 @@ noncomputable instance cache.zero_val [GooseExts] : ZeroVal cache :=
 @[irreducible] noncomputable def cache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   cache.fieldsUnsealed
 
-noncomputable instance equals_unfold_cache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'cache [GooseExts] [GoGlobalContext] :
     EqualsUnfold cache.fields cache.fieldsUnsealed :=
   ⟨by unfold cache.fields; rfl⟩
 
@@ -26677,7 +26677,7 @@ noncomputable instance RealFIFOOptions.zero_val [GooseExts] : ZeroVal RealFIFOOp
 @[irreducible] noncomputable def RealFIFOOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RealFIFOOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_RealFIFOOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RealFIFOOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold RealFIFOOptions.fields RealFIFOOptions.fieldsUnsealed :=
   ⟨by unfold RealFIFOOptions.fields; rfl⟩
 
@@ -26733,7 +26733,7 @@ noncomputable instance RealFIFO.zero_val [GooseExts] : ZeroVal RealFIFO :=
 @[irreducible] noncomputable def RealFIFO.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RealFIFO.fieldsUnsealed
 
-noncomputable instance equals_unfold_RealFIFO [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RealFIFO [GooseExts] [GoGlobalContext] :
     EqualsUnfold RealFIFO.fields RealFIFO.fieldsUnsealed :=
   ⟨by unfold RealFIFO.fields; rfl⟩
 
@@ -26755,7 +26755,7 @@ noncomputable instance ReplacedAllInfo.zero_val [GooseExts] : ZeroVal ReplacedAl
 @[irreducible] noncomputable def ReplacedAllInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ReplacedAllInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_ReplacedAllInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ReplacedAllInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold ReplacedAllInfo.fields ReplacedAllInfo.fieldsUnsealed :=
   ⟨by unfold ReplacedAllInfo.fields; rfl⟩
 
@@ -26775,7 +26775,7 @@ noncomputable instance BookmarkInfo.zero_val [GooseExts] : ZeroVal BookmarkInfo 
 @[irreducible] noncomputable def BookmarkInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   BookmarkInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_BookmarkInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'BookmarkInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold BookmarkInfo.fields BookmarkInfo.fieldsUnsealed :=
   ⟨by unfold BookmarkInfo.fields; rfl⟩
 
@@ -26794,7 +26794,7 @@ noncomputable instance SyncAllInfo.zero_val [GooseExts] : ZeroVal SyncAllInfo :=
 @[irreducible] noncomputable def SyncAllInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SyncAllInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_SyncAllInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'SyncAllInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold SyncAllInfo.fields SyncAllInfo.fieldsUnsealed :=
   ⟨by unfold SyncAllInfo.fields; rfl⟩
 
@@ -26821,7 +26821,7 @@ noncomputable instance ThreadSafeStoreTransaction.zero_val [GooseExts] : ZeroVal
 @[irreducible] noncomputable def ThreadSafeStoreTransaction.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ThreadSafeStoreTransaction.fieldsUnsealed
 
-noncomputable instance equals_unfold_ThreadSafeStoreTransaction [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ThreadSafeStoreTransaction [GooseExts] [GoGlobalContext] :
     EqualsUnfold ThreadSafeStoreTransaction.fields ThreadSafeStoreTransaction.fieldsUnsealed :=
   ⟨by unfold ThreadSafeStoreTransaction.fields; rfl⟩
 
@@ -26843,7 +26843,7 @@ noncomputable instance storeIndex.zero_val [GooseExts] : ZeroVal storeIndex :=
 @[irreducible] noncomputable def storeIndex.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   storeIndex.fieldsUnsealed
 
-noncomputable instance equals_unfold_storeIndex [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'storeIndex [GooseExts] [GoGlobalContext] :
     EqualsUnfold storeIndex.fields storeIndex.fieldsUnsealed :=
   ⟨by unfold storeIndex.fields; rfl⟩
 
@@ -26871,7 +26871,7 @@ noncomputable instance threadSafeMap.zero_val [GooseExts] : ZeroVal threadSafeMa
 @[irreducible] noncomputable def threadSafeMap.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   threadSafeMap.fieldsUnsealed
 
-noncomputable instance equals_unfold_threadSafeMap [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'threadSafeMap [GooseExts] [GoGlobalContext] :
     EqualsUnfold threadSafeMap.fields threadSafeMap.fieldsUnsealed :=
   ⟨by unfold threadSafeMap.fields; rfl⟩
 
@@ -26893,7 +26893,7 @@ noncomputable instance UndeltaStore.zero_val [GooseExts] : ZeroVal UndeltaStore 
 @[irreducible] noncomputable def UndeltaStore.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UndeltaStore.fieldsUnsealed
 
-noncomputable instance equals_unfold_UndeltaStore [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'UndeltaStore [GooseExts] [GoGlobalContext] :
     EqualsUnfold UndeltaStore.fields UndeltaStore.fieldsUnsealed :=
   ⟨by unfold UndeltaStore.fields; rfl⟩
 

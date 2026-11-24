@@ -43,11 +43,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.preface.initialize') (Val #())))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  main_unfold : FuncUnfold main [] main.impl
-  import_preface_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.preface.Assumptions
+  unfold'main : FuncUnfold main [] main.impl
+  import'preface : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.preface.Assumptions
 
-attribute [instance] Assumptions.main_unfold
-  Assumptions.import_preface_Assumption
+attribute [instance] Assumptions.unfold'main
+  Assumptions.import'preface
 
 end github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.server
 

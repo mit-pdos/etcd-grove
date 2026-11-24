@@ -65,9 +65,9 @@ theorem tracker.ProgressTracker.Committed.wp_proof
       rw [Hdom]; exact outgoing_sub_ids c)
     omega
   -- the `Voters` field's location, out of `trk ↦ tv`
-  icases (tracker.ProgressTracker.ProgressTracker_access_load_Config trk tv (DFrac.own 1)).access_strict
+  icases (tracker.ProgressTracker.access_load'ProgressTracker'Config trk tv (DFrac.own 1)).access_strict
     $$ Htrk with ⟨Hcfgf, Hback1⟩
-  icases (tracker.Config.Config_access_load_Voters _ tv.Config' (DFrac.own 1)).access_strict
+  icases (tracker.Config.access_load'Config'Voters _ tv.Config' (DFrac.own 1)).access_strict
     $$ Hcfgf with ⟨Hvf, Hback2⟩
   wp_apply wp_JointConfig_CommittedIndex _ (DFrac.own 1) _ vin vout c.incoming c.outgoing _ _
       (pvsAcked pvs) Harr Hsz0 Hsz1 $$ [$Hidx $HP $Hvf $Hv0 $Hv1] as %N ⟨Hvf, Hv0, Hv1, HP, %HN⟩

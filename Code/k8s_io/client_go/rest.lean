@@ -1498,97 +1498,97 @@ attribute [instance] wrapPreviousError.TypeAssumptions.type_repr
   wrapPreviousError.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  APIResultAdapter_instance : APIResultAdapter.TypeAssumptions
-  Interface_instance : Interface.TypeAssumptions
-  ClientContentConfig_instance : ClientContentConfig.TypeAssumptions
-  RESTClient_instance : RESTClient.TypeAssumptions
-  requestClientContentConfigProvider_instance : requestClientContentConfigProvider.TypeAssumptions
-  clientNegotiatorWithCBORSequenceStreamDecoder_instance : clientNegotiatorWithCBORSequenceStreamDecoder.TypeAssumptions
-  clientNegotiatorDroppingManagedFields_instance : clientNegotiatorDroppingManagedFields.TypeAssumptions
-  decoderDroppingManagedFields_instance : decoderDroppingManagedFields.TypeAssumptions
-  Config_instance : Config.TypeAssumptions
-  sanitizedConfig_instance : sanitizedConfig.TypeAssumptions
-  sanitizedAuthConfigPersister_instance : sanitizedAuthConfigPersister.TypeAssumptions
-  sanitizedObject_instance : sanitizedObject.TypeAssumptions
-  ImpersonationConfig_instance : ImpersonationConfig.TypeAssumptions
-  TLSClientConfig_instance : TLSClientConfig.TypeAssumptions
-  sanitizedTLSClientConfig_instance : sanitizedTLSClientConfig.TypeAssumptions
-  ContentConfig_instance : ContentConfig.TypeAssumptions
-  AuthProvider_instance : AuthProvider.TypeAssumptions
-  Factory_instance : Factory.TypeAssumptions
-  AuthProviderConfigPersister_instance : AuthProviderConfigPersister.TypeAssumptions
-  noopPersister_instance : noopPersister.TypeAssumptions
-  HTTPClient_instance : HTTPClient.TypeAssumptions
-  ResponseWrapper_instance : ResponseWrapper.TypeAssumptions
-  RequestConstructionError_instance : RequestConstructionError.TypeAssumptions
-  requestRetryFunc_instance : requestRetryFunc.TypeAssumptions
-  Request_instance : Request.TypeAssumptions
-  throttleSettings_instance : throttleSettings.TypeAssumptions
-  throttledLogger_instance : throttledLogger.TypeAssumptions
-  Result_instance : Result.TypeAssumptions
-  BackoffManager_instance : BackoffManager.TypeAssumptions
-  BackoffManagerWithContext_instance : BackoffManagerWithContext.TypeAssumptions
-  URLBackoff_instance : URLBackoff.TypeAssumptions
-  NoBackoff_instance : NoBackoff.TypeAssumptions
-  backoffManagerNopContext_instance : backoffManagerNopContext.TypeAssumptions
-  WarningHandler_instance : WarningHandler.TypeAssumptions
-  WarningHandlerWithContext_instance : WarningHandlerWithContext.TypeAssumptions
-  warningLoggerNopContext_instance : warningLoggerNopContext.TypeAssumptions
-  NoWarnings_instance : NoWarnings.TypeAssumptions
-  WarningLogger_instance : WarningLogger.TypeAssumptions
-  warningWriter_instance : warningWriter.TypeAssumptions
-  WarningWriterOptions_instance : WarningWriterOptions.TypeAssumptions
-  IsRetryableErrorFunc_instance : IsRetryableErrorFunc.TypeAssumptions
-  WithRetry_instance : WithRetry.TypeAssumptions
-  RetryAfter_instance : RetryAfter.TypeAssumptions
-  withRetry_instance : withRetry.TypeAssumptions
-  wrapPreviousError_instance : wrapPreviousError.TypeAssumptions
+  instance'APIResultAdapter : APIResultAdapter.TypeAssumptions
+  instance'Interface : Interface.TypeAssumptions
+  instance'ClientContentConfig : ClientContentConfig.TypeAssumptions
+  instance'RESTClient : RESTClient.TypeAssumptions
+  instance'requestClientContentConfigProvider : requestClientContentConfigProvider.TypeAssumptions
+  instance'clientNegotiatorWithCBORSequenceStreamDecoder : clientNegotiatorWithCBORSequenceStreamDecoder.TypeAssumptions
+  instance'clientNegotiatorDroppingManagedFields : clientNegotiatorDroppingManagedFields.TypeAssumptions
+  instance'decoderDroppingManagedFields : decoderDroppingManagedFields.TypeAssumptions
+  instance'Config : Config.TypeAssumptions
+  instance'sanitizedConfig : sanitizedConfig.TypeAssumptions
+  instance'sanitizedAuthConfigPersister : sanitizedAuthConfigPersister.TypeAssumptions
+  instance'sanitizedObject : sanitizedObject.TypeAssumptions
+  instance'ImpersonationConfig : ImpersonationConfig.TypeAssumptions
+  instance'TLSClientConfig : TLSClientConfig.TypeAssumptions
+  instance'sanitizedTLSClientConfig : sanitizedTLSClientConfig.TypeAssumptions
+  instance'ContentConfig : ContentConfig.TypeAssumptions
+  instance'AuthProvider : AuthProvider.TypeAssumptions
+  instance'Factory : Factory.TypeAssumptions
+  instance'AuthProviderConfigPersister : AuthProviderConfigPersister.TypeAssumptions
+  instance'noopPersister : noopPersister.TypeAssumptions
+  instance'HTTPClient : HTTPClient.TypeAssumptions
+  instance'ResponseWrapper : ResponseWrapper.TypeAssumptions
+  instance'RequestConstructionError : RequestConstructionError.TypeAssumptions
+  instance'requestRetryFunc : requestRetryFunc.TypeAssumptions
+  instance'Request : Request.TypeAssumptions
+  instance'throttleSettings : throttleSettings.TypeAssumptions
+  instance'throttledLogger : throttledLogger.TypeAssumptions
+  instance'Result : Result.TypeAssumptions
+  instance'BackoffManager : BackoffManager.TypeAssumptions
+  instance'BackoffManagerWithContext : BackoffManagerWithContext.TypeAssumptions
+  instance'URLBackoff : URLBackoff.TypeAssumptions
+  instance'NoBackoff : NoBackoff.TypeAssumptions
+  instance'backoffManagerNopContext : backoffManagerNopContext.TypeAssumptions
+  instance'WarningHandler : WarningHandler.TypeAssumptions
+  instance'WarningHandlerWithContext : WarningHandlerWithContext.TypeAssumptions
+  instance'warningLoggerNopContext : warningLoggerNopContext.TypeAssumptions
+  instance'NoWarnings : NoWarnings.TypeAssumptions
+  instance'WarningLogger : WarningLogger.TypeAssumptions
+  instance'warningWriter : warningWriter.TypeAssumptions
+  instance'WarningWriterOptions : WarningWriterOptions.TypeAssumptions
+  instance'IsRetryableErrorFunc : IsRetryableErrorFunc.TypeAssumptions
+  instance'WithRetry : WithRetry.TypeAssumptions
+  instance'RetryAfter : RetryAfter.TypeAssumptions
+  instance'withRetry : withRetry.TypeAssumptions
+  instance'wrapPreviousError : wrapPreviousError.TypeAssumptions
 
-attribute [instance] Assumptions.APIResultAdapter_instance
-  Assumptions.Interface_instance
-  Assumptions.ClientContentConfig_instance
-  Assumptions.RESTClient_instance
-  Assumptions.requestClientContentConfigProvider_instance
-  Assumptions.clientNegotiatorWithCBORSequenceStreamDecoder_instance
-  Assumptions.clientNegotiatorDroppingManagedFields_instance
-  Assumptions.decoderDroppingManagedFields_instance
-  Assumptions.Config_instance
-  Assumptions.sanitizedConfig_instance
-  Assumptions.sanitizedAuthConfigPersister_instance
-  Assumptions.sanitizedObject_instance
-  Assumptions.ImpersonationConfig_instance
-  Assumptions.TLSClientConfig_instance
-  Assumptions.sanitizedTLSClientConfig_instance
-  Assumptions.ContentConfig_instance
-  Assumptions.AuthProvider_instance
-  Assumptions.Factory_instance
-  Assumptions.AuthProviderConfigPersister_instance
-  Assumptions.noopPersister_instance
-  Assumptions.HTTPClient_instance
-  Assumptions.ResponseWrapper_instance
-  Assumptions.RequestConstructionError_instance
-  Assumptions.requestRetryFunc_instance
-  Assumptions.Request_instance
-  Assumptions.throttleSettings_instance
-  Assumptions.throttledLogger_instance
-  Assumptions.Result_instance
-  Assumptions.BackoffManager_instance
-  Assumptions.BackoffManagerWithContext_instance
-  Assumptions.URLBackoff_instance
-  Assumptions.NoBackoff_instance
-  Assumptions.backoffManagerNopContext_instance
-  Assumptions.WarningHandler_instance
-  Assumptions.WarningHandlerWithContext_instance
-  Assumptions.warningLoggerNopContext_instance
-  Assumptions.NoWarnings_instance
-  Assumptions.WarningLogger_instance
-  Assumptions.warningWriter_instance
-  Assumptions.WarningWriterOptions_instance
-  Assumptions.IsRetryableErrorFunc_instance
-  Assumptions.WithRetry_instance
-  Assumptions.RetryAfter_instance
-  Assumptions.withRetry_instance
-  Assumptions.wrapPreviousError_instance
+attribute [instance] Assumptions.instance'APIResultAdapter
+  Assumptions.instance'Interface
+  Assumptions.instance'ClientContentConfig
+  Assumptions.instance'RESTClient
+  Assumptions.instance'requestClientContentConfigProvider
+  Assumptions.instance'clientNegotiatorWithCBORSequenceStreamDecoder
+  Assumptions.instance'clientNegotiatorDroppingManagedFields
+  Assumptions.instance'decoderDroppingManagedFields
+  Assumptions.instance'Config
+  Assumptions.instance'sanitizedConfig
+  Assumptions.instance'sanitizedAuthConfigPersister
+  Assumptions.instance'sanitizedObject
+  Assumptions.instance'ImpersonationConfig
+  Assumptions.instance'TLSClientConfig
+  Assumptions.instance'sanitizedTLSClientConfig
+  Assumptions.instance'ContentConfig
+  Assumptions.instance'AuthProvider
+  Assumptions.instance'Factory
+  Assumptions.instance'AuthProviderConfigPersister
+  Assumptions.instance'noopPersister
+  Assumptions.instance'HTTPClient
+  Assumptions.instance'ResponseWrapper
+  Assumptions.instance'RequestConstructionError
+  Assumptions.instance'requestRetryFunc
+  Assumptions.instance'Request
+  Assumptions.instance'throttleSettings
+  Assumptions.instance'throttledLogger
+  Assumptions.instance'Result
+  Assumptions.instance'BackoffManager
+  Assumptions.instance'BackoffManagerWithContext
+  Assumptions.instance'URLBackoff
+  Assumptions.instance'NoBackoff
+  Assumptions.instance'backoffManagerNopContext
+  Assumptions.instance'WarningHandler
+  Assumptions.instance'WarningHandlerWithContext
+  Assumptions.instance'warningLoggerNopContext
+  Assumptions.instance'NoWarnings
+  Assumptions.instance'WarningLogger
+  Assumptions.instance'warningWriter
+  Assumptions.instance'WarningWriterOptions
+  Assumptions.instance'IsRetryableErrorFunc
+  Assumptions.instance'WithRetry
+  Assumptions.instance'RetryAfter
+  Assumptions.instance'withRetry
+  Assumptions.instance'wrapPreviousError
 
 end k8s_io.client_go.rest
 

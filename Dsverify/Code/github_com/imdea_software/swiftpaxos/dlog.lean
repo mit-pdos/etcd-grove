@@ -226,7 +226,7 @@ noncomputable instance Logger.zero_val [GooseExts] : ZeroVal Logger :=
 @[irreducible] noncomputable def Logger.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Logger.fieldsUnsealed
 
-noncomputable instance equals_unfold_Logger [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Logger [GooseExts] [GoGlobalContext] :
     EqualsUnfold Logger.fields Logger.fieldsUnsealed :=
   ⟨by unfold Logger.fields; rfl⟩
 
@@ -236,42 +236,42 @@ noncomputable instance equals_unfold_Logger [GooseExts] [GoGlobalContext] :
 class Logger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Logger.underlying Logger
   underlying : go.UnderlyingDirectedEq Logger.ty Logger.underlying
-  get_logger : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"logger") #x (Val #(x.logger'))
-  set_logger : ∀ (x : Logger) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"logger") (PairV #x #y) (Val #(({ x with logger' := y } : Logger)))
-  get_verbose : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"verbose") #x (Val #(x.verbose'))
-  set_verbose : ∀ (x : Logger) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"verbose") (PairV #x #y) (Val #(({ x with verbose' := y } : Logger)))
+  get'logger : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"logger") #x (Val #(x.logger'))
+  set'logger : ∀ (x : Logger) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"logger") (PairV #x #y) (Val #(({ x with logger' := y } : Logger)))
+  get'verbose : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"verbose") #x (Val #(x.verbose'))
+  set'verbose : ∀ (x : Logger) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"verbose") (PairV #x #y) (Val #(({ x with verbose' := y } : Logger)))
   method_set : go.MethodSetIs Logger.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Logger.ty) [(go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Println", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true [])))]
-  ptr_Fatal_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Fatal" Logger.Fatal.impl
-  ptr_Printf_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Printf" Logger.Printf.impl
-  ptr_Println_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Println" Logger.Println.impl
+  ptr_unfold'Fatal : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Fatal" Logger.Fatal.impl
+  ptr_unfold'Printf : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Printf" Logger.Printf.impl
+  ptr_unfold'Println : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Println" Logger.Println.impl
 
 attribute [instance] Logger.TypeAssumptions.type_repr
   Logger.TypeAssumptions.underlying
-  Logger.TypeAssumptions.get_logger
-  Logger.TypeAssumptions.set_logger
-  Logger.TypeAssumptions.get_verbose
-  Logger.TypeAssumptions.set_verbose
+  Logger.TypeAssumptions.get'logger
+  Logger.TypeAssumptions.set'logger
+  Logger.TypeAssumptions.get'verbose
+  Logger.TypeAssumptions.set'verbose
   Logger.TypeAssumptions.method_set
   Logger.TypeAssumptions.ptr_method_set
-  Logger.TypeAssumptions.ptr_Fatal_unfold
-  Logger.TypeAssumptions.ptr_Printf_unfold
-  Logger.TypeAssumptions.ptr_Println_unfold
+  Logger.TypeAssumptions.ptr_unfold'Fatal
+  Logger.TypeAssumptions.ptr_unfold'Printf
+  Logger.TypeAssumptions.ptr_unfold'Println
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Logger_instance : Logger.TypeAssumptions
-  Printf_unfold : FuncUnfold Printf [] Printf.impl
-  Println_unfold : FuncUnfold Println [] Println.impl
-  New_unfold : FuncUnfold New [] New.impl
-  import_log_Assumption : _root_.Perennial.log.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
+  instance'Logger : Logger.TypeAssumptions
+  unfold'Printf : FuncUnfold Printf [] Printf.impl
+  unfold'Println : FuncUnfold Println [] Println.impl
+  unfold'New : FuncUnfold New [] New.impl
+  import'log : _root_.Perennial.log.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
 
-attribute [instance] Assumptions.Logger_instance
-  Assumptions.Printf_unfold
-  Assumptions.Println_unfold
-  Assumptions.New_unfold
-  Assumptions.import_log_Assumption
-  Assumptions.import_os_Assumption
+attribute [instance] Assumptions.instance'Logger
+  Assumptions.unfold'Printf
+  Assumptions.unfold'Println
+  Assumptions.unfold'New
+  Assumptions.import'log
+  Assumptions.import'os
 
 end github_com.imdea_software.swiftpaxos.dlog
 

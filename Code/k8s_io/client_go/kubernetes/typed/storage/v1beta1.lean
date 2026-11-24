@@ -742,59 +742,59 @@ attribute [instance] volumeAttributesClasses.TypeAssumptions.type_repr
   volumeAttributesClasses.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  CSIDriversGetter_instance : CSIDriversGetter.TypeAssumptions
-  CSIDriverInterface_instance : CSIDriverInterface.TypeAssumptions
-  cSIDrivers_instance : cSIDrivers.TypeAssumptions
-  CSINodesGetter_instance : CSINodesGetter.TypeAssumptions
-  CSINodeInterface_instance : CSINodeInterface.TypeAssumptions
-  cSINodes_instance : cSINodes.TypeAssumptions
-  CSIStorageCapacitiesGetter_instance : CSIStorageCapacitiesGetter.TypeAssumptions
-  CSIStorageCapacityInterface_instance : CSIStorageCapacityInterface.TypeAssumptions
-  cSIStorageCapacities_instance : cSIStorageCapacities.TypeAssumptions
-  CSIDriverExpansion_instance : CSIDriverExpansion.TypeAssumptions
-  CSINodeExpansion_instance : CSINodeExpansion.TypeAssumptions
-  CSIStorageCapacityExpansion_instance : CSIStorageCapacityExpansion.TypeAssumptions
-  StorageClassExpansion_instance : StorageClassExpansion.TypeAssumptions
-  VolumeAttachmentExpansion_instance : VolumeAttachmentExpansion.TypeAssumptions
-  VolumeAttributesClassExpansion_instance : VolumeAttributesClassExpansion.TypeAssumptions
-  StorageV1beta1Interface_instance : StorageV1beta1Interface.TypeAssumptions
-  StorageV1beta1Client_instance : StorageV1beta1Client.TypeAssumptions
-  StorageClassesGetter_instance : StorageClassesGetter.TypeAssumptions
-  StorageClassInterface_instance : StorageClassInterface.TypeAssumptions
-  storageClasses_instance : storageClasses.TypeAssumptions
-  VolumeAttachmentsGetter_instance : VolumeAttachmentsGetter.TypeAssumptions
-  VolumeAttachmentInterface_instance : VolumeAttachmentInterface.TypeAssumptions
-  volumeAttachments_instance : volumeAttachments.TypeAssumptions
-  VolumeAttributesClassesGetter_instance : VolumeAttributesClassesGetter.TypeAssumptions
-  VolumeAttributesClassInterface_instance : VolumeAttributesClassInterface.TypeAssumptions
-  volumeAttributesClasses_instance : volumeAttributesClasses.TypeAssumptions
+  instance'CSIDriversGetter : CSIDriversGetter.TypeAssumptions
+  instance'CSIDriverInterface : CSIDriverInterface.TypeAssumptions
+  instance'cSIDrivers : cSIDrivers.TypeAssumptions
+  instance'CSINodesGetter : CSINodesGetter.TypeAssumptions
+  instance'CSINodeInterface : CSINodeInterface.TypeAssumptions
+  instance'cSINodes : cSINodes.TypeAssumptions
+  instance'CSIStorageCapacitiesGetter : CSIStorageCapacitiesGetter.TypeAssumptions
+  instance'CSIStorageCapacityInterface : CSIStorageCapacityInterface.TypeAssumptions
+  instance'cSIStorageCapacities : cSIStorageCapacities.TypeAssumptions
+  instance'CSIDriverExpansion : CSIDriverExpansion.TypeAssumptions
+  instance'CSINodeExpansion : CSINodeExpansion.TypeAssumptions
+  instance'CSIStorageCapacityExpansion : CSIStorageCapacityExpansion.TypeAssumptions
+  instance'StorageClassExpansion : StorageClassExpansion.TypeAssumptions
+  instance'VolumeAttachmentExpansion : VolumeAttachmentExpansion.TypeAssumptions
+  instance'VolumeAttributesClassExpansion : VolumeAttributesClassExpansion.TypeAssumptions
+  instance'StorageV1beta1Interface : StorageV1beta1Interface.TypeAssumptions
+  instance'StorageV1beta1Client : StorageV1beta1Client.TypeAssumptions
+  instance'StorageClassesGetter : StorageClassesGetter.TypeAssumptions
+  instance'StorageClassInterface : StorageClassInterface.TypeAssumptions
+  instance'storageClasses : storageClasses.TypeAssumptions
+  instance'VolumeAttachmentsGetter : VolumeAttachmentsGetter.TypeAssumptions
+  instance'VolumeAttachmentInterface : VolumeAttachmentInterface.TypeAssumptions
+  instance'volumeAttachments : volumeAttachments.TypeAssumptions
+  instance'VolumeAttributesClassesGetter : VolumeAttributesClassesGetter.TypeAssumptions
+  instance'VolumeAttributesClassInterface : VolumeAttributesClassInterface.TypeAssumptions
+  instance'volumeAttributesClasses : volumeAttributesClasses.TypeAssumptions
 
-attribute [instance] Assumptions.CSIDriversGetter_instance
-  Assumptions.CSIDriverInterface_instance
-  Assumptions.cSIDrivers_instance
-  Assumptions.CSINodesGetter_instance
-  Assumptions.CSINodeInterface_instance
-  Assumptions.cSINodes_instance
-  Assumptions.CSIStorageCapacitiesGetter_instance
-  Assumptions.CSIStorageCapacityInterface_instance
-  Assumptions.cSIStorageCapacities_instance
-  Assumptions.CSIDriverExpansion_instance
-  Assumptions.CSINodeExpansion_instance
-  Assumptions.CSIStorageCapacityExpansion_instance
-  Assumptions.StorageClassExpansion_instance
-  Assumptions.VolumeAttachmentExpansion_instance
-  Assumptions.VolumeAttributesClassExpansion_instance
-  Assumptions.StorageV1beta1Interface_instance
-  Assumptions.StorageV1beta1Client_instance
-  Assumptions.StorageClassesGetter_instance
-  Assumptions.StorageClassInterface_instance
-  Assumptions.storageClasses_instance
-  Assumptions.VolumeAttachmentsGetter_instance
-  Assumptions.VolumeAttachmentInterface_instance
-  Assumptions.volumeAttachments_instance
-  Assumptions.VolumeAttributesClassesGetter_instance
-  Assumptions.VolumeAttributesClassInterface_instance
-  Assumptions.volumeAttributesClasses_instance
+attribute [instance] Assumptions.instance'CSIDriversGetter
+  Assumptions.instance'CSIDriverInterface
+  Assumptions.instance'cSIDrivers
+  Assumptions.instance'CSINodesGetter
+  Assumptions.instance'CSINodeInterface
+  Assumptions.instance'cSINodes
+  Assumptions.instance'CSIStorageCapacitiesGetter
+  Assumptions.instance'CSIStorageCapacityInterface
+  Assumptions.instance'cSIStorageCapacities
+  Assumptions.instance'CSIDriverExpansion
+  Assumptions.instance'CSINodeExpansion
+  Assumptions.instance'CSIStorageCapacityExpansion
+  Assumptions.instance'StorageClassExpansion
+  Assumptions.instance'VolumeAttachmentExpansion
+  Assumptions.instance'VolumeAttributesClassExpansion
+  Assumptions.instance'StorageV1beta1Interface
+  Assumptions.instance'StorageV1beta1Client
+  Assumptions.instance'StorageClassesGetter
+  Assumptions.instance'StorageClassInterface
+  Assumptions.instance'storageClasses
+  Assumptions.instance'VolumeAttachmentsGetter
+  Assumptions.instance'VolumeAttachmentInterface
+  Assumptions.instance'volumeAttachments
+  Assumptions.instance'VolumeAttributesClassesGetter
+  Assumptions.instance'VolumeAttributesClassInterface
+  Assumptions.instance'volumeAttributesClasses
 
 end k8s_io.client_go.kubernetes.typed.storage.v1beta1
 

@@ -79,7 +79,7 @@ local macro "asc_tail" S:term "," M:term : tactic => `(tactic| (
   try wp_auto
   rw [ite_eq_left_of_eq_true _ _ (eq_true hiK)]
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Union_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_unfold'Union.method_unfold]
   try wp_auto
   wp_apply wp_Union _ nc _ ln $$ [Hnc Hln] as %u #Hu
   · iframe Hnc Hln
@@ -117,7 +117,7 @@ local macro "asc_tail" S:term "," M:term : tactic => `(tactic| (
       rw [List.take_add_one, Hkey]; rfl
     have hmk : m' !! key = mc !! key := by rw [Hm' key]; simp [Hnot]
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Has_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_unfold'Has.method_unfold]
     try wp_auto
     wp_apply wp_Has u (nc.union ln) key $$ [Hu]
     · iexact Hu

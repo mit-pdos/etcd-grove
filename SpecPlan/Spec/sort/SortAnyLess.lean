@@ -62,7 +62,7 @@ itself (no order claimed). -/
 def Sort.anyLessSpec : Prop :=
   ∀ (E : Type) (x : GoInterfaceOk) (own : List E → IProp GF) (l : List E),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sort ∗ sorterAny x own ∗ own l ∗ ⌜l.length ≤ 2 ^ 62⌝ }}
-    (App (Val (@! _root_.Perennial.sort.«Sort»)) (Val #(interface.ok x)))
+    (App (Val (@! _root_.Perennial.sort.Sort'')) (Val #(interface.ok x)))
   {{ (l' : List E), RET #(); own l' ∗ ⌜l.Perm l'⌝ }}
 
 end spec

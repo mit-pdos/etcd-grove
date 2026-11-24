@@ -34,7 +34,7 @@ theorem State.pendingFrom.wp_proof (wp_Filter : Bag.Filter.spec (GF := GF) (hG :
   iNamed Hpf
   wp_auto
   ipersist i
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_Filter_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'Filter.method_unfold]
   wp_auto
   wp_apply wp_Filter _ _ _ (fun m => m.source == (uint.nat i : ID)) $$ [Hb2] as %g' #Hg'
   · iframe Hb2

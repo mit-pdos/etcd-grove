@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/etcd/api/v3/mvccpb/Event_EventType__StringPtr.lean`, o
 protoc-gen-go's `Event_EventType.String` (`TrustedCode/go_etcd_io/etcd/api/v3/mvccpb.lean`,
 etcd-grove#39, 2026-11-23): the lookup in `Event_EventType_name`, which `mvccpb`'s package fact holds
 read-only (`mvccpb.eventTypeNames`), else `strconv.Itoa`; the call through the pointer reads `*l`
-(goose's `ptr_String_unfold`). (Until 2026-11-23 a trust-boundary axiom, T5-f over the pointer
+(goose's `ptr_unfold'String`). (Until 2026-11-23 a trust-boundary axiom, T5-f over the pointer
 receiver, approved by the user 2026-11-15 via etcd-grove-81, `notes/k8s-7f5a-draft.md` §11.5.)
 -/
 module

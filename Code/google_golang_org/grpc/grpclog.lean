@@ -160,7 +160,7 @@ noncomputable instance componentData.zero_val [GooseExts] : ZeroVal componentDat
 @[irreducible] noncomputable def componentData.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   componentData.fieldsUnsealed
 
-noncomputable instance equals_unfold_componentData [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'componentData [GooseExts] [GoGlobalContext] :
     EqualsUnfold componentData.fields componentData.fieldsUnsealed :=
   ⟨by unfold componentData.fields; rfl⟩
 
@@ -170,15 +170,15 @@ noncomputable instance equals_unfold_componentData [GooseExts] [GoGlobalContext]
 class componentData.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying componentData.underlying componentData
   underlying : go.UnderlyingDirectedEq componentData.ty componentData.underlying
-  get_name : ∀ (x : componentData), go.IsGoStepPureDetTagged under (StructFieldGet componentData.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : componentData) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet componentData.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : componentData)))
+  get'name : ∀ (x : componentData), go.IsGoStepPureDetTagged under (StructFieldGet componentData.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : componentData) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet componentData.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : componentData)))
   method_set : go.MethodSetIs componentData.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType componentData.ty) [(go!"Error", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"ErrorDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType go.any)] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Errorln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"FatalDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType go.any)] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Fatalln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"InfoDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType go.any)] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Infoln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"V", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"Warning", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"WarningDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType go.any)] true []))), (go!"Warningf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Warningln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true [])))]
 
 attribute [instance] componentData.TypeAssumptions.type_repr
   componentData.TypeAssumptions.underlying
-  componentData.TypeAssumptions.get_name
-  componentData.TypeAssumptions.set_name
+  componentData.TypeAssumptions.get'name
+  componentData.TypeAssumptions.set'name
   componentData.TypeAssumptions.method_set
   componentData.TypeAssumptions.ptr_method_set
 
@@ -225,17 +225,17 @@ attribute [instance] DepthLoggerV2.TypeAssumptions.underlying
   DepthLoggerV2.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  componentData_instance : componentData.TypeAssumptions
-  Logger_instance : Logger.TypeAssumptions
-  LoggerV2_instance : LoggerV2.TypeAssumptions
-  DepthLoggerV2_instance : DepthLoggerV2.TypeAssumptions
-  import_internal_Assumption : _root_.Perennial.google_golang_org.grpc.grpclog.internal.Assumptions
+  instance'componentData : componentData.TypeAssumptions
+  instance'Logger : Logger.TypeAssumptions
+  instance'LoggerV2 : LoggerV2.TypeAssumptions
+  instance'DepthLoggerV2 : DepthLoggerV2.TypeAssumptions
+  import'internal : _root_.Perennial.google_golang_org.grpc.grpclog.internal.Assumptions
 
-attribute [instance] Assumptions.componentData_instance
-  Assumptions.Logger_instance
-  Assumptions.LoggerV2_instance
-  Assumptions.DepthLoggerV2_instance
-  Assumptions.import_internal_Assumption
+attribute [instance] Assumptions.instance'componentData
+  Assumptions.instance'Logger
+  Assumptions.instance'LoggerV2
+  Assumptions.instance'DepthLoggerV2
+  Assumptions.import'internal
 
 end google_golang_org.grpc.grpclog
 

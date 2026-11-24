@@ -237,7 +237,7 @@ theorem Main.wp_proof
     wp_apply wp_load_slice_index _ (sint.Z n) _ DFrac.discard _ Hn $$ [Hsl] as -
     · iframe Hsl; ipureintro; exact hxs
     icases ownSlice_elem_acc (sint.Z n) _ sl DFrac.discard _ Hn hxs $$ Hsl with ⟨#Hxn, -⟩
-    icases (go_etcd_io.etcd.client.v3.LeaseStatus.LeaseStatus_access_load_ID
+    icases (go_etcd_io.etcd.client.v3.LeaseStatus.access_load'LeaseStatus'ID
         (sliceIndexRef go_etcd_io.etcd.client.v3.LeaseStatus (sint.Z n) sl)
         (go_etcd_io.etcd.client.v3.LeaseStatus.mk x) DFrac.discard).access_strict $$ Hxn with ⟨#Hxid, -⟩
     (try wp_auto)
@@ -254,7 +254,7 @@ theorem Main.wp_proof
       have hys : (m.ids.map (fun id => (go_etcd_io.etcd.client.v3.LeaseStatus.mk id)))[sint.nat k]? =
           some (go_etcd_io.etcd.client.v3.LeaseStatus.mk y) := by simp [hy]
       icases ownSlice_elem_acc (sint.Z k) _ sl DFrac.discard _ Hk.1 hys $$ Hsl with ⟨#Hyk, -⟩
-      icases (go_etcd_io.etcd.client.v3.LeaseStatus.LeaseStatus_access_load_ID
+      icases (go_etcd_io.etcd.client.v3.LeaseStatus.access_load'LeaseStatus'ID
           (sliceIndexRef go_etcd_io.etcd.client.v3.LeaseStatus (sint.Z k) sl)
           (go_etcd_io.etcd.client.v3.LeaseStatus.mk y) DFrac.discard).access_strict $$ Hyk with ⟨#Hyid, -⟩
       have Hbk : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z sl.len := ⟨Hk.1, by word⟩

@@ -257,7 +257,7 @@ noncomputable instance hashed.zero_val [GooseExts] : ZeroVal hashed :=
 @[irreducible] noncomputable def hashed.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   hashed.fieldsUnsealed
 
-noncomputable instance equals_unfold_hashed [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'hashed [GooseExts] [GoGlobalContext] :
     EqualsUnfold hashed.fields hashed.fieldsUnsealed :=
   ⟨by unfold hashed.fields; rfl⟩
 
@@ -267,48 +267,48 @@ noncomputable instance equals_unfold_hashed [GooseExts] [GoGlobalContext] :
 class hashed.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying hashed.underlying hashed
   underlying : go.UnderlyingDirectedEq hashed.ty hashed.underlying
-  get_hash : ∀ (x : hashed), go.IsGoStepPureDetTagged under (StructFieldGet hashed.underlying go!"hash") #x (Val #(x.hash'))
-  set_hash : ∀ (x : hashed) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet hashed.underlying go!"hash") (PairV #x #y) (Val #(({ x with hash' := y } : hashed)))
-  get_salt : ∀ (x : hashed), go.IsGoStepPureDetTagged under (StructFieldGet hashed.underlying go!"salt") #x (Val #(x.salt'))
-  set_salt : ∀ (x : hashed) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet hashed.underlying go!"salt") (PairV #x #y) (Val #(({ x with salt' := y } : hashed)))
-  get_cost : ∀ (x : hashed), go.IsGoStepPureDetTagged under (StructFieldGet hashed.underlying go!"cost") #x (Val #(x.cost'))
-  set_cost : ∀ (x : hashed) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet hashed.underlying go!"cost") (PairV #x #y) (Val #(({ x with cost' := y } : hashed)))
-  get_major : ∀ (x : hashed), go.IsGoStepPureDetTagged under (StructFieldGet hashed.underlying go!"major") #x (Val #(x.major'))
-  set_major : ∀ (x : hashed) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet hashed.underlying go!"major") (PairV #x #y) (Val #(({ x with major' := y } : hashed)))
-  get_minor : ∀ (x : hashed), go.IsGoStepPureDetTagged under (StructFieldGet hashed.underlying go!"minor") #x (Val #(x.minor'))
-  set_minor : ∀ (x : hashed) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet hashed.underlying go!"minor") (PairV #x #y) (Val #(({ x with minor' := y } : hashed)))
+  get'hash : ∀ (x : hashed), go.IsGoStepPureDetTagged under (StructFieldGet hashed.underlying go!"hash") #x (Val #(x.hash'))
+  set'hash : ∀ (x : hashed) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet hashed.underlying go!"hash") (PairV #x #y) (Val #(({ x with hash' := y } : hashed)))
+  get'salt : ∀ (x : hashed), go.IsGoStepPureDetTagged under (StructFieldGet hashed.underlying go!"salt") #x (Val #(x.salt'))
+  set'salt : ∀ (x : hashed) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet hashed.underlying go!"salt") (PairV #x #y) (Val #(({ x with salt' := y } : hashed)))
+  get'cost : ∀ (x : hashed), go.IsGoStepPureDetTagged under (StructFieldGet hashed.underlying go!"cost") #x (Val #(x.cost'))
+  set'cost : ∀ (x : hashed) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet hashed.underlying go!"cost") (PairV #x #y) (Val #(({ x with cost' := y } : hashed)))
+  get'major : ∀ (x : hashed), go.IsGoStepPureDetTagged under (StructFieldGet hashed.underlying go!"major") #x (Val #(x.major'))
+  set'major : ∀ (x : hashed) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet hashed.underlying go!"major") (PairV #x #y) (Val #(({ x with major' := y } : hashed)))
+  get'minor : ∀ (x : hashed), go.IsGoStepPureDetTagged under (StructFieldGet hashed.underlying go!"minor") #x (Val #(x.minor'))
+  set'minor : ∀ (x : hashed) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet hashed.underlying go!"minor") (PairV #x #y) (Val #(({ x with minor' := y } : hashed)))
   method_set : go.MethodSetIs hashed.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType hashed.ty) [(go!"Hash", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"golang.org/x/crypto/bcrypt.decodeCost", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"golang.org/x/crypto/bcrypt.decodeVersion", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] hashed.TypeAssumptions.type_repr
   hashed.TypeAssumptions.underlying
-  hashed.TypeAssumptions.get_hash
-  hashed.TypeAssumptions.set_hash
-  hashed.TypeAssumptions.get_salt
-  hashed.TypeAssumptions.set_salt
-  hashed.TypeAssumptions.get_cost
-  hashed.TypeAssumptions.set_cost
-  hashed.TypeAssumptions.get_major
-  hashed.TypeAssumptions.set_major
-  hashed.TypeAssumptions.get_minor
-  hashed.TypeAssumptions.set_minor
+  hashed.TypeAssumptions.get'hash
+  hashed.TypeAssumptions.set'hash
+  hashed.TypeAssumptions.get'salt
+  hashed.TypeAssumptions.set'salt
+  hashed.TypeAssumptions.get'cost
+  hashed.TypeAssumptions.set'cost
+  hashed.TypeAssumptions.get'major
+  hashed.TypeAssumptions.set'major
+  hashed.TypeAssumptions.get'minor
+  hashed.TypeAssumptions.set'minor
   hashed.TypeAssumptions.method_set
   hashed.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  HashVersionTooNewError_instance : HashVersionTooNewError.TypeAssumptions
-  InvalidHashPrefixError_instance : InvalidHashPrefixError.TypeAssumptions
-  InvalidCostError_instance : InvalidCostError.TypeAssumptions
-  hashed_instance : hashed.TypeAssumptions
-  import_base64_Assumption : _root_.Perennial.encoding.base64.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  instance'HashVersionTooNewError : HashVersionTooNewError.TypeAssumptions
+  instance'InvalidHashPrefixError : InvalidHashPrefixError.TypeAssumptions
+  instance'InvalidCostError : InvalidCostError.TypeAssumptions
+  instance'hashed : hashed.TypeAssumptions
+  import'base64 : _root_.Perennial.encoding.base64.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
 
-attribute [instance] Assumptions.HashVersionTooNewError_instance
-  Assumptions.InvalidHashPrefixError_instance
-  Assumptions.InvalidCostError_instance
-  Assumptions.hashed_instance
-  Assumptions.import_base64_Assumption
-  Assumptions.import_errors_Assumption
+attribute [instance] Assumptions.instance'HashVersionTooNewError
+  Assumptions.instance'InvalidHashPrefixError
+  Assumptions.instance'InvalidCostError
+  Assumptions.instance'hashed
+  Assumptions.import'base64
+  Assumptions.import'errors
 
 end golang_org.x.crypto.bcrypt
 

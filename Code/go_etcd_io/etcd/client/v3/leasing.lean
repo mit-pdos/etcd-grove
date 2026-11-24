@@ -3439,7 +3439,7 @@ noncomputable def leasingKV.leaseID.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Var "$res0"))))))
 
 /-- go: txn.go:34:24 -/
-noncomputable def txnLeasing.If.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def txnLeasing.If''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "txn"
   (Lam "cs"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty))) (Val #())))
@@ -4915,7 +4915,7 @@ noncomputable instance leaseCache.zero_val [GooseExts] : ZeroVal leaseCache :=
 @[irreducible] noncomputable def leaseCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   leaseCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_leaseCache [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'leaseCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold leaseCache.fields leaseCache.fieldsUnsealed :=
   ⟨by unfold leaseCache.fields; rfl⟩
 
@@ -4925,63 +4925,63 @@ noncomputable instance equals_unfold_leaseCache [GooseExts] [GoGlobalContext] :
 class leaseCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying leaseCache.underlying leaseCache
   underlying : go.UnderlyingDirectedEq leaseCache.ty leaseCache.underlying
-  get_mu : ∀ (x : leaseCache), go.IsGoStepPureDetTagged under (StructFieldGet leaseCache.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : leaseCache) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet leaseCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : leaseCache)))
-  get_entries : ∀ (x : leaseCache), go.IsGoStepPureDetTagged under (StructFieldGet leaseCache.underlying go!"entries") #x (Val #(x.entries'))
-  set_entries : ∀ (x : leaseCache) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet leaseCache.underlying go!"entries") (PairV #x #y) (Val #(({ x with entries' := y } : leaseCache)))
-  get_revokes : ∀ (x : leaseCache), go.IsGoStepPureDetTagged under (StructFieldGet leaseCache.underlying go!"revokes") #x (Val #(x.revokes'))
-  set_revokes : ∀ (x : leaseCache) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet leaseCache.underlying go!"revokes") (PairV #x #y) (Val #(({ x with revokes' := y } : leaseCache)))
-  get_header : ∀ (x : leaseCache), go.IsGoStepPureDetTagged under (StructFieldGet leaseCache.underlying go!"header") #x (Val #(x.header'))
-  set_header : ∀ (x : leaseCache) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet leaseCache.underlying go!"header") (PairV #x #y) (Val #(({ x with header' := y } : leaseCache)))
+  get'mu : ∀ (x : leaseCache), go.IsGoStepPureDetTagged under (StructFieldGet leaseCache.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : leaseCache) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet leaseCache.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : leaseCache)))
+  get'entries : ∀ (x : leaseCache), go.IsGoStepPureDetTagged under (StructFieldGet leaseCache.underlying go!"entries") #x (Val #(x.entries'))
+  set'entries : ∀ (x : leaseCache) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet leaseCache.underlying go!"entries") (PairV #x #y) (Val #(({ x with entries' := y } : leaseCache)))
+  get'revokes : ∀ (x : leaseCache), go.IsGoStepPureDetTagged under (StructFieldGet leaseCache.underlying go!"revokes") #x (Val #(x.revokes'))
+  set'revokes : ∀ (x : leaseCache) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet leaseCache.underlying go!"revokes") (PairV #x #y) (Val #(({ x with revokes' := y } : leaseCache)))
+  get'header : ∀ (x : leaseCache), go.IsGoStepPureDetTagged under (StructFieldGet leaseCache.underlying go!"header") #x (Val #(x.header'))
+  set'header : ∀ (x : leaseCache) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet leaseCache.underlying go!"header") (PairV #x #y) (Val #(({ x with header' := y } : leaseCache)))
   method_set : go.MethodSetIs leaseCache.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType leaseCache.ty) [(go!"Add", (some (go.signature.Signature [go.string, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty), _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)]))), (go!"Delete", (some (go.signature.Signature [go.string, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)] false []))), (go!"Evict", (some (go.signature.Signature [go.string] false [go.int64]))), (go!"EvictRange", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty), go.bool]))), (go!"Lock", (some (go.signature.Signature [go.string] false [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.StructType [])), go.int64]))), (go!"LockRange", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.StructType [])))]))), (go!"LockWriteOps", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)] false [(go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.StructType [])))]))), (go!"MayAcquire", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"NotifyOps", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)] false [(go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])))]))), (go!"Rev", (some (go.signature.Signature [go.string] false [go.int64]))), (go!"Update", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)] false []))), (go!"go.etcd.io/etcd/client/v3/leasing.clearOldRevokes", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"go.etcd.io/etcd/client/v3/leasing.delete", (some (go.signature.Signature [go.string, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)] false []))), (go!"go.etcd.io/etcd/client/v3/leasing.evalCmp", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)] false [go.bool, go.bool]))), (go!"go.etcd.io/etcd/client/v3/leasing.evalOps", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty)), go.bool]))), (go!"go.etcd.io/etcd/client/v3/leasing.notify", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType leaseKey.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])))]
-  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"Add" leaseCache.Add.impl
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"Delete" leaseCache.Delete.impl
-  ptr_Evict_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"Evict" leaseCache.Evict.impl
-  ptr_EvictRange_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"EvictRange" leaseCache.EvictRange.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"Get" leaseCache.Get.impl
-  ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"Lock" leaseCache.Lock.impl
-  ptr_LockRange_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"LockRange" leaseCache.LockRange.impl
-  ptr_LockWriteOps_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"LockWriteOps" leaseCache.LockWriteOps.impl
-  ptr_MayAcquire_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"MayAcquire" leaseCache.MayAcquire.impl
-  ptr_NotifyOps_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"NotifyOps" leaseCache.NotifyOps.impl
-  ptr_Rev_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"Rev" leaseCache.Rev.impl
-  ptr_Update_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"Update" leaseCache.Update.impl
-  ptr_clearOldRevokes_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"clearOldRevokes" leaseCache.clearOldRevokes.impl
-  ptr_delete_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"delete" leaseCache.delete.impl
-  ptr_evalCmp_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"evalCmp" leaseCache.evalCmp.impl
-  ptr_evalOps_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"evalOps" leaseCache.evalOps.impl
-  ptr_notify_unfold : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"notify" leaseCache.notify.impl
+  ptr_unfold'Add : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"Add" leaseCache.Add.impl
+  ptr_unfold'Delete : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"Delete" leaseCache.Delete.impl
+  ptr_unfold'Evict : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"Evict" leaseCache.Evict.impl
+  ptr_unfold'EvictRange : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"EvictRange" leaseCache.EvictRange.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"Get" leaseCache.Get.impl
+  ptr_unfold'Lock : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"Lock" leaseCache.Lock.impl
+  ptr_unfold'LockRange : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"LockRange" leaseCache.LockRange.impl
+  ptr_unfold'LockWriteOps : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"LockWriteOps" leaseCache.LockWriteOps.impl
+  ptr_unfold'MayAcquire : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"MayAcquire" leaseCache.MayAcquire.impl
+  ptr_unfold'NotifyOps : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"NotifyOps" leaseCache.NotifyOps.impl
+  ptr_unfold'Rev : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"Rev" leaseCache.Rev.impl
+  ptr_unfold'Update : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"Update" leaseCache.Update.impl
+  ptr_unfold'clearOldRevokes : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"clearOldRevokes" leaseCache.clearOldRevokes.impl
+  ptr_unfold'delete : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"delete" leaseCache.delete.impl
+  ptr_unfold'evalCmp : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"evalCmp" leaseCache.evalCmp.impl
+  ptr_unfold'evalOps : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"evalOps" leaseCache.evalOps.impl
+  ptr_unfold'notify : MethodUnfold (go.GoType.PointerType leaseCache.ty) go!"notify" leaseCache.notify.impl
 
 attribute [instance] leaseCache.TypeAssumptions.type_repr
   leaseCache.TypeAssumptions.underlying
-  leaseCache.TypeAssumptions.get_mu
-  leaseCache.TypeAssumptions.set_mu
-  leaseCache.TypeAssumptions.get_entries
-  leaseCache.TypeAssumptions.set_entries
-  leaseCache.TypeAssumptions.get_revokes
-  leaseCache.TypeAssumptions.set_revokes
-  leaseCache.TypeAssumptions.get_header
-  leaseCache.TypeAssumptions.set_header
+  leaseCache.TypeAssumptions.get'mu
+  leaseCache.TypeAssumptions.set'mu
+  leaseCache.TypeAssumptions.get'entries
+  leaseCache.TypeAssumptions.set'entries
+  leaseCache.TypeAssumptions.get'revokes
+  leaseCache.TypeAssumptions.set'revokes
+  leaseCache.TypeAssumptions.get'header
+  leaseCache.TypeAssumptions.set'header
   leaseCache.TypeAssumptions.method_set
   leaseCache.TypeAssumptions.ptr_method_set
-  leaseCache.TypeAssumptions.ptr_Add_unfold
-  leaseCache.TypeAssumptions.ptr_Delete_unfold
-  leaseCache.TypeAssumptions.ptr_Evict_unfold
-  leaseCache.TypeAssumptions.ptr_EvictRange_unfold
-  leaseCache.TypeAssumptions.ptr_Get_unfold
-  leaseCache.TypeAssumptions.ptr_Lock_unfold
-  leaseCache.TypeAssumptions.ptr_LockRange_unfold
-  leaseCache.TypeAssumptions.ptr_LockWriteOps_unfold
-  leaseCache.TypeAssumptions.ptr_MayAcquire_unfold
-  leaseCache.TypeAssumptions.ptr_NotifyOps_unfold
-  leaseCache.TypeAssumptions.ptr_Rev_unfold
-  leaseCache.TypeAssumptions.ptr_Update_unfold
-  leaseCache.TypeAssumptions.ptr_clearOldRevokes_unfold
-  leaseCache.TypeAssumptions.ptr_delete_unfold
-  leaseCache.TypeAssumptions.ptr_evalCmp_unfold
-  leaseCache.TypeAssumptions.ptr_evalOps_unfold
-  leaseCache.TypeAssumptions.ptr_notify_unfold
+  leaseCache.TypeAssumptions.ptr_unfold'Add
+  leaseCache.TypeAssumptions.ptr_unfold'Delete
+  leaseCache.TypeAssumptions.ptr_unfold'Evict
+  leaseCache.TypeAssumptions.ptr_unfold'EvictRange
+  leaseCache.TypeAssumptions.ptr_unfold'Get
+  leaseCache.TypeAssumptions.ptr_unfold'Lock
+  leaseCache.TypeAssumptions.ptr_unfold'LockRange
+  leaseCache.TypeAssumptions.ptr_unfold'LockWriteOps
+  leaseCache.TypeAssumptions.ptr_unfold'MayAcquire
+  leaseCache.TypeAssumptions.ptr_unfold'NotifyOps
+  leaseCache.TypeAssumptions.ptr_unfold'Rev
+  leaseCache.TypeAssumptions.ptr_unfold'Update
+  leaseCache.TypeAssumptions.ptr_unfold'clearOldRevokes
+  leaseCache.TypeAssumptions.ptr_unfold'delete
+  leaseCache.TypeAssumptions.ptr_unfold'evalCmp
+  leaseCache.TypeAssumptions.ptr_unfold'evalOps
+  leaseCache.TypeAssumptions.ptr_unfold'notify
 
 structure leaseKey [GooseExts] where
   mk ::
@@ -5000,7 +5000,7 @@ noncomputable instance leaseKey.zero_val [GooseExts] : ZeroVal leaseKey :=
 @[irreducible] noncomputable def leaseKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   leaseKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_leaseKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'leaseKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold leaseKey.fields leaseKey.fieldsUnsealed :=
   ⟨by unfold leaseKey.fields; rfl⟩
 
@@ -5010,27 +5010,27 @@ noncomputable instance equals_unfold_leaseKey [GooseExts] [GoGlobalContext] :
 class leaseKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying leaseKey.underlying leaseKey
   underlying : go.UnderlyingDirectedEq leaseKey.ty leaseKey.underlying
-  get_response : ∀ (x : leaseKey), go.IsGoStepPureDetTagged under (StructFieldGet leaseKey.underlying go!"response") #x (Val #(x.response'))
-  set_response : ∀ (x : leaseKey) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet leaseKey.underlying go!"response") (PairV #x #y) (Val #(({ x with response' := y } : leaseKey)))
-  get_rev : ∀ (x : leaseKey), go.IsGoStepPureDetTagged under (StructFieldGet leaseKey.underlying go!"rev") #x (Val #(x.rev'))
-  set_rev : ∀ (x : leaseKey) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet leaseKey.underlying go!"rev") (PairV #x #y) (Val #(({ x with rev' := y } : leaseKey)))
-  get_waitc : ∀ (x : leaseKey), go.IsGoStepPureDetTagged under (StructFieldGet leaseKey.underlying go!"waitc") #x (Val #(x.waitc'))
-  set_waitc : ∀ (x : leaseKey) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet leaseKey.underlying go!"waitc") (PairV #x #y) (Val #(({ x with waitc' := y } : leaseKey)))
+  get'response : ∀ (x : leaseKey), go.IsGoStepPureDetTagged under (StructFieldGet leaseKey.underlying go!"response") #x (Val #(x.response'))
+  set'response : ∀ (x : leaseKey) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet leaseKey.underlying go!"response") (PairV #x #y) (Val #(({ x with response' := y } : leaseKey)))
+  get'rev : ∀ (x : leaseKey), go.IsGoStepPureDetTagged under (StructFieldGet leaseKey.underlying go!"rev") #x (Val #(x.rev'))
+  set'rev : ∀ (x : leaseKey) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet leaseKey.underlying go!"rev") (PairV #x #y) (Val #(({ x with rev' := y } : leaseKey)))
+  get'waitc : ∀ (x : leaseKey), go.IsGoStepPureDetTagged under (StructFieldGet leaseKey.underlying go!"waitc") #x (Val #(x.waitc'))
+  set'waitc : ∀ (x : leaseKey) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet leaseKey.underlying go!"waitc") (PairV #x #y) (Val #(({ x with waitc' := y } : leaseKey)))
   method_set : go.MethodSetIs leaseKey.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType leaseKey.ty) [(go!"go.etcd.io/etcd/client/v3/leasing.get", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)])))]
-  ptr_get_unfold : MethodUnfold (go.GoType.PointerType leaseKey.ty) go!"get" leaseKey.get.impl
+  ptr_unfold'get : MethodUnfold (go.GoType.PointerType leaseKey.ty) go!"get" leaseKey.get.impl
 
 attribute [instance] leaseKey.TypeAssumptions.type_repr
   leaseKey.TypeAssumptions.underlying
-  leaseKey.TypeAssumptions.get_response
-  leaseKey.TypeAssumptions.set_response
-  leaseKey.TypeAssumptions.get_rev
-  leaseKey.TypeAssumptions.set_rev
-  leaseKey.TypeAssumptions.get_waitc
-  leaseKey.TypeAssumptions.set_waitc
+  leaseKey.TypeAssumptions.get'response
+  leaseKey.TypeAssumptions.set'response
+  leaseKey.TypeAssumptions.get'rev
+  leaseKey.TypeAssumptions.set'rev
+  leaseKey.TypeAssumptions.get'waitc
+  leaseKey.TypeAssumptions.set'waitc
   leaseKey.TypeAssumptions.method_set
   leaseKey.TypeAssumptions.ptr_method_set
-  leaseKey.TypeAssumptions.ptr_get_unfold
+  leaseKey.TypeAssumptions.ptr_unfold'get
 
 structure leasingKV [GooseExts] where
   mk ::
@@ -5063,7 +5063,7 @@ noncomputable instance leasingKV.zero_val [GooseExts] : ZeroVal leasingKV :=
 @[irreducible] noncomputable def leasingKV.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   leasingKV.fieldsUnsealed
 
-noncomputable instance equals_unfold_leasingKV [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'leasingKV [GooseExts] [GoGlobalContext] :
     EqualsUnfold leasingKV.fields leasingKV.fieldsUnsealed :=
   ⟨by unfold leasingKV.fields; rfl⟩
 
@@ -5073,103 +5073,103 @@ noncomputable instance equals_unfold_leasingKV [GooseExts] [GoGlobalContext] :
 class leasingKV.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying leasingKV.underlying leasingKV
   underlying : go.UnderlyingDirectedEq leasingKV.ty leasingKV.underlying
-  get_cl : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"cl") #x (Val #(x.cl'))
-  set_cl : ∀ (x : leasingKV) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"cl") (PairV #x #y) (Val #(({ x with cl' := y } : leasingKV)))
-  get_kv : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"kv") #x (Val #(x.kv'))
-  set_kv : ∀ (x : leasingKV) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.KV), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"kv") (PairV #x #y) (Val #(({ x with kv' := y } : leasingKV)))
-  get_pfx : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"pfx") #x (Val #(x.pfx'))
-  set_pfx : ∀ (x : leasingKV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"pfx") (PairV #x #y) (Val #(({ x with pfx' := y } : leasingKV)))
-  get_leases : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"leases") #x (Val #(x.leases'))
-  set_leases : ∀ (x : leasingKV) (y : leaseCache), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"leases") (PairV #x #y) (Val #(({ x with leases' := y } : leasingKV)))
-  get_ctx : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"ctx") #x (Val #(x.ctx'))
-  set_ctx : ∀ (x : leasingKV) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : leasingKV)))
-  get_cancel : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"cancel") #x (Val #(x.cancel'))
-  set_cancel : ∀ (x : leasingKV) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : leasingKV)))
-  get_wg : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"wg") #x (Val #(x.wg'))
-  set_wg : ∀ (x : leasingKV) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : leasingKV)))
-  get_sessionOpts : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"sessionOpts") #x (Val #(x.sessionOpts'))
-  set_sessionOpts : ∀ (x : leasingKV) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"sessionOpts") (PairV #x #y) (Val #(({ x with sessionOpts' := y } : leasingKV)))
-  get_session : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"session") #x (Val #(x.session'))
-  set_session : ∀ (x : leasingKV) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"session") (PairV #x #y) (Val #(({ x with session' := y } : leasingKV)))
-  get_sessionc : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"sessionc") #x (Val #(x.sessionc'))
-  set_sessionc : ∀ (x : leasingKV) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"sessionc") (PairV #x #y) (Val #(({ x with sessionc' := y } : leasingKV)))
+  get'cl : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"cl") #x (Val #(x.cl'))
+  set'cl : ∀ (x : leasingKV) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"cl") (PairV #x #y) (Val #(({ x with cl' := y } : leasingKV)))
+  get'kv : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"kv") #x (Val #(x.kv'))
+  set'kv : ∀ (x : leasingKV) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.KV), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"kv") (PairV #x #y) (Val #(({ x with kv' := y } : leasingKV)))
+  get'pfx : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"pfx") #x (Val #(x.pfx'))
+  set'pfx : ∀ (x : leasingKV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"pfx") (PairV #x #y) (Val #(({ x with pfx' := y } : leasingKV)))
+  get'leases : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"leases") #x (Val #(x.leases'))
+  set'leases : ∀ (x : leasingKV) (y : leaseCache), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"leases") (PairV #x #y) (Val #(({ x with leases' := y } : leasingKV)))
+  get'ctx : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"ctx") #x (Val #(x.ctx'))
+  set'ctx : ∀ (x : leasingKV) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : leasingKV)))
+  get'cancel : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"cancel") #x (Val #(x.cancel'))
+  set'cancel : ∀ (x : leasingKV) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : leasingKV)))
+  get'wg : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"wg") #x (Val #(x.wg'))
+  set'wg : ∀ (x : leasingKV) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : leasingKV)))
+  get'sessionOpts : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"sessionOpts") #x (Val #(x.sessionOpts'))
+  set'sessionOpts : ∀ (x : leasingKV) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"sessionOpts") (PairV #x #y) (Val #(({ x with sessionOpts' := y } : leasingKV)))
+  get'session : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"session") #x (Val #(x.session'))
+  set'session : ∀ (x : leasingKV) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"session") (PairV #x #y) (Val #(({ x with session' := y } : leasingKV)))
+  get'sessionc : ∀ (x : leasingKV), go.IsGoStepPureDetTagged under (StructFieldGet leasingKV.underlying go!"sessionc") #x (Val #(x.sessionc'))
+  set'sessionc : ∀ (x : leasingKV) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet leasingKV.underlying go!"sessionc") (PairV #x #y) (Val #(({ x with sessionc' := y } : leasingKV)))
   method_set : go.MethodSetIs leasingKV.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType leasingKV.ty) [(go!"Close", (some (go.signature.Signature [] false []))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.CompactOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.CompactResponse.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.DeleteResponse.ty), go.error]))), (go!"Do", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [_root_.Perennial.go_etcd_io.etcd.client.v3.OpResponse.ty, go.error]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty), go.error]))), (go!"GetStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [_root_.Perennial.go_etcd_io.etcd.client.v3.GetStreamChan.ty, go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty]))), (go!"go.etcd.io/etcd/client/v3/leasing.acquire", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty), go.error]))), (go!"go.etcd.io/etcd/client/v3/leasing.delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.DeleteResponse.ty), go.error]))), (go!"go.etcd.io/etcd/client/v3/leasing.deleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.DeleteResponse.ty), go.error]))), (go!"go.etcd.io/etcd/client/v3/leasing.deleteRangeRPC", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.DeleteResponse.ty), go.error]))), (go!"go.etcd.io/etcd/client/v3/leasing.get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty), go.error]))), (go!"go.etcd.io/etcd/client/v3/leasing.leaseID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty]))), (go!"go.etcd.io/etcd/client/v3/leasing.monitorLease", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64] false []))), (go!"go.etcd.io/etcd/client/v3/leasing.monitorSession", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/client/v3/leasing.put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty), go.error]))), (go!"go.etcd.io/etcd/client/v3/leasing.readySession", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/client/v3/leasing.rescind", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64] false []))), (go!"go.etcd.io/etcd/client/v3/leasing.revoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty), go.error]))), (go!"go.etcd.io/etcd/client/v3/leasing.revokeLeaseKvs", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))] false [go.int64, go.error]))), (go!"go.etcd.io/etcd/client/v3/leasing.revokeRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [go.int64, go.error]))), (go!"go.etcd.io/etcd/client/v3/leasing.tryModifyOp", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty), (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.StructType [])), go.error]))), (go!"go.etcd.io/etcd/client/v3/leasing.waitRescind", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64] false [go.error]))), (go!"go.etcd.io/etcd/client/v3/leasing.waitSession", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"Close" leasingKV.Close.impl
-  ptr_Compact_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"Compact" leasingKV.Compact.impl
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"Delete" leasingKV.Delete.impl
-  ptr_Do_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"Do" leasingKV.Do.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"Get" leasingKV.Get.impl
-  ptr_GetStream_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"GetStream" leasingKV.GetStream.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"Put" leasingKV.Put.impl
-  ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"Txn" leasingKV.Txn.impl
-  ptr_acquire_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"acquire" leasingKV.acquire.impl
-  ptr_delete_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"delete" leasingKV.delete.impl
-  ptr_deleteRange_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"deleteRange" leasingKV.deleteRange.impl
-  ptr_deleteRangeRPC_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"deleteRangeRPC" leasingKV.deleteRangeRPC.impl
-  ptr_get_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"get" leasingKV.get.impl
-  ptr_leaseID_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"leaseID" leasingKV.leaseID.impl
-  ptr_monitorLease_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"monitorLease" leasingKV.monitorLease.impl
-  ptr_monitorSession_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"monitorSession" leasingKV.monitorSession.impl
-  ptr_put_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"put" leasingKV.put.impl
-  ptr_readySession_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"readySession" leasingKV.readySession.impl
-  ptr_rescind_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"rescind" leasingKV.rescind.impl
-  ptr_revoke_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"revoke" leasingKV.revoke.impl
-  ptr_revokeLeaseKvs_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"revokeLeaseKvs" leasingKV.revokeLeaseKvs.impl
-  ptr_revokeRange_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"revokeRange" leasingKV.revokeRange.impl
-  ptr_tryModifyOp_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"tryModifyOp" leasingKV.tryModifyOp.impl
-  ptr_waitRescind_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"waitRescind" leasingKV.waitRescind.impl
-  ptr_waitSession_unfold : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"waitSession" leasingKV.waitSession.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"Close" leasingKV.Close.impl
+  ptr_unfold'Compact : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"Compact" leasingKV.Compact.impl
+  ptr_unfold'Delete : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"Delete" leasingKV.Delete.impl
+  ptr_unfold'Do : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"Do" leasingKV.Do.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"Get" leasingKV.Get.impl
+  ptr_unfold'GetStream : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"GetStream" leasingKV.GetStream.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"Put" leasingKV.Put.impl
+  ptr_unfold'Txn : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"Txn" leasingKV.Txn.impl
+  ptr_unfold'acquire : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"acquire" leasingKV.acquire.impl
+  ptr_unfold'delete : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"delete" leasingKV.delete.impl
+  ptr_unfold'deleteRange : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"deleteRange" leasingKV.deleteRange.impl
+  ptr_unfold'deleteRangeRPC : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"deleteRangeRPC" leasingKV.deleteRangeRPC.impl
+  ptr_unfold'get : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"get" leasingKV.get.impl
+  ptr_unfold'leaseID : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"leaseID" leasingKV.leaseID.impl
+  ptr_unfold'monitorLease : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"monitorLease" leasingKV.monitorLease.impl
+  ptr_unfold'monitorSession : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"monitorSession" leasingKV.monitorSession.impl
+  ptr_unfold'put : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"put" leasingKV.put.impl
+  ptr_unfold'readySession : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"readySession" leasingKV.readySession.impl
+  ptr_unfold'rescind : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"rescind" leasingKV.rescind.impl
+  ptr_unfold'revoke : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"revoke" leasingKV.revoke.impl
+  ptr_unfold'revokeLeaseKvs : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"revokeLeaseKvs" leasingKV.revokeLeaseKvs.impl
+  ptr_unfold'revokeRange : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"revokeRange" leasingKV.revokeRange.impl
+  ptr_unfold'tryModifyOp : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"tryModifyOp" leasingKV.tryModifyOp.impl
+  ptr_unfold'waitRescind : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"waitRescind" leasingKV.waitRescind.impl
+  ptr_unfold'waitSession : MethodUnfold (go.GoType.PointerType leasingKV.ty) go!"waitSession" leasingKV.waitSession.impl
 
 attribute [instance] leasingKV.TypeAssumptions.type_repr
   leasingKV.TypeAssumptions.underlying
-  leasingKV.TypeAssumptions.get_cl
-  leasingKV.TypeAssumptions.set_cl
-  leasingKV.TypeAssumptions.get_kv
-  leasingKV.TypeAssumptions.set_kv
-  leasingKV.TypeAssumptions.get_pfx
-  leasingKV.TypeAssumptions.set_pfx
-  leasingKV.TypeAssumptions.get_leases
-  leasingKV.TypeAssumptions.set_leases
-  leasingKV.TypeAssumptions.get_ctx
-  leasingKV.TypeAssumptions.set_ctx
-  leasingKV.TypeAssumptions.get_cancel
-  leasingKV.TypeAssumptions.set_cancel
-  leasingKV.TypeAssumptions.get_wg
-  leasingKV.TypeAssumptions.set_wg
-  leasingKV.TypeAssumptions.get_sessionOpts
-  leasingKV.TypeAssumptions.set_sessionOpts
-  leasingKV.TypeAssumptions.get_session
-  leasingKV.TypeAssumptions.set_session
-  leasingKV.TypeAssumptions.get_sessionc
-  leasingKV.TypeAssumptions.set_sessionc
+  leasingKV.TypeAssumptions.get'cl
+  leasingKV.TypeAssumptions.set'cl
+  leasingKV.TypeAssumptions.get'kv
+  leasingKV.TypeAssumptions.set'kv
+  leasingKV.TypeAssumptions.get'pfx
+  leasingKV.TypeAssumptions.set'pfx
+  leasingKV.TypeAssumptions.get'leases
+  leasingKV.TypeAssumptions.set'leases
+  leasingKV.TypeAssumptions.get'ctx
+  leasingKV.TypeAssumptions.set'ctx
+  leasingKV.TypeAssumptions.get'cancel
+  leasingKV.TypeAssumptions.set'cancel
+  leasingKV.TypeAssumptions.get'wg
+  leasingKV.TypeAssumptions.set'wg
+  leasingKV.TypeAssumptions.get'sessionOpts
+  leasingKV.TypeAssumptions.set'sessionOpts
+  leasingKV.TypeAssumptions.get'session
+  leasingKV.TypeAssumptions.set'session
+  leasingKV.TypeAssumptions.get'sessionc
+  leasingKV.TypeAssumptions.set'sessionc
   leasingKV.TypeAssumptions.method_set
   leasingKV.TypeAssumptions.ptr_method_set
-  leasingKV.TypeAssumptions.ptr_Close_unfold
-  leasingKV.TypeAssumptions.ptr_Compact_unfold
-  leasingKV.TypeAssumptions.ptr_Delete_unfold
-  leasingKV.TypeAssumptions.ptr_Do_unfold
-  leasingKV.TypeAssumptions.ptr_Get_unfold
-  leasingKV.TypeAssumptions.ptr_GetStream_unfold
-  leasingKV.TypeAssumptions.ptr_Put_unfold
-  leasingKV.TypeAssumptions.ptr_Txn_unfold
-  leasingKV.TypeAssumptions.ptr_acquire_unfold
-  leasingKV.TypeAssumptions.ptr_delete_unfold
-  leasingKV.TypeAssumptions.ptr_deleteRange_unfold
-  leasingKV.TypeAssumptions.ptr_deleteRangeRPC_unfold
-  leasingKV.TypeAssumptions.ptr_get_unfold
-  leasingKV.TypeAssumptions.ptr_leaseID_unfold
-  leasingKV.TypeAssumptions.ptr_monitorLease_unfold
-  leasingKV.TypeAssumptions.ptr_monitorSession_unfold
-  leasingKV.TypeAssumptions.ptr_put_unfold
-  leasingKV.TypeAssumptions.ptr_readySession_unfold
-  leasingKV.TypeAssumptions.ptr_rescind_unfold
-  leasingKV.TypeAssumptions.ptr_revoke_unfold
-  leasingKV.TypeAssumptions.ptr_revokeLeaseKvs_unfold
-  leasingKV.TypeAssumptions.ptr_revokeRange_unfold
-  leasingKV.TypeAssumptions.ptr_tryModifyOp_unfold
-  leasingKV.TypeAssumptions.ptr_waitRescind_unfold
-  leasingKV.TypeAssumptions.ptr_waitSession_unfold
+  leasingKV.TypeAssumptions.ptr_unfold'Close
+  leasingKV.TypeAssumptions.ptr_unfold'Compact
+  leasingKV.TypeAssumptions.ptr_unfold'Delete
+  leasingKV.TypeAssumptions.ptr_unfold'Do
+  leasingKV.TypeAssumptions.ptr_unfold'Get
+  leasingKV.TypeAssumptions.ptr_unfold'GetStream
+  leasingKV.TypeAssumptions.ptr_unfold'Put
+  leasingKV.TypeAssumptions.ptr_unfold'Txn
+  leasingKV.TypeAssumptions.ptr_unfold'acquire
+  leasingKV.TypeAssumptions.ptr_unfold'delete
+  leasingKV.TypeAssumptions.ptr_unfold'deleteRange
+  leasingKV.TypeAssumptions.ptr_unfold'deleteRangeRPC
+  leasingKV.TypeAssumptions.ptr_unfold'get
+  leasingKV.TypeAssumptions.ptr_unfold'leaseID
+  leasingKV.TypeAssumptions.ptr_unfold'monitorLease
+  leasingKV.TypeAssumptions.ptr_unfold'monitorSession
+  leasingKV.TypeAssumptions.ptr_unfold'put
+  leasingKV.TypeAssumptions.ptr_unfold'readySession
+  leasingKV.TypeAssumptions.ptr_unfold'rescind
+  leasingKV.TypeAssumptions.ptr_unfold'revoke
+  leasingKV.TypeAssumptions.ptr_unfold'revokeLeaseKvs
+  leasingKV.TypeAssumptions.ptr_unfold'revokeRange
+  leasingKV.TypeAssumptions.ptr_unfold'tryModifyOp
+  leasingKV.TypeAssumptions.ptr_unfold'waitRescind
+  leasingKV.TypeAssumptions.ptr_unfold'waitSession
 
 structure txnLeasing [GooseExts] where
   mk ::
@@ -5194,7 +5194,7 @@ noncomputable instance txnLeasing.zero_val [GooseExts] : ZeroVal txnLeasing :=
 @[irreducible] noncomputable def txnLeasing.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   txnLeasing.fieldsUnsealed
 
-noncomputable instance equals_unfold_txnLeasing [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'txnLeasing [GooseExts] [GoGlobalContext] :
     EqualsUnfold txnLeasing.fields txnLeasing.fieldsUnsealed :=
   ⟨by unfold txnLeasing.fields; rfl⟩
 
@@ -5204,122 +5204,122 @@ noncomputable instance equals_unfold_txnLeasing [GooseExts] [GoGlobalContext] :
 class txnLeasing.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying txnLeasing.underlying txnLeasing
   underlying : go.UnderlyingDirectedEq txnLeasing.ty txnLeasing.underlying
-  get_Txn : ∀ (x : txnLeasing), go.IsGoStepPureDetTagged under (StructFieldGet txnLeasing.underlying go!"Txn") #x (Val #(x.Txn'))
-  set_Txn : ∀ (x : txnLeasing) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.Txn), go.IsGoStepPureDetTagged under (StructFieldSet txnLeasing.underlying go!"Txn") (PairV #x #y) (Val #(({ x with Txn' := y } : txnLeasing)))
-  get_lkv : ∀ (x : txnLeasing), go.IsGoStepPureDetTagged under (StructFieldGet txnLeasing.underlying go!"lkv") #x (Val #(x.lkv'))
-  set_lkv : ∀ (x : txnLeasing) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet txnLeasing.underlying go!"lkv") (PairV #x #y) (Val #(({ x with lkv' := y } : txnLeasing)))
-  get_ctx : ∀ (x : txnLeasing), go.IsGoStepPureDetTagged under (StructFieldGet txnLeasing.underlying go!"ctx") #x (Val #(x.ctx'))
-  set_ctx : ∀ (x : txnLeasing) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet txnLeasing.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : txnLeasing)))
-  get_cs : ∀ (x : txnLeasing), go.IsGoStepPureDetTagged under (StructFieldGet txnLeasing.underlying go!"cs") #x (Val #(x.cs'))
-  set_cs : ∀ (x : txnLeasing) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet txnLeasing.underlying go!"cs") (PairV #x #y) (Val #(({ x with cs' := y } : txnLeasing)))
-  get_opst : ∀ (x : txnLeasing), go.IsGoStepPureDetTagged under (StructFieldGet txnLeasing.underlying go!"opst") #x (Val #(x.opst'))
-  set_opst : ∀ (x : txnLeasing) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet txnLeasing.underlying go!"opst") (PairV #x #y) (Val #(({ x with opst' := y } : txnLeasing)))
-  get_opse : ∀ (x : txnLeasing), go.IsGoStepPureDetTagged under (StructFieldGet txnLeasing.underlying go!"opse") #x (Val #(x.opse'))
-  set_opse : ∀ (x : txnLeasing) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet txnLeasing.underlying go!"opse") (PairV #x #y) (Val #(({ x with opse' := y } : txnLeasing)))
+  get'Txn : ∀ (x : txnLeasing), go.IsGoStepPureDetTagged under (StructFieldGet txnLeasing.underlying go!"Txn") #x (Val #(x.Txn'))
+  set'Txn : ∀ (x : txnLeasing) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.Txn), go.IsGoStepPureDetTagged under (StructFieldSet txnLeasing.underlying go!"Txn") (PairV #x #y) (Val #(({ x with Txn' := y } : txnLeasing)))
+  get'lkv : ∀ (x : txnLeasing), go.IsGoStepPureDetTagged under (StructFieldGet txnLeasing.underlying go!"lkv") #x (Val #(x.lkv'))
+  set'lkv : ∀ (x : txnLeasing) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet txnLeasing.underlying go!"lkv") (PairV #x #y) (Val #(({ x with lkv' := y } : txnLeasing)))
+  get'ctx : ∀ (x : txnLeasing), go.IsGoStepPureDetTagged under (StructFieldGet txnLeasing.underlying go!"ctx") #x (Val #(x.ctx'))
+  set'ctx : ∀ (x : txnLeasing) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet txnLeasing.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : txnLeasing)))
+  get'cs : ∀ (x : txnLeasing), go.IsGoStepPureDetTagged under (StructFieldGet txnLeasing.underlying go!"cs") #x (Val #(x.cs'))
+  set'cs : ∀ (x : txnLeasing) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet txnLeasing.underlying go!"cs") (PairV #x #y) (Val #(({ x with cs' := y } : txnLeasing)))
+  get'opst : ∀ (x : txnLeasing), go.IsGoStepPureDetTagged under (StructFieldGet txnLeasing.underlying go!"opst") #x (Val #(x.opst'))
+  set'opst : ∀ (x : txnLeasing) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet txnLeasing.underlying go!"opst") (PairV #x #y) (Val #(({ x with opst' := y } : txnLeasing)))
+  get'opse : ∀ (x : txnLeasing), go.IsGoStepPureDetTagged under (StructFieldGet txnLeasing.underlying go!"opse") #x (Val #(x.opse'))
+  set'opse : ∀ (x : txnLeasing) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet txnLeasing.underlying go!"opse") (PairV #x #y) (Val #(({ x with opse' := y } : txnLeasing)))
   method_set : go.MethodSetIs txnLeasing.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType txnLeasing.ty) [(go!"Commit", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty), go.error]))), (go!"Else", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)] true [_root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty]))), (go!"If", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)] true [_root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty]))), (go!"Then", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)] true [_root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty]))), (go!"go.etcd.io/etcd/client/v3/leasing.commitToCache", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false []))), (go!"go.etcd.io/etcd/client/v3/leasing.eval", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty), go.error]))), (go!"go.etcd.io/etcd/client/v3/leasing.fallback", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)]))), (go!"go.etcd.io/etcd/client/v3/leasing.guard", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty), go.error]))), (go!"go.etcd.io/etcd/client/v3/leasing.guardKeys", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)]))), (go!"go.etcd.io/etcd/client/v3/leasing.guardRanges", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty), go.error]))), (go!"go.etcd.io/etcd/client/v3/leasing.revokeFallback", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty))] false [go.error]))), (go!"go.etcd.io/etcd/client/v3/leasing.serverTxn", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty), go.error])))]
-  ptr_Commit_unfold : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"Commit" txnLeasing.Commit.impl
-  ptr_Else_unfold : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"Else" txnLeasing.Else.impl
-  ptr_If_unfold : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"If" txnLeasing.If.impl
-  ptr_Then_unfold : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"Then" txnLeasing.Then.impl
-  ptr_commitToCache_unfold : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"commitToCache" txnLeasing.commitToCache.impl
-  ptr_eval_unfold : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"eval" txnLeasing.eval.impl
-  ptr_fallback_unfold : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"fallback" txnLeasing.fallback.impl
-  ptr_guard_unfold : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"guard" txnLeasing.guard.impl
-  ptr_guardKeys_unfold : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"guardKeys" txnLeasing.guardKeys.impl
-  ptr_guardRanges_unfold : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"guardRanges" txnLeasing.guardRanges.impl
-  ptr_revokeFallback_unfold : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"revokeFallback" txnLeasing.revokeFallback.impl
-  ptr_serverTxn_unfold : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"serverTxn" txnLeasing.serverTxn.impl
+  ptr_unfold'Commit : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"Commit" txnLeasing.Commit.impl
+  ptr_unfold'Else : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"Else" txnLeasing.Else.impl
+  ptr_unfold'If : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"If" txnLeasing.If''.impl
+  ptr_unfold'Then : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"Then" txnLeasing.Then.impl
+  ptr_unfold'commitToCache : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"commitToCache" txnLeasing.commitToCache.impl
+  ptr_unfold'eval : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"eval" txnLeasing.eval.impl
+  ptr_unfold'fallback : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"fallback" txnLeasing.fallback.impl
+  ptr_unfold'guard : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"guard" txnLeasing.guard.impl
+  ptr_unfold'guardKeys : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"guardKeys" txnLeasing.guardKeys.impl
+  ptr_unfold'guardRanges : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"guardRanges" txnLeasing.guardRanges.impl
+  ptr_unfold'revokeFallback : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"revokeFallback" txnLeasing.revokeFallback.impl
+  ptr_unfold'serverTxn : MethodUnfold (go.GoType.PointerType txnLeasing.ty) go!"serverTxn" txnLeasing.serverTxn.impl
 
 attribute [instance] txnLeasing.TypeAssumptions.type_repr
   txnLeasing.TypeAssumptions.underlying
-  txnLeasing.TypeAssumptions.get_Txn
-  txnLeasing.TypeAssumptions.set_Txn
-  txnLeasing.TypeAssumptions.get_lkv
-  txnLeasing.TypeAssumptions.set_lkv
-  txnLeasing.TypeAssumptions.get_ctx
-  txnLeasing.TypeAssumptions.set_ctx
-  txnLeasing.TypeAssumptions.get_cs
-  txnLeasing.TypeAssumptions.set_cs
-  txnLeasing.TypeAssumptions.get_opst
-  txnLeasing.TypeAssumptions.set_opst
-  txnLeasing.TypeAssumptions.get_opse
-  txnLeasing.TypeAssumptions.set_opse
+  txnLeasing.TypeAssumptions.get'Txn
+  txnLeasing.TypeAssumptions.set'Txn
+  txnLeasing.TypeAssumptions.get'lkv
+  txnLeasing.TypeAssumptions.set'lkv
+  txnLeasing.TypeAssumptions.get'ctx
+  txnLeasing.TypeAssumptions.set'ctx
+  txnLeasing.TypeAssumptions.get'cs
+  txnLeasing.TypeAssumptions.set'cs
+  txnLeasing.TypeAssumptions.get'opst
+  txnLeasing.TypeAssumptions.set'opst
+  txnLeasing.TypeAssumptions.get'opse
+  txnLeasing.TypeAssumptions.set'opse
   txnLeasing.TypeAssumptions.method_set
   txnLeasing.TypeAssumptions.ptr_method_set
-  txnLeasing.TypeAssumptions.ptr_Commit_unfold
-  txnLeasing.TypeAssumptions.ptr_Else_unfold
-  txnLeasing.TypeAssumptions.ptr_If_unfold
-  txnLeasing.TypeAssumptions.ptr_Then_unfold
-  txnLeasing.TypeAssumptions.ptr_commitToCache_unfold
-  txnLeasing.TypeAssumptions.ptr_eval_unfold
-  txnLeasing.TypeAssumptions.ptr_fallback_unfold
-  txnLeasing.TypeAssumptions.ptr_guard_unfold
-  txnLeasing.TypeAssumptions.ptr_guardKeys_unfold
-  txnLeasing.TypeAssumptions.ptr_guardRanges_unfold
-  txnLeasing.TypeAssumptions.ptr_revokeFallback_unfold
-  txnLeasing.TypeAssumptions.ptr_serverTxn_unfold
+  txnLeasing.TypeAssumptions.ptr_unfold'Commit
+  txnLeasing.TypeAssumptions.ptr_unfold'Else
+  txnLeasing.TypeAssumptions.ptr_unfold'If
+  txnLeasing.TypeAssumptions.ptr_unfold'Then
+  txnLeasing.TypeAssumptions.ptr_unfold'commitToCache
+  txnLeasing.TypeAssumptions.ptr_unfold'eval
+  txnLeasing.TypeAssumptions.ptr_unfold'fallback
+  txnLeasing.TypeAssumptions.ptr_unfold'guard
+  txnLeasing.TypeAssumptions.ptr_unfold'guardKeys
+  txnLeasing.TypeAssumptions.ptr_unfold'guardRanges
+  txnLeasing.TypeAssumptions.ptr_unfold'revokeFallback
+  txnLeasing.TypeAssumptions.ptr_unfold'serverTxn
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  leaseCache_instance : leaseCache.TypeAssumptions
-  leaseKey_instance : leaseKey.TypeAssumptions
-  leasingKV_instance : leasingKV.TypeAssumptions
-  txnLeasing_instance : txnLeasing.TypeAssumptions
-  inRange_unfold : FuncUnfold inRange [] inRange.impl
-  isBadOp_unfold : FuncUnfold isBadOp [] isBadOp.impl
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  NewKV_unfold : FuncUnfold NewKV [] NewKV.impl
-  compareInt64_unfold : FuncUnfold compareInt64 [] compareInt64.impl
-  evalCmp_unfold : FuncUnfold evalCmp [] evalCmp.impl
-  gatherOps_unfold : FuncUnfold gatherOps [] gatherOps.impl
-  gatherResponseOps_unfold : FuncUnfold gatherResponseOps [] gatherResponseOps.impl
-  copyHeader_unfold : FuncUnfold copyHeader [] copyHeader.impl
-  copyGetResponseMetadataOnly_unfold : FuncUnfold copyGetResponseMetadataOnly [] copyGetResponseMetadataOnly.impl
-  copyKeyValue_unfold : FuncUnfold copyKeyValue [] copyKeyValue.impl
-  closeAll_unfold : FuncUnfold closeAll [] closeAll.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_codes_Assumption : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
-  import_status_Assumption : _root_.Perennial.google_golang_org.grpc.status.Assumptions
-  import_rpctypes_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions
-  import_concurrency_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions
-  import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
+  instance'leaseCache : leaseCache.TypeAssumptions
+  instance'leaseKey : leaseKey.TypeAssumptions
+  instance'leasingKV : leasingKV.TypeAssumptions
+  instance'txnLeasing : txnLeasing.TypeAssumptions
+  unfold'inRange : FuncUnfold inRange [] inRange.impl
+  unfold'isBadOp : FuncUnfold isBadOp [] isBadOp.impl
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'NewKV : FuncUnfold NewKV [] NewKV.impl
+  unfold'compareInt64 : FuncUnfold compareInt64 [] compareInt64.impl
+  unfold'evalCmp : FuncUnfold evalCmp [] evalCmp.impl
+  unfold'gatherOps : FuncUnfold gatherOps [] gatherOps.impl
+  unfold'gatherResponseOps : FuncUnfold gatherResponseOps [] gatherResponseOps.impl
+  unfold'copyHeader : FuncUnfold copyHeader [] copyHeader.impl
+  unfold'copyGetResponseMetadataOnly : FuncUnfold copyGetResponseMetadataOnly [] copyGetResponseMetadataOnly.impl
+  unfold'copyKeyValue : FuncUnfold copyKeyValue [] copyKeyValue.impl
+  unfold'closeAll : FuncUnfold closeAll [] closeAll.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'mvccpb : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'codes : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
+  import'status : _root_.Perennial.google_golang_org.grpc.status.Assumptions
+  import'rpctypes : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions
+  import'concurrency : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions
+  import'bytes : _root_.Perennial.bytes.Assumptions
 
-attribute [instance] Assumptions.leaseCache_instance
-  Assumptions.leaseKey_instance
-  Assumptions.leasingKV_instance
-  Assumptions.txnLeasing_instance
-  Assumptions.inRange_unfold
-  Assumptions.isBadOp_unfold
-  Assumptions.«init.0_unfold»
-  Assumptions.NewKV_unfold
-  Assumptions.compareInt64_unfold
-  Assumptions.evalCmp_unfold
-  Assumptions.gatherOps_unfold
-  Assumptions.gatherResponseOps_unfold
-  Assumptions.copyHeader_unfold
-  Assumptions.copyGetResponseMetadataOnly_unfold
-  Assumptions.copyKeyValue_unfold
-  Assumptions.closeAll_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_mvccpb_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_codes_Assumption
-  Assumptions.import_status_Assumption
-  Assumptions.import_rpctypes_Assumption
-  Assumptions.import_concurrency_Assumption
-  Assumptions.import_bytes_Assumption
+attribute [instance] Assumptions.instance'leaseCache
+  Assumptions.instance'leaseKey
+  Assumptions.instance'leasingKV
+  Assumptions.instance'txnLeasing
+  Assumptions.unfold'inRange
+  Assumptions.unfold'isBadOp
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'NewKV
+  Assumptions.unfold'compareInt64
+  Assumptions.unfold'evalCmp
+  Assumptions.unfold'gatherOps
+  Assumptions.unfold'gatherResponseOps
+  Assumptions.unfold'copyHeader
+  Assumptions.unfold'copyGetResponseMetadataOnly
+  Assumptions.unfold'copyKeyValue
+  Assumptions.unfold'closeAll
+  Assumptions.import'context
+  Assumptions.import'strings
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'etcdserverpb
+  Assumptions.import'mvccpb
+  Assumptions.import'clientv3
+  Assumptions.import'errors
+  Assumptions.import'codes
+  Assumptions.import'status
+  Assumptions.import'rpctypes
+  Assumptions.import'concurrency
+  Assumptions.import'bytes
 
 end go_etcd_io.etcd.client.v3.leasing
 

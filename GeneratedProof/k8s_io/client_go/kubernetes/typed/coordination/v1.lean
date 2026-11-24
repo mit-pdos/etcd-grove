@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1.Assumptions]
 
-noncomputable instance CoordinationV1Interface_typed_pointsto :
+noncomputable instance typed_pointsto'CoordinationV1Interface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1.CoordinationV1Interface :=
   sorry -- axiomatized type
 
-noncomputable instance CoordinationV1Interface_into_val_typed :
+noncomputable instance into_val_typed'CoordinationV1Interface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1.CoordinationV1Interface k8s_io.client_go.kubernetes.typed.coordination.v1.CoordinationV1Interface.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1.Assumptions]
 
-noncomputable instance CoordinationV1Client_typed_pointsto :
+noncomputable instance typed_pointsto'CoordinationV1Client :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1.CoordinationV1Client :=
   sorry -- axiomatized type
 
-noncomputable instance CoordinationV1Client_into_val_typed :
+noncomputable instance into_val_typed'CoordinationV1Client :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1.CoordinationV1Client k8s_io.client_go.kubernetes.typed.coordination.v1.CoordinationV1Client.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1.Assumptions]
 
-noncomputable instance LeaseExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'LeaseExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1.LeaseExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance LeaseExpansion_into_val_typed :
+noncomputable instance into_val_typed'LeaseExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1.LeaseExpansion k8s_io.client_go.kubernetes.typed.coordination.v1.LeaseExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1.Assumptions]
 
-noncomputable instance LeasesGetter_typed_pointsto :
+noncomputable instance typed_pointsto'LeasesGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1.LeasesGetter :=
   sorry -- axiomatized type
 
-noncomputable instance LeasesGetter_into_val_typed :
+noncomputable instance into_val_typed'LeasesGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1.LeasesGetter k8s_io.client_go.kubernetes.typed.coordination.v1.LeasesGetter.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1.Assumptions]
 
-noncomputable instance LeaseInterface_typed_pointsto :
+noncomputable instance typed_pointsto'LeaseInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1.LeaseInterface :=
   sorry -- axiomatized type
 
-noncomputable instance LeaseInterface_into_val_typed :
+noncomputable instance into_val_typed'LeaseInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1.LeaseInterface k8s_io.client_go.kubernetes.typed.coordination.v1.LeaseInterface.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1.Assumptions]
 
-noncomputable instance leases_typed_pointsto :
+noncomputable instance typed_pointsto'leases :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1.leases :=
   sorry -- axiomatized type
 
-noncomputable instance leases_into_val_typed :
+noncomputable instance into_val_typed'leases :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1.leases k8s_io.client_go.kubernetes.typed.coordination.v1.leases.underlying :=
   sorry -- axiomatized type
 

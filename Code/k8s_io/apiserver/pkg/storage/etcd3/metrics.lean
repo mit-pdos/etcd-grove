@@ -283,7 +283,7 @@ noncomputable instance StorageMetrics.zero_val [GooseExts] : ZeroVal StorageMetr
 @[irreducible] noncomputable def StorageMetrics.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StorageMetrics.fieldsUnsealed
 
-noncomputable instance equals_unfold_StorageMetrics [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'StorageMetrics [GooseExts] [GoGlobalContext] :
     EqualsUnfold StorageMetrics.fields StorageMetrics.fieldsUnsealed :=
   ⟨by unfold StorageMetrics.fields; rfl⟩
 
@@ -293,15 +293,15 @@ noncomputable instance equals_unfold_StorageMetrics [GooseExts] [GoGlobalContext
 class StorageMetrics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StorageMetrics.underlying StorageMetrics
   underlying : go.UnderlyingDirectedEq StorageMetrics.ty StorageMetrics.underlying
-  get_Size : ∀ (x : StorageMetrics), go.IsGoStepPureDetTagged under (StructFieldGet StorageMetrics.underlying go!"Size") #x (Val #(x.Size'))
-  set_Size : ∀ (x : StorageMetrics) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet StorageMetrics.underlying go!"Size") (PairV #x #y) (Val #(({ x with Size' := y } : StorageMetrics)))
+  get'Size : ∀ (x : StorageMetrics), go.IsGoStepPureDetTagged under (StructFieldGet StorageMetrics.underlying go!"Size") #x (Val #(x.Size'))
+  set'Size : ∀ (x : StorageMetrics) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet StorageMetrics.underlying go!"Size") (PairV #x #y) (Val #(({ x with Size' := y } : StorageMetrics)))
   method_set : go.MethodSetIs StorageMetrics.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType StorageMetrics.ty) []
 
 attribute [instance] StorageMetrics.TypeAssumptions.type_repr
   StorageMetrics.TypeAssumptions.underlying
-  StorageMetrics.TypeAssumptions.get_Size
-  StorageMetrics.TypeAssumptions.set_Size
+  StorageMetrics.TypeAssumptions.get'Size
+  StorageMetrics.TypeAssumptions.set'Size
   StorageMetrics.TypeAssumptions.method_set
   StorageMetrics.TypeAssumptions.ptr_method_set
 
@@ -343,7 +343,7 @@ noncomputable instance OperationLatencyTracker.zero_val [GooseExts] : ZeroVal Op
 @[irreducible] noncomputable def OperationLatencyTracker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   OperationLatencyTracker.fieldsUnsealed
 
-noncomputable instance equals_unfold_OperationLatencyTracker [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'OperationLatencyTracker [GooseExts] [GoGlobalContext] :
     EqualsUnfold OperationLatencyTracker.fields OperationLatencyTracker.fieldsUnsealed :=
   ⟨by unfold OperationLatencyTracker.fields; rfl⟩
 
@@ -353,27 +353,27 @@ noncomputable instance equals_unfold_OperationLatencyTracker [GooseExts] [GoGlob
 class OperationLatencyTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying OperationLatencyTracker.underlying OperationLatencyTracker
   underlying : go.UnderlyingDirectedEq OperationLatencyTracker.ty OperationLatencyTracker.underlying
-  get_verb : ∀ (x : OperationLatencyTracker), go.IsGoStepPureDetTagged under (StructFieldGet OperationLatencyTracker.underlying go!"verb") #x (Val #(x.verb'))
-  set_verb : ∀ (x : OperationLatencyTracker) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet OperationLatencyTracker.underlying go!"verb") (PairV #x #y) (Val #(({ x with verb' := y } : OperationLatencyTracker)))
-  get_groupResource : ∀ (x : OperationLatencyTracker), go.IsGoStepPureDetTagged under (StructFieldGet OperationLatencyTracker.underlying go!"groupResource") #x (Val #(x.groupResource'))
-  set_groupResource : ∀ (x : OperationLatencyTracker) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource), go.IsGoStepPureDetTagged under (StructFieldSet OperationLatencyTracker.underlying go!"groupResource") (PairV #x #y) (Val #(({ x with groupResource' := y } : OperationLatencyTracker)))
-  get_latency : ∀ (x : OperationLatencyTracker), go.IsGoStepPureDetTagged under (StructFieldGet OperationLatencyTracker.underlying go!"latency") #x (Val #(x.latency'))
-  set_latency : ∀ (x : OperationLatencyTracker) (y : _root_.Perennial.k8s_io.component_base.metrics.ObserverMetric), go.IsGoStepPureDetTagged under (StructFieldSet OperationLatencyTracker.underlying go!"latency") (PairV #x #y) (Val #(({ x with latency' := y } : OperationLatencyTracker)))
-  get_requests : ∀ (x : OperationLatencyTracker), go.IsGoStepPureDetTagged under (StructFieldGet OperationLatencyTracker.underlying go!"requests") #x (Val #(x.requests'))
-  set_requests : ∀ (x : OperationLatencyTracker) (y : _root_.Perennial.k8s_io.component_base.metrics.CounterMetric), go.IsGoStepPureDetTagged under (StructFieldSet OperationLatencyTracker.underlying go!"requests") (PairV #x #y) (Val #(({ x with requests' := y } : OperationLatencyTracker)))
+  get'verb : ∀ (x : OperationLatencyTracker), go.IsGoStepPureDetTagged under (StructFieldGet OperationLatencyTracker.underlying go!"verb") #x (Val #(x.verb'))
+  set'verb : ∀ (x : OperationLatencyTracker) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet OperationLatencyTracker.underlying go!"verb") (PairV #x #y) (Val #(({ x with verb' := y } : OperationLatencyTracker)))
+  get'groupResource : ∀ (x : OperationLatencyTracker), go.IsGoStepPureDetTagged under (StructFieldGet OperationLatencyTracker.underlying go!"groupResource") #x (Val #(x.groupResource'))
+  set'groupResource : ∀ (x : OperationLatencyTracker) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource), go.IsGoStepPureDetTagged under (StructFieldSet OperationLatencyTracker.underlying go!"groupResource") (PairV #x #y) (Val #(({ x with groupResource' := y } : OperationLatencyTracker)))
+  get'latency : ∀ (x : OperationLatencyTracker), go.IsGoStepPureDetTagged under (StructFieldGet OperationLatencyTracker.underlying go!"latency") #x (Val #(x.latency'))
+  set'latency : ∀ (x : OperationLatencyTracker) (y : _root_.Perennial.k8s_io.component_base.metrics.ObserverMetric), go.IsGoStepPureDetTagged under (StructFieldSet OperationLatencyTracker.underlying go!"latency") (PairV #x #y) (Val #(({ x with latency' := y } : OperationLatencyTracker)))
+  get'requests : ∀ (x : OperationLatencyTracker), go.IsGoStepPureDetTagged under (StructFieldGet OperationLatencyTracker.underlying go!"requests") #x (Val #(x.requests'))
+  set'requests : ∀ (x : OperationLatencyTracker) (y : _root_.Perennial.k8s_io.component_base.metrics.CounterMetric), go.IsGoStepPureDetTagged under (StructFieldSet OperationLatencyTracker.underlying go!"requests") (PairV #x #y) (Val #(({ x with requests' := y } : OperationLatencyTracker)))
   method_set : go.MethodSetIs OperationLatencyTracker.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType OperationLatencyTracker.ty) [(go!"Record", (some (go.signature.Signature [go.error, (go.GoType.Named go!"time.Time" [])] false [])))]
 
 attribute [instance] OperationLatencyTracker.TypeAssumptions.type_repr
   OperationLatencyTracker.TypeAssumptions.underlying
-  OperationLatencyTracker.TypeAssumptions.get_verb
-  OperationLatencyTracker.TypeAssumptions.set_verb
-  OperationLatencyTracker.TypeAssumptions.get_groupResource
-  OperationLatencyTracker.TypeAssumptions.set_groupResource
-  OperationLatencyTracker.TypeAssumptions.get_latency
-  OperationLatencyTracker.TypeAssumptions.set_latency
-  OperationLatencyTracker.TypeAssumptions.get_requests
-  OperationLatencyTracker.TypeAssumptions.set_requests
+  OperationLatencyTracker.TypeAssumptions.get'verb
+  OperationLatencyTracker.TypeAssumptions.set'verb
+  OperationLatencyTracker.TypeAssumptions.get'groupResource
+  OperationLatencyTracker.TypeAssumptions.set'groupResource
+  OperationLatencyTracker.TypeAssumptions.get'latency
+  OperationLatencyTracker.TypeAssumptions.set'latency
+  OperationLatencyTracker.TypeAssumptions.get'requests
+  OperationLatencyTracker.TypeAssumptions.set'requests
   OperationLatencyTracker.TypeAssumptions.method_set
   OperationLatencyTracker.TypeAssumptions.ptr_method_set
 
@@ -390,7 +390,7 @@ noncomputable instance EtcdMetricsTracker.zero_val [GooseExts] : ZeroVal EtcdMet
 @[irreducible] noncomputable def EtcdMetricsTracker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EtcdMetricsTracker.fieldsUnsealed
 
-noncomputable instance equals_unfold_EtcdMetricsTracker [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'EtcdMetricsTracker [GooseExts] [GoGlobalContext] :
     EqualsUnfold EtcdMetricsTracker.fields EtcdMetricsTracker.fieldsUnsealed :=
   ⟨by unfold EtcdMetricsTracker.fields; rfl⟩
 
@@ -400,15 +400,15 @@ noncomputable instance equals_unfold_EtcdMetricsTracker [GooseExts] [GoGlobalCon
 class EtcdMetricsTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EtcdMetricsTracker.underlying EtcdMetricsTracker
   underlying : go.UnderlyingDirectedEq EtcdMetricsTracker.ty EtcdMetricsTracker.underlying
-  get_Get : ∀ (x : EtcdMetricsTracker), go.IsGoStepPureDetTagged under (StructFieldGet EtcdMetricsTracker.underlying go!"Get") #x (Val #(x.Get'))
-  set_Get : ∀ (x : EtcdMetricsTracker) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdMetricsTracker.underlying go!"Get") (PairV #x #y) (Val #(({ x with Get' := y } : EtcdMetricsTracker)))
+  get'Get : ∀ (x : EtcdMetricsTracker), go.IsGoStepPureDetTagged under (StructFieldGet EtcdMetricsTracker.underlying go!"Get") #x (Val #(x.Get'))
+  set'Get : ∀ (x : EtcdMetricsTracker) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EtcdMetricsTracker.underlying go!"Get") (PairV #x #y) (Val #(({ x with Get' := y } : EtcdMetricsTracker)))
   method_set : go.MethodSetIs EtcdMetricsTracker.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType EtcdMetricsTracker.ty) []
 
 attribute [instance] EtcdMetricsTracker.TypeAssumptions.type_repr
   EtcdMetricsTracker.TypeAssumptions.underlying
-  EtcdMetricsTracker.TypeAssumptions.get_Get
-  EtcdMetricsTracker.TypeAssumptions.set_Get
+  EtcdMetricsTracker.TypeAssumptions.get'Get
+  EtcdMetricsTracker.TypeAssumptions.set'Get
   EtcdMetricsTracker.TypeAssumptions.method_set
   EtcdMetricsTracker.TypeAssumptions.ptr_method_set
 
@@ -451,27 +451,27 @@ attribute [instance] timestampedSample.TypeAssumptions.type_repr
   timestampedSample.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Monitor_instance : Monitor.TypeAssumptions
-  StorageMetrics_instance : StorageMetrics.TypeAssumptions
-  monitorCollector_instance : monitorCollector.TypeAssumptions
-  OperationLatencyTracker_instance : OperationLatencyTracker.TypeAssumptions
-  EtcdMetricsTracker_instance : EtcdMetricsTracker.TypeAssumptions
-  timestampedResourceGaugeCollector_instance : timestampedResourceGaugeCollector.TypeAssumptions
-  timestampedSample_instance : timestampedSample.TypeAssumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_schema_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
-  import_metrics_Assumption : _root_.Perennial.k8s_io.component_base.metrics.Assumptions
+  instance'Monitor : Monitor.TypeAssumptions
+  instance'StorageMetrics : StorageMetrics.TypeAssumptions
+  instance'monitorCollector : monitorCollector.TypeAssumptions
+  instance'OperationLatencyTracker : OperationLatencyTracker.TypeAssumptions
+  instance'EtcdMetricsTracker : EtcdMetricsTracker.TypeAssumptions
+  instance'timestampedResourceGaugeCollector : timestampedResourceGaugeCollector.TypeAssumptions
+  instance'timestampedSample : timestampedSample.TypeAssumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'schema : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
+  import'metrics : _root_.Perennial.k8s_io.component_base.metrics.Assumptions
 
-attribute [instance] Assumptions.Monitor_instance
-  Assumptions.StorageMetrics_instance
-  Assumptions.monitorCollector_instance
-  Assumptions.OperationLatencyTracker_instance
-  Assumptions.EtcdMetricsTracker_instance
-  Assumptions.timestampedResourceGaugeCollector_instance
-  Assumptions.timestampedSample_instance
-  Assumptions.import_errors_Assumption
-  Assumptions.import_schema_Assumption
-  Assumptions.import_metrics_Assumption
+attribute [instance] Assumptions.instance'Monitor
+  Assumptions.instance'StorageMetrics
+  Assumptions.instance'monitorCollector
+  Assumptions.instance'OperationLatencyTracker
+  Assumptions.instance'EtcdMetricsTracker
+  Assumptions.instance'timestampedResourceGaugeCollector
+  Assumptions.instance'timestampedSample
+  Assumptions.import'errors
+  Assumptions.import'schema
+  Assumptions.import'metrics
 
 end k8s_io.apiserver.pkg.storage.etcd3.metrics
 

@@ -30,7 +30,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
 
-noncomputable instance LazyErrorNodeSelector_typed_pointsto :
+noncomputable instance typed_pointsto'LazyErrorNodeSelector :
     TypedPointsto (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector where
   typedPointstoDef l v dq := iprop(
     "terms" ∷ typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector go!"terms" l) v.terms' dq ∗
@@ -39,11 +39,11 @@ noncomputable instance LazyErrorNodeSelector_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance LazyErrorNodeSelector_into_val_typed :
+noncomputable instance into_val_typed'LazyErrorNodeSelector :
     IntoValTypedUnderlying (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance LazyErrorNodeSelector_access_load_terms (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector) (dq : DFrac) :
+noncomputable instance access_load'LazyErrorNodeSelector'terms (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector go!"terms" l) v.terms' dq)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector go!"terms" l) v.terms' dq)
@@ -51,7 +51,7 @@ noncomputable instance LazyErrorNodeSelector_access_load_terms (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance LazyErrorNodeSelector_access_store_terms (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector) (y : GoSlice) :
+noncomputable instance access_store'LazyErrorNodeSelector'terms (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector go!"terms" l) v.terms' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector go!"terms" l) y (DFrac.own 1))
@@ -70,7 +70,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
 
-noncomputable instance NodeSelector_typed_pointsto :
+noncomputable instance typed_pointsto'NodeSelector :
     TypedPointsto (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector where
   typedPointstoDef l v dq := iprop(
     "lazy" ∷ typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector go!"lazy" l) v.lazy' dq ∗
@@ -79,11 +79,11 @@ noncomputable instance NodeSelector_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance NodeSelector_into_val_typed :
+noncomputable instance into_val_typed'NodeSelector :
     IntoValTypedUnderlying (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance NodeSelector_access_load_lazy (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector) (dq : DFrac) :
+noncomputable instance access_load'NodeSelector'lazy (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector go!"lazy" l) v.lazy' dq)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector go!"lazy" l) v.lazy' dq)
@@ -91,7 +91,7 @@ noncomputable instance NodeSelector_access_load_lazy (l : Loc) (v : k8s_io.compo
  by
   solve_pointsto_access_struct
 
-noncomputable instance NodeSelector_access_store_lazy (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector) (y : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector) :
+noncomputable instance access_store'NodeSelector'lazy (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector) (y : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector go!"lazy" l) v.lazy' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector go!"lazy" l) y (DFrac.own 1))
@@ -110,7 +110,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
 
-noncomputable instance PreferredSchedulingTerms_typed_pointsto :
+noncomputable instance typed_pointsto'PreferredSchedulingTerms :
     TypedPointsto (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms where
   typedPointstoDef l v dq := iprop(
     "terms" ∷ typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms go!"terms" l) v.terms' dq ∗
@@ -119,11 +119,11 @@ noncomputable instance PreferredSchedulingTerms_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance PreferredSchedulingTerms_into_val_typed :
+noncomputable instance into_val_typed'PreferredSchedulingTerms :
     IntoValTypedUnderlying (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance PreferredSchedulingTerms_access_load_terms (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms) (dq : DFrac) :
+noncomputable instance access_load'PreferredSchedulingTerms'terms (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms go!"terms" l) v.terms' dq)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms go!"terms" l) v.terms' dq)
@@ -131,7 +131,7 @@ noncomputable instance PreferredSchedulingTerms_access_load_terms (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance PreferredSchedulingTerms_access_store_terms (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms) (y : GoSlice) :
+noncomputable instance access_store'PreferredSchedulingTerms'terms (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms go!"terms" l) v.terms' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms go!"terms" l) y (DFrac.own 1))
@@ -150,7 +150,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
 
-noncomputable instance nodeSelectorTerm_typed_pointsto :
+noncomputable instance typed_pointsto'nodeSelectorTerm :
     TypedPointsto (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm where
   typedPointstoDef l v dq := iprop(
     "matchLabels" ∷ typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) v.matchLabels' dq ∗
@@ -161,11 +161,11 @@ noncomputable instance nodeSelectorTerm_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance nodeSelectorTerm_into_val_typed :
+noncomputable instance into_val_typed'nodeSelectorTerm :
     IntoValTypedUnderlying (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance nodeSelectorTerm_access_load_matchLabels (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (dq : DFrac) :
+noncomputable instance access_load'nodeSelectorTerm'matchLabels (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) v.matchLabels' dq)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) v.matchLabels' dq)
@@ -173,7 +173,7 @@ noncomputable instance nodeSelectorTerm_access_load_matchLabels (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance nodeSelectorTerm_access_store_matchLabels (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector) :
+noncomputable instance access_store'nodeSelectorTerm'matchLabels (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) v.matchLabels' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) y (DFrac.own 1))
@@ -181,7 +181,7 @@ noncomputable instance nodeSelectorTerm_access_store_matchLabels (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance nodeSelectorTerm_access_load_matchFields (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (dq : DFrac) :
+noncomputable instance access_load'nodeSelectorTerm'matchFields (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchFields" l) v.matchFields' dq)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchFields" l) v.matchFields' dq)
@@ -189,7 +189,7 @@ noncomputable instance nodeSelectorTerm_access_load_matchFields (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance nodeSelectorTerm_access_store_matchFields (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (y : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector) :
+noncomputable instance access_store'nodeSelectorTerm'matchFields (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (y : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchFields" l) v.matchFields' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchFields" l) y (DFrac.own 1))
@@ -197,7 +197,7 @@ noncomputable instance nodeSelectorTerm_access_store_matchFields (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance nodeSelectorTerm_access_load_parseErrs (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (dq : DFrac) :
+noncomputable instance access_load'nodeSelectorTerm'parseErrs (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"parseErrs" l) v.parseErrs' dq)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"parseErrs" l) v.parseErrs' dq)
@@ -205,7 +205,7 @@ noncomputable instance nodeSelectorTerm_access_load_parseErrs (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance nodeSelectorTerm_access_store_parseErrs (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (y : GoSlice) :
+noncomputable instance access_store'nodeSelectorTerm'parseErrs (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"parseErrs" l) v.parseErrs' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"parseErrs" l) y (DFrac.own 1))
@@ -224,7 +224,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
 
-noncomputable instance preferredSchedulingTerm_typed_pointsto :
+noncomputable instance typed_pointsto'preferredSchedulingTerm :
     TypedPointsto (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm where
   typedPointstoDef l v dq := iprop(
     "nodeSelectorTerm" ∷ typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"nodeSelectorTerm" l) v.nodeSelectorTerm' dq ∗
@@ -234,11 +234,11 @@ noncomputable instance preferredSchedulingTerm_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance preferredSchedulingTerm_into_val_typed :
+noncomputable instance into_val_typed'preferredSchedulingTerm :
     IntoValTypedUnderlying (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance preferredSchedulingTerm_access_load_nodeSelectorTerm (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (dq : DFrac) :
+noncomputable instance access_load'preferredSchedulingTerm'nodeSelectorTerm (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"nodeSelectorTerm" l) v.nodeSelectorTerm' dq)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"nodeSelectorTerm" l) v.nodeSelectorTerm' dq)
@@ -246,7 +246,7 @@ noncomputable instance preferredSchedulingTerm_access_load_nodeSelectorTerm (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance preferredSchedulingTerm_access_store_nodeSelectorTerm (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (y : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) :
+noncomputable instance access_store'preferredSchedulingTerm'nodeSelectorTerm (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (y : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"nodeSelectorTerm" l) v.nodeSelectorTerm' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"nodeSelectorTerm" l) y (DFrac.own 1))
@@ -254,7 +254,7 @@ noncomputable instance preferredSchedulingTerm_access_store_nodeSelectorTerm (l 
  by
   solve_pointsto_access_struct
 
-noncomputable instance preferredSchedulingTerm_access_load_weight (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (dq : DFrac) :
+noncomputable instance access_load'preferredSchedulingTerm'weight (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"weight" l) v.weight' dq)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"weight" l) v.weight' dq)
@@ -262,7 +262,7 @@ noncomputable instance preferredSchedulingTerm_access_load_weight (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance preferredSchedulingTerm_access_store_weight (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (y : w64) :
+noncomputable instance access_store'preferredSchedulingTerm'weight (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"weight" l) v.weight' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"weight" l) y (DFrac.own 1))
@@ -281,7 +281,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
 
-noncomputable instance RequiredNodeAffinity_typed_pointsto :
+noncomputable instance typed_pointsto'RequiredNodeAffinity :
     TypedPointsto (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity where
   typedPointstoDef l v dq := iprop(
     "labelSelector" ∷ typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) v.labelSelector' dq ∗
@@ -291,11 +291,11 @@ noncomputable instance RequiredNodeAffinity_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance RequiredNodeAffinity_into_val_typed :
+noncomputable instance into_val_typed'RequiredNodeAffinity :
     IntoValTypedUnderlying (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance RequiredNodeAffinity_access_load_labelSelector (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (dq : DFrac) :
+noncomputable instance access_load'RequiredNodeAffinity'labelSelector (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) v.labelSelector' dq)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) v.labelSelector' dq)
@@ -303,7 +303,7 @@ noncomputable instance RequiredNodeAffinity_access_load_labelSelector (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequiredNodeAffinity_access_store_labelSelector (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector) :
+noncomputable instance access_store'RequiredNodeAffinity'labelSelector (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) v.labelSelector' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) y (DFrac.own 1))
@@ -311,7 +311,7 @@ noncomputable instance RequiredNodeAffinity_access_store_labelSelector (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequiredNodeAffinity_access_load_nodeSelector (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (dq : DFrac) :
+noncomputable instance access_load'RequiredNodeAffinity'nodeSelector (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"nodeSelector" l) v.nodeSelector' dq)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"nodeSelector" l) v.nodeSelector' dq)
@@ -319,7 +319,7 @@ noncomputable instance RequiredNodeAffinity_access_load_nodeSelector (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequiredNodeAffinity_access_store_nodeSelector (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (y : Loc) :
+noncomputable instance access_store'RequiredNodeAffinity'nodeSelector (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"nodeSelector" l) v.nodeSelector' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"nodeSelector" l) y (DFrac.own 1))

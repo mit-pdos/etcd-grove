@@ -109,11 +109,11 @@ attribute [instance] Error.TypeAssumptions.type_repr
   Error.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Status_instance : Status.TypeAssumptions
-  Error_instance : Error.TypeAssumptions
+  instance'Status : Status.TypeAssumptions
+  instance'Error : Error.TypeAssumptions
 
-attribute [instance] Assumptions.Status_instance
-  Assumptions.Error_instance
+attribute [instance] Assumptions.instance'Status
+  Assumptions.instance'Error
 
 end google_golang_org.grpc.internal.status
 

@@ -25,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.labels.Assumptions]
 
-noncomputable instance nothingSelector_typed_pointsto :
+noncomputable instance typed_pointsto'nothingSelector :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.labels.nothingSelector where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -33,7 +33,7 @@ noncomputable instance nothingSelector_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance nothingSelector_into_val_typed :
+noncomputable instance into_val_typed'nothingSelector :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.labels.nothingSelector k8s_io.apimachinery.pkg.labels.nothingSelector.underlying := by
   solve_into_val_typed_struct
 
@@ -48,7 +48,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.labels.Assumptions]
 
-noncomputable instance Requirement_typed_pointsto :
+noncomputable instance typed_pointsto'Requirement :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.labels.Requirement where
   typedPointstoDef l v dq := iprop(
     "key" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"key" l) v.key' dq ∗
@@ -59,11 +59,11 @@ noncomputable instance Requirement_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Requirement_into_val_typed :
+noncomputable instance into_val_typed'Requirement :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.labels.Requirement k8s_io.apimachinery.pkg.labels.Requirement.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Requirement_access_load_key (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (dq : DFrac) :
+noncomputable instance access_load'Requirement'key (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"key" l) v.key' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"key" l) v.key' dq)
@@ -71,7 +71,7 @@ noncomputable instance Requirement_access_load_key (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance Requirement_access_store_key (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (y : GoString) :
+noncomputable instance access_store'Requirement'key (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"key" l) v.key' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"key" l) y (DFrac.own 1))
@@ -79,7 +79,7 @@ noncomputable instance Requirement_access_store_key (l : Loc) (v : k8s_io.apimac
  by
   solve_pointsto_access_struct
 
-noncomputable instance Requirement_access_load_operator (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (dq : DFrac) :
+noncomputable instance access_load'Requirement'operator (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"operator" l) v.operator' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"operator" l) v.operator' dq)
@@ -87,7 +87,7 @@ noncomputable instance Requirement_access_load_operator (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance Requirement_access_store_operator (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (y : _root_.Perennial.k8s_io.apimachinery.pkg.selection.Operator) :
+noncomputable instance access_store'Requirement'operator (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (y : _root_.Perennial.k8s_io.apimachinery.pkg.selection.Operator) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"operator" l) v.operator' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"operator" l) y (DFrac.own 1))
@@ -95,7 +95,7 @@ noncomputable instance Requirement_access_store_operator (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance Requirement_access_load_strValues (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (dq : DFrac) :
+noncomputable instance access_load'Requirement'strValues (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"strValues" l) v.strValues' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"strValues" l) v.strValues' dq)
@@ -103,7 +103,7 @@ noncomputable instance Requirement_access_load_strValues (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance Requirement_access_store_strValues (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (y : GoSlice) :
+noncomputable instance access_store'Requirement'strValues (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"strValues" l) v.strValues' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"strValues" l) y (DFrac.own 1))
@@ -122,7 +122,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.labels.Assumptions]
 
-noncomputable instance ScannedItem_typed_pointsto :
+noncomputable instance typed_pointsto'ScannedItem :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.labels.ScannedItem where
   typedPointstoDef l v dq := iprop(
     "tok" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.ScannedItem go!"tok" l) v.tok' dq ∗
@@ -132,11 +132,11 @@ noncomputable instance ScannedItem_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ScannedItem_into_val_typed :
+noncomputable instance into_val_typed'ScannedItem :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.labels.ScannedItem k8s_io.apimachinery.pkg.labels.ScannedItem.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ScannedItem_access_load_tok (l : Loc) (v : k8s_io.apimachinery.pkg.labels.ScannedItem) (dq : DFrac) :
+noncomputable instance access_load'ScannedItem'tok (l : Loc) (v : k8s_io.apimachinery.pkg.labels.ScannedItem) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.ScannedItem go!"tok" l) v.tok' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.ScannedItem go!"tok" l) v.tok' dq)
@@ -144,7 +144,7 @@ noncomputable instance ScannedItem_access_load_tok (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance ScannedItem_access_store_tok (l : Loc) (v : k8s_io.apimachinery.pkg.labels.ScannedItem) (y : k8s_io.apimachinery.pkg.labels.Token) :
+noncomputable instance access_store'ScannedItem'tok (l : Loc) (v : k8s_io.apimachinery.pkg.labels.ScannedItem) (y : k8s_io.apimachinery.pkg.labels.Token) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.ScannedItem go!"tok" l) v.tok' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.ScannedItem go!"tok" l) y (DFrac.own 1))
@@ -152,7 +152,7 @@ noncomputable instance ScannedItem_access_store_tok (l : Loc) (v : k8s_io.apimac
  by
   solve_pointsto_access_struct
 
-noncomputable instance ScannedItem_access_load_literal (l : Loc) (v : k8s_io.apimachinery.pkg.labels.ScannedItem) (dq : DFrac) :
+noncomputable instance access_load'ScannedItem'literal (l : Loc) (v : k8s_io.apimachinery.pkg.labels.ScannedItem) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.ScannedItem go!"literal" l) v.literal' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.ScannedItem go!"literal" l) v.literal' dq)
@@ -160,7 +160,7 @@ noncomputable instance ScannedItem_access_load_literal (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance ScannedItem_access_store_literal (l : Loc) (v : k8s_io.apimachinery.pkg.labels.ScannedItem) (y : GoString) :
+noncomputable instance access_store'ScannedItem'literal (l : Loc) (v : k8s_io.apimachinery.pkg.labels.ScannedItem) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.ScannedItem go!"literal" l) v.literal' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.ScannedItem go!"literal" l) y (DFrac.own 1))
@@ -179,7 +179,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.labels.Assumptions]
 
-noncomputable instance Lexer_typed_pointsto :
+noncomputable instance typed_pointsto'Lexer :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.labels.Lexer where
   typedPointstoDef l v dq := iprop(
     "s" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Lexer go!"s" l) v.s' dq ∗
@@ -189,11 +189,11 @@ noncomputable instance Lexer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Lexer_into_val_typed :
+noncomputable instance into_val_typed'Lexer :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.labels.Lexer k8s_io.apimachinery.pkg.labels.Lexer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Lexer_access_load_s (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Lexer) (dq : DFrac) :
+noncomputable instance access_load'Lexer's (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Lexer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Lexer go!"s" l) v.s' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Lexer go!"s" l) v.s' dq)
@@ -201,7 +201,7 @@ noncomputable instance Lexer_access_load_s (l : Loc) (v : k8s_io.apimachinery.pk
  by
   solve_pointsto_access_struct
 
-noncomputable instance Lexer_access_store_s (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Lexer) (y : GoString) :
+noncomputable instance access_store'Lexer's (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Lexer) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Lexer go!"s" l) v.s' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Lexer go!"s" l) y (DFrac.own 1))
@@ -209,7 +209,7 @@ noncomputable instance Lexer_access_store_s (l : Loc) (v : k8s_io.apimachinery.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Lexer_access_load_pos (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Lexer) (dq : DFrac) :
+noncomputable instance access_load'Lexer'pos (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Lexer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Lexer go!"pos" l) v.pos' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Lexer go!"pos" l) v.pos' dq)
@@ -217,7 +217,7 @@ noncomputable instance Lexer_access_load_pos (l : Loc) (v : k8s_io.apimachinery.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Lexer_access_store_pos (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Lexer) (y : w64) :
+noncomputable instance access_store'Lexer'pos (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Lexer) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Lexer go!"pos" l) v.pos' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Lexer go!"pos" l) y (DFrac.own 1))
@@ -236,11 +236,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.labels.Assumptions]
 
-noncomputable instance Parser_typed_pointsto :
+noncomputable instance typed_pointsto'Parser :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.labels.Parser :=
   sorry -- axiomatized type
 
-noncomputable instance Parser_into_val_typed :
+noncomputable instance into_val_typed'Parser :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.labels.Parser k8s_io.apimachinery.pkg.labels.Parser.underlying :=
   sorry -- axiomatized type
 

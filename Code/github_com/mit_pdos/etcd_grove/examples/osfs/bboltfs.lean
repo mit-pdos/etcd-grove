@@ -849,7 +849,7 @@ noncomputable def DB.munmap.impl [GooseExts] [GoGlobalContext] : val :=
     holds metalock.
 
     go: minibolt.go:210:15 -/
-noncomputable def DB.«meta».impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def DB.meta''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Meta.ty)))) (Val #())))
@@ -1834,7 +1834,7 @@ noncomputable def pageAt.impl [GooseExts] [GoGlobalContext] : val :=
 /-- meta is Page.Meta: the Meta right after the page header.
 
     go: page.go:105:16 -/
-noncomputable def Page.«meta».impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Page.meta''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Meta.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Meta.ty)))) (Val #())))
@@ -2719,7 +2719,7 @@ noncomputable instance DB.zero_val [GooseExts] : ZeroVal DB :=
 @[irreducible] noncomputable def DB.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DB.fieldsUnsealed
 
-noncomputable instance equals_unfold_DB [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'DB [GooseExts] [GoGlobalContext] :
     EqualsUnfold DB.fields DB.fieldsUnsealed :=
   ⟨by unfold DB.fields; rfl⟩
 
@@ -2729,79 +2729,79 @@ noncomputable instance equals_unfold_DB [GooseExts] [GoGlobalContext] :
 class DB.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DB.underlying DB
   underlying : go.UnderlyingDirectedEq DB.ty DB.underlying
-  get_path : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"path") #x (Val #(x.path'))
-  set_path : ∀ (x : DB) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"path") (PairV #x #y) (Val #(({ x with path' := y } : DB)))
-  get_file : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"file") #x (Val #(x.file'))
-  set_file : ∀ (x : DB) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"file") (PairV #x #y) (Val #(({ x with file' := y } : DB)))
-  get_dataref : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"dataref") #x (Val #(x.dataref'))
-  set_dataref : ∀ (x : DB) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"dataref") (PairV #x #y) (Val #(({ x with dataref' := y } : DB)))
-  get_datasz : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"datasz") #x (Val #(x.datasz'))
-  set_datasz : ∀ (x : DB) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"datasz") (PairV #x #y) (Val #(({ x with datasz' := y } : DB)))
-  get_filesz : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"filesz") #x (Val #(x.filesz'))
-  set_filesz : ∀ (x : DB) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"filesz") (PairV #x #y) (Val #(({ x with filesz' := y } : DB)))
-  get_meta0 : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"meta0") #x (Val #(x.meta0'))
-  set_meta0 : ∀ (x : DB) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"meta0") (PairV #x #y) (Val #(({ x with meta0' := y } : DB)))
-  get_meta1 : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"meta1") #x (Val #(x.meta1'))
-  set_meta1 : ∀ (x : DB) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"meta1") (PairV #x #y) (Val #(({ x with meta1' := y } : DB)))
-  get_failed : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"failed") #x (Val #(x.failed'))
-  set_failed : ∀ (x : DB) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"failed") (PairV #x #y) (Val #(({ x with failed' := y } : DB)))
-  get_rwlock : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"rwlock") #x (Val #(x.rwlock'))
-  set_rwlock : ∀ (x : DB) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"rwlock") (PairV #x #y) (Val #(({ x with rwlock' := y } : DB)))
-  get_metalock : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"metalock") #x (Val #(x.metalock'))
-  set_metalock : ∀ (x : DB) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"metalock") (PairV #x #y) (Val #(({ x with metalock' := y } : DB)))
-  get_mmaplock : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"mmaplock") #x (Val #(x.mmaplock'))
-  set_mmaplock : ∀ (x : DB) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"mmaplock") (PairV #x #y) (Val #(({ x with mmaplock' := y } : DB)))
+  get'path : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"path") #x (Val #(x.path'))
+  set'path : ∀ (x : DB) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"path") (PairV #x #y) (Val #(({ x with path' := y } : DB)))
+  get'file : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"file") #x (Val #(x.file'))
+  set'file : ∀ (x : DB) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"file") (PairV #x #y) (Val #(({ x with file' := y } : DB)))
+  get'dataref : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"dataref") #x (Val #(x.dataref'))
+  set'dataref : ∀ (x : DB) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"dataref") (PairV #x #y) (Val #(({ x with dataref' := y } : DB)))
+  get'datasz : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"datasz") #x (Val #(x.datasz'))
+  set'datasz : ∀ (x : DB) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"datasz") (PairV #x #y) (Val #(({ x with datasz' := y } : DB)))
+  get'filesz : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"filesz") #x (Val #(x.filesz'))
+  set'filesz : ∀ (x : DB) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"filesz") (PairV #x #y) (Val #(({ x with filesz' := y } : DB)))
+  get'meta0 : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"meta0") #x (Val #(x.meta0'))
+  set'meta0 : ∀ (x : DB) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"meta0") (PairV #x #y) (Val #(({ x with meta0' := y } : DB)))
+  get'meta1 : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"meta1") #x (Val #(x.meta1'))
+  set'meta1 : ∀ (x : DB) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"meta1") (PairV #x #y) (Val #(({ x with meta1' := y } : DB)))
+  get'failed : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"failed") #x (Val #(x.failed'))
+  set'failed : ∀ (x : DB) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"failed") (PairV #x #y) (Val #(({ x with failed' := y } : DB)))
+  get'rwlock : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"rwlock") #x (Val #(x.rwlock'))
+  set'rwlock : ∀ (x : DB) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"rwlock") (PairV #x #y) (Val #(({ x with rwlock' := y } : DB)))
+  get'metalock : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"metalock") #x (Val #(x.metalock'))
+  set'metalock : ∀ (x : DB) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"metalock") (PairV #x #y) (Val #(({ x with metalock' := y } : DB)))
+  get'mmaplock : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"mmaplock") #x (Val #(x.mmaplock'))
+  set'mmaplock : ∀ (x : DB) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"mmaplock") (PairV #x #y) (Val #(({ x with mmaplock' := y } : DB)))
   method_set : go.MethodSetIs DB.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DB.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Commit", (some (go.signature.Signature [go.uint64] false [go.error]))), (go!"Get", (some (go.signature.Signature [] false [go.uint64, go.uint64, go.bool, go.error]))), (go!"Snapshot", (some (go.signature.Signature [] false [go.uint64, go.uint64, go.bool, go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/osfs/bboltfs.close", (some (go.signature.Signature [] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/osfs/bboltfs.commit", (some (go.signature.Signature [Meta.ty, go.uint64] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/osfs/bboltfs.init", (some (go.signature.Signature [] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/osfs/bboltfs.meta", (some (go.signature.Signature [] false [(go.GoType.PointerType Meta.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/osfs/bboltfs.mmap", (some (go.signature.Signature [go.int] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/osfs/bboltfs.munmap", (some (go.signature.Signature [] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/osfs/bboltfs.readPageSize", (some (go.signature.Signature [] false [go.int, go.bool, go.error])))]
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"Close" DB.Close.impl
-  ptr_Commit_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"Commit" DB.Commit.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"Get" DB.Get.impl
-  ptr_Snapshot_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"Snapshot" DB.Snapshot.impl
-  ptr_close_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"close" DB.close.impl
-  ptr_commit_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"commit" DB.commit.impl
-  ptr_init_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"init" DB.init.impl
-  ptr_meta_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"meta" DB.«meta».impl
-  ptr_mmap_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"mmap" DB.mmap.impl
-  ptr_munmap_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"munmap" DB.munmap.impl
-  ptr_readPageSize_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"readPageSize" DB.readPageSize.impl
+  ptr_unfold'Close : MethodUnfold (go.GoType.PointerType DB.ty) go!"Close" DB.Close.impl
+  ptr_unfold'Commit : MethodUnfold (go.GoType.PointerType DB.ty) go!"Commit" DB.Commit.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType DB.ty) go!"Get" DB.Get.impl
+  ptr_unfold'Snapshot : MethodUnfold (go.GoType.PointerType DB.ty) go!"Snapshot" DB.Snapshot.impl
+  ptr_unfold'close : MethodUnfold (go.GoType.PointerType DB.ty) go!"close" DB.close.impl
+  ptr_unfold'commit : MethodUnfold (go.GoType.PointerType DB.ty) go!"commit" DB.commit.impl
+  ptr_unfold'init : MethodUnfold (go.GoType.PointerType DB.ty) go!"init" DB.init.impl
+  ptr_unfold'meta : MethodUnfold (go.GoType.PointerType DB.ty) go!"meta" DB.meta''.impl
+  ptr_unfold'mmap : MethodUnfold (go.GoType.PointerType DB.ty) go!"mmap" DB.mmap.impl
+  ptr_unfold'munmap : MethodUnfold (go.GoType.PointerType DB.ty) go!"munmap" DB.munmap.impl
+  ptr_unfold'readPageSize : MethodUnfold (go.GoType.PointerType DB.ty) go!"readPageSize" DB.readPageSize.impl
 
 attribute [instance] DB.TypeAssumptions.type_repr
   DB.TypeAssumptions.underlying
-  DB.TypeAssumptions.get_path
-  DB.TypeAssumptions.set_path
-  DB.TypeAssumptions.get_file
-  DB.TypeAssumptions.set_file
-  DB.TypeAssumptions.get_dataref
-  DB.TypeAssumptions.set_dataref
-  DB.TypeAssumptions.get_datasz
-  DB.TypeAssumptions.set_datasz
-  DB.TypeAssumptions.get_filesz
-  DB.TypeAssumptions.set_filesz
-  DB.TypeAssumptions.get_meta0
-  DB.TypeAssumptions.set_meta0
-  DB.TypeAssumptions.get_meta1
-  DB.TypeAssumptions.set_meta1
-  DB.TypeAssumptions.get_failed
-  DB.TypeAssumptions.set_failed
-  DB.TypeAssumptions.get_rwlock
-  DB.TypeAssumptions.set_rwlock
-  DB.TypeAssumptions.get_metalock
-  DB.TypeAssumptions.set_metalock
-  DB.TypeAssumptions.get_mmaplock
-  DB.TypeAssumptions.set_mmaplock
+  DB.TypeAssumptions.get'path
+  DB.TypeAssumptions.set'path
+  DB.TypeAssumptions.get'file
+  DB.TypeAssumptions.set'file
+  DB.TypeAssumptions.get'dataref
+  DB.TypeAssumptions.set'dataref
+  DB.TypeAssumptions.get'datasz
+  DB.TypeAssumptions.set'datasz
+  DB.TypeAssumptions.get'filesz
+  DB.TypeAssumptions.set'filesz
+  DB.TypeAssumptions.get'meta0
+  DB.TypeAssumptions.set'meta0
+  DB.TypeAssumptions.get'meta1
+  DB.TypeAssumptions.set'meta1
+  DB.TypeAssumptions.get'failed
+  DB.TypeAssumptions.set'failed
+  DB.TypeAssumptions.get'rwlock
+  DB.TypeAssumptions.set'rwlock
+  DB.TypeAssumptions.get'metalock
+  DB.TypeAssumptions.set'metalock
+  DB.TypeAssumptions.get'mmaplock
+  DB.TypeAssumptions.set'mmaplock
   DB.TypeAssumptions.method_set
   DB.TypeAssumptions.ptr_method_set
-  DB.TypeAssumptions.ptr_Close_unfold
-  DB.TypeAssumptions.ptr_Commit_unfold
-  DB.TypeAssumptions.ptr_Get_unfold
-  DB.TypeAssumptions.ptr_Snapshot_unfold
-  DB.TypeAssumptions.ptr_close_unfold
-  DB.TypeAssumptions.ptr_commit_unfold
-  DB.TypeAssumptions.ptr_init_unfold
-  DB.TypeAssumptions.ptr_meta_unfold
-  DB.TypeAssumptions.ptr_mmap_unfold
-  DB.TypeAssumptions.ptr_munmap_unfold
-  DB.TypeAssumptions.ptr_readPageSize_unfold
+  DB.TypeAssumptions.ptr_unfold'Close
+  DB.TypeAssumptions.ptr_unfold'Commit
+  DB.TypeAssumptions.ptr_unfold'Get
+  DB.TypeAssumptions.ptr_unfold'Snapshot
+  DB.TypeAssumptions.ptr_unfold'close
+  DB.TypeAssumptions.ptr_unfold'commit
+  DB.TypeAssumptions.ptr_unfold'init
+  DB.TypeAssumptions.ptr_unfold'meta
+  DB.TypeAssumptions.ptr_unfold'mmap
+  DB.TypeAssumptions.ptr_unfold'munmap
+  DB.TypeAssumptions.ptr_unfold'readPageSize
 
 abbrev Pgid [GooseExts] : Type := w64
 
@@ -2836,7 +2836,7 @@ noncomputable instance Page.zero_val [GooseExts] : ZeroVal Page :=
 @[irreducible] noncomputable def Page.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Page.fieldsUnsealed
 
-noncomputable instance equals_unfold_Page [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Page [GooseExts] [GoGlobalContext] :
     EqualsUnfold Page.fields Page.fieldsUnsealed :=
   ⟨by unfold Page.fields; rfl⟩
 
@@ -2846,31 +2846,31 @@ noncomputable instance equals_unfold_Page [GooseExts] [GoGlobalContext] :
 class Page.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Page.underlying Page
   underlying : go.UnderlyingDirectedEq Page.ty Page.underlying
-  get_id : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : Page) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : Page)))
-  get_flags : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"flags") #x (Val #(x.flags'))
-  set_flags : ∀ (x : Page) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"flags") (PairV #x #y) (Val #(({ x with flags' := y } : Page)))
-  get_count : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"count") #x (Val #(x.count'))
-  set_count : ∀ (x : Page) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : Page)))
-  get_overflow : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"overflow") #x (Val #(x.overflow'))
-  set_overflow : ∀ (x : Page) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"overflow") (PairV #x #y) (Val #(({ x with overflow' := y } : Page)))
+  get'id : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : Page) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : Page)))
+  get'flags : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"flags") #x (Val #(x.flags'))
+  set'flags : ∀ (x : Page) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"flags") (PairV #x #y) (Val #(({ x with flags' := y } : Page)))
+  get'count : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"count") #x (Val #(x.count'))
+  set'count : ∀ (x : Page) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : Page)))
+  get'overflow : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"overflow") #x (Val #(x.overflow'))
+  set'overflow : ∀ (x : Page) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"overflow") (PairV #x #y) (Val #(({ x with overflow' := y } : Page)))
   method_set : go.MethodSetIs Page.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Page.ty) [(go!"github.com/mit-pdos/etcd-grove/examples/osfs/bboltfs.meta", (some (go.signature.Signature [] false [(go.GoType.PointerType Meta.ty)])))]
-  ptr_meta_unfold : MethodUnfold (go.GoType.PointerType Page.ty) go!"meta" Page.«meta».impl
+  ptr_unfold'meta : MethodUnfold (go.GoType.PointerType Page.ty) go!"meta" Page.meta''.impl
 
 attribute [instance] Page.TypeAssumptions.type_repr
   Page.TypeAssumptions.underlying
-  Page.TypeAssumptions.get_id
-  Page.TypeAssumptions.set_id
-  Page.TypeAssumptions.get_flags
-  Page.TypeAssumptions.set_flags
-  Page.TypeAssumptions.get_count
-  Page.TypeAssumptions.set_count
-  Page.TypeAssumptions.get_overflow
-  Page.TypeAssumptions.set_overflow
+  Page.TypeAssumptions.get'id
+  Page.TypeAssumptions.set'id
+  Page.TypeAssumptions.get'flags
+  Page.TypeAssumptions.set'flags
+  Page.TypeAssumptions.get'count
+  Page.TypeAssumptions.set'count
+  Page.TypeAssumptions.get'overflow
+  Page.TypeAssumptions.set'overflow
   Page.TypeAssumptions.method_set
   Page.TypeAssumptions.ptr_method_set
-  Page.TypeAssumptions.ptr_meta_unfold
+  Page.TypeAssumptions.ptr_unfold'meta
 
 structure InBucket [GooseExts] where
   mk ::
@@ -2887,7 +2887,7 @@ noncomputable instance InBucket.zero_val [GooseExts] : ZeroVal InBucket :=
 @[irreducible] noncomputable def InBucket.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InBucket.fieldsUnsealed
 
-noncomputable instance equals_unfold_InBucket [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'InBucket [GooseExts] [GoGlobalContext] :
     EqualsUnfold InBucket.fields InBucket.fieldsUnsealed :=
   ⟨by unfold InBucket.fields; rfl⟩
 
@@ -2897,19 +2897,19 @@ noncomputable instance equals_unfold_InBucket [GooseExts] [GoGlobalContext] :
 class InBucket.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InBucket.underlying InBucket
   underlying : go.UnderlyingDirectedEq InBucket.ty InBucket.underlying
-  get_root : ∀ (x : InBucket), go.IsGoStepPureDetTagged under (StructFieldGet InBucket.underlying go!"root") #x (Val #(x.root'))
-  set_root : ∀ (x : InBucket) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet InBucket.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : InBucket)))
-  get_sequence : ∀ (x : InBucket), go.IsGoStepPureDetTagged under (StructFieldGet InBucket.underlying go!"sequence") #x (Val #(x.sequence'))
-  set_sequence : ∀ (x : InBucket) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet InBucket.underlying go!"sequence") (PairV #x #y) (Val #(({ x with sequence' := y } : InBucket)))
+  get'root : ∀ (x : InBucket), go.IsGoStepPureDetTagged under (StructFieldGet InBucket.underlying go!"root") #x (Val #(x.root'))
+  set'root : ∀ (x : InBucket) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet InBucket.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : InBucket)))
+  get'sequence : ∀ (x : InBucket), go.IsGoStepPureDetTagged under (StructFieldGet InBucket.underlying go!"sequence") #x (Val #(x.sequence'))
+  set'sequence : ∀ (x : InBucket) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet InBucket.underlying go!"sequence") (PairV #x #y) (Val #(({ x with sequence' := y } : InBucket)))
   method_set : go.MethodSetIs InBucket.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType InBucket.ty) []
 
 attribute [instance] InBucket.TypeAssumptions.type_repr
   InBucket.TypeAssumptions.underlying
-  InBucket.TypeAssumptions.get_root
-  InBucket.TypeAssumptions.set_root
-  InBucket.TypeAssumptions.get_sequence
-  InBucket.TypeAssumptions.set_sequence
+  InBucket.TypeAssumptions.get'root
+  InBucket.TypeAssumptions.set'root
+  InBucket.TypeAssumptions.get'sequence
+  InBucket.TypeAssumptions.set'sequence
   InBucket.TypeAssumptions.method_set
   InBucket.TypeAssumptions.ptr_method_set
 
@@ -2942,7 +2942,7 @@ noncomputable instance Meta.zero_val [GooseExts] : ZeroVal Meta :=
 @[irreducible] noncomputable def Meta.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Meta.fieldsUnsealed
 
-noncomputable instance equals_unfold_Meta [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Meta [GooseExts] [GoGlobalContext] :
     EqualsUnfold Meta.fields Meta.fieldsUnsealed :=
   ⟨by unfold Meta.fields; rfl⟩
 
@@ -2952,108 +2952,108 @@ noncomputable instance equals_unfold_Meta [GooseExts] [GoGlobalContext] :
 class Meta.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Meta.underlying Meta
   underlying : go.UnderlyingDirectedEq Meta.ty Meta.underlying
-  get_magic : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"magic") #x (Val #(x.magic'))
-  set_magic : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"magic") (PairV #x #y) (Val #(({ x with magic' := y } : Meta)))
-  get_version : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"version") #x (Val #(x.version'))
-  set_version : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"version") (PairV #x #y) (Val #(({ x with version' := y } : Meta)))
-  get_pageSize : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"pageSize") #x (Val #(x.pageSize'))
-  set_pageSize : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"pageSize") (PairV #x #y) (Val #(({ x with pageSize' := y } : Meta)))
-  get_flags : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"flags") #x (Val #(x.flags'))
-  set_flags : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"flags") (PairV #x #y) (Val #(({ x with flags' := y } : Meta)))
-  get_root : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"root") #x (Val #(x.root'))
-  set_root : ∀ (x : Meta) (y : InBucket), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : Meta)))
-  get_freelist : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"freelist") #x (Val #(x.freelist'))
-  set_freelist : ∀ (x : Meta) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"freelist") (PairV #x #y) (Val #(({ x with freelist' := y } : Meta)))
-  get_pgid : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"pgid") #x (Val #(x.pgid'))
-  set_pgid : ∀ (x : Meta) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"pgid") (PairV #x #y) (Val #(({ x with pgid' := y } : Meta)))
-  get_txid : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"txid") #x (Val #(x.txid'))
-  set_txid : ∀ (x : Meta) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"txid") (PairV #x #y) (Val #(({ x with txid' := y } : Meta)))
-  get_checksum : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"checksum") #x (Val #(x.checksum'))
-  set_checksum : ∀ (x : Meta) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"checksum") (PairV #x #y) (Val #(({ x with checksum' := y } : Meta)))
+  get'magic : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"magic") #x (Val #(x.magic'))
+  set'magic : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"magic") (PairV #x #y) (Val #(({ x with magic' := y } : Meta)))
+  get'version : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"version") #x (Val #(x.version'))
+  set'version : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"version") (PairV #x #y) (Val #(({ x with version' := y } : Meta)))
+  get'pageSize : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"pageSize") #x (Val #(x.pageSize'))
+  set'pageSize : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"pageSize") (PairV #x #y) (Val #(({ x with pageSize' := y } : Meta)))
+  get'flags : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"flags") #x (Val #(x.flags'))
+  set'flags : ∀ (x : Meta) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"flags") (PairV #x #y) (Val #(({ x with flags' := y } : Meta)))
+  get'root : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"root") #x (Val #(x.root'))
+  set'root : ∀ (x : Meta) (y : InBucket), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : Meta)))
+  get'freelist : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"freelist") #x (Val #(x.freelist'))
+  set'freelist : ∀ (x : Meta) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"freelist") (PairV #x #y) (Val #(({ x with freelist' := y } : Meta)))
+  get'pgid : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"pgid") #x (Val #(x.pgid'))
+  set'pgid : ∀ (x : Meta) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"pgid") (PairV #x #y) (Val #(({ x with pgid' := y } : Meta)))
+  get'txid : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"txid") #x (Val #(x.txid'))
+  set'txid : ∀ (x : Meta) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"txid") (PairV #x #y) (Val #(({ x with txid' := y } : Meta)))
+  get'checksum : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"checksum") #x (Val #(x.checksum'))
+  set'checksum : ∀ (x : Meta) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"checksum") (PairV #x #y) (Val #(({ x with checksum' := y } : Meta)))
   method_set : go.MethodSetIs Meta.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Meta.ty) [(go!"github.com/mit-pdos/etcd-grove/examples/osfs/bboltfs.sum64", (some (go.signature.Signature [] false [go.uint64]))), (go!"github.com/mit-pdos/etcd-grove/examples/osfs/bboltfs.validate", (some (go.signature.Signature [] false [go.bool]))), (go!"github.com/mit-pdos/etcd-grove/examples/osfs/bboltfs.write", (some (go.signature.Signature [(go.GoType.PointerType Page.ty)] false [])))]
-  ptr_sum64_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"sum64" Meta.sum64.impl
-  ptr_validate_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"validate" Meta.validate.impl
-  ptr_write_unfold : MethodUnfold (go.GoType.PointerType Meta.ty) go!"write" Meta.write.impl
+  ptr_unfold'sum64 : MethodUnfold (go.GoType.PointerType Meta.ty) go!"sum64" Meta.sum64.impl
+  ptr_unfold'validate : MethodUnfold (go.GoType.PointerType Meta.ty) go!"validate" Meta.validate.impl
+  ptr_unfold'write : MethodUnfold (go.GoType.PointerType Meta.ty) go!"write" Meta.write.impl
 
 attribute [instance] Meta.TypeAssumptions.type_repr
   Meta.TypeAssumptions.underlying
-  Meta.TypeAssumptions.get_magic
-  Meta.TypeAssumptions.set_magic
-  Meta.TypeAssumptions.get_version
-  Meta.TypeAssumptions.set_version
-  Meta.TypeAssumptions.get_pageSize
-  Meta.TypeAssumptions.set_pageSize
-  Meta.TypeAssumptions.get_flags
-  Meta.TypeAssumptions.set_flags
-  Meta.TypeAssumptions.get_root
-  Meta.TypeAssumptions.set_root
-  Meta.TypeAssumptions.get_freelist
-  Meta.TypeAssumptions.set_freelist
-  Meta.TypeAssumptions.get_pgid
-  Meta.TypeAssumptions.set_pgid
-  Meta.TypeAssumptions.get_txid
-  Meta.TypeAssumptions.set_txid
-  Meta.TypeAssumptions.get_checksum
-  Meta.TypeAssumptions.set_checksum
+  Meta.TypeAssumptions.get'magic
+  Meta.TypeAssumptions.set'magic
+  Meta.TypeAssumptions.get'version
+  Meta.TypeAssumptions.set'version
+  Meta.TypeAssumptions.get'pageSize
+  Meta.TypeAssumptions.set'pageSize
+  Meta.TypeAssumptions.get'flags
+  Meta.TypeAssumptions.set'flags
+  Meta.TypeAssumptions.get'root
+  Meta.TypeAssumptions.set'root
+  Meta.TypeAssumptions.get'freelist
+  Meta.TypeAssumptions.set'freelist
+  Meta.TypeAssumptions.get'pgid
+  Meta.TypeAssumptions.set'pgid
+  Meta.TypeAssumptions.get'txid
+  Meta.TypeAssumptions.set'txid
+  Meta.TypeAssumptions.get'checksum
+  Meta.TypeAssumptions.set'checksum
   Meta.TypeAssumptions.method_set
   Meta.TypeAssumptions.ptr_method_set
-  Meta.TypeAssumptions.ptr_sum64_unfold
-  Meta.TypeAssumptions.ptr_validate_unfold
-  Meta.TypeAssumptions.ptr_write_unfold
+  Meta.TypeAssumptions.ptr_unfold'sum64
+  Meta.TypeAssumptions.ptr_unfold'validate
+  Meta.TypeAssumptions.ptr_unfold'write
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  DB_instance : DB.TypeAssumptions
-  Pgid_instance : Pgid.TypeAssumptions
-  Page_instance : Page.TypeAssumptions
-  InBucket_instance : InBucket.TypeAssumptions
-  Meta_instance : Meta.TypeAssumptions
-  Open_unfold : FuncUnfold Open [] Open.impl
-  mmapSize_unfold : FuncUnfold mmapSize [] mmapSize.impl
-  BootMinibolt_unfold : FuncUnfold BootMinibolt [] BootMinibolt.impl
-  flock_unfold : FuncUnfold flock [] flock.impl
-  pageAt_unfold : FuncUnfold pageAt [] pageAt.impl
-  initPages_unfold : FuncUnfold initPages [] initPages.impl
-  pickMeta_unfold : FuncUnfold pickMeta [] pickMeta.impl
-  envFailure_unfold : FuncUnfold envFailure [] envFailure.impl
-  valueOk_unfold : FuncUnfold valueOk [] valueOk.impl
-  testMinibolt_unfold : FuncUnfold testMinibolt [] testMinibolt.impl
-  testMiniboltConcurrent_unfold : FuncUnfold testMiniboltConcurrent [] testMiniboltConcurrent.impl
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
-  import_unsafe_Assumption : _root_.Perennial.«unsafe».Assumptions
-  import_unix_Assumption : _root_.Perennial.golang_org.x.sys.unix.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
+  instance'DB : DB.TypeAssumptions
+  instance'Pgid : Pgid.TypeAssumptions
+  instance'Page : Page.TypeAssumptions
+  instance'InBucket : InBucket.TypeAssumptions
+  instance'Meta : Meta.TypeAssumptions
+  unfold'Open : FuncUnfold Open [] Open.impl
+  unfold'mmapSize : FuncUnfold mmapSize [] mmapSize.impl
+  unfold'BootMinibolt : FuncUnfold BootMinibolt [] BootMinibolt.impl
+  unfold'flock : FuncUnfold flock [] flock.impl
+  unfold'pageAt : FuncUnfold pageAt [] pageAt.impl
+  unfold'initPages : FuncUnfold initPages [] initPages.impl
+  unfold'pickMeta : FuncUnfold pickMeta [] pickMeta.impl
+  unfold'envFailure : FuncUnfold envFailure [] envFailure.impl
+  unfold'valueOk : FuncUnfold valueOk [] valueOk.impl
+  unfold'testMinibolt : FuncUnfold testMinibolt [] testMinibolt.impl
+  unfold'testMiniboltConcurrent : FuncUnfold testMiniboltConcurrent [] testMiniboltConcurrent.impl
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'syscall : _root_.Perennial.syscall.Assumptions
+  import'unsafe : _root_.Perennial.«unsafe».Assumptions
+  import'unix : _root_.Perennial.golang_org.x.sys.unix.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
 
-attribute [instance] Assumptions.DB_instance
-  Assumptions.Pgid_instance
-  Assumptions.Page_instance
-  Assumptions.InBucket_instance
-  Assumptions.Meta_instance
-  Assumptions.Open_unfold
-  Assumptions.mmapSize_unfold
-  Assumptions.BootMinibolt_unfold
-  Assumptions.flock_unfold
-  Assumptions.pageAt_unfold
-  Assumptions.initPages_unfold
-  Assumptions.pickMeta_unfold
-  Assumptions.envFailure_unfold
-  Assumptions.valueOk_unfold
-  Assumptions.testMinibolt_unfold
-  Assumptions.testMiniboltConcurrent_unfold
-  Assumptions.import_errors_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_syscall_Assumption
-  Assumptions.import_unsafe_Assumption
-  Assumptions.import_unix_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_atomic_Assumption
+attribute [instance] Assumptions.instance'DB
+  Assumptions.instance'Pgid
+  Assumptions.instance'Page
+  Assumptions.instance'InBucket
+  Assumptions.instance'Meta
+  Assumptions.unfold'Open
+  Assumptions.unfold'mmapSize
+  Assumptions.unfold'BootMinibolt
+  Assumptions.unfold'flock
+  Assumptions.unfold'pageAt
+  Assumptions.unfold'initPages
+  Assumptions.unfold'pickMeta
+  Assumptions.unfold'envFailure
+  Assumptions.unfold'valueOk
+  Assumptions.unfold'testMinibolt
+  Assumptions.unfold'testMiniboltConcurrent
+  Assumptions.import'errors
+  Assumptions.import'io
+  Assumptions.import'os
+  Assumptions.import'sync
+  Assumptions.import'syscall
+  Assumptions.import'unsafe
+  Assumptions.import'unix
+  Assumptions.import'time
+  Assumptions.import'atomic
 
 end github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 

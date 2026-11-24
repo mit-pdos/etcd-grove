@@ -187,17 +187,17 @@ attribute [instance] dumper.TypeAssumptions.type_repr
   dumper.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  InvalidByteError_instance : InvalidByteError.TypeAssumptions
-  encoder_instance : encoder.TypeAssumptions
-  decoder_instance : decoder.TypeAssumptions
-  dumper_instance : dumper.TypeAssumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  instance'InvalidByteError : InvalidByteError.TypeAssumptions
+  instance'encoder : encoder.TypeAssumptions
+  instance'decoder : decoder.TypeAssumptions
+  instance'dumper : dumper.TypeAssumptions
+  import'errors : _root_.Perennial.errors.Assumptions
 
-attribute [instance] Assumptions.InvalidByteError_instance
-  Assumptions.encoder_instance
-  Assumptions.decoder_instance
-  Assumptions.dumper_instance
-  Assumptions.import_errors_Assumption
+attribute [instance] Assumptions.instance'InvalidByteError
+  Assumptions.instance'encoder
+  Assumptions.instance'decoder
+  Assumptions.instance'dumper
+  Assumptions.import'errors
 
 end encoding.hex
 

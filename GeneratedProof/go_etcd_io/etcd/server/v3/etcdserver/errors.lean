@@ -25,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.errors.Assumptions]
 
-noncomputable instance DiscoveryError_typed_pointsto :
+noncomputable instance typed_pointsto'DiscoveryError :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError where
   typedPointstoDef l v dq := iprop(
     "Op" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError go!"Op" l) v.Op' dq ∗
@@ -35,11 +35,11 @@ noncomputable instance DiscoveryError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance DiscoveryError_into_val_typed :
+noncomputable instance into_val_typed'DiscoveryError :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance DiscoveryError_access_load_Op (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError) (dq : DFrac) :
+noncomputable instance access_load'DiscoveryError'Op (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError go!"Op" l) v.Op' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError go!"Op" l) v.Op' dq)
@@ -47,7 +47,7 @@ noncomputable instance DiscoveryError_access_load_Op (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance DiscoveryError_access_store_Op (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError) (y : GoString) :
+noncomputable instance access_store'DiscoveryError'Op (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError go!"Op" l) v.Op' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError go!"Op" l) y (DFrac.own 1))
@@ -55,7 +55,7 @@ noncomputable instance DiscoveryError_access_store_Op (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance DiscoveryError_access_load_Err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError) (dq : DFrac) :
+noncomputable instance access_load'DiscoveryError'Err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError go!"Err" l) v.Err' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError go!"Err" l) v.Err' dq)
@@ -63,7 +63,7 @@ noncomputable instance DiscoveryError_access_load_Err (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance DiscoveryError_access_store_Err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError) (y : GoError) :
+noncomputable instance access_store'DiscoveryError'Err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError go!"Err" l) v.Err' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError go!"Err" l) y (DFrac.own 1))

@@ -207,19 +207,19 @@ attribute [instance] CronJobExpansion.TypeAssumptions.type_repr
   CronJobExpansion.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  BatchV1beta1Interface_instance : BatchV1beta1Interface.TypeAssumptions
-  BatchV1beta1Client_instance : BatchV1beta1Client.TypeAssumptions
-  CronJobsGetter_instance : CronJobsGetter.TypeAssumptions
-  CronJobInterface_instance : CronJobInterface.TypeAssumptions
-  cronJobs_instance : cronJobs.TypeAssumptions
-  CronJobExpansion_instance : CronJobExpansion.TypeAssumptions
+  instance'BatchV1beta1Interface : BatchV1beta1Interface.TypeAssumptions
+  instance'BatchV1beta1Client : BatchV1beta1Client.TypeAssumptions
+  instance'CronJobsGetter : CronJobsGetter.TypeAssumptions
+  instance'CronJobInterface : CronJobInterface.TypeAssumptions
+  instance'cronJobs : cronJobs.TypeAssumptions
+  instance'CronJobExpansion : CronJobExpansion.TypeAssumptions
 
-attribute [instance] Assumptions.BatchV1beta1Interface_instance
-  Assumptions.BatchV1beta1Client_instance
-  Assumptions.CronJobsGetter_instance
-  Assumptions.CronJobInterface_instance
-  Assumptions.cronJobs_instance
-  Assumptions.CronJobExpansion_instance
+attribute [instance] Assumptions.instance'BatchV1beta1Interface
+  Assumptions.instance'BatchV1beta1Client
+  Assumptions.instance'CronJobsGetter
+  Assumptions.instance'CronJobInterface
+  Assumptions.instance'cronJobs
+  Assumptions.instance'CronJobExpansion
 
 end k8s_io.client_go.kubernetes.typed.batch.v1beta1
 

@@ -445,15 +445,15 @@ class Permission_Type.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   underlying : go.UnderlyingDirectedEq Permission_Type.ty Permission_Type.underlying
   method_set : go.MethodSetIs Permission_Type.ty [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType Permission_Type.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Permission_Type.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType Permission_Type.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty])))]
-  Enum_unfold : MethodUnfold Permission_Type.ty go!"Enum" Permission_Type.Enum.impl
-  ptr_Enum_unfold : MethodUnfold (go.GoType.PointerType Permission_Type.ty) go!"Enum" (LamV "$r"
+  unfold'Enum : MethodUnfold Permission_Type.ty go!"Enum" Permission_Type.Enum.impl
+  ptr_unfold'Enum : MethodUnfold (go.GoType.PointerType Permission_Type.ty) go!"Enum" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Permission_Type.ty go!"Enum"))) (App (Val (GoInstruction (GoLoad Permission_Type.ty))) (Var "$r"))))
 
 attribute [instance] Permission_Type.TypeAssumptions.underlying
   Permission_Type.TypeAssumptions.method_set
   Permission_Type.TypeAssumptions.ptr_method_set
-  Permission_Type.TypeAssumptions.Enum_unfold
-  Permission_Type.TypeAssumptions.ptr_Enum_unfold
+  Permission_Type.TypeAssumptions.unfold'Enum
+  Permission_Type.TypeAssumptions.ptr_unfold'Enum
 
 structure UserAddOptions [GooseExts] where
   mk ::
@@ -474,7 +474,7 @@ noncomputable instance UserAddOptions.zero_val [GooseExts] : ZeroVal UserAddOpti
 @[irreducible] noncomputable def UserAddOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UserAddOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_UserAddOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'UserAddOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold UserAddOptions.fields UserAddOptions.fieldsUnsealed :=
   ⟨by unfold UserAddOptions.fields; rfl⟩
 
@@ -484,31 +484,31 @@ noncomputable instance equals_unfold_UserAddOptions [GooseExts] [GoGlobalContext
 class UserAddOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UserAddOptions.underlying UserAddOptions
   underlying : go.UnderlyingDirectedEq UserAddOptions.ty UserAddOptions.underlying
-  get_state : ∀ (x : UserAddOptions), go.IsGoStepPureDetTagged under (StructFieldGet UserAddOptions.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : UserAddOptions) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet UserAddOptions.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : UserAddOptions)))
-  get_NoPassword : ∀ (x : UserAddOptions), go.IsGoStepPureDetTagged under (StructFieldGet UserAddOptions.underlying go!"NoPassword") #x (Val #(x.NoPassword'))
-  set_NoPassword : ∀ (x : UserAddOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet UserAddOptions.underlying go!"NoPassword") (PairV #x #y) (Val #(({ x with NoPassword' := y } : UserAddOptions)))
-  get_unknownFields : ∀ (x : UserAddOptions), go.IsGoStepPureDetTagged under (StructFieldGet UserAddOptions.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : UserAddOptions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet UserAddOptions.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : UserAddOptions)))
-  get_sizeCache : ∀ (x : UserAddOptions), go.IsGoStepPureDetTagged under (StructFieldGet UserAddOptions.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : UserAddOptions) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet UserAddOptions.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : UserAddOptions)))
+  get'state : ∀ (x : UserAddOptions), go.IsGoStepPureDetTagged under (StructFieldGet UserAddOptions.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : UserAddOptions) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet UserAddOptions.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : UserAddOptions)))
+  get'NoPassword : ∀ (x : UserAddOptions), go.IsGoStepPureDetTagged under (StructFieldGet UserAddOptions.underlying go!"NoPassword") #x (Val #(x.NoPassword'))
+  set'NoPassword : ∀ (x : UserAddOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet UserAddOptions.underlying go!"NoPassword") (PairV #x #y) (Val #(({ x with NoPassword' := y } : UserAddOptions)))
+  get'unknownFields : ∀ (x : UserAddOptions), go.IsGoStepPureDetTagged under (StructFieldGet UserAddOptions.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : UserAddOptions) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet UserAddOptions.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : UserAddOptions)))
+  get'sizeCache : ∀ (x : UserAddOptions), go.IsGoStepPureDetTagged under (StructFieldGet UserAddOptions.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : UserAddOptions) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet UserAddOptions.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : UserAddOptions)))
   method_set : go.MethodSetIs UserAddOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UserAddOptions.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetNoPassword", (some (go.signature.Signature [] false [go.bool]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetNoPassword_unfold : MethodUnfold (go.GoType.PointerType UserAddOptions.ty) go!"GetNoPassword" UserAddOptions.GetNoPassword.impl
+  ptr_unfold'GetNoPassword : MethodUnfold (go.GoType.PointerType UserAddOptions.ty) go!"GetNoPassword" UserAddOptions.GetNoPassword.impl
 
 attribute [instance] UserAddOptions.TypeAssumptions.type_repr
   UserAddOptions.TypeAssumptions.underlying
-  UserAddOptions.TypeAssumptions.get_state
-  UserAddOptions.TypeAssumptions.set_state
-  UserAddOptions.TypeAssumptions.get_NoPassword
-  UserAddOptions.TypeAssumptions.set_NoPassword
-  UserAddOptions.TypeAssumptions.get_unknownFields
-  UserAddOptions.TypeAssumptions.set_unknownFields
-  UserAddOptions.TypeAssumptions.get_sizeCache
-  UserAddOptions.TypeAssumptions.set_sizeCache
+  UserAddOptions.TypeAssumptions.get'state
+  UserAddOptions.TypeAssumptions.set'state
+  UserAddOptions.TypeAssumptions.get'NoPassword
+  UserAddOptions.TypeAssumptions.set'NoPassword
+  UserAddOptions.TypeAssumptions.get'unknownFields
+  UserAddOptions.TypeAssumptions.set'unknownFields
+  UserAddOptions.TypeAssumptions.get'sizeCache
+  UserAddOptions.TypeAssumptions.set'sizeCache
   UserAddOptions.TypeAssumptions.method_set
   UserAddOptions.TypeAssumptions.ptr_method_set
-  UserAddOptions.TypeAssumptions.ptr_GetNoPassword_unfold
+  UserAddOptions.TypeAssumptions.ptr_unfold'GetNoPassword
 
 structure User [GooseExts] where
   mk ::
@@ -535,7 +535,7 @@ noncomputable instance User.zero_val [GooseExts] : ZeroVal User :=
 @[irreducible] noncomputable def User.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   User.fieldsUnsealed
 
-noncomputable instance equals_unfold_User [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'User [GooseExts] [GoGlobalContext] :
     EqualsUnfold User.fields User.fieldsUnsealed :=
   ⟨by unfold User.fields; rfl⟩
 
@@ -545,49 +545,49 @@ noncomputable instance equals_unfold_User [GooseExts] [GoGlobalContext] :
 class User.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying User.underlying User
   underlying : go.UnderlyingDirectedEq User.ty User.underlying
-  get_state : ∀ (x : User), go.IsGoStepPureDetTagged under (StructFieldGet User.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : User) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet User.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : User)))
-  get_Name : ∀ (x : User), go.IsGoStepPureDetTagged under (StructFieldGet User.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : User) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet User.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : User)))
-  get_Password : ∀ (x : User), go.IsGoStepPureDetTagged under (StructFieldGet User.underlying go!"Password") #x (Val #(x.Password'))
-  set_Password : ∀ (x : User) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet User.underlying go!"Password") (PairV #x #y) (Val #(({ x with Password' := y } : User)))
-  get_Roles : ∀ (x : User), go.IsGoStepPureDetTagged under (StructFieldGet User.underlying go!"Roles") #x (Val #(x.Roles'))
-  set_Roles : ∀ (x : User) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet User.underlying go!"Roles") (PairV #x #y) (Val #(({ x with Roles' := y } : User)))
-  get_Options : ∀ (x : User), go.IsGoStepPureDetTagged under (StructFieldGet User.underlying go!"Options") #x (Val #(x.Options'))
-  set_Options : ∀ (x : User) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet User.underlying go!"Options") (PairV #x #y) (Val #(({ x with Options' := y } : User)))
-  get_unknownFields : ∀ (x : User), go.IsGoStepPureDetTagged under (StructFieldGet User.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : User) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet User.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : User)))
-  get_sizeCache : ∀ (x : User), go.IsGoStepPureDetTagged under (StructFieldGet User.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : User) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet User.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : User)))
+  get'state : ∀ (x : User), go.IsGoStepPureDetTagged under (StructFieldGet User.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : User) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet User.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : User)))
+  get'Name : ∀ (x : User), go.IsGoStepPureDetTagged under (StructFieldGet User.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : User) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet User.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : User)))
+  get'Password : ∀ (x : User), go.IsGoStepPureDetTagged under (StructFieldGet User.underlying go!"Password") #x (Val #(x.Password'))
+  set'Password : ∀ (x : User) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet User.underlying go!"Password") (PairV #x #y) (Val #(({ x with Password' := y } : User)))
+  get'Roles : ∀ (x : User), go.IsGoStepPureDetTagged under (StructFieldGet User.underlying go!"Roles") #x (Val #(x.Roles'))
+  set'Roles : ∀ (x : User) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet User.underlying go!"Roles") (PairV #x #y) (Val #(({ x with Roles' := y } : User)))
+  get'Options : ∀ (x : User), go.IsGoStepPureDetTagged under (StructFieldGet User.underlying go!"Options") #x (Val #(x.Options'))
+  set'Options : ∀ (x : User) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet User.underlying go!"Options") (PairV #x #y) (Val #(({ x with Options' := y } : User)))
+  get'unknownFields : ∀ (x : User), go.IsGoStepPureDetTagged under (StructFieldGet User.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : User) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet User.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : User)))
+  get'sizeCache : ∀ (x : User), go.IsGoStepPureDetTagged under (StructFieldGet User.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : User) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet User.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : User)))
   method_set : go.MethodSetIs User.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType User.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetOptions", (some (go.signature.Signature [] false [(go.GoType.PointerType UserAddOptions.ty)]))), (go!"GetPassword", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType User.ty) go!"GetName" User.GetName.impl
-  ptr_GetOptions_unfold : MethodUnfold (go.GoType.PointerType User.ty) go!"GetOptions" User.GetOptions.impl
-  ptr_GetPassword_unfold : MethodUnfold (go.GoType.PointerType User.ty) go!"GetPassword" User.GetPassword.impl
-  ptr_GetRoles_unfold : MethodUnfold (go.GoType.PointerType User.ty) go!"GetRoles" User.GetRoles.impl
+  ptr_unfold'GetName : MethodUnfold (go.GoType.PointerType User.ty) go!"GetName" User.GetName.impl
+  ptr_unfold'GetOptions : MethodUnfold (go.GoType.PointerType User.ty) go!"GetOptions" User.GetOptions.impl
+  ptr_unfold'GetPassword : MethodUnfold (go.GoType.PointerType User.ty) go!"GetPassword" User.GetPassword.impl
+  ptr_unfold'GetRoles : MethodUnfold (go.GoType.PointerType User.ty) go!"GetRoles" User.GetRoles.impl
 
 attribute [instance] User.TypeAssumptions.type_repr
   User.TypeAssumptions.underlying
-  User.TypeAssumptions.get_state
-  User.TypeAssumptions.set_state
-  User.TypeAssumptions.get_Name
-  User.TypeAssumptions.set_Name
-  User.TypeAssumptions.get_Password
-  User.TypeAssumptions.set_Password
-  User.TypeAssumptions.get_Roles
-  User.TypeAssumptions.set_Roles
-  User.TypeAssumptions.get_Options
-  User.TypeAssumptions.set_Options
-  User.TypeAssumptions.get_unknownFields
-  User.TypeAssumptions.set_unknownFields
-  User.TypeAssumptions.get_sizeCache
-  User.TypeAssumptions.set_sizeCache
+  User.TypeAssumptions.get'state
+  User.TypeAssumptions.set'state
+  User.TypeAssumptions.get'Name
+  User.TypeAssumptions.set'Name
+  User.TypeAssumptions.get'Password
+  User.TypeAssumptions.set'Password
+  User.TypeAssumptions.get'Roles
+  User.TypeAssumptions.set'Roles
+  User.TypeAssumptions.get'Options
+  User.TypeAssumptions.set'Options
+  User.TypeAssumptions.get'unknownFields
+  User.TypeAssumptions.set'unknownFields
+  User.TypeAssumptions.get'sizeCache
+  User.TypeAssumptions.set'sizeCache
   User.TypeAssumptions.method_set
   User.TypeAssumptions.ptr_method_set
-  User.TypeAssumptions.ptr_GetName_unfold
-  User.TypeAssumptions.ptr_GetOptions_unfold
-  User.TypeAssumptions.ptr_GetPassword_unfold
-  User.TypeAssumptions.ptr_GetRoles_unfold
+  User.TypeAssumptions.ptr_unfold'GetName
+  User.TypeAssumptions.ptr_unfold'GetOptions
+  User.TypeAssumptions.ptr_unfold'GetPassword
+  User.TypeAssumptions.ptr_unfold'GetRoles
 
 structure Permission [GooseExts] where
   mk ::
@@ -612,7 +612,7 @@ noncomputable instance Permission.zero_val [GooseExts] : ZeroVal Permission :=
 @[irreducible] noncomputable def Permission.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Permission.fieldsUnsealed
 
-noncomputable instance equals_unfold_Permission [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Permission [GooseExts] [GoGlobalContext] :
     EqualsUnfold Permission.fields Permission.fieldsUnsealed :=
   ⟨by unfold Permission.fields; rfl⟩
 
@@ -622,43 +622,43 @@ noncomputable instance equals_unfold_Permission [GooseExts] [GoGlobalContext] :
 class Permission.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Permission.underlying Permission
   underlying : go.UnderlyingDirectedEq Permission.ty Permission.underlying
-  get_state : ∀ (x : Permission), go.IsGoStepPureDetTagged under (StructFieldGet Permission.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : Permission) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Permission.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Permission)))
-  get_PermType : ∀ (x : Permission), go.IsGoStepPureDetTagged under (StructFieldGet Permission.underlying go!"PermType") #x (Val #(x.PermType'))
-  set_PermType : ∀ (x : Permission) (y : Permission_Type), go.IsGoStepPureDetTagged under (StructFieldSet Permission.underlying go!"PermType") (PairV #x #y) (Val #(({ x with PermType' := y } : Permission)))
-  get_Key : ∀ (x : Permission), go.IsGoStepPureDetTagged under (StructFieldGet Permission.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : Permission) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Permission.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Permission)))
-  get_RangeEnd : ∀ (x : Permission), go.IsGoStepPureDetTagged under (StructFieldGet Permission.underlying go!"RangeEnd") #x (Val #(x.RangeEnd'))
-  set_RangeEnd : ∀ (x : Permission) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Permission.underlying go!"RangeEnd") (PairV #x #y) (Val #(({ x with RangeEnd' := y } : Permission)))
-  get_unknownFields : ∀ (x : Permission), go.IsGoStepPureDetTagged under (StructFieldGet Permission.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : Permission) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Permission.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Permission)))
-  get_sizeCache : ∀ (x : Permission), go.IsGoStepPureDetTagged under (StructFieldGet Permission.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : Permission) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Permission.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Permission)))
+  get'state : ∀ (x : Permission), go.IsGoStepPureDetTagged under (StructFieldGet Permission.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : Permission) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Permission.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Permission)))
+  get'PermType : ∀ (x : Permission), go.IsGoStepPureDetTagged under (StructFieldGet Permission.underlying go!"PermType") #x (Val #(x.PermType'))
+  set'PermType : ∀ (x : Permission) (y : Permission_Type), go.IsGoStepPureDetTagged under (StructFieldSet Permission.underlying go!"PermType") (PairV #x #y) (Val #(({ x with PermType' := y } : Permission)))
+  get'Key : ∀ (x : Permission), go.IsGoStepPureDetTagged under (StructFieldGet Permission.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : Permission) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Permission.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Permission)))
+  get'RangeEnd : ∀ (x : Permission), go.IsGoStepPureDetTagged under (StructFieldGet Permission.underlying go!"RangeEnd") #x (Val #(x.RangeEnd'))
+  set'RangeEnd : ∀ (x : Permission) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Permission.underlying go!"RangeEnd") (PairV #x #y) (Val #(({ x with RangeEnd' := y } : Permission)))
+  get'unknownFields : ∀ (x : Permission), go.IsGoStepPureDetTagged under (StructFieldGet Permission.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : Permission) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Permission.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Permission)))
+  get'sizeCache : ∀ (x : Permission), go.IsGoStepPureDetTagged under (StructFieldGet Permission.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : Permission) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Permission.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Permission)))
   method_set : go.MethodSetIs Permission.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Permission.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetPermType", (some (go.signature.Signature [] false [Permission_Type.ty]))), (go!"GetRangeEnd", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetKey_unfold : MethodUnfold (go.GoType.PointerType Permission.ty) go!"GetKey" Permission.GetKey.impl
-  ptr_GetPermType_unfold : MethodUnfold (go.GoType.PointerType Permission.ty) go!"GetPermType" Permission.GetPermType.impl
-  ptr_GetRangeEnd_unfold : MethodUnfold (go.GoType.PointerType Permission.ty) go!"GetRangeEnd" Permission.GetRangeEnd.impl
+  ptr_unfold'GetKey : MethodUnfold (go.GoType.PointerType Permission.ty) go!"GetKey" Permission.GetKey.impl
+  ptr_unfold'GetPermType : MethodUnfold (go.GoType.PointerType Permission.ty) go!"GetPermType" Permission.GetPermType.impl
+  ptr_unfold'GetRangeEnd : MethodUnfold (go.GoType.PointerType Permission.ty) go!"GetRangeEnd" Permission.GetRangeEnd.impl
 
 attribute [instance] Permission.TypeAssumptions.type_repr
   Permission.TypeAssumptions.underlying
-  Permission.TypeAssumptions.get_state
-  Permission.TypeAssumptions.set_state
-  Permission.TypeAssumptions.get_PermType
-  Permission.TypeAssumptions.set_PermType
-  Permission.TypeAssumptions.get_Key
-  Permission.TypeAssumptions.set_Key
-  Permission.TypeAssumptions.get_RangeEnd
-  Permission.TypeAssumptions.set_RangeEnd
-  Permission.TypeAssumptions.get_unknownFields
-  Permission.TypeAssumptions.set_unknownFields
-  Permission.TypeAssumptions.get_sizeCache
-  Permission.TypeAssumptions.set_sizeCache
+  Permission.TypeAssumptions.get'state
+  Permission.TypeAssumptions.set'state
+  Permission.TypeAssumptions.get'PermType
+  Permission.TypeAssumptions.set'PermType
+  Permission.TypeAssumptions.get'Key
+  Permission.TypeAssumptions.set'Key
+  Permission.TypeAssumptions.get'RangeEnd
+  Permission.TypeAssumptions.set'RangeEnd
+  Permission.TypeAssumptions.get'unknownFields
+  Permission.TypeAssumptions.set'unknownFields
+  Permission.TypeAssumptions.get'sizeCache
+  Permission.TypeAssumptions.set'sizeCache
   Permission.TypeAssumptions.method_set
   Permission.TypeAssumptions.ptr_method_set
-  Permission.TypeAssumptions.ptr_GetKey_unfold
-  Permission.TypeAssumptions.ptr_GetPermType_unfold
-  Permission.TypeAssumptions.ptr_GetRangeEnd_unfold
+  Permission.TypeAssumptions.ptr_unfold'GetKey
+  Permission.TypeAssumptions.ptr_unfold'GetPermType
+  Permission.TypeAssumptions.ptr_unfold'GetRangeEnd
 
 structure Role [GooseExts] where
   mk ::
@@ -681,7 +681,7 @@ noncomputable instance Role.zero_val [GooseExts] : ZeroVal Role :=
 @[irreducible] noncomputable def Role.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Role.fieldsUnsealed
 
-noncomputable instance equals_unfold_Role [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Role [GooseExts] [GoGlobalContext] :
     EqualsUnfold Role.fields Role.fieldsUnsealed :=
   ⟨by unfold Role.fields; rfl⟩
 
@@ -691,56 +691,56 @@ noncomputable instance equals_unfold_Role [GooseExts] [GoGlobalContext] :
 class Role.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Role.underlying Role
   underlying : go.UnderlyingDirectedEq Role.ty Role.underlying
-  get_state : ∀ (x : Role), go.IsGoStepPureDetTagged under (StructFieldGet Role.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : Role) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Role.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Role)))
-  get_Name : ∀ (x : Role), go.IsGoStepPureDetTagged under (StructFieldGet Role.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : Role) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Role.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Role)))
-  get_KeyPermission : ∀ (x : Role), go.IsGoStepPureDetTagged under (StructFieldGet Role.underlying go!"KeyPermission") #x (Val #(x.KeyPermission'))
-  set_KeyPermission : ∀ (x : Role) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Role.underlying go!"KeyPermission") (PairV #x #y) (Val #(({ x with KeyPermission' := y } : Role)))
-  get_unknownFields : ∀ (x : Role), go.IsGoStepPureDetTagged under (StructFieldGet Role.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : Role) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Role.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Role)))
-  get_sizeCache : ∀ (x : Role), go.IsGoStepPureDetTagged under (StructFieldGet Role.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : Role) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Role.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Role)))
+  get'state : ∀ (x : Role), go.IsGoStepPureDetTagged under (StructFieldGet Role.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : Role) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Role.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Role)))
+  get'Name : ∀ (x : Role), go.IsGoStepPureDetTagged under (StructFieldGet Role.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : Role) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Role.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Role)))
+  get'KeyPermission : ∀ (x : Role), go.IsGoStepPureDetTagged under (StructFieldGet Role.underlying go!"KeyPermission") #x (Val #(x.KeyPermission'))
+  set'KeyPermission : ∀ (x : Role) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Role.underlying go!"KeyPermission") (PairV #x #y) (Val #(({ x with KeyPermission' := y } : Role)))
+  get'unknownFields : ∀ (x : Role), go.IsGoStepPureDetTagged under (StructFieldGet Role.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : Role) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Role.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Role)))
+  get'sizeCache : ∀ (x : Role), go.IsGoStepPureDetTagged under (StructFieldGet Role.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : Role) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Role.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Role)))
   method_set : go.MethodSetIs Role.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Role.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetKeyPermission", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Permission.ty))]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_GetKeyPermission_unfold : MethodUnfold (go.GoType.PointerType Role.ty) go!"GetKeyPermission" Role.GetKeyPermission.impl
-  ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType Role.ty) go!"GetName" Role.GetName.impl
+  ptr_unfold'GetKeyPermission : MethodUnfold (go.GoType.PointerType Role.ty) go!"GetKeyPermission" Role.GetKeyPermission.impl
+  ptr_unfold'GetName : MethodUnfold (go.GoType.PointerType Role.ty) go!"GetName" Role.GetName.impl
 
 attribute [instance] Role.TypeAssumptions.type_repr
   Role.TypeAssumptions.underlying
-  Role.TypeAssumptions.get_state
-  Role.TypeAssumptions.set_state
-  Role.TypeAssumptions.get_Name
-  Role.TypeAssumptions.set_Name
-  Role.TypeAssumptions.get_KeyPermission
-  Role.TypeAssumptions.set_KeyPermission
-  Role.TypeAssumptions.get_unknownFields
-  Role.TypeAssumptions.set_unknownFields
-  Role.TypeAssumptions.get_sizeCache
-  Role.TypeAssumptions.set_sizeCache
+  Role.TypeAssumptions.get'state
+  Role.TypeAssumptions.set'state
+  Role.TypeAssumptions.get'Name
+  Role.TypeAssumptions.set'Name
+  Role.TypeAssumptions.get'KeyPermission
+  Role.TypeAssumptions.set'KeyPermission
+  Role.TypeAssumptions.get'unknownFields
+  Role.TypeAssumptions.set'unknownFields
+  Role.TypeAssumptions.get'sizeCache
+  Role.TypeAssumptions.set'sizeCache
   Role.TypeAssumptions.method_set
   Role.TypeAssumptions.ptr_method_set
-  Role.TypeAssumptions.ptr_GetKeyPermission_unfold
-  Role.TypeAssumptions.ptr_GetName_unfold
+  Role.TypeAssumptions.ptr_unfold'GetKeyPermission
+  Role.TypeAssumptions.ptr_unfold'GetName
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Permission_Type_instance : Permission_Type.TypeAssumptions
-  UserAddOptions_instance : UserAddOptions.TypeAssumptions
-  User_instance : User.TypeAssumptions
-  Permission_instance : Permission.TypeAssumptions
-  Role_instance : Role.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  import_protoreflect_Assumption : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
-  import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
+  instance'Permission_Type : Permission_Type.TypeAssumptions
+  instance'UserAddOptions : UserAddOptions.TypeAssumptions
+  instance'User : User.TypeAssumptions
+  instance'Permission : Permission.TypeAssumptions
+  instance'Role : Role.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  import'protoreflect : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
+  import'protoimpl : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
 
-attribute [instance] Assumptions.Permission_Type_instance
-  Assumptions.UserAddOptions_instance
-  Assumptions.User_instance
-  Assumptions.Permission_instance
-  Assumptions.Role_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.import_protoreflect_Assumption
-  Assumptions.import_protoimpl_Assumption
+attribute [instance] Assumptions.instance'Permission_Type
+  Assumptions.instance'UserAddOptions
+  Assumptions.instance'User
+  Assumptions.instance'Permission
+  Assumptions.instance'Role
+  Assumptions.«unfold'init.0»
+  Assumptions.import'protoreflect
+  Assumptions.import'protoimpl
 
 end go_etcd_io.etcd.api.v3.authpb
 

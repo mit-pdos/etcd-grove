@@ -994,41 +994,41 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  startMember_unfold : FuncUnfold startMember [] startMember.impl
-  newUserClient_unfold : FuncUnfold newUserClient [] newUserClient.impl
-  barrier_unfold : FuncUnfold barrier [] barrier.impl
-  run_unfold : FuncUnfold run [] run.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_http_Assumption : _root_.Perennial.net.http.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
-  import_config_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
-  import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_features_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
-  import_auth_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions
-  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
+  unfold'startMember : FuncUnfold startMember [] startMember.impl
+  unfold'newUserClient : FuncUnfold newUserClient [] newUserClient.impl
+  unfold'barrier : FuncUnfold barrier [] barrier.impl
+  unfold'run : FuncUnfold run [] run.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'net : _root_.Perennial.net.Assumptions
+  import'http : _root_.Perennial.net.http.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'types : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
+  import'config : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
+  import'etcdserver : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
+  import'features : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
+  import'auth : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions
+  import'etcdstart : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
 
-attribute [instance] Assumptions.startMember_unfold
-  Assumptions.newUserClient_unfold
-  Assumptions.barrier_unfold
-  Assumptions.run_unfold
-  Assumptions.Main_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_net_Assumption
-  Assumptions.import_http_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_config_Assumption
-  Assumptions.import_etcdserver_Assumption
-  Assumptions.import_features_Assumption
-  Assumptions.import_auth_Assumption
-  Assumptions.import_etcdstart_Assumption
+attribute [instance] Assumptions.unfold'startMember
+  Assumptions.unfold'newUserClient
+  Assumptions.unfold'barrier
+  Assumptions.unfold'run
+  Assumptions.unfold'Main
+  Assumptions.import'context
+  Assumptions.import'net
+  Assumptions.import'http
+  Assumptions.import'sync
+  Assumptions.import'zap
+  Assumptions.import'clientv3
+  Assumptions.import'types
+  Assumptions.import'config
+  Assumptions.import'etcdserver
+  Assumptions.import'features
+  Assumptions.import'auth
+  Assumptions.import'etcdstart
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.auth3
 

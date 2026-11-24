@@ -165,7 +165,7 @@ noncomputable instance perRPCCredentialBundle.zero_val [GooseExts] : ZeroVal per
 @[irreducible] noncomputable def perRPCCredentialBundle.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   perRPCCredentialBundle.fieldsUnsealed
 
-noncomputable instance equals_unfold_perRPCCredentialBundle [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'perRPCCredentialBundle [GooseExts] [GoGlobalContext] :
     EqualsUnfold perRPCCredentialBundle.fields perRPCCredentialBundle.fieldsUnsealed :=
   ⟨by unfold perRPCCredentialBundle.fields; rfl⟩
 
@@ -175,21 +175,21 @@ noncomputable instance equals_unfold_perRPCCredentialBundle [GooseExts] [GoGloba
 class perRPCCredentialBundle.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying perRPCCredentialBundle.underlying perRPCCredentialBundle
   underlying : go.UnderlyingDirectedEq perRPCCredentialBundle.ty perRPCCredentialBundle.underlying
-  get_rc : ∀ (x : perRPCCredentialBundle), go.IsGoStepPureDetTagged under (StructFieldGet perRPCCredentialBundle.underlying go!"rc") #x (Val #(x.rc'))
-  set_rc : ∀ (x : perRPCCredentialBundle) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet perRPCCredentialBundle.underlying go!"rc") (PairV #x #y) (Val #(({ x with rc' := y } : perRPCCredentialBundle)))
+  get'rc : ∀ (x : perRPCCredentialBundle), go.IsGoStepPureDetTagged under (StructFieldGet perRPCCredentialBundle.underlying go!"rc") #x (Val #(x.rc'))
+  set'rc : ∀ (x : perRPCCredentialBundle) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet perRPCCredentialBundle.underlying go!"rc") (PairV #x #y) (Val #(({ x with rc' := y } : perRPCCredentialBundle)))
   method_set : go.MethodSetIs perRPCCredentialBundle.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType perRPCCredentialBundle.ty) [(go!"PerRPCCredentials", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty]))), (go!"UpdateAuthToken", (some (go.signature.Signature [go.string] false [])))]
-  ptr_PerRPCCredentials_unfold : MethodUnfold (go.GoType.PointerType perRPCCredentialBundle.ty) go!"PerRPCCredentials" perRPCCredentialBundle.PerRPCCredentials.impl
-  ptr_UpdateAuthToken_unfold : MethodUnfold (go.GoType.PointerType perRPCCredentialBundle.ty) go!"UpdateAuthToken" perRPCCredentialBundle.UpdateAuthToken.impl
+  ptr_unfold'PerRPCCredentials : MethodUnfold (go.GoType.PointerType perRPCCredentialBundle.ty) go!"PerRPCCredentials" perRPCCredentialBundle.PerRPCCredentials.impl
+  ptr_unfold'UpdateAuthToken : MethodUnfold (go.GoType.PointerType perRPCCredentialBundle.ty) go!"UpdateAuthToken" perRPCCredentialBundle.UpdateAuthToken.impl
 
 attribute [instance] perRPCCredentialBundle.TypeAssumptions.type_repr
   perRPCCredentialBundle.TypeAssumptions.underlying
-  perRPCCredentialBundle.TypeAssumptions.get_rc
-  perRPCCredentialBundle.TypeAssumptions.set_rc
+  perRPCCredentialBundle.TypeAssumptions.get'rc
+  perRPCCredentialBundle.TypeAssumptions.set'rc
   perRPCCredentialBundle.TypeAssumptions.method_set
   perRPCCredentialBundle.TypeAssumptions.ptr_method_set
-  perRPCCredentialBundle.TypeAssumptions.ptr_PerRPCCredentials_unfold
-  perRPCCredentialBundle.TypeAssumptions.ptr_UpdateAuthToken_unfold
+  perRPCCredentialBundle.TypeAssumptions.ptr_unfold'PerRPCCredentials
+  perRPCCredentialBundle.TypeAssumptions.ptr_unfold'UpdateAuthToken
 
 structure perRPCCredential [GooseExts] where
   mk ::
@@ -206,7 +206,7 @@ noncomputable instance perRPCCredential.zero_val [GooseExts] : ZeroVal perRPCCre
 @[irreducible] noncomputable def perRPCCredential.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   perRPCCredential.fieldsUnsealed
 
-noncomputable instance equals_unfold_perRPCCredential [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'perRPCCredential [GooseExts] [GoGlobalContext] :
     EqualsUnfold perRPCCredential.fields perRPCCredential.fieldsUnsealed :=
   ⟨by unfold perRPCCredential.fields; rfl⟩
 
@@ -216,40 +216,40 @@ noncomputable instance equals_unfold_perRPCCredential [GooseExts] [GoGlobalConte
 class perRPCCredential.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying perRPCCredential.underlying perRPCCredential
   underlying : go.UnderlyingDirectedEq perRPCCredential.ty perRPCCredential.underlying
-  get_authToken : ∀ (x : perRPCCredential), go.IsGoStepPureDetTagged under (StructFieldGet perRPCCredential.underlying go!"authToken") #x (Val #(x.authToken'))
-  set_authToken : ∀ (x : perRPCCredential) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet perRPCCredential.underlying go!"authToken") (PairV #x #y) (Val #(({ x with authToken' := y } : perRPCCredential)))
-  get_authTokenMu : ∀ (x : perRPCCredential), go.IsGoStepPureDetTagged under (StructFieldGet perRPCCredential.underlying go!"authTokenMu") #x (Val #(x.authTokenMu'))
-  set_authTokenMu : ∀ (x : perRPCCredential) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet perRPCCredential.underlying go!"authTokenMu") (PairV #x #y) (Val #(({ x with authTokenMu' := y } : perRPCCredential)))
+  get'authToken : ∀ (x : perRPCCredential), go.IsGoStepPureDetTagged under (StructFieldGet perRPCCredential.underlying go!"authToken") #x (Val #(x.authToken'))
+  set'authToken : ∀ (x : perRPCCredential) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet perRPCCredential.underlying go!"authToken") (PairV #x #y) (Val #(({ x with authToken' := y } : perRPCCredential)))
+  get'authTokenMu : ∀ (x : perRPCCredential), go.IsGoStepPureDetTagged under (StructFieldGet perRPCCredential.underlying go!"authTokenMu") #x (Val #(x.authTokenMu'))
+  set'authTokenMu : ∀ (x : perRPCCredential) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet perRPCCredential.underlying go!"authTokenMu") (PairV #x #y) (Val #(({ x with authTokenMu' := y } : perRPCCredential)))
   method_set : go.MethodSetIs perRPCCredential.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType perRPCCredential.ty) [(go!"GetRequestMetadata", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.SliceType go.string)] true [(go.GoType.MapType go.string go.string), go.error]))), (go!"RequireTransportSecurity", (some (go.signature.Signature [] false [go.bool]))), (go!"UpdateAuthToken", (some (go.signature.Signature [go.string] false [])))]
-  ptr_RequireTransportSecurity_unfold : MethodUnfold (go.GoType.PointerType perRPCCredential.ty) go!"RequireTransportSecurity" perRPCCredential.RequireTransportSecurity.impl
-  ptr_UpdateAuthToken_unfold : MethodUnfold (go.GoType.PointerType perRPCCredential.ty) go!"UpdateAuthToken" perRPCCredential.UpdateAuthToken.impl
+  ptr_unfold'RequireTransportSecurity : MethodUnfold (go.GoType.PointerType perRPCCredential.ty) go!"RequireTransportSecurity" perRPCCredential.RequireTransportSecurity.impl
+  ptr_unfold'UpdateAuthToken : MethodUnfold (go.GoType.PointerType perRPCCredential.ty) go!"UpdateAuthToken" perRPCCredential.UpdateAuthToken.impl
 
 attribute [instance] perRPCCredential.TypeAssumptions.type_repr
   perRPCCredential.TypeAssumptions.underlying
-  perRPCCredential.TypeAssumptions.get_authToken
-  perRPCCredential.TypeAssumptions.set_authToken
-  perRPCCredential.TypeAssumptions.get_authTokenMu
-  perRPCCredential.TypeAssumptions.set_authTokenMu
+  perRPCCredential.TypeAssumptions.get'authToken
+  perRPCCredential.TypeAssumptions.set'authToken
+  perRPCCredential.TypeAssumptions.get'authTokenMu
+  perRPCCredential.TypeAssumptions.set'authTokenMu
   perRPCCredential.TypeAssumptions.method_set
   perRPCCredential.TypeAssumptions.ptr_method_set
-  perRPCCredential.TypeAssumptions.ptr_RequireTransportSecurity_unfold
-  perRPCCredential.TypeAssumptions.ptr_UpdateAuthToken_unfold
+  perRPCCredential.TypeAssumptions.ptr_unfold'RequireTransportSecurity
+  perRPCCredential.TypeAssumptions.ptr_unfold'UpdateAuthToken
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  PerRPCCredentialsBundle_instance : PerRPCCredentialsBundle.TypeAssumptions
-  perRPCCredentialBundle_instance : perRPCCredentialBundle.TypeAssumptions
-  perRPCCredential_instance : perRPCCredential.TypeAssumptions
-  NewPerRPCCredentialBundle_unfold : FuncUnfold NewPerRPCCredentialBundle [] NewPerRPCCredentialBundle.impl
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_credentials_Assumption : _root_.Perennial.google_golang_org.grpc.credentials.Assumptions
+  instance'PerRPCCredentialsBundle : PerRPCCredentialsBundle.TypeAssumptions
+  instance'perRPCCredentialBundle : perRPCCredentialBundle.TypeAssumptions
+  instance'perRPCCredential : perRPCCredential.TypeAssumptions
+  unfold'NewPerRPCCredentialBundle : FuncUnfold NewPerRPCCredentialBundle [] NewPerRPCCredentialBundle.impl
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'credentials : _root_.Perennial.google_golang_org.grpc.credentials.Assumptions
 
-attribute [instance] Assumptions.PerRPCCredentialsBundle_instance
-  Assumptions.perRPCCredentialBundle_instance
-  Assumptions.perRPCCredential_instance
-  Assumptions.NewPerRPCCredentialBundle_unfold
-  Assumptions.import_sync_Assumption
-  Assumptions.import_credentials_Assumption
+attribute [instance] Assumptions.instance'PerRPCCredentialsBundle
+  Assumptions.instance'perRPCCredentialBundle
+  Assumptions.instance'perRPCCredential
+  Assumptions.unfold'NewPerRPCCredentialBundle
+  Assumptions.import'sync
+  Assumptions.import'credentials
 
 end go_etcd_io.etcd.client.v3.credentials
 

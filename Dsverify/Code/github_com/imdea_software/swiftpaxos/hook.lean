@@ -515,7 +515,7 @@ noncomputable instance CondF.zero_val [GooseExts] : ZeroVal CondF :=
 @[irreducible] noncomputable def CondF.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CondF.fieldsUnsealed
 
-noncomputable instance equals_unfold_CondF [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'CondF [GooseExts] [GoGlobalContext] :
     EqualsUnfold CondF.fields CondF.fieldsUnsealed :=
   ⟨by unfold CondF.fields; rfl⟩
 
@@ -525,35 +525,35 @@ noncomputable instance equals_unfold_CondF [GooseExts] [GoGlobalContext] :
 class CondF.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CondF.underlying CondF
   underlying : go.UnderlyingDirectedEq CondF.ty CondF.underlying
-  get_cond : ∀ (x : CondF), go.IsGoStepPureDetTagged under (StructFieldGet CondF.underlying go!"cond") #x (Val #(x.cond'))
-  set_cond : ∀ (x : CondF) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet CondF.underlying go!"cond") (PairV #x #y) (Val #(({ x with cond' := y } : CondF)))
-  get_fun : ∀ (x : CondF), go.IsGoStepPureDetTagged under (StructFieldGet CondF.underlying go!"fun") #x (Val #(x.fun'))
-  set_fun : ∀ (x : CondF) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet CondF.underlying go!"fun") (PairV #x #y) (Val #(({ x with fun' := y } : CondF)))
-  get_wanna : ∀ (x : CondF), go.IsGoStepPureDetTagged under (StructFieldGet CondF.underlying go!"wanna") #x (Val #(x.wanna'))
-  set_wanna : ∀ (x : CondF) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet CondF.underlying go!"wanna") (PairV #x #y) (Val #(({ x with wanna' := y } : CondF)))
+  get'cond : ∀ (x : CondF), go.IsGoStepPureDetTagged under (StructFieldGet CondF.underlying go!"cond") #x (Val #(x.cond'))
+  set'cond : ∀ (x : CondF) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet CondF.underlying go!"cond") (PairV #x #y) (Val #(({ x with cond' := y } : CondF)))
+  get'fun : ∀ (x : CondF), go.IsGoStepPureDetTagged under (StructFieldGet CondF.underlying go!"fun") #x (Val #(x.fun'))
+  set'fun : ∀ (x : CondF) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet CondF.underlying go!"fun") (PairV #x #y) (Val #(({ x with fun' := y } : CondF)))
+  get'wanna : ∀ (x : CondF), go.IsGoStepPureDetTagged under (StructFieldGet CondF.underlying go!"wanna") #x (Val #(x.wanna'))
+  set'wanna : ∀ (x : CondF) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet CondF.underlying go!"wanna") (PairV #x #y) (Val #(({ x with wanna' := y } : CondF)))
   method_set : go.MethodSetIs CondF.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType CondF.ty) [(go!"AndCond", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))] false []))), (go!"Call", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.bool]))), (go!"OrCond", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))] false []))), (go!"Recall", (some (go.signature.Signature [] false [go.bool]))), (go!"ReinitCondF", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))] false [(go.GoType.PointerType CondF.ty)])))]
-  ptr_AndCond_unfold : MethodUnfold (go.GoType.PointerType CondF.ty) go!"AndCond" CondF.AndCond.impl
-  ptr_Call_unfold : MethodUnfold (go.GoType.PointerType CondF.ty) go!"Call" CondF.Call.impl
-  ptr_OrCond_unfold : MethodUnfold (go.GoType.PointerType CondF.ty) go!"OrCond" CondF.OrCond.impl
-  ptr_Recall_unfold : MethodUnfold (go.GoType.PointerType CondF.ty) go!"Recall" CondF.Recall.impl
-  ptr_ReinitCondF_unfold : MethodUnfold (go.GoType.PointerType CondF.ty) go!"ReinitCondF" CondF.ReinitCondF.impl
+  ptr_unfold'AndCond : MethodUnfold (go.GoType.PointerType CondF.ty) go!"AndCond" CondF.AndCond.impl
+  ptr_unfold'Call : MethodUnfold (go.GoType.PointerType CondF.ty) go!"Call" CondF.Call.impl
+  ptr_unfold'OrCond : MethodUnfold (go.GoType.PointerType CondF.ty) go!"OrCond" CondF.OrCond.impl
+  ptr_unfold'Recall : MethodUnfold (go.GoType.PointerType CondF.ty) go!"Recall" CondF.Recall.impl
+  ptr_unfold'ReinitCondF : MethodUnfold (go.GoType.PointerType CondF.ty) go!"ReinitCondF" CondF.ReinitCondF.impl
 
 attribute [instance] CondF.TypeAssumptions.type_repr
   CondF.TypeAssumptions.underlying
-  CondF.TypeAssumptions.get_cond
-  CondF.TypeAssumptions.set_cond
-  CondF.TypeAssumptions.get_fun
-  CondF.TypeAssumptions.set_fun
-  CondF.TypeAssumptions.get_wanna
-  CondF.TypeAssumptions.set_wanna
+  CondF.TypeAssumptions.get'cond
+  CondF.TypeAssumptions.set'cond
+  CondF.TypeAssumptions.get'fun
+  CondF.TypeAssumptions.set'fun
+  CondF.TypeAssumptions.get'wanna
+  CondF.TypeAssumptions.set'wanna
   CondF.TypeAssumptions.method_set
   CondF.TypeAssumptions.ptr_method_set
-  CondF.TypeAssumptions.ptr_AndCond_unfold
-  CondF.TypeAssumptions.ptr_Call_unfold
-  CondF.TypeAssumptions.ptr_OrCond_unfold
-  CondF.TypeAssumptions.ptr_Recall_unfold
-  CondF.TypeAssumptions.ptr_ReinitCondF_unfold
+  CondF.TypeAssumptions.ptr_unfold'AndCond
+  CondF.TypeAssumptions.ptr_unfold'Call
+  CondF.TypeAssumptions.ptr_unfold'OrCond
+  CondF.TypeAssumptions.ptr_unfold'Recall
+  CondF.TypeAssumptions.ptr_unfold'ReinitCondF
 
 structure OptCondF [GooseExts] where
   mk ::
@@ -572,7 +572,7 @@ noncomputable instance OptCondF.zero_val [GooseExts] : ZeroVal OptCondF :=
 @[irreducible] noncomputable def OptCondF.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   OptCondF.fieldsUnsealed
 
-noncomputable instance equals_unfold_OptCondF [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'OptCondF [GooseExts] [GoGlobalContext] :
     EqualsUnfold OptCondF.fields OptCondF.fieldsUnsealed :=
   ⟨by unfold OptCondF.fields; rfl⟩
 
@@ -582,50 +582,50 @@ noncomputable instance equals_unfold_OptCondF [GooseExts] [GoGlobalContext] :
 class OptCondF.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying OptCondF.underlying OptCondF
   underlying : go.UnderlyingDirectedEq OptCondF.ty OptCondF.underlying
-  get_cond : ∀ (x : OptCondF), go.IsGoStepPureDetTagged under (StructFieldGet OptCondF.underlying go!"cond") #x (Val #(x.cond'))
-  set_cond : ∀ (x : OptCondF) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet OptCondF.underlying go!"cond") (PairV #x #y) (Val #(({ x with cond' := y } : OptCondF)))
-  get_funs : ∀ (x : OptCondF), go.IsGoStepPureDetTagged under (StructFieldGet OptCondF.underlying go!"funs") #x (Val #(x.funs'))
-  set_funs : ∀ (x : OptCondF) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet OptCondF.underlying go!"funs") (PairV #x #y) (Val #(({ x with funs' := y } : OptCondF)))
-  get_funs_num : ∀ (x : OptCondF), go.IsGoStepPureDetTagged under (StructFieldGet OptCondF.underlying go!"funs_num") #x (Val #(x.funs_num'))
-  set_funs_num : ∀ (x : OptCondF) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet OptCondF.underlying go!"funs_num") (PairV #x #y) (Val #(({ x with funs_num' := y } : OptCondF)))
+  get'cond : ∀ (x : OptCondF), go.IsGoStepPureDetTagged under (StructFieldGet OptCondF.underlying go!"cond") #x (Val #(x.cond'))
+  set'cond : ∀ (x : OptCondF) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet OptCondF.underlying go!"cond") (PairV #x #y) (Val #(({ x with cond' := y } : OptCondF)))
+  get'funs : ∀ (x : OptCondF), go.IsGoStepPureDetTagged under (StructFieldGet OptCondF.underlying go!"funs") #x (Val #(x.funs'))
+  set'funs : ∀ (x : OptCondF) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet OptCondF.underlying go!"funs") (PairV #x #y) (Val #(({ x with funs' := y } : OptCondF)))
+  get'funs_num : ∀ (x : OptCondF), go.IsGoStepPureDetTagged under (StructFieldGet OptCondF.underlying go!"funs_num") #x (Val #(x.funs_num'))
+  set'funs_num : ∀ (x : OptCondF) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet OptCondF.underlying go!"funs_num") (PairV #x #y) (Val #(({ x with funs_num' := y } : OptCondF)))
   method_set : go.MethodSetIs OptCondF.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType OptCondF.ty) [(go!"Call", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.bool]))), (go!"Recall", (some (go.signature.Signature [] false [go.bool]))), (go!"ReinitCondF", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))] false [(go.GoType.PointerType OptCondF.ty)])))]
-  ptr_Call_unfold : MethodUnfold (go.GoType.PointerType OptCondF.ty) go!"Call" OptCondF.Call.impl
-  ptr_Recall_unfold : MethodUnfold (go.GoType.PointerType OptCondF.ty) go!"Recall" OptCondF.Recall.impl
-  ptr_ReinitCondF_unfold : MethodUnfold (go.GoType.PointerType OptCondF.ty) go!"ReinitCondF" OptCondF.ReinitCondF.impl
+  ptr_unfold'Call : MethodUnfold (go.GoType.PointerType OptCondF.ty) go!"Call" OptCondF.Call.impl
+  ptr_unfold'Recall : MethodUnfold (go.GoType.PointerType OptCondF.ty) go!"Recall" OptCondF.Recall.impl
+  ptr_unfold'ReinitCondF : MethodUnfold (go.GoType.PointerType OptCondF.ty) go!"ReinitCondF" OptCondF.ReinitCondF.impl
 
 attribute [instance] OptCondF.TypeAssumptions.type_repr
   OptCondF.TypeAssumptions.underlying
-  OptCondF.TypeAssumptions.get_cond
-  OptCondF.TypeAssumptions.set_cond
-  OptCondF.TypeAssumptions.get_funs
-  OptCondF.TypeAssumptions.set_funs
-  OptCondF.TypeAssumptions.get_funs_num
-  OptCondF.TypeAssumptions.set_funs_num
+  OptCondF.TypeAssumptions.get'cond
+  OptCondF.TypeAssumptions.set'cond
+  OptCondF.TypeAssumptions.get'funs
+  OptCondF.TypeAssumptions.set'funs
+  OptCondF.TypeAssumptions.get'funs_num
+  OptCondF.TypeAssumptions.set'funs_num
   OptCondF.TypeAssumptions.method_set
   OptCondF.TypeAssumptions.ptr_method_set
-  OptCondF.TypeAssumptions.ptr_Call_unfold
-  OptCondF.TypeAssumptions.ptr_Recall_unfold
-  OptCondF.TypeAssumptions.ptr_ReinitCondF_unfold
+  OptCondF.TypeAssumptions.ptr_unfold'Call
+  OptCondF.TypeAssumptions.ptr_unfold'Recall
+  OptCondF.TypeAssumptions.ptr_unfold'ReinitCondF
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  CondF_instance : CondF.TypeAssumptions
-  OptCondF_instance : OptCondF.TypeAssumptions
-  NewCondF_unfold : FuncUnfold NewCondF [] NewCondF.impl
-  NewOptCondF_unfold : FuncUnfold NewOptCondF [] NewOptCondF.impl
-  HookUser1_unfold : FuncUnfold HookUser1 [] HookUser1.impl
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_signal_Assumption : _root_.Perennial.os.signal.Assumptions
-  import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
+  instance'CondF : CondF.TypeAssumptions
+  instance'OptCondF : OptCondF.TypeAssumptions
+  unfold'NewCondF : FuncUnfold NewCondF [] NewCondF.impl
+  unfold'NewOptCondF : FuncUnfold NewOptCondF [] NewOptCondF.impl
+  unfold'HookUser1 : FuncUnfold HookUser1 [] HookUser1.impl
+  import'os : _root_.Perennial.os.Assumptions
+  import'signal : _root_.Perennial.os.signal.Assumptions
+  import'syscall : _root_.Perennial.syscall.Assumptions
 
-attribute [instance] Assumptions.CondF_instance
-  Assumptions.OptCondF_instance
-  Assumptions.NewCondF_unfold
-  Assumptions.NewOptCondF_unfold
-  Assumptions.HookUser1_unfold
-  Assumptions.import_os_Assumption
-  Assumptions.import_signal_Assumption
-  Assumptions.import_syscall_Assumption
+attribute [instance] Assumptions.instance'CondF
+  Assumptions.instance'OptCondF
+  Assumptions.unfold'NewCondF
+  Assumptions.unfold'NewOptCondF
+  Assumptions.unfold'HookUser1
+  Assumptions.import'os
+  Assumptions.import'signal
+  Assumptions.import'syscall
 
 end github_com.imdea_software.swiftpaxos.hook
 

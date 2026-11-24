@@ -115,7 +115,7 @@ theorem grantPut.wp_proof
     · simp at Hf'
   (try wp_auto)
   -- `cli.Put(ctx, k, "v", opts...)`
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Put.method_unfold]
   wp_pures
   (try wp_auto)
   have hok := opPutModel_lease_ok k mg.id

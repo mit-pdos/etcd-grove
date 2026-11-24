@@ -207,19 +207,19 @@ attribute [instance] storageVersions.TypeAssumptions.type_repr
   storageVersions.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  InternalV1alpha1Interface_instance : InternalV1alpha1Interface.TypeAssumptions
-  InternalV1alpha1Client_instance : InternalV1alpha1Client.TypeAssumptions
-  StorageVersionExpansion_instance : StorageVersionExpansion.TypeAssumptions
-  StorageVersionsGetter_instance : StorageVersionsGetter.TypeAssumptions
-  StorageVersionInterface_instance : StorageVersionInterface.TypeAssumptions
-  storageVersions_instance : storageVersions.TypeAssumptions
+  instance'InternalV1alpha1Interface : InternalV1alpha1Interface.TypeAssumptions
+  instance'InternalV1alpha1Client : InternalV1alpha1Client.TypeAssumptions
+  instance'StorageVersionExpansion : StorageVersionExpansion.TypeAssumptions
+  instance'StorageVersionsGetter : StorageVersionsGetter.TypeAssumptions
+  instance'StorageVersionInterface : StorageVersionInterface.TypeAssumptions
+  instance'storageVersions : storageVersions.TypeAssumptions
 
-attribute [instance] Assumptions.InternalV1alpha1Interface_instance
-  Assumptions.InternalV1alpha1Client_instance
-  Assumptions.StorageVersionExpansion_instance
-  Assumptions.StorageVersionsGetter_instance
-  Assumptions.StorageVersionInterface_instance
-  Assumptions.storageVersions_instance
+attribute [instance] Assumptions.instance'InternalV1alpha1Interface
+  Assumptions.instance'InternalV1alpha1Client
+  Assumptions.instance'StorageVersionExpansion
+  Assumptions.instance'StorageVersionsGetter
+  Assumptions.instance'StorageVersionInterface
+  Assumptions.instance'storageVersions
 
 end k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1
 

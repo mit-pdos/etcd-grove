@@ -376,7 +376,7 @@ noncomputable def RaftCluster.Members.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType Member.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert MembersByID.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad MembersByID.ty))) (Var "ms")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0")))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"members"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Member.ty)))) (Val #())))
   (App (App (Val (map.forRange _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))) (Var "$range"))
@@ -6830,7 +6830,7 @@ noncomputable instance RaftCluster.zero_val [GooseExts] : ZeroVal RaftCluster :=
 @[irreducible] noncomputable def RaftCluster.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RaftCluster.fieldsUnsealed
 
-noncomputable instance equals_unfold_RaftCluster [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RaftCluster [GooseExts] [GoGlobalContext] :
     EqualsUnfold RaftCluster.fields RaftCluster.fieldsUnsealed :=
   ⟨by unfold RaftCluster.fields; rfl⟩
 
@@ -6840,89 +6840,89 @@ noncomputable instance equals_unfold_RaftCluster [GooseExts] [GoGlobalContext] :
 class RaftCluster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RaftCluster.underlying RaftCluster
   underlying : go.UnderlyingDirectedEq RaftCluster.ty RaftCluster.underlying
-  get_lg : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : RaftCluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : RaftCluster)))
-  get_localID : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"localID") #x (Val #(x.localID'))
-  set_localID : ∀ (x : RaftCluster) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"localID") (PairV #x #y) (Val #(({ x with localID' := y } : RaftCluster)))
-  get_cid : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"cid") #x (Val #(x.cid'))
-  set_cid : ∀ (x : RaftCluster) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"cid") (PairV #x #y) (Val #(({ x with cid' := y } : RaftCluster)))
-  get_be : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"be") #x (Val #(x.be'))
-  set_be : ∀ (x : RaftCluster) (y : MembershipBackend), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : RaftCluster)))
-  get_Mutex : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"Mutex") #x (Val #(x.Mutex'))
-  set_Mutex : ∀ (x : RaftCluster) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : RaftCluster)))
-  get_version : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"version") #x (Val #(x.version'))
-  set_version : ∀ (x : RaftCluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"version") (PairV #x #y) (Val #(({ x with version' := y } : RaftCluster)))
-  get_members : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"members") #x (Val #(x.members'))
-  set_members : ∀ (x : RaftCluster) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"members") (PairV #x #y) (Val #(({ x with members' := y } : RaftCluster)))
-  get_removed : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"removed") #x (Val #(x.removed'))
-  set_removed : ∀ (x : RaftCluster) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"removed") (PairV #x #y) (Val #(({ x with removed' := y } : RaftCluster)))
-  get_downgradeInfo : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"downgradeInfo") #x (Val #(x.downgradeInfo'))
-  set_downgradeInfo : ∀ (x : RaftCluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"downgradeInfo") (PairV #x #y) (Val #(({ x with downgradeInfo' := y } : RaftCluster)))
-  get_maxLearners : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"maxLearners") #x (Val #(x.maxLearners'))
-  set_maxLearners : ∀ (x : RaftCluster) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"maxLearners") (PairV #x #y) (Val #(({ x with maxLearners' := y } : RaftCluster)))
-  get_versionChanged : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"versionChanged") #x (Val #(x.versionChanged'))
-  set_versionChanged : ∀ (x : RaftCluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"versionChanged") (PairV #x #y) (Val #(({ x with versionChanged' := y } : RaftCluster)))
+  get'lg : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : RaftCluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : RaftCluster)))
+  get'localID : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"localID") #x (Val #(x.localID'))
+  set'localID : ∀ (x : RaftCluster) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"localID") (PairV #x #y) (Val #(({ x with localID' := y } : RaftCluster)))
+  get'cid : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"cid") #x (Val #(x.cid'))
+  set'cid : ∀ (x : RaftCluster) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"cid") (PairV #x #y) (Val #(({ x with cid' := y } : RaftCluster)))
+  get'be : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"be") #x (Val #(x.be'))
+  set'be : ∀ (x : RaftCluster) (y : MembershipBackend), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : RaftCluster)))
+  get'Mutex : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"Mutex") #x (Val #(x.Mutex'))
+  set'Mutex : ∀ (x : RaftCluster) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : RaftCluster)))
+  get'version : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"version") #x (Val #(x.version'))
+  set'version : ∀ (x : RaftCluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"version") (PairV #x #y) (Val #(({ x with version' := y } : RaftCluster)))
+  get'members : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"members") #x (Val #(x.members'))
+  set'members : ∀ (x : RaftCluster) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"members") (PairV #x #y) (Val #(({ x with members' := y } : RaftCluster)))
+  get'removed : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"removed") #x (Val #(x.removed'))
+  set'removed : ∀ (x : RaftCluster) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"removed") (PairV #x #y) (Val #(({ x with removed' := y } : RaftCluster)))
+  get'downgradeInfo : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"downgradeInfo") #x (Val #(x.downgradeInfo'))
+  set'downgradeInfo : ∀ (x : RaftCluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"downgradeInfo") (PairV #x #y) (Val #(({ x with downgradeInfo' := y } : RaftCluster)))
+  get'maxLearners : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"maxLearners") #x (Val #(x.maxLearners'))
+  set'maxLearners : ∀ (x : RaftCluster) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"maxLearners") (PairV #x #y) (Val #(({ x with maxLearners' := y } : RaftCluster)))
+  get'versionChanged : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"versionChanged") #x (Val #(x.versionChanged'))
+  set'versionChanged : ∀ (x : RaftCluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"versionChanged") (PairV #x #y) (Val #(({ x with versionChanged' := y } : RaftCluster)))
   method_set : go.MethodSetIs RaftCluster.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RaftCluster.ty) [(go!"AddMember", (some (go.signature.Signature [(go.GoType.PointerType Member.ty), ShouldApplyV3.ty] false []))), (go!"ClientURLs", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"DowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)]))), (go!"ID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"IsIDRemoved", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"IsLocalMemberLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMemberExist", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [go.bool]))), (go!"IsReadyToAddVotingMember", (some (go.signature.Signature [] false [go.bool]))), (go!"IsReadyToPromoteMember", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsReadyToRemoveVotingMember", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"Member", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [(go.GoType.PointerType Member.ty)]))), (go!"MemberByName", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType Member.ty)]))), (go!"MemberIDs", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]))), (go!"Members", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Member.ty))]))), (go!"PeerURLs", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"PromoteMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, ShouldApplyV3.ty] false []))), (go!"Recover", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)] false []))] false []))), (go!"RemoveMember", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, ShouldApplyV3.ty] false []))), (go!"SetBackend", (some (go.signature.Signature [MembershipBackend.ty] false []))), (go!"SetDowngradeInfo", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty), ShouldApplyV3.ty] false []))), (go!"SetID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"SetVersion", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)] false [])), ShouldApplyV3.ty] false []))), (go!"SetVersionChangedNotifier", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.Notifier.ty)] false []))), (go!"Store", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2store.Store" [])] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"UnsafeLoad", (some (go.signature.Signature [] false []))), (go!"UpdateAttributes", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, Attributes.ty, ShouldApplyV3.ty] false []))), (go!"UpdateRaftAttributes", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, RaftAttributes.ty, ShouldApplyV3.ty] false []))), (go!"ValidateConfigurationChange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty), ShouldApplyV3.ty] false [go.error]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"VotingMemberIDs", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]))), (go!"VotingMembers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Member.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.buildMembershipMetric", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.genID", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.updateMembershipMetric", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, go.bool] false [])))]
-  ptr_AddMember_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"AddMember" RaftCluster.AddMember.impl
-  ptr_ID_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"ID" RaftCluster.ID.impl
-  ptr_IsIDRemoved_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"IsIDRemoved" RaftCluster.IsIDRemoved.impl
-  ptr_IsLocalMemberLearner_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"IsLocalMemberLearner" RaftCluster.IsLocalMemberLearner.impl
-  ptr_IsMemberExist_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"IsMemberExist" RaftCluster.IsMemberExist.impl
-  ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Lock" (LamV "$r"
+  ptr_unfold'AddMember : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"AddMember" RaftCluster.AddMember.impl
+  ptr_unfold'ID : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"ID" RaftCluster.ID.impl
+  ptr_unfold'IsIDRemoved : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"IsIDRemoved" RaftCluster.IsIDRemoved.impl
+  ptr_unfold'IsLocalMemberLearner : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"IsLocalMemberLearner" RaftCluster.IsLocalMemberLearner.impl
+  ptr_unfold'IsMemberExist : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"IsMemberExist" RaftCluster.IsMemberExist.impl
+  ptr_unfold'Lock : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Lock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"Mutex"))) (Var "$r"))))
-  ptr_Member_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Member" RaftCluster.Member.impl
-  ptr_Members_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Members" RaftCluster.Members.impl
-  ptr_RemoveMember_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"RemoveMember" RaftCluster.RemoveMember.impl
-  ptr_SetBackend_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"SetBackend" RaftCluster.SetBackend.impl
-  ptr_SetVersionChangedNotifier_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"SetVersionChangedNotifier" RaftCluster.SetVersionChangedNotifier.impl
-  ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Unlock" (LamV "$r"
+  ptr_unfold'Member : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Member" RaftCluster.Member.impl
+  ptr_unfold'Members : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Members" RaftCluster.Members.impl
+  ptr_unfold'RemoveMember : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"RemoveMember" RaftCluster.RemoveMember.impl
+  ptr_unfold'SetBackend : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"SetBackend" RaftCluster.SetBackend.impl
+  ptr_unfold'SetVersionChangedNotifier : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"SetVersionChangedNotifier" RaftCluster.SetVersionChangedNotifier.impl
+  ptr_unfold'Unlock : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Unlock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"Mutex"))) (Var "$r"))))
-  ptr_ValidateConfigurationChange_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"ValidateConfigurationChange" RaftCluster.ValidateConfigurationChange.impl
-  ptr_Version_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Version" RaftCluster.Version.impl
-  ptr_updateMembershipMetric_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"updateMembershipMetric" RaftCluster.updateMembershipMetric.impl
+  ptr_unfold'ValidateConfigurationChange : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"ValidateConfigurationChange" RaftCluster.ValidateConfigurationChange.impl
+  ptr_unfold'Version : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Version" RaftCluster.Version.impl
+  ptr_unfold'updateMembershipMetric : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"updateMembershipMetric" RaftCluster.updateMembershipMetric.impl
 
 attribute [instance] RaftCluster.TypeAssumptions.type_repr
   RaftCluster.TypeAssumptions.underlying
-  RaftCluster.TypeAssumptions.get_lg
-  RaftCluster.TypeAssumptions.set_lg
-  RaftCluster.TypeAssumptions.get_localID
-  RaftCluster.TypeAssumptions.set_localID
-  RaftCluster.TypeAssumptions.get_cid
-  RaftCluster.TypeAssumptions.set_cid
-  RaftCluster.TypeAssumptions.get_be
-  RaftCluster.TypeAssumptions.set_be
-  RaftCluster.TypeAssumptions.get_Mutex
-  RaftCluster.TypeAssumptions.set_Mutex
-  RaftCluster.TypeAssumptions.get_version
-  RaftCluster.TypeAssumptions.set_version
-  RaftCluster.TypeAssumptions.get_members
-  RaftCluster.TypeAssumptions.set_members
-  RaftCluster.TypeAssumptions.get_removed
-  RaftCluster.TypeAssumptions.set_removed
-  RaftCluster.TypeAssumptions.get_downgradeInfo
-  RaftCluster.TypeAssumptions.set_downgradeInfo
-  RaftCluster.TypeAssumptions.get_maxLearners
-  RaftCluster.TypeAssumptions.set_maxLearners
-  RaftCluster.TypeAssumptions.get_versionChanged
-  RaftCluster.TypeAssumptions.set_versionChanged
+  RaftCluster.TypeAssumptions.get'lg
+  RaftCluster.TypeAssumptions.set'lg
+  RaftCluster.TypeAssumptions.get'localID
+  RaftCluster.TypeAssumptions.set'localID
+  RaftCluster.TypeAssumptions.get'cid
+  RaftCluster.TypeAssumptions.set'cid
+  RaftCluster.TypeAssumptions.get'be
+  RaftCluster.TypeAssumptions.set'be
+  RaftCluster.TypeAssumptions.get'Mutex
+  RaftCluster.TypeAssumptions.set'Mutex
+  RaftCluster.TypeAssumptions.get'version
+  RaftCluster.TypeAssumptions.set'version
+  RaftCluster.TypeAssumptions.get'members
+  RaftCluster.TypeAssumptions.set'members
+  RaftCluster.TypeAssumptions.get'removed
+  RaftCluster.TypeAssumptions.set'removed
+  RaftCluster.TypeAssumptions.get'downgradeInfo
+  RaftCluster.TypeAssumptions.set'downgradeInfo
+  RaftCluster.TypeAssumptions.get'maxLearners
+  RaftCluster.TypeAssumptions.set'maxLearners
+  RaftCluster.TypeAssumptions.get'versionChanged
+  RaftCluster.TypeAssumptions.set'versionChanged
   RaftCluster.TypeAssumptions.method_set
   RaftCluster.TypeAssumptions.ptr_method_set
-  RaftCluster.TypeAssumptions.ptr_AddMember_unfold
-  RaftCluster.TypeAssumptions.ptr_ID_unfold
-  RaftCluster.TypeAssumptions.ptr_IsIDRemoved_unfold
-  RaftCluster.TypeAssumptions.ptr_IsLocalMemberLearner_unfold
-  RaftCluster.TypeAssumptions.ptr_IsMemberExist_unfold
-  RaftCluster.TypeAssumptions.ptr_Lock_unfold
-  RaftCluster.TypeAssumptions.ptr_Member_unfold
-  RaftCluster.TypeAssumptions.ptr_Members_unfold
-  RaftCluster.TypeAssumptions.ptr_RemoveMember_unfold
-  RaftCluster.TypeAssumptions.ptr_SetBackend_unfold
-  RaftCluster.TypeAssumptions.ptr_SetVersionChangedNotifier_unfold
-  RaftCluster.TypeAssumptions.ptr_Unlock_unfold
-  RaftCluster.TypeAssumptions.ptr_ValidateConfigurationChange_unfold
-  RaftCluster.TypeAssumptions.ptr_Version_unfold
-  RaftCluster.TypeAssumptions.ptr_updateMembershipMetric_unfold
+  RaftCluster.TypeAssumptions.ptr_unfold'AddMember
+  RaftCluster.TypeAssumptions.ptr_unfold'ID
+  RaftCluster.TypeAssumptions.ptr_unfold'IsIDRemoved
+  RaftCluster.TypeAssumptions.ptr_unfold'IsLocalMemberLearner
+  RaftCluster.TypeAssumptions.ptr_unfold'IsMemberExist
+  RaftCluster.TypeAssumptions.ptr_unfold'Lock
+  RaftCluster.TypeAssumptions.ptr_unfold'Member
+  RaftCluster.TypeAssumptions.ptr_unfold'Members
+  RaftCluster.TypeAssumptions.ptr_unfold'RemoveMember
+  RaftCluster.TypeAssumptions.ptr_unfold'SetBackend
+  RaftCluster.TypeAssumptions.ptr_unfold'SetVersionChangedNotifier
+  RaftCluster.TypeAssumptions.ptr_unfold'Unlock
+  RaftCluster.TypeAssumptions.ptr_unfold'ValidateConfigurationChange
+  RaftCluster.TypeAssumptions.ptr_unfold'Version
+  RaftCluster.TypeAssumptions.ptr_unfold'updateMembershipMetric
 
 structure RaftAttributes [GooseExts] where
   mk ::
@@ -6939,7 +6939,7 @@ noncomputable instance RaftAttributes.zero_val [GooseExts] : ZeroVal RaftAttribu
 @[irreducible] noncomputable def RaftAttributes.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RaftAttributes.fieldsUnsealed
 
-noncomputable instance equals_unfold_RaftAttributes [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'RaftAttributes [GooseExts] [GoGlobalContext] :
     EqualsUnfold RaftAttributes.fields RaftAttributes.fieldsUnsealed :=
   ⟨by unfold RaftAttributes.fields; rfl⟩
 
@@ -6949,30 +6949,30 @@ noncomputable instance equals_unfold_RaftAttributes [GooseExts] [GoGlobalContext
 class RaftAttributes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RaftAttributes.underlying RaftAttributes
   underlying : go.UnderlyingDirectedEq RaftAttributes.ty RaftAttributes.underlying
-  get_PeerURLs : ∀ (x : RaftAttributes), go.IsGoStepPureDetTagged under (StructFieldGet RaftAttributes.underlying go!"PeerURLs") #x (Val #(x.PeerURLs'))
-  set_PeerURLs : ∀ (x : RaftAttributes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RaftAttributes.underlying go!"PeerURLs") (PairV #x #y) (Val #(({ x with PeerURLs' := y } : RaftAttributes)))
-  get_IsLearner : ∀ (x : RaftAttributes), go.IsGoStepPureDetTagged under (StructFieldGet RaftAttributes.underlying go!"IsLearner") #x (Val #(x.IsLearner'))
-  set_IsLearner : ∀ (x : RaftAttributes) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RaftAttributes.underlying go!"IsLearner") (PairV #x #y) (Val #(({ x with IsLearner' := y } : RaftAttributes)))
+  get'PeerURLs : ∀ (x : RaftAttributes), go.IsGoStepPureDetTagged under (StructFieldGet RaftAttributes.underlying go!"PeerURLs") #x (Val #(x.PeerURLs'))
+  set'PeerURLs : ∀ (x : RaftAttributes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RaftAttributes.underlying go!"PeerURLs") (PairV #x #y) (Val #(({ x with PeerURLs' := y } : RaftAttributes)))
+  get'IsLearner : ∀ (x : RaftAttributes), go.IsGoStepPureDetTagged under (StructFieldGet RaftAttributes.underlying go!"IsLearner") #x (Val #(x.IsLearner'))
+  set'IsLearner : ∀ (x : RaftAttributes) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RaftAttributes.underlying go!"IsLearner") (PairV #x #y) (Val #(({ x with IsLearner' := y } : RaftAttributes)))
   method_set : go.MethodSetIs RaftAttributes.ty [(go!"JSONModelMarshal", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RaftAttributes.ty) [(go!"JSONModelMarshal", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error]))), (go!"JSONModelMarshalPtr", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error]))), (go!"JSONModelUnmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.any] false [go.error])))]
-  JSONModelMarshal_unfold : MethodUnfold RaftAttributes.ty go!"JSONModelMarshal" RaftAttributes.JSONModelMarshal.impl
-  ptr_JSONModelMarshal_unfold : MethodUnfold (go.GoType.PointerType RaftAttributes.ty) go!"JSONModelMarshal" (LamV "$r"
+  unfold'JSONModelMarshal : MethodUnfold RaftAttributes.ty go!"JSONModelMarshal" RaftAttributes.JSONModelMarshal.impl
+  ptr_unfold'JSONModelMarshal : MethodUnfold (go.GoType.PointerType RaftAttributes.ty) go!"JSONModelMarshal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve RaftAttributes.ty go!"JSONModelMarshal"))) (App (Val (GoInstruction (GoLoad RaftAttributes.ty))) (Var "$r"))))
-  ptr_JSONModelMarshalPtr_unfold : MethodUnfold (go.GoType.PointerType RaftAttributes.ty) go!"JSONModelMarshalPtr" RaftAttributes.JSONModelMarshalPtr.impl
-  ptr_JSONModelUnmarshal_unfold : MethodUnfold (go.GoType.PointerType RaftAttributes.ty) go!"JSONModelUnmarshal" RaftAttributes.JSONModelUnmarshal.impl
+  ptr_unfold'JSONModelMarshalPtr : MethodUnfold (go.GoType.PointerType RaftAttributes.ty) go!"JSONModelMarshalPtr" RaftAttributes.JSONModelMarshalPtr.impl
+  ptr_unfold'JSONModelUnmarshal : MethodUnfold (go.GoType.PointerType RaftAttributes.ty) go!"JSONModelUnmarshal" RaftAttributes.JSONModelUnmarshal.impl
 
 attribute [instance] RaftAttributes.TypeAssumptions.type_repr
   RaftAttributes.TypeAssumptions.underlying
-  RaftAttributes.TypeAssumptions.get_PeerURLs
-  RaftAttributes.TypeAssumptions.set_PeerURLs
-  RaftAttributes.TypeAssumptions.get_IsLearner
-  RaftAttributes.TypeAssumptions.set_IsLearner
+  RaftAttributes.TypeAssumptions.get'PeerURLs
+  RaftAttributes.TypeAssumptions.set'PeerURLs
+  RaftAttributes.TypeAssumptions.get'IsLearner
+  RaftAttributes.TypeAssumptions.set'IsLearner
   RaftAttributes.TypeAssumptions.method_set
   RaftAttributes.TypeAssumptions.ptr_method_set
-  RaftAttributes.TypeAssumptions.JSONModelMarshal_unfold
-  RaftAttributes.TypeAssumptions.ptr_JSONModelMarshal_unfold
-  RaftAttributes.TypeAssumptions.ptr_JSONModelMarshalPtr_unfold
-  RaftAttributes.TypeAssumptions.ptr_JSONModelUnmarshal_unfold
+  RaftAttributes.TypeAssumptions.unfold'JSONModelMarshal
+  RaftAttributes.TypeAssumptions.ptr_unfold'JSONModelMarshal
+  RaftAttributes.TypeAssumptions.ptr_unfold'JSONModelMarshalPtr
+  RaftAttributes.TypeAssumptions.ptr_unfold'JSONModelUnmarshal
 
 structure Attributes [GooseExts] where
   mk ::
@@ -6989,7 +6989,7 @@ noncomputable instance Attributes.zero_val [GooseExts] : ZeroVal Attributes :=
 @[irreducible] noncomputable def Attributes.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Attributes.fieldsUnsealed
 
-noncomputable instance equals_unfold_Attributes [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Attributes [GooseExts] [GoGlobalContext] :
     EqualsUnfold Attributes.fields Attributes.fieldsUnsealed :=
   ⟨by unfold Attributes.fields; rfl⟩
 
@@ -6999,30 +6999,30 @@ noncomputable instance equals_unfold_Attributes [GooseExts] [GoGlobalContext] :
 class Attributes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Attributes.underlying Attributes
   underlying : go.UnderlyingDirectedEq Attributes.ty Attributes.underlying
-  get_Name : ∀ (x : Attributes), go.IsGoStepPureDetTagged under (StructFieldGet Attributes.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : Attributes) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Attributes)))
-  get_ClientURLs : ∀ (x : Attributes), go.IsGoStepPureDetTagged under (StructFieldGet Attributes.underlying go!"ClientURLs") #x (Val #(x.ClientURLs'))
-  set_ClientURLs : ∀ (x : Attributes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"ClientURLs") (PairV #x #y) (Val #(({ x with ClientURLs' := y } : Attributes)))
+  get'Name : ∀ (x : Attributes), go.IsGoStepPureDetTagged under (StructFieldGet Attributes.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : Attributes) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Attributes)))
+  get'ClientURLs : ∀ (x : Attributes), go.IsGoStepPureDetTagged under (StructFieldGet Attributes.underlying go!"ClientURLs") #x (Val #(x.ClientURLs'))
+  set'ClientURLs : ∀ (x : Attributes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"ClientURLs") (PairV #x #y) (Val #(({ x with ClientURLs' := y } : Attributes)))
   method_set : go.MethodSetIs Attributes.ty [(go!"JSONModelMarshal", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Attributes.ty) [(go!"JSONModelMarshal", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error]))), (go!"JSONModelMarshalPtr", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error]))), (go!"JSONModelUnmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.any] false [go.error])))]
-  JSONModelMarshal_unfold : MethodUnfold Attributes.ty go!"JSONModelMarshal" Attributes.JSONModelMarshal.impl
-  ptr_JSONModelMarshal_unfold : MethodUnfold (go.GoType.PointerType Attributes.ty) go!"JSONModelMarshal" (LamV "$r"
+  unfold'JSONModelMarshal : MethodUnfold Attributes.ty go!"JSONModelMarshal" Attributes.JSONModelMarshal.impl
+  ptr_unfold'JSONModelMarshal : MethodUnfold (go.GoType.PointerType Attributes.ty) go!"JSONModelMarshal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Attributes.ty go!"JSONModelMarshal"))) (App (Val (GoInstruction (GoLoad Attributes.ty))) (Var "$r"))))
-  ptr_JSONModelMarshalPtr_unfold : MethodUnfold (go.GoType.PointerType Attributes.ty) go!"JSONModelMarshalPtr" Attributes.JSONModelMarshalPtr.impl
-  ptr_JSONModelUnmarshal_unfold : MethodUnfold (go.GoType.PointerType Attributes.ty) go!"JSONModelUnmarshal" Attributes.JSONModelUnmarshal.impl
+  ptr_unfold'JSONModelMarshalPtr : MethodUnfold (go.GoType.PointerType Attributes.ty) go!"JSONModelMarshalPtr" Attributes.JSONModelMarshalPtr.impl
+  ptr_unfold'JSONModelUnmarshal : MethodUnfold (go.GoType.PointerType Attributes.ty) go!"JSONModelUnmarshal" Attributes.JSONModelUnmarshal.impl
 
 attribute [instance] Attributes.TypeAssumptions.type_repr
   Attributes.TypeAssumptions.underlying
-  Attributes.TypeAssumptions.get_Name
-  Attributes.TypeAssumptions.set_Name
-  Attributes.TypeAssumptions.get_ClientURLs
-  Attributes.TypeAssumptions.set_ClientURLs
+  Attributes.TypeAssumptions.get'Name
+  Attributes.TypeAssumptions.set'Name
+  Attributes.TypeAssumptions.get'ClientURLs
+  Attributes.TypeAssumptions.set'ClientURLs
   Attributes.TypeAssumptions.method_set
   Attributes.TypeAssumptions.ptr_method_set
-  Attributes.TypeAssumptions.JSONModelMarshal_unfold
-  Attributes.TypeAssumptions.ptr_JSONModelMarshal_unfold
-  Attributes.TypeAssumptions.ptr_JSONModelMarshalPtr_unfold
-  Attributes.TypeAssumptions.ptr_JSONModelUnmarshal_unfold
+  Attributes.TypeAssumptions.unfold'JSONModelMarshal
+  Attributes.TypeAssumptions.ptr_unfold'JSONModelMarshal
+  Attributes.TypeAssumptions.ptr_unfold'JSONModelMarshalPtr
+  Attributes.TypeAssumptions.ptr_unfold'JSONModelUnmarshal
 
 structure Member [GooseExts] where
   mk ::
@@ -7041,7 +7041,7 @@ noncomputable instance Member.zero_val [GooseExts] : ZeroVal Member :=
 @[irreducible] noncomputable def Member.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Member.fieldsUnsealed
 
-noncomputable instance equals_unfold_Member [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Member [GooseExts] [GoGlobalContext] :
     EqualsUnfold Member.fields Member.fieldsUnsealed :=
   ⟨by unfold Member.fields; rfl⟩
 
@@ -7051,36 +7051,36 @@ noncomputable instance equals_unfold_Member [GooseExts] [GoGlobalContext] :
 class Member.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Member.underlying Member
   underlying : go.UnderlyingDirectedEq Member.ty Member.underlying
-  get_ID : ∀ (x : Member), go.IsGoStepPureDetTagged under (StructFieldGet Member.underlying go!"ID") #x (Val #(x.ID'))
-  set_ID : ∀ (x : Member) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : Member)))
-  get_RaftAttributes : ∀ (x : Member), go.IsGoStepPureDetTagged under (StructFieldGet Member.underlying go!"RaftAttributes") #x (Val #(x.RaftAttributes'))
-  set_RaftAttributes : ∀ (x : Member) (y : RaftAttributes), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"RaftAttributes") (PairV #x #y) (Val #(({ x with RaftAttributes' := y } : Member)))
-  get_Attributes : ∀ (x : Member), go.IsGoStepPureDetTagged under (StructFieldGet Member.underlying go!"Attributes") #x (Val #(x.Attributes'))
-  set_Attributes : ∀ (x : Member) (y : Attributes), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"Attributes") (PairV #x #y) (Val #(({ x with Attributes' := y } : Member)))
+  get'ID : ∀ (x : Member), go.IsGoStepPureDetTagged under (StructFieldGet Member.underlying go!"ID") #x (Val #(x.ID'))
+  set'ID : ∀ (x : Member) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : Member)))
+  get'RaftAttributes : ∀ (x : Member), go.IsGoStepPureDetTagged under (StructFieldGet Member.underlying go!"RaftAttributes") #x (Val #(x.RaftAttributes'))
+  set'RaftAttributes : ∀ (x : Member) (y : RaftAttributes), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"RaftAttributes") (PairV #x #y) (Val #(({ x with RaftAttributes' := y } : Member)))
+  get'Attributes : ∀ (x : Member), go.IsGoStepPureDetTagged under (StructFieldGet Member.underlying go!"Attributes") #x (Val #(x.Attributes'))
+  set'Attributes : ∀ (x : Member) (y : Attributes), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"Attributes") (PairV #x #y) (Val #(({ x with Attributes' := y } : Member)))
   method_set : go.MethodSetIs Member.ty [(go!"JSONModelMarshal", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Member.ty) [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType Member.ty)]))), (go!"IsStarted", (some (go.signature.Signature [] false [go.bool]))), (go!"JSONModelMarshal", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error]))), (go!"JSONModelMarshalPtr", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error]))), (go!"JSONModelUnmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.any] false [go.error])))]
-  JSONModelMarshal_unfold : MethodUnfold Member.ty go!"JSONModelMarshal" Member.JSONModelMarshal.impl
-  ptr_Clone_unfold : MethodUnfold (go.GoType.PointerType Member.ty) go!"Clone" Member.Clone.impl
-  ptr_JSONModelMarshal_unfold : MethodUnfold (go.GoType.PointerType Member.ty) go!"JSONModelMarshal" (LamV "$r"
+  unfold'JSONModelMarshal : MethodUnfold Member.ty go!"JSONModelMarshal" Member.JSONModelMarshal.impl
+  ptr_unfold'Clone : MethodUnfold (go.GoType.PointerType Member.ty) go!"Clone" Member.Clone.impl
+  ptr_unfold'JSONModelMarshal : MethodUnfold (go.GoType.PointerType Member.ty) go!"JSONModelMarshal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Member.ty go!"JSONModelMarshal"))) (App (Val (GoInstruction (GoLoad Member.ty))) (Var "$r"))))
-  ptr_JSONModelMarshalPtr_unfold : MethodUnfold (go.GoType.PointerType Member.ty) go!"JSONModelMarshalPtr" Member.JSONModelMarshalPtr.impl
-  ptr_JSONModelUnmarshal_unfold : MethodUnfold (go.GoType.PointerType Member.ty) go!"JSONModelUnmarshal" Member.JSONModelUnmarshal.impl
+  ptr_unfold'JSONModelMarshalPtr : MethodUnfold (go.GoType.PointerType Member.ty) go!"JSONModelMarshalPtr" Member.JSONModelMarshalPtr.impl
+  ptr_unfold'JSONModelUnmarshal : MethodUnfold (go.GoType.PointerType Member.ty) go!"JSONModelUnmarshal" Member.JSONModelUnmarshal.impl
 
 attribute [instance] Member.TypeAssumptions.type_repr
   Member.TypeAssumptions.underlying
-  Member.TypeAssumptions.get_ID
-  Member.TypeAssumptions.set_ID
-  Member.TypeAssumptions.get_RaftAttributes
-  Member.TypeAssumptions.set_RaftAttributes
-  Member.TypeAssumptions.get_Attributes
-  Member.TypeAssumptions.set_Attributes
+  Member.TypeAssumptions.get'ID
+  Member.TypeAssumptions.set'ID
+  Member.TypeAssumptions.get'RaftAttributes
+  Member.TypeAssumptions.set'RaftAttributes
+  Member.TypeAssumptions.get'Attributes
+  Member.TypeAssumptions.set'Attributes
   Member.TypeAssumptions.method_set
   Member.TypeAssumptions.ptr_method_set
-  Member.TypeAssumptions.JSONModelMarshal_unfold
-  Member.TypeAssumptions.ptr_Clone_unfold
-  Member.TypeAssumptions.ptr_JSONModelMarshal_unfold
-  Member.TypeAssumptions.ptr_JSONModelMarshalPtr_unfold
-  Member.TypeAssumptions.ptr_JSONModelUnmarshal_unfold
+  Member.TypeAssumptions.unfold'JSONModelMarshal
+  Member.TypeAssumptions.ptr_unfold'Clone
+  Member.TypeAssumptions.ptr_unfold'JSONModelMarshal
+  Member.TypeAssumptions.ptr_unfold'JSONModelMarshalPtr
+  Member.TypeAssumptions.ptr_unfold'JSONModelUnmarshal
 
 structure ConfigChangeContext [GooseExts] where
   mk ::
@@ -7097,7 +7097,7 @@ noncomputable instance ConfigChangeContext.zero_val [GooseExts] : ZeroVal Config
 @[irreducible] noncomputable def ConfigChangeContext.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConfigChangeContext.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConfigChangeContext [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ConfigChangeContext [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConfigChangeContext.fields ConfigChangeContext.fieldsUnsealed :=
   ⟨by unfold ConfigChangeContext.fields; rfl⟩
 
@@ -7107,30 +7107,30 @@ noncomputable instance equals_unfold_ConfigChangeContext [GooseExts] [GoGlobalCo
 class ConfigChangeContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConfigChangeContext.underlying ConfigChangeContext
   underlying : go.UnderlyingDirectedEq ConfigChangeContext.ty ConfigChangeContext.underlying
-  get_Member : ∀ (x : ConfigChangeContext), go.IsGoStepPureDetTagged under (StructFieldGet ConfigChangeContext.underlying go!"Member") #x (Val #(x.Member'))
-  set_Member : ∀ (x : ConfigChangeContext) (y : Member), go.IsGoStepPureDetTagged under (StructFieldSet ConfigChangeContext.underlying go!"Member") (PairV #x #y) (Val #(({ x with Member' := y } : ConfigChangeContext)))
-  get_IsPromote : ∀ (x : ConfigChangeContext), go.IsGoStepPureDetTagged under (StructFieldGet ConfigChangeContext.underlying go!"IsPromote") #x (Val #(x.IsPromote'))
-  set_IsPromote : ∀ (x : ConfigChangeContext) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ConfigChangeContext.underlying go!"IsPromote") (PairV #x #y) (Val #(({ x with IsPromote' := y } : ConfigChangeContext)))
+  get'Member : ∀ (x : ConfigChangeContext), go.IsGoStepPureDetTagged under (StructFieldGet ConfigChangeContext.underlying go!"Member") #x (Val #(x.Member'))
+  set'Member : ∀ (x : ConfigChangeContext) (y : Member), go.IsGoStepPureDetTagged under (StructFieldSet ConfigChangeContext.underlying go!"Member") (PairV #x #y) (Val #(({ x with Member' := y } : ConfigChangeContext)))
+  get'IsPromote : ∀ (x : ConfigChangeContext), go.IsGoStepPureDetTagged under (StructFieldGet ConfigChangeContext.underlying go!"IsPromote") #x (Val #(x.IsPromote'))
+  set'IsPromote : ∀ (x : ConfigChangeContext) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ConfigChangeContext.underlying go!"IsPromote") (PairV #x #y) (Val #(({ x with IsPromote' := y } : ConfigChangeContext)))
   method_set : go.MethodSetIs ConfigChangeContext.ty [(go!"JSONModelMarshal", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfigChangeContext.ty) [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType Member.ty)]))), (go!"IsStarted", (some (go.signature.Signature [] false [go.bool]))), (go!"JSONModelMarshal", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error]))), (go!"JSONModelMarshalPtr", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error]))), (go!"JSONModelUnmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.any] false [go.error])))]
-  JSONModelMarshal_unfold : MethodUnfold ConfigChangeContext.ty go!"JSONModelMarshal" ConfigChangeContext.JSONModelMarshal.impl
-  ptr_JSONModelMarshal_unfold : MethodUnfold (go.GoType.PointerType ConfigChangeContext.ty) go!"JSONModelMarshal" (LamV "$r"
+  unfold'JSONModelMarshal : MethodUnfold ConfigChangeContext.ty go!"JSONModelMarshal" ConfigChangeContext.JSONModelMarshal.impl
+  ptr_unfold'JSONModelMarshal : MethodUnfold (go.GoType.PointerType ConfigChangeContext.ty) go!"JSONModelMarshal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConfigChangeContext.ty go!"JSONModelMarshal"))) (App (Val (GoInstruction (GoLoad ConfigChangeContext.ty))) (Var "$r"))))
-  ptr_JSONModelMarshalPtr_unfold : MethodUnfold (go.GoType.PointerType ConfigChangeContext.ty) go!"JSONModelMarshalPtr" ConfigChangeContext.JSONModelMarshalPtr.impl
-  ptr_JSONModelUnmarshal_unfold : MethodUnfold (go.GoType.PointerType ConfigChangeContext.ty) go!"JSONModelUnmarshal" ConfigChangeContext.JSONModelUnmarshal.impl
+  ptr_unfold'JSONModelMarshalPtr : MethodUnfold (go.GoType.PointerType ConfigChangeContext.ty) go!"JSONModelMarshalPtr" ConfigChangeContext.JSONModelMarshalPtr.impl
+  ptr_unfold'JSONModelUnmarshal : MethodUnfold (go.GoType.PointerType ConfigChangeContext.ty) go!"JSONModelUnmarshal" ConfigChangeContext.JSONModelUnmarshal.impl
 
 attribute [instance] ConfigChangeContext.TypeAssumptions.type_repr
   ConfigChangeContext.TypeAssumptions.underlying
-  ConfigChangeContext.TypeAssumptions.get_Member
-  ConfigChangeContext.TypeAssumptions.set_Member
-  ConfigChangeContext.TypeAssumptions.get_IsPromote
-  ConfigChangeContext.TypeAssumptions.set_IsPromote
+  ConfigChangeContext.TypeAssumptions.get'Member
+  ConfigChangeContext.TypeAssumptions.set'Member
+  ConfigChangeContext.TypeAssumptions.get'IsPromote
+  ConfigChangeContext.TypeAssumptions.set'IsPromote
   ConfigChangeContext.TypeAssumptions.method_set
   ConfigChangeContext.TypeAssumptions.ptr_method_set
-  ConfigChangeContext.TypeAssumptions.JSONModelMarshal_unfold
-  ConfigChangeContext.TypeAssumptions.ptr_JSONModelMarshal_unfold
-  ConfigChangeContext.TypeAssumptions.ptr_JSONModelMarshalPtr_unfold
-  ConfigChangeContext.TypeAssumptions.ptr_JSONModelUnmarshal_unfold
+  ConfigChangeContext.TypeAssumptions.unfold'JSONModelMarshal
+  ConfigChangeContext.TypeAssumptions.ptr_unfold'JSONModelMarshal
+  ConfigChangeContext.TypeAssumptions.ptr_unfold'JSONModelMarshalPtr
+  ConfigChangeContext.TypeAssumptions.ptr_unfold'JSONModelUnmarshal
 
 abbrev ShouldApplyV3 [GooseExts] : Type := Bool
 
@@ -7159,7 +7159,7 @@ noncomputable instance ClusterOptions.zero_val [GooseExts] : ZeroVal ClusterOpti
 @[irreducible] noncomputable def ClusterOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClusterOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClusterOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ClusterOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClusterOptions.fields ClusterOptions.fieldsUnsealed :=
   ⟨by unfold ClusterOptions.fields; rfl⟩
 
@@ -7169,15 +7169,15 @@ noncomputable instance equals_unfold_ClusterOptions [GooseExts] [GoGlobalContext
 class ClusterOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClusterOptions.underlying ClusterOptions
   underlying : go.UnderlyingDirectedEq ClusterOptions.ty ClusterOptions.underlying
-  get_maxLearners : ∀ (x : ClusterOptions), go.IsGoStepPureDetTagged under (StructFieldGet ClusterOptions.underlying go!"maxLearners") #x (Val #(x.maxLearners'))
-  set_maxLearners : ∀ (x : ClusterOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ClusterOptions.underlying go!"maxLearners") (PairV #x #y) (Val #(({ x with maxLearners' := y } : ClusterOptions)))
+  get'maxLearners : ∀ (x : ClusterOptions), go.IsGoStepPureDetTagged under (StructFieldGet ClusterOptions.underlying go!"maxLearners") #x (Val #(x.maxLearners'))
+  set'maxLearners : ∀ (x : ClusterOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ClusterOptions.underlying go!"maxLearners") (PairV #x #y) (Val #(({ x with maxLearners' := y } : ClusterOptions)))
   method_set : go.MethodSetIs ClusterOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterOptions.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.applyOpts", (some (go.signature.Signature [(go.GoType.SliceType ClusterOption.ty)] false [])))]
 
 attribute [instance] ClusterOptions.TypeAssumptions.type_repr
   ClusterOptions.TypeAssumptions.underlying
-  ClusterOptions.TypeAssumptions.get_maxLearners
-  ClusterOptions.TypeAssumptions.set_maxLearners
+  ClusterOptions.TypeAssumptions.get'maxLearners
+  ClusterOptions.TypeAssumptions.set'maxLearners
   ClusterOptions.TypeAssumptions.method_set
   ClusterOptions.TypeAssumptions.ptr_method_set
 
@@ -7204,25 +7204,25 @@ class MembersByID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq MembersByID.ty MembersByID.underlying
   method_set : go.MethodSetIs MembersByID.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MembersByID.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold MembersByID.ty go!"Len" MembersByID.Len.impl
-  Less_unfold : MethodUnfold MembersByID.ty go!"Less" MembersByID.Less.impl
-  Swap_unfold : MethodUnfold MembersByID.ty go!"Swap" MembersByID.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType MembersByID.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold MembersByID.ty go!"Len" MembersByID.Len.impl
+  unfold'Less : MethodUnfold MembersByID.ty go!"Less" MembersByID.Less.impl
+  unfold'Swap : MethodUnfold MembersByID.ty go!"Swap" MembersByID.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType MembersByID.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve MembersByID.ty go!"Len"))) (App (Val (GoInstruction (GoLoad MembersByID.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType MembersByID.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType MembersByID.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve MembersByID.ty go!"Less"))) (App (Val (GoInstruction (GoLoad MembersByID.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType MembersByID.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType MembersByID.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve MembersByID.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad MembersByID.ty))) (Var "$r"))))
 
 attribute [instance] MembersByID.TypeAssumptions.underlying
   MembersByID.TypeAssumptions.method_set
   MembersByID.TypeAssumptions.ptr_method_set
-  MembersByID.TypeAssumptions.Len_unfold
-  MembersByID.TypeAssumptions.Less_unfold
-  MembersByID.TypeAssumptions.Swap_unfold
-  MembersByID.TypeAssumptions.ptr_Len_unfold
-  MembersByID.TypeAssumptions.ptr_Less_unfold
-  MembersByID.TypeAssumptions.ptr_Swap_unfold
+  MembersByID.TypeAssumptions.unfold'Len
+  MembersByID.TypeAssumptions.unfold'Less
+  MembersByID.TypeAssumptions.unfold'Swap
+  MembersByID.TypeAssumptions.ptr_unfold'Len
+  MembersByID.TypeAssumptions.ptr_unfold'Less
+  MembersByID.TypeAssumptions.ptr_unfold'Swap
 
 abbrev MembersByPeerURLs [GooseExts] : Type := GoSlice
 
@@ -7281,135 +7281,135 @@ attribute [instance] DowngradeInfoBackend.TypeAssumptions.underlying
   DowngradeInfoBackend.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  RaftCluster_instance : RaftCluster.TypeAssumptions
-  ConfigChangeContext_instance : ConfigChangeContext.TypeAssumptions
-  ShouldApplyV3_instance : ShouldApplyV3.TypeAssumptions
-  ClusterOptions_instance : ClusterOptions.TypeAssumptions
-  ClusterOption_instance : ClusterOption.TypeAssumptions
-  RaftAttributes_instance : RaftAttributes.TypeAssumptions
-  Attributes_instance : Attributes.TypeAssumptions
-  Member_instance : Member.TypeAssumptions
-  MembersByID_instance : MembersByID.TypeAssumptions
-  MembersByPeerURLs_instance : MembersByPeerURLs.TypeAssumptions
-  MembershipBackend_instance : MembershipBackend.TypeAssumptions
-  ClusterVersionBackend_instance : ClusterVersionBackend.TypeAssumptions
-  MemberBackend_instance : MemberBackend.TypeAssumptions
-  DowngradeInfoBackend_instance : DowngradeInfoBackend.TypeAssumptions
-  jencAny_unfold : FuncUnfold jencAny [] jencAny.impl
-  jencBoolPtr_unfold : FuncUnfold jencBoolPtr [] jencBoolPtr.impl
-  jencStringPtr_unfold : FuncUnfold jencStringPtr [] jencStringPtr.impl
-  jencIntPtr_unfold : FuncUnfold jencIntPtr [] jencIntPtr.impl
-  jencInt8Ptr_unfold : FuncUnfold jencInt8Ptr [] jencInt8Ptr.impl
-  jencInt16Ptr_unfold : FuncUnfold jencInt16Ptr [] jencInt16Ptr.impl
-  jencInt32Ptr_unfold : FuncUnfold jencInt32Ptr [] jencInt32Ptr.impl
-  jencInt64Ptr_unfold : FuncUnfold jencInt64Ptr [] jencInt64Ptr.impl
-  jencUintPtr_unfold : FuncUnfold jencUintPtr [] jencUintPtr.impl
-  jencUint8Ptr_unfold : FuncUnfold jencUint8Ptr [] jencUint8Ptr.impl
-  jencUint16Ptr_unfold : FuncUnfold jencUint16Ptr [] jencUint16Ptr.impl
-  jencUint32Ptr_unfold : FuncUnfold jencUint32Ptr [] jencUint32Ptr.impl
-  jencUint64Ptr_unfold : FuncUnfold jencUint64Ptr [] jencUint64Ptr.impl
-  jsonSetErr_unfold : FuncUnfold jsonSetErr [] jsonSetErr.impl
-  jsonDepthErr_unfold : FuncUnfold jsonDepthErr [] jsonDepthErr.impl
-  jenc_p0_types_ID_unfold : FuncUnfold jenc_p0_types_ID [] jenc_p0_types_ID.impl
-  jdec_p0_types_ID_unfold : FuncUnfold jdec_p0_types_ID [] jdec_p0_types_ID.impl
-  jenc_string_unfold : FuncUnfold jenc_string [] jenc_string.impl
-  jdec_string_unfold : FuncUnfold jdec_string [] jdec_string.impl
-  jenc_S_string_unfold : FuncUnfold jenc_S_string [] jenc_S_string.impl
-  jdec_S_string_unfold : FuncUnfold jdec_S_string [] jdec_S_string.impl
-  jenc_bool_unfold : FuncUnfold jenc_bool [] jenc_bool.impl
-  jdec_bool_unfold : FuncUnfold jdec_bool [] jdec_bool.impl
-  jenc_Member_unfold : FuncUnfold jenc_Member [] jenc_Member.impl
-  jdec_Member_unfold : FuncUnfold jdec_Member [] jdec_Member.impl
-  jdecMember_Member_unfold : FuncUnfold jdecMember_Member [] jdecMember_Member.impl
-  jenc_RaftAttributes_unfold : FuncUnfold jenc_RaftAttributes [] jenc_RaftAttributes.impl
-  jdec_RaftAttributes_unfold : FuncUnfold jdec_RaftAttributes [] jdec_RaftAttributes.impl
-  jdecMember_RaftAttributes_unfold : FuncUnfold jdecMember_RaftAttributes [] jdecMember_RaftAttributes.impl
-  jenc_Attributes_unfold : FuncUnfold jenc_Attributes [] jenc_Attributes.impl
-  jdec_Attributes_unfold : FuncUnfold jdec_Attributes [] jdec_Attributes.impl
-  jdecMember_Attributes_unfold : FuncUnfold jdecMember_Attributes [] jdecMember_Attributes.impl
-  jenc_ConfigChangeContext_unfold : FuncUnfold jenc_ConfigChangeContext [] jenc_ConfigChangeContext.impl
-  jdec_ConfigChangeContext_unfold : FuncUnfold jdec_ConfigChangeContext [] jdec_ConfigChangeContext.impl
-  jdecMember_ConfigChangeContext_unfold : FuncUnfold jdecMember_ConfigChangeContext [] jdecMember_ConfigChangeContext.impl
-  setIsLearnerMetric_unfold : FuncUnfold setIsLearnerMetric [] setIsLearnerMetric.impl
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  import_json_Assumption : _root_.Perennial.encoding.json.Assumptions
-  import_sort_Assumption : _root_.Perennial.sort.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
-  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
-  import_notify_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.Assumptions
-  import_version_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions
-  import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_jsoncodec_Assumption : _root_.Perennial.models_lab.jsoncodec.Assumptions
-  import_path_Assumption : _root_.Perennial.path.Assumptions
+  instance'RaftCluster : RaftCluster.TypeAssumptions
+  instance'ConfigChangeContext : ConfigChangeContext.TypeAssumptions
+  instance'ShouldApplyV3 : ShouldApplyV3.TypeAssumptions
+  instance'ClusterOptions : ClusterOptions.TypeAssumptions
+  instance'ClusterOption : ClusterOption.TypeAssumptions
+  instance'RaftAttributes : RaftAttributes.TypeAssumptions
+  instance'Attributes : Attributes.TypeAssumptions
+  instance'Member : Member.TypeAssumptions
+  instance'MembersByID : MembersByID.TypeAssumptions
+  instance'MembersByPeerURLs : MembersByPeerURLs.TypeAssumptions
+  instance'MembershipBackend : MembershipBackend.TypeAssumptions
+  instance'ClusterVersionBackend : ClusterVersionBackend.TypeAssumptions
+  instance'MemberBackend : MemberBackend.TypeAssumptions
+  instance'DowngradeInfoBackend : DowngradeInfoBackend.TypeAssumptions
+  unfold'jencAny : FuncUnfold jencAny [] jencAny.impl
+  unfold'jencBoolPtr : FuncUnfold jencBoolPtr [] jencBoolPtr.impl
+  unfold'jencStringPtr : FuncUnfold jencStringPtr [] jencStringPtr.impl
+  unfold'jencIntPtr : FuncUnfold jencIntPtr [] jencIntPtr.impl
+  unfold'jencInt8Ptr : FuncUnfold jencInt8Ptr [] jencInt8Ptr.impl
+  unfold'jencInt16Ptr : FuncUnfold jencInt16Ptr [] jencInt16Ptr.impl
+  unfold'jencInt32Ptr : FuncUnfold jencInt32Ptr [] jencInt32Ptr.impl
+  unfold'jencInt64Ptr : FuncUnfold jencInt64Ptr [] jencInt64Ptr.impl
+  unfold'jencUintPtr : FuncUnfold jencUintPtr [] jencUintPtr.impl
+  unfold'jencUint8Ptr : FuncUnfold jencUint8Ptr [] jencUint8Ptr.impl
+  unfold'jencUint16Ptr : FuncUnfold jencUint16Ptr [] jencUint16Ptr.impl
+  unfold'jencUint32Ptr : FuncUnfold jencUint32Ptr [] jencUint32Ptr.impl
+  unfold'jencUint64Ptr : FuncUnfold jencUint64Ptr [] jencUint64Ptr.impl
+  unfold'jsonSetErr : FuncUnfold jsonSetErr [] jsonSetErr.impl
+  unfold'jsonDepthErr : FuncUnfold jsonDepthErr [] jsonDepthErr.impl
+  unfold'jenc_p0_types_ID : FuncUnfold jenc_p0_types_ID [] jenc_p0_types_ID.impl
+  unfold'jdec_p0_types_ID : FuncUnfold jdec_p0_types_ID [] jdec_p0_types_ID.impl
+  unfold'jenc_string : FuncUnfold jenc_string [] jenc_string.impl
+  unfold'jdec_string : FuncUnfold jdec_string [] jdec_string.impl
+  unfold'jenc_S_string : FuncUnfold jenc_S_string [] jenc_S_string.impl
+  unfold'jdec_S_string : FuncUnfold jdec_S_string [] jdec_S_string.impl
+  unfold'jenc_bool : FuncUnfold jenc_bool [] jenc_bool.impl
+  unfold'jdec_bool : FuncUnfold jdec_bool [] jdec_bool.impl
+  unfold'jenc_Member : FuncUnfold jenc_Member [] jenc_Member.impl
+  unfold'jdec_Member : FuncUnfold jdec_Member [] jdec_Member.impl
+  unfold'jdecMember_Member : FuncUnfold jdecMember_Member [] jdecMember_Member.impl
+  unfold'jenc_RaftAttributes : FuncUnfold jenc_RaftAttributes [] jenc_RaftAttributes.impl
+  unfold'jdec_RaftAttributes : FuncUnfold jdec_RaftAttributes [] jdec_RaftAttributes.impl
+  unfold'jdecMember_RaftAttributes : FuncUnfold jdecMember_RaftAttributes [] jdecMember_RaftAttributes.impl
+  unfold'jenc_Attributes : FuncUnfold jenc_Attributes [] jenc_Attributes.impl
+  unfold'jdec_Attributes : FuncUnfold jdec_Attributes [] jdec_Attributes.impl
+  unfold'jdecMember_Attributes : FuncUnfold jdecMember_Attributes [] jdecMember_Attributes.impl
+  unfold'jenc_ConfigChangeContext : FuncUnfold jenc_ConfigChangeContext [] jenc_ConfigChangeContext.impl
+  unfold'jdec_ConfigChangeContext : FuncUnfold jdec_ConfigChangeContext [] jdec_ConfigChangeContext.impl
+  unfold'jdecMember_ConfigChangeContext : FuncUnfold jdecMember_ConfigChangeContext [] jdecMember_ConfigChangeContext.impl
+  unfold'setIsLearnerMetric : FuncUnfold setIsLearnerMetric [] setIsLearnerMetric.impl
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  import'json : _root_.Perennial.encoding.json.Assumptions
+  import'sort : _root_.Perennial.sort.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'semver : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
+  import'prometheus : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'types : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
+  import'notify : _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.Assumptions
+  import'version : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions
+  import'raftpb : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'jsoncodec : _root_.Perennial.models_lab.jsoncodec.Assumptions
+  import'path : _root_.Perennial.path.Assumptions
 
-attribute [instance] Assumptions.RaftCluster_instance
-  Assumptions.ConfigChangeContext_instance
-  Assumptions.ShouldApplyV3_instance
-  Assumptions.ClusterOptions_instance
-  Assumptions.ClusterOption_instance
-  Assumptions.RaftAttributes_instance
-  Assumptions.Attributes_instance
-  Assumptions.Member_instance
-  Assumptions.MembersByID_instance
-  Assumptions.MembersByPeerURLs_instance
-  Assumptions.MembershipBackend_instance
-  Assumptions.ClusterVersionBackend_instance
-  Assumptions.MemberBackend_instance
-  Assumptions.DowngradeInfoBackend_instance
-  Assumptions.jencAny_unfold
-  Assumptions.jencBoolPtr_unfold
-  Assumptions.jencStringPtr_unfold
-  Assumptions.jencIntPtr_unfold
-  Assumptions.jencInt8Ptr_unfold
-  Assumptions.jencInt16Ptr_unfold
-  Assumptions.jencInt32Ptr_unfold
-  Assumptions.jencInt64Ptr_unfold
-  Assumptions.jencUintPtr_unfold
-  Assumptions.jencUint8Ptr_unfold
-  Assumptions.jencUint16Ptr_unfold
-  Assumptions.jencUint32Ptr_unfold
-  Assumptions.jencUint64Ptr_unfold
-  Assumptions.jsonSetErr_unfold
-  Assumptions.jsonDepthErr_unfold
-  Assumptions.jenc_p0_types_ID_unfold
-  Assumptions.jdec_p0_types_ID_unfold
-  Assumptions.jenc_string_unfold
-  Assumptions.jdec_string_unfold
-  Assumptions.jenc_S_string_unfold
-  Assumptions.jdec_S_string_unfold
-  Assumptions.jenc_bool_unfold
-  Assumptions.jdec_bool_unfold
-  Assumptions.jenc_Member_unfold
-  Assumptions.jdec_Member_unfold
-  Assumptions.jdecMember_Member_unfold
-  Assumptions.jenc_RaftAttributes_unfold
-  Assumptions.jdec_RaftAttributes_unfold
-  Assumptions.jdecMember_RaftAttributes_unfold
-  Assumptions.jenc_Attributes_unfold
-  Assumptions.jdec_Attributes_unfold
-  Assumptions.jdecMember_Attributes_unfold
-  Assumptions.jenc_ConfigChangeContext_unfold
-  Assumptions.jdec_ConfigChangeContext_unfold
-  Assumptions.jdecMember_ConfigChangeContext_unfold
-  Assumptions.setIsLearnerMetric_unfold
-  Assumptions.«init.0_unfold»
-  Assumptions.import_json_Assumption
-  Assumptions.import_sort_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_semver_Assumption
-  Assumptions.import_prometheus_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_notify_Assumption
-  Assumptions.import_version_Assumption
-  Assumptions.import_raftpb_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_jsoncodec_Assumption
-  Assumptions.import_path_Assumption
+attribute [instance] Assumptions.instance'RaftCluster
+  Assumptions.instance'ConfigChangeContext
+  Assumptions.instance'ShouldApplyV3
+  Assumptions.instance'ClusterOptions
+  Assumptions.instance'ClusterOption
+  Assumptions.instance'RaftAttributes
+  Assumptions.instance'Attributes
+  Assumptions.instance'Member
+  Assumptions.instance'MembersByID
+  Assumptions.instance'MembersByPeerURLs
+  Assumptions.instance'MembershipBackend
+  Assumptions.instance'ClusterVersionBackend
+  Assumptions.instance'MemberBackend
+  Assumptions.instance'DowngradeInfoBackend
+  Assumptions.unfold'jencAny
+  Assumptions.unfold'jencBoolPtr
+  Assumptions.unfold'jencStringPtr
+  Assumptions.unfold'jencIntPtr
+  Assumptions.unfold'jencInt8Ptr
+  Assumptions.unfold'jencInt16Ptr
+  Assumptions.unfold'jencInt32Ptr
+  Assumptions.unfold'jencInt64Ptr
+  Assumptions.unfold'jencUintPtr
+  Assumptions.unfold'jencUint8Ptr
+  Assumptions.unfold'jencUint16Ptr
+  Assumptions.unfold'jencUint32Ptr
+  Assumptions.unfold'jencUint64Ptr
+  Assumptions.unfold'jsonSetErr
+  Assumptions.unfold'jsonDepthErr
+  Assumptions.unfold'jenc_p0_types_ID
+  Assumptions.unfold'jdec_p0_types_ID
+  Assumptions.unfold'jenc_string
+  Assumptions.unfold'jdec_string
+  Assumptions.unfold'jenc_S_string
+  Assumptions.unfold'jdec_S_string
+  Assumptions.unfold'jenc_bool
+  Assumptions.unfold'jdec_bool
+  Assumptions.unfold'jenc_Member
+  Assumptions.unfold'jdec_Member
+  Assumptions.unfold'jdecMember_Member
+  Assumptions.unfold'jenc_RaftAttributes
+  Assumptions.unfold'jdec_RaftAttributes
+  Assumptions.unfold'jdecMember_RaftAttributes
+  Assumptions.unfold'jenc_Attributes
+  Assumptions.unfold'jdec_Attributes
+  Assumptions.unfold'jdecMember_Attributes
+  Assumptions.unfold'jenc_ConfigChangeContext
+  Assumptions.unfold'jdec_ConfigChangeContext
+  Assumptions.unfold'jdecMember_ConfigChangeContext
+  Assumptions.unfold'setIsLearnerMetric
+  Assumptions.«unfold'init.0»
+  Assumptions.import'json
+  Assumptions.import'sort
+  Assumptions.import'sync
+  Assumptions.import'semver
+  Assumptions.import'prometheus
+  Assumptions.import'zap
+  Assumptions.import'types
+  Assumptions.import'notify
+  Assumptions.import'version
+  Assumptions.import'raftpb
+  Assumptions.import'errors
+  Assumptions.import'jsoncodec
+  Assumptions.import'path
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.membership
 

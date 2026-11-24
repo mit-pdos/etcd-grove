@@ -252,7 +252,7 @@ noncomputable instance InvalidResourceVersion.zero_val [GooseExts] : ZeroVal Inv
 @[irreducible] noncomputable def InvalidResourceVersion.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InvalidResourceVersion.fieldsUnsealed
 
-noncomputable instance equals_unfold_InvalidResourceVersion [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'InvalidResourceVersion [GooseExts] [GoGlobalContext] :
     EqualsUnfold InvalidResourceVersion.fields InvalidResourceVersion.fieldsUnsealed :=
   ⟨by unfold InvalidResourceVersion.fields; rfl⟩
 
@@ -262,37 +262,37 @@ noncomputable instance equals_unfold_InvalidResourceVersion [GooseExts] [GoGloba
 class InvalidResourceVersion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InvalidResourceVersion.underlying InvalidResourceVersion
   underlying : go.UnderlyingDirectedEq InvalidResourceVersion.ty InvalidResourceVersion.underlying
-  get_rv : ∀ (x : InvalidResourceVersion), go.IsGoStepPureDetTagged under (StructFieldGet InvalidResourceVersion.underlying go!"rv") #x (Val #(x.rv'))
-  set_rv : ∀ (x : InvalidResourceVersion) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet InvalidResourceVersion.underlying go!"rv") (PairV #x #y) (Val #(({ x with rv' := y } : InvalidResourceVersion)))
+  get'rv : ∀ (x : InvalidResourceVersion), go.IsGoStepPureDetTagged under (StructFieldGet InvalidResourceVersion.underlying go!"rv") #x (Val #(x.rv'))
+  set'rv : ∀ (x : InvalidResourceVersion) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet InvalidResourceVersion.underlying go!"rv") (PairV #x #y) (Val #(({ x with rv' := y } : InvalidResourceVersion)))
   method_set : go.MethodSetIs InvalidResourceVersion.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType InvalidResourceVersion.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
-  Error_unfold : MethodUnfold InvalidResourceVersion.ty go!"Error" InvalidResourceVersion.Error.impl
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType InvalidResourceVersion.ty) go!"Error" (LamV "$r"
+  unfold'Error : MethodUnfold InvalidResourceVersion.ty go!"Error" InvalidResourceVersion.Error.impl
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType InvalidResourceVersion.ty) go!"Error" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve InvalidResourceVersion.ty go!"Error"))) (App (Val (GoInstruction (GoLoad InvalidResourceVersion.ty))) (Var "$r"))))
 
 attribute [instance] InvalidResourceVersion.TypeAssumptions.type_repr
   InvalidResourceVersion.TypeAssumptions.underlying
-  InvalidResourceVersion.TypeAssumptions.get_rv
-  InvalidResourceVersion.TypeAssumptions.set_rv
+  InvalidResourceVersion.TypeAssumptions.get'rv
+  InvalidResourceVersion.TypeAssumptions.set'rv
   InvalidResourceVersion.TypeAssumptions.method_set
   InvalidResourceVersion.TypeAssumptions.ptr_method_set
-  InvalidResourceVersion.TypeAssumptions.Error_unfold
-  InvalidResourceVersion.TypeAssumptions.ptr_Error_unfold
+  InvalidResourceVersion.TypeAssumptions.unfold'Error
+  InvalidResourceVersion.TypeAssumptions.ptr_unfold'Error
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  InvalidResourceVersion_instance : InvalidResourceVersion.TypeAssumptions
-  CompareResourceVersion_unfold : FuncUnfold CompareResourceVersion [] CompareResourceVersion.impl
-  isWellFormed_unfold : FuncUnfold isWellFormed [] isWellFormed.impl
-  isDigit_unfold : FuncUnfold isDigit [] isDigit.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
+  instance'InvalidResourceVersion : InvalidResourceVersion.TypeAssumptions
+  unfold'CompareResourceVersion : FuncUnfold CompareResourceVersion [] CompareResourceVersion.impl
+  unfold'isWellFormed : FuncUnfold isWellFormed [] isWellFormed.impl
+  unfold'isDigit : FuncUnfold isDigit [] isDigit.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
 
-attribute [instance] Assumptions.InvalidResourceVersion_instance
-  Assumptions.CompareResourceVersion_unfold
-  Assumptions.isWellFormed_unfold
-  Assumptions.isDigit_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_strings_Assumption
+attribute [instance] Assumptions.instance'InvalidResourceVersion
+  Assumptions.unfold'CompareResourceVersion
+  Assumptions.unfold'isWellFormed
+  Assumptions.unfold'isDigit
+  Assumptions.import'fmt
+  Assumptions.import'strings
 
 end k8s_io.apimachinery.pkg.util.resourceversion
 

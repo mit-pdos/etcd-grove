@@ -121,7 +121,7 @@ noncomputable def WithCustomResyncConfig.impl [GooseExts] [GoGlobalContext] : va
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "v"))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert _root_.Perennial.reflect.«Type».ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.time.Duration.ty)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"customResync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "factory"))))) (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Var "k")))
+  (App (App (App (Val (map.insert _root_.Perennial.reflect.Type''.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.time.Duration.ty)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"customResync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "factory"))))) (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Var "k")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.reflect.TypeOf []))) (Val #())) (Var "$a0")))) (Var "$r0"))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Pair (Var "k") (Var "$key")))))))
@@ -372,10 +372,10 @@ noncomputable def NewSharedInformerFactoryWithOptions.impl [GooseExts] [GoGlobal
   (Let "$r0" (App (Val (GoInstruction (GoAlloc sharedInformerFactory.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (Var "client"))
   (Let "$v1" (Val #(go!""))
   (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "defaultResync"))
-  (Let "$v3" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)]))) (Val #())) (Val #()))
-  (Let "$v4" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)]))) (Val #())) (Val #()))
-  (Let "$v5" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.time.Duration.ty)]))) (Val #())) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral sharedInformerFactory.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"client")) (ElementExpression _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"namespace")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"defaultResync")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"informers")) (ElementExpression (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"startedInformers")) (ElementExpression (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool) (Var "$v4"))), (KeyedElement (some (KeyField go!"customResync")) (ElementExpression (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.time.Duration.ty) (Var "$v5")))])))))))))
+  (Let "$v3" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)]))) (Val #())) (Val #()))
+  (Let "$v4" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)]))) (Val #())) (Val #()))
+  (Let "$v5" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.time.Duration.ty)]))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral sharedInformerFactory.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"client")) (ElementExpression _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"namespace")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"defaultResync")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"informers")) (ElementExpression (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"startedInformers")) (ElementExpression (go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool) (Var "$v4"))), (KeyedElement (some (KeyField go!"customResync")) (ElementExpression (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.time.Duration.ty) (Var "$v5")))])))))))))
   (Let "factory" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sharedInformerFactory.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType sharedInformerFactory.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -428,18 +428,18 @@ noncomputable def sharedInformerFactory.StartWithContext.impl [GooseExts] [GoGlo
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"informers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))
-  (Let "informerType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.«Type».ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.reflect.«Type».ty))) (Val #())))
-  (App (App (Val (map.forRange _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)) (Var "$range"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"informers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))
+  (Let "informerType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.Type''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.reflect.Type''.ty))) (Val #())))
+  (App (App (Val (map.forRange _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (Let "informer" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty))) (Var "$value"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (map.lookup1 _root_.Perennial.reflect.«Type».ty go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"startedInformers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (Var "informerType"))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (map.lookup1 _root_.Perennial.reflect.Type''.ty go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"startedInformers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type''.ty))) (Var "informerType"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #true)
   (App (Val doExecute)
-  (App (App (App (Val (map.insert _root_.Perennial.reflect.«Type».ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"startedInformers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (Var "informerType"))) (Var "$r0"))))))
+  (App (App (App (Val (map.insert _root_.Perennial.reflect.Type''.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"startedInformers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type''.ty))) (Var "informerType"))) (Var "$r0"))))))
   (App (Val doExecute)
   (Let "$a0" (Lam BAnon
   (Seq (App (Val exceptionDo)
@@ -451,7 +451,7 @@ noncomputable def sharedInformerFactory.StartWithContext.impl [GooseExts] [GoGlo
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.reflect.«Type».ty))) (Pair (Var "informerType") (Var "$key")))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.reflect.Type''.ty))) (Pair (Var "informerType") (Var "$key")))))))))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"shuttingDown"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))
   (App (Val doReturn)
   (Val #()))
@@ -494,7 +494,7 @@ noncomputable def sharedInformerFactory.Shutdown.impl [GooseExts] [GoGlobalConte
 noncomputable def sharedInformerFactory.WaitForCacheSync.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam "stopCh"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))
   (Let "stopCh" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "stopCh"))
@@ -503,15 +503,15 @@ noncomputable def sharedInformerFactory.WaitForCacheSync.impl [GooseExts] [GoGlo
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType sharedInformerFactory.ty) go!"WaitForCacheSyncWithContext"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))) (Var "$a0")))
   (Let "result" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty go!"Synced"))) (Var "result")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty go!"Synced"))) (Var "result")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty))) (Pair (Var "result") (Var "$r0"))))))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)))) (Var "$res0"))))))
 
 /-- go: factory.go:210:33 -/
 noncomputable def sharedInformerFactory.WaitForCacheSyncWithContext.impl [GooseExts] [GoGlobalContext] : val :=
@@ -522,41 +522,41 @@ noncomputable def sharedInformerFactory.WaitForCacheSyncWithContext.impl [GooseE
   (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "$r0" (App (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Val #())))
   (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (LiteralValue []))
-  (Let "informers" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Val #())))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (LiteralValue []))
+  (Let "informers" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Var "informers"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Var "informers"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"informers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"informers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))
   (Let "informer" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty))) (Val #())))
-  (Let "informerType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.«Type».ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.reflect.«Type».ty))) (Val #())))
-  (App (App (Val (map.forRange _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)) (Var "$range"))
+  (Let "informerType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.Type''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.reflect.Type''.ty))) (Val #())))
+  (App (App (Val (map.forRange _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (App (Val (map.lookup1 _root_.Perennial.reflect.«Type».ty go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"startedInformers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (Var "informerType")))
+  (If (App (App (Val (map.lookup1 _root_.Perennial.reflect.Type''.ty go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"startedInformers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type''.ty))) (Var "informerType")))
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty))) (Var "informer"))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert _root_.Perennial.reflect.«Type».ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Var "informers"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (Var "informerType"))) (Var "$r0"))))
+  (App (App (App (Val (map.insert _root_.Perennial.reflect.Type''.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Var "informers"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type''.ty))) (Var "informerType"))) (Var "$r0"))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.reflect.«Type».ty))) (Pair (Var "informerType") (Var "$key")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.reflect.Type''.ty))) (Pair (Var "informerType") (Var "$key")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty))) (Pair (Var "informer") (Var "$value"))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Pair (Var "informers") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Pair (Var "informers") (Var "$r0")))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -565,18 +565,18 @@ noncomputable def sharedInformerFactory.WaitForCacheSyncWithContext.impl [GooseE
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f")))) (Val #()))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Var "$res0"))))) (Val #()))
-  (Let "informers" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Val #())))
+  (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Var "$res0"))))) (Val #()))
+  (Let "informers" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType _root_.Perennial.k8s_io.client_go.tools.cache.DoneChecker.ty)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Var "informers"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)]))) (Val #())) (Var "$a0"))))
+  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType _root_.Perennial.k8s_io.client_go.tools.cache.DoneChecker.ty)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Var "informers"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)]))) (Val #())) (Var "$a0"))))
   (Let "cacheSyncs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.client_go.tools.cache.DoneChecker.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.k8s_io.client_go.tools.cache.DoneChecker.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Var "informers"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)]))) (Val #())) (Var "$a0"))))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Synced")) (ElementExpression (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool) (Var "$v0")))])))
+  (Let "$r0" (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Var "informers"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)]))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Synced")) (ElementExpression (go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool) (Var "$v0")))])))
   (Let "res" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #false)
@@ -597,10 +597,10 @@ noncomputable def sharedInformerFactory.WaitForCacheSyncWithContext.impl [GooseE
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty go!"Err"))) (Var "res")) (Var "$r0")))))
   (App (Val doExecute)
   (Val #()))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Var "informers"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Var "informers"))
   (Let "informer" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty))) (Val #())))
-  (Let "informType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.«Type».ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.reflect.«Type».ty))) (Val #())))
-  (App (App (Val (map.forRange _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)) (Var "$range"))
+  (Let "informType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.Type''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.reflect.Type''.ty))) (Val #())))
+  (App (App (Val (map.forRange _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -611,7 +611,7 @@ noncomputable def sharedInformerFactory.WaitForCacheSyncWithContext.impl [GooseE
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "hasSynced"))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert _root_.Perennial.reflect.«Type».ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty go!"Synced"))) (Var "res")))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (Var "informType"))) (Var "$r0"))))))
+  (App (App (App (Val (map.insert _root_.Perennial.reflect.Type''.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty go!"Synced"))) (Var "res")))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type''.ty))) (Var "informType"))) (Var "$r0"))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "hasSynced")))
   (Let "$r0" (Val #true)
   (App (Val doExecute)
@@ -621,7 +621,7 @@ noncomputable def sharedInformerFactory.WaitForCacheSyncWithContext.impl [GooseE
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "hasSynced") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.reflect.«Type».ty))) (Pair (Var "informType") (Var "$key")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.reflect.Type''.ty))) (Pair (Var "informType") (Var "$key")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty))) (Pair (Var "informer") (Var "$value"))))))))))))))
   (App (Val doExecute)
@@ -633,9 +633,9 @@ noncomputable def sharedInformerFactory.WaitForCacheSyncWithContext.impl [GooseE
   (Let "$a1" (Val #(go!""))
   (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.client_go.tools.cache.DoneChecker.ty)))) (Var "cacheSyncs"))
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.client_go.tools.cache.WaitFor []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Var "informers"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Var "informers"))
   (Let "informer" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty))) (Val #())))
-  (App (App (Val (map.forRange _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)) (Var "$range"))
+  (App (App (Val (map.forRange _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -653,7 +653,7 @@ noncomputable def sharedInformerFactory.WaitForCacheSyncWithContext.impl [GooseE
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.k8s_io.client_go.tools.cache.DoneChecker.ty)))) (Pair (Var "cacheSyncs") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Pair (Var "informers") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (Pair (Var "informers") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty))) (Var "$res0"))))))
 
 /-- InformerFor returns the SharedIndexInformer for obj using an internal
@@ -674,9 +674,9 @@ noncomputable def sharedInformerFactory.InformerFor.impl [GooseExts] [GoGlobalCo
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.reflect.TypeOf []))) (Val #())) (Var "$a0")))
-  (Let "informerType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.«Type».ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.reflect.«Type».ty))) (Val #())))
+  (Let "informerType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.Type''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.reflect.Type''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (App (Val (map.lookup2 _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"informers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (Var "informerType")))
+  (Let "__p" (App (App (Val (map.lookup2 _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"informers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type''.ty))) (Var "informerType")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -686,7 +686,7 @@ noncomputable def sharedInformerFactory.InformerFor.impl [GooseExts] [GoGlobalCo
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (App (Val (map.lookup2 _root_.Perennial.reflect.«Type».ty _root_.Perennial.time.Duration.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.time.Duration.ty)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"customResync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (Var "informerType")))
+  (Let "__p" (App (App (Val (map.lookup2 _root_.Perennial.reflect.Type''.ty _root_.Perennial.time.Duration.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.time.Duration.ty)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"customResync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type''.ty))) (Var "informerType")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -710,7 +710,7 @@ noncomputable def sharedInformerFactory.InformerFor.impl [GooseExts] [GoGlobalCo
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert _root_.Perennial.reflect.«Type».ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"informers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (Var "informerType"))) (Var "$r0")))))))
+  (App (App (App (Val (map.insert _root_.Perennial.reflect.Type''.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"informers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type''.ty))) (Var "informerType"))) (Var "$r0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector.ty))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"shardSelector"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f")))) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector.ty))) (Val UntypedNil))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector.ty))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"shardSelector"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))
@@ -749,7 +749,7 @@ noncomputable def sharedInformerFactory.InformerFor.impl [GooseExts] [GoGlobalCo
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty))) (Pair (Var "informer") (Var "$r0"))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.reflect.«Type».ty))) (Pair (Var "informerType") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.reflect.Type''.ty))) (Pair (Var "informerType") (Var "$r0")))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef sharedInformerFactory.ty go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedInformerFactory.ty)))) (Var "f"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -886,19 +886,19 @@ noncomputable instance sharedInformerFactory.zero_val [GooseExts] : ZeroVal shar
 (go.field_decl.FieldDecl go!"tweakListOptions" _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc.ty),
 (go.field_decl.FieldDecl go!"lock" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"defaultResync" _root_.Perennial.time.Duration.ty),
-(go.field_decl.FieldDecl go!"customResync" (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.time.Duration.ty)),
+(go.field_decl.FieldDecl go!"customResync" (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.time.Duration.ty)),
 (go.field_decl.FieldDecl go!"transform" _root_.Perennial.k8s_io.client_go.tools.cache.TransformFunc.ty),
 (go.field_decl.FieldDecl go!"shardSelector" _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector.ty),
 (go.field_decl.FieldDecl go!"informerName" (go.GoType.PointerType _root_.Perennial.k8s_io.client_go.tools.cache.InformerName.ty)),
-(go.field_decl.FieldDecl go!"informers" (go.GoType.MapType _root_.Perennial.reflect.«Type».ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)),
-(go.field_decl.FieldDecl go!"startedInformers" (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)),
+(go.field_decl.FieldDecl go!"informers" (go.GoType.MapType _root_.Perennial.reflect.Type''.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)),
+(go.field_decl.FieldDecl go!"startedInformers" (go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)),
 (go.field_decl.FieldDecl go!"wg" _root_.Perennial.sync.WaitGroup.ty),
 (go.field_decl.FieldDecl go!"shuttingDown" go.bool)]
 
 @[irreducible] noncomputable def sharedInformerFactory.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   sharedInformerFactory.fieldsUnsealed
 
-noncomputable instance equals_unfold_sharedInformerFactory [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'sharedInformerFactory [GooseExts] [GoGlobalContext] :
     EqualsUnfold sharedInformerFactory.fields sharedInformerFactory.fieldsUnsealed :=
   ⟨by unfold sharedInformerFactory.fields; rfl⟩
 
@@ -908,83 +908,83 @@ noncomputable instance equals_unfold_sharedInformerFactory [GooseExts] [GoGlobal
 class sharedInformerFactory.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying sharedInformerFactory.underlying sharedInformerFactory
   underlying : go.UnderlyingDirectedEq sharedInformerFactory.ty sharedInformerFactory.underlying
-  get_client : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"client") #x (Val #(x.client'))
-  set_client : ∀ (x : sharedInformerFactory) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"client") (PairV #x #y) (Val #(({ x with client' := y } : sharedInformerFactory)))
-  get_namespace : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"namespace") #x (Val #(x.namespace'))
-  set_namespace : ∀ (x : sharedInformerFactory) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : sharedInformerFactory)))
-  get_tweakListOptions : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
-  set_tweakListOptions : ∀ (x : sharedInformerFactory) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : sharedInformerFactory)))
-  get_lock : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"lock") #x (Val #(x.lock'))
-  set_lock : ∀ (x : sharedInformerFactory) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : sharedInformerFactory)))
-  get_defaultResync : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"defaultResync") #x (Val #(x.defaultResync'))
-  set_defaultResync : ∀ (x : sharedInformerFactory) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"defaultResync") (PairV #x #y) (Val #(({ x with defaultResync' := y } : sharedInformerFactory)))
-  get_customResync : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"customResync") #x (Val #(x.customResync'))
-  set_customResync : ∀ (x : sharedInformerFactory) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"customResync") (PairV #x #y) (Val #(({ x with customResync' := y } : sharedInformerFactory)))
-  get_transform : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"transform") #x (Val #(x.transform'))
-  set_transform : ∀ (x : sharedInformerFactory) (y : _root_.Perennial.k8s_io.client_go.tools.cache.TransformFunc), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"transform") (PairV #x #y) (Val #(({ x with transform' := y } : sharedInformerFactory)))
-  get_shardSelector : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"shardSelector") #x (Val #(x.shardSelector'))
-  set_shardSelector : ∀ (x : sharedInformerFactory) (y : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"shardSelector") (PairV #x #y) (Val #(({ x with shardSelector' := y } : sharedInformerFactory)))
-  get_informerName : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"informerName") #x (Val #(x.informerName'))
-  set_informerName : ∀ (x : sharedInformerFactory) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"informerName") (PairV #x #y) (Val #(({ x with informerName' := y } : sharedInformerFactory)))
-  get_informers : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"informers") #x (Val #(x.informers'))
-  set_informers : ∀ (x : sharedInformerFactory) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"informers") (PairV #x #y) (Val #(({ x with informers' := y } : sharedInformerFactory)))
-  get_startedInformers : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"startedInformers") #x (Val #(x.startedInformers'))
-  set_startedInformers : ∀ (x : sharedInformerFactory) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"startedInformers") (PairV #x #y) (Val #(({ x with startedInformers' := y } : sharedInformerFactory)))
-  get_wg : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"wg") #x (Val #(x.wg'))
-  set_wg : ∀ (x : sharedInformerFactory) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : sharedInformerFactory)))
-  get_shuttingDown : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"shuttingDown") #x (Val #(x.shuttingDown'))
-  set_shuttingDown : ∀ (x : sharedInformerFactory) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"shuttingDown") (PairV #x #y) (Val #(({ x with shuttingDown' := y } : sharedInformerFactory)))
+  get'client : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"client") #x (Val #(x.client'))
+  set'client : ∀ (x : sharedInformerFactory) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"client") (PairV #x #y) (Val #(({ x with client' := y } : sharedInformerFactory)))
+  get'namespace : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"namespace") #x (Val #(x.namespace'))
+  set'namespace : ∀ (x : sharedInformerFactory) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : sharedInformerFactory)))
+  get'tweakListOptions : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"tweakListOptions") #x (Val #(x.tweakListOptions'))
+  set'tweakListOptions : ∀ (x : sharedInformerFactory) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"tweakListOptions") (PairV #x #y) (Val #(({ x with tweakListOptions' := y } : sharedInformerFactory)))
+  get'lock : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"lock") #x (Val #(x.lock'))
+  set'lock : ∀ (x : sharedInformerFactory) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : sharedInformerFactory)))
+  get'defaultResync : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"defaultResync") #x (Val #(x.defaultResync'))
+  set'defaultResync : ∀ (x : sharedInformerFactory) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"defaultResync") (PairV #x #y) (Val #(({ x with defaultResync' := y } : sharedInformerFactory)))
+  get'customResync : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"customResync") #x (Val #(x.customResync'))
+  set'customResync : ∀ (x : sharedInformerFactory) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"customResync") (PairV #x #y) (Val #(({ x with customResync' := y } : sharedInformerFactory)))
+  get'transform : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"transform") #x (Val #(x.transform'))
+  set'transform : ∀ (x : sharedInformerFactory) (y : _root_.Perennial.k8s_io.client_go.tools.cache.TransformFunc), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"transform") (PairV #x #y) (Val #(({ x with transform' := y } : sharedInformerFactory)))
+  get'shardSelector : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"shardSelector") #x (Val #(x.shardSelector'))
+  set'shardSelector : ∀ (x : sharedInformerFactory) (y : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"shardSelector") (PairV #x #y) (Val #(({ x with shardSelector' := y } : sharedInformerFactory)))
+  get'informerName : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"informerName") #x (Val #(x.informerName'))
+  set'informerName : ∀ (x : sharedInformerFactory) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"informerName") (PairV #x #y) (Val #(({ x with informerName' := y } : sharedInformerFactory)))
+  get'informers : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"informers") #x (Val #(x.informers'))
+  set'informers : ∀ (x : sharedInformerFactory) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"informers") (PairV #x #y) (Val #(({ x with informers' := y } : sharedInformerFactory)))
+  get'startedInformers : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"startedInformers") #x (Val #(x.startedInformers'))
+  set'startedInformers : ∀ (x : sharedInformerFactory) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"startedInformers") (PairV #x #y) (Val #(({ x with startedInformers' := y } : sharedInformerFactory)))
+  get'wg : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"wg") #x (Val #(x.wg'))
+  set'wg : ∀ (x : sharedInformerFactory) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : sharedInformerFactory)))
+  get'shuttingDown : ∀ (x : sharedInformerFactory), go.IsGoStepPureDetTagged under (StructFieldGet sharedInformerFactory.underlying go!"shuttingDown") #x (Val #(x.shuttingDown'))
+  set'shuttingDown : ∀ (x : sharedInformerFactory) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet sharedInformerFactory.underlying go!"shuttingDown") (PairV #x #y) (Val #(({ x with shuttingDown' := y } : sharedInformerFactory)))
   method_set : go.MethodSetIs sharedInformerFactory.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sharedInformerFactory.ty) [(go!"Admissionregistration", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/admissionregistration.Interface" [])]))), (go!"Apps", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.informers.apps.Interface.ty]))), (go!"Autoscaling", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/autoscaling.Interface" [])]))), (go!"Batch", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/batch.Interface" [])]))), (go!"Certificates", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/certificates.Interface" [])]))), (go!"Coordination", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/coordination.Interface" [])]))), (go!"Core", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.informers.core.Interface.ty]))), (go!"Discovery", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/discovery.Interface" [])]))), (go!"Events", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/events.Interface" [])]))), (go!"Extensions", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/extensions.Interface" [])]))), (go!"Flowcontrol", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/flowcontrol.Interface" [])]))), (go!"ForResource", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty] false [GenericInformer.ty, go.error]))), (go!"InformerFor", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.NewInformerFunc.ty] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"InformerName", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.client_go.tools.cache.InformerName.ty)]))), (go!"Internal", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/apiserverinternal.Interface" [])]))), (go!"Lifecycle", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/lifecycle.Interface" [])]))), (go!"Networking", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/networking.Interface" [])]))), (go!"Node", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/node.Interface" [])]))), (go!"Policy", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/policy.Interface" [])]))), (go!"Rbac", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/rbac.Interface" [])]))), (go!"Resource", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/resource.Interface" [])]))), (go!"Scheduling", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/scheduling.Interface" [])]))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"Start", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"StartWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"Storage", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/storage.Interface" [])]))), (go!"Storagemigration", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/storagemigration.Interface" [])]))), (go!"WaitForCacheSync", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [(go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)]))), (go!"WaitForCacheSyncWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty])))]
-  ptr_Apps_unfold : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"Apps" sharedInformerFactory.Apps.impl
-  ptr_Core_unfold : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"Core" sharedInformerFactory.Core.impl
-  ptr_InformerFor_unfold : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"InformerFor" sharedInformerFactory.InformerFor.impl
-  ptr_InformerName_unfold : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"InformerName" sharedInformerFactory.InformerName.impl
-  ptr_Shutdown_unfold : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"Shutdown" sharedInformerFactory.Shutdown.impl
-  ptr_Start_unfold : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"Start" sharedInformerFactory.Start.impl
-  ptr_StartWithContext_unfold : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"StartWithContext" sharedInformerFactory.StartWithContext.impl
-  ptr_WaitForCacheSync_unfold : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"WaitForCacheSync" sharedInformerFactory.WaitForCacheSync.impl
-  ptr_WaitForCacheSyncWithContext_unfold : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"WaitForCacheSyncWithContext" sharedInformerFactory.WaitForCacheSyncWithContext.impl
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sharedInformerFactory.ty) [(go!"Admissionregistration", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/admissionregistration.Interface" [])]))), (go!"Apps", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.informers.apps.Interface.ty]))), (go!"Autoscaling", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/autoscaling.Interface" [])]))), (go!"Batch", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/batch.Interface" [])]))), (go!"Certificates", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/certificates.Interface" [])]))), (go!"Coordination", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/coordination.Interface" [])]))), (go!"Core", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.informers.core.Interface.ty]))), (go!"Discovery", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/discovery.Interface" [])]))), (go!"Events", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/events.Interface" [])]))), (go!"Extensions", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/extensions.Interface" [])]))), (go!"Flowcontrol", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/flowcontrol.Interface" [])]))), (go!"ForResource", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty] false [GenericInformer.ty, go.error]))), (go!"InformerFor", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.NewInformerFunc.ty] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"InformerName", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.client_go.tools.cache.InformerName.ty)]))), (go!"Internal", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/apiserverinternal.Interface" [])]))), (go!"Lifecycle", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/lifecycle.Interface" [])]))), (go!"Networking", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/networking.Interface" [])]))), (go!"Node", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/node.Interface" [])]))), (go!"Policy", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/policy.Interface" [])]))), (go!"Rbac", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/rbac.Interface" [])]))), (go!"Resource", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/resource.Interface" [])]))), (go!"Scheduling", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/scheduling.Interface" [])]))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"Start", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"StartWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"Storage", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/storage.Interface" [])]))), (go!"Storagemigration", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/storagemigration.Interface" [])]))), (go!"WaitForCacheSync", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [(go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)]))), (go!"WaitForCacheSyncWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty])))]
+  ptr_unfold'Apps : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"Apps" sharedInformerFactory.Apps.impl
+  ptr_unfold'Core : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"Core" sharedInformerFactory.Core.impl
+  ptr_unfold'InformerFor : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"InformerFor" sharedInformerFactory.InformerFor.impl
+  ptr_unfold'InformerName : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"InformerName" sharedInformerFactory.InformerName.impl
+  ptr_unfold'Shutdown : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"Shutdown" sharedInformerFactory.Shutdown.impl
+  ptr_unfold'Start : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"Start" sharedInformerFactory.Start.impl
+  ptr_unfold'StartWithContext : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"StartWithContext" sharedInformerFactory.StartWithContext.impl
+  ptr_unfold'WaitForCacheSync : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"WaitForCacheSync" sharedInformerFactory.WaitForCacheSync.impl
+  ptr_unfold'WaitForCacheSyncWithContext : MethodUnfold (go.GoType.PointerType sharedInformerFactory.ty) go!"WaitForCacheSyncWithContext" sharedInformerFactory.WaitForCacheSyncWithContext.impl
 
 attribute [instance] sharedInformerFactory.TypeAssumptions.type_repr
   sharedInformerFactory.TypeAssumptions.underlying
-  sharedInformerFactory.TypeAssumptions.get_client
-  sharedInformerFactory.TypeAssumptions.set_client
-  sharedInformerFactory.TypeAssumptions.get_namespace
-  sharedInformerFactory.TypeAssumptions.set_namespace
-  sharedInformerFactory.TypeAssumptions.get_tweakListOptions
-  sharedInformerFactory.TypeAssumptions.set_tweakListOptions
-  sharedInformerFactory.TypeAssumptions.get_lock
-  sharedInformerFactory.TypeAssumptions.set_lock
-  sharedInformerFactory.TypeAssumptions.get_defaultResync
-  sharedInformerFactory.TypeAssumptions.set_defaultResync
-  sharedInformerFactory.TypeAssumptions.get_customResync
-  sharedInformerFactory.TypeAssumptions.set_customResync
-  sharedInformerFactory.TypeAssumptions.get_transform
-  sharedInformerFactory.TypeAssumptions.set_transform
-  sharedInformerFactory.TypeAssumptions.get_shardSelector
-  sharedInformerFactory.TypeAssumptions.set_shardSelector
-  sharedInformerFactory.TypeAssumptions.get_informerName
-  sharedInformerFactory.TypeAssumptions.set_informerName
-  sharedInformerFactory.TypeAssumptions.get_informers
-  sharedInformerFactory.TypeAssumptions.set_informers
-  sharedInformerFactory.TypeAssumptions.get_startedInformers
-  sharedInformerFactory.TypeAssumptions.set_startedInformers
-  sharedInformerFactory.TypeAssumptions.get_wg
-  sharedInformerFactory.TypeAssumptions.set_wg
-  sharedInformerFactory.TypeAssumptions.get_shuttingDown
-  sharedInformerFactory.TypeAssumptions.set_shuttingDown
+  sharedInformerFactory.TypeAssumptions.get'client
+  sharedInformerFactory.TypeAssumptions.set'client
+  sharedInformerFactory.TypeAssumptions.get'namespace
+  sharedInformerFactory.TypeAssumptions.set'namespace
+  sharedInformerFactory.TypeAssumptions.get'tweakListOptions
+  sharedInformerFactory.TypeAssumptions.set'tweakListOptions
+  sharedInformerFactory.TypeAssumptions.get'lock
+  sharedInformerFactory.TypeAssumptions.set'lock
+  sharedInformerFactory.TypeAssumptions.get'defaultResync
+  sharedInformerFactory.TypeAssumptions.set'defaultResync
+  sharedInformerFactory.TypeAssumptions.get'customResync
+  sharedInformerFactory.TypeAssumptions.set'customResync
+  sharedInformerFactory.TypeAssumptions.get'transform
+  sharedInformerFactory.TypeAssumptions.set'transform
+  sharedInformerFactory.TypeAssumptions.get'shardSelector
+  sharedInformerFactory.TypeAssumptions.set'shardSelector
+  sharedInformerFactory.TypeAssumptions.get'informerName
+  sharedInformerFactory.TypeAssumptions.set'informerName
+  sharedInformerFactory.TypeAssumptions.get'informers
+  sharedInformerFactory.TypeAssumptions.set'informers
+  sharedInformerFactory.TypeAssumptions.get'startedInformers
+  sharedInformerFactory.TypeAssumptions.set'startedInformers
+  sharedInformerFactory.TypeAssumptions.get'wg
+  sharedInformerFactory.TypeAssumptions.set'wg
+  sharedInformerFactory.TypeAssumptions.get'shuttingDown
+  sharedInformerFactory.TypeAssumptions.set'shuttingDown
   sharedInformerFactory.TypeAssumptions.method_set
   sharedInformerFactory.TypeAssumptions.ptr_method_set
-  sharedInformerFactory.TypeAssumptions.ptr_Apps_unfold
-  sharedInformerFactory.TypeAssumptions.ptr_Core_unfold
-  sharedInformerFactory.TypeAssumptions.ptr_InformerFor_unfold
-  sharedInformerFactory.TypeAssumptions.ptr_InformerName_unfold
-  sharedInformerFactory.TypeAssumptions.ptr_Shutdown_unfold
-  sharedInformerFactory.TypeAssumptions.ptr_Start_unfold
-  sharedInformerFactory.TypeAssumptions.ptr_StartWithContext_unfold
-  sharedInformerFactory.TypeAssumptions.ptr_WaitForCacheSync_unfold
-  sharedInformerFactory.TypeAssumptions.ptr_WaitForCacheSyncWithContext_unfold
+  sharedInformerFactory.TypeAssumptions.ptr_unfold'Apps
+  sharedInformerFactory.TypeAssumptions.ptr_unfold'Core
+  sharedInformerFactory.TypeAssumptions.ptr_unfold'InformerFor
+  sharedInformerFactory.TypeAssumptions.ptr_unfold'InformerName
+  sharedInformerFactory.TypeAssumptions.ptr_unfold'Shutdown
+  sharedInformerFactory.TypeAssumptions.ptr_unfold'Start
+  sharedInformerFactory.TypeAssumptions.ptr_unfold'StartWithContext
+  sharedInformerFactory.TypeAssumptions.ptr_unfold'WaitForCacheSync
+  sharedInformerFactory.TypeAssumptions.ptr_unfold'WaitForCacheSyncWithContext
 
 opaque SharedInformerFactory.nonempty_type : NonemptyType.{0}
 def SharedInformerFactory : Type := SharedInformerFactory.nonempty_type.type
@@ -996,7 +996,7 @@ class SharedInformerFactory.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   type_repr : go.TypeReprUnderlying SharedInformerFactory.underlying SharedInformerFactory
   underlying : go.UnderlyingDirectedEq SharedInformerFactory.ty SharedInformerFactory.underlying
   isUnderlying : go.IsUnderlying SharedInformerFactory.underlying SharedInformerFactory.underlying
-  method_set : go.MethodSetIs SharedInformerFactory.ty [(go!"Admissionregistration", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/admissionregistration.Interface" [])]))), (go!"Apps", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.informers.apps.Interface.ty]))), (go!"Autoscaling", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/autoscaling.Interface" [])]))), (go!"Batch", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/batch.Interface" [])]))), (go!"Certificates", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/certificates.Interface" [])]))), (go!"Coordination", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/coordination.Interface" [])]))), (go!"Core", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.informers.core.Interface.ty]))), (go!"Discovery", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/discovery.Interface" [])]))), (go!"Events", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/events.Interface" [])]))), (go!"Extensions", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/extensions.Interface" [])]))), (go!"Flowcontrol", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/flowcontrol.Interface" [])]))), (go!"ForResource", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty] false [GenericInformer.ty, go.error]))), (go!"InformerFor", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.NewInformerFunc.ty] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"InformerName", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.client_go.tools.cache.InformerName.ty)]))), (go!"Internal", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/apiserverinternal.Interface" [])]))), (go!"Lifecycle", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/lifecycle.Interface" [])]))), (go!"Networking", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/networking.Interface" [])]))), (go!"Node", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/node.Interface" [])]))), (go!"Policy", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/policy.Interface" [])]))), (go!"Rbac", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/rbac.Interface" [])]))), (go!"Resource", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/resource.Interface" [])]))), (go!"Scheduling", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/scheduling.Interface" [])]))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"Start", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"StartWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"Storage", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/storage.Interface" [])]))), (go!"Storagemigration", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/storagemigration.Interface" [])]))), (go!"WaitForCacheSync", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [(go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)]))), (go!"WaitForCacheSyncWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty])))]
+  method_set : go.MethodSetIs SharedInformerFactory.ty [(go!"Admissionregistration", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/admissionregistration.Interface" [])]))), (go!"Apps", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.informers.apps.Interface.ty]))), (go!"Autoscaling", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/autoscaling.Interface" [])]))), (go!"Batch", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/batch.Interface" [])]))), (go!"Certificates", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/certificates.Interface" [])]))), (go!"Coordination", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/coordination.Interface" [])]))), (go!"Core", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.informers.core.Interface.ty]))), (go!"Discovery", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/discovery.Interface" [])]))), (go!"Events", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/events.Interface" [])]))), (go!"Extensions", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/extensions.Interface" [])]))), (go!"Flowcontrol", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/flowcontrol.Interface" [])]))), (go!"ForResource", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty] false [GenericInformer.ty, go.error]))), (go!"InformerFor", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.NewInformerFunc.ty] false [_root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty]))), (go!"InformerName", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.client_go.tools.cache.InformerName.ty)]))), (go!"Internal", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/apiserverinternal.Interface" [])]))), (go!"Lifecycle", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/lifecycle.Interface" [])]))), (go!"Networking", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/networking.Interface" [])]))), (go!"Node", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/node.Interface" [])]))), (go!"Policy", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/policy.Interface" [])]))), (go!"Rbac", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/rbac.Interface" [])]))), (go!"Resource", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/resource.Interface" [])]))), (go!"Scheduling", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/scheduling.Interface" [])]))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"Start", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"StartWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"Storage", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/storage.Interface" [])]))), (go!"Storagemigration", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/informers/storagemigration.Interface" [])]))), (go!"WaitForCacheSync", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [(go.GoType.MapType _root_.Perennial.reflect.Type''.ty go.bool)]))), (go!"WaitForCacheSyncWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.k8s_io.client_go.tools.cache.SyncResult.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SharedInformerFactory.ty) []
 
 attribute [instance] SharedInformerFactory.TypeAssumptions.type_repr
@@ -1044,63 +1044,63 @@ attribute [instance] genericInformer.TypeAssumptions.type_repr
   genericInformer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  SharedInformerOption_instance : SharedInformerOption.TypeAssumptions
-  sharedInformerFactory_instance : sharedInformerFactory.TypeAssumptions
-  SharedInformerFactory_instance : SharedInformerFactory.TypeAssumptions
-  GenericInformer_instance : GenericInformer.TypeAssumptions
-  genericInformer_instance : genericInformer.TypeAssumptions
-  WithCustomResyncConfig_unfold : FuncUnfold WithCustomResyncConfig [] WithCustomResyncConfig.impl
-  WithTweakListOptions_unfold : FuncUnfold WithTweakListOptions [] WithTweakListOptions.impl
-  WithNamespace_unfold : FuncUnfold WithNamespace [] WithNamespace.impl
-  WithTransform_unfold : FuncUnfold WithTransform [] WithTransform.impl
-  WithShardSelector_unfold : FuncUnfold WithShardSelector [] WithShardSelector.impl
-  WithInformerName_unfold : FuncUnfold WithInformerName [] WithInformerName.impl
-  NewSharedInformerFactory_unfold : FuncUnfold NewSharedInformerFactory [] NewSharedInformerFactory.impl
-  NewFilteredSharedInformerFactory_unfold : FuncUnfold NewFilteredSharedInformerFactory [] NewFilteredSharedInformerFactory.impl
-  NewSharedInformerFactoryWithOptions_unfold : FuncUnfold NewSharedInformerFactoryWithOptions [] NewSharedInformerFactoryWithOptions.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_reflect_Assumption : _root_.Perennial.reflect.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
-  import_schema_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
-  import_sharding_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Assumptions
-  import_wait_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Assumptions
-  import_apps_Assumption : _root_.Perennial.k8s_io.client_go.informers.apps.Assumptions
-  import_core_Assumption : _root_.Perennial.k8s_io.client_go.informers.core.Assumptions
-  import_internalinterfaces_Assumption : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.Assumptions
-  import_kubernetes_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.Assumptions
-  import_cache_Assumption : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions
+  instance'SharedInformerOption : SharedInformerOption.TypeAssumptions
+  instance'sharedInformerFactory : sharedInformerFactory.TypeAssumptions
+  instance'SharedInformerFactory : SharedInformerFactory.TypeAssumptions
+  instance'GenericInformer : GenericInformer.TypeAssumptions
+  instance'genericInformer : genericInformer.TypeAssumptions
+  unfold'WithCustomResyncConfig : FuncUnfold WithCustomResyncConfig [] WithCustomResyncConfig.impl
+  unfold'WithTweakListOptions : FuncUnfold WithTweakListOptions [] WithTweakListOptions.impl
+  unfold'WithNamespace : FuncUnfold WithNamespace [] WithNamespace.impl
+  unfold'WithTransform : FuncUnfold WithTransform [] WithTransform.impl
+  unfold'WithShardSelector : FuncUnfold WithShardSelector [] WithShardSelector.impl
+  unfold'WithInformerName : FuncUnfold WithInformerName [] WithInformerName.impl
+  unfold'NewSharedInformerFactory : FuncUnfold NewSharedInformerFactory [] NewSharedInformerFactory.impl
+  unfold'NewFilteredSharedInformerFactory : FuncUnfold NewFilteredSharedInformerFactory [] NewFilteredSharedInformerFactory.impl
+  unfold'NewSharedInformerFactoryWithOptions : FuncUnfold NewSharedInformerFactoryWithOptions [] NewSharedInformerFactoryWithOptions.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'reflect : _root_.Perennial.reflect.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  import'schema : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
+  import'sharding : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Assumptions
+  import'wait : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Assumptions
+  import'apps : _root_.Perennial.k8s_io.client_go.informers.apps.Assumptions
+  import'core : _root_.Perennial.k8s_io.client_go.informers.core.Assumptions
+  import'internalinterfaces : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.Assumptions
+  import'kubernetes : _root_.Perennial.k8s_io.client_go.kubernetes.Assumptions
+  import'cache : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions
 
-attribute [instance] Assumptions.SharedInformerOption_instance
-  Assumptions.sharedInformerFactory_instance
-  Assumptions.SharedInformerFactory_instance
-  Assumptions.GenericInformer_instance
-  Assumptions.genericInformer_instance
-  Assumptions.WithCustomResyncConfig_unfold
-  Assumptions.WithTweakListOptions_unfold
-  Assumptions.WithNamespace_unfold
-  Assumptions.WithTransform_unfold
-  Assumptions.WithShardSelector_unfold
-  Assumptions.WithInformerName_unfold
-  Assumptions.NewSharedInformerFactory_unfold
-  Assumptions.NewFilteredSharedInformerFactory_unfold
-  Assumptions.NewSharedInformerFactoryWithOptions_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_reflect_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_v1_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_schema_Assumption
-  Assumptions.import_sharding_Assumption
-  Assumptions.import_wait_Assumption
-  Assumptions.import_apps_Assumption
-  Assumptions.import_core_Assumption
-  Assumptions.import_internalinterfaces_Assumption
-  Assumptions.import_kubernetes_Assumption
-  Assumptions.import_cache_Assumption
+attribute [instance] Assumptions.instance'SharedInformerOption
+  Assumptions.instance'sharedInformerFactory
+  Assumptions.instance'SharedInformerFactory
+  Assumptions.instance'GenericInformer
+  Assumptions.instance'genericInformer
+  Assumptions.unfold'WithCustomResyncConfig
+  Assumptions.unfold'WithTweakListOptions
+  Assumptions.unfold'WithNamespace
+  Assumptions.unfold'WithTransform
+  Assumptions.unfold'WithShardSelector
+  Assumptions.unfold'WithInformerName
+  Assumptions.unfold'NewSharedInformerFactory
+  Assumptions.unfold'NewFilteredSharedInformerFactory
+  Assumptions.unfold'NewSharedInformerFactoryWithOptions
+  Assumptions.import'context
+  Assumptions.import'reflect
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'v1
+  Assumptions.import'runtime
+  Assumptions.import'schema
+  Assumptions.import'sharding
+  Assumptions.import'wait
+  Assumptions.import'apps
+  Assumptions.import'core
+  Assumptions.import'internalinterfaces
+  Assumptions.import'kubernetes
+  Assumptions.import'cache
 
 end k8s_io.client_go.informers
 

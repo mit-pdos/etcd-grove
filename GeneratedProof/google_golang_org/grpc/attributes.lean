@@ -24,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.attributes.Assumptions]
 
-noncomputable instance Attributes_typed_pointsto :
+noncomputable instance typed_pointsto'Attributes :
     TypedPointsto (GF := GF) google_golang_org.grpc.attributes.Attributes where
   typedPointstoDef l v dq := iprop(
     "parent" ∷ typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"parent" l) v.parent' dq ∗
@@ -35,11 +35,11 @@ noncomputable instance Attributes_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Attributes_into_val_typed :
+noncomputable instance into_val_typed'Attributes :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.attributes.Attributes google_golang_org.grpc.attributes.Attributes.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Attributes_access_load_parent (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (dq : DFrac) :
+noncomputable instance access_load'Attributes'parent (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"parent" l) v.parent' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"parent" l) v.parent' dq)
@@ -47,7 +47,7 @@ noncomputable instance Attributes_access_load_parent (l : Loc) (v : google_golan
  by
   solve_pointsto_access_struct
 
-noncomputable instance Attributes_access_store_parent (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (y : Loc) :
+noncomputable instance access_store'Attributes'parent (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"parent" l) v.parent' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"parent" l) y (DFrac.own 1))
@@ -55,7 +55,7 @@ noncomputable instance Attributes_access_store_parent (l : Loc) (v : google_gola
  by
   solve_pointsto_access_struct
 
-noncomputable instance Attributes_access_load_key (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (dq : DFrac) :
+noncomputable instance access_load'Attributes'key (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"key" l) v.key' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"key" l) v.key' dq)
@@ -63,7 +63,7 @@ noncomputable instance Attributes_access_load_key (l : Loc) (v : google_golang_o
  by
   solve_pointsto_access_struct
 
-noncomputable instance Attributes_access_store_key (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (y : GoInterface) :
+noncomputable instance access_store'Attributes'key (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"key" l) v.key' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"key" l) y (DFrac.own 1))
@@ -71,7 +71,7 @@ noncomputable instance Attributes_access_store_key (l : Loc) (v : google_golang_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Attributes_access_load_value (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (dq : DFrac) :
+noncomputable instance access_load'Attributes'value (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"value" l) v.value' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"value" l) v.value' dq)
@@ -79,7 +79,7 @@ noncomputable instance Attributes_access_load_value (l : Loc) (v : google_golang
  by
   solve_pointsto_access_struct
 
-noncomputable instance Attributes_access_store_value (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (y : GoInterface) :
+noncomputable instance access_store'Attributes'value (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"value" l) v.value' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"value" l) y (DFrac.own 1))

@@ -932,7 +932,7 @@ noncomputable instance Master.zero_val [GooseExts] : ZeroVal Master :=
 @[irreducible] noncomputable def Master.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Master.fieldsUnsealed
 
-noncomputable instance equals_unfold_Master [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Master [GooseExts] [GoGlobalContext] :
     EqualsUnfold Master.fields Master.fieldsUnsealed :=
   ⟨by unfold Master.fields; rfl⟩
 
@@ -942,128 +942,128 @@ noncomputable instance equals_unfold_Master [GooseExts] [GoGlobalContext] :
 class Master.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Master.underlying Master
   underlying : go.UnderlyingDirectedEq Master.ty Master.underlying
-  get_Logger : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"Logger") #x (Val #(x.Logger'))
-  set_Logger : ∀ (x : Master) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : Master)))
-  get_N : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"N") #x (Val #(x.N'))
-  set_N : ∀ (x : Master) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"N") (PairV #x #y) (Val #(({ x with N' := y } : Master)))
-  get_port : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"port") #x (Val #(x.port'))
-  set_port : ∀ (x : Master) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"port") (PairV #x #y) (Val #(({ x with port' := y } : Master)))
-  get_nodeList : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"nodeList") #x (Val #(x.nodeList'))
-  set_nodeList : ∀ (x : Master) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"nodeList") (PairV #x #y) (Val #(({ x with nodeList' := y } : Master)))
-  get_addrList : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"addrList") #x (Val #(x.addrList'))
-  set_addrList : ∀ (x : Master) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"addrList") (PairV #x #y) (Val #(({ x with addrList' := y } : Master)))
-  get_portList : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"portList") #x (Val #(x.portList'))
-  set_portList : ∀ (x : Master) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"portList") (PairV #x #y) (Val #(({ x with portList' := y } : Master)))
-  get_lock : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"lock") #x (Val #(x.lock'))
-  set_lock : ∀ (x : Master) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : Master)))
-  get_nodes : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"nodes") #x (Val #(x.nodes'))
-  set_nodes : ∀ (x : Master) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"nodes") (PairV #x #y) (Val #(({ x with nodes' := y } : Master)))
-  get_leader : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"leader") #x (Val #(x.leader'))
-  set_leader : ∀ (x : Master) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"leader") (PairV #x #y) (Val #(({ x with leader' := y } : Master)))
-  get_alive : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"alive") #x (Val #(x.alive'))
-  set_alive : ∀ (x : Master) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"alive") (PairV #x #y) (Val #(({ x with alive' := y } : Master)))
-  get_latencies : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"latencies") #x (Val #(x.latencies'))
-  set_latencies : ∀ (x : Master) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"latencies") (PairV #x #y) (Val #(({ x with latencies' := y } : Master)))
-  get_finishInit : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"finishInit") #x (Val #(x.finishInit'))
-  set_finishInit : ∀ (x : Master) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"finishInit") (PairV #x #y) (Val #(({ x with finishInit' := y } : Master)))
-  get_initCond : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"initCond") #x (Val #(x.initCond'))
-  set_initCond : ∀ (x : Master) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"initCond") (PairV #x #y) (Val #(({ x with initCond' := y } : Master)))
-  get_nextLeader : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"nextLeader") #x (Val #(x.nextLeader'))
-  set_nextLeader : ∀ (x : Master) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"nextLeader") (PairV #x #y) (Val #(({ x with nextLeader' := y } : Master)))
-  get_config : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"config") #x (Val #(x.config'))
-  set_config : ∀ (x : Master) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"config") (PairV #x #y) (Val #(({ x with config' := y } : Master)))
+  get'Logger : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"Logger") #x (Val #(x.Logger'))
+  set'Logger : ∀ (x : Master) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : Master)))
+  get'N : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"N") #x (Val #(x.N'))
+  set'N : ∀ (x : Master) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"N") (PairV #x #y) (Val #(({ x with N' := y } : Master)))
+  get'port : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"port") #x (Val #(x.port'))
+  set'port : ∀ (x : Master) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"port") (PairV #x #y) (Val #(({ x with port' := y } : Master)))
+  get'nodeList : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"nodeList") #x (Val #(x.nodeList'))
+  set'nodeList : ∀ (x : Master) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"nodeList") (PairV #x #y) (Val #(({ x with nodeList' := y } : Master)))
+  get'addrList : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"addrList") #x (Val #(x.addrList'))
+  set'addrList : ∀ (x : Master) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"addrList") (PairV #x #y) (Val #(({ x with addrList' := y } : Master)))
+  get'portList : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"portList") #x (Val #(x.portList'))
+  set'portList : ∀ (x : Master) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"portList") (PairV #x #y) (Val #(({ x with portList' := y } : Master)))
+  get'lock : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"lock") #x (Val #(x.lock'))
+  set'lock : ∀ (x : Master) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : Master)))
+  get'nodes : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"nodes") #x (Val #(x.nodes'))
+  set'nodes : ∀ (x : Master) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"nodes") (PairV #x #y) (Val #(({ x with nodes' := y } : Master)))
+  get'leader : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"leader") #x (Val #(x.leader'))
+  set'leader : ∀ (x : Master) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"leader") (PairV #x #y) (Val #(({ x with leader' := y } : Master)))
+  get'alive : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"alive") #x (Val #(x.alive'))
+  set'alive : ∀ (x : Master) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"alive") (PairV #x #y) (Val #(({ x with alive' := y } : Master)))
+  get'latencies : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"latencies") #x (Val #(x.latencies'))
+  set'latencies : ∀ (x : Master) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"latencies") (PairV #x #y) (Val #(({ x with latencies' := y } : Master)))
+  get'finishInit : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"finishInit") #x (Val #(x.finishInit'))
+  set'finishInit : ∀ (x : Master) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"finishInit") (PairV #x #y) (Val #(({ x with finishInit' := y } : Master)))
+  get'initCond : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"initCond") #x (Val #(x.initCond'))
+  set'initCond : ∀ (x : Master) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"initCond") (PairV #x #y) (Val #(({ x with initCond' := y } : Master)))
+  get'nextLeader : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"nextLeader") #x (Val #(x.nextLeader'))
+  set'nextLeader : ∀ (x : Master) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"nextLeader") (PairV #x #y) (Val #(({ x with nextLeader' := y } : Master)))
+  get'config : ∀ (x : Master), go.IsGoStepPureDetTagged under (StructFieldGet Master.underlying go!"config") #x (Val #(x.config'))
+  set'config : ∀ (x : Master) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Master.underlying go!"config") (PairV #x #y) (Val #(({ x with config' := y } : Master)))
   method_set : go.MethodSetIs Master.ty [(go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Println", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Master.ty) [(go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"GetLeader", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderArgs.ty), (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderReply.ty)] false [go.error]))), (go!"GetReplicaList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListArgs.ty), (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListReply.ty)] false [go.error]))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Println", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Register", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterArgs.ty), (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterReply.ty)] false [go.error]))), (go!"Run", (some (go.signature.Signature [] false []))), (go!"github.com/imdea-software/swiftpaxos-epaxos/master.run", (some (go.signature.Signature [] false [])))]
-  Fatal_unfold : MethodUnfold Master.ty go!"Fatal" (LamV "$r"
+  unfold'Fatal : MethodUnfold Master.ty go!"Fatal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger.ty) go!"Fatal"))) (App (Val (GoInstruction (StructFieldGet Master.ty go!"Logger"))) (Var "$r"))))
-  Printf_unfold : MethodUnfold Master.ty go!"Printf" (LamV "$r"
+  unfold'Printf : MethodUnfold Master.ty go!"Printf" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger.ty) go!"Printf"))) (App (Val (GoInstruction (StructFieldGet Master.ty go!"Logger"))) (Var "$r"))))
-  Println_unfold : MethodUnfold Master.ty go!"Println" (LamV "$r"
+  unfold'Println : MethodUnfold Master.ty go!"Println" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger.ty) go!"Println"))) (App (Val (GoInstruction (StructFieldGet Master.ty go!"Logger"))) (Var "$r"))))
-  ptr_Fatal_unfold : MethodUnfold (go.GoType.PointerType Master.ty) go!"Fatal" (LamV "$r"
+  ptr_unfold'Fatal : MethodUnfold (go.GoType.PointerType Master.ty) go!"Fatal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger.ty) go!"Fatal"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef Master.ty go!"Logger"))) (Var "$r")))))
-  ptr_GetLeader_unfold : MethodUnfold (go.GoType.PointerType Master.ty) go!"GetLeader" Master.GetLeader.impl
-  ptr_GetReplicaList_unfold : MethodUnfold (go.GoType.PointerType Master.ty) go!"GetReplicaList" Master.GetReplicaList.impl
-  ptr_Printf_unfold : MethodUnfold (go.GoType.PointerType Master.ty) go!"Printf" (LamV "$r"
+  ptr_unfold'GetLeader : MethodUnfold (go.GoType.PointerType Master.ty) go!"GetLeader" Master.GetLeader.impl
+  ptr_unfold'GetReplicaList : MethodUnfold (go.GoType.PointerType Master.ty) go!"GetReplicaList" Master.GetReplicaList.impl
+  ptr_unfold'Printf : MethodUnfold (go.GoType.PointerType Master.ty) go!"Printf" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger.ty) go!"Printf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef Master.ty go!"Logger"))) (Var "$r")))))
-  ptr_Println_unfold : MethodUnfold (go.GoType.PointerType Master.ty) go!"Println" (LamV "$r"
+  ptr_unfold'Println : MethodUnfold (go.GoType.PointerType Master.ty) go!"Println" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger.ty) go!"Println"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef Master.ty go!"Logger"))) (Var "$r")))))
-  ptr_Register_unfold : MethodUnfold (go.GoType.PointerType Master.ty) go!"Register" Master.Register.impl
-  ptr_Run_unfold : MethodUnfold (go.GoType.PointerType Master.ty) go!"Run" Master.Run.impl
-  ptr_run_unfold : MethodUnfold (go.GoType.PointerType Master.ty) go!"run" Master.run.impl
+  ptr_unfold'Register : MethodUnfold (go.GoType.PointerType Master.ty) go!"Register" Master.Register.impl
+  ptr_unfold'Run : MethodUnfold (go.GoType.PointerType Master.ty) go!"Run" Master.Run.impl
+  ptr_unfold'run : MethodUnfold (go.GoType.PointerType Master.ty) go!"run" Master.run.impl
 
 attribute [instance] Master.TypeAssumptions.type_repr
   Master.TypeAssumptions.underlying
-  Master.TypeAssumptions.get_Logger
-  Master.TypeAssumptions.set_Logger
-  Master.TypeAssumptions.get_N
-  Master.TypeAssumptions.set_N
-  Master.TypeAssumptions.get_port
-  Master.TypeAssumptions.set_port
-  Master.TypeAssumptions.get_nodeList
-  Master.TypeAssumptions.set_nodeList
-  Master.TypeAssumptions.get_addrList
-  Master.TypeAssumptions.set_addrList
-  Master.TypeAssumptions.get_portList
-  Master.TypeAssumptions.set_portList
-  Master.TypeAssumptions.get_lock
-  Master.TypeAssumptions.set_lock
-  Master.TypeAssumptions.get_nodes
-  Master.TypeAssumptions.set_nodes
-  Master.TypeAssumptions.get_leader
-  Master.TypeAssumptions.set_leader
-  Master.TypeAssumptions.get_alive
-  Master.TypeAssumptions.set_alive
-  Master.TypeAssumptions.get_latencies
-  Master.TypeAssumptions.set_latencies
-  Master.TypeAssumptions.get_finishInit
-  Master.TypeAssumptions.set_finishInit
-  Master.TypeAssumptions.get_initCond
-  Master.TypeAssumptions.set_initCond
-  Master.TypeAssumptions.get_nextLeader
-  Master.TypeAssumptions.set_nextLeader
-  Master.TypeAssumptions.get_config
-  Master.TypeAssumptions.set_config
+  Master.TypeAssumptions.get'Logger
+  Master.TypeAssumptions.set'Logger
+  Master.TypeAssumptions.get'N
+  Master.TypeAssumptions.set'N
+  Master.TypeAssumptions.get'port
+  Master.TypeAssumptions.set'port
+  Master.TypeAssumptions.get'nodeList
+  Master.TypeAssumptions.set'nodeList
+  Master.TypeAssumptions.get'addrList
+  Master.TypeAssumptions.set'addrList
+  Master.TypeAssumptions.get'portList
+  Master.TypeAssumptions.set'portList
+  Master.TypeAssumptions.get'lock
+  Master.TypeAssumptions.set'lock
+  Master.TypeAssumptions.get'nodes
+  Master.TypeAssumptions.set'nodes
+  Master.TypeAssumptions.get'leader
+  Master.TypeAssumptions.set'leader
+  Master.TypeAssumptions.get'alive
+  Master.TypeAssumptions.set'alive
+  Master.TypeAssumptions.get'latencies
+  Master.TypeAssumptions.set'latencies
+  Master.TypeAssumptions.get'finishInit
+  Master.TypeAssumptions.set'finishInit
+  Master.TypeAssumptions.get'initCond
+  Master.TypeAssumptions.set'initCond
+  Master.TypeAssumptions.get'nextLeader
+  Master.TypeAssumptions.set'nextLeader
+  Master.TypeAssumptions.get'config
+  Master.TypeAssumptions.set'config
   Master.TypeAssumptions.method_set
   Master.TypeAssumptions.ptr_method_set
-  Master.TypeAssumptions.Fatal_unfold
-  Master.TypeAssumptions.Printf_unfold
-  Master.TypeAssumptions.Println_unfold
-  Master.TypeAssumptions.ptr_Fatal_unfold
-  Master.TypeAssumptions.ptr_GetLeader_unfold
-  Master.TypeAssumptions.ptr_GetReplicaList_unfold
-  Master.TypeAssumptions.ptr_Printf_unfold
-  Master.TypeAssumptions.ptr_Println_unfold
-  Master.TypeAssumptions.ptr_Register_unfold
-  Master.TypeAssumptions.ptr_Run_unfold
-  Master.TypeAssumptions.ptr_run_unfold
+  Master.TypeAssumptions.unfold'Fatal
+  Master.TypeAssumptions.unfold'Printf
+  Master.TypeAssumptions.unfold'Println
+  Master.TypeAssumptions.ptr_unfold'Fatal
+  Master.TypeAssumptions.ptr_unfold'GetLeader
+  Master.TypeAssumptions.ptr_unfold'GetReplicaList
+  Master.TypeAssumptions.ptr_unfold'Printf
+  Master.TypeAssumptions.ptr_unfold'Println
+  Master.TypeAssumptions.ptr_unfold'Register
+  Master.TypeAssumptions.ptr_unfold'Run
+  Master.TypeAssumptions.ptr_unfold'run
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Master_instance : Master.TypeAssumptions
-  New_unfold : FuncUnfold New [] New.impl
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_http_Assumption : _root_.Perennial.net.http.Assumptions
-  import_rpc_Assumption : _root_.Perennial.net.rpc.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_config_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.config.Assumptions
-  import_dlog_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.dlog.Assumptions
-  import_defs_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Assumptions
+  instance'Master : Master.TypeAssumptions
+  unfold'New : FuncUnfold New [] New.impl
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'net : _root_.Perennial.net.Assumptions
+  import'http : _root_.Perennial.net.http.Assumptions
+  import'rpc : _root_.Perennial.net.rpc.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'config : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.config.Assumptions
+  import'dlog : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.dlog.Assumptions
+  import'defs : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Assumptions
 
-attribute [instance] Assumptions.Master_instance
-  Assumptions.New_unfold
-  Assumptions.import_errors_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_net_Assumption
-  Assumptions.import_http_Assumption
-  Assumptions.import_rpc_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_config_Assumption
-  Assumptions.import_dlog_Assumption
-  Assumptions.import_defs_Assumption
+attribute [instance] Assumptions.instance'Master
+  Assumptions.unfold'New
+  Assumptions.import'errors
+  Assumptions.import'fmt
+  Assumptions.import'net
+  Assumptions.import'http
+  Assumptions.import'rpc
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'config
+  Assumptions.import'dlog
+  Assumptions.import'defs
 
 end github_com.imdea_software.swiftpaxos_epaxos.master
 

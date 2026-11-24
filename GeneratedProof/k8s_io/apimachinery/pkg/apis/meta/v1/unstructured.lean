@@ -26,7 +26,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Assumptions]
 
-noncomputable instance unstructuredJSONScheme_typed_pointsto :
+noncomputable instance typed_pointsto'unstructuredJSONScheme :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.unstructuredJSONScheme where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -34,7 +34,7 @@ noncomputable instance unstructuredJSONScheme_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance unstructuredJSONScheme_into_val_typed :
+noncomputable instance into_val_typed'unstructuredJSONScheme :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.unstructuredJSONScheme k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.unstructuredJSONScheme.underlying := by
   solve_into_val_typed_struct
 
@@ -49,7 +49,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Assumptions]
 
-noncomputable instance jsonFallbackEncoder_typed_pointsto :
+noncomputable instance typed_pointsto'jsonFallbackEncoder :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder where
   typedPointstoDef l v dq := iprop(
     "encoder" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"encoder" l) v.encoder' dq ∗
@@ -59,11 +59,11 @@ noncomputable instance jsonFallbackEncoder_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance jsonFallbackEncoder_into_val_typed :
+noncomputable instance into_val_typed'jsonFallbackEncoder :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance jsonFallbackEncoder_access_load_encoder (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (dq : DFrac) :
+noncomputable instance access_load'jsonFallbackEncoder'encoder (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"encoder" l) v.encoder' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"encoder" l) v.encoder' dq)
@@ -71,7 +71,7 @@ noncomputable instance jsonFallbackEncoder_access_load_encoder (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance jsonFallbackEncoder_access_store_encoder (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Encoder) :
+noncomputable instance access_store'jsonFallbackEncoder'encoder (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Encoder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"encoder" l) v.encoder' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"encoder" l) y (DFrac.own 1))
@@ -79,7 +79,7 @@ noncomputable instance jsonFallbackEncoder_access_store_encoder (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance jsonFallbackEncoder_access_load_identifier (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (dq : DFrac) :
+noncomputable instance access_load'jsonFallbackEncoder'identifier (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"identifier" l) v.identifier' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"identifier" l) v.identifier' dq)
@@ -87,7 +87,7 @@ noncomputable instance jsonFallbackEncoder_access_load_identifier (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance jsonFallbackEncoder_access_store_identifier (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier) :
+noncomputable instance access_store'jsonFallbackEncoder'identifier (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"identifier" l) v.identifier' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"identifier" l) y (DFrac.own 1))
@@ -106,7 +106,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Assumptions]
 
-noncomputable instance Unstructured_typed_pointsto :
+noncomputable instance typed_pointsto'Unstructured :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Unstructured where
   typedPointstoDef l v dq := iprop(
     "Object" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Unstructured go!"Object" l) v.Object' dq ∗
@@ -115,11 +115,11 @@ noncomputable instance Unstructured_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Unstructured_into_val_typed :
+noncomputable instance into_val_typed'Unstructured :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Unstructured k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Unstructured.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Unstructured_access_load_Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Unstructured) (dq : DFrac) :
+noncomputable instance access_load'Unstructured'Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Unstructured) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Unstructured go!"Object" l) v.Object' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Unstructured go!"Object" l) v.Object' dq)
@@ -127,7 +127,7 @@ noncomputable instance Unstructured_access_load_Object (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance Unstructured_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Unstructured) (y : GoMap) :
+noncomputable instance access_store'Unstructured'Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Unstructured) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Unstructured go!"Object" l) v.Object' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Unstructured go!"Object" l) y (DFrac.own 1))
@@ -146,7 +146,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Assumptions]
 
-noncomputable instance UnstructuredList_typed_pointsto :
+noncomputable instance typed_pointsto'UnstructuredList :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList where
   typedPointstoDef l v dq := iprop(
     "Object" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList go!"Object" l) v.Object' dq ∗
@@ -156,11 +156,11 @@ noncomputable instance UnstructuredList_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance UnstructuredList_into_val_typed :
+noncomputable instance into_val_typed'UnstructuredList :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance UnstructuredList_access_load_Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList) (dq : DFrac) :
+noncomputable instance access_load'UnstructuredList'Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList go!"Object" l) v.Object' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList go!"Object" l) v.Object' dq)
@@ -168,7 +168,7 @@ noncomputable instance UnstructuredList_access_load_Object (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnstructuredList_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList) (y : GoMap) :
+noncomputable instance access_store'UnstructuredList'Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList go!"Object" l) v.Object' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList go!"Object" l) y (DFrac.own 1))
@@ -176,7 +176,7 @@ noncomputable instance UnstructuredList_access_store_Object (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnstructuredList_access_load_Items (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList) (dq : DFrac) :
+noncomputable instance access_load'UnstructuredList'Items (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList go!"Items" l) v.Items' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList go!"Items" l) v.Items' dq)
@@ -184,7 +184,7 @@ noncomputable instance UnstructuredList_access_load_Items (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnstructuredList_access_store_Items (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList) (y : GoSlice) :
+noncomputable instance access_store'UnstructuredList'Items (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList go!"Items" l) v.Items' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.UnstructuredList go!"Items" l) y (DFrac.own 1))

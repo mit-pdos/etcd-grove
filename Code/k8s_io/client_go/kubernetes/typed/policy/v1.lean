@@ -314,27 +314,27 @@ attribute [instance] PolicyV1Client.TypeAssumptions.type_repr
   PolicyV1Client.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  EvictionsGetter_instance : EvictionsGetter.TypeAssumptions
-  EvictionInterface_instance : EvictionInterface.TypeAssumptions
-  evictions_instance : evictions.TypeAssumptions
-  EvictionExpansion_instance : EvictionExpansion.TypeAssumptions
-  PodDisruptionBudgetExpansion_instance : PodDisruptionBudgetExpansion.TypeAssumptions
-  PodDisruptionBudgetsGetter_instance : PodDisruptionBudgetsGetter.TypeAssumptions
-  PodDisruptionBudgetInterface_instance : PodDisruptionBudgetInterface.TypeAssumptions
-  podDisruptionBudgets_instance : podDisruptionBudgets.TypeAssumptions
-  PolicyV1Interface_instance : PolicyV1Interface.TypeAssumptions
-  PolicyV1Client_instance : PolicyV1Client.TypeAssumptions
+  instance'EvictionsGetter : EvictionsGetter.TypeAssumptions
+  instance'EvictionInterface : EvictionInterface.TypeAssumptions
+  instance'evictions : evictions.TypeAssumptions
+  instance'EvictionExpansion : EvictionExpansion.TypeAssumptions
+  instance'PodDisruptionBudgetExpansion : PodDisruptionBudgetExpansion.TypeAssumptions
+  instance'PodDisruptionBudgetsGetter : PodDisruptionBudgetsGetter.TypeAssumptions
+  instance'PodDisruptionBudgetInterface : PodDisruptionBudgetInterface.TypeAssumptions
+  instance'podDisruptionBudgets : podDisruptionBudgets.TypeAssumptions
+  instance'PolicyV1Interface : PolicyV1Interface.TypeAssumptions
+  instance'PolicyV1Client : PolicyV1Client.TypeAssumptions
 
-attribute [instance] Assumptions.EvictionsGetter_instance
-  Assumptions.EvictionInterface_instance
-  Assumptions.evictions_instance
-  Assumptions.EvictionExpansion_instance
-  Assumptions.PodDisruptionBudgetExpansion_instance
-  Assumptions.PodDisruptionBudgetsGetter_instance
-  Assumptions.PodDisruptionBudgetInterface_instance
-  Assumptions.podDisruptionBudgets_instance
-  Assumptions.PolicyV1Interface_instance
-  Assumptions.PolicyV1Client_instance
+attribute [instance] Assumptions.instance'EvictionsGetter
+  Assumptions.instance'EvictionInterface
+  Assumptions.instance'evictions
+  Assumptions.instance'EvictionExpansion
+  Assumptions.instance'PodDisruptionBudgetExpansion
+  Assumptions.instance'PodDisruptionBudgetsGetter
+  Assumptions.instance'PodDisruptionBudgetInterface
+  Assumptions.instance'podDisruptionBudgets
+  Assumptions.instance'PolicyV1Interface
+  Assumptions.instance'PolicyV1Client
 
 end k8s_io.client_go.kubernetes.typed.policy.v1
 

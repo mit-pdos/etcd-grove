@@ -170,7 +170,7 @@ noncomputable instance LoggerWrapper.zero_val [GooseExts] : ZeroVal LoggerWrappe
 @[irreducible] noncomputable def LoggerWrapper.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LoggerWrapper.fieldsUnsealed
 
-noncomputable instance equals_unfold_LoggerWrapper [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LoggerWrapper [GooseExts] [GoGlobalContext] :
     EqualsUnfold LoggerWrapper.fields LoggerWrapper.fieldsUnsealed :=
   ⟨by unfold LoggerWrapper.fields; rfl⟩
 
@@ -180,15 +180,15 @@ noncomputable instance equals_unfold_LoggerWrapper [GooseExts] [GoGlobalContext]
 class LoggerWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LoggerWrapper.underlying LoggerWrapper
   underlying : go.UnderlyingDirectedEq LoggerWrapper.ty LoggerWrapper.underlying
-  get_Logger : ∀ (x : LoggerWrapper), go.IsGoStepPureDetTagged under (StructFieldGet LoggerWrapper.underlying go!"Logger") #x (Val #(x.Logger'))
-  set_Logger : ∀ (x : LoggerWrapper) (y : Logger), go.IsGoStepPureDetTagged under (StructFieldSet LoggerWrapper.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : LoggerWrapper)))
+  get'Logger : ∀ (x : LoggerWrapper), go.IsGoStepPureDetTagged under (StructFieldGet LoggerWrapper.underlying go!"Logger") #x (Val #(x.Logger'))
+  set'Logger : ∀ (x : LoggerWrapper) (y : Logger), go.IsGoStepPureDetTagged under (StructFieldSet LoggerWrapper.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : LoggerWrapper)))
   method_set : go.MethodSetIs LoggerWrapper.ty [(go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Fatalln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Print", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Println", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LoggerWrapper.ty) [(go!"Error", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Errorln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Fatalln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Infoln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Print", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Println", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"V", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"Warning", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Warningf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Warningln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true [])))]
 
 attribute [instance] LoggerWrapper.TypeAssumptions.type_repr
   LoggerWrapper.TypeAssumptions.underlying
-  LoggerWrapper.TypeAssumptions.get_Logger
-  LoggerWrapper.TypeAssumptions.set_Logger
+  LoggerWrapper.TypeAssumptions.get'Logger
+  LoggerWrapper.TypeAssumptions.set'Logger
   LoggerWrapper.TypeAssumptions.method_set
   LoggerWrapper.TypeAssumptions.ptr_method_set
 
@@ -254,7 +254,7 @@ noncomputable instance LoggerV2Config.zero_val [GooseExts] : ZeroVal LoggerV2Con
 @[irreducible] noncomputable def LoggerV2Config.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LoggerV2Config.fieldsUnsealed
 
-noncomputable instance equals_unfold_LoggerV2Config [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'LoggerV2Config [GooseExts] [GoGlobalContext] :
     EqualsUnfold LoggerV2Config.fields LoggerV2Config.fieldsUnsealed :=
   ⟨by unfold LoggerV2Config.fields; rfl⟩
 
@@ -264,40 +264,40 @@ noncomputable instance equals_unfold_LoggerV2Config [GooseExts] [GoGlobalContext
 class LoggerV2Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LoggerV2Config.underlying LoggerV2Config
   underlying : go.UnderlyingDirectedEq LoggerV2Config.ty LoggerV2Config.underlying
-  get_Verbosity : ∀ (x : LoggerV2Config), go.IsGoStepPureDetTagged under (StructFieldGet LoggerV2Config.underlying go!"Verbosity") #x (Val #(x.Verbosity'))
-  set_Verbosity : ∀ (x : LoggerV2Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LoggerV2Config.underlying go!"Verbosity") (PairV #x #y) (Val #(({ x with Verbosity' := y } : LoggerV2Config)))
-  get_FormatJSON : ∀ (x : LoggerV2Config), go.IsGoStepPureDetTagged under (StructFieldGet LoggerV2Config.underlying go!"FormatJSON") #x (Val #(x.FormatJSON'))
-  set_FormatJSON : ∀ (x : LoggerV2Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet LoggerV2Config.underlying go!"FormatJSON") (PairV #x #y) (Val #(({ x with FormatJSON' := y } : LoggerV2Config)))
+  get'Verbosity : ∀ (x : LoggerV2Config), go.IsGoStepPureDetTagged under (StructFieldGet LoggerV2Config.underlying go!"Verbosity") #x (Val #(x.Verbosity'))
+  set'Verbosity : ∀ (x : LoggerV2Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LoggerV2Config.underlying go!"Verbosity") (PairV #x #y) (Val #(({ x with Verbosity' := y } : LoggerV2Config)))
+  get'FormatJSON : ∀ (x : LoggerV2Config), go.IsGoStepPureDetTagged under (StructFieldGet LoggerV2Config.underlying go!"FormatJSON") #x (Val #(x.FormatJSON'))
+  set'FormatJSON : ∀ (x : LoggerV2Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet LoggerV2Config.underlying go!"FormatJSON") (PairV #x #y) (Val #(({ x with FormatJSON' := y } : LoggerV2Config)))
   method_set : go.MethodSetIs LoggerV2Config.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LoggerV2Config.ty) []
 
 attribute [instance] LoggerV2Config.TypeAssumptions.type_repr
   LoggerV2Config.TypeAssumptions.underlying
-  LoggerV2Config.TypeAssumptions.get_Verbosity
-  LoggerV2Config.TypeAssumptions.set_Verbosity
-  LoggerV2Config.TypeAssumptions.get_FormatJSON
-  LoggerV2Config.TypeAssumptions.set_FormatJSON
+  LoggerV2Config.TypeAssumptions.get'Verbosity
+  LoggerV2Config.TypeAssumptions.set'Verbosity
+  LoggerV2Config.TypeAssumptions.get'FormatJSON
+  LoggerV2Config.TypeAssumptions.set'FormatJSON
   LoggerV2Config.TypeAssumptions.method_set
   LoggerV2Config.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Logger_instance : Logger.TypeAssumptions
-  LoggerWrapper_instance : LoggerWrapper.TypeAssumptions
-  LoggerV2_instance : LoggerV2.TypeAssumptions
-  DepthLoggerV2_instance : DepthLoggerV2.TypeAssumptions
-  loggerT_instance : loggerT.TypeAssumptions
-  LoggerV2Config_instance : LoggerV2Config.TypeAssumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
+  instance'Logger : Logger.TypeAssumptions
+  instance'LoggerWrapper : LoggerWrapper.TypeAssumptions
+  instance'LoggerV2 : LoggerV2.TypeAssumptions
+  instance'DepthLoggerV2 : DepthLoggerV2.TypeAssumptions
+  instance'loggerT : loggerT.TypeAssumptions
+  instance'LoggerV2Config : LoggerV2Config.TypeAssumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
 
-attribute [instance] Assumptions.Logger_instance
-  Assumptions.LoggerWrapper_instance
-  Assumptions.LoggerV2_instance
-  Assumptions.DepthLoggerV2_instance
-  Assumptions.loggerT_instance
-  Assumptions.LoggerV2Config_instance
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_os_Assumption
+attribute [instance] Assumptions.instance'Logger
+  Assumptions.instance'LoggerWrapper
+  Assumptions.instance'LoggerV2
+  Assumptions.instance'DepthLoggerV2
+  Assumptions.instance'loggerT
+  Assumptions.instance'LoggerV2Config
+  Assumptions.import'fmt
+  Assumptions.import'os
 
 end google_golang_org.grpc.grpclog.internal
 

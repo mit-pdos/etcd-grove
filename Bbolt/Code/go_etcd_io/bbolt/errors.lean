@@ -252,9 +252,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc ErrDifferentDB go.error)) (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
 
-attribute [instance] Assumptions.import_errors_Assumption
+attribute [instance] Assumptions.import'errors
 
 end go_etcd_io.bbolt.errors
 

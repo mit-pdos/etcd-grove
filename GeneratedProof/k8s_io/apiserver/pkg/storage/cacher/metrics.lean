@@ -25,11 +25,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.metrics.Assumptions]
 
-noncomputable instance DispatchTimeline_typed_pointsto :
+noncomputable instance typed_pointsto'DispatchTimeline :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.metrics.DispatchTimeline :=
   sorry -- axiomatized type
 
-noncomputable instance DispatchTimeline_into_val_typed :
+noncomputable instance into_val_typed'DispatchTimeline :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.metrics.DispatchTimeline k8s_io.apiserver.pkg.storage.cacher.metrics.DispatchTimeline.underlying :=
   sorry -- axiomatized type
 
@@ -44,7 +44,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.metrics.Assumptions]
 
-noncomputable instance WatcherMetricsObservers_typed_pointsto :
+noncomputable instance typed_pointsto'WatcherMetricsObservers :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers where
   typedPointstoDef l v dq := iprop(
     "stageDurations" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) v.stageDurations' dq ∗
@@ -53,11 +53,11 @@ noncomputable instance WatcherMetricsObservers_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance WatcherMetricsObservers_into_val_typed :
+noncomputable instance into_val_typed'WatcherMetricsObservers :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance WatcherMetricsObservers_access_load_stageDurations (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers) (dq : DFrac) :
+noncomputable instance access_load'WatcherMetricsObservers'stageDurations (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) v.stageDurations' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) v.stageDurations' dq)
@@ -65,7 +65,7 @@ noncomputable instance WatcherMetricsObservers_access_load_stageDurations (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance WatcherMetricsObservers_access_store_stageDurations (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers) (y : GoSlice) :
+noncomputable instance access_store'WatcherMetricsObservers'stageDurations (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) v.stageDurations' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) y (DFrac.own 1))
@@ -84,7 +84,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.metrics.Assumptions]
 
-noncomputable instance noopObserver_typed_pointsto :
+noncomputable instance typed_pointsto'noopObserver :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.metrics.noopObserver where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -92,7 +92,7 @@ noncomputable instance noopObserver_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance noopObserver_into_val_typed :
+noncomputable instance into_val_typed'noopObserver :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.metrics.noopObserver k8s_io.apiserver.pkg.storage.cacher.metrics.noopObserver.underlying := by
   solve_into_val_typed_struct
 

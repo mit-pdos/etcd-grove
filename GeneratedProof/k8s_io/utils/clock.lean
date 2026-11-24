@@ -25,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.clock.Assumptions]
 
-noncomputable instance RealClock_typed_pointsto :
+noncomputable instance typed_pointsto'RealClock :
     TypedPointsto (GF := GF) k8s_io.utils.clock.RealClock where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -33,7 +33,7 @@ noncomputable instance RealClock_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance RealClock_into_val_typed :
+noncomputable instance into_val_typed'RealClock :
     IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.RealClock k8s_io.utils.clock.RealClock.underlying := by
   solve_into_val_typed_struct
 
@@ -48,7 +48,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.clock.Assumptions]
 
-noncomputable instance realTimer_typed_pointsto :
+noncomputable instance typed_pointsto'realTimer :
     TypedPointsto (GF := GF) k8s_io.utils.clock.realTimer where
   typedPointstoDef l v dq := iprop(
     "timer" ∷ typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) v.timer' dq ∗
@@ -57,11 +57,11 @@ noncomputable instance realTimer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance realTimer_into_val_typed :
+noncomputable instance into_val_typed'realTimer :
     IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.realTimer k8s_io.utils.clock.realTimer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance realTimer_access_load_timer (l : Loc) (v : k8s_io.utils.clock.realTimer) (dq : DFrac) :
+noncomputable instance access_load'realTimer'timer (l : Loc) (v : k8s_io.utils.clock.realTimer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) v.timer' dq)
       (typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) v.timer' dq)
@@ -69,7 +69,7 @@ noncomputable instance realTimer_access_load_timer (l : Loc) (v : k8s_io.utils.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance realTimer_access_store_timer (l : Loc) (v : k8s_io.utils.clock.realTimer) (y : Loc) :
+noncomputable instance access_store'realTimer'timer (l : Loc) (v : k8s_io.utils.clock.realTimer) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) v.timer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) y (DFrac.own 1))
@@ -88,7 +88,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.clock.Assumptions]
 
-noncomputable instance realTicker_typed_pointsto :
+noncomputable instance typed_pointsto'realTicker :
     TypedPointsto (GF := GF) k8s_io.utils.clock.realTicker where
   typedPointstoDef l v dq := iprop(
     "ticker" ∷ typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' dq ∗
@@ -97,11 +97,11 @@ noncomputable instance realTicker_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance realTicker_into_val_typed :
+noncomputable instance into_val_typed'realTicker :
     IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.realTicker k8s_io.utils.clock.realTicker.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance realTicker_access_load_ticker (l : Loc) (v : k8s_io.utils.clock.realTicker) (dq : DFrac) :
+noncomputable instance access_load'realTicker'ticker (l : Loc) (v : k8s_io.utils.clock.realTicker) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' dq)
       (typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' dq)
@@ -109,7 +109,7 @@ noncomputable instance realTicker_access_load_ticker (l : Loc) (v : k8s_io.utils
  by
   solve_pointsto_access_struct
 
-noncomputable instance realTicker_access_store_ticker (l : Loc) (v : k8s_io.utils.clock.realTicker) (y : Loc) :
+noncomputable instance access_store'realTicker'ticker (l : Loc) (v : k8s_io.utils.clock.realTicker) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) y (DFrac.own 1))

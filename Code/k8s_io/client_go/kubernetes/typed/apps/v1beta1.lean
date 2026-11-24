@@ -421,35 +421,35 @@ attribute [instance] statefulSets.TypeAssumptions.type_repr
   statefulSets.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  AppsV1beta1Interface_instance : AppsV1beta1Interface.TypeAssumptions
-  AppsV1beta1Client_instance : AppsV1beta1Client.TypeAssumptions
-  ControllerRevisionsGetter_instance : ControllerRevisionsGetter.TypeAssumptions
-  ControllerRevisionInterface_instance : ControllerRevisionInterface.TypeAssumptions
-  controllerRevisions_instance : controllerRevisions.TypeAssumptions
-  DeploymentsGetter_instance : DeploymentsGetter.TypeAssumptions
-  DeploymentInterface_instance : DeploymentInterface.TypeAssumptions
-  deployments_instance : deployments.TypeAssumptions
-  ControllerRevisionExpansion_instance : ControllerRevisionExpansion.TypeAssumptions
-  DeploymentExpansion_instance : DeploymentExpansion.TypeAssumptions
-  StatefulSetExpansion_instance : StatefulSetExpansion.TypeAssumptions
-  StatefulSetsGetter_instance : StatefulSetsGetter.TypeAssumptions
-  StatefulSetInterface_instance : StatefulSetInterface.TypeAssumptions
-  statefulSets_instance : statefulSets.TypeAssumptions
+  instance'AppsV1beta1Interface : AppsV1beta1Interface.TypeAssumptions
+  instance'AppsV1beta1Client : AppsV1beta1Client.TypeAssumptions
+  instance'ControllerRevisionsGetter : ControllerRevisionsGetter.TypeAssumptions
+  instance'ControllerRevisionInterface : ControllerRevisionInterface.TypeAssumptions
+  instance'controllerRevisions : controllerRevisions.TypeAssumptions
+  instance'DeploymentsGetter : DeploymentsGetter.TypeAssumptions
+  instance'DeploymentInterface : DeploymentInterface.TypeAssumptions
+  instance'deployments : deployments.TypeAssumptions
+  instance'ControllerRevisionExpansion : ControllerRevisionExpansion.TypeAssumptions
+  instance'DeploymentExpansion : DeploymentExpansion.TypeAssumptions
+  instance'StatefulSetExpansion : StatefulSetExpansion.TypeAssumptions
+  instance'StatefulSetsGetter : StatefulSetsGetter.TypeAssumptions
+  instance'StatefulSetInterface : StatefulSetInterface.TypeAssumptions
+  instance'statefulSets : statefulSets.TypeAssumptions
 
-attribute [instance] Assumptions.AppsV1beta1Interface_instance
-  Assumptions.AppsV1beta1Client_instance
-  Assumptions.ControllerRevisionsGetter_instance
-  Assumptions.ControllerRevisionInterface_instance
-  Assumptions.controllerRevisions_instance
-  Assumptions.DeploymentsGetter_instance
-  Assumptions.DeploymentInterface_instance
-  Assumptions.deployments_instance
-  Assumptions.ControllerRevisionExpansion_instance
-  Assumptions.DeploymentExpansion_instance
-  Assumptions.StatefulSetExpansion_instance
-  Assumptions.StatefulSetsGetter_instance
-  Assumptions.StatefulSetInterface_instance
-  Assumptions.statefulSets_instance
+attribute [instance] Assumptions.instance'AppsV1beta1Interface
+  Assumptions.instance'AppsV1beta1Client
+  Assumptions.instance'ControllerRevisionsGetter
+  Assumptions.instance'ControllerRevisionInterface
+  Assumptions.instance'controllerRevisions
+  Assumptions.instance'DeploymentsGetter
+  Assumptions.instance'DeploymentInterface
+  Assumptions.instance'deployments
+  Assumptions.instance'ControllerRevisionExpansion
+  Assumptions.instance'DeploymentExpansion
+  Assumptions.instance'StatefulSetExpansion
+  Assumptions.instance'StatefulSetsGetter
+  Assumptions.instance'StatefulSetInterface
+  Assumptions.instance'statefulSets
 
 end k8s_io.client_go.kubernetes.typed.apps.v1beta1
 

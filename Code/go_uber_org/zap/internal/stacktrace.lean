@@ -93,7 +93,7 @@ noncomputable instance Stack.zero_val [GooseExts] : ZeroVal Stack :=
 @[irreducible] noncomputable def Stack.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Stack.fieldsUnsealed
 
-noncomputable instance equals_unfold_Stack [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Stack [GooseExts] [GoGlobalContext] :
     EqualsUnfold Stack.fields Stack.fieldsUnsealed :=
   ⟨by unfold Stack.fields; rfl⟩
 
@@ -103,23 +103,23 @@ noncomputable instance equals_unfold_Stack [GooseExts] [GoGlobalContext] :
 class Stack.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Stack.underlying Stack
   underlying : go.UnderlyingDirectedEq Stack.ty Stack.underlying
-  get_pcs : ∀ (x : Stack), go.IsGoStepPureDetTagged under (StructFieldGet Stack.underlying go!"pcs") #x (Val #(x.pcs'))
-  set_pcs : ∀ (x : Stack) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Stack.underlying go!"pcs") (PairV #x #y) (Val #(({ x with pcs' := y } : Stack)))
-  get_frames : ∀ (x : Stack), go.IsGoStepPureDetTagged under (StructFieldGet Stack.underlying go!"frames") #x (Val #(x.frames'))
-  set_frames : ∀ (x : Stack) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Stack.underlying go!"frames") (PairV #x #y) (Val #(({ x with frames' := y } : Stack)))
-  get_storage : ∀ (x : Stack), go.IsGoStepPureDetTagged under (StructFieldGet Stack.underlying go!"storage") #x (Val #(x.storage'))
-  set_storage : ∀ (x : Stack) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Stack.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : Stack)))
+  get'pcs : ∀ (x : Stack), go.IsGoStepPureDetTagged under (StructFieldGet Stack.underlying go!"pcs") #x (Val #(x.pcs'))
+  set'pcs : ∀ (x : Stack) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Stack.underlying go!"pcs") (PairV #x #y) (Val #(({ x with pcs' := y } : Stack)))
+  get'frames : ∀ (x : Stack), go.IsGoStepPureDetTagged under (StructFieldGet Stack.underlying go!"frames") #x (Val #(x.frames'))
+  set'frames : ∀ (x : Stack) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Stack.underlying go!"frames") (PairV #x #y) (Val #(({ x with frames' := y } : Stack)))
+  get'storage : ∀ (x : Stack), go.IsGoStepPureDetTagged under (StructFieldGet Stack.underlying go!"storage") #x (Val #(x.storage'))
+  set'storage : ∀ (x : Stack) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Stack.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : Stack)))
   method_set : go.MethodSetIs Stack.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Stack.ty) [(go!"Count", (some (go.signature.Signature [] false [go.int]))), (go!"Free", (some (go.signature.Signature [] false []))), (go!"Next", (some (go.signature.Signature [] false [_root_.Perennial.runtime.Frame.ty, go.bool])))]
 
 attribute [instance] Stack.TypeAssumptions.type_repr
   Stack.TypeAssumptions.underlying
-  Stack.TypeAssumptions.get_pcs
-  Stack.TypeAssumptions.set_pcs
-  Stack.TypeAssumptions.get_frames
-  Stack.TypeAssumptions.set_frames
-  Stack.TypeAssumptions.get_storage
-  Stack.TypeAssumptions.set_storage
+  Stack.TypeAssumptions.get'pcs
+  Stack.TypeAssumptions.set'pcs
+  Stack.TypeAssumptions.get'frames
+  Stack.TypeAssumptions.set'frames
+  Stack.TypeAssumptions.get'storage
+  Stack.TypeAssumptions.set'storage
   Stack.TypeAssumptions.method_set
   Stack.TypeAssumptions.ptr_method_set
 
@@ -157,15 +157,15 @@ attribute [instance] Formatter.TypeAssumptions.type_repr
   Formatter.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Stack_instance : Stack.TypeAssumptions
-  Depth_instance : Depth.TypeAssumptions
-  Formatter_instance : Formatter.TypeAssumptions
-  import_runtime_Assumption : _root_.Perennial.runtime.Assumptions
+  instance'Stack : Stack.TypeAssumptions
+  instance'Depth : Depth.TypeAssumptions
+  instance'Formatter : Formatter.TypeAssumptions
+  import'runtime : _root_.Perennial.runtime.Assumptions
 
-attribute [instance] Assumptions.Stack_instance
-  Assumptions.Depth_instance
-  Assumptions.Formatter_instance
-  Assumptions.import_runtime_Assumption
+attribute [instance] Assumptions.instance'Stack
+  Assumptions.instance'Depth
+  Assumptions.instance'Formatter
+  Assumptions.import'runtime
 
 end go_uber_org.zap.internal.stacktrace
 

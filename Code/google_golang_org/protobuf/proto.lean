@@ -49,7 +49,7 @@ attribute [irreducible] mergeOptions.ty
 @[irreducible] noncomputable def «struct#b984c7d3».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#b984c7d3».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#b984c7d3» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#b984c7d3» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#b984c7d3».fields «struct#b984c7d3».fieldsUnsealed :=
   ⟨by unfold «struct#b984c7d3».fields; rfl⟩
 
@@ -63,7 +63,7 @@ noncomputable instance «equals_unfold_struct#b984c7d3» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#f9d6c4b8».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#f9d6c4b8».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#f9d6c4b8» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#f9d6c4b8» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#f9d6c4b8».fields «struct#f9d6c4b8».fieldsUnsealed :=
   ⟨by unfold «struct#f9d6c4b8».fields; rfl⟩
 
@@ -79,7 +79,7 @@ noncomputable instance «equals_unfold_struct#f9d6c4b8» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#8d354e5a».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#8d354e5a».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#8d354e5a» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#8d354e5a» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#8d354e5a».fields «struct#8d354e5a».fieldsUnsealed :=
   ⟨by unfold «struct#8d354e5a».fields; rfl⟩
 
@@ -93,7 +93,7 @@ noncomputable instance «equals_unfold_struct#8d354e5a» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#69fc66c6».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#69fc66c6».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#69fc66c6» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#69fc66c6» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#69fc66c6».fields «struct#69fc66c6».fieldsUnsealed :=
   ⟨by unfold «struct#69fc66c6».fields; rfl⟩
 
@@ -285,7 +285,7 @@ noncomputable instance UnmarshalOptions.zero_val [GooseExts] : ZeroVal Unmarshal
 @[irreducible] noncomputable def UnmarshalOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UnmarshalOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_UnmarshalOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'UnmarshalOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold UnmarshalOptions.fields UnmarshalOptions.fieldsUnsealed :=
   ⟨by unfold UnmarshalOptions.fields; rfl⟩
 
@@ -295,39 +295,39 @@ noncomputable instance equals_unfold_UnmarshalOptions [GooseExts] [GoGlobalConte
 class UnmarshalOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnmarshalOptions.underlying UnmarshalOptions
   underlying : go.UnderlyingDirectedEq UnmarshalOptions.ty UnmarshalOptions.underlying
-  get_NoUnkeyedLiterals : ∀ (x : UnmarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet UnmarshalOptions.underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
-  set_NoUnkeyedLiterals : ∀ (x : UnmarshalOptions) (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet UnmarshalOptions.underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : UnmarshalOptions)))
-  get_Merge : ∀ (x : UnmarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet UnmarshalOptions.underlying go!"Merge") #x (Val #(x.Merge'))
-  set_Merge : ∀ (x : UnmarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet UnmarshalOptions.underlying go!"Merge") (PairV #x #y) (Val #(({ x with Merge' := y } : UnmarshalOptions)))
-  get_AllowPartial : ∀ (x : UnmarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet UnmarshalOptions.underlying go!"AllowPartial") #x (Val #(x.AllowPartial'))
-  set_AllowPartial : ∀ (x : UnmarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet UnmarshalOptions.underlying go!"AllowPartial") (PairV #x #y) (Val #(({ x with AllowPartial' := y } : UnmarshalOptions)))
-  get_DiscardUnknown : ∀ (x : UnmarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet UnmarshalOptions.underlying go!"DiscardUnknown") #x (Val #(x.DiscardUnknown'))
-  set_DiscardUnknown : ∀ (x : UnmarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet UnmarshalOptions.underlying go!"DiscardUnknown") (PairV #x #y) (Val #(({ x with DiscardUnknown' := y } : UnmarshalOptions)))
-  get_Resolver : ∀ (x : UnmarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet UnmarshalOptions.underlying go!"Resolver") #x (Val #(x.Resolver'))
-  set_Resolver : ∀ (x : UnmarshalOptions) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet UnmarshalOptions.underlying go!"Resolver") (PairV #x #y) (Val #(({ x with Resolver' := y } : UnmarshalOptions)))
-  get_RecursionLimit : ∀ (x : UnmarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet UnmarshalOptions.underlying go!"RecursionLimit") #x (Val #(x.RecursionLimit'))
-  set_RecursionLimit : ∀ (x : UnmarshalOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet UnmarshalOptions.underlying go!"RecursionLimit") (PairV #x #y) (Val #(({ x with RecursionLimit' := y } : UnmarshalOptions)))
-  get_NoLazyDecoding : ∀ (x : UnmarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet UnmarshalOptions.underlying go!"NoLazyDecoding") #x (Val #(x.NoLazyDecoding'))
-  set_NoLazyDecoding : ∀ (x : UnmarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet UnmarshalOptions.underlying go!"NoLazyDecoding") (PairV #x #y) (Val #(({ x with NoLazyDecoding' := y } : UnmarshalOptions)))
+  get'NoUnkeyedLiterals : ∀ (x : UnmarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet UnmarshalOptions.underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
+  set'NoUnkeyedLiterals : ∀ (x : UnmarshalOptions) (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet UnmarshalOptions.underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : UnmarshalOptions)))
+  get'Merge : ∀ (x : UnmarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet UnmarshalOptions.underlying go!"Merge") #x (Val #(x.Merge'))
+  set'Merge : ∀ (x : UnmarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet UnmarshalOptions.underlying go!"Merge") (PairV #x #y) (Val #(({ x with Merge' := y } : UnmarshalOptions)))
+  get'AllowPartial : ∀ (x : UnmarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet UnmarshalOptions.underlying go!"AllowPartial") #x (Val #(x.AllowPartial'))
+  set'AllowPartial : ∀ (x : UnmarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet UnmarshalOptions.underlying go!"AllowPartial") (PairV #x #y) (Val #(({ x with AllowPartial' := y } : UnmarshalOptions)))
+  get'DiscardUnknown : ∀ (x : UnmarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet UnmarshalOptions.underlying go!"DiscardUnknown") #x (Val #(x.DiscardUnknown'))
+  set'DiscardUnknown : ∀ (x : UnmarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet UnmarshalOptions.underlying go!"DiscardUnknown") (PairV #x #y) (Val #(({ x with DiscardUnknown' := y } : UnmarshalOptions)))
+  get'Resolver : ∀ (x : UnmarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet UnmarshalOptions.underlying go!"Resolver") #x (Val #(x.Resolver'))
+  set'Resolver : ∀ (x : UnmarshalOptions) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet UnmarshalOptions.underlying go!"Resolver") (PairV #x #y) (Val #(({ x with Resolver' := y } : UnmarshalOptions)))
+  get'RecursionLimit : ∀ (x : UnmarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet UnmarshalOptions.underlying go!"RecursionLimit") #x (Val #(x.RecursionLimit'))
+  set'RecursionLimit : ∀ (x : UnmarshalOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet UnmarshalOptions.underlying go!"RecursionLimit") (PairV #x #y) (Val #(({ x with RecursionLimit' := y } : UnmarshalOptions)))
+  get'NoLazyDecoding : ∀ (x : UnmarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet UnmarshalOptions.underlying go!"NoLazyDecoding") #x (Val #(x.NoLazyDecoding'))
+  set'NoLazyDecoding : ∀ (x : UnmarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet UnmarshalOptions.underlying go!"NoLazyDecoding") (PairV #x #y) (Val #(({ x with NoLazyDecoding' := y } : UnmarshalOptions)))
   method_set : go.MethodSetIs UnmarshalOptions.ty [(go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Message.ty] false [go.error]))), (go!"UnmarshalState", (some (go.signature.Signature [«struct#b984c7d3».underlying] false [«struct#f9d6c4b8».underlying, go.error]))), (go!"google.golang.org/protobuf/proto.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [«struct#f9d6c4b8».underlying, go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalList", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Type" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.List''.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false [go.int, go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMap", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Type" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Map.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false [go.int, go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMessage", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMessageSet", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMessageSetField", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty, (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMessageSlow", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalScalar", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Type" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty, go.int, go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalSingular", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Type" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false [go.int, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnmarshalOptions.ty) [(go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Message.ty] false [go.error]))), (go!"UnmarshalState", (some (go.signature.Signature [«struct#b984c7d3».underlying] false [«struct#f9d6c4b8».underlying, go.error]))), (go!"google.golang.org/protobuf/proto.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [«struct#f9d6c4b8».underlying, go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalList", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Type" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.List''.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false [go.int, go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMap", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Type" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Map.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false [go.int, go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMessage", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMessageSet", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMessageSetField", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty, (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMessageSlow", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalScalar", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Type" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty, go.int, go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalSingular", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Type" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false [go.int, go.error])))]
 
 attribute [instance] UnmarshalOptions.TypeAssumptions.type_repr
   UnmarshalOptions.TypeAssumptions.underlying
-  UnmarshalOptions.TypeAssumptions.get_NoUnkeyedLiterals
-  UnmarshalOptions.TypeAssumptions.set_NoUnkeyedLiterals
-  UnmarshalOptions.TypeAssumptions.get_Merge
-  UnmarshalOptions.TypeAssumptions.set_Merge
-  UnmarshalOptions.TypeAssumptions.get_AllowPartial
-  UnmarshalOptions.TypeAssumptions.set_AllowPartial
-  UnmarshalOptions.TypeAssumptions.get_DiscardUnknown
-  UnmarshalOptions.TypeAssumptions.set_DiscardUnknown
-  UnmarshalOptions.TypeAssumptions.get_Resolver
-  UnmarshalOptions.TypeAssumptions.set_Resolver
-  UnmarshalOptions.TypeAssumptions.get_RecursionLimit
-  UnmarshalOptions.TypeAssumptions.set_RecursionLimit
-  UnmarshalOptions.TypeAssumptions.get_NoLazyDecoding
-  UnmarshalOptions.TypeAssumptions.set_NoLazyDecoding
+  UnmarshalOptions.TypeAssumptions.get'NoUnkeyedLiterals
+  UnmarshalOptions.TypeAssumptions.set'NoUnkeyedLiterals
+  UnmarshalOptions.TypeAssumptions.get'Merge
+  UnmarshalOptions.TypeAssumptions.set'Merge
+  UnmarshalOptions.TypeAssumptions.get'AllowPartial
+  UnmarshalOptions.TypeAssumptions.set'AllowPartial
+  UnmarshalOptions.TypeAssumptions.get'DiscardUnknown
+  UnmarshalOptions.TypeAssumptions.set'DiscardUnknown
+  UnmarshalOptions.TypeAssumptions.get'Resolver
+  UnmarshalOptions.TypeAssumptions.set'Resolver
+  UnmarshalOptions.TypeAssumptions.get'RecursionLimit
+  UnmarshalOptions.TypeAssumptions.set'RecursionLimit
+  UnmarshalOptions.TypeAssumptions.get'NoLazyDecoding
+  UnmarshalOptions.TypeAssumptions.set'NoLazyDecoding
   UnmarshalOptions.TypeAssumptions.method_set
   UnmarshalOptions.TypeAssumptions.ptr_method_set
 
@@ -350,7 +350,7 @@ noncomputable instance MarshalOptions.zero_val [GooseExts] : ZeroVal MarshalOpti
 @[irreducible] noncomputable def MarshalOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MarshalOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_MarshalOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'MarshalOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold MarshalOptions.fields MarshalOptions.fieldsUnsealed :=
   ⟨by unfold MarshalOptions.fields; rfl⟩
 
@@ -360,27 +360,27 @@ noncomputable instance equals_unfold_MarshalOptions [GooseExts] [GoGlobalContext
 class MarshalOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MarshalOptions.underlying MarshalOptions
   underlying : go.UnderlyingDirectedEq MarshalOptions.ty MarshalOptions.underlying
-  get_NoUnkeyedLiterals : ∀ (x : MarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet MarshalOptions.underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
-  set_NoUnkeyedLiterals : ∀ (x : MarshalOptions) (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet MarshalOptions.underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : MarshalOptions)))
-  get_AllowPartial : ∀ (x : MarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet MarshalOptions.underlying go!"AllowPartial") #x (Val #(x.AllowPartial'))
-  set_AllowPartial : ∀ (x : MarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MarshalOptions.underlying go!"AllowPartial") (PairV #x #y) (Val #(({ x with AllowPartial' := y } : MarshalOptions)))
-  get_Deterministic : ∀ (x : MarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet MarshalOptions.underlying go!"Deterministic") #x (Val #(x.Deterministic'))
-  set_Deterministic : ∀ (x : MarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MarshalOptions.underlying go!"Deterministic") (PairV #x #y) (Val #(({ x with Deterministic' := y } : MarshalOptions)))
-  get_UseCachedSize : ∀ (x : MarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet MarshalOptions.underlying go!"UseCachedSize") #x (Val #(x.UseCachedSize'))
-  set_UseCachedSize : ∀ (x : MarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MarshalOptions.underlying go!"UseCachedSize") (PairV #x #y) (Val #(({ x with UseCachedSize' := y } : MarshalOptions)))
+  get'NoUnkeyedLiterals : ∀ (x : MarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet MarshalOptions.underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
+  set'NoUnkeyedLiterals : ∀ (x : MarshalOptions) (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet MarshalOptions.underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : MarshalOptions)))
+  get'AllowPartial : ∀ (x : MarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet MarshalOptions.underlying go!"AllowPartial") #x (Val #(x.AllowPartial'))
+  set'AllowPartial : ∀ (x : MarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MarshalOptions.underlying go!"AllowPartial") (PairV #x #y) (Val #(({ x with AllowPartial' := y } : MarshalOptions)))
+  get'Deterministic : ∀ (x : MarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet MarshalOptions.underlying go!"Deterministic") #x (Val #(x.Deterministic'))
+  set'Deterministic : ∀ (x : MarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MarshalOptions.underlying go!"Deterministic") (PairV #x #y) (Val #(({ x with Deterministic' := y } : MarshalOptions)))
+  get'UseCachedSize : ∀ (x : MarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet MarshalOptions.underlying go!"UseCachedSize") #x (Val #(x.UseCachedSize'))
+  set'UseCachedSize : ∀ (x : MarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MarshalOptions.underlying go!"UseCachedSize") (PairV #x #y) (Val #(({ x with UseCachedSize' := y } : MarshalOptions)))
   method_set : go.MethodSetIs MarshalOptions.ty [(go!"Marshal", (some (go.signature.Signature [Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalAppend", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalState", (some (go.signature.Signature [«struct#8d354e5a».underlying] false [«struct#69fc66c6».underlying, go.error]))), (go!"Size", (some (go.signature.Signature [Message.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.flags", (some (go.signature.Signature [] false [go.uint8]))), (go!"google.golang.org/protobuf/proto.marshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [«struct#69fc66c6».underlying, go.error]))), (go!"google.golang.org/protobuf/proto.marshalField", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalList", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.List''.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMap", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Map.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMessage", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMessageSet", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMessageSetField", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMessageSlow", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalSingular", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.size", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeField", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeList", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.List''.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeMap", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Map.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeMessageSet", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeMessageSlow", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeSingular", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Kind.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [go.int])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MarshalOptions.ty) [(go!"Marshal", (some (go.signature.Signature [Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalAppend", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalState", (some (go.signature.Signature [«struct#8d354e5a».underlying] false [«struct#69fc66c6».underlying, go.error]))), (go!"Size", (some (go.signature.Signature [Message.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.flags", (some (go.signature.Signature [] false [go.uint8]))), (go!"google.golang.org/protobuf/proto.marshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [«struct#69fc66c6».underlying, go.error]))), (go!"google.golang.org/protobuf/proto.marshalField", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalList", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.List''.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMap", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Map.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMessage", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMessageSet", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMessageSetField", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMessageSlow", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalSingular", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.size", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeField", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeList", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.List''.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeMap", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Map.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeMessageSet", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeMessageSlow", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeSingular", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Kind.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [go.int])))]
 
 attribute [instance] MarshalOptions.TypeAssumptions.type_repr
   MarshalOptions.TypeAssumptions.underlying
-  MarshalOptions.TypeAssumptions.get_NoUnkeyedLiterals
-  MarshalOptions.TypeAssumptions.set_NoUnkeyedLiterals
-  MarshalOptions.TypeAssumptions.get_AllowPartial
-  MarshalOptions.TypeAssumptions.set_AllowPartial
-  MarshalOptions.TypeAssumptions.get_Deterministic
-  MarshalOptions.TypeAssumptions.set_Deterministic
-  MarshalOptions.TypeAssumptions.get_UseCachedSize
-  MarshalOptions.TypeAssumptions.set_UseCachedSize
+  MarshalOptions.TypeAssumptions.get'NoUnkeyedLiterals
+  MarshalOptions.TypeAssumptions.set'NoUnkeyedLiterals
+  MarshalOptions.TypeAssumptions.get'AllowPartial
+  MarshalOptions.TypeAssumptions.set'AllowPartial
+  MarshalOptions.TypeAssumptions.get'Deterministic
+  MarshalOptions.TypeAssumptions.set'Deterministic
+  MarshalOptions.TypeAssumptions.get'UseCachedSize
+  MarshalOptions.TypeAssumptions.set'UseCachedSize
   MarshalOptions.TypeAssumptions.method_set
   MarshalOptions.TypeAssumptions.ptr_method_set
 
@@ -396,7 +396,7 @@ noncomputable instance mergeOptions.zero_val [GooseExts] : ZeroVal mergeOptions 
 @[irreducible] noncomputable def mergeOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   mergeOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_mergeOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'mergeOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold mergeOptions.fields mergeOptions.fieldsUnsealed :=
   ⟨by unfold mergeOptions.fields; rfl⟩
 
@@ -457,39 +457,39 @@ noncomputable instance «struct#69fc66c6».zero_val [GooseExts] : ZeroVal «stru
 
 class «struct#69fc66c6».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying «struct#69fc66c6».underlying «struct#69fc66c6»
-  get_NoUnkeyedLiterals : ∀ (x : «struct#69fc66c6»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#69fc66c6».underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
-  set_NoUnkeyedLiterals : ∀ (x : «struct#69fc66c6») (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet «struct#69fc66c6».underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : «struct#69fc66c6»)))
-  get_Buf : ∀ (x : «struct#69fc66c6»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#69fc66c6».underlying go!"Buf") #x (Val #(x.Buf'))
-  set_Buf : ∀ (x : «struct#69fc66c6») (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet «struct#69fc66c6».underlying go!"Buf") (PairV #x #y) (Val #(({ x with Buf' := y } : «struct#69fc66c6»)))
+  get'NoUnkeyedLiterals : ∀ (x : «struct#69fc66c6»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#69fc66c6».underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
+  set'NoUnkeyedLiterals : ∀ (x : «struct#69fc66c6») (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet «struct#69fc66c6».underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : «struct#69fc66c6»)))
+  get'Buf : ∀ (x : «struct#69fc66c6»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#69fc66c6».underlying go!"Buf") #x (Val #(x.Buf'))
+  set'Buf : ∀ (x : «struct#69fc66c6») (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet «struct#69fc66c6».underlying go!"Buf") (PairV #x #y) (Val #(({ x with Buf' := y } : «struct#69fc66c6»)))
 
 attribute [instance] «struct#69fc66c6».TypeAssumptions.type_repr
-  «struct#69fc66c6».TypeAssumptions.get_NoUnkeyedLiterals
-  «struct#69fc66c6».TypeAssumptions.set_NoUnkeyedLiterals
-  «struct#69fc66c6».TypeAssumptions.get_Buf
-  «struct#69fc66c6».TypeAssumptions.set_Buf
+  «struct#69fc66c6».TypeAssumptions.get'NoUnkeyedLiterals
+  «struct#69fc66c6».TypeAssumptions.set'NoUnkeyedLiterals
+  «struct#69fc66c6».TypeAssumptions.get'Buf
+  «struct#69fc66c6».TypeAssumptions.set'Buf
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  UnmarshalOptions_instance : UnmarshalOptions.TypeAssumptions
-  MarshalOptions_instance : MarshalOptions.TypeAssumptions
-  mergeOptions_instance : mergeOptions.TypeAssumptions
-  «struct#b984c7d3_instance» : «struct#b984c7d3».TypeAssumptions
-  «struct#f9d6c4b8_instance» : «struct#f9d6c4b8».TypeAssumptions
-  «struct#8d354e5a_instance» : «struct#8d354e5a».TypeAssumptions
-  «struct#69fc66c6_instance» : «struct#69fc66c6».TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  import_protoreflect_Assumption : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
-  import_pragma_Assumption : _root_.Perennial.google_golang_org.protobuf.internal.pragma.Assumptions
+  instance'UnmarshalOptions : UnmarshalOptions.TypeAssumptions
+  instance'MarshalOptions : MarshalOptions.TypeAssumptions
+  instance'mergeOptions : mergeOptions.TypeAssumptions
+  «instance'struct#b984c7d3» : «struct#b984c7d3».TypeAssumptions
+  «instance'struct#f9d6c4b8» : «struct#f9d6c4b8».TypeAssumptions
+  «instance'struct#8d354e5a» : «struct#8d354e5a».TypeAssumptions
+  «instance'struct#69fc66c6» : «struct#69fc66c6».TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  import'protoreflect : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
+  import'pragma : _root_.Perennial.google_golang_org.protobuf.internal.pragma.Assumptions
 
-attribute [instance] Assumptions.UnmarshalOptions_instance
-  Assumptions.MarshalOptions_instance
-  Assumptions.mergeOptions_instance
-  Assumptions.«struct#b984c7d3_instance»
-  Assumptions.«struct#f9d6c4b8_instance»
-  Assumptions.«struct#8d354e5a_instance»
-  Assumptions.«struct#69fc66c6_instance»
-  Assumptions.«init.0_unfold»
-  Assumptions.import_protoreflect_Assumption
-  Assumptions.import_pragma_Assumption
+attribute [instance] Assumptions.instance'UnmarshalOptions
+  Assumptions.instance'MarshalOptions
+  Assumptions.instance'mergeOptions
+  Assumptions.«instance'struct#b984c7d3»
+  Assumptions.«instance'struct#f9d6c4b8»
+  Assumptions.«instance'struct#8d354e5a»
+  Assumptions.«instance'struct#69fc66c6»
+  Assumptions.«unfold'init.0»
+  Assumptions.import'protoreflect
+  Assumptions.import'pragma
 
 end google_golang_org.protobuf.proto
 

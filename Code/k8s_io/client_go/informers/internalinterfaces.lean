@@ -128,7 +128,7 @@ noncomputable instance InformerOptions.zero_val [GooseExts] : ZeroVal InformerOp
 @[irreducible] noncomputable def InformerOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InformerOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_InformerOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'InformerOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold InformerOptions.fields InformerOptions.fieldsUnsealed :=
   ⟨by unfold InformerOptions.fields; rfl⟩
 
@@ -138,50 +138,50 @@ noncomputable instance equals_unfold_InformerOptions [GooseExts] [GoGlobalContex
 class InformerOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InformerOptions.underlying InformerOptions
   underlying : go.UnderlyingDirectedEq InformerOptions.ty InformerOptions.underlying
-  get_ResyncPeriod : ∀ (x : InformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet InformerOptions.underlying go!"ResyncPeriod") #x (Val #(x.ResyncPeriod'))
-  set_ResyncPeriod : ∀ (x : InformerOptions) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet InformerOptions.underlying go!"ResyncPeriod") (PairV #x #y) (Val #(({ x with ResyncPeriod' := y } : InformerOptions)))
-  get_Indexers : ∀ (x : InformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet InformerOptions.underlying go!"Indexers") #x (Val #(x.Indexers'))
-  set_Indexers : ∀ (x : InformerOptions) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Indexers), go.IsGoStepPureDetTagged under (StructFieldSet InformerOptions.underlying go!"Indexers") (PairV #x #y) (Val #(({ x with Indexers' := y } : InformerOptions)))
-  get_InformerName : ∀ (x : InformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet InformerOptions.underlying go!"InformerName") #x (Val #(x.InformerName'))
-  set_InformerName : ∀ (x : InformerOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet InformerOptions.underlying go!"InformerName") (PairV #x #y) (Val #(({ x with InformerName' := y } : InformerOptions)))
-  get_TweakListOptions : ∀ (x : InformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet InformerOptions.underlying go!"TweakListOptions") #x (Val #(x.TweakListOptions'))
-  set_TweakListOptions : ∀ (x : InformerOptions) (y : TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet InformerOptions.underlying go!"TweakListOptions") (PairV #x #y) (Val #(({ x with TweakListOptions' := y } : InformerOptions)))
+  get'ResyncPeriod : ∀ (x : InformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet InformerOptions.underlying go!"ResyncPeriod") #x (Val #(x.ResyncPeriod'))
+  set'ResyncPeriod : ∀ (x : InformerOptions) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet InformerOptions.underlying go!"ResyncPeriod") (PairV #x #y) (Val #(({ x with ResyncPeriod' := y } : InformerOptions)))
+  get'Indexers : ∀ (x : InformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet InformerOptions.underlying go!"Indexers") #x (Val #(x.Indexers'))
+  set'Indexers : ∀ (x : InformerOptions) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Indexers), go.IsGoStepPureDetTagged under (StructFieldSet InformerOptions.underlying go!"Indexers") (PairV #x #y) (Val #(({ x with Indexers' := y } : InformerOptions)))
+  get'InformerName : ∀ (x : InformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet InformerOptions.underlying go!"InformerName") #x (Val #(x.InformerName'))
+  set'InformerName : ∀ (x : InformerOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet InformerOptions.underlying go!"InformerName") (PairV #x #y) (Val #(({ x with InformerName' := y } : InformerOptions)))
+  get'TweakListOptions : ∀ (x : InformerOptions), go.IsGoStepPureDetTagged under (StructFieldGet InformerOptions.underlying go!"TweakListOptions") #x (Val #(x.TweakListOptions'))
+  set'TweakListOptions : ∀ (x : InformerOptions) (y : TweakListOptionsFunc), go.IsGoStepPureDetTagged under (StructFieldSet InformerOptions.underlying go!"TweakListOptions") (PairV #x #y) (Val #(({ x with TweakListOptions' := y } : InformerOptions)))
   method_set : go.MethodSetIs InformerOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType InformerOptions.ty) []
 
 attribute [instance] InformerOptions.TypeAssumptions.type_repr
   InformerOptions.TypeAssumptions.underlying
-  InformerOptions.TypeAssumptions.get_ResyncPeriod
-  InformerOptions.TypeAssumptions.set_ResyncPeriod
-  InformerOptions.TypeAssumptions.get_Indexers
-  InformerOptions.TypeAssumptions.set_Indexers
-  InformerOptions.TypeAssumptions.get_InformerName
-  InformerOptions.TypeAssumptions.set_InformerName
-  InformerOptions.TypeAssumptions.get_TweakListOptions
-  InformerOptions.TypeAssumptions.set_TweakListOptions
+  InformerOptions.TypeAssumptions.get'ResyncPeriod
+  InformerOptions.TypeAssumptions.set'ResyncPeriod
+  InformerOptions.TypeAssumptions.get'Indexers
+  InformerOptions.TypeAssumptions.set'Indexers
+  InformerOptions.TypeAssumptions.get'InformerName
+  InformerOptions.TypeAssumptions.set'InformerName
+  InformerOptions.TypeAssumptions.get'TweakListOptions
+  InformerOptions.TypeAssumptions.set'TweakListOptions
   InformerOptions.TypeAssumptions.method_set
   InformerOptions.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  NewInformerFunc_instance : NewInformerFunc.TypeAssumptions
-  SharedInformerFactory_instance : SharedInformerFactory.TypeAssumptions
-  TweakListOptionsFunc_instance : TweakListOptionsFunc.TypeAssumptions
-  InformerOptions_instance : InformerOptions.TypeAssumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
-  import_kubernetes_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.Assumptions
-  import_cache_Assumption : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions
+  instance'NewInformerFunc : NewInformerFunc.TypeAssumptions
+  instance'SharedInformerFactory : SharedInformerFactory.TypeAssumptions
+  instance'TweakListOptionsFunc : TweakListOptionsFunc.TypeAssumptions
+  instance'InformerOptions : InformerOptions.TypeAssumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  import'kubernetes : _root_.Perennial.k8s_io.client_go.kubernetes.Assumptions
+  import'cache : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions
 
-attribute [instance] Assumptions.NewInformerFunc_instance
-  Assumptions.SharedInformerFactory_instance
-  Assumptions.TweakListOptionsFunc_instance
-  Assumptions.InformerOptions_instance
-  Assumptions.import_time_Assumption
-  Assumptions.import_v1_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_kubernetes_Assumption
-  Assumptions.import_cache_Assumption
+attribute [instance] Assumptions.instance'NewInformerFunc
+  Assumptions.instance'SharedInformerFactory
+  Assumptions.instance'TweakListOptionsFunc
+  Assumptions.instance'InformerOptions
+  Assumptions.import'time
+  Assumptions.import'v1
+  Assumptions.import'runtime
+  Assumptions.import'kubernetes
+  Assumptions.import'cache
 
 end k8s_io.client_go.informers.internalinterfaces
 

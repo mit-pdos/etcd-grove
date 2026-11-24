@@ -796,7 +796,7 @@ noncomputable instance loggerOptions.zero_val [GooseExts] : ZeroVal loggerOption
 @[irreducible] noncomputable def loggerOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   loggerOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_loggerOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'loggerOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold loggerOptions.fields loggerOptions.fieldsUnsealed :=
   ⟨by unfold loggerOptions.fields; rfl⟩
 
@@ -806,23 +806,23 @@ noncomputable instance equals_unfold_loggerOptions [GooseExts] [GoGlobalContext]
 class loggerOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying loggerOptions.underlying loggerOptions
   underlying : go.UnderlyingDirectedEq loggerOptions.ty loggerOptions.underlying
-  get_contextualLogger : ∀ (x : loggerOptions), go.IsGoStepPureDetTagged under (StructFieldGet loggerOptions.underlying go!"contextualLogger") #x (Val #(x.contextualLogger'))
-  set_contextualLogger : ∀ (x : loggerOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet loggerOptions.underlying go!"contextualLogger") (PairV #x #y) (Val #(({ x with contextualLogger' := y } : loggerOptions)))
-  get_flush : ∀ (x : loggerOptions), go.IsGoStepPureDetTagged under (StructFieldGet loggerOptions.underlying go!"flush") #x (Val #(x.flush'))
-  set_flush : ∀ (x : loggerOptions) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet loggerOptions.underlying go!"flush") (PairV #x #y) (Val #(({ x with flush' := y } : loggerOptions)))
-  get_writeKlogBuffer : ∀ (x : loggerOptions), go.IsGoStepPureDetTagged under (StructFieldGet loggerOptions.underlying go!"writeKlogBuffer") #x (Val #(x.writeKlogBuffer'))
-  set_writeKlogBuffer : ∀ (x : loggerOptions) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet loggerOptions.underlying go!"writeKlogBuffer") (PairV #x #y) (Val #(({ x with writeKlogBuffer' := y } : loggerOptions)))
+  get'contextualLogger : ∀ (x : loggerOptions), go.IsGoStepPureDetTagged under (StructFieldGet loggerOptions.underlying go!"contextualLogger") #x (Val #(x.contextualLogger'))
+  set'contextualLogger : ∀ (x : loggerOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet loggerOptions.underlying go!"contextualLogger") (PairV #x #y) (Val #(({ x with contextualLogger' := y } : loggerOptions)))
+  get'flush : ∀ (x : loggerOptions), go.IsGoStepPureDetTagged under (StructFieldGet loggerOptions.underlying go!"flush") #x (Val #(x.flush'))
+  set'flush : ∀ (x : loggerOptions) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet loggerOptions.underlying go!"flush") (PairV #x #y) (Val #(({ x with flush' := y } : loggerOptions)))
+  get'writeKlogBuffer : ∀ (x : loggerOptions), go.IsGoStepPureDetTagged under (StructFieldGet loggerOptions.underlying go!"writeKlogBuffer") #x (Val #(x.writeKlogBuffer'))
+  set'writeKlogBuffer : ∀ (x : loggerOptions) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet loggerOptions.underlying go!"writeKlogBuffer") (PairV #x #y) (Val #(({ x with writeKlogBuffer' := y } : loggerOptions)))
   method_set : go.MethodSetIs loggerOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType loggerOptions.ty) []
 
 attribute [instance] loggerOptions.TypeAssumptions.type_repr
   loggerOptions.TypeAssumptions.underlying
-  loggerOptions.TypeAssumptions.get_contextualLogger
-  loggerOptions.TypeAssumptions.set_contextualLogger
-  loggerOptions.TypeAssumptions.get_flush
-  loggerOptions.TypeAssumptions.set_flush
-  loggerOptions.TypeAssumptions.get_writeKlogBuffer
-  loggerOptions.TypeAssumptions.set_writeKlogBuffer
+  loggerOptions.TypeAssumptions.get'contextualLogger
+  loggerOptions.TypeAssumptions.set'contextualLogger
+  loggerOptions.TypeAssumptions.get'flush
+  loggerOptions.TypeAssumptions.set'flush
+  loggerOptions.TypeAssumptions.get'writeKlogBuffer
+  loggerOptions.TypeAssumptions.set'writeKlogBuffer
   loggerOptions.TypeAssumptions.method_set
   loggerOptions.TypeAssumptions.ptr_method_set
 
@@ -841,7 +841,7 @@ noncomputable instance logWriter.zero_val [GooseExts] : ZeroVal logWriter :=
 @[irreducible] noncomputable def logWriter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   logWriter.fieldsUnsealed
 
-noncomputable instance equals_unfold_logWriter [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'logWriter [GooseExts] [GoGlobalContext] :
     EqualsUnfold logWriter.fields logWriter.fieldsUnsealed :=
   ⟨by unfold logWriter.fields; rfl⟩
 
@@ -851,19 +851,19 @@ noncomputable instance equals_unfold_logWriter [GooseExts] [GoGlobalContext] :
 class logWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying logWriter.underlying logWriter
   underlying : go.UnderlyingDirectedEq logWriter.ty logWriter.underlying
-  get_Logger : ∀ (x : logWriter), go.IsGoStepPureDetTagged under (StructFieldGet logWriter.underlying go!"Logger") #x (Val #(x.Logger'))
-  set_Logger : ∀ (x : logWriter) (y : _root_.Perennial.github_com.go_logr.logr.Logger), go.IsGoStepPureDetTagged under (StructFieldSet logWriter.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : logWriter)))
-  get_writeKlogBuffer : ∀ (x : logWriter), go.IsGoStepPureDetTagged under (StructFieldGet logWriter.underlying go!"writeKlogBuffer") #x (Val #(x.writeKlogBuffer'))
-  set_writeKlogBuffer : ∀ (x : logWriter) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet logWriter.underlying go!"writeKlogBuffer") (PairV #x #y) (Val #(({ x with writeKlogBuffer' := y } : logWriter)))
+  get'Logger : ∀ (x : logWriter), go.IsGoStepPureDetTagged under (StructFieldGet logWriter.underlying go!"Logger") #x (Val #(x.Logger'))
+  set'Logger : ∀ (x : logWriter) (y : _root_.Perennial.github_com.go_logr.logr.Logger), go.IsGoStepPureDetTagged under (StructFieldSet logWriter.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : logWriter)))
+  get'writeKlogBuffer : ∀ (x : logWriter), go.IsGoStepPureDetTagged under (StructFieldGet logWriter.underlying go!"writeKlogBuffer") #x (Val #(x.writeKlogBuffer'))
+  set'writeKlogBuffer : ∀ (x : logWriter) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet logWriter.underlying go!"writeKlogBuffer") (PairV #x #y) (Val #(({ x with writeKlogBuffer' := y } : logWriter)))
   method_set : go.MethodSetIs logWriter.ty [(go!"Enabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Error", (some (go.signature.Signature [go.error, go.string, (go.GoType.SliceType go.any)] true []))), (go!"GetSink", (some (go.signature.Signature [] false [_root_.Perennial.github_com.go_logr.logr.LogSink.ty]))), (go!"GetV", (some (go.signature.Signature [] false [go.int]))), (go!"Info", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"IsZero", (some (go.signature.Signature [] false [go.bool]))), (go!"V", (some (go.signature.Signature [go.int] false [_root_.Perennial.github_com.go_logr.logr.Logger.ty]))), (go!"WithCallDepth", (some (go.signature.Signature [go.int] false [_root_.Perennial.github_com.go_logr.logr.Logger.ty]))), (go!"WithCallStackHelper", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false [])), _root_.Perennial.github_com.go_logr.logr.Logger.ty]))), (go!"WithName", (some (go.signature.Signature [go.string] false [_root_.Perennial.github_com.go_logr.logr.Logger.ty]))), (go!"WithSink", (some (go.signature.Signature [_root_.Perennial.github_com.go_logr.logr.LogSink.ty] false [_root_.Perennial.github_com.go_logr.logr.Logger.ty]))), (go!"WithValues", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true [_root_.Perennial.github_com.go_logr.logr.Logger.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType logWriter.ty) [(go!"Enabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Error", (some (go.signature.Signature [go.error, go.string, (go.GoType.SliceType go.any)] true []))), (go!"GetSink", (some (go.signature.Signature [] false [_root_.Perennial.github_com.go_logr.logr.LogSink.ty]))), (go!"GetV", (some (go.signature.Signature [] false [go.int]))), (go!"Info", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"IsZero", (some (go.signature.Signature [] false [go.bool]))), (go!"V", (some (go.signature.Signature [go.int] false [_root_.Perennial.github_com.go_logr.logr.Logger.ty]))), (go!"WithCallDepth", (some (go.signature.Signature [go.int] false [_root_.Perennial.github_com.go_logr.logr.Logger.ty]))), (go!"WithCallStackHelper", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [] false [])), _root_.Perennial.github_com.go_logr.logr.Logger.ty]))), (go!"WithName", (some (go.signature.Signature [go.string] false [_root_.Perennial.github_com.go_logr.logr.Logger.ty]))), (go!"WithSink", (some (go.signature.Signature [_root_.Perennial.github_com.go_logr.logr.LogSink.ty] false [_root_.Perennial.github_com.go_logr.logr.Logger.ty]))), (go!"WithValues", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true [_root_.Perennial.github_com.go_logr.logr.Logger.ty]))), (go!"github.com/go-logr/logr.setSink", (some (go.signature.Signature [_root_.Perennial.github_com.go_logr.logr.LogSink.ty] false [])))]
 
 attribute [instance] logWriter.TypeAssumptions.type_repr
   logWriter.TypeAssumptions.underlying
-  logWriter.TypeAssumptions.get_Logger
-  logWriter.TypeAssumptions.set_Logger
-  logWriter.TypeAssumptions.get_writeKlogBuffer
-  logWriter.TypeAssumptions.set_writeKlogBuffer
+  logWriter.TypeAssumptions.get'Logger
+  logWriter.TypeAssumptions.set'Logger
+  logWriter.TypeAssumptions.get'writeKlogBuffer
+  logWriter.TypeAssumptions.set'writeKlogBuffer
   logWriter.TypeAssumptions.method_set
   logWriter.TypeAssumptions.ptr_method_set
 
@@ -880,7 +880,7 @@ noncomputable instance formatAny.zero_val [GooseExts] : ZeroVal formatAny :=
 @[irreducible] noncomputable def formatAny.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   formatAny.fieldsUnsealed
 
-noncomputable instance equals_unfold_formatAny [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'formatAny [GooseExts] [GoGlobalContext] :
     EqualsUnfold formatAny.fields formatAny.fieldsUnsealed :=
   ⟨by unfold formatAny.fields; rfl⟩
 
@@ -890,15 +890,15 @@ noncomputable instance equals_unfold_formatAny [GooseExts] [GoGlobalContext] :
 class formatAny.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying formatAny.underlying formatAny
   underlying : go.UnderlyingDirectedEq formatAny.ty formatAny.underlying
-  get_Object : ∀ (x : formatAny), go.IsGoStepPureDetTagged under (StructFieldGet formatAny.underlying go!"Object") #x (Val #(x.Object'))
-  set_Object : ∀ (x : formatAny) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet formatAny.underlying go!"Object") (PairV #x #y) (Val #(({ x with Object' := y } : formatAny)))
+  get'Object : ∀ (x : formatAny), go.IsGoStepPureDetTagged under (StructFieldGet formatAny.underlying go!"Object") #x (Val #(x.Object'))
+  set'Object : ∀ (x : formatAny) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet formatAny.underlying go!"Object") (PairV #x #y) (Val #(({ x with Object' := y } : formatAny)))
   method_set : go.MethodSetIs formatAny.ty [(go!"MarshalLog", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType formatAny.ty) [(go!"MarshalLog", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] formatAny.TypeAssumptions.type_repr
   formatAny.TypeAssumptions.underlying
-  formatAny.TypeAssumptions.get_Object
-  formatAny.TypeAssumptions.set_Object
+  formatAny.TypeAssumptions.get'Object
+  formatAny.TypeAssumptions.set'Object
   formatAny.TypeAssumptions.method_set
   formatAny.TypeAssumptions.ptr_method_set
 
@@ -917,7 +917,7 @@ noncomputable instance ObjectRef.zero_val [GooseExts] : ZeroVal ObjectRef :=
 @[irreducible] noncomputable def ObjectRef.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ObjectRef.fieldsUnsealed
 
-noncomputable instance equals_unfold_ObjectRef [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ObjectRef [GooseExts] [GoGlobalContext] :
     EqualsUnfold ObjectRef.fields ObjectRef.fieldsUnsealed :=
   ⟨by unfold ObjectRef.fields; rfl⟩
 
@@ -927,19 +927,19 @@ noncomputable instance equals_unfold_ObjectRef [GooseExts] [GoGlobalContext] :
 class ObjectRef.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ObjectRef.underlying ObjectRef
   underlying : go.UnderlyingDirectedEq ObjectRef.ty ObjectRef.underlying
-  get_Name : ∀ (x : ObjectRef), go.IsGoStepPureDetTagged under (StructFieldGet ObjectRef.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : ObjectRef) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ObjectRef.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : ObjectRef)))
-  get_Namespace : ∀ (x : ObjectRef), go.IsGoStepPureDetTagged under (StructFieldGet ObjectRef.underlying go!"Namespace") #x (Val #(x.Namespace'))
-  set_Namespace : ∀ (x : ObjectRef) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ObjectRef.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : ObjectRef)))
+  get'Name : ∀ (x : ObjectRef), go.IsGoStepPureDetTagged under (StructFieldGet ObjectRef.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : ObjectRef) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ObjectRef.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : ObjectRef)))
+  get'Namespace : ∀ (x : ObjectRef), go.IsGoStepPureDetTagged under (StructFieldGet ObjectRef.underlying go!"Namespace") #x (Val #(x.Namespace'))
+  set'Namespace : ∀ (x : ObjectRef) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ObjectRef.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : ObjectRef)))
   method_set : go.MethodSetIs ObjectRef.ty [(go!"LogValue", (some (go.signature.Signature [] false [(go.GoType.Named go!"log/slog.Value" [])]))), (go!"MarshalLog", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WriteText", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"bytes.Buffer" []))] false []))), (go!"k8s.io/klog/v2.writeUnquoted", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"bytes.Buffer" []))] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectRef.ty) [(go!"LogValue", (some (go.signature.Signature [] false [(go.GoType.Named go!"log/slog.Value" [])]))), (go!"MarshalLog", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WriteText", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"bytes.Buffer" []))] false []))), (go!"k8s.io/klog/v2.writeUnquoted", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"bytes.Buffer" []))] false [])))]
 
 attribute [instance] ObjectRef.TypeAssumptions.type_repr
   ObjectRef.TypeAssumptions.underlying
-  ObjectRef.TypeAssumptions.get_Name
-  ObjectRef.TypeAssumptions.set_Name
-  ObjectRef.TypeAssumptions.get_Namespace
-  ObjectRef.TypeAssumptions.set_Namespace
+  ObjectRef.TypeAssumptions.get'Name
+  ObjectRef.TypeAssumptions.set'Name
+  ObjectRef.TypeAssumptions.get'Namespace
+  ObjectRef.TypeAssumptions.set'Namespace
   ObjectRef.TypeAssumptions.method_set
   ObjectRef.TypeAssumptions.ptr_method_set
 
@@ -970,7 +970,7 @@ noncomputable instance kobjSlice.zero_val [GooseExts] : ZeroVal kobjSlice :=
 @[irreducible] noncomputable def kobjSlice.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kobjSlice.fieldsUnsealed
 
-noncomputable instance equals_unfold_kobjSlice [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'kobjSlice [GooseExts] [GoGlobalContext] :
     EqualsUnfold kobjSlice.fields kobjSlice.fieldsUnsealed :=
   ⟨by unfold kobjSlice.fields; rfl⟩
 
@@ -980,15 +980,15 @@ noncomputable instance equals_unfold_kobjSlice [GooseExts] [GoGlobalContext] :
 class kobjSlice.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kobjSlice.underlying kobjSlice
   underlying : go.UnderlyingDirectedEq kobjSlice.ty kobjSlice.underlying
-  get_arg : ∀ (x : kobjSlice), go.IsGoStepPureDetTagged under (StructFieldGet kobjSlice.underlying go!"arg") #x (Val #(x.arg'))
-  set_arg : ∀ (x : kobjSlice) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet kobjSlice.underlying go!"arg") (PairV #x #y) (Val #(({ x with arg' := y } : kobjSlice)))
+  get'arg : ∀ (x : kobjSlice), go.IsGoStepPureDetTagged under (StructFieldGet kobjSlice.underlying go!"arg") #x (Val #(x.arg'))
+  set'arg : ∀ (x : kobjSlice) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet kobjSlice.underlying go!"arg") (PairV #x #y) (Val #(({ x with arg' := y } : kobjSlice)))
   method_set : go.MethodSetIs kobjSlice.ty [(go!"LogValue", (some (go.signature.Signature [] false [(go.GoType.Named go!"log/slog.Value" [])]))), (go!"MarshalLog", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WriteText", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"bytes.Buffer" []))] false []))), (go!"k8s.io/klog/v2.process", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType kobjSlice.ty) [(go!"LogValue", (some (go.signature.Signature [] false [(go.GoType.Named go!"log/slog.Value" [])]))), (go!"MarshalLog", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WriteText", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"bytes.Buffer" []))] false []))), (go!"k8s.io/klog/v2.process", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string])))]
 
 attribute [instance] kobjSlice.TypeAssumptions.type_repr
   kobjSlice.TypeAssumptions.underlying
-  kobjSlice.TypeAssumptions.get_arg
-  kobjSlice.TypeAssumptions.set_arg
+  kobjSlice.TypeAssumptions.get'arg
+  kobjSlice.TypeAssumptions.set'arg
   kobjSlice.TypeAssumptions.method_set
   kobjSlice.TypeAssumptions.ptr_method_set
 
@@ -1005,7 +1005,7 @@ noncomputable instance severityValue.zero_val [GooseExts] : ZeroVal severityValu
 @[irreducible] noncomputable def severityValue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   severityValue.fieldsUnsealed
 
-noncomputable instance equals_unfold_severityValue [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'severityValue [GooseExts] [GoGlobalContext] :
     EqualsUnfold severityValue.fields severityValue.fieldsUnsealed :=
   ⟨by unfold severityValue.fields; rfl⟩
 
@@ -1015,15 +1015,15 @@ noncomputable instance equals_unfold_severityValue [GooseExts] [GoGlobalContext]
 class severityValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying severityValue.underlying severityValue
   underlying : go.UnderlyingDirectedEq severityValue.ty severityValue.underlying
-  get_Severity : ∀ (x : severityValue), go.IsGoStepPureDetTagged under (StructFieldGet severityValue.underlying go!"Severity") #x (Val #(x.Severity'))
-  set_Severity : ∀ (x : severityValue) (y : _root_.Perennial.k8s_io.klog.v2.internal.severity.Severity), go.IsGoStepPureDetTagged under (StructFieldSet severityValue.underlying go!"Severity") (PairV #x #y) (Val #(({ x with Severity' := y } : severityValue)))
+  get'Severity : ∀ (x : severityValue), go.IsGoStepPureDetTagged under (StructFieldGet severityValue.underlying go!"Severity") #x (Val #(x.Severity'))
+  set'Severity : ∀ (x : severityValue) (y : _root_.Perennial.k8s_io.klog.v2.internal.severity.Severity), go.IsGoStepPureDetTagged under (StructFieldSet severityValue.underlying go!"Severity") (PairV #x #y) (Val #(({ x with Severity' := y } : severityValue)))
   method_set : go.MethodSetIs severityValue.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType severityValue.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"k8s.io/klog/v2.get", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty]))), (go!"k8s.io/klog/v2.set", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty] false [])))]
 
 attribute [instance] severityValue.TypeAssumptions.type_repr
   severityValue.TypeAssumptions.underlying
-  severityValue.TypeAssumptions.get_Severity
-  severityValue.TypeAssumptions.set_Severity
+  severityValue.TypeAssumptions.get'Severity
+  severityValue.TypeAssumptions.set'Severity
   severityValue.TypeAssumptions.method_set
   severityValue.TypeAssumptions.ptr_method_set
 
@@ -1042,7 +1042,7 @@ noncomputable instance OutputStats.zero_val [GooseExts] : ZeroVal OutputStats :=
 @[irreducible] noncomputable def OutputStats.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   OutputStats.fieldsUnsealed
 
-noncomputable instance equals_unfold_OutputStats [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'OutputStats [GooseExts] [GoGlobalContext] :
     EqualsUnfold OutputStats.fields OutputStats.fieldsUnsealed :=
   ⟨by unfold OutputStats.fields; rfl⟩
 
@@ -1052,19 +1052,19 @@ noncomputable instance equals_unfold_OutputStats [GooseExts] [GoGlobalContext] :
 class OutputStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying OutputStats.underlying OutputStats
   underlying : go.UnderlyingDirectedEq OutputStats.ty OutputStats.underlying
-  get_lines : ∀ (x : OutputStats), go.IsGoStepPureDetTagged under (StructFieldGet OutputStats.underlying go!"lines") #x (Val #(x.lines'))
-  set_lines : ∀ (x : OutputStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet OutputStats.underlying go!"lines") (PairV #x #y) (Val #(({ x with lines' := y } : OutputStats)))
-  get_bytes : ∀ (x : OutputStats), go.IsGoStepPureDetTagged under (StructFieldGet OutputStats.underlying go!"bytes") #x (Val #(x.bytes'))
-  set_bytes : ∀ (x : OutputStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet OutputStats.underlying go!"bytes") (PairV #x #y) (Val #(({ x with bytes' := y } : OutputStats)))
+  get'lines : ∀ (x : OutputStats), go.IsGoStepPureDetTagged under (StructFieldGet OutputStats.underlying go!"lines") #x (Val #(x.lines'))
+  set'lines : ∀ (x : OutputStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet OutputStats.underlying go!"lines") (PairV #x #y) (Val #(({ x with lines' := y } : OutputStats)))
+  get'bytes : ∀ (x : OutputStats), go.IsGoStepPureDetTagged under (StructFieldGet OutputStats.underlying go!"bytes") #x (Val #(x.bytes'))
+  set'bytes : ∀ (x : OutputStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet OutputStats.underlying go!"bytes") (PairV #x #y) (Val #(({ x with bytes' := y } : OutputStats)))
   method_set : go.MethodSetIs OutputStats.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType OutputStats.ty) [(go!"Bytes", (some (go.signature.Signature [] false [go.int64]))), (go!"Lines", (some (go.signature.Signature [] false [go.int64])))]
 
 attribute [instance] OutputStats.TypeAssumptions.type_repr
   OutputStats.TypeAssumptions.underlying
-  OutputStats.TypeAssumptions.get_lines
-  OutputStats.TypeAssumptions.set_lines
-  OutputStats.TypeAssumptions.get_bytes
-  OutputStats.TypeAssumptions.set_bytes
+  OutputStats.TypeAssumptions.get'lines
+  OutputStats.TypeAssumptions.set'lines
+  OutputStats.TypeAssumptions.get'bytes
+  OutputStats.TypeAssumptions.set'bytes
   OutputStats.TypeAssumptions.method_set
   OutputStats.TypeAssumptions.ptr_method_set
 
@@ -1077,12 +1077,12 @@ class Level.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   underlying : go.UnderlyingDirectedEq Level.ty Level.underlying
   method_set : go.MethodSetIs Level.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Level.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"k8s.io/klog/v2.get", (some (go.signature.Signature [] false [Level.ty]))), (go!"k8s.io/klog/v2.set", (some (go.signature.Signature [Level.ty] false [])))]
-  ptr_get_unfold : MethodUnfold (go.GoType.PointerType Level.ty) go!"get" Level.get.impl
+  ptr_unfold'get : MethodUnfold (go.GoType.PointerType Level.ty) go!"get" Level.get.impl
 
 attribute [instance] Level.TypeAssumptions.underlying
   Level.TypeAssumptions.method_set
   Level.TypeAssumptions.ptr_method_set
-  Level.TypeAssumptions.ptr_get_unfold
+  Level.TypeAssumptions.ptr_unfold'get
 
 structure moduleSpec [GooseExts] where
   mk ::
@@ -1097,7 +1097,7 @@ noncomputable instance moduleSpec.zero_val [GooseExts] : ZeroVal moduleSpec :=
 @[irreducible] noncomputable def moduleSpec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   moduleSpec.fieldsUnsealed
 
-noncomputable instance equals_unfold_moduleSpec [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'moduleSpec [GooseExts] [GoGlobalContext] :
     EqualsUnfold moduleSpec.fields moduleSpec.fieldsUnsealed :=
   ⟨by unfold moduleSpec.fields; rfl⟩
 
@@ -1107,15 +1107,15 @@ noncomputable instance equals_unfold_moduleSpec [GooseExts] [GoGlobalContext] :
 class moduleSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying moduleSpec.underlying moduleSpec
   underlying : go.UnderlyingDirectedEq moduleSpec.ty moduleSpec.underlying
-  get_filter : ∀ (x : moduleSpec), go.IsGoStepPureDetTagged under (StructFieldGet moduleSpec.underlying go!"filter") #x (Val #(x.filter'))
-  set_filter : ∀ (x : moduleSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet moduleSpec.underlying go!"filter") (PairV #x #y) (Val #(({ x with filter' := y } : moduleSpec)))
+  get'filter : ∀ (x : moduleSpec), go.IsGoStepPureDetTagged under (StructFieldGet moduleSpec.underlying go!"filter") #x (Val #(x.filter'))
+  set'filter : ∀ (x : moduleSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet moduleSpec.underlying go!"filter") (PairV #x #y) (Val #(({ x with filter' := y } : moduleSpec)))
   method_set : go.MethodSetIs moduleSpec.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType moduleSpec.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"k8s.io/klog/v2.serialize", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] moduleSpec.TypeAssumptions.type_repr
   moduleSpec.TypeAssumptions.underlying
-  moduleSpec.TypeAssumptions.get_filter
-  moduleSpec.TypeAssumptions.set_filter
+  moduleSpec.TypeAssumptions.get'filter
+  moduleSpec.TypeAssumptions.set'filter
   moduleSpec.TypeAssumptions.method_set
   moduleSpec.TypeAssumptions.ptr_method_set
 
@@ -1136,7 +1136,7 @@ noncomputable instance modulePat.zero_val [GooseExts] : ZeroVal modulePat :=
 @[irreducible] noncomputable def modulePat.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   modulePat.fieldsUnsealed
 
-noncomputable instance equals_unfold_modulePat [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'modulePat [GooseExts] [GoGlobalContext] :
     EqualsUnfold modulePat.fields modulePat.fieldsUnsealed :=
   ⟨by unfold modulePat.fields; rfl⟩
 
@@ -1146,23 +1146,23 @@ noncomputable instance equals_unfold_modulePat [GooseExts] [GoGlobalContext] :
 class modulePat.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying modulePat.underlying modulePat
   underlying : go.UnderlyingDirectedEq modulePat.ty modulePat.underlying
-  get_pattern : ∀ (x : modulePat), go.IsGoStepPureDetTagged under (StructFieldGet modulePat.underlying go!"pattern") #x (Val #(x.pattern'))
-  set_pattern : ∀ (x : modulePat) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet modulePat.underlying go!"pattern") (PairV #x #y) (Val #(({ x with pattern' := y } : modulePat)))
-  get_literal : ∀ (x : modulePat), go.IsGoStepPureDetTagged under (StructFieldGet modulePat.underlying go!"literal") #x (Val #(x.literal'))
-  set_literal : ∀ (x : modulePat) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet modulePat.underlying go!"literal") (PairV #x #y) (Val #(({ x with literal' := y } : modulePat)))
-  get_level : ∀ (x : modulePat), go.IsGoStepPureDetTagged under (StructFieldGet modulePat.underlying go!"level") #x (Val #(x.level'))
-  set_level : ∀ (x : modulePat) (y : Level), go.IsGoStepPureDetTagged under (StructFieldSet modulePat.underlying go!"level") (PairV #x #y) (Val #(({ x with level' := y } : modulePat)))
+  get'pattern : ∀ (x : modulePat), go.IsGoStepPureDetTagged under (StructFieldGet modulePat.underlying go!"pattern") #x (Val #(x.pattern'))
+  set'pattern : ∀ (x : modulePat) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet modulePat.underlying go!"pattern") (PairV #x #y) (Val #(({ x with pattern' := y } : modulePat)))
+  get'literal : ∀ (x : modulePat), go.IsGoStepPureDetTagged under (StructFieldGet modulePat.underlying go!"literal") #x (Val #(x.literal'))
+  set'literal : ∀ (x : modulePat) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet modulePat.underlying go!"literal") (PairV #x #y) (Val #(({ x with literal' := y } : modulePat)))
+  get'level : ∀ (x : modulePat), go.IsGoStepPureDetTagged under (StructFieldGet modulePat.underlying go!"level") #x (Val #(x.level'))
+  set'level : ∀ (x : modulePat) (y : Level), go.IsGoStepPureDetTagged under (StructFieldSet modulePat.underlying go!"level") (PairV #x #y) (Val #(({ x with level' := y } : modulePat)))
   method_set : go.MethodSetIs modulePat.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType modulePat.ty) [(go!"k8s.io/klog/v2.match", (some (go.signature.Signature [go.string] false [go.bool])))]
 
 attribute [instance] modulePat.TypeAssumptions.type_repr
   modulePat.TypeAssumptions.underlying
-  modulePat.TypeAssumptions.get_pattern
-  modulePat.TypeAssumptions.set_pattern
-  modulePat.TypeAssumptions.get_literal
-  modulePat.TypeAssumptions.set_literal
-  modulePat.TypeAssumptions.get_level
-  modulePat.TypeAssumptions.set_level
+  modulePat.TypeAssumptions.get'pattern
+  modulePat.TypeAssumptions.set'pattern
+  modulePat.TypeAssumptions.get'literal
+  modulePat.TypeAssumptions.set'literal
+  modulePat.TypeAssumptions.get'level
+  modulePat.TypeAssumptions.set'level
   modulePat.TypeAssumptions.method_set
   modulePat.TypeAssumptions.ptr_method_set
 
@@ -1181,7 +1181,7 @@ noncomputable instance traceLocation.zero_val [GooseExts] : ZeroVal traceLocatio
 @[irreducible] noncomputable def traceLocation.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   traceLocation.fieldsUnsealed
 
-noncomputable instance equals_unfold_traceLocation [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'traceLocation [GooseExts] [GoGlobalContext] :
     EqualsUnfold traceLocation.fields traceLocation.fieldsUnsealed :=
   ⟨by unfold traceLocation.fields; rfl⟩
 
@@ -1191,19 +1191,19 @@ noncomputable instance equals_unfold_traceLocation [GooseExts] [GoGlobalContext]
 class traceLocation.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying traceLocation.underlying traceLocation
   underlying : go.UnderlyingDirectedEq traceLocation.ty traceLocation.underlying
-  get_file : ∀ (x : traceLocation), go.IsGoStepPureDetTagged under (StructFieldGet traceLocation.underlying go!"file") #x (Val #(x.file'))
-  set_file : ∀ (x : traceLocation) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet traceLocation.underlying go!"file") (PairV #x #y) (Val #(({ x with file' := y } : traceLocation)))
-  get_line : ∀ (x : traceLocation), go.IsGoStepPureDetTagged under (StructFieldGet traceLocation.underlying go!"line") #x (Val #(x.line'))
-  set_line : ∀ (x : traceLocation) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet traceLocation.underlying go!"line") (PairV #x #y) (Val #(({ x with line' := y } : traceLocation)))
+  get'file : ∀ (x : traceLocation), go.IsGoStepPureDetTagged under (StructFieldGet traceLocation.underlying go!"file") #x (Val #(x.file'))
+  set'file : ∀ (x : traceLocation) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet traceLocation.underlying go!"file") (PairV #x #y) (Val #(({ x with file' := y } : traceLocation)))
+  get'line : ∀ (x : traceLocation), go.IsGoStepPureDetTagged under (StructFieldGet traceLocation.underlying go!"line") #x (Val #(x.line'))
+  set'line : ∀ (x : traceLocation) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet traceLocation.underlying go!"line") (PairV #x #y) (Val #(({ x with line' := y } : traceLocation)))
   method_set : go.MethodSetIs traceLocation.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType traceLocation.ty) [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"k8s.io/klog/v2.isSet", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/klog/v2.match", (some (go.signature.Signature [go.string, go.int] false [go.bool])))]
 
 attribute [instance] traceLocation.TypeAssumptions.type_repr
   traceLocation.TypeAssumptions.underlying
-  traceLocation.TypeAssumptions.get_file
-  traceLocation.TypeAssumptions.set_file
-  traceLocation.TypeAssumptions.get_line
-  traceLocation.TypeAssumptions.set_line
+  traceLocation.TypeAssumptions.get'file
+  traceLocation.TypeAssumptions.set'file
+  traceLocation.TypeAssumptions.get'line
+  traceLocation.TypeAssumptions.set'line
   traceLocation.TypeAssumptions.method_set
   traceLocation.TypeAssumptions.ptr_method_set
 
@@ -1276,7 +1276,7 @@ noncomputable instance settings.zero_val [GooseExts] : ZeroVal settings :=
 @[irreducible] noncomputable def settings.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   settings.fieldsUnsealed
 
-noncomputable instance equals_unfold_settings [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'settings [GooseExts] [GoGlobalContext] :
     EqualsUnfold settings.fields settings.fieldsUnsealed :=
   ⟨by unfold settings.fields; rfl⟩
 
@@ -1286,99 +1286,99 @@ noncomputable instance equals_unfold_settings [GooseExts] [GoGlobalContext] :
 class settings.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying settings.underlying settings
   underlying : go.UnderlyingDirectedEq settings.ty settings.underlying
-  get_contextualLoggingEnabled : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"contextualLoggingEnabled") #x (Val #(x.contextualLoggingEnabled'))
-  set_contextualLoggingEnabled : ∀ (x : settings) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"contextualLoggingEnabled") (PairV #x #y) (Val #(({ x with contextualLoggingEnabled' := y } : settings)))
-  get_logger : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"logger") #x (Val #(x.logger'))
-  set_logger : ∀ (x : settings) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"logger") (PairV #x #y) (Val #(({ x with logger' := y } : settings)))
-  get_loggerOptions : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"loggerOptions") #x (Val #(x.loggerOptions'))
-  set_loggerOptions : ∀ (x : settings) (y : loggerOptions), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"loggerOptions") (PairV #x #y) (Val #(({ x with loggerOptions' := y } : settings)))
-  get_toStderr : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"toStderr") #x (Val #(x.toStderr'))
-  set_toStderr : ∀ (x : settings) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"toStderr") (PairV #x #y) (Val #(({ x with toStderr' := y } : settings)))
-  get_alsoToStderr : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"alsoToStderr") #x (Val #(x.alsoToStderr'))
-  set_alsoToStderr : ∀ (x : settings) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"alsoToStderr") (PairV #x #y) (Val #(({ x with alsoToStderr' := y } : settings)))
-  get_legacyStderrThresholdBehavior : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"legacyStderrThresholdBehavior") #x (Val #(x.legacyStderrThresholdBehavior'))
-  set_legacyStderrThresholdBehavior : ∀ (x : settings) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"legacyStderrThresholdBehavior") (PairV #x #y) (Val #(({ x with legacyStderrThresholdBehavior' := y } : settings)))
-  get_stderrThreshold : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"stderrThreshold") #x (Val #(x.stderrThreshold'))
-  set_stderrThreshold : ∀ (x : settings) (y : severityValue), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"stderrThreshold") (PairV #x #y) (Val #(({ x with stderrThreshold' := y } : settings)))
-  get_alsologtostderrthreshold : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"alsologtostderrthreshold") #x (Val #(x.alsologtostderrthreshold'))
-  set_alsologtostderrthreshold : ∀ (x : settings) (y : severityValue), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"alsologtostderrthreshold") (PairV #x #y) (Val #(({ x with alsologtostderrthreshold' := y } : settings)))
-  get_file : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"file") #x (Val #(x.file'))
-  set_file : ∀ (x : settings) (y : (GoArray _root_.Perennial.io.Writer 4)), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"file") (PairV #x #y) (Val #(({ x with file' := y } : settings)))
-  get_flushInterval : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"flushInterval") #x (Val #(x.flushInterval'))
-  set_flushInterval : ∀ (x : settings) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"flushInterval") (PairV #x #y) (Val #(({ x with flushInterval' := y } : settings)))
-  get_filterLength : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"filterLength") #x (Val #(x.filterLength'))
-  set_filterLength : ∀ (x : settings) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"filterLength") (PairV #x #y) (Val #(({ x with filterLength' := y } : settings)))
-  get_traceLocation : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"traceLocation") #x (Val #(x.traceLocation'))
-  set_traceLocation : ∀ (x : settings) (y : traceLocation), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"traceLocation") (PairV #x #y) (Val #(({ x with traceLocation' := y } : settings)))
-  get_vmodule : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"vmodule") #x (Val #(x.vmodule'))
-  set_vmodule : ∀ (x : settings) (y : moduleSpec), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"vmodule") (PairV #x #y) (Val #(({ x with vmodule' := y } : settings)))
-  get_verbosity : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"verbosity") #x (Val #(x.verbosity'))
-  set_verbosity : ∀ (x : settings) (y : Level), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"verbosity") (PairV #x #y) (Val #(({ x with verbosity' := y } : settings)))
-  get_logDir : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"logDir") #x (Val #(x.logDir'))
-  set_logDir : ∀ (x : settings) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"logDir") (PairV #x #y) (Val #(({ x with logDir' := y } : settings)))
-  get_logFile : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"logFile") #x (Val #(x.logFile'))
-  set_logFile : ∀ (x : settings) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"logFile") (PairV #x #y) (Val #(({ x with logFile' := y } : settings)))
-  get_logFileMaxSizeMB : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"logFileMaxSizeMB") #x (Val #(x.logFileMaxSizeMB'))
-  set_logFileMaxSizeMB : ∀ (x : settings) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"logFileMaxSizeMB") (PairV #x #y) (Val #(({ x with logFileMaxSizeMB' := y } : settings)))
-  get_skipHeaders : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"skipHeaders") #x (Val #(x.skipHeaders'))
-  set_skipHeaders : ∀ (x : settings) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"skipHeaders") (PairV #x #y) (Val #(({ x with skipHeaders' := y } : settings)))
-  get_skipLogHeaders : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"skipLogHeaders") #x (Val #(x.skipLogHeaders'))
-  set_skipLogHeaders : ∀ (x : settings) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"skipLogHeaders") (PairV #x #y) (Val #(({ x with skipLogHeaders' := y } : settings)))
-  get_addDirHeader : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"addDirHeader") #x (Val #(x.addDirHeader'))
-  set_addDirHeader : ∀ (x : settings) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"addDirHeader") (PairV #x #y) (Val #(({ x with addDirHeader' := y } : settings)))
-  get_oneOutput : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"oneOutput") #x (Val #(x.oneOutput'))
-  set_oneOutput : ∀ (x : settings) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"oneOutput") (PairV #x #y) (Val #(({ x with oneOutput' := y } : settings)))
-  get_filter : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"filter") #x (Val #(x.filter'))
-  set_filter : ∀ (x : settings) (y : LogFilter), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"filter") (PairV #x #y) (Val #(({ x with filter' := y } : settings)))
+  get'contextualLoggingEnabled : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"contextualLoggingEnabled") #x (Val #(x.contextualLoggingEnabled'))
+  set'contextualLoggingEnabled : ∀ (x : settings) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"contextualLoggingEnabled") (PairV #x #y) (Val #(({ x with contextualLoggingEnabled' := y } : settings)))
+  get'logger : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"logger") #x (Val #(x.logger'))
+  set'logger : ∀ (x : settings) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"logger") (PairV #x #y) (Val #(({ x with logger' := y } : settings)))
+  get'loggerOptions : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"loggerOptions") #x (Val #(x.loggerOptions'))
+  set'loggerOptions : ∀ (x : settings) (y : loggerOptions), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"loggerOptions") (PairV #x #y) (Val #(({ x with loggerOptions' := y } : settings)))
+  get'toStderr : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"toStderr") #x (Val #(x.toStderr'))
+  set'toStderr : ∀ (x : settings) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"toStderr") (PairV #x #y) (Val #(({ x with toStderr' := y } : settings)))
+  get'alsoToStderr : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"alsoToStderr") #x (Val #(x.alsoToStderr'))
+  set'alsoToStderr : ∀ (x : settings) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"alsoToStderr") (PairV #x #y) (Val #(({ x with alsoToStderr' := y } : settings)))
+  get'legacyStderrThresholdBehavior : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"legacyStderrThresholdBehavior") #x (Val #(x.legacyStderrThresholdBehavior'))
+  set'legacyStderrThresholdBehavior : ∀ (x : settings) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"legacyStderrThresholdBehavior") (PairV #x #y) (Val #(({ x with legacyStderrThresholdBehavior' := y } : settings)))
+  get'stderrThreshold : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"stderrThreshold") #x (Val #(x.stderrThreshold'))
+  set'stderrThreshold : ∀ (x : settings) (y : severityValue), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"stderrThreshold") (PairV #x #y) (Val #(({ x with stderrThreshold' := y } : settings)))
+  get'alsologtostderrthreshold : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"alsologtostderrthreshold") #x (Val #(x.alsologtostderrthreshold'))
+  set'alsologtostderrthreshold : ∀ (x : settings) (y : severityValue), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"alsologtostderrthreshold") (PairV #x #y) (Val #(({ x with alsologtostderrthreshold' := y } : settings)))
+  get'file : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"file") #x (Val #(x.file'))
+  set'file : ∀ (x : settings) (y : (GoArray _root_.Perennial.io.Writer 4)), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"file") (PairV #x #y) (Val #(({ x with file' := y } : settings)))
+  get'flushInterval : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"flushInterval") #x (Val #(x.flushInterval'))
+  set'flushInterval : ∀ (x : settings) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"flushInterval") (PairV #x #y) (Val #(({ x with flushInterval' := y } : settings)))
+  get'filterLength : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"filterLength") #x (Val #(x.filterLength'))
+  set'filterLength : ∀ (x : settings) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"filterLength") (PairV #x #y) (Val #(({ x with filterLength' := y } : settings)))
+  get'traceLocation : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"traceLocation") #x (Val #(x.traceLocation'))
+  set'traceLocation : ∀ (x : settings) (y : traceLocation), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"traceLocation") (PairV #x #y) (Val #(({ x with traceLocation' := y } : settings)))
+  get'vmodule : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"vmodule") #x (Val #(x.vmodule'))
+  set'vmodule : ∀ (x : settings) (y : moduleSpec), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"vmodule") (PairV #x #y) (Val #(({ x with vmodule' := y } : settings)))
+  get'verbosity : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"verbosity") #x (Val #(x.verbosity'))
+  set'verbosity : ∀ (x : settings) (y : Level), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"verbosity") (PairV #x #y) (Val #(({ x with verbosity' := y } : settings)))
+  get'logDir : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"logDir") #x (Val #(x.logDir'))
+  set'logDir : ∀ (x : settings) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"logDir") (PairV #x #y) (Val #(({ x with logDir' := y } : settings)))
+  get'logFile : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"logFile") #x (Val #(x.logFile'))
+  set'logFile : ∀ (x : settings) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"logFile") (PairV #x #y) (Val #(({ x with logFile' := y } : settings)))
+  get'logFileMaxSizeMB : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"logFileMaxSizeMB") #x (Val #(x.logFileMaxSizeMB'))
+  set'logFileMaxSizeMB : ∀ (x : settings) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"logFileMaxSizeMB") (PairV #x #y) (Val #(({ x with logFileMaxSizeMB' := y } : settings)))
+  get'skipHeaders : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"skipHeaders") #x (Val #(x.skipHeaders'))
+  set'skipHeaders : ∀ (x : settings) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"skipHeaders") (PairV #x #y) (Val #(({ x with skipHeaders' := y } : settings)))
+  get'skipLogHeaders : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"skipLogHeaders") #x (Val #(x.skipLogHeaders'))
+  set'skipLogHeaders : ∀ (x : settings) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"skipLogHeaders") (PairV #x #y) (Val #(({ x with skipLogHeaders' := y } : settings)))
+  get'addDirHeader : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"addDirHeader") #x (Val #(x.addDirHeader'))
+  set'addDirHeader : ∀ (x : settings) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"addDirHeader") (PairV #x #y) (Val #(({ x with addDirHeader' := y } : settings)))
+  get'oneOutput : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"oneOutput") #x (Val #(x.oneOutput'))
+  set'oneOutput : ∀ (x : settings) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"oneOutput") (PairV #x #y) (Val #(({ x with oneOutput' := y } : settings)))
+  get'filter : ∀ (x : settings), go.IsGoStepPureDetTagged under (StructFieldGet settings.underlying go!"filter") #x (Val #(x.filter'))
+  set'filter : ∀ (x : settings) (y : LogFilter), go.IsGoStepPureDetTagged under (StructFieldSet settings.underlying go!"filter") (PairV #x #y) (Val #(({ x with filter' := y } : settings)))
   method_set : go.MethodSetIs settings.ty [(go!"k8s.io/klog/v2.deepCopy", (some (go.signature.Signature [] false [settings.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType settings.ty) [(go!"k8s.io/klog/v2.deepCopy", (some (go.signature.Signature [] false [settings.ty])))]
 
 attribute [instance] settings.TypeAssumptions.type_repr
   settings.TypeAssumptions.underlying
-  settings.TypeAssumptions.get_contextualLoggingEnabled
-  settings.TypeAssumptions.set_contextualLoggingEnabled
-  settings.TypeAssumptions.get_logger
-  settings.TypeAssumptions.set_logger
-  settings.TypeAssumptions.get_loggerOptions
-  settings.TypeAssumptions.set_loggerOptions
-  settings.TypeAssumptions.get_toStderr
-  settings.TypeAssumptions.set_toStderr
-  settings.TypeAssumptions.get_alsoToStderr
-  settings.TypeAssumptions.set_alsoToStderr
-  settings.TypeAssumptions.get_legacyStderrThresholdBehavior
-  settings.TypeAssumptions.set_legacyStderrThresholdBehavior
-  settings.TypeAssumptions.get_stderrThreshold
-  settings.TypeAssumptions.set_stderrThreshold
-  settings.TypeAssumptions.get_alsologtostderrthreshold
-  settings.TypeAssumptions.set_alsologtostderrthreshold
-  settings.TypeAssumptions.get_file
-  settings.TypeAssumptions.set_file
-  settings.TypeAssumptions.get_flushInterval
-  settings.TypeAssumptions.set_flushInterval
-  settings.TypeAssumptions.get_filterLength
-  settings.TypeAssumptions.set_filterLength
-  settings.TypeAssumptions.get_traceLocation
-  settings.TypeAssumptions.set_traceLocation
-  settings.TypeAssumptions.get_vmodule
-  settings.TypeAssumptions.set_vmodule
-  settings.TypeAssumptions.get_verbosity
-  settings.TypeAssumptions.set_verbosity
-  settings.TypeAssumptions.get_logDir
-  settings.TypeAssumptions.set_logDir
-  settings.TypeAssumptions.get_logFile
-  settings.TypeAssumptions.set_logFile
-  settings.TypeAssumptions.get_logFileMaxSizeMB
-  settings.TypeAssumptions.set_logFileMaxSizeMB
-  settings.TypeAssumptions.get_skipHeaders
-  settings.TypeAssumptions.set_skipHeaders
-  settings.TypeAssumptions.get_skipLogHeaders
-  settings.TypeAssumptions.set_skipLogHeaders
-  settings.TypeAssumptions.get_addDirHeader
-  settings.TypeAssumptions.set_addDirHeader
-  settings.TypeAssumptions.get_oneOutput
-  settings.TypeAssumptions.set_oneOutput
-  settings.TypeAssumptions.get_filter
-  settings.TypeAssumptions.set_filter
+  settings.TypeAssumptions.get'contextualLoggingEnabled
+  settings.TypeAssumptions.set'contextualLoggingEnabled
+  settings.TypeAssumptions.get'logger
+  settings.TypeAssumptions.set'logger
+  settings.TypeAssumptions.get'loggerOptions
+  settings.TypeAssumptions.set'loggerOptions
+  settings.TypeAssumptions.get'toStderr
+  settings.TypeAssumptions.set'toStderr
+  settings.TypeAssumptions.get'alsoToStderr
+  settings.TypeAssumptions.set'alsoToStderr
+  settings.TypeAssumptions.get'legacyStderrThresholdBehavior
+  settings.TypeAssumptions.set'legacyStderrThresholdBehavior
+  settings.TypeAssumptions.get'stderrThreshold
+  settings.TypeAssumptions.set'stderrThreshold
+  settings.TypeAssumptions.get'alsologtostderrthreshold
+  settings.TypeAssumptions.set'alsologtostderrthreshold
+  settings.TypeAssumptions.get'file
+  settings.TypeAssumptions.set'file
+  settings.TypeAssumptions.get'flushInterval
+  settings.TypeAssumptions.set'flushInterval
+  settings.TypeAssumptions.get'filterLength
+  settings.TypeAssumptions.set'filterLength
+  settings.TypeAssumptions.get'traceLocation
+  settings.TypeAssumptions.set'traceLocation
+  settings.TypeAssumptions.get'vmodule
+  settings.TypeAssumptions.set'vmodule
+  settings.TypeAssumptions.get'verbosity
+  settings.TypeAssumptions.set'verbosity
+  settings.TypeAssumptions.get'logDir
+  settings.TypeAssumptions.set'logDir
+  settings.TypeAssumptions.get'logFile
+  settings.TypeAssumptions.set'logFile
+  settings.TypeAssumptions.get'logFileMaxSizeMB
+  settings.TypeAssumptions.set'logFileMaxSizeMB
+  settings.TypeAssumptions.get'skipHeaders
+  settings.TypeAssumptions.set'skipHeaders
+  settings.TypeAssumptions.get'skipLogHeaders
+  settings.TypeAssumptions.set'skipLogHeaders
+  settings.TypeAssumptions.get'addDirHeader
+  settings.TypeAssumptions.set'addDirHeader
+  settings.TypeAssumptions.get'oneOutput
+  settings.TypeAssumptions.set'oneOutput
+  settings.TypeAssumptions.get'filter
+  settings.TypeAssumptions.set'filter
   settings.TypeAssumptions.method_set
   settings.TypeAssumptions.ptr_method_set
 
@@ -1403,7 +1403,7 @@ noncomputable instance loggingT.zero_val [GooseExts] : ZeroVal loggingT :=
 @[irreducible] noncomputable def loggingT.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   loggingT.fieldsUnsealed
 
-noncomputable instance equals_unfold_loggingT [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'loggingT [GooseExts] [GoGlobalContext] :
     EqualsUnfold loggingT.fields loggingT.fieldsUnsealed :=
   ⟨by unfold loggingT.fields; rfl⟩
 
@@ -1413,31 +1413,31 @@ noncomputable instance equals_unfold_loggingT [GooseExts] [GoGlobalContext] :
 class loggingT.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying loggingT.underlying loggingT
   underlying : go.UnderlyingDirectedEq loggingT.ty loggingT.underlying
-  get_settings : ∀ (x : loggingT), go.IsGoStepPureDetTagged under (StructFieldGet loggingT.underlying go!"settings") #x (Val #(x.settings'))
-  set_settings : ∀ (x : loggingT) (y : settings), go.IsGoStepPureDetTagged under (StructFieldSet loggingT.underlying go!"settings") (PairV #x #y) (Val #(({ x with settings' := y } : loggingT)))
-  get_flushD : ∀ (x : loggingT), go.IsGoStepPureDetTagged under (StructFieldGet loggingT.underlying go!"flushD") #x (Val #(x.flushD'))
-  set_flushD : ∀ (x : loggingT) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet loggingT.underlying go!"flushD") (PairV #x #y) (Val #(({ x with flushD' := y } : loggingT)))
-  get_mu : ∀ (x : loggingT), go.IsGoStepPureDetTagged under (StructFieldGet loggingT.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : loggingT) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet loggingT.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : loggingT)))
-  get_pcs : ∀ (x : loggingT), go.IsGoStepPureDetTagged under (StructFieldGet loggingT.underlying go!"pcs") #x (Val #(x.pcs'))
-  set_pcs : ∀ (x : loggingT) (y : (GoArray w64 1)), go.IsGoStepPureDetTagged under (StructFieldSet loggingT.underlying go!"pcs") (PairV #x #y) (Val #(({ x with pcs' := y } : loggingT)))
-  get_vmap : ∀ (x : loggingT), go.IsGoStepPureDetTagged under (StructFieldGet loggingT.underlying go!"vmap") #x (Val #(x.vmap'))
-  set_vmap : ∀ (x : loggingT) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet loggingT.underlying go!"vmap") (PairV #x #y) (Val #(({ x with vmap' := y } : loggingT)))
+  get'settings : ∀ (x : loggingT), go.IsGoStepPureDetTagged under (StructFieldGet loggingT.underlying go!"settings") #x (Val #(x.settings'))
+  set'settings : ∀ (x : loggingT) (y : settings), go.IsGoStepPureDetTagged under (StructFieldSet loggingT.underlying go!"settings") (PairV #x #y) (Val #(({ x with settings' := y } : loggingT)))
+  get'flushD : ∀ (x : loggingT), go.IsGoStepPureDetTagged under (StructFieldGet loggingT.underlying go!"flushD") #x (Val #(x.flushD'))
+  set'flushD : ∀ (x : loggingT) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet loggingT.underlying go!"flushD") (PairV #x #y) (Val #(({ x with flushD' := y } : loggingT)))
+  get'mu : ∀ (x : loggingT), go.IsGoStepPureDetTagged under (StructFieldGet loggingT.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : loggingT) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet loggingT.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : loggingT)))
+  get'pcs : ∀ (x : loggingT), go.IsGoStepPureDetTagged under (StructFieldGet loggingT.underlying go!"pcs") #x (Val #(x.pcs'))
+  set'pcs : ∀ (x : loggingT) (y : (GoArray w64 1)), go.IsGoStepPureDetTagged under (StructFieldSet loggingT.underlying go!"pcs") (PairV #x #y) (Val #(({ x with pcs' := y } : loggingT)))
+  get'vmap : ∀ (x : loggingT), go.IsGoStepPureDetTagged under (StructFieldGet loggingT.underlying go!"vmap") #x (Val #(x.vmap'))
+  set'vmap : ∀ (x : loggingT) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet loggingT.underlying go!"vmap") (PairV #x #y) (Val #(({ x with vmap' := y } : loggingT)))
   method_set : go.MethodSetIs loggingT.ty [(go!"k8s.io/klog/v2.deepCopy", (some (go.signature.Signature [] false [settings.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType loggingT.ty) [(go!"k8s.io/klog/v2.createFiles", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty] false [go.error]))), (go!"k8s.io/klog/v2.deepCopy", (some (go.signature.Signature [] false [settings.ty]))), (go!"k8s.io/klog/v2.errorS", (some (go.signature.Signature [go.error, (go.GoType.PointerType logWriter.ty), LogFilter.ty, go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.exit", (some (go.signature.Signature [go.error] false []))), (go!"k8s.io/klog/v2.flushAll", (some (go.signature.Signature [] false [fileArray.ty]))), (go!"k8s.io/klog/v2.formatHeader", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, go.string, go.int, _root_.Perennial.time.Time.ty] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/klog/v2/internal/buffer.Buffer" []))]))), (go!"k8s.io/klog/v2.header", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, go.int] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/klog/v2/internal/buffer.Buffer" [])), go.string, go.int]))), (go!"k8s.io/klog/v2.infoS", (some (go.signature.Signature [(go.GoType.PointerType logWriter.ty), LogFilter.ty, go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.lockAndFlushAll", (some (go.signature.Signature [] false []))), (go!"k8s.io/klog/v2.output", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/klog/v2/internal/buffer.Buffer" [])), go.int, go.string, go.int, go.bool] false []))), (go!"k8s.io/klog/v2.print", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), LogFilter.ty, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.printDepth", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), LogFilter.ty, go.int, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.printS", (some (go.signature.Signature [go.error, _root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.printWithFileLine", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), LogFilter.ty, go.string, go.int, go.bool, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.printWithInfos", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/klog/v2/internal/buffer.Buffer" [])), go.string, go.int, _root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), LogFilter.ty, go.int, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.printf", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), LogFilter.ty, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.printfDepth", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), LogFilter.ty, go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.println", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), LogFilter.ty, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.printlnDepth", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), LogFilter.ty, go.int, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.setV", (some (go.signature.Signature [go.uintptr] false [Level.ty]))), (go!"k8s.io/klog/v2.setVState", (some (go.signature.Signature [Level.ty, (go.GoType.SliceType modulePat.ty), go.bool] false []))), (go!"k8s.io/klog/v2.syncAll", (some (go.signature.Signature [fileArray.ty] false [])))]
 
 attribute [instance] loggingT.TypeAssumptions.type_repr
   loggingT.TypeAssumptions.underlying
-  loggingT.TypeAssumptions.get_settings
-  loggingT.TypeAssumptions.set_settings
-  loggingT.TypeAssumptions.get_flushD
-  loggingT.TypeAssumptions.set_flushD
-  loggingT.TypeAssumptions.get_mu
-  loggingT.TypeAssumptions.set_mu
-  loggingT.TypeAssumptions.get_pcs
-  loggingT.TypeAssumptions.set_pcs
-  loggingT.TypeAssumptions.get_vmap
-  loggingT.TypeAssumptions.set_vmap
+  loggingT.TypeAssumptions.get'settings
+  loggingT.TypeAssumptions.set'settings
+  loggingT.TypeAssumptions.get'flushD
+  loggingT.TypeAssumptions.set'flushD
+  loggingT.TypeAssumptions.get'mu
+  loggingT.TypeAssumptions.set'mu
+  loggingT.TypeAssumptions.get'pcs
+  loggingT.TypeAssumptions.set'pcs
+  loggingT.TypeAssumptions.get'vmap
+  loggingT.TypeAssumptions.set'vmap
   loggingT.TypeAssumptions.method_set
   loggingT.TypeAssumptions.ptr_method_set
 
@@ -1472,7 +1472,7 @@ noncomputable instance state.zero_val [GooseExts] : ZeroVal state :=
 @[irreducible] noncomputable def state.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   state.fieldsUnsealed
 
-noncomputable instance equals_unfold_state [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'state [GooseExts] [GoGlobalContext] :
     EqualsUnfold state.fields state.fieldsUnsealed :=
   ⟨by unfold state.fields; rfl⟩
 
@@ -1482,23 +1482,23 @@ noncomputable instance equals_unfold_state [GooseExts] [GoGlobalContext] :
 class state.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying state.underlying state
   underlying : go.UnderlyingDirectedEq state.ty state.underlying
-  get_settings : ∀ (x : state), go.IsGoStepPureDetTagged under (StructFieldGet state.underlying go!"settings") #x (Val #(x.settings'))
-  set_settings : ∀ (x : state) (y : settings), go.IsGoStepPureDetTagged under (StructFieldSet state.underlying go!"settings") (PairV #x #y) (Val #(({ x with settings' := y } : state)))
-  get_flushDRunning : ∀ (x : state), go.IsGoStepPureDetTagged under (StructFieldGet state.underlying go!"flushDRunning") #x (Val #(x.flushDRunning'))
-  set_flushDRunning : ∀ (x : state) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet state.underlying go!"flushDRunning") (PairV #x #y) (Val #(({ x with flushDRunning' := y } : state)))
-  get_maxSize : ∀ (x : state), go.IsGoStepPureDetTagged under (StructFieldGet state.underlying go!"maxSize") #x (Val #(x.maxSize'))
-  set_maxSize : ∀ (x : state) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet state.underlying go!"maxSize") (PairV #x #y) (Val #(({ x with maxSize' := y } : state)))
+  get'settings : ∀ (x : state), go.IsGoStepPureDetTagged under (StructFieldGet state.underlying go!"settings") #x (Val #(x.settings'))
+  set'settings : ∀ (x : state) (y : settings), go.IsGoStepPureDetTagged under (StructFieldSet state.underlying go!"settings") (PairV #x #y) (Val #(({ x with settings' := y } : state)))
+  get'flushDRunning : ∀ (x : state), go.IsGoStepPureDetTagged under (StructFieldGet state.underlying go!"flushDRunning") #x (Val #(x.flushDRunning'))
+  set'flushDRunning : ∀ (x : state) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet state.underlying go!"flushDRunning") (PairV #x #y) (Val #(({ x with flushDRunning' := y } : state)))
+  get'maxSize : ∀ (x : state), go.IsGoStepPureDetTagged under (StructFieldGet state.underlying go!"maxSize") #x (Val #(x.maxSize'))
+  set'maxSize : ∀ (x : state) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet state.underlying go!"maxSize") (PairV #x #y) (Val #(({ x with maxSize' := y } : state)))
   method_set : go.MethodSetIs state.ty [(go!"k8s.io/klog/v2.deepCopy", (some (go.signature.Signature [] false [settings.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType state.ty) [(go!"Restore", (some (go.signature.Signature [] false []))), (go!"k8s.io/klog/v2.deepCopy", (some (go.signature.Signature [] false [settings.ty])))]
 
 attribute [instance] state.TypeAssumptions.type_repr
   state.TypeAssumptions.underlying
-  state.TypeAssumptions.get_settings
-  state.TypeAssumptions.set_settings
-  state.TypeAssumptions.get_flushDRunning
-  state.TypeAssumptions.set_flushDRunning
-  state.TypeAssumptions.get_maxSize
-  state.TypeAssumptions.set_maxSize
+  state.TypeAssumptions.get'settings
+  state.TypeAssumptions.set'settings
+  state.TypeAssumptions.get'flushDRunning
+  state.TypeAssumptions.set'flushDRunning
+  state.TypeAssumptions.get'maxSize
+  state.TypeAssumptions.set'maxSize
   state.TypeAssumptions.method_set
   state.TypeAssumptions.ptr_method_set
 
@@ -1588,7 +1588,7 @@ noncomputable instance Verbose.zero_val [GooseExts] : ZeroVal Verbose :=
 @[irreducible] noncomputable def Verbose.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Verbose.fieldsUnsealed
 
-noncomputable instance equals_unfold_Verbose [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Verbose [GooseExts] [GoGlobalContext] :
     EqualsUnfold Verbose.fields Verbose.fieldsUnsealed :=
   ⟨by unfold Verbose.fields; rfl⟩
 
@@ -1598,19 +1598,19 @@ noncomputable instance equals_unfold_Verbose [GooseExts] [GoGlobalContext] :
 class Verbose.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Verbose.underlying Verbose
   underlying : go.UnderlyingDirectedEq Verbose.ty Verbose.underlying
-  get_enabled : ∀ (x : Verbose), go.IsGoStepPureDetTagged under (StructFieldGet Verbose.underlying go!"enabled") #x (Val #(x.enabled'))
-  set_enabled : ∀ (x : Verbose) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Verbose.underlying go!"enabled") (PairV #x #y) (Val #(({ x with enabled' := y } : Verbose)))
-  get_logger : ∀ (x : Verbose), go.IsGoStepPureDetTagged under (StructFieldGet Verbose.underlying go!"logger") #x (Val #(x.logger'))
-  set_logger : ∀ (x : Verbose) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Verbose.underlying go!"logger") (PairV #x #y) (Val #(({ x with logger' := y } : Verbose)))
+  get'enabled : ∀ (x : Verbose), go.IsGoStepPureDetTagged under (StructFieldGet Verbose.underlying go!"enabled") #x (Val #(x.enabled'))
+  set'enabled : ∀ (x : Verbose) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Verbose.underlying go!"enabled") (PairV #x #y) (Val #(({ x with enabled' := y } : Verbose)))
+  get'logger : ∀ (x : Verbose), go.IsGoStepPureDetTagged under (StructFieldGet Verbose.underlying go!"logger") #x (Val #(x.logger'))
+  set'logger : ∀ (x : Verbose) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Verbose.underlying go!"logger") (PairV #x #y) (Val #(({ x with logger' := y } : Verbose)))
   method_set : go.MethodSetIs Verbose.ty [(go!"Enabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Error", (some (go.signature.Signature [go.error, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"ErrorS", (some (go.signature.Signature [go.error, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfoDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfoS", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfoSDepth", (some (go.signature.Signature [go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfofDepth", (some (go.signature.Signature [go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infoln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfolnDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType (go.GoType.InterfaceType []))] true [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Verbose.ty) [(go!"Enabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Error", (some (go.signature.Signature [go.error, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"ErrorS", (some (go.signature.Signature [go.error, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfoDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfoS", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfoSDepth", (some (go.signature.Signature [go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfofDepth", (some (go.signature.Signature [go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infoln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfolnDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType (go.GoType.InterfaceType []))] true [])))]
 
 attribute [instance] Verbose.TypeAssumptions.type_repr
   Verbose.TypeAssumptions.underlying
-  Verbose.TypeAssumptions.get_enabled
-  Verbose.TypeAssumptions.set_enabled
-  Verbose.TypeAssumptions.get_logger
-  Verbose.TypeAssumptions.set_logger
+  Verbose.TypeAssumptions.get'enabled
+  Verbose.TypeAssumptions.set'enabled
+  Verbose.TypeAssumptions.get'logger
+  Verbose.TypeAssumptions.set'logger
   Verbose.TypeAssumptions.method_set
   Verbose.TypeAssumptions.ptr_method_set
 
@@ -1633,7 +1633,7 @@ noncomputable instance klogger.zero_val [GooseExts] : ZeroVal klogger :=
 @[irreducible] noncomputable def klogger.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   klogger.fieldsUnsealed
 
-noncomputable instance equals_unfold_klogger [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'klogger [GooseExts] [GoGlobalContext] :
     EqualsUnfold klogger.fields klogger.fieldsUnsealed :=
   ⟨by unfold klogger.fields; rfl⟩
 
@@ -1643,104 +1643,104 @@ noncomputable instance equals_unfold_klogger [GooseExts] [GoGlobalContext] :
 class klogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying klogger.underlying klogger
   underlying : go.UnderlyingDirectedEq klogger.ty klogger.underlying
-  get_callDepth : ∀ (x : klogger), go.IsGoStepPureDetTagged under (StructFieldGet klogger.underlying go!"callDepth") #x (Val #(x.callDepth'))
-  set_callDepth : ∀ (x : klogger) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet klogger.underlying go!"callDepth") (PairV #x #y) (Val #(({ x with callDepth' := y } : klogger)))
-  get_hasPrefix : ∀ (x : klogger), go.IsGoStepPureDetTagged under (StructFieldGet klogger.underlying go!"hasPrefix") #x (Val #(x.hasPrefix'))
-  set_hasPrefix : ∀ (x : klogger) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet klogger.underlying go!"hasPrefix") (PairV #x #y) (Val #(({ x with hasPrefix' := y } : klogger)))
-  get_values : ∀ (x : klogger), go.IsGoStepPureDetTagged under (StructFieldGet klogger.underlying go!"values") #x (Val #(x.values'))
-  set_values : ∀ (x : klogger) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet klogger.underlying go!"values") (PairV #x #y) (Val #(({ x with values' := y } : klogger)))
-  get_groups : ∀ (x : klogger), go.IsGoStepPureDetTagged under (StructFieldGet klogger.underlying go!"groups") #x (Val #(x.groups'))
-  set_groups : ∀ (x : klogger) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet klogger.underlying go!"groups") (PairV #x #y) (Val #(({ x with groups' := y } : klogger)))
+  get'callDepth : ∀ (x : klogger), go.IsGoStepPureDetTagged under (StructFieldGet klogger.underlying go!"callDepth") #x (Val #(x.callDepth'))
+  set'callDepth : ∀ (x : klogger) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet klogger.underlying go!"callDepth") (PairV #x #y) (Val #(({ x with callDepth' := y } : klogger)))
+  get'hasPrefix : ∀ (x : klogger), go.IsGoStepPureDetTagged under (StructFieldGet klogger.underlying go!"hasPrefix") #x (Val #(x.hasPrefix'))
+  set'hasPrefix : ∀ (x : klogger) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet klogger.underlying go!"hasPrefix") (PairV #x #y) (Val #(({ x with hasPrefix' := y } : klogger)))
+  get'values : ∀ (x : klogger), go.IsGoStepPureDetTagged under (StructFieldGet klogger.underlying go!"values") #x (Val #(x.values'))
+  set'values : ∀ (x : klogger) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet klogger.underlying go!"values") (PairV #x #y) (Val #(({ x with values' := y } : klogger)))
+  get'groups : ∀ (x : klogger), go.IsGoStepPureDetTagged under (StructFieldGet klogger.underlying go!"groups") #x (Val #(x.groups'))
+  set'groups : ∀ (x : klogger) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet klogger.underlying go!"groups") (PairV #x #y) (Val #(({ x with groups' := y } : klogger)))
   method_set : go.MethodSetIs klogger.ty [(go!"WithCallDepth", (some (go.signature.Signature [go.int] false [_root_.Perennial.github_com.go_logr.logr.LogSink.ty]))), (go!"WithName", (some (go.signature.Signature [go.string] false [_root_.Perennial.github_com.go_logr.logr.LogSink.ty]))), (go!"WithValues", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true [_root_.Perennial.github_com.go_logr.logr.LogSink.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType klogger.ty) [(go!"Enabled", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"Error", (some (go.signature.Signature [go.error, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Handle", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"log/slog.Record" [])] false [go.error]))), (go!"Info", (some (go.signature.Signature [go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Init", (some (go.signature.Signature [_root_.Perennial.github_com.go_logr.logr.RuntimeInfo.ty] false []))), (go!"WithAttrs", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"log/slog.Attr" []))] false [_root_.Perennial.github_com.go_logr.logr.SlogSink.ty]))), (go!"WithCallDepth", (some (go.signature.Signature [go.int] false [_root_.Perennial.github_com.go_logr.logr.LogSink.ty]))), (go!"WithGroup", (some (go.signature.Signature [go.string] false [_root_.Perennial.github_com.go_logr.logr.SlogSink.ty]))), (go!"WithName", (some (go.signature.Signature [go.string] false [_root_.Perennial.github_com.go_logr.logr.LogSink.ty]))), (go!"WithValues", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true [_root_.Perennial.github_com.go_logr.logr.LogSink.ty])))]
 
 attribute [instance] klogger.TypeAssumptions.type_repr
   klogger.TypeAssumptions.underlying
-  klogger.TypeAssumptions.get_callDepth
-  klogger.TypeAssumptions.set_callDepth
-  klogger.TypeAssumptions.get_hasPrefix
-  klogger.TypeAssumptions.set_hasPrefix
-  klogger.TypeAssumptions.get_values
-  klogger.TypeAssumptions.set_values
-  klogger.TypeAssumptions.get_groups
-  klogger.TypeAssumptions.set_groups
+  klogger.TypeAssumptions.get'callDepth
+  klogger.TypeAssumptions.set'callDepth
+  klogger.TypeAssumptions.get'hasPrefix
+  klogger.TypeAssumptions.set'hasPrefix
+  klogger.TypeAssumptions.get'values
+  klogger.TypeAssumptions.set'values
+  klogger.TypeAssumptions.get'groups
+  klogger.TypeAssumptions.set'groups
   klogger.TypeAssumptions.method_set
   klogger.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  LoggerOption_instance : LoggerOption.TypeAssumptions
-  loggerOptions_instance : loggerOptions.TypeAssumptions
-  logWriter_instance : logWriter.TypeAssumptions
-  formatAny_instance : formatAny.TypeAssumptions
-  ObjectRef_instance : ObjectRef.TypeAssumptions
-  KMetadata_instance : KMetadata.TypeAssumptions
-  kobjSlice_instance : kobjSlice.TypeAssumptions
-  severityValue_instance : severityValue.TypeAssumptions
-  OutputStats_instance : OutputStats.TypeAssumptions
-  Level_instance : Level.TypeAssumptions
-  moduleSpec_instance : moduleSpec.TypeAssumptions
-  modulePat_instance : modulePat.TypeAssumptions
-  traceLocation_instance : traceLocation.TypeAssumptions
-  settings_instance : settings.TypeAssumptions
-  loggingT_instance : loggingT.TypeAssumptions
-  State_instance : State.TypeAssumptions
-  state_instance : state.TypeAssumptions
-  syncBuffer_instance : syncBuffer.TypeAssumptions
-  flushDaemon_instance : flushDaemon.TypeAssumptions
-  fileArray_instance : fileArray.TypeAssumptions
-  logBridge_instance : logBridge.TypeAssumptions
-  Verbose_instance : Verbose.TypeAssumptions
-  LogFilter_instance : LogFilter.TypeAssumptions
-  klogger_instance : klogger.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  newVerbose_unfold : FuncUnfold newVerbose [] newVerbose.impl
-  V_unfold : FuncUnfold V [] V.impl
-  VDepth_unfold : FuncUnfold VDepth [] VDepth.impl
-  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
-  import_logr_Assumption : _root_.Perennial.github_com.go_logr.logr.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_runtime_Assumption : _root_.Perennial.runtime.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_severity_Assumption : _root_.Perennial.k8s_io.klog.v2.internal.severity.Assumptions
+  instance'LoggerOption : LoggerOption.TypeAssumptions
+  instance'loggerOptions : loggerOptions.TypeAssumptions
+  instance'logWriter : logWriter.TypeAssumptions
+  instance'formatAny : formatAny.TypeAssumptions
+  instance'ObjectRef : ObjectRef.TypeAssumptions
+  instance'KMetadata : KMetadata.TypeAssumptions
+  instance'kobjSlice : kobjSlice.TypeAssumptions
+  instance'severityValue : severityValue.TypeAssumptions
+  instance'OutputStats : OutputStats.TypeAssumptions
+  instance'Level : Level.TypeAssumptions
+  instance'moduleSpec : moduleSpec.TypeAssumptions
+  instance'modulePat : modulePat.TypeAssumptions
+  instance'traceLocation : traceLocation.TypeAssumptions
+  instance'settings : settings.TypeAssumptions
+  instance'loggingT : loggingT.TypeAssumptions
+  instance'State : State.TypeAssumptions
+  instance'state : state.TypeAssumptions
+  instance'syncBuffer : syncBuffer.TypeAssumptions
+  instance'flushDaemon : flushDaemon.TypeAssumptions
+  instance'fileArray : fileArray.TypeAssumptions
+  instance'logBridge : logBridge.TypeAssumptions
+  instance'Verbose : Verbose.TypeAssumptions
+  instance'LogFilter : LogFilter.TypeAssumptions
+  instance'klogger : klogger.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'newVerbose : FuncUnfold newVerbose [] newVerbose.impl
+  unfold'V : FuncUnfold V [] V.impl
+  unfold'VDepth : FuncUnfold VDepth [] VDepth.impl
+  «unfold'init.1» : FuncUnfold init.«1» [] init.«1».impl
+  import'logr : _root_.Perennial.github_com.go_logr.logr.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'runtime : _root_.Perennial.runtime.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'severity : _root_.Perennial.k8s_io.klog.v2.internal.severity.Assumptions
 
-attribute [instance] Assumptions.LoggerOption_instance
-  Assumptions.loggerOptions_instance
-  Assumptions.logWriter_instance
-  Assumptions.formatAny_instance
-  Assumptions.ObjectRef_instance
-  Assumptions.KMetadata_instance
-  Assumptions.kobjSlice_instance
-  Assumptions.severityValue_instance
-  Assumptions.OutputStats_instance
-  Assumptions.Level_instance
-  Assumptions.moduleSpec_instance
-  Assumptions.modulePat_instance
-  Assumptions.traceLocation_instance
-  Assumptions.settings_instance
-  Assumptions.loggingT_instance
-  Assumptions.State_instance
-  Assumptions.state_instance
-  Assumptions.syncBuffer_instance
-  Assumptions.flushDaemon_instance
-  Assumptions.fileArray_instance
-  Assumptions.logBridge_instance
-  Assumptions.Verbose_instance
-  Assumptions.LogFilter_instance
-  Assumptions.klogger_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.newVerbose_unfold
-  Assumptions.V_unfold
-  Assumptions.VDepth_unfold
-  Assumptions.«init.1_unfold»
-  Assumptions.import_logr_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_severity_Assumption
+attribute [instance] Assumptions.instance'LoggerOption
+  Assumptions.instance'loggerOptions
+  Assumptions.instance'logWriter
+  Assumptions.instance'formatAny
+  Assumptions.instance'ObjectRef
+  Assumptions.instance'KMetadata
+  Assumptions.instance'kobjSlice
+  Assumptions.instance'severityValue
+  Assumptions.instance'OutputStats
+  Assumptions.instance'Level
+  Assumptions.instance'moduleSpec
+  Assumptions.instance'modulePat
+  Assumptions.instance'traceLocation
+  Assumptions.instance'settings
+  Assumptions.instance'loggingT
+  Assumptions.instance'State
+  Assumptions.instance'state
+  Assumptions.instance'syncBuffer
+  Assumptions.instance'flushDaemon
+  Assumptions.instance'fileArray
+  Assumptions.instance'logBridge
+  Assumptions.instance'Verbose
+  Assumptions.instance'LogFilter
+  Assumptions.instance'klogger
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'newVerbose
+  Assumptions.unfold'V
+  Assumptions.unfold'VDepth
+  Assumptions.«unfold'init.1»
+  Assumptions.import'logr
+  Assumptions.import'time
+  Assumptions.import'io
+  Assumptions.import'runtime
+  Assumptions.import'sync
+  Assumptions.import'atomic
+  Assumptions.import'severity
 
 end k8s_io.klog.v2
 

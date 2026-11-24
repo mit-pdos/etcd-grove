@@ -531,39 +531,39 @@ attribute [instance] WalkFunc.TypeAssumptions.underlying
   WalkFunc.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  WalkFunc_instance : WalkFunc.TypeAssumptions
-  Clean_unfold : FuncUnfold Clean [] Clean.impl
-  Join_unfold : FuncUnfold Join [] Join.impl
-  Ext_unfold : FuncUnfold Ext [] Ext.impl
-  IsAbs_unfold : FuncUnfold IsAbs [] IsAbs.impl
-  Abs_unfold : FuncUnfold Abs [] Abs.impl
-  unixAbs_unfold : FuncUnfold unixAbs [] unixAbs.impl
-  Base_unfold : FuncUnfold Base [] Base.impl
-  Dir_unfold : FuncUnfold Dir [] Dir.impl
-  abs_unfold : FuncUnfold abs [] abs.impl
-  join_unfold : FuncUnfold join [] join.impl
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_filepathlite_Assumption : _root_.Perennial.internal.filepathlite.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_fs_Assumption : _root_.Perennial.io.fs.Assumptions
+  instance'WalkFunc : WalkFunc.TypeAssumptions
+  unfold'Clean : FuncUnfold Clean [] Clean.impl
+  unfold'Join : FuncUnfold Join [] Join.impl
+  unfold'Ext : FuncUnfold Ext [] Ext.impl
+  unfold'IsAbs : FuncUnfold IsAbs [] IsAbs.impl
+  unfold'Abs : FuncUnfold Abs [] Abs.impl
+  unfold'unixAbs : FuncUnfold unixAbs [] unixAbs.impl
+  unfold'Base : FuncUnfold Base [] Base.impl
+  unfold'Dir : FuncUnfold Dir [] Dir.impl
+  unfold'abs : FuncUnfold abs [] abs.impl
+  unfold'join : FuncUnfold join [] join.impl
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'filepathlite : _root_.Perennial.internal.filepathlite.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'fs : _root_.Perennial.io.fs.Assumptions
 
-attribute [instance] Assumptions.WalkFunc_instance
-  Assumptions.Clean_unfold
-  Assumptions.Join_unfold
-  Assumptions.Ext_unfold
-  Assumptions.IsAbs_unfold
-  Assumptions.Abs_unfold
-  Assumptions.unixAbs_unfold
-  Assumptions.Base_unfold
-  Assumptions.Dir_unfold
-  Assumptions.abs_unfold
-  Assumptions.join_unfold
-  Assumptions.import_errors_Assumption
-  Assumptions.import_filepathlite_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_fs_Assumption
+attribute [instance] Assumptions.instance'WalkFunc
+  Assumptions.unfold'Clean
+  Assumptions.unfold'Join
+  Assumptions.unfold'Ext
+  Assumptions.unfold'IsAbs
+  Assumptions.unfold'Abs
+  Assumptions.unfold'unixAbs
+  Assumptions.unfold'Base
+  Assumptions.unfold'Dir
+  Assumptions.unfold'abs
+  Assumptions.unfold'join
+  Assumptions.import'errors
+  Assumptions.import'filepathlite
+  Assumptions.import'os
+  Assumptions.import'strings
+  Assumptions.import'fs
 
 end path.filepath
 

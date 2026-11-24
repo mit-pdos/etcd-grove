@@ -56,7 +56,7 @@ attribute [irreducible] Node.ty
 @[reducible] noncomputable def between [GooseExts] [GoGlobalContext] : val :=
   #(W8 1)
 
-@[reducible] noncomputable def «end» [GooseExts] [GoGlobalContext] : val :=
+@[reducible] noncomputable def end'' [GooseExts] [GoGlobalContext] : val :=
   #(W8 2)
 
 @[reducible] noncomputable def black [GooseExts] [GoGlobalContext] : val :=
@@ -136,7 +136,7 @@ noncomputable def Iterator.Next.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Node.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val «end»)
+  (Let "$r0" (Val end'')
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -148,7 +148,7 @@ noncomputable def Iterator.Next.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore position.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals position.ty))) (Pair (App (Val (GoInstruction (GoLoad position.ty))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))) (Val «end»)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals position.ty))) (Pair (App (Val (GoInstruction (GoLoad position.ty))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))) (Val end'')))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals position.ty))) (Pair (App (Val (GoInstruction (GoLoad position.ty))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))) (Val begin))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Tree.ty) go!"Left"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tree.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"tree"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))))) (Val #()))
   (Let "left" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Node.ty)))) (Val #())))
@@ -252,7 +252,7 @@ noncomputable def Iterator.Prev.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals position.ty))) (Pair (App (Val (GoInstruction (GoLoad position.ty))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))) (Val begin)))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals position.ty))) (Pair (App (Val (GoInstruction (GoLoad position.ty))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))) (Val «end»))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals position.ty))) (Pair (App (Val (GoInstruction (GoLoad position.ty))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))) (Val end''))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Tree.ty) go!"Right"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tree.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"tree"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))))) (Val #()))
   (Let "right" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Node.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -411,7 +411,7 @@ noncomputable def Iterator.End.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "iterator" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Node.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val «end»)
+  (Let "$r0" (Val end'')
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore position.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0")))))))
   (App (Val doExecute)
@@ -1428,7 +1428,7 @@ noncomputable def output.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
 
 /-- go: redblacktree.go:326:19 -/
-noncomputable def Tree.lookup.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Tree.lookup''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tree"
   (Lam "key"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Node.ty)))) (Val #())))
@@ -2268,7 +2268,7 @@ noncomputable instance Iterator.zero_val [GooseExts] : ZeroVal Iterator :=
 @[irreducible] noncomputable def Iterator.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Iterator.fieldsUnsealed
 
-noncomputable instance equals_unfold_Iterator [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Iterator [GooseExts] [GoGlobalContext] :
     EqualsUnfold Iterator.fields Iterator.fieldsUnsealed :=
   ⟨by unfold Iterator.fields; rfl⟩
 
@@ -2278,47 +2278,47 @@ noncomputable instance equals_unfold_Iterator [GooseExts] [GoGlobalContext] :
 class Iterator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Iterator.underlying Iterator
   underlying : go.UnderlyingDirectedEq Iterator.ty Iterator.underlying
-  get_tree : ∀ (x : Iterator), go.IsGoStepPureDetTagged under (StructFieldGet Iterator.underlying go!"tree") #x (Val #(x.tree'))
-  set_tree : ∀ (x : Iterator) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Iterator.underlying go!"tree") (PairV #x #y) (Val #(({ x with tree' := y } : Iterator)))
-  get_node : ∀ (x : Iterator), go.IsGoStepPureDetTagged under (StructFieldGet Iterator.underlying go!"node") #x (Val #(x.node'))
-  set_node : ∀ (x : Iterator) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Iterator.underlying go!"node") (PairV #x #y) (Val #(({ x with node' := y } : Iterator)))
-  get_position : ∀ (x : Iterator), go.IsGoStepPureDetTagged under (StructFieldGet Iterator.underlying go!"position") #x (Val #(x.position'))
-  set_position : ∀ (x : Iterator) (y : position), go.IsGoStepPureDetTagged under (StructFieldSet Iterator.underlying go!"position") (PairV #x #y) (Val #(({ x with position' := y } : Iterator)))
+  get'tree : ∀ (x : Iterator), go.IsGoStepPureDetTagged under (StructFieldGet Iterator.underlying go!"tree") #x (Val #(x.tree'))
+  set'tree : ∀ (x : Iterator) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Iterator.underlying go!"tree") (PairV #x #y) (Val #(({ x with tree' := y } : Iterator)))
+  get'node : ∀ (x : Iterator), go.IsGoStepPureDetTagged under (StructFieldGet Iterator.underlying go!"node") #x (Val #(x.node'))
+  set'node : ∀ (x : Iterator) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Iterator.underlying go!"node") (PairV #x #y) (Val #(({ x with node' := y } : Iterator)))
+  get'position : ∀ (x : Iterator), go.IsGoStepPureDetTagged under (StructFieldGet Iterator.underlying go!"position") #x (Val #(x.position'))
+  set'position : ∀ (x : Iterator) (y : position), go.IsGoStepPureDetTagged under (StructFieldSet Iterator.underlying go!"position") (PairV #x #y) (Val #(({ x with position' := y } : Iterator)))
   method_set : go.MethodSetIs Iterator.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Iterator.ty) [(go!"Begin", (some (go.signature.Signature [] false []))), (go!"End", (some (go.signature.Signature [] false []))), (go!"First", (some (go.signature.Signature [] false [go.bool]))), (go!"Key", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Last", (some (go.signature.Signature [] false [go.bool]))), (go!"Next", (some (go.signature.Signature [] false [go.bool]))), (go!"NextTo", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))] false [go.bool]))), (go!"Node", (some (go.signature.Signature [] false [(go.GoType.PointerType Node.ty)]))), (go!"Prev", (some (go.signature.Signature [] false [go.bool]))), (go!"PrevTo", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))] false [go.bool]))), (go!"Value", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])])))]
-  ptr_Begin_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Begin" Iterator.Begin.impl
-  ptr_End_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"End" Iterator.End.impl
-  ptr_First_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"First" Iterator.First.impl
-  ptr_Key_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Key" Iterator.Key.impl
-  ptr_Last_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Last" Iterator.Last.impl
-  ptr_Next_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Next" Iterator.Next.impl
-  ptr_NextTo_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"NextTo" Iterator.NextTo.impl
-  ptr_Node_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Node" Iterator.Node.impl
-  ptr_Prev_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Prev" Iterator.Prev.impl
-  ptr_PrevTo_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"PrevTo" Iterator.PrevTo.impl
-  ptr_Value_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Value" Iterator.Value.impl
+  ptr_unfold'Begin : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Begin" Iterator.Begin.impl
+  ptr_unfold'End : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"End" Iterator.End.impl
+  ptr_unfold'First : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"First" Iterator.First.impl
+  ptr_unfold'Key : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Key" Iterator.Key.impl
+  ptr_unfold'Last : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Last" Iterator.Last.impl
+  ptr_unfold'Next : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Next" Iterator.Next.impl
+  ptr_unfold'NextTo : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"NextTo" Iterator.NextTo.impl
+  ptr_unfold'Node : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Node" Iterator.Node.impl
+  ptr_unfold'Prev : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Prev" Iterator.Prev.impl
+  ptr_unfold'PrevTo : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"PrevTo" Iterator.PrevTo.impl
+  ptr_unfold'Value : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Value" Iterator.Value.impl
 
 attribute [instance] Iterator.TypeAssumptions.type_repr
   Iterator.TypeAssumptions.underlying
-  Iterator.TypeAssumptions.get_tree
-  Iterator.TypeAssumptions.set_tree
-  Iterator.TypeAssumptions.get_node
-  Iterator.TypeAssumptions.set_node
-  Iterator.TypeAssumptions.get_position
-  Iterator.TypeAssumptions.set_position
+  Iterator.TypeAssumptions.get'tree
+  Iterator.TypeAssumptions.set'tree
+  Iterator.TypeAssumptions.get'node
+  Iterator.TypeAssumptions.set'node
+  Iterator.TypeAssumptions.get'position
+  Iterator.TypeAssumptions.set'position
   Iterator.TypeAssumptions.method_set
   Iterator.TypeAssumptions.ptr_method_set
-  Iterator.TypeAssumptions.ptr_Begin_unfold
-  Iterator.TypeAssumptions.ptr_End_unfold
-  Iterator.TypeAssumptions.ptr_First_unfold
-  Iterator.TypeAssumptions.ptr_Key_unfold
-  Iterator.TypeAssumptions.ptr_Last_unfold
-  Iterator.TypeAssumptions.ptr_Next_unfold
-  Iterator.TypeAssumptions.ptr_NextTo_unfold
-  Iterator.TypeAssumptions.ptr_Node_unfold
-  Iterator.TypeAssumptions.ptr_Prev_unfold
-  Iterator.TypeAssumptions.ptr_PrevTo_unfold
-  Iterator.TypeAssumptions.ptr_Value_unfold
+  Iterator.TypeAssumptions.ptr_unfold'Begin
+  Iterator.TypeAssumptions.ptr_unfold'End
+  Iterator.TypeAssumptions.ptr_unfold'First
+  Iterator.TypeAssumptions.ptr_unfold'Key
+  Iterator.TypeAssumptions.ptr_unfold'Last
+  Iterator.TypeAssumptions.ptr_unfold'Next
+  Iterator.TypeAssumptions.ptr_unfold'NextTo
+  Iterator.TypeAssumptions.ptr_unfold'Node
+  Iterator.TypeAssumptions.ptr_unfold'Prev
+  Iterator.TypeAssumptions.ptr_unfold'PrevTo
+  Iterator.TypeAssumptions.ptr_unfold'Value
 
 abbrev color [GooseExts] : Type := Bool
 
@@ -2351,7 +2351,7 @@ noncomputable instance Tree.zero_val [GooseExts] : ZeroVal Tree :=
 @[irreducible] noncomputable def Tree.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Tree.fieldsUnsealed
 
-noncomputable instance equals_unfold_Tree [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Tree [GooseExts] [GoGlobalContext] :
     EqualsUnfold Tree.fields Tree.fieldsUnsealed :=
   ⟨by unfold Tree.fields; rfl⟩
 
@@ -2361,95 +2361,95 @@ noncomputable instance equals_unfold_Tree [GooseExts] [GoGlobalContext] :
 class Tree.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Tree.underlying Tree
   underlying : go.UnderlyingDirectedEq Tree.ty Tree.underlying
-  get_Root : ∀ (x : Tree), go.IsGoStepPureDetTagged under (StructFieldGet Tree.underlying go!"Root") #x (Val #(x.Root'))
-  set_Root : ∀ (x : Tree) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Tree.underlying go!"Root") (PairV #x #y) (Val #(({ x with Root' := y } : Tree)))
-  get_size : ∀ (x : Tree), go.IsGoStepPureDetTagged under (StructFieldGet Tree.underlying go!"size") #x (Val #(x.size'))
-  set_size : ∀ (x : Tree) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Tree.underlying go!"size") (PairV #x #y) (Val #(({ x with size' := y } : Tree)))
-  get_Comparator : ∀ (x : Tree), go.IsGoStepPureDetTagged under (StructFieldGet Tree.underlying go!"Comparator") #x (Val #(x.Comparator'))
-  set_Comparator : ∀ (x : Tree) (y : _root_.Perennial.github_com.emirpasic.gods.utils.Comparator), go.IsGoStepPureDetTagged under (StructFieldSet Tree.underlying go!"Comparator") (PairV #x #y) (Val #(({ x with Comparator' := y } : Tree)))
+  get'Root : ∀ (x : Tree), go.IsGoStepPureDetTagged under (StructFieldGet Tree.underlying go!"Root") #x (Val #(x.Root'))
+  set'Root : ∀ (x : Tree) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Tree.underlying go!"Root") (PairV #x #y) (Val #(({ x with Root' := y } : Tree)))
+  get'size : ∀ (x : Tree), go.IsGoStepPureDetTagged under (StructFieldGet Tree.underlying go!"size") #x (Val #(x.size'))
+  set'size : ∀ (x : Tree) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Tree.underlying go!"size") (PairV #x #y) (Val #(({ x with size' := y } : Tree)))
+  get'Comparator : ∀ (x : Tree), go.IsGoStepPureDetTagged under (StructFieldGet Tree.underlying go!"Comparator") #x (Val #(x.Comparator'))
+  set'Comparator : ∀ (x : Tree) (y : _root_.Perennial.github_com.emirpasic.gods.utils.Comparator), go.IsGoStepPureDetTagged under (StructFieldSet Tree.underlying go!"Comparator") (PairV #x #y) (Val #(({ x with Comparator' := y } : Tree)))
   method_set : go.MethodSetIs Tree.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Tree.ty) [(go!"Ceiling", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.PointerType Node.ty), go.bool]))), (go!"Clear", (some (go.signature.Signature [] false []))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Floor", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.PointerType Node.ty), go.bool]))), (go!"FromJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool]))), (go!"GetNode", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.PointerType Node.ty)]))), (go!"Iterator", (some (go.signature.Signature [] false [Iterator.ty]))), (go!"IteratorAt", (some (go.signature.Signature [(go.GoType.PointerType Node.ty)] false [Iterator.ty]))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"Left", (some (go.signature.Signature [] false [(go.GoType.PointerType Node.ty)]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Put", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false []))), (go!"Remove", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"Right", (some (go.signature.Signature [] false [(go.GoType.PointerType Node.ty)]))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"ToJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"github.com/emirpasic/gods/trees/redblacktree.deleteCase1", (some (go.signature.Signature [(go.GoType.PointerType Node.ty)] false []))), (go!"github.com/emirpasic/gods/trees/redblacktree.deleteCase2", (some (go.signature.Signature [(go.GoType.PointerType Node.ty)] false []))), (go!"github.com/emirpasic/gods/trees/redblacktree.deleteCase3", (some (go.signature.Signature [(go.GoType.PointerType Node.ty)] false []))), (go!"github.com/emirpasic/gods/trees/redblacktree.deleteCase4", (some (go.signature.Signature [(go.GoType.PointerType Node.ty)] false []))), (go!"github.com/emirpasic/gods/trees/redblacktree.deleteCase5", (some (go.signature.Signature [(go.GoType.PointerType Node.ty)] false []))), (go!"github.com/emirpasic/gods/trees/redblacktree.deleteCase6", (some (go.signature.Signature [(go.GoType.PointerType Node.ty)] false []))), (go!"github.com/emirpasic/gods/trees/redblacktree.insertCase1", (some (go.signature.Signature [(go.GoType.PointerType Node.ty)] false []))), (go!"github.com/emirpasic/gods/trees/redblacktree.insertCase2", (some (go.signature.Signature [(go.GoType.PointerType Node.ty)] false []))), (go!"github.com/emirpasic/gods/trees/redblacktree.insertCase3", (some (go.signature.Signature [(go.GoType.PointerType Node.ty)] false []))), (go!"github.com/emirpasic/gods/trees/redblacktree.insertCase4", (some (go.signature.Signature [(go.GoType.PointerType Node.ty)] false []))), (go!"github.com/emirpasic/gods/trees/redblacktree.insertCase5", (some (go.signature.Signature [(go.GoType.PointerType Node.ty)] false []))), (go!"github.com/emirpasic/gods/trees/redblacktree.lookup", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.PointerType Node.ty)]))), (go!"github.com/emirpasic/gods/trees/redblacktree.replaceNode", (some (go.signature.Signature [(go.GoType.PointerType Node.ty), (go.GoType.PointerType Node.ty)] false []))), (go!"github.com/emirpasic/gods/trees/redblacktree.rotateLeft", (some (go.signature.Signature [(go.GoType.PointerType Node.ty)] false []))), (go!"github.com/emirpasic/gods/trees/redblacktree.rotateRight", (some (go.signature.Signature [(go.GoType.PointerType Node.ty)] false [])))]
-  ptr_Ceiling_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Ceiling" Tree.Ceiling.impl
-  ptr_Clear_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Clear" Tree.Clear.impl
-  ptr_Empty_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Empty" Tree.Empty.impl
-  ptr_Floor_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Floor" Tree.Floor.impl
-  ptr_FromJSON_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"FromJSON" Tree.FromJSON.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Get" Tree.Get.impl
-  ptr_GetNode_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"GetNode" Tree.GetNode.impl
-  ptr_Iterator_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Iterator" Tree.Iterator.impl
-  ptr_IteratorAt_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"IteratorAt" Tree.IteratorAt.impl
-  ptr_Keys_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Keys" Tree.Keys.impl
-  ptr_Left_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Left" Tree.Left.impl
-  ptr_MarshalJSON_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"MarshalJSON" Tree.MarshalJSON.impl
-  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Put" Tree.Put.impl
-  ptr_Remove_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Remove" Tree.Remove.impl
-  ptr_Right_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Right" Tree.Right.impl
-  ptr_Size_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Size" Tree.Size.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"String" Tree.String.impl
-  ptr_ToJSON_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"ToJSON" Tree.ToJSON.impl
-  ptr_UnmarshalJSON_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"UnmarshalJSON" Tree.UnmarshalJSON.impl
-  ptr_Values_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Values" Tree.Values.impl
-  ptr_deleteCase1_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"deleteCase1" Tree.deleteCase1.impl
-  ptr_deleteCase2_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"deleteCase2" Tree.deleteCase2.impl
-  ptr_deleteCase3_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"deleteCase3" Tree.deleteCase3.impl
-  ptr_deleteCase4_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"deleteCase4" Tree.deleteCase4.impl
-  ptr_deleteCase5_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"deleteCase5" Tree.deleteCase5.impl
-  ptr_deleteCase6_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"deleteCase6" Tree.deleteCase6.impl
-  ptr_insertCase1_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"insertCase1" Tree.insertCase1.impl
-  ptr_insertCase2_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"insertCase2" Tree.insertCase2.impl
-  ptr_insertCase3_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"insertCase3" Tree.insertCase3.impl
-  ptr_insertCase4_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"insertCase4" Tree.insertCase4.impl
-  ptr_insertCase5_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"insertCase5" Tree.insertCase5.impl
-  ptr_lookup_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"lookup" Tree.lookup.impl
-  ptr_replaceNode_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"replaceNode" Tree.replaceNode.impl
-  ptr_rotateLeft_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"rotateLeft" Tree.rotateLeft.impl
-  ptr_rotateRight_unfold : MethodUnfold (go.GoType.PointerType Tree.ty) go!"rotateRight" Tree.rotateRight.impl
+  ptr_unfold'Ceiling : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Ceiling" Tree.Ceiling.impl
+  ptr_unfold'Clear : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Clear" Tree.Clear.impl
+  ptr_unfold'Empty : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Empty" Tree.Empty.impl
+  ptr_unfold'Floor : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Floor" Tree.Floor.impl
+  ptr_unfold'FromJSON : MethodUnfold (go.GoType.PointerType Tree.ty) go!"FromJSON" Tree.FromJSON.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Get" Tree.Get.impl
+  ptr_unfold'GetNode : MethodUnfold (go.GoType.PointerType Tree.ty) go!"GetNode" Tree.GetNode.impl
+  ptr_unfold'Iterator : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Iterator" Tree.Iterator.impl
+  ptr_unfold'IteratorAt : MethodUnfold (go.GoType.PointerType Tree.ty) go!"IteratorAt" Tree.IteratorAt.impl
+  ptr_unfold'Keys : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Keys" Tree.Keys.impl
+  ptr_unfold'Left : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Left" Tree.Left.impl
+  ptr_unfold'MarshalJSON : MethodUnfold (go.GoType.PointerType Tree.ty) go!"MarshalJSON" Tree.MarshalJSON.impl
+  ptr_unfold'Put : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Put" Tree.Put.impl
+  ptr_unfold'Remove : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Remove" Tree.Remove.impl
+  ptr_unfold'Right : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Right" Tree.Right.impl
+  ptr_unfold'Size : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Size" Tree.Size.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType Tree.ty) go!"String" Tree.String.impl
+  ptr_unfold'ToJSON : MethodUnfold (go.GoType.PointerType Tree.ty) go!"ToJSON" Tree.ToJSON.impl
+  ptr_unfold'UnmarshalJSON : MethodUnfold (go.GoType.PointerType Tree.ty) go!"UnmarshalJSON" Tree.UnmarshalJSON.impl
+  ptr_unfold'Values : MethodUnfold (go.GoType.PointerType Tree.ty) go!"Values" Tree.Values.impl
+  ptr_unfold'deleteCase1 : MethodUnfold (go.GoType.PointerType Tree.ty) go!"deleteCase1" Tree.deleteCase1.impl
+  ptr_unfold'deleteCase2 : MethodUnfold (go.GoType.PointerType Tree.ty) go!"deleteCase2" Tree.deleteCase2.impl
+  ptr_unfold'deleteCase3 : MethodUnfold (go.GoType.PointerType Tree.ty) go!"deleteCase3" Tree.deleteCase3.impl
+  ptr_unfold'deleteCase4 : MethodUnfold (go.GoType.PointerType Tree.ty) go!"deleteCase4" Tree.deleteCase4.impl
+  ptr_unfold'deleteCase5 : MethodUnfold (go.GoType.PointerType Tree.ty) go!"deleteCase5" Tree.deleteCase5.impl
+  ptr_unfold'deleteCase6 : MethodUnfold (go.GoType.PointerType Tree.ty) go!"deleteCase6" Tree.deleteCase6.impl
+  ptr_unfold'insertCase1 : MethodUnfold (go.GoType.PointerType Tree.ty) go!"insertCase1" Tree.insertCase1.impl
+  ptr_unfold'insertCase2 : MethodUnfold (go.GoType.PointerType Tree.ty) go!"insertCase2" Tree.insertCase2.impl
+  ptr_unfold'insertCase3 : MethodUnfold (go.GoType.PointerType Tree.ty) go!"insertCase3" Tree.insertCase3.impl
+  ptr_unfold'insertCase4 : MethodUnfold (go.GoType.PointerType Tree.ty) go!"insertCase4" Tree.insertCase4.impl
+  ptr_unfold'insertCase5 : MethodUnfold (go.GoType.PointerType Tree.ty) go!"insertCase5" Tree.insertCase5.impl
+  ptr_unfold'lookup : MethodUnfold (go.GoType.PointerType Tree.ty) go!"lookup" Tree.lookup''.impl
+  ptr_unfold'replaceNode : MethodUnfold (go.GoType.PointerType Tree.ty) go!"replaceNode" Tree.replaceNode.impl
+  ptr_unfold'rotateLeft : MethodUnfold (go.GoType.PointerType Tree.ty) go!"rotateLeft" Tree.rotateLeft.impl
+  ptr_unfold'rotateRight : MethodUnfold (go.GoType.PointerType Tree.ty) go!"rotateRight" Tree.rotateRight.impl
 
 attribute [instance] Tree.TypeAssumptions.type_repr
   Tree.TypeAssumptions.underlying
-  Tree.TypeAssumptions.get_Root
-  Tree.TypeAssumptions.set_Root
-  Tree.TypeAssumptions.get_size
-  Tree.TypeAssumptions.set_size
-  Tree.TypeAssumptions.get_Comparator
-  Tree.TypeAssumptions.set_Comparator
+  Tree.TypeAssumptions.get'Root
+  Tree.TypeAssumptions.set'Root
+  Tree.TypeAssumptions.get'size
+  Tree.TypeAssumptions.set'size
+  Tree.TypeAssumptions.get'Comparator
+  Tree.TypeAssumptions.set'Comparator
   Tree.TypeAssumptions.method_set
   Tree.TypeAssumptions.ptr_method_set
-  Tree.TypeAssumptions.ptr_Ceiling_unfold
-  Tree.TypeAssumptions.ptr_Clear_unfold
-  Tree.TypeAssumptions.ptr_Empty_unfold
-  Tree.TypeAssumptions.ptr_Floor_unfold
-  Tree.TypeAssumptions.ptr_FromJSON_unfold
-  Tree.TypeAssumptions.ptr_Get_unfold
-  Tree.TypeAssumptions.ptr_GetNode_unfold
-  Tree.TypeAssumptions.ptr_Iterator_unfold
-  Tree.TypeAssumptions.ptr_IteratorAt_unfold
-  Tree.TypeAssumptions.ptr_Keys_unfold
-  Tree.TypeAssumptions.ptr_Left_unfold
-  Tree.TypeAssumptions.ptr_MarshalJSON_unfold
-  Tree.TypeAssumptions.ptr_Put_unfold
-  Tree.TypeAssumptions.ptr_Remove_unfold
-  Tree.TypeAssumptions.ptr_Right_unfold
-  Tree.TypeAssumptions.ptr_Size_unfold
-  Tree.TypeAssumptions.ptr_String_unfold
-  Tree.TypeAssumptions.ptr_ToJSON_unfold
-  Tree.TypeAssumptions.ptr_UnmarshalJSON_unfold
-  Tree.TypeAssumptions.ptr_Values_unfold
-  Tree.TypeAssumptions.ptr_deleteCase1_unfold
-  Tree.TypeAssumptions.ptr_deleteCase2_unfold
-  Tree.TypeAssumptions.ptr_deleteCase3_unfold
-  Tree.TypeAssumptions.ptr_deleteCase4_unfold
-  Tree.TypeAssumptions.ptr_deleteCase5_unfold
-  Tree.TypeAssumptions.ptr_deleteCase6_unfold
-  Tree.TypeAssumptions.ptr_insertCase1_unfold
-  Tree.TypeAssumptions.ptr_insertCase2_unfold
-  Tree.TypeAssumptions.ptr_insertCase3_unfold
-  Tree.TypeAssumptions.ptr_insertCase4_unfold
-  Tree.TypeAssumptions.ptr_insertCase5_unfold
-  Tree.TypeAssumptions.ptr_lookup_unfold
-  Tree.TypeAssumptions.ptr_replaceNode_unfold
-  Tree.TypeAssumptions.ptr_rotateLeft_unfold
-  Tree.TypeAssumptions.ptr_rotateRight_unfold
+  Tree.TypeAssumptions.ptr_unfold'Ceiling
+  Tree.TypeAssumptions.ptr_unfold'Clear
+  Tree.TypeAssumptions.ptr_unfold'Empty
+  Tree.TypeAssumptions.ptr_unfold'Floor
+  Tree.TypeAssumptions.ptr_unfold'FromJSON
+  Tree.TypeAssumptions.ptr_unfold'Get
+  Tree.TypeAssumptions.ptr_unfold'GetNode
+  Tree.TypeAssumptions.ptr_unfold'Iterator
+  Tree.TypeAssumptions.ptr_unfold'IteratorAt
+  Tree.TypeAssumptions.ptr_unfold'Keys
+  Tree.TypeAssumptions.ptr_unfold'Left
+  Tree.TypeAssumptions.ptr_unfold'MarshalJSON
+  Tree.TypeAssumptions.ptr_unfold'Put
+  Tree.TypeAssumptions.ptr_unfold'Remove
+  Tree.TypeAssumptions.ptr_unfold'Right
+  Tree.TypeAssumptions.ptr_unfold'Size
+  Tree.TypeAssumptions.ptr_unfold'String
+  Tree.TypeAssumptions.ptr_unfold'ToJSON
+  Tree.TypeAssumptions.ptr_unfold'UnmarshalJSON
+  Tree.TypeAssumptions.ptr_unfold'Values
+  Tree.TypeAssumptions.ptr_unfold'deleteCase1
+  Tree.TypeAssumptions.ptr_unfold'deleteCase2
+  Tree.TypeAssumptions.ptr_unfold'deleteCase3
+  Tree.TypeAssumptions.ptr_unfold'deleteCase4
+  Tree.TypeAssumptions.ptr_unfold'deleteCase5
+  Tree.TypeAssumptions.ptr_unfold'deleteCase6
+  Tree.TypeAssumptions.ptr_unfold'insertCase1
+  Tree.TypeAssumptions.ptr_unfold'insertCase2
+  Tree.TypeAssumptions.ptr_unfold'insertCase3
+  Tree.TypeAssumptions.ptr_unfold'insertCase4
+  Tree.TypeAssumptions.ptr_unfold'insertCase5
+  Tree.TypeAssumptions.ptr_unfold'lookup
+  Tree.TypeAssumptions.ptr_unfold'replaceNode
+  Tree.TypeAssumptions.ptr_unfold'rotateLeft
+  Tree.TypeAssumptions.ptr_unfold'rotateRight
 
 structure Node [GooseExts] where
   mk ::
@@ -2474,7 +2474,7 @@ noncomputable instance Node.zero_val [GooseExts] : ZeroVal Node :=
 @[irreducible] noncomputable def Node.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Node.fieldsUnsealed
 
-noncomputable instance equals_unfold_Node [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Node [GooseExts] [GoGlobalContext] :
     EqualsUnfold Node.fields Node.fieldsUnsealed :=
   ⟨by unfold Node.fields; rfl⟩
 
@@ -2484,82 +2484,82 @@ noncomputable instance equals_unfold_Node [GooseExts] [GoGlobalContext] :
 class Node.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Node.underlying Node
   underlying : go.UnderlyingDirectedEq Node.ty Node.underlying
-  get_Key : ∀ (x : Node), go.IsGoStepPureDetTagged under (StructFieldGet Node.underlying go!"Key") #x (Val #(x.Key'))
-  set_Key : ∀ (x : Node) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Node.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Node)))
-  get_Value : ∀ (x : Node), go.IsGoStepPureDetTagged under (StructFieldGet Node.underlying go!"Value") #x (Val #(x.Value'))
-  set_Value : ∀ (x : Node) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Node.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Node)))
-  get_color : ∀ (x : Node), go.IsGoStepPureDetTagged under (StructFieldGet Node.underlying go!"color") #x (Val #(x.color'))
-  set_color : ∀ (x : Node) (y : color), go.IsGoStepPureDetTagged under (StructFieldSet Node.underlying go!"color") (PairV #x #y) (Val #(({ x with color' := y } : Node)))
-  get_Left : ∀ (x : Node), go.IsGoStepPureDetTagged under (StructFieldGet Node.underlying go!"Left") #x (Val #(x.Left'))
-  set_Left : ∀ (x : Node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Node.underlying go!"Left") (PairV #x #y) (Val #(({ x with Left' := y } : Node)))
-  get_Right : ∀ (x : Node), go.IsGoStepPureDetTagged under (StructFieldGet Node.underlying go!"Right") #x (Val #(x.Right'))
-  set_Right : ∀ (x : Node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Node.underlying go!"Right") (PairV #x #y) (Val #(({ x with Right' := y } : Node)))
-  get_Parent : ∀ (x : Node), go.IsGoStepPureDetTagged under (StructFieldGet Node.underlying go!"Parent") #x (Val #(x.Parent'))
-  set_Parent : ∀ (x : Node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Node.underlying go!"Parent") (PairV #x #y) (Val #(({ x with Parent' := y } : Node)))
+  get'Key : ∀ (x : Node), go.IsGoStepPureDetTagged under (StructFieldGet Node.underlying go!"Key") #x (Val #(x.Key'))
+  set'Key : ∀ (x : Node) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Node.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Node)))
+  get'Value : ∀ (x : Node), go.IsGoStepPureDetTagged under (StructFieldGet Node.underlying go!"Value") #x (Val #(x.Value'))
+  set'Value : ∀ (x : Node) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Node.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Node)))
+  get'color : ∀ (x : Node), go.IsGoStepPureDetTagged under (StructFieldGet Node.underlying go!"color") #x (Val #(x.color'))
+  set'color : ∀ (x : Node) (y : color), go.IsGoStepPureDetTagged under (StructFieldSet Node.underlying go!"color") (PairV #x #y) (Val #(({ x with color' := y } : Node)))
+  get'Left : ∀ (x : Node), go.IsGoStepPureDetTagged under (StructFieldGet Node.underlying go!"Left") #x (Val #(x.Left'))
+  set'Left : ∀ (x : Node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Node.underlying go!"Left") (PairV #x #y) (Val #(({ x with Left' := y } : Node)))
+  get'Right : ∀ (x : Node), go.IsGoStepPureDetTagged under (StructFieldGet Node.underlying go!"Right") #x (Val #(x.Right'))
+  set'Right : ∀ (x : Node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Node.underlying go!"Right") (PairV #x #y) (Val #(({ x with Right' := y } : Node)))
+  get'Parent : ∀ (x : Node), go.IsGoStepPureDetTagged under (StructFieldGet Node.underlying go!"Parent") #x (Val #(x.Parent'))
+  set'Parent : ∀ (x : Node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Node.underlying go!"Parent") (PairV #x #y) (Val #(({ x with Parent' := y } : Node)))
   method_set : go.MethodSetIs Node.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Node.ty) [(go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"github.com/emirpasic/gods/trees/redblacktree.grandparent", (some (go.signature.Signature [] false [(go.GoType.PointerType Node.ty)]))), (go!"github.com/emirpasic/gods/trees/redblacktree.maximumNode", (some (go.signature.Signature [] false [(go.GoType.PointerType Node.ty)]))), (go!"github.com/emirpasic/gods/trees/redblacktree.sibling", (some (go.signature.Signature [] false [(go.GoType.PointerType Node.ty)]))), (go!"github.com/emirpasic/gods/trees/redblacktree.uncle", (some (go.signature.Signature [] false [(go.GoType.PointerType Node.ty)])))]
-  ptr_Size_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"Size" Node.Size.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"String" Node.String.impl
-  ptr_grandparent_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"grandparent" Node.grandparent.impl
-  ptr_maximumNode_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"maximumNode" Node.maximumNode.impl
-  ptr_sibling_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"sibling" Node.sibling.impl
-  ptr_uncle_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"uncle" Node.uncle.impl
+  ptr_unfold'Size : MethodUnfold (go.GoType.PointerType Node.ty) go!"Size" Node.Size.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType Node.ty) go!"String" Node.String.impl
+  ptr_unfold'grandparent : MethodUnfold (go.GoType.PointerType Node.ty) go!"grandparent" Node.grandparent.impl
+  ptr_unfold'maximumNode : MethodUnfold (go.GoType.PointerType Node.ty) go!"maximumNode" Node.maximumNode.impl
+  ptr_unfold'sibling : MethodUnfold (go.GoType.PointerType Node.ty) go!"sibling" Node.sibling.impl
+  ptr_unfold'uncle : MethodUnfold (go.GoType.PointerType Node.ty) go!"uncle" Node.uncle.impl
 
 attribute [instance] Node.TypeAssumptions.type_repr
   Node.TypeAssumptions.underlying
-  Node.TypeAssumptions.get_Key
-  Node.TypeAssumptions.set_Key
-  Node.TypeAssumptions.get_Value
-  Node.TypeAssumptions.set_Value
-  Node.TypeAssumptions.get_color
-  Node.TypeAssumptions.set_color
-  Node.TypeAssumptions.get_Left
-  Node.TypeAssumptions.set_Left
-  Node.TypeAssumptions.get_Right
-  Node.TypeAssumptions.set_Right
-  Node.TypeAssumptions.get_Parent
-  Node.TypeAssumptions.set_Parent
+  Node.TypeAssumptions.get'Key
+  Node.TypeAssumptions.set'Key
+  Node.TypeAssumptions.get'Value
+  Node.TypeAssumptions.set'Value
+  Node.TypeAssumptions.get'color
+  Node.TypeAssumptions.set'color
+  Node.TypeAssumptions.get'Left
+  Node.TypeAssumptions.set'Left
+  Node.TypeAssumptions.get'Right
+  Node.TypeAssumptions.set'Right
+  Node.TypeAssumptions.get'Parent
+  Node.TypeAssumptions.set'Parent
   Node.TypeAssumptions.method_set
   Node.TypeAssumptions.ptr_method_set
-  Node.TypeAssumptions.ptr_Size_unfold
-  Node.TypeAssumptions.ptr_String_unfold
-  Node.TypeAssumptions.ptr_grandparent_unfold
-  Node.TypeAssumptions.ptr_maximumNode_unfold
-  Node.TypeAssumptions.ptr_sibling_unfold
-  Node.TypeAssumptions.ptr_uncle_unfold
+  Node.TypeAssumptions.ptr_unfold'Size
+  Node.TypeAssumptions.ptr_unfold'String
+  Node.TypeAssumptions.ptr_unfold'grandparent
+  Node.TypeAssumptions.ptr_unfold'maximumNode
+  Node.TypeAssumptions.ptr_unfold'sibling
+  Node.TypeAssumptions.ptr_unfold'uncle
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Iterator_instance : Iterator.TypeAssumptions
-  position_instance : position.TypeAssumptions
-  color_instance : color.TypeAssumptions
-  Tree_instance : Tree.TypeAssumptions
-  Node_instance : Node.TypeAssumptions
-  NewWith_unfold : FuncUnfold NewWith [] NewWith.impl
-  NewWithIntComparator_unfold : FuncUnfold NewWithIntComparator [] NewWithIntComparator.impl
-  NewWithStringComparator_unfold : FuncUnfold NewWithStringComparator [] NewWithStringComparator.impl
-  output_unfold : FuncUnfold output [] output.impl
-  nodeColor_unfold : FuncUnfold nodeColor [] nodeColor.impl
-  import_containers_Assumption : _root_.Perennial.github_com.emirpasic.gods.containers.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_trees_Assumption : _root_.Perennial.github_com.emirpasic.gods.trees.Assumptions
-  import_utils_Assumption : _root_.Perennial.github_com.emirpasic.gods.utils.Assumptions
-  import_json_Assumption : _root_.Perennial.encoding.json.Assumptions
+  instance'Iterator : Iterator.TypeAssumptions
+  instance'position : position.TypeAssumptions
+  instance'color : color.TypeAssumptions
+  instance'Tree : Tree.TypeAssumptions
+  instance'Node : Node.TypeAssumptions
+  unfold'NewWith : FuncUnfold NewWith [] NewWith.impl
+  unfold'NewWithIntComparator : FuncUnfold NewWithIntComparator [] NewWithIntComparator.impl
+  unfold'NewWithStringComparator : FuncUnfold NewWithStringComparator [] NewWithStringComparator.impl
+  unfold'output : FuncUnfold output [] output.impl
+  unfold'nodeColor : FuncUnfold nodeColor [] nodeColor.impl
+  import'containers : _root_.Perennial.github_com.emirpasic.gods.containers.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'trees : _root_.Perennial.github_com.emirpasic.gods.trees.Assumptions
+  import'utils : _root_.Perennial.github_com.emirpasic.gods.utils.Assumptions
+  import'json : _root_.Perennial.encoding.json.Assumptions
 
-attribute [instance] Assumptions.Iterator_instance
-  Assumptions.position_instance
-  Assumptions.color_instance
-  Assumptions.Tree_instance
-  Assumptions.Node_instance
-  Assumptions.NewWith_unfold
-  Assumptions.NewWithIntComparator_unfold
-  Assumptions.NewWithStringComparator_unfold
-  Assumptions.output_unfold
-  Assumptions.nodeColor_unfold
-  Assumptions.import_containers_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_trees_Assumption
-  Assumptions.import_utils_Assumption
-  Assumptions.import_json_Assumption
+attribute [instance] Assumptions.instance'Iterator
+  Assumptions.instance'position
+  Assumptions.instance'color
+  Assumptions.instance'Tree
+  Assumptions.instance'Node
+  Assumptions.unfold'NewWith
+  Assumptions.unfold'NewWithIntComparator
+  Assumptions.unfold'NewWithStringComparator
+  Assumptions.unfold'output
+  Assumptions.unfold'nodeColor
+  Assumptions.import'containers
+  Assumptions.import'fmt
+  Assumptions.import'trees
+  Assumptions.import'utils
+  Assumptions.import'json
 
 end github_com.emirpasic.gods.trees.redblacktree
 

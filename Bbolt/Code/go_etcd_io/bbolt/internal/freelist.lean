@@ -349,7 +349,7 @@ noncomputable def array''.mergeSpans.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.bbolt.internal.common.Verify []))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty))) (Var "ids")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0"))))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0"))))))))
   (Val #()))))
 
 /-- go: array.go:101:6 -/
@@ -733,7 +733,7 @@ noncomputable def hashMap.freePageIds.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (Var "start") (Var "$value")))))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Var "startPageIds")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0")))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty go.uint64)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"forwardMap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType hashMap.ty)))) (Var "f"))))
   (Let "k" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Val #())))
   (App (App (Val (map.forRange _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty go.uint64)) (Var "$range"))
@@ -1044,7 +1044,7 @@ noncomputable def hashMap.mergeSpans.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.bbolt.internal.common.Verify []))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty))) (Var "ids")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty))) (Var "ids"))
   (App (App (Val (GoInstruction (FuncResolve go.len [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (App (Val doReturn)
@@ -1880,7 +1880,7 @@ noncomputable def shared.ReleasePendingPages.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty))) (Pair (Var "minid") (Var "$r0")))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert txIDx.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty)))) (App (Val (GoInstruction (StructFieldRef shared.ty go!"readonlyTXIDs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (Var "t")))))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0")))))))
   (Val #()))))
 
 /-- go: shared.go:160:18 -/
@@ -2061,7 +2061,7 @@ noncomputable def shared.Copyall.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.bbolt.internal.common.Mergepgids []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty))) (Var "m")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0")))))))
   (Let "$range" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"pendingPageIds"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (Var "t"))) (Val #()))
   (Let "txp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType txPending.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType txPending.ty)))) (Val #())))
   (App (App (Val (map.forRange _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty (go.GoType.PointerType txPending.ty))) (Var "$range"))
@@ -2271,7 +2271,7 @@ noncomputable def shared.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Init"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (Var "t"))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Var "idsCopy")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Sort'' []))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Var "idsCopy"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Var "ids"))
@@ -2428,7 +2428,7 @@ noncomputable instance array''.zero_val [GooseExts] : ZeroVal array'' :=
 @[irreducible] noncomputable def array''.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   array''.fieldsUnsealed
 
-noncomputable instance equals_unfold_array [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'array [GooseExts] [GoGlobalContext] :
     EqualsUnfold array''.fields array''.fieldsUnsealed :=
   ⟨by unfold array''.fields; rfl⟩
 
@@ -2438,139 +2438,139 @@ noncomputable instance equals_unfold_array [GooseExts] [GoGlobalContext] :
 class array''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying array''.underlying array''
   underlying : go.UnderlyingDirectedEq array''.ty array''.underlying
-  get_shared : ∀ (x : array''), go.IsGoStepPureDetTagged under (StructFieldGet array''.underlying go!"shared") #x (Val #(x.shared'))
-  set_shared : ∀ (x : array'') (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet array''.underlying go!"shared") (PairV #x #y) (Val #(({ x with shared' := y } : array'')))
-  get_ids : ∀ (x : array''), go.IsGoStepPureDetTagged under (StructFieldGet array''.underlying go!"ids") #x (Val #(x.ids'))
-  set_ids : ∀ (x : array'') (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet array''.underlying go!"ids") (PairV #x #y) (Val #(({ x with ids' := y } : array'')))
+  get'shared : ∀ (x : array''), go.IsGoStepPureDetTagged under (StructFieldGet array''.underlying go!"shared") #x (Val #(x.shared'))
+  set'shared : ∀ (x : array'') (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet array''.underlying go!"shared") (PairV #x #y) (Val #(({ x with shared' := y } : array'')))
+  get'ids : ∀ (x : array''), go.IsGoStepPureDetTagged under (StructFieldGet array''.underlying go!"ids") #x (Val #(x.ids'))
+  set'ids : ∀ (x : array'') (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet array''.underlying go!"ids") (PairV #x #y) (Val #(({ x with ids' := y } : array'')))
   method_set : go.MethodSetIs array''.ty [(go!"AddReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Copyall", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)] false []))), (go!"Count", (some (go.signature.Signature [] false [go.int]))), (go!"EstimatedWritePageSize", (some (go.signature.Signature [] false [go.int]))), (go!"Free", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"Freed", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [go.bool]))), (go!"NoSyncReload", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"PendingCount", (some (go.signature.Signature [] false [go.int]))), (go!"Read", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"ReleasePendingPages", (some (go.signature.Signature [] false []))), (go!"Reload", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"RemoveReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Rollback", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"go.etcd.io/bbolt/internal/freelist.pendingPageIds", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty (go.GoType.PointerType txPending.ty))]))), (go!"go.etcd.io/bbolt/internal/freelist.reindex", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt/internal/freelist.release", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"go.etcd.io/bbolt/internal/freelist.releaseRange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType array''.ty) [(go!"AddReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Allocate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, go.int] false [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty]))), (go!"Copyall", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)] false []))), (go!"Count", (some (go.signature.Signature [] false [go.int]))), (go!"EstimatedWritePageSize", (some (go.signature.Signature [] false [go.int]))), (go!"Free", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"FreeCount", (some (go.signature.Signature [] false [go.int]))), (go!"Freed", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [go.bool]))), (go!"Init", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"NoSyncReload", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"PendingCount", (some (go.signature.Signature [] false [go.int]))), (go!"Read", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"ReleasePendingPages", (some (go.signature.Signature [] false []))), (go!"Reload", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"RemoveReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Rollback", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"go.etcd.io/bbolt/internal/freelist.freePageIds", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty]))), (go!"go.etcd.io/bbolt/internal/freelist.mergeSpans", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"go.etcd.io/bbolt/internal/freelist.pendingPageIds", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty (go.GoType.PointerType txPending.ty))]))), (go!"go.etcd.io/bbolt/internal/freelist.reindex", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt/internal/freelist.release", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"go.etcd.io/bbolt/internal/freelist.releaseRange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false [])))]
-  AddReadonlyTXID_unfold : MethodUnfold array''.ty go!"AddReadonlyTXID" (LamV "$r"
+  unfold'AddReadonlyTXID : MethodUnfold array''.ty go!"AddReadonlyTXID" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"AddReadonlyTXID"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  Copyall_unfold : MethodUnfold array''.ty go!"Copyall" (LamV "$r"
+  unfold'Copyall : MethodUnfold array''.ty go!"Copyall" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Copyall"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  Count_unfold : MethodUnfold array''.ty go!"Count" (LamV "$r"
+  unfold'Count : MethodUnfold array''.ty go!"Count" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Count"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  EstimatedWritePageSize_unfold : MethodUnfold array''.ty go!"EstimatedWritePageSize" (LamV "$r"
+  unfold'EstimatedWritePageSize : MethodUnfold array''.ty go!"EstimatedWritePageSize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"EstimatedWritePageSize"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  Free_unfold : MethodUnfold array''.ty go!"Free" (LamV "$r"
+  unfold'Free : MethodUnfold array''.ty go!"Free" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Free"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  Freed_unfold : MethodUnfold array''.ty go!"Freed" (LamV "$r"
+  unfold'Freed : MethodUnfold array''.ty go!"Freed" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Freed"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  NoSyncReload_unfold : MethodUnfold array''.ty go!"NoSyncReload" (LamV "$r"
+  unfold'NoSyncReload : MethodUnfold array''.ty go!"NoSyncReload" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"NoSyncReload"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  PendingCount_unfold : MethodUnfold array''.ty go!"PendingCount" (LamV "$r"
+  unfold'PendingCount : MethodUnfold array''.ty go!"PendingCount" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"PendingCount"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  Read_unfold : MethodUnfold array''.ty go!"Read" (LamV "$r"
+  unfold'Read : MethodUnfold array''.ty go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  ReleasePendingPages_unfold : MethodUnfold array''.ty go!"ReleasePendingPages" (LamV "$r"
+  unfold'ReleasePendingPages : MethodUnfold array''.ty go!"ReleasePendingPages" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"ReleasePendingPages"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  Reload_unfold : MethodUnfold array''.ty go!"Reload" (LamV "$r"
+  unfold'Reload : MethodUnfold array''.ty go!"Reload" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Reload"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  RemoveReadonlyTXID_unfold : MethodUnfold array''.ty go!"RemoveReadonlyTXID" (LamV "$r"
+  unfold'RemoveReadonlyTXID : MethodUnfold array''.ty go!"RemoveReadonlyTXID" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"RemoveReadonlyTXID"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  Rollback_unfold : MethodUnfold array''.ty go!"Rollback" (LamV "$r"
+  unfold'Rollback : MethodUnfold array''.ty go!"Rollback" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Rollback"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  Write_unfold : MethodUnfold array''.ty go!"Write" (LamV "$r"
+  unfold'Write : MethodUnfold array''.ty go!"Write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  pendingPageIds_unfold : MethodUnfold array''.ty go!"pendingPageIds" (LamV "$r"
+  unfold'pendingPageIds : MethodUnfold array''.ty go!"pendingPageIds" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"pendingPageIds"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  reindex_unfold : MethodUnfold array''.ty go!"reindex" (LamV "$r"
+  unfold'reindex : MethodUnfold array''.ty go!"reindex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"reindex"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  release_unfold : MethodUnfold array''.ty go!"release" (LamV "$r"
+  unfold'release : MethodUnfold array''.ty go!"release" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"release"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  releaseRange_unfold : MethodUnfold array''.ty go!"releaseRange" (LamV "$r"
+  unfold'releaseRange : MethodUnfold array''.ty go!"releaseRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"releaseRange"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
-  ptr_AddReadonlyTXID_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"AddReadonlyTXID" (LamV "$r"
+  ptr_unfold'AddReadonlyTXID : MethodUnfold (go.GoType.PointerType array''.ty) go!"AddReadonlyTXID" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"AddReadonlyTXID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_Allocate_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Allocate" array''.Allocate.impl
-  ptr_Copyall_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Copyall" (LamV "$r"
+  ptr_unfold'Allocate : MethodUnfold (go.GoType.PointerType array''.ty) go!"Allocate" array''.Allocate.impl
+  ptr_unfold'Copyall : MethodUnfold (go.GoType.PointerType array''.ty) go!"Copyall" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Copyall"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_Count_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Count" (LamV "$r"
+  ptr_unfold'Count : MethodUnfold (go.GoType.PointerType array''.ty) go!"Count" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_EstimatedWritePageSize_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"EstimatedWritePageSize" (LamV "$r"
+  ptr_unfold'EstimatedWritePageSize : MethodUnfold (go.GoType.PointerType array''.ty) go!"EstimatedWritePageSize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"EstimatedWritePageSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_Free_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Free" (LamV "$r"
+  ptr_unfold'Free : MethodUnfold (go.GoType.PointerType array''.ty) go!"Free" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Free"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_FreeCount_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"FreeCount" array''.FreeCount.impl
-  ptr_Freed_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Freed" (LamV "$r"
+  ptr_unfold'FreeCount : MethodUnfold (go.GoType.PointerType array''.ty) go!"FreeCount" array''.FreeCount.impl
+  ptr_unfold'Freed : MethodUnfold (go.GoType.PointerType array''.ty) go!"Freed" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Freed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_Init_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Init" array''.Init.impl
-  ptr_NoSyncReload_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"NoSyncReload" (LamV "$r"
+  ptr_unfold'Init : MethodUnfold (go.GoType.PointerType array''.ty) go!"Init" array''.Init.impl
+  ptr_unfold'NoSyncReload : MethodUnfold (go.GoType.PointerType array''.ty) go!"NoSyncReload" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"NoSyncReload"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_PendingCount_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"PendingCount" (LamV "$r"
+  ptr_unfold'PendingCount : MethodUnfold (go.GoType.PointerType array''.ty) go!"PendingCount" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"PendingCount"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Read" (LamV "$r"
+  ptr_unfold'Read : MethodUnfold (go.GoType.PointerType array''.ty) go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_ReleasePendingPages_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"ReleasePendingPages" (LamV "$r"
+  ptr_unfold'ReleasePendingPages : MethodUnfold (go.GoType.PointerType array''.ty) go!"ReleasePendingPages" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"ReleasePendingPages"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_Reload_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Reload" (LamV "$r"
+  ptr_unfold'Reload : MethodUnfold (go.GoType.PointerType array''.ty) go!"Reload" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Reload"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_RemoveReadonlyTXID_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"RemoveReadonlyTXID" (LamV "$r"
+  ptr_unfold'RemoveReadonlyTXID : MethodUnfold (go.GoType.PointerType array''.ty) go!"RemoveReadonlyTXID" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"RemoveReadonlyTXID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_Rollback_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Rollback" (LamV "$r"
+  ptr_unfold'Rollback : MethodUnfold (go.GoType.PointerType array''.ty) go!"Rollback" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Rollback"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Write" (LamV "$r"
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType array''.ty) go!"Write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_freePageIds_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"freePageIds" array''.freePageIds.impl
-  ptr_mergeSpans_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"mergeSpans" array''.mergeSpans.impl
-  ptr_pendingPageIds_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"pendingPageIds" (LamV "$r"
+  ptr_unfold'freePageIds : MethodUnfold (go.GoType.PointerType array''.ty) go!"freePageIds" array''.freePageIds.impl
+  ptr_unfold'mergeSpans : MethodUnfold (go.GoType.PointerType array''.ty) go!"mergeSpans" array''.mergeSpans.impl
+  ptr_unfold'pendingPageIds : MethodUnfold (go.GoType.PointerType array''.ty) go!"pendingPageIds" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"pendingPageIds"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_reindex_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"reindex" (LamV "$r"
+  ptr_unfold'reindex : MethodUnfold (go.GoType.PointerType array''.ty) go!"reindex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"reindex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_release_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"release" (LamV "$r"
+  ptr_unfold'release : MethodUnfold (go.GoType.PointerType array''.ty) go!"release" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"release"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
-  ptr_releaseRange_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"releaseRange" (LamV "$r"
+  ptr_unfold'releaseRange : MethodUnfold (go.GoType.PointerType array''.ty) go!"releaseRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"releaseRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
 
 attribute [instance] array''.TypeAssumptions.type_repr
   array''.TypeAssumptions.underlying
-  array''.TypeAssumptions.get_shared
-  array''.TypeAssumptions.set_shared
-  array''.TypeAssumptions.get_ids
-  array''.TypeAssumptions.set_ids
+  array''.TypeAssumptions.get'shared
+  array''.TypeAssumptions.set'shared
+  array''.TypeAssumptions.get'ids
+  array''.TypeAssumptions.set'ids
   array''.TypeAssumptions.method_set
   array''.TypeAssumptions.ptr_method_set
-  array''.TypeAssumptions.AddReadonlyTXID_unfold
-  array''.TypeAssumptions.Copyall_unfold
-  array''.TypeAssumptions.Count_unfold
-  array''.TypeAssumptions.EstimatedWritePageSize_unfold
-  array''.TypeAssumptions.Free_unfold
-  array''.TypeAssumptions.Freed_unfold
-  array''.TypeAssumptions.NoSyncReload_unfold
-  array''.TypeAssumptions.PendingCount_unfold
-  array''.TypeAssumptions.Read_unfold
-  array''.TypeAssumptions.ReleasePendingPages_unfold
-  array''.TypeAssumptions.Reload_unfold
-  array''.TypeAssumptions.RemoveReadonlyTXID_unfold
-  array''.TypeAssumptions.Rollback_unfold
-  array''.TypeAssumptions.Write_unfold
-  array''.TypeAssumptions.pendingPageIds_unfold
-  array''.TypeAssumptions.reindex_unfold
-  array''.TypeAssumptions.release_unfold
-  array''.TypeAssumptions.releaseRange_unfold
-  array''.TypeAssumptions.ptr_AddReadonlyTXID_unfold
-  array''.TypeAssumptions.ptr_Allocate_unfold
-  array''.TypeAssumptions.ptr_Copyall_unfold
-  array''.TypeAssumptions.ptr_Count_unfold
-  array''.TypeAssumptions.ptr_EstimatedWritePageSize_unfold
-  array''.TypeAssumptions.ptr_Free_unfold
-  array''.TypeAssumptions.ptr_FreeCount_unfold
-  array''.TypeAssumptions.ptr_Freed_unfold
-  array''.TypeAssumptions.ptr_Init_unfold
-  array''.TypeAssumptions.ptr_NoSyncReload_unfold
-  array''.TypeAssumptions.ptr_PendingCount_unfold
-  array''.TypeAssumptions.ptr_Read_unfold
-  array''.TypeAssumptions.ptr_ReleasePendingPages_unfold
-  array''.TypeAssumptions.ptr_Reload_unfold
-  array''.TypeAssumptions.ptr_RemoveReadonlyTXID_unfold
-  array''.TypeAssumptions.ptr_Rollback_unfold
-  array''.TypeAssumptions.ptr_Write_unfold
-  array''.TypeAssumptions.ptr_freePageIds_unfold
-  array''.TypeAssumptions.ptr_mergeSpans_unfold
-  array''.TypeAssumptions.ptr_pendingPageIds_unfold
-  array''.TypeAssumptions.ptr_reindex_unfold
-  array''.TypeAssumptions.ptr_release_unfold
-  array''.TypeAssumptions.ptr_releaseRange_unfold
+  array''.TypeAssumptions.unfold'AddReadonlyTXID
+  array''.TypeAssumptions.unfold'Copyall
+  array''.TypeAssumptions.unfold'Count
+  array''.TypeAssumptions.unfold'EstimatedWritePageSize
+  array''.TypeAssumptions.unfold'Free
+  array''.TypeAssumptions.unfold'Freed
+  array''.TypeAssumptions.unfold'NoSyncReload
+  array''.TypeAssumptions.unfold'PendingCount
+  array''.TypeAssumptions.unfold'Read
+  array''.TypeAssumptions.unfold'ReleasePendingPages
+  array''.TypeAssumptions.unfold'Reload
+  array''.TypeAssumptions.unfold'RemoveReadonlyTXID
+  array''.TypeAssumptions.unfold'Rollback
+  array''.TypeAssumptions.unfold'Write
+  array''.TypeAssumptions.unfold'pendingPageIds
+  array''.TypeAssumptions.unfold'reindex
+  array''.TypeAssumptions.unfold'release
+  array''.TypeAssumptions.unfold'releaseRange
+  array''.TypeAssumptions.ptr_unfold'AddReadonlyTXID
+  array''.TypeAssumptions.ptr_unfold'Allocate
+  array''.TypeAssumptions.ptr_unfold'Copyall
+  array''.TypeAssumptions.ptr_unfold'Count
+  array''.TypeAssumptions.ptr_unfold'EstimatedWritePageSize
+  array''.TypeAssumptions.ptr_unfold'Free
+  array''.TypeAssumptions.ptr_unfold'FreeCount
+  array''.TypeAssumptions.ptr_unfold'Freed
+  array''.TypeAssumptions.ptr_unfold'Init
+  array''.TypeAssumptions.ptr_unfold'NoSyncReload
+  array''.TypeAssumptions.ptr_unfold'PendingCount
+  array''.TypeAssumptions.ptr_unfold'Read
+  array''.TypeAssumptions.ptr_unfold'ReleasePendingPages
+  array''.TypeAssumptions.ptr_unfold'Reload
+  array''.TypeAssumptions.ptr_unfold'RemoveReadonlyTXID
+  array''.TypeAssumptions.ptr_unfold'Rollback
+  array''.TypeAssumptions.ptr_unfold'Write
+  array''.TypeAssumptions.ptr_unfold'freePageIds
+  array''.TypeAssumptions.ptr_unfold'mergeSpans
+  array''.TypeAssumptions.ptr_unfold'pendingPageIds
+  array''.TypeAssumptions.ptr_unfold'reindex
+  array''.TypeAssumptions.ptr_unfold'release
+  array''.TypeAssumptions.ptr_unfold'releaseRange
 
 abbrev ReadWriter [GooseExts] : Type := GoInterface
 
@@ -2635,7 +2635,7 @@ noncomputable instance hashMap.zero_val [GooseExts] : ZeroVal hashMap :=
 @[irreducible] noncomputable def hashMap.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   hashMap.fieldsUnsealed
 
-noncomputable instance equals_unfold_hashMap [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'hashMap [GooseExts] [GoGlobalContext] :
     EqualsUnfold hashMap.fields hashMap.fieldsUnsealed :=
   ⟨by unfold hashMap.fields; rfl⟩
 
@@ -2645,165 +2645,165 @@ noncomputable instance equals_unfold_hashMap [GooseExts] [GoGlobalContext] :
 class hashMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying hashMap.underlying hashMap
   underlying : go.UnderlyingDirectedEq hashMap.ty hashMap.underlying
-  get_shared : ∀ (x : hashMap), go.IsGoStepPureDetTagged under (StructFieldGet hashMap.underlying go!"shared") #x (Val #(x.shared'))
-  set_shared : ∀ (x : hashMap) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet hashMap.underlying go!"shared") (PairV #x #y) (Val #(({ x with shared' := y } : hashMap)))
-  get_freePagesCount : ∀ (x : hashMap), go.IsGoStepPureDetTagged under (StructFieldGet hashMap.underlying go!"freePagesCount") #x (Val #(x.freePagesCount'))
-  set_freePagesCount : ∀ (x : hashMap) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet hashMap.underlying go!"freePagesCount") (PairV #x #y) (Val #(({ x with freePagesCount' := y } : hashMap)))
-  get_freemaps : ∀ (x : hashMap), go.IsGoStepPureDetTagged under (StructFieldGet hashMap.underlying go!"freemaps") #x (Val #(x.freemaps'))
-  set_freemaps : ∀ (x : hashMap) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet hashMap.underlying go!"freemaps") (PairV #x #y) (Val #(({ x with freemaps' := y } : hashMap)))
-  get_forwardMap : ∀ (x : hashMap), go.IsGoStepPureDetTagged under (StructFieldGet hashMap.underlying go!"forwardMap") #x (Val #(x.forwardMap'))
-  set_forwardMap : ∀ (x : hashMap) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet hashMap.underlying go!"forwardMap") (PairV #x #y) (Val #(({ x with forwardMap' := y } : hashMap)))
-  get_backwardMap : ∀ (x : hashMap), go.IsGoStepPureDetTagged under (StructFieldGet hashMap.underlying go!"backwardMap") #x (Val #(x.backwardMap'))
-  set_backwardMap : ∀ (x : hashMap) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet hashMap.underlying go!"backwardMap") (PairV #x #y) (Val #(({ x with backwardMap' := y } : hashMap)))
+  get'shared : ∀ (x : hashMap), go.IsGoStepPureDetTagged under (StructFieldGet hashMap.underlying go!"shared") #x (Val #(x.shared'))
+  set'shared : ∀ (x : hashMap) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet hashMap.underlying go!"shared") (PairV #x #y) (Val #(({ x with shared' := y } : hashMap)))
+  get'freePagesCount : ∀ (x : hashMap), go.IsGoStepPureDetTagged under (StructFieldGet hashMap.underlying go!"freePagesCount") #x (Val #(x.freePagesCount'))
+  set'freePagesCount : ∀ (x : hashMap) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet hashMap.underlying go!"freePagesCount") (PairV #x #y) (Val #(({ x with freePagesCount' := y } : hashMap)))
+  get'freemaps : ∀ (x : hashMap), go.IsGoStepPureDetTagged under (StructFieldGet hashMap.underlying go!"freemaps") #x (Val #(x.freemaps'))
+  set'freemaps : ∀ (x : hashMap) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet hashMap.underlying go!"freemaps") (PairV #x #y) (Val #(({ x with freemaps' := y } : hashMap)))
+  get'forwardMap : ∀ (x : hashMap), go.IsGoStepPureDetTagged under (StructFieldGet hashMap.underlying go!"forwardMap") #x (Val #(x.forwardMap'))
+  set'forwardMap : ∀ (x : hashMap) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet hashMap.underlying go!"forwardMap") (PairV #x #y) (Val #(({ x with forwardMap' := y } : hashMap)))
+  get'backwardMap : ∀ (x : hashMap), go.IsGoStepPureDetTagged under (StructFieldGet hashMap.underlying go!"backwardMap") #x (Val #(x.backwardMap'))
+  set'backwardMap : ∀ (x : hashMap) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet hashMap.underlying go!"backwardMap") (PairV #x #y) (Val #(({ x with backwardMap' := y } : hashMap)))
   method_set : go.MethodSetIs hashMap.ty [(go!"AddReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Copyall", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)] false []))), (go!"Count", (some (go.signature.Signature [] false [go.int]))), (go!"EstimatedWritePageSize", (some (go.signature.Signature [] false [go.int]))), (go!"Free", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"Freed", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [go.bool]))), (go!"NoSyncReload", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"PendingCount", (some (go.signature.Signature [] false [go.int]))), (go!"Read", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"ReleasePendingPages", (some (go.signature.Signature [] false []))), (go!"Reload", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"RemoveReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Rollback", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"go.etcd.io/bbolt/internal/freelist.pendingPageIds", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty (go.GoType.PointerType txPending.ty))]))), (go!"go.etcd.io/bbolt/internal/freelist.reindex", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt/internal/freelist.release", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"go.etcd.io/bbolt/internal/freelist.releaseRange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType hashMap.ty) [(go!"AddReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Allocate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, go.int] false [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty]))), (go!"Copyall", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)] false []))), (go!"Count", (some (go.signature.Signature [] false [go.int]))), (go!"EstimatedWritePageSize", (some (go.signature.Signature [] false [go.int]))), (go!"Free", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"FreeCount", (some (go.signature.Signature [] false [go.int]))), (go!"Freed", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [go.bool]))), (go!"Init", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"NoSyncReload", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"PendingCount", (some (go.signature.Signature [] false [go.int]))), (go!"Read", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"ReleasePendingPages", (some (go.signature.Signature [] false []))), (go!"Reload", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"RemoveReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Rollback", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"go.etcd.io/bbolt/internal/freelist.addSpan", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty, go.uint64] false []))), (go!"go.etcd.io/bbolt/internal/freelist.delSpan", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty, go.uint64] false []))), (go!"go.etcd.io/bbolt/internal/freelist.freePageIds", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty]))), (go!"go.etcd.io/bbolt/internal/freelist.hashmapFreeCountSlow", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/bbolt/internal/freelist.idsFromBackwardMap", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty (go.GoType.StructType []))]))), (go!"go.etcd.io/bbolt/internal/freelist.idsFromForwardMap", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty (go.GoType.StructType []))]))), (go!"go.etcd.io/bbolt/internal/freelist.idsFromFreemaps", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty (go.GoType.StructType []))]))), (go!"go.etcd.io/bbolt/internal/freelist.mergeSpans", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"go.etcd.io/bbolt/internal/freelist.mergeWithExistingSpan", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty, _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false []))), (go!"go.etcd.io/bbolt/internal/freelist.pendingPageIds", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty (go.GoType.PointerType txPending.ty))]))), (go!"go.etcd.io/bbolt/internal/freelist.reindex", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt/internal/freelist.release", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"go.etcd.io/bbolt/internal/freelist.releaseRange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false [])))]
-  AddReadonlyTXID_unfold : MethodUnfold hashMap.ty go!"AddReadonlyTXID" (LamV "$r"
+  unfold'AddReadonlyTXID : MethodUnfold hashMap.ty go!"AddReadonlyTXID" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"AddReadonlyTXID"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  Copyall_unfold : MethodUnfold hashMap.ty go!"Copyall" (LamV "$r"
+  unfold'Copyall : MethodUnfold hashMap.ty go!"Copyall" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Copyall"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  Count_unfold : MethodUnfold hashMap.ty go!"Count" (LamV "$r"
+  unfold'Count : MethodUnfold hashMap.ty go!"Count" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Count"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  EstimatedWritePageSize_unfold : MethodUnfold hashMap.ty go!"EstimatedWritePageSize" (LamV "$r"
+  unfold'EstimatedWritePageSize : MethodUnfold hashMap.ty go!"EstimatedWritePageSize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"EstimatedWritePageSize"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  Free_unfold : MethodUnfold hashMap.ty go!"Free" (LamV "$r"
+  unfold'Free : MethodUnfold hashMap.ty go!"Free" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Free"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  Freed_unfold : MethodUnfold hashMap.ty go!"Freed" (LamV "$r"
+  unfold'Freed : MethodUnfold hashMap.ty go!"Freed" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Freed"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  NoSyncReload_unfold : MethodUnfold hashMap.ty go!"NoSyncReload" (LamV "$r"
+  unfold'NoSyncReload : MethodUnfold hashMap.ty go!"NoSyncReload" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"NoSyncReload"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  PendingCount_unfold : MethodUnfold hashMap.ty go!"PendingCount" (LamV "$r"
+  unfold'PendingCount : MethodUnfold hashMap.ty go!"PendingCount" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"PendingCount"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  Read_unfold : MethodUnfold hashMap.ty go!"Read" (LamV "$r"
+  unfold'Read : MethodUnfold hashMap.ty go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  ReleasePendingPages_unfold : MethodUnfold hashMap.ty go!"ReleasePendingPages" (LamV "$r"
+  unfold'ReleasePendingPages : MethodUnfold hashMap.ty go!"ReleasePendingPages" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"ReleasePendingPages"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  Reload_unfold : MethodUnfold hashMap.ty go!"Reload" (LamV "$r"
+  unfold'Reload : MethodUnfold hashMap.ty go!"Reload" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Reload"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  RemoveReadonlyTXID_unfold : MethodUnfold hashMap.ty go!"RemoveReadonlyTXID" (LamV "$r"
+  unfold'RemoveReadonlyTXID : MethodUnfold hashMap.ty go!"RemoveReadonlyTXID" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"RemoveReadonlyTXID"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  Rollback_unfold : MethodUnfold hashMap.ty go!"Rollback" (LamV "$r"
+  unfold'Rollback : MethodUnfold hashMap.ty go!"Rollback" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Rollback"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  Write_unfold : MethodUnfold hashMap.ty go!"Write" (LamV "$r"
+  unfold'Write : MethodUnfold hashMap.ty go!"Write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  pendingPageIds_unfold : MethodUnfold hashMap.ty go!"pendingPageIds" (LamV "$r"
+  unfold'pendingPageIds : MethodUnfold hashMap.ty go!"pendingPageIds" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"pendingPageIds"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  reindex_unfold : MethodUnfold hashMap.ty go!"reindex" (LamV "$r"
+  unfold'reindex : MethodUnfold hashMap.ty go!"reindex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"reindex"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  release_unfold : MethodUnfold hashMap.ty go!"release" (LamV "$r"
+  unfold'release : MethodUnfold hashMap.ty go!"release" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"release"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  releaseRange_unfold : MethodUnfold hashMap.ty go!"releaseRange" (LamV "$r"
+  unfold'releaseRange : MethodUnfold hashMap.ty go!"releaseRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"releaseRange"))) (App (Val (GoInstruction (StructFieldGet hashMap.ty go!"shared"))) (Var "$r"))))
-  ptr_AddReadonlyTXID_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"AddReadonlyTXID" (LamV "$r"
+  ptr_unfold'AddReadonlyTXID : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"AddReadonlyTXID" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"AddReadonlyTXID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_Allocate_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Allocate" hashMap.Allocate.impl
-  ptr_Copyall_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Copyall" (LamV "$r"
+  ptr_unfold'Allocate : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Allocate" hashMap.Allocate.impl
+  ptr_unfold'Copyall : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Copyall" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Copyall"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_Count_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Count" (LamV "$r"
+  ptr_unfold'Count : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Count" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_EstimatedWritePageSize_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"EstimatedWritePageSize" (LamV "$r"
+  ptr_unfold'EstimatedWritePageSize : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"EstimatedWritePageSize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"EstimatedWritePageSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_Free_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Free" (LamV "$r"
+  ptr_unfold'Free : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Free" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Free"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_FreeCount_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"FreeCount" hashMap.FreeCount.impl
-  ptr_Freed_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Freed" (LamV "$r"
+  ptr_unfold'FreeCount : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"FreeCount" hashMap.FreeCount.impl
+  ptr_unfold'Freed : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Freed" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Freed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_Init_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Init" hashMap.Init.impl
-  ptr_NoSyncReload_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"NoSyncReload" (LamV "$r"
+  ptr_unfold'Init : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Init" hashMap.Init.impl
+  ptr_unfold'NoSyncReload : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"NoSyncReload" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"NoSyncReload"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_PendingCount_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"PendingCount" (LamV "$r"
+  ptr_unfold'PendingCount : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"PendingCount" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"PendingCount"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Read" (LamV "$r"
+  ptr_unfold'Read : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_ReleasePendingPages_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"ReleasePendingPages" (LamV "$r"
+  ptr_unfold'ReleasePendingPages : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"ReleasePendingPages" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"ReleasePendingPages"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_Reload_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Reload" (LamV "$r"
+  ptr_unfold'Reload : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Reload" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Reload"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_RemoveReadonlyTXID_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"RemoveReadonlyTXID" (LamV "$r"
+  ptr_unfold'RemoveReadonlyTXID : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"RemoveReadonlyTXID" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"RemoveReadonlyTXID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_Rollback_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Rollback" (LamV "$r"
+  ptr_unfold'Rollback : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Rollback" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Rollback"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Write" (LamV "$r"
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"Write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_addSpan_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"addSpan" hashMap.addSpan.impl
-  ptr_delSpan_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"delSpan" hashMap.delSpan.impl
-  ptr_freePageIds_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"freePageIds" hashMap.freePageIds.impl
-  ptr_hashmapFreeCountSlow_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"hashmapFreeCountSlow" hashMap.hashmapFreeCountSlow.impl
-  ptr_idsFromBackwardMap_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"idsFromBackwardMap" hashMap.idsFromBackwardMap.impl
-  ptr_idsFromForwardMap_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"idsFromForwardMap" hashMap.idsFromForwardMap.impl
-  ptr_idsFromFreemaps_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"idsFromFreemaps" hashMap.idsFromFreemaps.impl
-  ptr_mergeSpans_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"mergeSpans" hashMap.mergeSpans.impl
-  ptr_mergeWithExistingSpan_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"mergeWithExistingSpan" hashMap.mergeWithExistingSpan.impl
-  ptr_pendingPageIds_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"pendingPageIds" (LamV "$r"
+  ptr_unfold'addSpan : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"addSpan" hashMap.addSpan.impl
+  ptr_unfold'delSpan : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"delSpan" hashMap.delSpan.impl
+  ptr_unfold'freePageIds : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"freePageIds" hashMap.freePageIds.impl
+  ptr_unfold'hashmapFreeCountSlow : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"hashmapFreeCountSlow" hashMap.hashmapFreeCountSlow.impl
+  ptr_unfold'idsFromBackwardMap : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"idsFromBackwardMap" hashMap.idsFromBackwardMap.impl
+  ptr_unfold'idsFromForwardMap : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"idsFromForwardMap" hashMap.idsFromForwardMap.impl
+  ptr_unfold'idsFromFreemaps : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"idsFromFreemaps" hashMap.idsFromFreemaps.impl
+  ptr_unfold'mergeSpans : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"mergeSpans" hashMap.mergeSpans.impl
+  ptr_unfold'mergeWithExistingSpan : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"mergeWithExistingSpan" hashMap.mergeWithExistingSpan.impl
+  ptr_unfold'pendingPageIds : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"pendingPageIds" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"pendingPageIds"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_reindex_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"reindex" (LamV "$r"
+  ptr_unfold'reindex : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"reindex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"reindex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_release_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"release" (LamV "$r"
+  ptr_unfold'release : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"release" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"release"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
-  ptr_releaseRange_unfold : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"releaseRange" (LamV "$r"
+  ptr_unfold'releaseRange : MethodUnfold (go.GoType.PointerType hashMap.ty) go!"releaseRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"releaseRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef hashMap.ty go!"shared"))) (Var "$r")))))
 
 attribute [instance] hashMap.TypeAssumptions.type_repr
   hashMap.TypeAssumptions.underlying
-  hashMap.TypeAssumptions.get_shared
-  hashMap.TypeAssumptions.set_shared
-  hashMap.TypeAssumptions.get_freePagesCount
-  hashMap.TypeAssumptions.set_freePagesCount
-  hashMap.TypeAssumptions.get_freemaps
-  hashMap.TypeAssumptions.set_freemaps
-  hashMap.TypeAssumptions.get_forwardMap
-  hashMap.TypeAssumptions.set_forwardMap
-  hashMap.TypeAssumptions.get_backwardMap
-  hashMap.TypeAssumptions.set_backwardMap
+  hashMap.TypeAssumptions.get'shared
+  hashMap.TypeAssumptions.set'shared
+  hashMap.TypeAssumptions.get'freePagesCount
+  hashMap.TypeAssumptions.set'freePagesCount
+  hashMap.TypeAssumptions.get'freemaps
+  hashMap.TypeAssumptions.set'freemaps
+  hashMap.TypeAssumptions.get'forwardMap
+  hashMap.TypeAssumptions.set'forwardMap
+  hashMap.TypeAssumptions.get'backwardMap
+  hashMap.TypeAssumptions.set'backwardMap
   hashMap.TypeAssumptions.method_set
   hashMap.TypeAssumptions.ptr_method_set
-  hashMap.TypeAssumptions.AddReadonlyTXID_unfold
-  hashMap.TypeAssumptions.Copyall_unfold
-  hashMap.TypeAssumptions.Count_unfold
-  hashMap.TypeAssumptions.EstimatedWritePageSize_unfold
-  hashMap.TypeAssumptions.Free_unfold
-  hashMap.TypeAssumptions.Freed_unfold
-  hashMap.TypeAssumptions.NoSyncReload_unfold
-  hashMap.TypeAssumptions.PendingCount_unfold
-  hashMap.TypeAssumptions.Read_unfold
-  hashMap.TypeAssumptions.ReleasePendingPages_unfold
-  hashMap.TypeAssumptions.Reload_unfold
-  hashMap.TypeAssumptions.RemoveReadonlyTXID_unfold
-  hashMap.TypeAssumptions.Rollback_unfold
-  hashMap.TypeAssumptions.Write_unfold
-  hashMap.TypeAssumptions.pendingPageIds_unfold
-  hashMap.TypeAssumptions.reindex_unfold
-  hashMap.TypeAssumptions.release_unfold
-  hashMap.TypeAssumptions.releaseRange_unfold
-  hashMap.TypeAssumptions.ptr_AddReadonlyTXID_unfold
-  hashMap.TypeAssumptions.ptr_Allocate_unfold
-  hashMap.TypeAssumptions.ptr_Copyall_unfold
-  hashMap.TypeAssumptions.ptr_Count_unfold
-  hashMap.TypeAssumptions.ptr_EstimatedWritePageSize_unfold
-  hashMap.TypeAssumptions.ptr_Free_unfold
-  hashMap.TypeAssumptions.ptr_FreeCount_unfold
-  hashMap.TypeAssumptions.ptr_Freed_unfold
-  hashMap.TypeAssumptions.ptr_Init_unfold
-  hashMap.TypeAssumptions.ptr_NoSyncReload_unfold
-  hashMap.TypeAssumptions.ptr_PendingCount_unfold
-  hashMap.TypeAssumptions.ptr_Read_unfold
-  hashMap.TypeAssumptions.ptr_ReleasePendingPages_unfold
-  hashMap.TypeAssumptions.ptr_Reload_unfold
-  hashMap.TypeAssumptions.ptr_RemoveReadonlyTXID_unfold
-  hashMap.TypeAssumptions.ptr_Rollback_unfold
-  hashMap.TypeAssumptions.ptr_Write_unfold
-  hashMap.TypeAssumptions.ptr_addSpan_unfold
-  hashMap.TypeAssumptions.ptr_delSpan_unfold
-  hashMap.TypeAssumptions.ptr_freePageIds_unfold
-  hashMap.TypeAssumptions.ptr_hashmapFreeCountSlow_unfold
-  hashMap.TypeAssumptions.ptr_idsFromBackwardMap_unfold
-  hashMap.TypeAssumptions.ptr_idsFromForwardMap_unfold
-  hashMap.TypeAssumptions.ptr_idsFromFreemaps_unfold
-  hashMap.TypeAssumptions.ptr_mergeSpans_unfold
-  hashMap.TypeAssumptions.ptr_mergeWithExistingSpan_unfold
-  hashMap.TypeAssumptions.ptr_pendingPageIds_unfold
-  hashMap.TypeAssumptions.ptr_reindex_unfold
-  hashMap.TypeAssumptions.ptr_release_unfold
-  hashMap.TypeAssumptions.ptr_releaseRange_unfold
+  hashMap.TypeAssumptions.unfold'AddReadonlyTXID
+  hashMap.TypeAssumptions.unfold'Copyall
+  hashMap.TypeAssumptions.unfold'Count
+  hashMap.TypeAssumptions.unfold'EstimatedWritePageSize
+  hashMap.TypeAssumptions.unfold'Free
+  hashMap.TypeAssumptions.unfold'Freed
+  hashMap.TypeAssumptions.unfold'NoSyncReload
+  hashMap.TypeAssumptions.unfold'PendingCount
+  hashMap.TypeAssumptions.unfold'Read
+  hashMap.TypeAssumptions.unfold'ReleasePendingPages
+  hashMap.TypeAssumptions.unfold'Reload
+  hashMap.TypeAssumptions.unfold'RemoveReadonlyTXID
+  hashMap.TypeAssumptions.unfold'Rollback
+  hashMap.TypeAssumptions.unfold'Write
+  hashMap.TypeAssumptions.unfold'pendingPageIds
+  hashMap.TypeAssumptions.unfold'reindex
+  hashMap.TypeAssumptions.unfold'release
+  hashMap.TypeAssumptions.unfold'releaseRange
+  hashMap.TypeAssumptions.ptr_unfold'AddReadonlyTXID
+  hashMap.TypeAssumptions.ptr_unfold'Allocate
+  hashMap.TypeAssumptions.ptr_unfold'Copyall
+  hashMap.TypeAssumptions.ptr_unfold'Count
+  hashMap.TypeAssumptions.ptr_unfold'EstimatedWritePageSize
+  hashMap.TypeAssumptions.ptr_unfold'Free
+  hashMap.TypeAssumptions.ptr_unfold'FreeCount
+  hashMap.TypeAssumptions.ptr_unfold'Freed
+  hashMap.TypeAssumptions.ptr_unfold'Init
+  hashMap.TypeAssumptions.ptr_unfold'NoSyncReload
+  hashMap.TypeAssumptions.ptr_unfold'PendingCount
+  hashMap.TypeAssumptions.ptr_unfold'Read
+  hashMap.TypeAssumptions.ptr_unfold'ReleasePendingPages
+  hashMap.TypeAssumptions.ptr_unfold'Reload
+  hashMap.TypeAssumptions.ptr_unfold'RemoveReadonlyTXID
+  hashMap.TypeAssumptions.ptr_unfold'Rollback
+  hashMap.TypeAssumptions.ptr_unfold'Write
+  hashMap.TypeAssumptions.ptr_unfold'addSpan
+  hashMap.TypeAssumptions.ptr_unfold'delSpan
+  hashMap.TypeAssumptions.ptr_unfold'freePageIds
+  hashMap.TypeAssumptions.ptr_unfold'hashmapFreeCountSlow
+  hashMap.TypeAssumptions.ptr_unfold'idsFromBackwardMap
+  hashMap.TypeAssumptions.ptr_unfold'idsFromForwardMap
+  hashMap.TypeAssumptions.ptr_unfold'idsFromFreemaps
+  hashMap.TypeAssumptions.ptr_unfold'mergeSpans
+  hashMap.TypeAssumptions.ptr_unfold'mergeWithExistingSpan
+  hashMap.TypeAssumptions.ptr_unfold'pendingPageIds
+  hashMap.TypeAssumptions.ptr_unfold'reindex
+  hashMap.TypeAssumptions.ptr_unfold'release
+  hashMap.TypeAssumptions.ptr_unfold'releaseRange
 
 structure txPending [GooseExts] where
   mk ::
@@ -2822,7 +2822,7 @@ noncomputable instance txPending.zero_val [GooseExts] : ZeroVal txPending :=
 @[irreducible] noncomputable def txPending.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   txPending.fieldsUnsealed
 
-noncomputable instance equals_unfold_txPending [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'txPending [GooseExts] [GoGlobalContext] :
     EqualsUnfold txPending.fields txPending.fieldsUnsealed :=
   ⟨by unfold txPending.fields; rfl⟩
 
@@ -2832,23 +2832,23 @@ noncomputable instance equals_unfold_txPending [GooseExts] [GoGlobalContext] :
 class txPending.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying txPending.underlying txPending
   underlying : go.UnderlyingDirectedEq txPending.ty txPending.underlying
-  get_ids : ∀ (x : txPending), go.IsGoStepPureDetTagged under (StructFieldGet txPending.underlying go!"ids") #x (Val #(x.ids'))
-  set_ids : ∀ (x : txPending) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet txPending.underlying go!"ids") (PairV #x #y) (Val #(({ x with ids' := y } : txPending)))
-  get_alloctx : ∀ (x : txPending), go.IsGoStepPureDetTagged under (StructFieldGet txPending.underlying go!"alloctx") #x (Val #(x.alloctx'))
-  set_alloctx : ∀ (x : txPending) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet txPending.underlying go!"alloctx") (PairV #x #y) (Val #(({ x with alloctx' := y } : txPending)))
-  get_lastReleaseBegin : ∀ (x : txPending), go.IsGoStepPureDetTagged under (StructFieldGet txPending.underlying go!"lastReleaseBegin") #x (Val #(x.lastReleaseBegin'))
-  set_lastReleaseBegin : ∀ (x : txPending) (y : _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid), go.IsGoStepPureDetTagged under (StructFieldSet txPending.underlying go!"lastReleaseBegin") (PairV #x #y) (Val #(({ x with lastReleaseBegin' := y } : txPending)))
+  get'ids : ∀ (x : txPending), go.IsGoStepPureDetTagged under (StructFieldGet txPending.underlying go!"ids") #x (Val #(x.ids'))
+  set'ids : ∀ (x : txPending) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet txPending.underlying go!"ids") (PairV #x #y) (Val #(({ x with ids' := y } : txPending)))
+  get'alloctx : ∀ (x : txPending), go.IsGoStepPureDetTagged under (StructFieldGet txPending.underlying go!"alloctx") #x (Val #(x.alloctx'))
+  set'alloctx : ∀ (x : txPending) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet txPending.underlying go!"alloctx") (PairV #x #y) (Val #(({ x with alloctx' := y } : txPending)))
+  get'lastReleaseBegin : ∀ (x : txPending), go.IsGoStepPureDetTagged under (StructFieldGet txPending.underlying go!"lastReleaseBegin") #x (Val #(x.lastReleaseBegin'))
+  set'lastReleaseBegin : ∀ (x : txPending) (y : _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid), go.IsGoStepPureDetTagged under (StructFieldSet txPending.underlying go!"lastReleaseBegin") (PairV #x #y) (Val #(({ x with lastReleaseBegin' := y } : txPending)))
   method_set : go.MethodSetIs txPending.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType txPending.ty) []
 
 attribute [instance] txPending.TypeAssumptions.type_repr
   txPending.TypeAssumptions.underlying
-  txPending.TypeAssumptions.get_ids
-  txPending.TypeAssumptions.set_ids
-  txPending.TypeAssumptions.get_alloctx
-  txPending.TypeAssumptions.set_alloctx
-  txPending.TypeAssumptions.get_lastReleaseBegin
-  txPending.TypeAssumptions.set_lastReleaseBegin
+  txPending.TypeAssumptions.get'ids
+  txPending.TypeAssumptions.set'ids
+  txPending.TypeAssumptions.get'alloctx
+  txPending.TypeAssumptions.set'alloctx
+  txPending.TypeAssumptions.get'lastReleaseBegin
+  txPending.TypeAssumptions.set'lastReleaseBegin
   txPending.TypeAssumptions.method_set
   txPending.TypeAssumptions.ptr_method_set
 
@@ -2873,7 +2873,7 @@ noncomputable instance shared.zero_val [GooseExts] : ZeroVal shared :=
 @[irreducible] noncomputable def shared.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   shared.fieldsUnsealed
 
-noncomputable instance equals_unfold_shared [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'shared [GooseExts] [GoGlobalContext] :
     EqualsUnfold shared.fields shared.fieldsUnsealed :=
   ⟨by unfold shared.fields; rfl⟩
 
@@ -2883,99 +2883,99 @@ noncomputable instance equals_unfold_shared [GooseExts] [GoGlobalContext] :
 class shared.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying shared.underlying shared
   underlying : go.UnderlyingDirectedEq shared.ty shared.underlying
-  get_Interface : ∀ (x : shared), go.IsGoStepPureDetTagged under (StructFieldGet shared.underlying go!"Interface") #x (Val #(x.Interface'))
-  set_Interface : ∀ (x : shared) (y : Interface), go.IsGoStepPureDetTagged under (StructFieldSet shared.underlying go!"Interface") (PairV #x #y) (Val #(({ x with Interface' := y } : shared)))
-  get_readonlyTXIDs : ∀ (x : shared), go.IsGoStepPureDetTagged under (StructFieldGet shared.underlying go!"readonlyTXIDs") #x (Val #(x.readonlyTXIDs'))
-  set_readonlyTXIDs : ∀ (x : shared) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet shared.underlying go!"readonlyTXIDs") (PairV #x #y) (Val #(({ x with readonlyTXIDs' := y } : shared)))
-  get_allocs : ∀ (x : shared), go.IsGoStepPureDetTagged under (StructFieldGet shared.underlying go!"allocs") #x (Val #(x.allocs'))
-  set_allocs : ∀ (x : shared) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet shared.underlying go!"allocs") (PairV #x #y) (Val #(({ x with allocs' := y } : shared)))
-  get_cache : ∀ (x : shared), go.IsGoStepPureDetTagged under (StructFieldGet shared.underlying go!"cache") #x (Val #(x.cache'))
-  set_cache : ∀ (x : shared) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet shared.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : shared)))
-  get_pending : ∀ (x : shared), go.IsGoStepPureDetTagged under (StructFieldGet shared.underlying go!"pending") #x (Val #(x.pending'))
-  set_pending : ∀ (x : shared) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet shared.underlying go!"pending") (PairV #x #y) (Val #(({ x with pending' := y } : shared)))
+  get'Interface : ∀ (x : shared), go.IsGoStepPureDetTagged under (StructFieldGet shared.underlying go!"Interface") #x (Val #(x.Interface'))
+  set'Interface : ∀ (x : shared) (y : Interface), go.IsGoStepPureDetTagged under (StructFieldSet shared.underlying go!"Interface") (PairV #x #y) (Val #(({ x with Interface' := y } : shared)))
+  get'readonlyTXIDs : ∀ (x : shared), go.IsGoStepPureDetTagged under (StructFieldGet shared.underlying go!"readonlyTXIDs") #x (Val #(x.readonlyTXIDs'))
+  set'readonlyTXIDs : ∀ (x : shared) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet shared.underlying go!"readonlyTXIDs") (PairV #x #y) (Val #(({ x with readonlyTXIDs' := y } : shared)))
+  get'allocs : ∀ (x : shared), go.IsGoStepPureDetTagged under (StructFieldGet shared.underlying go!"allocs") #x (Val #(x.allocs'))
+  set'allocs : ∀ (x : shared) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet shared.underlying go!"allocs") (PairV #x #y) (Val #(({ x with allocs' := y } : shared)))
+  get'cache : ∀ (x : shared), go.IsGoStepPureDetTagged under (StructFieldGet shared.underlying go!"cache") #x (Val #(x.cache'))
+  set'cache : ∀ (x : shared) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet shared.underlying go!"cache") (PairV #x #y) (Val #(({ x with cache' := y } : shared)))
+  get'pending : ∀ (x : shared), go.IsGoStepPureDetTagged under (StructFieldGet shared.underlying go!"pending") #x (Val #(x.pending'))
+  set'pending : ∀ (x : shared) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet shared.underlying go!"pending") (PairV #x #y) (Val #(({ x with pending' := y } : shared)))
   method_set : go.MethodSetIs shared.ty [(go!"Allocate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, go.int] false [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty]))), (go!"FreeCount", (some (go.signature.Signature [] false [go.int]))), (go!"Init", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"go.etcd.io/bbolt/internal/freelist.freePageIds", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty]))), (go!"go.etcd.io/bbolt/internal/freelist.mergeSpans", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType shared.ty) [(go!"AddReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Allocate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, go.int] false [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty]))), (go!"Copyall", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)] false []))), (go!"Count", (some (go.signature.Signature [] false [go.int]))), (go!"EstimatedWritePageSize", (some (go.signature.Signature [] false [go.int]))), (go!"Free", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"FreeCount", (some (go.signature.Signature [] false [go.int]))), (go!"Freed", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [go.bool]))), (go!"Init", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"NoSyncReload", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"PendingCount", (some (go.signature.Signature [] false [go.int]))), (go!"Read", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"ReleasePendingPages", (some (go.signature.Signature [] false []))), (go!"Reload", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"RemoveReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Rollback", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"go.etcd.io/bbolt/internal/freelist.freePageIds", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty]))), (go!"go.etcd.io/bbolt/internal/freelist.mergeSpans", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"go.etcd.io/bbolt/internal/freelist.pendingPageIds", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty (go.GoType.PointerType txPending.ty))]))), (go!"go.etcd.io/bbolt/internal/freelist.reindex", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt/internal/freelist.release", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"go.etcd.io/bbolt/internal/freelist.releaseRange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false [])))]
-  Allocate_unfold : MethodUnfold shared.ty go!"Allocate" (LamV "$r"
+  unfold'Allocate : MethodUnfold shared.ty go!"Allocate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Interface.ty go!"Allocate"))) (App (Val (GoInstruction (StructFieldGet shared.ty go!"Interface"))) (Var "$r"))))
-  FreeCount_unfold : MethodUnfold shared.ty go!"FreeCount" (LamV "$r"
+  unfold'FreeCount : MethodUnfold shared.ty go!"FreeCount" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Interface.ty go!"FreeCount"))) (App (Val (GoInstruction (StructFieldGet shared.ty go!"Interface"))) (Var "$r"))))
-  Init_unfold : MethodUnfold shared.ty go!"Init" (LamV "$r"
+  unfold'Init : MethodUnfold shared.ty go!"Init" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Interface.ty go!"Init"))) (App (Val (GoInstruction (StructFieldGet shared.ty go!"Interface"))) (Var "$r"))))
-  freePageIds_unfold : MethodUnfold shared.ty go!"freePageIds" (LamV "$r"
+  unfold'freePageIds : MethodUnfold shared.ty go!"freePageIds" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Interface.ty go!"freePageIds"))) (App (Val (GoInstruction (StructFieldGet shared.ty go!"Interface"))) (Var "$r"))))
-  mergeSpans_unfold : MethodUnfold shared.ty go!"mergeSpans" (LamV "$r"
+  unfold'mergeSpans : MethodUnfold shared.ty go!"mergeSpans" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Interface.ty go!"mergeSpans"))) (App (Val (GoInstruction (StructFieldGet shared.ty go!"Interface"))) (Var "$r"))))
-  ptr_AddReadonlyTXID_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"AddReadonlyTXID" shared.AddReadonlyTXID.impl
-  ptr_Allocate_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"Allocate" (LamV "$r"
+  ptr_unfold'AddReadonlyTXID : MethodUnfold (go.GoType.PointerType shared.ty) go!"AddReadonlyTXID" shared.AddReadonlyTXID.impl
+  ptr_unfold'Allocate : MethodUnfold (go.GoType.PointerType shared.ty) go!"Allocate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Interface.ty go!"Allocate"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (App (Val (GoInstruction (StructFieldRef shared.ty go!"Interface"))) (Var "$r")))))
-  ptr_Copyall_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"Copyall" shared.Copyall.impl
-  ptr_Count_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"Count" shared.Count.impl
-  ptr_EstimatedWritePageSize_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"EstimatedWritePageSize" shared.EstimatedWritePageSize.impl
-  ptr_Free_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"Free" shared.Free.impl
-  ptr_FreeCount_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"FreeCount" (LamV "$r"
+  ptr_unfold'Copyall : MethodUnfold (go.GoType.PointerType shared.ty) go!"Copyall" shared.Copyall.impl
+  ptr_unfold'Count : MethodUnfold (go.GoType.PointerType shared.ty) go!"Count" shared.Count.impl
+  ptr_unfold'EstimatedWritePageSize : MethodUnfold (go.GoType.PointerType shared.ty) go!"EstimatedWritePageSize" shared.EstimatedWritePageSize.impl
+  ptr_unfold'Free : MethodUnfold (go.GoType.PointerType shared.ty) go!"Free" shared.Free.impl
+  ptr_unfold'FreeCount : MethodUnfold (go.GoType.PointerType shared.ty) go!"FreeCount" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Interface.ty go!"FreeCount"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (App (Val (GoInstruction (StructFieldRef shared.ty go!"Interface"))) (Var "$r")))))
-  ptr_Freed_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"Freed" shared.Freed.impl
-  ptr_Init_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"Init" (LamV "$r"
+  ptr_unfold'Freed : MethodUnfold (go.GoType.PointerType shared.ty) go!"Freed" shared.Freed.impl
+  ptr_unfold'Init : MethodUnfold (go.GoType.PointerType shared.ty) go!"Init" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Interface.ty go!"Init"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (App (Val (GoInstruction (StructFieldRef shared.ty go!"Interface"))) (Var "$r")))))
-  ptr_NoSyncReload_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"NoSyncReload" shared.NoSyncReload.impl
-  ptr_PendingCount_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"PendingCount" shared.PendingCount.impl
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"Read" shared.Read.impl
-  ptr_ReleasePendingPages_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"ReleasePendingPages" shared.ReleasePendingPages.impl
-  ptr_Reload_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"Reload" shared.Reload.impl
-  ptr_RemoveReadonlyTXID_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"RemoveReadonlyTXID" shared.RemoveReadonlyTXID.impl
-  ptr_Rollback_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"Rollback" shared.Rollback.impl
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"Write" shared.Write.impl
-  ptr_freePageIds_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"freePageIds" (LamV "$r"
+  ptr_unfold'NoSyncReload : MethodUnfold (go.GoType.PointerType shared.ty) go!"NoSyncReload" shared.NoSyncReload.impl
+  ptr_unfold'PendingCount : MethodUnfold (go.GoType.PointerType shared.ty) go!"PendingCount" shared.PendingCount.impl
+  ptr_unfold'Read : MethodUnfold (go.GoType.PointerType shared.ty) go!"Read" shared.Read.impl
+  ptr_unfold'ReleasePendingPages : MethodUnfold (go.GoType.PointerType shared.ty) go!"ReleasePendingPages" shared.ReleasePendingPages.impl
+  ptr_unfold'Reload : MethodUnfold (go.GoType.PointerType shared.ty) go!"Reload" shared.Reload.impl
+  ptr_unfold'RemoveReadonlyTXID : MethodUnfold (go.GoType.PointerType shared.ty) go!"RemoveReadonlyTXID" shared.RemoveReadonlyTXID.impl
+  ptr_unfold'Rollback : MethodUnfold (go.GoType.PointerType shared.ty) go!"Rollback" shared.Rollback.impl
+  ptr_unfold'Write : MethodUnfold (go.GoType.PointerType shared.ty) go!"Write" shared.Write.impl
+  ptr_unfold'freePageIds : MethodUnfold (go.GoType.PointerType shared.ty) go!"freePageIds" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Interface.ty go!"freePageIds"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (App (Val (GoInstruction (StructFieldRef shared.ty go!"Interface"))) (Var "$r")))))
-  ptr_mergeSpans_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"mergeSpans" (LamV "$r"
+  ptr_unfold'mergeSpans : MethodUnfold (go.GoType.PointerType shared.ty) go!"mergeSpans" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Interface.ty go!"mergeSpans"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (App (Val (GoInstruction (StructFieldRef shared.ty go!"Interface"))) (Var "$r")))))
-  ptr_pendingPageIds_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"pendingPageIds" shared.pendingPageIds.impl
-  ptr_reindex_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"reindex" shared.reindex.impl
-  ptr_release_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"release" shared.release.impl
-  ptr_releaseRange_unfold : MethodUnfold (go.GoType.PointerType shared.ty) go!"releaseRange" shared.releaseRange.impl
+  ptr_unfold'pendingPageIds : MethodUnfold (go.GoType.PointerType shared.ty) go!"pendingPageIds" shared.pendingPageIds.impl
+  ptr_unfold'reindex : MethodUnfold (go.GoType.PointerType shared.ty) go!"reindex" shared.reindex.impl
+  ptr_unfold'release : MethodUnfold (go.GoType.PointerType shared.ty) go!"release" shared.release.impl
+  ptr_unfold'releaseRange : MethodUnfold (go.GoType.PointerType shared.ty) go!"releaseRange" shared.releaseRange.impl
 
 attribute [instance] shared.TypeAssumptions.type_repr
   shared.TypeAssumptions.underlying
-  shared.TypeAssumptions.get_Interface
-  shared.TypeAssumptions.set_Interface
-  shared.TypeAssumptions.get_readonlyTXIDs
-  shared.TypeAssumptions.set_readonlyTXIDs
-  shared.TypeAssumptions.get_allocs
-  shared.TypeAssumptions.set_allocs
-  shared.TypeAssumptions.get_cache
-  shared.TypeAssumptions.set_cache
-  shared.TypeAssumptions.get_pending
-  shared.TypeAssumptions.set_pending
+  shared.TypeAssumptions.get'Interface
+  shared.TypeAssumptions.set'Interface
+  shared.TypeAssumptions.get'readonlyTXIDs
+  shared.TypeAssumptions.set'readonlyTXIDs
+  shared.TypeAssumptions.get'allocs
+  shared.TypeAssumptions.set'allocs
+  shared.TypeAssumptions.get'cache
+  shared.TypeAssumptions.set'cache
+  shared.TypeAssumptions.get'pending
+  shared.TypeAssumptions.set'pending
   shared.TypeAssumptions.method_set
   shared.TypeAssumptions.ptr_method_set
-  shared.TypeAssumptions.Allocate_unfold
-  shared.TypeAssumptions.FreeCount_unfold
-  shared.TypeAssumptions.Init_unfold
-  shared.TypeAssumptions.freePageIds_unfold
-  shared.TypeAssumptions.mergeSpans_unfold
-  shared.TypeAssumptions.ptr_AddReadonlyTXID_unfold
-  shared.TypeAssumptions.ptr_Allocate_unfold
-  shared.TypeAssumptions.ptr_Copyall_unfold
-  shared.TypeAssumptions.ptr_Count_unfold
-  shared.TypeAssumptions.ptr_EstimatedWritePageSize_unfold
-  shared.TypeAssumptions.ptr_Free_unfold
-  shared.TypeAssumptions.ptr_FreeCount_unfold
-  shared.TypeAssumptions.ptr_Freed_unfold
-  shared.TypeAssumptions.ptr_Init_unfold
-  shared.TypeAssumptions.ptr_NoSyncReload_unfold
-  shared.TypeAssumptions.ptr_PendingCount_unfold
-  shared.TypeAssumptions.ptr_Read_unfold
-  shared.TypeAssumptions.ptr_ReleasePendingPages_unfold
-  shared.TypeAssumptions.ptr_Reload_unfold
-  shared.TypeAssumptions.ptr_RemoveReadonlyTXID_unfold
-  shared.TypeAssumptions.ptr_Rollback_unfold
-  shared.TypeAssumptions.ptr_Write_unfold
-  shared.TypeAssumptions.ptr_freePageIds_unfold
-  shared.TypeAssumptions.ptr_mergeSpans_unfold
-  shared.TypeAssumptions.ptr_pendingPageIds_unfold
-  shared.TypeAssumptions.ptr_reindex_unfold
-  shared.TypeAssumptions.ptr_release_unfold
-  shared.TypeAssumptions.ptr_releaseRange_unfold
+  shared.TypeAssumptions.unfold'Allocate
+  shared.TypeAssumptions.unfold'FreeCount
+  shared.TypeAssumptions.unfold'Init
+  shared.TypeAssumptions.unfold'freePageIds
+  shared.TypeAssumptions.unfold'mergeSpans
+  shared.TypeAssumptions.ptr_unfold'AddReadonlyTXID
+  shared.TypeAssumptions.ptr_unfold'Allocate
+  shared.TypeAssumptions.ptr_unfold'Copyall
+  shared.TypeAssumptions.ptr_unfold'Count
+  shared.TypeAssumptions.ptr_unfold'EstimatedWritePageSize
+  shared.TypeAssumptions.ptr_unfold'Free
+  shared.TypeAssumptions.ptr_unfold'FreeCount
+  shared.TypeAssumptions.ptr_unfold'Freed
+  shared.TypeAssumptions.ptr_unfold'Init
+  shared.TypeAssumptions.ptr_unfold'NoSyncReload
+  shared.TypeAssumptions.ptr_unfold'PendingCount
+  shared.TypeAssumptions.ptr_unfold'Read
+  shared.TypeAssumptions.ptr_unfold'ReleasePendingPages
+  shared.TypeAssumptions.ptr_unfold'Reload
+  shared.TypeAssumptions.ptr_unfold'RemoveReadonlyTXID
+  shared.TypeAssumptions.ptr_unfold'Rollback
+  shared.TypeAssumptions.ptr_unfold'Write
+  shared.TypeAssumptions.ptr_unfold'freePageIds
+  shared.TypeAssumptions.ptr_unfold'mergeSpans
+  shared.TypeAssumptions.ptr_unfold'pendingPageIds
+  shared.TypeAssumptions.ptr_unfold'reindex
+  shared.TypeAssumptions.ptr_unfold'release
+  shared.TypeAssumptions.ptr_unfold'releaseRange
 
 abbrev txIDx [GooseExts] : Type := GoSlice
 
@@ -2986,62 +2986,62 @@ class txIDx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   underlying : go.UnderlyingDirectedEq txIDx.ty txIDx.underlying
   method_set : go.MethodSetIs txIDx.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType txIDx.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold txIDx.ty go!"Len" txIDx.Len.impl
-  Less_unfold : MethodUnfold txIDx.ty go!"Less" txIDx.Less.impl
-  Swap_unfold : MethodUnfold txIDx.ty go!"Swap" txIDx.Swap.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType txIDx.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold txIDx.ty go!"Len" txIDx.Len.impl
+  unfold'Less : MethodUnfold txIDx.ty go!"Less" txIDx.Less.impl
+  unfold'Swap : MethodUnfold txIDx.ty go!"Swap" txIDx.Swap.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType txIDx.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve txIDx.ty go!"Len"))) (App (Val (GoInstruction (GoLoad txIDx.ty))) (Var "$r"))))
-  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType txIDx.ty) go!"Less" (LamV "$r"
+  ptr_unfold'Less : MethodUnfold (go.GoType.PointerType txIDx.ty) go!"Less" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve txIDx.ty go!"Less"))) (App (Val (GoInstruction (GoLoad txIDx.ty))) (Var "$r"))))
-  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType txIDx.ty) go!"Swap" (LamV "$r"
+  ptr_unfold'Swap : MethodUnfold (go.GoType.PointerType txIDx.ty) go!"Swap" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve txIDx.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad txIDx.ty))) (Var "$r"))))
 
 attribute [instance] txIDx.TypeAssumptions.underlying
   txIDx.TypeAssumptions.method_set
   txIDx.TypeAssumptions.ptr_method_set
-  txIDx.TypeAssumptions.Len_unfold
-  txIDx.TypeAssumptions.Less_unfold
-  txIDx.TypeAssumptions.Swap_unfold
-  txIDx.TypeAssumptions.ptr_Len_unfold
-  txIDx.TypeAssumptions.ptr_Less_unfold
-  txIDx.TypeAssumptions.ptr_Swap_unfold
+  txIDx.TypeAssumptions.unfold'Len
+  txIDx.TypeAssumptions.unfold'Less
+  txIDx.TypeAssumptions.unfold'Swap
+  txIDx.TypeAssumptions.ptr_unfold'Len
+  txIDx.TypeAssumptions.ptr_unfold'Less
+  txIDx.TypeAssumptions.ptr_unfold'Swap
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  array_instance : array''.TypeAssumptions
-  ReadWriter_instance : ReadWriter.TypeAssumptions
-  Interface_instance : Interface.TypeAssumptions
-  pidSet_instance : pidSet.TypeAssumptions
-  hashMap_instance : hashMap.TypeAssumptions
-  txPending_instance : txPending.TypeAssumptions
-  shared_instance : shared.TypeAssumptions
-  txIDx_instance : txIDx.TypeAssumptions
-  NewArrayFreelist_unfold : FuncUnfold NewArrayFreelist [] NewArrayFreelist.impl
-  NewHashMapFreelist_unfold : FuncUnfold NewHashMapFreelist [] NewHashMapFreelist.impl
-  newShared_unfold : FuncUnfold newShared [] newShared.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_sort_Assumption : _root_.Perennial.sort.Assumptions
-  import_common_Assumption : _root_.Perennial.go_etcd_io.bbolt.internal.common.Assumptions
-  import_reflect_Assumption : _root_.Perennial.reflect.Assumptions
-  import_math_Assumption : _root_.Perennial.math.Assumptions
-  import_unsafe_Assumption : _root_.Perennial.«unsafe».Assumptions
+  instance'array : array''.TypeAssumptions
+  instance'ReadWriter : ReadWriter.TypeAssumptions
+  instance'Interface : Interface.TypeAssumptions
+  instance'pidSet : pidSet.TypeAssumptions
+  instance'hashMap : hashMap.TypeAssumptions
+  instance'txPending : txPending.TypeAssumptions
+  instance'shared : shared.TypeAssumptions
+  instance'txIDx : txIDx.TypeAssumptions
+  unfold'NewArrayFreelist : FuncUnfold NewArrayFreelist [] NewArrayFreelist.impl
+  unfold'NewHashMapFreelist : FuncUnfold NewHashMapFreelist [] NewHashMapFreelist.impl
+  unfold'newShared : FuncUnfold newShared [] newShared.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'sort : _root_.Perennial.sort.Assumptions
+  import'common : _root_.Perennial.go_etcd_io.bbolt.internal.common.Assumptions
+  import'reflect : _root_.Perennial.reflect.Assumptions
+  import'math : _root_.Perennial.math.Assumptions
+  import'unsafe : _root_.Perennial.«unsafe».Assumptions
 
-attribute [instance] Assumptions.array_instance
-  Assumptions.ReadWriter_instance
-  Assumptions.Interface_instance
-  Assumptions.pidSet_instance
-  Assumptions.hashMap_instance
-  Assumptions.txPending_instance
-  Assumptions.shared_instance
-  Assumptions.txIDx_instance
-  Assumptions.NewArrayFreelist_unfold
-  Assumptions.NewHashMapFreelist_unfold
-  Assumptions.newShared_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_sort_Assumption
-  Assumptions.import_common_Assumption
-  Assumptions.import_reflect_Assumption
-  Assumptions.import_math_Assumption
-  Assumptions.import_unsafe_Assumption
+attribute [instance] Assumptions.instance'array
+  Assumptions.instance'ReadWriter
+  Assumptions.instance'Interface
+  Assumptions.instance'pidSet
+  Assumptions.instance'hashMap
+  Assumptions.instance'txPending
+  Assumptions.instance'shared
+  Assumptions.instance'txIDx
+  Assumptions.unfold'NewArrayFreelist
+  Assumptions.unfold'NewHashMapFreelist
+  Assumptions.unfold'newShared
+  Assumptions.import'fmt
+  Assumptions.import'sort
+  Assumptions.import'common
+  Assumptions.import'reflect
+  Assumptions.import'math
+  Assumptions.import'unsafe
 
 end go_etcd_io.bbolt.internal.freelist
 

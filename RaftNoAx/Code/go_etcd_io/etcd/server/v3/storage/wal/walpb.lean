@@ -424,7 +424,7 @@ noncomputable instance Record.zero_val [GooseExts] : ZeroVal Record :=
 @[irreducible] noncomputable def Record.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Record.fieldsUnsealed
 
-noncomputable instance equals_unfold_Record [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Record [GooseExts] [GoGlobalContext] :
     EqualsUnfold Record.fields Record.fieldsUnsealed :=
   ⟨by unfold Record.fields; rfl⟩
 
@@ -434,49 +434,49 @@ noncomputable instance equals_unfold_Record [GooseExts] [GoGlobalContext] :
 class Record.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Record.underlying Record
   underlying : go.UnderlyingDirectedEq Record.ty Record.underlying
-  get_state : ∀ (x : Record), go.IsGoStepPureDetTagged under (StructFieldGet Record.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : Record) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Record.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Record)))
-  get_Type : ∀ (x : Record), go.IsGoStepPureDetTagged under (StructFieldGet Record.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : Record) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Record.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Record)))
-  get_Crc : ∀ (x : Record), go.IsGoStepPureDetTagged under (StructFieldGet Record.underlying go!"Crc") #x (Val #(x.Crc'))
-  set_Crc : ∀ (x : Record) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Record.underlying go!"Crc") (PairV #x #y) (Val #(({ x with Crc' := y } : Record)))
-  get_Data : ∀ (x : Record), go.IsGoStepPureDetTagged under (StructFieldGet Record.underlying go!"Data") #x (Val #(x.Data'))
-  set_Data : ∀ (x : Record) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Record.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : Record)))
-  get_unknownFields : ∀ (x : Record), go.IsGoStepPureDetTagged under (StructFieldGet Record.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : Record) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Record.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Record)))
-  get_sizeCache : ∀ (x : Record), go.IsGoStepPureDetTagged under (StructFieldGet Record.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : Record) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Record.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Record)))
+  get'state : ∀ (x : Record), go.IsGoStepPureDetTagged under (StructFieldGet Record.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : Record) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Record.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Record)))
+  get'Type : ∀ (x : Record), go.IsGoStepPureDetTagged under (StructFieldGet Record.underlying go!"Type") #x (Val #(x.Type'))
+  set'Type : ∀ (x : Record) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Record.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Record)))
+  get'Crc : ∀ (x : Record), go.IsGoStepPureDetTagged under (StructFieldGet Record.underlying go!"Crc") #x (Val #(x.Crc'))
+  set'Crc : ∀ (x : Record) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Record.underlying go!"Crc") (PairV #x #y) (Val #(({ x with Crc' := y } : Record)))
+  get'Data : ∀ (x : Record), go.IsGoStepPureDetTagged under (StructFieldGet Record.underlying go!"Data") #x (Val #(x.Data'))
+  set'Data : ∀ (x : Record) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Record.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : Record)))
+  get'unknownFields : ∀ (x : Record), go.IsGoStepPureDetTagged under (StructFieldGet Record.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : Record) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Record.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Record)))
+  get'sizeCache : ∀ (x : Record), go.IsGoStepPureDetTagged under (StructFieldGet Record.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : Record) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Record.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Record)))
   method_set : go.MethodSetIs Record.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Record.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCrc", (some (go.signature.Signature [] false [go.uint32]))), (go!"GetData", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetType", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Validate", (some (go.signature.Signature [go.uint32] false [go.error])))]
-  ptr_GetCrc_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"GetCrc" Record.GetCrc.impl
-  ptr_GetData_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"GetData" Record.GetData.impl
-  ptr_GetType_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"GetType" Record.GetType.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"ProtoMessage" Record.ProtoMessage.impl
-  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"Reset" Record.Reset.impl
-  ptr_Validate_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"Validate" Record.Validate.impl
+  ptr_unfold'GetCrc : MethodUnfold (go.GoType.PointerType Record.ty) go!"GetCrc" Record.GetCrc.impl
+  ptr_unfold'GetData : MethodUnfold (go.GoType.PointerType Record.ty) go!"GetData" Record.GetData.impl
+  ptr_unfold'GetType : MethodUnfold (go.GoType.PointerType Record.ty) go!"GetType" Record.GetType.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType Record.ty) go!"ProtoMessage" Record.ProtoMessage.impl
+  ptr_unfold'Reset : MethodUnfold (go.GoType.PointerType Record.ty) go!"Reset" Record.Reset.impl
+  ptr_unfold'Validate : MethodUnfold (go.GoType.PointerType Record.ty) go!"Validate" Record.Validate.impl
 
 attribute [instance] Record.TypeAssumptions.type_repr
   Record.TypeAssumptions.underlying
-  Record.TypeAssumptions.get_state
-  Record.TypeAssumptions.set_state
-  Record.TypeAssumptions.get_Type
-  Record.TypeAssumptions.set_Type
-  Record.TypeAssumptions.get_Crc
-  Record.TypeAssumptions.set_Crc
-  Record.TypeAssumptions.get_Data
-  Record.TypeAssumptions.set_Data
-  Record.TypeAssumptions.get_unknownFields
-  Record.TypeAssumptions.set_unknownFields
-  Record.TypeAssumptions.get_sizeCache
-  Record.TypeAssumptions.set_sizeCache
+  Record.TypeAssumptions.get'state
+  Record.TypeAssumptions.set'state
+  Record.TypeAssumptions.get'Type
+  Record.TypeAssumptions.set'Type
+  Record.TypeAssumptions.get'Crc
+  Record.TypeAssumptions.set'Crc
+  Record.TypeAssumptions.get'Data
+  Record.TypeAssumptions.set'Data
+  Record.TypeAssumptions.get'unknownFields
+  Record.TypeAssumptions.set'unknownFields
+  Record.TypeAssumptions.get'sizeCache
+  Record.TypeAssumptions.set'sizeCache
   Record.TypeAssumptions.method_set
   Record.TypeAssumptions.ptr_method_set
-  Record.TypeAssumptions.ptr_GetCrc_unfold
-  Record.TypeAssumptions.ptr_GetData_unfold
-  Record.TypeAssumptions.ptr_GetType_unfold
-  Record.TypeAssumptions.ptr_ProtoMessage_unfold
-  Record.TypeAssumptions.ptr_Reset_unfold
-  Record.TypeAssumptions.ptr_Validate_unfold
+  Record.TypeAssumptions.ptr_unfold'GetCrc
+  Record.TypeAssumptions.ptr_unfold'GetData
+  Record.TypeAssumptions.ptr_unfold'GetType
+  Record.TypeAssumptions.ptr_unfold'ProtoMessage
+  Record.TypeAssumptions.ptr_unfold'Reset
+  Record.TypeAssumptions.ptr_unfold'Validate
 
 structure Snapshot [GooseExts] where
   mk ::
@@ -501,7 +501,7 @@ noncomputable instance Snapshot.zero_val [GooseExts] : ZeroVal Snapshot :=
 @[irreducible] noncomputable def Snapshot.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Snapshot.fieldsUnsealed
 
-noncomputable instance equals_unfold_Snapshot [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Snapshot [GooseExts] [GoGlobalContext] :
     EqualsUnfold Snapshot.fields Snapshot.fieldsUnsealed :=
   ⟨by unfold Snapshot.fields; rfl⟩
 
@@ -511,70 +511,70 @@ noncomputable instance equals_unfold_Snapshot [GooseExts] [GoGlobalContext] :
 class Snapshot.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Snapshot.underlying Snapshot
   underlying : go.UnderlyingDirectedEq Snapshot.ty Snapshot.underlying
-  get_state : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : Snapshot) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Snapshot)))
-  get_Index : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"Index") #x (Val #(x.Index'))
-  set_Index : ∀ (x : Snapshot) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"Index") (PairV #x #y) (Val #(({ x with Index' := y } : Snapshot)))
-  get_Term : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"Term") #x (Val #(x.Term'))
-  set_Term : ∀ (x : Snapshot) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"Term") (PairV #x #y) (Val #(({ x with Term' := y } : Snapshot)))
-  get_ConfState : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"ConfState") #x (Val #(x.ConfState'))
-  set_ConfState : ∀ (x : Snapshot) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"ConfState") (PairV #x #y) (Val #(({ x with ConfState' := y } : Snapshot)))
-  get_unknownFields : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : Snapshot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Snapshot)))
-  get_sizeCache : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : Snapshot) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Snapshot)))
+  get'state : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"state") #x (Val #(x.state'))
+  set'state : ∀ (x : Snapshot) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Snapshot)))
+  get'Index : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"Index") #x (Val #(x.Index'))
+  set'Index : ∀ (x : Snapshot) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"Index") (PairV #x #y) (Val #(({ x with Index' := y } : Snapshot)))
+  get'Term : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"Term") #x (Val #(x.Term'))
+  set'Term : ∀ (x : Snapshot) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"Term") (PairV #x #y) (Val #(({ x with Term' := y } : Snapshot)))
+  get'ConfState : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"ConfState") #x (Val #(x.ConfState'))
+  set'ConfState : ∀ (x : Snapshot) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"ConfState") (PairV #x #y) (Val #(({ x with ConfState' := y } : Snapshot)))
+  get'unknownFields : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set'unknownFields : ∀ (x : Snapshot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Snapshot)))
+  get'sizeCache : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set'sizeCache : ∀ (x : Snapshot) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Snapshot)))
   method_set : go.MethodSetIs Snapshot.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Snapshot.ty) [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType Snapshot.ty)]))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetConfState", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)]))), (go!"GetIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_Clone_unfold : MethodUnfold (go.GoType.PointerType Snapshot.ty) go!"Clone" Snapshot.Clone.impl
-  ptr_GetConfState_unfold : MethodUnfold (go.GoType.PointerType Snapshot.ty) go!"GetConfState" Snapshot.GetConfState.impl
-  ptr_GetIndex_unfold : MethodUnfold (go.GoType.PointerType Snapshot.ty) go!"GetIndex" Snapshot.GetIndex.impl
-  ptr_GetTerm_unfold : MethodUnfold (go.GoType.PointerType Snapshot.ty) go!"GetTerm" Snapshot.GetTerm.impl
-  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType Snapshot.ty) go!"ProtoMessage" Snapshot.ProtoMessage.impl
+  ptr_unfold'Clone : MethodUnfold (go.GoType.PointerType Snapshot.ty) go!"Clone" Snapshot.Clone.impl
+  ptr_unfold'GetConfState : MethodUnfold (go.GoType.PointerType Snapshot.ty) go!"GetConfState" Snapshot.GetConfState.impl
+  ptr_unfold'GetIndex : MethodUnfold (go.GoType.PointerType Snapshot.ty) go!"GetIndex" Snapshot.GetIndex.impl
+  ptr_unfold'GetTerm : MethodUnfold (go.GoType.PointerType Snapshot.ty) go!"GetTerm" Snapshot.GetTerm.impl
+  ptr_unfold'ProtoMessage : MethodUnfold (go.GoType.PointerType Snapshot.ty) go!"ProtoMessage" Snapshot.ProtoMessage.impl
 
 attribute [instance] Snapshot.TypeAssumptions.type_repr
   Snapshot.TypeAssumptions.underlying
-  Snapshot.TypeAssumptions.get_state
-  Snapshot.TypeAssumptions.set_state
-  Snapshot.TypeAssumptions.get_Index
-  Snapshot.TypeAssumptions.set_Index
-  Snapshot.TypeAssumptions.get_Term
-  Snapshot.TypeAssumptions.set_Term
-  Snapshot.TypeAssumptions.get_ConfState
-  Snapshot.TypeAssumptions.set_ConfState
-  Snapshot.TypeAssumptions.get_unknownFields
-  Snapshot.TypeAssumptions.set_unknownFields
-  Snapshot.TypeAssumptions.get_sizeCache
-  Snapshot.TypeAssumptions.set_sizeCache
+  Snapshot.TypeAssumptions.get'state
+  Snapshot.TypeAssumptions.set'state
+  Snapshot.TypeAssumptions.get'Index
+  Snapshot.TypeAssumptions.set'Index
+  Snapshot.TypeAssumptions.get'Term
+  Snapshot.TypeAssumptions.set'Term
+  Snapshot.TypeAssumptions.get'ConfState
+  Snapshot.TypeAssumptions.set'ConfState
+  Snapshot.TypeAssumptions.get'unknownFields
+  Snapshot.TypeAssumptions.set'unknownFields
+  Snapshot.TypeAssumptions.get'sizeCache
+  Snapshot.TypeAssumptions.set'sizeCache
   Snapshot.TypeAssumptions.method_set
   Snapshot.TypeAssumptions.ptr_method_set
-  Snapshot.TypeAssumptions.ptr_Clone_unfold
-  Snapshot.TypeAssumptions.ptr_GetConfState_unfold
-  Snapshot.TypeAssumptions.ptr_GetIndex_unfold
-  Snapshot.TypeAssumptions.ptr_GetTerm_unfold
-  Snapshot.TypeAssumptions.ptr_ProtoMessage_unfold
+  Snapshot.TypeAssumptions.ptr_unfold'Clone
+  Snapshot.TypeAssumptions.ptr_unfold'GetConfState
+  Snapshot.TypeAssumptions.ptr_unfold'GetIndex
+  Snapshot.TypeAssumptions.ptr_unfold'GetTerm
+  Snapshot.TypeAssumptions.ptr_unfold'ProtoMessage
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Record_instance : Record.TypeAssumptions
-  Snapshot_instance : Snapshot.TypeAssumptions
-  ValidateSnapshotForWrite_unfold : FuncUnfold ValidateSnapshotForWrite [] ValidateSnapshotForWrite.impl
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
-  import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
-  import_protoreflect_Assumption : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
-  import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
+  instance'Record : Record.TypeAssumptions
+  instance'Snapshot : Snapshot.TypeAssumptions
+  unfold'ValidateSnapshotForWrite : FuncUnfold ValidateSnapshotForWrite [] ValidateSnapshotForWrite.impl
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'proto : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
+  import'raftpb : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
+  import'protoreflect : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
+  import'protoimpl : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
 
-attribute [instance] Assumptions.Record_instance
-  Assumptions.Snapshot_instance
-  Assumptions.ValidateSnapshotForWrite_unfold
-  Assumptions.«init.0_unfold»
-  Assumptions.import_errors_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_proto_Assumption
-  Assumptions.import_raftpb_Assumption
-  Assumptions.import_protoreflect_Assumption
-  Assumptions.import_protoimpl_Assumption
+attribute [instance] Assumptions.instance'Record
+  Assumptions.instance'Snapshot
+  Assumptions.unfold'ValidateSnapshotForWrite
+  Assumptions.«unfold'init.0»
+  Assumptions.import'errors
+  Assumptions.import'fmt
+  Assumptions.import'proto
+  Assumptions.import'raftpb
+  Assumptions.import'protoreflect
+  Assumptions.import'protoimpl
 
 end go_etcd_io.etcd.server.v3.storage.wal.walpb
 

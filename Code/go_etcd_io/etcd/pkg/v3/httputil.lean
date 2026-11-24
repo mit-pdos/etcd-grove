@@ -44,11 +44,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.net.http.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_http_Assumption : _root_.Perennial.net.http.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'http : _root_.Perennial.net.http.Assumptions
 
-attribute [instance] Assumptions.import_io_Assumption
-  Assumptions.import_http_Assumption
+attribute [instance] Assumptions.import'io
+  Assumptions.import'http
 
 end go_etcd_io.etcd.pkg.v3.httputil
 

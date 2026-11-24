@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
 
-noncomputable instance TokenReview_typed_pointsto :
+noncomputable instance typed_pointsto'TokenReview :
     TypedPointsto (GF := GF) k8s_io.api.authentication.v1.TokenReview :=
   sorry -- axiomatized type
 
-noncomputable instance TokenReview_into_val_typed :
+noncomputable instance into_val_typed'TokenReview :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.TokenReview k8s_io.api.authentication.v1.TokenReview.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
 
-noncomputable instance TokenReviewSpec_typed_pointsto :
+noncomputable instance typed_pointsto'TokenReviewSpec :
     TypedPointsto (GF := GF) k8s_io.api.authentication.v1.TokenReviewSpec :=
   sorry -- axiomatized type
 
-noncomputable instance TokenReviewSpec_into_val_typed :
+noncomputable instance into_val_typed'TokenReviewSpec :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.TokenReviewSpec k8s_io.api.authentication.v1.TokenReviewSpec.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
 
-noncomputable instance TokenReviewStatus_typed_pointsto :
+noncomputable instance typed_pointsto'TokenReviewStatus :
     TypedPointsto (GF := GF) k8s_io.api.authentication.v1.TokenReviewStatus :=
   sorry -- axiomatized type
 
-noncomputable instance TokenReviewStatus_into_val_typed :
+noncomputable instance into_val_typed'TokenReviewStatus :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.TokenReviewStatus k8s_io.api.authentication.v1.TokenReviewStatus.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
 
-noncomputable instance UserInfo_typed_pointsto :
+noncomputable instance typed_pointsto'UserInfo :
     TypedPointsto (GF := GF) k8s_io.api.authentication.v1.UserInfo :=
   sorry -- axiomatized type
 
-noncomputable instance UserInfo_into_val_typed :
+noncomputable instance into_val_typed'UserInfo :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.UserInfo k8s_io.api.authentication.v1.UserInfo.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
 
-noncomputable instance ExtraValue_typed_pointsto :
+noncomputable instance typed_pointsto'ExtraValue :
     TypedPointsto (GF := GF) k8s_io.api.authentication.v1.ExtraValue :=
   sorry -- axiomatized type
 
-noncomputable instance ExtraValue_into_val_typed :
+noncomputable instance into_val_typed'ExtraValue :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.ExtraValue k8s_io.api.authentication.v1.ExtraValue.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
 
-noncomputable instance AttestationValue_typed_pointsto :
+noncomputable instance typed_pointsto'AttestationValue :
     TypedPointsto (GF := GF) k8s_io.api.authentication.v1.AttestationValue :=
   sorry -- axiomatized type
 
-noncomputable instance AttestationValue_into_val_typed :
+noncomputable instance into_val_typed'AttestationValue :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.AttestationValue k8s_io.api.authentication.v1.AttestationValue.underlying :=
   sorry -- axiomatized type
 
@@ -138,11 +138,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
 
-noncomputable instance TokenRequest_typed_pointsto :
+noncomputable instance typed_pointsto'TokenRequest :
     TypedPointsto (GF := GF) k8s_io.api.authentication.v1.TokenRequest :=
   sorry -- axiomatized type
 
-noncomputable instance TokenRequest_into_val_typed :
+noncomputable instance into_val_typed'TokenRequest :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.TokenRequest k8s_io.api.authentication.v1.TokenRequest.underlying :=
   sorry -- axiomatized type
 
@@ -157,11 +157,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
 
-noncomputable instance TokenRequestSpec_typed_pointsto :
+noncomputable instance typed_pointsto'TokenRequestSpec :
     TypedPointsto (GF := GF) k8s_io.api.authentication.v1.TokenRequestSpec :=
   sorry -- axiomatized type
 
-noncomputable instance TokenRequestSpec_into_val_typed :
+noncomputable instance into_val_typed'TokenRequestSpec :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.TokenRequestSpec k8s_io.api.authentication.v1.TokenRequestSpec.underlying :=
   sorry -- axiomatized type
 
@@ -176,11 +176,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
 
-noncomputable instance TokenRequestStatus_typed_pointsto :
+noncomputable instance typed_pointsto'TokenRequestStatus :
     TypedPointsto (GF := GF) k8s_io.api.authentication.v1.TokenRequestStatus :=
   sorry -- axiomatized type
 
-noncomputable instance TokenRequestStatus_into_val_typed :
+noncomputable instance into_val_typed'TokenRequestStatus :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.TokenRequestStatus k8s_io.api.authentication.v1.TokenRequestStatus.underlying :=
   sorry -- axiomatized type
 
@@ -195,11 +195,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
 
-noncomputable instance BoundObjectReference_typed_pointsto :
+noncomputable instance typed_pointsto'BoundObjectReference :
     TypedPointsto (GF := GF) k8s_io.api.authentication.v1.BoundObjectReference :=
   sorry -- axiomatized type
 
-noncomputable instance BoundObjectReference_into_val_typed :
+noncomputable instance into_val_typed'BoundObjectReference :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.BoundObjectReference k8s_io.api.authentication.v1.BoundObjectReference.underlying :=
   sorry -- axiomatized type
 
@@ -214,11 +214,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
 
-noncomputable instance SelfSubjectReview_typed_pointsto :
+noncomputable instance typed_pointsto'SelfSubjectReview :
     TypedPointsto (GF := GF) k8s_io.api.authentication.v1.SelfSubjectReview :=
   sorry -- axiomatized type
 
-noncomputable instance SelfSubjectReview_into_val_typed :
+noncomputable instance into_val_typed'SelfSubjectReview :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.SelfSubjectReview k8s_io.api.authentication.v1.SelfSubjectReview.underlying :=
   sorry -- axiomatized type
 
@@ -233,11 +233,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
 
-noncomputable instance SelfSubjectReviewStatus_typed_pointsto :
+noncomputable instance typed_pointsto'SelfSubjectReviewStatus :
     TypedPointsto (GF := GF) k8s_io.api.authentication.v1.SelfSubjectReviewStatus :=
   sorry -- axiomatized type
 
-noncomputable instance SelfSubjectReviewStatus_into_val_typed :
+noncomputable instance into_val_typed'SelfSubjectReviewStatus :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.SelfSubjectReviewStatus k8s_io.api.authentication.v1.SelfSubjectReviewStatus.underlying :=
   sorry -- axiomatized type
 

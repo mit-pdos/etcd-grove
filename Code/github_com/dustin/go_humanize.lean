@@ -373,11 +373,11 @@ attribute [instance] RelTimeMagnitude.TypeAssumptions.type_repr
   RelTimeMagnitude.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  RelTimeMagnitude_instance : RelTimeMagnitude.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  instance'RelTimeMagnitude : RelTimeMagnitude.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
 
-attribute [instance] Assumptions.RelTimeMagnitude_instance
-  Assumptions.«init.0_unfold»
+attribute [instance] Assumptions.instance'RelTimeMagnitude
+  Assumptions.«unfold'init.0»
 
 end github_com.dustin.go_humanize
 

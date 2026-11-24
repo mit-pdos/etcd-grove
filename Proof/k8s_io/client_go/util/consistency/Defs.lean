@@ -202,15 +202,15 @@ variable [k8s_io.apimachinery.pkg.runtime.schema.GroupResource.TypeAssumptions]
 instance owner_intoValInj : go.IntoValInj Owner where
   intoVal_inj x y h := by
     have ⟨e1, e2⟩ := two_fields_inj _ _ _ _ _
-      k8s_io.apimachinery.pkg.types.NamespacedName.TypeAssumptions.get_Namespace
-      k8s_io.apimachinery.pkg.types.NamespacedName.TypeAssumptions.get_Name x y h
+      k8s_io.apimachinery.pkg.types.NamespacedName.TypeAssumptions.get'Namespace
+      k8s_io.apimachinery.pkg.types.NamespacedName.TypeAssumptions.get'Name x y h
     cases x; cases y; simp only at e1 e2; rw [e1, e2]
 
 instance gr_intoValInj : go.IntoValInj GR where
   intoVal_inj x y h := by
     have ⟨e1, e2⟩ := two_fields_inj _ _ _ _ _
-      k8s_io.apimachinery.pkg.runtime.schema.GroupResource.TypeAssumptions.get_Group
-      k8s_io.apimachinery.pkg.runtime.schema.GroupResource.TypeAssumptions.get_Resource x y h
+      k8s_io.apimachinery.pkg.runtime.schema.GroupResource.TypeAssumptions.get'Group
+      k8s_io.apimachinery.pkg.runtime.schema.GroupResource.TypeAssumptions.get'Resource x y h
     cases x; cases y; simp only at e1 e2; rw [e1, e2]
 
 end inj

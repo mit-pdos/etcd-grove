@@ -824,47 +824,47 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Apply_unfold : FuncUnfold Apply [] Apply.impl
-  Check_unfold : FuncUnfold Check [] Check.impl
-  config_unfold : FuncUnfold config [] config.impl
-  startCluster_unfold : FuncUnfold startCluster [] startCluster.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  writer_unfold : FuncUnfold writer [] writer.impl
-  MainWatch_unfold : FuncUnfold MainWatch [] MainWatch.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
-  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_txnlin_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions
-  import_cluster3_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
-  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
-  import_lintest_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
-  import_bridge_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions
+  unfold'Apply : FuncUnfold Apply [] Apply.impl
+  unfold'Check : FuncUnfold Check [] Check.impl
+  unfold'config : FuncUnfold config [] config.impl
+  unfold'startCluster : FuncUnfold startCluster [] startCluster.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  unfold'writer : FuncUnfold writer [] writer.impl
+  unfold'MainWatch : FuncUnfold MainWatch [] MainWatch.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'porcupine : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
+  import'primitive : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'etcdserver : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
+  import'txnlin : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions
+  import'cluster3 : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
+  import'etcdstart : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
+  import'lintest : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
+  import'bridge : _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions
 
-attribute [instance] Assumptions.Apply_unfold
-  Assumptions.Check_unfold
-  Assumptions.config_unfold
-  Assumptions.startCluster_unfold
-  Assumptions.Main_unfold
-  Assumptions.writer_unfold
-  Assumptions.MainWatch_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_porcupine_Assumption
-  Assumptions.import_primitive_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_etcdserver_Assumption
-  Assumptions.import_txnlin_Assumption
-  Assumptions.import_cluster3_Assumption
-  Assumptions.import_etcdstart_Assumption
-  Assumptions.import_lintest_Assumption
-  Assumptions.import_bridge_Assumption
+attribute [instance] Assumptions.unfold'Apply
+  Assumptions.unfold'Check
+  Assumptions.unfold'config
+  Assumptions.unfold'startCluster
+  Assumptions.unfold'Main
+  Assumptions.unfold'writer
+  Assumptions.unfold'MainWatch
+  Assumptions.import'context
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'porcupine
+  Assumptions.import'primitive
+  Assumptions.import'zap
+  Assumptions.import'clientv3
+  Assumptions.import'etcdserver
+  Assumptions.import'txnlin
+  Assumptions.import'cluster3
+  Assumptions.import'etcdstart
+  Assumptions.import'lintest
+  Assumptions.import'bridge
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.partition
 

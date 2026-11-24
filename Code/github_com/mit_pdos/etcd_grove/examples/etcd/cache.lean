@@ -37,7 +37,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.etcd.cache
 @[reducible] noncomputable def period [GooseExts] [GoGlobalContext] : val :=
   #(W64 10000000)
 
-@[reducible] noncomputable def «prefix» [GooseExts] [GoGlobalContext] : val :=
+@[reducible] noncomputable def prefix'' [GooseExts] [GoGlobalContext] : val :=
   #(go!"ck/")
 
 @[reducible] noncomputable def Ok [GooseExts] [GoGlobalContext] : val :=
@@ -234,7 +234,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val «prefix»))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val prefix''))
   (Let "$a2" (Val #slice.nil)
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.cache.v3.New []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$ret0" (Fst (Var "__p"))
@@ -256,7 +256,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "wctx"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val «prefix»))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val prefix''))
   (Let "$a2" (Let "$sl0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithPrefix []))) (Val #())) (Val #()))
   (Let "$sl1" (Let "$a0" (Val #(W64 2))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithRev []))) (Val #())) (Var "$a0")))
@@ -331,7 +331,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "gctx"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val «prefix»))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val prefix''))
   (Let "$a2" (Let "$sl0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithPrefix []))) (Val #())) (Val #()))
   (Let "$sl1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "r"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithRev []))) (Val #())) (Var "$a0")))
@@ -869,37 +869,37 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  collect_unfold : FuncUnfold collect [] collect.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  awaitProgress_unfold : FuncUnfold awaitProgress [] awaitProgress.impl
-  checkProgress_unfold : FuncUnfold checkProgress [] checkProgress.impl
-  lastVal_unfold : FuncUnfold lastVal [] lastVal.impl
-  hasKey_unfold : FuncUnfold hasKey [] hasKey.impl
-  checkGet_unfold : FuncUnfold checkGet [] checkGet.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
-  import_cache_Assumption : _root_.Perennial.go_etcd_io.etcd.cache.v3.Assumptions
-  import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
+  unfold'collect : FuncUnfold collect [] collect.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  unfold'awaitProgress : FuncUnfold awaitProgress [] awaitProgress.impl
+  unfold'checkProgress : FuncUnfold checkProgress [] checkProgress.impl
+  unfold'lastVal : FuncUnfold lastVal [] lastVal.impl
+  unfold'hasKey : FuncUnfold hasKey [] hasKey.impl
+  unfold'checkGet : FuncUnfold checkGet [] checkGet.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'mvccpb : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
+  import'cache : _root_.Perennial.go_etcd_io.etcd.cache.v3.Assumptions
+  import'clientv3 : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
+  import'etcdstart : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
 
-attribute [instance] Assumptions.collect_unfold
-  Assumptions.Main_unfold
-  Assumptions.awaitProgress_unfold
-  Assumptions.checkProgress_unfold
-  Assumptions.lastVal_unfold
-  Assumptions.hasKey_unfold
-  Assumptions.checkGet_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_mvccpb_Assumption
-  Assumptions.import_cache_Assumption
-  Assumptions.import_clientv3_Assumption
-  Assumptions.import_etcdstart_Assumption
+attribute [instance] Assumptions.unfold'collect
+  Assumptions.unfold'Main
+  Assumptions.unfold'awaitProgress
+  Assumptions.unfold'checkProgress
+  Assumptions.unfold'lastVal
+  Assumptions.unfold'hasKey
+  Assumptions.unfold'checkGet
+  Assumptions.import'context
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'zap
+  Assumptions.import'mvccpb
+  Assumptions.import'cache
+  Assumptions.import'clientv3
+  Assumptions.import'etcdstart
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.cache
 

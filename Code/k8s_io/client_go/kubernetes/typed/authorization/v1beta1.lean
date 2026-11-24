@@ -528,43 +528,43 @@ attribute [instance] subjectAccessReviews.TypeAssumptions.type_repr
   subjectAccessReviews.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  AuthorizationV1beta1Interface_instance : AuthorizationV1beta1Interface.TypeAssumptions
-  AuthorizationV1beta1Client_instance : AuthorizationV1beta1Client.TypeAssumptions
-  LocalSubjectAccessReviewExpansion_instance : LocalSubjectAccessReviewExpansion.TypeAssumptions
-  SelfSubjectAccessReviewExpansion_instance : SelfSubjectAccessReviewExpansion.TypeAssumptions
-  SelfSubjectRulesReviewExpansion_instance : SelfSubjectRulesReviewExpansion.TypeAssumptions
-  SubjectAccessReviewExpansion_instance : SubjectAccessReviewExpansion.TypeAssumptions
-  LocalSubjectAccessReviewsGetter_instance : LocalSubjectAccessReviewsGetter.TypeAssumptions
-  LocalSubjectAccessReviewInterface_instance : LocalSubjectAccessReviewInterface.TypeAssumptions
-  localSubjectAccessReviews_instance : localSubjectAccessReviews.TypeAssumptions
-  SelfSubjectAccessReviewsGetter_instance : SelfSubjectAccessReviewsGetter.TypeAssumptions
-  SelfSubjectAccessReviewInterface_instance : SelfSubjectAccessReviewInterface.TypeAssumptions
-  selfSubjectAccessReviews_instance : selfSubjectAccessReviews.TypeAssumptions
-  SelfSubjectRulesReviewsGetter_instance : SelfSubjectRulesReviewsGetter.TypeAssumptions
-  SelfSubjectRulesReviewInterface_instance : SelfSubjectRulesReviewInterface.TypeAssumptions
-  selfSubjectRulesReviews_instance : selfSubjectRulesReviews.TypeAssumptions
-  SubjectAccessReviewsGetter_instance : SubjectAccessReviewsGetter.TypeAssumptions
-  SubjectAccessReviewInterface_instance : SubjectAccessReviewInterface.TypeAssumptions
-  subjectAccessReviews_instance : subjectAccessReviews.TypeAssumptions
+  instance'AuthorizationV1beta1Interface : AuthorizationV1beta1Interface.TypeAssumptions
+  instance'AuthorizationV1beta1Client : AuthorizationV1beta1Client.TypeAssumptions
+  instance'LocalSubjectAccessReviewExpansion : LocalSubjectAccessReviewExpansion.TypeAssumptions
+  instance'SelfSubjectAccessReviewExpansion : SelfSubjectAccessReviewExpansion.TypeAssumptions
+  instance'SelfSubjectRulesReviewExpansion : SelfSubjectRulesReviewExpansion.TypeAssumptions
+  instance'SubjectAccessReviewExpansion : SubjectAccessReviewExpansion.TypeAssumptions
+  instance'LocalSubjectAccessReviewsGetter : LocalSubjectAccessReviewsGetter.TypeAssumptions
+  instance'LocalSubjectAccessReviewInterface : LocalSubjectAccessReviewInterface.TypeAssumptions
+  instance'localSubjectAccessReviews : localSubjectAccessReviews.TypeAssumptions
+  instance'SelfSubjectAccessReviewsGetter : SelfSubjectAccessReviewsGetter.TypeAssumptions
+  instance'SelfSubjectAccessReviewInterface : SelfSubjectAccessReviewInterface.TypeAssumptions
+  instance'selfSubjectAccessReviews : selfSubjectAccessReviews.TypeAssumptions
+  instance'SelfSubjectRulesReviewsGetter : SelfSubjectRulesReviewsGetter.TypeAssumptions
+  instance'SelfSubjectRulesReviewInterface : SelfSubjectRulesReviewInterface.TypeAssumptions
+  instance'selfSubjectRulesReviews : selfSubjectRulesReviews.TypeAssumptions
+  instance'SubjectAccessReviewsGetter : SubjectAccessReviewsGetter.TypeAssumptions
+  instance'SubjectAccessReviewInterface : SubjectAccessReviewInterface.TypeAssumptions
+  instance'subjectAccessReviews : subjectAccessReviews.TypeAssumptions
 
-attribute [instance] Assumptions.AuthorizationV1beta1Interface_instance
-  Assumptions.AuthorizationV1beta1Client_instance
-  Assumptions.LocalSubjectAccessReviewExpansion_instance
-  Assumptions.SelfSubjectAccessReviewExpansion_instance
-  Assumptions.SelfSubjectRulesReviewExpansion_instance
-  Assumptions.SubjectAccessReviewExpansion_instance
-  Assumptions.LocalSubjectAccessReviewsGetter_instance
-  Assumptions.LocalSubjectAccessReviewInterface_instance
-  Assumptions.localSubjectAccessReviews_instance
-  Assumptions.SelfSubjectAccessReviewsGetter_instance
-  Assumptions.SelfSubjectAccessReviewInterface_instance
-  Assumptions.selfSubjectAccessReviews_instance
-  Assumptions.SelfSubjectRulesReviewsGetter_instance
-  Assumptions.SelfSubjectRulesReviewInterface_instance
-  Assumptions.selfSubjectRulesReviews_instance
-  Assumptions.SubjectAccessReviewsGetter_instance
-  Assumptions.SubjectAccessReviewInterface_instance
-  Assumptions.subjectAccessReviews_instance
+attribute [instance] Assumptions.instance'AuthorizationV1beta1Interface
+  Assumptions.instance'AuthorizationV1beta1Client
+  Assumptions.instance'LocalSubjectAccessReviewExpansion
+  Assumptions.instance'SelfSubjectAccessReviewExpansion
+  Assumptions.instance'SelfSubjectRulesReviewExpansion
+  Assumptions.instance'SubjectAccessReviewExpansion
+  Assumptions.instance'LocalSubjectAccessReviewsGetter
+  Assumptions.instance'LocalSubjectAccessReviewInterface
+  Assumptions.instance'localSubjectAccessReviews
+  Assumptions.instance'SelfSubjectAccessReviewsGetter
+  Assumptions.instance'SelfSubjectAccessReviewInterface
+  Assumptions.instance'selfSubjectAccessReviews
+  Assumptions.instance'SelfSubjectRulesReviewsGetter
+  Assumptions.instance'SelfSubjectRulesReviewInterface
+  Assumptions.instance'selfSubjectRulesReviews
+  Assumptions.instance'SubjectAccessReviewsGetter
+  Assumptions.instance'SubjectAccessReviewInterface
+  Assumptions.instance'subjectAccessReviews
 
 end k8s_io.client_go.kubernetes.typed.authorization.v1beta1
 

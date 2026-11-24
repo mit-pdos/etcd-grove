@@ -297,7 +297,7 @@ noncomputable instance AlarmStore.zero_val [GooseExts] : ZeroVal AlarmStore :=
 @[irreducible] noncomputable def AlarmStore.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AlarmStore.fieldsUnsealed
 
-noncomputable instance equals_unfold_AlarmStore [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'AlarmStore [GooseExts] [GoGlobalContext] :
     EqualsUnfold AlarmStore.fields AlarmStore.fieldsUnsealed :=
   ⟨by unfold AlarmStore.fields; rfl⟩
 
@@ -307,56 +307,56 @@ noncomputable instance equals_unfold_AlarmStore [GooseExts] [GoGlobalContext] :
 class AlarmStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AlarmStore.underlying AlarmStore
   underlying : go.UnderlyingDirectedEq AlarmStore.ty AlarmStore.underlying
-  get_lg : ∀ (x : AlarmStore), go.IsGoStepPureDetTagged under (StructFieldGet AlarmStore.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : AlarmStore) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AlarmStore.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : AlarmStore)))
-  get_mu : ∀ (x : AlarmStore), go.IsGoStepPureDetTagged under (StructFieldGet AlarmStore.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : AlarmStore) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet AlarmStore.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : AlarmStore)))
-  get_types : ∀ (x : AlarmStore), go.IsGoStepPureDetTagged under (StructFieldGet AlarmStore.underlying go!"types") #x (Val #(x.types'))
-  set_types : ∀ (x : AlarmStore) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet AlarmStore.underlying go!"types") (PairV #x #y) (Val #(({ x with types' := y } : AlarmStore)))
-  get_be : ∀ (x : AlarmStore), go.IsGoStepPureDetTagged under (StructFieldGet AlarmStore.underlying go!"be") #x (Val #(x.be'))
-  set_be : ∀ (x : AlarmStore) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend), go.IsGoStepPureDetTagged under (StructFieldSet AlarmStore.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : AlarmStore)))
+  get'lg : ∀ (x : AlarmStore), go.IsGoStepPureDetTagged under (StructFieldGet AlarmStore.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : AlarmStore) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AlarmStore.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : AlarmStore)))
+  get'mu : ∀ (x : AlarmStore), go.IsGoStepPureDetTagged under (StructFieldGet AlarmStore.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : AlarmStore) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet AlarmStore.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : AlarmStore)))
+  get'types : ∀ (x : AlarmStore), go.IsGoStepPureDetTagged under (StructFieldGet AlarmStore.underlying go!"types") #x (Val #(x.types'))
+  set'types : ∀ (x : AlarmStore) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet AlarmStore.underlying go!"types") (PairV #x #y) (Val #(({ x with types' := y } : AlarmStore)))
+  get'be : ∀ (x : AlarmStore), go.IsGoStepPureDetTagged under (StructFieldGet AlarmStore.underlying go!"be") #x (Val #(x.be'))
+  set'be : ∀ (x : AlarmStore) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend), go.IsGoStepPureDetTagged under (StructFieldSet AlarmStore.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : AlarmStore)))
   method_set : go.MethodSetIs AlarmStore.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType AlarmStore.ty) [(go!"Activate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)]))), (go!"Deactivate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"Recover", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm.addToMap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm.restore", (some (go.signature.Signature [] false [go.error])))]
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType AlarmStore.ty) go!"Get" AlarmStore.Get.impl
-  ptr_Recover_unfold : MethodUnfold (go.GoType.PointerType AlarmStore.ty) go!"Recover" AlarmStore.Recover.impl
-  ptr_restore_unfold : MethodUnfold (go.GoType.PointerType AlarmStore.ty) go!"restore" AlarmStore.restore.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType AlarmStore.ty) go!"Get" AlarmStore.Get.impl
+  ptr_unfold'Recover : MethodUnfold (go.GoType.PointerType AlarmStore.ty) go!"Recover" AlarmStore.Recover.impl
+  ptr_unfold'restore : MethodUnfold (go.GoType.PointerType AlarmStore.ty) go!"restore" AlarmStore.restore.impl
 
 attribute [instance] AlarmStore.TypeAssumptions.type_repr
   AlarmStore.TypeAssumptions.underlying
-  AlarmStore.TypeAssumptions.get_lg
-  AlarmStore.TypeAssumptions.set_lg
-  AlarmStore.TypeAssumptions.get_mu
-  AlarmStore.TypeAssumptions.set_mu
-  AlarmStore.TypeAssumptions.get_types
-  AlarmStore.TypeAssumptions.set_types
-  AlarmStore.TypeAssumptions.get_be
-  AlarmStore.TypeAssumptions.set_be
+  AlarmStore.TypeAssumptions.get'lg
+  AlarmStore.TypeAssumptions.set'lg
+  AlarmStore.TypeAssumptions.get'mu
+  AlarmStore.TypeAssumptions.set'mu
+  AlarmStore.TypeAssumptions.get'types
+  AlarmStore.TypeAssumptions.set'types
+  AlarmStore.TypeAssumptions.get'be
+  AlarmStore.TypeAssumptions.set'be
   AlarmStore.TypeAssumptions.method_set
   AlarmStore.TypeAssumptions.ptr_method_set
-  AlarmStore.TypeAssumptions.ptr_Get_unfold
-  AlarmStore.TypeAssumptions.ptr_Recover_unfold
-  AlarmStore.TypeAssumptions.ptr_restore_unfold
+  AlarmStore.TypeAssumptions.ptr_unfold'Get
+  AlarmStore.TypeAssumptions.ptr_unfold'Recover
+  AlarmStore.TypeAssumptions.ptr_unfold'restore
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  BackendGetter_instance : BackendGetter.TypeAssumptions
-  alarmSet_instance : alarmSet.TypeAssumptions
-  AlarmStore_instance : AlarmStore.TypeAssumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
-  import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
-  import_schema_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Assumptions
+  instance'BackendGetter : BackendGetter.TypeAssumptions
+  instance'alarmSet : alarmSet.TypeAssumptions
+  instance'AlarmStore : AlarmStore.TypeAssumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'types : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
+  import'backend : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
+  import'schema : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Assumptions
 
-attribute [instance] Assumptions.BackendGetter_instance
-  Assumptions.alarmSet_instance
-  Assumptions.AlarmStore_instance
-  Assumptions.import_sync_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_backend_Assumption
-  Assumptions.import_schema_Assumption
+attribute [instance] Assumptions.instance'BackendGetter
+  Assumptions.instance'alarmSet
+  Assumptions.instance'AlarmStore
+  Assumptions.import'sync
+  Assumptions.import'zap
+  Assumptions.import'etcdserverpb
+  Assumptions.import'types
+  Assumptions.import'backend
+  Assumptions.import'schema
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
 

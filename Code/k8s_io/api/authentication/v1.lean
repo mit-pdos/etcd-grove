@@ -511,31 +511,31 @@ attribute [instance] SelfSubjectReviewStatus.TypeAssumptions.type_repr
   SelfSubjectReviewStatus.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  TokenReview_instance : TokenReview.TypeAssumptions
-  TokenReviewSpec_instance : TokenReviewSpec.TypeAssumptions
-  TokenReviewStatus_instance : TokenReviewStatus.TypeAssumptions
-  UserInfo_instance : UserInfo.TypeAssumptions
-  ExtraValue_instance : ExtraValue.TypeAssumptions
-  AttestationValue_instance : AttestationValue.TypeAssumptions
-  TokenRequest_instance : TokenRequest.TypeAssumptions
-  TokenRequestSpec_instance : TokenRequestSpec.TypeAssumptions
-  TokenRequestStatus_instance : TokenRequestStatus.TypeAssumptions
-  BoundObjectReference_instance : BoundObjectReference.TypeAssumptions
-  SelfSubjectReview_instance : SelfSubjectReview.TypeAssumptions
-  SelfSubjectReviewStatus_instance : SelfSubjectReviewStatus.TypeAssumptions
+  instance'TokenReview : TokenReview.TypeAssumptions
+  instance'TokenReviewSpec : TokenReviewSpec.TypeAssumptions
+  instance'TokenReviewStatus : TokenReviewStatus.TypeAssumptions
+  instance'UserInfo : UserInfo.TypeAssumptions
+  instance'ExtraValue : ExtraValue.TypeAssumptions
+  instance'AttestationValue : AttestationValue.TypeAssumptions
+  instance'TokenRequest : TokenRequest.TypeAssumptions
+  instance'TokenRequestSpec : TokenRequestSpec.TypeAssumptions
+  instance'TokenRequestStatus : TokenRequestStatus.TypeAssumptions
+  instance'BoundObjectReference : BoundObjectReference.TypeAssumptions
+  instance'SelfSubjectReview : SelfSubjectReview.TypeAssumptions
+  instance'SelfSubjectReviewStatus : SelfSubjectReviewStatus.TypeAssumptions
 
-attribute [instance] Assumptions.TokenReview_instance
-  Assumptions.TokenReviewSpec_instance
-  Assumptions.TokenReviewStatus_instance
-  Assumptions.UserInfo_instance
-  Assumptions.ExtraValue_instance
-  Assumptions.AttestationValue_instance
-  Assumptions.TokenRequest_instance
-  Assumptions.TokenRequestSpec_instance
-  Assumptions.TokenRequestStatus_instance
-  Assumptions.BoundObjectReference_instance
-  Assumptions.SelfSubjectReview_instance
-  Assumptions.SelfSubjectReviewStatus_instance
+attribute [instance] Assumptions.instance'TokenReview
+  Assumptions.instance'TokenReviewSpec
+  Assumptions.instance'TokenReviewStatus
+  Assumptions.instance'UserInfo
+  Assumptions.instance'ExtraValue
+  Assumptions.instance'AttestationValue
+  Assumptions.instance'TokenRequest
+  Assumptions.instance'TokenRequestSpec
+  Assumptions.instance'TokenRequestStatus
+  Assumptions.instance'BoundObjectReference
+  Assumptions.instance'SelfSubjectReview
+  Assumptions.instance'SelfSubjectReviewStatus
 
 end k8s_io.api.authentication.v1
 

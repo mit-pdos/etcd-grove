@@ -42,7 +42,7 @@ theorem NewControllerRevisionLister.wp_proof (wp_Resource : appsv1.Resource.spec
   (try wp_auto)
   wp_apply wp_alloc as %l Hl
   (try wp_auto)
-  ihave Hacc := (controllerRevisionLister.controllerRevisionLister_access_load_ResourceIndexer l _ (DFrac.own 1)).access_strict $$ Hl
+  ihave Hacc := (controllerRevisionLister.access_load'controllerRevisionLister'ResourceIndexer l _ (DFrac.own 1)).access_strict $$ Hl
   icases Hacc with ⟨Hf, -⟩
   iapply HΦ
   iexact Hf

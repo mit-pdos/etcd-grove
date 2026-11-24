@@ -207,19 +207,19 @@ attribute [instance] ClusterTrustBundleExpansion.TypeAssumptions.type_repr
   ClusterTrustBundleExpansion.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  CertificatesV1alpha1Interface_instance : CertificatesV1alpha1Interface.TypeAssumptions
-  CertificatesV1alpha1Client_instance : CertificatesV1alpha1Client.TypeAssumptions
-  ClusterTrustBundlesGetter_instance : ClusterTrustBundlesGetter.TypeAssumptions
-  ClusterTrustBundleInterface_instance : ClusterTrustBundleInterface.TypeAssumptions
-  clusterTrustBundles_instance : clusterTrustBundles.TypeAssumptions
-  ClusterTrustBundleExpansion_instance : ClusterTrustBundleExpansion.TypeAssumptions
+  instance'CertificatesV1alpha1Interface : CertificatesV1alpha1Interface.TypeAssumptions
+  instance'CertificatesV1alpha1Client : CertificatesV1alpha1Client.TypeAssumptions
+  instance'ClusterTrustBundlesGetter : ClusterTrustBundlesGetter.TypeAssumptions
+  instance'ClusterTrustBundleInterface : ClusterTrustBundleInterface.TypeAssumptions
+  instance'clusterTrustBundles : clusterTrustBundles.TypeAssumptions
+  instance'ClusterTrustBundleExpansion : ClusterTrustBundleExpansion.TypeAssumptions
 
-attribute [instance] Assumptions.CertificatesV1alpha1Interface_instance
-  Assumptions.CertificatesV1alpha1Client_instance
-  Assumptions.ClusterTrustBundlesGetter_instance
-  Assumptions.ClusterTrustBundleInterface_instance
-  Assumptions.clusterTrustBundles_instance
-  Assumptions.ClusterTrustBundleExpansion_instance
+attribute [instance] Assumptions.instance'CertificatesV1alpha1Interface
+  Assumptions.instance'CertificatesV1alpha1Client
+  Assumptions.instance'ClusterTrustBundlesGetter
+  Assumptions.instance'ClusterTrustBundleInterface
+  Assumptions.instance'clusterTrustBundles
+  Assumptions.instance'ClusterTrustBundleExpansion
 
 end k8s_io.client_go.kubernetes.typed.certificates.v1alpha1
 

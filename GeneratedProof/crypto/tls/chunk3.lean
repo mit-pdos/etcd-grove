@@ -25,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-noncomputable instance cthWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'cthWrapper :
     TypedPointsto (GF := GF) crypto.tls.cthWrapper where
   typedPointstoDef l v dq := iprop(
     "h" ∷ typedPointsto (structFieldRef crypto.tls.cthWrapper go!"h" l) v.h' dq ∗
@@ -34,11 +34,11 @@ noncomputable instance cthWrapper_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance cthWrapper_into_val_typed :
+noncomputable instance into_val_typed'cthWrapper :
     IntoValTypedUnderlying (GF := GF) crypto.tls.cthWrapper crypto.tls.cthWrapper.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance cthWrapper_access_load_h (l : Loc) (v : crypto.tls.cthWrapper) (dq : DFrac) :
+noncomputable instance access_load'cthWrapper'h (l : Loc) (v : crypto.tls.cthWrapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.cthWrapper go!"h" l) v.h' dq)
       (typedPointsto (structFieldRef crypto.tls.cthWrapper go!"h" l) v.h' dq)
@@ -46,7 +46,7 @@ noncomputable instance cthWrapper_access_load_h (l : Loc) (v : crypto.tls.cthWra
  by
   solve_pointsto_access_struct
 
-noncomputable instance cthWrapper_access_store_h (l : Loc) (v : crypto.tls.cthWrapper) (y : crypto.tls.constantTimeHash) :
+noncomputable instance access_store'cthWrapper'h (l : Loc) (v : crypto.tls.cthWrapper) (y : crypto.tls.constantTimeHash) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.cthWrapper go!"h" l) v.h' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.cthWrapper go!"h" l) y (DFrac.own 1))
@@ -65,7 +65,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-noncomputable instance keyShare_typed_pointsto :
+noncomputable instance typed_pointsto'keyShare :
     TypedPointsto (GF := GF) crypto.tls.keyShare where
   typedPointstoDef l v dq := iprop(
     "group" ∷ typedPointsto (structFieldRef crypto.tls.keyShare go!"group" l) v.group' dq ∗
@@ -75,11 +75,11 @@ noncomputable instance keyShare_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance keyShare_into_val_typed :
+noncomputable instance into_val_typed'keyShare :
     IntoValTypedUnderlying (GF := GF) crypto.tls.keyShare crypto.tls.keyShare.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance keyShare_access_load_group (l : Loc) (v : crypto.tls.keyShare) (dq : DFrac) :
+noncomputable instance access_load'keyShare'group (l : Loc) (v : crypto.tls.keyShare) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.keyShare go!"group" l) v.group' dq)
       (typedPointsto (structFieldRef crypto.tls.keyShare go!"group" l) v.group' dq)
@@ -87,7 +87,7 @@ noncomputable instance keyShare_access_load_group (l : Loc) (v : crypto.tls.keyS
  by
   solve_pointsto_access_struct
 
-noncomputable instance keyShare_access_store_group (l : Loc) (v : crypto.tls.keyShare) (y : crypto.tls.CurveID) :
+noncomputable instance access_store'keyShare'group (l : Loc) (v : crypto.tls.keyShare) (y : crypto.tls.CurveID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.keyShare go!"group" l) v.group' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.keyShare go!"group" l) y (DFrac.own 1))
@@ -95,7 +95,7 @@ noncomputable instance keyShare_access_store_group (l : Loc) (v : crypto.tls.key
  by
   solve_pointsto_access_struct
 
-noncomputable instance keyShare_access_load_data (l : Loc) (v : crypto.tls.keyShare) (dq : DFrac) :
+noncomputable instance access_load'keyShare'data (l : Loc) (v : crypto.tls.keyShare) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.keyShare go!"data" l) v.data' dq)
       (typedPointsto (structFieldRef crypto.tls.keyShare go!"data" l) v.data' dq)
@@ -103,7 +103,7 @@ noncomputable instance keyShare_access_load_data (l : Loc) (v : crypto.tls.keySh
  by
   solve_pointsto_access_struct
 
-noncomputable instance keyShare_access_store_data (l : Loc) (v : crypto.tls.keyShare) (y : GoSlice) :
+noncomputable instance access_store'keyShare'data (l : Loc) (v : crypto.tls.keyShare) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.keyShare go!"data" l) v.data' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.keyShare go!"data" l) y (DFrac.own 1))
@@ -122,7 +122,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-noncomputable instance certificateMsgTLS13_typed_pointsto :
+noncomputable instance typed_pointsto'certificateMsgTLS13 :
     TypedPointsto (GF := GF) crypto.tls.certificateMsgTLS13 where
   typedPointstoDef l v dq := iprop(
     "certificate" ∷ typedPointsto (structFieldRef crypto.tls.certificateMsgTLS13 go!"certificate" l) v.certificate' dq ∗
@@ -133,11 +133,11 @@ noncomputable instance certificateMsgTLS13_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance certificateMsgTLS13_into_val_typed :
+noncomputable instance into_val_typed'certificateMsgTLS13 :
     IntoValTypedUnderlying (GF := GF) crypto.tls.certificateMsgTLS13 crypto.tls.certificateMsgTLS13.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance certificateMsgTLS13_access_load_certificate (l : Loc) (v : crypto.tls.certificateMsgTLS13) (dq : DFrac) :
+noncomputable instance access_load'certificateMsgTLS13'certificate (l : Loc) (v : crypto.tls.certificateMsgTLS13) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.certificateMsgTLS13 go!"certificate" l) v.certificate' dq)
       (typedPointsto (structFieldRef crypto.tls.certificateMsgTLS13 go!"certificate" l) v.certificate' dq)
@@ -145,7 +145,7 @@ noncomputable instance certificateMsgTLS13_access_load_certificate (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance certificateMsgTLS13_access_store_certificate (l : Loc) (v : crypto.tls.certificateMsgTLS13) (y : crypto.tls.Certificate) :
+noncomputable instance access_store'certificateMsgTLS13'certificate (l : Loc) (v : crypto.tls.certificateMsgTLS13) (y : crypto.tls.Certificate) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.certificateMsgTLS13 go!"certificate" l) v.certificate' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.certificateMsgTLS13 go!"certificate" l) y (DFrac.own 1))
@@ -153,7 +153,7 @@ noncomputable instance certificateMsgTLS13_access_store_certificate (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance certificateMsgTLS13_access_load_ocspStapling (l : Loc) (v : crypto.tls.certificateMsgTLS13) (dq : DFrac) :
+noncomputable instance access_load'certificateMsgTLS13'ocspStapling (l : Loc) (v : crypto.tls.certificateMsgTLS13) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.certificateMsgTLS13 go!"ocspStapling" l) v.ocspStapling' dq)
       (typedPointsto (structFieldRef crypto.tls.certificateMsgTLS13 go!"ocspStapling" l) v.ocspStapling' dq)
@@ -161,7 +161,7 @@ noncomputable instance certificateMsgTLS13_access_load_ocspStapling (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance certificateMsgTLS13_access_store_ocspStapling (l : Loc) (v : crypto.tls.certificateMsgTLS13) (y : Bool) :
+noncomputable instance access_store'certificateMsgTLS13'ocspStapling (l : Loc) (v : crypto.tls.certificateMsgTLS13) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.certificateMsgTLS13 go!"ocspStapling" l) v.ocspStapling' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.certificateMsgTLS13 go!"ocspStapling" l) y (DFrac.own 1))
@@ -169,7 +169,7 @@ noncomputable instance certificateMsgTLS13_access_store_ocspStapling (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance certificateMsgTLS13_access_load_scts (l : Loc) (v : crypto.tls.certificateMsgTLS13) (dq : DFrac) :
+noncomputable instance access_load'certificateMsgTLS13'scts (l : Loc) (v : crypto.tls.certificateMsgTLS13) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.certificateMsgTLS13 go!"scts" l) v.scts' dq)
       (typedPointsto (structFieldRef crypto.tls.certificateMsgTLS13 go!"scts" l) v.scts' dq)
@@ -177,7 +177,7 @@ noncomputable instance certificateMsgTLS13_access_load_scts (l : Loc) (v : crypt
  by
   solve_pointsto_access_struct
 
-noncomputable instance certificateMsgTLS13_access_store_scts (l : Loc) (v : crypto.tls.certificateMsgTLS13) (y : Bool) :
+noncomputable instance access_store'certificateMsgTLS13'scts (l : Loc) (v : crypto.tls.certificateMsgTLS13) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.certificateMsgTLS13 go!"scts" l) v.scts' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.certificateMsgTLS13 go!"scts" l) y (DFrac.own 1))
@@ -196,7 +196,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-noncomputable instance certificateVerifyMsg_typed_pointsto :
+noncomputable instance typed_pointsto'certificateVerifyMsg :
     TypedPointsto (GF := GF) crypto.tls.certificateVerifyMsg where
   typedPointstoDef l v dq := iprop(
     "hasSignatureAlgorithm" ∷ typedPointsto (structFieldRef crypto.tls.certificateVerifyMsg go!"hasSignatureAlgorithm" l) v.hasSignatureAlgorithm' dq ∗
@@ -207,11 +207,11 @@ noncomputable instance certificateVerifyMsg_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance certificateVerifyMsg_into_val_typed :
+noncomputable instance into_val_typed'certificateVerifyMsg :
     IntoValTypedUnderlying (GF := GF) crypto.tls.certificateVerifyMsg crypto.tls.certificateVerifyMsg.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance certificateVerifyMsg_access_load_hasSignatureAlgorithm (l : Loc) (v : crypto.tls.certificateVerifyMsg) (dq : DFrac) :
+noncomputable instance access_load'certificateVerifyMsg'hasSignatureAlgorithm (l : Loc) (v : crypto.tls.certificateVerifyMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.certificateVerifyMsg go!"hasSignatureAlgorithm" l) v.hasSignatureAlgorithm' dq)
       (typedPointsto (structFieldRef crypto.tls.certificateVerifyMsg go!"hasSignatureAlgorithm" l) v.hasSignatureAlgorithm' dq)
@@ -219,7 +219,7 @@ noncomputable instance certificateVerifyMsg_access_load_hasSignatureAlgorithm (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance certificateVerifyMsg_access_store_hasSignatureAlgorithm (l : Loc) (v : crypto.tls.certificateVerifyMsg) (y : Bool) :
+noncomputable instance access_store'certificateVerifyMsg'hasSignatureAlgorithm (l : Loc) (v : crypto.tls.certificateVerifyMsg) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.certificateVerifyMsg go!"hasSignatureAlgorithm" l) v.hasSignatureAlgorithm' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.certificateVerifyMsg go!"hasSignatureAlgorithm" l) y (DFrac.own 1))
@@ -227,7 +227,7 @@ noncomputable instance certificateVerifyMsg_access_store_hasSignatureAlgorithm (
  by
   solve_pointsto_access_struct
 
-noncomputable instance certificateVerifyMsg_access_load_signatureAlgorithm (l : Loc) (v : crypto.tls.certificateVerifyMsg) (dq : DFrac) :
+noncomputable instance access_load'certificateVerifyMsg'signatureAlgorithm (l : Loc) (v : crypto.tls.certificateVerifyMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.certificateVerifyMsg go!"signatureAlgorithm" l) v.signatureAlgorithm' dq)
       (typedPointsto (structFieldRef crypto.tls.certificateVerifyMsg go!"signatureAlgorithm" l) v.signatureAlgorithm' dq)
@@ -235,7 +235,7 @@ noncomputable instance certificateVerifyMsg_access_load_signatureAlgorithm (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance certificateVerifyMsg_access_store_signatureAlgorithm (l : Loc) (v : crypto.tls.certificateVerifyMsg) (y : crypto.tls.SignatureScheme) :
+noncomputable instance access_store'certificateVerifyMsg'signatureAlgorithm (l : Loc) (v : crypto.tls.certificateVerifyMsg) (y : crypto.tls.SignatureScheme) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.certificateVerifyMsg go!"signatureAlgorithm" l) v.signatureAlgorithm' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.certificateVerifyMsg go!"signatureAlgorithm" l) y (DFrac.own 1))
@@ -243,7 +243,7 @@ noncomputable instance certificateVerifyMsg_access_store_signatureAlgorithm (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance certificateVerifyMsg_access_load_signature (l : Loc) (v : crypto.tls.certificateVerifyMsg) (dq : DFrac) :
+noncomputable instance access_load'certificateVerifyMsg'signature (l : Loc) (v : crypto.tls.certificateVerifyMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.certificateVerifyMsg go!"signature" l) v.signature' dq)
       (typedPointsto (structFieldRef crypto.tls.certificateVerifyMsg go!"signature" l) v.signature' dq)
@@ -251,7 +251,7 @@ noncomputable instance certificateVerifyMsg_access_load_signature (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance certificateVerifyMsg_access_store_signature (l : Loc) (v : crypto.tls.certificateVerifyMsg) (y : GoSlice) :
+noncomputable instance access_store'certificateVerifyMsg'signature (l : Loc) (v : crypto.tls.certificateVerifyMsg) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.certificateVerifyMsg go!"signature" l) v.signature' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.certificateVerifyMsg go!"signature" l) y (DFrac.own 1))
@@ -270,7 +270,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-noncomputable instance QUICEvent_typed_pointsto :
+noncomputable instance typed_pointsto'QUICEvent :
     TypedPointsto (GF := GF) crypto.tls.QUICEvent where
   typedPointstoDef l v dq := iprop(
     "Kind" ∷ typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Kind" l) v.Kind' dq ∗
@@ -284,11 +284,11 @@ noncomputable instance QUICEvent_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance QUICEvent_into_val_typed :
+noncomputable instance into_val_typed'QUICEvent :
     IntoValTypedUnderlying (GF := GF) crypto.tls.QUICEvent crypto.tls.QUICEvent.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance QUICEvent_access_load_Kind (l : Loc) (v : crypto.tls.QUICEvent) (dq : DFrac) :
+noncomputable instance access_load'QUICEvent'Kind (l : Loc) (v : crypto.tls.QUICEvent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Kind" l) v.Kind' dq)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Kind" l) v.Kind' dq)
@@ -296,7 +296,7 @@ noncomputable instance QUICEvent_access_load_Kind (l : Loc) (v : crypto.tls.QUIC
  by
   solve_pointsto_access_struct
 
-noncomputable instance QUICEvent_access_store_Kind (l : Loc) (v : crypto.tls.QUICEvent) (y : crypto.tls.QUICEventKind) :
+noncomputable instance access_store'QUICEvent'Kind (l : Loc) (v : crypto.tls.QUICEvent) (y : crypto.tls.QUICEventKind) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Kind" l) v.Kind' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Kind" l) y (DFrac.own 1))
@@ -304,7 +304,7 @@ noncomputable instance QUICEvent_access_store_Kind (l : Loc) (v : crypto.tls.QUI
  by
   solve_pointsto_access_struct
 
-noncomputable instance QUICEvent_access_load_Level (l : Loc) (v : crypto.tls.QUICEvent) (dq : DFrac) :
+noncomputable instance access_load'QUICEvent'Level (l : Loc) (v : crypto.tls.QUICEvent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Level" l) v.Level' dq)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Level" l) v.Level' dq)
@@ -312,7 +312,7 @@ noncomputable instance QUICEvent_access_load_Level (l : Loc) (v : crypto.tls.QUI
  by
   solve_pointsto_access_struct
 
-noncomputable instance QUICEvent_access_store_Level (l : Loc) (v : crypto.tls.QUICEvent) (y : crypto.tls.QUICEncryptionLevel) :
+noncomputable instance access_store'QUICEvent'Level (l : Loc) (v : crypto.tls.QUICEvent) (y : crypto.tls.QUICEncryptionLevel) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Level" l) v.Level' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Level" l) y (DFrac.own 1))
@@ -320,7 +320,7 @@ noncomputable instance QUICEvent_access_store_Level (l : Loc) (v : crypto.tls.QU
  by
   solve_pointsto_access_struct
 
-noncomputable instance QUICEvent_access_load_Data (l : Loc) (v : crypto.tls.QUICEvent) (dq : DFrac) :
+noncomputable instance access_load'QUICEvent'Data (l : Loc) (v : crypto.tls.QUICEvent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Data" l) v.Data' dq)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Data" l) v.Data' dq)
@@ -328,7 +328,7 @@ noncomputable instance QUICEvent_access_load_Data (l : Loc) (v : crypto.tls.QUIC
  by
   solve_pointsto_access_struct
 
-noncomputable instance QUICEvent_access_store_Data (l : Loc) (v : crypto.tls.QUICEvent) (y : GoSlice) :
+noncomputable instance access_store'QUICEvent'Data (l : Loc) (v : crypto.tls.QUICEvent) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Data" l) v.Data' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Data" l) y (DFrac.own 1))
@@ -336,7 +336,7 @@ noncomputable instance QUICEvent_access_store_Data (l : Loc) (v : crypto.tls.QUI
  by
   solve_pointsto_access_struct
 
-noncomputable instance QUICEvent_access_load_Suite (l : Loc) (v : crypto.tls.QUICEvent) (dq : DFrac) :
+noncomputable instance access_load'QUICEvent'Suite (l : Loc) (v : crypto.tls.QUICEvent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Suite" l) v.Suite' dq)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Suite" l) v.Suite' dq)
@@ -344,7 +344,7 @@ noncomputable instance QUICEvent_access_load_Suite (l : Loc) (v : crypto.tls.QUI
  by
   solve_pointsto_access_struct
 
-noncomputable instance QUICEvent_access_store_Suite (l : Loc) (v : crypto.tls.QUICEvent) (y : w16) :
+noncomputable instance access_store'QUICEvent'Suite (l : Loc) (v : crypto.tls.QUICEvent) (y : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Suite" l) v.Suite' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Suite" l) y (DFrac.own 1))
@@ -352,7 +352,7 @@ noncomputable instance QUICEvent_access_store_Suite (l : Loc) (v : crypto.tls.QU
  by
   solve_pointsto_access_struct
 
-noncomputable instance QUICEvent_access_load_SessionState (l : Loc) (v : crypto.tls.QUICEvent) (dq : DFrac) :
+noncomputable instance access_load'QUICEvent'SessionState (l : Loc) (v : crypto.tls.QUICEvent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"SessionState" l) v.SessionState' dq)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"SessionState" l) v.SessionState' dq)
@@ -360,7 +360,7 @@ noncomputable instance QUICEvent_access_load_SessionState (l : Loc) (v : crypto.
  by
   solve_pointsto_access_struct
 
-noncomputable instance QUICEvent_access_store_SessionState (l : Loc) (v : crypto.tls.QUICEvent) (y : Loc) :
+noncomputable instance access_store'QUICEvent'SessionState (l : Loc) (v : crypto.tls.QUICEvent) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"SessionState" l) v.SessionState' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"SessionState" l) y (DFrac.own 1))
@@ -368,7 +368,7 @@ noncomputable instance QUICEvent_access_store_SessionState (l : Loc) (v : crypto
  by
   solve_pointsto_access_struct
 
-noncomputable instance QUICEvent_access_load_Err (l : Loc) (v : crypto.tls.QUICEvent) (dq : DFrac) :
+noncomputable instance access_load'QUICEvent'Err (l : Loc) (v : crypto.tls.QUICEvent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Err" l) v.Err' dq)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Err" l) v.Err' dq)
@@ -376,7 +376,7 @@ noncomputable instance QUICEvent_access_load_Err (l : Loc) (v : crypto.tls.QUICE
  by
   solve_pointsto_access_struct
 
-noncomputable instance QUICEvent_access_store_Err (l : Loc) (v : crypto.tls.QUICEvent) (y : GoError) :
+noncomputable instance access_store'QUICEvent'Err (l : Loc) (v : crypto.tls.QUICEvent) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Err" l) v.Err' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.QUICEvent go!"Err" l) y (DFrac.own 1))

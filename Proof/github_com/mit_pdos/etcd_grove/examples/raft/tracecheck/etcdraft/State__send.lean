@@ -34,7 +34,7 @@ theorem State.send.wp_proof (wp_With : Bag.With.spec (GF := GF) (hG := hG)) :
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hpf
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_With_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'With.method_unfold]
   wp_auto
   wp_apply wp_With _ _ _ _ $$ [Hb2 Hm] as %g' #Hg'
   · iframe Hb2 Hm; ipureintro; exact ⟨Hnd, Hc⟩

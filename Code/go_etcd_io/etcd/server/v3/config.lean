@@ -279,7 +279,7 @@ noncomputable instance ServerConfig.zero_val [GooseExts] : ZeroVal ServerConfig 
 @[irreducible] noncomputable def ServerConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ServerConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_ServerConfig [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ServerConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold ServerConfig.fields ServerConfig.fieldsUnsealed :=
   ⟨by unfold ServerConfig.fields; rfl⟩
 
@@ -289,274 +289,274 @@ noncomputable instance equals_unfold_ServerConfig [GooseExts] [GoGlobalContext] 
 class ServerConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServerConfig.underlying ServerConfig
   underlying : go.UnderlyingDirectedEq ServerConfig.ty ServerConfig.underlying
-  get_Name : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : ServerConfig)))
-  get_DiscoveryCfg : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"DiscoveryCfg") #x (Val #(x.DiscoveryCfg'))
-  set_DiscoveryCfg : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"DiscoveryCfg") (PairV #x #y) (Val #(({ x with DiscoveryCfg' := y } : ServerConfig)))
-  get_ClientURLs : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"ClientURLs") #x (Val #(x.ClientURLs'))
-  set_ClientURLs : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"ClientURLs") (PairV #x #y) (Val #(({ x with ClientURLs' := y } : ServerConfig)))
-  get_PeerURLs : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"PeerURLs") #x (Val #(x.PeerURLs'))
-  set_PeerURLs : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"PeerURLs") (PairV #x #y) (Val #(({ x with PeerURLs' := y } : ServerConfig)))
-  get_DataDir : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"DataDir") #x (Val #(x.DataDir'))
-  set_DataDir : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"DataDir") (PairV #x #y) (Val #(({ x with DataDir' := y } : ServerConfig)))
-  get_DedicatedWALDir : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"DedicatedWALDir") #x (Val #(x.DedicatedWALDir'))
-  set_DedicatedWALDir : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"DedicatedWALDir") (PairV #x #y) (Val #(({ x with DedicatedWALDir' := y } : ServerConfig)))
-  get_SnapshotCount : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"SnapshotCount") #x (Val #(x.SnapshotCount'))
-  set_SnapshotCount : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"SnapshotCount") (PairV #x #y) (Val #(({ x with SnapshotCount' := y } : ServerConfig)))
-  get_SnapshotCatchUpEntries : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"SnapshotCatchUpEntries") #x (Val #(x.SnapshotCatchUpEntries'))
-  set_SnapshotCatchUpEntries : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"SnapshotCatchUpEntries") (PairV #x #y) (Val #(({ x with SnapshotCatchUpEntries' := y } : ServerConfig)))
-  get_MaxWALFiles : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"MaxWALFiles") #x (Val #(x.MaxWALFiles'))
-  set_MaxWALFiles : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"MaxWALFiles") (PairV #x #y) (Val #(({ x with MaxWALFiles' := y } : ServerConfig)))
-  get_BackendBatchInterval : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"BackendBatchInterval") #x (Val #(x.BackendBatchInterval'))
-  set_BackendBatchInterval : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"BackendBatchInterval") (PairV #x #y) (Val #(({ x with BackendBatchInterval' := y } : ServerConfig)))
-  get_BackendBatchLimit : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"BackendBatchLimit") #x (Val #(x.BackendBatchLimit'))
-  set_BackendBatchLimit : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"BackendBatchLimit") (PairV #x #y) (Val #(({ x with BackendBatchLimit' := y } : ServerConfig)))
-  get_BackendFreelistType : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"BackendFreelistType") #x (Val #(x.BackendFreelistType'))
-  set_BackendFreelistType : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.bbolt.FreelistType), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"BackendFreelistType") (PairV #x #y) (Val #(({ x with BackendFreelistType' := y } : ServerConfig)))
-  get_InitialPeerURLsMap : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"InitialPeerURLsMap") #x (Val #(x.InitialPeerURLsMap'))
-  set_InitialPeerURLsMap : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"InitialPeerURLsMap") (PairV #x #y) (Val #(({ x with InitialPeerURLsMap' := y } : ServerConfig)))
-  get_InitialClusterToken : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"InitialClusterToken") #x (Val #(x.InitialClusterToken'))
-  set_InitialClusterToken : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"InitialClusterToken") (PairV #x #y) (Val #(({ x with InitialClusterToken' := y } : ServerConfig)))
-  get_NewCluster : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"NewCluster") #x (Val #(x.NewCluster'))
-  set_NewCluster : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"NewCluster") (PairV #x #y) (Val #(({ x with NewCluster' := y } : ServerConfig)))
-  get_PeerTLSInfo : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"PeerTLSInfo") #x (Val #(x.PeerTLSInfo'))
-  set_PeerTLSInfo : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"PeerTLSInfo") (PairV #x #y) (Val #(({ x with PeerTLSInfo' := y } : ServerConfig)))
-  get_CORS : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"CORS") #x (Val #(x.CORS'))
-  set_CORS : ∀ (x : ServerConfig) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"CORS") (PairV #x #y) (Val #(({ x with CORS' := y } : ServerConfig)))
-  get_HostWhitelist : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"HostWhitelist") #x (Val #(x.HostWhitelist'))
-  set_HostWhitelist : ∀ (x : ServerConfig) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"HostWhitelist") (PairV #x #y) (Val #(({ x with HostWhitelist' := y } : ServerConfig)))
-  get_TickMs : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"TickMs") #x (Val #(x.TickMs'))
-  set_TickMs : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"TickMs") (PairV #x #y) (Val #(({ x with TickMs' := y } : ServerConfig)))
-  get_ElectionTicks : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"ElectionTicks") #x (Val #(x.ElectionTicks'))
-  set_ElectionTicks : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"ElectionTicks") (PairV #x #y) (Val #(({ x with ElectionTicks' := y } : ServerConfig)))
-  get_InitialElectionTickAdvance : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"InitialElectionTickAdvance") #x (Val #(x.InitialElectionTickAdvance'))
-  set_InitialElectionTickAdvance : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"InitialElectionTickAdvance") (PairV #x #y) (Val #(({ x with InitialElectionTickAdvance' := y } : ServerConfig)))
-  get_BootstrapTimeout : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"BootstrapTimeout") #x (Val #(x.BootstrapTimeout'))
-  set_BootstrapTimeout : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"BootstrapTimeout") (PairV #x #y) (Val #(({ x with BootstrapTimeout' := y } : ServerConfig)))
-  get_AutoCompactionRetention : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"AutoCompactionRetention") #x (Val #(x.AutoCompactionRetention'))
-  set_AutoCompactionRetention : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"AutoCompactionRetention") (PairV #x #y) (Val #(({ x with AutoCompactionRetention' := y } : ServerConfig)))
-  get_AutoCompactionMode : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"AutoCompactionMode") #x (Val #(x.AutoCompactionMode'))
-  set_AutoCompactionMode : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"AutoCompactionMode") (PairV #x #y) (Val #(({ x with AutoCompactionMode' := y } : ServerConfig)))
-  get_CompactionBatchLimit : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"CompactionBatchLimit") #x (Val #(x.CompactionBatchLimit'))
-  set_CompactionBatchLimit : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"CompactionBatchLimit") (PairV #x #y) (Val #(({ x with CompactionBatchLimit' := y } : ServerConfig)))
-  get_CompactionSleepInterval : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"CompactionSleepInterval") #x (Val #(x.CompactionSleepInterval'))
-  set_CompactionSleepInterval : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"CompactionSleepInterval") (PairV #x #y) (Val #(({ x with CompactionSleepInterval' := y } : ServerConfig)))
-  get_QuotaBackendBytes : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"QuotaBackendBytes") #x (Val #(x.QuotaBackendBytes'))
-  set_QuotaBackendBytes : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"QuotaBackendBytes") (PairV #x #y) (Val #(({ x with QuotaBackendBytes' := y } : ServerConfig)))
-  get_MaxTxnOps : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"MaxTxnOps") #x (Val #(x.MaxTxnOps'))
-  set_MaxTxnOps : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"MaxTxnOps") (PairV #x #y) (Val #(({ x with MaxTxnOps' := y } : ServerConfig)))
-  get_MaxRequestBytes : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"MaxRequestBytes") #x (Val #(x.MaxRequestBytes'))
-  set_MaxRequestBytes : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"MaxRequestBytes") (PairV #x #y) (Val #(({ x with MaxRequestBytes' := y } : ServerConfig)))
-  get_MaxConcurrentStreams : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"MaxConcurrentStreams") #x (Val #(x.MaxConcurrentStreams'))
-  set_MaxConcurrentStreams : ∀ (x : ServerConfig) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"MaxConcurrentStreams") (PairV #x #y) (Val #(({ x with MaxConcurrentStreams' := y } : ServerConfig)))
-  get_WarningApplyDuration : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"WarningApplyDuration") #x (Val #(x.WarningApplyDuration'))
-  set_WarningApplyDuration : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"WarningApplyDuration") (PairV #x #y) (Val #(({ x with WarningApplyDuration' := y } : ServerConfig)))
-  get_WarningUnaryRequestDuration : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"WarningUnaryRequestDuration") #x (Val #(x.WarningUnaryRequestDuration'))
-  set_WarningUnaryRequestDuration : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"WarningUnaryRequestDuration") (PairV #x #y) (Val #(({ x with WarningUnaryRequestDuration' := y } : ServerConfig)))
-  get_StrictReconfigCheck : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"StrictReconfigCheck") #x (Val #(x.StrictReconfigCheck'))
-  set_StrictReconfigCheck : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"StrictReconfigCheck") (PairV #x #y) (Val #(({ x with StrictReconfigCheck' := y } : ServerConfig)))
-  get_ClientCertAuthEnabled : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"ClientCertAuthEnabled") #x (Val #(x.ClientCertAuthEnabled'))
-  set_ClientCertAuthEnabled : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"ClientCertAuthEnabled") (PairV #x #y) (Val #(({ x with ClientCertAuthEnabled' := y } : ServerConfig)))
-  get_AuthToken : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"AuthToken") #x (Val #(x.AuthToken'))
-  set_AuthToken : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"AuthToken") (PairV #x #y) (Val #(({ x with AuthToken' := y } : ServerConfig)))
-  get_BcryptCost : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"BcryptCost") #x (Val #(x.BcryptCost'))
-  set_BcryptCost : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"BcryptCost") (PairV #x #y) (Val #(({ x with BcryptCost' := y } : ServerConfig)))
-  get_TokenTTL : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"TokenTTL") #x (Val #(x.TokenTTL'))
-  set_TokenTTL : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"TokenTTL") (PairV #x #y) (Val #(({ x with TokenTTL' := y } : ServerConfig)))
-  get_InitialCorruptCheck : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"InitialCorruptCheck") #x (Val #(x.InitialCorruptCheck'))
-  set_InitialCorruptCheck : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"InitialCorruptCheck") (PairV #x #y) (Val #(({ x with InitialCorruptCheck' := y } : ServerConfig)))
-  get_CorruptCheckTime : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"CorruptCheckTime") #x (Val #(x.CorruptCheckTime'))
-  set_CorruptCheckTime : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"CorruptCheckTime") (PairV #x #y) (Val #(({ x with CorruptCheckTime' := y } : ServerConfig)))
-  get_CompactHashCheckTime : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"CompactHashCheckTime") #x (Val #(x.CompactHashCheckTime'))
-  set_CompactHashCheckTime : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"CompactHashCheckTime") (PairV #x #y) (Val #(({ x with CompactHashCheckTime' := y } : ServerConfig)))
-  get_PreVote : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"PreVote") #x (Val #(x.PreVote'))
-  set_PreVote : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"PreVote") (PairV #x #y) (Val #(({ x with PreVote' := y } : ServerConfig)))
-  get_SocketOpts : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"SocketOpts") #x (Val #(x.SocketOpts'))
-  set_SocketOpts : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"SocketOpts") (PairV #x #y) (Val #(({ x with SocketOpts' := y } : ServerConfig)))
-  get_Logger : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"Logger") #x (Val #(x.Logger'))
-  set_Logger : ∀ (x : ServerConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : ServerConfig)))
-  get_ForceNewCluster : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"ForceNewCluster") #x (Val #(x.ForceNewCluster'))
-  set_ForceNewCluster : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"ForceNewCluster") (PairV #x #y) (Val #(({ x with ForceNewCluster' := y } : ServerConfig)))
-  get_LeaseCheckpointInterval : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"LeaseCheckpointInterval") #x (Val #(x.LeaseCheckpointInterval'))
-  set_LeaseCheckpointInterval : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"LeaseCheckpointInterval") (PairV #x #y) (Val #(({ x with LeaseCheckpointInterval' := y } : ServerConfig)))
-  get_EnableGRPCGateway : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"EnableGRPCGateway") #x (Val #(x.EnableGRPCGateway'))
-  set_EnableGRPCGateway : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"EnableGRPCGateway") (PairV #x #y) (Val #(({ x with EnableGRPCGateway' := y } : ServerConfig)))
-  get_EnableDistributedTracing : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"EnableDistributedTracing") #x (Val #(x.EnableDistributedTracing'))
-  set_EnableDistributedTracing : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"EnableDistributedTracing") (PairV #x #y) (Val #(({ x with EnableDistributedTracing' := y } : ServerConfig)))
-  get_TracerOptions : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"TracerOptions") #x (Val #(x.TracerOptions'))
-  set_TracerOptions : ∀ (x : ServerConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"TracerOptions") (PairV #x #y) (Val #(({ x with TracerOptions' := y } : ServerConfig)))
-  get_WatchProgressNotifyInterval : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"WatchProgressNotifyInterval") #x (Val #(x.WatchProgressNotifyInterval'))
-  set_WatchProgressNotifyInterval : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"WatchProgressNotifyInterval") (PairV #x #y) (Val #(({ x with WatchProgressNotifyInterval' := y } : ServerConfig)))
-  get_UnsafeNoFsync : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"UnsafeNoFsync") #x (Val #(x.UnsafeNoFsync'))
-  set_UnsafeNoFsync : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"UnsafeNoFsync") (PairV #x #y) (Val #(({ x with UnsafeNoFsync' := y } : ServerConfig)))
-  get_DowngradeCheckTime : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"DowngradeCheckTime") #x (Val #(x.DowngradeCheckTime'))
-  set_DowngradeCheckTime : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"DowngradeCheckTime") (PairV #x #y) (Val #(({ x with DowngradeCheckTime' := y } : ServerConfig)))
-  get_MemoryMlock : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"MemoryMlock") #x (Val #(x.MemoryMlock'))
-  set_MemoryMlock : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"MemoryMlock") (PairV #x #y) (Val #(({ x with MemoryMlock' := y } : ServerConfig)))
-  get_BootstrapDefragThresholdMegabytes : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"BootstrapDefragThresholdMegabytes") #x (Val #(x.BootstrapDefragThresholdMegabytes'))
-  set_BootstrapDefragThresholdMegabytes : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"BootstrapDefragThresholdMegabytes") (PairV #x #y) (Val #(({ x with BootstrapDefragThresholdMegabytes' := y } : ServerConfig)))
-  get_MaxLearners : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"MaxLearners") #x (Val #(x.MaxLearners'))
-  set_MaxLearners : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"MaxLearners") (PairV #x #y) (Val #(({ x with MaxLearners' := y } : ServerConfig)))
-  get_LocalAddress : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"LocalAddress") #x (Val #(x.LocalAddress'))
-  set_LocalAddress : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"LocalAddress") (PairV #x #y) (Val #(({ x with LocalAddress' := y } : ServerConfig)))
-  get_ServerFeatureGate : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"ServerFeatureGate") #x (Val #(x.ServerFeatureGate'))
-  set_ServerFeatureGate : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"ServerFeatureGate") (PairV #x #y) (Val #(({ x with ServerFeatureGate' := y } : ServerConfig)))
-  get_Metrics : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"Metrics") #x (Val #(x.Metrics'))
-  set_Metrics : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"Metrics") (PairV #x #y) (Val #(({ x with Metrics' := y } : ServerConfig)))
+  get'Name : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : ServerConfig)))
+  get'DiscoveryCfg : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"DiscoveryCfg") #x (Val #(x.DiscoveryCfg'))
+  set'DiscoveryCfg : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"DiscoveryCfg") (PairV #x #y) (Val #(({ x with DiscoveryCfg' := y } : ServerConfig)))
+  get'ClientURLs : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"ClientURLs") #x (Val #(x.ClientURLs'))
+  set'ClientURLs : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"ClientURLs") (PairV #x #y) (Val #(({ x with ClientURLs' := y } : ServerConfig)))
+  get'PeerURLs : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"PeerURLs") #x (Val #(x.PeerURLs'))
+  set'PeerURLs : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"PeerURLs") (PairV #x #y) (Val #(({ x with PeerURLs' := y } : ServerConfig)))
+  get'DataDir : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"DataDir") #x (Val #(x.DataDir'))
+  set'DataDir : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"DataDir") (PairV #x #y) (Val #(({ x with DataDir' := y } : ServerConfig)))
+  get'DedicatedWALDir : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"DedicatedWALDir") #x (Val #(x.DedicatedWALDir'))
+  set'DedicatedWALDir : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"DedicatedWALDir") (PairV #x #y) (Val #(({ x with DedicatedWALDir' := y } : ServerConfig)))
+  get'SnapshotCount : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"SnapshotCount") #x (Val #(x.SnapshotCount'))
+  set'SnapshotCount : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"SnapshotCount") (PairV #x #y) (Val #(({ x with SnapshotCount' := y } : ServerConfig)))
+  get'SnapshotCatchUpEntries : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"SnapshotCatchUpEntries") #x (Val #(x.SnapshotCatchUpEntries'))
+  set'SnapshotCatchUpEntries : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"SnapshotCatchUpEntries") (PairV #x #y) (Val #(({ x with SnapshotCatchUpEntries' := y } : ServerConfig)))
+  get'MaxWALFiles : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"MaxWALFiles") #x (Val #(x.MaxWALFiles'))
+  set'MaxWALFiles : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"MaxWALFiles") (PairV #x #y) (Val #(({ x with MaxWALFiles' := y } : ServerConfig)))
+  get'BackendBatchInterval : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"BackendBatchInterval") #x (Val #(x.BackendBatchInterval'))
+  set'BackendBatchInterval : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"BackendBatchInterval") (PairV #x #y) (Val #(({ x with BackendBatchInterval' := y } : ServerConfig)))
+  get'BackendBatchLimit : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"BackendBatchLimit") #x (Val #(x.BackendBatchLimit'))
+  set'BackendBatchLimit : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"BackendBatchLimit") (PairV #x #y) (Val #(({ x with BackendBatchLimit' := y } : ServerConfig)))
+  get'BackendFreelistType : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"BackendFreelistType") #x (Val #(x.BackendFreelistType'))
+  set'BackendFreelistType : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.bbolt.FreelistType), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"BackendFreelistType") (PairV #x #y) (Val #(({ x with BackendFreelistType' := y } : ServerConfig)))
+  get'InitialPeerURLsMap : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"InitialPeerURLsMap") #x (Val #(x.InitialPeerURLsMap'))
+  set'InitialPeerURLsMap : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"InitialPeerURLsMap") (PairV #x #y) (Val #(({ x with InitialPeerURLsMap' := y } : ServerConfig)))
+  get'InitialClusterToken : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"InitialClusterToken") #x (Val #(x.InitialClusterToken'))
+  set'InitialClusterToken : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"InitialClusterToken") (PairV #x #y) (Val #(({ x with InitialClusterToken' := y } : ServerConfig)))
+  get'NewCluster : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"NewCluster") #x (Val #(x.NewCluster'))
+  set'NewCluster : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"NewCluster") (PairV #x #y) (Val #(({ x with NewCluster' := y } : ServerConfig)))
+  get'PeerTLSInfo : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"PeerTLSInfo") #x (Val #(x.PeerTLSInfo'))
+  set'PeerTLSInfo : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"PeerTLSInfo") (PairV #x #y) (Val #(({ x with PeerTLSInfo' := y } : ServerConfig)))
+  get'CORS : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"CORS") #x (Val #(x.CORS'))
+  set'CORS : ∀ (x : ServerConfig) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"CORS") (PairV #x #y) (Val #(({ x with CORS' := y } : ServerConfig)))
+  get'HostWhitelist : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"HostWhitelist") #x (Val #(x.HostWhitelist'))
+  set'HostWhitelist : ∀ (x : ServerConfig) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"HostWhitelist") (PairV #x #y) (Val #(({ x with HostWhitelist' := y } : ServerConfig)))
+  get'TickMs : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"TickMs") #x (Val #(x.TickMs'))
+  set'TickMs : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"TickMs") (PairV #x #y) (Val #(({ x with TickMs' := y } : ServerConfig)))
+  get'ElectionTicks : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"ElectionTicks") #x (Val #(x.ElectionTicks'))
+  set'ElectionTicks : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"ElectionTicks") (PairV #x #y) (Val #(({ x with ElectionTicks' := y } : ServerConfig)))
+  get'InitialElectionTickAdvance : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"InitialElectionTickAdvance") #x (Val #(x.InitialElectionTickAdvance'))
+  set'InitialElectionTickAdvance : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"InitialElectionTickAdvance") (PairV #x #y) (Val #(({ x with InitialElectionTickAdvance' := y } : ServerConfig)))
+  get'BootstrapTimeout : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"BootstrapTimeout") #x (Val #(x.BootstrapTimeout'))
+  set'BootstrapTimeout : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"BootstrapTimeout") (PairV #x #y) (Val #(({ x with BootstrapTimeout' := y } : ServerConfig)))
+  get'AutoCompactionRetention : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"AutoCompactionRetention") #x (Val #(x.AutoCompactionRetention'))
+  set'AutoCompactionRetention : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"AutoCompactionRetention") (PairV #x #y) (Val #(({ x with AutoCompactionRetention' := y } : ServerConfig)))
+  get'AutoCompactionMode : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"AutoCompactionMode") #x (Val #(x.AutoCompactionMode'))
+  set'AutoCompactionMode : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"AutoCompactionMode") (PairV #x #y) (Val #(({ x with AutoCompactionMode' := y } : ServerConfig)))
+  get'CompactionBatchLimit : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"CompactionBatchLimit") #x (Val #(x.CompactionBatchLimit'))
+  set'CompactionBatchLimit : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"CompactionBatchLimit") (PairV #x #y) (Val #(({ x with CompactionBatchLimit' := y } : ServerConfig)))
+  get'CompactionSleepInterval : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"CompactionSleepInterval") #x (Val #(x.CompactionSleepInterval'))
+  set'CompactionSleepInterval : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"CompactionSleepInterval") (PairV #x #y) (Val #(({ x with CompactionSleepInterval' := y } : ServerConfig)))
+  get'QuotaBackendBytes : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"QuotaBackendBytes") #x (Val #(x.QuotaBackendBytes'))
+  set'QuotaBackendBytes : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"QuotaBackendBytes") (PairV #x #y) (Val #(({ x with QuotaBackendBytes' := y } : ServerConfig)))
+  get'MaxTxnOps : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"MaxTxnOps") #x (Val #(x.MaxTxnOps'))
+  set'MaxTxnOps : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"MaxTxnOps") (PairV #x #y) (Val #(({ x with MaxTxnOps' := y } : ServerConfig)))
+  get'MaxRequestBytes : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"MaxRequestBytes") #x (Val #(x.MaxRequestBytes'))
+  set'MaxRequestBytes : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"MaxRequestBytes") (PairV #x #y) (Val #(({ x with MaxRequestBytes' := y } : ServerConfig)))
+  get'MaxConcurrentStreams : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"MaxConcurrentStreams") #x (Val #(x.MaxConcurrentStreams'))
+  set'MaxConcurrentStreams : ∀ (x : ServerConfig) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"MaxConcurrentStreams") (PairV #x #y) (Val #(({ x with MaxConcurrentStreams' := y } : ServerConfig)))
+  get'WarningApplyDuration : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"WarningApplyDuration") #x (Val #(x.WarningApplyDuration'))
+  set'WarningApplyDuration : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"WarningApplyDuration") (PairV #x #y) (Val #(({ x with WarningApplyDuration' := y } : ServerConfig)))
+  get'WarningUnaryRequestDuration : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"WarningUnaryRequestDuration") #x (Val #(x.WarningUnaryRequestDuration'))
+  set'WarningUnaryRequestDuration : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"WarningUnaryRequestDuration") (PairV #x #y) (Val #(({ x with WarningUnaryRequestDuration' := y } : ServerConfig)))
+  get'StrictReconfigCheck : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"StrictReconfigCheck") #x (Val #(x.StrictReconfigCheck'))
+  set'StrictReconfigCheck : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"StrictReconfigCheck") (PairV #x #y) (Val #(({ x with StrictReconfigCheck' := y } : ServerConfig)))
+  get'ClientCertAuthEnabled : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"ClientCertAuthEnabled") #x (Val #(x.ClientCertAuthEnabled'))
+  set'ClientCertAuthEnabled : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"ClientCertAuthEnabled") (PairV #x #y) (Val #(({ x with ClientCertAuthEnabled' := y } : ServerConfig)))
+  get'AuthToken : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"AuthToken") #x (Val #(x.AuthToken'))
+  set'AuthToken : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"AuthToken") (PairV #x #y) (Val #(({ x with AuthToken' := y } : ServerConfig)))
+  get'BcryptCost : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"BcryptCost") #x (Val #(x.BcryptCost'))
+  set'BcryptCost : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"BcryptCost") (PairV #x #y) (Val #(({ x with BcryptCost' := y } : ServerConfig)))
+  get'TokenTTL : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"TokenTTL") #x (Val #(x.TokenTTL'))
+  set'TokenTTL : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"TokenTTL") (PairV #x #y) (Val #(({ x with TokenTTL' := y } : ServerConfig)))
+  get'InitialCorruptCheck : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"InitialCorruptCheck") #x (Val #(x.InitialCorruptCheck'))
+  set'InitialCorruptCheck : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"InitialCorruptCheck") (PairV #x #y) (Val #(({ x with InitialCorruptCheck' := y } : ServerConfig)))
+  get'CorruptCheckTime : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"CorruptCheckTime") #x (Val #(x.CorruptCheckTime'))
+  set'CorruptCheckTime : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"CorruptCheckTime") (PairV #x #y) (Val #(({ x with CorruptCheckTime' := y } : ServerConfig)))
+  get'CompactHashCheckTime : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"CompactHashCheckTime") #x (Val #(x.CompactHashCheckTime'))
+  set'CompactHashCheckTime : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"CompactHashCheckTime") (PairV #x #y) (Val #(({ x with CompactHashCheckTime' := y } : ServerConfig)))
+  get'PreVote : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"PreVote") #x (Val #(x.PreVote'))
+  set'PreVote : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"PreVote") (PairV #x #y) (Val #(({ x with PreVote' := y } : ServerConfig)))
+  get'SocketOpts : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"SocketOpts") #x (Val #(x.SocketOpts'))
+  set'SocketOpts : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"SocketOpts") (PairV #x #y) (Val #(({ x with SocketOpts' := y } : ServerConfig)))
+  get'Logger : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"Logger") #x (Val #(x.Logger'))
+  set'Logger : ∀ (x : ServerConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : ServerConfig)))
+  get'ForceNewCluster : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"ForceNewCluster") #x (Val #(x.ForceNewCluster'))
+  set'ForceNewCluster : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"ForceNewCluster") (PairV #x #y) (Val #(({ x with ForceNewCluster' := y } : ServerConfig)))
+  get'LeaseCheckpointInterval : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"LeaseCheckpointInterval") #x (Val #(x.LeaseCheckpointInterval'))
+  set'LeaseCheckpointInterval : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"LeaseCheckpointInterval") (PairV #x #y) (Val #(({ x with LeaseCheckpointInterval' := y } : ServerConfig)))
+  get'EnableGRPCGateway : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"EnableGRPCGateway") #x (Val #(x.EnableGRPCGateway'))
+  set'EnableGRPCGateway : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"EnableGRPCGateway") (PairV #x #y) (Val #(({ x with EnableGRPCGateway' := y } : ServerConfig)))
+  get'EnableDistributedTracing : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"EnableDistributedTracing") #x (Val #(x.EnableDistributedTracing'))
+  set'EnableDistributedTracing : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"EnableDistributedTracing") (PairV #x #y) (Val #(({ x with EnableDistributedTracing' := y } : ServerConfig)))
+  get'TracerOptions : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"TracerOptions") #x (Val #(x.TracerOptions'))
+  set'TracerOptions : ∀ (x : ServerConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"TracerOptions") (PairV #x #y) (Val #(({ x with TracerOptions' := y } : ServerConfig)))
+  get'WatchProgressNotifyInterval : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"WatchProgressNotifyInterval") #x (Val #(x.WatchProgressNotifyInterval'))
+  set'WatchProgressNotifyInterval : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"WatchProgressNotifyInterval") (PairV #x #y) (Val #(({ x with WatchProgressNotifyInterval' := y } : ServerConfig)))
+  get'UnsafeNoFsync : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"UnsafeNoFsync") #x (Val #(x.UnsafeNoFsync'))
+  set'UnsafeNoFsync : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"UnsafeNoFsync") (PairV #x #y) (Val #(({ x with UnsafeNoFsync' := y } : ServerConfig)))
+  get'DowngradeCheckTime : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"DowngradeCheckTime") #x (Val #(x.DowngradeCheckTime'))
+  set'DowngradeCheckTime : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"DowngradeCheckTime") (PairV #x #y) (Val #(({ x with DowngradeCheckTime' := y } : ServerConfig)))
+  get'MemoryMlock : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"MemoryMlock") #x (Val #(x.MemoryMlock'))
+  set'MemoryMlock : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"MemoryMlock") (PairV #x #y) (Val #(({ x with MemoryMlock' := y } : ServerConfig)))
+  get'BootstrapDefragThresholdMegabytes : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"BootstrapDefragThresholdMegabytes") #x (Val #(x.BootstrapDefragThresholdMegabytes'))
+  set'BootstrapDefragThresholdMegabytes : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"BootstrapDefragThresholdMegabytes") (PairV #x #y) (Val #(({ x with BootstrapDefragThresholdMegabytes' := y } : ServerConfig)))
+  get'MaxLearners : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"MaxLearners") #x (Val #(x.MaxLearners'))
+  set'MaxLearners : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"MaxLearners") (PairV #x #y) (Val #(({ x with MaxLearners' := y } : ServerConfig)))
+  get'LocalAddress : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"LocalAddress") #x (Val #(x.LocalAddress'))
+  set'LocalAddress : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"LocalAddress") (PairV #x #y) (Val #(({ x with LocalAddress' := y } : ServerConfig)))
+  get'ServerFeatureGate : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"ServerFeatureGate") #x (Val #(x.ServerFeatureGate'))
+  set'ServerFeatureGate : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"ServerFeatureGate") (PairV #x #y) (Val #(({ x with ServerFeatureGate' := y } : ServerConfig)))
+  get'Metrics : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"Metrics") #x (Val #(x.Metrics'))
+  set'Metrics : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"Metrics") (PairV #x #y) (Val #(({ x with Metrics' := y } : ServerConfig)))
   method_set : go.MethodSetIs ServerConfig.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerConfig.ty) [(go!"BackendPath", (some (go.signature.Signature [] false [go.string]))), (go!"BootstrapTimeoutEffective", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ElectionTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"MaxRequestBytesWithOverhead", (some (go.signature.Signature [] false [go.uint]))), (go!"MemberDir", (some (go.signature.Signature [] false [go.string]))), (go!"PeerDialTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ReqTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ShouldDiscover", (some (go.signature.Signature [] false [go.bool]))), (go!"SnapDir", (some (go.signature.Signature [] false [go.string]))), (go!"VerifyBootstrap", (some (go.signature.Signature [] false [go.error]))), (go!"VerifyJoinExisting", (some (go.signature.Signature [] false [go.error]))), (go!"WALDir", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/server/v3/config.advertiseMatchesCluster", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/config.hasLocalMember", (some (go.signature.Signature [] false [go.error])))]
-  ptr_BackendPath_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"BackendPath" ServerConfig.BackendPath.impl
-  ptr_ElectionTimeout_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"ElectionTimeout" ServerConfig.ElectionTimeout.impl
-  ptr_MaxRequestBytesWithOverhead_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"MaxRequestBytesWithOverhead" ServerConfig.MaxRequestBytesWithOverhead.impl
-  ptr_PeerDialTimeout_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"PeerDialTimeout" ServerConfig.PeerDialTimeout.impl
-  ptr_ReqTimeout_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"ReqTimeout" ServerConfig.ReqTimeout.impl
+  ptr_unfold'BackendPath : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"BackendPath" ServerConfig.BackendPath.impl
+  ptr_unfold'ElectionTimeout : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"ElectionTimeout" ServerConfig.ElectionTimeout.impl
+  ptr_unfold'MaxRequestBytesWithOverhead : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"MaxRequestBytesWithOverhead" ServerConfig.MaxRequestBytesWithOverhead.impl
+  ptr_unfold'PeerDialTimeout : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"PeerDialTimeout" ServerConfig.PeerDialTimeout.impl
+  ptr_unfold'ReqTimeout : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"ReqTimeout" ServerConfig.ReqTimeout.impl
 
 attribute [instance] ServerConfig.TypeAssumptions.type_repr
   ServerConfig.TypeAssumptions.underlying
-  ServerConfig.TypeAssumptions.get_Name
-  ServerConfig.TypeAssumptions.set_Name
-  ServerConfig.TypeAssumptions.get_DiscoveryCfg
-  ServerConfig.TypeAssumptions.set_DiscoveryCfg
-  ServerConfig.TypeAssumptions.get_ClientURLs
-  ServerConfig.TypeAssumptions.set_ClientURLs
-  ServerConfig.TypeAssumptions.get_PeerURLs
-  ServerConfig.TypeAssumptions.set_PeerURLs
-  ServerConfig.TypeAssumptions.get_DataDir
-  ServerConfig.TypeAssumptions.set_DataDir
-  ServerConfig.TypeAssumptions.get_DedicatedWALDir
-  ServerConfig.TypeAssumptions.set_DedicatedWALDir
-  ServerConfig.TypeAssumptions.get_SnapshotCount
-  ServerConfig.TypeAssumptions.set_SnapshotCount
-  ServerConfig.TypeAssumptions.get_SnapshotCatchUpEntries
-  ServerConfig.TypeAssumptions.set_SnapshotCatchUpEntries
-  ServerConfig.TypeAssumptions.get_MaxWALFiles
-  ServerConfig.TypeAssumptions.set_MaxWALFiles
-  ServerConfig.TypeAssumptions.get_BackendBatchInterval
-  ServerConfig.TypeAssumptions.set_BackendBatchInterval
-  ServerConfig.TypeAssumptions.get_BackendBatchLimit
-  ServerConfig.TypeAssumptions.set_BackendBatchLimit
-  ServerConfig.TypeAssumptions.get_BackendFreelistType
-  ServerConfig.TypeAssumptions.set_BackendFreelistType
-  ServerConfig.TypeAssumptions.get_InitialPeerURLsMap
-  ServerConfig.TypeAssumptions.set_InitialPeerURLsMap
-  ServerConfig.TypeAssumptions.get_InitialClusterToken
-  ServerConfig.TypeAssumptions.set_InitialClusterToken
-  ServerConfig.TypeAssumptions.get_NewCluster
-  ServerConfig.TypeAssumptions.set_NewCluster
-  ServerConfig.TypeAssumptions.get_PeerTLSInfo
-  ServerConfig.TypeAssumptions.set_PeerTLSInfo
-  ServerConfig.TypeAssumptions.get_CORS
-  ServerConfig.TypeAssumptions.set_CORS
-  ServerConfig.TypeAssumptions.get_HostWhitelist
-  ServerConfig.TypeAssumptions.set_HostWhitelist
-  ServerConfig.TypeAssumptions.get_TickMs
-  ServerConfig.TypeAssumptions.set_TickMs
-  ServerConfig.TypeAssumptions.get_ElectionTicks
-  ServerConfig.TypeAssumptions.set_ElectionTicks
-  ServerConfig.TypeAssumptions.get_InitialElectionTickAdvance
-  ServerConfig.TypeAssumptions.set_InitialElectionTickAdvance
-  ServerConfig.TypeAssumptions.get_BootstrapTimeout
-  ServerConfig.TypeAssumptions.set_BootstrapTimeout
-  ServerConfig.TypeAssumptions.get_AutoCompactionRetention
-  ServerConfig.TypeAssumptions.set_AutoCompactionRetention
-  ServerConfig.TypeAssumptions.get_AutoCompactionMode
-  ServerConfig.TypeAssumptions.set_AutoCompactionMode
-  ServerConfig.TypeAssumptions.get_CompactionBatchLimit
-  ServerConfig.TypeAssumptions.set_CompactionBatchLimit
-  ServerConfig.TypeAssumptions.get_CompactionSleepInterval
-  ServerConfig.TypeAssumptions.set_CompactionSleepInterval
-  ServerConfig.TypeAssumptions.get_QuotaBackendBytes
-  ServerConfig.TypeAssumptions.set_QuotaBackendBytes
-  ServerConfig.TypeAssumptions.get_MaxTxnOps
-  ServerConfig.TypeAssumptions.set_MaxTxnOps
-  ServerConfig.TypeAssumptions.get_MaxRequestBytes
-  ServerConfig.TypeAssumptions.set_MaxRequestBytes
-  ServerConfig.TypeAssumptions.get_MaxConcurrentStreams
-  ServerConfig.TypeAssumptions.set_MaxConcurrentStreams
-  ServerConfig.TypeAssumptions.get_WarningApplyDuration
-  ServerConfig.TypeAssumptions.set_WarningApplyDuration
-  ServerConfig.TypeAssumptions.get_WarningUnaryRequestDuration
-  ServerConfig.TypeAssumptions.set_WarningUnaryRequestDuration
-  ServerConfig.TypeAssumptions.get_StrictReconfigCheck
-  ServerConfig.TypeAssumptions.set_StrictReconfigCheck
-  ServerConfig.TypeAssumptions.get_ClientCertAuthEnabled
-  ServerConfig.TypeAssumptions.set_ClientCertAuthEnabled
-  ServerConfig.TypeAssumptions.get_AuthToken
-  ServerConfig.TypeAssumptions.set_AuthToken
-  ServerConfig.TypeAssumptions.get_BcryptCost
-  ServerConfig.TypeAssumptions.set_BcryptCost
-  ServerConfig.TypeAssumptions.get_TokenTTL
-  ServerConfig.TypeAssumptions.set_TokenTTL
-  ServerConfig.TypeAssumptions.get_InitialCorruptCheck
-  ServerConfig.TypeAssumptions.set_InitialCorruptCheck
-  ServerConfig.TypeAssumptions.get_CorruptCheckTime
-  ServerConfig.TypeAssumptions.set_CorruptCheckTime
-  ServerConfig.TypeAssumptions.get_CompactHashCheckTime
-  ServerConfig.TypeAssumptions.set_CompactHashCheckTime
-  ServerConfig.TypeAssumptions.get_PreVote
-  ServerConfig.TypeAssumptions.set_PreVote
-  ServerConfig.TypeAssumptions.get_SocketOpts
-  ServerConfig.TypeAssumptions.set_SocketOpts
-  ServerConfig.TypeAssumptions.get_Logger
-  ServerConfig.TypeAssumptions.set_Logger
-  ServerConfig.TypeAssumptions.get_ForceNewCluster
-  ServerConfig.TypeAssumptions.set_ForceNewCluster
-  ServerConfig.TypeAssumptions.get_LeaseCheckpointInterval
-  ServerConfig.TypeAssumptions.set_LeaseCheckpointInterval
-  ServerConfig.TypeAssumptions.get_EnableGRPCGateway
-  ServerConfig.TypeAssumptions.set_EnableGRPCGateway
-  ServerConfig.TypeAssumptions.get_EnableDistributedTracing
-  ServerConfig.TypeAssumptions.set_EnableDistributedTracing
-  ServerConfig.TypeAssumptions.get_TracerOptions
-  ServerConfig.TypeAssumptions.set_TracerOptions
-  ServerConfig.TypeAssumptions.get_WatchProgressNotifyInterval
-  ServerConfig.TypeAssumptions.set_WatchProgressNotifyInterval
-  ServerConfig.TypeAssumptions.get_UnsafeNoFsync
-  ServerConfig.TypeAssumptions.set_UnsafeNoFsync
-  ServerConfig.TypeAssumptions.get_DowngradeCheckTime
-  ServerConfig.TypeAssumptions.set_DowngradeCheckTime
-  ServerConfig.TypeAssumptions.get_MemoryMlock
-  ServerConfig.TypeAssumptions.set_MemoryMlock
-  ServerConfig.TypeAssumptions.get_BootstrapDefragThresholdMegabytes
-  ServerConfig.TypeAssumptions.set_BootstrapDefragThresholdMegabytes
-  ServerConfig.TypeAssumptions.get_MaxLearners
-  ServerConfig.TypeAssumptions.set_MaxLearners
-  ServerConfig.TypeAssumptions.get_LocalAddress
-  ServerConfig.TypeAssumptions.set_LocalAddress
-  ServerConfig.TypeAssumptions.get_ServerFeatureGate
-  ServerConfig.TypeAssumptions.set_ServerFeatureGate
-  ServerConfig.TypeAssumptions.get_Metrics
-  ServerConfig.TypeAssumptions.set_Metrics
+  ServerConfig.TypeAssumptions.get'Name
+  ServerConfig.TypeAssumptions.set'Name
+  ServerConfig.TypeAssumptions.get'DiscoveryCfg
+  ServerConfig.TypeAssumptions.set'DiscoveryCfg
+  ServerConfig.TypeAssumptions.get'ClientURLs
+  ServerConfig.TypeAssumptions.set'ClientURLs
+  ServerConfig.TypeAssumptions.get'PeerURLs
+  ServerConfig.TypeAssumptions.set'PeerURLs
+  ServerConfig.TypeAssumptions.get'DataDir
+  ServerConfig.TypeAssumptions.set'DataDir
+  ServerConfig.TypeAssumptions.get'DedicatedWALDir
+  ServerConfig.TypeAssumptions.set'DedicatedWALDir
+  ServerConfig.TypeAssumptions.get'SnapshotCount
+  ServerConfig.TypeAssumptions.set'SnapshotCount
+  ServerConfig.TypeAssumptions.get'SnapshotCatchUpEntries
+  ServerConfig.TypeAssumptions.set'SnapshotCatchUpEntries
+  ServerConfig.TypeAssumptions.get'MaxWALFiles
+  ServerConfig.TypeAssumptions.set'MaxWALFiles
+  ServerConfig.TypeAssumptions.get'BackendBatchInterval
+  ServerConfig.TypeAssumptions.set'BackendBatchInterval
+  ServerConfig.TypeAssumptions.get'BackendBatchLimit
+  ServerConfig.TypeAssumptions.set'BackendBatchLimit
+  ServerConfig.TypeAssumptions.get'BackendFreelistType
+  ServerConfig.TypeAssumptions.set'BackendFreelistType
+  ServerConfig.TypeAssumptions.get'InitialPeerURLsMap
+  ServerConfig.TypeAssumptions.set'InitialPeerURLsMap
+  ServerConfig.TypeAssumptions.get'InitialClusterToken
+  ServerConfig.TypeAssumptions.set'InitialClusterToken
+  ServerConfig.TypeAssumptions.get'NewCluster
+  ServerConfig.TypeAssumptions.set'NewCluster
+  ServerConfig.TypeAssumptions.get'PeerTLSInfo
+  ServerConfig.TypeAssumptions.set'PeerTLSInfo
+  ServerConfig.TypeAssumptions.get'CORS
+  ServerConfig.TypeAssumptions.set'CORS
+  ServerConfig.TypeAssumptions.get'HostWhitelist
+  ServerConfig.TypeAssumptions.set'HostWhitelist
+  ServerConfig.TypeAssumptions.get'TickMs
+  ServerConfig.TypeAssumptions.set'TickMs
+  ServerConfig.TypeAssumptions.get'ElectionTicks
+  ServerConfig.TypeAssumptions.set'ElectionTicks
+  ServerConfig.TypeAssumptions.get'InitialElectionTickAdvance
+  ServerConfig.TypeAssumptions.set'InitialElectionTickAdvance
+  ServerConfig.TypeAssumptions.get'BootstrapTimeout
+  ServerConfig.TypeAssumptions.set'BootstrapTimeout
+  ServerConfig.TypeAssumptions.get'AutoCompactionRetention
+  ServerConfig.TypeAssumptions.set'AutoCompactionRetention
+  ServerConfig.TypeAssumptions.get'AutoCompactionMode
+  ServerConfig.TypeAssumptions.set'AutoCompactionMode
+  ServerConfig.TypeAssumptions.get'CompactionBatchLimit
+  ServerConfig.TypeAssumptions.set'CompactionBatchLimit
+  ServerConfig.TypeAssumptions.get'CompactionSleepInterval
+  ServerConfig.TypeAssumptions.set'CompactionSleepInterval
+  ServerConfig.TypeAssumptions.get'QuotaBackendBytes
+  ServerConfig.TypeAssumptions.set'QuotaBackendBytes
+  ServerConfig.TypeAssumptions.get'MaxTxnOps
+  ServerConfig.TypeAssumptions.set'MaxTxnOps
+  ServerConfig.TypeAssumptions.get'MaxRequestBytes
+  ServerConfig.TypeAssumptions.set'MaxRequestBytes
+  ServerConfig.TypeAssumptions.get'MaxConcurrentStreams
+  ServerConfig.TypeAssumptions.set'MaxConcurrentStreams
+  ServerConfig.TypeAssumptions.get'WarningApplyDuration
+  ServerConfig.TypeAssumptions.set'WarningApplyDuration
+  ServerConfig.TypeAssumptions.get'WarningUnaryRequestDuration
+  ServerConfig.TypeAssumptions.set'WarningUnaryRequestDuration
+  ServerConfig.TypeAssumptions.get'StrictReconfigCheck
+  ServerConfig.TypeAssumptions.set'StrictReconfigCheck
+  ServerConfig.TypeAssumptions.get'ClientCertAuthEnabled
+  ServerConfig.TypeAssumptions.set'ClientCertAuthEnabled
+  ServerConfig.TypeAssumptions.get'AuthToken
+  ServerConfig.TypeAssumptions.set'AuthToken
+  ServerConfig.TypeAssumptions.get'BcryptCost
+  ServerConfig.TypeAssumptions.set'BcryptCost
+  ServerConfig.TypeAssumptions.get'TokenTTL
+  ServerConfig.TypeAssumptions.set'TokenTTL
+  ServerConfig.TypeAssumptions.get'InitialCorruptCheck
+  ServerConfig.TypeAssumptions.set'InitialCorruptCheck
+  ServerConfig.TypeAssumptions.get'CorruptCheckTime
+  ServerConfig.TypeAssumptions.set'CorruptCheckTime
+  ServerConfig.TypeAssumptions.get'CompactHashCheckTime
+  ServerConfig.TypeAssumptions.set'CompactHashCheckTime
+  ServerConfig.TypeAssumptions.get'PreVote
+  ServerConfig.TypeAssumptions.set'PreVote
+  ServerConfig.TypeAssumptions.get'SocketOpts
+  ServerConfig.TypeAssumptions.set'SocketOpts
+  ServerConfig.TypeAssumptions.get'Logger
+  ServerConfig.TypeAssumptions.set'Logger
+  ServerConfig.TypeAssumptions.get'ForceNewCluster
+  ServerConfig.TypeAssumptions.set'ForceNewCluster
+  ServerConfig.TypeAssumptions.get'LeaseCheckpointInterval
+  ServerConfig.TypeAssumptions.set'LeaseCheckpointInterval
+  ServerConfig.TypeAssumptions.get'EnableGRPCGateway
+  ServerConfig.TypeAssumptions.set'EnableGRPCGateway
+  ServerConfig.TypeAssumptions.get'EnableDistributedTracing
+  ServerConfig.TypeAssumptions.set'EnableDistributedTracing
+  ServerConfig.TypeAssumptions.get'TracerOptions
+  ServerConfig.TypeAssumptions.set'TracerOptions
+  ServerConfig.TypeAssumptions.get'WatchProgressNotifyInterval
+  ServerConfig.TypeAssumptions.set'WatchProgressNotifyInterval
+  ServerConfig.TypeAssumptions.get'UnsafeNoFsync
+  ServerConfig.TypeAssumptions.set'UnsafeNoFsync
+  ServerConfig.TypeAssumptions.get'DowngradeCheckTime
+  ServerConfig.TypeAssumptions.set'DowngradeCheckTime
+  ServerConfig.TypeAssumptions.get'MemoryMlock
+  ServerConfig.TypeAssumptions.set'MemoryMlock
+  ServerConfig.TypeAssumptions.get'BootstrapDefragThresholdMegabytes
+  ServerConfig.TypeAssumptions.set'BootstrapDefragThresholdMegabytes
+  ServerConfig.TypeAssumptions.get'MaxLearners
+  ServerConfig.TypeAssumptions.set'MaxLearners
+  ServerConfig.TypeAssumptions.get'LocalAddress
+  ServerConfig.TypeAssumptions.set'LocalAddress
+  ServerConfig.TypeAssumptions.get'ServerFeatureGate
+  ServerConfig.TypeAssumptions.set'ServerFeatureGate
+  ServerConfig.TypeAssumptions.get'Metrics
+  ServerConfig.TypeAssumptions.set'Metrics
   ServerConfig.TypeAssumptions.method_set
   ServerConfig.TypeAssumptions.ptr_method_set
-  ServerConfig.TypeAssumptions.ptr_BackendPath_unfold
-  ServerConfig.TypeAssumptions.ptr_ElectionTimeout_unfold
-  ServerConfig.TypeAssumptions.ptr_MaxRequestBytesWithOverhead_unfold
-  ServerConfig.TypeAssumptions.ptr_PeerDialTimeout_unfold
-  ServerConfig.TypeAssumptions.ptr_ReqTimeout_unfold
+  ServerConfig.TypeAssumptions.ptr_unfold'BackendPath
+  ServerConfig.TypeAssumptions.ptr_unfold'ElectionTimeout
+  ServerConfig.TypeAssumptions.ptr_unfold'MaxRequestBytesWithOverhead
+  ServerConfig.TypeAssumptions.ptr_unfold'PeerDialTimeout
+  ServerConfig.TypeAssumptions.ptr_unfold'ReqTimeout
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ServerConfig_instance : ServerConfig.TypeAssumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_otelgrpc_Assumption : _root_.Perennial.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_bbolt_Assumption : _root_.Perennial.go_etcd_io.bbolt.Assumptions
-  import_transport_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
-  import_featuregate_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Assumptions
-  import_v3discovery_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.Assumptions
-  import_datadir_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.datadir.Assumptions
+  instance'ServerConfig : ServerConfig.TypeAssumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'otelgrpc : _root_.Perennial.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'bbolt : _root_.Perennial.go_etcd_io.bbolt.Assumptions
+  import'transport : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions
+  import'types : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
+  import'featuregate : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Assumptions
+  import'v3discovery : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.Assumptions
+  import'datadir : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.datadir.Assumptions
 
-attribute [instance] Assumptions.ServerConfig_instance
-  Assumptions.import_time_Assumption
-  Assumptions.import_otelgrpc_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_bbolt_Assumption
-  Assumptions.import_transport_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_featuregate_Assumption
-  Assumptions.import_v3discovery_Assumption
-  Assumptions.import_datadir_Assumption
+attribute [instance] Assumptions.instance'ServerConfig
+  Assumptions.import'time
+  Assumptions.import'otelgrpc
+  Assumptions.import'zap
+  Assumptions.import'bbolt
+  Assumptions.import'transport
+  Assumptions.import'types
+  Assumptions.import'featuregate
+  Assumptions.import'v3discovery
+  Assumptions.import'datadir
 
 end go_etcd_io.etcd.server.v3.config
 

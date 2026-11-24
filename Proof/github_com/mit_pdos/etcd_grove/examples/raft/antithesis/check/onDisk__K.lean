@@ -47,12 +47,12 @@ theorem onDisk.K.wp_proof (wp_fm : onDisk.fm.spec (GF := GF) (hG := hG))
   obtain ⟨hpli, hfl, -, -, -⟩ := OnDisk.fm_within HW hfm
   unfold numBound at hb
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_fm_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'fm.method_unfold]
   try wp_auto
   wp_apply wp_fm gx x fm $$ [Hx] as %u #Hu
   · iframe Hx; ipureintro; exact hfm
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_L0_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'L0.method_unfold]
   try wp_auto
   wp_apply wp_L0 gx x $$ [Hx] as %l0 #Hl0
   · iexact Hx

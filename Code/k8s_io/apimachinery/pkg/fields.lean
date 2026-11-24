@@ -286,15 +286,15 @@ class Set''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   underlying : go.UnderlyingDirectedEq Set''.ty Set''.underlying
   method_set : go.MethodSetIs Set''.ty [(go!"AsSelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Set''.ty) [(go!"AsSelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  Get_unfold : MethodUnfold Set''.ty go!"Get" Set''.Get.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Set''.ty) go!"Get" (LamV "$r"
+  unfold'Get : MethodUnfold Set''.ty go!"Get" Set''.Get.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType Set''.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Set''.ty go!"Get"))) (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$r"))))
 
 attribute [instance] Set''.TypeAssumptions.underlying
   Set''.TypeAssumptions.method_set
   Set''.TypeAssumptions.ptr_method_set
-  Set''.TypeAssumptions.Get_unfold
-  Set''.TypeAssumptions.ptr_Get_unfold
+  Set''.TypeAssumptions.unfold'Get
+  Set''.TypeAssumptions.ptr_unfold'Get
 
 abbrev Requirements [GooseExts] : Type := GoSlice
 
@@ -355,7 +355,7 @@ noncomputable instance nothingSelector.zero_val [GooseExts] : ZeroVal nothingSel
 @[irreducible] noncomputable def nothingSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   nothingSelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_nothingSelector [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'nothingSelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold nothingSelector.fields nothingSelector.fieldsUnsealed :=
   ⟨by unfold nothingSelector.fields; rfl⟩
 
@@ -388,7 +388,7 @@ noncomputable instance hasTerm.zero_val [GooseExts] : ZeroVal hasTerm :=
 @[irreducible] noncomputable def hasTerm.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   hasTerm.fieldsUnsealed
 
-noncomputable instance equals_unfold_hasTerm [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'hasTerm [GooseExts] [GoGlobalContext] :
     EqualsUnfold hasTerm.fields hasTerm.fieldsUnsealed :=
   ⟨by unfold hasTerm.fields; rfl⟩
 
@@ -398,19 +398,19 @@ noncomputable instance equals_unfold_hasTerm [GooseExts] [GoGlobalContext] :
 class hasTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying hasTerm.underlying hasTerm
   underlying : go.UnderlyingDirectedEq hasTerm.ty hasTerm.underlying
-  get_field : ∀ (x : hasTerm), go.IsGoStepPureDetTagged under (StructFieldGet hasTerm.underlying go!"field") #x (Val #(x.field'))
-  set_field : ∀ (x : hasTerm) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet hasTerm.underlying go!"field") (PairV #x #y) (Val #(({ x with field' := y } : hasTerm)))
-  get_value : ∀ (x : hasTerm), go.IsGoStepPureDetTagged under (StructFieldGet hasTerm.underlying go!"value") #x (Val #(x.value'))
-  set_value : ∀ (x : hasTerm) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet hasTerm.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : hasTerm)))
+  get'field : ∀ (x : hasTerm), go.IsGoStepPureDetTagged under (StructFieldGet hasTerm.underlying go!"field") #x (Val #(x.field'))
+  set'field : ∀ (x : hasTerm) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet hasTerm.underlying go!"field") (PairV #x #y) (Val #(({ x with field' := y } : hasTerm)))
+  get'value : ∀ (x : hasTerm), go.IsGoStepPureDetTagged under (StructFieldGet hasTerm.underlying go!"value") #x (Val #(x.value'))
+  set'value : ∀ (x : hasTerm) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet hasTerm.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : hasTerm)))
   method_set : go.MethodSetIs hasTerm.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType hasTerm.ty) [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Fields.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Transform", (some (go.signature.Signature [TransformFunc.ty] false [Selector.ty, go.error])))]
 
 attribute [instance] hasTerm.TypeAssumptions.type_repr
   hasTerm.TypeAssumptions.underlying
-  hasTerm.TypeAssumptions.get_field
-  hasTerm.TypeAssumptions.set_field
-  hasTerm.TypeAssumptions.get_value
-  hasTerm.TypeAssumptions.set_value
+  hasTerm.TypeAssumptions.get'field
+  hasTerm.TypeAssumptions.set'field
+  hasTerm.TypeAssumptions.get'value
+  hasTerm.TypeAssumptions.set'value
   hasTerm.TypeAssumptions.method_set
   hasTerm.TypeAssumptions.ptr_method_set
 
@@ -429,7 +429,7 @@ noncomputable instance notHasTerm.zero_val [GooseExts] : ZeroVal notHasTerm :=
 @[irreducible] noncomputable def notHasTerm.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   notHasTerm.fieldsUnsealed
 
-noncomputable instance equals_unfold_notHasTerm [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'notHasTerm [GooseExts] [GoGlobalContext] :
     EqualsUnfold notHasTerm.fields notHasTerm.fieldsUnsealed :=
   ⟨by unfold notHasTerm.fields; rfl⟩
 
@@ -439,19 +439,19 @@ noncomputable instance equals_unfold_notHasTerm [GooseExts] [GoGlobalContext] :
 class notHasTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying notHasTerm.underlying notHasTerm
   underlying : go.UnderlyingDirectedEq notHasTerm.ty notHasTerm.underlying
-  get_field : ∀ (x : notHasTerm), go.IsGoStepPureDetTagged under (StructFieldGet notHasTerm.underlying go!"field") #x (Val #(x.field'))
-  set_field : ∀ (x : notHasTerm) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet notHasTerm.underlying go!"field") (PairV #x #y) (Val #(({ x with field' := y } : notHasTerm)))
-  get_value : ∀ (x : notHasTerm), go.IsGoStepPureDetTagged under (StructFieldGet notHasTerm.underlying go!"value") #x (Val #(x.value'))
-  set_value : ∀ (x : notHasTerm) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet notHasTerm.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : notHasTerm)))
+  get'field : ∀ (x : notHasTerm), go.IsGoStepPureDetTagged under (StructFieldGet notHasTerm.underlying go!"field") #x (Val #(x.field'))
+  set'field : ∀ (x : notHasTerm) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet notHasTerm.underlying go!"field") (PairV #x #y) (Val #(({ x with field' := y } : notHasTerm)))
+  get'value : ∀ (x : notHasTerm), go.IsGoStepPureDetTagged under (StructFieldGet notHasTerm.underlying go!"value") #x (Val #(x.value'))
+  set'value : ∀ (x : notHasTerm) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet notHasTerm.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : notHasTerm)))
   method_set : go.MethodSetIs notHasTerm.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType notHasTerm.ty) [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Fields.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Transform", (some (go.signature.Signature [TransformFunc.ty] false [Selector.ty, go.error])))]
 
 attribute [instance] notHasTerm.TypeAssumptions.type_repr
   notHasTerm.TypeAssumptions.underlying
-  notHasTerm.TypeAssumptions.get_field
-  notHasTerm.TypeAssumptions.set_field
-  notHasTerm.TypeAssumptions.get_value
-  notHasTerm.TypeAssumptions.set_value
+  notHasTerm.TypeAssumptions.get'field
+  notHasTerm.TypeAssumptions.set'field
+  notHasTerm.TypeAssumptions.get'value
+  notHasTerm.TypeAssumptions.set'value
   notHasTerm.TypeAssumptions.method_set
   notHasTerm.TypeAssumptions.ptr_method_set
 
@@ -464,15 +464,15 @@ class andTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   underlying : go.UnderlyingDirectedEq andTerm.ty andTerm.underlying
   method_set : go.MethodSetIs andTerm.ty [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Fields.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Transform", (some (go.signature.Signature [TransformFunc.ty] false [Selector.ty, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType andTerm.ty) [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Fields.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Transform", (some (go.signature.Signature [TransformFunc.ty] false [Selector.ty, go.error])))]
-  Empty_unfold : MethodUnfold andTerm.ty go!"Empty" andTerm.Empty.impl
-  ptr_Empty_unfold : MethodUnfold (go.GoType.PointerType andTerm.ty) go!"Empty" (LamV "$r"
+  unfold'Empty : MethodUnfold andTerm.ty go!"Empty" andTerm.Empty.impl
+  ptr_unfold'Empty : MethodUnfold (go.GoType.PointerType andTerm.ty) go!"Empty" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve andTerm.ty go!"Empty"))) (App (Val (GoInstruction (GoLoad andTerm.ty))) (Var "$r"))))
 
 attribute [instance] andTerm.TypeAssumptions.underlying
   andTerm.TypeAssumptions.method_set
   andTerm.TypeAssumptions.ptr_method_set
-  andTerm.TypeAssumptions.Empty_unfold
-  andTerm.TypeAssumptions.ptr_Empty_unfold
+  andTerm.TypeAssumptions.unfold'Empty
+  andTerm.TypeAssumptions.ptr_unfold'Empty
 
 structure InvalidEscapeSequence [GooseExts] where
   mk ::
@@ -487,7 +487,7 @@ noncomputable instance InvalidEscapeSequence.zero_val [GooseExts] : ZeroVal Inva
 @[irreducible] noncomputable def InvalidEscapeSequence.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InvalidEscapeSequence.fieldsUnsealed
 
-noncomputable instance equals_unfold_InvalidEscapeSequence [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'InvalidEscapeSequence [GooseExts] [GoGlobalContext] :
     EqualsUnfold InvalidEscapeSequence.fields InvalidEscapeSequence.fieldsUnsealed :=
   ⟨by unfold InvalidEscapeSequence.fields; rfl⟩
 
@@ -497,15 +497,15 @@ noncomputable instance equals_unfold_InvalidEscapeSequence [GooseExts] [GoGlobal
 class InvalidEscapeSequence.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InvalidEscapeSequence.underlying InvalidEscapeSequence
   underlying : go.UnderlyingDirectedEq InvalidEscapeSequence.ty InvalidEscapeSequence.underlying
-  get_sequence : ∀ (x : InvalidEscapeSequence), go.IsGoStepPureDetTagged under (StructFieldGet InvalidEscapeSequence.underlying go!"sequence") #x (Val #(x.sequence'))
-  set_sequence : ∀ (x : InvalidEscapeSequence) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet InvalidEscapeSequence.underlying go!"sequence") (PairV #x #y) (Val #(({ x with sequence' := y } : InvalidEscapeSequence)))
+  get'sequence : ∀ (x : InvalidEscapeSequence), go.IsGoStepPureDetTagged under (StructFieldGet InvalidEscapeSequence.underlying go!"sequence") #x (Val #(x.sequence'))
+  set'sequence : ∀ (x : InvalidEscapeSequence) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet InvalidEscapeSequence.underlying go!"sequence") (PairV #x #y) (Val #(({ x with sequence' := y } : InvalidEscapeSequence)))
   method_set : go.MethodSetIs InvalidEscapeSequence.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType InvalidEscapeSequence.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] InvalidEscapeSequence.TypeAssumptions.type_repr
   InvalidEscapeSequence.TypeAssumptions.underlying
-  InvalidEscapeSequence.TypeAssumptions.get_sequence
-  InvalidEscapeSequence.TypeAssumptions.set_sequence
+  InvalidEscapeSequence.TypeAssumptions.get'sequence
+  InvalidEscapeSequence.TypeAssumptions.set'sequence
   InvalidEscapeSequence.TypeAssumptions.method_set
   InvalidEscapeSequence.TypeAssumptions.ptr_method_set
 
@@ -522,7 +522,7 @@ noncomputable instance UnescapedRune.zero_val [GooseExts] : ZeroVal UnescapedRun
 @[irreducible] noncomputable def UnescapedRune.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UnescapedRune.fieldsUnsealed
 
-noncomputable instance equals_unfold_UnescapedRune [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'UnescapedRune [GooseExts] [GoGlobalContext] :
     EqualsUnfold UnescapedRune.fields UnescapedRune.fieldsUnsealed :=
   ⟨by unfold UnescapedRune.fields; rfl⟩
 
@@ -532,15 +532,15 @@ noncomputable instance equals_unfold_UnescapedRune [GooseExts] [GoGlobalContext]
 class UnescapedRune.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnescapedRune.underlying UnescapedRune
   underlying : go.UnderlyingDirectedEq UnescapedRune.ty UnescapedRune.underlying
-  get_r : ∀ (x : UnescapedRune), go.IsGoStepPureDetTagged under (StructFieldGet UnescapedRune.underlying go!"r") #x (Val #(x.r'))
-  set_r : ∀ (x : UnescapedRune) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet UnescapedRune.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : UnescapedRune)))
+  get'r : ∀ (x : UnescapedRune), go.IsGoStepPureDetTagged under (StructFieldGet UnescapedRune.underlying go!"r") #x (Val #(x.r'))
+  set'r : ∀ (x : UnescapedRune) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet UnescapedRune.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : UnescapedRune)))
   method_set : go.MethodSetIs UnescapedRune.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnescapedRune.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] UnescapedRune.TypeAssumptions.type_repr
   UnescapedRune.TypeAssumptions.underlying
-  UnescapedRune.TypeAssumptions.get_r
-  UnescapedRune.TypeAssumptions.set_r
+  UnescapedRune.TypeAssumptions.get'r
+  UnescapedRune.TypeAssumptions.set'r
   UnescapedRune.TypeAssumptions.method_set
   UnescapedRune.TypeAssumptions.ptr_method_set
 
@@ -559,35 +559,35 @@ attribute [instance] TransformFunc.TypeAssumptions.underlying
   TransformFunc.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Fields_instance : Fields.TypeAssumptions
-  Set_instance : Set''.TypeAssumptions
-  Requirements_instance : Requirements.TypeAssumptions
-  Requirement_instance : Requirement.TypeAssumptions
-  Selector_instance : Selector.TypeAssumptions
-  nothingSelector_instance : nothingSelector.TypeAssumptions
-  hasTerm_instance : hasTerm.TypeAssumptions
-  notHasTerm_instance : notHasTerm.TypeAssumptions
-  andTerm_instance : andTerm.TypeAssumptions
-  InvalidEscapeSequence_instance : InvalidEscapeSequence.TypeAssumptions
-  UnescapedRune_instance : UnescapedRune.TypeAssumptions
-  TransformFunc_instance : TransformFunc.TypeAssumptions
-  Everything_unfold : FuncUnfold Everything [] Everything.impl
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
+  instance'Fields : Fields.TypeAssumptions
+  instance'Set : Set''.TypeAssumptions
+  instance'Requirements : Requirements.TypeAssumptions
+  instance'Requirement : Requirement.TypeAssumptions
+  instance'Selector : Selector.TypeAssumptions
+  instance'nothingSelector : nothingSelector.TypeAssumptions
+  instance'hasTerm : hasTerm.TypeAssumptions
+  instance'notHasTerm : notHasTerm.TypeAssumptions
+  instance'andTerm : andTerm.TypeAssumptions
+  instance'InvalidEscapeSequence : InvalidEscapeSequence.TypeAssumptions
+  instance'UnescapedRune : UnescapedRune.TypeAssumptions
+  instance'TransformFunc : TransformFunc.TypeAssumptions
+  unfold'Everything : FuncUnfold Everything [] Everything.impl
+  import'strings : _root_.Perennial.strings.Assumptions
 
-attribute [instance] Assumptions.Fields_instance
-  Assumptions.Set_instance
-  Assumptions.Requirements_instance
-  Assumptions.Requirement_instance
-  Assumptions.Selector_instance
-  Assumptions.nothingSelector_instance
-  Assumptions.hasTerm_instance
-  Assumptions.notHasTerm_instance
-  Assumptions.andTerm_instance
-  Assumptions.InvalidEscapeSequence_instance
-  Assumptions.UnescapedRune_instance
-  Assumptions.TransformFunc_instance
-  Assumptions.Everything_unfold
-  Assumptions.import_strings_Assumption
+attribute [instance] Assumptions.instance'Fields
+  Assumptions.instance'Set
+  Assumptions.instance'Requirements
+  Assumptions.instance'Requirement
+  Assumptions.instance'Selector
+  Assumptions.instance'nothingSelector
+  Assumptions.instance'hasTerm
+  Assumptions.instance'notHasTerm
+  Assumptions.instance'andTerm
+  Assumptions.instance'InvalidEscapeSequence
+  Assumptions.instance'UnescapedRune
+  Assumptions.instance'TransformFunc
+  Assumptions.unfold'Everything
+  Assumptions.import'strings
 
 end k8s_io.apimachinery.pkg.fields
 

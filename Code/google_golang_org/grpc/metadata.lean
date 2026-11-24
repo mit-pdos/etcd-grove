@@ -159,15 +159,15 @@ class MD.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSeman
   underlying : go.UnderlyingDirectedEq MD.ty MD.underlying
   method_set : go.MethodSetIs MD.ty [(go!"Append", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.string)] true []))), (go!"Copy", (some (go.signature.Signature [] false [MD.ty]))), (go!"Delete", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Set", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.string)] true []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MD.ty) [(go!"Append", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.string)] true []))), (go!"Copy", (some (go.signature.Signature [] false [MD.ty]))), (go!"Delete", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Set", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.string)] true []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  Get_unfold : MethodUnfold MD.ty go!"Get" MD.Get.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MD.ty) go!"Get" (LamV "$r"
+  unfold'Get : MethodUnfold MD.ty go!"Get" MD.Get.impl
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType MD.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve MD.ty go!"Get"))) (App (Val (GoInstruction (GoLoad MD.ty))) (Var "$r"))))
 
 attribute [instance] MD.TypeAssumptions.underlying
   MD.TypeAssumptions.method_set
   MD.TypeAssumptions.ptr_method_set
-  MD.TypeAssumptions.Get_unfold
-  MD.TypeAssumptions.ptr_Get_unfold
+  MD.TypeAssumptions.unfold'Get
+  MD.TypeAssumptions.ptr_unfold'Get
 
 structure mdIncomingKey [GooseExts] where
   mk ::
@@ -181,7 +181,7 @@ noncomputable instance mdIncomingKey.zero_val [GooseExts] : ZeroVal mdIncomingKe
 @[irreducible] noncomputable def mdIncomingKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   mdIncomingKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_mdIncomingKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'mdIncomingKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold mdIncomingKey.fields mdIncomingKey.fieldsUnsealed :=
   ⟨by unfold mdIncomingKey.fields; rfl⟩
 
@@ -211,7 +211,7 @@ noncomputable instance mdOutgoingKey.zero_val [GooseExts] : ZeroVal mdOutgoingKe
 @[irreducible] noncomputable def mdOutgoingKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   mdOutgoingKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_mdOutgoingKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'mdOutgoingKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold mdOutgoingKey.fields mdOutgoingKey.fieldsUnsealed :=
   ⟨by unfold mdOutgoingKey.fields; rfl⟩
 
@@ -244,7 +244,7 @@ noncomputable instance rawMD.zero_val [GooseExts] : ZeroVal rawMD :=
 @[irreducible] noncomputable def rawMD.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   rawMD.fieldsUnsealed
 
-noncomputable instance equals_unfold_rawMD [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'rawMD [GooseExts] [GoGlobalContext] :
     EqualsUnfold rawMD.fields rawMD.fieldsUnsealed :=
   ⟨by unfold rawMD.fields; rfl⟩
 
@@ -254,34 +254,34 @@ noncomputable instance equals_unfold_rawMD [GooseExts] [GoGlobalContext] :
 class rawMD.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying rawMD.underlying rawMD
   underlying : go.UnderlyingDirectedEq rawMD.ty rawMD.underlying
-  get_md : ∀ (x : rawMD), go.IsGoStepPureDetTagged under (StructFieldGet rawMD.underlying go!"md") #x (Val #(x.md'))
-  set_md : ∀ (x : rawMD) (y : MD), go.IsGoStepPureDetTagged under (StructFieldSet rawMD.underlying go!"md") (PairV #x #y) (Val #(({ x with md' := y } : rawMD)))
-  get_added : ∀ (x : rawMD), go.IsGoStepPureDetTagged under (StructFieldGet rawMD.underlying go!"added") #x (Val #(x.added'))
-  set_added : ∀ (x : rawMD) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet rawMD.underlying go!"added") (PairV #x #y) (Val #(({ x with added' := y } : rawMD)))
+  get'md : ∀ (x : rawMD), go.IsGoStepPureDetTagged under (StructFieldGet rawMD.underlying go!"md") #x (Val #(x.md'))
+  set'md : ∀ (x : rawMD) (y : MD), go.IsGoStepPureDetTagged under (StructFieldSet rawMD.underlying go!"md") (PairV #x #y) (Val #(({ x with md' := y } : rawMD)))
+  get'added : ∀ (x : rawMD), go.IsGoStepPureDetTagged under (StructFieldGet rawMD.underlying go!"added") #x (Val #(x.added'))
+  set'added : ∀ (x : rawMD) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet rawMD.underlying go!"added") (PairV #x #y) (Val #(({ x with added' := y } : rawMD)))
   method_set : go.MethodSetIs rawMD.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType rawMD.ty) []
 
 attribute [instance] rawMD.TypeAssumptions.type_repr
   rawMD.TypeAssumptions.underlying
-  rawMD.TypeAssumptions.get_md
-  rawMD.TypeAssumptions.set_md
-  rawMD.TypeAssumptions.get_added
-  rawMD.TypeAssumptions.set_added
+  rawMD.TypeAssumptions.get'md
+  rawMD.TypeAssumptions.set'md
+  rawMD.TypeAssumptions.get'added
+  rawMD.TypeAssumptions.set'added
   rawMD.TypeAssumptions.method_set
   rawMD.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  MD_instance : MD.TypeAssumptions
-  mdIncomingKey_instance : mdIncomingKey.TypeAssumptions
-  mdOutgoingKey_instance : mdOutgoingKey.TypeAssumptions
-  rawMD_instance : rawMD.TypeAssumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
+  instance'MD : MD.TypeAssumptions
+  instance'mdIncomingKey : mdIncomingKey.TypeAssumptions
+  instance'mdOutgoingKey : mdOutgoingKey.TypeAssumptions
+  instance'rawMD : rawMD.TypeAssumptions
+  import'strings : _root_.Perennial.strings.Assumptions
 
-attribute [instance] Assumptions.MD_instance
-  Assumptions.mdIncomingKey_instance
-  Assumptions.mdOutgoingKey_instance
-  Assumptions.rawMD_instance
-  Assumptions.import_strings_Assumption
+attribute [instance] Assumptions.instance'MD
+  Assumptions.instance'mdIncomingKey
+  Assumptions.instance'mdOutgoingKey
+  Assumptions.instance'rawMD
+  Assumptions.import'strings
 
 end google_golang_org.grpc.metadata
 

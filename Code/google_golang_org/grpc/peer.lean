@@ -70,7 +70,7 @@ noncomputable instance Peer.zero_val [GooseExts] : ZeroVal Peer :=
 @[irreducible] noncomputable def Peer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Peer.fieldsUnsealed
 
-noncomputable instance equals_unfold_Peer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Peer [GooseExts] [GoGlobalContext] :
     EqualsUnfold Peer.fields Peer.fieldsUnsealed :=
   ⟨by unfold Peer.fields; rfl⟩
 
@@ -80,23 +80,23 @@ noncomputable instance equals_unfold_Peer [GooseExts] [GoGlobalContext] :
 class Peer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Peer.underlying Peer
   underlying : go.UnderlyingDirectedEq Peer.ty Peer.underlying
-  get_Addr : ∀ (x : Peer), go.IsGoStepPureDetTagged under (StructFieldGet Peer.underlying go!"Addr") #x (Val #(x.Addr'))
-  set_Addr : ∀ (x : Peer) (y : _root_.Perennial.net.Addr), go.IsGoStepPureDetTagged under (StructFieldSet Peer.underlying go!"Addr") (PairV #x #y) (Val #(({ x with Addr' := y } : Peer)))
-  get_LocalAddr : ∀ (x : Peer), go.IsGoStepPureDetTagged under (StructFieldGet Peer.underlying go!"LocalAddr") #x (Val #(x.LocalAddr'))
-  set_LocalAddr : ∀ (x : Peer) (y : _root_.Perennial.net.Addr), go.IsGoStepPureDetTagged under (StructFieldSet Peer.underlying go!"LocalAddr") (PairV #x #y) (Val #(({ x with LocalAddr' := y } : Peer)))
-  get_AuthInfo : ∀ (x : Peer), go.IsGoStepPureDetTagged under (StructFieldGet Peer.underlying go!"AuthInfo") #x (Val #(x.AuthInfo'))
-  set_AuthInfo : ∀ (x : Peer) (y : _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo), go.IsGoStepPureDetTagged under (StructFieldSet Peer.underlying go!"AuthInfo") (PairV #x #y) (Val #(({ x with AuthInfo' := y } : Peer)))
+  get'Addr : ∀ (x : Peer), go.IsGoStepPureDetTagged under (StructFieldGet Peer.underlying go!"Addr") #x (Val #(x.Addr'))
+  set'Addr : ∀ (x : Peer) (y : _root_.Perennial.net.Addr), go.IsGoStepPureDetTagged under (StructFieldSet Peer.underlying go!"Addr") (PairV #x #y) (Val #(({ x with Addr' := y } : Peer)))
+  get'LocalAddr : ∀ (x : Peer), go.IsGoStepPureDetTagged under (StructFieldGet Peer.underlying go!"LocalAddr") #x (Val #(x.LocalAddr'))
+  set'LocalAddr : ∀ (x : Peer) (y : _root_.Perennial.net.Addr), go.IsGoStepPureDetTagged under (StructFieldSet Peer.underlying go!"LocalAddr") (PairV #x #y) (Val #(({ x with LocalAddr' := y } : Peer)))
+  get'AuthInfo : ∀ (x : Peer), go.IsGoStepPureDetTagged under (StructFieldGet Peer.underlying go!"AuthInfo") #x (Val #(x.AuthInfo'))
+  set'AuthInfo : ∀ (x : Peer) (y : _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo), go.IsGoStepPureDetTagged under (StructFieldSet Peer.underlying go!"AuthInfo") (PairV #x #y) (Val #(({ x with AuthInfo' := y } : Peer)))
   method_set : go.MethodSetIs Peer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Peer.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Peer.TypeAssumptions.type_repr
   Peer.TypeAssumptions.underlying
-  Peer.TypeAssumptions.get_Addr
-  Peer.TypeAssumptions.set_Addr
-  Peer.TypeAssumptions.get_LocalAddr
-  Peer.TypeAssumptions.set_LocalAddr
-  Peer.TypeAssumptions.get_AuthInfo
-  Peer.TypeAssumptions.set_AuthInfo
+  Peer.TypeAssumptions.get'Addr
+  Peer.TypeAssumptions.set'Addr
+  Peer.TypeAssumptions.get'LocalAddr
+  Peer.TypeAssumptions.set'LocalAddr
+  Peer.TypeAssumptions.get'AuthInfo
+  Peer.TypeAssumptions.set'AuthInfo
   Peer.TypeAssumptions.method_set
   Peer.TypeAssumptions.ptr_method_set
 
@@ -112,7 +112,7 @@ noncomputable instance peerKey.zero_val [GooseExts] : ZeroVal peerKey :=
 @[irreducible] noncomputable def peerKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   peerKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_peerKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'peerKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold peerKey.fields peerKey.fieldsUnsealed :=
   ⟨by unfold peerKey.fields; rfl⟩
 
@@ -131,15 +131,15 @@ attribute [instance] peerKey.TypeAssumptions.type_repr
   peerKey.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Peer_instance : Peer.TypeAssumptions
-  peerKey_instance : peerKey.TypeAssumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_credentials_Assumption : _root_.Perennial.google_golang_org.grpc.credentials.Assumptions
+  instance'Peer : Peer.TypeAssumptions
+  instance'peerKey : peerKey.TypeAssumptions
+  import'net : _root_.Perennial.net.Assumptions
+  import'credentials : _root_.Perennial.google_golang_org.grpc.credentials.Assumptions
 
-attribute [instance] Assumptions.Peer_instance
-  Assumptions.peerKey_instance
-  Assumptions.import_net_Assumption
-  Assumptions.import_credentials_Assumption
+attribute [instance] Assumptions.instance'Peer
+  Assumptions.instance'peerKey
+  Assumptions.import'net
+  Assumptions.import'credentials
 
 end google_golang_org.grpc.peer
 

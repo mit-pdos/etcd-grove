@@ -528,43 +528,43 @@ attribute [instance] serviceCIDRs.TypeAssumptions.type_repr
   serviceCIDRs.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  IPAddressExpansion_instance : IPAddressExpansion.TypeAssumptions
-  IngressExpansion_instance : IngressExpansion.TypeAssumptions
-  IngressClassExpansion_instance : IngressClassExpansion.TypeAssumptions
-  ServiceCIDRExpansion_instance : ServiceCIDRExpansion.TypeAssumptions
-  IngressesGetter_instance : IngressesGetter.TypeAssumptions
-  IngressInterface_instance : IngressInterface.TypeAssumptions
-  ingresses_instance : ingresses.TypeAssumptions
-  IngressClassesGetter_instance : IngressClassesGetter.TypeAssumptions
-  IngressClassInterface_instance : IngressClassInterface.TypeAssumptions
-  ingressClasses_instance : ingressClasses.TypeAssumptions
-  IPAddressesGetter_instance : IPAddressesGetter.TypeAssumptions
-  IPAddressInterface_instance : IPAddressInterface.TypeAssumptions
-  iPAddresses_instance : iPAddresses.TypeAssumptions
-  NetworkingV1beta1Interface_instance : NetworkingV1beta1Interface.TypeAssumptions
-  NetworkingV1beta1Client_instance : NetworkingV1beta1Client.TypeAssumptions
-  ServiceCIDRsGetter_instance : ServiceCIDRsGetter.TypeAssumptions
-  ServiceCIDRInterface_instance : ServiceCIDRInterface.TypeAssumptions
-  serviceCIDRs_instance : serviceCIDRs.TypeAssumptions
+  instance'IPAddressExpansion : IPAddressExpansion.TypeAssumptions
+  instance'IngressExpansion : IngressExpansion.TypeAssumptions
+  instance'IngressClassExpansion : IngressClassExpansion.TypeAssumptions
+  instance'ServiceCIDRExpansion : ServiceCIDRExpansion.TypeAssumptions
+  instance'IngressesGetter : IngressesGetter.TypeAssumptions
+  instance'IngressInterface : IngressInterface.TypeAssumptions
+  instance'ingresses : ingresses.TypeAssumptions
+  instance'IngressClassesGetter : IngressClassesGetter.TypeAssumptions
+  instance'IngressClassInterface : IngressClassInterface.TypeAssumptions
+  instance'ingressClasses : ingressClasses.TypeAssumptions
+  instance'IPAddressesGetter : IPAddressesGetter.TypeAssumptions
+  instance'IPAddressInterface : IPAddressInterface.TypeAssumptions
+  instance'iPAddresses : iPAddresses.TypeAssumptions
+  instance'NetworkingV1beta1Interface : NetworkingV1beta1Interface.TypeAssumptions
+  instance'NetworkingV1beta1Client : NetworkingV1beta1Client.TypeAssumptions
+  instance'ServiceCIDRsGetter : ServiceCIDRsGetter.TypeAssumptions
+  instance'ServiceCIDRInterface : ServiceCIDRInterface.TypeAssumptions
+  instance'serviceCIDRs : serviceCIDRs.TypeAssumptions
 
-attribute [instance] Assumptions.IPAddressExpansion_instance
-  Assumptions.IngressExpansion_instance
-  Assumptions.IngressClassExpansion_instance
-  Assumptions.ServiceCIDRExpansion_instance
-  Assumptions.IngressesGetter_instance
-  Assumptions.IngressInterface_instance
-  Assumptions.ingresses_instance
-  Assumptions.IngressClassesGetter_instance
-  Assumptions.IngressClassInterface_instance
-  Assumptions.ingressClasses_instance
-  Assumptions.IPAddressesGetter_instance
-  Assumptions.IPAddressInterface_instance
-  Assumptions.iPAddresses_instance
-  Assumptions.NetworkingV1beta1Interface_instance
-  Assumptions.NetworkingV1beta1Client_instance
-  Assumptions.ServiceCIDRsGetter_instance
-  Assumptions.ServiceCIDRInterface_instance
-  Assumptions.serviceCIDRs_instance
+attribute [instance] Assumptions.instance'IPAddressExpansion
+  Assumptions.instance'IngressExpansion
+  Assumptions.instance'IngressClassExpansion
+  Assumptions.instance'ServiceCIDRExpansion
+  Assumptions.instance'IngressesGetter
+  Assumptions.instance'IngressInterface
+  Assumptions.instance'ingresses
+  Assumptions.instance'IngressClassesGetter
+  Assumptions.instance'IngressClassInterface
+  Assumptions.instance'ingressClasses
+  Assumptions.instance'IPAddressesGetter
+  Assumptions.instance'IPAddressInterface
+  Assumptions.instance'iPAddresses
+  Assumptions.instance'NetworkingV1beta1Interface
+  Assumptions.instance'NetworkingV1beta1Client
+  Assumptions.instance'ServiceCIDRsGetter
+  Assumptions.instance'ServiceCIDRInterface
+  Assumptions.instance'serviceCIDRs
 
 end k8s_io.client_go.kubernetes.typed.networking.v1beta1
 

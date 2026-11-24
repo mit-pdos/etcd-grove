@@ -53,11 +53,11 @@ attribute [instance] LeveledEnabler.TypeAssumptions.underlying
   LeveledEnabler.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  LeveledEnabler_instance : LeveledEnabler.TypeAssumptions
-  import_zapcore_Assumption : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions
+  instance'LeveledEnabler : LeveledEnabler.TypeAssumptions
+  import'zapcore : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions
 
-attribute [instance] Assumptions.LeveledEnabler_instance
-  Assumptions.import_zapcore_Assumption
+attribute [instance] Assumptions.instance'LeveledEnabler
+  Assumptions.import'zapcore
 
 end go_uber_org.zap.internal
 

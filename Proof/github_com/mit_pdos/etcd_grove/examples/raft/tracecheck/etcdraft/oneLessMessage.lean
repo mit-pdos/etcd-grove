@@ -42,12 +42,12 @@ theorem oneLessMessage.wp_proof (wp_Count : Bag.Count.spec (GF := GF) (hG := hG)
   simp only [TypedPointsto.typedPointstoDef]
   icases Hpf2 with ⟨-, -, #PM2, -⟩
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_Count_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'Count.method_unfold]
   try wp_auto
   wp_apply wp_Count g.Messages' s.messages q m $$ [Hm Hmsg] as %c1 %Hc1
   · iframe Hm Hmsg
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_Count_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'Count.method_unfold]
   try wp_auto
   wp_apply wp_Count g2.Messages' s2.messages q m $$ [Hm2 Hmsg] as %c2 %Hc2
   · iframe Hm2 Hmsg

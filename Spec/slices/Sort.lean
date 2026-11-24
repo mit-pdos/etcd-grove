@@ -2,7 +2,7 @@
 Port of election_proof/spec_slices_Sort.v (feb5c73d4).
 
 Lean notes:
-* Go's `slices.Sort` is `Perennial.slices.«Sort»` in the generated code (`Sort` is a
+* Go's `slices.Sort` is `Perennial.slices.Sort''` in the generated code (`Sort` is a
   Lean keyword); the type arguments `[go.SliceType go.uint64; go.uint64]` are
   `[go.GoType.SliceType go.uint64, go.uint64]`.
 * Rocq's `xs' !! i` (`i : nat`) is `xs'[i]?`.
@@ -41,7 +41,7 @@ index off the sorted acknowledgements at a fixed position. -/
 abbrev slices.«Sort».spec : Prop :=
   ∀ (data : GoSlice) (xs : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.slices ∗ data ↦* xs ∗ ⌜xs.length ≤ 2 ^ 62⌝ }}
-    (App (Val #(functions _root_.Perennial.slices.«Sort»
+    (App (Val #(functions _root_.Perennial.slices.Sort''
         [go.GoType.SliceType go.uint64, go.uint64])) (Val #data))
   {{ (xs' : List w64), RET #();
       data ↦* xs' ∗ ⌜xs ≡ₚ xs'⌝ ∗

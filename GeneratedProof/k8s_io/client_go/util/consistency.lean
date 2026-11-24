@@ -29,7 +29,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.util.consistency.Assumptions]
 
-noncomputable instance ConsistencyError_typed_pointsto :
+noncomputable instance typed_pointsto'ConsistencyError :
     TypedPointsto (GF := GF) k8s_io.client_go.util.consistency.ConsistencyError where
   typedPointstoDef l v dq := iprop(
     "ReadRV" ∷ typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ConsistencyError go!"ReadRV" l) v.ReadRV' dq ∗
@@ -40,11 +40,11 @@ noncomputable instance ConsistencyError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ConsistencyError_into_val_typed :
+noncomputable instance into_val_typed'ConsistencyError :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.util.consistency.ConsistencyError k8s_io.client_go.util.consistency.ConsistencyError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ConsistencyError_access_load_ReadRV (l : Loc) (v : k8s_io.client_go.util.consistency.ConsistencyError) (dq : DFrac) :
+noncomputable instance access_load'ConsistencyError'ReadRV (l : Loc) (v : k8s_io.client_go.util.consistency.ConsistencyError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ConsistencyError go!"ReadRV" l) v.ReadRV' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ConsistencyError go!"ReadRV" l) v.ReadRV' dq)
@@ -52,7 +52,7 @@ noncomputable instance ConsistencyError_access_load_ReadRV (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConsistencyError_access_store_ReadRV (l : Loc) (v : k8s_io.client_go.util.consistency.ConsistencyError) (y : GoString) :
+noncomputable instance access_store'ConsistencyError'ReadRV (l : Loc) (v : k8s_io.client_go.util.consistency.ConsistencyError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ConsistencyError go!"ReadRV" l) v.ReadRV' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ConsistencyError go!"ReadRV" l) y (DFrac.own 1))
@@ -60,7 +60,7 @@ noncomputable instance ConsistencyError_access_store_ReadRV (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConsistencyError_access_load_WroteRV (l : Loc) (v : k8s_io.client_go.util.consistency.ConsistencyError) (dq : DFrac) :
+noncomputable instance access_load'ConsistencyError'WroteRV (l : Loc) (v : k8s_io.client_go.util.consistency.ConsistencyError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ConsistencyError go!"WroteRV" l) v.WroteRV' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ConsistencyError go!"WroteRV" l) v.WroteRV' dq)
@@ -68,7 +68,7 @@ noncomputable instance ConsistencyError_access_load_WroteRV (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConsistencyError_access_store_WroteRV (l : Loc) (v : k8s_io.client_go.util.consistency.ConsistencyError) (y : GoString) :
+noncomputable instance access_store'ConsistencyError'WroteRV (l : Loc) (v : k8s_io.client_go.util.consistency.ConsistencyError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ConsistencyError go!"WroteRV" l) v.WroteRV' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ConsistencyError go!"WroteRV" l) y (DFrac.own 1))
@@ -76,7 +76,7 @@ noncomputable instance ConsistencyError_access_store_WroteRV (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConsistencyError_access_load_GroupResource (l : Loc) (v : k8s_io.client_go.util.consistency.ConsistencyError) (dq : DFrac) :
+noncomputable instance access_load'ConsistencyError'GroupResource (l : Loc) (v : k8s_io.client_go.util.consistency.ConsistencyError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ConsistencyError go!"GroupResource" l) v.GroupResource' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ConsistencyError go!"GroupResource" l) v.GroupResource' dq)
@@ -84,7 +84,7 @@ noncomputable instance ConsistencyError_access_load_GroupResource (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConsistencyError_access_store_GroupResource (l : Loc) (v : k8s_io.client_go.util.consistency.ConsistencyError) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
+noncomputable instance access_store'ConsistencyError'GroupResource (l : Loc) (v : k8s_io.client_go.util.consistency.ConsistencyError) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ConsistencyError go!"GroupResource" l) v.GroupResource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ConsistencyError go!"GroupResource" l) y (DFrac.own 1))
@@ -103,7 +103,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.util.consistency.Assumptions]
 
-noncomputable instance consistencyStore_typed_pointsto :
+noncomputable instance typed_pointsto'consistencyStore :
     TypedPointsto (GF := GF) k8s_io.client_go.util.consistency.consistencyStore where
   typedPointstoDef l v dq := iprop(
     "writesLock" ∷ typedPointsto (structFieldRef k8s_io.client_go.util.consistency.consistencyStore go!"writesLock" l) v.writesLock' dq ∗
@@ -114,11 +114,11 @@ noncomputable instance consistencyStore_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance consistencyStore_into_val_typed :
+noncomputable instance into_val_typed'consistencyStore :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.util.consistency.consistencyStore k8s_io.client_go.util.consistency.consistencyStore.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance consistencyStore_access_load_writesLock (l : Loc) (v : k8s_io.client_go.util.consistency.consistencyStore) (dq : DFrac) :
+noncomputable instance access_load'consistencyStore'writesLock (l : Loc) (v : k8s_io.client_go.util.consistency.consistencyStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.consistencyStore go!"writesLock" l) v.writesLock' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.consistencyStore go!"writesLock" l) v.writesLock' dq)
@@ -126,7 +126,7 @@ noncomputable instance consistencyStore_access_load_writesLock (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance consistencyStore_access_store_writesLock (l : Loc) (v : k8s_io.client_go.util.consistency.consistencyStore) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'consistencyStore'writesLock (l : Loc) (v : k8s_io.client_go.util.consistency.consistencyStore) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.consistencyStore go!"writesLock" l) v.writesLock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.consistencyStore go!"writesLock" l) y (DFrac.own 1))
@@ -134,7 +134,7 @@ noncomputable instance consistencyStore_access_store_writesLock (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance consistencyStore_access_load_writes (l : Loc) (v : k8s_io.client_go.util.consistency.consistencyStore) (dq : DFrac) :
+noncomputable instance access_load'consistencyStore'writes (l : Loc) (v : k8s_io.client_go.util.consistency.consistencyStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.consistencyStore go!"writes" l) v.writes' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.consistencyStore go!"writes" l) v.writes' dq)
@@ -142,7 +142,7 @@ noncomputable instance consistencyStore_access_load_writes (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance consistencyStore_access_store_writes (l : Loc) (v : k8s_io.client_go.util.consistency.consistencyStore) (y : GoMap) :
+noncomputable instance access_store'consistencyStore'writes (l : Loc) (v : k8s_io.client_go.util.consistency.consistencyStore) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.consistencyStore go!"writes" l) v.writes' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.consistencyStore go!"writes" l) y (DFrac.own 1))
@@ -150,7 +150,7 @@ noncomputable instance consistencyStore_access_store_writes (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance consistencyStore_access_load_stores (l : Loc) (v : k8s_io.client_go.util.consistency.consistencyStore) (dq : DFrac) :
+noncomputable instance access_load'consistencyStore'stores (l : Loc) (v : k8s_io.client_go.util.consistency.consistencyStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.consistencyStore go!"stores" l) v.stores' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.consistencyStore go!"stores" l) v.stores' dq)
@@ -158,7 +158,7 @@ noncomputable instance consistencyStore_access_load_stores (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance consistencyStore_access_store_stores (l : Loc) (v : k8s_io.client_go.util.consistency.consistencyStore) (y : GoMap) :
+noncomputable instance access_store'consistencyStore'stores (l : Loc) (v : k8s_io.client_go.util.consistency.consistencyStore) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.consistencyStore go!"stores" l) v.stores' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.consistencyStore go!"stores" l) y (DFrac.own 1))
@@ -177,7 +177,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.util.consistency.Assumptions]
 
-noncomputable instance ownerRecord_typed_pointsto :
+noncomputable instance typed_pointsto'ownerRecord :
     TypedPointsto (GF := GF) k8s_io.client_go.util.consistency.ownerRecord where
   typedPointstoDef l v dq := iprop(
     "ownerUID" ∷ typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"ownerUID" l) v.ownerUID' dq ∗
@@ -188,11 +188,11 @@ noncomputable instance ownerRecord_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ownerRecord_into_val_typed :
+noncomputable instance into_val_typed'ownerRecord :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.util.consistency.ownerRecord k8s_io.client_go.util.consistency.ownerRecord.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ownerRecord_access_load_ownerUID (l : Loc) (v : k8s_io.client_go.util.consistency.ownerRecord) (dq : DFrac) :
+noncomputable instance access_load'ownerRecord'ownerUID (l : Loc) (v : k8s_io.client_go.util.consistency.ownerRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"ownerUID" l) v.ownerUID' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"ownerUID" l) v.ownerUID' dq)
@@ -200,7 +200,7 @@ noncomputable instance ownerRecord_access_load_ownerUID (l : Loc) (v : k8s_io.cl
  by
   solve_pointsto_access_struct
 
-noncomputable instance ownerRecord_access_store_ownerUID (l : Loc) (v : k8s_io.client_go.util.consistency.ownerRecord) (y : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID) :
+noncomputable instance access_store'ownerRecord'ownerUID (l : Loc) (v : k8s_io.client_go.util.consistency.ownerRecord) (y : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"ownerUID" l) v.ownerUID' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"ownerUID" l) y (DFrac.own 1))
@@ -208,7 +208,7 @@ noncomputable instance ownerRecord_access_store_ownerUID (l : Loc) (v : k8s_io.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance ownerRecord_access_load_versionsLock (l : Loc) (v : k8s_io.client_go.util.consistency.ownerRecord) (dq : DFrac) :
+noncomputable instance access_load'ownerRecord'versionsLock (l : Loc) (v : k8s_io.client_go.util.consistency.ownerRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"versionsLock" l) v.versionsLock' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"versionsLock" l) v.versionsLock' dq)
@@ -216,7 +216,7 @@ noncomputable instance ownerRecord_access_load_versionsLock (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ownerRecord_access_store_versionsLock (l : Loc) (v : k8s_io.client_go.util.consistency.ownerRecord) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'ownerRecord'versionsLock (l : Loc) (v : k8s_io.client_go.util.consistency.ownerRecord) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"versionsLock" l) v.versionsLock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"versionsLock" l) y (DFrac.own 1))
@@ -224,7 +224,7 @@ noncomputable instance ownerRecord_access_store_versionsLock (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ownerRecord_access_load_versions (l : Loc) (v : k8s_io.client_go.util.consistency.ownerRecord) (dq : DFrac) :
+noncomputable instance access_load'ownerRecord'versions (l : Loc) (v : k8s_io.client_go.util.consistency.ownerRecord) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"versions" l) v.versions' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"versions" l) v.versions' dq)
@@ -232,7 +232,7 @@ noncomputable instance ownerRecord_access_load_versions (l : Loc) (v : k8s_io.cl
  by
   solve_pointsto_access_struct
 
-noncomputable instance ownerRecord_access_store_versions (l : Loc) (v : k8s_io.client_go.util.consistency.ownerRecord) (y : GoMap) :
+noncomputable instance access_store'ownerRecord'versions (l : Loc) (v : k8s_io.client_go.util.consistency.ownerRecord) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"versions" l) v.versions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"versions" l) y (DFrac.own 1))
@@ -251,7 +251,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.util.consistency.Assumptions]
 
-noncomputable instance noopConsistencyStore_typed_pointsto :
+noncomputable instance typed_pointsto'noopConsistencyStore :
     TypedPointsto (GF := GF) k8s_io.client_go.util.consistency.noopConsistencyStore where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -259,7 +259,7 @@ noncomputable instance noopConsistencyStore_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance noopConsistencyStore_into_val_typed :
+noncomputable instance into_val_typed'noopConsistencyStore :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.util.consistency.noopConsistencyStore k8s_io.client_go.util.consistency.noopConsistencyStore.underlying := by
   solve_into_val_typed_struct
 

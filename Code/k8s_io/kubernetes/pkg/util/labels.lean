@@ -373,21 +373,21 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.initialize') (Val #())))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  CloneAndAddLabel_unfold : FuncUnfold CloneAndAddLabel [] CloneAndAddLabel.impl
-  CloneAndRemoveLabel_unfold : FuncUnfold CloneAndRemoveLabel [] CloneAndRemoveLabel.impl
-  AddLabel_unfold : FuncUnfold AddLabel [] AddLabel.impl
-  CloneSelectorAndAddLabel_unfold : FuncUnfold CloneSelectorAndAddLabel [] CloneSelectorAndAddLabel.impl
-  AddLabelToSelector_unfold : FuncUnfold AddLabelToSelector [] AddLabelToSelector.impl
-  SelectorHasLabel_unfold : FuncUnfold SelectorHasLabel [] SelectorHasLabel.impl
-  import_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  unfold'CloneAndAddLabel : FuncUnfold CloneAndAddLabel [] CloneAndAddLabel.impl
+  unfold'CloneAndRemoveLabel : FuncUnfold CloneAndRemoveLabel [] CloneAndRemoveLabel.impl
+  unfold'AddLabel : FuncUnfold AddLabel [] AddLabel.impl
+  unfold'CloneSelectorAndAddLabel : FuncUnfold CloneSelectorAndAddLabel [] CloneSelectorAndAddLabel.impl
+  unfold'AddLabelToSelector : FuncUnfold AddLabelToSelector [] AddLabelToSelector.impl
+  unfold'SelectorHasLabel : FuncUnfold SelectorHasLabel [] SelectorHasLabel.impl
+  import'v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
 
-attribute [instance] Assumptions.CloneAndAddLabel_unfold
-  Assumptions.CloneAndRemoveLabel_unfold
-  Assumptions.AddLabel_unfold
-  Assumptions.CloneSelectorAndAddLabel_unfold
-  Assumptions.AddLabelToSelector_unfold
-  Assumptions.SelectorHasLabel_unfold
-  Assumptions.import_v1_Assumption
+attribute [instance] Assumptions.unfold'CloneAndAddLabel
+  Assumptions.unfold'CloneAndRemoveLabel
+  Assumptions.unfold'AddLabel
+  Assumptions.unfold'CloneSelectorAndAddLabel
+  Assumptions.unfold'AddLabelToSelector
+  Assumptions.unfold'SelectorHasLabel
+  Assumptions.import'v1
 
 end k8s_io.kubernetes.pkg.util.labels
 

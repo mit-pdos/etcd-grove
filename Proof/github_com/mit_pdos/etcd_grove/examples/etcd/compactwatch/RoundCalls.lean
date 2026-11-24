@@ -58,7 +58,7 @@ theorem client_Get_round (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEn
   ihave #Hrpc := kvRegs_one ep E γr cid mid $$ Hrpc0
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Get.method_unfold]
   wp_pures
   wp_auto
   ihave #Hau := getAu_round γr γf γl γv keys val i k hk r $$ [Hinv Hlb Hrlb]
@@ -103,7 +103,7 @@ theorem client_Get_rev (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
   ihave #Hrpc := kvRegs_one ep E γr cid mid $$ Hrpc0
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Get.method_unfold]
   wp_pures
   wp_auto
   ihave #Hau := getRevAu_round γr γf γl γv keys val r $$ [Hinv Hrlb]

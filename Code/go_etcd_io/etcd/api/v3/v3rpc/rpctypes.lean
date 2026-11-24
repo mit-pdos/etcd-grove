@@ -1843,7 +1843,7 @@ noncomputable instance EtcdError.zero_val [GooseExts] : ZeroVal EtcdError :=
 @[irreducible] noncomputable def EtcdError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EtcdError.fieldsUnsealed
 
-noncomputable instance equals_unfold_EtcdError [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'EtcdError [GooseExts] [GoGlobalContext] :
     EqualsUnfold EtcdError.fields EtcdError.fieldsUnsealed :=
   ⟨by unfold EtcdError.fields; rfl⟩
 
@@ -1853,31 +1853,31 @@ noncomputable instance equals_unfold_EtcdError [GooseExts] [GoGlobalContext] :
 class EtcdError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EtcdError.underlying EtcdError
   underlying : go.UnderlyingDirectedEq EtcdError.ty EtcdError.underlying
-  get_code : ∀ (x : EtcdError), go.IsGoStepPureDetTagged under (StructFieldGet EtcdError.underlying go!"code") #x (Val #(x.code'))
-  set_code : ∀ (x : EtcdError) (y : _root_.Perennial.google_golang_org.grpc.codes.Code), go.IsGoStepPureDetTagged under (StructFieldSet EtcdError.underlying go!"code") (PairV #x #y) (Val #(({ x with code' := y } : EtcdError)))
-  get_desc : ∀ (x : EtcdError), go.IsGoStepPureDetTagged under (StructFieldGet EtcdError.underlying go!"desc") #x (Val #(x.desc'))
-  set_desc : ∀ (x : EtcdError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EtcdError.underlying go!"desc") (PairV #x #y) (Val #(({ x with desc' := y } : EtcdError)))
+  get'code : ∀ (x : EtcdError), go.IsGoStepPureDetTagged under (StructFieldGet EtcdError.underlying go!"code") #x (Val #(x.code'))
+  set'code : ∀ (x : EtcdError) (y : _root_.Perennial.google_golang_org.grpc.codes.Code), go.IsGoStepPureDetTagged under (StructFieldSet EtcdError.underlying go!"code") (PairV #x #y) (Val #(({ x with code' := y } : EtcdError)))
+  get'desc : ∀ (x : EtcdError), go.IsGoStepPureDetTagged under (StructFieldGet EtcdError.underlying go!"desc") #x (Val #(x.desc'))
+  set'desc : ∀ (x : EtcdError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EtcdError.underlying go!"desc") (PairV #x #y) (Val #(({ x with desc' := y } : EtcdError)))
   method_set : go.MethodSetIs EtcdError.ty [(go!"Code", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.codes.Code.ty]))), (go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType EtcdError.ty) [(go!"Code", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.codes.Code.ty]))), (go!"Error", (some (go.signature.Signature [] false [go.string])))]
-  Code_unfold : MethodUnfold EtcdError.ty go!"Code" EtcdError.Code.impl
-  Error_unfold : MethodUnfold EtcdError.ty go!"Error" EtcdError.Error.impl
-  ptr_Code_unfold : MethodUnfold (go.GoType.PointerType EtcdError.ty) go!"Code" (LamV "$r"
+  unfold'Code : MethodUnfold EtcdError.ty go!"Code" EtcdError.Code.impl
+  unfold'Error : MethodUnfold EtcdError.ty go!"Error" EtcdError.Error.impl
+  ptr_unfold'Code : MethodUnfold (go.GoType.PointerType EtcdError.ty) go!"Code" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve EtcdError.ty go!"Code"))) (App (Val (GoInstruction (GoLoad EtcdError.ty))) (Var "$r"))))
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType EtcdError.ty) go!"Error" (LamV "$r"
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType EtcdError.ty) go!"Error" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve EtcdError.ty go!"Error"))) (App (Val (GoInstruction (GoLoad EtcdError.ty))) (Var "$r"))))
 
 attribute [instance] EtcdError.TypeAssumptions.type_repr
   EtcdError.TypeAssumptions.underlying
-  EtcdError.TypeAssumptions.get_code
-  EtcdError.TypeAssumptions.set_code
-  EtcdError.TypeAssumptions.get_desc
-  EtcdError.TypeAssumptions.set_desc
+  EtcdError.TypeAssumptions.get'code
+  EtcdError.TypeAssumptions.set'code
+  EtcdError.TypeAssumptions.get'desc
+  EtcdError.TypeAssumptions.set'desc
   EtcdError.TypeAssumptions.method_set
   EtcdError.TypeAssumptions.ptr_method_set
-  EtcdError.TypeAssumptions.Code_unfold
-  EtcdError.TypeAssumptions.Error_unfold
-  EtcdError.TypeAssumptions.ptr_Code_unfold
-  EtcdError.TypeAssumptions.ptr_Error_unfold
+  EtcdError.TypeAssumptions.unfold'Code
+  EtcdError.TypeAssumptions.unfold'Error
+  EtcdError.TypeAssumptions.ptr_unfold'Code
+  EtcdError.TypeAssumptions.ptr_unfold'Error
 
 structure TokenFieldNameGRPCKey [GooseExts] where
   mk ::
@@ -1891,7 +1891,7 @@ noncomputable instance TokenFieldNameGRPCKey.zero_val [GooseExts] : ZeroVal Toke
 @[irreducible] noncomputable def TokenFieldNameGRPCKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TokenFieldNameGRPCKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_TokenFieldNameGRPCKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'TokenFieldNameGRPCKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold TokenFieldNameGRPCKey.fields TokenFieldNameGRPCKey.fieldsUnsealed :=
   ⟨by unfold TokenFieldNameGRPCKey.fields; rfl⟩
 
@@ -1910,19 +1910,19 @@ attribute [instance] TokenFieldNameGRPCKey.TypeAssumptions.type_repr
   TokenFieldNameGRPCKey.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  EtcdError_instance : EtcdError.TypeAssumptions
-  TokenFieldNameGRPCKey_instance : TokenFieldNameGRPCKey.TypeAssumptions
-  Error_unfold : FuncUnfold Error [] Error.impl
-  ErrorDesc_unfold : FuncUnfold ErrorDesc [] ErrorDesc.impl
-  import_codes_Assumption : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
-  import_status_Assumption : _root_.Perennial.google_golang_org.grpc.status.Assumptions
+  instance'EtcdError : EtcdError.TypeAssumptions
+  instance'TokenFieldNameGRPCKey : TokenFieldNameGRPCKey.TypeAssumptions
+  unfold'Error : FuncUnfold Error [] Error.impl
+  unfold'ErrorDesc : FuncUnfold ErrorDesc [] ErrorDesc.impl
+  import'codes : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
+  import'status : _root_.Perennial.google_golang_org.grpc.status.Assumptions
 
-attribute [instance] Assumptions.EtcdError_instance
-  Assumptions.TokenFieldNameGRPCKey_instance
-  Assumptions.Error_unfold
-  Assumptions.ErrorDesc_unfold
-  Assumptions.import_codes_Assumption
-  Assumptions.import_status_Assumption
+attribute [instance] Assumptions.instance'EtcdError
+  Assumptions.instance'TokenFieldNameGRPCKey
+  Assumptions.unfold'Error
+  Assumptions.unfold'ErrorDesc
+  Assumptions.import'codes
+  Assumptions.import'status
 
 end go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 

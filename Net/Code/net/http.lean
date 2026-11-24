@@ -21,415 +21,415 @@ noncomputable section
 namespace net.http
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Client_instance : Client.TypeAssumptions
-  RoundTripper_instance : RoundTripper.TypeAssumptions
-  cancelTimerBody_instance : cancelTimerBody.TypeAssumptions
-  ClientConn_instance : ClientConn.TypeAssumptions
-  newClientConner_instance : newClientConner.TypeAssumptions
-  genericClientConn_instance : genericClientConn.TypeAssumptions
-  http1ClientConn_instance : http1ClientConn.TypeAssumptions
-  Cookie_instance : Cookie.TypeAssumptions
-  SameSite_instance : SameSite.TypeAssumptions
-  CrossOriginProtection_instance : CrossOriginProtection.TypeAssumptions
-  noopHandler_instance : noopHandler.TypeAssumptions
-  fileTransport_instance : fileTransport.TypeAssumptions
-  populateResponse_instance : populateResponse.TypeAssumptions
-  Dir_instance : Dir.TypeAssumptions
-  FileSystem_instance : FileSystem.TypeAssumptions
-  File_instance : File.TypeAssumptions
-  anyDirs_instance : anyDirs.TypeAssumptions
-  fileInfoDirs_instance : fileInfoDirs.TypeAssumptions
-  dirEntryDirs_instance : dirEntryDirs.TypeAssumptions
-  condResult_instance : condResult.TypeAssumptions
-  fileHandler_instance : fileHandler.TypeAssumptions
-  ioFS_instance : ioFS.TypeAssumptions
-  ioFile_instance : ioFile.TypeAssumptions
-  httpRange_instance : httpRange.TypeAssumptions
-  countingWriter_instance : countingWriter.TypeAssumptions
-  Header_instance : Header.TypeAssumptions
-  stringWriter_instance : stringWriter.TypeAssumptions
-  keyValues_instance : keyValues.TypeAssumptions
-  headerSorter_instance : headerSorter.TypeAssumptions
-  Protocols_instance : Protocols.TypeAssumptions
-  incomparable_instance : incomparable.TypeAssumptions
-  contextKey_instance : contextKey.TypeAssumptions
-  noBody_instance : noBody.TypeAssumptions
-  PushOptions_instance : PushOptions.TypeAssumptions
-  Pusher_instance : Pusher.TypeAssumptions
-  HTTP2Config_instance : HTTP2Config.TypeAssumptions
-  http2Handler_instance : http2Handler.TypeAssumptions
-  http2ResponseWriter_instance : http2ResponseWriter.TypeAssumptions
-  http2ServerConfig_instance : http2ServerConfig.TypeAssumptions
-  http2ExternalServerConfig_instance : http2ExternalServerConfig.TypeAssumptions
-  http2ExternalTransportConfig_instance : http2ExternalTransportConfig.TypeAssumptions
-  http2ErringRoundTripper_instance : http2ErringRoundTripper.TypeAssumptions
-  http2RoundTripper_instance : http2RoundTripper.TypeAssumptions
-  http2ClientConn_instance : http2ClientConn.TypeAssumptions
-  transportConfig_instance : transportConfig.TypeAssumptions
-  http2Configer_instance : http2Configer.TypeAssumptions
-  CookieJar_instance : CookieJar.TypeAssumptions
-  mapping_instance : mapping.TypeAssumptions
-  entry_instance : entry.TypeAssumptions
-  pattern_instance : pattern.TypeAssumptions
-  segment_instance : segment.TypeAssumptions
-  relationship_instance : relationship.TypeAssumptions
-  ProtocolError_instance : ProtocolError.TypeAssumptions
-  Request_instance : Request.TypeAssumptions
-  requestBodyReadError_instance : requestBodyReadError.TypeAssumptions
-  MaxBytesError_instance : MaxBytesError.TypeAssumptions
-  maxBytesReader_instance : maxBytesReader.TypeAssumptions
-  Response_instance : Response.TypeAssumptions
-  ResponseController_instance : ResponseController.TypeAssumptions
-  rwUnwrapper_instance : rwUnwrapper.TypeAssumptions
-  routingIndex_instance : routingIndex.TypeAssumptions
-  routingIndexKey_instance : routingIndexKey.TypeAssumptions
-  routingNode_instance : routingNode.TypeAssumptions
-  serveMux121_instance : serveMux121.TypeAssumptions
-  muxEntry_instance : muxEntry.TypeAssumptions
-  Handler_instance : Handler.TypeAssumptions
-  ResponseWriter_instance : ResponseWriter.TypeAssumptions
-  Flusher_instance : Flusher.TypeAssumptions
-  Hijacker_instance : Hijacker.TypeAssumptions
-  CloseNotifier_instance : CloseNotifier.TypeAssumptions
-  conn_instance : conn.TypeAssumptions
-  chunkWriter_instance : chunkWriter.TypeAssumptions
-  response_instance : response.TypeAssumptions
-  writerOnly_instance : writerOnly.TypeAssumptions
-  readResult_instance : readResult.TypeAssumptions
-  connReader_instance : connReader.TypeAssumptions
-  expectContinueReader_instance : expectContinueReader.TypeAssumptions
-  extraHeader_instance : extraHeader.TypeAssumptions
-  closeWriter_instance : closeWriter.TypeAssumptions
-  statusError_instance : statusError.TypeAssumptions
-  connectionStater_instance : connectionStater.TypeAssumptions
-  handshakeContexter_instance : handshakeContexter.TypeAssumptions
-  unencryptedHTTP2Request_instance : unencryptedHTTP2Request.TypeAssumptions
-  unencryptedNetConnInTLSConn_instance : unencryptedNetConnInTLSConn.TypeAssumptions
-  HandlerFunc_instance : HandlerFunc.TypeAssumptions
-  redirectHandler_instance : redirectHandler.TypeAssumptions
-  ServeMux_instance : ServeMux.TypeAssumptions
-  Server_instance : Server.TypeAssumptions
-  ConnState_instance : ConnState.TypeAssumptions
-  serverHandler_instance : serverHandler.TypeAssumptions
-  http3ServerHandler_instance : http3ServerHandler.TypeAssumptions
-  timeoutHandler_instance : timeoutHandler.TypeAssumptions
-  timeoutWriter_instance : timeoutWriter.TypeAssumptions
-  onceCloseListener_instance : onceCloseListener.TypeAssumptions
-  globalOptionsHandler_instance : globalOptionsHandler.TypeAssumptions
-  initALPNRequest_instance : initALPNRequest.TypeAssumptions
-  loggingConn_instance : loggingConn.TypeAssumptions
-  checkConnErrorWriter_instance : checkConnErrorWriter.TypeAssumptions
-  socksCommand_instance : socksCommand.TypeAssumptions
-  socksAuthMethod_instance : socksAuthMethod.TypeAssumptions
-  socksReply_instance : socksReply.TypeAssumptions
-  socksAddr_instance : socksAddr.TypeAssumptions
-  socksConn_instance : socksConn.TypeAssumptions
-  socksDialer_instance : socksDialer.TypeAssumptions
-  socksUsernamePassword_instance : socksUsernamePassword.TypeAssumptions
-  notModelled_instance : notModelled.TypeAssumptions
-  errorReader_instance : errorReader.TypeAssumptions
-  byteReader_instance : byteReader.TypeAssumptions
-  transferWriter_instance : transferWriter.TypeAssumptions
-  transferReader_instance : transferReader.TypeAssumptions
-  unsupportedTEError_instance : unsupportedTEError.TypeAssumptions
-  body_instance : body.TypeAssumptions
-  bodyLocked_instance : bodyLocked.TypeAssumptions
-  finishAsyncByteRead_instance : finishAsyncByteRead.TypeAssumptions
-  bufioFlushWriter_instance : bufioFlushWriter.TypeAssumptions
-  Transport_instance : Transport.TypeAssumptions
-  dialClientConner_instance : dialClientConner.TypeAssumptions
-  closeIdleConnectionser_instance : closeIdleConnectionser.TypeAssumptions
-  transportRequest_instance : transportRequest.TypeAssumptions
-  readTrackingBody_instance : readTrackingBody.TypeAssumptions
-  transportReadFromServerError_instance : transportReadFromServerError.TypeAssumptions
-  wantConn_instance : wantConn.TypeAssumptions
-  connOrError_instance : connOrError.TypeAssumptions
-  wantConnQueue_instance : wantConnQueue.TypeAssumptions
-  erringRoundTripper_instance : erringRoundTripper.TypeAssumptions
-  persistConnWriter_instance : persistConnWriter.TypeAssumptions
-  connectMethod_instance : connectMethod.TypeAssumptions
-  connectMethodKey_instance : connectMethodKey.TypeAssumptions
-  persistConn_instance : persistConn.TypeAssumptions
-  readWriteCloserBody_instance : readWriteCloserBody.TypeAssumptions
-  nothingWrittenError_instance : nothingWrittenError.TypeAssumptions
-  responseAndError_instance : responseAndError.TypeAssumptions
-  requestAndChan_instance : requestAndChan.TypeAssumptions
-  writeRequest_instance : writeRequest.TypeAssumptions
-  timeoutError_instance : timeoutError.TypeAssumptions
-  tLogKey_instance : tLogKey.TypeAssumptions
-  bodyEOFSignal_instance : bodyEOFSignal.TypeAssumptions
-  gzipReader_instance : gzipReader.TypeAssumptions
-  eofReader_instance : eofReader.TypeAssumptions
-  tlsHandshakeTimeoutError_instance : tlsHandshakeTimeoutError.TypeAssumptions
-  fakeLocker_instance : fakeLocker.TypeAssumptions
-  connLRU_instance : connLRU.TypeAssumptions
-  hasToken_unfold : FuncUnfold hasToken [] hasToken.impl
-  isToken_unfold : FuncUnfold isToken [] isToken.impl
-  badStringError_unfold : FuncUnfold badStringError [] badStringError.impl
-  ParseHTTPVersion_unfold : FuncUnfold ParseHTTPVersion [] ParseHTTPVersion.impl
-  validMethod_unfold : FuncUnfold validMethod [] validMethod.impl
-  parseRequestLine_unfold : FuncUnfold parseRequestLine [] parseRequestLine.impl
-  readRequest_unfold : FuncUnfold readRequest [] readRequest.impl
-  readRequestLimit_unfold : FuncUnfold readRequestLimit [] readRequestLimit.impl
-  ReadResponse_unfold : FuncUnfold ReadResponse [] ReadResponse.impl
-  fixPragmaCacheControl_unfold : FuncUnfold fixPragmaCacheControl [] fixPragmaCacheControl.impl
-  bufioWriterPool_unfold : FuncUnfold bufioWriterPool [] bufioWriterPool.impl
-  newBufioReader_unfold : FuncUnfold newBufioReader [] newBufioReader.impl
-  putBufioReader_unfold : FuncUnfold putBufioReader [] putBufioReader.impl
-  newBufioWriterSize_unfold : FuncUnfold newBufioWriterSize [] newBufioWriterSize.impl
-  putBufioWriter_unfold : FuncUnfold putBufioWriter [] putBufioWriter.impl
-  http1ServerSupportsRequest_unfold : FuncUnfold http1ServerSupportsRequest [] http1ServerSupportsRequest.impl
-  badRequestError_unfold : FuncUnfold badRequestError [] badRequestError.impl
-  isCommonNetReadError_unfold : FuncUnfold isCommonNetReadError [] isCommonNetReadError.impl
-  Handle_unfold : FuncUnfold Handle [] Handle.impl
-  Serve_unfold : FuncUnfold Serve [] Serve.impl
-  ListenAndServe_unfold : FuncUnfold ListenAndServe [] ListenAndServe.impl
-  modelReadLine_unfold : FuncUnfold modelReadLine [] modelReadLine.impl
-  trimLine_unfold : FuncUnfold trimLine [] trimLine.impl
-  modelReadMIMEHeader_unfold : FuncUnfold modelReadMIMEHeader [] modelReadMIMEHeader.impl
-  modelChunked_unfold : FuncUnfold modelChunked [] modelChunked.impl
-  modelParseRequestURI_unfold : FuncUnfold modelParseRequestURI [] modelParseRequestURI.impl
-  modelPathBytes_unfold : FuncUnfold modelPathBytes [] modelPathBytes.impl
-  modelPathByte_unfold : FuncUnfold modelPathByte [] modelPathByte.impl
-  modelHeaderValuesContainsToken_unfold : FuncUnfold modelHeaderValuesContainsToken [] modelHeaderValuesContainsToken.impl
-  modelHeaderValueContainsToken_unfold : FuncUnfold modelHeaderValueContainsToken [] modelHeaderValueContainsToken.impl
-  modelIndexByte_unfold : FuncUnfold modelIndexByte [] modelIndexByte.impl
-  modelTrimOWS_unfold : FuncUnfold modelTrimOWS [] modelTrimOWS.impl
-  modelLowerASCII_unfold : FuncUnfold modelLowerASCII [] modelLowerASCII.impl
-  modelTokenEqual_unfold : FuncUnfold modelTokenEqual [] modelTokenEqual.impl
-  noResponseBodyExpected_unfold : FuncUnfold noResponseBodyExpected [] noResponseBodyExpected.impl
-  bodyAllowedForStatus_unfold : FuncUnfold bodyAllowedForStatus [] bodyAllowedForStatus.impl
-  readTransfer_unfold : FuncUnfold readTransfer [] readTransfer.impl
-  isUnsupportedTEError_unfold : FuncUnfold isUnsupportedTEError [] isUnsupportedTEError.impl
-  fixLength_unfold : FuncUnfold fixLength [] fixLength.impl
-  shouldClose_unfold : FuncUnfold shouldClose [] shouldClose.impl
-  fixTrailer_unfold : FuncUnfold fixTrailer [] fixTrailer.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_tls_Assumption : _root_.Perennial.crypto.tls.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_log_Assumption : _root_.Perennial.log.Assumptions
-  import_ascii_Assumption : _root_.Perennial.net.http.internal.ascii.Assumptions
-  import_url_Assumption : _root_.Perennial.net.url.Assumptions
-  import_slices_Assumption : _root_.Perennial.slices.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_httpguts_Assumption : _root_.Perennial.vendor.golang_org.x.net.http.httpguts.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_multipart_Assumption : _root_.Perennial.mime.multipart.Assumptions
-  import_textproto_Assumption : _root_.Perennial.net.textproto.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_path_Assumption : _root_.Perennial.path.Assumptions
-  import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
-  import_runtime_Assumption : _root_.Perennial.runtime.Assumptions
+  instance'Client : Client.TypeAssumptions
+  instance'RoundTripper : RoundTripper.TypeAssumptions
+  instance'cancelTimerBody : cancelTimerBody.TypeAssumptions
+  instance'ClientConn : ClientConn.TypeAssumptions
+  instance'newClientConner : newClientConner.TypeAssumptions
+  instance'genericClientConn : genericClientConn.TypeAssumptions
+  instance'http1ClientConn : http1ClientConn.TypeAssumptions
+  instance'Cookie : Cookie.TypeAssumptions
+  instance'SameSite : SameSite.TypeAssumptions
+  instance'CrossOriginProtection : CrossOriginProtection.TypeAssumptions
+  instance'noopHandler : noopHandler.TypeAssumptions
+  instance'fileTransport : fileTransport.TypeAssumptions
+  instance'populateResponse : populateResponse.TypeAssumptions
+  instance'Dir : Dir.TypeAssumptions
+  instance'FileSystem : FileSystem.TypeAssumptions
+  instance'File : File.TypeAssumptions
+  instance'anyDirs : anyDirs.TypeAssumptions
+  instance'fileInfoDirs : fileInfoDirs.TypeAssumptions
+  instance'dirEntryDirs : dirEntryDirs.TypeAssumptions
+  instance'condResult : condResult.TypeAssumptions
+  instance'fileHandler : fileHandler.TypeAssumptions
+  instance'ioFS : ioFS.TypeAssumptions
+  instance'ioFile : ioFile.TypeAssumptions
+  instance'httpRange : httpRange.TypeAssumptions
+  instance'countingWriter : countingWriter.TypeAssumptions
+  instance'Header : Header.TypeAssumptions
+  instance'stringWriter : stringWriter.TypeAssumptions
+  instance'keyValues : keyValues.TypeAssumptions
+  instance'headerSorter : headerSorter.TypeAssumptions
+  instance'Protocols : Protocols.TypeAssumptions
+  instance'incomparable : incomparable.TypeAssumptions
+  instance'contextKey : contextKey.TypeAssumptions
+  instance'noBody : noBody.TypeAssumptions
+  instance'PushOptions : PushOptions.TypeAssumptions
+  instance'Pusher : Pusher.TypeAssumptions
+  instance'HTTP2Config : HTTP2Config.TypeAssumptions
+  instance'http2Handler : http2Handler.TypeAssumptions
+  instance'http2ResponseWriter : http2ResponseWriter.TypeAssumptions
+  instance'http2ServerConfig : http2ServerConfig.TypeAssumptions
+  instance'http2ExternalServerConfig : http2ExternalServerConfig.TypeAssumptions
+  instance'http2ExternalTransportConfig : http2ExternalTransportConfig.TypeAssumptions
+  instance'http2ErringRoundTripper : http2ErringRoundTripper.TypeAssumptions
+  instance'http2RoundTripper : http2RoundTripper.TypeAssumptions
+  instance'http2ClientConn : http2ClientConn.TypeAssumptions
+  instance'transportConfig : transportConfig.TypeAssumptions
+  instance'http2Configer : http2Configer.TypeAssumptions
+  instance'CookieJar : CookieJar.TypeAssumptions
+  instance'mapping : mapping.TypeAssumptions
+  instance'entry : entry.TypeAssumptions
+  instance'pattern : pattern.TypeAssumptions
+  instance'segment : segment.TypeAssumptions
+  instance'relationship : relationship.TypeAssumptions
+  instance'ProtocolError : ProtocolError.TypeAssumptions
+  instance'Request : Request.TypeAssumptions
+  instance'requestBodyReadError : requestBodyReadError.TypeAssumptions
+  instance'MaxBytesError : MaxBytesError.TypeAssumptions
+  instance'maxBytesReader : maxBytesReader.TypeAssumptions
+  instance'Response : Response.TypeAssumptions
+  instance'ResponseController : ResponseController.TypeAssumptions
+  instance'rwUnwrapper : rwUnwrapper.TypeAssumptions
+  instance'routingIndex : routingIndex.TypeAssumptions
+  instance'routingIndexKey : routingIndexKey.TypeAssumptions
+  instance'routingNode : routingNode.TypeAssumptions
+  instance'serveMux121 : serveMux121.TypeAssumptions
+  instance'muxEntry : muxEntry.TypeAssumptions
+  instance'Handler : Handler.TypeAssumptions
+  instance'ResponseWriter : ResponseWriter.TypeAssumptions
+  instance'Flusher : Flusher.TypeAssumptions
+  instance'Hijacker : Hijacker.TypeAssumptions
+  instance'CloseNotifier : CloseNotifier.TypeAssumptions
+  instance'conn : conn.TypeAssumptions
+  instance'chunkWriter : chunkWriter.TypeAssumptions
+  instance'response : response.TypeAssumptions
+  instance'writerOnly : writerOnly.TypeAssumptions
+  instance'readResult : readResult.TypeAssumptions
+  instance'connReader : connReader.TypeAssumptions
+  instance'expectContinueReader : expectContinueReader.TypeAssumptions
+  instance'extraHeader : extraHeader.TypeAssumptions
+  instance'closeWriter : closeWriter.TypeAssumptions
+  instance'statusError : statusError.TypeAssumptions
+  instance'connectionStater : connectionStater.TypeAssumptions
+  instance'handshakeContexter : handshakeContexter.TypeAssumptions
+  instance'unencryptedHTTP2Request : unencryptedHTTP2Request.TypeAssumptions
+  instance'unencryptedNetConnInTLSConn : unencryptedNetConnInTLSConn.TypeAssumptions
+  instance'HandlerFunc : HandlerFunc.TypeAssumptions
+  instance'redirectHandler : redirectHandler.TypeAssumptions
+  instance'ServeMux : ServeMux.TypeAssumptions
+  instance'Server : Server.TypeAssumptions
+  instance'ConnState : ConnState.TypeAssumptions
+  instance'serverHandler : serverHandler.TypeAssumptions
+  instance'http3ServerHandler : http3ServerHandler.TypeAssumptions
+  instance'timeoutHandler : timeoutHandler.TypeAssumptions
+  instance'timeoutWriter : timeoutWriter.TypeAssumptions
+  instance'onceCloseListener : onceCloseListener.TypeAssumptions
+  instance'globalOptionsHandler : globalOptionsHandler.TypeAssumptions
+  instance'initALPNRequest : initALPNRequest.TypeAssumptions
+  instance'loggingConn : loggingConn.TypeAssumptions
+  instance'checkConnErrorWriter : checkConnErrorWriter.TypeAssumptions
+  instance'socksCommand : socksCommand.TypeAssumptions
+  instance'socksAuthMethod : socksAuthMethod.TypeAssumptions
+  instance'socksReply : socksReply.TypeAssumptions
+  instance'socksAddr : socksAddr.TypeAssumptions
+  instance'socksConn : socksConn.TypeAssumptions
+  instance'socksDialer : socksDialer.TypeAssumptions
+  instance'socksUsernamePassword : socksUsernamePassword.TypeAssumptions
+  instance'notModelled : notModelled.TypeAssumptions
+  instance'errorReader : errorReader.TypeAssumptions
+  instance'byteReader : byteReader.TypeAssumptions
+  instance'transferWriter : transferWriter.TypeAssumptions
+  instance'transferReader : transferReader.TypeAssumptions
+  instance'unsupportedTEError : unsupportedTEError.TypeAssumptions
+  instance'body : body.TypeAssumptions
+  instance'bodyLocked : bodyLocked.TypeAssumptions
+  instance'finishAsyncByteRead : finishAsyncByteRead.TypeAssumptions
+  instance'bufioFlushWriter : bufioFlushWriter.TypeAssumptions
+  instance'Transport : Transport.TypeAssumptions
+  instance'dialClientConner : dialClientConner.TypeAssumptions
+  instance'closeIdleConnectionser : closeIdleConnectionser.TypeAssumptions
+  instance'transportRequest : transportRequest.TypeAssumptions
+  instance'readTrackingBody : readTrackingBody.TypeAssumptions
+  instance'transportReadFromServerError : transportReadFromServerError.TypeAssumptions
+  instance'wantConn : wantConn.TypeAssumptions
+  instance'connOrError : connOrError.TypeAssumptions
+  instance'wantConnQueue : wantConnQueue.TypeAssumptions
+  instance'erringRoundTripper : erringRoundTripper.TypeAssumptions
+  instance'persistConnWriter : persistConnWriter.TypeAssumptions
+  instance'connectMethod : connectMethod.TypeAssumptions
+  instance'connectMethodKey : connectMethodKey.TypeAssumptions
+  instance'persistConn : persistConn.TypeAssumptions
+  instance'readWriteCloserBody : readWriteCloserBody.TypeAssumptions
+  instance'nothingWrittenError : nothingWrittenError.TypeAssumptions
+  instance'responseAndError : responseAndError.TypeAssumptions
+  instance'requestAndChan : requestAndChan.TypeAssumptions
+  instance'writeRequest : writeRequest.TypeAssumptions
+  instance'timeoutError : timeoutError.TypeAssumptions
+  instance'tLogKey : tLogKey.TypeAssumptions
+  instance'bodyEOFSignal : bodyEOFSignal.TypeAssumptions
+  instance'gzipReader : gzipReader.TypeAssumptions
+  instance'eofReader : eofReader.TypeAssumptions
+  instance'tlsHandshakeTimeoutError : tlsHandshakeTimeoutError.TypeAssumptions
+  instance'fakeLocker : fakeLocker.TypeAssumptions
+  instance'connLRU : connLRU.TypeAssumptions
+  unfold'hasToken : FuncUnfold hasToken [] hasToken.impl
+  unfold'isToken : FuncUnfold isToken [] isToken.impl
+  unfold'badStringError : FuncUnfold badStringError [] badStringError.impl
+  unfold'ParseHTTPVersion : FuncUnfold ParseHTTPVersion [] ParseHTTPVersion.impl
+  unfold'validMethod : FuncUnfold validMethod [] validMethod.impl
+  unfold'parseRequestLine : FuncUnfold parseRequestLine [] parseRequestLine.impl
+  unfold'readRequest : FuncUnfold readRequest [] readRequest.impl
+  unfold'readRequestLimit : FuncUnfold readRequestLimit [] readRequestLimit.impl
+  unfold'ReadResponse : FuncUnfold ReadResponse [] ReadResponse.impl
+  unfold'fixPragmaCacheControl : FuncUnfold fixPragmaCacheControl [] fixPragmaCacheControl.impl
+  unfold'bufioWriterPool : FuncUnfold bufioWriterPool [] bufioWriterPool.impl
+  unfold'newBufioReader : FuncUnfold newBufioReader [] newBufioReader.impl
+  unfold'putBufioReader : FuncUnfold putBufioReader [] putBufioReader.impl
+  unfold'newBufioWriterSize : FuncUnfold newBufioWriterSize [] newBufioWriterSize.impl
+  unfold'putBufioWriter : FuncUnfold putBufioWriter [] putBufioWriter.impl
+  unfold'http1ServerSupportsRequest : FuncUnfold http1ServerSupportsRequest [] http1ServerSupportsRequest.impl
+  unfold'badRequestError : FuncUnfold badRequestError [] badRequestError.impl
+  unfold'isCommonNetReadError : FuncUnfold isCommonNetReadError [] isCommonNetReadError.impl
+  unfold'Handle : FuncUnfold Handle [] Handle.impl
+  unfold'Serve : FuncUnfold Serve [] Serve.impl
+  unfold'ListenAndServe : FuncUnfold ListenAndServe [] ListenAndServe.impl
+  unfold'modelReadLine : FuncUnfold modelReadLine [] modelReadLine.impl
+  unfold'trimLine : FuncUnfold trimLine [] trimLine.impl
+  unfold'modelReadMIMEHeader : FuncUnfold modelReadMIMEHeader [] modelReadMIMEHeader.impl
+  unfold'modelChunked : FuncUnfold modelChunked [] modelChunked.impl
+  unfold'modelParseRequestURI : FuncUnfold modelParseRequestURI [] modelParseRequestURI.impl
+  unfold'modelPathBytes : FuncUnfold modelPathBytes [] modelPathBytes.impl
+  unfold'modelPathByte : FuncUnfold modelPathByte [] modelPathByte.impl
+  unfold'modelHeaderValuesContainsToken : FuncUnfold modelHeaderValuesContainsToken [] modelHeaderValuesContainsToken.impl
+  unfold'modelHeaderValueContainsToken : FuncUnfold modelHeaderValueContainsToken [] modelHeaderValueContainsToken.impl
+  unfold'modelIndexByte : FuncUnfold modelIndexByte [] modelIndexByte.impl
+  unfold'modelTrimOWS : FuncUnfold modelTrimOWS [] modelTrimOWS.impl
+  unfold'modelLowerASCII : FuncUnfold modelLowerASCII [] modelLowerASCII.impl
+  unfold'modelTokenEqual : FuncUnfold modelTokenEqual [] modelTokenEqual.impl
+  unfold'noResponseBodyExpected : FuncUnfold noResponseBodyExpected [] noResponseBodyExpected.impl
+  unfold'bodyAllowedForStatus : FuncUnfold bodyAllowedForStatus [] bodyAllowedForStatus.impl
+  unfold'readTransfer : FuncUnfold readTransfer [] readTransfer.impl
+  unfold'isUnsupportedTEError : FuncUnfold isUnsupportedTEError [] isUnsupportedTEError.impl
+  unfold'fixLength : FuncUnfold fixLength [] fixLength.impl
+  unfold'shouldClose : FuncUnfold shouldClose [] shouldClose.impl
+  unfold'fixTrailer : FuncUnfold fixTrailer [] fixTrailer.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'tls : _root_.Perennial.crypto.tls.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'io : _root_.Perennial.io.Assumptions
+  import'log : _root_.Perennial.log.Assumptions
+  import'ascii : _root_.Perennial.net.http.internal.ascii.Assumptions
+  import'url : _root_.Perennial.net.url.Assumptions
+  import'slices : _root_.Perennial.slices.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'atomic : _root_.Perennial.sync.atomic.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'httpguts : _root_.Perennial.vendor.golang_org.x.net.http.httpguts.Assumptions
+  import'net : _root_.Perennial.net.Assumptions
+  import'multipart : _root_.Perennial.mime.multipart.Assumptions
+  import'textproto : _root_.Perennial.net.textproto.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'path : _root_.Perennial.path.Assumptions
+  import'bufio : _root_.Perennial.bufio.Assumptions
+  import'runtime : _root_.Perennial.runtime.Assumptions
 
-attribute [instance] Assumptions.Client_instance
-  Assumptions.RoundTripper_instance
-  Assumptions.cancelTimerBody_instance
-  Assumptions.ClientConn_instance
-  Assumptions.newClientConner_instance
-  Assumptions.genericClientConn_instance
-  Assumptions.http1ClientConn_instance
-  Assumptions.Cookie_instance
-  Assumptions.SameSite_instance
-  Assumptions.CrossOriginProtection_instance
-  Assumptions.noopHandler_instance
-  Assumptions.fileTransport_instance
-  Assumptions.populateResponse_instance
-  Assumptions.Dir_instance
-  Assumptions.FileSystem_instance
-  Assumptions.File_instance
-  Assumptions.anyDirs_instance
-  Assumptions.fileInfoDirs_instance
-  Assumptions.dirEntryDirs_instance
-  Assumptions.condResult_instance
-  Assumptions.fileHandler_instance
-  Assumptions.ioFS_instance
-  Assumptions.ioFile_instance
-  Assumptions.httpRange_instance
-  Assumptions.countingWriter_instance
-  Assumptions.Header_instance
-  Assumptions.stringWriter_instance
-  Assumptions.keyValues_instance
-  Assumptions.headerSorter_instance
-  Assumptions.Protocols_instance
-  Assumptions.incomparable_instance
-  Assumptions.contextKey_instance
-  Assumptions.noBody_instance
-  Assumptions.PushOptions_instance
-  Assumptions.Pusher_instance
-  Assumptions.HTTP2Config_instance
-  Assumptions.http2Handler_instance
-  Assumptions.http2ResponseWriter_instance
-  Assumptions.http2ServerConfig_instance
-  Assumptions.http2ExternalServerConfig_instance
-  Assumptions.http2ExternalTransportConfig_instance
-  Assumptions.http2ErringRoundTripper_instance
-  Assumptions.http2RoundTripper_instance
-  Assumptions.http2ClientConn_instance
-  Assumptions.transportConfig_instance
-  Assumptions.http2Configer_instance
-  Assumptions.CookieJar_instance
-  Assumptions.mapping_instance
-  Assumptions.entry_instance
-  Assumptions.pattern_instance
-  Assumptions.segment_instance
-  Assumptions.relationship_instance
-  Assumptions.ProtocolError_instance
-  Assumptions.Request_instance
-  Assumptions.requestBodyReadError_instance
-  Assumptions.MaxBytesError_instance
-  Assumptions.maxBytesReader_instance
-  Assumptions.Response_instance
-  Assumptions.ResponseController_instance
-  Assumptions.rwUnwrapper_instance
-  Assumptions.routingIndex_instance
-  Assumptions.routingIndexKey_instance
-  Assumptions.routingNode_instance
-  Assumptions.serveMux121_instance
-  Assumptions.muxEntry_instance
-  Assumptions.Handler_instance
-  Assumptions.ResponseWriter_instance
-  Assumptions.Flusher_instance
-  Assumptions.Hijacker_instance
-  Assumptions.CloseNotifier_instance
-  Assumptions.conn_instance
-  Assumptions.chunkWriter_instance
-  Assumptions.response_instance
-  Assumptions.writerOnly_instance
-  Assumptions.readResult_instance
-  Assumptions.connReader_instance
-  Assumptions.expectContinueReader_instance
-  Assumptions.extraHeader_instance
-  Assumptions.closeWriter_instance
-  Assumptions.statusError_instance
-  Assumptions.connectionStater_instance
-  Assumptions.handshakeContexter_instance
-  Assumptions.unencryptedHTTP2Request_instance
-  Assumptions.unencryptedNetConnInTLSConn_instance
-  Assumptions.HandlerFunc_instance
-  Assumptions.redirectHandler_instance
-  Assumptions.ServeMux_instance
-  Assumptions.Server_instance
-  Assumptions.ConnState_instance
-  Assumptions.serverHandler_instance
-  Assumptions.http3ServerHandler_instance
-  Assumptions.timeoutHandler_instance
-  Assumptions.timeoutWriter_instance
-  Assumptions.onceCloseListener_instance
-  Assumptions.globalOptionsHandler_instance
-  Assumptions.initALPNRequest_instance
-  Assumptions.loggingConn_instance
-  Assumptions.checkConnErrorWriter_instance
-  Assumptions.socksCommand_instance
-  Assumptions.socksAuthMethod_instance
-  Assumptions.socksReply_instance
-  Assumptions.socksAddr_instance
-  Assumptions.socksConn_instance
-  Assumptions.socksDialer_instance
-  Assumptions.socksUsernamePassword_instance
-  Assumptions.notModelled_instance
-  Assumptions.errorReader_instance
-  Assumptions.byteReader_instance
-  Assumptions.transferWriter_instance
-  Assumptions.transferReader_instance
-  Assumptions.unsupportedTEError_instance
-  Assumptions.body_instance
-  Assumptions.bodyLocked_instance
-  Assumptions.finishAsyncByteRead_instance
-  Assumptions.bufioFlushWriter_instance
-  Assumptions.Transport_instance
-  Assumptions.dialClientConner_instance
-  Assumptions.closeIdleConnectionser_instance
-  Assumptions.transportRequest_instance
-  Assumptions.readTrackingBody_instance
-  Assumptions.transportReadFromServerError_instance
-  Assumptions.wantConn_instance
-  Assumptions.connOrError_instance
-  Assumptions.wantConnQueue_instance
-  Assumptions.erringRoundTripper_instance
-  Assumptions.persistConnWriter_instance
-  Assumptions.connectMethod_instance
-  Assumptions.connectMethodKey_instance
-  Assumptions.persistConn_instance
-  Assumptions.readWriteCloserBody_instance
-  Assumptions.nothingWrittenError_instance
-  Assumptions.responseAndError_instance
-  Assumptions.requestAndChan_instance
-  Assumptions.writeRequest_instance
-  Assumptions.timeoutError_instance
-  Assumptions.tLogKey_instance
-  Assumptions.bodyEOFSignal_instance
-  Assumptions.gzipReader_instance
-  Assumptions.eofReader_instance
-  Assumptions.tlsHandshakeTimeoutError_instance
-  Assumptions.fakeLocker_instance
-  Assumptions.connLRU_instance
-  Assumptions.hasToken_unfold
-  Assumptions.isToken_unfold
-  Assumptions.badStringError_unfold
-  Assumptions.ParseHTTPVersion_unfold
-  Assumptions.validMethod_unfold
-  Assumptions.parseRequestLine_unfold
-  Assumptions.readRequest_unfold
-  Assumptions.readRequestLimit_unfold
-  Assumptions.ReadResponse_unfold
-  Assumptions.fixPragmaCacheControl_unfold
-  Assumptions.bufioWriterPool_unfold
-  Assumptions.newBufioReader_unfold
-  Assumptions.putBufioReader_unfold
-  Assumptions.newBufioWriterSize_unfold
-  Assumptions.putBufioWriter_unfold
-  Assumptions.http1ServerSupportsRequest_unfold
-  Assumptions.badRequestError_unfold
-  Assumptions.isCommonNetReadError_unfold
-  Assumptions.Handle_unfold
-  Assumptions.Serve_unfold
-  Assumptions.ListenAndServe_unfold
-  Assumptions.modelReadLine_unfold
-  Assumptions.trimLine_unfold
-  Assumptions.modelReadMIMEHeader_unfold
-  Assumptions.modelChunked_unfold
-  Assumptions.modelParseRequestURI_unfold
-  Assumptions.modelPathBytes_unfold
-  Assumptions.modelPathByte_unfold
-  Assumptions.modelHeaderValuesContainsToken_unfold
-  Assumptions.modelHeaderValueContainsToken_unfold
-  Assumptions.modelIndexByte_unfold
-  Assumptions.modelTrimOWS_unfold
-  Assumptions.modelLowerASCII_unfold
-  Assumptions.modelTokenEqual_unfold
-  Assumptions.noResponseBodyExpected_unfold
-  Assumptions.bodyAllowedForStatus_unfold
-  Assumptions.readTransfer_unfold
-  Assumptions.isUnsupportedTEError_unfold
-  Assumptions.fixLength_unfold
-  Assumptions.shouldClose_unfold
-  Assumptions.fixTrailer_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_tls_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_io_Assumption
-  Assumptions.import_log_Assumption
-  Assumptions.import_ascii_Assumption
-  Assumptions.import_url_Assumption
-  Assumptions.import_slices_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_atomic_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_httpguts_Assumption
-  Assumptions.import_net_Assumption
-  Assumptions.import_multipart_Assumption
-  Assumptions.import_textproto_Assumption
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_path_Assumption
-  Assumptions.import_bufio_Assumption
-  Assumptions.import_runtime_Assumption
+attribute [instance] Assumptions.instance'Client
+  Assumptions.instance'RoundTripper
+  Assumptions.instance'cancelTimerBody
+  Assumptions.instance'ClientConn
+  Assumptions.instance'newClientConner
+  Assumptions.instance'genericClientConn
+  Assumptions.instance'http1ClientConn
+  Assumptions.instance'Cookie
+  Assumptions.instance'SameSite
+  Assumptions.instance'CrossOriginProtection
+  Assumptions.instance'noopHandler
+  Assumptions.instance'fileTransport
+  Assumptions.instance'populateResponse
+  Assumptions.instance'Dir
+  Assumptions.instance'FileSystem
+  Assumptions.instance'File
+  Assumptions.instance'anyDirs
+  Assumptions.instance'fileInfoDirs
+  Assumptions.instance'dirEntryDirs
+  Assumptions.instance'condResult
+  Assumptions.instance'fileHandler
+  Assumptions.instance'ioFS
+  Assumptions.instance'ioFile
+  Assumptions.instance'httpRange
+  Assumptions.instance'countingWriter
+  Assumptions.instance'Header
+  Assumptions.instance'stringWriter
+  Assumptions.instance'keyValues
+  Assumptions.instance'headerSorter
+  Assumptions.instance'Protocols
+  Assumptions.instance'incomparable
+  Assumptions.instance'contextKey
+  Assumptions.instance'noBody
+  Assumptions.instance'PushOptions
+  Assumptions.instance'Pusher
+  Assumptions.instance'HTTP2Config
+  Assumptions.instance'http2Handler
+  Assumptions.instance'http2ResponseWriter
+  Assumptions.instance'http2ServerConfig
+  Assumptions.instance'http2ExternalServerConfig
+  Assumptions.instance'http2ExternalTransportConfig
+  Assumptions.instance'http2ErringRoundTripper
+  Assumptions.instance'http2RoundTripper
+  Assumptions.instance'http2ClientConn
+  Assumptions.instance'transportConfig
+  Assumptions.instance'http2Configer
+  Assumptions.instance'CookieJar
+  Assumptions.instance'mapping
+  Assumptions.instance'entry
+  Assumptions.instance'pattern
+  Assumptions.instance'segment
+  Assumptions.instance'relationship
+  Assumptions.instance'ProtocolError
+  Assumptions.instance'Request
+  Assumptions.instance'requestBodyReadError
+  Assumptions.instance'MaxBytesError
+  Assumptions.instance'maxBytesReader
+  Assumptions.instance'Response
+  Assumptions.instance'ResponseController
+  Assumptions.instance'rwUnwrapper
+  Assumptions.instance'routingIndex
+  Assumptions.instance'routingIndexKey
+  Assumptions.instance'routingNode
+  Assumptions.instance'serveMux121
+  Assumptions.instance'muxEntry
+  Assumptions.instance'Handler
+  Assumptions.instance'ResponseWriter
+  Assumptions.instance'Flusher
+  Assumptions.instance'Hijacker
+  Assumptions.instance'CloseNotifier
+  Assumptions.instance'conn
+  Assumptions.instance'chunkWriter
+  Assumptions.instance'response
+  Assumptions.instance'writerOnly
+  Assumptions.instance'readResult
+  Assumptions.instance'connReader
+  Assumptions.instance'expectContinueReader
+  Assumptions.instance'extraHeader
+  Assumptions.instance'closeWriter
+  Assumptions.instance'statusError
+  Assumptions.instance'connectionStater
+  Assumptions.instance'handshakeContexter
+  Assumptions.instance'unencryptedHTTP2Request
+  Assumptions.instance'unencryptedNetConnInTLSConn
+  Assumptions.instance'HandlerFunc
+  Assumptions.instance'redirectHandler
+  Assumptions.instance'ServeMux
+  Assumptions.instance'Server
+  Assumptions.instance'ConnState
+  Assumptions.instance'serverHandler
+  Assumptions.instance'http3ServerHandler
+  Assumptions.instance'timeoutHandler
+  Assumptions.instance'timeoutWriter
+  Assumptions.instance'onceCloseListener
+  Assumptions.instance'globalOptionsHandler
+  Assumptions.instance'initALPNRequest
+  Assumptions.instance'loggingConn
+  Assumptions.instance'checkConnErrorWriter
+  Assumptions.instance'socksCommand
+  Assumptions.instance'socksAuthMethod
+  Assumptions.instance'socksReply
+  Assumptions.instance'socksAddr
+  Assumptions.instance'socksConn
+  Assumptions.instance'socksDialer
+  Assumptions.instance'socksUsernamePassword
+  Assumptions.instance'notModelled
+  Assumptions.instance'errorReader
+  Assumptions.instance'byteReader
+  Assumptions.instance'transferWriter
+  Assumptions.instance'transferReader
+  Assumptions.instance'unsupportedTEError
+  Assumptions.instance'body
+  Assumptions.instance'bodyLocked
+  Assumptions.instance'finishAsyncByteRead
+  Assumptions.instance'bufioFlushWriter
+  Assumptions.instance'Transport
+  Assumptions.instance'dialClientConner
+  Assumptions.instance'closeIdleConnectionser
+  Assumptions.instance'transportRequest
+  Assumptions.instance'readTrackingBody
+  Assumptions.instance'transportReadFromServerError
+  Assumptions.instance'wantConn
+  Assumptions.instance'connOrError
+  Assumptions.instance'wantConnQueue
+  Assumptions.instance'erringRoundTripper
+  Assumptions.instance'persistConnWriter
+  Assumptions.instance'connectMethod
+  Assumptions.instance'connectMethodKey
+  Assumptions.instance'persistConn
+  Assumptions.instance'readWriteCloserBody
+  Assumptions.instance'nothingWrittenError
+  Assumptions.instance'responseAndError
+  Assumptions.instance'requestAndChan
+  Assumptions.instance'writeRequest
+  Assumptions.instance'timeoutError
+  Assumptions.instance'tLogKey
+  Assumptions.instance'bodyEOFSignal
+  Assumptions.instance'gzipReader
+  Assumptions.instance'eofReader
+  Assumptions.instance'tlsHandshakeTimeoutError
+  Assumptions.instance'fakeLocker
+  Assumptions.instance'connLRU
+  Assumptions.unfold'hasToken
+  Assumptions.unfold'isToken
+  Assumptions.unfold'badStringError
+  Assumptions.unfold'ParseHTTPVersion
+  Assumptions.unfold'validMethod
+  Assumptions.unfold'parseRequestLine
+  Assumptions.unfold'readRequest
+  Assumptions.unfold'readRequestLimit
+  Assumptions.unfold'ReadResponse
+  Assumptions.unfold'fixPragmaCacheControl
+  Assumptions.unfold'bufioWriterPool
+  Assumptions.unfold'newBufioReader
+  Assumptions.unfold'putBufioReader
+  Assumptions.unfold'newBufioWriterSize
+  Assumptions.unfold'putBufioWriter
+  Assumptions.unfold'http1ServerSupportsRequest
+  Assumptions.unfold'badRequestError
+  Assumptions.unfold'isCommonNetReadError
+  Assumptions.unfold'Handle
+  Assumptions.unfold'Serve
+  Assumptions.unfold'ListenAndServe
+  Assumptions.unfold'modelReadLine
+  Assumptions.unfold'trimLine
+  Assumptions.unfold'modelReadMIMEHeader
+  Assumptions.unfold'modelChunked
+  Assumptions.unfold'modelParseRequestURI
+  Assumptions.unfold'modelPathBytes
+  Assumptions.unfold'modelPathByte
+  Assumptions.unfold'modelHeaderValuesContainsToken
+  Assumptions.unfold'modelHeaderValueContainsToken
+  Assumptions.unfold'modelIndexByte
+  Assumptions.unfold'modelTrimOWS
+  Assumptions.unfold'modelLowerASCII
+  Assumptions.unfold'modelTokenEqual
+  Assumptions.unfold'noResponseBodyExpected
+  Assumptions.unfold'bodyAllowedForStatus
+  Assumptions.unfold'readTransfer
+  Assumptions.unfold'isUnsupportedTEError
+  Assumptions.unfold'fixLength
+  Assumptions.unfold'shouldClose
+  Assumptions.unfold'fixTrailer
+  Assumptions.import'context
+  Assumptions.import'tls
+  Assumptions.import'errors
+  Assumptions.import'fmt
+  Assumptions.import'io
+  Assumptions.import'log
+  Assumptions.import'ascii
+  Assumptions.import'url
+  Assumptions.import'slices
+  Assumptions.import'strings
+  Assumptions.import'sync
+  Assumptions.import'atomic
+  Assumptions.import'time
+  Assumptions.import'httpguts
+  Assumptions.import'net
+  Assumptions.import'multipart
+  Assumptions.import'textproto
+  Assumptions.import'strconv
+  Assumptions.import'path
+  Assumptions.import'bufio
+  Assumptions.import'runtime
 
 end net.http
 

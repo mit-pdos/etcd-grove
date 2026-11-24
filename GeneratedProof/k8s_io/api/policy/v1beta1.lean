@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.policy.v1beta1.Assumptions]
 
-noncomputable instance PodDisruptionBudgetSpec_typed_pointsto :
+noncomputable instance typed_pointsto'PodDisruptionBudgetSpec :
     TypedPointsto (GF := GF) k8s_io.api.policy.v1beta1.PodDisruptionBudgetSpec :=
   sorry -- axiomatized type
 
-noncomputable instance PodDisruptionBudgetSpec_into_val_typed :
+noncomputable instance into_val_typed'PodDisruptionBudgetSpec :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.policy.v1beta1.PodDisruptionBudgetSpec k8s_io.api.policy.v1beta1.PodDisruptionBudgetSpec.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.policy.v1beta1.Assumptions]
 
-noncomputable instance UnhealthyPodEvictionPolicyType_typed_pointsto :
+noncomputable instance typed_pointsto'UnhealthyPodEvictionPolicyType :
     TypedPointsto (GF := GF) k8s_io.api.policy.v1beta1.UnhealthyPodEvictionPolicyType :=
   sorry -- axiomatized type
 
-noncomputable instance UnhealthyPodEvictionPolicyType_into_val_typed :
+noncomputable instance into_val_typed'UnhealthyPodEvictionPolicyType :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.policy.v1beta1.UnhealthyPodEvictionPolicyType k8s_io.api.policy.v1beta1.UnhealthyPodEvictionPolicyType.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.policy.v1beta1.Assumptions]
 
-noncomputable instance PodDisruptionBudgetStatus_typed_pointsto :
+noncomputable instance typed_pointsto'PodDisruptionBudgetStatus :
     TypedPointsto (GF := GF) k8s_io.api.policy.v1beta1.PodDisruptionBudgetStatus :=
   sorry -- axiomatized type
 
-noncomputable instance PodDisruptionBudgetStatus_into_val_typed :
+noncomputable instance into_val_typed'PodDisruptionBudgetStatus :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.policy.v1beta1.PodDisruptionBudgetStatus k8s_io.api.policy.v1beta1.PodDisruptionBudgetStatus.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.policy.v1beta1.Assumptions]
 
-noncomputable instance PodDisruptionBudget_typed_pointsto :
+noncomputable instance typed_pointsto'PodDisruptionBudget :
     TypedPointsto (GF := GF) k8s_io.api.policy.v1beta1.PodDisruptionBudget :=
   sorry -- axiomatized type
 
-noncomputable instance PodDisruptionBudget_into_val_typed :
+noncomputable instance into_val_typed'PodDisruptionBudget :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.policy.v1beta1.PodDisruptionBudget k8s_io.api.policy.v1beta1.PodDisruptionBudget.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.policy.v1beta1.Assumptions]
 
-noncomputable instance PodDisruptionBudgetList_typed_pointsto :
+noncomputable instance typed_pointsto'PodDisruptionBudgetList :
     TypedPointsto (GF := GF) k8s_io.api.policy.v1beta1.PodDisruptionBudgetList :=
   sorry -- axiomatized type
 
-noncomputable instance PodDisruptionBudgetList_into_val_typed :
+noncomputable instance into_val_typed'PodDisruptionBudgetList :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.policy.v1beta1.PodDisruptionBudgetList k8s_io.api.policy.v1beta1.PodDisruptionBudgetList.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.api.policy.v1beta1.Assumptions]
 
-noncomputable instance Eviction_typed_pointsto :
+noncomputable instance typed_pointsto'Eviction :
     TypedPointsto (GF := GF) k8s_io.api.policy.v1beta1.Eviction :=
   sorry -- axiomatized type
 
-noncomputable instance Eviction_into_val_typed :
+noncomputable instance into_val_typed'Eviction :
     IntoValTypedUnderlying (GF := GF) k8s_io.api.policy.v1beta1.Eviction k8s_io.api.policy.v1beta1.Eviction.underlying :=
   sorry -- axiomatized type
 

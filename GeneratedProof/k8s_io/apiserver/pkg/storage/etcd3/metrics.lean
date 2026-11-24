@@ -27,11 +27,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.etcd3.metrics.Assumptions]
 
-noncomputable instance Monitor_typed_pointsto :
+noncomputable instance typed_pointsto'Monitor :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.Monitor :=
   sorry -- axiomatized type
 
-noncomputable instance Monitor_into_val_typed :
+noncomputable instance into_val_typed'Monitor :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.Monitor k8s_io.apiserver.pkg.storage.etcd3.metrics.Monitor.underlying :=
   sorry -- axiomatized type
 
@@ -46,7 +46,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.etcd3.metrics.Assumptions]
 
-noncomputable instance StorageMetrics_typed_pointsto :
+noncomputable instance typed_pointsto'StorageMetrics :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics where
   typedPointstoDef l v dq := iprop(
     "Size" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics go!"Size" l) v.Size' dq ∗
@@ -55,11 +55,11 @@ noncomputable instance StorageMetrics_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance StorageMetrics_into_val_typed :
+noncomputable instance into_val_typed'StorageMetrics :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance StorageMetrics_access_load_Size (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics) (dq : DFrac) :
+noncomputable instance access_load'StorageMetrics'Size (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics go!"Size" l) v.Size' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics go!"Size" l) v.Size' dq)
@@ -67,7 +67,7 @@ noncomputable instance StorageMetrics_access_load_Size (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance StorageMetrics_access_store_Size (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics) (y : w64) :
+noncomputable instance access_store'StorageMetrics'Size (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics go!"Size" l) v.Size' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics go!"Size" l) y (DFrac.own 1))
@@ -86,11 +86,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.etcd3.metrics.Assumptions]
 
-noncomputable instance monitorCollector_typed_pointsto :
+noncomputable instance typed_pointsto'monitorCollector :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.monitorCollector :=
   sorry -- axiomatized type
 
-noncomputable instance monitorCollector_into_val_typed :
+noncomputable instance into_val_typed'monitorCollector :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.monitorCollector k8s_io.apiserver.pkg.storage.etcd3.metrics.monitorCollector.underlying :=
   sorry -- axiomatized type
 
@@ -105,7 +105,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.etcd3.metrics.Assumptions]
 
-noncomputable instance OperationLatencyTracker_typed_pointsto :
+noncomputable instance typed_pointsto'OperationLatencyTracker :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker where
   typedPointstoDef l v dq := iprop(
     "verb" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"verb" l) v.verb' dq ∗
@@ -117,11 +117,11 @@ noncomputable instance OperationLatencyTracker_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance OperationLatencyTracker_into_val_typed :
+noncomputable instance into_val_typed'OperationLatencyTracker :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance OperationLatencyTracker_access_load_verb (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (dq : DFrac) :
+noncomputable instance access_load'OperationLatencyTracker'verb (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"verb" l) v.verb' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"verb" l) v.verb' dq)
@@ -129,7 +129,7 @@ noncomputable instance OperationLatencyTracker_access_load_verb (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance OperationLatencyTracker_access_store_verb (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (y : GoString) :
+noncomputable instance access_store'OperationLatencyTracker'verb (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"verb" l) v.verb' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"verb" l) y (DFrac.own 1))
@@ -137,7 +137,7 @@ noncomputable instance OperationLatencyTracker_access_store_verb (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance OperationLatencyTracker_access_load_groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (dq : DFrac) :
+noncomputable instance access_load'OperationLatencyTracker'groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"groupResource" l) v.groupResource' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"groupResource" l) v.groupResource' dq)
@@ -145,7 +145,7 @@ noncomputable instance OperationLatencyTracker_access_load_groupResource (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance OperationLatencyTracker_access_store_groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
+noncomputable instance access_store'OperationLatencyTracker'groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"groupResource" l) v.groupResource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"groupResource" l) y (DFrac.own 1))
@@ -153,7 +153,7 @@ noncomputable instance OperationLatencyTracker_access_store_groupResource (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance OperationLatencyTracker_access_load_latency (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (dq : DFrac) :
+noncomputable instance access_load'OperationLatencyTracker'latency (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"latency" l) v.latency' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"latency" l) v.latency' dq)
@@ -161,7 +161,7 @@ noncomputable instance OperationLatencyTracker_access_load_latency (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance OperationLatencyTracker_access_store_latency (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (y : _root_.Perennial.k8s_io.component_base.metrics.ObserverMetric) :
+noncomputable instance access_store'OperationLatencyTracker'latency (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (y : _root_.Perennial.k8s_io.component_base.metrics.ObserverMetric) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"latency" l) v.latency' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"latency" l) y (DFrac.own 1))
@@ -169,7 +169,7 @@ noncomputable instance OperationLatencyTracker_access_store_latency (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance OperationLatencyTracker_access_load_requests (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (dq : DFrac) :
+noncomputable instance access_load'OperationLatencyTracker'requests (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"requests" l) v.requests' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"requests" l) v.requests' dq)
@@ -177,7 +177,7 @@ noncomputable instance OperationLatencyTracker_access_load_requests (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance OperationLatencyTracker_access_store_requests (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (y : _root_.Perennial.k8s_io.component_base.metrics.CounterMetric) :
+noncomputable instance access_store'OperationLatencyTracker'requests (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (y : _root_.Perennial.k8s_io.component_base.metrics.CounterMetric) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"requests" l) v.requests' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"requests" l) y (DFrac.own 1))
@@ -196,7 +196,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.etcd3.metrics.Assumptions]
 
-noncomputable instance EtcdMetricsTracker_typed_pointsto :
+noncomputable instance typed_pointsto'EtcdMetricsTracker :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker where
   typedPointstoDef l v dq := iprop(
     "Get" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker go!"Get" l) v.Get' dq ∗
@@ -205,11 +205,11 @@ noncomputable instance EtcdMetricsTracker_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance EtcdMetricsTracker_into_val_typed :
+noncomputable instance into_val_typed'EtcdMetricsTracker :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance EtcdMetricsTracker_access_load_Get (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker) (dq : DFrac) :
+noncomputable instance access_load'EtcdMetricsTracker'Get (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker go!"Get" l) v.Get' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker go!"Get" l) v.Get' dq)
@@ -217,7 +217,7 @@ noncomputable instance EtcdMetricsTracker_access_load_Get (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance EtcdMetricsTracker_access_store_Get (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker) (y : Loc) :
+noncomputable instance access_store'EtcdMetricsTracker'Get (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker go!"Get" l) v.Get' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker go!"Get" l) y (DFrac.own 1))
@@ -236,11 +236,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.etcd3.metrics.Assumptions]
 
-noncomputable instance timestampedResourceGaugeCollector_typed_pointsto :
+noncomputable instance typed_pointsto'timestampedResourceGaugeCollector :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.timestampedResourceGaugeCollector :=
   sorry -- axiomatized type
 
-noncomputable instance timestampedResourceGaugeCollector_into_val_typed :
+noncomputable instance into_val_typed'timestampedResourceGaugeCollector :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.timestampedResourceGaugeCollector k8s_io.apiserver.pkg.storage.etcd3.metrics.timestampedResourceGaugeCollector.underlying :=
   sorry -- axiomatized type
 
@@ -255,11 +255,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.etcd3.metrics.Assumptions]
 
-noncomputable instance timestampedSample_typed_pointsto :
+noncomputable instance typed_pointsto'timestampedSample :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.timestampedSample :=
   sorry -- axiomatized type
 
-noncomputable instance timestampedSample_into_val_typed :
+noncomputable instance into_val_typed'timestampedSample :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.timestampedSample k8s_io.apiserver.pkg.storage.etcd3.metrics.timestampedSample.underlying :=
   sorry -- axiomatized type
 

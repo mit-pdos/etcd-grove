@@ -339,7 +339,7 @@ noncomputable instance Position.zero_val [GooseExts] : ZeroVal Position :=
 @[irreducible] noncomputable def Position.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Position.fieldsUnsealed
 
-noncomputable instance equals_unfold_Position [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Position [GooseExts] [GoGlobalContext] :
     EqualsUnfold Position.fields Position.fieldsUnsealed :=
   ⟨by unfold Position.fields; rfl⟩
 
@@ -349,27 +349,27 @@ noncomputable instance equals_unfold_Position [GooseExts] [GoGlobalContext] :
 class Position.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Position.underlying Position
   underlying : go.UnderlyingDirectedEq Position.ty Position.underlying
-  get_Filename : ∀ (x : Position), go.IsGoStepPureDetTagged under (StructFieldGet Position.underlying go!"Filename") #x (Val #(x.Filename'))
-  set_Filename : ∀ (x : Position) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Position.underlying go!"Filename") (PairV #x #y) (Val #(({ x with Filename' := y } : Position)))
-  get_Offset : ∀ (x : Position), go.IsGoStepPureDetTagged under (StructFieldGet Position.underlying go!"Offset") #x (Val #(x.Offset'))
-  set_Offset : ∀ (x : Position) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Position.underlying go!"Offset") (PairV #x #y) (Val #(({ x with Offset' := y } : Position)))
-  get_Line : ∀ (x : Position), go.IsGoStepPureDetTagged under (StructFieldGet Position.underlying go!"Line") #x (Val #(x.Line'))
-  set_Line : ∀ (x : Position) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Position.underlying go!"Line") (PairV #x #y) (Val #(({ x with Line' := y } : Position)))
-  get_Column : ∀ (x : Position), go.IsGoStepPureDetTagged under (StructFieldGet Position.underlying go!"Column") #x (Val #(x.Column'))
-  set_Column : ∀ (x : Position) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Position.underlying go!"Column") (PairV #x #y) (Val #(({ x with Column' := y } : Position)))
+  get'Filename : ∀ (x : Position), go.IsGoStepPureDetTagged under (StructFieldGet Position.underlying go!"Filename") #x (Val #(x.Filename'))
+  set'Filename : ∀ (x : Position) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Position.underlying go!"Filename") (PairV #x #y) (Val #(({ x with Filename' := y } : Position)))
+  get'Offset : ∀ (x : Position), go.IsGoStepPureDetTagged under (StructFieldGet Position.underlying go!"Offset") #x (Val #(x.Offset'))
+  set'Offset : ∀ (x : Position) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Position.underlying go!"Offset") (PairV #x #y) (Val #(({ x with Offset' := y } : Position)))
+  get'Line : ∀ (x : Position), go.IsGoStepPureDetTagged under (StructFieldGet Position.underlying go!"Line") #x (Val #(x.Line'))
+  set'Line : ∀ (x : Position) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Position.underlying go!"Line") (PairV #x #y) (Val #(({ x with Line' := y } : Position)))
+  get'Column : ∀ (x : Position), go.IsGoStepPureDetTagged under (StructFieldGet Position.underlying go!"Column") #x (Val #(x.Column'))
+  set'Column : ∀ (x : Position) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Position.underlying go!"Column") (PairV #x #y) (Val #(({ x with Column' := y } : Position)))
   method_set : go.MethodSetIs Position.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Position.ty) [(go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Position.TypeAssumptions.type_repr
   Position.TypeAssumptions.underlying
-  Position.TypeAssumptions.get_Filename
-  Position.TypeAssumptions.set_Filename
-  Position.TypeAssumptions.get_Offset
-  Position.TypeAssumptions.set_Offset
-  Position.TypeAssumptions.get_Line
-  Position.TypeAssumptions.set_Line
-  Position.TypeAssumptions.get_Column
-  Position.TypeAssumptions.set_Column
+  Position.TypeAssumptions.get'Filename
+  Position.TypeAssumptions.set'Filename
+  Position.TypeAssumptions.get'Offset
+  Position.TypeAssumptions.set'Offset
+  Position.TypeAssumptions.get'Line
+  Position.TypeAssumptions.set'Line
+  Position.TypeAssumptions.get'Column
+  Position.TypeAssumptions.set'Column
   Position.TypeAssumptions.method_set
   Position.TypeAssumptions.ptr_method_set
 
@@ -425,7 +425,7 @@ noncomputable instance lineInfo.zero_val [GooseExts] : ZeroVal lineInfo :=
 @[irreducible] noncomputable def lineInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   lineInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_lineInfo [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'lineInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold lineInfo.fields lineInfo.fieldsUnsealed :=
   ⟨by unfold lineInfo.fields; rfl⟩
 
@@ -435,27 +435,27 @@ noncomputable instance equals_unfold_lineInfo [GooseExts] [GoGlobalContext] :
 class lineInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lineInfo.underlying lineInfo
   underlying : go.UnderlyingDirectedEq lineInfo.ty lineInfo.underlying
-  get_Offset : ∀ (x : lineInfo), go.IsGoStepPureDetTagged under (StructFieldGet lineInfo.underlying go!"Offset") #x (Val #(x.Offset'))
-  set_Offset : ∀ (x : lineInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lineInfo.underlying go!"Offset") (PairV #x #y) (Val #(({ x with Offset' := y } : lineInfo)))
-  get_Filename : ∀ (x : lineInfo), go.IsGoStepPureDetTagged under (StructFieldGet lineInfo.underlying go!"Filename") #x (Val #(x.Filename'))
-  set_Filename : ∀ (x : lineInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet lineInfo.underlying go!"Filename") (PairV #x #y) (Val #(({ x with Filename' := y } : lineInfo)))
-  get_Line : ∀ (x : lineInfo), go.IsGoStepPureDetTagged under (StructFieldGet lineInfo.underlying go!"Line") #x (Val #(x.Line'))
-  set_Line : ∀ (x : lineInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lineInfo.underlying go!"Line") (PairV #x #y) (Val #(({ x with Line' := y } : lineInfo)))
-  get_Column : ∀ (x : lineInfo), go.IsGoStepPureDetTagged under (StructFieldGet lineInfo.underlying go!"Column") #x (Val #(x.Column'))
-  set_Column : ∀ (x : lineInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lineInfo.underlying go!"Column") (PairV #x #y) (Val #(({ x with Column' := y } : lineInfo)))
+  get'Offset : ∀ (x : lineInfo), go.IsGoStepPureDetTagged under (StructFieldGet lineInfo.underlying go!"Offset") #x (Val #(x.Offset'))
+  set'Offset : ∀ (x : lineInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lineInfo.underlying go!"Offset") (PairV #x #y) (Val #(({ x with Offset' := y } : lineInfo)))
+  get'Filename : ∀ (x : lineInfo), go.IsGoStepPureDetTagged under (StructFieldGet lineInfo.underlying go!"Filename") #x (Val #(x.Filename'))
+  set'Filename : ∀ (x : lineInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet lineInfo.underlying go!"Filename") (PairV #x #y) (Val #(({ x with Filename' := y } : lineInfo)))
+  get'Line : ∀ (x : lineInfo), go.IsGoStepPureDetTagged under (StructFieldGet lineInfo.underlying go!"Line") #x (Val #(x.Line'))
+  set'Line : ∀ (x : lineInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lineInfo.underlying go!"Line") (PairV #x #y) (Val #(({ x with Line' := y } : lineInfo)))
+  get'Column : ∀ (x : lineInfo), go.IsGoStepPureDetTagged under (StructFieldGet lineInfo.underlying go!"Column") #x (Val #(x.Column'))
+  set'Column : ∀ (x : lineInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lineInfo.underlying go!"Column") (PairV #x #y) (Val #(({ x with Column' := y } : lineInfo)))
   method_set : go.MethodSetIs lineInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType lineInfo.ty) []
 
 attribute [instance] lineInfo.TypeAssumptions.type_repr
   lineInfo.TypeAssumptions.underlying
-  lineInfo.TypeAssumptions.get_Offset
-  lineInfo.TypeAssumptions.set_Offset
-  lineInfo.TypeAssumptions.get_Filename
-  lineInfo.TypeAssumptions.set_Filename
-  lineInfo.TypeAssumptions.get_Line
-  lineInfo.TypeAssumptions.set_Line
-  lineInfo.TypeAssumptions.get_Column
-  lineInfo.TypeAssumptions.set_Column
+  lineInfo.TypeAssumptions.get'Offset
+  lineInfo.TypeAssumptions.set'Offset
+  lineInfo.TypeAssumptions.get'Filename
+  lineInfo.TypeAssumptions.set'Filename
+  lineInfo.TypeAssumptions.get'Line
+  lineInfo.TypeAssumptions.set'Line
+  lineInfo.TypeAssumptions.get'Column
+  lineInfo.TypeAssumptions.set'Column
   lineInfo.TypeAssumptions.method_set
   lineInfo.TypeAssumptions.ptr_method_set
 
@@ -499,7 +499,7 @@ noncomputable instance serializedFile.zero_val [GooseExts] : ZeroVal serializedF
 @[irreducible] noncomputable def serializedFile.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   serializedFile.fieldsUnsealed
 
-noncomputable instance equals_unfold_serializedFile [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'serializedFile [GooseExts] [GoGlobalContext] :
     EqualsUnfold serializedFile.fields serializedFile.fieldsUnsealed :=
   ⟨by unfold serializedFile.fields; rfl⟩
 
@@ -509,31 +509,31 @@ noncomputable instance equals_unfold_serializedFile [GooseExts] [GoGlobalContext
 class serializedFile.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serializedFile.underlying serializedFile
   underlying : go.UnderlyingDirectedEq serializedFile.ty serializedFile.underlying
-  get_Name : ∀ (x : serializedFile), go.IsGoStepPureDetTagged under (StructFieldGet serializedFile.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : serializedFile) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet serializedFile.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : serializedFile)))
-  get_Base : ∀ (x : serializedFile), go.IsGoStepPureDetTagged under (StructFieldGet serializedFile.underlying go!"Base") #x (Val #(x.Base'))
-  set_Base : ∀ (x : serializedFile) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serializedFile.underlying go!"Base") (PairV #x #y) (Val #(({ x with Base' := y } : serializedFile)))
-  get_Size : ∀ (x : serializedFile), go.IsGoStepPureDetTagged under (StructFieldGet serializedFile.underlying go!"Size") #x (Val #(x.Size'))
-  set_Size : ∀ (x : serializedFile) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serializedFile.underlying go!"Size") (PairV #x #y) (Val #(({ x with Size' := y } : serializedFile)))
-  get_Lines : ∀ (x : serializedFile), go.IsGoStepPureDetTagged under (StructFieldGet serializedFile.underlying go!"Lines") #x (Val #(x.Lines'))
-  set_Lines : ∀ (x : serializedFile) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serializedFile.underlying go!"Lines") (PairV #x #y) (Val #(({ x with Lines' := y } : serializedFile)))
-  get_Infos : ∀ (x : serializedFile), go.IsGoStepPureDetTagged under (StructFieldGet serializedFile.underlying go!"Infos") #x (Val #(x.Infos'))
-  set_Infos : ∀ (x : serializedFile) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serializedFile.underlying go!"Infos") (PairV #x #y) (Val #(({ x with Infos' := y } : serializedFile)))
+  get'Name : ∀ (x : serializedFile), go.IsGoStepPureDetTagged under (StructFieldGet serializedFile.underlying go!"Name") #x (Val #(x.Name'))
+  set'Name : ∀ (x : serializedFile) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet serializedFile.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : serializedFile)))
+  get'Base : ∀ (x : serializedFile), go.IsGoStepPureDetTagged under (StructFieldGet serializedFile.underlying go!"Base") #x (Val #(x.Base'))
+  set'Base : ∀ (x : serializedFile) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serializedFile.underlying go!"Base") (PairV #x #y) (Val #(({ x with Base' := y } : serializedFile)))
+  get'Size : ∀ (x : serializedFile), go.IsGoStepPureDetTagged under (StructFieldGet serializedFile.underlying go!"Size") #x (Val #(x.Size'))
+  set'Size : ∀ (x : serializedFile) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serializedFile.underlying go!"Size") (PairV #x #y) (Val #(({ x with Size' := y } : serializedFile)))
+  get'Lines : ∀ (x : serializedFile), go.IsGoStepPureDetTagged under (StructFieldGet serializedFile.underlying go!"Lines") #x (Val #(x.Lines'))
+  set'Lines : ∀ (x : serializedFile) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serializedFile.underlying go!"Lines") (PairV #x #y) (Val #(({ x with Lines' := y } : serializedFile)))
+  get'Infos : ∀ (x : serializedFile), go.IsGoStepPureDetTagged under (StructFieldGet serializedFile.underlying go!"Infos") #x (Val #(x.Infos'))
+  set'Infos : ∀ (x : serializedFile) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serializedFile.underlying go!"Infos") (PairV #x #y) (Val #(({ x with Infos' := y } : serializedFile)))
   method_set : go.MethodSetIs serializedFile.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType serializedFile.ty) []
 
 attribute [instance] serializedFile.TypeAssumptions.type_repr
   serializedFile.TypeAssumptions.underlying
-  serializedFile.TypeAssumptions.get_Name
-  serializedFile.TypeAssumptions.set_Name
-  serializedFile.TypeAssumptions.get_Base
-  serializedFile.TypeAssumptions.set_Base
-  serializedFile.TypeAssumptions.get_Size
-  serializedFile.TypeAssumptions.set_Size
-  serializedFile.TypeAssumptions.get_Lines
-  serializedFile.TypeAssumptions.set_Lines
-  serializedFile.TypeAssumptions.get_Infos
-  serializedFile.TypeAssumptions.set_Infos
+  serializedFile.TypeAssumptions.get'Name
+  serializedFile.TypeAssumptions.set'Name
+  serializedFile.TypeAssumptions.get'Base
+  serializedFile.TypeAssumptions.set'Base
+  serializedFile.TypeAssumptions.get'Size
+  serializedFile.TypeAssumptions.set'Size
+  serializedFile.TypeAssumptions.get'Lines
+  serializedFile.TypeAssumptions.set'Lines
+  serializedFile.TypeAssumptions.get'Infos
+  serializedFile.TypeAssumptions.set'Infos
   serializedFile.TypeAssumptions.method_set
   serializedFile.TypeAssumptions.ptr_method_set
 
@@ -552,7 +552,7 @@ noncomputable instance serializedFileSet.zero_val [GooseExts] : ZeroVal serializ
 @[irreducible] noncomputable def serializedFileSet.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   serializedFileSet.fieldsUnsealed
 
-noncomputable instance equals_unfold_serializedFileSet [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'serializedFileSet [GooseExts] [GoGlobalContext] :
     EqualsUnfold serializedFileSet.fields serializedFileSet.fieldsUnsealed :=
   ⟨by unfold serializedFileSet.fields; rfl⟩
 
@@ -562,19 +562,19 @@ noncomputable instance equals_unfold_serializedFileSet [GooseExts] [GoGlobalCont
 class serializedFileSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serializedFileSet.underlying serializedFileSet
   underlying : go.UnderlyingDirectedEq serializedFileSet.ty serializedFileSet.underlying
-  get_Base : ∀ (x : serializedFileSet), go.IsGoStepPureDetTagged under (StructFieldGet serializedFileSet.underlying go!"Base") #x (Val #(x.Base'))
-  set_Base : ∀ (x : serializedFileSet) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serializedFileSet.underlying go!"Base") (PairV #x #y) (Val #(({ x with Base' := y } : serializedFileSet)))
-  get_Files : ∀ (x : serializedFileSet), go.IsGoStepPureDetTagged under (StructFieldGet serializedFileSet.underlying go!"Files") #x (Val #(x.Files'))
-  set_Files : ∀ (x : serializedFileSet) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serializedFileSet.underlying go!"Files") (PairV #x #y) (Val #(({ x with Files' := y } : serializedFileSet)))
+  get'Base : ∀ (x : serializedFileSet), go.IsGoStepPureDetTagged under (StructFieldGet serializedFileSet.underlying go!"Base") #x (Val #(x.Base'))
+  set'Base : ∀ (x : serializedFileSet) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet serializedFileSet.underlying go!"Base") (PairV #x #y) (Val #(({ x with Base' := y } : serializedFileSet)))
+  get'Files : ∀ (x : serializedFileSet), go.IsGoStepPureDetTagged under (StructFieldGet serializedFileSet.underlying go!"Files") #x (Val #(x.Files'))
+  set'Files : ∀ (x : serializedFileSet) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serializedFileSet.underlying go!"Files") (PairV #x #y) (Val #(({ x with Files' := y } : serializedFileSet)))
   method_set : go.MethodSetIs serializedFileSet.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType serializedFileSet.ty) []
 
 attribute [instance] serializedFileSet.TypeAssumptions.type_repr
   serializedFileSet.TypeAssumptions.underlying
-  serializedFileSet.TypeAssumptions.get_Base
-  serializedFileSet.TypeAssumptions.set_Base
-  serializedFileSet.TypeAssumptions.get_Files
-  serializedFileSet.TypeAssumptions.set_Files
+  serializedFileSet.TypeAssumptions.get'Base
+  serializedFileSet.TypeAssumptions.set'Base
+  serializedFileSet.TypeAssumptions.get'Files
+  serializedFileSet.TypeAssumptions.set'Files
   serializedFileSet.TypeAssumptions.method_set
   serializedFileSet.TypeAssumptions.ptr_method_set
 
@@ -605,7 +605,7 @@ noncomputable instance tree.zero_val [GooseExts] : ZeroVal tree :=
 @[irreducible] noncomputable def tree.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   tree.fieldsUnsealed
 
-noncomputable instance equals_unfold_tree [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'tree [GooseExts] [GoGlobalContext] :
     EqualsUnfold tree.fields tree.fieldsUnsealed :=
   ⟨by unfold tree.fields; rfl⟩
 
@@ -615,15 +615,15 @@ noncomputable instance equals_unfold_tree [GooseExts] [GoGlobalContext] :
 class tree.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tree.underlying tree
   underlying : go.UnderlyingDirectedEq tree.ty tree.underlying
-  get_root : ∀ (x : tree), go.IsGoStepPureDetTagged under (StructFieldGet tree.underlying go!"root") #x (Val #(x.root'))
-  set_root : ∀ (x : tree) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet tree.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : tree)))
+  get'root : ∀ (x : tree), go.IsGoStepPureDetTagged under (StructFieldGet tree.underlying go!"root") #x (Val #(x.root'))
+  set'root : ∀ (x : tree) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet tree.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : tree)))
   method_set : go.MethodSetIs tree.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType tree.ty) [(go!"go/token.add", (some (go.signature.Signature [(go.GoType.PointerType File.ty)] false []))), (go!"go/token.all", (some (go.signature.Signature [] false [(go.GoType.Named go!"iter.Seq" [(go.GoType.PointerType File.ty)])]))), (go!"go/token.delete", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.PointerType node.ty))] false []))), (go!"go/token.deleteMin", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.PointerType node.ty))] false [(go.GoType.PointerType node.ty)]))), (go!"go/token.deleteSwap", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.PointerType node.ty))] false []))), (go!"go/token.locate", (some (go.signature.Signature [key.ty] false [(go.GoType.PointerType (go.GoType.PointerType node.ty)), (go.GoType.PointerType node.ty)]))), (go!"go/token.nextAfter", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.PointerType node.ty)), (go.GoType.PointerType node.ty)] false [(go.GoType.PointerType node.ty)]))), (go!"go/token.rebalanceUp", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false []))), (go!"go/token.replaceChild", (some (go.signature.Signature [(go.GoType.PointerType node.ty), (go.GoType.PointerType node.ty), (go.GoType.PointerType node.ty)] false []))), (go!"go/token.rotateLeft", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false [(go.GoType.PointerType node.ty)]))), (go!"go/token.rotateRight", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false [(go.GoType.PointerType node.ty)]))), (go!"go/token.set", (some (go.signature.Signature [(go.GoType.PointerType File.ty), (go.GoType.PointerType (go.GoType.PointerType node.ty)), (go.GoType.PointerType node.ty)] false []))), (go!"go/token.setRoot", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false [])))]
 
 attribute [instance] tree.TypeAssumptions.type_repr
   tree.TypeAssumptions.underlying
-  tree.TypeAssumptions.get_root
-  tree.TypeAssumptions.set_root
+  tree.TypeAssumptions.get'root
+  tree.TypeAssumptions.set'root
   tree.TypeAssumptions.method_set
   tree.TypeAssumptions.ptr_method_set
 
@@ -642,7 +642,7 @@ noncomputable instance key.zero_val [GooseExts] : ZeroVal key :=
 @[irreducible] noncomputable def key.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   key.fieldsUnsealed
 
-noncomputable instance equals_unfold_key [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'key [GooseExts] [GoGlobalContext] :
     EqualsUnfold key.fields key.fieldsUnsealed :=
   ⟨by unfold key.fields; rfl⟩
 
@@ -652,19 +652,19 @@ noncomputable instance equals_unfold_key [GooseExts] [GoGlobalContext] :
 class key.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying key.underlying key
   underlying : go.UnderlyingDirectedEq key.ty key.underlying
-  get_start : ∀ (x : key), go.IsGoStepPureDetTagged under (StructFieldGet key.underlying go!"start") #x (Val #(x.start'))
-  set_start : ∀ (x : key) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet key.underlying go!"start") (PairV #x #y) (Val #(({ x with start' := y } : key)))
-  get_end : ∀ (x : key), go.IsGoStepPureDetTagged under (StructFieldGet key.underlying go!"end") #x (Val #(x.end'))
-  set_end : ∀ (x : key) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet key.underlying go!"end") (PairV #x #y) (Val #(({ x with end' := y } : key)))
+  get'start : ∀ (x : key), go.IsGoStepPureDetTagged under (StructFieldGet key.underlying go!"start") #x (Val #(x.start'))
+  set'start : ∀ (x : key) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet key.underlying go!"start") (PairV #x #y) (Val #(({ x with start' := y } : key)))
+  get'end : ∀ (x : key), go.IsGoStepPureDetTagged under (StructFieldGet key.underlying go!"end") #x (Val #(x.end'))
+  set'end : ∀ (x : key) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet key.underlying go!"end") (PairV #x #y) (Val #(({ x with end' := y } : key)))
   method_set : go.MethodSetIs key.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType key.ty) []
 
 attribute [instance] key.TypeAssumptions.type_repr
   key.TypeAssumptions.underlying
-  key.TypeAssumptions.get_start
-  key.TypeAssumptions.set_start
-  key.TypeAssumptions.get_end
-  key.TypeAssumptions.set_end
+  key.TypeAssumptions.get'start
+  key.TypeAssumptions.set'start
+  key.TypeAssumptions.get'end
+  key.TypeAssumptions.set'end
   key.TypeAssumptions.method_set
   key.TypeAssumptions.ptr_method_set
 
@@ -693,7 +693,7 @@ noncomputable instance node.zero_val [GooseExts] : ZeroVal node :=
 @[irreducible] noncomputable def node.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   node.fieldsUnsealed
 
-noncomputable instance equals_unfold_node [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'node [GooseExts] [GoGlobalContext] :
     EqualsUnfold node.fields node.fieldsUnsealed :=
   ⟨by unfold node.fields; rfl⟩
 
@@ -703,68 +703,68 @@ noncomputable instance equals_unfold_node [GooseExts] [GoGlobalContext] :
 class node.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying node.underlying node
   underlying : go.UnderlyingDirectedEq node.ty node.underlying
-  get_parent : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"parent") #x (Val #(x.parent'))
-  set_parent : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"parent") (PairV #x #y) (Val #(({ x with parent' := y } : node)))
-  get_left : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"left") #x (Val #(x.left'))
-  set_left : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"left") (PairV #x #y) (Val #(({ x with left' := y } : node)))
-  get_right : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"right") #x (Val #(x.right'))
-  set_right : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"right") (PairV #x #y) (Val #(({ x with right' := y } : node)))
-  get_file : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"file") #x (Val #(x.file'))
-  set_file : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"file") (PairV #x #y) (Val #(({ x with file' := y } : node)))
-  get_key : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"key") #x (Val #(x.key'))
-  set_key : ∀ (x : node) (y : key), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : node)))
-  get_balance : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"balance") #x (Val #(x.balance'))
-  set_balance : ∀ (x : node) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"balance") (PairV #x #y) (Val #(({ x with balance' := y } : node)))
-  get_height : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"height") #x (Val #(x.height'))
-  set_height : ∀ (x : node) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"height") (PairV #x #y) (Val #(({ x with height' := y } : node)))
+  get'parent : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"parent") #x (Val #(x.parent'))
+  set'parent : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"parent") (PairV #x #y) (Val #(({ x with parent' := y } : node)))
+  get'left : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"left") #x (Val #(x.left'))
+  set'left : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"left") (PairV #x #y) (Val #(({ x with left' := y } : node)))
+  get'right : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"right") #x (Val #(x.right'))
+  set'right : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"right") (PairV #x #y) (Val #(({ x with right' := y } : node)))
+  get'file : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"file") #x (Val #(x.file'))
+  set'file : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"file") (PairV #x #y) (Val #(({ x with file' := y } : node)))
+  get'key : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"key") #x (Val #(x.key'))
+  set'key : ∀ (x : node) (y : key), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : node)))
+  get'balance : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"balance") #x (Val #(x.balance'))
+  set'balance : ∀ (x : node) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"balance") (PairV #x #y) (Val #(({ x with balance' := y } : node)))
+  get'height : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"height") #x (Val #(x.height'))
+  set'height : ∀ (x : node) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"height") (PairV #x #y) (Val #(({ x with height' := y } : node)))
   method_set : go.MethodSetIs node.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType node.ty) [(go!"go/token.check", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false []))), (go!"go/token.checkBalance", (some (go.signature.Signature [] false []))), (go!"go/token.next", (some (go.signature.Signature [] false [(go.GoType.PointerType node.ty)]))), (go!"go/token.safeHeight", (some (go.signature.Signature [] false [go.int32]))), (go!"go/token.setLeft", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false []))), (go!"go/token.setRight", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false []))), (go!"go/token.update", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] node.TypeAssumptions.type_repr
   node.TypeAssumptions.underlying
-  node.TypeAssumptions.get_parent
-  node.TypeAssumptions.set_parent
-  node.TypeAssumptions.get_left
-  node.TypeAssumptions.set_left
-  node.TypeAssumptions.get_right
-  node.TypeAssumptions.set_right
-  node.TypeAssumptions.get_file
-  node.TypeAssumptions.set_file
-  node.TypeAssumptions.get_key
-  node.TypeAssumptions.set_key
-  node.TypeAssumptions.get_balance
-  node.TypeAssumptions.set_balance
-  node.TypeAssumptions.get_height
-  node.TypeAssumptions.set_height
+  node.TypeAssumptions.get'parent
+  node.TypeAssumptions.set'parent
+  node.TypeAssumptions.get'left
+  node.TypeAssumptions.set'left
+  node.TypeAssumptions.get'right
+  node.TypeAssumptions.set'right
+  node.TypeAssumptions.get'file
+  node.TypeAssumptions.set'file
+  node.TypeAssumptions.get'key
+  node.TypeAssumptions.set'key
+  node.TypeAssumptions.get'balance
+  node.TypeAssumptions.set'balance
+  node.TypeAssumptions.get'height
+  node.TypeAssumptions.set'height
   node.TypeAssumptions.method_set
   node.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Position_instance : Position.TypeAssumptions
-  Pos_instance : Pos.TypeAssumptions
-  File_instance : File.TypeAssumptions
-  lineInfo_instance : lineInfo.TypeAssumptions
-  FileSet_instance : FileSet.TypeAssumptions
-  serializedFile_instance : serializedFile.TypeAssumptions
-  serializedFileSet_instance : serializedFileSet.TypeAssumptions
-  Token_instance : Token.TypeAssumptions
-  tree_instance : tree.TypeAssumptions
-  node_instance : node.TypeAssumptions
-  key_instance : key.TypeAssumptions
-  IsExported_unfold : FuncUnfold IsExported [] IsExported.impl
+  instance'Position : Position.TypeAssumptions
+  instance'Pos : Pos.TypeAssumptions
+  instance'File : File.TypeAssumptions
+  instance'lineInfo : lineInfo.TypeAssumptions
+  instance'FileSet : FileSet.TypeAssumptions
+  instance'serializedFile : serializedFile.TypeAssumptions
+  instance'serializedFileSet : serializedFileSet.TypeAssumptions
+  instance'Token : Token.TypeAssumptions
+  instance'tree : tree.TypeAssumptions
+  instance'node : node.TypeAssumptions
+  instance'key : key.TypeAssumptions
+  unfold'IsExported : FuncUnfold IsExported [] IsExported.impl
 
-attribute [instance] Assumptions.Position_instance
-  Assumptions.Pos_instance
-  Assumptions.File_instance
-  Assumptions.lineInfo_instance
-  Assumptions.FileSet_instance
-  Assumptions.serializedFile_instance
-  Assumptions.serializedFileSet_instance
-  Assumptions.Token_instance
-  Assumptions.tree_instance
-  Assumptions.node_instance
-  Assumptions.key_instance
-  Assumptions.IsExported_unfold
+attribute [instance] Assumptions.instance'Position
+  Assumptions.instance'Pos
+  Assumptions.instance'File
+  Assumptions.instance'lineInfo
+  Assumptions.instance'FileSet
+  Assumptions.instance'serializedFile
+  Assumptions.instance'serializedFileSet
+  Assumptions.instance'Token
+  Assumptions.instance'tree
+  Assumptions.instance'node
+  Assumptions.instance'key
+  Assumptions.unfold'IsExported
 
 end go.token
 

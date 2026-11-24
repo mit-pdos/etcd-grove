@@ -1188,7 +1188,7 @@ noncomputable instance arbCondition.zero_val [GooseExts] : ZeroVal arbCondition 
 @[irreducible] noncomputable def arbCondition.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   arbCondition.fieldsUnsealed
 
-noncomputable instance equals_unfold_arbCondition [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'arbCondition [GooseExts] [GoGlobalContext] :
     EqualsUnfold arbCondition.fields arbCondition.fieldsUnsealed :=
   ⟨by unfold arbCondition.fields; rfl⟩
 
@@ -1198,46 +1198,46 @@ noncomputable instance equals_unfold_arbCondition [GooseExts] [GoGlobalContext] 
 class arbCondition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying arbCondition.underlying arbCondition
   underlying : go.UnderlyingDirectedEq arbCondition.ty arbCondition.underlying
-  get_id : ∀ (x : arbCondition), go.IsGoStepPureDetTagged under (StructFieldGet arbCondition.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : arbCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet arbCondition.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : arbCondition)))
-  get_typ : ∀ (x : arbCondition), go.IsGoStepPureDetTagged under (StructFieldGet arbCondition.underlying go!"typ") #x (Val #(x.typ'))
-  set_typ : ∀ (x : arbCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet arbCondition.underlying go!"typ") (PairV #x #y) (Val #(({ x with typ' := y } : arbCondition)))
+  get'id : ∀ (x : arbCondition), go.IsGoStepPureDetTagged under (StructFieldGet arbCondition.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : arbCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet arbCondition.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : arbCondition)))
+  get'typ : ∀ (x : arbCondition), go.IsGoStepPureDetTagged under (StructFieldGet arbCondition.underlying go!"typ") #x (Val #(x.typ'))
+  set'typ : ∀ (x : arbCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet arbCondition.underlying go!"typ") (PairV #x #y) (Val #(({ x with typ' := y } : arbCondition)))
   method_set : go.MethodSetIs arbCondition.ty [(go!"Evaluate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsData.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult.ty]))), (go!"GetCondition", (some (go.signature.Signature [] false [go.string]))), (go!"GetDescription", (some (go.signature.Signature [] false [go.string]))), (go!"GetID", (some (go.signature.Signature [] false [go.string]))), (go!"GetType", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType arbCondition.ty) [(go!"Evaluate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsData.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult.ty]))), (go!"GetCondition", (some (go.signature.Signature [] false [go.string]))), (go!"GetDescription", (some (go.signature.Signature [] false [go.string]))), (go!"GetID", (some (go.signature.Signature [] false [go.string]))), (go!"GetType", (some (go.signature.Signature [] false [go.string])))]
-  Evaluate_unfold : MethodUnfold arbCondition.ty go!"Evaluate" arbCondition.Evaluate.impl
-  GetCondition_unfold : MethodUnfold arbCondition.ty go!"GetCondition" arbCondition.GetCondition.impl
-  GetDescription_unfold : MethodUnfold arbCondition.ty go!"GetDescription" arbCondition.GetDescription.impl
-  GetID_unfold : MethodUnfold arbCondition.ty go!"GetID" arbCondition.GetID.impl
-  GetType_unfold : MethodUnfold arbCondition.ty go!"GetType" arbCondition.GetType.impl
-  ptr_Evaluate_unfold : MethodUnfold (go.GoType.PointerType arbCondition.ty) go!"Evaluate" (LamV "$r"
+  unfold'Evaluate : MethodUnfold arbCondition.ty go!"Evaluate" arbCondition.Evaluate.impl
+  unfold'GetCondition : MethodUnfold arbCondition.ty go!"GetCondition" arbCondition.GetCondition.impl
+  unfold'GetDescription : MethodUnfold arbCondition.ty go!"GetDescription" arbCondition.GetDescription.impl
+  unfold'GetID : MethodUnfold arbCondition.ty go!"GetID" arbCondition.GetID.impl
+  unfold'GetType : MethodUnfold arbCondition.ty go!"GetType" arbCondition.GetType.impl
+  ptr_unfold'Evaluate : MethodUnfold (go.GoType.PointerType arbCondition.ty) go!"Evaluate" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve arbCondition.ty go!"Evaluate"))) (App (Val (GoInstruction (GoLoad arbCondition.ty))) (Var "$r"))))
-  ptr_GetCondition_unfold : MethodUnfold (go.GoType.PointerType arbCondition.ty) go!"GetCondition" (LamV "$r"
+  ptr_unfold'GetCondition : MethodUnfold (go.GoType.PointerType arbCondition.ty) go!"GetCondition" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve arbCondition.ty go!"GetCondition"))) (App (Val (GoInstruction (GoLoad arbCondition.ty))) (Var "$r"))))
-  ptr_GetDescription_unfold : MethodUnfold (go.GoType.PointerType arbCondition.ty) go!"GetDescription" (LamV "$r"
+  ptr_unfold'GetDescription : MethodUnfold (go.GoType.PointerType arbCondition.ty) go!"GetDescription" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve arbCondition.ty go!"GetDescription"))) (App (Val (GoInstruction (GoLoad arbCondition.ty))) (Var "$r"))))
-  ptr_GetID_unfold : MethodUnfold (go.GoType.PointerType arbCondition.ty) go!"GetID" (LamV "$r"
+  ptr_unfold'GetID : MethodUnfold (go.GoType.PointerType arbCondition.ty) go!"GetID" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve arbCondition.ty go!"GetID"))) (App (Val (GoInstruction (GoLoad arbCondition.ty))) (Var "$r"))))
-  ptr_GetType_unfold : MethodUnfold (go.GoType.PointerType arbCondition.ty) go!"GetType" (LamV "$r"
+  ptr_unfold'GetType : MethodUnfold (go.GoType.PointerType arbCondition.ty) go!"GetType" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve arbCondition.ty go!"GetType"))) (App (Val (GoInstruction (GoLoad arbCondition.ty))) (Var "$r"))))
 
 attribute [instance] arbCondition.TypeAssumptions.type_repr
   arbCondition.TypeAssumptions.underlying
-  arbCondition.TypeAssumptions.get_id
-  arbCondition.TypeAssumptions.set_id
-  arbCondition.TypeAssumptions.get_typ
-  arbCondition.TypeAssumptions.set_typ
+  arbCondition.TypeAssumptions.get'id
+  arbCondition.TypeAssumptions.set'id
+  arbCondition.TypeAssumptions.get'typ
+  arbCondition.TypeAssumptions.set'typ
   arbCondition.TypeAssumptions.method_set
   arbCondition.TypeAssumptions.ptr_method_set
-  arbCondition.TypeAssumptions.Evaluate_unfold
-  arbCondition.TypeAssumptions.GetCondition_unfold
-  arbCondition.TypeAssumptions.GetDescription_unfold
-  arbCondition.TypeAssumptions.GetID_unfold
-  arbCondition.TypeAssumptions.GetType_unfold
-  arbCondition.TypeAssumptions.ptr_Evaluate_unfold
-  arbCondition.TypeAssumptions.ptr_GetCondition_unfold
-  arbCondition.TypeAssumptions.ptr_GetDescription_unfold
-  arbCondition.TypeAssumptions.ptr_GetID_unfold
-  arbCondition.TypeAssumptions.ptr_GetType_unfold
+  arbCondition.TypeAssumptions.unfold'Evaluate
+  arbCondition.TypeAssumptions.unfold'GetCondition
+  arbCondition.TypeAssumptions.unfold'GetDescription
+  arbCondition.TypeAssumptions.unfold'GetID
+  arbCondition.TypeAssumptions.unfold'GetType
+  arbCondition.TypeAssumptions.ptr_unfold'Evaluate
+  arbCondition.TypeAssumptions.ptr_unfold'GetCondition
+  arbCondition.TypeAssumptions.ptr_unfold'GetDescription
+  arbCondition.TypeAssumptions.ptr_unfold'GetID
+  arbCondition.TypeAssumptions.ptr_unfold'GetType
 
 structure arbAuthorizer [GooseExts] where
   mk ::
@@ -1252,7 +1252,7 @@ noncomputable instance arbAuthorizer.zero_val [GooseExts] : ZeroVal arbAuthorize
 @[irreducible] noncomputable def arbAuthorizer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   arbAuthorizer.fieldsUnsealed
 
-noncomputable instance equals_unfold_arbAuthorizer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'arbAuthorizer [GooseExts] [GoGlobalContext] :
     EqualsUnfold arbAuthorizer.fields arbAuthorizer.fieldsUnsealed :=
   ⟨by unfold arbAuthorizer.fields; rfl⟩
 
@@ -1262,32 +1262,32 @@ noncomputable instance equals_unfold_arbAuthorizer [GooseExts] [GoGlobalContext]
 class arbAuthorizer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying arbAuthorizer.underlying arbAuthorizer
   underlying : go.UnderlyingDirectedEq arbAuthorizer.ty arbAuthorizer.underlying
-  get_depth : ∀ (x : arbAuthorizer), go.IsGoStepPureDetTagged under (StructFieldGet arbAuthorizer.underlying go!"depth") #x (Val #(x.depth'))
-  set_depth : ∀ (x : arbAuthorizer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet arbAuthorizer.underlying go!"depth") (PairV #x #y) (Val #(({ x with depth' := y } : arbAuthorizer)))
+  get'depth : ∀ (x : arbAuthorizer), go.IsGoStepPureDetTagged under (StructFieldGet arbAuthorizer.underlying go!"depth") #x (Val #(x.depth'))
+  set'depth : ∀ (x : arbAuthorizer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet arbAuthorizer.underlying go!"depth") (PairV #x #y) (Val #(({ x with depth' := y } : arbAuthorizer)))
   method_set : go.MethodSetIs arbAuthorizer.ty [(go!"Authorize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Attributes.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty, go.string, go.error]))), (go!"ConditionsAwareAuthorize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Attributes.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty]))), (go!"EvaluateConditions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsData.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty, go.string, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType arbAuthorizer.ty) [(go!"Authorize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Attributes.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty, go.string, go.error]))), (go!"ConditionsAwareAuthorize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Attributes.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty]))), (go!"EvaluateConditions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty, _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsData.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty, go.string, go.error])))]
-  Authorize_unfold : MethodUnfold arbAuthorizer.ty go!"Authorize" arbAuthorizer.Authorize.impl
-  ConditionsAwareAuthorize_unfold : MethodUnfold arbAuthorizer.ty go!"ConditionsAwareAuthorize" arbAuthorizer.ConditionsAwareAuthorize.impl
-  EvaluateConditions_unfold : MethodUnfold arbAuthorizer.ty go!"EvaluateConditions" arbAuthorizer.EvaluateConditions.impl
-  ptr_Authorize_unfold : MethodUnfold (go.GoType.PointerType arbAuthorizer.ty) go!"Authorize" (LamV "$r"
+  unfold'Authorize : MethodUnfold arbAuthorizer.ty go!"Authorize" arbAuthorizer.Authorize.impl
+  unfold'ConditionsAwareAuthorize : MethodUnfold arbAuthorizer.ty go!"ConditionsAwareAuthorize" arbAuthorizer.ConditionsAwareAuthorize.impl
+  unfold'EvaluateConditions : MethodUnfold arbAuthorizer.ty go!"EvaluateConditions" arbAuthorizer.EvaluateConditions.impl
+  ptr_unfold'Authorize : MethodUnfold (go.GoType.PointerType arbAuthorizer.ty) go!"Authorize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve arbAuthorizer.ty go!"Authorize"))) (App (Val (GoInstruction (GoLoad arbAuthorizer.ty))) (Var "$r"))))
-  ptr_ConditionsAwareAuthorize_unfold : MethodUnfold (go.GoType.PointerType arbAuthorizer.ty) go!"ConditionsAwareAuthorize" (LamV "$r"
+  ptr_unfold'ConditionsAwareAuthorize : MethodUnfold (go.GoType.PointerType arbAuthorizer.ty) go!"ConditionsAwareAuthorize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve arbAuthorizer.ty go!"ConditionsAwareAuthorize"))) (App (Val (GoInstruction (GoLoad arbAuthorizer.ty))) (Var "$r"))))
-  ptr_EvaluateConditions_unfold : MethodUnfold (go.GoType.PointerType arbAuthorizer.ty) go!"EvaluateConditions" (LamV "$r"
+  ptr_unfold'EvaluateConditions : MethodUnfold (go.GoType.PointerType arbAuthorizer.ty) go!"EvaluateConditions" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve arbAuthorizer.ty go!"EvaluateConditions"))) (App (Val (GoInstruction (GoLoad arbAuthorizer.ty))) (Var "$r"))))
 
 attribute [instance] arbAuthorizer.TypeAssumptions.type_repr
   arbAuthorizer.TypeAssumptions.underlying
-  arbAuthorizer.TypeAssumptions.get_depth
-  arbAuthorizer.TypeAssumptions.set_depth
+  arbAuthorizer.TypeAssumptions.get'depth
+  arbAuthorizer.TypeAssumptions.set'depth
   arbAuthorizer.TypeAssumptions.method_set
   arbAuthorizer.TypeAssumptions.ptr_method_set
-  arbAuthorizer.TypeAssumptions.Authorize_unfold
-  arbAuthorizer.TypeAssumptions.ConditionsAwareAuthorize_unfold
-  arbAuthorizer.TypeAssumptions.EvaluateConditions_unfold
-  arbAuthorizer.TypeAssumptions.ptr_Authorize_unfold
-  arbAuthorizer.TypeAssumptions.ptr_ConditionsAwareAuthorize_unfold
-  arbAuthorizer.TypeAssumptions.ptr_EvaluateConditions_unfold
+  arbAuthorizer.TypeAssumptions.unfold'Authorize
+  arbAuthorizer.TypeAssumptions.unfold'ConditionsAwareAuthorize
+  arbAuthorizer.TypeAssumptions.unfold'EvaluateConditions
+  arbAuthorizer.TypeAssumptions.ptr_unfold'Authorize
+  arbAuthorizer.TypeAssumptions.ptr_unfold'ConditionsAwareAuthorize
+  arbAuthorizer.TypeAssumptions.ptr_unfold'EvaluateConditions
 
 structure emptyData [GooseExts] where
   mk ::
@@ -1301,7 +1301,7 @@ noncomputable instance emptyData.zero_val [GooseExts] : ZeroVal emptyData :=
 @[irreducible] noncomputable def emptyData.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   emptyData.fieldsUnsealed
 
-noncomputable instance equals_unfold_emptyData [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'emptyData [GooseExts] [GoGlobalContext] :
     EqualsUnfold emptyData.fields emptyData.fieldsUnsealed :=
   ⟨by unfold emptyData.fields; rfl⟩
 
@@ -1313,125 +1313,125 @@ class emptyData.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq emptyData.ty emptyData.underlying
   method_set : go.MethodSetIs emptyData.ty [(go!"GetKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetOldObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetOperation", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.AdmissionOperation.ty]))), (go!"GetOperationOptions", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetResource", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty]))), (go!"GetSubresource", (some (go.signature.Signature [] false [go.string]))), (go!"GetUserInfo", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info.ty]))), (go!"IsDryRun", (some (go.signature.Signature [] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType emptyData.ty) [(go!"GetKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetOldObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetOperation", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.AdmissionOperation.ty]))), (go!"GetOperationOptions", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetResource", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty]))), (go!"GetSubresource", (some (go.signature.Signature [] false [go.string]))), (go!"GetUserInfo", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info.ty]))), (go!"IsDryRun", (some (go.signature.Signature [] false [go.bool])))]
-  GetKind_unfold : MethodUnfold emptyData.ty go!"GetKind" emptyData.GetKind.impl
-  GetName_unfold : MethodUnfold emptyData.ty go!"GetName" emptyData.GetName.impl
-  GetNamespace_unfold : MethodUnfold emptyData.ty go!"GetNamespace" emptyData.GetNamespace.impl
-  GetObject_unfold : MethodUnfold emptyData.ty go!"GetObject" emptyData.GetObject.impl
-  GetOldObject_unfold : MethodUnfold emptyData.ty go!"GetOldObject" emptyData.GetOldObject.impl
-  GetOperation_unfold : MethodUnfold emptyData.ty go!"GetOperation" emptyData.GetOperation.impl
-  GetOperationOptions_unfold : MethodUnfold emptyData.ty go!"GetOperationOptions" emptyData.GetOperationOptions.impl
-  GetResource_unfold : MethodUnfold emptyData.ty go!"GetResource" emptyData.GetResource.impl
-  GetSubresource_unfold : MethodUnfold emptyData.ty go!"GetSubresource" emptyData.GetSubresource.impl
-  GetUserInfo_unfold : MethodUnfold emptyData.ty go!"GetUserInfo" emptyData.GetUserInfo.impl
-  IsDryRun_unfold : MethodUnfold emptyData.ty go!"IsDryRun" emptyData.IsDryRun.impl
-  ptr_GetKind_unfold : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetKind" (LamV "$r"
+  unfold'GetKind : MethodUnfold emptyData.ty go!"GetKind" emptyData.GetKind.impl
+  unfold'GetName : MethodUnfold emptyData.ty go!"GetName" emptyData.GetName.impl
+  unfold'GetNamespace : MethodUnfold emptyData.ty go!"GetNamespace" emptyData.GetNamespace.impl
+  unfold'GetObject : MethodUnfold emptyData.ty go!"GetObject" emptyData.GetObject.impl
+  unfold'GetOldObject : MethodUnfold emptyData.ty go!"GetOldObject" emptyData.GetOldObject.impl
+  unfold'GetOperation : MethodUnfold emptyData.ty go!"GetOperation" emptyData.GetOperation.impl
+  unfold'GetOperationOptions : MethodUnfold emptyData.ty go!"GetOperationOptions" emptyData.GetOperationOptions.impl
+  unfold'GetResource : MethodUnfold emptyData.ty go!"GetResource" emptyData.GetResource.impl
+  unfold'GetSubresource : MethodUnfold emptyData.ty go!"GetSubresource" emptyData.GetSubresource.impl
+  unfold'GetUserInfo : MethodUnfold emptyData.ty go!"GetUserInfo" emptyData.GetUserInfo.impl
+  unfold'IsDryRun : MethodUnfold emptyData.ty go!"IsDryRun" emptyData.IsDryRun.impl
+  ptr_unfold'GetKind : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetKind" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve emptyData.ty go!"GetKind"))) (App (Val (GoInstruction (GoLoad emptyData.ty))) (Var "$r"))))
-  ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetName" (LamV "$r"
+  ptr_unfold'GetName : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetName" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve emptyData.ty go!"GetName"))) (App (Val (GoInstruction (GoLoad emptyData.ty))) (Var "$r"))))
-  ptr_GetNamespace_unfold : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetNamespace" (LamV "$r"
+  ptr_unfold'GetNamespace : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetNamespace" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve emptyData.ty go!"GetNamespace"))) (App (Val (GoInstruction (GoLoad emptyData.ty))) (Var "$r"))))
-  ptr_GetObject_unfold : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetObject" (LamV "$r"
+  ptr_unfold'GetObject : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetObject" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve emptyData.ty go!"GetObject"))) (App (Val (GoInstruction (GoLoad emptyData.ty))) (Var "$r"))))
-  ptr_GetOldObject_unfold : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetOldObject" (LamV "$r"
+  ptr_unfold'GetOldObject : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetOldObject" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve emptyData.ty go!"GetOldObject"))) (App (Val (GoInstruction (GoLoad emptyData.ty))) (Var "$r"))))
-  ptr_GetOperation_unfold : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetOperation" (LamV "$r"
+  ptr_unfold'GetOperation : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetOperation" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve emptyData.ty go!"GetOperation"))) (App (Val (GoInstruction (GoLoad emptyData.ty))) (Var "$r"))))
-  ptr_GetOperationOptions_unfold : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetOperationOptions" (LamV "$r"
+  ptr_unfold'GetOperationOptions : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetOperationOptions" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve emptyData.ty go!"GetOperationOptions"))) (App (Val (GoInstruction (GoLoad emptyData.ty))) (Var "$r"))))
-  ptr_GetResource_unfold : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetResource" (LamV "$r"
+  ptr_unfold'GetResource : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetResource" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve emptyData.ty go!"GetResource"))) (App (Val (GoInstruction (GoLoad emptyData.ty))) (Var "$r"))))
-  ptr_GetSubresource_unfold : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetSubresource" (LamV "$r"
+  ptr_unfold'GetSubresource : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetSubresource" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve emptyData.ty go!"GetSubresource"))) (App (Val (GoInstruction (GoLoad emptyData.ty))) (Var "$r"))))
-  ptr_GetUserInfo_unfold : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetUserInfo" (LamV "$r"
+  ptr_unfold'GetUserInfo : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"GetUserInfo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve emptyData.ty go!"GetUserInfo"))) (App (Val (GoInstruction (GoLoad emptyData.ty))) (Var "$r"))))
-  ptr_IsDryRun_unfold : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"IsDryRun" (LamV "$r"
+  ptr_unfold'IsDryRun : MethodUnfold (go.GoType.PointerType emptyData.ty) go!"IsDryRun" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve emptyData.ty go!"IsDryRun"))) (App (Val (GoInstruction (GoLoad emptyData.ty))) (Var "$r"))))
 
 attribute [instance] emptyData.TypeAssumptions.type_repr
   emptyData.TypeAssumptions.underlying
   emptyData.TypeAssumptions.method_set
   emptyData.TypeAssumptions.ptr_method_set
-  emptyData.TypeAssumptions.GetKind_unfold
-  emptyData.TypeAssumptions.GetName_unfold
-  emptyData.TypeAssumptions.GetNamespace_unfold
-  emptyData.TypeAssumptions.GetObject_unfold
-  emptyData.TypeAssumptions.GetOldObject_unfold
-  emptyData.TypeAssumptions.GetOperation_unfold
-  emptyData.TypeAssumptions.GetOperationOptions_unfold
-  emptyData.TypeAssumptions.GetResource_unfold
-  emptyData.TypeAssumptions.GetSubresource_unfold
-  emptyData.TypeAssumptions.GetUserInfo_unfold
-  emptyData.TypeAssumptions.IsDryRun_unfold
-  emptyData.TypeAssumptions.ptr_GetKind_unfold
-  emptyData.TypeAssumptions.ptr_GetName_unfold
-  emptyData.TypeAssumptions.ptr_GetNamespace_unfold
-  emptyData.TypeAssumptions.ptr_GetObject_unfold
-  emptyData.TypeAssumptions.ptr_GetOldObject_unfold
-  emptyData.TypeAssumptions.ptr_GetOperation_unfold
-  emptyData.TypeAssumptions.ptr_GetOperationOptions_unfold
-  emptyData.TypeAssumptions.ptr_GetResource_unfold
-  emptyData.TypeAssumptions.ptr_GetSubresource_unfold
-  emptyData.TypeAssumptions.ptr_GetUserInfo_unfold
-  emptyData.TypeAssumptions.ptr_IsDryRun_unfold
+  emptyData.TypeAssumptions.unfold'GetKind
+  emptyData.TypeAssumptions.unfold'GetName
+  emptyData.TypeAssumptions.unfold'GetNamespace
+  emptyData.TypeAssumptions.unfold'GetObject
+  emptyData.TypeAssumptions.unfold'GetOldObject
+  emptyData.TypeAssumptions.unfold'GetOperation
+  emptyData.TypeAssumptions.unfold'GetOperationOptions
+  emptyData.TypeAssumptions.unfold'GetResource
+  emptyData.TypeAssumptions.unfold'GetSubresource
+  emptyData.TypeAssumptions.unfold'GetUserInfo
+  emptyData.TypeAssumptions.unfold'IsDryRun
+  emptyData.TypeAssumptions.ptr_unfold'GetKind
+  emptyData.TypeAssumptions.ptr_unfold'GetName
+  emptyData.TypeAssumptions.ptr_unfold'GetNamespace
+  emptyData.TypeAssumptions.ptr_unfold'GetObject
+  emptyData.TypeAssumptions.ptr_unfold'GetOldObject
+  emptyData.TypeAssumptions.ptr_unfold'GetOperation
+  emptyData.TypeAssumptions.ptr_unfold'GetOperationOptions
+  emptyData.TypeAssumptions.ptr_unfold'GetResource
+  emptyData.TypeAssumptions.ptr_unfold'GetSubresource
+  emptyData.TypeAssumptions.ptr_unfold'GetUserInfo
+  emptyData.TypeAssumptions.ptr_unfold'IsDryRun
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  arbCondition_instance : arbCondition.TypeAssumptions
-  arbAuthorizer_instance : arbAuthorizer.TypeAssumptions
-  emptyData_instance : emptyData.TypeAssumptions
-  arbBool_unfold : FuncUnfold arbBool [] arbBool.impl
-  arbErr_unfold : FuncUnfold arbErr [] arbErr.impl
-  arbReason_unfold : FuncUnfold arbReason [] arbReason.impl
-  arbDecisionValue_unfold : FuncUnfold arbDecisionValue [] arbDecisionValue.impl
-  arbName_unfold : FuncUnfold arbName [] arbName.impl
-  arbID_unfold : FuncUnfold arbID [] arbID.impl
-  arbType_unfold : FuncUnfold arbType [] arbType.impl
-  arbResult_unfold : FuncUnfold arbResult [] arbResult.impl
-  arbConds_unfold : FuncUnfold arbConds [] arbConds.impl
-  arbDecision_unfold : FuncUnfold arbDecision [] arbDecision.impl
-  arbMaybeEval_unfold : FuncUnfold arbMaybeEval [] arbMaybeEval.impl
-  arbEval_unfold : FuncUnfold arbEval [] arbEval.impl
-  legacyAuthorize_unfold : FuncUnfold legacyAuthorize [] legacyAuthorize.impl
-  newChain_unfold : FuncUnfold newChain [] newChain.impl
-  twoPhase_unfold : FuncUnfold twoPhase [] twoPhase.impl
-  Main_unfold : FuncUnfold Main [] Main.impl
-  MainStrict_unfold : FuncUnfold MainStrict [] MainStrict.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
-  import_schema_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
-  import_user_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Assumptions
-  import_authorizer_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Assumptions
-  import_union_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.Assumptions
+  instance'arbCondition : arbCondition.TypeAssumptions
+  instance'arbAuthorizer : arbAuthorizer.TypeAssumptions
+  instance'emptyData : emptyData.TypeAssumptions
+  unfold'arbBool : FuncUnfold arbBool [] arbBool.impl
+  unfold'arbErr : FuncUnfold arbErr [] arbErr.impl
+  unfold'arbReason : FuncUnfold arbReason [] arbReason.impl
+  unfold'arbDecisionValue : FuncUnfold arbDecisionValue [] arbDecisionValue.impl
+  unfold'arbName : FuncUnfold arbName [] arbName.impl
+  unfold'arbID : FuncUnfold arbID [] arbID.impl
+  unfold'arbType : FuncUnfold arbType [] arbType.impl
+  unfold'arbResult : FuncUnfold arbResult [] arbResult.impl
+  unfold'arbConds : FuncUnfold arbConds [] arbConds.impl
+  unfold'arbDecision : FuncUnfold arbDecision [] arbDecision.impl
+  unfold'arbMaybeEval : FuncUnfold arbMaybeEval [] arbMaybeEval.impl
+  unfold'arbEval : FuncUnfold arbEval [] arbEval.impl
+  unfold'legacyAuthorize : FuncUnfold legacyAuthorize [] legacyAuthorize.impl
+  unfold'newChain : FuncUnfold newChain [] newChain.impl
+  unfold'twoPhase : FuncUnfold twoPhase [] twoPhase.impl
+  unfold'Main : FuncUnfold Main [] Main.impl
+  unfold'MainStrict : FuncUnfold MainStrict [] MainStrict.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'rand : _root_.Perennial.math.rand.Assumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  import'schema : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
+  import'user : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Assumptions
+  import'authorizer : _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Assumptions
+  import'union : _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.Assumptions
 
-attribute [instance] Assumptions.arbCondition_instance
-  Assumptions.arbAuthorizer_instance
-  Assumptions.emptyData_instance
-  Assumptions.arbBool_unfold
-  Assumptions.arbErr_unfold
-  Assumptions.arbReason_unfold
-  Assumptions.arbDecisionValue_unfold
-  Assumptions.arbName_unfold
-  Assumptions.arbID_unfold
-  Assumptions.arbType_unfold
-  Assumptions.arbResult_unfold
-  Assumptions.arbConds_unfold
-  Assumptions.arbDecision_unfold
-  Assumptions.arbMaybeEval_unfold
-  Assumptions.arbEval_unfold
-  Assumptions.legacyAuthorize_unfold
-  Assumptions.newChain_unfold
-  Assumptions.twoPhase_unfold
-  Assumptions.Main_unfold
-  Assumptions.MainStrict_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_rand_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_schema_Assumption
-  Assumptions.import_user_Assumption
-  Assumptions.import_authorizer_Assumption
-  Assumptions.import_union_Assumption
+attribute [instance] Assumptions.instance'arbCondition
+  Assumptions.instance'arbAuthorizer
+  Assumptions.instance'emptyData
+  Assumptions.unfold'arbBool
+  Assumptions.unfold'arbErr
+  Assumptions.unfold'arbReason
+  Assumptions.unfold'arbDecisionValue
+  Assumptions.unfold'arbName
+  Assumptions.unfold'arbID
+  Assumptions.unfold'arbType
+  Assumptions.unfold'arbResult
+  Assumptions.unfold'arbConds
+  Assumptions.unfold'arbDecision
+  Assumptions.unfold'arbMaybeEval
+  Assumptions.unfold'arbEval
+  Assumptions.unfold'legacyAuthorize
+  Assumptions.unfold'newChain
+  Assumptions.unfold'twoPhase
+  Assumptions.unfold'Main
+  Assumptions.unfold'MainStrict
+  Assumptions.import'context
+  Assumptions.import'errors
+  Assumptions.import'rand
+  Assumptions.import'runtime
+  Assumptions.import'schema
+  Assumptions.import'user
+  Assumptions.import'authorizer
+  Assumptions.import'union
 
 end github_com.mit_pdos.etcd_grove.examples.k8s.authz
 

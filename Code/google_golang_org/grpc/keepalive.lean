@@ -65,7 +65,7 @@ noncomputable instance ClientParameters.zero_val [GooseExts] : ZeroVal ClientPar
 @[irreducible] noncomputable def ClientParameters.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClientParameters.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClientParameters [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ClientParameters [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClientParameters.fields ClientParameters.fieldsUnsealed :=
   ⟨by unfold ClientParameters.fields; rfl⟩
 
@@ -75,23 +75,23 @@ noncomputable instance equals_unfold_ClientParameters [GooseExts] [GoGlobalConte
 class ClientParameters.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClientParameters.underlying ClientParameters
   underlying : go.UnderlyingDirectedEq ClientParameters.ty ClientParameters.underlying
-  get_Time : ∀ (x : ClientParameters), go.IsGoStepPureDetTagged under (StructFieldGet ClientParameters.underlying go!"Time") #x (Val #(x.Time'))
-  set_Time : ∀ (x : ClientParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ClientParameters.underlying go!"Time") (PairV #x #y) (Val #(({ x with Time' := y } : ClientParameters)))
-  get_Timeout : ∀ (x : ClientParameters), go.IsGoStepPureDetTagged under (StructFieldGet ClientParameters.underlying go!"Timeout") #x (Val #(x.Timeout'))
-  set_Timeout : ∀ (x : ClientParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ClientParameters.underlying go!"Timeout") (PairV #x #y) (Val #(({ x with Timeout' := y } : ClientParameters)))
-  get_PermitWithoutStream : ∀ (x : ClientParameters), go.IsGoStepPureDetTagged under (StructFieldGet ClientParameters.underlying go!"PermitWithoutStream") #x (Val #(x.PermitWithoutStream'))
-  set_PermitWithoutStream : ∀ (x : ClientParameters) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ClientParameters.underlying go!"PermitWithoutStream") (PairV #x #y) (Val #(({ x with PermitWithoutStream' := y } : ClientParameters)))
+  get'Time : ∀ (x : ClientParameters), go.IsGoStepPureDetTagged under (StructFieldGet ClientParameters.underlying go!"Time") #x (Val #(x.Time'))
+  set'Time : ∀ (x : ClientParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ClientParameters.underlying go!"Time") (PairV #x #y) (Val #(({ x with Time' := y } : ClientParameters)))
+  get'Timeout : ∀ (x : ClientParameters), go.IsGoStepPureDetTagged under (StructFieldGet ClientParameters.underlying go!"Timeout") #x (Val #(x.Timeout'))
+  set'Timeout : ∀ (x : ClientParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ClientParameters.underlying go!"Timeout") (PairV #x #y) (Val #(({ x with Timeout' := y } : ClientParameters)))
+  get'PermitWithoutStream : ∀ (x : ClientParameters), go.IsGoStepPureDetTagged under (StructFieldGet ClientParameters.underlying go!"PermitWithoutStream") #x (Val #(x.PermitWithoutStream'))
+  set'PermitWithoutStream : ∀ (x : ClientParameters) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ClientParameters.underlying go!"PermitWithoutStream") (PairV #x #y) (Val #(({ x with PermitWithoutStream' := y } : ClientParameters)))
   method_set : go.MethodSetIs ClientParameters.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientParameters.ty) []
 
 attribute [instance] ClientParameters.TypeAssumptions.type_repr
   ClientParameters.TypeAssumptions.underlying
-  ClientParameters.TypeAssumptions.get_Time
-  ClientParameters.TypeAssumptions.set_Time
-  ClientParameters.TypeAssumptions.get_Timeout
-  ClientParameters.TypeAssumptions.set_Timeout
-  ClientParameters.TypeAssumptions.get_PermitWithoutStream
-  ClientParameters.TypeAssumptions.set_PermitWithoutStream
+  ClientParameters.TypeAssumptions.get'Time
+  ClientParameters.TypeAssumptions.set'Time
+  ClientParameters.TypeAssumptions.get'Timeout
+  ClientParameters.TypeAssumptions.set'Timeout
+  ClientParameters.TypeAssumptions.get'PermitWithoutStream
+  ClientParameters.TypeAssumptions.set'PermitWithoutStream
   ClientParameters.TypeAssumptions.method_set
   ClientParameters.TypeAssumptions.ptr_method_set
 
@@ -116,7 +116,7 @@ noncomputable instance ServerParameters.zero_val [GooseExts] : ZeroVal ServerPar
 @[irreducible] noncomputable def ServerParameters.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ServerParameters.fieldsUnsealed
 
-noncomputable instance equals_unfold_ServerParameters [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'ServerParameters [GooseExts] [GoGlobalContext] :
     EqualsUnfold ServerParameters.fields ServerParameters.fieldsUnsealed :=
   ⟨by unfold ServerParameters.fields; rfl⟩
 
@@ -126,31 +126,31 @@ noncomputable instance equals_unfold_ServerParameters [GooseExts] [GoGlobalConte
 class ServerParameters.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServerParameters.underlying ServerParameters
   underlying : go.UnderlyingDirectedEq ServerParameters.ty ServerParameters.underlying
-  get_MaxConnectionIdle : ∀ (x : ServerParameters), go.IsGoStepPureDetTagged under (StructFieldGet ServerParameters.underlying go!"MaxConnectionIdle") #x (Val #(x.MaxConnectionIdle'))
-  set_MaxConnectionIdle : ∀ (x : ServerParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerParameters.underlying go!"MaxConnectionIdle") (PairV #x #y) (Val #(({ x with MaxConnectionIdle' := y } : ServerParameters)))
-  get_MaxConnectionAge : ∀ (x : ServerParameters), go.IsGoStepPureDetTagged under (StructFieldGet ServerParameters.underlying go!"MaxConnectionAge") #x (Val #(x.MaxConnectionAge'))
-  set_MaxConnectionAge : ∀ (x : ServerParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerParameters.underlying go!"MaxConnectionAge") (PairV #x #y) (Val #(({ x with MaxConnectionAge' := y } : ServerParameters)))
-  get_MaxConnectionAgeGrace : ∀ (x : ServerParameters), go.IsGoStepPureDetTagged under (StructFieldGet ServerParameters.underlying go!"MaxConnectionAgeGrace") #x (Val #(x.MaxConnectionAgeGrace'))
-  set_MaxConnectionAgeGrace : ∀ (x : ServerParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerParameters.underlying go!"MaxConnectionAgeGrace") (PairV #x #y) (Val #(({ x with MaxConnectionAgeGrace' := y } : ServerParameters)))
-  get_Time : ∀ (x : ServerParameters), go.IsGoStepPureDetTagged under (StructFieldGet ServerParameters.underlying go!"Time") #x (Val #(x.Time'))
-  set_Time : ∀ (x : ServerParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerParameters.underlying go!"Time") (PairV #x #y) (Val #(({ x with Time' := y } : ServerParameters)))
-  get_Timeout : ∀ (x : ServerParameters), go.IsGoStepPureDetTagged under (StructFieldGet ServerParameters.underlying go!"Timeout") #x (Val #(x.Timeout'))
-  set_Timeout : ∀ (x : ServerParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerParameters.underlying go!"Timeout") (PairV #x #y) (Val #(({ x with Timeout' := y } : ServerParameters)))
+  get'MaxConnectionIdle : ∀ (x : ServerParameters), go.IsGoStepPureDetTagged under (StructFieldGet ServerParameters.underlying go!"MaxConnectionIdle") #x (Val #(x.MaxConnectionIdle'))
+  set'MaxConnectionIdle : ∀ (x : ServerParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerParameters.underlying go!"MaxConnectionIdle") (PairV #x #y) (Val #(({ x with MaxConnectionIdle' := y } : ServerParameters)))
+  get'MaxConnectionAge : ∀ (x : ServerParameters), go.IsGoStepPureDetTagged under (StructFieldGet ServerParameters.underlying go!"MaxConnectionAge") #x (Val #(x.MaxConnectionAge'))
+  set'MaxConnectionAge : ∀ (x : ServerParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerParameters.underlying go!"MaxConnectionAge") (PairV #x #y) (Val #(({ x with MaxConnectionAge' := y } : ServerParameters)))
+  get'MaxConnectionAgeGrace : ∀ (x : ServerParameters), go.IsGoStepPureDetTagged under (StructFieldGet ServerParameters.underlying go!"MaxConnectionAgeGrace") #x (Val #(x.MaxConnectionAgeGrace'))
+  set'MaxConnectionAgeGrace : ∀ (x : ServerParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerParameters.underlying go!"MaxConnectionAgeGrace") (PairV #x #y) (Val #(({ x with MaxConnectionAgeGrace' := y } : ServerParameters)))
+  get'Time : ∀ (x : ServerParameters), go.IsGoStepPureDetTagged under (StructFieldGet ServerParameters.underlying go!"Time") #x (Val #(x.Time'))
+  set'Time : ∀ (x : ServerParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerParameters.underlying go!"Time") (PairV #x #y) (Val #(({ x with Time' := y } : ServerParameters)))
+  get'Timeout : ∀ (x : ServerParameters), go.IsGoStepPureDetTagged under (StructFieldGet ServerParameters.underlying go!"Timeout") #x (Val #(x.Timeout'))
+  set'Timeout : ∀ (x : ServerParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerParameters.underlying go!"Timeout") (PairV #x #y) (Val #(({ x with Timeout' := y } : ServerParameters)))
   method_set : go.MethodSetIs ServerParameters.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerParameters.ty) []
 
 attribute [instance] ServerParameters.TypeAssumptions.type_repr
   ServerParameters.TypeAssumptions.underlying
-  ServerParameters.TypeAssumptions.get_MaxConnectionIdle
-  ServerParameters.TypeAssumptions.set_MaxConnectionIdle
-  ServerParameters.TypeAssumptions.get_MaxConnectionAge
-  ServerParameters.TypeAssumptions.set_MaxConnectionAge
-  ServerParameters.TypeAssumptions.get_MaxConnectionAgeGrace
-  ServerParameters.TypeAssumptions.set_MaxConnectionAgeGrace
-  ServerParameters.TypeAssumptions.get_Time
-  ServerParameters.TypeAssumptions.set_Time
-  ServerParameters.TypeAssumptions.get_Timeout
-  ServerParameters.TypeAssumptions.set_Timeout
+  ServerParameters.TypeAssumptions.get'MaxConnectionIdle
+  ServerParameters.TypeAssumptions.set'MaxConnectionIdle
+  ServerParameters.TypeAssumptions.get'MaxConnectionAge
+  ServerParameters.TypeAssumptions.set'MaxConnectionAge
+  ServerParameters.TypeAssumptions.get'MaxConnectionAgeGrace
+  ServerParameters.TypeAssumptions.set'MaxConnectionAgeGrace
+  ServerParameters.TypeAssumptions.get'Time
+  ServerParameters.TypeAssumptions.set'Time
+  ServerParameters.TypeAssumptions.get'Timeout
+  ServerParameters.TypeAssumptions.set'Timeout
   ServerParameters.TypeAssumptions.method_set
   ServerParameters.TypeAssumptions.ptr_method_set
 
@@ -169,7 +169,7 @@ noncomputable instance EnforcementPolicy.zero_val [GooseExts] : ZeroVal Enforcem
 @[irreducible] noncomputable def EnforcementPolicy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EnforcementPolicy.fieldsUnsealed
 
-noncomputable instance equals_unfold_EnforcementPolicy [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'EnforcementPolicy [GooseExts] [GoGlobalContext] :
     EqualsUnfold EnforcementPolicy.fields EnforcementPolicy.fieldsUnsealed :=
   ⟨by unfold EnforcementPolicy.fields; rfl⟩
 
@@ -179,32 +179,32 @@ noncomputable instance equals_unfold_EnforcementPolicy [GooseExts] [GoGlobalCont
 class EnforcementPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EnforcementPolicy.underlying EnforcementPolicy
   underlying : go.UnderlyingDirectedEq EnforcementPolicy.ty EnforcementPolicy.underlying
-  get_MinTime : ∀ (x : EnforcementPolicy), go.IsGoStepPureDetTagged under (StructFieldGet EnforcementPolicy.underlying go!"MinTime") #x (Val #(x.MinTime'))
-  set_MinTime : ∀ (x : EnforcementPolicy) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet EnforcementPolicy.underlying go!"MinTime") (PairV #x #y) (Val #(({ x with MinTime' := y } : EnforcementPolicy)))
-  get_PermitWithoutStream : ∀ (x : EnforcementPolicy), go.IsGoStepPureDetTagged under (StructFieldGet EnforcementPolicy.underlying go!"PermitWithoutStream") #x (Val #(x.PermitWithoutStream'))
-  set_PermitWithoutStream : ∀ (x : EnforcementPolicy) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EnforcementPolicy.underlying go!"PermitWithoutStream") (PairV #x #y) (Val #(({ x with PermitWithoutStream' := y } : EnforcementPolicy)))
+  get'MinTime : ∀ (x : EnforcementPolicy), go.IsGoStepPureDetTagged under (StructFieldGet EnforcementPolicy.underlying go!"MinTime") #x (Val #(x.MinTime'))
+  set'MinTime : ∀ (x : EnforcementPolicy) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet EnforcementPolicy.underlying go!"MinTime") (PairV #x #y) (Val #(({ x with MinTime' := y } : EnforcementPolicy)))
+  get'PermitWithoutStream : ∀ (x : EnforcementPolicy), go.IsGoStepPureDetTagged under (StructFieldGet EnforcementPolicy.underlying go!"PermitWithoutStream") #x (Val #(x.PermitWithoutStream'))
+  set'PermitWithoutStream : ∀ (x : EnforcementPolicy) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EnforcementPolicy.underlying go!"PermitWithoutStream") (PairV #x #y) (Val #(({ x with PermitWithoutStream' := y } : EnforcementPolicy)))
   method_set : go.MethodSetIs EnforcementPolicy.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType EnforcementPolicy.ty) []
 
 attribute [instance] EnforcementPolicy.TypeAssumptions.type_repr
   EnforcementPolicy.TypeAssumptions.underlying
-  EnforcementPolicy.TypeAssumptions.get_MinTime
-  EnforcementPolicy.TypeAssumptions.set_MinTime
-  EnforcementPolicy.TypeAssumptions.get_PermitWithoutStream
-  EnforcementPolicy.TypeAssumptions.set_PermitWithoutStream
+  EnforcementPolicy.TypeAssumptions.get'MinTime
+  EnforcementPolicy.TypeAssumptions.set'MinTime
+  EnforcementPolicy.TypeAssumptions.get'PermitWithoutStream
+  EnforcementPolicy.TypeAssumptions.set'PermitWithoutStream
   EnforcementPolicy.TypeAssumptions.method_set
   EnforcementPolicy.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ClientParameters_instance : ClientParameters.TypeAssumptions
-  ServerParameters_instance : ServerParameters.TypeAssumptions
-  EnforcementPolicy_instance : EnforcementPolicy.TypeAssumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'ClientParameters : ClientParameters.TypeAssumptions
+  instance'ServerParameters : ServerParameters.TypeAssumptions
+  instance'EnforcementPolicy : EnforcementPolicy.TypeAssumptions
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.ClientParameters_instance
-  Assumptions.ServerParameters_instance
-  Assumptions.EnforcementPolicy_instance
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'ClientParameters
+  Assumptions.instance'ServerParameters
+  Assumptions.instance'EnforcementPolicy
+  Assumptions.import'time
 
 end google_golang_org.grpc.keepalive
 

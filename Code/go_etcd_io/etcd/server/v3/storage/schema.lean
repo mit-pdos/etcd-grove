@@ -2497,7 +2497,7 @@ noncomputable instance setKeyAction.zero_val [GooseExts] : ZeroVal setKeyAction 
 @[irreducible] noncomputable def setKeyAction.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   setKeyAction.fieldsUnsealed
 
-noncomputable instance equals_unfold_setKeyAction [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'setKeyAction [GooseExts] [GoGlobalContext] :
     EqualsUnfold setKeyAction.fields setKeyAction.fieldsUnsealed :=
   ⟨by unfold setKeyAction.fields; rfl⟩
 
@@ -2507,23 +2507,23 @@ noncomputable instance equals_unfold_setKeyAction [GooseExts] [GoGlobalContext] 
 class setKeyAction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying setKeyAction.underlying setKeyAction
   underlying : go.UnderlyingDirectedEq setKeyAction.ty setKeyAction.underlying
-  get_Bucket : ∀ (x : setKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet setKeyAction.underlying go!"Bucket") #x (Val #(x.Bucket'))
-  set_Bucket : ∀ (x : setKeyAction) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket), go.IsGoStepPureDetTagged under (StructFieldSet setKeyAction.underlying go!"Bucket") (PairV #x #y) (Val #(({ x with Bucket' := y } : setKeyAction)))
-  get_FieldName : ∀ (x : setKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet setKeyAction.underlying go!"FieldName") #x (Val #(x.FieldName'))
-  set_FieldName : ∀ (x : setKeyAction) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet setKeyAction.underlying go!"FieldName") (PairV #x #y) (Val #(({ x with FieldName' := y } : setKeyAction)))
-  get_FieldValue : ∀ (x : setKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet setKeyAction.underlying go!"FieldValue") #x (Val #(x.FieldValue'))
-  set_FieldValue : ∀ (x : setKeyAction) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet setKeyAction.underlying go!"FieldValue") (PairV #x #y) (Val #(({ x with FieldValue' := y } : setKeyAction)))
+  get'Bucket : ∀ (x : setKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet setKeyAction.underlying go!"Bucket") #x (Val #(x.Bucket'))
+  set'Bucket : ∀ (x : setKeyAction) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket), go.IsGoStepPureDetTagged under (StructFieldSet setKeyAction.underlying go!"Bucket") (PairV #x #y) (Val #(({ x with Bucket' := y } : setKeyAction)))
+  get'FieldName : ∀ (x : setKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet setKeyAction.underlying go!"FieldName") #x (Val #(x.FieldName'))
+  set'FieldName : ∀ (x : setKeyAction) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet setKeyAction.underlying go!"FieldName") (PairV #x #y) (Val #(({ x with FieldName' := y } : setKeyAction)))
+  get'FieldValue : ∀ (x : setKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet setKeyAction.underlying go!"FieldValue") #x (Val #(x.FieldValue'))
+  set'FieldValue : ∀ (x : setKeyAction) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet setKeyAction.underlying go!"FieldValue") (PairV #x #y) (Val #(({ x with FieldValue' := y } : setKeyAction)))
   method_set : go.MethodSetIs setKeyAction.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeDo", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType setKeyAction.ty) [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeDo", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error])))]
 
 attribute [instance] setKeyAction.TypeAssumptions.type_repr
   setKeyAction.TypeAssumptions.underlying
-  setKeyAction.TypeAssumptions.get_Bucket
-  setKeyAction.TypeAssumptions.set_Bucket
-  setKeyAction.TypeAssumptions.get_FieldName
-  setKeyAction.TypeAssumptions.set_FieldName
-  setKeyAction.TypeAssumptions.get_FieldValue
-  setKeyAction.TypeAssumptions.set_FieldValue
+  setKeyAction.TypeAssumptions.get'Bucket
+  setKeyAction.TypeAssumptions.set'Bucket
+  setKeyAction.TypeAssumptions.get'FieldName
+  setKeyAction.TypeAssumptions.set'FieldName
+  setKeyAction.TypeAssumptions.get'FieldValue
+  setKeyAction.TypeAssumptions.set'FieldValue
   setKeyAction.TypeAssumptions.method_set
   setKeyAction.TypeAssumptions.ptr_method_set
 
@@ -2542,7 +2542,7 @@ noncomputable instance deleteKeyAction.zero_val [GooseExts] : ZeroVal deleteKeyA
 @[irreducible] noncomputable def deleteKeyAction.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   deleteKeyAction.fieldsUnsealed
 
-noncomputable instance equals_unfold_deleteKeyAction [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'deleteKeyAction [GooseExts] [GoGlobalContext] :
     EqualsUnfold deleteKeyAction.fields deleteKeyAction.fieldsUnsealed :=
   ⟨by unfold deleteKeyAction.fields; rfl⟩
 
@@ -2552,19 +2552,19 @@ noncomputable instance equals_unfold_deleteKeyAction [GooseExts] [GoGlobalContex
 class deleteKeyAction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying deleteKeyAction.underlying deleteKeyAction
   underlying : go.UnderlyingDirectedEq deleteKeyAction.ty deleteKeyAction.underlying
-  get_Bucket : ∀ (x : deleteKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet deleteKeyAction.underlying go!"Bucket") #x (Val #(x.Bucket'))
-  set_Bucket : ∀ (x : deleteKeyAction) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket), go.IsGoStepPureDetTagged under (StructFieldSet deleteKeyAction.underlying go!"Bucket") (PairV #x #y) (Val #(({ x with Bucket' := y } : deleteKeyAction)))
-  get_FieldName : ∀ (x : deleteKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet deleteKeyAction.underlying go!"FieldName") #x (Val #(x.FieldName'))
-  set_FieldName : ∀ (x : deleteKeyAction) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet deleteKeyAction.underlying go!"FieldName") (PairV #x #y) (Val #(({ x with FieldName' := y } : deleteKeyAction)))
+  get'Bucket : ∀ (x : deleteKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet deleteKeyAction.underlying go!"Bucket") #x (Val #(x.Bucket'))
+  set'Bucket : ∀ (x : deleteKeyAction) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket), go.IsGoStepPureDetTagged under (StructFieldSet deleteKeyAction.underlying go!"Bucket") (PairV #x #y) (Val #(({ x with Bucket' := y } : deleteKeyAction)))
+  get'FieldName : ∀ (x : deleteKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet deleteKeyAction.underlying go!"FieldName") #x (Val #(x.FieldName'))
+  set'FieldName : ∀ (x : deleteKeyAction) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet deleteKeyAction.underlying go!"FieldName") (PairV #x #y) (Val #(({ x with FieldName' := y } : deleteKeyAction)))
   method_set : go.MethodSetIs deleteKeyAction.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeDo", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType deleteKeyAction.ty) [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeDo", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error])))]
 
 attribute [instance] deleteKeyAction.TypeAssumptions.type_repr
   deleteKeyAction.TypeAssumptions.underlying
-  deleteKeyAction.TypeAssumptions.get_Bucket
-  deleteKeyAction.TypeAssumptions.set_Bucket
-  deleteKeyAction.TypeAssumptions.get_FieldName
-  deleteKeyAction.TypeAssumptions.set_FieldName
+  deleteKeyAction.TypeAssumptions.get'Bucket
+  deleteKeyAction.TypeAssumptions.set'Bucket
+  deleteKeyAction.TypeAssumptions.get'FieldName
+  deleteKeyAction.TypeAssumptions.set'FieldName
   deleteKeyAction.TypeAssumptions.method_set
   deleteKeyAction.TypeAssumptions.ptr_method_set
 
@@ -2611,7 +2611,7 @@ noncomputable instance alarmBackend.zero_val [GooseExts] : ZeroVal alarmBackend 
 @[irreducible] noncomputable def alarmBackend.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   alarmBackend.fieldsUnsealed
 
-noncomputable instance equals_unfold_alarmBackend [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'alarmBackend [GooseExts] [GoGlobalContext] :
     EqualsUnfold alarmBackend.fields alarmBackend.fieldsUnsealed :=
   ⟨by unfold alarmBackend.fields; rfl⟩
 
@@ -2621,32 +2621,32 @@ noncomputable instance equals_unfold_alarmBackend [GooseExts] [GoGlobalContext] 
 class alarmBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying alarmBackend.underlying alarmBackend
   underlying : go.UnderlyingDirectedEq alarmBackend.ty alarmBackend.underlying
-  get_lg : ∀ (x : alarmBackend), go.IsGoStepPureDetTagged under (StructFieldGet alarmBackend.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : alarmBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet alarmBackend.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : alarmBackend)))
-  get_be : ∀ (x : alarmBackend), go.IsGoStepPureDetTagged under (StructFieldGet alarmBackend.underlying go!"be") #x (Val #(x.be'))
-  set_be : ∀ (x : alarmBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet alarmBackend.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : alarmBackend)))
+  get'lg : ∀ (x : alarmBackend), go.IsGoStepPureDetTagged under (StructFieldGet alarmBackend.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : alarmBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet alarmBackend.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : alarmBackend)))
+  get'be : ∀ (x : alarmBackend), go.IsGoStepPureDetTagged under (StructFieldGet alarmBackend.underlying go!"be") #x (Val #(x.be'))
+  set'be : ∀ (x : alarmBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet alarmBackend.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : alarmBackend)))
   method_set : go.MethodSetIs alarmBackend.ty [(go!"ForceCommit", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType alarmBackend.ty) [(go!"CreateAlarmBucket", (some (go.signature.Signature [] false []))), (go!"ForceCommit", (some (go.signature.Signature [] false []))), (go!"GetAllAlarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)), go.error]))), (go!"MustDeleteAlarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false []))), (go!"MustPutAlarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/storage/schema.mustUnsafeDeleteAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/storage/schema.mustUnsafePutAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeGetAllAlarms", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)), go.error])))]
-  ForceCommit_unfold : MethodUnfold alarmBackend.ty go!"ForceCommit" alarmBackend.ForceCommit.impl
-  ptr_CreateAlarmBucket_unfold : MethodUnfold (go.GoType.PointerType alarmBackend.ty) go!"CreateAlarmBucket" alarmBackend.CreateAlarmBucket.impl
-  ptr_ForceCommit_unfold : MethodUnfold (go.GoType.PointerType alarmBackend.ty) go!"ForceCommit" (LamV "$r"
+  unfold'ForceCommit : MethodUnfold alarmBackend.ty go!"ForceCommit" alarmBackend.ForceCommit.impl
+  ptr_unfold'CreateAlarmBucket : MethodUnfold (go.GoType.PointerType alarmBackend.ty) go!"CreateAlarmBucket" alarmBackend.CreateAlarmBucket.impl
+  ptr_unfold'ForceCommit : MethodUnfold (go.GoType.PointerType alarmBackend.ty) go!"ForceCommit" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve alarmBackend.ty go!"ForceCommit"))) (App (Val (GoInstruction (GoLoad alarmBackend.ty))) (Var "$r"))))
-  ptr_GetAllAlarms_unfold : MethodUnfold (go.GoType.PointerType alarmBackend.ty) go!"GetAllAlarms" alarmBackend.GetAllAlarms.impl
-  ptr_unsafeGetAllAlarms_unfold : MethodUnfold (go.GoType.PointerType alarmBackend.ty) go!"unsafeGetAllAlarms" alarmBackend.unsafeGetAllAlarms.impl
+  ptr_unfold'GetAllAlarms : MethodUnfold (go.GoType.PointerType alarmBackend.ty) go!"GetAllAlarms" alarmBackend.GetAllAlarms.impl
+  ptr_unfold'unsafeGetAllAlarms : MethodUnfold (go.GoType.PointerType alarmBackend.ty) go!"unsafeGetAllAlarms" alarmBackend.unsafeGetAllAlarms.impl
 
 attribute [instance] alarmBackend.TypeAssumptions.type_repr
   alarmBackend.TypeAssumptions.underlying
-  alarmBackend.TypeAssumptions.get_lg
-  alarmBackend.TypeAssumptions.set_lg
-  alarmBackend.TypeAssumptions.get_be
-  alarmBackend.TypeAssumptions.set_be
+  alarmBackend.TypeAssumptions.get'lg
+  alarmBackend.TypeAssumptions.set'lg
+  alarmBackend.TypeAssumptions.get'be
+  alarmBackend.TypeAssumptions.set'be
   alarmBackend.TypeAssumptions.method_set
   alarmBackend.TypeAssumptions.ptr_method_set
-  alarmBackend.TypeAssumptions.ForceCommit_unfold
-  alarmBackend.TypeAssumptions.ptr_CreateAlarmBucket_unfold
-  alarmBackend.TypeAssumptions.ptr_ForceCommit_unfold
-  alarmBackend.TypeAssumptions.ptr_GetAllAlarms_unfold
-  alarmBackend.TypeAssumptions.ptr_unsafeGetAllAlarms_unfold
+  alarmBackend.TypeAssumptions.unfold'ForceCommit
+  alarmBackend.TypeAssumptions.ptr_unfold'CreateAlarmBucket
+  alarmBackend.TypeAssumptions.ptr_unfold'ForceCommit
+  alarmBackend.TypeAssumptions.ptr_unfold'GetAllAlarms
+  alarmBackend.TypeAssumptions.ptr_unfold'unsafeGetAllAlarms
 
 structure authBackend [GooseExts] where
   mk ::
@@ -2663,7 +2663,7 @@ noncomputable instance authBackend.zero_val [GooseExts] : ZeroVal authBackend :=
 @[irreducible] noncomputable def authBackend.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   authBackend.fieldsUnsealed
 
-noncomputable instance equals_unfold_authBackend [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'authBackend [GooseExts] [GoGlobalContext] :
     EqualsUnfold authBackend.fields authBackend.fieldsUnsealed :=
   ⟨by unfold authBackend.fields; rfl⟩
 
@@ -2673,37 +2673,37 @@ noncomputable instance equals_unfold_authBackend [GooseExts] [GoGlobalContext] :
 class authBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying authBackend.underlying authBackend
   underlying : go.UnderlyingDirectedEq authBackend.ty authBackend.underlying
-  get_be : ∀ (x : authBackend), go.IsGoStepPureDetTagged under (StructFieldGet authBackend.underlying go!"be") #x (Val #(x.be'))
-  set_be : ∀ (x : authBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet authBackend.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : authBackend)))
-  get_lg : ∀ (x : authBackend), go.IsGoStepPureDetTagged under (StructFieldGet authBackend.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : authBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authBackend.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : authBackend)))
+  get'be : ∀ (x : authBackend), go.IsGoStepPureDetTagged under (StructFieldGet authBackend.underlying go!"be") #x (Val #(x.be'))
+  set'be : ∀ (x : authBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet authBackend.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : authBackend)))
+  get'lg : ∀ (x : authBackend), go.IsGoStepPureDetTagged under (StructFieldGet authBackend.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : authBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authBackend.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : authBackend)))
   method_set : go.MethodSetIs authBackend.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType authBackend.ty) [(go!"BatchTx", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty]))), (go!"CreateAuthBuckets", (some (go.signature.Signature [] false []))), (go!"ForceCommit", (some (go.signature.Signature [] false []))), (go!"GetAllRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))]))), (go!"GetAllUsers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))]))), (go!"GetRole", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)]))), (go!"GetUser", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)]))), (go!"ReadTx", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty])))]
-  ptr_BatchTx_unfold : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"BatchTx" authBackend.BatchTx.impl
-  ptr_CreateAuthBuckets_unfold : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"CreateAuthBuckets" authBackend.CreateAuthBuckets.impl
-  ptr_ForceCommit_unfold : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"ForceCommit" authBackend.ForceCommit.impl
-  ptr_GetAllRoles_unfold : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"GetAllRoles" authBackend.GetAllRoles.impl
-  ptr_GetAllUsers_unfold : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"GetAllUsers" authBackend.GetAllUsers.impl
-  ptr_GetRole_unfold : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"GetRole" authBackend.GetRole.impl
-  ptr_GetUser_unfold : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"GetUser" authBackend.GetUser.impl
-  ptr_ReadTx_unfold : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"ReadTx" authBackend.ReadTx.impl
+  ptr_unfold'BatchTx : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"BatchTx" authBackend.BatchTx.impl
+  ptr_unfold'CreateAuthBuckets : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"CreateAuthBuckets" authBackend.CreateAuthBuckets.impl
+  ptr_unfold'ForceCommit : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"ForceCommit" authBackend.ForceCommit.impl
+  ptr_unfold'GetAllRoles : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"GetAllRoles" authBackend.GetAllRoles.impl
+  ptr_unfold'GetAllUsers : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"GetAllUsers" authBackend.GetAllUsers.impl
+  ptr_unfold'GetRole : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"GetRole" authBackend.GetRole.impl
+  ptr_unfold'GetUser : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"GetUser" authBackend.GetUser.impl
+  ptr_unfold'ReadTx : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"ReadTx" authBackend.ReadTx.impl
 
 attribute [instance] authBackend.TypeAssumptions.type_repr
   authBackend.TypeAssumptions.underlying
-  authBackend.TypeAssumptions.get_be
-  authBackend.TypeAssumptions.set_be
-  authBackend.TypeAssumptions.get_lg
-  authBackend.TypeAssumptions.set_lg
+  authBackend.TypeAssumptions.get'be
+  authBackend.TypeAssumptions.set'be
+  authBackend.TypeAssumptions.get'lg
+  authBackend.TypeAssumptions.set'lg
   authBackend.TypeAssumptions.method_set
   authBackend.TypeAssumptions.ptr_method_set
-  authBackend.TypeAssumptions.ptr_BatchTx_unfold
-  authBackend.TypeAssumptions.ptr_CreateAuthBuckets_unfold
-  authBackend.TypeAssumptions.ptr_ForceCommit_unfold
-  authBackend.TypeAssumptions.ptr_GetAllRoles_unfold
-  authBackend.TypeAssumptions.ptr_GetAllUsers_unfold
-  authBackend.TypeAssumptions.ptr_GetRole_unfold
-  authBackend.TypeAssumptions.ptr_GetUser_unfold
-  authBackend.TypeAssumptions.ptr_ReadTx_unfold
+  authBackend.TypeAssumptions.ptr_unfold'BatchTx
+  authBackend.TypeAssumptions.ptr_unfold'CreateAuthBuckets
+  authBackend.TypeAssumptions.ptr_unfold'ForceCommit
+  authBackend.TypeAssumptions.ptr_unfold'GetAllRoles
+  authBackend.TypeAssumptions.ptr_unfold'GetAllUsers
+  authBackend.TypeAssumptions.ptr_unfold'GetRole
+  authBackend.TypeAssumptions.ptr_unfold'GetUser
+  authBackend.TypeAssumptions.ptr_unfold'ReadTx
 
 structure authReadTx [GooseExts] where
   mk ::
@@ -2720,7 +2720,7 @@ noncomputable instance authReadTx.zero_val [GooseExts] : ZeroVal authReadTx :=
 @[irreducible] noncomputable def authReadTx.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   authReadTx.fieldsUnsealed
 
-noncomputable instance equals_unfold_authReadTx [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'authReadTx [GooseExts] [GoGlobalContext] :
     EqualsUnfold authReadTx.fields authReadTx.fieldsUnsealed :=
   ⟨by unfold authReadTx.fields; rfl⟩
 
@@ -2730,37 +2730,37 @@ noncomputable instance equals_unfold_authReadTx [GooseExts] [GoGlobalContext] :
 class authReadTx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying authReadTx.underlying authReadTx
   underlying : go.UnderlyingDirectedEq authReadTx.ty authReadTx.underlying
-  get_tx : ∀ (x : authReadTx), go.IsGoStepPureDetTagged under (StructFieldGet authReadTx.underlying go!"tx") #x (Val #(x.tx'))
-  set_tx : ∀ (x : authReadTx) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx), go.IsGoStepPureDetTagged under (StructFieldSet authReadTx.underlying go!"tx") (PairV #x #y) (Val #(({ x with tx' := y } : authReadTx)))
-  get_lg : ∀ (x : authReadTx), go.IsGoStepPureDetTagged under (StructFieldGet authReadTx.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : authReadTx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authReadTx.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : authReadTx)))
+  get'tx : ∀ (x : authReadTx), go.IsGoStepPureDetTagged under (StructFieldGet authReadTx.underlying go!"tx") #x (Val #(x.tx'))
+  set'tx : ∀ (x : authReadTx) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx), go.IsGoStepPureDetTagged under (StructFieldSet authReadTx.underlying go!"tx") (PairV #x #y) (Val #(({ x with tx' := y } : authReadTx)))
+  get'lg : ∀ (x : authReadTx), go.IsGoStepPureDetTagged under (StructFieldGet authReadTx.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : authReadTx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authReadTx.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : authReadTx)))
   method_set : go.MethodSetIs authReadTx.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType authReadTx.ty) [(go!"RLock", (some (go.signature.Signature [] false []))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"UnsafeGetAllRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))]))), (go!"UnsafeGetAllUsers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))]))), (go!"UnsafeGetRole", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)]))), (go!"UnsafeGetUser", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)]))), (go!"UnsafeReadAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"UnsafeReadAuthRevision", (some (go.signature.Signature [] false [go.uint64])))]
-  ptr_RLock_unfold : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"RLock" authReadTx.RLock.impl
-  ptr_RUnlock_unfold : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"RUnlock" authReadTx.RUnlock.impl
-  ptr_UnsafeGetAllRoles_unfold : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"UnsafeGetAllRoles" authReadTx.UnsafeGetAllRoles.impl
-  ptr_UnsafeGetAllUsers_unfold : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"UnsafeGetAllUsers" authReadTx.UnsafeGetAllUsers.impl
-  ptr_UnsafeGetRole_unfold : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"UnsafeGetRole" authReadTx.UnsafeGetRole.impl
-  ptr_UnsafeGetUser_unfold : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"UnsafeGetUser" authReadTx.UnsafeGetUser.impl
-  ptr_UnsafeReadAuthEnabled_unfold : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"UnsafeReadAuthEnabled" authReadTx.UnsafeReadAuthEnabled.impl
-  ptr_UnsafeReadAuthRevision_unfold : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"UnsafeReadAuthRevision" authReadTx.UnsafeReadAuthRevision.impl
+  ptr_unfold'RLock : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"RLock" authReadTx.RLock.impl
+  ptr_unfold'RUnlock : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"RUnlock" authReadTx.RUnlock.impl
+  ptr_unfold'UnsafeGetAllRoles : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"UnsafeGetAllRoles" authReadTx.UnsafeGetAllRoles.impl
+  ptr_unfold'UnsafeGetAllUsers : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"UnsafeGetAllUsers" authReadTx.UnsafeGetAllUsers.impl
+  ptr_unfold'UnsafeGetRole : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"UnsafeGetRole" authReadTx.UnsafeGetRole.impl
+  ptr_unfold'UnsafeGetUser : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"UnsafeGetUser" authReadTx.UnsafeGetUser.impl
+  ptr_unfold'UnsafeReadAuthEnabled : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"UnsafeReadAuthEnabled" authReadTx.UnsafeReadAuthEnabled.impl
+  ptr_unfold'UnsafeReadAuthRevision : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"UnsafeReadAuthRevision" authReadTx.UnsafeReadAuthRevision.impl
 
 attribute [instance] authReadTx.TypeAssumptions.type_repr
   authReadTx.TypeAssumptions.underlying
-  authReadTx.TypeAssumptions.get_tx
-  authReadTx.TypeAssumptions.set_tx
-  authReadTx.TypeAssumptions.get_lg
-  authReadTx.TypeAssumptions.set_lg
+  authReadTx.TypeAssumptions.get'tx
+  authReadTx.TypeAssumptions.set'tx
+  authReadTx.TypeAssumptions.get'lg
+  authReadTx.TypeAssumptions.set'lg
   authReadTx.TypeAssumptions.method_set
   authReadTx.TypeAssumptions.ptr_method_set
-  authReadTx.TypeAssumptions.ptr_RLock_unfold
-  authReadTx.TypeAssumptions.ptr_RUnlock_unfold
-  authReadTx.TypeAssumptions.ptr_UnsafeGetAllRoles_unfold
-  authReadTx.TypeAssumptions.ptr_UnsafeGetAllUsers_unfold
-  authReadTx.TypeAssumptions.ptr_UnsafeGetRole_unfold
-  authReadTx.TypeAssumptions.ptr_UnsafeGetUser_unfold
-  authReadTx.TypeAssumptions.ptr_UnsafeReadAuthEnabled_unfold
-  authReadTx.TypeAssumptions.ptr_UnsafeReadAuthRevision_unfold
+  authReadTx.TypeAssumptions.ptr_unfold'RLock
+  authReadTx.TypeAssumptions.ptr_unfold'RUnlock
+  authReadTx.TypeAssumptions.ptr_unfold'UnsafeGetAllRoles
+  authReadTx.TypeAssumptions.ptr_unfold'UnsafeGetAllUsers
+  authReadTx.TypeAssumptions.ptr_unfold'UnsafeGetRole
+  authReadTx.TypeAssumptions.ptr_unfold'UnsafeGetUser
+  authReadTx.TypeAssumptions.ptr_unfold'UnsafeReadAuthEnabled
+  authReadTx.TypeAssumptions.ptr_unfold'UnsafeReadAuthRevision
 
 structure authBatchTx [GooseExts] where
   mk ::
@@ -2777,7 +2777,7 @@ noncomputable instance authBatchTx.zero_val [GooseExts] : ZeroVal authBatchTx :=
 @[irreducible] noncomputable def authBatchTx.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   authBatchTx.fieldsUnsealed
 
-noncomputable instance equals_unfold_authBatchTx [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'authBatchTx [GooseExts] [GoGlobalContext] :
     EqualsUnfold authBatchTx.fields authBatchTx.fieldsUnsealed :=
   ⟨by unfold authBatchTx.fields; rfl⟩
 
@@ -2787,49 +2787,49 @@ noncomputable instance equals_unfold_authBatchTx [GooseExts] [GoGlobalContext] :
 class authBatchTx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying authBatchTx.underlying authBatchTx
   underlying : go.UnderlyingDirectedEq authBatchTx.ty authBatchTx.underlying
-  get_tx : ∀ (x : authBatchTx), go.IsGoStepPureDetTagged under (StructFieldGet authBatchTx.underlying go!"tx") #x (Val #(x.tx'))
-  set_tx : ∀ (x : authBatchTx) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx), go.IsGoStepPureDetTagged under (StructFieldSet authBatchTx.underlying go!"tx") (PairV #x #y) (Val #(({ x with tx' := y } : authBatchTx)))
-  get_lg : ∀ (x : authBatchTx), go.IsGoStepPureDetTagged under (StructFieldGet authBatchTx.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : authBatchTx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authBatchTx.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : authBatchTx)))
+  get'tx : ∀ (x : authBatchTx), go.IsGoStepPureDetTagged under (StructFieldGet authBatchTx.underlying go!"tx") #x (Val #(x.tx'))
+  set'tx : ∀ (x : authBatchTx) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx), go.IsGoStepPureDetTagged under (StructFieldSet authBatchTx.underlying go!"tx") (PairV #x #y) (Val #(({ x with tx' := y } : authBatchTx)))
+  get'lg : ∀ (x : authBatchTx), go.IsGoStepPureDetTagged under (StructFieldGet authBatchTx.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : authBatchTx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authBatchTx.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : authBatchTx)))
   method_set : go.MethodSetIs authBatchTx.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType authBatchTx.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"UnsafeDeleteRole", (some (go.signature.Signature [go.string] false []))), (go!"UnsafeDeleteUser", (some (go.signature.Signature [go.string] false []))), (go!"UnsafeGetAllRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))]))), (go!"UnsafeGetAllUsers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))]))), (go!"UnsafeGetRole", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)]))), (go!"UnsafeGetUser", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)]))), (go!"UnsafePutRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)] false []))), (go!"UnsafePutUser", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)] false []))), (go!"UnsafeReadAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"UnsafeReadAuthRevision", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnsafeSaveAuthEnabled", (some (go.signature.Signature [go.bool] false []))), (go!"UnsafeSaveAuthRevision", (some (go.signature.Signature [go.uint64] false [])))]
-  ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"Lock" authBatchTx.Lock.impl
-  ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"Unlock" authBatchTx.Unlock.impl
-  ptr_UnsafeDeleteRole_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeDeleteRole" authBatchTx.UnsafeDeleteRole.impl
-  ptr_UnsafeDeleteUser_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeDeleteUser" authBatchTx.UnsafeDeleteUser.impl
-  ptr_UnsafeGetAllRoles_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeGetAllRoles" authBatchTx.UnsafeGetAllRoles.impl
-  ptr_UnsafeGetAllUsers_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeGetAllUsers" authBatchTx.UnsafeGetAllUsers.impl
-  ptr_UnsafeGetRole_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeGetRole" authBatchTx.UnsafeGetRole.impl
-  ptr_UnsafeGetUser_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeGetUser" authBatchTx.UnsafeGetUser.impl
-  ptr_UnsafePutRole_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafePutRole" authBatchTx.UnsafePutRole.impl
-  ptr_UnsafePutUser_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafePutUser" authBatchTx.UnsafePutUser.impl
-  ptr_UnsafeReadAuthEnabled_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeReadAuthEnabled" authBatchTx.UnsafeReadAuthEnabled.impl
-  ptr_UnsafeReadAuthRevision_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeReadAuthRevision" authBatchTx.UnsafeReadAuthRevision.impl
-  ptr_UnsafeSaveAuthEnabled_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeSaveAuthEnabled" authBatchTx.UnsafeSaveAuthEnabled.impl
-  ptr_UnsafeSaveAuthRevision_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeSaveAuthRevision" authBatchTx.UnsafeSaveAuthRevision.impl
+  ptr_unfold'Lock : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"Lock" authBatchTx.Lock.impl
+  ptr_unfold'Unlock : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"Unlock" authBatchTx.Unlock.impl
+  ptr_unfold'UnsafeDeleteRole : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeDeleteRole" authBatchTx.UnsafeDeleteRole.impl
+  ptr_unfold'UnsafeDeleteUser : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeDeleteUser" authBatchTx.UnsafeDeleteUser.impl
+  ptr_unfold'UnsafeGetAllRoles : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeGetAllRoles" authBatchTx.UnsafeGetAllRoles.impl
+  ptr_unfold'UnsafeGetAllUsers : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeGetAllUsers" authBatchTx.UnsafeGetAllUsers.impl
+  ptr_unfold'UnsafeGetRole : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeGetRole" authBatchTx.UnsafeGetRole.impl
+  ptr_unfold'UnsafeGetUser : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeGetUser" authBatchTx.UnsafeGetUser.impl
+  ptr_unfold'UnsafePutRole : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafePutRole" authBatchTx.UnsafePutRole.impl
+  ptr_unfold'UnsafePutUser : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafePutUser" authBatchTx.UnsafePutUser.impl
+  ptr_unfold'UnsafeReadAuthEnabled : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeReadAuthEnabled" authBatchTx.UnsafeReadAuthEnabled.impl
+  ptr_unfold'UnsafeReadAuthRevision : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeReadAuthRevision" authBatchTx.UnsafeReadAuthRevision.impl
+  ptr_unfold'UnsafeSaveAuthEnabled : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeSaveAuthEnabled" authBatchTx.UnsafeSaveAuthEnabled.impl
+  ptr_unfold'UnsafeSaveAuthRevision : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeSaveAuthRevision" authBatchTx.UnsafeSaveAuthRevision.impl
 
 attribute [instance] authBatchTx.TypeAssumptions.type_repr
   authBatchTx.TypeAssumptions.underlying
-  authBatchTx.TypeAssumptions.get_tx
-  authBatchTx.TypeAssumptions.set_tx
-  authBatchTx.TypeAssumptions.get_lg
-  authBatchTx.TypeAssumptions.set_lg
+  authBatchTx.TypeAssumptions.get'tx
+  authBatchTx.TypeAssumptions.set'tx
+  authBatchTx.TypeAssumptions.get'lg
+  authBatchTx.TypeAssumptions.set'lg
   authBatchTx.TypeAssumptions.method_set
   authBatchTx.TypeAssumptions.ptr_method_set
-  authBatchTx.TypeAssumptions.ptr_Lock_unfold
-  authBatchTx.TypeAssumptions.ptr_Unlock_unfold
-  authBatchTx.TypeAssumptions.ptr_UnsafeDeleteRole_unfold
-  authBatchTx.TypeAssumptions.ptr_UnsafeDeleteUser_unfold
-  authBatchTx.TypeAssumptions.ptr_UnsafeGetAllRoles_unfold
-  authBatchTx.TypeAssumptions.ptr_UnsafeGetAllUsers_unfold
-  authBatchTx.TypeAssumptions.ptr_UnsafeGetRole_unfold
-  authBatchTx.TypeAssumptions.ptr_UnsafeGetUser_unfold
-  authBatchTx.TypeAssumptions.ptr_UnsafePutRole_unfold
-  authBatchTx.TypeAssumptions.ptr_UnsafePutUser_unfold
-  authBatchTx.TypeAssumptions.ptr_UnsafeReadAuthEnabled_unfold
-  authBatchTx.TypeAssumptions.ptr_UnsafeReadAuthRevision_unfold
-  authBatchTx.TypeAssumptions.ptr_UnsafeSaveAuthEnabled_unfold
-  authBatchTx.TypeAssumptions.ptr_UnsafeSaveAuthRevision_unfold
+  authBatchTx.TypeAssumptions.ptr_unfold'Lock
+  authBatchTx.TypeAssumptions.ptr_unfold'Unlock
+  authBatchTx.TypeAssumptions.ptr_unfold'UnsafeDeleteRole
+  authBatchTx.TypeAssumptions.ptr_unfold'UnsafeDeleteUser
+  authBatchTx.TypeAssumptions.ptr_unfold'UnsafeGetAllRoles
+  authBatchTx.TypeAssumptions.ptr_unfold'UnsafeGetAllUsers
+  authBatchTx.TypeAssumptions.ptr_unfold'UnsafeGetRole
+  authBatchTx.TypeAssumptions.ptr_unfold'UnsafeGetUser
+  authBatchTx.TypeAssumptions.ptr_unfold'UnsafePutRole
+  authBatchTx.TypeAssumptions.ptr_unfold'UnsafePutUser
+  authBatchTx.TypeAssumptions.ptr_unfold'UnsafeReadAuthEnabled
+  authBatchTx.TypeAssumptions.ptr_unfold'UnsafeReadAuthRevision
+  authBatchTx.TypeAssumptions.ptr_unfold'UnsafeSaveAuthEnabled
+  authBatchTx.TypeAssumptions.ptr_unfold'UnsafeSaveAuthRevision
 
 structure bucket [GooseExts] where
   mk ::
@@ -2848,7 +2848,7 @@ noncomputable instance bucket.zero_val [GooseExts] : ZeroVal bucket :=
 @[irreducible] noncomputable def bucket.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bucket.fieldsUnsealed
 
-noncomputable instance equals_unfold_bucket [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'bucket [GooseExts] [GoGlobalContext] :
     EqualsUnfold bucket.fields bucket.fieldsUnsealed :=
   ⟨by unfold bucket.fields; rfl⟩
 
@@ -2858,45 +2858,45 @@ noncomputable instance equals_unfold_bucket [GooseExts] [GoGlobalContext] :
 class bucket.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bucket.underlying bucket
   underlying : go.UnderlyingDirectedEq bucket.ty bucket.underlying
-  get_id : ∀ (x : bucket), go.IsGoStepPureDetTagged under (StructFieldGet bucket.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : bucket) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID), go.IsGoStepPureDetTagged under (StructFieldSet bucket.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : bucket)))
-  get_name : ∀ (x : bucket), go.IsGoStepPureDetTagged under (StructFieldGet bucket.underlying go!"name") #x (Val #(x.name'))
-  set_name : ∀ (x : bucket) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet bucket.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : bucket)))
-  get_safeRangeBucket : ∀ (x : bucket), go.IsGoStepPureDetTagged under (StructFieldGet bucket.underlying go!"safeRangeBucket") #x (Val #(x.safeRangeBucket'))
-  set_safeRangeBucket : ∀ (x : bucket) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet bucket.underlying go!"safeRangeBucket") (PairV #x #y) (Val #(({ x with safeRangeBucket' := y } : bucket)))
+  get'id : ∀ (x : bucket), go.IsGoStepPureDetTagged under (StructFieldGet bucket.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : bucket) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID), go.IsGoStepPureDetTagged under (StructFieldSet bucket.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : bucket)))
+  get'name : ∀ (x : bucket), go.IsGoStepPureDetTagged under (StructFieldGet bucket.underlying go!"name") #x (Val #(x.name'))
+  set'name : ∀ (x : bucket) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet bucket.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : bucket)))
+  get'safeRangeBucket : ∀ (x : bucket), go.IsGoStepPureDetTagged under (StructFieldGet bucket.underlying go!"safeRangeBucket") #x (Val #(x.safeRangeBucket'))
+  set'safeRangeBucket : ∀ (x : bucket) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet bucket.underlying go!"safeRangeBucket") (PairV #x #y) (Val #(({ x with safeRangeBucket' := y } : bucket)))
   method_set : go.MethodSetIs bucket.ty [(go!"ID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty]))), (go!"IsSafeRangeBucket", (some (go.signature.Signature [] false [go.bool]))), (go!"Name", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bucket.ty) [(go!"ID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty]))), (go!"IsSafeRangeBucket", (some (go.signature.Signature [] false [go.bool]))), (go!"Name", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ID_unfold : MethodUnfold bucket.ty go!"ID" bucket.ID.impl
-  IsSafeRangeBucket_unfold : MethodUnfold bucket.ty go!"IsSafeRangeBucket" bucket.IsSafeRangeBucket.impl
-  Name_unfold : MethodUnfold bucket.ty go!"Name" bucket.Name.impl
-  String_unfold : MethodUnfold bucket.ty go!"String" bucket.String.impl
-  ptr_ID_unfold : MethodUnfold (go.GoType.PointerType bucket.ty) go!"ID" (LamV "$r"
+  unfold'ID : MethodUnfold bucket.ty go!"ID" bucket.ID.impl
+  unfold'IsSafeRangeBucket : MethodUnfold bucket.ty go!"IsSafeRangeBucket" bucket.IsSafeRangeBucket.impl
+  unfold'Name : MethodUnfold bucket.ty go!"Name" bucket.Name.impl
+  unfold'String : MethodUnfold bucket.ty go!"String" bucket.String.impl
+  ptr_unfold'ID : MethodUnfold (go.GoType.PointerType bucket.ty) go!"ID" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve bucket.ty go!"ID"))) (App (Val (GoInstruction (GoLoad bucket.ty))) (Var "$r"))))
-  ptr_IsSafeRangeBucket_unfold : MethodUnfold (go.GoType.PointerType bucket.ty) go!"IsSafeRangeBucket" (LamV "$r"
+  ptr_unfold'IsSafeRangeBucket : MethodUnfold (go.GoType.PointerType bucket.ty) go!"IsSafeRangeBucket" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve bucket.ty go!"IsSafeRangeBucket"))) (App (Val (GoInstruction (GoLoad bucket.ty))) (Var "$r"))))
-  ptr_Name_unfold : MethodUnfold (go.GoType.PointerType bucket.ty) go!"Name" (LamV "$r"
+  ptr_unfold'Name : MethodUnfold (go.GoType.PointerType bucket.ty) go!"Name" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve bucket.ty go!"Name"))) (App (Val (GoInstruction (GoLoad bucket.ty))) (Var "$r"))))
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType bucket.ty) go!"String" (LamV "$r"
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType bucket.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve bucket.ty go!"String"))) (App (Val (GoInstruction (GoLoad bucket.ty))) (Var "$r"))))
 
 attribute [instance] bucket.TypeAssumptions.type_repr
   bucket.TypeAssumptions.underlying
-  bucket.TypeAssumptions.get_id
-  bucket.TypeAssumptions.set_id
-  bucket.TypeAssumptions.get_name
-  bucket.TypeAssumptions.set_name
-  bucket.TypeAssumptions.get_safeRangeBucket
-  bucket.TypeAssumptions.set_safeRangeBucket
+  bucket.TypeAssumptions.get'id
+  bucket.TypeAssumptions.set'id
+  bucket.TypeAssumptions.get'name
+  bucket.TypeAssumptions.set'name
+  bucket.TypeAssumptions.get'safeRangeBucket
+  bucket.TypeAssumptions.set'safeRangeBucket
   bucket.TypeAssumptions.method_set
   bucket.TypeAssumptions.ptr_method_set
-  bucket.TypeAssumptions.ID_unfold
-  bucket.TypeAssumptions.IsSafeRangeBucket_unfold
-  bucket.TypeAssumptions.Name_unfold
-  bucket.TypeAssumptions.String_unfold
-  bucket.TypeAssumptions.ptr_ID_unfold
-  bucket.TypeAssumptions.ptr_IsSafeRangeBucket_unfold
-  bucket.TypeAssumptions.ptr_Name_unfold
-  bucket.TypeAssumptions.ptr_String_unfold
+  bucket.TypeAssumptions.unfold'ID
+  bucket.TypeAssumptions.unfold'IsSafeRangeBucket
+  bucket.TypeAssumptions.unfold'Name
+  bucket.TypeAssumptions.unfold'String
+  bucket.TypeAssumptions.ptr_unfold'ID
+  bucket.TypeAssumptions.ptr_unfold'IsSafeRangeBucket
+  bucket.TypeAssumptions.ptr_unfold'Name
+  bucket.TypeAssumptions.ptr_unfold'String
 
 abbrev schemaChange [GooseExts] : Type := GoInterface
 
@@ -2927,7 +2927,7 @@ noncomputable instance simpleSchemaChange.zero_val [GooseExts] : ZeroVal simpleS
 @[irreducible] noncomputable def simpleSchemaChange.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   simpleSchemaChange.fieldsUnsealed
 
-noncomputable instance equals_unfold_simpleSchemaChange [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'simpleSchemaChange [GooseExts] [GoGlobalContext] :
     EqualsUnfold simpleSchemaChange.fields simpleSchemaChange.fieldsUnsealed :=
   ⟨by unfold simpleSchemaChange.fields; rfl⟩
 
@@ -2937,19 +2937,19 @@ noncomputable instance equals_unfold_simpleSchemaChange [GooseExts] [GoGlobalCon
 class simpleSchemaChange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying simpleSchemaChange.underlying simpleSchemaChange
   underlying : go.UnderlyingDirectedEq simpleSchemaChange.ty simpleSchemaChange.underlying
-  get_upgrade : ∀ (x : simpleSchemaChange), go.IsGoStepPureDetTagged under (StructFieldGet simpleSchemaChange.underlying go!"upgrade") #x (Val #(x.upgrade'))
-  set_upgrade : ∀ (x : simpleSchemaChange) (y : action), go.IsGoStepPureDetTagged under (StructFieldSet simpleSchemaChange.underlying go!"upgrade") (PairV #x #y) (Val #(({ x with upgrade' := y } : simpleSchemaChange)))
-  get_downgrade : ∀ (x : simpleSchemaChange), go.IsGoStepPureDetTagged under (StructFieldGet simpleSchemaChange.underlying go!"downgrade") #x (Val #(x.downgrade'))
-  set_downgrade : ∀ (x : simpleSchemaChange) (y : action), go.IsGoStepPureDetTagged under (StructFieldSet simpleSchemaChange.underlying go!"downgrade") (PairV #x #y) (Val #(({ x with downgrade' := y } : simpleSchemaChange)))
+  get'upgrade : ∀ (x : simpleSchemaChange), go.IsGoStepPureDetTagged under (StructFieldGet simpleSchemaChange.underlying go!"upgrade") #x (Val #(x.upgrade'))
+  set'upgrade : ∀ (x : simpleSchemaChange) (y : action), go.IsGoStepPureDetTagged under (StructFieldSet simpleSchemaChange.underlying go!"upgrade") (PairV #x #y) (Val #(({ x with upgrade' := y } : simpleSchemaChange)))
+  get'downgrade : ∀ (x : simpleSchemaChange), go.IsGoStepPureDetTagged under (StructFieldGet simpleSchemaChange.underlying go!"downgrade") #x (Val #(x.downgrade'))
+  set'downgrade : ∀ (x : simpleSchemaChange) (y : action), go.IsGoStepPureDetTagged under (StructFieldSet simpleSchemaChange.underlying go!"downgrade") (PairV #x #y) (Val #(({ x with downgrade' := y } : simpleSchemaChange)))
   method_set : go.MethodSetIs simpleSchemaChange.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.downgradeAction", (some (go.signature.Signature [] false [action.ty]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.upgradeAction", (some (go.signature.Signature [] false [action.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType simpleSchemaChange.ty) [(go!"go.etcd.io/etcd/server/v3/storage/schema.downgradeAction", (some (go.signature.Signature [] false [action.ty]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.upgradeAction", (some (go.signature.Signature [] false [action.ty])))]
 
 attribute [instance] simpleSchemaChange.TypeAssumptions.type_repr
   simpleSchemaChange.TypeAssumptions.underlying
-  simpleSchemaChange.TypeAssumptions.get_upgrade
-  simpleSchemaChange.TypeAssumptions.set_upgrade
-  simpleSchemaChange.TypeAssumptions.get_downgrade
-  simpleSchemaChange.TypeAssumptions.set_downgrade
+  simpleSchemaChange.TypeAssumptions.get'upgrade
+  simpleSchemaChange.TypeAssumptions.set'upgrade
+  simpleSchemaChange.TypeAssumptions.get'downgrade
+  simpleSchemaChange.TypeAssumptions.set'downgrade
   simpleSchemaChange.TypeAssumptions.method_set
   simpleSchemaChange.TypeAssumptions.ptr_method_set
 
@@ -2968,7 +2968,7 @@ noncomputable instance membershipBackend.zero_val [GooseExts] : ZeroVal membersh
 @[irreducible] noncomputable def membershipBackend.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   membershipBackend.fieldsUnsealed
 
-noncomputable instance equals_unfold_membershipBackend [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'membershipBackend [GooseExts] [GoGlobalContext] :
     EqualsUnfold membershipBackend.fields membershipBackend.fieldsUnsealed :=
   ⟨by unfold membershipBackend.fields; rfl⟩
 
@@ -2978,25 +2978,25 @@ noncomputable instance equals_unfold_membershipBackend [GooseExts] [GoGlobalCont
 class membershipBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying membershipBackend.underlying membershipBackend
   underlying : go.UnderlyingDirectedEq membershipBackend.ty membershipBackend.underlying
-  get_lg : ∀ (x : membershipBackend), go.IsGoStepPureDetTagged under (StructFieldGet membershipBackend.underlying go!"lg") #x (Val #(x.lg'))
-  set_lg : ∀ (x : membershipBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet membershipBackend.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : membershipBackend)))
-  get_be : ∀ (x : membershipBackend), go.IsGoStepPureDetTagged under (StructFieldGet membershipBackend.underlying go!"be") #x (Val #(x.be'))
-  set_be : ∀ (x : membershipBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet membershipBackend.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : membershipBackend)))
+  get'lg : ∀ (x : membershipBackend), go.IsGoStepPureDetTagged under (StructFieldGet membershipBackend.underlying go!"lg") #x (Val #(x.lg'))
+  set'lg : ∀ (x : membershipBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet membershipBackend.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : membershipBackend)))
+  get'be : ∀ (x : membershipBackend), go.IsGoStepPureDetTagged under (StructFieldGet membershipBackend.underlying go!"be") #x (Val #(x.be'))
+  set'be : ∀ (x : membershipBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet membershipBackend.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : membershipBackend)))
   method_set : go.MethodSetIs membershipBackend.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType membershipBackend.ty) [(go!"ClusterVersionFromBackend", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"DowngradeInfoFromBackend", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" []))]))), (go!"MustCreateBackendBuckets", (some (go.signature.Signature [] false []))), (go!"MustDeleteMemberFromBackend", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"MustReadMembersFromBackend", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Member" []))), (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go.bool)]))), (go!"MustSaveClusterVersionToBackend", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)] false []))), (go!"MustSaveDowngradeToBackend", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" []))] false []))), (go!"MustSaveMemberToBackend", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Member" []))] false []))), (go!"TrimClusterFromBackend", (some (go.signature.Signature [] false [go.error]))), (go!"TrimMembershipFromBackend", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.readMembersFromBackend", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Member" []))), (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go.bool), go.error])))]
-  ptr_MustCreateBackendBuckets_unfold : MethodUnfold (go.GoType.PointerType membershipBackend.ty) go!"MustCreateBackendBuckets" membershipBackend.MustCreateBackendBuckets.impl
-  ptr_MustDeleteMemberFromBackend_unfold : MethodUnfold (go.GoType.PointerType membershipBackend.ty) go!"MustDeleteMemberFromBackend" membershipBackend.MustDeleteMemberFromBackend.impl
+  ptr_unfold'MustCreateBackendBuckets : MethodUnfold (go.GoType.PointerType membershipBackend.ty) go!"MustCreateBackendBuckets" membershipBackend.MustCreateBackendBuckets.impl
+  ptr_unfold'MustDeleteMemberFromBackend : MethodUnfold (go.GoType.PointerType membershipBackend.ty) go!"MustDeleteMemberFromBackend" membershipBackend.MustDeleteMemberFromBackend.impl
 
 attribute [instance] membershipBackend.TypeAssumptions.type_repr
   membershipBackend.TypeAssumptions.underlying
-  membershipBackend.TypeAssumptions.get_lg
-  membershipBackend.TypeAssumptions.set_lg
-  membershipBackend.TypeAssumptions.get_be
-  membershipBackend.TypeAssumptions.set_be
+  membershipBackend.TypeAssumptions.get'lg
+  membershipBackend.TypeAssumptions.set'lg
+  membershipBackend.TypeAssumptions.get'be
+  membershipBackend.TypeAssumptions.set'be
   membershipBackend.TypeAssumptions.method_set
   membershipBackend.TypeAssumptions.ptr_method_set
-  membershipBackend.TypeAssumptions.ptr_MustCreateBackendBuckets_unfold
-  membershipBackend.TypeAssumptions.ptr_MustDeleteMemberFromBackend_unfold
+  membershipBackend.TypeAssumptions.ptr_unfold'MustCreateBackendBuckets
+  membershipBackend.TypeAssumptions.ptr_unfold'MustDeleteMemberFromBackend
 
 abbrev migrationPlan [GooseExts] : Type := GoSlice
 
@@ -3027,7 +3027,7 @@ noncomputable instance migrationStep.zero_val [GooseExts] : ZeroVal migrationSte
 @[irreducible] noncomputable def migrationStep.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   migrationStep.fieldsUnsealed
 
-noncomputable instance equals_unfold_migrationStep [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'migrationStep [GooseExts] [GoGlobalContext] :
     EqualsUnfold migrationStep.fields migrationStep.fieldsUnsealed :=
   ⟨by unfold migrationStep.fields; rfl⟩
 
@@ -3037,124 +3037,124 @@ noncomputable instance equals_unfold_migrationStep [GooseExts] [GoGlobalContext]
 class migrationStep.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying migrationStep.underlying migrationStep
   underlying : go.UnderlyingDirectedEq migrationStep.ty migrationStep.underlying
-  get_target : ∀ (x : migrationStep), go.IsGoStepPureDetTagged under (StructFieldGet migrationStep.underlying go!"target") #x (Val #(x.target'))
-  set_target : ∀ (x : migrationStep) (y : _root_.Perennial.github_com.Masterminds.semver.v3.Version), go.IsGoStepPureDetTagged under (StructFieldSet migrationStep.underlying go!"target") (PairV #x #y) (Val #(({ x with target' := y } : migrationStep)))
-  get_actions : ∀ (x : migrationStep), go.IsGoStepPureDetTagged under (StructFieldGet migrationStep.underlying go!"actions") #x (Val #(x.actions'))
-  set_actions : ∀ (x : migrationStep) (y : ActionList), go.IsGoStepPureDetTagged under (StructFieldSet migrationStep.underlying go!"actions") (PairV #x #y) (Val #(({ x with actions' := y } : migrationStep)))
+  get'target : ∀ (x : migrationStep), go.IsGoStepPureDetTagged under (StructFieldGet migrationStep.underlying go!"target") #x (Val #(x.target'))
+  set'target : ∀ (x : migrationStep) (y : _root_.Perennial.github_com.Masterminds.semver.v3.Version), go.IsGoStepPureDetTagged under (StructFieldSet migrationStep.underlying go!"target") (PairV #x #y) (Val #(({ x with target' := y } : migrationStep)))
+  get'actions : ∀ (x : migrationStep), go.IsGoStepPureDetTagged under (StructFieldGet migrationStep.underlying go!"actions") #x (Val #(x.actions'))
+  set'actions : ∀ (x : migrationStep) (y : ActionList), go.IsGoStepPureDetTagged under (StructFieldSet migrationStep.underlying go!"actions") (PairV #x #y) (Val #(({ x with actions' := y } : migrationStep)))
   method_set : go.MethodSetIs migrationStep.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType migrationStep.ty) [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [go.error])))]
 
 attribute [instance] migrationStep.TypeAssumptions.type_repr
   migrationStep.TypeAssumptions.underlying
-  migrationStep.TypeAssumptions.get_target
-  migrationStep.TypeAssumptions.set_target
-  migrationStep.TypeAssumptions.get_actions
-  migrationStep.TypeAssumptions.set_actions
+  migrationStep.TypeAssumptions.get'target
+  migrationStep.TypeAssumptions.set'target
+  migrationStep.TypeAssumptions.get'actions
+  migrationStep.TypeAssumptions.set'actions
   migrationStep.TypeAssumptions.method_set
   migrationStep.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  action_instance : action.TypeAssumptions
-  setKeyAction_instance : setKeyAction.TypeAssumptions
-  deleteKeyAction_instance : deleteKeyAction.TypeAssumptions
-  ActionList_instance : ActionList.TypeAssumptions
-  AlarmBackend_instance : AlarmBackend.TypeAssumptions
-  alarmBackend_instance : alarmBackend.TypeAssumptions
-  authBackend_instance : authBackend.TypeAssumptions
-  authReadTx_instance : authReadTx.TypeAssumptions
-  authBatchTx_instance : authBatchTx.TypeAssumptions
-  bucket_instance : bucket.TypeAssumptions
-  schemaChange_instance : schemaChange.TypeAssumptions
-  simpleSchemaChange_instance : simpleSchemaChange.TypeAssumptions
-  membershipBackend_instance : membershipBackend.TypeAssumptions
-  migrationPlan_instance : migrationPlan.TypeAssumptions
-  migrationStep_instance : migrationStep.TypeAssumptions
-  NewAlarmBackend_unfold : FuncUnfold NewAlarmBackend [] NewAlarmBackend.impl
-  NewAuthBackend_unfold : FuncUnfold NewAuthBackend [] NewAuthBackend.impl
-  unsafeReadAuthEnabled_unfold : FuncUnfold unsafeReadAuthEnabled [] unsafeReadAuthEnabled.impl
-  unsafeReadAuthRevision_unfold : FuncUnfold unsafeReadAuthRevision [] unsafeReadAuthRevision.impl
-  UnsafeCreateAuthRolesBucket_unfold : FuncUnfold UnsafeCreateAuthRolesBucket [] UnsafeCreateAuthRolesBucket.impl
-  unsafeGetRole_unfold : FuncUnfold unsafeGetRole [] unsafeGetRole.impl
-  unsafeGetAllRoles_unfold : FuncUnfold unsafeGetAllRoles [] unsafeGetAllRoles.impl
-  unsafeGetUser_unfold : FuncUnfold unsafeGetUser [] unsafeGetUser.impl
-  unsafeGetAllUsers_unfold : FuncUnfold unsafeGetAllUsers [] unsafeGetAllUsers.impl
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  BackendMemberKey_unfold : FuncUnfold BackendMemberKey [] BackendMemberKey.impl
-  addNewField_unfold : FuncUnfold addNewField [] addNewField.impl
-  UnsafeCreateMetaBucket_unfold : FuncUnfold UnsafeCreateMetaBucket [] UnsafeCreateMetaBucket.impl
-  UnsafeReadConsistentIndex_unfold : FuncUnfold UnsafeReadConsistentIndex [] UnsafeReadConsistentIndex.impl
-  ReadConsistentIndex_unfold : FuncUnfold ReadConsistentIndex [] ReadConsistentIndex.impl
-  UnsafeUpdateConsistentIndexForce_unfold : FuncUnfold UnsafeUpdateConsistentIndexForce [] UnsafeUpdateConsistentIndexForce.impl
-  UnsafeUpdateConsistentIndex_unfold : FuncUnfold UnsafeUpdateConsistentIndex [] UnsafeUpdateConsistentIndex.impl
-  unsafeUpdateConsistentIndex_unfold : FuncUnfold unsafeUpdateConsistentIndex [] unsafeUpdateConsistentIndex.impl
-  UnsafeCreateLeaseBucket_unfold : FuncUnfold UnsafeCreateLeaseBucket [] UnsafeCreateLeaseBucket.impl
-  UnsafeDeleteLease_unfold : FuncUnfold UnsafeDeleteLease [] UnsafeDeleteLease.impl
-  leaseIDToBytes_unfold : FuncUnfold leaseIDToBytes [] leaseIDToBytes.impl
-  NewMembershipBackend_unfold : FuncUnfold NewMembershipBackend [] NewMembershipBackend.impl
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
-  import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
-  import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
-  import_auth_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions
-  import_authpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
-  import_verify_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assumptions
-  import_leasepb_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.Assumptions
-  import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
-  import_version_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.version.Assumptions
+  instance'action : action.TypeAssumptions
+  instance'setKeyAction : setKeyAction.TypeAssumptions
+  instance'deleteKeyAction : deleteKeyAction.TypeAssumptions
+  instance'ActionList : ActionList.TypeAssumptions
+  instance'AlarmBackend : AlarmBackend.TypeAssumptions
+  instance'alarmBackend : alarmBackend.TypeAssumptions
+  instance'authBackend : authBackend.TypeAssumptions
+  instance'authReadTx : authReadTx.TypeAssumptions
+  instance'authBatchTx : authBatchTx.TypeAssumptions
+  instance'bucket : bucket.TypeAssumptions
+  instance'schemaChange : schemaChange.TypeAssumptions
+  instance'simpleSchemaChange : simpleSchemaChange.TypeAssumptions
+  instance'membershipBackend : membershipBackend.TypeAssumptions
+  instance'migrationPlan : migrationPlan.TypeAssumptions
+  instance'migrationStep : migrationStep.TypeAssumptions
+  unfold'NewAlarmBackend : FuncUnfold NewAlarmBackend [] NewAlarmBackend.impl
+  unfold'NewAuthBackend : FuncUnfold NewAuthBackend [] NewAuthBackend.impl
+  unfold'unsafeReadAuthEnabled : FuncUnfold unsafeReadAuthEnabled [] unsafeReadAuthEnabled.impl
+  unfold'unsafeReadAuthRevision : FuncUnfold unsafeReadAuthRevision [] unsafeReadAuthRevision.impl
+  unfold'UnsafeCreateAuthRolesBucket : FuncUnfold UnsafeCreateAuthRolesBucket [] UnsafeCreateAuthRolesBucket.impl
+  unfold'unsafeGetRole : FuncUnfold unsafeGetRole [] unsafeGetRole.impl
+  unfold'unsafeGetAllRoles : FuncUnfold unsafeGetAllRoles [] unsafeGetAllRoles.impl
+  unfold'unsafeGetUser : FuncUnfold unsafeGetUser [] unsafeGetUser.impl
+  unfold'unsafeGetAllUsers : FuncUnfold unsafeGetAllUsers [] unsafeGetAllUsers.impl
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'BackendMemberKey : FuncUnfold BackendMemberKey [] BackendMemberKey.impl
+  unfold'addNewField : FuncUnfold addNewField [] addNewField.impl
+  unfold'UnsafeCreateMetaBucket : FuncUnfold UnsafeCreateMetaBucket [] UnsafeCreateMetaBucket.impl
+  unfold'UnsafeReadConsistentIndex : FuncUnfold UnsafeReadConsistentIndex [] UnsafeReadConsistentIndex.impl
+  unfold'ReadConsistentIndex : FuncUnfold ReadConsistentIndex [] ReadConsistentIndex.impl
+  unfold'UnsafeUpdateConsistentIndexForce : FuncUnfold UnsafeUpdateConsistentIndexForce [] UnsafeUpdateConsistentIndexForce.impl
+  unfold'UnsafeUpdateConsistentIndex : FuncUnfold UnsafeUpdateConsistentIndex [] UnsafeUpdateConsistentIndex.impl
+  unfold'unsafeUpdateConsistentIndex : FuncUnfold unsafeUpdateConsistentIndex [] unsafeUpdateConsistentIndex.impl
+  unfold'UnsafeCreateLeaseBucket : FuncUnfold UnsafeCreateLeaseBucket [] UnsafeCreateLeaseBucket.impl
+  unfold'UnsafeDeleteLease : FuncUnfold UnsafeDeleteLease [] UnsafeDeleteLease.impl
+  unfold'leaseIDToBytes : FuncUnfold leaseIDToBytes [] leaseIDToBytes.impl
+  unfold'NewMembershipBackend : FuncUnfold NewMembershipBackend [] NewMembershipBackend.impl
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'backend : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
+  import'proto : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
+  import'etcdserverpb : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
+  import'bytes : _root_.Perennial.bytes.Assumptions
+  import'binary : _root_.Perennial.encoding.binary.Assumptions
+  import'auth : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions
+  import'authpb : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
+  import'types : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
+  import'verify : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assumptions
+  import'leasepb : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.Assumptions
+  import'semver : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
+  import'version : _root_.Perennial.go_etcd_io.etcd.api.v3.version.Assumptions
 
-attribute [instance] Assumptions.action_instance
-  Assumptions.setKeyAction_instance
-  Assumptions.deleteKeyAction_instance
-  Assumptions.ActionList_instance
-  Assumptions.AlarmBackend_instance
-  Assumptions.alarmBackend_instance
-  Assumptions.authBackend_instance
-  Assumptions.authReadTx_instance
-  Assumptions.authBatchTx_instance
-  Assumptions.bucket_instance
-  Assumptions.schemaChange_instance
-  Assumptions.simpleSchemaChange_instance
-  Assumptions.membershipBackend_instance
-  Assumptions.migrationPlan_instance
-  Assumptions.migrationStep_instance
-  Assumptions.NewAlarmBackend_unfold
-  Assumptions.NewAuthBackend_unfold
-  Assumptions.unsafeReadAuthEnabled_unfold
-  Assumptions.unsafeReadAuthRevision_unfold
-  Assumptions.UnsafeCreateAuthRolesBucket_unfold
-  Assumptions.unsafeGetRole_unfold
-  Assumptions.unsafeGetAllRoles_unfold
-  Assumptions.unsafeGetUser_unfold
-  Assumptions.unsafeGetAllUsers_unfold
-  Assumptions.«init.0_unfold»
-  Assumptions.BackendMemberKey_unfold
-  Assumptions.addNewField_unfold
-  Assumptions.UnsafeCreateMetaBucket_unfold
-  Assumptions.UnsafeReadConsistentIndex_unfold
-  Assumptions.ReadConsistentIndex_unfold
-  Assumptions.UnsafeUpdateConsistentIndexForce_unfold
-  Assumptions.UnsafeUpdateConsistentIndex_unfold
-  Assumptions.unsafeUpdateConsistentIndex_unfold
-  Assumptions.UnsafeCreateLeaseBucket_unfold
-  Assumptions.UnsafeDeleteLease_unfold
-  Assumptions.leaseIDToBytes_unfold
-  Assumptions.NewMembershipBackend_unfold
-  Assumptions.import_zap_Assumption
-  Assumptions.import_backend_Assumption
-  Assumptions.import_proto_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_bytes_Assumption
-  Assumptions.import_binary_Assumption
-  Assumptions.import_auth_Assumption
-  Assumptions.import_authpb_Assumption
-  Assumptions.import_types_Assumption
-  Assumptions.import_verify_Assumption
-  Assumptions.import_leasepb_Assumption
-  Assumptions.import_semver_Assumption
-  Assumptions.import_version_Assumption
+attribute [instance] Assumptions.instance'action
+  Assumptions.instance'setKeyAction
+  Assumptions.instance'deleteKeyAction
+  Assumptions.instance'ActionList
+  Assumptions.instance'AlarmBackend
+  Assumptions.instance'alarmBackend
+  Assumptions.instance'authBackend
+  Assumptions.instance'authReadTx
+  Assumptions.instance'authBatchTx
+  Assumptions.instance'bucket
+  Assumptions.instance'schemaChange
+  Assumptions.instance'simpleSchemaChange
+  Assumptions.instance'membershipBackend
+  Assumptions.instance'migrationPlan
+  Assumptions.instance'migrationStep
+  Assumptions.unfold'NewAlarmBackend
+  Assumptions.unfold'NewAuthBackend
+  Assumptions.unfold'unsafeReadAuthEnabled
+  Assumptions.unfold'unsafeReadAuthRevision
+  Assumptions.unfold'UnsafeCreateAuthRolesBucket
+  Assumptions.unfold'unsafeGetRole
+  Assumptions.unfold'unsafeGetAllRoles
+  Assumptions.unfold'unsafeGetUser
+  Assumptions.unfold'unsafeGetAllUsers
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'BackendMemberKey
+  Assumptions.unfold'addNewField
+  Assumptions.unfold'UnsafeCreateMetaBucket
+  Assumptions.unfold'UnsafeReadConsistentIndex
+  Assumptions.unfold'ReadConsistentIndex
+  Assumptions.unfold'UnsafeUpdateConsistentIndexForce
+  Assumptions.unfold'UnsafeUpdateConsistentIndex
+  Assumptions.unfold'unsafeUpdateConsistentIndex
+  Assumptions.unfold'UnsafeCreateLeaseBucket
+  Assumptions.unfold'UnsafeDeleteLease
+  Assumptions.unfold'leaseIDToBytes
+  Assumptions.unfold'NewMembershipBackend
+  Assumptions.import'zap
+  Assumptions.import'backend
+  Assumptions.import'proto
+  Assumptions.import'etcdserverpb
+  Assumptions.import'bytes
+  Assumptions.import'binary
+  Assumptions.import'auth
+  Assumptions.import'authpb
+  Assumptions.import'types
+  Assumptions.import'verify
+  Assumptions.import'leasepb
+  Assumptions.import'semver
+  Assumptions.import'version
 
 end go_etcd_io.etcd.server.v3.storage.schema
 

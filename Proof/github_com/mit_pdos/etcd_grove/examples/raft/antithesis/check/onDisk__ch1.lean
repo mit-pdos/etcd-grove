@@ -47,7 +47,7 @@ theorem onDisk.ch1.wp_proof
   obtain ⟨ad, had, ht, hf⟩ := andM_ok hc
   wp_auto
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_adv_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'adv.method_unfold]
   try wp_auto
   wp_apply wp_adv gx x ad $$ [Hx]
   · iframe Hx; ipureintro; exact had
@@ -64,7 +64,7 @@ theorem onDisk.ch1.wp_proof
     subst hc2
     try wp_auto
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_newC_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'newC.method_unfold]
     try wp_auto
     wp_apply wp_newC gx x nc $$ [Hx] as %ncl #Hnc
     · iframe Hx; ipureintro; exact hnc
@@ -79,7 +79,7 @@ theorem onDisk.ch1.wp_proof
       simp only [ite_true] at Hv
       try wp_auto
       try wp_auto
-      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_newC_unfold.method_unfold]
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'newC.method_unfold]
       try wp_auto
       wp_apply wp_newC gx x v $$ [Hx] as %ncl2 #Hnc2
       · iframe Hx; ipureintro; exact Hv

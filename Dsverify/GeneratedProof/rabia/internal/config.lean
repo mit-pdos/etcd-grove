@@ -29,7 +29,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : rabia.internal.config.Assumptions]
 
-noncomputable instance Config_typed_pointsto :
+noncomputable instance typed_pointsto'Config :
     TypedPointsto (GF := GF) rabia.internal.config.Config where
   typedPointstoDef l v dq := iprop(
     "Role" ∷ typedPointsto (structFieldRef rabia.internal.config.Config go!"Role" l) v.Role' dq ∗
@@ -77,11 +77,11 @@ noncomputable instance Config_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Config_into_val_typed :
+noncomputable instance into_val_typed'Config :
     IntoValTypedUnderlying (GF := GF) rabia.internal.config.Config rabia.internal.config.Config.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Config_access_load_Role (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Role (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"Role" l) v.Role' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"Role" l) v.Role' dq)
@@ -89,7 +89,7 @@ noncomputable instance Config_access_load_Role (l : Loc) (v : rabia.internal.con
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Role (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
+noncomputable instance access_store'Config'Role (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"Role" l) v.Role' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"Role" l) y (DFrac.own 1))
@@ -97,7 +97,7 @@ noncomputable instance Config_access_store_Role (l : Loc) (v : rabia.internal.co
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_Id (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Id (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"Id" l) v.Id' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"Id" l) v.Id' dq)
@@ -105,7 +105,7 @@ noncomputable instance Config_access_load_Id (l : Loc) (v : rabia.internal.confi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Id (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
+noncomputable instance access_store'Config'Id (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"Id" l) v.Id' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"Id" l) y (DFrac.own 1))
@@ -113,7 +113,7 @@ noncomputable instance Config_access_store_Id (l : Loc) (v : rabia.internal.conf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_ControllerAddr (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'ControllerAddr (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ControllerAddr" l) v.ControllerAddr' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ControllerAddr" l) v.ControllerAddr' dq)
@@ -121,7 +121,7 @@ noncomputable instance Config_access_load_ControllerAddr (l : Loc) (v : rabia.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ControllerAddr (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
+noncomputable instance access_store'Config'ControllerAddr (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ControllerAddr" l) v.ControllerAddr' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ControllerAddr" l) y (DFrac.own 1))
@@ -129,7 +129,7 @@ noncomputable instance Config_access_store_ControllerAddr (l : Loc) (v : rabia.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_ProjectFolder (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'ProjectFolder (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProjectFolder" l) v.ProjectFolder' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProjectFolder" l) v.ProjectFolder' dq)
@@ -137,7 +137,7 @@ noncomputable instance Config_access_load_ProjectFolder (l : Loc) (v : rabia.int
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ProjectFolder (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
+noncomputable instance access_store'Config'ProjectFolder (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProjectFolder" l) v.ProjectFolder' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProjectFolder" l) y (DFrac.own 1))
@@ -145,7 +145,7 @@ noncomputable instance Config_access_store_ProjectFolder (l : Loc) (v : rabia.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_LogLevel (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'LogLevel (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LogLevel" l) v.LogLevel' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LogLevel" l) v.LogLevel' dq)
@@ -153,7 +153,7 @@ noncomputable instance Config_access_load_LogLevel (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_LogLevel (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
+noncomputable instance access_store'Config'LogLevel (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LogLevel" l) v.LogLevel' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LogLevel" l) y (DFrac.own 1))
@@ -161,7 +161,7 @@ noncomputable instance Config_access_store_LogLevel (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_SvrIp (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'SvrIp (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"SvrIp" l) v.SvrIp' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"SvrIp" l) v.SvrIp' dq)
@@ -169,7 +169,7 @@ noncomputable instance Config_access_load_SvrIp (l : Loc) (v : rabia.internal.co
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_SvrIp (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
+noncomputable instance access_store'Config'SvrIp (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"SvrIp" l) v.SvrIp' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"SvrIp" l) y (DFrac.own 1))
@@ -177,7 +177,7 @@ noncomputable instance Config_access_store_SvrIp (l : Loc) (v : rabia.internal.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_ProxyPort (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'ProxyPort (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyPort" l) v.ProxyPort' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyPort" l) v.ProxyPort' dq)
@@ -185,7 +185,7 @@ noncomputable instance Config_access_load_ProxyPort (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ProxyPort (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
+noncomputable instance access_store'Config'ProxyPort (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyPort" l) v.ProxyPort' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyPort" l) y (DFrac.own 1))
@@ -193,7 +193,7 @@ noncomputable instance Config_access_store_ProxyPort (l : Loc) (v : rabia.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_NetworkPort (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'NetworkPort (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NetworkPort" l) v.NetworkPort' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NetworkPort" l) v.NetworkPort' dq)
@@ -201,7 +201,7 @@ noncomputable instance Config_access_load_NetworkPort (l : Loc) (v : rabia.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_NetworkPort (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
+noncomputable instance access_store'Config'NetworkPort (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NetworkPort" l) v.NetworkPort' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NetworkPort" l) y (DFrac.own 1))
@@ -209,7 +209,7 @@ noncomputable instance Config_access_store_NetworkPort (l : Loc) (v : rabia.inte
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_Peers (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Peers (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"Peers" l) v.Peers' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"Peers" l) v.Peers' dq)
@@ -217,7 +217,7 @@ noncomputable instance Config_access_load_Peers (l : Loc) (v : rabia.internal.co
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Peers (l : Loc) (v : rabia.internal.config.Config) (y : GoSlice) :
+noncomputable instance access_store'Config'Peers (l : Loc) (v : rabia.internal.config.Config) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"Peers" l) v.Peers' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"Peers" l) y (DFrac.own 1))
@@ -225,7 +225,7 @@ noncomputable instance Config_access_store_Peers (l : Loc) (v : rabia.internal.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_ProxyAddr (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'ProxyAddr (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyAddr" l) v.ProxyAddr' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyAddr" l) v.ProxyAddr' dq)
@@ -233,7 +233,7 @@ noncomputable instance Config_access_load_ProxyAddr (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ProxyAddr (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
+noncomputable instance access_store'Config'ProxyAddr (l : Loc) (v : rabia.internal.config.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyAddr" l) v.ProxyAddr' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyAddr" l) y (DFrac.own 1))
@@ -241,7 +241,7 @@ noncomputable instance Config_access_store_ProxyAddr (l : Loc) (v : rabia.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_ClosedLoop (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'ClosedLoop (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClosedLoop" l) v.ClosedLoop' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClosedLoop" l) v.ClosedLoop' dq)
@@ -249,7 +249,7 @@ noncomputable instance Config_access_load_ClosedLoop (l : Loc) (v : rabia.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ClosedLoop (l : Loc) (v : rabia.internal.config.Config) (y : Bool) :
+noncomputable instance access_store'Config'ClosedLoop (l : Loc) (v : rabia.internal.config.Config) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClosedLoop" l) v.ClosedLoop' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClosedLoop" l) y (DFrac.own 1))
@@ -257,7 +257,7 @@ noncomputable instance Config_access_store_ClosedLoop (l : Loc) (v : rabia.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_NServers (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'NServers (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NServers" l) v.NServers' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NServers" l) v.NServers' dq)
@@ -265,7 +265,7 @@ noncomputable instance Config_access_load_NServers (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_NServers (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'NServers (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NServers" l) v.NServers' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NServers" l) y (DFrac.own 1))
@@ -273,7 +273,7 @@ noncomputable instance Config_access_store_NServers (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_NFaulty (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'NFaulty (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NFaulty" l) v.NFaulty' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NFaulty" l) v.NFaulty' dq)
@@ -281,7 +281,7 @@ noncomputable instance Config_access_load_NFaulty (l : Loc) (v : rabia.internal.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_NFaulty (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'NFaulty (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NFaulty" l) v.NFaulty' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NFaulty" l) y (DFrac.own 1))
@@ -289,7 +289,7 @@ noncomputable instance Config_access_store_NFaulty (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_NClients (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'NClients (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NClients" l) v.NClients' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NClients" l) v.NClients' dq)
@@ -297,7 +297,7 @@ noncomputable instance Config_access_load_NClients (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_NClients (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'NClients (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NClients" l) v.NClients' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NClients" l) y (DFrac.own 1))
@@ -305,7 +305,7 @@ noncomputable instance Config_access_store_NClients (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_NConcurrency (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'NConcurrency (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NConcurrency" l) v.NConcurrency' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NConcurrency" l) v.NConcurrency' dq)
@@ -313,7 +313,7 @@ noncomputable instance Config_access_load_NConcurrency (l : Loc) (v : rabia.inte
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_NConcurrency (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'NConcurrency (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NConcurrency" l) v.NConcurrency' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NConcurrency" l) y (DFrac.own 1))
@@ -321,7 +321,7 @@ noncomputable instance Config_access_store_NConcurrency (l : Loc) (v : rabia.int
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_NClientRequests (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'NClientRequests (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NClientRequests" l) v.NClientRequests' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NClientRequests" l) v.NClientRequests' dq)
@@ -329,7 +329,7 @@ noncomputable instance Config_access_load_NClientRequests (l : Loc) (v : rabia.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_NClientRequests (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'NClientRequests (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NClientRequests" l) v.NClientRequests' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NClientRequests" l) y (DFrac.own 1))
@@ -337,7 +337,7 @@ noncomputable instance Config_access_store_NClientRequests (l : Loc) (v : rabia.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_ClientThinkTime (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'ClientThinkTime (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientThinkTime" l) v.ClientThinkTime' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientThinkTime" l) v.ClientThinkTime' dq)
@@ -345,7 +345,7 @@ noncomputable instance Config_access_load_ClientThinkTime (l : Loc) (v : rabia.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ClientThinkTime (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'ClientThinkTime (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientThinkTime" l) v.ClientThinkTime' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientThinkTime" l) y (DFrac.own 1))
@@ -353,7 +353,7 @@ noncomputable instance Config_access_store_ClientThinkTime (l : Loc) (v : rabia.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_ClientBatchSize (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'ClientBatchSize (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientBatchSize" l) v.ClientBatchSize' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientBatchSize" l) v.ClientBatchSize' dq)
@@ -361,7 +361,7 @@ noncomputable instance Config_access_load_ClientBatchSize (l : Loc) (v : rabia.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ClientBatchSize (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'ClientBatchSize (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientBatchSize" l) v.ClientBatchSize' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientBatchSize" l) y (DFrac.own 1))
@@ -369,7 +369,7 @@ noncomputable instance Config_access_store_ClientBatchSize (l : Loc) (v : rabia.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_ProxyBatchSize (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'ProxyBatchSize (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyBatchSize" l) v.ProxyBatchSize' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyBatchSize" l) v.ProxyBatchSize' dq)
@@ -377,7 +377,7 @@ noncomputable instance Config_access_load_ProxyBatchSize (l : Loc) (v : rabia.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ProxyBatchSize (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'ProxyBatchSize (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyBatchSize" l) v.ProxyBatchSize' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyBatchSize" l) y (DFrac.own 1))
@@ -385,7 +385,7 @@ noncomputable instance Config_access_store_ProxyBatchSize (l : Loc) (v : rabia.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_ProxyBatchTimeout (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'ProxyBatchTimeout (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyBatchTimeout" l) v.ProxyBatchTimeout' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyBatchTimeout" l) v.ProxyBatchTimeout' dq)
@@ -393,7 +393,7 @@ noncomputable instance Config_access_load_ProxyBatchTimeout (l : Loc) (v : rabia
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ProxyBatchTimeout (l : Loc) (v : rabia.internal.config.Config) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Config'ProxyBatchTimeout (l : Loc) (v : rabia.internal.config.Config) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyBatchTimeout" l) v.ProxyBatchTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyBatchTimeout" l) y (DFrac.own 1))
@@ -401,7 +401,7 @@ noncomputable instance Config_access_store_ProxyBatchTimeout (l : Loc) (v : rabi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_NetworkBatchSize (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'NetworkBatchSize (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NetworkBatchSize" l) v.NetworkBatchSize' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NetworkBatchSize" l) v.NetworkBatchSize' dq)
@@ -409,7 +409,7 @@ noncomputable instance Config_access_load_NetworkBatchSize (l : Loc) (v : rabia.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_NetworkBatchSize (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'NetworkBatchSize (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NetworkBatchSize" l) v.NetworkBatchSize' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NetworkBatchSize" l) y (DFrac.own 1))
@@ -417,7 +417,7 @@ noncomputable instance Config_access_store_NetworkBatchSize (l : Loc) (v : rabia
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_NetworkBatchTimeout (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'NetworkBatchTimeout (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NetworkBatchTimeout" l) v.NetworkBatchTimeout' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NetworkBatchTimeout" l) v.NetworkBatchTimeout' dq)
@@ -425,7 +425,7 @@ noncomputable instance Config_access_load_NetworkBatchTimeout (l : Loc) (v : rab
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_NetworkBatchTimeout (l : Loc) (v : rabia.internal.config.Config) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Config'NetworkBatchTimeout (l : Loc) (v : rabia.internal.config.Config) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NetworkBatchTimeout" l) v.NetworkBatchTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NetworkBatchTimeout" l) y (DFrac.own 1))
@@ -433,7 +433,7 @@ noncomputable instance Config_access_store_NetworkBatchTimeout (l : Loc) (v : ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_NMinusF (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'NMinusF (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NMinusF" l) v.NMinusF' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NMinusF" l) v.NMinusF' dq)
@@ -441,7 +441,7 @@ noncomputable instance Config_access_load_NMinusF (l : Loc) (v : rabia.internal.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_NMinusF (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'NMinusF (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NMinusF" l) v.NMinusF' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NMinusF" l) y (DFrac.own 1))
@@ -449,7 +449,7 @@ noncomputable instance Config_access_store_NMinusF (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_Majority (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Majority (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"Majority" l) v.Majority' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"Majority" l) v.Majority' dq)
@@ -457,7 +457,7 @@ noncomputable instance Config_access_load_Majority (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Majority (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'Majority (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"Majority" l) v.Majority' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"Majority" l) y (DFrac.own 1))
@@ -465,7 +465,7 @@ noncomputable instance Config_access_store_Majority (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_MajorityPlusF (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'MajorityPlusF (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"MajorityPlusF" l) v.MajorityPlusF' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"MajorityPlusF" l) v.MajorityPlusF' dq)
@@ -473,7 +473,7 @@ noncomputable instance Config_access_load_MajorityPlusF (l : Loc) (v : rabia.int
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_MajorityPlusF (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'MajorityPlusF (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"MajorityPlusF" l) v.MajorityPlusF' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"MajorityPlusF" l) y (DFrac.own 1))
@@ -481,7 +481,7 @@ noncomputable instance Config_access_store_MajorityPlusF (l : Loc) (v : rabia.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_FaultyPlusOne (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'FaultyPlusOne (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"FaultyPlusOne" l) v.FaultyPlusOne' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"FaultyPlusOne" l) v.FaultyPlusOne' dq)
@@ -489,7 +489,7 @@ noncomputable instance Config_access_load_FaultyPlusOne (l : Loc) (v : rabia.int
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_FaultyPlusOne (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'FaultyPlusOne (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"FaultyPlusOne" l) v.FaultyPlusOne' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"FaultyPlusOne" l) y (DFrac.own 1))
@@ -497,7 +497,7 @@ noncomputable instance Config_access_store_FaultyPlusOne (l : Loc) (v : rabia.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_LenLedger (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'LenLedger (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LenLedger" l) v.LenLedger' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LenLedger" l) v.LenLedger' dq)
@@ -505,7 +505,7 @@ noncomputable instance Config_access_load_LenLedger (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_LenLedger (l : Loc) (v : rabia.internal.config.Config) (y : w32) :
+noncomputable instance access_store'Config'LenLedger (l : Loc) (v : rabia.internal.config.Config) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LenLedger" l) v.LenLedger' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LenLedger" l) y (DFrac.own 1))
@@ -513,7 +513,7 @@ noncomputable instance Config_access_store_LenLedger (l : Loc) (v : rabia.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_LenBlockArray (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'LenBlockArray (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LenBlockArray" l) v.LenBlockArray' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LenBlockArray" l) v.LenBlockArray' dq)
@@ -521,7 +521,7 @@ noncomputable instance Config_access_load_LenBlockArray (l : Loc) (v : rabia.int
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_LenBlockArray (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'LenBlockArray (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LenBlockArray" l) v.LenBlockArray' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LenBlockArray" l) y (DFrac.own 1))
@@ -529,7 +529,7 @@ noncomputable instance Config_access_store_LenBlockArray (l : Loc) (v : rabia.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_LenChannel (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'LenChannel (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LenChannel" l) v.LenChannel' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LenChannel" l) v.LenChannel' dq)
@@ -537,7 +537,7 @@ noncomputable instance Config_access_load_LenChannel (l : Loc) (v : rabia.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_LenChannel (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'LenChannel (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LenChannel" l) v.LenChannel' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LenChannel" l) y (DFrac.own 1))
@@ -545,7 +545,7 @@ noncomputable instance Config_access_store_LenChannel (l : Loc) (v : rabia.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_LenPQueue (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'LenPQueue (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LenPQueue" l) v.LenPQueue' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LenPQueue" l) v.LenPQueue' dq)
@@ -553,7 +553,7 @@ noncomputable instance Config_access_load_LenPQueue (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_LenPQueue (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'LenPQueue (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LenPQueue" l) v.LenPQueue' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"LenPQueue" l) y (DFrac.own 1))
@@ -561,7 +561,7 @@ noncomputable instance Config_access_store_LenPQueue (l : Loc) (v : rabia.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_IoBufSize (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'IoBufSize (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"IoBufSize" l) v.IoBufSize' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"IoBufSize" l) v.IoBufSize' dq)
@@ -569,7 +569,7 @@ noncomputable instance Config_access_load_IoBufSize (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_IoBufSize (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'IoBufSize (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"IoBufSize" l) v.IoBufSize' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"IoBufSize" l) y (DFrac.own 1))
@@ -577,7 +577,7 @@ noncomputable instance Config_access_store_IoBufSize (l : Loc) (v : rabia.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_TcpBufSize (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'TcpBufSize (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"TcpBufSize" l) v.TcpBufSize' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"TcpBufSize" l) v.TcpBufSize' dq)
@@ -585,7 +585,7 @@ noncomputable instance Config_access_load_TcpBufSize (l : Loc) (v : rabia.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_TcpBufSize (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'TcpBufSize (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"TcpBufSize" l) v.TcpBufSize' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"TcpBufSize" l) y (DFrac.own 1))
@@ -593,7 +593,7 @@ noncomputable instance Config_access_store_TcpBufSize (l : Loc) (v : rabia.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_KeyLen (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'KeyLen (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"KeyLen" l) v.KeyLen' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"KeyLen" l) v.KeyLen' dq)
@@ -601,7 +601,7 @@ noncomputable instance Config_access_load_KeyLen (l : Loc) (v : rabia.internal.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_KeyLen (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'KeyLen (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"KeyLen" l) v.KeyLen' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"KeyLen" l) y (DFrac.own 1))
@@ -609,7 +609,7 @@ noncomputable instance Config_access_store_KeyLen (l : Loc) (v : rabia.internal.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_ValLen (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'ValLen (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ValLen" l) v.ValLen' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ValLen" l) v.ValLen' dq)
@@ -617,7 +617,7 @@ noncomputable instance Config_access_load_ValLen (l : Loc) (v : rabia.internal.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ValLen (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'ValLen (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ValLen" l) v.ValLen' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ValLen" l) y (DFrac.own 1))
@@ -625,7 +625,7 @@ noncomputable instance Config_access_store_ValLen (l : Loc) (v : rabia.internal.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_SvrLogInterval (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'SvrLogInterval (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"SvrLogInterval" l) v.SvrLogInterval' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"SvrLogInterval" l) v.SvrLogInterval' dq)
@@ -633,7 +633,7 @@ noncomputable instance Config_access_load_SvrLogInterval (l : Loc) (v : rabia.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_SvrLogInterval (l : Loc) (v : rabia.internal.config.Config) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Config'SvrLogInterval (l : Loc) (v : rabia.internal.config.Config) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"SvrLogInterval" l) v.SvrLogInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"SvrLogInterval" l) y (DFrac.own 1))
@@ -641,7 +641,7 @@ noncomputable instance Config_access_store_SvrLogInterval (l : Loc) (v : rabia.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_ClientLogInterval (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'ClientLogInterval (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientLogInterval" l) v.ClientLogInterval' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientLogInterval" l) v.ClientLogInterval' dq)
@@ -649,7 +649,7 @@ noncomputable instance Config_access_load_ClientLogInterval (l : Loc) (v : rabia
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ClientLogInterval (l : Loc) (v : rabia.internal.config.Config) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Config'ClientLogInterval (l : Loc) (v : rabia.internal.config.Config) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientLogInterval" l) v.ClientLogInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientLogInterval" l) y (DFrac.own 1))
@@ -657,7 +657,7 @@ noncomputable instance Config_access_store_ClientLogInterval (l : Loc) (v : rabi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_ClientTimeout (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'ClientTimeout (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientTimeout" l) v.ClientTimeout' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientTimeout" l) v.ClientTimeout' dq)
@@ -665,7 +665,7 @@ noncomputable instance Config_access_load_ClientTimeout (l : Loc) (v : rabia.int
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ClientTimeout (l : Loc) (v : rabia.internal.config.Config) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Config'ClientTimeout (l : Loc) (v : rabia.internal.config.Config) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientTimeout" l) v.ClientTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientTimeout" l) y (DFrac.own 1))
@@ -673,7 +673,7 @@ noncomputable instance Config_access_store_ClientTimeout (l : Loc) (v : rabia.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_ConsensusStartAfter (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'ConsensusStartAfter (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ConsensusStartAfter" l) v.ConsensusStartAfter' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ConsensusStartAfter" l) v.ConsensusStartAfter' dq)
@@ -681,7 +681,7 @@ noncomputable instance Config_access_load_ConsensusStartAfter (l : Loc) (v : rab
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ConsensusStartAfter (l : Loc) (v : rabia.internal.config.Config) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Config'ConsensusStartAfter (l : Loc) (v : rabia.internal.config.Config) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ConsensusStartAfter" l) v.ConsensusStartAfter' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ConsensusStartAfter" l) y (DFrac.own 1))
@@ -689,7 +689,7 @@ noncomputable instance Config_access_store_ConsensusStartAfter (l : Loc) (v : ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_StorageMode (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'StorageMode (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"StorageMode" l) v.StorageMode' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"StorageMode" l) v.StorageMode' dq)
@@ -697,7 +697,7 @@ noncomputable instance Config_access_load_StorageMode (l : Loc) (v : rabia.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_StorageMode (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
+noncomputable instance access_store'Config'StorageMode (l : Loc) (v : rabia.internal.config.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"StorageMode" l) v.StorageMode' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"StorageMode" l) y (DFrac.own 1))
@@ -705,7 +705,7 @@ noncomputable instance Config_access_store_StorageMode (l : Loc) (v : rabia.inte
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_RedisAddr (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'RedisAddr (l : Loc) (v : rabia.internal.config.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"RedisAddr" l) v.RedisAddr' dq)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"RedisAddr" l) v.RedisAddr' dq)
@@ -713,7 +713,7 @@ noncomputable instance Config_access_load_RedisAddr (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_RedisAddr (l : Loc) (v : rabia.internal.config.Config) (y : GoSlice) :
+noncomputable instance access_store'Config'RedisAddr (l : Loc) (v : rabia.internal.config.Config) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"RedisAddr" l) v.RedisAddr' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"RedisAddr" l) y (DFrac.own 1))

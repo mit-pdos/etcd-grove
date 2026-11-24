@@ -421,35 +421,35 @@ attribute [instance] podCertificateRequests.TypeAssumptions.type_repr
   podCertificateRequests.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  CertificatesV1beta1Interface_instance : CertificatesV1beta1Interface.TypeAssumptions
-  CertificatesV1beta1Client_instance : CertificatesV1beta1Client.TypeAssumptions
-  CertificateSigningRequestsGetter_instance : CertificateSigningRequestsGetter.TypeAssumptions
-  CertificateSigningRequestInterface_instance : CertificateSigningRequestInterface.TypeAssumptions
-  certificateSigningRequests_instance : certificateSigningRequests.TypeAssumptions
-  CertificateSigningRequestExpansion_instance : CertificateSigningRequestExpansion.TypeAssumptions
-  ClusterTrustBundlesGetter_instance : ClusterTrustBundlesGetter.TypeAssumptions
-  ClusterTrustBundleInterface_instance : ClusterTrustBundleInterface.TypeAssumptions
-  clusterTrustBundles_instance : clusterTrustBundles.TypeAssumptions
-  ClusterTrustBundleExpansion_instance : ClusterTrustBundleExpansion.TypeAssumptions
-  PodCertificateRequestExpansion_instance : PodCertificateRequestExpansion.TypeAssumptions
-  PodCertificateRequestsGetter_instance : PodCertificateRequestsGetter.TypeAssumptions
-  PodCertificateRequestInterface_instance : PodCertificateRequestInterface.TypeAssumptions
-  podCertificateRequests_instance : podCertificateRequests.TypeAssumptions
+  instance'CertificatesV1beta1Interface : CertificatesV1beta1Interface.TypeAssumptions
+  instance'CertificatesV1beta1Client : CertificatesV1beta1Client.TypeAssumptions
+  instance'CertificateSigningRequestsGetter : CertificateSigningRequestsGetter.TypeAssumptions
+  instance'CertificateSigningRequestInterface : CertificateSigningRequestInterface.TypeAssumptions
+  instance'certificateSigningRequests : certificateSigningRequests.TypeAssumptions
+  instance'CertificateSigningRequestExpansion : CertificateSigningRequestExpansion.TypeAssumptions
+  instance'ClusterTrustBundlesGetter : ClusterTrustBundlesGetter.TypeAssumptions
+  instance'ClusterTrustBundleInterface : ClusterTrustBundleInterface.TypeAssumptions
+  instance'clusterTrustBundles : clusterTrustBundles.TypeAssumptions
+  instance'ClusterTrustBundleExpansion : ClusterTrustBundleExpansion.TypeAssumptions
+  instance'PodCertificateRequestExpansion : PodCertificateRequestExpansion.TypeAssumptions
+  instance'PodCertificateRequestsGetter : PodCertificateRequestsGetter.TypeAssumptions
+  instance'PodCertificateRequestInterface : PodCertificateRequestInterface.TypeAssumptions
+  instance'podCertificateRequests : podCertificateRequests.TypeAssumptions
 
-attribute [instance] Assumptions.CertificatesV1beta1Interface_instance
-  Assumptions.CertificatesV1beta1Client_instance
-  Assumptions.CertificateSigningRequestsGetter_instance
-  Assumptions.CertificateSigningRequestInterface_instance
-  Assumptions.certificateSigningRequests_instance
-  Assumptions.CertificateSigningRequestExpansion_instance
-  Assumptions.ClusterTrustBundlesGetter_instance
-  Assumptions.ClusterTrustBundleInterface_instance
-  Assumptions.clusterTrustBundles_instance
-  Assumptions.ClusterTrustBundleExpansion_instance
-  Assumptions.PodCertificateRequestExpansion_instance
-  Assumptions.PodCertificateRequestsGetter_instance
-  Assumptions.PodCertificateRequestInterface_instance
-  Assumptions.podCertificateRequests_instance
+attribute [instance] Assumptions.instance'CertificatesV1beta1Interface
+  Assumptions.instance'CertificatesV1beta1Client
+  Assumptions.instance'CertificateSigningRequestsGetter
+  Assumptions.instance'CertificateSigningRequestInterface
+  Assumptions.instance'certificateSigningRequests
+  Assumptions.instance'CertificateSigningRequestExpansion
+  Assumptions.instance'ClusterTrustBundlesGetter
+  Assumptions.instance'ClusterTrustBundleInterface
+  Assumptions.instance'clusterTrustBundles
+  Assumptions.instance'ClusterTrustBundleExpansion
+  Assumptions.instance'PodCertificateRequestExpansion
+  Assumptions.instance'PodCertificateRequestsGetter
+  Assumptions.instance'PodCertificateRequestInterface
+  Assumptions.instance'podCertificateRequests
 
 end k8s_io.client_go.kubernetes.typed.certificates.v1beta1
 

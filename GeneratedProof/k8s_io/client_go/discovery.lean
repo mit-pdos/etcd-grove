@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance StaleGroupVersionError_typed_pointsto :
+noncomputable instance typed_pointsto'StaleGroupVersionError :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.StaleGroupVersionError :=
   sorry -- axiomatized type
 
-noncomputable instance StaleGroupVersionError_into_val_typed :
+noncomputable instance into_val_typed'StaleGroupVersionError :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.StaleGroupVersionError k8s_io.client_go.discovery.StaleGroupVersionError.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance DiscoveryInterface_typed_pointsto :
+noncomputable instance typed_pointsto'DiscoveryInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.DiscoveryInterface :=
   sorry -- axiomatized type
 
-noncomputable instance DiscoveryInterface_into_val_typed :
+noncomputable instance into_val_typed'DiscoveryInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.DiscoveryInterface k8s_io.client_go.discovery.DiscoveryInterface.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance DiscoveryInterfaceWithContext_typed_pointsto :
+noncomputable instance typed_pointsto'DiscoveryInterfaceWithContext :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.DiscoveryInterfaceWithContext :=
   sorry -- axiomatized type
 
-noncomputable instance DiscoveryInterfaceWithContext_into_val_typed :
+noncomputable instance into_val_typed'DiscoveryInterfaceWithContext :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.DiscoveryInterfaceWithContext k8s_io.client_go.discovery.DiscoveryInterfaceWithContext.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance DiscoveryInterfaces_typed_pointsto :
+noncomputable instance typed_pointsto'DiscoveryInterfaces :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.DiscoveryInterfaces :=
   sorry -- axiomatized type
 
-noncomputable instance DiscoveryInterfaces_into_val_typed :
+noncomputable instance into_val_typed'DiscoveryInterfaces :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.DiscoveryInterfaces k8s_io.client_go.discovery.DiscoveryInterfaces.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance discoveryInterfaceWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'discoveryInterfaceWrapper :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.discoveryInterfaceWrapper :=
   sorry -- axiomatized type
 
-noncomputable instance discoveryInterfaceWrapper_into_val_typed :
+noncomputable instance into_val_typed'discoveryInterfaceWrapper :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.discoveryInterfaceWrapper k8s_io.client_go.discovery.discoveryInterfaceWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance AggregatedDiscoveryInterface_typed_pointsto :
+noncomputable instance typed_pointsto'AggregatedDiscoveryInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.AggregatedDiscoveryInterface :=
   sorry -- axiomatized type
 
-noncomputable instance AggregatedDiscoveryInterface_into_val_typed :
+noncomputable instance into_val_typed'AggregatedDiscoveryInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.AggregatedDiscoveryInterface k8s_io.client_go.discovery.AggregatedDiscoveryInterface.underlying :=
   sorry -- axiomatized type
 
@@ -138,11 +138,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance AggregatedDiscoveryInterfaceWithContext_typed_pointsto :
+noncomputable instance typed_pointsto'AggregatedDiscoveryInterfaceWithContext :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.AggregatedDiscoveryInterfaceWithContext :=
   sorry -- axiomatized type
 
-noncomputable instance AggregatedDiscoveryInterfaceWithContext_into_val_typed :
+noncomputable instance into_val_typed'AggregatedDiscoveryInterfaceWithContext :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.AggregatedDiscoveryInterfaceWithContext k8s_io.client_go.discovery.AggregatedDiscoveryInterfaceWithContext.underlying :=
   sorry -- axiomatized type
 
@@ -157,11 +157,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance aggregatedDiscoveryInterfaceWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'aggregatedDiscoveryInterfaceWrapper :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.aggregatedDiscoveryInterfaceWrapper :=
   sorry -- axiomatized type
 
-noncomputable instance aggregatedDiscoveryInterfaceWrapper_into_val_typed :
+noncomputable instance into_val_typed'aggregatedDiscoveryInterfaceWrapper :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.aggregatedDiscoveryInterfaceWrapper k8s_io.client_go.discovery.aggregatedDiscoveryInterfaceWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -176,11 +176,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance CachedDiscoveryInterface_typed_pointsto :
+noncomputable instance typed_pointsto'CachedDiscoveryInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.CachedDiscoveryInterface :=
   sorry -- axiomatized type
 
-noncomputable instance CachedDiscoveryInterface_into_val_typed :
+noncomputable instance into_val_typed'CachedDiscoveryInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.CachedDiscoveryInterface k8s_io.client_go.discovery.CachedDiscoveryInterface.underlying :=
   sorry -- axiomatized type
 
@@ -195,11 +195,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance CachedDiscoveryInterfaceWithContext_typed_pointsto :
+noncomputable instance typed_pointsto'CachedDiscoveryInterfaceWithContext :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.CachedDiscoveryInterfaceWithContext :=
   sorry -- axiomatized type
 
-noncomputable instance CachedDiscoveryInterfaceWithContext_into_val_typed :
+noncomputable instance into_val_typed'CachedDiscoveryInterfaceWithContext :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.CachedDiscoveryInterfaceWithContext k8s_io.client_go.discovery.CachedDiscoveryInterfaceWithContext.underlying :=
   sorry -- axiomatized type
 
@@ -214,11 +214,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance cachedDiscoveryInterfaceWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'cachedDiscoveryInterfaceWrapper :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.cachedDiscoveryInterfaceWrapper :=
   sorry -- axiomatized type
 
-noncomputable instance cachedDiscoveryInterfaceWrapper_into_val_typed :
+noncomputable instance into_val_typed'cachedDiscoveryInterfaceWrapper :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.cachedDiscoveryInterfaceWrapper k8s_io.client_go.discovery.cachedDiscoveryInterfaceWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -233,11 +233,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance ServerGroupsInterface_typed_pointsto :
+noncomputable instance typed_pointsto'ServerGroupsInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.ServerGroupsInterface :=
   sorry -- axiomatized type
 
-noncomputable instance ServerGroupsInterface_into_val_typed :
+noncomputable instance into_val_typed'ServerGroupsInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ServerGroupsInterface k8s_io.client_go.discovery.ServerGroupsInterface.underlying :=
   sorry -- axiomatized type
 
@@ -252,11 +252,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance ServerGroupsInterfaceWithContext_typed_pointsto :
+noncomputable instance typed_pointsto'ServerGroupsInterfaceWithContext :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.ServerGroupsInterfaceWithContext :=
   sorry -- axiomatized type
 
-noncomputable instance ServerGroupsInterfaceWithContext_into_val_typed :
+noncomputable instance into_val_typed'ServerGroupsInterfaceWithContext :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ServerGroupsInterfaceWithContext k8s_io.client_go.discovery.ServerGroupsInterfaceWithContext.underlying :=
   sorry -- axiomatized type
 
@@ -271,11 +271,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance serverGroupsInterfaceWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'serverGroupsInterfaceWrapper :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.serverGroupsInterfaceWrapper :=
   sorry -- axiomatized type
 
-noncomputable instance serverGroupsInterfaceWrapper_into_val_typed :
+noncomputable instance into_val_typed'serverGroupsInterfaceWrapper :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.serverGroupsInterfaceWrapper k8s_io.client_go.discovery.serverGroupsInterfaceWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -290,11 +290,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance ServerResourcesInterface_typed_pointsto :
+noncomputable instance typed_pointsto'ServerResourcesInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.ServerResourcesInterface :=
   sorry -- axiomatized type
 
-noncomputable instance ServerResourcesInterface_into_val_typed :
+noncomputable instance into_val_typed'ServerResourcesInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ServerResourcesInterface k8s_io.client_go.discovery.ServerResourcesInterface.underlying :=
   sorry -- axiomatized type
 
@@ -309,11 +309,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance ServerResourcesInterfaceWithContext_typed_pointsto :
+noncomputable instance typed_pointsto'ServerResourcesInterfaceWithContext :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.ServerResourcesInterfaceWithContext :=
   sorry -- axiomatized type
 
-noncomputable instance ServerResourcesInterfaceWithContext_into_val_typed :
+noncomputable instance into_val_typed'ServerResourcesInterfaceWithContext :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ServerResourcesInterfaceWithContext k8s_io.client_go.discovery.ServerResourcesInterfaceWithContext.underlying :=
   sorry -- axiomatized type
 
@@ -328,11 +328,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance serverResourcesInterfaceWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'serverResourcesInterfaceWrapper :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.serverResourcesInterfaceWrapper :=
   sorry -- axiomatized type
 
-noncomputable instance serverResourcesInterfaceWrapper_into_val_typed :
+noncomputable instance into_val_typed'serverResourcesInterfaceWrapper :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.serverResourcesInterfaceWrapper k8s_io.client_go.discovery.serverResourcesInterfaceWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -347,11 +347,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance ServerVersionInterface_typed_pointsto :
+noncomputable instance typed_pointsto'ServerVersionInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.ServerVersionInterface :=
   sorry -- axiomatized type
 
-noncomputable instance ServerVersionInterface_into_val_typed :
+noncomputable instance into_val_typed'ServerVersionInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ServerVersionInterface k8s_io.client_go.discovery.ServerVersionInterface.underlying :=
   sorry -- axiomatized type
 
@@ -366,11 +366,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance ServerVersionInterfaceWithContext_typed_pointsto :
+noncomputable instance typed_pointsto'ServerVersionInterfaceWithContext :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.ServerVersionInterfaceWithContext :=
   sorry -- axiomatized type
 
-noncomputable instance ServerVersionInterfaceWithContext_into_val_typed :
+noncomputable instance into_val_typed'ServerVersionInterfaceWithContext :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ServerVersionInterfaceWithContext k8s_io.client_go.discovery.ServerVersionInterfaceWithContext.underlying :=
   sorry -- axiomatized type
 
@@ -385,11 +385,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance serverVersionInterfaceWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'serverVersionInterfaceWrapper :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.serverVersionInterfaceWrapper :=
   sorry -- axiomatized type
 
-noncomputable instance serverVersionInterfaceWrapper_into_val_typed :
+noncomputable instance into_val_typed'serverVersionInterfaceWrapper :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.serverVersionInterfaceWrapper k8s_io.client_go.discovery.serverVersionInterfaceWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -404,11 +404,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance OpenAPISchemaInterface_typed_pointsto :
+noncomputable instance typed_pointsto'OpenAPISchemaInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.OpenAPISchemaInterface :=
   sorry -- axiomatized type
 
-noncomputable instance OpenAPISchemaInterface_into_val_typed :
+noncomputable instance into_val_typed'OpenAPISchemaInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.OpenAPISchemaInterface k8s_io.client_go.discovery.OpenAPISchemaInterface.underlying :=
   sorry -- axiomatized type
 
@@ -423,11 +423,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance OpenAPISchemaInterfaceWithContext_typed_pointsto :
+noncomputable instance typed_pointsto'OpenAPISchemaInterfaceWithContext :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.OpenAPISchemaInterfaceWithContext :=
   sorry -- axiomatized type
 
-noncomputable instance OpenAPISchemaInterfaceWithContext_into_val_typed :
+noncomputable instance into_val_typed'OpenAPISchemaInterfaceWithContext :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.OpenAPISchemaInterfaceWithContext k8s_io.client_go.discovery.OpenAPISchemaInterfaceWithContext.underlying :=
   sorry -- axiomatized type
 
@@ -442,11 +442,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance openAPISchemaInterfaceWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'openAPISchemaInterfaceWrapper :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.openAPISchemaInterfaceWrapper :=
   sorry -- axiomatized type
 
-noncomputable instance openAPISchemaInterfaceWrapper_into_val_typed :
+noncomputable instance into_val_typed'openAPISchemaInterfaceWrapper :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.openAPISchemaInterfaceWrapper k8s_io.client_go.discovery.openAPISchemaInterfaceWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -461,11 +461,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance OpenAPIV3SchemaInterface_typed_pointsto :
+noncomputable instance typed_pointsto'OpenAPIV3SchemaInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.OpenAPIV3SchemaInterface :=
   sorry -- axiomatized type
 
-noncomputable instance OpenAPIV3SchemaInterface_into_val_typed :
+noncomputable instance into_val_typed'OpenAPIV3SchemaInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.OpenAPIV3SchemaInterface k8s_io.client_go.discovery.OpenAPIV3SchemaInterface.underlying :=
   sorry -- axiomatized type
 
@@ -480,11 +480,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance OpenAPIV3SchemaInterfaceWithContext_typed_pointsto :
+noncomputable instance typed_pointsto'OpenAPIV3SchemaInterfaceWithContext :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.OpenAPIV3SchemaInterfaceWithContext :=
   sorry -- axiomatized type
 
-noncomputable instance OpenAPIV3SchemaInterfaceWithContext_into_val_typed :
+noncomputable instance into_val_typed'OpenAPIV3SchemaInterfaceWithContext :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.OpenAPIV3SchemaInterfaceWithContext k8s_io.client_go.discovery.OpenAPIV3SchemaInterfaceWithContext.underlying :=
   sorry -- axiomatized type
 
@@ -499,11 +499,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance openAPIV3SchemaInterfaceWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'openAPIV3SchemaInterfaceWrapper :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.openAPIV3SchemaInterfaceWrapper :=
   sorry -- axiomatized type
 
-noncomputable instance openAPIV3SchemaInterfaceWrapper_into_val_typed :
+noncomputable instance into_val_typed'openAPIV3SchemaInterfaceWrapper :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.openAPIV3SchemaInterfaceWrapper k8s_io.client_go.discovery.openAPIV3SchemaInterfaceWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -518,11 +518,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance openAPIClientWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'openAPIClientWrapper :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.openAPIClientWrapper :=
   sorry -- axiomatized type
 
-noncomputable instance openAPIClientWrapper_into_val_typed :
+noncomputable instance into_val_typed'openAPIClientWrapper :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.openAPIClientWrapper k8s_io.client_go.discovery.openAPIClientWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -537,11 +537,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance DiscoveryClient_typed_pointsto :
+noncomputable instance typed_pointsto'DiscoveryClient :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.DiscoveryClient :=
   sorry -- axiomatized type
 
-noncomputable instance DiscoveryClient_into_val_typed :
+noncomputable instance into_val_typed'DiscoveryClient :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.DiscoveryClient k8s_io.client_go.discovery.DiscoveryClient.underlying :=
   sorry -- axiomatized type
 
@@ -556,11 +556,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance ErrGroupDiscoveryFailed_typed_pointsto :
+noncomputable instance typed_pointsto'ErrGroupDiscoveryFailed :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.ErrGroupDiscoveryFailed :=
   sorry -- axiomatized type
 
-noncomputable instance ErrGroupDiscoveryFailed_into_val_typed :
+noncomputable instance into_val_typed'ErrGroupDiscoveryFailed :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ErrGroupDiscoveryFailed k8s_io.client_go.discovery.ErrGroupDiscoveryFailed.underlying :=
   sorry -- axiomatized type
 
@@ -575,11 +575,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance ResourcePredicate_typed_pointsto :
+noncomputable instance typed_pointsto'ResourcePredicate :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.ResourcePredicate :=
   sorry -- axiomatized type
 
-noncomputable instance ResourcePredicate_into_val_typed :
+noncomputable instance into_val_typed'ResourcePredicate :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ResourcePredicate k8s_io.client_go.discovery.ResourcePredicate.underlying :=
   sorry -- axiomatized type
 
@@ -594,11 +594,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance ResourcePredicateFunc_typed_pointsto :
+noncomputable instance typed_pointsto'ResourcePredicateFunc :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.ResourcePredicateFunc :=
   sorry -- axiomatized type
 
-noncomputable instance ResourcePredicateFunc_into_val_typed :
+noncomputable instance into_val_typed'ResourcePredicateFunc :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ResourcePredicateFunc k8s_io.client_go.discovery.ResourcePredicateFunc.underlying :=
   sorry -- axiomatized type
 
@@ -613,11 +613,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
 
-noncomputable instance SupportsAllVerbs_typed_pointsto :
+noncomputable instance typed_pointsto'SupportsAllVerbs :
     TypedPointsto (GF := GF) k8s_io.client_go.discovery.SupportsAllVerbs :=
   sorry -- axiomatized type
 
-noncomputable instance SupportsAllVerbs_into_val_typed :
+noncomputable instance into_val_typed'SupportsAllVerbs :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.SupportsAllVerbs k8s_io.client_go.discovery.SupportsAllVerbs.underlying :=
   sorry -- axiomatized type
 

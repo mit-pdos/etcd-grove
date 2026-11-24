@@ -65,7 +65,7 @@ noncomputable instance NoUnkeyedLiterals.zero_val [GooseExts] : ZeroVal NoUnkeye
 @[irreducible] noncomputable def NoUnkeyedLiterals.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NoUnkeyedLiterals.fieldsUnsealed
 
-noncomputable instance equals_unfold_NoUnkeyedLiterals [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'NoUnkeyedLiterals [GooseExts] [GoGlobalContext] :
     EqualsUnfold NoUnkeyedLiterals.fields NoUnkeyedLiterals.fieldsUnsealed :=
   ⟨by unfold NoUnkeyedLiterals.fields; rfl⟩
 
@@ -126,17 +126,17 @@ attribute [instance] DoNotCopy.TypeAssumptions.underlying
   DoNotCopy.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  NoUnkeyedLiterals_instance : NoUnkeyedLiterals.TypeAssumptions
-  DoNotImplement_instance : DoNotImplement.TypeAssumptions
-  DoNotCompare_instance : DoNotCompare.TypeAssumptions
-  DoNotCopy_instance : DoNotCopy.TypeAssumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  instance'NoUnkeyedLiterals : NoUnkeyedLiterals.TypeAssumptions
+  instance'DoNotImplement : DoNotImplement.TypeAssumptions
+  instance'DoNotCompare : DoNotCompare.TypeAssumptions
+  instance'DoNotCopy : DoNotCopy.TypeAssumptions
+  import'sync : _root_.Perennial.sync.Assumptions
 
-attribute [instance] Assumptions.NoUnkeyedLiterals_instance
-  Assumptions.DoNotImplement_instance
-  Assumptions.DoNotCompare_instance
-  Assumptions.DoNotCopy_instance
-  Assumptions.import_sync_Assumption
+attribute [instance] Assumptions.instance'NoUnkeyedLiterals
+  Assumptions.instance'DoNotImplement
+  Assumptions.instance'DoNotCompare
+  Assumptions.instance'DoNotCopy
+  Assumptions.import'sync
 
 end google_golang_org.protobuf.internal.pragma
 

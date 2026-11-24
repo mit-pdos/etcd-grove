@@ -463,35 +463,35 @@ attribute [instance] MetricFamily.TypeAssumptions.type_repr
   MetricFamily.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  MetricType_instance : MetricType.TypeAssumptions
-  LabelPair_instance : LabelPair.TypeAssumptions
-  Gauge_instance : Gauge.TypeAssumptions
-  Counter_instance : Counter.TypeAssumptions
-  Quantile_instance : Quantile.TypeAssumptions
-  Summary_instance : Summary.TypeAssumptions
-  Untyped_instance : Untyped.TypeAssumptions
-  Histogram_instance : Histogram.TypeAssumptions
-  Bucket_instance : Bucket.TypeAssumptions
-  BucketSpan_instance : BucketSpan.TypeAssumptions
-  Exemplar_instance : Exemplar.TypeAssumptions
-  Metric_instance : Metric.TypeAssumptions
-  MetricFamily_instance : MetricFamily.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  instance'MetricType : MetricType.TypeAssumptions
+  instance'LabelPair : LabelPair.TypeAssumptions
+  instance'Gauge : Gauge.TypeAssumptions
+  instance'Counter : Counter.TypeAssumptions
+  instance'Quantile : Quantile.TypeAssumptions
+  instance'Summary : Summary.TypeAssumptions
+  instance'Untyped : Untyped.TypeAssumptions
+  instance'Histogram : Histogram.TypeAssumptions
+  instance'Bucket : Bucket.TypeAssumptions
+  instance'BucketSpan : BucketSpan.TypeAssumptions
+  instance'Exemplar : Exemplar.TypeAssumptions
+  instance'Metric : Metric.TypeAssumptions
+  instance'MetricFamily : MetricFamily.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
 
-attribute [instance] Assumptions.MetricType_instance
-  Assumptions.LabelPair_instance
-  Assumptions.Gauge_instance
-  Assumptions.Counter_instance
-  Assumptions.Quantile_instance
-  Assumptions.Summary_instance
-  Assumptions.Untyped_instance
-  Assumptions.Histogram_instance
-  Assumptions.Bucket_instance
-  Assumptions.BucketSpan_instance
-  Assumptions.Exemplar_instance
-  Assumptions.Metric_instance
-  Assumptions.MetricFamily_instance
-  Assumptions.«init.0_unfold»
+attribute [instance] Assumptions.instance'MetricType
+  Assumptions.instance'LabelPair
+  Assumptions.instance'Gauge
+  Assumptions.instance'Counter
+  Assumptions.instance'Quantile
+  Assumptions.instance'Summary
+  Assumptions.instance'Untyped
+  Assumptions.instance'Histogram
+  Assumptions.instance'Bucket
+  Assumptions.instance'BucketSpan
+  Assumptions.instance'Exemplar
+  Assumptions.instance'Metric
+  Assumptions.instance'MetricFamily
+  Assumptions.«unfold'init.0»
 
 end github_com.prometheus.client_model.go
 

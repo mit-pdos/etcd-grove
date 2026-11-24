@@ -725,41 +725,41 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.k8s_io.kubernetes.pkg.apis.core.v1.helper.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  GetTemplateGeneration_unfold : FuncUnfold GetTemplateGeneration [] GetTemplateGeneration.impl
-  AddOrUpdateDaemonPodTolerations_unfold : FuncUnfold AddOrUpdateDaemonPodTolerations [] AddOrUpdateDaemonPodTolerations.impl
-  CreatePodTemplate_unfold : FuncUnfold CreatePodTemplate [] CreatePodTemplate.impl
-  AllowsSurge_unfold : FuncUnfold AllowsSurge [] AllowsSurge.impl
-  SurgeCount_unfold : FuncUnfold SurgeCount [] SurgeCount.impl
-  UnavailableCount_unfold : FuncUnfold UnavailableCount [] UnavailableCount.impl
-  IsPodUpdated_unfold : FuncUnfold IsPodUpdated [] IsPodUpdated.impl
-  ReplaceDaemonSetPodNodeNameNodeAffinity_unfold : FuncUnfold ReplaceDaemonSetPodNodeNameNodeAffinity [] ReplaceDaemonSetPodNodeNameNodeAffinity.impl
-  GetTargetNodeName_unfold : FuncUnfold GetTargetNodeName [] GetTargetNodeName.impl
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_apps_v1_Assumption : _root_.Perennial.k8s_io.api.apps.v1.Assumptions
-  import_core_v1_Assumption : _root_.Perennial.k8s_io.api.core.v1.Assumptions
-  import_v1beta1_Assumption : _root_.Perennial.k8s_io.api.extensions.v1beta1.Assumptions
-  import_meta_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_intstr_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.Assumptions
-  import_helper_Assumption : _root_.Perennial.k8s_io.kubernetes.pkg.apis.core.v1.helper.Assumptions
+  unfold'GetTemplateGeneration : FuncUnfold GetTemplateGeneration [] GetTemplateGeneration.impl
+  unfold'AddOrUpdateDaemonPodTolerations : FuncUnfold AddOrUpdateDaemonPodTolerations [] AddOrUpdateDaemonPodTolerations.impl
+  unfold'CreatePodTemplate : FuncUnfold CreatePodTemplate [] CreatePodTemplate.impl
+  unfold'AllowsSurge : FuncUnfold AllowsSurge [] AllowsSurge.impl
+  unfold'SurgeCount : FuncUnfold SurgeCount [] SurgeCount.impl
+  unfold'UnavailableCount : FuncUnfold UnavailableCount [] UnavailableCount.impl
+  unfold'IsPodUpdated : FuncUnfold IsPodUpdated [] IsPodUpdated.impl
+  unfold'ReplaceDaemonSetPodNodeNameNodeAffinity : FuncUnfold ReplaceDaemonSetPodNodeNameNodeAffinity [] ReplaceDaemonSetPodNodeNameNodeAffinity.impl
+  unfold'GetTargetNodeName : FuncUnfold GetTargetNodeName [] GetTargetNodeName.impl
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'apps_v1 : _root_.Perennial.k8s_io.api.apps.v1.Assumptions
+  import'core_v1 : _root_.Perennial.k8s_io.api.core.v1.Assumptions
+  import'v1beta1 : _root_.Perennial.k8s_io.api.extensions.v1beta1.Assumptions
+  import'meta_v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'intstr : _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.Assumptions
+  import'helper : _root_.Perennial.k8s_io.kubernetes.pkg.apis.core.v1.helper.Assumptions
 
-attribute [instance] Assumptions.GetTemplateGeneration_unfold
-  Assumptions.AddOrUpdateDaemonPodTolerations_unfold
-  Assumptions.CreatePodTemplate_unfold
-  Assumptions.AllowsSurge_unfold
-  Assumptions.SurgeCount_unfold
-  Assumptions.UnavailableCount_unfold
-  Assumptions.IsPodUpdated_unfold
-  Assumptions.ReplaceDaemonSetPodNodeNameNodeAffinity_unfold
-  Assumptions.GetTargetNodeName_unfold
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_apps_v1_Assumption
-  Assumptions.import_core_v1_Assumption
-  Assumptions.import_v1beta1_Assumption
-  Assumptions.import_meta_v1_Assumption
-  Assumptions.import_intstr_Assumption
-  Assumptions.import_helper_Assumption
+attribute [instance] Assumptions.unfold'GetTemplateGeneration
+  Assumptions.unfold'AddOrUpdateDaemonPodTolerations
+  Assumptions.unfold'CreatePodTemplate
+  Assumptions.unfold'AllowsSurge
+  Assumptions.unfold'SurgeCount
+  Assumptions.unfold'UnavailableCount
+  Assumptions.unfold'IsPodUpdated
+  Assumptions.unfold'ReplaceDaemonSetPodNodeNameNodeAffinity
+  Assumptions.unfold'GetTargetNodeName
+  Assumptions.import'fmt
+  Assumptions.import'strconv
+  Assumptions.import'apps_v1
+  Assumptions.import'core_v1
+  Assumptions.import'v1beta1
+  Assumptions.import'meta_v1
+  Assumptions.import'intstr
+  Assumptions.import'helper
 
 end k8s_io.kubernetes.pkg.controller.daemon.util
 

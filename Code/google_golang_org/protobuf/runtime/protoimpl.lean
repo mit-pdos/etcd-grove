@@ -113,11 +113,11 @@ attribute [instance] EnforceVersion.TypeAssumptions.type_repr
   EnforceVersion.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  EnforceVersion_instance : EnforceVersion.TypeAssumptions
-  import_impl_Assumption : _root_.Perennial.google_golang_org.protobuf.internal.impl.Assumptions
+  instance'EnforceVersion : EnforceVersion.TypeAssumptions
+  import'impl : _root_.Perennial.google_golang_org.protobuf.internal.impl.Assumptions
 
-attribute [instance] Assumptions.EnforceVersion_instance
-  Assumptions.import_impl_Assumption
+attribute [instance] Assumptions.instance'EnforceVersion
+  Assumptions.import'impl
 
 end google_golang_org.protobuf.runtime.protoimpl
 

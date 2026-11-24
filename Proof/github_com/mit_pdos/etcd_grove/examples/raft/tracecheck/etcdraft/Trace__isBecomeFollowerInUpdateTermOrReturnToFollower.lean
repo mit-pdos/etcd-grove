@@ -55,7 +55,7 @@ local macro "bf_c2" "[" xs:ident,* "]" : tactic => `(tactic| (
   simp only [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Candidate,
     github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.PreCandidate]
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Role.TypeAssumptions.String_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Role.TypeAssumptions.unfold'String.method_unfold]
   try wp_auto
   rw [decide_strRel Hkf.2.2.2.2.2.1 strRel_candidate]
   by_cases c4 : (tr.line K).ev.role = candidate
@@ -64,7 +64,7 @@ local macro "bf_c2" "[" xs:ident,* "]" : tactic => `(tactic| (
     iapply HΦ'; ipureintro; rw [hres]; simp [c1, c2, c3, c4, $[$xs:ident],*]
   rw [decide_eq_false c4]
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Role.TypeAssumptions.String_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Role.TypeAssumptions.unfold'String.method_unfold]
   try wp_auto
   rw [decide_strRel Hkf.2.2.2.2.2.1 strRel_preCandidate]
   iapply HΦ'; ipureintro; rw [hres]

@@ -564,7 +564,7 @@ noncomputable def podClient.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
 /-- go: clients.go:142:21 -/
-noncomputable def podClient.List.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def podClient.List''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"
   (Lam "opts"
@@ -840,7 +840,7 @@ noncomputable def nodeClient.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
 /-- go: clients.go:191:22 -/
-noncomputable def nodeClient.List.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def nodeClient.List''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"
   (Lam "opts"
@@ -1306,7 +1306,7 @@ noncomputable def daemonSetClient.Get.impl [GooseExts] [GoGlobalContext] : val :
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
 /-- go: clients.go:312:27 -/
-noncomputable def daemonSetClient.List.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def daemonSetClient.List''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"
   (Lam "opts"
@@ -1631,7 +1631,7 @@ noncomputable def revisionClient.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
 /-- go: clients.go:371:26 -/
-noncomputable def revisionClient.List.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def revisionClient.List''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"
   (Lam "opts"
@@ -2517,7 +2517,7 @@ noncomputable def Server.get.impl [GooseExts] [GoGlobalContext] : val :=
 /-- list returns copies of the objects in ns ("": all) and the current resource version.
 
     go: server.go:201:18 -/
-noncomputable def Server.list.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Server.list''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "t"
   (Lam "ns"
@@ -3589,7 +3589,7 @@ noncomputable instance Clientset.zero_val [GooseExts] : ZeroVal Clientset :=
 @[irreducible] noncomputable def Clientset.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Clientset.fieldsUnsealed
 
-noncomputable instance equals_unfold_Clientset [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Clientset [GooseExts] [GoGlobalContext] :
     EqualsUnfold Clientset.fields Clientset.fieldsUnsealed :=
   ⟨by unfold Clientset.fields; rfl⟩
 
@@ -3599,359 +3599,359 @@ noncomputable instance equals_unfold_Clientset [GooseExts] [GoGlobalContext] :
 class Clientset.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Clientset.underlying Clientset
   underlying : go.UnderlyingDirectedEq Clientset.ty Clientset.underlying
-  get_Interface : ∀ (x : Clientset), go.IsGoStepPureDetTagged under (StructFieldGet Clientset.underlying go!"Interface") #x (Val #(x.Interface'))
-  set_Interface : ∀ (x : Clientset) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface), go.IsGoStepPureDetTagged under (StructFieldSet Clientset.underlying go!"Interface") (PairV #x #y) (Val #(({ x with Interface' := y } : Clientset)))
-  get_s : ∀ (x : Clientset), go.IsGoStepPureDetTagged under (StructFieldGet Clientset.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : Clientset) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Clientset.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : Clientset)))
-  get_admin : ∀ (x : Clientset), go.IsGoStepPureDetTagged under (StructFieldGet Clientset.underlying go!"admin") #x (Val #(x.admin'))
-  set_admin : ∀ (x : Clientset) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Clientset.underlying go!"admin") (PairV #x #y) (Val #(({ x with admin' := y } : Clientset)))
+  get'Interface : ∀ (x : Clientset), go.IsGoStepPureDetTagged under (StructFieldGet Clientset.underlying go!"Interface") #x (Val #(x.Interface'))
+  set'Interface : ∀ (x : Clientset) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface), go.IsGoStepPureDetTagged under (StructFieldSet Clientset.underlying go!"Interface") (PairV #x #y) (Val #(({ x with Interface' := y } : Clientset)))
+  get's : ∀ (x : Clientset), go.IsGoStepPureDetTagged under (StructFieldGet Clientset.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : Clientset) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Clientset.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : Clientset)))
+  get'admin : ∀ (x : Clientset), go.IsGoStepPureDetTagged under (StructFieldGet Clientset.underlying go!"admin") #x (Val #(x.admin'))
+  set'admin : ∀ (x : Clientset) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Clientset.underlying go!"admin") (PairV #x #y) (Val #(({ x with admin' := y } : Clientset)))
   method_set : go.MethodSetIs Clientset.ty [(go!"AdmissionregistrationV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/admissionregistration/v1.AdmissionregistrationV1Interface" [])]))), (go!"AdmissionregistrationV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/admissionregistration/v1alpha1.AdmissionregistrationV1alpha1Interface" [])]))), (go!"AdmissionregistrationV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1.AdmissionregistrationV1beta1Interface" [])]))), (go!"AppsV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/apps/v1beta1.AppsV1beta1Interface" [])]))), (go!"AppsV1beta2", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/apps/v1beta2.AppsV1beta2Interface" [])]))), (go!"AuthenticationV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authentication/v1.AuthenticationV1Interface" [])]))), (go!"AuthenticationV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authentication/v1alpha1.AuthenticationV1alpha1Interface" [])]))), (go!"AuthenticationV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.AuthenticationV1beta1Interface" [])]))), (go!"AuthorizationV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authorization/v1.AuthorizationV1Interface" [])]))), (go!"AuthorizationV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authorization/v1alpha1.AuthorizationV1alpha1Interface" [])]))), (go!"AuthorizationV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authorization/v1beta1.AuthorizationV1beta1Interface" [])]))), (go!"AutoscalingV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/autoscaling/v1.AutoscalingV1Interface" [])]))), (go!"AutoscalingV2", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/autoscaling/v2.AutoscalingV2Interface" [])]))), (go!"BatchV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/batch/v1.BatchV1Interface" [])]))), (go!"BatchV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/batch/v1beta1.BatchV1beta1Interface" [])]))), (go!"CertificatesV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/certificates/v1.CertificatesV1Interface" [])]))), (go!"CertificatesV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/certificates/v1alpha1.CertificatesV1alpha1Interface" [])]))), (go!"CertificatesV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/certificates/v1beta1.CertificatesV1beta1Interface" [])]))), (go!"CoordinationV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/coordination/v1.CoordinationV1Interface" [])]))), (go!"CoordinationV1alpha2", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/coordination/v1alpha2.CoordinationV1alpha2Interface" [])]))), (go!"CoordinationV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/coordination/v1beta1.CoordinationV1beta1Interface" [])]))), (go!"Discovery", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/discovery.DiscoveryInterfaces" [])]))), (go!"DiscoveryV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/discovery/v1.DiscoveryV1Interface" [])]))), (go!"DiscoveryV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/discovery/v1beta1.DiscoveryV1beta1Interface" [])]))), (go!"EventsV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/events/v1.EventsV1Interface" [])]))), (go!"EventsV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/events/v1beta1.EventsV1beta1Interface" [])]))), (go!"ExtensionsV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.ExtensionsV1beta1Interface" [])]))), (go!"FlowcontrolV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1.FlowcontrolV1Interface" [])]))), (go!"FlowcontrolV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta1.FlowcontrolV1beta1Interface" [])]))), (go!"FlowcontrolV1beta2", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.FlowcontrolV1beta2Interface" [])]))), (go!"FlowcontrolV1beta3", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta3.FlowcontrolV1beta3Interface" [])]))), (go!"InternalV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/apiserverinternal/v1alpha1.InternalV1alpha1Interface" [])]))), (go!"LifecycleV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/lifecycle/v1alpha1.LifecycleV1alpha1Interface" [])]))), (go!"NetworkingV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/networking/v1.NetworkingV1Interface" [])]))), (go!"NetworkingV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/networking/v1beta1.NetworkingV1beta1Interface" [])]))), (go!"NodeV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/node/v1.NodeV1Interface" [])]))), (go!"NodeV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/node/v1alpha1.NodeV1alpha1Interface" [])]))), (go!"NodeV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/node/v1beta1.NodeV1beta1Interface" [])]))), (go!"PolicyV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/policy/v1.PolicyV1Interface" [])]))), (go!"PolicyV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/policy/v1beta1.PolicyV1beta1Interface" [])]))), (go!"RbacV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.RbacV1Interface" [])]))), (go!"RbacV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1alpha1.RbacV1alpha1Interface" [])]))), (go!"RbacV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1beta1.RbacV1beta1Interface" [])]))), (go!"ResourceV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1.ResourceV1Interface" [])]))), (go!"ResourceV1alpha3", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.ResourceV1alpha3Interface" [])]))), (go!"ResourceV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.ResourceV1beta1Interface" [])]))), (go!"ResourceV1beta2", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta2.ResourceV1beta2Interface" [])]))), (go!"SchedulingV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/scheduling/v1.SchedulingV1Interface" [])]))), (go!"SchedulingV1alpha3", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/scheduling/v1alpha3.SchedulingV1alpha3Interface" [])]))), (go!"SchedulingV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/scheduling/v1beta1.SchedulingV1beta1Interface" [])]))), (go!"StorageV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.StorageV1Interface" [])]))), (go!"StorageV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1alpha1.StorageV1alpha1Interface" [])]))), (go!"StorageV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1beta1.StorageV1beta1Interface" [])]))), (go!"StoragemigrationV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storagemigration/v1.StoragemigrationV1Interface" [])]))), (go!"StoragemigrationV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storagemigration/v1beta1.StoragemigrationV1beta1Interface" [])])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Clientset.ty) [(go!"AdmissionregistrationV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/admissionregistration/v1.AdmissionregistrationV1Interface" [])]))), (go!"AdmissionregistrationV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/admissionregistration/v1alpha1.AdmissionregistrationV1alpha1Interface" [])]))), (go!"AdmissionregistrationV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1.AdmissionregistrationV1beta1Interface" [])]))), (go!"AppsV1", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty]))), (go!"AppsV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/apps/v1beta1.AppsV1beta1Interface" [])]))), (go!"AppsV1beta2", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/apps/v1beta2.AppsV1beta2Interface" [])]))), (go!"AuthenticationV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authentication/v1.AuthenticationV1Interface" [])]))), (go!"AuthenticationV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authentication/v1alpha1.AuthenticationV1alpha1Interface" [])]))), (go!"AuthenticationV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authentication/v1beta1.AuthenticationV1beta1Interface" [])]))), (go!"AuthorizationV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authorization/v1.AuthorizationV1Interface" [])]))), (go!"AuthorizationV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authorization/v1alpha1.AuthorizationV1alpha1Interface" [])]))), (go!"AuthorizationV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/authorization/v1beta1.AuthorizationV1beta1Interface" [])]))), (go!"AutoscalingV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/autoscaling/v1.AutoscalingV1Interface" [])]))), (go!"AutoscalingV2", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/autoscaling/v2.AutoscalingV2Interface" [])]))), (go!"BatchV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/batch/v1.BatchV1Interface" [])]))), (go!"BatchV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/batch/v1beta1.BatchV1beta1Interface" [])]))), (go!"CertificatesV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/certificates/v1.CertificatesV1Interface" [])]))), (go!"CertificatesV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/certificates/v1alpha1.CertificatesV1alpha1Interface" [])]))), (go!"CertificatesV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/certificates/v1beta1.CertificatesV1beta1Interface" [])]))), (go!"CoordinationV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/coordination/v1.CoordinationV1Interface" [])]))), (go!"CoordinationV1alpha2", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/coordination/v1alpha2.CoordinationV1alpha2Interface" [])]))), (go!"CoordinationV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/coordination/v1beta1.CoordinationV1beta1Interface" [])]))), (go!"CoreV1", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty]))), (go!"Discovery", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/discovery.DiscoveryInterfaces" [])]))), (go!"DiscoveryV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/discovery/v1.DiscoveryV1Interface" [])]))), (go!"DiscoveryV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/discovery/v1beta1.DiscoveryV1beta1Interface" [])]))), (go!"EventsV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/events/v1.EventsV1Interface" [])]))), (go!"EventsV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/events/v1beta1.EventsV1beta1Interface" [])]))), (go!"ExtensionsV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/extensions/v1beta1.ExtensionsV1beta1Interface" [])]))), (go!"FlowcontrolV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1.FlowcontrolV1Interface" [])]))), (go!"FlowcontrolV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta1.FlowcontrolV1beta1Interface" [])]))), (go!"FlowcontrolV1beta2", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.FlowcontrolV1beta2Interface" [])]))), (go!"FlowcontrolV1beta3", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta3.FlowcontrolV1beta3Interface" [])]))), (go!"InternalV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/apiserverinternal/v1alpha1.InternalV1alpha1Interface" [])]))), (go!"LifecycleV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/lifecycle/v1alpha1.LifecycleV1alpha1Interface" [])]))), (go!"NetworkingV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/networking/v1.NetworkingV1Interface" [])]))), (go!"NetworkingV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/networking/v1beta1.NetworkingV1beta1Interface" [])]))), (go!"NodeV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/node/v1.NodeV1Interface" [])]))), (go!"NodeV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/node/v1alpha1.NodeV1alpha1Interface" [])]))), (go!"NodeV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/node/v1beta1.NodeV1beta1Interface" [])]))), (go!"PolicyV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/policy/v1.PolicyV1Interface" [])]))), (go!"PolicyV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/policy/v1beta1.PolicyV1beta1Interface" [])]))), (go!"RbacV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1.RbacV1Interface" [])]))), (go!"RbacV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1alpha1.RbacV1alpha1Interface" [])]))), (go!"RbacV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/rbac/v1beta1.RbacV1beta1Interface" [])]))), (go!"ResourceV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1.ResourceV1Interface" [])]))), (go!"ResourceV1alpha3", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.ResourceV1alpha3Interface" [])]))), (go!"ResourceV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.ResourceV1beta1Interface" [])]))), (go!"ResourceV1beta2", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/resource/v1beta2.ResourceV1beta2Interface" [])]))), (go!"SchedulingV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/scheduling/v1.SchedulingV1Interface" [])]))), (go!"SchedulingV1alpha3", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/scheduling/v1alpha3.SchedulingV1alpha3Interface" [])]))), (go!"SchedulingV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/scheduling/v1beta1.SchedulingV1beta1Interface" [])]))), (go!"StorageV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1.StorageV1Interface" [])]))), (go!"StorageV1alpha1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1alpha1.StorageV1alpha1Interface" [])]))), (go!"StorageV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storage/v1beta1.StorageV1beta1Interface" [])]))), (go!"StoragemigrationV1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storagemigration/v1.StoragemigrationV1Interface" [])]))), (go!"StoragemigrationV1beta1", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/kubernetes/typed/storagemigration/v1beta1.StoragemigrationV1beta1Interface" [])])))]
-  AdmissionregistrationV1_unfold : MethodUnfold Clientset.ty go!"AdmissionregistrationV1" (LamV "$r"
+  unfold'AdmissionregistrationV1 : MethodUnfold Clientset.ty go!"AdmissionregistrationV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AdmissionregistrationV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  AdmissionregistrationV1alpha1_unfold : MethodUnfold Clientset.ty go!"AdmissionregistrationV1alpha1" (LamV "$r"
+  unfold'AdmissionregistrationV1alpha1 : MethodUnfold Clientset.ty go!"AdmissionregistrationV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AdmissionregistrationV1alpha1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  AdmissionregistrationV1beta1_unfold : MethodUnfold Clientset.ty go!"AdmissionregistrationV1beta1" (LamV "$r"
+  unfold'AdmissionregistrationV1beta1 : MethodUnfold Clientset.ty go!"AdmissionregistrationV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AdmissionregistrationV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  AppsV1beta1_unfold : MethodUnfold Clientset.ty go!"AppsV1beta1" (LamV "$r"
+  unfold'AppsV1beta1 : MethodUnfold Clientset.ty go!"AppsV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AppsV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  AppsV1beta2_unfold : MethodUnfold Clientset.ty go!"AppsV1beta2" (LamV "$r"
+  unfold'AppsV1beta2 : MethodUnfold Clientset.ty go!"AppsV1beta2" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AppsV1beta2"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  AuthenticationV1_unfold : MethodUnfold Clientset.ty go!"AuthenticationV1" (LamV "$r"
+  unfold'AuthenticationV1 : MethodUnfold Clientset.ty go!"AuthenticationV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AuthenticationV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  AuthenticationV1alpha1_unfold : MethodUnfold Clientset.ty go!"AuthenticationV1alpha1" (LamV "$r"
+  unfold'AuthenticationV1alpha1 : MethodUnfold Clientset.ty go!"AuthenticationV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AuthenticationV1alpha1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  AuthenticationV1beta1_unfold : MethodUnfold Clientset.ty go!"AuthenticationV1beta1" (LamV "$r"
+  unfold'AuthenticationV1beta1 : MethodUnfold Clientset.ty go!"AuthenticationV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AuthenticationV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  AuthorizationV1_unfold : MethodUnfold Clientset.ty go!"AuthorizationV1" (LamV "$r"
+  unfold'AuthorizationV1 : MethodUnfold Clientset.ty go!"AuthorizationV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AuthorizationV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  AuthorizationV1alpha1_unfold : MethodUnfold Clientset.ty go!"AuthorizationV1alpha1" (LamV "$r"
+  unfold'AuthorizationV1alpha1 : MethodUnfold Clientset.ty go!"AuthorizationV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AuthorizationV1alpha1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  AuthorizationV1beta1_unfold : MethodUnfold Clientset.ty go!"AuthorizationV1beta1" (LamV "$r"
+  unfold'AuthorizationV1beta1 : MethodUnfold Clientset.ty go!"AuthorizationV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AuthorizationV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  AutoscalingV1_unfold : MethodUnfold Clientset.ty go!"AutoscalingV1" (LamV "$r"
+  unfold'AutoscalingV1 : MethodUnfold Clientset.ty go!"AutoscalingV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AutoscalingV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  AutoscalingV2_unfold : MethodUnfold Clientset.ty go!"AutoscalingV2" (LamV "$r"
+  unfold'AutoscalingV2 : MethodUnfold Clientset.ty go!"AutoscalingV2" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AutoscalingV2"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  BatchV1_unfold : MethodUnfold Clientset.ty go!"BatchV1" (LamV "$r"
+  unfold'BatchV1 : MethodUnfold Clientset.ty go!"BatchV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"BatchV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  BatchV1beta1_unfold : MethodUnfold Clientset.ty go!"BatchV1beta1" (LamV "$r"
+  unfold'BatchV1beta1 : MethodUnfold Clientset.ty go!"BatchV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"BatchV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  CertificatesV1_unfold : MethodUnfold Clientset.ty go!"CertificatesV1" (LamV "$r"
+  unfold'CertificatesV1 : MethodUnfold Clientset.ty go!"CertificatesV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"CertificatesV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  CertificatesV1alpha1_unfold : MethodUnfold Clientset.ty go!"CertificatesV1alpha1" (LamV "$r"
+  unfold'CertificatesV1alpha1 : MethodUnfold Clientset.ty go!"CertificatesV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"CertificatesV1alpha1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  CertificatesV1beta1_unfold : MethodUnfold Clientset.ty go!"CertificatesV1beta1" (LamV "$r"
+  unfold'CertificatesV1beta1 : MethodUnfold Clientset.ty go!"CertificatesV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"CertificatesV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  CoordinationV1_unfold : MethodUnfold Clientset.ty go!"CoordinationV1" (LamV "$r"
+  unfold'CoordinationV1 : MethodUnfold Clientset.ty go!"CoordinationV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"CoordinationV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  CoordinationV1alpha2_unfold : MethodUnfold Clientset.ty go!"CoordinationV1alpha2" (LamV "$r"
+  unfold'CoordinationV1alpha2 : MethodUnfold Clientset.ty go!"CoordinationV1alpha2" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"CoordinationV1alpha2"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  CoordinationV1beta1_unfold : MethodUnfold Clientset.ty go!"CoordinationV1beta1" (LamV "$r"
+  unfold'CoordinationV1beta1 : MethodUnfold Clientset.ty go!"CoordinationV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"CoordinationV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  Discovery_unfold : MethodUnfold Clientset.ty go!"Discovery" (LamV "$r"
+  unfold'Discovery : MethodUnfold Clientset.ty go!"Discovery" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"Discovery"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  DiscoveryV1_unfold : MethodUnfold Clientset.ty go!"DiscoveryV1" (LamV "$r"
+  unfold'DiscoveryV1 : MethodUnfold Clientset.ty go!"DiscoveryV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"DiscoveryV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  DiscoveryV1beta1_unfold : MethodUnfold Clientset.ty go!"DiscoveryV1beta1" (LamV "$r"
+  unfold'DiscoveryV1beta1 : MethodUnfold Clientset.ty go!"DiscoveryV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"DiscoveryV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  EventsV1_unfold : MethodUnfold Clientset.ty go!"EventsV1" (LamV "$r"
+  unfold'EventsV1 : MethodUnfold Clientset.ty go!"EventsV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"EventsV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  EventsV1beta1_unfold : MethodUnfold Clientset.ty go!"EventsV1beta1" (LamV "$r"
+  unfold'EventsV1beta1 : MethodUnfold Clientset.ty go!"EventsV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"EventsV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  ExtensionsV1beta1_unfold : MethodUnfold Clientset.ty go!"ExtensionsV1beta1" (LamV "$r"
+  unfold'ExtensionsV1beta1 : MethodUnfold Clientset.ty go!"ExtensionsV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"ExtensionsV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  FlowcontrolV1_unfold : MethodUnfold Clientset.ty go!"FlowcontrolV1" (LamV "$r"
+  unfold'FlowcontrolV1 : MethodUnfold Clientset.ty go!"FlowcontrolV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"FlowcontrolV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  FlowcontrolV1beta1_unfold : MethodUnfold Clientset.ty go!"FlowcontrolV1beta1" (LamV "$r"
+  unfold'FlowcontrolV1beta1 : MethodUnfold Clientset.ty go!"FlowcontrolV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"FlowcontrolV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  FlowcontrolV1beta2_unfold : MethodUnfold Clientset.ty go!"FlowcontrolV1beta2" (LamV "$r"
+  unfold'FlowcontrolV1beta2 : MethodUnfold Clientset.ty go!"FlowcontrolV1beta2" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"FlowcontrolV1beta2"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  FlowcontrolV1beta3_unfold : MethodUnfold Clientset.ty go!"FlowcontrolV1beta3" (LamV "$r"
+  unfold'FlowcontrolV1beta3 : MethodUnfold Clientset.ty go!"FlowcontrolV1beta3" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"FlowcontrolV1beta3"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  InternalV1alpha1_unfold : MethodUnfold Clientset.ty go!"InternalV1alpha1" (LamV "$r"
+  unfold'InternalV1alpha1 : MethodUnfold Clientset.ty go!"InternalV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"InternalV1alpha1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  LifecycleV1alpha1_unfold : MethodUnfold Clientset.ty go!"LifecycleV1alpha1" (LamV "$r"
+  unfold'LifecycleV1alpha1 : MethodUnfold Clientset.ty go!"LifecycleV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"LifecycleV1alpha1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  NetworkingV1_unfold : MethodUnfold Clientset.ty go!"NetworkingV1" (LamV "$r"
+  unfold'NetworkingV1 : MethodUnfold Clientset.ty go!"NetworkingV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"NetworkingV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  NetworkingV1beta1_unfold : MethodUnfold Clientset.ty go!"NetworkingV1beta1" (LamV "$r"
+  unfold'NetworkingV1beta1 : MethodUnfold Clientset.ty go!"NetworkingV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"NetworkingV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  NodeV1_unfold : MethodUnfold Clientset.ty go!"NodeV1" (LamV "$r"
+  unfold'NodeV1 : MethodUnfold Clientset.ty go!"NodeV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"NodeV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  NodeV1alpha1_unfold : MethodUnfold Clientset.ty go!"NodeV1alpha1" (LamV "$r"
+  unfold'NodeV1alpha1 : MethodUnfold Clientset.ty go!"NodeV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"NodeV1alpha1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  NodeV1beta1_unfold : MethodUnfold Clientset.ty go!"NodeV1beta1" (LamV "$r"
+  unfold'NodeV1beta1 : MethodUnfold Clientset.ty go!"NodeV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"NodeV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  PolicyV1_unfold : MethodUnfold Clientset.ty go!"PolicyV1" (LamV "$r"
+  unfold'PolicyV1 : MethodUnfold Clientset.ty go!"PolicyV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"PolicyV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  PolicyV1beta1_unfold : MethodUnfold Clientset.ty go!"PolicyV1beta1" (LamV "$r"
+  unfold'PolicyV1beta1 : MethodUnfold Clientset.ty go!"PolicyV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"PolicyV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  RbacV1_unfold : MethodUnfold Clientset.ty go!"RbacV1" (LamV "$r"
+  unfold'RbacV1 : MethodUnfold Clientset.ty go!"RbacV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"RbacV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  RbacV1alpha1_unfold : MethodUnfold Clientset.ty go!"RbacV1alpha1" (LamV "$r"
+  unfold'RbacV1alpha1 : MethodUnfold Clientset.ty go!"RbacV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"RbacV1alpha1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  RbacV1beta1_unfold : MethodUnfold Clientset.ty go!"RbacV1beta1" (LamV "$r"
+  unfold'RbacV1beta1 : MethodUnfold Clientset.ty go!"RbacV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"RbacV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  ResourceV1_unfold : MethodUnfold Clientset.ty go!"ResourceV1" (LamV "$r"
+  unfold'ResourceV1 : MethodUnfold Clientset.ty go!"ResourceV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"ResourceV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  ResourceV1alpha3_unfold : MethodUnfold Clientset.ty go!"ResourceV1alpha3" (LamV "$r"
+  unfold'ResourceV1alpha3 : MethodUnfold Clientset.ty go!"ResourceV1alpha3" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"ResourceV1alpha3"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  ResourceV1beta1_unfold : MethodUnfold Clientset.ty go!"ResourceV1beta1" (LamV "$r"
+  unfold'ResourceV1beta1 : MethodUnfold Clientset.ty go!"ResourceV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"ResourceV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  ResourceV1beta2_unfold : MethodUnfold Clientset.ty go!"ResourceV1beta2" (LamV "$r"
+  unfold'ResourceV1beta2 : MethodUnfold Clientset.ty go!"ResourceV1beta2" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"ResourceV1beta2"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  SchedulingV1_unfold : MethodUnfold Clientset.ty go!"SchedulingV1" (LamV "$r"
+  unfold'SchedulingV1 : MethodUnfold Clientset.ty go!"SchedulingV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"SchedulingV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  SchedulingV1alpha3_unfold : MethodUnfold Clientset.ty go!"SchedulingV1alpha3" (LamV "$r"
+  unfold'SchedulingV1alpha3 : MethodUnfold Clientset.ty go!"SchedulingV1alpha3" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"SchedulingV1alpha3"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  SchedulingV1beta1_unfold : MethodUnfold Clientset.ty go!"SchedulingV1beta1" (LamV "$r"
+  unfold'SchedulingV1beta1 : MethodUnfold Clientset.ty go!"SchedulingV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"SchedulingV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  StorageV1_unfold : MethodUnfold Clientset.ty go!"StorageV1" (LamV "$r"
+  unfold'StorageV1 : MethodUnfold Clientset.ty go!"StorageV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"StorageV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  StorageV1alpha1_unfold : MethodUnfold Clientset.ty go!"StorageV1alpha1" (LamV "$r"
+  unfold'StorageV1alpha1 : MethodUnfold Clientset.ty go!"StorageV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"StorageV1alpha1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  StorageV1beta1_unfold : MethodUnfold Clientset.ty go!"StorageV1beta1" (LamV "$r"
+  unfold'StorageV1beta1 : MethodUnfold Clientset.ty go!"StorageV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"StorageV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  StoragemigrationV1_unfold : MethodUnfold Clientset.ty go!"StoragemigrationV1" (LamV "$r"
+  unfold'StoragemigrationV1 : MethodUnfold Clientset.ty go!"StoragemigrationV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"StoragemigrationV1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  StoragemigrationV1beta1_unfold : MethodUnfold Clientset.ty go!"StoragemigrationV1beta1" (LamV "$r"
+  unfold'StoragemigrationV1beta1 : MethodUnfold Clientset.ty go!"StoragemigrationV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"StoragemigrationV1beta1"))) (App (Val (GoInstruction (StructFieldGet Clientset.ty go!"Interface"))) (Var "$r"))))
-  ptr_AdmissionregistrationV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AdmissionregistrationV1" (LamV "$r"
+  ptr_unfold'AdmissionregistrationV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AdmissionregistrationV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AdmissionregistrationV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_AdmissionregistrationV1alpha1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AdmissionregistrationV1alpha1" (LamV "$r"
+  ptr_unfold'AdmissionregistrationV1alpha1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AdmissionregistrationV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AdmissionregistrationV1alpha1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_AdmissionregistrationV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AdmissionregistrationV1beta1" (LamV "$r"
+  ptr_unfold'AdmissionregistrationV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AdmissionregistrationV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AdmissionregistrationV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_AppsV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AppsV1" Clientset.AppsV1.impl
-  ptr_AppsV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AppsV1beta1" (LamV "$r"
+  ptr_unfold'AppsV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AppsV1" Clientset.AppsV1.impl
+  ptr_unfold'AppsV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AppsV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AppsV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_AppsV1beta2_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AppsV1beta2" (LamV "$r"
+  ptr_unfold'AppsV1beta2 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AppsV1beta2" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AppsV1beta2"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_AuthenticationV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AuthenticationV1" (LamV "$r"
+  ptr_unfold'AuthenticationV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AuthenticationV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AuthenticationV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_AuthenticationV1alpha1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AuthenticationV1alpha1" (LamV "$r"
+  ptr_unfold'AuthenticationV1alpha1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AuthenticationV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AuthenticationV1alpha1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_AuthenticationV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AuthenticationV1beta1" (LamV "$r"
+  ptr_unfold'AuthenticationV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AuthenticationV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AuthenticationV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_AuthorizationV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AuthorizationV1" (LamV "$r"
+  ptr_unfold'AuthorizationV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AuthorizationV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AuthorizationV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_AuthorizationV1alpha1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AuthorizationV1alpha1" (LamV "$r"
+  ptr_unfold'AuthorizationV1alpha1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AuthorizationV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AuthorizationV1alpha1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_AuthorizationV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AuthorizationV1beta1" (LamV "$r"
+  ptr_unfold'AuthorizationV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AuthorizationV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AuthorizationV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_AutoscalingV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AutoscalingV1" (LamV "$r"
+  ptr_unfold'AutoscalingV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AutoscalingV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AutoscalingV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_AutoscalingV2_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AutoscalingV2" (LamV "$r"
+  ptr_unfold'AutoscalingV2 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"AutoscalingV2" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"AutoscalingV2"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_BatchV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"BatchV1" (LamV "$r"
+  ptr_unfold'BatchV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"BatchV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"BatchV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_BatchV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"BatchV1beta1" (LamV "$r"
+  ptr_unfold'BatchV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"BatchV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"BatchV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_CertificatesV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"CertificatesV1" (LamV "$r"
+  ptr_unfold'CertificatesV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"CertificatesV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"CertificatesV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_CertificatesV1alpha1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"CertificatesV1alpha1" (LamV "$r"
+  ptr_unfold'CertificatesV1alpha1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"CertificatesV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"CertificatesV1alpha1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_CertificatesV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"CertificatesV1beta1" (LamV "$r"
+  ptr_unfold'CertificatesV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"CertificatesV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"CertificatesV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_CoordinationV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"CoordinationV1" (LamV "$r"
+  ptr_unfold'CoordinationV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"CoordinationV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"CoordinationV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_CoordinationV1alpha2_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"CoordinationV1alpha2" (LamV "$r"
+  ptr_unfold'CoordinationV1alpha2 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"CoordinationV1alpha2" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"CoordinationV1alpha2"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_CoordinationV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"CoordinationV1beta1" (LamV "$r"
+  ptr_unfold'CoordinationV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"CoordinationV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"CoordinationV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_CoreV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"CoreV1" Clientset.CoreV1.impl
-  ptr_Discovery_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"Discovery" (LamV "$r"
+  ptr_unfold'CoreV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"CoreV1" Clientset.CoreV1.impl
+  ptr_unfold'Discovery : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"Discovery" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"Discovery"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_DiscoveryV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"DiscoveryV1" (LamV "$r"
+  ptr_unfold'DiscoveryV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"DiscoveryV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"DiscoveryV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_DiscoveryV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"DiscoveryV1beta1" (LamV "$r"
+  ptr_unfold'DiscoveryV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"DiscoveryV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"DiscoveryV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_EventsV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"EventsV1" (LamV "$r"
+  ptr_unfold'EventsV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"EventsV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"EventsV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_EventsV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"EventsV1beta1" (LamV "$r"
+  ptr_unfold'EventsV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"EventsV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"EventsV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_ExtensionsV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"ExtensionsV1beta1" (LamV "$r"
+  ptr_unfold'ExtensionsV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"ExtensionsV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"ExtensionsV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_FlowcontrolV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"FlowcontrolV1" (LamV "$r"
+  ptr_unfold'FlowcontrolV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"FlowcontrolV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"FlowcontrolV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_FlowcontrolV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"FlowcontrolV1beta1" (LamV "$r"
+  ptr_unfold'FlowcontrolV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"FlowcontrolV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"FlowcontrolV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_FlowcontrolV1beta2_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"FlowcontrolV1beta2" (LamV "$r"
+  ptr_unfold'FlowcontrolV1beta2 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"FlowcontrolV1beta2" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"FlowcontrolV1beta2"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_FlowcontrolV1beta3_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"FlowcontrolV1beta3" (LamV "$r"
+  ptr_unfold'FlowcontrolV1beta3 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"FlowcontrolV1beta3" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"FlowcontrolV1beta3"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_InternalV1alpha1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"InternalV1alpha1" (LamV "$r"
+  ptr_unfold'InternalV1alpha1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"InternalV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"InternalV1alpha1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_LifecycleV1alpha1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"LifecycleV1alpha1" (LamV "$r"
+  ptr_unfold'LifecycleV1alpha1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"LifecycleV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"LifecycleV1alpha1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_NetworkingV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"NetworkingV1" (LamV "$r"
+  ptr_unfold'NetworkingV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"NetworkingV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"NetworkingV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_NetworkingV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"NetworkingV1beta1" (LamV "$r"
+  ptr_unfold'NetworkingV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"NetworkingV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"NetworkingV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_NodeV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"NodeV1" (LamV "$r"
+  ptr_unfold'NodeV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"NodeV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"NodeV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_NodeV1alpha1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"NodeV1alpha1" (LamV "$r"
+  ptr_unfold'NodeV1alpha1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"NodeV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"NodeV1alpha1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_NodeV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"NodeV1beta1" (LamV "$r"
+  ptr_unfold'NodeV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"NodeV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"NodeV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_PolicyV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"PolicyV1" (LamV "$r"
+  ptr_unfold'PolicyV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"PolicyV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"PolicyV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_PolicyV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"PolicyV1beta1" (LamV "$r"
+  ptr_unfold'PolicyV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"PolicyV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"PolicyV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_RbacV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"RbacV1" (LamV "$r"
+  ptr_unfold'RbacV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"RbacV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"RbacV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_RbacV1alpha1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"RbacV1alpha1" (LamV "$r"
+  ptr_unfold'RbacV1alpha1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"RbacV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"RbacV1alpha1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_RbacV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"RbacV1beta1" (LamV "$r"
+  ptr_unfold'RbacV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"RbacV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"RbacV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_ResourceV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"ResourceV1" (LamV "$r"
+  ptr_unfold'ResourceV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"ResourceV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"ResourceV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_ResourceV1alpha3_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"ResourceV1alpha3" (LamV "$r"
+  ptr_unfold'ResourceV1alpha3 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"ResourceV1alpha3" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"ResourceV1alpha3"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_ResourceV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"ResourceV1beta1" (LamV "$r"
+  ptr_unfold'ResourceV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"ResourceV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"ResourceV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_ResourceV1beta2_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"ResourceV1beta2" (LamV "$r"
+  ptr_unfold'ResourceV1beta2 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"ResourceV1beta2" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"ResourceV1beta2"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_SchedulingV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"SchedulingV1" (LamV "$r"
+  ptr_unfold'SchedulingV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"SchedulingV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"SchedulingV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_SchedulingV1alpha3_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"SchedulingV1alpha3" (LamV "$r"
+  ptr_unfold'SchedulingV1alpha3 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"SchedulingV1alpha3" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"SchedulingV1alpha3"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_SchedulingV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"SchedulingV1beta1" (LamV "$r"
+  ptr_unfold'SchedulingV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"SchedulingV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"SchedulingV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_StorageV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"StorageV1" (LamV "$r"
+  ptr_unfold'StorageV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"StorageV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"StorageV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_StorageV1alpha1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"StorageV1alpha1" (LamV "$r"
+  ptr_unfold'StorageV1alpha1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"StorageV1alpha1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"StorageV1alpha1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_StorageV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"StorageV1beta1" (LamV "$r"
+  ptr_unfold'StorageV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"StorageV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"StorageV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_StoragemigrationV1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"StoragemigrationV1" (LamV "$r"
+  ptr_unfold'StoragemigrationV1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"StoragemigrationV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"StoragemigrationV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
-  ptr_StoragemigrationV1beta1_unfold : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"StoragemigrationV1beta1" (LamV "$r"
+  ptr_unfold'StoragemigrationV1beta1 : MethodUnfold (go.GoType.PointerType Clientset.ty) go!"StoragemigrationV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty go!"StoragemigrationV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (App (Val (GoInstruction (StructFieldRef Clientset.ty go!"Interface"))) (Var "$r")))))
 
 attribute [instance] Clientset.TypeAssumptions.type_repr
   Clientset.TypeAssumptions.underlying
-  Clientset.TypeAssumptions.get_Interface
-  Clientset.TypeAssumptions.set_Interface
-  Clientset.TypeAssumptions.get_s
-  Clientset.TypeAssumptions.set_s
-  Clientset.TypeAssumptions.get_admin
-  Clientset.TypeAssumptions.set_admin
+  Clientset.TypeAssumptions.get'Interface
+  Clientset.TypeAssumptions.set'Interface
+  Clientset.TypeAssumptions.get's
+  Clientset.TypeAssumptions.set's
+  Clientset.TypeAssumptions.get'admin
+  Clientset.TypeAssumptions.set'admin
   Clientset.TypeAssumptions.method_set
   Clientset.TypeAssumptions.ptr_method_set
-  Clientset.TypeAssumptions.AdmissionregistrationV1_unfold
-  Clientset.TypeAssumptions.AdmissionregistrationV1alpha1_unfold
-  Clientset.TypeAssumptions.AdmissionregistrationV1beta1_unfold
-  Clientset.TypeAssumptions.AppsV1beta1_unfold
-  Clientset.TypeAssumptions.AppsV1beta2_unfold
-  Clientset.TypeAssumptions.AuthenticationV1_unfold
-  Clientset.TypeAssumptions.AuthenticationV1alpha1_unfold
-  Clientset.TypeAssumptions.AuthenticationV1beta1_unfold
-  Clientset.TypeAssumptions.AuthorizationV1_unfold
-  Clientset.TypeAssumptions.AuthorizationV1alpha1_unfold
-  Clientset.TypeAssumptions.AuthorizationV1beta1_unfold
-  Clientset.TypeAssumptions.AutoscalingV1_unfold
-  Clientset.TypeAssumptions.AutoscalingV2_unfold
-  Clientset.TypeAssumptions.BatchV1_unfold
-  Clientset.TypeAssumptions.BatchV1beta1_unfold
-  Clientset.TypeAssumptions.CertificatesV1_unfold
-  Clientset.TypeAssumptions.CertificatesV1alpha1_unfold
-  Clientset.TypeAssumptions.CertificatesV1beta1_unfold
-  Clientset.TypeAssumptions.CoordinationV1_unfold
-  Clientset.TypeAssumptions.CoordinationV1alpha2_unfold
-  Clientset.TypeAssumptions.CoordinationV1beta1_unfold
-  Clientset.TypeAssumptions.Discovery_unfold
-  Clientset.TypeAssumptions.DiscoveryV1_unfold
-  Clientset.TypeAssumptions.DiscoveryV1beta1_unfold
-  Clientset.TypeAssumptions.EventsV1_unfold
-  Clientset.TypeAssumptions.EventsV1beta1_unfold
-  Clientset.TypeAssumptions.ExtensionsV1beta1_unfold
-  Clientset.TypeAssumptions.FlowcontrolV1_unfold
-  Clientset.TypeAssumptions.FlowcontrolV1beta1_unfold
-  Clientset.TypeAssumptions.FlowcontrolV1beta2_unfold
-  Clientset.TypeAssumptions.FlowcontrolV1beta3_unfold
-  Clientset.TypeAssumptions.InternalV1alpha1_unfold
-  Clientset.TypeAssumptions.LifecycleV1alpha1_unfold
-  Clientset.TypeAssumptions.NetworkingV1_unfold
-  Clientset.TypeAssumptions.NetworkingV1beta1_unfold
-  Clientset.TypeAssumptions.NodeV1_unfold
-  Clientset.TypeAssumptions.NodeV1alpha1_unfold
-  Clientset.TypeAssumptions.NodeV1beta1_unfold
-  Clientset.TypeAssumptions.PolicyV1_unfold
-  Clientset.TypeAssumptions.PolicyV1beta1_unfold
-  Clientset.TypeAssumptions.RbacV1_unfold
-  Clientset.TypeAssumptions.RbacV1alpha1_unfold
-  Clientset.TypeAssumptions.RbacV1beta1_unfold
-  Clientset.TypeAssumptions.ResourceV1_unfold
-  Clientset.TypeAssumptions.ResourceV1alpha3_unfold
-  Clientset.TypeAssumptions.ResourceV1beta1_unfold
-  Clientset.TypeAssumptions.ResourceV1beta2_unfold
-  Clientset.TypeAssumptions.SchedulingV1_unfold
-  Clientset.TypeAssumptions.SchedulingV1alpha3_unfold
-  Clientset.TypeAssumptions.SchedulingV1beta1_unfold
-  Clientset.TypeAssumptions.StorageV1_unfold
-  Clientset.TypeAssumptions.StorageV1alpha1_unfold
-  Clientset.TypeAssumptions.StorageV1beta1_unfold
-  Clientset.TypeAssumptions.StoragemigrationV1_unfold
-  Clientset.TypeAssumptions.StoragemigrationV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_AdmissionregistrationV1_unfold
-  Clientset.TypeAssumptions.ptr_AdmissionregistrationV1alpha1_unfold
-  Clientset.TypeAssumptions.ptr_AdmissionregistrationV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_AppsV1_unfold
-  Clientset.TypeAssumptions.ptr_AppsV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_AppsV1beta2_unfold
-  Clientset.TypeAssumptions.ptr_AuthenticationV1_unfold
-  Clientset.TypeAssumptions.ptr_AuthenticationV1alpha1_unfold
-  Clientset.TypeAssumptions.ptr_AuthenticationV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_AuthorizationV1_unfold
-  Clientset.TypeAssumptions.ptr_AuthorizationV1alpha1_unfold
-  Clientset.TypeAssumptions.ptr_AuthorizationV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_AutoscalingV1_unfold
-  Clientset.TypeAssumptions.ptr_AutoscalingV2_unfold
-  Clientset.TypeAssumptions.ptr_BatchV1_unfold
-  Clientset.TypeAssumptions.ptr_BatchV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_CertificatesV1_unfold
-  Clientset.TypeAssumptions.ptr_CertificatesV1alpha1_unfold
-  Clientset.TypeAssumptions.ptr_CertificatesV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_CoordinationV1_unfold
-  Clientset.TypeAssumptions.ptr_CoordinationV1alpha2_unfold
-  Clientset.TypeAssumptions.ptr_CoordinationV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_CoreV1_unfold
-  Clientset.TypeAssumptions.ptr_Discovery_unfold
-  Clientset.TypeAssumptions.ptr_DiscoveryV1_unfold
-  Clientset.TypeAssumptions.ptr_DiscoveryV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_EventsV1_unfold
-  Clientset.TypeAssumptions.ptr_EventsV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_ExtensionsV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_FlowcontrolV1_unfold
-  Clientset.TypeAssumptions.ptr_FlowcontrolV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_FlowcontrolV1beta2_unfold
-  Clientset.TypeAssumptions.ptr_FlowcontrolV1beta3_unfold
-  Clientset.TypeAssumptions.ptr_InternalV1alpha1_unfold
-  Clientset.TypeAssumptions.ptr_LifecycleV1alpha1_unfold
-  Clientset.TypeAssumptions.ptr_NetworkingV1_unfold
-  Clientset.TypeAssumptions.ptr_NetworkingV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_NodeV1_unfold
-  Clientset.TypeAssumptions.ptr_NodeV1alpha1_unfold
-  Clientset.TypeAssumptions.ptr_NodeV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_PolicyV1_unfold
-  Clientset.TypeAssumptions.ptr_PolicyV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_RbacV1_unfold
-  Clientset.TypeAssumptions.ptr_RbacV1alpha1_unfold
-  Clientset.TypeAssumptions.ptr_RbacV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_ResourceV1_unfold
-  Clientset.TypeAssumptions.ptr_ResourceV1alpha3_unfold
-  Clientset.TypeAssumptions.ptr_ResourceV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_ResourceV1beta2_unfold
-  Clientset.TypeAssumptions.ptr_SchedulingV1_unfold
-  Clientset.TypeAssumptions.ptr_SchedulingV1alpha3_unfold
-  Clientset.TypeAssumptions.ptr_SchedulingV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_StorageV1_unfold
-  Clientset.TypeAssumptions.ptr_StorageV1alpha1_unfold
-  Clientset.TypeAssumptions.ptr_StorageV1beta1_unfold
-  Clientset.TypeAssumptions.ptr_StoragemigrationV1_unfold
-  Clientset.TypeAssumptions.ptr_StoragemigrationV1beta1_unfold
+  Clientset.TypeAssumptions.unfold'AdmissionregistrationV1
+  Clientset.TypeAssumptions.unfold'AdmissionregistrationV1alpha1
+  Clientset.TypeAssumptions.unfold'AdmissionregistrationV1beta1
+  Clientset.TypeAssumptions.unfold'AppsV1beta1
+  Clientset.TypeAssumptions.unfold'AppsV1beta2
+  Clientset.TypeAssumptions.unfold'AuthenticationV1
+  Clientset.TypeAssumptions.unfold'AuthenticationV1alpha1
+  Clientset.TypeAssumptions.unfold'AuthenticationV1beta1
+  Clientset.TypeAssumptions.unfold'AuthorizationV1
+  Clientset.TypeAssumptions.unfold'AuthorizationV1alpha1
+  Clientset.TypeAssumptions.unfold'AuthorizationV1beta1
+  Clientset.TypeAssumptions.unfold'AutoscalingV1
+  Clientset.TypeAssumptions.unfold'AutoscalingV2
+  Clientset.TypeAssumptions.unfold'BatchV1
+  Clientset.TypeAssumptions.unfold'BatchV1beta1
+  Clientset.TypeAssumptions.unfold'CertificatesV1
+  Clientset.TypeAssumptions.unfold'CertificatesV1alpha1
+  Clientset.TypeAssumptions.unfold'CertificatesV1beta1
+  Clientset.TypeAssumptions.unfold'CoordinationV1
+  Clientset.TypeAssumptions.unfold'CoordinationV1alpha2
+  Clientset.TypeAssumptions.unfold'CoordinationV1beta1
+  Clientset.TypeAssumptions.unfold'Discovery
+  Clientset.TypeAssumptions.unfold'DiscoveryV1
+  Clientset.TypeAssumptions.unfold'DiscoveryV1beta1
+  Clientset.TypeAssumptions.unfold'EventsV1
+  Clientset.TypeAssumptions.unfold'EventsV1beta1
+  Clientset.TypeAssumptions.unfold'ExtensionsV1beta1
+  Clientset.TypeAssumptions.unfold'FlowcontrolV1
+  Clientset.TypeAssumptions.unfold'FlowcontrolV1beta1
+  Clientset.TypeAssumptions.unfold'FlowcontrolV1beta2
+  Clientset.TypeAssumptions.unfold'FlowcontrolV1beta3
+  Clientset.TypeAssumptions.unfold'InternalV1alpha1
+  Clientset.TypeAssumptions.unfold'LifecycleV1alpha1
+  Clientset.TypeAssumptions.unfold'NetworkingV1
+  Clientset.TypeAssumptions.unfold'NetworkingV1beta1
+  Clientset.TypeAssumptions.unfold'NodeV1
+  Clientset.TypeAssumptions.unfold'NodeV1alpha1
+  Clientset.TypeAssumptions.unfold'NodeV1beta1
+  Clientset.TypeAssumptions.unfold'PolicyV1
+  Clientset.TypeAssumptions.unfold'PolicyV1beta1
+  Clientset.TypeAssumptions.unfold'RbacV1
+  Clientset.TypeAssumptions.unfold'RbacV1alpha1
+  Clientset.TypeAssumptions.unfold'RbacV1beta1
+  Clientset.TypeAssumptions.unfold'ResourceV1
+  Clientset.TypeAssumptions.unfold'ResourceV1alpha3
+  Clientset.TypeAssumptions.unfold'ResourceV1beta1
+  Clientset.TypeAssumptions.unfold'ResourceV1beta2
+  Clientset.TypeAssumptions.unfold'SchedulingV1
+  Clientset.TypeAssumptions.unfold'SchedulingV1alpha3
+  Clientset.TypeAssumptions.unfold'SchedulingV1beta1
+  Clientset.TypeAssumptions.unfold'StorageV1
+  Clientset.TypeAssumptions.unfold'StorageV1alpha1
+  Clientset.TypeAssumptions.unfold'StorageV1beta1
+  Clientset.TypeAssumptions.unfold'StoragemigrationV1
+  Clientset.TypeAssumptions.unfold'StoragemigrationV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'AdmissionregistrationV1
+  Clientset.TypeAssumptions.ptr_unfold'AdmissionregistrationV1alpha1
+  Clientset.TypeAssumptions.ptr_unfold'AdmissionregistrationV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'AppsV1
+  Clientset.TypeAssumptions.ptr_unfold'AppsV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'AppsV1beta2
+  Clientset.TypeAssumptions.ptr_unfold'AuthenticationV1
+  Clientset.TypeAssumptions.ptr_unfold'AuthenticationV1alpha1
+  Clientset.TypeAssumptions.ptr_unfold'AuthenticationV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'AuthorizationV1
+  Clientset.TypeAssumptions.ptr_unfold'AuthorizationV1alpha1
+  Clientset.TypeAssumptions.ptr_unfold'AuthorizationV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'AutoscalingV1
+  Clientset.TypeAssumptions.ptr_unfold'AutoscalingV2
+  Clientset.TypeAssumptions.ptr_unfold'BatchV1
+  Clientset.TypeAssumptions.ptr_unfold'BatchV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'CertificatesV1
+  Clientset.TypeAssumptions.ptr_unfold'CertificatesV1alpha1
+  Clientset.TypeAssumptions.ptr_unfold'CertificatesV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'CoordinationV1
+  Clientset.TypeAssumptions.ptr_unfold'CoordinationV1alpha2
+  Clientset.TypeAssumptions.ptr_unfold'CoordinationV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'CoreV1
+  Clientset.TypeAssumptions.ptr_unfold'Discovery
+  Clientset.TypeAssumptions.ptr_unfold'DiscoveryV1
+  Clientset.TypeAssumptions.ptr_unfold'DiscoveryV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'EventsV1
+  Clientset.TypeAssumptions.ptr_unfold'EventsV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'ExtensionsV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'FlowcontrolV1
+  Clientset.TypeAssumptions.ptr_unfold'FlowcontrolV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'FlowcontrolV1beta2
+  Clientset.TypeAssumptions.ptr_unfold'FlowcontrolV1beta3
+  Clientset.TypeAssumptions.ptr_unfold'InternalV1alpha1
+  Clientset.TypeAssumptions.ptr_unfold'LifecycleV1alpha1
+  Clientset.TypeAssumptions.ptr_unfold'NetworkingV1
+  Clientset.TypeAssumptions.ptr_unfold'NetworkingV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'NodeV1
+  Clientset.TypeAssumptions.ptr_unfold'NodeV1alpha1
+  Clientset.TypeAssumptions.ptr_unfold'NodeV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'PolicyV1
+  Clientset.TypeAssumptions.ptr_unfold'PolicyV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'RbacV1
+  Clientset.TypeAssumptions.ptr_unfold'RbacV1alpha1
+  Clientset.TypeAssumptions.ptr_unfold'RbacV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'ResourceV1
+  Clientset.TypeAssumptions.ptr_unfold'ResourceV1alpha3
+  Clientset.TypeAssumptions.ptr_unfold'ResourceV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'ResourceV1beta2
+  Clientset.TypeAssumptions.ptr_unfold'SchedulingV1
+  Clientset.TypeAssumptions.ptr_unfold'SchedulingV1alpha3
+  Clientset.TypeAssumptions.ptr_unfold'SchedulingV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'StorageV1
+  Clientset.TypeAssumptions.ptr_unfold'StorageV1alpha1
+  Clientset.TypeAssumptions.ptr_unfold'StorageV1beta1
+  Clientset.TypeAssumptions.ptr_unfold'StoragemigrationV1
+  Clientset.TypeAssumptions.ptr_unfold'StoragemigrationV1beta1
 
 structure coreV1 [GooseExts] where
   mk ::
@@ -3970,7 +3970,7 @@ noncomputable instance coreV1.zero_val [GooseExts] : ZeroVal coreV1 :=
 @[irreducible] noncomputable def coreV1.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   coreV1.fieldsUnsealed
 
-noncomputable instance equals_unfold_coreV1 [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'coreV1 [GooseExts] [GoGlobalContext] :
     EqualsUnfold coreV1.fields coreV1.fieldsUnsealed :=
   ⟨by unfold coreV1.fields; rfl⟩
 
@@ -3980,115 +3980,115 @@ noncomputable instance equals_unfold_coreV1 [GooseExts] [GoGlobalContext] :
 class coreV1.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying coreV1.underlying coreV1
   underlying : go.UnderlyingDirectedEq coreV1.ty coreV1.underlying
-  get_CoreV1Interface : ∀ (x : coreV1), go.IsGoStepPureDetTagged under (StructFieldGet coreV1.underlying go!"CoreV1Interface") #x (Val #(x.CoreV1Interface'))
-  set_CoreV1Interface : ∀ (x : coreV1) (y : _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface), go.IsGoStepPureDetTagged under (StructFieldSet coreV1.underlying go!"CoreV1Interface") (PairV #x #y) (Val #(({ x with CoreV1Interface' := y } : coreV1)))
-  get_s : ∀ (x : coreV1), go.IsGoStepPureDetTagged under (StructFieldGet coreV1.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : coreV1) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet coreV1.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : coreV1)))
-  get_admin : ∀ (x : coreV1), go.IsGoStepPureDetTagged under (StructFieldGet coreV1.underlying go!"admin") #x (Val #(x.admin'))
-  set_admin : ∀ (x : coreV1) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet coreV1.underlying go!"admin") (PairV #x #y) (Val #(({ x with admin' := y } : coreV1)))
+  get'CoreV1Interface : ∀ (x : coreV1), go.IsGoStepPureDetTagged under (StructFieldGet coreV1.underlying go!"CoreV1Interface") #x (Val #(x.CoreV1Interface'))
+  set'CoreV1Interface : ∀ (x : coreV1) (y : _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface), go.IsGoStepPureDetTagged under (StructFieldSet coreV1.underlying go!"CoreV1Interface") (PairV #x #y) (Val #(({ x with CoreV1Interface' := y } : coreV1)))
+  get's : ∀ (x : coreV1), go.IsGoStepPureDetTagged under (StructFieldGet coreV1.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : coreV1) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet coreV1.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : coreV1)))
+  get'admin : ∀ (x : coreV1), go.IsGoStepPureDetTagged under (StructFieldGet coreV1.underlying go!"admin") #x (Val #(x.admin'))
+  set'admin : ∀ (x : coreV1) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet coreV1.underlying go!"admin") (PairV #x #y) (Val #(({ x with admin' := y } : coreV1)))
   method_set : go.MethodSetIs coreV1.ty [(go!"ComponentStatuses", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.ComponentStatusInterface.ty]))), (go!"ConfigMaps", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.ConfigMapInterface.ty]))), (go!"Endpoints", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EndpointsInterface.ty]))), (go!"LimitRanges", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.LimitRangeInterface.ty]))), (go!"Namespaces", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NamespaceInterface.ty]))), (go!"PersistentVolumeClaims", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PersistentVolumeClaimInterface.ty]))), (go!"PersistentVolumes", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PersistentVolumeInterface.ty]))), (go!"PodTemplates", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodTemplateInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ReplicationControllers", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.ReplicationControllerInterface.ty]))), (go!"ResourceQuotas", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.ResourceQuotaInterface.ty]))), (go!"Secrets", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.SecretInterface.ty]))), (go!"ServiceAccounts", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.ServiceAccountInterface.ty]))), (go!"Services", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.ServiceInterface.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType coreV1.ty) [(go!"ComponentStatuses", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.ComponentStatusInterface.ty]))), (go!"ConfigMaps", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.ConfigMapInterface.ty]))), (go!"Endpoints", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EndpointsInterface.ty]))), (go!"Events", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty]))), (go!"LimitRanges", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.LimitRangeInterface.ty]))), (go!"Namespaces", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NamespaceInterface.ty]))), (go!"Nodes", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty]))), (go!"PersistentVolumeClaims", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PersistentVolumeClaimInterface.ty]))), (go!"PersistentVolumes", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PersistentVolumeInterface.ty]))), (go!"PodTemplates", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodTemplateInterface.ty]))), (go!"Pods", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ReplicationControllers", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.ReplicationControllerInterface.ty]))), (go!"ResourceQuotas", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.ResourceQuotaInterface.ty]))), (go!"Secrets", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.SecretInterface.ty]))), (go!"ServiceAccounts", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.ServiceAccountInterface.ty]))), (go!"Services", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.ServiceInterface.ty])))]
-  ComponentStatuses_unfold : MethodUnfold coreV1.ty go!"ComponentStatuses" (LamV "$r"
+  unfold'ComponentStatuses : MethodUnfold coreV1.ty go!"ComponentStatuses" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"ComponentStatuses"))) (App (Val (GoInstruction (StructFieldGet coreV1.ty go!"CoreV1Interface"))) (Var "$r"))))
-  ConfigMaps_unfold : MethodUnfold coreV1.ty go!"ConfigMaps" (LamV "$r"
+  unfold'ConfigMaps : MethodUnfold coreV1.ty go!"ConfigMaps" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"ConfigMaps"))) (App (Val (GoInstruction (StructFieldGet coreV1.ty go!"CoreV1Interface"))) (Var "$r"))))
-  Endpoints_unfold : MethodUnfold coreV1.ty go!"Endpoints" (LamV "$r"
+  unfold'Endpoints : MethodUnfold coreV1.ty go!"Endpoints" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"Endpoints"))) (App (Val (GoInstruction (StructFieldGet coreV1.ty go!"CoreV1Interface"))) (Var "$r"))))
-  LimitRanges_unfold : MethodUnfold coreV1.ty go!"LimitRanges" (LamV "$r"
+  unfold'LimitRanges : MethodUnfold coreV1.ty go!"LimitRanges" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"LimitRanges"))) (App (Val (GoInstruction (StructFieldGet coreV1.ty go!"CoreV1Interface"))) (Var "$r"))))
-  Namespaces_unfold : MethodUnfold coreV1.ty go!"Namespaces" (LamV "$r"
+  unfold'Namespaces : MethodUnfold coreV1.ty go!"Namespaces" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"Namespaces"))) (App (Val (GoInstruction (StructFieldGet coreV1.ty go!"CoreV1Interface"))) (Var "$r"))))
-  PersistentVolumeClaims_unfold : MethodUnfold coreV1.ty go!"PersistentVolumeClaims" (LamV "$r"
+  unfold'PersistentVolumeClaims : MethodUnfold coreV1.ty go!"PersistentVolumeClaims" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"PersistentVolumeClaims"))) (App (Val (GoInstruction (StructFieldGet coreV1.ty go!"CoreV1Interface"))) (Var "$r"))))
-  PersistentVolumes_unfold : MethodUnfold coreV1.ty go!"PersistentVolumes" (LamV "$r"
+  unfold'PersistentVolumes : MethodUnfold coreV1.ty go!"PersistentVolumes" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"PersistentVolumes"))) (App (Val (GoInstruction (StructFieldGet coreV1.ty go!"CoreV1Interface"))) (Var "$r"))))
-  PodTemplates_unfold : MethodUnfold coreV1.ty go!"PodTemplates" (LamV "$r"
+  unfold'PodTemplates : MethodUnfold coreV1.ty go!"PodTemplates" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"PodTemplates"))) (App (Val (GoInstruction (StructFieldGet coreV1.ty go!"CoreV1Interface"))) (Var "$r"))))
-  RESTClient_unfold : MethodUnfold coreV1.ty go!"RESTClient" (LamV "$r"
+  unfold'RESTClient : MethodUnfold coreV1.ty go!"RESTClient" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"RESTClient"))) (App (Val (GoInstruction (StructFieldGet coreV1.ty go!"CoreV1Interface"))) (Var "$r"))))
-  ReplicationControllers_unfold : MethodUnfold coreV1.ty go!"ReplicationControllers" (LamV "$r"
+  unfold'ReplicationControllers : MethodUnfold coreV1.ty go!"ReplicationControllers" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"ReplicationControllers"))) (App (Val (GoInstruction (StructFieldGet coreV1.ty go!"CoreV1Interface"))) (Var "$r"))))
-  ResourceQuotas_unfold : MethodUnfold coreV1.ty go!"ResourceQuotas" (LamV "$r"
+  unfold'ResourceQuotas : MethodUnfold coreV1.ty go!"ResourceQuotas" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"ResourceQuotas"))) (App (Val (GoInstruction (StructFieldGet coreV1.ty go!"CoreV1Interface"))) (Var "$r"))))
-  Secrets_unfold : MethodUnfold coreV1.ty go!"Secrets" (LamV "$r"
+  unfold'Secrets : MethodUnfold coreV1.ty go!"Secrets" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"Secrets"))) (App (Val (GoInstruction (StructFieldGet coreV1.ty go!"CoreV1Interface"))) (Var "$r"))))
-  ServiceAccounts_unfold : MethodUnfold coreV1.ty go!"ServiceAccounts" (LamV "$r"
+  unfold'ServiceAccounts : MethodUnfold coreV1.ty go!"ServiceAccounts" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"ServiceAccounts"))) (App (Val (GoInstruction (StructFieldGet coreV1.ty go!"CoreV1Interface"))) (Var "$r"))))
-  Services_unfold : MethodUnfold coreV1.ty go!"Services" (LamV "$r"
+  unfold'Services : MethodUnfold coreV1.ty go!"Services" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"Services"))) (App (Val (GoInstruction (StructFieldGet coreV1.ty go!"CoreV1Interface"))) (Var "$r"))))
-  ptr_ComponentStatuses_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"ComponentStatuses" (LamV "$r"
+  ptr_unfold'ComponentStatuses : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"ComponentStatuses" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"ComponentStatuses"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef coreV1.ty go!"CoreV1Interface"))) (Var "$r")))))
-  ptr_ConfigMaps_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"ConfigMaps" (LamV "$r"
+  ptr_unfold'ConfigMaps : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"ConfigMaps" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"ConfigMaps"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef coreV1.ty go!"CoreV1Interface"))) (Var "$r")))))
-  ptr_Endpoints_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"Endpoints" (LamV "$r"
+  ptr_unfold'Endpoints : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"Endpoints" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"Endpoints"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef coreV1.ty go!"CoreV1Interface"))) (Var "$r")))))
-  ptr_Events_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"Events" coreV1.Events.impl
-  ptr_LimitRanges_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"LimitRanges" (LamV "$r"
+  ptr_unfold'Events : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"Events" coreV1.Events.impl
+  ptr_unfold'LimitRanges : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"LimitRanges" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"LimitRanges"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef coreV1.ty go!"CoreV1Interface"))) (Var "$r")))))
-  ptr_Namespaces_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"Namespaces" (LamV "$r"
+  ptr_unfold'Namespaces : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"Namespaces" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"Namespaces"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef coreV1.ty go!"CoreV1Interface"))) (Var "$r")))))
-  ptr_Nodes_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"Nodes" coreV1.Nodes.impl
-  ptr_PersistentVolumeClaims_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"PersistentVolumeClaims" (LamV "$r"
+  ptr_unfold'Nodes : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"Nodes" coreV1.Nodes.impl
+  ptr_unfold'PersistentVolumeClaims : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"PersistentVolumeClaims" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"PersistentVolumeClaims"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef coreV1.ty go!"CoreV1Interface"))) (Var "$r")))))
-  ptr_PersistentVolumes_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"PersistentVolumes" (LamV "$r"
+  ptr_unfold'PersistentVolumes : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"PersistentVolumes" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"PersistentVolumes"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef coreV1.ty go!"CoreV1Interface"))) (Var "$r")))))
-  ptr_PodTemplates_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"PodTemplates" (LamV "$r"
+  ptr_unfold'PodTemplates : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"PodTemplates" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"PodTemplates"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef coreV1.ty go!"CoreV1Interface"))) (Var "$r")))))
-  ptr_Pods_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"Pods" coreV1.Pods.impl
-  ptr_RESTClient_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"RESTClient" (LamV "$r"
+  ptr_unfold'Pods : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"Pods" coreV1.Pods.impl
+  ptr_unfold'RESTClient : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"RESTClient" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"RESTClient"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef coreV1.ty go!"CoreV1Interface"))) (Var "$r")))))
-  ptr_ReplicationControllers_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"ReplicationControllers" (LamV "$r"
+  ptr_unfold'ReplicationControllers : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"ReplicationControllers" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"ReplicationControllers"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef coreV1.ty go!"CoreV1Interface"))) (Var "$r")))))
-  ptr_ResourceQuotas_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"ResourceQuotas" (LamV "$r"
+  ptr_unfold'ResourceQuotas : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"ResourceQuotas" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"ResourceQuotas"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef coreV1.ty go!"CoreV1Interface"))) (Var "$r")))))
-  ptr_Secrets_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"Secrets" (LamV "$r"
+  ptr_unfold'Secrets : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"Secrets" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"Secrets"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef coreV1.ty go!"CoreV1Interface"))) (Var "$r")))))
-  ptr_ServiceAccounts_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"ServiceAccounts" (LamV "$r"
+  ptr_unfold'ServiceAccounts : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"ServiceAccounts" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"ServiceAccounts"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef coreV1.ty go!"CoreV1Interface"))) (Var "$r")))))
-  ptr_Services_unfold : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"Services" (LamV "$r"
+  ptr_unfold'Services : MethodUnfold (go.GoType.PointerType coreV1.ty) go!"Services" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty go!"Services"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.CoreV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef coreV1.ty go!"CoreV1Interface"))) (Var "$r")))))
 
 attribute [instance] coreV1.TypeAssumptions.type_repr
   coreV1.TypeAssumptions.underlying
-  coreV1.TypeAssumptions.get_CoreV1Interface
-  coreV1.TypeAssumptions.set_CoreV1Interface
-  coreV1.TypeAssumptions.get_s
-  coreV1.TypeAssumptions.set_s
-  coreV1.TypeAssumptions.get_admin
-  coreV1.TypeAssumptions.set_admin
+  coreV1.TypeAssumptions.get'CoreV1Interface
+  coreV1.TypeAssumptions.set'CoreV1Interface
+  coreV1.TypeAssumptions.get's
+  coreV1.TypeAssumptions.set's
+  coreV1.TypeAssumptions.get'admin
+  coreV1.TypeAssumptions.set'admin
   coreV1.TypeAssumptions.method_set
   coreV1.TypeAssumptions.ptr_method_set
-  coreV1.TypeAssumptions.ComponentStatuses_unfold
-  coreV1.TypeAssumptions.ConfigMaps_unfold
-  coreV1.TypeAssumptions.Endpoints_unfold
-  coreV1.TypeAssumptions.LimitRanges_unfold
-  coreV1.TypeAssumptions.Namespaces_unfold
-  coreV1.TypeAssumptions.PersistentVolumeClaims_unfold
-  coreV1.TypeAssumptions.PersistentVolumes_unfold
-  coreV1.TypeAssumptions.PodTemplates_unfold
-  coreV1.TypeAssumptions.RESTClient_unfold
-  coreV1.TypeAssumptions.ReplicationControllers_unfold
-  coreV1.TypeAssumptions.ResourceQuotas_unfold
-  coreV1.TypeAssumptions.Secrets_unfold
-  coreV1.TypeAssumptions.ServiceAccounts_unfold
-  coreV1.TypeAssumptions.Services_unfold
-  coreV1.TypeAssumptions.ptr_ComponentStatuses_unfold
-  coreV1.TypeAssumptions.ptr_ConfigMaps_unfold
-  coreV1.TypeAssumptions.ptr_Endpoints_unfold
-  coreV1.TypeAssumptions.ptr_Events_unfold
-  coreV1.TypeAssumptions.ptr_LimitRanges_unfold
-  coreV1.TypeAssumptions.ptr_Namespaces_unfold
-  coreV1.TypeAssumptions.ptr_Nodes_unfold
-  coreV1.TypeAssumptions.ptr_PersistentVolumeClaims_unfold
-  coreV1.TypeAssumptions.ptr_PersistentVolumes_unfold
-  coreV1.TypeAssumptions.ptr_PodTemplates_unfold
-  coreV1.TypeAssumptions.ptr_Pods_unfold
-  coreV1.TypeAssumptions.ptr_RESTClient_unfold
-  coreV1.TypeAssumptions.ptr_ReplicationControllers_unfold
-  coreV1.TypeAssumptions.ptr_ResourceQuotas_unfold
-  coreV1.TypeAssumptions.ptr_Secrets_unfold
-  coreV1.TypeAssumptions.ptr_ServiceAccounts_unfold
-  coreV1.TypeAssumptions.ptr_Services_unfold
+  coreV1.TypeAssumptions.unfold'ComponentStatuses
+  coreV1.TypeAssumptions.unfold'ConfigMaps
+  coreV1.TypeAssumptions.unfold'Endpoints
+  coreV1.TypeAssumptions.unfold'LimitRanges
+  coreV1.TypeAssumptions.unfold'Namespaces
+  coreV1.TypeAssumptions.unfold'PersistentVolumeClaims
+  coreV1.TypeAssumptions.unfold'PersistentVolumes
+  coreV1.TypeAssumptions.unfold'PodTemplates
+  coreV1.TypeAssumptions.unfold'RESTClient
+  coreV1.TypeAssumptions.unfold'ReplicationControllers
+  coreV1.TypeAssumptions.unfold'ResourceQuotas
+  coreV1.TypeAssumptions.unfold'Secrets
+  coreV1.TypeAssumptions.unfold'ServiceAccounts
+  coreV1.TypeAssumptions.unfold'Services
+  coreV1.TypeAssumptions.ptr_unfold'ComponentStatuses
+  coreV1.TypeAssumptions.ptr_unfold'ConfigMaps
+  coreV1.TypeAssumptions.ptr_unfold'Endpoints
+  coreV1.TypeAssumptions.ptr_unfold'Events
+  coreV1.TypeAssumptions.ptr_unfold'LimitRanges
+  coreV1.TypeAssumptions.ptr_unfold'Namespaces
+  coreV1.TypeAssumptions.ptr_unfold'Nodes
+  coreV1.TypeAssumptions.ptr_unfold'PersistentVolumeClaims
+  coreV1.TypeAssumptions.ptr_unfold'PersistentVolumes
+  coreV1.TypeAssumptions.ptr_unfold'PodTemplates
+  coreV1.TypeAssumptions.ptr_unfold'Pods
+  coreV1.TypeAssumptions.ptr_unfold'RESTClient
+  coreV1.TypeAssumptions.ptr_unfold'ReplicationControllers
+  coreV1.TypeAssumptions.ptr_unfold'ResourceQuotas
+  coreV1.TypeAssumptions.ptr_unfold'Secrets
+  coreV1.TypeAssumptions.ptr_unfold'ServiceAccounts
+  coreV1.TypeAssumptions.ptr_unfold'Services
 
 structure appsV1 [GooseExts] where
   mk ::
@@ -4107,7 +4107,7 @@ noncomputable instance appsV1.zero_val [GooseExts] : ZeroVal appsV1 :=
 @[irreducible] noncomputable def appsV1.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   appsV1.fieldsUnsealed
 
-noncomputable instance equals_unfold_appsV1 [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'appsV1 [GooseExts] [GoGlobalContext] :
     EqualsUnfold appsV1.fields appsV1.fieldsUnsealed :=
   ⟨by unfold appsV1.fields; rfl⟩
 
@@ -4117,53 +4117,53 @@ noncomputable instance equals_unfold_appsV1 [GooseExts] [GoGlobalContext] :
 class appsV1.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying appsV1.underlying appsV1
   underlying : go.UnderlyingDirectedEq appsV1.ty appsV1.underlying
-  get_AppsV1Interface : ∀ (x : appsV1), go.IsGoStepPureDetTagged under (StructFieldGet appsV1.underlying go!"AppsV1Interface") #x (Val #(x.AppsV1Interface'))
-  set_AppsV1Interface : ∀ (x : appsV1) (y : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface), go.IsGoStepPureDetTagged under (StructFieldSet appsV1.underlying go!"AppsV1Interface") (PairV #x #y) (Val #(({ x with AppsV1Interface' := y } : appsV1)))
-  get_s : ∀ (x : appsV1), go.IsGoStepPureDetTagged under (StructFieldGet appsV1.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : appsV1) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet appsV1.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : appsV1)))
-  get_admin : ∀ (x : appsV1), go.IsGoStepPureDetTagged under (StructFieldGet appsV1.underlying go!"admin") #x (Val #(x.admin'))
-  set_admin : ∀ (x : appsV1) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet appsV1.underlying go!"admin") (PairV #x #y) (Val #(({ x with admin' := y } : appsV1)))
+  get'AppsV1Interface : ∀ (x : appsV1), go.IsGoStepPureDetTagged under (StructFieldGet appsV1.underlying go!"AppsV1Interface") #x (Val #(x.AppsV1Interface'))
+  set'AppsV1Interface : ∀ (x : appsV1) (y : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface), go.IsGoStepPureDetTagged under (StructFieldSet appsV1.underlying go!"AppsV1Interface") (PairV #x #y) (Val #(({ x with AppsV1Interface' := y } : appsV1)))
+  get's : ∀ (x : appsV1), go.IsGoStepPureDetTagged under (StructFieldGet appsV1.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : appsV1) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet appsV1.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : appsV1)))
+  get'admin : ∀ (x : appsV1), go.IsGoStepPureDetTagged under (StructFieldGet appsV1.underlying go!"admin") #x (Val #(x.admin'))
+  set'admin : ∀ (x : appsV1) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet appsV1.underlying go!"admin") (PairV #x #y) (Val #(({ x with admin' := y } : appsV1)))
   method_set : go.MethodSetIs appsV1.ty [(go!"Deployments", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DeploymentInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ReplicaSets", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ReplicaSetInterface.ty]))), (go!"StatefulSets", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.StatefulSetInterface.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType appsV1.ty) [(go!"ControllerRevisions", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ControllerRevisionInterface.ty]))), (go!"DaemonSets", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty]))), (go!"Deployments", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DeploymentInterface.ty]))), (go!"RESTClient", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/client-go/rest.Interface" [])]))), (go!"ReplicaSets", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ReplicaSetInterface.ty]))), (go!"StatefulSets", (some (go.signature.Signature [go.string] false [_root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.StatefulSetInterface.ty])))]
-  Deployments_unfold : MethodUnfold appsV1.ty go!"Deployments" (LamV "$r"
+  unfold'Deployments : MethodUnfold appsV1.ty go!"Deployments" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty go!"Deployments"))) (App (Val (GoInstruction (StructFieldGet appsV1.ty go!"AppsV1Interface"))) (Var "$r"))))
-  RESTClient_unfold : MethodUnfold appsV1.ty go!"RESTClient" (LamV "$r"
+  unfold'RESTClient : MethodUnfold appsV1.ty go!"RESTClient" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty go!"RESTClient"))) (App (Val (GoInstruction (StructFieldGet appsV1.ty go!"AppsV1Interface"))) (Var "$r"))))
-  ReplicaSets_unfold : MethodUnfold appsV1.ty go!"ReplicaSets" (LamV "$r"
+  unfold'ReplicaSets : MethodUnfold appsV1.ty go!"ReplicaSets" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty go!"ReplicaSets"))) (App (Val (GoInstruction (StructFieldGet appsV1.ty go!"AppsV1Interface"))) (Var "$r"))))
-  StatefulSets_unfold : MethodUnfold appsV1.ty go!"StatefulSets" (LamV "$r"
+  unfold'StatefulSets : MethodUnfold appsV1.ty go!"StatefulSets" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty go!"StatefulSets"))) (App (Val (GoInstruction (StructFieldGet appsV1.ty go!"AppsV1Interface"))) (Var "$r"))))
-  ptr_ControllerRevisions_unfold : MethodUnfold (go.GoType.PointerType appsV1.ty) go!"ControllerRevisions" appsV1.ControllerRevisions.impl
-  ptr_DaemonSets_unfold : MethodUnfold (go.GoType.PointerType appsV1.ty) go!"DaemonSets" appsV1.DaemonSets.impl
-  ptr_Deployments_unfold : MethodUnfold (go.GoType.PointerType appsV1.ty) go!"Deployments" (LamV "$r"
+  ptr_unfold'ControllerRevisions : MethodUnfold (go.GoType.PointerType appsV1.ty) go!"ControllerRevisions" appsV1.ControllerRevisions.impl
+  ptr_unfold'DaemonSets : MethodUnfold (go.GoType.PointerType appsV1.ty) go!"DaemonSets" appsV1.DaemonSets.impl
+  ptr_unfold'Deployments : MethodUnfold (go.GoType.PointerType appsV1.ty) go!"Deployments" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty go!"Deployments"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef appsV1.ty go!"AppsV1Interface"))) (Var "$r")))))
-  ptr_RESTClient_unfold : MethodUnfold (go.GoType.PointerType appsV1.ty) go!"RESTClient" (LamV "$r"
+  ptr_unfold'RESTClient : MethodUnfold (go.GoType.PointerType appsV1.ty) go!"RESTClient" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty go!"RESTClient"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef appsV1.ty go!"AppsV1Interface"))) (Var "$r")))))
-  ptr_ReplicaSets_unfold : MethodUnfold (go.GoType.PointerType appsV1.ty) go!"ReplicaSets" (LamV "$r"
+  ptr_unfold'ReplicaSets : MethodUnfold (go.GoType.PointerType appsV1.ty) go!"ReplicaSets" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty go!"ReplicaSets"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef appsV1.ty go!"AppsV1Interface"))) (Var "$r")))))
-  ptr_StatefulSets_unfold : MethodUnfold (go.GoType.PointerType appsV1.ty) go!"StatefulSets" (LamV "$r"
+  ptr_unfold'StatefulSets : MethodUnfold (go.GoType.PointerType appsV1.ty) go!"StatefulSets" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty go!"StatefulSets"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Interface.ty))) (App (Val (GoInstruction (StructFieldRef appsV1.ty go!"AppsV1Interface"))) (Var "$r")))))
 
 attribute [instance] appsV1.TypeAssumptions.type_repr
   appsV1.TypeAssumptions.underlying
-  appsV1.TypeAssumptions.get_AppsV1Interface
-  appsV1.TypeAssumptions.set_AppsV1Interface
-  appsV1.TypeAssumptions.get_s
-  appsV1.TypeAssumptions.set_s
-  appsV1.TypeAssumptions.get_admin
-  appsV1.TypeAssumptions.set_admin
+  appsV1.TypeAssumptions.get'AppsV1Interface
+  appsV1.TypeAssumptions.set'AppsV1Interface
+  appsV1.TypeAssumptions.get's
+  appsV1.TypeAssumptions.set's
+  appsV1.TypeAssumptions.get'admin
+  appsV1.TypeAssumptions.set'admin
   appsV1.TypeAssumptions.method_set
   appsV1.TypeAssumptions.ptr_method_set
-  appsV1.TypeAssumptions.Deployments_unfold
-  appsV1.TypeAssumptions.RESTClient_unfold
-  appsV1.TypeAssumptions.ReplicaSets_unfold
-  appsV1.TypeAssumptions.StatefulSets_unfold
-  appsV1.TypeAssumptions.ptr_ControllerRevisions_unfold
-  appsV1.TypeAssumptions.ptr_DaemonSets_unfold
-  appsV1.TypeAssumptions.ptr_Deployments_unfold
-  appsV1.TypeAssumptions.ptr_RESTClient_unfold
-  appsV1.TypeAssumptions.ptr_ReplicaSets_unfold
-  appsV1.TypeAssumptions.ptr_StatefulSets_unfold
+  appsV1.TypeAssumptions.unfold'Deployments
+  appsV1.TypeAssumptions.unfold'RESTClient
+  appsV1.TypeAssumptions.unfold'ReplicaSets
+  appsV1.TypeAssumptions.unfold'StatefulSets
+  appsV1.TypeAssumptions.ptr_unfold'ControllerRevisions
+  appsV1.TypeAssumptions.ptr_unfold'DaemonSets
+  appsV1.TypeAssumptions.ptr_unfold'Deployments
+  appsV1.TypeAssumptions.ptr_unfold'RESTClient
+  appsV1.TypeAssumptions.ptr_unfold'ReplicaSets
+  appsV1.TypeAssumptions.ptr_unfold'StatefulSets
 
 structure podClient [GooseExts] where
   mk ::
@@ -4184,7 +4184,7 @@ noncomputable instance podClient.zero_val [GooseExts] : ZeroVal podClient :=
 @[irreducible] noncomputable def podClient.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   podClient.fieldsUnsealed
 
-noncomputable instance equals_unfold_podClient [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'podClient [GooseExts] [GoGlobalContext] :
     EqualsUnfold podClient.fields podClient.fieldsUnsealed :=
   ⟨by unfold podClient.fields; rfl⟩
 
@@ -4194,129 +4194,129 @@ noncomputable instance equals_unfold_podClient [GooseExts] [GoGlobalContext] :
 class podClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying podClient.underlying podClient
   underlying : go.UnderlyingDirectedEq podClient.ty podClient.underlying
-  get_PodInterface : ∀ (x : podClient), go.IsGoStepPureDetTagged under (StructFieldGet podClient.underlying go!"PodInterface") #x (Val #(x.PodInterface'))
-  set_PodInterface : ∀ (x : podClient) (y : _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface), go.IsGoStepPureDetTagged under (StructFieldSet podClient.underlying go!"PodInterface") (PairV #x #y) (Val #(({ x with PodInterface' := y } : podClient)))
-  get_s : ∀ (x : podClient), go.IsGoStepPureDetTagged under (StructFieldGet podClient.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : podClient) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet podClient.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : podClient)))
-  get_ns : ∀ (x : podClient), go.IsGoStepPureDetTagged under (StructFieldGet podClient.underlying go!"ns") #x (Val #(x.ns'))
-  set_ns : ∀ (x : podClient) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet podClient.underlying go!"ns") (PairV #x #y) (Val #(({ x with ns' := y } : podClient)))
-  get_admin : ∀ (x : podClient), go.IsGoStepPureDetTagged under (StructFieldGet podClient.underlying go!"admin") #x (Val #(x.admin'))
-  set_admin : ∀ (x : podClient) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet podClient.underlying go!"admin") (PairV #x #y) (Val #(({ x with admin' := y } : podClient)))
+  get'PodInterface : ∀ (x : podClient), go.IsGoStepPureDetTagged under (StructFieldGet podClient.underlying go!"PodInterface") #x (Val #(x.PodInterface'))
+  set'PodInterface : ∀ (x : podClient) (y : _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface), go.IsGoStepPureDetTagged under (StructFieldSet podClient.underlying go!"PodInterface") (PairV #x #y) (Val #(({ x with PodInterface' := y } : podClient)))
+  get's : ∀ (x : podClient), go.IsGoStepPureDetTagged under (StructFieldGet podClient.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : podClient) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet podClient.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : podClient)))
+  get'ns : ∀ (x : podClient), go.IsGoStepPureDetTagged under (StructFieldGet podClient.underlying go!"ns") #x (Val #(x.ns'))
+  set'ns : ∀ (x : podClient) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet podClient.underlying go!"ns") (PairV #x #y) (Val #(({ x with ns' := y } : podClient)))
+  get'admin : ∀ (x : podClient), go.IsGoStepPureDetTagged under (StructFieldGet podClient.underlying go!"admin") #x (Val #(x.admin'))
+  set'admin : ∀ (x : podClient) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet podClient.underlying go!"admin") (PairV #x #y) (Val #(({ x with admin' := y } : podClient)))
   method_set : go.MethodSetIs podClient.ty [(go!"Apply", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/core/v1.PodApplyConfiguration" [])), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/core/v1.PodApplyConfiguration" [])), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"Bind", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Binding.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions.ty] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.APIResult.ty, go.error]))), (go!"Evict", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1beta1.Eviction" []))] false [go.error]))), (go!"EvictV1", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" []))] false [go.error]))), (go!"EvictV1beta1", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1beta1.Eviction" []))] false [go.error]))), (go!"GetLogs", (some (go.signature.Signature [go.string, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodLogOptions.ty)] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/rest.Request" []))]))), (go!"Patch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.types.PatchType.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions.ty, (go.GoType.SliceType go.string)] true [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"ProxyGet", (some (go.signature.Signature [go.string, go.string, go.string, go.string, (go.GoType.MapType go.string go.string)] false [(go.GoType.Named go!"k8s.io/client-go/rest.ResponseWrapper" [])]))), (go!"Update", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"UpdateEphemeralContainers", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"UpdateResize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType podClient.ty) [(go!"Apply", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/core/v1.PodApplyConfiguration" [])), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/core/v1.PodApplyConfiguration" [])), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"Bind", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Binding.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions.ty] false [go.error]))), (go!"Create", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.APIResult.ty, go.error]))), (go!"Evict", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1beta1.Eviction" []))] false [go.error]))), (go!"EvictV1", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1.Eviction" []))] false [go.error]))), (go!"EvictV1beta1", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/policy/v1beta1.Eviction" []))] false [go.error]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"GetLogs", (some (go.signature.Signature [go.string, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodLogOptions.ty)] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/rest.Request" []))]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodList.ty), go.error]))), (go!"Patch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.types.PatchType.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions.ty, (go.GoType.SliceType go.string)] true [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"ProxyGet", (some (go.signature.Signature [go.string, go.string, go.string, go.string, (go.GoType.MapType go.string go.string)] false [(go.GoType.Named go!"k8s.io/client-go/rest.ResponseWrapper" [])]))), (go!"Update", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"UpdateEphemeralContainers", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"UpdateResize", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error])))]
-  Apply_unfold : MethodUnfold podClient.ty go!"Apply" (LamV "$r"
+  unfold'Apply : MethodUnfold podClient.ty go!"Apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"Apply"))) (App (Val (GoInstruction (StructFieldGet podClient.ty go!"PodInterface"))) (Var "$r"))))
-  ApplyStatus_unfold : MethodUnfold podClient.ty go!"ApplyStatus" (LamV "$r"
+  unfold'ApplyStatus : MethodUnfold podClient.ty go!"ApplyStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"ApplyStatus"))) (App (Val (GoInstruction (StructFieldGet podClient.ty go!"PodInterface"))) (Var "$r"))))
-  Bind_unfold : MethodUnfold podClient.ty go!"Bind" (LamV "$r"
+  unfold'Bind : MethodUnfold podClient.ty go!"Bind" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"Bind"))) (App (Val (GoInstruction (StructFieldGet podClient.ty go!"PodInterface"))) (Var "$r"))))
-  DeleteCollection_unfold : MethodUnfold podClient.ty go!"DeleteCollection" (LamV "$r"
+  unfold'DeleteCollection : MethodUnfold podClient.ty go!"DeleteCollection" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"DeleteCollection"))) (App (Val (GoInstruction (StructFieldGet podClient.ty go!"PodInterface"))) (Var "$r"))))
-  DeleteWithResult_unfold : MethodUnfold podClient.ty go!"DeleteWithResult" (LamV "$r"
+  unfold'DeleteWithResult : MethodUnfold podClient.ty go!"DeleteWithResult" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"DeleteWithResult"))) (App (Val (GoInstruction (StructFieldGet podClient.ty go!"PodInterface"))) (Var "$r"))))
-  Evict_unfold : MethodUnfold podClient.ty go!"Evict" (LamV "$r"
+  unfold'Evict : MethodUnfold podClient.ty go!"Evict" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"Evict"))) (App (Val (GoInstruction (StructFieldGet podClient.ty go!"PodInterface"))) (Var "$r"))))
-  EvictV1_unfold : MethodUnfold podClient.ty go!"EvictV1" (LamV "$r"
+  unfold'EvictV1 : MethodUnfold podClient.ty go!"EvictV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"EvictV1"))) (App (Val (GoInstruction (StructFieldGet podClient.ty go!"PodInterface"))) (Var "$r"))))
-  EvictV1beta1_unfold : MethodUnfold podClient.ty go!"EvictV1beta1" (LamV "$r"
+  unfold'EvictV1beta1 : MethodUnfold podClient.ty go!"EvictV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"EvictV1beta1"))) (App (Val (GoInstruction (StructFieldGet podClient.ty go!"PodInterface"))) (Var "$r"))))
-  GetLogs_unfold : MethodUnfold podClient.ty go!"GetLogs" (LamV "$r"
+  unfold'GetLogs : MethodUnfold podClient.ty go!"GetLogs" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"GetLogs"))) (App (Val (GoInstruction (StructFieldGet podClient.ty go!"PodInterface"))) (Var "$r"))))
-  Patch_unfold : MethodUnfold podClient.ty go!"Patch" (LamV "$r"
+  unfold'Patch : MethodUnfold podClient.ty go!"Patch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"Patch"))) (App (Val (GoInstruction (StructFieldGet podClient.ty go!"PodInterface"))) (Var "$r"))))
-  ProxyGet_unfold : MethodUnfold podClient.ty go!"ProxyGet" (LamV "$r"
+  unfold'ProxyGet : MethodUnfold podClient.ty go!"ProxyGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"ProxyGet"))) (App (Val (GoInstruction (StructFieldGet podClient.ty go!"PodInterface"))) (Var "$r"))))
-  Update_unfold : MethodUnfold podClient.ty go!"Update" (LamV "$r"
+  unfold'Update : MethodUnfold podClient.ty go!"Update" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"Update"))) (App (Val (GoInstruction (StructFieldGet podClient.ty go!"PodInterface"))) (Var "$r"))))
-  UpdateEphemeralContainers_unfold : MethodUnfold podClient.ty go!"UpdateEphemeralContainers" (LamV "$r"
+  unfold'UpdateEphemeralContainers : MethodUnfold podClient.ty go!"UpdateEphemeralContainers" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"UpdateEphemeralContainers"))) (App (Val (GoInstruction (StructFieldGet podClient.ty go!"PodInterface"))) (Var "$r"))))
-  UpdateResize_unfold : MethodUnfold podClient.ty go!"UpdateResize" (LamV "$r"
+  unfold'UpdateResize : MethodUnfold podClient.ty go!"UpdateResize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"UpdateResize"))) (App (Val (GoInstruction (StructFieldGet podClient.ty go!"PodInterface"))) (Var "$r"))))
-  UpdateStatus_unfold : MethodUnfold podClient.ty go!"UpdateStatus" (LamV "$r"
+  unfold'UpdateStatus : MethodUnfold podClient.ty go!"UpdateStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"UpdateStatus"))) (App (Val (GoInstruction (StructFieldGet podClient.ty go!"PodInterface"))) (Var "$r"))))
-  ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Apply" (LamV "$r"
+  ptr_unfold'Apply : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"Apply"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (App (Val (GoInstruction (StructFieldRef podClient.ty go!"PodInterface"))) (Var "$r")))))
-  ptr_ApplyStatus_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"ApplyStatus" (LamV "$r"
+  ptr_unfold'ApplyStatus : MethodUnfold (go.GoType.PointerType podClient.ty) go!"ApplyStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"ApplyStatus"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (App (Val (GoInstruction (StructFieldRef podClient.ty go!"PodInterface"))) (Var "$r")))))
-  ptr_Bind_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Bind" (LamV "$r"
+  ptr_unfold'Bind : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Bind" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"Bind"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (App (Val (GoInstruction (StructFieldRef podClient.ty go!"PodInterface"))) (Var "$r")))))
-  ptr_Create_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Create" podClient.Create.impl
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Delete" podClient.Delete.impl
-  ptr_DeleteCollection_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"DeleteCollection" (LamV "$r"
+  ptr_unfold'Create : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Create" podClient.Create.impl
+  ptr_unfold'Delete : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Delete" podClient.Delete.impl
+  ptr_unfold'DeleteCollection : MethodUnfold (go.GoType.PointerType podClient.ty) go!"DeleteCollection" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"DeleteCollection"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (App (Val (GoInstruction (StructFieldRef podClient.ty go!"PodInterface"))) (Var "$r")))))
-  ptr_DeleteWithResult_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"DeleteWithResult" (LamV "$r"
+  ptr_unfold'DeleteWithResult : MethodUnfold (go.GoType.PointerType podClient.ty) go!"DeleteWithResult" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"DeleteWithResult"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (App (Val (GoInstruction (StructFieldRef podClient.ty go!"PodInterface"))) (Var "$r")))))
-  ptr_Evict_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Evict" (LamV "$r"
+  ptr_unfold'Evict : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Evict" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"Evict"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (App (Val (GoInstruction (StructFieldRef podClient.ty go!"PodInterface"))) (Var "$r")))))
-  ptr_EvictV1_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"EvictV1" (LamV "$r"
+  ptr_unfold'EvictV1 : MethodUnfold (go.GoType.PointerType podClient.ty) go!"EvictV1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"EvictV1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (App (Val (GoInstruction (StructFieldRef podClient.ty go!"PodInterface"))) (Var "$r")))))
-  ptr_EvictV1beta1_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"EvictV1beta1" (LamV "$r"
+  ptr_unfold'EvictV1beta1 : MethodUnfold (go.GoType.PointerType podClient.ty) go!"EvictV1beta1" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"EvictV1beta1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (App (Val (GoInstruction (StructFieldRef podClient.ty go!"PodInterface"))) (Var "$r")))))
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Get" podClient.Get.impl
-  ptr_GetLogs_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"GetLogs" (LamV "$r"
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Get" podClient.Get.impl
+  ptr_unfold'GetLogs : MethodUnfold (go.GoType.PointerType podClient.ty) go!"GetLogs" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"GetLogs"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (App (Val (GoInstruction (StructFieldRef podClient.ty go!"PodInterface"))) (Var "$r")))))
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"List" podClient.List.impl
-  ptr_Patch_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Patch" (LamV "$r"
+  ptr_unfold'List : MethodUnfold (go.GoType.PointerType podClient.ty) go!"List" podClient.List''.impl
+  ptr_unfold'Patch : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Patch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"Patch"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (App (Val (GoInstruction (StructFieldRef podClient.ty go!"PodInterface"))) (Var "$r")))))
-  ptr_ProxyGet_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"ProxyGet" (LamV "$r"
+  ptr_unfold'ProxyGet : MethodUnfold (go.GoType.PointerType podClient.ty) go!"ProxyGet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"ProxyGet"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (App (Val (GoInstruction (StructFieldRef podClient.ty go!"PodInterface"))) (Var "$r")))))
-  ptr_Update_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Update" (LamV "$r"
+  ptr_unfold'Update : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Update" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"Update"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (App (Val (GoInstruction (StructFieldRef podClient.ty go!"PodInterface"))) (Var "$r")))))
-  ptr_UpdateEphemeralContainers_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"UpdateEphemeralContainers" (LamV "$r"
+  ptr_unfold'UpdateEphemeralContainers : MethodUnfold (go.GoType.PointerType podClient.ty) go!"UpdateEphemeralContainers" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"UpdateEphemeralContainers"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (App (Val (GoInstruction (StructFieldRef podClient.ty go!"PodInterface"))) (Var "$r")))))
-  ptr_UpdateResize_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"UpdateResize" (LamV "$r"
+  ptr_unfold'UpdateResize : MethodUnfold (go.GoType.PointerType podClient.ty) go!"UpdateResize" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"UpdateResize"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (App (Val (GoInstruction (StructFieldRef podClient.ty go!"PodInterface"))) (Var "$r")))))
-  ptr_UpdateStatus_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"UpdateStatus" (LamV "$r"
+  ptr_unfold'UpdateStatus : MethodUnfold (go.GoType.PointerType podClient.ty) go!"UpdateStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty go!"UpdateStatus"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.PodInterface.ty))) (App (Val (GoInstruction (StructFieldRef podClient.ty go!"PodInterface"))) (Var "$r")))))
-  ptr_Watch_unfold : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Watch" podClient.Watch.impl
+  ptr_unfold'Watch : MethodUnfold (go.GoType.PointerType podClient.ty) go!"Watch" podClient.Watch.impl
 
 attribute [instance] podClient.TypeAssumptions.type_repr
   podClient.TypeAssumptions.underlying
-  podClient.TypeAssumptions.get_PodInterface
-  podClient.TypeAssumptions.set_PodInterface
-  podClient.TypeAssumptions.get_s
-  podClient.TypeAssumptions.set_s
-  podClient.TypeAssumptions.get_ns
-  podClient.TypeAssumptions.set_ns
-  podClient.TypeAssumptions.get_admin
-  podClient.TypeAssumptions.set_admin
+  podClient.TypeAssumptions.get'PodInterface
+  podClient.TypeAssumptions.set'PodInterface
+  podClient.TypeAssumptions.get's
+  podClient.TypeAssumptions.set's
+  podClient.TypeAssumptions.get'ns
+  podClient.TypeAssumptions.set'ns
+  podClient.TypeAssumptions.get'admin
+  podClient.TypeAssumptions.set'admin
   podClient.TypeAssumptions.method_set
   podClient.TypeAssumptions.ptr_method_set
-  podClient.TypeAssumptions.Apply_unfold
-  podClient.TypeAssumptions.ApplyStatus_unfold
-  podClient.TypeAssumptions.Bind_unfold
-  podClient.TypeAssumptions.DeleteCollection_unfold
-  podClient.TypeAssumptions.DeleteWithResult_unfold
-  podClient.TypeAssumptions.Evict_unfold
-  podClient.TypeAssumptions.EvictV1_unfold
-  podClient.TypeAssumptions.EvictV1beta1_unfold
-  podClient.TypeAssumptions.GetLogs_unfold
-  podClient.TypeAssumptions.Patch_unfold
-  podClient.TypeAssumptions.ProxyGet_unfold
-  podClient.TypeAssumptions.Update_unfold
-  podClient.TypeAssumptions.UpdateEphemeralContainers_unfold
-  podClient.TypeAssumptions.UpdateResize_unfold
-  podClient.TypeAssumptions.UpdateStatus_unfold
-  podClient.TypeAssumptions.ptr_Apply_unfold
-  podClient.TypeAssumptions.ptr_ApplyStatus_unfold
-  podClient.TypeAssumptions.ptr_Bind_unfold
-  podClient.TypeAssumptions.ptr_Create_unfold
-  podClient.TypeAssumptions.ptr_Delete_unfold
-  podClient.TypeAssumptions.ptr_DeleteCollection_unfold
-  podClient.TypeAssumptions.ptr_DeleteWithResult_unfold
-  podClient.TypeAssumptions.ptr_Evict_unfold
-  podClient.TypeAssumptions.ptr_EvictV1_unfold
-  podClient.TypeAssumptions.ptr_EvictV1beta1_unfold
-  podClient.TypeAssumptions.ptr_Get_unfold
-  podClient.TypeAssumptions.ptr_GetLogs_unfold
-  podClient.TypeAssumptions.ptr_List_unfold
-  podClient.TypeAssumptions.ptr_Patch_unfold
-  podClient.TypeAssumptions.ptr_ProxyGet_unfold
-  podClient.TypeAssumptions.ptr_Update_unfold
-  podClient.TypeAssumptions.ptr_UpdateEphemeralContainers_unfold
-  podClient.TypeAssumptions.ptr_UpdateResize_unfold
-  podClient.TypeAssumptions.ptr_UpdateStatus_unfold
-  podClient.TypeAssumptions.ptr_Watch_unfold
+  podClient.TypeAssumptions.unfold'Apply
+  podClient.TypeAssumptions.unfold'ApplyStatus
+  podClient.TypeAssumptions.unfold'Bind
+  podClient.TypeAssumptions.unfold'DeleteCollection
+  podClient.TypeAssumptions.unfold'DeleteWithResult
+  podClient.TypeAssumptions.unfold'Evict
+  podClient.TypeAssumptions.unfold'EvictV1
+  podClient.TypeAssumptions.unfold'EvictV1beta1
+  podClient.TypeAssumptions.unfold'GetLogs
+  podClient.TypeAssumptions.unfold'Patch
+  podClient.TypeAssumptions.unfold'ProxyGet
+  podClient.TypeAssumptions.unfold'Update
+  podClient.TypeAssumptions.unfold'UpdateEphemeralContainers
+  podClient.TypeAssumptions.unfold'UpdateResize
+  podClient.TypeAssumptions.unfold'UpdateStatus
+  podClient.TypeAssumptions.ptr_unfold'Apply
+  podClient.TypeAssumptions.ptr_unfold'ApplyStatus
+  podClient.TypeAssumptions.ptr_unfold'Bind
+  podClient.TypeAssumptions.ptr_unfold'Create
+  podClient.TypeAssumptions.ptr_unfold'Delete
+  podClient.TypeAssumptions.ptr_unfold'DeleteCollection
+  podClient.TypeAssumptions.ptr_unfold'DeleteWithResult
+  podClient.TypeAssumptions.ptr_unfold'Evict
+  podClient.TypeAssumptions.ptr_unfold'EvictV1
+  podClient.TypeAssumptions.ptr_unfold'EvictV1beta1
+  podClient.TypeAssumptions.ptr_unfold'Get
+  podClient.TypeAssumptions.ptr_unfold'GetLogs
+  podClient.TypeAssumptions.ptr_unfold'List
+  podClient.TypeAssumptions.ptr_unfold'Patch
+  podClient.TypeAssumptions.ptr_unfold'ProxyGet
+  podClient.TypeAssumptions.ptr_unfold'Update
+  podClient.TypeAssumptions.ptr_unfold'UpdateEphemeralContainers
+  podClient.TypeAssumptions.ptr_unfold'UpdateResize
+  podClient.TypeAssumptions.ptr_unfold'UpdateStatus
+  podClient.TypeAssumptions.ptr_unfold'Watch
 
 structure nodeClient [GooseExts] where
   mk ::
@@ -4335,7 +4335,7 @@ noncomputable instance nodeClient.zero_val [GooseExts] : ZeroVal nodeClient :=
 @[irreducible] noncomputable def nodeClient.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   nodeClient.fieldsUnsealed
 
-noncomputable instance equals_unfold_nodeClient [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'nodeClient [GooseExts] [GoGlobalContext] :
     EqualsUnfold nodeClient.fields nodeClient.fieldsUnsealed :=
   ⟨by unfold nodeClient.fields; rfl⟩
 
@@ -4345,87 +4345,87 @@ noncomputable instance equals_unfold_nodeClient [GooseExts] [GoGlobalContext] :
 class nodeClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying nodeClient.underlying nodeClient
   underlying : go.UnderlyingDirectedEq nodeClient.ty nodeClient.underlying
-  get_NodeInterface : ∀ (x : nodeClient), go.IsGoStepPureDetTagged under (StructFieldGet nodeClient.underlying go!"NodeInterface") #x (Val #(x.NodeInterface'))
-  set_NodeInterface : ∀ (x : nodeClient) (y : _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface), go.IsGoStepPureDetTagged under (StructFieldSet nodeClient.underlying go!"NodeInterface") (PairV #x #y) (Val #(({ x with NodeInterface' := y } : nodeClient)))
-  get_s : ∀ (x : nodeClient), go.IsGoStepPureDetTagged under (StructFieldGet nodeClient.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : nodeClient) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet nodeClient.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : nodeClient)))
-  get_admin : ∀ (x : nodeClient), go.IsGoStepPureDetTagged under (StructFieldGet nodeClient.underlying go!"admin") #x (Val #(x.admin'))
-  set_admin : ∀ (x : nodeClient) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet nodeClient.underlying go!"admin") (PairV #x #y) (Val #(({ x with admin' := y } : nodeClient)))
+  get'NodeInterface : ∀ (x : nodeClient), go.IsGoStepPureDetTagged under (StructFieldGet nodeClient.underlying go!"NodeInterface") #x (Val #(x.NodeInterface'))
+  set'NodeInterface : ∀ (x : nodeClient) (y : _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface), go.IsGoStepPureDetTagged under (StructFieldSet nodeClient.underlying go!"NodeInterface") (PairV #x #y) (Val #(({ x with NodeInterface' := y } : nodeClient)))
+  get's : ∀ (x : nodeClient), go.IsGoStepPureDetTagged under (StructFieldGet nodeClient.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : nodeClient) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet nodeClient.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : nodeClient)))
+  get'admin : ∀ (x : nodeClient), go.IsGoStepPureDetTagged under (StructFieldGet nodeClient.underlying go!"admin") #x (Val #(x.admin'))
+  set'admin : ∀ (x : nodeClient) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet nodeClient.underlying go!"admin") (PairV #x #y) (Val #(({ x with admin' := y } : nodeClient)))
   method_set : go.MethodSetIs nodeClient.ty [(go!"Apply", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/core/v1.NodeApplyConfiguration" [])), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/core/v1.NodeApplyConfiguration" [])), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.APIResult.ty, go.error]))), (go!"Patch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.types.PatchType.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions.ty, (go.GoType.SliceType go.string)] true [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"PatchStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"Update", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType nodeClient.ty) [(go!"Apply", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/core/v1.NodeApplyConfiguration" [])), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/core/v1.NodeApplyConfiguration" [])), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"Create", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.APIResult.ty, go.error]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.NodeList.ty), go.error]))), (go!"Patch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.types.PatchType.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions.ty, (go.GoType.SliceType go.string)] true [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"PatchStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"Update", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Node.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error])))]
-  Apply_unfold : MethodUnfold nodeClient.ty go!"Apply" (LamV "$r"
+  unfold'Apply : MethodUnfold nodeClient.ty go!"Apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"Apply"))) (App (Val (GoInstruction (StructFieldGet nodeClient.ty go!"NodeInterface"))) (Var "$r"))))
-  ApplyStatus_unfold : MethodUnfold nodeClient.ty go!"ApplyStatus" (LamV "$r"
+  unfold'ApplyStatus : MethodUnfold nodeClient.ty go!"ApplyStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"ApplyStatus"))) (App (Val (GoInstruction (StructFieldGet nodeClient.ty go!"NodeInterface"))) (Var "$r"))))
-  Delete_unfold : MethodUnfold nodeClient.ty go!"Delete" (LamV "$r"
+  unfold'Delete : MethodUnfold nodeClient.ty go!"Delete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"Delete"))) (App (Val (GoInstruction (StructFieldGet nodeClient.ty go!"NodeInterface"))) (Var "$r"))))
-  DeleteCollection_unfold : MethodUnfold nodeClient.ty go!"DeleteCollection" (LamV "$r"
+  unfold'DeleteCollection : MethodUnfold nodeClient.ty go!"DeleteCollection" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"DeleteCollection"))) (App (Val (GoInstruction (StructFieldGet nodeClient.ty go!"NodeInterface"))) (Var "$r"))))
-  DeleteWithResult_unfold : MethodUnfold nodeClient.ty go!"DeleteWithResult" (LamV "$r"
+  unfold'DeleteWithResult : MethodUnfold nodeClient.ty go!"DeleteWithResult" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"DeleteWithResult"))) (App (Val (GoInstruction (StructFieldGet nodeClient.ty go!"NodeInterface"))) (Var "$r"))))
-  Patch_unfold : MethodUnfold nodeClient.ty go!"Patch" (LamV "$r"
+  unfold'Patch : MethodUnfold nodeClient.ty go!"Patch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"Patch"))) (App (Val (GoInstruction (StructFieldGet nodeClient.ty go!"NodeInterface"))) (Var "$r"))))
-  PatchStatus_unfold : MethodUnfold nodeClient.ty go!"PatchStatus" (LamV "$r"
+  unfold'PatchStatus : MethodUnfold nodeClient.ty go!"PatchStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"PatchStatus"))) (App (Val (GoInstruction (StructFieldGet nodeClient.ty go!"NodeInterface"))) (Var "$r"))))
-  Update_unfold : MethodUnfold nodeClient.ty go!"Update" (LamV "$r"
+  unfold'Update : MethodUnfold nodeClient.ty go!"Update" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"Update"))) (App (Val (GoInstruction (StructFieldGet nodeClient.ty go!"NodeInterface"))) (Var "$r"))))
-  UpdateStatus_unfold : MethodUnfold nodeClient.ty go!"UpdateStatus" (LamV "$r"
+  unfold'UpdateStatus : MethodUnfold nodeClient.ty go!"UpdateStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"UpdateStatus"))) (App (Val (GoInstruction (StructFieldGet nodeClient.ty go!"NodeInterface"))) (Var "$r"))))
-  ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"Apply" (LamV "$r"
+  ptr_unfold'Apply : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"Apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"Apply"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty))) (App (Val (GoInstruction (StructFieldRef nodeClient.ty go!"NodeInterface"))) (Var "$r")))))
-  ptr_ApplyStatus_unfold : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"ApplyStatus" (LamV "$r"
+  ptr_unfold'ApplyStatus : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"ApplyStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"ApplyStatus"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty))) (App (Val (GoInstruction (StructFieldRef nodeClient.ty go!"NodeInterface"))) (Var "$r")))))
-  ptr_Create_unfold : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"Create" nodeClient.Create.impl
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"Delete" (LamV "$r"
+  ptr_unfold'Create : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"Create" nodeClient.Create.impl
+  ptr_unfold'Delete : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"Delete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"Delete"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty))) (App (Val (GoInstruction (StructFieldRef nodeClient.ty go!"NodeInterface"))) (Var "$r")))))
-  ptr_DeleteCollection_unfold : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"DeleteCollection" (LamV "$r"
+  ptr_unfold'DeleteCollection : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"DeleteCollection" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"DeleteCollection"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty))) (App (Val (GoInstruction (StructFieldRef nodeClient.ty go!"NodeInterface"))) (Var "$r")))))
-  ptr_DeleteWithResult_unfold : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"DeleteWithResult" (LamV "$r"
+  ptr_unfold'DeleteWithResult : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"DeleteWithResult" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"DeleteWithResult"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty))) (App (Val (GoInstruction (StructFieldRef nodeClient.ty go!"NodeInterface"))) (Var "$r")))))
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"Get" nodeClient.Get.impl
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"List" nodeClient.List.impl
-  ptr_Patch_unfold : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"Patch" (LamV "$r"
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"Get" nodeClient.Get.impl
+  ptr_unfold'List : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"List" nodeClient.List''.impl
+  ptr_unfold'Patch : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"Patch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"Patch"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty))) (App (Val (GoInstruction (StructFieldRef nodeClient.ty go!"NodeInterface"))) (Var "$r")))))
-  ptr_PatchStatus_unfold : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"PatchStatus" (LamV "$r"
+  ptr_unfold'PatchStatus : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"PatchStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"PatchStatus"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty))) (App (Val (GoInstruction (StructFieldRef nodeClient.ty go!"NodeInterface"))) (Var "$r")))))
-  ptr_Update_unfold : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"Update" (LamV "$r"
+  ptr_unfold'Update : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"Update" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"Update"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty))) (App (Val (GoInstruction (StructFieldRef nodeClient.ty go!"NodeInterface"))) (Var "$r")))))
-  ptr_UpdateStatus_unfold : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"UpdateStatus" (LamV "$r"
+  ptr_unfold'UpdateStatus : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"UpdateStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty go!"UpdateStatus"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.NodeInterface.ty))) (App (Val (GoInstruction (StructFieldRef nodeClient.ty go!"NodeInterface"))) (Var "$r")))))
-  ptr_Watch_unfold : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"Watch" nodeClient.Watch.impl
+  ptr_unfold'Watch : MethodUnfold (go.GoType.PointerType nodeClient.ty) go!"Watch" nodeClient.Watch.impl
 
 attribute [instance] nodeClient.TypeAssumptions.type_repr
   nodeClient.TypeAssumptions.underlying
-  nodeClient.TypeAssumptions.get_NodeInterface
-  nodeClient.TypeAssumptions.set_NodeInterface
-  nodeClient.TypeAssumptions.get_s
-  nodeClient.TypeAssumptions.set_s
-  nodeClient.TypeAssumptions.get_admin
-  nodeClient.TypeAssumptions.set_admin
+  nodeClient.TypeAssumptions.get'NodeInterface
+  nodeClient.TypeAssumptions.set'NodeInterface
+  nodeClient.TypeAssumptions.get's
+  nodeClient.TypeAssumptions.set's
+  nodeClient.TypeAssumptions.get'admin
+  nodeClient.TypeAssumptions.set'admin
   nodeClient.TypeAssumptions.method_set
   nodeClient.TypeAssumptions.ptr_method_set
-  nodeClient.TypeAssumptions.Apply_unfold
-  nodeClient.TypeAssumptions.ApplyStatus_unfold
-  nodeClient.TypeAssumptions.Delete_unfold
-  nodeClient.TypeAssumptions.DeleteCollection_unfold
-  nodeClient.TypeAssumptions.DeleteWithResult_unfold
-  nodeClient.TypeAssumptions.Patch_unfold
-  nodeClient.TypeAssumptions.PatchStatus_unfold
-  nodeClient.TypeAssumptions.Update_unfold
-  nodeClient.TypeAssumptions.UpdateStatus_unfold
-  nodeClient.TypeAssumptions.ptr_Apply_unfold
-  nodeClient.TypeAssumptions.ptr_ApplyStatus_unfold
-  nodeClient.TypeAssumptions.ptr_Create_unfold
-  nodeClient.TypeAssumptions.ptr_Delete_unfold
-  nodeClient.TypeAssumptions.ptr_DeleteCollection_unfold
-  nodeClient.TypeAssumptions.ptr_DeleteWithResult_unfold
-  nodeClient.TypeAssumptions.ptr_Get_unfold
-  nodeClient.TypeAssumptions.ptr_List_unfold
-  nodeClient.TypeAssumptions.ptr_Patch_unfold
-  nodeClient.TypeAssumptions.ptr_PatchStatus_unfold
-  nodeClient.TypeAssumptions.ptr_Update_unfold
-  nodeClient.TypeAssumptions.ptr_UpdateStatus_unfold
-  nodeClient.TypeAssumptions.ptr_Watch_unfold
+  nodeClient.TypeAssumptions.unfold'Apply
+  nodeClient.TypeAssumptions.unfold'ApplyStatus
+  nodeClient.TypeAssumptions.unfold'Delete
+  nodeClient.TypeAssumptions.unfold'DeleteCollection
+  nodeClient.TypeAssumptions.unfold'DeleteWithResult
+  nodeClient.TypeAssumptions.unfold'Patch
+  nodeClient.TypeAssumptions.unfold'PatchStatus
+  nodeClient.TypeAssumptions.unfold'Update
+  nodeClient.TypeAssumptions.unfold'UpdateStatus
+  nodeClient.TypeAssumptions.ptr_unfold'Apply
+  nodeClient.TypeAssumptions.ptr_unfold'ApplyStatus
+  nodeClient.TypeAssumptions.ptr_unfold'Create
+  nodeClient.TypeAssumptions.ptr_unfold'Delete
+  nodeClient.TypeAssumptions.ptr_unfold'DeleteCollection
+  nodeClient.TypeAssumptions.ptr_unfold'DeleteWithResult
+  nodeClient.TypeAssumptions.ptr_unfold'Get
+  nodeClient.TypeAssumptions.ptr_unfold'List
+  nodeClient.TypeAssumptions.ptr_unfold'Patch
+  nodeClient.TypeAssumptions.ptr_unfold'PatchStatus
+  nodeClient.TypeAssumptions.ptr_unfold'Update
+  nodeClient.TypeAssumptions.ptr_unfold'UpdateStatus
+  nodeClient.TypeAssumptions.ptr_unfold'Watch
 
 structure daemonSetClient [GooseExts] where
   mk ::
@@ -4446,7 +4446,7 @@ noncomputable instance daemonSetClient.zero_val [GooseExts] : ZeroVal daemonSetC
 @[irreducible] noncomputable def daemonSetClient.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   daemonSetClient.fieldsUnsealed
 
-noncomputable instance equals_unfold_daemonSetClient [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'daemonSetClient [GooseExts] [GoGlobalContext] :
     EqualsUnfold daemonSetClient.fields daemonSetClient.fieldsUnsealed :=
   ⟨by unfold daemonSetClient.fields; rfl⟩
 
@@ -4456,81 +4456,81 @@ noncomputable instance equals_unfold_daemonSetClient [GooseExts] [GoGlobalContex
 class daemonSetClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying daemonSetClient.underlying daemonSetClient
   underlying : go.UnderlyingDirectedEq daemonSetClient.ty daemonSetClient.underlying
-  get_DaemonSetInterface : ∀ (x : daemonSetClient), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetClient.underlying go!"DaemonSetInterface") #x (Val #(x.DaemonSetInterface'))
-  set_DaemonSetInterface : ∀ (x : daemonSetClient) (y : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetClient.underlying go!"DaemonSetInterface") (PairV #x #y) (Val #(({ x with DaemonSetInterface' := y } : daemonSetClient)))
-  get_s : ∀ (x : daemonSetClient), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetClient.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : daemonSetClient) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetClient.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : daemonSetClient)))
-  get_ns : ∀ (x : daemonSetClient), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetClient.underlying go!"ns") #x (Val #(x.ns'))
-  set_ns : ∀ (x : daemonSetClient) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetClient.underlying go!"ns") (PairV #x #y) (Val #(({ x with ns' := y } : daemonSetClient)))
-  get_admin : ∀ (x : daemonSetClient), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetClient.underlying go!"admin") #x (Val #(x.admin'))
-  set_admin : ∀ (x : daemonSetClient) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetClient.underlying go!"admin") (PairV #x #y) (Val #(({ x with admin' := y } : daemonSetClient)))
+  get'DaemonSetInterface : ∀ (x : daemonSetClient), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetClient.underlying go!"DaemonSetInterface") #x (Val #(x.DaemonSetInterface'))
+  set'DaemonSetInterface : ∀ (x : daemonSetClient) (y : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetClient.underlying go!"DaemonSetInterface") (PairV #x #y) (Val #(({ x with DaemonSetInterface' := y } : daemonSetClient)))
+  get's : ∀ (x : daemonSetClient), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetClient.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : daemonSetClient) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetClient.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : daemonSetClient)))
+  get'ns : ∀ (x : daemonSetClient), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetClient.underlying go!"ns") #x (Val #(x.ns'))
+  set'ns : ∀ (x : daemonSetClient) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetClient.underlying go!"ns") (PairV #x #y) (Val #(({ x with ns' := y } : daemonSetClient)))
+  get'admin : ∀ (x : daemonSetClient), go.IsGoStepPureDetTagged under (StructFieldGet daemonSetClient.underlying go!"admin") #x (Val #(x.admin'))
+  set'admin : ∀ (x : daemonSetClient) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet daemonSetClient.underlying go!"admin") (PairV #x #y) (Val #(({ x with admin' := y } : daemonSetClient)))
   method_set : go.MethodSetIs daemonSetClient.ty [(go!"Apply", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.DaemonSetApplyConfiguration" [])), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.DaemonSetApplyConfiguration" [])), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.APIResult.ty, go.error]))), (go!"Patch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.types.PatchType.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions.ty, (go.GoType.SliceType go.string)] true [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.error]))), (go!"Update", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType daemonSetClient.ty) [(go!"Apply", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.DaemonSetApplyConfiguration" [])), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.error]))), (go!"ApplyStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.DaemonSetApplyConfiguration" [])), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.error]))), (go!"Create", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.APIResult.ty, go.error]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSetList.ty), go.error]))), (go!"Patch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.types.PatchType.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions.ty, (go.GoType.SliceType go.string)] true [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.error]))), (go!"Update", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.error]))), (go!"UpdateStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error])))]
-  Apply_unfold : MethodUnfold daemonSetClient.ty go!"Apply" (LamV "$r"
+  unfold'Apply : MethodUnfold daemonSetClient.ty go!"Apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty go!"Apply"))) (App (Val (GoInstruction (StructFieldGet daemonSetClient.ty go!"DaemonSetInterface"))) (Var "$r"))))
-  ApplyStatus_unfold : MethodUnfold daemonSetClient.ty go!"ApplyStatus" (LamV "$r"
+  unfold'ApplyStatus : MethodUnfold daemonSetClient.ty go!"ApplyStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty go!"ApplyStatus"))) (App (Val (GoInstruction (StructFieldGet daemonSetClient.ty go!"DaemonSetInterface"))) (Var "$r"))))
-  Delete_unfold : MethodUnfold daemonSetClient.ty go!"Delete" (LamV "$r"
+  unfold'Delete : MethodUnfold daemonSetClient.ty go!"Delete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty go!"Delete"))) (App (Val (GoInstruction (StructFieldGet daemonSetClient.ty go!"DaemonSetInterface"))) (Var "$r"))))
-  DeleteCollection_unfold : MethodUnfold daemonSetClient.ty go!"DeleteCollection" (LamV "$r"
+  unfold'DeleteCollection : MethodUnfold daemonSetClient.ty go!"DeleteCollection" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty go!"DeleteCollection"))) (App (Val (GoInstruction (StructFieldGet daemonSetClient.ty go!"DaemonSetInterface"))) (Var "$r"))))
-  DeleteWithResult_unfold : MethodUnfold daemonSetClient.ty go!"DeleteWithResult" (LamV "$r"
+  unfold'DeleteWithResult : MethodUnfold daemonSetClient.ty go!"DeleteWithResult" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty go!"DeleteWithResult"))) (App (Val (GoInstruction (StructFieldGet daemonSetClient.ty go!"DaemonSetInterface"))) (Var "$r"))))
-  Patch_unfold : MethodUnfold daemonSetClient.ty go!"Patch" (LamV "$r"
+  unfold'Patch : MethodUnfold daemonSetClient.ty go!"Patch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty go!"Patch"))) (App (Val (GoInstruction (StructFieldGet daemonSetClient.ty go!"DaemonSetInterface"))) (Var "$r"))))
-  Update_unfold : MethodUnfold daemonSetClient.ty go!"Update" (LamV "$r"
+  unfold'Update : MethodUnfold daemonSetClient.ty go!"Update" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty go!"Update"))) (App (Val (GoInstruction (StructFieldGet daemonSetClient.ty go!"DaemonSetInterface"))) (Var "$r"))))
-  ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"Apply" (LamV "$r"
+  ptr_unfold'Apply : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"Apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty go!"Apply"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty))) (App (Val (GoInstruction (StructFieldRef daemonSetClient.ty go!"DaemonSetInterface"))) (Var "$r")))))
-  ptr_ApplyStatus_unfold : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"ApplyStatus" (LamV "$r"
+  ptr_unfold'ApplyStatus : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"ApplyStatus" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty go!"ApplyStatus"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty))) (App (Val (GoInstruction (StructFieldRef daemonSetClient.ty go!"DaemonSetInterface"))) (Var "$r")))))
-  ptr_Create_unfold : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"Create" daemonSetClient.Create.impl
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"Delete" (LamV "$r"
+  ptr_unfold'Create : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"Create" daemonSetClient.Create.impl
+  ptr_unfold'Delete : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"Delete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty go!"Delete"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty))) (App (Val (GoInstruction (StructFieldRef daemonSetClient.ty go!"DaemonSetInterface"))) (Var "$r")))))
-  ptr_DeleteCollection_unfold : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"DeleteCollection" (LamV "$r"
+  ptr_unfold'DeleteCollection : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"DeleteCollection" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty go!"DeleteCollection"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty))) (App (Val (GoInstruction (StructFieldRef daemonSetClient.ty go!"DaemonSetInterface"))) (Var "$r")))))
-  ptr_DeleteWithResult_unfold : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"DeleteWithResult" (LamV "$r"
+  ptr_unfold'DeleteWithResult : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"DeleteWithResult" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty go!"DeleteWithResult"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty))) (App (Val (GoInstruction (StructFieldRef daemonSetClient.ty go!"DaemonSetInterface"))) (Var "$r")))))
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"Get" daemonSetClient.Get.impl
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"List" daemonSetClient.List.impl
-  ptr_Patch_unfold : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"Patch" (LamV "$r"
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"Get" daemonSetClient.Get.impl
+  ptr_unfold'List : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"List" daemonSetClient.List''.impl
+  ptr_unfold'Patch : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"Patch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty go!"Patch"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty))) (App (Val (GoInstruction (StructFieldRef daemonSetClient.ty go!"DaemonSetInterface"))) (Var "$r")))))
-  ptr_Update_unfold : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"Update" (LamV "$r"
+  ptr_unfold'Update : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"Update" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty go!"Update"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.DaemonSetInterface.ty))) (App (Val (GoInstruction (StructFieldRef daemonSetClient.ty go!"DaemonSetInterface"))) (Var "$r")))))
-  ptr_UpdateStatus_unfold : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"UpdateStatus" daemonSetClient.UpdateStatus.impl
-  ptr_Watch_unfold : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"Watch" daemonSetClient.Watch.impl
+  ptr_unfold'UpdateStatus : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"UpdateStatus" daemonSetClient.UpdateStatus.impl
+  ptr_unfold'Watch : MethodUnfold (go.GoType.PointerType daemonSetClient.ty) go!"Watch" daemonSetClient.Watch.impl
 
 attribute [instance] daemonSetClient.TypeAssumptions.type_repr
   daemonSetClient.TypeAssumptions.underlying
-  daemonSetClient.TypeAssumptions.get_DaemonSetInterface
-  daemonSetClient.TypeAssumptions.set_DaemonSetInterface
-  daemonSetClient.TypeAssumptions.get_s
-  daemonSetClient.TypeAssumptions.set_s
-  daemonSetClient.TypeAssumptions.get_ns
-  daemonSetClient.TypeAssumptions.set_ns
-  daemonSetClient.TypeAssumptions.get_admin
-  daemonSetClient.TypeAssumptions.set_admin
+  daemonSetClient.TypeAssumptions.get'DaemonSetInterface
+  daemonSetClient.TypeAssumptions.set'DaemonSetInterface
+  daemonSetClient.TypeAssumptions.get's
+  daemonSetClient.TypeAssumptions.set's
+  daemonSetClient.TypeAssumptions.get'ns
+  daemonSetClient.TypeAssumptions.set'ns
+  daemonSetClient.TypeAssumptions.get'admin
+  daemonSetClient.TypeAssumptions.set'admin
   daemonSetClient.TypeAssumptions.method_set
   daemonSetClient.TypeAssumptions.ptr_method_set
-  daemonSetClient.TypeAssumptions.Apply_unfold
-  daemonSetClient.TypeAssumptions.ApplyStatus_unfold
-  daemonSetClient.TypeAssumptions.Delete_unfold
-  daemonSetClient.TypeAssumptions.DeleteCollection_unfold
-  daemonSetClient.TypeAssumptions.DeleteWithResult_unfold
-  daemonSetClient.TypeAssumptions.Patch_unfold
-  daemonSetClient.TypeAssumptions.Update_unfold
-  daemonSetClient.TypeAssumptions.ptr_Apply_unfold
-  daemonSetClient.TypeAssumptions.ptr_ApplyStatus_unfold
-  daemonSetClient.TypeAssumptions.ptr_Create_unfold
-  daemonSetClient.TypeAssumptions.ptr_Delete_unfold
-  daemonSetClient.TypeAssumptions.ptr_DeleteCollection_unfold
-  daemonSetClient.TypeAssumptions.ptr_DeleteWithResult_unfold
-  daemonSetClient.TypeAssumptions.ptr_Get_unfold
-  daemonSetClient.TypeAssumptions.ptr_List_unfold
-  daemonSetClient.TypeAssumptions.ptr_Patch_unfold
-  daemonSetClient.TypeAssumptions.ptr_Update_unfold
-  daemonSetClient.TypeAssumptions.ptr_UpdateStatus_unfold
-  daemonSetClient.TypeAssumptions.ptr_Watch_unfold
+  daemonSetClient.TypeAssumptions.unfold'Apply
+  daemonSetClient.TypeAssumptions.unfold'ApplyStatus
+  daemonSetClient.TypeAssumptions.unfold'Delete
+  daemonSetClient.TypeAssumptions.unfold'DeleteCollection
+  daemonSetClient.TypeAssumptions.unfold'DeleteWithResult
+  daemonSetClient.TypeAssumptions.unfold'Patch
+  daemonSetClient.TypeAssumptions.unfold'Update
+  daemonSetClient.TypeAssumptions.ptr_unfold'Apply
+  daemonSetClient.TypeAssumptions.ptr_unfold'ApplyStatus
+  daemonSetClient.TypeAssumptions.ptr_unfold'Create
+  daemonSetClient.TypeAssumptions.ptr_unfold'Delete
+  daemonSetClient.TypeAssumptions.ptr_unfold'DeleteCollection
+  daemonSetClient.TypeAssumptions.ptr_unfold'DeleteWithResult
+  daemonSetClient.TypeAssumptions.ptr_unfold'Get
+  daemonSetClient.TypeAssumptions.ptr_unfold'List
+  daemonSetClient.TypeAssumptions.ptr_unfold'Patch
+  daemonSetClient.TypeAssumptions.ptr_unfold'Update
+  daemonSetClient.TypeAssumptions.ptr_unfold'UpdateStatus
+  daemonSetClient.TypeAssumptions.ptr_unfold'Watch
 
 structure revisionClient [GooseExts] where
   mk ::
@@ -4551,7 +4551,7 @@ noncomputable instance revisionClient.zero_val [GooseExts] : ZeroVal revisionCli
 @[irreducible] noncomputable def revisionClient.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   revisionClient.fieldsUnsealed
 
-noncomputable instance equals_unfold_revisionClient [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'revisionClient [GooseExts] [GoGlobalContext] :
     EqualsUnfold revisionClient.fields revisionClient.fieldsUnsealed :=
   ⟨by unfold revisionClient.fields; rfl⟩
 
@@ -4561,65 +4561,65 @@ noncomputable instance equals_unfold_revisionClient [GooseExts] [GoGlobalContext
 class revisionClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying revisionClient.underlying revisionClient
   underlying : go.UnderlyingDirectedEq revisionClient.ty revisionClient.underlying
-  get_ControllerRevisionInterface : ∀ (x : revisionClient), go.IsGoStepPureDetTagged under (StructFieldGet revisionClient.underlying go!"ControllerRevisionInterface") #x (Val #(x.ControllerRevisionInterface'))
-  set_ControllerRevisionInterface : ∀ (x : revisionClient) (y : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ControllerRevisionInterface), go.IsGoStepPureDetTagged under (StructFieldSet revisionClient.underlying go!"ControllerRevisionInterface") (PairV #x #y) (Val #(({ x with ControllerRevisionInterface' := y } : revisionClient)))
-  get_s : ∀ (x : revisionClient), go.IsGoStepPureDetTagged under (StructFieldGet revisionClient.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : revisionClient) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet revisionClient.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : revisionClient)))
-  get_ns : ∀ (x : revisionClient), go.IsGoStepPureDetTagged under (StructFieldGet revisionClient.underlying go!"ns") #x (Val #(x.ns'))
-  set_ns : ∀ (x : revisionClient) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet revisionClient.underlying go!"ns") (PairV #x #y) (Val #(({ x with ns' := y } : revisionClient)))
-  get_admin : ∀ (x : revisionClient), go.IsGoStepPureDetTagged under (StructFieldGet revisionClient.underlying go!"admin") #x (Val #(x.admin'))
-  set_admin : ∀ (x : revisionClient) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet revisionClient.underlying go!"admin") (PairV #x #y) (Val #(({ x with admin' := y } : revisionClient)))
+  get'ControllerRevisionInterface : ∀ (x : revisionClient), go.IsGoStepPureDetTagged under (StructFieldGet revisionClient.underlying go!"ControllerRevisionInterface") #x (Val #(x.ControllerRevisionInterface'))
+  set'ControllerRevisionInterface : ∀ (x : revisionClient) (y : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ControllerRevisionInterface), go.IsGoStepPureDetTagged under (StructFieldSet revisionClient.underlying go!"ControllerRevisionInterface") (PairV #x #y) (Val #(({ x with ControllerRevisionInterface' := y } : revisionClient)))
+  get's : ∀ (x : revisionClient), go.IsGoStepPureDetTagged under (StructFieldGet revisionClient.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : revisionClient) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet revisionClient.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : revisionClient)))
+  get'ns : ∀ (x : revisionClient), go.IsGoStepPureDetTagged under (StructFieldGet revisionClient.underlying go!"ns") #x (Val #(x.ns'))
+  set'ns : ∀ (x : revisionClient) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet revisionClient.underlying go!"ns") (PairV #x #y) (Val #(({ x with ns' := y } : revisionClient)))
+  get'admin : ∀ (x : revisionClient), go.IsGoStepPureDetTagged under (StructFieldGet revisionClient.underlying go!"admin") #x (Val #(x.admin'))
+  set'admin : ∀ (x : revisionClient) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet revisionClient.underlying go!"admin") (PairV #x #y) (Val #(({ x with admin' := y } : revisionClient)))
   method_set : go.MethodSetIs revisionClient.ty [(go!"Apply", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.ControllerRevisionApplyConfiguration" [])), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty), go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.APIResult.ty, go.error]))), (go!"Patch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.types.PatchType.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions.ty, (go.GoType.SliceType go.string)] true [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType revisionClient.ty) [(go!"Apply", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/apps/v1.ControllerRevisionApplyConfiguration" [])), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty), go.error]))), (go!"Create", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.APIResult.ty, go.error]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevisionList.ty), go.error]))), (go!"Patch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.types.PatchType.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions.ty, (go.GoType.SliceType go.string)] true [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty), go.error]))), (go!"Update", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error])))]
-  Apply_unfold : MethodUnfold revisionClient.ty go!"Apply" (LamV "$r"
+  unfold'Apply : MethodUnfold revisionClient.ty go!"Apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ControllerRevisionInterface.ty go!"Apply"))) (App (Val (GoInstruction (StructFieldGet revisionClient.ty go!"ControllerRevisionInterface"))) (Var "$r"))))
-  DeleteCollection_unfold : MethodUnfold revisionClient.ty go!"DeleteCollection" (LamV "$r"
+  unfold'DeleteCollection : MethodUnfold revisionClient.ty go!"DeleteCollection" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ControllerRevisionInterface.ty go!"DeleteCollection"))) (App (Val (GoInstruction (StructFieldGet revisionClient.ty go!"ControllerRevisionInterface"))) (Var "$r"))))
-  DeleteWithResult_unfold : MethodUnfold revisionClient.ty go!"DeleteWithResult" (LamV "$r"
+  unfold'DeleteWithResult : MethodUnfold revisionClient.ty go!"DeleteWithResult" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ControllerRevisionInterface.ty go!"DeleteWithResult"))) (App (Val (GoInstruction (StructFieldGet revisionClient.ty go!"ControllerRevisionInterface"))) (Var "$r"))))
-  Patch_unfold : MethodUnfold revisionClient.ty go!"Patch" (LamV "$r"
+  unfold'Patch : MethodUnfold revisionClient.ty go!"Patch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ControllerRevisionInterface.ty go!"Patch"))) (App (Val (GoInstruction (StructFieldGet revisionClient.ty go!"ControllerRevisionInterface"))) (Var "$r"))))
-  ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"Apply" (LamV "$r"
+  ptr_unfold'Apply : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"Apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ControllerRevisionInterface.ty go!"Apply"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ControllerRevisionInterface.ty))) (App (Val (GoInstruction (StructFieldRef revisionClient.ty go!"ControllerRevisionInterface"))) (Var "$r")))))
-  ptr_Create_unfold : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"Create" revisionClient.Create.impl
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"Delete" revisionClient.Delete.impl
-  ptr_DeleteCollection_unfold : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"DeleteCollection" (LamV "$r"
+  ptr_unfold'Create : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"Create" revisionClient.Create.impl
+  ptr_unfold'Delete : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"Delete" revisionClient.Delete.impl
+  ptr_unfold'DeleteCollection : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"DeleteCollection" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ControllerRevisionInterface.ty go!"DeleteCollection"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ControllerRevisionInterface.ty))) (App (Val (GoInstruction (StructFieldRef revisionClient.ty go!"ControllerRevisionInterface"))) (Var "$r")))))
-  ptr_DeleteWithResult_unfold : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"DeleteWithResult" (LamV "$r"
+  ptr_unfold'DeleteWithResult : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"DeleteWithResult" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ControllerRevisionInterface.ty go!"DeleteWithResult"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ControllerRevisionInterface.ty))) (App (Val (GoInstruction (StructFieldRef revisionClient.ty go!"ControllerRevisionInterface"))) (Var "$r")))))
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"Get" revisionClient.Get.impl
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"List" revisionClient.List.impl
-  ptr_Patch_unfold : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"Patch" (LamV "$r"
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"Get" revisionClient.Get.impl
+  ptr_unfold'List : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"List" revisionClient.List''.impl
+  ptr_unfold'Patch : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"Patch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ControllerRevisionInterface.ty go!"Patch"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.ControllerRevisionInterface.ty))) (App (Val (GoInstruction (StructFieldRef revisionClient.ty go!"ControllerRevisionInterface"))) (Var "$r")))))
-  ptr_Update_unfold : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"Update" revisionClient.Update.impl
-  ptr_Watch_unfold : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"Watch" revisionClient.Watch.impl
+  ptr_unfold'Update : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"Update" revisionClient.Update.impl
+  ptr_unfold'Watch : MethodUnfold (go.GoType.PointerType revisionClient.ty) go!"Watch" revisionClient.Watch.impl
 
 attribute [instance] revisionClient.TypeAssumptions.type_repr
   revisionClient.TypeAssumptions.underlying
-  revisionClient.TypeAssumptions.get_ControllerRevisionInterface
-  revisionClient.TypeAssumptions.set_ControllerRevisionInterface
-  revisionClient.TypeAssumptions.get_s
-  revisionClient.TypeAssumptions.set_s
-  revisionClient.TypeAssumptions.get_ns
-  revisionClient.TypeAssumptions.set_ns
-  revisionClient.TypeAssumptions.get_admin
-  revisionClient.TypeAssumptions.set_admin
+  revisionClient.TypeAssumptions.get'ControllerRevisionInterface
+  revisionClient.TypeAssumptions.set'ControllerRevisionInterface
+  revisionClient.TypeAssumptions.get's
+  revisionClient.TypeAssumptions.set's
+  revisionClient.TypeAssumptions.get'ns
+  revisionClient.TypeAssumptions.set'ns
+  revisionClient.TypeAssumptions.get'admin
+  revisionClient.TypeAssumptions.set'admin
   revisionClient.TypeAssumptions.method_set
   revisionClient.TypeAssumptions.ptr_method_set
-  revisionClient.TypeAssumptions.Apply_unfold
-  revisionClient.TypeAssumptions.DeleteCollection_unfold
-  revisionClient.TypeAssumptions.DeleteWithResult_unfold
-  revisionClient.TypeAssumptions.Patch_unfold
-  revisionClient.TypeAssumptions.ptr_Apply_unfold
-  revisionClient.TypeAssumptions.ptr_Create_unfold
-  revisionClient.TypeAssumptions.ptr_Delete_unfold
-  revisionClient.TypeAssumptions.ptr_DeleteCollection_unfold
-  revisionClient.TypeAssumptions.ptr_DeleteWithResult_unfold
-  revisionClient.TypeAssumptions.ptr_Get_unfold
-  revisionClient.TypeAssumptions.ptr_List_unfold
-  revisionClient.TypeAssumptions.ptr_Patch_unfold
-  revisionClient.TypeAssumptions.ptr_Update_unfold
-  revisionClient.TypeAssumptions.ptr_Watch_unfold
+  revisionClient.TypeAssumptions.unfold'Apply
+  revisionClient.TypeAssumptions.unfold'DeleteCollection
+  revisionClient.TypeAssumptions.unfold'DeleteWithResult
+  revisionClient.TypeAssumptions.unfold'Patch
+  revisionClient.TypeAssumptions.ptr_unfold'Apply
+  revisionClient.TypeAssumptions.ptr_unfold'Create
+  revisionClient.TypeAssumptions.ptr_unfold'Delete
+  revisionClient.TypeAssumptions.ptr_unfold'DeleteCollection
+  revisionClient.TypeAssumptions.ptr_unfold'DeleteWithResult
+  revisionClient.TypeAssumptions.ptr_unfold'Get
+  revisionClient.TypeAssumptions.ptr_unfold'List
+  revisionClient.TypeAssumptions.ptr_unfold'Patch
+  revisionClient.TypeAssumptions.ptr_unfold'Update
+  revisionClient.TypeAssumptions.ptr_unfold'Watch
 
 structure eventClient [GooseExts] where
   mk ::
@@ -4634,7 +4634,7 @@ noncomputable instance eventClient.zero_val [GooseExts] : ZeroVal eventClient :=
 @[irreducible] noncomputable def eventClient.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   eventClient.fieldsUnsealed
 
-noncomputable instance equals_unfold_eventClient [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'eventClient [GooseExts] [GoGlobalContext] :
     EqualsUnfold eventClient.fields eventClient.fieldsUnsealed :=
   ⟨by unfold eventClient.fields; rfl⟩
 
@@ -4644,107 +4644,107 @@ noncomputable instance equals_unfold_eventClient [GooseExts] [GoGlobalContext] :
 class eventClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying eventClient.underlying eventClient
   underlying : go.UnderlyingDirectedEq eventClient.ty eventClient.underlying
-  get_EventInterface : ∀ (x : eventClient), go.IsGoStepPureDetTagged under (StructFieldGet eventClient.underlying go!"EventInterface") #x (Val #(x.EventInterface'))
-  set_EventInterface : ∀ (x : eventClient) (y : _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface), go.IsGoStepPureDetTagged under (StructFieldSet eventClient.underlying go!"EventInterface") (PairV #x #y) (Val #(({ x with EventInterface' := y } : eventClient)))
+  get'EventInterface : ∀ (x : eventClient), go.IsGoStepPureDetTagged under (StructFieldGet eventClient.underlying go!"EventInterface") #x (Val #(x.EventInterface'))
+  set'EventInterface : ∀ (x : eventClient) (y : _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface), go.IsGoStepPureDetTagged under (StructFieldSet eventClient.underlying go!"EventInterface") (PairV #x #y) (Val #(({ x with EventInterface' := y } : eventClient)))
   method_set : go.MethodSetIs eventClient.ty [(go!"Apply", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/core/v1.EventApplyConfiguration" [])), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"Create", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.APIResult.ty, go.error]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"GetFieldSelector", (some (go.signature.Signature [(go.GoType.PointerType go.string), (go.GoType.PointerType go.string), (go.GoType.PointerType go.string), (go.GoType.PointerType go.string)] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/fields.Selector" [])]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.EventList.ty), go.error]))), (go!"Patch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.types.PatchType.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions.ty, (go.GoType.SliceType go.string)] true [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"Search", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Scheme.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.EventList.ty), go.error]))), (go!"SearchWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Scheme.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.EventList.ty), go.error]))), (go!"Update", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType eventClient.ty) [(go!"Apply", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/applyconfigurations/core/v1.EventApplyConfiguration" [])), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"Create", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"CreateWithEventNamespace", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"CreateWithEventNamespaceWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [go.error]))), (go!"DeleteCollection", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [go.error]))), (go!"DeleteWithResult", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.APIResult.ty, go.error]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"GetFieldSelector", (some (go.signature.Signature [(go.GoType.PointerType go.string), (go.GoType.PointerType go.string), (go.GoType.PointerType go.string), (go.GoType.PointerType go.string)] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/fields.Selector" [])]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.EventList.ty), go.error]))), (go!"Patch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.types.PatchType.ty, (go.GoType.SliceType go.byte), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions.ty, (go.GoType.SliceType go.string)] true [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"PatchWithEventNamespace", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), (go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"PatchWithEventNamespaceWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), (go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"Search", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Scheme.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.EventList.ty), go.error]))), (go!"SearchWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Scheme.ty), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.EventList.ty), go.error]))), (go!"Update", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"UpdateWithEventNamespace", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"UpdateWithEventNamespaceWithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Event.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error])))]
-  Apply_unfold : MethodUnfold eventClient.ty go!"Apply" (LamV "$r"
+  unfold'Apply : MethodUnfold eventClient.ty go!"Apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"Apply"))) (App (Val (GoInstruction (StructFieldGet eventClient.ty go!"EventInterface"))) (Var "$r"))))
-  Create_unfold : MethodUnfold eventClient.ty go!"Create" (LamV "$r"
+  unfold'Create : MethodUnfold eventClient.ty go!"Create" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"Create"))) (App (Val (GoInstruction (StructFieldGet eventClient.ty go!"EventInterface"))) (Var "$r"))))
-  Delete_unfold : MethodUnfold eventClient.ty go!"Delete" (LamV "$r"
+  unfold'Delete : MethodUnfold eventClient.ty go!"Delete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"Delete"))) (App (Val (GoInstruction (StructFieldGet eventClient.ty go!"EventInterface"))) (Var "$r"))))
-  DeleteCollection_unfold : MethodUnfold eventClient.ty go!"DeleteCollection" (LamV "$r"
+  unfold'DeleteCollection : MethodUnfold eventClient.ty go!"DeleteCollection" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"DeleteCollection"))) (App (Val (GoInstruction (StructFieldGet eventClient.ty go!"EventInterface"))) (Var "$r"))))
-  DeleteWithResult_unfold : MethodUnfold eventClient.ty go!"DeleteWithResult" (LamV "$r"
+  unfold'DeleteWithResult : MethodUnfold eventClient.ty go!"DeleteWithResult" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"DeleteWithResult"))) (App (Val (GoInstruction (StructFieldGet eventClient.ty go!"EventInterface"))) (Var "$r"))))
-  Get_unfold : MethodUnfold eventClient.ty go!"Get" (LamV "$r"
+  unfold'Get : MethodUnfold eventClient.ty go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"Get"))) (App (Val (GoInstruction (StructFieldGet eventClient.ty go!"EventInterface"))) (Var "$r"))))
-  GetFieldSelector_unfold : MethodUnfold eventClient.ty go!"GetFieldSelector" (LamV "$r"
+  unfold'GetFieldSelector : MethodUnfold eventClient.ty go!"GetFieldSelector" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"GetFieldSelector"))) (App (Val (GoInstruction (StructFieldGet eventClient.ty go!"EventInterface"))) (Var "$r"))))
-  List_unfold : MethodUnfold eventClient.ty go!"List" (LamV "$r"
+  unfold'List : MethodUnfold eventClient.ty go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"List"))) (App (Val (GoInstruction (StructFieldGet eventClient.ty go!"EventInterface"))) (Var "$r"))))
-  Patch_unfold : MethodUnfold eventClient.ty go!"Patch" (LamV "$r"
+  unfold'Patch : MethodUnfold eventClient.ty go!"Patch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"Patch"))) (App (Val (GoInstruction (StructFieldGet eventClient.ty go!"EventInterface"))) (Var "$r"))))
-  Search_unfold : MethodUnfold eventClient.ty go!"Search" (LamV "$r"
+  unfold'Search : MethodUnfold eventClient.ty go!"Search" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"Search"))) (App (Val (GoInstruction (StructFieldGet eventClient.ty go!"EventInterface"))) (Var "$r"))))
-  SearchWithContext_unfold : MethodUnfold eventClient.ty go!"SearchWithContext" (LamV "$r"
+  unfold'SearchWithContext : MethodUnfold eventClient.ty go!"SearchWithContext" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"SearchWithContext"))) (App (Val (GoInstruction (StructFieldGet eventClient.ty go!"EventInterface"))) (Var "$r"))))
-  Update_unfold : MethodUnfold eventClient.ty go!"Update" (LamV "$r"
+  unfold'Update : MethodUnfold eventClient.ty go!"Update" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"Update"))) (App (Val (GoInstruction (StructFieldGet eventClient.ty go!"EventInterface"))) (Var "$r"))))
-  Watch_unfold : MethodUnfold eventClient.ty go!"Watch" (LamV "$r"
+  unfold'Watch : MethodUnfold eventClient.ty go!"Watch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"Watch"))) (App (Val (GoInstruction (StructFieldGet eventClient.ty go!"EventInterface"))) (Var "$r"))))
-  ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"Apply" (LamV "$r"
+  ptr_unfold'Apply : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"Apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"Apply"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty))) (App (Val (GoInstruction (StructFieldRef eventClient.ty go!"EventInterface"))) (Var "$r")))))
-  ptr_Create_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"Create" (LamV "$r"
+  ptr_unfold'Create : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"Create" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"Create"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty))) (App (Val (GoInstruction (StructFieldRef eventClient.ty go!"EventInterface"))) (Var "$r")))))
-  ptr_CreateWithEventNamespace_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"CreateWithEventNamespace" eventClient.CreateWithEventNamespace.impl
-  ptr_CreateWithEventNamespaceWithContext_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"CreateWithEventNamespaceWithContext" eventClient.CreateWithEventNamespaceWithContext.impl
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"Delete" (LamV "$r"
+  ptr_unfold'CreateWithEventNamespace : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"CreateWithEventNamespace" eventClient.CreateWithEventNamespace.impl
+  ptr_unfold'CreateWithEventNamespaceWithContext : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"CreateWithEventNamespaceWithContext" eventClient.CreateWithEventNamespaceWithContext.impl
+  ptr_unfold'Delete : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"Delete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"Delete"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty))) (App (Val (GoInstruction (StructFieldRef eventClient.ty go!"EventInterface"))) (Var "$r")))))
-  ptr_DeleteCollection_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"DeleteCollection" (LamV "$r"
+  ptr_unfold'DeleteCollection : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"DeleteCollection" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"DeleteCollection"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty))) (App (Val (GoInstruction (StructFieldRef eventClient.ty go!"EventInterface"))) (Var "$r")))))
-  ptr_DeleteWithResult_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"DeleteWithResult" (LamV "$r"
+  ptr_unfold'DeleteWithResult : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"DeleteWithResult" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"DeleteWithResult"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty))) (App (Val (GoInstruction (StructFieldRef eventClient.ty go!"EventInterface"))) (Var "$r")))))
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"Get" (LamV "$r"
+  ptr_unfold'Get : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"Get"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty))) (App (Val (GoInstruction (StructFieldRef eventClient.ty go!"EventInterface"))) (Var "$r")))))
-  ptr_GetFieldSelector_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"GetFieldSelector" (LamV "$r"
+  ptr_unfold'GetFieldSelector : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"GetFieldSelector" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"GetFieldSelector"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty))) (App (Val (GoInstruction (StructFieldRef eventClient.ty go!"EventInterface"))) (Var "$r")))))
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"List" (LamV "$r"
+  ptr_unfold'List : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"List" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"List"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty))) (App (Val (GoInstruction (StructFieldRef eventClient.ty go!"EventInterface"))) (Var "$r")))))
-  ptr_Patch_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"Patch" (LamV "$r"
+  ptr_unfold'Patch : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"Patch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"Patch"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty))) (App (Val (GoInstruction (StructFieldRef eventClient.ty go!"EventInterface"))) (Var "$r")))))
-  ptr_PatchWithEventNamespace_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"PatchWithEventNamespace" eventClient.PatchWithEventNamespace.impl
-  ptr_PatchWithEventNamespaceWithContext_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"PatchWithEventNamespaceWithContext" eventClient.PatchWithEventNamespaceWithContext.impl
-  ptr_Search_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"Search" (LamV "$r"
+  ptr_unfold'PatchWithEventNamespace : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"PatchWithEventNamespace" eventClient.PatchWithEventNamespace.impl
+  ptr_unfold'PatchWithEventNamespaceWithContext : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"PatchWithEventNamespaceWithContext" eventClient.PatchWithEventNamespaceWithContext.impl
+  ptr_unfold'Search : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"Search" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"Search"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty))) (App (Val (GoInstruction (StructFieldRef eventClient.ty go!"EventInterface"))) (Var "$r")))))
-  ptr_SearchWithContext_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"SearchWithContext" (LamV "$r"
+  ptr_unfold'SearchWithContext : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"SearchWithContext" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"SearchWithContext"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty))) (App (Val (GoInstruction (StructFieldRef eventClient.ty go!"EventInterface"))) (Var "$r")))))
-  ptr_Update_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"Update" (LamV "$r"
+  ptr_unfold'Update : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"Update" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"Update"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty))) (App (Val (GoInstruction (StructFieldRef eventClient.ty go!"EventInterface"))) (Var "$r")))))
-  ptr_UpdateWithEventNamespace_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"UpdateWithEventNamespace" eventClient.UpdateWithEventNamespace.impl
-  ptr_UpdateWithEventNamespaceWithContext_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"UpdateWithEventNamespaceWithContext" eventClient.UpdateWithEventNamespaceWithContext.impl
-  ptr_Watch_unfold : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"Watch" (LamV "$r"
+  ptr_unfold'UpdateWithEventNamespace : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"UpdateWithEventNamespace" eventClient.UpdateWithEventNamespace.impl
+  ptr_unfold'UpdateWithEventNamespaceWithContext : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"UpdateWithEventNamespaceWithContext" eventClient.UpdateWithEventNamespaceWithContext.impl
+  ptr_unfold'Watch : MethodUnfold (go.GoType.PointerType eventClient.ty) go!"Watch" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty go!"Watch"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.EventInterface.ty))) (App (Val (GoInstruction (StructFieldRef eventClient.ty go!"EventInterface"))) (Var "$r")))))
 
 attribute [instance] eventClient.TypeAssumptions.type_repr
   eventClient.TypeAssumptions.underlying
-  eventClient.TypeAssumptions.get_EventInterface
-  eventClient.TypeAssumptions.set_EventInterface
+  eventClient.TypeAssumptions.get'EventInterface
+  eventClient.TypeAssumptions.set'EventInterface
   eventClient.TypeAssumptions.method_set
   eventClient.TypeAssumptions.ptr_method_set
-  eventClient.TypeAssumptions.Apply_unfold
-  eventClient.TypeAssumptions.Create_unfold
-  eventClient.TypeAssumptions.Delete_unfold
-  eventClient.TypeAssumptions.DeleteCollection_unfold
-  eventClient.TypeAssumptions.DeleteWithResult_unfold
-  eventClient.TypeAssumptions.Get_unfold
-  eventClient.TypeAssumptions.GetFieldSelector_unfold
-  eventClient.TypeAssumptions.List_unfold
-  eventClient.TypeAssumptions.Patch_unfold
-  eventClient.TypeAssumptions.Search_unfold
-  eventClient.TypeAssumptions.SearchWithContext_unfold
-  eventClient.TypeAssumptions.Update_unfold
-  eventClient.TypeAssumptions.Watch_unfold
-  eventClient.TypeAssumptions.ptr_Apply_unfold
-  eventClient.TypeAssumptions.ptr_Create_unfold
-  eventClient.TypeAssumptions.ptr_CreateWithEventNamespace_unfold
-  eventClient.TypeAssumptions.ptr_CreateWithEventNamespaceWithContext_unfold
-  eventClient.TypeAssumptions.ptr_Delete_unfold
-  eventClient.TypeAssumptions.ptr_DeleteCollection_unfold
-  eventClient.TypeAssumptions.ptr_DeleteWithResult_unfold
-  eventClient.TypeAssumptions.ptr_Get_unfold
-  eventClient.TypeAssumptions.ptr_GetFieldSelector_unfold
-  eventClient.TypeAssumptions.ptr_List_unfold
-  eventClient.TypeAssumptions.ptr_Patch_unfold
-  eventClient.TypeAssumptions.ptr_PatchWithEventNamespace_unfold
-  eventClient.TypeAssumptions.ptr_PatchWithEventNamespaceWithContext_unfold
-  eventClient.TypeAssumptions.ptr_Search_unfold
-  eventClient.TypeAssumptions.ptr_SearchWithContext_unfold
-  eventClient.TypeAssumptions.ptr_Update_unfold
-  eventClient.TypeAssumptions.ptr_UpdateWithEventNamespace_unfold
-  eventClient.TypeAssumptions.ptr_UpdateWithEventNamespaceWithContext_unfold
-  eventClient.TypeAssumptions.ptr_Watch_unfold
+  eventClient.TypeAssumptions.unfold'Apply
+  eventClient.TypeAssumptions.unfold'Create
+  eventClient.TypeAssumptions.unfold'Delete
+  eventClient.TypeAssumptions.unfold'DeleteCollection
+  eventClient.TypeAssumptions.unfold'DeleteWithResult
+  eventClient.TypeAssumptions.unfold'Get
+  eventClient.TypeAssumptions.unfold'GetFieldSelector
+  eventClient.TypeAssumptions.unfold'List
+  eventClient.TypeAssumptions.unfold'Patch
+  eventClient.TypeAssumptions.unfold'Search
+  eventClient.TypeAssumptions.unfold'SearchWithContext
+  eventClient.TypeAssumptions.unfold'Update
+  eventClient.TypeAssumptions.unfold'Watch
+  eventClient.TypeAssumptions.ptr_unfold'Apply
+  eventClient.TypeAssumptions.ptr_unfold'Create
+  eventClient.TypeAssumptions.ptr_unfold'CreateWithEventNamespace
+  eventClient.TypeAssumptions.ptr_unfold'CreateWithEventNamespaceWithContext
+  eventClient.TypeAssumptions.ptr_unfold'Delete
+  eventClient.TypeAssumptions.ptr_unfold'DeleteCollection
+  eventClient.TypeAssumptions.ptr_unfold'DeleteWithResult
+  eventClient.TypeAssumptions.ptr_unfold'Get
+  eventClient.TypeAssumptions.ptr_unfold'GetFieldSelector
+  eventClient.TypeAssumptions.ptr_unfold'List
+  eventClient.TypeAssumptions.ptr_unfold'Patch
+  eventClient.TypeAssumptions.ptr_unfold'PatchWithEventNamespace
+  eventClient.TypeAssumptions.ptr_unfold'PatchWithEventNamespaceWithContext
+  eventClient.TypeAssumptions.ptr_unfold'Search
+  eventClient.TypeAssumptions.ptr_unfold'SearchWithContext
+  eventClient.TypeAssumptions.ptr_unfold'Update
+  eventClient.TypeAssumptions.ptr_unfold'UpdateWithEventNamespace
+  eventClient.TypeAssumptions.ptr_unfold'UpdateWithEventNamespaceWithContext
+  eventClient.TypeAssumptions.ptr_unfold'Watch
 
 structure Config [GooseExts] where
   mk ::
@@ -4771,7 +4771,7 @@ noncomputable instance Config.zero_val [GooseExts] : ZeroVal Config :=
 @[irreducible] noncomputable def Config.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Config.fieldsUnsealed
 
-noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Config [GooseExts] [GoGlobalContext] :
     EqualsUnfold Config.fields Config.fieldsUnsealed :=
   ⟨by unfold Config.fields; rfl⟩
 
@@ -4781,39 +4781,39 @@ noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
 class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
-  get_FailWrites : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"FailWrites") #x (Val #(x.FailWrites'))
-  set_FailWrites : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"FailWrites") (PairV #x #y) (Val #(({ x with FailWrites' := y } : Config)))
-  get_AmbiguousWrites : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"AmbiguousWrites") #x (Val #(x.AmbiguousWrites'))
-  set_AmbiguousWrites : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"AmbiguousWrites") (PairV #x #y) (Val #(({ x with AmbiguousWrites' := y } : Config)))
-  get_FailReads : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"FailReads") #x (Val #(x.FailReads'))
-  set_FailReads : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"FailReads") (PairV #x #y) (Val #(({ x with FailReads' := y } : Config)))
-  get_EndWatches : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"EndWatches") #x (Val #(x.EndWatches'))
-  set_EndWatches : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"EndWatches") (PairV #x #y) (Val #(({ x with EndWatches' := y } : Config)))
-  get_ExpireWatches : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ExpireWatches") #x (Val #(x.ExpireWatches'))
-  set_ExpireWatches : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ExpireWatches") (PairV #x #y) (Val #(({ x with ExpireWatches' := y } : Config)))
-  get_Bookmarks : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Bookmarks") #x (Val #(x.Bookmarks'))
-  set_Bookmarks : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Bookmarks") (PairV #x #y) (Val #(({ x with Bookmarks' := y } : Config)))
-  get_FaultPercent : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"FaultPercent") #x (Val #(x.FaultPercent'))
-  set_FaultPercent : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"FaultPercent") (PairV #x #y) (Val #(({ x with FaultPercent' := y } : Config)))
+  get'FailWrites : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"FailWrites") #x (Val #(x.FailWrites'))
+  set'FailWrites : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"FailWrites") (PairV #x #y) (Val #(({ x with FailWrites' := y } : Config)))
+  get'AmbiguousWrites : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"AmbiguousWrites") #x (Val #(x.AmbiguousWrites'))
+  set'AmbiguousWrites : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"AmbiguousWrites") (PairV #x #y) (Val #(({ x with AmbiguousWrites' := y } : Config)))
+  get'FailReads : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"FailReads") #x (Val #(x.FailReads'))
+  set'FailReads : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"FailReads") (PairV #x #y) (Val #(({ x with FailReads' := y } : Config)))
+  get'EndWatches : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"EndWatches") #x (Val #(x.EndWatches'))
+  set'EndWatches : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"EndWatches") (PairV #x #y) (Val #(({ x with EndWatches' := y } : Config)))
+  get'ExpireWatches : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ExpireWatches") #x (Val #(x.ExpireWatches'))
+  set'ExpireWatches : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ExpireWatches") (PairV #x #y) (Val #(({ x with ExpireWatches' := y } : Config)))
+  get'Bookmarks : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Bookmarks") #x (Val #(x.Bookmarks'))
+  set'Bookmarks : ∀ (x : Config) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Bookmarks") (PairV #x #y) (Val #(({ x with Bookmarks' := y } : Config)))
+  get'FaultPercent : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"FaultPercent") #x (Val #(x.FaultPercent'))
+  set'FaultPercent : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"FaultPercent") (PairV #x #y) (Val #(({ x with FaultPercent' := y } : Config)))
   method_set : go.MethodSetIs Config.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) []
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
-  Config.TypeAssumptions.get_FailWrites
-  Config.TypeAssumptions.set_FailWrites
-  Config.TypeAssumptions.get_AmbiguousWrites
-  Config.TypeAssumptions.set_AmbiguousWrites
-  Config.TypeAssumptions.get_FailReads
-  Config.TypeAssumptions.set_FailReads
-  Config.TypeAssumptions.get_EndWatches
-  Config.TypeAssumptions.set_EndWatches
-  Config.TypeAssumptions.get_ExpireWatches
-  Config.TypeAssumptions.set_ExpireWatches
-  Config.TypeAssumptions.get_Bookmarks
-  Config.TypeAssumptions.set_Bookmarks
-  Config.TypeAssumptions.get_FaultPercent
-  Config.TypeAssumptions.set_FaultPercent
+  Config.TypeAssumptions.get'FailWrites
+  Config.TypeAssumptions.set'FailWrites
+  Config.TypeAssumptions.get'AmbiguousWrites
+  Config.TypeAssumptions.set'AmbiguousWrites
+  Config.TypeAssumptions.get'FailReads
+  Config.TypeAssumptions.set'FailReads
+  Config.TypeAssumptions.get'EndWatches
+  Config.TypeAssumptions.set'EndWatches
+  Config.TypeAssumptions.get'ExpireWatches
+  Config.TypeAssumptions.set'ExpireWatches
+  Config.TypeAssumptions.get'Bookmarks
+  Config.TypeAssumptions.set'Bookmarks
+  Config.TypeAssumptions.get'FaultPercent
+  Config.TypeAssumptions.set'FaultPercent
   Config.TypeAssumptions.method_set
   Config.TypeAssumptions.ptr_method_set
 
@@ -4848,7 +4848,7 @@ noncomputable instance change.zero_val [GooseExts] : ZeroVal change :=
 @[irreducible] noncomputable def change.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   change.fieldsUnsealed
 
-noncomputable instance equals_unfold_change [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'change [GooseExts] [GoGlobalContext] :
     EqualsUnfold change.fields change.fieldsUnsealed :=
   ⟨by unfold change.fields; rfl⟩
 
@@ -4858,23 +4858,23 @@ noncomputable instance equals_unfold_change [GooseExts] [GoGlobalContext] :
 class change.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying change.underlying change
   underlying : go.UnderlyingDirectedEq change.ty change.underlying
-  get_typ : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"typ") #x (Val #(x.typ'))
-  set_typ : ∀ (x : change) (y : _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"typ") (PairV #x #y) (Val #(({ x with typ' := y } : change)))
-  get_rv : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"rv") #x (Val #(x.rv'))
-  set_rv : ∀ (x : change) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"rv") (PairV #x #y) (Val #(({ x with rv' := y } : change)))
-  get_obj : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"obj") #x (Val #(x.obj'))
-  set_obj : ∀ (x : change) (y : object), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"obj") (PairV #x #y) (Val #(({ x with obj' := y } : change)))
+  get'typ : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"typ") #x (Val #(x.typ'))
+  set'typ : ∀ (x : change) (y : _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"typ") (PairV #x #y) (Val #(({ x with typ' := y } : change)))
+  get'rv : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"rv") #x (Val #(x.rv'))
+  set'rv : ∀ (x : change) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"rv") (PairV #x #y) (Val #(({ x with rv' := y } : change)))
+  get'obj : ∀ (x : change), go.IsGoStepPureDetTagged under (StructFieldGet change.underlying go!"obj") #x (Val #(x.obj'))
+  set'obj : ∀ (x : change) (y : object), go.IsGoStepPureDetTagged under (StructFieldSet change.underlying go!"obj") (PairV #x #y) (Val #(({ x with obj' := y } : change)))
   method_set : go.MethodSetIs change.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType change.ty) []
 
 attribute [instance] change.TypeAssumptions.type_repr
   change.TypeAssumptions.underlying
-  change.TypeAssumptions.get_typ
-  change.TypeAssumptions.set_typ
-  change.TypeAssumptions.get_rv
-  change.TypeAssumptions.set_rv
-  change.TypeAssumptions.get_obj
-  change.TypeAssumptions.set_obj
+  change.TypeAssumptions.get'typ
+  change.TypeAssumptions.set'typ
+  change.TypeAssumptions.get'rv
+  change.TypeAssumptions.set'rv
+  change.TypeAssumptions.get'obj
+  change.TypeAssumptions.set'obj
   change.TypeAssumptions.method_set
   change.TypeAssumptions.ptr_method_set
 
@@ -4899,7 +4899,7 @@ noncomputable instance table.zero_val [GooseExts] : ZeroVal table :=
 @[irreducible] noncomputable def table.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   table.fieldsUnsealed
 
-noncomputable instance equals_unfold_table [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'table [GooseExts] [GoGlobalContext] :
     EqualsUnfold table.fields table.fieldsUnsealed :=
   ⟨by unfold table.fields; rfl⟩
 
@@ -4909,31 +4909,31 @@ noncomputable instance equals_unfold_table [GooseExts] [GoGlobalContext] :
 class table.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying table.underlying table
   underlying : go.UnderlyingDirectedEq table.ty table.underlying
-  get_resource : ∀ (x : table), go.IsGoStepPureDetTagged under (StructFieldGet table.underlying go!"resource") #x (Val #(x.resource'))
-  set_resource : ∀ (x : table) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource), go.IsGoStepPureDetTagged under (StructFieldSet table.underlying go!"resource") (PairV #x #y) (Val #(({ x with resource' := y } : table)))
-  get_namespaced : ∀ (x : table), go.IsGoStepPureDetTagged under (StructFieldGet table.underlying go!"namespaced") #x (Val #(x.namespaced'))
-  set_namespaced : ∀ (x : table) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet table.underlying go!"namespaced") (PairV #x #y) (Val #(({ x with namespaced' := y } : table)))
-  get_objs : ∀ (x : table), go.IsGoStepPureDetTagged under (StructFieldGet table.underlying go!"objs") #x (Val #(x.objs'))
-  set_objs : ∀ (x : table) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet table.underlying go!"objs") (PairV #x #y) (Val #(({ x with objs' := y } : table)))
-  get_log : ∀ (x : table), go.IsGoStepPureDetTagged under (StructFieldGet table.underlying go!"log") #x (Val #(x.log'))
-  set_log : ∀ (x : table) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet table.underlying go!"log") (PairV #x #y) (Val #(({ x with log' := y } : table)))
-  get_empty : ∀ (x : table), go.IsGoStepPureDetTagged under (StructFieldGet table.underlying go!"empty") #x (Val #(x.empty'))
-  set_empty : ∀ (x : table) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet table.underlying go!"empty") (PairV #x #y) (Val #(({ x with empty' := y } : table)))
+  get'resource : ∀ (x : table), go.IsGoStepPureDetTagged under (StructFieldGet table.underlying go!"resource") #x (Val #(x.resource'))
+  set'resource : ∀ (x : table) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource), go.IsGoStepPureDetTagged under (StructFieldSet table.underlying go!"resource") (PairV #x #y) (Val #(({ x with resource' := y } : table)))
+  get'namespaced : ∀ (x : table), go.IsGoStepPureDetTagged under (StructFieldGet table.underlying go!"namespaced") #x (Val #(x.namespaced'))
+  set'namespaced : ∀ (x : table) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet table.underlying go!"namespaced") (PairV #x #y) (Val #(({ x with namespaced' := y } : table)))
+  get'objs : ∀ (x : table), go.IsGoStepPureDetTagged under (StructFieldGet table.underlying go!"objs") #x (Val #(x.objs'))
+  set'objs : ∀ (x : table) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet table.underlying go!"objs") (PairV #x #y) (Val #(({ x with objs' := y } : table)))
+  get'log : ∀ (x : table), go.IsGoStepPureDetTagged under (StructFieldGet table.underlying go!"log") #x (Val #(x.log'))
+  set'log : ∀ (x : table) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet table.underlying go!"log") (PairV #x #y) (Val #(({ x with log' := y } : table)))
+  get'empty : ∀ (x : table), go.IsGoStepPureDetTagged under (StructFieldGet table.underlying go!"empty") #x (Val #(x.empty'))
+  set'empty : ∀ (x : table) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet table.underlying go!"empty") (PairV #x #y) (Val #(({ x with empty' := y } : table)))
   method_set : go.MethodSetIs table.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType table.ty) []
 
 attribute [instance] table.TypeAssumptions.type_repr
   table.TypeAssumptions.underlying
-  table.TypeAssumptions.get_resource
-  table.TypeAssumptions.set_resource
-  table.TypeAssumptions.get_namespaced
-  table.TypeAssumptions.set_namespaced
-  table.TypeAssumptions.get_objs
-  table.TypeAssumptions.set_objs
-  table.TypeAssumptions.get_log
-  table.TypeAssumptions.set_log
-  table.TypeAssumptions.get_empty
-  table.TypeAssumptions.set_empty
+  table.TypeAssumptions.get'resource
+  table.TypeAssumptions.set'resource
+  table.TypeAssumptions.get'namespaced
+  table.TypeAssumptions.set'namespaced
+  table.TypeAssumptions.get'objs
+  table.TypeAssumptions.set'objs
+  table.TypeAssumptions.get'log
+  table.TypeAssumptions.set'log
+  table.TypeAssumptions.get'empty
+  table.TypeAssumptions.set'empty
   table.TypeAssumptions.method_set
   table.TypeAssumptions.ptr_method_set
 
@@ -4968,7 +4968,7 @@ noncomputable instance Server.zero_val [GooseExts] : ZeroVal Server :=
 @[irreducible] noncomputable def Server.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Server.fieldsUnsealed
 
-noncomputable instance equals_unfold_Server [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Server [GooseExts] [GoGlobalContext] :
     EqualsUnfold Server.fields Server.fieldsUnsealed :=
   ⟨by unfold Server.fields; rfl⟩
 
@@ -4978,75 +4978,75 @@ noncomputable instance equals_unfold_Server [GooseExts] [GoGlobalContext] :
 class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Server.underlying Server
   underlying : go.UnderlyingDirectedEq Server.ty Server.underlying
-  get_mu : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : Server) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Server)))
-  get_changed : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"changed") #x (Val #(x.changed'))
-  set_changed : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"changed") (PairV #x #y) (Val #(({ x with changed' := y } : Server)))
-  get_cfg : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"cfg") #x (Val #(x.cfg'))
-  set_cfg : ∀ (x : Server) (y : Config), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"cfg") (PairV #x #y) (Val #(({ x with cfg' := y } : Server)))
-  get_rev : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"rev") #x (Val #(x.rev'))
-  set_rev : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"rev") (PairV #x #y) (Val #(({ x with rev' := y } : Server)))
-  get_rvs : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"rvs") #x (Val #(x.rvs'))
-  set_rvs : ∀ (x : Server) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"rvs") (PairV #x #y) (Val #(({ x with rvs' := y } : Server)))
-  get_uids : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"uids") #x (Val #(x.uids'))
-  set_uids : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"uids") (PairV #x #y) (Val #(({ x with uids' := y } : Server)))
-  get_pods : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"pods") #x (Val #(x.pods'))
-  set_pods : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"pods") (PairV #x #y) (Val #(({ x with pods' := y } : Server)))
-  get_nodes : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"nodes") #x (Val #(x.nodes'))
-  set_nodes : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"nodes") (PairV #x #y) (Val #(({ x with nodes' := y } : Server)))
-  get_daemonSets : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"daemonSets") #x (Val #(x.daemonSets'))
-  set_daemonSets : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"daemonSets") (PairV #x #y) (Val #(({ x with daemonSets' := y } : Server)))
-  get_revisions : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"revisions") #x (Val #(x.revisions'))
-  set_revisions : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"revisions") (PairV #x #y) (Val #(({ x with revisions' := y } : Server)))
+  get'mu : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"mu") #x (Val #(x.mu'))
+  set'mu : ∀ (x : Server) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Server)))
+  get'changed : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"changed") #x (Val #(x.changed'))
+  set'changed : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"changed") (PairV #x #y) (Val #(({ x with changed' := y } : Server)))
+  get'cfg : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"cfg") #x (Val #(x.cfg'))
+  set'cfg : ∀ (x : Server) (y : Config), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"cfg") (PairV #x #y) (Val #(({ x with cfg' := y } : Server)))
+  get'rev : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"rev") #x (Val #(x.rev'))
+  set'rev : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"rev") (PairV #x #y) (Val #(({ x with rev' := y } : Server)))
+  get'rvs : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"rvs") #x (Val #(x.rvs'))
+  set'rvs : ∀ (x : Server) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"rvs") (PairV #x #y) (Val #(({ x with rvs' := y } : Server)))
+  get'uids : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"uids") #x (Val #(x.uids'))
+  set'uids : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"uids") (PairV #x #y) (Val #(({ x with uids' := y } : Server)))
+  get'pods : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"pods") #x (Val #(x.pods'))
+  set'pods : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"pods") (PairV #x #y) (Val #(({ x with pods' := y } : Server)))
+  get'nodes : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"nodes") #x (Val #(x.nodes'))
+  set'nodes : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"nodes") (PairV #x #y) (Val #(({ x with nodes' := y } : Server)))
+  get'daemonSets : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"daemonSets") #x (Val #(x.daemonSets'))
+  set'daemonSets : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"daemonSets") (PairV #x #y) (Val #(({ x with daemonSets' := y } : Server)))
+  get'revisions : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"revisions") #x (Val #(x.revisions'))
+  set'revisions : ∀ (x : Server) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"revisions") (PairV #x #y) (Val #(({ x with revisions' := y } : Server)))
   method_set : go.MethodSetIs Server.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"AdminClientset", (some (go.signature.Signature [] false [(go.GoType.PointerType Clientset.ty)]))), (go!"Clientset", (some (go.signature.Signature [] false [(go.GoType.PointerType Clientset.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/k8s/daemonset/apimodel.chance", (some (go.signature.Signature [go.bool, go.bool] false [go.bool]))), (go!"github.com/mit-pdos/etcd-grove/examples/k8s/daemonset/apimodel.create", (some (go.signature.Signature [(go.GoType.PointerType table.ty), go.string, object.ty, (go.GoType.FunctionType (go.signature.Signature [object.ty] false [])), go.bool] false [object.ty, go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/k8s/daemonset/apimodel.get", (some (go.signature.Signature [(go.GoType.PointerType table.ty), go.string, go.string, go.bool] false [object.ty, go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/k8s/daemonset/apimodel.list", (some (go.signature.Signature [(go.GoType.PointerType table.ty), go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty, go.bool] false [(go.GoType.SliceType object.ty), go.string, go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/k8s/daemonset/apimodel.nextRV", (some (go.signature.Signature [] false [go.uint64, go.string]))), (go!"github.com/mit-pdos/etcd-grove/examples/k8s/daemonset/apimodel.record", (some (go.signature.Signature [(go.GoType.PointerType table.ty), _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty, go.uint64, object.ty] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/k8s/daemonset/apimodel.remove", (some (go.signature.Signature [(go.GoType.PointerType table.ty), go.string, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty, (go.GoType.FunctionType (go.signature.Signature [object.ty, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.ty] false [go.int64])), go.bool] false [go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/k8s/daemonset/apimodel.update", (some (go.signature.Signature [(go.GoType.PointerType table.ty), go.string, object.ty, (go.GoType.FunctionType (go.signature.Signature [object.ty, object.ty] false [object.ty])), go.bool] false [object.ty, go.error]))), (go!"github.com/mit-pdos/etcd-grove/examples/k8s/daemonset/apimodel.watch", (some (go.signature.Signature [(go.GoType.PointerType table.ty), go.string, _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty, go.bool] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error])))]
-  ptr_AdminClientset_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"AdminClientset" Server.AdminClientset.impl
-  ptr_Clientset_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"Clientset" Server.Clientset.impl
-  ptr_chance_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"chance" Server.chance.impl
-  ptr_create_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"create" Server.create.impl
-  ptr_get_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"get" Server.get.impl
-  ptr_list_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"list" Server.list.impl
-  ptr_nextRV_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"nextRV" Server.nextRV.impl
-  ptr_record_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"record" Server.record.impl
-  ptr_remove_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"remove" Server.remove.impl
-  ptr_update_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"update" Server.update.impl
-  ptr_watch_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"watch" Server.watch.impl
+  ptr_unfold'AdminClientset : MethodUnfold (go.GoType.PointerType Server.ty) go!"AdminClientset" Server.AdminClientset.impl
+  ptr_unfold'Clientset : MethodUnfold (go.GoType.PointerType Server.ty) go!"Clientset" Server.Clientset.impl
+  ptr_unfold'chance : MethodUnfold (go.GoType.PointerType Server.ty) go!"chance" Server.chance.impl
+  ptr_unfold'create : MethodUnfold (go.GoType.PointerType Server.ty) go!"create" Server.create.impl
+  ptr_unfold'get : MethodUnfold (go.GoType.PointerType Server.ty) go!"get" Server.get.impl
+  ptr_unfold'list : MethodUnfold (go.GoType.PointerType Server.ty) go!"list" Server.list''.impl
+  ptr_unfold'nextRV : MethodUnfold (go.GoType.PointerType Server.ty) go!"nextRV" Server.nextRV.impl
+  ptr_unfold'record : MethodUnfold (go.GoType.PointerType Server.ty) go!"record" Server.record.impl
+  ptr_unfold'remove : MethodUnfold (go.GoType.PointerType Server.ty) go!"remove" Server.remove.impl
+  ptr_unfold'update : MethodUnfold (go.GoType.PointerType Server.ty) go!"update" Server.update.impl
+  ptr_unfold'watch : MethodUnfold (go.GoType.PointerType Server.ty) go!"watch" Server.watch.impl
 
 attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.underlying
-  Server.TypeAssumptions.get_mu
-  Server.TypeAssumptions.set_mu
-  Server.TypeAssumptions.get_changed
-  Server.TypeAssumptions.set_changed
-  Server.TypeAssumptions.get_cfg
-  Server.TypeAssumptions.set_cfg
-  Server.TypeAssumptions.get_rev
-  Server.TypeAssumptions.set_rev
-  Server.TypeAssumptions.get_rvs
-  Server.TypeAssumptions.set_rvs
-  Server.TypeAssumptions.get_uids
-  Server.TypeAssumptions.set_uids
-  Server.TypeAssumptions.get_pods
-  Server.TypeAssumptions.set_pods
-  Server.TypeAssumptions.get_nodes
-  Server.TypeAssumptions.set_nodes
-  Server.TypeAssumptions.get_daemonSets
-  Server.TypeAssumptions.set_daemonSets
-  Server.TypeAssumptions.get_revisions
-  Server.TypeAssumptions.set_revisions
+  Server.TypeAssumptions.get'mu
+  Server.TypeAssumptions.set'mu
+  Server.TypeAssumptions.get'changed
+  Server.TypeAssumptions.set'changed
+  Server.TypeAssumptions.get'cfg
+  Server.TypeAssumptions.set'cfg
+  Server.TypeAssumptions.get'rev
+  Server.TypeAssumptions.set'rev
+  Server.TypeAssumptions.get'rvs
+  Server.TypeAssumptions.set'rvs
+  Server.TypeAssumptions.get'uids
+  Server.TypeAssumptions.set'uids
+  Server.TypeAssumptions.get'pods
+  Server.TypeAssumptions.set'pods
+  Server.TypeAssumptions.get'nodes
+  Server.TypeAssumptions.set'nodes
+  Server.TypeAssumptions.get'daemonSets
+  Server.TypeAssumptions.set'daemonSets
+  Server.TypeAssumptions.get'revisions
+  Server.TypeAssumptions.set'revisions
   Server.TypeAssumptions.method_set
   Server.TypeAssumptions.ptr_method_set
-  Server.TypeAssumptions.ptr_AdminClientset_unfold
-  Server.TypeAssumptions.ptr_Clientset_unfold
-  Server.TypeAssumptions.ptr_chance_unfold
-  Server.TypeAssumptions.ptr_create_unfold
-  Server.TypeAssumptions.ptr_get_unfold
-  Server.TypeAssumptions.ptr_list_unfold
-  Server.TypeAssumptions.ptr_nextRV_unfold
-  Server.TypeAssumptions.ptr_record_unfold
-  Server.TypeAssumptions.ptr_remove_unfold
-  Server.TypeAssumptions.ptr_update_unfold
-  Server.TypeAssumptions.ptr_watch_unfold
+  Server.TypeAssumptions.ptr_unfold'AdminClientset
+  Server.TypeAssumptions.ptr_unfold'Clientset
+  Server.TypeAssumptions.ptr_unfold'chance
+  Server.TypeAssumptions.ptr_unfold'create
+  Server.TypeAssumptions.ptr_unfold'get
+  Server.TypeAssumptions.ptr_unfold'list
+  Server.TypeAssumptions.ptr_unfold'nextRV
+  Server.TypeAssumptions.ptr_unfold'record
+  Server.TypeAssumptions.ptr_unfold'remove
+  Server.TypeAssumptions.ptr_unfold'update
+  Server.TypeAssumptions.ptr_unfold'watch
 
 structure watcher [GooseExts] where
   mk ::
@@ -5081,7 +5081,7 @@ noncomputable instance watcher.zero_val [GooseExts] : ZeroVal watcher :=
 @[irreducible] noncomputable def watcher.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watcher.fieldsUnsealed
 
-noncomputable instance equals_unfold_watcher [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'watcher [GooseExts] [GoGlobalContext] :
     EqualsUnfold watcher.fields watcher.fieldsUnsealed :=
   ⟨by unfold watcher.fields; rfl⟩
 
@@ -5091,166 +5091,166 @@ noncomputable instance equals_unfold_watcher [GooseExts] [GoGlobalContext] :
 class watcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watcher.underlying watcher
   underlying : go.UnderlyingDirectedEq watcher.ty watcher.underlying
-  get_s : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : watcher) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : watcher)))
-  get_t : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"t") #x (Val #(x.t'))
-  set_t : ∀ (x : watcher) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"t") (PairV #x #y) (Val #(({ x with t' := y } : watcher)))
-  get_ns : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"ns") #x (Val #(x.ns'))
-  set_ns : ∀ (x : watcher) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"ns") (PairV #x #y) (Val #(({ x with ns' := y } : watcher)))
-  get_admin : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"admin") #x (Val #(x.admin'))
-  set_admin : ∀ (x : watcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"admin") (PairV #x #y) (Val #(({ x with admin' := y } : watcher)))
-  get_initial : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"initial") #x (Val #(x.initial'))
-  set_initial : ∀ (x : watcher) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"initial") (PairV #x #y) (Val #(({ x with initial' := y } : watcher)))
-  get_bookmarks : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"bookmarks") #x (Val #(x.bookmarks'))
-  set_bookmarks : ∀ (x : watcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"bookmarks") (PairV #x #y) (Val #(({ x with bookmarks' := y } : watcher)))
-  get_ch : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"ch") #x (Val #(x.ch'))
-  set_ch : ∀ (x : watcher) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"ch") (PairV #x #y) (Val #(({ x with ch' := y } : watcher)))
-  get_done : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"done") #x (Val #(x.done'))
-  set_done : ∀ (x : watcher) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : watcher)))
-  get_next : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"next") #x (Val #(x.next'))
-  set_next : ∀ (x : watcher) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"next") (PairV #x #y) (Val #(({ x with next' := y } : watcher)))
-  get_sentRV : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"sentRV") #x (Val #(x.sentRV'))
-  set_sentRV : ∀ (x : watcher) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"sentRV") (PairV #x #y) (Val #(({ x with sentRV' := y } : watcher)))
-  get_stopped : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"stopped") #x (Val #(x.stopped'))
-  set_stopped : ∀ (x : watcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"stopped") (PairV #x #y) (Val #(({ x with stopped' := y } : watcher)))
+  get's : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"s") #x (Val #(x.s'))
+  set's : ∀ (x : watcher) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : watcher)))
+  get't : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"t") #x (Val #(x.t'))
+  set't : ∀ (x : watcher) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"t") (PairV #x #y) (Val #(({ x with t' := y } : watcher)))
+  get'ns : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"ns") #x (Val #(x.ns'))
+  set'ns : ∀ (x : watcher) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"ns") (PairV #x #y) (Val #(({ x with ns' := y } : watcher)))
+  get'admin : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"admin") #x (Val #(x.admin'))
+  set'admin : ∀ (x : watcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"admin") (PairV #x #y) (Val #(({ x with admin' := y } : watcher)))
+  get'initial : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"initial") #x (Val #(x.initial'))
+  set'initial : ∀ (x : watcher) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"initial") (PairV #x #y) (Val #(({ x with initial' := y } : watcher)))
+  get'bookmarks : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"bookmarks") #x (Val #(x.bookmarks'))
+  set'bookmarks : ∀ (x : watcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"bookmarks") (PairV #x #y) (Val #(({ x with bookmarks' := y } : watcher)))
+  get'ch : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"ch") #x (Val #(x.ch'))
+  set'ch : ∀ (x : watcher) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"ch") (PairV #x #y) (Val #(({ x with ch' := y } : watcher)))
+  get'done : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"done") #x (Val #(x.done'))
+  set'done : ∀ (x : watcher) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : watcher)))
+  get'next : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"next") #x (Val #(x.next'))
+  set'next : ∀ (x : watcher) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"next") (PairV #x #y) (Val #(({ x with next' := y } : watcher)))
+  get'sentRV : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"sentRV") #x (Val #(x.sentRV'))
+  set'sentRV : ∀ (x : watcher) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"sentRV") (PairV #x #y) (Val #(({ x with sentRV' := y } : watcher)))
+  get'stopped : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"stopped") #x (Val #(x.stopped'))
+  set'stopped : ∀ (x : watcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"stopped") (PairV #x #y) (Val #(({ x with stopped' := y } : watcher)))
   method_set : go.MethodSetIs watcher.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType watcher.ty) [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/k8s/daemonset/apimodel.run", (some (go.signature.Signature [] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/k8s/daemonset/apimodel.send", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty] false [go.bool])))]
-  ptr_ResultChan_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"ResultChan" watcher.ResultChan.impl
-  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"Stop" watcher.Stop.impl
-  ptr_run_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"run" watcher.run.impl
-  ptr_send_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"send" watcher.send.impl
+  ptr_unfold'ResultChan : MethodUnfold (go.GoType.PointerType watcher.ty) go!"ResultChan" watcher.ResultChan.impl
+  ptr_unfold'Stop : MethodUnfold (go.GoType.PointerType watcher.ty) go!"Stop" watcher.Stop.impl
+  ptr_unfold'run : MethodUnfold (go.GoType.PointerType watcher.ty) go!"run" watcher.run.impl
+  ptr_unfold'send : MethodUnfold (go.GoType.PointerType watcher.ty) go!"send" watcher.send.impl
 
 attribute [instance] watcher.TypeAssumptions.type_repr
   watcher.TypeAssumptions.underlying
-  watcher.TypeAssumptions.get_s
-  watcher.TypeAssumptions.set_s
-  watcher.TypeAssumptions.get_t
-  watcher.TypeAssumptions.set_t
-  watcher.TypeAssumptions.get_ns
-  watcher.TypeAssumptions.set_ns
-  watcher.TypeAssumptions.get_admin
-  watcher.TypeAssumptions.set_admin
-  watcher.TypeAssumptions.get_initial
-  watcher.TypeAssumptions.set_initial
-  watcher.TypeAssumptions.get_bookmarks
-  watcher.TypeAssumptions.set_bookmarks
-  watcher.TypeAssumptions.get_ch
-  watcher.TypeAssumptions.set_ch
-  watcher.TypeAssumptions.get_done
-  watcher.TypeAssumptions.set_done
-  watcher.TypeAssumptions.get_next
-  watcher.TypeAssumptions.set_next
-  watcher.TypeAssumptions.get_sentRV
-  watcher.TypeAssumptions.set_sentRV
-  watcher.TypeAssumptions.get_stopped
-  watcher.TypeAssumptions.set_stopped
+  watcher.TypeAssumptions.get's
+  watcher.TypeAssumptions.set's
+  watcher.TypeAssumptions.get't
+  watcher.TypeAssumptions.set't
+  watcher.TypeAssumptions.get'ns
+  watcher.TypeAssumptions.set'ns
+  watcher.TypeAssumptions.get'admin
+  watcher.TypeAssumptions.set'admin
+  watcher.TypeAssumptions.get'initial
+  watcher.TypeAssumptions.set'initial
+  watcher.TypeAssumptions.get'bookmarks
+  watcher.TypeAssumptions.set'bookmarks
+  watcher.TypeAssumptions.get'ch
+  watcher.TypeAssumptions.set'ch
+  watcher.TypeAssumptions.get'done
+  watcher.TypeAssumptions.set'done
+  watcher.TypeAssumptions.get'next
+  watcher.TypeAssumptions.set'next
+  watcher.TypeAssumptions.get'sentRV
+  watcher.TypeAssumptions.set'sentRV
+  watcher.TypeAssumptions.get'stopped
+  watcher.TypeAssumptions.set'stopped
   watcher.TypeAssumptions.method_set
   watcher.TypeAssumptions.ptr_method_set
-  watcher.TypeAssumptions.ptr_ResultChan_unfold
-  watcher.TypeAssumptions.ptr_Stop_unfold
-  watcher.TypeAssumptions.ptr_run_unfold
-  watcher.TypeAssumptions.ptr_send_unfold
+  watcher.TypeAssumptions.ptr_unfold'ResultChan
+  watcher.TypeAssumptions.ptr_unfold'Stop
+  watcher.TypeAssumptions.ptr_unfold'run
+  watcher.TypeAssumptions.ptr_unfold'send
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Clientset_instance : Clientset.TypeAssumptions
-  coreV1_instance : coreV1.TypeAssumptions
-  appsV1_instance : appsV1.TypeAssumptions
-  podClient_instance : podClient.TypeAssumptions
-  nodeClient_instance : nodeClient.TypeAssumptions
-  daemonSetClient_instance : daemonSetClient.TypeAssumptions
-  revisionClient_instance : revisionClient.TypeAssumptions
-  eventClient_instance : eventClient.TypeAssumptions
-  Config_instance : Config.TypeAssumptions
-  object_instance : object.TypeAssumptions
-  change_instance : change.TypeAssumptions
-  table_instance : table.TypeAssumptions
-  Server_instance : Server.TypeAssumptions
-  watcher_instance : watcher.TypeAssumptions
-  emptyPod_unfold : FuncUnfold emptyPod [] emptyPod.impl
-  preparePod_unfold : FuncUnfold preparePod [] preparePod.impl
-  podGrace_unfold : FuncUnfold podGrace [] podGrace.impl
-  emptyNode_unfold : FuncUnfold emptyNode [] emptyNode.impl
-  prepareNode_unfold : FuncUnfold prepareNode [] prepareNode.impl
-  emptyDaemonSet_unfold : FuncUnfold emptyDaemonSet [] emptyDaemonSet.impl
-  prepareDaemonSet_unfold : FuncUnfold prepareDaemonSet [] prepareDaemonSet.impl
-  updateDaemonSetStatus_unfold : FuncUnfold updateDaemonSetStatus [] updateDaemonSetStatus.impl
-  int32PtrEqual_unfold : FuncUnfold int32PtrEqual [] int32PtrEqual.impl
-  daemonSetStatusEqual_unfold : FuncUnfold daemonSetStatusEqual [] daemonSetStatusEqual.impl
-  emptyRevision_unfold : FuncUnfold emptyRevision [] emptyRevision.impl
-  prepareRevision_unfold : FuncUnfold prepareRevision [] prepareRevision.impl
-  replaceRevision_unfold : FuncUnfold replaceRevision [] replaceRevision.impl
-  NewServer_unfold : FuncUnfold NewServer [] NewServer.impl
-  newTable_unfold : FuncUnfold newTable [] newTable.impl
-  rvString_unfold : FuncUnfold rvString [] rvString.impl
-  copyObject_unfold : FuncUnfold copyObject [] copyObject.impl
-  noGrace_unfold : FuncUnfold noGrace [] noGrace.impl
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_api_apps_v1_Assumption : _root_.Perennial.k8s_io.api.apps.v1.Assumptions
-  import_api_core_v1_Assumption : _root_.Perennial.k8s_io.api.core.v1.Assumptions
-  import_apis_meta_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_intstr_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.Assumptions
-  import_watch_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions
-  import_kubernetes_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.Assumptions
-  import_typed_apps_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions
-  import_typed_core_v1_Assumption : _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_api_errors_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.Assumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
-  import_schema_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
-  import_types_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
+  instance'Clientset : Clientset.TypeAssumptions
+  instance'coreV1 : coreV1.TypeAssumptions
+  instance'appsV1 : appsV1.TypeAssumptions
+  instance'podClient : podClient.TypeAssumptions
+  instance'nodeClient : nodeClient.TypeAssumptions
+  instance'daemonSetClient : daemonSetClient.TypeAssumptions
+  instance'revisionClient : revisionClient.TypeAssumptions
+  instance'eventClient : eventClient.TypeAssumptions
+  instance'Config : Config.TypeAssumptions
+  instance'object : object.TypeAssumptions
+  instance'change : change.TypeAssumptions
+  instance'table : table.TypeAssumptions
+  instance'Server : Server.TypeAssumptions
+  instance'watcher : watcher.TypeAssumptions
+  unfold'emptyPod : FuncUnfold emptyPod [] emptyPod.impl
+  unfold'preparePod : FuncUnfold preparePod [] preparePod.impl
+  unfold'podGrace : FuncUnfold podGrace [] podGrace.impl
+  unfold'emptyNode : FuncUnfold emptyNode [] emptyNode.impl
+  unfold'prepareNode : FuncUnfold prepareNode [] prepareNode.impl
+  unfold'emptyDaemonSet : FuncUnfold emptyDaemonSet [] emptyDaemonSet.impl
+  unfold'prepareDaemonSet : FuncUnfold prepareDaemonSet [] prepareDaemonSet.impl
+  unfold'updateDaemonSetStatus : FuncUnfold updateDaemonSetStatus [] updateDaemonSetStatus.impl
+  unfold'int32PtrEqual : FuncUnfold int32PtrEqual [] int32PtrEqual.impl
+  unfold'daemonSetStatusEqual : FuncUnfold daemonSetStatusEqual [] daemonSetStatusEqual.impl
+  unfold'emptyRevision : FuncUnfold emptyRevision [] emptyRevision.impl
+  unfold'prepareRevision : FuncUnfold prepareRevision [] prepareRevision.impl
+  unfold'replaceRevision : FuncUnfold replaceRevision [] replaceRevision.impl
+  unfold'NewServer : FuncUnfold NewServer [] NewServer.impl
+  unfold'newTable : FuncUnfold newTable [] newTable.impl
+  unfold'rvString : FuncUnfold rvString [] rvString.impl
+  unfold'copyObject : FuncUnfold copyObject [] copyObject.impl
+  unfold'noGrace : FuncUnfold noGrace [] noGrace.impl
+  import'context : _root_.Perennial.context.Assumptions
+  import'api_apps_v1 : _root_.Perennial.k8s_io.api.apps.v1.Assumptions
+  import'api_core_v1 : _root_.Perennial.k8s_io.api.core.v1.Assumptions
+  import'apis_meta_v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'intstr : _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.Assumptions
+  import'watch : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions
+  import'kubernetes : _root_.Perennial.k8s_io.client_go.kubernetes.Assumptions
+  import'typed_apps_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions
+  import'typed_core_v1 : _root_.Perennial.k8s_io.client_go.kubernetes.typed.core.v1.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'rand : _root_.Perennial.math.rand.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'api_errors : _root_.Perennial.k8s_io.apimachinery.pkg.api.errors.Assumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  import'schema : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
+  import'types : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
 
-attribute [instance] Assumptions.Clientset_instance
-  Assumptions.coreV1_instance
-  Assumptions.appsV1_instance
-  Assumptions.podClient_instance
-  Assumptions.nodeClient_instance
-  Assumptions.daemonSetClient_instance
-  Assumptions.revisionClient_instance
-  Assumptions.eventClient_instance
-  Assumptions.Config_instance
-  Assumptions.object_instance
-  Assumptions.change_instance
-  Assumptions.table_instance
-  Assumptions.Server_instance
-  Assumptions.watcher_instance
-  Assumptions.emptyPod_unfold
-  Assumptions.preparePod_unfold
-  Assumptions.podGrace_unfold
-  Assumptions.emptyNode_unfold
-  Assumptions.prepareNode_unfold
-  Assumptions.emptyDaemonSet_unfold
-  Assumptions.prepareDaemonSet_unfold
-  Assumptions.updateDaemonSetStatus_unfold
-  Assumptions.int32PtrEqual_unfold
-  Assumptions.daemonSetStatusEqual_unfold
-  Assumptions.emptyRevision_unfold
-  Assumptions.prepareRevision_unfold
-  Assumptions.replaceRevision_unfold
-  Assumptions.NewServer_unfold
-  Assumptions.newTable_unfold
-  Assumptions.rvString_unfold
-  Assumptions.copyObject_unfold
-  Assumptions.noGrace_unfold
-  Assumptions.import_context_Assumption
-  Assumptions.import_api_apps_v1_Assumption
-  Assumptions.import_api_core_v1_Assumption
-  Assumptions.import_apis_meta_v1_Assumption
-  Assumptions.import_intstr_Assumption
-  Assumptions.import_watch_Assumption
-  Assumptions.import_kubernetes_Assumption
-  Assumptions.import_typed_apps_v1_Assumption
-  Assumptions.import_typed_core_v1_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_rand_Assumption
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_api_errors_Assumption
-  Assumptions.import_runtime_Assumption
-  Assumptions.import_schema_Assumption
-  Assumptions.import_types_Assumption
+attribute [instance] Assumptions.instance'Clientset
+  Assumptions.instance'coreV1
+  Assumptions.instance'appsV1
+  Assumptions.instance'podClient
+  Assumptions.instance'nodeClient
+  Assumptions.instance'daemonSetClient
+  Assumptions.instance'revisionClient
+  Assumptions.instance'eventClient
+  Assumptions.instance'Config
+  Assumptions.instance'object
+  Assumptions.instance'change
+  Assumptions.instance'table
+  Assumptions.instance'Server
+  Assumptions.instance'watcher
+  Assumptions.unfold'emptyPod
+  Assumptions.unfold'preparePod
+  Assumptions.unfold'podGrace
+  Assumptions.unfold'emptyNode
+  Assumptions.unfold'prepareNode
+  Assumptions.unfold'emptyDaemonSet
+  Assumptions.unfold'prepareDaemonSet
+  Assumptions.unfold'updateDaemonSetStatus
+  Assumptions.unfold'int32PtrEqual
+  Assumptions.unfold'daemonSetStatusEqual
+  Assumptions.unfold'emptyRevision
+  Assumptions.unfold'prepareRevision
+  Assumptions.unfold'replaceRevision
+  Assumptions.unfold'NewServer
+  Assumptions.unfold'newTable
+  Assumptions.unfold'rvString
+  Assumptions.unfold'copyObject
+  Assumptions.unfold'noGrace
+  Assumptions.import'context
+  Assumptions.import'api_apps_v1
+  Assumptions.import'api_core_v1
+  Assumptions.import'apis_meta_v1
+  Assumptions.import'intstr
+  Assumptions.import'watch
+  Assumptions.import'kubernetes
+  Assumptions.import'typed_apps_v1
+  Assumptions.import'typed_core_v1
+  Assumptions.import'errors
+  Assumptions.import'rand
+  Assumptions.import'strconv
+  Assumptions.import'sync
+  Assumptions.import'api_errors
+  Assumptions.import'runtime
+  Assumptions.import'schema
+  Assumptions.import'types
 
 end github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel
 

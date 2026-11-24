@@ -26,11 +26,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.health.grpc_health_v1.Assumptions]
 
-noncomputable instance HealthCheckRequest_typed_pointsto :
+noncomputable instance typed_pointsto'HealthCheckRequest :
     TypedPointsto (GF := GF) google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest :=
   sorry -- axiomatized type
 
-noncomputable instance HealthCheckRequest_into_val_typed :
+noncomputable instance into_val_typed'HealthCheckRequest :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest.underlying :=
   sorry -- axiomatized type
 
@@ -45,11 +45,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.health.grpc_health_v1.Assumptions]
 
-noncomputable instance HealthCheckResponse_typed_pointsto :
+noncomputable instance typed_pointsto'HealthCheckResponse :
     TypedPointsto (GF := GF) google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse :=
   sorry -- axiomatized type
 
-noncomputable instance HealthCheckResponse_into_val_typed :
+noncomputable instance into_val_typed'HealthCheckResponse :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse.underlying :=
   sorry -- axiomatized type
 
@@ -64,11 +64,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.health.grpc_health_v1.Assumptions]
 
-noncomputable instance HealthListRequest_typed_pointsto :
+noncomputable instance typed_pointsto'HealthListRequest :
     TypedPointsto (GF := GF) google_golang_org.grpc.health.grpc_health_v1.HealthListRequest :=
   sorry -- axiomatized type
 
-noncomputable instance HealthListRequest_into_val_typed :
+noncomputable instance into_val_typed'HealthListRequest :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.grpc_health_v1.HealthListRequest google_golang_org.grpc.health.grpc_health_v1.HealthListRequest.underlying :=
   sorry -- axiomatized type
 
@@ -83,11 +83,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.health.grpc_health_v1.Assumptions]
 
-noncomputable instance HealthListResponse_typed_pointsto :
+noncomputable instance typed_pointsto'HealthListResponse :
     TypedPointsto (GF := GF) google_golang_org.grpc.health.grpc_health_v1.HealthListResponse :=
   sorry -- axiomatized type
 
-noncomputable instance HealthListResponse_into_val_typed :
+noncomputable instance into_val_typed'HealthListResponse :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.grpc_health_v1.HealthListResponse google_golang_org.grpc.health.grpc_health_v1.HealthListResponse.underlying :=
   sorry -- axiomatized type
 
@@ -102,7 +102,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.health.grpc_health_v1.Assumptions]
 
-noncomputable instance healthClient_typed_pointsto :
+noncomputable instance typed_pointsto'healthClient :
     TypedPointsto (GF := GF) google_golang_org.grpc.health.grpc_health_v1.healthClient where
   typedPointstoDef l v dq := iprop(
     "cc" ∷ typedPointsto (structFieldRef google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) v.cc' dq ∗
@@ -111,11 +111,11 @@ noncomputable instance healthClient_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance healthClient_into_val_typed :
+noncomputable instance into_val_typed'healthClient :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.grpc_health_v1.healthClient google_golang_org.grpc.health.grpc_health_v1.healthClient.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance healthClient_access_load_cc (l : Loc) (v : google_golang_org.grpc.health.grpc_health_v1.healthClient) (dq : DFrac) :
+noncomputable instance access_load'healthClient'cc (l : Loc) (v : google_golang_org.grpc.health.grpc_health_v1.healthClient) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) v.cc' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) v.cc' dq)
@@ -123,7 +123,7 @@ noncomputable instance healthClient_access_load_cc (l : Loc) (v : google_golang_
  by
   solve_pointsto_access_struct
 
-noncomputable instance healthClient_access_store_cc (l : Loc) (v : google_golang_org.grpc.health.grpc_health_v1.healthClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
+noncomputable instance access_store'healthClient'cc (l : Loc) (v : google_golang_org.grpc.health.grpc_health_v1.healthClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) v.cc' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) y (DFrac.own 1))
@@ -142,7 +142,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.health.grpc_health_v1.Assumptions]
 
-noncomputable instance UnimplementedHealthServer_typed_pointsto :
+noncomputable instance typed_pointsto'UnimplementedHealthServer :
     TypedPointsto (GF := GF) google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -150,7 +150,7 @@ noncomputable instance UnimplementedHealthServer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance UnimplementedHealthServer_into_val_typed :
+noncomputable instance into_val_typed'UnimplementedHealthServer :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer.underlying := by
   solve_into_val_typed_struct
 

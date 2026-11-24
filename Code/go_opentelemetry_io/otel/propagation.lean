@@ -150,7 +150,7 @@ noncomputable instance Baggage.zero_val [GooseExts] : ZeroVal Baggage :=
 @[irreducible] noncomputable def Baggage.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Baggage.fieldsUnsealed
 
-noncomputable instance equals_unfold_Baggage [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Baggage [GooseExts] [GoGlobalContext] :
     EqualsUnfold Baggage.fields Baggage.fieldsUnsealed :=
   ⟨by unfold Baggage.fields; rfl⟩
 
@@ -264,7 +264,7 @@ noncomputable instance TraceContext.zero_val [GooseExts] : ZeroVal TraceContext 
 @[irreducible] noncomputable def TraceContext.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TraceContext.fieldsUnsealed
 
-noncomputable instance equals_unfold_TraceContext [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'TraceContext [GooseExts] [GoGlobalContext] :
     EqualsUnfold TraceContext.fields TraceContext.fieldsUnsealed :=
   ⟨by unfold TraceContext.fields; rfl⟩
 
@@ -283,31 +283,31 @@ attribute [instance] TraceContext.TypeAssumptions.type_repr
   TraceContext.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Baggage_instance : Baggage.TypeAssumptions
-  TextMapCarrier_instance : TextMapCarrier.TypeAssumptions
-  ValuesGetter_instance : ValuesGetter.TypeAssumptions
-  MapCarrier_instance : MapCarrier.TypeAssumptions
-  HeaderCarrier_instance : HeaderCarrier.TypeAssumptions
-  TextMapPropagator_instance : TextMapPropagator.TypeAssumptions
-  compositeTextMapPropagator_instance : compositeTextMapPropagator.TypeAssumptions
-  TraceContext_instance : TraceContext.TypeAssumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_http_Assumption : _root_.Perennial.net.http.Assumptions
+  instance'Baggage : Baggage.TypeAssumptions
+  instance'TextMapCarrier : TextMapCarrier.TypeAssumptions
+  instance'ValuesGetter : ValuesGetter.TypeAssumptions
+  instance'MapCarrier : MapCarrier.TypeAssumptions
+  instance'HeaderCarrier : HeaderCarrier.TypeAssumptions
+  instance'TextMapPropagator : TextMapPropagator.TypeAssumptions
+  instance'compositeTextMapPropagator : compositeTextMapPropagator.TypeAssumptions
+  instance'TraceContext : TraceContext.TypeAssumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'http : _root_.Perennial.net.http.Assumptions
 
-attribute [instance] Assumptions.Baggage_instance
-  Assumptions.TextMapCarrier_instance
-  Assumptions.ValuesGetter_instance
-  Assumptions.MapCarrier_instance
-  Assumptions.HeaderCarrier_instance
-  Assumptions.TextMapPropagator_instance
-  Assumptions.compositeTextMapPropagator_instance
-  Assumptions.TraceContext_instance
-  Assumptions.import_context_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_http_Assumption
+attribute [instance] Assumptions.instance'Baggage
+  Assumptions.instance'TextMapCarrier
+  Assumptions.instance'ValuesGetter
+  Assumptions.instance'MapCarrier
+  Assumptions.instance'HeaderCarrier
+  Assumptions.instance'TextMapPropagator
+  Assumptions.instance'compositeTextMapPropagator
+  Assumptions.instance'TraceContext
+  Assumptions.import'context
+  Assumptions.import'fmt
+  Assumptions.import'sync
+  Assumptions.import'http
 
 end go_opentelemetry_io.otel.propagation
 

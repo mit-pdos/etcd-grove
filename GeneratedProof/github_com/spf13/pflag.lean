@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance boolFlag_typed_pointsto :
+noncomputable instance typed_pointsto'boolFlag :
     TypedPointsto (GF := GF) github_com.spf13.pflag.boolFlag :=
   sorry -- axiomatized type
 
-noncomputable instance boolFlag_into_val_typed :
+noncomputable instance into_val_typed'boolFlag :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.boolFlag github_com.spf13.pflag.boolFlag.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance boolValue_typed_pointsto :
+noncomputable instance typed_pointsto'boolValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.boolValue :=
   sorry -- axiomatized type
 
-noncomputable instance boolValue_into_val_typed :
+noncomputable instance into_val_typed'boolValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.boolValue github_com.spf13.pflag.boolValue.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance boolfuncValue_typed_pointsto :
+noncomputable instance typed_pointsto'boolfuncValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.boolfuncValue :=
   sorry -- axiomatized type
 
-noncomputable instance boolfuncValue_into_val_typed :
+noncomputable instance into_val_typed'boolfuncValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.boolfuncValue github_com.spf13.pflag.boolfuncValue.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance boolSliceValue_typed_pointsto :
+noncomputable instance typed_pointsto'boolSliceValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.boolSliceValue :=
   sorry -- axiomatized type
 
-noncomputable instance boolSliceValue_into_val_typed :
+noncomputable instance into_val_typed'boolSliceValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.boolSliceValue github_com.spf13.pflag.boolSliceValue.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance bytesHexValue_typed_pointsto :
+noncomputable instance typed_pointsto'bytesHexValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.bytesHexValue :=
   sorry -- axiomatized type
 
-noncomputable instance bytesHexValue_into_val_typed :
+noncomputable instance into_val_typed'bytesHexValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.bytesHexValue github_com.spf13.pflag.bytesHexValue.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance bytesBase64Value_typed_pointsto :
+noncomputable instance typed_pointsto'bytesBase64Value :
     TypedPointsto (GF := GF) github_com.spf13.pflag.bytesBase64Value :=
   sorry -- axiomatized type
 
-noncomputable instance bytesBase64Value_into_val_typed :
+noncomputable instance into_val_typed'bytesBase64Value :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.bytesBase64Value github_com.spf13.pflag.bytesBase64Value.underlying :=
   sorry -- axiomatized type
 
@@ -138,11 +138,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance countValue_typed_pointsto :
+noncomputable instance typed_pointsto'countValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.countValue :=
   sorry -- axiomatized type
 
-noncomputable instance countValue_into_val_typed :
+noncomputable instance into_val_typed'countValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.countValue github_com.spf13.pflag.countValue.underlying :=
   sorry -- axiomatized type
 
@@ -157,11 +157,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance durationValue_typed_pointsto :
+noncomputable instance typed_pointsto'durationValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.durationValue :=
   sorry -- axiomatized type
 
-noncomputable instance durationValue_into_val_typed :
+noncomputable instance into_val_typed'durationValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.durationValue github_com.spf13.pflag.durationValue.underlying :=
   sorry -- axiomatized type
 
@@ -176,11 +176,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance durationSliceValue_typed_pointsto :
+noncomputable instance typed_pointsto'durationSliceValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.durationSliceValue :=
   sorry -- axiomatized type
 
-noncomputable instance durationSliceValue_into_val_typed :
+noncomputable instance into_val_typed'durationSliceValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.durationSliceValue github_com.spf13.pflag.durationSliceValue.underlying :=
   sorry -- axiomatized type
 
@@ -195,11 +195,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance notExistErrorMessageType_typed_pointsto :
+noncomputable instance typed_pointsto'notExistErrorMessageType :
     TypedPointsto (GF := GF) github_com.spf13.pflag.notExistErrorMessageType :=
   sorry -- axiomatized type
 
-noncomputable instance notExistErrorMessageType_into_val_typed :
+noncomputable instance into_val_typed'notExistErrorMessageType :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.notExistErrorMessageType github_com.spf13.pflag.notExistErrorMessageType.underlying :=
   sorry -- axiomatized type
 
@@ -214,11 +214,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance NotExistError_typed_pointsto :
+noncomputable instance typed_pointsto'NotExistError :
     TypedPointsto (GF := GF) github_com.spf13.pflag.NotExistError :=
   sorry -- axiomatized type
 
-noncomputable instance NotExistError_into_val_typed :
+noncomputable instance into_val_typed'NotExistError :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.NotExistError github_com.spf13.pflag.NotExistError.underlying :=
   sorry -- axiomatized type
 
@@ -233,11 +233,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance ValueRequiredError_typed_pointsto :
+noncomputable instance typed_pointsto'ValueRequiredError :
     TypedPointsto (GF := GF) github_com.spf13.pflag.ValueRequiredError :=
   sorry -- axiomatized type
 
-noncomputable instance ValueRequiredError_into_val_typed :
+noncomputable instance into_val_typed'ValueRequiredError :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.ValueRequiredError github_com.spf13.pflag.ValueRequiredError.underlying :=
   sorry -- axiomatized type
 
@@ -252,11 +252,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance InvalidValueError_typed_pointsto :
+noncomputable instance typed_pointsto'InvalidValueError :
     TypedPointsto (GF := GF) github_com.spf13.pflag.InvalidValueError :=
   sorry -- axiomatized type
 
-noncomputable instance InvalidValueError_into_val_typed :
+noncomputable instance into_val_typed'InvalidValueError :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.InvalidValueError github_com.spf13.pflag.InvalidValueError.underlying :=
   sorry -- axiomatized type
 
@@ -271,11 +271,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance InvalidSyntaxError_typed_pointsto :
+noncomputable instance typed_pointsto'InvalidSyntaxError :
     TypedPointsto (GF := GF) github_com.spf13.pflag.InvalidSyntaxError :=
   sorry -- axiomatized type
 
-noncomputable instance InvalidSyntaxError_into_val_typed :
+noncomputable instance into_val_typed'InvalidSyntaxError :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.InvalidSyntaxError github_com.spf13.pflag.InvalidSyntaxError.underlying :=
   sorry -- axiomatized type
 
@@ -290,11 +290,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance ErrorHandling_typed_pointsto :
+noncomputable instance typed_pointsto'ErrorHandling :
     TypedPointsto (GF := GF) github_com.spf13.pflag.ErrorHandling :=
   sorry -- axiomatized type
 
-noncomputable instance ErrorHandling_into_val_typed :
+noncomputable instance into_val_typed'ErrorHandling :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.ErrorHandling github_com.spf13.pflag.ErrorHandling.underlying :=
   sorry -- axiomatized type
 
@@ -309,11 +309,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance ParseErrorsAllowlist_typed_pointsto :
+noncomputable instance typed_pointsto'ParseErrorsAllowlist :
     TypedPointsto (GF := GF) github_com.spf13.pflag.ParseErrorsAllowlist :=
   sorry -- axiomatized type
 
-noncomputable instance ParseErrorsAllowlist_into_val_typed :
+noncomputable instance into_val_typed'ParseErrorsAllowlist :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.ParseErrorsAllowlist github_com.spf13.pflag.ParseErrorsAllowlist.underlying :=
   sorry -- axiomatized type
 
@@ -328,11 +328,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance NormalizedName_typed_pointsto :
+noncomputable instance typed_pointsto'NormalizedName :
     TypedPointsto (GF := GF) github_com.spf13.pflag.NormalizedName :=
   sorry -- axiomatized type
 
-noncomputable instance NormalizedName_into_val_typed :
+noncomputable instance into_val_typed'NormalizedName :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.NormalizedName github_com.spf13.pflag.NormalizedName.underlying :=
   sorry -- axiomatized type
 
@@ -347,11 +347,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance FlagSet_typed_pointsto :
+noncomputable instance typed_pointsto'FlagSet :
     TypedPointsto (GF := GF) github_com.spf13.pflag.FlagSet :=
   sorry -- axiomatized type
 
-noncomputable instance FlagSet_into_val_typed :
+noncomputable instance into_val_typed'FlagSet :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.FlagSet github_com.spf13.pflag.FlagSet.underlying :=
   sorry -- axiomatized type
 
@@ -366,11 +366,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance Flag_typed_pointsto :
+noncomputable instance typed_pointsto'Flag :
     TypedPointsto (GF := GF) github_com.spf13.pflag.Flag :=
   sorry -- axiomatized type
 
-noncomputable instance Flag_into_val_typed :
+noncomputable instance into_val_typed'Flag :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.Flag github_com.spf13.pflag.Flag.underlying :=
   sorry -- axiomatized type
 
@@ -385,11 +385,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance Value_typed_pointsto :
+noncomputable instance typed_pointsto'Value :
     TypedPointsto (GF := GF) github_com.spf13.pflag.Value :=
   sorry -- axiomatized type
 
-noncomputable instance Value_into_val_typed :
+noncomputable instance into_val_typed'Value :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.Value github_com.spf13.pflag.Value.underlying :=
   sorry -- axiomatized type
 
@@ -404,11 +404,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance SliceValue_typed_pointsto :
+noncomputable instance typed_pointsto'SliceValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.SliceValue :=
   sorry -- axiomatized type
 
-noncomputable instance SliceValue_into_val_typed :
+noncomputable instance into_val_typed'SliceValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.SliceValue github_com.spf13.pflag.SliceValue.underlying :=
   sorry -- axiomatized type
 
@@ -423,11 +423,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance parseFunc_typed_pointsto :
+noncomputable instance typed_pointsto'parseFunc :
     TypedPointsto (GF := GF) github_com.spf13.pflag.parseFunc :=
   sorry -- axiomatized type
 
-noncomputable instance parseFunc_into_val_typed :
+noncomputable instance into_val_typed'parseFunc :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.parseFunc github_com.spf13.pflag.parseFunc.underlying :=
   sorry -- axiomatized type
 
@@ -442,11 +442,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance float32Value_typed_pointsto :
+noncomputable instance typed_pointsto'float32Value :
     TypedPointsto (GF := GF) github_com.spf13.pflag.float32Value :=
   sorry -- axiomatized type
 
-noncomputable instance float32Value_into_val_typed :
+noncomputable instance into_val_typed'float32Value :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.float32Value github_com.spf13.pflag.float32Value.underlying :=
   sorry -- axiomatized type
 
@@ -461,11 +461,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance float32SliceValue_typed_pointsto :
+noncomputable instance typed_pointsto'float32SliceValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.float32SliceValue :=
   sorry -- axiomatized type
 
-noncomputable instance float32SliceValue_into_val_typed :
+noncomputable instance into_val_typed'float32SliceValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.float32SliceValue github_com.spf13.pflag.float32SliceValue.underlying :=
   sorry -- axiomatized type
 
@@ -480,11 +480,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance float64Value_typed_pointsto :
+noncomputable instance typed_pointsto'float64Value :
     TypedPointsto (GF := GF) github_com.spf13.pflag.float64Value :=
   sorry -- axiomatized type
 
-noncomputable instance float64Value_into_val_typed :
+noncomputable instance into_val_typed'float64Value :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.float64Value github_com.spf13.pflag.float64Value.underlying :=
   sorry -- axiomatized type
 
@@ -499,11 +499,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance float64SliceValue_typed_pointsto :
+noncomputable instance typed_pointsto'float64SliceValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.float64SliceValue :=
   sorry -- axiomatized type
 
-noncomputable instance float64SliceValue_into_val_typed :
+noncomputable instance into_val_typed'float64SliceValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.float64SliceValue github_com.spf13.pflag.float64SliceValue.underlying :=
   sorry -- axiomatized type
 
@@ -518,11 +518,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance funcValue_typed_pointsto :
+noncomputable instance typed_pointsto'funcValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.funcValue :=
   sorry -- axiomatized type
 
-noncomputable instance funcValue_into_val_typed :
+noncomputable instance into_val_typed'funcValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.funcValue github_com.spf13.pflag.funcValue.underlying :=
   sorry -- axiomatized type
 
@@ -537,11 +537,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance flagValueWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'flagValueWrapper :
     TypedPointsto (GF := GF) github_com.spf13.pflag.flagValueWrapper :=
   sorry -- axiomatized type
 
-noncomputable instance flagValueWrapper_into_val_typed :
+noncomputable instance into_val_typed'flagValueWrapper :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.flagValueWrapper github_com.spf13.pflag.flagValueWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -556,11 +556,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance goBoolFlag_typed_pointsto :
+noncomputable instance typed_pointsto'goBoolFlag :
     TypedPointsto (GF := GF) github_com.spf13.pflag.goBoolFlag :=
   sorry -- axiomatized type
 
-noncomputable instance goBoolFlag_into_val_typed :
+noncomputable instance into_val_typed'goBoolFlag :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.goBoolFlag github_com.spf13.pflag.goBoolFlag.underlying :=
   sorry -- axiomatized type
 
@@ -575,11 +575,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance intValue_typed_pointsto :
+noncomputable instance typed_pointsto'intValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.intValue :=
   sorry -- axiomatized type
 
-noncomputable instance intValue_into_val_typed :
+noncomputable instance into_val_typed'intValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.intValue github_com.spf13.pflag.intValue.underlying :=
   sorry -- axiomatized type
 
@@ -594,11 +594,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance int16Value_typed_pointsto :
+noncomputable instance typed_pointsto'int16Value :
     TypedPointsto (GF := GF) github_com.spf13.pflag.int16Value :=
   sorry -- axiomatized type
 
-noncomputable instance int16Value_into_val_typed :
+noncomputable instance into_val_typed'int16Value :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.int16Value github_com.spf13.pflag.int16Value.underlying :=
   sorry -- axiomatized type
 
@@ -613,11 +613,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance int32Value_typed_pointsto :
+noncomputable instance typed_pointsto'int32Value :
     TypedPointsto (GF := GF) github_com.spf13.pflag.int32Value :=
   sorry -- axiomatized type
 
-noncomputable instance int32Value_into_val_typed :
+noncomputable instance into_val_typed'int32Value :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.int32Value github_com.spf13.pflag.int32Value.underlying :=
   sorry -- axiomatized type
 
@@ -632,11 +632,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance int32SliceValue_typed_pointsto :
+noncomputable instance typed_pointsto'int32SliceValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.int32SliceValue :=
   sorry -- axiomatized type
 
-noncomputable instance int32SliceValue_into_val_typed :
+noncomputable instance into_val_typed'int32SliceValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.int32SliceValue github_com.spf13.pflag.int32SliceValue.underlying :=
   sorry -- axiomatized type
 
@@ -651,11 +651,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance int64Value_typed_pointsto :
+noncomputable instance typed_pointsto'int64Value :
     TypedPointsto (GF := GF) github_com.spf13.pflag.int64Value :=
   sorry -- axiomatized type
 
-noncomputable instance int64Value_into_val_typed :
+noncomputable instance into_val_typed'int64Value :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.int64Value github_com.spf13.pflag.int64Value.underlying :=
   sorry -- axiomatized type
 
@@ -670,11 +670,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance int64SliceValue_typed_pointsto :
+noncomputable instance typed_pointsto'int64SliceValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.int64SliceValue :=
   sorry -- axiomatized type
 
-noncomputable instance int64SliceValue_into_val_typed :
+noncomputable instance into_val_typed'int64SliceValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.int64SliceValue github_com.spf13.pflag.int64SliceValue.underlying :=
   sorry -- axiomatized type
 
@@ -689,11 +689,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance int8Value_typed_pointsto :
+noncomputable instance typed_pointsto'int8Value :
     TypedPointsto (GF := GF) github_com.spf13.pflag.int8Value :=
   sorry -- axiomatized type
 
-noncomputable instance int8Value_into_val_typed :
+noncomputable instance into_val_typed'int8Value :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.int8Value github_com.spf13.pflag.int8Value.underlying :=
   sorry -- axiomatized type
 
@@ -708,11 +708,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance intSliceValue_typed_pointsto :
+noncomputable instance typed_pointsto'intSliceValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.intSliceValue :=
   sorry -- axiomatized type
 
-noncomputable instance intSliceValue_into_val_typed :
+noncomputable instance into_val_typed'intSliceValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.intSliceValue github_com.spf13.pflag.intSliceValue.underlying :=
   sorry -- axiomatized type
 
@@ -727,11 +727,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance ipValue_typed_pointsto :
+noncomputable instance typed_pointsto'ipValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.ipValue :=
   sorry -- axiomatized type
 
-noncomputable instance ipValue_into_val_typed :
+noncomputable instance into_val_typed'ipValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.ipValue github_com.spf13.pflag.ipValue.underlying :=
   sorry -- axiomatized type
 
@@ -746,11 +746,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance ipSliceValue_typed_pointsto :
+noncomputable instance typed_pointsto'ipSliceValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.ipSliceValue :=
   sorry -- axiomatized type
 
-noncomputable instance ipSliceValue_into_val_typed :
+noncomputable instance into_val_typed'ipSliceValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.ipSliceValue github_com.spf13.pflag.ipSliceValue.underlying :=
   sorry -- axiomatized type
 
@@ -765,11 +765,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance ipMaskValue_typed_pointsto :
+noncomputable instance typed_pointsto'ipMaskValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.ipMaskValue :=
   sorry -- axiomatized type
 
-noncomputable instance ipMaskValue_into_val_typed :
+noncomputable instance into_val_typed'ipMaskValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.ipMaskValue github_com.spf13.pflag.ipMaskValue.underlying :=
   sorry -- axiomatized type
 
@@ -784,11 +784,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance ipNetValue_typed_pointsto :
+noncomputable instance typed_pointsto'ipNetValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.ipNetValue :=
   sorry -- axiomatized type
 
-noncomputable instance ipNetValue_into_val_typed :
+noncomputable instance into_val_typed'ipNetValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.ipNetValue github_com.spf13.pflag.ipNetValue.underlying :=
   sorry -- axiomatized type
 
@@ -803,11 +803,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance ipNetSliceValue_typed_pointsto :
+noncomputable instance typed_pointsto'ipNetSliceValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.ipNetSliceValue :=
   sorry -- axiomatized type
 
-noncomputable instance ipNetSliceValue_into_val_typed :
+noncomputable instance into_val_typed'ipNetSliceValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.ipNetSliceValue github_com.spf13.pflag.ipNetSliceValue.underlying :=
   sorry -- axiomatized type
 
@@ -822,11 +822,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance stringValue_typed_pointsto :
+noncomputable instance typed_pointsto'stringValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.stringValue :=
   sorry -- axiomatized type
 
-noncomputable instance stringValue_into_val_typed :
+noncomputable instance into_val_typed'stringValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.stringValue github_com.spf13.pflag.stringValue.underlying :=
   sorry -- axiomatized type
 
@@ -841,11 +841,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance stringArrayValue_typed_pointsto :
+noncomputable instance typed_pointsto'stringArrayValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.stringArrayValue :=
   sorry -- axiomatized type
 
-noncomputable instance stringArrayValue_into_val_typed :
+noncomputable instance into_val_typed'stringArrayValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.stringArrayValue github_com.spf13.pflag.stringArrayValue.underlying :=
   sorry -- axiomatized type
 
@@ -860,11 +860,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance stringSliceValue_typed_pointsto :
+noncomputable instance typed_pointsto'stringSliceValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.stringSliceValue :=
   sorry -- axiomatized type
 
-noncomputable instance stringSliceValue_into_val_typed :
+noncomputable instance into_val_typed'stringSliceValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.stringSliceValue github_com.spf13.pflag.stringSliceValue.underlying :=
   sorry -- axiomatized type
 
@@ -879,11 +879,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance stringToIntValue_typed_pointsto :
+noncomputable instance typed_pointsto'stringToIntValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.stringToIntValue :=
   sorry -- axiomatized type
 
-noncomputable instance stringToIntValue_into_val_typed :
+noncomputable instance into_val_typed'stringToIntValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.stringToIntValue github_com.spf13.pflag.stringToIntValue.underlying :=
   sorry -- axiomatized type
 
@@ -898,11 +898,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance stringToInt64Value_typed_pointsto :
+noncomputable instance typed_pointsto'stringToInt64Value :
     TypedPointsto (GF := GF) github_com.spf13.pflag.stringToInt64Value :=
   sorry -- axiomatized type
 
-noncomputable instance stringToInt64Value_into_val_typed :
+noncomputable instance into_val_typed'stringToInt64Value :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.stringToInt64Value github_com.spf13.pflag.stringToInt64Value.underlying :=
   sorry -- axiomatized type
 
@@ -917,11 +917,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance stringToStringValue_typed_pointsto :
+noncomputable instance typed_pointsto'stringToStringValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.stringToStringValue :=
   sorry -- axiomatized type
 
-noncomputable instance stringToStringValue_into_val_typed :
+noncomputable instance into_val_typed'stringToStringValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.stringToStringValue github_com.spf13.pflag.stringToStringValue.underlying :=
   sorry -- axiomatized type
 
@@ -936,11 +936,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance textValue_typed_pointsto :
+noncomputable instance typed_pointsto'textValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.textValue :=
   sorry -- axiomatized type
 
-noncomputable instance textValue_into_val_typed :
+noncomputable instance into_val_typed'textValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.textValue github_com.spf13.pflag.textValue.underlying :=
   sorry -- axiomatized type
 
@@ -955,11 +955,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance timeValue_typed_pointsto :
+noncomputable instance typed_pointsto'timeValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.timeValue :=
   sorry -- axiomatized type
 
-noncomputable instance timeValue_into_val_typed :
+noncomputable instance into_val_typed'timeValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.timeValue github_com.spf13.pflag.timeValue.underlying :=
   sorry -- axiomatized type
 
@@ -974,11 +974,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance uintValue_typed_pointsto :
+noncomputable instance typed_pointsto'uintValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.uintValue :=
   sorry -- axiomatized type
 
-noncomputable instance uintValue_into_val_typed :
+noncomputable instance into_val_typed'uintValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.uintValue github_com.spf13.pflag.uintValue.underlying :=
   sorry -- axiomatized type
 
@@ -993,11 +993,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance uint16Value_typed_pointsto :
+noncomputable instance typed_pointsto'uint16Value :
     TypedPointsto (GF := GF) github_com.spf13.pflag.uint16Value :=
   sorry -- axiomatized type
 
-noncomputable instance uint16Value_into_val_typed :
+noncomputable instance into_val_typed'uint16Value :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.uint16Value github_com.spf13.pflag.uint16Value.underlying :=
   sorry -- axiomatized type
 
@@ -1012,11 +1012,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance uint32Value_typed_pointsto :
+noncomputable instance typed_pointsto'uint32Value :
     TypedPointsto (GF := GF) github_com.spf13.pflag.uint32Value :=
   sorry -- axiomatized type
 
-noncomputable instance uint32Value_into_val_typed :
+noncomputable instance into_val_typed'uint32Value :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.uint32Value github_com.spf13.pflag.uint32Value.underlying :=
   sorry -- axiomatized type
 
@@ -1031,11 +1031,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance uint64Value_typed_pointsto :
+noncomputable instance typed_pointsto'uint64Value :
     TypedPointsto (GF := GF) github_com.spf13.pflag.uint64Value :=
   sorry -- axiomatized type
 
-noncomputable instance uint64Value_into_val_typed :
+noncomputable instance into_val_typed'uint64Value :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.uint64Value github_com.spf13.pflag.uint64Value.underlying :=
   sorry -- axiomatized type
 
@@ -1050,11 +1050,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance uint8Value_typed_pointsto :
+noncomputable instance typed_pointsto'uint8Value :
     TypedPointsto (GF := GF) github_com.spf13.pflag.uint8Value :=
   sorry -- axiomatized type
 
-noncomputable instance uint8Value_into_val_typed :
+noncomputable instance into_val_typed'uint8Value :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.uint8Value github_com.spf13.pflag.uint8Value.underlying :=
   sorry -- axiomatized type
 
@@ -1069,11 +1069,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.spf13.pflag.Assumptions]
 
-noncomputable instance uintSliceValue_typed_pointsto :
+noncomputable instance typed_pointsto'uintSliceValue :
     TypedPointsto (GF := GF) github_com.spf13.pflag.uintSliceValue :=
   sorry -- axiomatized type
 
-noncomputable instance uintSliceValue_into_val_typed :
+noncomputable instance into_val_typed'uintSliceValue :
     IntoValTypedUnderlying (GF := GF) github_com.spf13.pflag.uintSliceValue github_com.spf13.pflag.uintSliceValue.underlying :=
   sorry -- axiomatized type
 

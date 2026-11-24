@@ -290,7 +290,7 @@ theorem nodes_sort_wp (hS : sort.«Sort».spec (GF := GF) (hG := hG))
     (X : WX) (bl n : Loc) (cs : List Loc) (s : GoSlice) (hkids : ∀ c ∈ cs, sortKid X bl n c)
     (hF : liveFresh X) (hlen : cs.length ≤ 2 ^ 62) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ s ↦* cs ∗ sortQ (GF := GF) X n }}
-      (App (Val (@! _root_.Perennial.sort.«Sort»))
+      (App (Val (@! _root_.Perennial.sort.Sort''))
         (Val #(GoInterface.ok (interface.mk nodes.ty #s))))
     {{ RET #(); ∃ l, s ↦* l ∗ sortQ X n ∗ ⌜cs.Perm l⌝ }} := by
   iintro %Φ ⟨#Hpkg, Hs, HQ⟩ HΦ

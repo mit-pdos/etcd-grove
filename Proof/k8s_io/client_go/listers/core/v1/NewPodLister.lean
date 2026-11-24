@@ -42,7 +42,7 @@ theorem NewPodLister.wp_proof (wp_Resource : corev1.Resource.spec (GF := GF) (hG
   (try wp_auto)
   wp_apply wp_alloc as %l Hl
   (try wp_auto)
-  ihave Hacc := (podLister.podLister_access_load_ResourceIndexer l _ (DFrac.own 1)).access_strict $$ Hl
+  ihave Hacc := (podLister.access_load'podLister'ResourceIndexer l _ (DFrac.own 1)).access_strict $$ Hl
   icases Hacc with ⟨Hf, -⟩
   iapply HΦ
   iexact Hf

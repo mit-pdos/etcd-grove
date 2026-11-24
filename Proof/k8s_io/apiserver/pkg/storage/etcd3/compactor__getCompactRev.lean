@@ -65,7 +65,7 @@ private theorem client_Get_nil [go_etcd_io.etcd.client.v3.Assumptions]
   iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hctx, #Hce, #Hau⟩ HΦ
   ihave #Hnil := optsAt_nil (GF := GF)
   ihave #Hopts' := optsAt_res slice.nil [] iprop(True) $$ Hnil
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Get.method_unfold]
   wp_pures
   wp_auto
   wp_apply (wp_Get api γ dup ci cd key slice.nil [] iprop(True) Q) $$ []

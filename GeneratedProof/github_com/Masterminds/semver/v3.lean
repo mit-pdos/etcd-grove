@@ -29,7 +29,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.Masterminds.semver.v3.Assumptions]
 
-noncomputable instance Constraints_typed_pointsto :
+noncomputable instance typed_pointsto'Constraints :
     TypedPointsto (GF := GF) github_com.Masterminds.semver.v3.Constraints where
   typedPointstoDef l v dq := iprop(
     "constraints" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"constraints" l) v.constraints' dq ∗
@@ -40,11 +40,11 @@ noncomputable instance Constraints_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Constraints_into_val_typed :
+noncomputable instance into_val_typed'Constraints :
     IntoValTypedUnderlying (GF := GF) github_com.Masterminds.semver.v3.Constraints github_com.Masterminds.semver.v3.Constraints.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Constraints_access_load_constraints (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (dq : DFrac) :
+noncomputable instance access_load'Constraints'constraints (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"constraints" l) v.constraints' dq)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"constraints" l) v.constraints' dq)
@@ -52,7 +52,7 @@ noncomputable instance Constraints_access_load_constraints (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance Constraints_access_store_constraints (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (y : GoSlice) :
+noncomputable instance access_store'Constraints'constraints (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"constraints" l) v.constraints' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"constraints" l) y (DFrac.own 1))
@@ -60,7 +60,7 @@ noncomputable instance Constraints_access_store_constraints (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance Constraints_access_load_containsPre (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (dq : DFrac) :
+noncomputable instance access_load'Constraints'containsPre (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"containsPre" l) v.containsPre' dq)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"containsPre" l) v.containsPre' dq)
@@ -68,7 +68,7 @@ noncomputable instance Constraints_access_load_containsPre (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance Constraints_access_store_containsPre (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (y : GoSlice) :
+noncomputable instance access_store'Constraints'containsPre (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"containsPre" l) v.containsPre' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"containsPre" l) y (DFrac.own 1))
@@ -76,7 +76,7 @@ noncomputable instance Constraints_access_store_containsPre (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance Constraints_access_load_IncludePrerelease (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (dq : DFrac) :
+noncomputable instance access_load'Constraints'IncludePrerelease (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"IncludePrerelease" l) v.IncludePrerelease' dq)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"IncludePrerelease" l) v.IncludePrerelease' dq)
@@ -84,7 +84,7 @@ noncomputable instance Constraints_access_load_IncludePrerelease (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Constraints_access_store_IncludePrerelease (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (y : Bool) :
+noncomputable instance access_store'Constraints'IncludePrerelease (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"IncludePrerelease" l) v.IncludePrerelease' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"IncludePrerelease" l) y (DFrac.own 1))
@@ -103,7 +103,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.Masterminds.semver.v3.Assumptions]
 
-noncomputable instance constraint_typed_pointsto :
+noncomputable instance typed_pointsto'constraint :
     TypedPointsto (GF := GF) github_com.Masterminds.semver.v3.constraint where
   typedPointstoDef l v dq := iprop(
     "con" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"con" l) v.con' dq ∗
@@ -117,11 +117,11 @@ noncomputable instance constraint_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance constraint_into_val_typed :
+noncomputable instance into_val_typed'constraint :
     IntoValTypedUnderlying (GF := GF) github_com.Masterminds.semver.v3.constraint github_com.Masterminds.semver.v3.constraint.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance constraint_access_load_con (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
+noncomputable instance access_load'constraint'con (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"con" l) v.con' dq)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"con" l) v.con' dq)
@@ -129,7 +129,7 @@ noncomputable instance constraint_access_load_con (l : Loc) (v : github_com.Mast
  by
   solve_pointsto_access_struct
 
-noncomputable instance constraint_access_store_con (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : Loc) :
+noncomputable instance access_store'constraint'con (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"con" l) v.con' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"con" l) y (DFrac.own 1))
@@ -137,7 +137,7 @@ noncomputable instance constraint_access_store_con (l : Loc) (v : github_com.Mas
  by
   solve_pointsto_access_struct
 
-noncomputable instance constraint_access_load_orig (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
+noncomputable instance access_load'constraint'orig (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"orig" l) v.orig' dq)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"orig" l) v.orig' dq)
@@ -145,7 +145,7 @@ noncomputable instance constraint_access_load_orig (l : Loc) (v : github_com.Mas
  by
   solve_pointsto_access_struct
 
-noncomputable instance constraint_access_store_orig (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : GoString) :
+noncomputable instance access_store'constraint'orig (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"orig" l) v.orig' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"orig" l) y (DFrac.own 1))
@@ -153,7 +153,7 @@ noncomputable instance constraint_access_store_orig (l : Loc) (v : github_com.Ma
  by
   solve_pointsto_access_struct
 
-noncomputable instance constraint_access_load_origfunc (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
+noncomputable instance access_load'constraint'origfunc (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"origfunc" l) v.origfunc' dq)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"origfunc" l) v.origfunc' dq)
@@ -161,7 +161,7 @@ noncomputable instance constraint_access_load_origfunc (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance constraint_access_store_origfunc (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : GoString) :
+noncomputable instance access_store'constraint'origfunc (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"origfunc" l) v.origfunc' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"origfunc" l) y (DFrac.own 1))
@@ -169,7 +169,7 @@ noncomputable instance constraint_access_store_origfunc (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance constraint_access_load_minorDirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
+noncomputable instance access_load'constraint'minorDirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"minorDirty" l) v.minorDirty' dq)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"minorDirty" l) v.minorDirty' dq)
@@ -177,7 +177,7 @@ noncomputable instance constraint_access_load_minorDirty (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance constraint_access_store_minorDirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : Bool) :
+noncomputable instance access_store'constraint'minorDirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"minorDirty" l) v.minorDirty' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"minorDirty" l) y (DFrac.own 1))
@@ -185,7 +185,7 @@ noncomputable instance constraint_access_store_minorDirty (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance constraint_access_load_dirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
+noncomputable instance access_load'constraint'dirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"dirty" l) v.dirty' dq)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"dirty" l) v.dirty' dq)
@@ -193,7 +193,7 @@ noncomputable instance constraint_access_load_dirty (l : Loc) (v : github_com.Ma
  by
   solve_pointsto_access_struct
 
-noncomputable instance constraint_access_store_dirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : Bool) :
+noncomputable instance access_store'constraint'dirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"dirty" l) v.dirty' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"dirty" l) y (DFrac.own 1))
@@ -201,7 +201,7 @@ noncomputable instance constraint_access_store_dirty (l : Loc) (v : github_com.M
  by
   solve_pointsto_access_struct
 
-noncomputable instance constraint_access_load_patchDirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
+noncomputable instance access_load'constraint'patchDirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"patchDirty" l) v.patchDirty' dq)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"patchDirty" l) v.patchDirty' dq)
@@ -209,7 +209,7 @@ noncomputable instance constraint_access_load_patchDirty (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance constraint_access_store_patchDirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : Bool) :
+noncomputable instance access_store'constraint'patchDirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"patchDirty" l) v.patchDirty' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"patchDirty" l) y (DFrac.own 1))
@@ -228,7 +228,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.Masterminds.semver.v3.Assumptions]
 
-noncomputable instance Version_typed_pointsto :
+noncomputable instance typed_pointsto'Version :
     TypedPointsto (GF := GF) github_com.Masterminds.semver.v3.Version where
   typedPointstoDef l v dq := iprop(
     "major" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"major" l) v.major' dq ∗
@@ -242,11 +242,11 @@ noncomputable instance Version_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Version_into_val_typed :
+noncomputable instance into_val_typed'Version :
     IntoValTypedUnderlying (GF := GF) github_com.Masterminds.semver.v3.Version github_com.Masterminds.semver.v3.Version.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Version_access_load_major (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
+noncomputable instance access_load'Version'major (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"major" l) v.major' dq)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"major" l) v.major' dq)
@@ -254,7 +254,7 @@ noncomputable instance Version_access_load_major (l : Loc) (v : github_com.Maste
  by
   solve_pointsto_access_struct
 
-noncomputable instance Version_access_store_major (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : w64) :
+noncomputable instance access_store'Version'major (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"major" l) v.major' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"major" l) y (DFrac.own 1))
@@ -262,7 +262,7 @@ noncomputable instance Version_access_store_major (l : Loc) (v : github_com.Mast
  by
   solve_pointsto_access_struct
 
-noncomputable instance Version_access_load_minor (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
+noncomputable instance access_load'Version'minor (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"minor" l) v.minor' dq)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"minor" l) v.minor' dq)
@@ -270,7 +270,7 @@ noncomputable instance Version_access_load_minor (l : Loc) (v : github_com.Maste
  by
   solve_pointsto_access_struct
 
-noncomputable instance Version_access_store_minor (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : w64) :
+noncomputable instance access_store'Version'minor (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"minor" l) v.minor' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"minor" l) y (DFrac.own 1))
@@ -278,7 +278,7 @@ noncomputable instance Version_access_store_minor (l : Loc) (v : github_com.Mast
  by
   solve_pointsto_access_struct
 
-noncomputable instance Version_access_load_patch (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
+noncomputable instance access_load'Version'patch (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"patch" l) v.patch' dq)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"patch" l) v.patch' dq)
@@ -286,7 +286,7 @@ noncomputable instance Version_access_load_patch (l : Loc) (v : github_com.Maste
  by
   solve_pointsto_access_struct
 
-noncomputable instance Version_access_store_patch (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : w64) :
+noncomputable instance access_store'Version'patch (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"patch" l) v.patch' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"patch" l) y (DFrac.own 1))
@@ -294,7 +294,7 @@ noncomputable instance Version_access_store_patch (l : Loc) (v : github_com.Mast
  by
   solve_pointsto_access_struct
 
-noncomputable instance Version_access_load_pre (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
+noncomputable instance access_load'Version'pre (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"pre" l) v.pre' dq)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"pre" l) v.pre' dq)
@@ -302,7 +302,7 @@ noncomputable instance Version_access_load_pre (l : Loc) (v : github_com.Masterm
  by
   solve_pointsto_access_struct
 
-noncomputable instance Version_access_store_pre (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : GoString) :
+noncomputable instance access_store'Version'pre (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"pre" l) v.pre' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"pre" l) y (DFrac.own 1))
@@ -310,7 +310,7 @@ noncomputable instance Version_access_store_pre (l : Loc) (v : github_com.Master
  by
   solve_pointsto_access_struct
 
-noncomputable instance Version_access_load_metadata (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
+noncomputable instance access_load'Version'metadata (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"metadata" l) v.metadata' dq)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"metadata" l) v.metadata' dq)
@@ -318,7 +318,7 @@ noncomputable instance Version_access_load_metadata (l : Loc) (v : github_com.Ma
  by
   solve_pointsto_access_struct
 
-noncomputable instance Version_access_store_metadata (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : GoString) :
+noncomputable instance access_store'Version'metadata (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"metadata" l) v.metadata' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"metadata" l) y (DFrac.own 1))
@@ -326,7 +326,7 @@ noncomputable instance Version_access_store_metadata (l : Loc) (v : github_com.M
  by
   solve_pointsto_access_struct
 
-noncomputable instance Version_access_load_original (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
+noncomputable instance access_load'Version'original (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"original" l) v.original' dq)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"original" l) v.original' dq)
@@ -334,7 +334,7 @@ noncomputable instance Version_access_load_original (l : Loc) (v : github_com.Ma
  by
   solve_pointsto_access_struct
 
-noncomputable instance Version_access_store_original (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : GoString) :
+noncomputable instance access_store'Version'original (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"original" l) v.original' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"original" l) y (DFrac.own 1))

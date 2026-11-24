@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.node.v1alpha1.Assumptions]
 
-noncomputable instance RuntimeClassExpansion_typed_pointsto :
+noncomputable instance typed_pointsto'RuntimeClassExpansion :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.node.v1alpha1.RuntimeClassExpansion :=
   sorry -- axiomatized type
 
-noncomputable instance RuntimeClassExpansion_into_val_typed :
+noncomputable instance into_val_typed'RuntimeClassExpansion :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.node.v1alpha1.RuntimeClassExpansion k8s_io.client_go.kubernetes.typed.node.v1alpha1.RuntimeClassExpansion.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.node.v1alpha1.Assumptions]
 
-noncomputable instance NodeV1alpha1Interface_typed_pointsto :
+noncomputable instance typed_pointsto'NodeV1alpha1Interface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.node.v1alpha1.NodeV1alpha1Interface :=
   sorry -- axiomatized type
 
-noncomputable instance NodeV1alpha1Interface_into_val_typed :
+noncomputable instance into_val_typed'NodeV1alpha1Interface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.node.v1alpha1.NodeV1alpha1Interface k8s_io.client_go.kubernetes.typed.node.v1alpha1.NodeV1alpha1Interface.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.node.v1alpha1.Assumptions]
 
-noncomputable instance NodeV1alpha1Client_typed_pointsto :
+noncomputable instance typed_pointsto'NodeV1alpha1Client :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.node.v1alpha1.NodeV1alpha1Client :=
   sorry -- axiomatized type
 
-noncomputable instance NodeV1alpha1Client_into_val_typed :
+noncomputable instance into_val_typed'NodeV1alpha1Client :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.node.v1alpha1.NodeV1alpha1Client k8s_io.client_go.kubernetes.typed.node.v1alpha1.NodeV1alpha1Client.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.node.v1alpha1.Assumptions]
 
-noncomputable instance RuntimeClassesGetter_typed_pointsto :
+noncomputable instance typed_pointsto'RuntimeClassesGetter :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.node.v1alpha1.RuntimeClassesGetter :=
   sorry -- axiomatized type
 
-noncomputable instance RuntimeClassesGetter_into_val_typed :
+noncomputable instance into_val_typed'RuntimeClassesGetter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.node.v1alpha1.RuntimeClassesGetter k8s_io.client_go.kubernetes.typed.node.v1alpha1.RuntimeClassesGetter.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.node.v1alpha1.Assumptions]
 
-noncomputable instance RuntimeClassInterface_typed_pointsto :
+noncomputable instance typed_pointsto'RuntimeClassInterface :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.node.v1alpha1.RuntimeClassInterface :=
   sorry -- axiomatized type
 
-noncomputable instance RuntimeClassInterface_into_val_typed :
+noncomputable instance into_val_typed'RuntimeClassInterface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.node.v1alpha1.RuntimeClassInterface k8s_io.client_go.kubernetes.typed.node.v1alpha1.RuntimeClassInterface.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.kubernetes.typed.node.v1alpha1.Assumptions]
 
-noncomputable instance runtimeClasses_typed_pointsto :
+noncomputable instance typed_pointsto'runtimeClasses :
     TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.node.v1alpha1.runtimeClasses :=
   sorry -- axiomatized type
 
-noncomputable instance runtimeClasses_into_val_typed :
+noncomputable instance into_val_typed'runtimeClasses :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.node.v1alpha1.runtimeClasses k8s_io.client_go.kubernetes.typed.node.v1alpha1.runtimeClasses.underlying :=
   sorry -- axiomatized type
 

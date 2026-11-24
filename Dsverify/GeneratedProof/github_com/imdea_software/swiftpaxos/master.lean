@@ -34,7 +34,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.imdea_software.swiftpaxos.master.Assumptions]
 
-noncomputable instance Master_typed_pointsto :
+noncomputable instance typed_pointsto'Master :
     TypedPointsto (GF := GF) github_com.imdea_software.swiftpaxos.master.Master where
   typedPointstoDef l v dq := iprop(
     "Logger" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"Logger" l) v.Logger' dq ∗
@@ -57,11 +57,11 @@ noncomputable instance Master_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Master_into_val_typed :
+noncomputable instance into_val_typed'Master :
     IntoValTypedUnderlying (GF := GF) github_com.imdea_software.swiftpaxos.master.Master github_com.imdea_software.swiftpaxos.master.Master.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Master_access_load_Logger (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
+noncomputable instance access_load'Master'Logger (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"Logger" l) v.Logger' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"Logger" l) v.Logger' dq)
@@ -69,7 +69,7 @@ noncomputable instance Master_access_load_Logger (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_store_Logger (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : Loc) :
+noncomputable instance access_store'Master'Logger (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"Logger" l) v.Logger' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"Logger" l) y (DFrac.own 1))
@@ -77,7 +77,7 @@ noncomputable instance Master_access_store_Logger (l : Loc) (v : github_com.imde
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_load_N (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
+noncomputable instance access_load'Master'N (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"N" l) v.N' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"N" l) v.N' dq)
@@ -85,7 +85,7 @@ noncomputable instance Master_access_load_N (l : Loc) (v : github_com.imdea_soft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_store_N (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : w64) :
+noncomputable instance access_store'Master'N (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"N" l) v.N' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"N" l) y (DFrac.own 1))
@@ -93,7 +93,7 @@ noncomputable instance Master_access_store_N (l : Loc) (v : github_com.imdea_sof
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_load_port (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
+noncomputable instance access_load'Master'port (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"port" l) v.port' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"port" l) v.port' dq)
@@ -101,7 +101,7 @@ noncomputable instance Master_access_load_port (l : Loc) (v : github_com.imdea_s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_store_port (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : w64) :
+noncomputable instance access_store'Master'port (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"port" l) v.port' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"port" l) y (DFrac.own 1))
@@ -109,7 +109,7 @@ noncomputable instance Master_access_store_port (l : Loc) (v : github_com.imdea_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_load_nodeList (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
+noncomputable instance access_load'Master'nodeList (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"nodeList" l) v.nodeList' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"nodeList" l) v.nodeList' dq)
@@ -117,7 +117,7 @@ noncomputable instance Master_access_load_nodeList (l : Loc) (v : github_com.imd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_store_nodeList (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : GoSlice) :
+noncomputable instance access_store'Master'nodeList (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"nodeList" l) v.nodeList' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"nodeList" l) y (DFrac.own 1))
@@ -125,7 +125,7 @@ noncomputable instance Master_access_store_nodeList (l : Loc) (v : github_com.im
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_load_addrList (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
+noncomputable instance access_load'Master'addrList (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"addrList" l) v.addrList' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"addrList" l) v.addrList' dq)
@@ -133,7 +133,7 @@ noncomputable instance Master_access_load_addrList (l : Loc) (v : github_com.imd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_store_addrList (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : GoSlice) :
+noncomputable instance access_store'Master'addrList (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"addrList" l) v.addrList' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"addrList" l) y (DFrac.own 1))
@@ -141,7 +141,7 @@ noncomputable instance Master_access_store_addrList (l : Loc) (v : github_com.im
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_load_portList (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
+noncomputable instance access_load'Master'portList (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"portList" l) v.portList' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"portList" l) v.portList' dq)
@@ -149,7 +149,7 @@ noncomputable instance Master_access_load_portList (l : Loc) (v : github_com.imd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_store_portList (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : GoSlice) :
+noncomputable instance access_store'Master'portList (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"portList" l) v.portList' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"portList" l) y (DFrac.own 1))
@@ -157,7 +157,7 @@ noncomputable instance Master_access_store_portList (l : Loc) (v : github_com.im
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_load_lock (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
+noncomputable instance access_load'Master'lock (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"lock" l) v.lock' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"lock" l) v.lock' dq)
@@ -165,7 +165,7 @@ noncomputable instance Master_access_load_lock (l : Loc) (v : github_com.imdea_s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_store_lock (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : Loc) :
+noncomputable instance access_store'Master'lock (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"lock" l) v.lock' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"lock" l) y (DFrac.own 1))
@@ -173,7 +173,7 @@ noncomputable instance Master_access_store_lock (l : Loc) (v : github_com.imdea_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_load_nodes (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
+noncomputable instance access_load'Master'nodes (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"nodes" l) v.nodes' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"nodes" l) v.nodes' dq)
@@ -181,7 +181,7 @@ noncomputable instance Master_access_load_nodes (l : Loc) (v : github_com.imdea_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_store_nodes (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : GoSlice) :
+noncomputable instance access_store'Master'nodes (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"nodes" l) v.nodes' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"nodes" l) y (DFrac.own 1))
@@ -189,7 +189,7 @@ noncomputable instance Master_access_store_nodes (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_load_leader (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
+noncomputable instance access_load'Master'leader (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"leader" l) v.leader' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"leader" l) v.leader' dq)
@@ -197,7 +197,7 @@ noncomputable instance Master_access_load_leader (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_store_leader (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : GoSlice) :
+noncomputable instance access_store'Master'leader (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"leader" l) v.leader' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"leader" l) y (DFrac.own 1))
@@ -205,7 +205,7 @@ noncomputable instance Master_access_store_leader (l : Loc) (v : github_com.imde
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_load_alive (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
+noncomputable instance access_load'Master'alive (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"alive" l) v.alive' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"alive" l) v.alive' dq)
@@ -213,7 +213,7 @@ noncomputable instance Master_access_load_alive (l : Loc) (v : github_com.imdea_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_store_alive (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : GoSlice) :
+noncomputable instance access_store'Master'alive (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"alive" l) v.alive' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"alive" l) y (DFrac.own 1))
@@ -221,7 +221,7 @@ noncomputable instance Master_access_store_alive (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_load_latencies (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
+noncomputable instance access_load'Master'latencies (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"latencies" l) v.latencies' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"latencies" l) v.latencies' dq)
@@ -229,7 +229,7 @@ noncomputable instance Master_access_load_latencies (l : Loc) (v : github_com.im
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_store_latencies (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : GoSlice) :
+noncomputable instance access_store'Master'latencies (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"latencies" l) v.latencies' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"latencies" l) y (DFrac.own 1))
@@ -237,7 +237,7 @@ noncomputable instance Master_access_store_latencies (l : Loc) (v : github_com.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_load_finishInit (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
+noncomputable instance access_load'Master'finishInit (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"finishInit" l) v.finishInit' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"finishInit" l) v.finishInit' dq)
@@ -245,7 +245,7 @@ noncomputable instance Master_access_load_finishInit (l : Loc) (v : github_com.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_store_finishInit (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : Bool) :
+noncomputable instance access_store'Master'finishInit (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"finishInit" l) v.finishInit' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"finishInit" l) y (DFrac.own 1))
@@ -253,7 +253,7 @@ noncomputable instance Master_access_store_finishInit (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_load_initCond (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
+noncomputable instance access_load'Master'initCond (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"initCond" l) v.initCond' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"initCond" l) v.initCond' dq)
@@ -261,7 +261,7 @@ noncomputable instance Master_access_load_initCond (l : Loc) (v : github_com.imd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_store_initCond (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : Loc) :
+noncomputable instance access_store'Master'initCond (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"initCond" l) v.initCond' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"initCond" l) y (DFrac.own 1))
@@ -269,7 +269,7 @@ noncomputable instance Master_access_store_initCond (l : Loc) (v : github_com.im
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_load_nextLeader (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
+noncomputable instance access_load'Master'nextLeader (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"nextLeader" l) v.nextLeader' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"nextLeader" l) v.nextLeader' dq)
@@ -277,7 +277,7 @@ noncomputable instance Master_access_load_nextLeader (l : Loc) (v : github_com.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_store_nextLeader (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : w64) :
+noncomputable instance access_store'Master'nextLeader (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"nextLeader" l) v.nextLeader' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"nextLeader" l) y (DFrac.own 1))
@@ -285,7 +285,7 @@ noncomputable instance Master_access_store_nextLeader (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_load_config (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
+noncomputable instance access_load'Master'config (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"config" l) v.config' dq)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"config" l) v.config' dq)
@@ -293,7 +293,7 @@ noncomputable instance Master_access_load_config (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_store_config (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : Loc) :
+noncomputable instance access_store'Master'config (l : Loc) (v : github_com.imdea_software.swiftpaxos.master.Master) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"config" l) v.config' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.master.Master go!"config" l) y (DFrac.own 1))

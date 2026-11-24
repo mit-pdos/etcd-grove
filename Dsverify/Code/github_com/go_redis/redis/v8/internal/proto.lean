@@ -180,7 +180,7 @@ noncomputable instance Writer.zero_val [GooseExts] : ZeroVal Writer :=
 @[irreducible] noncomputable def Writer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Writer.fieldsUnsealed
 
-noncomputable instance equals_unfold_Writer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Writer [GooseExts] [GoGlobalContext] :
     EqualsUnfold Writer.fields Writer.fieldsUnsealed :=
   ⟨by unfold Writer.fields; rfl⟩
 
@@ -190,38 +190,38 @@ noncomputable instance equals_unfold_Writer [GooseExts] [GoGlobalContext] :
 class Writer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Writer.underlying Writer
   underlying : go.UnderlyingDirectedEq Writer.ty Writer.underlying
-  get_writer : ∀ (x : Writer), go.IsGoStepPureDetTagged under (StructFieldGet Writer.underlying go!"writer") #x (Val #(x.writer'))
-  set_writer : ∀ (x : Writer) (y : writer), go.IsGoStepPureDetTagged under (StructFieldSet Writer.underlying go!"writer") (PairV #x #y) (Val #(({ x with writer' := y } : Writer)))
-  get_lenBuf : ∀ (x : Writer), go.IsGoStepPureDetTagged under (StructFieldGet Writer.underlying go!"lenBuf") #x (Val #(x.lenBuf'))
-  set_lenBuf : ∀ (x : Writer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Writer.underlying go!"lenBuf") (PairV #x #y) (Val #(({ x with lenBuf' := y } : Writer)))
-  get_numBuf : ∀ (x : Writer), go.IsGoStepPureDetTagged under (StructFieldGet Writer.underlying go!"numBuf") #x (Val #(x.numBuf'))
-  set_numBuf : ∀ (x : Writer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Writer.underlying go!"numBuf") (PairV #x #y) (Val #(({ x with numBuf' := y } : Writer)))
+  get'writer : ∀ (x : Writer), go.IsGoStepPureDetTagged under (StructFieldGet Writer.underlying go!"writer") #x (Val #(x.writer'))
+  set'writer : ∀ (x : Writer) (y : writer), go.IsGoStepPureDetTagged under (StructFieldSet Writer.underlying go!"writer") (PairV #x #y) (Val #(({ x with writer' := y } : Writer)))
+  get'lenBuf : ∀ (x : Writer), go.IsGoStepPureDetTagged under (StructFieldGet Writer.underlying go!"lenBuf") #x (Val #(x.lenBuf'))
+  set'lenBuf : ∀ (x : Writer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Writer.underlying go!"lenBuf") (PairV #x #y) (Val #(({ x with lenBuf' := y } : Writer)))
+  get'numBuf : ∀ (x : Writer), go.IsGoStepPureDetTagged under (StructFieldGet Writer.underlying go!"numBuf") #x (Val #(x.numBuf'))
+  set'numBuf : ∀ (x : Writer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Writer.underlying go!"numBuf") (PairV #x #y) (Val #(({ x with numBuf' := y } : Writer)))
   method_set : go.MethodSetIs Writer.ty [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteByte", (some (go.signature.Signature [go.byte] false [go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Writer.ty) [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteArg", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"WriteArgs", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] false [go.error]))), (go!"WriteByte", (some (go.signature.Signature [go.byte] false [go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"github.com/go-redis/redis/v8/internal/proto.bytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"github.com/go-redis/redis/v8/internal/proto.crlf", (some (go.signature.Signature [] false [go.error]))), (go!"github.com/go-redis/redis/v8/internal/proto.float", (some (go.signature.Signature [go.float64] false [go.error]))), (go!"github.com/go-redis/redis/v8/internal/proto.int", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"github.com/go-redis/redis/v8/internal/proto.string", (some (go.signature.Signature [go.string] false [go.error]))), (go!"github.com/go-redis/redis/v8/internal/proto.uint", (some (go.signature.Signature [go.uint64] false [go.error]))), (go!"github.com/go-redis/redis/v8/internal/proto.writeLen", (some (go.signature.Signature [go.int] false [go.error])))]
 
 attribute [instance] Writer.TypeAssumptions.type_repr
   Writer.TypeAssumptions.underlying
-  Writer.TypeAssumptions.get_writer
-  Writer.TypeAssumptions.set_writer
-  Writer.TypeAssumptions.get_lenBuf
-  Writer.TypeAssumptions.set_lenBuf
-  Writer.TypeAssumptions.get_numBuf
-  Writer.TypeAssumptions.set_numBuf
+  Writer.TypeAssumptions.get'writer
+  Writer.TypeAssumptions.set'writer
+  Writer.TypeAssumptions.get'lenBuf
+  Writer.TypeAssumptions.set'lenBuf
+  Writer.TypeAssumptions.get'numBuf
+  Writer.TypeAssumptions.set'numBuf
   Writer.TypeAssumptions.method_set
   Writer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  RedisError_instance : RedisError.TypeAssumptions
-  MultiBulkParse_instance : MultiBulkParse.TypeAssumptions
-  Reader_instance : Reader.TypeAssumptions
-  writer_instance : writer.TypeAssumptions
-  Writer_instance : Writer.TypeAssumptions
+  instance'RedisError : RedisError.TypeAssumptions
+  instance'MultiBulkParse : MultiBulkParse.TypeAssumptions
+  instance'Reader : Reader.TypeAssumptions
+  instance'writer : writer.TypeAssumptions
+  instance'Writer : Writer.TypeAssumptions
 
-attribute [instance] Assumptions.RedisError_instance
-  Assumptions.MultiBulkParse_instance
-  Assumptions.Reader_instance
-  Assumptions.writer_instance
-  Assumptions.Writer_instance
+attribute [instance] Assumptions.instance'RedisError
+  Assumptions.instance'MultiBulkParse
+  Assumptions.instance'Reader
+  Assumptions.instance'writer
+  Assumptions.instance'Writer
 
 end github_com.go_redis.redis.v8.internal.proto
 

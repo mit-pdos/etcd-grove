@@ -30,7 +30,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- **`r.startResync(ctx, resyncerrc)`** with resync period `0`: returns once `ctx` is done. -/
 abbrev Reflector.startResync.spec : Prop :=
-  ∀ (r f : Loc) (lw : GoInterfaceOk) (et : reflect.«Type») (dh : GoFunc) (ctx : GoInterfaceOk)
+  ∀ (r f : Loc) (lw : GoInterfaceOk) (et : reflect.Type'') (dh : GoFunc) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (errCh : GoChan),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ reflFixed r f lw et dh ∗
       context.isContext ctx cs }}

@@ -25,11 +25,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.hex.Assumptions]
 
-noncomputable instance encoder_typed_pointsto :
+noncomputable instance typed_pointsto'encoder :
     TypedPointsto (GF := GF) encoding.hex.encoder :=
   sorry -- axiomatized type
 
-noncomputable instance encoder_into_val_typed :
+noncomputable instance into_val_typed'encoder :
     IntoValTypedUnderlying (GF := GF) encoding.hex.encoder encoding.hex.encoder.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +44,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.hex.Assumptions]
 
-noncomputable instance decoder_typed_pointsto :
+noncomputable instance typed_pointsto'decoder :
     TypedPointsto (GF := GF) encoding.hex.decoder :=
   sorry -- axiomatized type
 
-noncomputable instance decoder_into_val_typed :
+noncomputable instance into_val_typed'decoder :
     IntoValTypedUnderlying (GF := GF) encoding.hex.decoder encoding.hex.decoder.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +63,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.hex.Assumptions]
 
-noncomputable instance dumper_typed_pointsto :
+noncomputable instance typed_pointsto'dumper :
     TypedPointsto (GF := GF) encoding.hex.dumper :=
   sorry -- axiomatized type
 
-noncomputable instance dumper_into_val_typed :
+noncomputable instance into_val_typed'dumper :
     IntoValTypedUnderlying (GF := GF) encoding.hex.dumper encoding.hex.dumper.underlying :=
   sorry -- axiomatized type
 

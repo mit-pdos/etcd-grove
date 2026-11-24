@@ -163,7 +163,7 @@ noncomputable instance unstructuredJSONScheme.zero_val [GooseExts] : ZeroVal uns
 @[irreducible] noncomputable def unstructuredJSONScheme.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   unstructuredJSONScheme.fieldsUnsealed
 
-noncomputable instance equals_unfold_unstructuredJSONScheme [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'unstructuredJSONScheme [GooseExts] [GoGlobalContext] :
     EqualsUnfold unstructuredJSONScheme.fields unstructuredJSONScheme.fieldsUnsealed :=
   ⟨by unfold unstructuredJSONScheme.fields; rfl⟩
 
@@ -196,7 +196,7 @@ noncomputable instance jsonFallbackEncoder.zero_val [GooseExts] : ZeroVal jsonFa
 @[irreducible] noncomputable def jsonFallbackEncoder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   jsonFallbackEncoder.fieldsUnsealed
 
-noncomputable instance equals_unfold_jsonFallbackEncoder [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'jsonFallbackEncoder [GooseExts] [GoGlobalContext] :
     EqualsUnfold jsonFallbackEncoder.fields jsonFallbackEncoder.fieldsUnsealed :=
   ⟨by unfold jsonFallbackEncoder.fields; rfl⟩
 
@@ -206,19 +206,19 @@ noncomputable instance equals_unfold_jsonFallbackEncoder [GooseExts] [GoGlobalCo
 class jsonFallbackEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying jsonFallbackEncoder.underlying jsonFallbackEncoder
   underlying : go.UnderlyingDirectedEq jsonFallbackEncoder.ty jsonFallbackEncoder.underlying
-  get_encoder : ∀ (x : jsonFallbackEncoder), go.IsGoStepPureDetTagged under (StructFieldGet jsonFallbackEncoder.underlying go!"encoder") #x (Val #(x.encoder'))
-  set_encoder : ∀ (x : jsonFallbackEncoder) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Encoder), go.IsGoStepPureDetTagged under (StructFieldSet jsonFallbackEncoder.underlying go!"encoder") (PairV #x #y) (Val #(({ x with encoder' := y } : jsonFallbackEncoder)))
-  get_identifier : ∀ (x : jsonFallbackEncoder), go.IsGoStepPureDetTagged under (StructFieldGet jsonFallbackEncoder.underlying go!"identifier") #x (Val #(x.identifier'))
-  set_identifier : ∀ (x : jsonFallbackEncoder) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier), go.IsGoStepPureDetTagged under (StructFieldSet jsonFallbackEncoder.underlying go!"identifier") (PairV #x #y) (Val #(({ x with identifier' := y } : jsonFallbackEncoder)))
+  get'encoder : ∀ (x : jsonFallbackEncoder), go.IsGoStepPureDetTagged under (StructFieldGet jsonFallbackEncoder.underlying go!"encoder") #x (Val #(x.encoder'))
+  set'encoder : ∀ (x : jsonFallbackEncoder) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Encoder), go.IsGoStepPureDetTagged under (StructFieldSet jsonFallbackEncoder.underlying go!"encoder") (PairV #x #y) (Val #(({ x with encoder' := y } : jsonFallbackEncoder)))
+  get'identifier : ∀ (x : jsonFallbackEncoder), go.IsGoStepPureDetTagged under (StructFieldGet jsonFallbackEncoder.underlying go!"identifier") #x (Val #(x.identifier'))
+  set'identifier : ∀ (x : jsonFallbackEncoder) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier), go.IsGoStepPureDetTagged under (StructFieldSet jsonFallbackEncoder.underlying go!"identifier") (PairV #x #y) (Val #(({ x with identifier' := y } : jsonFallbackEncoder)))
   method_set : go.MethodSetIs jsonFallbackEncoder.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType jsonFallbackEncoder.ty) [(go!"Encode", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.Named go!"io.Writer" [])] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier.ty])))]
 
 attribute [instance] jsonFallbackEncoder.TypeAssumptions.type_repr
   jsonFallbackEncoder.TypeAssumptions.underlying
-  jsonFallbackEncoder.TypeAssumptions.get_encoder
-  jsonFallbackEncoder.TypeAssumptions.set_encoder
-  jsonFallbackEncoder.TypeAssumptions.get_identifier
-  jsonFallbackEncoder.TypeAssumptions.set_identifier
+  jsonFallbackEncoder.TypeAssumptions.get'encoder
+  jsonFallbackEncoder.TypeAssumptions.set'encoder
+  jsonFallbackEncoder.TypeAssumptions.get'identifier
+  jsonFallbackEncoder.TypeAssumptions.set'identifier
   jsonFallbackEncoder.TypeAssumptions.method_set
   jsonFallbackEncoder.TypeAssumptions.ptr_method_set
 
@@ -235,7 +235,7 @@ noncomputable instance Unstructured.zero_val [GooseExts] : ZeroVal Unstructured 
 @[irreducible] noncomputable def Unstructured.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Unstructured.fieldsUnsealed
 
-noncomputable instance equals_unfold_Unstructured [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Unstructured [GooseExts] [GoGlobalContext] :
     EqualsUnfold Unstructured.fields Unstructured.fieldsUnsealed :=
   ⟨by unfold Unstructured.fields; rfl⟩
 
@@ -245,15 +245,15 @@ noncomputable instance equals_unfold_Unstructured [GooseExts] [GoGlobalContext] 
 class Unstructured.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Unstructured.underlying Unstructured
   underlying : go.UnderlyingDirectedEq Unstructured.ty Unstructured.underlying
-  get_Object : ∀ (x : Unstructured), go.IsGoStepPureDetTagged under (StructFieldGet Unstructured.underlying go!"Object") #x (Val #(x.Object'))
-  set_Object : ∀ (x : Unstructured) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Unstructured.underlying go!"Object") (PairV #x #y) (Val #(({ x with Object' := y } : Unstructured)))
+  get'Object : ∀ (x : Unstructured), go.IsGoStepPureDetTagged under (StructFieldGet Unstructured.underlying go!"Object") #x (Val #(x.Object'))
+  set'Object : ∀ (x : Unstructured) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Unstructured.underlying go!"Object") (PairV #x #y) (Val #(({ x with Object' := y } : Unstructured)))
   method_set : go.MethodSetIs Unstructured.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Unstructured.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Unstructured.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Unstructured.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"EachListItem", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))] false [go.error]))), (go!"EachListItemWithAlloc", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))] false [go.error]))), (go!"GetAPIVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetKind", (some (go.signature.Signature [] false [go.string]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"IsList", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"NewEmptyInstance", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Unstructured.ty]))), (go!"SetAPIVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetKind", (some (go.signature.Signature [go.string] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false []))), (go!"SetUnstructuredContent", (some (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType []))] false []))), (go!"ToList", (some (go.signature.Signature [] false [(go.GoType.PointerType UnstructuredList.ty), go.error]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnstructuredContent", (some (go.signature.Signature [] false [(go.GoType.MapType go.string (go.GoType.InterfaceType []))]))), (go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.setNestedField", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.SliceType go.string)] true []))), (go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.setNestedMap", (some (go.signature.Signature [(go.GoType.MapType go.string go.string), (go.GoType.SliceType go.string)] true []))), (go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.setNestedSlice", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), (go.GoType.SliceType go.string)] true []))), (go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.setNestedStringSlice", (some (go.signature.Signature [(go.GoType.SliceType go.string), (go.GoType.SliceType go.string)] true [])))]
 
 attribute [instance] Unstructured.TypeAssumptions.type_repr
   Unstructured.TypeAssumptions.underlying
-  Unstructured.TypeAssumptions.get_Object
-  Unstructured.TypeAssumptions.set_Object
+  Unstructured.TypeAssumptions.get'Object
+  Unstructured.TypeAssumptions.set'Object
   Unstructured.TypeAssumptions.method_set
   Unstructured.TypeAssumptions.ptr_method_set
 
@@ -272,7 +272,7 @@ noncomputable instance UnstructuredList.zero_val [GooseExts] : ZeroVal Unstructu
 @[irreducible] noncomputable def UnstructuredList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UnstructuredList.fieldsUnsealed
 
-noncomputable instance equals_unfold_UnstructuredList [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'UnstructuredList [GooseExts] [GoGlobalContext] :
     EqualsUnfold UnstructuredList.fields UnstructuredList.fieldsUnsealed :=
   ⟨by unfold UnstructuredList.fields; rfl⟩
 
@@ -282,36 +282,36 @@ noncomputable instance equals_unfold_UnstructuredList [GooseExts] [GoGlobalConte
 class UnstructuredList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnstructuredList.underlying UnstructuredList
   underlying : go.UnderlyingDirectedEq UnstructuredList.ty UnstructuredList.underlying
-  get_Object : ∀ (x : UnstructuredList), go.IsGoStepPureDetTagged under (StructFieldGet UnstructuredList.underlying go!"Object") #x (Val #(x.Object'))
-  set_Object : ∀ (x : UnstructuredList) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet UnstructuredList.underlying go!"Object") (PairV #x #y) (Val #(({ x with Object' := y } : UnstructuredList)))
-  get_Items : ∀ (x : UnstructuredList), go.IsGoStepPureDetTagged under (StructFieldGet UnstructuredList.underlying go!"Items") #x (Val #(x.Items'))
-  set_Items : ∀ (x : UnstructuredList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet UnstructuredList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : UnstructuredList)))
+  get'Object : ∀ (x : UnstructuredList), go.IsGoStepPureDetTagged under (StructFieldGet UnstructuredList.underlying go!"Object") #x (Val #(x.Object'))
+  set'Object : ∀ (x : UnstructuredList) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet UnstructuredList.underlying go!"Object") (PairV #x #y) (Val #(({ x with Object' := y } : UnstructuredList)))
+  get'Items : ∀ (x : UnstructuredList), go.IsGoStepPureDetTagged under (StructFieldGet UnstructuredList.underlying go!"Items") #x (Val #(x.Items'))
+  set'Items : ∀ (x : UnstructuredList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet UnstructuredList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : UnstructuredList)))
   method_set : go.MethodSetIs UnstructuredList.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnstructuredList.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType UnstructuredList.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType UnstructuredList.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"EachListItem", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))] false [go.error]))), (go!"EachListItemWithAlloc", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))] false [go.error]))), (go!"GetAPIVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetKind", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardInfo.ty)]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])]))), (go!"IsList", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"NewEmptyInstance", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Unstructured.ty]))), (go!"SetAPIVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])] false []))), (go!"SetKind", (some (go.signature.Signature [go.string] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardInfo.ty)] false []))), (go!"SetUnstructuredContent", (some (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType []))] false []))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnstructuredContent", (some (go.signature.Signature [] false [(go.GoType.MapType go.string (go.GoType.InterfaceType []))]))), (go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.setNestedField", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.SliceType go.string)] true [])))]
 
 attribute [instance] UnstructuredList.TypeAssumptions.type_repr
   UnstructuredList.TypeAssumptions.underlying
-  UnstructuredList.TypeAssumptions.get_Object
-  UnstructuredList.TypeAssumptions.set_Object
-  UnstructuredList.TypeAssumptions.get_Items
-  UnstructuredList.TypeAssumptions.set_Items
+  UnstructuredList.TypeAssumptions.get'Object
+  UnstructuredList.TypeAssumptions.set'Object
+  UnstructuredList.TypeAssumptions.get'Items
+  UnstructuredList.TypeAssumptions.set'Items
   UnstructuredList.TypeAssumptions.method_set
   UnstructuredList.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  unstructuredJSONScheme_instance : unstructuredJSONScheme.TypeAssumptions
-  jsonFallbackEncoder_instance : jsonFallbackEncoder.TypeAssumptions
-  Unstructured_instance : Unstructured.TypeAssumptions
-  UnstructuredList_instance : UnstructuredList.TypeAssumptions
-  import_v1_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
-  import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
+  instance'unstructuredJSONScheme : unstructuredJSONScheme.TypeAssumptions
+  instance'jsonFallbackEncoder : jsonFallbackEncoder.TypeAssumptions
+  instance'Unstructured : Unstructured.TypeAssumptions
+  instance'UnstructuredList : UnstructuredList.TypeAssumptions
+  import'v1 : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  import'runtime : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
 
-attribute [instance] Assumptions.unstructuredJSONScheme_instance
-  Assumptions.jsonFallbackEncoder_instance
-  Assumptions.Unstructured_instance
-  Assumptions.UnstructuredList_instance
-  Assumptions.import_v1_Assumption
-  Assumptions.import_runtime_Assumption
+attribute [instance] Assumptions.instance'unstructuredJSONScheme
+  Assumptions.instance'jsonFallbackEncoder
+  Assumptions.instance'Unstructured
+  Assumptions.instance'UnstructuredList
+  Assumptions.import'v1
+  Assumptions.import'runtime
 
 end k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured
 

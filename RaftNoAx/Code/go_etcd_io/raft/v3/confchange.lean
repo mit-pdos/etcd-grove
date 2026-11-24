@@ -1982,7 +1982,7 @@ noncomputable instance Changer.zero_val [GooseExts] : ZeroVal Changer :=
 @[irreducible] noncomputable def Changer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Changer.fieldsUnsealed
 
-noncomputable instance equals_unfold_Changer [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Changer [GooseExts] [GoGlobalContext] :
     EqualsUnfold Changer.fields Changer.fieldsUnsealed :=
   ⟨by unfold Changer.fields; rfl⟩
 
@@ -1992,114 +1992,114 @@ noncomputable instance equals_unfold_Changer [GooseExts] [GoGlobalContext] :
 class Changer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Changer.underlying Changer
   underlying : go.UnderlyingDirectedEq Changer.ty Changer.underlying
-  get_Tracker : ∀ (x : Changer), go.IsGoStepPureDetTagged under (StructFieldGet Changer.underlying go!"Tracker") #x (Val #(x.Tracker'))
-  set_Tracker : ∀ (x : Changer) (y : _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker), go.IsGoStepPureDetTagged under (StructFieldSet Changer.underlying go!"Tracker") (PairV #x #y) (Val #(({ x with Tracker' := y } : Changer)))
-  get_LastIndex : ∀ (x : Changer), go.IsGoStepPureDetTagged under (StructFieldGet Changer.underlying go!"LastIndex") #x (Val #(x.LastIndex'))
-  set_LastIndex : ∀ (x : Changer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Changer.underlying go!"LastIndex") (PairV #x #y) (Val #(({ x with LastIndex' := y } : Changer)))
+  get'Tracker : ∀ (x : Changer), go.IsGoStepPureDetTagged under (StructFieldGet Changer.underlying go!"Tracker") #x (Val #(x.Tracker'))
+  set'Tracker : ∀ (x : Changer) (y : _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker), go.IsGoStepPureDetTagged under (StructFieldSet Changer.underlying go!"Tracker") (PairV #x #y) (Val #(({ x with Tracker' := y } : Changer)))
+  get'LastIndex : ∀ (x : Changer), go.IsGoStepPureDetTagged under (StructFieldGet Changer.underlying go!"LastIndex") #x (Val #(x.LastIndex'))
+  set'LastIndex : ∀ (x : Changer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Changer.underlying go!"LastIndex") (PairV #x #y) (Val #(({ x with LastIndex' := y } : Changer)))
   method_set : go.MethodSetIs Changer.ty [(go!"EnterJoint", (some (go.signature.Signature [go.bool, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))] true [_root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty, _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.error]))), (go!"LeaveJoint", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty, _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.error]))), (go!"Simple", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))] true [_root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty, _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.error]))), (go!"go.etcd.io/raft/v3/confchange.apply", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty), _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))] true [go.error]))), (go!"go.etcd.io/raft/v3/confchange.checkAndCopy", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty, _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.error]))), (go!"go.etcd.io/raft/v3/confchange.err", (some (go.signature.Signature [go.error] false [_root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty, _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.error]))), (go!"go.etcd.io/raft/v3/confchange.initProgress", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty), _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.uint64, go.bool] false []))), (go!"go.etcd.io/raft/v3/confchange.makeLearner", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty), _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.uint64] false []))), (go!"go.etcd.io/raft/v3/confchange.makeVoter", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty), _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.uint64] false []))), (go!"go.etcd.io/raft/v3/confchange.remove", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty), _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.uint64] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Changer.ty) [(go!"EnterJoint", (some (go.signature.Signature [go.bool, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))] true [_root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty, _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.error]))), (go!"LeaveJoint", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty, _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.error]))), (go!"Simple", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))] true [_root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty, _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.error]))), (go!"go.etcd.io/raft/v3/confchange.apply", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty), _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))] true [go.error]))), (go!"go.etcd.io/raft/v3/confchange.checkAndCopy", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty, _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.error]))), (go!"go.etcd.io/raft/v3/confchange.err", (some (go.signature.Signature [go.error] false [_root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty, _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.error]))), (go!"go.etcd.io/raft/v3/confchange.initProgress", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty), _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.uint64, go.bool] false []))), (go!"go.etcd.io/raft/v3/confchange.makeLearner", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty), _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.uint64] false []))), (go!"go.etcd.io/raft/v3/confchange.makeVoter", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty), _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.uint64] false []))), (go!"go.etcd.io/raft/v3/confchange.remove", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty), _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty, go.uint64] false [])))]
-  EnterJoint_unfold : MethodUnfold Changer.ty go!"EnterJoint" Changer.EnterJoint.impl
-  LeaveJoint_unfold : MethodUnfold Changer.ty go!"LeaveJoint" Changer.LeaveJoint.impl
-  Simple_unfold : MethodUnfold Changer.ty go!"Simple" Changer.Simple.impl
-  apply_unfold : MethodUnfold Changer.ty go!"apply" Changer.apply.impl
-  checkAndCopy_unfold : MethodUnfold Changer.ty go!"checkAndCopy" Changer.checkAndCopy.impl
-  err_unfold : MethodUnfold Changer.ty go!"err" Changer.err.impl
-  initProgress_unfold : MethodUnfold Changer.ty go!"initProgress" Changer.initProgress.impl
-  makeLearner_unfold : MethodUnfold Changer.ty go!"makeLearner" Changer.makeLearner.impl
-  makeVoter_unfold : MethodUnfold Changer.ty go!"makeVoter" Changer.makeVoter.impl
-  remove_unfold : MethodUnfold Changer.ty go!"remove" Changer.remove.impl
-  ptr_EnterJoint_unfold : MethodUnfold (go.GoType.PointerType Changer.ty) go!"EnterJoint" (LamV "$r"
+  unfold'EnterJoint : MethodUnfold Changer.ty go!"EnterJoint" Changer.EnterJoint.impl
+  unfold'LeaveJoint : MethodUnfold Changer.ty go!"LeaveJoint" Changer.LeaveJoint.impl
+  unfold'Simple : MethodUnfold Changer.ty go!"Simple" Changer.Simple.impl
+  unfold'apply : MethodUnfold Changer.ty go!"apply" Changer.apply.impl
+  unfold'checkAndCopy : MethodUnfold Changer.ty go!"checkAndCopy" Changer.checkAndCopy.impl
+  unfold'err : MethodUnfold Changer.ty go!"err" Changer.err.impl
+  unfold'initProgress : MethodUnfold Changer.ty go!"initProgress" Changer.initProgress.impl
+  unfold'makeLearner : MethodUnfold Changer.ty go!"makeLearner" Changer.makeLearner.impl
+  unfold'makeVoter : MethodUnfold Changer.ty go!"makeVoter" Changer.makeVoter.impl
+  unfold'remove : MethodUnfold Changer.ty go!"remove" Changer.remove.impl
+  ptr_unfold'EnterJoint : MethodUnfold (go.GoType.PointerType Changer.ty) go!"EnterJoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Changer.ty go!"EnterJoint"))) (App (Val (GoInstruction (GoLoad Changer.ty))) (Var "$r"))))
-  ptr_LeaveJoint_unfold : MethodUnfold (go.GoType.PointerType Changer.ty) go!"LeaveJoint" (LamV "$r"
+  ptr_unfold'LeaveJoint : MethodUnfold (go.GoType.PointerType Changer.ty) go!"LeaveJoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Changer.ty go!"LeaveJoint"))) (App (Val (GoInstruction (GoLoad Changer.ty))) (Var "$r"))))
-  ptr_Simple_unfold : MethodUnfold (go.GoType.PointerType Changer.ty) go!"Simple" (LamV "$r"
+  ptr_unfold'Simple : MethodUnfold (go.GoType.PointerType Changer.ty) go!"Simple" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Changer.ty go!"Simple"))) (App (Val (GoInstruction (GoLoad Changer.ty))) (Var "$r"))))
-  ptr_apply_unfold : MethodUnfold (go.GoType.PointerType Changer.ty) go!"apply" (LamV "$r"
+  ptr_unfold'apply : MethodUnfold (go.GoType.PointerType Changer.ty) go!"apply" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Changer.ty go!"apply"))) (App (Val (GoInstruction (GoLoad Changer.ty))) (Var "$r"))))
-  ptr_checkAndCopy_unfold : MethodUnfold (go.GoType.PointerType Changer.ty) go!"checkAndCopy" (LamV "$r"
+  ptr_unfold'checkAndCopy : MethodUnfold (go.GoType.PointerType Changer.ty) go!"checkAndCopy" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Changer.ty go!"checkAndCopy"))) (App (Val (GoInstruction (GoLoad Changer.ty))) (Var "$r"))))
-  ptr_err_unfold : MethodUnfold (go.GoType.PointerType Changer.ty) go!"err" (LamV "$r"
+  ptr_unfold'err : MethodUnfold (go.GoType.PointerType Changer.ty) go!"err" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Changer.ty go!"err"))) (App (Val (GoInstruction (GoLoad Changer.ty))) (Var "$r"))))
-  ptr_initProgress_unfold : MethodUnfold (go.GoType.PointerType Changer.ty) go!"initProgress" (LamV "$r"
+  ptr_unfold'initProgress : MethodUnfold (go.GoType.PointerType Changer.ty) go!"initProgress" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Changer.ty go!"initProgress"))) (App (Val (GoInstruction (GoLoad Changer.ty))) (Var "$r"))))
-  ptr_makeLearner_unfold : MethodUnfold (go.GoType.PointerType Changer.ty) go!"makeLearner" (LamV "$r"
+  ptr_unfold'makeLearner : MethodUnfold (go.GoType.PointerType Changer.ty) go!"makeLearner" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Changer.ty go!"makeLearner"))) (App (Val (GoInstruction (GoLoad Changer.ty))) (Var "$r"))))
-  ptr_makeVoter_unfold : MethodUnfold (go.GoType.PointerType Changer.ty) go!"makeVoter" (LamV "$r"
+  ptr_unfold'makeVoter : MethodUnfold (go.GoType.PointerType Changer.ty) go!"makeVoter" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Changer.ty go!"makeVoter"))) (App (Val (GoInstruction (GoLoad Changer.ty))) (Var "$r"))))
-  ptr_remove_unfold : MethodUnfold (go.GoType.PointerType Changer.ty) go!"remove" (LamV "$r"
+  ptr_unfold'remove : MethodUnfold (go.GoType.PointerType Changer.ty) go!"remove" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Changer.ty go!"remove"))) (App (Val (GoInstruction (GoLoad Changer.ty))) (Var "$r"))))
 
 attribute [instance] Changer.TypeAssumptions.type_repr
   Changer.TypeAssumptions.underlying
-  Changer.TypeAssumptions.get_Tracker
-  Changer.TypeAssumptions.set_Tracker
-  Changer.TypeAssumptions.get_LastIndex
-  Changer.TypeAssumptions.set_LastIndex
+  Changer.TypeAssumptions.get'Tracker
+  Changer.TypeAssumptions.set'Tracker
+  Changer.TypeAssumptions.get'LastIndex
+  Changer.TypeAssumptions.set'LastIndex
   Changer.TypeAssumptions.method_set
   Changer.TypeAssumptions.ptr_method_set
-  Changer.TypeAssumptions.EnterJoint_unfold
-  Changer.TypeAssumptions.LeaveJoint_unfold
-  Changer.TypeAssumptions.Simple_unfold
-  Changer.TypeAssumptions.apply_unfold
-  Changer.TypeAssumptions.checkAndCopy_unfold
-  Changer.TypeAssumptions.err_unfold
-  Changer.TypeAssumptions.initProgress_unfold
-  Changer.TypeAssumptions.makeLearner_unfold
-  Changer.TypeAssumptions.makeVoter_unfold
-  Changer.TypeAssumptions.remove_unfold
-  Changer.TypeAssumptions.ptr_EnterJoint_unfold
-  Changer.TypeAssumptions.ptr_LeaveJoint_unfold
-  Changer.TypeAssumptions.ptr_Simple_unfold
-  Changer.TypeAssumptions.ptr_apply_unfold
-  Changer.TypeAssumptions.ptr_checkAndCopy_unfold
-  Changer.TypeAssumptions.ptr_err_unfold
-  Changer.TypeAssumptions.ptr_initProgress_unfold
-  Changer.TypeAssumptions.ptr_makeLearner_unfold
-  Changer.TypeAssumptions.ptr_makeVoter_unfold
-  Changer.TypeAssumptions.ptr_remove_unfold
+  Changer.TypeAssumptions.unfold'EnterJoint
+  Changer.TypeAssumptions.unfold'LeaveJoint
+  Changer.TypeAssumptions.unfold'Simple
+  Changer.TypeAssumptions.unfold'apply
+  Changer.TypeAssumptions.unfold'checkAndCopy
+  Changer.TypeAssumptions.unfold'err
+  Changer.TypeAssumptions.unfold'initProgress
+  Changer.TypeAssumptions.unfold'makeLearner
+  Changer.TypeAssumptions.unfold'makeVoter
+  Changer.TypeAssumptions.unfold'remove
+  Changer.TypeAssumptions.ptr_unfold'EnterJoint
+  Changer.TypeAssumptions.ptr_unfold'LeaveJoint
+  Changer.TypeAssumptions.ptr_unfold'Simple
+  Changer.TypeAssumptions.ptr_unfold'apply
+  Changer.TypeAssumptions.ptr_unfold'checkAndCopy
+  Changer.TypeAssumptions.ptr_unfold'err
+  Changer.TypeAssumptions.ptr_unfold'initProgress
+  Changer.TypeAssumptions.ptr_unfold'makeLearner
+  Changer.TypeAssumptions.ptr_unfold'makeVoter
+  Changer.TypeAssumptions.ptr_unfold'remove
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Changer_instance : Changer.TypeAssumptions
-  checkInvariants_unfold : FuncUnfold checkInvariants [] checkInvariants.impl
-  checkAndReturn_unfold : FuncUnfold checkAndReturn [] checkAndReturn.impl
-  nilAwareAdd_unfold : FuncUnfold nilAwareAdd [] nilAwareAdd.impl
-  nilAwareDelete_unfold : FuncUnfold nilAwareDelete [] nilAwareDelete.impl
-  symdiff_unfold : FuncUnfold symdiff [] symdiff.impl
-  joint_unfold : FuncUnfold joint [] joint.impl
-  incoming_unfold : FuncUnfold incoming [] incoming.impl
-  outgoing_unfold : FuncUnfold outgoing [] outgoing.impl
-  outgoingPtr_unfold : FuncUnfold outgoingPtr [] outgoingPtr.impl
-  Describe_unfold : FuncUnfold Describe [] Describe.impl
-  toConfChangeSingle_unfold : FuncUnfold toConfChangeSingle [] toConfChangeSingle.impl
-  chain_unfold : FuncUnfold chain [] chain.impl
-  Restore_unfold : FuncUnfold Restore [] Restore.impl
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
-  import_quorum_Assumption : _root_.Perennial.go_etcd_io.raft.v3.quorum.Assumptions
-  import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
-  import_tracker_Assumption : _root_.Perennial.go_etcd_io.raft.v3.tracker.Assumptions
+  instance'Changer : Changer.TypeAssumptions
+  unfold'checkInvariants : FuncUnfold checkInvariants [] checkInvariants.impl
+  unfold'checkAndReturn : FuncUnfold checkAndReturn [] checkAndReturn.impl
+  unfold'nilAwareAdd : FuncUnfold nilAwareAdd [] nilAwareAdd.impl
+  unfold'nilAwareDelete : FuncUnfold nilAwareDelete [] nilAwareDelete.impl
+  unfold'symdiff : FuncUnfold symdiff [] symdiff.impl
+  unfold'joint : FuncUnfold joint [] joint.impl
+  unfold'incoming : FuncUnfold incoming [] incoming.impl
+  unfold'outgoing : FuncUnfold outgoing [] outgoing.impl
+  unfold'outgoingPtr : FuncUnfold outgoingPtr [] outgoingPtr.impl
+  unfold'Describe : FuncUnfold Describe [] Describe.impl
+  unfold'toConfChangeSingle : FuncUnfold toConfChangeSingle [] toConfChangeSingle.impl
+  unfold'chain : FuncUnfold chain [] chain.impl
+  unfold'Restore : FuncUnfold Restore [] Restore.impl
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'strings : _root_.Perennial.strings.Assumptions
+  import'quorum : _root_.Perennial.go_etcd_io.raft.v3.quorum.Assumptions
+  import'raftpb : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
+  import'tracker : _root_.Perennial.go_etcd_io.raft.v3.tracker.Assumptions
 
-attribute [instance] Assumptions.Changer_instance
-  Assumptions.checkInvariants_unfold
-  Assumptions.checkAndReturn_unfold
-  Assumptions.nilAwareAdd_unfold
-  Assumptions.nilAwareDelete_unfold
-  Assumptions.symdiff_unfold
-  Assumptions.joint_unfold
-  Assumptions.incoming_unfold
-  Assumptions.outgoing_unfold
-  Assumptions.outgoingPtr_unfold
-  Assumptions.Describe_unfold
-  Assumptions.toConfChangeSingle_unfold
-  Assumptions.chain_unfold
-  Assumptions.Restore_unfold
-  Assumptions.import_errors_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_strings_Assumption
-  Assumptions.import_quorum_Assumption
-  Assumptions.import_raftpb_Assumption
-  Assumptions.import_tracker_Assumption
+attribute [instance] Assumptions.instance'Changer
+  Assumptions.unfold'checkInvariants
+  Assumptions.unfold'checkAndReturn
+  Assumptions.unfold'nilAwareAdd
+  Assumptions.unfold'nilAwareDelete
+  Assumptions.unfold'symdiff
+  Assumptions.unfold'joint
+  Assumptions.unfold'incoming
+  Assumptions.unfold'outgoing
+  Assumptions.unfold'outgoingPtr
+  Assumptions.unfold'Describe
+  Assumptions.unfold'toConfChangeSingle
+  Assumptions.unfold'chain
+  Assumptions.unfold'Restore
+  Assumptions.import'errors
+  Assumptions.import'fmt
+  Assumptions.import'strings
+  Assumptions.import'quorum
+  Assumptions.import'raftpb
+  Assumptions.import'tracker
 
 end go_etcd_io.raft.v3.confchange
 

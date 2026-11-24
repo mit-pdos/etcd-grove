@@ -1927,7 +1927,7 @@ noncomputable instance PersistentVolumeSpecValidationOptions.zero_val [GooseExts
 @[irreducible] noncomputable def PersistentVolumeSpecValidationOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PersistentVolumeSpecValidationOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_PersistentVolumeSpecValidationOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PersistentVolumeSpecValidationOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold PersistentVolumeSpecValidationOptions.fields PersistentVolumeSpecValidationOptions.fieldsUnsealed :=
   ⟨by unfold PersistentVolumeSpecValidationOptions.fields; rfl⟩
 
@@ -1937,19 +1937,19 @@ noncomputable instance equals_unfold_PersistentVolumeSpecValidationOptions [Goos
 class PersistentVolumeSpecValidationOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeSpecValidationOptions.underlying PersistentVolumeSpecValidationOptions
   underlying : go.UnderlyingDirectedEq PersistentVolumeSpecValidationOptions.ty PersistentVolumeSpecValidationOptions.underlying
-  get_EnableVolumeAttributesClass : ∀ (x : PersistentVolumeSpecValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpecValidationOptions.underlying go!"EnableVolumeAttributesClass") #x (Val #(x.EnableVolumeAttributesClass'))
-  set_EnableVolumeAttributesClass : ∀ (x : PersistentVolumeSpecValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpecValidationOptions.underlying go!"EnableVolumeAttributesClass") (PairV #x #y) (Val #(({ x with EnableVolumeAttributesClass' := y } : PersistentVolumeSpecValidationOptions)))
-  get_AllowInvalidLabelValueInRequiredNodeAffinity : ∀ (x : PersistentVolumeSpecValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpecValidationOptions.underlying go!"AllowInvalidLabelValueInRequiredNodeAffinity") #x (Val #(x.AllowInvalidLabelValueInRequiredNodeAffinity'))
-  set_AllowInvalidLabelValueInRequiredNodeAffinity : ∀ (x : PersistentVolumeSpecValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpecValidationOptions.underlying go!"AllowInvalidLabelValueInRequiredNodeAffinity") (PairV #x #y) (Val #(({ x with AllowInvalidLabelValueInRequiredNodeAffinity' := y } : PersistentVolumeSpecValidationOptions)))
+  get'EnableVolumeAttributesClass : ∀ (x : PersistentVolumeSpecValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpecValidationOptions.underlying go!"EnableVolumeAttributesClass") #x (Val #(x.EnableVolumeAttributesClass'))
+  set'EnableVolumeAttributesClass : ∀ (x : PersistentVolumeSpecValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpecValidationOptions.underlying go!"EnableVolumeAttributesClass") (PairV #x #y) (Val #(({ x with EnableVolumeAttributesClass' := y } : PersistentVolumeSpecValidationOptions)))
+  get'AllowInvalidLabelValueInRequiredNodeAffinity : ∀ (x : PersistentVolumeSpecValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeSpecValidationOptions.underlying go!"AllowInvalidLabelValueInRequiredNodeAffinity") #x (Val #(x.AllowInvalidLabelValueInRequiredNodeAffinity'))
+  set'AllowInvalidLabelValueInRequiredNodeAffinity : ∀ (x : PersistentVolumeSpecValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeSpecValidationOptions.underlying go!"AllowInvalidLabelValueInRequiredNodeAffinity") (PairV #x #y) (Val #(({ x with AllowInvalidLabelValueInRequiredNodeAffinity' := y } : PersistentVolumeSpecValidationOptions)))
   method_set : go.MethodSetIs PersistentVolumeSpecValidationOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeSpecValidationOptions.ty) []
 
 attribute [instance] PersistentVolumeSpecValidationOptions.TypeAssumptions.type_repr
   PersistentVolumeSpecValidationOptions.TypeAssumptions.underlying
-  PersistentVolumeSpecValidationOptions.TypeAssumptions.get_EnableVolumeAttributesClass
-  PersistentVolumeSpecValidationOptions.TypeAssumptions.set_EnableVolumeAttributesClass
-  PersistentVolumeSpecValidationOptions.TypeAssumptions.get_AllowInvalidLabelValueInRequiredNodeAffinity
-  PersistentVolumeSpecValidationOptions.TypeAssumptions.set_AllowInvalidLabelValueInRequiredNodeAffinity
+  PersistentVolumeSpecValidationOptions.TypeAssumptions.get'EnableVolumeAttributesClass
+  PersistentVolumeSpecValidationOptions.TypeAssumptions.set'EnableVolumeAttributesClass
+  PersistentVolumeSpecValidationOptions.TypeAssumptions.get'AllowInvalidLabelValueInRequiredNodeAffinity
+  PersistentVolumeSpecValidationOptions.TypeAssumptions.set'AllowInvalidLabelValueInRequiredNodeAffinity
   PersistentVolumeSpecValidationOptions.TypeAssumptions.method_set
   PersistentVolumeSpecValidationOptions.TypeAssumptions.ptr_method_set
 
@@ -1972,7 +1972,7 @@ noncomputable instance PersistentVolumeClaimSpecValidationOptions.zero_val [Goos
 @[irreducible] noncomputable def PersistentVolumeClaimSpecValidationOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PersistentVolumeClaimSpecValidationOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_PersistentVolumeClaimSpecValidationOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PersistentVolumeClaimSpecValidationOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold PersistentVolumeClaimSpecValidationOptions.fields PersistentVolumeClaimSpecValidationOptions.fieldsUnsealed :=
   ⟨by unfold PersistentVolumeClaimSpecValidationOptions.fields; rfl⟩
 
@@ -1982,27 +1982,27 @@ noncomputable instance equals_unfold_PersistentVolumeClaimSpecValidationOptions 
 class PersistentVolumeClaimSpecValidationOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PersistentVolumeClaimSpecValidationOptions.underlying PersistentVolumeClaimSpecValidationOptions
   underlying : go.UnderlyingDirectedEq PersistentVolumeClaimSpecValidationOptions.ty PersistentVolumeClaimSpecValidationOptions.underlying
-  get_EnableRecoverFromExpansionFailure : ∀ (x : PersistentVolumeClaimSpecValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpecValidationOptions.underlying go!"EnableRecoverFromExpansionFailure") #x (Val #(x.EnableRecoverFromExpansionFailure'))
-  set_EnableRecoverFromExpansionFailure : ∀ (x : PersistentVolumeClaimSpecValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpecValidationOptions.underlying go!"EnableRecoverFromExpansionFailure") (PairV #x #y) (Val #(({ x with EnableRecoverFromExpansionFailure' := y } : PersistentVolumeClaimSpecValidationOptions)))
-  get_AllowInvalidLabelValueInSelector : ∀ (x : PersistentVolumeClaimSpecValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpecValidationOptions.underlying go!"AllowInvalidLabelValueInSelector") #x (Val #(x.AllowInvalidLabelValueInSelector'))
-  set_AllowInvalidLabelValueInSelector : ∀ (x : PersistentVolumeClaimSpecValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpecValidationOptions.underlying go!"AllowInvalidLabelValueInSelector") (PairV #x #y) (Val #(({ x with AllowInvalidLabelValueInSelector' := y } : PersistentVolumeClaimSpecValidationOptions)))
-  get_AllowInvalidAPIGroupInDataSourceOrRef : ∀ (x : PersistentVolumeClaimSpecValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpecValidationOptions.underlying go!"AllowInvalidAPIGroupInDataSourceOrRef") #x (Val #(x.AllowInvalidAPIGroupInDataSourceOrRef'))
-  set_AllowInvalidAPIGroupInDataSourceOrRef : ∀ (x : PersistentVolumeClaimSpecValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpecValidationOptions.underlying go!"AllowInvalidAPIGroupInDataSourceOrRef") (PairV #x #y) (Val #(({ x with AllowInvalidAPIGroupInDataSourceOrRef' := y } : PersistentVolumeClaimSpecValidationOptions)))
-  get_EnableVolumeAttributesClass : ∀ (x : PersistentVolumeClaimSpecValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpecValidationOptions.underlying go!"EnableVolumeAttributesClass") #x (Val #(x.EnableVolumeAttributesClass'))
-  set_EnableVolumeAttributesClass : ∀ (x : PersistentVolumeClaimSpecValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpecValidationOptions.underlying go!"EnableVolumeAttributesClass") (PairV #x #y) (Val #(({ x with EnableVolumeAttributesClass' := y } : PersistentVolumeClaimSpecValidationOptions)))
+  get'EnableRecoverFromExpansionFailure : ∀ (x : PersistentVolumeClaimSpecValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpecValidationOptions.underlying go!"EnableRecoverFromExpansionFailure") #x (Val #(x.EnableRecoverFromExpansionFailure'))
+  set'EnableRecoverFromExpansionFailure : ∀ (x : PersistentVolumeClaimSpecValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpecValidationOptions.underlying go!"EnableRecoverFromExpansionFailure") (PairV #x #y) (Val #(({ x with EnableRecoverFromExpansionFailure' := y } : PersistentVolumeClaimSpecValidationOptions)))
+  get'AllowInvalidLabelValueInSelector : ∀ (x : PersistentVolumeClaimSpecValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpecValidationOptions.underlying go!"AllowInvalidLabelValueInSelector") #x (Val #(x.AllowInvalidLabelValueInSelector'))
+  set'AllowInvalidLabelValueInSelector : ∀ (x : PersistentVolumeClaimSpecValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpecValidationOptions.underlying go!"AllowInvalidLabelValueInSelector") (PairV #x #y) (Val #(({ x with AllowInvalidLabelValueInSelector' := y } : PersistentVolumeClaimSpecValidationOptions)))
+  get'AllowInvalidAPIGroupInDataSourceOrRef : ∀ (x : PersistentVolumeClaimSpecValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpecValidationOptions.underlying go!"AllowInvalidAPIGroupInDataSourceOrRef") #x (Val #(x.AllowInvalidAPIGroupInDataSourceOrRef'))
+  set'AllowInvalidAPIGroupInDataSourceOrRef : ∀ (x : PersistentVolumeClaimSpecValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpecValidationOptions.underlying go!"AllowInvalidAPIGroupInDataSourceOrRef") (PairV #x #y) (Val #(({ x with AllowInvalidAPIGroupInDataSourceOrRef' := y } : PersistentVolumeClaimSpecValidationOptions)))
+  get'EnableVolumeAttributesClass : ∀ (x : PersistentVolumeClaimSpecValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PersistentVolumeClaimSpecValidationOptions.underlying go!"EnableVolumeAttributesClass") #x (Val #(x.EnableVolumeAttributesClass'))
+  set'EnableVolumeAttributesClass : ∀ (x : PersistentVolumeClaimSpecValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PersistentVolumeClaimSpecValidationOptions.underlying go!"EnableVolumeAttributesClass") (PairV #x #y) (Val #(({ x with EnableVolumeAttributesClass' := y } : PersistentVolumeClaimSpecValidationOptions)))
   method_set : go.MethodSetIs PersistentVolumeClaimSpecValidationOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PersistentVolumeClaimSpecValidationOptions.ty) []
 
 attribute [instance] PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.type_repr
   PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.underlying
-  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.get_EnableRecoverFromExpansionFailure
-  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.set_EnableRecoverFromExpansionFailure
-  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.get_AllowInvalidLabelValueInSelector
-  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.set_AllowInvalidLabelValueInSelector
-  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.get_AllowInvalidAPIGroupInDataSourceOrRef
-  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.set_AllowInvalidAPIGroupInDataSourceOrRef
-  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.get_EnableVolumeAttributesClass
-  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.set_EnableVolumeAttributesClass
+  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.get'EnableRecoverFromExpansionFailure
+  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.set'EnableRecoverFromExpansionFailure
+  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.get'AllowInvalidLabelValueInSelector
+  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.set'AllowInvalidLabelValueInSelector
+  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.get'AllowInvalidAPIGroupInDataSourceOrRef
+  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.set'AllowInvalidAPIGroupInDataSourceOrRef
+  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.get'EnableVolumeAttributesClass
+  PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.set'EnableVolumeAttributesClass
   PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.method_set
   PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.ptr_method_set
 
@@ -2108,7 +2108,7 @@ noncomputable instance PodValidationOptions.zero_val [GooseExts] : ZeroVal PodVa
 @[irreducible] noncomputable def PodValidationOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PodValidationOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_PodValidationOptions [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'PodValidationOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold PodValidationOptions.fields PodValidationOptions.fieldsUnsealed :=
   ⟨by unfold PodValidationOptions.fields; rfl⟩
 
@@ -2118,146 +2118,146 @@ noncomputable instance equals_unfold_PodValidationOptions [GooseExts] [GoGlobalC
 class PodValidationOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodValidationOptions.underlying PodValidationOptions
   underlying : go.UnderlyingDirectedEq PodValidationOptions.ty PodValidationOptions.underlying
-  get_AllowInvalidPodDeletionCost : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowInvalidPodDeletionCost") #x (Val #(x.AllowInvalidPodDeletionCost'))
-  set_AllowInvalidPodDeletionCost : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowInvalidPodDeletionCost") (PairV #x #y) (Val #(({ x with AllowInvalidPodDeletionCost' := y } : PodValidationOptions)))
-  get_AllowInvalidLabelValueInSelector : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowInvalidLabelValueInSelector") #x (Val #(x.AllowInvalidLabelValueInSelector'))
-  set_AllowInvalidLabelValueInSelector : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowInvalidLabelValueInSelector") (PairV #x #y) (Val #(({ x with AllowInvalidLabelValueInSelector' := y } : PodValidationOptions)))
-  get_AllowIndivisibleHugePagesValues : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowIndivisibleHugePagesValues") #x (Val #(x.AllowIndivisibleHugePagesValues'))
-  set_AllowIndivisibleHugePagesValues : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowIndivisibleHugePagesValues") (PairV #x #y) (Val #(({ x with AllowIndivisibleHugePagesValues' := y } : PodValidationOptions)))
-  get_AllowInvalidTopologySpreadConstraintLabelSelector : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowInvalidTopologySpreadConstraintLabelSelector") #x (Val #(x.AllowInvalidTopologySpreadConstraintLabelSelector'))
-  set_AllowInvalidTopologySpreadConstraintLabelSelector : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowInvalidTopologySpreadConstraintLabelSelector") (PairV #x #y) (Val #(({ x with AllowInvalidTopologySpreadConstraintLabelSelector' := y } : PodValidationOptions)))
-  get_AllowNonLocalProjectedTokenPath : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowNonLocalProjectedTokenPath") #x (Val #(x.AllowNonLocalProjectedTokenPath'))
-  set_AllowNonLocalProjectedTokenPath : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowNonLocalProjectedTokenPath") (PairV #x #y) (Val #(({ x with AllowNonLocalProjectedTokenPath' := y } : PodValidationOptions)))
-  get_AllowNamespacedSysctlsForHostNetAndHostIPC : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowNamespacedSysctlsForHostNetAndHostIPC") #x (Val #(x.AllowNamespacedSysctlsForHostNetAndHostIPC'))
-  set_AllowNamespacedSysctlsForHostNetAndHostIPC : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowNamespacedSysctlsForHostNetAndHostIPC") (PairV #x #y) (Val #(({ x with AllowNamespacedSysctlsForHostNetAndHostIPC' := y } : PodValidationOptions)))
-  get_ResourceIsPod : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"ResourceIsPod") #x (Val #(x.ResourceIsPod'))
-  set_ResourceIsPod : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"ResourceIsPod") (PairV #x #y) (Val #(({ x with ResourceIsPod' := y } : PodValidationOptions)))
-  get_AllowRelaxedEnvironmentVariableValidation : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowRelaxedEnvironmentVariableValidation") #x (Val #(x.AllowRelaxedEnvironmentVariableValidation'))
-  set_AllowRelaxedEnvironmentVariableValidation : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowRelaxedEnvironmentVariableValidation") (PairV #x #y) (Val #(({ x with AllowRelaxedEnvironmentVariableValidation' := y } : PodValidationOptions)))
-  get_AllowOnlyRecursiveSELinuxChangePolicy : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowOnlyRecursiveSELinuxChangePolicy") #x (Val #(x.AllowOnlyRecursiveSELinuxChangePolicy'))
-  set_AllowOnlyRecursiveSELinuxChangePolicy : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowOnlyRecursiveSELinuxChangePolicy") (PairV #x #y) (Val #(({ x with AllowOnlyRecursiveSELinuxChangePolicy' := y } : PodValidationOptions)))
-  get_PodLevelResourcesEnabled : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"PodLevelResourcesEnabled") #x (Val #(x.PodLevelResourcesEnabled'))
-  set_PodLevelResourcesEnabled : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"PodLevelResourcesEnabled") (PairV #x #y) (Val #(({ x with PodLevelResourcesEnabled' := y } : PodValidationOptions)))
-  get_InPlacePodLevelResourcesVerticalScalingEnabled : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"InPlacePodLevelResourcesVerticalScalingEnabled") #x (Val #(x.InPlacePodLevelResourcesVerticalScalingEnabled'))
-  set_InPlacePodLevelResourcesVerticalScalingEnabled : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"InPlacePodLevelResourcesVerticalScalingEnabled") (PairV #x #y) (Val #(({ x with InPlacePodLevelResourcesVerticalScalingEnabled' := y } : PodValidationOptions)))
-  get_InPlacePodVerticalScalingMemoryBackedVolumesEnabled : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"InPlacePodVerticalScalingMemoryBackedVolumesEnabled") #x (Val #(x.InPlacePodVerticalScalingMemoryBackedVolumesEnabled'))
-  set_InPlacePodVerticalScalingMemoryBackedVolumesEnabled : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"InPlacePodVerticalScalingMemoryBackedVolumesEnabled") (PairV #x #y) (Val #(({ x with InPlacePodVerticalScalingMemoryBackedVolumesEnabled' := y } : PodValidationOptions)))
-  get_AllowSidecarResizePolicy : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowSidecarResizePolicy") #x (Val #(x.AllowSidecarResizePolicy'))
-  set_AllowSidecarResizePolicy : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowSidecarResizePolicy") (PairV #x #y) (Val #(({ x with AllowSidecarResizePolicy' := y } : PodValidationOptions)))
-  get_AllowInvalidLabelValueInRequiredNodeAffinity : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowInvalidLabelValueInRequiredNodeAffinity") #x (Val #(x.AllowInvalidLabelValueInRequiredNodeAffinity'))
-  set_AllowInvalidLabelValueInRequiredNodeAffinity : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowInvalidLabelValueInRequiredNodeAffinity") (PairV #x #y) (Val #(({ x with AllowInvalidLabelValueInRequiredNodeAffinity' := y } : PodValidationOptions)))
-  get_AllowMatchLabelKeysInPodTopologySpread : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowMatchLabelKeysInPodTopologySpread") #x (Val #(x.AllowMatchLabelKeysInPodTopologySpread'))
-  set_AllowMatchLabelKeysInPodTopologySpread : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowMatchLabelKeysInPodTopologySpread") (PairV #x #y) (Val #(({ x with AllowMatchLabelKeysInPodTopologySpread' := y } : PodValidationOptions)))
-  get_AllowMatchLabelKeysInPodTopologySpreadSelectorMerge : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowMatchLabelKeysInPodTopologySpreadSelectorMerge") #x (Val #(x.AllowMatchLabelKeysInPodTopologySpreadSelectorMerge'))
-  set_AllowMatchLabelKeysInPodTopologySpreadSelectorMerge : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowMatchLabelKeysInPodTopologySpreadSelectorMerge") (PairV #x #y) (Val #(({ x with AllowMatchLabelKeysInPodTopologySpreadSelectorMerge' := y } : PodValidationOptions)))
-  get_OldPodViolatesMatchLabelKeysValidation : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"OldPodViolatesMatchLabelKeysValidation") #x (Val #(x.OldPodViolatesMatchLabelKeysValidation'))
-  set_OldPodViolatesMatchLabelKeysValidation : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"OldPodViolatesMatchLabelKeysValidation") (PairV #x #y) (Val #(({ x with OldPodViolatesMatchLabelKeysValidation' := y } : PodValidationOptions)))
-  get_OldPodViolatesLegacyMatchLabelKeysValidation : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"OldPodViolatesLegacyMatchLabelKeysValidation") #x (Val #(x.OldPodViolatesLegacyMatchLabelKeysValidation'))
-  set_OldPodViolatesLegacyMatchLabelKeysValidation : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"OldPodViolatesLegacyMatchLabelKeysValidation") (PairV #x #y) (Val #(({ x with OldPodViolatesLegacyMatchLabelKeysValidation' := y } : PodValidationOptions)))
-  get_AllowEnvFilesValidation : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowEnvFilesValidation") #x (Val #(x.AllowEnvFilesValidation'))
-  set_AllowEnvFilesValidation : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowEnvFilesValidation") (PairV #x #y) (Val #(({ x with AllowEnvFilesValidation' := y } : PodValidationOptions)))
-  get_AllowContainerRestartPolicyRules : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowContainerRestartPolicyRules") #x (Val #(x.AllowContainerRestartPolicyRules'))
-  set_AllowContainerRestartPolicyRules : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowContainerRestartPolicyRules") (PairV #x #y) (Val #(({ x with AllowContainerRestartPolicyRules' := y } : PodValidationOptions)))
-  get_AllowExistingRestartContainerForNonSidecarInitContainer : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowExistingRestartContainerForNonSidecarInitContainer") #x (Val #(x.AllowExistingRestartContainerForNonSidecarInitContainer'))
-  set_AllowExistingRestartContainerForNonSidecarInitContainer : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowExistingRestartContainerForNonSidecarInitContainer") (PairV #x #y) (Val #(({ x with AllowExistingRestartContainerForNonSidecarInitContainer' := y } : PodValidationOptions)))
-  get_AllowUserNamespacesWithVolumeDevices : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowUserNamespacesWithVolumeDevices") #x (Val #(x.AllowUserNamespacesWithVolumeDevices'))
-  set_AllowUserNamespacesWithVolumeDevices : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowUserNamespacesWithVolumeDevices") (PairV #x #y) (Val #(({ x with AllowUserNamespacesWithVolumeDevices' := y } : PodValidationOptions)))
-  get_AllowTaintTolerationComparisonOperators : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowTaintTolerationComparisonOperators") #x (Val #(x.AllowTaintTolerationComparisonOperators'))
-  set_AllowTaintTolerationComparisonOperators : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowTaintTolerationComparisonOperators") (PairV #x #y) (Val #(({ x with AllowTaintTolerationComparisonOperators' := y } : PodValidationOptions)))
-  get_AllowUserNamespacesHostNetworkSupport : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowUserNamespacesHostNetworkSupport") #x (Val #(x.AllowUserNamespacesHostNetworkSupport'))
-  set_AllowUserNamespacesHostNetworkSupport : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowUserNamespacesHostNetworkSupport") (PairV #x #y) (Val #(({ x with AllowUserNamespacesHostNetworkSupport' := y } : PodValidationOptions)))
-  get_AllowRestartAllContainers : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowRestartAllContainers") #x (Val #(x.AllowRestartAllContainers'))
-  set_AllowRestartAllContainers : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowRestartAllContainers") (PairV #x #y) (Val #(({ x with AllowRestartAllContainers' := y } : PodValidationOptions)))
-  get_AllowImageVolumeWithDigest : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowImageVolumeWithDigest") #x (Val #(x.AllowImageVolumeWithDigest'))
-  set_AllowImageVolumeWithDigest : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowImageVolumeWithDigest") (PairV #x #y) (Val #(({ x with AllowImageVolumeWithDigest' := y } : PodValidationOptions)))
-  get_AllowEmptyImageVolumeReference : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowEmptyImageVolumeReference") #x (Val #(x.AllowEmptyImageVolumeReference'))
-  set_AllowEmptyImageVolumeReference : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowEmptyImageVolumeReference") (PairV #x #y) (Val #(({ x with AllowEmptyImageVolumeReference' := y } : PodValidationOptions)))
-  get_AllowSysAdminWhenPrivilegeEscalationFalse : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowSysAdminWhenPrivilegeEscalationFalse") #x (Val #(x.AllowSysAdminWhenPrivilegeEscalationFalse'))
-  set_AllowSysAdminWhenPrivilegeEscalationFalse : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowSysAdminWhenPrivilegeEscalationFalse") (PairV #x #y) (Val #(({ x with AllowSysAdminWhenPrivilegeEscalationFalse' := y } : PodValidationOptions)))
-  get_AllowMLDSAPodCertificateKeyTypes : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowMLDSAPodCertificateKeyTypes") #x (Val #(x.AllowMLDSAPodCertificateKeyTypes'))
-  set_AllowMLDSAPodCertificateKeyTypes : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowMLDSAPodCertificateKeyTypes") (PairV #x #y) (Val #(({ x with AllowMLDSAPodCertificateKeyTypes' := y } : PodValidationOptions)))
+  get'AllowInvalidPodDeletionCost : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowInvalidPodDeletionCost") #x (Val #(x.AllowInvalidPodDeletionCost'))
+  set'AllowInvalidPodDeletionCost : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowInvalidPodDeletionCost") (PairV #x #y) (Val #(({ x with AllowInvalidPodDeletionCost' := y } : PodValidationOptions)))
+  get'AllowInvalidLabelValueInSelector : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowInvalidLabelValueInSelector") #x (Val #(x.AllowInvalidLabelValueInSelector'))
+  set'AllowInvalidLabelValueInSelector : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowInvalidLabelValueInSelector") (PairV #x #y) (Val #(({ x with AllowInvalidLabelValueInSelector' := y } : PodValidationOptions)))
+  get'AllowIndivisibleHugePagesValues : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowIndivisibleHugePagesValues") #x (Val #(x.AllowIndivisibleHugePagesValues'))
+  set'AllowIndivisibleHugePagesValues : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowIndivisibleHugePagesValues") (PairV #x #y) (Val #(({ x with AllowIndivisibleHugePagesValues' := y } : PodValidationOptions)))
+  get'AllowInvalidTopologySpreadConstraintLabelSelector : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowInvalidTopologySpreadConstraintLabelSelector") #x (Val #(x.AllowInvalidTopologySpreadConstraintLabelSelector'))
+  set'AllowInvalidTopologySpreadConstraintLabelSelector : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowInvalidTopologySpreadConstraintLabelSelector") (PairV #x #y) (Val #(({ x with AllowInvalidTopologySpreadConstraintLabelSelector' := y } : PodValidationOptions)))
+  get'AllowNonLocalProjectedTokenPath : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowNonLocalProjectedTokenPath") #x (Val #(x.AllowNonLocalProjectedTokenPath'))
+  set'AllowNonLocalProjectedTokenPath : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowNonLocalProjectedTokenPath") (PairV #x #y) (Val #(({ x with AllowNonLocalProjectedTokenPath' := y } : PodValidationOptions)))
+  get'AllowNamespacedSysctlsForHostNetAndHostIPC : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowNamespacedSysctlsForHostNetAndHostIPC") #x (Val #(x.AllowNamespacedSysctlsForHostNetAndHostIPC'))
+  set'AllowNamespacedSysctlsForHostNetAndHostIPC : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowNamespacedSysctlsForHostNetAndHostIPC") (PairV #x #y) (Val #(({ x with AllowNamespacedSysctlsForHostNetAndHostIPC' := y } : PodValidationOptions)))
+  get'ResourceIsPod : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"ResourceIsPod") #x (Val #(x.ResourceIsPod'))
+  set'ResourceIsPod : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"ResourceIsPod") (PairV #x #y) (Val #(({ x with ResourceIsPod' := y } : PodValidationOptions)))
+  get'AllowRelaxedEnvironmentVariableValidation : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowRelaxedEnvironmentVariableValidation") #x (Val #(x.AllowRelaxedEnvironmentVariableValidation'))
+  set'AllowRelaxedEnvironmentVariableValidation : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowRelaxedEnvironmentVariableValidation") (PairV #x #y) (Val #(({ x with AllowRelaxedEnvironmentVariableValidation' := y } : PodValidationOptions)))
+  get'AllowOnlyRecursiveSELinuxChangePolicy : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowOnlyRecursiveSELinuxChangePolicy") #x (Val #(x.AllowOnlyRecursiveSELinuxChangePolicy'))
+  set'AllowOnlyRecursiveSELinuxChangePolicy : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowOnlyRecursiveSELinuxChangePolicy") (PairV #x #y) (Val #(({ x with AllowOnlyRecursiveSELinuxChangePolicy' := y } : PodValidationOptions)))
+  get'PodLevelResourcesEnabled : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"PodLevelResourcesEnabled") #x (Val #(x.PodLevelResourcesEnabled'))
+  set'PodLevelResourcesEnabled : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"PodLevelResourcesEnabled") (PairV #x #y) (Val #(({ x with PodLevelResourcesEnabled' := y } : PodValidationOptions)))
+  get'InPlacePodLevelResourcesVerticalScalingEnabled : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"InPlacePodLevelResourcesVerticalScalingEnabled") #x (Val #(x.InPlacePodLevelResourcesVerticalScalingEnabled'))
+  set'InPlacePodLevelResourcesVerticalScalingEnabled : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"InPlacePodLevelResourcesVerticalScalingEnabled") (PairV #x #y) (Val #(({ x with InPlacePodLevelResourcesVerticalScalingEnabled' := y } : PodValidationOptions)))
+  get'InPlacePodVerticalScalingMemoryBackedVolumesEnabled : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"InPlacePodVerticalScalingMemoryBackedVolumesEnabled") #x (Val #(x.InPlacePodVerticalScalingMemoryBackedVolumesEnabled'))
+  set'InPlacePodVerticalScalingMemoryBackedVolumesEnabled : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"InPlacePodVerticalScalingMemoryBackedVolumesEnabled") (PairV #x #y) (Val #(({ x with InPlacePodVerticalScalingMemoryBackedVolumesEnabled' := y } : PodValidationOptions)))
+  get'AllowSidecarResizePolicy : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowSidecarResizePolicy") #x (Val #(x.AllowSidecarResizePolicy'))
+  set'AllowSidecarResizePolicy : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowSidecarResizePolicy") (PairV #x #y) (Val #(({ x with AllowSidecarResizePolicy' := y } : PodValidationOptions)))
+  get'AllowInvalidLabelValueInRequiredNodeAffinity : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowInvalidLabelValueInRequiredNodeAffinity") #x (Val #(x.AllowInvalidLabelValueInRequiredNodeAffinity'))
+  set'AllowInvalidLabelValueInRequiredNodeAffinity : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowInvalidLabelValueInRequiredNodeAffinity") (PairV #x #y) (Val #(({ x with AllowInvalidLabelValueInRequiredNodeAffinity' := y } : PodValidationOptions)))
+  get'AllowMatchLabelKeysInPodTopologySpread : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowMatchLabelKeysInPodTopologySpread") #x (Val #(x.AllowMatchLabelKeysInPodTopologySpread'))
+  set'AllowMatchLabelKeysInPodTopologySpread : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowMatchLabelKeysInPodTopologySpread") (PairV #x #y) (Val #(({ x with AllowMatchLabelKeysInPodTopologySpread' := y } : PodValidationOptions)))
+  get'AllowMatchLabelKeysInPodTopologySpreadSelectorMerge : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowMatchLabelKeysInPodTopologySpreadSelectorMerge") #x (Val #(x.AllowMatchLabelKeysInPodTopologySpreadSelectorMerge'))
+  set'AllowMatchLabelKeysInPodTopologySpreadSelectorMerge : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowMatchLabelKeysInPodTopologySpreadSelectorMerge") (PairV #x #y) (Val #(({ x with AllowMatchLabelKeysInPodTopologySpreadSelectorMerge' := y } : PodValidationOptions)))
+  get'OldPodViolatesMatchLabelKeysValidation : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"OldPodViolatesMatchLabelKeysValidation") #x (Val #(x.OldPodViolatesMatchLabelKeysValidation'))
+  set'OldPodViolatesMatchLabelKeysValidation : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"OldPodViolatesMatchLabelKeysValidation") (PairV #x #y) (Val #(({ x with OldPodViolatesMatchLabelKeysValidation' := y } : PodValidationOptions)))
+  get'OldPodViolatesLegacyMatchLabelKeysValidation : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"OldPodViolatesLegacyMatchLabelKeysValidation") #x (Val #(x.OldPodViolatesLegacyMatchLabelKeysValidation'))
+  set'OldPodViolatesLegacyMatchLabelKeysValidation : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"OldPodViolatesLegacyMatchLabelKeysValidation") (PairV #x #y) (Val #(({ x with OldPodViolatesLegacyMatchLabelKeysValidation' := y } : PodValidationOptions)))
+  get'AllowEnvFilesValidation : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowEnvFilesValidation") #x (Val #(x.AllowEnvFilesValidation'))
+  set'AllowEnvFilesValidation : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowEnvFilesValidation") (PairV #x #y) (Val #(({ x with AllowEnvFilesValidation' := y } : PodValidationOptions)))
+  get'AllowContainerRestartPolicyRules : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowContainerRestartPolicyRules") #x (Val #(x.AllowContainerRestartPolicyRules'))
+  set'AllowContainerRestartPolicyRules : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowContainerRestartPolicyRules") (PairV #x #y) (Val #(({ x with AllowContainerRestartPolicyRules' := y } : PodValidationOptions)))
+  get'AllowExistingRestartContainerForNonSidecarInitContainer : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowExistingRestartContainerForNonSidecarInitContainer") #x (Val #(x.AllowExistingRestartContainerForNonSidecarInitContainer'))
+  set'AllowExistingRestartContainerForNonSidecarInitContainer : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowExistingRestartContainerForNonSidecarInitContainer") (PairV #x #y) (Val #(({ x with AllowExistingRestartContainerForNonSidecarInitContainer' := y } : PodValidationOptions)))
+  get'AllowUserNamespacesWithVolumeDevices : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowUserNamespacesWithVolumeDevices") #x (Val #(x.AllowUserNamespacesWithVolumeDevices'))
+  set'AllowUserNamespacesWithVolumeDevices : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowUserNamespacesWithVolumeDevices") (PairV #x #y) (Val #(({ x with AllowUserNamespacesWithVolumeDevices' := y } : PodValidationOptions)))
+  get'AllowTaintTolerationComparisonOperators : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowTaintTolerationComparisonOperators") #x (Val #(x.AllowTaintTolerationComparisonOperators'))
+  set'AllowTaintTolerationComparisonOperators : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowTaintTolerationComparisonOperators") (PairV #x #y) (Val #(({ x with AllowTaintTolerationComparisonOperators' := y } : PodValidationOptions)))
+  get'AllowUserNamespacesHostNetworkSupport : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowUserNamespacesHostNetworkSupport") #x (Val #(x.AllowUserNamespacesHostNetworkSupport'))
+  set'AllowUserNamespacesHostNetworkSupport : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowUserNamespacesHostNetworkSupport") (PairV #x #y) (Val #(({ x with AllowUserNamespacesHostNetworkSupport' := y } : PodValidationOptions)))
+  get'AllowRestartAllContainers : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowRestartAllContainers") #x (Val #(x.AllowRestartAllContainers'))
+  set'AllowRestartAllContainers : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowRestartAllContainers") (PairV #x #y) (Val #(({ x with AllowRestartAllContainers' := y } : PodValidationOptions)))
+  get'AllowImageVolumeWithDigest : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowImageVolumeWithDigest") #x (Val #(x.AllowImageVolumeWithDigest'))
+  set'AllowImageVolumeWithDigest : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowImageVolumeWithDigest") (PairV #x #y) (Val #(({ x with AllowImageVolumeWithDigest' := y } : PodValidationOptions)))
+  get'AllowEmptyImageVolumeReference : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowEmptyImageVolumeReference") #x (Val #(x.AllowEmptyImageVolumeReference'))
+  set'AllowEmptyImageVolumeReference : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowEmptyImageVolumeReference") (PairV #x #y) (Val #(({ x with AllowEmptyImageVolumeReference' := y } : PodValidationOptions)))
+  get'AllowSysAdminWhenPrivilegeEscalationFalse : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowSysAdminWhenPrivilegeEscalationFalse") #x (Val #(x.AllowSysAdminWhenPrivilegeEscalationFalse'))
+  set'AllowSysAdminWhenPrivilegeEscalationFalse : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowSysAdminWhenPrivilegeEscalationFalse") (PairV #x #y) (Val #(({ x with AllowSysAdminWhenPrivilegeEscalationFalse' := y } : PodValidationOptions)))
+  get'AllowMLDSAPodCertificateKeyTypes : ∀ (x : PodValidationOptions), go.IsGoStepPureDetTagged under (StructFieldGet PodValidationOptions.underlying go!"AllowMLDSAPodCertificateKeyTypes") #x (Val #(x.AllowMLDSAPodCertificateKeyTypes'))
+  set'AllowMLDSAPodCertificateKeyTypes : ∀ (x : PodValidationOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PodValidationOptions.underlying go!"AllowMLDSAPodCertificateKeyTypes") (PairV #x #y) (Val #(({ x with AllowMLDSAPodCertificateKeyTypes' := y } : PodValidationOptions)))
   method_set : go.MethodSetIs PodValidationOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodValidationOptions.ty) []
 
 attribute [instance] PodValidationOptions.TypeAssumptions.type_repr
   PodValidationOptions.TypeAssumptions.underlying
-  PodValidationOptions.TypeAssumptions.get_AllowInvalidPodDeletionCost
-  PodValidationOptions.TypeAssumptions.set_AllowInvalidPodDeletionCost
-  PodValidationOptions.TypeAssumptions.get_AllowInvalidLabelValueInSelector
-  PodValidationOptions.TypeAssumptions.set_AllowInvalidLabelValueInSelector
-  PodValidationOptions.TypeAssumptions.get_AllowIndivisibleHugePagesValues
-  PodValidationOptions.TypeAssumptions.set_AllowIndivisibleHugePagesValues
-  PodValidationOptions.TypeAssumptions.get_AllowInvalidTopologySpreadConstraintLabelSelector
-  PodValidationOptions.TypeAssumptions.set_AllowInvalidTopologySpreadConstraintLabelSelector
-  PodValidationOptions.TypeAssumptions.get_AllowNonLocalProjectedTokenPath
-  PodValidationOptions.TypeAssumptions.set_AllowNonLocalProjectedTokenPath
-  PodValidationOptions.TypeAssumptions.get_AllowNamespacedSysctlsForHostNetAndHostIPC
-  PodValidationOptions.TypeAssumptions.set_AllowNamespacedSysctlsForHostNetAndHostIPC
-  PodValidationOptions.TypeAssumptions.get_ResourceIsPod
-  PodValidationOptions.TypeAssumptions.set_ResourceIsPod
-  PodValidationOptions.TypeAssumptions.get_AllowRelaxedEnvironmentVariableValidation
-  PodValidationOptions.TypeAssumptions.set_AllowRelaxedEnvironmentVariableValidation
-  PodValidationOptions.TypeAssumptions.get_AllowOnlyRecursiveSELinuxChangePolicy
-  PodValidationOptions.TypeAssumptions.set_AllowOnlyRecursiveSELinuxChangePolicy
-  PodValidationOptions.TypeAssumptions.get_PodLevelResourcesEnabled
-  PodValidationOptions.TypeAssumptions.set_PodLevelResourcesEnabled
-  PodValidationOptions.TypeAssumptions.get_InPlacePodLevelResourcesVerticalScalingEnabled
-  PodValidationOptions.TypeAssumptions.set_InPlacePodLevelResourcesVerticalScalingEnabled
-  PodValidationOptions.TypeAssumptions.get_InPlacePodVerticalScalingMemoryBackedVolumesEnabled
-  PodValidationOptions.TypeAssumptions.set_InPlacePodVerticalScalingMemoryBackedVolumesEnabled
-  PodValidationOptions.TypeAssumptions.get_AllowSidecarResizePolicy
-  PodValidationOptions.TypeAssumptions.set_AllowSidecarResizePolicy
-  PodValidationOptions.TypeAssumptions.get_AllowInvalidLabelValueInRequiredNodeAffinity
-  PodValidationOptions.TypeAssumptions.set_AllowInvalidLabelValueInRequiredNodeAffinity
-  PodValidationOptions.TypeAssumptions.get_AllowMatchLabelKeysInPodTopologySpread
-  PodValidationOptions.TypeAssumptions.set_AllowMatchLabelKeysInPodTopologySpread
-  PodValidationOptions.TypeAssumptions.get_AllowMatchLabelKeysInPodTopologySpreadSelectorMerge
-  PodValidationOptions.TypeAssumptions.set_AllowMatchLabelKeysInPodTopologySpreadSelectorMerge
-  PodValidationOptions.TypeAssumptions.get_OldPodViolatesMatchLabelKeysValidation
-  PodValidationOptions.TypeAssumptions.set_OldPodViolatesMatchLabelKeysValidation
-  PodValidationOptions.TypeAssumptions.get_OldPodViolatesLegacyMatchLabelKeysValidation
-  PodValidationOptions.TypeAssumptions.set_OldPodViolatesLegacyMatchLabelKeysValidation
-  PodValidationOptions.TypeAssumptions.get_AllowEnvFilesValidation
-  PodValidationOptions.TypeAssumptions.set_AllowEnvFilesValidation
-  PodValidationOptions.TypeAssumptions.get_AllowContainerRestartPolicyRules
-  PodValidationOptions.TypeAssumptions.set_AllowContainerRestartPolicyRules
-  PodValidationOptions.TypeAssumptions.get_AllowExistingRestartContainerForNonSidecarInitContainer
-  PodValidationOptions.TypeAssumptions.set_AllowExistingRestartContainerForNonSidecarInitContainer
-  PodValidationOptions.TypeAssumptions.get_AllowUserNamespacesWithVolumeDevices
-  PodValidationOptions.TypeAssumptions.set_AllowUserNamespacesWithVolumeDevices
-  PodValidationOptions.TypeAssumptions.get_AllowTaintTolerationComparisonOperators
-  PodValidationOptions.TypeAssumptions.set_AllowTaintTolerationComparisonOperators
-  PodValidationOptions.TypeAssumptions.get_AllowUserNamespacesHostNetworkSupport
-  PodValidationOptions.TypeAssumptions.set_AllowUserNamespacesHostNetworkSupport
-  PodValidationOptions.TypeAssumptions.get_AllowRestartAllContainers
-  PodValidationOptions.TypeAssumptions.set_AllowRestartAllContainers
-  PodValidationOptions.TypeAssumptions.get_AllowImageVolumeWithDigest
-  PodValidationOptions.TypeAssumptions.set_AllowImageVolumeWithDigest
-  PodValidationOptions.TypeAssumptions.get_AllowEmptyImageVolumeReference
-  PodValidationOptions.TypeAssumptions.set_AllowEmptyImageVolumeReference
-  PodValidationOptions.TypeAssumptions.get_AllowSysAdminWhenPrivilegeEscalationFalse
-  PodValidationOptions.TypeAssumptions.set_AllowSysAdminWhenPrivilegeEscalationFalse
-  PodValidationOptions.TypeAssumptions.get_AllowMLDSAPodCertificateKeyTypes
-  PodValidationOptions.TypeAssumptions.set_AllowMLDSAPodCertificateKeyTypes
+  PodValidationOptions.TypeAssumptions.get'AllowInvalidPodDeletionCost
+  PodValidationOptions.TypeAssumptions.set'AllowInvalidPodDeletionCost
+  PodValidationOptions.TypeAssumptions.get'AllowInvalidLabelValueInSelector
+  PodValidationOptions.TypeAssumptions.set'AllowInvalidLabelValueInSelector
+  PodValidationOptions.TypeAssumptions.get'AllowIndivisibleHugePagesValues
+  PodValidationOptions.TypeAssumptions.set'AllowIndivisibleHugePagesValues
+  PodValidationOptions.TypeAssumptions.get'AllowInvalidTopologySpreadConstraintLabelSelector
+  PodValidationOptions.TypeAssumptions.set'AllowInvalidTopologySpreadConstraintLabelSelector
+  PodValidationOptions.TypeAssumptions.get'AllowNonLocalProjectedTokenPath
+  PodValidationOptions.TypeAssumptions.set'AllowNonLocalProjectedTokenPath
+  PodValidationOptions.TypeAssumptions.get'AllowNamespacedSysctlsForHostNetAndHostIPC
+  PodValidationOptions.TypeAssumptions.set'AllowNamespacedSysctlsForHostNetAndHostIPC
+  PodValidationOptions.TypeAssumptions.get'ResourceIsPod
+  PodValidationOptions.TypeAssumptions.set'ResourceIsPod
+  PodValidationOptions.TypeAssumptions.get'AllowRelaxedEnvironmentVariableValidation
+  PodValidationOptions.TypeAssumptions.set'AllowRelaxedEnvironmentVariableValidation
+  PodValidationOptions.TypeAssumptions.get'AllowOnlyRecursiveSELinuxChangePolicy
+  PodValidationOptions.TypeAssumptions.set'AllowOnlyRecursiveSELinuxChangePolicy
+  PodValidationOptions.TypeAssumptions.get'PodLevelResourcesEnabled
+  PodValidationOptions.TypeAssumptions.set'PodLevelResourcesEnabled
+  PodValidationOptions.TypeAssumptions.get'InPlacePodLevelResourcesVerticalScalingEnabled
+  PodValidationOptions.TypeAssumptions.set'InPlacePodLevelResourcesVerticalScalingEnabled
+  PodValidationOptions.TypeAssumptions.get'InPlacePodVerticalScalingMemoryBackedVolumesEnabled
+  PodValidationOptions.TypeAssumptions.set'InPlacePodVerticalScalingMemoryBackedVolumesEnabled
+  PodValidationOptions.TypeAssumptions.get'AllowSidecarResizePolicy
+  PodValidationOptions.TypeAssumptions.set'AllowSidecarResizePolicy
+  PodValidationOptions.TypeAssumptions.get'AllowInvalidLabelValueInRequiredNodeAffinity
+  PodValidationOptions.TypeAssumptions.set'AllowInvalidLabelValueInRequiredNodeAffinity
+  PodValidationOptions.TypeAssumptions.get'AllowMatchLabelKeysInPodTopologySpread
+  PodValidationOptions.TypeAssumptions.set'AllowMatchLabelKeysInPodTopologySpread
+  PodValidationOptions.TypeAssumptions.get'AllowMatchLabelKeysInPodTopologySpreadSelectorMerge
+  PodValidationOptions.TypeAssumptions.set'AllowMatchLabelKeysInPodTopologySpreadSelectorMerge
+  PodValidationOptions.TypeAssumptions.get'OldPodViolatesMatchLabelKeysValidation
+  PodValidationOptions.TypeAssumptions.set'OldPodViolatesMatchLabelKeysValidation
+  PodValidationOptions.TypeAssumptions.get'OldPodViolatesLegacyMatchLabelKeysValidation
+  PodValidationOptions.TypeAssumptions.set'OldPodViolatesLegacyMatchLabelKeysValidation
+  PodValidationOptions.TypeAssumptions.get'AllowEnvFilesValidation
+  PodValidationOptions.TypeAssumptions.set'AllowEnvFilesValidation
+  PodValidationOptions.TypeAssumptions.get'AllowContainerRestartPolicyRules
+  PodValidationOptions.TypeAssumptions.set'AllowContainerRestartPolicyRules
+  PodValidationOptions.TypeAssumptions.get'AllowExistingRestartContainerForNonSidecarInitContainer
+  PodValidationOptions.TypeAssumptions.set'AllowExistingRestartContainerForNonSidecarInitContainer
+  PodValidationOptions.TypeAssumptions.get'AllowUserNamespacesWithVolumeDevices
+  PodValidationOptions.TypeAssumptions.set'AllowUserNamespacesWithVolumeDevices
+  PodValidationOptions.TypeAssumptions.get'AllowTaintTolerationComparisonOperators
+  PodValidationOptions.TypeAssumptions.set'AllowTaintTolerationComparisonOperators
+  PodValidationOptions.TypeAssumptions.get'AllowUserNamespacesHostNetworkSupport
+  PodValidationOptions.TypeAssumptions.set'AllowUserNamespacesHostNetworkSupport
+  PodValidationOptions.TypeAssumptions.get'AllowRestartAllContainers
+  PodValidationOptions.TypeAssumptions.set'AllowRestartAllContainers
+  PodValidationOptions.TypeAssumptions.get'AllowImageVolumeWithDigest
+  PodValidationOptions.TypeAssumptions.set'AllowImageVolumeWithDigest
+  PodValidationOptions.TypeAssumptions.get'AllowEmptyImageVolumeReference
+  PodValidationOptions.TypeAssumptions.set'AllowEmptyImageVolumeReference
+  PodValidationOptions.TypeAssumptions.get'AllowSysAdminWhenPrivilegeEscalationFalse
+  PodValidationOptions.TypeAssumptions.set'AllowSysAdminWhenPrivilegeEscalationFalse
+  PodValidationOptions.TypeAssumptions.get'AllowMLDSAPodCertificateKeyTypes
+  PodValidationOptions.TypeAssumptions.set'AllowMLDSAPodCertificateKeyTypes
   PodValidationOptions.TypeAssumptions.method_set
   PodValidationOptions.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ValidateNameFunc_instance : ValidateNameFunc.TypeAssumptions
-  ValidateCSIDriverNameOption_instance : ValidateCSIDriverNameOption.TypeAssumptions
-  PersistentVolumeSpecValidationOptions_instance : PersistentVolumeSpecValidationOptions.TypeAssumptions
-  PersistentVolumeClaimSpecValidationOptions_instance : PersistentVolumeClaimSpecValidationOptions.TypeAssumptions
-  commonHandler_instance : commonHandler.TypeAssumptions
-  ValidateTolerationsOption_instance : ValidateTolerationsOption.TypeAssumptions
-  PodValidationOptions_instance : PodValidationOptions.TypeAssumptions
+  instance'ValidateNameFunc : ValidateNameFunc.TypeAssumptions
+  instance'ValidateCSIDriverNameOption : ValidateCSIDriverNameOption.TypeAssumptions
+  instance'PersistentVolumeSpecValidationOptions : PersistentVolumeSpecValidationOptions.TypeAssumptions
+  instance'PersistentVolumeClaimSpecValidationOptions : PersistentVolumeClaimSpecValidationOptions.TypeAssumptions
+  instance'commonHandler : commonHandler.TypeAssumptions
+  instance'ValidateTolerationsOption : ValidateTolerationsOption.TypeAssumptions
+  instance'PodValidationOptions : PodValidationOptions.TypeAssumptions
 
-attribute [instance] Assumptions.ValidateNameFunc_instance
-  Assumptions.ValidateCSIDriverNameOption_instance
-  Assumptions.PersistentVolumeSpecValidationOptions_instance
-  Assumptions.PersistentVolumeClaimSpecValidationOptions_instance
-  Assumptions.commonHandler_instance
-  Assumptions.ValidateTolerationsOption_instance
-  Assumptions.PodValidationOptions_instance
+attribute [instance] Assumptions.instance'ValidateNameFunc
+  Assumptions.instance'ValidateCSIDriverNameOption
+  Assumptions.instance'PersistentVolumeSpecValidationOptions
+  Assumptions.instance'PersistentVolumeClaimSpecValidationOptions
+  Assumptions.instance'commonHandler
+  Assumptions.instance'ValidateTolerationsOption
+  Assumptions.instance'PodValidationOptions
 
 end k8s_io.kubernetes.pkg.apis.core.validation
 

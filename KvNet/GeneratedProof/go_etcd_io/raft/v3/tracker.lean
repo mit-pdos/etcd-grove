@@ -29,7 +29,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.tracker.Assumptions]
 
-noncomputable instance inflight_typed_pointsto :
+noncomputable instance typed_pointsto'inflight :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.tracker.inflight where
   typedPointstoDef l v dq := iprop(
     "index" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.inflight go!"index" l) v.index' dq ∗
@@ -39,11 +39,11 @@ noncomputable instance inflight_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance inflight_into_val_typed :
+noncomputable instance into_val_typed'inflight :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.tracker.inflight go_etcd_io.raft.v3.tracker.inflight.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance inflight_access_load_index (l : Loc) (v : go_etcd_io.raft.v3.tracker.inflight) (dq : DFrac) :
+noncomputable instance access_load'inflight'index (l : Loc) (v : go_etcd_io.raft.v3.tracker.inflight) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.inflight go!"index" l) v.index' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.inflight go!"index" l) v.index' dq)
@@ -51,7 +51,7 @@ noncomputable instance inflight_access_load_index (l : Loc) (v : go_etcd_io.raft
  by
   solve_pointsto_access_struct
 
-noncomputable instance inflight_access_store_index (l : Loc) (v : go_etcd_io.raft.v3.tracker.inflight) (y : w64) :
+noncomputable instance access_store'inflight'index (l : Loc) (v : go_etcd_io.raft.v3.tracker.inflight) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.inflight go!"index" l) v.index' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.inflight go!"index" l) y (DFrac.own 1))
@@ -59,7 +59,7 @@ noncomputable instance inflight_access_store_index (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance inflight_access_load_bytes (l : Loc) (v : go_etcd_io.raft.v3.tracker.inflight) (dq : DFrac) :
+noncomputable instance access_load'inflight'bytes (l : Loc) (v : go_etcd_io.raft.v3.tracker.inflight) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.inflight go!"bytes" l) v.bytes' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.inflight go!"bytes" l) v.bytes' dq)
@@ -67,7 +67,7 @@ noncomputable instance inflight_access_load_bytes (l : Loc) (v : go_etcd_io.raft
  by
   solve_pointsto_access_struct
 
-noncomputable instance inflight_access_store_bytes (l : Loc) (v : go_etcd_io.raft.v3.tracker.inflight) (y : w64) :
+noncomputable instance access_store'inflight'bytes (l : Loc) (v : go_etcd_io.raft.v3.tracker.inflight) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.inflight go!"bytes" l) v.bytes' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.inflight go!"bytes" l) y (DFrac.own 1))
@@ -86,7 +86,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.tracker.Assumptions]
 
-noncomputable instance Inflights_typed_pointsto :
+noncomputable instance typed_pointsto'Inflights :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.tracker.Inflights where
   typedPointstoDef l v dq := iprop(
     "start" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"start" l) v.start' dq ∗
@@ -100,11 +100,11 @@ noncomputable instance Inflights_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Inflights_into_val_typed :
+noncomputable instance into_val_typed'Inflights :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.tracker.Inflights go_etcd_io.raft.v3.tracker.Inflights.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Inflights_access_load_start (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (dq : DFrac) :
+noncomputable instance access_load'Inflights'start (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"start" l) v.start' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"start" l) v.start' dq)
@@ -112,7 +112,7 @@ noncomputable instance Inflights_access_load_start (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inflights_access_store_start (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (y : w64) :
+noncomputable instance access_store'Inflights'start (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"start" l) v.start' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"start" l) y (DFrac.own 1))
@@ -120,7 +120,7 @@ noncomputable instance Inflights_access_store_start (l : Loc) (v : go_etcd_io.ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inflights_access_load_count (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (dq : DFrac) :
+noncomputable instance access_load'Inflights'count (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"count" l) v.count' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"count" l) v.count' dq)
@@ -128,7 +128,7 @@ noncomputable instance Inflights_access_load_count (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inflights_access_store_count (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (y : w64) :
+noncomputable instance access_store'Inflights'count (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"count" l) v.count' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"count" l) y (DFrac.own 1))
@@ -136,7 +136,7 @@ noncomputable instance Inflights_access_store_count (l : Loc) (v : go_etcd_io.ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inflights_access_load_bytes (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (dq : DFrac) :
+noncomputable instance access_load'Inflights'bytes (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"bytes" l) v.bytes' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"bytes" l) v.bytes' dq)
@@ -144,7 +144,7 @@ noncomputable instance Inflights_access_load_bytes (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inflights_access_store_bytes (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (y : w64) :
+noncomputable instance access_store'Inflights'bytes (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"bytes" l) v.bytes' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"bytes" l) y (DFrac.own 1))
@@ -152,7 +152,7 @@ noncomputable instance Inflights_access_store_bytes (l : Loc) (v : go_etcd_io.ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inflights_access_load_size (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (dq : DFrac) :
+noncomputable instance access_load'Inflights'size (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"size" l) v.size' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"size" l) v.size' dq)
@@ -160,7 +160,7 @@ noncomputable instance Inflights_access_load_size (l : Loc) (v : go_etcd_io.raft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inflights_access_store_size (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (y : w64) :
+noncomputable instance access_store'Inflights'size (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"size" l) v.size' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"size" l) y (DFrac.own 1))
@@ -168,7 +168,7 @@ noncomputable instance Inflights_access_store_size (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inflights_access_load_maxBytes (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (dq : DFrac) :
+noncomputable instance access_load'Inflights'maxBytes (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"maxBytes" l) v.maxBytes' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"maxBytes" l) v.maxBytes' dq)
@@ -176,7 +176,7 @@ noncomputable instance Inflights_access_load_maxBytes (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inflights_access_store_maxBytes (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (y : w64) :
+noncomputable instance access_store'Inflights'maxBytes (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"maxBytes" l) v.maxBytes' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"maxBytes" l) y (DFrac.own 1))
@@ -184,7 +184,7 @@ noncomputable instance Inflights_access_store_maxBytes (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inflights_access_load_buffer (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (dq : DFrac) :
+noncomputable instance access_load'Inflights'buffer (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"buffer" l) v.buffer' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"buffer" l) v.buffer' dq)
@@ -192,7 +192,7 @@ noncomputable instance Inflights_access_load_buffer (l : Loc) (v : go_etcd_io.ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inflights_access_store_buffer (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (y : GoSlice) :
+noncomputable instance access_store'Inflights'buffer (l : Loc) (v : go_etcd_io.raft.v3.tracker.Inflights) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"buffer" l) v.buffer' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Inflights go!"buffer" l) y (DFrac.own 1))
@@ -211,7 +211,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.tracker.Assumptions]
 
-noncomputable instance Progress_typed_pointsto :
+noncomputable instance typed_pointsto'Progress :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.tracker.Progress where
   typedPointstoDef l v dq := iprop(
     "Match" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Match" l) v.Match' dq ∗
@@ -228,11 +228,11 @@ noncomputable instance Progress_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Progress_into_val_typed :
+noncomputable instance into_val_typed'Progress :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.tracker.Progress go_etcd_io.raft.v3.tracker.Progress.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Progress_access_load_Match (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
+noncomputable instance access_load'Progress'Match (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Match" l) v.Match' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Match" l) v.Match' dq)
@@ -240,7 +240,7 @@ noncomputable instance Progress_access_load_Match (l : Loc) (v : go_etcd_io.raft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_store_Match (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : w64) :
+noncomputable instance access_store'Progress'Match (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Match" l) v.Match' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Match" l) y (DFrac.own 1))
@@ -248,7 +248,7 @@ noncomputable instance Progress_access_store_Match (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_load_Next (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
+noncomputable instance access_load'Progress'Next (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Next" l) v.Next' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Next" l) v.Next' dq)
@@ -256,7 +256,7 @@ noncomputable instance Progress_access_load_Next (l : Loc) (v : go_etcd_io.raft.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_store_Next (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : w64) :
+noncomputable instance access_store'Progress'Next (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Next" l) v.Next' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Next" l) y (DFrac.own 1))
@@ -264,7 +264,7 @@ noncomputable instance Progress_access_store_Next (l : Loc) (v : go_etcd_io.raft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_load_sentCommit (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
+noncomputable instance access_load'Progress'sentCommit (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"sentCommit" l) v.sentCommit' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"sentCommit" l) v.sentCommit' dq)
@@ -272,7 +272,7 @@ noncomputable instance Progress_access_load_sentCommit (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_store_sentCommit (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : w64) :
+noncomputable instance access_store'Progress'sentCommit (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"sentCommit" l) v.sentCommit' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"sentCommit" l) y (DFrac.own 1))
@@ -280,7 +280,7 @@ noncomputable instance Progress_access_store_sentCommit (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_load_State (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
+noncomputable instance access_load'Progress'State (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"State" l) v.State' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"State" l) v.State' dq)
@@ -288,7 +288,7 @@ noncomputable instance Progress_access_load_State (l : Loc) (v : go_etcd_io.raft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_store_State (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : go_etcd_io.raft.v3.tracker.StateType) :
+noncomputable instance access_store'Progress'State (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : go_etcd_io.raft.v3.tracker.StateType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"State" l) v.State' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"State" l) y (DFrac.own 1))
@@ -296,7 +296,7 @@ noncomputable instance Progress_access_store_State (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_load_PendingSnapshot (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
+noncomputable instance access_load'Progress'PendingSnapshot (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"PendingSnapshot" l) v.PendingSnapshot' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"PendingSnapshot" l) v.PendingSnapshot' dq)
@@ -304,7 +304,7 @@ noncomputable instance Progress_access_load_PendingSnapshot (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_store_PendingSnapshot (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : w64) :
+noncomputable instance access_store'Progress'PendingSnapshot (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"PendingSnapshot" l) v.PendingSnapshot' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"PendingSnapshot" l) y (DFrac.own 1))
@@ -312,7 +312,7 @@ noncomputable instance Progress_access_store_PendingSnapshot (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_load_RecentActive (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
+noncomputable instance access_load'Progress'RecentActive (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"RecentActive" l) v.RecentActive' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"RecentActive" l) v.RecentActive' dq)
@@ -320,7 +320,7 @@ noncomputable instance Progress_access_load_RecentActive (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_store_RecentActive (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : Bool) :
+noncomputable instance access_store'Progress'RecentActive (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"RecentActive" l) v.RecentActive' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"RecentActive" l) y (DFrac.own 1))
@@ -328,7 +328,7 @@ noncomputable instance Progress_access_store_RecentActive (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_load_MsgAppFlowPaused (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
+noncomputable instance access_load'Progress'MsgAppFlowPaused (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"MsgAppFlowPaused" l) v.MsgAppFlowPaused' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"MsgAppFlowPaused" l) v.MsgAppFlowPaused' dq)
@@ -336,7 +336,7 @@ noncomputable instance Progress_access_load_MsgAppFlowPaused (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_store_MsgAppFlowPaused (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : Bool) :
+noncomputable instance access_store'Progress'MsgAppFlowPaused (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"MsgAppFlowPaused" l) v.MsgAppFlowPaused' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"MsgAppFlowPaused" l) y (DFrac.own 1))
@@ -344,7 +344,7 @@ noncomputable instance Progress_access_store_MsgAppFlowPaused (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_load_Inflights (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
+noncomputable instance access_load'Progress'Inflights (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Inflights" l) v.Inflights' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Inflights" l) v.Inflights' dq)
@@ -352,7 +352,7 @@ noncomputable instance Progress_access_load_Inflights (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_store_Inflights (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : Loc) :
+noncomputable instance access_store'Progress'Inflights (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Inflights" l) v.Inflights' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Inflights" l) y (DFrac.own 1))
@@ -360,7 +360,7 @@ noncomputable instance Progress_access_store_Inflights (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_load_IsLearner (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
+noncomputable instance access_load'Progress'IsLearner (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"IsLearner" l) v.IsLearner' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"IsLearner" l) v.IsLearner' dq)
@@ -368,7 +368,7 @@ noncomputable instance Progress_access_load_IsLearner (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Progress_access_store_IsLearner (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : Bool) :
+noncomputable instance access_store'Progress'IsLearner (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"IsLearner" l) v.IsLearner' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"IsLearner" l) y (DFrac.own 1))
@@ -387,7 +387,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.tracker.Assumptions]
 
-noncomputable instance Config_typed_pointsto :
+noncomputable instance typed_pointsto'Config :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.tracker.Config where
   typedPointstoDef l v dq := iprop(
     "Voters" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Voters" l) v.Voters' dq ∗
@@ -399,11 +399,11 @@ noncomputable instance Config_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Config_into_val_typed :
+noncomputable instance into_val_typed'Config :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.tracker.Config go_etcd_io.raft.v3.tracker.Config.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Config_access_load_Voters (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Voters (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Voters" l) v.Voters' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Voters" l) v.Voters' dq)
@@ -411,7 +411,7 @@ noncomputable instance Config_access_load_Voters (l : Loc) (v : go_etcd_io.raft.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Voters (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (y : _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig) :
+noncomputable instance access_store'Config'Voters (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (y : _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Voters" l) v.Voters' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Voters" l) y (DFrac.own 1))
@@ -419,7 +419,7 @@ noncomputable instance Config_access_store_Voters (l : Loc) (v : go_etcd_io.raft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_AutoLeave (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'AutoLeave (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"AutoLeave" l) v.AutoLeave' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"AutoLeave" l) v.AutoLeave' dq)
@@ -427,7 +427,7 @@ noncomputable instance Config_access_load_AutoLeave (l : Loc) (v : go_etcd_io.ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_AutoLeave (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (y : Bool) :
+noncomputable instance access_store'Config'AutoLeave (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"AutoLeave" l) v.AutoLeave' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"AutoLeave" l) y (DFrac.own 1))
@@ -435,7 +435,7 @@ noncomputable instance Config_access_store_AutoLeave (l : Loc) (v : go_etcd_io.r
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_Learners (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Learners (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Learners" l) v.Learners' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Learners" l) v.Learners' dq)
@@ -443,7 +443,7 @@ noncomputable instance Config_access_load_Learners (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Learners (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (y : GoMap) :
+noncomputable instance access_store'Config'Learners (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Learners" l) v.Learners' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Learners" l) y (DFrac.own 1))
@@ -451,7 +451,7 @@ noncomputable instance Config_access_store_Learners (l : Loc) (v : go_etcd_io.ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_load_LearnersNext (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'LearnersNext (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"LearnersNext" l) v.LearnersNext' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"LearnersNext" l) v.LearnersNext' dq)
@@ -459,7 +459,7 @@ noncomputable instance Config_access_load_LearnersNext (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_LearnersNext (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (y : GoMap) :
+noncomputable instance access_store'Config'LearnersNext (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"LearnersNext" l) v.LearnersNext' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"LearnersNext" l) y (DFrac.own 1))
@@ -478,7 +478,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.tracker.Assumptions]
 
-noncomputable instance ProgressTracker_typed_pointsto :
+noncomputable instance typed_pointsto'ProgressTracker :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.tracker.ProgressTracker where
   typedPointstoDef l v dq := iprop(
     "Config" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Config" l) v.Config' dq ∗
@@ -491,11 +491,11 @@ noncomputable instance ProgressTracker_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ProgressTracker_into_val_typed :
+noncomputable instance into_val_typed'ProgressTracker :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.tracker.ProgressTracker go_etcd_io.raft.v3.tracker.ProgressTracker.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ProgressTracker_access_load_Config (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (dq : DFrac) :
+noncomputable instance access_load'ProgressTracker'Config (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Config" l) v.Config' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Config" l) v.Config' dq)
@@ -503,7 +503,7 @@ noncomputable instance ProgressTracker_access_load_Config (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProgressTracker_access_store_Config (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (y : go_etcd_io.raft.v3.tracker.Config) :
+noncomputable instance access_store'ProgressTracker'Config (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (y : go_etcd_io.raft.v3.tracker.Config) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Config" l) v.Config' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Config" l) y (DFrac.own 1))
@@ -511,7 +511,7 @@ noncomputable instance ProgressTracker_access_store_Config (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProgressTracker_access_load_Progress (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (dq : DFrac) :
+noncomputable instance access_load'ProgressTracker'Progress (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Progress" l) v.Progress' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Progress" l) v.Progress' dq)
@@ -519,7 +519,7 @@ noncomputable instance ProgressTracker_access_load_Progress (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProgressTracker_access_store_Progress (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (y : go_etcd_io.raft.v3.tracker.ProgressMap) :
+noncomputable instance access_store'ProgressTracker'Progress (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (y : go_etcd_io.raft.v3.tracker.ProgressMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Progress" l) v.Progress' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Progress" l) y (DFrac.own 1))
@@ -527,7 +527,7 @@ noncomputable instance ProgressTracker_access_store_Progress (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProgressTracker_access_load_Votes (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (dq : DFrac) :
+noncomputable instance access_load'ProgressTracker'Votes (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Votes" l) v.Votes' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Votes" l) v.Votes' dq)
@@ -535,7 +535,7 @@ noncomputable instance ProgressTracker_access_load_Votes (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProgressTracker_access_store_Votes (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (y : GoMap) :
+noncomputable instance access_store'ProgressTracker'Votes (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Votes" l) v.Votes' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Votes" l) y (DFrac.own 1))
@@ -543,7 +543,7 @@ noncomputable instance ProgressTracker_access_store_Votes (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProgressTracker_access_load_MaxInflight (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (dq : DFrac) :
+noncomputable instance access_load'ProgressTracker'MaxInflight (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"MaxInflight" l) v.MaxInflight' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"MaxInflight" l) v.MaxInflight' dq)
@@ -551,7 +551,7 @@ noncomputable instance ProgressTracker_access_load_MaxInflight (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProgressTracker_access_store_MaxInflight (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (y : w64) :
+noncomputable instance access_store'ProgressTracker'MaxInflight (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"MaxInflight" l) v.MaxInflight' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"MaxInflight" l) y (DFrac.own 1))
@@ -559,7 +559,7 @@ noncomputable instance ProgressTracker_access_store_MaxInflight (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProgressTracker_access_load_MaxInflightBytes (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (dq : DFrac) :
+noncomputable instance access_load'ProgressTracker'MaxInflightBytes (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"MaxInflightBytes" l) v.MaxInflightBytes' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"MaxInflightBytes" l) v.MaxInflightBytes' dq)
@@ -567,7 +567,7 @@ noncomputable instance ProgressTracker_access_load_MaxInflightBytes (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProgressTracker_access_store_MaxInflightBytes (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (y : w64) :
+noncomputable instance access_store'ProgressTracker'MaxInflightBytes (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"MaxInflightBytes" l) v.MaxInflightBytes' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"MaxInflightBytes" l) y (DFrac.own 1))

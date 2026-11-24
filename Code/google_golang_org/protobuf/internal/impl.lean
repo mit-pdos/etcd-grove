@@ -406,7 +406,7 @@ attribute [irreducible] validationType.ty
 @[irreducible] noncomputable def «struct#5c765bdc».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#5c765bdc».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#5c765bdc» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#5c765bdc» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#5c765bdc».fields «struct#5c765bdc».fieldsUnsealed :=
   ⟨by unfold «struct#5c765bdc».fields; rfl⟩
 
@@ -420,7 +420,7 @@ noncomputable instance «equals_unfold_struct#5c765bdc» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#09ab9bd9».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#09ab9bd9».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#09ab9bd9» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#09ab9bd9» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#09ab9bd9».fields «struct#09ab9bd9».fieldsUnsealed :=
   ⟨by unfold «struct#09ab9bd9».fields; rfl⟩
 
@@ -436,7 +436,7 @@ noncomputable instance «equals_unfold_struct#09ab9bd9» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#8d354e5a».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#8d354e5a».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#8d354e5a» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#8d354e5a» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#8d354e5a».fields «struct#8d354e5a».fieldsUnsealed :=
   ⟨by unfold «struct#8d354e5a».fields; rfl⟩
 
@@ -450,7 +450,7 @@ noncomputable instance «equals_unfold_struct#8d354e5a» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#69fc66c6».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#69fc66c6».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#69fc66c6» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#69fc66c6» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#69fc66c6».fields «struct#69fc66c6».fieldsUnsealed :=
   ⟨by unfold «struct#69fc66c6».fields; rfl⟩
 
@@ -468,7 +468,7 @@ noncomputable instance «equals_unfold_struct#69fc66c6» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#b984c7d3».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#b984c7d3».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#b984c7d3» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#b984c7d3» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#b984c7d3».fields «struct#b984c7d3».fieldsUnsealed :=
   ⟨by unfold «struct#b984c7d3».fields; rfl⟩
 
@@ -482,7 +482,7 @@ noncomputable instance «equals_unfold_struct#b984c7d3» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#f9d6c4b8».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#f9d6c4b8».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#f9d6c4b8» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#f9d6c4b8» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#f9d6c4b8».fields «struct#f9d6c4b8».fieldsUnsealed :=
   ⟨by unfold «struct#f9d6c4b8».fields; rfl⟩
 
@@ -497,7 +497,7 @@ noncomputable instance «equals_unfold_struct#f9d6c4b8» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#07f26e0d».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#07f26e0d».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#07f26e0d» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#07f26e0d» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#07f26e0d».fields «struct#07f26e0d».fieldsUnsealed :=
   ⟨by unfold «struct#07f26e0d».fields; rfl⟩
 
@@ -511,7 +511,7 @@ noncomputable instance «equals_unfold_struct#07f26e0d» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#9992dc58».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#9992dc58».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#9992dc58» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#9992dc58» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#9992dc58».fields «struct#9992dc58».fieldsUnsealed :=
   ⟨by unfold «struct#9992dc58».fields; rfl⟩
 
@@ -525,7 +525,7 @@ noncomputable instance «equals_unfold_struct#9992dc58» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#dc47f379».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#dc47f379».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#dc47f379» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#dc47f379» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#dc47f379».fields «struct#dc47f379».fieldsUnsealed :=
   ⟨by unfold «struct#dc47f379».fields; rfl⟩
 
@@ -538,7 +538,7 @@ noncomputable instance «equals_unfold_struct#dc47f379» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#26ca81e8».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#26ca81e8».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#26ca81e8» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#26ca81e8» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#26ca81e8».fields «struct#26ca81e8».fieldsUnsealed :=
   ⟨by unfold «struct#26ca81e8».fields; rfl⟩
 
@@ -553,7 +553,7 @@ noncomputable instance «equals_unfold_struct#26ca81e8» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#9d8af3ce».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#9d8af3ce».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#9d8af3ce» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#9d8af3ce» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#9d8af3ce».fields «struct#9d8af3ce».fieldsUnsealed :=
   ⟨by unfold «struct#9d8af3ce».fields; rfl⟩
 
@@ -567,7 +567,7 @@ noncomputable instance «equals_unfold_struct#9d8af3ce» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#f228ed0d».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#f228ed0d».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#f228ed0d» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#f228ed0d» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#f228ed0d».fields «struct#f228ed0d».fieldsUnsealed :=
   ⟨by unfold «struct#f228ed0d».fields; rfl⟩
 
@@ -587,7 +587,7 @@ noncomputable instance «equals_unfold_struct#f228ed0d» [GooseExts] [GoGlobalCo
 @[irreducible] noncomputable def «struct#15a64e1b».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   «struct#15a64e1b».fieldsUnsealed
 
-noncomputable instance «equals_unfold_struct#15a64e1b» [GooseExts] [GoGlobalContext] :
+noncomputable instance «equals_unfold'struct#15a64e1b» [GooseExts] [GoGlobalContext] :
     EqualsUnfold «struct#15a64e1b».fields «struct#15a64e1b».fieldsUnsealed :=
   ⟨by unfold «struct#15a64e1b».fields; rfl⟩
 
@@ -4594,7 +4594,7 @@ noncomputable instance MessageState.zero_val [GooseExts] : ZeroVal MessageState 
 @[irreducible] noncomputable def MessageState.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MessageState.fieldsUnsealed
 
-noncomputable instance equals_unfold_MessageState [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'MessageState [GooseExts] [GoGlobalContext] :
     EqualsUnfold MessageState.fields MessageState.fieldsUnsealed :=
   ⟨by unfold MessageState.fields; rfl⟩
 
@@ -4604,27 +4604,27 @@ noncomputable instance equals_unfold_MessageState [GooseExts] [GoGlobalContext] 
 class MessageState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MessageState.underlying MessageState
   underlying : go.UnderlyingDirectedEq MessageState.ty MessageState.underlying
-  get_NoUnkeyedLiterals : ∀ (x : MessageState), go.IsGoStepPureDetTagged under (StructFieldGet MessageState.underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
-  set_NoUnkeyedLiterals : ∀ (x : MessageState) (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet MessageState.underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : MessageState)))
-  get_DoNotCompare : ∀ (x : MessageState), go.IsGoStepPureDetTagged under (StructFieldGet MessageState.underlying go!"DoNotCompare") #x (Val #(x.DoNotCompare'))
-  set_DoNotCompare : ∀ (x : MessageState) (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotCompare), go.IsGoStepPureDetTagged under (StructFieldSet MessageState.underlying go!"DoNotCompare") (PairV #x #y) (Val #(({ x with DoNotCompare' := y } : MessageState)))
-  get_DoNotCopy : ∀ (x : MessageState), go.IsGoStepPureDetTagged under (StructFieldGet MessageState.underlying go!"DoNotCopy") #x (Val #(x.DoNotCopy'))
-  set_DoNotCopy : ∀ (x : MessageState) (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotCopy), go.IsGoStepPureDetTagged under (StructFieldSet MessageState.underlying go!"DoNotCopy") (PairV #x #y) (Val #(({ x with DoNotCopy' := y } : MessageState)))
-  get_atomicMessageInfo : ∀ (x : MessageState), go.IsGoStepPureDetTagged under (StructFieldGet MessageState.underlying go!"atomicMessageInfo") #x (Val #(x.atomicMessageInfo'))
-  set_atomicMessageInfo : ∀ (x : MessageState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet MessageState.underlying go!"atomicMessageInfo") (PairV #x #y) (Val #(({ x with atomicMessageInfo' := y } : MessageState)))
+  get'NoUnkeyedLiterals : ∀ (x : MessageState), go.IsGoStepPureDetTagged under (StructFieldGet MessageState.underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
+  set'NoUnkeyedLiterals : ∀ (x : MessageState) (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet MessageState.underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : MessageState)))
+  get'DoNotCompare : ∀ (x : MessageState), go.IsGoStepPureDetTagged under (StructFieldGet MessageState.underlying go!"DoNotCompare") #x (Val #(x.DoNotCompare'))
+  set'DoNotCompare : ∀ (x : MessageState) (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotCompare), go.IsGoStepPureDetTagged under (StructFieldSet MessageState.underlying go!"DoNotCompare") (PairV #x #y) (Val #(({ x with DoNotCompare' := y } : MessageState)))
+  get'DoNotCopy : ∀ (x : MessageState), go.IsGoStepPureDetTagged under (StructFieldGet MessageState.underlying go!"DoNotCopy") #x (Val #(x.DoNotCopy'))
+  set'DoNotCopy : ∀ (x : MessageState) (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotCopy), go.IsGoStepPureDetTagged under (StructFieldSet MessageState.underlying go!"DoNotCopy") (PairV #x #y) (Val #(({ x with DoNotCopy' := y } : MessageState)))
+  get'atomicMessageInfo : ∀ (x : MessageState), go.IsGoStepPureDetTagged under (StructFieldGet MessageState.underlying go!"atomicMessageInfo") #x (Val #(x.atomicMessageInfo'))
+  set'atomicMessageInfo : ∀ (x : MessageState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet MessageState.underlying go!"atomicMessageInfo") (PairV #x #y) (Val #(({ x with atomicMessageInfo' := y } : MessageState)))
   method_set : go.MethodSetIs MessageState.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MessageState.ty) []
 
 attribute [instance] MessageState.TypeAssumptions.type_repr
   MessageState.TypeAssumptions.underlying
-  MessageState.TypeAssumptions.get_NoUnkeyedLiterals
-  MessageState.TypeAssumptions.set_NoUnkeyedLiterals
-  MessageState.TypeAssumptions.get_DoNotCompare
-  MessageState.TypeAssumptions.set_DoNotCompare
-  MessageState.TypeAssumptions.get_DoNotCopy
-  MessageState.TypeAssumptions.set_DoNotCopy
-  MessageState.TypeAssumptions.get_atomicMessageInfo
-  MessageState.TypeAssumptions.set_atomicMessageInfo
+  MessageState.TypeAssumptions.get'NoUnkeyedLiterals
+  MessageState.TypeAssumptions.set'NoUnkeyedLiterals
+  MessageState.TypeAssumptions.get'DoNotCompare
+  MessageState.TypeAssumptions.set'DoNotCompare
+  MessageState.TypeAssumptions.get'DoNotCopy
+  MessageState.TypeAssumptions.set'DoNotCopy
+  MessageState.TypeAssumptions.get'atomicMessageInfo
+  MessageState.TypeAssumptions.set'atomicMessageInfo
   MessageState.TypeAssumptions.method_set
   MessageState.TypeAssumptions.ptr_method_set
 
@@ -4953,16 +4953,16 @@ noncomputable instance «struct#09ab9bd9».zero_val [GooseExts] : ZeroVal «stru
 
 class «struct#09ab9bd9».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying «struct#09ab9bd9».underlying «struct#09ab9bd9»
-  get_NoUnkeyedLiterals : ∀ (x : «struct#09ab9bd9»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#09ab9bd9».underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
-  set_NoUnkeyedLiterals : ∀ (x : «struct#09ab9bd9») (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet «struct#09ab9bd9».underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : «struct#09ab9bd9»)))
-  get_Size : ∀ (x : «struct#09ab9bd9»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#09ab9bd9».underlying go!"Size") #x (Val #(x.Size'))
-  set_Size : ∀ (x : «struct#09ab9bd9») (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet «struct#09ab9bd9».underlying go!"Size") (PairV #x #y) (Val #(({ x with Size' := y } : «struct#09ab9bd9»)))
+  get'NoUnkeyedLiterals : ∀ (x : «struct#09ab9bd9»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#09ab9bd9».underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
+  set'NoUnkeyedLiterals : ∀ (x : «struct#09ab9bd9») (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet «struct#09ab9bd9».underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : «struct#09ab9bd9»)))
+  get'Size : ∀ (x : «struct#09ab9bd9»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#09ab9bd9».underlying go!"Size") #x (Val #(x.Size'))
+  set'Size : ∀ (x : «struct#09ab9bd9») (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet «struct#09ab9bd9».underlying go!"Size") (PairV #x #y) (Val #(({ x with Size' := y } : «struct#09ab9bd9»)))
 
 attribute [instance] «struct#09ab9bd9».TypeAssumptions.type_repr
-  «struct#09ab9bd9».TypeAssumptions.get_NoUnkeyedLiterals
-  «struct#09ab9bd9».TypeAssumptions.set_NoUnkeyedLiterals
-  «struct#09ab9bd9».TypeAssumptions.get_Size
-  «struct#09ab9bd9».TypeAssumptions.set_Size
+  «struct#09ab9bd9».TypeAssumptions.get'NoUnkeyedLiterals
+  «struct#09ab9bd9».TypeAssumptions.set'NoUnkeyedLiterals
+  «struct#09ab9bd9».TypeAssumptions.get'Size
+  «struct#09ab9bd9».TypeAssumptions.set'Size
 
 opaque «struct#8d354e5a».nonempty_type : NonemptyType.{0}
 def «struct#8d354e5a» : Type := «struct#8d354e5a».nonempty_type.type
@@ -4985,16 +4985,16 @@ noncomputable instance «struct#69fc66c6».zero_val [GooseExts] : ZeroVal «stru
 
 class «struct#69fc66c6».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying «struct#69fc66c6».underlying «struct#69fc66c6»
-  get_NoUnkeyedLiterals : ∀ (x : «struct#69fc66c6»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#69fc66c6».underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
-  set_NoUnkeyedLiterals : ∀ (x : «struct#69fc66c6») (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet «struct#69fc66c6».underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : «struct#69fc66c6»)))
-  get_Buf : ∀ (x : «struct#69fc66c6»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#69fc66c6».underlying go!"Buf") #x (Val #(x.Buf'))
-  set_Buf : ∀ (x : «struct#69fc66c6») (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet «struct#69fc66c6».underlying go!"Buf") (PairV #x #y) (Val #(({ x with Buf' := y } : «struct#69fc66c6»)))
+  get'NoUnkeyedLiterals : ∀ (x : «struct#69fc66c6»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#69fc66c6».underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
+  set'NoUnkeyedLiterals : ∀ (x : «struct#69fc66c6») (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet «struct#69fc66c6».underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : «struct#69fc66c6»)))
+  get'Buf : ∀ (x : «struct#69fc66c6»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#69fc66c6».underlying go!"Buf") #x (Val #(x.Buf'))
+  set'Buf : ∀ (x : «struct#69fc66c6») (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet «struct#69fc66c6».underlying go!"Buf") (PairV #x #y) (Val #(({ x with Buf' := y } : «struct#69fc66c6»)))
 
 attribute [instance] «struct#69fc66c6».TypeAssumptions.type_repr
-  «struct#69fc66c6».TypeAssumptions.get_NoUnkeyedLiterals
-  «struct#69fc66c6».TypeAssumptions.set_NoUnkeyedLiterals
-  «struct#69fc66c6».TypeAssumptions.get_Buf
-  «struct#69fc66c6».TypeAssumptions.set_Buf
+  «struct#69fc66c6».TypeAssumptions.get'NoUnkeyedLiterals
+  «struct#69fc66c6».TypeAssumptions.set'NoUnkeyedLiterals
+  «struct#69fc66c6».TypeAssumptions.get'Buf
+  «struct#69fc66c6».TypeAssumptions.set'Buf
 
 opaque «struct#b984c7d3».nonempty_type : NonemptyType.{0}
 def «struct#b984c7d3» : Type := «struct#b984c7d3».nonempty_type.type
@@ -5060,12 +5060,12 @@ noncomputable instance «struct#26ca81e8».zero_val [GooseExts] : ZeroVal «stru
 
 class «struct#26ca81e8».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying «struct#26ca81e8».underlying «struct#26ca81e8»
-  get_NoUnkeyedLiterals : ∀ (x : «struct#26ca81e8»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#26ca81e8».underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
-  set_NoUnkeyedLiterals : ∀ (x : «struct#26ca81e8») (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet «struct#26ca81e8».underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : «struct#26ca81e8»)))
+  get'NoUnkeyedLiterals : ∀ (x : «struct#26ca81e8»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#26ca81e8».underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
+  set'NoUnkeyedLiterals : ∀ (x : «struct#26ca81e8») (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet «struct#26ca81e8».underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : «struct#26ca81e8»)))
 
 attribute [instance] «struct#26ca81e8».TypeAssumptions.type_repr
-  «struct#26ca81e8».TypeAssumptions.get_NoUnkeyedLiterals
-  «struct#26ca81e8».TypeAssumptions.set_NoUnkeyedLiterals
+  «struct#26ca81e8».TypeAssumptions.get'NoUnkeyedLiterals
+  «struct#26ca81e8».TypeAssumptions.set'NoUnkeyedLiterals
 
 opaque «struct#9d8af3ce».nonempty_type : NonemptyType.{0}
 def «struct#9d8af3ce» : Type := «struct#9d8af3ce».nonempty_type.type
@@ -5088,16 +5088,16 @@ noncomputable instance «struct#f228ed0d».zero_val [GooseExts] : ZeroVal «stru
 
 class «struct#f228ed0d».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying «struct#f228ed0d».underlying «struct#f228ed0d»
-  get_NoUnkeyedLiterals : ∀ (x : «struct#f228ed0d»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#f228ed0d».underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
-  set_NoUnkeyedLiterals : ∀ (x : «struct#f228ed0d») (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet «struct#f228ed0d».underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : «struct#f228ed0d»)))
-  get_Equal : ∀ (x : «struct#f228ed0d»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#f228ed0d».underlying go!"Equal") #x (Val #(x.Equal'))
-  set_Equal : ∀ (x : «struct#f228ed0d») (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet «struct#f228ed0d».underlying go!"Equal") (PairV #x #y) (Val #(({ x with Equal' := y } : «struct#f228ed0d»)))
+  get'NoUnkeyedLiterals : ∀ (x : «struct#f228ed0d»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#f228ed0d».underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
+  set'NoUnkeyedLiterals : ∀ (x : «struct#f228ed0d») (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet «struct#f228ed0d».underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : «struct#f228ed0d»)))
+  get'Equal : ∀ (x : «struct#f228ed0d»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#f228ed0d».underlying go!"Equal") #x (Val #(x.Equal'))
+  set'Equal : ∀ (x : «struct#f228ed0d») (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet «struct#f228ed0d».underlying go!"Equal") (PairV #x #y) (Val #(({ x with Equal' := y } : «struct#f228ed0d»)))
 
 attribute [instance] «struct#f228ed0d».TypeAssumptions.type_repr
-  «struct#f228ed0d».TypeAssumptions.get_NoUnkeyedLiterals
-  «struct#f228ed0d».TypeAssumptions.set_NoUnkeyedLiterals
-  «struct#f228ed0d».TypeAssumptions.get_Equal
-  «struct#f228ed0d».TypeAssumptions.set_Equal
+  «struct#f228ed0d».TypeAssumptions.get'NoUnkeyedLiterals
+  «struct#f228ed0d».TypeAssumptions.set'NoUnkeyedLiterals
+  «struct#f228ed0d».TypeAssumptions.get'Equal
+  «struct#f228ed0d».TypeAssumptions.set'Equal
 
 opaque «struct#15a64e1b».nonempty_type : NonemptyType.{0}
 def «struct#15a64e1b» : Type := «struct#15a64e1b».nonempty_type.type
@@ -5111,187 +5111,187 @@ class «struct#15a64e1b».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 attribute [instance] «struct#15a64e1b».TypeAssumptions.type_repr
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Export_instance : Export.TypeAssumptions
-  legacyMessageWrapper_instance : legacyMessageWrapper.TypeAssumptions
-  RaceDetectHookData_instance : RaceDetectHookData.TypeAssumptions
-  extensionFieldInfo_instance : extensionFieldInfo.TypeAssumptions
-  lazyExtensionValue_instance : lazyExtensionValue.TypeAssumptions
-  ExtensionField_instance : ExtensionField.TypeAssumptions
-  errInvalidUTF8_instance : errInvalidUTF8.TypeAssumptions
-  mapInfo_instance : mapInfo.TypeAssumptions
-  coderMessageInfo_instance : coderMessageInfo.TypeAssumptions
-  coderFieldInfo_instance : coderFieldInfo.TypeAssumptions
-  pointerCoderFuncs_instance : pointerCoderFuncs.TypeAssumptions
-  valueCoderFuncs_instance : valueCoderFuncs.TypeAssumptions
-  unwrapper_instance : unwrapper.TypeAssumptions
-  Converter_instance : Converter.TypeAssumptions
-  boolConverter_instance : boolConverter.TypeAssumptions
-  int32Converter_instance : int32Converter.TypeAssumptions
-  int64Converter_instance : int64Converter.TypeAssumptions
-  uint32Converter_instance : uint32Converter.TypeAssumptions
-  uint64Converter_instance : uint64Converter.TypeAssumptions
-  float32Converter_instance : float32Converter.TypeAssumptions
-  float64Converter_instance : float64Converter.TypeAssumptions
-  stringConverter_instance : stringConverter.TypeAssumptions
-  bytesConverter_instance : bytesConverter.TypeAssumptions
-  enumConverter_instance : enumConverter.TypeAssumptions
-  messageConverter_instance : messageConverter.TypeAssumptions
-  listConverter_instance : listConverter.TypeAssumptions
-  listPtrConverter_instance : listPtrConverter.TypeAssumptions
-  listReflect_instance : listReflect.TypeAssumptions
-  mapConverter_instance : mapConverter.TypeAssumptions
-  mapReflect_instance : mapReflect.TypeAssumptions
-  unmarshalOptions_instance : unmarshalOptions.TypeAssumptions
-  unmarshalOutput_instance : unmarshalOutput.TypeAssumptions
-  marshalOptions_instance : marshalOptions.TypeAssumptions
-  EnumInfo_instance : EnumInfo.TypeAssumptions
-  ExtensionInfo_instance : ExtensionInfo.TypeAssumptions
-  extensionTypeDescriptor_instance : extensionTypeDescriptor.TypeAssumptions
-  legacyEnumType_instance : legacyEnumType.TypeAssumptions
-  legacyEnumWrapper_instance : legacyEnumWrapper.TypeAssumptions
-  placeholderExtension_instance : placeholderExtension.TypeAssumptions
-  enumV1_instance : enumV1.TypeAssumptions
-  messageV1_instance : messageV1.TypeAssumptions
-  resolverOnly_instance : resolverOnly.TypeAssumptions
-  placeholderEnumValues_instance : placeholderEnumValues.TypeAssumptions
-  legacyMarshaler_instance : legacyMarshaler.TypeAssumptions
-  legacyUnmarshaler_instance : legacyUnmarshaler.TypeAssumptions
-  legacyMerger_instance : legacyMerger.TypeAssumptions
-  aberrantMessageType_instance : aberrantMessageType.TypeAssumptions
-  aberrantMessage_instance : aberrantMessage.TypeAssumptions
-  mergeOptions_instance : mergeOptions.TypeAssumptions
-  MessageInfo_instance : MessageInfo.TypeAssumptions
-  exporter_instance : exporter.TypeAssumptions
-  structInfo_instance : structInfo.TypeAssumptions
-  mapEntryType_instance : mapEntryType.TypeAssumptions
-  opaqueStructInfo_instance : opaqueStructInfo.TypeAssumptions
-  presenceList_instance : presenceList.TypeAssumptions
-  pvalueList_instance : pvalueList.TypeAssumptions
-  reflectMessageInfo_instance : reflectMessageInfo.TypeAssumptions
-  extensionMap_instance : extensionMap.TypeAssumptions
-  MessageState_instance : MessageState.TypeAssumptions
-  messageState_instance : messageState.TypeAssumptions
-  messageDataType_instance : messageDataType.TypeAssumptions
-  messageReflectWrapper_instance : messageReflectWrapper.TypeAssumptions
-  messageIfaceWrapper_instance : messageIfaceWrapper.TypeAssumptions
-  fieldInfo_instance : fieldInfo.TypeAssumptions
-  oneofInfo_instance : oneofInfo.TypeAssumptions
-  Pointer_instance : Pointer.TypeAssumptions
-  offset_instance : offset.TypeAssumptions
-  pointer_instance : pointer.TypeAssumptions
-  atomicNilMessage_instance : atomicNilMessage.TypeAssumptions
-  atomicV1MessageInfo_instance : atomicV1MessageInfo.TypeAssumptions
-  presenceSize_instance : presenceSize.TypeAssumptions
-  presence_instance : presence.TypeAssumptions
-  ValidationStatus_instance : ValidationStatus.TypeAssumptions
-  validationInfo_instance : validationInfo.TypeAssumptions
-  validationType_instance : validationType.TypeAssumptions
-  «struct#5c765bdc_instance» : «struct#5c765bdc».TypeAssumptions
-  «struct#09ab9bd9_instance» : «struct#09ab9bd9».TypeAssumptions
-  «struct#8d354e5a_instance» : «struct#8d354e5a».TypeAssumptions
-  «struct#69fc66c6_instance» : «struct#69fc66c6».TypeAssumptions
-  «struct#b984c7d3_instance» : «struct#b984c7d3».TypeAssumptions
-  «struct#f9d6c4b8_instance» : «struct#f9d6c4b8».TypeAssumptions
-  «struct#07f26e0d_instance» : «struct#07f26e0d».TypeAssumptions
-  «struct#9992dc58_instance» : «struct#9992dc58».TypeAssumptions
-  «struct#dc47f379_instance» : «struct#dc47f379».TypeAssumptions
-  «struct#26ca81e8_instance» : «struct#26ca81e8».TypeAssumptions
-  «struct#9d8af3ce_instance» : «struct#9d8af3ce».TypeAssumptions
-  «struct#f228ed0d_instance» : «struct#f228ed0d».TypeAssumptions
-  «struct#15a64e1b_instance» : «struct#15a64e1b».TypeAssumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_pragma_Assumption : _root_.Perennial.google_golang_org.protobuf.internal.pragma.Assumptions
+  instance'Export : Export.TypeAssumptions
+  instance'legacyMessageWrapper : legacyMessageWrapper.TypeAssumptions
+  instance'RaceDetectHookData : RaceDetectHookData.TypeAssumptions
+  instance'extensionFieldInfo : extensionFieldInfo.TypeAssumptions
+  instance'lazyExtensionValue : lazyExtensionValue.TypeAssumptions
+  instance'ExtensionField : ExtensionField.TypeAssumptions
+  instance'errInvalidUTF8 : errInvalidUTF8.TypeAssumptions
+  instance'mapInfo : mapInfo.TypeAssumptions
+  instance'coderMessageInfo : coderMessageInfo.TypeAssumptions
+  instance'coderFieldInfo : coderFieldInfo.TypeAssumptions
+  instance'pointerCoderFuncs : pointerCoderFuncs.TypeAssumptions
+  instance'valueCoderFuncs : valueCoderFuncs.TypeAssumptions
+  instance'unwrapper : unwrapper.TypeAssumptions
+  instance'Converter : Converter.TypeAssumptions
+  instance'boolConverter : boolConverter.TypeAssumptions
+  instance'int32Converter : int32Converter.TypeAssumptions
+  instance'int64Converter : int64Converter.TypeAssumptions
+  instance'uint32Converter : uint32Converter.TypeAssumptions
+  instance'uint64Converter : uint64Converter.TypeAssumptions
+  instance'float32Converter : float32Converter.TypeAssumptions
+  instance'float64Converter : float64Converter.TypeAssumptions
+  instance'stringConverter : stringConverter.TypeAssumptions
+  instance'bytesConverter : bytesConverter.TypeAssumptions
+  instance'enumConverter : enumConverter.TypeAssumptions
+  instance'messageConverter : messageConverter.TypeAssumptions
+  instance'listConverter : listConverter.TypeAssumptions
+  instance'listPtrConverter : listPtrConverter.TypeAssumptions
+  instance'listReflect : listReflect.TypeAssumptions
+  instance'mapConverter : mapConverter.TypeAssumptions
+  instance'mapReflect : mapReflect.TypeAssumptions
+  instance'unmarshalOptions : unmarshalOptions.TypeAssumptions
+  instance'unmarshalOutput : unmarshalOutput.TypeAssumptions
+  instance'marshalOptions : marshalOptions.TypeAssumptions
+  instance'EnumInfo : EnumInfo.TypeAssumptions
+  instance'ExtensionInfo : ExtensionInfo.TypeAssumptions
+  instance'extensionTypeDescriptor : extensionTypeDescriptor.TypeAssumptions
+  instance'legacyEnumType : legacyEnumType.TypeAssumptions
+  instance'legacyEnumWrapper : legacyEnumWrapper.TypeAssumptions
+  instance'placeholderExtension : placeholderExtension.TypeAssumptions
+  instance'enumV1 : enumV1.TypeAssumptions
+  instance'messageV1 : messageV1.TypeAssumptions
+  instance'resolverOnly : resolverOnly.TypeAssumptions
+  instance'placeholderEnumValues : placeholderEnumValues.TypeAssumptions
+  instance'legacyMarshaler : legacyMarshaler.TypeAssumptions
+  instance'legacyUnmarshaler : legacyUnmarshaler.TypeAssumptions
+  instance'legacyMerger : legacyMerger.TypeAssumptions
+  instance'aberrantMessageType : aberrantMessageType.TypeAssumptions
+  instance'aberrantMessage : aberrantMessage.TypeAssumptions
+  instance'mergeOptions : mergeOptions.TypeAssumptions
+  instance'MessageInfo : MessageInfo.TypeAssumptions
+  instance'exporter : exporter.TypeAssumptions
+  instance'structInfo : structInfo.TypeAssumptions
+  instance'mapEntryType : mapEntryType.TypeAssumptions
+  instance'opaqueStructInfo : opaqueStructInfo.TypeAssumptions
+  instance'presenceList : presenceList.TypeAssumptions
+  instance'pvalueList : pvalueList.TypeAssumptions
+  instance'reflectMessageInfo : reflectMessageInfo.TypeAssumptions
+  instance'extensionMap : extensionMap.TypeAssumptions
+  instance'MessageState : MessageState.TypeAssumptions
+  instance'messageState : messageState.TypeAssumptions
+  instance'messageDataType : messageDataType.TypeAssumptions
+  instance'messageReflectWrapper : messageReflectWrapper.TypeAssumptions
+  instance'messageIfaceWrapper : messageIfaceWrapper.TypeAssumptions
+  instance'fieldInfo : fieldInfo.TypeAssumptions
+  instance'oneofInfo : oneofInfo.TypeAssumptions
+  instance'Pointer : Pointer.TypeAssumptions
+  instance'offset : offset.TypeAssumptions
+  instance'pointer : pointer.TypeAssumptions
+  instance'atomicNilMessage : atomicNilMessage.TypeAssumptions
+  instance'atomicV1MessageInfo : atomicV1MessageInfo.TypeAssumptions
+  instance'presenceSize : presenceSize.TypeAssumptions
+  instance'presence : presence.TypeAssumptions
+  instance'ValidationStatus : ValidationStatus.TypeAssumptions
+  instance'validationInfo : validationInfo.TypeAssumptions
+  instance'validationType : validationType.TypeAssumptions
+  «instance'struct#5c765bdc» : «struct#5c765bdc».TypeAssumptions
+  «instance'struct#09ab9bd9» : «struct#09ab9bd9».TypeAssumptions
+  «instance'struct#8d354e5a» : «struct#8d354e5a».TypeAssumptions
+  «instance'struct#69fc66c6» : «struct#69fc66c6».TypeAssumptions
+  «instance'struct#b984c7d3» : «struct#b984c7d3».TypeAssumptions
+  «instance'struct#f9d6c4b8» : «struct#f9d6c4b8».TypeAssumptions
+  «instance'struct#07f26e0d» : «struct#07f26e0d».TypeAssumptions
+  «instance'struct#9992dc58» : «struct#9992dc58».TypeAssumptions
+  «instance'struct#dc47f379» : «struct#dc47f379».TypeAssumptions
+  «instance'struct#26ca81e8» : «struct#26ca81e8».TypeAssumptions
+  «instance'struct#9d8af3ce» : «struct#9d8af3ce».TypeAssumptions
+  «instance'struct#f228ed0d» : «struct#f228ed0d».TypeAssumptions
+  «instance'struct#15a64e1b» : «struct#15a64e1b».TypeAssumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'pragma : _root_.Perennial.google_golang_org.protobuf.internal.pragma.Assumptions
 
-attribute [instance] Assumptions.Export_instance
-  Assumptions.legacyMessageWrapper_instance
-  Assumptions.RaceDetectHookData_instance
-  Assumptions.extensionFieldInfo_instance
-  Assumptions.lazyExtensionValue_instance
-  Assumptions.ExtensionField_instance
-  Assumptions.errInvalidUTF8_instance
-  Assumptions.mapInfo_instance
-  Assumptions.coderMessageInfo_instance
-  Assumptions.coderFieldInfo_instance
-  Assumptions.pointerCoderFuncs_instance
-  Assumptions.valueCoderFuncs_instance
-  Assumptions.unwrapper_instance
-  Assumptions.Converter_instance
-  Assumptions.boolConverter_instance
-  Assumptions.int32Converter_instance
-  Assumptions.int64Converter_instance
-  Assumptions.uint32Converter_instance
-  Assumptions.uint64Converter_instance
-  Assumptions.float32Converter_instance
-  Assumptions.float64Converter_instance
-  Assumptions.stringConverter_instance
-  Assumptions.bytesConverter_instance
-  Assumptions.enumConverter_instance
-  Assumptions.messageConverter_instance
-  Assumptions.listConverter_instance
-  Assumptions.listPtrConverter_instance
-  Assumptions.listReflect_instance
-  Assumptions.mapConverter_instance
-  Assumptions.mapReflect_instance
-  Assumptions.unmarshalOptions_instance
-  Assumptions.unmarshalOutput_instance
-  Assumptions.marshalOptions_instance
-  Assumptions.EnumInfo_instance
-  Assumptions.ExtensionInfo_instance
-  Assumptions.extensionTypeDescriptor_instance
-  Assumptions.legacyEnumType_instance
-  Assumptions.legacyEnumWrapper_instance
-  Assumptions.placeholderExtension_instance
-  Assumptions.enumV1_instance
-  Assumptions.messageV1_instance
-  Assumptions.resolverOnly_instance
-  Assumptions.placeholderEnumValues_instance
-  Assumptions.legacyMarshaler_instance
-  Assumptions.legacyUnmarshaler_instance
-  Assumptions.legacyMerger_instance
-  Assumptions.aberrantMessageType_instance
-  Assumptions.aberrantMessage_instance
-  Assumptions.mergeOptions_instance
-  Assumptions.MessageInfo_instance
-  Assumptions.exporter_instance
-  Assumptions.structInfo_instance
-  Assumptions.mapEntryType_instance
-  Assumptions.opaqueStructInfo_instance
-  Assumptions.presenceList_instance
-  Assumptions.pvalueList_instance
-  Assumptions.reflectMessageInfo_instance
-  Assumptions.extensionMap_instance
-  Assumptions.MessageState_instance
-  Assumptions.messageState_instance
-  Assumptions.messageDataType_instance
-  Assumptions.messageReflectWrapper_instance
-  Assumptions.messageIfaceWrapper_instance
-  Assumptions.fieldInfo_instance
-  Assumptions.oneofInfo_instance
-  Assumptions.Pointer_instance
-  Assumptions.offset_instance
-  Assumptions.pointer_instance
-  Assumptions.atomicNilMessage_instance
-  Assumptions.atomicV1MessageInfo_instance
-  Assumptions.presenceSize_instance
-  Assumptions.presence_instance
-  Assumptions.ValidationStatus_instance
-  Assumptions.validationInfo_instance
-  Assumptions.validationType_instance
-  Assumptions.«struct#5c765bdc_instance»
-  Assumptions.«struct#09ab9bd9_instance»
-  Assumptions.«struct#8d354e5a_instance»
-  Assumptions.«struct#69fc66c6_instance»
-  Assumptions.«struct#b984c7d3_instance»
-  Assumptions.«struct#f9d6c4b8_instance»
-  Assumptions.«struct#07f26e0d_instance»
-  Assumptions.«struct#9992dc58_instance»
-  Assumptions.«struct#dc47f379_instance»
-  Assumptions.«struct#26ca81e8_instance»
-  Assumptions.«struct#9d8af3ce_instance»
-  Assumptions.«struct#f228ed0d_instance»
-  Assumptions.«struct#15a64e1b_instance»
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_pragma_Assumption
+attribute [instance] Assumptions.instance'Export
+  Assumptions.instance'legacyMessageWrapper
+  Assumptions.instance'RaceDetectHookData
+  Assumptions.instance'extensionFieldInfo
+  Assumptions.instance'lazyExtensionValue
+  Assumptions.instance'ExtensionField
+  Assumptions.instance'errInvalidUTF8
+  Assumptions.instance'mapInfo
+  Assumptions.instance'coderMessageInfo
+  Assumptions.instance'coderFieldInfo
+  Assumptions.instance'pointerCoderFuncs
+  Assumptions.instance'valueCoderFuncs
+  Assumptions.instance'unwrapper
+  Assumptions.instance'Converter
+  Assumptions.instance'boolConverter
+  Assumptions.instance'int32Converter
+  Assumptions.instance'int64Converter
+  Assumptions.instance'uint32Converter
+  Assumptions.instance'uint64Converter
+  Assumptions.instance'float32Converter
+  Assumptions.instance'float64Converter
+  Assumptions.instance'stringConverter
+  Assumptions.instance'bytesConverter
+  Assumptions.instance'enumConverter
+  Assumptions.instance'messageConverter
+  Assumptions.instance'listConverter
+  Assumptions.instance'listPtrConverter
+  Assumptions.instance'listReflect
+  Assumptions.instance'mapConverter
+  Assumptions.instance'mapReflect
+  Assumptions.instance'unmarshalOptions
+  Assumptions.instance'unmarshalOutput
+  Assumptions.instance'marshalOptions
+  Assumptions.instance'EnumInfo
+  Assumptions.instance'ExtensionInfo
+  Assumptions.instance'extensionTypeDescriptor
+  Assumptions.instance'legacyEnumType
+  Assumptions.instance'legacyEnumWrapper
+  Assumptions.instance'placeholderExtension
+  Assumptions.instance'enumV1
+  Assumptions.instance'messageV1
+  Assumptions.instance'resolverOnly
+  Assumptions.instance'placeholderEnumValues
+  Assumptions.instance'legacyMarshaler
+  Assumptions.instance'legacyUnmarshaler
+  Assumptions.instance'legacyMerger
+  Assumptions.instance'aberrantMessageType
+  Assumptions.instance'aberrantMessage
+  Assumptions.instance'mergeOptions
+  Assumptions.instance'MessageInfo
+  Assumptions.instance'exporter
+  Assumptions.instance'structInfo
+  Assumptions.instance'mapEntryType
+  Assumptions.instance'opaqueStructInfo
+  Assumptions.instance'presenceList
+  Assumptions.instance'pvalueList
+  Assumptions.instance'reflectMessageInfo
+  Assumptions.instance'extensionMap
+  Assumptions.instance'MessageState
+  Assumptions.instance'messageState
+  Assumptions.instance'messageDataType
+  Assumptions.instance'messageReflectWrapper
+  Assumptions.instance'messageIfaceWrapper
+  Assumptions.instance'fieldInfo
+  Assumptions.instance'oneofInfo
+  Assumptions.instance'Pointer
+  Assumptions.instance'offset
+  Assumptions.instance'pointer
+  Assumptions.instance'atomicNilMessage
+  Assumptions.instance'atomicV1MessageInfo
+  Assumptions.instance'presenceSize
+  Assumptions.instance'presence
+  Assumptions.instance'ValidationStatus
+  Assumptions.instance'validationInfo
+  Assumptions.instance'validationType
+  Assumptions.«instance'struct#5c765bdc»
+  Assumptions.«instance'struct#09ab9bd9»
+  Assumptions.«instance'struct#8d354e5a»
+  Assumptions.«instance'struct#69fc66c6»
+  Assumptions.«instance'struct#b984c7d3»
+  Assumptions.«instance'struct#f9d6c4b8»
+  Assumptions.«instance'struct#07f26e0d»
+  Assumptions.«instance'struct#9992dc58»
+  Assumptions.«instance'struct#dc47f379»
+  Assumptions.«instance'struct#26ca81e8»
+  Assumptions.«instance'struct#9d8af3ce»
+  Assumptions.«instance'struct#f228ed0d»
+  Assumptions.«instance'struct#15a64e1b»
+  Assumptions.import'strconv
+  Assumptions.import'pragma
 
 end google_golang_org.protobuf.internal.impl
 

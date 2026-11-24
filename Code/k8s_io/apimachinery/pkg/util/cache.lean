@@ -206,7 +206,7 @@ noncomputable instance realClock.zero_val [GooseExts] : ZeroVal realClock :=
 @[irreducible] noncomputable def realClock.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   realClock.fieldsUnsealed
 
-noncomputable instance equals_unfold_realClock [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'realClock [GooseExts] [GoGlobalContext] :
     EqualsUnfold realClock.fields realClock.fieldsUnsealed :=
   ⟨by unfold realClock.fields; rfl⟩
 
@@ -263,23 +263,23 @@ attribute [instance] cacheEntry.TypeAssumptions.type_repr
   cacheEntry.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Expiring_instance : Expiring.TypeAssumptions
-  entry_instance : entry.TypeAssumptions
-  expiringHeapEntry_instance : expiringHeapEntry.TypeAssumptions
-  expiringHeap_instance : expiringHeap.TypeAssumptions
-  Clock_instance : Clock.TypeAssumptions
-  realClock_instance : realClock.TypeAssumptions
-  LRUExpireCache_instance : LRUExpireCache.TypeAssumptions
-  cacheEntry_instance : cacheEntry.TypeAssumptions
+  instance'Expiring : Expiring.TypeAssumptions
+  instance'entry : entry.TypeAssumptions
+  instance'expiringHeapEntry : expiringHeapEntry.TypeAssumptions
+  instance'expiringHeap : expiringHeap.TypeAssumptions
+  instance'Clock : Clock.TypeAssumptions
+  instance'realClock : realClock.TypeAssumptions
+  instance'LRUExpireCache : LRUExpireCache.TypeAssumptions
+  instance'cacheEntry : cacheEntry.TypeAssumptions
 
-attribute [instance] Assumptions.Expiring_instance
-  Assumptions.entry_instance
-  Assumptions.expiringHeapEntry_instance
-  Assumptions.expiringHeap_instance
-  Assumptions.Clock_instance
-  Assumptions.realClock_instance
-  Assumptions.LRUExpireCache_instance
-  Assumptions.cacheEntry_instance
+attribute [instance] Assumptions.instance'Expiring
+  Assumptions.instance'entry
+  Assumptions.instance'expiringHeapEntry
+  Assumptions.instance'expiringHeap
+  Assumptions.instance'Clock
+  Assumptions.instance'realClock
+  Assumptions.instance'LRUExpireCache
+  Assumptions.instance'cacheEntry
 
 end k8s_io.apimachinery.pkg.util.cache
 

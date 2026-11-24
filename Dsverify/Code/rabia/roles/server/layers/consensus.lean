@@ -2380,7 +2380,7 @@ noncomputable instance Stat.zero_val [GooseExts] : ZeroVal Stat :=
 @[irreducible] noncomputable def Stat.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Stat.fieldsUnsealed
 
-noncomputable instance equals_unfold_Stat [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Stat [GooseExts] [GoGlobalContext] :
     EqualsUnfold Stat.fields Stat.fieldsUnsealed :=
   ⟨by unfold Stat.fields; rfl⟩
 
@@ -2390,43 +2390,43 @@ noncomputable instance equals_unfold_Stat [GooseExts] [GoGlobalContext] :
 class Stat.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Stat.underlying Stat
   underlying : go.UnderlyingDirectedEq Stat.ty Stat.underlying
-  get_NumOfRounds : ∀ (x : Stat), go.IsGoStepPureDetTagged under (StructFieldGet Stat.underlying go!"NumOfRounds") #x (Val #(x.NumOfRounds'))
-  set_NumOfRounds : ∀ (x : Stat) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Stat.underlying go!"NumOfRounds") (PairV #x #y) (Val #(({ x with NumOfRounds' := y } : Stat)))
-  get_DecisionTyp : ∀ (x : Stat), go.IsGoStepPureDetTagged under (StructFieldGet Stat.underlying go!"DecisionTyp") #x (Val #(x.DecisionTyp'))
-  set_DecisionTyp : ∀ (x : Stat) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Stat.underlying go!"DecisionTyp") (PairV #x #y) (Val #(({ x with DecisionTyp' := y } : Stat)))
-  get_NumOfCliReq : ∀ (x : Stat), go.IsGoStepPureDetTagged under (StructFieldGet Stat.underlying go!"NumOfCliReq") #x (Val #(x.NumOfCliReq'))
-  set_NumOfCliReq : ∀ (x : Stat) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Stat.underlying go!"NumOfCliReq") (PairV #x #y) (Val #(({ x with NumOfCliReq' := y } : Stat)))
-  get_TotalRounds : ∀ (x : Stat), go.IsGoStepPureDetTagged under (StructFieldGet Stat.underlying go!"TotalRounds") #x (Val #(x.TotalRounds'))
-  set_TotalRounds : ∀ (x : Stat) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Stat.underlying go!"TotalRounds") (PairV #x #y) (Val #(({ x with TotalRounds' := y } : Stat)))
-  get_TotalSlots : ∀ (x : Stat), go.IsGoStepPureDetTagged under (StructFieldGet Stat.underlying go!"TotalSlots") #x (Val #(x.TotalSlots'))
-  set_TotalSlots : ∀ (x : Stat) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Stat.underlying go!"TotalSlots") (PairV #x #y) (Val #(({ x with TotalSlots' := y } : Stat)))
-  get_NotNullSoFar : ∀ (x : Stat), go.IsGoStepPureDetTagged under (StructFieldGet Stat.underlying go!"NotNullSoFar") #x (Val #(x.NotNullSoFar'))
-  set_NotNullSoFar : ∀ (x : Stat) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Stat.underlying go!"NotNullSoFar") (PairV #x #y) (Val #(({ x with NotNullSoFar' := y } : Stat)))
-  get_CliReqSoFar : ∀ (x : Stat), go.IsGoStepPureDetTagged under (StructFieldGet Stat.underlying go!"CliReqSoFar") #x (Val #(x.CliReqSoFar'))
-  set_CliReqSoFar : ∀ (x : Stat) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Stat.underlying go!"CliReqSoFar") (PairV #x #y) (Val #(({ x with CliReqSoFar' := y } : Stat)))
-  get_BadTermMsg : ∀ (x : Stat), go.IsGoStepPureDetTagged under (StructFieldGet Stat.underlying go!"BadTermMsg") #x (Val #(x.BadTermMsg'))
-  set_BadTermMsg : ∀ (x : Stat) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Stat.underlying go!"BadTermMsg") (PairV #x #y) (Val #(({ x with BadTermMsg' := y } : Stat)))
+  get'NumOfRounds : ∀ (x : Stat), go.IsGoStepPureDetTagged under (StructFieldGet Stat.underlying go!"NumOfRounds") #x (Val #(x.NumOfRounds'))
+  set'NumOfRounds : ∀ (x : Stat) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Stat.underlying go!"NumOfRounds") (PairV #x #y) (Val #(({ x with NumOfRounds' := y } : Stat)))
+  get'DecisionTyp : ∀ (x : Stat), go.IsGoStepPureDetTagged under (StructFieldGet Stat.underlying go!"DecisionTyp") #x (Val #(x.DecisionTyp'))
+  set'DecisionTyp : ∀ (x : Stat) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Stat.underlying go!"DecisionTyp") (PairV #x #y) (Val #(({ x with DecisionTyp' := y } : Stat)))
+  get'NumOfCliReq : ∀ (x : Stat), go.IsGoStepPureDetTagged under (StructFieldGet Stat.underlying go!"NumOfCliReq") #x (Val #(x.NumOfCliReq'))
+  set'NumOfCliReq : ∀ (x : Stat) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Stat.underlying go!"NumOfCliReq") (PairV #x #y) (Val #(({ x with NumOfCliReq' := y } : Stat)))
+  get'TotalRounds : ∀ (x : Stat), go.IsGoStepPureDetTagged under (StructFieldGet Stat.underlying go!"TotalRounds") #x (Val #(x.TotalRounds'))
+  set'TotalRounds : ∀ (x : Stat) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Stat.underlying go!"TotalRounds") (PairV #x #y) (Val #(({ x with TotalRounds' := y } : Stat)))
+  get'TotalSlots : ∀ (x : Stat), go.IsGoStepPureDetTagged under (StructFieldGet Stat.underlying go!"TotalSlots") #x (Val #(x.TotalSlots'))
+  set'TotalSlots : ∀ (x : Stat) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Stat.underlying go!"TotalSlots") (PairV #x #y) (Val #(({ x with TotalSlots' := y } : Stat)))
+  get'NotNullSoFar : ∀ (x : Stat), go.IsGoStepPureDetTagged under (StructFieldGet Stat.underlying go!"NotNullSoFar") #x (Val #(x.NotNullSoFar'))
+  set'NotNullSoFar : ∀ (x : Stat) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Stat.underlying go!"NotNullSoFar") (PairV #x #y) (Val #(({ x with NotNullSoFar' := y } : Stat)))
+  get'CliReqSoFar : ∀ (x : Stat), go.IsGoStepPureDetTagged under (StructFieldGet Stat.underlying go!"CliReqSoFar") #x (Val #(x.CliReqSoFar'))
+  set'CliReqSoFar : ∀ (x : Stat) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Stat.underlying go!"CliReqSoFar") (PairV #x #y) (Val #(({ x with CliReqSoFar' := y } : Stat)))
+  get'BadTermMsg : ∀ (x : Stat), go.IsGoStepPureDetTagged under (StructFieldGet Stat.underlying go!"BadTermMsg") #x (Val #(x.BadTermMsg'))
+  set'BadTermMsg : ∀ (x : Stat) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Stat.underlying go!"BadTermMsg") (PairV #x #y) (Val #(({ x with BadTermMsg' := y } : Stat)))
   method_set : go.MethodSetIs Stat.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Stat.ty) []
 
 attribute [instance] Stat.TypeAssumptions.type_repr
   Stat.TypeAssumptions.underlying
-  Stat.TypeAssumptions.get_NumOfRounds
-  Stat.TypeAssumptions.set_NumOfRounds
-  Stat.TypeAssumptions.get_DecisionTyp
-  Stat.TypeAssumptions.set_DecisionTyp
-  Stat.TypeAssumptions.get_NumOfCliReq
-  Stat.TypeAssumptions.set_NumOfCliReq
-  Stat.TypeAssumptions.get_TotalRounds
-  Stat.TypeAssumptions.set_TotalRounds
-  Stat.TypeAssumptions.get_TotalSlots
-  Stat.TypeAssumptions.set_TotalSlots
-  Stat.TypeAssumptions.get_NotNullSoFar
-  Stat.TypeAssumptions.set_NotNullSoFar
-  Stat.TypeAssumptions.get_CliReqSoFar
-  Stat.TypeAssumptions.set_CliReqSoFar
-  Stat.TypeAssumptions.get_BadTermMsg
-  Stat.TypeAssumptions.set_BadTermMsg
+  Stat.TypeAssumptions.get'NumOfRounds
+  Stat.TypeAssumptions.set'NumOfRounds
+  Stat.TypeAssumptions.get'DecisionTyp
+  Stat.TypeAssumptions.set'DecisionTyp
+  Stat.TypeAssumptions.get'NumOfCliReq
+  Stat.TypeAssumptions.set'NumOfCliReq
+  Stat.TypeAssumptions.get'TotalRounds
+  Stat.TypeAssumptions.set'TotalRounds
+  Stat.TypeAssumptions.get'TotalSlots
+  Stat.TypeAssumptions.set'TotalSlots
+  Stat.TypeAssumptions.get'NotNullSoFar
+  Stat.TypeAssumptions.set'NotNullSoFar
+  Stat.TypeAssumptions.get'CliReqSoFar
+  Stat.TypeAssumptions.set'CliReqSoFar
+  Stat.TypeAssumptions.get'BadTermMsg
+  Stat.TypeAssumptions.set'BadTermMsg
   Stat.TypeAssumptions.method_set
   Stat.TypeAssumptions.ptr_method_set
 
@@ -2503,7 +2503,7 @@ noncomputable instance Consensus.zero_val [GooseExts] : ZeroVal Consensus :=
 @[irreducible] noncomputable def Consensus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Consensus.fieldsUnsealed
 
-noncomputable instance equals_unfold_Consensus [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Consensus [GooseExts] [GoGlobalContext] :
     EqualsUnfold Consensus.fields Consensus.fieldsUnsealed :=
   ⟨by unfold Consensus.fields; rfl⟩
 
@@ -2513,244 +2513,244 @@ noncomputable instance equals_unfold_Consensus [GooseExts] [GoGlobalContext] :
 class Consensus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Consensus.underlying Consensus
   underlying : go.UnderlyingDirectedEq Consensus.ty Consensus.underlying
-  get_SvrId : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"SvrId") #x (Val #(x.SvrId'))
-  set_SvrId : ∀ (x : Consensus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"SvrId") (PairV #x #y) (Val #(({ x with SvrId' := y } : Consensus)))
-  get_InsId : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"InsId") #x (Val #(x.InsId'))
-  set_InsId : ∀ (x : Consensus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"InsId") (PairV #x #y) (Val #(({ x with InsId' := y } : Consensus)))
-  get_Wg : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"Wg") #x (Val #(x.Wg'))
-  set_Wg : ∀ (x : Consensus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"Wg") (PairV #x #y) (Val #(({ x with Wg' := y } : Consensus)))
-  get_Done : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"Done") #x (Val #(x.Done'))
-  set_Done : ∀ (x : Consensus) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"Done") (PairV #x #y) (Val #(({ x with Done' := y } : Consensus)))
-  get_NetToMsgHandler : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"NetToMsgHandler") #x (Val #(x.NetToMsgHandler'))
-  set_NetToMsgHandler : ∀ (x : Consensus) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"NetToMsgHandler") (PairV #x #y) (Val #(({ x with NetToMsgHandler' := y } : Consensus)))
-  get_MsgHandlerToNet : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"MsgHandlerToNet") #x (Val #(x.MsgHandlerToNet'))
-  set_MsgHandlerToNet : ∀ (x : Consensus) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"MsgHandlerToNet") (PairV #x #y) (Val #(({ x with MsgHandlerToNet' := y } : Consensus)))
-  get_NetToConExecutor : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"NetToConExecutor") #x (Val #(x.NetToConExecutor'))
-  set_NetToConExecutor : ∀ (x : Consensus) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"NetToConExecutor") (PairV #x #y) (Val #(({ x with NetToConExecutor' := y } : Consensus)))
-  get_ConExecutorToNet : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"ConExecutorToNet") #x (Val #(x.ConExecutorToNet'))
-  set_ConExecutorToNet : ∀ (x : Consensus) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"ConExecutorToNet") (PairV #x #y) (Val #(({ x with ConExecutorToNet' := y } : Consensus)))
-  get_Queue : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"Queue") #x (Val #(x.Queue'))
-  set_Queue : ∀ (x : Consensus) (y : _root_.Perennial.rabia.internal.queue.PQueue), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"Queue") (PairV #x #y) (Val #(({ x with Queue' := y } : Consensus)))
-  get_QLock : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"QLock") #x (Val #(x.QLock'))
-  set_QLock : ∀ (x : Consensus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"QLock") (PairV #x #y) (Val #(({ x with QLock' := y } : Consensus)))
-  get_SvrSeq : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"SvrSeq") #x (Val #(x.SvrSeq'))
-  set_SvrSeq : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"SvrSeq") (PairV #x #y) (Val #(({ x with SvrSeq' := y } : Consensus)))
-  get_Ledger : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"Ledger") #x (Val #(x.Ledger'))
-  set_Ledger : ∀ (x : Consensus) (y : _root_.Perennial.rabia.internal.ledger.Ledger), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"Ledger") (PairV #x #y) (Val #(({ x with Ledger' := y } : Consensus)))
-  get_Coin : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"Coin") #x (Val #(x.Coin'))
-  set_Coin : ∀ (x : Consensus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"Coin") (PairV #x #y) (Val #(({ x with Coin' := y } : Consensus)))
-  get_Discard : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"Discard") #x (Val #(x.Discard'))
-  set_Discard : ∀ (x : Consensus) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"Discard") (PairV #x #y) (Val #(({ x with Discard' := y } : Consensus)))
-  get_Logger : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"Logger") #x (Val #(x.Logger'))
-  set_Logger : ∀ (x : Consensus) (y : _root_.Perennial.github_com.rs.zerolog.Logger), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : Consensus)))
-  get_LogFile : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"LogFile") #x (Val #(x.LogFile'))
-  set_LogFile : ∀ (x : Consensus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"LogFile") (PairV #x #y) (Val #(({ x with LogFile' := y } : Consensus)))
-  get_NormalSlots : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"NormalSlots") #x (Val #(x.NormalSlots'))
-  set_NormalSlots : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"NormalSlots") (PairV #x #y) (Val #(({ x with NormalSlots' := y } : Consensus)))
-  get_UnmatchedSlots : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"UnmatchedSlots") #x (Val #(x.UnmatchedSlots'))
-  set_UnmatchedSlots : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"UnmatchedSlots") (PairV #x #y) (Val #(({ x with UnmatchedSlots' := y } : Consensus)))
-  get_NullSlots : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"NullSlots") #x (Val #(x.NullSlots'))
-  set_NullSlots : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"NullSlots") (PairV #x #y) (Val #(({ x with NullSlots' := y } : Consensus)))
-  get_TotalRounds : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"TotalRounds") #x (Val #(x.TotalRounds'))
-  set_TotalRounds : ∀ (x : Consensus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"TotalRounds") (PairV #x #y) (Val #(({ x with TotalRounds' := y } : Consensus)))
-  get_TotalSlots : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"TotalSlots") #x (Val #(x.TotalSlots'))
-  set_TotalSlots : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"TotalSlots") (PairV #x #y) (Val #(({ x with TotalSlots' := y } : Consensus)))
-  get_OlderThanTermMsg : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"OlderThanTermMsg") #x (Val #(x.OlderThanTermMsg'))
-  set_OlderThanTermMsg : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"OlderThanTermMsg") (PairV #x #y) (Val #(({ x with OlderThanTermMsg' := y } : Consensus)))
-  get_CurrConsecutiveNulls : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"CurrConsecutiveNulls") #x (Val #(x.CurrConsecutiveNulls'))
-  set_CurrConsecutiveNulls : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"CurrConsecutiveNulls") (PairV #x #y) (Val #(({ x with CurrConsecutiveNulls' := y } : Consensus)))
-  get_MaxConsecutiveNulls : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"MaxConsecutiveNulls") #x (Val #(x.MaxConsecutiveNulls'))
-  set_MaxConsecutiveNulls : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"MaxConsecutiveNulls") (PairV #x #y) (Val #(({ x with MaxConsecutiveNulls' := y } : Consensus)))
-  get_MaxConsecutiveNullsEndSeq : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"MaxConsecutiveNullsEndSeq") #x (Val #(x.MaxConsecutiveNullsEndSeq'))
-  set_MaxConsecutiveNullsEndSeq : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"MaxConsecutiveNullsEndSeq") (PairV #x #y) (Val #(({ x with MaxConsecutiveNullsEndSeq' := y } : Consensus)))
-  get_NumClientBatchedRequests : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"NumClientBatchedRequests") #x (Val #(x.NumClientBatchedRequests'))
-  set_NumClientBatchedRequests : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"NumClientBatchedRequests") (PairV #x #y) (Val #(({ x with NumClientBatchedRequests' := y } : Consensus)))
-  get_NumOfRoundsDist : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"NumOfRoundsDist") #x (Val #(x.NumOfRoundsDist'))
-  set_NumOfRoundsDist : ∀ (x : Consensus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"NumOfRoundsDist") (PairV #x #y) (Val #(({ x with NumOfRoundsDist' := y } : Consensus)))
-  get_StatLock : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"StatLock") #x (Val #(x.StatLock'))
-  set_StatLock : ∀ (x : Consensus) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"StatLock") (PairV #x #y) (Val #(({ x with StatLock' := y } : Consensus)))
-  get_Per1000RoundDist : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"Per1000RoundDist") #x (Val #(x.Per1000RoundDist'))
-  set_Per1000RoundDist : ∀ (x : Consensus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"Per1000RoundDist") (PairV #x #y) (Val #(({ x with Per1000RoundDist' := y } : Consensus)))
-  get_RoundDistLogger : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"RoundDistLogger") #x (Val #(x.RoundDistLogger'))
-  set_RoundDistLogger : ∀ (x : Consensus) (y : _root_.Perennial.github_com.rs.zerolog.Logger), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"RoundDistLogger") (PairV #x #y) (Val #(({ x with RoundDistLogger' := y } : Consensus)))
-  get_RoundDistLogFile : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"RoundDistLogFile") #x (Val #(x.RoundDistLogFile'))
-  set_RoundDistLogFile : ∀ (x : Consensus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"RoundDistLogFile") (PairV #x #y) (Val #(({ x with RoundDistLogFile' := y } : Consensus)))
+  get'SvrId : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"SvrId") #x (Val #(x.SvrId'))
+  set'SvrId : ∀ (x : Consensus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"SvrId") (PairV #x #y) (Val #(({ x with SvrId' := y } : Consensus)))
+  get'InsId : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"InsId") #x (Val #(x.InsId'))
+  set'InsId : ∀ (x : Consensus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"InsId") (PairV #x #y) (Val #(({ x with InsId' := y } : Consensus)))
+  get'Wg : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"Wg") #x (Val #(x.Wg'))
+  set'Wg : ∀ (x : Consensus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"Wg") (PairV #x #y) (Val #(({ x with Wg' := y } : Consensus)))
+  get'Done : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"Done") #x (Val #(x.Done'))
+  set'Done : ∀ (x : Consensus) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"Done") (PairV #x #y) (Val #(({ x with Done' := y } : Consensus)))
+  get'NetToMsgHandler : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"NetToMsgHandler") #x (Val #(x.NetToMsgHandler'))
+  set'NetToMsgHandler : ∀ (x : Consensus) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"NetToMsgHandler") (PairV #x #y) (Val #(({ x with NetToMsgHandler' := y } : Consensus)))
+  get'MsgHandlerToNet : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"MsgHandlerToNet") #x (Val #(x.MsgHandlerToNet'))
+  set'MsgHandlerToNet : ∀ (x : Consensus) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"MsgHandlerToNet") (PairV #x #y) (Val #(({ x with MsgHandlerToNet' := y } : Consensus)))
+  get'NetToConExecutor : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"NetToConExecutor") #x (Val #(x.NetToConExecutor'))
+  set'NetToConExecutor : ∀ (x : Consensus) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"NetToConExecutor") (PairV #x #y) (Val #(({ x with NetToConExecutor' := y } : Consensus)))
+  get'ConExecutorToNet : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"ConExecutorToNet") #x (Val #(x.ConExecutorToNet'))
+  set'ConExecutorToNet : ∀ (x : Consensus) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"ConExecutorToNet") (PairV #x #y) (Val #(({ x with ConExecutorToNet' := y } : Consensus)))
+  get'Queue : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"Queue") #x (Val #(x.Queue'))
+  set'Queue : ∀ (x : Consensus) (y : _root_.Perennial.rabia.internal.queue.PQueue), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"Queue") (PairV #x #y) (Val #(({ x with Queue' := y } : Consensus)))
+  get'QLock : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"QLock") #x (Val #(x.QLock'))
+  set'QLock : ∀ (x : Consensus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"QLock") (PairV #x #y) (Val #(({ x with QLock' := y } : Consensus)))
+  get'SvrSeq : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"SvrSeq") #x (Val #(x.SvrSeq'))
+  set'SvrSeq : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"SvrSeq") (PairV #x #y) (Val #(({ x with SvrSeq' := y } : Consensus)))
+  get'Ledger : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"Ledger") #x (Val #(x.Ledger'))
+  set'Ledger : ∀ (x : Consensus) (y : _root_.Perennial.rabia.internal.ledger.Ledger), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"Ledger") (PairV #x #y) (Val #(({ x with Ledger' := y } : Consensus)))
+  get'Coin : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"Coin") #x (Val #(x.Coin'))
+  set'Coin : ∀ (x : Consensus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"Coin") (PairV #x #y) (Val #(({ x with Coin' := y } : Consensus)))
+  get'Discard : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"Discard") #x (Val #(x.Discard'))
+  set'Discard : ∀ (x : Consensus) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"Discard") (PairV #x #y) (Val #(({ x with Discard' := y } : Consensus)))
+  get'Logger : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"Logger") #x (Val #(x.Logger'))
+  set'Logger : ∀ (x : Consensus) (y : _root_.Perennial.github_com.rs.zerolog.Logger), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : Consensus)))
+  get'LogFile : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"LogFile") #x (Val #(x.LogFile'))
+  set'LogFile : ∀ (x : Consensus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"LogFile") (PairV #x #y) (Val #(({ x with LogFile' := y } : Consensus)))
+  get'NormalSlots : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"NormalSlots") #x (Val #(x.NormalSlots'))
+  set'NormalSlots : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"NormalSlots") (PairV #x #y) (Val #(({ x with NormalSlots' := y } : Consensus)))
+  get'UnmatchedSlots : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"UnmatchedSlots") #x (Val #(x.UnmatchedSlots'))
+  set'UnmatchedSlots : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"UnmatchedSlots") (PairV #x #y) (Val #(({ x with UnmatchedSlots' := y } : Consensus)))
+  get'NullSlots : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"NullSlots") #x (Val #(x.NullSlots'))
+  set'NullSlots : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"NullSlots") (PairV #x #y) (Val #(({ x with NullSlots' := y } : Consensus)))
+  get'TotalRounds : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"TotalRounds") #x (Val #(x.TotalRounds'))
+  set'TotalRounds : ∀ (x : Consensus) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"TotalRounds") (PairV #x #y) (Val #(({ x with TotalRounds' := y } : Consensus)))
+  get'TotalSlots : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"TotalSlots") #x (Val #(x.TotalSlots'))
+  set'TotalSlots : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"TotalSlots") (PairV #x #y) (Val #(({ x with TotalSlots' := y } : Consensus)))
+  get'OlderThanTermMsg : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"OlderThanTermMsg") #x (Val #(x.OlderThanTermMsg'))
+  set'OlderThanTermMsg : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"OlderThanTermMsg") (PairV #x #y) (Val #(({ x with OlderThanTermMsg' := y } : Consensus)))
+  get'CurrConsecutiveNulls : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"CurrConsecutiveNulls") #x (Val #(x.CurrConsecutiveNulls'))
+  set'CurrConsecutiveNulls : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"CurrConsecutiveNulls") (PairV #x #y) (Val #(({ x with CurrConsecutiveNulls' := y } : Consensus)))
+  get'MaxConsecutiveNulls : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"MaxConsecutiveNulls") #x (Val #(x.MaxConsecutiveNulls'))
+  set'MaxConsecutiveNulls : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"MaxConsecutiveNulls") (PairV #x #y) (Val #(({ x with MaxConsecutiveNulls' := y } : Consensus)))
+  get'MaxConsecutiveNullsEndSeq : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"MaxConsecutiveNullsEndSeq") #x (Val #(x.MaxConsecutiveNullsEndSeq'))
+  set'MaxConsecutiveNullsEndSeq : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"MaxConsecutiveNullsEndSeq") (PairV #x #y) (Val #(({ x with MaxConsecutiveNullsEndSeq' := y } : Consensus)))
+  get'NumClientBatchedRequests : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"NumClientBatchedRequests") #x (Val #(x.NumClientBatchedRequests'))
+  set'NumClientBatchedRequests : ∀ (x : Consensus) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"NumClientBatchedRequests") (PairV #x #y) (Val #(({ x with NumClientBatchedRequests' := y } : Consensus)))
+  get'NumOfRoundsDist : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"NumOfRoundsDist") #x (Val #(x.NumOfRoundsDist'))
+  set'NumOfRoundsDist : ∀ (x : Consensus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"NumOfRoundsDist") (PairV #x #y) (Val #(({ x with NumOfRoundsDist' := y } : Consensus)))
+  get'StatLock : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"StatLock") #x (Val #(x.StatLock'))
+  set'StatLock : ∀ (x : Consensus) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"StatLock") (PairV #x #y) (Val #(({ x with StatLock' := y } : Consensus)))
+  get'Per1000RoundDist : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"Per1000RoundDist") #x (Val #(x.Per1000RoundDist'))
+  set'Per1000RoundDist : ∀ (x : Consensus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"Per1000RoundDist") (PairV #x #y) (Val #(({ x with Per1000RoundDist' := y } : Consensus)))
+  get'RoundDistLogger : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"RoundDistLogger") #x (Val #(x.RoundDistLogger'))
+  set'RoundDistLogger : ∀ (x : Consensus) (y : _root_.Perennial.github_com.rs.zerolog.Logger), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"RoundDistLogger") (PairV #x #y) (Val #(({ x with RoundDistLogger' := y } : Consensus)))
+  get'RoundDistLogFile : ∀ (x : Consensus), go.IsGoStepPureDetTagged under (StructFieldGet Consensus.underlying go!"RoundDistLogFile") #x (Val #(x.RoundDistLogFile'))
+  set'RoundDistLogFile : ∀ (x : Consensus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Consensus.underlying go!"RoundDistLogFile") (PairV #x #y) (Val #(({ x with RoundDistLogFile' := y } : Consensus)))
   method_set : go.MethodSetIs Consensus.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Consensus.ty) [(go!"CommonCoinFlip", (some (go.signature.Signature [] false [go.uint32]))), (go!"Executor", (some (go.signature.Signature [] false []))), (go!"IsTermMatched", (some (go.signature.Signature [go.uint32] false [go.bool]))), (go!"MsgHandler", (some (go.signature.Signature [] false []))), (go!"PanicTermNotMatched", (some (go.signature.Signature [go.uint32] false []))), (go!"QPop", (some (go.signature.Signature [] false [_root_.Perennial.rabia.internal.message.ConsensusObj.ty, go.bool]))), (go!"QPush", (some (go.signature.Signature [_root_.Perennial.rabia.internal.message.ConsensusObj.ty] false []))), (go!"ResetCommonCoin", (some (go.signature.Signature [] false []))), (go!"SlotStats", (some (go.signature.Signature [] false [go.int, go.int, go.int, go.int]))), (go!"UpdateTermIfNecessary", (some (go.signature.Signature [go.uint32, go.bool] false [go.bool]))), (go!"rabia/roles/server/layers/consensus.binConMsgHandling", (some (go.signature.Signature [_root_.Perennial.rabia.internal.message.Msg.ty] false []))), (go!"rabia/roles/server/layers/consensus.decideSlot", (some (go.signature.Signature [go.uint32] false []))), (go!"rabia/roles/server/layers/consensus.epilogue", (some (go.signature.Signature [go.uint32, _root_.Perennial.rabia.internal.message.ConsensusObj.ty] false []))), (go!"rabia/roles/server/layers/consensus.findRds", (some (go.signature.Signature [go.int] false [go.int]))), (go!"rabia/roles/server/layers/consensus.findReturnValue", (some (go.signature.Signature [go.uint32, go.uint32, go.uint32] false [_root_.Perennial.rabia.internal.message.ConsensusObj.ty]))), (go!"rabia/roles/server/layers/consensus.freqSum", (some (go.signature.Signature [] false [go.int]))), (go!"rabia/roles/server/layers/consensus.genBinConMsg", (some (go.signature.Signature [go.uint32, go.uint32, go.uint32] false [_root_.Perennial.rabia.internal.message.Msg.ty]))), (go!"rabia/roles/server/layers/consensus.genDecMsgType1", (some (go.signature.Signature [go.uint32] false [_root_.Perennial.rabia.internal.message.Msg.ty]))), (go!"rabia/roles/server/layers/consensus.genDecMsgType2", (some (go.signature.Signature [go.uint32, _root_.Perennial.rabia.internal.message.ConsensusObj.ty] false [_root_.Perennial.rabia.internal.message.Msg.ty]))), (go!"rabia/roles/server/layers/consensus.genProposalMsg", (some (go.signature.Signature [go.uint32] false [_root_.Perennial.rabia.internal.message.Msg.ty]))), (go!"rabia/roles/server/layers/consensus.genProposalReply", (some (go.signature.Signature [go.uint32, go.uint32] false [_root_.Perennial.rabia.internal.message.Msg.ty]))), (go!"rabia/roles/server/layers/consensus.getRequest", (some (go.signature.Signature [] false [go.bool]))), (go!"rabia/roles/server/layers/consensus.logExitStatus", (some (go.signature.Signature [] false []))), (go!"rabia/roles/server/layers/consensus.phase0Round1AfterWait", (some (go.signature.Signature [go.uint32] false [_root_.Perennial.rabia.internal.message.ConsensusObj.ty, go.bool]))), (go!"rabia/roles/server/layers/consensus.phase0Round1BeforeWait", (some (go.signature.Signature [go.uint32] false []))), (go!"rabia/roles/server/layers/consensus.phase0Round2AfterWait", (some (go.signature.Signature [go.uint32] false [_root_.Perennial.rabia.internal.message.ConsensusObj.ty, go.bool]))), (go!"rabia/roles/server/layers/consensus.phase0Round2BeforeWait", (some (go.signature.Signature [go.uint32] false []))), (go!"rabia/roles/server/layers/consensus.phaseNRound1AfterWait", (some (go.signature.Signature [go.uint32] false [_root_.Perennial.rabia.internal.message.ConsensusObj.ty, go.bool]))), (go!"rabia/roles/server/layers/consensus.phaseNRound1BeforeWait", (some (go.signature.Signature [go.uint32] false []))), (go!"rabia/roles/server/layers/consensus.phaseNRound2AfterWait", (some (go.signature.Signature [go.uint32] false [_root_.Perennial.rabia.internal.message.ConsensusObj.ty, go.bool]))), (go!"rabia/roles/server/layers/consensus.phaseNRound2BeforeWait", (some (go.signature.Signature [go.uint32] false []))), (go!"rabia/roles/server/layers/consensus.putBackMyProposal", (some (go.signature.Signature [go.uint32] false []))), (go!"rabia/roles/server/layers/consensus.requestProposalAndWait", (some (go.signature.Signature [go.uint32] false [_root_.Perennial.rabia.internal.message.ConsensusObj.ty]))), (go!"rabia/roles/server/layers/consensus.toNet", (some (go.signature.Signature [_root_.Perennial.rabia.internal.message.Msg.ty] false []))), (go!"rabia/roles/server/layers/consensus.wait", (some (go.signature.Signature [go.uint32] false [go.bool])))]
-  ptr_CommonCoinFlip_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"CommonCoinFlip" Consensus.CommonCoinFlip.impl
-  ptr_Executor_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"Executor" Consensus.Executor.impl
-  ptr_IsTermMatched_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"IsTermMatched" Consensus.IsTermMatched.impl
-  ptr_MsgHandler_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"MsgHandler" Consensus.MsgHandler.impl
-  ptr_PanicTermNotMatched_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"PanicTermNotMatched" Consensus.PanicTermNotMatched.impl
-  ptr_QPop_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"QPop" Consensus.QPop.impl
-  ptr_QPush_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"QPush" Consensus.QPush.impl
-  ptr_ResetCommonCoin_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"ResetCommonCoin" Consensus.ResetCommonCoin.impl
-  ptr_SlotStats_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"SlotStats" Consensus.SlotStats.impl
-  ptr_UpdateTermIfNecessary_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"UpdateTermIfNecessary" Consensus.UpdateTermIfNecessary.impl
-  ptr_binConMsgHandling_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"binConMsgHandling" Consensus.binConMsgHandling.impl
-  ptr_decideSlot_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"decideSlot" Consensus.decideSlot.impl
-  ptr_epilogue_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"epilogue" Consensus.epilogue.impl
-  ptr_findRds_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"findRds" Consensus.findRds.impl
-  ptr_findReturnValue_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"findReturnValue" Consensus.findReturnValue.impl
-  ptr_freqSum_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"freqSum" Consensus.freqSum.impl
-  ptr_genBinConMsg_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"genBinConMsg" Consensus.genBinConMsg.impl
-  ptr_genDecMsgType1_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"genDecMsgType1" Consensus.genDecMsgType1.impl
-  ptr_genDecMsgType2_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"genDecMsgType2" Consensus.genDecMsgType2.impl
-  ptr_genProposalMsg_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"genProposalMsg" Consensus.genProposalMsg.impl
-  ptr_genProposalReply_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"genProposalReply" Consensus.genProposalReply.impl
-  ptr_getRequest_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"getRequest" Consensus.getRequest.impl
-  ptr_logExitStatus_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"logExitStatus" Consensus.logExitStatus.impl
-  ptr_phase0Round1AfterWait_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"phase0Round1AfterWait" Consensus.phase0Round1AfterWait.impl
-  ptr_phase0Round1BeforeWait_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"phase0Round1BeforeWait" Consensus.phase0Round1BeforeWait.impl
-  ptr_phase0Round2AfterWait_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"phase0Round2AfterWait" Consensus.phase0Round2AfterWait.impl
-  ptr_phase0Round2BeforeWait_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"phase0Round2BeforeWait" Consensus.phase0Round2BeforeWait.impl
-  ptr_phaseNRound1AfterWait_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"phaseNRound1AfterWait" Consensus.phaseNRound1AfterWait.impl
-  ptr_phaseNRound1BeforeWait_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"phaseNRound1BeforeWait" Consensus.phaseNRound1BeforeWait.impl
-  ptr_phaseNRound2AfterWait_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"phaseNRound2AfterWait" Consensus.phaseNRound2AfterWait.impl
-  ptr_phaseNRound2BeforeWait_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"phaseNRound2BeforeWait" Consensus.phaseNRound2BeforeWait.impl
-  ptr_putBackMyProposal_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"putBackMyProposal" Consensus.putBackMyProposal.impl
-  ptr_requestProposalAndWait_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"requestProposalAndWait" Consensus.requestProposalAndWait.impl
-  ptr_toNet_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"toNet" Consensus.toNet.impl
-  ptr_wait_unfold : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"wait" Consensus.wait.impl
+  ptr_unfold'CommonCoinFlip : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"CommonCoinFlip" Consensus.CommonCoinFlip.impl
+  ptr_unfold'Executor : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"Executor" Consensus.Executor.impl
+  ptr_unfold'IsTermMatched : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"IsTermMatched" Consensus.IsTermMatched.impl
+  ptr_unfold'MsgHandler : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"MsgHandler" Consensus.MsgHandler.impl
+  ptr_unfold'PanicTermNotMatched : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"PanicTermNotMatched" Consensus.PanicTermNotMatched.impl
+  ptr_unfold'QPop : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"QPop" Consensus.QPop.impl
+  ptr_unfold'QPush : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"QPush" Consensus.QPush.impl
+  ptr_unfold'ResetCommonCoin : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"ResetCommonCoin" Consensus.ResetCommonCoin.impl
+  ptr_unfold'SlotStats : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"SlotStats" Consensus.SlotStats.impl
+  ptr_unfold'UpdateTermIfNecessary : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"UpdateTermIfNecessary" Consensus.UpdateTermIfNecessary.impl
+  ptr_unfold'binConMsgHandling : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"binConMsgHandling" Consensus.binConMsgHandling.impl
+  ptr_unfold'decideSlot : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"decideSlot" Consensus.decideSlot.impl
+  ptr_unfold'epilogue : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"epilogue" Consensus.epilogue.impl
+  ptr_unfold'findRds : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"findRds" Consensus.findRds.impl
+  ptr_unfold'findReturnValue : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"findReturnValue" Consensus.findReturnValue.impl
+  ptr_unfold'freqSum : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"freqSum" Consensus.freqSum.impl
+  ptr_unfold'genBinConMsg : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"genBinConMsg" Consensus.genBinConMsg.impl
+  ptr_unfold'genDecMsgType1 : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"genDecMsgType1" Consensus.genDecMsgType1.impl
+  ptr_unfold'genDecMsgType2 : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"genDecMsgType2" Consensus.genDecMsgType2.impl
+  ptr_unfold'genProposalMsg : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"genProposalMsg" Consensus.genProposalMsg.impl
+  ptr_unfold'genProposalReply : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"genProposalReply" Consensus.genProposalReply.impl
+  ptr_unfold'getRequest : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"getRequest" Consensus.getRequest.impl
+  ptr_unfold'logExitStatus : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"logExitStatus" Consensus.logExitStatus.impl
+  ptr_unfold'phase0Round1AfterWait : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"phase0Round1AfterWait" Consensus.phase0Round1AfterWait.impl
+  ptr_unfold'phase0Round1BeforeWait : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"phase0Round1BeforeWait" Consensus.phase0Round1BeforeWait.impl
+  ptr_unfold'phase0Round2AfterWait : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"phase0Round2AfterWait" Consensus.phase0Round2AfterWait.impl
+  ptr_unfold'phase0Round2BeforeWait : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"phase0Round2BeforeWait" Consensus.phase0Round2BeforeWait.impl
+  ptr_unfold'phaseNRound1AfterWait : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"phaseNRound1AfterWait" Consensus.phaseNRound1AfterWait.impl
+  ptr_unfold'phaseNRound1BeforeWait : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"phaseNRound1BeforeWait" Consensus.phaseNRound1BeforeWait.impl
+  ptr_unfold'phaseNRound2AfterWait : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"phaseNRound2AfterWait" Consensus.phaseNRound2AfterWait.impl
+  ptr_unfold'phaseNRound2BeforeWait : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"phaseNRound2BeforeWait" Consensus.phaseNRound2BeforeWait.impl
+  ptr_unfold'putBackMyProposal : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"putBackMyProposal" Consensus.putBackMyProposal.impl
+  ptr_unfold'requestProposalAndWait : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"requestProposalAndWait" Consensus.requestProposalAndWait.impl
+  ptr_unfold'toNet : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"toNet" Consensus.toNet.impl
+  ptr_unfold'wait : MethodUnfold (go.GoType.PointerType Consensus.ty) go!"wait" Consensus.wait.impl
 
 attribute [instance] Consensus.TypeAssumptions.type_repr
   Consensus.TypeAssumptions.underlying
-  Consensus.TypeAssumptions.get_SvrId
-  Consensus.TypeAssumptions.set_SvrId
-  Consensus.TypeAssumptions.get_InsId
-  Consensus.TypeAssumptions.set_InsId
-  Consensus.TypeAssumptions.get_Wg
-  Consensus.TypeAssumptions.set_Wg
-  Consensus.TypeAssumptions.get_Done
-  Consensus.TypeAssumptions.set_Done
-  Consensus.TypeAssumptions.get_NetToMsgHandler
-  Consensus.TypeAssumptions.set_NetToMsgHandler
-  Consensus.TypeAssumptions.get_MsgHandlerToNet
-  Consensus.TypeAssumptions.set_MsgHandlerToNet
-  Consensus.TypeAssumptions.get_NetToConExecutor
-  Consensus.TypeAssumptions.set_NetToConExecutor
-  Consensus.TypeAssumptions.get_ConExecutorToNet
-  Consensus.TypeAssumptions.set_ConExecutorToNet
-  Consensus.TypeAssumptions.get_Queue
-  Consensus.TypeAssumptions.set_Queue
-  Consensus.TypeAssumptions.get_QLock
-  Consensus.TypeAssumptions.set_QLock
-  Consensus.TypeAssumptions.get_SvrSeq
-  Consensus.TypeAssumptions.set_SvrSeq
-  Consensus.TypeAssumptions.get_Ledger
-  Consensus.TypeAssumptions.set_Ledger
-  Consensus.TypeAssumptions.get_Coin
-  Consensus.TypeAssumptions.set_Coin
-  Consensus.TypeAssumptions.get_Discard
-  Consensus.TypeAssumptions.set_Discard
-  Consensus.TypeAssumptions.get_Logger
-  Consensus.TypeAssumptions.set_Logger
-  Consensus.TypeAssumptions.get_LogFile
-  Consensus.TypeAssumptions.set_LogFile
-  Consensus.TypeAssumptions.get_NormalSlots
-  Consensus.TypeAssumptions.set_NormalSlots
-  Consensus.TypeAssumptions.get_UnmatchedSlots
-  Consensus.TypeAssumptions.set_UnmatchedSlots
-  Consensus.TypeAssumptions.get_NullSlots
-  Consensus.TypeAssumptions.set_NullSlots
-  Consensus.TypeAssumptions.get_TotalRounds
-  Consensus.TypeAssumptions.set_TotalRounds
-  Consensus.TypeAssumptions.get_TotalSlots
-  Consensus.TypeAssumptions.set_TotalSlots
-  Consensus.TypeAssumptions.get_OlderThanTermMsg
-  Consensus.TypeAssumptions.set_OlderThanTermMsg
-  Consensus.TypeAssumptions.get_CurrConsecutiveNulls
-  Consensus.TypeAssumptions.set_CurrConsecutiveNulls
-  Consensus.TypeAssumptions.get_MaxConsecutiveNulls
-  Consensus.TypeAssumptions.set_MaxConsecutiveNulls
-  Consensus.TypeAssumptions.get_MaxConsecutiveNullsEndSeq
-  Consensus.TypeAssumptions.set_MaxConsecutiveNullsEndSeq
-  Consensus.TypeAssumptions.get_NumClientBatchedRequests
-  Consensus.TypeAssumptions.set_NumClientBatchedRequests
-  Consensus.TypeAssumptions.get_NumOfRoundsDist
-  Consensus.TypeAssumptions.set_NumOfRoundsDist
-  Consensus.TypeAssumptions.get_StatLock
-  Consensus.TypeAssumptions.set_StatLock
-  Consensus.TypeAssumptions.get_Per1000RoundDist
-  Consensus.TypeAssumptions.set_Per1000RoundDist
-  Consensus.TypeAssumptions.get_RoundDistLogger
-  Consensus.TypeAssumptions.set_RoundDistLogger
-  Consensus.TypeAssumptions.get_RoundDistLogFile
-  Consensus.TypeAssumptions.set_RoundDistLogFile
+  Consensus.TypeAssumptions.get'SvrId
+  Consensus.TypeAssumptions.set'SvrId
+  Consensus.TypeAssumptions.get'InsId
+  Consensus.TypeAssumptions.set'InsId
+  Consensus.TypeAssumptions.get'Wg
+  Consensus.TypeAssumptions.set'Wg
+  Consensus.TypeAssumptions.get'Done
+  Consensus.TypeAssumptions.set'Done
+  Consensus.TypeAssumptions.get'NetToMsgHandler
+  Consensus.TypeAssumptions.set'NetToMsgHandler
+  Consensus.TypeAssumptions.get'MsgHandlerToNet
+  Consensus.TypeAssumptions.set'MsgHandlerToNet
+  Consensus.TypeAssumptions.get'NetToConExecutor
+  Consensus.TypeAssumptions.set'NetToConExecutor
+  Consensus.TypeAssumptions.get'ConExecutorToNet
+  Consensus.TypeAssumptions.set'ConExecutorToNet
+  Consensus.TypeAssumptions.get'Queue
+  Consensus.TypeAssumptions.set'Queue
+  Consensus.TypeAssumptions.get'QLock
+  Consensus.TypeAssumptions.set'QLock
+  Consensus.TypeAssumptions.get'SvrSeq
+  Consensus.TypeAssumptions.set'SvrSeq
+  Consensus.TypeAssumptions.get'Ledger
+  Consensus.TypeAssumptions.set'Ledger
+  Consensus.TypeAssumptions.get'Coin
+  Consensus.TypeAssumptions.set'Coin
+  Consensus.TypeAssumptions.get'Discard
+  Consensus.TypeAssumptions.set'Discard
+  Consensus.TypeAssumptions.get'Logger
+  Consensus.TypeAssumptions.set'Logger
+  Consensus.TypeAssumptions.get'LogFile
+  Consensus.TypeAssumptions.set'LogFile
+  Consensus.TypeAssumptions.get'NormalSlots
+  Consensus.TypeAssumptions.set'NormalSlots
+  Consensus.TypeAssumptions.get'UnmatchedSlots
+  Consensus.TypeAssumptions.set'UnmatchedSlots
+  Consensus.TypeAssumptions.get'NullSlots
+  Consensus.TypeAssumptions.set'NullSlots
+  Consensus.TypeAssumptions.get'TotalRounds
+  Consensus.TypeAssumptions.set'TotalRounds
+  Consensus.TypeAssumptions.get'TotalSlots
+  Consensus.TypeAssumptions.set'TotalSlots
+  Consensus.TypeAssumptions.get'OlderThanTermMsg
+  Consensus.TypeAssumptions.set'OlderThanTermMsg
+  Consensus.TypeAssumptions.get'CurrConsecutiveNulls
+  Consensus.TypeAssumptions.set'CurrConsecutiveNulls
+  Consensus.TypeAssumptions.get'MaxConsecutiveNulls
+  Consensus.TypeAssumptions.set'MaxConsecutiveNulls
+  Consensus.TypeAssumptions.get'MaxConsecutiveNullsEndSeq
+  Consensus.TypeAssumptions.set'MaxConsecutiveNullsEndSeq
+  Consensus.TypeAssumptions.get'NumClientBatchedRequests
+  Consensus.TypeAssumptions.set'NumClientBatchedRequests
+  Consensus.TypeAssumptions.get'NumOfRoundsDist
+  Consensus.TypeAssumptions.set'NumOfRoundsDist
+  Consensus.TypeAssumptions.get'StatLock
+  Consensus.TypeAssumptions.set'StatLock
+  Consensus.TypeAssumptions.get'Per1000RoundDist
+  Consensus.TypeAssumptions.set'Per1000RoundDist
+  Consensus.TypeAssumptions.get'RoundDistLogger
+  Consensus.TypeAssumptions.set'RoundDistLogger
+  Consensus.TypeAssumptions.get'RoundDistLogFile
+  Consensus.TypeAssumptions.set'RoundDistLogFile
   Consensus.TypeAssumptions.method_set
   Consensus.TypeAssumptions.ptr_method_set
-  Consensus.TypeAssumptions.ptr_CommonCoinFlip_unfold
-  Consensus.TypeAssumptions.ptr_Executor_unfold
-  Consensus.TypeAssumptions.ptr_IsTermMatched_unfold
-  Consensus.TypeAssumptions.ptr_MsgHandler_unfold
-  Consensus.TypeAssumptions.ptr_PanicTermNotMatched_unfold
-  Consensus.TypeAssumptions.ptr_QPop_unfold
-  Consensus.TypeAssumptions.ptr_QPush_unfold
-  Consensus.TypeAssumptions.ptr_ResetCommonCoin_unfold
-  Consensus.TypeAssumptions.ptr_SlotStats_unfold
-  Consensus.TypeAssumptions.ptr_UpdateTermIfNecessary_unfold
-  Consensus.TypeAssumptions.ptr_binConMsgHandling_unfold
-  Consensus.TypeAssumptions.ptr_decideSlot_unfold
-  Consensus.TypeAssumptions.ptr_epilogue_unfold
-  Consensus.TypeAssumptions.ptr_findRds_unfold
-  Consensus.TypeAssumptions.ptr_findReturnValue_unfold
-  Consensus.TypeAssumptions.ptr_freqSum_unfold
-  Consensus.TypeAssumptions.ptr_genBinConMsg_unfold
-  Consensus.TypeAssumptions.ptr_genDecMsgType1_unfold
-  Consensus.TypeAssumptions.ptr_genDecMsgType2_unfold
-  Consensus.TypeAssumptions.ptr_genProposalMsg_unfold
-  Consensus.TypeAssumptions.ptr_genProposalReply_unfold
-  Consensus.TypeAssumptions.ptr_getRequest_unfold
-  Consensus.TypeAssumptions.ptr_logExitStatus_unfold
-  Consensus.TypeAssumptions.ptr_phase0Round1AfterWait_unfold
-  Consensus.TypeAssumptions.ptr_phase0Round1BeforeWait_unfold
-  Consensus.TypeAssumptions.ptr_phase0Round2AfterWait_unfold
-  Consensus.TypeAssumptions.ptr_phase0Round2BeforeWait_unfold
-  Consensus.TypeAssumptions.ptr_phaseNRound1AfterWait_unfold
-  Consensus.TypeAssumptions.ptr_phaseNRound1BeforeWait_unfold
-  Consensus.TypeAssumptions.ptr_phaseNRound2AfterWait_unfold
-  Consensus.TypeAssumptions.ptr_phaseNRound2BeforeWait_unfold
-  Consensus.TypeAssumptions.ptr_putBackMyProposal_unfold
-  Consensus.TypeAssumptions.ptr_requestProposalAndWait_unfold
-  Consensus.TypeAssumptions.ptr_toNet_unfold
-  Consensus.TypeAssumptions.ptr_wait_unfold
+  Consensus.TypeAssumptions.ptr_unfold'CommonCoinFlip
+  Consensus.TypeAssumptions.ptr_unfold'Executor
+  Consensus.TypeAssumptions.ptr_unfold'IsTermMatched
+  Consensus.TypeAssumptions.ptr_unfold'MsgHandler
+  Consensus.TypeAssumptions.ptr_unfold'PanicTermNotMatched
+  Consensus.TypeAssumptions.ptr_unfold'QPop
+  Consensus.TypeAssumptions.ptr_unfold'QPush
+  Consensus.TypeAssumptions.ptr_unfold'ResetCommonCoin
+  Consensus.TypeAssumptions.ptr_unfold'SlotStats
+  Consensus.TypeAssumptions.ptr_unfold'UpdateTermIfNecessary
+  Consensus.TypeAssumptions.ptr_unfold'binConMsgHandling
+  Consensus.TypeAssumptions.ptr_unfold'decideSlot
+  Consensus.TypeAssumptions.ptr_unfold'epilogue
+  Consensus.TypeAssumptions.ptr_unfold'findRds
+  Consensus.TypeAssumptions.ptr_unfold'findReturnValue
+  Consensus.TypeAssumptions.ptr_unfold'freqSum
+  Consensus.TypeAssumptions.ptr_unfold'genBinConMsg
+  Consensus.TypeAssumptions.ptr_unfold'genDecMsgType1
+  Consensus.TypeAssumptions.ptr_unfold'genDecMsgType2
+  Consensus.TypeAssumptions.ptr_unfold'genProposalMsg
+  Consensus.TypeAssumptions.ptr_unfold'genProposalReply
+  Consensus.TypeAssumptions.ptr_unfold'getRequest
+  Consensus.TypeAssumptions.ptr_unfold'logExitStatus
+  Consensus.TypeAssumptions.ptr_unfold'phase0Round1AfterWait
+  Consensus.TypeAssumptions.ptr_unfold'phase0Round1BeforeWait
+  Consensus.TypeAssumptions.ptr_unfold'phase0Round2AfterWait
+  Consensus.TypeAssumptions.ptr_unfold'phase0Round2BeforeWait
+  Consensus.TypeAssumptions.ptr_unfold'phaseNRound1AfterWait
+  Consensus.TypeAssumptions.ptr_unfold'phaseNRound1BeforeWait
+  Consensus.TypeAssumptions.ptr_unfold'phaseNRound2AfterWait
+  Consensus.TypeAssumptions.ptr_unfold'phaseNRound2BeforeWait
+  Consensus.TypeAssumptions.ptr_unfold'putBackMyProposal
+  Consensus.TypeAssumptions.ptr_unfold'requestProposalAndWait
+  Consensus.TypeAssumptions.ptr_unfold'toNet
+  Consensus.TypeAssumptions.ptr_unfold'wait
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Stat_instance : Stat.TypeAssumptions
-  Consensus_instance : Consensus.TypeAssumptions
-  ConsensusInit_unfold : FuncUnfold ConsensusInit [] ConsensusInit.impl
-  idSeqKey_unfold : FuncUnfold idSeqKey [] idSeqKey.impl
-  RemoveTrailingZeros_unfold : FuncUnfold RemoveTrailingZeros [] RemoveTrailingZeros.impl
-  import_heap_Assumption : _root_.Perennial.container.heap.Assumptions
-  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
-  import_zerolog_Assumption : _root_.Perennial.github_com.rs.zerolog.Assumptions
-  import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_config_Assumption : _root_.Perennial.rabia.internal.config.Assumptions
-  import_ledger_Assumption : _root_.Perennial.rabia.internal.ledger.Assumptions
-  import_logger_Assumption : _root_.Perennial.rabia.internal.logger.Assumptions
-  import_message_Assumption : _root_.Perennial.rabia.internal.message.Assumptions
-  import_queue_Assumption : _root_.Perennial.rabia.internal.queue.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
+  instance'Stat : Stat.TypeAssumptions
+  instance'Consensus : Consensus.TypeAssumptions
+  unfold'ConsensusInit : FuncUnfold ConsensusInit [] ConsensusInit.impl
+  unfold'idSeqKey : FuncUnfold idSeqKey [] idSeqKey.impl
+  unfold'RemoveTrailingZeros : FuncUnfold RemoveTrailingZeros [] RemoveTrailingZeros.impl
+  import'heap : _root_.Perennial.container.heap.Assumptions
+  import'fmt : _root_.Perennial.fmt.Assumptions
+  import'zerolog : _root_.Perennial.github_com.rs.zerolog.Assumptions
+  import'rand : _root_.Perennial.math.rand.Assumptions
+  import'os : _root_.Perennial.os.Assumptions
+  import'config : _root_.Perennial.rabia.internal.config.Assumptions
+  import'ledger : _root_.Perennial.rabia.internal.ledger.Assumptions
+  import'logger : _root_.Perennial.rabia.internal.logger.Assumptions
+  import'message : _root_.Perennial.rabia.internal.message.Assumptions
+  import'queue : _root_.Perennial.rabia.internal.queue.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
 
-attribute [instance] Assumptions.Stat_instance
-  Assumptions.Consensus_instance
-  Assumptions.ConsensusInit_unfold
-  Assumptions.idSeqKey_unfold
-  Assumptions.RemoveTrailingZeros_unfold
-  Assumptions.import_heap_Assumption
-  Assumptions.import_fmt_Assumption
-  Assumptions.import_zerolog_Assumption
-  Assumptions.import_rand_Assumption
-  Assumptions.import_os_Assumption
-  Assumptions.import_config_Assumption
-  Assumptions.import_ledger_Assumption
-  Assumptions.import_logger_Assumption
-  Assumptions.import_message_Assumption
-  Assumptions.import_queue_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
+attribute [instance] Assumptions.instance'Stat
+  Assumptions.instance'Consensus
+  Assumptions.unfold'ConsensusInit
+  Assumptions.unfold'idSeqKey
+  Assumptions.unfold'RemoveTrailingZeros
+  Assumptions.import'heap
+  Assumptions.import'fmt
+  Assumptions.import'zerolog
+  Assumptions.import'rand
+  Assumptions.import'os
+  Assumptions.import'config
+  Assumptions.import'ledger
+  Assumptions.import'logger
+  Assumptions.import'message
+  Assumptions.import'queue
+  Assumptions.import'sync
+  Assumptions.import'time
 
 end rabia.roles.server.layers.consensus
 

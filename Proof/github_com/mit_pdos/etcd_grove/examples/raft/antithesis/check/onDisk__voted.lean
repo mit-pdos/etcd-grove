@@ -38,7 +38,7 @@ theorem onDisk.voted.wp_proof (wp_w : onDisk.w.spec (GF := GF) (hG := hG))
   simp only [pure_ok, Except.ok.injEq] at Hv
   subst Hv
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_w_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'w.method_unfold]
   try wp_auto
   wp_apply wp_w g x $$ [Hx] as %e #He
   · iexact Hx
@@ -46,7 +46,7 @@ theorem onDisk.voted.wp_proof (wp_w : onDisk.w.spec (GF := GF) (hG := hG))
   wp_apply wp_vote e x.w vo $$ [He]
   · iframe He; ipureintro; exact hvo
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_V1_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions.ptr_unfold'V1.method_unfold]
   try wp_auto
   wp_apply wp_V1 g x v1 $$ [Hx]
   · iframe Hx; ipureintro; exact hv1

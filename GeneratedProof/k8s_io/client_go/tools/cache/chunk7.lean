@@ -70,7 +70,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance storeIndex_typed_pointsto :
+noncomputable instance typed_pointsto'storeIndex :
     TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.storeIndex where
   typedPointstoDef l v dq := iprop(
     "indexers" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeIndex go!"indexers" l) v.indexers' dq ∗
@@ -80,11 +80,11 @@ noncomputable instance storeIndex_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance storeIndex_into_val_typed :
+noncomputable instance into_val_typed'storeIndex :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.storeIndex k8s_io.client_go.tools.cache.storeIndex.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance storeIndex_access_load_indexers (l : Loc) (v : k8s_io.client_go.tools.cache.storeIndex) (dq : DFrac) :
+noncomputable instance access_load'storeIndex'indexers (l : Loc) (v : k8s_io.client_go.tools.cache.storeIndex) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeIndex go!"indexers" l) v.indexers' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeIndex go!"indexers" l) v.indexers' dq)
@@ -92,7 +92,7 @@ noncomputable instance storeIndex_access_load_indexers (l : Loc) (v : k8s_io.cli
  by
   solve_pointsto_access_struct
 
-noncomputable instance storeIndex_access_store_indexers (l : Loc) (v : k8s_io.client_go.tools.cache.storeIndex) (y : k8s_io.client_go.tools.cache.Indexers) :
+noncomputable instance access_store'storeIndex'indexers (l : Loc) (v : k8s_io.client_go.tools.cache.storeIndex) (y : k8s_io.client_go.tools.cache.Indexers) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeIndex go!"indexers" l) v.indexers' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeIndex go!"indexers" l) y (DFrac.own 1))
@@ -100,7 +100,7 @@ noncomputable instance storeIndex_access_store_indexers (l : Loc) (v : k8s_io.cl
  by
   solve_pointsto_access_struct
 
-noncomputable instance storeIndex_access_load_indices (l : Loc) (v : k8s_io.client_go.tools.cache.storeIndex) (dq : DFrac) :
+noncomputable instance access_load'storeIndex'indices (l : Loc) (v : k8s_io.client_go.tools.cache.storeIndex) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeIndex go!"indices" l) v.indices' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeIndex go!"indices" l) v.indices' dq)
@@ -108,7 +108,7 @@ noncomputable instance storeIndex_access_load_indices (l : Loc) (v : k8s_io.clie
  by
   solve_pointsto_access_struct
 
-noncomputable instance storeIndex_access_store_indices (l : Loc) (v : k8s_io.client_go.tools.cache.storeIndex) (y : k8s_io.client_go.tools.cache.Indices) :
+noncomputable instance access_store'storeIndex'indices (l : Loc) (v : k8s_io.client_go.tools.cache.storeIndex) (y : k8s_io.client_go.tools.cache.Indices) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeIndex go!"indices" l) v.indices' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeIndex go!"indices" l) y (DFrac.own 1))
@@ -127,7 +127,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
 
-noncomputable instance UndeltaStore_typed_pointsto :
+noncomputable instance typed_pointsto'UndeltaStore :
     TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.UndeltaStore where
   typedPointstoDef l v dq := iprop(
     "Store" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.UndeltaStore go!"Store" l) v.Store' dq ∗
@@ -137,11 +137,11 @@ noncomputable instance UndeltaStore_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance UndeltaStore_into_val_typed :
+noncomputable instance into_val_typed'UndeltaStore :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.UndeltaStore k8s_io.client_go.tools.cache.UndeltaStore.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance UndeltaStore_access_load_Store (l : Loc) (v : k8s_io.client_go.tools.cache.UndeltaStore) (dq : DFrac) :
+noncomputable instance access_load'UndeltaStore'Store (l : Loc) (v : k8s_io.client_go.tools.cache.UndeltaStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.UndeltaStore go!"Store" l) v.Store' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.UndeltaStore go!"Store" l) v.Store' dq)
@@ -149,7 +149,7 @@ noncomputable instance UndeltaStore_access_load_Store (l : Loc) (v : k8s_io.clie
  by
   solve_pointsto_access_struct
 
-noncomputable instance UndeltaStore_access_store_Store (l : Loc) (v : k8s_io.client_go.tools.cache.UndeltaStore) (y : k8s_io.client_go.tools.cache.Store) :
+noncomputable instance access_store'UndeltaStore'Store (l : Loc) (v : k8s_io.client_go.tools.cache.UndeltaStore) (y : k8s_io.client_go.tools.cache.Store) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.UndeltaStore go!"Store" l) v.Store' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.UndeltaStore go!"Store" l) y (DFrac.own 1))
@@ -157,7 +157,7 @@ noncomputable instance UndeltaStore_access_store_Store (l : Loc) (v : k8s_io.cli
  by
   solve_pointsto_access_struct
 
-noncomputable instance UndeltaStore_access_load_PushFunc (l : Loc) (v : k8s_io.client_go.tools.cache.UndeltaStore) (dq : DFrac) :
+noncomputable instance access_load'UndeltaStore'PushFunc (l : Loc) (v : k8s_io.client_go.tools.cache.UndeltaStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.UndeltaStore go!"PushFunc" l) v.PushFunc' dq)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.UndeltaStore go!"PushFunc" l) v.PushFunc' dq)
@@ -165,7 +165,7 @@ noncomputable instance UndeltaStore_access_load_PushFunc (l : Loc) (v : k8s_io.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance UndeltaStore_access_store_PushFunc (l : Loc) (v : k8s_io.client_go.tools.cache.UndeltaStore) (y : GoFunc) :
+noncomputable instance access_store'UndeltaStore'PushFunc (l : Loc) (v : k8s_io.client_go.tools.cache.UndeltaStore) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.UndeltaStore go!"PushFunc" l) v.PushFunc' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.UndeltaStore go!"PushFunc" l) y (DFrac.own 1))

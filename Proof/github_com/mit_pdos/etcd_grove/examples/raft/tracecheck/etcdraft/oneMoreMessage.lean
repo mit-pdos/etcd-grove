@@ -60,12 +60,12 @@ theorem oneMoreMessage.wp_proof (wp_Count : Bag.Count.spec (GF := GF) (hG := hG)
   simp only [TypedPointsto.typedPointstoDef]
   icases Hpf2 with ⟨-, -, -, #PM2, -⟩
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_Count_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'Count.method_unfold]
   try wp_auto
   wp_apply wp_Count g.PendingMessages' s.pendingMessages q m $$ [Hpm Hmsg] as %c1 %Hc1
   · iframe Hpm Hmsg
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_Count_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Bag.TypeAssumptions.ptr_unfold'Count.method_unfold]
   try wp_auto
   wp_apply wp_Count g2.PendingMessages' s2.pendingMessages q m $$ [Hpm2 Hmsg] as %c2 %Hc2
   · iframe Hpm2 Hmsg

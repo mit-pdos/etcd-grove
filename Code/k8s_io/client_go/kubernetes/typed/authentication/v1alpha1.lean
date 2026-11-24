@@ -207,19 +207,19 @@ attribute [instance] selfSubjectReviews.TypeAssumptions.type_repr
   selfSubjectReviews.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  AuthenticationV1alpha1Interface_instance : AuthenticationV1alpha1Interface.TypeAssumptions
-  AuthenticationV1alpha1Client_instance : AuthenticationV1alpha1Client.TypeAssumptions
-  SelfSubjectReviewExpansion_instance : SelfSubjectReviewExpansion.TypeAssumptions
-  SelfSubjectReviewsGetter_instance : SelfSubjectReviewsGetter.TypeAssumptions
-  SelfSubjectReviewInterface_instance : SelfSubjectReviewInterface.TypeAssumptions
-  selfSubjectReviews_instance : selfSubjectReviews.TypeAssumptions
+  instance'AuthenticationV1alpha1Interface : AuthenticationV1alpha1Interface.TypeAssumptions
+  instance'AuthenticationV1alpha1Client : AuthenticationV1alpha1Client.TypeAssumptions
+  instance'SelfSubjectReviewExpansion : SelfSubjectReviewExpansion.TypeAssumptions
+  instance'SelfSubjectReviewsGetter : SelfSubjectReviewsGetter.TypeAssumptions
+  instance'SelfSubjectReviewInterface : SelfSubjectReviewInterface.TypeAssumptions
+  instance'selfSubjectReviews : selfSubjectReviews.TypeAssumptions
 
-attribute [instance] Assumptions.AuthenticationV1alpha1Interface_instance
-  Assumptions.AuthenticationV1alpha1Client_instance
-  Assumptions.SelfSubjectReviewExpansion_instance
-  Assumptions.SelfSubjectReviewsGetter_instance
-  Assumptions.SelfSubjectReviewInterface_instance
-  Assumptions.selfSubjectReviews_instance
+attribute [instance] Assumptions.instance'AuthenticationV1alpha1Interface
+  Assumptions.instance'AuthenticationV1alpha1Client
+  Assumptions.instance'SelfSubjectReviewExpansion
+  Assumptions.instance'SelfSubjectReviewsGetter
+  Assumptions.instance'SelfSubjectReviewInterface
+  Assumptions.instance'selfSubjectReviews
 
 end k8s_io.client_go.kubernetes.typed.authentication.v1alpha1
 

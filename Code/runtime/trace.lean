@@ -222,7 +222,7 @@ noncomputable instance traceContextKey.zero_val [GooseExts] : ZeroVal traceConte
 @[irreducible] noncomputable def traceContextKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   traceContextKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_traceContextKey [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'traceContextKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold traceContextKey.fields traceContextKey.fieldsUnsealed :=
   ⟨by unfold traceContextKey.fields; rfl⟩
 
@@ -253,7 +253,7 @@ noncomputable instance Task.zero_val [GooseExts] : ZeroVal Task :=
 @[irreducible] noncomputable def Task.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Task.fieldsUnsealed
 
-noncomputable instance equals_unfold_Task [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Task [GooseExts] [GoGlobalContext] :
     EqualsUnfold Task.fields Task.fieldsUnsealed :=
   ⟨by unfold Task.fields; rfl⟩
 
@@ -263,15 +263,15 @@ noncomputable instance equals_unfold_Task [GooseExts] [GoGlobalContext] :
 class Task.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Task.underlying Task
   underlying : go.UnderlyingDirectedEq Task.ty Task.underlying
-  get_id : ∀ (x : Task), go.IsGoStepPureDetTagged under (StructFieldGet Task.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : Task) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Task.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : Task)))
+  get'id : ∀ (x : Task), go.IsGoStepPureDetTagged under (StructFieldGet Task.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : Task) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Task.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : Task)))
   method_set : go.MethodSetIs Task.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Task.ty) [(go!"End", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Task.TypeAssumptions.type_repr
   Task.TypeAssumptions.underlying
-  Task.TypeAssumptions.get_id
-  Task.TypeAssumptions.set_id
+  Task.TypeAssumptions.get'id
+  Task.TypeAssumptions.set'id
   Task.TypeAssumptions.method_set
   Task.TypeAssumptions.ptr_method_set
 
@@ -290,7 +290,7 @@ noncomputable instance Region.zero_val [GooseExts] : ZeroVal Region :=
 @[irreducible] noncomputable def Region.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Region.fieldsUnsealed
 
-noncomputable instance equals_unfold_Region [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Region [GooseExts] [GoGlobalContext] :
     EqualsUnfold Region.fields Region.fieldsUnsealed :=
   ⟨by unfold Region.fields; rfl⟩
 
@@ -300,19 +300,19 @@ noncomputable instance equals_unfold_Region [GooseExts] [GoGlobalContext] :
 class Region.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Region.underlying Region
   underlying : go.UnderlyingDirectedEq Region.ty Region.underlying
-  get_id : ∀ (x : Region), go.IsGoStepPureDetTagged under (StructFieldGet Region.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : Region) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Region.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : Region)))
-  get_regionType : ∀ (x : Region), go.IsGoStepPureDetTagged under (StructFieldGet Region.underlying go!"regionType") #x (Val #(x.regionType'))
-  set_regionType : ∀ (x : Region) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Region.underlying go!"regionType") (PairV #x #y) (Val #(({ x with regionType' := y } : Region)))
+  get'id : ∀ (x : Region), go.IsGoStepPureDetTagged under (StructFieldGet Region.underlying go!"id") #x (Val #(x.id'))
+  set'id : ∀ (x : Region) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Region.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : Region)))
+  get'regionType : ∀ (x : Region), go.IsGoStepPureDetTagged under (StructFieldGet Region.underlying go!"regionType") #x (Val #(x.regionType'))
+  set'regionType : ∀ (x : Region) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Region.underlying go!"regionType") (PairV #x #y) (Val #(({ x with regionType' := y } : Region)))
   method_set : go.MethodSetIs Region.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Region.ty) [(go!"End", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Region.TypeAssumptions.type_repr
   Region.TypeAssumptions.underlying
-  Region.TypeAssumptions.get_id
-  Region.TypeAssumptions.set_id
-  Region.TypeAssumptions.get_regionType
-  Region.TypeAssumptions.set_regionType
+  Region.TypeAssumptions.get'id
+  Region.TypeAssumptions.set'id
+  Region.TypeAssumptions.get'regionType
+  Region.TypeAssumptions.set'regionType
   Region.TypeAssumptions.method_set
   Region.TypeAssumptions.ptr_method_set
 
@@ -347,7 +347,7 @@ noncomputable instance batch.zero_val [GooseExts] : ZeroVal batch :=
 @[irreducible] noncomputable def batch.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   batch.fieldsUnsealed
 
-noncomputable instance equals_unfold_batch [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'batch [GooseExts] [GoGlobalContext] :
     EqualsUnfold batch.fields batch.fieldsUnsealed :=
   ⟨by unfold batch.fields; rfl⟩
 
@@ -357,23 +357,23 @@ noncomputable instance equals_unfold_batch [GooseExts] [GoGlobalContext] :
 class batch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying batch.underlying batch
   underlying : go.UnderlyingDirectedEq batch.ty batch.underlying
-  get_time : ∀ (x : batch), go.IsGoStepPureDetTagged under (StructFieldGet batch.underlying go!"time") #x (Val #(x.time'))
-  set_time : ∀ (x : batch) (y : timestamp), go.IsGoStepPureDetTagged under (StructFieldSet batch.underlying go!"time") (PairV #x #y) (Val #(({ x with time' := y } : batch)))
-  get_gen : ∀ (x : batch), go.IsGoStepPureDetTagged under (StructFieldGet batch.underlying go!"gen") #x (Val #(x.gen'))
-  set_gen : ∀ (x : batch) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet batch.underlying go!"gen") (PairV #x #y) (Val #(({ x with gen' := y } : batch)))
-  get_data : ∀ (x : batch), go.IsGoStepPureDetTagged under (StructFieldGet batch.underlying go!"data") #x (Val #(x.data'))
-  set_data : ∀ (x : batch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet batch.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : batch)))
+  get'time : ∀ (x : batch), go.IsGoStepPureDetTagged under (StructFieldGet batch.underlying go!"time") #x (Val #(x.time'))
+  set'time : ∀ (x : batch) (y : timestamp), go.IsGoStepPureDetTagged under (StructFieldSet batch.underlying go!"time") (PairV #x #y) (Val #(({ x with time' := y } : batch)))
+  get'gen : ∀ (x : batch), go.IsGoStepPureDetTagged under (StructFieldGet batch.underlying go!"gen") #x (Val #(x.gen'))
+  set'gen : ∀ (x : batch) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet batch.underlying go!"gen") (PairV #x #y) (Val #(({ x with gen' := y } : batch)))
+  get'data : ∀ (x : batch), go.IsGoStepPureDetTagged under (StructFieldGet batch.underlying go!"data") #x (Val #(x.data'))
+  set'data : ∀ (x : batch) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet batch.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : batch)))
   method_set : go.MethodSetIs batch.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType batch.ty) []
 
 attribute [instance] batch.TypeAssumptions.type_repr
   batch.TypeAssumptions.underlying
-  batch.TypeAssumptions.get_time
-  batch.TypeAssumptions.set_time
-  batch.TypeAssumptions.get_gen
-  batch.TypeAssumptions.set_gen
-  batch.TypeAssumptions.get_data
-  batch.TypeAssumptions.set_data
+  batch.TypeAssumptions.get'time
+  batch.TypeAssumptions.set'time
+  batch.TypeAssumptions.get'gen
+  batch.TypeAssumptions.set'gen
+  batch.TypeAssumptions.get'data
+  batch.TypeAssumptions.set'data
   batch.TypeAssumptions.method_set
   batch.TypeAssumptions.ptr_method_set
 
@@ -430,7 +430,7 @@ noncomputable instance recorder.zero_val [GooseExts] : ZeroVal recorder :=
 @[irreducible] noncomputable def recorder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   recorder.fieldsUnsealed
 
-noncomputable instance equals_unfold_recorder [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'recorder [GooseExts] [GoGlobalContext] :
     EqualsUnfold recorder.fields recorder.fieldsUnsealed :=
   ⟨by unfold recorder.fields; rfl⟩
 
@@ -440,19 +440,19 @@ noncomputable instance equals_unfold_recorder [GooseExts] [GoGlobalContext] :
 class recorder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying recorder.underlying recorder
   underlying : go.UnderlyingDirectedEq recorder.ty recorder.underlying
-  get_r : ∀ (x : recorder), go.IsGoStepPureDetTagged under (StructFieldGet recorder.underlying go!"r") #x (Val #(x.r'))
-  set_r : ∀ (x : recorder) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet recorder.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : recorder)))
-  get_headerReceived : ∀ (x : recorder), go.IsGoStepPureDetTagged under (StructFieldGet recorder.underlying go!"headerReceived") #x (Val #(x.headerReceived'))
-  set_headerReceived : ∀ (x : recorder) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet recorder.underlying go!"headerReceived") (PairV #x #y) (Val #(({ x with headerReceived' := y } : recorder)))
+  get'r : ∀ (x : recorder), go.IsGoStepPureDetTagged under (StructFieldGet recorder.underlying go!"r") #x (Val #(x.r'))
+  set'r : ∀ (x : recorder) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet recorder.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : recorder)))
+  get'headerReceived : ∀ (x : recorder), go.IsGoStepPureDetTagged under (StructFieldGet recorder.underlying go!"headerReceived") #x (Val #(x.headerReceived'))
+  set'headerReceived : ∀ (x : recorder) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet recorder.underlying go!"headerReceived") (PairV #x #y) (Val #(({ x with headerReceived' := y } : recorder)))
   method_set : go.MethodSetIs recorder.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType recorder.ty) [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"runtime/trace.endGeneration", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] recorder.TypeAssumptions.type_repr
   recorder.TypeAssumptions.underlying
-  recorder.TypeAssumptions.get_r
-  recorder.TypeAssumptions.set_r
-  recorder.TypeAssumptions.get_headerReceived
-  recorder.TypeAssumptions.set_headerReceived
+  recorder.TypeAssumptions.get'r
+  recorder.TypeAssumptions.set'r
+  recorder.TypeAssumptions.get'headerReceived
+  recorder.TypeAssumptions.set'headerReceived
   recorder.TypeAssumptions.method_set
   recorder.TypeAssumptions.ptr_method_set
 
@@ -489,7 +489,7 @@ noncomputable instance rawGeneration.zero_val [GooseExts] : ZeroVal rawGeneratio
 @[irreducible] noncomputable def rawGeneration.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   rawGeneration.fieldsUnsealed
 
-noncomputable instance equals_unfold_rawGeneration [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'rawGeneration [GooseExts] [GoGlobalContext] :
     EqualsUnfold rawGeneration.fields rawGeneration.fieldsUnsealed :=
   ⟨by unfold rawGeneration.fields; rfl⟩
 
@@ -499,27 +499,27 @@ noncomputable instance equals_unfold_rawGeneration [GooseExts] [GoGlobalContext]
 class rawGeneration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying rawGeneration.underlying rawGeneration
   underlying : go.UnderlyingDirectedEq rawGeneration.ty rawGeneration.underlying
-  get_gen : ∀ (x : rawGeneration), go.IsGoStepPureDetTagged under (StructFieldGet rawGeneration.underlying go!"gen") #x (Val #(x.gen'))
-  set_gen : ∀ (x : rawGeneration) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet rawGeneration.underlying go!"gen") (PairV #x #y) (Val #(({ x with gen' := y } : rawGeneration)))
-  get_size : ∀ (x : rawGeneration), go.IsGoStepPureDetTagged under (StructFieldGet rawGeneration.underlying go!"size") #x (Val #(x.size'))
-  set_size : ∀ (x : rawGeneration) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet rawGeneration.underlying go!"size") (PairV #x #y) (Val #(({ x with size' := y } : rawGeneration)))
-  get_minTime : ∀ (x : rawGeneration), go.IsGoStepPureDetTagged under (StructFieldGet rawGeneration.underlying go!"minTime") #x (Val #(x.minTime'))
-  set_minTime : ∀ (x : rawGeneration) (y : eventTime), go.IsGoStepPureDetTagged under (StructFieldSet rawGeneration.underlying go!"minTime") (PairV #x #y) (Val #(({ x with minTime' := y } : rawGeneration)))
-  get_batches : ∀ (x : rawGeneration), go.IsGoStepPureDetTagged under (StructFieldGet rawGeneration.underlying go!"batches") #x (Val #(x.batches'))
-  set_batches : ∀ (x : rawGeneration) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet rawGeneration.underlying go!"batches") (PairV #x #y) (Val #(({ x with batches' := y } : rawGeneration)))
+  get'gen : ∀ (x : rawGeneration), go.IsGoStepPureDetTagged under (StructFieldGet rawGeneration.underlying go!"gen") #x (Val #(x.gen'))
+  set'gen : ∀ (x : rawGeneration) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet rawGeneration.underlying go!"gen") (PairV #x #y) (Val #(({ x with gen' := y } : rawGeneration)))
+  get'size : ∀ (x : rawGeneration), go.IsGoStepPureDetTagged under (StructFieldGet rawGeneration.underlying go!"size") #x (Val #(x.size'))
+  set'size : ∀ (x : rawGeneration) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet rawGeneration.underlying go!"size") (PairV #x #y) (Val #(({ x with size' := y } : rawGeneration)))
+  get'minTime : ∀ (x : rawGeneration), go.IsGoStepPureDetTagged under (StructFieldGet rawGeneration.underlying go!"minTime") #x (Val #(x.minTime'))
+  set'minTime : ∀ (x : rawGeneration) (y : eventTime), go.IsGoStepPureDetTagged under (StructFieldSet rawGeneration.underlying go!"minTime") (PairV #x #y) (Val #(({ x with minTime' := y } : rawGeneration)))
+  get'batches : ∀ (x : rawGeneration), go.IsGoStepPureDetTagged under (StructFieldGet rawGeneration.underlying go!"batches") #x (Val #(x.batches'))
+  set'batches : ∀ (x : rawGeneration) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet rawGeneration.underlying go!"batches") (PairV #x #y) (Val #(({ x with batches' := y } : rawGeneration)))
   method_set : go.MethodSetIs rawGeneration.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType rawGeneration.ty) []
 
 attribute [instance] rawGeneration.TypeAssumptions.type_repr
   rawGeneration.TypeAssumptions.underlying
-  rawGeneration.TypeAssumptions.get_gen
-  rawGeneration.TypeAssumptions.set_gen
-  rawGeneration.TypeAssumptions.get_size
-  rawGeneration.TypeAssumptions.set_size
-  rawGeneration.TypeAssumptions.get_minTime
-  rawGeneration.TypeAssumptions.set_minTime
-  rawGeneration.TypeAssumptions.get_batches
-  rawGeneration.TypeAssumptions.set_batches
+  rawGeneration.TypeAssumptions.get'gen
+  rawGeneration.TypeAssumptions.set'gen
+  rawGeneration.TypeAssumptions.get'size
+  rawGeneration.TypeAssumptions.set'size
+  rawGeneration.TypeAssumptions.get'minTime
+  rawGeneration.TypeAssumptions.set'minTime
+  rawGeneration.TypeAssumptions.get'batches
+  rawGeneration.TypeAssumptions.set'batches
   rawGeneration.TypeAssumptions.method_set
   rawGeneration.TypeAssumptions.ptr_method_set
 
@@ -557,31 +557,31 @@ attribute [instance] traceMultiplexer.TypeAssumptions.type_repr
   traceMultiplexer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  traceContextKey_instance : traceContextKey.TypeAssumptions
-  Task_instance : Task.TypeAssumptions
-  Region_instance : Region.TypeAssumptions
-  timestamp_instance : timestamp.TypeAssumptions
-  batch_instance : batch.TypeAssumptions
-  FlightRecorder_instance : FlightRecorder.TypeAssumptions
-  FlightRecorderConfig_instance : FlightRecorderConfig.TypeAssumptions
-  recorder_instance : recorder.TypeAssumptions
-  rawGeneration_instance : rawGeneration.TypeAssumptions
-  frequency_instance : frequency.TypeAssumptions
-  eventTime_instance : eventTime.TypeAssumptions
-  traceMultiplexer_instance : traceMultiplexer.TypeAssumptions
+  instance'traceContextKey : traceContextKey.TypeAssumptions
+  instance'Task : Task.TypeAssumptions
+  instance'Region : Region.TypeAssumptions
+  instance'timestamp : timestamp.TypeAssumptions
+  instance'batch : batch.TypeAssumptions
+  instance'FlightRecorder : FlightRecorder.TypeAssumptions
+  instance'FlightRecorderConfig : FlightRecorderConfig.TypeAssumptions
+  instance'recorder : recorder.TypeAssumptions
+  instance'rawGeneration : rawGeneration.TypeAssumptions
+  instance'frequency : frequency.TypeAssumptions
+  instance'eventTime : eventTime.TypeAssumptions
+  instance'traceMultiplexer : traceMultiplexer.TypeAssumptions
 
-attribute [instance] Assumptions.traceContextKey_instance
-  Assumptions.Task_instance
-  Assumptions.Region_instance
-  Assumptions.timestamp_instance
-  Assumptions.batch_instance
-  Assumptions.FlightRecorder_instance
-  Assumptions.FlightRecorderConfig_instance
-  Assumptions.recorder_instance
-  Assumptions.rawGeneration_instance
-  Assumptions.frequency_instance
-  Assumptions.eventTime_instance
-  Assumptions.traceMultiplexer_instance
+attribute [instance] Assumptions.instance'traceContextKey
+  Assumptions.instance'Task
+  Assumptions.instance'Region
+  Assumptions.instance'timestamp
+  Assumptions.instance'batch
+  Assumptions.instance'FlightRecorder
+  Assumptions.instance'FlightRecorderConfig
+  Assumptions.instance'recorder
+  Assumptions.instance'rawGeneration
+  Assumptions.instance'frequency
+  Assumptions.instance'eventTime
+  Assumptions.instance'traceMultiplexer
 
 end runtime.trace
 

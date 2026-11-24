@@ -84,9 +84,9 @@ attribute [instance] Severity.TypeAssumptions.underlying
   Severity.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Severity_instance : Severity.TypeAssumptions
+  instance'Severity : Severity.TypeAssumptions
 
-attribute [instance] Assumptions.Severity_instance
+attribute [instance] Assumptions.instance'Severity
 
 end k8s_io.klog.v2.internal.severity
 

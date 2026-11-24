@@ -51,7 +51,7 @@ theorem inMem.ll1.wp_proof
   iNamed Hf
   iStructNamed Hp
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_wins_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_unfold'wins.method_unfold]
   try wp_auto
   wp_apply wp_wins gx x w $$ [Hx]
   · iframe Hx; ipureintro; exact hw
@@ -67,7 +67,7 @@ theorem inMem.ll1.wp_proof
     subst Hv
     icases logsRO_at g.Log' x.s.log gx.n' ⟨Hn0, by rw [HWf.len_log]; omega⟩ $$ HLog with ⟨%lg, #Hlga, #Hlg⟩
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_T_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_unfold'T.method_unfold]
     try wp_auto
     wp_apply wp_T gx x t $$ [Hx] as %ut %Hut
     · iframe Hx; ipureintro; exact ht
@@ -78,7 +78,7 @@ theorem inMem.ll1.wp_proof
     obtain ⟨bb, EE, HW, -, -, hbb, -⟩ := HBd
     have hlen := HW.ledLog_len
     unfold numBound at hbb
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermLogs.TypeAssumptions.ptr_With_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermLogs.TypeAssumptions.ptr_unfold'With.method_unfold]
     try wp_auto
     wp_apply wp_With _ _ ut _ x.s.log[x.n]! $$ [HLedLog] as %u #Hu
     · iframe HLedLog; rw [← hnn]; iframe Hlg; ipureintro; omega

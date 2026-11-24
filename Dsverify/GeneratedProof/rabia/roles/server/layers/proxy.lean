@@ -36,7 +36,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : rabia.roles.server.layers.proxy.Assumptions]
 
-noncomputable instance Proxy_typed_pointsto :
+noncomputable instance typed_pointsto'Proxy :
     TypedPointsto (GF := GF) rabia.roles.server.layers.proxy.Proxy where
   typedPointstoDef l v dq := iprop(
     "SvrId" ∷ typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"SvrId" l) v.SvrId' dq ∗
@@ -62,11 +62,11 @@ noncomputable instance Proxy_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Proxy_into_val_typed :
+noncomputable instance into_val_typed'Proxy :
     IntoValTypedUnderlying (GF := GF) rabia.roles.server.layers.proxy.Proxy rabia.roles.server.layers.proxy.Proxy.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Proxy_access_load_SvrId (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'SvrId (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"SvrId" l) v.SvrId' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"SvrId" l) v.SvrId' dq)
@@ -74,7 +74,7 @@ noncomputable instance Proxy_access_load_SvrId (l : Loc) (v : rabia.roles.server
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_SvrId (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : w32) :
+noncomputable instance access_store'Proxy'SvrId (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"SvrId" l) v.SvrId' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"SvrId" l) y (DFrac.own 1))
@@ -82,7 +82,7 @@ noncomputable instance Proxy_access_store_SvrId (l : Loc) (v : rabia.roles.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_Wg (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'Wg (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Wg" l) v.Wg' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Wg" l) v.Wg' dq)
@@ -90,7 +90,7 @@ noncomputable instance Proxy_access_load_Wg (l : Loc) (v : rabia.roles.server.la
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_Wg (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : Loc) :
+noncomputable instance access_store'Proxy'Wg (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Wg" l) v.Wg' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Wg" l) y (DFrac.own 1))
@@ -98,7 +98,7 @@ noncomputable instance Proxy_access_store_Wg (l : Loc) (v : rabia.roles.server.l
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_Done (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'Done (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Done" l) v.Done' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Done" l) v.Done' dq)
@@ -106,7 +106,7 @@ noncomputable instance Proxy_access_load_Done (l : Loc) (v : rabia.roles.server.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_Done (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : GoChan) :
+noncomputable instance access_store'Proxy'Done (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Done" l) v.Done' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Done" l) y (DFrac.own 1))
@@ -114,7 +114,7 @@ noncomputable instance Proxy_access_store_Done (l : Loc) (v : rabia.roles.server
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_ClientsIn (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'ClientsIn (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"ClientsIn" l) v.ClientsIn' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"ClientsIn" l) v.ClientsIn' dq)
@@ -122,7 +122,7 @@ noncomputable instance Proxy_access_load_ClientsIn (l : Loc) (v : rabia.roles.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_ClientsIn (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : GoChan) :
+noncomputable instance access_store'Proxy'ClientsIn (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"ClientsIn" l) v.ClientsIn' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"ClientsIn" l) y (DFrac.own 1))
@@ -130,7 +130,7 @@ noncomputable instance Proxy_access_store_ClientsIn (l : Loc) (v : rabia.roles.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_ToNet (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'ToNet (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"ToNet" l) v.ToNet' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"ToNet" l) v.ToNet' dq)
@@ -138,7 +138,7 @@ noncomputable instance Proxy_access_load_ToNet (l : Loc) (v : rabia.roles.server
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_ToNet (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : GoChan) :
+noncomputable instance access_store'Proxy'ToNet (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"ToNet" l) v.ToNet' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"ToNet" l) y (DFrac.own 1))
@@ -146,7 +146,7 @@ noncomputable instance Proxy_access_store_ToNet (l : Loc) (v : rabia.roles.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_NetIn (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'NetIn (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"NetIn" l) v.NetIn' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"NetIn" l) v.NetIn' dq)
@@ -154,7 +154,7 @@ noncomputable instance Proxy_access_load_NetIn (l : Loc) (v : rabia.roles.server
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_NetIn (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : GoChan) :
+noncomputable instance access_store'Proxy'NetIn (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"NetIn" l) v.NetIn' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"NetIn" l) y (DFrac.own 1))
@@ -162,7 +162,7 @@ noncomputable instance Proxy_access_store_NetIn (l : Loc) (v : rabia.roles.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_TCP (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'TCP (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"TCP" l) v.TCP' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"TCP" l) v.TCP' dq)
@@ -170,7 +170,7 @@ noncomputable instance Proxy_access_load_TCP (l : Loc) (v : rabia.roles.server.l
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_TCP (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : Loc) :
+noncomputable instance access_store'Proxy'TCP (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"TCP" l) v.TCP' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"TCP" l) y (DFrac.own 1))
@@ -178,7 +178,7 @@ noncomputable instance Proxy_access_store_TCP (l : Loc) (v : rabia.roles.server.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_KVStore (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'KVStore (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"KVStore" l) v.KVStore' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"KVStore" l) v.KVStore' dq)
@@ -186,7 +186,7 @@ noncomputable instance Proxy_access_load_KVStore (l : Loc) (v : rabia.roles.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_KVStore (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : GoMap) :
+noncomputable instance access_store'Proxy'KVStore (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"KVStore" l) v.KVStore' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"KVStore" l) y (DFrac.own 1))
@@ -194,7 +194,7 @@ noncomputable instance Proxy_access_store_KVStore (l : Loc) (v : rabia.roles.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_RedisClient (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'RedisClient (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"RedisClient" l) v.RedisClient' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"RedisClient" l) v.RedisClient' dq)
@@ -202,7 +202,7 @@ noncomputable instance Proxy_access_load_RedisClient (l : Loc) (v : rabia.roles.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_RedisClient (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : Loc) :
+noncomputable instance access_store'Proxy'RedisClient (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"RedisClient" l) v.RedisClient' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"RedisClient" l) y (DFrac.own 1))
@@ -210,7 +210,7 @@ noncomputable instance Proxy_access_store_RedisClient (l : Loc) (v : rabia.roles
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_RedisCtx (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'RedisCtx (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"RedisCtx" l) v.RedisCtx' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"RedisCtx" l) v.RedisCtx' dq)
@@ -218,7 +218,7 @@ noncomputable instance Proxy_access_load_RedisCtx (l : Loc) (v : rabia.roles.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_RedisCtx (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : _root_.Perennial.context.Context) :
+noncomputable instance access_store'Proxy'RedisCtx (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"RedisCtx" l) v.RedisCtx' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"RedisCtx" l) y (DFrac.own 1))
@@ -226,7 +226,7 @@ noncomputable instance Proxy_access_store_RedisCtx (l : Loc) (v : rabia.roles.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_executeCmdFunc (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'executeCmdFunc (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"executeCmdFunc" l) v.executeCmdFunc' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"executeCmdFunc" l) v.executeCmdFunc' dq)
@@ -234,7 +234,7 @@ noncomputable instance Proxy_access_load_executeCmdFunc (l : Loc) (v : rabia.rol
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_executeCmdFunc (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : GoFunc) :
+noncomputable instance access_store'Proxy'executeCmdFunc (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"executeCmdFunc" l) v.executeCmdFunc' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"executeCmdFunc" l) y (DFrac.own 1))
@@ -242,7 +242,7 @@ noncomputable instance Proxy_access_store_executeCmdFunc (l : Loc) (v : rabia.ro
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_executeAndReplyFunc (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'executeAndReplyFunc (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"executeAndReplyFunc" l) v.executeAndReplyFunc' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"executeAndReplyFunc" l) v.executeAndReplyFunc' dq)
@@ -250,7 +250,7 @@ noncomputable instance Proxy_access_load_executeAndReplyFunc (l : Loc) (v : rabi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_executeAndReplyFunc (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : GoFunc) :
+noncomputable instance access_store'Proxy'executeAndReplyFunc (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"executeAndReplyFunc" l) v.executeAndReplyFunc' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"executeAndReplyFunc" l) y (DFrac.own 1))
@@ -258,7 +258,7 @@ noncomputable instance Proxy_access_store_executeAndReplyFunc (l : Loc) (v : rab
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_Logger (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'Logger (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Logger" l) v.Logger' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Logger" l) v.Logger' dq)
@@ -266,7 +266,7 @@ noncomputable instance Proxy_access_load_Logger (l : Loc) (v : rabia.roles.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_Logger (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : _root_.Perennial.github_com.rs.zerolog.Logger) :
+noncomputable instance access_store'Proxy'Logger (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : _root_.Perennial.github_com.rs.zerolog.Logger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Logger" l) v.Logger' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Logger" l) y (DFrac.own 1))
@@ -274,7 +274,7 @@ noncomputable instance Proxy_access_store_Logger (l : Loc) (v : rabia.roles.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_LogFile (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'LogFile (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"LogFile" l) v.LogFile' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"LogFile" l) v.LogFile' dq)
@@ -282,7 +282,7 @@ noncomputable instance Proxy_access_load_LogFile (l : Loc) (v : rabia.roles.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_LogFile (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : Loc) :
+noncomputable instance access_store'Proxy'LogFile (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"LogFile" l) v.LogFile' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"LogFile" l) y (DFrac.own 1))
@@ -290,7 +290,7 @@ noncomputable instance Proxy_access_store_LogFile (l : Loc) (v : rabia.roles.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_Ledger (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'Ledger (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Ledger" l) v.Ledger' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Ledger" l) v.Ledger' dq)
@@ -298,7 +298,7 @@ noncomputable instance Proxy_access_load_Ledger (l : Loc) (v : rabia.roles.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_Ledger (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : _root_.Perennial.rabia.internal.ledger.Ledger) :
+noncomputable instance access_store'Proxy'Ledger (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : _root_.Perennial.rabia.internal.ledger.Ledger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Ledger" l) v.Ledger' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Ledger" l) y (DFrac.own 1))
@@ -306,7 +306,7 @@ noncomputable instance Proxy_access_store_Ledger (l : Loc) (v : rabia.roles.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_CurrDec (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'CurrDec (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"CurrDec" l) v.CurrDec' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"CurrDec" l) v.CurrDec' dq)
@@ -314,7 +314,7 @@ noncomputable instance Proxy_access_load_CurrDec (l : Loc) (v : rabia.roles.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_CurrDec (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : Loc) :
+noncomputable instance access_store'Proxy'CurrDec (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"CurrDec" l) v.CurrDec' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"CurrDec" l) y (DFrac.own 1))
@@ -322,7 +322,7 @@ noncomputable instance Proxy_access_store_CurrDec (l : Loc) (v : rabia.roles.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_CurrInsId (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'CurrInsId (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"CurrInsId" l) v.CurrInsId' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"CurrInsId" l) v.CurrInsId' dq)
@@ -330,7 +330,7 @@ noncomputable instance Proxy_access_load_CurrInsId (l : Loc) (v : rabia.roles.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_CurrInsId (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : w64) :
+noncomputable instance access_store'Proxy'CurrInsId (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"CurrInsId" l) v.CurrInsId' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"CurrInsId" l) y (DFrac.own 1))
@@ -338,7 +338,7 @@ noncomputable instance Proxy_access_store_CurrInsId (l : Loc) (v : rabia.roles.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_load_CurrSeq (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
+noncomputable instance access_load'Proxy'CurrSeq (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"CurrSeq" l) v.CurrSeq' dq)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"CurrSeq" l) v.CurrSeq' dq)
@@ -346,7 +346,7 @@ noncomputable instance Proxy_access_load_CurrSeq (l : Loc) (v : rabia.roles.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_CurrSeq (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : w32) :
+noncomputable instance access_store'Proxy'CurrSeq (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"CurrSeq" l) v.CurrSeq' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"CurrSeq" l) y (DFrac.own 1))

@@ -1054,7 +1054,7 @@ theorem run.wp_proof
   ihave #Hopts2 := etcd_auth.optsAt_one (GF := GF) _ f2 (withLeaseM lz) $$ [Hslo2 Hf2]
   · iframe #
   (try wp_auto)
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_unfold'Put.method_unfold]
   wp_pures
   (try wp_auto)
   have hokx : ¬ (opPutModel xK go!"v" [withLeaseM lz]).putPanics ∧

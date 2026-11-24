@@ -888,7 +888,7 @@ noncomputable instance Read.zero_val [GooseExts] : ZeroVal Read :=
 @[irreducible] noncomputable def Read.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Read.fieldsUnsealed
 
-noncomputable instance equals_unfold_Read [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Read [GooseExts] [GoGlobalContext] :
     EqualsUnfold Read.fields Read.fieldsUnsealed :=
   ⟨by unfold Read.fields; rfl⟩
 
@@ -898,41 +898,41 @@ noncomputable instance equals_unfold_Read [GooseExts] [GoGlobalContext] :
 class Read.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Read.underlying Read
   underlying : go.UnderlyingDirectedEq Read.ty Read.underlying
-  get_server : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"server") #x (Val #(x.server'))
-  set_server : ∀ (x : Read) (y : server), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"server") (PairV #x #y) (Val #(({ x with server' := y } : Read)))
-  get_raft : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"raft") #x (Val #(x.raft'))
-  set_raft : ∀ (x : Read) (y : raftInterface), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"raft") (PairV #x #y) (Val #(({ x with raft' := y } : Read)))
-  get_mux : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"mux") #x (Val #(x.mux'))
-  set_mux : ∀ (x : Read) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"mux") (PairV #x #y) (Val #(({ x with mux' := y } : Read)))
-  get_waitC : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"waitC") #x (Val #(x.waitC'))
-  set_waitC : ∀ (x : Read) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"waitC") (PairV #x #y) (Val #(({ x with waitC' := y } : Read)))
-  get_notifier : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"notifier") #x (Val #(x.notifier'))
-  set_notifier : ∀ (x : Read) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"notifier") (PairV #x #y) (Val #(({ x with notifier' := y } : Read)))
+  get'server : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"server") #x (Val #(x.server'))
+  set'server : ∀ (x : Read) (y : server), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"server") (PairV #x #y) (Val #(({ x with server' := y } : Read)))
+  get'raft : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"raft") #x (Val #(x.raft'))
+  set'raft : ∀ (x : Read) (y : raftInterface), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"raft") (PairV #x #y) (Val #(({ x with raft' := y } : Read)))
+  get'mux : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"mux") #x (Val #(x.mux'))
+  set'mux : ∀ (x : Read) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"mux") (PairV #x #y) (Val #(({ x with mux' := y } : Read)))
+  get'waitC : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"waitC") #x (Val #(x.waitC'))
+  set'waitC : ∀ (x : Read) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"waitC") (PairV #x #y) (Val #(({ x with waitC' := y } : Read)))
+  get'notifier : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"notifier") #x (Val #(x.notifier'))
+  set'notifier : ∀ (x : Read) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"notifier") (PairV #x #y) (Val #(({ x with notifier' := y } : Read)))
   method_set : go.MethodSetIs Read.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Read.ty) [(go!"LinearizableReadLoop", (some (go.signature.Signature [] false []))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/read.requestCurrentIndex", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/read.sendReadIndex", (some (go.signature.Signature [go.uint64] false [go.error])))]
-  ptr_LinearizableReadLoop_unfold : MethodUnfold (go.GoType.PointerType Read.ty) go!"LinearizableReadLoop" Read.LinearizableReadLoop.impl
-  ptr_LinearizableReadNotify_unfold : MethodUnfold (go.GoType.PointerType Read.ty) go!"LinearizableReadNotify" Read.LinearizableReadNotify.impl
-  ptr_requestCurrentIndex_unfold : MethodUnfold (go.GoType.PointerType Read.ty) go!"requestCurrentIndex" Read.requestCurrentIndex.impl
-  ptr_sendReadIndex_unfold : MethodUnfold (go.GoType.PointerType Read.ty) go!"sendReadIndex" Read.sendReadIndex.impl
+  ptr_unfold'LinearizableReadLoop : MethodUnfold (go.GoType.PointerType Read.ty) go!"LinearizableReadLoop" Read.LinearizableReadLoop.impl
+  ptr_unfold'LinearizableReadNotify : MethodUnfold (go.GoType.PointerType Read.ty) go!"LinearizableReadNotify" Read.LinearizableReadNotify.impl
+  ptr_unfold'requestCurrentIndex : MethodUnfold (go.GoType.PointerType Read.ty) go!"requestCurrentIndex" Read.requestCurrentIndex.impl
+  ptr_unfold'sendReadIndex : MethodUnfold (go.GoType.PointerType Read.ty) go!"sendReadIndex" Read.sendReadIndex.impl
 
 attribute [instance] Read.TypeAssumptions.type_repr
   Read.TypeAssumptions.underlying
-  Read.TypeAssumptions.get_server
-  Read.TypeAssumptions.set_server
-  Read.TypeAssumptions.get_raft
-  Read.TypeAssumptions.set_raft
-  Read.TypeAssumptions.get_mux
-  Read.TypeAssumptions.set_mux
-  Read.TypeAssumptions.get_waitC
-  Read.TypeAssumptions.set_waitC
-  Read.TypeAssumptions.get_notifier
-  Read.TypeAssumptions.set_notifier
+  Read.TypeAssumptions.get'server
+  Read.TypeAssumptions.set'server
+  Read.TypeAssumptions.get'raft
+  Read.TypeAssumptions.set'raft
+  Read.TypeAssumptions.get'mux
+  Read.TypeAssumptions.set'mux
+  Read.TypeAssumptions.get'waitC
+  Read.TypeAssumptions.set'waitC
+  Read.TypeAssumptions.get'notifier
+  Read.TypeAssumptions.set'notifier
   Read.TypeAssumptions.method_set
   Read.TypeAssumptions.ptr_method_set
-  Read.TypeAssumptions.ptr_LinearizableReadLoop_unfold
-  Read.TypeAssumptions.ptr_LinearizableReadNotify_unfold
-  Read.TypeAssumptions.ptr_requestCurrentIndex_unfold
-  Read.TypeAssumptions.ptr_sendReadIndex_unfold
+  Read.TypeAssumptions.ptr_unfold'LinearizableReadLoop
+  Read.TypeAssumptions.ptr_unfold'LinearizableReadNotify
+  Read.TypeAssumptions.ptr_unfold'requestCurrentIndex
+  Read.TypeAssumptions.ptr_unfold'sendReadIndex
 
 structure notifier [GooseExts] where
   mk ::
@@ -949,7 +949,7 @@ noncomputable instance notifier.zero_val [GooseExts] : ZeroVal notifier :=
 @[irreducible] noncomputable def notifier.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   notifier.fieldsUnsealed
 
-noncomputable instance equals_unfold_notifier [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'notifier [GooseExts] [GoGlobalContext] :
     EqualsUnfold notifier.fields notifier.fieldsUnsealed :=
   ⟨by unfold notifier.fields; rfl⟩
 
@@ -959,66 +959,66 @@ noncomputable instance equals_unfold_notifier [GooseExts] [GoGlobalContext] :
 class notifier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying notifier.underlying notifier
   underlying : go.UnderlyingDirectedEq notifier.ty notifier.underlying
-  get_c : ∀ (x : notifier), go.IsGoStepPureDetTagged under (StructFieldGet notifier.underlying go!"c") #x (Val #(x.c'))
-  set_c : ∀ (x : notifier) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet notifier.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : notifier)))
-  get_err : ∀ (x : notifier), go.IsGoStepPureDetTagged under (StructFieldGet notifier.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : notifier) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet notifier.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : notifier)))
+  get'c : ∀ (x : notifier), go.IsGoStepPureDetTagged under (StructFieldGet notifier.underlying go!"c") #x (Val #(x.c'))
+  set'c : ∀ (x : notifier) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet notifier.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : notifier)))
+  get'err : ∀ (x : notifier), go.IsGoStepPureDetTagged under (StructFieldGet notifier.underlying go!"err") #x (Val #(x.err'))
+  set'err : ∀ (x : notifier) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet notifier.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : notifier)))
   method_set : go.MethodSetIs notifier.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType notifier.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/read.notify", (some (go.signature.Signature [go.error] false [])))]
-  ptr_notify_unfold : MethodUnfold (go.GoType.PointerType notifier.ty) go!"notify" notifier.notify.impl
+  ptr_unfold'notify : MethodUnfold (go.GoType.PointerType notifier.ty) go!"notify" notifier.notify.impl
 
 attribute [instance] notifier.TypeAssumptions.type_repr
   notifier.TypeAssumptions.underlying
-  notifier.TypeAssumptions.get_c
-  notifier.TypeAssumptions.set_c
-  notifier.TypeAssumptions.get_err
-  notifier.TypeAssumptions.set_err
+  notifier.TypeAssumptions.get'c
+  notifier.TypeAssumptions.set'c
+  notifier.TypeAssumptions.get'err
+  notifier.TypeAssumptions.set'err
   notifier.TypeAssumptions.method_set
   notifier.TypeAssumptions.ptr_method_set
-  notifier.TypeAssumptions.ptr_notify_unfold
+  notifier.TypeAssumptions.ptr_unfold'notify
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Read_instance : Read.TypeAssumptions
-  server_instance : server.TypeAssumptions
-  raftInterface_instance : raftInterface.TypeAssumptions
-  notifier_instance : notifier.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  NewRead_unfold : FuncUnfold NewRead [] NewRead.impl
-  uint64ToBigEndianBytes_unfold : FuncUnfold uint64ToBigEndianBytes [] uint64ToBigEndianBytes.impl
-  isStopped_unfold : FuncUnfold isStopped [] isStopped.impl
-  newNotifier_unfold : FuncUnfold newNotifier [] newNotifier.impl
-  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
-  import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_traceutil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Assumptions
-  import_etcdserver_errors_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.Assumptions
-  import_raft_Assumption : _root_.Perennial.go_etcd_io.raft.v3.Assumptions
+  instance'Read : Read.TypeAssumptions
+  instance'server : server.TypeAssumptions
+  instance'raftInterface : raftInterface.TypeAssumptions
+  instance'notifier : notifier.TypeAssumptions
+  «unfold'init.0» : FuncUnfold init.«0» [] init.«0».impl
+  unfold'NewRead : FuncUnfold NewRead [] NewRead.impl
+  unfold'uint64ToBigEndianBytes : FuncUnfold uint64ToBigEndianBytes [] uint64ToBigEndianBytes.impl
+  unfold'isStopped : FuncUnfold isStopped [] isStopped.impl
+  unfold'newNotifier : FuncUnfold newNotifier [] newNotifier.impl
+  import'prometheus : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  import'context : _root_.Perennial.context.Assumptions
+  import'binary : _root_.Perennial.encoding.binary.Assumptions
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'sync : _root_.Perennial.sync.Assumptions
+  import'time : _root_.Perennial.time.Assumptions
+  import'zap : _root_.Perennial.go_uber_org.zap.Assumptions
+  import'traceutil : _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Assumptions
+  import'etcdserver_errors : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.Assumptions
+  import'raft : _root_.Perennial.go_etcd_io.raft.v3.Assumptions
 
-attribute [instance] Assumptions.Read_instance
-  Assumptions.server_instance
-  Assumptions.raftInterface_instance
-  Assumptions.notifier_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.NewRead_unfold
-  Assumptions.uint64ToBigEndianBytes_unfold
-  Assumptions.isStopped_unfold
-  Assumptions.newNotifier_unfold
-  Assumptions.import_prometheus_Assumption
-  Assumptions.import_context_Assumption
-  Assumptions.import_binary_Assumption
-  Assumptions.import_errors_Assumption
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
-  Assumptions.import_zap_Assumption
-  Assumptions.import_traceutil_Assumption
-  Assumptions.import_etcdserver_errors_Assumption
-  Assumptions.import_raft_Assumption
+attribute [instance] Assumptions.instance'Read
+  Assumptions.instance'server
+  Assumptions.instance'raftInterface
+  Assumptions.instance'notifier
+  Assumptions.«unfold'init.0»
+  Assumptions.unfold'NewRead
+  Assumptions.unfold'uint64ToBigEndianBytes
+  Assumptions.unfold'isStopped
+  Assumptions.unfold'newNotifier
+  Assumptions.import'prometheus
+  Assumptions.import'context
+  Assumptions.import'binary
+  Assumptions.import'errors
+  Assumptions.import'strconv
+  Assumptions.import'sync
+  Assumptions.import'time
+  Assumptions.import'zap
+  Assumptions.import'traceutil
+  Assumptions.import'etcdserver_errors
+  Assumptions.import'raft
 
 end go_etcd_io.etcd.server.v3.etcdserver.read
 

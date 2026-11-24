@@ -33,7 +33,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance selfCollector_typed_pointsto :
+noncomputable instance typed_pointsto'selfCollector :
     TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.selfCollector where
   typedPointstoDef l v dq := iprop(
     "self" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.selfCollector go!"self" l) v.self' dq ∗
@@ -42,11 +42,11 @@ noncomputable instance selfCollector_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance selfCollector_into_val_typed :
+noncomputable instance into_val_typed'selfCollector :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.selfCollector github_com.prometheus.client_golang.prometheus.selfCollector.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance selfCollector_access_load_self (l : Loc) (v : github_com.prometheus.client_golang.prometheus.selfCollector) (dq : DFrac) :
+noncomputable instance access_load'selfCollector'self (l : Loc) (v : github_com.prometheus.client_golang.prometheus.selfCollector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.selfCollector go!"self" l) v.self' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.selfCollector go!"self" l) v.self' dq)
@@ -54,7 +54,7 @@ noncomputable instance selfCollector_access_load_self (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance selfCollector_access_store_self (l : Loc) (v : github_com.prometheus.client_golang.prometheus.selfCollector) (y : github_com.prometheus.client_golang.prometheus.Metric) :
+noncomputable instance access_store'selfCollector'self (l : Loc) (v : github_com.prometheus.client_golang.prometheus.selfCollector) (y : github_com.prometheus.client_golang.prometheus.Metric) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.selfCollector go!"self" l) v.self' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.selfCollector go!"self" l) y (DFrac.own 1))
@@ -73,7 +73,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance Opts_typed_pointsto :
+noncomputable instance typed_pointsto'Opts :
     TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.Opts where
   typedPointstoDef l v dq := iprop(
     "Namespace" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Namespace" l) v.Namespace' dq ∗
@@ -88,11 +88,11 @@ noncomputable instance Opts_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Opts_into_val_typed :
+noncomputable instance into_val_typed'Opts :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.Opts github_com.prometheus.client_golang.prometheus.Opts.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Opts_access_load_Namespace (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (dq : DFrac) :
+noncomputable instance access_load'Opts'Namespace (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Namespace" l) v.Namespace' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Namespace" l) v.Namespace' dq)
@@ -100,7 +100,7 @@ noncomputable instance Opts_access_load_Namespace (l : Loc) (v : github_com.prom
  by
   solve_pointsto_access_struct
 
-noncomputable instance Opts_access_store_Namespace (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (y : GoString) :
+noncomputable instance access_store'Opts'Namespace (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Namespace" l) v.Namespace' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Namespace" l) y (DFrac.own 1))
@@ -108,7 +108,7 @@ noncomputable instance Opts_access_store_Namespace (l : Loc) (v : github_com.pro
  by
   solve_pointsto_access_struct
 
-noncomputable instance Opts_access_load_Subsystem (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (dq : DFrac) :
+noncomputable instance access_load'Opts'Subsystem (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Subsystem" l) v.Subsystem' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Subsystem" l) v.Subsystem' dq)
@@ -116,7 +116,7 @@ noncomputable instance Opts_access_load_Subsystem (l : Loc) (v : github_com.prom
  by
   solve_pointsto_access_struct
 
-noncomputable instance Opts_access_store_Subsystem (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (y : GoString) :
+noncomputable instance access_store'Opts'Subsystem (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Subsystem" l) v.Subsystem' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Subsystem" l) y (DFrac.own 1))
@@ -124,7 +124,7 @@ noncomputable instance Opts_access_store_Subsystem (l : Loc) (v : github_com.pro
  by
   solve_pointsto_access_struct
 
-noncomputable instance Opts_access_load_Name (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (dq : DFrac) :
+noncomputable instance access_load'Opts'Name (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Name" l) v.Name' dq)
@@ -132,7 +132,7 @@ noncomputable instance Opts_access_load_Name (l : Loc) (v : github_com.prometheu
  by
   solve_pointsto_access_struct
 
-noncomputable instance Opts_access_store_Name (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (y : GoString) :
+noncomputable instance access_store'Opts'Name (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Name" l) y (DFrac.own 1))
@@ -140,7 +140,7 @@ noncomputable instance Opts_access_store_Name (l : Loc) (v : github_com.promethe
  by
   solve_pointsto_access_struct
 
-noncomputable instance Opts_access_load_Help (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (dq : DFrac) :
+noncomputable instance access_load'Opts'Help (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Help" l) v.Help' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Help" l) v.Help' dq)
@@ -148,7 +148,7 @@ noncomputable instance Opts_access_load_Help (l : Loc) (v : github_com.prometheu
  by
   solve_pointsto_access_struct
 
-noncomputable instance Opts_access_store_Help (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (y : GoString) :
+noncomputable instance access_store'Opts'Help (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Help" l) v.Help' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Help" l) y (DFrac.own 1))
@@ -156,7 +156,7 @@ noncomputable instance Opts_access_store_Help (l : Loc) (v : github_com.promethe
  by
   solve_pointsto_access_struct
 
-noncomputable instance Opts_access_load_Unit (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (dq : DFrac) :
+noncomputable instance access_load'Opts'Unit (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Unit" l) v.Unit' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Unit" l) v.Unit' dq)
@@ -164,7 +164,7 @@ noncomputable instance Opts_access_load_Unit (l : Loc) (v : github_com.prometheu
  by
   solve_pointsto_access_struct
 
-noncomputable instance Opts_access_store_Unit (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (y : GoString) :
+noncomputable instance access_store'Opts'Unit (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Unit" l) v.Unit' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"Unit" l) y (DFrac.own 1))
@@ -172,7 +172,7 @@ noncomputable instance Opts_access_store_Unit (l : Loc) (v : github_com.promethe
  by
   solve_pointsto_access_struct
 
-noncomputable instance Opts_access_load_ConstLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (dq : DFrac) :
+noncomputable instance access_load'Opts'ConstLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"ConstLabels" l) v.ConstLabels' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"ConstLabels" l) v.ConstLabels' dq)
@@ -180,7 +180,7 @@ noncomputable instance Opts_access_load_ConstLabels (l : Loc) (v : github_com.pr
  by
   solve_pointsto_access_struct
 
-noncomputable instance Opts_access_store_ConstLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (y : github_com.prometheus.client_golang.prometheus.Labels) :
+noncomputable instance access_store'Opts'ConstLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (y : github_com.prometheus.client_golang.prometheus.Labels) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"ConstLabels" l) v.ConstLabels' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"ConstLabels" l) y (DFrac.own 1))
@@ -188,7 +188,7 @@ noncomputable instance Opts_access_store_ConstLabels (l : Loc) (v : github_com.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Opts_access_load_now (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (dq : DFrac) :
+noncomputable instance access_load'Opts'now (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"now" l) v.now' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"now" l) v.now' dq)
@@ -196,7 +196,7 @@ noncomputable instance Opts_access_load_now (l : Loc) (v : github_com.prometheus
  by
   solve_pointsto_access_struct
 
-noncomputable instance Opts_access_store_now (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (y : GoFunc) :
+noncomputable instance access_store'Opts'now (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Opts) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"now" l) v.now' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Opts go!"now" l) y (DFrac.own 1))
@@ -215,7 +215,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance CounterVecOpts_typed_pointsto :
+noncomputable instance typed_pointsto'CounterVecOpts :
     TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.CounterVecOpts where
   typedPointstoDef l v dq := iprop(
     "CounterOpts" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.CounterVecOpts go!"CounterOpts" l) v.CounterOpts' dq ∗
@@ -225,11 +225,11 @@ noncomputable instance CounterVecOpts_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance CounterVecOpts_into_val_typed :
+noncomputable instance into_val_typed'CounterVecOpts :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.CounterVecOpts github_com.prometheus.client_golang.prometheus.CounterVecOpts.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance CounterVecOpts_access_load_CounterOpts (l : Loc) (v : github_com.prometheus.client_golang.prometheus.CounterVecOpts) (dq : DFrac) :
+noncomputable instance access_load'CounterVecOpts'CounterOpts (l : Loc) (v : github_com.prometheus.client_golang.prometheus.CounterVecOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.CounterVecOpts go!"CounterOpts" l) v.CounterOpts' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.CounterVecOpts go!"CounterOpts" l) v.CounterOpts' dq)
@@ -237,7 +237,7 @@ noncomputable instance CounterVecOpts_access_load_CounterOpts (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance CounterVecOpts_access_store_CounterOpts (l : Loc) (v : github_com.prometheus.client_golang.prometheus.CounterVecOpts) (y : github_com.prometheus.client_golang.prometheus.CounterOpts) :
+noncomputable instance access_store'CounterVecOpts'CounterOpts (l : Loc) (v : github_com.prometheus.client_golang.prometheus.CounterVecOpts) (y : github_com.prometheus.client_golang.prometheus.CounterOpts) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.CounterVecOpts go!"CounterOpts" l) v.CounterOpts' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.CounterVecOpts go!"CounterOpts" l) y (DFrac.own 1))
@@ -245,7 +245,7 @@ noncomputable instance CounterVecOpts_access_store_CounterOpts (l : Loc) (v : gi
  by
   solve_pointsto_access_struct
 
-noncomputable instance CounterVecOpts_access_load_VariableLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.CounterVecOpts) (dq : DFrac) :
+noncomputable instance access_load'CounterVecOpts'VariableLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.CounterVecOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.CounterVecOpts go!"VariableLabels" l) v.VariableLabels' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.CounterVecOpts go!"VariableLabels" l) v.VariableLabels' dq)
@@ -253,7 +253,7 @@ noncomputable instance CounterVecOpts_access_load_VariableLabels (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance CounterVecOpts_access_store_VariableLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.CounterVecOpts) (y : github_com.prometheus.client_golang.prometheus.ConstrainableLabels) :
+noncomputable instance access_store'CounterVecOpts'VariableLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.CounterVecOpts) (y : github_com.prometheus.client_golang.prometheus.ConstrainableLabels) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.CounterVecOpts go!"VariableLabels" l) v.VariableLabels' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.CounterVecOpts go!"VariableLabels" l) y (DFrac.own 1))
@@ -272,7 +272,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance GaugeVecOpts_typed_pointsto :
+noncomputable instance typed_pointsto'GaugeVecOpts :
     TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.GaugeVecOpts where
   typedPointstoDef l v dq := iprop(
     "GaugeOpts" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.GaugeVecOpts go!"GaugeOpts" l) v.GaugeOpts' dq ∗
@@ -282,11 +282,11 @@ noncomputable instance GaugeVecOpts_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance GaugeVecOpts_into_val_typed :
+noncomputable instance into_val_typed'GaugeVecOpts :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.GaugeVecOpts github_com.prometheus.client_golang.prometheus.GaugeVecOpts.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance GaugeVecOpts_access_load_GaugeOpts (l : Loc) (v : github_com.prometheus.client_golang.prometheus.GaugeVecOpts) (dq : DFrac) :
+noncomputable instance access_load'GaugeVecOpts'GaugeOpts (l : Loc) (v : github_com.prometheus.client_golang.prometheus.GaugeVecOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.GaugeVecOpts go!"GaugeOpts" l) v.GaugeOpts' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.GaugeVecOpts go!"GaugeOpts" l) v.GaugeOpts' dq)
@@ -294,7 +294,7 @@ noncomputable instance GaugeVecOpts_access_load_GaugeOpts (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance GaugeVecOpts_access_store_GaugeOpts (l : Loc) (v : github_com.prometheus.client_golang.prometheus.GaugeVecOpts) (y : github_com.prometheus.client_golang.prometheus.GaugeOpts) :
+noncomputable instance access_store'GaugeVecOpts'GaugeOpts (l : Loc) (v : github_com.prometheus.client_golang.prometheus.GaugeVecOpts) (y : github_com.prometheus.client_golang.prometheus.GaugeOpts) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.GaugeVecOpts go!"GaugeOpts" l) v.GaugeOpts' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.GaugeVecOpts go!"GaugeOpts" l) y (DFrac.own 1))
@@ -302,7 +302,7 @@ noncomputable instance GaugeVecOpts_access_store_GaugeOpts (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance GaugeVecOpts_access_load_VariableLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.GaugeVecOpts) (dq : DFrac) :
+noncomputable instance access_load'GaugeVecOpts'VariableLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.GaugeVecOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.GaugeVecOpts go!"VariableLabels" l) v.VariableLabels' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.GaugeVecOpts go!"VariableLabels" l) v.VariableLabels' dq)
@@ -310,7 +310,7 @@ noncomputable instance GaugeVecOpts_access_load_VariableLabels (l : Loc) (v : gi
  by
   solve_pointsto_access_struct
 
-noncomputable instance GaugeVecOpts_access_store_VariableLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.GaugeVecOpts) (y : github_com.prometheus.client_golang.prometheus.ConstrainableLabels) :
+noncomputable instance access_store'GaugeVecOpts'VariableLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.GaugeVecOpts) (y : github_com.prometheus.client_golang.prometheus.ConstrainableLabels) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.GaugeVecOpts go!"VariableLabels" l) v.VariableLabels' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.GaugeVecOpts go!"VariableLabels" l) y (DFrac.own 1))
@@ -329,7 +329,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance HistogramOpts_typed_pointsto :
+noncomputable instance typed_pointsto'HistogramOpts :
     TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.HistogramOpts where
   typedPointstoDef l v dq := iprop(
     "Namespace" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Namespace" l) v.Namespace' dq ∗
@@ -353,11 +353,11 @@ noncomputable instance HistogramOpts_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance HistogramOpts_into_val_typed :
+noncomputable instance into_val_typed'HistogramOpts :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.HistogramOpts github_com.prometheus.client_golang.prometheus.HistogramOpts.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance HistogramOpts_access_load_Namespace (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
+noncomputable instance access_load'HistogramOpts'Namespace (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Namespace" l) v.Namespace' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Namespace" l) v.Namespace' dq)
@@ -365,7 +365,7 @@ noncomputable instance HistogramOpts_access_load_Namespace (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_Namespace (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : GoString) :
+noncomputable instance access_store'HistogramOpts'Namespace (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Namespace" l) v.Namespace' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Namespace" l) y (DFrac.own 1))
@@ -373,7 +373,7 @@ noncomputable instance HistogramOpts_access_store_Namespace (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_load_Subsystem (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
+noncomputable instance access_load'HistogramOpts'Subsystem (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Subsystem" l) v.Subsystem' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Subsystem" l) v.Subsystem' dq)
@@ -381,7 +381,7 @@ noncomputable instance HistogramOpts_access_load_Subsystem (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_Subsystem (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : GoString) :
+noncomputable instance access_store'HistogramOpts'Subsystem (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Subsystem" l) v.Subsystem' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Subsystem" l) y (DFrac.own 1))
@@ -389,7 +389,7 @@ noncomputable instance HistogramOpts_access_store_Subsystem (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_load_Name (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
+noncomputable instance access_load'HistogramOpts'Name (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Name" l) v.Name' dq)
@@ -397,7 +397,7 @@ noncomputable instance HistogramOpts_access_load_Name (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_Name (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : GoString) :
+noncomputable instance access_store'HistogramOpts'Name (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Name" l) y (DFrac.own 1))
@@ -405,7 +405,7 @@ noncomputable instance HistogramOpts_access_store_Name (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_load_Help (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
+noncomputable instance access_load'HistogramOpts'Help (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Help" l) v.Help' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Help" l) v.Help' dq)
@@ -413,7 +413,7 @@ noncomputable instance HistogramOpts_access_load_Help (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_Help (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : GoString) :
+noncomputable instance access_store'HistogramOpts'Help (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Help" l) v.Help' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Help" l) y (DFrac.own 1))
@@ -421,7 +421,7 @@ noncomputable instance HistogramOpts_access_store_Help (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_load_Unit (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
+noncomputable instance access_load'HistogramOpts'Unit (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Unit" l) v.Unit' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Unit" l) v.Unit' dq)
@@ -429,7 +429,7 @@ noncomputable instance HistogramOpts_access_load_Unit (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_Unit (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : GoString) :
+noncomputable instance access_store'HistogramOpts'Unit (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Unit" l) v.Unit' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Unit" l) y (DFrac.own 1))
@@ -437,7 +437,7 @@ noncomputable instance HistogramOpts_access_store_Unit (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_load_ConstLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
+noncomputable instance access_load'HistogramOpts'ConstLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"ConstLabels" l) v.ConstLabels' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"ConstLabels" l) v.ConstLabels' dq)
@@ -445,7 +445,7 @@ noncomputable instance HistogramOpts_access_load_ConstLabels (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_ConstLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : github_com.prometheus.client_golang.prometheus.Labels) :
+noncomputable instance access_store'HistogramOpts'ConstLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : github_com.prometheus.client_golang.prometheus.Labels) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"ConstLabels" l) v.ConstLabels' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"ConstLabels" l) y (DFrac.own 1))
@@ -453,7 +453,7 @@ noncomputable instance HistogramOpts_access_store_ConstLabels (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_load_Buckets (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
+noncomputable instance access_load'HistogramOpts'Buckets (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Buckets" l) v.Buckets' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Buckets" l) v.Buckets' dq)
@@ -461,7 +461,7 @@ noncomputable instance HistogramOpts_access_load_Buckets (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_Buckets (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : GoSlice) :
+noncomputable instance access_store'HistogramOpts'Buckets (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Buckets" l) v.Buckets' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"Buckets" l) y (DFrac.own 1))
@@ -469,7 +469,7 @@ noncomputable instance HistogramOpts_access_store_Buckets (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_load_NativeHistogramBucketFactor (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
+noncomputable instance access_load'HistogramOpts'NativeHistogramBucketFactor (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramBucketFactor" l) v.NativeHistogramBucketFactor' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramBucketFactor" l) v.NativeHistogramBucketFactor' dq)
@@ -477,7 +477,7 @@ noncomputable instance HistogramOpts_access_load_NativeHistogramBucketFactor (l 
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_NativeHistogramBucketFactor (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : w64) :
+noncomputable instance access_store'HistogramOpts'NativeHistogramBucketFactor (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramBucketFactor" l) v.NativeHistogramBucketFactor' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramBucketFactor" l) y (DFrac.own 1))
@@ -485,7 +485,7 @@ noncomputable instance HistogramOpts_access_store_NativeHistogramBucketFactor (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_load_NativeHistogramZeroThreshold (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
+noncomputable instance access_load'HistogramOpts'NativeHistogramZeroThreshold (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramZeroThreshold" l) v.NativeHistogramZeroThreshold' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramZeroThreshold" l) v.NativeHistogramZeroThreshold' dq)
@@ -493,7 +493,7 @@ noncomputable instance HistogramOpts_access_load_NativeHistogramZeroThreshold (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_NativeHistogramZeroThreshold (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : w64) :
+noncomputable instance access_store'HistogramOpts'NativeHistogramZeroThreshold (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramZeroThreshold" l) v.NativeHistogramZeroThreshold' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramZeroThreshold" l) y (DFrac.own 1))
@@ -501,7 +501,7 @@ noncomputable instance HistogramOpts_access_store_NativeHistogramZeroThreshold (
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_load_NativeHistogramMaxBucketNumber (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
+noncomputable instance access_load'HistogramOpts'NativeHistogramMaxBucketNumber (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMaxBucketNumber" l) v.NativeHistogramMaxBucketNumber' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMaxBucketNumber" l) v.NativeHistogramMaxBucketNumber' dq)
@@ -509,7 +509,7 @@ noncomputable instance HistogramOpts_access_load_NativeHistogramMaxBucketNumber 
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_NativeHistogramMaxBucketNumber (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : w32) :
+noncomputable instance access_store'HistogramOpts'NativeHistogramMaxBucketNumber (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMaxBucketNumber" l) v.NativeHistogramMaxBucketNumber' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMaxBucketNumber" l) y (DFrac.own 1))
@@ -517,7 +517,7 @@ noncomputable instance HistogramOpts_access_store_NativeHistogramMaxBucketNumber
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_load_NativeHistogramMinResetDuration (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
+noncomputable instance access_load'HistogramOpts'NativeHistogramMinResetDuration (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMinResetDuration" l) v.NativeHistogramMinResetDuration' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMinResetDuration" l) v.NativeHistogramMinResetDuration' dq)
@@ -525,7 +525,7 @@ noncomputable instance HistogramOpts_access_load_NativeHistogramMinResetDuration
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_NativeHistogramMinResetDuration (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'HistogramOpts'NativeHistogramMinResetDuration (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMinResetDuration" l) v.NativeHistogramMinResetDuration' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMinResetDuration" l) y (DFrac.own 1))
@@ -533,7 +533,7 @@ noncomputable instance HistogramOpts_access_store_NativeHistogramMinResetDuratio
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_load_NativeHistogramMaxZeroThreshold (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
+noncomputable instance access_load'HistogramOpts'NativeHistogramMaxZeroThreshold (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMaxZeroThreshold" l) v.NativeHistogramMaxZeroThreshold' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMaxZeroThreshold" l) v.NativeHistogramMaxZeroThreshold' dq)
@@ -541,7 +541,7 @@ noncomputable instance HistogramOpts_access_load_NativeHistogramMaxZeroThreshold
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_NativeHistogramMaxZeroThreshold (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : w64) :
+noncomputable instance access_store'HistogramOpts'NativeHistogramMaxZeroThreshold (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMaxZeroThreshold" l) v.NativeHistogramMaxZeroThreshold' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMaxZeroThreshold" l) y (DFrac.own 1))
@@ -549,7 +549,7 @@ noncomputable instance HistogramOpts_access_store_NativeHistogramMaxZeroThreshol
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_load_NativeHistogramMaxExemplars (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
+noncomputable instance access_load'HistogramOpts'NativeHistogramMaxExemplars (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMaxExemplars" l) v.NativeHistogramMaxExemplars' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMaxExemplars" l) v.NativeHistogramMaxExemplars' dq)
@@ -557,7 +557,7 @@ noncomputable instance HistogramOpts_access_load_NativeHistogramMaxExemplars (l 
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_NativeHistogramMaxExemplars (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : w64) :
+noncomputable instance access_store'HistogramOpts'NativeHistogramMaxExemplars (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMaxExemplars" l) v.NativeHistogramMaxExemplars' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMaxExemplars" l) y (DFrac.own 1))
@@ -565,7 +565,7 @@ noncomputable instance HistogramOpts_access_store_NativeHistogramMaxExemplars (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_load_NativeHistogramExemplarTTL (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
+noncomputable instance access_load'HistogramOpts'NativeHistogramExemplarTTL (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramExemplarTTL" l) v.NativeHistogramExemplarTTL' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramExemplarTTL" l) v.NativeHistogramExemplarTTL' dq)
@@ -573,7 +573,7 @@ noncomputable instance HistogramOpts_access_load_NativeHistogramExemplarTTL (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_NativeHistogramExemplarTTL (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'HistogramOpts'NativeHistogramExemplarTTL (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramExemplarTTL" l) v.NativeHistogramExemplarTTL' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramExemplarTTL" l) y (DFrac.own 1))
@@ -581,7 +581,7 @@ noncomputable instance HistogramOpts_access_store_NativeHistogramExemplarTTL (l 
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_load_now (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
+noncomputable instance access_load'HistogramOpts'now (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"now" l) v.now' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"now" l) v.now' dq)
@@ -589,7 +589,7 @@ noncomputable instance HistogramOpts_access_load_now (l : Loc) (v : github_com.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_now (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : GoFunc) :
+noncomputable instance access_store'HistogramOpts'now (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"now" l) v.now' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"now" l) y (DFrac.own 1))
@@ -597,7 +597,7 @@ noncomputable instance HistogramOpts_access_store_now (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_load_afterFunc (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
+noncomputable instance access_load'HistogramOpts'afterFunc (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"afterFunc" l) v.afterFunc' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"afterFunc" l) v.afterFunc' dq)
@@ -605,7 +605,7 @@ noncomputable instance HistogramOpts_access_load_afterFunc (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_afterFunc (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : GoFunc) :
+noncomputable instance access_store'HistogramOpts'afterFunc (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"afterFunc" l) v.afterFunc' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"afterFunc" l) y (DFrac.own 1))
@@ -624,7 +624,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance ConstrainedLabel_typed_pointsto :
+noncomputable instance typed_pointsto'ConstrainedLabel :
     TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.ConstrainedLabel where
   typedPointstoDef l v dq := iprop(
     "Name" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.ConstrainedLabel go!"Name" l) v.Name' dq ∗
@@ -634,11 +634,11 @@ noncomputable instance ConstrainedLabel_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance ConstrainedLabel_into_val_typed :
+noncomputable instance into_val_typed'ConstrainedLabel :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.ConstrainedLabel github_com.prometheus.client_golang.prometheus.ConstrainedLabel.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance ConstrainedLabel_access_load_Name (l : Loc) (v : github_com.prometheus.client_golang.prometheus.ConstrainedLabel) (dq : DFrac) :
+noncomputable instance access_load'ConstrainedLabel'Name (l : Loc) (v : github_com.prometheus.client_golang.prometheus.ConstrainedLabel) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.ConstrainedLabel go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.ConstrainedLabel go!"Name" l) v.Name' dq)
@@ -646,7 +646,7 @@ noncomputable instance ConstrainedLabel_access_load_Name (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConstrainedLabel_access_store_Name (l : Loc) (v : github_com.prometheus.client_golang.prometheus.ConstrainedLabel) (y : GoString) :
+noncomputable instance access_store'ConstrainedLabel'Name (l : Loc) (v : github_com.prometheus.client_golang.prometheus.ConstrainedLabel) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.ConstrainedLabel go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.ConstrainedLabel go!"Name" l) y (DFrac.own 1))
@@ -654,7 +654,7 @@ noncomputable instance ConstrainedLabel_access_store_Name (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConstrainedLabel_access_load_Constraint (l : Loc) (v : github_com.prometheus.client_golang.prometheus.ConstrainedLabel) (dq : DFrac) :
+noncomputable instance access_load'ConstrainedLabel'Constraint (l : Loc) (v : github_com.prometheus.client_golang.prometheus.ConstrainedLabel) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.ConstrainedLabel go!"Constraint" l) v.Constraint' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.ConstrainedLabel go!"Constraint" l) v.Constraint' dq)
@@ -662,7 +662,7 @@ noncomputable instance ConstrainedLabel_access_load_Constraint (l : Loc) (v : gi
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConstrainedLabel_access_store_Constraint (l : Loc) (v : github_com.prometheus.client_golang.prometheus.ConstrainedLabel) (y : github_com.prometheus.client_golang.prometheus.LabelConstraint) :
+noncomputable instance access_store'ConstrainedLabel'Constraint (l : Loc) (v : github_com.prometheus.client_golang.prometheus.ConstrainedLabel) (y : github_com.prometheus.client_golang.prometheus.LabelConstraint) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.ConstrainedLabel go!"Constraint" l) v.Constraint' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.ConstrainedLabel go!"Constraint" l) y (DFrac.own 1))
@@ -681,7 +681,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance timestampedMetric_typed_pointsto :
+noncomputable instance typed_pointsto'timestampedMetric :
     TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.timestampedMetric where
   typedPointstoDef l v dq := iprop(
     "Metric" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.timestampedMetric go!"Metric" l) v.Metric' dq ∗
@@ -691,11 +691,11 @@ noncomputable instance timestampedMetric_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance timestampedMetric_into_val_typed :
+noncomputable instance into_val_typed'timestampedMetric :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.timestampedMetric github_com.prometheus.client_golang.prometheus.timestampedMetric.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance timestampedMetric_access_load_Metric (l : Loc) (v : github_com.prometheus.client_golang.prometheus.timestampedMetric) (dq : DFrac) :
+noncomputable instance access_load'timestampedMetric'Metric (l : Loc) (v : github_com.prometheus.client_golang.prometheus.timestampedMetric) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.timestampedMetric go!"Metric" l) v.Metric' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.timestampedMetric go!"Metric" l) v.Metric' dq)
@@ -703,7 +703,7 @@ noncomputable instance timestampedMetric_access_load_Metric (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance timestampedMetric_access_store_Metric (l : Loc) (v : github_com.prometheus.client_golang.prometheus.timestampedMetric) (y : github_com.prometheus.client_golang.prometheus.Metric) :
+noncomputable instance access_store'timestampedMetric'Metric (l : Loc) (v : github_com.prometheus.client_golang.prometheus.timestampedMetric) (y : github_com.prometheus.client_golang.prometheus.Metric) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.timestampedMetric go!"Metric" l) v.Metric' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.timestampedMetric go!"Metric" l) y (DFrac.own 1))
@@ -711,7 +711,7 @@ noncomputable instance timestampedMetric_access_store_Metric (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance timestampedMetric_access_load_t (l : Loc) (v : github_com.prometheus.client_golang.prometheus.timestampedMetric) (dq : DFrac) :
+noncomputable instance access_load'timestampedMetric't (l : Loc) (v : github_com.prometheus.client_golang.prometheus.timestampedMetric) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.timestampedMetric go!"t" l) v.t' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.timestampedMetric go!"t" l) v.t' dq)
@@ -719,7 +719,7 @@ noncomputable instance timestampedMetric_access_load_t (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance timestampedMetric_access_store_t (l : Loc) (v : github_com.prometheus.client_golang.prometheus.timestampedMetric) (y : _root_.Perennial.time.Time) :
+noncomputable instance access_store'timestampedMetric't (l : Loc) (v : github_com.prometheus.client_golang.prometheus.timestampedMetric) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.timestampedMetric go!"t" l) v.t' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.timestampedMetric go!"t" l) y (DFrac.own 1))
@@ -738,7 +738,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance withExemplarsMetric_typed_pointsto :
+noncomputable instance typed_pointsto'withExemplarsMetric :
     TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.withExemplarsMetric where
   typedPointstoDef l v dq := iprop(
     "Metric" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.withExemplarsMetric go!"Metric" l) v.Metric' dq ∗
@@ -748,11 +748,11 @@ noncomputable instance withExemplarsMetric_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance withExemplarsMetric_into_val_typed :
+noncomputable instance into_val_typed'withExemplarsMetric :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.withExemplarsMetric github_com.prometheus.client_golang.prometheus.withExemplarsMetric.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance withExemplarsMetric_access_load_Metric (l : Loc) (v : github_com.prometheus.client_golang.prometheus.withExemplarsMetric) (dq : DFrac) :
+noncomputable instance access_load'withExemplarsMetric'Metric (l : Loc) (v : github_com.prometheus.client_golang.prometheus.withExemplarsMetric) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.withExemplarsMetric go!"Metric" l) v.Metric' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.withExemplarsMetric go!"Metric" l) v.Metric' dq)
@@ -760,7 +760,7 @@ noncomputable instance withExemplarsMetric_access_load_Metric (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance withExemplarsMetric_access_store_Metric (l : Loc) (v : github_com.prometheus.client_golang.prometheus.withExemplarsMetric) (y : github_com.prometheus.client_golang.prometheus.Metric) :
+noncomputable instance access_store'withExemplarsMetric'Metric (l : Loc) (v : github_com.prometheus.client_golang.prometheus.withExemplarsMetric) (y : github_com.prometheus.client_golang.prometheus.Metric) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.withExemplarsMetric go!"Metric" l) v.Metric' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.withExemplarsMetric go!"Metric" l) y (DFrac.own 1))
@@ -768,7 +768,7 @@ noncomputable instance withExemplarsMetric_access_store_Metric (l : Loc) (v : gi
  by
   solve_pointsto_access_struct
 
-noncomputable instance withExemplarsMetric_access_load_exemplars (l : Loc) (v : github_com.prometheus.client_golang.prometheus.withExemplarsMetric) (dq : DFrac) :
+noncomputable instance access_load'withExemplarsMetric'exemplars (l : Loc) (v : github_com.prometheus.client_golang.prometheus.withExemplarsMetric) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.withExemplarsMetric go!"exemplars" l) v.exemplars' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.withExemplarsMetric go!"exemplars" l) v.exemplars' dq)
@@ -776,7 +776,7 @@ noncomputable instance withExemplarsMetric_access_load_exemplars (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance withExemplarsMetric_access_store_exemplars (l : Loc) (v : github_com.prometheus.client_golang.prometheus.withExemplarsMetric) (y : GoSlice) :
+noncomputable instance access_store'withExemplarsMetric'exemplars (l : Loc) (v : github_com.prometheus.client_golang.prometheus.withExemplarsMetric) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.withExemplarsMetric go!"exemplars" l) v.exemplars' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.withExemplarsMetric go!"exemplars" l) y (DFrac.own 1))
@@ -795,7 +795,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance Exemplar_typed_pointsto :
+noncomputable instance typed_pointsto'Exemplar :
     TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.Exemplar where
   typedPointstoDef l v dq := iprop(
     "Value" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Exemplar go!"Value" l) v.Value' dq ∗
@@ -806,11 +806,11 @@ noncomputable instance Exemplar_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Exemplar_into_val_typed :
+noncomputable instance into_val_typed'Exemplar :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.Exemplar github_com.prometheus.client_golang.prometheus.Exemplar.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Exemplar_access_load_Value (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Exemplar) (dq : DFrac) :
+noncomputable instance access_load'Exemplar'Value (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Exemplar) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Exemplar go!"Value" l) v.Value' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Exemplar go!"Value" l) v.Value' dq)
@@ -818,7 +818,7 @@ noncomputable instance Exemplar_access_load_Value (l : Loc) (v : github_com.prom
  by
   solve_pointsto_access_struct
 
-noncomputable instance Exemplar_access_store_Value (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Exemplar) (y : w64) :
+noncomputable instance access_store'Exemplar'Value (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Exemplar) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Exemplar go!"Value" l) v.Value' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Exemplar go!"Value" l) y (DFrac.own 1))
@@ -826,7 +826,7 @@ noncomputable instance Exemplar_access_store_Value (l : Loc) (v : github_com.pro
  by
   solve_pointsto_access_struct
 
-noncomputable instance Exemplar_access_load_Labels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Exemplar) (dq : DFrac) :
+noncomputable instance access_load'Exemplar'Labels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Exemplar) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Exemplar go!"Labels" l) v.Labels' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Exemplar go!"Labels" l) v.Labels' dq)
@@ -834,7 +834,7 @@ noncomputable instance Exemplar_access_load_Labels (l : Loc) (v : github_com.pro
  by
   solve_pointsto_access_struct
 
-noncomputable instance Exemplar_access_store_Labels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Exemplar) (y : github_com.prometheus.client_golang.prometheus.Labels) :
+noncomputable instance access_store'Exemplar'Labels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Exemplar) (y : github_com.prometheus.client_golang.prometheus.Labels) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Exemplar go!"Labels" l) v.Labels' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Exemplar go!"Labels" l) y (DFrac.own 1))
@@ -842,7 +842,7 @@ noncomputable instance Exemplar_access_store_Labels (l : Loc) (v : github_com.pr
  by
   solve_pointsto_access_struct
 
-noncomputable instance Exemplar_access_load_Timestamp (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Exemplar) (dq : DFrac) :
+noncomputable instance access_load'Exemplar'Timestamp (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Exemplar) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Exemplar go!"Timestamp" l) v.Timestamp' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Exemplar go!"Timestamp" l) v.Timestamp' dq)
@@ -850,7 +850,7 @@ noncomputable instance Exemplar_access_load_Timestamp (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Exemplar_access_store_Timestamp (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Exemplar) (y : _root_.Perennial.time.Time) :
+noncomputable instance access_store'Exemplar'Timestamp (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Exemplar) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Exemplar go!"Timestamp" l) v.Timestamp' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Exemplar go!"Timestamp" l) y (DFrac.own 1))
@@ -869,7 +869,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance AlreadyRegisteredError_typed_pointsto :
+noncomputable instance typed_pointsto'AlreadyRegisteredError :
     TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError where
   typedPointstoDef l v dq := iprop(
     "ExistingCollector" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError go!"ExistingCollector" l) v.ExistingCollector' dq ∗
@@ -879,11 +879,11 @@ noncomputable instance AlreadyRegisteredError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance AlreadyRegisteredError_into_val_typed :
+noncomputable instance into_val_typed'AlreadyRegisteredError :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance AlreadyRegisteredError_access_load_ExistingCollector (l : Loc) (v : github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError) (dq : DFrac) :
+noncomputable instance access_load'AlreadyRegisteredError'ExistingCollector (l : Loc) (v : github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError go!"ExistingCollector" l) v.ExistingCollector' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError go!"ExistingCollector" l) v.ExistingCollector' dq)
@@ -891,7 +891,7 @@ noncomputable instance AlreadyRegisteredError_access_load_ExistingCollector (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance AlreadyRegisteredError_access_store_ExistingCollector (l : Loc) (v : github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError) (y : github_com.prometheus.client_golang.prometheus.Collector) :
+noncomputable instance access_store'AlreadyRegisteredError'ExistingCollector (l : Loc) (v : github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError) (y : github_com.prometheus.client_golang.prometheus.Collector) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError go!"ExistingCollector" l) v.ExistingCollector' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError go!"ExistingCollector" l) y (DFrac.own 1))
@@ -899,7 +899,7 @@ noncomputable instance AlreadyRegisteredError_access_store_ExistingCollector (l 
  by
   solve_pointsto_access_struct
 
-noncomputable instance AlreadyRegisteredError_access_load_NewCollector (l : Loc) (v : github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError) (dq : DFrac) :
+noncomputable instance access_load'AlreadyRegisteredError'NewCollector (l : Loc) (v : github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError go!"NewCollector" l) v.NewCollector' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError go!"NewCollector" l) v.NewCollector' dq)
@@ -907,7 +907,7 @@ noncomputable instance AlreadyRegisteredError_access_load_NewCollector (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance AlreadyRegisteredError_access_store_NewCollector (l : Loc) (v : github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError) (y : github_com.prometheus.client_golang.prometheus.Collector) :
+noncomputable instance access_store'AlreadyRegisteredError'NewCollector (l : Loc) (v : github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError) (y : github_com.prometheus.client_golang.prometheus.Collector) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError go!"NewCollector" l) v.NewCollector' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.AlreadyRegisteredError go!"NewCollector" l) y (DFrac.own 1))
@@ -926,7 +926,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance SafeMultiError_typed_pointsto :
+noncomputable instance typed_pointsto'SafeMultiError :
     TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.SafeMultiError where
   typedPointstoDef l v dq := iprop(
     "mu" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SafeMultiError go!"mu" l) v.mu' dq ∗
@@ -936,11 +936,11 @@ noncomputable instance SafeMultiError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance SafeMultiError_into_val_typed :
+noncomputable instance into_val_typed'SafeMultiError :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.SafeMultiError github_com.prometheus.client_golang.prometheus.SafeMultiError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance SafeMultiError_access_load_mu (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SafeMultiError) (dq : DFrac) :
+noncomputable instance access_load'SafeMultiError'mu (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SafeMultiError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SafeMultiError go!"mu" l) v.mu' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SafeMultiError go!"mu" l) v.mu' dq)
@@ -948,7 +948,7 @@ noncomputable instance SafeMultiError_access_load_mu (l : Loc) (v : github_com.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance SafeMultiError_access_store_mu (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SafeMultiError) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'SafeMultiError'mu (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SafeMultiError) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SafeMultiError go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SafeMultiError go!"mu" l) y (DFrac.own 1))
@@ -956,7 +956,7 @@ noncomputable instance SafeMultiError_access_store_mu (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance SafeMultiError_access_load_errs (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SafeMultiError) (dq : DFrac) :
+noncomputable instance access_load'SafeMultiError'errs (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SafeMultiError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SafeMultiError go!"errs" l) v.errs' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SafeMultiError go!"errs" l) v.errs' dq)
@@ -964,7 +964,7 @@ noncomputable instance SafeMultiError_access_load_errs (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance SafeMultiError_access_store_errs (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SafeMultiError) (y : github_com.prometheus.client_golang.prometheus.MultiError) :
+noncomputable instance access_store'SafeMultiError'errs (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SafeMultiError) (y : github_com.prometheus.client_golang.prometheus.MultiError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SafeMultiError go!"errs" l) v.errs' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SafeMultiError go!"errs" l) y (DFrac.own 1))
@@ -983,7 +983,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance noTransactionGatherer_typed_pointsto :
+noncomputable instance typed_pointsto'noTransactionGatherer :
     TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.noTransactionGatherer where
   typedPointstoDef l v dq := iprop(
     "g" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.noTransactionGatherer go!"g" l) v.g' dq ∗
@@ -992,11 +992,11 @@ noncomputable instance noTransactionGatherer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance noTransactionGatherer_into_val_typed :
+noncomputable instance into_val_typed'noTransactionGatherer :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.noTransactionGatherer github_com.prometheus.client_golang.prometheus.noTransactionGatherer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance noTransactionGatherer_access_load_g (l : Loc) (v : github_com.prometheus.client_golang.prometheus.noTransactionGatherer) (dq : DFrac) :
+noncomputable instance access_load'noTransactionGatherer'g (l : Loc) (v : github_com.prometheus.client_golang.prometheus.noTransactionGatherer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.noTransactionGatherer go!"g" l) v.g' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.noTransactionGatherer go!"g" l) v.g' dq)
@@ -1004,7 +1004,7 @@ noncomputable instance noTransactionGatherer_access_load_g (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance noTransactionGatherer_access_store_g (l : Loc) (v : github_com.prometheus.client_golang.prometheus.noTransactionGatherer) (y : github_com.prometheus.client_golang.prometheus.Gatherer) :
+noncomputable instance access_store'noTransactionGatherer'g (l : Loc) (v : github_com.prometheus.client_golang.prometheus.noTransactionGatherer) (y : github_com.prometheus.client_golang.prometheus.Gatherer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.noTransactionGatherer go!"g" l) v.g' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.noTransactionGatherer go!"g" l) y (DFrac.own 1))
@@ -1023,7 +1023,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance SummaryOpts_typed_pointsto :
+noncomputable instance typed_pointsto'SummaryOpts :
     TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.SummaryOpts where
   typedPointstoDef l v dq := iprop(
     "Namespace" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Namespace" l) v.Namespace' dq ∗
@@ -1042,11 +1042,11 @@ noncomputable instance SummaryOpts_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance SummaryOpts_into_val_typed :
+noncomputable instance into_val_typed'SummaryOpts :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.SummaryOpts github_com.prometheus.client_golang.prometheus.SummaryOpts.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance SummaryOpts_access_load_Namespace (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
+noncomputable instance access_load'SummaryOpts'Namespace (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Namespace" l) v.Namespace' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Namespace" l) v.Namespace' dq)
@@ -1054,7 +1054,7 @@ noncomputable instance SummaryOpts_access_load_Namespace (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_store_Namespace (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : GoString) :
+noncomputable instance access_store'SummaryOpts'Namespace (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Namespace" l) v.Namespace' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Namespace" l) y (DFrac.own 1))
@@ -1062,7 +1062,7 @@ noncomputable instance SummaryOpts_access_store_Namespace (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_load_Subsystem (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
+noncomputable instance access_load'SummaryOpts'Subsystem (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Subsystem" l) v.Subsystem' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Subsystem" l) v.Subsystem' dq)
@@ -1070,7 +1070,7 @@ noncomputable instance SummaryOpts_access_load_Subsystem (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_store_Subsystem (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : GoString) :
+noncomputable instance access_store'SummaryOpts'Subsystem (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Subsystem" l) v.Subsystem' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Subsystem" l) y (DFrac.own 1))
@@ -1078,7 +1078,7 @@ noncomputable instance SummaryOpts_access_store_Subsystem (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_load_Name (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
+noncomputable instance access_load'SummaryOpts'Name (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Name" l) v.Name' dq)
@@ -1086,7 +1086,7 @@ noncomputable instance SummaryOpts_access_load_Name (l : Loc) (v : github_com.pr
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_store_Name (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : GoString) :
+noncomputable instance access_store'SummaryOpts'Name (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Name" l) y (DFrac.own 1))
@@ -1094,7 +1094,7 @@ noncomputable instance SummaryOpts_access_store_Name (l : Loc) (v : github_com.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_load_Help (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
+noncomputable instance access_load'SummaryOpts'Help (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Help" l) v.Help' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Help" l) v.Help' dq)
@@ -1102,7 +1102,7 @@ noncomputable instance SummaryOpts_access_load_Help (l : Loc) (v : github_com.pr
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_store_Help (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : GoString) :
+noncomputable instance access_store'SummaryOpts'Help (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Help" l) v.Help' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Help" l) y (DFrac.own 1))
@@ -1110,7 +1110,7 @@ noncomputable instance SummaryOpts_access_store_Help (l : Loc) (v : github_com.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_load_Unit (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
+noncomputable instance access_load'SummaryOpts'Unit (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Unit" l) v.Unit' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Unit" l) v.Unit' dq)
@@ -1118,7 +1118,7 @@ noncomputable instance SummaryOpts_access_load_Unit (l : Loc) (v : github_com.pr
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_store_Unit (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : GoString) :
+noncomputable instance access_store'SummaryOpts'Unit (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Unit" l) v.Unit' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Unit" l) y (DFrac.own 1))
@@ -1126,7 +1126,7 @@ noncomputable instance SummaryOpts_access_store_Unit (l : Loc) (v : github_com.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_load_ConstLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
+noncomputable instance access_load'SummaryOpts'ConstLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"ConstLabels" l) v.ConstLabels' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"ConstLabels" l) v.ConstLabels' dq)
@@ -1134,7 +1134,7 @@ noncomputable instance SummaryOpts_access_load_ConstLabels (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_store_ConstLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : github_com.prometheus.client_golang.prometheus.Labels) :
+noncomputable instance access_store'SummaryOpts'ConstLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : github_com.prometheus.client_golang.prometheus.Labels) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"ConstLabels" l) v.ConstLabels' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"ConstLabels" l) y (DFrac.own 1))
@@ -1142,7 +1142,7 @@ noncomputable instance SummaryOpts_access_store_ConstLabels (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_load_Objectives (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
+noncomputable instance access_load'SummaryOpts'Objectives (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Objectives" l) v.Objectives' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Objectives" l) v.Objectives' dq)
@@ -1150,7 +1150,7 @@ noncomputable instance SummaryOpts_access_load_Objectives (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_store_Objectives (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : GoMap) :
+noncomputable instance access_store'SummaryOpts'Objectives (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Objectives" l) v.Objectives' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"Objectives" l) y (DFrac.own 1))
@@ -1158,7 +1158,7 @@ noncomputable instance SummaryOpts_access_store_Objectives (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_load_MaxAge (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
+noncomputable instance access_load'SummaryOpts'MaxAge (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"MaxAge" l) v.MaxAge' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"MaxAge" l) v.MaxAge' dq)
@@ -1166,7 +1166,7 @@ noncomputable instance SummaryOpts_access_load_MaxAge (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_store_MaxAge (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'SummaryOpts'MaxAge (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"MaxAge" l) v.MaxAge' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"MaxAge" l) y (DFrac.own 1))
@@ -1174,7 +1174,7 @@ noncomputable instance SummaryOpts_access_store_MaxAge (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_load_AgeBuckets (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
+noncomputable instance access_load'SummaryOpts'AgeBuckets (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"AgeBuckets" l) v.AgeBuckets' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"AgeBuckets" l) v.AgeBuckets' dq)
@@ -1182,7 +1182,7 @@ noncomputable instance SummaryOpts_access_load_AgeBuckets (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_store_AgeBuckets (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : w32) :
+noncomputable instance access_store'SummaryOpts'AgeBuckets (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"AgeBuckets" l) v.AgeBuckets' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"AgeBuckets" l) y (DFrac.own 1))
@@ -1190,7 +1190,7 @@ noncomputable instance SummaryOpts_access_store_AgeBuckets (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_load_BufCap (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
+noncomputable instance access_load'SummaryOpts'BufCap (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"BufCap" l) v.BufCap' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"BufCap" l) v.BufCap' dq)
@@ -1198,7 +1198,7 @@ noncomputable instance SummaryOpts_access_load_BufCap (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_store_BufCap (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : w32) :
+noncomputable instance access_store'SummaryOpts'BufCap (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"BufCap" l) v.BufCap' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"BufCap" l) y (DFrac.own 1))
@@ -1206,7 +1206,7 @@ noncomputable instance SummaryOpts_access_store_BufCap (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_load_now (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
+noncomputable instance access_load'SummaryOpts'now (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"now" l) v.now' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"now" l) v.now' dq)
@@ -1214,7 +1214,7 @@ noncomputable instance SummaryOpts_access_load_now (l : Loc) (v : github_com.pro
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_store_now (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : GoFunc) :
+noncomputable instance access_store'SummaryOpts'now (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"now" l) v.now' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"now" l) y (DFrac.own 1))
@@ -1233,7 +1233,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance Timer_typed_pointsto :
+noncomputable instance typed_pointsto'Timer :
     TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.Timer where
   typedPointstoDef l v dq := iprop(
     "begin" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Timer go!"begin" l) v.begin' dq ∗
@@ -1243,11 +1243,11 @@ noncomputable instance Timer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Timer_into_val_typed :
+noncomputable instance into_val_typed'Timer :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.Timer github_com.prometheus.client_golang.prometheus.Timer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Timer_access_load_begin (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Timer) (dq : DFrac) :
+noncomputable instance access_load'Timer'begin (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Timer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Timer go!"begin" l) v.begin' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Timer go!"begin" l) v.begin' dq)
@@ -1255,7 +1255,7 @@ noncomputable instance Timer_access_load_begin (l : Loc) (v : github_com.prometh
  by
   solve_pointsto_access_struct
 
-noncomputable instance Timer_access_store_begin (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Timer) (y : _root_.Perennial.time.Time) :
+noncomputable instance access_store'Timer'begin (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Timer) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Timer go!"begin" l) v.begin' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Timer go!"begin" l) y (DFrac.own 1))
@@ -1263,7 +1263,7 @@ noncomputable instance Timer_access_store_begin (l : Loc) (v : github_com.promet
  by
   solve_pointsto_access_struct
 
-noncomputable instance Timer_access_load_observer (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Timer) (dq : DFrac) :
+noncomputable instance access_load'Timer'observer (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Timer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Timer go!"observer" l) v.observer' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Timer go!"observer" l) v.observer' dq)
@@ -1271,7 +1271,7 @@ noncomputable instance Timer_access_load_observer (l : Loc) (v : github_com.prom
  by
   solve_pointsto_access_struct
 
-noncomputable instance Timer_access_store_observer (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Timer) (y : github_com.prometheus.client_golang.prometheus.Observer) :
+noncomputable instance access_store'Timer'observer (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Timer) (y : github_com.prometheus.client_golang.prometheus.Observer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Timer go!"observer" l) v.observer' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Timer go!"observer" l) y (DFrac.own 1))
@@ -1290,7 +1290,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance metricWithLabelValues_typed_pointsto :
+noncomputable instance typed_pointsto'metricWithLabelValues :
     TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.metricWithLabelValues where
   typedPointstoDef l v dq := iprop(
     "values" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.metricWithLabelValues go!"values" l) v.values' dq ∗
@@ -1300,11 +1300,11 @@ noncomputable instance metricWithLabelValues_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance metricWithLabelValues_into_val_typed :
+noncomputable instance into_val_typed'metricWithLabelValues :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.metricWithLabelValues github_com.prometheus.client_golang.prometheus.metricWithLabelValues.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance metricWithLabelValues_access_load_values (l : Loc) (v : github_com.prometheus.client_golang.prometheus.metricWithLabelValues) (dq : DFrac) :
+noncomputable instance access_load'metricWithLabelValues'values (l : Loc) (v : github_com.prometheus.client_golang.prometheus.metricWithLabelValues) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.metricWithLabelValues go!"values" l) v.values' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.metricWithLabelValues go!"values" l) v.values' dq)
@@ -1312,7 +1312,7 @@ noncomputable instance metricWithLabelValues_access_load_values (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance metricWithLabelValues_access_store_values (l : Loc) (v : github_com.prometheus.client_golang.prometheus.metricWithLabelValues) (y : GoSlice) :
+noncomputable instance access_store'metricWithLabelValues'values (l : Loc) (v : github_com.prometheus.client_golang.prometheus.metricWithLabelValues) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.metricWithLabelValues go!"values" l) v.values' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.metricWithLabelValues go!"values" l) y (DFrac.own 1))
@@ -1320,7 +1320,7 @@ noncomputable instance metricWithLabelValues_access_store_values (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance metricWithLabelValues_access_load_metric (l : Loc) (v : github_com.prometheus.client_golang.prometheus.metricWithLabelValues) (dq : DFrac) :
+noncomputable instance access_load'metricWithLabelValues'metric (l : Loc) (v : github_com.prometheus.client_golang.prometheus.metricWithLabelValues) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.metricWithLabelValues go!"metric" l) v.metric' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.metricWithLabelValues go!"metric" l) v.metric' dq)
@@ -1328,7 +1328,7 @@ noncomputable instance metricWithLabelValues_access_load_metric (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance metricWithLabelValues_access_store_metric (l : Loc) (v : github_com.prometheus.client_golang.prometheus.metricWithLabelValues) (y : github_com.prometheus.client_golang.prometheus.Metric) :
+noncomputable instance access_store'metricWithLabelValues'metric (l : Loc) (v : github_com.prometheus.client_golang.prometheus.metricWithLabelValues) (y : github_com.prometheus.client_golang.prometheus.Metric) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.metricWithLabelValues go!"metric" l) v.metric' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.metricWithLabelValues go!"metric" l) y (DFrac.own 1))
@@ -1347,7 +1347,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance wrappingRegisterer_typed_pointsto :
+noncomputable instance typed_pointsto'wrappingRegisterer :
     TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.wrappingRegisterer where
   typedPointstoDef l v dq := iprop(
     "wrappedRegisterer" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingRegisterer go!"wrappedRegisterer" l) v.wrappedRegisterer' dq ∗
@@ -1358,11 +1358,11 @@ noncomputable instance wrappingRegisterer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance wrappingRegisterer_into_val_typed :
+noncomputable instance into_val_typed'wrappingRegisterer :
     IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.wrappingRegisterer github_com.prometheus.client_golang.prometheus.wrappingRegisterer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance wrappingRegisterer_access_load_wrappedRegisterer (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingRegisterer) (dq : DFrac) :
+noncomputable instance access_load'wrappingRegisterer'wrappedRegisterer (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingRegisterer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingRegisterer go!"wrappedRegisterer" l) v.wrappedRegisterer' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingRegisterer go!"wrappedRegisterer" l) v.wrappedRegisterer' dq)
@@ -1370,7 +1370,7 @@ noncomputable instance wrappingRegisterer_access_load_wrappedRegisterer (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance wrappingRegisterer_access_store_wrappedRegisterer (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingRegisterer) (y : github_com.prometheus.client_golang.prometheus.Registerer) :
+noncomputable instance access_store'wrappingRegisterer'wrappedRegisterer (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingRegisterer) (y : github_com.prometheus.client_golang.prometheus.Registerer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingRegisterer go!"wrappedRegisterer" l) v.wrappedRegisterer' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingRegisterer go!"wrappedRegisterer" l) y (DFrac.own 1))
@@ -1378,7 +1378,7 @@ noncomputable instance wrappingRegisterer_access_store_wrappedRegisterer (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance wrappingRegisterer_access_load_prefix (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingRegisterer) (dq : DFrac) :
+noncomputable instance access_load'wrappingRegisterer'prefix (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingRegisterer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingRegisterer go!"prefix" l) v.prefix' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingRegisterer go!"prefix" l) v.prefix' dq)
@@ -1386,7 +1386,7 @@ noncomputable instance wrappingRegisterer_access_load_prefix (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance wrappingRegisterer_access_store_prefix (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingRegisterer) (y : GoString) :
+noncomputable instance access_store'wrappingRegisterer'prefix (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingRegisterer) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingRegisterer go!"prefix" l) v.prefix' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingRegisterer go!"prefix" l) y (DFrac.own 1))
@@ -1394,7 +1394,7 @@ noncomputable instance wrappingRegisterer_access_store_prefix (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance wrappingRegisterer_access_load_labels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingRegisterer) (dq : DFrac) :
+noncomputable instance access_load'wrappingRegisterer'labels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingRegisterer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingRegisterer go!"labels" l) v.labels' dq)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingRegisterer go!"labels" l) v.labels' dq)
@@ -1402,7 +1402,7 @@ noncomputable instance wrappingRegisterer_access_load_labels (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance wrappingRegisterer_access_store_labels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingRegisterer) (y : github_com.prometheus.client_golang.prometheus.Labels) :
+noncomputable instance access_store'wrappingRegisterer'labels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingRegisterer) (y : github_com.prometheus.client_golang.prometheus.Labels) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingRegisterer go!"labels" l) v.labels' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingRegisterer go!"labels" l) y (DFrac.own 1))

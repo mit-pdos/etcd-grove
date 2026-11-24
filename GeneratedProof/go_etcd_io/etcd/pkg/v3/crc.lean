@@ -26,7 +26,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.crc.Assumptions]
 
-noncomputable instance digest_typed_pointsto :
+noncomputable instance typed_pointsto'digest :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.crc.digest where
   typedPointstoDef l v dq := iprop(
     "crc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) v.crc' dq ∗
@@ -36,11 +36,11 @@ noncomputable instance digest_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance digest_into_val_typed :
+noncomputable instance into_val_typed'digest :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.crc.digest go_etcd_io.etcd.pkg.v3.crc.digest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance digest_access_load_crc (l : Loc) (v : go_etcd_io.etcd.pkg.v3.crc.digest) (dq : DFrac) :
+noncomputable instance access_load'digest'crc (l : Loc) (v : go_etcd_io.etcd.pkg.v3.crc.digest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) v.crc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) v.crc' dq)
@@ -48,7 +48,7 @@ noncomputable instance digest_access_load_crc (l : Loc) (v : go_etcd_io.etcd.pkg
  by
   solve_pointsto_access_struct
 
-noncomputable instance digest_access_store_crc (l : Loc) (v : go_etcd_io.etcd.pkg.v3.crc.digest) (y : w32) :
+noncomputable instance access_store'digest'crc (l : Loc) (v : go_etcd_io.etcd.pkg.v3.crc.digest) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) v.crc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) y (DFrac.own 1))
@@ -56,7 +56,7 @@ noncomputable instance digest_access_store_crc (l : Loc) (v : go_etcd_io.etcd.pk
  by
   solve_pointsto_access_struct
 
-noncomputable instance digest_access_load_tab (l : Loc) (v : go_etcd_io.etcd.pkg.v3.crc.digest) (dq : DFrac) :
+noncomputable instance access_load'digest'tab (l : Loc) (v : go_etcd_io.etcd.pkg.v3.crc.digest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) v.tab' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) v.tab' dq)
@@ -64,7 +64,7 @@ noncomputable instance digest_access_load_tab (l : Loc) (v : go_etcd_io.etcd.pkg
  by
   solve_pointsto_access_struct
 
-noncomputable instance digest_access_store_tab (l : Loc) (v : go_etcd_io.etcd.pkg.v3.crc.digest) (y : Loc) :
+noncomputable instance access_store'digest'tab (l : Loc) (v : go_etcd_io.etcd.pkg.v3.crc.digest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) v.tab' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) y (DFrac.own 1))

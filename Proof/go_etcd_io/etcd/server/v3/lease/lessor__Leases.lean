@@ -34,7 +34,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 theorem lease.lessor.Leases.wp_proof
     (hUL : lease.lessor.unsafeLeases.spec (GF := GF) (hG := hG))
-    (hSort : sort.«Sort».anyLessSpec (GF := GF) (hG := hG))
+    (hSort : sort.Sort''.anyLessSpec (GF := GF) (hG := hG))
     (hLen : lease.leasesByExpiry.Len.spec (GF := GF) (hG := hG))
     (hLess : lease.leasesByExpiry.Less.spec (GF := GF) (hG := hG))
     (hSwap : lease.leasesByExpiry.Swap.spec (GF := GF) (hG := hG)) :

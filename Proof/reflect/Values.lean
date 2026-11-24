@@ -5,8 +5,8 @@ Lean-first (no Rocq counterpart).
 
 Perennial translates `reflect.Value` as the struct it is (`typ_ *abi.Type`, `ptr`, `flag`;
 Perennial `3eae9cd1f`, PR #672), with the generated instances that let a program keep a
-`reflect.Value` in a variable (`GeneratedProof/reflect.lean`: `Value_typed_pointsto`,
-`Value_into_val_typed`); `reflect.Type`, an interface type, is translated too (its values are
+`reflect.Value` in a variable (`GeneratedProof/reflect.lean`: `typed_pointsto'Value`,
+`into_val_typed'Value`); `reflect.Type`, an interface type, is translated too (its values are
 `GoInterface`s; Perennial `090fdac23`). `reflect`'s functions are not: Go's implementation works on
 the runtime's representation (`Interface()` builds an `any` from two words with `unsafe`), outside
 Perennial's semantics. Until a trusted model of the subset used is in Perennial (stage R1 of
@@ -50,7 +50,7 @@ opaque reflElem (v : _root_.Perennial.reflect.Value) (T : go.GoType) (p : Loc) :
 opaque reflPtr (w : _root_.Perennial.reflect.Value) (T : go.GoType) (p : Loc) : Prop
 
 /-- `rt` is the `reflect.Type` of `T`. -/
-opaque reflType (rt : _root_.Perennial.reflect.«Type») (T : go.GoType) : Prop
+opaque reflType (rt : _root_.Perennial.reflect.Type'') (T : go.GoType) : Prop
 
 /-- `z` is the (non-addressable) zero `reflect.Value` of `T` (what `reflect.Zero` gives). -/
 opaque reflZero (z : _root_.Perennial.reflect.Value) (T : go.GoType) : Prop

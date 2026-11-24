@@ -394,20 +394,20 @@ class aggregate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq aggregate.ty aggregate.underlying
   method_set : go.MethodSetIs aggregate.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Errors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"k8s.io/apimachinery/pkg/util/errors.visit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.error] false [go.bool]))] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType aggregate.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Errors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"k8s.io/apimachinery/pkg/util/errors.visit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.error] false [go.bool]))] false [go.bool])))]
-  Error_unfold : MethodUnfold aggregate.ty go!"Error" aggregate.Error.impl
-  visit_unfold : MethodUnfold aggregate.ty go!"visit" aggregate.visit.impl
-  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType aggregate.ty) go!"Error" (LamV "$r"
+  unfold'Error : MethodUnfold aggregate.ty go!"Error" aggregate.Error.impl
+  unfold'visit : MethodUnfold aggregate.ty go!"visit" aggregate.visit.impl
+  ptr_unfold'Error : MethodUnfold (go.GoType.PointerType aggregate.ty) go!"Error" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve aggregate.ty go!"Error"))) (App (Val (GoInstruction (GoLoad aggregate.ty))) (Var "$r"))))
-  ptr_visit_unfold : MethodUnfold (go.GoType.PointerType aggregate.ty) go!"visit" (LamV "$r"
+  ptr_unfold'visit : MethodUnfold (go.GoType.PointerType aggregate.ty) go!"visit" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve aggregate.ty go!"visit"))) (App (Val (GoInstruction (GoLoad aggregate.ty))) (Var "$r"))))
 
 attribute [instance] aggregate.TypeAssumptions.underlying
   aggregate.TypeAssumptions.method_set
   aggregate.TypeAssumptions.ptr_method_set
-  aggregate.TypeAssumptions.Error_unfold
-  aggregate.TypeAssumptions.visit_unfold
-  aggregate.TypeAssumptions.ptr_Error_unfold
-  aggregate.TypeAssumptions.ptr_visit_unfold
+  aggregate.TypeAssumptions.unfold'Error
+  aggregate.TypeAssumptions.unfold'visit
+  aggregate.TypeAssumptions.ptr_unfold'Error
+  aggregate.TypeAssumptions.ptr_unfold'visit
 
 abbrev Matcher [GooseExts] : Type := GoFunc
 
@@ -424,21 +424,21 @@ attribute [instance] Matcher.TypeAssumptions.underlying
   Matcher.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  MessageCountMap_instance : MessageCountMap.TypeAssumptions
-  Aggregate_instance : Aggregate.TypeAssumptions
-  aggregate_instance : aggregate.TypeAssumptions
-  Matcher_instance : Matcher.TypeAssumptions
-  NewAggregate_unfold : FuncUnfold NewAggregate [] NewAggregate.impl
-  import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_sets_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
+  instance'MessageCountMap : MessageCountMap.TypeAssumptions
+  instance'Aggregate : Aggregate.TypeAssumptions
+  instance'aggregate : aggregate.TypeAssumptions
+  instance'Matcher : Matcher.TypeAssumptions
+  unfold'NewAggregate : FuncUnfold NewAggregate [] NewAggregate.impl
+  import'errors : _root_.Perennial.errors.Assumptions
+  import'sets : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
 
-attribute [instance] Assumptions.MessageCountMap_instance
-  Assumptions.Aggregate_instance
-  Assumptions.aggregate_instance
-  Assumptions.Matcher_instance
-  Assumptions.NewAggregate_unfold
-  Assumptions.import_errors_Assumption
-  Assumptions.import_sets_Assumption
+attribute [instance] Assumptions.instance'MessageCountMap
+  Assumptions.instance'Aggregate
+  Assumptions.instance'aggregate
+  Assumptions.instance'Matcher
+  Assumptions.unfold'NewAggregate
+  Assumptions.import'errors
+  Assumptions.import'sets
 
 end k8s_io.apimachinery.pkg.util.errors
 

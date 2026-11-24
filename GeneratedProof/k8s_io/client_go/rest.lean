@@ -24,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance APIResultAdapter_typed_pointsto :
+noncomputable instance typed_pointsto'APIResultAdapter :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.APIResultAdapter :=
   sorry -- axiomatized type
 
-noncomputable instance APIResultAdapter_into_val_typed :
+noncomputable instance into_val_typed'APIResultAdapter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.APIResultAdapter k8s_io.client_go.rest.APIResultAdapter.underlying :=
   sorry -- axiomatized type
 
@@ -43,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance Interface_typed_pointsto :
+noncomputable instance typed_pointsto'Interface :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.Interface :=
   sorry -- axiomatized type
 
-noncomputable instance Interface_into_val_typed :
+noncomputable instance into_val_typed'Interface :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.Interface k8s_io.client_go.rest.Interface.underlying :=
   sorry -- axiomatized type
 
@@ -62,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance ClientContentConfig_typed_pointsto :
+noncomputable instance typed_pointsto'ClientContentConfig :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.ClientContentConfig :=
   sorry -- axiomatized type
 
-noncomputable instance ClientContentConfig_into_val_typed :
+noncomputable instance into_val_typed'ClientContentConfig :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.ClientContentConfig k8s_io.client_go.rest.ClientContentConfig.underlying :=
   sorry -- axiomatized type
 
@@ -81,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance RESTClient_typed_pointsto :
+noncomputable instance typed_pointsto'RESTClient :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.RESTClient :=
   sorry -- axiomatized type
 
-noncomputable instance RESTClient_into_val_typed :
+noncomputable instance into_val_typed'RESTClient :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.RESTClient k8s_io.client_go.rest.RESTClient.underlying :=
   sorry -- axiomatized type
 
@@ -100,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance requestClientContentConfigProvider_typed_pointsto :
+noncomputable instance typed_pointsto'requestClientContentConfigProvider :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.requestClientContentConfigProvider :=
   sorry -- axiomatized type
 
-noncomputable instance requestClientContentConfigProvider_into_val_typed :
+noncomputable instance into_val_typed'requestClientContentConfigProvider :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.requestClientContentConfigProvider k8s_io.client_go.rest.requestClientContentConfigProvider.underlying :=
   sorry -- axiomatized type
 
@@ -119,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance clientNegotiatorWithCBORSequenceStreamDecoder_typed_pointsto :
+noncomputable instance typed_pointsto'clientNegotiatorWithCBORSequenceStreamDecoder :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.clientNegotiatorWithCBORSequenceStreamDecoder :=
   sorry -- axiomatized type
 
-noncomputable instance clientNegotiatorWithCBORSequenceStreamDecoder_into_val_typed :
+noncomputable instance into_val_typed'clientNegotiatorWithCBORSequenceStreamDecoder :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.clientNegotiatorWithCBORSequenceStreamDecoder k8s_io.client_go.rest.clientNegotiatorWithCBORSequenceStreamDecoder.underlying :=
   sorry -- axiomatized type
 
@@ -138,11 +138,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance clientNegotiatorDroppingManagedFields_typed_pointsto :
+noncomputable instance typed_pointsto'clientNegotiatorDroppingManagedFields :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.clientNegotiatorDroppingManagedFields :=
   sorry -- axiomatized type
 
-noncomputable instance clientNegotiatorDroppingManagedFields_into_val_typed :
+noncomputable instance into_val_typed'clientNegotiatorDroppingManagedFields :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.clientNegotiatorDroppingManagedFields k8s_io.client_go.rest.clientNegotiatorDroppingManagedFields.underlying :=
   sorry -- axiomatized type
 
@@ -157,11 +157,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance decoderDroppingManagedFields_typed_pointsto :
+noncomputable instance typed_pointsto'decoderDroppingManagedFields :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.decoderDroppingManagedFields :=
   sorry -- axiomatized type
 
-noncomputable instance decoderDroppingManagedFields_into_val_typed :
+noncomputable instance into_val_typed'decoderDroppingManagedFields :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.decoderDroppingManagedFields k8s_io.client_go.rest.decoderDroppingManagedFields.underlying :=
   sorry -- axiomatized type
 
@@ -176,11 +176,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance Config_typed_pointsto :
+noncomputable instance typed_pointsto'Config :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.Config :=
   sorry -- axiomatized type
 
-noncomputable instance Config_into_val_typed :
+noncomputable instance into_val_typed'Config :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.Config k8s_io.client_go.rest.Config.underlying :=
   sorry -- axiomatized type
 
@@ -195,11 +195,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance sanitizedConfig_typed_pointsto :
+noncomputable instance typed_pointsto'sanitizedConfig :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.sanitizedConfig :=
   sorry -- axiomatized type
 
-noncomputable instance sanitizedConfig_into_val_typed :
+noncomputable instance into_val_typed'sanitizedConfig :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.sanitizedConfig k8s_io.client_go.rest.sanitizedConfig.underlying :=
   sorry -- axiomatized type
 
@@ -214,11 +214,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance sanitizedAuthConfigPersister_typed_pointsto :
+noncomputable instance typed_pointsto'sanitizedAuthConfigPersister :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.sanitizedAuthConfigPersister :=
   sorry -- axiomatized type
 
-noncomputable instance sanitizedAuthConfigPersister_into_val_typed :
+noncomputable instance into_val_typed'sanitizedAuthConfigPersister :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.sanitizedAuthConfigPersister k8s_io.client_go.rest.sanitizedAuthConfigPersister.underlying :=
   sorry -- axiomatized type
 
@@ -233,11 +233,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance sanitizedObject_typed_pointsto :
+noncomputable instance typed_pointsto'sanitizedObject :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.sanitizedObject :=
   sorry -- axiomatized type
 
-noncomputable instance sanitizedObject_into_val_typed :
+noncomputable instance into_val_typed'sanitizedObject :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.sanitizedObject k8s_io.client_go.rest.sanitizedObject.underlying :=
   sorry -- axiomatized type
 
@@ -252,11 +252,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance ImpersonationConfig_typed_pointsto :
+noncomputable instance typed_pointsto'ImpersonationConfig :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.ImpersonationConfig :=
   sorry -- axiomatized type
 
-noncomputable instance ImpersonationConfig_into_val_typed :
+noncomputable instance into_val_typed'ImpersonationConfig :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.ImpersonationConfig k8s_io.client_go.rest.ImpersonationConfig.underlying :=
   sorry -- axiomatized type
 
@@ -271,11 +271,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance TLSClientConfig_typed_pointsto :
+noncomputable instance typed_pointsto'TLSClientConfig :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.TLSClientConfig :=
   sorry -- axiomatized type
 
-noncomputable instance TLSClientConfig_into_val_typed :
+noncomputable instance into_val_typed'TLSClientConfig :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.TLSClientConfig k8s_io.client_go.rest.TLSClientConfig.underlying :=
   sorry -- axiomatized type
 
@@ -290,11 +290,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance sanitizedTLSClientConfig_typed_pointsto :
+noncomputable instance typed_pointsto'sanitizedTLSClientConfig :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.sanitizedTLSClientConfig :=
   sorry -- axiomatized type
 
-noncomputable instance sanitizedTLSClientConfig_into_val_typed :
+noncomputable instance into_val_typed'sanitizedTLSClientConfig :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.sanitizedTLSClientConfig k8s_io.client_go.rest.sanitizedTLSClientConfig.underlying :=
   sorry -- axiomatized type
 
@@ -309,11 +309,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance ContentConfig_typed_pointsto :
+noncomputable instance typed_pointsto'ContentConfig :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.ContentConfig :=
   sorry -- axiomatized type
 
-noncomputable instance ContentConfig_into_val_typed :
+noncomputable instance into_val_typed'ContentConfig :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.ContentConfig k8s_io.client_go.rest.ContentConfig.underlying :=
   sorry -- axiomatized type
 
@@ -328,11 +328,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance AuthProvider_typed_pointsto :
+noncomputable instance typed_pointsto'AuthProvider :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.AuthProvider :=
   sorry -- axiomatized type
 
-noncomputable instance AuthProvider_into_val_typed :
+noncomputable instance into_val_typed'AuthProvider :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.AuthProvider k8s_io.client_go.rest.AuthProvider.underlying :=
   sorry -- axiomatized type
 
@@ -347,11 +347,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance Factory_typed_pointsto :
+noncomputable instance typed_pointsto'Factory :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.Factory :=
   sorry -- axiomatized type
 
-noncomputable instance Factory_into_val_typed :
+noncomputable instance into_val_typed'Factory :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.Factory k8s_io.client_go.rest.Factory.underlying :=
   sorry -- axiomatized type
 
@@ -366,11 +366,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance AuthProviderConfigPersister_typed_pointsto :
+noncomputable instance typed_pointsto'AuthProviderConfigPersister :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.AuthProviderConfigPersister :=
   sorry -- axiomatized type
 
-noncomputable instance AuthProviderConfigPersister_into_val_typed :
+noncomputable instance into_val_typed'AuthProviderConfigPersister :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.AuthProviderConfigPersister k8s_io.client_go.rest.AuthProviderConfigPersister.underlying :=
   sorry -- axiomatized type
 
@@ -385,11 +385,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance noopPersister_typed_pointsto :
+noncomputable instance typed_pointsto'noopPersister :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.noopPersister :=
   sorry -- axiomatized type
 
-noncomputable instance noopPersister_into_val_typed :
+noncomputable instance into_val_typed'noopPersister :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.noopPersister k8s_io.client_go.rest.noopPersister.underlying :=
   sorry -- axiomatized type
 
@@ -404,11 +404,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance HTTPClient_typed_pointsto :
+noncomputable instance typed_pointsto'HTTPClient :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.HTTPClient :=
   sorry -- axiomatized type
 
-noncomputable instance HTTPClient_into_val_typed :
+noncomputable instance into_val_typed'HTTPClient :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.HTTPClient k8s_io.client_go.rest.HTTPClient.underlying :=
   sorry -- axiomatized type
 
@@ -423,11 +423,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance ResponseWrapper_typed_pointsto :
+noncomputable instance typed_pointsto'ResponseWrapper :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.ResponseWrapper :=
   sorry -- axiomatized type
 
-noncomputable instance ResponseWrapper_into_val_typed :
+noncomputable instance into_val_typed'ResponseWrapper :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.ResponseWrapper k8s_io.client_go.rest.ResponseWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -442,11 +442,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance RequestConstructionError_typed_pointsto :
+noncomputable instance typed_pointsto'RequestConstructionError :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.RequestConstructionError :=
   sorry -- axiomatized type
 
-noncomputable instance RequestConstructionError_into_val_typed :
+noncomputable instance into_val_typed'RequestConstructionError :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.RequestConstructionError k8s_io.client_go.rest.RequestConstructionError.underlying :=
   sorry -- axiomatized type
 
@@ -461,11 +461,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance requestRetryFunc_typed_pointsto :
+noncomputable instance typed_pointsto'requestRetryFunc :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.requestRetryFunc :=
   sorry -- axiomatized type
 
-noncomputable instance requestRetryFunc_into_val_typed :
+noncomputable instance into_val_typed'requestRetryFunc :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.requestRetryFunc k8s_io.client_go.rest.requestRetryFunc.underlying :=
   sorry -- axiomatized type
 
@@ -480,11 +480,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance Request_typed_pointsto :
+noncomputable instance typed_pointsto'Request :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.Request :=
   sorry -- axiomatized type
 
-noncomputable instance Request_into_val_typed :
+noncomputable instance into_val_typed'Request :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.Request k8s_io.client_go.rest.Request.underlying :=
   sorry -- axiomatized type
 
@@ -499,11 +499,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance throttleSettings_typed_pointsto :
+noncomputable instance typed_pointsto'throttleSettings :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.throttleSettings :=
   sorry -- axiomatized type
 
-noncomputable instance throttleSettings_into_val_typed :
+noncomputable instance into_val_typed'throttleSettings :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.throttleSettings k8s_io.client_go.rest.throttleSettings.underlying :=
   sorry -- axiomatized type
 
@@ -518,11 +518,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance throttledLogger_typed_pointsto :
+noncomputable instance typed_pointsto'throttledLogger :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.throttledLogger :=
   sorry -- axiomatized type
 
-noncomputable instance throttledLogger_into_val_typed :
+noncomputable instance into_val_typed'throttledLogger :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.throttledLogger k8s_io.client_go.rest.throttledLogger.underlying :=
   sorry -- axiomatized type
 
@@ -537,11 +537,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance Result_typed_pointsto :
+noncomputable instance typed_pointsto'Result :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.Result :=
   sorry -- axiomatized type
 
-noncomputable instance Result_into_val_typed :
+noncomputable instance into_val_typed'Result :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.Result k8s_io.client_go.rest.Result.underlying :=
   sorry -- axiomatized type
 
@@ -556,11 +556,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance BackoffManager_typed_pointsto :
+noncomputable instance typed_pointsto'BackoffManager :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.BackoffManager :=
   sorry -- axiomatized type
 
-noncomputable instance BackoffManager_into_val_typed :
+noncomputable instance into_val_typed'BackoffManager :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.BackoffManager k8s_io.client_go.rest.BackoffManager.underlying :=
   sorry -- axiomatized type
 
@@ -575,11 +575,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance BackoffManagerWithContext_typed_pointsto :
+noncomputable instance typed_pointsto'BackoffManagerWithContext :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.BackoffManagerWithContext :=
   sorry -- axiomatized type
 
-noncomputable instance BackoffManagerWithContext_into_val_typed :
+noncomputable instance into_val_typed'BackoffManagerWithContext :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.BackoffManagerWithContext k8s_io.client_go.rest.BackoffManagerWithContext.underlying :=
   sorry -- axiomatized type
 
@@ -594,11 +594,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance URLBackoff_typed_pointsto :
+noncomputable instance typed_pointsto'URLBackoff :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.URLBackoff :=
   sorry -- axiomatized type
 
-noncomputable instance URLBackoff_into_val_typed :
+noncomputable instance into_val_typed'URLBackoff :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.URLBackoff k8s_io.client_go.rest.URLBackoff.underlying :=
   sorry -- axiomatized type
 
@@ -613,11 +613,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance NoBackoff_typed_pointsto :
+noncomputable instance typed_pointsto'NoBackoff :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.NoBackoff :=
   sorry -- axiomatized type
 
-noncomputable instance NoBackoff_into_val_typed :
+noncomputable instance into_val_typed'NoBackoff :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.NoBackoff k8s_io.client_go.rest.NoBackoff.underlying :=
   sorry -- axiomatized type
 
@@ -632,11 +632,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance backoffManagerNopContext_typed_pointsto :
+noncomputable instance typed_pointsto'backoffManagerNopContext :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.backoffManagerNopContext :=
   sorry -- axiomatized type
 
-noncomputable instance backoffManagerNopContext_into_val_typed :
+noncomputable instance into_val_typed'backoffManagerNopContext :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.backoffManagerNopContext k8s_io.client_go.rest.backoffManagerNopContext.underlying :=
   sorry -- axiomatized type
 
@@ -651,11 +651,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance WarningHandler_typed_pointsto :
+noncomputable instance typed_pointsto'WarningHandler :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.WarningHandler :=
   sorry -- axiomatized type
 
-noncomputable instance WarningHandler_into_val_typed :
+noncomputable instance into_val_typed'WarningHandler :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.WarningHandler k8s_io.client_go.rest.WarningHandler.underlying :=
   sorry -- axiomatized type
 
@@ -670,11 +670,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance WarningHandlerWithContext_typed_pointsto :
+noncomputable instance typed_pointsto'WarningHandlerWithContext :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.WarningHandlerWithContext :=
   sorry -- axiomatized type
 
-noncomputable instance WarningHandlerWithContext_into_val_typed :
+noncomputable instance into_val_typed'WarningHandlerWithContext :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.WarningHandlerWithContext k8s_io.client_go.rest.WarningHandlerWithContext.underlying :=
   sorry -- axiomatized type
 
@@ -689,11 +689,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance warningLoggerNopContext_typed_pointsto :
+noncomputable instance typed_pointsto'warningLoggerNopContext :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.warningLoggerNopContext :=
   sorry -- axiomatized type
 
-noncomputable instance warningLoggerNopContext_into_val_typed :
+noncomputable instance into_val_typed'warningLoggerNopContext :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.warningLoggerNopContext k8s_io.client_go.rest.warningLoggerNopContext.underlying :=
   sorry -- axiomatized type
 
@@ -708,11 +708,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance NoWarnings_typed_pointsto :
+noncomputable instance typed_pointsto'NoWarnings :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.NoWarnings :=
   sorry -- axiomatized type
 
-noncomputable instance NoWarnings_into_val_typed :
+noncomputable instance into_val_typed'NoWarnings :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.NoWarnings k8s_io.client_go.rest.NoWarnings.underlying :=
   sorry -- axiomatized type
 
@@ -727,11 +727,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance WarningLogger_typed_pointsto :
+noncomputable instance typed_pointsto'WarningLogger :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.WarningLogger :=
   sorry -- axiomatized type
 
-noncomputable instance WarningLogger_into_val_typed :
+noncomputable instance into_val_typed'WarningLogger :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.WarningLogger k8s_io.client_go.rest.WarningLogger.underlying :=
   sorry -- axiomatized type
 
@@ -746,11 +746,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance warningWriter_typed_pointsto :
+noncomputable instance typed_pointsto'warningWriter :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.warningWriter :=
   sorry -- axiomatized type
 
-noncomputable instance warningWriter_into_val_typed :
+noncomputable instance into_val_typed'warningWriter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.warningWriter k8s_io.client_go.rest.warningWriter.underlying :=
   sorry -- axiomatized type
 
@@ -765,11 +765,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance WarningWriterOptions_typed_pointsto :
+noncomputable instance typed_pointsto'WarningWriterOptions :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.WarningWriterOptions :=
   sorry -- axiomatized type
 
-noncomputable instance WarningWriterOptions_into_val_typed :
+noncomputable instance into_val_typed'WarningWriterOptions :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.WarningWriterOptions k8s_io.client_go.rest.WarningWriterOptions.underlying :=
   sorry -- axiomatized type
 
@@ -784,11 +784,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance IsRetryableErrorFunc_typed_pointsto :
+noncomputable instance typed_pointsto'IsRetryableErrorFunc :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.IsRetryableErrorFunc :=
   sorry -- axiomatized type
 
-noncomputable instance IsRetryableErrorFunc_into_val_typed :
+noncomputable instance into_val_typed'IsRetryableErrorFunc :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.IsRetryableErrorFunc k8s_io.client_go.rest.IsRetryableErrorFunc.underlying :=
   sorry -- axiomatized type
 
@@ -803,11 +803,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance WithRetry_typed_pointsto :
+noncomputable instance typed_pointsto'WithRetry :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.WithRetry :=
   sorry -- axiomatized type
 
-noncomputable instance WithRetry_into_val_typed :
+noncomputable instance into_val_typed'WithRetry :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.WithRetry k8s_io.client_go.rest.WithRetry.underlying :=
   sorry -- axiomatized type
 
@@ -822,11 +822,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance RetryAfter_typed_pointsto :
+noncomputable instance typed_pointsto'RetryAfter :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.RetryAfter :=
   sorry -- axiomatized type
 
-noncomputable instance RetryAfter_into_val_typed :
+noncomputable instance into_val_typed'RetryAfter :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.RetryAfter k8s_io.client_go.rest.RetryAfter.underlying :=
   sorry -- axiomatized type
 
@@ -841,11 +841,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance withRetry_typed_pointsto :
+noncomputable instance typed_pointsto'withRetry :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.withRetry :=
   sorry -- axiomatized type
 
-noncomputable instance withRetry_into_val_typed :
+noncomputable instance into_val_typed'withRetry :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.withRetry k8s_io.client_go.rest.withRetry.underlying :=
   sorry -- axiomatized type
 
@@ -860,11 +860,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.rest.Assumptions]
 
-noncomputable instance wrapPreviousError_typed_pointsto :
+noncomputable instance typed_pointsto'wrapPreviousError :
     TypedPointsto (GF := GF) k8s_io.client_go.rest.wrapPreviousError :=
   sorry -- axiomatized type
 
-noncomputable instance wrapPreviousError_into_val_typed :
+noncomputable instance into_val_typed'wrapPreviousError :
     IntoValTypedUnderlying (GF := GF) k8s_io.client_go.rest.wrapPreviousError k8s_io.client_go.rest.wrapPreviousError.underlying :=
   sorry -- axiomatized type
 

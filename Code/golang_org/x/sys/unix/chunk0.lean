@@ -25539,7 +25539,7 @@ noncomputable instance Flock_t.zero_val [GooseExts] : ZeroVal Flock_t :=
 @[irreducible] noncomputable def Flock_t.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Flock_t.fieldsUnsealed
 
-noncomputable instance equals_unfold_Flock_t [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'Flock_t [GooseExts] [GoGlobalContext] :
     EqualsUnfold Flock_t.fields Flock_t.fieldsUnsealed :=
   ⟨by unfold Flock_t.fields; rfl⟩
 

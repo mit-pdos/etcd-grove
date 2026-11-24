@@ -186,15 +186,15 @@ class ID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSeman
   underlying : go.UnderlyingDirectedEq ID.ty ID.underlying
   method_set : go.MethodSetIs ID.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ID.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
-  String_unfold : MethodUnfold ID.ty go!"String" ID.String.impl
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType ID.ty) go!"String" (LamV "$r"
+  unfold'String : MethodUnfold ID.ty go!"String" ID.String.impl
+  ptr_unfold'String : MethodUnfold (go.GoType.PointerType ID.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ID.ty go!"String"))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "$r"))))
 
 attribute [instance] ID.TypeAssumptions.underlying
   ID.TypeAssumptions.method_set
   ID.TypeAssumptions.ptr_method_set
-  ID.TypeAssumptions.String_unfold
-  ID.TypeAssumptions.ptr_String_unfold
+  ID.TypeAssumptions.unfold'String
+  ID.TypeAssumptions.ptr_unfold'String
 
 abbrev IDSlice [GooseExts] : Type := GoSlice
 
@@ -251,7 +251,7 @@ noncomputable instance unsafeSet.zero_val [GooseExts] : ZeroVal unsafeSet :=
 @[irreducible] noncomputable def unsafeSet.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   unsafeSet.fieldsUnsealed
 
-noncomputable instance equals_unfold_unsafeSet [GooseExts] [GoGlobalContext] :
+noncomputable instance equals_unfold'unsafeSet [GooseExts] [GoGlobalContext] :
     EqualsUnfold unsafeSet.fields unsafeSet.fieldsUnsealed :=
   ⟨by unfold unsafeSet.fields; rfl⟩
 
@@ -261,15 +261,15 @@ noncomputable instance equals_unfold_unsafeSet [GooseExts] [GoGlobalContext] :
 class unsafeSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying unsafeSet.underlying unsafeSet
   underlying : go.UnderlyingDirectedEq unsafeSet.ty unsafeSet.underlying
-  get_d : ∀ (x : unsafeSet), go.IsGoStepPureDetTagged under (StructFieldGet unsafeSet.underlying go!"d") #x (Val #(x.d'))
-  set_d : ∀ (x : unsafeSet) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet unsafeSet.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : unsafeSet)))
+  get'd : ∀ (x : unsafeSet), go.IsGoStepPureDetTagged under (StructFieldGet unsafeSet.underlying go!"d") #x (Val #(x.d'))
+  set'd : ∀ (x : unsafeSet) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet unsafeSet.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : unsafeSet)))
   method_set : go.MethodSetIs unsafeSet.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType unsafeSet.ty) [(go!"Add", (some (go.signature.Signature [go.string] false []))), (go!"Contains", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"ContainsAll", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.bool]))), (go!"Copy", (some (go.signature.Signature [] false [Set''.ty]))), (go!"Equals", (some (go.signature.Signature [Set''.ty] false [go.bool]))), (go!"Length", (some (go.signature.Signature [] false [go.int]))), (go!"Remove", (some (go.signature.Signature [go.string] false []))), (go!"Sub", (some (go.signature.Signature [Set''.ty] false [Set''.ty]))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] unsafeSet.TypeAssumptions.type_repr
   unsafeSet.TypeAssumptions.underlying
-  unsafeSet.TypeAssumptions.get_d
-  unsafeSet.TypeAssumptions.set_d
+  unsafeSet.TypeAssumptions.get'd
+  unsafeSet.TypeAssumptions.set'd
   unsafeSet.TypeAssumptions.method_set
   unsafeSet.TypeAssumptions.ptr_method_set
 
@@ -315,20 +315,20 @@ class URLs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   underlying : go.UnderlyingDirectedEq URLs.ty URLs.underlying
   method_set : go.MethodSetIs URLs.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"StringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType URLs.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Sort", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"StringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
-  Len_unfold : MethodUnfold URLs.ty go!"Len" URLs.Len.impl
-  StringSlice_unfold : MethodUnfold URLs.ty go!"StringSlice" URLs.StringSlice.impl
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType URLs.ty) go!"Len" (LamV "$r"
+  unfold'Len : MethodUnfold URLs.ty go!"Len" URLs.Len.impl
+  unfold'StringSlice : MethodUnfold URLs.ty go!"StringSlice" URLs.StringSlice.impl
+  ptr_unfold'Len : MethodUnfold (go.GoType.PointerType URLs.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve URLs.ty go!"Len"))) (App (Val (GoInstruction (GoLoad URLs.ty))) (Var "$r"))))
-  ptr_StringSlice_unfold : MethodUnfold (go.GoType.PointerType URLs.ty) go!"StringSlice" (LamV "$r"
+  ptr_unfold'StringSlice : MethodUnfold (go.GoType.PointerType URLs.ty) go!"StringSlice" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve URLs.ty go!"StringSlice"))) (App (Val (GoInstruction (GoLoad URLs.ty))) (Var "$r"))))
 
 attribute [instance] URLs.TypeAssumptions.underlying
   URLs.TypeAssumptions.method_set
   URLs.TypeAssumptions.ptr_method_set
-  URLs.TypeAssumptions.Len_unfold
-  URLs.TypeAssumptions.StringSlice_unfold
-  URLs.TypeAssumptions.ptr_Len_unfold
-  URLs.TypeAssumptions.ptr_StringSlice_unfold
+  URLs.TypeAssumptions.unfold'Len
+  URLs.TypeAssumptions.unfold'StringSlice
+  URLs.TypeAssumptions.ptr_unfold'Len
+  URLs.TypeAssumptions.ptr_unfold'StringSlice
 
 abbrev URLsMap [GooseExts] : Type := GoMap
 
@@ -345,29 +345,29 @@ attribute [instance] URLsMap.TypeAssumptions.underlying
   URLsMap.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  ID_instance : ID.TypeAssumptions
-  IDSlice_instance : IDSlice.TypeAssumptions
-  Set_instance : Set''.TypeAssumptions
-  ThreadsafeSet_instance : ThreadsafeSet.TypeAssumptions
-  unsafeSet_instance : unsafeSet.TypeAssumptions
-  tsafeSet_instance : tsafeSet.TypeAssumptions
-  Uint64Slice_instance : Uint64Slice.TypeAssumptions
-  URLs_instance : URLs.TypeAssumptions
-  URLsMap_instance : URLsMap.TypeAssumptions
-  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
-  import_url_Assumption : _root_.Perennial.net.url.Assumptions
+  instance'ID : ID.TypeAssumptions
+  instance'IDSlice : IDSlice.TypeAssumptions
+  instance'Set : Set''.TypeAssumptions
+  instance'ThreadsafeSet : ThreadsafeSet.TypeAssumptions
+  instance'unsafeSet : unsafeSet.TypeAssumptions
+  instance'tsafeSet : tsafeSet.TypeAssumptions
+  instance'Uint64Slice : Uint64Slice.TypeAssumptions
+  instance'URLs : URLs.TypeAssumptions
+  instance'URLsMap : URLsMap.TypeAssumptions
+  import'strconv : _root_.Perennial.strconv.Assumptions
+  import'url : _root_.Perennial.net.url.Assumptions
 
-attribute [instance] Assumptions.ID_instance
-  Assumptions.IDSlice_instance
-  Assumptions.Set_instance
-  Assumptions.ThreadsafeSet_instance
-  Assumptions.unsafeSet_instance
-  Assumptions.tsafeSet_instance
-  Assumptions.Uint64Slice_instance
-  Assumptions.URLs_instance
-  Assumptions.URLsMap_instance
-  Assumptions.import_strconv_Assumption
-  Assumptions.import_url_Assumption
+attribute [instance] Assumptions.instance'ID
+  Assumptions.instance'IDSlice
+  Assumptions.instance'Set
+  Assumptions.instance'ThreadsafeSet
+  Assumptions.instance'unsafeSet
+  Assumptions.instance'tsafeSet
+  Assumptions.instance'Uint64Slice
+  Assumptions.instance'URLs
+  Assumptions.instance'URLsMap
+  Assumptions.import'strconv
+  Assumptions.import'url
 
 end go_etcd_io.etcd.client.pkg.v3.types
 

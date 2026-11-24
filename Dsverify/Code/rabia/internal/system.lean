@@ -91,15 +91,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.syscall.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  SigListen_unfold : FuncUnfold SigListen [] SigListen.impl
-  import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_signal_Assumption : _root_.Perennial.os.signal.Assumptions
-  import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
+  unfold'SigListen : FuncUnfold SigListen [] SigListen.impl
+  import'os : _root_.Perennial.os.Assumptions
+  import'signal : _root_.Perennial.os.signal.Assumptions
+  import'syscall : _root_.Perennial.syscall.Assumptions
 
-attribute [instance] Assumptions.SigListen_unfold
-  Assumptions.import_os_Assumption
-  Assumptions.import_signal_Assumption
-  Assumptions.import_syscall_Assumption
+attribute [instance] Assumptions.unfold'SigListen
+  Assumptions.import'os
+  Assumptions.import'signal
+  Assumptions.import'syscall
 
 end rabia.internal.system
 

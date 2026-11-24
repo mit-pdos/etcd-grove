@@ -26,7 +26,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.base64.Assumptions]
 
-noncomputable instance Encoding_typed_pointsto :
+noncomputable instance typed_pointsto'Encoding :
     TypedPointsto (GF := GF) encoding.base64.Encoding where
   typedPointstoDef l v dq := iprop(
     "encode" ∷ typedPointsto (structFieldRef encoding.base64.Encoding go!"encode" l) v.encode' dq ∗
@@ -38,11 +38,11 @@ noncomputable instance Encoding_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Encoding_into_val_typed :
+noncomputable instance into_val_typed'Encoding :
     IntoValTypedUnderlying (GF := GF) encoding.base64.Encoding encoding.base64.Encoding.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance Encoding_access_load_encode (l : Loc) (v : encoding.base64.Encoding) (dq : DFrac) :
+noncomputable instance access_load'Encoding'encode (l : Loc) (v : encoding.base64.Encoding) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"encode" l) v.encode' dq)
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"encode" l) v.encode' dq)
@@ -50,7 +50,7 @@ noncomputable instance Encoding_access_load_encode (l : Loc) (v : encoding.base6
  by
   solve_pointsto_access_struct
 
-noncomputable instance Encoding_access_store_encode (l : Loc) (v : encoding.base64.Encoding) (y : (GoArray w8 64)) :
+noncomputable instance access_store'Encoding'encode (l : Loc) (v : encoding.base64.Encoding) (y : (GoArray w8 64)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"encode" l) v.encode' (DFrac.own 1))
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"encode" l) y (DFrac.own 1))
@@ -58,7 +58,7 @@ noncomputable instance Encoding_access_store_encode (l : Loc) (v : encoding.base
  by
   solve_pointsto_access_struct
 
-noncomputable instance Encoding_access_load_decodeMap (l : Loc) (v : encoding.base64.Encoding) (dq : DFrac) :
+noncomputable instance access_load'Encoding'decodeMap (l : Loc) (v : encoding.base64.Encoding) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"decodeMap" l) v.decodeMap' dq)
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"decodeMap" l) v.decodeMap' dq)
@@ -66,7 +66,7 @@ noncomputable instance Encoding_access_load_decodeMap (l : Loc) (v : encoding.ba
  by
   solve_pointsto_access_struct
 
-noncomputable instance Encoding_access_store_decodeMap (l : Loc) (v : encoding.base64.Encoding) (y : (GoArray w8 256)) :
+noncomputable instance access_store'Encoding'decodeMap (l : Loc) (v : encoding.base64.Encoding) (y : (GoArray w8 256)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"decodeMap" l) v.decodeMap' (DFrac.own 1))
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"decodeMap" l) y (DFrac.own 1))
@@ -74,7 +74,7 @@ noncomputable instance Encoding_access_store_decodeMap (l : Loc) (v : encoding.b
  by
   solve_pointsto_access_struct
 
-noncomputable instance Encoding_access_load_padChar (l : Loc) (v : encoding.base64.Encoding) (dq : DFrac) :
+noncomputable instance access_load'Encoding'padChar (l : Loc) (v : encoding.base64.Encoding) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"padChar" l) v.padChar' dq)
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"padChar" l) v.padChar' dq)
@@ -82,7 +82,7 @@ noncomputable instance Encoding_access_load_padChar (l : Loc) (v : encoding.base
  by
   solve_pointsto_access_struct
 
-noncomputable instance Encoding_access_store_padChar (l : Loc) (v : encoding.base64.Encoding) (y : w32) :
+noncomputable instance access_store'Encoding'padChar (l : Loc) (v : encoding.base64.Encoding) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"padChar" l) v.padChar' (DFrac.own 1))
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"padChar" l) y (DFrac.own 1))
@@ -90,7 +90,7 @@ noncomputable instance Encoding_access_store_padChar (l : Loc) (v : encoding.bas
  by
   solve_pointsto_access_struct
 
-noncomputable instance Encoding_access_load_strict (l : Loc) (v : encoding.base64.Encoding) (dq : DFrac) :
+noncomputable instance access_load'Encoding'strict (l : Loc) (v : encoding.base64.Encoding) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"strict" l) v.strict' dq)
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"strict" l) v.strict' dq)
@@ -98,7 +98,7 @@ noncomputable instance Encoding_access_load_strict (l : Loc) (v : encoding.base6
  by
   solve_pointsto_access_struct
 
-noncomputable instance Encoding_access_store_strict (l : Loc) (v : encoding.base64.Encoding) (y : Bool) :
+noncomputable instance access_store'Encoding'strict (l : Loc) (v : encoding.base64.Encoding) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"strict" l) v.strict' (DFrac.own 1))
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"strict" l) y (DFrac.own 1))
@@ -117,11 +117,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.base64.Assumptions]
 
-noncomputable instance encoder_typed_pointsto :
+noncomputable instance typed_pointsto'encoder :
     TypedPointsto (GF := GF) encoding.base64.encoder :=
   sorry -- axiomatized type
 
-noncomputable instance encoder_into_val_typed :
+noncomputable instance into_val_typed'encoder :
     IntoValTypedUnderlying (GF := GF) encoding.base64.encoder encoding.base64.encoder.underlying :=
   sorry -- axiomatized type
 
@@ -136,11 +136,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.base64.Assumptions]
 
-noncomputable instance decoder_typed_pointsto :
+noncomputable instance typed_pointsto'decoder :
     TypedPointsto (GF := GF) encoding.base64.decoder :=
   sorry -- axiomatized type
 
-noncomputable instance decoder_into_val_typed :
+noncomputable instance into_val_typed'decoder :
     IntoValTypedUnderlying (GF := GF) encoding.base64.decoder encoding.base64.decoder.underlying :=
   sorry -- axiomatized type
 
@@ -155,11 +155,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.base64.Assumptions]
 
-noncomputable instance newlineFilteringReader_typed_pointsto :
+noncomputable instance typed_pointsto'newlineFilteringReader :
     TypedPointsto (GF := GF) encoding.base64.newlineFilteringReader :=
   sorry -- axiomatized type
 
-noncomputable instance newlineFilteringReader_into_val_typed :
+noncomputable instance into_val_typed'newlineFilteringReader :
     IntoValTypedUnderlying (GF := GF) encoding.base64.newlineFilteringReader encoding.base64.newlineFilteringReader.underlying :=
   sorry -- axiomatized type
 
